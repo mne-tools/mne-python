@@ -15,51 +15,94 @@ from ..utils import (logger, verbose, _validate_type, fill_doc, _ensure_int,
                      _check_option)
 
 
-def get_channel_type_constants():
-    """Return all known channel types.
+def get_channel_type_constants(include_defaults=False):
+    """Return all known channel types, and associated FIFF constants.
+
+    Parameters
+    ----------
+    include_defaults : bool
+        Whether to include default values for "unit" and "coil_type" for all
+        entries (see Notes). Defaults are generally based on values normally
+        present for a VectorView MEG system. Defaults to ``False``.
 
     Returns
     -------
     channel_types : dict
-        The keys contain the channel types, and the values contain the
-        corresponding values in the info['chs'][idx] dictionary.
+        The keys are channel type strings, and the values are dictionaries of
+        FIFF constants for "kind", and possibly "unit" and "coil_type".
+
+    Notes
+    -----
+        Values which might vary within a channel type across real data
+        recordings are excluded unless ``include_defaults=True``. For example,
+        "ref_meg" channels may have coil type
+        ``FIFFV_COIL_MAGNES_OFFDIAG_REF_GRAD``, ``FIFFV_COIL_VV_MAG_T3``, etc
+        (depending on the recording system), so no "coil_type" entry is given
+        for "ref_meg" unless ``include_defaults`` is requested.
     """
-    return dict(grad=dict(kind=FIFF.FIFFV_MEG_CH,
-                          unit=FIFF.FIFF_UNIT_T_M),
-                mag=dict(kind=FIFF.FIFFV_MEG_CH,
-                         unit=FIFF.FIFF_UNIT_T),
+    base = dict(grad=dict(kind=FIFF.FIFFV_MEG_CH, unit=FIFF.FIFF_UNIT_T_M),
+                mag=dict(kind=FIFF.FIFFV_MEG_CH, unit=FIFF.FIFF_UNIT_T),
                 ref_meg=dict(kind=FIFF.FIFFV_REF_MEG_CH),
-                eeg=dict(kind=FIFF.FIFFV_EEG_CH),
+                eeg=dict(kind=FIFF.FIFFV_EEG_CH,
+                         unit=FIFF.FIFF_UNIT_V,
+                         coil_type=FIFF.FIFFV_COIL_EEG),
+                seeg=dict(kind=FIFF.FIFFV_SEEG_CH,
+                          unit=FIFF.FIFF_UNIT_V,
+                          coil_type=FIFF.FIFFV_COIL_EEG),
+                ecog=dict(kind=FIFF.FIFFV_ECOG_CH,
+                          unit=FIFF.FIFF_UNIT_V,
+                          coil_type=FIFF.FIFFV_COIL_EEG),
+                eog=dict(kind=FIFF.FIFFV_EOG_CH, unit=FIFF.FIFF_UNIT_V),
+                emg=dict(kind=FIFF.FIFFV_EMG_CH, unit=FIFF.FIFF_UNIT_V),
+                ecg=dict(kind=FIFF.FIFFV_ECG_CH, unit=FIFF.FIFF_UNIT_V),
+                bio=dict(kind=FIFF.FIFFV_BIO_CH, unit=FIFF.FIFF_UNIT_V),
+                misc=dict(kind=FIFF.FIFFV_MISC_CH, unit=FIFF.FIFF_UNIT_V),
                 stim=dict(kind=FIFF.FIFFV_STIM_CH),
-                eog=dict(kind=FIFF.FIFFV_EOG_CH),
-                emg=dict(kind=FIFF.FIFFV_EMG_CH),
-                ecg=dict(kind=FIFF.FIFFV_ECG_CH),
                 resp=dict(kind=FIFF.FIFFV_RESP_CH),
-                misc=dict(kind=FIFF.FIFFV_MISC_CH),
                 exci=dict(kind=FIFF.FIFFV_EXCI_CH),
-                ias=dict(kind=FIFF.FIFFV_IAS_CH),
                 syst=dict(kind=FIFF.FIFFV_SYST_CH),
-                seeg=dict(kind=FIFF.FIFFV_SEEG_CH),
-                bio=dict(kind=FIFF.FIFFV_BIO_CH),
+                ias=dict(kind=FIFF.FIFFV_IAS_CH),
+                gof=dict(kind=FIFF.FIFFV_GOODNESS_FIT),
+                dipole=dict(kind=FIFF.FIFFV_DIPOLE_WAVE),
                 chpi=dict(kind=[FIFF.FIFFV_QUAT_0, FIFF.FIFFV_QUAT_1,
                                 FIFF.FIFFV_QUAT_2, FIFF.FIFFV_QUAT_3,
                                 FIFF.FIFFV_QUAT_4, FIFF.FIFFV_QUAT_5,
                                 FIFF.FIFFV_QUAT_6, FIFF.FIFFV_HPI_G,
                                 FIFF.FIFFV_HPI_ERR, FIFF.FIFFV_HPI_MOV]),
-                dipole=dict(kind=FIFF.FIFFV_DIPOLE_WAVE),
-                gof=dict(kind=FIFF.FIFFV_GOODNESS_FIT),
-                ecog=dict(kind=FIFF.FIFFV_ECOG_CH),
                 fnirs_cw_amplitude=dict(
                     kind=FIFF.FIFFV_FNIRS_CH,
+                    unit=FIFF.FIFF_UNIT_V,
                     coil_type=FIFF.FIFFV_COIL_FNIRS_CW_AMPLITUDE),
                 fnirs_od=dict(kind=FIFF.FIFFV_FNIRS_CH,
                               coil_type=FIFF.FIFFV_COIL_FNIRS_OD),
                 hbo=dict(kind=FIFF.FIFFV_FNIRS_CH,
+                         unit=FIFF.FIFF_UNIT_MOL,
                          coil_type=FIFF.FIFFV_COIL_FNIRS_HBO),
                 hbr=dict(kind=FIFF.FIFFV_FNIRS_CH,
+                         unit=FIFF.FIFF_UNIT_MOL,
                          coil_type=FIFF.FIFFV_COIL_FNIRS_HBR),
                 csd=dict(kind=FIFF.FIFFV_EEG_CH,
+                         unit=FIFF.FIFF_UNIT_V_M2,
                          coil_type=FIFF.FIFFV_COIL_EEG_CSD))
+    if include_defaults:
+        coil_none = dict(coil_type=FIFF.FIFFV_COIL_NONE)
+        unit_none = dict(unit=FIFF.FIFF_UNIT_NONE)
+        defaults = dict(
+            grad=dict(coil_type=FIFF.FIFFV_COIL_VV_PLANAR_T1),
+            mag=dict(coil_type=FIFF.FIFFV_COIL_VV_MAG_T3),
+            ref_meg=dict(coil_type=FIFF.FIFFV_COIL_VV_MAG_T3,
+                         unit=FIFF.FIFF_UNIT_T),
+            misc=dict(**coil_none, **unit_none),  # NB: overwrites UNIT_V
+            stim=dict(unit=FIFF.FIFF_UNIT_V, **coil_none),
+            eog=coil_none,
+            ecg=coil_none,
+            emg=coil_none,
+            bio=coil_none,
+            fnirs_od=unit_none,
+        )
+        for key, value in defaults.items():
+            base[key].update(value)
+    return base
 
 
 _first_rule = {

@@ -408,7 +408,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                                 f'got {events_type}')
             if events.ndim != 2 or events.shape[1] != 3:
                 raise ValueError(
-                    'events must be of shape (N, 3), got {events.shape}')
+                    f'events must be of shape (N, 3), got {events.shape}')
             events_max = events.max()
             if events_max > INT32_MAX:
                 raise ValueError(

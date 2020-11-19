@@ -11,7 +11,7 @@ jobs:
   # Linux
   job:
     name: 'py3.8'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     defaults:
       run:
         shell: bash

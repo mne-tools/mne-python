@@ -11,7 +11,7 @@ jobs:
   # Old dependencies
   job:
     name: 'py3.6'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     defaults:
       run:
         shell: bash
