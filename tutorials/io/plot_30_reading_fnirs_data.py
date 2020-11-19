@@ -44,7 +44,7 @@ BOXY (.txt)
 
 BOXY recordings can be read in using :func:`mne.io.read_raw_boxy`.
 The BOXY software and ISS Imagent I and II devices store data in a single .txt
-file containing DC (overall background light intensity),
+file containing DC `fnirs_cw_amplitude` (overall background light intensity),
 AC `fnirs_fd_ac_amplitude` (modulated light intensity), and Phase `fnirs_fd_phase` information for each source and
 detector combination. These raw data files can be saved as parsed or unparsed
 .txt files, which affects how the data in the file is organised.
