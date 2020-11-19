@@ -20,7 +20,7 @@ jobs:
       CONDA_ENV: 'environment.yml'
       DISPLAY: ':99.0'
       MNE_LOGGING_LEVEL: 'warning'
-      OPENBLAS_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
       PYTHONUNBUFFERED: '1'
       PYTHON_VERSION: '3.8'
     steps:
