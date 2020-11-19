@@ -760,7 +760,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
     is_exg = [ch['type'] in (KIT.CHANNEL_EEG, KIT.CHANNEL_ECG)
               for ch in channels]
     exg_gains /= 2 ** (adc_stored - 14)
-    exg_gains[exg_gains == 0] = 1. / 2 ** 28
+    exg_gains[exg_gains == 0] = ad_to_volt
     conv_factor[is_exg] = exg_gains
     sqd['conv_factor'] = conv_factor[:, np.newaxis]
 
