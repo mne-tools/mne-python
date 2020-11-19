@@ -24,7 +24,7 @@ jobs:
         id: result_step
 
   style:
-    needs: check-skip
+    needs: check_skip
     if: ${{ ! needs.check_skip.outputs.skip }}
     runs-on: ubuntu-20.04
     env:
