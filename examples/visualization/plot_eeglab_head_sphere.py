@@ -99,7 +99,6 @@ fake_evoked.plot_sensors(axes=ax[0], show=False)
 fake_evoked.plot_sensors(sphere=(x, y, z, radius), axes=ax[1], show=False)
 
 # add titles
-fig.texts[0].remove()
 ax[0].set_title('MNE channel projection', fontweight='bold')
 ax[1].set_title('EEGLAB channel projection', fontweight='bold')
 

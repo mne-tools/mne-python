@@ -114,21 +114,22 @@ def test_set_channel_types():
     # Error Tests
     # Test channel name exists in ch_names
     mapping = {'EEG 160': 'EEG060'}
-    pytest.raises(ValueError, raw.set_channel_types, mapping)
+    with pytest.raises(ValueError, match=r"name \(EEG 160\) doesn't exist"):
+        raw.set_channel_types(mapping)
     # Test change to illegal channel type
     mapping = {'EOG 061': 'xxx'}
-    pytest.raises(ValueError, raw.set_channel_types, mapping)
-    # Test changing type if in proj (avg eeg ref here)
+    with pytest.raises(ValueError, match='cannot change to this channel type'):
+        raw.set_channel_types(mapping)
+    # Test changing type if in proj
     mapping = {'EEG 058': 'ecog', 'EEG 059': 'ecg', 'EEG 060': 'eog',
                'EOG 061': 'seeg', 'MEG 2441': 'eeg', 'MEG 2443': 'eeg',
                'MEG 2442': 'hbo'}
-    pytest.raises(RuntimeError, raw.set_channel_types, mapping)
-    # Test type change
     raw2 = read_raw_fif(raw_fname)
     raw2.info['bads'] = ['EEG 059', 'EEG 060', 'EOG 061']
-    pytest.raises(RuntimeError, raw2.set_channel_types, mapping)  # has prj
+    with pytest.raises(RuntimeError, match='type .* in projector "PCA-v1"'):
+        raw2.set_channel_types(mapping)  # has prj
     raw2.add_proj([], remove_existing=True)
-    with pytest.warns(RuntimeWarning, match='The unit for channel'):
+    with pytest.warns(RuntimeWarning, match='unit for channel.* has changed'):
         raw2 = raw2.set_channel_types(mapping)
     info = raw2.info
     assert info['chs'][372]['ch_name'] == 'EEG 058'

@@ -964,6 +964,9 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
 
 def _onpick_sensor(event, fig, ax, pos, ch_names, show_names):
     """Pick a channel in plot_sensors."""
+    if event.mouseevent.inaxes != ax:
+        return
+
     if event.mouseevent.key == 'control' and fig.lasso is not None:
         for ind in event.ind:
             fig.lasso.select_one(ind)
@@ -1064,7 +1067,7 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
                          ch_names=ch_names, show_names=show_names)
         fig.canvas.mpl_connect('pick_event', picker)
 
-    fig.suptitle(title)
+    ax.set(title=title)
     closed = partial(_close_event, fig=fig)
     fig.canvas.mpl_connect('close_event', closed)
     plt_show(show, block=block)

@@ -27,7 +27,7 @@ from ..io.meas_info import anonymize_info, Info, MontageMixin, create_info
 from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
                        _check_excludes_includes, _contains_ch_type,
                        channel_indices_by_type, pick_channels, _picks_to_idx,
-                       _get_channel_types)
+                       _get_channel_types, get_channel_type_constants)
 from ..io.write import DATE_NONE
 from ..io._digitization import _get_data_as_dict_from_dig
 
@@ -277,47 +277,11 @@ class ContainsMixin(object):
         return montage
 
 
-# XXX Eventually de-duplicate with _kind_dict of mne/io/meas_info.py
-_human2fiff = {'ecg': FIFF.FIFFV_ECG_CH,
-               'eeg': FIFF.FIFFV_EEG_CH,
-               'emg': FIFF.FIFFV_EMG_CH,
-               'eog': FIFF.FIFFV_EOG_CH,
-               'exci': FIFF.FIFFV_EXCI_CH,
-               'ias': FIFF.FIFFV_IAS_CH,
-               'misc': FIFF.FIFFV_MISC_CH,
-               'resp': FIFF.FIFFV_RESP_CH,
-               'seeg': FIFF.FIFFV_SEEG_CH,
-               'stim': FIFF.FIFFV_STIM_CH,
-               'syst': FIFF.FIFFV_SYST_CH,
-               'bio': FIFF.FIFFV_BIO_CH,
-               'ecog': FIFF.FIFFV_ECOG_CH,
-               'fnirs_cw_amplitude': FIFF.FIFFV_FNIRS_CH,
-               'fnirs_fd_dc_amplitude': FIFF.FIFFV_FNIRS_CH,
-               'fnirs_fd_ac_amplitude': FIFF.FIFFV_FNIRS_CH,
-               'fnirs_fd_phase': FIFF.FIFFV_FNIRS_CH,
-               'fnirs_od': FIFF.FIFFV_FNIRS_CH,
-               'hbo': FIFF.FIFFV_FNIRS_CH,
-               'hbr': FIFF.FIFFV_FNIRS_CH}
-_human2unit = {'ecg': FIFF.FIFF_UNIT_V,
-               'eeg': FIFF.FIFF_UNIT_V,
-               'emg': FIFF.FIFF_UNIT_V,
-               'eog': FIFF.FIFF_UNIT_V,
-               'exci': FIFF.FIFF_UNIT_NONE,
-               'ias': FIFF.FIFF_UNIT_NONE,
-               'misc': FIFF.FIFF_UNIT_V,
-               'resp': FIFF.FIFF_UNIT_NONE,
-               'seeg': FIFF.FIFF_UNIT_V,
-               'stim': FIFF.FIFF_UNIT_NONE,
-               'syst': FIFF.FIFF_UNIT_NONE,
-               'bio': FIFF.FIFF_UNIT_V,
-               'ecog': FIFF.FIFF_UNIT_V,
-               'fnirs_cw_amplitude': FIFF.FIFF_UNIT_V,
-               'fnirs_fd_dc_amplitude': FIFF.FIFF_UNIT_V,
-               'fnirs_fd_ac_amplitude': FIFF.FIFF_UNIT_V,
-               'fnirs_fd_phase': FIFF.FIFF_UNIT_V,
-               'fnirs_od': FIFF.FIFF_UNIT_NONE,
-               'hbo': FIFF.FIFF_UNIT_MOL,
-               'hbr': FIFF.FIFF_UNIT_MOL}
+channel_type_constants = get_channel_type_constants()
+_human2fiff = {k: v.get('kind', FIFF.FIFFV_COIL_NONE) for k, v in
+               channel_type_constants.items()}
+_human2unit = {k: v.get('unit', FIFF.FIFF_UNIT_NONE) for k, v in
+               channel_type_constants.items()}
 _unit2human = {FIFF.FIFF_UNIT_V: 'V',
                FIFF.FIFF_UNIT_T: 'T',
                FIFF.FIFF_UNIT_T_M: 'T/m',

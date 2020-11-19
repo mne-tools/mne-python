@@ -381,6 +381,7 @@ Projections:
    oversampled_temporal_projection
    peak_finder
    read_ica
+   realign_raw
    regress_artifact
    corrmap
    read_ica_eeglab
