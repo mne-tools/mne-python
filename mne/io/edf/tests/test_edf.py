@@ -32,7 +32,6 @@ from mne.annotations import events_from_annotations, read_annotations
 
 
 FILE = inspect.getfile(inspect.currentframe())
-KIND_DICT = get_channel_type_constants()
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
 montage_path = op.join(data_dir, 'biosemi.hpts')  # XXX: missing reader
 bdf_path = op.join(data_dir, 'test.bdf')
@@ -363,6 +362,7 @@ def test_load_generator(fname, recwarn):
 def test_edf_stim_ch_pick_up(test_input, EXPECTED):
     """Test stim_channel."""
     # This is fragile for EEG/EEG-CSD, so just omit csd
+    KIND_DICT = get_channel_type_constants()
     TYPE_LUT = {v['kind']: k for k, v in KIND_DICT.items() if k not in
                 ('csd', 'chpi')}  # chpi not needed, and unhashable (a list)
     fname = op.join(data_dir, 'test_stim_channel.edf')
