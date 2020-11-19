@@ -25,7 +25,7 @@ jobs:
 
   style:
     needs: check_skip
-    if: ${{ ! needs.check_skip.outputs.skip }}
+    if: ${{ needs.check_skip.outputs.skip == 'false' }}
     runs-on: ubuntu-20.04
     env:
       CODESPELL_DIRS: 'mne/ doc/ tutorials/ examples/'
