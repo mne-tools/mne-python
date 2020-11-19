@@ -2053,7 +2053,8 @@ def center_cmap(cmap, vmin, vmax, name="cmap_centered"):
 
 def _set_psd_plot_params(info, proj, picks, ax, area_mode):
     """Set PSD plot params."""
-    import matplotlib.pyplot as plt
+    from matplotlib.axes import Axes
+    from ._figure import _figure
     _check_option('area_mode', area_mode, [None, 'std', 'range'])
     _user_picked = picks is not None
     picks = _picks_to_idx(info, picks)
@@ -2087,7 +2088,7 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
     if len(picks_list) == 0:
         raise RuntimeError('No data channels found')
     if ax is not None:
-        if isinstance(ax, plt.Axes):
+        if isinstance(ax, Axes):
             ax = [ax]
         if len(ax) != len(picks_list):
             raise ValueError('For this dataset with picks=None %s axes '
@@ -2096,11 +2097,13 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
         ax_list = ax
     del picks
 
-    fig = None
     if ax is None:
-        fig, ax_list = plt.subplots(len(picks_list), 1, sharex=True,
-                                    squeeze=False)
-        ax_list = list(ax_list[:, 0])
+        fig = _figure(toolbar=False, window_title='Power spectral density')
+        fig._add_default_callbacks()
+        n_ax = len(picks_list)
+        ax_list = [fig.add_subplot(n_ax, 1, ix + 1) for ix in range(n_ax)]
+        for _ax in ax_list[1:]:
+            _ax.sharex(ax_list[0])
     else:
         fig = ax_list[0].get_figure()
 
