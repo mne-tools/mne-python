@@ -8,8 +8,18 @@ on:
       - '*'
 
 jobs:
+  check-skip:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - uses: GuillaumeFavelier/ci-skip@enh/separator
+        with:
+          fail-fast: true
+          commit-filter: '[skip ci];[ci skip];[skip github]'
+          separator: ';'
+
   style:
-    if: "github.repository == 'mne-tools/mne-python' && !contains(github.event.head_commit.message, '[ci skip]') && !contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[skip github]')"
+    needs: check-skip
     runs-on: ubuntu-20.04
     env:
       CODESPELL_DIRS: 'mne/ doc/ tutorials/ examples/'
@@ -18,12 +28,7 @@ jobs:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
-      - uses: GuillaumeFavelier/ci-skip@enh/separator
-        with:
-          commit-filter: '[skip ci];[ci skip];[skip github]'
-          separator: ';'
       - uses: actions/setup-python@v2
-        if: ${{ env.CI_SKIP == 'false' }}
         with:
           python-version: '3.8'
           architecture: 'x64'
@@ -31,15 +36,11 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel
           python -m pip install flake8
         name: 'Install dependencies'
-        if: ${{ env.CI_SKIP == 'false' }}
       - uses: rbialon/flake8-annotations@v1
-        if: ${{ env.CI_SKIP == 'false' }}
         name: 'Setup flake8 annotations'
       - run: make flake
-        if: ${{ env.CI_SKIP == 'false' }}
         name: 'Run flake8'
       - uses: GuillaumeFavelier/actions-codespell@feat/quiet_level
-        if: ${{ env.CI_SKIP == 'false' }}
         with:
           path: ${{ env.CODESPELL_DIRS }}
           skip: ${{ env.CODESPELL_SKIPS }}
