@@ -80,9 +80,8 @@ def _get_ch_type(inst, ch_type, allow_ref_meg=False):
     """
     if ch_type is None:
         allowed_types = ['mag', 'grad', 'planar1', 'planar2', 'eeg', 'csd',
-                         'fnirs_cw_amplitude', 'fnirs_fd_dc_amplitude',
-                         'fnirs_fd_ac_amplitude', 'fnirs_fd_phase', 'fnirs_od',
-                         'hbo', 'hbr',
+                         'fnirs_cw_amplitude', 'fnirs_fd_ac_amplitude',
+                         'fnirs_fd_phase', 'fnirs_od', 'hbo', 'hbr',
                          'ecog', 'seeg']
         allowed_types += ['ref_meg'] if allow_ref_meg else []
         for type_ in allowed_types:
@@ -412,8 +411,8 @@ class SetChannelsMixin(MontageMixin):
         The following sensor types are accepted:
 
             ecg, eeg, emg, eog, exci, ias, misc, resp, seeg, stim, syst, ecog,
-            hbo, hbr, fnirs_cw_amplitude, fnirs_fd_dc_amplitude,
-            fnirs_fd_ac_amplitude, fnirs_fd_phase, fnirs_od
+            hbo, hbr, fnirs_cw_amplitude, fnirs_fd_ac_amplitude,
+            fnirs_fd_phase, fnirs_od
 
         .. versionadded:: 0.9.0
         """
@@ -455,8 +454,6 @@ class SetChannelsMixin(MontageMixin):
                 coil_type = FIFF.FIFFV_COIL_FNIRS_HBR
             elif ch_type == 'fnirs_cw_amplitude':
                 coil_type = FIFF.FIFFV_COIL_FNIRS_CW_AMPLITUDE
-            elif ch_type == 'fnirs_fd_dc_amplitude':
-                coil_type = FIFF.FIFFV_COIL_FNIRS_FD_DC_AMPLITUDE
             elif ch_type == 'fnirs_fd_ac_amplitude':
                 coil_type = FIFF.FIFFV_COIL_FNIRS_FD_AC_AMPLITUDE
             elif ch_type == 'fnirs_fd_phase':

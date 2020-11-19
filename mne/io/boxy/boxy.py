@@ -8,6 +8,7 @@ import numpy as np
 
 from ..base import BaseRaw
 from ..meas_info import create_info
+from ..utils import _mult_cal_one
 from ...utils import logger, verbose, fill_doc
 from ...annotations import Annotations
 
@@ -125,6 +126,7 @@ class RawBOXY(BaseRaw):
         # 'source_num' rows correspond to the first detector, the next
         # 'source_num' rows correspond to the second detector, and so on.
         boxy_labels = list()
+        ch_types = list()
         for det_num in range(detect_num):
             for src_num in range(source_num):
                 for i_type in ['DC', 'AC', 'Ph']:
@@ -134,11 +136,10 @@ class RawBOXY(BaseRaw):
                     if i_type == 'Ph':
                         chan_type = 'fnirs_fd_phase'
                     elif i_type == 'DC':
-                        chan_type = 'fnirs_fd_dc_amplitude'
+                        chan_type = 'fnirs_cw_amplitude'
                     else:
                         chan_type = 'fnirs_fd_ac_amplitude'
-
-                    ch_types = ([chan_type for i_chan in boxy_labels])
+                    ch_types.append(chan_type)
 
         # Create info structure.
         info = create_info(boxy_labels, srate, ch_types=ch_types)
@@ -310,6 +311,6 @@ class RawBOXY(BaseRaw):
                         all_data[index_loc, :] = boxy_array[:, channel]
 
         # Place our data into the data object in place.
-        data[:] = all_data
-
-        return data
+        # XXX we only use the sub-block from start:stop, so this is pretty
+        # inefficient.
+        _mult_cal_one(data, all_data[:, start:stop], idx, cals, mult)

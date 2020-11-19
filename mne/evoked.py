@@ -31,7 +31,7 @@ from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tag import read_tag
 from .io.tree import dir_tree_find
-from .io.pick import pick_types, _picks_to_idx
+from .io.pick import pick_types, _picks_to_idx, _FNIRS_CH_TYPES_SPLIT
 from .io.meas_info import read_meas_info, write_meas_info
 from .io.proj import ProjMixin
 from .io.write import (start_file, start_block, end_file, end_block,
@@ -392,10 +392,10 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         ----------
         ch_type : str | None
             Channel type to plot. Accepted data types: 'mag', 'grad', 'eeg',
-            'hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_fd_dc_amplitude',
+            'hbo', 'hbr', 'fnirs_cw_amplitude',
             'fnirs_fd_ac_amplitude', 'fnirs_fd_phase', and 'fnirs_od'.
             If None, first available channel type from ('mag', 'grad', 'eeg',
-            'hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_fd_dc_amplitude',
+            'hbo', 'hbr', 'fnirs_cw_amplitude',
             'fnirs_fd_ac_amplitude', 'fnirs_fd_phase', and 'fnirs_od') is used.
             Defaults to None.
         times : array of float | None
@@ -562,8 +562,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """  # noqa: E501
         supported = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'misc', 'hbo',
                      'hbr', 'None', 'fnirs_cw_amplitude',
-                     'fnirs_fd_dc_amplitude', 'fnirs_fd_ac_amplitude',
-                     'fnirs_fd_phase', 'fnirs_od')
+                     'fnirs_fd_ac_amplitude', 'fnirs_fd_phase', 'fnirs_od')
         types_used = self.get_channel_types(unique=True, only_data_chs=True)
 
         _check_option('ch_type', str(ch_type), supported)
@@ -596,9 +595,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             seeg = True
         elif ch_type == 'ecog':
             ecog = True
-        elif ch_type in ('hbo', 'hbr', 'fnirs_cw_amplitude',
-                         'fnirs_fd_dc_amplitude', 'fnirs_fd_ac_amplitude',
-                         'fnirs_fd_phase', 'fnirs_od'):
+        elif ch_type in _FNIRS_CH_TYPES_SPLIT:
             fnirs = ch_type
 
         if ch_type is not None:
