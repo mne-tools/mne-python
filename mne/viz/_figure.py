@@ -17,12 +17,15 @@ from .epochs import plot_epochs_image
 from .ica import _create_properties_layout
 from .utils import (plt_show, plot_sensors, _setup_plot_projector, _events_off,
                     _set_window_title, _merge_annotations, DraggableLine,
-                    _get_color_list, logger)
+                    _get_color_list, logger, _validate_if_list_of_axes,
+                    _check_psd_fmax, _plot_psd)
 from ..defaults import _handle_default
-from ..utils import set_config, Bunch
+from ..utils import set_config, _check_option, Bunch
 from ..annotations import _sync_onset
-from ..io.pick import (channel_indices_by_type, _DATA_CH_TYPES_SPLIT,
-                       _DATA_CH_TYPES_ORDER_DEFAULT)
+from ..time_frequency import psd_welch, psd_multitaper
+from ..io.pick import (pick_types, _picks_to_idx, channel_indices_by_type,
+                       _DATA_CH_TYPES_SPLIT, _DATA_CH_TYPES_ORDER_DEFAULT,
+                       _VALID_CHANNEL_TYPES)
 
 
 class MNEFigParams:
@@ -2100,6 +2103,52 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.vline_visible = visible
 
 
+class MNEPSDFigure(MNEFigure):
+    """Interactive figure for power spectral density plots."""
+
+    def __init__(self, inst, n_axes, figsize, **kwargs):
+        super().__init__(figsize=figsize, inst=inst, **kwargs)
+
+        # AXES: default margins (inches)
+        l_margin = 0.8
+        r_margin = 0.2
+        b_margin = 0.6
+        t_margin = 0.4
+        # AXES: default margins (figure-relative coordinates)
+        left = self._inch_to_rel(l_margin)
+        right = 1 - self._inch_to_rel(r_margin)
+        bottom = self._inch_to_rel(b_margin, horiz=False)
+        top = 1 - self._inch_to_rel(t_margin, horiz=False)
+        # AXES: make subplots
+        axes = [self.add_subplot(n_axes, 1, ix + 1) for ix in range(n_axes)]
+        for _ax in axes[1:]:
+            _ax.sharex(axes[0])
+        self.subplotpars.update(left=left, bottom=bottom, top=top, right=right,
+                                hspace=0.3)
+        # save useful things
+        vars(self.mne).update(ax_list=axes)
+
+    def _resize(self, event):
+        """Handle resize event."""
+        old_width, old_height = self.mne.fig_size_px
+        new_width, new_height = self._get_size_px()
+        new_margins = dict()
+        for side in ('left', 'right', 'bottom', 'top'):
+            ratio = ((old_width / new_width) if side in ('left', 'right') else
+                     (old_height / new_height))
+            rel_dim = getattr(self.subplotpars, side)
+            if side in ('right', 'top'):
+                new_margins[side] = 1 - ratio * (1 - rel_dim)
+            else:
+                new_margins[side] = ratio * rel_dim
+        # gh-8304: don't allow resizing too small
+        if (new_margins['bottom'] < new_margins['top'] and
+                new_margins['left'] < new_margins['right']):
+            self.subplots_adjust(**new_margins)
+        # bookkeeping
+        self.mne.fig_size_px = (new_width, new_height)
+
+
 def _figure(toolbar=True, FigureClass=MNEFigure, **kwargs):
     """Instantiate a new figure."""
     from matplotlib import rc_context
@@ -2132,6 +2181,97 @@ def _browse_figure(inst, **kwargs):
         fig._toggle_scrollbars()
     # add event callbacks
     fig._add_default_callbacks()
+    return fig
+
+
+def _psd_figure(inst, proj, picks, axes, area_mode, tmin, tmax, fmin, fmax,
+                n_jobs, color, area_alpha, dB, estimate, average,
+                spatial_colors, xscale, line_alpha, sphere, **kwargs):
+    """Instantiate a new power spectral density figure."""
+    from matplotlib.axes import Axes
+    from .. import BaseEpochs
+    from ..io import BaseRaw
+    # arg checking
+    _check_option('area_mode', area_mode, [None, 'std', 'range'])
+    _check_psd_fmax(inst, fmax)
+    picks = _picks_to_idx(inst.info, picks)
+    titles = _handle_default('titles', None)
+    units = _handle_default('units', None)
+    scalings = _handle_default('scalings', None)
+    # triage kwargs for different PSD methods (raw→welch, epochs→multitaper)
+    welch_kwargs = ('n_fft', 'n_overlap', 'reject_by_annotation')
+    multitaper_kwargs = ('bandwidth', 'adaptive', 'low_bias', 'normalization')
+    psd_kwargs = dict()
+    for kw in welch_kwargs + multitaper_kwargs:
+        if kw in kwargs:
+            psd_kwargs[kw] = kwargs.pop(kw)
+    if isinstance(inst, BaseRaw):
+        psd_func = psd_welch
+    elif isinstance(inst, BaseEpochs):
+        psd_func = psd_multitaper
+    else:
+        raise TypeError('Expected an instance of Raw or Epochs, got '
+                        f'{type(inst)}.')
+    # containers
+    picks_list = list()
+    units_list = list()
+    titles_list = list()
+    scalings_list = list()
+    psd_list = list()
+    # handle picks
+    _user_picked = picks is not None
+    allowed_ch_types = (_VALID_CHANNEL_TYPES if _user_picked else
+                        _DATA_CH_TYPES_SPLIT)
+    for ch_type in allowed_ch_types:
+        pick_kwargs = dict(meg=False, ref_meg=False, exclude=[])
+        if ch_type in ('mag', 'grad'):
+            pick_kwargs['meg'] = ch_type
+        elif ch_type in ('fnirs_cw_amplitude', 'fnirs_od', 'hbo', 'hbr'):
+            pick_kwargs['fnirs'] = ch_type
+        else:
+            pick_kwargs[ch_type] = True
+        these_picks = pick_types(inst.info, **pick_kwargs)
+        these_picks = np.intersect1d(these_picks, picks)
+        if len(these_picks) > 0:
+            picks_list.append(these_picks)
+            titles_list.append(titles[ch_type])
+            units_list.append(units[ch_type])
+            scalings_list.append(scalings[ch_type])
+    del picks
+    n_types = len(picks_list)
+    if n_types == 0:
+        raise RuntimeError('No data channels found')
+    # handle user-provided axes
+    if axes is not None:
+        if isinstance(axes, Axes):
+            axes = [axes]
+        _validate_if_list_of_axes(axes, n_types)
+        fig = axes[0].get_figure()
+    else:
+        figsize = kwargs.pop('figsize', (10, 2.5 * n_types + 1))
+        fig = _figure(inst=inst, toolbar=False, FigureClass=MNEPSDFigure,
+                      figsize=figsize, n_axes=n_types, **kwargs)
+        fig.mne.fig_size_px = fig._get_size_px()  # can't do in __init__
+        axes = fig.mne.ax_list
+        # add event callbacks
+        fig._add_default_callbacks()
+    # don't add ylabels & titles if figure has unexpected number of axes
+    make_label = len(axes) == len(fig.axes)
+    # Plot Frequency [Hz] xlabel on the last axis
+    xlabels_list = [False] * (n_types - 1) + [True]
+    # compute PSDs
+    for picks in picks_list:
+        psd, freqs = psd_func(inst, tmin=tmin, tmax=tmax, picks=picks,
+                              fmin=fmin, fmax=fmax, proj=proj, n_jobs=n_jobs,
+                              **psd_kwargs)
+        if isinstance(inst, BaseEpochs):
+            psd = np.mean(psd, axis=0)
+        psd_list.append(psd)
+    # plot
+    _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list, units_list,
+              scalings_list, axes, make_label, color, area_mode, area_alpha,
+              dB, estimate, average, spatial_colors, xscale, line_alpha,
+              sphere, xlabels_list)
     return fig
 
 

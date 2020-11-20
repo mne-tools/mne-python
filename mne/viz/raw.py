@@ -422,28 +422,21 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
     fig : instance of Figure
         Figure with frequency spectra of the data channels.
     """
-    from .utils import _set_psd_plot_params, _plot_psd
-    fig, picks_list, titles_list, units_list, scalings_list, ax_list, \
-        make_label, xlabels_list = _set_psd_plot_params(
-            raw.info, proj, picks, ax, area_mode)
-    _check_psd_fmax(raw, fmax)
-    del ax
-    psd_list = list()
+    from ._figure import _psd_figure
+    # handle FFT
     if n_fft is None:
         if tmax is None or not np.isfinite(tmax):
             tmax = raw.times[-1]
         tmin = 0. if tmin is None else tmin
         n_fft = min(np.diff(raw.time_as_index([tmin, tmax]))[0] + 1, 2048)
-    for picks in picks_list:
-        psd, freqs = psd_welch(raw, tmin=tmin, tmax=tmax, picks=picks,
-                               fmin=fmin, fmax=fmax, proj=proj, n_fft=n_fft,
-                               n_overlap=n_overlap, n_jobs=n_jobs,
-                               reject_by_annotation=reject_by_annotation)
-        psd_list.append(psd)
-    fig = _plot_psd(raw, fig, freqs, psd_list, picks_list, titles_list,
-                    units_list, scalings_list, ax_list, make_label, color,
-                    area_mode, area_alpha, dB, estimate, average,
-                    spatial_colors, xscale, line_alpha, sphere, xlabels_list)
+    # generate figure
+    fig = _psd_figure(
+        inst=raw, proj=proj, picks=picks, axes=ax, tmin=tmin, tmax=tmax,
+        fmin=fmin, fmax=fmax, sphere=sphere, xscale=xscale, dB=dB,
+        average=average, estimate=estimate, area_mode=area_mode,
+        line_alpha=line_alpha, area_alpha=area_alpha, color=color,
+        spatial_colors=spatial_colors, n_jobs=n_jobs, n_fft=n_fft,
+        n_overlap=n_overlap, reject_by_annotation=reject_by_annotation)
     plt_show(show)
     return fig
 

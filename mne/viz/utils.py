@@ -2051,72 +2051,6 @@ def center_cmap(cmap, vmin, vmax, name="cmap_centered"):
     return LinearSegmentedColormap(name, cdict)
 
 
-def _set_psd_plot_params(info, proj, picks, ax, area_mode):
-    """Set PSD plot params."""
-    from matplotlib.axes import Axes
-    from ._figure import _figure
-    _check_option('area_mode', area_mode, [None, 'std', 'range'])
-    _user_picked = picks is not None
-    picks = _picks_to_idx(info, picks)
-
-    # XXX this could be refactored more with e.g., plot_evoked
-    # XXX when it's refactored, Report._render_raw will need to be updated
-    titles = _handle_default('titles', None)
-    units = _handle_default('units', None)
-    scalings = _handle_default('scalings', None)
-    picks_list = list()
-    titles_list = list()
-    units_list = list()
-    scalings_list = list()
-    allowed_ch_types = (_VALID_CHANNEL_TYPES if _user_picked else
-                        _DATA_CH_TYPES_SPLIT)
-    for name in allowed_ch_types:
-        kwargs = dict(meg=False, ref_meg=False, exclude=[])
-        if name in ('mag', 'grad'):
-            kwargs['meg'] = name
-        elif name in _FNIRS_CH_TYPES_SPLIT:
-            kwargs['fnirs'] = name
-        else:
-            kwargs[name] = True
-        these_picks = pick_types(info, **kwargs)
-        these_picks = np.intersect1d(these_picks, picks)
-        if len(these_picks) > 0:
-            picks_list.append(these_picks)
-            titles_list.append(titles[name])
-            units_list.append(units[name])
-            scalings_list.append(scalings[name])
-    if len(picks_list) == 0:
-        raise RuntimeError('No data channels found')
-    if ax is not None:
-        if isinstance(ax, Axes):
-            ax = [ax]
-        if len(ax) != len(picks_list):
-            raise ValueError('For this dataset with picks=None %s axes '
-                             'must be supplied, got %s'
-                             % (len(picks_list), len(ax)))
-        ax_list = ax
-    del picks
-
-    if ax is None:
-        fig = _figure(toolbar=False, window_title='Power spectral density')
-        fig._add_default_callbacks()
-        n_ax = len(picks_list)
-        ax_list = [fig.add_subplot(n_ax, 1, ix + 1) for ix in range(n_ax)]
-        for _ax in ax_list[1:]:
-            _ax.sharex(ax_list[0])
-    else:
-        fig = ax_list[0].get_figure()
-
-    # make_label decides if ylabel and titles are displayed
-    make_label = len(ax_list) == len(fig.axes)
-
-    # Plot Frequency [Hz] xlabel on the last axis
-    xlabels_list = [False] * (len(picks_list) - 1) + [True]
-
-    return (fig, picks_list, titles_list, units_list, scalings_list,
-            ax_list, make_label, xlabels_list)
-
-
 def _convert_psds(psds, dB, estimate, scaling, unit, ch_names=None,
                   first_dim='channel'):
     """Convert PSDs to dB (if necessary) and appropriate units.
@@ -2275,8 +2209,6 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
                 ax.set_xlabel('Frequency (Hz)')
 
     if make_label:
-        fig.subplots_adjust(left=0.125, bottom=0.1, right=0.95, top=0.9,
-                            hspace=0.5)
         fig.align_ylabels(axs=ax_list)
     return fig
 
