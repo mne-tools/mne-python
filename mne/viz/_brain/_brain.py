@@ -539,21 +539,21 @@ class Brain(object):
             else:
                 self.time_actor.VisibilityOff()
 
-        self.plotter.update()
+        self._update()
 
     def apply_auto_scaling(self):
         """Detect automatically fitting scaling parameters."""
         self._update_auto_scaling()
         for key in ('fmin', 'fmid', 'fmax'):
             self.reps[key].SetValue(self._data[key])
-        self.plotter.update()
+        self._update()
 
     def restore_user_scaling(self):
         """Restore original scaling parameters."""
         self._update_auto_scaling(restore=True)
         for key in ('fmin', 'fmid', 'fmax'):
             self.reps[key].SetValue(self._data[key])
-        self.plotter.update()
+        self._update()
 
     def toggle_playback(self, value=None):
         """Toggle time playback.
@@ -592,7 +592,7 @@ class Brain(object):
                 self._data["initial_time_idx"],
                 update_widget=True,
             )
-        self.plotter.update()
+        self._update()
 
     def set_playback_speed(self, speed):
         """Set the time playback speed.
@@ -2921,6 +2921,8 @@ class Brain(object):
         if renderer.get_3d_backend() in ['pyvista', 'notebook']:
             if self.notebook and self._renderer.figure.display is not None:
                 self._renderer.figure.display.update()
+            else:
+                self._renderer.plotter.update()
 
     def get_picked_points(self):
         """Return the vertices of the picked points.
@@ -2976,10 +2978,6 @@ def _update_limits(fmin, fmid, fmax, center, array):
 def _get_range(brain):
     val = np.abs(np.concatenate(list(brain._current_act_data.values())))
     return [np.min(val), np.max(val)]
-
-
-def _normalize(point, shape):
-    return (point[0] / shape[1], point[1] / shape[0])
 
 
 class _FakeIren():
