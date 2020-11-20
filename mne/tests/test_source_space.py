@@ -90,12 +90,25 @@ def test_vertex_depths(picks, limits):
     assert_array_less(limits[0], depths)
     assert_array_less(depths, limits[1])
 
-    if picks != 'eeg' and info is not None:
-        # this should break things
-        info['dev_head_t'] = None
-        with pytest.raises(ValueError,
-                           match='Transform between meg<->head'):
-            vertex_depths(src, info, use_picks, trans)
+    if info is not None:
+        depths_min = vertex_depths(src, info=info, picks=use_picks,
+                                   trans=trans, mode='min')
+        depths_non = vertex_depths(src, info=info, picks=use_picks,
+                                   trans=trans, mode=None)
+        depths_max = vertex_depths(src, info=info, picks=use_picks,
+                                   trans=trans, mode='max')
+        depths_avg = vertex_depths(src, info=info, picks=use_picks,
+                                   trans=trans, mode='mean')
+        assert_array_less(depths_min, depths_avg)
+        assert_array_less(depths_avg, depths_max)
+        assert_array_equal(depths_min, depths_non)
+
+        if picks != 'eeg':
+            # this should break things
+            info['dev_head_t'] = None
+            with pytest.raises(ValueError,
+                               match='Transform between meg<->head'):
+                vertex_depths(src, info, use_picks, trans)
 
     depths = vertex_depths(src, info=None, picks=None, trans=None)
     assert depths.shape == (nuse,)

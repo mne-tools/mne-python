@@ -14,6 +14,7 @@ import os.path as op
 
 import numpy as np
 from scipy import sparse, linalg
+from scipy.spatial import distance
 
 from .io.constants import FIFF
 from .io.meas_info import create_info, Info
@@ -3201,7 +3202,8 @@ def _get_src_nn(s, use_cps=True, vertices=None):
 
 
 @verbose
-def vertex_depths(src, info=None, picks=None, trans=None, verbose=None):
+def vertex_depths(src, info=None, picks=None, trans=None, mode=None,
+                  verbose=None):
     """Compute source depths of vertices.
 
     Parameters
@@ -3215,6 +3217,13 @@ def vertex_depths(src, info=None, picks=None, trans=None, verbose=None):
         gravity) of all vertices in source space.
     %(picks_good_data)s
     %(trans_not_none)s
+    mode : None | 'min' | 'max' | 'mean'
+        The distance metric to compute. Not used if 'info' is None. Can be
+
+        * None : Same as 'min' (Default).
+        * 'min' : Minimum Euclidean distance to nearest sensor.
+        * 'max' : Maximum Euclidean distance to sensors.
+        * 'mean' : Average Euclidean distance across sensors.
     %(verbose)s
 
     Returns
@@ -3258,8 +3267,15 @@ def vertex_depths(src, info=None, picks=None, trans=None, verbose=None):
                 sensor_pos.append(info['chs'][ch]['loc'][:3])
         sensor_pos = np.array(sensor_pos)
 
-        # minimum distances per vertex
-        depths = _compute_nearest(sensor_pos, src_pos, return_dists=True)[1]
+        if mode == 'min' or mode is None:
+            # minimum distances per vertex
+            depths = _compute_nearest(sensor_pos, src_pos,
+                                      return_dists=True)[1]
+        elif mode == 'max':
+            depths = distance.cdist(sensor_pos, src_pos).max(axis=0)
+        elif mode == 'mean':
+            depths = distance.cdist(sensor_pos, src_pos).mean(axis=0)
+
     else:
         src_pos = np.vstack([
             s['rr'][s['inuse'].astype(np.bool)] for s in src
