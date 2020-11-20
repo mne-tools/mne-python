@@ -38,9 +38,16 @@ class MNEFigure(Figure):
     """Base class for 2D figures & dialogs; wraps matplotlib.figure.Figure."""
 
     def __init__(self, **kwargs):
+        from matplotlib import rcParams
         # figsize is the only kwarg we pass to matplotlib Figure()
         figsize = kwargs.pop('figsize', None)
         super().__init__(figsize=figsize)
+        # things we'll almost always want
+        defaults = dict(fgcolor=rcParams['axes.edgecolor'],
+                        bgcolor=rcParams['axes.facecolor'])
+        for key, value in defaults.items():
+            if key not in kwargs:
+                kwargs[key] = value
         # add our param object
         self.mne = MNEFigParams(**kwargs)
 
@@ -260,7 +267,6 @@ class MNEBrowseFigure(MNEFigure):
     """Interactive figure with scrollbars, for data browsing."""
 
     def __init__(self, inst, figsize, ica=None, xlabel='Time (s)', **kwargs):
-        from matplotlib import rcParams
         from matplotlib.colors import to_rgba_array
         from matplotlib.ticker import (FixedLocator, FixedFormatter,
                                        FuncFormatter, NullFormatter)
@@ -272,9 +278,6 @@ class MNEBrowseFigure(MNEFigure):
         from .. import BaseEpochs
         from ..io import BaseRaw
         from ..preprocessing import ICA
-
-        fgcolor = rcParams['axes.edgecolor']
-        bgcolor = rcParams['axes.facecolor']
 
         super().__init__(figsize=figsize, inst=inst, ica=ica, **kwargs)
 
@@ -387,7 +390,7 @@ class MNEBrowseFigure(MNEFigure):
                 _ax.xaxis.set_major_locator(
                     FixedLocator(self.mne.boundary_times[1:-1]))
                 _ax.xaxis.set_major_formatter(NullFormatter())
-            grid_kwargs = dict(color=fgcolor, axis='x',
+            grid_kwargs = dict(color=self.mne.fgcolor, axis='x',
                                zorder=self.mne.zorder['grid'])
             ax_main.grid(linewidth=2, linestyle='dashed', **grid_kwargs)
             ax_hscroll.grid(alpha=0.5, linewidth=0.5, linestyle='solid',
@@ -419,12 +422,13 @@ class MNEBrowseFigure(MNEFigure):
         ax_vscroll.set_visible(not self.mne.butterfly)
         # SCROLLBAR VISIBLE SELECTION PATCHES
         sel_kwargs = dict(alpha=0.3, linewidth=4, clip_on=False,
-                          edgecolor=fgcolor)
+                          edgecolor=self.mne.fgcolor)
         vsel_patch = Rectangle((0, 0), 1, self.mne.n_channels,
-                               facecolor=bgcolor, **sel_kwargs)
+                               facecolor=self.mne.bgcolor, **sel_kwargs)
         ax_vscroll.add_patch(vsel_patch)
         hsel_facecolor = np.average(
-            np.vstack((to_rgba_array(fgcolor), to_rgba_array(bgcolor))),
+            np.vstack((to_rgba_array(self.mne.fgcolor),
+                       to_rgba_array(self.mne.bgcolor))),
             axis=0, weights=(3, 1))  # 75% foreground, 25% background
         hsel_patch = Rectangle((self.mne.t_start, 0), self.mne.duration, 1,
                                facecolor=hsel_facecolor, **sel_kwargs)
@@ -485,8 +489,7 @@ class MNEBrowseFigure(MNEFigure):
             ax_main=ax_main, ax_help=ax_help, ax_proj=ax_proj,
             ax_hscroll=ax_hscroll, ax_vscroll=ax_vscroll,
             vsel_patch=vsel_patch, hsel_patch=hsel_patch, vline=vline,
-            vline_hscroll=vline_hscroll, vline_text=vline_text,
-            fgcolor=fgcolor, bgcolor=bgcolor)
+            vline_hscroll=vline_hscroll, vline_text=vline_text)
 
     def _close(self, event):
         """Handle close events (via keypress or window [x])."""
