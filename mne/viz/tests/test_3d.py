@@ -35,9 +35,8 @@ from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      plot_brain_colorbar, link_brains, mne_analyze_colormap)
 from mne.viz._3d import _process_clim, _linearize_map, _get_map_ticks
 from mne.viz.utils import _fake_click
-from mne.utils import (requires_pysurfer, run_tests_if_main,
-                       requires_nibabel, traits_test, catch_logging,
-                       run_subprocess, modified_env)
+from mne.utils import (requires_pysurfer, requires_nibabel, traits_test,
+                       catch_logging, run_subprocess, modified_env)
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
 from mne.bem import read_bem_solution, read_bem_surfaces
@@ -98,7 +97,6 @@ def test_plot_head_positions():
     pytest.raises(ValueError, plot_head_positions, pos, 'foo')
     with pytest.raises(ValueError, match='shape'):
         plot_head_positions(pos, axes=1.)
-    plt.close('all')
 
 
 @testing.requires_testing_data
@@ -512,7 +510,6 @@ def test_stc_mpl():
                   hemi='both', subject='sample', backend='matplotlib')
     pytest.raises(ValueError, stc.plot, subjects_dir=subjects_dir,
                   time_unit='ss', subject='sample', backend='matplotlib')
-    plt.close('all')
 
 
 @pytest.mark.timeout(60)  # can sometimes take > 60 sec
@@ -535,10 +532,9 @@ def test_plot_dipole_mri_orthoview(coord_frame, idx, show_all, title):
     fig.canvas.key_press_event('up')
     fig.canvas.key_press_event('down')
     fig.canvas.key_press_event('a')  # some other key
-    ax = plt.subplot(111)
-    pytest.raises(TypeError, dipoles.plot_locations, trans, 'sample',
-                  subjects_dir, ax=ax)
-    plt.close('all')
+    ax = fig.add_subplot(211)
+    with pytest.raises(TypeError, match='instance of Axes3D'):
+        dipoles.plot_locations(trans, 'sample', subjects_dir, ax=ax)
 
 
 @testing.requires_testing_data
@@ -736,7 +732,6 @@ def test_brain_colorbar(orientation, diverging, lims):
     assert_array_equal(
         [float(h.get_text().replace('−', '-')) for h in have()], ticks)
     assert_array_equal(empty(), [])
-    plt.close('all')
 
 
 @pytest.mark.slowtest  # slow-ish on Travis OSX
@@ -805,6 +800,3 @@ def test_renderer(renderer):
            'assert backend == %r, backend' % (backend,)]
     with modified_env(MNE_3D_BACKEND=backend):
         run_subprocess(cmd)
-
-
-run_tests_if_main()
