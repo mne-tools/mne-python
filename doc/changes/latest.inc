@@ -20,10 +20,14 @@ Current (0.22.dev0)
 
 .. |Victoria Peterson| replace:: **Victoria Peterson**
 
+.. |Jonathan Kuziek| replace:: **Jonathan Kuziek**
+
 
 Enhancements
 ~~~~~~~~~~~~
 - Add :class:`mne.decoding.SSD` for spatial filtering with spatio-spectral-decomposition (:gh:`7070` **by new contributor** |Victoria Peterson|_ and `Denis Engemann`_)
+
+- Add reader for optical imaging data recorded using ISS Imgagent I/II hardware and BOXY recording software in :func:`mne.io.read_raw_boxy` (:gh:`7717` **by new contributor** |Jonathan Kuziek|_ and `Kyle Mathewson`_)
 
 - Add options to use labels in :func:`mne.minimum_norm.get_point_spread` and :func:`mne.minimum_norm.get_cross_talk` (:gh:`8275` by `Olaf Hauk`_)
 
