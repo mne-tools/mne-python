@@ -132,6 +132,8 @@ Bugs
 
 - Fix bug in :func:`mne.io.read_raw_eeglab` where empty event durations led to an error (:gh:`8384` by `Mikołaj Magnuski`_)
 
+- Fix inset sensor plots to always use equal aspect (:gh:`8545` by `Daniel McCloy`_)
+
 - Fix reading GDF files with excluded channels in :func:`mne.io.read_raw_gdf` (:gh:`8520` by `Clemens Brunner`_)
 
 API changes
