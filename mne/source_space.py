@@ -14,7 +14,7 @@ import os.path as op
 
 import numpy as np
 from scipy import sparse, linalg
-from scipy.spatial import distance
+from scipy.spatial.distance import cdist
 
 from .io.constants import FIFF
 from .io.meas_info import create_info, Info
@@ -3272,9 +3272,9 @@ def vertex_depths(src, info=None, picks=None, trans=None, mode=None,
             depths = _compute_nearest(sensor_pos, src_pos,
                                       return_dists=True)[1]
         elif mode == 'max':
-            depths = distance.cdist(sensor_pos, src_pos).max(axis=0)
+            depths = cdist(sensor_pos, src_pos).max(axis=0)
         elif mode == 'mean':
-            depths = distance.cdist(sensor_pos, src_pos).mean(axis=0)
+            depths = cdist(sensor_pos, src_pos).mean(axis=0)
 
     else:
         src_pos = np.vstack([
