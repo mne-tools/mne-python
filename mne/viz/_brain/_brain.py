@@ -1269,8 +1269,7 @@ class Brain(object):
         if hemi == 'vol':
             ijk = np.unravel_index(
                 vertex_id, np.array(mesh.GetDimensions()) - 1, order='F')
-            # should just be GetCentroid(center)
-            # but apparently it's VTK9+:
+            # should just be GetCentroid(center), but apparently it's VTK9+:
             # center = np.empty(3)
             # voxel.GetCentroid(center)
             voxel = mesh.GetCell(*ijk)
@@ -1293,9 +1292,9 @@ class Brain(object):
         for ri, ci, _ in self._iter_views(hemi):
             self.plotter.subplot(ri, ci)
             # Using _sphere() instead of renderer.sphere() for 2 reasons:
-            # 1) renderer.sphere() fails on Windows in a scenario where a
-            #    lot of picking requests are done in a short span of time
-            #    (could be mitigated with synchronization/delay?)
+            # 1) renderer.sphere() fails on Windows in a scenario where a lot
+            #    of picking requests are done in a short span of time (could be
+            #    mitigated with synchronization/delay?)
             # 2) the glyph filter is used in renderer.sphere() but only one
             #    sphere is required in this function.
             actor, sphere = _sphere(

@@ -1618,7 +1618,7 @@ def _check_volume(stc, src, surface, backend_name):
     from ..source_estimate import (
         _BaseSurfaceSourceEstimate, _BaseMixedSourceEstimate)
     if isinstance(stc, _BaseSurfaceSourceEstimate):
-        volume = False
+        return False
     else:
         if backend_name == 'mayavi':
             raise RuntimeError(
@@ -1632,8 +1632,7 @@ def _check_volume(stc, src, surface, backend_name):
             _check_option(
                 'surface', surface, ('white', 'pial'),
                 extra='when plotting a mixed source estimate')
-        volume = True
-    return volume
+        return True
 
 
 @verbose
