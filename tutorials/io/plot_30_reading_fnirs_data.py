@@ -52,12 +52,12 @@ systems that store data in a single ``.txt`` file containing what they call
 - AC
     High-frequency modulated light intensity (``fnirs_fd_ac_amplitude``)
 - Phase
-    Information for each source and detector (``fnirs_fd_phase``)
+    Phase of the modulated light (``fnirs_fd_phase``)
 
 DC data is stored as the type ``fnirs_cw_amplitude`` because it
 collects both the modulated and any unmodulated light, and hence is analogous
-to what is collected by NIRx and other systems. This helps with conformance
-to SNIRF standard types.
+to what is collected by continuous wave systems such as NIRx. This helps with
+conformance to SNIRF standard types.
 
 These raw data files can be saved by the acquisition devices as parsed or
 unparsed ``.txt`` files, which affects how the data in the file is organised.

@@ -39,7 +39,7 @@ def test_si_units():
         'n': 1e-9,
         'f': 1e-15,
     }
-    known_SI = {'V', 'T', 'Am', 'm', 'M', 'rad'
+    known_SI = {'V', 'T', 'Am', 'm', 'M', 'rad',
                 'AU', 'GOF'}  # not really SI but we tolerate them
     powers = '²'
 
