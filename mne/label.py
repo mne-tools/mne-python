@@ -1874,6 +1874,20 @@ def _cortex_parcellation(subject, n_parcel, hemis, vertices_, graphs,
     return labels
 
 
+def _read_annot_cands(dir_name):
+    """List the candidate parcellations."""
+    if not op.isdir(dir_name):
+        raise IOError('Directory for annotation does not exist: %s',
+                      dir_name)
+    cands = os.listdir(dir_name)
+    cands = sorted(set(c.lstrip('lh.').lstrip('rh.').rstrip('.annot')
+                       for c in cands if '.annot' in c),
+                   key=lambda x: x.lower())
+    # exclude .ctab files
+    cands = [c for c in cands if '.ctab' not in c]
+    return cands
+
+
 def _read_annot(fname):
     """Read a Freesurfer annotation from a .annot file.
 
@@ -1896,13 +1910,7 @@ def _read_annot(fname):
     """
     if not op.isfile(fname):
         dir_name = op.split(fname)[0]
-        if not op.isdir(dir_name):
-            raise IOError('Directory for annotation does not exist: %s',
-                          fname)
-        cands = os.listdir(dir_name)
-        cands = sorted(set(c.lstrip('lh.').lstrip('rh.').rstrip('.annot')
-                           for c in cands if '.annot' in c),
-                       key=lambda x: x.lower())
+        cands = _read_annot_cands(dir_name)
         if len(cands) == 0:
             raise IOError('No such file %s, no candidate parcellations '
                           'found in directory' % fname)

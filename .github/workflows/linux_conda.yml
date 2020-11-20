@@ -12,7 +12,7 @@ jobs:
   job:
     if: "github.repository == 'mne-tools/mne-python' && !contains(github.event.head_commit.message, '[ci skip]') && !contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[skip github]')"
     name: 'py3.8'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     defaults:
       run:
         shell: bash
@@ -20,7 +20,7 @@ jobs:
       CONDA_ENV: 'environment.yml'
       DISPLAY: ':99.0'
       MNE_LOGGING_LEVEL: 'warning'
-      OPENBLAS_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
       PYTHONUNBUFFERED: '1'
       PYTHON_VERSION: '3.8'
     steps:
