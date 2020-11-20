@@ -25,7 +25,7 @@ from ..annotations import _sync_onset
 from ..time_frequency import psd_welch, psd_multitaper
 from ..io.pick import (pick_types, _picks_to_idx, channel_indices_by_type,
                        _DATA_CH_TYPES_SPLIT, _DATA_CH_TYPES_ORDER_DEFAULT,
-                       _VALID_CHANNEL_TYPES)
+                       _VALID_CHANNEL_TYPES, _FNIRS_CH_TYPES_SPLIT)
 
 
 class MNEFigParams:
@@ -2226,7 +2226,7 @@ def _psd_figure(inst, proj, picks, axes, area_mode, tmin, tmax, fmin, fmax,
         pick_kwargs = dict(meg=False, ref_meg=False, exclude=[])
         if ch_type in ('mag', 'grad'):
             pick_kwargs['meg'] = ch_type
-        elif ch_type in ('fnirs_cw_amplitude', 'fnirs_od', 'hbo', 'hbr'):
+        elif ch_type in _FNIRS_CH_TYPES_SPLIT:
             pick_kwargs['fnirs'] = ch_type
         else:
             pick_kwargs[ch_type] = True
