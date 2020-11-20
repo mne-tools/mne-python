@@ -19,7 +19,7 @@ from ..time_frequency import psd_welch
 from ..defaults import _handle_default
 from .topo import _plot_topo, _plot_timeseries, _plot_timeseries_unified
 from .utils import (plt_show, _compute_scalings, _handle_decim, _check_cov,
-                    _check_psd_fmax, _shorten_path_from_middle,
+                    _shorten_path_from_middle,
                     _get_channel_plotting_order, _make_event_color_dict)
 
 _RAW_CLIP_DEF = 1.5

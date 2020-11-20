@@ -29,10 +29,10 @@ from ..fixes import _get_status
 from ..io import show_fiff, Info
 from ..io.constants import FIFF
 from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
-                       _pick_data_channels, _DATA_CH_TYPES_SPLIT, pick_types,
+                       _pick_data_channels, _DATA_CH_TYPES_SPLIT,
                        _DATA_CH_TYPES_ORDER_DEFAULT, _VALID_CHANNEL_TYPES,
                        pick_info, _picks_by_type, pick_channels_cov,
-                       _picks_to_idx, _contains_ch_type, _FNIRS_CH_TYPES_SPLIT)
+                       _contains_ch_type)
 from ..io.meas_info import create_info
 from ..rank import compute_rank
 from ..io.proj import setup_proj
