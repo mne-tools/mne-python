@@ -1987,8 +1987,10 @@ def _check_baseline(baseline, tmin, tmax, sfreq,
         elif on_baseline_outside_data == 'info':
             logger.info(msg)
         elif on_baseline_outside_data == 'adjust':
-            baseline_tmin = tmin
-            baseline_tmax = tmax
+            if baseline_tmin < tmin - tstep:
+                baseline_tmin = tmin
+            if baseline_tmax > tmax + tstep:
+                baseline_tmax = tmax
 
     return baseline_tmin, baseline_tmax
 
