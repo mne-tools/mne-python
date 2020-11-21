@@ -1950,7 +1950,28 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
 def _check_baseline(baseline, tmin, tmax, sfreq,
                     on_baseline_outside_data='raise'):
-    """Check for a valid baseline."""
+    """Check if the baseline is valid, and adjust it if requested.
+
+    ``None`` values inside the baseline parameter will be replaced with
+    ``tmin`` and ``tmax``.
+
+    Parameters
+    ----------
+    on_baseline_outside_data : 'raise' | 'info' | 'adjust'
+        What do do if the baseline period exceeds the data.
+        If ``'raise'``, raise an exception (default).
+        If ``'info'``, log an info message.
+        If ``'adjust'``, adjust the baseline such that it's within the data
+        range again.
+
+    Returns
+    -------
+    (baseline_tmin, baseline_tmax) | None
+        The baseline with ``None`` values replaced with times, and with
+        adjusted times if ``on_baseline_outside_data='adjust'``; or ``None``
+        if the ``baseline`` parameter is ``None``.
+
+    """
     if baseline is None:
         return None
 
