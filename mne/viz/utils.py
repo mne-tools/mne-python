@@ -2086,8 +2086,7 @@ def _convert_psds(psds, dB, estimate, scaling, unit, ch_names=None,
         else:
             bads = ', '.join(str(ii) for ii in where)
 
-        msg = "{bad_value} value in PSD for {first_dim}{pl} {bads}.".format(
-            bad_value=bad_value, first_dim=first_dim, bads=bads, pl=_pl(where))
+        msg = f'{bad_value} value in PSD for {first_dim}{_pl(where)} {bads}.'
         if first_dim == 'channel':
             msg += '\nThese channels might be dead.'
         warn(msg, UserWarning)
