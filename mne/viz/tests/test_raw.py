@@ -564,7 +564,7 @@ def test_plot_raw_psd(raw):
     raw.plot_psd(tmax=None, picks=picks, ax=ax, average=True)
     plt.close('all')
     ax = plt.axes()
-    with pytest.raises(ValueError, match='2 axes must be supplied, got 1'):
+    with pytest.raises(ValueError, match='of length 2, while the length is 1'):
         raw.plot_psd(ax=ax, average=True)
     plt.close('all')
     ax = plt.subplots(2)[1]
