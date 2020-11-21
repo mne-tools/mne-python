@@ -528,13 +528,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         self._decim = 1
         self.decimate(decim)
 
-        # baseline correction: replace `None` arguments with actual times
-        # that way, it later becomes easier for us to determine whether
-        # a subsequent cropping has removed (parts of) the baseline period
+        # baseline correction: replace `None` tuple elements  with actual times
         self.baseline = _check_baseline(baseline, tmin=self.tmin,
                                         tmax=self.tmax,
-                                        sfreq=self.info['sfreq'],
-                                        on_error='info')
+                                        sfreq=self.info['sfreq'])
         if self.baseline is not None and self.baseline != baseline:
             logger.info(f'Setting baseline interval to '
                         f'[{self.baseline[0]}, {self.baseline[1]}] sec')
@@ -700,7 +697,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         .. versionadded:: 0.10.0
         """
         baseline = _check_baseline(baseline, tmin=self.tmin, tmax=self.tmax,
-                                   sfreq=self.info['sfreq'], on_error='raise')
+                                   sfreq=self.info['sfreq'])
 
         if self.preload:
             if self.baseline is not None and baseline is None:
@@ -1371,7 +1368,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         if self.baseline != _check_baseline(self.baseline, tmin=self.tmin,
                                             tmax=self.tmax,
                                             sfreq=self.info['sfreq'],
-                                            on_error='ignore'):
+                                            on_baseline_outside_data='adjust'):
             rescale_data = False
 
         if self._bad_dropped:
@@ -1527,11 +1524,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         else:
             s += '[%s, %s] sec' % tuple(['None' if b is None else ('%g' % b)
                                         for b in self.baseline])
-            if self.baseline != _check_baseline(self.baseline, tmin=self.tmin,
-                                                tmax=self.tmax,
-                                                sfreq=self.info['sfreq'],
-                                                on_error='ignore'):
-                s += ' (baseline period cropped after baseline correction)'
+            if self.baseline != _check_baseline(
+                    self.baseline, tmin=self.tmin, tmax=self.tmax,
+                    sfreq=self.info['sfreq'],
+                    on_baseline_outside_data='adjust'):
+                s += ' (baseline period was cropped after baseline correction)'
 
         s += ', ~%s' % (sizeof_fmt(self._size),)
         s += ', data%s loaded' % ('' if self.preload else ' not')
@@ -1951,7 +1948,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         return _as_meg_type_inst(self, ch_type=ch_type, mode=mode)
 
 
-def _check_baseline(baseline, tmin, tmax, sfreq, on_error='raise'):
+def _check_baseline(baseline, tmin, tmax, sfreq,
+                    on_baseline_outside_data='raise'):
     """Check for a valid baseline."""
     if baseline is None:
         return None
@@ -1982,17 +1980,14 @@ def _check_baseline(baseline, tmin, tmax, sfreq, on_error='raise'):
 
     if (baseline_tmin < tmin - tstep) or (baseline_tmax > tmax + tstep):
         msg = (f"Baseline interval [{baseline_tmin}, {baseline_tmax}] sec "
-               f"is outside of epoch data [{tmin}, {tmax}] sec")
-        if on_error == 'raise':
+               f"is outside of epochs data [{tmin}, {tmax}] sec. Epochs were "
+               f"probably cropped.")
+        if on_baseline_outside_data == 'raise':
             raise ValueError(msg)
-        elif on_error == 'ignore':
-            pass
-        else:
+        elif on_baseline_outside_data == 'info':
             logger.info(msg)
-
-        if baseline_tmin < tmin - tstep:
+        elif on_baseline_outside_data == 'adjust':
             baseline_tmin = tmin
-        if baseline_tmax > tmax + tstep:
             baseline_tmax = tmax
 
     return baseline_tmin, baseline_tmax
@@ -2779,15 +2774,13 @@ class EpochsFIF(BaseEpochs):
                 events[:, 0] = np.arange(1, len(events) + 1)
             # here we ignore missing events, since users should already be
             # aware of missing events if they have saved data that way
+            # we also retain original baseline
             epoch = BaseEpochs(
-                info, data, events, event_id, tmin, tmax, baseline,
+                info, data, events, event_id, tmin, tmax,
+                baseline=None,
                 metadata=metadata, on_missing='ignore',
                 selection=selection, drop_log=drop_log,
                 proj=False, verbose=False)
-            # retain original baseline – BaseEpochs.__init__ changes the period
-            # such that it doesn't exceed the data, but we want to override
-            # this when loading from disk (could be Epochs that were cropped
-            # after baseline correction!)
             epoch.baseline = baseline
             ep_list.append(epoch)
             if not preload:
@@ -2819,14 +2812,13 @@ class EpochsFIF(BaseEpochs):
         drop_log = tuple(drop_log[:step])
 
         # call BaseEpochs constructor
+        # again, ensure we reataing the baseline period originally loaded from
+        # disk
         super(EpochsFIF, self).__init__(
-            info, data, events, event_id, tmin, tmax, baseline, raw=raw,
+            info, data, events, event_id, tmin, tmax, baseline=None, raw=raw,
             proj=proj, preload_at_end=False, on_missing='ignore',
             selection=selection, drop_log=drop_log, filename=fname_rep,
             metadata=metadata, verbose=verbose, **reject_params)
-
-        # again, ensure we reatain the baseline period originally loaded from
-        # disk
         self.baseline = baseline
         # use the private property instead of drop_bad so that epochs
         # are not all read from disk for preload=False

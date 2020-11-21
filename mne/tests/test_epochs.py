@@ -771,12 +771,11 @@ def test_epochs_bad_baseline():
     """Test Epochs initialization with bad baseline parameters."""
     raw, events = _get_data()[:2]
 
-    # baseline outside data range during Epochs initialization should get
-    # adjusted to be within the allowed range
-    epochs = Epochs(raw, events, None, -0.1, 0.3, (-0.2, 0))
-    assert epochs.baseline == (epochs.times[0], 0)
-    epochs = Epochs(raw, events, None, -0.1, 0.3, (0, 0.4))
-    assert epochs.baseline == (0, epochs.times[-1])
+    with pytest.raises(ValueError, match='interval.*outside of epochs data'):
+        epochs = Epochs(raw, events, None, -0.1, 0.3, (-0.2, 0))
+
+    with pytest.raises(ValueError, match='interval.*outside of epochs data'):
+        epochs = Epochs(raw, events, None, -0.1, 0.3, (0, 0.4))
 
     pytest.raises(ValueError, Epochs, raw, events, None, -0.1, 0.3, (0.1, 0))
     pytest.raises(ValueError, Epochs, raw, events, None, 0.1, 0.3, (None, 0))
