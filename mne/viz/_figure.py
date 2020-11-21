@@ -18,9 +18,9 @@ from .ica import _create_properties_layout
 from .utils import (plt_show, plot_sensors, _setup_plot_projector, _events_off,
                     _set_window_title, _merge_annotations, DraggableLine,
                     _get_color_list, logger, _validate_if_list_of_axes,
-                    _check_psd_fmax, _plot_psd)
+                    _plot_psd)
 from ..defaults import _handle_default
-from ..utils import set_config, _check_option, Bunch
+from ..utils import set_config, _check_option, _check_sphere, Bunch
 from ..annotations import _sync_onset
 from ..time_frequency import psd_welch, psd_multitaper
 from ..io.pick import (pick_types, _picks_to_idx, channel_indices_by_type,
@@ -2192,8 +2192,13 @@ def _psd_figure(inst, proj, picks, axes, area_mode, tmin, tmax, fmin, fmax,
     from .. import BaseEpochs
     from ..io import BaseRaw
     # arg checking
+    if np.isfinite(fmax) and (fmax > inst.info['sfreq'] / 2):
+        raise ValueError(
+            f'Requested fmax ({fmax} Hz) must not exceed ½ the sampling '
+            f'frequency of the data ({0.5 * inst.info["sfreq"]}).')
     _check_option('area_mode', area_mode, [None, 'std', 'range'])
-    _check_psd_fmax(inst, fmax)
+    _check_option('xscale', xscale, ('log', 'linear'))
+    sphere = _check_sphere(sphere, inst.info)
     picks = _picks_to_idx(inst.info, picks)
     titles = _handle_default('titles', None)
     units = _handle_default('units', None)

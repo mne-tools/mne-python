@@ -609,7 +609,7 @@ def test_plot_raw_psd(raw):
     plt.close('all')
 
     # test fmax value checking
-    with pytest.raises(ValueError, match='not exceed one half the sampling'):
+    with pytest.raises(ValueError, match='must not exceed ½ the sampling'):
         raw.plot_psd(fmax=50000)
 
     # test xscale value checking

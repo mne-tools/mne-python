@@ -2112,14 +2112,6 @@ def _convert_psds(psds, dB, estimate, scaling, unit, ch_names=None,
     return ylabel
 
 
-def _check_psd_fmax(inst, fmax):
-    """Make sure requested fmax does not exceed Nyquist frequency."""
-    if np.isfinite(fmax) and (fmax > inst.info['sfreq'] / 2):
-        raise ValueError('Requested fmax ({} Hz) must not exceed one half '
-                         'the sampling frequency of the data ({}).'
-                         .format(fmax, 0.5 * inst.info['sfreq']))
-
-
 def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
               units_list, scalings_list, ax_list, make_label, color, area_mode,
               area_alpha, dB, estimate, average, spatial_colors, xscale,
@@ -2127,8 +2119,6 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
     # helper function for plot_raw_psd and plot_epochs_psd
     from matplotlib.ticker import ScalarFormatter
     from .evoked import _plot_lines
-    sphere = _check_sphere(sphere, inst.info)
-    _check_option('xscale', xscale, ('log', 'linear'))
 
     for key, ls in zip(['lowpass', 'highpass', 'line_freq'],
                        ['--', '--', '-.']):
