@@ -524,19 +524,9 @@ class MNEBrowseFigure(MNEFigure):
         """Handle resize event for mne_browse-style plots (Raw/Epochs/ICA)."""
         old_width, old_height = self.mne.fig_size_px
         new_width, new_height = self._get_size_px()
-        new_margins = dict()
-        for side in ('left', 'right', 'bottom', 'top'):
-            ratio = ((old_width / new_width) if side in ('left', 'right') else
-                     (old_height / new_height))
-            rel_dim = getattr(self.subplotpars, side)
-            if side in ('right', 'top'):
-                new_margins[side] = 1 - ratio * (1 - rel_dim)
-            else:
-                new_margins[side] = ratio * rel_dim
-        # gh-8304: don't allow resizing too small
-        if (new_margins['bottom'] < new_margins['top'] and
-                new_margins['left'] < new_margins['right']):
-            self.subplots_adjust(**new_margins)
+        new_margins = _calc_new_margins(
+            self, old_width, old_height, new_width, new_height)
+        self.subplots_adjust(**new_margins)
         # zen mode bookkeeping
         self.mne.zen_w *= old_width / new_width
         self.mne.zen_h *= old_height / new_height
@@ -2132,20 +2122,9 @@ class MNEPSDFigure(MNEFigure):
         """Handle resize event."""
         old_width, old_height = self.mne.fig_size_px
         new_width, new_height = self._get_size_px()
-        new_margins = dict()
-        for side in ('left', 'right', 'bottom', 'top'):
-            ratio = ((old_width / new_width) if side in ('left', 'right') else
-                     (old_height / new_height))
-            rel_dim = getattr(self.subplotpars, side)
-            if side in ('right', 'top'):
-                new_margins[side] = 1 - ratio * (1 - rel_dim)
-            else:
-                new_margins[side] = ratio * rel_dim
-        # gh-8304: don't allow resizing too small
-        if (new_margins['bottom'] < new_margins['top'] and
-                new_margins['left'] < new_margins['right']):
-            self.subplots_adjust(**new_margins)
-        # bookkeeping
+        new_margins = _calc_new_margins(
+            self, old_width, old_height, new_width, new_height)
+        self.subplots_adjust(**new_margins)
         self.mne.fig_size_px = (new_width, new_height)
 
 
@@ -2278,6 +2257,23 @@ def _psd_figure(inst, proj, picks, axes, area_mode, tmin, tmax, fmin, fmax,
               dB, estimate, average, spatial_colors, xscale, line_alpha,
               sphere, xlabels_list)
     return fig
+
+
+def _calc_new_margins(fig, old_width, old_height, new_width, new_height):
+    """Compute new figure-relative values to maintain fixed-size margins."""
+    new_margins = dict()
+    for side in ('left', 'right', 'bottom', 'top'):
+        ratio = ((old_width / new_width) if side in ('left', 'right') else
+                 (old_height / new_height))
+        rel_dim = getattr(fig.subplotpars, side)
+        if side in ('right', 'top'):
+            new_margins[side] = 1 - ratio * (1 - rel_dim)
+        else:
+            new_margins[side] = ratio * rel_dim
+    # gh-8304: don't allow resizing too small
+    if (new_margins['bottom'] < new_margins['top'] and
+            new_margins['left'] < new_margins['right']):
+        return(new_margins)
 
 
 @contextmanager
