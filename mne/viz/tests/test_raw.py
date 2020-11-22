@@ -585,7 +585,10 @@ def test_plot_raw_psd(raw):
                                           ('power', 'amplitude')):
         with pytest.warns(UserWarning, match='[Infinite|Zero]'):
             fig = raw.plot_psd(average=True, dB=dB, estimate=estimate)
-        ylabel = fig.axes[1].get_ylabel()
+        # check grad axes
+        title = fig.axes[0].get_title()
+        assert title == 'Gradiometers', title
+        ylabel = fig.axes[0].get_ylabel()
         ends_dB = ylabel.endswith('mathrm{(dB)}$')
         if dB:
             assert ends_dB, ylabel
@@ -596,7 +599,10 @@ def test_plot_raw_psd(raw):
         else:
             assert estimate == 'power'
             assert '(fT/cm)²/Hz' in ylabel, ylabel
-        ylabel = fig.axes[0].get_ylabel()
+        # check mag axes
+        title = fig.axes[1].get_title()
+        assert title == 'Magnetometers', title
+        ylabel = fig.axes[1].get_ylabel()
         if estimate == 'amplitude':
             assert r'fT/\sqrt{Hz}' in ylabel
         else:
