@@ -1014,7 +1014,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     for k, v in user_alpha.items():
         if v is not None:
             alphas[k] = v
-    colors = dict(head=(0.6,) * 3, helmet=(0.0, 0.0, 0.6), lh=(0.5,) * 3,
+    colors = dict(head=DEFAULTS['coreg']['head_color'],
+                  helmet=(0.0, 0.0, 0.6), lh=(0.5,) * 3,
                   rh=(0.5,) * 3)
     colors.update(skull_colors)
     for key, surf in surfs.items():
