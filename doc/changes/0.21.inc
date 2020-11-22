@@ -7,6 +7,17 @@
    - "Bugs" for bug fixes
    - "API changes" for backward-incompatible changes
 
+.. _changes_0_21_3:
+
+Version 0.21.3
+--------------
+
+Bugs
+~~~~
+
+- Fix bug in :func:`mne.io.read_raw_kit` where scale factors for EEG channels could be set to zero (:gh:`8542` by `Eric Larson`_)
+
+
 .. _changes_0_21_2:
 
 Version 0.21.2
