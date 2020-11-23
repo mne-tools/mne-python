@@ -2170,18 +2170,6 @@ def _psd_figure(inst, proj, picks, axes, area_mode, tmin, tmax, fmin, fmax,
     from matplotlib.axes import Axes
     from .. import BaseEpochs
     from ..io import BaseRaw
-    # arg checking
-    if np.isfinite(fmax) and (fmax > inst.info['sfreq'] / 2):
-        raise ValueError(
-            f'Requested fmax ({fmax} Hz) must not exceed ½ the sampling '
-            f'frequency of the data ({0.5 * inst.info["sfreq"]}).')
-    _check_option('area_mode', area_mode, [None, 'std', 'range'])
-    _check_option('xscale', xscale, ('log', 'linear'))
-    sphere = _check_sphere(sphere, inst.info)
-    picks = _picks_to_idx(inst.info, picks)
-    titles = _handle_default('titles', None)
-    units = _handle_default('units', None)
-    scalings = _handle_default('scalings', None)
     # triage kwargs for different PSD methods (raw→welch, epochs→multitaper)
     welch_kwargs = ('n_fft', 'n_overlap', 'reject_by_annotation')
     multitaper_kwargs = ('bandwidth', 'adaptive', 'low_bias', 'normalization')
@@ -2196,6 +2184,18 @@ def _psd_figure(inst, proj, picks, axes, area_mode, tmin, tmax, fmin, fmax,
     else:
         raise TypeError('Expected an instance of Raw or Epochs, got '
                         f'{type(inst)}.')
+    # arg checking
+    if np.isfinite(fmax) and (fmax > inst.info['sfreq'] / 2):
+        raise ValueError(
+            f'Requested fmax ({fmax} Hz) must not exceed ½ the sampling '
+            f'frequency of the data ({0.5 * inst.info["sfreq"]}).')
+    _check_option('area_mode', area_mode, [None, 'std', 'range'])
+    _check_option('xscale', xscale, ('log', 'linear'))
+    sphere = _check_sphere(sphere, inst.info)
+    picks = _picks_to_idx(inst.info, picks)
+    titles = _handle_default('titles', None)
+    units = _handle_default('units', None)
+    scalings = _handle_default('scalings', None)
     # containers
     picks_list = list()
     units_list = list()

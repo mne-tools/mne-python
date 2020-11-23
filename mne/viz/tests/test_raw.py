@@ -550,7 +550,8 @@ def test_plot_raw_psd(raw):
     """Test plotting of raw psds."""
     raw_orig = raw.copy()
     # normal mode
-    raw.plot_psd(average=False)
+    fig = raw.plot_psd(average=False)
+    fig.canvas.resize_event()
     # specific mode
     picks = pick_types(raw.info, meg='mag', eeg=False)[:4]
     raw.plot_psd(tmax=None, picks=picks, area_mode='range', average=False,
