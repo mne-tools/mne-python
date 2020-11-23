@@ -587,26 +587,21 @@ def test_plot_raw_psd(raw):
             fig = raw.plot_psd(average=True, dB=dB, estimate=estimate)
         # check grad axes
         title = fig.axes[0].get_title()
-        assert title == 'Gradiometers', title
         ylabel = fig.axes[0].get_ylabel()
         ends_dB = ylabel.endswith('mathrm{(dB)}$')
+        unit = '(fT/cm)²/Hz' if estimate == 'power' else r'fT/cm/\sqrt{Hz}'
+        assert title == 'Gradiometers', title
+        assert unit in ylabel, ylabel
         if dB:
             assert ends_dB, ylabel
         else:
             assert not ends_dB, ylabel
-        if estimate == 'amplitude':
-            assert r'fT/cm/\sqrt{Hz}' in ylabel, ylabel
-        else:
-            assert estimate == 'power'
-            assert '(fT/cm)²/Hz' in ylabel, ylabel
         # check mag axes
         title = fig.axes[1].get_title()
-        assert title == 'Magnetometers', title
         ylabel = fig.axes[1].get_ylabel()
-        if estimate == 'amplitude':
-            assert r'fT/\sqrt{Hz}' in ylabel
-        else:
-            assert 'fT²/Hz' in ylabel
+        unit = 'fT²/Hz' if estimate == 'power' else r'fT/\sqrt{Hz}'
+        assert title == 'Magnetometers', title
+        assert unit in ylabel, ylabel
     # test reject_by_annotation
     raw = raw_orig
     raw.set_annotations(Annotations([1, 5], [3, 3], ['test', 'test']))
