@@ -1098,7 +1098,7 @@ def test_transform_to_head_and_compute_dev_head_t():
 
     montage_meg = make_dig_montage(hpi=hpi_dev, coord_frame='meg')
 
-    # Test regular worflow to get dev_head_t
+    # Test regular workflow to get dev_head_t
     montage = montage_polhemus + montage_meg
     fids, _ = _get_fid_coords(montage.dig)
     for kk in fids:
