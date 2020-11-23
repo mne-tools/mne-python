@@ -234,7 +234,7 @@ class _Renderer(_BaseRenderer):
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
                  opacity=1.0, scale_mode='none', scalars=None,
                  backface_culling=False, colormap=None, vmin=None, vmax=None,
-                 line_width=2., name=None):
+                 line_width=2., name=None, cube_transform=None):
         _check_option('mode', mode, ALLOWED_QUIVER_MODES)
         color = _check_color(color)
         with warnings.catch_warnings(record=True):  # traits
@@ -244,12 +244,18 @@ class _Renderer(_BaseRenderer):
                                    scale_mode=scale_mode,
                                    resolution=resolution, scalars=scalars,
                                    opacity=opacity, figure=self.fig)
-            elif mode in ('cone', 'sphere'):
+            elif mode in ('cone', 'sphere', 'cube'):
                 quiv = self.mlab.quiver3d(x, y, z, u, v, w, color=color,
                                           mode=mode, scale_factor=scale,
                                           opacity=opacity, figure=self.fig)
-                if mode == 'sphere':
+                if mode in ('sphere', 'cube'):
                     quiv.glyph.glyph_source.glyph_source.center = 0., 0., 0.
+                    if mode == 'cube':
+                        if glyph_height is not None:
+                            for dir_ in 'xyz':
+                                setattr(quiv.glyph.glyph_source.glyph_source,
+                                        f'{dir_}_length', glyph_height)
+                        # XXX we should use cube_transform here...
             else:
                 assert mode == 'cylinder', mode  # should be guaranteed above
                 quiv = self.mlab.quiver3d(x, y, z, u, v, w, mode=mode,

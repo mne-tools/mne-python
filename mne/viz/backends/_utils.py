@@ -15,7 +15,8 @@ VALID_3D_BACKENDS = (
     'mayavi',
     'notebook',
 )
-ALLOWED_QUIVER_MODES = ('2darrow', 'arrow', 'cone', 'cylinder', 'sphere')
+ALLOWED_QUIVER_MODES = ('2darrow', 'arrow', 'cone', 'cylinder', 'sphere',
+                        'cube')
 
 
 def _get_colormap_from_array(colormap=None, normalized_colormap=False,

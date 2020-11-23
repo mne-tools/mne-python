@@ -489,8 +489,12 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         If not None, also plot the source space points.
     mri_fiducials : bool | str
         Plot MRI fiducials (default False). If ``True``, look for a file with
-        the canonical name (``bem/{subject}-fiducials.fif``). If ``str`` it
-        should provide the full path to the fiducials file.
+        the canonical name (``bem/{subject}-fiducials.fif``). If ``str``,
+        it can be ``'estimated'`` to use :func:`mne.get_mni_fiducials`,
+        otherwise it should provide the full path to the fiducials file.
+
+        .. versionadded:: 0.22
+           Support for ``'estimated'``.
     bem : list of dict | instance of ConductorModel | None
         Can be either the BEM surfaces (list of dict), a BEM solution or a
         sphere model. If None, we first try loading
@@ -550,6 +554,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     .. versionadded:: 0.15
     """
     from ..forward import _create_meg_coils, Forward
+    from ..coreg import get_mni_fiducials
     # Update the backend
     from .backends.renderer import _get_renderer
 
@@ -811,9 +816,12 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
             mri_fiducials = op.join(subjects_dir, subject, 'bem',
                                     subject + '-fiducials.fif')
         if isinstance(mri_fiducials, str):
-            mri_fiducials, cf = read_fiducials(mri_fiducials)
-            if cf != FIFF.FIFFV_COORD_MRI:
-                raise ValueError("Fiducials are not in MRI space")
+            if mri_fiducials == 'estimated':
+                mri_fiducials = get_mni_fiducials(subject, subjects_dir)
+            else:
+                mri_fiducials, cf = read_fiducials(mri_fiducials)
+                if cf != FIFF.FIFFV_COORD_MRI:
+                    raise ValueError("Fiducials are not in MRI space")
         fid_loc = _fiducial_coords(mri_fiducials, FIFF.FIFFV_COORD_MRI)
         fid_loc = apply_trans(mri_trans, fid_loc)
     else:
@@ -1061,19 +1069,33 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
               defaults['extra_scale']
               ] + [defaults[key + '_scale'] for key in other_keys]
     assert len(datas) == len(colors) == len(alphas) == len(scales)
+    fid_colors = tuple(
+        defaults[f'{key}_color'] for key in ('lpa', 'nasion', 'rpa'))
+    glyphs = ['sphere'] * len(datas)
     for kind, loc in (('dig', car_loc), ('mri', fid_loc)):
         if len(loc) > 0:
             datas.extend(loc[:, np.newaxis])
-            colors.extend((defaults['lpa_color'],
-                           defaults['nasion_color'],
-                           defaults['rpa_color']))
-            alphas.extend(3 * (defaults[kind + '_fid_opacity'],))
-            scales.extend(3 * (defaults[kind + '_fid_scale'],))
-
-    for data, color, alpha, scale in zip(datas, colors, alphas, scales):
+            colors.extend(fid_colors)
+            alphas.extend(3 * (defaults[f'{kind}_fid_opacity'],))
+            scales.extend(3 * (defaults[f'{kind}_fid_scale'],))
+            glyphs.extend(3 * (('cube' if kind == 'mri' else 'sphere'),))
+    cube_transform = np.eye(4)
+    cube_transform[:3, :3] = mri_trans['trans'][:3, :3]
+    for data, color, alpha, scale, glyph in zip(
+            datas, colors, alphas, scales, glyphs):
         if len(data) > 0:
-            renderer.sphere(center=data, color=color, scale=scale,
-                            opacity=alpha, backface_culling=True)
+            if glyph == 'cube':
+                renderer.quiver3d(
+                    x=data[:, 0], y=data[:, 1], z=data[:, 2],
+                    u=1., v=0., w=0., color=color, mode='cube',
+                    scale=1., opacity=alpha, backface_culling=True,
+                    glyph_height=scale,
+                    cube_transform=cube_transform)
+            else:
+                assert glyph == 'sphere'
+                assert data.ndim == 2 and data.shape[1] == 3, data.shape
+                renderer.sphere(center=data, color=color, scale=scale,
+                                opacity=alpha, backface_culling=True)
     if len(eegp_loc) > 0:
         renderer.quiver3d(
             x=eegp_loc[:, 0], y=eegp_loc[:, 1], z=eegp_loc[:, 2],
