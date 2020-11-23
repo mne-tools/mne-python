@@ -1253,7 +1253,8 @@ class _RegCovariance(BaseEstimator):
     """Aux class."""
 
     def __init__(self, info, grad=0.1, mag=0.1, eeg=0.1, seeg=0.1, ecog=0.1,
-                 hbo=0.1, hbr=0.1, fnirs_cw_amplitude=0.1, fnirs_od=0.1,
+                 hbo=0.1, hbr=0.1, fnirs_cw_amplitude=0.1,
+                 fnirs_fd_ac_amplitude=0.1, fnirs_fd_phase=0.1, fnirs_od=0.1,
                  csd=0.1, store_precision=False, assume_centered=False):
         self.info = info
         # For sklearn compat, these cannot (easily?) be combined into
@@ -1266,6 +1267,8 @@ class _RegCovariance(BaseEstimator):
         self.hbo = hbo
         self.hbr = hbr
         self.fnirs_cw_amplitude = fnirs_cw_amplitude
+        self.fnirs_fd_ac_amplitude = fnirs_fd_ac_amplitude
+        self.fnirs_fd_phase = fnirs_fd_phase
         self.fnirs_od = fnirs_od
         self.csd = csd
         self.store_precision = store_precision
@@ -1545,7 +1548,8 @@ def _smart_eigh(C, info, rank, scalings=None, projs=None,
 @verbose
 def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
                proj=True, seeg=0.1, ecog=0.1, hbo=0.1, hbr=0.1,
-               fnirs_cw_amplitude=0.1, fnirs_od=0.1, csd=0.1,
+               fnirs_cw_amplitude=0.1, fnirs_fd_ac_amplitude=0.1,
+               fnirs_fd_phase=0.1, fnirs_od=0.1, csd=0.1,
                rank=None, scalings=None, verbose=None):
     """Regularize noise covariance matrix.
 
@@ -1587,7 +1591,11 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     hbr : float (default 0.1)
         Regularization factor for HBR signals.
     fnirs_cw_amplitude : float (default 0.1)
-        Regularization factor for fNIRS raw signals.
+        Regularization factor for fNIRS CW raw signals.
+    fnirs_fd_ac_amplitude : float (default 0.1)
+        Regularization factor for fNIRS FD AC raw signals.
+    fnirs_fd_phase : float (default 0.1)
+        Regularization factor for fNIRS raw phase signals.
     fnirs_od : float (default 0.1)
         Regularization factor for fNIRS optical density signals.
     csd : float (default 0.1)
@@ -1619,7 +1627,8 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     scalings = _handle_default('scalings_cov_rank', scalings)
     regs = dict(eeg=eeg, seeg=seeg, ecog=ecog, hbo=hbo, hbr=hbr,
                 fnirs_cw_amplitude=fnirs_cw_amplitude,
-                fnirs_od=fnirs_od, csd=csd)
+                fnirs_fd_ac_amplitude=fnirs_fd_ac_amplitude,
+                fnirs_fd_phase=fnirs_fd_phase, fnirs_od=fnirs_od, csd=csd)
 
     if exclude is None:
         raise ValueError('exclude must be a list of strings or "bads"')

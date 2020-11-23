@@ -131,6 +131,16 @@ def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
                   cortex=cortex, units='m', **kwargs)
     with pytest.raises(TypeError, match='not supported'):
         brain._check_stc(hemi='lh', array=FakeSTC(), vertices=None)
+    brain._hemi = 'foo'  # for testing: hemis
+    with pytest.raises(ValueError, match='not be None'):
+        brain._check_hemi(hemi=None)
+    with pytest.raises(ValueError, match='either "lh" or "rh"'):
+        brain._check_hemi(hemi='foo')
+    with pytest.raises(ValueError, match='either "lh" or "rh"'):
+        brain._check_hemis(hemi='foo')
+    brain._hemi = hemi  # end testing: hemis
+    with pytest.raises(ValueError, match='bool or positive'):
+        brain._to_borders(None, None, 'foo')
     assert brain.interaction == 'trackball'
     # add_data
     stc = read_source_estimate(fname_stc)
@@ -206,6 +216,11 @@ def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
                            vertices=hemi_vertices)
     # add label
     label = read_label(fname_label)
+    with pytest.raises(ValueError, match="not a filename"):
+        brain.add_label(0)
+    with pytest.raises(ValueError, match="does not exist"):
+        brain.add_label('foo', subdir='bar')
+    label.name = None  # test unnamed label
     brain.add_label(label, scalar_thresh=0.)
     brain.remove_labels()
     brain.add_label(fname_label)
@@ -219,12 +234,11 @@ def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
 
     # add text
     brain.add_text(x=0, y=0, text='foo')
+    brain.close()
 
     # add annotation
     annots = ['aparc', path.join(subjects_dir, 'fsaverage', 'label',
                                  'lh.PALS_B12_Lobes.annot')]
-    brain.close()
-
     borders = [True, 2]
     alphas = [1, 0.5]
     colors = [None, 'r']
@@ -275,6 +289,11 @@ def test_brain_time_viewer(renderer_interactive, pixel_ratio, brain_gc):
     """Test time viewer primitives."""
     if renderer_interactive._get_3d_backend() != 'pyvista':
         pytest.skip('TimeViewer tests only supported on PyVista')
+    with pytest.raises(ValueError, match="between 0 and 1"):
+        _create_testing_brain(hemi='lh', show_traces=-1.0)
+    with pytest.raises(ValueError, match="got unknown keys"):
+        _create_testing_brain(hemi='lh', surf='white', src='volume',
+                              volume_options={'foo': 'bar'})
     brain = _create_testing_brain(hemi='both', show_traces=False)
     brain.callbacks["time"](value=0)
     brain.callbacks["orientation_lh_0_0"](
@@ -298,8 +317,10 @@ def test_brain_time_viewer(renderer_interactive, pixel_ratio, brain_gc):
     brain.callbacks["fmin"](value=12.0)
     brain.callbacks["fmid"](value=4.0)
     brain.toggle_interface()
+    brain.toggle_interface(value=False)
     brain.callbacks["playback_speed"](value=0.1)
     brain.toggle_playback()
+    brain.toggle_playback(value=False)
     brain.apply_auto_scaling()
     brain.restore_user_scaling()
     brain.reset()
@@ -307,6 +328,7 @@ def test_brain_time_viewer(renderer_interactive, pixel_ratio, brain_gc):
     brain.help()
     assert len(plt.get_fignums()) == 1
     plt.close('all')
+    assert len(plt.get_fignums()) == 0
 
     # screenshot
     brain.show_view(view=dict(azimuth=180., elevation=90.))

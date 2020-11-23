@@ -177,7 +177,8 @@ def _plot_legend(pos, colors, axis, bads, outlines, loc, size=30):
     ratio = bbox.width / bbox.height
     ax = inset_axes(axis, width=str(size / ratio) + '%',
                     height=str(size) + '%', loc=loc)
-    ax.set_adjustable("box")
+    ax.set_adjustable('box')
+    ax.set_aspect('equal')
     _prepare_topomap(pos, ax, check_nonzero=False)
     pos_x, pos_y = pos.T
     ax.scatter(pos_x, pos_y, color=colors, s=size * .8, marker='.', zorder=1)
