@@ -559,17 +559,18 @@ def test_plot_raw_psd(raw):
     raw.plot_psd(tmax=20., color='yellow', dB=False, line_alpha=0.4,
                  n_overlap=0.1, average=False)
     plt.close('all')
+    # one axes supplied
     ax = plt.axes()
-    # if ax is supplied:
-    pytest.raises(ValueError, raw.plot_psd, ax=ax, average=True)
     raw.plot_psd(tmax=None, picks=picks, ax=ax, average=True)
     plt.close('all')
+    # two axes supplied
+    _, axs = plt.subplots(2)
+    raw.plot_psd(tmax=None, ax=axs, average=True)
+    plt.close('all')
+    # need 2, got 1
     ax = plt.axes()
     with pytest.raises(ValueError, match='of length 2, while the length is 1'):
         raw.plot_psd(ax=ax, average=True)
-    plt.close('all')
-    ax = plt.subplots(2)[1]
-    raw.plot_psd(tmax=None, ax=ax, average=True)
     plt.close('all')
     # topo psd
     ax = plt.subplot()
