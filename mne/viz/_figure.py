@@ -2102,8 +2102,8 @@ class MNEPSDFigure(MNEFigure):
         # AXES: default margins (inches)
         l_margin = 0.8
         r_margin = 0.2
-        b_margin = 0.6
-        t_margin = 0.4
+        b_margin = 0.65
+        t_margin = 0.35
         # AXES: default margins (figure-relative coordinates)
         left = self._inch_to_rel(l_margin)
         right = 1 - self._inch_to_rel(r_margin)
@@ -2114,7 +2114,7 @@ class MNEPSDFigure(MNEFigure):
         for ix in range(1, n_axes):
             axes.append(self.add_subplot(n_axes, 1, ix + 1, sharex=axes[0]))
         self.subplotpars.update(left=left, bottom=bottom, top=top, right=right,
-                                hspace=0.3)
+                                hspace=0.4)
         # save useful things
         vars(self.mne).update(ax_list=axes)
 
