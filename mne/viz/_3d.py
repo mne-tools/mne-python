@@ -1898,8 +1898,6 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
         }
         if using_mayavi:
             data = getattr(stc, hemi + '_data')
-            if len(data) == 0:
-                continue
             vertices = stc.vertices[0 if hemi == 'lh' else 1]
             kwargs["array"] = data
             kwargs["vertices"] = vertices
@@ -1914,6 +1912,8 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
             kwargs["clim"] = clim
             kwargs["src"] = src
         kwargs.update({} if add_data_kwargs is None else add_data_kwargs)
+        if volume:
+            continue
         with warnings.catch_warnings(record=True):  # traits warnings
             brain.add_data(**kwargs)
         brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],

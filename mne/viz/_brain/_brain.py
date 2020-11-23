@@ -1493,10 +1493,7 @@ class Brain(object):
                                  f'{time_label_size}')
 
         hemi = self._check_hemi(hemi, extras=['vol'])
-        try:
-            stc, array, vertices = self._check_stc(hemi, array, vertices)
-        except ValueError:
-            return  # No data to add, skipping
+        stc, array, vertices = self._check_stc(hemi, array, vertices)
         array = np.asarray(array)
         vector_alpha = alpha if vector_alpha is None else vector_alpha
         self._data['vector_alpha'] = vector_alpha
@@ -2930,8 +2927,6 @@ class Brain(object):
         %(verbose_meth)s
         """
         # XXX fmid/transparent/center not used, this is a bug
-        if 'ctable' not in self._data:
-            return
         lut_lst = self._data['ctable']
         n_col = len(lut_lst)
 
