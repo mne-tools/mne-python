@@ -27,7 +27,7 @@ from mne.source_space import (get_volume_labels_from_aseg, _get_mri_info_data,
                               _get_atlas_values, _add_interpolator,
                               _grid_interp)
 from mne.transforms import quat_to_rot
-from mne.utils import (requires_nibabel, check_version,
+from mne.utils import (requires_nibabel, check_version, requires_version,
                        requires_dipy, requires_h5py, catch_logging)
 from mne.fixes import _get_args
 
@@ -912,7 +912,7 @@ _affines = (
 
 
 @requires_nibabel()
-@requires_dipy()
+@requires_version('dipy', '1.3')
 @pytest.mark.parametrize('from_shape', _shapes)
 @pytest.mark.parametrize('from_affine', _affines)
 @pytest.mark.parametrize('to_shape', _shapes)
