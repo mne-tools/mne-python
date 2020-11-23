@@ -414,7 +414,6 @@ def test_edf_annot_sub_s_onset():
 
 def test_invalid_date(tmpdir):
     """Test handling of invalid date in EDF header."""
-    tempdir = str(tmpdir)
     with open(edf_path, 'rb') as f:  # read valid test file
         edf = bytearray(f.read())
 
@@ -422,22 +421,39 @@ def test_invalid_date(tmpdir):
     # but we also use Startdate if available,
     # which starts at byte 88 and is b'Startdate 29-APR-2014 X X X'
     # create invalid date 29.02.14 (2014 is not a leap year)
+
+    # one wrong: no warning
+    edf[101:104] = b'FEB'
+    assert edf[172] == ord('4')
+    fname = op.join(str(tmpdir), "temp.edf")
+    with open(fname, "wb") as f:
+        f.write(edf)
+    read_raw_edf(fname)
+
+    # other wrong: no warning
+    edf[101:104] = b'APR'
+    edf[172] = ord('2')
+    with open(fname, "wb") as f:
+        f.write(edf)
+    read_raw_edf(fname)
+
+    # both wrong: warning
     edf[101:104] = b'FEB'
     edf[172] = ord('2')
-    with open(op.join(tempdir, "temp.edf"), "wb") as f:
+    with open(fname, "wb") as f:
         f.write(edf)
     with pytest.warns(RuntimeWarning, match='Invalid date'):
-        read_raw_edf(op.join(tempdir, "temp.edf"), preload=True)
+        read_raw_edf(fname)
 
     # another invalid date 29.00.14 (0 is not a month)
+    assert edf[101:104] == b'FEB'
     edf[172] = ord('0')
-    with open(op.join(tempdir, "temp.edf"), "wb") as f:
+    with open(fname, "wb") as f:
         f.write(edf)
     with pytest.warns(RuntimeWarning, match='Invalid date'):
-        read_raw_edf(op.join(tempdir, "temp.edf"), preload=True)
+        read_raw_edf(fname)
 
 
 def test_empty_chars():
     """Test blank char support."""
-    # from gitter
     assert _edf_str_int(b'1819\x00 ') == 1819

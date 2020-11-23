@@ -569,7 +569,6 @@ def _read_edf_header(fname, exclude):
         try:
             meas_date = datetime(year, month, day, hour, minute, sec,
                                  tzinfo=timezone.utc)
-            print(meas_date)
         except ValueError:
             warn(f'Invalid date encountered ({year:04d}-{month:02d}-'
                  f'{day:02d} {hour:02d}:{minute:02d}:{sec:02d}).')
