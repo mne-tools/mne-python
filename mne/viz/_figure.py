@@ -2110,9 +2110,9 @@ class MNEPSDFigure(MNEFigure):
         bottom = self._inch_to_rel(b_margin, horiz=False)
         top = 1 - self._inch_to_rel(t_margin, horiz=False)
         # AXES: make subplots
-        axes = [self.add_subplot(n_axes, 1, ix + 1) for ix in range(n_axes)]
-        for _ax in axes[1:]:
-            _ax.sharex(axes[0])
+        axes = [self.add_subplot(n_axes, 1, 1)]
+        for ix in range(1, n_axes):
+            axes.append(self.add_subplot(n_axes, 1, ix + 1, sharex=axes[0]))
         self.subplotpars.update(left=left, bottom=bottom, top=top, right=right,
                                 hspace=0.3)
         # save useful things
