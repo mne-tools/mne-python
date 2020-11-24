@@ -813,7 +813,7 @@ Source Space Data
    vertex_to_mni
    write_labels_to_annot
    write_label
-   source_space.vertex_depths
+   source_space.compute_distance_to_sensors
 
 
 Time-Frequency
