@@ -771,6 +771,7 @@ def _set_3d_view(figure, azimuth, elevation, focalpoint, distance, roll=None):
     if elevation is not None:
         theta = _deg2rad(elevation)
 
+    # set the distance
     renderer = figure.plotter.renderer
     bounds = np.array(renderer.ComputeVisiblePropBounds())
     if distance is None:
@@ -797,18 +798,22 @@ def _set_3d_view(figure, azimuth, elevation, focalpoint, distance, roll=None):
         position, focalpoint, view_up]
     if roll is not None:
         figure.plotter.camera.SetRoll(roll)
-    # set the distance
 
     figure.plotter.renderer._azimuth = azimuth
     figure.plotter.renderer._elevation = elevation
     figure.plotter.renderer._distance = distance
     figure.plotter.renderer._roll = roll
+    figure.plotter.update()
+    _process_events(figure.plotter)
 
 
 def _set_3d_title(figure, title, size=16):
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=FutureWarning)
-        figure.plotter.add_text(title, font_size=size, color='white')
+        figure.plotter.add_text(title, font_size=size, color='white',
+                                name='title')
+    figure.plotter.update()
+    _process_events(figure.plotter)
 
 
 def _check_3d_figure(figure):
