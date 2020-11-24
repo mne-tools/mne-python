@@ -123,6 +123,7 @@ File I/O
    read_events
    read_evokeds
    read_evoked_fieldtrip
+   read_evokeds_mff
    read_freesurfer_lut
    read_forward_solution
    read_label

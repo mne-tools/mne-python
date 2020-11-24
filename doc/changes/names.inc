@@ -335,3 +335,5 @@
 .. _Tod Flak: https://github.com/todflak
 
 .. _Victoria Peterson: https://github.com/vpeterson
+
+.. _Evan Hathaway: https://github.com/ephathaway

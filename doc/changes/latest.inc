@@ -22,9 +22,13 @@ Current (0.22.dev0)
 
 .. |Jonathan Kuziek| replace:: **Jonathan Kuziek**
 
+.. |Evan Hathaway| replace:: **Evan Hathaway**
+
 
 Enhancements
 ~~~~~~~~~~~~
+- Add :func:`mne.read_evokeds_mff` to read averaged MFFs (requires mffpy >= 0.5.7) **by new contributor** |Evan Hathaway|_ (:gh:`8354`)
+
 - Add :class:`mne.decoding.SSD` for spatial filtering with spatio-spectral-decomposition (:gh:`7070` **by new contributor** |Victoria Peterson|_ and `Denis Engemann`_)
 
 - Add reader for optical imaging data recorded using ISS Imgagent I/II hardware and BOXY recording software in :func:`mne.io.read_raw_boxy` (:gh:`7717` **by new contributor** |Jonathan Kuziek|_ and `Kyle Mathewson`_)
