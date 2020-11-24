@@ -2116,7 +2116,7 @@ class MNEPSDFigure(MNEFigure):
         self.subplotpars.update(left=left, bottom=bottom, top=top, right=right,
                                 hspace=0.4)
         # save useful things
-        vars(self.mne).update(ax_list=axes)
+        self.mne.ax_list = axes
 
     def _resize(self, event):
         """Handle resize event."""
