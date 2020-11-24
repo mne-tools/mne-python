@@ -72,6 +72,7 @@ Reading raw data
    read_raw_fif
    read_raw_eximia
    read_raw_fieldtrip
+   read_raw_boxy
    read_raw_persyst
    read_raw_nihon
 
@@ -122,6 +123,7 @@ File I/O
    read_events
    read_evokeds
    read_evoked_fieldtrip
+   read_evokeds_mff
    read_freesurfer_lut
    read_forward_solution
    read_label

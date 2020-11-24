@@ -20,10 +20,18 @@ Current (0.22.dev0)
 
 .. |Victoria Peterson| replace:: **Victoria Peterson**
 
+.. |Jonathan Kuziek| replace:: **Jonathan Kuziek**
+
+.. |Evan Hathaway| replace:: **Evan Hathaway**
+
 
 Enhancements
 ~~~~~~~~~~~~
+- Add :func:`mne.read_evokeds_mff` to read averaged MFFs (requires mffpy >= 0.5.7) **by new contributor** |Evan Hathaway|_ (:gh:`8354`)
+
 - Add :class:`mne.decoding.SSD` for spatial filtering with spatio-spectral-decomposition (:gh:`7070` **by new contributor** |Victoria Peterson|_ and `Denis Engemann`_)
+
+- Add reader for optical imaging data recorded using ISS Imgagent I/II hardware and BOXY recording software in :func:`mne.io.read_raw_boxy` (:gh:`7717` **by new contributor** |Jonathan Kuziek|_ and `Kyle Mathewson`_)
 
 - Add options to use labels in :func:`mne.minimum_norm.get_point_spread` and :func:`mne.minimum_norm.get_cross_talk` (:gh:`8275` by `Olaf Hauk`_)
 
@@ -134,7 +142,13 @@ Bugs
 
 - Fix inset sensor plots to always use equal aspect (:gh:`8545` by `Daniel McCloy`_)
 
+- Fix bug in :func:`mne.io.read_raw_kit` where scale factors for EEG channels could be set to zero (:gh:`8542` by `Eric Larson`_)
+
 - Fix reading GDF files with excluded channels in :func:`mne.io.read_raw_gdf` (:gh:`8520` by `Clemens Brunner`_)
+
+- Fix bug in :func:`mne.viz.set_3d_title` where 3D plot could have multiple titles that overlap (:gh:`8564` by `Guillaume Favelier`_)
+
+- Fix bug in :func:`mne.viz.set_3d_view` where plotter is not updated properly causing camera issues in the doc (:gh:`8564` by `Guillaume Favelier`_)
 
 API changes
 ~~~~~~~~~~~

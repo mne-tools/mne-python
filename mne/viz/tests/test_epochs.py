@@ -138,6 +138,17 @@ def test_plot_epochs_colors(epochs):
         epochs.plot(event_colors='r', event_color='b')
 
 
+def test_plot_epochs_scale_bar(epochs):
+    """Test scale bar for epochs."""
+    fig = epochs.plot()
+    fig.canvas.key_press_event('s')  # default is to not show scalebars
+    ax = fig.mne.ax_main
+    assert len(ax.texts) == 2  # only mag & grad in this instance
+    texts = tuple(t.get_text().strip() for t in ax.texts)
+    wants = ('800.0 fT/cm', '2000.0 fT')
+    assert texts == wants
+
+
 def test_plot_epochs_clicks(epochs, capsys):
     """Test plot_epochs mouse interaction."""
     fig = epochs.plot(events=epochs.events)
