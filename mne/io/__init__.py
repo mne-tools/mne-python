@@ -40,7 +40,7 @@ from .cnt import read_raw_cnt
 from .ctf import read_raw_ctf
 from .curry import read_raw_curry
 from .edf import read_raw_edf, read_raw_bdf, read_raw_gdf
-from .egi import read_raw_egi
+from .egi import read_raw_egi, read_evokeds_mff
 from .kit import read_raw_kit, read_epochs_kit
 from .fiff import read_raw_fif
 from .nicolet import read_raw_nicolet
