@@ -1910,7 +1910,7 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
             kwargs["clim"] = clim
             kwargs["src"] = src
         kwargs.update({} if add_data_kwargs is None else add_data_kwargs)
-        if volume:
+        if volume and src.kind == 'volume':
             continue
         with warnings.catch_warnings(record=True):  # traits warnings
             brain.add_data(**kwargs)
