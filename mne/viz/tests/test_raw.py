@@ -550,7 +550,8 @@ def test_plot_raw_psd(raw):
     """Test plotting of raw psds."""
     raw_orig = raw.copy()
     # normal mode
-    raw.plot_psd(average=False)
+    fig = raw.plot_psd(average=False)
+    fig.canvas.resize_event()
     # specific mode
     picks = pick_types(raw.info, meg='mag', eeg=False)[:4]
     raw.plot_psd(tmax=None, picks=picks, area_mode='range', average=False,
@@ -558,17 +559,18 @@ def test_plot_raw_psd(raw):
     raw.plot_psd(tmax=20., color='yellow', dB=False, line_alpha=0.4,
                  n_overlap=0.1, average=False)
     plt.close('all')
+    # one axes supplied
     ax = plt.axes()
-    # if ax is supplied:
-    pytest.raises(ValueError, raw.plot_psd, ax=ax, average=True)
     raw.plot_psd(tmax=None, picks=picks, ax=ax, average=True)
     plt.close('all')
-    ax = plt.axes()
-    with pytest.raises(ValueError, match='2 axes must be supplied, got 1'):
-        raw.plot_psd(ax=ax, average=True)
+    # two axes supplied
+    _, axs = plt.subplots(2)
+    raw.plot_psd(tmax=None, ax=axs, average=True)
     plt.close('all')
-    ax = plt.subplots(2)[1]
-    raw.plot_psd(tmax=None, ax=ax, average=True)
+    # need 2, got 1
+    ax = plt.axes()
+    with pytest.raises(ValueError, match='of length 2, while the length is 1'):
+        raw.plot_psd(ax=ax, average=True)
     plt.close('all')
     # topo psd
     ax = plt.subplot()
@@ -585,22 +587,23 @@ def test_plot_raw_psd(raw):
                                           ('power', 'amplitude')):
         with pytest.warns(UserWarning, match='[Infinite|Zero]'):
             fig = raw.plot_psd(average=True, dB=dB, estimate=estimate)
-        ylabel = fig.axes[1].get_ylabel()
+        # check grad axes
+        title = fig.axes[0].get_title()
+        ylabel = fig.axes[0].get_ylabel()
         ends_dB = ylabel.endswith('mathrm{(dB)}$')
+        unit = '(fT/cm)²/Hz' if estimate == 'power' else r'fT/cm/\sqrt{Hz}'
+        assert title == 'Gradiometers', title
+        assert unit in ylabel, ylabel
         if dB:
             assert ends_dB, ylabel
         else:
             assert not ends_dB, ylabel
-        if estimate == 'amplitude':
-            assert r'fT/cm/\sqrt{Hz}' in ylabel, ylabel
-        else:
-            assert estimate == 'power'
-            assert '(fT/cm)²/Hz' in ylabel, ylabel
-        ylabel = fig.axes[0].get_ylabel()
-        if estimate == 'amplitude':
-            assert r'fT/\sqrt{Hz}' in ylabel
-        else:
-            assert 'fT²/Hz' in ylabel
+        # check mag axes
+        title = fig.axes[1].get_title()
+        ylabel = fig.axes[1].get_ylabel()
+        unit = 'fT²/Hz' if estimate == 'power' else r'fT/\sqrt{Hz}'
+        assert title == 'Magnetometers', title
+        assert unit in ylabel, ylabel
     # test reject_by_annotation
     raw = raw_orig
     raw.set_annotations(Annotations([1, 5], [3, 3], ['test', 'test']))
@@ -609,7 +612,7 @@ def test_plot_raw_psd(raw):
     plt.close('all')
 
     # test fmax value checking
-    with pytest.raises(ValueError, match='not exceed one half the sampling'):
+    with pytest.raises(ValueError, match='must not exceed ½ the sampling'):
         raw.plot_psd(fmax=50000)
 
     # test xscale value checking

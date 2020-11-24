@@ -1200,9 +1200,9 @@ docdict["plot_psd_doc"] = """
 Plot the power spectral density across channels.
 
 Different channel types are drawn in sub-plots. When the data have been
-processed with a bandpass, lowpass or highpass filter, dashed lines
-indicate the boundaries of the filter (--). The line noise frequency is
-also indicated with a dashed line (-.)
+processed with a bandpass, lowpass or highpass filter, dashed lines (╎)
+indicate the boundaries of the filter. The line noise frequency is
+also indicated with a dashed line (⋮)
 """
 docdict['plot_psd_picks_good_data'] = docdict['picks_good_data'][:-2] + """
     Cannot be None if ``ax`` is supplied.If both ``picks`` and ``ax`` are None
