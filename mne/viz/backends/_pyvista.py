@@ -804,6 +804,7 @@ def _set_3d_view(figure, azimuth, elevation, focalpoint, distance, roll=None):
     figure.plotter.renderer._distance = distance
     figure.plotter.renderer._roll = roll
     figure.plotter.update()
+    _process_events(figure.plotter)
 
 
 def _set_3d_title(figure, title, size=16):
@@ -811,6 +812,7 @@ def _set_3d_title(figure, title, size=16):
         warnings.filterwarnings("ignore", category=FutureWarning)
         figure.plotter.add_text(title, font_size=size, color='white')
     figure.plotter.update()
+    _process_events(figure.plotter)
 
 
 def _check_3d_figure(figure):
