@@ -429,27 +429,30 @@ axes : list of Axes | None
 """
 
 # Picks
-docdict['picks_header'] = 'picks : str | list | slice | None'
-docdict['picks_base'] = docdict['picks_header'] + """
-    Channels to include. Slices and lists of integers will be
-    interpreted as channel indices. In lists, channel *type* strings
+picks_header = 'picks : str | list | slice | None'
+picks_intro = ('Channels to include. Slices and lists of integers will be '
+               'interpreted as channel indices.')
+_reminder = ("Note that channels in ``info['bads']`` *will be included* if "
+             "their {}indices are explicitly provided.\n")
+reminder = _reminder.format('names or ')
+reminder_nostr = _reminder.format('')
+noref = f'(excluding reference MEG channels). {reminder}'
+picks_base = f"""{picks_header}
+    {picks_intro} In lists, channel *type* strings
     (e.g., ``['meg', 'eeg']``) will pick channels of those
     types, channel *name* strings (e.g., ``['MEG0111', 'MEG2623']``
     will pick the given channels. Can also be the string values
     "all" to pick all channels, or "data" to pick :term:`data channels`.
-    None (default) will pick """
-docdict['picks_all'] = docdict['picks_base'] + 'all channels.\n'
-docdict['picks_all_data'] = docdict['picks_base'] + 'all data channels.\n'
-docdict['picks_all_data_noref'] = (docdict['picks_all_data'][:-2] +
-                                   '(excluding reference MEG channels).\n')
-docdict['picks_good_data'] = docdict['picks_base'] + 'good data channels.\n'
-docdict['picks_good_data_noref'] = (docdict['picks_good_data'][:-2] +
-                                    '(excluding reference MEG channels).\n')
-docdict['picks_nostr'] = """
-picks : list | slice | None
-    Channels to include. Slices and lists of integers will be
-    interpreted as channel indices. None (default) will pick all channels.
-"""
+    None (default) will pick"""
+docdict['picks_header'] = picks_header  # these get reused as stubs in a
+docdict['picks_base'] = picks_base      # couple places (e.g., BaseEpochs)
+docdict['picks_all'] = f'{picks_base} all channels. {reminder}'
+docdict['picks_all_data'] = f'{picks_base} all data channels. {reminder}'
+docdict['picks_good_data'] = f'{picks_base} good data channels. {reminder}'
+docdict['picks_all_data_noref'] = f'{picks_base} all data channels {noref}'
+docdict['picks_good_data_noref'] = f'{picks_base} good data channels {noref}'
+docdict['picks_nostr'] = f"""picks : list | slice | None
+    {picks_intro} None (default) will pick all channels. {reminder_nostr}"""
 
 # Filtering
 docdict['l_freq'] = """
