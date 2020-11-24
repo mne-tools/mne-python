@@ -31,8 +31,10 @@ from mne.source_estimate import _get_src_type
 from mne.transforms import apply_trans, _get_trans
 from mne.source_space import (get_volume_labels_from_aseg,
                               get_volume_labels_from_src,
-                              _compare_source_spaces, vertex_depths)
+                              _compare_source_spaces,
+                              compute_distance_to_sensors)
 from mne.io import read_info
+from mne.io.pick import _picks_to_idx
 from mne.io.constants import FIFF
 
 data_path = testing.data_path(download=False)
@@ -64,12 +66,12 @@ rng = np.random.RandomState(0)
 
 @testing.requires_testing_data
 @pytest.mark.parametrize('picks, limits', [
-    ('meg', (0.020, 0.110)),
-    (None, (0.002, 0.110)),  # should be same as EEG
-    ('eeg', (0.002, 0.110)),
+    ('meg', (0.020, 0.250)),
+    (None, (0.002, 0.250)),  # should be same as EEG
+    ('eeg', (0.002, 0.250)),
 ])
-def test_vertex_depths(picks, limits):
-    """Test source depth calculation."""
+def test_compute_distance_to_sensors(picks, limits):
+    """Test computation of distances between vertices and sensors."""
     src = read_source_spaces(fname_fs)
     info = read_info(fname_ave)
     trans = read_trans(trans_fname)
@@ -81,38 +83,23 @@ def test_vertex_depths(picks, limits):
         use_picks = pick_types(info, **kwargs, exclude=())
     else:
         use_picks = picks
+    n_picks = len(_picks_to_idx(info, use_picks, 'data', exclude=()))
+    n_verts = src[0]['nuse'] + src[1]['nuse']
 
     # minimum distances between vertices and sensors
-    depths = vertex_depths(src, info=info, picks=use_picks, trans=trans)
-    nuse = src[0]['nuse'] + src[1]['nuse']
-    assert depths.shape == (nuse,)
+    depths = compute_distance_to_sensors(src, info=info, picks=use_picks,
+                                         trans=trans)
+    assert depths.shape == (n_verts, n_picks)
     assert limits[0] * 2 > depths.min()  # meaningful choice of limits
     assert_array_less(limits[0], depths)
     assert_array_less(depths, limits[1])
-
-    depths_min = vertex_depths(src, info=info, picks=use_picks,
-                               trans=trans, mode='min')
-    depths_non = vertex_depths(src, info=info, picks=use_picks,
-                               trans=trans, mode=None)
-    depths_max = vertex_depths(src, info=info, picks=use_picks,
-                               trans=trans, mode='max')
-    depths_avg = vertex_depths(src, info=info, picks=use_picks,
-                               trans=trans, mode='mean')
-    assert_array_less(depths_min, depths_avg)
-    assert_array_less(depths_avg, depths_max)
-    assert_array_equal(depths_min, depths_non)
 
     if picks != 'eeg':
         # this should break things
         info['dev_head_t'] = None
         with pytest.raises(ValueError,
                            match='Transform between meg<->head'):
-            vertex_depths(src, info, use_picks, trans)
-
-    depths = vertex_depths(src, info=None, picks=None, trans=None)
-    assert depths.shape == (nuse,)
-    assert_array_less(0, depths)
-    assert_array_less(depths, .09)
+            compute_distance_to_sensors(src, info, use_picks, trans)
 
 
 @testing.requires_testing_data

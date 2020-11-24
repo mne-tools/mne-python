@@ -3202,87 +3202,60 @@ def _get_src_nn(s, use_cps=True, vertices=None):
 
 
 @verbose
-def vertex_depths(src, info=None, picks=None, trans=None, mode=None,
-                  verbose=None):
-    """Compute source depths of vertices.
+def compute_distance_to_sensors(src, info, picks=None, trans=None,
+                                verbose=None):
+    """Compute distances between vertices and sensors.
 
     Parameters
     ----------
     src : instance of SourceSpaces
-        The object to select vertices from.
-    info : instance of Info | None
-        If not None, the depth of each vertex will be computed as its minimum
-        distance to sensors specified by 'info' and 'picks'. If none, the depth
-        will be computed as the distance to the mean location (centre of
-        gravity) of all vertices in source space.
+        The object with vertex positions for which to compute distances to
+        sensors.
+    info : instance of Info
+        Measurement information with sensor positions to which distances shall
+        be computed.
     %(picks_good_data)s
     %(trans_not_none)s
-    mode : None | 'min' | 'max' | 'mean'
-        The distance metric to compute. Not used if 'info' is None. Can be
-
-        * None : Same as 'min' (Default).
-        * 'min' : Minimum Euclidean distance to nearest sensor.
-        * 'max' : Maximum Euclidean distance to sensors.
-        * 'mean' : Average Euclidean distance across sensors.
     %(verbose)s
 
     Returns
     -------
-    depth : array of shape (,n_vertices)
-        The depths of source space vertices with respect to sensors.
+    depth : array of shape (n_vertices, n_channels)
+        The Euclidean distances of source space vertices with respect to
+        sensors.
     """
     assert isinstance(src, SourceSpaces)
-    if info is not None:
-        _validate_type(info, (Info,), 'info')
 
-        # Load the head<->MRI transform if necessary
-        if src[0]['coord_frame'] == FIFF.FIFFV_COORD_MRI:
-            src_trans, _ = _get_trans(trans, allow_none=False)
-        else:
-            src_trans = Transform('head', 'head')  # Identity transform
+    _validate_type(info, (Info,), 'info')
 
-    if info is None and (picks is not None or trans is not None):
-        raise ValueError('"picks" and "trans" must be None if "info" is None.')
-
-    if info is not None:
-        # get vertex position in same coordinates as for sensors below
-        src_pos = np.vstack([
-            apply_trans(src_trans, s['rr'][s['inuse'].astype(np.bool)])
-            for s in src
-        ])
-        # Select channels to be used for distance calculations
-        picks = _picks_to_idx(info, picks, 'data', exclude=())
-        # get sensor positions
-        sensor_pos = []
-        dev_to_head = None
-        for ch in picks:
-            # MEG channels are in device coordinates, translate them to head
-            if channel_type(info, ch) in ['mag', 'grad']:
-                if dev_to_head is None:
-                    dev_to_head = _ensure_trans(info['dev_head_t'],
-                                                'meg', 'head')
-                sensor_pos.append(apply_trans(dev_to_head,
-                                              info['chs'][ch]['loc'][:3]))
-            else:
-                sensor_pos.append(info['chs'][ch]['loc'][:3])
-        sensor_pos = np.array(sensor_pos)
-
-        if mode == 'min' or mode is None:
-            # minimum distances per vertex
-            depths = _compute_nearest(sensor_pos, src_pos,
-                                      return_dists=True)[1]
-        elif mode == 'max':
-            depths = cdist(sensor_pos, src_pos).max(axis=0)
-        elif mode == 'mean':
-            depths = cdist(sensor_pos, src_pos).mean(axis=0)
-
+    # Load the head<->MRI transform if necessary
+    if src[0]['coord_frame'] == FIFF.FIFFV_COORD_MRI:
+        src_trans, _ = _get_trans(trans, allow_none=False)
     else:
-        src_pos = np.vstack([
-            s['rr'][s['inuse'].astype(np.bool)] for s in src
-        ])
-        # centre of gravity of source space vertices
-        mean_pos = src_pos.mean(axis=0)  # across vertices
-        src_pos -= mean_pos
-        depths = np.sqrt(np.sum(src_pos ** 2, axis=1))  # per vertex
+        src_trans = Transform('head', 'head')  # Identity transform
+
+    # get vertex position in same coordinates as for sensors below
+    src_pos = np.vstack([
+        apply_trans(src_trans, s['rr'][s['inuse'].astype(np.bool)])
+        for s in src
+    ])
+    # Select channels to be used for distance calculations
+    picks = _picks_to_idx(info, picks, 'data', exclude=())
+    # get sensor positions
+    sensor_pos = []
+    dev_to_head = None
+    for ch in picks:
+        # MEG channels are in device coordinates, translate them to head
+        if channel_type(info, ch) in ['mag', 'grad']:
+            if dev_to_head is None:
+                dev_to_head = _ensure_trans(info['dev_head_t'],
+                                            'meg', 'head')
+            sensor_pos.append(apply_trans(dev_to_head,
+                                          info['chs'][ch]['loc'][:3]))
+        else:
+            sensor_pos.append(info['chs'][ch]['loc'][:3])
+    sensor_pos = np.array(sensor_pos)
+
+    depths = cdist(src_pos, sensor_pos)
 
     return depths
