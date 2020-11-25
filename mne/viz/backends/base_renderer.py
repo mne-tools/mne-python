@@ -376,7 +376,7 @@ class _BaseRenderer(metaclass=ABCMeta):
 
     @abstractclassmethod
     def set_camera(self, azimuth=None, elevation=None, distance=None,
-                   focalpoint=None):
+                   focalpoint=None, roll=None, reset_camera=True):
         """Configure the camera of the scene.
 
         Parameters
@@ -389,6 +389,10 @@ class _BaseRenderer(metaclass=ABCMeta):
             The distance to the focal point.
         focalpoint: tuple
             The focal point of the camera: (x, y, z).
+        roll: float
+            The rotation of the camera along its axis.
+        reset_camera: bool
+           If True, reset the camera properties beforehand.
         """
         pass
 

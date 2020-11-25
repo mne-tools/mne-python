@@ -450,7 +450,8 @@ def _close_all():
     mlab.close(all=True)
 
 
-def _set_3d_view(figure, azimuth, elevation, focalpoint, distance, roll=None):
+def _set_3d_view(figure, azimuth, elevation, focalpoint, distance, roll=None,
+                 reset_camera=True):
     from mayavi import mlab
     with warnings.catch_warnings(record=True):  # traits
         with SilenceStdout():
