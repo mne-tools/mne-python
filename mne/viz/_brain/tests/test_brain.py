@@ -103,6 +103,11 @@ def test_brain_gc(renderer, brain_gc):
 def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
     """Test initialization of the Brain instance."""
     from mne.label import read_label
+    from mne.source_estimate import _BaseSourceEstimate
+
+    class FakeSTC(_BaseSourceEstimate):
+        def __init__(self):
+            pass
     hemi = 'lh'
     surf = 'inflated'
     cortex = 'low_contrast'
@@ -124,6 +129,8 @@ def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
 
     brain = Brain(hemi=hemi, surf=surf, size=size, title=title,
                   cortex=cortex, units='m', **kwargs)
+    with pytest.raises(TypeError, match='not supported'):
+        brain._check_stc(hemi='lh', array=FakeSTC(), vertices=None)
     brain._hemi = 'foo'  # for testing: hemis
     with pytest.raises(ValueError, match='not be None'):
         brain._check_hemi(hemi=None)
