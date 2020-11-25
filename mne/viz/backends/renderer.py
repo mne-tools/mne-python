@@ -219,7 +219,7 @@ def set_3d_view(figure, azimuth=None, elevation=None,
         The distance to the focal point.
     roll : float
         The view roll.
-    reset_camera: bool
+    reset_camera : bool
        If True, reset the camera properties beforehand.
     """
     backend._set_3d_view(figure=figure, azimuth=azimuth,
