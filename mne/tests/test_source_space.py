@@ -33,7 +33,6 @@ from mne.source_space import (get_volume_labels_from_aseg,
                               get_volume_labels_from_src,
                               _compare_source_spaces,
                               compute_distance_to_sensors)
-from mne.io import read_info
 from mne.io.pick import _picks_to_idx
 from mne.io.constants import FIFF
 
@@ -55,6 +54,10 @@ fname_bem_3_sol = op.join(data_path, 'subjects', 'sample', 'bem',
 fname_fs = op.join(subjects_dir, 'fsaverage', 'bem', 'fsaverage-ico-5-src.fif')
 fname_morph = op.join(subjects_dir, 'sample', 'bem',
                       'sample-fsaverage-ico-5-src.fif')
+fname_src = op.join(
+    data_path, 'subjects', 'sample', 'bem', 'sample-oct-4-src.fif')
+fname_fwd = op.join(
+    data_path, 'MEG', 'sample', 'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
 trans_fname = op.join(data_path, 'MEG', 'sample',
                       'sample_audvis_trunc-trans.fif')
 
@@ -66,15 +69,17 @@ rng = np.random.RandomState(0)
 
 @testing.requires_testing_data
 @pytest.mark.parametrize('picks, limits', [
-    ('meg', (0.020, 0.250)),
-    (None, (0.002, 0.250)),  # should be same as EEG
-    ('eeg', (0.002, 0.250)),
+    ('meg', (0.02, 0.250)),
+    (None, (0.01, 0.250)),  # should be same as EEG
+    ('eeg', (0.01, 0.250)),
 ])
 def test_compute_distance_to_sensors(picks, limits):
     """Test computation of distances between vertices and sensors."""
-    src = read_source_spaces(fname_fs)
-    info = read_info(fname_ave)
+    src = read_source_spaces(fname_src)
+    fwd = mne.read_forward_solution(fname_fwd)
+    info = fwd['info']
     trans = read_trans(trans_fname)
+    # trans = fwd['info']['mri_head_t']
     if isinstance(picks, str):
         kwargs = dict()
         kwargs[picks] = True
@@ -90,9 +95,15 @@ def test_compute_distance_to_sensors(picks, limits):
     depths = compute_distance_to_sensors(src, info=info, picks=use_picks,
                                          trans=trans)
     assert depths.shape == (n_verts, n_picks)
-    assert limits[0] * 2 > depths.min()  # meaningful choice of limits
+    assert limits[0] * 5 > depths.min()  # meaningful choice of limits
     assert_array_less(limits[0], depths)
     assert_array_less(depths, limits[1])
+
+    # If source space from Forward Solution and trans=None (i.e. identity) then
+    # depths2 should be the same as depth? But it isn't.
+    # depths2 = compute_distance_to_sensors(src=fwd['src'], info=info,
+    #                                       picks=use_picks, trans=None)
+    # assert_array_almost_equal(depths, depths2)
 
     if picks != 'eeg':
         # this should break things
