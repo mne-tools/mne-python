@@ -24,11 +24,10 @@ from ..io.meas_info import create_info, _validate_type
 
 from ..io.pick import (_get_channel_types, _picks_to_idx, _DATA_CH_TYPES_SPLIT,
                        _VALID_CHANNEL_TYPES)
-from ..time_frequency import psd_multitaper
 from .utils import (tight_layout, _setup_vmin_vmax, plt_show, _check_cov,
                     _compute_scalings, DraggableColorbar, _setup_cmap,
                     _handle_decim, _set_title_multiple_electrodes,
-                    _make_combine_callable, _check_psd_fmax, _set_window_title,
+                    _make_combine_callable, _set_window_title,
                     _make_event_color_dict, _get_channel_plotting_order)
 
 
@@ -963,27 +962,15 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     fig : instance of Figure
         Figure with frequency spectra of the data channels.
     """
-    from .utils import _set_psd_plot_params, _plot_psd
-    fig, picks_list, titles_list, units_list, scalings_list, ax_list, \
-        make_label, xlabels_list = \
-        _set_psd_plot_params(epochs.info, proj, picks, ax, area_mode)
-    _check_psd_fmax(epochs, fmax)
-    del ax
-    psd_list = list()
-    for picks in picks_list:
-        # Multitaper used for epochs instead of Welch, because Welch chunks
-        # the data; epoched data are by nature already chunked, however.
-        psd, freqs = psd_multitaper(epochs, picks=picks, fmin=fmin,
-                                    fmax=fmax, tmin=tmin, tmax=tmax,
-                                    bandwidth=bandwidth, adaptive=adaptive,
-                                    low_bias=low_bias,
-                                    normalization=normalization, proj=proj,
-                                    n_jobs=n_jobs)
-        psd_list.append(np.mean(psd, axis=0))
+    from ._figure import _psd_figure
 
-    fig = _plot_psd(epochs, fig, freqs, psd_list, picks_list, titles_list,
-                    units_list, scalings_list, ax_list, make_label, color,
-                    area_mode, area_alpha, dB, estimate, average,
-                    spatial_colors, xscale, line_alpha, sphere, xlabels_list)
+    # generate figure
+    fig = _psd_figure(
+        inst=epochs, proj=proj, picks=picks, axes=ax, tmin=tmin, tmax=tmax,
+        fmin=fmin, fmax=fmax, sphere=sphere, xscale=xscale, dB=dB,
+        average=average, estimate=estimate, area_mode=area_mode,
+        line_alpha=line_alpha, area_alpha=area_alpha, color=color,
+        spatial_colors=spatial_colors, n_jobs=n_jobs, bandwidth=bandwidth,
+        adaptive=adaptive, low_bias=low_bias, normalization=normalization)
     plt_show(show)
     return fig

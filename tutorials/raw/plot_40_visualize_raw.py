@@ -116,9 +116,9 @@ raw.plot()
 # Plotting spectral density of continuous data
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# To visualize the frequency content of continuous data, the
-# `~mne.io.Raw` object provides a `~mne.io.Raw.plot_psd` to plot
-# the `spectral density`_ of the data.
+# To visualize the frequency content of continuous data, the `~mne.io.Raw`
+# object provides a `~mne.io.Raw.plot_psd` to plot the `spectral density`_ of
+# the data.
 
 raw.plot_psd(average=True)
 

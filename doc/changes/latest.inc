@@ -24,6 +24,8 @@ Current (0.22.dev0)
 
 .. |Evan Hathaway| replace:: **Evan Hathaway**
 
+.. |Austin Hurst| replace:: **Austin Hurst**
+
 
 Enhancements
 ~~~~~~~~~~~~
@@ -81,6 +83,8 @@ Bugs
 - Fix bug with mne.io.egi.tests/test_egi.py where it mandatorily downloaded testing data when it was not necessary (:gh:`8474` **by new contributor** |Aniket Pradhan|_)
 
 - Fix bug with reading split files that have dashes in the filename (:gh:`8339` **by new contributor** |Eduard Ort|_)
+
+- Fix bug with parsing EDF dates and date integers (:gh:`8558` **by new contributor** |Austin Hurst|_ and `Eric Larson`_)
 
 - Fix bug with `~mne.viz.plot_epochs_image` when ``order`` is supplied and multiple conditions are plotted (:gh:`8377` by `Daniel McCloy`_ )
 

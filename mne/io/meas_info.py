@@ -896,7 +896,7 @@ def write_dig(fname, pts, coord_frame=None):
         here. Can be None (default) if the points could have varying
         coordinate frames.
     """
-    return _dig_write_dig(fname, pts, coord_frame=None)
+    return _dig_write_dig(fname, pts, coord_frame=coord_frame)
 
 
 @verbose
