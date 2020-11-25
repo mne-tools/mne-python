@@ -29,10 +29,10 @@ from ..fixes import _get_status
 from ..io import show_fiff, Info
 from ..io.constants import FIFF
 from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
-                       _pick_data_channels, _DATA_CH_TYPES_SPLIT, pick_types,
+                       _pick_data_channels, _DATA_CH_TYPES_SPLIT,
                        _DATA_CH_TYPES_ORDER_DEFAULT, _VALID_CHANNEL_TYPES,
                        pick_info, _picks_by_type, pick_channels_cov,
-                       _picks_to_idx, _contains_ch_type, _FNIRS_CH_TYPES_SPLIT)
+                       _contains_ch_type)
 from ..io.meas_info import create_info
 from ..rank import compute_rank
 from ..io.proj import setup_proj
@@ -2051,70 +2051,6 @@ def center_cmap(cmap, vmin, vmax, name="cmap_centered"):
     return LinearSegmentedColormap(name, cdict)
 
 
-def _set_psd_plot_params(info, proj, picks, ax, area_mode):
-    """Set PSD plot params."""
-    import matplotlib.pyplot as plt
-    _check_option('area_mode', area_mode, [None, 'std', 'range'])
-    _user_picked = picks is not None
-    picks = _picks_to_idx(info, picks)
-
-    # XXX this could be refactored more with e.g., plot_evoked
-    # XXX when it's refactored, Report._render_raw will need to be updated
-    titles = _handle_default('titles', None)
-    units = _handle_default('units', None)
-    scalings = _handle_default('scalings', None)
-    picks_list = list()
-    titles_list = list()
-    units_list = list()
-    scalings_list = list()
-    allowed_ch_types = (_VALID_CHANNEL_TYPES if _user_picked else
-                        _DATA_CH_TYPES_SPLIT)
-    for name in allowed_ch_types:
-        kwargs = dict(meg=False, ref_meg=False, exclude=[])
-        if name in ('mag', 'grad'):
-            kwargs['meg'] = name
-        elif name in _FNIRS_CH_TYPES_SPLIT:
-            kwargs['fnirs'] = name
-        else:
-            kwargs[name] = True
-        these_picks = pick_types(info, **kwargs)
-        these_picks = np.intersect1d(these_picks, picks)
-        if len(these_picks) > 0:
-            picks_list.append(these_picks)
-            titles_list.append(titles[name])
-            units_list.append(units[name])
-            scalings_list.append(scalings[name])
-    if len(picks_list) == 0:
-        raise RuntimeError('No data channels found')
-    if ax is not None:
-        if isinstance(ax, plt.Axes):
-            ax = [ax]
-        if len(ax) != len(picks_list):
-            raise ValueError('For this dataset with picks=None %s axes '
-                             'must be supplied, got %s'
-                             % (len(picks_list), len(ax)))
-        ax_list = ax
-    del picks
-
-    fig = None
-    if ax is None:
-        fig, ax_list = plt.subplots(len(picks_list), 1, sharex=True,
-                                    squeeze=False)
-        ax_list = list(ax_list[:, 0])
-    else:
-        fig = ax_list[0].get_figure()
-
-    # make_label decides if ylabel and titles are displayed
-    make_label = len(ax_list) == len(fig.axes)
-
-    # Plot Frequency [Hz] xlabel on the last axis
-    xlabels_list = [False] * len(picks_list)
-    xlabels_list[-1] = True
-
-    return (fig, picks_list, titles_list, units_list, scalings_list,
-            ax_list, make_label, xlabels_list)
-
-
 def _convert_psds(psds, dB, estimate, scaling, unit, ch_names=None,
                   first_dim='channel'):
     """Convert PSDs to dB (if necessary) and appropriate units.
@@ -2150,8 +2086,7 @@ def _convert_psds(psds, dB, estimate, scaling, unit, ch_names=None,
         else:
             bads = ', '.join(str(ii) for ii in where)
 
-        msg = "{bad_value} value in PSD for {first_dim}{pl} {bads}.".format(
-            bad_value=bad_value, first_dim=first_dim, bads=bads, pl=_pl(where))
+        msg = f'{bad_value} value in PSD for {first_dim}{_pl(where)} {bads}.'
         if first_dim == 'channel':
             msg += '\nThese channels might be dead.'
         warn(msg, UserWarning)
@@ -2176,14 +2111,6 @@ def _convert_psds(psds, dB, estimate, scaling, unit, ch_names=None,
     return ylabel
 
 
-def _check_psd_fmax(inst, fmax):
-    """Make sure requested fmax does not exceed Nyquist frequency."""
-    if np.isfinite(fmax) and (fmax > inst.info['sfreq'] / 2):
-        raise ValueError('Requested fmax ({} Hz) must not exceed one half '
-                         'the sampling frequency of the data ({}).'
-                         .format(fmax, 0.5 * inst.info['sfreq']))
-
-
 def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
               units_list, scalings_list, ax_list, make_label, color, area_mode,
               area_alpha, dB, estimate, average, spatial_colors, xscale,
@@ -2191,8 +2118,6 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
     # helper function for plot_raw_psd and plot_epochs_psd
     from matplotlib.ticker import ScalarFormatter
     from .evoked import _plot_lines
-    sphere = _check_sphere(sphere, inst.info)
-    _check_option('xscale', xscale, ('log', 'linear'))
 
     for key, ls in zip(['lowpass', 'highpass', 'line_freq'],
                        ['--', '--', '-.']):
@@ -2240,12 +2165,8 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
                            inst.info['sfreq'], types)
         info['chs'] = [inst.info['chs'][p] for p in picks]
         info['dev_head_t'] = inst.info['dev_head_t']
-        valid_channel_types = [
-            'mag', 'grad', 'eeg', 'csd', 'seeg', 'eog', 'ecg',
-            'emg', 'dipole', 'gof', 'bio', 'ecog', 'hbo',
-            'hbr', 'misc', 'fnirs_cw_amplitude', 'fnirs_od']
         ch_types_used = list()
-        for this_type in valid_channel_types:
+        for this_type in _VALID_CHANNEL_TYPES:
             if this_type in types:
                 ch_types_used.append(this_type)
         assert len(ch_types_used) == len(ax_list)
@@ -2277,8 +2198,7 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
                 ax.set_xlabel('Frequency (Hz)')
 
     if make_label:
-        fig.subplots_adjust(left=.1, bottom=.1, right=.9, top=.9, wspace=0.3,
-                            hspace=0.5)
+        fig.align_ylabels(axs=ax_list)
     return fig
 
 

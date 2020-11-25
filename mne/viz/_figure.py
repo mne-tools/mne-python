@@ -17,12 +17,15 @@ from .epochs import plot_epochs_image
 from .ica import _create_properties_layout
 from .utils import (plt_show, plot_sensors, _setup_plot_projector, _events_off,
                     _set_window_title, _merge_annotations, DraggableLine,
-                    _get_color_list, logger)
+                    _get_color_list, logger, _validate_if_list_of_axes,
+                    _plot_psd)
 from ..defaults import _handle_default
-from ..utils import set_config, Bunch
+from ..utils import set_config, _check_option, _check_sphere, Bunch
 from ..annotations import _sync_onset
-from ..io.pick import (channel_indices_by_type, _DATA_CH_TYPES_SPLIT,
-                       _DATA_CH_TYPES_ORDER_DEFAULT)
+from ..time_frequency import psd_welch, psd_multitaper
+from ..io.pick import (pick_types, _picks_to_idx, channel_indices_by_type,
+                       _DATA_CH_TYPES_SPLIT, _DATA_CH_TYPES_ORDER_DEFAULT,
+                       _VALID_CHANNEL_TYPES, _FNIRS_CH_TYPES_SPLIT)
 
 
 class MNEFigParams:
@@ -38,9 +41,16 @@ class MNEFigure(Figure):
     """Base class for 2D figures & dialogs; wraps matplotlib.figure.Figure."""
 
     def __init__(self, **kwargs):
+        from matplotlib import rcParams
         # figsize is the only kwarg we pass to matplotlib Figure()
         figsize = kwargs.pop('figsize', None)
         super().__init__(figsize=figsize)
+        # things we'll almost always want
+        defaults = dict(fgcolor=rcParams['axes.edgecolor'],
+                        bgcolor=rcParams['axes.facecolor'])
+        for key, value in defaults.items():
+            if key not in kwargs:
+                kwargs[key] = value
         # add our param object
         self.mne = MNEFigParams(**kwargs)
 
@@ -260,7 +270,6 @@ class MNEBrowseFigure(MNEFigure):
     """Interactive figure with scrollbars, for data browsing."""
 
     def __init__(self, inst, figsize, ica=None, xlabel='Time (s)', **kwargs):
-        from matplotlib import rcParams
         from matplotlib.colors import to_rgba_array
         from matplotlib.ticker import (FixedLocator, FixedFormatter,
                                        FuncFormatter, NullFormatter)
@@ -272,9 +281,6 @@ class MNEBrowseFigure(MNEFigure):
         from .. import BaseEpochs
         from ..io import BaseRaw
         from ..preprocessing import ICA
-
-        fgcolor = rcParams['axes.edgecolor']
-        bgcolor = rcParams['axes.facecolor']
 
         super().__init__(figsize=figsize, inst=inst, ica=ica, **kwargs)
 
@@ -387,7 +393,7 @@ class MNEBrowseFigure(MNEFigure):
                 _ax.xaxis.set_major_locator(
                     FixedLocator(self.mne.boundary_times[1:-1]))
                 _ax.xaxis.set_major_formatter(NullFormatter())
-            grid_kwargs = dict(color=fgcolor, axis='x',
+            grid_kwargs = dict(color=self.mne.fgcolor, axis='x',
                                zorder=self.mne.zorder['grid'])
             ax_main.grid(linewidth=2, linestyle='dashed', **grid_kwargs)
             ax_hscroll.grid(alpha=0.5, linewidth=0.5, linestyle='solid',
@@ -419,12 +425,13 @@ class MNEBrowseFigure(MNEFigure):
         ax_vscroll.set_visible(not self.mne.butterfly)
         # SCROLLBAR VISIBLE SELECTION PATCHES
         sel_kwargs = dict(alpha=0.3, linewidth=4, clip_on=False,
-                          edgecolor=fgcolor)
+                          edgecolor=self.mne.fgcolor)
         vsel_patch = Rectangle((0, 0), 1, self.mne.n_channels,
-                               facecolor=bgcolor, **sel_kwargs)
+                               facecolor=self.mne.bgcolor, **sel_kwargs)
         ax_vscroll.add_patch(vsel_patch)
         hsel_facecolor = np.average(
-            np.vstack((to_rgba_array(fgcolor), to_rgba_array(bgcolor))),
+            np.vstack((to_rgba_array(self.mne.fgcolor),
+                       to_rgba_array(self.mne.bgcolor))),
             axis=0, weights=(3, 1))  # 75% foreground, 25% background
         hsel_patch = Rectangle((self.mne.t_start, 0), self.mne.duration, 1,
                                facecolor=hsel_facecolor, **sel_kwargs)
@@ -485,8 +492,7 @@ class MNEBrowseFigure(MNEFigure):
             ax_main=ax_main, ax_help=ax_help, ax_proj=ax_proj,
             ax_hscroll=ax_hscroll, ax_vscroll=ax_vscroll,
             vsel_patch=vsel_patch, hsel_patch=hsel_patch, vline=vline,
-            vline_hscroll=vline_hscroll, vline_text=vline_text,
-            fgcolor=fgcolor, bgcolor=bgcolor)
+            vline_hscroll=vline_hscroll, vline_text=vline_text)
 
     def _close(self, event):
         """Handle close events (via keypress or window [x])."""
@@ -518,19 +524,9 @@ class MNEBrowseFigure(MNEFigure):
         """Handle resize event for mne_browse-style plots (Raw/Epochs/ICA)."""
         old_width, old_height = self.mne.fig_size_px
         new_width, new_height = self._get_size_px()
-        new_margins = dict()
-        for side in ('left', 'right', 'bottom', 'top'):
-            ratio = ((old_width / new_width) if side in ('left', 'right') else
-                     (old_height / new_height))
-            rel_dim = getattr(self.subplotpars, side)
-            if side in ('right', 'top'):
-                new_margins[side] = 1 - ratio * (1 - rel_dim)
-            else:
-                new_margins[side] = ratio * rel_dim
-        # gh-8304: don't allow resizing too small
-        if (new_margins['bottom'] < new_margins['top'] and
-                new_margins['left'] < new_margins['right']):
-            self.subplots_adjust(**new_margins)
+        new_margins = _calc_new_margins(
+            self, old_width, old_height, new_width, new_height)
+        self.subplots_adjust(**new_margins)
         # zen mode bookkeeping
         self.mne.zen_w *= old_width / new_width
         self.mne.zen_h *= old_height / new_height
@@ -2097,6 +2093,41 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.vline_visible = visible
 
 
+class MNEPSDFigure(MNEFigure):
+    """Interactive figure for power spectral density plots."""
+
+    def __init__(self, inst, n_axes, figsize, **kwargs):
+        super().__init__(figsize=figsize, inst=inst, **kwargs)
+
+        # AXES: default margins (inches)
+        l_margin = 0.8
+        r_margin = 0.2
+        b_margin = 0.65
+        t_margin = 0.35
+        # AXES: default margins (figure-relative coordinates)
+        left = self._inch_to_rel(l_margin)
+        right = 1 - self._inch_to_rel(r_margin)
+        bottom = self._inch_to_rel(b_margin, horiz=False)
+        top = 1 - self._inch_to_rel(t_margin, horiz=False)
+        # AXES: make subplots
+        axes = [self.add_subplot(n_axes, 1, 1)]
+        for ix in range(1, n_axes):
+            axes.append(self.add_subplot(n_axes, 1, ix + 1, sharex=axes[0]))
+        self.subplotpars.update(left=left, bottom=bottom, top=top, right=right,
+                                hspace=0.4)
+        # save useful things
+        self.mne.ax_list = axes
+
+    def _resize(self, event):
+        """Handle resize event."""
+        old_width, old_height = self.mne.fig_size_px
+        new_width, new_height = self._get_size_px()
+        new_margins = _calc_new_margins(
+            self, old_width, old_height, new_width, new_height)
+        self.subplots_adjust(**new_margins)
+        self.mne.fig_size_px = (new_width, new_height)
+
+
 def _figure(toolbar=True, FigureClass=MNEFigure, **kwargs):
     """Instantiate a new figure."""
     from matplotlib import rc_context
@@ -2130,6 +2161,119 @@ def _browse_figure(inst, **kwargs):
     # add event callbacks
     fig._add_default_callbacks()
     return fig
+
+
+def _psd_figure(inst, proj, picks, axes, area_mode, tmin, tmax, fmin, fmax,
+                n_jobs, color, area_alpha, dB, estimate, average,
+                spatial_colors, xscale, line_alpha, sphere, **kwargs):
+    """Instantiate a new power spectral density figure."""
+    from matplotlib.axes import Axes
+    from .. import BaseEpochs
+    from ..io import BaseRaw
+    # triage kwargs for different PSD methods (raw→welch, epochs→multitaper)
+    welch_kwargs = ('n_fft', 'n_overlap', 'reject_by_annotation')
+    multitaper_kwargs = ('bandwidth', 'adaptive', 'low_bias', 'normalization')
+    psd_kwargs = dict()
+    for kw in welch_kwargs + multitaper_kwargs:
+        if kw in kwargs:
+            psd_kwargs[kw] = kwargs.pop(kw)
+    if isinstance(inst, BaseRaw):
+        psd_func = psd_welch
+    elif isinstance(inst, BaseEpochs):
+        psd_func = psd_multitaper
+    else:
+        raise TypeError('Expected an instance of Raw or Epochs, got '
+                        f'{type(inst)}.')
+    # arg checking
+    if np.isfinite(fmax) and (fmax > inst.info['sfreq'] / 2):
+        raise ValueError(
+            f'Requested fmax ({fmax} Hz) must not exceed ½ the sampling '
+            f'frequency of the data ({0.5 * inst.info["sfreq"]}).')
+    _check_option('area_mode', area_mode, [None, 'std', 'range'])
+    _check_option('xscale', xscale, ('log', 'linear'))
+    sphere = _check_sphere(sphere, inst.info)
+    picks = _picks_to_idx(inst.info, picks)
+    titles = _handle_default('titles', None)
+    units = _handle_default('units', None)
+    scalings = _handle_default('scalings', None)
+    # containers
+    picks_list = list()
+    units_list = list()
+    titles_list = list()
+    scalings_list = list()
+    psd_list = list()
+    # handle picks
+    _user_picked = picks is not None
+    allowed_ch_types = (_VALID_CHANNEL_TYPES if _user_picked else
+                        _DATA_CH_TYPES_SPLIT)
+    for ch_type in allowed_ch_types:
+        pick_kwargs = dict(meg=False, ref_meg=False, exclude=[])
+        if ch_type in ('mag', 'grad'):
+            pick_kwargs['meg'] = ch_type
+        elif ch_type in _FNIRS_CH_TYPES_SPLIT:
+            pick_kwargs['fnirs'] = ch_type
+        else:
+            pick_kwargs[ch_type] = True
+        these_picks = pick_types(inst.info, **pick_kwargs)
+        these_picks = np.intersect1d(these_picks, picks)
+        if len(these_picks) > 0:
+            picks_list.append(these_picks)
+            titles_list.append(titles[ch_type])
+            units_list.append(units[ch_type])
+            scalings_list.append(scalings[ch_type])
+    del picks
+    n_types = len(picks_list)
+    if n_types == 0:
+        raise RuntimeError('No data channels found')
+    # handle user-provided axes
+    if axes is not None:
+        if isinstance(axes, Axes):
+            axes = [axes]
+        _validate_if_list_of_axes(axes, n_types)
+        fig = axes[0].get_figure()
+    else:
+        figsize = kwargs.pop('figsize', (10, 2.5 * n_types + 1))
+        fig = _figure(inst=inst, toolbar=False, FigureClass=MNEPSDFigure,
+                      figsize=figsize, n_axes=n_types, **kwargs)
+        fig.mne.fig_size_px = fig._get_size_px()  # can't do in __init__
+        axes = fig.mne.ax_list
+        # add event callbacks
+        fig._add_default_callbacks()
+    # don't add ylabels & titles if figure has unexpected number of axes
+    make_label = len(axes) == len(fig.axes)
+    # Plot Frequency [Hz] xlabel on the last axis
+    xlabels_list = [False] * (n_types - 1) + [True]
+    # compute PSDs
+    for picks in picks_list:
+        psd, freqs = psd_func(inst, tmin=tmin, tmax=tmax, picks=picks,
+                              fmin=fmin, fmax=fmax, proj=proj, n_jobs=n_jobs,
+                              **psd_kwargs)
+        if isinstance(inst, BaseEpochs):
+            psd = np.mean(psd, axis=0)
+        psd_list.append(psd)
+    # plot
+    _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list, units_list,
+              scalings_list, axes, make_label, color, area_mode, area_alpha,
+              dB, estimate, average, spatial_colors, xscale, line_alpha,
+              sphere, xlabels_list)
+    return fig
+
+
+def _calc_new_margins(fig, old_width, old_height, new_width, new_height):
+    """Compute new figure-relative values to maintain fixed-size margins."""
+    new_margins = dict()
+    for side in ('left', 'right', 'bottom', 'top'):
+        ratio = ((old_width / new_width) if side in ('left', 'right') else
+                 (old_height / new_height))
+        rel_dim = getattr(fig.subplotpars, side)
+        if side in ('right', 'top'):
+            new_margins[side] = 1 - ratio * (1 - rel_dim)
+        else:
+            new_margins[side] = ratio * rel_dim
+    # gh-8304: don't allow resizing too small
+    if (new_margins['bottom'] < new_margins['top'] and
+            new_margins['left'] < new_margins['right']):
+        return(new_margins)
 
 
 @contextmanager
