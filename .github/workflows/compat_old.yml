@@ -11,17 +11,16 @@ jobs:
   check_skip:
     runs-on: ubuntu-20.04
     outputs:
-      skip: ${{ steps.result_step.outputs.result }}
+      skip: ${{ steps.result_step.outputs.ci-skip }}
     steps:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
-      - uses: mstachniuk/ci-skip@master
+      - id: result_step
+        uses: mstachniuk/ci-skip@master
         with:
           commit-filter: '[skip ci];[ci skip];[skip github]'
           commit-filter-separator: ';'
-      - run: echo "::set-output name=result::${CI_SKIP}"
-        id: result_step
 
   # Old dependencies
   job:
