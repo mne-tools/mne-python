@@ -609,9 +609,10 @@ class _Renderer(_BaseRenderer):
         _close_3d_figure(figure=self.figure)
 
     def set_camera(self, azimuth=None, elevation=None, distance=None,
-                   focalpoint=None, roll=None):
+                   focalpoint=None, roll=None, reset_camera=True):
         _set_3d_view(self.figure, azimuth=azimuth, elevation=elevation,
-                     distance=distance, focalpoint=focalpoint, roll=roll)
+                     distance=distance, focalpoint=focalpoint, roll=roll,
+                     reset_camera=reset_camera)
 
     def reset_camera(self):
         self.plotter.reset_camera()
@@ -759,9 +760,11 @@ def _get_camera_direction(focalpoint, position):
     return r, theta, phi, focalpoint
 
 
-def _set_3d_view(figure, azimuth, elevation, focalpoint, distance, roll=None):
+def _set_3d_view(figure, azimuth, elevation, focalpoint, distance, roll=None,
+                 reset_camera=True):
     position = np.array(figure.plotter.camera_position[0])
-    figure.plotter.reset_camera()
+    if reset_camera:
+        figure.plotter.reset_camera()
     if focalpoint is None:
         focalpoint = np.array(figure.plotter.camera_position[1])
     r, theta, phi, fp = _get_camera_direction(focalpoint, position)
@@ -771,6 +774,7 @@ def _set_3d_view(figure, azimuth, elevation, focalpoint, distance, roll=None):
     if elevation is not None:
         theta = _deg2rad(elevation)
 
+    # set the distance
     renderer = figure.plotter.renderer
     bounds = np.array(renderer.ComputeVisiblePropBounds())
     if distance is None:
@@ -797,18 +801,22 @@ def _set_3d_view(figure, azimuth, elevation, focalpoint, distance, roll=None):
         position, focalpoint, view_up]
     if roll is not None:
         figure.plotter.camera.SetRoll(roll)
-    # set the distance
 
     figure.plotter.renderer._azimuth = azimuth
     figure.plotter.renderer._elevation = elevation
     figure.plotter.renderer._distance = distance
     figure.plotter.renderer._roll = roll
+    figure.plotter.update()
+    _process_events(figure.plotter)
 
 
 def _set_3d_title(figure, title, size=16):
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=FutureWarning)
-        figure.plotter.add_text(title, font_size=size, color='white')
+        figure.plotter.add_text(title, font_size=size, color='white',
+                                name='title')
+    figure.plotter.update()
+    _process_events(figure.plotter)
 
 
 def _check_3d_figure(figure):

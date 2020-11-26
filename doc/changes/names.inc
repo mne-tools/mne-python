@@ -334,4 +334,8 @@
 
 .. _Tod Flak: https://github.com/todflak
 
+.. _Austin Hurst: https://github.com/a-hurst
+
 .. _Victoria Peterson: https://github.com/vpeterson
+
+.. _Evan Hathaway: https://github.com/ephathaway
