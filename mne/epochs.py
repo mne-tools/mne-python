@@ -2834,7 +2834,7 @@ class EpochsFIF(BaseEpochs):
         drop_log = tuple(drop_log[:step])
 
         # call BaseEpochs constructor
-        # again, ensure we reataing the baseline period originally loaded from
+        # again, ensure we retaining the baseline period originally loaded from
         # disk
         super(EpochsFIF, self).__init__(
             info, data, events, event_id, tmin, tmax, baseline=None, raw=raw,
