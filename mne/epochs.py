@@ -529,8 +529,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         self.decimate(decim)
 
         # baseline correction: replace `None` tuple elements  with actual times
-        self.baseline = _check_baseline(baseline, tmin=self.tmin,
-                                        tmax=self.tmax,
+        self.baseline = _check_baseline(baseline, times=self.times,
                                         sfreq=self.info['sfreq'])
         if self.baseline is not None and self.baseline != baseline:
             logger.info(f'Setting baseline interval to '
@@ -696,7 +695,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         .. versionadded:: 0.10.0
         """
-        baseline = _check_baseline(baseline, tmin=self.tmin, tmax=self.tmax,
+        baseline = _check_baseline(baseline, times=self.times,
                                    sfreq=self.info['sfreq'])
 
         if self.preload:
@@ -1365,8 +1364,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         # don't rescale if the baseline is invalid (due to cropping of the
         # baseline period)
         rescale_data = True
-        if self.baseline != _check_baseline(self.baseline, tmin=self.tmin,
-                                            tmax=self.tmax,
+        if self.baseline != _check_baseline(self.baseline, times=self.times,
                                             sfreq=self.info['sfreq'],
                                             on_baseline_outside_data='adjust'):
             rescale_data = False
@@ -1525,8 +1523,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             s += '[%s, %s] sec' % tuple(['None' if b is None else ('%g' % b)
                                         for b in self.baseline])
             if self.baseline != _check_baseline(
-                    self.baseline, tmin=self.tmin, tmax=self.tmax,
-                    sfreq=self.info['sfreq'],
+                    self.baseline, times=self.times, sfreq=self.info['sfreq'],
                     on_baseline_outside_data='adjust'):
                 s += ' (baseline period was cropped after baseline correction)'
 
@@ -1948,12 +1945,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         return _as_meg_type_inst(self, ch_type=ch_type, mode=mode)
 
 
-def _check_baseline(baseline, tmin, tmax, sfreq,
-                    on_baseline_outside_data='raise'):
+def _check_baseline(baseline, times, sfreq, on_baseline_outside_data='raise'):
     """Check if the baseline is valid, and adjust it if requested.
 
     ``None`` values inside the baseline parameter will be replaced with
-    ``tmin`` and ``tmax``.
+    ``times[0]`` and ``times[-1]``.
 
     Parameters
     ----------
@@ -1978,13 +1974,16 @@ def _check_baseline(baseline, tmin, tmax, sfreq,
     if not isinstance(baseline, tuple) or len(baseline) != 2:
         raise ValueError('`baseline=%s` is an invalid argument, must be '
                          'a tuple of length 2 or None' % str(baseline))
+
+    tmin, tmax = times[0], times[-1]
+    tstep = 1. / float(sfreq)
+
     # check default value of baseline and `tmin=0`
     if baseline == (None, 0) and tmin == 0:
         raise ValueError('Baseline interval is only one sample. Use '
                          '`baseline=(0, 0)` if this is desired.')
 
     baseline_tmin, baseline_tmax = baseline
-    tstep = 1. / float(sfreq)
 
     if baseline_tmin is None:
         baseline_tmin = tmin
