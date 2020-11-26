@@ -14,7 +14,6 @@ import os.path as op
 
 import numpy as np
 from scipy import sparse, linalg
-from scipy.spatial.distance import cdist
 
 from .io.constants import FIFF
 from .io.meas_info import create_info, Info
@@ -3224,8 +3223,9 @@ def compute_distance_to_sensors(src, info, picks=None, trans=None,
         The Euclidean distances of source space vertices with respect to
         sensors.
     """
-    assert isinstance(src, SourceSpaces)
+    from scipy.spatial.distance import cdist
 
+    assert isinstance(src, SourceSpaces)
     _validate_type(info, (Info,), 'info')
 
     # Load the head<->MRI transform if necessary
@@ -3239,6 +3239,7 @@ def compute_distance_to_sensors(src, info, picks=None, trans=None,
         apply_trans(src_trans, s['rr'][s['inuse'].astype(np.bool)])
         for s in src
     ])
+
     # Select channels to be used for distance calculations
     picks = _picks_to_idx(info, picks, 'data', exclude=())
     # get sensor positions
