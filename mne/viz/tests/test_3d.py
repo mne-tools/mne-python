@@ -375,7 +375,6 @@ def test_plot_alignment(tmpdir, renderer):
 @traits_test
 def test_process_clim_plot(renderer_interactive, brain_gc):
     """Test functionality for determining control points with stc.plot."""
-    is_pyvista = renderer_interactive._get_3d_backend() == 'pyvista'
     sample_src = read_source_spaces(src_fname)
     kwargs = dict(subjects_dir=subjects_dir, smoothing_steps=1,
                   time_viewer=False, show_traces=False)
@@ -393,10 +392,6 @@ def test_process_clim_plot(renderer_interactive, brain_gc):
     stc.plot(colormap='hot', clim='auto', **kwargs)
     stc.plot(colormap='mne', clim='auto', **kwargs)
     stc.plot(clim=dict(kind='value', lims=(10, 50, 90)), figure=99, **kwargs)
-    # figure has been set so the internal ref needs to be clean to avoid
-    # lingering VTK objects in memory
-    if is_pyvista:
-        renderer_interactive.backend._FIGURES.clear()
     pytest.raises(TypeError, stc.plot, clim='auto', figure=[0], **kwargs)
 
     # Test for correct clim values
