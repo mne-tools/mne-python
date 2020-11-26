@@ -1614,11 +1614,11 @@ def link_brains(brains, time=True, camera=False, colorbar=True,
     )
 
 
-def _triage_stc(stc, src, surface, backend_name, kind='scalar'):
+def _check_volume(stc, src, surface, backend_name):
     from ..source_estimate import (
         _BaseSurfaceSourceEstimate, _BaseMixedSourceEstimate)
     if isinstance(stc, _BaseSurfaceSourceEstimate):
-        stc_vol = src_vol = None
+        return False
     else:
         if backend_name == 'mayavi':
             raise RuntimeError(
@@ -1627,19 +1627,12 @@ def _triage_stc(stc, src, surface, backend_name, kind='scalar'):
         _validate_type(src, SourceSpaces, 'src',
                        'src when stc is a mixed or volume source estimate')
         if isinstance(stc, _BaseMixedSourceEstimate):
-            stc_vol = stc.volume()
-            stc = stc.surface()
             # When showing subvolumes, surfaces that preserve geometry must
             # be used (i.e., no inflated)
             _check_option(
                 'surface', surface, ('white', 'pial'),
                 extra='when plotting a mixed source estimate')
-        else:
-            stc_vol = stc
-            stc = None
-            src_vol = src
-        src_vol = src[2:] if src.kind == 'mixed' else src
-    return stc, stc_vol, src_vol
+        return True
 
 
 @verbose
@@ -1835,9 +1828,7 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
     mapdata = _process_clim(clim, colormap, transparent, use,
                             allow_pos_lims=not vec)
 
-    stc_surf, stc_vol, src_vol = _triage_stc(
-        stc, src, surface, backend, 'scalar')
-    del src, stc
+    volume = _check_volume(stc, src, surface, backend)
 
     # XXX we should only need to do this for PySurfer/Mayavi, the PyVista
     # plotter should be smart enough to do this separation in the cmap-to-ctab
@@ -1856,8 +1847,6 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
         hemis = ['lh', 'rh']
     else:
         hemis = [hemi]
-    if stc_vol is not None:
-        hemis.append('vol')
 
     if overlay_alpha is None:
         overlay_alpha = brain_alpha
@@ -1894,19 +1883,8 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
     sd_kwargs = dict(transparent=transparent, verbose=False)
     center = 0. if diverging else None
     for hemi in hemis:
-        if hemi == 'vol':
-            data = stc_vol.data
-            vertices = np.concatenate(stc_vol.vertices)
-        else:
-            if stc_surf is None:
-                continue
-            data = getattr(stc_surf, hemi + '_data')
-            vertices = stc_surf.vertices[0 if hemi == 'lh' else 1]
-            if len(data) == 0:
-                continue
         kwargs = {
-            "array": data, "colormap": colormap,
-            "vertices": vertices,
+            "colormap": colormap,
             "smoothing_steps": smoothing_steps,
             "time": times, "time_label": time_label,
             "alpha": overlay_alpha, "hemi": hemi,
@@ -1919,21 +1897,30 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
             "verbose": False
         }
         if using_mayavi:
+            kwargs["array"] = getattr(stc, hemi + '_data')
+            kwargs["vertices"] = stc.vertices[0 if hemi == 'lh' else 1]
             kwargs["min"] = scale_pts[0]
             kwargs["mid"] = scale_pts[1]
             kwargs["max"] = scale_pts[2]
         else:  # pyvista
+            kwargs["array"] = stc
             kwargs["fmin"] = scale_pts[0]
             kwargs["fmid"] = scale_pts[1]
             kwargs["fmax"] = scale_pts[2]
             kwargs["clim"] = clim
-            kwargs["volume_options"] = volume_options
-            kwargs["src"] = src_vol
+            kwargs["src"] = src
         kwargs.update({} if add_data_kwargs is None else add_data_kwargs)
+        if volume and src.kind == 'volume':
+            continue
         with warnings.catch_warnings(record=True):  # traits warnings
             brain.add_data(**kwargs)
         brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
                                   fmax=scale_pts[2], **sd_kwargs)
+
+    if volume:
+        kwargs["hemi"] = 'vol'
+        kwargs["volume_options"] = volume_options
+        brain.add_data(**kwargs)
 
     need_peeling = (brain_alpha < 1.0 and
                     sys.platform != 'darwin' and

@@ -8,9 +8,24 @@ on:
       - '*'
 
 jobs:
+  check_skip:
+    runs-on: ubuntu-20.04
+    outputs:
+      skip: ${{ steps.result_step.outputs.ci-skip }}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - id: result_step
+        uses: mstachniuk/ci-skip@master
+        with:
+          commit-filter: '[skip ci];[ci skip];[skip github]'
+          commit-filter-separator: ';'
+
   # Linux
   job:
-    if: "github.repository == 'mne-tools/mne-python' && !contains(github.event.head_commit.message, '[ci skip]') && !contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[skip github]')"
+    needs: check_skip
+    if: ${{ needs.check_skip.outputs.skip == 'false' }}
     name: 'py3.8'
     runs-on: ubuntu-20.04
     defaults:
@@ -25,8 +40,6 @@ jobs:
       PYTHON_VERSION: '3.8'
     steps:
       - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
       - run: ./tools/setup_xvfb.sh
         name: 'Setup xvfb'
       - uses: conda-incubator/setup-miniconda@v2
