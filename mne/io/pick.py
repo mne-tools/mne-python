@@ -73,6 +73,14 @@ def get_channel_type_constants(include_defaults=False):
                     kind=FIFF.FIFFV_FNIRS_CH,
                     unit=FIFF.FIFF_UNIT_V,
                     coil_type=FIFF.FIFFV_COIL_FNIRS_CW_AMPLITUDE),
+                fnirs_fd_ac_amplitude=dict(
+                    kind=FIFF.FIFFV_FNIRS_CH,
+                    unit=FIFF.FIFF_UNIT_V,
+                    coil_type=FIFF.FIFFV_COIL_FNIRS_FD_AC_AMPLITUDE),
+                fnirs_fd_phase=dict(
+                    kind=FIFF.FIFFV_FNIRS_CH,
+                    unit=FIFF.FIFF_UNIT_RAD,
+                    coil_type=FIFF.FIFFV_COIL_FNIRS_FD_PHASE),
                 fnirs_od=dict(kind=FIFF.FIFFV_FNIRS_CH,
                               coil_type=FIFF.FIFFV_COIL_FNIRS_OD),
                 hbo=dict(kind=FIFF.FIFFV_FNIRS_CH,
@@ -143,6 +151,10 @@ _second_rules = {
                             FIFF.FIFFV_COIL_FNIRS_HBR: 'hbr',
                             FIFF.FIFFV_COIL_FNIRS_CW_AMPLITUDE:
                                 'fnirs_cw_amplitude',
+                            FIFF.FIFFV_COIL_FNIRS_FD_AC_AMPLITUDE:
+                                'fnirs_fd_ac_amplitude',
+                            FIFF.FIFFV_COIL_FNIRS_FD_PHASE:
+                                'fnirs_fd_phase',
                             FIFF.FIFFV_COIL_FNIRS_OD: 'fnirs_od',
                             }),
     'eeg': ('coil_type', {FIFF.FIFFV_COIL_EEG: 'eeg',
@@ -315,6 +327,12 @@ def _triage_fnirs_pick(ch, fnirs, warned):
     elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_CW_AMPLITUDE and \
             fnirs == 'fnirs_cw_amplitude':
         return True
+    elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_FD_AC_AMPLITUDE and \
+            fnirs == 'fnirs_fd_ac_amplitude':
+        return True
+    elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_FD_PHASE and \
+            fnirs == 'fnirs_fd_phase':
+        return True
     elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_OD and fnirs == 'fnirs_od':
         return True
     return False
@@ -446,7 +464,7 @@ def pick_types(info, meg=False, eeg=False, stim=False, eog=False, ecg=False,
         for key in ('grad', 'mag'):
             param_dict[key] = meg
     if isinstance(fnirs, bool):
-        for key in ('hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_od'):
+        for key in _FNIRS_CH_TYPES_SPLIT:
             param_dict[key] = fnirs
     warned = [False]
     for k in range(nchan):
@@ -454,8 +472,8 @@ def pick_types(info, meg=False, eeg=False, stim=False, eog=False, ecg=False,
         try:
             pick[k] = param_dict[ch_type]
         except KeyError:  # not so simple
-            assert ch_type in ('grad', 'mag', 'hbo', 'hbr', 'ref_meg',
-                               'fnirs_cw_amplitude', 'fnirs_od')
+            assert ch_type in (
+                'grad', 'mag', 'ref_meg') + _FNIRS_CH_TYPES_SPLIT
             if ch_type in ('grad', 'mag'):
                 pick[k] = _triage_meg_pick(info['chs'][k], meg)
             elif ch_type == 'ref_meg':
@@ -746,7 +764,8 @@ def channel_indices_by_type(info, picks=None):
     idx_by_type = {key: list() for key in _PICK_TYPES_KEYS if
                    key not in ('meg', 'fnirs')}
     idx_by_type.update(mag=list(), grad=list(), hbo=list(), hbr=list(),
-                       fnirs_cw_amplitude=list(), fnirs_od=list())
+                       fnirs_cw_amplitude=list(), fnirs_fd_ac_amplitude=list(),
+                       fnirs_fd_phase=list(), fnirs_od=list())
     picks = _picks_to_idx(info, picks,
                           none='all', exclude=(), allow_empty=True)
     for k in picks:
@@ -834,8 +853,8 @@ def _contains_ch_type(info, ch_type):
     """
     _validate_type(ch_type, 'str', "ch_type")
 
-    meg_extras = ['mag', 'grad', 'planar1', 'planar2']
-    fnirs_extras = ['hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_od']
+    meg_extras = list(_MEG_CH_TYPES_SPLIT)
+    fnirs_extras = list(_FNIRS_CH_TYPES_SPLIT)
     valid_channel_types = sorted([key for key in _PICK_TYPES_KEYS
                                   if key != 'meg'] + meg_extras + fnirs_extras)
     _check_option('ch_type', ch_type, valid_channel_types)
@@ -939,21 +958,19 @@ _PICK_TYPES_DATA_DICT = dict(
     misc=False, resp=False, chpi=False, exci=False, ias=False, syst=False,
     seeg=True, dipole=False, gof=False, bio=False, ecog=True, fnirs=True)
 _PICK_TYPES_KEYS = tuple(list(_PICK_TYPES_DATA_DICT) + ['ref_meg'])
-_DATA_CH_TYPES_SPLIT = ('mag', 'grad', 'eeg', 'csd', 'seeg', 'ecog',
-                        'hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_od')
-_DATA_CH_TYPES_ORDER_DEFAULT = ('mag', 'grad', 'eeg', 'csd', 'eog', 'ecg',
-                                'emg', 'ref_meg', 'misc', 'stim', 'resp',
-                                'chpi', 'exci', 'ias', 'syst', 'seeg', 'bio',
-                                'ecog', 'hbo', 'hbr', 'fnirs_cw_amplitude',
-                                'fnirs_od', 'whitened')
-
-# Valid data types, ordered for consistency, used in viz/evoked.
-_VALID_CHANNEL_TYPES = ('eeg', 'grad', 'mag', 'seeg', 'eog', 'ecg', 'emg',
-                        'dipole', 'gof', 'bio', 'ecog', 'hbo', 'hbr',
-                        'fnirs_cw_amplitude', 'fnirs_od', 'misc', 'csd')
-
 _MEG_CH_TYPES_SPLIT = ('mag', 'grad', 'planar1', 'planar2')
-_FNIRS_CH_TYPES_SPLIT = ('hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_od')
+_FNIRS_CH_TYPES_SPLIT = ('hbo', 'hbr', 'fnirs_cw_amplitude',
+                         'fnirs_fd_ac_amplitude', 'fnirs_fd_phase', 'fnirs_od')
+_DATA_CH_TYPES_ORDER_DEFAULT = (
+    'mag', 'grad', 'eeg', 'csd', 'eog', 'ecg', 'emg', 'ref_meg', 'misc',
+    'stim', 'resp', 'chpi', 'exci', 'ias', 'syst', 'seeg', 'bio',
+    'ecog') + _FNIRS_CH_TYPES_SPLIT + ('whitened',)
+# Valid data types, ordered for consistency, used in viz/evoked.
+_VALID_CHANNEL_TYPES = (
+    'eeg', 'grad', 'mag', 'seeg', 'eog', 'ecg', 'emg', 'dipole', 'gof', 'bio',
+    'ecog') + _FNIRS_CH_TYPES_SPLIT + ('misc', 'csd')
+_DATA_CH_TYPES_SPLIT = (
+    'mag', 'grad', 'eeg', 'csd', 'seeg', 'ecog') + _FNIRS_CH_TYPES_SPLIT
 
 
 def _pick_data_channels(info, exclude='bads', with_ref_meg=True):

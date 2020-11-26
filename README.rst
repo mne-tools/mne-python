@@ -105,6 +105,7 @@ For full functionality, some functions require:
 - Imageio >= 2.6.1
 - PyVista >= 0.24
 - pyvistaqt >= 0.2.0
+- mffpy >= 0.5.7
 
 Contributing to MNE-Python
 ^^^^^^^^^^^^^^^^^^^^^^^^^^

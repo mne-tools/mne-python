@@ -131,6 +131,10 @@ def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
 
     brain = Brain(hemi=hemi, surf=surf, size=size, title=title,
                   cortex=cortex, units='m', **kwargs)
+    with pytest.raises(TypeError, match='not supported'):
+        brain._check_stc(hemi='lh', array=FakeSTC(), vertices=None)
+    with pytest.raises(ValueError, match='add_data'):
+        brain.setup_time_viewer(time_viewer=True)
     brain._hemi = 'foo'  # for testing: hemis
     with pytest.raises(ValueError, match='not be None'):
         brain._check_hemi(hemi=None)
@@ -141,10 +145,6 @@ def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
     brain._hemi = hemi  # end testing: hemis
     with pytest.raises(ValueError, match='bool or positive'):
         brain._to_borders(None, None, 'foo')
-    with pytest.raises(TypeError, match='not supported'):
-        brain._check_stc(hemi='lh', array=FakeSTC(), vertices=None)
-    with pytest.raises(ValueError, match='add_data'):
-        brain.setup_time_viewer(time_viewer=True)
     assert brain.interaction == 'trackball'
     # add_data
     stc = read_source_estimate(fname_stc)
@@ -224,7 +224,7 @@ def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
         brain.add_label(0)
     with pytest.raises(ValueError, match="does not exist"):
         brain.add_label('foo', subdir='bar')
-    label.name = None
+    label.name = None  # test unnamed label
     brain.add_label(label, scalar_thresh=0.)
     assert isinstance(brain.labels['unnamed'], dict)
     label_data = brain.labels['unnamed']

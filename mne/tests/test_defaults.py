@@ -39,7 +39,7 @@ def test_si_units():
         'n': 1e-9,
         'f': 1e-15,
     }
-    known_SI = {'V', 'T', 'Am', 'm', 'M',
+    known_SI = {'V', 'T', 'Am', 'm', 'M', 'rad',
                 'AU', 'GOF'}  # not really SI but we tolerate them
     powers = '²'
 
@@ -50,6 +50,8 @@ def test_si_units():
             prefix, si = '', 'GOF'
         elif x == 'AU':
             prefix, si = '', 'AU'
+        elif x == 'rad':
+            prefix, si = '', 'rad'
         elif len(x) == 2:
             if x[1] in powers:
                 prefix, si = '', x

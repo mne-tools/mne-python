@@ -48,6 +48,7 @@ KIT.FLL_SETTINGS = {
     50: (2, 1, 1),  # Hanger Type #3
     60: (2, 1, 1),  # Hanger Type #3
     100: (3, 3, 3),  # Low Band Kapper Type
+    101: (1, 3, 2),  # Berlin (DC, 200 Hz, Through)
     120: (3, 3, 3),  # Low Band Kapper Type
     200: (4, 4, 3),  # High Band Kapper Type
     300: (2, 2, 2),  # Kapper Type
@@ -164,6 +165,8 @@ KIT.SYSTEM_UMD_2019_09 = 54  # UMD September 3, 2019 -
 KIT.SYSTEM_YOKOGAWA_2017_01 = 1001  # Kanazawa (until 2017)
 KIT.SYSTEM_YOKOGAWA_2018_01 = 10020  # Kanazawa (since 2018)
 KIT.SYSTEM_YOKOGAWA_2020_08 = 10021  # Kanazawa (since August 2020)
+KIT.SYSTEM_EAGLE_TECHNOLOGY_PTB_2008 = 124
+
 # Sensor layouts for plotting
 KIT_LAYOUT = {
     KIT.SYSTEM_AS: None,
@@ -184,6 +187,7 @@ KIT_LAYOUT = {
     KIT.SYSTEM_YOKOGAWA_2017_01: None,
     KIT.SYSTEM_YOKOGAWA_2018_01: None,
     KIT.SYSTEM_YOKOGAWA_2020_08: None,
+    KIT.SYSTEM_EAGLE_TECHNOLOGY_PTB_2008: None,
 }
 # Sensor neighbor definitions
 KIT_NEIGHBORS = {
@@ -205,6 +209,7 @@ KIT_NEIGHBORS = {
     KIT.SYSTEM_YOKOGAWA_2017_01: None,
     KIT.SYSTEM_YOKOGAWA_2018_01: None,
     KIT.SYSTEM_YOKOGAWA_2020_08: None,
+    KIT.SYSTEM_EAGLE_TECHNOLOGY_PTB_2008: None,
 }
 # Names displayed in the info dict description
 KIT_SYSNAMES = {
@@ -225,6 +230,7 @@ KIT_SYSNAMES = {
     KIT.SYSTEM_YOKOGAWA_2017_01: 'Yokogawa of Kanazawa (until 2017)',
     KIT.SYSTEM_YOKOGAWA_2018_01: 'Yokogawa of Kanazawa (since 2018)',
     KIT.SYSTEM_YOKOGAWA_2020_08: 'Yokogawa of Kanazawa (since August 2020)',
+    KIT.SYSTEM_EAGLE_TECHNOLOGY_PTB_2008: 'Eagle Technology MEG (KIT/Yokogawa style) at PTB (since 2008, software upgrade in 2018)',  # noqa: E501
 }
 
 LEGACY_AMP_PARAMS = {

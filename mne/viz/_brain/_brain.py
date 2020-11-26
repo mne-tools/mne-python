@@ -1608,10 +1608,7 @@ class Brain(object):
                                  f'{time_label_size}')
 
         hemi = self._check_hemi(hemi, extras=['vol'])
-        try:
-            stc, array, vertices = self._check_stc(hemi, array, vertices)
-        except ValueError:
-            return  # No data to add, skipping
+        stc, array, vertices = self._check_stc(hemi, array, vertices)
         array = np.asarray(array)
         vector_alpha = alpha if vector_alpha is None else vector_alpha
         self._data['vector_alpha'] = vector_alpha
@@ -2428,8 +2425,7 @@ class Brain(object):
         if distance is not None:
             view.update(distance=distance)
         self._renderer.subplot(row, col)
-        self._renderer.set_camera(**view)
-        self._renderer.reset_camera()
+        self._renderer.set_camera(**view, reset_camera=False)
         self._update()
 
     def reset_view(self):
@@ -2437,7 +2433,8 @@ class Brain(object):
         for h in self._hemis:
             for ri, ci, v in self._iter_views(h):
                 self._renderer.subplot(ri, ci)
-                self._renderer.set_camera(**views_dicts[h][v])
+                self._renderer.set_camera(**views_dicts[h][v],
+                                          reset_camera=False)
 
     def save_image(self, filename, mode='rgb'):
         """Save view from all panels to disk.
