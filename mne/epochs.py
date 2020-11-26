@@ -504,6 +504,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         if data is None:
             self.preload = False
             self._data = None
+            self._do_baseline = True
         else:
             assert decim == 1
             if data.ndim != 3 or data.shape[2] != \
@@ -514,6 +515,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                     'The number of epochs and the number of events must match')
             self.preload = True
             self._data = data
+            self._do_baseline = False
         self._offset = None
 
         if tmin > tmax:
@@ -612,6 +614,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             return self
         self._data = self._get_data()
         self.preload = True
+        self._do_baseline = False
         self._decim_slice = slice(None, None, None)
         self._decim = 1
         self._raw_times = self.times
@@ -710,6 +713,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             rescale(self._data, self.times, baseline, copy=False, picks=picks)
         else:  # logging happens in "rescale" in "if" branch
             logger.info(_log_rescale(baseline))
+            assert self._do_baseline is True
         self.baseline = baseline
         return self
 
@@ -807,7 +811,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                             ignore_chs=self.info['bads'])
 
     @verbose
-    def _detrend_offset_decim(self, epoch, rescale_data=True, verbose=None):
+    def _detrend_offset_decim(self, epoch, verbose=None):
         """Aux Function: detrend, baseline correct, offset, decim.
 
         Note: operates inplace
@@ -821,7 +825,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             epoch[picks] = detrend(epoch[picks], self.detrend, axis=1)
 
         # Baseline correct
-        if rescale_data:
+        if self._do_baseline:
             picks = pick_types(self.info, meg=True, eeg=True, stim=False,
                                ref_meg=True, eog=True, ecg=True, seeg=True,
                                emg=True, bio=True, ecog=True, fnirs=True,
@@ -1361,14 +1365,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             logger.info('Loading data for %s events and %s original time '
                         'points ...' % (n_events, len(self._raw_times)))
 
-        # don't rescale if the baseline is invalid (due to cropping of the
-        # baseline period)
-        rescale_data = True
-        if self.baseline != _check_baseline(self.baseline, times=self.times,
-                                            sfreq=self.info['sfreq'],
-                                            on_baseline_outside_data='adjust'):
-            rescale_data = False
-
         if self._bad_dropped:
             if not out:
                 return
@@ -1384,8 +1380,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             for ii, idx in enumerate(use_idx):
                 # faster to pre-allocate memory here
                 epoch_noproj = self._get_epoch_from_raw(idx)
-                epoch_noproj = self._detrend_offset_decim(
-                    epoch_noproj, rescale_data=rescale_data)
+                epoch_noproj = self._detrend_offset_decim(epoch_noproj)
                 if self._do_delayed_proj:
                     epoch_out = epoch_noproj
                 else:
@@ -1411,8 +1406,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                         epoch = self._data[idx]
                 else:  # from disk
                     epoch_noproj = self._get_epoch_from_raw(idx)
-                    epoch_noproj = self._detrend_offset_decim(
-                        epoch_noproj, rescale_data=rescale_data)
+                    epoch_noproj = self._detrend_offset_decim(epoch_noproj)
                     epoch = self._project_epoch(epoch_noproj)
 
                 epoch_out = epoch_noproj if self._do_delayed_proj else epoch
@@ -2356,6 +2350,8 @@ class EpochsArray(BaseEpochs):
             flat=flat, reject_tmin=reject_tmin, reject_tmax=reject_tmax,
             decim=1, metadata=metadata, selection=selection, proj=proj,
             on_missing=on_missing)
+        if self.baseline is not None:
+            self._do_baseline = True
         if len(events) != np.in1d(self.events[:, 2],
                                   list(self.event_id.values())).sum():
             raise ValueError('The events must only contain event numbers from '
@@ -2796,7 +2792,9 @@ class EpochsFIF(BaseEpochs):
                 events[:, 0] = np.arange(1, len(events) + 1)
             # here we ignore missing events, since users should already be
             # aware of missing events if they have saved data that way
-            # we also retain original baseline
+            # we also retain original baseline without re-applying baseline
+            # correction (data is being baseline-corrected when written to
+            # disk)
             epoch = BaseEpochs(
                 info, data, events, event_id, tmin, tmax,
                 baseline=None,
@@ -2804,7 +2802,9 @@ class EpochsFIF(BaseEpochs):
                 selection=selection, drop_log=drop_log,
                 proj=False, verbose=False)
             epoch.baseline = baseline
+            epoch._do_baseline = False  # might be superfluous but won't hurt
             ep_list.append(epoch)
+
             if not preload:
                 # store everything we need to index back to the original data
                 raw.append(_RawContainer(fiff_open(fname)[0], data_tag,
@@ -2834,14 +2834,15 @@ class EpochsFIF(BaseEpochs):
         drop_log = tuple(drop_log[:step])
 
         # call BaseEpochs constructor
-        # again, ensure we retaining the baseline period originally loaded from
-        # disk
+        # again, ensure we're retaining the baseline period originally loaded
+        # from disk without trying to re-apply baseline correction
         super(EpochsFIF, self).__init__(
             info, data, events, event_id, tmin, tmax, baseline=None, raw=raw,
             proj=proj, preload_at_end=False, on_missing='ignore',
             selection=selection, drop_log=drop_log, filename=fname_rep,
             metadata=metadata, verbose=verbose, **reject_params)
         self.baseline = baseline
+        self._do_baseline = False
         # use the private property instead of drop_bad so that epochs
         # are not all read from disk for preload=False
         self._bad_dropped = True

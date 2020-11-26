@@ -755,6 +755,12 @@ def test_epochs_baseline(preload):
     expected[0] = [-0.5, 0.5]
     assert_allclose(epochs.get_data()[0], expected)
 
+    # Preloading applies baseline correction.
+    if preload:
+        assert epochs._do_baseline is False
+    else:
+        assert epochs._do_baseline is True
+
     # we should not be able to remove baseline correction after the data
     # has been loaded
     epochs.apply_baseline((None, None))
