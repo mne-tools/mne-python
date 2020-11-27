@@ -1882,8 +1882,6 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
         transparent = True
     sd_kwargs = dict(transparent=transparent, verbose=False)
     center = 0. if diverging else None
-    brain.show()
-    return
     for hemi in hemis:
         kwargs = {
             "colormap": colormap,

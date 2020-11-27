@@ -65,30 +65,42 @@ def _overlay_to_colors(overlay):
     def diff(x):
         return np.max(x) - np.min(x)
 
-    def norm(x):
-        return (x - np.min(x)) / diff(x)
+    def norm(x, rng=None):
+        if rng is None:
+            rng = [np.min(x), np.max(x)]
+        return (x - rng[0]) / (rng[1] - rng[0])
 
+    rng = overlay.rng
     scalars = overlay.scalars
     if diff(scalars) != 0:
-        scalars[scalars < overlay.rng[0]] = overlay.rng[0]
-        scalars[scalars > overlay.rng[1]] = overlay.rng[1]
-        scalars = norm(scalars)
-    colors = cmap(scalars)
-    colors = (colors * 255.).astype(np.uint8)
-    return colors
+        scalars = norm(scalars, rng)
+    return cmap(scalars)
+
+
+def _alpha_over(B, A):
+    alpha_a = A[:, 3]
+    alpha_b = B[:, 3]
+    a = (A[:, :3].T * alpha_a).T
+    b = (B[:, :3].T * alpha_b).T
+
+    c = np.zeros(a.shape)
+    alpha_c = np.zeros(alpha_a.shape)
+    for i in range(len(a)):
+        c[i, :] = a[i, :] * alpha_a[i] + b[i, :] * alpha_b[i] * (1. - alpha_a[i])
+        c[i, :] /= (alpha_a[i] + alpha_b[i] * (1. - alpha_a[i]))
+        alpha_c[i] = alpha_a[i] + alpha_b[i] * (1. - alpha_a[i])
+    return np.c_[c, alpha_c]
 
 
 def _blend_overlays(overlays):
-    blend_colors = None
+    B = None
     for overlay in overlays:
-        colors = _overlay_to_colors(overlay)
-        if blend_colors is None:
-            blend_colors = colors
+        A = _overlay_to_colors(overlay)
+        if B is None:
+            B = A
         else:
-            blend_colors += colors
-    blend_colors = blend_colors / len(overlays)
-    blend_colors = blend_colors.astype(np.uint8)
-    return blend_colors
+            B = _alpha_over(B, A)
+    return B
 
 
 @fill_doc
@@ -344,7 +356,9 @@ class Brain(object):
                         rng=[geo_kwargs["vmin"], geo_kwargs["vmax"]],
                     )
                     self._hemi_overlays[h] = [base_overlay]
+                    continue
                     kwargs["scalars"] = _blend_overlays(self._hemi_overlays[h])
+                    kwargs["rgba"] = True
                     mesh_data = self._renderer.mesh(
                         x=self.geo[h].coords[:, 0],
                         y=self.geo[h].coords[:, 1],
@@ -1705,12 +1719,6 @@ class Brain(object):
                 yield ri, ci, view
 
     def _add_surface_data(self, hemi):
-        surface_overlay = _Overlay(
-            scalars=np.zeros(len(self.geo[hemi].coords)),
-            colormap=self._data['ctable'],
-            rng = self._cmap_range
-        )
-        self._hemi_overlays[hemi].append(surface_overlay)
         rng = self._cmap_range
         kwargs = {
             "color": None,
@@ -1720,7 +1728,14 @@ class Brain(object):
             # "colormap": self._data['ctable'],
             "opacity": self._data['alpha'],
         }
+        surface_overlay = _Overlay(
+            scalars=np.zeros(len(self.geo[hemi].coords)),
+            colormap=self._data['ctable'],
+            rng=rng
+        )
+        self._hemi_overlays[hemi].append(surface_overlay)
         kwargs["scalars"] = _blend_overlays(self._hemi_overlays[hemi])
+        kwargs["rgba"] = True
         if self._data[hemi]['mesh'] is not None:
             actor, mesh = self._renderer.polydata(
                 self._data[hemi]['mesh'],
