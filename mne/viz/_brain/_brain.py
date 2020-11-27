@@ -47,6 +47,50 @@ def safe_event(fun, *args, **kwargs):
         traceback.print_exc(file=sys.stderr)
 
 
+class _Overlay(object):
+    def __init__(self, scalars, colormap, rng):
+        self.scalars = scalars
+        self.colormap = colormap
+        self.rng = rng
+
+
+def _overlay_to_colors(overlay):
+    from matplotlib.cm import get_cmap
+    from matplotlib.colors import ListedColormap
+    if isinstance(overlay.colormap, str):
+        cmap = get_cmap(overlay.colormap)
+    else:
+        cmap = ListedColormap(overlay.colormap / 255.)
+
+    def diff(x):
+        return np.max(x) - np.min(x)
+
+    def norm(x):
+        return (x - np.min(x)) / diff(x)
+
+    scalars = overlay.scalars
+    if diff(scalars) != 0:
+        scalars[scalars < overlay.rng[0]] = overlay.rng[0]
+        scalars[scalars > overlay.rng[1]] = overlay.rng[1]
+        scalars = norm(scalars)
+    colors = cmap(scalars)
+    colors = (colors * 255.).astype(np.uint8)
+    return colors
+
+
+def _blend_overlays(overlays):
+    blend_colors = None
+    for overlay in overlays:
+        colors = _overlay_to_colors(overlay)
+        if blend_colors is None:
+            blend_colors = colors
+        else:
+            blend_colors += colors
+    blend_colors = blend_colors / len(overlays)
+    blend_colors = blend_colors.astype(np.uint8)
+    return blend_colors
+
+
 @fill_doc
 class Brain(object):
     """Class for visualizing a brain.
@@ -244,6 +288,7 @@ class Brain(object):
         self._label_data = list()
         self._hemi_actors = {}
         self._hemi_meshes = {}
+        self._hemi_overlays = {'lh': list(), 'rh': list()}
         # for now only one color bar can be added
         # since it is the same for all figures
         self._colorbar_added = False
@@ -252,7 +297,7 @@ class Brain(object):
         self._time_label_added = False
         # array of data used by TimeViewer
         self._data = {}
-        self.geo, self._overlays = {}, {}
+        self.geo = {}
         self.set_time_interpolation('nearest')
 
         geo_kwargs = self._cortex_colormap(cortex)
@@ -285,14 +330,21 @@ class Brain(object):
                 self._renderer.subplot(ri, ci)
                 kwargs = {
                     "color": None,
-                    "scalars": self.geo[h].bin_curv,
-                    "vmin": geo_kwargs["vmin"],
-                    "vmax": geo_kwargs["vmax"],
-                    "colormap": geo_kwargs["colormap"],
+                    # "scalars": self.geo[h].bin_curv,
+                    # "vmin": geo_kwargs["vmin"],
+                    # "vmax": geo_kwargs["vmax"],
+                    # "colormap": geo_kwargs["colormap"],
                     "opacity": alpha,
                     "pickable": False,
                 }
                 if self._hemi_meshes.get(h) is None:
+                    base_overlay = _Overlay(
+                        scalars=self.geo[h].bin_curv,
+                        colormap=geo_kwargs["colormap"],
+                        rng=[geo_kwargs["vmin"], geo_kwargs["vmax"]],
+                    )
+                    self._hemi_overlays[h] = [base_overlay]
+                    kwargs["scalars"] = _blend_overlays(self._hemi_overlays[h])
                     mesh_data = self._renderer.mesh(
                         x=self.geo[h].coords[:, 0],
                         y=self.geo[h].coords[:, 1],
@@ -1653,15 +1705,22 @@ class Brain(object):
                 yield ri, ci, view
 
     def _add_surface_data(self, hemi):
+        surface_overlay = _Overlay(
+            scalars=np.zeros(len(self.geo[hemi].coords)),
+            colormap=self._data['ctable'],
+            rng = self._cmap_range
+        )
+        self._hemi_overlays[hemi].append(surface_overlay)
         rng = self._cmap_range
         kwargs = {
             "color": None,
-            "colormap": self._data['ctable'],
-            "vmin": rng[0],
-            "vmax": rng[1],
+            # "scalars": np.zeros(len(self.geo[hemi].coords)),
+            # "vmin": rng[0],
+            # "vmax": rng[1],
+            # "colormap": self._data['ctable'],
             "opacity": self._data['alpha'],
-            "scalars": np.zeros(len(self.geo[hemi].coords)),
         }
+        kwargs["scalars"] = _blend_overlays(self._hemi_overlays[hemi])
         if self._data[hemi]['mesh'] is not None:
             actor, mesh = self._renderer.polydata(
                 self._data[hemi]['mesh'],
@@ -1674,7 +1733,6 @@ class Brain(object):
             z=self.geo[hemi].coords[:, 2],
             triangles=self.geo[hemi].faces,
             normals=self.geo[hemi].nn,
-            polygon_offset=-2,
             **kwargs,
         )
         if isinstance(mesh_data, tuple):
@@ -2451,7 +2509,10 @@ class Brain(object):
                 # update the mesh scalar values
                 if hemi_data.get('mesh') is not None:
                     mesh = hemi_data['mesh']
-                    _set_mesh_scalars(mesh, act_data, 'Data')
+                    surface_overlay = self._hemi_overlays[hemi][1]
+                    surface_overlay.scalars = act_data
+                    colors = _blend_overlays(self._hemi_overlays[hemi])
+                    _set_mesh_scalars(mesh, colors, 'Data')
 
                 # update the glyphs
                 if vectors is not None:

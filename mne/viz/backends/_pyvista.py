@@ -323,6 +323,7 @@ class _Renderer(_BaseRenderer):
                 mesh.GetPointData().SetActiveNormals("Normals")
             else:
                 _compute_normals(mesh)
+            rgba = True
             actor = _add_mesh(
                 plotter=self.plotter,
                 mesh=mesh, color=color, scalars=scalars,
