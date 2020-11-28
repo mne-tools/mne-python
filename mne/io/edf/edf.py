@@ -621,13 +621,13 @@ def _read_edf_header(fname, exclude):
         ch_names = _unique_channel_names(ch_names)
         orig_units = dict(zip(ch_names, units))
 
-        physical_min = np.array([float(fid.read(8).decode())
+        physical_min = np.array([float(fid.read(8).decode().rstrip('\x00'))
                                  for ch in channels])[sel]
-        physical_max = np.array([float(fid.read(8).decode())
+        physical_max = np.array([float(fid.read(8).decode().rstrip('\x00'))
                                  for ch in channels])[sel]
-        digital_min = np.array([float(fid.read(8).decode())
+        digital_min = np.array([float(fid.read(8).decode().rstrip('\x00'))
                                 for ch in channels])[sel]
-        digital_max = np.array([float(fid.read(8).decode())
+        digital_max = np.array([float(fid.read(8).decode().rstrip('\x00'))
                                 for ch in channels])[sel]
         prefiltering = [fid.read(80).decode().strip(' \x00')
                         for ch in channels][:-1]
