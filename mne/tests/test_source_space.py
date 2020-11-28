@@ -89,6 +89,13 @@ def test_compute_distance_to_sensors(picks, limits):
     else:
         use_picks = picks
     n_picks = len(_picks_to_idx(info, use_picks, 'data', exclude=()))
+
+    # Make sure same vertices are used in src and fwd
+    src[0]['inuse'] = fwd['src'][0]['inuse']
+    src[1]['inuse'] = fwd['src'][1]['inuse']
+    src[0]['nuse'] = fwd['src'][0]['nuse']
+    src[1]['nuse'] = fwd['src'][1]['nuse']
+
     n_verts = src[0]['nuse'] + src[1]['nuse']
 
     # minimum distances between vertices and sensors
@@ -101,9 +108,9 @@ def test_compute_distance_to_sensors(picks, limits):
 
     # If source space from Forward Solution and trans=None (i.e. identity) then
     # depths2 should be the same as depth? But it isn't.
-    # depths2 = compute_distance_to_sensors(src=fwd['src'], info=info,
-    #                                       picks=use_picks, trans=None)
-    # assert_array_almost_equal(depths, depths2)
+    depths2 = compute_distance_to_sensors(src=fwd['src'], info=info,
+                                          picks=use_picks, trans=None)
+    assert_allclose(depths, depths2, rtol=1e-5)
 
     if picks != 'eeg':
         # this should break things
