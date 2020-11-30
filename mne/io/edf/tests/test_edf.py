@@ -24,7 +24,7 @@ from mne.utils import requires_pandas
 from mne.io import read_raw_edf, read_raw_bdf, read_raw_fif
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.edf.edf import (_get_edf_default_event_id, _read_annotations_edf,
-                            _read_ch, _parse_prefilter_string, _edf_str_int)
+                            _read_ch, _parse_prefilter_string, _edf_str)
 from mne.io.pick import channel_indices_by_type, get_channel_type_constants
 from mne.annotations import events_from_annotations, read_annotations
 
@@ -456,4 +456,4 @@ def test_invalid_date(tmpdir):
 
 def test_empty_chars():
     """Test blank char support."""
-    assert _edf_str_int(b'1819\x00 ') == 1819
+    assert int(_edf_str(b'1819\x00 ')) == 1819
