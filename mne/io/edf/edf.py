@@ -342,12 +342,20 @@ def _read_header(fname, exclude):
     ext = os.path.splitext(fname)[1][1:].lower()
     logger.info('%s file detected' % ext.upper())
     if ext in ('bdf', 'edf'):
-        return _read_edf_header(fname, exclude)
-    elif ext in ('gdf'):
-        return _read_gdf_header(fname, exclude), None
+        edf_info, orig_units = _read_edf_header(fname, exclude)
+    elif ext == 'gdf':
+        edf_info, orig_units = _read_gdf_header(fname, exclude), None
     else:
-        raise NotImplementedError(
-            'Only GDF, EDF, and BDF files are supported, got %s.' % ext)
+        raise NotImplementedError(f'Only GDF, EDF, and BDF files are supported'
+                                  f', got {ext}.')
+    hi, lo = edf_info['highpass'], edf_info['lowpass']
+    idx = hi > lo
+    if idx.any():
+        warn(f'Highpass cutoff frequency {hi} is greater than lowpass cutoff '
+             f'frequency {lo}. Setting both values to None.')
+        edf_info['highpass'][idx] = np.nan
+        edf_info['lowpass'][idx] = np.nan
+    return edf_info, orig_units
 
 
 def _get_info(fname, stim_channel, eog, misc, exclude, preload):
