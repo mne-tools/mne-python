@@ -293,11 +293,11 @@ def plot_snr_spectrum(snrs, freqs, stim_freq=None, bg_var_trials=False, bg_var_c
             raise Warning('unsupported format for frequency annotations. will be ignored ')
 
     # grand average SNR over trials and channels as stem plot
-    for i in range(dimension-1):
+    for i in range(dimension - 1):
         snrs = snrs.mean(axis=0)
     axes.stem(freqs, snrs, linefmt='r-', markerfmt='rD', bottom=1)
     axes.set(title="SNR spectrum", xlabel='Frequency [Hz]',
-             ylabel='SNR', ylim=[0, np.ceil(np.nanmax(snrs)+1)])
+             ylabel='SNR', ylim=[0, np.ceil(np.nanmax(snrs) + 1)])
 
     # show plot or not?
     if show:
