@@ -245,7 +245,8 @@ fig.show()
 ###############################################################################
 # SNR plotting function
 # ^^^^^^^^^^^^^^^^^^^^^^^^
-def plot_snr_spectrum(snrs, freqs, stim_freq=None, bg_var_trials=False, bg_var_channels=False, show=True):
+def plot_snr_spectrum(snrs, freqs, use_stem_plot=False, stim_freq=None, bg_var_trials=False, bg_var_channels=False,
+                      show=True):
     """
     Parameters
     ----------
@@ -255,6 +256,8 @@ def plot_snr_spectrum(snrs, freqs, stim_freq=None, bg_var_trials=False, bg_var_c
         one side to calculate snr
     freqs - list, np.array
         containing all frequencies you calculated snr-vlues for.
+    use_stem - bool
+        use a stem plot instead of a line plot for the grand average snr
     stim_freq - list
         stimulation frequencies, or any other frequency you want to be marked by a vertical line
     bg_var_trials - bool
@@ -295,7 +298,11 @@ def plot_snr_spectrum(snrs, freqs, stim_freq=None, bg_var_trials=False, bg_var_c
     # grand average SNR over trials and channels as stem plot
     for i in range(dimension - 1):
         snrs = snrs.mean(axis=0)
-    axes.stem(freqs, snrs, linefmt='r-', markerfmt='rD', bottom=1)
+    if use_stem_plot:
+        axes.stem(freqs, snrs, linefmt='r-', markerfmt='rD', bottom=1)
+    else:
+        axes.plot(freqs, snrs, color='r')
+
     axes.set(title="SNR spectrum", xlabel='Frequency [Hz]',
              ylabel='SNR', ylim=[0, np.ceil(np.nanmax(snrs) + 1)])
 
