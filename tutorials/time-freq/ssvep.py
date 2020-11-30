@@ -284,10 +284,10 @@ def plot_snr_spectrum(snrs, freqs, use_stem_plot=False, stim_freq=None, bg_var_t
 
     # Average over trials
     if bg_var_trials and (dimension == 3):
-        axes.plot(freqs, snrs.mean(axis=0).T, color='b', alpha=0.1)
+        axes.plot(freqs, snrs.mean(axis=0).T, color='grey', alpha=0.1)
     # Average over channels
     if bg_var_channels and (dimension == 3):
-        axes.plot(freqs, snrs.mean(axis=1).T, color='g', alpha=0.1)
+        axes.plot(freqs, snrs.mean(axis=1).T, color='grey', alpha=0.1)
 
     # annotate stim frequencies
     if stim_freq:
