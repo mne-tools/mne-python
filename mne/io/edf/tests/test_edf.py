@@ -20,14 +20,17 @@ import pytest
 
 from mne import pick_types, Annotations
 from mne.datasets import testing
+from mne.fixes import nullcontext
 from mne.utils import requires_pandas
-from mne.io import read_raw_edf, read_raw_bdf, read_raw_fif
+from mne.io import read_raw_edf, read_raw_bdf, read_raw_fif, edf
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.edf.edf import (_get_edf_default_event_id, _read_annotations_edf,
-                            _read_ch, _parse_prefilter_string, _edf_str_int)
+                            _read_ch, _parse_prefilter_string, _edf_str_int,
+                            _read_edf_header)
 from mne.io.pick import channel_indices_by_type, get_channel_type_constants
 from mne.annotations import events_from_annotations, read_annotations
 
+testing_marks = testing._pytest_marks()
 
 FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
@@ -457,3 +460,42 @@ def test_invalid_date(tmpdir):
 def test_empty_chars():
     """Test blank char support."""
     assert _edf_str_int(b'1819\x00 ') == 1819
+
+
+def _hp_lp_rev(*args, **kwargs):
+    out, orig_units = _read_edf_header(*args, **kwargs)
+    out['lowpass'], out['highpass'] = out['highpass'], out['lowpass']
+    # this will happen for test_edf_stim_resamp.edf
+    if len(out['lowpass']) and out['lowpass'][0] == '0.000' and \
+            len(out['highpass']) and out['highpass'][0] == '0.0':
+        out['highpass'][0] = '10.0'
+    return out, orig_units
+
+
+@pytest.mark.filterwarnings('ignore:.*too long.*:RuntimeWarning')
+@pytest.mark.parametrize('fname, lo, hi, warns', [
+    (edf_path, 256, 0, False),
+    (edf_stim_resamp_path, 256, 0, True),
+    (edf_uneven_path, 50, 0, False),
+    (edf_stim_channel_path, 64, 0, False),
+    pytest.param(edf_overlap_annot_path, 64, 0, False, marks=testing_marks),
+    pytest.param(edf_reduced, 256, 0, False, marks=testing_marks),
+    pytest.param(test_generator_edf, 100, 0, False, marks=testing_marks)
+])
+def test_hp_lp_reversed(fname, lo, hi, warns, monkeypatch):
+    """Test HP/LP reversed (gh-8584)."""
+    fname = str(fname)
+    raw = read_raw_edf(fname)
+    assert raw.info['lowpass'] == lo
+    assert raw.info['highpass'] == hi
+    monkeypatch.setattr(edf.edf, '_read_edf_header', _hp_lp_rev)
+    if warns:
+        ctx = pytest.warns(RuntimeWarning, match='greater than lowpass')
+        new_lo = new_hi = None
+    else:
+        ctx = nullcontext()
+        new_lo, new_hi = lo, hi
+    with ctx:
+        raw = read_raw_edf(fname)
+    assert raw.info['lowpass'] == new_lo
+    assert raw.info['highpass'] == new_hi
