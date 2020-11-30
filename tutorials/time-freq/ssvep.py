@@ -278,6 +278,10 @@ def plot_snr_spectrum(snrs, freqs, use_stem_plot=False, stim_freq=None, bg_var_t
     if dimension > 3:  # more than 3d array
         raise ValueError('SNR array has more that 3 dimensions. whats happening?')
 
+    # Do not plot both snrs averaged over trials and snrs averaged over channels
+    if bg_var_channels and bg_var_trials:
+        raise ValueError('Either plot trial- or channel-averaged snrs in the background')
+
     # Average over trials
     if bg_var_trials and (dimension == 3):
         axes.plot(freqs, snrs.mean(axis=0).T, color='b', alpha=0.1)
