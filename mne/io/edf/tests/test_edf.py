@@ -476,12 +476,12 @@ def _hp_lp_rev(*args, **kwargs):
 @pytest.mark.filterwarnings('ignore:.*too long.*:RuntimeWarning')
 @pytest.mark.parametrize('fname, lo, hi, warns', [
     (edf_path, 256, 0, False),
-    (edf_stim_resamp_path, 256, 0, True),
     (edf_uneven_path, 50, 0, False),
     (edf_stim_channel_path, 64, 0, False),
     pytest.param(edf_overlap_annot_path, 64, 0, False, marks=td_mark),
     pytest.param(edf_reduced, 256, 0, False, marks=td_mark),
-    pytest.param(test_generator_edf, 100, 0, False, marks=td_mark)
+    pytest.param(test_generator_edf, 100, 0, False, marks=td_mark),
+    pytest.param(edf_stim_resamp_path, 256, 0, True, marks=td_mark),
 ])
 def test_hp_lp_reversed(fname, lo, hi, warns, monkeypatch):
     """Test HP/LP reversed (gh-8584)."""
