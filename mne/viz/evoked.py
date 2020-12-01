@@ -1933,7 +1933,7 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
         If a single Evoked instance, it is plotted as a time series.
         If a list of Evokeds, the contents are plotted with their
         ``.comment`` attributes used as condition labels. If no comment is set,
-        the index of the respectiv Evoked the list will be used instead,
+        the index of the respective Evoked the list will be used instead,
         starting with ``1`` for the first Evoked.
         If a dict whose values are Evoked objects, the contents are plotted as
         single time series each and the keys are used as labels.
