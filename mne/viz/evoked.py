@@ -2141,13 +2141,16 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
     if isinstance(evokeds, (list, tuple)):
         evokeds_copy = evokeds.copy()
         evokeds = dict()
-
-        for evk_idx, evk in enumerate(evokeds_copy, start=1):
-            label = None
-            if hasattr(evk, 'comment'):
-                label = evk.comment
-            label = label if label else str(evk_idx)
-            evokeds[label] = evk
+        comments = [getattr(_evk, 'comment', None) for _evk in evokeds_copy]
+        for idx, (comment, _evoked) in enumerate(zip(comments, evokeds_copy),
+                                                 start=1):
+            if comments.count(comment) == 1:
+                # comment is unique, but still must handle None or empty string
+                key = comment if comment else str(idx)
+            else:
+                # comment is non-unique: prepend index
+                key = f'{idx}: {comment}' if comment else str(idx)
+            evokeds[key] = _evoked
         del evokeds_copy
 
     if not isinstance(evokeds, dict):
