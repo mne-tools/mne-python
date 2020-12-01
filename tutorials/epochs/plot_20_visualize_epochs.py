@@ -139,10 +139,9 @@ epochs['auditory'].plot_psd(picks='eeg')
 
 ###############################################################################
 # It is also possible to plot spectral estimates across sensors as a scalp
-# topography, using `~mne.Epochs.plot_psd_topomap`. The default
-# parameters will plot five frequency bands (δ, θ, α, β, γ), will compute power
-# based on magnetometer channels, and will plot the power estimates in
-# decibels:
+# topography, using `~mne.Epochs.plot_psd_topomap`. The default parameters will
+# plot five frequency bands (δ, θ, α, β, γ), will compute power based on
+# magnetometer channels, and will plot the power estimates in decibels:
 
 epochs['visual/right'].plot_psd_topomap()
 
