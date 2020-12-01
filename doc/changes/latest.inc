@@ -154,6 +154,8 @@ Bugs
 
 - Fix reading GDF files with excluded channels in :func:`mne.io.read_raw_gdf` (:gh:`8520` by `Clemens Brunner`_)
 
+- Fix automatic selection of extrapolation mask type from channel type when plotting field maps (:gh:`8589` by `Daniel McCloy`_)
+
 - Fix bug in :func:`mne.viz.set_3d_title` where 3D plot could have multiple titles that overlap (:gh:`8564` by `Guillaume Favelier`_)
 
 - Fix bug in :func:`mne.viz.set_3d_view` where plotter is not updated properly causing camera issues in the doc (:gh:`8564` by `Guillaume Favelier`_)
