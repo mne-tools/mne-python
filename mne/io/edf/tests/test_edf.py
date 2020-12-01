@@ -8,6 +8,7 @@
 #
 # License: BSD (3-clause)
 
+from functools import partial
 import os.path as op
 import inspect
 
@@ -22,15 +23,15 @@ from mne import pick_types, Annotations
 from mne.datasets import testing
 from mne.fixes import nullcontext
 from mne.utils import requires_pandas
-from mne.io import read_raw_edf, read_raw_bdf, read_raw_fif, edf
+from mne.io import read_raw_edf, read_raw_bdf, read_raw_fif, edf, read_raw_gdf
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.edf.edf import (_get_edf_default_event_id, _read_annotations_edf,
                             _read_ch, _parse_prefilter_string, _edf_str_int,
-                            _read_edf_header)
+                            _read_edf_header, _read_header)
 from mne.io.pick import channel_indices_by_type, get_channel_type_constants
 from mne.annotations import events_from_annotations, read_annotations
 
-testing_marks = testing._pytest_marks()
+td_mark = testing._pytest_mark()
 
 FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
@@ -478,9 +479,9 @@ def _hp_lp_rev(*args, **kwargs):
     (edf_stim_resamp_path, 256, 0, True),
     (edf_uneven_path, 50, 0, False),
     (edf_stim_channel_path, 64, 0, False),
-    pytest.param(edf_overlap_annot_path, 64, 0, False, marks=testing_marks),
-    pytest.param(edf_reduced, 256, 0, False, marks=testing_marks),
-    pytest.param(test_generator_edf, 100, 0, False, marks=testing_marks)
+    pytest.param(edf_overlap_annot_path, 64, 0, False, marks=td_mark),
+    pytest.param(edf_reduced, 256, 0, False, marks=td_mark),
+    pytest.param(test_generator_edf, 100, 0, False, marks=td_mark)
 ])
 def test_hp_lp_reversed(fname, lo, hi, warns, monkeypatch):
     """Test HP/LP reversed (gh-8584)."""
@@ -491,7 +492,7 @@ def test_hp_lp_reversed(fname, lo, hi, warns, monkeypatch):
     monkeypatch.setattr(edf.edf, '_read_edf_header', _hp_lp_rev)
     if warns:
         ctx = pytest.warns(RuntimeWarning, match='greater than lowpass')
-        new_lo = new_hi = None
+        new_lo, new_hi = raw.info['sfreq'] / 2., 0.
     else:
         ctx = nullcontext()
         new_lo, new_hi = lo, hi
@@ -499,3 +500,11 @@ def test_hp_lp_reversed(fname, lo, hi, warns, monkeypatch):
         raw = read_raw_edf(fname)
     assert raw.info['lowpass'] == new_lo
     assert raw.info['highpass'] == new_hi
+
+
+def test_degenerate():
+    """Test checking of some bad inputs."""
+    for func in (read_raw_edf, read_raw_bdf, read_raw_gdf,
+                 partial(_read_header, exclude=())):
+        with pytest.raises(NotImplementedError, match='Only.*txt.*'):
+            func(edf_txt_stim_channel_path)

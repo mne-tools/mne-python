@@ -342,13 +342,12 @@ def _read_header(fname, exclude):
     ext = os.path.splitext(fname)[1][1:].lower()
     logger.info('%s file detected' % ext.upper())
     if ext in ('bdf', 'edf'):
-        edf_info, orig_units = _read_edf_header(fname, exclude)
+        return _read_edf_header(fname, exclude)
     elif ext == 'gdf':
-        edf_info, orig_units = _read_gdf_header(fname, exclude), None
+        return _read_gdf_header(fname, exclude), None
     else:
-        raise NotImplementedError(f'Only GDF, EDF, and BDF files are supported'
-                                  f', got {ext}.')
-    return edf_info, orig_units
+        raise NotImplementedError(
+            f'Only GDF, EDF, and BDF files are supported, got {ext}.')
 
 
 def _get_info(fname, stim_channel, eog, misc, exclude, preload):
@@ -476,10 +475,10 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
 
     if info['highpass'] > info['lowpass']:
         warn(f'Highpass cutoff frequency {info["highpass"]} is greater than '
-             f'lowpass cutoff frequency {info["lowpass"]}. '
-             'Setting both values to None.')
-        info['highpass'] = None
-        info['lowpass'] = None
+             f'lowpass cutoff frequency {info["lowpass"]}, '
+             'setting values to 0 and Nyquist.')
+        info['highpass'] = 0.
+        info['lowpass'] = info['sfreq'] / 2.
 
     # Some keys to be consistent with FIF measurement info
     info['description'] = None
