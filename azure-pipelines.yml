@@ -109,7 +109,7 @@ stages:
       displayName: 'Spin up Xvfb'
     - bash: |
         set -e
-        python -m pip install --upgrade pip setuptools
+        python -m pip install --upgrade pip setuptools wheel
         python -m pip install --upgrade numpy scipy vtk -r requirements.txt -r requirements_testing.txt codecov
       displayName: 'Install dependencies with pip'
     - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
