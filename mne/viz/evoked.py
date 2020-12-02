@@ -624,10 +624,10 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
 @verbose
 def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                 ylim=None, xlim='tight', proj=False, hline=None, units=None,
-                scalings=None, titles=None, axes=None, gfp=False, 
-                window_title=None, set_tight_layout=True, spatial_colors=False, 
-                zorder='unsorted', selectable=True, noise_cov=None, time_unit='s', 
-                sphere=None, verbose=None):
+                scalings=None, titles=None, axes=None, gfp=False,
+                window_title=None, set_tight_layout=True, spatial_colors=False,
+                zorder='unsorted', selectable=True, noise_cov=None,
+                time_unit='s', sphere=None, verbose=None):
     """Plot evoked data using butterfly plots.
 
     Left click to a line shows the channel name. Selecting an area by clicking
@@ -736,7 +736,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         ylim=ylim, proj=proj, xlim=xlim, hline=hline, units=units,
         scalings=scalings, titles=titles, axes=axes, plot_type="butterfly",
         gfp=gfp, window_title=window_title, set_tight_layout=set_tight_layout, 
-        spatial_colors=spatial_colors,selectable=selectable, zorder=zorder, 
+        spatial_colors=spatial_colors, selectable=selectable, zorder=zorder, 
         noise_cov=noise_cov, time_unit=time_unit, sphere=sphere)
 
 
