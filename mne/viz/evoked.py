@@ -675,7 +675,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         channel traces will not be shown.
     window_title : str | None
         The title to put at the top of the figure.
-    set_tight_layout : bool 
+    set_tight_layout : bool
         Apply a tight layout to the figure.
     spatial_colors : bool
         If True, the lines are color coded by mapping physical sensor
@@ -735,8 +735,8 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         evoked=evoked, picks=picks, exclude=exclude, unit=unit, show=show,
         ylim=ylim, proj=proj, xlim=xlim, hline=hline, units=units,
         scalings=scalings, titles=titles, axes=axes, plot_type="butterfly",
-        gfp=gfp, window_title=window_title, set_tight_layout=set_tight_layout, 
-        spatial_colors=spatial_colors, selectable=selectable, zorder=zorder, 
+        gfp=gfp, window_title=window_title, set_tight_layout=set_tight_layout,
+        spatial_colors=spatial_colors, selectable=selectable, zorder=zorder,
         noise_cov=noise_cov, time_unit=time_unit, sphere=sphere)
 
 
