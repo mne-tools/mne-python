@@ -107,7 +107,7 @@ def test_compute_distance_to_sensors(picks, limits):
     assert_array_less(depths, limits[1])
 
     # If source space from Forward Solution and trans=None (i.e. identity) then
-    # depths2 should be the same as depth? But it isn't.
+    # depths2 should be the same as depth.
     depths2 = compute_distance_to_sensors(src=fwd['src'], info=info,
                                           picks=use_picks, trans=None)
     assert_allclose(depths, depths2, rtol=1e-5)
