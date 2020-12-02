@@ -2142,14 +2142,13 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
         evokeds_copy = evokeds.copy()
         evokeds = dict()
         comments = [getattr(_evk, 'comment', None) for _evk in evokeds_copy]
-        for idx, (comment, _evoked) in enumerate(zip(comments, evokeds_copy),
-                                                 start=1):
-            if comments.count(comment) == 1:
-                # comment is unique, but still must handle None or empty string
-                key = comment if comment else str(idx)
-            else:
-                # comment is non-unique: prepend index
-                key = f'{idx}: {comment}' if comment else str(idx)
+        for idx, (comment, _evoked) in enumerate(zip(comments, evokeds_copy)):
+            key = str(idx + 1)
+            if comment:  # only update key if comment is non-empty
+                if comments.count(comment) == 1:  # comment is unique
+                    key = comment
+                else:  # comment is non-unique: prepend index
+                    key = f'{key}: {comment}'
             evokeds[key] = _evoked
         del evokeds_copy
 
