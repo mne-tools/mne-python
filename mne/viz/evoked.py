@@ -624,10 +624,10 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
 @verbose
 def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                 ylim=None, xlim='tight', proj=False, hline=None, units=None,
-                scalings=None, titles=None, axes=None, gfp=False,
-                window_title=None, spatial_colors=False, zorder='unsorted',
-                selectable=True, noise_cov=None, time_unit='s', sphere=None,
-                verbose=None):
+                scalings=None, titles=None, axes=None, gfp=False, 
+                window_title=None, set_tight_layout=True, spatial_colors=False, 
+                zorder='unsorted', selectable=True, noise_cov=None, time_unit='s', 
+                sphere=None, verbose=None):
     """Plot evoked data using butterfly plots.
 
     Left click to a line shows the channel name. Selecting an area by clicking
@@ -675,6 +675,8 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         channel traces will not be shown.
     window_title : str | None
         The title to put at the top of the figure.
+    set_tight_layout : bool 
+        Apply a tight layout to the figure.
     spatial_colors : bool
         If True, the lines are color coded by mapping physical sensor
         coordinates into color values. Spatially similar channels will have
@@ -733,9 +735,9 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         evoked=evoked, picks=picks, exclude=exclude, unit=unit, show=show,
         ylim=ylim, proj=proj, xlim=xlim, hline=hline, units=units,
         scalings=scalings, titles=titles, axes=axes, plot_type="butterfly",
-        gfp=gfp, window_title=window_title, spatial_colors=spatial_colors,
-        selectable=selectable, zorder=zorder, noise_cov=noise_cov,
-        time_unit=time_unit, sphere=sphere)
+        gfp=gfp, window_title=window_title, set_tight_layout=set_tight_layout, 
+        spatial_colors=spatial_colors,selectable=selectable, zorder=zorder, 
+        noise_cov=noise_cov, time_unit=time_unit, sphere=sphere)
 
 
 def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,

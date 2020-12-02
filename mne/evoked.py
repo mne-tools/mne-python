@@ -288,16 +288,18 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     @copy_function_doc_to_method_doc(plot_evoked)
     def plot(self, picks=None, exclude='bads', unit=True, show=True, ylim=None,
              xlim='tight', proj=False, hline=None, units=None, scalings=None,
-             titles=None, axes=None, gfp=False, window_title=None,
-             spatial_colors=False, zorder='unsorted', selectable=True,
-             noise_cov=None, time_unit='s', sphere=None, verbose=None):
+             titles=None, axes=None, gfp=False, window_title=None, 
+             set_tight_layout=True, spatial_colors=False, zorder='unsorted', 
+             selectable=True, noise_cov=None, time_unit='s', sphere=None, 
+             verbose=None):
         return plot_evoked(
             self, picks=picks, exclude=exclude, unit=unit, show=show,
             ylim=ylim, proj=proj, xlim=xlim, hline=hline, units=units,
             scalings=scalings, titles=titles, axes=axes, gfp=gfp,
-            window_title=window_title, spatial_colors=spatial_colors,
-            zorder=zorder, selectable=selectable, noise_cov=noise_cov,
-            time_unit=time_unit, sphere=sphere, verbose=verbose)
+            window_title=window_title, set_tight_layout=set_tight_layout,  
+            spatial_colors=spatial_colors, zorder=zorder, selectable=selectable, 
+            noise_cov=noise_cov, time_unit=time_unit, sphere=sphere, 
+            verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_evoked_image)
     def plot_image(self, picks=None, exclude='bads', unit=True, show=True,
