@@ -14,6 +14,7 @@ from ..utils import (logger, verbose, warn, _check_one_ch_type,
                      _check_option, _validate_type)
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz, _check_reference, _check_depth
+from ..rank import compute_rank
 from ..source_estimate import _make_stc, _get_src_type
 from ..time_frequency import csd_fourier, csd_multitaper, csd_morlet
 from ._compute_beamformer import (_check_proj_match, _prepare_beamformer_input,
@@ -164,7 +165,8 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
     frequencies = [np.mean(freq_bin) for freq_bin in csd.frequencies]
     n_freqs = len(frequencies)
 
-    _check_one_ch_type('dics', info, forward, csd, noise_csd)
+    _, _, allow_mismatch = _check_one_ch_type('dics', info, forward, csd,
+                                              noise_csd)
     info, fwd, csd = equalize_channels([info, forward, csd])
 
     csd, noise_csd = _prepare_noise_csd(csd, noise_csd, real_filter)
@@ -177,6 +179,22 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
         _prepare_beamformer_input(
             info, forward, label, pick_ori, noise_cov=noise_csd, rank=rank,
             pca=False, **depth)
+
+    # Compute ranks
+    csd_int_rank = []
+    noise_rank = compute_rank(noise_csd, info=info, rank=rank)
+    for i in range(len(frequencies)):
+        csd_rank = compute_rank(csd.get_data(index=i, as_cov=True),
+                                info=info, rank=rank)
+        if not allow_mismatch:
+            for key in csd_rank:
+                if key not in noise_rank or csd_rank[key] != noise_rank[key]:
+                    raise ValueError('%s data rank (%s) did not match the '
+                                     'noise rank (%s)'
+                                     % (key, csd_rank[key],
+                                        noise_rank.get(key, None)))
+        csd_int_rank.append(sum(csd_rank.values()))
+
     del noise_csd
     ch_names = list(info['ch_names'])
 
@@ -199,7 +217,8 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
         n_orient = 3 if is_free_ori else 1
         W, max_power_ori = _compute_beamformer(
             G, Cm, reg, n_orient, weight_norm, pick_ori, reduce_rank,
-            rank=rank, inversion=inversion, nn=nn, orient_std=orient_std)
+            rank=csd_int_rank[i], inversion=inversion, nn=nn,
+            orient_std=orient_std)
         Ws.append(W)
         max_oris.append(max_power_ori)
 
