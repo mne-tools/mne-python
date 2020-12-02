@@ -182,7 +182,8 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
 
     # Compute ranks
     csd_int_rank = []
-    noise_rank = compute_rank(noise_csd, info=info, rank=rank)
+    if not allow_mismatch:
+        noise_rank = compute_rank(noise_csd, info=info, rank=rank)
     for i in range(len(frequencies)):
         csd_rank = compute_rank(csd.get_data(index=i, as_cov=True),
                                 info=info, rank=rank)
