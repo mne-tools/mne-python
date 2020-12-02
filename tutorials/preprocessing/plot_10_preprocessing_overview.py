@@ -189,7 +189,7 @@ ecg_epochs.plot_image(combine='mean')
 # via the :meth:`~mne.Epochs.average` method, and then using the
 # :meth:`mne.Evoked.plot_topomap` method:
 
-avg_ecg_epochs = ecg_epochs.average()
+avg_ecg_epochs = ecg_epochs.average().apply_baseline((-0.5, -0.2))
 
 ###############################################################################
 # Here again we can visualize the spatial pattern of the associated field at
