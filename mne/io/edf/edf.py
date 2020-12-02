@@ -343,11 +343,11 @@ def _read_header(fname, exclude):
     logger.info('%s file detected' % ext.upper())
     if ext in ('bdf', 'edf'):
         return _read_edf_header(fname, exclude)
-    elif ext in ('gdf'):
+    elif ext == 'gdf':
         return _read_gdf_header(fname, exclude), None
     else:
         raise NotImplementedError(
-            'Only GDF, EDF, and BDF files are supported, got %s.' % ext)
+            f'Only GDF, EDF, and BDF files are supported, got {ext}.')
 
 
 def _get_info(fname, stim_channel, eog, misc, exclude, preload):
@@ -471,6 +471,13 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
         warn('Channels contain different lowpass filters. Lowest filter '
              'setting will be stored.')
     if np.isnan(info['lowpass']):
+        info['lowpass'] = info['sfreq'] / 2.
+
+    if info['highpass'] > info['lowpass']:
+        warn(f'Highpass cutoff frequency {info["highpass"]} is greater than '
+             f'lowpass cutoff frequency {info["lowpass"]}, '
+             'setting values to 0 and Nyquist.')
+        info['highpass'] = 0.
         info['lowpass'] = info['sfreq'] / 2.
 
     # Some keys to be consistent with FIF measurement info
