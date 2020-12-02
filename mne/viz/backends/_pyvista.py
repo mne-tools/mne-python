@@ -750,6 +750,7 @@ def _close_all():
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=DeprecationWarning)
         close_all()
+    _FIGURES.clear()
 
 
 def _get_camera_direction(focalpoint, position):
