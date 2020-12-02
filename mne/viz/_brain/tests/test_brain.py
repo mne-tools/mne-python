@@ -263,6 +263,20 @@ def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
     brain.close()
 
 
+@pytest.mark.parametrize('hemi', ('lh', 'rh'))
+def test_single_hemi(hemi, renderer_interactive, brain_gc):
+    """Test single hemi support."""
+    if renderer_interactive._get_3d_backend() != 'pyvista':
+        pytest.skip('TimeViewer tests only supported on PyVista')
+    stc = read_source_estimate(fname_stc)
+    idx, order = (0, 1) if hemi == 'lh' else (1, -1)
+    stc = SourceEstimate(
+        getattr(stc, f'{hemi}_data'), [stc.vertices[idx], []][::order],
+        0, 1, 'sample')
+    brain = stc.plot(subjects_dir=subjects_dir, hemi='both')
+    brain.close()
+
+
 @testing.requires_testing_data
 @pytest.mark.slowtest
 def test_brain_save_movie(tmpdir, renderer, brain_gc):

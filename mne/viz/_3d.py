@@ -1882,7 +1882,9 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
         transparent = True
     sd_kwargs = dict(transparent=transparent, verbose=False)
     center = 0. if diverging else None
-    for hemi in hemis:
+    for hi, hemi in enumerate(hemis):
+        if len(stc.vertices[hi]) == 0:
+            continue  # no data
         kwargs = {
             "colormap": colormap,
             "smoothing_steps": smoothing_steps,
