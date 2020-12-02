@@ -19,6 +19,8 @@ object to just 60 seconds before loading it into RAM to save memory:
 """
 
 import os
+import numpy as np
+import matplotlib.pyplot as plt
 import mne
 
 sample_data_folder = mne.datasets.sample.data_path()
@@ -121,6 +123,24 @@ raw.plot()
 # the data.
 
 raw.plot_psd(average=True)
+
+###############################################################################
+# The `~mne.io.Raw.plot_psd` method estimates the spectrum using the Welch
+# method, which is efficient for long data spans. MNE-Python also implements
+# multitaper spectrum estimation as part of the ``time_frequency`` submodule,
+# though this requires doing the plotting manually using matplotlib:
+
+psds, freqs = mne.time_frequency.psd_multitaper(raw, tmin=0, tmax=10)
+psds = 10 * np.log10(psds)  # convert to dB
+mean_psd = psds.mean(axis=0)
+std_psd = psds.std(axis=0)
+
+fig, ax = plt.subplots()
+ax.plot(freqs, mean_psd, color='k')
+ax.fill_between(freqs, mean_psd - std_psd, mean_psd + std_psd, color='k',
+                alpha=0.5)
+ax.set(xlabel='Frequency', ylabel='Power Spectral Density (dB)',
+       title='Multitaper PSD')
 
 ###############################################################################
 # If the data have been filtered, vertical dashed lines will automatically
