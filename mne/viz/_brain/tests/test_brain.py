@@ -656,3 +656,11 @@ def _create_testing_brain(hemi, surf='inflated', src='surface', size=300,
         clim=dict(kind='value', lims=(fmin, fmid, fmax)), src=sample_src,
         **kwargs)
     return brain_data
+
+
+@testing.requires_testing_data
+def test_off_screen(renderer, brain_gc):
+    """Test off-screen support."""
+    stc = read_source_estimate(fname_stc)
+    brain = stc.plot(subject='sample', subjects_dir=subjects_dir)
+    brain.close()
