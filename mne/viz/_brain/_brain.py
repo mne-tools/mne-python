@@ -900,7 +900,7 @@ class Brain(object):
         # then the picked points
         for idx, hemi in enumerate(['lh', 'rh', 'vol']):
             act_data = self.act_data_smooth.get(hemi, [None])[0]
-            if act_data is None:
+            if act_data is None or act_data.size == 0:
                 continue
             hemi_data = self._data[hemi]
             vertices = hemi_data['vertices']
