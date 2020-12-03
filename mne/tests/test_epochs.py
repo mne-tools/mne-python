@@ -3192,8 +3192,7 @@ def test_epochs_baseline_after_cropping(tmpdir):
     event_id = dict(event=1)
     events = np.array([[1000, 0, event_id['event']]])
     epochs_orig = mne.Epochs(raw=raw, events=events, event_id=event_id,
-                             tmin=-0.2, tmax=0.2, baseline=(-0.1, 0.1),
-                             preload=True)
+                             tmin=-0.2, tmax=0.2, baseline=(-0.1, 0.1))
 
     # Assert baseline correction is working as intended.
     samp_min = 1000 - 200
