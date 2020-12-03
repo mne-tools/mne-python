@@ -451,6 +451,7 @@ class Brain(object):
         self._configure_tool_bar()
         self._configure_status_bar()
         self._configure_picking()
+        self._configure_trace_mode()
 
         # show everything at the end
         self.toggle_interface()
@@ -941,8 +942,6 @@ class Brain(object):
 
     def _configure_picking(self):
         from ..backends._pyvista import _update_picking_callback
-        from ...label import _read_annot_cands
-        from PyQt5.QtWidgets import QComboBox, QLabel
 
         # get data for each hemi
         for idx, hemi in enumerate(['vol', 'lh', 'rh']):
@@ -968,6 +967,9 @@ class Brain(object):
             self._on_pick
         )
 
+    def _configure_trace_mode(self):
+        from ...label import _read_annot_cands
+        from PyQt5.QtWidgets import QComboBox, QLabel
         if not self.show_traces:
             return
 
