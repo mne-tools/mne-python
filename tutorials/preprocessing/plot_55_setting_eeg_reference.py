@@ -187,7 +187,7 @@ forward = mne.make_forward_solution(raw.info, trans=None, src=src, bem=sphere)
 raw_rest = raw.copy().set_eeg_reference('REST', forward=forward)
 
 for title, _raw in zip(['Original', 'REST (∞)'], [raw, raw_rest]):
-    fig = _raw.plot(n_channels=len(raw))
+    fig = _raw.plot(n_channels=len(raw), scalings=dict(eeg=5e-5))
     # make room for title
     fig.subplots_adjust(top=0.9)
     fig.suptitle('{} reference'.format(title), size='xx-large', weight='bold')

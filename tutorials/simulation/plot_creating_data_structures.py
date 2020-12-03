@@ -183,13 +183,12 @@ simulated_epochs.plot(picks='misc', show_scrollbars=False, events=events,
 # constructor.  It requires an `~mne.Info` object and a data array of shape
 # ``(n_channels, n_times)``, and has an optional ``tmin`` parameter like
 # `~mne.EpochsArray` does. It also has a parameter ``nave`` indicating how many
-# trials were averaged together. Here we'll do the averaging on our NumPy array
-# and use the resulting averaged data to make our `~mne.Evoked`.
-
-# The number of epochs that were averaged
-nave = data.shape[0]
+# trials were averaged together, and a ``comment`` parameter useful for keeping
+# track of experimental conditions, etc. Here we'll do the averaging on our
+# NumPy array and use the resulting averaged data to make our `~mne.Evoked`.
 
 # Create the Evoked object
-evoked_array = mne.EvokedArray(data.mean(axis=0), info, tmin=-0.5, nave=nave)
+evoked_array = mne.EvokedArray(data.mean(axis=0), info, tmin=-0.5,
+                               nave=data.shape[0], comment='simulated')
 print(evoked_array)
 evoked_array.plot()

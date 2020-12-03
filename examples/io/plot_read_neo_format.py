@@ -27,8 +27,8 @@ signals = segment.analogsignals[0]  # get first (multichannel) signal
 data = signals.rescale('V').magnitude.T
 sfreq = signals.sampling_rate.magnitude
 ch_names = [f'Neo {(idx + 1):02}' for idx in range(signals.shape[1])]
+ch_types = ['eeg'] * len(ch_names)  # if not specified, type 'misc' is assumed
 
-# By default, the channel types are assumed to be 'misc'.
-info = mne.create_info(ch_names=ch_names, sfreq=sfreq)
+info = mne.create_info(ch_names=ch_names, ch_types=ch_types, sfreq=sfreq)
 raw = mne.io.RawArray(data, info)
 raw.plot(show_scrollbars=False)
