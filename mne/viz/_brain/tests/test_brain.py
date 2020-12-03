@@ -263,6 +263,7 @@ def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
     brain.close()
 
 
+@testing.requires_testing_data
 @pytest.mark.parametrize('hemi', ('lh', 'rh'))
 def test_single_hemi(hemi, renderer_interactive, brain_gc):
     """Test single hemi support."""
@@ -273,7 +274,8 @@ def test_single_hemi(hemi, renderer_interactive, brain_gc):
     stc = SourceEstimate(
         getattr(stc, f'{hemi}_data'), [stc.vertices[idx], []][::order],
         0, 1, 'sample')
-    brain = stc.plot(subjects_dir=subjects_dir, hemi='both')
+    brain = stc.plot(
+        subjects_dir=subjects_dir, hemi='both', size=300)
     brain.close()
 
 
