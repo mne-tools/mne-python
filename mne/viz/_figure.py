@@ -2093,8 +2093,8 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.vline_visible = visible
 
 
-class MNEPSDFigure(MNEFigure):
-    """Interactive figure for power spectral density plots."""
+class MNELineFigure(MNEFigure):
+    """Interactive figure for non-scrolling line plots."""
 
     def __init__(self, inst, n_axes, figsize, **kwargs):
         super().__init__(figsize=figsize, inst=inst, **kwargs)
@@ -2233,7 +2233,7 @@ def _psd_figure(inst, proj, picks, axes, area_mode, tmin, tmax, fmin, fmax,
         fig = axes[0].get_figure()
     else:
         figsize = kwargs.pop('figsize', (10, 2.5 * n_types + 1))
-        fig = _figure(inst=inst, toolbar=False, FigureClass=MNEPSDFigure,
+        fig = _figure(inst=inst, toolbar=False, FigureClass=MNELineFigure,
                       figsize=figsize, n_axes=n_types, **kwargs)
         fig.mne.fig_size_px = fig._get_size_px()  # can't do in __init__
         axes = fig.mne.ax_list
