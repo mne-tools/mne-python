@@ -80,15 +80,12 @@ def _overlay_to_colors(overlay):
 def _alpha_over(B, A):
     alpha_a = A[:, 3]
     alpha_b = B[:, 3]
-    a = (A[:, :3].T * alpha_a).T
-    b = (B[:, :3].T * alpha_b).T
+    a = A[:, :3]
+    b = B[:, :3]
 
-    c = np.zeros(a.shape)
-    alpha_c = np.zeros(alpha_a.shape)
-    for i in range(len(a)):
-        c[i, :] = a[i, :] * alpha_a[i] + b[i, :] * alpha_b[i] * (1. - alpha_a[i])
-        c[i, :] /= (alpha_a[i] + alpha_b[i] * (1. - alpha_a[i]))
-        alpha_c[i] = alpha_a[i] + alpha_b[i] * (1. - alpha_a[i])
+    alpha_c = alpha_a + alpha_b * (1 - alpha_a)
+    c = (a.T * alpha_a).T + (b.T * alpha_b * (1 - alpha_a)).T
+    c = (c.T / alpha_c).T
     return np.c_[c, alpha_c]
 
 
