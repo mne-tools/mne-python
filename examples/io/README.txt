@@ -3,5 +3,5 @@ Input/Output
 ------------
 
 Recipes for reading and writing files. See also our :ref:`tutorials on reading
-data from various recording systems <tut-data-formats>` and our `tutorial on
-manipulating MNE-Python data structures <tut_creating_data_structures>`.
+data from various recording systems <tut-data-formats>` and our :ref:`tutorial
+on manipulating MNE-Python data structures <tut_creating_data_structures>`.
