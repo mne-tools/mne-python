@@ -5,7 +5,7 @@ if [ ! -z "$CONDA_ENV" ]; then
 elif [ ! -z "$CONDA_DEPENDENCIES" ]; then
 	conda install -y $CONDA_DEPENDENCIES
 else # pip 3.9 (missing statsmodels and dipy)
-	python -m pip install --progress-bar off --upgrade pip setuptools wheel
+	python -m pip install --progress-bar off --upgrade "pip!=20.3.0" setuptools wheel
 	pip uninstall -yq numpy
 	pip install --progress-bar off --upgrade --pre --only-binary ":all:" python-dateutil pytz joblib threadpoolctl
 	pip install --progress-bar off --upgrade --pre --only-binary ":all:" -i "https://pypi.anaconda.org/scipy-wheels-nightly/simple" numpy scipy pandas scikit-learn
