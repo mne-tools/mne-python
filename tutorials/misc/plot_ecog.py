@@ -78,7 +78,7 @@ print(trans)
 # Now that we have our montage, we can load in our corresponding
 # time-series data and set the montage to the raw data.
 
-# first we'll load in the sample dataset
+# first we will load in the sample dataset
 raw = mne.io.read_raw_edf(misc_path + '/ecog/sample_ecog.edf')
 
 # drop bad channels
