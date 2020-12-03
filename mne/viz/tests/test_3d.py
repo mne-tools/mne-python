@@ -373,10 +373,11 @@ def test_plot_alignment(tmpdir, renderer):
 @testing.requires_testing_data
 @requires_pysurfer
 @traits_test
-def test_process_clim_plot(renderer_interactive):
+def test_process_clim_plot(renderer_interactive, brain_gc):
     """Test functionality for determining control points with stc.plot."""
     sample_src = read_source_spaces(src_fname)
-    kwargs = dict(subjects_dir=subjects_dir, smoothing_steps=1)
+    kwargs = dict(subjects_dir=subjects_dir, smoothing_steps=1,
+                  time_viewer=False, show_traces=False)
 
     vertices = [s['vertno'] for s in sample_src]
     n_time = 5

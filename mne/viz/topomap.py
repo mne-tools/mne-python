@@ -1771,7 +1771,8 @@ def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None, vmin=None,
         ax.set_title(title, fontsize=10)
     im, _ = plot_topomap(data, pos, vmin=vmin, vmax=vmax, axes=ax,
                          cmap=cmap[0], image_interp='bilinear', contours=0,
-                         outlines=outlines, show=False, sphere=sphere)
+                         outlines=outlines, show=False, sphere=sphere,
+                         ch_type=ch_type)
 
     if colorbar:
         cbar, cax = _add_colorbar(ax, im, cmap, pad=0.25, title=None,
