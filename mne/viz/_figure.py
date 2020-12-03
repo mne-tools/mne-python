@@ -2194,11 +2194,38 @@ def _browse_figure(inst, **kwargs):
     return fig
 
 
+def _line_figure(inst, axes=None, picks=None, **kwargs):
+    """Instantiate a new line figure."""
+    from matplotlib.axes import Axes
+    # if picks is None, only show data channels
+    allowed_ch_types = (_DATA_CH_TYPES_SPLIT if picks is None else
+                        _VALID_CHANNEL_TYPES)
+    # figure out expected number of axes
+    ch_types = np.array(inst.get_channel_types())
+    if picks is not None:
+        ch_types = ch_types[picks]
+    n_axes = len(np.intersect1d(ch_types, allowed_ch_types))
+    # handle user-provided axes
+    if axes is not None:
+        if isinstance(axes, Axes):
+            axes = [axes]
+        _validate_if_list_of_axes(axes, n_axes)
+        fig = axes[0].get_figure()
+    else:
+        figsize = kwargs.pop('figsize', (10, 2.5 * n_axes + 1))
+        fig = _figure(inst=inst, toolbar=False, FigureClass=MNELineFigure,
+                      figsize=figsize, n_axes=n_axes, **kwargs)
+        fig.mne.fig_size_px = fig._get_size_px()  # can't do in __init__
+        axes = fig.mne.ax_list
+        # add event callbacks
+        fig._add_default_callbacks()
+    return fig, axes
+
+
 def _psd_figure(inst, proj, picks, axes, area_mode, tmin, tmax, fmin, fmax,
                 n_jobs, color, area_alpha, dB, estimate, average,
                 spatial_colors, xscale, line_alpha, sphere, **kwargs):
     """Instantiate a new power spectral density figure."""
-    from matplotlib.axes import Axes
     from .. import BaseEpochs
     from ..io import BaseRaw
     # triage kwargs for different PSD methods (raw→welch, epochs→multitaper)
@@ -2233,47 +2260,16 @@ def _psd_figure(inst, proj, picks, axes, area_mode, tmin, tmax, fmin, fmax,
     titles_list = list()
     scalings_list = list()
     psd_list = list()
-    # handle picks
-    _user_picked = picks is not None
-    allowed_ch_types = (_VALID_CHANNEL_TYPES if _user_picked else
-                        _DATA_CH_TYPES_SPLIT)
-    for ch_type in allowed_ch_types:
-        pick_kwargs = dict(meg=False, ref_meg=False, exclude=[])
-        if ch_type in ('mag', 'grad'):
-            pick_kwargs['meg'] = ch_type
-        elif ch_type in _FNIRS_CH_TYPES_SPLIT:
-            pick_kwargs['fnirs'] = ch_type
-        else:
-            pick_kwargs[ch_type] = True
-        these_picks = pick_types(inst.info, **pick_kwargs)
-        these_picks = np.intersect1d(these_picks, picks)
-        if len(these_picks) > 0:
-            picks_list.append(these_picks)
-            titles_list.append(titles[ch_type])
-            units_list.append(units[ch_type])
-            scalings_list.append(scalings[ch_type])
+    # initialize figure
+    fig, axes = _line_figure(inst, axes, picks, **kwargs)
+    # split picks, units, etc, for each subplot
+    (picks_list, units_list, scalings_list, titles_list
+     ) = _split_picks_by_type(inst, picks, units, scalings, titles)
     del picks
-    n_types = len(picks_list)
-    if n_types == 0:
-        raise RuntimeError('No data channels found')
-    # handle user-provided axes
-    if axes is not None:
-        if isinstance(axes, Axes):
-            axes = [axes]
-        _validate_if_list_of_axes(axes, n_types)
-        fig = axes[0].get_figure()
-    else:
-        figsize = kwargs.pop('figsize', (10, 2.5 * n_types + 1))
-        fig = _figure(inst=inst, toolbar=False, FigureClass=MNELineFigure,
-                      figsize=figsize, n_axes=n_types, **kwargs)
-        fig.mne.fig_size_px = fig._get_size_px()  # can't do in __init__
-        axes = fig.mne.ax_list
-        # add event callbacks
-        fig._add_default_callbacks()
     # don't add ylabels & titles if figure has unexpected number of axes
     make_label = len(axes) == len(fig.axes)
-    # Plot Frequency [Hz] xlabel on the last axis
-    xlabels_list = [False] * (n_types - 1) + [True]
+    # Plot Frequency [Hz] xlabel only on the last axis
+    xlabels_list = [False] * (len(axes) - 1) + [True]
     # compute PSDs
     for picks in picks_list:
         psd, freqs = psd_func(inst, tmin=tmin, tmax=tmax, picks=picks,
@@ -2288,6 +2284,35 @@ def _psd_figure(inst, proj, picks, axes, area_mode, tmin, tmax, fmin, fmax,
               dB, estimate, average, spatial_colors, xscale, line_alpha,
               sphere, xlabels_list)
     return fig
+
+
+def _split_picks_by_type(inst, picks, units, scalings, titles):
+    """Separate picks, units, etc, for plotting on separate subplots."""
+    picks_list = list()
+    units_list = list()
+    scalings_list = list()
+    titles_list = list()
+    # if picks is None, only show data channels
+    allowed_ch_types = (_DATA_CH_TYPES_SPLIT if picks is None else
+                        _VALID_CHANNEL_TYPES)
+    for ch_type in allowed_ch_types:
+        pick_kwargs = dict(meg=False, ref_meg=False, exclude=[])
+        if ch_type in ('mag', 'grad'):
+            pick_kwargs['meg'] = ch_type
+        elif ch_type in _FNIRS_CH_TYPES_SPLIT:
+            pick_kwargs['fnirs'] = ch_type
+        else:
+            pick_kwargs[ch_type] = True
+        these_picks = pick_types(inst.info, **pick_kwargs)
+        these_picks = np.intersect1d(these_picks, picks)
+        if len(these_picks) > 0:
+            picks_list.append(these_picks)
+            units_list.append(units[ch_type])
+            scalings_list.append(scalings[ch_type])
+            titles_list.append(titles[ch_type])
+    if len(picks_list) == 0:
+        raise RuntimeError('No data channels found')
+    return picks_list, units_list, scalings_list, titles_list
 
 
 def _calc_new_margins(fig, old_width, old_height, new_width, new_height):
