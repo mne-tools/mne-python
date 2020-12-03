@@ -80,10 +80,9 @@ def _overlay_to_colors(overlay):
 def _alpha_over(B, A):
     alpha_a = A[:, 3]
     alpha_b = B[:, 3]
+    alpha_c = alpha_a + alpha_b * (1 - alpha_a)
     a = A[:, :3]
     b = B[:, :3]
-
-    alpha_c = alpha_a + alpha_b * (1 - alpha_a)
     c = (a.T * alpha_a).T + (b.T * alpha_b * (1 - alpha_a)).T
     c = (c.T / alpha_c).T
     return np.c_[c, alpha_c]
