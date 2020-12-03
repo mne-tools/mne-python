@@ -242,99 +242,29 @@ plt.xlim([0, fmax])
 fig.show()
 
 
-###############################################################################
-# SNR plotting function
-# ^^^^^^^^^^^^^^^^^^^^^^^^
-def plot_snr_spectrum(snrs, freqs, use_stem_plot=False, stim_freq=None, bg_var_trials=False, bg_var_channels=False,
-                      show=True):
-    """
-    Parameters
-    ----------
-    snrs - np.array
-        array containing snr for all epochs, channels, frequency bins.
-        NaN for frequencies on the edge, that do not have enoug neighbors on
-        one side to calculate snr
-    freqs - list, np.array
-        containing all frequencies you calculated snr-vlues for.
-    use_stem - bool
-        use a stem plot instead of a line plot for the grand average snr
-    stim_freq - list
-        stimulation frequencies, or any other frequency you want to be marked by a vertical line
-    bg_var_trials - bool
-        set to True, it you want the grand average SNR to be underlayed with average SNR by trial (blue, alpha=0.1)
-    bg_var_channels - bool
-        set to True, it you want the grand average SNR to be underlayed with average SNR by channel (green, alpha=0.1)
-    show - bool
-        show figure or not
-    Returns
-    -------
-    fig - matplotlib.figure.Figure
-    axes - matplotlib.axes.AxesSubplot
-    """
-    fig, axes = plt.subplots(1, 1, sharex='all', sharey='all', dpi=300)
+##############################################################################
+# SNR spectrum - averaged over trials
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-    # check format
-    dimension = len(snrs.shape)
-    if dimension > 3:  # more than 3d array
-        raise ValueError('SNR array has more that 3 dimensions. whats happening?')
-
-    # Do not plot both snrs averaged over trials and snrs averaged over channels
-    if bg_var_channels and bg_var_trials:
-        raise ValueError('Either plot trial- or channel-averaged snrs in the background')
-
-    # Average over trials
-    if bg_var_trials or bg_var_channels:
-        if dimension != 3:
-            raise ValueError('The number of dimensions must be 3 if bg_var_trials or bg_var_channels is True')
-        bg_averaging_axis = 0 if bg_var_trials else 1
-        axes.plot(freqs, snrs.mean(axis=bg_averaging_axis).T, color='grey', alpha=0.1)
-
-    # annotate stim frequencies
-    if stim_freq:
-        if type(stim_freq) is int:
-            axes.axvline(x=stim_freq, ls=':')
-        elif type(stim_freq) in [list, np.ndarray]:
-            for sf in stim_freq:
-                axes.axvline(x=sf, ls=':')
-        else:
-            raise Warning('unsupported format for frequency annotations. will be ignored ')
-
-    # grand average SNR over trials and channels as stem plot
-    for i in range(dimension - 1):
-        snrs = snrs.mean(axis=0)
-    if use_stem_plot:
-        axes.stem(freqs, snrs, linefmt='r-', markerfmt='rD', bottom=1)
-    else:
-        axes.plot(freqs, snrs, color='r')
-
-    axes.set(title="SNR spectrum", xlabel='Frequency [Hz]',
-             ylabel='SNR', ylim=[0, np.ceil(np.nanmax(snrs) + 1)])
-
-    # show plot or not?
-    if show:
-        fig.show()
-
-    return fig, axes
-
+plt.figure()
+plt.plot(freqs, snrs.mean(axis=0).T, color='grey', alpha=0.1)
+plt.axvline(x=stim_freq, ls=':')
+plt.plot(freqs, snrs.mean(axis=(0, 1)), color='r')
+plt.gca().set(title="SNR spectrum - averaged over trials", xlabel='Frequency [Hz]',
+              ylabel='SNR', ylim=[0, 20])
+plt.show()
 
 ##############################################################################
-# SNR spectrum - trial average
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# SNR spectrum - averaged over channels
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-fig, axes = plot_snr_spectrum(snrs, freqs, stim_freq=12, bg_var_trials=True, show=False)
-axes.set(title="SNR spectrum - trial average", xlabel='Frequency [Hz]',
-         ylabel='SNR', ylim=[0, 20])
-fig.show()
-
-
-##############################################################################
-# SNR spectrum - channel average
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-fig, axes = plot_snr_spectrum(snrs, freqs, stim_freq=12, bg_var_channels=True, show=False)
-axes.set(title="SNR spectrum - channel average", xlabel='Frequency [Hz]',
-         ylabel='SNR', ylim=[0, 20])
-fig.show()
+plt.figure()
+plt.semilogy(freqs, snrs.mean(axis=1).T, color='grey', alpha=0.1)
+plt.axvline(x=stim_freq, ls=':')
+plt.semilogy(freqs, snrs.mean(axis=(0, 1)), color='r')
+plt.gca().set(title="SNR spectrum - averaged over channels", xlabel='Frequency [Hz]',
+              ylabel='SNR', ylim=[0, 20])
+plt.show()
 
 ##############################################################################
 # SNR topography - grand average per channel
