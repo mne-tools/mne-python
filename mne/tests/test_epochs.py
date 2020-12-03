@@ -17,6 +17,7 @@ from numpy.testing import (assert_array_equal, assert_array_almost_equal,
                            assert_allclose, assert_equal, assert_array_less)
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy.signal
 
 import mne
 from mne import (Epochs, Annotations, read_events, pick_events, read_epochs,
@@ -3171,3 +3172,53 @@ def test_concat_overflow(tmpdir, monkeypatch):
         epochs = read_epochs(fname)
     assert_array_less(0, epochs.events[:, 0])
     assert_array_less(epochs.events[:, 0], INT32_MAX + 1)
+
+
+def test_epochs_baseline_after_cropping(tmpdir):
+    """Epochs.baseline should be retained if baseline period was cropped."""
+    sfreq = 1000
+    tstep = 1. / sfreq
+    times = np.arange(0, 2 + tstep, tstep)
+
+    # Linear ramp: 0–100 µV
+    data = (scipy.signal.sawtooth(2 * np.pi * 0.25 * times, 0.5)
+            .reshape(1, -1)) * 50e-6 + 50e-6
+
+    ch_names = ['EEG 001']
+    ch_types = ['eeg']
+    info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
+    raw = mne.io.RawArray(data, info)
+
+    event_id = dict(event=1)
+    events = np.array([[1000, 0, event_id['event']]])
+    epochs_orig = mne.Epochs(raw=raw, events=events, event_id=event_id,
+                             tmin=-0.2, tmax=0.2, baseline=(-0.1, 0.1),
+                             preload=True)
+
+    # Assert baseline correction is working as intended.
+    samp_min = 1000 - 200
+    samp_max = 1000 + 200
+    expected_data = data.copy()[0, samp_min:samp_max + 1]
+    baseline = expected_data[100:301]
+    expected_data -= baseline.mean()
+    expected_data = expected_data.reshape(1, 1, -1)
+    assert_equal(epochs_orig.get_data(), expected_data)
+    del expected_data, baseline, samp_min, samp_max
+
+    # Even after cropping the baseline period, Epochs.baseline should remain
+    # unchanged
+    epochs_cropped = epochs_orig.copy().load_data().crop(tmin=0, tmax=None)
+
+    assert_equal(epochs_orig.baseline, epochs_cropped.baseline)
+    assert 'baseline period was cropped' in str(epochs_cropped)
+    assert_equal(epochs_cropped.get_data().squeeze(),
+                 epochs_orig.get_data().squeeze()[200:])
+
+    # Test I/O roundtrip.
+    epochs_fname = tmpdir.join('temp-cropped-epo.fif')
+    epochs_cropped.save(epochs_fname)
+    epochs_cropped_read = mne.read_epochs(epochs_fname)
+
+    assert_allclose(epochs_orig.baseline, epochs_cropped_read.baseline)
+    assert 'baseline period was cropped' in str(epochs_cropped_read)
+    assert_allclose(epochs_cropped.get_data(), epochs_cropped_read.get_data())
