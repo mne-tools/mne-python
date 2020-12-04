@@ -19,8 +19,6 @@ object to just 60 seconds before loading it into RAM to save memory:
 """
 
 import os
-import numpy as np
-import matplotlib.pyplot as plt
 import mne
 
 sample_data_folder = mne.datasets.sample.data_path()
@@ -123,33 +121,6 @@ raw.plot()
 # the data.
 
 raw.plot_psd(average=True)
-
-###############################################################################
-# The `~mne.io.Raw.plot_psd` method estimates the spectrum using the Welch
-# method, which is efficient for long data spans. MNE-Python also implements
-# multitaper spectrum estimation as part of the ``time_frequency`` submodule,
-# though this requires doing the plotting manually using matplotlib, and taking
-# care to handle the different channel types separately:
-
-fig, axs = plt.subplots(3, 1, sharex=True)
-for ax, ch_type in zip(axs, ('eeg', 'grad', 'mag')):
-    if ch_type == 'eeg':
-        meg, eeg = False, True
-    else:
-        meg, eeg = ch_type, False
-    _raw = raw.copy().pick_types(meg=meg, eeg=eeg)
-    psds, freqs = mne.time_frequency.psd_multitaper(_raw)
-    psds = 10 * np.log10(psds)  # convert to dB
-    mean_psd = psds.mean(axis=0)
-    std_psd = psds.std(axis=0)
-    ax.plot(freqs, mean_psd, color='k', linewidth=0.5)
-    ax.fill_between(x=freqs, y1=mean_psd - std_psd, y2=mean_psd + std_psd,
-                    color='k', alpha=0.2)
-    ax.set_title(ch_type)
-axs[1].set_ylabel('Power Spectral Density (dB)')
-axs[2].set_xlabel('Frequency (Hz)')
-fig.suptitle('Multitaper PSDs')
-fig.subplots_adjust(hspace=0.5)
 
 ###############################################################################
 # If the data have been filtered, vertical dashed lines will automatically
