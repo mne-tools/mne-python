@@ -1907,8 +1907,8 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
     for hi, hemi in enumerate(hemis):
         if isinstance(stc, _BaseVolSourceEstimate):  # no surf data
             break
-        vertices = stc.vertices[hi]
-        if len(stc.vertices[hi]) == 0:  # no surf data for the given hemi
+        vertices = stc.vertices[0 if hemi == 'lh' else 1]
+        if len(vertices) == 0:  # no surf data for the given hemi
             continue  # no data
         use_kwargs = kwargs.copy()
         use_kwargs.update(hemi=hemi)
