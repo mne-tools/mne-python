@@ -49,19 +49,19 @@ def safe_event(fun, *args, **kwargs):
 
 class _Overlay(object):
     def __init__(self, scalars, colormap, rng, opacity):
-        self.scalars = scalars
-        self.colormap = colormap
-        self.rng = rng
-        self.opacity = opacity
+        self._scalars = scalars
+        self._colormap = colormap
+        self._rng = rng
+        self._opacity = opacity
 
 
 def _overlay_to_colors(overlay):
     from matplotlib.cm import get_cmap
     from matplotlib.colors import ListedColormap
-    if isinstance(overlay.colormap, str):
-        cmap = get_cmap(overlay.colormap)
+    if isinstance(overlay._colormap, str):
+        cmap = get_cmap(overlay._colormap)
     else:
-        cmap = ListedColormap(overlay.colormap / 255.)
+        cmap = ListedColormap(overlay._colormap / 255.)
 
     def diff(x):
         return np.max(x) - np.min(x)
@@ -71,8 +71,8 @@ def _overlay_to_colors(overlay):
             rng = [np.min(x), np.max(x)]
         return (x - rng[0]) / (rng[1] - rng[0])
 
-    rng = overlay.rng
-    scalars = overlay.scalars
+    rng = overlay._rng
+    scalars = overlay._scalars
     if diff(scalars) != 0:
         scalars = norm(scalars, rng)
     return cmap(scalars)
@@ -120,7 +120,7 @@ class _LayeredMesh(object):
     def map(self):
         kwargs = {
             "color": None,
-            "pickable": False,
+            "pickable": True,
             "rgba": True,
         }
         mesh_data = self._renderer.mesh(
@@ -143,7 +143,6 @@ class _LayeredMesh(object):
     def add_overlay(self, scalars, colormap, rng, opacity, name):
         if not self._is_mapped:
             return
-        from ..backends._pyvista import _set_mesh_scalars
         overlay = _Overlay(
             scalars=scalars,
             colormap=colormap,
@@ -160,11 +159,19 @@ class _LayeredMesh(object):
             self._cache = _alpha_over(self._cache, colors)
 
         # update the texture
+        self._update()
+
+    def _update(self):
+        from ..backends._pyvista import _set_mesh_scalars
         _set_mesh_scalars(
             mesh=self._polydata,
             scalars=self._cache,
             name=self._default_scalars_name,
         )
+
+    def update(self):
+        self._cache = _blend_overlays(self._overlays.values())
+        self._update()
 
 
 @fill_doc
@@ -362,8 +369,6 @@ class Brain(object):
         self._views = views
         self._times = None
         self._label_data = list()
-        self._hemi_actors = {}
-        self._hemi_meshes = {}
         self._hemi_layered_meshes = {}
         # for now only one color bar can be added
         # since it is the same for all figures
@@ -535,21 +540,7 @@ class Brain(object):
     def _clean(self):
         # resolve the reference cycle
         self.clear_points()
-        for h in self._hemis:
-            # clear init actors
-            actor = self._hemi_actors[h]
-            if actor is not None:
-                mapper = actor.GetMapper()
-                mapper.SetLookupTable(None)
-                actor.SetMapper(None)
-            # clear data actors
-            hemi_data = self._data.get(h)
-            if hemi_data is not None:
-                if hemi_data['actors'] is not None:
-                    for actor in hemi_data['actors']:
-                        mapper = actor.GetMapper()
-                        mapper.SetLookupTable(None)
-                        actor.SetMapper(None)
+        self._hemi_layered_meshes.clear()
         self._clear_callbacks()
         if getattr(self, 'mpl_canvas', None) is not None:
             self.mpl_canvas.clear()
@@ -1027,7 +1018,7 @@ class Brain(object):
             if hemi == 'vol':
                 mesh = hemi_data['grid']
             else:
-                mesh = hemi_data['mesh']
+                mesh = self._hemi_layered_meshes[hemi]._polydata
             vertex_id = vertices[ind[0]]
             self.add_point(hemi, mesh, vertex_id)
 
@@ -2507,13 +2498,18 @@ class Brain(object):
 
                 # update the mesh scalar values
                 mesh = self._hemi_layered_meshes[hemi]
-                mesh.add_overlay(
-                    scalars=act_data,
-                    colormap=self._data['ctable'],
-                    rng=self._cmap_range,
-                    opacity=None,
-                    name='data',
-                )
+                if 'data' in mesh._overlays:
+                    overlay = mesh._overlays['data']
+                    overlay._scalars = act_data
+                    mesh.update()
+                else:
+                    mesh.add_overlay(
+                        scalars=act_data,
+                        colormap=self._data['ctable'],
+                        rng=self._cmap_range,
+                        opacity=None,
+                        name='data',
+                    )
 
                 # update the glyphs
                 if vectors is not None:
