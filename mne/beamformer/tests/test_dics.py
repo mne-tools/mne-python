@@ -18,7 +18,7 @@ from mne.beamformer import (make_dics, apply_dics, apply_dics_epochs,
 from mne.beamformer._compute_beamformer import _prepare_beamformer_input
 from mne.beamformer._dics import _prepare_noise_csd
 from mne.time_frequency import csd_morlet
-from mne.utils import run_tests_if_main, object_diff, requires_h5py
+from mne.utils import object_diff, requires_h5py
 from mne.proj import compute_proj_evoked, make_projector
 from mne.surface import _compute_nearest
 from mne.beamformer.tests.test_lcmv import _assert_weight_norm

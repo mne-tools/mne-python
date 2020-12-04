@@ -16,7 +16,7 @@ from ..source_estimate import _make_stc, _get_src_type
 from ..utils import logger, verbose, _check_channels_spatial_filter
 from ..utils import _check_one_ch_type, _check_info_inv
 from ._compute_beamformer import (
-    _check_proj_match, _prepare_beamformer_input, _compute_power,
+    _prepare_beamformer_input, _compute_power,
     _compute_beamformer, _check_src_type, Beamformer, _restore_pos_semidef,
     _proj_whiten_data)
 

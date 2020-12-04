@@ -17,7 +17,7 @@ from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz, _check_reference, _check_depth
 from ..source_estimate import _make_stc, _get_src_type
 from ..time_frequency import csd_fourier, csd_multitaper, csd_morlet
-from ._compute_beamformer import (_check_proj_match, _prepare_beamformer_input,
+from ._compute_beamformer import (_prepare_beamformer_input,
                                   _compute_beamformer, _check_src_type,
                                   Beamformer, _compute_power,
                                   _restore_pos_semidef, _proj_whiten_data)
@@ -193,11 +193,11 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
                         (freq, i + 1, n_freqs))
 
         Cm = csd.get_data(index=i)
+
         # XXX: Weird that real_filter happens *before* whitening, which could
         # make things complex again...?
         if real_filter:
             Cm = Cm.real
-
         # Whiten the CSD
         Cm = np.dot(whitener, np.dot(Cm, whitener.conj().T))
         _restore_pos_semidef(Cm)
