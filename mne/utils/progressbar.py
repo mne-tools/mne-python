@@ -69,7 +69,7 @@ class ProgressBar(object):
                 self.max_value = max_value
         else:  # ignore max_value then
             self.max_value = int(iterable)
-            self.iterable = None
+            self.iterable = range(self.max_value)
         if max_total_width == 'auto':
             max_total_width = None  # tqdm's auto
         with tempfile.NamedTemporaryFile('wb', prefix='tmp_mne_prog') as tf:

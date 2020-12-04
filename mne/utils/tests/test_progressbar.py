@@ -13,18 +13,19 @@ def test_progressbar():
     """Test progressbar class."""
     a = np.arange(10)
     pbar = ProgressBar(a)
+
     assert a is pbar.iterable
     assert pbar.max_value == 10
 
     pbar = ProgressBar(10)
     assert pbar.max_value == 10
-    assert pbar.iterable is None
+    assert isinstance(pbar.iterable, range)
 
     # Make sure that non-iterable input raises an error
     def iter_func(a):
         for ii in a:
             pass
-    pytest.raises(Exception, iter_func, ProgressBar(20))
+    assert iter_func(ProgressBar(20)) is None
 
     # Make sure different progress bars can be used
     with catch_logging() as log, modified_env(MNE_TQDM='tqdm'), \
