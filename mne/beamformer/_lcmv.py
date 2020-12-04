@@ -17,7 +17,8 @@ from ..utils import logger, verbose, _check_channels_spatial_filter
 from ..utils import _check_one_ch_type, _check_info_inv
 from ._compute_beamformer import (
     _check_proj_match, _prepare_beamformer_input, _compute_power,
-    _compute_beamformer, _check_src_type, Beamformer, _restore_pos_semidef)
+    _compute_beamformer, _check_src_type, Beamformer, _restore_pos_semidef,
+    _proj_whiten_data)
 
 
 @verbose
@@ -200,18 +201,6 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         inversion=inversion)
 
     return filters
-
-
-def _proj_whiten_data(M, proj, filters):
-    if filters['is_ssp']:
-        # check whether data and filter projs match
-        _check_proj_match(proj, filters)
-        if filters['whitener'] is None:
-            M = np.dot(filters['proj'], M)
-
-    if filters['whitener'] is not None:
-        M = np.dot(filters['whitener'], M)
-    return M
 
 
 def _apply_lcmv(data, filters, info, tmin, max_ori_out):

@@ -20,7 +20,7 @@ from ..time_frequency import csd_fourier, csd_multitaper, csd_morlet
 from ._compute_beamformer import (_check_proj_match, _prepare_beamformer_input,
                                   _compute_beamformer, _check_src_type,
                                   Beamformer, _compute_power,
-                                  _restore_pos_semidef)
+                                  _restore_pos_semidef, _proj_whiten_data)
 
 
 @verbose
@@ -263,9 +263,7 @@ def _apply_dics(data, filters, info, tmin):
             logger.info("Processing epoch : %d" % (i + 1))
 
         # Apply SSPs
-        if info['projs']:
-            _check_proj_match(info['projs'], filters)
-            M = np.dot(filters['proj'], M)
+        M = _proj_whiten_data(M, info['projs'], filters)
 
         stcs = []
         for W in Ws:

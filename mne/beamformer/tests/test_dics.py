@@ -111,7 +111,7 @@ idx_param = pytest.mark.parametrize('idx', [0, 100, 200, 233])
 
 
 def _rand_csd(rng, info):
-    scales = mne.make_ad_hoc_cov(epochs.info).data
+    scales = mne.make_ad_hoc_cov(info).data
     n = scales.size
     # Some random complex correlation structure (with channel scalings)
     data = rng.randn(n, n) + 1j * rng.randn(n, n)
@@ -139,7 +139,7 @@ def test_make_dics(tmpdir, _load_forward, idx, whiten):
         make_dics(epochs.info, fwd_surf, csd, label=label, pick_ori=None)
     if whiten:
         rng = np.random.RandomState(0)
-        data = _rand_csd(rng, info)
+        data = _rand_csd(rng, epochs.info)
         noise_csd = CrossSpectralDensity(
             _sym_mat_to_vector(data), epochs.ch_names, 0., csd.n_fft)
     else:
@@ -674,52 +674,51 @@ def test_tf_dics(_load_forward, idx):
     assert np.all(np.isnan(stcs[0].data))
 
 
-def _cov_as_csd(cov):
+def _cov_as_csd(cov, info):
+    rng = np.random.RandomState(0)
     assert cov['data'].ndim == 2
     assert len(cov['data']) == len(cov['names'])
-    # XXX we should probably make this meaningfully complex...
-    data = cov['data'].astype(np.complex128)
+    # we need to make this have at least some complex structure
+    data = cov['data'] + 1e-1 * _rand_csd(rng, info)
+    assert data.dtype == np.complex128
     return CrossSpectralDensity(_sym_mat_to_vector(data), cov['names'], 0., 16)
 
 
-# XXX: Need to reset limits, uncomment all, add real_filter tests
+# Just test free ori here (assume fixed is same as LCMV if these are)
 @pytest.mark.parametrize(
-    'reg, pick_ori, weight_norm, use_cov, depth, lower, upper', [
-        (0.05, None, 'unit-noise-gain-invariant', False, None, 26, 28),
-        # (0.05, None, 'unit-noise-gain-invariant', True, None, 40, 42),
-        (0.05, None, 'unit-noise-gain', False, None, 13, 14),
-        (0.05, None, 'unit-noise-gain', True, None, 1, 2),  # XXX 35, 37),
-        # (0.05, None, 'nai', True, None, 35, 37),
-        # (0.05, None, None, True, None, 12, 14),
-        # (0.05, None, None, True, 0.8, 39, 43),
-        (0.05, 'max-power', 'unit-noise-gain-invariant', False, None, 17, 20),
-        (0.05, 'max-power', 'unit-noise-gain', False, None, 17, 20),
-        # (0.05, 'max-power', 'nai', True, None, 21, 24),
-        # (0.05, 'max-power', None, True, None, 7, 10),
-        # (0.05, 'max-power', None, True, 0.8, 15, 18),
-        # no reg
-        # (0.00, None, None, True, None, 21, 32),
-        # (0.00, None, 'unit-noise-gain-invariant', True, None, 50, 65),
-        # (0.00, None, 'unit-noise-gain', True, None, 42, 65),
-        # (0.00, None, 'nai', True, None, 42, 65),
-        # (0.00, 'max-power', None, True, None, 13, 19),
-        # (0.00, 'max-power', 'unit-noise-gain-invariant', True, None, 43, 50),
-        # (0.00, 'max-power', 'unit-noise-gain', True, None, 43, 50),
-        # (0.00, 'max-power', 'nai', True, None, 43, 50),
+    'reg, pick_ori, weight_norm, use_cov, depth, lower, upper, real_filter', [
+        (0.05, None, 'unit-noise-gain-invariant', False, None, 26, 28, False),
+        (0.05, None, 'unit-noise-gain-invariant', True, None, 40, 42, False),
+        (0.05, None, 'unit-noise-gain-invariant', True, None, 40, 42, True),
+        (0.05, None, 'unit-noise-gain', False, None, 13, 14, False),
+        (0.05, None, 'unit-noise-gain', True, None, 35, 37, False),
+        (0.05, None, 'nai', True, None, 35, 37, False),
+        (0.05, None, None, True, None, 12, 14, False),
+        (0.05, None, None, True, 0.8, 39, 43, False),
+        (0.05, 'max-power', 'unit-noise-gain-invariant', False, None, 17, 20,
+         False),
+        (0.05, 'max-power', 'unit-noise-gain', False, None, 17, 20, False),
+        (0.05, 'max-power', 'unit-noise-gain', False, None, 17, 20, True),
+        (0.05, 'max-power', 'nai', True, None, 21, 24, False),
+        (0.05, 'max-power', None, True, None, 7, 10, False),
+        (0.05, 'max-power', None, True, 0.8, 15, 18, False),
+        # skip most no-reg tests, assume others are equal to LCMV if these are
+        (0.00, None, None, True, None, 21, 32, False),
+        (0.00, 'max-power', None, True, None, 13, 19, False),
     ])
 def test_localization_bias_free(bias_params_free, reg, pick_ori, weight_norm,
-                                use_cov, depth, lower, upper):
-    """Test localization bias for free-orientation LCMV."""
+                                use_cov, depth, lower, upper, real_filter):
+    """Test localization bias for free-orientation DICS."""
     evoked, fwd, noise_cov, data_cov, want = bias_params_free
-    noise_csd = _cov_as_csd(noise_cov)
-    data_csd = _cov_as_csd(data_cov)
+    noise_csd = _cov_as_csd(noise_cov, evoked.info)
+    data_csd = _cov_as_csd(data_cov, evoked.info)
     del noise_cov, data_cov
     if not use_cov:
         evoked.pick_types(meg='grad')
         noise_csd = None
     loc = apply_dics(evoked, make_dics(
         evoked.info, fwd, data_csd, reg, noise_csd, pick_ori=pick_ori,
-        weight_norm=weight_norm, depth=depth)).data
+        weight_norm=weight_norm, depth=depth, real_filter=real_filter)).data
     loc = np.linalg.norm(loc, axis=1) if pick_ori == 'vector' else np.abs(loc)
     # Compute the percentage of sources for which there is no loc bias:
     perc = (want == np.argmax(loc, axis=0)).mean() * 100

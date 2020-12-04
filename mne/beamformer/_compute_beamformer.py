@@ -507,3 +507,15 @@ def read_beamformer(fname):
                   for arg in ('data', 'names', 'bads', 'projs', 'nfree', 'eig',
                               'eigvec', 'method', 'loglik')])
     return Beamformer(beamformer)
+
+
+def _proj_whiten_data(M, proj, filters):
+    if filters.get('is_ssp', True):
+        # check whether data and filter projs match
+        _check_proj_match(proj, filters)
+        if filters['whitener'] is None:
+            M = np.dot(filters['proj'], M)
+
+    if filters['whitener'] is not None:
+        M = np.dot(filters['whitener'], M)
+    return M
