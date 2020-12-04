@@ -1,6 +1,6 @@
 import os.path as op
-
 import pytest
+
 from mne.io import read_raw_fif
 from mne import pick_types
 from mne.preprocessing import find_ecg_events, create_ecg_epochs
@@ -24,20 +24,26 @@ def test_find_ecg():
     raw_bad._data[ecg_idx, :1] = 1e6  # this will break the detector
     raw_bad.annotations.append(raw.first_samp / raw.info['sfreq'],
                                1. / raw.info['sfreq'], 'BAD_values')
-    for ch_name in ['MEG 1531', None]:
+
+    for ch_name, tstart in zip(['MEG 1531', None, None],
+                               [raw.times[-1] / 2, raw.times[-1] / 2, 0]):
         events, ch_ECG, average_pulse, ecg = find_ecg_events(
-            raw, event_id=999, ch_name=ch_name, return_ecg=True)
+            raw, event_id=999, ch_name=ch_name, tstart=tstart,
+            return_ecg=True)
         assert raw.n_times == ecg.shape[-1]
-        n_events = len(events)
-        _, times = raw[0, :]
         assert 55 < average_pulse < 60
+        n_events = len(events)
+
         # with annotations
         average_pulse = find_ecg_events(raw_bad, ch_name=ch_name,
+                                        tstart=tstart,
                                         reject_by_annotation=False)[2]
         assert average_pulse < 1.
         average_pulse = find_ecg_events(raw_bad, ch_name=ch_name,
+                                        tstart=tstart,
                                         reject_by_annotation=True)[2]
         assert 55 < average_pulse < 60
+
     average_pulse = find_ecg_events(raw_bad, ch_name='MEG 2641',
                                     reject_by_annotation=False)[2]
     assert 55 < average_pulse < 65
