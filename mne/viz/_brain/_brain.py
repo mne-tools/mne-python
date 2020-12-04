@@ -158,6 +158,14 @@ class _LayeredMesh(object):
         # update the texture
         self._update()
 
+    def remove_overlay(self, names):
+        if not isinstance(names, list):
+            names = [names]
+        for name in names:
+            if name in self._overlays:
+                del self._overlays[name]
+        self.update()
+
     def _update(self):
         from ..backends._pyvista import _set_mesh_scalars
         _set_mesh_scalars(
@@ -385,7 +393,7 @@ class Brain(object):
         self._subjects_dir = subjects_dir
         self._views = views
         self._times = None
-        self._label_data = list()
+        self._label_data = {'lh': list(), 'rh': list()}
         self._layered_meshes = {}
         # for now only one color bar can be added
         # since it is the same for all figures
@@ -1761,9 +1769,10 @@ class Brain(object):
 
     def remove_labels(self):
         """Remove all the ROI labels from the image."""
-        for data in self._label_data:
-            self._renderer.remove_mesh(data)
-        self._label_data.clear()
+        for hemi in self._hemis:
+            mesh = self._layered_meshes[hemi]
+            mesh.remove_overlay(self._label_data[hemi])
+            self._label_data.clear()
         self._update()
 
     def _add_volume_data(self, hemi, src, volume_options):
@@ -1999,18 +2008,15 @@ class Brain(object):
                     kind='tube',
                 )
             else:
-                mesh_data = self._renderer.mesh(
-                    x=self.geo[hemi].coords[:, 0],
-                    y=self.geo[hemi].coords[:, 1],
-                    z=self.geo[hemi].coords[:, 2],
-                    triangles=self.geo[hemi].faces,
+                mesh = self._layered_meshes[hemi]
+                mesh.add_overlay(
                     scalars=label,
-                    color=None,
                     colormap=ctable,
-                    backface_culling=False,
-                    polygon_offset=-2,
+                    rng=None,
+                    opacity=None,
+                    name=label_name,
                 )
-            self._label_data.append(mesh_data)
+                self._label_data[hemi].append(label_name)
             self._renderer.set_camera(**views_dicts[hemi][v])
 
         self._update()
