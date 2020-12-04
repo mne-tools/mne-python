@@ -79,11 +79,11 @@ def test_find_ecg():
     assert 'ECG-SYN' not in ecg_epochs.ch_names
 
 
-def test_find_ecg_events_tstart():
+@pytest.mark.parametrize('tstart', (0, 12))
+def test_find_ecg_events_tstart(tstart):
     """Ensure tstart is taken into account when calculating avg heart rate."""
     raw = read_raw_fif(raw_fname, preload=False)
     event_id = 999
-    tstart = raw.times[-1] / 2
     events, _, average_hr = find_ecg_events(raw=raw, event_id=event_id,
                                             tstart=tstart)
 
