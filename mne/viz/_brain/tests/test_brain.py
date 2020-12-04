@@ -95,6 +95,8 @@ class TstVTKPicker(object):
 @testing.requires_testing_data
 def test_brain_gc(renderer, brain_gc):
     """Test that a minimal version of Brain gets GC'ed."""
+    if renderer._get_3d_backend() != 'pyvista':
+        pytest.skip('TimeViewer tests only supported on PyVista')
     brain = Brain('fsaverage', 'both', 'inflated', subjects_dir=subjects_dir)
     brain.close()
 
@@ -102,6 +104,8 @@ def test_brain_gc(renderer, brain_gc):
 @testing.requires_testing_data
 def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
     """Test initialization of the Brain instance."""
+    if renderer._get_3d_backend() != 'pyvista':
+        pytest.skip('TimeViewer tests only supported on PyVista')
     from mne.label import read_label
     from mne.source_estimate import _BaseSourceEstimate
 
