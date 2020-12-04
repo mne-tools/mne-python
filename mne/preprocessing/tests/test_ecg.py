@@ -1,9 +1,11 @@
 import os.path as op
-
 import pytest
+
+import numpy as np
+
 from mne.io import read_raw_fif
 from mne import pick_types
-from mne.preprocessing import find_ecg_events, create_ecg_epochs
+from mne.preprocessing import find_ecg_events, create_ecg_epochs, annotate_ecg
 from mne.utils import run_tests_if_main
 
 data_path = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -77,6 +79,38 @@ def test_find_ecg():
     assert len(ecg_epochs.events) == n_events
     assert 'ECG-SYN' not in raw.ch_names
     assert 'ECG-SYN' not in ecg_epochs.ch_names
+
+
+@pytest.mark.parametrize(
+    'what,tstart,flatten_ecg',
+    [('heartbeats', 0, False),
+     ('heartbeats', 10, False),
+     ('r-peaks', 10, False),
+     ('r-peaks', 0, True),
+     ('nonsense', 0, False)])
+def test_annotate_ecg(what, tstart, flatten_ecg):
+    """Test annotating ECG activity."""
+    raw = read_raw_fif(raw_fname, preload=True)
+    ecg_ch_name = 'MEG 1531'
+    ecg_ch_idx = raw.ch_names.index('MEG 1531')
+
+    if flatten_ecg:  # Remove all ECG data, but keep the channel.
+        raw._data[ecg_ch_idx] = np.zeros_like(raw._data[ecg_ch_idx])
+
+    kwargs = dict(raw=raw, what=what, tstart=tstart, ch_name=ecg_ch_name)
+
+    if what == 'nonsense':
+        with pytest.raises(ValueError, match='Allowed values are'):
+            annotate_ecg(**kwargs)
+        return
+
+    annot = annotate_ecg(**kwargs)
+
+    if flatten_ecg:
+        assert len(annot) == 0
+    else:
+        assert len(annot) > 0
+        assert all(annot.onset > 0)
 
 
 run_tests_if_main()
