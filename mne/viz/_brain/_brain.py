@@ -172,6 +172,14 @@ class _LayeredMesh(object):
         self._cache = self._compose_overlays()
         self._update()
 
+    def _clean(self):
+        mapper = self._actor.GetMapper()
+        mapper.SetLookupTable(None)
+        self._actor.SetMapper(None)
+        self._actor = None
+        self._polydata = None
+        self._renderer = None
+
 
 @fill_doc
 class Brain(object):
@@ -541,10 +549,7 @@ class Brain(object):
         self.clear_points()
         # clear init actors
         for hemi in self._hemis:
-            actor = self._layered_meshes[hemi]._actor
-            mapper = actor.GetMapper()
-            mapper.SetLookupTable(None)
-            actor.SetMapper(None)
+            self._layered_meshes[hemi]._clean()
         self._clear_callbacks()
         if getattr(self, 'mpl_canvas', None) is not None:
             self.mpl_canvas.clear()
