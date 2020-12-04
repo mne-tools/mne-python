@@ -54,50 +54,27 @@ class _Overlay(object):
         self._rng = rng
         self._opacity = opacity
 
-
-def _overlay_to_colors(overlay):
-    from matplotlib.cm import get_cmap
-    from matplotlib.colors import ListedColormap
-    if isinstance(overlay._colormap, str):
-        cmap = get_cmap(overlay._colormap)
-    else:
-        cmap = ListedColormap(overlay._colormap / 255.)
-
-    def diff(x):
-        return np.max(x) - np.min(x)
-
-    def norm(x, rng=None):
-        if rng is None:
-            rng = [np.min(x), np.max(x)]
-        return (x - rng[0]) / (rng[1] - rng[0])
-
-    rng = overlay._rng
-    scalars = overlay._scalars
-    if diff(scalars) != 0:
-        scalars = norm(scalars, rng)
-    return cmap(scalars)
-
-
-def _alpha_over(B, A):
-    alpha_a = A[:, 3]
-    alpha_b = B[:, 3]
-    alpha_c = alpha_a + alpha_b * (1 - alpha_a)
-    a = A[:, :3]
-    b = B[:, :3]
-    c = (a.T * alpha_a).T + (b.T * alpha_b * (1 - alpha_a)).T
-    c = (c.T / alpha_c).T
-    return np.c_[c, alpha_c]
-
-
-def _blend_overlays(overlays):
-    B = None
-    for overlay in overlays:
-        A = _overlay_to_colors(overlay)
-        if B is None:
-            B = A
+    def to_colors(self):
+        from matplotlib.cm import get_cmap
+        from matplotlib.colors import ListedColormap
+        if isinstance(self._colormap, str):
+            cmap = get_cmap(self._colormap)
         else:
-            B = _alpha_over(B, A)
-    return B
+            cmap = ListedColormap(self._colormap / 255.)
+
+        def diff(x):
+            return np.max(x) - np.min(x)
+
+        def norm(x, rng=None):
+            if rng is None:
+                rng = [np.min(x), np.max(x)]
+            return (x - rng[0]) / (rng[1] - rng[0])
+
+        rng = self._rng
+        scalars = self._scalars
+        if diff(scalars) != 0:
+            scalars = norm(scalars, rng)
+        return cmap(scalars)
 
 
 class _LayeredMesh(object):
@@ -140,6 +117,26 @@ class _LayeredMesh(object):
         self._actor = actor
         self._is_mapped = True
 
+    def _compute_over(self, B, A):
+        alpha_a = A[:, 3]
+        alpha_b = B[:, 3]
+        alpha_c = alpha_a + alpha_b * (1 - alpha_a)
+        a = A[:, :3]
+        b = B[:, :3]
+        c = (a.T * alpha_a).T + (b.T * alpha_b * (1 - alpha_a)).T
+        c = (c.T / alpha_c).T
+        return np.c_[c, alpha_c]
+
+    def _compose_overlays(self):
+        B = None
+        for overlay in self._overlays.values():
+            A = overlay.to_colors()
+            if B is None:
+                B = A
+            else:
+                B = self._compute_over(B, A)
+        return B
+
     def add_overlay(self, scalars, colormap, rng, opacity, name):
         if not self._is_mapped:
             return
@@ -150,13 +147,13 @@ class _LayeredMesh(object):
             opacity=opacity
         )
         self._overlays[name] = overlay
-        colors = _overlay_to_colors(overlay)
+        colors = overlay.to_colors()
 
         # save colors in cache
         if self._cache is None:
             self._cache = colors
         else:
-            self._cache = _alpha_over(self._cache, colors)
+            self._cache = self._compute_over(self._cache, colors)
 
         # update the texture
         self._update()
@@ -170,7 +167,7 @@ class _LayeredMesh(object):
         )
 
     def update(self):
-        self._cache = _blend_overlays(self._overlays.values())
+        self._cache = self._compose_overlays()
         self._update()
 
 
@@ -1680,6 +1677,13 @@ class Brain(object):
         self._data['fmax'] = fmax
         self.update_lut()
 
+        # select the right actor
+        if hemi in ('lh', 'rh'):
+            actor = self._hemi_layered_meshes[hemi]._actor
+        else:
+            src_vol = src[2:] if src.kind == 'mixed' else src
+            actor, _ = self._add_volume_data(hemi, src_vol, volume_options)
+
         # 1) update time and smoothing properties
         # set_data_smoothing calls "set_time_point" for us, which will set
         # _current_time
@@ -1705,7 +1709,6 @@ class Brain(object):
                 self._data['time_actor'] = time_actor
                 self._time_label_added = True
             if colorbar and not self._colorbar_added and do:
-                actor = self._hemi_layered_meshes[hemi]._actor
                 kwargs = dict(source=actor, n_labels=8, color=self._fg_color,
                               bgcolor=self._brain_color[:3])
                 kwargs.update(colorbar_kwargs or {})
@@ -2358,10 +2361,14 @@ class Brain(object):
         for hemi in ['lh', 'rh', 'vol']:
             hemi_data = self._data.get(hemi)
             if hemi_data is not None:
-                if hemi_data.get('actors') is not None:
-                    for actor in hemi_data['actors']:
-                        _set_colormap_range(actor, ctable, scalar_bar, rng)
-                        scalar_bar = None
+                if hemi in self._hemi_layered_meshes:
+                    mesh = self._hemi_layered_meshes[hemi]
+                    _set_colormap_range(mesh._actor, ctable, scalar_bar, rng)
+                    scalar_bar = None
+                    if 'data' in mesh._overlays:
+                        overlay = mesh._overlays['data']
+                        overlay._colormap = self._data['ctable']
+                        mesh.update()
 
                 grid_volume_pos = hemi_data.get('grid_volume_pos')
                 grid_volume_neg = hemi_data.get('grid_volume_neg')
@@ -2497,19 +2504,20 @@ class Brain(object):
                     act_data = smooth_mat.dot(act_data)
 
                 # update the mesh scalar values
-                mesh = self._hemi_layered_meshes[hemi]
-                if 'data' in mesh._overlays:
-                    overlay = mesh._overlays['data']
-                    overlay._scalars = act_data
-                    mesh.update()
-                else:
-                    mesh.add_overlay(
-                        scalars=act_data,
-                        colormap=self._data['ctable'],
-                        rng=self._cmap_range,
-                        opacity=None,
-                        name='data',
-                    )
+                if hemi in self._hemi_layered_meshes:
+                    mesh = self._hemi_layered_meshes[hemi]
+                    if 'data' in mesh._overlays:
+                        overlay = mesh._overlays['data']
+                        overlay._scalars = act_data
+                        mesh.update()
+                    else:
+                        mesh.add_overlay(
+                            scalars=act_data,
+                            colormap=self._data['ctable'],
+                            rng=self._cmap_range,
+                            opacity=None,
+                            name='data',
+                        )
 
                 # update the glyphs
                 if vectors is not None:
@@ -2990,18 +2998,16 @@ class Brain(object):
 
         # apply the lut on every surfaces
         for hemi in ['lh', 'rh']:
-            hemi_data = self._data.get(hemi)
-            if hemi_data is not None:
-                if hemi_data['actors'] is not None:
-                    for actor in hemi_data['actors']:
-                        vtk_lut = actor.GetMapper().GetLookupTable()
-                        vtk_lut.SetNumberOfColors(n_col)
-                        vtk_lut.SetRange([fmin, fmax])
-                        vtk_lut.Build()
-                        for i in range(0, n_col):
-                            lt = lut_lst[i]
-                            vtk_lut.SetTableValue(
-                                i, lt[0], lt[1], lt[2], alpha)
+            if hemi in self._hemi_layered_meshes:
+                mesh = self._hemi_layered_meshes[hemi]
+                vtk_lut = mesh._actor.GetMapper().GetLookupTable()
+                vtk_lut.SetNumberOfColors(n_col)
+                vtk_lut.SetRange([fmin, fmax])
+                vtk_lut.Build()
+                for i in range(0, n_col):
+                    lt = lut_lst[i]
+                    vtk_lut.SetTableValue(
+                        i, lt[0], lt[1], lt[2], alpha)
         self._update_fscale(1.0)
 
     def enable_depth_peeling(self):
