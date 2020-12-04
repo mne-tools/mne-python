@@ -1770,7 +1770,7 @@ class Brain(object):
         for hemi in self._hemis:
             mesh = self._layered_meshes[hemi]
             mesh.remove_overlay(self._label_data[hemi])
-            self._label_data.clear()
+            self._label_data[hemi].clear()
         self._update()
 
     def _add_volume_data(self, hemi, src, volume_options):
