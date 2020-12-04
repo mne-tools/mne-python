@@ -361,6 +361,7 @@ Projections:
 
    ICA
    Xdawn
+   annotate_ecg
    annotate_flat
    annotate_movement
    annotate_muscle_zscore

@@ -299,7 +299,6 @@ def annotate_ecg(raw, what='heartbeats', ch_name=None,
             annotations are based on R peaks and the average heart rate. Note
             that heartbeat annotations are just rough estimates, as no P and T
             components are actually identified.
-
     %(ecg_ch_name)s
     %(ecg_tstart)s
     %(ecg_filter_freqs)s
