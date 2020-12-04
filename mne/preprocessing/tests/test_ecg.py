@@ -1,5 +1,5 @@
 import os.path as op
-
+from numpy.testing import assert_allclose
 import pytest
 from mne.io import read_raw_fif
 from mne import pick_types
@@ -90,7 +90,7 @@ def test_find_ecg_events_tstart():
     duration_in_sec = len(raw) / raw.info['sfreq'] - tstart
     duration_in_min = duration_in_sec / 60
     average_hr_expected = len(events) / duration_in_min
-    assert average_hr == average_hr_expected
+    assert_allclose(average_hr, average_hr_expected)
 
 
 run_tests_if_main()
