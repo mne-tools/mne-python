@@ -79,6 +79,8 @@ Enhancements
 
 - :func:`mne.io.read_raw_edf`, :func:`mne.io.read_raw_bdf`, and :func:`mne.io.read_raw_gdf` now detect and handle invalid highpass/lowpass filter settings (:gh:`8584` by `Clemens Brunner`_)
 
+- The new function :func:`mne.preprocessing.annotate_ecg` can be used to annotate ECG events (:gh:`8606` by `Richard Höchenberger`_)
+
 Bugs
 ~~~~
 - Fix a transpose issue of :func:`mne.decoding.CSP.plot_filters` (:gh:`8580` **by new contributor** |Hongjiang Ye|_)
