@@ -231,8 +231,9 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
     ecg_events = remap[ecg_events]
 
     n_events = len(ecg_events)
-    minutes = len(ecg) / (raw.info['sfreq'] * 60.) - (tstart / 60.)
-    average_pulse = n_events / minutes
+    duration_sec = len(ecg) / raw.info['sfreq'] - tstart
+    duration_min = duration_sec / 60.
+    average_pulse = n_events / duration_min
     logger.info("Number of ECG events detected : %d (average pulse %d / "
                 "min.)" % (n_events, average_pulse))
 
