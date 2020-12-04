@@ -180,6 +180,16 @@ class _LayeredMesh(object):
         self._polydata = None
         self._renderer = None
 
+    def update_overlay(self, name, scalars=None, colormap=None):
+        overlay = self._overlays.get(name, None)
+        if overlay is None:
+            return
+        if scalars is not None:
+            overlay._scalars = scalars
+        if colormap is not None:
+            overlay._colormap = colormap
+        self.update()
+
 
 @fill_doc
 class Brain(object):
@@ -2375,12 +2385,10 @@ class Brain(object):
             if hemi_data is not None:
                 if hemi in self._layered_meshes:
                     mesh = self._layered_meshes[hemi]
+                    mesh.update_overlay(name='data',
+                                        colormap=self._data['ctable'])
                     _set_colormap_range(mesh._actor, ctable, scalar_bar, rng)
                     scalar_bar = None
-                    if 'data' in mesh._overlays:
-                        overlay = mesh._overlays['data']
-                        overlay._colormap = self._data['ctable']
-                        mesh.update()
 
                 grid_volume_pos = hemi_data.get('grid_volume_pos')
                 grid_volume_neg = hemi_data.get('grid_volume_neg')
@@ -2519,9 +2527,7 @@ class Brain(object):
                 if hemi in self._layered_meshes:
                     mesh = self._layered_meshes[hemi]
                     if 'data' in mesh._overlays:
-                        overlay = mesh._overlays['data']
-                        overlay._scalars = act_data
-                        mesh.update()
+                        mesh.update_overlay(name='data', scalars=act_data)
                     else:
                         mesh.add_overlay(
                             scalars=act_data,
