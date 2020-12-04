@@ -99,8 +99,6 @@ class _LayeredMesh(object):
         self._default_scalars_name = 'Data'
 
     def map(self):
-        if self._is_mapped:
-            return
         kwargs = {
             "color": None,
             "pickable": True,
@@ -139,8 +137,6 @@ class _LayeredMesh(object):
         return B
 
     def add_overlay(self, scalars, colormap, rng, opacity, name):
-        if not self._is_mapped:
-            return
         overlay = _Overlay(
             scalars=scalars,
             colormap=colormap,
@@ -177,8 +173,6 @@ class _LayeredMesh(object):
             )
 
     def update(self):
-        if not self._is_mapped:
-            return
         self._cache = self._compose_overlays()
         self._update()
 
@@ -439,23 +433,27 @@ class Brain(object):
             self.geo[h] = geo
             for ri, ci, v in self._iter_views(h):
                 self._renderer.subplot(ri, ci)
-                mesh = _LayeredMesh(
-                    renderer=self._renderer,
-                    vertices=self.geo[h].coords,
-                    triangles=self.geo[h].faces,
-                    normals=self.geo[h].nn,
-                )
-                mesh.map()  # send to GPU
-                mesh.add_overlay(
-                    scalars=self.geo[h].bin_curv,
-                    colormap=geo_kwargs["colormap"],
-                    rng=[geo_kwargs["vmin"], geo_kwargs["vmax"]],
-                    opacity=alpha,
-                    name='curv',
-                )
-                self._layered_meshes[h] = mesh
-                # add metadata to the mesh for picking
-                mesh._polydata._hemi = h
+                if self._layered_meshes.get(h) is None:
+                    mesh = _LayeredMesh(
+                        renderer=self._renderer,
+                        vertices=self.geo[h].coords,
+                        triangles=self.geo[h].faces,
+                        normals=self.geo[h].nn,
+                    )
+                    mesh.map()  # send to GPU
+                    mesh.add_overlay(
+                        scalars=self.geo[h].bin_curv,
+                        colormap=geo_kwargs["colormap"],
+                        rng=[geo_kwargs["vmin"], geo_kwargs["vmax"]],
+                        opacity=alpha,
+                        name='curv',
+                    )
+                    self._layered_meshes[h] = mesh
+                    # add metadata to the mesh for picking
+                    mesh._polydata._hemi = h
+                else:
+                    actor = self._layered_meshes[h]._actor
+                    self._renderer.plotter.add_actor(actor)
                 self._renderer.set_camera(**views_dicts[h][v])
 
         self.interaction = interaction
