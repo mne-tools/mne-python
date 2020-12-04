@@ -1996,27 +1996,32 @@ class Brain(object):
         for ri, ci, v in self._iter_views(hemi):
             self._renderer.subplot(ri, ci)
             if borders:
-                surface = {
-                    'rr': self.geo[hemi].coords,
-                    'tris': self.geo[hemi].faces,
-                }
-                mesh_data = self._renderer.contour(
-                    surface=surface,
-                    scalars=label,
-                    contours=[1.0],
-                    color=color,
-                    kind='tube',
-                )
-            else:
-                mesh = self._layered_meshes[hemi]
-                mesh.add_overlay(
-                    scalars=label,
-                    colormap=ctable,
-                    rng=None,
-                    opacity=None,
-                    name=label_name,
-                )
-                self._label_data[hemi].append(label_name)
+                n_vertices = label.size
+                edges = mesh_edges(self.geo[hemi].faces)
+                edges = edges.tocoo()
+                border_edges = label[edges.row] != label[edges.col]
+                show = np.zeros(n_vertices, dtype=np.int)
+                keep_idx = np.unique(edges.row[border_edges])
+                if isinstance(borders, int):
+                    for _ in range(borders):
+                        keep_idx = np.in1d(
+                            self.geo[hemi].faces.ravel(), keep_idx)
+                        keep_idx.shape = self.geo[hemi].faces.shape
+                        keep_idx = self.geo[hemi].faces[np.any(
+                            keep_idx, axis=1)]
+                        keep_idx = np.unique(keep_idx)
+                show[keep_idx] = 1
+                label *= show
+
+            mesh = self._layered_meshes[hemi]
+            mesh.add_overlay(
+                scalars=label,
+                colormap=ctable,
+                rng=None,
+                opacity=None,
+                name=label_name,
+            )
+            self._label_data[hemi].append(label_name)
             self._renderer.set_camera(**views_dicts[hemi][v])
 
         self._update()
