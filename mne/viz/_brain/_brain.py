@@ -368,7 +368,7 @@ class Brain(object):
         self._views = views
         self._times = None
         self._label_data = list()
-        self._hemi_layered_meshes = {}
+        self._layered_meshes = {}
         # for now only one color bar can be added
         # since it is the same for all figures
         self._colorbar_added = False
@@ -422,7 +422,7 @@ class Brain(object):
                     opacity=alpha,
                     name='curv',
                 )
-                self._hemi_layered_meshes[h] = mesh
+                self._layered_meshes[h] = mesh
                 # add metadata to the mesh for picking
                 mesh._polydata._hemi = h
                 self._renderer.set_camera(**views_dicts[h][v])
@@ -541,7 +541,7 @@ class Brain(object):
         self.clear_points()
         # clear init actors
         for hemi in self._hemis:
-            actor = self._hemi_layered_meshes[hemi]._actor
+            actor = self._layered_meshes[hemi]._actor
             mapper = actor.GetMapper()
             mapper.SetLookupTable(None)
             actor.SetMapper(None)
@@ -1022,7 +1022,7 @@ class Brain(object):
             if hemi == 'vol':
                 mesh = hemi_data['grid']
             else:
-                mesh = self._hemi_layered_meshes[hemi]._polydata
+                mesh = self._layered_meshes[hemi]._polydata
             vertex_id = vertices[ind[0]]
             self.add_point(hemi, mesh, vertex_id)
 
@@ -1686,7 +1686,7 @@ class Brain(object):
 
         # select the right actor
         if hemi in ('lh', 'rh'):
-            actor = self._hemi_layered_meshes[hemi]._actor
+            actor = self._layered_meshes[hemi]._actor
         else:
             src_vol = src[2:] if src.kind == 'mixed' else src
             actor, _ = self._add_volume_data(hemi, src_vol, volume_options)
@@ -2368,8 +2368,8 @@ class Brain(object):
         for hemi in ['lh', 'rh', 'vol']:
             hemi_data = self._data.get(hemi)
             if hemi_data is not None:
-                if hemi in self._hemi_layered_meshes:
-                    mesh = self._hemi_layered_meshes[hemi]
+                if hemi in self._layered_meshes:
+                    mesh = self._layered_meshes[hemi]
                     _set_colormap_range(mesh._actor, ctable, scalar_bar, rng)
                     scalar_bar = None
                     if 'data' in mesh._overlays:
@@ -2511,8 +2511,8 @@ class Brain(object):
                     act_data = smooth_mat.dot(act_data)
 
                 # update the mesh scalar values
-                if hemi in self._hemi_layered_meshes:
-                    mesh = self._hemi_layered_meshes[hemi]
+                if hemi in self._layered_meshes:
+                    mesh = self._layered_meshes[hemi]
                     if 'data' in mesh._overlays:
                         overlay = mesh._overlays['data']
                         overlay._scalars = act_data
@@ -3005,8 +3005,8 @@ class Brain(object):
 
         # apply the lut on every surfaces
         for hemi in ['lh', 'rh']:
-            if hemi in self._hemi_layered_meshes:
-                mesh = self._hemi_layered_meshes[hemi]
+            if hemi in self._layered_meshes:
+                mesh = self._layered_meshes[hemi]
                 vtk_lut = mesh._actor.GetMapper().GetLookupTable()
                 vtk_lut.SetNumberOfColors(n_col)
                 vtk_lut.SetRange([fmin, fmax])
