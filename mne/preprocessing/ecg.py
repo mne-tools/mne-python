@@ -164,8 +164,9 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
         Events.
     ch_ecg : string
         Name of channel used.
-    average_pulse : float
-        Estimated average pulse.
+    average_pulse : float | np.nan
+        The estimated average pulse. If no ECG events could be found, this will
+        be ``nan``.
     ecg : array | None
         The ECG data of the synthesized ECG channel, if any. This will only
         be returned if ``return_ecg=True`` was passed.
@@ -208,6 +209,14 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
     ecg_events = qrs_detector(raw.info['sfreq'], ecg, tstart=tstart,
                               thresh_value=qrs_threshold, l_freq=None,
                               h_freq=None, verbose=False)
+
+    if ecg_events.size == 0:
+        logger.info('Could not detect any ECG events.')
+        out = (ecg_events, idx_ecg, np.nan)
+        if return_ecg:
+            ecg = ecg[np.newaxis]
+            out += (ecg,)
+        return out
 
     # map ECG events back to original times
     remap = np.empty(len(ecg), int)
