@@ -39,7 +39,8 @@ def test_find_ecg():
         # with annotations
         average_pulse = find_ecg_events(raw_bad, ch_name=ch_name,
                                         tstart=tstart,
-                                        reject_by_annotation=False)[2]
+                                        reject_by_annotation=False,
+                                        return_ecg=True)[2]
         assert np.isnan(average_pulse)
         average_pulse = find_ecg_events(raw_bad, ch_name=ch_name,
                                         tstart=tstart,
