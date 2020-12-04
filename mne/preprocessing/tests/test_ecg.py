@@ -25,8 +25,8 @@ def test_find_ecg():
     raw_bad.annotations.append(raw.first_samp / raw.info['sfreq'],
                                1. / raw.info['sfreq'], 'BAD_values')
 
-    for ch_name, tstart in zip(['MEG 1531', None],
-                               [raw.times[-1] / 2, 0]):
+    for ch_name, tstart in zip(['MEG 1531', None, None],
+                               [raw.times[-1] / 2, raw.times[-1] / 2, 0]):
         events, ch_ECG, average_pulse, ecg = find_ecg_events(
             raw, event_id=999, ch_name=ch_name, tstart=tstart,
             return_ecg=True)
