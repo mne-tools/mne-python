@@ -3026,3 +3026,9 @@ class _FakeIren():
 
     def SetEventInformation(self, *args, **kwargs):
         pass
+
+    def KeyPressEvent(self, *args, **kwargs):
+        pass
+
+    def KeyReleaseEvent(self, *args, **kwargs):
+        pass

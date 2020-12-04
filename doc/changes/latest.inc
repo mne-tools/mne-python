@@ -79,6 +79,7 @@ Enhancements
 
 - `mne.preprocessing.ICA.plot_sources` now displays an `mne.preprocessing.ICA.plot_properties` window when right-clicking on component names on the y-axis (:gh:`8381` by `Daniel McCloy`_)
 
+- :func:`mne.io.read_raw_edf`, :func:`mne.io.read_raw_bdf`, and :func:`mne.io.read_raw_gdf` now detect and handle invalid highpass/lowpass filter settings (:gh:`8584` by `Clemens Brunner`_)
 
 Bugs
 ~~~~
@@ -152,6 +153,8 @@ Bugs
 
 - Fix inset sensor plots to always use equal aspect (:gh:`8545` by `Daniel McCloy`_)
 
+- Fix bug in `mne.viz.plot_compare_evokeds` where evokeds with identical ``comment`` attributes would not plot properly if passed as a list (:gh:`8590` by `Daniel McCloy`_)
+
 - Fix bug in :func:`mne.io.read_raw_kit` where scale factors for EEG channels could be set to zero (:gh:`8542` by `Eric Larson`_)
 
 - Fix reading GDF files with excluded channels in :func:`mne.io.read_raw_gdf` (:gh:`8520` by `Clemens Brunner`_)
@@ -161,6 +164,8 @@ Bugs
 - Fix bug in :func:`mne.viz.set_3d_title` where 3D plot could have multiple titles that overlap (:gh:`8564` by `Guillaume Favelier`_)
 
 - Fix bug in :func:`mne.viz.set_3d_view` where plotter is not updated properly causing camera issues in the doc (:gh:`8564` by `Guillaume Favelier`_)
+
+- :func:`mne.preprocessing.find_ecg_events` didn't take the ``tstart`` parameter value into account when calculating the average heart rate (:gh:`8605` by `Richard Höchenberger`_)
 
 API changes
 ~~~~~~~~~~~
