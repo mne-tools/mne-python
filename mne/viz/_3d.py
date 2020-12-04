@@ -1805,6 +1805,7 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
               size, scale_factor, show_traces, src, volume_options,
               view_layout, add_data_kwargs):
     from .backends.renderer import _get_3d_backend
+    from ..source_estimate import _BaseVolSourceEstimate
     vec = stc._data_ndim == 3
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
@@ -1882,45 +1883,55 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
         transparent = True
     sd_kwargs = dict(transparent=transparent, verbose=False)
     center = 0. if diverging else None
-    for hemi in hemis:
-        kwargs = {
-            "colormap": colormap,
-            "smoothing_steps": smoothing_steps,
-            "time": times, "time_label": time_label,
-            "alpha": overlay_alpha, "hemi": hemi,
-            "colorbar": colorbar,
-            "vector_alpha": vector_alpha,
-            "scale_factor": scale_factor,
-            "verbose": False,
-            "initial_time": initial_time,
-            "transparent": transparent, "center": center,
-            "verbose": False
-        }
+    kwargs = {
+        "array": stc,
+        "colormap": colormap,
+        "smoothing_steps": smoothing_steps,
+        "time": times, "time_label": time_label,
+        "alpha": overlay_alpha,
+        "colorbar": colorbar,
+        "vector_alpha": vector_alpha,
+        "scale_factor": scale_factor,
+        "verbose": False,
+        "initial_time": initial_time,
+        "transparent": transparent,
+        "center": center,
+        "fmin": scale_pts[0],
+        "fmid": scale_pts[1],
+        "fmax": scale_pts[2],
+        "clim": clim,
+        "src": src,
+        "volume_options": volume_options,
+        "verbose": False,
+    }
+    for hi, hemi in enumerate(hemis):
+        if isinstance(stc, _BaseVolSourceEstimate):  # no surf data
+            break
+        vertices = stc.vertices[hi]
+        if len(stc.vertices[hi]) == 0:  # no surf data for the given hemi
+            continue  # no data
+        use_kwargs = kwargs.copy()
+        use_kwargs.update(hemi=hemi)
         if using_mayavi:
-            kwargs["array"] = getattr(stc, hemi + '_data')
-            kwargs["vertices"] = stc.vertices[0 if hemi == 'lh' else 1]
-            kwargs["min"] = scale_pts[0]
-            kwargs["mid"] = scale_pts[1]
-            kwargs["max"] = scale_pts[2]
-        else:  # pyvista
-            kwargs["array"] = stc
-            kwargs["fmin"] = scale_pts[0]
-            kwargs["fmid"] = scale_pts[1]
-            kwargs["fmax"] = scale_pts[2]
-            kwargs["clim"] = clim
-            kwargs["src"] = src
-        kwargs.update({} if add_data_kwargs is None else add_data_kwargs)
-        if volume and src.kind == 'volume':
-            continue
+            del use_kwargs['clim'], use_kwargs['src']
+            del use_kwargs['volume_options']
+            use_kwargs.update(
+                min=use_kwargs.pop('fmin'), mid=use_kwargs.pop('fmid'),
+                max=use_kwargs.pop('fmax'), array=getattr(stc, hemi + '_data'),
+                vertices=vertices)
+        if add_data_kwargs is not None:
+            use_kwargs.update(add_data_kwargs)
         with warnings.catch_warnings(record=True):  # traits warnings
-            brain.add_data(**kwargs)
-        brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
-                                  fmax=scale_pts[2], **sd_kwargs)
+            brain.add_data(**use_kwargs)
+        if using_mayavi:
+            brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
+                                      fmax=scale_pts[2], **sd_kwargs)
 
     if volume:
-        kwargs["hemi"] = 'vol'
-        kwargs["volume_options"] = volume_options
-        brain.add_data(**kwargs)
+        use_kwargs = kwargs.copy()
+        use_kwargs.update(hemi='vol')
+        brain.add_data(**use_kwargs)
+    del kwargs
 
     need_peeling = (brain_alpha < 1.0 and
                     sys.platform != 'darwin' and

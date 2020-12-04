@@ -1933,7 +1933,7 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
         If a single Evoked instance, it is plotted as a time series.
         If a list of Evokeds, the contents are plotted with their
         ``.comment`` attributes used as condition labels. If no comment is set,
-        the index of the respectiv Evoked the list will be used instead,
+        the index of the respective Evoked the list will be used instead,
         starting with ``1`` for the first Evoked.
         If a dict whose values are Evoked objects, the contents are plotted as
         single time series each and the keys are used as labels.
@@ -2141,13 +2141,15 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
     if isinstance(evokeds, (list, tuple)):
         evokeds_copy = evokeds.copy()
         evokeds = dict()
-
-        for evk_idx, evk in enumerate(evokeds_copy, start=1):
-            label = None
-            if hasattr(evk, 'comment'):
-                label = evk.comment
-            label = label if label else str(evk_idx)
-            evokeds[label] = evk
+        comments = [getattr(_evk, 'comment', None) for _evk in evokeds_copy]
+        for idx, (comment, _evoked) in enumerate(zip(comments, evokeds_copy)):
+            key = str(idx + 1)
+            if comment:  # only update key if comment is non-empty
+                if comments.count(comment) == 1:  # comment is unique
+                    key = comment
+                else:  # comment is non-unique: prepend index
+                    key = f'{key}: {comment}'
+            evokeds[key] = _evoked
         del evokeds_copy
 
     if not isinstance(evokeds, dict):
