@@ -79,6 +79,10 @@ Enhancements
 
 - :func:`mne.io.read_raw_edf`, :func:`mne.io.read_raw_bdf`, and :func:`mne.io.read_raw_gdf` now detect and handle invalid highpass/lowpass filter settings (:gh:`8584` by `Clemens Brunner`_)
 
+- If a ``baseline`` tuple containing one or two ``None`` values – e.g. ``(None, 0)``, ``(0, None)``, or ``(None, None)`` – is passed to `~mne.Epochs` or `~mne.Epochs.apply_baseline`, the ``None`` value(s) will be replaced with the actual time (i.e., :attr:`~mne.Epochs.tmin` and :attr:`~mne.Epochs.tmax`, respectively) when populating ``Epochs.baseline`` (:gh:`8442` by `Richard Höchenberger`_)
+
+- `~mne.Epochs` will now retain the information about an applied baseline correction, even if the baseline period is partially or completely removed through cropping later on (:gh:`8442` by `Richard Höchenberger`_)
+
 Bugs
 ~~~~
 - Fix a transpose issue of :func:`mne.decoding.CSP.plot_filters` (:gh:`8580` **by new contributor** |Hongjiang Ye|_)
