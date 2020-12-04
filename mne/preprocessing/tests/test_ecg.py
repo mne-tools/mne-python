@@ -36,7 +36,7 @@ def test_find_ecg():
         # with annotations
         average_pulse = find_ecg_events(raw_bad, ch_name=ch_name,
                                         reject_by_annotation=False)[2]
-        assert average_pulse < 1.
+        assert np.isnan(average_pulse)
         average_pulse = find_ecg_events(raw_bad, ch_name=ch_name,
                                         reject_by_annotation=True)[2]
         assert 55 < average_pulse < 60
