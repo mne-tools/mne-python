@@ -1725,8 +1725,10 @@ class Brain(object):
         self.set_time_interpolation(self.time_interpolation)
         self.set_data_smoothing(self._data['smoothing_steps'])
 
-        mesh = self._layered_meshes[hemi]
-        mesh.update_overlay(name='data', opacity=alpha)
+        # update opacity
+        if hemi in self._layered_meshes:
+            mesh = self._layered_meshes[hemi]
+            mesh.update_overlay(name='data', opacity=alpha)
 
         # 2) add the other actors
         if colorbar is True:
