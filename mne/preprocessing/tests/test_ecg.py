@@ -79,4 +79,18 @@ def test_find_ecg():
     assert 'ECG-SYN' not in ecg_epochs.ch_names
 
 
+def test_find_ecg_events_tstart():
+    """Ensure tstart is taken into account when calculating avg heart rate."""
+    raw = read_raw_fif(raw_fname, preload=False)
+    event_id = 999
+    tstart = raw.times[-1] / 2
+    events, _, average_hr = find_ecg_events(raw=raw, event_id=event_id,
+                                            tstart=tstart)
+
+    duration_in_sec = len(raw) / raw.info['sfreq'] - tstart
+    duration_in_min = duration_in_sec / 60
+    average_hr_expected = len(events) / duration_in_min
+    assert average_hr == average_hr_expected
+
+
 run_tests_if_main()

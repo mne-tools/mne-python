@@ -163,6 +163,8 @@ Bugs
 
 - Fix bug in :func:`mne.viz.set_3d_view` where plotter is not updated properly causing camera issues in the doc (:gh:`8564` by `Guillaume Favelier`_)
 
+- :func:`mne.preprocessing.find_ecg_events` didn't take the ``tstart`` parameter value into account when calculating the average heart rate (:gh:`8605` by `Richard Höchenberger`_)
+
 API changes
 ~~~~~~~~~~~
 
