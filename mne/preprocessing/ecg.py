@@ -137,7 +137,7 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
                     l_freq=5, h_freq=35, qrs_threshold='auto',
                     filter_length='10s', return_ecg=False,
                     reject_by_annotation=True, verbose=None):
-    """Find ECG peaks.
+    """Find ECG events by localizing the R wave peaks.
 
     Parameters
     ----------
@@ -161,7 +161,7 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
     Returns
     -------
     ecg_events : array
-        Events.
+        The events corresponding to the peaks of the R waves.
     ch_ecg : string
         Name of channel used.
     average_pulse : float | np.nan
@@ -204,7 +204,7 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
             verbose=use_verbose))
     ecg = np.concatenate(ecgs)
 
-    # detecting QRS and generating event file. Since not user-controlled, don't
+    # detecting QRS and generating events. Since not user-controlled, don't
     # output filter params here (hardcode verbose=False)
     ecg_events = qrs_detector(raw.info['sfreq'], ecg, tstart=tstart,
                               thresh_value=qrs_threshold, l_freq=None,
@@ -426,7 +426,7 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
     Returns
     -------
     ecg_epochs : instance of Epochs
-        Data epoched around ECG r-peaks.
+        Data epoched around ECG R wave peaks.
 
     See Also
     --------

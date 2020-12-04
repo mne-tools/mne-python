@@ -167,6 +167,8 @@ Bugs
 
 - :func:`mne.preprocessing.find_ecg_events` now gracefully handles the case where no ECG peaks could be discovered (:gh:`8606` by `Richard Höchenberger`_)
 
+- :func:`mne.preprocessing.find_ecg_events` didn't take the ``tstart`` parameter value into account when calculating the average heart rate (:gh:`8605` by `Richard Höchenberger`_)
+
 API changes
 ~~~~~~~~~~~
 
