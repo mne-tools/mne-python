@@ -31,6 +31,8 @@ Current (0.22.dev0)
 
 Enhancements
 ~~~~~~~~~~~~
+- Add :func:`mne.source_space.compute_distance_to_sensors` to compute distances between vertices and sensors (:gh:`8534` by `Olaf Hauk`_ and `Marijn van Vliet`_)
+
 - Add :func:`mne.read_evokeds_mff` to read averaged MFFs (requires mffpy >= 0.5.7) **by new contributor** |Evan Hathaway|_ (:gh:`8354`)
 
 - Add :class:`mne.decoding.SSD` for spatial filtering with spatio-spectral-decomposition (:gh:`7070` **by new contributor** |Victoria Peterson|_ and `Denis Engemann`_)
