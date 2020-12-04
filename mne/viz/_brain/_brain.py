@@ -95,6 +95,8 @@ class _LayeredMesh(object):
         self._default_scalars_name = 'Data'
 
     def map(self):
+        if self._is_mapped:
+            return
         kwargs = {
             "color": None,
             "pickable": True,
@@ -109,12 +111,7 @@ class _LayeredMesh(object):
             scalars=self._default_scalars,
             **kwargs
         )
-        if isinstance(mesh_data, tuple):
-            actor, polydata = mesh_data
-        else:  # mayavi
-            actor, polydata = mesh_data.actor, mesh_data
-        self._polydata = polydata
-        self._actor = actor
+        self._actor, self._polydata = mesh_data
         self._is_mapped = True
 
     def _compute_over(self, B, A):
@@ -168,11 +165,12 @@ class _LayeredMesh(object):
 
     def _update(self):
         from ..backends._pyvista import _set_mesh_scalars
-        _set_mesh_scalars(
-            mesh=self._polydata,
-            scalars=self._cache,
-            name=self._default_scalars_name,
-        )
+        if self._cache is not None:
+            _set_mesh_scalars(
+                mesh=self._polydata,
+                scalars=self._cache,
+                name=self._default_scalars_name,
+            )
 
     def update(self):
         if not self._is_mapped:
@@ -2220,28 +2218,15 @@ class Brain(object):
                 rgb = np.round(np.multiply(colorConverter.to_rgb(color), 255))
                 cmap[:, :3] = rgb.astype(cmap.dtype)
 
-            ctable = cmap.astype(np.float64) / 255.
-
-            mesh_data = self._renderer.mesh(
-                x=self.geo[hemi].coords[:, 0],
-                y=self.geo[hemi].coords[:, 1],
-                z=self.geo[hemi].coords[:, 2],
-                triangles=self.geo[hemi].faces,
-                color=None,
-                colormap=ctable,
-                vmin=np.min(ids),
-                vmax=np.max(ids),
+            ctable = cmap.astype(np.float64)
+            mesh = self._layered_meshes[hemi]
+            mesh.add_overlay(
                 scalars=ids,
-                interpolate_before_map=False,
-                polygon_offset=-2,
+                colormap=ctable,
+                rng=[np.min(ids), np.max(ids)],
+                opacity=None,
+                name=annot,
             )
-            if isinstance(mesh_data, tuple):
-                from ..backends._pyvista import _set_colormap_range
-                actor, mesh = mesh_data
-                # add metadata to the mesh for picking
-                mesh._hemi = hemi
-                _set_colormap_range(actor, cmap.astype(np.uint8),
-                                    None)
 
         self._update()
 
