@@ -17,7 +17,7 @@ from ..utils import logger, verbose, _check_channels_spatial_filter
 from ..utils import _check_one_ch_type, _check_info_inv
 from ._compute_beamformer import (
     _check_proj_match, _prepare_beamformer_input, _compute_power,
-    _compute_beamformer, _check_src_type, Beamformer)
+    _compute_beamformer, _check_src_type, Beamformer, _restore_pos_semidef)
 
 
 @verbose
@@ -170,11 +170,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         del data_cov['estimator']
 
     # Whiten the data covariance
-    Cm = np.dot(whitener, np.dot(Cm, whitener.T))
-    # Restore to positive semi-definite, as
-    # (negative eigenvalues are errant / due to massive scaling differences)
-    s, u = np.linalg.eigh(Cm)
-    Cm = np.dot(u * np.abs(s), u.T.conj())
+    Cm = _restore_pos_semidef(np.dot(whitener, np.dot(Cm, whitener.T)))
     rank_int = sum(rank.values())
     del rank
 

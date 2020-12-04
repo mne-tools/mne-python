@@ -9,6 +9,7 @@
 import numpy as np
 
 from ..channels import equalize_channels
+from ..io.pick import pick_info, pick_channels
 from ..utils import (logger, verbose, warn, _check_one_ch_type,
                      _check_channels_spatial_filter, _check_rank,
                      _check_option, _validate_type)
@@ -18,7 +19,8 @@ from ..source_estimate import _make_stc, _get_src_type
 from ..time_frequency import csd_fourier, csd_multitaper, csd_morlet
 from ._compute_beamformer import (_check_proj_match, _prepare_beamformer_input,
                                   _compute_beamformer, _check_src_type,
-                                  Beamformer, _compute_power)
+                                  Beamformer, _compute_power,
+                                  _restore_pos_semidef)
 
 
 @verbose
@@ -165,7 +167,9 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
     n_freqs = len(frequencies)
 
     _check_one_ch_type('dics', info, forward, csd, noise_csd)
-    info, fwd, csd = equalize_channels([info, forward, csd])
+    # remove bads so that equalize_channels only keeps all good
+    info = pick_info(info, pick_channels(info['ch_names'], [], info['bads']))
+    info, forward, csd = equalize_channels([info, forward, csd])
 
     csd, noise_csd = _prepare_noise_csd(csd, noise_csd, real_filter)
 
@@ -189,11 +193,14 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
                         (freq, i + 1, n_freqs))
 
         Cm = csd.get_data(index=i)
+        # XXX: Weird that real_filter happens *before* whitening, which could
+        # make things complex again...?
         if real_filter:
             Cm = Cm.real
 
         # Whiten the CSD
         Cm = np.dot(whitener, np.dot(Cm, whitener.conj().T))
+        _restore_pos_semidef(Cm)
 
         # compute spatial filter
         n_orient = 3 if is_free_ori else 1

@@ -141,6 +141,14 @@ def _sym_inv_sm(x, reduce_rank, inversion, sk):
     return x_inv
 
 
+def _restore_pos_semidef(Cm):
+    # Restore to positive semi-definite, as
+    # (negative eigenvalues are errant / due to massive scaling differences)
+    s, u = np.linalg.eigh(Cm)
+    Cm[:] = np.dot(u * np.abs(s), u.T.conj())
+    return Cm
+
+
 def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
                         reduce_rank, rank, inversion, nn, orient_std):
     """Compute a spatial beamformer filter (LCMV or DICS).
