@@ -167,6 +167,8 @@ class _LayeredMesh(object):
         )
 
     def update(self):
+        if not self._is_mapped:
+            return
         self._cache = self._compose_overlays()
         self._update()
 
@@ -537,7 +539,12 @@ class Brain(object):
     def _clean(self):
         # resolve the reference cycle
         self.clear_points()
-        self._hemi_layered_meshes.clear()
+        # clear init actors
+        for hemi in self._hemis:
+            actor = self._hemi_layered_meshes[hemi]._actor
+            mapper = actor.GetMapper()
+            mapper.SetLookupTable(None)
+            actor.SetMapper(None)
         self._clear_callbacks()
         if getattr(self, 'mpl_canvas', None) is not None:
             self.mpl_canvas.clear()

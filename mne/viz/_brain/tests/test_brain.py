@@ -396,7 +396,7 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
             values = current_mesh.cell_arrays['values'][vertices]
             cell_id = vertices[np.argmax(np.abs(values))]
         else:
-            current_mesh = brain._hemi_meshes[current_hemi]
+            current_mesh = brain._hemi_layered_meshes[current_hemi]._polydata
             cell_id = rng.randint(0, current_mesh.n_cells)
         test_picker = TstVTKPicker(None, None, current_hemi, brain)
         assert brain._on_pick(test_picker, None) is None
