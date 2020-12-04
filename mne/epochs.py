@@ -1947,6 +1947,12 @@ def _check_baseline(baseline, times, sfreq, on_baseline_outside_data='raise'):
 
     Parameters
     ----------
+    baseline : tuple
+        Beginning and end of the baseline period, in seconds.
+    times : array
+        The time points.
+    sfreq : float
+        The sampling rate.
     on_baseline_outside_data : 'raise' | 'info' | 'adjust'
         What do do if the baseline period exceeds the data.
         If ``'raise'``, raise an exception (default).
