@@ -6,8 +6,9 @@
 
 import numpy as np
 
-from ..annotations import _annotations_starts_stops
-from ..utils import logger, verbose, sum_squared, warn
+from ..annotations import (_annotations_starts_stops, Annotations,
+                           annotations_from_events)
+from ..utils import logger, verbose, sum_squared, warn, _check_option
 from ..filter import filter_data
 from ..epochs import Epochs, BaseEpochs
 from ..io.base import BaseRaw
@@ -142,29 +143,16 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
     ----------
     raw : instance of Raw
         The raw data.
-    event_id : int
-        The index to assign to found events.
-    ch_name : None | str
-        The name of the channel to use for ECG peak detection.
-        If None (default), a synthetic ECG channel is created from
-        cross channel average. Synthetic channel can only be created from
-        'meg' channels.
-    tstart : float
-        Start detection after tstart seconds. Useful when beginning
-        of run is noisy.
-    l_freq : float
-        Low pass frequency to apply to the ECG channel while finding events.
-    h_freq : float
-        High pass frequency to apply to the ECG channel while finding events.
-    qrs_threshold : float | str
-        Between 0 and 1. qrs detection threshold. Can also be "auto" to
-        automatically choose the threshold that generates a reasonable
-        number of heartbeats (40-160 beats / min).
-    filter_length : str | int | None
-        Number of taps to use for filtering.
+    %(ecg_event_id)s
+    %(ecg_ch_name)s
+    %(ecg_tstart)s
+    %(ecg_filter_freqs)s
+    %(ecg_qrs_threshold)s
+    %(ecg_filter_length)s
     return_ecg : bool
-        Return ecg channel if synthesized. Defaults to False. If True and
-        and ecg exists this will yield None.
+        Return the ECG channel if it was synthesized. Defaults to ``False``.
+        If ``True`` and an actual ECG channel was found in the data, this will
+        return ``None``.
     %(reject_by_annotation_all)s
 
         .. versionadded:: 0.18
@@ -178,6 +166,9 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
         Name of channel used.
     average_pulse : float
         Estimated average pulse.
+    ecg : array | None
+        The ECG data of the synthesized ECG channel, if any. This will only
+        be returned if ``return_ecg=True`` was passed.
 
     See Also
     --------
@@ -230,8 +221,9 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
     ecg_events = remap[ecg_events]
 
     n_events = len(ecg_events)
-    minutes = len(ecg) / (raw.info['sfreq'] * 60.)
-    average_pulse = n_events / minutes
+    duration_sec = len(ecg) / raw.info['sfreq'] - tstart
+    duration_min = duration_sec / 60.
+    average_pulse = n_events / duration_min
     logger.info("Number of ECG events detected : %d (average pulse %d / "
                 "min.)" % (n_events, average_pulse))
 
@@ -243,6 +235,119 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
     if return_ecg:
         out += (ecg,)
     return out
+
+
+def _ecg_segment_window(heart_rate):
+    """Create a suitable time window around an ECG R wave peak.
+
+    This ideally creates a window that contains the entire heartbeat.
+
+    Parameters
+    ----------
+    heart_rate : float
+        The (average) heart rate.
+
+    Returns
+    -------
+    epochs_start
+        Start of the heartbeat, relative to the R peak, in seconds.
+    epochs_end
+        End of the heartbeat, relative to the R peak, in seconds.
+    """
+    # Create a window around the R wave peaks. This algorithm was copied
+    # from NeuroKit2 (MIT license). Original code:
+    # https://github.com/neuropsychology/NeuroKit/blob/9ec5674b963cdc96709105a01a8af5c2c18c1ee5/neurokit2/ecg/ecg_segment.py#L79-L100  # noqa
+
+    # Modulator
+    m = heart_rate / 60
+
+    # Window
+    epochs_start = -0.35 / m
+    epochs_end = 0.5 / m
+
+    # Adjust for high heart rates
+    if heart_rate >= 80:
+        c = 0.1
+        epochs_start = epochs_start - c
+        epochs_end = epochs_end + c
+
+    return epochs_start, epochs_end
+
+
+@verbose
+def annotate_ecg(raw, what='heartbeats', ch_name=None,
+                 tstart=0.0, l_freq=5, h_freq=35,
+                 qrs_threshold='auto', filter_length='10s',
+                 reject_by_annotation=True, verbose=None):
+    """Annotate entire heartbeats or the peak of the R wave of an ECG signal.
+
+    .. versionadded:: 0.22
+
+    Parameters
+    ----------
+    raw : instance of Raw
+        The raw data to analyze.
+    what : 'heartbeats' | 'r-peaks'
+        Whether to annotate entire heartbeats or only the peaks of the R waves.
+        R wave peak annotations will have a duration of zero. When annotating
+        heartbeats, a window will be created around the R peak; the window
+        size will be determined by the average heart rate.
+
+        .. note::
+            This function uses :func:`mne.preprocessing.find_ecg_events` to
+            locate the peaks of the R waves. Onset and duration of heartbeat
+            annotations are based on R peaks and the average heart rate. Note
+            that heartbeat annotations are just rough estimates, as no P and T
+            components are actually identified.
+
+    %(ecg_ch_name)s
+    %(ecg_tstart)s
+    %(ecg_filter_freqs)s
+    %(ecg_qrs_threshold)s
+    %(ecg_filter_length)s
+    %(reject_by_annotation_all)s
+    %(verbose)s
+
+    Returns
+    -------
+    annotations : mne.Annotations
+        The generated `~mne.Annotations`. If no ECG activity could be
+        discovered, returns an empty set of `~mne.Annotations`.
+    """
+    _check_option('what', what, ['heartbeats', 'r-peaks'])
+
+    logger.info('Detecting R wave peaks.')
+    event_id = 999
+    ecg_events, _, hr_avg = find_ecg_events(
+        raw=raw, ch_name=ch_name, tstart=tstart, event_id=event_id,
+        l_freq=l_freq, h_freq=h_freq, filter_length=filter_length,
+        qrs_threshold=qrs_threshold,
+        reject_by_annotation=reject_by_annotation,
+        verbose=verbose)
+
+    if ecg_events.size == 0:
+        logger.info('No ECG activity found.')
+        return Annotations(onset=[], duration=[], description=[],
+                           orig_time=raw.annotations.orig_time)
+    annotations = annotations_from_events(
+        events=ecg_events, sfreq=raw.info['sfreq'],
+        orig_time=raw.annotations.orig_time,
+        event_desc={event_id: 'ECG/R peak'})
+
+    if what == 'r-peaks':
+        return annotations
+
+    if what == 'heartbeats':
+        heartbeat_onset, heartbeat_offset = _ecg_segment_window(hr_avg)
+        heartbeat_duration = heartbeat_offset - heartbeat_onset
+
+        annotations.onset += heartbeat_onset
+        # Ensure we won't end up with negative times here
+        annotations.onset[annotations.onset < 0] = 0
+
+        annotations.duration.fill(heartbeat_duration)
+        annotations.description.fill('ECG/Heartbeat')
+        return annotations
 
 
 def _get_ecg_channel_index(ch_name, inst):
@@ -280,47 +385,21 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
     ----------
     raw : instance of Raw
         The raw data.
-    ch_name : None | str
-        The name of the channel to use for ECG peak detection.
-        If None (default), ECG channel is used if present. If None and no
-        ECG channel is present, a synthetic ECG channel is created from
-        cross channel average. Synthetic channel can only be created from
-        MEG channels.
-    event_id : int
-        The index to assign to found events.
+    %(ecg_ch_name)s
+    %(ecg_event_id)s
     %(picks_all)s
     tmin : float
         Start time before event.
     tmax : float
         End time after event.
-    l_freq : float
-        Low pass frequency to apply to the ECG channel while finding events.
-    h_freq : float
-        High pass frequency to apply to the ECG channel while finding events.
-    reject : dict | None
-        Rejection parameters based on peak-to-peak amplitude.
-        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
-        If reject is None then no rejection is done. Example::
-
-            reject = dict(grad=4000e-13, # T / m (gradiometers)
-                          mag=4e-12, # T (magnetometers)
-                          eeg=40e-6, # V (EEG channels)
-                          eog=250e-6 # V (EOG channels)
-                          )
-
+    %(ecg_filter_freqs)s
+    %(reject_epochs)s
     flat : dict | None
         Rejection parameters based on flatness of signal.
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
         are floats that set the minimum acceptable peak-to-peak amplitude.
         If flat is None then no rejection is done.
-    baseline : tuple | list of length 2 | None
-        The time interval to apply rescaling / baseline correction.
-        If None do not apply it. If baseline is (a, b)
-        the interval is between "a (s)" and "b (s)".
-        If a is None the beginning of the data is used
-        and if b is None then b is set to the end of the interval.
-        If baseline is equal to (None, None) all the time
-        interval is used. If None, no correction is applied.
+    %(baseline_epochs)s
     preload : bool
         Preload epochs or not (default True). Must be True if
         keep_ecg is True.

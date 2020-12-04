@@ -169,10 +169,47 @@ for ax in fig.axes[:2]:
 # the function :func:`~mne.preprocessing.create_ecg_epochs` will call
 # :func:`~mne.preprocessing.find_ecg_events` under the hood, and use the
 # resulting events array to extract epochs centered around the detected
-# heartbeat artifacts. Here we create those epochs, then show an image plot of
+# heartbeat artifacts. Lastly, :func:`~mne.preprocessing.annotate_ecg` can be
+# used to annotate ECG activity in raw data.
+#
+# Here we will first create and display those `~mne.Annotations`, before
+# producing ECG epochs and then showing an image plot of
 # the detected ECG artifacts along with the average ERF across artifacts. We'll
 # show all three channel types, even though EEG channels are less strongly
 # affected by heartbeat artifacts:
+#
+# Let's start with the `~mne.Annotations`. We can create them by calling
+# :func:`~mne.preprocessing.annotate_ecg`; then we attach them to a copy of
+# our raw data (because we don't want to modify the original), and create a
+# plot.
+
+ecg_annotations = mne.preprocessing.annotate_ecg(raw)
+raw.copy().set_annotations(ecg_annotations).plot()
+
+###############################################################################
+# This has annotated all heart beats for their **entire** duration. If you'd
+# rather just mark the **peaks** of the ECG R component, pass
+# ``what='r-peaks'``:
+
+ecg_annotations = mne.preprocessing.annotate_ecg(raw, what='r-peaks')
+raw.copy().set_annotations(ecg_annotations).plot()
+
+###############################################################################
+# Under the hood, :func:`~mne.preprocessing.annotate_ecg` calls
+# :func:`~mne.preprocessing.find_ecg_events` and simply turns the returned
+# events into `~mne.Annotations`. Let's call this function directly and
+# visualize the ECG events on the raw data. By default, the function assigns
+# the event number ``999`` to ECG events. The resulting figure should look
+# almost identical to the one we just produced using
+# `~mne.preprocessing.annotate_ecg`.
+
+events, ecg_ch, average_hr = mne.preprocessing.find_ecg_events(raw)
+raw.plot(events=events, event_id={999: 'ECG R Peak'})
+print(f'Found {len(events)} ECG events in channel {ecg_ch}. The average heart '
+      f'rate was: {average_hr} beats per minute.')
+
+###############################################################################
+# Finally, let us create epochs centered around the ECG R wave peaks.
 
 # sphinx_gallery_thumbnail_number = 3
 ecg_epochs = mne.preprocessing.create_ecg_epochs(raw)

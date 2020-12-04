@@ -1936,6 +1936,41 @@ reject : dict | str | None
     (default), then the rejection parameters set at instantiation are used.
 """
 
+# ECG detection
+docdict['ecg_event_id'] = """
+event_id : int
+    The index to assign to found ECG events.
+"""
+docdict['ecg_ch_name'] = """
+ch_name : None | str
+    The name of the channel to use for ECG peak detection.
+    If ``None`` (default), ECG channel is used if present. If ``None`` and
+    **no** ECG channel is present, a synthetic ECG channel is created from
+    cross-channel average. This synthetic channel can only be created from
+    MEG channels.
+"""
+docdict['ecg_filter_freqs'] = """
+l_freq : float
+    Low pass frequency to apply to the ECG channel while finding events.
+h_freq : float
+    High pass frequency to apply to the ECG channel while finding events.
+"""
+docdict['ecg_qrs_threshold'] = """
+qrs_threshold : float | str
+    Between 0 and 1. qrs detection threshold. Can also be "auto" to
+    automatically choose the threshold that generates a reasonable
+    number of heartbeats (40-160 beats / min).
+"""
+docdict['ecg_filter_length'] = """
+filter_length : str | int | None
+    Number of taps to use for filtering.
+"""
+docdict['ecg_tstart'] = """
+tstart : float
+    Start ECG detection after ``tstart`` seconds. Useful when the beginning
+    of the run is noisy.
+"""
+
 # Other
 docdict['accept'] = """
 accept : bool
