@@ -6,6 +6,7 @@ import numpy as np
 from mne.io import read_raw_fif
 from mne import pick_types
 from mne.preprocessing import find_ecg_events, create_ecg_epochs, annotate_ecg
+from mne.preprocessing.ecg import _ecg_segment_window
 from mne.utils import run_tests_if_main
 
 data_path = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -118,6 +119,16 @@ def test_annotate_ecg(what, tstart, flatten_ecg):
     else:
         assert len(annot) > 0
         assert all(annot.onset > 0)
+
+
+def test_ecg_window_for_annotations():
+    """Ensure that windowing for ECG Annotations is sane."""
+    start_55, stop_55 = _ecg_segment_window(heart_rate=55)
+    start_60, stop_60 = _ecg_segment_window(heart_rate=60)
+    start_85, stop_85 = _ecg_segment_window(heart_rate=85)
+
+    assert start_55 < start_60 < start_85
+    assert stop_55 > stop_60 > stop_85
 
 
 run_tests_if_main()
