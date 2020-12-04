@@ -74,7 +74,11 @@ class _Overlay(object):
         scalars = self._scalars
         if diff(scalars) != 0:
             scalars = norm(scalars, rng)
-        return cmap(scalars)
+
+        colors = cmap(scalars)
+        if self._opacity is not None:
+            colors[:, 3] *= self._opacity
+        return colors
 
 
 class _LayeredMesh(object):
@@ -186,7 +190,8 @@ class _LayeredMesh(object):
         self._polydata = None
         self._renderer = None
 
-    def update_overlay(self, name, scalars=None, colormap=None):
+    def update_overlay(self, name, scalars=None, colormap=None,
+                       opacity=None):
         overlay = self._overlays.get(name, None)
         if overlay is None:
             return
@@ -194,6 +199,8 @@ class _LayeredMesh(object):
             overlay._scalars = scalars
         if colormap is not None:
             overlay._colormap = colormap
+        if opacity is not None:
+            overlay._opacity = opacity
         self.update()
 
 
@@ -1718,6 +1725,9 @@ class Brain(object):
         self.set_time_interpolation(self.time_interpolation)
         self.set_data_smoothing(self._data['smoothing_steps'])
 
+        mesh = self._layered_meshes[hemi]
+        mesh.update_overlay(name='data', opacity=alpha)
+
         # 2) add the other actors
         if colorbar is True:
             # botto left by default
@@ -2016,7 +2026,7 @@ class Brain(object):
                 scalars=label,
                 colormap=ctable,
                 rng=None,
-                opacity=None,
+                opacity=alpha,
                 name=label_name,
             )
             self._label_data[hemi].append(label_name)
@@ -2224,7 +2234,7 @@ class Brain(object):
                 scalars=ids,
                 colormap=ctable,
                 rng=[np.min(ids), np.max(ids)],
-                opacity=None,
+                opacity=alpha,
                 name=annot,
             )
 
