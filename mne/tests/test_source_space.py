@@ -10,15 +10,17 @@ from shutil import copytree
 import pytest
 import scipy
 import numpy as np
-from numpy.testing import assert_array_equal, assert_allclose, assert_equal
+from numpy.testing import (assert_array_equal, assert_allclose, assert_equal,
+                           assert_array_less)
 from mne.datasets import testing
 import mne
 from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
                  setup_source_space, setup_volume_source_space,
                  add_source_space_distances, read_bem_surfaces,
                  morph_source_spaces, SourceEstimate, make_sphere_model,
-                 head_to_mni, compute_source_morph,
-                 read_bem_solution, read_freesurfer_lut, read_talxfm)
+                 head_to_mni, compute_source_morph, pick_types,
+                 read_bem_solution, read_freesurfer_lut, read_talxfm,
+                 read_trans)
 from mne.fixes import _get_img_fdata
 from mne.utils import (requires_nibabel, run_subprocess,
                        modified_env, requires_mne, run_tests_if_main,
@@ -29,7 +31,9 @@ from mne.source_estimate import _get_src_type
 from mne.transforms import apply_trans, _get_trans
 from mne.source_space import (get_volume_labels_from_aseg,
                               get_volume_labels_from_src,
-                              _compare_source_spaces)
+                              _compare_source_spaces,
+                              compute_distance_to_sensors)
+from mne.io.pick import _picks_to_idx
 from mne.io.constants import FIFF
 
 data_path = testing.data_path(download=False)
@@ -50,12 +54,70 @@ fname_bem_3_sol = op.join(data_path, 'subjects', 'sample', 'bem',
 fname_fs = op.join(subjects_dir, 'fsaverage', 'bem', 'fsaverage-ico-5-src.fif')
 fname_morph = op.join(subjects_dir, 'sample', 'bem',
                       'sample-fsaverage-ico-5-src.fif')
+fname_src = op.join(
+    data_path, 'subjects', 'sample', 'bem', 'sample-oct-4-src.fif')
+fname_fwd = op.join(
+    data_path, 'MEG', 'sample', 'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
 trans_fname = op.join(data_path, 'MEG', 'sample',
                       'sample_audvis_trunc-trans.fif')
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 fname_small = op.join(base_dir, 'small-src.fif.gz')
+fname_ave = op.join(base_dir, 'test-ave.fif')
 rng = np.random.RandomState(0)
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('picks, limits', [
+    ('meg', (0.02, 0.250)),
+    (None, (0.01, 0.250)),  # should be same as EEG
+    ('eeg', (0.01, 0.250)),
+])
+def test_compute_distance_to_sensors(picks, limits):
+    """Test computation of distances between vertices and sensors."""
+    src = read_source_spaces(fname_src)
+    fwd = mne.read_forward_solution(fname_fwd)
+    info = fwd['info']
+    trans = read_trans(trans_fname)
+    # trans = fwd['info']['mri_head_t']
+    if isinstance(picks, str):
+        kwargs = dict()
+        kwargs[picks] = True
+        if picks == 'eeg':
+            info['dev_head_t'] = None  # should not break anything
+        use_picks = pick_types(info, **kwargs, exclude=())
+    else:
+        use_picks = picks
+    n_picks = len(_picks_to_idx(info, use_picks, 'data', exclude=()))
+
+    # Make sure same vertices are used in src and fwd
+    src[0]['inuse'] = fwd['src'][0]['inuse']
+    src[1]['inuse'] = fwd['src'][1]['inuse']
+    src[0]['nuse'] = fwd['src'][0]['nuse']
+    src[1]['nuse'] = fwd['src'][1]['nuse']
+
+    n_verts = src[0]['nuse'] + src[1]['nuse']
+
+    # minimum distances between vertices and sensors
+    depths = compute_distance_to_sensors(src, info=info, picks=use_picks,
+                                         trans=trans)
+    assert depths.shape == (n_verts, n_picks)
+    assert limits[0] * 5 > depths.min()  # meaningful choice of limits
+    assert_array_less(limits[0], depths)
+    assert_array_less(depths, limits[1])
+
+    # If source space from Forward Solution and trans=None (i.e. identity) then
+    # depths2 should be the same as depth.
+    depths2 = compute_distance_to_sensors(src=fwd['src'], info=info,
+                                          picks=use_picks, trans=None)
+    assert_allclose(depths, depths2, rtol=1e-5)
+
+    if picks != 'eeg':
+        # this should break things
+        info['dev_head_t'] = None
+        with pytest.raises(ValueError,
+                           match='Transform between meg<->head'):
+            compute_distance_to_sensors(src, info, use_picks, trans)
 
 
 @testing.requires_testing_data
