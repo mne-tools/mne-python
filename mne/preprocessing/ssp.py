@@ -150,9 +150,19 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
                      tstart=0., qrs_threshold='auto', filter_method='fir',
                      iir_params=None, copy=True, return_drop_log=False,
                      meg='separate', verbose=None):
-    """Compute SSP/PCA projections for ECG artifacts.
+    """Compute SSP projections for ECG artifacts.
 
-    .. note:: raw data will be loaded if it is not already.
+    This function will:
+
+      - filter the ECG data channel,
+      - find ECG R wave peaks using :func:`mne.preprocessing.find_ecg_events`,
+      - filter the raw data,
+      - create `~mne.Epochs` around the R wave peaks, capturing the heartbeats,
+      - optionally average the `~mne.Epochs` to produce an `~mne.Evoked` if
+        ``average=True`` was passed (default), and finally
+      - calculate SSP projection vectors on that data to capture the artifacts.
+
+    .. note:: Raw data will be loaded if it hasn't been preloaded already.
 
     Parameters
     ----------
@@ -263,9 +273,20 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
                      eog_h_freq=10, tstart=0., filter_method='fir',
                      iir_params=None, ch_name=None, copy=True,
                      return_drop_log=False, meg='separate', verbose=None):
-    """Compute SSP/PCA projections for EOG artifacts.
+    """Compute SSP projections for EOG artifacts.
 
-    .. note:: raw data must be preloaded.
+    This function will:
+
+      - filter the EOG data channel,
+      - find the peaks of eyeblinks in the EOG data using
+        :func:`mne.preprocessing.find_eog_events`,
+      - filter the raw data,
+      - create `~mne.Epochs` around the eyeblinks,
+      - optionally average the `~mne.Epochs` to produce an `~mne.Evoked` if
+        ``average=True`` was passed (default), and finally
+      - calculate SSP projection vectors on that data to capture the artifacts.
+
+    .. note:: Raw data must be preloaded.
 
     Parameters
     ----------
