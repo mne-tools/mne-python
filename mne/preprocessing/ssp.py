@@ -150,7 +150,7 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
                      tstart=0., qrs_threshold='auto', filter_method='fir',
                      iir_params=None, copy=True, return_drop_log=False,
                      meg='separate', verbose=None):
-    """Compute SSP projections for ECG artifacts.
+    """Compute SSP (signal-space projection) vectors for ECG artifacts.
 
     This function will:
 
@@ -273,7 +273,7 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
                      eog_h_freq=10, tstart=0., filter_method='fir',
                      iir_params=None, ch_name=None, copy=True,
                      return_drop_log=False, meg='separate', verbose=None):
-    """Compute SSP projections for EOG artifacts.
+    """Compute SSP (signal-space projection) vectors for EOG artifacts.
 
     This function will:
 
