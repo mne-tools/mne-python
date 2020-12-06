@@ -1941,7 +1941,7 @@ docdict['compute_ssp'] = """
 This function aims to find those SSP vectors that will project out the
 ``n`` most prominent signals from the data for each specified sensor type.
 Consequently, if the provided input data contains high levels of noise, the
-produced SSP vectors can be then used to eliminate that noise from the data.
+produced SSP vectors can then be used to eliminate that noise from the data.
 """
 
 # Other
