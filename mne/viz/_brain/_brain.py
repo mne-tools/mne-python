@@ -18,7 +18,7 @@ import warnings
 
 import numpy as np
 from scipy import sparse
-from collection import OrderedDict
+from collections import OrderedDict
 
 from .colormap import calculate_lut
 from .surface import Surface
