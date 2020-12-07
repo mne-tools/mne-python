@@ -1904,7 +1904,7 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
         "volume_options": volume_options,
         "verbose": False,
     }
-    for hi, hemi in enumerate(hemis):
+    for hemi in hemis:
         if isinstance(stc, _BaseVolSourceEstimate):  # no surf data
             break
         vertices = stc.vertices[0 if hemi == 'lh' else 1]
