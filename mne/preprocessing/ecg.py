@@ -42,10 +42,8 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
         Low pass frequency
     h_freq : float
         High pass frequency
-    tstart : float
-        Start detection after tstart seconds.
-    filter_length : str | int | None
-        Number of taps to use for filtering.
+    %(ecg_tstart)s
+    %(ecg_filter_length)s
     %(verbose)s
 
     Returns
@@ -146,7 +144,10 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
     %(ecg_ch_name)s
     %(ecg_tstart)s
     %(ecg_filter_freqs)s
-    %(ecg_qrs_threshold)s
+    qrs_threshold : float | str
+        Between 0 and 1. qrs detection threshold. Can also be "auto" to
+        automatically choose the threshold that generates a reasonable
+        number of heartbeats (40-160 beats / min).
     %(ecg_filter_length)s
     return_ecg : bool
         Return the ECG data. This is especially useful if no ECG channel
@@ -281,11 +282,7 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
         End time after event.
     %(ecg_filter_freqs)s
     %(reject_epochs)s
-    flat : dict | None
-        Rejection parameters based on flatness of signal.
-        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
-        are floats that set the minimum acceptable peak-to-peak amplitude.
-        If flat is None then no rejection is done.
+    %(flat)s
     %(baseline_epochs)s
     preload : bool
         Preload epochs or not (default True). Must be True if

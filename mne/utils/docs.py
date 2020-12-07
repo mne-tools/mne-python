@@ -1935,6 +1935,23 @@ reject : dict | str | None
     If ``reject`` is ``None``, no rejection is performed. If ``'existing'``
     (default), then the rejection parameters set at instantiation are used.
 """
+flat_common = """
+    Rejection parameters based on flatness of signal.
+    Valid **keys** are ``'grad'``, ``'mag'``, ``'eeg'``, ``'eog'``, ``'ecg'``.
+    The **values** are floats that set the minimum acceptable peak-to-peak
+    amplitude (PTP). If the PTP is smaller than this threshold, the epoch will
+    be dropped. If ``None`` then no rejection is performed based on flatness
+    of the signal."""
+docdict['flat'] = f"""
+flat : dict | None
+{flat_common}
+"""
+docdict['flat_drop_bad'] = f"""
+flat : dict | str | None
+{flat_common}
+    If ``'existing'``, then the flat parameters set during epoch creation are
+    used.
+"""
 
 # SSP
 docdict['compute_ssp'] = """This function aims to find those SSP vectors that
@@ -1962,12 +1979,6 @@ l_freq : float
     Low pass frequency to apply to the ECG channel while finding events.
 h_freq : float
     High pass frequency to apply to the ECG channel while finding events.
-"""
-docdict['ecg_qrs_threshold'] = """
-qrs_threshold : float | str
-    Between 0 and 1. qrs detection threshold. Can also be "auto" to
-    automatically choose the threshold that generates a reasonable
-    number of heartbeats (40-160 beats / min).
 """
 docdict['ecg_filter_length'] = """
 filter_length : str | int | None
