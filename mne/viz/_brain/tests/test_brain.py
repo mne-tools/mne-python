@@ -93,6 +93,7 @@ class TstVTKPicker(object):
 
 
 def test_layered_mesh(renderer_interactive):
+    """Test management of scalars/colormap overlay."""
     if renderer_interactive._get_3d_backend() != 'pyvista':
         pytest.skip('TimeViewer tests only supported on PyVista')
     mesh = _LayeredMesh(
