@@ -20,7 +20,7 @@ from mne.source_space import (read_source_spaces, vertex_to_mni,
                               setup_volume_source_space)
 from mne.datasets import testing
 from mne.utils import check_version
-from mne.viz._brain import Brain, _LinkViewer, _BrainScraper
+from mne.viz._brain import Brain, _LinkViewer, _BrainScraper, _LayeredMesh
 from mne.viz._brain.colormap import calculate_lut
 
 from matplotlib import cm, image
@@ -90,6 +90,36 @@ class TstVTKPicker(object):
     def GetPosition(self):
         """Return the position."""
         return np.array(self.GetPickPosition()) - (0, 0, 100)
+
+
+def test_layered_mesh(renderer_interactive):
+    if renderer_interactive._get_3d_backend() != 'pyvista':
+        pytest.skip('TimeViewer tests only supported on PyVista')
+    mesh = _LayeredMesh(
+        renderer=renderer_interactive._get_renderer(size=[300, 300]),
+        vertices=np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0], [1, 1, 0]]),
+        triangles=np.array([[0, 1, 2], [1, 2, 3]]),
+        normals=np.array([[0, 0, 1]] * 4),
+    )
+    assert not mesh._is_mapped
+    mesh.map()
+    assert mesh._is_mapped
+    assert mesh._cache is None
+    mesh.update()
+    assert len(mesh._overlays) == 0
+    mesh.add_overlay(
+        scalars=np.array([0, 1, 1, 0]),
+        colormap=np.array([(1, 1, 1, 1), (0, 0, 0, 0)]),
+        rng=None,
+        opacity=None,
+        name='test',
+    )
+    assert mesh._cache is not None
+    assert len(mesh._overlays) == 1
+    assert 'test' in mesh._overlays
+    mesh.remove_overlay('test')
+    assert len(mesh._overlays) == 0
+    mesh._clean()
 
 
 @testing.requires_testing_data

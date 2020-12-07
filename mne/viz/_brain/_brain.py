@@ -167,13 +167,14 @@ class _LayeredMesh(object):
         self.update()
 
     def _update(self):
+        if self._cache is None:
+            return
         from ..backends._pyvista import _set_mesh_scalars
-        if self._cache is not None:
-            _set_mesh_scalars(
-                mesh=self._polydata,
-                scalars=self._cache,
-                name=self._default_scalars_name,
-            )
+        _set_mesh_scalars(
+            mesh=self._polydata,
+            scalars=self._cache,
+            name=self._default_scalars_name,
+        )
 
     def update(self):
         self._cache = self._compose_overlays()
@@ -311,6 +312,8 @@ class Brain(object):
        | remove_foci               | ✓            |               |
        +---------------------------+--------------+---------------+
        | remove_labels             | ✓            | ✓             |
+       +---------------------------+--------------+---------------+
+       | scale_data_colormap       | ✓            |               |
        +---------------------------+--------------+---------------+
        | save_image                | ✓            | ✓             |
        +---------------------------+--------------+---------------+
@@ -3004,38 +3007,6 @@ class Brain(object):
                     keep_idx = keep_idx[np.in1d(keep_idx, restrict_idx)]
             show[keep_idx] = 1
             label *= show
-
-    @verbose
-    def scale_data_colormap(self, fmin, fmid, fmax, transparent,
-                            center=None, alpha=1.0, verbose=None):
-        """Scale the data colormap.
-
-        Parameters
-        ----------
-        %(fmin_fmid_fmax)s
-        %(transparent)s
-        %(center)s
-        alpha : float in [0, 1]
-            Alpha level to control opacity.
-        %(verbose_meth)s
-        """
-        # XXX fmid/transparent/center not used, this is a bug
-        lut_lst = self._data['ctable']
-        n_col = len(lut_lst)
-
-        # apply the lut on every surfaces
-        for hemi in ['lh', 'rh']:
-            if hemi in self._layered_meshes:
-                mesh = self._layered_meshes[hemi]
-                vtk_lut = mesh._actor.GetMapper().GetLookupTable()
-                vtk_lut.SetNumberOfColors(n_col)
-                vtk_lut.SetRange([fmin, fmax])
-                vtk_lut.Build()
-                for i in range(0, n_col):
-                    lt = lut_lst[i]
-                    vtk_lut.SetTableValue(
-                        i, lt[0], lt[1], lt[2], alpha)
-        self._update_fscale(1.0)
 
     def enable_depth_peeling(self):
         """Enable depth peeling."""
