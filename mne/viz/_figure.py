@@ -1077,14 +1077,15 @@ class MNEBrowseFigure(MNEFigure):
         #      r'$\mathbf{Right‐click~on~plot~annotation:}$ delete annotation',
         #      r'$\mathbf{Type~in~annotation~window:}$ modify new label name',
         #      r'$\mathbf{Enter~(or~click~button):}$ add new label to list',
-        #      r'$\mathbf{Esc:}$ exit annotation mode & close window'])
+        #      r'$\mathbf{Esc:}$ exit annotation mode & close this window'])
         instructions = '\n'.join(
             ['Left click & drag on plot: create/modify annotation',
-             'Right click on plot annotation: delete annotation',
-             'Type in annotation window: modify new label name',
+             'Right click on annotation highlight: delete annotation',
+             'Type in this window: modify new label name',
              'Enter (or click button): add new label to list',
-             'Esc: exit annotation mode & close window'])
+             'Esc: exit annotation mode & close this dialog window'])
         instructions_ax.text(0, 1, instructions, va='top', ha='left',
+                             linespacing=1.7,
                              usetex=False)  # force use of MPL mathtext parser
         instructions_ax.set_axis_off()
         # append text entry axes at bottom
