@@ -136,7 +136,7 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
                     l_freq=5, h_freq=35, qrs_threshold='auto',
                     filter_length='10s', return_ecg=False,
                     reject_by_annotation=True, verbose=None):
-    """Find ECG peaks.
+    """Find ECG events by localizing the R wave peaks.
 
     Parameters
     ----------
@@ -146,9 +146,10 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
         The index to assign to found events.
     ch_name : None | str
         The name of the channel to use for ECG peak detection.
-        If None (default), a synthetic ECG channel is created from
-        cross channel average. Synthetic channel can only be created from
-        'meg' channels.
+        If ``None`` (default), ECG channel is used if present. If ``None`` and
+        **no** ECG channel is present, a synthetic ECG channel is created from
+        cross-channel average. This synthetic channel can only be created from
+        MEG channels.
     tstart : float
         Start detection after tstart seconds. Useful when beginning
         of run is noisy.
@@ -173,7 +174,7 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
     Returns
     -------
     ecg_events : array
-        Events.
+        The events corresponding to the peaks of the R waves.
     ch_ecg : string
         Name of channel used.
     average_pulse : float
@@ -212,7 +213,7 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
             verbose=use_verbose))
     ecg = np.concatenate(ecgs)
 
-    # detecting QRS and generating event file. Since not user-controlled, don't
+    # detecting QRS and generating events. Since not user-controlled, don't
     # output filter params here (hardcode verbose=False)
     ecg_events = qrs_detector(raw.info['sfreq'], ecg, tstart=tstart,
                               thresh_value=qrs_threshold, l_freq=None,
@@ -230,8 +231,9 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
     ecg_events = remap[ecg_events]
 
     n_events = len(ecg_events)
-    minutes = len(ecg) / (raw.info['sfreq'] * 60.)
-    average_pulse = n_events / minutes
+    duration_sec = len(ecg) / raw.info['sfreq'] - tstart
+    duration_min = duration_sec / 60.
+    average_pulse = n_events / duration_min
     logger.info("Number of ECG events detected : %d (average pulse %d / "
                 "min.)" % (n_events, average_pulse))
 
@@ -281,7 +283,7 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
     raw : instance of Raw
         The raw data.
     ch_name : None | str
-        The name of the channel to use for ECG peak detection.
+        The name of the channel to use for ECG R wave peak detection.
         If None (default), ECG channel is used if present. If None and no
         ECG channel is present, a synthetic ECG channel is created from
         cross channel average. Synthetic channel can only be created from
@@ -339,7 +341,7 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
     Returns
     -------
     ecg_epochs : instance of Epochs
-        Data epoched around ECG r-peaks.
+        Data epoched around ECG R wave peaks.
 
     See Also
     --------

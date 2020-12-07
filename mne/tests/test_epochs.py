@@ -17,6 +17,7 @@ from numpy.testing import (assert_array_equal, assert_array_almost_equal,
                            assert_allclose, assert_equal, assert_array_less)
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy.signal
 
 import mne
 from mne import (Epochs, Annotations, read_events, pick_events, read_epochs,
@@ -458,7 +459,6 @@ def test_own_data():
     epochs = mne.Epochs(raw, events, preload=True)
     assert epochs._data.flags['C_CONTIGUOUS']
     assert epochs._data.flags['OWNDATA']
-
     epochs.crop(tmin=-0.1, tmax=0.4)
     assert len(epochs) == epochs._data.shape[0] == len(epochs.events)
     assert len(epochs) == n_epochs
@@ -756,6 +756,12 @@ def test_epochs_baseline(preload):
     expected[0] = [-0.5, 0.5]
     assert_allclose(epochs.get_data()[0], expected)
 
+    # Preloading applies baseline correction.
+    if preload:
+        assert epochs._do_baseline is False
+    else:
+        assert epochs._do_baseline is True
+
     # we should not be able to remove baseline correction after the data
     # has been loaded
     epochs.apply_baseline((None, None))
@@ -771,8 +777,13 @@ def test_epochs_baseline(preload):
 def test_epochs_bad_baseline():
     """Test Epochs initialization with bad baseline parameters."""
     raw, events = _get_data()[:2]
-    pytest.raises(ValueError, Epochs, raw, events, None, -0.1, 0.3, (-0.2, 0))
-    pytest.raises(ValueError, Epochs, raw, events, None, -0.1, 0.3, (0, 0.4))
+
+    with pytest.raises(ValueError, match='interval.*outside of epochs data'):
+        epochs = Epochs(raw, events, None, -0.1, 0.3, (-0.2, 0))
+
+    with pytest.raises(ValueError, match='interval.*outside of epochs data'):
+        epochs = Epochs(raw, events, None, -0.1, 0.3, (0, 0.4))
+
     pytest.raises(ValueError, Epochs, raw, events, None, -0.1, 0.3, (0.1, 0))
     pytest.raises(ValueError, Epochs, raw, events, None, 0.1, 0.3, (None, 0))
     pytest.raises(ValueError, Epochs, raw, events, None, -0.3, -0.1, (0, None))
@@ -852,8 +863,9 @@ def test_io_epochs_basic(tmpdir):
     data = epochs.get_data()
 
     # Bad tmin/tmax parameters
-    pytest.raises(ValueError, Epochs, raw, events, event_id, tmax, tmin,
-                  baseline=None)
+    with pytest.raises(ValueError,
+                       match='tmin has to be less than or equal to tmax'):
+        Epochs(raw, events, event_id, tmax, tmin, baseline=None)
 
     epochs_no_id = Epochs(raw, pick_events(events, include=event_id),
                           None, tmin, tmax, picks=picks)
@@ -957,7 +969,7 @@ def test_epochs_io_preload(tmpdir, preload):
 
     epochs_no_bl = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                           baseline=None, preload=True)
-    assert (epochs_no_bl.baseline is None)
+    assert epochs_no_bl.baseline is None
     epochs_no_bl.save(temp_fname_no_bl, overwrite=True)
 
     epochs_read = read_epochs(temp_fname, preload=preload)
@@ -967,7 +979,7 @@ def test_epochs_io_preload(tmpdir, preload):
     pytest.raises(ValueError, epochs.apply_baseline, baseline=[1, 2, 3])
     epochs_with_bl = epochs_no_bl_read.copy().apply_baseline(baseline)
     assert (isinstance(epochs_with_bl, BaseEpochs))
-    assert (epochs_with_bl.baseline == baseline)
+    assert (epochs_with_bl.baseline == (epochs_no_bl_read.tmin, baseline[1]))
     assert (epochs_no_bl_read.baseline != baseline)
     assert (str(epochs_read).startswith('<Epochs'))
 
@@ -1002,13 +1014,14 @@ def test_epochs_io_preload(tmpdir, preload):
     assert epochs.times[0] < 0
     assert epochs.times[-1] > 0
     epochs.apply_baseline((None, 0))
-    with pytest.warns(RuntimeWarning,
-                      match=r'setting epochs\.baseline = None'):
-        epochs.crop(1. / epochs.info['sfreq'], None)
-    assert epochs.baseline is None
+    baseline_before_crop = (epochs.times[0], 0)
+    epochs.crop(1. / epochs.info['sfreq'], None)
+    # baseline shouldn't be modified by crop()
+    assert epochs.baseline == baseline_before_crop
     epochs.save(fname_temp, overwrite=True)
     epochs_read = read_epochs(fname_temp, preload=preload)
-    assert epochs_read.baseline is None
+    assert_allclose(epochs_read.baseline, baseline_before_crop)
+
     assert_allclose(epochs.get_data(), epochs_read.get_data(),
                     rtol=6e-4)  # XXX this rtol should be better...?
     del epochs, epochs_read
@@ -1078,9 +1091,9 @@ def test_epochs_io_preload(tmpdir, preload):
 
     # Test that having a single time point works
     assert epochs.baseline is not None
-    with pytest.warns(RuntimeWarning, match=r'setting epochs\.baseline'):
-        epochs.load_data().crop(0, 0)
-    assert epochs.baseline is None
+    baseline_before_crop = epochs.baseline
+    epochs.load_data().crop(0, 0)
+    assert epochs.baseline == baseline_before_crop
     assert_equal(len(epochs.times), 1)
     assert_equal(epochs.get_data().shape[-1], 1)
     epochs.save(temp_fname, overwrite=True)
@@ -1524,10 +1537,14 @@ def test_crop():
     tmask = (epochs.times >= tmin_window) & (epochs.times <= tmax_window)
     assert (tmin_window > tmin)
     assert (tmax_window < tmax)
+
     epochs3 = epochs2.copy().crop(tmin_window, tmax_window)
+    assert epochs3.baseline == epochs2.baseline
     data3 = epochs3.get_data()
+
     epochs2.crop(tmin_window, tmax_window)
     data2 = epochs2.get_data()
+
     assert_array_equal(data2, data_normal[:, :, tmask])
     assert_array_equal(data3, data_normal[:, :, tmask])
     assert_array_equal(epochs.time_as_index([tmin, tmax], use_rounding=True),
@@ -3155,3 +3172,52 @@ def test_concat_overflow(tmpdir, monkeypatch):
         epochs = read_epochs(fname)
     assert_array_less(0, epochs.events[:, 0])
     assert_array_less(epochs.events[:, 0], INT32_MAX + 1)
+
+
+def test_epochs_baseline_after_cropping(tmpdir):
+    """Epochs.baseline should be retained if baseline period was cropped."""
+    sfreq = 1000
+    tstep = 1. / sfreq
+    times = np.arange(0, 2 + tstep, tstep)
+
+    # Linear ramp: 0–100 µV
+    data = (scipy.signal.sawtooth(2 * np.pi * 0.25 * times, 0.5)
+            .reshape(1, -1)) * 50e-6 + 50e-6
+
+    ch_names = ['EEG 001']
+    ch_types = ['eeg']
+    info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
+    raw = mne.io.RawArray(data, info)
+
+    event_id = dict(event=1)
+    events = np.array([[1000, 0, event_id['event']]])
+    epochs_orig = mne.Epochs(raw=raw, events=events, event_id=event_id,
+                             tmin=-0.2, tmax=0.2, baseline=(-0.1, 0.1))
+
+    # Assert baseline correction is working as intended.
+    samp_min = 1000 - 200
+    samp_max = 1000 + 200
+    expected_data = data.copy()[0, samp_min:samp_max + 1]
+    baseline = expected_data[100:301]
+    expected_data -= baseline.mean()
+    expected_data = expected_data.reshape(1, 1, -1)
+    assert_equal(epochs_orig.get_data(), expected_data)
+    del expected_data, baseline, samp_min, samp_max
+
+    # Even after cropping the baseline period, Epochs.baseline should remain
+    # unchanged
+    epochs_cropped = epochs_orig.copy().load_data().crop(tmin=0, tmax=None)
+
+    assert_equal(epochs_orig.baseline, epochs_cropped.baseline)
+    assert 'baseline period was cropped' in str(epochs_cropped)
+    assert_equal(epochs_cropped.get_data().squeeze(),
+                 epochs_orig.get_data().squeeze()[200:])
+
+    # Test I/O roundtrip.
+    epochs_fname = tmpdir.join('temp-cropped-epo.fif')
+    epochs_cropped.save(epochs_fname)
+    epochs_cropped_read = mne.read_epochs(epochs_fname)
+
+    assert_allclose(epochs_orig.baseline, epochs_cropped_read.baseline)
+    assert 'baseline period was cropped' in str(epochs_cropped_read)
+    assert_allclose(epochs_cropped.get_data(), epochs_cropped_read.get_data())
