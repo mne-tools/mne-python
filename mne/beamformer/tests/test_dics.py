@@ -685,6 +685,7 @@ def _cov_as_csd(cov, info):
 
 
 # Just test free ori here (assume fixed is same as LCMV if these are)
+# Changes here should be synced with test_lcmv.py
 @pytest.mark.parametrize(
     'reg, pick_ori, weight_norm, use_cov, depth, lower, upper, real_filter', [
         (0.05, None, 'unit-noise-gain-invariant', False, None, 26, 28, False),

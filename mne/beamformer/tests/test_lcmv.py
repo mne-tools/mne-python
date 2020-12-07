@@ -21,6 +21,7 @@ from mne.datasets import testing
 from mne.fixes import _get_args
 from mne.io.compensator import set_current_comp
 from mne.minimum_norm import make_inverse_operator, apply_inverse
+from mne.minimum_norm.tests.test_inverse import _assert_free_ori_match
 from mne.simulation import simulate_evoked
 from mne.utils import object_diff, requires_h5py, catch_logging
 
@@ -666,46 +667,55 @@ def test_localization_bias_fixed(bias_params_fixed, reg, weight_norm, use_cov,
     assert lower <= perc <= upper
 
 
+# Changes here should be synced with test_dics.py
 @pytest.mark.parametrize(
-    'reg, pick_ori, weight_norm, use_cov, depth, lower, upper', [
-        (0.05, 'vector', 'unit-noise-gain-invariant', False, None, 26, 28),
-        (0.05, 'vector', 'unit-noise-gain-invariant', True, None, 40, 42),
-        (0.05, 'vector', 'unit-noise-gain', False, None, 13, 14),
-        (0.05, 'vector', 'unit-noise-gain', True, None, 35, 37),
-        (0.05, 'vector', 'nai', True, None, 35, 37),
-        (0.05, 'vector', None, True, None, 12, 14),
-        (0.05, 'vector', None, True, 0.8, 39, 43),
-        (0.05, 'max-power', 'unit-noise-gain-invariant', False, None, 17, 20),
-        (0.05, 'max-power', 'unit-noise-gain', False, None, 17, 20),
-        (0.05, 'max-power', 'nai', True, None, 21, 24),
-        (0.05, 'max-power', None, True, None, 7, 10),
-        (0.05, 'max-power', None, True, 0.8, 15, 18),
-        (0.05, None, None, True, 0.8, 40, 42),
+    'reg, pick_ori, weight_norm, use_cov, depth, lower, upper, lo, uo', [
+        (0.05, 'vector', 'unit-noise-gain-invariant', False, None, 26, 28, 0.82, 0.84),  # noqa: E501
+        (0.05, 'vector', 'unit-noise-gain-invariant', True, None, 40, 42, 0.96, 0.98),  # noqa: E501
+        (0.05, 'vector', 'unit-noise-gain', False, None, 13, 14, 0.79, 0.81),
+        (0.05, 'vector', 'unit-noise-gain', True, None, 35, 37, 0.98, 0.99),
+        (0.05, 'vector', 'nai', True, None, 35, 37, 0.98, 0.99),
+        (0.05, 'vector', None, True, None, 12, 14, 0.97, 0.98),
+        (0.05, 'vector', None, True, 0.8, 39, 43, 0.97, 0.98),
+        (0.05, 'max-power', 'unit-noise-gain-invariant', False, None, 17, 20, 0, 0),  # noqa: E501
+        (0.05, 'max-power', 'unit-noise-gain', False, None, 17, 20, 0, 0),
+        (0.05, 'max-power', 'nai', True, None, 21, 24, 0, 0),
+        (0.05, 'max-power', None, True, None, 7, 10, 0, 0),
+        (0.05, 'max-power', None, True, 0.8, 15, 18, 0, 0),
+        (0.05, None, None, True, 0.8, 40, 42, 0, 0),
         # no reg
-        (0.00, 'vector', None, True, None, 21, 32),
-        (0.00, 'vector', 'unit-noise-gain-invariant', True, None, 50, 65),
-        (0.00, 'vector', 'unit-noise-gain', True, None, 42, 65),
-        (0.00, 'vector', 'nai', True, None, 42, 65),
-        (0.00, 'max-power', None, True, None, 13, 19),
-        (0.00, 'max-power', 'unit-noise-gain-invariant', True, None, 43, 50),
-        (0.00, 'max-power', 'unit-noise-gain', True, None, 43, 50),
-        (0.00, 'max-power', 'nai', True, None, 43, 50),
+        (0.00, 'vector', None, True, None, 21, 32, 0.93, 0.94),
+        (0.00, 'vector', 'unit-noise-gain-invariant', True, None, 50, 65, 0.90, 0.92),  # noqa: E501
+        (0.00, 'vector', 'unit-noise-gain', True, None, 42, 65, 0.96, 0.98),
+        (0.00, 'vector', 'nai', True, None, 42, 65, 0.96, 0.98),
+        (0.00, 'max-power', None, True, None, 13, 19, 0, 0),
+        (0.00, 'max-power', 'unit-noise-gain-invariant', True, None, 43, 50, 0, 0),  # noqa: E501
+        (0.00, 'max-power', 'unit-noise-gain', True, None, 43, 50, 0, 0),
+        (0.00, 'max-power', 'nai', True, None, 43, 50, 0, 0),
     ])
 def test_localization_bias_free(bias_params_free, reg, pick_ori, weight_norm,
-                                use_cov, depth, lower, upper):
+                                use_cov, depth, lower, upper, lo, uo):
     """Test localization bias for free-orientation LCMV."""
     evoked, fwd, noise_cov, data_cov, want = bias_params_free
     if not use_cov:
         evoked.pick_types(meg='grad')
         noise_cov = None
-    loc = apply_lcmv(evoked, make_lcmv(evoked.info, fwd, data_cov, reg,
-                                       noise_cov, pick_ori=pick_ori,
-                                       weight_norm=weight_norm,
-                                       depth=depth)).data
+    filters = make_lcmv(evoked.info, fwd, data_cov, reg,
+                        noise_cov, pick_ori=pick_ori,
+                        weight_norm=weight_norm,
+                        depth=depth)
+    loc = apply_lcmv(evoked, filters).data
+    if pick_ori == 'vector':
+        ori = loc.copy() / np.linalg.norm(loc, axis=1, keepdims=True)
+    else:
+        # doesn't make sense for pooled (None) or max-power (can't be all 3)
+        ori = None
     loc = np.linalg.norm(loc, axis=1) if pick_ori == 'vector' else np.abs(loc)
     # Compute the percentage of sources for which there is no loc bias:
-    perc = (want == np.argmax(loc, axis=0)).mean() * 100
+    max_idx = np.argmax(loc, axis=0)
+    perc = (want == max_idx).mean() * 100
     assert lower <= perc <= upper
+    _assert_free_ori_match(ori, max_idx, lo, uo)
 
 
 @pytest.mark.parametrize('weight_norm', ('nai', 'unit-noise-gain'))
