@@ -77,6 +77,8 @@ Enhancements
 
 - Add option to disable TQDM entirely with ``MNE_TQDM='off'`` (:gh:`8515` by `Eric Larson`_)
 
+- Add option ``on_header_missing`` to :func:`mne.channels.read_polhemus_fastscan` (:gh:`8622` by `Eric Larson`_)
+
 - `mne.preprocessing.ICA.plot_sources` now displays an `mne.preprocessing.ICA.plot_properties` window when right-clicking on component names on the y-axis (:gh:`8381` by `Daniel McCloy`_)
 
 - :func:`mne.io.read_raw_edf`, :func:`mne.io.read_raw_bdf`, and :func:`mne.io.read_raw_gdf` now detect and handle invalid highpass/lowpass filter settings (:gh:`8584` by `Clemens Brunner`_)
