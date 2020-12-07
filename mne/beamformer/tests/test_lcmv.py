@@ -684,10 +684,10 @@ def test_localization_bias_fixed(bias_params_fixed, reg, weight_norm, use_cov,
         (0.05, 'max-power', None, True, 0.8, 15, 18, 0, 0),
         (0.05, None, None, True, 0.8, 40, 42, 0, 0),
         # no reg
-        (0.00, 'vector', None, True, None, 21, 32, 0.88, 0.94),
-        (0.00, 'vector', 'unit-noise-gain-invariant', True, None, 50, 65, 0.85, 0.92),  # noqa: E501
-        (0.00, 'vector', 'unit-noise-gain', True, None, 42, 65, 0.96, 0.98),
-        (0.00, 'vector', 'nai', True, None, 42, 65, 0.96, 0.98),
+        (0.00, 'vector', None, True, None, 21, 32, 0.85, 0.94),
+        (0.00, 'vector', 'unit-noise-gain-invariant', True, None, 50, 65, 0.84, 0.92),  # noqa: E501
+        (0.00, 'vector', 'unit-noise-gain', True, None, 42, 65, 0.91, 0.99),
+        (0.00, 'vector', 'nai', True, None, 42, 65, 0.91, 0.99),
         (0.00, 'max-power', None, True, None, 13, 19, 0, 0),
         (0.00, 'max-power', 'unit-noise-gain-invariant', True, None, 43, 50, 0, 0),  # noqa: E501
         (0.00, 'max-power', 'unit-noise-gain', True, None, 43, 50, 0, 0),
