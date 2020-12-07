@@ -8,6 +8,7 @@
 #
 # License: Simplified BSD
 
+import os
 import os.path as path
 
 import pytest
@@ -264,6 +265,8 @@ def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
 
 
 @testing.requires_testing_data
+@pytest.mark.skipif(os.getenv('CI_OS_NAME', '') == 'osx',
+                    reason='Unreliable/segfault on macOS CI')
 @pytest.mark.parametrize('hemi', ('lh', 'rh'))
 def test_single_hemi(hemi, renderer_interactive, brain_gc):
     """Test single hemi support."""
