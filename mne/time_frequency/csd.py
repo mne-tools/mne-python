@@ -1142,7 +1142,7 @@ def _execute_csd_function(X, times, frequencies, csd_function, params, n_fft,
 
     # Compute CSD for each trial
     n_blocks = int(np.ceil(n_epochs / float(n_jobs)))
-    for i in ProgressBar(n_blocks, mesg='CSD epoch blocks'):
+    for i in ProgressBar(range(n_blocks), mesg='CSD epoch blocks'):
         epoch_block = X[i * n_jobs:(i + 1) * n_jobs]
         csds = parallel(my_csd(this_epoch, *params)
                         for this_epoch in epoch_block)
