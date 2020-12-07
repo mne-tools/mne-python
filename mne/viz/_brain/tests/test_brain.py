@@ -21,7 +21,7 @@ from mne.source_space import (read_source_spaces, vertex_to_mni,
                               setup_volume_source_space)
 from mne.datasets import testing
 from mne.utils import check_version
-from mne.viz._brain import Brain, _LinkViewer, _BrainScraper
+from mne.viz._brain import Brain, _LinkViewer, _BrainScraper, _LayeredMesh
 from mne.viz._brain.colormap import calculate_lut
 
 from matplotlib import cm, image
@@ -93,9 +93,42 @@ class TstVTKPicker(object):
         return np.array(self.GetPickPosition()) - (0, 0, 100)
 
 
+def test_layered_mesh(renderer_interactive):
+    """Test management of scalars/colormap overlay."""
+    if renderer_interactive._get_3d_backend() != 'pyvista':
+        pytest.skip('TimeViewer tests only supported on PyVista')
+    mesh = _LayeredMesh(
+        renderer=renderer_interactive._get_renderer(size=[300, 300]),
+        vertices=np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0], [1, 1, 0]]),
+        triangles=np.array([[0, 1, 2], [1, 2, 3]]),
+        normals=np.array([[0, 0, 1]] * 4),
+    )
+    assert not mesh._is_mapped
+    mesh.map()
+    assert mesh._is_mapped
+    assert mesh._cache is None
+    mesh.update()
+    assert len(mesh._overlays) == 0
+    mesh.add_overlay(
+        scalars=np.array([0, 1, 1, 0]),
+        colormap=np.array([(1, 1, 1, 1), (0, 0, 0, 0)]),
+        rng=None,
+        opacity=None,
+        name='test',
+    )
+    assert mesh._cache is not None
+    assert len(mesh._overlays) == 1
+    assert 'test' in mesh._overlays
+    mesh.remove_overlay('test')
+    assert len(mesh._overlays) == 0
+    mesh._clean()
+
+
 @testing.requires_testing_data
 def test_brain_gc(renderer, brain_gc):
     """Test that a minimal version of Brain gets GC'ed."""
+    if renderer._get_3d_backend() != 'pyvista':
+        pytest.skip('TimeViewer tests only supported on PyVista')
     brain = Brain('fsaverage', 'both', 'inflated', subjects_dir=subjects_dir)
     brain.close()
 
@@ -103,6 +136,8 @@ def test_brain_gc(renderer, brain_gc):
 @testing.requires_testing_data
 def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
     """Test initialization of the Brain instance."""
+    if renderer._get_3d_backend() != 'pyvista':
+        pytest.skip('TimeViewer tests only supported on PyVista')
     from mne.label import read_label
     from mne.source_estimate import _BaseSourceEstimate
 
@@ -421,7 +456,7 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
             values = current_mesh.cell_arrays['values'][vertices]
             cell_id = vertices[np.argmax(np.abs(values))]
         else:
-            current_mesh = brain._hemi_meshes[current_hemi]
+            current_mesh = brain._layered_meshes[current_hemi]._polydata
             cell_id = rng.randint(0, current_mesh.n_cells)
         test_picker = TstVTKPicker(None, None, current_hemi, brain)
         assert brain._on_pick(test_picker, None) is None

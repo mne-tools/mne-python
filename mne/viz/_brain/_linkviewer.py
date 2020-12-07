@@ -82,8 +82,8 @@ class _LinkViewer(object):
 
             # link the initial points
             for hemi in initial_points.keys():
-                if hemi in brain._hemi_meshes:
-                    mesh = brain._hemi_meshes[hemi]
+                if hemi in brain._layered_meshes:
+                    mesh = brain._layered_meshes[hemi]._polydata
                     for vertex_id in initial_points[hemi]:
                         self.leader.add_point(hemi, mesh, vertex_id)
 

@@ -323,6 +323,9 @@ class _Renderer(_BaseRenderer):
                 mesh.GetPointData().SetActiveNormals("Normals")
             else:
                 _compute_normals(mesh)
+            if 'rgba' in kwargs:
+                rgba = kwargs["rgba"]
+                kwargs.pop('rgba')
             actor = _add_mesh(
                 plotter=self.plotter,
                 mesh=mesh, color=color, scalars=scalars,

@@ -18,6 +18,7 @@ import warnings
 
 import numpy as np
 from scipy import sparse
+from collections import OrderedDict
 
 from .colormap import calculate_lut
 from .surface import Surface
@@ -45,6 +46,160 @@ def safe_event(fun, *args, **kwargs):
         return fun(*args, **kwargs)
     except Exception:
         traceback.print_exc(file=sys.stderr)
+
+
+class _Overlay(object):
+    def __init__(self, scalars, colormap, rng, opacity):
+        self._scalars = scalars
+        self._colormap = colormap
+        self._rng = rng
+        self._opacity = opacity
+
+    def to_colors(self):
+        from matplotlib.cm import get_cmap
+        from matplotlib.colors import ListedColormap
+        if isinstance(self._colormap, str):
+            cmap = get_cmap(self._colormap)
+        else:
+            cmap = ListedColormap(self._colormap / 255.)
+
+        def diff(x):
+            return np.max(x) - np.min(x)
+
+        def norm(x, rng=None):
+            if rng is None:
+                rng = [np.min(x), np.max(x)]
+            return (x - rng[0]) / (rng[1] - rng[0])
+
+        rng = self._rng
+        scalars = self._scalars
+        if diff(scalars) != 0:
+            scalars = norm(scalars, rng)
+
+        colors = cmap(scalars)
+        if self._opacity is not None:
+            colors[:, 3] *= self._opacity
+        return colors
+
+
+class _LayeredMesh(object):
+    def __init__(self, renderer, vertices, triangles, normals):
+        self._renderer = renderer
+        self._vertices = vertices
+        self._triangles = triangles
+        self._normals = normals
+
+        self._polydata = None
+        self._actor = None
+        self._is_mapped = False
+
+        self._cache = None
+        self._overlays = OrderedDict()
+
+        self._default_scalars = np.ones(vertices.shape)
+        self._default_scalars_name = 'Data'
+
+    def map(self):
+        kwargs = {
+            "color": None,
+            "pickable": True,
+            "rgba": True,
+        }
+        mesh_data = self._renderer.mesh(
+            x=self._vertices[:, 0],
+            y=self._vertices[:, 1],
+            z=self._vertices[:, 2],
+            triangles=self._triangles,
+            normals=self._normals,
+            scalars=self._default_scalars,
+            **kwargs
+        )
+        self._actor, self._polydata = mesh_data
+        self._is_mapped = True
+
+    def _compute_over(self, B, A):
+        assert A.ndim == B.ndim == 2
+        assert A.shape[1] == B.shape[1] == 4
+        A_w = A[:, 3:]  # * 1
+        B_w = B[:, 3:] * (1 - A_w)
+        C = A.copy()
+        C[:, :3] *= A_w
+        C[:, :3] += B[:, :3] * B_w
+        C[:, 3:] += B_w
+        C[:, :3] /= C[:, 3:]
+        return np.clip(C, 0, 1, out=C)
+
+    def _compose_overlays(self):
+        B = None
+        for overlay in self._overlays.values():
+            A = overlay.to_colors()
+            if B is None:
+                B = A
+            else:
+                B = self._compute_over(B, A)
+        return B
+
+    def add_overlay(self, scalars, colormap, rng, opacity, name):
+        overlay = _Overlay(
+            scalars=scalars,
+            colormap=colormap,
+            rng=rng,
+            opacity=opacity
+        )
+        self._overlays[name] = overlay
+        colors = overlay.to_colors()
+
+        # save colors in cache
+        if self._cache is None:
+            self._cache = colors
+        else:
+            self._cache = self._compute_over(self._cache, colors)
+
+        # update the texture
+        self._update()
+
+    def remove_overlay(self, names):
+        if not isinstance(names, list):
+            names = [names]
+        for name in names:
+            if name in self._overlays:
+                del self._overlays[name]
+        self.update()
+
+    def _update(self):
+        if self._cache is None:
+            return
+        from ..backends._pyvista import _set_mesh_scalars
+        _set_mesh_scalars(
+            mesh=self._polydata,
+            scalars=self._cache,
+            name=self._default_scalars_name,
+        )
+
+    def update(self):
+        self._cache = self._compose_overlays()
+        self._update()
+
+    def _clean(self):
+        mapper = self._actor.GetMapper()
+        mapper.SetLookupTable(None)
+        self._actor.SetMapper(None)
+        self._actor = None
+        self._polydata = None
+        self._renderer = None
+
+    def update_overlay(self, name, scalars=None, colormap=None,
+                       opacity=None):
+        overlay = self._overlays.get(name, None)
+        if overlay is None:
+            return
+        if scalars is not None:
+            overlay._scalars = scalars
+        if colormap is not None:
+            overlay._colormap = colormap
+        if opacity is not None:
+            overlay._opacity = opacity
+        self.update()
 
 
 @fill_doc
@@ -158,6 +313,8 @@ class Brain(object):
        +---------------------------+--------------+---------------+
        | remove_labels             | ✓            | ✓             |
        +---------------------------+--------------+---------------+
+       | scale_data_colormap       | ✓            |               |
+       +---------------------------+--------------+---------------+
        | save_image                | ✓            | ✓             |
        +---------------------------+--------------+---------------+
        | save_movie                | ✓            | ✓             |
@@ -241,9 +398,8 @@ class Brain(object):
         self._subjects_dir = subjects_dir
         self._views = views
         self._times = None
-        self._label_data = list()
-        self._hemi_actors = {}
-        self._hemi_meshes = {}
+        self._label_data = {'lh': list(), 'rh': list()}
+        self._layered_meshes = {}
         # for now only one color bar can be added
         # since it is the same for all figures
         self._colorbar_added = False
@@ -252,7 +408,7 @@ class Brain(object):
         self._time_label_added = False
         # array of data used by TimeViewer
         self._data = {}
-        self.geo, self._overlays = {}, {}
+        self.geo = {}
         self.set_time_interpolation('nearest')
 
         geo_kwargs = self._cortex_colormap(cortex)
@@ -283,39 +439,27 @@ class Brain(object):
             self.geo[h] = geo
             for ri, ci, v in self._iter_views(h):
                 self._renderer.subplot(ri, ci)
-                kwargs = {
-                    "color": None,
-                    "scalars": self.geo[h].bin_curv,
-                    "vmin": geo_kwargs["vmin"],
-                    "vmax": geo_kwargs["vmax"],
-                    "colormap": geo_kwargs["colormap"],
-                    "opacity": alpha,
-                    "pickable": False,
-                }
-                if self._hemi_meshes.get(h) is None:
-                    mesh_data = self._renderer.mesh(
-                        x=self.geo[h].coords[:, 0],
-                        y=self.geo[h].coords[:, 1],
-                        z=self.geo[h].coords[:, 2],
+                if self._layered_meshes.get(h) is None:
+                    mesh = _LayeredMesh(
+                        renderer=self._renderer,
+                        vertices=self.geo[h].coords,
                         triangles=self.geo[h].faces,
                         normals=self.geo[h].nn,
-                        **kwargs,
                     )
-                    if isinstance(mesh_data, tuple):
-                        actor, mesh = mesh_data
-                        # add metadata to the mesh for picking
-                        mesh._hemi = h
-                    else:
-                        actor, mesh = mesh_data.actor, mesh_data
-                    self._hemi_meshes[h] = mesh
-                    self._hemi_actors[h] = actor
-                    del mesh_data, actor, mesh
+                    mesh.map()  # send to GPU
+                    mesh.add_overlay(
+                        scalars=self.geo[h].bin_curv,
+                        colormap=geo_kwargs["colormap"],
+                        rng=[geo_kwargs["vmin"], geo_kwargs["vmax"]],
+                        opacity=alpha,
+                        name='curv',
+                    )
+                    self._layered_meshes[h] = mesh
+                    # add metadata to the mesh for picking
+                    mesh._polydata._hemi = h
                 else:
-                    self._renderer.polydata(
-                        self._hemi_meshes[h],
-                        **kwargs,
-                    )
-                del kwargs
+                    actor = self._layered_meshes[h]._actor
+                    self._renderer.plotter.add_actor(actor)
                 self._renderer.set_camera(**views_dicts[h][v])
 
         self.interaction = interaction
@@ -430,21 +574,9 @@ class Brain(object):
     def _clean(self):
         # resolve the reference cycle
         self.clear_points()
-        for h in self._hemis:
-            # clear init actors
-            actor = self._hemi_actors[h]
-            if actor is not None:
-                mapper = actor.GetMapper()
-                mapper.SetLookupTable(None)
-                actor.SetMapper(None)
-            # clear data actors
-            hemi_data = self._data.get(h)
-            if hemi_data is not None:
-                if hemi_data['actors'] is not None:
-                    for actor in hemi_data['actors']:
-                        mapper = actor.GetMapper()
-                        mapper.SetLookupTable(None)
-                        actor.SetMapper(None)
+        # clear init actors
+        for hemi in self._hemis:
+            self._layered_meshes[hemi]._clean()
         self._clear_callbacks()
         if getattr(self, 'mpl_canvas', None) is not None:
             self.mpl_canvas.clear()
@@ -922,7 +1054,7 @@ class Brain(object):
             if hemi == 'vol':
                 mesh = hemi_data['grid']
             else:
-                mesh = hemi_data['mesh']
+                mesh = self._layered_meshes[hemi]._polydata
             vertex_id = vertices[ind[0]]
             self.add_point(hemi, mesh, vertex_id)
 
@@ -1584,28 +1716,25 @@ class Brain(object):
         self._data['fmax'] = fmax
         self.update_lut()
 
-        # 1) add the surfaces first
-        actor = None
-        for ri, ci, _ in self._iter_views(hemi):
-            self._renderer.subplot(ri, ci)
-            if hemi in ('lh', 'rh'):
-                if self._data[hemi]['actors'] is None:
-                    self._data[hemi]['actors'] = list()
-                actor, mesh = self._add_surface_data(hemi)
-                self._data[hemi]['actors'].append(actor)
-                self._data[hemi]['mesh'] = mesh
-            else:
-                src_vol = src[2:] if src.kind == 'mixed' else src
-                actor, _ = self._add_volume_data(hemi, src_vol, volume_options)
-        assert actor is not None  # should have added one
+        # select the right actor
+        if hemi in ('lh', 'rh'):
+            actor = self._layered_meshes[hemi]._actor
+        else:
+            src_vol = src[2:] if src.kind == 'mixed' else src
+            actor, _ = self._add_volume_data(hemi, src_vol, volume_options)
 
-        # 2) update time and smoothing properties
+        # 1) update time and smoothing properties
         # set_data_smoothing calls "set_time_point" for us, which will set
         # _current_time
         self.set_time_interpolation(self.time_interpolation)
         self.set_data_smoothing(self._data['smoothing_steps'])
 
-        # 3) add the other actors
+        # update opacity
+        if hemi in self._layered_meshes:
+            mesh = self._layered_meshes[hemi]
+            mesh.update_overlay(name='data', opacity=alpha)
+
+        # 2) add the other actors
         if colorbar is True:
             # botto left by default
             colorbar = (self._subplot_shape[0] - 1, 0)
@@ -1652,44 +1781,12 @@ class Brain(object):
             for ri, ci in zip(rows[hemi], cols[hemi]):
                 yield ri, ci, view
 
-    def _add_surface_data(self, hemi):
-        rng = self._cmap_range
-        kwargs = {
-            "color": None,
-            "colormap": self._data['ctable'],
-            "vmin": rng[0],
-            "vmax": rng[1],
-            "opacity": self._data['alpha'],
-            "scalars": np.zeros(len(self.geo[hemi].coords)),
-        }
-        if self._data[hemi]['mesh'] is not None:
-            actor, mesh = self._renderer.polydata(
-                self._data[hemi]['mesh'],
-                **kwargs,
-            )
-            return actor, mesh
-        mesh_data = self._renderer.mesh(
-            x=self.geo[hemi].coords[:, 0],
-            y=self.geo[hemi].coords[:, 1],
-            z=self.geo[hemi].coords[:, 2],
-            triangles=self.geo[hemi].faces,
-            normals=self.geo[hemi].nn,
-            polygon_offset=-2,
-            **kwargs,
-        )
-        if isinstance(mesh_data, tuple):
-            actor, mesh = mesh_data
-            # add metadata to the mesh for picking
-            mesh._hemi = hemi
-        else:
-            actor, mesh = mesh_data, None
-        return actor, mesh
-
     def remove_labels(self):
         """Remove all the ROI labels from the image."""
-        for data in self._label_data:
-            self._renderer.remove_mesh(data)
-        self._label_data.clear()
+        for hemi in self._hemis:
+            mesh = self._layered_meshes[hemi]
+            mesh.remove_overlay(self._label_data[hemi])
+            self._label_data[hemi].clear()
         self._update()
 
     def _add_volume_data(self, hemi, src, volume_options):
@@ -1913,30 +2010,32 @@ class Brain(object):
         for ri, ci, v in self._iter_views(hemi):
             self._renderer.subplot(ri, ci)
             if borders:
-                surface = {
-                    'rr': self.geo[hemi].coords,
-                    'tris': self.geo[hemi].faces,
-                }
-                mesh_data = self._renderer.contour(
-                    surface=surface,
-                    scalars=label,
-                    contours=[1.0],
-                    color=color,
-                    kind='tube',
-                )
-            else:
-                mesh_data = self._renderer.mesh(
-                    x=self.geo[hemi].coords[:, 0],
-                    y=self.geo[hemi].coords[:, 1],
-                    z=self.geo[hemi].coords[:, 2],
-                    triangles=self.geo[hemi].faces,
-                    scalars=label,
-                    color=None,
-                    colormap=ctable,
-                    backface_culling=False,
-                    polygon_offset=-2,
-                )
-            self._label_data.append(mesh_data)
+                n_vertices = label.size
+                edges = mesh_edges(self.geo[hemi].faces)
+                edges = edges.tocoo()
+                border_edges = label[edges.row] != label[edges.col]
+                show = np.zeros(n_vertices, dtype=np.int)
+                keep_idx = np.unique(edges.row[border_edges])
+                if isinstance(borders, int):
+                    for _ in range(borders):
+                        keep_idx = np.in1d(
+                            self.geo[hemi].faces.ravel(), keep_idx)
+                        keep_idx.shape = self.geo[hemi].faces.shape
+                        keep_idx = self.geo[hemi].faces[np.any(
+                            keep_idx, axis=1)]
+                        keep_idx = np.unique(keep_idx)
+                show[keep_idx] = 1
+                label *= show
+
+            mesh = self._layered_meshes[hemi]
+            mesh.add_overlay(
+                scalars=label,
+                colormap=ctable,
+                rng=None,
+                opacity=alpha,
+                name=label_name,
+            )
+            self._label_data[hemi].append(label_name)
             self._renderer.set_camera(**views_dicts[hemi][v])
 
         self._update()
@@ -2135,28 +2234,15 @@ class Brain(object):
                 rgb = np.round(np.multiply(colorConverter.to_rgb(color), 255))
                 cmap[:, :3] = rgb.astype(cmap.dtype)
 
-            ctable = cmap.astype(np.float64) / 255.
-
-            mesh_data = self._renderer.mesh(
-                x=self.geo[hemi].coords[:, 0],
-                y=self.geo[hemi].coords[:, 1],
-                z=self.geo[hemi].coords[:, 2],
-                triangles=self.geo[hemi].faces,
-                color=None,
-                colormap=ctable,
-                vmin=np.min(ids),
-                vmax=np.max(ids),
+            ctable = cmap.astype(np.float64)
+            mesh = self._layered_meshes[hemi]
+            mesh.add_overlay(
                 scalars=ids,
-                interpolate_before_map=False,
-                polygon_offset=-2,
+                colormap=ctable,
+                rng=[np.min(ids), np.max(ids)],
+                opacity=alpha,
+                name=annot,
             )
-            if isinstance(mesh_data, tuple):
-                from ..backends._pyvista import _set_colormap_range
-                actor, mesh = mesh_data
-                # add metadata to the mesh for picking
-                mesh._hemi = hemi
-                _set_colormap_range(actor, cmap.astype(np.uint8),
-                                    None)
 
         self._update()
 
@@ -2309,10 +2395,12 @@ class Brain(object):
         for hemi in ['lh', 'rh', 'vol']:
             hemi_data = self._data.get(hemi)
             if hemi_data is not None:
-                if hemi_data.get('actors') is not None:
-                    for actor in hemi_data['actors']:
-                        _set_colormap_range(actor, ctable, scalar_bar, rng)
-                        scalar_bar = None
+                if hemi in self._layered_meshes:
+                    mesh = self._layered_meshes[hemi]
+                    mesh.update_overlay(name='data',
+                                        colormap=self._data['ctable'])
+                    _set_colormap_range(mesh._actor, ctable, scalar_bar, rng)
+                    scalar_bar = None
 
                 grid_volume_pos = hemi_data.get('grid_volume_pos')
                 grid_volume_neg = hemi_data.get('grid_volume_neg')
@@ -2405,7 +2493,6 @@ class Brain(object):
             The time index to use. Can be a float to use interpolation
             between indices.
         """
-        from ..backends._pyvista import _set_mesh_scalars
         self._current_act_data = dict()
         time_actor = self._data.get('time_actor', None)
         time_label = self._data.get('time_label', None)
@@ -2449,9 +2536,18 @@ class Brain(object):
                     act_data = smooth_mat.dot(act_data)
 
                 # update the mesh scalar values
-                if hemi_data.get('mesh') is not None:
-                    mesh = hemi_data['mesh']
-                    _set_mesh_scalars(mesh, act_data, 'Data')
+                if hemi in self._layered_meshes:
+                    mesh = self._layered_meshes[hemi]
+                    if 'data' in mesh._overlays:
+                        mesh.update_overlay(name='data', scalars=act_data)
+                    else:
+                        mesh.add_overlay(
+                            scalars=act_data,
+                            colormap=self._data['ctable'],
+                            rng=self._cmap_range,
+                            opacity=None,
+                            name='data',
+                        )
 
                 # update the glyphs
                 if vectors is not None:
@@ -2911,40 +3007,6 @@ class Brain(object):
                     keep_idx = keep_idx[np.in1d(keep_idx, restrict_idx)]
             show[keep_idx] = 1
             label *= show
-
-    @verbose
-    def scale_data_colormap(self, fmin, fmid, fmax, transparent,
-                            center=None, alpha=1.0, verbose=None):
-        """Scale the data colormap.
-
-        Parameters
-        ----------
-        %(fmin_fmid_fmax)s
-        %(transparent)s
-        %(center)s
-        alpha : float in [0, 1]
-            Alpha level to control opacity.
-        %(verbose_meth)s
-        """
-        # XXX fmid/transparent/center not used, this is a bug
-        lut_lst = self._data['ctable']
-        n_col = len(lut_lst)
-
-        # apply the lut on every surfaces
-        for hemi in ['lh', 'rh']:
-            hemi_data = self._data.get(hemi)
-            if hemi_data is not None:
-                if hemi_data['actors'] is not None:
-                    for actor in hemi_data['actors']:
-                        vtk_lut = actor.GetMapper().GetLookupTable()
-                        vtk_lut.SetNumberOfColors(n_col)
-                        vtk_lut.SetRange([fmin, fmax])
-                        vtk_lut.Build()
-                        for i in range(0, n_col):
-                            lt = lut_lst[i]
-                            vtk_lut.SetTableValue(
-                                i, lt[0], lt[1], lt[2], alpha)
-        self._update_fscale(1.0)
 
     def enable_depth_peeling(self):
         """Enable depth peeling."""
