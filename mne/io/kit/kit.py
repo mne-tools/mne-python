@@ -33,6 +33,11 @@ from ...event import read_events
 from .._digitization import _set_dig_kit
 
 
+FLOAT64 = '<f8'
+UINT32 = '<u4'
+INT32 = '<i4'
+
+
 def _call_digitization(info, mrk, elp, hsp, kit_info):
     # Use values from kit_info only if all others are None
     if mrk is None and elp is None and hsp is None:
@@ -455,10 +460,10 @@ class EpochsKIT(BaseEpochs):
 
 
 def _read_dir(fid):
-    return dict(offset=np.fromfile(fid, np.uint32, 1)[0],
-                size=np.fromfile(fid, np.int32, 1)[0],
-                max_count=np.fromfile(fid, np.int32, 1)[0],
-                count=np.fromfile(fid, np.int32, 1)[0])
+    return dict(offset=np.fromfile(fid, UINT32, 1)[0],
+                size=np.fromfile(fid, INT32, 1)[0],
+                max_count=np.fromfile(fid, INT32, 1)[0],
+                count=np.fromfile(fid, INT32, 1)[0])
 
 
 @verbose
@@ -561,7 +566,8 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
         # MGH description: 'acquisition (megacq) VectorView system at NMR-MGH'
         description = \
             f'{system_name} ({sysid}) {full_version} {model_name}'
-        sqd['dtype'] = np.dtype(getattr(np, f'int{adc_allocated}'))
+        assert adc_allocated % 8 == 0
+        sqd['dtype'] = np.dtype(f'<i{adc_allocated // 8}')
 
         # check that we can read this file
         if fll_type not in KIT.FLL_SETTINGS:
@@ -599,7 +605,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
                     'type': channel_type,
                     # (x, y, z, theta, phi) for all MEG channels. Some channel
                     # types have additional information which we're not using.
-                    'loc': np.fromfile(fid, dtype='d', count=5),
+                    'loc': np.fromfile(fid, dtype=FLOAT64, count=5),
                 })
                 if channel_type in KIT.CHANNEL_NAME_NCHAR:
                     fid.seek(16, SEEK_CUR)  # misc fields
@@ -616,7 +622,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
                 if channel_type in (KIT.CHANNEL_EEG, KIT.CHANNEL_ECG):
                     offset = 6 if channel_type == KIT.CHANNEL_EEG else 8
                     fid.seek(offset, SEEK_CUR)
-                    exg_gains.append(np.fromfile(fid, 'd', 1)[0])
+                    exg_gains.append(np.fromfile(fid, FLOAT64, 1)[0])
             elif channel_type == KIT.CHANNEL_NULL:
                 channels.append({'type': channel_type})
             else:
@@ -632,7 +638,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
         # through unaffected
         fid.seek(dirs[KIT.DIR_INDEX_CALIBRATION]['offset'])
         # (offset [Volt], gain [Tesla/Volt]) for each channel
-        sensitivity = np.fromfile(fid, dtype='d', count=channel_count * 2)
+        sensitivity = np.fromfile(fid, dtype=FLOAT64, count=channel_count * 2)
         sensitivity.shape = (channel_count, 2)
         channel_offset, channel_gain = sensitivity.T
         assert (channel_offset == 0).all()  # otherwise we have a problem
@@ -705,7 +711,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
                 # the channel name and its digitized, name, so let's be case
                 # insensitive. It will also prevent collisions with HSP
                 name = name.lower()
-                rr = np.fromfile(fid, 'd', 3)
+                rr = np.fromfile(fid, FLOAT64, 3)
                 if name:
                     assert name not in dig
                     dig[name] = rr
@@ -725,20 +731,20 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
             fid.seek(cor_dir['offset'])
             mrk = np.zeros((elp.shape[0] - 3, 3))
             for _ in range(cor_dir['count']):
-                done = np.fromfile(fid, np.int32, 1)[0]
+                done = np.fromfile(fid, INT32, 1)[0]
                 fid.seek(16 * KIT.DOUBLE +  # meg_to_mri
                          16 * KIT.DOUBLE,  # mri_to_meg
                          SEEK_CUR)
-                marker_count = np.fromfile(fid, np.int32, 1)[0]
+                marker_count = np.fromfile(fid, INT32, 1)[0]
                 if not done:
                     continue
                 assert marker_count >= len(mrk)
                 for mi in range(len(mrk)):
                     mri_type, meg_type, mri_done, meg_done = \
-                        np.fromfile(fid, np.int32, 4)
+                        np.fromfile(fid, INT32, 4)
                     assert meg_done
                     fid.seek(3 * KIT.DOUBLE, SEEK_CUR)  # mri_pos
-                    mrk[mi] = np.fromfile(fid, 'd', 3)
+                    mrk[mi] = np.fromfile(fid, FLOAT64, 3)
                 fid.seek(256, SEEK_CUR)  # marker_file (char)
             sqd.update(hsp=hsp, elp=elp, mrk=mrk)
 
