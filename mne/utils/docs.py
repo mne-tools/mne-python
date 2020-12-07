@@ -1954,7 +1954,7 @@ ch_name : None | str
     The name of the channel to use for ECG peak detection.
     If ``None`` (default), ECG channel is used if present. If ``None`` and
     **no** ECG channel is present, a synthetic ECG channel is created from
-    cross-channel average. This synthetic channel can only be created from
+    the cross-channel average. This synthetic channel can only be created from
     MEG channels.
 """
 docdict['ecg_filter_freqs'] = """

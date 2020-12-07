@@ -149,9 +149,9 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
     %(ecg_qrs_threshold)s
     %(ecg_filter_length)s
     return_ecg : bool
-        Return the ECG channel if it was synthesized. Defaults to ``False``.
-        If ``True`` and an actual ECG channel was found in the data, this will
-        return ``None``.
+        Return the ECG data. This is especially useful if no ECG channel
+        is present in the input data, so one will be synthesized. Defaults to
+        ``False``.
     %(reject_by_annotation_all)s
 
         .. versionadded:: 0.18
