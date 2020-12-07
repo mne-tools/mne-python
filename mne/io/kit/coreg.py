@@ -15,6 +15,7 @@ from .._digitization import _read_dig_points
 
 
 INT32 = '<i4'
+FLOAT64 = '<f8'
 
 
 def read_mrk(fname):
@@ -44,7 +45,7 @@ def read_mrk(fname):
             for _ in range(mrk_count):
                 # skips mri/meg mrk_type and done, mri_marker
                 fid.seek(KIT.INT * 4 + (KIT.DOUBLE * 3), SEEK_CUR)
-                pts.append(np.fromfile(fid, dtype='d', count=3))
+                pts.append(np.fromfile(fid, dtype=FLOAT64, count=3))
                 mrk_points = np.array(pts)
     elif ext == '.txt':
         mrk_points = _read_dig_points(fname, unit='m')
