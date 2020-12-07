@@ -42,7 +42,7 @@ def test_find_ecg():
                                         tstart=tstart,
                                         reject_by_annotation=False,
                                         return_ecg=True)[2]
-        assert np.isnan(average_pulse)
+        assert average_pulse == 0.
         average_pulse = find_ecg_events(raw_bad, ch_name=ch_name,
                                         tstart=tstart,
                                         reject_by_annotation=True)[2]

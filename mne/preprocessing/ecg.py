@@ -104,9 +104,9 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
                 ii += 1
 
         if len(rms) == 0:
-            rms.append(0.0)
-            time.append(0.0)
-        time = np.array(time)
+            rms.append(0.)
+            time.append(0)
+        time = np.array(time, np.int64)
         rms_mean = np.mean(rms)
         rms_std = np.std(rms)
         rms_thresh = rms_mean + (rms_std * levels)
@@ -209,14 +209,6 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
     ecg_events = qrs_detector(raw.info['sfreq'], ecg, tstart=tstart,
                               thresh_value=qrs_threshold, l_freq=None,
                               h_freq=None, verbose=False)
-
-    if ecg_events.size == 0:
-        logger.info('Could not detect any ECG events.')
-        out = (ecg_events, idx_ecg, np.nan)
-        if return_ecg:
-            ecg = ecg[np.newaxis]
-            out += (ecg,)
-        return out
 
     # map ECG events back to original times
     remap = np.empty(len(ecg), int)
