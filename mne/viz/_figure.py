@@ -1044,9 +1044,9 @@ class MNEBrowseFigure(MNEFigure):
         from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
         # make figure
         labels = np.array(sorted(set(self.mne.inst.annotations.description)))
-        width, var_height, fixed_height, pad = \
+        width, var_height, fixed_height, pad, checkbox_width = \
             self._compute_annotation_figsize(len(labels))
-        figsize = (width, var_height + fixed_height)
+        figsize = (width + pad + checkbox_width, var_height + fixed_height)
         fig = self._new_child_figure(figsize=figsize,
                                      FigureClass=MNEAnnotationFigure,
                                      fig_name='fig_annotation',
@@ -1059,7 +1059,14 @@ class MNEBrowseFigure(MNEFigure):
         fig.mne.radio_ax = fig.add_axes((left, bottom, width, height),
                                         frame_on=False, aspect='equal')
         div = make_axes_locatable(fig.mne.radio_ax)
-        self._update_annotation_fig()  # populate w/ radio buttons & labels
+        # append show/hide checkboxes at right
+        show_hide_ax = div.append_axes(position='right',
+                                       size=Fixed(checkbox_width),
+                                       pad=Fixed(pad), aspect='equal')
+        show_hide_ax.set_axis_off()
+        fig.mne.show_hide_ax = show_hide_ax
+        # populate w/ radio buttons & labels
+        self._update_annotation_fig()
         # append instructions at top
         instructions_ax = div.append_axes(position='top', size=Fixed(1),
                                           pad=Fixed(5 * pad))
@@ -1131,21 +1138,32 @@ class MNEBrowseFigure(MNEFigure):
         self.mne._callback_ids['motion_notify_event'] = \
             self.canvas.mpl_connect('motion_notify_event', self._hover)
 
+    def _toggle_visible_annotations(self, event):
+        """Enable/disable display of annotations on a per-label basis."""
+        checkboxes = self.mne.show_hide_annotation_checkboxes
+        labels = [t.get_text() for t in checkboxes.labels]
+        actives = checkboxes.get_status()
+        self.mne.visible_annotations = dict(zip(labels, actives))
+        self._redraw(update_data=False, annotations=True)
+
     def _toggle_draggable_annotations(self, event):
         """Enable/disable draggable annotation edges."""
         self.mne.draggable_annotations = not self.mne.draggable_annotations
 
+    def _get_annotation_labels(self):
+        """Get the unique labels in the raw object and added in the UI."""
+        labels = list(set(self.mne.inst.annotations.description))
+        return np.union1d(labels, self.mne.new_annotation_labels)
+
     def _update_annotation_fig(self):
         """Draw or redraw the radio buttons and annotation labels."""
-        from matplotlib.widgets import RadioButtons
+        from matplotlib.widgets import RadioButtons, CheckButtons
         # define shorthand variables
         fig = self.mne.fig_annotation
         ax = fig.mne.radio_ax
-        # get all the labels
-        labels = list(set(self.mne.inst.annotations.description))
-        labels = np.union1d(labels, self.mne.new_annotation_labels)
+        labels = self._get_annotation_labels()
         # compute new figsize
-        width, var_height, fixed_height, pad = \
+        width, var_height, fixed_height, pad, checkbox_width = \
             self._compute_annotation_figsize(len(labels))
         fig.set_size_inches(width, var_height + fixed_height, forward=True)
         # populate center axes with labels & radio buttons
@@ -1176,6 +1194,31 @@ class MNEBrowseFigure(MNEFigure):
         ax.buttons.disconnect_events()  # clear MPL default listeners
         ax.buttons.on_clicked(fig._radiopress)
         ax.buttons.connect_event('button_press_event', fig._click_override)
+
+        # now do the show/hide checkboxes
+        show_hide_ax = fig.mne.show_hide_ax
+        show_hide_ax.set_xlim((0, checkbox_width / var_height))
+        # ensure new labels have checkbox values
+        check_values = {label: False for label in labels}
+        check_values.update(self.mne.visible_annotations)  # existing checks
+        actives = [check_values[label] for label in labels]
+        # regenerate checkboxes
+        show_hide = CheckButtons(ax=fig.mne.show_hide_ax,
+                                 labels=labels,
+                                 actives=actives)
+        show_hide.on_clicked(self._toggle_visible_annotations)
+        # add title, hide labels
+        show_hide_ax.set_title('show/\nhide ', size=None, loc='right')
+        for label in show_hide.labels:
+            label.set_visible(False)
+        # fix aspect
+        for rect in show_hide.rectangles:
+            rect.set_transform(show_hide_ax.transData)
+        for line in np.array(show_hide.lines).ravel():
+            line.set_transform(show_hide_ax.transData)
+        # store state
+        self.mne.visible_annotations = check_values
+        self.mne.show_hide_annotation_checkboxes = show_hide
 
     def _toggle_annotation_fig(self):
         """Show/hide the annotation dialog window."""
@@ -1209,7 +1252,8 @@ class MNEBrowseFigure(MNEFigure):
         width = 4.5
         var_height = max(pad, 0.7 * n_labels)
         fixed_height = 2.9
-        return (width, var_height, fixed_height, pad)
+        checkbox_width = 0.5
+        return (width, var_height, fixed_height, pad, checkbox_width)
 
     def _add_annotation_label(self, event):
         """Add new annotation description."""
@@ -1227,7 +1271,7 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.fig_annotation.label.set_text('BAD_')
 
     def _setup_annotation_colors(self):
-        """Set up colors for annotations."""
+        """Set up colors for annotations; init some annotation vars."""
         raw = self.mne.inst
         segment_colors = getattr(self.mne, 'annotation_segment_colors', dict())
         # sort the segments by start time
@@ -1248,6 +1292,10 @@ class MNEBrowseFigure(MNEFigure):
             else:
                 segment_colors[key] = next(color_cycle)
         self.mne.annotation_segment_colors = segment_colors
+        # init a couple other annotation-related variables
+        labels = self._get_annotation_labels()
+        self.mne.visible_annotations = {label: True for label in labels}
+        self.mne.show_hide_annotation_checkboxes = None
 
     def _select_annotation_span(self, vmin, vmax):
         """Handle annotation span selector."""
@@ -1321,20 +1369,21 @@ class MNEBrowseFigure(MNEFigure):
             segment_color = self.mne.annotation_segment_colors[descr]
             kwargs = dict(color=segment_color, alpha=0.3,
                           zorder=self.mne.zorder['ann'])
-            # draw all segments on ax_hscroll
-            annot = self.mne.ax_hscroll.fill_betweenx((0, 1), start, end,
-                                                      **kwargs)
-            self.mne.hscroll_annotations.append(annot)
-            # draw only visible segments on ax_main
-            visible_segment = np.clip([start, end], times[0], times[-1])
-            if np.diff(visible_segment) > 0:
-                annot = ax.fill_betweenx(ylim, *visible_segment, **kwargs)
-                self.mne.annotations.append(annot)
-                xy = (visible_segment.mean(), ylim[1])
-                text = ax.annotate(descr, xy, xytext=(0, 9),
-                                   textcoords='offset points', ha='center',
-                                   va='baseline', color=segment_color)
-                self.mne.annotation_texts.append(text)
+            if self.mne.visible_annotations[descr]:
+                # draw all segments on ax_hscroll
+                annot = self.mne.ax_hscroll.fill_betweenx((0, 1), start, end,
+                                                          **kwargs)
+                self.mne.hscroll_annotations.append(annot)
+                # draw only visible segments on ax_main
+                visible_segment = np.clip([start, end], times[0], times[-1])
+                if np.diff(visible_segment) > 0:
+                    annot = ax.fill_betweenx(ylim, *visible_segment, **kwargs)
+                    self.mne.annotations.append(annot)
+                    xy = (visible_segment.mean(), ylim[1])
+                    text = ax.annotate(descr, xy, xytext=(0, 9),
+                                       textcoords='offset points', ha='center',
+                                       va='baseline', color=segment_color)
+                    self.mne.annotation_texts.append(text)
 
     def _update_annotation_segments(self):
         """Update the array of annotation start/end times."""
