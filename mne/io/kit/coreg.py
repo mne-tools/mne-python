@@ -7,12 +7,14 @@
 from os import SEEK_CUR, path as op
 import pickle
 import re
-from struct import unpack
 
 import numpy as np
 
 from .constants import KIT
 from .._digitization import _read_dig_points
+
+
+INT32 = '<i4'
 
 
 def read_mrk(fname):
@@ -33,11 +35,11 @@ def read_mrk(fname):
     if ext in ('.sqd', '.mrk'):
         with open(fname, 'rb', buffering=0) as fid:
             fid.seek(192)
-            mrk_offset = unpack('i', fid.read(KIT.INT))[0]
+            mrk_offset = np.fromfile(fid, INT32, 1)[0]
             fid.seek(mrk_offset)
             # skips match_done, meg_to_mri and mri_to_meg
             fid.seek(KIT.INT + (2 * KIT.DOUBLE * 4 ** 2), SEEK_CUR)
-            mrk_count = unpack('i', fid.read(KIT.INT))[0]
+            mrk_count = np.fromfile(fid, INT32, 1)[0]
             pts = []
             for _ in range(mrk_count):
                 # skips mri/meg mrk_type and done, mri_marker
