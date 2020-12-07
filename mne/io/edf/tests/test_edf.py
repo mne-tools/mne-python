@@ -203,8 +203,8 @@ def test_parse_annotation(tmpdir):
                              dtype=np.int64)
 
     with open(str(annot_file), 'rb') as fid:
-        # ch_data = np.fromfile(fid, dtype=np.int16, count=len(annot))
-        tal_channel_B = _read_ch(fid, subtype='EDF', dtype=np.int16,
+        # ch_data = np.fromfile(fid, dtype='<i2', count=len(annot))
+        tal_channel_B = _read_ch(fid, subtype='EDF', dtype='<i2',
                                  samp=(len(annot) - 1) // 2,
                                  dtype_byte='This_parameter_is_not_used')
 
@@ -301,7 +301,7 @@ def test_read_annot(tmpdir):
 
     # Now test when reading from buffer of data
     with open(str(annot_file), 'rb') as fid:
-        ch_data = np.fromfile(fid, dtype=np.int16, count=len(annot))
+        ch_data = np.fromfile(fid, dtype='<i2', count=len(annot))
     onset, duration, desc = _read_annotations_edf([ch_data])
     annotation = Annotations(onset=onset, duration=duration, description=desc,
                              orig_time=None)

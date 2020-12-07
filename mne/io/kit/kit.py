@@ -12,7 +12,6 @@ RawKIT class is adapted from Denis Engemann et al.'s mne_bti2fiff.py.
 from collections import defaultdict, OrderedDict
 from math import sin, cos
 from os import SEEK_CUR, path as op
-from struct import unpack
 
 import numpy as np
 from scipy import linalg
@@ -505,7 +504,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
         #
         fid.seek(dirs[KIT.DIR_INDEX_SYSTEM]['offset'])
         # check file format version
-        version, revision = unpack('2i', fid.read(2 * KIT.INT))
+        version, revision = np.fromfile(fid, INT32, 2)
         if version < 2 or (version == 2 and revision < 3):
             version_string = "V%iR%03i" % (version, revision)
             if allow_unknown_format:
@@ -518,31 +517,30 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
                     "Set allow_unknown_format=True to load it anyways." %
                     (version_string,))
 
-        sysid = unpack('i', fid.read(KIT.INT))[0]
+        sysid = np.fromfile(fid, INT32, 1)[0]
         # basic info
-        system_name = unpack('128s', fid.read(128))[0].decode()
+        system_name = _read_name(fid, n=128)
         # model name
-        model_name = unpack('128s', fid.read(128))[0].decode()
+        model_name = _read_name(fid, n=128)
         # channels
-        sqd['nchan'] = channel_count = unpack('i', fid.read(KIT.INT))[0]
-        comment = unpack('256s', fid.read(256))[0].decode()
-        create_time, last_modified_time = unpack('2i', fid.read(2 * KIT.INT))
+        sqd['nchan'] = channel_count = int(np.fromfile(fid, INT32, 1)[0])
+        comment = _read_name(fid, n=256)
+        create_time, last_modified_time = np.fromfile(fid, INT32, 2)
         fid.seek(KIT.INT * 3, SEEK_CUR)  # reserved
-        dewar_style = unpack('i', fid.read(KIT.INT))[0]
+        dewar_style = np.fromfile(fid, INT32, 1)[0]
         fid.seek(KIT.INT * 3, SEEK_CUR)  # spare
-        fll_type = unpack('i', fid.read(KIT.INT))[0]
+        fll_type = np.fromfile(fid, INT32, 1)[0]
         fid.seek(KIT.INT * 3, SEEK_CUR)  # spare
-        trigger_type = unpack('i', fid.read(KIT.INT))[0]
+        trigger_type = np.fromfile(fid, INT32, 1)[0]
         fid.seek(KIT.INT * 3, SEEK_CUR)  # spare
-        adboard_type = unpack('i', fid.read(KIT.INT))[0]
+        adboard_type = np.fromfile(fid, INT32, 1)[0]
         fid.seek(KIT.INT * 29, SEEK_CUR)  # reserved
 
         if version < 2 or (version == 2 and revision <= 3):
-            adc_range = float(unpack('i', fid.read(KIT.INT))[0])
+            adc_range = float(np.fromfile(fid, INT32, 1)[0])
         else:
-            adc_range = unpack('d', fid.read(KIT.DOUBLE))[0]
-        adc_polarity, adc_allocated, adc_stored = unpack('3i',
-                                                         fid.read(3 * KIT.INT))
+            adc_range = np.fromfile(fid, FLOAT64, 1)[0]
+        adc_polarity, adc_allocated, adc_stored = np.fromfile(fid, INT32, 3)
         system_name = system_name.replace('\x00', '')
         system_name = system_name.strip().replace('\n', '/')
         model_name = model_name.replace('\x00', '')
@@ -590,7 +588,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
         exg_gains = list()
         for i in range(channel_count):
             fid.seek(chan_offset + chan_size * i)
-            channel_type, = unpack('i', fid.read(KIT.INT))
+            channel_type, = np.fromfile(fid, INT32, 1)
             # System 52 mislabeled reference channels as NULL. This was fixed
             # in system 53; not sure about 51...
             if sysid == 52 and i < 160 and channel_type == KIT.CHANNEL_NULL:
@@ -611,7 +609,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
                     fid.seek(16, SEEK_CUR)  # misc fields
                     channels[-1]['name'] = _read_name(fid, channel_type)
             elif channel_type in KIT.CHANNELS_MISC:
-                channel_no, = unpack('i', fid.read(KIT.INT))
+                channel_no, = np.fromfile(fid, INT32, 1)
                 fid.seek(4, SEEK_CUR)
                 name = _read_name(fid, channel_type)
                 channels.append({
@@ -647,7 +645,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
         # amplifier gain (7)
         #
         fid.seek(dirs[KIT.DIR_INDEX_AMP_FILTER]['offset'])
-        amp_data = unpack('i', fid.read(KIT.INT))[0]
+        amp_data = np.fromfile(fid, INT32, 1)[0]
         if fll_type >= 100:  # Kapper Type
             # gain:             mask           bit
             gain1 = (amp_data & 0x00007000) >> 12
@@ -676,17 +674,17 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
         # Acquisition Parameters (8)
         #
         fid.seek(dirs[KIT.DIR_INDEX_ACQ_COND]['offset'])
-        sqd['acq_type'], = acq_type, = unpack('i', fid.read(KIT.INT))
-        sqd['sfreq'], = unpack('d', fid.read(KIT.DOUBLE))
+        sqd['acq_type'], = acq_type, = np.fromfile(fid, INT32, 1)
+        sqd['sfreq'], = np.fromfile(fid, FLOAT64, 1)
         if acq_type == KIT.CONTINUOUS:
-            # samples_count, = unpack('i', fid.read(KIT.INT))
+            # samples_count, = np.fromfile(fid, INT32, 1)
             fid.seek(KIT.INT, SEEK_CUR)
-            sqd['n_samples'], = unpack('i', fid.read(KIT.INT))
+            sqd['n_samples'], = np.fromfile(fid, INT32, 1)
         elif acq_type == KIT.EVOKED or acq_type == KIT.EPOCHS:
-            sqd['frame_length'], = unpack('i', fid.read(KIT.INT))
-            sqd['pretrigger_length'], = unpack('i', fid.read(KIT.INT))
-            sqd['average_count'], = unpack('i', fid.read(KIT.INT))
-            sqd['n_epochs'], = unpack('i', fid.read(KIT.INT))
+            sqd['frame_length'], = np.fromfile(fid, INT32, 1)
+            sqd['pretrigger_length'], = np.fromfile(fid, INT32, 1)
+            sqd['average_count'], = np.fromfile(fid, INT32, 1)
+            sqd['n_epochs'], = np.fromfile(fid, INT32, 1)
             if acq_type == KIT.EVOKED:
                 sqd['n_samples'] = sqd['frame_length']
             else:
@@ -755,7 +753,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
                           (sysid,))
         adc_range, adc_stored = LEGACY_AMP_PARAMS[sysid]
     is_meg = np.array([ch['type'] in KIT.CHANNELS_MEG for ch in channels])
-    ad_to_volt = adc_range / (2 ** adc_stored)
+    ad_to_volt = adc_range / (2. ** adc_stored)
     ad_to_tesla = ad_to_volt / amp_gain * channel_gain
     conv_factor = np.where(is_meg, ad_to_tesla, ad_to_volt)
     # XXX this is a bit of a hack. Should probably do this more cleanly at
@@ -765,7 +763,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
     # for the EEG data.
     is_exg = [ch['type'] in (KIT.CHANNEL_EEG, KIT.CHANNEL_ECG)
               for ch in channels]
-    exg_gains /= 2 ** (adc_stored - 14)
+    exg_gains /= 2. ** (adc_stored - 14)
     exg_gains[exg_gains == 0] = ad_to_volt
     conv_factor[is_exg] = exg_gains
     sqd['conv_factor'] = conv_factor[:, np.newaxis]
