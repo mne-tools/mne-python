@@ -278,6 +278,12 @@ def test_single_hemi(hemi, renderer_interactive, brain_gc):
         subjects_dir=subjects_dir, hemi='both', size=300)
     brain.close()
 
+    # test skipping when len(vertices) == 0
+    stc.vertices[1 - idx] = np.array([])
+    brain = stc.plot(
+        subjects_dir=subjects_dir, hemi=hemi, size=300)
+    brain.close()
+
 
 @testing.requires_testing_data
 @pytest.mark.slowtest
