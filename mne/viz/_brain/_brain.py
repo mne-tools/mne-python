@@ -117,14 +117,16 @@ class _LayeredMesh(object):
         self._is_mapped = True
 
     def _compute_over(self, B, A):
-        alpha_a = A[:, 3]
-        alpha_b = B[:, 3]
-        alpha_c = alpha_a + alpha_b * (1 - alpha_a)
-        a = A[:, :3]
-        b = B[:, :3]
-        c = (a.T * alpha_a).T + (b.T * alpha_b * (1 - alpha_a)).T
-        c = (c.T / alpha_c).T
-        return np.c_[c, alpha_c]
+        assert A.ndim == B.ndim == 2
+        assert A.shape[1] == B.shape[1] == 4
+        A_w = A[:, 3:]  # * 1
+        B_w = B[:, 3:] * (1 - A_w)
+        C = A.copy()
+        C[:, :3] *= A_w
+        C[:, :3] += B[:, :3] * B_w
+        C[:, 3:] += B_w
+        C[:, :3] /= C[:, 3:]
+        return np.clip(C, 0, 1, out=C)
 
     def _compose_overlays(self):
         B = None
