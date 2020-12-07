@@ -18,6 +18,7 @@ import warnings
 
 import numpy as np
 from scipy import sparse
+from collection import OrderedDict
 
 from .colormap import calculate_lut
 from .surface import Surface
@@ -93,7 +94,7 @@ class _LayeredMesh(object):
         self._is_mapped = False
 
         self._cache = None
-        self._overlays = dict()
+        self._overlays = OrderedDict()
 
         self._default_scalars = np.ones(vertices.shape)
         self._default_scalars_name = 'Data'
