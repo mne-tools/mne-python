@@ -2224,7 +2224,7 @@ class Brain(object):
                 'Label time course plotting is not supported for volume.')
         self.traces_mode = 'label'
 
-        self.add_annotation(self.annot)
+        self.add_annotation(self.annot, color="w", alpha=0.75)
 
         # now plot the time line
         self.plot_time_line()
@@ -2345,14 +2345,8 @@ class Brain(object):
                 cmap[:, :3] = rgb.astype(cmap.dtype)
 
             ctable = cmap.astype(np.float64) / 255.
-
-            if self.time_viewer and self.traces_mode == 'label':
-                scalars = ids > 0
-                colormap = np.asarray([[0, 0, 0, 0],
-                                      self._brain_color])
-            else:
-                scalars = ids
-                colormap = ctable
+            scalars = ids
+            colormap = ctable
 
             for ri, ci, _ in self._iter_views(hemi):
                 self._renderer.subplot(ri, ci)
