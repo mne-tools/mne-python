@@ -447,10 +447,11 @@ def test_make_lcmv_sphere(pick_ori, weight_norm):
 
     # Test that we get an error if not reducing rank
     with pytest.raises(ValueError, match='Singular matrix detected'):
-        make_lcmv(
-            evoked.info, fwd_sphere, data_cov, reg=0.1,
-            noise_cov=noise_cov, weight_norm=weight_norm,
-            pick_ori=pick_ori, reduce_rank=False, rank='full')
+        with pytest.warns(RuntimeWarning, match='positive semidefinite'):
+            make_lcmv(
+                evoked.info, fwd_sphere, data_cov, reg=0.1,
+                noise_cov=noise_cov, weight_norm=weight_norm,
+                pick_ori=pick_ori, reduce_rank=False, rank='full')
 
     # Now let's reduce it
     filters = make_lcmv(evoked.info, fwd_sphere, data_cov, reg=0.1,
@@ -684,14 +685,14 @@ def test_localization_bias_fixed(bias_params_fixed, reg, weight_norm, use_cov,
         (0.05, 'max-power', None, True, 0.8, 15, 18, 0, 0),
         (0.05, None, None, True, 0.8, 40, 42, 0, 0),
         # no reg
-        (0.00, 'vector', None, True, None, 21, 32, 0.85, 0.94),
-        (0.00, 'vector', 'unit-noise-gain-invariant', True, None, 50, 65, 0.84, 0.92),  # noqa: E501
-        (0.00, 'vector', 'unit-noise-gain', True, None, 42, 65, 0.91, 0.99),
-        (0.00, 'vector', 'nai', True, None, 42, 65, 0.91, 0.99),
-        (0.00, 'max-power', None, True, None, 13, 19, 0, 0),
-        (0.00, 'max-power', 'unit-noise-gain-invariant', True, None, 43, 50, 0, 0),  # noqa: E501
-        (0.00, 'max-power', 'unit-noise-gain', True, None, 43, 50, 0, 0),
-        (0.00, 'max-power', 'nai', True, None, 43, 50, 0, 0),
+        (0.00, 'vector', None, True, None, 23, 24, 0.96, 0.97),
+        (0.00, 'vector', 'unit-noise-gain-invariant', True, None, 52, 53, 0.95, 0.96),  # noqa: E501
+        (0.00, 'vector', 'unit-noise-gain', True, None, 44, 45, 0.97, 0.98),
+        (0.00, 'vector', 'nai', True, None, 44, 45, 0.97, 0.98),
+        (0.00, 'max-power', None, True, None, 14, 15, 0, 0),
+        (0.00, 'max-power', 'unit-noise-gain-invariant', True, None, 35, 37, 0, 0),  # noqa: E501
+        (0.00, 'max-power', 'unit-noise-gain', True, None, 35, 37, 0, 0),
+        (0.00, 'max-power', 'nai', True, None, 35, 37, 0, 0),
     ])
 def test_localization_bias_free(bias_params_free, reg, pick_ori, weight_norm,
                                 use_cov, depth, lower, upper, lo, uo):
@@ -700,10 +701,11 @@ def test_localization_bias_free(bias_params_free, reg, pick_ori, weight_norm,
     if not use_cov:
         evoked.pick_types(meg='grad')
         noise_cov = None
-    filters = make_lcmv(evoked.info, fwd, data_cov, reg,
-                        noise_cov, pick_ori=pick_ori,
-                        weight_norm=weight_norm,
-                        depth=depth)
+    with pytest.warns(None):  # rank deficiency of data_cov
+        filters = make_lcmv(evoked.info, fwd, data_cov, reg,
+                            noise_cov, pick_ori=pick_ori,
+                            weight_norm=weight_norm,
+                            depth=depth)
     loc = apply_lcmv(evoked, filters).data
     if pick_ori == 'vector':
         ori = loc.copy() / np.linalg.norm(loc, axis=1, keepdims=True)

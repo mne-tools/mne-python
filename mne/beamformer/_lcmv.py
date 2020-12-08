@@ -17,8 +17,7 @@ from ..utils import logger, verbose, _check_channels_spatial_filter
 from ..utils import _check_one_ch_type, _check_info_inv
 from ._compute_beamformer import (
     _prepare_beamformer_input, _compute_power,
-    _compute_beamformer, _check_src_type, Beamformer, _restore_pos_semidef,
-    _proj_whiten_data)
+    _compute_beamformer, _check_src_type, Beamformer, _proj_whiten_data)
 
 
 @verbose
@@ -169,9 +168,6 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     Cm = data_cov._get_square()
     if 'estimator' in data_cov:
         del data_cov['estimator']
-
-    # Whiten the data covariance
-    Cm = _restore_pos_semidef(np.dot(whitener, np.dot(Cm, whitener.T)))
     rank_int = sum(rank.values())
     del rank
 
@@ -179,7 +175,8 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     n_orient = 3 if is_free_ori else 1
     W, max_power_ori = _compute_beamformer(
         G, Cm, reg, n_orient, weight_norm, pick_ori, reduce_rank, rank_int,
-        inversion=inversion, nn=nn, orient_std=orient_std)
+        inversion=inversion, nn=nn, orient_std=orient_std,
+        whitener=whitener)
 
     # get src type to store with filters for _make_stc
     src_type = _get_src_type(forward['src'], vertno)

@@ -94,7 +94,7 @@ def _prepare_beamformer_input(info, forward, label=None, pick_ori=None,
         orient_std = np.ones(gain.shape[1])
 
     # Get the projector
-    proj, ncomp, _ = make_projector(
+    proj, _, _ = make_projector(
         info_picked['projs'], info_picked['ch_names'])
     return (is_free_ori, info_picked, proj, vertno, gain, whitener, nn,
             orient_std)
@@ -141,16 +141,9 @@ def _sym_inv_sm(x, reduce_rank, inversion, sk):
     return x_inv
 
 
-def _restore_pos_semidef(Cm):
-    # Restore to positive semi-definite, as
-    # (negative eigenvalues are errant / due to massive scaling differences)
-    s, u = np.linalg.eigh(Cm)
-    Cm[:] = np.dot(u * np.abs(s), u.T.conj())
-    return Cm
-
-
 def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
-                        reduce_rank, rank, inversion, nn, orient_std):
+                        reduce_rank, rank, inversion, nn, orient_std,
+                        whitener):
     """Compute a spatial beamformer filter (LCMV or DICS).
 
     For more detailed information on the parameters, see the docstrings of
@@ -180,6 +173,8 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         The source normals.
     orient_std : ndarray, shape (n_dipoles,)
         The std of the orientation prior used in weighting the lead fields.
+    whitener : ndarray, shape (n_channels, n_channels)
+        The whitener.
 
     Returns
     -------
@@ -189,6 +184,13 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     _check_option('weight_norm', weight_norm,
                   ['unit-noise-gain-invariant', 'unit-noise-gain',
                    'nai', None])
+
+    # Whiten the data covariance
+    Cm = whitener @ Cm @ whitener.T.conj()
+    # Restore to properly Hermitian as large whitening coefs can have bad
+    # rounding error
+    Cm[:] = (Cm + Cm.T.conj()) / 2.
+
     assert Cm.shape == (G.shape[0],) * 2
     s, _ = np.linalg.eigh(Cm)
     if not (s >= -s.max() * 1e-7).all():

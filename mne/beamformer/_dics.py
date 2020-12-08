@@ -20,7 +20,7 @@ from ..time_frequency import csd_fourier, csd_multitaper, csd_morlet
 from ._compute_beamformer import (_prepare_beamformer_input,
                                   _compute_beamformer, _check_src_type,
                                   Beamformer, _compute_power,
-                                  _restore_pos_semidef, _proj_whiten_data)
+                                  _proj_whiten_data)
 
 
 @verbose
@@ -198,15 +198,13 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
         # make things complex again...?
         if real_filter:
             Cm = Cm.real
-        # Whiten the CSD
-        Cm = np.dot(whitener, np.dot(Cm, whitener.conj().T))
-        _restore_pos_semidef(Cm)
 
         # compute spatial filter
         n_orient = 3 if is_free_ori else 1
         W, max_power_ori = _compute_beamformer(
             G, Cm, reg, n_orient, weight_norm, pick_ori, reduce_rank,
-            rank=rank, inversion=inversion, nn=nn, orient_std=orient_std)
+            rank=rank, inversion=inversion, nn=nn, orient_std=orient_std,
+            whitener=whitener)
         Ws.append(W)
         max_oris.append(max_power_ori)
 
