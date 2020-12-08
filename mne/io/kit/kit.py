@@ -26,10 +26,8 @@ from ...epochs import BaseEpochs
 from ..constants import FIFF
 from ..meas_info import _empty_info
 from .constants import KIT, LEGACY_AMP_PARAMS
-from .coreg import read_mrk
+from .coreg import read_mrk, _set_dig_kit
 from ...event import read_events
-
-from .._digitization import _set_dig_kit
 
 
 FLOAT64 = '<f8'

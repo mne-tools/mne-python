@@ -521,7 +521,7 @@ def test_read_dig_montage_using_polhemus_fastscan_error_handling(tmpdir):
     with open(fname, 'w') as fid:
         fid.write(content)
 
-    with pytest.raises(ValueError, match='not contain Polhemus FastSCAN'):
+    with pytest.raises(ValueError, match='not contain.*Polhemus FastSCAN'):
         _ = read_polhemus_fastscan(fname)
 
     EXPECTED_ERR_MSG = "allowed value is '.txt', but got '.bar' instead"
