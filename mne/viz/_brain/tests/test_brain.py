@@ -420,10 +420,12 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
         hemi=hemi, surf='white', src=src, show_traces=0.5, initial_time=0,
         volume_options=None,  # for speed, don't upsample
         n_time=1 if src == 'mixed' else 5,
+        add_data_kwargs=dict(colorbar_kwargs=dict(n_labels=3)),
     )
     assert brain.show_traces
     assert hasattr(brain, "picked_points")
     assert hasattr(brain, "_spheres")
+    assert brain.plotter.scalar_bar.GetNumberOfLabels() == 3
 
     # test points picked by default
     picked_points = brain.get_picked_points()
