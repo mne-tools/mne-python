@@ -1953,14 +1953,6 @@ flat : dict | str | None
     used.
 """
 
-# SSP
-docdict['compute_ssp'] = """This function aims to find those SSP vectors that
-will project out the ``n`` most prominent signals from the data for each
-specified sensor type. Consequently, if the provided input data contains high
-levels of noise, the produced SSP vectors can then be used to eliminate that
-noise from the data.
-"""
-
 # ECG detection
 docdict['ecg_event_id'] = """
 event_id : int
@@ -1989,6 +1981,51 @@ tstart : float
     Start ECG detection after ``tstart`` seconds. Useful when the beginning
     of the run is noisy.
 """
+docdict['create_ecg_epochs'] = """
+This function will:
+
+#. Filter the ECG data channel.
+
+#. Find ECG R wave peaks using :func:`mne.preprocessing.find_ecg_events`.
+
+#. Filter the raw data.
+
+#. Create `~mne.Epochs` around the R wave peaks, capturing the heartbeats.
+"""
+
+# EOG detection
+docdict['create_eog_epochs'] = """
+This function will:
+
+#. Filter the EOG data channel.
+
+#. Find the peaks of eyeblinks in the EOG data using
+   :func:`mne.preprocessing.find_eog_events`.
+
+#. Filter the raw data.
+
+#. Create `~mne.Epochs` around the eyeblinks.
+"""
+
+# SSP
+docdict['compute_ssp'] = """This function aims to find those SSP vectors that
+will project out the ``n`` most prominent signals from the data for each
+specified sensor type. Consequently, if the provided input data contains high
+levels of noise, the produced SSP vectors can then be used to eliminate that
+noise from the data.
+"""
+compute_proj_common = """
+#. Optionally average the `~mne.Epochs` to produce an `~mne.Evoked` if
+   ``average=True`` was passed (default).
+
+#. Calculate SSP projection vectors on that data to capture the artifacts.
+"""
+docdict['compute_proj_ecg'] = f"""%(create_ecg_epochs)s
+{compute_proj_common}
+""" % docdict
+docdict['compute_proj_eog'] = f"""%(create_eog_epochs)s
+{compute_proj_common}
+""" % docdict
 
 # Other
 docdict['accept'] = """

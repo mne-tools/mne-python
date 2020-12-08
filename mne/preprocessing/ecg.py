@@ -269,6 +269,13 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
                       reject_by_annotation=True, decim=1, verbose=None):
     """Conveniently generate epochs around ECG artifact events.
 
+    %(create_ecg_epochs)s
+
+    .. note:: Filtering is only applied to the ECG channel while finding
+                events. The resulting ``ecg_epochs`` will have no filtering
+                applied (i.e., have the same filter properties as the input
+                ``raw`` instance).
+
     Parameters
     ----------
     raw : instance of Raw
@@ -308,12 +315,6 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
     --------
     find_ecg_events
     compute_proj_ecg
-
-    Notes
-    -----
-    Filtering is only applied to the ECG channel while finding events.
-    The resulting ``ecg_epochs`` will have no filtering applied (i.e., have
-    the same filter properties as the input ``raw`` instance).
     """
     has_ecg = 'ecg' in raw or ch_name is not None
     if keep_ecg and (has_ecg or not preload):
