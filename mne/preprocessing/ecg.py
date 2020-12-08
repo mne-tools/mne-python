@@ -164,9 +164,9 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
         The events corresponding to the peaks of the R waves.
     ch_ecg : string
         Name of channel used.
-    average_pulse : float | np.nan
+    average_pulse : float
         The estimated average pulse. If no ECG events could be found, this will
-        be ``nan``.
+        be zero.
     ecg : array | None
         The ECG data of the synthesized ECG channel, if any. This will only
         be returned if ``return_ecg=True`` was passed.
