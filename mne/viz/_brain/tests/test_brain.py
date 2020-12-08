@@ -337,9 +337,14 @@ def test_brain_save_movie(tmpdir, renderer, brain_gc):
             brain._renderer.plotter.enable()
         else:
             brain._renderer.plotter.disable()
-        brain.save_movie(filename, time_dilation=1,
+        with pytest.raises(TypeError, match='unexpected keyword argument'):
+            brain.save_movie(filename, time_dilation=1, tmin=1, tmax=1.1,
+                             bad_name='blah')
+        assert not path.isfile(filename)
+        brain.save_movie(filename, time_dilation=0.1,
                          interpolation='nearest')
         assert path.isfile(filename)
+        os.remove(filename)
     brain.close()
 
 

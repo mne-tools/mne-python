@@ -2713,7 +2713,7 @@ class Brain(object):
             kwargs['codec'] = codec
         if bitrate is not None:
             kwargs['bitrate'] = bitrate
-        imageio.mimwrite(filename, images)
+        imageio.mimwrite(filename, images, **kwargs)
 
     @fill_doc
     def save_movie(self, filename, time_dilation=4., tmin=None, tmax=None,
