@@ -523,7 +523,7 @@ def test_apply_inverse_operator(evoked, inv, min_, max_):
         apply_inverse(evoked, inv_op, lambda2, "MNE")
     evoked.info['custom_ref_applied'] = False
     evoked.info['projs'] = []  # remove EEG proj
-    with pytest.raises(ValueError, match='EEG average reference is mandatory'):
+    with pytest.raises(ValueError, match='EEG average reference.*mandatory'):
         apply_inverse(evoked, inv_op, lambda2, "MNE")
 
     # But test that we do not get EEG-related errors on MEG-only inv (gh-4650)
