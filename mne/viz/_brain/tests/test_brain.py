@@ -432,6 +432,9 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
     assert hasattr(brain, "_spheres")
     assert brain.plotter.scalar_bar.GetNumberOfLabels() == 3
 
+    # add foci should work for volumes
+    brain.add_foci([[0, 0, 0]], hemi='lh' if src == 'surface' else 'vol')
+
     # test points picked by default
     picked_points = brain.get_picked_points()
     spheres = brain._spheres

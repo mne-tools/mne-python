@@ -2048,7 +2048,7 @@ class Brain(object):
 
     def add_foci(self, coords, coords_as_verts=False, map_surface=None,
                  scale_factor=1, color="white", alpha=1, name=None,
-                 hemi=None):
+                 hemi=None, resolution=50):
         """Add spherical foci, possibly mapping to displayed surf.
 
         The foci spheres can be displayed at the coordinates given, or
@@ -2078,9 +2078,11 @@ class Brain(object):
             If None, it is assumed to belong to the hemipshere being
             shown. If two hemispheres are being shown, an error will
             be thrown.
+        resolution : int
+            The resolution of the spheres.
         """
         from matplotlib.colors import colorConverter
-        hemi = self._check_hemi(hemi)
+        hemi = self._check_hemi(hemi, extras=['vol'])
 
         # those parameters are not supported yet, only None is allowed
         _check_option('map_surface', map_surface, [None])
@@ -2099,7 +2101,7 @@ class Brain(object):
             self._renderer.subplot(ri, ci)
             self._renderer.sphere(center=coords, color=color,
                                   scale=(10. * scale_factor),
-                                  opacity=alpha)
+                                  opacity=alpha, resolution=resolution)
             self._renderer.set_camera(**views_dicts[hemi][v])
 
     def add_text(self, x, y, text, name=None, color=None, opacity=1.0,
