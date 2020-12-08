@@ -1716,25 +1716,24 @@ class Brain(object):
         self._data['fmax'] = fmax
         self.update_lut()
 
-        # select the right actor
-        if hemi in ('lh', 'rh'):
-            actor = self._layered_meshes[hemi]._actor
-        else:
-            src_vol = src[2:] if src.kind == 'mixed' else src
-            actor, _ = self._add_volume_data(hemi, src_vol, volume_options)
+        # 1) add the surfaces first
+        actor = None
+        for ri, ci, _ in self._iter_views(hemi):
+            self._renderer.subplot(ri, ci)
+            if hemi in ('lh', 'rh'):
+                actor = self._layered_meshes[hemi]._actor
+            else:
+                src_vol = src[2:] if src.kind == 'mixed' else src
+                actor, _ = self._add_volume_data(hemi, src_vol, volume_options)
+        assert actor is not None  # should have added one
 
-        # 1) update time and smoothing properties
+        # 2) update time and smoothing properties
         # set_data_smoothing calls "set_time_point" for us, which will set
         # _current_time
         self.set_time_interpolation(self.time_interpolation)
         self.set_data_smoothing(self._data['smoothing_steps'])
 
-        # update opacity
-        if hemi in self._layered_meshes:
-            mesh = self._layered_meshes[hemi]
-            mesh.update_overlay(name='data', opacity=alpha)
-
-        # 2) add the other actors
+        # 3) add the other actors
         if colorbar is True:
             # botto left by default
             colorbar = (self._subplot_shape[0] - 1, 0)
@@ -1759,6 +1758,13 @@ class Brain(object):
                 self._renderer.scalarbar(**kwargs)
                 self._colorbar_added = True
             self._renderer.set_camera(**views_dicts[hemi][v])
+
+        # 4) update the scalar bar and opacity
+        self.update_lut()
+        if hemi in self._layered_meshes:
+            mesh = self._layered_meshes[hemi]
+            mesh.update_overlay(name='data', opacity=alpha)
+
         self._update()
 
     def _iter_views(self, hemi):
