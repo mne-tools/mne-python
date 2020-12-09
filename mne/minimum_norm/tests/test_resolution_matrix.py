@@ -56,6 +56,10 @@ def test_resolution_matrix():
     forward_fxd = mne.convert_forward_solution(forward, surf_ori=True,
                                                force_fixed=True)
 
+    src = forward['src']
+    n_verts = len(src[0]['vertno']) + len(src[1]['vertno'])
+    print(n_verts)
+
     # noise covariance matrix
     noise_cov = mne.read_cov(fname_cov)
     # evoked data for info
@@ -83,6 +87,8 @@ def test_resolution_matrix():
                                                     inverse_operator,
                                                     method='MNE',
                                                     lambda2=lambda2)
+    assert_equal(rm_mne_fxdfree.shape, (n_verts * 3, n_verts))
+
     # resolution matrices for fixed source orientation
     # compute resolution matrix for MNE
     rm_mne = make_inverse_resolution_matrix(forward_fxd, inverse_operator_fxd,
@@ -110,18 +116,28 @@ def test_resolution_matrix():
     # check various summary and normalisation options
     for mode in [None, 'sum', 'mean', 'maxval', 'maxnorm', 'pca']:
         n_comps = [1, 3]
-        if mode in [None, 'sum', 'mean']:
+        if mode in [None]:
             n_comps = [1]
         for n_comp in n_comps:
-            for norm in [None, 'max', 'norm', True]:
+            # for norm in [None, 'max', 'norm', True]:
+            for norm in [None]:
+                # with fixed orientations
                 stc_psf = get_point_spread(
                     rm_mne, forward_fxd['src'], idx, mode=mode, n_comp=n_comp,
-                    norm='norm', return_pca_vars=False)
+                    norm=norm, return_pca_vars=False)
                 stc_ctf = get_cross_talk(
                     rm_mne, forward_fxd['src'], idx, mode=mode, n_comp=n_comp,
-                    norm='norm', return_pca_vars=False)
+                    norm=norm, return_pca_vars=False)
                 # for MNE, PSF/CTFs for same vertices should be the same
                 assert_array_almost_equal(stc_psf.data, stc_ctf.data)
+                # with free orientations
+                # stc_psf = get_point_spread(
+                #     rm_mne_free, forward_fxd['src'], None, mode=None,
+                #     n_comp=None, norm=norm, return_pca_vars=False)
+                # stc_ctf = get_cross_talk(
+                #     rm_mne_free, forward_fxd['src'], idx, mode=mode,
+                #     n_comp=n_comp, norm='norm', return_pca_vars=False)
+                # assert_array_almost_equal(stc_psf.data, stc_ctf.data)
 
     # check SVD variances
     stc_psf, s_vars_psf = get_point_spread(

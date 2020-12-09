@@ -9,7 +9,8 @@ import numpy as np
 
 from scipy import linalg
 
-from .. import pick_channels_forward, EvokedArray, SourceEstimate
+from .. import (pick_channels_forward, EvokedArray, SourceEstimate,
+                VectorSourceEstimate)
 from ..io.constants import FIFF
 from ..utils import logger, verbose
 from ..forward.forward import convert_forward_solution
@@ -67,12 +68,12 @@ def make_inverse_resolution_matrix(forward, inverse_operator, method='dSPM',
 
 @verbose
 def _get_psf_ctf(resmat, src, idx, func, mode, n_comp, norm, return_pca_vars,
-                 verbose=None):
+                 vector=False, verbose=None):
     """Get point-spread (PSFs) or cross-talk (CTFs) functions.
 
     Parameters
     ----------
-    resmat : array, shape (n_dipoles, n_dipoles)
+    resmat : array, shape (n_orient_inv * n_dipoles, n_orient_fwd * n_dipoles)
         Forward Operator.
     src : Source Space
         Source space used to compute resolution matrix.
@@ -83,11 +84,29 @@ def _get_psf_ctf(resmat, src, idx, func, mode, n_comp, norm, return_pca_vars,
     %(pctf_n_comp)s
     %(pctf_norm)s
     %(pctf_return_pca_vars)s
+    vector: Bool
+        Whether to return PSF/CTF as vector source estimate (3 values per
+        location) or source esimate object (1 intensity value per location).
+        Only allowed to be True if corresponding dimension of resolution matrix
+        is 3 * n_dipoles.
     %(verbose)s
 
     Returns
     -------
-    %(pctf_stcs)s
+    # %(pctf_stcs)s
+    stcs : instance of SourceEstimate | list of instances of SourceEstimate
+    PSFs or CTFs as STC objects.
+    All PSFs/CTFs will be returned as successive samples in STC objects,
+    in the order they are specified in idx. STCs for different labels will
+    be returned as a list.
+    If resmat was computed with n_orient_inv==3 for CTFs or n_orient_fwd for
+    PSFs then 3 functions per vertex will be returned as successive samples
+    (i.e. one function per orientation).
+    If vector=False (default) and resmat was computed with n_orient_inv==3 for
+    PSFs or n_orient_fwd for CTFs, then the three values per vertex will be
+    combined into one intensity value per vertex in a SourceEstimate object.
+    If vector=True, PSFs or CTFs with 3 values per vertex (one per orientation)
+    will be returned in a VectorSourceEstimate object.
     %(pctf_pca_vars)s
     """
     # check for consistencies in input parameters
@@ -99,17 +118,39 @@ def _get_psf_ctf(resmat, src, idx, func, mode, n_comp, norm, return_pca_vars,
 
     # get relevant vertices in source space
     verts_all = _vertices_for_get_psf_ctf(idx, src)
-    # vertices used in forward and inverse operator
     vertno_lh = src[0]['vertno']
     vertno_rh = src[1]['vertno']
     vertno = [vertno_lh, vertno_rh]
 
+    n_verts = len(vertno[0]) + len(vertno[1])
+
+    n_r, n_c = resmat.shape
+    if (((n_verts != n_r) and (n_r / 3 != n_verts))
+            or ((n_verts != n_c) and (n_c / 3 != n_verts))):
+        msg = ('Number of vertices (%d) and corresponding dimension of'
+               'resolution matrix ((%d, %d) do not match' %
+               (n_verts, n_r, n_c))
+        raise ValueError(msg)
+
     # the following will operate on columns of funcs
     if func == 'ctf':
         resmat = resmat.T
+        n_r, n_c = n_c, n_r
+
     # Functions and variances per label
     stcs = []
     pca_vars = []
+
+    # if 3 orientations per vertex, redefine indicies to columns of resolution
+    # matrix
+    if n_verts != n_c:
+        # change indices to three indices per vertex
+        for [i, verts] in enumerate(verts_all):
+            verts_vec = np.empty(3 * len(verts), dtype=int)
+            for [j, v] in enumerate(verts):
+                verts_vec[3 * j: 3 * j + 3] = \
+                    3 * verts[j] + np.array([0, 1, 2])
+            verts_all[i] = verts_vec  # use these as indices
 
     for verts in verts_all:
         # get relevant PSFs or CTFs for specified vertices
@@ -125,8 +166,19 @@ def _get_psf_ctf(resmat, src, idx, func, mode, n_comp, norm, return_pca_vars,
             funcs, pca_var = _summarise_psf_ctf(funcs, mode, n_comp,
                                                 return_pca_vars)
 
-        # convert to source estimate
-        stc = SourceEstimate(funcs, vertno, tmin=0., tstep=1.)
+        if not vector:  # if one value per vertex requested
+            if n_verts != n_r:  # if 3 orientations per vertex, combine
+                funcs_int = np.empty([int(n_r / 3), funcs.shape[1]])
+                for i in np.arange(0, n_verts):
+                    funcs_vert = funcs[3 * i:3 * i + 3, :]
+                    funcs_int[i, :] = np.sqrt((funcs_vert ** 2).sum(axis=0))
+                stc = SourceEstimate(funcs_int, vertno, tmin=0., tstep=1.)
+            else:  # use as is
+                stc = SourceEstimate(funcs, vertno, tmin=0., tstep=1.)
+        else:  # STC with orientations
+            # convert to source estimate
+            stc = VectorSourceEstimate(funcs, vertno, tmin=0., tstep=1.)
+
         stcs.append(stc)
         pca_vars.append(pca_var)
 
