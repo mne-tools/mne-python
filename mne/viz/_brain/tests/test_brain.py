@@ -145,7 +145,6 @@ def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
     class FakeSTC(_BaseSourceEstimate):
         def __init__(self):
             pass
-
     hemi = 'lh'
     surf = 'inflated'
     cortex = 'low_contrast'
@@ -372,7 +371,6 @@ def test_brain_time_viewer(renderer_interactive, pixel_ratio, brain_gc):
     with pytest.raises(ValueError, match="got unknown keys"):
         _create_testing_brain(hemi='lh', surf='white', src='volume',
                               volume_options={'foo': 'bar'})
-
     brain = _create_testing_brain(hemi='both', show_traces=False)
     # test sub routines when show_traces=False
     brain._on_pick(None, None)
