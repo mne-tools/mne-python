@@ -29,7 +29,7 @@ Enhancements
 
 - Update ``surfaces`` argument in :func:`mne.viz.plot_alignment` to allow dict for transparency values, and set default for sEEG data to have transparency (:gh:`8445` by `Keith Doelling`_)
 
-- Add support for ``mri_fiducials='estimated'`` in :func:`mne.viz.plot_alignment` to allow estimating MRI fiducial locations using :func:`mne.get_mni_fiducials` (:gh:`8553` by `Eric Larson`_)
+- Add support for ``mri_fiducials='estimated'`` in :func:`mne.viz.plot_alignment` to allow estimating MRI fiducial locations using :func:`mne.coreg.get_mni_fiducials` (:gh:`8553` by `Eric Larson`_)
 
 - Update default values in :ref:`mne coreg` and :func:`mne.viz.plot_alignment` for clearer representation of MRI and digitized fiducial points (:gh:`8553` by `Alex Gramfort`_ and `Eric Larson`_)
 
