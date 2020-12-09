@@ -137,7 +137,7 @@ def _get_psf_ctf(resmat, src, idx, func, mode, n_comp, norm, return_pca_vars,
     stcs = []
     pca_vars = []
 
-    # if 3 orientations per vertex, redefine indicies to columns of resolution
+    # if 3 orientations per vertex, redefine indices to columns of resolution
     # matrix
     if n_verts != n_c:
         # change indices to three indices per vertex
