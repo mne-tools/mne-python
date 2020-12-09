@@ -334,7 +334,7 @@ class PointObject(Object):
                                figure=fig, scale_factor=self.point_scale,
                                opacity=1., resolution=self.resolution,
                                mode=mode)
-        if mode == 'oct':
+        if self._view == 'oct':
             _oct_glyph(glyph.glyph.glyph_source, rotation(0, 0, np.pi / 4))
         glyph.actor.property.backface_culling = True
         glyph.glyph.glyph.vector_mode = 'use_normal'
