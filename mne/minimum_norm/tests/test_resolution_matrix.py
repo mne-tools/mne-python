@@ -122,14 +122,16 @@ def test_resolution_matrix():
                     norm=norm, return_pca_vars=False)
                 # for MNE, PSF/CTFs for same vertices should be the same
                 assert_array_almost_equal(stc_psf.data, stc_ctf.data)
-                # with free orientations
-                stc_psf = get_point_spread(
+                # with free orientations and vector source estimates
+                stc_psf_free = get_point_spread(
                     rm_mne_free, forward_fxd['src'], idx, mode=mode,
-                    n_comp=n_comp, norm=norm, return_pca_vars=False)
-                # stc_ctf = get_cross_talk(
-                #     rm_mne_free, forward_fxd['src'], idx, mode=mode,
-                #     n_comp=n_comp, norm='norm', return_pca_vars=False)
-                # assert_array_almost_equal(stc_psf.data, stc_ctf.data)
+                    n_comp=n_comp, norm=norm, return_pca_vars=False,
+                    vector=True)
+                stc_ctf_free = get_cross_talk(
+                    rm_mne_free, forward_fxd['src'], idx, mode=mode,
+                    n_comp=n_comp, norm=norm, return_pca_vars=False,
+                    vector=True)
+                assert_array_almost_equal(stc_psf_free.data, stc_ctf_free.data)
 
     # check SVD variances
     n_comp = 3
@@ -166,6 +168,13 @@ def test_resolution_matrix():
                                    norm='max')
     # For MNE, PSF and CTF for same vertices should be the same
     assert_array_almost_equal(stc_psf_label.data, stc_ctf_label.data)
+    # same with free orientations and vector source estimates
+    stc_psf_label_free = get_point_spread(
+        rm_mne_free, forward_fxd['src'], label, norm='norm', vector=True)
+    stc_ctf_label_free = get_cross_talk(
+        rm_mne_free, forward_fxd['src'], label, norm='norm', vector=True)
+    assert_array_almost_equal(stc_psf_label_free.data, stc_ctf_label_free.data)
+
     # test multiple labels
     stc_psf_label2 = get_point_spread(rm_mne, forward_fxd['src'], label2,
                                       norm='max')
@@ -176,5 +185,3 @@ def test_resolution_matrix():
         stc_psf_label.data, stc_psf_label2[1].data)
     assert_array_equal(
         stc_psf_label.data, stc_psf_idx.data)
-
-test_resolution_matrix()

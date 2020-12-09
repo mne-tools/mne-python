@@ -84,11 +84,7 @@ def _get_psf_ctf(resmat, src, idx, func, mode, n_comp, norm, return_pca_vars,
     %(pctf_n_comp)s
     %(pctf_norm)s
     %(pctf_return_pca_vars)s
-    vector: Bool
-        Whether to return PSF/CTF as vector source estimate (3 values per
-        location) or source esimate object (1 intensity value per location).
-        Only allowed to be True if corresponding dimension of resolution matrix
-        is 3 * n_dipoles.
+    %(pctf_vector)s
     %(verbose)s
 
     Returns
@@ -178,8 +174,10 @@ def _get_psf_ctf(resmat, src, idx, func, mode, n_comp, norm, return_pca_vars,
             else:  # use as is
                 stc = SourceEstimate(funcs, vertno, tmin=0., tstep=1.)
         else:  # STC with orientations
-            # convert to source estimate
-            stc = VectorSourceEstimate(funcs, vertno, tmin=0., tstep=1.)
+            # convert to vector source estimate
+            m, n = int(funcs.shape[0] / 3), int(funcs.shape[1])
+            data = funcs.reshape(m, 3, n)
+            stc = VectorSourceEstimate(data, vertno, tmin=0., tstep=1.)
 
         stcs.append(stc)
         pca_vars.append(pca_var)
@@ -296,7 +294,7 @@ def _summarise_psf_ctf(funcs, mode, n_comp, return_pca_vars):
 
 @verbose
 def get_point_spread(resmat, src, idx, mode=None, n_comp=1, norm=False,
-                     return_pca_vars=False, verbose=None):
+                     return_pca_vars=False, vector=False, verbose=None):
     """Get point-spread (PSFs) functions for vertices.
 
     Parameters
@@ -310,6 +308,7 @@ def get_point_spread(resmat, src, idx, mode=None, n_comp=1, norm=False,
     %(pctf_n_comp)s
     %(pctf_norm)s
     %(pctf_return_pca_vars)s
+    %(pctf_vector)s
     %(verbose)s
 
     Returns
@@ -318,12 +317,13 @@ def get_point_spread(resmat, src, idx, mode=None, n_comp=1, norm=False,
     %(pctf_pca_vars)s
     """
     return _get_psf_ctf(resmat, src, idx, func='psf', mode=mode, n_comp=n_comp,
-                        norm=norm, return_pca_vars=return_pca_vars)
+                        norm=norm, return_pca_vars=return_pca_vars,
+                        vector=vector)
 
 
 @verbose
 def get_cross_talk(resmat, src, idx, mode=None, n_comp=1, norm=False,
-                   return_pca_vars=False, verbose=None):
+                   return_pca_vars=False, vector=False, verbose=None):
     """Get cross-talk (CTFs) function for vertices.
 
     Parameters
@@ -337,6 +337,7 @@ def get_cross_talk(resmat, src, idx, mode=None, n_comp=1, norm=False,
     %(pctf_n_comp)s
     %(pctf_norm)s
     %(pctf_return_pca_vars)s
+    %(pctf_vector)s
     %(verbose)s
 
     Returns
@@ -345,7 +346,8 @@ def get_cross_talk(resmat, src, idx, mode=None, n_comp=1, norm=False,
     %(pctf_pca_vars)s
     """
     return _get_psf_ctf(resmat, src, idx, func='ctf', mode=mode, n_comp=n_comp,
-                        norm=norm, return_pca_vars=return_pca_vars)
+                        norm=norm, return_pca_vars=return_pca_vars,
+                        vector=vector)
 
 
 def _convert_forward_match_inv(fwd, inv):

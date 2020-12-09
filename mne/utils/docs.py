@@ -1087,6 +1087,13 @@ stcs : instance of SourceEstimate | list of instances of SourceEstimate
     in the order they are specified in idx. STCs for different labels will
     be returned as a list.
 """
+docdict['pctf_vector'] = """
+vector: Bool
+    Whether to return PSF/CTF as vector source estimate (3 values per
+    location) or source esimate object (1 intensity value per location).
+    Only allowed to be True if corresponding dimension of resolution matrix
+    is 3 * n_dipoles.
+"""
 
 # Forward
 docdict['on_missing_fwd'] = """
