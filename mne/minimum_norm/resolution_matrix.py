@@ -154,6 +154,8 @@ def _get_psf_ctf(resmat, src, idx, func, mode, n_comp, norm, return_pca_vars,
 
     for verts in verts_all:
         # get relevant PSFs or CTFs for specified vertices
+        if type(verts) is int:
+            verts = [verts]  # to keep array dimensions
         funcs = resmat[:, verts]
 
         # normalise PSFs/CTFs if requested
@@ -258,7 +260,7 @@ def _summarise_psf_ctf(funcs, mode, n_comp, return_pca_vars):
             sortidx = np.argsort(absvals)
             maxidx = sortidx[-n_comp:]
         else:  # faster if only one required
-            maxidx = absvals.argmax()
+            maxidx = [absvals.argmax()]
         funcs = funcs[:, maxidx]
 
     elif mode == 'maxnorm':  # pick PSF/CTF with maximum norm
@@ -267,19 +269,22 @@ def _summarise_psf_ctf(funcs, mode, n_comp, return_pca_vars):
             sortidx = np.argsort(norms)
             maxidx = sortidx[-n_comp:]
         else:  # faster if only one required
-            maxidx = norms.argmax()
+            maxidx = [norms.argmax()]
         funcs = funcs[:, maxidx]
 
     elif mode == 'sum':  # sum across PSFs/CTFs
-        funcs = np.sum(funcs, axis=1)
+        funcs = np.sum(funcs, axis=1, keepdims=True)
 
     elif mode == 'mean':  # mean of PSFs/CTFs
-        funcs = np.mean(funcs, axis=1)
+        funcs = np.mean(funcs, axis=1, keepdims=True)
 
     elif mode == 'pca':  # SVD across PSFs/CTFs
         # compute SVD of PSFs/CTFs across vertices
         u, s, _ = linalg.svd(funcs, full_matrices=False, compute_uv=True)
-        funcs = u[:, :n_comp]
+        if n_comp > 1:
+            funcs = u[:, :n_comp]
+        else:
+            funcs = u[:, 0, np.newaxis]
         # if explained variances for SVD components requested
         if return_pca_vars:
             # explained variance of individual SVD components
