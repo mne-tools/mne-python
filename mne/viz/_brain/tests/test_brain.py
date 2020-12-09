@@ -337,9 +337,14 @@ def test_brain_save_movie(tmpdir, renderer, brain_gc):
             brain._renderer.plotter.enable()
         else:
             brain._renderer.plotter.disable()
-        brain.save_movie(filename, time_dilation=1,
+        with pytest.raises(TypeError, match='unexpected keyword argument'):
+            brain.save_movie(filename, time_dilation=1, tmin=1, tmax=1.1,
+                             bad_name='blah')
+        assert not path.isfile(filename)
+        brain.save_movie(filename, time_dilation=0.1,
                          interpolation='nearest')
         assert path.isfile(filename)
+        os.remove(filename)
     brain.close()
 
 
@@ -426,6 +431,9 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
     assert hasattr(brain, "picked_points")
     assert hasattr(brain, "_spheres")
     assert brain.plotter.scalar_bar.GetNumberOfLabels() == 3
+
+    # add foci should work for volumes
+    brain.add_foci([[0, 0, 0]], hemi='lh' if src == 'surface' else 'vol')
 
     # test points picked by default
     picked_points = brain.get_picked_points()
