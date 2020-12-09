@@ -42,10 +42,8 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
         Low pass frequency
     h_freq : float
         High pass frequency
-    tstart : float
-        Start detection after tstart seconds.
-    filter_length : str | int | None
-        Number of taps to use for filtering.
+    %(ecg_tstart)s
+    %(ecg_filter_length)s
     %(verbose)s
 
     Returns
@@ -142,30 +140,19 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
     ----------
     raw : instance of Raw
         The raw data.
-    event_id : int
-        The index to assign to found events.
-    ch_name : None | str
-        The name of the channel to use for ECG peak detection.
-        If ``None`` (default), ECG channel is used if present. If ``None`` and
-        **no** ECG channel is present, a synthetic ECG channel is created from
-        cross-channel average. This synthetic channel can only be created from
-        MEG channels.
-    tstart : float
-        Start detection after tstart seconds. Useful when beginning
-        of run is noisy.
-    l_freq : float
-        Low pass frequency to apply to the ECG channel while finding events.
-    h_freq : float
-        High pass frequency to apply to the ECG channel while finding events.
+    %(ecg_event_id)s
+    %(ecg_ch_name)s
+    %(ecg_tstart)s
+    %(ecg_filter_freqs)s
     qrs_threshold : float | str
         Between 0 and 1. qrs detection threshold. Can also be "auto" to
         automatically choose the threshold that generates a reasonable
         number of heartbeats (40-160 beats / min).
-    filter_length : str | int | None
-        Number of taps to use for filtering.
+    %(ecg_filter_length)s
     return_ecg : bool
-        Return ecg channel if synthesized. Defaults to False. If True and
-        and ecg exists this will yield None.
+        Return the ECG data. This is especially useful if no ECG channel
+        is present in the input data, so one will be synthesized. Defaults to
+        ``False``.
     %(reject_by_annotation_all)s
 
         .. versionadded:: 0.18
@@ -178,7 +165,11 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
     ch_ecg : string
         Name of channel used.
     average_pulse : float
-        Estimated average pulse.
+        The estimated average pulse. If no ECG events could be found, this will
+        be zero.
+    ecg : array | None
+        The ECG data of the synthesized ECG channel, if any. This will only
+        be returned if ``return_ecg=True`` was passed.
 
     See Also
     --------
@@ -278,51 +269,28 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
                       reject_by_annotation=True, decim=1, verbose=None):
     """Conveniently generate epochs around ECG artifact events.
 
+    %(create_ecg_epochs)s
+
+    .. note:: Filtering is only applied to the ECG channel while finding
+                events. The resulting ``ecg_epochs`` will have no filtering
+                applied (i.e., have the same filter properties as the input
+                ``raw`` instance).
+
     Parameters
     ----------
     raw : instance of Raw
         The raw data.
-    ch_name : None | str
-        The name of the channel to use for ECG R wave peak detection.
-        If None (default), ECG channel is used if present. If None and no
-        ECG channel is present, a synthetic ECG channel is created from
-        cross channel average. Synthetic channel can only be created from
-        MEG channels.
-    event_id : int
-        The index to assign to found events.
+    %(ecg_ch_name)s
+    %(ecg_event_id)s
     %(picks_all)s
     tmin : float
         Start time before event.
     tmax : float
         End time after event.
-    l_freq : float
-        Low pass frequency to apply to the ECG channel while finding events.
-    h_freq : float
-        High pass frequency to apply to the ECG channel while finding events.
-    reject : dict | None
-        Rejection parameters based on peak-to-peak amplitude.
-        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
-        If reject is None then no rejection is done. Example::
-
-            reject = dict(grad=4000e-13, # T / m (gradiometers)
-                          mag=4e-12, # T (magnetometers)
-                          eeg=40e-6, # V (EEG channels)
-                          eog=250e-6 # V (EOG channels)
-                          )
-
-    flat : dict | None
-        Rejection parameters based on flatness of signal.
-        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
-        are floats that set the minimum acceptable peak-to-peak amplitude.
-        If flat is None then no rejection is done.
-    baseline : tuple | list of length 2 | None
-        The time interval to apply rescaling / baseline correction.
-        If None do not apply it. If baseline is (a, b)
-        the interval is between "a (s)" and "b (s)".
-        If a is None the beginning of the data is used
-        and if b is None then b is set to the end of the interval.
-        If baseline is equal to (None, None) all the time
-        interval is used. If None, no correction is applied.
+    %(ecg_filter_freqs)s
+    %(reject_epochs)s
+    %(flat)s
+    %(baseline_epochs)s
     preload : bool
         Preload epochs or not (default True). Must be True if
         keep_ecg is True.
@@ -347,12 +315,6 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
     --------
     find_ecg_events
     compute_proj_ecg
-
-    Notes
-    -----
-    Filtering is only applied to the ECG channel while finding events.
-    The resulting ``ecg_epochs`` will have no filtering applied (i.e., have
-    the same filter properties as the input ``raw`` instance).
     """
     has_ecg = 'ecg' in raw or ch_name is not None
     if keep_ecg and (has_ecg or not preload):

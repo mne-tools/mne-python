@@ -228,8 +228,9 @@ ecg_evoked.plot_joint()
 # projectors for magnetometers, gradiometers, and EEG channels (default is two
 # projectors for each channel type).
 # :func:`~mne.preprocessing.compute_proj_ecg` also returns an :term:`events`
-# array containing the sample numbers corresponding to the onset of each
-# detected heartbeat.
+# array containing the sample numbers corresponding to the peak of the
+# `R wave <https://en.wikipedia.org/wiki/QRS_complex>`__ of each detected
+# heartbeat.
 
 projs, events = compute_proj_ecg(raw, n_grad=1, n_mag=1, n_eeg=1, reject=None)
 

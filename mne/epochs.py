@@ -343,8 +343,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
     %(picks_header)s
         See `Epochs` docstring.
     %(reject_epochs)s
-    flat : dict | None
-        See `Epochs` docstring.
+    %(flat)s
     decim : int
         See `Epochs` docstring.
     reject_tmin : scalar | None
@@ -1190,12 +1189,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         Parameters
         ----------
         %(reject_drop_bad)s
-        flat : dict | str | None
-            Rejection parameters based on flatness of signal.
-            Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
-            are floats that set the minimum acceptable peak-to-peak amplitude.
-            If flat is None then no rejection is done. If 'existing',
-            then the flat parameters set at instantiation are used.
+        %(flat_drop_bad)s
         %(verbose_meth)s
 
         Returns
@@ -2072,11 +2066,7 @@ class Epochs(BaseEpochs):
         or wait before accessing each epoch (more memory
         efficient but can be slower).
     %(reject_epochs)s
-    flat : dict | None
-        Rejection parameters based on flatness of signal.
-        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
-        are floats that set the minimum acceptable peak-to-peak amplitude.
-        If flat is None then no rejection is done.
+    %(flat)s
     %(proj_epochs)s
     %(decim)s
     reject_tmin : scalar | None
@@ -2285,11 +2275,7 @@ class EpochsArray(BaseEpochs):
         and a dict is created with string integer names corresponding
         to the event id integers.
     %(reject_epochs)s
-    flat : dict | None
-        Rejection parameters based on flatness of signal.
-        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
-        are floats that set the minimum acceptable peak-to-peak amplitude.
-        If flat is None then no rejection is done.
+    %(flat)s
     reject_tmin : scalar | None
         Start of the time window used to reject epochs (with the default None,
         the window will start with tmin).
