@@ -1981,8 +1981,7 @@ tstart : float
     Start ECG detection after ``tstart`` seconds. Useful when the beginning
     of the run is noisy.
 """
-docdict['create_ecg_epochs'] = """
-This function will:
+docdict['create_ecg_epochs'] = """This function will:
 
 #. Filter the ECG data channel.
 
@@ -1994,8 +1993,7 @@ This function will:
 """
 
 # EOG detection
-docdict['create_eog_epochs'] = """
-This function will:
+docdict['create_eog_epochs'] = """This function will:
 
 #. Filter the EOG data channel.
 
@@ -2018,13 +2016,10 @@ compute_proj_common = """
 #. Optionally average the `~mne.Epochs` to produce an `~mne.Evoked` if
    ``average=True`` was passed (default).
 
-#. Calculate SSP projection vectors on that data to capture the artifacts.
-"""
-docdict['compute_proj_ecg'] = f"""%(create_ecg_epochs)s
-{compute_proj_common}
+#. Calculate SSP projection vectors on that data to capture the artifacts."""
+docdict['compute_proj_ecg'] = f"""%(create_ecg_epochs)s {compute_proj_common}
 """ % docdict
-docdict['compute_proj_eog'] = f"""%(create_eog_epochs)s
-{compute_proj_common}
+docdict['compute_proj_eog'] = f"""%(create_eog_epochs)s {compute_proj_common}
 """ % docdict
 
 # Other
