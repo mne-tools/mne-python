@@ -531,7 +531,16 @@ def _testing_context(interactive):
 def _oct_glyph(glyph_source, transform):
     from tvtk.api import tvtk
     from tvtk.common import configure_input
+    from traits.api import Array
     gs = tvtk.PlatonicSolidSource()
+
+    # Workaround for:
+    #  File "mayavi/components/glyph_source.py", line 231, in _glyph_position_changed  # noqa: E501
+    #    g.center = 0.0, 0.0, 0.0
+    # traits.trait_errors.TraitError: Cannot set the undefined 'center' attribute of a 'TransformPolyDataFilter' object.  # noqa: E501
+    class SafeTransformPolyDataFilter(tvtk.TransformPolyDataFilter):
+        center = Array(shape=(3,), value=np.zeros(3))
+
     gs.solid_type = 'octahedron'
     if transform is not None:
         # glyph:             mayavi.modules.vectors.Vectors
@@ -540,7 +549,7 @@ def _oct_glyph(glyph_source, transform):
         assert transform.shape == (4, 4)
         tr = tvtk.Transform()
         tr.set_matrix(transform.ravel())
-        trp = tvtk.TransformPolyDataFilter()
+        trp = SafeTransformPolyDataFilter()
         configure_input(trp, gs)
         trp.transform = tr
         trp.update()

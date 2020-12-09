@@ -490,7 +490,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     mri_fiducials : bool | str
         Plot MRI fiducials (default False). If ``True``, look for a file with
         the canonical name (``bem/{subject}-fiducials.fif``). If ``str``,
-        it can be ``'estimated'`` to use :func:`mne.get_mni_fiducials`,
+        it can be ``'estimated'`` to use :func:`mne.coreg.get_mni_fiducials`,
         otherwise it should provide the full path to the fiducials file.
 
         .. versionadded:: 0.22
