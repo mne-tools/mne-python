@@ -486,7 +486,9 @@ class _Renderer(_BaseRenderer):
     def quiver3d(self, x, y, z, u, v, w, color, scale, mode, resolution=8,
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
                  opacity=1.0, scale_mode='none', scalars=None,
-                 backface_culling=False, line_width=2., name=None):
+                 backface_culling=False, line_width=2., name=None,
+                 glyph_width=None, glyph_depth=None,
+                 solid_transform=None):
         _check_option('mode', mode, ALLOWED_QUIVER_MODES)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
@@ -517,6 +519,7 @@ class _Renderer(_BaseRenderer):
                 )
                 mesh = pyvista.wrap(alg.GetOutput())
             else:
+                tr = None
                 if mode == 'cone':
                     glyph = vtk.vtkConeSource()
                     glyph.SetCenter(0.5, 0, 0)
@@ -524,6 +527,9 @@ class _Renderer(_BaseRenderer):
                 elif mode == 'cylinder':
                     glyph = vtk.vtkCylinderSource()
                     glyph.SetRadius(0.15)
+                elif mode == 'oct':
+                    glyph = vtk.vtkPlatonicSolidSource()
+                    glyph.SetSolidTypeToOctahedron()
                 else:
                     assert mode == 'sphere', mode  # guaranteed above
                     glyph = vtk.vtkSphereSource()
@@ -534,10 +540,17 @@ class _Renderer(_BaseRenderer):
                         glyph.SetCenter(glyph_center)
                     if glyph_resolution is not None:
                         glyph.SetResolution(glyph_resolution)
-                    # fix orientation
-                    glyph.Update()
                     tr = vtk.vtkTransform()
                     tr.RotateWXYZ(90, 0, 0, 1)
+                elif mode == 'oct':
+                    if solid_transform is not None:
+                        assert solid_transform.shape == (4, 4)
+                        tr = vtk.vtkTransform()
+                        tr.SetMatrix(
+                            solid_transform.astype(np.float64).ravel())
+                if tr is not None:
+                    # fix orientation
+                    glyph.Update()
                     trp = vtk.vtkTransformPolyDataFilter()
                     trp.SetInputData(glyph.GetOutput())
                     trp.SetTransform(tr)
