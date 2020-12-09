@@ -132,8 +132,8 @@ def test_resolution_matrix():
                 assert_array_almost_equal(stc_psf.data, stc_ctf.data)
                 # with free orientations
                 # stc_psf = get_point_spread(
-                #     rm_mne_free, forward_fxd['src'], None, mode=None,
-                #     n_comp=None, norm=norm, return_pca_vars=False)
+                #     rm_mne_free, forward_fxd['src'], idx, mode=None,
+                #     n_comp=1, norm=norm, return_pca_vars=False)
                 # stc_ctf = get_cross_talk(
                 #     rm_mne_free, forward_fxd['src'], idx, mode=mode,
                 #     n_comp=n_comp, norm='norm', return_pca_vars=False)
