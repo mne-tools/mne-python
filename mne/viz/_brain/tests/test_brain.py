@@ -8,6 +8,7 @@
 #
 # License: Simplified BSD
 
+import os
 import os.path as path
 
 import pytest
@@ -21,7 +22,7 @@ from mne.source_space import (read_source_spaces, vertex_to_mni,
 from mne.datasets import testing
 from mne.utils import check_version
 from mne.label import read_label
-from mne.viz._brain import Brain, _LinkViewer, _BrainScraper
+from mne.viz._brain import Brain, _LinkViewer, _BrainScraper, _LayeredMesh
 from mne.viz._brain.colormap import calculate_lut
 
 from matplotlib import cm, image
@@ -94,9 +95,42 @@ class TstVTKPicker(object):
         return np.array(self.GetPickPosition()) - (0, 0, 100)
 
 
+def test_layered_mesh(renderer_interactive):
+    """Test management of scalars/colormap overlay."""
+    if renderer_interactive._get_3d_backend() != 'pyvista':
+        pytest.skip('TimeViewer tests only supported on PyVista')
+    mesh = _LayeredMesh(
+        renderer=renderer_interactive._get_renderer(size=[300, 300]),
+        vertices=np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0], [1, 1, 0]]),
+        triangles=np.array([[0, 1, 2], [1, 2, 3]]),
+        normals=np.array([[0, 0, 1]] * 4),
+    )
+    assert not mesh._is_mapped
+    mesh.map()
+    assert mesh._is_mapped
+    assert mesh._cache is None
+    mesh.update()
+    assert len(mesh._overlays) == 0
+    mesh.add_overlay(
+        scalars=np.array([0, 1, 1, 0]),
+        colormap=np.array([(1, 1, 1, 1), (0, 0, 0, 0)]),
+        rng=None,
+        opacity=None,
+        name='test',
+    )
+    assert mesh._cache is not None
+    assert len(mesh._overlays) == 1
+    assert 'test' in mesh._overlays
+    mesh.remove_overlay('test')
+    assert len(mesh._overlays) == 0
+    mesh._clean()
+
+
 @testing.requires_testing_data
 def test_brain_gc(renderer, brain_gc):
     """Test that a minimal version of Brain gets GC'ed."""
+    if renderer._get_3d_backend() != 'pyvista':
+        pytest.skip('TimeViewer tests only supported on PyVista')
     brain = Brain('fsaverage', 'both', 'inflated', subjects_dir=subjects_dir)
     brain.close()
 
@@ -104,6 +138,8 @@ def test_brain_gc(renderer, brain_gc):
 @testing.requires_testing_data
 def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
     """Test initialization of the Brain instance."""
+    if renderer._get_3d_backend() != 'pyvista':
+        pytest.skip('TimeViewer tests only supported on PyVista')
     from mne.source_estimate import _BaseSourceEstimate
 
     class FakeSTC(_BaseSourceEstimate):
@@ -226,9 +262,8 @@ def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
         brain.add_label('foo', subdir='bar')
     label.name = None  # test unnamed label
     brain.add_label(label, scalar_thresh=0.)
-    assert isinstance(brain.labels['unnamed'], dict)
-    label_data = brain.labels['unnamed']
-    assert label_data["line"] is None
+    assert isinstance(brain.labels[label.hemi], list)
+    assert 'unnamed' in brain._layered_meshes[label.hemi]._overlays
     brain.remove_labels()
     brain.add_label(fname_label)
     brain.add_label('V1', borders=True)
@@ -278,6 +313,8 @@ def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
 
 
 @testing.requires_testing_data
+@pytest.mark.skipif(os.getenv('CI_OS_NAME', '') == 'osx',
+                    reason='Unreliable/segfault on macOS CI')
 @pytest.mark.parametrize('hemi', ('lh', 'rh'))
 def test_single_hemi(hemi, renderer_interactive, brain_gc):
     """Test single hemi support."""
@@ -313,9 +350,14 @@ def test_brain_save_movie(tmpdir, renderer, brain_gc):
             brain._renderer.plotter.enable()
         else:
             brain._renderer.plotter.disable()
-        brain.save_movie(filename, time_dilation=1,
+        with pytest.raises(TypeError, match='unexpected keyword argument'):
+            brain.save_movie(filename, time_dilation=1, tmin=1, tmax=1.1,
+                             bad_name='blah')
+        assert not path.isfile(filename)
+        brain.save_movie(filename, time_dilation=0.1,
                          interpolation='nearest')
         assert path.isfile(filename)
+        os.remove(filename)
     brain.close()
 
 
@@ -427,7 +469,7 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
         # test picking a cell at random
         rng = np.random.RandomState(0)
         for idx, current_hemi in enumerate(hemi_str):
-            current_mesh = brain._hemi_meshes[current_hemi]
+            current_mesh = brain._layered_meshes[current_hemi]._polydata
             cell_id = rng.randint(0, current_mesh.n_cells)
             test_picker = TstVTKPicker(
                 current_mesh, cell_id, current_hemi, brain)
@@ -436,8 +478,7 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
             assert len(brain.picked_patches[current_hemi]) == 1
             for label_id in list(brain.picked_patches[current_hemi]):
                 label = brain._annotation_labels[current_hemi][label_id]
-                label_data = brain._labels[label.name]
-                assert isinstance(label_data["line"], Line2D)
+                assert isinstance(label._line, Line2D)
             brain._label_mode_widget.setCurrentText('mean')
             brain.clear_glyphs()
             assert len(brain.picked_patches[current_hemi]) == 0
@@ -455,11 +496,16 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
         hemi=hemi, surf='white', src=src, show_traces=0.5, initial_time=0,
         volume_options=None,  # for speed, don't upsample
         n_time=1 if src == 'mixed' else 5,
+        add_data_kwargs=dict(colorbar_kwargs=dict(n_labels=3)),
     )
     assert brain.show_traces
     assert brain.traces_mode == 'vertex'
     assert hasattr(brain, "picked_points")
     assert hasattr(brain, "_spheres")
+    assert brain.plotter.scalar_bar.GetNumberOfLabels() == 3
+
+    # add foci should work for volumes
+    brain.add_foci([[0, 0, 0]], hemi='lh' if src == 'surface' else 'vol')
 
     # test points picked by default
     picked_points = brain.get_picked_points()
@@ -491,7 +537,7 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
             values = current_mesh.cell_arrays['values'][vertices]
             cell_id = vertices[np.argmax(np.abs(values))]
         else:
-            current_mesh = brain._hemi_meshes[current_hemi]
+            current_mesh = brain._layered_meshes[current_hemi]._polydata
             cell_id = rng.randint(0, current_mesh.n_cells)
         test_picker = TstVTKPicker(None, None, current_hemi, brain)
         assert brain._on_pick(test_picker, None) is None

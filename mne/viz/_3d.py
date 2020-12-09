@@ -1904,6 +1904,8 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
         "volume_options": volume_options,
         "verbose": False,
     }
+    if add_data_kwargs is not None:
+        kwargs.update(add_data_kwargs)
     for hemi in hemis:
         if isinstance(stc, _BaseVolSourceEstimate):  # no surf data
             break
@@ -1919,8 +1921,6 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
                 min=use_kwargs.pop('fmin'), mid=use_kwargs.pop('fmid'),
                 max=use_kwargs.pop('fmax'), array=getattr(stc, hemi + '_data'),
                 vertices=vertices)
-        if add_data_kwargs is not None:
-            use_kwargs.update(add_data_kwargs)
         with warnings.catch_warnings(record=True):  # traits warnings
             brain.add_data(**use_kwargs)
         if using_mayavi:

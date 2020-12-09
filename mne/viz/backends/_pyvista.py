@@ -323,6 +323,9 @@ class _Renderer(_BaseRenderer):
                 mesh.GetPointData().SetActiveNormals("Normals")
             else:
                 _compute_normals(mesh)
+            if 'rgba' in kwargs:
+                rgba = kwargs["rgba"]
+                kwargs.pop('rgba')
             actor = _add_mesh(
                 plotter=self.plotter,
                 mesh=mesh, color=color, scalars=scalars,
@@ -578,13 +581,18 @@ class _Renderer(_BaseRenderer):
     def text3d(self, x, y, z, text, scale, color='white'):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            self.plotter.add_point_labels(points=[x, y, z],
-                                          labels=[text],
-                                          point_size=scale,
-                                          text_color=color,
-                                          font_family=self.font_family,
-                                          name=text,
-                                          shape_opacity=0)
+            kwargs = dict(
+                points=[x, y, z],
+                labels=[text],
+                point_size=scale,
+                text_color=color,
+                font_family=self.font_family,
+                name=text,
+                shape_opacity=0,
+            )
+            if 'always_visible' in _get_args(self.plotter.add_point_labels):
+                kwargs['always_visible'] = True
+            self.plotter.add_point_labels(**kwargs)
 
     def scalarbar(self, source, color="white", title=None, n_labels=4,
                   bgcolor=None, **extra_kwargs):

@@ -51,8 +51,8 @@ preload : bool, str, or None (default None)
 """
 
 # Raw
-_on_missing_base = """on_missing : str
-    Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
+_on_missing_base = """\
+Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
     warning, or ``'ignore'`` to ignore when"""
 docdict['on_split_missing'] = """
 on_split_missing : str
@@ -1090,7 +1090,8 @@ stcs : instance of SourceEstimate | list of instances of SourceEstimate
 
 # Forward
 docdict['on_missing_fwd'] = """
-%s ``stc`` has vertices that are not in ``fwd``.
+on_missing : str
+    %s ``stc`` has vertices that are not in ``fwd``.
 """ % (_on_missing_base,)
 docdict['dig_kinds'] = """
 dig_kinds : list of str | str
@@ -1326,8 +1327,15 @@ match_case : bool
 
     .. versionadded:: 0.20
 """
+docdict['on_header_missing'] = """
+on_header_missing : str
+    %s the FastSCAN header is missing.
+
+    .. versionadded:: 0.22
+""" % (_on_missing_base,)
 docdict['on_missing_events'] = """
-%s event numbers from ``event_id`` are missing from ``events``.
+on_missing : str
+    %s event numbers from ``event_id`` are missing from ``events``.
     When numbers from ``events`` are missing from ``event_id`` they will be
     ignored and a warning emitted; consider using ``verbose='error'`` in
     this case.
@@ -1335,7 +1343,8 @@ docdict['on_missing_events'] = """
     .. versionadded:: 0.21
 """ % (_on_missing_base,)
 docdict['on_missing_montage'] = """
-%s channels have missing coordinates.
+on_missing : str
+    %s channels have missing coordinates.
 
     .. versionadded:: 0.20.1
 """ % (_on_missing_base,)

@@ -52,5 +52,5 @@ con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
     epochs, method='pli', mode='multitaper', sfreq=sfreq, fmin=fmin, fmax=fmax,
     faverage=True, tmin=tmin, mt_adaptive=False, n_jobs=1)
 
-# Now, visualize the connectivity in 3D
+# Now, visualize the connectivity in 3D:
 plot_sensors_connectivity(epochs.info, con[:, :, 0])

@@ -19,7 +19,7 @@ from ...utils import verbose, logger, warn
 
 def _read_header(fid):
     """Read EGI binary header."""
-    version = np.fromfile(fid, np.int32, 1)[0]
+    version = np.fromfile(fid, '<i4', 1)[0]
 
     if version > 6 & ~np.bitwise_and(version, 6):
         version = version.byteswap().astype(np.uint32)
