@@ -1760,7 +1760,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     - https://openwetware.org/wiki/Beauchamp:FreeSurfer
     """  # noqa: E501
     from .backends.renderer import _get_3d_backend, set_3d_backend
-    from ..source_estimate import _BaseSourceEstimate
+    from ..source_estimate import _BaseSourceEstimate, _check_stc_src
+    _check_stc_src(stc, src)
     _validate_type(stc, _BaseSourceEstimate, 'stc', 'source estimate')
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)

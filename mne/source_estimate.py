@@ -2860,6 +2860,16 @@ def _temporary_vertices(src, vertices):
             s['vertno'] = v
 
 
+def _check_stc_src(stc, src):
+    if stc is not None and src is not None:
+        for s, v, hemi in zip(src, stc.vertices, ('left', 'right')):
+            n_missing = (~np.in1d(v, s['vertno'])).sum()
+            if n_missing:
+                raise ValueError('%d/%d %s hemisphere stc vertices '
+                                 'missing from the source space, likely '
+                                 'mismatch' % (n_missing, len(v), hemi))
+
+
 def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
     """Prepare indices and flips for extract_label_time_course."""
     # If src is a mixed src space, the first 2 src spaces are surf type and
@@ -2872,18 +2882,8 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
 
     # if source estimate provided in stc, get vertices from source space and
     # check that they are the same as in the stcs
-    if stc is not None:
-        vertno = stc.vertices
-        if src is not None:
-            for s, v, hemi in zip(src, stc.vertices, ('left', 'right')):
-                n_missing = (~np.in1d(v, s['vertno'])).sum()
-                if n_missing:
-                    raise ValueError('%d/%d %s hemisphere stc vertices '
-                                     'missing from the source space, likely '
-                                     'mismatch' % (n_missing, len(v), hemi))
-    else:
-        vertno = [s['vertno'] for s in src]
-
+    _check_stc_src(stc, src)
+    vertno = [s['vertno'] for s in src] if stc is None else stc.vertices
     nvert = [len(vn) for vn in vertno]
 
     # initialization
