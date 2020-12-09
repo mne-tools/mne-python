@@ -22,7 +22,7 @@ from ..defaults import _handle_default
 from ..io.meas_info import create_info
 from ..io.pick import pick_types, _picks_to_idx
 from ..time_frequency.psd import psd_multitaper
-from ..utils import _reject_data_segments
+from ..utils import _reject_data_segments, verbose
 
 
 @fill_doc
@@ -250,11 +250,11 @@ def _get_psd_label_and_std(this_psd, dB, ica, num_std):
     return psd_ylabel, psds_mean, spectrum_std
 
 
-@fill_doc
+@verbose
 def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
                         plot_std=True, topomap_args=None, image_args=None,
                         psd_args=None, figsize=None, show=True, reject='auto',
-                        reject_by_annotation=True):
+                        reject_by_annotation=True, *, verbose=None):
     """Display component properties.
 
     Properties include the topography, epochs image, ERP/ERF, power
@@ -308,6 +308,7 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     %(reject_by_annotation_raw)s
 
         .. versionadded:: 0.21.0
+    %(verbose)s
 
     Returns
     -------

@@ -133,22 +133,27 @@ def test_plot_projs_topomap():
         plot_projs_topomap([eeg_proj], info_meg)
 
 
-def test_plot_topomap_animation():
+def test_plot_topomap_animation(capsys):
     """Test topomap plotting."""
     # evoked
     evoked = read_evokeds(evoked_fname, 'Left Auditory',
                           baseline=(None, 0))
     # Test animation
     _, anim = evoked.animate_topomap(ch_type='grad', times=[0, 0.1],
-                                     butterfly=False, time_unit='s')
+                                     butterfly=False, time_unit='s',
+                                     verbose='debug')
     anim._func(1)  # _animate has to be tested separately on 'Agg' backend.
+    out, _ = capsys.readouterr()
+    assert 'Interpolation mode local to 0' in out
     plt.close('all')
 
 
-def test_plot_topomap_animation_nirs(fnirs_evoked):
+def test_plot_topomap_animation_nirs(fnirs_evoked, capsys):
     """Test topomap plotting for nirs data."""
-    fig, anim = fnirs_evoked.animate_topomap(ch_type='hbo')
+    fig, anim = fnirs_evoked.animate_topomap(ch_type='hbo', verbose='debug')
     anim._func(1)  # _animate has to be tested separately on 'Agg' backend.
+    out, _ = capsys.readouterr()
+    assert 'Interpolation mode head to 0' in out
     assert len(fig.axes) == 2
     plt.close('all')
 
