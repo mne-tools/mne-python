@@ -234,7 +234,7 @@ class _Renderer(_BaseRenderer):
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
                  opacity=1.0, scale_mode='none', scalars=None,
                  backface_culling=False, colormap=None, vmin=None, vmax=None,
-                 line_width=2., name=None, cube_transform=None):
+                 line_width=2., name=None, solid_transform=None):
         _check_option('mode', mode, ALLOWED_QUIVER_MODES)
         color = _check_color(color)
         with warnings.catch_warnings(record=True):  # traits
@@ -244,18 +244,15 @@ class _Renderer(_BaseRenderer):
                                    scale_mode=scale_mode,
                                    resolution=resolution, scalars=scalars,
                                    opacity=opacity, figure=self.fig)
-            elif mode in ('cone', 'sphere', 'cube'):
+            elif mode in ('cone', 'sphere', 'oct'):
+                use_mode = 'sphere' if mode == 'oct' else mode
                 quiv = self.mlab.quiver3d(x, y, z, u, v, w, color=color,
-                                          mode=mode, scale_factor=scale,
+                                          mode=use_mode, scale_factor=scale,
                                           opacity=opacity, figure=self.fig)
-                if mode in ('sphere', 'cube'):
+                if mode == 'sphere':
                     quiv.glyph.glyph_source.glyph_source.center = 0., 0., 0.
-                    if mode == 'cube':
-                        if glyph_height is not None:
-                            for dir_ in 'xyz':
-                                setattr(quiv.glyph.glyph_source.glyph_source,
-                                        f'{dir_}_length', glyph_height)
-                        # XXX we should use cube_transform here...
+                elif mode == 'oct':
+                    _oct_glyph(quiv.glyph.glyph_source, solid_transform)
             else:
                 assert mode == 'cylinder', mode  # should be guaranteed above
                 quiv = self.mlab.quiver3d(x, y, z, u, v, w, mode=mode,
@@ -529,3 +526,23 @@ def _testing_context(interactive):
         yield
     finally:
         mlab.options.backend = orig_backend
+
+
+def _oct_glyph(glyph_source, transform):
+    from tvtk.api import tvtk
+    from tvtk.common import configure_input
+    gs = tvtk.PlatonicSolidSource()
+    gs.solid_type = 'octahedron'
+    if transform is not None:
+        # glyph:             mayavi.modules.vectors.Vectors
+        # glyph.glyph:       vtkGlyph3D
+        # glyph.glyph.glyph: mayavi.components.glyph.Glyph
+        assert transform.shape == (4, 4)
+        tr = tvtk.Transform()
+        tr.set_matrix(transform.ravel())
+        trp = tvtk.TransformPolyDataFilter()
+        configure_input(trp, gs)
+        trp.transform = tr
+        trp.update()
+        gs = trp
+    glyph_source.glyph_source = gs

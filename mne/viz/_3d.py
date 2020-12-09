@@ -34,7 +34,7 @@ from ..surface import (get_meg_helmet_surf, read_surface, _DistanceQuery,
                        _reorder_ccw, _complete_sphere_surf)
 from ..transforms import (_find_trans, apply_trans, rot_to_quat,
                           combine_transforms, _get_trans, _ensure_trans,
-                          invert_transform, Transform,
+                          invert_transform, Transform, rotation,
                           read_ras_mni_t, _print_coord_trans)
 from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
                      has_nibabel, check_version, fill_doc, _pl, get_config,
@@ -1078,19 +1078,20 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
             colors.extend(fid_colors)
             alphas.extend(3 * (defaults[f'{kind}_fid_opacity'],))
             scales.extend(3 * (defaults[f'{kind}_fid_scale'],))
-            glyphs.extend(3 * (('cube' if kind == 'mri' else 'sphere'),))
-    cube_transform = np.eye(4)
-    cube_transform[:3, :3] = mri_trans['trans'][:3, :3]
+            glyphs.extend(3 * (('oct' if kind == 'mri' else 'sphere'),))
     for data, color, alpha, scale, glyph in zip(
             datas, colors, alphas, scales, glyphs):
         if len(data) > 0:
-            if glyph == 'cube':
+            if glyph == 'oct':
+                transform = np.eye(4)
+                transform[:3, :3] = mri_trans['trans'][:3, :3] * scale
+                # rotate around Z axis 45 deg first
+                transform = transform @ rotation(0, 0, np.pi / 4)
                 renderer.quiver3d(
                     x=data[:, 0], y=data[:, 1], z=data[:, 2],
-                    u=1., v=0., w=0., color=color, mode='cube',
+                    u=1., v=0., w=0., color=color, mode='oct',
                     scale=1., opacity=alpha, backface_culling=True,
-                    glyph_height=scale,
-                    cube_transform=cube_transform)
+                    solid_transform=transform)
             else:
                 assert glyph == 'sphere'
                 assert data.ndim == 2 and data.shape[1] == 3, data.shape

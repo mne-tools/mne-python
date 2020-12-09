@@ -51,7 +51,7 @@ DEFAULTS = dict(
         mri_fid_opacity=1.0,
         dig_fid_opacity=1.0,
 
-        mri_fid_scale=0.004962803927195201,  # 8e-3 * ((3 / (4 * np.pi)) ** (1 / 3)),  # noqa: E501
+        mri_fid_scale=5e-3,
         dig_fid_scale=8e-3,
         extra_scale=4e-3,
         eeg_scale=4e-3, eegp_scale=20e-3, eegp_height=0.1,

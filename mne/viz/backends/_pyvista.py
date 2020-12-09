@@ -484,7 +484,8 @@ class _Renderer(_BaseRenderer):
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
                  opacity=1.0, scale_mode='none', scalars=None,
                  backface_culling=False, line_width=2., name=None,
-                 glyph_width=None, glyph_depth=None, cube_transform=None):
+                 glyph_width=None, glyph_depth=None,
+                 solid_transform=None):
         _check_option('mode', mode, ALLOWED_QUIVER_MODES)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
@@ -523,9 +524,9 @@ class _Renderer(_BaseRenderer):
                 elif mode == 'cylinder':
                     glyph = vtk.vtkCylinderSource()
                     glyph.SetRadius(0.15)
-                elif mode == 'cube':
-                    glyph = vtk.vtkCubeSource()
-                    glyph.SetCenter(0., 0., 0.)
+                elif mode == 'oct':
+                    glyph = vtk.vtkPlatonicSolidSource()
+                    glyph.SetSolidTypeToOctahedron()
                 else:
                     assert mode == 'sphere', mode  # guaranteed above
                     glyph = vtk.vtkSphereSource()
@@ -538,14 +539,12 @@ class _Renderer(_BaseRenderer):
                         glyph.SetResolution(glyph_resolution)
                     tr = vtk.vtkTransform()
                     tr.RotateWXYZ(90, 0, 0, 1)
-                elif mode == 'cube':
-                    if glyph_height is not None:
-                        for dir_ in 'XYZ':
-                            getattr(glyph, f'Set{dir_}Length')(glyph_height)
-                    if cube_transform is not None:
-                        assert cube_transform.shape == (4, 4)
+                elif mode == 'oct':
+                    if solid_transform is not None:
+                        assert solid_transform.shape == (4, 4)
                         tr = vtk.vtkTransform()
-                        tr.SetMatrix(cube_transform.astype(np.float64).ravel())
+                        tr.SetMatrix(
+                            solid_transform.astype(np.float64).ravel())
                 if tr is not None:
                     # fix orientation
                     glyph.Update()
