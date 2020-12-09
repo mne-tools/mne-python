@@ -116,10 +116,10 @@ def test_resolution_matrix():
             for norm in [None, 'max', 'norm', True]:
                 stc_psf = get_point_spread(
                     rm_mne, forward_fxd['src'], idx, mode=mode, n_comp=n_comp,
-                    norm='norm', return_pca_vars=False)
+                    norm=norm, return_pca_vars=False)
                 stc_ctf = get_cross_talk(
                     rm_mne, forward_fxd['src'], idx, mode=mode, n_comp=n_comp,
-                    norm='norm', return_pca_vars=False)
+                    norm=norm, return_pca_vars=False)
                 # for MNE, PSF/CTFs for same vertices should be the same
                 assert_array_almost_equal(stc_psf.data, stc_ctf.data)
 
