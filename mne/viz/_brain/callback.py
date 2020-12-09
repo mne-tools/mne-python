@@ -73,9 +73,13 @@ class UpdateColorbarScale(object):
         self.keys = ('fmin', 'fmid', 'fmax')
         self.reps = {key: None for key in self.keys}
         self.slider_rep = None
+        self._first_time = True
 
     def __call__(self, value):
         """Update the colorbar sliders."""
+        if self._first_time:
+            self._first_time = False
+            return
         self.brain._update_fscale(value)
         for key in self.keys:
             if self.reps[key] is not None:
@@ -100,9 +104,13 @@ class BumpColorbarPoints(object):
         self.keys = ('fmin', 'fmid', 'fmax')
         self.reps = {key: None for key in self.keys}
         self.last_update = time.time()
+        self._first_time = True
 
     def __call__(self, value):
         """Update the colorbar sliders."""
+        if self._first_time:
+            self._first_time = False
+            return
         vals = {key: self.brain._data[key] for key in self.keys}
         if self.name == "fmin" and self.reps["fmin"] is not None:
             if vals['fmax'] < value:

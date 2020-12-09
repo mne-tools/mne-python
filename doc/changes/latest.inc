@@ -77,9 +77,15 @@ Enhancements
 
 - Add option to disable TQDM entirely with ``MNE_TQDM='off'`` (:gh:`8515` by `Eric Larson`_)
 
+- Add option ``on_header_missing`` to :func:`mne.channels.read_polhemus_fastscan` (:gh:`8622` by `Eric Larson`_)
+
 - `mne.preprocessing.ICA.plot_sources` now displays an `mne.preprocessing.ICA.plot_properties` window when right-clicking on component names on the y-axis (:gh:`8381` by `Daniel McCloy`_)
 
 - :func:`mne.io.read_raw_edf`, :func:`mne.io.read_raw_bdf`, and :func:`mne.io.read_raw_gdf` now detect and handle invalid highpass/lowpass filter settings (:gh:`8584` by `Clemens Brunner`_)
+
+- If a ``baseline`` tuple containing one or two ``None`` values – e.g. ``(None, 0)``, ``(0, None)``, or ``(None, None)`` – is passed to `~mne.Epochs` or `~mne.Epochs.apply_baseline`, the ``None`` value(s) will be replaced with the actual time (i.e., :attr:`~mne.Epochs.tmin` and :attr:`~mne.Epochs.tmax`, respectively) when populating ``Epochs.baseline`` (:gh:`8442` by `Richard Höchenberger`_)
+
+- `~mne.Epochs` will now retain the information about an applied baseline correction, even if the baseline period is partially or completely removed through cropping later on (:gh:`8442` by `Richard Höchenberger`_)
 
 Bugs
 ~~~~
@@ -92,6 +98,8 @@ Bugs
 - Fix bug with reading split files that have dashes in the filename (:gh:`8339` **by new contributor** |Eduard Ort|_)
 
 - Fix bug with parsing EDF dates and date integers (:gh:`8558` **by new contributor** |Austin Hurst|_ and `Eric Larson`_)
+
+- Fix bug with reading EDF and KIT files on big endian architectures such as s390x (:gh:`8618` by `Eric Larson`_)
 
 - Fix bug with `~mne.viz.plot_epochs_image` when ``order`` is supplied and multiple conditions are plotted (:gh:`8377` by `Daniel McCloy`_ )
 
