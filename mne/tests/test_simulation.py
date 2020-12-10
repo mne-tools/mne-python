@@ -10,11 +10,12 @@ functions should be written to test the full simulation code.
 """
 
 
-import mne
 import os.path as op
-import numpy as np
-from mne.datasets import sample
 import copy
+import numpy as np
+
+import mne
+from mne.datasets import sample
 
 
 def test_simulation_cascade():
