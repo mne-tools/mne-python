@@ -67,7 +67,7 @@ brain = stc.plot(
 
 stc_max, directions = stc.project('pca', src=inv['src'])
 # These directions must by design be close to the normals because this
-# inverse was computed with loose=0.2:
+# inverse was computed with loose=0.2
 print('Absolute cosine similarity between source normals and directions: '
       f'{np.abs(np.sum(directions * inv["source_nn"][2::3], axis=-1)).mean()}')
 brain_max = stc_max.plot(

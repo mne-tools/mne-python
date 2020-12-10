@@ -21,7 +21,8 @@ import numpy as np
 import vtk
 
 from .base_renderer import _BaseRenderer
-from ._utils import _get_colormap_from_array, ALLOWED_QUIVER_MODES
+from ._utils import (_get_colormap_from_array, _alpha_blend_background,
+                     ALLOWED_QUIVER_MODES)
 from ...fixes import _get_args
 from ...utils import copy_base_doc_to_subclass_doc, _check_option
 from ...externals.decorator import decorator
@@ -874,20 +875,21 @@ def _process_events(plotter):
             plotter.app.processEvents()
 
 
-def _set_colormap_range(actor, ctable, scalar_bar, rng=None):
+def _set_colormap_range(actor, ctable, scalar_bar, rng=None,
+                        background_color=None):
     from vtk.util.numpy_support import numpy_to_vtk
-    mapper = actor.GetMapper()
-    lut = mapper.GetLookupTable()
-    # Catch:  FutureWarning: Conversion of the second argument of
-    # issubdtype from `complex` to `np.complexfloating` is deprecated.
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=FutureWarning)
-        lut.SetTable(numpy_to_vtk(ctable))
     if rng is not None:
-        mapper.SetScalarRange(rng[0], rng[1])
-        lut.SetRange(rng[0], rng[1])
+        mapper = actor.GetMapper()
+        mapper.SetScalarRange(*rng)
+        lut = mapper.GetLookupTable()
+        lut.SetTable(numpy_to_vtk(ctable))
     if scalar_bar is not None:
-        scalar_bar.SetLookupTable(actor.GetMapper().GetLookupTable())
+        lut = scalar_bar.GetLookupTable()
+        if background_color is not None:
+            background_color = np.array(background_color) * 255
+            ctable = _alpha_blend_background(ctable, background_color)
+        lut.SetTable(numpy_to_vtk(ctable, array_type=vtk.VTK_UNSIGNED_CHAR))
+        lut.SetRange(*rng)
 
 
 def _set_volume_range(volume, ctable, alpha, scalar_bar, rng):

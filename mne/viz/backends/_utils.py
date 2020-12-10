@@ -56,3 +56,10 @@ def _check_color(color):
         raise TypeError("Expected type is `str` or iterable but "
                         "{} was given.".format(type(color)))
     return color
+
+
+def _alpha_blend_background(ctable, background_color):
+    alphas = ctable[:, -1][:, np.newaxis] / 255.
+    use_table = ctable.copy()
+    use_table[:, -1] = 255.
+    return (use_table * alphas) + background_color * (1 - alphas)
