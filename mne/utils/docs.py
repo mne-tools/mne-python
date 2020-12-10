@@ -1088,11 +1088,11 @@ stcs : instance of SourceEstimate | list of instances of SourceEstimate
     be returned as a list.
 """
 docdict['pctf_vector'] = """
-vector: Bool
+vector: bool
     Whether to return PSF/CTF as vector source estimate (3 values per
     location) or source esimate object (1 intensity value per location).
     Only allowed to be True if corresponding dimension of resolution matrix
-    is 3 * n_dipoles.
+    is 3 * n_dipoles. Defaults to False.
 """
 
 # Forward
