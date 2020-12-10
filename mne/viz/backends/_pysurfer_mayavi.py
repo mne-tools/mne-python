@@ -24,7 +24,7 @@ from mayavi.core.ui.mayavi_scene import MayaviScene
 from tvtk.pyface.tvtk_scene import TVTKScene
 
 from .base_renderer import _BaseRenderer
-from ._utils import _check_color, ALLOWED_QUIVER_MODES
+from ._utils import _check_color, _alpha_blend_background, ALLOWED_QUIVER_MODES
 from ...surface import _normalize_vectors
 from ...utils import (_import_mlab, _validate_type, SilenceStdout,
                       copy_base_doc_to_subclass_doc, _check_option)
@@ -301,10 +301,7 @@ class _Renderer(_BaseRenderer):
             ctable = lut.table.to_array()
             cbar_lut = tvtk.LookupTable()
             cbar_lut.deep_copy(lut)
-            alphas = ctable[:, -1][:, np.newaxis] / 255.
-            use_lut = ctable.copy()
-            use_lut[:, -1] = 255.
-            vals = (use_lut * alphas) + bgcolor * (1 - alphas)
+            vals = _alpha_blend_background(ctable, bgcolor)
             cbar_lut.table.from_array(vals)
             cmap.scalar_bar.lookup_table = cbar_lut
 

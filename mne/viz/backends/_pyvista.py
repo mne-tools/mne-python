@@ -21,7 +21,8 @@ import numpy as np
 import vtk
 
 from .base_renderer import _BaseRenderer
-from ._utils import _get_colormap_from_array, ALLOWED_QUIVER_MODES
+from ._utils import (_get_colormap_from_array, _alpha_blend_background,
+                     ALLOWED_QUIVER_MODES)
 from ...fixes import _get_args
 from ...utils import copy_base_doc_to_subclass_doc, _check_option
 from ...externals.decorator import decorator
@@ -883,10 +884,7 @@ def _set_colormap_range(actor, ctable, scalar_bar, rng=None,
         lut = scalar_bar.GetLookupTable()
         if background_color is not None:
             background_color = np.array(background_color) * 255
-            alphas = ctable[:, -1][:, np.newaxis] / 255.
-            use_table = ctable.copy()
-            use_table[:, -1] = 255.
-            ctable = (use_table * alphas) + background_color * (1 - alphas)
+            ctable = _alpha_blend_background(ctable, background_color)
         lut.SetTable(numpy_to_vtk(ctable, array_type=vtk.VTK_UNSIGNED_CHAR))
         lut.SetRange(*rng)
 
