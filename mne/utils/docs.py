@@ -1082,13 +1082,21 @@ pca_vars : array, shape (n_comp,) | list of array
 """
 docdict['pctf_stcs'] = """
 stcs : instance of SourceEstimate | list of instances of SourceEstimate
-    PSFs or CTFs as STC objects.
-    All PSFs/CTFs will be returned as successive samples in STC objects,
-    in the order they are specified in idx. STCs for different labels will
-    be returned as a list.
+    The PSFs or CTFs as STC objects. All PSFs/CTFs will be returned as
+    successive samples in STC objects, in the order they are specified
+    in idx. STCs for different labels willbe returned as a list.
+    If resmat was computed with n_orient_inv==3 for CTFs or
+    n_orient_fwd==3 for PSFs then 3 functions per vertex will be returned
+    as successive samples (i.e. one function per orientation).
+    If vector=False (default) and resmat was computed with
+    n_orient_inv==3 for PSFs or n_orient_fwd==3 for CTFs, then the three
+    values per vertex will be combined into one intensity value per
+    vertex in a SourceEstimate object. If vector=True, PSFs or CTFs
+    with 3 values per vertex (one per orientation) will be returned in
+    a VectorSourceEstimate object.
 """
 docdict['pctf_vector'] = """
-vector: bool
+vector : bool
     Whether to return PSF/CTF as vector source estimate (3 values per
     location) or source esimate object (1 intensity value per location).
     Only allowed to be True if corresponding dimension of resolution matrix
