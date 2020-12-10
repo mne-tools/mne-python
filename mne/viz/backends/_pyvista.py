@@ -879,7 +879,10 @@ def _set_colormap_range(actor, ctable, scalar_bar, rng=None,
                         background_color=None):
     from vtk.util.numpy_support import numpy_to_vtk
     if rng is not None:
-        actor.GetMapper().SetScalarRange(*rng)
+        mapper = actor.GetMapper()
+        mapper.SetScalarRange(*rng)
+        lut = mapper.GetLookupTable()
+        lut.SetTable(numpy_to_vtk(ctable))
     if scalar_bar is not None:
         lut = scalar_bar.GetLookupTable()
         if background_color is not None:
