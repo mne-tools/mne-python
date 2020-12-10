@@ -387,8 +387,12 @@ def test_process_clim_plot(renderer_interactive, brain_gc):
     stc = SourceEstimate(stc_data, vertices, 1, 1, 'sample')
 
     # Test for simple use cases
-    stc.plot(**kwargs)
-    stc.plot(clim=dict(pos_lims=(10, 50, 90)), **kwargs)
+    brain = stc.plot(**kwargs)
+    assert brain.data['center'] is None
+    brain.close()
+    brain = stc.plot(clim=dict(pos_lims=(10, 50, 90)), **kwargs)
+    assert brain.data['center'] == 0.
+    brain.close()
     stc.plot(colormap='hot', clim='auto', **kwargs)
     stc.plot(colormap='mne', clim='auto', **kwargs)
     stc.plot(clim=dict(kind='value', lims=(10, 50, 90)), figure=99, **kwargs)
