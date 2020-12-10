@@ -122,7 +122,7 @@ fig = mne.viz.plot_alignment(raw.info, trans, 'fsaverage',
                              surfaces=["pial", "head"])
 
 ###############################################################################
-# Next, we will get the raw data and plot its amplitude over time.
+# Next, we'll get the raw data and plot its amplitude over time.
 
 raw.plot()
 
