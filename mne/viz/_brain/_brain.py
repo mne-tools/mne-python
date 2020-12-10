@@ -2163,7 +2163,7 @@ class Brain(object):
                 edges = mesh_edges(self.geo[hemi].faces)
                 edges = edges.tocoo()
                 border_edges = scalars[edges.row] != scalars[edges.col]
-                show = np.zeros(n_vertices, dtype=np.int)
+                show = np.zeros(n_vertices, dtype=np.int64)
                 keep_idx = np.unique(edges.row[border_edges])
                 if isinstance(borders, int):
                     for _ in range(borders):
