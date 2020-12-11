@@ -1130,7 +1130,8 @@ class MNEBrowseFigure(MNEFigure):
         # setup interactivity in plot window
         col = ('#ff0000' if len(fig.mne.radio_ax.buttons.circles) < 1 else
                fig.mne.radio_ax.buttons.circles[0].get_edgecolor())
-        # TODO: we would like useblit=True here, but MPL #9660 prevents it
+        # TODO: we would like useblit=True here, but it behaves oddly when the
+        # first span is dragged (subsequent spans seem to work OK)
         selector = SpanSelector(self.mne.ax_main, self._select_annotation_span,
                                 'horizontal', minspan=0.1, useblit=False,
                                 rectprops=dict(alpha=0.5, facecolor=col))
@@ -1315,8 +1316,10 @@ class MNEBrowseFigure(MNEFigure):
         active_idx = labels.index(buttons.value_selected)
         _merge_annotations(onset, onset + duration, labels[active_idx],
                            self.mne.inst.annotations)
-        self._draw_annotations()
-        self.canvas.draw_idle()
+        # if adding a span with an annotation label that is hidden, show it
+        if not self.mne.visible_annotations[buttons.value_selected]:
+            self.mne.show_hide_annotation_checkboxes.set_active(active_idx)
+        self._redraw(update_data=False, annotations=True)
 
     def _remove_annotation_hover_line(self):
         """Remove annotation line from the plot and reactivate selector."""
