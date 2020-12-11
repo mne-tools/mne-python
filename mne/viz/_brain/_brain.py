@@ -1109,6 +1109,12 @@ class Brain(object):
         if not self.show_traces:
             return
 
+        # do not show trace mode for volumes
+        if (self._data.get('src', None) is not None and
+                self._data['src'].kind == 'volume'):
+            self._configure_vertex_time_course()
+            return
+
         # setup candidate annots
         def _set_annot(annot):
             self.clear_glyphs()
@@ -2297,14 +2303,7 @@ class Brain(object):
             self._configure_mplcanvas()
         else:
             self.clear_glyphs()
-
-        # volumes are not supported
-        if (self._data.get('src', None) is not None and
-                self._data['src'].kind == 'volume'):
-            raise RuntimeError(
-                'Label time course plotting is not supported for volume.')
         self.traces_mode = 'label'
-
         self.add_annotation(self.annot, color="w", alpha=0.75)
 
         # now plot the time line
