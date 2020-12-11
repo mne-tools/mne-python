@@ -1373,6 +1373,8 @@ class Brain(object):
             self._add_vertex_glyph(hemi, mesh, vertex_id)
 
     def _add_label_glyph(self, hemi, mesh, vertex_id):
+        if hemi == 'vol':
+            return
         label_id = self._vertex_to_label_id[hemi][vertex_id]
         label = self._annotation_labels[hemi][label_id]
 
@@ -2298,7 +2300,7 @@ class Brain(object):
 
         # volumes are not supported
         if (self._data.get('src', None) is not None and
-                self._data['src'].kind in ['volume', 'mixed']):
+                self._data['src'].kind == 'volume'):
             raise RuntimeError(
                 'Label time course plotting is not supported for volume.')
         self.traces_mode = 'label'
