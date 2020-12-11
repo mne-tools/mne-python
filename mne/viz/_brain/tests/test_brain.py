@@ -446,14 +446,7 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
         hemi_str.extend(['vol'])
 
     # label traces
-    if src in ('volume', 'mixed'):
-        with pytest.raises(RuntimeError, match='volume'):
-            _create_testing_brain(
-                hemi=hemi, surf='white', src=src, show_traces='label',
-                volume_options=None,  # for speed, don't upsample
-                n_time=1,
-            )
-    else:
+    if src in 'surface':
         brain = _create_testing_brain(
             hemi=hemi, surf='white', src=src, show_traces='label',
             volume_options=None,  # for speed, don't upsample
