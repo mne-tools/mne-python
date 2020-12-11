@@ -1227,7 +1227,7 @@ class MNEBrowseFigure(MNEFigure):
         show_hide_ax.set_title('show/\nhide ', size=None, loc='right')
         for label in checkboxes.labels:
             label.set_visible(False)
-        # fix aspect
+        # fix aspect and right-align
         if len(labels) == 1:
             bounds = (0.05, 0.375, 0.25, 0.25)  # undo MPL special case
             checkboxes.rectangles[0].set_bounds(bounds)
@@ -1236,8 +1236,13 @@ class MNEBrowseFigure(MNEFigure):
                 line.set_ydata((bounds[1], bounds[1] + bounds[3])[::step])
         for rect in checkboxes.rectangles:
             rect.set_transform(show_hide_ax.transData)
+            bbox = rect.get_bbox()
+            bounds = (aspect, bbox.ymin, -bbox.width, bbox.height)
+            rect.set_bounds(bounds)
+            rect.set_clip_on(False)
         for line in np.array(checkboxes.lines).ravel():
             line.set_transform(show_hide_ax.transData)
+            line.set_xdata(aspect + 0.05 - np.array(line.get_xdata()))
         # store state
         self.mne.visible_annotations = check_values
         self.mne.show_hide_annotation_checkboxes = checkboxes
