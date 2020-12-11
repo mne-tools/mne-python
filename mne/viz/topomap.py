@@ -350,10 +350,12 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
     if axes is None:
         fig, axes, ncols, nrows = _prepare_trellis(
             n_projs, ncols='auto', nrows='auto')
+        for ax in axes[1:]:
+            ax.sharex(axes[0])
+            ax.sharey(axes[0])
     elif isinstance(axes, plt.Axes):
         axes = [axes]
-    if len(axes) != n_projs:
-        raise RuntimeError('There must be an axes for each picked projector.')
+    _validate_if_list_of_axes(axes, n_projs)
 
     # handle vmin/vmax
     vlims = [None for _ in range(len(datas))]
