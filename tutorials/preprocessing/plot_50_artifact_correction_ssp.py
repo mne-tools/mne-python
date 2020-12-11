@@ -63,7 +63,7 @@ from mne.preprocessing import (create_eog_epochs, create_ecg_epochs,
 # The :ref:`example data <sample-dataset>` was recorded on a Neuromag system,
 # which stores SSP projectors for environmental noise removal in the system
 # configuration (so that reasonably clean raw data can be viewed in real-time
-# during acquisition). For this reason, all the :class:`~mne.io.Raw` data in
+# during acquisition). For this reason, all the `~mne.io.Raw` data in
 # the example dataset already includes SSP projectors, which are noted in the
 # output when loading the data:
 
@@ -116,7 +116,7 @@ for average in (False, True):
 # ``vlim='joint'`` so that the colormap is computed jointly for all projectors
 # of a given channel type; this makes it easier to compare their relative
 # smoothness. Note that for the function to know the types of channels in a
-# projector, you must also provide the corresponding :class:`~mne.Info` object:
+# projector, you must also provide the corresponding `~mne.Info` object:
 
 # sphinx_gallery_thumbnail_number = 3
 empty_room_projs = mne.compute_proj_raw(empty_room_raw, n_grad=3, n_mag=3)
@@ -143,7 +143,7 @@ for idx, _projs in enumerate([system_projs, empty_room_projs[3:]]):
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
 # We could visualize the different effects these have on the data by applying
-# each set of projectors to different copies of the :class:`~mne.io.Raw` object
+# each set of projectors to different copies of the `~mne.io.Raw` object
 # using :meth:`~mne.io.Raw.apply_proj`. However, the :meth:`~mne.io.Raw.plot`
 # method has a ``proj`` parameter that allows us to *temporarily* apply
 # projectors while plotting, so we can use this to visualize the difference
@@ -208,7 +208,7 @@ raw.plot(order=artifact_picks, n_channels=len(artifact_picks))
 # MNE-Python provides several functions for detecting and removing heartbeats
 # from EEG and MEG data. As we saw in :ref:`tut-artifact-overview`,
 # :func:`~mne.preprocessing.create_ecg_epochs` can be used to both detect and
-# extract heartbeat artifacts into an :class:`~mne.Epochs` object, which can
+# extract heartbeat artifacts into an `~mne.Epochs` object, which can
 # be used to visualize how the heartbeat artifacts manifest across the sensors:
 
 ecg_evoked = create_ecg_epochs(raw).average()
@@ -224,7 +224,7 @@ ecg_evoked.plot_joint()
 ###############################################################################
 # To compute SSP projectors for the heartbeat artifact, you can use
 # :func:`~mne.preprocessing.compute_proj_ecg`, which takes a
-# :class:`~mne.io.Raw` object as input and returns the requested number of
+# `~mne.io.Raw` object as input and returns the requested number of
 # projectors for magnetometers, gradiometers, and EEG channels (default is two
 # projectors for each channel type).
 # :func:`~mne.preprocessing.compute_proj_ecg` also returns an :term:`events`
@@ -237,7 +237,7 @@ projs, events = compute_proj_ecg(raw, n_grad=1, n_mag=1, n_eeg=1, reject=None)
 ###############################################################################
 # The first line of output tells us that
 # :func:`~mne.preprocessing.compute_proj_ecg` found three existing projectors
-# already in the :class:`~mne.io.Raw` object, and will include those in the
+# already in the `~mne.io.Raw` object, and will include those in the
 # list of projectors that it returns (appending the new ECG projectors to the
 # end of the list). If you don't want that, you can change that behavior with
 # the boolean ``no_proj`` parameter. Since we've already run the computation,
@@ -255,12 +255,12 @@ mne.viz.plot_projs_topomap(ecg_projs, info=raw.info)
 
 ###############################################################################
 # Since no dedicated ECG sensor channel was detected in the
-# :class:`~mne.io.Raw` object, by default
+# `~mne.io.Raw` object, by default
 # :func:`~mne.preprocessing.compute_proj_ecg` used the magnetometers to
 # estimate the ECG signal (as stated on the third line of output, above). You
 # can also supply the ``ch_name`` parameter to restrict which channel to use
 # for ECG artifact detection; this is most useful when you had an ECG sensor
-# but it is not labeled as such in the :class:`~mne.io.Raw` file.
+# but it is not labeled as such in the `~mne.io.Raw` file.
 #
 # The next few lines of the output describe the filter used to isolate ECG
 # events. The default settings are usually adequate, but the filter can be
@@ -328,14 +328,14 @@ for title, proj in [('Without', empty_room_projs), ('With', ecg_projs)]:
 # for performing each part of the process. Specifically:
 #
 # - :func:`mne.preprocessing.find_ecg_events` for detecting heartbeats in a
-#   :class:`~mne.io.Raw` object and returning a corresponding :term:`events`
+#   `~mne.io.Raw` object and returning a corresponding :term:`events`
 #   array
 #
 # - :func:`mne.preprocessing.create_ecg_epochs` for detecting heartbeats in a
-#   :class:`~mne.io.Raw` object and returning an :class:`~mne.Epochs` object
+#   `~mne.io.Raw` object and returning an `~mne.Epochs` object
 #
 # - :func:`mne.compute_proj_epochs` for creating projector(s) from any
-#   :class:`~mne.Epochs` object
+#   `~mne.Epochs` object
 #
 # See the documentation of each function for further details.
 #
@@ -354,11 +354,11 @@ eog_evoked.plot_joint()
 ###############################################################################
 # Just like we did with the heartbeat artifact, we can compute SSP projectors
 # for the ocular artifact using :func:`~mne.preprocessing.compute_proj_eog`,
-# which again takes a :class:`~mne.io.Raw` object as input and returns the
+# which again takes a `~mne.io.Raw` object as input and returns the
 # requested number of projectors for magnetometers, gradiometers, and EEG
 # channels (default is two projectors for each channel type). This time, we'll
 # pass ``no_proj`` parameter (so we get back only the new EOG projectors, not
-# also the existing projectors in the :class:`~mne.io.Raw` object), and we'll
+# also the existing projectors in the `~mne.io.Raw` object), and we'll
 # ignore the events array by assigning it to ``_`` (the conventional way of
 # handling unwanted return elements in Python).
 
