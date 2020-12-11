@@ -58,6 +58,12 @@ from ..io.pick import (pick_types, _picks_to_idx, channel_indices_by_type,
                        _DATA_CH_TYPES_SPLIT, _DATA_CH_TYPES_ORDER_DEFAULT,
                        _VALID_CHANNEL_TYPES, _FNIRS_CH_TYPES_SPLIT)
 
+# CONSTANTS (inches)
+ANNOTATION_FIG_PAD = 0.1
+ANNOTATION_FIG_MIN_H = 2.9  # fixed part, not including radio buttons/labels
+ANNOTATION_FIG_W = 5.0
+ANNOTATION_FIG_CHECKBOX_COLUMN_W = 0.5
+
 
 class MNEFigParams:
     """Container object for MNE figure parameters."""
@@ -1044,31 +1050,30 @@ class MNEBrowseFigure(MNEFigure):
         from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
         # make figure
         labels = np.array(sorted(set(self.mne.inst.annotations.description)))
-        width, var_height, fixed_height, pad, checkbox_width = \
-            self._compute_annotation_figsize(len(labels))
-        figsize = (width + pad + checkbox_width, var_height + fixed_height)
+        radio_button_h = self._compute_annotation_figsize(len(labels))
+        figsize = (ANNOTATION_FIG_W, ANNOTATION_FIG_MIN_H + radio_button_h)
         fig = self._new_child_figure(figsize=figsize,
                                      FigureClass=MNEAnnotationFigure,
                                      fig_name='fig_annotation',
                                      window_title='Annotations')
         # make main axes
-        left = fig._inch_to_rel(pad)
-        bottom = fig._inch_to_rel(pad, horiz=False)
+        left = fig._inch_to_rel(ANNOTATION_FIG_PAD)
+        bottom = fig._inch_to_rel(ANNOTATION_FIG_PAD, horiz=False)
         width = 1 - 2 * left
         height = 1 - 2 * bottom
         fig.mne.radio_ax = fig.add_axes((left, bottom, width, height),
                                         frame_on=False, aspect='equal')
         div = make_axes_locatable(fig.mne.radio_ax)
         # append show/hide checkboxes at right
-        show_hide_ax = div.append_axes(position='right',
-                                       size=Fixed(checkbox_width),
-                                       pad=Fixed(pad), aspect='equal')
-        fig.mne.show_hide_ax = show_hide_ax
+        fig.mne.show_hide_ax = div.append_axes(
+            position='right', size=Fixed(ANNOTATION_FIG_CHECKBOX_COLUMN_W),
+            pad=Fixed(ANNOTATION_FIG_PAD), aspect='equal',
+            sharey=fig.mne.radio_ax)
         # populate w/ radio buttons & labels
         self._update_annotation_fig()
         # append instructions at top
         instructions_ax = div.append_axes(position='top', size=Fixed(1),
-                                          pad=Fixed(5 * pad))
+                                          pad=Fixed(5 * ANNOTATION_FIG_PAD))
         # XXX when we support a newer matplotlib (something >3.0) the
         # instructions can have inline bold formatting:
         # instructions = '\n'.join(
@@ -1088,30 +1093,35 @@ class MNEBrowseFigure(MNEFigure):
                              usetex=False)  # force use of MPL mathtext parser
         instructions_ax.set_axis_off()
         # append text entry axes at bottom
-        text_entry_ax = div.append_axes(position='bottom', size=Fixed(3 * pad),
-                                        pad=Fixed(pad))
+        text_entry_ax = div.append_axes(position='bottom',
+                                        size=Fixed(3 * ANNOTATION_FIG_PAD),
+                                        pad=Fixed(ANNOTATION_FIG_PAD))
         text_entry_ax.text(0.4, 0.5, 'New label:', va='center', ha='right',
                            weight='bold')
         fig.label = text_entry_ax.text(0.5, 0.5, 'BAD_', va='center',
                                        ha='left')
         text_entry_ax.set_axis_off()
         # append button at bottom
-        button_ax = div.append_axes(position='bottom', size=Fixed(3 * pad),
-                                    pad=Fixed(pad))
+        button_ax = div.append_axes(position='bottom',
+                                    size=Fixed(3 * ANNOTATION_FIG_PAD),
+                                    pad=Fixed(ANNOTATION_FIG_PAD))
         fig.button = Button(button_ax, 'Add new label')
         fig.button.on_clicked(self._add_annotation_label)
         plt_show(fig=fig)
         # add "draggable" checkbox
-        drag_ax_height = 3 * pad
+        drag_ax_height = 3 * ANNOTATION_FIG_PAD
         drag_ax = div.append_axes('bottom', size=Fixed(drag_ax_height),
-                                  pad=Fixed(pad), aspect='equal')
+                                  pad=Fixed(ANNOTATION_FIG_PAD),
+                                  aspect='equal')
         checkbox = CheckButtons(drag_ax, labels=('Draggable edges?',),
                                 actives=(self.mne.draggable_annotations,))
         checkbox.on_clicked(self._toggle_draggable_annotations)
         fig.mne.drag_checkbox = checkbox
         # reposition & resize axes
         width_in, height_in = fig.get_size_inches()
-        width_ax = fig._inch_to_rel(width_in - 2 * pad)
+        width_ax = fig._inch_to_rel(width_in
+                                    - ANNOTATION_FIG_CHECKBOX_COLUMN_W
+                                    - 3 * ANNOTATION_FIG_PAD)
         aspect = width_ax / fig._inch_to_rel(drag_ax_height)
         drag_ax.set_xlim(0, aspect)
         drag_ax.set_axis_off()
@@ -1164,17 +1174,18 @@ class MNEBrowseFigure(MNEFigure):
         ax = fig.mne.radio_ax
         labels = self._get_annotation_labels()
         # compute new figsize
-        width, var_height, fixed_height, pad, checkbox_width = \
-            self._compute_annotation_figsize(len(labels))
-        fig.set_size_inches(width + pad + checkbox_width,
-                            var_height + fixed_height, forward=True)
+        radio_button_h = self._compute_annotation_figsize(len(labels))
+        fig.set_size_inches(ANNOTATION_FIG_W,
+                            ANNOTATION_FIG_MIN_H + radio_button_h,
+                            forward=True)
         # populate center axes with labels & radio buttons
         ax.clear()
         title = 'Existing labels:' if len(labels) else 'No existing labels'
         ax.set_title(title, size=None, loc='left')
         ax.buttons = RadioButtons(ax, labels)
         # adjust xlim to keep equal aspect & full width (keep circles round)
-        aspect = (width - 2 * pad) / var_height
+        aspect = (ANNOTATION_FIG_W - ANNOTATION_FIG_CHECKBOX_COLUMN_W
+                  - 3 * ANNOTATION_FIG_PAD) / radio_button_h
         ax.set_xlim((0, aspect))
         # style the buttons & adjust spacing
         radius = 0.15
@@ -1201,7 +1212,8 @@ class MNEBrowseFigure(MNEFigure):
         show_hide_ax = fig.mne.show_hide_ax
         show_hide_ax.clear()
         show_hide_ax.set_axis_off()
-        show_hide_ax.set_xlim((0, checkbox_width / var_height))
+        aspect = ANNOTATION_FIG_CHECKBOX_COLUMN_W / radio_button_h
+        show_hide_ax.set(xlim=(0, aspect), ylim=(0, 1))
         # ensure new labels have checkbox values
         check_values = {label: False for label in labels}
         check_values.update(self.mne.visible_annotations)  # existing checks
@@ -1247,7 +1259,7 @@ class MNEBrowseFigure(MNEFigure):
         0.1  top margin
         1.0  instructions
         0.5  padding below instructions
-        ---  (variable-height axis for label list)
+        ---  (variable-height axis for label list, returned by this method)
         0.1  padding above text entry
         0.3  text entry
         0.1  padding above button
@@ -1258,12 +1270,7 @@ class MNEBrowseFigure(MNEFigure):
         ------------------------------------------
         2.9  total fixed height
         """
-        pad = 0.1
-        width = 4.5
-        var_height = max(pad, 0.7 * n_labels)
-        fixed_height = 2.9
-        checkbox_width = 0.5
-        return (width, var_height, fixed_height, pad, checkbox_width)
+        return max(ANNOTATION_FIG_PAD, 0.7 * n_labels)
 
     def _add_annotation_label(self, event):
         """Add new annotation description."""
