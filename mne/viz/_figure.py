@@ -1063,7 +1063,6 @@ class MNEBrowseFigure(MNEFigure):
         show_hide_ax = div.append_axes(position='right',
                                        size=Fixed(checkbox_width),
                                        pad=Fixed(pad), aspect='equal')
-        show_hide_ax.set_axis_off()
         fig.mne.show_hide_ax = show_hide_ax
         # populate w/ radio buttons & labels
         self._update_annotation_fig()
@@ -1166,7 +1165,8 @@ class MNEBrowseFigure(MNEFigure):
         # compute new figsize
         width, var_height, fixed_height, pad, checkbox_width = \
             self._compute_annotation_figsize(len(labels))
-        fig.set_size_inches(width, var_height + fixed_height, forward=True)
+        fig.set_size_inches(width + pad + checkbox_width,
+                            var_height + fixed_height, forward=True)
         # populate center axes with labels & radio buttons
         ax.clear()
         title = 'Existing labels:' if len(labels) else 'No existing labels'
@@ -1198,28 +1198,36 @@ class MNEBrowseFigure(MNEFigure):
 
         # now do the show/hide checkboxes
         show_hide_ax = fig.mne.show_hide_ax
+        show_hide_ax.clear()
+        show_hide_ax.set_axis_off()
         show_hide_ax.set_xlim((0, checkbox_width / var_height))
         # ensure new labels have checkbox values
         check_values = {label: False for label in labels}
         check_values.update(self.mne.visible_annotations)  # existing checks
         actives = [check_values[label] for label in labels]
         # regenerate checkboxes
-        show_hide = CheckButtons(ax=fig.mne.show_hide_ax,
-                                 labels=labels,
-                                 actives=actives)
-        show_hide.on_clicked(self._toggle_visible_annotations)
+        checkboxes = CheckButtons(ax=fig.mne.show_hide_ax,
+                                  labels=labels,
+                                  actives=actives)
+        checkboxes.on_clicked(self._toggle_visible_annotations)
         # add title, hide labels
         show_hide_ax.set_title('show/\nhide ', size=None, loc='right')
-        for label in show_hide.labels:
+        for label in checkboxes.labels:
             label.set_visible(False)
         # fix aspect
-        for rect in show_hide.rectangles:
+        if len(labels) == 1:
+            bounds = (0.05, 0.375, 0.25, 0.25)  # undo MPL special case
+            checkboxes.rectangles[0].set_bounds(bounds)
+            for line, step in zip(checkboxes.lines[0], (1, -1)):
+                line.set_xdata((bounds[0], bounds[0] + bounds[2]))
+                line.set_ydata((bounds[1], bounds[1] + bounds[3])[::step])
+        for rect in checkboxes.rectangles:
             rect.set_transform(show_hide_ax.transData)
-        for line in np.array(show_hide.lines).ravel():
+        for line in np.array(checkboxes.lines).ravel():
             line.set_transform(show_hide_ax.transData)
         # store state
         self.mne.visible_annotations = check_values
-        self.mne.show_hide_annotation_checkboxes = show_hide
+        self.mne.show_hide_annotation_checkboxes = checkboxes
 
     def _toggle_annotation_fig(self):
         """Show/hide the annotation dialog window."""
