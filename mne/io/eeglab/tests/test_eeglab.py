@@ -68,38 +68,39 @@ def test_io_set_raw(fname):
         'EEG {0:03d}'.format(ii) for ii in range(len(montage.ch_names))
     ]
 
+    kws = dict(reader=read_raw_eeglab, input_fname=fname)
     if fname.endswith('test_raw_chanloc.set'):
         with pytest.warns(RuntimeWarning,
                           match="The data contains 'boundary' events"):
-            _test_raw_reader(read_raw_eeglab, input_fname=fname)
+            _test_raw_reader(**kws)
     else:
-        _test_raw_reader(read_raw_eeglab, input_fname=fname)
+        _test_raw_reader(**kws)
 
     # test that preloading works
+    read_raw_kws = dict(input_fname=fname, preload=True)
     if fname.endswith('test_raw_chanloc.set'):
         with pytest.warns(RuntimeWarning,
                           match="The data contains 'boundary' events"):
-            raw0 = read_raw_eeglab(input_fname=fname, preload=True)
+            raw0 = read_raw_eeglab(**read_raw_kws)
             raw0.set_montage(montage, on_missing='ignore')
-             # crop to check if the data has been properly preloaded; we cannot
-             # filter as the snippet of raw data is very short
+            # crop to check if the data has been properly preloaded; we cannot
+            # filter as the snippet of raw data is very short
             raw0.crop(0, 1)
     else:
-        raw0 = read_raw_eeglab(input_fname=fname, preload=True)
+        raw0 = read_raw_eeglab(**read_raw_kws)
         raw0.set_montage(montage)
         raw0.filter(1, None, l_trans_bandwidth='auto', filter_length='auto',
                     phase='zero')
 
     # test that using uint16_codec does not break stuff
+    read_raw_kws = dict(input_fname=fname, preload=False, uint16_codec='ascii')
     if fname.endswith('test_raw_chanloc.set'):
         with pytest.warns(RuntimeWarning,
                           match="The data contains 'boundary' events"):
-            raw0 = read_raw_eeglab(input_fname=fname,
-                                   preload=False, uint16_codec='ascii')
+            raw0 = read_raw_eeglab(**read_raw_kws)
             raw0.set_montage(montage, on_missing='ignore')
     else:
-        raw0 = read_raw_eeglab(input_fname=fname,
-                               preload=False, uint16_codec='ascii')
+        raw0 = read_raw_eeglab(**read_raw_kws)
         raw0.set_montage(montage)
 
 
