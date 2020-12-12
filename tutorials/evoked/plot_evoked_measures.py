@@ -10,6 +10,7 @@ Event Related Potentials (ERPs) Measures
 
 """
 
+import pandas as pd
 import matplotlib.pyplot as plt
 
 import mne
@@ -29,8 +30,8 @@ raw.pick_types(meg=False, eeg=True, eog=True).load_data()
 
 # Create epochs from events, and reject epochs
 events = events = mne.read_events(event_fname)
-event_id = {'auditory/left': 1, 
-            'auditory/right': 2, 
+event_id = {'auditory/left': 1,
+            'auditory/right': 2,
             'visual/left': 3,
             'visual/right': 4}
 tmin, tmax = -0.2, 0.5
@@ -43,59 +44,72 @@ epochs = mne.Epochs(raw, **epochs_params)
 epochs.plot_sensors(show_names=True)
 
 # Make all evokeds
-all_evokeds = dict((cond, epochs[cond].average()) for cond in event_id)
-print(all_evokeds['visual/left'])
+evokeds = dict((cond, epochs[cond].average()) for cond in event_id)
+print(evokeds['visual/left'])
 
 # Plot the evokeds for visual trial
-all_evokeds['visual/left'].plot_joint(title='Visual Left (EEG)', times=[.09,.18,.27])
-all_evokeds['visual/right'].plot_joint(title='Visual Right (EEG)', times=[.09,.18,.27])
+evokeds['visual/left'].plot_joint(title='Visual Left (EEG)',
+                                  times=[.09, .18, .27])
+evokeds['visual/right'].plot_joint(title='Visual Right (EEG)',
+                                   times=[.09, .18, .27])
 
 ###############################################################################
 # Obtaining Peak Latency and Amplitude
 # ---------------------
 #
-# One of the most common ERP measures is optaining the peak amplitude and time. This
-# usually is done by searching in a user-specifed time frame. Here, we will obtain
-# the peak latency and amplitude for the first positive peak for the visual trials in 
-# each hemisphere. The :func:`mne.io.Evoked.get_peak` method to achieve this. Here, we
-# will focus on channels EEG 057 and EEG 059 (left and right hemisphers, respectively).
+# One of the most common ERP measures is optaining the peak amplitude and time.
+# This usually is done by searching in a user-specifed time frame. We
+# will obtain the peak latency and amplitude for the first positive peak for
+# the visual trials in each hemisphere. The :func:`mne.io.Evoked.get_peak`
+# method to achieve this. Here, we will focus on channels 'EEG 057' and
+# 'EEG 059' (left and right hemispheres, respectively).
 #
-# To mitigate high-frequency noise influencing peak measures, we can low-pass filter the 
-# data with a cutoff of 20Hz or 30Hz. Here, we will do 20Hz. Note that this sample dataset
-# is lowpass filtered at 40Hz. 
+# To mitigate high-frequency noise influencing peak measures, we can low-pass
+# filter the data with a cutoff of 20Hz or 30Hz. Here, we will do 20Hz. Note
+# that the Raw object of this sample dataset is lowpass filtered at 40Hz.
 
 # First we will xxtract the data from right trials in contralateral hemisphere
 
-# Define channel to use 
+# Define channel to use
 chan = 'EEG 054'
 
 # Copy and filter evoked
-right_vis_evoked = all_evokeds['visual/right'].copy()
+right_vis_evoked = evokeds['visual/right'].copy()
 right_vis_evoked.filter(None, 20)
+right_vis_evoked.pick(chan)
 
 # Get peak latency and amplitude at EEG 054
-lh_ch_name, lh_latency, lh_amplitude = right_vis_evoked.copy().pick(chan).get_peak(tmin=.07, tmax=.13, mode='pos', return_amplitude=True)
-lh_microvolts = lh_amplitude * 1e6 # Convert amplitude from volts to microvolts
+_, lh_lat, lh_amp = right_vis_evoked.get_peak(tmin=.07, tmax=.13,
+                                              mode='pos',
+                                              return_amplitude=True)
+
+# Convert amplitude from volts to microvolts
+lh_microvolts = lh_amp * 1e6
 
 # Plot the evoked trace with a point for the peak
-fig, ax = plt.subplots(nrows=1,ncols=1)
-fig = right_vis_evoked.plot(picks=chan, axes=ax, 
+fig, ax = plt.subplots(nrows=1, ncols=1)
+fig = right_vis_evoked.plot(picks=chan, axes=ax,
                             titles=f'Visual/Right Peak at {chan}',
                             proj=True)
-ax.plot(lh_latency, lh_microvolts, 'ro')
-fig 
+ax.plot(lh_lat, lh_microvolts, 'ro')
+fig
 
-# Next, we will do the same for the left visual trials in 
+# Next, we will do the same for the left visual trials in
 # the right hemisphere
 chan = 'EEG 059'
-left_vis_evoked = all_evokeds['visual/right'].copy()
+left_vis_evoked = evokeds['visual/right'].copy()
 left_vis_evoked.filter(None, 20)
-rh_ch_name, rh_latency, rh_amplitude = left_vis_evoked.copy().pick(chan).get_peak(tmin=.07, tmax=.13, mode='pos', return_amplitude=True)
-rh_microvolts = rh_amplitude * 1e6 # Convert amplitude from volts to microvolts
+left_vis_evoked.pick(chan)
+_, rh_latency, rh_amplitude = left_vis_evoked.get_peak(tmin=.07, tmax=.13,
+                                                       mode='pos',
+                                                       return_amplitude=True)
+
+# Convert amplitude from volts to microvolts
+rh_microvolts = rh_amplitude * 1e6
 
 # Plot the evoked trace with a point for the peak
-fig, ax = plt.subplots(nrows=1,ncols=1)
-fig = right_vis_evoked.plot(picks=chan, axes=ax, 
+fig, ax = plt.subplots(nrows=1, ncols=1)
+fig = right_vis_evoked.plot(picks=chan, axes=ax,
                             titles=f'Visual/Left Peak at {chan}',
                             proj=True)
 ax.plot(rh_latency, rh_microvolts, 'ro')
@@ -106,34 +120,34 @@ fig
 # Obtaining Mean Amplitude in a Specified Time Window
 # ---------------------
 #
-# Another common practice in ERP studies is to define a component (or effect) 
+# Another common practice in ERP studies is to define a component (or effect)
 # as the mean amplitude within a specified time window. Sometimes, this also
-# involves extracting the mean over both time and space (sensors). The following
-# demponstrates how to do both. We will focus again on visual trials in posterior
-# electrodes. 
+# involves extracting the mean over both time and space (sensors). The
+# followingdemponstrates how to do both. We will focus again on visual trials
+# in posterior electrodes.
 #
-# Below, we extract the mean amplitude from .08s to .12s for visual trials. Given 
-# average amplitude over a time window is extracted, there is no need to
-# apply any additional lowpass filter to the evoked data. (Averaging is a form of 
-# lowpass filtering).
+# Below, we extract the mean amplitude from .08s to .12s for visual trials.
+# Given the average amplitude over a time window is extracted, there is no
+# need to apply any additional lowpass filtering to the evoked data.
 
 # Define electrode clusters
-lh_cluster = [f'EEG {x:03}' for x in [44,45,54,57]]
-rh_cluster = [f'EEG {x:03}' for x in [52,55,56,59]]
+lh_cluster = [f'EEG {x:03}' for x in [44, 45, 54, 57]]
+rh_cluster = [f'EEG {x:03}' for x in [52, 55, 56, 59]]
 
 # Extract mean amplitude and store in a dictionary
 tmin, tmax = .08, .12
 
 # Create dictionary with amplitudes converted to microvolts
 mean_amplitude = {}
-for cond in ['visual/left', 'visual/right']:   
+for cond in ['visual/left', 'visual/right']:
+    lh_evoked = evokeds[cond].copy().pick(lh_cluster)
+    rh_evoked = evokeds[cond].copy().pick(rh_cluster)
     mean_amplitude[cond] = {
-        'Left Hemisphere': all_evokeds[cond].copy().pick(lh_cluster).crop(tmin=tmin, tmax=tmax).data.mean() * 1e6,
-        'Right Hemiisphere': all_evokeds[cond].copy().pick(rh_cluster).crop(tmin=tmin, tmax=tmax).data.mean() * 1e6,
+        'L-Hemi': lh_evoked.crop(tmin=tmin, tmax=tmax).data.mean() * 1e6,
+        'R-Hemi': rh_evoked.crop(tmin=tmin, tmax=tmax).data.mean() * 1e6
     }
-    
-# Convert to dataframe and make a bar plot
-import pandas as pd 
 
-amp_df = pd.DataFrame(mean_amplitude).T # Transposed to make hemisphere in the columns
+# Convert to dataframe and make a bar plot
+# Make data frame. Transposed to make hemisphere as columns
+amp_df = pd.DataFrame(mean_amplitude).T
 amp_df.plot(kind='bar')
