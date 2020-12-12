@@ -526,7 +526,18 @@ def test_plot_annotations(raw):
     with pytest.warns(RuntimeWarning, match='expanding outside'):
         raw.set_annotations(annot)
     _annotation_helper(raw)
-    plt.close('all')
+    # test annotation visibility toggle
+    fig = raw.plot()
+    assert len(fig.mne.annotations) == 1
+    assert len(fig.mne.annotation_texts) == 1
+    fig.canvas.key_press_event('a')  # start annotation mode
+    checkboxes = fig.mne.show_hide_annotation_checkboxes
+    checkboxes.set_active(0)
+    assert len(fig.mne.annotations) == 0
+    assert len(fig.mne.annotation_texts) == 0
+    checkboxes.set_active(0)
+    assert len(fig.mne.annotations) == 1
+    assert len(fig.mne.annotation_texts) == 1
 
 
 @pytest.mark.parametrize('filtorder', (0, 2))  # FIR, IIR

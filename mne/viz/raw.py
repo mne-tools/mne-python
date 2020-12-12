@@ -354,7 +354,6 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     # plot annotations (if any)
     fig._setup_annotation_colors()
-    fig._update_annotation_segments()
     fig._draw_annotations()
 
     # start with projectors dialog open, if requested
