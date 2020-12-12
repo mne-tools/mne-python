@@ -569,7 +569,7 @@ def _get_extra_points(pos, extrapolate, origin, radii):
         assert extrapolate == 'head'
         # return points on the head circle
         angle = np.arcsin(distance / np.mean(radii))
-        n_pnts = int(np.round(2 * np.pi / angle))
+        n_pnts = max(12, int(np.round(2 * np.pi / angle)))
         points_l = np.linspace(0, 2 * np.pi, n_pnts, endpoint=False)
         use_radii = radii * 1.1 + distance
         points_x = np.cos(points_l) * use_radii[0] + x
