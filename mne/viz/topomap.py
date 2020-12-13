@@ -349,10 +349,7 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
     n_projs = len(projs)
     if axes is None:
         fig, axes, ncols, nrows = _prepare_trellis(
-            n_projs, ncols='auto', nrows='auto')
-        for ax in axes[1:]:
-            ax.sharex(axes[0])
-            ax.sharey(axes[0])
+            n_projs, ncols='auto', nrows='auto', sharex=True, sharey=True)
     elif isinstance(axes, plt.Axes):
         axes = [axes]
     _validate_if_list_of_axes(axes, n_projs)
