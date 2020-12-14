@@ -127,7 +127,7 @@ fig
 # in posterior electrodes.
 #
 # Below, we extract the mean amplitude from .08s to .12s for visual trials.
-# Given the average amplitude over a time window is extracted, there is no
+# Given how the average amplitude over a time window is extracted, there is no
 # need to apply any additional lowpass filtering to the evoked data.
 
 # Define electrode clusters
