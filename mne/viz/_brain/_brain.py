@@ -1829,8 +1829,6 @@ class Brain(object):
         self._data['transparent'] = transparent
         # data specific for a hemi
         self._data[hemi] = dict()
-        self._data[hemi]['actors'] = None
-        self._data[hemi]['mesh'] = None
         self._data[hemi]['glyph_dataset'] = None
         self._data[hemi]['glyph_mapper'] = None
         self._data[hemi]['glyph_actor'] = None
