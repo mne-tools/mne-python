@@ -175,6 +175,22 @@ def test_ssd():
     corr = np.abs(np.corrcoef((psd_out, psd_S))[0, 1])
     assert np.abs(corr) > 0.95
 
+    # Check return_filtered
+    n_components = n_components_true
+    filt_params_signal = dict(l_freq=freqs_sig[0], h_freq=freqs_sig[1],
+                              l_trans_bandwidth=1, h_trans_bandwidth=1)
+    filt_params_noise = dict(l_freq=freqs_noise[0], h_freq=freqs_noise[1],
+                             l_trans_bandwidth=1, h_trans_bandwidth=1)
+    ssd = SSD(info, filt_params_signal, filt_params_noise,
+              n_components=n_components, sort_by_spectral_ratio=False,
+              return_filtered=True)
+    ssd.fit(X)
+
+    out = ssd.transform(X)
+    psd_out, freqs = psd_array_welch(out[0], sfreq=250, n_fft=250)
+    freqs_up = int(freqs[psd_out > 2][0]), int(freqs[psd_out > 2][-1])
+    assert (freqs_up == freqs_sig)
+
     # Check pattern estimation
     # Since there is no exact ordering of the recovered patterns
     # a pair-wise greedy search will be done
