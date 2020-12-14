@@ -690,8 +690,8 @@ def test_localization_bias_fixed(bias_params_fixed, reg, weight_norm, use_cov,
         # no reg
         (0.00, 'vector', None, True, None, 23, 24, 0.96, 0.97),
         (0.00, 'vector', 'unit-noise-gain-invariant', True, None, 52, 54, 0.95, 0.96),  # noqa: E501
-        (0.00, 'vector', 'unit-noise-gain', True, None, 44, 45, 0.97, 0.98),
-        (0.00, 'vector', 'nai', True, None, 44, 45, 0.97, 0.98),
+        (0.00, 'vector', 'unit-noise-gain', True, None, 44, 46, 0.97, 0.98),
+        (0.00, 'vector', 'nai', True, None, 44, 46, 0.97, 0.98),
         (0.00, 'max-power', None, True, None, 14, 15, 0, 0),
         (0.00, 'max-power', 'unit-noise-gain-invariant', True, None, 35, 37, 0, 0),  # noqa: E501
         (0.00, 'max-power', 'unit-noise-gain', True, None, 35, 37, 0, 0),
@@ -735,9 +735,9 @@ def test_localization_bias_free(bias_params_free, reg, pick_ori, weight_norm,
         (0.05, None, True, 0.8, 42, 43, 0.54, 0.56),
         # no reg
         (0.00, None, True, None, 50, 51, 0.57, 0.58),
-        (0.00, 'unit-noise-gain-invariant', True, None, 73, 74, 0.57, 0.58),
-        (0.00, 'unit-noise-gain', True, None, 73, 74, 0.57, 0.58),
-        (0.00, 'nai', True, None, 73, 74, 0.57, 0.58),
+        (0.00, 'unit-noise-gain-invariant', True, None, 73, 75, 0.57, 0.58),
+        (0.00, 'unit-noise-gain', True, None, 73, 75, 0.57, 0.58),
+        (0.00, 'nai', True, None, 73, 75, 0.57, 0.58),
     ])
 def test_orientation_max_power(bias_params_fixed, bias_params_free,
                                reg, weight_norm, use_cov, depth, lower, upper,
