@@ -131,6 +131,9 @@ def envelope_correlation(data, combine='mean', orthogonalize="pairwise",
             else:
                 label_data_orth = (label_data * data_conj_scaled).imag
                 np.abs(label_data_orth, out=label_data_orth)
+                # protect against invalid value -- this will be zero
+                # after (log and) mean subtraction
+                label_data_orth[li] = 1.
                 if log:
                     label_data_orth *= label_data_orth
                     np.log(label_data_orth, out=label_data_orth)
@@ -147,7 +150,6 @@ def envelope_correlation(data, combine='mean', orthogonalize="pairwise",
             if absolute:
                 corr = np.abs(corr)
             corr = (corr.T + corr) / 2.
-            corr.flat[::corr.shape[0] + 1] = 0.
         corrs.append(corr)
         del corr
 
