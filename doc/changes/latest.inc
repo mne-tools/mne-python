@@ -28,7 +28,7 @@ Current (0.22.dev0)
 
 .. |Hongjiang Ye| replace:: **Hongjiang Ye**
 
-.. |Avoide| replace:: **Avoide**
+.. |Qianliang Li| replace:: **Qianliang Li**
 
 
 Enhancements
