@@ -2152,7 +2152,7 @@ class Brain(object):
             src = self._data["src"]
             tc = stc.extract_label_time_course(label, src=src,
                                                mode=self.label_extract_mode)
-            tc = tc[0] if tc.shape[0] == 1 else tc[0, :]
+            tc = tc[0] if tc.ndim == 2 else tc[0, 0, :]
             color = next(self.color_cycle)
             line = self.mpl_canvas.plot(
                 self._data['time'], tc, label=label_name,
