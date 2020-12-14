@@ -118,7 +118,7 @@ fig
 
 ###############################################################################
 # Obtaining Mean Amplitude in a Specified Time Window
-# ---------------------
+# ---------------------------------------------------------------
 #
 # Another common practice in ERP studies is to define a component (or effect)
 # as the mean amplitude within a specified time window. Sometimes, this also
