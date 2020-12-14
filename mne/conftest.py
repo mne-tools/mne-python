@@ -272,7 +272,7 @@ def backend_name(request):
     yield request.param
 
 
-@pytest.yield_fixture
+@pytest.fixture
 def renderer(backend_name, garbage_collect):
     """Yield the 3D backends."""
     from mne.viz.backends.renderer import _use_test_3d_backend
@@ -283,7 +283,7 @@ def renderer(backend_name, garbage_collect):
         renderer.backend._close_all()
 
 
-@pytest.yield_fixture
+@pytest.fixture
 def garbage_collect():
     """Garbage collect on exit."""
     yield
@@ -299,7 +299,7 @@ def backend_name_interactive(request):
     yield request.param
 
 
-@pytest.yield_fixture
+@pytest.fixture
 def renderer_interactive(backend_name_interactive):
     """Yield the 3D backends."""
     from mne.viz.backends.renderer import _use_test_3d_backend
