@@ -1905,8 +1905,8 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
 
     if transparent is None:
         transparent = True
-    sd_kwargs = dict(transparent=transparent, verbose=False)
     center = 0. if diverging else None
+    sd_kwargs = dict(transparent=transparent, center=center, verbose=False)
     kwargs = {
         "array": stc,
         "colormap": colormap,
