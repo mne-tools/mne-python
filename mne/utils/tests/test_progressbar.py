@@ -24,7 +24,8 @@ def test_progressbar():
     def iter_func(a):
         for ii in a:
             pass
-    pytest.raises(Exception, iter_func, ProgressBar(20))
+    with pytest.raises(TypeError, match='not iterable'):
+        iter_func(pbar)
 
     # Make sure different progress bars can be used
     with catch_logging() as log, modified_env(MNE_TQDM='tqdm'), \
