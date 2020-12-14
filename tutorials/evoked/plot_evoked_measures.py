@@ -123,7 +123,7 @@ fig
 # Another common practice in ERP studies is to define a component (or effect)
 # as the mean amplitude within a specified time window. Sometimes, this also
 # involves extracting the mean over both time and space (sensors). The
-# followingdemponstrates how to do both. We will focus again on visual trials
+# following demonstrates how to do both. We will focus again on visual trials
 # in posterior electrodes.
 #
 # Below, we extract the mean amplitude from .08s to .12s for visual trials.
