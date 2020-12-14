@@ -452,7 +452,8 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
             volume_options=None,  # for speed, don't upsample
             n_time=5, initial_time=0,
         )
-        brain._data['src'] = None  # remove src for testing
+        if src == 'surface':
+            brain._data['src'] = None  # remove src for testing
         assert brain.show_traces
         assert brain.traces_mode == 'label'
         brain._label_mode_widget.setCurrentText('max')
@@ -460,6 +461,8 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
         # test picking a cell at random
         rng = np.random.RandomState(0)
         for idx, current_hemi in enumerate(hemi_str):
+            if current_hemi == 'vol':
+                continue
             current_mesh = brain._layered_meshes[current_hemi]._polydata
             cell_id = rng.randint(0, current_mesh.n_cells)
             test_picker = TstVTKPicker(
