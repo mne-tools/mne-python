@@ -25,7 +25,7 @@ from mne.source_space import write_source_spaces
 data_path = testing.data_path(download=False)
 
 
-@pytest.yield_fixture
+@pytest.fixture
 def few_surfaces():
     """Set the _MNE_FEW_SURFACES env var."""
     with modified_env(_MNE_FEW_SURFACES='true'):
