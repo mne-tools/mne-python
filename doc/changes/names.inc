@@ -341,3 +341,5 @@
 .. _Evan Hathaway: https://github.com/ephathaway
 
 .. _Hongjiang Ye: https://github.com/rubyyhj
+
+.. _Avoide: https://github.com/Avoide
