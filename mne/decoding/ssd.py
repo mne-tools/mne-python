@@ -4,12 +4,12 @@
 
 import numpy as np
 from scipy.linalg import eigh
-from mne.filter import filter_data
-from mne.cov import _regularized_covariance
-from sklearn.base import BaseEstimator, TransformerMixin
-from mne.time_frequency import psd_array_welch
-from mne.utils import _time_mask, fill_doc, _validate_type, _check_option
-from mne.io.pick import _get_channel_types, _picks_to_idx
+from ..filter import filter_data
+from ..cov import _regularized_covariance
+from . import TransformerMixin, BaseEstimator
+from ..time_frequency import psd_array_welch
+from ..utils import _time_mask, fill_doc, _validate_type, _check_option
+from ..io.pick import _get_channel_types, _picks_to_idx
 
 
 @fill_doc
