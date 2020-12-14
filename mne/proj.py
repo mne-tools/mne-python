@@ -140,7 +140,9 @@ def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix,
 @verbose
 def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
                         desc_prefix=None, meg='separate', verbose=None):
-    """Compute SSP (spatial space projection) vectors on Epochs.
+    """Compute SSP (signal-space projection) vectors on epoched data.
+
+    %(compute_ssp)s
 
     Parameters
     ----------
@@ -207,7 +209,9 @@ def _compute_cov_epochs(epochs, n_jobs):
 @verbose
 def compute_proj_evoked(evoked, n_grad=2, n_mag=2, n_eeg=2, desc_prefix=None,
                         meg='separate', verbose=None):
-    """Compute SSP (spatial space projection) vectors on Evoked.
+    """Compute SSP (signal-space projection) vectors on evoked data.
+
+    %(compute_ssp)s
 
     Parameters
     ----------
@@ -253,7 +257,9 @@ def compute_proj_evoked(evoked, n_grad=2, n_mag=2, n_eeg=2, desc_prefix=None,
 def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
                      n_eeg=0, reject=None, flat=None, n_jobs=1, meg='separate',
                      verbose=None):
-    """Compute SSP (spatial space projection) vectors on Raw.
+    """Compute SSP (signal-space projection) vectors on continuous data.
+
+    %(compute_ssp)s
 
     Parameters
     ----------

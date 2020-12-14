@@ -31,8 +31,6 @@ Current (0.22.dev0)
 
 Enhancements
 ~~~~~~~~~~~~
-- Add :func:`mne.source_space.compute_distance_to_sensors` to compute distances between vertices and sensors (:gh:`8534` by `Olaf Hauk`_ and `Marijn van Vliet`_)
-
 - Add :func:`mne.read_evokeds_mff` to read averaged MFFs (requires mffpy >= 0.5.7) **by new contributor** |Evan Hathaway|_ (:gh:`8354`)
 
 - Add :class:`mne.decoding.SSD` for spatial filtering with spatio-spectral-decomposition (:gh:`7070` **by new contributor** |Victoria Peterson|_ and `Denis Engemann`_)
@@ -42,6 +40,10 @@ Enhancements
 - Add options to use labels in :func:`mne.minimum_norm.get_point_spread` and :func:`mne.minimum_norm.get_cross_talk` (:gh:`8275` by `Olaf Hauk`_)
 
 - Update ``surfaces`` argument in :func:`mne.viz.plot_alignment` to allow dict for transparency values, and set default for sEEG data to have transparency (:gh:`8445` by `Keith Doelling`_)
+
+- Add support for ``mri_fiducials='estimated'`` in :func:`mne.viz.plot_alignment` to allow estimating MRI fiducial locations using :func:`mne.coreg.get_mni_fiducials` (:gh:`8553` by `Eric Larson`_)
+
+- Update default values in :ref:`mne coreg` and :func:`mne.viz.plot_alignment` for clearer representation of MRI and digitized fiducial points (:gh:`8553` by `Alex Gramfort`_ and `Eric Larson`_)
 
 - Add ``n_pca_components`` argument to :func:`mne.viz.plot_ica_overlay` (:gh:`8351` by `Eric Larson`_)
 
@@ -87,6 +89,10 @@ Enhancements
 
 - `~mne.Epochs` will now retain the information about an applied baseline correction, even if the baseline period is partially or completely removed through cropping later on (:gh:`8442` by `Richard Höchenberger`_)
 
+- Add :func:`mne.source_space.compute_distance_to_sensors` to compute distances between vertices and sensors (:gh:`8534` by `Olaf Hauk`_ and `Marijn van Vliet`_)
+
+- Annotations can now be shown/hidden interactively in raw plots (:gh:`8624` by `Daniel McCloy`_)
+
 Bugs
 ~~~~
 - Fix a transpose issue of :func:`mne.decoding.CSP.plot_filters` (:gh:`8580` **by new contributor** |Hongjiang Ye|_)
@@ -108,6 +114,8 @@ Bugs
 - Fix bug when passing ``axes`` to plotting functions, :func:`matplotlib.pyplot.tight_layout` will not be called when the figure was created using a constrained layout (:gh:`8344` by `Eric Larson`_)
 
 - Fix bug with compensated CTF data when picking channels without preload (:gh:`8318` by `Eric Larson`_)
+
+- Fix bug with plotting MEG topographies where the wrong extrapolation made was used in ICA (:gh:`8637` by `Eric Larson`_)
 
 - Fix bug when merging fNIRS channels in :func:`mne.viz.plot_evoked_topomap` and related functions (:gh:`8306` by `Robert Luke`_)
 

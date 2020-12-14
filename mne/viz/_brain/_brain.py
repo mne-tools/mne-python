@@ -2596,7 +2596,8 @@ class Brain(object):
                     mesh = self._layered_meshes[hemi]
                     mesh.update_overlay(name='data',
                                         colormap=self._data['ctable'])
-                    _set_colormap_range(mesh._actor, ctable, scalar_bar, rng)
+                    _set_colormap_range(mesh._actor, ctable, scalar_bar, rng,
+                                        self._brain_color)
                     scalar_bar = None
 
                 grid_volume_pos = hemi_data.get('grid_volume_pos')
