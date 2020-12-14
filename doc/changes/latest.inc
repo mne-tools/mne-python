@@ -97,7 +97,7 @@ Enhancements
 
 Bugs
 ~~~~
-- Fix orthogonalization of power envelopes in :func:`mne.connectivity.envelope_connectivity` (:gh:`8658` **by new contributor** |Avoide|_ and `Eric Larson`_)
+- Fix orthogonalization of power envelopes in :func:`mne.connectivity.envelope_correlation` (:gh:`8658` **by new contributor** |Qianliang Li|_ and `Eric Larson`_)
 
 - Fix a transpose issue of :func:`mne.decoding.CSP.plot_filters` (:gh:`8580` **by new contributor** |Hongjiang Ye|_)
 

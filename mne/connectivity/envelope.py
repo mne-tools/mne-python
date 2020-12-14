@@ -117,7 +117,7 @@ def envelope_correlation(data, combine='mean', orthogonalize="pairwise",
         data_conj_scaled /= data_mag
         if log:
             data_mag *= data_mag
-            np.log10(data_mag, out=data_mag)
+            np.log(data_mag, out=data_mag)
         # subtract means
         data_mag_nomean = data_mag - np.mean(data_mag, axis=-1, keepdims=True)
         # compute variances using linalg.norm (square, sum, sqrt) since mean=0
@@ -133,7 +133,7 @@ def envelope_correlation(data, combine='mean', orthogonalize="pairwise",
                 np.abs(label_data_orth, out=label_data_orth)
                 if log:
                     label_data_orth *= label_data_orth
-                    np.log10(label_data_orth, out=label_data_orth)
+                    np.log(label_data_orth, out=label_data_orth)
                 label_data_orth -= np.mean(label_data_orth, axis=-1,
                                            keepdims=True)
                 label_data_orth_std = np.linalg.norm(label_data_orth, axis=-1)

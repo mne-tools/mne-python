@@ -342,4 +342,4 @@
 
 .. _Hongjiang Ye: https://github.com/rubyyhj
 
-.. _Avoide: https://github.com/Avoide
+.. _Qianliang Li: https://www.dtu.dk/english/service/phonebook/person?id=126774
