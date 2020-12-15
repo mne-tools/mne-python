@@ -446,14 +446,14 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
         hemi_str.extend(['vol'])
 
     # label traces
+    brain = _create_testing_brain(
+        hemi=hemi, surf='white', src=src, show_traces='label',
+        volume_options=None,  # for speed, don't upsample
+        n_time=5, initial_time=0,
+    )
+    if src == 'surface':
+        brain._data['src'] = None  # remove src for testing
     if src in ('surface', 'mixed'):
-        brain = _create_testing_brain(
-            hemi=hemi, surf='white', src=src, show_traces='label',
-            volume_options=None,  # for speed, don't upsample
-            n_time=5, initial_time=0,
-        )
-        if src == 'surface':
-            brain._data['src'] = None  # remove src for testing
         assert brain.show_traces
         assert brain.traces_mode == 'label'
         brain._label_mode_widget.setCurrentText('max')
@@ -484,6 +484,10 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
         brain._annot_cands_widget.setCurrentText('None')
         brain._label_mode_widget.setCurrentText('max')
         brain.close()
+    else:  # volume
+        assert brain._trace_mode_widget is None
+        assert brain._annot_cands_widget is None
+        assert brain._label_mode_widget is None
 
     # vertex traces
     brain = _create_testing_brain(
