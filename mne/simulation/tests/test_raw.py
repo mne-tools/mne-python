@@ -501,19 +501,14 @@ def test_simulation_cascade():
     cov = make_ad_hoc_cov(raw_null.info)
     add_noise(raw_noise, cov, random_state=0)
 
-    # raw_chpi = deepcopy(raw_null)
-    # add_chpi(raw_chpi) #, random_state=0)
-
     # Calculate Cascading signal additions
     raw_cascade = deepcopy(raw_null)
     add_eog(raw_cascade, random_state=0)
     add_ecg(raw_cascade, random_state=0)
-    # add_chpi(raw_cascade)
     add_noise(raw_cascade, cov, random_state=0)
 
     cascade_data = raw_cascade._data
     serial_data = raw_eog._data + raw_ecg._data + raw_noise._data
-    # Should add chpi once fixed above
 
     assert_allclose(cascade_data, serial_data)
 
