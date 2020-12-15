@@ -24,7 +24,7 @@ from mne.chpi import (read_head_pos, compute_chpi_amplitudes,
 from mne.tests.test_chpi import _assert_quats
 from mne.datasets import testing
 from mne.simulation import (simulate_sparse_stc, simulate_raw, add_eog,
-                            add_ecg, add_chpi)
+                            add_ecg, add_chpi, add_noise)
 from mne.source_space import _compare_source_spaces
 from mne.surface import _get_ico_surface
 from mne.io import read_raw_fif, RawArray
@@ -477,6 +477,45 @@ def test_simulate_raw_chpi():
     quats = read_head_pos(pos_fname)
     _assert_quats(quats, quats_sim, dist_tol=5e-3, angle_tol=3.5,
                   vel_atol=0.03)  # velicity huge because of t_step_min above
+
+
+def test_simulation_cascade():
+    '''Test to verify cascading operations do not overwrite data within \
+    raw._data matrix.  This should fail in ver 0.21'''
+
+    # Create 10 second raw dataset with zeros in the data matrix
+    raw_null = read_raw_fif(raw_fname)
+    raw_null.crop(0, 10)
+    raw_null.load_data()
+    raw_null.pick_types(meg=True)
+    raw_null._data = np.zeros(raw_null._data.shape)  # Zero out data structure
+
+    # Calculate independent signal additions
+    raw_eog = deepcopy(raw_null)
+    add_eog(raw_eog, random_state=0)
+
+    raw_ecg = deepcopy(raw_null)
+    add_ecg(raw_ecg, random_state=0)
+
+    raw_noise = deepcopy(raw_null)
+    cov = make_ad_hoc_cov(raw_null.info)
+    add_noise(raw_noise, cov, random_state=0)
+
+    # raw_chpi = deepcopy(raw_null)
+    # add_chpi(raw_chpi) #, random_state=0)
+
+    # Calculate Cascading signal additions
+    raw_cascade = deepcopy(raw_null)
+    add_eog(raw_cascade, random_state=0)
+    add_ecg(raw_cascade, random_state=0)
+    # add_chpi(raw_cascade)
+    add_noise(raw_cascade, cov, random_state=0)
+
+    cascade_data = raw_cascade._data
+    serial_data = raw_eog._data + raw_ecg._data + raw_noise._data
+    # Should add chpi once fixed above
+
+    assert_allclose(cascade_data, serial_data)
 
 
 run_tests_if_main()
