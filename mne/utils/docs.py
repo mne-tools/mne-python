@@ -578,6 +578,17 @@ window : str | tuple
     Frequency-domain window to use in resampling.
     See :func:`scipy.signal.resample`.
 """
+docdict['average-psd'] = """
+average : str | None
+    How to average the segments. If ``mean`` (default), calculate the
+    arithmetic mean. If ``median``, calculate the median, corrected for
+    its bias relative to the mean. If ``None``, returns the unaggregated
+    segments.
+"""
+docdict['window-psd'] = """
+window : str | float | tuple
+    Windowing function to use. See :func:`scipy.signal.get_window`.
+"""
 docdict['decim'] = """
 decim : int
     Factor by which to subsample the data.
