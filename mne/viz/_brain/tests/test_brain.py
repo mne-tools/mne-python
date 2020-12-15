@@ -452,7 +452,7 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
         n_time=5, initial_time=0,
     )
     if src == 'surface':
-        brain._data['src'] = None  # remove src for testing
+        brain._data['src'] = None  # test src=None
     if src in ('surface', 'mixed'):
         assert brain.show_traces
         assert brain.traces_mode == 'label'
@@ -483,11 +483,11 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
         # test switching from 'label' to 'vertex'
         brain._annot_cands_widget.setCurrentText('None')
         brain._label_mode_widget.setCurrentText('max')
-        brain.close()
     else:  # volume
         assert brain._trace_mode_widget is None
         assert brain._annot_cands_widget is None
         assert brain._label_mode_widget is None
+    brain.close()
 
     # vertex traces
     brain = _create_testing_brain(
