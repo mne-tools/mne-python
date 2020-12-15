@@ -743,7 +743,7 @@ def test_orientation_max_power(bias_params_fixed, bias_params_free,
                                reg, weight_norm, use_cov, depth, lower, upper,
                                lower_ori, upper_ori):
     """Test orientation selection for bias for max-power LCMV."""
-    # we simulate data for the fixed orientation foward and beamform using
+    # we simulate data for the fixed orientation forward and beamform using
     # the free orientation forward, and check the orientation match at the end
     evoked, _, noise_cov, data_cov, want = bias_params_fixed
     fwd = bias_params_free[1]
@@ -762,7 +762,7 @@ def test_orientation_max_power(bias_params_fixed, bias_params_free,
     max_idx = np.argmax(loc, axis=0)
     perc = (want == max_idx).mean() * 100
     assert lower <= perc <= upper
-    # Comute the dot products of our forward normals and
+    # Compute the dot products of our forward normals and
     assert fwd['coord_frame'] == FIFF.FIFFV_COORD_HEAD
     nn = np.concatenate(
         [s['nn'][v] for s, v in zip(fwd['src'], filters['vertices'])])
