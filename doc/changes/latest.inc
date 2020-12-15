@@ -97,6 +97,8 @@ Enhancements
 
 Bugs
 ~~~~
+- Fix data overwrite of cascading simulation operations :`mne.simulation.raw` (:gh: `8633` **by new contributor** |Jeff Stout|_)
+
 - Fix a transpose issue of :func:`mne.decoding.CSP.plot_filters` (:gh:`8580` **by new contributor** |Hongjiang Ye|_)
 
 - Fix :func:`mne.io.read_raw_curry` to deal with Curry datasets that have channels that are listed in the labels file, but which are absent from the saved data file (e.g. 'Ref' channel).  Also now populates info['meas_date'] if possible (:gh:`8400` **by new contributor** |Tod Flak|_)
