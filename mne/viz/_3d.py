@@ -1242,6 +1242,15 @@ def _sensor_shape(coil):
     return rrs, tris
 
 
+def _get_cmap(colormap):
+    import matplotlib.pyplot as plt
+    if isinstance(colormap, str) and colormap in ('mne', 'mne_analyze'):
+        colormap = mne_analyze_colormap([0, 1, 2], format='matplotlib')
+    else:
+        colormap = plt.get_cmap(colormap)
+    return colormap
+
+
 def _process_clim(clim, colormap, transparent, data=0., allow_pos_lims=True):
     """Convert colormap/clim options to dict.
 
@@ -1249,7 +1258,6 @@ def _process_clim(clim, colormap, transparent, data=0., allow_pos_lims=True):
     calling gives the same results.
     """
     # Based on type of limits specified, get cmap control points
-    import matplotlib.pyplot as plt
     from matplotlib.colors import Colormap
     _validate_type(colormap, (str, Colormap), 'colormap')
     data = np.asarray(data)
@@ -1265,10 +1273,7 @@ def _process_clim(clim, colormap, transparent, data=0., allow_pos_lims=True):
                     colormap = 'hot'
                 else:  # 'pos_lims' in clim
                     colormap = 'mne'
-        if colormap in ('mne', 'mne_analyze'):
-            colormap = mne_analyze_colormap([0, 1, 2], format='matplotlib')
-        else:
-            colormap = plt.get_cmap(colormap)
+        colormap = _get_cmap(colormap)
     assert isinstance(colormap, Colormap)
     diverging_maps = ['PiYG', 'PRGn', 'BrBG', 'PuOr', 'RdGy', 'RdBu',
                       'RdYlBu', 'RdYlGn', 'Spectral', 'coolwarm', 'bwr',
