@@ -28,6 +28,8 @@ Current (0.22.dev0)
 
 .. |Hongjiang Ye| replace:: **Hongjiang Ye**
 
+.. |Qianliang Li| replace:: **Qianliang Li**
+
 
 Enhancements
 ~~~~~~~~~~~~
@@ -97,6 +99,8 @@ Enhancements
 
 Bugs
 ~~~~
+- Fix orthogonalization of power envelopes in :func:`mne.connectivity.envelope_correlation` (:gh:`8658` **by new contributor** |Qianliang Li|_ and `Eric Larson`_)
+
 - Fix a transpose issue of :func:`mne.decoding.CSP.plot_filters` (:gh:`8580` **by new contributor** |Hongjiang Ye|_)
 
 - Fix :func:`mne.io.read_raw_curry` to deal with Curry datasets that have channels that are listed in the labels file, but which are absent from the saved data file (e.g. 'Ref' channel).  Also now populates info['meas_date'] if possible (:gh:`8400` **by new contributor** |Tod Flak|_)
