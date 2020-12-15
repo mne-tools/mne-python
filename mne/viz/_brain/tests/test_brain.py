@@ -15,8 +15,11 @@ import pytest
 import numpy as np
 from numpy.testing import assert_allclose
 
-from mne import (read_source_estimate, SourceEstimate, MixedSourceEstimate,
+from mne import (read_source_estimate, read_evokeds, read_cov,
+                 read_forward_solution, pick_types_forward,
+                 SourceEstimate, MixedSourceEstimate,
                  VolSourceEstimate)
+from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.source_space import (read_source_spaces, vertex_to_mni,
                               setup_volume_source_space)
 from mne.datasets import testing
@@ -34,6 +37,12 @@ subject_id = 'sample'
 subjects_dir = path.join(data_path, 'subjects')
 fname_stc = path.join(data_path, 'MEG/sample/sample_audvis_trunc-meg')
 fname_label = path.join(data_path, 'MEG/sample/labels/Vis-lh.label')
+fname_cov = path.join(
+    data_path, 'MEG', 'sample', 'sample_audvis_trunc-cov.fif')
+fname_evoked = path.join(data_path, 'MEG', 'sample',
+                         'sample_audvis_trunc-ave.fif')
+fname_fwd = path.join(
+    data_path, 'MEG', 'sample', 'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
 src_fname = path.join(data_path, 'subjects', 'sample', 'bem',
                       'sample-oct-6-src.fif')
 
@@ -429,6 +438,7 @@ def test_brain_time_viewer(renderer_interactive, pixel_ratio, brain_gc):
 ])
 @pytest.mark.parametrize('src', [
     'surface',
+    pytest.param('vector', marks=pytest.mark.slowtest),
     pytest.param('volume', marks=pytest.mark.slowtest),
     pytest.param('mixed', marks=pytest.mark.slowtest),
 ])
@@ -440,7 +450,7 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
         pytest.skip('Only PyVista supports traces')
 
     hemi_str = list()
-    if src in ('surface', 'mixed'):
+    if src in ('surface', 'vector', 'mixed'):
         hemi_str.extend([hemi] if hemi in ('lh', 'rh') else ['lh', 'rh'])
     if src in ('mixed', 'volume'):
         hemi_str.extend(['vol'])
@@ -453,7 +463,7 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
     )
     if src == 'surface':
         brain._data['src'] = None  # test src=None
-    if src in ('surface', 'mixed'):
+    if src in ('surface', 'vector', 'mixed'):
         assert brain.show_traces
         assert brain.traces_mode == 'label'
         brain._label_mode_widget.setCurrentText('max')
@@ -756,11 +766,23 @@ def test_calculate_lut():
 
 def _create_testing_brain(hemi, surf='inflated', src='surface', size=300,
                           n_time=5, **kwargs):
-    assert src in ('surface', 'mixed', 'volume')
+    assert src in ('surface', 'vector', 'mixed', 'volume')
     meth = 'plot'
     if src in ('surface', 'mixed'):
         sample_src = read_source_spaces(src_fname)
         klass = MixedSourceEstimate if src == 'mixed' else SourceEstimate
+    if src == 'vector':
+        fwd = read_forward_solution(fname_fwd)
+        fwd = pick_types_forward(fwd, meg=True, eeg=False)
+        evoked = read_evokeds(fname_evoked, baseline=(None, 0))[0]
+        noise_cov = read_cov(fname_cov)
+        free = make_inverse_operator(
+            evoked.info, fwd, noise_cov, loose=1.)
+        stc = apply_inverse(evoked, free, pick_ori='vector')
+        return stc.plot(
+            subject=subject_id, hemi=hemi, size=size,
+            subjects_dir=subjects_dir, colormap='hot',
+            **kwargs)
     if src in ('volume', 'mixed'):
         vol_src = setup_volume_source_space(
             subject_id, 7., mri='aseg.mgz',
