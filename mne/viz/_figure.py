@@ -2297,7 +2297,7 @@ def _line_figure(inst, axes=None, picks=None, **kwargs):
 
 def _psd_figure(inst, proj, picks, axes, area_mode, tmin, tmax, fmin, fmax,
                 n_jobs, color, area_alpha, dB, estimate, average,
-                spatial_colors, xscale, line_alpha, sphere, **kwargs):
+                spatial_colors, xscale, line_alpha, sphere, window, **kwargs):
     """Instantiate a new power spectral density figure."""
     from .. import BaseEpochs
     from ..io import BaseRaw
@@ -2309,7 +2309,7 @@ def _psd_figure(inst, proj, picks, axes, area_mode, tmin, tmax, fmin, fmax,
         if kw in kwargs:
             psd_kwargs[kw] = kwargs.pop(kw)
     if isinstance(inst, BaseRaw):
-        psd_func = psd_welch
+        psd_func = partial(psd_welch, window=window)
     elif isinstance(inst, BaseEpochs):
         psd_func = psd_multitaper
     else:

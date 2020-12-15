@@ -83,6 +83,8 @@ Enhancements
 
 - Add option ``on_header_missing`` to :func:`mne.channels.read_polhemus_fastscan` (:gh:`8622` by `Eric Larson`_)
 
+- Add option ``window`` to :func:`mne.time_frequency.psd_welch` and related functions (:gh:`8862` by `Eric Larson`_)
+
 - `mne.preprocessing.ICA.plot_sources` now displays an `mne.preprocessing.ICA.plot_properties` window when right-clicking on component names on the y-axis (:gh:`8381` by `Daniel McCloy`_)
 
 - :func:`mne.io.read_raw_edf`, :func:`mne.io.read_raw_bdf`, and :func:`mne.io.read_raw_gdf` now detect and handle invalid highpass/lowpass filter settings (:gh:`8584` by `Clemens Brunner`_)
@@ -172,6 +174,8 @@ Bugs
 - Fix inset sensor plots to always use equal aspect (:gh:`8545` by `Daniel McCloy`_)
 
 - Fix bug in `mne.viz.plot_compare_evokeds` where evokeds with identical ``comment`` attributes would not plot properly if passed as a list (:gh:`8590` by `Daniel McCloy`_)
+
+- Fix bug in :func:`mne.time_frequency.psd_welch` and related functions where the window default errantly changed from ``'hamming'`` to ``('tukey', 0.25)`` (:gh:`8862` by `Eric Larson`_)
 
 - Fix bug in :func:`mne.io.read_raw_kit` where scale factors for EEG channels could be set to zero (:gh:`8542` by `Eric Larson`_)
 
