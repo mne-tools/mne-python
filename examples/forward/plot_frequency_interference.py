@@ -39,6 +39,36 @@ sample_dir = op.join(data_path, 'MEG', 'sample')
 fname_evoked = op.join(sample_dir, 'sample_audvis-ave.fif')
 evoked = mne.read_evokeds(fname_evoked, condition=0, baseline=(None, 0))
 
+
+##############################################################################
+# Visualize 1/f power spectral density in m/eeg data
+# --------------------------------------------------
+#
+# The power decreases with increasing frequency, this is usually an
+# exponential decay.
+
+psds, freqs_psd = psd_array_multitaper(
+    evoked.data, evoked.info['sfreq'], fmin=2, fmax=50)
+fig, axes = plt.subplots(1, 3, figsize=(10, 5))
+axes[0].plot(freqs_psd, psds[mne.pick_types(evoked.info, meg='mag')].T)
+axes[0].set_title('mag')
+axes[1].plot(freqs_psd, psds[mne.pick_types(evoked.info, meg='grad')].T)
+axes[1].set_title('grad')
+axes[2].plot(freqs_psd, psds[mne.pick_types(evoked.info, eeg=True)].T)
+axes[2].set_title('eeg')
+fig.suptitle('1/f Power Decay in Real Evoked')
+axes[0].set_ylabel('Power')
+axes[1].set_xlabel('Frequency (Hz)')
+fig.show()
+
+##############################################################################
+# Make frequency time courses with equal power
+# --------------------------------------------
+#
+# In this example, we use three different frequencies in the normal
+# range to study physiologically to show the trend of decreasing power as
+# frequency increases.
+
 # Read inverse solution
 fname_inv = op.join(sample_dir, 'sample_audvis-meg-oct-6-meg-inv.fif')
 inv = read_inverse_operator(fname_inv)
@@ -53,44 +83,26 @@ fwd = mne.read_forward_solution(
     op.join(sample_dir, 'sample_audvis-meg-eeg-oct-6-fwd.fif'))
 mne.convert_forward_solution(fwd, surf_ori=True, copy=False)
 
+freqs = np.linspace(5, 35, 5)
 
-##############################################################################
-# Visualize 1/f power spectral density in m/eeg data
-# --------------------------------------------------
-#
-# The power decreases with increasing frequency, this is usually an
-# exponential decay.
+fig, axes = plt.subplots(1, freqs.size, figsize=(10, 5))
+fig.suptitle('Source Time Courses')
+stcs = dict()  # make source time courses for each frequency sine wave
+for ax, freq in zip(axes, freqs):
+    for i in range(stc.data.shape[0]):
+        stc.data[i] = np.sin(2. * np.pi * freq * stc.times) * 1e-10
+    stcs[freq] = stc.copy()
 
-psds, freqs = psd_array_multitaper(stc.data, stc.sfreq, fmax=50)
-fig, ax = plt.subplots()
-ax.plot(freqs, psds[:100].T)
-ax.set_title('1/f Power Decay in Source Time Course')
-ax.set_ylabel('Power')
-ax.set_xlabel('Frequency (Hz)')
-fig.show()
-
-##############################################################################
-# Make frequency time courses with equal power
-# --------------------------------------------
-#
-# In this example, we use three different frequencies in the normal
-# range to study physiologically to show the trend of decreasing power as
-# frequency increases.
-
-freqs = np.linspace(10, 50, 5)
-np.random.seed(11)
-
-for i in range(stc.data.shape[0]):
-    stc.data[i] = np.sum([np.sin(2. * np.pi * freq * stc.times)
-                          for freq in freqs], axis=0) * 1e-10
+    psds, freqs_psd = psd_array_multitaper(stc.data, stc.sfreq,
+                                           fmin=2, fmax=55)
+    ax.plot(freqs_psd, psds[0])
+    ax.set_title(f'{freq} Hz')
 
 
-psds, freqs_psd = psd_array_multitaper(stc.data, stc.sfreq, fmin=2, fmax=55)
-fig, ax = plt.subplots()
-ax.plot(freqs_psd, psds[:100].T)
-ax.set_title('Equal Power in Source Time Course')
-ax.set_ylabel('Power')
-ax.set_xlabel('Frequency (Hz)')
+axes[0].set_ylabel('Power')
+axes[freqs.size // 2].set_xlabel('Frequency (Hz)')
+
+fig.tight_layout()
 fig.show()
 
 ##############################################################################
@@ -105,17 +117,25 @@ fig.show()
 # distance is a larger phase offset causing less in-phase and more random
 # interference.
 
-evoked_sim = simulate_evoked(fwd, stc, evoked.info, cov=None, nave=np.inf)
-psds, freqs_psd = psd_array_multitaper(
-    evoked_sim.data, stc.sfreq, fmin=10, fmax=50)
-fig, axes = plt.subplots(1, 3, figsize=(10, 5))
-axes[0].plot(freqs_psd, psds[mne.pick_types(evoked_sim.info, meg='mag')].T)
-axes[0].set_title('mag')
-axes[1].plot(freqs_psd, psds[mne.pick_types(evoked_sim.info, meg='grad')].T)
-axes[1].set_title('grad')
-axes[2].plot(freqs_psd, psds[mne.pick_types(evoked_sim.info, eeg=True)].T)
-axes[2].set_title('eeg')
-fig.suptitle('1/f Power Decay in Evoked')
-axes[0].set_ylabel('Power')
-axes[1].set_xlabel('Frequency (Hz)')
+fig, axes_all = plt.subplots(3, freqs.size, figsize=(12, 8))
+fig.suptitle('1/f Power Decay in Simulated Evoked')
+
+for axes, freq in zip(axes_all.T, freqs):
+    evoked_sim = simulate_evoked(fwd, stcs[freq], evoked.info,
+                                 cov=None, nave=np.inf)
+    psds, freqs_psd = psd_array_multitaper(
+        evoked_sim.data, stc.sfreq, fmin=10, fmax=50)
+    #
+    axes[0].plot(freqs_psd, psds[mne.pick_types(evoked_sim.info, meg='mag')].T)
+    axes[0].set_title(f'mag {freq} Hz')
+    axes[1].plot(freqs_psd, psds[mne.pick_types(evoked_sim.info,
+                                                meg='grad')].T)
+    axes[1].set_title(f'grad {freq} Hz')
+    axes[2].plot(freqs_psd, psds[mne.pick_types(evoked_sim.info, eeg=True)].T)
+    axes[2].set_title(f'eeg {freq} Hz')
+
+axes_all[1, 0].set_ylabel('Power')
+axes_all[0, freqs.size // 2].set_xlabel('Frequency (Hz)')
+
+fig.tight_layout()
 fig.show()
