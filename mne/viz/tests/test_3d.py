@@ -35,9 +35,8 @@ from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      plot_brain_colorbar, link_brains, mne_analyze_colormap)
 from mne.viz._3d import _process_clim, _linearize_map, _get_map_ticks
 from mne.viz.utils import _fake_click
-from mne.utils import (requires_pysurfer, run_tests_if_main,
-                       requires_nibabel, traits_test, catch_logging,
-                       run_subprocess, modified_env)
+from mne.utils import (requires_pysurfer, requires_nibabel, traits_test,
+                       catch_logging, run_subprocess, modified_env)
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
 from mne.bem import read_bem_solution, read_bem_surfaces
@@ -98,7 +97,6 @@ def test_plot_head_positions():
     pytest.raises(ValueError, plot_head_positions, pos, 'foo')
     with pytest.raises(ValueError, match='shape'):
         plot_head_positions(pos, axes=1.)
-    plt.close('all')
 
 
 @testing.requires_testing_data
@@ -375,10 +373,11 @@ def test_plot_alignment(tmpdir, renderer):
 @testing.requires_testing_data
 @requires_pysurfer
 @traits_test
-def test_process_clim_plot(renderer_interactive):
+def test_process_clim_plot(renderer_interactive, brain_gc):
     """Test functionality for determining control points with stc.plot."""
     sample_src = read_source_spaces(src_fname)
-    kwargs = dict(subjects_dir=subjects_dir, smoothing_steps=1)
+    kwargs = dict(subjects_dir=subjects_dir, smoothing_steps=1,
+                  time_viewer=False, show_traces=False)
 
     vertices = [s['vertno'] for s in sample_src]
     n_time = 5
@@ -388,8 +387,12 @@ def test_process_clim_plot(renderer_interactive):
     stc = SourceEstimate(stc_data, vertices, 1, 1, 'sample')
 
     # Test for simple use cases
-    stc.plot(**kwargs)
-    stc.plot(clim=dict(pos_lims=(10, 50, 90)), **kwargs)
+    brain = stc.plot(**kwargs)
+    assert brain.data['center'] is None
+    brain.close()
+    brain = stc.plot(clim=dict(pos_lims=(10, 50, 90)), **kwargs)
+    assert brain.data['center'] == 0.
+    brain.close()
     stc.plot(colormap='hot', clim='auto', **kwargs)
     stc.plot(colormap='mne', clim='auto', **kwargs)
     stc.plot(clim=dict(kind='value', lims=(10, 50, 90)), figure=99, **kwargs)
@@ -512,7 +515,6 @@ def test_stc_mpl():
                   hemi='both', subject='sample', backend='matplotlib')
     pytest.raises(ValueError, stc.plot, subjects_dir=subjects_dir,
                   time_unit='ss', subject='sample', backend='matplotlib')
-    plt.close('all')
 
 
 @pytest.mark.timeout(60)  # can sometimes take > 60 sec
@@ -535,10 +537,9 @@ def test_plot_dipole_mri_orthoview(coord_frame, idx, show_all, title):
     fig.canvas.key_press_event('up')
     fig.canvas.key_press_event('down')
     fig.canvas.key_press_event('a')  # some other key
-    ax = plt.subplot(111)
-    pytest.raises(TypeError, dipoles.plot_locations, trans, 'sample',
-                  subjects_dir, ax=ax)
-    plt.close('all')
+    ax = fig.add_subplot(211)
+    with pytest.raises(TypeError, match='instance of Axes3D'):
+        dipoles.plot_locations(trans, 'sample', subjects_dir, ax=ax)
 
 
 @testing.requires_testing_data
@@ -736,7 +737,6 @@ def test_brain_colorbar(orientation, diverging, lims):
     assert_array_equal(
         [float(h.get_text().replace('−', '-')) for h in have()], ticks)
     assert_array_equal(empty(), [])
-    plt.close('all')
 
 
 @pytest.mark.slowtest  # slow-ish on Travis OSX
@@ -805,6 +805,3 @@ def test_renderer(renderer):
            'assert backend == %r, backend' % (backend,)]
     with modified_env(MNE_3D_BACKEND=backend):
         run_subprocess(cmd)
-
-
-run_tests_if_main()

@@ -94,7 +94,7 @@ plot_dipole_locations(dipoles[idx], forward['mri_head_t'], 'sample',
                       subjects_dir=subjects_dir, mode='orthoview',
                       idx='amplitude')
 
-# # Plot dipole locations of all dipoles with MRI slices
+# # Plot dipole locations of all dipoles with MRI slices:
 # for dip in dipoles:
 #     plot_dipole_locations(dip, forward['mri_head_t'], 'sample',
 #                           subjects_dir=subjects_dir, mode='orthoview',

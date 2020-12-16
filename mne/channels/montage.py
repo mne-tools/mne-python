@@ -34,7 +34,7 @@ from ..io.meas_info import create_info
 from ..io.open import fiff_open
 from ..io.pick import pick_types
 from ..io.constants import FIFF
-from ..utils import (warn, copy_function_doc_to_method_doc, _pl,
+from ..utils import (warn, copy_function_doc_to_method_doc, _pl, verbose,
                      _check_option, _validate_type, _check_fname, _on_missing,
                      fill_doc)
 
@@ -56,9 +56,11 @@ _BUILT_IN_MONTAGES = [
 
 
 def _check_get_coord_frame(dig):
-    _MSG = 'Only single coordinate frame in dig is supported'
-    dig_coord_frames = set([d['coord_frame'] for d in dig])
-    assert len(dig_coord_frames) <= 1, _MSG
+    dig_coord_frames = sorted(set(d['coord_frame'] for d in dig))
+    if len(dig_coord_frames) != 1:
+        raise RuntimeError(
+            'Only a single coordinate frame in dig is supported, got '
+            f'{dig_coord_frames}')
     return _frame_to_str[dig_coord_frames.pop()] if dig_coord_frames else None
 
 
@@ -218,10 +220,8 @@ class DigMontage(object):
         fname : str
             The filename to use. Should end in .fif or .fif.gz.
         """
-        if _check_get_coord_frame(self.dig) != 'head':
-            raise RuntimeError('Can only write out digitization points in '
-                               'head coordinates.')
-        write_dig(fname, self.dig)
+        coord_frame = _check_get_coord_frame(self.dig)
+        write_dig(fname, self.dig, coord_frame)
 
     def __iadd__(self, other):
         """Add two DigMontages in place.
@@ -971,7 +971,9 @@ def _is_polhemus_fastscan(fname):
     return 'FastSCAN' in header
 
 
-def read_polhemus_fastscan(fname, unit='mm'):
+@verbose
+def read_polhemus_fastscan(fname, unit='mm', on_header_missing='raise', *,
+                           verbose=None):
     """Read Polhemus FastSCAN digitizer data from a ``.txt`` file.
 
     Parameters
@@ -981,6 +983,8 @@ def read_polhemus_fastscan(fname, unit='mm'):
     unit : 'm' | 'cm' | 'mm'
         Unit of the digitizer file. Polhemus FastSCAN systems data is usually
         exported in millimeters. Defaults to 'mm'.
+    %(on_header_missing)s
+    %(verbose)s
 
     Returns
     -------
@@ -999,11 +1003,11 @@ def read_polhemus_fastscan(fname, unit='mm'):
     _check_option('fname', ext, VALID_FILE_EXT)
 
     if not _is_polhemus_fastscan(fname):
-        raise ValueError(
-            "%s does not contain Polhemus FastSCAN header" % fname)
+        msg = "%s does not contain a valid Polhemus FastSCAN header" % fname
+        _on_missing(on_header_missing, msg)
 
     points = _scale * np.loadtxt(fname, comments='%', ndmin=2)
-
+    _check_dig_shape(points)
     return points
 
 
@@ -1277,3 +1281,10 @@ def make_standard_montage(kind, head_size=HEAD_SIZE_DEFAULT):
     from ._standard_montage_utils import standard_montage_look_up_table
     _check_option('kind', kind, _BUILT_IN_MONTAGES)
     return standard_montage_look_up_table[kind](head_size=head_size)
+
+
+def _check_dig_shape(pts):
+    _validate_type(pts, np.ndarray, 'points')
+    if pts.ndim != 2 or pts.shape[-1] != 3:
+        raise ValueError(
+            f'Points must be of shape (n, 3) instead of {pts.shape}')

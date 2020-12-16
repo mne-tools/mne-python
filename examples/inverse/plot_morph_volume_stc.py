@@ -7,7 +7,7 @@ Morph volumetric source estimate
 
 This example demonstrates how to morph an individual subject's
 :class:`mne.VolSourceEstimate` to a common reference space. We achieve this
-using :class:`mne.SourceMorph`. Pre-computed data will be morphed based on
+using :class:`mne.SourceMorph`. Data will be morphed based on
 an affine transformation and a nonlinear registration method
 known as Symmetric Diffeomorphic Registration (SDR) by
 :footcite:`AvantsEtAl2008`.

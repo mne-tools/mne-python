@@ -313,6 +313,14 @@ for name, obj in dict(Original=epochs, Cropped=shorter_epochs).items():
           .format(name, obj.get_data().shape[-1]))
 
 ###############################################################################
+# Cropping removed part of the baseline. When printing the
+# cropped :class:`~mne.Epochs`, MNE-Python will inform you about the time
+# period that was originally used to perform baseline correction by displaying
+# the string "baseline period cropped after baseline correction":
+
+print(shorter_epochs)
+
+###############################################################################
 # However, if you wanted to *expand* the time domain of an :class:`~mne.Epochs`
 # object, you would need to go back to the :class:`~mne.io.Raw` data and
 # recreate the :class:`~mne.Epochs` with different values for ``tmin`` and/or

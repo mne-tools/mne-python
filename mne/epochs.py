@@ -147,8 +147,6 @@ def _save_part(fid, epochs, fmt, n_parts, next_fname, next_idx):
     # save baseline
     if epochs.baseline is not None:
         bmin, bmax = epochs.baseline
-        bmin = epochs.times[0] if bmin is None else bmin
-        bmax = epochs.times[-1] if bmax is None else bmax
         write_float(fid, FIFF.FIFF_MNE_BASELINE_MIN, bmin)
         write_float(fid, FIFF.FIFF_MNE_BASELINE_MAX, bmax)
 
@@ -345,8 +343,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
     %(picks_header)s
         See `Epochs` docstring.
     %(reject_epochs)s
-    flat : dict | None
-        See `Epochs` docstring.
+    %(flat)s
     decim : int
         See `Epochs` docstring.
     reject_tmin : scalar | None
@@ -408,7 +405,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                                 f'got {events_type}')
             if events.ndim != 2 or events.shape[1] != 3:
                 raise ValueError(
-                    'events must be of shape (N, 3), got {events.shape}')
+                    f'events must be of shape (N, 3), got {events.shape}')
             events_max = events.max()
             if events_max > INT32_MAX:
                 raise ValueError(
@@ -492,12 +489,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         if (detrend not in [None, 0, 1]) or isinstance(detrend, bool):
             raise ValueError('detrend must be None, 0, or 1')
 
-        # check that baseline is in available data
-        if tmin > tmax:
-            raise ValueError('tmin has to be less than or equal to tmax')
-        _check_baseline(baseline, tmin, tmax, info['sfreq'])
-        logger.info(_log_rescale(baseline))
-        self.baseline = baseline
         self.reject_tmin = reject_tmin
         self.reject_tmax = reject_tmax
         self.detrend = detrend
@@ -512,6 +503,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         if data is None:
             self.preload = False
             self._data = None
+            self._do_baseline = True
         else:
             assert decim == 1
             if data.ndim != 3 or data.shape[2] != \
@@ -522,7 +514,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                     'The number of epochs and the number of events must match')
             self.preload = True
             self._data = data
+            self._do_baseline = False
         self._offset = None
+
+        if tmin > tmax:
+            raise ValueError('tmin has to be less than or equal to tmax')
 
         # Handle times
         sfreq = float(self.info['sfreq'])
@@ -532,6 +528,15 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         self._set_times(self._raw_times)
         self._decim = 1
         self.decimate(decim)
+
+        # baseline correction: replace `None` tuple elements  with actual times
+        self.baseline = _check_baseline(baseline, times=self.times,
+                                        sfreq=self.info['sfreq'])
+        if self.baseline is not None and self.baseline != baseline:
+            logger.info(f'Setting baseline interval to '
+                        f'[{self.baseline[0]}, {self.baseline[1]}] sec')
+
+        logger.info(_log_rescale(self.baseline))
 
         # setup epoch rejection
         self.reject = None
@@ -608,6 +613,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             return self
         self._data = self._get_data()
         self.preload = True
+        self._do_baseline = False
         self._decim_slice = slice(None, None, None)
         self._decim = 1
         self._raw_times = self.times
@@ -691,7 +697,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         .. versionadded:: 0.10.0
         """
-        _check_baseline(baseline, self.tmin, self.tmax, self.info['sfreq'])
+        baseline = _check_baseline(baseline, times=self.times,
+                                   sfreq=self.info['sfreq'])
+
         if self.preload:
             if self.baseline is not None and baseline is None:
                 raise RuntimeError('You cannot remove baseline correction '
@@ -704,6 +712,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             rescale(self._data, self.times, baseline, copy=False, picks=picks)
         else:  # logging happens in "rescale" in "if" branch
             logger.info(_log_rescale(baseline))
+            assert self._do_baseline is True
         self.baseline = baseline
         return self
 
@@ -815,12 +824,13 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             epoch[picks] = detrend(epoch[picks], self.detrend, axis=1)
 
         # Baseline correct
-        picks = pick_types(self.info, meg=True, eeg=True, stim=False,
-                           ref_meg=True, eog=True, ecg=True, seeg=True,
-                           emg=True, bio=True, ecog=True, fnirs=True,
-                           exclude=[])
-        epoch[picks] = rescale(epoch[picks], self._raw_times, self.baseline,
-                               copy=False, verbose=False)
+        if self._do_baseline:
+            picks = pick_types(self.info, meg=True, eeg=True, stim=False,
+                               ref_meg=True, eog=True, ecg=True, seeg=True,
+                               emg=True, bio=True, ecog=True, fnirs=True,
+                               exclude=[])
+            epoch[picks] = rescale(epoch[picks], self._raw_times,
+                                   self.baseline, copy=False, verbose=False)
 
         # Decimate if necessary (i.e., epoch not preloaded)
         epoch = epoch[:, self._decim_slice]
@@ -1095,18 +1105,28 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
     @copy_function_doc_to_method_doc(plot_epochs)
     def plot(self, picks=None, scalings=None, n_epochs=20, n_channels=20,
-             title=None, events=None, event_colors=None, order=None,
-             show=True, block=False, decim='auto', noise_cov=None,
+             title=None, events=None, event_colors=None, event_color=None,
+             order=None, show=True, block=False, decim='auto', noise_cov=None,
              butterfly=False, show_scrollbars=True, epoch_colors=None,
-             event_id=None):
+             event_id=None, group_by='type'):
+        if event_colors is not None:
+            depr_msg = ('event_colors is deprecated and will be replaced by '
+                        'event_color in 0.23.')
+            if event_color is None:
+                event_color = event_colors
+            else:
+                depr_msg += (' Since you passed values for both event_colors '
+                             'and event_color, event_colors will be ignored.')
+            warn(depr_msg, DeprecationWarning)
         return plot_epochs(self, picks=picks, scalings=scalings,
                            n_epochs=n_epochs, n_channels=n_channels,
-                           title=title, events=events,
+                           title=title, events=events, event_color=event_color,
                            event_colors=event_colors, order=order,
                            show=show, block=block, decim=decim,
                            noise_cov=noise_cov, butterfly=butterfly,
                            show_scrollbars=show_scrollbars,
-                           epoch_colors=epoch_colors, event_id=event_id)
+                           epoch_colors=epoch_colors, event_id=event_id,
+                           group_by=group_by)
 
     @copy_function_doc_to_method_doc(plot_epochs_psd)
     def plot_psd(self, fmin=0, fmax=np.inf, tmin=None, tmax=None,
@@ -1169,12 +1189,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         Parameters
         ----------
         %(reject_drop_bad)s
-        flat : dict | str | None
-            Rejection parameters based on flatness of signal.
-            Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
-            are floats that set the minimum acceptable peak-to-peak amplitude.
-            If flat is None then no rejection is done. If 'existing',
-            then the flat parameters set at instantiation are used.
+        %(flat_drop_bad)s
         %(verbose_meth)s
 
         Returns
@@ -1343,6 +1358,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             data = np.empty((0, len(self.info['ch_names']), len(self.times)))
             logger.info('Loading data for %s events and %s original time '
                         'points ...' % (n_events, len(self._raw_times)))
+
         if self._bad_dropped:
             if not out:
                 return
@@ -1492,8 +1508,13 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         if self.baseline is None:
             s += 'off'
         else:
-            s += '[%s, %s]' % tuple(['None' if b is None else ('%g' % b)
-                                     for b in self.baseline])
+            s += '[%s, %s] sec' % tuple(['None' if b is None else ('%g' % b)
+                                        for b in self.baseline])
+            if self.baseline != _check_baseline(
+                    self.baseline, times=self.times, sfreq=self.info['sfreq'],
+                    on_baseline_outside_data='adjust'):
+                s += ' (baseline period was cropped after baseline correction)'
+
         s += ', ~%s' % (sizeof_fmt(self._size),)
         s += ', data%s loaded' % ('' if self.preload else ' not')
         s += ', with metadata' if self.metadata is not None else ''
@@ -1549,12 +1570,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         self._set_times(self.times[tmask])
         self._raw_times = self._raw_times[tmask]
         self._data = self._data[:, :, tmask]
-        try:
-            _check_baseline(self.baseline, tmin, tmax, self.info['sfreq'])
-        except ValueError:  # in no longer applies, wipe it out
-            warn('Cropping removes baseline period, setting '
-                 'epochs.baseline = None')
-            self.baseline = None
         return self
 
     def copy(self):
@@ -1705,7 +1720,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             warn(f'epochs.drop_log contains {len(self.drop_log)} entries '
                  f'which will incur up to a {sizeof_fmt(drop_size)} writing '
                  f'overhead (per split file), consider using '
-                 'epochs.reset_drop_log_selection() prior to writing')
+                 f'epochs.reset_drop_log_selection() prior to writing')
 
         epoch_idxs = np.array_split(np.arange(n_epochs), n_parts)
 
@@ -1918,37 +1933,80 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         return _as_meg_type_inst(self, ch_type=ch_type, mode=mode)
 
 
-def _check_baseline(baseline, tmin, tmax, sfreq):
-    """Check for a valid baseline."""
-    if baseline is not None:
-        if not isinstance(baseline, tuple) or len(baseline) != 2:
-            raise ValueError('`baseline=%s` is an invalid argument, must be '
-                             'a tuple of length 2 or None' % str(baseline))
-        # check default value of baseline and `tmin=0`
-        if baseline == (None, 0) and tmin == 0:
-            raise ValueError('Baseline interval is only one sample. Use '
-                             '`baseline=(0, 0)` if this is desired.')
+def _check_baseline(baseline, times, sfreq, on_baseline_outside_data='raise'):
+    """Check if the baseline is valid, and adjust it if requested.
 
-        baseline_tmin, baseline_tmax = baseline
-        tstep = 1. / float(sfreq)
-        if baseline_tmin is None:
-            baseline_tmin = tmin
-        baseline_tmin = float(baseline_tmin)
-        if baseline_tmax is None:
-            baseline_tmax = tmax
-        baseline_tmax = float(baseline_tmax)
-        if baseline_tmin < tmin - tstep:
-            raise ValueError(
-                "Baseline interval (tmin = %s) is outside of epoch "
-                "data (tmin = %s)" % (baseline_tmin, tmin))
-        if baseline_tmax > tmax + tstep:
-            raise ValueError(
-                "Baseline interval (tmax = %s) is outside of epoch "
-                "data (tmax = %s)" % (baseline_tmax, tmax))
-        if baseline_tmin > baseline_tmax:
-            raise ValueError(
-                "Baseline min (%s) must be less than baseline max (%s)"
-                % (baseline_tmin, baseline_tmax))
+    ``None`` values inside the baseline parameter will be replaced with
+    ``times[0]`` and ``times[-1]``.
+
+    Parameters
+    ----------
+    baseline : tuple
+        Beginning and end of the baseline period, in seconds.
+    times : array
+        The time points.
+    sfreq : float
+        The sampling rate.
+    on_baseline_outside_data : 'raise' | 'info' | 'adjust'
+        What do do if the baseline period exceeds the data.
+        If ``'raise'``, raise an exception (default).
+        If ``'info'``, log an info message.
+        If ``'adjust'``, adjust the baseline such that it's within the data
+        range again.
+
+    Returns
+    -------
+    (baseline_tmin, baseline_tmax) | None
+        The baseline with ``None`` values replaced with times, and with
+        adjusted times if ``on_baseline_outside_data='adjust'``; or ``None``
+        if the ``baseline`` parameter is ``None``.
+
+    """
+    if baseline is None:
+        return None
+
+    if not isinstance(baseline, tuple) or len(baseline) != 2:
+        raise ValueError('`baseline=%s` is an invalid argument, must be '
+                         'a tuple of length 2 or None' % str(baseline))
+
+    tmin, tmax = times[0], times[-1]
+    tstep = 1. / float(sfreq)
+
+    # check default value of baseline and `tmin=0`
+    if baseline == (None, 0) and tmin == 0:
+        raise ValueError('Baseline interval is only one sample. Use '
+                         '`baseline=(0, 0)` if this is desired.')
+
+    baseline_tmin, baseline_tmax = baseline
+
+    if baseline_tmin is None:
+        baseline_tmin = tmin
+    baseline_tmin = float(baseline_tmin)
+
+    if baseline_tmax is None:
+        baseline_tmax = tmax
+    baseline_tmax = float(baseline_tmax)
+
+    if baseline_tmin > baseline_tmax:
+        raise ValueError(
+            "Baseline min (%s) must be less than baseline max (%s)"
+            % (baseline_tmin, baseline_tmax))
+
+    if (baseline_tmin < tmin - tstep) or (baseline_tmax > tmax + tstep):
+        msg = (f"Baseline interval [{baseline_tmin}, {baseline_tmax}] sec "
+               f"is outside of epochs data [{tmin}, {tmax}] sec. Epochs were "
+               f"probably cropped.")
+        if on_baseline_outside_data == 'raise':
+            raise ValueError(msg)
+        elif on_baseline_outside_data == 'info':
+            logger.info(msg)
+        elif on_baseline_outside_data == 'adjust':
+            if baseline_tmin < tmin - tstep:
+                baseline_tmin = tmin
+            if baseline_tmax > tmax + tstep:
+                baseline_tmax = tmax
+
+    return baseline_tmin, baseline_tmax
 
 
 def _drop_log_stats(drop_log, ignore=('IGNORED',)):
@@ -2008,11 +2066,7 @@ class Epochs(BaseEpochs):
         or wait before accessing each epoch (more memory
         efficient but can be slower).
     %(reject_epochs)s
-    flat : dict | None
-        Rejection parameters based on flatness of signal.
-        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
-        are floats that set the minimum acceptable peak-to-peak amplitude.
-        If flat is None then no rejection is done.
+    %(flat)s
     %(proj_epochs)s
     %(decim)s
     reject_tmin : scalar | None
@@ -2221,11 +2275,7 @@ class EpochsArray(BaseEpochs):
         and a dict is created with string integer names corresponding
         to the event id integers.
     %(reject_epochs)s
-    flat : dict | None
-        Rejection parameters based on flatness of signal.
-        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
-        are floats that set the minimum acceptable peak-to-peak amplitude.
-        If flat is None then no rejection is done.
+    %(flat)s
     reject_tmin : scalar | None
         Start of the time window used to reject epochs (with the default None,
         the window will start with tmin).
@@ -2292,6 +2342,8 @@ class EpochsArray(BaseEpochs):
             flat=flat, reject_tmin=reject_tmin, reject_tmax=reject_tmax,
             decim=1, metadata=metadata, selection=selection, proj=proj,
             on_missing=on_missing)
+        if self.baseline is not None:
+            self._do_baseline = True
         if len(events) != np.in1d(self.events[:, 2],
                                   list(self.event_id.values())).sum():
             raise ValueError('The events must only contain event numbers from '
@@ -2732,12 +2784,19 @@ class EpochsFIF(BaseEpochs):
                 events[:, 0] = np.arange(1, len(events) + 1)
             # here we ignore missing events, since users should already be
             # aware of missing events if they have saved data that way
+            # we also retain original baseline without re-applying baseline
+            # correction (data is being baseline-corrected when written to
+            # disk)
             epoch = BaseEpochs(
-                info, data, events, event_id, tmin, tmax, baseline,
+                info, data, events, event_id, tmin, tmax,
+                baseline=None,
                 metadata=metadata, on_missing='ignore',
                 selection=selection, drop_log=drop_log,
                 proj=False, verbose=False)
+            epoch.baseline = baseline
+            epoch._do_baseline = False  # might be superfluous but won't hurt
             ep_list.append(epoch)
+
             if not preload:
                 # store everything we need to index back to the original data
                 raw.append(_RawContainer(fiff_open(fname)[0], data_tag,
@@ -2767,11 +2826,15 @@ class EpochsFIF(BaseEpochs):
         drop_log = tuple(drop_log[:step])
 
         # call BaseEpochs constructor
+        # again, ensure we're retaining the baseline period originally loaded
+        # from disk without trying to re-apply baseline correction
         super(EpochsFIF, self).__init__(
-            info, data, events, event_id, tmin, tmax, baseline, raw=raw,
+            info, data, events, event_id, tmin, tmax, baseline=None, raw=raw,
             proj=proj, preload_at_end=False, on_missing='ignore',
             selection=selection, drop_log=drop_log, filename=fname_rep,
             metadata=metadata, verbose=verbose, **reject_params)
+        self.baseline = baseline
+        self._do_baseline = False
         # use the private property instead of drop_bad so that epochs
         # are not all read from disk for preload=False
         self._bad_dropped = True

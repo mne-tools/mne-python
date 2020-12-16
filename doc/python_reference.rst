@@ -72,6 +72,7 @@ Reading raw data
    read_raw_fif
    read_raw_eximia
    read_raw_fieldtrip
+   read_raw_boxy
    read_raw_persyst
    read_raw_nihon
 
@@ -122,6 +123,7 @@ File I/O
    read_events
    read_evokeds
    read_evoked_fieldtrip
+   read_evokeds_mff
    read_freesurfer_lut
    read_forward_solution
    read_label
@@ -380,6 +382,7 @@ Projections:
    oversampled_temporal_projection
    peak_finder
    read_ica
+   realign_raw
    regress_artifact
    corrmap
    read_ica_eeglab
@@ -810,6 +813,7 @@ Source Space Data
    vertex_to_mni
    write_labels_to_annot
    write_label
+   source_space.compute_distance_to_sensors
 
 
 Time-Frequency
@@ -1026,6 +1030,7 @@ Decoding
    SlidingEstimator
    GeneralizingEstimator
    SPoC
+   SSD
 
 Functions that assist with decoding and model fitting:
 

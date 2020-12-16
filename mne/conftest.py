@@ -35,6 +35,7 @@ s_path = op.join(test_path, 'MEG', 'sample')
 fname_evoked = op.join(s_path, 'sample_audvis_trunc-ave.fif')
 fname_cov = op.join(s_path, 'sample_audvis_trunc-cov.fif')
 fname_fwd = op.join(s_path, 'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
+fname_fwd_full = op.join(s_path, 'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
 bem_path = op.join(test_path, 'subjects', 'sample', 'bem')
 fname_bem = op.join(bem_path, 'sample-1280-bem.fif')
 fname_aseg = op.join(test_path, 'subjects', 'sample', 'mri', 'aseg.mgz')
@@ -62,6 +63,7 @@ def pytest_configure(config):
     #   doc/conf.py.
     warning_lines = r"""
     error::
+    ignore:.*deprecated and ignored since IPython.*:DeprecationWarning
     ignore::ImportWarning
     ignore:the matrix subclass:PendingDeprecationWarning
     ignore:numpy.dtype size changed:RuntimeWarning
@@ -239,7 +241,8 @@ def bias_params_free(evoked, noise_cov):
 def bias_params_fixed(evoked, noise_cov):
     """Provide inputs for fixed bias functions."""
     fwd = mne.read_forward_solution(fname_fwd)
-    fwd = mne.convert_forward_solution(fwd, force_fixed=True, surf_ori=True)
+    mne.convert_forward_solution(
+        fwd, force_fixed=True, surf_ori=True, copy=False)
     return _bias_params(evoked, noise_cov, fwd)
 
 
@@ -247,14 +250,23 @@ def _bias_params(evoked, noise_cov, fwd):
     evoked.pick_types(meg=True, eeg=True, exclude=())
     # restrict to limited set of verts (small src here) and one hemi for speed
     vertices = [fwd['src'][0]['vertno'].copy(), []]
-    stc = mne.SourceEstimate(np.zeros((sum(len(v) for v in vertices), 1)),
-                             vertices, 0., 1.)
+    stc = mne.SourceEstimate(
+        np.zeros((sum(len(v) for v in vertices), 1)), vertices, 0, 1)
     fwd = mne.forward.restrict_forward_to_stc(fwd, stc)
     assert fwd['sol']['row_names'] == noise_cov['names']
     assert noise_cov['names'] == evoked.ch_names
     evoked = mne.EvokedArray(fwd['sol']['data'].copy(), evoked.info)
     data_cov = noise_cov.copy()
-    data_cov['data'] = np.dot(fwd['sol']['data'], fwd['sol']['data'].T)
+    data = fwd['sol']['data'] @ fwd['sol']['data'].T
+    data *= 1e-14  # 100 nAm at each source, effectively (1e-18 would be 1 nAm)
+    # This is rank-deficient, so let's make it actually positive semidefinite
+    # by regularizing a tiny bit
+    data.flat[::data.shape[0] + 1] += mne.make_ad_hoc_cov(evoked.info)['data']
+    # Do our projection
+    proj, _, _ = mne.io.proj.make_projector(
+        data_cov['projs'], data_cov['names'])
+    data = proj @ data @ proj.T
+    data_cov['data'][:] = data
     assert data_cov['data'].shape[0] == len(noise_cov['names'])
     want = np.arange(fwd['sol']['data'].shape[1])
     if not mne.forward.is_fixed_orient(fwd):
@@ -271,7 +283,7 @@ def backend_name(request):
     yield request.param
 
 
-@pytest.yield_fixture
+@pytest.fixture
 def renderer(backend_name, garbage_collect):
     """Yield the 3D backends."""
     from mne.viz.backends.renderer import _use_test_3d_backend
@@ -282,7 +294,7 @@ def renderer(backend_name, garbage_collect):
         renderer.backend._close_all()
 
 
-@pytest.yield_fixture
+@pytest.fixture
 def garbage_collect():
     """Garbage collect on exit."""
     yield
@@ -298,7 +310,7 @@ def backend_name_interactive(request):
     yield request.param
 
 
-@pytest.yield_fixture
+@pytest.fixture
 def renderer_interactive(backend_name_interactive):
     """Yield the 3D backends."""
     from mne.viz.backends.renderer import _use_test_3d_backend

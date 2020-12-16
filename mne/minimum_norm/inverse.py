@@ -786,8 +786,9 @@ def _check_reference(inst, ch_names=None):
                  if ch_name in ch_names]
         info = pick_info(info, sel=picks)
     if _needs_eeg_average_ref_proj(info):
-        raise ValueError('EEG average reference is mandatory for inverse '
-                         'modeling, use set_eeg_reference method.')
+        raise ValueError(
+            'EEG average reference (using a projector) is mandatory for '
+            'modeling, use the method set_eeg_reference(projection=True)')
     if info['custom_ref_applied']:
         raise ValueError('Custom EEG reference is not allowed for inverse '
                          'modeling.')

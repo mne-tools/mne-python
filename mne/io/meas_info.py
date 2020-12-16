@@ -17,7 +17,8 @@ from textwrap import shorten
 import numpy as np
 from scipy import linalg
 
-from .pick import channel_type, pick_channels, pick_info
+from .pick import (channel_type, pick_channels, pick_info,
+                   get_channel_type_constants)
 from .constants import FIFF, _coord_frame_named
 from .open import fiff_open
 from .tree import dir_tree_find
@@ -39,30 +40,6 @@ from ._digitization import write_dig as _dig_write_dig
 from .compensator import get_current_comp
 
 b = bytes  # alias
-
-_kind_dict = dict(
-    eeg=(FIFF.FIFFV_EEG_CH, FIFF.FIFFV_COIL_EEG, FIFF.FIFF_UNIT_V),
-    mag=(FIFF.FIFFV_MEG_CH, FIFF.FIFFV_COIL_VV_MAG_T3, FIFF.FIFF_UNIT_T),
-    grad=(FIFF.FIFFV_MEG_CH, FIFF.FIFFV_COIL_VV_PLANAR_T1, FIFF.FIFF_UNIT_T_M),
-    ref_meg=(FIFF.FIFFV_REF_MEG_CH, FIFF.FIFFV_COIL_VV_MAG_T3,
-             FIFF.FIFF_UNIT_T),
-    misc=(FIFF.FIFFV_MISC_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_NONE),
-    stim=(FIFF.FIFFV_STIM_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
-    eog=(FIFF.FIFFV_EOG_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
-    ecg=(FIFF.FIFFV_ECG_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
-    emg=(FIFF.FIFFV_EMG_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
-    seeg=(FIFF.FIFFV_SEEG_CH, FIFF.FIFFV_COIL_EEG, FIFF.FIFF_UNIT_V),
-    bio=(FIFF.FIFFV_BIO_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
-    ecog=(FIFF.FIFFV_ECOG_CH, FIFF.FIFFV_COIL_EEG, FIFF.FIFF_UNIT_V),
-    fnirs_cw_amplitude=(FIFF.FIFFV_FNIRS_CH,
-                        FIFF.FIFFV_COIL_FNIRS_CW_AMPLITUDE, FIFF.FIFF_UNIT_V),
-    fnirs_od=(FIFF.FIFFV_FNIRS_CH, FIFF.FIFFV_COIL_FNIRS_OD,
-              FIFF.FIFF_UNIT_NONE),
-    hbo=(FIFF.FIFFV_FNIRS_CH, FIFF.FIFFV_COIL_FNIRS_HBO, FIFF.FIFF_UNIT_MOL),
-    hbr=(FIFF.FIFFV_FNIRS_CH, FIFF.FIFFV_COIL_FNIRS_HBR, FIFF.FIFF_UNIT_MOL),
-    csd=(FIFF.FIFFV_EEG_CH, FIFF.FIFFV_COIL_EEG_CSD, FIFF.FIFF_UNIT_V_M2),
-)
-
 
 _SCALAR_CH_KEYS = ('scanno', 'logno', 'kind', 'range', 'cal', 'coil_type',
                    'unit', 'unit_mul', 'coord_frame')
@@ -919,7 +896,7 @@ def write_dig(fname, pts, coord_frame=None):
         here. Can be None (default) if the points could have varying
         coordinate frames.
     """
-    return _dig_write_dig(fname, pts, coord_frame=None)
+    return _dig_write_dig(fname, pts, coord_frame=coord_frame)
 
 
 @verbose
@@ -2018,20 +1995,26 @@ def create_info(ch_names, sfreq, ch_types='misc', verbose=None):
                          '(%s != %s) for ch_types=%s'
                          % (len(ch_types), nchan, ch_types))
     info = _empty_info(sfreq)
-    for ci, (name, kind) in enumerate(zip(ch_names, ch_types)):
-        _validate_type(name, 'str', "each entry in ch_names")
-        _validate_type(kind, 'str', "each entry in ch_types")
-        if kind not in _kind_dict:
-            raise KeyError('kind must be one of %s, not %s'
-                           % (list(_kind_dict.keys()), kind))
-        kind = _kind_dict[kind]
+    ch_types_dict = get_channel_type_constants(include_defaults=True)
+    for ci, (ch_name, ch_type) in enumerate(zip(ch_names, ch_types)):
+        _validate_type(ch_name, 'str', "each entry in ch_names")
+        _validate_type(ch_type, 'str', "each entry in ch_types")
+        if ch_type not in ch_types_dict:
+            raise KeyError(f'kind must be one of {list(ch_types_dict)}, '
+                           f'not {ch_type}')
+        this_ch_dict = ch_types_dict[ch_type]
+        kind = this_ch_dict['kind']
+        # handle chpi, where kind is a *list* of FIFF constants:
+        kind = kind[0] if isinstance(kind, (list, tuple)) else kind
         # mirror what tag.py does here
-        coord_frame = _ch_coord_dict.get(kind[0], FIFF.FIFFV_COORD_UNKNOWN)
+        coord_frame = _ch_coord_dict.get(kind, FIFF.FIFFV_COORD_UNKNOWN)
+        coil_type = this_ch_dict.get('coil_type', FIFF.FIFFV_COIL_NONE)
+        unit = this_ch_dict.get('unit', FIFF.FIFF_UNIT_NONE)
         chan_info = dict(loc=np.full(12, np.nan),
                          unit_mul=FIFF.FIFF_UNITM_NONE, range=1., cal=1.,
-                         kind=kind[0], coil_type=kind[1],
-                         unit=kind[2], coord_frame=coord_frame,
-                         ch_name=str(name), scanno=ci + 1, logno=ci + 1)
+                         kind=kind, coil_type=coil_type, unit=unit,
+                         coord_frame=coord_frame, ch_name=str(ch_name),
+                         scanno=ci + 1, logno=ci + 1)
         info['chs'].append(chan_info)
 
     info._update_redundant()

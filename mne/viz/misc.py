@@ -693,7 +693,7 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
     else:
         ax.set_ylim([min_event - 1, max_event + 1])
 
-    ax.set(xlabel=xlabel, ylabel='Events id', xlim=[0, max_x])
+    ax.set(xlabel=xlabel, ylabel='Event id', xlim=[0, max_x])
 
     ax.grid(True)
 

@@ -69,7 +69,6 @@ extensions = [
     'sphinx_bootstrap_theme',
     'sphinx_bootstrap_divs',
     'sphinxcontrib.bibtex',
-    'sphinxcontrib.bibtex2',
 ]
 
 linkcheck_ignore = [
@@ -126,7 +125,7 @@ for key in ('AcqParserFIF', 'BiHemiLabel', 'Dipole', 'DipoleFixed', 'Label',
             'channels.DigMontage', 'channels.Layout',
             'decoding.CSP', 'decoding.EMS', 'decoding.FilterEstimator',
             'decoding.GeneralizingEstimator', 'decoding.LinearModel',
-            'decoding.PSDEstimator', 'decoding.ReceptiveField',
+            'decoding.PSDEstimator', 'decoding.ReceptiveField', 'decoding.SSD',
             'decoding.SPoC', 'decoding.Scaler', 'decoding.SlidingEstimator',
             'decoding.TemporalFilter', 'decoding.TimeDelayingRidge',
             'decoding.TimeFrequency', 'decoding.UnsupervisedSpatialFilter',
@@ -648,6 +647,7 @@ numpydoc_xref_aliases = {
     'Vectorizer': 'mne.decoding.Vectorizer',
     'UnsupervisedSpatialFilter': 'mne.decoding.UnsupervisedSpatialFilter',
     'TemporalFilter': 'mne.decoding.TemporalFilter',
+    'SSD': 'mne.decoding.SSD',
     'Scaler': 'mne.decoding.Scaler', 'SPoC': 'mne.decoding.SPoC',
     'PSDEstimator': 'mne.decoding.PSDEstimator',
     'LinearModel': 'mne.decoding.LinearModel',
@@ -676,7 +676,7 @@ numpydoc_xref_ignore = {
     'n_dipoles_fwd', 'n_picks_ref', 'n_coords',
     # Undocumented (on purpose)
     'RawKIT', 'RawEximia', 'RawEGI', 'RawEEGLAB', 'RawEDF', 'RawCTF', 'RawBTi',
-    'RawBrainVision', 'RawCurry', 'RawNIRX', 'RawGDF', 'RawSNIRF',
+    'RawBrainVision', 'RawCurry', 'RawNIRX', 'RawGDF', 'RawSNIRF', 'RawBOXY',
     'RawPersyst', 'RawNihon',
     # sklearn subclasses
     'mapping', 'to', 'any',

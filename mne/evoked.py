@@ -31,7 +31,7 @@ from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tag import read_tag
 from .io.tree import dir_tree_find
-from .io.pick import pick_types, _picks_to_idx
+from .io.pick import pick_types, _picks_to_idx, _FNIRS_CH_TYPES_SPLIT
 from .io.meas_info import read_meas_info, write_meas_info
 from .io.proj import ProjMixin
 from .io.write import (start_file, start_block, end_file, end_block,
@@ -381,7 +381,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     @fill_doc
     def animate_topomap(self, ch_type=None, times=None, frame_rate=None,
                         butterfly=False, blit=True, show=True, time_unit='s',
-                        sphere=None):
+                        sphere=None, *, extrapolate=_EXTRAPOLATE_DEFAULT,
+                        verbose=None):
         """Make animation of evoked data as topomap timeseries.
 
         The animation can be paused/resumed with left mouse button.
@@ -392,9 +393,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         ----------
         ch_type : str | None
             Channel type to plot. Accepted data types: 'mag', 'grad', 'eeg',
-            'hbo', 'hbr', 'fnirs_od, and 'fnirs_cw_amplitude'.
-            If None, first available channel type from ('mag', 'grad', 'eeg',
-            'hbo', 'hbr', 'fnirs_od, 'fnirs_cw_amplitude') is used.
+            'hbo', 'hbr', 'fnirs_cw_amplitude',
+            'fnirs_fd_ac_amplitude', 'fnirs_fd_phase', and 'fnirs_od'.
+            If None, first available channel type from the above list is used.
             Defaults to None.
         times : array of float | None
             The time points to plot. If None, 10 evenly spaced samples are
@@ -418,6 +419,10 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
             .. versionadded:: 0.16
         %(topomap_sphere_auto)s
+        %(topomap_extrapolate)s
+
+            .. versionadded:: 0.22
+        %(verbose_meth)s
 
         Returns
         -------
@@ -433,7 +438,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         return _topomap_animation(
             self, ch_type=ch_type, times=times, frame_rate=frame_rate,
             butterfly=butterfly, blit=blit, show=show, time_unit=time_unit,
-            sphere=sphere)
+            sphere=sphere, extrapolate=extrapolate, verbose=verbose)
 
     def as_type(self, ch_type='grad', mode='fast'):
         """Compute virtual evoked using interpolated fields.
@@ -521,7 +526,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        ch_type : 'mag', 'grad', 'eeg', 'seeg', 'ecog', 'hbo', hbr', 'misc', None
+        ch_type : str | None
             The channel type to use. Defaults to None. If more than one sensor
             Type is present in the data the channel type has to be explicitly
             set.
@@ -558,8 +563,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
             .. versionadded:: 0.16
         """  # noqa: E501
-        supported = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'misc', 'hbo',
-                     'hbr', 'None', 'fnirs_cw_amplitude', 'fnirs_od')
+        supported = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'misc',
+                     'None') + _FNIRS_CH_TYPES_SPLIT
         types_used = self.get_channel_types(unique=True, only_data_chs=True)
 
         _check_option('ch_type', str(ch_type), supported)
@@ -592,7 +597,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             seeg = True
         elif ch_type == 'ecog':
             ecog = True
-        elif ch_type in ('hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_od'):
+        elif ch_type in _FNIRS_CH_TYPES_SPLIT:
             fnirs = ch_type
 
         if ch_type is not None:

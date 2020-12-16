@@ -116,4 +116,15 @@ def test_one_channel_gdf():
     assert 150.0 == ecg.info['sfreq']
 
 
+@testing.requires_testing_data
+def test_gdf_exclude_channels():
+    """Test reading GDF data with excluded channels."""
+    raw = read_raw_gdf(gdf1_path + '.gdf', exclude=('FP1', 'O1'))
+    assert 'FP1' not in raw.ch_names
+    assert 'O1' not in raw.ch_names
+    raw = read_raw_gdf(gdf2_path + '.gdf', exclude=('Fp1', 'O1'))
+    assert 'Fp1' not in raw.ch_names
+    assert 'O1' not in raw.ch_names
+
+
 run_tests_if_main()

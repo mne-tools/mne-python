@@ -16,7 +16,7 @@ import numpy as np
 from scipy import sparse, linalg
 
 from .io.constants import FIFF
-from .io.meas_info import create_info
+from .io.meas_info import create_info, Info
 from .io.tree import dir_tree_find
 from .io.tag import find_tag, read_tag
 from .io.open import fiff_open
@@ -24,6 +24,7 @@ from .io.write import (start_block, end_block, write_int,
                        write_float_sparse_rcs, write_string,
                        write_float_matrix, write_int_matrix,
                        write_coord_trans, start_file, end_file, write_id)
+from .io.pick import channel_type, _picks_to_idx
 from .bem import read_bem_surfaces
 from .fixes import _get_img_fdata
 from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
@@ -2295,116 +2296,182 @@ def _src_vol_dims(s):
 def _add_interpolator(sp):
     """Compute a sparse matrix to interpolate the data into an MRI volume."""
     # extract transformation information from mri
-    s = sp[0]
-    mri_width, mri_height, mri_depth, nvox = _src_vol_dims(s)
+    mri_width, mri_height, mri_depth, nvox = _src_vol_dims(sp[0])
 
     #
     # Convert MRI voxels from destination (MRI volume) to source (volume
     # source space subset) coordinates
     #
-    vol_dims = s['vol_dims']
-    combo_trans = combine_transforms(s['vox_mri_t'],
-                                     invert_transform(s['src_mri_t']),
+    combo_trans = combine_transforms(sp[0]['vox_mri_t'],
+                                     invert_transform(sp[0]['src_mri_t']),
                                      'mri_voxel', 'mri_voxel')
-    del s
-    combo_trans['trans'] = combo_trans['trans'].astype(np.float32)
 
     logger.info('Setting up volume interpolation ...')
+    inuse = np.zeros(sp[0]['np'], bool)
+    for s_ in sp:
+        np.logical_or(inuse, s_['inuse'], out=inuse)
+    interp = _grid_interp(
+        sp[0]['vol_dims'], (mri_width, mri_height, mri_depth),
+        combo_trans['trans'], order=1, inuse=inuse)
+    assert isinstance(interp, sparse.csr_matrix)
+
+    # Compose the sparse matrices
+    for si, s in enumerate(sp):
+        if len(sp) == 1:  # no need to do these gymnastics
+            this_interp = interp
+        else:  # limit it rows that have any contribution from inuse
+            # This is the same as the following, but more efficient:
+            # any_ = np.asarray(
+            #     interp[:, s['inuse'].astype(bool)].sum(1)
+            # )[:, 0].astype(bool)
+            any_ = np.zeros(interp.indices.size + 1, np.int64)
+            any_[1:] = s['inuse'][interp.indices]
+            np.cumsum(any_, out=any_)
+            any_ = np.diff(any_[interp.indptr]) > 0
+            assert any_.shape == (interp.shape[0],)
+            indptr = np.empty_like(interp.indptr)
+            indptr[0] = 0
+            indptr[1:] = np.diff(interp.indptr)
+            indptr[1:][~any_] = 0
+            np.cumsum(indptr, out=indptr)
+            mask = np.repeat(any_, np.diff(interp.indptr))
+            indices = interp.indices[mask]
+            data = interp.data[mask]
+            assert data.shape == indices.shape == (indptr[-1],)
+            this_interp = sparse.csr_matrix(
+                (data, indices, indptr), shape=interp.shape)
+        s['interpolator'] = this_interp
+        logger.info('    %d/%d nonzero values for %s'
+                    % (len(s['interpolator'].data), nvox, s['seg_name']))
+    logger.info('[done]')
+
+
+def _grid_interp(from_shape, to_shape, trans, order=1, inuse=None):
+    """Compute a grid-to-grid linear or nearest interpolation given."""
+    from_shape = np.array(from_shape, int)
+    to_shape = np.array(to_shape, int)
+    trans = np.array(trans, np.float64)  # to -> from
+    assert trans.shape == (4, 4) and np.array_equal(trans[3], [0, 0, 0, 1])
+    assert from_shape.shape == to_shape.shape == (3,)
+    shape = (np.prod(to_shape), np.prod(from_shape))
+    if inuse is None:
+        inuse = np.ones(shape[1], bool)
+    assert inuse.dtype == bool
+    assert inuse.shape == (shape[1],)
+    data, indices, indptr = _grid_interp_jit(
+        from_shape, to_shape, trans, order, inuse)
+    data = np.concatenate(data)
+    indices = np.concatenate(indices)
+    indptr = np.cumsum(indptr)
+    interp = sparse.csr_matrix((data, indices, indptr), shape=shape)
+    return interp
+
+
+# This is all set up to do jit, but it's actually slower!
+def _grid_interp_jit(from_shape, to_shape, trans, order, inuse):
     # Loop over slices to save (lots of) memory
     # Note that it is the slowest incrementing index
     # This is equivalent to using mgrid and reshaping, but faster
-    datas = [list() for _ in range(len(sp))]
-    indicess = [list() for _ in range(len(sp))]
-    indptrs = [np.zeros(nvox + 1, np.int32) for _ in range(len(sp))]
+    assert order in (0, 1)
+    data = list()
+    indices = list()
+    nvox = np.prod(to_shape)
+    indptr = np.zeros(nvox + 1, np.int32)
+    mri_width, mri_height, mri_depth = to_shape
+    r0__ = np.empty((4, mri_height, mri_width), np.float64)
+    r0__[0, :, :] = np.arange(mri_width)
+    r0__[1, :, :] = np.arange(mri_height).reshape(1, mri_height, 1)
+    r0__[3, :, :] = 1
+    r0_ = np.reshape(r0__, (4, mri_width * mri_height))
+    width, height, _ = from_shape
+    trans = np.ascontiguousarray(trans)
+    maxs = (from_shape - 1).reshape(1, 3)
     for p in range(mri_depth):
-        js = np.arange(mri_width, dtype=np.float32)
-        js = np.tile(js[np.newaxis, :],
-                     (mri_height, 1)).ravel()
-        ks = np.arange(mri_height, dtype=np.float32)
-        ks = np.tile(ks[:, np.newaxis],
-                     (1, mri_width)).ravel()
-        ps = np.empty((mri_height, mri_width), np.float32).ravel()
-        ps.fill(p)
-        r0 = np.c_[js, ks, ps]
-        del js, ks, ps
+        r0_[2] = p
 
         # Transform our vertices from their MRI space into our source space's
         # frame (this is labeled as FIFFV_MNE_COORD_MRI_VOXEL, but it's
         # really a subset of the entire volume!)
-        r0 = apply_trans(combo_trans['trans'], r0)
-        rn = np.floor(r0).astype(int)
-        maxs = (vol_dims - 1)[np.newaxis, :]
-        good = np.where(np.logical_and(np.all(rn >= 0, axis=1),
-                                       np.all(rn < maxs, axis=1)))[0]
-        good.flags['WRITEABLE'] = False
+        r0 = (trans @ r0_)[:3].T
+        if order == 0:
+            rx = np.round(r0).astype(np.int32)
+            keep = np.where(np.logical_and(np.all(rx >= 0, axis=1),
+                                           np.all(rx <= maxs, axis=1)))[0]
+            indptr[keep + p * mri_height * mri_width + 1] = 1
+            indices.append(_vol_vertex(width, height, *rx[keep].T))
+            data.append(np.ones(len(keep)))
+            continue
+        rn = np.floor(r0).astype(np.int32)
+        good = np.where(np.logical_and(np.all(rn >= -1, axis=1),
+                                       np.all(rn <= maxs, axis=1)))[0]
+        if len(good) == 0:
+            continue
         rns = rn[good]
         r0s = r0[good]
-        del rn, r0
+        jj_g, kk_g, pp_g = (rns >= 0).T
+        jjp1_g, kkp1_g, ppp1_g = (rns < maxs).T  # same as rns + 1 <= maxs
 
         # now we take each MRI voxel *in this space*, and figure out how
         # to make its value the weighted sum of voxels in the volume source
-        # space. This is a 3D weighting scheme based (presumably) on the
+        # space. This is a trilinear interpolation based on the
         # fact that we know we're interpolating from one volumetric grid
         # into another.
         jj = rns[:, 0]
         kk = rns[:, 1]
         pp = rns[:, 2]
         vss = np.empty((len(jj), 8), np.int32)
-        width = vol_dims[0]
-        height = vol_dims[1]
         jjp1 = jj + 1
         kkp1 = kk + 1
         ppp1 = pp + 1
+        mask = np.empty((len(jj), 8), bool)
         vss[:, 0] = _vol_vertex(width, height, jj, kk, pp)
+        mask[:, 0] = jj_g & kk_g & pp_g
         vss[:, 1] = _vol_vertex(width, height, jjp1, kk, pp)
+        mask[:, 1] = jjp1_g & kk_g & pp_g
         vss[:, 2] = _vol_vertex(width, height, jjp1, kkp1, pp)
+        mask[:, 2] = jjp1_g & kkp1_g & pp_g
         vss[:, 3] = _vol_vertex(width, height, jj, kkp1, pp)
+        mask[:, 3] = jj_g & kkp1_g & pp_g
         vss[:, 4] = _vol_vertex(width, height, jj, kk, ppp1)
+        mask[:, 4] = jj_g & kk_g & ppp1_g
         vss[:, 5] = _vol_vertex(width, height, jjp1, kk, ppp1)
+        mask[:, 5] = jjp1_g & kk_g & ppp1_g
         vss[:, 6] = _vol_vertex(width, height, jjp1, kkp1, ppp1)
+        mask[:, 6] = jjp1_g & kkp1_g & ppp1_g
         vss[:, 7] = _vol_vertex(width, height, jj, kkp1, ppp1)
-        vss.flags['WRITEABLE'] = False
-        del jj, kk, pp, jjp1, kkp1, ppp1
-        for si, s in enumerate(sp):
-            uses = np.any(s['inuse'][vss], axis=1)
-            if uses.size == 0:
-                continue
-            # vertex (col) numbers in csr matrix
-            indicess[si].append(vss[uses].ravel())
-            indptrs[si][good[uses] + p * mri_height * mri_width + 1] = 8
+        mask[:, 7] = jj_g & kkp1_g & ppp1_g
 
-            # figure out weights for each vertex
-            r0 = r0s[uses]
-            rn = rns[uses]
-            del uses
-            xf = r0[:, 0] - rn[:, 0].astype(np.float32)
-            yf = r0[:, 1] - rn[:, 1].astype(np.float32)
-            zf = r0[:, 2] - rn[:, 2].astype(np.float32)
-            omxf = 1.0 - xf
-            omyf = 1.0 - yf
-            omzf = 1.0 - zf
-            # each entry in the concatenation corresponds to a row of vss
-            datas[si].append(
-                np.array([omxf * omyf * omzf,
-                          xf * omyf * omzf,
-                          xf * yf * omzf,
-                          omxf * yf * omzf,
-                          omxf * omyf * zf,
-                          xf * omyf * zf,
-                          xf * yf * zf,
-                          omxf * yf * zf], order='F').T.ravel())
-            del r0, rn, xf, yf, zf, omxf, omyf, omzf
+        # figure out weights for each vertex
+        xf = r0s[:, 0] - rns[:, 0].astype(np.float64)
+        yf = r0s[:, 1] - rns[:, 1].astype(np.float64)
+        zf = r0s[:, 2] - rns[:, 2].astype(np.float64)
+        omxf = 1.0 - xf
+        omyf = 1.0 - yf
+        omzf = 1.0 - zf
 
-    # Compose the sparse matrices
-    for si, s in enumerate(sp):
-        indptr = np.cumsum(indptrs[si], out=indptrs[si])
-        indices = np.concatenate(indicess[si])
-        data = np.concatenate(datas[si])
-        s['interpolator'] = sparse.csr_matrix((data, indices, indptr),
-                                              shape=(nvox, s['np']))
-        logger.info('    %d/%d nonzero values for %s'
-                    % (len(data), nvox, s['seg_name']))
-    logger.info('[done]')
+        this_w = np.empty((len(good), 8), np.float64)
+        this_w[:, 0] = omxf * omyf * omzf
+        this_w[:, 1] = xf * omyf * omzf
+        this_w[:, 2] = xf * yf * omzf
+        this_w[:, 3] = omxf * yf * omzf
+        this_w[:, 4] = omxf * omyf * zf
+        this_w[:, 5] = xf * omyf * zf
+        this_w[:, 6] = xf * yf * zf
+        this_w[:, 7] = omxf * yf * zf
+
+        # eliminate zeros
+        mask[this_w <= 0] = False
+
+        # eliminate rows where none of inuse are actually present
+        row_mask = mask.copy()
+        row_mask[mask] = inuse[vss[mask]]
+        mask[~(row_mask.any(axis=-1))] = False
+
+        # construct the parts we need
+        indices.append(vss[mask])
+        indptr[good + p * mri_height * mri_width + 1] = mask.sum(1)
+        data.append(this_w[mask])
+    return data, indices, indptr
 
 
 def _pts_in_hull(pts, hull, tolerance=1e-12):
@@ -3003,7 +3070,7 @@ def _compare_source_spaces(src0, src1, mode='exact', nearest=True,
     Note: this function is also used by forward/tests/test_make_forward.py
     """
     from numpy.testing import (assert_allclose, assert_array_equal,
-                               assert_equal, assert_)
+                               assert_equal, assert_, assert_array_less)
     from scipy.spatial.distance import cdist
     if mode != 'exact' and 'approx' not in mode:  # 'nointerp' can be appended
         raise RuntimeError('unknown mode %s' % mode)
@@ -3024,10 +3091,13 @@ def _compare_source_spaces(src0, src1, mode='exact', nearest=True,
             if name in s0 or name in s1:
                 assert name in s0, f'{name} in s1 but not s0'
                 assert name in s1, f'{name} in s1 but not s0'
+                n = np.prod(s0['interpolator'].shape)
                 diffs = (s0['interpolator'] - s1['interpolator']).data
                 if len(diffs) > 0 and 'nointerp' not in mode:
-                    # 5%
-                    assert_(np.sqrt(np.mean(diffs ** 2)) < 0.10, name)
+                    # 0.1%
+                    assert_array_less(
+                        np.sqrt(np.sum(diffs * diffs) / n), 0.001,
+                        err_msg=f'{name} > 0.1%')
         for name in ['nn', 'rr', 'nuse_tri', 'coord_frame', 'tris']:
             if s0[name] is None:
                 assert_(s1[name] is None, name)
@@ -3128,3 +3198,65 @@ def _get_src_nn(s, use_cps=True, vertices=None):
     else:
         nn = s['nn'][vertices, :]
     return nn
+
+
+@verbose
+def compute_distance_to_sensors(src, info, picks=None, trans=None,
+                                verbose=None):
+    """Compute distances between vertices and sensors.
+
+    Parameters
+    ----------
+    src : instance of SourceSpaces
+        The object with vertex positions for which to compute distances to
+        sensors.
+    info : instance of Info
+        Measurement information with sensor positions to which distances shall
+        be computed.
+    %(picks_good_data)s
+    %(trans_not_none)s
+    %(verbose)s
+
+    Returns
+    -------
+    depth : array of shape (n_vertices, n_channels)
+        The Euclidean distances of source space vertices with respect to
+        sensors.
+    """
+    from scipy.spatial.distance import cdist
+
+    assert isinstance(src, SourceSpaces)
+    _validate_type(info, (Info,), 'info')
+
+    # Load the head<->MRI transform if necessary
+    if src[0]['coord_frame'] == FIFF.FIFFV_COORD_MRI:
+        src_trans, _ = _get_trans(trans, allow_none=False)
+    else:
+        src_trans = Transform('head', 'head')  # Identity transform
+
+    # get vertex position in same coordinates as for sensors below
+    src_pos = np.vstack([
+        apply_trans(src_trans, s['rr'][s['inuse'].astype(np.bool)])
+        for s in src
+    ])
+
+    # Select channels to be used for distance calculations
+    picks = _picks_to_idx(info, picks, 'data', exclude=())
+    # get sensor positions
+    sensor_pos = []
+    dev_to_head = None
+    for ch in picks:
+        # MEG channels are in device coordinates, translate them to head
+        if channel_type(info, ch) in ['mag', 'grad']:
+            if dev_to_head is None:
+                dev_to_head = _ensure_trans(info['dev_head_t'],
+                                            'meg', 'head')
+            sensor_pos.append(apply_trans(dev_to_head,
+                                          info['chs'][ch]['loc'][:3]))
+        else:
+            sensor_pos.append(info['chs'][ch]['loc'][:3])
+    sensor_pos = np.array(sensor_pos)
+
+    depths = cdist(src_pos, sensor_pos)
+
+    return depths

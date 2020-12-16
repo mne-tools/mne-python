@@ -223,6 +223,7 @@ def _adjust_mag_normals(info, data, origin, ext_order):
     mag_scale = 100.
     picks_use = pick_types(info, meg='mag', exclude='bads')
     picks_meg = pick_types(info, meg=True, exclude=())
+    picks_mag_orig = pick_types(info, meg='mag', exclude='bads')
     info = pick_info(info, picks_use)  # copy
     data = data[picks_use]
     cals = np.ones((len(data), 1))
@@ -317,7 +318,7 @@ def _adjust_mag_normals(info, data, origin, ext_order):
     assert zs.shape == (len(data), 3)
     assert cals.shape == (len(data), 1)
     imb_cals = np.ones(len(picks_meg))
-    imb_cals[picks_mag] = cals[:, 0]
+    imb_cals[picks_mag_orig] = cals[:, 0]
     return zs, imb_cals, good
 
 

@@ -103,9 +103,11 @@ brain.add_annotation('aparc.a2009s', borders=False)
 # data types that a subject reconstruction would yield and is required by
 # MNE-Python.
 #
-# See https://surfer.nmr.mgh.harvard.edu/fswiki/FsAverage for more
-# information. Furthermore a copy of 'fsaverage' can be found in
-# :ref:`sample-data`.
+# See https://surfer.nmr.mgh.harvard.edu/fswiki/FsAverage for an overview, and
+# https://surfer.nmr.mgh.harvard.edu/fswiki/Buckner40Notes for details about
+# the included subjects. A copy of 'fsaverage' can be found in the
+# :ref:`sample-dataset` dataset and is also distributed as a :ref:`standalone
+# dataset <fsaverage>`.
 #
 # When using ``'fsaverage'`` as value for the definition
 # of a subject when calling a function, the corresponding data will be read

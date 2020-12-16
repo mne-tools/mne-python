@@ -1,4 +1,4 @@
-name: 'Linux'
+name: 'linux / pip'
 on:
   push:
     branches:
@@ -8,34 +8,44 @@ on:
       - '*'
 
 jobs:
-  Conda:
-    if: "github.repository == 'mne-tools/mne-python' && !contains(github.event.head_commit.message, '[ci skip]') && !contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[skip github]')"
-    runs-on: ubuntu-latest
+  check_skip:
+    runs-on: ubuntu-20.04
+    outputs:
+      skip: ${{ steps.result_step.outputs.ci-skip }}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - id: result_step
+        uses: mstachniuk/ci-skip@master
+        with:
+          commit-filter: '[skip ci];[ci skip];[skip github]'
+          commit-filter-separator: ';'
+
+  # PIP + non-default stim channel + log level info
+  job:
+    needs: check_skip
+    if: ${{ needs.check_skip.outputs.skip == 'false' }}
+    name: 'py3.9'
+    runs-on: ubuntu-20.04
     defaults:
       run:
         shell: bash
     env:
       DISPLAY: ':99.0'
-      PYTHON_VERSION: '3.8'
-      MNE_LOGGING_LEVEL: 'warning'
+      MNE_LOGGING_LEVEL: 'info'
+      MNE_STIM_CHANNEL: 'STI101'
       OPENBLAS_NUM_THREADS: '1'
       PYTHONUNBUFFERED: '1'
-      CONDA_ENV: 'environment.yml'
-      TRAVIS_OS_NAME: 'linux'
+      PYTHON_VERSION: '3.9'
     steps:
       - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-      - run: |
-          sudo apt-get install -y libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0 libopengl0
-          /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
+      - run: ./tools/setup_xvfb.sh
         name: 'Setup xvfb'
-      - uses: conda-incubator/setup-miniconda@v2
+      - uses: actions/setup-python@v2
         with:
-          activate-environment: 'mne'
           python-version: ${{ env.PYTHON_VERSION }}
-          environment-file: ${{ env.CONDA_ENV }}
-        name: 'Setup conda'
+        name: 'Setup python'
       - shell: bash -el {0}
         run: |
           ./tools/github_actions_dependencies.sh

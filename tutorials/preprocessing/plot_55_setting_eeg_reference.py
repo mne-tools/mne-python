@@ -171,6 +171,28 @@ for title, proj in zip(['Original', 'Average'], [False, True]):
     fig.suptitle('{} reference'.format(title), size='xx-large', weight='bold')
 
 ###############################################################################
+# Using an infinite reference (REST)
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# To use the "point at infinity" reference technique described in
+# :footcite:`Yao2001` requires a forward model, which we can create in a few
+# steps. Here we use a fairly large spacing of vertices (``pos`` = 15 mm) to
+# reduce computation time; a 5 mm spacing is more typical for real data
+# analysis:
+
+raw.del_proj()  # remove our average reference projector first
+sphere = mne.make_sphere_model('auto', 'auto', raw.info)
+src = mne.setup_volume_source_space(sphere=sphere, exclude=30., pos=15.)
+forward = mne.make_forward_solution(raw.info, trans=None, src=src, bem=sphere)
+raw_rest = raw.copy().set_eeg_reference('REST', forward=forward)
+
+for title, _raw in zip(['Original', 'REST (∞)'], [raw, raw_rest]):
+    fig = _raw.plot(n_channels=len(raw), scalings=dict(eeg=5e-5))
+    # make room for title
+    fig.subplots_adjust(top=0.9)
+    fig.suptitle('{} reference'.format(title), size='xx-large', weight='bold')
+
+###############################################################################
 # EEG reference and source modeling
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -202,3 +224,8 @@ for title, proj in zip(['Original', 'Average'], [False, True]):
 #    http://www.fieldtriptoolbox.org/faq/why_should_i_use_an_average_reference_for_eeg_source_reconstruction/
 # .. _`10-20 electrode naming system`:
 #    https://en.wikipedia.org/wiki/10%E2%80%9320_system_(EEG)
+#
+#
+# References
+# ^^^^^^^^^^
+# .. footbibliography::

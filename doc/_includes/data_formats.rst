@@ -72,6 +72,7 @@ EEG           :ref:`Persyst <import-persyst>`               .lay       :func:`mn
 
 NIRS          :ref:`NIRx <import-nirx>`                     directory  :func:`mne.io.read_raw_nirx`
 
+NIRS          :ref:`BOXY <import-boxy>`                     directory  :func:`mne.io.read_raw_boxy`
 ============  ============================================  =========  ===================================
 
 More details are provided in the tutorials in the :ref:`tut-data-formats`

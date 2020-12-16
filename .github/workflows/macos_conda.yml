@@ -1,4 +1,4 @@
-name: 'MacOS'
+name: 'macos / conda'
 on:
   push:
     branches:
@@ -8,8 +8,24 @@ on:
       - '*'
 
 jobs:
-  Conda:
-    if: "github.repository == 'mne-tools/mne-python' && !contains(github.event.head_commit.message, '[ci skip]') && !contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[skip github]')"
+  check_skip:
+    runs-on: ubuntu-20.04
+    outputs:
+      skip: ${{ steps.result_step.outputs.ci-skip }}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - id: result_step
+        uses: mstachniuk/ci-skip@master
+        with:
+          commit-filter: '[skip ci];[ci skip];[skip github]'
+          commit-filter-separator: ';'
+
+  job:
+    needs: check_skip
+    if: ${{ needs.check_skip.outputs.skip == 'false' }}
+    name: 'py3.8'
     runs-on: macos-latest
     defaults:
       run:
@@ -20,11 +36,9 @@ jobs:
       OPENBLAS_NUM_THREADS: '1'
       PYTHONUNBUFFERED: '1'
       CONDA_ENV: 'environment.yml'
-      TRAVIS_OS_NAME: 'osx'
+      CI_OS_NAME: 'osx'
     steps:
       - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
       - uses: conda-incubator/setup-miniconda@v2
         with:
           activate-environment: 'mne'

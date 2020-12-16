@@ -1,0 +1,71 @@
+name: 'compat / old'
+on:
+  push:
+    branches:
+      - '*'
+  pull_request:
+    branches:
+      - '*'
+
+jobs:
+  check_skip:
+    runs-on: ubuntu-20.04
+    outputs:
+      skip: ${{ steps.result_step.outputs.ci-skip }}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - id: result_step
+        uses: mstachniuk/ci-skip@master
+        with:
+          commit-filter: '[skip ci];[ci skip];[skip github]'
+          commit-filter-separator: ';'
+
+  # Old dependencies
+  job:
+    needs: check_skip
+    if: ${{ needs.check_skip.outputs.skip == 'false' }}
+    name: 'py3.6'
+    runs-on: ubuntu-18.04
+    defaults:
+      run:
+        shell: bash
+    env:
+      CONDA_DEPENDENCIES: 'numpy=1.15.4 scipy=1.1 matplotlib=3.0.3 pandas=0.23.4 scikit-learn=0.20.2'
+      DISPLAY: ':99.0'
+      MNE_LOGGING_LEVEL: 'warning'
+      OPENBLAS_NUM_THREADS: '1'
+      PYTHONUNBUFFERED: '1'
+      PYTHON_VERSION: '3.6'
+    steps:
+      - uses: actions/checkout@v2
+      - run: ./tools/setup_xvfb.sh
+        name: 'Setup xvfb'
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+        name: 'Setup conda'
+      - shell: bash -el {0}
+        run: |
+          ./tools/github_actions_dependencies.sh
+          source tools/get_minimal_commands.sh
+        name: 'Install dependencies'
+      - shell: bash -el {0}
+        run: ./tools/github_actions_install.sh
+        name: 'Install MNE'
+      - shell: bash -el {0}
+        run: ./tools/github_actions_infos.sh
+        name: 'Show infos'
+      - shell: bash -el {0}
+        run: ./tools/github_actions_download.sh
+        name: 'Download testing data'
+      - shell: bash -el {0}
+        run: ./tools/github_actions_locale.sh
+        name: 'Print locale'
+      - shell: bash -el {0}
+        run: ./tools/github_actions_test.sh
+        name: 'Run tests'
+      - uses: codecov/codecov-action@v1
+        if: success()
+        name: 'Upload coverage to CodeCov'

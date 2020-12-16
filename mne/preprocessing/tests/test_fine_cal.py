@@ -56,6 +56,9 @@ def test_compute_fine_cal():
     assert counts == 1
     assert set(got_cal.keys()) == set(want_cal.keys())
     assert got_cal['ch_names'] == want_cal['ch_names']
+    # in practice these should never be exactly 1.
+    assert sum([(ic == 1.).any() for ic in want_cal['imb_cals']]) == 0
+    assert sum([(ic == 1.).any() for ic in got_cal['imb_cals']]) == 0
 
     got_imb = np.array(got_cal['imb_cals'], float)
     want_imb = np.array(want_cal['imb_cals'], float)
@@ -108,7 +111,7 @@ def test_compute_fine_cal():
     raw_sss_py = maxwell_filter(raw, calibration=got_cal, **kwargs)
     _assert_shielding(raw_sss, raw, 26, 27)
     _assert_shielding(raw_sss_mf, raw, 61, 63)
-    _assert_shielding(raw_sss_py, raw, 58, 60)
+    _assert_shielding(raw_sss_py, raw, 61, 63)
 
     # redoing with given mag data should yield same result
     got_cal_redo, _ = compute_fine_calibration(
@@ -117,6 +120,7 @@ def test_compute_fine_cal():
     assert got_cal['ch_names'] == got_cal_redo['ch_names']
     assert_allclose(got_cal['imb_cals'], got_cal_redo['imb_cals'], atol=5e-5)
     assert_allclose(got_cal['locs'], got_cal_redo['locs'], atol=1e-6)
+    assert sum([(ic == 1.).any() for ic in got_cal['imb_cals']]) == 0
 
     # redoing with 3 imlabance parameters should improve the shielding factor
     grad_picks = pick_types(raw.info, meg='grad')
@@ -133,4 +137,4 @@ def test_compute_fine_cal():
     corr = np.corrcoef(got_grad_3_imbs[:, 0], got_grad_imbs[:, 0])[0, 1]
     assert 0.6 < corr < 0.7
     raw_sss_py = maxwell_filter(raw, calibration=got_cal_3, **kwargs)
-    _assert_shielding(raw_sss_py, raw, 59, 62)
+    _assert_shielding(raw_sss_py, raw, 68, 70)

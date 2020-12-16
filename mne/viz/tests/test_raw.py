@@ -14,8 +14,10 @@ import matplotlib.pyplot as plt
 from mne import read_events, pick_types, Annotations, create_info
 from mne.datasets import testing
 from mne.io import read_raw_fif, read_raw_ctf, RawArray
-from mne.utils import run_tests_if_main, _dt_to_stamp, check_version
-from mne.viz.utils import _fake_click, _sync_onset
+from mne.utils import (run_tests_if_main, _dt_to_stamp, _click_ch_name,
+                       _close_event)
+from mne.viz.utils import _fake_click
+from mne.annotations import _sync_onset
 from mne.viz import plot_raw, plot_sensors
 
 ctf_dir = op.join(testing.data_path(download=False), 'CTF')
@@ -37,12 +39,6 @@ def raw():
     raw.pick_channels(raw.ch_names[:9])
     raw.info.normalize_proj()  # Fix projectors after subselection
     return raw
-
-
-@pytest.fixture(scope='module')
-def new_mpl():
-    """Check matplotlib version."""
-    return check_version('matplotlib', '3.1')
 
 
 def _get_events():
@@ -169,14 +165,7 @@ def _proj_status(ax):
             for line in ax.findobj(matplotlib.lines.Line2D)][::2]
 
 
-def _click_ch_name_helper(fig, ch_index=0, button=1):
-    x, y = fig.mne.ax_main.get_yticklabels()[ch_index].get_position()
-    xrange = np.diff(fig.mne.ax_main.get_xlim())[0]
-    _fake_click(fig, fig.mne.ax_main, (x - xrange / 50, y),
-                xform='data', button=button)
-
-
-def _child_fig_helper(fig, key, attr, new_mpl):
+def _child_fig_helper(fig, key, attr):
     # Spawn and close child figs of raw.plot()
     num_figs = len(plt.get_fignums())
     assert getattr(fig.mne, attr) is None
@@ -230,15 +219,7 @@ def test_scale_bar():
     plt.close('all')
 
 
-def _close_event(fig):
-    # XXX workaround: plt.close() doesn't spawn close_event on Agg backend
-    try:
-        fig.canvas.close_event()
-    except ValueError:  # old mpl with Qt
-        pass  # pragma: no cover
-
-
-def test_plot_raw_selection(raw, new_mpl):
+def test_plot_raw_selection(raw):
     """Test selection mode of plot_raw()."""
     raw.info['lowpass'] = 10.  # allow heavy decim during plotting
     plt.close('all')           # ensure all are closed
@@ -273,11 +254,11 @@ def test_plot_raw_selection(raw, new_mpl):
     assert len(fig.mne.traces) == len(sel_dict['Left-temporal'])  # unchanged
     assert buttons.value_selected == before_state                 # unchanged
     # test marking bad channel in selection mode → should make sensor red
-    assert sel_fig.lasso.ec[:, 0].sum() == 0  # R of RGBA zero for all chans
-    _click_ch_name_helper(fig, ch_index=1, button=1)  # mark bad
-    assert sel_fig.lasso.ec[:, 0].sum() == 1          # one channel red
-    _click_ch_name_helper(fig, ch_index=1, button=1)  # mark good
-    assert sel_fig.lasso.ec[:, 0].sum() == 0          # all channels black
+    assert sel_fig.lasso.ec[:, 0].sum() == 0   # R of RGBA zero for all chans
+    _click_ch_name(fig, ch_index=1, button=1)  # mark bad
+    assert sel_fig.lasso.ec[:, 0].sum() == 1   # one channel red
+    _click_ch_name(fig, ch_index=1, button=1)  # mark good
+    assert sel_fig.lasso.ec[:, 0].sum() == 0   # all channels black
     # test lasso
     sel_fig._set_custom_selection()  # lasso empty → should do nothing
     sensor_ax = sel_fig.mne.sensor_ax
@@ -286,11 +267,8 @@ def test_plot_raw_selection(raw, new_mpl):
     _fake_click(sel_fig, sensor_ax, (0.65, 1), xform='ax', kind='motion')
     _fake_click(sel_fig, sensor_ax, (0.65, 0.7), xform='ax', kind='motion')
     _fake_click(sel_fig, sensor_ax, (0, 0.7), xform='ax', kind='release')
-    want = ['MEG 0121', 'MEG 0122', 'MEG 0123'] if new_mpl else \
-        ['MEG 0111', 'MEG 0112', 'MEG 0131', 'MEG 0132', 'MEG 0133']  # XXX old
-    want = sorted(want)
-    got = sorted(sel_fig.lasso.selection)
-    assert got == want
+    want = ['MEG 0121', 'MEG 0122', 'MEG 0123']
+    assert sorted(want) == sorted(sel_fig.lasso.selection)
     # test joint closing of selection & data windows
     sel_fig.canvas.key_press_event(sel_fig.mne.close_key)
     _close_event(sel_fig)
@@ -336,24 +314,36 @@ def test_plot_raw_ssp_interaction(raw):
     assert _proj_status(ax) == [True, True, True]
 
 
-def test_plot_raw_child_figures(raw, new_mpl):
+def test_plot_raw_child_figures(raw):
     """Test spawning and closing of child figures."""
     raw.info['lowpass'] = 10.  # allow heavy decim during plotting
     plt.close('all')  # make sure we start clean
     assert len(plt.get_fignums()) == 0
     fig = raw.plot()
     assert len(plt.get_fignums()) == 1
-    _child_fig_helper(fig, '?', 'fig_help', new_mpl)
-    _child_fig_helper(fig, 'j', 'fig_proj', new_mpl)
-    _child_fig_helper(fig, 'a', 'fig_annotation', new_mpl)
-    # # test right-click → channel location popup
-    _click_ch_name_helper(fig, ch_index=2, button=3)  # XXX currently no-op
-    # XXX restore these lines after refactoring plot_sensors() and re-enabling
-    # XXX right-click behavior
-    # assert len(fig.mne.child_figs) == 1
-    # assert len(plt.get_fignums()) == 2
-    # fig.mne.child_figs[0].canvas.key_press_event('escape')
-    # assert len(plt.get_fignums()) == 1
+    # test child fig toggles
+    _child_fig_helper(fig, '?', 'fig_help')
+    _child_fig_helper(fig, 'j', 'fig_proj')
+    _child_fig_helper(fig, 'a', 'fig_annotation')
+    assert len(fig.mne.child_figs) == 0  # make sure the helper cleaned up
+    assert len(plt.get_fignums()) == 1
+    # test right-click → channel location popup
+    fig.canvas.draw()
+    _click_ch_name(fig, ch_index=2, button=3)
+    assert len(fig.mne.child_figs) == 1
+    assert len(plt.get_fignums()) == 2
+    fig.mne.child_figs[0].canvas.key_press_event('escape')
+    _close_event(fig.mne.child_figs[0])
+    assert len(plt.get_fignums()) == 1
+    # test right-click on non-data channel
+    ix = raw.get_channel_types().index('ias')  # find the shielding channel
+    trace_ix = fig.mne.ch_order.tolist().index(ix)  # get its plotting position
+    assert len(fig.mne.child_figs) == 0
+    assert len(plt.get_fignums()) == 1
+    fig.canvas.draw()
+    _click_ch_name(fig, ch_index=trace_ix, button=3)  # should be no-op
+    assert len(fig.mne.child_figs) == 0
+    assert len(plt.get_fignums()) == 1
     # test resize of main window
     width, height = fig.canvas.manager.canvas.get_width_height()
     fig.canvas.manager.canvas.resize(width // 2, height // 2)
@@ -366,8 +356,8 @@ def test_plot_raw_keypresses(raw):
     fig = raw.plot()
     # test twice → once in normal, once in butterfly view.
     # NB: keys a, j, and ? are tested in test_plot_raw_child_figures()
-    keys = ('down', 'up', 'right', 'left', '-', '+', '=', 'd', 'd', 'pageup',
-            'pagedown', 'home', 'end', 'z', 'z', 's', 's', 'f11', 'b')
+    keys = ('pagedown', 'down', 'up', 'down', 'right', 'left', '-', '+', '=',
+            'd', 'd', 'pageup', 'home', 'end', 'z', 'z', 's', 's', 'f11', 'b')
     # test for group_by='original'
     for key in 2 * keys + ('escape',):
         fig.canvas.key_press_event(key)
@@ -400,7 +390,7 @@ def test_plot_raw_traces(raw):
     assert label in fig.mne.info['bads']
     _fake_click(fig, data_ax, [x, y], xform='data')  # click data to unmark bad
     assert label not in fig.mne.info['bads']
-    _click_ch_name_helper(fig, ch_index=0, button=1)  # click name to mark bad
+    _click_ch_name(fig, ch_index=0, button=1)        # click name to mark bad
     assert label in fig.mne.info['bads']
     # test other kinds of clicks
     _fake_click(fig, data_ax, [0.5, 0.999])  # click elsewhere (add vline)
@@ -423,8 +413,8 @@ def test_plot_raw_traces(raw):
     # test clicking a channel name in butterfly mode
     bads = fig.mne.info['bads'].copy()
     fig.canvas.key_press_event('b')
-    _click_ch_name_helper(fig, ch_index=0, button=1)  # should be no-op
-    assert fig.mne.info['bads'] == bads               # unchanged
+    _click_ch_name(fig, ch_index=0, button=1)  # should be no-op
+    assert fig.mne.info['bads'] == bads        # unchanged
     fig.canvas.key_press_event('b')
 
     # test starting up in zen mode
@@ -536,7 +526,18 @@ def test_plot_annotations(raw):
     with pytest.warns(RuntimeWarning, match='expanding outside'):
         raw.set_annotations(annot)
     _annotation_helper(raw)
-    plt.close('all')
+    # test annotation visibility toggle
+    fig = raw.plot()
+    assert len(fig.mne.annotations) == 1
+    assert len(fig.mne.annotation_texts) == 1
+    fig.canvas.key_press_event('a')  # start annotation mode
+    checkboxes = fig.mne.show_hide_annotation_checkboxes
+    checkboxes.set_active(0)
+    assert len(fig.mne.annotations) == 0
+    assert len(fig.mne.annotation_texts) == 0
+    checkboxes.set_active(0)
+    assert len(fig.mne.annotations) == 1
+    assert len(fig.mne.annotation_texts) == 1
 
 
 @pytest.mark.parametrize('filtorder', (0, 2))  # FIR, IIR
@@ -560,7 +561,8 @@ def test_plot_raw_psd(raw):
     """Test plotting of raw psds."""
     raw_orig = raw.copy()
     # normal mode
-    raw.plot_psd(average=False)
+    fig = raw.plot_psd(average=False)
+    fig.canvas.resize_event()
     # specific mode
     picks = pick_types(raw.info, meg='mag', eeg=False)[:4]
     raw.plot_psd(tmax=None, picks=picks, area_mode='range', average=False,
@@ -568,17 +570,18 @@ def test_plot_raw_psd(raw):
     raw.plot_psd(tmax=20., color='yellow', dB=False, line_alpha=0.4,
                  n_overlap=0.1, average=False)
     plt.close('all')
+    # one axes supplied
     ax = plt.axes()
-    # if ax is supplied:
-    pytest.raises(ValueError, raw.plot_psd, ax=ax, average=True)
     raw.plot_psd(tmax=None, picks=picks, ax=ax, average=True)
     plt.close('all')
-    ax = plt.axes()
-    with pytest.raises(ValueError, match='2 axes must be supplied, got 1'):
-        raw.plot_psd(ax=ax, average=True)
+    # two axes supplied
+    _, axs = plt.subplots(2)
+    raw.plot_psd(tmax=None, ax=axs, average=True)
     plt.close('all')
-    ax = plt.subplots(2)[1]
-    raw.plot_psd(tmax=None, ax=ax, average=True)
+    # need 2, got 1
+    ax = plt.axes()
+    with pytest.raises(ValueError, match='of length 2, while the length is 1'):
+        raw.plot_psd(ax=ax, average=True)
     plt.close('all')
     # topo psd
     ax = plt.subplot()
@@ -595,22 +598,23 @@ def test_plot_raw_psd(raw):
                                           ('power', 'amplitude')):
         with pytest.warns(UserWarning, match='[Infinite|Zero]'):
             fig = raw.plot_psd(average=True, dB=dB, estimate=estimate)
-        ylabel = fig.axes[1].get_ylabel()
+        # check grad axes
+        title = fig.axes[0].get_title()
+        ylabel = fig.axes[0].get_ylabel()
         ends_dB = ylabel.endswith('mathrm{(dB)}$')
+        unit = '(fT/cm)²/Hz' if estimate == 'power' else r'fT/cm/\sqrt{Hz}'
+        assert title == 'Gradiometers', title
+        assert unit in ylabel, ylabel
         if dB:
             assert ends_dB, ylabel
         else:
             assert not ends_dB, ylabel
-        if estimate == 'amplitude':
-            assert r'fT/cm/\sqrt{Hz}' in ylabel, ylabel
-        else:
-            assert estimate == 'power'
-            assert '(fT/cm)²/Hz' in ylabel, ylabel
-        ylabel = fig.axes[0].get_ylabel()
-        if estimate == 'amplitude':
-            assert r'fT/\sqrt{Hz}' in ylabel
-        else:
-            assert 'fT²/Hz' in ylabel
+        # check mag axes
+        title = fig.axes[1].get_title()
+        ylabel = fig.axes[1].get_ylabel()
+        unit = 'fT²/Hz' if estimate == 'power' else r'fT/\sqrt{Hz}'
+        assert title == 'Magnetometers', title
+        assert unit in ylabel, ylabel
     # test reject_by_annotation
     raw = raw_orig
     raw.set_annotations(Annotations([1, 5], [3, 3], ['test', 'test']))
@@ -619,7 +623,7 @@ def test_plot_raw_psd(raw):
     plt.close('all')
 
     # test fmax value checking
-    with pytest.raises(ValueError, match='not exceed one half the sampling'):
+    with pytest.raises(ValueError, match='must not exceed ½ the sampling'):
         raw.plot_psd(fmax=50000)
 
     # test xscale value checking

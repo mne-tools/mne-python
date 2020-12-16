@@ -25,7 +25,7 @@ from .io import read_raw_fif, read_info
 from .io.pick import _DATA_CH_TYPES_SPLIT
 from .source_space import _mri_orientation
 from .utils import (logger, verbose, get_subjects_dir, warn,
-                    fill_doc, _check_option, _validate_type)
+                    fill_doc, _check_option, _validate_type, _safe_input)
 from .viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
                   plot_compare_evokeds)
 from .viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
@@ -1606,7 +1606,7 @@ class Report(object):
             msg = ('Report already exists at location %s. '
                    'Overwrite it (y/[n])? '
                    % fname)
-            answer = input(msg)
+            answer = _safe_input(msg, alt='pass overwrite=True')
             if answer.lower() == 'y':
                 overwrite = True
 

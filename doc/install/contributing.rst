@@ -768,7 +768,7 @@ for the return value, even if the function or method's return value is never
 stored under that name in the code.
 
 
-Vizualization
+Visualization
 -------------
 
 Visualization capabilities should be made available in both function and method

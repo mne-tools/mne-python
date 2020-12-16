@@ -24,7 +24,7 @@ from mayavi.core.ui.mayavi_scene import MayaviScene
 from tvtk.pyface.tvtk_scene import TVTKScene
 
 from .base_renderer import _BaseRenderer
-from ._utils import _check_color, ALLOWED_QUIVER_MODES
+from ._utils import _check_color, _alpha_blend_background, ALLOWED_QUIVER_MODES
 from ...surface import _normalize_vectors
 from ...utils import (_import_mlab, _validate_type, SilenceStdout,
                       copy_base_doc_to_subclass_doc, _check_option)
@@ -234,7 +234,7 @@ class _Renderer(_BaseRenderer):
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
                  opacity=1.0, scale_mode='none', scalars=None,
                  backface_culling=False, colormap=None, vmin=None, vmax=None,
-                 line_width=2., name=None):
+                 line_width=2., name=None, solid_transform=None):
         _check_option('mode', mode, ALLOWED_QUIVER_MODES)
         color = _check_color(color)
         with warnings.catch_warnings(record=True):  # traits
@@ -244,12 +244,15 @@ class _Renderer(_BaseRenderer):
                                    scale_mode=scale_mode,
                                    resolution=resolution, scalars=scalars,
                                    opacity=opacity, figure=self.fig)
-            elif mode in ('cone', 'sphere'):
+            elif mode in ('cone', 'sphere', 'oct'):
+                use_mode = 'sphere' if mode == 'oct' else mode
                 quiv = self.mlab.quiver3d(x, y, z, u, v, w, color=color,
-                                          mode=mode, scale_factor=scale,
+                                          mode=use_mode, scale_factor=scale,
                                           opacity=opacity, figure=self.fig)
                 if mode == 'sphere':
                     quiv.glyph.glyph_source.glyph_source.center = 0., 0., 0.
+                elif mode == 'oct':
+                    _oct_glyph(quiv.glyph.glyph_source, solid_transform)
             else:
                 assert mode == 'cylinder', mode  # should be guaranteed above
                 quiv = self.mlab.quiver3d(x, y, z, u, v, w, mode=mode,
@@ -298,10 +301,7 @@ class _Renderer(_BaseRenderer):
             ctable = lut.table.to_array()
             cbar_lut = tvtk.LookupTable()
             cbar_lut.deep_copy(lut)
-            alphas = ctable[:, -1][:, np.newaxis] / 255.
-            use_lut = ctable.copy()
-            use_lut[:, -1] = 255.
-            vals = (use_lut * alphas) + bgcolor * (1 - alphas)
+            vals = _alpha_blend_background(ctable, bgcolor)
             cbar_lut.table.from_array(vals)
             cmap.scalar_bar.lookup_table = cbar_lut
 
@@ -313,7 +313,7 @@ class _Renderer(_BaseRenderer):
         _close_3d_figure(figure=self.fig)
 
     def set_camera(self, azimuth=None, elevation=None, distance=None,
-                   focalpoint=None, roll=None):
+                   focalpoint=None, roll=None, reset_camera=None):
         _set_3d_view(figure=self.fig, azimuth=azimuth,
                      elevation=elevation, distance=distance,
                      focalpoint=focalpoint, roll=roll)
@@ -450,7 +450,8 @@ def _close_all():
     mlab.close(all=True)
 
 
-def _set_3d_view(figure, azimuth, elevation, focalpoint, distance, roll=None):
+def _set_3d_view(figure, azimuth, elevation, focalpoint, distance, roll=None,
+                 reset_camera=True):
     from mayavi import mlab
     with warnings.catch_warnings(record=True):  # traits
         with SilenceStdout():
@@ -523,3 +524,32 @@ def _testing_context(interactive):
         yield
     finally:
         mlab.options.backend = orig_backend
+
+
+def _oct_glyph(glyph_source, transform):
+    from tvtk.api import tvtk
+    from tvtk.common import configure_input
+    from traits.api import Array
+    gs = tvtk.PlatonicSolidSource()
+
+    # Workaround for:
+    #  File "mayavi/components/glyph_source.py", line 231, in _glyph_position_changed  # noqa: E501
+    #    g.center = 0.0, 0.0, 0.0
+    # traits.trait_errors.TraitError: Cannot set the undefined 'center' attribute of a 'TransformPolyDataFilter' object.  # noqa: E501
+    class SafeTransformPolyDataFilter(tvtk.TransformPolyDataFilter):
+        center = Array(shape=(3,), value=np.zeros(3))
+
+    gs.solid_type = 'octahedron'
+    if transform is not None:
+        # glyph:             mayavi.modules.vectors.Vectors
+        # glyph.glyph:       vtkGlyph3D
+        # glyph.glyph.glyph: mayavi.components.glyph.Glyph
+        assert transform.shape == (4, 4)
+        tr = tvtk.Transform()
+        tr.set_matrix(transform.ravel())
+        trp = SafeTransformPolyDataFilter()
+        configure_input(trp, gs)
+        trp.transform = tr
+        trp.update()
+        gs = trp
+    glyph_source.glyph_source = gs

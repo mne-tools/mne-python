@@ -7,23 +7,20 @@
 # License: Simplified BSD
 
 from functools import partial
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict
 
 import numpy as np
 
 from ..annotations import _annotations_starts_stops
 from ..filter import create_filter
-from ..io.pick import (pick_types, _pick_data_channels, pick_info,
-                       pick_channels, _DATA_CH_TYPES_ORDER_DEFAULT)
-from ..utils import verbose, _ensure_int, _validate_type, _check_option
+from ..io.pick import pick_types, _pick_data_channels, pick_info, pick_channels
+from ..utils import verbose, _validate_type, _check_option
 from ..time_frequency import psd_welch
 from ..defaults import _handle_default
 from .topo import _plot_topo, _plot_timeseries, _plot_timeseries_unified
-from .utils import (_prepare_mne_browse, figure_nobar, plt_show,
-                    _get_figsize_from_config, _setup_browser_offsets,
-                    _compute_scalings, _handle_decim, _check_cov,
-                    _set_ax_label_style, _simplify_float, _check_psd_fmax,
-                    _set_window_title, _shorten_path_from_middle)
+from .utils import (plt_show, _compute_scalings, _handle_decim, _check_cov,
+                    _shorten_path_from_middle,
+                    _get_channel_plotting_order, _make_event_color_dict)
 
 _RAW_CLIP_DEF = 1.5
 
@@ -68,11 +65,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     bad_color : color object
         Color to make bad channels.
-    event_color : color object | dict
-        Color(s) to use for events. For all events in the same color, pass any
-        matplotlib-compatible color. Can also be a `dict` mapping event numbers
-        to colors, but if so it must include all events or include a "fallback"
-        entry with key ``-1``.
+    %(event_color)s
+        Defaults to ``'cyan'``.
     scalings : 'auto' | dict | None
         Scaling factors for the traces. If any fields in scalings are 'auto',
         the scaling factor is set to match the 99.5th percentile of a subset of
@@ -136,18 +130,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         Individual projectors can be enabled/disabled interactively (see
         Notes). This argument only affects the plot; use ``raw.apply_proj()``
         to modify the data stored in the Raw object.
-    group_by : str
-        How to group channels. ``'type'`` groups by channel type,
-        ``'original'`` plots in the order of ch_names, ``'selection'`` uses
-        Elekta's channel groupings (only works for Neuromag data),
-        ``'position'`` groups the channels by the positions of the sensors.
-        ``'selection'`` and ``'position'`` modes allow custom selections by
-        using a lasso selector on the topomap. Pressing ``ctrl`` key while
-        selecting allows appending to the current selection. Channels marked as
-        bad appear with red edges on the topomap. In butterfly mode, ``'type'``
-        and ``'original'`` group the channels by type, whereas ``'selection'``
-        and ``'position'`` use regional grouping. ``'type'`` and ``'original'``
-        modes are overridden with ``order`` keyword.
+    %(browse_group_by)s
     butterfly : bool
         Whether to start in butterfly mode. Defaults to False.
     decim : int | 'auto'
@@ -280,17 +263,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     # determine trace order
     ch_names = np.array(raw.ch_names)
     ch_types = np.array(raw.get_channel_types())
-    if order is None:
-        # for backward compat, we swap the first two to keep grad before mag
-        ch_type_order = list(_DATA_CH_TYPES_ORDER_DEFAULT)
-        ch_type_order = tuple(['grad', 'mag'] + ch_type_order[2:])
-        order = [pick_idx for order_type in ch_type_order
-                 for pick_idx, pick_type in enumerate(ch_types)
-                 if order_type == pick_type]
-    elif not isinstance(order, (np.ndarray, list, tuple)):
-        raise ValueError('order should be array-like; got '
-                         f'"{order}" ({type(order)}).')
-    order = np.asarray(order)
+    order = _get_channel_plotting_order(order, ch_types)
     n_channels = min(info['nchan'], n_channels, len(order))
     # adjust order based on channel selection, if needed
     selections = None
@@ -300,21 +273,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         default_selection = list(selections)[0]
         n_channels = len(selections[default_selection])
 
-    # if event_color is a dict
-    if isinstance(event_color, dict):
-        event_color = {_ensure_int(key, 'event_color key'): value
-                       for key, value in event_color.items()}
-        default = event_color.pop(-1, None)
-        default_factory = None if default is None else lambda: default
-        event_color_dict = defaultdict(default_factory)
-        for key, value in event_color.items():
-            if key < 1:
-                raise KeyError('event_color keys must be strictly positive, '
-                               f'or -1 (cannot use {key})')
-            event_color_dict[key] = value
-    # if event_color is a string or other MPL color-like thing
-    else:
-        event_color_dict = defaultdict(lambda: event_color)
+    # handle event colors
+    event_color_dict = _make_event_color_dict(event_color, events, event_id)
 
     # handle first_samp
     first_time = raw._first_time if show_first_samp else 0
@@ -394,7 +354,6 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     # plot annotations (if any)
     fig._setup_annotation_colors()
-    fig._update_annotation_segments()
     fig._draw_annotations()
 
     # start with projectors dialog open, if requested
@@ -415,7 +374,8 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
                  picks=None, ax=None, color='black', xscale='linear',
                  area_mode='std', area_alpha=0.33, dB=True, estimate='auto',
                  show=True, n_jobs=1, average=False, line_alpha=None,
-                 spatial_colors=True, sphere=None, verbose=None):
+                 spatial_colors=True, sphere=None, window='hamming',
+                 verbose=None):
     """%(plot_psd_doc)s.
 
     Parameters
@@ -455,6 +415,9 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
     %(plot_psd_line_alpha)s
     %(plot_psd_spatial_colors)s
     %(topomap_sphere_auto)s
+    %(window-psd)s
+
+        .. versionadded:: 0.22.0
     %(verbose)s
 
     Returns
@@ -462,315 +425,24 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
     fig : instance of Figure
         Figure with frequency spectra of the data channels.
     """
-    from .utils import _set_psd_plot_params, _plot_psd
-    fig, picks_list, titles_list, units_list, scalings_list, ax_list, \
-        make_label, xlabels_list = _set_psd_plot_params(
-            raw.info, proj, picks, ax, area_mode)
-    _check_psd_fmax(raw, fmax)
-    del ax
-    psd_list = list()
+    from ._figure import _psd_figure
+    # handle FFT
     if n_fft is None:
         if tmax is None or not np.isfinite(tmax):
             tmax = raw.times[-1]
         tmin = 0. if tmin is None else tmin
         n_fft = min(np.diff(raw.time_as_index([tmin, tmax]))[0] + 1, 2048)
-    for picks in picks_list:
-        psd, freqs = psd_welch(raw, tmin=tmin, tmax=tmax, picks=picks,
-                               fmin=fmin, fmax=fmax, proj=proj, n_fft=n_fft,
-                               n_overlap=n_overlap, n_jobs=n_jobs,
-                               reject_by_annotation=reject_by_annotation)
-        psd_list.append(psd)
-    fig = _plot_psd(raw, fig, freqs, psd_list, picks_list, titles_list,
-                    units_list, scalings_list, ax_list, make_label, color,
-                    area_mode, area_alpha, dB, estimate, average,
-                    spatial_colors, xscale, line_alpha, sphere, xlabels_list)
+    # generate figure
+    fig = _psd_figure(
+        inst=raw, proj=proj, picks=picks, axes=ax, tmin=tmin, tmax=tmax,
+        fmin=fmin, fmax=fmax, sphere=sphere, xscale=xscale, dB=dB,
+        average=average, estimate=estimate, area_mode=area_mode,
+        line_alpha=line_alpha, area_alpha=area_alpha, color=color,
+        spatial_colors=spatial_colors, n_jobs=n_jobs, n_fft=n_fft,
+        n_overlap=n_overlap, reject_by_annotation=reject_by_annotation,
+        window=window)
     plt_show(show)
     return fig
-
-
-def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
-                            n_channels):
-    """Set up the mne_browse_raw window."""
-    import matplotlib as mpl
-
-    figsize = _get_figsize_from_config()
-    params['fig'] = figure_nobar(facecolor=bgcolor, figsize=figsize)
-    _set_window_title(params['fig'], title or "Raw")
-    # most of the axes setup is done in _prepare_mne_browse
-    _prepare_mne_browse(params, xlabel='Time (s)')
-    ax = params['ax']
-    ax_hscroll = params['ax_hscroll']
-    ax_vscroll = params['ax_vscroll']
-
-    # populate vertical and horizontal scrollbars
-    info = params['info']
-    n_ch = len(inds)
-
-    if 'fig_selection' in params:
-        selections = params['selections']
-        labels = [
-            label._text for label in params['fig_selection'].radio.labels]
-        # Flatten the selections dict to a list.
-        sels = [selections[label] for label in labels]
-        cis = [item for sublist in sels for item in sublist]
-
-        for idx, ci in enumerate(cis):
-            this_color = (bad_color if info['ch_names'][ci] in
-                          info['bads'] else color)
-            if isinstance(this_color, dict):
-                this_color = this_color[params['types'][ci]]
-            ax_vscroll.add_patch(mpl.patches.Rectangle((0, idx), 1, 1,
-                                                       facecolor=this_color,
-                                                       edgecolor=this_color))
-        ax_vscroll.set_ylim(len(cis), 0)
-        n_channels = max([len(selections[labels[0]]), n_channels])
-    else:
-        for ci in range(len(inds)):
-            this_color = (bad_color if info['ch_names'][inds[ci]] in
-                          info['bads'] else color)
-            if isinstance(this_color, dict):
-                this_color = this_color[params['types'][inds[ci]]]
-            ax_vscroll.add_patch(mpl.patches.Rectangle((0, ci), 1, 1,
-                                                       facecolor=this_color,
-                                                       edgecolor=this_color))
-        ax_vscroll.set_ylim(n_ch, 0)
-    vsel_patch = mpl.patches.Rectangle((0, 0), 1, n_channels, alpha=0.5,
-                                       facecolor='w', edgecolor='w')
-    ax_vscroll.add_patch(vsel_patch)
-    params['vsel_patch'] = vsel_patch
-
-    hsel_patch = mpl.patches.Rectangle((params['t_start'], 0),
-                                       params['duration'], 1, edgecolor='k',
-                                       facecolor=(0.75, 0.75, 0.75),
-                                       alpha=0.25, linewidth=4, clip_on=False)
-    ax_hscroll.add_patch(hsel_patch)
-    params['hsel_patch'] = hsel_patch
-    ax_hscroll.set_xlim(params['first_time'], params['first_time'] +
-                        params['n_times'] / float(info['sfreq']))
-
-    vertline_color = (0., 0.75, 0.)
-    params['ax_vertline'] = ax.axvline(0, color=vertline_color, zorder=4)
-    params['ax_vertline'].ch_name = ''
-    params['vertline_t'] = ax_hscroll.text(params['first_time'], 1.2, '',
-                                           color=vertline_color, fontsize=10,
-                                           va='bottom', ha='right')
-    params['ax_hscroll_vertline'] = ax_hscroll.axvline(0,
-                                                       color=vertline_color,
-                                                       zorder=2)
-    # make shells for plotting traces
-    _setup_browser_offsets(params, n_channels)
-    ax.set_xlim(params['t_start'], params['t_start'] + params['duration'],
-                False)
-
-    params['lines'] = [ax.plot([np.nan], antialiased=True, linewidth=0.5)[0]
-                       for _ in range(n_ch)]
-    ax.set_yticklabels(
-        ['X' * max([len(ch) for ch in info['ch_names']])] *
-        len(params['offsets']))
-    params['fig_annotation'] = None
-    params['fig_help'] = None
-    params['segment_line'] = None
-
-
-def _plot_raw_traces(params, color, bad_color, event_lines=None,
-                     event_color=None):
-    """Plot raw traces."""
-    from matplotlib.patches import Rectangle
-    lines = params['lines']
-    info = params['info']
-    inds = params['inds']
-    butterfly = params['butterfly']
-    if butterfly:
-        n_channels = len(params['offsets'])
-        ch_start = 0
-        offsets = params['offsets'][inds]
-    else:
-        n_channels = params['n_channels']
-        ch_start = params['ch_start']
-        offsets = params['offsets']
-    params['bad_color'] = bad_color
-    ax = params['ax']
-    # Scalebars
-    for bar in params.get('scalebars', {}).values():
-        ax.lines.remove(bar)
-    params['scalebars'] = dict()
-    # delete event and annotation texts as well as scale bar texts
-    params['ax'].texts = []
-    # do the plotting
-    tick_list = list()
-    tick_colors = list()
-    for ii in range(n_channels):
-        ch_ind = ii + ch_start
-        # let's be generous here and allow users to pass
-        # n_channels per view >= the number of traces available
-        if ii >= len(lines):
-            break
-        elif ch_ind < len(inds):
-            # scale to fit
-            ch_name = info['ch_names'][inds[ch_ind]]
-            tick_list += [ch_name]
-            offset = offsets[ii]
-            this_type = params['types'][inds[ch_ind]]
-            # do NOT operate in-place lest this get screwed up
-
-            # apply user-supplied scale factor
-            this_data = params['data'][inds[ch_ind]] * params['scale_factor']
-
-            # set color
-            this_color = bad_color if ch_name in info['bads'] else color
-            if isinstance(this_color, dict):
-                this_color = this_color[this_type]
-
-            if inds[ch_ind] in params['data_picks']:
-                this_decim = params['decim']
-            else:
-                this_decim = 1
-            this_t = params['times'][::this_decim] + params['first_time']
-
-            # clip to range (if relevant)
-            if params['clipping'] == 'clamp':
-                np.clip(this_data, -1, 1, out=this_data)
-            elif params['clipping'] is not None:
-                l, w = this_t[0], this_t[-1] - this_t[0]
-                ylim = params['ax'].get_ylim()
-                b = offset - params['clipping']  # max(, ylim[0])
-                h = 2 * params['clipping']  # min(, ylim[1] - b)
-                assert ylim[1] <= ylim[0]  # inverted
-                b = max(b, ylim[1])
-                h = min(h, ylim[0] - b)
-                rect = Rectangle((l, b), w, h, transform=ax.transData)
-                lines[ii].set_clip_path(rect)
-
-            # subtraction here gets correct orientation for flipped ylim
-            lines[ii].set_ydata(offset - this_data[..., ::this_decim])
-            lines[ii].set_xdata(this_t)
-            lines[ii].set_color(this_color)
-            vars(lines[ii])['ch_name'] = ch_name
-            vars(lines[ii])['def_color'] = color[this_type]
-            this_z = 0 if ch_name in info['bads'] else 1
-            if butterfly:
-                if ch_name not in info['bads']:
-                    if params['types'][ii] == 'mag':
-                        this_z = 2
-                    elif params['types'][ii] == 'grad':
-                        this_z = 3
-            else:
-                # set label color
-                this_color = (bad_color if ch_name in info['bads'] else
-                              this_color)
-                tick_colors.append(this_color)
-            lines[ii].set_zorder(this_z)
-            # add a scale bar
-            if (params['show_scalebars'] and
-                    this_type != 'stim' and
-                    ch_name not in params['whitened_ch_names'] and
-                    ch_name not in params['info']['bads'] and
-                    this_type not in params['scalebars'] and
-                    this_type in params['scalings'] and
-                    this_type in params.get('unit_scalings', {}) and
-                    this_type in params.get('units', {})):
-                scale_color = '#AA3377'  # purple
-                x = this_t[0]
-                # This is what our data get multiplied by
-                inv_norm = (
-                    params['scalings'][this_type] *
-                    params['unit_scalings'][this_type] *
-                    2. /
-                    params['scale_factor'])
-
-                units = params['units'][this_type]
-                bar = ax.plot([x, x], [offset - 1., offset + 1.],
-                              color=scale_color, zorder=5, lw=4)[0]
-                text = ax.text(x, offset + 1.,
-                               '%s %s ' % (_simplify_float(inv_norm), units),
-                               va='baseline', ha='right',
-                               color=scale_color, zorder=5, size='xx-small')
-                params['scalebars'][this_type] = bar
-        else:
-            # "remove" lines
-            lines[ii].set_xdata([])
-            lines[ii].set_ydata([])
-
-    # deal with event lines
-    if params['event_times'] is not None:
-        # find events in the time window
-        event_times = params['event_times']
-        mask = np.logical_and(event_times >= params['times'][0],
-                              event_times <= params['times'][-1])
-        event_times = event_times[mask]
-        event_nums = params['event_nums'][mask]
-        # plot them with appropriate colors
-        # go through the list backward so we end with -1, the catchall
-        used = np.zeros(len(event_times), bool)
-        ylim = params['ax'].get_ylim()
-        for ev_num, line in zip(sorted(event_color.keys())[::-1],
-                                event_lines[::-1]):
-            mask = (event_nums == ev_num) if ev_num >= 0 else ~used
-            assert not np.any(used[mask])
-            used[mask] = True
-            t = event_times[mask] + params['first_time']
-            if len(t) > 0:
-                xs = list()
-                ys = list()
-                for tt in t:
-                    xs += [tt, tt, np.nan]
-                    ys += [0, ylim[0], np.nan]
-                line.set_xdata(xs)
-                line.set_ydata(ys)
-                line.set_zorder(0)
-            else:
-                line.set_xdata([])
-                line.set_ydata([])
-
-        # don't add event numbers for more than 50 visible events
-        if len(event_times) <= 50:
-            for ev_time, ev_num in zip(event_times, event_nums):
-                if -1 in event_color or ev_num in event_color:
-                    text = params['event_id_rev'].get(ev_num, ev_num)
-                    params['ax'].text(ev_time, -0.1, text, fontsize=8,
-                                      ha='center')
-
-    if 'segments' in params:
-        while len(params['ax'].collections) > 0:  # delete previous annotations
-            params['ax'].collections.pop(-1)
-        segments = params['segments']
-        times = params['times']
-        ylim = params['ax'].get_ylim()
-        for idx, segment in enumerate(segments):
-            if segment[0] > times[-1] + params['first_time']:
-                break  # Since the segments are sorted by t_start
-            if segment[1] < times[0] + params['first_time']:
-                continue
-            start = max(segment[0], times[0] + params['first_time'])
-            end = min(times[-1] + params['first_time'], segment[1])
-            dscr = params['raw'].annotations.description[idx]
-            segment_color = params['segment_colors'][dscr]
-            params['ax'].fill_betweenx(ylim, start, end, color=segment_color,
-                                       alpha=0.3)
-            params['ax'].text((start + end) / 2., ylim[1] - 0.1, dscr,
-                              ha='center', color=segment_color)
-
-    # finalize plot
-    params['ax'].set_xlim(params['times'][0] + params['first_time'],
-                          params['times'][0] + params['first_time'] +
-                          params['duration'], False)
-    if not butterfly:
-        params['ax'].set_yticks(params['offsets'][:len(tick_list)])
-        params['ax'].set_yticklabels(tick_list, rotation=0)
-        _set_ax_label_style(params['ax'], params)
-    else:
-        tick_colors = ['k'] * len(params['ax'].get_yticks())
-    for tick_color, tick in zip(tick_colors,
-                                params['ax'].yaxis.get_ticklabels()):
-        tick.set_color(tick_color)
-    if 'fig_selection' not in params:
-        params['vsel_patch'].set_y(params['ch_start'])
-    params['fig'].canvas.draw()
-    # XXX This is a hack to make sure this figure gets drawn last
-    # so that when matplotlib goes to calculate bounds we don't get a
-    # CGContextRef error on the MacOSX backend :(
-    if params['fig_proj'] is not None:
-        params['fig_proj'].canvas.draw()
 
 
 @verbose
@@ -871,8 +543,10 @@ def _setup_channel_selections(raw, kind, order):
         selections_dict = _divide_to_regions(raw.info)
         keys = _SELECTIONS[1:]  # omit 'Vertex'
     else:  # kind == 'selection'
-        from ..io import RawFIF, RawArray
-        if not isinstance(raw, (RawFIF, RawArray)):
+        from ..channels.channels import _get_ch_info
+        (has_vv_mag, has_vv_grad, *_, has_neuromag_122_grad, has_csd_coils
+         ) = _get_ch_info(raw.info)
+        if not (has_vv_grad or has_vv_mag or has_neuromag_122_grad):
             raise ValueError("order='selection' only works for Neuromag "
                              "data. Use order='position' instead.")
         selections_dict = OrderedDict()
