@@ -21,6 +21,7 @@ ctf_fname = op.join(testing.data_path(download=False), 'CTF',
 
 @pytest.fixture()
 def short_raw():
+    """Create a short, picked raw instance."""
     raw = read_raw_fif(raw_fname).crop(0, 7).pick_types(
         meg=True, eeg=True, eog=True)
     raw.pick(raw.ch_names[:306:10] + raw.ch_names[306:]).load_data()
