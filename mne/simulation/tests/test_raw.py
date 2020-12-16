@@ -30,7 +30,7 @@ from mne.surface import _get_ico_surface
 from mne.io import read_raw_fif, RawArray
 from mne.io.constants import FIFF
 from mne.time_frequency import psd_welch
-from mne.utils import run_tests_if_main, catch_logging, check_version
+from mne.utils import catch_logging, check_version
 
 base_path = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname_short = op.join(base_path, 'test_raw.fif')
@@ -480,42 +480,37 @@ def test_simulate_raw_chpi():
 
 
 def test_simulation_cascade():
-    '''Test to verify cascading operations do not overwrite data within \
-    raw._data matrix.  This should fail in ver 0.21'''
-
+    """Test that cascading operations do not overwrite data."""
     # Create 10 second raw dataset with zeros in the data matrix
-    raw_null = read_raw_fif(raw_chpi_fname, allow_maxshield=True)
-    raw_null.crop(0, 10)
-    raw_null.load_data()
-    raw_null.pick_types(meg=True)
-    raw_null._data = np.zeros(raw_null._data.shape)  # Zero out data structure
+    raw_null = read_raw_fif(raw_chpi_fname, allow_maxshield='yes')
+    raw_null.crop(0, 1).pick_types(meg=True).load_data()
+    raw_null.apply_function(lambda x: np.zeros_like(x))
+    assert_array_equal(raw_null.get_data(), 0.)
 
     # Calculate independent signal additions
-    raw_eog = deepcopy(raw_null)
+    raw_eog = raw_null.copy()
     add_eog(raw_eog, random_state=0)
 
-    raw_ecg = deepcopy(raw_null)
+    raw_ecg = raw_null.copy()
     add_ecg(raw_ecg, random_state=0)
 
-    raw_noise = deepcopy(raw_null)
+    raw_noise = raw_null.copy()
     cov = make_ad_hoc_cov(raw_null.info)
     add_noise(raw_noise, cov, random_state=0)
 
-    raw_chpi = deepcopy(raw_null)
+    raw_chpi = raw_null.copy()
     add_chpi(raw_chpi)
 
     # Calculate Cascading signal additions
-    raw_cascade = deepcopy(raw_null)
+    raw_cascade = raw_null.copy()
     add_eog(raw_cascade, random_state=0)
     add_ecg(raw_cascade, random_state=0)
     add_chpi(raw_cascade)
     add_noise(raw_cascade, cov, random_state=0)
 
-    cascade_data = raw_cascade._data
-    serial_data = raw_eog._data + raw_ecg._data + raw_noise._data \
-        + raw_chpi._data
+    cascade_data = raw_cascade.get_data()
+    serial_data = 0.
+    for raw_other in (raw_eog, raw_ecg, raw_noise, raw_chpi):
+        serial_data += raw_other.get_data()
 
-    assert_allclose(cascade_data, serial_data)
-
-
-run_tests_if_main()
+    assert_allclose(cascade_data, serial_data, atol=1e-20)
