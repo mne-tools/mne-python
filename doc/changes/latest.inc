@@ -143,6 +143,8 @@ Bugs
 
 - Fix bug with :class:`mne.preprocessing.ICA` where projections were not tracked properly (:gh:`8343` by `Eric Larson`_)
 
+- Fix bug where extrapolation points created artifacts in :func:`mne.viz.plot_evoked_topomap` and related functions (:gh:`8425` by `Mikołaj Magnuski`_)
+
 - Fix bug with :func:`mne.preprocessing.read_ica_eeglab` where full-rank data were not handled properly (:gh:`8326` by `Eric Larson`_)
 
 - Fix bug with :ref:`somato-dataset` where the BEM was not included (:gh:`8317` by `Eric Larson`_)
