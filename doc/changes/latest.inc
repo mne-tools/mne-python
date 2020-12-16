@@ -30,6 +30,8 @@ Current (0.22.dev0)
 
 .. |Qianliang Li| replace:: **Qianliang Li**
 
+.. |Jeff Stout| replace:: **Jeff Stout**
+
 
 Enhancements
 ~~~~~~~~~~~~
@@ -102,6 +104,8 @@ Enhancements
 Bugs
 ~~~~
 - Fix orthogonalization of power envelopes in :func:`mne.connectivity.envelope_correlation` (:gh:`8658` **by new contributor** |Qianliang Li|_ and `Eric Larson`_)
+
+- Fix data overwrite of cascading simulation operations :`mne.simulation.simulate_raw` (:gh:`8633` **by new contributor** |Jeff Stout|_)
 
 - Fix a transpose issue of :func:`mne.decoding.CSP.plot_filters` (:gh:`8580` **by new contributor** |Hongjiang Ye|_)
 
