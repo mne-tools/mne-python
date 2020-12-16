@@ -115,6 +115,8 @@ Bugs
 
 - Fix bug with reading EDF and KIT files on big endian architectures such as s390x (:gh:`8618` by `Eric Larson`_)
 
+- Fix bug with :func:`mne.beamformer.make_dics` where the ``rank`` parameter was not properly handled (:gh:`8594` by `Marijn van Vliet`_ and `Eric Larson`_)
+
 - Fix bug with :func:`mne.beamformer.apply_dics` where the whitener was not properly applied (:gh:`8610` by `Eric Larson`_)
 
 - Fix bug with `~mne.viz.plot_epochs_image` when ``order`` is supplied and multiple conditions are plotted (:gh:`8377` by `Daniel McCloy`_ )
