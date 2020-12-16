@@ -18,7 +18,7 @@ from mne.beamformer import (make_dics, apply_dics, apply_dics_epochs,
 from mne.beamformer._compute_beamformer import _prepare_beamformer_input
 from mne.beamformer._dics import _prepare_noise_csd
 from mne.time_frequency import csd_morlet
-from mne.utils import object_diff, requires_h5py
+from mne.utils import object_diff, requires_h5py, catch_logging
 from mne.proj import compute_proj_evoked, make_projector
 from mne.surface import _compute_nearest
 from mne.beamformer.tests.test_lcmv import _assert_weight_norm
@@ -122,6 +122,21 @@ def _rand_csd(rng, info):
     return data
 
 
+def _make_rand_csd(info, csd, project=True):
+    rng = np.random.RandomState(0)
+    data = _rand_csd(rng, info)
+    # now we need to have the same null space as the data csd
+    s, u = np.linalg.eigh(csd.get_data(csd.frequencies[0]))
+    mask = np.abs(s) >= s[-1] * 1e-7
+    rank = mask.sum()
+    if project:
+        op = np.eye(len(u)) - u[:, ~mask] @ u[:, ~mask].T.conj()
+        data = op @ data @ op
+    noise_csd = CrossSpectralDensity(
+        _sym_mat_to_vector(data), info['ch_names'], 0., csd.n_fft)
+    return noise_csd, rank
+
+
 @pytest.mark.slowtest
 @testing.requires_testing_data
 @requires_h5py
@@ -138,10 +153,7 @@ def test_make_dics(tmpdir, _load_forward, idx, whiten):
     with pytest.raises(ValueError, match='several sensor types'):
         make_dics(epochs.info, fwd_surf, csd, label=label, pick_ori=None)
     if whiten:
-        rng = np.random.RandomState(0)
-        data = _rand_csd(rng, epochs.info)
-        noise_csd = CrossSpectralDensity(
-            _sym_mat_to_vector(data), epochs.ch_names, 0., csd.n_fft)
+        noise_csd, _ = _make_rand_csd(epochs.info, csd)
     else:
         noise_csd = None
         epochs.pick_types(meg='grad')
@@ -724,3 +736,51 @@ def test_localization_bias_free(bias_params_free, reg, pick_ori, weight_norm,
     # Compute the percentage of sources for which there is no loc bias:
     perc = (want == np.argmax(loc, axis=0)).mean() * 100
     assert lower <= perc <= upper
+
+
+@testing.requires_testing_data
+@idx_param
+@pytest.mark.parametrize('whiten', (False, True))
+def test_make_dics_rank(_load_forward, idx, whiten):
+    """Test making DICS beamformer filters with rank param."""
+    fwd_free, fwd_surf, fwd_fixed, fwd_vol = _load_forward
+    epochs, _, csd, _, label, vertices, _ = _simulate_data(fwd_fixed, idx)
+    if whiten:
+        noise_csd, want_rank = _make_rand_csd(epochs.info, csd)
+        kind = 'mag + grad'
+    else:
+        noise_csd = None
+        epochs.pick_types(meg='grad')
+        want_rank = len(epochs.ch_names)
+        kind = 'grad'
+
+    with catch_logging() as log:
+        filters = make_dics(
+            epochs.info, fwd_surf, csd, label=label, noise_csd=noise_csd,
+            verbose=True)
+    log = log.getvalue()
+    assert f'Estimated rank ({kind}): {want_rank}' in log, log
+    stc, _ = apply_dics_csd(csd, filters)
+    other_rank = want_rank - 1  # shouldn't make a huge difference
+    use_rank = dict(meg=other_rank)
+    if not whiten:
+        # XXX it's a bug that our rank functions don't treat "meg"
+        # properly here...
+        use_rank['grad'] = use_rank.pop('meg')
+    with catch_logging() as log:
+        filters_2 = make_dics(
+            epochs.info, fwd_surf, csd, label=label, noise_csd=noise_csd,
+            rank=use_rank, verbose=True)
+    log = log.getvalue()
+    assert f'Computing rank from covariance with rank={use_rank}' in log, log
+    stc_2, _ = apply_dics_csd(csd, filters_2)
+    corr = np.corrcoef(stc_2.data.ravel(), stc.data.ravel())[0, 1]
+    assert 0.999 < corr < 0.99999
+
+    # degenerate conditions
+    if whiten:
+        noise_csd, _ = _make_rand_csd(epochs.info, csd, project=False)
+        with pytest.raises(ValueError, match='meg data rank.*the noise rank'):
+            filters = make_dics(
+                epochs.info, fwd_surf, csd, label=label, noise_csd=noise_csd,
+                verbose=True)
