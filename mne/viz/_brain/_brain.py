@@ -1469,7 +1469,7 @@ class Brain(object):
         self.pick_table[vertex_id] = spheres
         return sphere
 
-    def _remove_vertex_glyph(self, mesh):
+    def _remove_vertex_glyph(self, mesh, render=True):
         vertex_id = mesh._vertex_id
         if vertex_id not in self.pick_table:
             return
@@ -1488,7 +1488,7 @@ class Brain(object):
             self.color_cycle.restore(color)
         for sphere in spheres:
             # remove all actors
-            self.plotter.remove_actor(sphere._actors)
+            self.plotter.remove_actor(sphere._actors, render=render)
             sphere._actors = None
             self._spheres.pop(self._spheres.index(sphere))
         self.pick_table.pop(vertex_id)
@@ -1498,7 +1498,7 @@ class Brain(object):
         if not self.time_viewer:
             return
         for sphere in list(self._spheres):  # will remove itself, so copy
-            self._remove_vertex_glyph(sphere)
+            self._remove_vertex_glyph(sphere, render=False)
         assert sum(len(v) for v in self.picked_points.values()) == 0
         assert len(self.pick_table) == 0
         assert len(self._spheres) == 0
