@@ -91,6 +91,7 @@ DEFAULTS = dict(
     volume_options=dict(
         alpha=None, resolution=1., surface_alpha=None, blending='mip',
         silhouette_alpha=None, silhouette_linewidth=2.),
+    min_kwargs=dict(cons=(), rhobeg=1e-3, rhoend=1e-4, disp=False),
 )
 
 

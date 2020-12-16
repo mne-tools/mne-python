@@ -14,7 +14,8 @@ from mne.io import read_raw_fif
 from mne.datasets import testing
 from mne.io.tag import _loc_to_coil_trans
 from mne.preprocessing import (read_fine_calibration, write_fine_calibration,
-                               compute_fine_calibration, maxwell_filter)
+                               compute_fine_calibration, maxwell_filter,
+                               _fine_cal)
 from mne.preprocessing.tests.test_maxwell import _assert_shielding
 from mne.transforms import rot_to_quat, _angle_between_quats
 from mne.utils import object_diff
@@ -47,10 +48,13 @@ def test_fine_cal_io(tmpdir, fname):
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_compute_fine_cal():
+def test_compute_fine_cal(monkeypatch):
     """Test computing fine calibration coefficients."""
     raw = read_raw_fif(erm_fname)
     want_cal = read_fine_calibration(cal_mf_fname)
+    # Speed up the test a bit
+    monkeypatch.setattr(
+        _fine_cal, '_RHO_VALS', dict(rhobeg=5e-2, rhoend=1e-3))
     got_cal, counts = compute_fine_calibration(
         raw, cross_talk=ctc, n_imbalance=1, verbose='debug')
     assert counts == 1
@@ -103,7 +107,8 @@ def test_compute_fine_cal():
             # file
             assert 66 < want_orig_max_angle < 68, want_orig_max_angle
             assert 67 < got_orig_max_angle < 107, got_orig_max_angle
-            assert 53 < got_want_max_angle < 60, got_want_max_angle
+            # This is 55 if we don't mess with _RHO_VALS
+            assert 130 < got_want_max_angle < 140, got_want_max_angle
 
     kwargs = dict(bad_condition='warning', cross_talk=ctc, coord_frame='meg')
     raw_sss = maxwell_filter(raw, **kwargs)

@@ -6,8 +6,7 @@ import numpy as np
 from scipy import linalg
 from scipy.spatial.distance import cdist
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           assert_almost_equal, assert_allclose,
-                           assert_array_less)
+                           assert_allclose, assert_array_less)
 
 import mne
 from mne.transforms import apply_trans, invert_transform
@@ -281,11 +280,11 @@ def test_make_lcmv_bem(tmpdir, reg, proj, kind):
         # similar to free orientation results in areas with channel
         # coverage
         label = mne.read_label(fname_label)
-        mean_stc = stc.extract_label_time_course(label, fwd['src'],
-                                                    mode='mean')
+        mean_stc = stc.extract_label_time_course(
+            label, fwd['src'], mode='mean')
         mean_stc_max_pow = \
-            stc_max_power.extract_label_time_course(label, fwd['src'],
-                                                    mode='mean')
+            stc_max_power.extract_label_time_course(
+                label, fwd['src'], mode='mean')
         assert_array_less(np.abs(mean_stc - mean_stc_max_pow), 1.0)
 
     # Test if spatial filter contains src_type
