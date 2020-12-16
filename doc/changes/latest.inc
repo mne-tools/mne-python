@@ -28,6 +28,8 @@ Current (0.22.dev0)
 
 .. |Hongjiang Ye| replace:: **Hongjiang Ye**
 
+.. |Qianliang Li| replace:: **Qianliang Li**
+
 
 Enhancements
 ~~~~~~~~~~~~
@@ -83,6 +85,8 @@ Enhancements
 
 - Add option ``on_header_missing`` to :func:`mne.channels.read_polhemus_fastscan` (:gh:`8622` by `Eric Larson`_)
 
+- Add option ``window`` to :func:`mne.time_frequency.psd_welch` and related functions (:gh:`8862` by `Eric Larson`_)
+
 - `mne.preprocessing.ICA.plot_sources` now displays an `mne.preprocessing.ICA.plot_properties` window when right-clicking on component names on the y-axis (:gh:`8381` by `Daniel McCloy`_)
 
 - :func:`mne.io.read_raw_edf`, :func:`mne.io.read_raw_bdf`, and :func:`mne.io.read_raw_gdf` now detect and handle invalid highpass/lowpass filter settings (:gh:`8584` by `Clemens Brunner`_)
@@ -97,6 +101,8 @@ Enhancements
 
 Bugs
 ~~~~
+- Fix orthogonalization of power envelopes in :func:`mne.connectivity.envelope_correlation` (:gh:`8658` **by new contributor** |Qianliang Li|_ and `Eric Larson`_)
+
 - Fix data overwrite of cascading simulation operations :`mne.simulation.raw` (:gh: `8633` **by new contributor** |Jeff Stout|_)
 
 - Fix a transpose issue of :func:`mne.decoding.CSP.plot_filters` (:gh:`8580` **by new contributor** |Hongjiang Ye|_)
@@ -111,6 +117,8 @@ Bugs
 
 - Fix bug with reading EDF and KIT files on big endian architectures such as s390x (:gh:`8618` by `Eric Larson`_)
 
+- Fix bug with :func:`mne.beamformer.apply_dics` where the whitener was not properly applied (:gh:`8610` by `Eric Larson`_)
+
 - Fix bug with `~mne.viz.plot_epochs_image` when ``order`` is supplied and multiple conditions are plotted (:gh:`8377` by `Daniel McCloy`_ )
 
 - Fix bug with :func:`mne.viz.plot_source_estimates` when using the PyVista backend where singleton time points were not handled properly (:gh:`8285` by `Eric Larson`_)
@@ -118,6 +126,8 @@ Bugs
 - Fix bug when passing ``axes`` to plotting functions, :func:`matplotlib.pyplot.tight_layout` will not be called when the figure was created using a constrained layout (:gh:`8344` by `Eric Larson`_)
 
 - Fix bug with compensated CTF data when picking channels without preload (:gh:`8318` by `Eric Larson`_)
+
+- Fix bug with plotting MEG topographies where the wrong extrapolation made was used in ICA (:gh:`8637` by `Eric Larson`_)
 
 - Fix bug with plotting MEG topographies where the wrong extrapolation made was used in ICA (:gh:`8637` by `Eric Larson`_)
 
@@ -138,6 +148,8 @@ Bugs
 - Fix bug with :ref:`somato-dataset` where the BEM was not included (:gh:`8317` by `Eric Larson`_)
 
 - Fix bug with coordinate frames when performing volumetric morphs via :func:`mne.compute_source_morph` and :meth:`mne.SourceMorph.apply` that could lead to ~5 mm bias (:gh:`8642` by `Eric Larson`_)
+
+- Fix bug with volumetric rendering alpha in :meth:`mne.VolSourceEstimate.plot_3d` and related functions (:gh:`8663` by `Eric Larson`_)
 
 - Fix missing documentation of :func:`mne.io.read_raw_nihon` in :ref:`tut-imorting-eeg-data` (:gh`8320` by `Adam Li`_)
 
@@ -174,6 +186,8 @@ Bugs
 - Fix inset sensor plots to always use equal aspect (:gh:`8545` by `Daniel McCloy`_)
 
 - Fix bug in `mne.viz.plot_compare_evokeds` where evokeds with identical ``comment`` attributes would not plot properly if passed as a list (:gh:`8590` by `Daniel McCloy`_)
+
+- Fix bug in :func:`mne.time_frequency.psd_welch` and related functions where the window default errantly changed from ``'hamming'`` to ``('tukey', 0.25)`` (:gh:`8862` by `Eric Larson`_)
 
 - Fix bug in :func:`mne.io.read_raw_kit` where scale factors for EEG channels could be set to zero (:gh:`8542` by `Eric Larson`_)
 

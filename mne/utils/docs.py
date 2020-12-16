@@ -578,6 +578,17 @@ window : str | tuple
     Frequency-domain window to use in resampling.
     See :func:`scipy.signal.resample`.
 """
+docdict['average-psd'] = """
+average : str | None
+    How to average the segments. If ``mean`` (default), calculate the
+    arithmetic mean. If ``median``, calculate the median, corrected for
+    its bias relative to the mean. If ``None``, returns the unaggregated
+    segments.
+"""
+docdict['window-psd'] = """
+window : str | float | tuple
+    Windowing function to use. See :func:`scipy.signal.get_window`.
+"""
 docdict['decim'] = """
 decim : int
     Factor by which to subsample the data.
@@ -1944,6 +1955,92 @@ reject : dict | str | None
     If ``reject`` is ``None``, no rejection is performed. If ``'existing'``
     (default), then the rejection parameters set at instantiation are used.
 """
+flat_common = """
+    Rejection parameters based on flatness of signal.
+    Valid **keys** are ``'grad'``, ``'mag'``, ``'eeg'``, ``'eog'``, ``'ecg'``.
+    The **values** are floats that set the minimum acceptable peak-to-peak
+    amplitude (PTP). If the PTP is smaller than this threshold, the epoch will
+    be dropped. If ``None`` then no rejection is performed based on flatness
+    of the signal."""
+docdict['flat'] = f"""
+flat : dict | None
+{flat_common}
+"""
+docdict['flat_drop_bad'] = f"""
+flat : dict | str | None
+{flat_common}
+    If ``'existing'``, then the flat parameters set during epoch creation are
+    used.
+"""
+
+# ECG detection
+docdict['ecg_event_id'] = """
+event_id : int
+    The index to assign to found ECG events.
+"""
+docdict['ecg_ch_name'] = """
+ch_name : None | str
+    The name of the channel to use for ECG peak detection.
+    If ``None`` (default), ECG channel is used if present. If ``None`` and
+    **no** ECG channel is present, a synthetic ECG channel is created from
+    the cross-channel average. This synthetic channel can only be created from
+    MEG channels.
+"""
+docdict['ecg_filter_freqs'] = """
+l_freq : float
+    Low pass frequency to apply to the ECG channel while finding events.
+h_freq : float
+    High pass frequency to apply to the ECG channel while finding events.
+"""
+docdict['ecg_filter_length'] = """
+filter_length : str | int | None
+    Number of taps to use for filtering.
+"""
+docdict['ecg_tstart'] = """
+tstart : float
+    Start ECG detection after ``tstart`` seconds. Useful when the beginning
+    of the run is noisy.
+"""
+docdict['create_ecg_epochs'] = """This function will:
+
+#. Filter the ECG data channel.
+
+#. Find ECG R wave peaks using :func:`mne.preprocessing.find_ecg_events`.
+
+#. Filter the raw data.
+
+#. Create `~mne.Epochs` around the R wave peaks, capturing the heartbeats.
+"""
+
+# EOG detection
+docdict['create_eog_epochs'] = """This function will:
+
+#. Filter the EOG data channel.
+
+#. Find the peaks of eyeblinks in the EOG data using
+   :func:`mne.preprocessing.find_eog_events`.
+
+#. Filter the raw data.
+
+#. Create `~mne.Epochs` around the eyeblinks.
+"""
+
+# SSP
+docdict['compute_ssp'] = """This function aims to find those SSP vectors that
+will project out the ``n`` most prominent signals from the data for each
+specified sensor type. Consequently, if the provided input data contains high
+levels of noise, the produced SSP vectors can then be used to eliminate that
+noise from the data.
+"""
+compute_proj_common = """
+#. Optionally average the `~mne.Epochs` to produce an `~mne.Evoked` if
+   ``average=True`` was passed (default).
+
+#. Calculate SSP projection vectors on that data to capture the artifacts."""
+docdict['compute_proj_ecg'] = f"""%(create_ecg_epochs)s {compute_proj_common}
+""" % docdict
+docdict['compute_proj_eog'] = f"""%(create_eog_epochs)s {compute_proj_common}
+""" % docdict
 
 # Other
 docdict['accept'] = """

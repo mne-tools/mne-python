@@ -13,7 +13,7 @@ import os.path as path
 
 import pytest
 import numpy as np
-from numpy.testing import assert_allclose
+from numpy.testing import assert_allclose, assert_array_equal
 
 from mne import (read_source_estimate, SourceEstimate, MixedSourceEstimate,
                  VolSourceEstimate)
@@ -337,9 +337,14 @@ def test_brain_save_movie(tmpdir, renderer, brain_gc):
             brain._renderer.plotter.enable()
         else:
             brain._renderer.plotter.disable()
-        brain.save_movie(filename, time_dilation=1,
+        with pytest.raises(TypeError, match='unexpected keyword argument'):
+            brain.save_movie(filename, time_dilation=1, tmin=1, tmax=1.1,
+                             bad_name='blah')
+        assert not path.isfile(filename)
+        brain.save_movie(filename, time_dilation=0.1,
                          interpolation='nearest')
         assert path.isfile(filename)
+        os.remove(filename)
     brain.close()
 
 
@@ -419,13 +424,21 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
     brain = _create_testing_brain(
         hemi=hemi, surf='white', src=src, show_traces=0.5, initial_time=0,
         volume_options=None,  # for speed, don't upsample
-        n_time=1 if src == 'mixed' else 5,
+        n_time=1 if src == 'mixed' else 5, diverging=True,
         add_data_kwargs=dict(colorbar_kwargs=dict(n_labels=3)),
     )
     assert brain.show_traces
     assert hasattr(brain, "picked_points")
     assert hasattr(brain, "_spheres")
     assert brain.plotter.scalar_bar.GetNumberOfLabels() == 3
+    # mne_analyze should be chosen
+    ctab = brain._data['ctable']
+    assert_array_equal(ctab[0], [0, 255, 255, 255])  # opaque cyan
+    assert_array_equal(ctab[-1], [255, 255, 0, 255])  # opaque yellow
+    assert_allclose(ctab[len(ctab) // 2], [128, 128, 128, 0], atol=3)
+
+    # add foci should work for volumes
+    brain.add_foci([[0, 0, 0]], hemi='lh' if src == 'surface' else 'vol')
 
     # test points picked by default
     picked_points = brain.get_picked_points()
@@ -677,7 +690,7 @@ def test_calculate_lut():
 
 
 def _create_testing_brain(hemi, surf='inflated', src='surface', size=300,
-                          n_time=5, **kwargs):
+                          n_time=5, diverging=False, **kwargs):
     assert src in ('surface', 'mixed', 'volume')
     meth = 'plot'
     if src in ('surface', 'mixed'):
@@ -707,14 +720,17 @@ def _create_testing_brain(hemi, surf='inflated', src='surface', size=300,
     stc_data[(rng.rand(stc_size // 20) * stc_size).astype(int)] = \
         rng.rand(stc_data.size // 20)
     stc_data.shape = (n_verts, n_time)
+    if diverging:
+        stc_data -= 0.5
     stc = klass(stc_data, vertices, 1, 1)
 
-    fmin = stc.data.min()
-    fmax = stc.data.max()
-    fmid = (fmin + fmax) / 2.
+    clim = dict(kind='value', lims=[0.1, 0.2, 0.3])
+    if diverging:
+        clim['pos_lims'] = clim.pop('lims')
+
     brain_data = getattr(stc, meth)(
         subject=subject_id, hemi=hemi, surface=surf, size=size,
-        subjects_dir=subjects_dir, colormap='hot',
-        clim=dict(kind='value', lims=(fmin, fmid, fmax)), src=sample_src,
+        subjects_dir=subjects_dir, colormap='auto',
+        clim=clim, src=sample_src,
         **kwargs)
     return brain_data

@@ -1800,7 +1800,7 @@ class ICA(ContainsMixin):
                         contours=6, image_interp='bilinear',
                         inst=None, plot_std=True, topomap_args=None,
                         image_args=None, psd_args=None, reject='auto',
-                        sphere=None):
+                        sphere=None, verbose=None):
         return plot_ica_components(self, picks=picks, ch_type=ch_type,
                                    res=res, vmin=vmin,
                                    vmax=vmax, cmap=cmap, sensors=sensors,
@@ -1810,19 +1810,21 @@ class ICA(ContainsMixin):
                                    inst=inst, plot_std=plot_std,
                                    topomap_args=topomap_args,
                                    image_args=image_args, psd_args=psd_args,
-                                   reject=reject, sphere=sphere)
+                                   reject=reject, sphere=sphere,
+                                   verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_ica_properties)
     def plot_properties(self, inst, picks=None, axes=None, dB=True,
                         plot_std=True, topomap_args=None, image_args=None,
                         psd_args=None, figsize=None, show=True, reject='auto',
-                        reject_by_annotation=True):
+                        reject_by_annotation=True, *, verbose=None):
         return plot_ica_properties(self, inst, picks=picks, axes=axes,
                                    dB=dB, plot_std=plot_std,
                                    topomap_args=topomap_args,
                                    image_args=image_args, psd_args=psd_args,
                                    figsize=figsize, show=show, reject=reject,
-                                   reject_by_annotation=reject_by_annotation)
+                                   reject_by_annotation=reject_by_annotation,
+                                   verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_ica_sources)
     def plot_sources(self, inst, picks=None, start=None,

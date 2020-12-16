@@ -56,10 +56,10 @@ class _Overlay(object):
         self._opacity = opacity
 
     def to_colors(self):
-        from matplotlib.cm import get_cmap
+        from .._3d import _get_cmap
         from matplotlib.colors import ListedColormap
         if isinstance(self._colormap, str):
-            cmap = get_cmap(self._colormap)
+            cmap = _get_cmap(self._colormap)
         else:
             cmap = ListedColormap(self._colormap / 255.)
 
@@ -344,8 +344,8 @@ class Brain(object):
                  offscreen=False, interaction='trackball', units='mm',
                  view_layout='vertical', show=True):
         from ..backends.renderer import backend, _get_renderer, _get_3d_backend
+        from .._3d import _get_cmap
         from matplotlib.colors import colorConverter
-        from matplotlib.cm import get_cmap
 
         if hemi in ('both', 'split'):
             self._hemis = ('lh', 'rh')
@@ -414,7 +414,7 @@ class Brain(object):
         geo_kwargs = self._cortex_colormap(cortex)
         # evaluate at the midpoint of the used colormap
         val = -geo_kwargs['vmin'] / (geo_kwargs['vmax'] - geo_kwargs['vmin'])
-        self._brain_color = get_cmap(geo_kwargs['colormap'])(val)
+        self._brain_color = _get_cmap(geo_kwargs['colormap'])(val)
 
         # load geometry for one or both hemispheres as necessary
         offset = None if (not offset or hemi != 'both') else 0.0
@@ -2048,7 +2048,7 @@ class Brain(object):
 
     def add_foci(self, coords, coords_as_verts=False, map_surface=None,
                  scale_factor=1, color="white", alpha=1, name=None,
-                 hemi=None):
+                 hemi=None, resolution=50):
         """Add spherical foci, possibly mapping to displayed surf.
 
         The foci spheres can be displayed at the coordinates given, or
@@ -2078,9 +2078,11 @@ class Brain(object):
             If None, it is assumed to belong to the hemipshere being
             shown. If two hemispheres are being shown, an error will
             be thrown.
+        resolution : int
+            The resolution of the spheres.
         """
         from matplotlib.colors import colorConverter
-        hemi = self._check_hemi(hemi)
+        hemi = self._check_hemi(hemi, extras=['vol'])
 
         # those parameters are not supported yet, only None is allowed
         _check_option('map_surface', map_surface, [None])
@@ -2099,7 +2101,7 @@ class Brain(object):
             self._renderer.subplot(ri, ci)
             self._renderer.sphere(center=coords, color=color,
                                   scale=(10. * scale_factor),
-                                  opacity=alpha)
+                                  opacity=alpha, resolution=resolution)
             self._renderer.set_camera(**views_dicts[hemi][v])
 
     def add_text(self, x, y, text, name=None, color=None, opacity=1.0,
@@ -2405,7 +2407,8 @@ class Brain(object):
                     mesh = self._layered_meshes[hemi]
                     mesh.update_overlay(name='data',
                                         colormap=self._data['ctable'])
-                    _set_colormap_range(mesh._actor, ctable, scalar_bar, rng)
+                    _set_colormap_range(mesh._actor, ctable, scalar_bar, rng,
+                                        self._brain_color)
                     scalar_bar = None
 
                 grid_volume_pos = hemi_data.get('grid_volume_pos')
@@ -2713,7 +2716,7 @@ class Brain(object):
             kwargs['codec'] = codec
         if bitrate is not None:
             kwargs['bitrate'] = bitrate
-        imageio.mimwrite(filename, images)
+        imageio.mimwrite(filename, images, **kwargs)
 
     @fill_doc
     def save_movie(self, filename, time_dilation=4., tmin=None, tmax=None,
@@ -3093,6 +3096,9 @@ class _FakeIren():
         pass
 
     def SetEventInformation(self, *args, **kwargs):
+        pass
+
+    def CharEvent(self):
         pass
 
     def KeyPressEvent(self, *args, **kwargs):

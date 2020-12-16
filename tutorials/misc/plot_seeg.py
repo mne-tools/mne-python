@@ -26,6 +26,7 @@ subject-specific MRI, or projection into a surface, see
 :ref:`tut_working_with_ecog`. In the ECoG example, we show
 how to visualize surface grid channels on the brain.
 """
+
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Adam Li <adam2392@gmail.com>
 #
@@ -122,7 +123,7 @@ fig = mne.viz.plot_alignment(raw.info, trans, 'fsaverage',
                              surfaces=["pial", "head"])
 
 ###############################################################################
-# Next, we will get the raw data and plot its amplitude over time.
+# Next, we'll get the raw data and plot its amplitude over time.
 
 raw.plot()
 
