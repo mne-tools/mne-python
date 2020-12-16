@@ -1083,9 +1083,10 @@ def test_shielding_factor(tmpdir):
             for line in fid:
                 fid_out.write(' '.join(line.strip().split(' ')[:14]) + '\n')
     with get_n_projected() as counts:
-        raw_sss = maxwell_filter(raw_erm, calibration=temp_fname,
-                                 cross_talk=ctc_fname, st_duration=1.,
-                                 coord_frame='meg', regularize='in')
+        with pytest.warns(None):  # SVD convergence sometimes
+            raw_sss = maxwell_filter(raw_erm, calibration=temp_fname,
+                                     cross_talk=ctc_fname, st_duration=1.,
+                                     coord_frame='meg', regularize='in')
     # Our 3D cal has worse defaults for this ERM than the 1D file
     _assert_shielding(raw_sss, erm_power, 44, 45)
     assert counts[0] == 3

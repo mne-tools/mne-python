@@ -336,6 +336,41 @@ jobs:
             paths:
               - ~/mne_data/MNE-visual_92_categories-data
 
+
+    interactive_test:
+      docker:
+        - image: circleci/python:3.8.5-buster
+      steps:
+        - checkout
+        - run:
+            name: Get Python running
+            command: |
+              python -m pip install --user --upgrade --progress-bar off pip setuptools
+              python -m pip install -i "https://pypi.anaconda.org/scipy-wheels-nightly/simple" --pre numpy
+              python -m pip install -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" scipy pandas scikit-learn matplotlib h5py Pillow
+              python -m pip install -r requirements_testing.txt
+              python -m pip install --user -e .
+
+        # Look at what we have and fail early if there is some library conflict
+        - run:
+            name: Check installation
+            command: |
+              which python
+              python -c "import numpy; numpy.show_config()"
+              python -c "from numpy._pytesttester import _show_numpy_info; _show_numpy_info()"
+
+        # Figure out if we should run a full, pattern, or noplot version
+        - run:
+            name: Get data
+            command: |
+              python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
+
+        # Run doctest (if it's full or front) before building the docs
+        - run:
+            name: pytest
+            command: |
+              pytest -m "not ultraslowtest" mne -xv
+
 workflows:
   version: 2
 
@@ -350,6 +385,7 @@ workflows:
               only:
                 - master
                 - maint/0.21
+      # interactive_test
 
   weekly:
     jobs:

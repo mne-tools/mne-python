@@ -1,3 +1,5 @@
+import os
+import os.path as op
 from distutils.version import LooseVersion
 
 from ._brain import Brain
@@ -79,7 +81,9 @@ class _BrainScraper(object):
                 static_fname = next(block_vars['image_path_iterator'])
                 static_fname = static_fname[:-4] + '.gif'
                 anim.save(static_fname, writer=writer, dpi=dpi)
-                rst += f'\n.. image:: /{static_fname}\n    :class: hidden\n'
+                rel_fname = op.relpath(static_fname, gallery_conf['src_dir'])
+                rel_fname = rel_fname.replace(os.sep, '/').lstrip('/')
+                rst += f'\n.. image:: /{rel_fname}\n    :class: hidden\n'
 
                 # 2. An animation that will be embedded and visible
                 block_vars['example_globals']['_brain_anim_'] = anim

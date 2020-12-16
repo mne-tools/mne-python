@@ -14,6 +14,7 @@ from numpy.testing import assert_array_equal, assert_allclose
 from scipy import sparse
 
 from mne import Epochs, read_events, pick_info, pick_types, Annotations
+from mne.channels import read_polhemus_fastscan
 from mne.event import make_fixed_length_events
 from mne.datasets import testing
 from mne.io import (read_fiducials, write_fiducials, _coil_trans_to_loc,
@@ -25,11 +26,10 @@ from mne.io.meas_info import (Info, create_info, _merge_info,
                               _bad_chans_comp, _get_valid_units,
                               anonymize_info, _stamp_to_dt, _dt_to_stamp,
                               _add_timedelta_to_stamp)
-from mne.io._digitization import (_write_dig_points, _read_dig_points,
-                                  _make_dig_points,)
+from mne.io._digitization import _write_dig_points, _make_dig_points
 from mne.io import read_raw_ctf
 from mne.transforms import Transform
-from mne.utils import run_tests_if_main, catch_logging, assert_object_equal
+from mne.utils import catch_logging, assert_object_equal
 from mne.channels import make_standard_montage, equalize_channels
 
 fiducials_fname = op.join(op.dirname(__file__), '..', '..', 'data',
@@ -289,7 +289,7 @@ def test_read_write_info(tmpdir):
 
 def test_io_dig_points(tmpdir):
     """Test Writing for dig files."""
-    points = _read_dig_points(hsp_fname)
+    points = read_polhemus_fastscan(hsp_fname, on_header_missing='ignore')
 
     dest = str(tmpdir.join('test.txt'))
     dest_bad = str(tmpdir.join('test.mne'))
@@ -298,19 +298,22 @@ def test_io_dig_points(tmpdir):
     with pytest.raises(ValueError, match='extension'):
         _write_dig_points(dest_bad, points)
     _write_dig_points(dest, points)
-    points1 = _read_dig_points(dest, unit='m')
+    points1 = read_polhemus_fastscan(
+        dest, unit='m', on_header_missing='ignore')
     err = "Dig points diverged after writing and reading."
     assert_array_equal(points, points1, err)
 
     points2 = np.array([[-106.93, 99.80], [99.80, 68.81]])
     np.savetxt(dest, points2, delimiter='\t', newline='\n')
     with pytest.raises(ValueError, match='must be of shape'):
-        _read_dig_points(dest)
+        with pytest.warns(RuntimeWarning, match='FastSCAN header'):
+            read_polhemus_fastscan(dest, on_header_missing='warn')
 
 
 def test_make_dig_points():
     """Test application of Polhemus HSP to info."""
-    extra_points = _read_dig_points(hsp_fname)
+    extra_points = read_polhemus_fastscan(
+        hsp_fname, on_header_missing='ignore')
     info = create_info(ch_names=['Test Ch'], sfreq=1000.)
     assert info['dig'] is None
 
@@ -318,7 +321,7 @@ def test_make_dig_points():
     assert (info['dig'])
     assert_allclose(info['dig'][0]['r'], [-.10693, .09980, .06881])
 
-    elp_points = _read_dig_points(elp_fname)
+    elp_points = read_polhemus_fastscan(elp_fname, on_header_missing='ignore')
     nasion, lpa, rpa = elp_points[:3]
     info = create_info(ch_names=['Test Ch'], sfreq=1000.)
     assert info['dig'] is None
@@ -326,8 +329,7 @@ def test_make_dig_points():
     info['dig'] = _make_dig_points(nasion, lpa, rpa, elp_points[3:], None)
     assert (info['dig'])
     idx = [d['ident'] for d in info['dig']].index(FIFF.FIFFV_POINT_NASION)
-    assert_array_equal(info['dig'][idx]['r'],
-                       np.array([.0013930, .0131613, -.0046967]))
+    assert_allclose(info['dig'][idx]['r'], [.0013930, .0131613, -.0046967])
     pytest.raises(ValueError, _make_dig_points, nasion[:2])
     pytest.raises(ValueError, _make_dig_points, None, lpa[:2])
     pytest.raises(ValueError, _make_dig_points, None, None, rpa[:2])
@@ -757,11 +759,9 @@ def test_repr():
     assert 'dev_head_t: MEG device -> isotrak transform' in repr(info)
 
 
+@testing.requires_testing_data
 def test_invalid_subject_birthday():
     """Test handling of an invalid birthday in the raw file."""
     with pytest.warns(RuntimeWarning, match='No birthday will be set'):
         raw = read_raw_fif(raw_invalid_bday_fname)
     assert 'birthday' not in raw.info['subject_info']
-
-
-run_tests_if_main()

@@ -14,6 +14,7 @@ import numpy as np
 from scipy import linalg, sparse
 from scipy.sparse import coo_matrix, block_diag as sparse_block_diag
 
+from .baseline import rescale
 from .cov import Covariance
 from .evoked import _get_peak
 from .filter import resample
@@ -590,6 +591,29 @@ class _BaseSourceEstimate(TimeMixin):
             allow_empty=allow_empty, verbose=verbose)
 
     @verbose
+    def apply_baseline(self, baseline=(None, 0), *, verbose=None):
+        """Baseline correct source estimate data.
+
+        Parameters
+        ----------
+        %(baseline_stc)s
+            Defaults to ``(None, 0)``, i.e. beginning of the the data until
+            time point zero.
+        %(verbose_meth)s
+
+        Returns
+        -------
+        stc : instance of SourceEstimate
+            The baseline-corrected source estimate object.
+
+        Notes
+        -----
+        Baseline correction can be done multiple times.
+        """
+        self.data = rescale(self.data, self.times, baseline, copy=False)
+        return self
+
+    @verbose
     def save(self, fname, ftype='h5', verbose=None):
         """Save the full source estimate to an HDF5 file.
 
@@ -687,6 +711,9 @@ class _BaseSourceEstimate(TimeMixin):
     def resample(self, sfreq, npad='auto', window='boxcar', n_jobs=1,
                  verbose=None):
         """Resample data.
+
+        If appropriate, an anti-aliasing filter is applied before resampling.
+        See :ref:`resampling-and-decimating` for more information.
 
         Parameters
         ----------

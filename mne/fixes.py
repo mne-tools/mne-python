@@ -278,6 +278,28 @@ def is_regressor(estimator):
     return getattr(estimator, "_estimator_type", None) == "regressor"
 
 
+_DEFAULT_TAGS = {
+    'non_deterministic': False,
+    'requires_positive_X': False,
+    'requires_positive_y': False,
+    'X_types': ['2darray'],
+    'poor_score': False,
+    'no_validation': False,
+    'multioutput': False,
+    "allow_nan": False,
+    'stateless': False,
+    'multilabel': False,
+    '_skip_test': False,
+    '_xfail_checks': False,
+    'multioutput_only': False,
+    'binary_only': False,
+    'requires_fit': True,
+    'preserves_dtype': [np.float64],
+    'requires_y': False,
+    'pairwise': False,
+}
+
+
 class BaseEstimator(object):
     """Base class for all estimators in scikit-learn
 
@@ -397,6 +419,9 @@ class BaseEstimator(object):
     # __getstate__ and __setstate__ are omitted because they only contain
     # conditionals that are not satisfied by our objects (e.g.,
     # ``if type(self).__module__.startswith('sklearn.')``.
+
+    def _more_tags(self):
+        return _DEFAULT_TAGS
 
     def _get_tags(self):
         collected_tags = {}

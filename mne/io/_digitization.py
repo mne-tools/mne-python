@@ -8,29 +8,25 @@
 # License: BSD (3-clause)
 
 import heapq
-from collections import Counter, OrderedDict
+from collections import Counter
 
 import datetime
 import os.path as op
-import re
 
 import numpy as np
 
-from ..utils import logger, warn, _check_option, Bunch, _validate_type
+from ..utils import logger, warn, Bunch, _validate_type
 
-from .constants import FIFF
+from .constants import FIFF, _coord_frame_named
 from .tree import dir_tree_find
 from .tag import read_tag
 from .write import (start_file, end_file, write_dig_points)
 
-from ..transforms import (apply_trans, als_ras_trans, Transform,
+from ..transforms import (apply_trans, Transform,
                           get_ras_to_neuromag_trans, combine_transforms,
                           invert_transform, _to_const, _str_to_frame,
                           _coord_frame_name)
-
 from .. import __version__
-
-b = bytes  # alias
 
 _dig_kind_dict = {
     'cardinal': FIFF.FIFFV_POINT_CARDINAL,
@@ -177,6 +173,7 @@ def _read_dig_fif(fid, meas_info):
         warn('Multiple Isotrak found')
     else:
         isotrak = isotrak[0]
+        coord_frame = FIFF.FIFFV_COORD_HEAD
         dig = []
         for k in range(isotrak['nent']):
             kind = isotrak['directory'][k].kind
@@ -184,7 +181,11 @@ def _read_dig_fif(fid, meas_info):
             if kind == FIFF.FIFF_DIG_POINT:
                 tag = read_tag(fid, pos)
                 dig.append(tag.data)
-                dig[-1]['coord_frame'] = FIFF.FIFFV_COORD_HEAD
+            elif kind == FIFF.FIFF_MNE_COORD_FRAME:
+                tag = read_tag(fid, pos)
+                coord_frame = _coord_frame_named.get(int(tag.data))
+        for d in dig:
+            d['coord_frame'] = coord_frame
     return _format_dig_points(dig)
 
 
@@ -299,75 +300,6 @@ def _get_fid_coords(dig, raise_error=True):
     coord_frame = fid_coord_frames.popitem()[1] if fid_coord_frames else None
 
     return fid_coords, coord_frame
-
-
-def _read_dig_points(fname, comments='%', unit='auto'):
-    """Read digitizer data from a file.
-
-    If fname ends in .hsp or .esp, the function assumes digitizer files in [m],
-    otherwise it assumes space-delimited text files in [mm].
-
-    Parameters
-    ----------
-    fname : str
-        The filepath of space delimited file with points, or a .mat file
-        (Polhemus FastTrak format).
-    comments : str
-        The character used to indicate the start of a comment;
-        Default: '%'.
-    unit : 'auto' | 'm' | 'cm' | 'mm'
-        Unit of the digitizer files (hsp and elp). If not 'm', coordinates will
-        be rescaled to 'm'. Default is 'auto', which assumes 'm' for *.hsp and
-        *.elp files and 'mm' for *.txt files, corresponding to the known
-        Polhemus export formats.
-
-    Returns
-    -------
-    dig_points : np.ndarray, shape (n_points, 3)
-        Array of dig points in [m].
-    """
-    _check_option('unit', unit, ['auto', 'm', 'mm', 'cm'])
-
-    _, ext = op.splitext(fname)
-    if ext == '.elp' or ext == '.hsp':
-        # XXX: This should be dead code, but is deeply buried in
-        #      read_dig_montage. To be deprecated
-        # raise RuntimeError('if you are reading isotrak files please use'
-        #                    ' read_dig_polhemus_isotrak')
-        # Eventually it should use read_dig_polhemus_isotrak and/or
-        # read_dig_polhemus_fastscan, but needs refactoring to handle
-        # these formats better.
-        with open(fname) as fid:
-            file_str = fid.read()
-        value_pattern = r"\-?\d+\.?\d*e?\-?\d*"
-        coord_pattern = r"({0})\s+({0})\s+({0})\s*$".format(value_pattern)
-        if ext == '.hsp':
-            coord_pattern = '^' + coord_pattern
-        points_str = [m.groups() for m in re.finditer(coord_pattern, file_str,
-                                                      re.MULTILINE)]
-        dig_points = np.array(points_str, dtype=float)
-    elif ext == '.mat':  # like FastScan II
-        from scipy.io import loadmat
-        dig_points = loadmat(fname)['Points'].T
-    else:
-        dig_points = np.loadtxt(fname, comments=comments, ndmin=2)
-        if unit == 'auto':
-            unit = 'mm'
-        if dig_points.shape[1] > 3:
-            warn('Found %d columns instead of 3, using first 3 for XYZ '
-                 'coordinates' % (dig_points.shape[1],))
-            dig_points = dig_points[:, :3]
-
-    if dig_points.shape[-1] != 3:
-        raise ValueError(
-            'Data must be of shape (n, 3) instead of %s' % (dig_points.shape,))
-
-    if unit == 'mm':
-        dig_points /= 1000.
-    elif unit == 'cm':
-        dig_points /= 100.
-
-    return dig_points
 
 
 def _write_dig_points(fname, dig_points):
@@ -520,85 +452,6 @@ def _call_make_dig_points(nasion, lpa, rpa, hpi, extra, convert=True):
                                 extra_points=extra)
 
     return info_dig, ctf_head_t
-
-
-##############################################################################
-# From mne.io.kit
-def _set_dig_kit(mrk, elp, hsp, eeg):
-    """Add landmark points and head shape data to the KIT instance.
-
-    Digitizer data (elp and hsp) are represented in [mm] in the Polhemus
-    ALS coordinate system. This is converted to [m].
-
-    Parameters
-    ----------
-    mrk : None | str | array_like, shape (5, 3)
-        Marker points representing the location of the marker coils with
-        respect to the MEG Sensors, or path to a marker file.
-    elp : None | str | array_like, shape (8, 3)
-        Digitizer points representing the location of the fiducials and the
-        marker coils with respect to the digitized head shape, or path to a
-        file containing these points.
-    hsp : None | str | array, shape (n_points, 3)
-        Digitizer head shape points, or path to head shape file. If more
-        than 10`000 points are in the head shape, they are automatically
-        decimated.
-    eeg : dict
-        Ordered dict of EEG dig points.
-
-    Returns
-    -------
-    dig_points : list
-        List of digitizer points for info['dig'].
-    dev_head_t : dict
-        A dictionary describe the device-head transformation.
-    """
-    from ..coreg import fit_matched_points, _decimate_points
-    from ..io.kit.constants import KIT
-    from ..io.kit.coreg import read_mrk
-
-    if isinstance(hsp, str):
-        hsp = _read_dig_points(hsp)
-    n_pts = len(hsp)
-    if n_pts > KIT.DIG_POINTS:
-        hsp = _decimate_points(hsp, res=0.005)
-        n_new = len(hsp)
-        warn("The selected head shape contained {n_in} points, which is "
-             "more than recommended ({n_rec}), and was automatically "
-             "downsampled to {n_new} points. The preferred way to "
-             "downsample is using FastScan.".format(
-                 n_in=n_pts, n_rec=KIT.DIG_POINTS, n_new=n_new))
-
-    if isinstance(elp, str):
-        elp_points = _read_dig_points(elp)
-        if len(elp_points) != 8:
-            raise ValueError("File %r should contain 8 points; got shape "
-                             "%s." % (elp, elp_points.shape))
-        elp = elp_points
-    elif len(elp) not in (7, 8):
-        raise ValueError("ELP should contain 7 or 8 points; got shape "
-                         "%s." % (elp.shape,))
-    if isinstance(mrk, str):
-        mrk = read_mrk(mrk)
-
-    mrk = apply_trans(als_ras_trans, mrk)
-
-    nasion, lpa, rpa = elp[:3]
-    nmtrans = get_ras_to_neuromag_trans(nasion, lpa, rpa)
-    elp = apply_trans(nmtrans, elp)
-    hsp = apply_trans(nmtrans, hsp)
-    eeg = OrderedDict((k, apply_trans(nmtrans, p)) for k, p in eeg.items())
-
-    # device head transform
-    trans = fit_matched_points(tgt_pts=elp[3:], src_pts=mrk, out='trans')
-
-    nasion, lpa, rpa = elp[:3]
-    elp = elp[3:]
-
-    dig_points = _make_dig_points(nasion, lpa, rpa, elp, hsp, dig_ch_pos=eeg)
-    dev_head_t = Transform('meg', 'head', trans)
-
-    return dig_points, dev_head_t
 
 
 ##############################################################################

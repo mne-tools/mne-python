@@ -25,7 +25,7 @@ from .io import read_raw_fif, read_info
 from .io.pick import _DATA_CH_TYPES_SPLIT
 from .source_space import _mri_orientation
 from .utils import (logger, verbose, get_subjects_dir, warn,
-                    fill_doc, _check_option, _validate_type)
+                    fill_doc, _check_option, _validate_type, _safe_input)
 from .viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
                   plot_compare_evokeds)
 from .viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
@@ -1456,6 +1456,26 @@ class Report(object):
         for p in pattern:
             fnames.extend(sorted(_recursive_search(self.data_path, p)))
 
+        if not fnames and not render_bem:
+            raise RuntimeError(f'No matching files found in {self.data_path}')
+
+        # For split files, only keep the first one.
+        fnames_to_remove = []
+        for fname in fnames:
+            if _endswith(fname, ('raw', 'sss', 'meg')):
+                inst = read_raw_fif(fname, allow_maxshield=True, preload=False)
+            else:
+                continue
+
+            if len(inst.filenames) > 1:
+                fnames_to_remove.extend(inst.filenames[1:])
+
+        fnames_to_remove = list(set(fnames_to_remove))  # Drop duplicates
+        for fname in fnames_to_remove:
+            if fname in fnames:
+                del fnames[fnames.index(fname)]
+        del fnames_to_remove
+
         if self.info_fname is not None:
             info = read_info(self.info_fname, verbose=False)
             sfreq = info['sfreq']
@@ -1586,7 +1606,7 @@ class Report(object):
             msg = ('Report already exists at location %s. '
                    'Overwrite it (y/[n])? '
                    % fname)
-            answer = input(msg)
+            answer = _safe_input(msg, alt='pass overwrite=True')
             if answer.lower() == 'y':
                 overwrite = True
 

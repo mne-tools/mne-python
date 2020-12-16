@@ -33,6 +33,7 @@ epochs_fname_mat = op.join(base_dir, 'test_epochs.set')
 epochs_fname_onefile_mat = op.join(base_dir, 'test_epochs_onefile.set')
 raw_mat_fnames = [raw_fname_mat, raw_fname_onefile_mat]
 epochs_mat_fnames = [epochs_fname_mat, epochs_fname_onefile_mat]
+raw_fname_chanloc = op.join(base_dir, 'test_raw_chanloc.set')
 
 raw_fname_h5 = op.join(base_dir, 'test_raw_h5.set')
 raw_fname_onefile_h5 = op.join(base_dir, 'test_raw_onefile_h5.set')
@@ -58,7 +59,7 @@ def _check_h5(fname):
 @testing.requires_testing_data
 @pytest.mark.slowtest
 @pytest.mark.parametrize(
-    'fname', [raw_fname_mat, raw_fname_h5], ids=op.basename
+    'fname', [raw_fname_mat, raw_fname_h5, raw_fname_chanloc], ids=op.basename
 )
 def test_io_set_raw(fname):
     """Test importing EEGLAB .set files."""
@@ -67,17 +68,40 @@ def test_io_set_raw(fname):
         'EEG {0:03d}'.format(ii) for ii in range(len(montage.ch_names))
     ]
 
-    _test_raw_reader(read_raw_eeglab, input_fname=fname)
+    kws = dict(reader=read_raw_eeglab, input_fname=fname)
+    if fname.endswith('test_raw_chanloc.set'):
+        with pytest.warns(RuntimeWarning,
+                          match="The data contains 'boundary' events"):
+            _test_raw_reader(**kws)
+    else:
+        _test_raw_reader(**kws)
+
     # test that preloading works
-    raw0 = read_raw_eeglab(input_fname=fname, preload=True)
-    raw0.set_montage(montage)
-    raw0.filter(1, None, l_trans_bandwidth='auto', filter_length='auto',
-                phase='zero')
+    read_raw_kws = dict(input_fname=fname, preload=True)
+    if fname.endswith('test_raw_chanloc.set'):
+        with pytest.warns(RuntimeWarning,
+                          match="The data contains 'boundary' events"):
+            raw0 = read_raw_eeglab(**read_raw_kws)
+            raw0.set_montage(montage, on_missing='ignore')
+            # crop to check if the data has been properly preloaded; we cannot
+            # filter as the snippet of raw data is very short
+            raw0.crop(0, 1)
+    else:
+        raw0 = read_raw_eeglab(**read_raw_kws)
+        raw0.set_montage(montage)
+        raw0.filter(1, None, l_trans_bandwidth='auto', filter_length='auto',
+                    phase='zero')
 
     # test that using uint16_codec does not break stuff
-    raw0 = read_raw_eeglab(input_fname=fname,
-                           preload=False, uint16_codec='ascii')
-    raw0.set_montage(montage)
+    read_raw_kws = dict(input_fname=fname, preload=False, uint16_codec='ascii')
+    if fname.endswith('test_raw_chanloc.set'):
+        with pytest.warns(RuntimeWarning,
+                          match="The data contains 'boundary' events"):
+            raw0 = read_raw_eeglab(**read_raw_kws)
+            raw0.set_montage(montage, on_missing='ignore')
+    else:
+        raw0 = read_raw_eeglab(**read_raw_kws)
+        raw0.set_montage(montage)
 
 
 @testing.requires_testing_data
@@ -128,6 +152,24 @@ def test_io_set_raw_more(tmpdir):
     shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
                     overlap_fname.replace('.set', '.fdt'))
     read_raw_eeglab(input_fname=overlap_fname, preload=True)
+
+    # test reading file with empty event durations
+    empty_dur_fname = op.join(tmpdir, 'test_empty_durations.set')
+    evnts = deepcopy(eeg.event)
+    for ev in evnts:
+        ev.duration = np.array([], dtype='float')
+
+    io.savemat(empty_dur_fname,
+               {'EEG': {'trials': eeg.trials, 'srate': eeg.srate,
+                        'nbchan': eeg.nbchan,
+                        'data': 'test_negative_latency.fdt',
+                        'epoch': eeg.epoch, 'event': evnts,
+                        'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}},
+               appendmat=False, oned_as='row')
+    shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
+                    empty_dur_fname.replace('.set', '.fdt'))
+    raw = read_raw_eeglab(input_fname=empty_dur_fname, preload=True)
+    assert (raw.annotations.duration == 0).all()
 
     # test reading file when the EEG.data name is wrong
     io.savemat(overlap_fname,

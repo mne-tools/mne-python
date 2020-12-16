@@ -8,14 +8,14 @@ import os.path as op
 import warnings
 import copy
 import numpy as np
-from scipy import sparse
+from scipy import sparse, linalg
 
 from .fixes import _get_img_fdata
 from .parallel import parallel_func
 from .source_estimate import (
     _BaseSurfaceSourceEstimate, _BaseVolSourceEstimate, _BaseSourceEstimate,
     _get_ico_tris)
-from .source_space import SourceSpaces, _ensure_src
+from .source_space import SourceSpaces, _ensure_src, _grid_interp
 from .surface import read_morph_map, mesh_edges, read_surface, _compute_nearest
 from .transforms import _angle_between_quats, rot_to_quat
 from .utils import (logger, verbose, check_version, get_subjects_dir,
@@ -522,32 +522,44 @@ class SourceMorph(object):
         else:
             vol_verts = slice(None)
         # morph data
+        from_affine = np.dot(
+            self.src_data['src_affine_ras'],  # mri_ras_t
+            self.src_data['src_affine_vox'])  # vox_mri_t
+        from_affine[:3] *= 1000.
+        # equivalent of:
+        # _resample_from_to(img_real, from_affine,
+        #                   (self.pre_affine.codomain_shape,
+        #                   (self.pre_affine.codomain_grid2world))
+        src_shape = self.src_data['src_shape_full'][::-1]
+        resamp_0 = _grid_interp(
+            src_shape, self.pre_affine.codomain_shape,
+            linalg.inv(from_affine) @ self.pre_affine.codomain_grid2world)
+        # reslice to match what was used during the morph
+        # (brain.mgz and whatever was used to create the source space
+        #  will not necessarily have the same domain/zooms)
+        # equivalent of:
+        # pre_affine.transform(img_real)
+        resamp_1 = _grid_interp(
+            self.pre_affine.codomain_shape, self.pre_affine.domain_shape,
+            linalg.inv(self.pre_affine.codomain_grid2world) @
+            self.pre_affine.affine @
+            self.pre_affine.domain_grid2world)
+        resamp_0_1 = resamp_1 @ resamp_0
+        resamp_2 = None
         for ii in ProgressBar(list(range(n_vols)), mesg=mesg):
             for attr in attrs:
                 # transform from source space to mri_from resolution/space
                 if vols is None:
-                    img_real = interp[:, ii].toarray()
+                    img_real = interp[:, ii]
                 else:
                     img_real = interp @ getattr(vols[:, ii], attr)
+                _debug_img(img_real, from_affine, 'From', src_shape)
+
+                img_real = resamp_0_1 @ img_real
+                if sparse.issparse(img_real):
+                    img_real = img_real.toarray()
                 img_real = img_real.reshape(
-                    self.src_data['src_shape_full'][::-1], order='F')
-                from_affine = np.dot(
-                    self.src_data['src_affine_ras'],  # mri_ras_t
-                    self.src_data['src_affine_vox'])  # vox_mri_t
-                from_affine[:3] *= 1000.
-                _debug_img(img_real, from_affine, 'From')
-
-                # reslice to match what was used during the morph
-                # (brain.mgz and whatever was used to create the source space
-                #  will not necessarily have the same domain/zooms)
-                img_real = _resample_from_to(
-                    img_real, from_affine,
-                    (self.pre_affine.codomain_shape,
-                     self.pre_affine.codomain_grid2world))
-                _debug_img(img_real, self.pre_affine.codomain_grid2world,
-                           'From-reslice')
-
-                img_real = self.pre_affine.transform(img_real)
+                    self.pre_affine.domain_shape, order='F')
                 if self.sdr_morph is not None:
                     img_real = self.sdr_morph.transform(img_real)
                 _debug_img(img_real, self.affine, 'From-reslice-transform')
@@ -556,15 +568,25 @@ class SourceMorph(object):
                 if self.src_data['to_vox_map'] is not None:
                     affine = self.affine
                     to_zooms = np.diag(self.src_data['to_vox_map'][1])[:3]
+                    # There might be some sparse equivalent to this but
+                    # not sure...
                     if not np.allclose(self.zooms, to_zooms, atol=1e-3):
                         img_real, affine = reslice(
                             img_real, self.affine, self.zooms, to_zooms)
                     _debug_img(img_real, affine,
                                'From-reslice-transform-src')
-                    img_real = _resample_from_to(
-                        img_real, affine, self.src_data['to_vox_map'])
+                    if resamp_2 is None:
+                        resamp_2 = _grid_interp(
+                            img_real.shape, self.src_data['to_vox_map'][0],
+                            linalg.inv(affine) @
+                            self.src_data['to_vox_map'][1])
+                    # Equivalent to:
+                    # _resample_from_to(
+                    #     img_real, affine, self.src_data['to_vox_map'])
+                    img_real = resamp_2 @ img_real.ravel(order='F')
                     _debug_img(img_real, self.src_data['to_vox_map'][1],
-                               'From-reslice-transform-src-subselect')
+                               'From-reslice-transform-src-subselect',
+                               self.src_data['to_vox_map'][0])
 
                 # This can be used to help debug, but it really should just
                 # show the brain filling the volume:
@@ -641,11 +663,16 @@ class SourceMorph(object):
 _slicers = list()
 
 
-def _debug_img(data, affine, title):
+def _debug_img(data, affine, title, shape=None):
     # XXX uncomment these lines for debugging help with volume morph
     # import nibabel as nib
+    # if sparse.issparse(data):
+    #     data = data.toarray()
+    # data = np.asarray(data)
+    # if shape is not None:
+    #     data = np.reshape(data, shape, order='F')
     # _slicers.append(nib.viewers.OrthoSlicer3D(
-    #     np.asarray(data), affine, axes=None, title=title))
+    #     data, affine, axes=None, title=title))
     # _slicers[-1].figs[0].suptitle(title, color='r')
     return
 
@@ -777,7 +804,7 @@ def _morphed_stc_as_volume(morph, stc, mri_resolution, mri_space, output):
 
     # setup empty volume
     if morph.src_data['to_vox_map'] is not None:
-        shape = morph.src_data['to_vox_map'][0][::-1]
+        shape = morph.src_data['to_vox_map'][0]
         affine = morph.src_data['to_vox_map'][1]
     else:
         shape = morph.shape
@@ -1116,7 +1143,7 @@ def _hemi_morph(tris, vertices_to, vertices_from, smooth, maps, warn):
     if isinstance(smooth, str):
         _check_option('smooth', smooth, ('nearest',),
                       extra=' when used as a string.')
-        mm = _surf_nearest(vertices_from, e)
+        mm = _surf_nearest(vertices_from, e).tocsr()
     else:
         mm = _surf_upsampling_mat(vertices_from, e, smooth, warn=warn)
     assert mm.shape == (n_vertices, len(vertices_from))

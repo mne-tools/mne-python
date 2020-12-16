@@ -19,7 +19,7 @@ from mne.utils import (check_random_state, _check_fname, check_fname,
                        _check_subject, requires_mayavi, traits_test,
                        _check_mayavi_version, _check_info_inv, _check_option,
                        check_version, _check_path_like, _validate_type,
-                       _suggest, _on_missing)
+                       _suggest, _on_missing, requires_nibabel, _safe_input)
 data_path = testing.data_path(download=False)
 base_dir = op.join(data_path, 'MEG', 'sample')
 fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
@@ -186,6 +186,7 @@ def test_validate_type():
         _validate_type(False, 'int-like')
 
 
+@requires_nibabel()
 @testing.requires_testing_data
 def test_suggest():
     """Test suggestions."""
@@ -210,3 +211,15 @@ def test_on_missing():
     with pytest.raises(ValueError,
                        match='Invalid value for the \'on_missing\' parameter'):
         _on_missing('foo', msg)
+
+
+def _matlab_input(msg):
+    raise EOFError()
+
+
+def test_safe_input(monkeypatch):
+    """Test _safe_input."""
+    monkeypatch.setattr(mne.utils.check, 'input', _matlab_input)
+    with pytest.raises(RuntimeError, match='Could not use input'):
+        _safe_input('whatever', alt='nothing')
+    assert _safe_input('whatever', use='nothing') == 'nothing'

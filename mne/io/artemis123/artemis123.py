@@ -231,7 +231,7 @@ def _get_artemis123_info(fname, pos_fname=None):
             raise ValueError('Channel does not match expected' +
                              ' channel Types:"%s"' % chan['name'])
 
-        # incorporate mulitplier (unit_mul) into calibration
+        # incorporate multiplier (unit_mul) into calibration
         t['cal'] *= 10 ** t['unit_mul']
         t['unit_mul'] = FIFF.FIFF_UNITM_NONE
 

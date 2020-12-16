@@ -177,7 +177,8 @@ def _plot_legend(pos, colors, axis, bads, outlines, loc, size=30):
     ratio = bbox.width / bbox.height
     ax = inset_axes(axis, width=str(size / ratio) + '%',
                     height=str(size) + '%', loc=loc)
-    ax.set_adjustable("box")
+    ax.set_adjustable('box')
+    ax.set_aspect('equal')
     _prepare_topomap(pos, ax, check_nonzero=False)
     pos_x, pos_y = pos.T
     ax.scatter(pos_x, pos_y, color=colors, s=size * .8, marker='.', zorder=1)
@@ -191,7 +192,7 @@ def _plot_legend(pos, colors, axis, bads, outlines, loc, size=30):
 def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                  units, scalings, titles, axes, plot_type, cmap=None,
                  gfp=False, window_title=None, spatial_colors=False,
-                 set_tight_layout=True, selectable=True, zorder='unsorted',
+                 selectable=True, zorder='unsorted',
                  noise_cov=None, colorbar=True, mask=None, mask_style=None,
                  mask_cmap=None, mask_alpha=.25, time_unit='s',
                  show_names=False, group_by=None, sphere=None):
@@ -236,7 +237,6 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                          proj, xlim, hline, units, scalings, titles,
                          ax, plot_type, cmap=cmap, gfp=gfp,
                          window_title=window_title,
-                         set_tight_layout=set_tight_layout,
                          selectable=selectable, noise_cov=noise_cov,
                          colorbar=colorbar, mask=mask,
                          mask_style=mask_style, mask_cmap=mask_cmap,
@@ -300,7 +300,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
     fig = None
     if axes is None:
         fig, axes = plt.subplots(len(ch_types_used), 1)
-        plt.subplots_adjust(0.175, 0.08, 0.94, 0.94, 0.2, 0.63)
+        fig.subplots_adjust(left=0.125, bottom=0.1, right=0.975, top=0.92,
+                            hspace=0.63)
         if isinstance(axes, plt.Axes):
             axes = [axes]
         fig.set_size_inches(6.4, 2 + len(axes))
@@ -363,8 +364,6 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
 
     plt.setp(fig.axes[:len(ch_types_used) - 1], xlabel='')
     fig.canvas.draw()  # for axes plots update axes.
-    if set_tight_layout:
-        tight_layout(fig=fig)
     plt_show(show)
     return fig
 
@@ -1424,7 +1423,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
                        sphere=None)
     ts_args_def.update(ts_args)
     _plot_evoked(evoked, axes=ts_ax, show=False, plot_type='butterfly',
-                 exclude=[], set_tight_layout=False, **ts_args_def)
+                 exclude=[], **ts_args_def)
 
     # handle title
     # we use a new axis for the title to handle scaling of plots
@@ -1932,7 +1931,7 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
         If a single Evoked instance, it is plotted as a time series.
         If a list of Evokeds, the contents are plotted with their
         ``.comment`` attributes used as condition labels. If no comment is set,
-        the index of the respectiv Evoked the list will be used instead,
+        the index of the respective Evoked the list will be used instead,
         starting with ``1`` for the first Evoked.
         If a dict whose values are Evoked objects, the contents are plotted as
         single time series each and the keys are used as labels.
@@ -2140,13 +2139,15 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
     if isinstance(evokeds, (list, tuple)):
         evokeds_copy = evokeds.copy()
         evokeds = dict()
-
-        for evk_idx, evk in enumerate(evokeds_copy, start=1):
-            label = None
-            if hasattr(evk, 'comment'):
-                label = evk.comment
-            label = label if label else str(evk_idx)
-            evokeds[label] = evk
+        comments = [getattr(_evk, 'comment', None) for _evk in evokeds_copy]
+        for idx, (comment, _evoked) in enumerate(zip(comments, evokeds_copy)):
+            key = str(idx + 1)
+            if comment:  # only update key if comment is non-empty
+                if comments.count(comment) == 1:  # comment is unique
+                    key = comment
+                else:  # comment is non-unique: prepend index
+                    key = f'{key}: {comment}'
+            evokeds[key] = _evoked
         del evokeds_copy
 
     if not isinstance(evokeds, dict):

@@ -142,6 +142,7 @@ def test_persyst_wrong_file(tmpdir):
     read_raw_persyst(new_fname_lay, preload=True)
 
 
+@requires_testing_data
 def test_persyst_standard():
     """Test standard operations."""
     _test_raw_reader(read_raw_persyst, fname=fname_lay)

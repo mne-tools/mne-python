@@ -1,11 +1,14 @@
 .. -*- mode: rst -*-
 
-|Travis|_ |Azure|_ |Circle|_ |Codecov|_ |PyPI|_ |conda-forge|_ |Zenodo|_
+|GH-Linux|_ |GH-macOS|_ |Azure|_ |Circle|_ |Codecov|_ |PyPI|_ |conda-forge|_ |Zenodo|_
 
 |MNE|_
 
-.. |Travis| image:: https://api.travis-ci.org/mne-tools/mne-python.svg?branch=master
-.. _Travis: https://travis-ci.org/mne-tools/mne-python/branches
+.. |GH-Linux| image:: https://github.com/mne-tools/mne-python/workflows/linux%20/%20conda/badge.svg?branch=master
+.. _GH-Linux: https://github.com/mne-tools/mne-python/actions?query=branch:master+event:push
+
+.. |GH-macOS| image:: https://github.com/mne-tools/mne-python/workflows/macos%20/%20conda/badge.svg?branch=master
+.. _GH-macOS: https://github.com/mne-tools/mne-python/actions?query=branch:master+event:push
 
 .. |Azure| image:: https://dev.azure.com/mne-tools/mne-python/_apis/build/status/mne-tools.mne-python?branchName=master
 .. _Azure: https://dev.azure.com/mne-tools/mne-python/_build/latest?definitionId=1&branchName=master
@@ -102,6 +105,7 @@ For full functionality, some functions require:
 - Imageio >= 2.6.1
 - PyVista >= 0.24
 - pyvistaqt >= 0.2.0
+- mffpy >= 0.5.7
 
 Contributing to MNE-Python
 ^^^^^^^^^^^^^^^^^^^^^^^^^^

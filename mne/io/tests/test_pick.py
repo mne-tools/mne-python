@@ -69,8 +69,8 @@ def _channel_type_old(info, idx):
 
     # iterate through all defined channel types until we find a match with ch
     # go in order from most specific (most rules entries) to least specific
-    channel_types = sorted(
-        get_channel_type_constants().items(), key=lambda x: len(x[1]))[::-1]
+    channel_types = sorted(get_channel_type_constants().items(),
+                           key=lambda x: len(x[1]), reverse=True)
     for t, rules in channel_types:
         for key, vals in rules.items():  # all keys must match the values
             if ch.get(key, None) not in np.array(vals):
@@ -78,7 +78,7 @@ def _channel_type_old(info, idx):
         else:
             return t
 
-    raise ValueError('Unknown channel type for {}'.format(ch["ch_name"]))
+    raise ValueError(f'Unknown channel type for {ch["ch_name"]}')
 
 
 def _assert_channel_types(info):
@@ -112,8 +112,10 @@ def test_pick_refs():
     for info in infos:
         info['bads'] = []
         _assert_channel_types(info)
-        pytest.raises(ValueError, pick_types, info, meg='foo')
-        pytest.raises(ValueError, pick_types, info, ref_meg='foo')
+        with pytest.raises(ValueError, match="'planar2'] or bool, not foo"):
+            pick_types(info, meg='foo')
+        with pytest.raises(ValueError, match="'planar2', 'auto'] or bool,"):
+            pick_types(info, ref_meg='foo')
         picks_meg_ref = pick_types(info, meg=True, ref_meg=True)
         picks_meg = pick_types(info, meg=True, ref_meg=False)
         picks_ref = pick_types(info, meg=False, ref_meg=True)
@@ -229,7 +231,9 @@ def test_pick_seeg_ecog():
         assert_equal(channel_type(info, i), types[i])
     raw = RawArray(np.zeros((len(names), 10)), info)
     events = np.array([[1, 0, 0], [2, 0, 0]])
-    epochs = Epochs(raw, events, {'event': 0}, -1e-5, 1e-5)
+    epochs = Epochs(raw, events=events, event_id={'event': 0},
+                    tmin=-1e-5, tmax=1e-5,
+                    baseline=(0, 0))  # only one sample
     evoked = epochs.average(pick_types(epochs.info, meg=True, seeg=True))
     e_seeg = evoked.copy().pick_types(meg=False, seeg=True)
     for lt, rt in zip(e_seeg.ch_names, [names[4], names[5], names[7]]):

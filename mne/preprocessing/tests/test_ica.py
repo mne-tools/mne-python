@@ -25,8 +25,7 @@ from mne.preprocessing import (ICA as _ICA, ica_find_ecg_events,
 from mne.preprocessing.ica import (get_score_funcs, corrmap, _sort_components,
                                    _ica_explained_variance, read_ica_eeglab)
 from mne.io import read_raw_fif, Info, RawArray, read_raw_ctf, read_raw_eeglab
-from mne.io.meas_info import _kind_dict
-from mne.io.pick import _DATA_CH_TYPES_SPLIT
+from mne.io.pick import _DATA_CH_TYPES_SPLIT, get_channel_type_constants
 from mne.io.eeglab.eeglab import _check_load_mat
 from mne.rank import _compute_rank_int
 from mne.utils import catch_logging, requires_sklearn, run_tests_if_main
@@ -1005,7 +1004,7 @@ def test_fit_params(method, tmpdir):
 def test_bad_channels(method, allow_ref_meg):
     """Test exception when unsupported channels are used."""
     _skip_check_picard(method)
-    chs = [i for i in _kind_dict]
+    chs = list(get_channel_type_constants())
     info = create_info(len(chs), 500, chs)
     rng = np.random.RandomState(0)
     data = rng.rand(len(chs), 50)

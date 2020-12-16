@@ -296,7 +296,8 @@ def test_render_mri_without_bem(tmpdir):
     shutil.copyfile(mri_fname, op.join(tempdir, 'sample', 'mri', 'T1.mgz'))
     report = Report(info_fname=raw_fname,
                     subject='sample', subjects_dir=tempdir)
-    report.parse_folder(tempdir, render_bem=False)
+    with pytest.raises(RuntimeError, match='No matching files found'):
+        report.parse_folder(tempdir, render_bem=False)
     with pytest.warns(RuntimeWarning, match='No BEM surfaces found'):
         report.parse_folder(tempdir, render_bem=True, mri_decim=20)
     assert 'bem' in report.fnames
@@ -493,6 +494,21 @@ def test_scraper(tmpdir):
     assert rst.count('"') == 6
     assert "<iframe" in rst
     assert op.isfile(img_fname.replace('png', 'svg'))
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('split_naming', ('neuromag', 'bids',))
+def test_split_files(tmpdir, split_naming):
+    """Test that in the case of split files, we only parse the first."""
+    raw = read_raw_fif(raw_fname)
+    split_size = '7MB'  # Should produce 3 files
+    buffer_size_sec = 1  # Tiny buffer so it's smaller than the split size
+    raw.save(op.join(tmpdir, 'raw_meg.fif'), split_size=split_size,
+             split_naming=split_naming, buffer_size_sec=buffer_size_sec)
+
+    report = Report()
+    report.parse_folder(tmpdir, render_bem=False)
+    assert len(report.fnames) == 1
 
 
 run_tests_if_main()

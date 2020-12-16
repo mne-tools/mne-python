@@ -92,40 +92,54 @@ class GetEpochsMixin(object):
         -----
         Epochs can be accessed as ``epochs[...]`` in several ways:
 
-            1. ``epochs[idx]``: Return ``Epochs`` object with a subset of
-               epochs (supports single index and python-style slicing).
+        1. **Integer or slice:** ``epochs[idx]`` will return an `~mne.Epochs`
+           object with a subset of epochs chosen by index (supports single
+           index and Python-style slicing).
 
-            2. ``epochs['name']``: Return ``Epochs`` object with a copy of the
-               subset of epochs corresponding to an experimental condition as
-               specified by 'name'.
+        2. **String:** ``epochs['name']`` will return an `~mne.Epochs` object
+           comprising only the epochs labeled ``'name'`` (i.e., epochs created
+           around events with the label ``'name'``).
 
-               If conditions are tagged by names separated by '/' (e.g.
-               'audio/left', 'audio/right'), and 'name' is not in itself an
-               event key, this selects every event whose condition contains
-               the 'name' tag (e.g., 'left' matches 'audio/left' and
-               'visual/left'; but not 'audio_left'). Note that tags selection
-               is insensitive to order: tags like 'auditory/left' and
-               'left/auditory' will be treated the same way when accessed.
+           If there are no epochs labeled ``'name'`` but there are epochs
+           labeled with /-separated tags (e.g. ``'name/left'``,
+           ``'name/right'``), then ``epochs['name']`` will select the epochs
+           with labels that contain that tag (e.g., ``epochs['left']`` selects
+           epochs labeled ``'audio/left'`` and ``'visual/left'``, but not
+           ``'audio_left'``).
 
-            3. ``epochs[['name_1', 'name_2', ... ]]``: Return ``Epochs`` object
-               with a copy of the subset of epochs corresponding to multiple
-               experimental conditions as specified by
-               ``'name_1', 'name_2', ...`` .
+           If multiple tags are provided *as a single string* (e.g.,
+           ``epochs['name_1/name_2']``), this selects epochs containing *all*
+           provided tags. For example, ``epochs['audio/left']`` selects
+           ``'audio/left'`` and ``'audio/quiet/left'``, but not
+           ``'audio/right'``. Note that tag-based selection is insensitive to
+           order: tags like ``'audio/left'`` and ``'left/audio'`` will be
+           treated the same way when selecting via tag.
 
-               If conditions are separated by '/', selects every item
-               containing every list tag (e.g. ['audio', 'left'] selects
-               'audio/left' and 'audio/center/left', but not 'audio/right').
+        3. **List of strings:** ``epochs[['name_1', 'name_2', ... ]]`` will
+           return an `~mne.Epochs` object comprising epochs that match *any* of
+           the provided names (i.e., the list of names is treated as an
+           inclusive-or condition). If *none* of the provided names match any
+           epoch labels, a ``KeyError`` will be raised.
 
-            4. ``epochs['pandas query']``: Return ``Epochs`` object with a
-               copy of the subset of epochs (and matching metadata) that match
-               ``pandas query`` called with ``self.metadata.eval``, e.g.::
+           If epoch labels are /-separated tags, then providing multiple tags
+           *as separate list entries* will likewise act as an inclusive-or
+           filter. For example, ``epochs[['audio', 'left']]`` would select
+           ``'audio/left'``, ``'audio/right'``, and ``'visual/left'``, but not
+           ``'visual/right'``.
 
-                   epochs["col_a > 2 and col_b == 'foo'"]
+        4. **Pandas query:** ``epochs['pandas query']`` will return an
+           `~mne.Epochs` object with a subset of epochs (and matching
+           metadata) selected by the query called with
+           ``self.metadata.eval``, e.g.::
 
-               This is only called if Pandas is installed and ``self.metadata``
-               is a :class:`pandas.DataFrame`.
+               epochs["col_a > 2 and col_b == 'foo'"]
 
-               .. versionadded:: 0.16
+           would return all epochs whose associated ``col_a`` metadata was
+           greater than two, and whose ``col_b`` metadata was the string 'foo'.
+           Query-based indexing only works if Pandas is installed and
+           ``self.metadata`` is a :class:`pandas.DataFrame`.
+
+           .. versionadded:: 0.16
         """
         return self._getitem(item)
 

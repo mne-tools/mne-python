@@ -9,6 +9,7 @@ Compute envelope correlations of orthogonalized activity
 :footcite:`HippEtAl2012,KhanEtAl2018` in source
 space using resting state CTF data.
 """
+
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Sheraz Khan <sheraz@khansheraz.com>
 #          Denis Engemann <denis.engemann@gmail.com>

@@ -81,6 +81,35 @@ rng = np.random.RandomState(0)
 
 
 @testing.requires_testing_data
+def test_stc_baseline_correction():
+    """Test baseline correction for source estimate objects."""
+    # test on different source estimates
+    stcs = [read_source_estimate(fname_stc),
+            read_source_estimate(fname_vol, 'sample')]
+    # test on different "baseline" intervals
+    baselines = [(0., 0.1), (None, None)]
+
+    for stc in stcs:
+        times = stc.times
+
+        for (start, stop) in baselines:
+            # apply baseline correction, then check if it worked
+            stc = stc.apply_baseline(baseline=(start, stop))
+
+            t0 = start or stc.times[0]
+            t1 = stop or stc.times[-1]
+            # index for baseline interval (include boundary latencies)
+            imin = np.abs(times - t0).argmin()
+            imax = np.abs(times - t1).argmin() + 1
+            # data matrix from baseline interval
+            data_base = stc.data[:, imin:imax]
+            mean_base = data_base.mean(axis=1)
+            zero_array = np.zeros(mean_base.shape[0])
+            # test if baseline properly subtracted (mean=zero for all sources)
+            assert_array_almost_equal(mean_base, zero_array)
+
+
+@testing.requires_testing_data
 def test_spatial_inter_hemi_adjacency():
     """Test spatial adjacency between hemispheres."""
     # trivial cases
@@ -564,6 +593,7 @@ def test_extract_label_time_course(kind, vector):
 
     src = read_inverse_operator(fname_inv)['src']
     if kind == 'mixed':
+        pytest.importorskip('nibabel')
         label_names = ('Left-Cerebellum-Cortex',
                        'Right-Cerebellum-Cortex')
         src += setup_volume_source_space(
@@ -686,6 +716,7 @@ def test_extract_label_time_course(kind, vector):
     assert (x.size == 0)
 
 
+@testing.requires_testing_data
 @pytest.mark.parametrize('label_type, mri_res, vector, test_label, cf, call', [
     (str, False, False, False, 'head', 'meth'),  # head frame
     (str, False, False, str, 'mri', 'func'),  # fastest, default for testing
@@ -1295,6 +1326,7 @@ def test_source_estime_project(real):
     assert_allclose(directions, want_nn, atol=1e-6)
 
 
+@testing.requires_testing_data
 def test_source_estime_project_label():
     """Test projecting a source estimate onto direction of max power."""
     fwd = read_forward_solution(fname_fwd)
@@ -1590,6 +1622,8 @@ def _make_morph_map_hemi_same(subject_from, subject_to, subjects_dir,
                                 reg_from, reg_from)
 
 
+@requires_nibabel()
+@testing.requires_testing_data
 @pytest.mark.parametrize('kind', (
     pytest.param('volume', marks=[requires_version('dipy')]),
     'surface',

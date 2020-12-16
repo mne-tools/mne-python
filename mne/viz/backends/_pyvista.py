@@ -21,7 +21,8 @@ import numpy as np
 import vtk
 
 from .base_renderer import _BaseRenderer
-from ._utils import _get_colormap_from_array, ALLOWED_QUIVER_MODES
+from ._utils import (_get_colormap_from_array, _alpha_blend_background,
+                     ALLOWED_QUIVER_MODES)
 from ...fixes import _get_args
 from ...utils import copy_base_doc_to_subclass_doc, _check_option
 from ...externals.decorator import decorator
@@ -37,7 +38,7 @@ with warnings.catch_warnings():
         from pyvista import BackgroundPlotter
     from pyvista.utilities import try_callback
     from pyvista.plotting.plotting import _ALL_PLOTTERS
-VTK9 = LooseVersion(vtk.VTK_VERSION) >= LooseVersion('9.0')
+VTK9 = LooseVersion(getattr(vtk, 'VTK_VERSION', '9.0')) >= LooseVersion('9.0')
 
 
 _FIGURES = dict()
@@ -204,6 +205,11 @@ class _Renderer(_BaseRenderer):
             if self.antialias:
                 _enable_aa(self.figure, self.plotter)
 
+        # FIX: https://github.com/pyvista/pyvistaqt/pull/68
+        if LooseVersion(pyvista.__version__) >= '0.27.0':
+            if not hasattr(self.plotter, "iren"):
+                self.plotter.iren = None
+
         self.update_lighting()
 
     @contextmanager
@@ -277,6 +283,8 @@ class _Renderer(_BaseRenderer):
         lights[2].SetIntensity(0.5)
 
     def set_interaction(self, interaction):
+        if not hasattr(self.plotter, "iren") or self.plotter.iren is None:
+            return
         if interaction == "rubber_band_2d":
             for renderer in self.plotter.renderers:
                 renderer.enable_parallel_projection()
@@ -316,6 +324,9 @@ class _Renderer(_BaseRenderer):
                 mesh.GetPointData().SetActiveNormals("Normals")
             else:
                 _compute_normals(mesh)
+            if 'rgba' in kwargs:
+                rgba = kwargs["rgba"]
+                kwargs.pop('rgba')
             actor = _add_mesh(
                 plotter=self.plotter,
                 mesh=mesh, color=color, scalars=scalars,
@@ -476,7 +487,9 @@ class _Renderer(_BaseRenderer):
     def quiver3d(self, x, y, z, u, v, w, color, scale, mode, resolution=8,
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
                  opacity=1.0, scale_mode='none', scalars=None,
-                 backface_culling=False, line_width=2., name=None):
+                 backface_culling=False, line_width=2., name=None,
+                 glyph_width=None, glyph_depth=None,
+                 solid_transform=None):
         _check_option('mode', mode, ALLOWED_QUIVER_MODES)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
@@ -507,6 +520,7 @@ class _Renderer(_BaseRenderer):
                 )
                 mesh = pyvista.wrap(alg.GetOutput())
             else:
+                tr = None
                 if mode == 'cone':
                     glyph = vtk.vtkConeSource()
                     glyph.SetCenter(0.5, 0, 0)
@@ -514,6 +528,9 @@ class _Renderer(_BaseRenderer):
                 elif mode == 'cylinder':
                     glyph = vtk.vtkCylinderSource()
                     glyph.SetRadius(0.15)
+                elif mode == 'oct':
+                    glyph = vtk.vtkPlatonicSolidSource()
+                    glyph.SetSolidTypeToOctahedron()
                 else:
                     assert mode == 'sphere', mode  # guaranteed above
                     glyph = vtk.vtkSphereSource()
@@ -524,10 +541,17 @@ class _Renderer(_BaseRenderer):
                         glyph.SetCenter(glyph_center)
                     if glyph_resolution is not None:
                         glyph.SetResolution(glyph_resolution)
-                    # fix orientation
-                    glyph.Update()
                     tr = vtk.vtkTransform()
                     tr.RotateWXYZ(90, 0, 0, 1)
+                elif mode == 'oct':
+                    if solid_transform is not None:
+                        assert solid_transform.shape == (4, 4)
+                        tr = vtk.vtkTransform()
+                        tr.SetMatrix(
+                            solid_transform.astype(np.float64).ravel())
+                if tr is not None:
+                    # fix orientation
+                    glyph.Update()
                     trp = vtk.vtkTransformPolyDataFilter()
                     trp.SetInputData(glyph.GetOutput())
                     trp.SetTransform(tr)
@@ -571,13 +595,18 @@ class _Renderer(_BaseRenderer):
     def text3d(self, x, y, z, text, scale, color='white'):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            self.plotter.add_point_labels(points=[x, y, z],
-                                          labels=[text],
-                                          point_size=scale,
-                                          text_color=color,
-                                          font_family=self.font_family,
-                                          name=text,
-                                          shape_opacity=0)
+            kwargs = dict(
+                points=[x, y, z],
+                labels=[text],
+                point_size=scale,
+                text_color=color,
+                font_family=self.font_family,
+                name=text,
+                shape_opacity=0,
+            )
+            if 'always_visible' in _get_args(self.plotter.add_point_labels):
+                kwargs['always_visible'] = True
+            self.plotter.add_point_labels(**kwargs)
 
     def scalarbar(self, source, color="white", title=None, n_labels=4,
                   bgcolor=None, **extra_kwargs):
@@ -602,9 +631,10 @@ class _Renderer(_BaseRenderer):
         _close_3d_figure(figure=self.figure)
 
     def set_camera(self, azimuth=None, elevation=None, distance=None,
-                   focalpoint=None, roll=None):
+                   focalpoint=None, roll=None, reset_camera=True):
         _set_3d_view(self.figure, azimuth=azimuth, elevation=elevation,
-                     distance=distance, focalpoint=focalpoint, roll=roll)
+                     distance=distance, focalpoint=focalpoint, roll=roll,
+                     reset_camera=reset_camera)
 
     def reset_camera(self):
         self.plotter.reset_camera()
@@ -628,7 +658,7 @@ class _Renderer(_BaseRenderer):
 
     def remove_mesh(self, mesh_data):
         actor, _ = mesh_data
-        self.plotter.renderer.remove_actor(actor)
+        self.plotter.remove_actor(actor)
 
 
 def _create_actor(mapper=None):
@@ -742,6 +772,7 @@ def _close_all():
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=DeprecationWarning)
         close_all()
+    _FIGURES.clear()
 
 
 def _get_camera_direction(focalpoint, position):
@@ -752,9 +783,11 @@ def _get_camera_direction(focalpoint, position):
     return r, theta, phi, focalpoint
 
 
-def _set_3d_view(figure, azimuth, elevation, focalpoint, distance, roll=None):
+def _set_3d_view(figure, azimuth, elevation, focalpoint, distance, roll=None,
+                 reset_camera=True):
     position = np.array(figure.plotter.camera_position[0])
-    figure.plotter.reset_camera()
+    if reset_camera:
+        figure.plotter.reset_camera()
     if focalpoint is None:
         focalpoint = np.array(figure.plotter.camera_position[1])
     r, theta, phi, fp = _get_camera_direction(focalpoint, position)
@@ -764,6 +797,7 @@ def _set_3d_view(figure, azimuth, elevation, focalpoint, distance, roll=None):
     if elevation is not None:
         theta = _deg2rad(elevation)
 
+    # set the distance
     renderer = figure.plotter.renderer
     bounds = np.array(renderer.ComputeVisiblePropBounds())
     if distance is None:
@@ -790,18 +824,22 @@ def _set_3d_view(figure, azimuth, elevation, focalpoint, distance, roll=None):
         position, focalpoint, view_up]
     if roll is not None:
         figure.plotter.camera.SetRoll(roll)
-    # set the distance
 
     figure.plotter.renderer._azimuth = azimuth
     figure.plotter.renderer._elevation = elevation
     figure.plotter.renderer._distance = distance
     figure.plotter.renderer._roll = roll
+    figure.plotter.update()
+    _process_events(figure.plotter)
 
 
 def _set_3d_title(figure, title, size=16):
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=FutureWarning)
-        figure.plotter.add_text(title, font_size=size, color='white')
+        figure.plotter.add_text(title, font_size=size, color='white',
+                                name='title')
+    figure.plotter.update()
+    _process_events(figure.plotter)
 
 
 def _check_3d_figure(figure):
@@ -837,20 +875,21 @@ def _process_events(plotter):
             plotter.app.processEvents()
 
 
-def _set_colormap_range(actor, ctable, scalar_bar, rng=None):
+def _set_colormap_range(actor, ctable, scalar_bar, rng=None,
+                        background_color=None):
     from vtk.util.numpy_support import numpy_to_vtk
-    mapper = actor.GetMapper()
-    lut = mapper.GetLookupTable()
-    # Catch:  FutureWarning: Conversion of the second argument of
-    # issubdtype from `complex` to `np.complexfloating` is deprecated.
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=FutureWarning)
-        lut.SetTable(numpy_to_vtk(ctable))
     if rng is not None:
-        mapper.SetScalarRange(rng[0], rng[1])
-        lut.SetRange(rng[0], rng[1])
+        mapper = actor.GetMapper()
+        mapper.SetScalarRange(*rng)
+        lut = mapper.GetLookupTable()
+        lut.SetTable(numpy_to_vtk(ctable))
     if scalar_bar is not None:
-        scalar_bar.SetLookupTable(actor.GetMapper().GetLookupTable())
+        lut = scalar_bar.GetLookupTable()
+        if background_color is not None:
+            background_color = np.array(background_color) * 255
+            ctable = _alpha_blend_background(ctable, background_color)
+        lut.SetTable(numpy_to_vtk(ctable, array_type=vtk.VTK_UNSIGNED_CHAR))
+        lut.SetRange(*rng)
 
 
 def _set_volume_range(volume, ctable, alpha, scalar_bar, rng):
@@ -859,8 +898,8 @@ def _set_volume_range(volume, ctable, alpha, scalar_bar, rng):
     color_tf = vtk.vtkColorTransferFunction()
     opacity_tf = vtk.vtkPiecewiseFunction()
     for loc, color in zip(np.linspace(*rng, num=len(ctable)), ctable):
-        color_tf.AddRGBPoint(loc, *color[:-1])
-        opacity_tf.AddPoint(loc, color[-1] * alpha / 255. / (len(ctable) - 1))
+        color_tf.AddRGBPoint(loc, *(color[:-1] / 255.))
+        opacity_tf.AddPoint(loc, color[-1] * alpha / 255.)
     color_tf.ClampingOn()
     opacity_tf.ClampingOn()
     volume.GetProperty().SetColor(color_tf)

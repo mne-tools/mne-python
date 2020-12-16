@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Conversion tool from Brain Vision EEG to FIF."""
+"""Conversion tool from BrainVision EEG to FIF."""
 # Authors: Teon Brooks <teon.brooks@gmail.com>
 #          Christian Brodbeck <christianbrodbeck@nyu.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
@@ -220,6 +220,9 @@ def _read_vmrk(fname):
     for info in items:
         info_data = info.split(',')
         mtype, mdesc, this_onset, this_duration = info_data[:4]
+        # commas in mtype and mdesc are handled as "\1". convert back to comma
+        mtype = mtype.replace(r'\1', ',')
+        mdesc = mdesc.replace(r'\1', ',')
         if date_str == '' and len(info_data) == 5 and mtype == 'New Segment':
             # to handle the origin of time and handle the presence of multiple
             # New Segment annotations. We only keep the first one that is
@@ -510,6 +513,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
             props[3] = 'µV'
 
         name, _, resolution, unit = props[:4]
+        # in BrainVision, commas in channel names are encoded as "\1"
+        name = name.replace(r'\1', ',')
         ch_dict[chan] = name
         ch_names[n] = name
         if resolution == "":

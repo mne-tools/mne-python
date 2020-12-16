@@ -1,0 +1,78 @@
+name: 'compat / minimal'
+on:
+  push:
+    branches:
+      - '*'
+  pull_request:
+    branches:
+      - '*'
+
+jobs:
+  check_skip:
+    runs-on: ubuntu-20.04
+    outputs:
+      skip: ${{ steps.result_step.outputs.ci-skip }}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - id: result_step
+        uses: mstachniuk/ci-skip@master
+        with:
+          commit-filter: '[skip ci];[ci skip];[skip github]'
+          commit-filter-separator: ';'
+
+  # Minimal (runs with and without testing data)
+  job:
+    needs: check_skip
+    if: ${{ needs.check_skip.outputs.skip == 'false' }}
+    name: 'py3.7'
+    runs-on: ubuntu-20.04
+    defaults:
+      run:
+        shell: bash
+    env:
+      CONDA_DEPENDENCIES: 'numpy scipy matplotlib'
+      DEPS: 'minimal'
+      DISPLAY: ':99.0'
+      MNE_DONTWRITE_HOME: true
+      MNE_FORCE_SERIAL: true
+      MNE_LOGGING_LEVEL: 'warning'
+      MNE_SKIP_NETWORK_TEST: 1
+      MNE_SKIP_TESTING_DATASET_TESTS: true
+      OPENBLAS_NUM_THREADS: '1'
+      PYTHONUNBUFFERED: '1'
+      PYTHON_VERSION: '3.7'
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - run: ./tools/setup_xvfb.sh
+        name: 'Setup xvfb'
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+        name: 'Setup conda'
+      - shell: bash -el {0}
+        run: |
+          ./tools/github_actions_dependencies.sh
+          source tools/get_minimal_commands.sh
+        name: 'Install dependencies'
+      - shell: bash -el {0}
+        run: ./tools/github_actions_install.sh
+        name: 'Install MNE'
+      - shell: bash -el {0}
+        run: ./tools/github_actions_infos.sh
+        name: 'Show infos'
+      - shell: bash -el {0}
+        run: ./tools/github_actions_download.sh
+        name: 'Download testing data'
+      - shell: bash -el {0}
+        run: ./tools/github_actions_locale.sh
+        name: 'Print locale'
+      - shell: bash -el {0}
+        run: ./tools/github_actions_test.sh
+        name: 'Run tests'
+      - uses: codecov/codecov-action@v1
+        if: success()
+        name: 'Upload coverage to CodeCov'

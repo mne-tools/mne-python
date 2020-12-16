@@ -7,7 +7,7 @@ Contributing to MNE-Python
 
 .. contents:: Page contents
    :local:
-   :depth: 2
+   :depth: 3
 
 .. highlight:: console
 
@@ -275,6 +275,15 @@ And for building our documentation::
     $ pip install -r requirements_doc.txt
     $ conda install graphviz
 
+.. note::
+   On Windows, if you installed graphviz using the conda command above but still get an error like this::
+
+      WARNING: dot command 'dot' cannot be run (needed for graphviz output), check the graphviz_dot setting
+
+   try adding the graphviz folder to path::
+
+      $ PATH=$CONDA_PREFIX\\Library\\bin\\graphviz:$PATH
+
 To build documentation, you will also require `optipng`_:
 
 - On Linux, use the command ``sudo apt install optipng``.
@@ -538,13 +547,76 @@ Describe your changes in the changelog
 --------------------------------------
 
 Include in your changeset a brief description of the change in the
-:doc:`changelog <whats_new>` (:file:`doc/whats_new.rst`; this can be skipped
-for very minor changes like correcting typos in the documentation). Note that
-there are sections of the changelog for each release, and separate subsections
-for bugfixes, new features, and changes to the public API. It is usually best
-to wait to add a line to the changelog until your PR is finalized, to avoid
-merge conflicts (since the changelog is updated with almost every PR).
+:ref:`changelog <whats_new>` (:file:`doc/changes/latest.inc`; this can be
+skipped for very minor changes like correcting typos in the documentation).
 
+There are different sections of the changelog for each release, and separate
+**subsections for bugfixes, new features, and changes to the public API.**
+Please be sure to add your entry to the appropriate subsection.
+
+The styling and positioning of the entry depends on whether you are a
+first-time contributor or have been mentioned in the changelog before.
+
+First-time contributors
+"""""""""""""""""""""""
+
+Welcome to MNE-Python! We're very happy to have you here. 🤗 And to ensure you
+get proper credit for your work, please add a changelog entry with the
+following pattern **at the top** of the respective subsection (bugfix,
+new feature etc.):
+
+.. code-block:: rst
+
+
+  Bug
+  ---
+
+  .. |Your Name| replace:: **Your Name**
+
+  - Short description of the changes (:gh:`0000` **by new contributor** |Your Name|_)
+  
+  - ...
+
+where ``0000`` must be replaced with the respective GitHub pull request (PR)
+number.
+
+It is usually best to wait to add a line to the changelog until your PR is
+finalized, to avoid merge conflicts (since the changelog is updated with
+almost every PR).
+
+Lastly, make sure that your name is included in the list of authors in
+:file:`doc/changes/names.inc`, otherwise the documentation build will fail.
+To add an author name, simply append a line with the following pattern (note
+how the syntax is different from that used in the changelog):
+
+.. code-block:: rst
+
+  .. _Your Name: https://www.your-website.com/
+
+Many contributors opt to link to their GitHub profile that way. Have a look
+at the existing entries in the file to get some inspiration.
+
+Recurring contributors
+""""""""""""""""""""""
+
+The changelog entry should follow the following patterns:
+
+.. code-block:: rst
+
+    - Short description of the changes from one contributor (:gh:`0000` by `Contributor Name`_)
+    - Short description of the changes from several contributors (:gh:`0000` by `Contributor Name`_, `Second Contributor`_, and `Third Contributor`_)
+
+where ``0000`` must be replaced with the respective GitHub pull request (PR)
+number. Mind the Oxford comma in the case of multiple contributors.
+
+Sometimes, changes that shall appear as a single changelog entry are spread out
+across multiple PRs. In this case, simply name all relevant PRs, separated by
+commas:
+
+.. code-block:: rst
+
+    - Short description of the changes from one contributor in multiple PRs (:gh:`0000`, :gh:`1111` by `Contributor Name`_)
+    - Short description of the changes from several contributors in multiple PRs (:gh:`0000`, :gh:`1111` by `Contributor Name`_, `Second Contributor`_, and `Third Contributor`_)
 
 Test locally before opening pull requests (PRs)
 -----------------------------------------------
@@ -696,7 +768,7 @@ for the return value, even if the function or method's return value is never
 stored under that name in the code.
 
 
-Vizualization
+Visualization
 -------------
 
 Visualization capabilities should be made available in both function and method

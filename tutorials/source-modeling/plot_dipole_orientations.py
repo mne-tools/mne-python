@@ -206,7 +206,7 @@ brain_loose = stc.plot(subjects_dir=subjects_dir, initial_time=time_max,
 # Only retain vector magnitudes
 stc = apply_inverse(left_auditory, inv, pick_ori=None)
 
-# Visualize it at the moment of peak activity.
+# Visualize it at the moment of peak activity
 _, time_max = stc.get_peak(hemi='lh')
 brain = stc.plot(surface='white', subjects_dir=subjects_dir,
                  initial_time=time_max, time_unit='s', size=(600, 400))
