@@ -207,7 +207,7 @@ print(type(right_vis))
 ###############################################################################
 # Above, when we created an :class:`~mne.Evoked` object by averaging epochs,
 # baseline correction was applied by default when we extracted epochs from the
-# class:`~mne.io.Raw` object (the default baseline period is ``(None, 0)``,
+# `~mne.io.Raw` object (the default baseline period is ``(None, 0)``,
 # which assured zero mean for times before the stimulus event). In contrast, if
 # we plot the first :class:`~mne.Evoked` object in the list that was loaded
 # from disk, we'll see that the data have not been baseline-corrected:

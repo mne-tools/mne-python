@@ -69,7 +69,6 @@ extensions = [
     'sphinx_bootstrap_theme',
     'sphinx_bootstrap_divs',
     'sphinxcontrib.bibtex',
-    'sphinxcontrib.bibtex2',
 ]
 
 linkcheck_ignore = [

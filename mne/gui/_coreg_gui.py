@@ -1900,18 +1900,18 @@ class CoregFrame(HasTraits):
         point_scale = defaults['mri_fid_scale']
         self.mri_lpa_obj = PointObject(scene=self.scene, color=lpa_color,
                                        has_norm=True, point_scale=point_scale,
-                                       name='LPA')
+                                       name='LPA', view='oct')
         self.model.sync_trait('transformed_mri_lpa',
                               self.mri_lpa_obj, 'points', mutual=False)
         self.mri_nasion_obj = PointObject(scene=self.scene, color=nasion_color,
                                           has_norm=True,
                                           point_scale=point_scale,
-                                          name='Nasion')
+                                          name='Nasion', view='oct')
         self.model.sync_trait('transformed_mri_nasion',
                               self.mri_nasion_obj, 'points', mutual=False)
         self.mri_rpa_obj = PointObject(scene=self.scene, color=rpa_color,
                                        has_norm=True, point_scale=point_scale,
-                                       name='RPA')
+                                       name='RPA', view='oct')
         self.model.sync_trait('transformed_mri_rpa',
                               self.mri_rpa_obj, 'points', mutual=False)
 

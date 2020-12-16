@@ -26,6 +26,7 @@ subject-specific MRI, or projection into a surface, see
 :ref:`tut_working_with_ecog`. In the ECoG example, we show
 how to visualize surface grid channels on the brain.
 """
+
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Adam Li <adam2392@gmail.com>
 #

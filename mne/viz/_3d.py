@@ -34,7 +34,7 @@ from ..surface import (get_meg_helmet_surf, read_surface, _DistanceQuery,
                        _reorder_ccw, _complete_sphere_surf)
 from ..transforms import (_find_trans, apply_trans, rot_to_quat,
                           combine_transforms, _get_trans, _ensure_trans,
-                          invert_transform, Transform,
+                          invert_transform, Transform, rotation,
                           read_ras_mni_t, _print_coord_trans)
 from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
                      has_nibabel, check_version, fill_doc, _pl, get_config,
@@ -489,8 +489,12 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         If not None, also plot the source space points.
     mri_fiducials : bool | str
         Plot MRI fiducials (default False). If ``True``, look for a file with
-        the canonical name (``bem/{subject}-fiducials.fif``). If ``str`` it
-        should provide the full path to the fiducials file.
+        the canonical name (``bem/{subject}-fiducials.fif``). If ``str``,
+        it can be ``'estimated'`` to use :func:`mne.coreg.get_mni_fiducials`,
+        otherwise it should provide the full path to the fiducials file.
+
+        .. versionadded:: 0.22
+           Support for ``'estimated'``.
     bem : list of dict | instance of ConductorModel | None
         Can be either the BEM surfaces (list of dict), a BEM solution or a
         sphere model. If None, we first try loading
@@ -550,6 +554,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     .. versionadded:: 0.15
     """
     from ..forward import _create_meg_coils, Forward
+    from ..coreg import get_mni_fiducials
     # Update the backend
     from .backends.renderer import _get_renderer
 
@@ -811,9 +816,12 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
             mri_fiducials = op.join(subjects_dir, subject, 'bem',
                                     subject + '-fiducials.fif')
         if isinstance(mri_fiducials, str):
-            mri_fiducials, cf = read_fiducials(mri_fiducials)
-            if cf != FIFF.FIFFV_COORD_MRI:
-                raise ValueError("Fiducials are not in MRI space")
+            if mri_fiducials == 'estimated':
+                mri_fiducials = get_mni_fiducials(subject, subjects_dir)
+            else:
+                mri_fiducials, cf = read_fiducials(mri_fiducials)
+                if cf != FIFF.FIFFV_COORD_MRI:
+                    raise ValueError("Fiducials are not in MRI space")
         fid_loc = _fiducial_coords(mri_fiducials, FIFF.FIFFV_COORD_MRI)
         fid_loc = apply_trans(mri_trans, fid_loc)
     else:
@@ -1014,7 +1022,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     for k, v in user_alpha.items():
         if v is not None:
             alphas[k] = v
-    colors = dict(head=(0.6,) * 3, helmet=(0.0, 0.0, 0.6), lh=(0.5,) * 3,
+    colors = dict(head=DEFAULTS['coreg']['head_color'],
+                  helmet=(0.0, 0.0, 0.6), lh=(0.5,) * 3,
                   rh=(0.5,) * 3)
     colors.update(skull_colors)
     for key, surf in surfs.items():
@@ -1060,19 +1069,34 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
               defaults['extra_scale']
               ] + [defaults[key + '_scale'] for key in other_keys]
     assert len(datas) == len(colors) == len(alphas) == len(scales)
+    fid_colors = tuple(
+        defaults[f'{key}_color'] for key in ('lpa', 'nasion', 'rpa'))
+    glyphs = ['sphere'] * len(datas)
     for kind, loc in (('dig', car_loc), ('mri', fid_loc)):
         if len(loc) > 0:
             datas.extend(loc[:, np.newaxis])
-            colors.extend((defaults['lpa_color'],
-                           defaults['nasion_color'],
-                           defaults['rpa_color']))
-            alphas.extend(3 * (defaults[kind + '_fid_opacity'],))
-            scales.extend(3 * (defaults[kind + '_fid_scale'],))
-
-    for data, color, alpha, scale in zip(datas, colors, alphas, scales):
+            colors.extend(fid_colors)
+            alphas.extend(3 * (defaults[f'{kind}_fid_opacity'],))
+            scales.extend(3 * (defaults[f'{kind}_fid_scale'],))
+            glyphs.extend(3 * (('oct' if kind == 'mri' else 'sphere'),))
+    for data, color, alpha, scale, glyph in zip(
+            datas, colors, alphas, scales, glyphs):
         if len(data) > 0:
-            renderer.sphere(center=data, color=color, scale=scale,
-                            opacity=alpha, backface_culling=True)
+            if glyph == 'oct':
+                transform = np.eye(4)
+                transform[:3, :3] = mri_trans['trans'][:3, :3] * scale
+                # rotate around Z axis 45 deg first
+                transform = transform @ rotation(0, 0, np.pi / 4)
+                renderer.quiver3d(
+                    x=data[:, 0], y=data[:, 1], z=data[:, 2],
+                    u=1., v=0., w=0., color=color, mode='oct',
+                    scale=1., opacity=alpha, backface_culling=True,
+                    solid_transform=transform)
+            else:
+                assert glyph == 'sphere'
+                assert data.ndim == 2 and data.shape[1] == 3, data.shape
+                renderer.sphere(center=data, color=color, scale=scale,
+                                opacity=alpha, backface_culling=True)
     if len(eegp_loc) > 0:
         renderer.quiver3d(
             x=eegp_loc[:, 0], y=eegp_loc[:, 1], z=eegp_loc[:, 2],
@@ -1218,6 +1242,15 @@ def _sensor_shape(coil):
     return rrs, tris
 
 
+def _get_cmap(colormap):
+    import matplotlib.pyplot as plt
+    if isinstance(colormap, str) and colormap in ('mne', 'mne_analyze'):
+        colormap = mne_analyze_colormap([0, 1, 2], format='matplotlib')
+    else:
+        colormap = plt.get_cmap(colormap)
+    return colormap
+
+
 def _process_clim(clim, colormap, transparent, data=0., allow_pos_lims=True):
     """Convert colormap/clim options to dict.
 
@@ -1225,7 +1258,6 @@ def _process_clim(clim, colormap, transparent, data=0., allow_pos_lims=True):
     calling gives the same results.
     """
     # Based on type of limits specified, get cmap control points
-    import matplotlib.pyplot as plt
     from matplotlib.colors import Colormap
     _validate_type(colormap, (str, Colormap), 'colormap')
     data = np.asarray(data)
@@ -1241,10 +1273,7 @@ def _process_clim(clim, colormap, transparent, data=0., allow_pos_lims=True):
                     colormap = 'hot'
                 else:  # 'pos_lims' in clim
                     colormap = 'mne'
-        if colormap in ('mne', 'mne_analyze'):
-            colormap = mne_analyze_colormap([0, 1, 2], format='matplotlib')
-        else:
-            colormap = plt.get_cmap(colormap)
+        colormap = _get_cmap(colormap)
     assert isinstance(colormap, Colormap)
     diverging_maps = ['PiYG', 'PRGn', 'BrBG', 'PuOr', 'RdGy', 'RdBu',
                       'RdYlBu', 'RdYlGn', 'Spectral', 'coolwarm', 'bwr',
@@ -1805,6 +1834,7 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
               size, scale_factor, show_traces, src, volume_options,
               view_layout, add_data_kwargs):
     from .backends.renderer import _get_3d_backend
+    from ..source_estimate import _BaseVolSourceEstimate
     vec = stc._data_ndim == 3
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
@@ -1880,47 +1910,57 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
 
     if transparent is None:
         transparent = True
-    sd_kwargs = dict(transparent=transparent, verbose=False)
     center = 0. if diverging else None
+    sd_kwargs = dict(transparent=transparent, center=center, verbose=False)
+    kwargs = {
+        "array": stc,
+        "colormap": colormap,
+        "smoothing_steps": smoothing_steps,
+        "time": times, "time_label": time_label,
+        "alpha": overlay_alpha,
+        "colorbar": colorbar,
+        "vector_alpha": vector_alpha,
+        "scale_factor": scale_factor,
+        "verbose": False,
+        "initial_time": initial_time,
+        "transparent": transparent,
+        "center": center,
+        "fmin": scale_pts[0],
+        "fmid": scale_pts[1],
+        "fmax": scale_pts[2],
+        "clim": clim,
+        "src": src,
+        "volume_options": volume_options,
+        "verbose": False,
+    }
+    if add_data_kwargs is not None:
+        kwargs.update(add_data_kwargs)
     for hemi in hemis:
-        kwargs = {
-            "colormap": colormap,
-            "smoothing_steps": smoothing_steps,
-            "time": times, "time_label": time_label,
-            "alpha": overlay_alpha, "hemi": hemi,
-            "colorbar": colorbar,
-            "vector_alpha": vector_alpha,
-            "scale_factor": scale_factor,
-            "verbose": False,
-            "initial_time": initial_time,
-            "transparent": transparent, "center": center,
-            "verbose": False
-        }
+        if isinstance(stc, _BaseVolSourceEstimate):  # no surf data
+            break
+        vertices = stc.vertices[0 if hemi == 'lh' else 1]
+        if len(vertices) == 0:  # no surf data for the given hemi
+            continue  # no data
+        use_kwargs = kwargs.copy()
+        use_kwargs.update(hemi=hemi)
         if using_mayavi:
-            kwargs["array"] = getattr(stc, hemi + '_data')
-            kwargs["vertices"] = stc.vertices[0 if hemi == 'lh' else 1]
-            kwargs["min"] = scale_pts[0]
-            kwargs["mid"] = scale_pts[1]
-            kwargs["max"] = scale_pts[2]
-        else:  # pyvista
-            kwargs["array"] = stc
-            kwargs["fmin"] = scale_pts[0]
-            kwargs["fmid"] = scale_pts[1]
-            kwargs["fmax"] = scale_pts[2]
-            kwargs["clim"] = clim
-            kwargs["src"] = src
-        kwargs.update({} if add_data_kwargs is None else add_data_kwargs)
-        if volume and src.kind == 'volume':
-            continue
+            del use_kwargs['clim'], use_kwargs['src']
+            del use_kwargs['volume_options']
+            use_kwargs.update(
+                min=use_kwargs.pop('fmin'), mid=use_kwargs.pop('fmid'),
+                max=use_kwargs.pop('fmax'), array=getattr(stc, hemi + '_data'),
+                vertices=vertices)
         with warnings.catch_warnings(record=True):  # traits warnings
-            brain.add_data(**kwargs)
-        brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
-                                  fmax=scale_pts[2], **sd_kwargs)
+            brain.add_data(**use_kwargs)
+        if using_mayavi:
+            brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
+                                      fmax=scale_pts[2], **sd_kwargs)
 
     if volume:
-        kwargs["hemi"] = 'vol'
-        kwargs["volume_options"] = volume_options
-        brain.add_data(**kwargs)
+        use_kwargs = kwargs.copy()
+        use_kwargs.update(hemi='vol')
+        brain.add_data(**use_kwargs)
+    del kwargs
 
     need_peeling = (brain_alpha < 1.0 and
                     sys.platform != 'darwin' and

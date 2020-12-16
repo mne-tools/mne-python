@@ -77,6 +77,11 @@ assert np.array_equal(events, events_from_file[:len(events)])
 mne.find_events(raw, stim_channel='STI 014')
 
 ###############################################################################
+# .. sidebar:: Including/excluding events
+#
+#     Just like `~mne.pick_events`, `~mne.read_events` also has ``include``
+#     and ``exclude`` parameters.
+#
 # If some of those events are not of interest, you can easily subselect events
 # using :func:`mne.pick_events`, which has parameters ``include`` and
 # ``exclude``. For example, in the sample data Event ID 32 corresponds to a

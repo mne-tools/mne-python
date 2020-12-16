@@ -10,7 +10,8 @@ and shows how to use an LCMV beamformer to reconstruct source activity.
    :depth: 2
 
 """
-# Author: Britta Westner <britta.wstnr@gmail.com>
+# Authors: Britta Westner <britta.wstnr@gmail.com>
+#          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD (3-clause)
 
