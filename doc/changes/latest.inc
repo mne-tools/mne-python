@@ -131,8 +131,6 @@ Bugs
 
 - Fix bug with plotting MEG topographies where the wrong extrapolation made was used in ICA (:gh:`8637` by `Eric Larson`_)
 
-- Fix bug with plotting MEG topographies where the wrong extrapolation made was used in ICA (:gh:`8637` by `Eric Larson`_)
-
 - Fix bug when merging fNIRS channels in :func:`mne.viz.plot_evoked_topomap` and related functions (:gh:`8306` by `Robert Luke`_)
 
 - Fix bug where events could overflow when writing to FIF (:gh:`8448` by `Eric Larson`_)
