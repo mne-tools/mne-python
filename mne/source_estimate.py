@@ -3059,6 +3059,18 @@ def _dep_trans(trans):
              'pass it as an argument', DeprecationWarning)
 
 
+def _get_default_label_modes():
+    return sorted(_label_funcs.keys()) + ['auto']
+
+
+def _get_allowed_label_modes(stc):
+    if isinstance(stc, (_BaseVolSourceEstimate,
+                        _BaseVectorSourceEstimate)):
+        return ('mean', 'max', 'auto')
+    else:
+        return _get_default_label_modes()
+
+
 def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
                                    allow_empty=False, trans=None,
                                    mri_resolution=True, verbose=None):
@@ -3069,7 +3081,7 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
         _validate_type(src, SourceSpaces)
         kind = src.kind
     _dep_trans(trans)
-    _check_option('mode', mode, sorted(_label_funcs.keys()) + ['auto'])
+    _check_option('mode', mode, _get_default_label_modes())
 
     if kind in ('surface', 'mixed'):
         if not isinstance(labels, list):
@@ -3085,11 +3097,11 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
     for si, stc in enumerate(stcs):
         _validate_type(stc, _BaseSourceEstimate, 'stcs[%d]' % (si,),
                        'source estimate')
+        _check_option(
+            'mode', mode, _get_allowed_label_modes(stc),
+            'when using a vector and/or volume source estimate')
         if isinstance(stc, (_BaseVolSourceEstimate,
                             _BaseVectorSourceEstimate)):
-            _check_option(
-                'mode', mode, ('mean', 'max', 'auto'),
-                'when using a vector and/or volume source estimate')
             mode = 'mean' if mode == 'auto' else mode
         else:
             mode = 'mean_flip' if mode == 'auto' else mode

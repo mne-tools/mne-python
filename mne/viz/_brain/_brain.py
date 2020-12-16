@@ -1104,6 +1104,7 @@ class Brain(object):
         )
 
     def _configure_trace_mode(self):
+        from ...source_estimate import _get_allowed_label_modes
         from ...label import _read_annot_cands
         from PyQt5.QtWidgets import QComboBox, QLabel
         if not self.show_traces:
@@ -1163,17 +1164,14 @@ class Brain(object):
         self.tool_bar.addWidget(QLabel("Label extraction mode"))
         self._label_mode_widget = QComboBox()
         self.tool_bar.addWidget(self._label_mode_widget)
-        if self._data["stc"] is not None:
-            vec = self._data["stc"]._data_ndim == 3
-        else:
-            vec = False
-        for source in ["stc", "src"]:
-            if self._data[source] is not None:
-                for mode in self.default_label_extract_modes[source]:
-                    if vec and mode == "pca_flip":
-                        continue
-                    self._label_mode_widget.addItem(mode)
-                    self.label_extract_mode = mode
+        stc = self._data["stc"]
+        modes = _get_allowed_label_modes(stc)
+        if self._data["src"] is None:
+            modes = [m for m in modes if m not in
+                     self.default_label_extract_modes["src"]]
+        for mode in modes:
+            self._label_mode_widget.addItem(mode)
+            self.label_extract_mode = mode
 
         if self.traces_mode == 'vertex':
             _set_annot('None')
