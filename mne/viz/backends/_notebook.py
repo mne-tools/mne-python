@@ -10,11 +10,14 @@ from ._pyvista import \
 
 class _Renderer(_PyVistaRenderer):
     def __init__(self, *args, **kwargs):
+        self.disp = None
         kwargs["notebook"] = True
         super().__init__(*args, **kwargs)
 
     def show(self):
-        self.disp = self.plotter.show(use_ipyvtk=True)
+        from IPython.display import display
+        self.disp = self.plotter.show(use_ipyvtk=True, return_viewer=True)
+        display(self.disp)
         return self.scene()
 
 

@@ -24,18 +24,19 @@ class MplCanvas(object):
         # prefer constrained layout here but live with tight_layout otherwise
         context = nullcontext
         extra_events = ('resize',)
-        try:
-            context = rc_context({'figure.constrained_layout.use': True})
-            extra_events = ()
-        except KeyError:
-            pass
-        with context:
-            self.fig = Figure(figsize=(width, height), dpi=dpi)
         self.notebook = notebook
         if self.notebook:
-            self.fig, self.axes = plt.subplots()
+            self.fig, self.axes = plt.subplots(figsize=(width, height),
+                                               dpi=dpi)
             self.canvas = plt.gcf().canvas
         else:
+            try:
+                context = rc_context({'figure.constrained_layout.use': True})
+                extra_events = ()
+            except KeyError:
+                pass
+            with context:
+                self.fig = Figure(figsize=(width, height), dpi=dpi)
             self.canvas = FigureCanvasQTAgg(self.fig)
             self.axes = self.fig.add_subplot(111)
             self.canvas.setParent(parent)

@@ -980,7 +980,7 @@ class Brain(object):
         # use a matplotlib canvas
         self.color_cycle = _ReuseCycle(_get_color_list())
         if self.notebook:
-            dpi = 90
+            dpi = 100
             w, h = self.plotter.window_size
         else:
             dpi = self.window.windowHandle().screen().logicalDotsPerInch()
@@ -3032,8 +3032,8 @@ class Brain(object):
     def _update(self):
         from ..backends import renderer
         if renderer.get_3d_backend() in ['pyvista', 'notebook']:
-            if self.notebook and self._renderer.figure.display is not None:
-                self._renderer.figure.display.update()
+            if self.notebook and self._renderer.disp is not None:
+                self._renderer.disp.update_canvas()
             else:
                 self._renderer.plotter.update()
 
