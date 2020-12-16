@@ -479,6 +479,7 @@ def test_simulate_raw_chpi():
                   vel_atol=0.03)  # velicity huge because of t_step_min above
 
 
+@testing.requires_testing_data
 def test_simulation_cascade():
     """Test that cascading operations do not overwrite data."""
     # Create 10 second raw dataset with zeros in the data matrix
