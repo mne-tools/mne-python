@@ -898,8 +898,8 @@ def _set_volume_range(volume, ctable, alpha, scalar_bar, rng):
     color_tf = vtk.vtkColorTransferFunction()
     opacity_tf = vtk.vtkPiecewiseFunction()
     for loc, color in zip(np.linspace(*rng, num=len(ctable)), ctable):
-        color_tf.AddRGBPoint(loc, *color[:-1])
-        opacity_tf.AddPoint(loc, color[-1] * alpha / 255. / (len(ctable) - 1))
+        color_tf.AddRGBPoint(loc, *(color[:-1] / 255.))
+        opacity_tf.AddPoint(loc, color[-1] * alpha / 255.)
     color_tf.ClampingOn()
     opacity_tf.ClampingOn()
     volume.GetProperty().SetColor(color_tf)

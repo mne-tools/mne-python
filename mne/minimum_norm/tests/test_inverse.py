@@ -31,7 +31,7 @@ from mne.minimum_norm import (apply_inverse, read_inverse_operator,
                               make_inverse_operator, apply_inverse_cov,
                               write_inverse_operator, prepare_inverse_operator,
                               compute_rank_inverse, INVERSE_METHODS)
-from mne.utils import _TempDir, run_tests_if_main, catch_logging
+from mne.utils import _TempDir, catch_logging
 
 test_path = testing.data_path(download=False)
 s_path = op.join(test_path, 'MEG', 'sample')
@@ -364,30 +364,39 @@ def test_localization_bias_loose(bias_params_fixed, method, lower, upper,
     assert lower <= perc <= upper, method
 
 
-@pytest.mark.parametrize('method, lower, upper, kwargs, depth, loose', [
-    ('MNE', 21, 24, {}, dict(limit=None, combine_xyz=False, exp=1.), 1),
-    ('MNE', 35, 40, {}, dict(limit_depth_chs=False), 1),  # ancient default
-    ('MNE', 45, 55, {}, 0.8, 1),  # MNE default
-    ('MNE', 65, 70, {}, dict(limit_depth_chs='whiten'), 1),  # sparse default
-    ('dSPM', 40, 45, {}, 0.8, 1),
-    ('sLORETA', 90, 95, {}, 0.8, 1),
-    ('eLORETA', 93, 100, dict(method_params=dict(force_equal=True)), None, 1),
-    ('eLORETA', 100, 100, {}, None, 1.0),
-    ('eLORETA', 100, 100, {}, 0.8, 1.0),
-    ('eLORETA', 100, 100, {}, 0.8, 0.999),
-])
+@pytest.mark.parametrize(
+    'method, lower, upper, lower_ori, upper_ori, kwargs, depth, loose', [
+        ('MNE', 21, 24, 0.73, 0.75, {},
+         dict(limit=None, combine_xyz=False, exp=1.), 1),
+        ('MNE', 35, 40, 0.93, 0.94, {},
+         dict(limit_depth_chs=False), 1),  # ancient default
+        ('MNE', 45, 55, 0.94, 0.95, {}, 0.8, 1),  # MNE default
+        ('MNE', 65, 70, 0.945, 0.955, {},
+         dict(limit_depth_chs='whiten'), 1),  # sparse default
+        ('dSPM', 40, 45, 0.96, 0.97, {}, 0.8, 1),
+        ('sLORETA', 93, 95, 0.95, 0.96, {}, 0.8, 1),
+        ('eLORETA', 93, 100, 0.95, 0.96,
+         dict(method_params=dict(force_equal=True)), None, 1),
+        ('eLORETA', 100, 100, 0.98, 0.99, {}, None, 1.0),
+        ('eLORETA', 100, 100, 0.98, 0.99, {}, 0.8, 1.0),
+        ('eLORETA', 100, 100, 0.98, 0.99, {}, 0.8, 0.999),
+    ]
+)
 def test_localization_bias_free(bias_params_free, method, lower, upper,
-                                kwargs, depth, loose):
+                                lower_ori, upper_ori, kwargs, depth, loose):
     """Test inverse localization bias for free minimum-norm solvers."""
     evoked, fwd, noise_cov, _, want = bias_params_free
-    inv_free = make_inverse_operator(evoked.info, fwd, noise_cov, loose=1.,
+    inv_free = make_inverse_operator(evoked.info, fwd, noise_cov, loose=loose,
                                      depth=depth)
     loc = apply_inverse(evoked, inv_free, lambda2, method,
                         pick_ori='vector', verbose='debug', **kwargs).data
+    ori = loc / np.linalg.norm(loc, axis=1, keepdims=True)
     loc = np.linalg.norm(loc, axis=1)
     # Compute the percentage of sources for which there is no loc bias:
-    perc = (want == np.argmax(loc, axis=0)).mean() * 100
+    max_idx = np.argmax(loc, axis=0)
+    perc = (want == max_idx).mean() * 100
     assert lower <= perc <= upper, method
+    _assert_free_ori_match(ori, max_idx, lower_ori, upper_ori)
 
 
 def test_apply_inverse_sphere(evoked):
@@ -1244,4 +1253,22 @@ def test_sss_rank():
     assert rank == 67
 
 
-run_tests_if_main()
+def _assert_free_ori_match(ori, max_idx, lower_ori, upper_ori):
+    __tracebackhide__ = True
+    # Because of how we construct our free ori tests, the correct orientations
+    # are just np.eye(3) repeated, so our dot products are just np.diag()
+    # of all of the orientations
+    if ori is None:
+        return
+    if ori.ndim == 3:  # time-varying
+        assert ori.shape == (ori.shape[0], 3, max_idx.size)
+        ori = ori[max_idx, :, np.arange(max_idx.size)]
+    else:
+        assert ori.ndim == 2
+        assert ori.shape == (ori.shape[0], 3)
+        ori = ori[max_idx]
+    assert ori.shape == (max_idx.size, 3)
+    ori.shape = (max_idx.size // 3, 3, 3)
+    dots = np.abs(np.diagonal(ori, axis1=1, axis2=2))
+    mu = np.mean(dots)
+    assert lower_ori <= mu <= upper_ori, mu

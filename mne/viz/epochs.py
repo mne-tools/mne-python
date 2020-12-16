@@ -965,12 +965,15 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     from ._figure import _psd_figure
 
     # generate figure
+    # epochs always use multitaper, not Welch, so no need to allow "window"
+    # param above
     fig = _psd_figure(
         inst=epochs, proj=proj, picks=picks, axes=ax, tmin=tmin, tmax=tmax,
         fmin=fmin, fmax=fmax, sphere=sphere, xscale=xscale, dB=dB,
         average=average, estimate=estimate, area_mode=area_mode,
         line_alpha=line_alpha, area_alpha=area_alpha, color=color,
         spatial_colors=spatial_colors, n_jobs=n_jobs, bandwidth=bandwidth,
-        adaptive=adaptive, low_bias=low_bias, normalization=normalization)
+        adaptive=adaptive, low_bias=low_bias, normalization=normalization,
+        window='hamming')
     plt_show(show)
     return fig

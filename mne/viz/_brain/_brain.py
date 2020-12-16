@@ -56,10 +56,10 @@ class _Overlay(object):
         self._opacity = opacity
 
     def to_colors(self):
-        from matplotlib.cm import get_cmap
+        from .._3d import _get_cmap
         from matplotlib.colors import ListedColormap
         if isinstance(self._colormap, str):
-            cmap = get_cmap(self._colormap)
+            cmap = _get_cmap(self._colormap)
         else:
             cmap = ListedColormap(self._colormap / 255.)
 
@@ -346,8 +346,8 @@ class Brain(object):
                  offscreen=False, interaction='trackball', units='mm',
                  view_layout='vertical', show=True):
         from ..backends.renderer import backend, _get_renderer, _get_3d_backend
+        from .._3d import _get_cmap
         from matplotlib.colors import colorConverter
-        from matplotlib.cm import get_cmap
 
         if hemi in ('both', 'split'):
             self._hemis = ('lh', 'rh')
@@ -419,7 +419,7 @@ class Brain(object):
         geo_kwargs = self._cortex_colormap(cortex)
         # evaluate at the midpoint of the used colormap
         val = -geo_kwargs['vmin'] / (geo_kwargs['vmax'] - geo_kwargs['vmin'])
-        self._brain_color = get_cmap(geo_kwargs['colormap'])(val)
+        self._brain_color = _get_cmap(geo_kwargs['colormap'])(val)
 
         # load geometry for one or both hemispheres as necessary
         offset = None if (not offset or hemi != 'both') else 0.0
@@ -3287,6 +3287,9 @@ class _FakeIren():
         pass
 
     def SetEventInformation(self, *args, **kwargs):
+        pass
+
+    def CharEvent(self):
         pass
 
     def KeyPressEvent(self, *args, **kwargs):

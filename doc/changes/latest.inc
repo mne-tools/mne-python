@@ -28,6 +28,8 @@ Current (0.22.dev0)
 
 .. |Hongjiang Ye| replace:: **Hongjiang Ye**
 
+.. |Qianliang Li| replace:: **Qianliang Li**
+
 
 Enhancements
 ~~~~~~~~~~~~
@@ -75,11 +77,15 @@ Enhancements
 
 - Add ``picks`` parameter to :func:`mne.preprocessing.fix_stim_artifact` to specify which channel needs to be fixed (:gh:`8482` by `Alex Gramfort`_)
 
+- Add progress bar support to :func:`mne.time_frequency.csd_morlet` (:gh:`8608` by `Eric Larson`_)
+
 - Further improved documentation building instructions and execution on Windows (:gh:`8502` by `kalenkovich`_ and `Eric Larson`_)
 
 - Add option to disable TQDM entirely with ``MNE_TQDM='off'`` (:gh:`8515` by `Eric Larson`_)
 
 - Add option ``on_header_missing`` to :func:`mne.channels.read_polhemus_fastscan` (:gh:`8622` by `Eric Larson`_)
+
+- Add option ``window`` to :func:`mne.time_frequency.psd_welch` and related functions (:gh:`8862` by `Eric Larson`_)
 
 - `mne.preprocessing.ICA.plot_sources` now displays an `mne.preprocessing.ICA.plot_properties` window when right-clicking on component names on the y-axis (:gh:`8381` by `Daniel McCloy`_)
 
@@ -95,6 +101,8 @@ Enhancements
 
 Bugs
 ~~~~
+- Fix orthogonalization of power envelopes in :func:`mne.connectivity.envelope_correlation` (:gh:`8658` **by new contributor** |Qianliang Li|_ and `Eric Larson`_)
+
 - Fix a transpose issue of :func:`mne.decoding.CSP.plot_filters` (:gh:`8580` **by new contributor** |Hongjiang Ye|_)
 
 - Fix :func:`mne.io.read_raw_curry` to deal with Curry datasets that have channels that are listed in the labels file, but which are absent from the saved data file (e.g. 'Ref' channel).  Also now populates info['meas_date'] if possible (:gh:`8400` **by new contributor** |Tod Flak|_)
@@ -106,6 +114,8 @@ Bugs
 - Fix bug with parsing EDF dates and date integers (:gh:`8558` **by new contributor** |Austin Hurst|_ and `Eric Larson`_)
 
 - Fix bug with reading EDF and KIT files on big endian architectures such as s390x (:gh:`8618` by `Eric Larson`_)
+
+- Fix bug with :func:`mne.beamformer.apply_dics` where the whitener was not properly applied (:gh:`8610` by `Eric Larson`_)
 
 - Fix bug with `~mne.viz.plot_epochs_image` when ``order`` is supplied and multiple conditions are plotted (:gh:`8377` by `Daniel McCloy`_ )
 
@@ -134,6 +144,8 @@ Bugs
 - Fix bug with :ref:`somato-dataset` where the BEM was not included (:gh:`8317` by `Eric Larson`_)
 
 - Fix bug with coordinate frames when performing volumetric morphs via :func:`mne.compute_source_morph` and :meth:`mne.SourceMorph.apply` that could lead to ~5 mm bias (:gh:`8642` by `Eric Larson`_)
+
+- Fix bug with volumetric rendering alpha in :meth:`mne.VolSourceEstimate.plot_3d` and related functions (:gh:`8663` by `Eric Larson`_)
 
 - Fix missing documentation of :func:`mne.io.read_raw_nihon` in :ref:`tut-imorting-eeg-data` (:gh`8320` by `Adam Li`_)
 
@@ -170,6 +182,8 @@ Bugs
 - Fix inset sensor plots to always use equal aspect (:gh:`8545` by `Daniel McCloy`_)
 
 - Fix bug in `mne.viz.plot_compare_evokeds` where evokeds with identical ``comment`` attributes would not plot properly if passed as a list (:gh:`8590` by `Daniel McCloy`_)
+
+- Fix bug in :func:`mne.time_frequency.psd_welch` and related functions where the window default errantly changed from ``'hamming'`` to ``('tukey', 0.25)`` (:gh:`8862` by `Eric Larson`_)
 
 - Fix bug in :func:`mne.io.read_raw_kit` where scale factors for EEG channels could be set to zero (:gh:`8542` by `Eric Larson`_)
 
