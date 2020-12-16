@@ -93,7 +93,7 @@ def _simulate_data(fwd, idx):  # Somewhere on the frontal lobe by default
     evoked = epochs.average()
 
     # Compute the cross-spectral density matrix
-    csd = csd_morlet(epochs, frequencies=[10, 20], n_cycles=[5, 10], decim=10)
+    csd = csd_morlet(epochs, frequencies=[10, 20], n_cycles=[5, 10], decim=5)
 
     labels = mne.read_labels_from_annot(
         'sample', hemi='lh', subjects_dir=subjects_dir)
@@ -122,16 +122,14 @@ def _rand_csd(rng, info):
     return data
 
 
-def _make_rand_csd(info, csd, project=True):
+def _make_rand_csd(info, csd):
     rng = np.random.RandomState(0)
     data = _rand_csd(rng, info)
     # now we need to have the same null space as the data csd
     s, u = np.linalg.eigh(csd.get_data(csd.frequencies[0]))
     mask = np.abs(s) >= s[-1] * 1e-7
     rank = mask.sum()
-    if project:
-        op = np.eye(len(u)) - u[:, ~mask] @ u[:, ~mask].T.conj()
-        data = op @ data @ op
+    assert rank == len(data) == len(info['ch_names'])
     noise_csd = CrossSpectralDensity(
         _sym_mat_to_vector(data), info['ch_names'], 0., csd.n_fft)
     return noise_csd, rank
@@ -153,7 +151,8 @@ def test_make_dics(tmpdir, _load_forward, idx, whiten):
     with pytest.raises(ValueError, match='several sensor types'):
         make_dics(epochs.info, fwd_surf, csd, label=label, pick_ori=None)
     if whiten:
-        noise_csd, _ = _make_rand_csd(epochs.info, csd)
+        noise_csd, rank = _make_rand_csd(epochs.info, csd)
+        assert rank == len(epochs.info['ch_names']) == 62
     else:
         noise_csd = None
         epochs.pick_types(meg='grad')
@@ -743,8 +742,8 @@ def test_localization_bias_free(bias_params_free, reg, pick_ori, weight_norm,
 @pytest.mark.parametrize('whiten', (False, True))
 def test_make_dics_rank(_load_forward, idx, whiten):
     """Test making DICS beamformer filters with rank param."""
-    fwd_free, fwd_surf, fwd_fixed, fwd_vol = _load_forward
-    epochs, _, csd, _, label, vertices, _ = _simulate_data(fwd_fixed, idx)
+    _, fwd_surf, fwd_fixed, _ = _load_forward
+    epochs, _, csd, _, label, _, _ = _simulate_data(fwd_fixed, idx)
     if whiten:
         noise_csd, want_rank = _make_rand_csd(epochs.info, csd)
         kind = 'mag + grad'
@@ -752,6 +751,7 @@ def test_make_dics_rank(_load_forward, idx, whiten):
         noise_csd = None
         epochs.pick_types(meg='grad')
         want_rank = len(epochs.ch_names)
+        assert want_rank == 41
         kind = 'grad'
 
     with catch_logging() as log:
@@ -779,7 +779,10 @@ def test_make_dics_rank(_load_forward, idx, whiten):
 
     # degenerate conditions
     if whiten:
-        noise_csd, _ = _make_rand_csd(epochs.info, csd, project=False)
+        # make rank deficient
+        data = noise_csd.get_data(0.)
+        data[0] = data[:0] = 0
+        noise_csd._data[:, 0] = _sym_mat_to_vector(data)
         with pytest.raises(ValueError, match='meg data rank.*the noise rank'):
             filters = make_dics(
                 epochs.info, fwd_surf, csd, label=label, noise_csd=noise_csd,
