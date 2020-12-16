@@ -555,12 +555,12 @@ def test_apply_dics_timeseries(_load_forward, idx):
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-@idx_param
-def test_tf_dics(_load_forward, idx):
+def test_tf_dics(_load_forward):
     """Test 5D time-frequency beamforming based on DICS."""
     fwd_free, fwd_surf, fwd_fixed, _ = _load_forward
+    # idx isn't really used so let's just simulate one
     epochs, _, _, source_vertno, label, vertices, source_ind = \
-        _simulate_data(fwd_fixed, idx)
+        _simulate_data(fwd_fixed, idx=0)
     reg = 1  # Lots of regularization for our toy dataset
 
     tmin = 0
