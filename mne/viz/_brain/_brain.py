@@ -572,7 +572,10 @@ class Brain(object):
 
         # show everything at the end
         self.toggle_interface()
-        with self.ensure_minimum_sizes():
+        if self.window is not None:
+            with self.ensure_minimum_sizes():
+                self.show()
+        else:
             self.show()
 
     @safe_event
@@ -2266,10 +2269,7 @@ class Brain(object):
     def show(self):
         """Display the window."""
         if self.notebook:
-            from IPython import display
-            self.disp = self._renderer.plotter.show(use_ipyvtk=True,
-                                                    return_viewer=True)
-            display.display(self.disp)
+            self.disp = self._renderer.plotter.show(use_ipyvtk=True)
         else:
             # Request rendering of the window
             try:
