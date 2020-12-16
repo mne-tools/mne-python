@@ -1163,9 +1163,15 @@ class Brain(object):
         self.tool_bar.addWidget(QLabel("Label extraction mode"))
         self._label_mode_widget = QComboBox()
         self.tool_bar.addWidget(self._label_mode_widget)
+        if self._data["stc"] is not None:
+            vec = self._data["stc"]._data_ndim == 3
+        else:
+            vec = False
         for source in ["stc", "src"]:
             if self._data[source] is not None:
                 for mode in self.default_label_extract_modes[source]:
+                    if vec and mode == "pca_flip":
+                        continue
                     self._label_mode_widget.addItem(mode)
                     self.label_extract_mode = mode
 
