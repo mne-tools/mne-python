@@ -525,16 +525,16 @@ class Brain(object):
 
         # Direct access parameters:
         self._iren = self._renderer.plotter.iren
-        if self.window is not None:
-            self.main_menu = self.plotter.main_menu
-            self.tool_bar = self.window.addToolBar("toolbar")
-            self.status_bar = self.window.statusBar()
-            self.interactor = self.plotter.interactor
-        else:
+        if self.notebook:
             self.main_menu = None
             self.tool_bar = None
             self.status_bar = None
             self.interactor = None
+        else:
+            self.main_menu = self.plotter.main_menu
+            self.tool_bar = self.window.addToolBar("toolbar")
+            self.status_bar = self.window.statusBar()
+            self.interactor = self.plotter.interactor
 
         # Derived parameters:
         self.playback_speed = self.default_playback_speed_value
@@ -563,20 +563,20 @@ class Brain(object):
         self._configure_time_label()
         self._configure_sliders()
         self._configure_scalar_bar()
-        if self.window is not None:
+        self._configure_point_picking()
+        if not self.notebook:
             self._configure_playback()
-            self._configure_point_picking()
             self._configure_menu()
             self._configure_tool_bar()
             self._configure_status_bar()
 
         # show everything at the end
         self.toggle_interface()
-        if self.window is not None:
+        if self.notebook:
+            self.show()
+        else:
             with self.ensure_minimum_sizes():
                 self.show()
-        else:
-            self.show()
 
     @safe_event
     def _clean(self):
@@ -654,7 +654,7 @@ class Brain(object):
             self.visibility = value
 
         # update tool bar icon
-        if self.window is not None:
+        if not self.notebook:
             if self.visibility:
                 self.actions["visibility"].setIcon(
                     self.icons["visibility_on"])
@@ -979,19 +979,23 @@ class Brain(object):
         from ..backends._pyvista import _update_picking_callback
         # use a matplotlib canvas
         self.color_cycle = _ReuseCycle(_get_color_list())
-        win = self.plotter.app_window
-        dpi = win.windowHandle().screen().logicalDotsPerInch()
-        ratio = (1 - self.interactor_fraction) / self.interactor_fraction
-        w = self.interactor.geometry().width()
-        h = self.interactor.geometry().height() / ratio
+        if self.notebook:
+            dpi = 90
+            w, h = self.plotter.window_size
+        else:
+            dpi = self.window.windowHandle().screen().logicalDotsPerInch()
+            ratio = (1 - self.interactor_fraction) / self.interactor_fraction
+            w = self.interactor.geometry().width()
+            h = self.interactor.geometry().height() / ratio
         # Get the fractional components for the brain and mpl
-        self.mpl_canvas = MplCanvas(self, w / dpi, h / dpi, dpi)
+        self.mpl_canvas = MplCanvas(self, w / dpi, h / dpi, dpi,
+                                    self.notebook)
         xlim = [np.min(self._data['time']),
                 np.max(self._data['time'])]
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=UserWarning)
             self.mpl_canvas.axes.set(xlim=xlim)
-        if not self.separate_canvas:
+        if not self.notebook and not self.separate_canvas:
             from PyQt5.QtWidgets import QSplitter
             from PyQt5.QtCore import Qt
             canvas = self.mpl_canvas.canvas
@@ -2268,14 +2272,11 @@ class Brain(object):
 
     def show(self):
         """Display the window."""
-        if self.notebook:
-            self.disp = self._renderer.plotter.show(use_ipyvtk=True)
-        else:
-            # Request rendering of the window
-            try:
-                return self._renderer.show()
-            except RuntimeError:
-                logger.info("No active/running renderer available.")
+        # Request rendering of the window
+        try:
+            return self._renderer.show()
+        except RuntimeError:
+            logger.info("No active/running renderer available.")
 
     def show_view(self, view=None, roll=None, distance=None, row=0, col=0,
                   hemi=None):

@@ -11,8 +11,9 @@ from ...fixes import nullcontext
 class MplCanvas(object):
     """Ultimately, this is a QWidget (as well as a FigureCanvasAgg, etc.)."""
 
-    def __init__(self, brain, width, height, dpi):
+    def __init__(self, brain, width, height, dpi, notebook=False):
         from PyQt5 import QtWidgets
+        import matplotlib.pyplot as plt
         from matplotlib import rc_context
         from matplotlib.figure import Figure
         from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
@@ -30,16 +31,21 @@ class MplCanvas(object):
             pass
         with context:
             self.fig = Figure(figsize=(width, height), dpi=dpi)
-        self.canvas = FigureCanvasQTAgg(self.fig)
-        self.axes = self.fig.add_subplot(111)
+        self.notebook = notebook
+        if self.notebook:
+            self.fig, self.axes = plt.subplots()
+            self.canvas = plt.gcf().canvas
+        else:
+            self.canvas = FigureCanvasQTAgg(self.fig)
+            self.axes = self.fig.add_subplot(111)
+            self.canvas.setParent(parent)
+            FigureCanvasQTAgg.setSizePolicy(
+                self.canvas,
+                QtWidgets.QSizePolicy.Expanding,
+                QtWidgets.QSizePolicy.Expanding
+            )
+            FigureCanvasQTAgg.updateGeometry(self.canvas)
         self.axes.set(xlabel='Time (sec)', ylabel='Activation (AU)')
-        self.canvas.setParent(parent)
-        FigureCanvasQTAgg.setSizePolicy(
-            self.canvas,
-            QtWidgets.QSizePolicy.Expanding,
-            QtWidgets.QSizePolicy.Expanding
-        )
-        FigureCanvasQTAgg.updateGeometry(self.canvas)
         self.brain = brain
         self.time_func = brain.callbacks["time"]
         for event in ('button_press', 'motion_notify') + extra_events:
