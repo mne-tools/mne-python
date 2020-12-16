@@ -30,6 +30,8 @@ Current (0.22.dev0)
 
 .. |Qianliang Li| replace:: **Qianliang Li**
 
+.. |Jeff Stout| replace:: **Jeff Stout**
+
 
 Enhancements
 ~~~~~~~~~~~~
