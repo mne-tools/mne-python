@@ -69,6 +69,7 @@ class _NotebookInteractor(object):
         return fig, dh
 
     def update(self):
+        self.plotter.render()
         self.dh.set_data(self.plotter.screenshot())
         self.fig.canvas.draw()
 

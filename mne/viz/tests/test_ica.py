@@ -14,7 +14,7 @@ from mne import (read_events, Epochs, read_cov, pick_types, Annotations,
                  make_fixed_length_events)
 from mne.io import read_raw_fif
 from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
-from mne.utils import (run_tests_if_main, requires_sklearn, _click_ch_name,
+from mne.utils import (requires_sklearn, _click_ch_name, catch_logging,
                        _close_event)
 from mne.viz.ica import _create_properties_layout, plot_ica_properties
 from mne.viz.utils import _fake_click
@@ -70,7 +70,12 @@ def test_plot_ica_components():
     plt.close('all')
 
     # test interactive mode (passing 'inst' arg)
-    ica.plot_components([0, 1], image_interp='bilinear', inst=raw, res=16)
+    with catch_logging() as log:
+        ica.plot_components([0, 1], image_interp='bilinear', inst=raw, res=16,
+                            verbose='debug', ch_type='grad')
+    log = log.getvalue()
+    assert 'grad data' in log
+    assert 'Interpolation mode local to mean' in log
     fig = plt.gcf()
 
     # test title click
@@ -133,7 +138,11 @@ def test_plot_ica_properties():
         _create_properties_layout(figsize=(2, 2), fig=fig)
 
     topoargs = dict(topomap_args={'res': 4, 'contours': 0, "sensors": False})
-    ica.plot_properties(raw, picks=0, **topoargs)
+    with catch_logging() as log:
+        ica.plot_properties(raw, picks=0, verbose='debug', **topoargs)
+    log = log.getvalue()
+    assert raw.ch_names[0] == 'MEG 0113'
+    assert 'Interpolation mode local to mean' in log, log
     ica.plot_properties(epochs, picks=1, dB=False, plot_std=1.5, **topoargs)
     ica.plot_properties(epochs, picks=1, image_args={'sigma': 1.5},
                         topomap_args={'res': 4, 'colorbar': True},
@@ -396,6 +405,3 @@ def test_plot_instance_components():
     _fake_click(fig, ax, [line.get_xdata()[0], line.get_ydata()[0]], 'data')
     _fake_click(fig, ax, [-0.1, 0.9])  # click on y-label
     fig.canvas.key_press_event('escape')
-
-
-run_tests_if_main()

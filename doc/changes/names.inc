@@ -339,3 +339,7 @@
 .. _Victoria Peterson: https://github.com/vpeterson
 
 .. _Evan Hathaway: https://github.com/ephathaway
+
+.. _Hongjiang Ye: https://github.com/rubyyhj
+
+.. _Qianliang Li: https://www.dtu.dk/english/service/phonebook/person?id=126774

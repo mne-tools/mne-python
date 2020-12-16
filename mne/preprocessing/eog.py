@@ -166,6 +166,8 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None, tmin=-0.5,
                       thresh=None, decim=1, verbose=None):
     """Conveniently generate epochs around EOG artifact events.
 
+    %(create_eog_epochs)s
+
     Parameters
     ----------
     raw : instance of Raw

@@ -16,7 +16,7 @@ import numpy as np
 from scipy import sparse, linalg
 
 from .io.constants import FIFF
-from .io.meas_info import create_info
+from .io.meas_info import create_info, Info
 from .io.tree import dir_tree_find
 from .io.tag import find_tag, read_tag
 from .io.open import fiff_open
@@ -24,6 +24,7 @@ from .io.write import (start_block, end_block, write_int,
                        write_float_sparse_rcs, write_string,
                        write_float_matrix, write_int_matrix,
                        write_coord_trans, start_file, end_file, write_id)
+from .io.pick import channel_type, _picks_to_idx
 from .bem import read_bem_surfaces
 from .fixes import _get_img_fdata
 from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
@@ -3197,3 +3198,65 @@ def _get_src_nn(s, use_cps=True, vertices=None):
     else:
         nn = s['nn'][vertices, :]
     return nn
+
+
+@verbose
+def compute_distance_to_sensors(src, info, picks=None, trans=None,
+                                verbose=None):
+    """Compute distances between vertices and sensors.
+
+    Parameters
+    ----------
+    src : instance of SourceSpaces
+        The object with vertex positions for which to compute distances to
+        sensors.
+    info : instance of Info
+        Measurement information with sensor positions to which distances shall
+        be computed.
+    %(picks_good_data)s
+    %(trans_not_none)s
+    %(verbose)s
+
+    Returns
+    -------
+    depth : array of shape (n_vertices, n_channels)
+        The Euclidean distances of source space vertices with respect to
+        sensors.
+    """
+    from scipy.spatial.distance import cdist
+
+    assert isinstance(src, SourceSpaces)
+    _validate_type(info, (Info,), 'info')
+
+    # Load the head<->MRI transform if necessary
+    if src[0]['coord_frame'] == FIFF.FIFFV_COORD_MRI:
+        src_trans, _ = _get_trans(trans, allow_none=False)
+    else:
+        src_trans = Transform('head', 'head')  # Identity transform
+
+    # get vertex position in same coordinates as for sensors below
+    src_pos = np.vstack([
+        apply_trans(src_trans, s['rr'][s['inuse'].astype(np.bool)])
+        for s in src
+    ])
+
+    # Select channels to be used for distance calculations
+    picks = _picks_to_idx(info, picks, 'data', exclude=())
+    # get sensor positions
+    sensor_pos = []
+    dev_to_head = None
+    for ch in picks:
+        # MEG channels are in device coordinates, translate them to head
+        if channel_type(info, ch) in ['mag', 'grad']:
+            if dev_to_head is None:
+                dev_to_head = _ensure_trans(info['dev_head_t'],
+                                            'meg', 'head')
+            sensor_pos.append(apply_trans(dev_to_head,
+                                          info['chs'][ch]['loc'][:3]))
+        else:
+            sensor_pos.append(info['chs'][ch]['loc'][:3])
+    sensor_pos = np.array(sensor_pos)
+
+    depths = cdist(src_pos, sensor_pos)
+
+    return depths

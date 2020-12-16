@@ -475,7 +475,7 @@ class CSP(TransformerMixin, BaseEstimator):
         info = cp.deepcopy(info)
         info['sfreq'] = 1.
         # create an evoked
-        filters = EvokedArray(self.filters_, info, tmin=0)
+        filters = EvokedArray(self.filters_.T, info, tmin=0)
         # the call plot_topomap
         return filters.plot_topomap(
             times=components, ch_type=ch_type, vmin=vmin,

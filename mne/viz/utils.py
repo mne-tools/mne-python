@@ -362,7 +362,7 @@ def _make_event_color_dict(event_color, events=None, event_id=None):
 
 
 def _prepare_trellis(n_cells, ncols, nrows='auto', title=False, colorbar=False,
-                     size=1.3):
+                     size=1.3, sharex=False, sharey=False):
     import matplotlib.pyplot as plt
     from matplotlib.gridspec import GridSpec
 
@@ -401,7 +401,13 @@ def _prepare_trellis(n_cells, ncols, nrows='auto', title=False, colorbar=False,
     else:
         ax_idxs = range(n_cells)
     for ax_idx in ax_idxs:
-        axes.append(plt.subplot(gs[ax_idx]))
+        subplot_kw = dict()
+        if ax_idx > 0:
+            if sharex:
+                subplot_kw.update(sharex=axes[0])
+            if sharey:
+                subplot_kw.update(sharey=axes[0])
+        axes.append(plt.subplot(gs[ax_idx], **subplot_kw))
 
     fig = axes[0].get_figure()
 

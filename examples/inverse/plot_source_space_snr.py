@@ -53,7 +53,7 @@ ax.plot(evoked.times, ave)
 ax.set(xlabel='Time (sec)', ylabel='SNR MEG-EEG')
 fig.tight_layout()
 
-# Find time point of maximum SNR:
+# Find time point of maximum SNR
 maxidx = np.argmax(ave)
 
 # Plot SNR on source space at the time point of maximum SNR:

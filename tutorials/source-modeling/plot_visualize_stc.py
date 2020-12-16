@@ -54,7 +54,7 @@ brain = stc.plot(subjects_dir=subjects_dir, initial_time=initial_time,
                  clim=dict(kind='value', lims=[3, 6, 9]))
 
 ###############################################################################
-# You can also morph it to fsaverage and visualize it using a flatmap:
+# You can also morph it to fsaverage and visualize it using a flatmap
 
 # sphinx_gallery_thumbnail_number = 3
 stc_fs = mne.compute_source_morph(stc, 'sample', 'fsaverage', subjects_dir,

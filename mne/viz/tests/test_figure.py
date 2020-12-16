@@ -13,6 +13,6 @@ def test_browse_figure_constructor():
 
 
 def test_psd_figure_constructor():
-    """Test error handling in MNEPSDFigure constructor."""
+    """Test error handling in MNELineFigure constructor."""
     with pytest.raises(TypeError, match='an instance of Raw or Epochs, got'):
-        _psd_figure('foo', *((None,) * 18))
+        _psd_figure('foo', *((None,) * 19))

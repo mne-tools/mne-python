@@ -478,9 +478,10 @@ def sys_info(fid=None, show_paths=False):
         sklearn:       0.23.1
         numba:         0.50.1
         nibabel:       3.1.1
+        nilearn:       0.7.0
+        dipy:          1.1.1
         cupy:          Not found
         pandas:        1.0.5
-        dipy:          1.1.1
         mayavi:        Not found
         pyvista:       0.25.3 {pyvistaqt=0.1.1, OpenGL 3.3 (Core Profile) Mesa 18.3.6 via llvmpipe (LLVM 7.0, 256 bits)}
         vtk:           9.0.1
@@ -521,7 +522,7 @@ def sys_info(fid=None, show_paths=False):
     libs = _get_numpy_libs()
     has_3d = False
     for mod_name in ('mne', 'numpy', 'scipy', 'matplotlib', '', 'sklearn',
-                     'numba', 'nibabel', 'cupy', 'pandas', 'dipy',
+                     'numba', 'nibabel', 'nilearn', 'dipy', 'cupy', 'pandas',
                      'mayavi', 'pyvista', 'vtk', 'PyQt5'):
         if mod_name == '':
             out += '\n'

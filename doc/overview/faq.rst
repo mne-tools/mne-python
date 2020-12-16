@@ -122,10 +122,10 @@ MNE-Python contributors should be able to copy and paste the provided snippet
 and replicate the bug on their own computers.
 
 If you post to the `mailing list
-<https://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis>__
+<https://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis>`__
 instead, a `GitHub Public Gist <https://gist.github.com>`_ for the code sample
 is recommended; if you use the
-[Gitter channel](https://gitter.im/mne-tools/mne-python) the three backticks
+`Gitter channel <https://gitter.im/mne-tools/mne-python>`_ the three backticks
 (\`\`\`) trick works there too.
 
 
