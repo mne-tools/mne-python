@@ -424,10 +424,13 @@ class Brain(object):
                                        shape=shape,
                                        fig=figure)
 
-        if _get_3d_backend() == "pyvista":
+        self.plotter = None
+        self.window = None
+        if _get_3d_backend() in ("pyvista", "notebook"):
             self.plotter = self._renderer.plotter
-            self.window = self.plotter.app_window
-            self.window.signal_close.connect(self._clean)
+            if hasattr(self.plotter, "app_window"):
+                self.window = self.plotter.app_window
+                self.window.signal_close.connect(self._clean)
 
         for h in self._hemis:
             # Initialize a Surface object as the geometry
@@ -494,11 +497,6 @@ class Brain(object):
         self.orientation = list(_lh_views_dict.keys())
         self.default_smoothing_range = [0, 15]
 
-        # setup notebook
-        if self.notebook:
-            self._configure_notebook()
-            return
-
         # Default configuration
         self.playback = False
         self.visibility = False
@@ -527,10 +525,16 @@ class Brain(object):
 
         # Direct access parameters:
         self._iren = self._renderer.plotter.iren
-        self.main_menu = self.plotter.main_menu
-        self.tool_bar = self.window.addToolBar("toolbar")
-        self.status_bar = self.window.statusBar()
-        self.interactor = self.plotter.interactor
+        if self.window is not None:
+            self.main_menu = self.plotter.main_menu
+            self.tool_bar = self.window.addToolBar("toolbar")
+            self.status_bar = self.window.statusBar()
+            self.interactor = self.plotter.interactor
+        else:
+            self.main_menu = None
+            self.tool_bar = None
+            self.status_bar = None
+            self.interactor = None
 
         # Derived parameters:
         self.playback_speed = self.default_playback_speed_value
@@ -559,11 +563,12 @@ class Brain(object):
         self._configure_time_label()
         self._configure_sliders()
         self._configure_scalar_bar()
-        self._configure_playback()
-        self._configure_point_picking()
-        self._configure_menu()
-        self._configure_tool_bar()
-        self._configure_status_bar()
+        if self.window is not None:
+            self._configure_playback()
+            self._configure_point_picking()
+            self._configure_menu()
+            self._configure_tool_bar()
+            self._configure_status_bar()
 
         # show everything at the end
         self.toggle_interface()
@@ -646,10 +651,13 @@ class Brain(object):
             self.visibility = value
 
         # update tool bar icon
-        if self.visibility:
-            self.actions["visibility"].setIcon(self.icons["visibility_on"])
-        else:
-            self.actions["visibility"].setIcon(self.icons["visibility_off"])
+        if self.window is not None:
+            if self.visibility:
+                self.actions["visibility"].setIcon(
+                    self.icons["visibility_on"])
+            else:
+                self.actions["visibility"].setIcon(
+                    self.icons["visibility_off"])
 
         # manage sliders
         for slider in self.plotter.slider_widgets:
@@ -778,20 +786,6 @@ class Brain(object):
                     slider_rep.GetLabelProperty()
                 )
                 slider_rep.GetCapProperty().SetOpacity(0)
-
-    def _configure_notebook(self):
-        from IPython import display
-        from ipywidgets import VBox
-        from mne.viz._brain._notebook import _NotebookInteractor
-        self.disp = self._renderer.plotter.show(use_ipyvtk=True,
-                                                return_viewer=True)
-        nint = _NotebookInteractor(self)
-        nint.controllers = dict()
-        nint.sliders = dict()
-        nint.configure_controllers()
-        controllers = VBox(list(nint.controllers.values()))
-        layout = VBox([controllers, self.disp])
-        display.display(layout)
 
     def _configure_time_label(self):
         self.time_actor = self._data.get('time_actor')
@@ -2271,7 +2265,17 @@ class Brain(object):
 
     def show(self):
         """Display the window."""
-        self._renderer.show()
+        if self.notebook:
+            from IPython import display
+            self.disp = self._renderer.plotter.show(use_ipyvtk=True,
+                                                    return_viewer=True)
+            display.display(self.disp)
+        else:
+            # Request rendering of the window
+            try:
+                return self._renderer.show()
+            except RuntimeError:
+                logger.info("No active/running renderer available.")
 
     def show_view(self, view=None, roll=None, distance=None, row=0, col=0,
                   hemi=None):
@@ -2937,13 +2941,6 @@ class Brain(object):
 
         # Restore original time index
         func(current_time_idx)
-
-    def _show(self):
-        """Request rendering of the window."""
-        try:
-            return self._renderer.show()
-        except RuntimeError:
-            logger.info("No active/running renderer available.")
 
     def _check_stc(self, hemi, array, vertices):
         from ...source_estimate import (
