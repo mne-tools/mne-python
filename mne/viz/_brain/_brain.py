@@ -2096,7 +2096,7 @@ class Brain(object):
                 filepath = label
                 label = read_label(filepath)
                 hemi = label.hemi
-                label_name = os.path.basename(filepath).split('.')[0]
+                label_name = os.path.basename(filepath).split('.')[1]
             else:
                 hemi = self._check_hemi(hemi)
                 label_name = label
