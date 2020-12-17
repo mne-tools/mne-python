@@ -93,7 +93,8 @@ class MplCanvas(object):
 
     def show(self):
         """Show the canvas."""
-        self.canvas.show()
+        if hasattr(self.canvas, "show"):
+            self.canvas.show()
 
     def close(self):
         """Close the canvas."""
