@@ -492,6 +492,8 @@ class Brain(object):
         """
         if self.time_viewer:
             return
+        if self.notebook:
+            self.show()
         self.time_viewer = time_viewer
         self.orientation = list(_lh_views_dict.keys())
         self.default_smoothing_range = [0, 15]
@@ -570,11 +572,9 @@ class Brain(object):
             self._configure_tool_bar()
             self._configure_status_bar()
 
-        # show everything at the end
-        self.toggle_interface()
-        if self.notebook:
-            self.show()
-        else:
+        if not self.notebook:
+            # show everything at the end
+            self.toggle_interface()
             with self.ensure_minimum_sizes():
                 self.show()
 
