@@ -363,7 +363,6 @@ def _make_event_color_dict(event_color, events=None, event_id=None):
 
 def _prepare_trellis(n_cells, ncols, nrows='auto', title=False, colorbar=False,
                      size=1.3, sharex=False, sharey=False):
-    import matplotlib.pyplot as plt
     from matplotlib.gridspec import GridSpec
     from ._figure import _figure
 
