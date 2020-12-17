@@ -2283,7 +2283,7 @@ class Brain(object):
         """Display the window."""
         # Request rendering of the window
         try:
-            return self._renderer.show()
+            self._renderer.show()
         except RuntimeError:
             logger.info("No active/running renderer available.")
 
