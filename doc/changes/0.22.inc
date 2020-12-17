@@ -101,6 +101,16 @@ Enhancements
 
 - Annotations can now be shown/hidden interactively in raw plots (:gh:`8624` by `Daniel McCloy`_)
 
+- Added argument ``colors`` to `mne.grow_labels` (:gh:`8519` by `Olaf Hauk`_)
+
+- Added `mne.SourceEstimate.apply_baseline` method for baseline-correction of source estimates (:gh:`8452` by `Olaf Hauk`_)
+
+- New `mne.viz.Brain.set_time` method to set the displayed time in seconds (:gh:`8415` by `Daniel McCloy`_)
+
+- Update the ``backend`` parameter of :func:`mne.viz.plot_source_estimates` to integrate ``pyvista`` (:gh:`8395` by `Guillaume Favelier`_)
+
+- Add ``group_by`` parameter to `mne.viz.plot_epochs` and `mne.Epochs.plot` to allow displaying channel data by sensor position (:gh:`8381` by `Daniel McCloy`_)
+
 Bugs
 ~~~~
 - Fix orthogonalization of power envelopes in :func:`mne.connectivity.envelope_correlation` (:gh:`8658` **by new contributor** |Qianliang Li|_ and `Eric Larson`_)
@@ -208,10 +218,6 @@ Bugs
 API changes
 ~~~~~~~~~~~
 
-- Added argument ``colors`` to `mne.grow_labels` (:gh:`8519` by `Olaf Hauk`_)
-
-- Added `mne.SourceEstimate.apply_baseline` method for baseline-correction of source estimates (:gh:`8452` by `Olaf Hauk`_)
-
 - Minimum required versions were increased for core dependencies NumPy (1.15.4), SciPy (1.1.0), and Matplotlib (3.0) and for the optional dependencies scikit-learn (0.20.2) and pandas (0.23.4) (:gh:`8374` by `Eric Larson`_)
 
 - The parameter ``on_split_missing`` has been added to :func:`mne.io.read_raw_fif` and its default will change from ``'warn'`` to ``'raise'`` in 0.23, by (:gh:`8357` `Eric Larson`_)
@@ -221,12 +227,6 @@ API changes
 - The ``n_pca_components`` argument of :class:`~mne.preprocessing.ICA` has been deprecated, use ``n_pca_components`` in :meth:`~mne.preprocessing.ICA.apply` (:gh:`8356` by `Eric Larson`_)
 
 - The ``trans`` argument of :func:`mne.extract_label_time_course` is deprecated and will be removed in 0.23 as it is no longer necessary (:gh:`8389` by `Eric Larson`_)
-
-- New `mne.viz.Brain.set_time` method to set the displayed time in seconds (:gh:`8415` by `Daniel McCloy`_)
-
-- Update the ``backend`` parameter of :func:`mne.viz.plot_source_estimates` to integrate ``pyvista`` (:gh:`8395` by `Guillaume Favelier`_)
-
-- Add ``group_by`` parameter to `mne.viz.plot_epochs` and `mne.Epochs.plot` to allow displaying channel data by sensor position (:gh:`8381` by `Daniel McCloy`_)
 
 - Parameter ``event_colors`` in `mne.viz.plot_epochs` and `mne.Epochs.plot` is deprecated, replaced by ``event_color`` which is consistent with `mne.viz.plot_raw` and provides greater flexibility (:gh:`8381` by `Daniel McCloy`_)
 
