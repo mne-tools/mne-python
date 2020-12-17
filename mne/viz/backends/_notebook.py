@@ -10,7 +10,6 @@ from ._pyvista import \
 
 class _Renderer(_PyVistaRenderer):
     def __init__(self, *args, **kwargs):
-        self.disp = None
         kwargs["notebook"] = True
         super().__init__(*args, **kwargs)
 
