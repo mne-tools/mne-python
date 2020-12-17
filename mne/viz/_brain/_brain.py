@@ -564,7 +564,9 @@ class Brain(object):
         self._configure_sliders()
         self._configure_scalar_bar()
         self._configure_point_picking()
-        if not self.notebook:
+        if self.notebook:
+            self._configure_shortcuts()
+        else:
             self._configure_playback()
             self._configure_menu()
             self._configure_tool_bar()
@@ -1150,6 +1152,13 @@ class Brain(object):
         self.actions["restore"].setShortcut("r")
         self.actions["clear"].setShortcut("c")
         self.actions["help"].setShortcut("?")
+
+    def _configure_shortcuts(self):
+        self.plotter.add_key_event("i", self.toggle_interface)
+        self.plotter.add_key_event(" ", self.toggle_playback)
+        self.plotter.add_key_event("s", self.apply_auto_scaling)
+        self.plotter.add_key_event("r", self.restore_user_scaling)
+        self.plotter.add_key_event("c", self.clear_points)
 
     def _configure_menu(self):
         # remove default picking menu
