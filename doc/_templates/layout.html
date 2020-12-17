@@ -13,7 +13,8 @@
 
     (function() {
         var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
-        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        // ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        ga.src = "{{ pathto('_static/google_analytics_2020-12-17.js', 1) }}"
         var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
     })();
     </script>
@@ -24,16 +25,6 @@
     <link rel="stylesheet" href="{{ pathto('_static/font-source-code-pro.css', 1) }}" type="text/css" />
     <link rel="stylesheet" href="{{ pathto('_static/font-source-sans-pro.css', 1) }}" type="text/css" />
     <link rel="stylesheet" href="{{ pathto('_static/flag-icon.css', 1) }}" type="text/css" />
-
-{% if use_media_buttons|tobool %}
-    <script type="text/javascript">
-    (function() {
-    var po = document.createElement('script'); po.type = 'text/javascript'; po.async = true;
-    po.src = 'https://apis.google.com/js/plusone.js';
-    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(po, s);
-    })();
-    </script>
-{% endif %}
 
 {{ super() }}
 
