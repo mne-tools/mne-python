@@ -563,9 +563,8 @@ class Brain(object):
         self._configure_sliders()
         self._configure_scalar_bar()
         self._configure_point_picking()
-        if self.notebook:
-            self._configure_shortcuts()
-        else:
+        self._configure_shortcuts()
+        if not self.notebook:
             self._load_icons()
             self._configure_playback()
             self._configure_menu()
@@ -1145,17 +1144,13 @@ class Brain(object):
             self.help
         )
 
+        # Qt shortcuts
         self.actions["movie"].setShortcut("ctrl+shift+s")
-        self.actions["visibility"].setShortcut("i")
         self.actions["play"].setShortcut(" ")
-        self.actions["scale"].setShortcut("s")
-        self.actions["restore"].setShortcut("r")
-        self.actions["clear"].setShortcut("c")
         self.actions["help"].setShortcut("?")
 
     def _configure_shortcuts(self):
         self.plotter.add_key_event("i", self.toggle_interface)
-        self.plotter.add_key_event(" ", self.toggle_playback)
         self.plotter.add_key_event("s", self.apply_auto_scaling)
         self.plotter.add_key_event("r", self.restore_user_scaling)
         self.plotter.add_key_event("c", self.clear_points)
