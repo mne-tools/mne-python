@@ -559,7 +559,6 @@ class Brain(object):
         del show_traces
 
         self._spheres = list()
-        self._load_icons()
         self._configure_time_label()
         self._configure_sliders()
         self._configure_scalar_bar()
@@ -567,6 +566,7 @@ class Brain(object):
         if self.notebook:
             self._configure_shortcuts()
         else:
+            self._load_icons()
             self._configure_playback()
             self._configure_menu()
             self._configure_tool_bar()

@@ -12,11 +12,9 @@ class MplCanvas(object):
     """Ultimately, this is a QWidget (as well as a FigureCanvasAgg, etc.)."""
 
     def __init__(self, brain, width, height, dpi, notebook=False):
-        from PyQt5 import QtWidgets
         import matplotlib.pyplot as plt
         from matplotlib import rc_context
         from matplotlib.figure import Figure
-        from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
         if brain.separate_canvas:
             parent = None
         else:
@@ -30,6 +28,8 @@ class MplCanvas(object):
                                                dpi=dpi)
             self.canvas = plt.gcf().canvas
         else:
+            from PyQt5 import QtWidgets
+            from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
             try:
                 context = rc_context({'figure.constrained_layout.use': True})
                 extra_events = ()
