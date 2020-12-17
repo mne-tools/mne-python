@@ -592,10 +592,10 @@ class Brain(object):
         self._configure_shortcuts()
         self._configure_picking()
         self._configure_tool_bar()
-        self._configure_trace_mode()
         if self.notebook:
             self.show()
-        else:
+        self._configure_trace_mode()
+        if not self.notebook:
             self._configure_playback()
             self._configure_menu()
             self._configure_status_bar()
