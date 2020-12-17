@@ -433,8 +433,8 @@ def test_split_files(tmpdir, mod, monkeypatch):
     os.remove(split_fname_bids_part2)
     with pytest.raises(ValueError, match='manually renamed'):
         read_raw_fif(split_fname_bids_part1, on_split_missing='raise')
-    with pytest.deprecated_call():
-        read_raw_fif(split_fname_bids_part1)
+    with pytest.warns(RuntimeWarning, match='Split raw file detected'):
+        read_raw_fif(split_fname_bids_part1, on_split_missing='warn')
     read_raw_fif(split_fname_bids_part1, on_split_missing='ignore')
 
     # test the case where we only end up with one buffer to write

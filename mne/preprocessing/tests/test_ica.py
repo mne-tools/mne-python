@@ -170,16 +170,13 @@ def test_ica_noop(n_components, n_pca_components, tmpdir):
     raw = RawArray(data, info)
     raw.set_eeg_reference()
     assert np.linalg.matrix_rank(raw.get_data()) == 9
-    kwargs = dict(n_components=n_components,
-                  n_pca_components=n_pca_components, verbose=True)
+    kwargs = dict(n_components=n_components, verbose=True)
     if isinstance(n_components, int) and \
             isinstance(n_pca_components, int) and \
             n_components > n_pca_components:
-        with pytest.raises(ValueError, match='n_components.*must be smalle.*'):
-            ICA(**kwargs)
         return
-    with pytest.deprecated_call():
-        ica = ICA(**kwargs)
+    ica = ICA(**kwargs)
+    ica.n_pca_components = n_pca_components  # backward compat
     if n_components == 10 and n_pca_components == 0.9999:
         with pytest.raises(RuntimeError, match='.*requires.*PCA.*'):
             ica.fit(raw)
@@ -257,17 +254,14 @@ def test_ica_rank_reduction(method):
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')[:10]
     n_components = 5
-    max_pca_components = len(picks)
     for n_pca_components in [6, 10]:
         with pytest.warns(UserWarning, match='did not converge'):
             ica = ICA(n_components=n_components,
-                      max_pca_components=max_pca_components,
-                      n_pca_components=n_pca_components,
                       method=method, max_iter=1).fit(raw, picks=picks)
 
         rank_before = _compute_rank_int(raw.copy().pick(picks), proj=False)
         assert_equal(rank_before, len(picks))
-        raw_clean = ica.apply(raw.copy())
+        raw_clean = ica.apply(raw.copy(), n_pca_components=n_pca_components)
         rank_after = _compute_rank_int(raw_clean.copy().pick(picks),
                                        proj=False)
         # interaction between ICA rejection and PCA components difficult
@@ -366,8 +360,7 @@ def test_ica_reset(method):
     )
     with pytest.warns(UserWarning, match='did not converge'):
         ica = ICA(
-            n_components=3, max_pca_components=3, n_pca_components=3,
-            method=method, max_iter=1).fit(raw, picks=picks)
+            n_components=3, method=method, max_iter=1).fit(raw, picks=picks)
 
     assert (all(hasattr(ica, attr) for attr in run_time_attrs))
     assert ica.labels_ is not None
@@ -400,12 +393,6 @@ def test_ica_core(method, n_components, noise_cov, n_pca_components):
     del picks
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax,
                     baseline=(None, 0), preload=True)
-
-    # # test init catchers
-    with pytest.raises(ValueError, match='must be smaller than n_pca'):
-        ICA(n_components=3, n_pca_components=2)
-    with pytest.raises(ValueError, match='explained variance needs values'):
-        ICA(n_components=2.3, n_pca_components=3)
 
     # test essential core functionality
 
@@ -548,8 +535,7 @@ def test_ica_additional(method, tmpdir, short_raw_epochs):
     few_picks = np.arange(5)
 
     # test if n_components=None works
-    ica = ICA(n_components=None, n_pca_components=None, method=method,
-              max_iter=1)
+    ica = ICA(n_components=None, method=method, max_iter=1)
     with pytest.warns(UserWarning, match='did not converge'):
         ica.fit(epochs)
     _assert_ica_attributes(ica, epochs.get_data('data'), limits=(0.05, 20))
@@ -1108,36 +1094,6 @@ def test_eog_channel(method):
         assert not any('EOG' in ch for ch in ica.ch_names)
 
 
-def test_max_pca_components(tmpdir):
-    """Test max_pca_components."""
-    max_pca_components = 15
-    raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
-    events = read_events(event_name)
-    picks = pick_types(raw.info, eeg=True, meg=False)
-    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), preload=True)
-
-    n_components = 10
-    random_state = 12345
-    method = 'infomax'
-
-    output_fname = tmpdir.join('test_ica-ica.fif')
-
-    with pytest.deprecated_call():
-        ica = ICA(max_pca_components=max_pca_components, method=method,
-                  n_components=n_components, random_state=random_state)
-    ica.fit(epochs)
-    assert ica.method == method
-
-    _assert_ica_attributes(ica, epochs.get_data(), limits=(0.01, 50))
-    ica.save(output_fname)
-    ica = read_ica(output_fname)
-    assert ica.method == method
-    with pytest.deprecated_call():
-        assert ica.max_pca_components == max_pca_components
-    assert_equal(ica.n_components, n_components)
-
-
 @requires_sklearn
 @pytest.mark.parametrize("method", ["fastica", "picard"])
 def test_n_components_none(method, tmpdir):
@@ -1145,18 +1101,16 @@ def test_n_components_none(method, tmpdir):
     _skip_check_picard(method)
     raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
     events = read_events(event_name)
-    picks = pick_types(raw.info, eeg=True, meg=False)
+    picks = pick_types(raw.info, eeg=True, meg=False)[::5]
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
 
-    n_pca_components = 10
     n_components = None
     random_state = 12345
 
     output_fname = tmpdir.join('test_ica-ica.fif')
-    with pytest.deprecated_call():
-        ica = ICA(n_pca_components=n_pca_components, method=method,
-                  n_components=n_components, random_state=random_state)
+    ica = ICA(method=method, n_components=n_components,
+              random_state=random_state)
     with pytest.warns(None):
         ica.fit(epochs)
     _assert_ica_attributes(ica)
@@ -1164,34 +1118,9 @@ def test_n_components_none(method, tmpdir):
 
     ica = read_ica(output_fname)
     _assert_ica_attributes(ica)
-    assert ica.n_pca_components == 10
+    assert ica.n_pca_components is None
     assert ica.n_components is None
-    assert ica.n_components_ == 10
-
-
-@requires_sklearn
-@pytest.mark.parametrize("method", ["fastica", "picard"])
-def test_n_components_and_max_pca_components_none(method, tmpdir):
-    """Test n_components and max_pca_components=None."""
-    _skip_check_picard(method)
-    raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
-    events = read_events(event_name)
-    picks = pick_types(raw.info, eeg=True, meg=False)
-    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), preload=True)
-
-    output_fname = tmpdir.join('test_ica-ica.fif')
-    ica = ICA(method=method)
-    with pytest.warns(None):  # convergence
-        ica.fit(epochs)
-    ica.save(output_fname)
-    _assert_ica_attributes(ica)
-
-    ica = read_ica(output_fname)
-    _assert_ica_attributes(ica)
-    with pytest.deprecated_call():
-        assert ica.max_pca_components is None
-    assert ica.n_components is None
+    assert ica.n_components_ == len(picks)
 
 
 @requires_sklearn
@@ -1394,10 +1323,7 @@ def _assert_ica_attributes(ica, data=None, limits=(1.0, 70)):
         n_ch, n_ch if ica.noise_cov is not None else 1)
 
     # PCA
-    with pytest.deprecated_call():
-        n_pca = ica.max_pca_components
-    if n_pca is None:
-        n_pca = ica.pca_components_.shape[0]
+    n_pca = ica.pca_components_.shape[0]
     assert ica.pca_components_.shape == (n_pca, n_ch), 'PCA shape'
     assert_allclose(np.dot(ica.pca_components_, ica.pca_components_.T),
                     np.eye(n_pca), atol=1e-6, err_msg='PCA orthogonality')

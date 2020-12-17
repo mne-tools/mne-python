@@ -808,9 +808,8 @@ def test_extract_label_time_course_volume(
 
     # actually do the testing
     if cf == 'head' and not mri_res:  # some missing
-        with pytest.deprecated_call(match='do not pass'):
-            eltc(labels, src, trans=trans, allow_empty=True,
-                 mri_resolution=mri_res)
+        with pytest.warns(RuntimeWarning, match='any vertices'):
+            eltc(labels, src, allow_empty=True, mri_resolution=mri_res)
     for mode in ('mean', 'max'):
         with catch_logging() as log:
             label_tc = eltc(labels, src, mode=mode, allow_empty='ignore',

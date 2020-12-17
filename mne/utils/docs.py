@@ -56,13 +56,10 @@ Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
     warning, or ``'ignore'`` to ignore when"""
 docdict['on_split_missing'] = """
 on_split_missing : str
-    Can be ``'raise'`` to raise an error, ``'warn'`` (default) to emit a
-    warning, or ``'ignore'`` to ignore when a split file is missing.
-    The default will change from ``'warn'`` to ``'raise'`` in 0.23, set the
-    value explicitly to avoid deprecation warnings.
+    %s split file is missing.
 
     .. versionadded:: 0.22
-"""  # after deprecation period, this can use _on_missing_base
+""" % (_on_missing_base,)
 
 # Cropping
 docdict['include_tmax'] = """
@@ -1125,10 +1122,6 @@ docdict['trans_not_none'] = """
 trans : str | dict | instance of Transform
     %s
 """ % (_trans_base,)
-docdict['trans_deprecated'] = """
-trans : str | dict | instance of Transform
-    Deprecated and will be removed in 0.23, do not pass this argument.
-"""
 docdict['trans'] = """
 trans : str | dict | instance of Transform | None
     %s
