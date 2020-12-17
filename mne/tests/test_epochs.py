@@ -310,9 +310,16 @@ def _assert_drop_log_types(drop_log):
 
 def test_reject():
     """Test epochs rejection."""
-    raw, events, picks = _get_data()
+    raw, events, _ = _get_data()
+    names = raw.ch_names[::5]
+    assert 'MEG 2443' in names
+    raw.pick(names).load_data()
+    assert 'eog' in raw
+    raw.info.normalize_proj()
+    picks = np.arange(len(raw.ch_names))
     # cull the list just to contain the relevant event
     events = events[events[:, 2] == event_id, :]
+    assert len(events) == 7
     selection = np.arange(3)
     drop_log = ((),) * 3 + (('MEG 2443',),) * 4
     _assert_drop_log_types(drop_log)
