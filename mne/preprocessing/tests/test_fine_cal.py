@@ -99,7 +99,7 @@ def test_compute_fine_cal(monkeypatch):
         got_want_max_angle = got_want_angles[p].max()
         if key == 'mag':
             assert 8 < want_orig_max_angle < 11, want_orig_max_angle
-            assert 1 < got_orig_max_angle < 2, got_orig_max_angle
+            assert 1 < got_orig_max_angle < 2.1, got_orig_max_angle
             assert 9 < got_want_max_angle < 11, got_want_max_angle
         else:
             # Some of these angles are large, but mostly this has to do with
@@ -108,7 +108,7 @@ def test_compute_fine_cal(monkeypatch):
             assert 66 < want_orig_max_angle < 68, want_orig_max_angle
             assert 67 < got_orig_max_angle < 107, got_orig_max_angle
             # This is 55 if we don't mess with _RHO_VALS
-            assert 130 < got_want_max_angle < 140, got_want_max_angle
+            assert 130 < got_want_max_angle < 170, got_want_max_angle
 
     kwargs = dict(bad_condition='warning', cross_talk=ctc, coord_frame='meg')
     raw_sss = maxwell_filter(raw, **kwargs)

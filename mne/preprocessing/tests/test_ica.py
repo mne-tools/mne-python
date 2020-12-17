@@ -973,7 +973,6 @@ def test_ica_reject_buffer(method):
 @pytest.mark.parametrize("method", ["fastica", "picard"])
 def test_ica_twice(method):
     """Test running ICA twice."""
-    from sklearn.exceptions import ConvergenceWarning
     _skip_check_picard(method)
     raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
     raw.pick(raw.ch_names[::10])
@@ -981,7 +980,7 @@ def test_ica_twice(method):
     n_components = 0.99
     n_pca_components = 0.9999
     if method == 'fastica':
-        ctx = pytest.warns(ConvergenceWarning, match='converge')
+        ctx = pytest.warns(None)  # convergence, sometimes
     else:
         ctx = nullcontext()
     ica1 = ICA(n_components=n_components, method=method)
