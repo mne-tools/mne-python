@@ -595,13 +595,13 @@ class Brain(object):
         if self.notebook:
             self.show()
         self._configure_trace_mode()
+        self.toggle_interface()
         if not self.notebook:
             self._configure_playback()
             self._configure_menu()
             self._configure_status_bar()
 
             # show everything at the end
-            self.toggle_interface()
             with self.ensure_minimum_sizes():
                 self.show()
 
