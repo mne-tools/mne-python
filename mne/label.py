@@ -1880,7 +1880,8 @@ def _read_annot_cands(dir_name):
         raise IOError('Directory for annotation does not exist: %s',
                       dir_name)
     cands = os.listdir(dir_name)
-    cands = sorted(set(c.lstrip('lh.').lstrip('rh.').rstrip('.annot')
+    cands = sorted(set(c.replace('lh.', '').replace('rh.', '').replace(
+                       '.annot', '')
                        for c in cands if '.annot' in c),
                    key=lambda x: x.lower())
     # exclude .ctab files

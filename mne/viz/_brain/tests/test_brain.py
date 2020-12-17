@@ -15,16 +15,21 @@ import pytest
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
 
-from mne import (read_source_estimate, SourceEstimate, MixedSourceEstimate,
+from mne import (read_source_estimate, read_evokeds, read_cov,
+                 read_forward_solution, pick_types_forward,
+                 SourceEstimate, MixedSourceEstimate,
                  VolSourceEstimate)
+from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.source_space import (read_source_spaces, vertex_to_mni,
                               setup_volume_source_space)
 from mne.datasets import testing
 from mne.utils import check_version
+from mne.label import read_label
 from mne.viz._brain import Brain, _LinkViewer, _BrainScraper, _LayeredMesh
 from mne.viz._brain.colormap import calculate_lut
 
 from matplotlib import cm, image
+from matplotlib.lines import Line2D
 import matplotlib.pyplot as plt
 
 data_path = testing.data_path(download=False)
@@ -32,6 +37,12 @@ subject_id = 'sample'
 subjects_dir = path.join(data_path, 'subjects')
 fname_stc = path.join(data_path, 'MEG/sample/sample_audvis_trunc-meg')
 fname_label = path.join(data_path, 'MEG/sample/labels/Vis-lh.label')
+fname_cov = path.join(
+    data_path, 'MEG', 'sample', 'sample_audvis_trunc-cov.fif')
+fname_evoked = path.join(data_path, 'MEG', 'sample',
+                         'sample_audvis_trunc-ave.fif')
+fname_fwd = path.join(
+    data_path, 'MEG', 'sample', 'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
 src_fname = path.join(data_path, 'subjects', 'sample', 'bem',
                       'sample-oct-6-src.fif')
 
@@ -138,7 +149,6 @@ def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
     """Test initialization of the Brain instance."""
     if renderer._get_3d_backend() != 'pyvista':
         pytest.skip('TimeViewer tests only supported on PyVista')
-    from mne.label import read_label
     from mne.source_estimate import _BaseSourceEstimate
 
     class FakeSTC(_BaseSourceEstimate):
@@ -167,6 +177,8 @@ def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
                   cortex=cortex, units='m', **kwargs)
     with pytest.raises(TypeError, match='not supported'):
         brain._check_stc(hemi='lh', array=FakeSTC(), vertices=None)
+    with pytest.raises(ValueError, match='add_data'):
+        brain.setup_time_viewer(time_viewer=True)
     brain._hemi = 'foo'  # for testing: hemis
     with pytest.raises(ValueError, match='not be None'):
         brain._check_hemi(hemi=None)
@@ -258,6 +270,8 @@ def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
         brain.add_label('foo', subdir='bar')
     label.name = None  # test unnamed label
     brain.add_label(label, scalar_thresh=0.)
+    assert isinstance(brain.labels[label.hemi], list)
+    assert 'unnamed' in brain._layered_meshes[label.hemi]._overlays
     brain.remove_labels()
     brain.add_label(fname_label)
     brain.add_label('V1', borders=True)
@@ -278,6 +292,13 @@ def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
     borders = [True, 2]
     alphas = [1, 0.5]
     colors = [None, 'r']
+    brain = Brain(subject_id='fsaverage', hemi='both', size=size,
+                  surf='inflated', subjects_dir=subjects_dir)
+    with pytest.raises(RuntimeError, match="both hemispheres"):
+        brain.add_annotation(annots[-1])
+    with pytest.raises(ValueError, match="does not exist"):
+        brain.add_annotation('foo')
+    brain.close()
     brain = Brain(subject_id='fsaverage', hemi=hemi, size=size,
                   surf='inflated', subjects_dir=subjects_dir)
     for a, b, p, color in zip(annots, borders, alphas, colors):
@@ -360,6 +381,11 @@ def test_brain_time_viewer(renderer_interactive, pixel_ratio, brain_gc):
         _create_testing_brain(hemi='lh', surf='white', src='volume',
                               volume_options={'foo': 'bar'})
     brain = _create_testing_brain(hemi='both', show_traces=False)
+    # test sub routines when show_traces=False
+    brain._on_pick(None, None)
+    brain._configure_vertex_time_course()
+    brain._configure_label_time_course()
+    brain.setup_time_viewer()  # for coverage
     brain.callbacks["time"](value=0)
     brain.callbacks["orientation_lh_0_0"](
         value='lat',
@@ -412,6 +438,7 @@ def test_brain_time_viewer(renderer_interactive, pixel_ratio, brain_gc):
 ])
 @pytest.mark.parametrize('src', [
     'surface',
+    pytest.param('vector', marks=pytest.mark.slowtest),
     pytest.param('volume', marks=pytest.mark.slowtest),
     pytest.param('mixed', marks=pytest.mark.slowtest),
 ])
@@ -421,21 +448,84 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
     """Test brain traces."""
     if renderer_interactive._get_3d_backend() != 'pyvista':
         pytest.skip('Only PyVista supports traces')
+
+    hemi_str = list()
+    if src in ('surface', 'vector', 'mixed'):
+        hemi_str.extend([hemi] if hemi in ('lh', 'rh') else ['lh', 'rh'])
+    if src in ('mixed', 'volume'):
+        hemi_str.extend(['vol'])
+
+    # label traces
+    brain = _create_testing_brain(
+        hemi=hemi, surf='white', src=src, show_traces='label',
+        volume_options=None,  # for speed, don't upsample
+        n_time=5, initial_time=0,
+    )
+    if src == 'surface':
+        brain._data['src'] = None  # test src=None
+    if src in ('surface', 'vector', 'mixed'):
+        assert brain.show_traces
+        assert brain.traces_mode == 'label'
+        brain._label_mode_widget.setCurrentText('max')
+
+        # test picking a cell at random
+        rng = np.random.RandomState(0)
+        for idx, current_hemi in enumerate(hemi_str):
+            if current_hemi == 'vol':
+                continue
+            current_mesh = brain._layered_meshes[current_hemi]._polydata
+            cell_id = rng.randint(0, current_mesh.n_cells)
+            test_picker = TstVTKPicker(
+                current_mesh, cell_id, current_hemi, brain)
+            assert len(brain.picked_patches[current_hemi]) == 0
+            brain._on_pick(test_picker, None)
+            assert len(brain.picked_patches[current_hemi]) == 1
+            for label_id in list(brain.picked_patches[current_hemi]):
+                label = brain._annotation_labels[current_hemi][label_id]
+                assert isinstance(label._line, Line2D)
+            brain._label_mode_widget.setCurrentText('mean')
+            brain.clear_glyphs()
+            assert len(brain.picked_patches[current_hemi]) == 0
+            brain._on_pick(test_picker, None)  # picked and added
+            assert len(brain.picked_patches[current_hemi]) == 1
+            brain._on_pick(test_picker, None)  # picked again so removed
+            assert len(brain.picked_patches[current_hemi]) == 0
+        # test switching from 'label' to 'vertex'
+        brain._annot_cands_widget.setCurrentText('None')
+        brain._label_mode_widget.setCurrentText('max')
+    else:  # volume
+        assert brain._trace_mode_widget is None
+        assert brain._annot_cands_widget is None
+        assert brain._label_mode_widget is None
+    brain.close()
+
+    # test colormap
+    if src != 'vector':
+        brain = _create_testing_brain(
+            hemi=hemi, surf='white', src=src, show_traces=0.5, initial_time=0,
+            volume_options=None,  # for speed, don't upsample
+            n_time=1 if src == 'mixed' else 5, diverging=True,
+            add_data_kwargs=dict(colorbar_kwargs=dict(n_labels=3)),
+        )
+        # mne_analyze should be chosen
+        ctab = brain._data['ctable']
+        assert_array_equal(ctab[0], [0, 255, 255, 255])  # opaque cyan
+        assert_array_equal(ctab[-1], [255, 255, 0, 255])  # opaque yellow
+        assert_allclose(ctab[len(ctab) // 2], [128, 128, 128, 0], atol=3)
+        brain.close()
+
+    # vertex traces
     brain = _create_testing_brain(
         hemi=hemi, surf='white', src=src, show_traces=0.5, initial_time=0,
         volume_options=None,  # for speed, don't upsample
-        n_time=1 if src == 'mixed' else 5, diverging=True,
+        n_time=1 if src == 'mixed' else 5,
         add_data_kwargs=dict(colorbar_kwargs=dict(n_labels=3)),
     )
     assert brain.show_traces
+    assert brain.traces_mode == 'vertex'
     assert hasattr(brain, "picked_points")
     assert hasattr(brain, "_spheres")
     assert brain.plotter.scalar_bar.GetNumberOfLabels() == 3
-    # mne_analyze should be chosen
-    ctab = brain._data['ctable']
-    assert_array_equal(ctab[0], [0, 255, 255, 255])  # opaque cyan
-    assert_array_equal(ctab[-1], [255, 255, 0, 255])  # opaque yellow
-    assert_allclose(ctab[len(ctab) // 2], [128, 128, 128, 0], atol=3)
 
     # add foci should work for volumes
     brain.add_foci([[0, 0, 0]], hemi='lh' if src == 'surface' else 'vol')
@@ -443,11 +533,6 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
     # test points picked by default
     picked_points = brain.get_picked_points()
     spheres = brain._spheres
-    hemi_str = list()
-    if src in ('surface', 'mixed'):
-        hemi_str.extend([hemi] if hemi in ('lh', 'rh') else ['lh', 'rh'])
-    if src in ('mixed', 'volume'):
-        hemi_str.extend(['vol'])
     for current_hemi in hemi_str:
         assert len(picked_points[current_hemi]) == 1
     n_spheres = len(hemi_str)
@@ -455,8 +540,12 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
         n_spheres += 1
     assert len(spheres) == n_spheres
 
+    # test switching from 'vertex' to 'label'
+    if src == 'surface':
+        brain._annot_cands_widget.setCurrentText('aparc')
+        brain._annot_cands_widget.setCurrentText('None')
     # test removing points
-    brain.clear_points()
+    brain.clear_glyphs()
     assert len(spheres) == 0
     for key in ('lh', 'rh', 'vol'):
         assert len(picked_points[key]) == 0
@@ -479,6 +568,7 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
             current_mesh, cell_id, current_hemi, brain)
         assert cell_id == test_picker.cell_id
         assert test_picker.point_id is None
+        brain._on_pick(test_picker, None)
         brain._on_pick(test_picker, None)
         assert test_picker.point_id is not None
         assert len(picked_points[current_hemi]) == 1
@@ -563,7 +653,7 @@ def test_brain_linkviewer(renderer_interactive, brain_gc):
             picking=False,
         )
 
-    brain_data = _create_testing_brain(hemi='split', show_traces=True)
+    brain_data = _create_testing_brain(hemi='split', show_traces='vertex')
     link_viewer = _LinkViewer(
         [brain2, brain_data],
         time=True,
@@ -691,11 +781,23 @@ def test_calculate_lut():
 
 def _create_testing_brain(hemi, surf='inflated', src='surface', size=300,
                           n_time=5, diverging=False, **kwargs):
-    assert src in ('surface', 'mixed', 'volume')
+    assert src in ('surface', 'vector', 'mixed', 'volume')
     meth = 'plot'
     if src in ('surface', 'mixed'):
         sample_src = read_source_spaces(src_fname)
         klass = MixedSourceEstimate if src == 'mixed' else SourceEstimate
+    if src == 'vector':
+        fwd = read_forward_solution(fname_fwd)
+        fwd = pick_types_forward(fwd, meg=True, eeg=False)
+        evoked = read_evokeds(fname_evoked, baseline=(None, 0))[0]
+        noise_cov = read_cov(fname_cov)
+        free = make_inverse_operator(
+            evoked.info, fwd, noise_cov, loose=1.)
+        stc = apply_inverse(evoked, free, pick_ori='vector')
+        return stc.plot(
+            subject=subject_id, hemi=hemi, size=size,
+            subjects_dir=subjects_dir, colormap='auto',
+            **kwargs)
     if src in ('volume', 'mixed'):
         vol_src = setup_volume_source_space(
             subject_id, 7., mri='aseg.mgz',

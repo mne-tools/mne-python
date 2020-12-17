@@ -57,12 +57,12 @@ class _LinkViewer(object):
         if picking:
             def _func_add(*args, **kwargs):
                 for brain in self.brains:
-                    brain._add_point(*args, **kwargs)
+                    brain._add_vertex_glyph2(*args, **kwargs)
                     brain.plotter.update()
 
             def _func_remove(*args, **kwargs):
                 for brain in self.brains:
-                    brain._remove_point(*args, **kwargs)
+                    brain._remove_vertex_glyph2(*args, **kwargs)
 
             # save initial picked points
             initial_points = dict()
@@ -74,18 +74,18 @@ class _LinkViewer(object):
 
             # link the viewers
             for brain in self.brains:
-                brain.clear_points()
-                brain._add_point = brain.add_point
-                brain.add_point = _func_add
-                brain._remove_point = brain.remove_point
-                brain.remove_point = _func_remove
+                brain.clear_glyphs()
+                brain._add_vertex_glyph2 = brain._add_vertex_glyph
+                brain._add_vertex_glyph = _func_add
+                brain._remove_vertex_glyph2 = brain._remove_vertex_glyph
+                brain._remove_vertex_glyph = _func_remove
 
             # link the initial points
             for hemi in initial_points.keys():
                 if hemi in brain._layered_meshes:
                     mesh = brain._layered_meshes[hemi]._polydata
                     for vertex_id in initial_points[hemi]:
-                        self.leader.add_point(hemi, mesh, vertex_id)
+                        self.leader._add_vertex_glyph(hemi, mesh, vertex_id)
 
         if colorbar:
             fmin = self.leader._data["fmin"]
