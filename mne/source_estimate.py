@@ -2860,6 +2860,16 @@ def _temporary_vertices(src, vertices):
             s['vertno'] = v
 
 
+def _check_stc_src(stc, src):
+    if stc is not None and src is not None:
+        for s, v, hemi in zip(src, stc.vertices, ('left', 'right')):
+            n_missing = (~np.in1d(v, s['vertno'])).sum()
+            if n_missing:
+                raise ValueError('%d/%d %s hemisphere stc vertices '
+                                 'missing from the source space, likely '
+                                 'mismatch' % (n_missing, len(v), hemi))
+
+
 def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
     """Prepare indices and flips for extract_label_time_course."""
     # If src is a mixed src space, the first 2 src spaces are surf type and
@@ -2872,18 +2882,8 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
 
     # if source estimate provided in stc, get vertices from source space and
     # check that they are the same as in the stcs
-    if stc is not None:
-        vertno = stc.vertices
-
-        for s, v, hemi in zip(src, stc.vertices, ('left', 'right')):
-            n_missing = (~np.in1d(v, s['vertno'])).sum()
-            if n_missing:
-                raise ValueError('%d/%d %s hemisphere stc vertices missing '
-                                 'from the source space, likely mismatch'
-                                 % (n_missing, len(v), hemi))
-    else:
-        vertno = [s['vertno'] for s in src]
-
+    _check_stc_src(stc, src)
+    vertno = [s['vertno'] for s in src] if stc is None else stc.vertices
     nvert = [len(vn) for vn in vertno]
 
     # initialization
@@ -3059,15 +3059,30 @@ def _dep_trans(trans):
              'pass it as an argument', DeprecationWarning)
 
 
+def _get_default_label_modes():
+    return sorted(_label_funcs.keys()) + ['auto']
+
+
+def _get_allowed_label_modes(stc):
+    if isinstance(stc, (_BaseVolSourceEstimate,
+                        _BaseVectorSourceEstimate)):
+        return ('mean', 'max', 'auto')
+    else:
+        return _get_default_label_modes()
+
+
 def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
                                    allow_empty=False, trans=None,
                                    mri_resolution=True, verbose=None):
     # loop through source estimates and extract time series
+    if src is None and mode in ['mean', 'max']:
+        kind = 'surface'
+    else:
+        _validate_type(src, SourceSpaces)
+        kind = src.kind
     _dep_trans(trans)
-    _validate_type(src, SourceSpaces)
-    _check_option('mode', mode, sorted(_label_funcs.keys()) + ['auto'])
+    _check_option('mode', mode, _get_default_label_modes())
 
-    kind = src.kind
     if kind in ('surface', 'mixed'):
         if not isinstance(labels, list):
             labels = [labels]
@@ -3082,11 +3097,11 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
     for si, stc in enumerate(stcs):
         _validate_type(stc, _BaseSourceEstimate, 'stcs[%d]' % (si,),
                        'source estimate')
+        _check_option(
+            'mode', mode, _get_allowed_label_modes(stc),
+            'when using a vector and/or volume source estimate')
         if isinstance(stc, (_BaseVolSourceEstimate,
                             _BaseVectorSourceEstimate)):
-            _check_option(
-                'mode', mode, ('mean', 'max', 'auto'),
-                'when using a vector and/or volume source estimate')
             mode = 'mean' if mode == 'auto' else mode
         else:
             mode = 'mean_flip' if mode == 'auto' else mode

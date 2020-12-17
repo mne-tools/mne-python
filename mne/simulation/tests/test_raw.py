@@ -24,13 +24,13 @@ from mne.chpi import (read_head_pos, compute_chpi_amplitudes,
 from mne.tests.test_chpi import _assert_quats
 from mne.datasets import testing
 from mne.simulation import (simulate_sparse_stc, simulate_raw, add_eog,
-                            add_ecg, add_chpi)
+                            add_ecg, add_chpi, add_noise)
 from mne.source_space import _compare_source_spaces
 from mne.surface import _get_ico_surface
 from mne.io import read_raw_fif, RawArray
 from mne.io.constants import FIFF
 from mne.time_frequency import psd_welch
-from mne.utils import run_tests_if_main, catch_logging, check_version
+from mne.utils import catch_logging, check_version
 
 base_path = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname_short = op.join(base_path, 'test_raw.fif')
@@ -479,4 +479,39 @@ def test_simulate_raw_chpi():
                   vel_atol=0.03)  # velicity huge because of t_step_min above
 
 
-run_tests_if_main()
+@testing.requires_testing_data
+def test_simulation_cascade():
+    """Test that cascading operations do not overwrite data."""
+    # Create 10 second raw dataset with zeros in the data matrix
+    raw_null = read_raw_fif(raw_chpi_fname, allow_maxshield='yes')
+    raw_null.crop(0, 1).pick_types(meg=True).load_data()
+    raw_null.apply_function(lambda x: np.zeros_like(x))
+    assert_array_equal(raw_null.get_data(), 0.)
+
+    # Calculate independent signal additions
+    raw_eog = raw_null.copy()
+    add_eog(raw_eog, random_state=0)
+
+    raw_ecg = raw_null.copy()
+    add_ecg(raw_ecg, random_state=0)
+
+    raw_noise = raw_null.copy()
+    cov = make_ad_hoc_cov(raw_null.info)
+    add_noise(raw_noise, cov, random_state=0)
+
+    raw_chpi = raw_null.copy()
+    add_chpi(raw_chpi)
+
+    # Calculate Cascading signal additions
+    raw_cascade = raw_null.copy()
+    add_eog(raw_cascade, random_state=0)
+    add_ecg(raw_cascade, random_state=0)
+    add_chpi(raw_cascade)
+    add_noise(raw_cascade, cov, random_state=0)
+
+    cascade_data = raw_cascade.get_data()
+    serial_data = 0.
+    for raw_other in (raw_eog, raw_ecg, raw_noise, raw_chpi):
+        serial_data += raw_other.get_data()
+
+    assert_allclose(cascade_data, serial_data, atol=1e-20)

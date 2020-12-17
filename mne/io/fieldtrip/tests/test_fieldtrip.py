@@ -33,6 +33,11 @@ all_test_params_raw = list(itertools.product(all_systems_raw, all_versions,
 all_test_params_epochs = list(itertools.product(all_systems_epochs,
                                                 all_versions,
                                                 use_info))
+# just for speed we skip some slowest ones -- the coverage should still
+# be sufficient
+for key in [('CTF', 'v73', True), ('neuromag306', 'v73', False)]:
+    all_test_params_epochs.pop(all_test_params_epochs.index(key))
+    all_test_params_raw.pop(all_test_params_raw.index(key))
 
 no_info_warning = {'expected_warning': RuntimeWarning,
                    'match': NOINFO_WARNING}

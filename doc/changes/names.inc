@@ -342,4 +342,6 @@
 
 .. _Hongjiang Ye: https://github.com/rubyyhj
 
+.. _Jeff Stout: https://megcore.nih.gov/index.php/Staff
+
 .. _Qianliang Li: https://www.dtu.dk/english/service/phonebook/person?id=126774

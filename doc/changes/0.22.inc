@@ -7,28 +7,30 @@
    - "Bugs" for bug fixes
    - "API changes" for backward-incompatible changes
 
-.. _current:
+.. _changes_0_22:
 
-Current (0.22.dev0)
--------------------
+Version 0.22.0
+--------------
+
+.. |Austin Hurst| replace:: **Austin Hurst**
+
+.. |Aniket Pradhan| replace:: **Aniket Pradhan**
 
 .. |Eduard Ort| replace:: **Eduard Ort**
 
-.. |Aniket Pradhan| replace:: **Aniket Pradhan**
+.. |Evan Hathaway| replace:: **Evan Hathaway**
+
+.. |Hongjiang Ye| replace:: **Hongjiang Ye**
+
+.. |Jeff Stout| replace:: **Jeff Stout**
+
+.. |Jonathan Kuziek| replace:: **Jonathan Kuziek**
+
+.. |Qianliang Li| replace:: **Qianliang Li**
 
 .. |Tod Flak| replace:: **Tod Flak**
 
 .. |Victoria Peterson| replace:: **Victoria Peterson**
-
-.. |Jonathan Kuziek| replace:: **Jonathan Kuziek**
-
-.. |Evan Hathaway| replace:: **Evan Hathaway**
-
-.. |Austin Hurst| replace:: **Austin Hurst**
-
-.. |Hongjiang Ye| replace:: **Hongjiang Ye**
-
-.. |Qianliang Li| replace:: **Qianliang Li**
 
 
 Enhancements
@@ -103,6 +105,8 @@ Bugs
 ~~~~
 - Fix orthogonalization of power envelopes in :func:`mne.connectivity.envelope_correlation` (:gh:`8658` **by new contributor** |Qianliang Li|_ and `Eric Larson`_)
 
+- Fix data overwrite of cascading simulation operations :`mne.simulation.simulate_raw` (:gh:`8633` **by new contributor** |Jeff Stout|_)
+
 - Fix a transpose issue of :func:`mne.decoding.CSP.plot_filters` (:gh:`8580` **by new contributor** |Hongjiang Ye|_)
 
 - Fix :func:`mne.io.read_raw_curry` to deal with Curry datasets that have channels that are listed in the labels file, but which are absent from the saved data file (e.g. 'Ref' channel).  Also now populates info['meas_date'] if possible (:gh:`8400` **by new contributor** |Tod Flak|_)
@@ -114,6 +118,8 @@ Bugs
 - Fix bug with parsing EDF dates and date integers (:gh:`8558` **by new contributor** |Austin Hurst|_ and `Eric Larson`_)
 
 - Fix bug with reading EDF and KIT files on big endian architectures such as s390x (:gh:`8618` by `Eric Larson`_)
+
+- Fix bug with :func:`mne.beamformer.make_dics` where the ``rank`` parameter was not properly handled (:gh:`8594` by `Marijn van Vliet`_ and `Eric Larson`_)
 
 - Fix bug with :func:`mne.beamformer.apply_dics` where the whitener was not properly applied (:gh:`8610` by `Eric Larson`_)
 
@@ -138,6 +144,8 @@ Bugs
 - Fix bug with :class:`mne.preprocessing.ICA` where ``n_pca_components`` as a :class:`python:float` would give the number of components that explained less than or equal to the given variance. It now gives greater than the given number for better usability and consistency with :class:`sklearn.decomposition.PCA`. Generally this will mean that one more component will be included (:gh:`8326` by `Eric Larson`_)
 
 - Fix bug with :class:`mne.preprocessing.ICA` where projections were not tracked properly (:gh:`8343` by `Eric Larson`_)
+
+- Fix bug where extrapolation points created artifacts in :func:`mne.viz.plot_evoked_topomap` and related functions (:gh:`8425` by `Mikołaj Magnuski`_)
 
 - Fix bug with :func:`mne.preprocessing.read_ica_eeglab` where full-rank data were not handled properly (:gh:`8326` by `Eric Larson`_)
 
@@ -221,3 +229,44 @@ API changes
 - Add ``group_by`` parameter to `mne.viz.plot_epochs` and `mne.Epochs.plot` to allow displaying channel data by sensor position (:gh:`8381` by `Daniel McCloy`_)
 
 - Parameter ``event_colors`` in `mne.viz.plot_epochs` and `mne.Epochs.plot` is deprecated, replaced by ``event_color`` which is consistent with `mne.viz.plot_raw` and provides greater flexibility (:gh:`8381` by `Daniel McCloy`_)
+
+Authors
+~~~~~~~
+
+People who contributed to this release in alphabetical order
+(people with a + are first time contributors):
+
+* Adam Li
+* Alexandre Gramfort
+* Aniket Pradhan +
+* Austin Hurst +
+* Christian Brodbeck
+* Clemens Brunner
+* Daniel McCloy
+* Denis A. Engemann
+* Eduard Ort +
+* Eric Larson
+* Evan Hathaway +
+* Evgenii Kalenkovich
+* Fede Raimondo
+* Guillaume Favelier
+* Hongjiang Ye +
+* Jean-Remi King
+* Jeff Stout +
+* Jonathan Kuziek +
+* Jussi Nurminen
+* Justus Schwabedal
+* Keith Doelling
+* Kyle Mathewson
+* Mads Jensen
+* Mainak Jas
+* Marijn van Vliet
+* Mikolaj Magnuski
+* Olaf Hauk
+* Qianliang Li +
+* Richard Höchenberger
+* Robert Luke
+* Stefan Appelhoff
+* Thomas Hartmann
+* Tod Flak +
+* Victoria Peterson +

@@ -516,8 +516,8 @@ def _parse_prefilter_string(prefiltering):
     return highpass, lowpass
 
 
-def _edf_str_int(x, fid=None):
-    return int(x.decode().split('\x00')[0])
+def _edf_str(x):
+    return x.decode('latin-1').split('\x00')[0]
 
 
 def _read_edf_header(fname, exclude):
@@ -581,7 +581,7 @@ def _read_edf_header(fname, exclude):
                  f'{day:02d} {hour:02d}:{minute:02d}:{sec:02d}).')
             meas_date = None
 
-        header_nbytes = _edf_str_int(fid.read(8))
+        header_nbytes = int(_edf_str(fid.read(8)))
 
         # The following 44 bytes sometimes identify the file type, but this is
         # not guaranteed. Therefore, we skip this field and use the file
@@ -591,15 +591,15 @@ def _read_edf_header(fname, exclude):
         fid.read(44)
         subtype = os.path.splitext(fname)[1][1:].lower()
 
-        n_records = _edf_str_int(fid.read(8))
-        record_length = fid.read(8).decode().strip('\x00').strip()
-        record_length = np.array([float(record_length), 1.])  # in seconds
+        n_records = int(_edf_str(fid.read(8)))
+        record_length = float(_edf_str(fid.read(8)))
+        record_length = np.array([record_length, 1.])  # in seconds
         if record_length[0] == 0:
             record_length = record_length[0] = 1.
             warn('Header information is incorrect for record length. Default '
                  'record length set to 1.')
 
-        nchan = _edf_str_int(fid.read(4))
+        nchan = int(_edf_str(fid.read(4)))
         channels = list(range(nchan))
         ch_names = [fid.read(16).strip().decode('latin-1') for ch in channels]
         exclude = _find_exclude_idx(ch_names, exclude)
@@ -628,20 +628,19 @@ def _read_edf_header(fname, exclude):
         ch_names = _unique_channel_names(ch_names)
         orig_units = dict(zip(ch_names, units))
 
-        physical_min = np.array([float(fid.read(8).decode())
-                                 for ch in channels])[sel]
-        physical_max = np.array([float(fid.read(8).decode())
-                                 for ch in channels])[sel]
-        digital_min = np.array([float(fid.read(8).decode())
-                                for ch in channels])[sel]
-        digital_max = np.array([float(fid.read(8).decode())
-                                for ch in channels])[sel]
-        prefiltering = [fid.read(80).decode().strip(' \x00')
-                        for ch in channels][:-1]
+        physical_min = np.array(
+            [float(_edf_str(fid.read(8))) for ch in channels])[sel]
+        physical_max = np.array(
+            [float(_edf_str(fid.read(8))) for ch in channels])[sel]
+        digital_min = np.array(
+            [float(_edf_str(fid.read(8))) for ch in channels])[sel]
+        digital_max = np.array(
+            [float(_edf_str(fid.read(8))) for ch in channels])[sel]
+        prefiltering = [_edf_str(fid.read(80)).strip() for ch in channels][:-1]
         highpass, lowpass = _parse_prefilter_string(prefiltering)
 
         # number of samples per record
-        n_samps = np.array([_edf_str_int(fid.read(8)) for ch in channels])
+        n_samps = np.array([int(_edf_str(fid.read(8))) for ch in channels])
 
         # Populate edf_info
         edf_info.update(
@@ -731,10 +730,10 @@ def _read_gdf_header(fname, exclude):
 
             # Recording ID
             meas_id = {}
-            meas_id['recording_id'] = fid.read(80).decode().strip(' \x00')
+            meas_id['recording_id'] = _edf_str(fid.read(80)).strip()
 
             # date
-            tm = fid.read(16).decode().strip(' \x00')
+            tm = _edf_str(fid.read(16)).strip()
             try:
                 if tm[14:16] == '  ':
                     tm = tm[:14] + '00' + tm[16:]
@@ -762,13 +761,11 @@ def _read_gdf_header(fname, exclude):
                      'Default record length set to 1.')
             nchan = np.fromfile(fid, UINT32, 1)[0]
             channels = list(range(nchan))
-            ch_names = [fid.read(16).decode('latin-1').strip(' \x00')
-                        for ch in channels]
+            ch_names = [_edf_str(fid.read(16)).strip() for ch in channels]
             exclude = _find_exclude_idx(ch_names, exclude)
             sel = np.setdiff1d(np.arange(len(ch_names)), exclude)
             fid.seek(80 * len(channels), 1)  # transducer
-            units = [fid.read(8).decode('latin-1').strip(' \x00')
-                     for ch in channels]
+            units = [_edf_str(fid.read(8)).strip() for ch in channels]
             edf_info['units'] = list()
             for i, unit in enumerate(units):
                 if i in exclude:
@@ -784,8 +781,7 @@ def _read_gdf_header(fname, exclude):
             physical_max = np.fromfile(fid, FLOAT64, len(channels))
             digital_min = np.fromfile(fid, INT64, len(channels))
             digital_max = np.fromfile(fid, INT64, len(channels))
-            prefiltering = [fid.read(80).decode().strip(' \x00')
-                            for ch in channels][:-1]
+            prefiltering = [_edf_str(fid.read(80)) for ch in channels][:-1]
             highpass, lowpass = _parse_prefilter_string(prefiltering)
 
             # n samples per record
@@ -876,7 +872,7 @@ def _read_gdf_header(fname, exclude):
 
             # Recording identification
             meas_id = {}
-            meas_id['recording_id'] = fid.read(64).decode().strip(' \x00')
+            meas_id['recording_id'] = _edf_str(fid.read(64)).strip()
             vhsv = np.fromfile(fid, UINT8, 4)
             loc = {}
             if vhsv[3] == 0:
@@ -945,8 +941,7 @@ def _read_gdf_header(fname, exclude):
 
             # Channels (variable header)
             channels = list(range(nchan))
-            ch_names = [fid.read(16).decode().strip(' \x00')
-                        for ch in channels]
+            ch_names = [_edf_str(fid.read(16)).strip() for ch in channels]
             exclude = _find_exclude_idx(ch_names, exclude)
             sel = np.setdiff1d(np.arange(len(ch_names)), exclude)
 

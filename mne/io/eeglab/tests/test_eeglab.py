@@ -20,7 +20,7 @@ from mne import write_events, read_epochs_eeglab
 from mne.io import read_raw_eeglab
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets import testing
-from mne.utils import requires_h5py, run_tests_if_main
+from mne.utils import check_version
 from mne.annotations import events_from_annotations, read_annotations
 from mne.io.eeglab.tests._utils import _read_eeglab_montage
 
@@ -42,25 +42,18 @@ epochs_fname_onefile_h5 = op.join(base_dir, 'test_epochs_onefile_h5.set')
 raw_h5_fnames = [raw_fname_h5, raw_fname_onefile_h5]
 epochs_h5_fnames = [epochs_fname_h5, epochs_fname_onefile_h5]
 
-raw_fnames = [raw_fname_mat, raw_fname_onefile_mat,
-              raw_fname_h5, raw_fname_onefile_h5]
 montage_path = op.join(base_dir, 'test_chans.locs')
 
 
-def _check_h5(fname):
-    if fname.endswith('_h5.set'):
-        try:
-            import h5py  # noqa, analysis:ignore
-        except Exception:
-            raise SkipTest('h5py module required')
+needs_h5 = pytest.mark.skipif(not check_version('h5py'), reason='Needs h5py')
 
 
-@requires_h5py
 @testing.requires_testing_data
-@pytest.mark.slowtest
-@pytest.mark.parametrize(
-    'fname', [raw_fname_mat, raw_fname_h5, raw_fname_chanloc], ids=op.basename
-)
+@pytest.mark.parametrize('fname', [
+    raw_fname_mat,
+    pytest.param(raw_fname_h5, marks=needs_h5),
+    raw_fname_chanloc,
+], ids=op.basename)
 def test_io_set_raw(fname):
     """Test importing EEGLAB .set files."""
     montage = _read_eeglab_montage(montage_path)
@@ -72,22 +65,19 @@ def test_io_set_raw(fname):
     if fname.endswith('test_raw_chanloc.set'):
         with pytest.warns(RuntimeWarning,
                           match="The data contains 'boundary' events"):
-            _test_raw_reader(**kws)
+            raw0 = _test_raw_reader(**kws)
+    elif '_h5' in fname:  # should be safe enough, and much faster
+        raw0 = read_raw_eeglab(fname, preload=True)
     else:
-        _test_raw_reader(**kws)
+        raw0 = _test_raw_reader(**kws)
 
     # test that preloading works
-    read_raw_kws = dict(input_fname=fname, preload=True)
     if fname.endswith('test_raw_chanloc.set'):
-        with pytest.warns(RuntimeWarning,
-                          match="The data contains 'boundary' events"):
-            raw0 = read_raw_eeglab(**read_raw_kws)
-            raw0.set_montage(montage, on_missing='ignore')
-            # crop to check if the data has been properly preloaded; we cannot
-            # filter as the snippet of raw data is very short
-            raw0.crop(0, 1)
+        raw0.set_montage(montage, on_missing='ignore')
+        # crop to check if the data has been properly preloaded; we cannot
+        # filter as the snippet of raw data is very short
+        raw0.crop(0, 1)
     else:
-        raw0 = read_raw_eeglab(**read_raw_kws)
         raw0.set_montage(montage)
         raw0.filter(1, None, l_trans_bandwidth='auto', filter_length='auto',
                     phase='zero')
@@ -102,6 +92,12 @@ def test_io_set_raw(fname):
     else:
         raw0 = read_raw_eeglab(**read_raw_kws)
         raw0.set_montage(montage)
+
+    # Annotations
+    if fname != raw_fname_chanloc:
+        assert len(raw0.annotations) == 154
+        assert set(raw0.annotations.description) == {'rt', 'square'}
+        assert_array_equal(raw0.annotations.duration, 0.)
 
 
 @testing.requires_testing_data
@@ -247,11 +243,12 @@ def test_io_set_raw_more(tmpdir):
                            np.array([np.nan, np.nan, np.nan]))
 
 
-@pytest.mark.slowtest  # slow-ish on Travis OSX
 @pytest.mark.timeout(60)  # ~60 sec on Travis OSX
-@requires_h5py
 @testing.requires_testing_data
-@pytest.mark.parametrize('fnames', [epochs_mat_fnames, epochs_h5_fnames])
+@pytest.mark.parametrize('fnames', [
+    epochs_mat_fnames,
+    pytest.param(epochs_h5_fnames, marks=[needs_h5, pytest.mark.slowtest]),
+])
 def test_io_set_epochs(fnames):
     """Test importing EEGLAB .set epochs files."""
     epochs_fname, epochs_fname_onefile = fnames
@@ -306,12 +303,16 @@ def test_degenerate(tmpdir):
                       bad_epochs_fname)
 
 
-@pytest.mark.parametrize("fname", raw_fnames)
+@pytest.mark.parametrize("fname", [
+    raw_fname_mat,
+    raw_fname_onefile_mat,
+    # We don't test the h5 varaints here because they are implicitly tested
+    # in test_io_set_raw
+])
 @pytest.mark.filterwarnings('ignore: Complex objects')
 @testing.requires_testing_data
 def test_eeglab_annotations(fname):
     """Test reading annotations in EEGLAB files."""
-    _check_h5(fname)
     annotations = read_annotations(fname)
     assert len(annotations) == 154
     assert set(annotations.description) == {'rt', 'square'}
@@ -421,6 +422,3 @@ def test_position_information(one_chanpos_fname):
 
     _assert_array_allclose_nan(np.array([ch['loc'] for ch in raw.info['chs']]),
                                EXPECTED_LOCATIONS_FROM_MONTAGE)
-
-
-run_tests_if_main()

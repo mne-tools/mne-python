@@ -1789,7 +1789,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     - https://openwetware.org/wiki/Beauchamp:FreeSurfer
     """  # noqa: E501
     from .backends.renderer import _get_3d_backend, set_3d_backend
-    from ..source_estimate import _BaseSourceEstimate
+    from ..source_estimate import _BaseSourceEstimate, _check_stc_src
+    _check_stc_src(stc, src)
     _validate_type(stc, _BaseSourceEstimate, 'stc', 'source estimate')
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
@@ -1989,7 +1990,8 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
     _check_option('time_viewer', time_viewer, (True, False, 'auto'))
     _validate_type(show_traces, (str, bool, 'numeric'), 'show_traces')
     if isinstance(show_traces, str):
-        _check_option('show_traces', show_traces, ('auto', 'separate'),
+        _check_option('show_traces', show_traces,
+                      ('auto', 'separate', 'vertex', 'label'),
                       extra='when a string')
     if time_viewer == 'auto':
         time_viewer = not using_mayavi

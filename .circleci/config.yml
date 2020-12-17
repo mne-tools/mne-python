@@ -305,7 +305,7 @@ jobs:
             name: Deploy docs
             command: |
               set -e;
-              if [ "${CIRCLE_BRANCH}" == "master" ] || [ "${CIRCLE_BRANCH}" == "maint/0.21" ]; then
+              if [ "${CIRCLE_BRANCH}" == "master" ] || [ "${CIRCLE_BRANCH}" == "maint/0.22" ]; then
                 git config --global user.email "circle@mne.com";
                 git config --global user.name "Circle CI";
                 cd ~/mne-tools.github.io;
@@ -384,7 +384,7 @@ workflows:
             branches:
               only:
                 - master
-                - maint/0.21
+                - maint/0.22
       # interactive_test
 
   weekly:
