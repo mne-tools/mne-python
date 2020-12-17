@@ -20,9 +20,6 @@ from .maxwell import (_col_norm_pinv, _trans_sss_basis, _prep_mf_coils,
                       _prep_fine_cal)
 
 
-_RHO_VALS = dict(rhobeg=1e-3, rhoend=1e-4)
-
-
 @verbose
 def compute_fine_calibration(raw, n_imbalance=3, t_window=10., ext_order=2,
                              origin=(0., 0., 0.), cross_talk=None,
@@ -277,7 +274,8 @@ def _adjust_mag_normals(info, data, origin, ext_order):
 
             # Figure out the additive term for z-component
             zs[cal_idx] = fmin_cobyla(
-                objective, old_z, disp=False, cons=(), **_RHO_VALS)
+                objective, old_z, cons=(), rhobeg=1e-3, rhoend=1e-4,
+                disp=False)
 
             # Do in-place adjustment to all_coils
             cals[cal_idx] = 1. / np.linalg.norm(zs[cal_idx])
