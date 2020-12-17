@@ -732,7 +732,6 @@ def test_extract_label_time_course_volume(
     n_tot = 46
     assert n_tot == len(src_labels)
     inv = read_inverse_operator(fname_inv_vol)
-    trans = inv['mri_head_t']
     if cf == 'head':
         src = inv['src']
         assert src[0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD

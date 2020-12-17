@@ -130,12 +130,8 @@ def test_plot_epochs_colors(epochs):
         epochs.plot(epoch_colors=[['r'], ['b']])  # epochs obj has only 1 epoch
     with pytest.raises(ValueError, match=r'epoch colors for epoch \d+ has'):
         epochs.plot(epoch_colors=[['r']])  # need 1 color for each channel
-    # also test event_colors
-    with pytest.warns(DeprecationWarning, match='replaced by event_color in'):
-        epochs.plot(event_colors='r')
-    with pytest.warns(DeprecationWarning,
-                      match='in 0.23. Since you passed values for both'):
-        epochs.plot(event_colors='r', event_color='b')
+    # also test event_color
+    epochs.plot(event_color='b')
 
 
 def test_plot_epochs_scale_bar(epochs):
