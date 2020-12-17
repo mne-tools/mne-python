@@ -492,8 +492,6 @@ class Brain(object):
         """
         if self.time_viewer:
             return
-        if self.notebook:
-            self.show()
         self.time_viewer = time_viewer
         self.orientation = list(_lh_views_dict.keys())
         self.default_smoothing_range = [0, 15]
@@ -526,14 +524,13 @@ class Brain(object):
 
         # Direct access parameters:
         self._iren = self._renderer.plotter.iren
+        self.tool_bar = None
         if self.notebook:
             self.main_menu = None
-            self.tool_bar = None
             self.status_bar = None
             self.interactor = None
         else:
             self.main_menu = self.plotter.main_menu
-            self.tool_bar = self.window.addToolBar("toolbar")
             self.status_bar = self.window.statusBar()
             self.interactor = self.plotter.interactor
 
@@ -563,16 +560,16 @@ class Brain(object):
         self._configure_time_label()
         self._configure_sliders()
         self._configure_scalar_bar()
-        self._configure_point_picking()
         self._configure_shortcuts()
-        if not self.notebook:
-            self._load_icons()
+        self._configure_point_picking()
+        self._configure_tool_bar()
+        if self.notebook:
+            self.show()
+        else:
             self._configure_playback()
             self._configure_menu()
-            self._configure_tool_bar()
             self._configure_status_bar()
 
-        if not self.notebook:
             # show everything at the end
             self.toggle_interface()
             with self.ensure_minimum_sizes():
@@ -1097,56 +1094,78 @@ class Brain(object):
         return self.save_movie(None)
 
     def _configure_tool_bar(self):
-        self.actions["screenshot"] = self.tool_bar.addAction(
-            self.icons["screenshot"],
-            "Take a screenshot",
-            self.plotter._qt_screenshot
-        )
-        self.actions["movie"] = self.tool_bar.addAction(
-            self.icons["movie"],
-            "Save movie...",
-            self._save_movie_noname,
-        )
-        self.actions["visibility"] = self.tool_bar.addAction(
-            self.icons["visibility_on"],
-            "Toggle Visibility",
-            self.toggle_interface
-        )
-        self.actions["play"] = self.tool_bar.addAction(
-            self.icons["play"],
-            "Play/Pause",
-            self.toggle_playback
-        )
-        self.actions["reset"] = self.tool_bar.addAction(
-            self.icons["reset"],
-            "Reset",
-            self.reset
-        )
-        self.actions["scale"] = self.tool_bar.addAction(
-            self.icons["scale"],
-            "Auto-Scale",
-            self.apply_auto_scaling
-        )
-        self.actions["restore"] = self.tool_bar.addAction(
-            self.icons["restore"],
-            "Restore scaling",
-            self.restore_user_scaling
-        )
-        self.actions["clear"] = self.tool_bar.addAction(
-            self.icons["clear"],
-            "Clear traces",
-            self.clear_points
-        )
-        self.actions["help"] = self.tool_bar.addAction(
-            self.icons["help"],
-            "Help",
-            self.help
-        )
+        if self.notebook:
+            from IPython import display
+            from ipywidgets import HBox, Button
+            self.actions["visibility"] = Button(
+                description="Toggle Visibility",
+            )
+            self.actions["visibility"].on_click(
+                lambda x: self.toggle_interface())
+            self.actions["reset"] = Button(description="Reset")
+            self.actions["reset"].on_click(lambda x: self.reset())
+            self.actions["scale"] = Button(description="Auto-Scale")
+            self.actions["scale"].on_click(lambda x: self.apply_auto_scaling())
+            self.actions["restore"] = Button(description="Restore scaling")
+            self.actions["restore"].on_click(
+                lambda x: self.restore_user_scaling())
+            self.actions["clear"] = Button(description="Clear traces")
+            self.actions["clear"].on_click(lambda x: self.clear_points())
+            self.tool_bar = HBox(tuple(self.actions.values()))
+            display.display(self.tool_bar)
+        else:
+            self._load_icons()
+            self.tool_bar = self.window.addToolBar("toolbar")
+            self.actions["screenshot"] = self.tool_bar.addAction(
+                self.icons["screenshot"],
+                "Take a screenshot",
+                self.plotter._qt_screenshot
+            )
+            self.actions["movie"] = self.tool_bar.addAction(
+                self.icons["movie"],
+                "Save movie...",
+                self._save_movie_noname,
+            )
+            self.actions["visibility"] = self.tool_bar.addAction(
+                self.icons["visibility_on"],
+                "Toggle Visibility",
+                self.toggle_interface
+            )
+            self.actions["play"] = self.tool_bar.addAction(
+                self.icons["play"],
+                "Play/Pause",
+                self.toggle_playback
+            )
+            self.actions["reset"] = self.tool_bar.addAction(
+                self.icons["reset"],
+                "Reset",
+                self.reset
+            )
+            self.actions["scale"] = self.tool_bar.addAction(
+                self.icons["scale"],
+                "Auto-Scale",
+                self.apply_auto_scaling
+            )
+            self.actions["restore"] = self.tool_bar.addAction(
+                self.icons["restore"],
+                "Restore scaling",
+                self.restore_user_scaling
+            )
+            self.actions["clear"] = self.tool_bar.addAction(
+                self.icons["clear"],
+                "Clear traces",
+                self.clear_points
+            )
+            self.actions["help"] = self.tool_bar.addAction(
+                self.icons["help"],
+                "Help",
+                self.help
+            )
 
-        # Qt shortcuts
-        self.actions["movie"].setShortcut("ctrl+shift+s")
-        self.actions["play"].setShortcut(" ")
-        self.actions["help"].setShortcut("?")
+            # Qt shortcuts
+            self.actions["movie"].setShortcut("ctrl+shift+s")
+            self.actions["play"].setShortcut(" ")
+            self.actions["help"].setShortcut("?")
 
     def _configure_shortcuts(self):
         self.plotter.add_key_event("i", self.toggle_interface)
@@ -1392,6 +1411,7 @@ class Brain(object):
         assert sum(len(v) for v in self.picked_points.values()) == 0
         assert len(self.pick_table) == 0
         assert len(self._spheres) == 0
+        self._update()
 
     def plot_time_course(self, hemi, vertex_id, color):
         """Plot the vertex time course.
