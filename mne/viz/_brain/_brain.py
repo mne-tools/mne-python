@@ -424,13 +424,12 @@ class Brain(object):
                                        shape=shape,
                                        fig=figure)
 
-        self.plotter = None
-        self.window = None
-        if _get_3d_backend() in ("pyvista", "notebook"):
-            self.plotter = self._renderer.plotter
-            if hasattr(self.plotter, "app_window"):
-                self.window = self.plotter.app_window
-                self.window.signal_close.connect(self._clean)
+        self.plotter = self._renderer.plotter
+        if self.notebook:
+            self.window = None
+        else:
+            self.window = self.plotter.app_window
+            self.window.signal_close.connect(self._clean)
 
         for h in self._hemis:
             # Initialize a Surface object as the geometry
@@ -2276,11 +2275,7 @@ class Brain(object):
 
     def show(self):
         """Display the window."""
-        # Request rendering of the window
-        try:
-            self._renderer.show()
-        except RuntimeError:
-            logger.info("No active/running renderer available.")
+        self._renderer.show()
 
     def show_view(self, view=None, roll=None, distance=None, row=0, col=0,
                   hemi=None):
