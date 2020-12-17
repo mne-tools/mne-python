@@ -7,30 +7,30 @@
    - "Bugs" for bug fixes
    - "API changes" for backward-incompatible changes
 
-.. _current:
+.. _changes_0_22:
 
-Current (0.22.dev0)
--------------------
+Version 0.22.0
+--------------
+
+.. |Austin Hurst| replace:: **Austin Hurst**
+
+.. |Aniket Pradhan| replace:: **Aniket Pradhan**
 
 .. |Eduard Ort| replace:: **Eduard Ort**
 
-.. |Aniket Pradhan| replace:: **Aniket Pradhan**
+.. |Evan Hathaway| replace:: **Evan Hathaway**
+
+.. |Hongjiang Ye| replace:: **Hongjiang Ye**
+
+.. |Jeff Stout| replace:: **Jeff Stout**
+
+.. |Jonathan Kuziek| replace:: **Jonathan Kuziek**
+
+.. |Qianliang Li| replace:: **Qianliang Li**
 
 .. |Tod Flak| replace:: **Tod Flak**
 
 .. |Victoria Peterson| replace:: **Victoria Peterson**
-
-.. |Jonathan Kuziek| replace:: **Jonathan Kuziek**
-
-.. |Evan Hathaway| replace:: **Evan Hathaway**
-
-.. |Austin Hurst| replace:: **Austin Hurst**
-
-.. |Hongjiang Ye| replace:: **Hongjiang Ye**
-
-.. |Qianliang Li| replace:: **Qianliang Li**
-
-.. |Jeff Stout| replace:: **Jeff Stout**
 
 
 Enhancements
@@ -229,3 +229,44 @@ API changes
 - Add ``group_by`` parameter to `mne.viz.plot_epochs` and `mne.Epochs.plot` to allow displaying channel data by sensor position (:gh:`8381` by `Daniel McCloy`_)
 
 - Parameter ``event_colors`` in `mne.viz.plot_epochs` and `mne.Epochs.plot` is deprecated, replaced by ``event_color`` which is consistent with `mne.viz.plot_raw` and provides greater flexibility (:gh:`8381` by `Daniel McCloy`_)
+
+Authors
+~~~~~~~
+
+People who contributed to this release in alphabetical order
+(people with a + are first time contributors):
+
+* Adam Li
+* Alexandre Gramfort
+* Aniket Pradhan +
+* Austin Hurst +
+* Christian Brodbeck
+* Clemens Brunner
+* Daniel McCloy
+* Denis A. Engemann
+* Eduard Ort +
+* Eric Larson
+* Evan Hathaway +
+* Evgenii Kalenkovich
+* Fede Raimondo
+* Guillaume Favelier
+* Hongjiang Ye +
+* Jean-Remi King
+* Jeff Stout +
+* Jonathan Kuziek +
+* Jussi Nurminen
+* Justus Schwabedal
+* Keith Doelling
+* Kyle Mathewson
+* Mads Jensen
+* Mainak Jas
+* Marijn van Vliet
+* Mikolaj Magnuski
+* Olaf Hauk
+* Qianliang Li +
+* Richard Höchenberger
+* Robert Luke
+* Stefan Appelhoff
+* Thomas Hartmann
+* Tod Flak +
+* Victoria Peterson +
