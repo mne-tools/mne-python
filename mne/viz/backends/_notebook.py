@@ -16,8 +16,9 @@ class _Renderer(_PyVistaRenderer):
 
     def show(self):
         from IPython.display import display
-        self.disp = self.plotter.show(use_ipyvtk=True, return_viewer=True)
-        display(self.disp)
+        self.figure.display = self.plotter.show(use_ipyvtk=True,
+                                                return_viewer=True)
+        display(self.figure.display)
         return self.scene()
 
 
