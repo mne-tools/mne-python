@@ -365,6 +365,7 @@ def _prepare_trellis(n_cells, ncols, nrows='auto', title=False, colorbar=False,
                      size=1.3, sharex=False, sharey=False):
     import matplotlib.pyplot as plt
     from matplotlib.gridspec import GridSpec
+    from ._figure import _figure
 
     if n_cells == 1:
         nrows = ncols = 1
@@ -389,9 +390,8 @@ def _prepare_trellis(n_cells, ncols, nrows='auto', title=False, colorbar=False,
     width = size * ncols
     height = (size + max(0, 0.1 * (4 - size))) * nrows + bool(title) * 0.5
     height_ratios = None
-    g_kwargs = {}
-    figure_nobar(figsize=(width * 1.5, height * 1.5))
-    gs = GridSpec(nrows, ncols, height_ratios=height_ratios, **g_kwargs)
+    fig = _figure(toolbar=False, figsize=(width * 1.5, 0.25 + height * 1.5))
+    gs = GridSpec(nrows, ncols, figure=fig, height_ratios=height_ratios)
 
     axes = []
     if colorbar:
@@ -407,9 +407,7 @@ def _prepare_trellis(n_cells, ncols, nrows='auto', title=False, colorbar=False,
                 subplot_kw.update(sharex=axes[0])
             if sharey:
                 subplot_kw.update(sharey=axes[0])
-        axes.append(plt.subplot(gs[ax_idx], **subplot_kw))
-
-    fig = axes[0].get_figure()
+        axes.append(fig.add_subplot(gs[ax_idx], **subplot_kw))
 
     return fig, axes, ncols, nrows
 
