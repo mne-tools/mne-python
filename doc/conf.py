@@ -14,6 +14,7 @@
 
 from datetime import date
 from distutils.version import LooseVersion
+import gc
 import os
 import os.path as op
 import sys
@@ -25,7 +26,7 @@ from sphinx_gallery.sorting import FileNameSortKey, ExplicitOrder
 from numpydoc import docscrape
 import matplotlib
 import mne
-from mne.viz import Brain
+from mne.viz import Brain  # noqa
 from mne.utils import (linkcode_resolve, # noqa, analysis:ignore
                        _assert_no_instances, sizeof_fmt)
 
@@ -451,17 +452,18 @@ class Resetter(object):
     def __call__(self, gallery_conf, fname):
         import matplotlib.pyplot as plt
         try:
-            from pyvista import Plotter
+            from pyvista import Plotter  # noqa
         except ImportError:
-            Plotter = None
+            Plotter = None  # noqa
         reset_warnings(gallery_conf, fname)
         # in case users have interactive mode turned on in matplotlibrc,
         # turn it off here (otherwise the build can be very slow)
         plt.ioff()
         plt.rcParams['animation.embed_limit'] = 30.
-        _assert_no_instances(Brain, 'running')  # calls gc.collect()
-        if Plotter is not None:
-            _assert_no_instances(Plotter, 'running')
+        gc.collect()
+        # _assert_no_instances(Brain, 'running')  # calls gc.collect()
+        # if Plotter is not None:
+        #     _assert_no_instances(Plotter, 'running')
         # This will overwrite some Sphinx printing but it's useful
         # for memory timestamps
         if os.getenv('SG_STAMP_STARTS', '').lower() == 'true':
@@ -573,7 +575,6 @@ sphinx_gallery_conf = {
     'default_thumb_file': os.path.join('_static', 'mne_helmet.png'),
     'backreferences_dir': 'generated',
     'plot_gallery': 'True',  # Avoid annoying Unicode/bool default warning
-    'download_section_examples': False,
     'thumbnail_size': (160, 112),
     'remove_config_comments': True,
     'min_reported_time': 1.,
