@@ -23,6 +23,7 @@ misattributed to the skull acting as a lowpass filter.
 
 import os.path as op
 import numpy as np
+from scipy import spatial
 import matplotlib.pyplot as plt
 
 import mne
@@ -175,4 +176,52 @@ axes_all[1, 0].set_ylabel('Power')
 axes_all[2, freqs.size // 2].set_xlabel('Frequency (Hz)')
 
 fig.tight_layout()
+fig.show()
+
+##############################################################################
+# Biologically plausible example
+# ------------------------------
+
+freqs = np.linspace(1, 40, 100)
+seed_verts = [lh['rr'][stc.lh_vertno[i]] for i in [900, 2220, 3433]]
+
+# zero out existing source time course data
+stc.data = np.zeros(stc.data.shape)
+
+for i in range(stc.data.shape[0]):
+    vert = lh['rr'][stc.lh_vertno[i]] if i < stc.lh_vertno.size else \
+        rh['rr'][stc.rh_vertno[i - stc.lh_vertno.size]]
+    for seed_vert in seed_verts:
+        dist = euclidean_dist(seed_vert, vert) * 1e3  # m -> mm
+        shift = time_shift * dist / max_dist
+        for freq in freqs:
+            stc.data[i] += np.sin(
+                2. * np.pi * freq * (stc.times + shift)) * 1e-10 \
+                if dist < max_dist else 0  # if too large distance
+
+
+evoked_sim = simulate_evoked(fwd, stc, evoked.info, cov=None, nave=np.inf)
+
+psds, freqs_psd = psd_array_multitaper(
+    evoked_sim.data, stc.sfreq, fmin=2, fmax=40)
+
+fig, axes = plt.subplots(1, 3, figsize=(10, 5))
+axes[0].plot(freqs_psd, (psds[
+    mne.pick_types(evoked_sim.info, meg='mag')]).T)
+axes[0].set_title('Magnetometers')
+axes[1].plot(freqs_psd, (psds[
+    mne.pick_types(evoked_sim.info, meg='grad')]).T)
+axes[1].set_title('Gradiometers')
+axes[2].plot(freqs_psd, (psds[
+    mne.pick_types(evoked_sim.info, eeg=True)]).T)
+axes[2].set_title('EEG')
+fig.suptitle('1/f Power Decay in Simulated Evoked Data')
+axes[0].set_ylabel('Power (dB)')
+axes[1].set_xlabel('Log10 of Frequency (Hz)')
+for ax in axes:
+    ax.set_xscale('log')
+    ax.set_xticks([5, 10, 40])
+    ax.set_xticklabels([5, 10, 40])
+
+
 fig.show()
