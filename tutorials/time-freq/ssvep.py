@@ -3,18 +3,31 @@
 Basic analysis of an SSVEP/vSSR dataset
 =======================================
 
-Example script to compute frequency spectrum and extract snr of a target frequency
+In this tutorial we compute the frequency spectrum and quantify signal-to-noise 
+ratio (SNR) at a target frequency in EEG data recorded during fast periodic 
+visual stimulation (FPVS). 
+Extracting SNR at stimulation frequency is a simple way to quantify frequency tagged 
+responses in MEEG (a.k.a. steady state visually evoked potentials, SSVEP, or visual 
+steady-state responses, vSSR in the visual domain, 
+or auditory steady-state responses, aSSR in the auditory domain).
 
-We use a simple example dataset with frequency tagged visual stimulation (a.k.a.
-steady state visually evoked potentials, SSVEP, or visual steady-state responses, 
-vSSR):
+DATA:
 
+We use a simple example dataset with frequency tagged visual stimulation:
 N=2 participants observed checkerboards patterns inverting with a constant frequency
 of either 12Hz of 15Hz. 10 trials of 30s length each. 32ch wet EEG was recorded.
 
+Data can be downloaded at https://osf.io/7ne6y/ 
 Data format: BrainVision .eeg/.vhdr/.vmrk files organized according to BIDS standard.
 
-Data can be downloaded at https://osf.io/7ne6y/
+OUTLINE:
+
+- We will visualize both the PSD spectrum and the SNR spectrum of our epoched data.
+- We will extract SNR at stimulation frequency for all trials and channels.
+- We will show, that we can statistically separate 12hz and 15 hz responses in our data.   
+
+Since the evoked response is mainly generated in early visual areas of the brain we 
+will stick with an ROI analysis and extract SNR from occipital channels. 
 """  # noqa: E501
 # Authors: Dominik Welke <dominik.welke@web.de>
 #          Evgenii Kalenkovich <e.kalenkovich@gmail.com>
@@ -29,13 +42,18 @@ from mne_bids import read_raw_bids, BIDSPath
 from scipy.stats import ttest_rel, ttest_ind
 
 ###############################################################################
-# Load raw data
+# Data preprocessing
 # -------------
-event_id = {
-    '12hz': 10001,
-    '15hz': 10002
-}
+# Due to a generally high SNR in SSVEP/vSSR, typical preprocessing steps
+# are considered optional. this doesnt mean, that a proper cleaning would not
+# increase your signal quality!
+#
+# - Raw data comes with FCz recording reference, so we will apply common-average rereferencing.
+# - We will apply a 50 Hz notch-filter to remove line-noise,
+# - and a 0.1 - 250 Hz bandpass filter.
+# - Lastly we will cut the data in 30 s epochs according to the trials.
 
+# Load raw data
 data_path = mne.datasets.ssvep.data_path()
 bids_path = BIDSPath(subject='02', session='01', task='ssvep', root=data_path)
 
@@ -47,48 +65,38 @@ with warnings.catch_warnings():
     raw = read_raw_bids(bids_path, verbose=False)
 raw.load_data()
 
-###############################################################################
-# Minimal preprocessing
-# ---------------------
-#
-# Due to a generally high SNR in SSVEP/vSSR, typical preprocessing steps
-# are considered optional. this doesnt mean, that a proper cleaning would not
-# increase your signal quality!
-#
-# Raw data comes with FCz recording reference, so we will apply common-average
-# rereferencing.
 
-###############################################################################
 # Set montage
-# ^^^^^^^^^^^
-
 montage_style = 'easycap-M1'
 montage = mne.channels.make_standard_montage(
     montage_style,
     head_size=0.095)  # head_size parameter default = 0.095
-raw.set_montage(montage)
+raw.set_montage(montage, verbose=False)
 
-###############################################################################
 # Set common average reference
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+raw.set_eeg_reference('average', projection=False, verbose=True)
 
-raw.set_eeg_reference('average', projection=False)
-
-###############################################################################
-# Apply notch filtering
-# ^^^^^^^^^^^^^^^^^^^^^
+# Apply notch filter to remove line-noise
 notch = np.arange(raw.info['line_freq'], raw.info['lowpass'] / 2,
                   raw.info['line_freq'])
 raw.notch_filter(notch, filter_length='auto', phase='zero')
 
-###############################################################################
-# Apply linear filtering
-# ^^^^^^^^^^^^^^^^^^^^^^
-
+# Apply bandpass filter
 hp = .1
 lp = 250.
 raw.filter(hp, lp, fir_design='firwin')
 
+# Construct epochs
+event_id = {
+    '12hz': 10001,
+    '15hz': 10002
+}
+events, _ = mne.events_from_annotations(raw, verbose=False)
+raw.info["events"] = events
+tmin, tmax = -1., 30.  # in s
+baseline = None
+epochs = mne.Epochs(raw, events=events, event_id=event_id['12hz'], tmin=tmin,
+                    tmax=tmax, baseline=baseline, verbose=True)
 
 ###############################################################################
 # Frequency analysis
@@ -98,21 +106,7 @@ raw.filter(hp, lp, fir_design='firwin')
 # influence on SNR. All the other methods implemented in MNE can be used as
 # well.
 
-###############################################################################
-# Construct epochs
-# ^^^^^^^^^^^^^^^^
-
-events, _ = mne.events_from_annotations(raw)
-raw.info["events"] = events
-tmin, tmax = -1., 30.  # in s
-baseline = None
-epochs = mne.Epochs(raw, events=events, event_id=event_id['12hz'], tmin=tmin,
-                    tmax=tmax, baseline=baseline)
-
-###############################################################################
 # Calculate power spectral density
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
 tmin = 0.
 tmax = 30.
 fmin = 1.
