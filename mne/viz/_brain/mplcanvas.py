@@ -24,8 +24,7 @@ class MplCanvas(object):
         extra_events = ('resize',)
         self.notebook = notebook
         if self.notebook:
-            self.fig, self.axes = plt.subplots(figsize=(width, height),
-                                               dpi=dpi)
+            self.fig = plt.figure(figsize=(width, height), dpi=dpi)
             self.canvas = plt.gcf().canvas
         else:
             from PyQt5 import QtWidgets
@@ -38,7 +37,6 @@ class MplCanvas(object):
             with context:
                 self.fig = Figure(figsize=(width, height), dpi=dpi)
             self.canvas = FigureCanvasQTAgg(self.fig)
-            self.axes = self.fig.add_subplot(111)
             self.canvas.setParent(parent)
             FigureCanvasQTAgg.setSizePolicy(
                 self.canvas,
@@ -46,6 +44,7 @@ class MplCanvas(object):
                 QtWidgets.QSizePolicy.Expanding
             )
             FigureCanvasQTAgg.updateGeometry(self.canvas)
+        self.axes = self.fig.add_subplot(111)
         self.axes.set(xlabel='Time (sec)', ylabel='Activation (AU)')
         self.brain = brain
         self.time_func = brain.callbacks["time"]

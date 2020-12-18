@@ -17,6 +17,7 @@ class _Renderer(_PyVistaRenderer):
         from IPython.display import display
         self.figure.display = self.plotter.show(use_ipyvtk=True,
                                                 return_viewer=True)
+        self.figure.display.layout.width = None  # unlock the fixed layout
         display(self.figure.display)
         return self.scene()
 

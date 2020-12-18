@@ -1002,12 +1002,13 @@ class Brain(object):
         self.plotter.add_callback(self._play, self.refresh_rate_ms)
 
     def _configure_mplcanvas(self):
+        ratio = (1 - self.interactor_fraction) / self.interactor_fraction
         if self.notebook:
-            dpi = 100
+            dpi = 96
             w, h = self.plotter.window_size
+            h /= ratio
         else:
             dpi = self.window.windowHandle().screen().logicalDotsPerInch()
-            ratio = (1 - self.interactor_fraction) / self.interactor_fraction
             w = self.interactor.geometry().width()
             h = self.interactor.geometry().height() / ratio
         # Get the fractional components for the brain and mpl
