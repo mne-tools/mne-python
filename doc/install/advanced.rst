@@ -191,6 +191,34 @@ or by doing
 :func:`mne.viz.set_3d_options(antialias=False) <mne.viz.set_3d_options>` within
 a given Python session.
 
+Another issue that may come up is that the MESA software itself may be out of date
+in certain operating systems, for example CentOS. This may lead to incomplete
+rendering of some 3D plots. A solution is to build the latest version
+locally following the instructions `here <https://xorg-team.pages.debian.net/xorg/howto/build-mesa.html#_preparing_mesa_sources>`_.
+If you have CentOS 7, you can also use the `built files <https://osf.io/sp9qg/download>`_ we provide.
+After downloading the files, untar them and add them to the appropriate library paths
+using the following commands:
+
+.. code-block:: console
+
+    $ tar xzvf mesa_18.3.6_centos_lib.tgz
+    $ export LIBGL_DRIVERS_PATH="${PWD}/lib"
+    $ export LD_LIBRARY_PATH="${PWD}/lib"
+
+To check that everything went well, type the following:
+
+.. code-block:: console
+
+    $ glxinfo | grep "OpenGL core profile version"
+
+Another way to check is to type:
+
+.. code-block:: console
+
+    $ mne sys_info
+
+and it should show the right version of MESA.
+
 .. _troubleshoot_3d:
 
 Troubleshooting 3D plots in MNE-Python
