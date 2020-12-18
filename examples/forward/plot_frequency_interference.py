@@ -2,8 +2,8 @@
 """
 .. _ex-frequency-interference:
 
-Frequency Interference
-======================
+Frequency Interference and 1/f Power Spectra
+============================================
 
 This example shows how the spatial offset of nearly phase-locked source time
 courses with lower frequency oscillations have much less destructive
@@ -85,10 +85,12 @@ mne.convert_forward_solution(fwd, surf_ori=True, copy=False)
 
 freqs = np.round(np.linspace(15, 40, 5), 2)
 
+np.random.seed(99)
 lh, rh = fwd['src']
 seed_vert = lh['rr'][stc.lh_vertno[99]]  # reference, zero phase-offset
-phase_shift = 1 / stc.sfreq  # 1 ms shifted per mm distant
-max_dist = 30  # distance in mm of nearly in-phase sources
+max_dist = 30  # distance in mm to be included in patch
+time_shift = 5 / stc.sfreq  # ms difference in phase
+jitters = (np.random.random(stc.data.shape[0]) - 0.5) * 2 * time_shift
 
 
 def euclidean_dist(vert0, vert1):
@@ -96,17 +98,18 @@ def euclidean_dist(vert0, vert1):
 
 
 fig, axes = plt.subplots(1, freqs.size, figsize=(10, 5))
-fig.suptitle('Source Time Courses')
+fig.suptitle('Source Time Course PSDs')
 stcs = dict()  # make source time courses for each frequency sine wave
 for ax, freq in zip(axes, freqs):
     for i in range(stc.data.shape[0]):
         vert = lh['rr'][stc.lh_vertno[i]] if i < stc.lh_vertno.size else \
             rh['rr'][stc.rh_vertno[i - stc.lh_vertno.size]]
         dist = euclidean_dist(seed_vert, vert) * 1e3  # m -> mm
+        shift = jitters[i] * dist / max_dist
         stc.data[i] = np.sin(
-            2. * np.pi * freq * (stc.times + phase_shift * dist)) * 1e-10 \
+            2. * np.pi * freq * (stc.times + shift)) * 1e-10 \
             if dist < max_dist else 0  # if too large distance, no oscillation
-
+    #
     stcs[freq] = stc.copy()
     psds, freqs_psd = psd_array_multitaper(stc.data, stc.sfreq,
                                            fmin=2, fmax=55)
@@ -140,17 +143,17 @@ for axes, freq in zip(axes_all.T, freqs):
                                  cov=None, nave=np.inf)
     psds, freqs_psd = psd_array_multitaper(
         evoked_sim.data, stc.sfreq, fmin=2, fmax=60)
-
+    #
     axes[0].plot(freqs_psd, psds[mne.pick_types(evoked_sim.info, meg='mag')].T)
     axes[0].set_title(f'mag {freq} Hz')
-    axes[0].set_ylim([0, 1e-26])
+    axes[0].set_ylim([0, 5e-27])
     axes[1].plot(
         freqs_psd, psds[mne.pick_types(evoked_sim.info, meg='grad')].T)
     axes[1].set_title(f'grad {freq} Hz')
-    axes[1].set_ylim([0, 1e-23])
+    axes[1].set_ylim([0, 3e-24])
     axes[2].plot(freqs_psd, psds[mne.pick_types(evoked_sim.info, eeg=True)].T)
     axes[2].set_title(f'eeg {freq} Hz')
-    axes[2].set_ylim([0, 1e-11])
+    axes[2].set_ylim([0, 2e-12])
 
 
 for ax in axes_all.flatten():
