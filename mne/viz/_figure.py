@@ -2242,6 +2242,8 @@ def _figure(toolbar=True, FigureClass=MNEFigure, **kwargs):
         fig = figure(FigureClass=FigureClass, **kwargs)
     if title is not None:
         _set_window_title(fig, title)
+    # add event callbacks
+    fig._add_default_callbacks()
     return fig
 
 
@@ -2262,8 +2264,6 @@ def _browse_figure(inst, **kwargs):
     if not fig.mne.scrollbars_visible:
         fig.mne.scrollbars_visible = True
         fig._toggle_scrollbars()
-    # add event callbacks
-    fig._add_default_callbacks()
     return fig
 
 
@@ -2290,8 +2290,6 @@ def _line_figure(inst, axes=None, picks=None, **kwargs):
                       figsize=figsize, n_axes=n_axes, **kwargs)
         fig.mne.fig_size_px = fig._get_size_px()  # can't do in __init__
         axes = fig.mne.ax_list
-        # add event callbacks
-        fig._add_default_callbacks()
     return fig, axes
 
 
