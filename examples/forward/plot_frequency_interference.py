@@ -152,18 +152,19 @@ for axes, freq in zip(axes_all.T, freqs):
     psds, freqs_psd = psd_array_multitaper(
         evoked_sim.data, stc.sfreq, fmin=2, fmax=60)
 
-    axes[0].plot(freqs_psd, 10 * np.log10(psds[
-        mne.pick_types(evoked_sim.info, meg='mag')]).T)
+    axes[0].plot(freqs_psd, psds[mne.pick_types(evoked_sim.info, meg='mag')].T)
     axes[0].set_title(f'Magnetometers {freq} Hz')
-    axes[0].set_ylim([-375, -250])
-    axes[1].plot(freqs_psd, 10 * np.log10(psds[
-        mne.pick_types(evoked_sim.info, meg='grad')]).T)
+    axes[0].set_yticks([0, 1e-26])
+    axes[0].set_yticklabels([0, 1e-26])
+    axes[1].plot(
+        freqs_psd, psds[mne.pick_types(evoked_sim.info, meg='grad')].T)
     axes[1].set_title(f'Gradiometers {freq} Hz')
-    axes[1].set_ylim([-350, -225])
-    axes[2].plot(freqs_psd, 10 * np.log10(psds[
-        mne.pick_types(evoked_sim.info, eeg=True)]).T)
+    axes[1].set_yticks([0, 1e-23])
+    axes[1].set_yticklabels([0, 1e-23])
+    axes[2].plot(freqs_psd, psds[mne.pick_types(evoked_sim.info, eeg=True)].T)
     axes[2].set_title(f'EEG {freq} Hz')
-    axes[2].set_ylim([-200, -100])
+    axes[2].set_yticks([0, 1e-11])
+    axes[2].set_yticklabels([0, 1e-11])
 
 
 for ax in axes_all.flatten():
