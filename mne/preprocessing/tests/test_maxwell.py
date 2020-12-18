@@ -862,10 +862,14 @@ def test_esss(regularize, bads):
     assert 'Extending external SSS basis using 15 projection' in log
     assert_allclose(raw_sss_2._data, raw_sss._data, atol=1e-20)
 
+    # This should work, as the projectors should be a superset
+    raw_erm.info['bads'] = raw_erm.info['bads'] + ['MEG0112']
+    maxwell_filter(raw_erm, coord_frame='meg', extended_proj=proj_sss)
+
     # Degenerate condititons
     proj_sss = proj_sss[:2]
     proj_sss[0]['data']['col_names'] = proj_sss[0]['data']['col_names'][:-1]
-    with pytest.raises(ValueError, match='do not match the good MEG'):
+    with pytest.raises(ValueError, match='were missing'):
         maxwell_filter(raw_erm, coord_frame='meg', extended_proj=proj_sss)
     proj_sss[0] = 1.
     with pytest.raises(TypeError, match=r'extended_proj\[0\] must be an inst'):
