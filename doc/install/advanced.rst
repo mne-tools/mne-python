@@ -194,7 +194,7 @@ a given Python session.
 Another issue that may come up is that the MESA software itself may be out of date
 in certain operating systems, for example CentOS. This may lead to incomplete
 rendering of some 3D plots. A solution is to build the latest version
-locally following the instructions `here <https://xorg-team.pages.debian.net/xorg/howto/build-mesa.html#_preparing_mesa_sources>`_.
+locally following the `instructions here <https://xorg-team.pages.debian.net/xorg/howto/build-mesa.html#_preparing_mesa_sources>`_.
 If you have CentOS 7 or newer, you can also try some `prebuilt binaries <https://osf.io/sp9qg/download>`_ we made.
 After downloading the files, untar them and add them to the appropriate library paths
 using the following commands:
