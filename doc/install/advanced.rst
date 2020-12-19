@@ -211,13 +211,21 @@ To check that everything went well, type the following:
 
     $ glxinfo | grep "OpenGL core profile version"
 
+which should give::
+
+    OpenGL core profile version string: 3.3 (Core Profile) Mesa 18.3.6
+
 Another way to check is to type:
 
 .. code-block:: console
 
     $ mne sys_info
 
-and it should show the right version of MESA.
+and it should show the right version of MESA::
+
+    ...
+    pyvista:       0.27.4 {pyvistaqt=0.2.0, OpenGL 3.3 (Core Profile) Mesa 18.3.6 via llvmpipe (LLVM 3.4, 256 bits)}
+    ...
 
 .. _troubleshoot_3d:
 
