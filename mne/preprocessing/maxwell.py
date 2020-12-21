@@ -296,13 +296,13 @@ def _prep_maxwell_filter(
             item = 'extended_proj[%d]' % (pi,)
             _validate_type(proj, Projection, item)
             got_names = proj['data']['col_names']
-            diff = sorted(set(got_names).symmetric_difference(set(good_names)))
-            if diff:
-                raise ValueError('%s channel names (length %d) do not match '
-                                 'the good MEG channel names (length %d):\n%s'
-                                 % (item, len(got_names), len(good_names),
-                                    ', '.join(diff)))
-            extended_proj_.append(proj['data']['data'])
+            missing = sorted(set(good_names) - set(got_names))
+            if missing:
+                raise ValueError('%s channel names were missing some '
+                                 'good MEG channel names:\n%s'
+                                 % (item, ', '.join(missing)))
+            idx = [got_names.index(name) for name in good_names]
+            extended_proj_.append(proj['data']['data'][:, idx])
         extended_proj = np.concatenate(extended_proj_)
         logger.info('    Extending external SSS basis using %d projection '
                     'vectors' % (len(extended_proj),))

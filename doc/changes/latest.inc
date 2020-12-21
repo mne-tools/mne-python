@@ -21,7 +21,7 @@ Enhancements
 
 Bugs
 ~~~~
-- None yet
+- Fix bug with :func:`mne.preprocessing.maxwell_filter` where the eSSS basis had to exactly match the good channels instead of being a superset (:gh:`8675` by `Eric Larson`_)
 
 API changes
 ~~~~~~~~~~~
