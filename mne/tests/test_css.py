@@ -16,7 +16,7 @@ def test_cortical_signal_suppression():
     grad_ind = pick_types(ave.info, meg='grad', eeg=False)
     ave.data[mag_ind][0, :] = np.sin(2 * np.pi * 40 * ave.times) * \
         np.mean(np.abs(ave.data[mag_ind][0, :]))
-    ave.data[mag_ind][1, :] = np.sin(2*np.pi*239*ave.times) * \
+    ave.data[mag_ind][1, :] = np.sin(2 * np.pi * 239 * ave.times) * \
         np.mean(np.abs(ave.data[mag_ind][1, :]))
     ave.data[grad_ind][0, :] = np.sin(2 * np.pi * 40 * ave.times) * \
         np.mean(np.abs(ave.data[grad_ind][0, :]))

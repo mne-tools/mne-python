@@ -45,7 +45,7 @@ all_labels = mne.read_labels_from_annot(subject='sample',
                                         subjects_dir=subjects_dir)
 labels = []
 for select_label in ['parahippocampal-lh', 'postcentral-rh']:
-    labels.append([l for l in all_labels if l.name in select_label][0])
+    labels.append([lab for lab in all_labels if lab.name in select_label][0])
 hiplab, postcenlab = labels
 
 ###############################################################################
