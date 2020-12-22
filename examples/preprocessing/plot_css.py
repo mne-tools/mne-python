@@ -1,6 +1,6 @@
 """
 =================================================================
-Use Cortical Singal Suppression (CSS) to remove cortical signals
+Use Cortical Signal Suppression (CSS) to remove cortical signals
 =================================================================
 
 This script shows an easy example of how to use CSS. CSS
