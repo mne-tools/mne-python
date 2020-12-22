@@ -79,7 +79,6 @@ def cortical_signal_suppression(evoked, n_proj=6):
     This method removes the common signal subspace between the magnetometer
     data and the gradiometer data from the EEG data. This is done by a temporal
     projection using n_proj number of projection vectors.
-
     """
     if not isinstance(evoked, mne.evoked.EvokedArray) and not \
             isinstance(evoked, mne.evoked.Evoked):

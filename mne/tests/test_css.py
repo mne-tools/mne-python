@@ -14,15 +14,15 @@ def test_cortical_signal_suppression():
     eeg_ind = pick_types(ave.info, meg=False, eeg=True)
     mag_ind = pick_types(ave.info, meg='mag', eeg=False)
     grad_ind = pick_types(ave.info, meg='grad', eeg=False)
-    ave.data[mag_ind][0, :] = np.sin(2*np.pi*40*ave.times) * \
+    ave.data[mag_ind][0, :] = np.sin(2 * np.pi * 40 * ave.times) * \
         np.mean(np.abs(ave.data[mag_ind][0, :]))
     ave.data[mag_ind][1, :] = np.sin(2*np.pi*239*ave.times) * \
         np.mean(np.abs(ave.data[mag_ind][1, :]))
-    ave.data[grad_ind][0, :] = np.sin(2*np.pi*40*ave.times) * \
+    ave.data[grad_ind][0, :] = np.sin(2 * np.pi * 40 * ave.times) * \
         np.mean(np.abs(ave.data[grad_ind][0, :]))
-    ave.data[eeg_ind][0, :] = np.sin(2*np.pi*40*ave.times) * \
+    ave.data[eeg_ind][0, :] = np.sin(2 * np.pi * 40 * ave.times) * \
         np.mean(np.abs(ave.data[eeg_ind][0, :]))
-    ave.data[eeg_ind][1, :] = np.sin(2*np.pi*239*ave.times) * \
+    ave.data[eeg_ind][1, :] = np.sin(2 * np.pi * 239 * ave.times) * \
         np.mean(np.abs(ave.data[eeg_ind][1, :]))
     ave_f = cortical_signal_suppression(ave)
     cort_power = np.sum(np.abs(ave.data[eeg_ind][0, :]))
