@@ -51,11 +51,14 @@ hiplab, postcenlab = labels
 ###############################################################################
 # Simulate one cortical dipole (40 Hz) and one subcortical (239 Hz)
 
+
 def cortical_waveform(times):
     return 10e-9 * np.cos(times * 2 * np.pi * 40)
 
+
 def subcortical_waveform(times):
     return 10e-9 * np.cos(times * 2 * np.pi * 239)
+
 
 times = np.linspace(0, 0.5, int(0.5 * raw.info['sfreq']))
 stc = simulate_sparse_stc(fwd['src'], n_dipoles=2, times=times,
@@ -73,13 +76,13 @@ evoked_subcortical = mne.preprocessing.cortical_signal_suppression(evoked,
 
 # Plot PSD of EEG data before and after processing
 chs = mne.pick_types(evoked.info, meg=False, eeg=True)
-pss = np.mean(np.array([plt.psd(evoked.data[x,:], Fs=evoked.info['sfreq'])
+pss = np.mean(np.array([plt.psd(evoked.data[x, :], Fs=evoked.info['sfreq'])
                         for x in chs]), axis=0)[0]
-pss_proc = np.mean(np.array([plt.psd(evoked_subcortical.data[x, :], 
-                                     Fs=evoked_subcortical.info['sfreq']) 
-                                     for x in chs]), axis=0)[0]
-fr = plt.psd(evoked.data[mne.pick_types(evoked.info, meg='mag'), :][0,:],
-                         Fs=evoked.info['sfreq'])[1]
+pss_proc = np.mean(np.array([plt.psd(evoked_subcortical.data[x, :],
+                                     Fs=evoked_subcortical.info['sfreq'])
+                            for x in chs]), axis=0)[0]
+fr = plt.psd(evoked.data[mne.pick_types(evoked.info, meg='mag'), :][0, :],
+             Fs=evoked.info['sfreq'])[1]
 plt.close('all')
 fig = plt.figure()
 plt.plot(fr, pss, label='raw')
@@ -89,4 +92,3 @@ plt.text(.7, .35, 'subcortical', transform=fig.axes[0].transAxes)
 plt.ylabel('EEG Power spectral density')
 plt.xlabel('Frequency (Hz)')
 plt.legend()
-

@@ -384,6 +384,8 @@ Projections:
    read_ica
    realign_raw
    regress_artifact
+   cortical_signal_suppression
+   temp_proj
    corrmap
    read_ica_eeglab
    read_fine_calibration
