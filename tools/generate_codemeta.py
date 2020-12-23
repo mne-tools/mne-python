@@ -26,24 +26,24 @@ def parse_name(name):
     _, name_and_email = name.strip().split('\t')
     name, email = name_and_email.split(' <')
     email = email.strip('>')
-    email = '' if 'noreply' in email else email
-    # remove periods
-    name = ' '.join(name.split('.'))
-    # check for special cases
+    email = '' if 'noreply' in email else email  # ignore "noreply" emails
+    name = ' '.join(name.split('.'))             # remove periods
+    # handle compound surnames
     for compound_surname in compound_surnames:
         if compound_surname in name:
             ix = name.index(compound_surname)
             first = name[:ix].strip()
             last = compound_surname
             return (first, last, email)
-    # split on whitespace
+    # handle non-compound surnames
     names = name.split()
-    # handle mononyms / usernames
-    if len(names) == 1:
-        return ('', name, email)
-    # default to surname as last element
+    if len(names) == 1:  # mononyms / usernames
+        first = ''
+        last = name
     else:
-        return (' '.join(names[:-1]), names[-1], email)
+        first = ' '.join(names[:-1])
+        last = names[-1]
+    return (first, last, email)
 
 
 # RUN GIT SHORTLOG TO GET ALL AUTHORS, SORTED BY NUMBER OF COMMITS
@@ -106,5 +106,7 @@ codemeta_boilerplate = f'''{{
 }}
 '''  # noqa E501
 
+
+# WRITE TO FILE
 with open(os.path.join('..', 'codemeta.json'), 'w') as codemeta_file:
     codemeta_file.write(codemeta_boilerplate)
