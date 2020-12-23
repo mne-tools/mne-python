@@ -66,8 +66,7 @@ dependencies = '",\n        "'.join(dependencies)
 
 
 # ASSEMBLE COMPLETE JSON
-codemeta_boilerplate = f'''
-{{
+codemeta_boilerplate = f'''{{
     "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
     "@type": "SoftwareSourceCode",
     "license": "https://spdx.org/licenses/BSD-3-Clause",
