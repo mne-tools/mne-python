@@ -64,7 +64,7 @@ def cortical_signal_suppression(evoked, n_proj=6):
 
     Parameters
     ----------
-    evoked : evoked object
+    evoked : instance of Evoked
         The evoked object with the averaged epochs.
     n_proj : int
         The number of projection vectors.

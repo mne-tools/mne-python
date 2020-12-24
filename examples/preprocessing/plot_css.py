@@ -1,6 +1,6 @@
 """
 =================================================================
-Use Cortical Signal Suppression (CSS) to remove cortical signals
+Cortical Signal Suppression (CSS) for removal of cortical signals
 =================================================================
 
 This script shows an easy example of how to use CSS. CSS
@@ -14,9 +14,9 @@ raw and processed data.
 
 References
 ----------
-.. [1] Samuelsson J, Khan S, Sundaram P, Peled N, Hamalainen M
-(2019) Cortical Signal Suppression (CSS) for detection of subcortical activity
-using MEG and EEG, Brain topography 32 (2), 215-228.
+.. [1] Samuelsson J, Khan S, Sundaram P, Peled N, Hamalainen M (2019)
+Cortical Signal Suppression (CSS) for detection of subcortical activity using
+MEG and EEG, Brain topography 32 (2), 215-228.
 """
 # Author: John G Samuelsson <johnsam@mit.edu>
 
@@ -41,6 +41,9 @@ fwd = mne.read_forward_solution(fwd_fname)
 fwd = mne.convert_forward_solution(fwd, force_fixed=True, surf_ori=True)
 fwd = mne.pick_types_forward(fwd, meg=True, eeg=True, exclude=raw.info['bads'])
 cov = mne.read_cov(cov_fname)
+
+###############################################################################
+# Find patches (labels) to activate
 all_labels = mne.read_labels_from_annot(subject='sample',
                                         subjects_dir=subjects_dir)
 labels = []
@@ -70,11 +73,9 @@ stc.data[np.where(np.isin(stc.vertices[0], hiplab.vertices))[0], :] = \
 evoked = simulate_evoked(fwd, stc, raw.info, cov, nave=15)
 
 ###############################################################################
-# Process with CSS
+# Process with CSS and plot PSD of EEG data before and after processing
 evoked_subcortical = mne.preprocessing.cortical_signal_suppression(evoked,
                                                                    n_proj=6)
-
-# Plot PSD of EEG data before and after processing
 chs = mne.pick_types(evoked.info, meg=False, eeg=True)
 pss = np.mean(np.array([plt.psd(evoked.data[x, :], Fs=evoked.info['sfreq'])
                         for x in chs]), axis=0)[0]
@@ -88,7 +89,8 @@ fig = plt.figure()
 plt.plot(fr, pss, label='raw')
 plt.plot(fr, pss_proc, label='processed')
 plt.text(.2, .7, 'cortical', transform=fig.axes[0].transAxes)
-plt.text(.7, .35, 'subcortical', transform=fig.axes[0].transAxes)
+plt.text(.8, .25, 'subcortical', transform=fig.axes[0].transAxes)
 plt.ylabel('EEG Power spectral density')
 plt.xlabel('Frequency (Hz)')
 plt.legend()
+plt.show()
