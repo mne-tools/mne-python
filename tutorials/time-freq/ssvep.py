@@ -95,18 +95,31 @@ events, _ = mne.events_from_annotations(raw, verbose=False)
 raw.info["events"] = events
 tmin, tmax = -1., 30.  # in s
 baseline = None
-epochs = mne.Epochs(raw, events=events, event_id=event_id['12hz'], tmin=tmin,
+epochs = mne.Epochs(raw, events=events, event_id=[event_id['12hz'], event_id['15hz']], tmin=tmin,
                     tmax=tmax, baseline=baseline, verbose=True)
 
 ###############################################################################
 # Frequency analysis
 # ------------------
+# Now we compute the frequency spectrum of the EEG data.
+# You will already see the peaks at the stimulation frequencies and their harmonics.
+#
+# The 'classical' PSD plot will be compared to a plot of the SNR spectrum.
+# SNR will be computed as the power in a given frequency bin
+# relative to the average power in it's neighboring bins.
+# This procedure has two advantages over using the raw PSD:
+# * it normalizes the spectrum and addresses for 1/f power decay, since the value is a local ratio measure.
+# * power fluctuations (induced by something else then the stimulation) which are not as narrow band will disappear.
+#
+
+###############################################################################
+# Calculate power spectral density (PSD)
+# ^^^^^^^^^^^^^
 # We use Welch's method for frequency decomposition, since it is really fast.
 # You can compare it with, e.g., multitaper to get an impression of the
 # influence on SNR. All the other methods implemented in MNE can be used as
 # well.
 
-# Calculate power spectral density
 tmin = 0.
 tmax = 30.
 fmin = 1.
@@ -121,8 +134,8 @@ psds, freqs = mne.time_frequency.psd_welch(
 
 
 ###############################################################################
-# Extract SSVEP/vSSR
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Calculate SNR
+# ^^^^^^^^^^^^^
 #
 # The function below calculates the ratio of power in the target frequency bin
 # to average power in a set of neighbor (noise) bins. The composition of noise
@@ -131,9 +144,6 @@ psds, freqs = mne.time_frequency.psd_welch(
 # * how many noise bins do you want?
 # * do you want to skip n bins directly next to the target bin?
 
-###############################################################################
-# SNR calculation function
-# ^^^^^^^^^^^^^^^^^^^^^^^^
 def snr_spectrum(psd, noise_n_neighborfreqs=1, noise_skip_neighborfreqs=1):
     """
     Parameters
@@ -176,8 +186,6 @@ def snr_spectrum(psd, noise_n_neighborfreqs=1, noise_skip_neighborfreqs=1):
 
 
 ###############################################################################
-# Calculate SNR
-# ^^^^^^^^^^^^^
 # Now we call the function to compute our snr spectrum.
 # SNR is a relative measure: it's the ratio of power in a given frequency bin
 # compared to a baseline - the average power in the surrounding frequency bins.
@@ -188,6 +196,43 @@ def snr_spectrum(psd, noise_n_neighborfreqs=1, noise_skip_neighborfreqs=1):
 
 snrs = snr_spectrum(psds, noise_n_neighborfreqs=3,
                     noise_skip_neighborfreqs=1)
+
+stim_freq = 12.
+
+##############################################################################
+# Plot PSD and SNR
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+# PSD code snippet from
+# https://martinos.org/mne/stable/auto_examples/time_frequency/plot_compute_raw_data_spectrum.html  # noqa E501
+fig, axes = plt.subplots(2, 1, sharex='all', sharey='none', dpi=300)
+rng = range(np.where(np.floor(freqs) == 1.)[0][0],
+            np.where(np.ceil(freqs) == fmax - 1)[0][0])
+
+psds_plot = 10 * np.log10(psds)
+psds_mean = psds_plot.mean((0, 1))[rng]
+psds_std = psds_plot.std((0, 1))[rng]
+axes[0].plot(freqs[rng], psds_mean, color='b')
+axes[0].fill_between(freqs[rng], psds_mean - psds_std, psds_mean + psds_std,
+                  color='b', alpha=.5)
+axes[0].set(title="PSD spectrum", ylabel='Power Spectral Density [dB]')
+
+# SNR spectrum - averaged over trials
+snr_mean = snrs.mean(axis=(0, 1))
+snr_std = snrs.std(axis=(0, 1))
+
+
+#axes[1].plot(freqs, snrs.mean(axis=0).T, color='grey', alpha=0.1)
+#axes[1].axvline(x=stim_freq, ls=':')
+#axes[1].plot(freqs, snrs.mean(axis=(0, 1)), color='r')
+
+axes[1].plot(freqs, snr_mean, color='r')
+axes[1].fill_between(freqs, snr_mean - snr_std, snr_mean + snr_std,
+                  color='r', alpha=.2)
+axes[1].set(
+    title="SNR spectrum", xlabel='Frequency [Hz]',
+    ylabel='SNR', ylim=[0, 10], xlim=[fmin, fmax])
+fig.show()
 
 ###############################################################################
 # Find frequency bin containing stimulation frequency
@@ -209,44 +254,8 @@ print('average SNR at %iHz (all channels, all trials): %.3f '
       % (stim_freq, snrs_stim.mean()))
 
 
-###############################################################################
-# Visualization
-# -------------
 
 
-##############################################################################
-# Plot power spectral density
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# code snippet from
-# https://martinos.org/mne/stable/auto_examples/time_frequency/plot_compute_raw_data_spectrum.html  # noqa E501
-
-fig, axes = plt.subplots(1, 1, sharex='all', sharey='all', dpi=300)
-rng = range(np.where(np.floor(freqs) == 1.)[0][0],
-            np.where(np.ceil(freqs) == fmax - 1)[0][0])
-
-psds_plot = 10 * np.log10(psds)
-psds_mean = psds_plot.mean((0, 1))[rng]
-psds_std = psds_plot.std((0, 1))[rng]
-axes.plot(freqs[rng], psds_mean, color='b')
-axes.fill_between(freqs[rng], psds_mean - psds_std, psds_mean + psds_std,
-                  color='b', alpha=.5)
-axes.set(title="PSD spectrum", xlabel='Frequency [Hz]',
-         ylabel='Power Spectral Density [dB]')
-plt.xlim([0, fmax])
-fig.show()
-
-
-##############################################################################
-# SNR spectrum - averaged over trials
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-plt.figure()
-plt.plot(freqs, snrs.mean(axis=0).T, color='grey', alpha=0.1)
-plt.axvline(x=stim_freq, ls=':')
-plt.plot(freqs, snrs.mean(axis=(0, 1)), color='r')
-plt.gca().set(title="SNR spectrum - averaged over trials", xlabel='Frequency [Hz]',
-              ylabel='SNR', ylim=[0, 20])
-plt.show()
 
 ##############################################################################
 # SNR spectrum - averaged over channels
