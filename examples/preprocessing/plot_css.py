@@ -3,14 +3,14 @@
 Cortical Signal Suppression (CSS) for removal of cortical signals
 =================================================================
 
-This script shows an easy example of how to use CSS. CSS
-suppresses the cortical contribution to the signal subspace
-in EEG data using MEG data, facilitating detection of subcortical
-signals. We will illustrate how it works by simulating one cortical
-and one subcortical oscillation at different frequencies; 40 Hz and
-239 Hz for cortical and subcortical activity, respectively, then
-process it with CSS and look at the power spectral density of the
-raw and processed data.
+This script shows an easy example of how to use CSS
+:footcite:`Samuelsson2019`. CSS suppresses the cortical contribution
+to the signal subspace in EEG data using MEG data, facilitating
+detection of subcortical signals. We will illustrate how it works by
+simulating one cortical and one subcortical oscillation at different
+frequencies; 40 Hz and 239 Hz for cortical and subcortical activity,
+respectively, then process it with CSS and look at the power spectral
+density of the raw and processed data.
 
 """
 # Author: John G Samuelsson <johnsam@mit.edu>
@@ -89,3 +89,8 @@ plt.ylabel('EEG Power spectral density')
 plt.xlabel('Frequency (Hz)')
 plt.legend()
 plt.show()
+
+# References
+# ^^^^^^^^^^
+#
+# .. footbibliography::
