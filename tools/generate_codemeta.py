@@ -36,13 +36,13 @@ def parse_name(name):
             last = compound_surname
             return (first, last, email)
     # handle non-compound surnames
-    names = name.split()
-    if len(names) == 1:  # mononyms / usernames
+    name_elements = name.split()
+    if len(name_elements) == 1:  # mononyms / usernames
         first = ''
         last = name
     else:
-        first = ' '.join(names[:-1])
-        last = names[-1]
+        first = ' '.join(name_elements[:-1])
+        last = name_elements[-1]
     return (first, last, email)
 
 
