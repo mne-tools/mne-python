@@ -4,7 +4,7 @@ Cortical Signal Suppression (CSS) for removal of cortical signals
 =================================================================
 
 This script shows an easy example of how to use CSS
-:footcite:`Samuelsson2019`. CSS suppresses the cortical contribution
+:footcite:`Samuelsson2019` . CSS suppresses the cortical contribution
 to the signal subspace in EEG data using MEG data, facilitating
 detection of subcortical signals. We will illustrate how it works by
 simulating one cortical and one subcortical oscillation at different
