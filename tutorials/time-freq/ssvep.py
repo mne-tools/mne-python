@@ -43,7 +43,7 @@ from scipy.stats import ttest_rel, ttest_ind
 
 ###############################################################################
 # Data preprocessing
-# -------------
+# ------------------
 # Due to a generally high SNR in SSVEP/vSSR, typical preprocessing steps
 # are considered optional. this doesnt mean, that a proper cleaning would not
 # increase your signal quality!
@@ -102,21 +102,23 @@ epochs = mne.Epochs(raw, events=events, event_id=[event_id['12hz'], event_id['15
 # Frequency analysis
 # ------------------
 # Now we compute the frequency spectrum of the EEG data.
-# You will already see the peaks at the stimulation frequencies and their harmonics.
+# You will already see the peaks at the stimulation frequencies and some of
+# their harmonics, without any further processing.
 #
 # The 'classical' PSD plot will be compared to a plot of the SNR spectrum.
 # SNR will be computed as the power in a given frequency bin
 # relative to the average power in it's neighboring bins.
 # This procedure has two advantages over using the raw PSD:
-# * it normalizes the spectrum and addresses for 1/f power decay, since the value is a local ratio measure.
-# * power fluctuations (induced by something else then the stimulation) which are not as narrow band will disappear.
+#
+# * it normalizes the spectrum and accounts for 1/f power decay.
+# * power modulations which are not very narrow band will disappear.
 #
 
 ###############################################################################
 # Calculate power spectral density (PSD)
-# ^^^^^^^^^^^^^
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # We use Welch's method for frequency decomposition, since it is really fast.
-# You can compare it with, e.g., multitaper to get an impression of the
+# You could compare it with, e.g., multitaper to get an impression of the
 # influence on SNR. All the other methods implemented in MNE can be used as
 # well.
 
@@ -134,15 +136,20 @@ psds, freqs = mne.time_frequency.psd_welch(
 
 
 ###############################################################################
-# Calculate SNR
-# ^^^^^^^^^^^^^
+# Calculate signal to noise ration (SNR)
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# The function below calculates the ratio of power in the target frequency bin
-# to average power in a set of neighbor (noise) bins. The composition of noise
-# bins can be tweaked by two parameters:
+# SNR - as we define it here - is a measure of relative power:
+# it's the ratio of power in a given frequency bin - the 'signal' -
+# compared to a 'noise' baseline - the average power in the surrounding frequency bins.
 #
-# * how many noise bins do you want?
-# * do you want to skip n bins directly next to the target bin?
+# Hence, we need to set some parameters for this baseline - how many
+# neighboring bins should be taken for this computation, and do we want to skip
+# the direct neighbors (this can make sense if the stimulation frequency is not
+# super constant, or frequency bands are very narrow).
+#
+# The function below does what we want.
+#
 
 def snr_spectrum(psd, noise_n_neighborfreqs=1, noise_skip_neighborfreqs=1):
     """
@@ -186,22 +193,36 @@ def snr_spectrum(psd, noise_n_neighborfreqs=1, noise_skip_neighborfreqs=1):
 
 
 ###############################################################################
-# Now we call the function to compute our snr spectrum.
-# SNR is a relative measure: it's the ratio of power in a given frequency bin
-# compared to a baseline - the average power in the surrounding frequency bins.
-# Hence, we need to define some parameters for this 'baseline' - how many
-# neighboring bins should be taken for this computation, and do we want to skip
-# the direct neighbors (this can make sense if the stimulation frequency is not
-# super constant, or frequency bands are very narrow).
+# Now we call the function to compute our SNR spectrum.
+#
+# As described above, we have to define two parameters.
+#
+# * how many noise bins do you want?
+# * do you want to skip n bins directly next to the target bin?
+#
+# Tweaking these parameters *can* drastically impact the resulting spectrum,
+# but mainly if you choose extremes.
+# E.g. if you'd skip very many neighboring bins, broad band power modulations
+# (such as the alpha peak) should reappear in the SNR spectrum.
+# On the other hand, if you skip none you might miss or smear peaks if the
+# induced power is distributed over two or more frequency bins (e.g. if the
+# stimulation frequency isn't perfectly constant, or you have very narrow bins).
+#
+# Here, we want to compare power at each bin with average power of the
+# **three neighboring bins** (on each side) and **skip one bin** directly next to it.
+#
+
 
 snrs = snr_spectrum(psds, noise_n_neighborfreqs=3,
                     noise_skip_neighborfreqs=1)
 
-stim_freq = 12.
-
 ##############################################################################
-# Plot PSD and SNR
+# Plot PSD and SNR spectra
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Now we will plot grand average PSD (in blue) and SNR (in red) +- STD
+# for every frequency bin.
+# PSD is plotted on a log scale.
+#
 
 # PSD code snippet from
 # https://martinos.org/mne/stable/auto_examples/time_frequency/plot_compute_raw_data_spectrum.html  # noqa E501
@@ -210,29 +231,49 @@ rng = range(np.where(np.floor(freqs) == 1.)[0][0],
             np.where(np.ceil(freqs) == fmax - 1)[0][0])
 
 psds_plot = 10 * np.log10(psds)
-psds_mean = psds_plot.mean((0, 1))[rng]
-psds_std = psds_plot.std((0, 1))[rng]
+psds_mean = psds_plot.mean(axis=(0, 1))[rng]
+psds_std = psds_plot.std(axis=(0, 1))[rng]
 axes[0].plot(freqs[rng], psds_mean, color='b')
 axes[0].fill_between(freqs[rng], psds_mean - psds_std, psds_mean + psds_std,
-                  color='b', alpha=.5)
+                  color='b', alpha=.2)
 axes[0].set(title="PSD spectrum", ylabel='Power Spectral Density [dB]')
 
-# SNR spectrum - averaged over trials
-snr_mean = snrs.mean(axis=(0, 1))
-snr_std = snrs.std(axis=(0, 1))
+# SNR spectrum
+snr_mean = snrs.mean(axis=(0, 1))[rng]
+snr_std = snrs.std(axis=(0, 1))[rng]
 
 
 #axes[1].plot(freqs, snrs.mean(axis=0).T, color='grey', alpha=0.1)
 #axes[1].axvline(x=stim_freq, ls=':')
 #axes[1].plot(freqs, snrs.mean(axis=(0, 1)), color='r')
 
-axes[1].plot(freqs, snr_mean, color='r')
-axes[1].fill_between(freqs, snr_mean - snr_std, snr_mean + snr_std,
+axes[1].plot(freqs[rng], snr_mean, color='r')
+axes[1].fill_between(freqs[rng], snr_mean - snr_std, snr_mean + snr_std,
                   color='r', alpha=.2)
 axes[1].set(
     title="SNR spectrum", xlabel='Frequency [Hz]',
-    ylabel='SNR', ylim=[0, 10], xlim=[fmin, fmax])
+    ylabel='SNR', ylim=[-1, 15], xlim=[fmin, fmax])
 fig.show()
+
+###############################################################################
+# You can see that the peaks at the stimulation frequencies (12 hz, 15 hz)
+# and their harmonics are visible in both plots.
+# Yet, the SNR spectrum shows them more prominently as peaks from a
+# noisy but more or less constant baseline of SNR = 1.
+# You can further see that the SNR processing removes any broad-band power
+# differences (such as the increased power in alpha band around 10 hz),
+# and also removes the 1/f decay in the PSD.
+#
+# Note, that while the SNR plot implies the possibility of values below 0
+# (mean minus STD) such values do not make sense.
+# Each SNR value is a ratio of positive PSD values, and the lowest possible PSD
+# value is 0 (negative Y-axis values in the upper panel only result from
+# plotting PSD on a log scale).
+# Hence SNR values must be positive and can minimally go towards 0.
+# You can nicely see this at 50hz with the artifact induced by notch
+# filtering the line noise:
+# The PSD spectrum shows a prominent negative peak and average SNR approaches 0.
+#
 
 ###############################################################################
 # Find frequency bin containing stimulation frequency
