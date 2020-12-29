@@ -8,7 +8,7 @@ from numpy import linalg
 
 
 def temp_proj(ref_2, ref_1, raw_data, n_proj=6):
-    """Removes common signal subspace of ref_2 and ref_1 from raw_data.
+    """Remove common signal subspace of ref_2 and ref_1 from raw_data.
 
     Parameters
     ----------
@@ -29,7 +29,7 @@ def temp_proj(ref_2, ref_1, raw_data, n_proj=6):
         The filtered data.
 
     Notes
-    -------
+    -----
     This temporal projection procedure removes the common signal subspace
     between ref_2 and ref_1 from raw_data using n_proj number of
     projection vectors. Normally used for cortical signal suppression, where
