@@ -30,7 +30,7 @@ def parse_name(name):
     name = ' '.join(name.split('.'))             # remove periods
     # handle compound surnames
     for compound_surname in compound_surnames:
-        if compound_surname in name:
+        if name.endswith(compound_surname):
             ix = name.index(compound_surname)
             first = name[:ix].strip()
             last = compound_surname
