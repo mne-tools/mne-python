@@ -193,7 +193,8 @@ a given Python session.
 
 Another issue that may come up is that the MESA software itself may be out of date
 in certain operating systems, for example CentOS. This may lead to incomplete
-rendering of some 3D plots. A solution is to build the latest version
+rendering of some 3D plots. A solution is described in this `Github comment <https://github.com/mne-tools/mne-python/issues/7977#issuecomment-729921035>`_.
+It boils down to building the latest version
 locally following `these instructions <https://xorg-team.pages.debian.net/xorg/howto/build-mesa.html#_preparing_mesa_sources>`_.
 If you have CentOS 7 or newer, you can also try some `prebuilt binaries <https://osf.io/sp9qg/download>`_ we made.
 After downloading the files, untar them and add them to the appropriate library paths
