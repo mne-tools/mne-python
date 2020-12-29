@@ -1,8 +1,9 @@
 # Author: John Samuelsson <johnsam@mit.edu>
 
 import numpy as np
-import mne
-from mne.utils import logger
+from ..utils import logger
+from ..evoked import EvokedArray, Evoked
+from .. import pick_types
 from numpy import linalg
 
 
@@ -80,8 +81,8 @@ def cortical_signal_suppression(evoked, n_proj=6):
     data and the gradiometer data from the EEG data. This is done by a temporal
     projection using n_proj number of projection vectors.
     """
-    if not isinstance(evoked, mne.evoked.EvokedArray) and not \
-            isinstance(evoked, mne.evoked.Evoked):
+    if not isinstance(evoked, EvokedArray) and not \
+            isinstance(evoked, Evoked):
         raise ValueError('evoked needs to an instance of Evoked, however type \
                          {} was passed'.format(type(evoked)))
 
@@ -94,9 +95,9 @@ def cortical_signal_suppression(evoked, n_proj=6):
 
     # Get data
     info = evoked.info
-    mag_ind = mne.pick_types(info, meg='mag')
-    grad_ind = mne.pick_types(info, meg='grad')
-    eeg_ind = mne.pick_types(info, meg=False, eeg=True)
+    mag_ind = pick_types(info, meg='mag')
+    grad_ind = pick_types(info, meg='grad')
+    eeg_ind = pick_types(info, meg=False, eeg=True)
     all_data = evoked.data
     mag_data = all_data[mag_ind]
     grad_data = all_data[grad_ind]

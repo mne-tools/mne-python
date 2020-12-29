@@ -12,11 +12,6 @@ and one subcortical oscillation at different frequencies; 40 Hz and
 process it with CSS and look at the power spectral density of the
 raw and processed data.
 
-References
-----------
-.. [1] Samuelsson J, Khan S, Sundaram P, Peled N, Hamalainen M (2019)
-Cortical Signal Suppression (CSS) for detection of subcortical activity using
-MEG and EEG, Brain topography 32 (2), 215-228.
 """
 # Author: John G Samuelsson <johnsam@mit.edu>
 
