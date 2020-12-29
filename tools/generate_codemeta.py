@@ -3,8 +3,8 @@ import subprocess
 
 # UPDATE THESE AS NEEDED WITH EACH RELEASE
 release_date = '2020-12-17'
-release_version = '0.22'
-dependencies = ['Python 3.6', 'NumPy 1.15.4', 'SciPy 1.1']
+release_version = '0.22.0'  # major.minor.patch; must include trailing zero
+dependencies = ('Python 3.6', 'NumPy 1.15.4', 'SciPy 1.1')
 # add to these as necessary
 compound_surnames = (
     'García Alanis',
@@ -27,7 +27,7 @@ def parse_name(name):
     name, email = name_and_email.split(' <')
     email = email.strip('>')
     email = '' if 'noreply' in email else email  # ignore "noreply" emails
-    name = ' '.join(name.split('.'))             # remove periods
+    name = ' '.join(name.split('.'))             # remove periods from initials
     # handle compound surnames
     for compound_surname in compound_surnames:
         if name.endswith(compound_surname):
@@ -74,7 +74,7 @@ codemeta_boilerplate = f'''{{
     "dateCreated": "2010-12-26",
     "datePublished": "2014-08-04",
     "dateModified": "{release_date}",
-    "downloadUrl": "https://github.com/mne-tools/mne-python/archive/v0.22.0.zip",
+    "downloadUrl": "https://github.com/mne-tools/mne-python/archive/v{release_version}.zip",
     "issueTracker": "https://github.com/mne-tools/mne-python/issues",
     "name": "MNE-Python",
     "version": "{release_version}",
