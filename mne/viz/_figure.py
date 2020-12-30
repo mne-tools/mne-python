@@ -714,7 +714,7 @@ class MNEBrowseFigure(MNEFigure):
                 self._update_hscroll()
                 if key == 'end' and self.mne.vline_visible:  # prevent flicker
                     self._show_vline(None)
-                self._redraw()
+                self._redraw(annotations=True)
         elif key == '?':  # help window
             self._toggle_help_fig(event)
         elif key == 'a':  # annotation mode
