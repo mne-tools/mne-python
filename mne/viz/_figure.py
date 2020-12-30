@@ -1703,7 +1703,6 @@ class MNEBrowseFigure(MNEFigure):
         # if should_show, bottom margin moves up; right margin moves left
         margins['bottom'] += (1 if should_show else -1) * self.mne.zen_h
         margins['right'] += (-1 if should_show else 1) * self.mne.zen_w
-        # squeeze a bit more because we don't need space for xlabel now
         self.subplots_adjust(**margins)
         # handle x-axis label
         self.mne.zen_xlabel.set_visible(not should_show)
