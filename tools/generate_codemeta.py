@@ -1,10 +1,8 @@
 import os
 import subprocess
+from datetime import date
+from mne import __version__ as release_version
 
-# UPDATE THESE AS NEEDED WITH EACH RELEASE
-release_date = '2020-12-17'
-release_version = '0.22.0'  # major.minor.patch; must include trailing zero
-dependencies = ('Python 3.6', 'NumPy 1.15.4', 'SciPy 1.1')
 # add to these as necessary
 compound_surnames = (
     'García Alanis',
@@ -46,6 +44,15 @@ def parse_name(name):
     return (first, last, email)
 
 
+# MAKE SURE THE RELEASE STRING IS PROPERLY FORMATTED
+try:
+    split_version = list(map(int, release_version.split('.')))
+except ValueError:
+    raise
+msg = f'version string must be X.Y.Z (all integers), got {release_version}'
+assert len(split_version) == 3, msg
+
+
 # RUN GIT SHORTLOG TO GET ALL AUTHORS, SORTED BY NUMBER OF COMMITS
 args = ['git', 'shortlog', '-nse']
 result = subprocess.run(args, capture_output=True, text=True)
@@ -60,6 +67,24 @@ authors = [f'''{{
            "givenName":"{first}",
            "familyName": "{last}"
         }}''' for (first, last, email) in all_names]
+
+
+# GET OUR DEPENDENCIES
+with open(os.path.join('..', 'setup.py'), 'r') as fid:
+    for line in fid:
+        if line.strip().startswith('python_requires='):
+            version = line.strip().split('=', maxsplit=1)[1].strip("'\",")
+            dependencies = [f'python{version}']
+            break
+hard_dependencies = ('numpy', 'scipy')
+with open('requirements.txt', 'r') as fid:
+    for line in fid:
+        req = line.strip()
+        for hard_dep in hard_dependencies:
+            if req.startswith(hard_dep):
+                dependencies.append(req)
+
+
 # these must be done outside the boilerplate (no \n allowed in f-strings):
 authors = ',\n        '.join(authors)
 dependencies = '",\n        "'.join(dependencies)
@@ -73,7 +98,7 @@ codemeta_boilerplate = f'''{{
     "codeRepository": "git+https://github.com/mne-tools/mne-python.git",
     "dateCreated": "2010-12-26",
     "datePublished": "2014-08-04",
-    "dateModified": "{release_date}",
+    "dateModified": "{str(date.today())}",
     "downloadUrl": "https://github.com/mne-tools/mne-python/archive/v{release_version}.zip",
     "issueTracker": "https://github.com/mne-tools/mne-python/issues",
     "name": "MNE-Python",
@@ -86,7 +111,7 @@ codemeta_boilerplate = f'''{{
         "MEG",
         "EEG",
         "fNIRS",
-        "eCoG",
+        "ECoG",
         "sEEG"
     ],
     "programmingLanguage": [
