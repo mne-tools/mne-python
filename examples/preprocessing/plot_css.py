@@ -73,12 +73,12 @@ evoked_subcortical = mne.preprocessing.cortical_signal_suppression(evoked,
                                                                    n_proj=6)
 chs = mne.pick_types(evoked.info, meg=False, eeg=True)
 psd = np.mean(np.abs(np.fft.fft(evoked.data)
-                     [:, 0:int(evoked.data.shape[1]/2)])**2, axis=0)
+                     [:, 0:int(evoked.data.shape[1] / 2)])**2, axis=0)
 psd_proc = np.mean(np.abs(np.fft.fft(evoked_subcortical.data)
-                          [:, 0:int(evoked_subcortical.data.shape[1]/2)])**2,
+                          [:, 0:int(evoked_subcortical.data.shape[1] / 2)])**2,
                    axis=0)
-freq = np.fft.fftfreq(evoked.data.shape[1], d=1/evoked.info['sfreq'])
-freq = freq[0:int(evoked.data.shape[1]/2)]
+freq = np.fft.fftfreq(evoked.data.shape[1], d=1 / evoked.info['sfreq'])
+freq = freq[0:int(evoked.data.shape[1] / 2)]
 
 fig, ax = plt.subplots()
 ax.plot(freq, psd, label='raw')
