@@ -979,8 +979,8 @@ class MNEBrowseFigure(MNEFigure):
         has_proj = bool(len(self.mne.projs))
         # adapt keys to different platforms
         is_mac = platform.system() == 'Darwin'
-        dur_keys = ('⌘ + ←', '⌘ + →') if is_mac else ('Home', 'End')
-        ch_keys = ('⌘ + ↑', '⌘ + ↓') if is_mac else ('Page up', 'Page down')
+        dur_keys = ('fn + ←', 'fn + →') if is_mac else ('Home', 'End')
+        ch_keys = ('fn + ↑', 'fn + ↓') if is_mac else ('Page up', 'Page down')
         # adapt descriptions to different instance types
         ch_cmp = 'component' if is_ica else 'channel'
         ch_epo = 'epoch' if is_epo else 'channel'
