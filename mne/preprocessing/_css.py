@@ -70,10 +70,10 @@ def cortical_signal_suppression(evoked, mag_inds=None, grad_inds=None,
         The evoked object to use for CSS. Must contain magnetometer,
         gradiometer, and EEG channels.
     mag_inds : np.ndarray of int
-        Array of the magnetometer channel indicies that will be used to find
+        Array of the magnetometer channel indices that will be used to find
         the reference data. If None (default), all channels will be used.
     grad_inds : np.ndarray of int
-        Array of the gradiometer channel indicies that will be used to find
+        Array of the gradiometer channel indices that will be used to find
         the reference data. If None (default), all channels will be used.
     n_proj : int
         The number of projection vectors.
