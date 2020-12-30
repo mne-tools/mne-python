@@ -50,9 +50,9 @@ Overview of contribution process
 
 Changes to MNE-Python are typically made by `forking`_ the MNE-Python
 repository, making changes to your fork (usually by `cloning`_ it to your
-personal computer, making the changes, and then `pushing`_ the local changes up
-to your fork), and finally creating a `pull request`_ to incorporate your
-changes back into the shared "upstream" version of the codebase.
+personal computer, making the changes locally, and then `pushing`_ the local
+changes up to your fork), and finally creating a `pull request`_ to incorporate
+your changes back into the shared "upstream" version of the codebase.
 
 In general you'll be working with three different copies of the MNE-Python
 codebase: the official remote copy at https://github.com/mne-tools/mne-python
@@ -110,7 +110,7 @@ identifying yourself and your contact info::
 Make sure that the same email address is associated with your GitHub account
 and with your local git configuration. It is possible to associate multiple
 emails with a GitHub account, so if you initially set them up with different
-emails, just add the local email to the GitHub account.
+emails, you can add the local email to the GitHub account.
 
 Sooner or later, git is going to ask you what text editor you want it to use
 when writing commit messages, so you might as well configure that now too::
@@ -123,9 +123,12 @@ for more information.
 
 GNU Make
 ~~~~~~~~
-GNU Make facilitates deploying a package by executing corresponding commands
-from the ``Makefile``. For MNE-Python we have two Makefiles, one in the parent
-directory mainly for testing and one in ``/doc`` for building the documentation.
+
+We use `GNU Make`_ to organize commands or short scripts that are often needed
+in development. These are stored in files with the name ``Makefile``.
+MNE-Python has two Makefiles, one in the package's root directory (containing
+mainly testing commands) and one in ``/doc`` (containing recipes for building
+our documentation pages in different ways).
 
 To check if make is already installed type ::
 
@@ -209,7 +212,7 @@ separate environment for MNE-Python development (here we'll give it the name
     $ conda env create --file environment.yml --name mnedev
     $ conda activate mnedev
 
-Now you'll have *two* MNE-Python environments: ``base`` (or whatever custom
+Now you'll have *two* MNE-Python environments: ``mne`` (or whatever custom
 name you used when installing the stable version of MNE-Python) and ``mnedev``
 that we just created. At this point ``mnedev`` also has the stable version of
 MNE-Python (that's what the :file:`environment.yml` file installs), but we're
@@ -455,7 +458,7 @@ All new functionality must be documented
 
 This includes thorough docstring descriptions for all public API changes, as
 well as how-to examples or longer tutorials for major contributions. Docstrings
-for private functions may be more sparse, but should not be omitted.
+for private functions may be more sparse, but should usually not be omitted.
 
 
 Avoid API changes when possible
@@ -574,7 +577,7 @@ new feature etc.):
   .. |Your Name| replace:: **Your Name**
 
   - Short description of the changes (:gh:`0000` **by new contributor** |Your Name|_)
-  
+
   - ...
 
 where ``0000`` must be replaced with the respective GitHub pull request (PR)
@@ -678,12 +681,33 @@ single-character variable names, unless inside a :term:`comprehension <list
 comprehension>` or :ref:`generator <tut-generators>`.
 
 
-Follow NumPy style for docstrings
----------------------------------
+We (mostly) follow NumPy style for docstrings
+---------------------------------------------
 
-In most cases imitating existing docstrings will be sufficient, but consult the
-`Numpy docstring style guidelines`_ for more complicated formatting such as
-embedding example code, citing references, or including rendered mathematics.
+In most cases you can look at existing MNE-Python docstrings to figure out how
+yours should be formatted. If you can't find a relevant example, consult the
+`Numpy docstring style guidelines`_ for examples of more complicated formatting
+such as embedding example code, citing references, or including rendered
+mathematics.  Note that we diverge from the NumPy docstring standard in a few
+ways:
+
+1. we use a module called ``sphinxcontrib-bibtex`` to render citations. Search
+   our source code (``git grep footcite`` and ``git grep footbibliography``) to
+   see examples of how to add in-text citations and formatted references to
+   your docstrings, examples, or tutorials. The structured bibliographic data
+   lives in ``doc/references.bib``; please follow the existing key schema when
+   adding new references (e.g., ``Singleauthor2019``,
+   ``AuthoroneAuthortwo2020``, ``FirstauthorEtAl2021a``,
+   ``FirstauthorEtAl2021b``).
+2. we don't explicitly say "optional" for optional keyword parameters (because
+   it's clear from the function or method signature which parameters have
+   default values).
+3. for parameters that may take multiple types, we use pipe characters instead
+   of the word "or", like this: ``param_name : str | None``
+4. we don't include a ``Raises`` or ``Warns`` section describing
+   errors/warnings that might occur
+
+
 Private function/method docstrings may be brief for simple functions/methods,
 but complete docstrings are appropriate when private functions/methods are
 relatively complex. To run some basic tests on documentation, you can use::
@@ -719,6 +743,12 @@ we link to. Their inventories can be examined using a tool like `sphobjinv`_ or
 dumped to file with commands like::
 
     $ python -m sphinx.ext.intersphinx https://docs.python.org/3/objects.inv > python.txt
+
+Note that anything surrounded by single backticks that does *not* have one of
+the directives (```:class:``, ``:func:``, etc) before it will be assumed to be
+in the MNE-Python namespace. This can save some typing especially in
+tutorials; instead of ``see :func:`mne.io.Raw.plot_psd` for details`` you can
+instead type ``see `mne.io.Raw.plot_psd` for details``.
 
 
 Other style guidance
