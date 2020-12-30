@@ -1692,8 +1692,17 @@ class MNEBrowseFigure(MNEFigure):
     # SCROLLBARS
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+    def _update_zen_mode_offsets(self):
+        """Compute difference between main axes edges and scrollbar edges."""
+        self.mne.fig_size_px = self._get_size_px()
+        self.mne.zen_w = (self.mne.ax_vscroll.get_position().xmax -
+                          self.mne.ax_main.get_position().xmax)
+        self.mne.zen_h = (self.mne.ax_main.get_position().ymin -
+                          self.mne.ax_hscroll.get_position().ymin)
+
     def _toggle_scrollbars(self):
         """Show or hide scrollbars (A.K.A. zen mode)."""
+        self._update_zen_mode_offsets()
         # grow/shrink main axes to take up space from (or make room for)
         # scrollbars. We can't use ax.set_position() because axes are
         # locatable, so we use subplots_adjust
@@ -2254,11 +2263,7 @@ def _browse_figure(inst, **kwargs):
                   figsize=figsize, **kwargs)
     # initialize zen mode (can't do in __init__ due to get_position() calls)
     fig.canvas.draw()
-    fig.mne.fig_size_px = fig._get_size_px()
-    fig.mne.zen_w = (fig.mne.ax_vscroll.get_position().xmax -
-                     fig.mne.ax_main.get_position().xmax)
-    fig.mne.zen_h = (fig.mne.ax_main.get_position().ymin -
-                     fig.mne.ax_hscroll.get_position().ymin)
+    fig._update_zen_mode_offsets()
     # if scrollbars are supposed to start hidden, set to True and then toggle
     if not fig.mne.scrollbars_visible:
         fig.mne.scrollbars_visible = True
