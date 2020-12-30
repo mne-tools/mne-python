@@ -1793,7 +1793,7 @@ class MNEBrowseFigure(MNEFigure):
             self._show_scalebars()
         # toggle
         self.mne.scalebars_visible = not self.mne.scalebars_visible
-        self.canvas.draw_idle()
+        self._redraw(update_data=False)
 
     def _draw_one_scalebar(self, x, y, ch_type):
         """Draw a scalebar."""
