@@ -691,7 +691,7 @@ such as embedding example code, citing references, or including rendered
 mathematics.  Note that we diverge from the NumPy docstring standard in a few
 ways:
 
-1. we use a module called ``sphinxcontrib-bibtex`` to render citations. Search
+1. We use a module called ``sphinxcontrib-bibtex`` to render citations. Search
    our source code (``git grep footcite`` and ``git grep footbibliography``) to
    see examples of how to add in-text citations and formatted references to
    your docstrings, examples, or tutorials. The structured bibliographic data
@@ -699,13 +699,13 @@ ways:
    adding new references (e.g., ``Singleauthor2019``,
    ``AuthoroneAuthortwo2020``, ``FirstauthorEtAl2021a``,
    ``FirstauthorEtAl2021b``).
-2. we don't explicitly say "optional" for optional keyword parameters (because
+2. We don't explicitly say "optional" for optional keyword parameters (because
    it's clear from the function or method signature which parameters have
    default values).
-3. for parameters that may take multiple types, we use pipe characters instead
-   of the word "or", like this: ``param_name : str | None``
-4. we don't include a ``Raises`` or ``Warns`` section describing
-   errors/warnings that might occur
+3. For parameters that may take multiple types, we use pipe characters instead
+   of the word "or", like this: ``param_name : str | None``.
+4. We don't include a ``Raises`` or ``Warns`` section describing
+   errors/warnings that might occur.
 
 
 Private function/method docstrings may be brief for simple functions/methods,
