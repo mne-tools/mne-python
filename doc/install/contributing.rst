@@ -722,7 +722,7 @@ Cross-reference everywhere
 Both the docstrings and dedicated documentation pages (tutorials, how-to
 examples, discussions, and glossary) should include cross-references to any
 mentioned module, class, function, method, attribute, or documentation page.
-There are sphinx directives for all of these (``:mod:``, ``:class:``,
+There are sphinx roles for all of these (``:mod:``, ``:class:``,
 ``:func:``, ``:meth:``, ``:attr:``, ``:doc:``) as well as a generic
 cross-reference directive (``:ref:``) for linking to specific sections of a
 documentation page.
@@ -744,8 +744,8 @@ dumped to file with commands like::
 
     $ python -m sphinx.ext.intersphinx https://docs.python.org/3/objects.inv > python.txt
 
-Note that anything surrounded by single backticks that does *not* have one of
-the directives (```:class:``, ``:func:``, etc) before it will be assumed to be
+Note that anything surrounded by single backticks that is *not* preceded by one
+of the API roles (``:class:``, ``:func:``, etc) will be assumed to be
 in the MNE-Python namespace. This can save some typing especially in
 tutorials; instead of ``see :func:`mne.io.Raw.plot_psd` for details`` you can
 instead type ``see `mne.io.Raw.plot_psd` for details``.
