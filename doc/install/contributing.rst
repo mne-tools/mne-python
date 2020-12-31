@@ -33,7 +33,7 @@ MNE-Python.
 .. collapse:: |rocket| Want an example to work through?
    :class: success
 
-   A great way to learn to contribute is to work through an actual example
+   A great way to learn to contribute is to work through an actual example.
    We recommend that you take a look at the `GitHub issues marked "easy"`_,
    pick one that looks interesting, and work through it while reading this
    guide!
@@ -147,8 +147,8 @@ If you don't see this or something similar:
 
    you need to add
 
-   - :file:`(Anaconda-Path)`
-   - :file:`(Anaconda-Path)\Scripts`
+   - :file:`{path_to_Anaconda}`
+   - :file:`{path_to_Anaconda}\\Scripts`
 
    to Windows-PATH.
 
