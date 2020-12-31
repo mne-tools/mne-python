@@ -127,8 +127,8 @@ GNU Make
 We use `GNU Make`_ to organize commands or short scripts that are often needed
 in development. These are stored in files with the name ``Makefile``.
 MNE-Python has two Makefiles, one in the package's root directory (containing
-mainly testing commands) and one in ``/doc`` (containing recipes for building
-our documentation pages in different ways).
+mainly testing commands) and one in :file:`doc/` (containing recipes for
+building our documentation pages in different ways).
 
 To check if make is already installed type ::
 
