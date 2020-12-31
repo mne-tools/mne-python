@@ -77,7 +77,7 @@ with open(os.path.join('..', 'setup.py'), 'r') as fid:
             dependencies = [f'python{version}']
             break
 hard_dependencies = ('numpy', 'scipy')
-with open('requirements.txt', 'r') as fid:
+with open(os.path.join('..', 'requirements.txt'), 'r') as fid:
     for line in fid:
         req = line.strip()
         for hard_dep in hard_dependencies:
