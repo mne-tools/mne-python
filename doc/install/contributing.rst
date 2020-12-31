@@ -155,10 +155,12 @@ If you don't see this or something similar:
 - For Linux/MacOS, get `GNU Make`_
 - For Windows, you can install make for git BASH (which comes with `git for Windows`_):
 
-  1. Download :file:`make-(newest version)-without-guile-w32-bin.zip` from `ezwinports`_
+  1. Download :file:`make-{newest version}-without-guile-w32-bin.zip` from `ezwinports`_
   2. Extract zip-folder
-  3. Copy the contents into :file:`(git-path)\mingw64\` (e.g. by merging the folders with the equivalent ones already inside)
-  4. For the first time using git BASH, you need to run once (to be able to activate your mnedev-environment): ::
+  3. Copy the contents into :file:`{git-path}\mingw64\` (e.g. by merging the
+     folders with the equivalent ones already inside)
+  4. For the first time using git BASH, you need to run once (to be able to
+     activate your mnedev-environment): ::
 
       $ conda init bash
 
@@ -255,7 +257,7 @@ Finally, set up a link between your local clone and the official repository
 
 Now we'll remove the *stable* version of MNE-Python and replace it with the
 *development* version (the clone we just created with git). Make sure you're in
-the correct environment first (:samp:`conda activate mnedev`), and then do::
+the correct environment first (``conda activate mnedev``), and then do::
 
     $ cd $INSTALL_LOCATION/mne-python    # make sure we're in the right folder
     $ pip uninstall -y mne
