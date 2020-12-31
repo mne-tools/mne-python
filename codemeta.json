@@ -18,7 +18,7 @@
         "MEG",
         "EEG",
         "fNIRS",
-        "eCoG",
+        "ECoG",
         "sEEG"
     ],
     "programmingLanguage": [
@@ -30,9 +30,9 @@
         "macOS"
     ],
     "softwareRequirements": [
-        "Python 3.6",
-        "NumPy 1.15.4",
-        "SciPy 1.1"
+        "python>=3.6",
+        "numpy>=1.15.4",
+        "scipy>=1.1.0"
     ],
     "author": [
         {
