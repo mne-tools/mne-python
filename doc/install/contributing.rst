@@ -979,16 +979,16 @@ down the road. Here are the guidelines:
     `continuous integration`_ (CI) providers. Use them judiciously; *do not
     skip tests simply because they are failing*:
 
-    - ``[skip circle]`` Skip `circle`_, which tests successful building of our
-      documentation.
+    - ``[skip circle]`` Skip `CircleCI`_, which tests successful building of
+      our documentation.
 
-    - ``[skip travis]`` Skip `travis`_, which tests installation and execution
-      on Linux and macOS systems.
+    - ``[skip github]`` Skip our `GitHub Actions`_, which test installation
+      and execution on Linux and macOS systems.
 
     - ``[skip azp]`` Skip `azure`_ which tests installation and execution on
       Windows systems.
 
-    - ``[ci skip]`` is an alias for ``[skip travis][skip azp][skip circle]``.
+    - ``[ci skip]`` is an alias for ``[skip github][skip azp][skip circle]``.
       Notice that ``[skip ci]`` is not a valid tag.
 
     - ``[circle full]`` triggers a "full" documentation build, i.e., all code
@@ -1077,9 +1077,9 @@ it can serve as a useful example of what to expect from the PR review process.
 .. _Spyder: https://www.spyder-ide.org/
 .. _continuous integration: https://en.wikipedia.org/wiki/Continuous_integration
 .. _matplotlib: https://matplotlib.org/
-.. _travis: https://travis-ci.org/mne-tools/mne-python/branches
+.. _github actions: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions
 .. _azure: https://dev.azure.com/mne-tools/mne-python/_build/latest?definitionId=1&branchName=master
-.. _circle: https://circleci.com/gh/mne-tools/mne-python
+.. _CircleCI: https://circleci.com/gh/mne-tools/mne-python
 
 .. optipng
 
