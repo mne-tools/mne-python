@@ -125,7 +125,7 @@ GNU Make
 ~~~~~~~~
 
 We use `GNU Make`_ to organize commands or short scripts that are often needed
-in development. These are stored in files with the name ``Makefile``.
+in development. These are stored in files with the name :file:`Makefile`.
 MNE-Python has two Makefiles, one in the package's root directory (containing
 mainly testing commands) and one in :file:`doc/` (containing recipes for
 building our documentation pages in different ways).
@@ -147,17 +147,17 @@ If you don't see this or something similar:
 
    you need to add
 
-   - ``(Anaconda-Path)``
-   - ``(Anaconda-Path)\Scripts``
+   - :file:`(Anaconda-Path)`
+   - :file:`(Anaconda-Path)\Scripts`
 
    to Windows-PATH.
 
 - For Linux/MacOS, get `GNU Make`_
 - For Windows, you can install make for git BASH (which comes with `git for Windows`_):
 
-  1. Download ``make-(newest version)-without-guile-w32-bin.zip`` from `ezwinports`_
+  1. Download :file:`make-(newest version)-without-guile-w32-bin.zip` from `ezwinports`_
   2. Extract zip-folder
-  3. Copy the contents into ``(git-path)\mingw64\`` (e.g. by merging the folders with the equivalent ones already inside)
+  3. Copy the contents into :file:`(git-path)\mingw64\` (e.g. by merging the folders with the equivalent ones already inside)
   4. For the first time using git BASH, you need to run once (to be able to activate your mnedev-environment): ::
 
       $ conda init bash
@@ -262,8 +262,8 @@ the correct environment first (:samp:`conda activate mnedev`), and then do::
     $ pip install -e .
 
 The command ``pip install -e .`` installs a python module into the current
-environment by creating a link to the source code directory (instead of
-copying the code to pip's ``site_packages`` directory, which is what normally
+environment by creating a link to the source code directory (instead of copying
+the code to pip's :file:`site_packages` directory, which is what normally
 happens). This means that any edits you make to the MNE-Python source code will
 be reflected the next time you open a Python interpreter and ``import mne``
 (the ``-e`` flag of ``pip`` stands for an "editable" installation).
@@ -293,7 +293,8 @@ To build documentation, you will also require `optipng`_:
 
 - On MacOS, optipng can be installed using Homebrew.
 
-- On Windows, unzip optipng.exe from the `optipng for Windows`_ archive into the ``doc`` folder.
+- On Windows, unzip :file:`optipng.exe` from the `optipng for Windows`_ archive
+  into the :file:`doc/` folder.
 
 You can also choose to install some optional linters for reStructuredText::
 
@@ -449,7 +450,7 @@ General requirements
 All new functionality must have test coverage
 ---------------------------------------------
 
-For example, a new :class:`mne.Evoked` method in :file:`mne/evoked.py` should
+For example, a new `mne.Evoked` method in :file:`mne/evoked.py` should
 have a corresponding test in :file:`mne/tests/test_evoked.py`.
 
 
@@ -468,7 +469,7 @@ Changes to the public API (e.g., class/function/method names and signatures)
 should not be made lightly, as they can break existing user scripts. Changes to
 the API require a deprecation cycle (with warnings) so that users have time to
 adapt their code before API changes become default behavior. See :ref:`the
-deprecation section <deprecating>` and :class:`mne.utils.deprecated` for
+deprecation section <deprecating>` and `mne.utils.deprecated` for
 instructions. Bug fixes (when something isn't doing what it says it will do) do
 not require a deprecation cycle.
 
@@ -638,11 +639,11 @@ Make tests fast and thorough
 
 Whenever possible, use the testing dataset rather than one of the sample
 datasets when writing tests; it includes small versions of most MNE-Python
-objects (e.g., :class:`~mne.io.Raw` objects with short durations and few
+objects (e.g., `~mne.io.Raw` objects with short durations and few
 channels). You can also check which lines are missed by the tests, then modify
 existing tests (or write new ones) to target the missed lines. Here's an
 example that reports which lines within ``mne.viz`` are missed when running
-``test_evoked.py`` and ``test_topo.py``::
+:file:`test_evoked.py` and :file:`test_topo.py`::
 
     $ pytest --cov=mne.viz --cov-report=term-missing mne/viz/tests/test_evoked.py mne/viz/tests/test_topo.py
 
@@ -695,8 +696,8 @@ ways:
    our source code (``git grep footcite`` and ``git grep footbibliography``) to
    see examples of how to add in-text citations and formatted references to
    your docstrings, examples, or tutorials. The structured bibliographic data
-   lives in ``doc/references.bib``; please follow the existing key schema when
-   adding new references (e.g., ``Singleauthor2019``,
+   lives in :file:`doc/references.bib`; please follow the existing key scheme
+   when adding new references (e.g., ``Singleauthor2019``,
    ``AuthoroneAuthortwo2020``, ``FirstauthorEtAl2021a``,
    ``FirstauthorEtAl2021b``).
 2. We don't explicitly say "optional" for optional keyword parameters (because
@@ -905,7 +906,7 @@ These are typically used with a call like::
     $ mne browse_raw ~/mne_data/MNE-sample-data/MEG/sample/sample_audvis_raw.fif
 
 These are generally available for convenience, and can be useful for quick
-debugging (in this case, for :class:`mne.io.Raw.plot`).
+debugging (in this case, for `mne.io.Raw.plot`).
 
 If a given command-line function fails, they can also be executed as part of
 the ``mne`` module with ``python -m``. For example::
