@@ -14,30 +14,20 @@ import stat
 import sys
 import zipfile
 import tempfile
+from distutils.version import LooseVersion
 
 import numpy as np
 
 from ._fsaverage.base import fetch_fsaverage
+from .. import __version__ as mne_version
 from ..label import read_labels_from_annot, Label, write_labels_to_annot
-from ..utils import (get_config, set_config, _fetch_file, logger,
+from ..utils import (get_config, set_config, _fetch_file, logger, warn,
                      verbose, get_subjects_dir, hashfunc, _pl, _safe_input)
 from ..utils.docs import docdict
 from ..externals.doccer import docformat
 
 
-# To update the testing or misc dataset, push commits, then make a new
-# release on GitHub. Then update the "_RELEASES" and "_HASHES" variables.
-# To update any other dataset (rare), update the data archive itself by
-# uploading an updated version changing the URL if necessary (e.g., update
-# ``?version=``) and update the md5 hash directly in _data_path.
-_RELEASES = dict(
-    testing='0.112',
-    misc='0.8',
-)
-_HASHES = dict(
-    testing='8eabd73532dd7df7c155983962c5b1fd',
-    misc='0f88194266121dd9409be94184231f25',
-)
+_FAKE_VERSION = None  # used for monkeypatching while testing versioning
 
 _data_path_doc = """Get path to local copy of {name} dataset.
 
@@ -173,8 +163,7 @@ def _dataset_version(path, name):
     else:
         # Sample dataset versioning was introduced after 0.3
         # SPM dataset was introduced with 0.7
-        version = dict(
-            sample='0.3', spm='0.7').get(name, 'unknown')
+        version = '0.3' if name == 'sample' else '0.7'
 
     return version
 
@@ -256,6 +245,12 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     }[name]
 
     path = _get_path(path, key, name)
+    # To update the testing or misc dataset, push commits, then make a new
+    # release on GitHub. Then update the "releases" variable:
+    releases = dict(testing='0.112', misc='0.7')
+    # And also update the "md5_hashes['testing']" variable below.
+    # To update any other dataset, update the data archive itself (upload
+    # an updated version) and update the md5 hash.
 
     # try to match url->archive_name->folder_name
     urls = dict(  # the URLs to use
@@ -268,12 +263,12 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         fake='https://github.com/mne-tools/mne-testing-data/raw/master/'
              'datasets/foo.tgz',
         misc='https://codeload.github.com/mne-tools/mne-misc-data/'
-             'tar.gz/%s' % _RELEASES['misc'],
+             'tar.gz/%s' % releases['misc'],
         sample='https://osf.io/86qa2/download?version=5',
         somato='https://osf.io/tp4sg/download?version=7',
         spm='https://osf.io/je4s8/download?version=2',
         testing='https://codeload.github.com/mne-tools/mne-testing-data/'
-                'tar.gz/%s' % _RELEASES['testing'],
+                'tar.gz/%s' % releases['testing'],
         multimodal='https://ndownloader.figshare.com/files/5999598',
         fnirs_motor='https://osf.io/dj3eh/download?version=1',
         opm='https://osf.io/p6ae7/download?version=2',
@@ -291,7 +286,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     archive_names = dict(
         fieldtrip_cmc='SubjectCMC.zip',
         kiloword='MNE-kiloword-data.tar.gz',
-        misc='mne-misc-data-%s.tar.gz' % _RELEASES['misc'],
+        misc='mne-misc-data-%s.tar.gz' % releases['misc'],
         mtrf='mTRF_1.5.zip',
         multimodal='MNE-multimodal-data.tar.gz',
         fnirs_motor='MNE-fNIRS-motor-data.tgz',
@@ -299,7 +294,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         sample='MNE-sample-data-processed.tar.gz',
         somato='MNE-somato-data.tar.gz',
         spm='MNE-spm-face.tar.gz',
-        testing='mne-testing-data-%s.tar.gz' % _RELEASES['testing'],
+        testing='mne-testing-data-%s.tar.gz' % releases['testing'],
         visual_92_categories=['MNE-visual_92_categories-data-part1.tar.gz',
                               'MNE-visual_92_categories-data-part2.tar.gz'],
         phantom_4dbti='MNE-phantom-4DBTi.zip',
@@ -308,8 +303,8 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     # original folder names that get extracted (only needed if the
     # archive does not extract the right folder name; e.g., usually GitHub)
     folder_origs = dict(  # not listed means None (no need to move)
-        misc='mne-misc-data-%s' % _RELEASES['misc'],
-        testing='mne-testing-data-%s' % _RELEASES['testing'],
+        misc='mne-misc-data-%s' % releases['misc'],
+        testing='mne-testing-data-%s' % releases['testing'],
     )
     # finally, where we want them to extract to (only needed if the folder name
     # is not the same as the last bit of the archive name without the file
@@ -334,11 +329,11 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
             bst_raw='fa2efaaec3f3d462b319bc24898f440c',
             bst_resting='70fc7bf9c3b97c4f2eab6260ee4a0430'),
         fake='3194e9f7b46039bb050a74f3e1ae9908',
-        misc=_HASHES['misc'],
+        misc='2b2f2fec9d1197ed459117db1c6341ee',
         sample='12b75d1cb7df9dfb4ad73ed82f61094f',
         somato='32fd2f6c8c7eb0784a1de6435273c48b',
         spm='9f43f67150e3b694b523a21eb929ea75',
-        testing=_HASHES['testing'],
+        testing='8eabd73532dd7df7c155983962c5b1fd',
         multimodal='26ec847ae9ab80f58f204d09e2c08367',
         fnirs_motor='c4935d19ddab35422a69f3326a01fef8',
         opm='370ad1dcfd5c47e029e692c85358a374',
@@ -385,7 +380,8 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
 
     need_download = any(not op.exists(f) for f in folder_path)
     # additional condition: check for version.txt and parse it
-    want_version = _RELEASES.get(name, None)
+    want_version = releases.get(name, None)
+    want_version = _FAKE_VERSION if name == 'fake' else want_version
     if not need_download and want_version is not None:
         data_version = _dataset_version(folder_path[0], name)
         need_download = data_version != want_version
@@ -440,6 +436,14 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
 
     # compare the version of the dataset and mne
     data_version = _dataset_version(path, name)
+    # 0.7 < 0.7.git should be False, therefore strip
+    if check_version and (LooseVersion(data_version) <
+                          LooseVersion(mne_version.strip('.git'))):
+        warn('The {name} dataset (version {current}) is older than '
+             'mne-python (version {newest}). If the examples fail, '
+             'you may need to update the {name} dataset by using '
+             'mne.datasets.{name}.data_path(force_update=True)'.format(
+                 name=name, current=data_version, newest=mne_version))
     return (path, data_version) if return_version else path
 
 
@@ -546,8 +550,7 @@ def has_dataset(name):
     has : bool
         True if the dataset is present.
     """
-    if name == 'spm_face':
-        name = 'spm'
+    name = 'spm' if name == 'spm_face' else name
     if name.startswith('brainstorm'):
         name, archive_name = name.split('.')
         endswith = archive_name
@@ -572,7 +575,7 @@ def has_dataset(name):
             'refmeg_noise': 'MNE-refmeg-noise-data'
         }[name]
     dp = _data_path(download=False, name=name, check_version=False,
-                    archive_name=archive_name, update_path=False)
+                    archive_name=archive_name)
     return dp.endswith(endswith)
 
 

@@ -74,7 +74,8 @@ def test_downloads(tmpdir, monkeypatch, capsys):
     assert 'Downloading' not in out
     # No version: shown as existing but unknown version
     assert datasets.utils.has_dataset('fake')
-    assert datasets._fake.get_version() == 'unknown'
+    # XXX logic bug, should be "unknown"
+    assert datasets._fake.get_version() == '0.7'
     # With a version but no required one: shown as existing and gives version
     fname = tmpdir / 'foo' / 'version.txt'
     with open(fname, 'w') as fid:
@@ -85,15 +86,13 @@ def test_downloads(tmpdir, monkeypatch, capsys):
     out, _ = capsys.readouterr()
     assert 'out of date' not in out
     # With the required version: shown as existing with the required version
-    new_dict = datasets.utils._RELEASES.copy()
-    new_dict['fake'] = '0.1'
-    monkeypatch.setattr(datasets.utils, '_RELEASES', new_dict)
+    monkeypatch.setattr(datasets.utils, '_FAKE_VERSION', '0.1')
     assert datasets.utils.has_dataset('fake')
     assert datasets._fake.get_version() == '0.1'
     datasets._fake.data_path(download=False, **kwargs)
     out, _ = capsys.readouterr()
     assert 'out of date' not in out
-    new_dict['fake'] = '0.2'
+    monkeypatch.setattr(datasets.utils, '_FAKE_VERSION', '0.2')
     # With an older version:
     # 1. Marked as not actually being present
     assert not datasets.utils.has_dataset('fake')
