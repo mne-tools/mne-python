@@ -56,7 +56,14 @@ jobs:
       - shell: bash -el {0}
         run: ./tools/github_actions_infos.sh
         name: 'Show infos'
+      - uses: actions/cache@v2
+        id: cache-dataset
+        with:
+          path: /Users/runner/mne_data
+          key: ${{ runner.os }}-dataset
+        name: 'Cache dataset'
       - shell: bash -el {0}
+        if: steps.cache-dataset.outputs.cache-hit != 'true'
         run: ./tools/github_actions_download.sh
         name: 'Download testing data'
       - shell: bash -el {0}
