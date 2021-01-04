@@ -136,7 +136,7 @@ psds, freqs = mne.time_frequency.psd_welch(
 
 
 ###############################################################################
-# Calculate signal to noise ration (SNR)
+# Calculate signal to noise ratio (SNR)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # SNR - as we define it here - is a measure of relative power:
