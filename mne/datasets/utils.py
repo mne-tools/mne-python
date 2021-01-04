@@ -14,14 +14,12 @@ import stat
 import sys
 import zipfile
 import tempfile
-from distutils.version import LooseVersion
 
 import numpy as np
 
 from ._fsaverage.base import fetch_fsaverage
-from .. import __version__ as mne_version
 from ..label import read_labels_from_annot, Label, write_labels_to_annot
-from ..utils import (get_config, set_config, _fetch_file, logger, warn,
+from ..utils import (get_config, set_config, _fetch_file, logger,
                      verbose, get_subjects_dir, hashfunc, _pl, _safe_input)
 from ..utils.docs import docdict
 from ..externals.doccer import docformat
