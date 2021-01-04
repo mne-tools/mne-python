@@ -64,7 +64,6 @@ jobs:
           key: ${{ runner.os }}-dataset
         name: 'Cache dataset'
       - shell: bash -el {0}
-        if: steps.cache-dataset.outputs.cache-hit != 'true'
         run: ./tools/github_actions_download.sh
         name: 'Download testing data'
       - shell: bash -el {0}
