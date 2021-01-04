@@ -1052,7 +1052,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     ----------
     subject : str
         Subject name.
-    $(subjects_dir)s
+    %(subjects_dir)s
     overwrite : bool
         Write over existing files.
     volume : str

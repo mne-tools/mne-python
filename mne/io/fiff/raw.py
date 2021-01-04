@@ -72,7 +72,7 @@ class Raw(BaseRaw):
 
     @verbose
     def __init__(self, fname, allow_maxshield=False, preload=False,
-                 on_split_missing=None, verbose=None):  # noqa: D102
+                 on_split_missing='raise', verbose=None):  # noqa: D102
         raws = []
         do_check_fname = not _file_like(fname)
         next_fname = fname
@@ -91,12 +91,6 @@ class Raw(BaseRaw):
                         'manually renamed on disk (split files should be '
                         'renamed by loading and re-saving with MNE-Python to '
                         'preserve proper filename linkage).')
-                    if on_split_missing is None:
-                        warn('The default for on_split_missing is "warn" in '
-                             '0.22 but will change to "raise" in 0.23, set it '
-                             'explicitly to avoid this message',
-                             DeprecationWarning)
-                        on_split_missing = 'warn'
                     _on_missing(on_split_missing, msg, name='on_split_missing')
                     break
         if _file_like(fname):
@@ -441,7 +435,7 @@ def _check_entry(first, nent):
 
 @fill_doc
 def read_raw_fif(fname, allow_maxshield=False, preload=False,
-                 on_split_missing=None, verbose=None):
+                 on_split_missing='raise', verbose=None):
     """Reader function for Raw FIF data.
 
     Parameters

@@ -624,7 +624,7 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown subj',
 
 @fill_doc
 def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
-                title=None, events=None, event_colors=None, event_color=None,
+                title=None, events=None, event_color=None,
                 order=None, show=True, block=False, decim='auto',
                 noise_cov=None, butterfly=False, show_scrollbars=True,
                 epoch_colors=None, event_id=None, group_by='type'):
@@ -669,8 +669,6 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
             align with the data.
 
         .. versionadded:: 0.14.0
-    event_colors : None
-        Deprecated. Use ``event_color`` instead.
     %(event_color)s
         Defaults to ``None``.
     order : array of str | None
@@ -802,15 +800,6 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     else:
         event_nums = None
         event_times = None
-    if event_colors is not None:
-        depr_msg = ('event_colors is deprecated and will be replaced by '
-                    'event_color in 0.23.')
-        if event_color is None:
-            event_color = event_colors
-        else:
-            depr_msg += (' Since you passed values for both event_colors and '
-                         'event_color, event_colors will be ignored.')
-        warn(depr_msg, DeprecationWarning)
     event_color_dict = _make_event_color_dict(event_color, events, event_id)
 
     # determine trace order

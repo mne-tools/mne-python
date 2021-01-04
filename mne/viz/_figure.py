@@ -714,7 +714,7 @@ class MNEBrowseFigure(MNEFigure):
                 self._update_hscroll()
                 if key == 'end' and self.mne.vline_visible:  # prevent flicker
                     self._show_vline(None)
-                self._redraw()
+                self._redraw(annotations=True)
         elif key == '?':  # help window
             self._toggle_help_fig(event)
         elif key == 'a':  # annotation mode
@@ -979,8 +979,8 @@ class MNEBrowseFigure(MNEFigure):
         has_proj = bool(len(self.mne.projs))
         # adapt keys to different platforms
         is_mac = platform.system() == 'Darwin'
-        dur_keys = ('⌘ + ←', '⌘ + →') if is_mac else ('Home', 'End')
-        ch_keys = ('⌘ + ↑', '⌘ + ↓') if is_mac else ('Page up', 'Page down')
+        dur_keys = ('fn + ←', 'fn + →') if is_mac else ('Home', 'End')
+        ch_keys = ('fn + ↑', 'fn + ↓') if is_mac else ('Page up', 'Page down')
         # adapt descriptions to different instance types
         ch_cmp = 'component' if is_ica else 'channel'
         ch_epo = 'epoch' if is_epo else 'channel'
@@ -1026,7 +1026,7 @@ class MNEBrowseFigure(MNEFigure):
             ('p', 'Toggle draggable annotations' if is_raw else None),
             ('s', 'Toggle scalebars' if not is_ica else None),
             ('z', 'Toggle scrollbars'),
-            ('F11', 'Toggle fullscreen'),
+            ('F11', 'Toggle fullscreen' if not is_mac else None),
             ('?', 'Open this help window'),
             ('esc', 'Close focused figure or dialog window'),
             ('_MOUSE INTERACTION', ' '),
@@ -1692,8 +1692,17 @@ class MNEBrowseFigure(MNEFigure):
     # SCROLLBARS
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+    def _update_zen_mode_offsets(self):
+        """Compute difference between main axes edges and scrollbar edges."""
+        self.mne.fig_size_px = self._get_size_px()
+        self.mne.zen_w = (self.mne.ax_vscroll.get_position().xmax -
+                          self.mne.ax_main.get_position().xmax)
+        self.mne.zen_h = (self.mne.ax_main.get_position().ymin -
+                          self.mne.ax_hscroll.get_position().ymin)
+
     def _toggle_scrollbars(self):
         """Show or hide scrollbars (A.K.A. zen mode)."""
+        self._update_zen_mode_offsets()
         # grow/shrink main axes to take up space from (or make room for)
         # scrollbars. We can't use ax.set_position() because axes are
         # locatable, so we use subplots_adjust
@@ -1703,7 +1712,6 @@ class MNEBrowseFigure(MNEFigure):
         # if should_show, bottom margin moves up; right margin moves left
         margins['bottom'] += (1 if should_show else -1) * self.mne.zen_h
         margins['right'] += (-1 if should_show else 1) * self.mne.zen_w
-        # squeeze a bit more because we don't need space for xlabel now
         self.subplots_adjust(**margins)
         # handle x-axis label
         self.mne.zen_xlabel.set_visible(not should_show)
@@ -1793,7 +1801,7 @@ class MNEBrowseFigure(MNEFigure):
             self._show_scalebars()
         # toggle
         self.mne.scalebars_visible = not self.mne.scalebars_visible
-        self.canvas.draw_idle()
+        self._redraw(update_data=False)
 
     def _draw_one_scalebar(self, x, y, ch_type):
         """Draw a scalebar."""
@@ -2242,6 +2250,8 @@ def _figure(toolbar=True, FigureClass=MNEFigure, **kwargs):
         fig = figure(FigureClass=FigureClass, **kwargs)
     if title is not None:
         _set_window_title(fig, title)
+    # add event callbacks
+    fig._add_default_callbacks()
     return fig
 
 
@@ -2253,17 +2263,11 @@ def _browse_figure(inst, **kwargs):
                   figsize=figsize, **kwargs)
     # initialize zen mode (can't do in __init__ due to get_position() calls)
     fig.canvas.draw()
-    fig.mne.fig_size_px = fig._get_size_px()
-    fig.mne.zen_w = (fig.mne.ax_vscroll.get_position().xmax -
-                     fig.mne.ax_main.get_position().xmax)
-    fig.mne.zen_h = (fig.mne.ax_main.get_position().ymin -
-                     fig.mne.ax_hscroll.get_position().ymin)
+    fig._update_zen_mode_offsets()
     # if scrollbars are supposed to start hidden, set to True and then toggle
     if not fig.mne.scrollbars_visible:
         fig.mne.scrollbars_visible = True
         fig._toggle_scrollbars()
-    # add event callbacks
-    fig._add_default_callbacks()
     return fig
 
 
@@ -2290,8 +2294,6 @@ def _line_figure(inst, axes=None, picks=None, **kwargs):
                       figsize=figsize, n_axes=n_axes, **kwargs)
         fig.mne.fig_size_px = fig._get_size_px()  # can't do in __init__
         axes = fig.mne.ax_list
-        # add event callbacks
-        fig._add_default_callbacks()
     return fig, axes
 
 

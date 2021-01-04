@@ -1979,7 +1979,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
     # Override here to provide the volume-specific options
     @verbose
     def extract_label_time_course(self, labels, src, mode='auto',
-                                  allow_empty=False, *, trans=None,
+                                  allow_empty=False, *,
                                   mri_resolution=True, verbose=None):
         """Extract label time courses for lists of labels.
 
@@ -1992,7 +1992,6 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         %(eltc_src)s
         %(eltc_mode)s
         %(eltc_allow_empty)s
-        %(trans_deprecated)s
         %(eltc_mri_resolution)s
         %(verbose_meth)s
 
@@ -2010,11 +2009,11 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         """
         return extract_label_time_course(
             self, labels, src, mode=mode, return_generator=False,
-            allow_empty=allow_empty, trans=trans,
+            allow_empty=allow_empty,
             mri_resolution=mri_resolution, verbose=verbose)
 
-    @fill_doc
-    def in_label(self, label, mri, src, trans=None):
+    @verbose
+    def in_label(self, label, mri, src, *, verbose=None):
         """Get a source estimate object restricted to a label.
 
         SourceEstimate contains the time course of
@@ -2030,7 +2029,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         src : instance of SourceSpaces
             The volumetric source space. It must be a single, whole-brain
             volume.
-        %(trans_deprecated)s
+        %(verbose_meth)s
 
         Returns
         -------
@@ -2049,7 +2048,6 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
             volume_label = [label]
         else:
             volume_label = {'Volume ID %s' % (label): _ensure_int(label)}
-        _dep_trans(trans)
         label = _volume_labels(src, (mri, volume_label), mri_resolution=False)
         assert len(label) == 1
         label = label[0]
@@ -3053,12 +3051,6 @@ def _volume_labels(src, labels, mri_resolution):
     return out_labels
 
 
-def _dep_trans(trans):
-    if trans is not None:
-        warn('trans is no longer needed and will be removed in 0.23, do not '
-             'pass it as an argument', DeprecationWarning)
-
-
 def _get_default_label_modes():
     return sorted(_label_funcs.keys()) + ['auto']
 
@@ -3071,8 +3063,8 @@ def _get_allowed_label_modes(stc):
         return _get_default_label_modes()
 
 
-def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
-                                   allow_empty=False, trans=None,
+def _gen_extract_label_time_course(stcs, labels, src, *, mode='mean',
+                                   allow_empty=False,
                                    mri_resolution=True, verbose=None):
     # loop through source estimates and extract time series
     if src is None and mode in ['mean', 'max']:
@@ -3080,7 +3072,6 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
     else:
         _validate_type(src, SourceSpaces)
         kind = src.kind
-    _dep_trans(trans)
     _check_option('mode', mode, _get_default_label_modes())
 
     if kind in ('surface', 'mixed'):
@@ -3159,8 +3150,7 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
 @verbose
 def extract_label_time_course(stcs, labels, src, mode='auto',
                               allow_empty=False, return_generator=False,
-                              *, trans=None, mri_resolution=True,
-                              verbose=None):
+                              *, mri_resolution=True, verbose=None):
     """Extract label time course for lists of labels and source estimates.
 
     This function will extract one time course for each label and source
@@ -3177,7 +3167,6 @@ def extract_label_time_course(stcs, labels, src, mode='auto',
     %(eltc_allow_empty)s
     return_generator : bool
         If True, a generator instead of a list is returned.
-    %(trans_deprecated)s
     %(eltc_mri_resolution)s
     %(verbose)s
 
@@ -3205,7 +3194,7 @@ def extract_label_time_course(stcs, labels, src, mode='auto',
 
     label_tc = _gen_extract_label_time_course(
         stcs, labels, src, mode=mode, allow_empty=allow_empty,
-        trans=trans, mri_resolution=mri_resolution)
+        mri_resolution=mri_resolution)
 
     if not return_generator:
         # do the extraction and return a list

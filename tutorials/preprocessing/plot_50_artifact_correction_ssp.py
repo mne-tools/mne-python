@@ -109,10 +109,10 @@ for average in (False, True):
 # Creating the empty-room projectors
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
-# We create the SSP vectors using :func:`~mne.compute_proj_raw`, and control
+# We create the SSP vectors using `~mne.compute_proj_raw`, and control
 # the number of projectors with parameters ``n_grad`` and ``n_mag``. Once
 # created, the field pattern of the projectors can be easily visualized with
-# :func:`~mne.viz.plot_projs_topomap`. We include the parameter
+# `~mne.viz.plot_projs_topomap`. We include the parameter
 # ``vlim='joint'`` so that the colormap is computed jointly for all projectors
 # of a given channel type; this makes it easier to compare their relative
 # smoothness. Note that for the function to know the types of channels in a
@@ -144,7 +144,7 @@ for idx, _projs in enumerate([system_projs, empty_room_projs[3:]]):
 #
 # We could visualize the different effects these have on the data by applying
 # each set of projectors to different copies of the `~mne.io.Raw` object
-# using :meth:`~mne.io.Raw.apply_proj`. However, the :meth:`~mne.io.Raw.plot`
+# using `~mne.io.Raw.apply_proj`. However, the `~mne.io.Raw.plot`
 # method has a ``proj`` parameter that allows us to *temporarily* apply
 # projectors while plotting, so we can use this to visualize the difference
 # without needing to copy the data. Because the projectors are so similar, we
@@ -160,7 +160,7 @@ for title, projs in [('system', system_projs),
 
 ###############################################################################
 # The effect is sometimes easier to see on averaged data. Here we use an
-# interactive feature of :func:`mne.Evoked.plot_topomap` to turn projectors on
+# interactive feature of `mne.Evoked.plot_topomap` to turn projectors on
 # and off to see the effect on the data. Of course, the interactivity won't
 # work on the tutorial website, but you can download the tutorial and try it
 # locally:
@@ -207,7 +207,7 @@ raw.plot(order=artifact_picks, n_channels=len(artifact_picks))
 #
 # MNE-Python provides several functions for detecting and removing heartbeats
 # from EEG and MEG data. As we saw in :ref:`tut-artifact-overview`,
-# :func:`~mne.preprocessing.create_ecg_epochs` can be used to both detect and
+# `~mne.preprocessing.create_ecg_epochs` can be used to both detect and
 # extract heartbeat artifacts into an `~mne.Epochs` object, which can
 # be used to visualize how the heartbeat artifacts manifest across the sensors:
 
@@ -223,11 +223,11 @@ ecg_evoked.plot_joint()
 
 ###############################################################################
 # To compute SSP projectors for the heartbeat artifact, you can use
-# :func:`~mne.preprocessing.compute_proj_ecg`, which takes a
+# `~mne.preprocessing.compute_proj_ecg`, which takes a
 # `~mne.io.Raw` object as input and returns the requested number of
 # projectors for magnetometers, gradiometers, and EEG channels (default is two
 # projectors for each channel type).
-# :func:`~mne.preprocessing.compute_proj_ecg` also returns an :term:`events`
+# `~mne.preprocessing.compute_proj_ecg` also returns an :term:`events`
 # array containing the sample numbers corresponding to the peak of the
 # `R wave <https://en.wikipedia.org/wiki/QRS_complex>`__ of each detected
 # heartbeat.
@@ -236,7 +236,7 @@ projs, events = compute_proj_ecg(raw, n_grad=1, n_mag=1, n_eeg=1, reject=None)
 
 ###############################################################################
 # The first line of output tells us that
-# :func:`~mne.preprocessing.compute_proj_ecg` found three existing projectors
+# `~mne.preprocessing.compute_proj_ecg` found three existing projectors
 # already in the `~mne.io.Raw` object, and will include those in the
 # list of projectors that it returns (appending the new ECG projectors to the
 # end of the list). If you don't want that, you can change that behavior with
@@ -256,7 +256,7 @@ mne.viz.plot_projs_topomap(ecg_projs, info=raw.info)
 ###############################################################################
 # Since no dedicated ECG sensor channel was detected in the
 # `~mne.io.Raw` object, by default
-# :func:`~mne.preprocessing.compute_proj_ecg` used the magnetometers to
+# `~mne.preprocessing.compute_proj_ecg` used the magnetometers to
 # estimate the ECG signal (as stated on the third line of output, above). You
 # can also supply the ``ch_name`` parameter to restrict which channel to use
 # for ECG artifact detection; this is most useful when you had an ECG sensor
@@ -266,13 +266,13 @@ mne.viz.plot_projs_topomap(ecg_projs, info=raw.info)
 # events. The default settings are usually adequate, but the filter can be
 # customized via the parameters ``ecg_l_freq``, ``ecg_h_freq``, and
 # ``filter_length`` (see the documentation of
-# :func:`~mne.preprocessing.compute_proj_ecg` for details).
+# `~mne.preprocessing.compute_proj_ecg` for details).
 #
 # .. TODO what are the cases where you might need to customize the ECG filter?
 #    infants? Heart murmur?
 #
 # Once the ECG events have been identified,
-# :func:`~mne.preprocessing.compute_proj_ecg` will also filter the data
+# `~mne.preprocessing.compute_proj_ecg` will also filter the data
 # channels before extracting epochs around each heartbeat, using the parameter
 # values given in ``l_freq``, ``h_freq``, ``filter_length``, ``filter_method``,
 # and ``iir_params``. Here again, the default parameter values are usually
@@ -302,7 +302,7 @@ for title, proj in [('Without', empty_room_projs), ('With', ecg_projs)]:
 
 ###############################################################################
 # Finally, note that above we passed ``reject=None`` to the
-# :func:`~mne.preprocessing.compute_proj_ecg` function, meaning that all
+# `~mne.preprocessing.compute_proj_ecg` function, meaning that all
 # detected ECG epochs would be used when computing the projectors (regardless
 # of signal quality in the data sensors during those epochs). The default
 # behavior is to reject epochs based on signal amplitude: epochs with
@@ -319,22 +319,22 @@ for title, proj in [('Without', empty_room_projs), ('With', ecg_projs)]:
 #
 # .. note::
 #
-#     :func:`~mne.preprocessing.compute_proj_ecg` has a similar parameter
+#     `~mne.preprocessing.compute_proj_ecg` has a similar parameter
 #     ``flat`` for specifying the *minimum* acceptable peak-to-peak amplitude
 #     for each channel type.
 #
-# While :func:`~mne.preprocessing.compute_proj_ecg` conveniently combines
+# While `~mne.preprocessing.compute_proj_ecg` conveniently combines
 # several operations into a single function, MNE-Python also provides functions
 # for performing each part of the process. Specifically:
 #
-# - :func:`mne.preprocessing.find_ecg_events` for detecting heartbeats in a
+# - `mne.preprocessing.find_ecg_events` for detecting heartbeats in a
 #   `~mne.io.Raw` object and returning a corresponding :term:`events`
 #   array
 #
-# - :func:`mne.preprocessing.create_ecg_epochs` for detecting heartbeats in a
+# - `mne.preprocessing.create_ecg_epochs` for detecting heartbeats in a
 #   `~mne.io.Raw` object and returning an `~mne.Epochs` object
 #
-# - :func:`mne.compute_proj_epochs` for creating projector(s) from any
+# - `mne.compute_proj_epochs` for creating projector(s) from any
 #   `~mne.Epochs` object
 #
 # See the documentation of each function for further details.
@@ -353,7 +353,7 @@ eog_evoked.plot_joint()
 
 ###############################################################################
 # Just like we did with the heartbeat artifact, we can compute SSP projectors
-# for the ocular artifact using :func:`~mne.preprocessing.compute_proj_eog`,
+# for the ocular artifact using `~mne.preprocessing.compute_proj_eog`,
 # which again takes a `~mne.io.Raw` object as input and returns the
 # requested number of projectors for magnetometers, gradiometers, and EEG
 # channels (default is two projectors for each channel type). This time, we'll
@@ -427,7 +427,7 @@ for title in ('Without', 'With'):
 # source amplitudes. However, for sensor space analyses, it can be useful to
 # visualize the extent to which SSP projection has biased the data. This can be
 # explored by using ``proj='reconstruct'`` in evoked plotting functions, for
-# example via :meth:`evoked.plot() <mne.Evoked.plot>`:
+# example via `evoked.plot() <mne.Evoked.plot>`:
 
 evoked = epochs.average()
 # Apply the average ref first:
