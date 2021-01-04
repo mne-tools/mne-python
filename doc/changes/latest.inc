@@ -17,7 +17,7 @@ Current (0.23.dev0)
 
 Enhancements
 ~~~~~~~~~~~~
-- None yet
+- Speed up :func:`mne.inverse_sparse.tf_mixed_norm` using STFT/ISTFT linearity by `Eric Larson`_
 
 Bugs
 ~~~~

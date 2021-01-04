@@ -775,23 +775,25 @@ def safe_max_abs_diff(A, ia, B, ib):
 class _Phi(object):
     """Have phi stft as callable w/o using a lambda that does not pickle."""
 
-    def __init__(self, wsize, tstep, n_coefs):  # noqa: D102
+    def __init__(self, wsize, tstep, n_coefs, n_times):  # noqa: D102
         self.wsize = np.atleast_1d(wsize)
         self.tstep = np.atleast_1d(tstep)
         self.n_coefs = np.atleast_1d(n_coefs)
         self.n_dicts = len(tstep)
         self.n_freqs = wsize // 2 + 1
         self.n_steps = self.n_coefs // self.n_freqs
+        self.n_times = n_times
+        # ravel freq+time here
+        self.ops = [
+            stft(np.eye(n_times), ws, ts, verbose=False).reshape(n_times, -1)
+            for ws, ts in zip(self.wsize, self.tstep)]
 
     def __call__(self, x):  # noqa: D105
         if self.n_dicts == 1:
-            return stft(x, self.wsize[0], self.tstep[0],
-                        verbose=False).reshape(-1, self.n_coefs[0])
+            return x @ self.ops[0]
         else:
             return np.hstack(
-                [stft(x, self.wsize[i], self.tstep[i], verbose=False).reshape(
-                 -1, self.n_coefs[i]) for i in range(self.n_dicts)]) / np.sqrt(
-                self.n_dicts)
+                [x @ op for op in self.ops]) / np.sqrt(self.n_dicts)
 
     def norm(self, z, ord=2):
         """Squared L2 norm if ord == 2 and L1 norm if order == 1."""
@@ -820,19 +822,26 @@ class _PhiT(object):
         self.n_steps = n_steps
         self.n_times = n_times
         self.n_dicts = len(tstep) if isinstance(tstep, np.ndarray) else 1
-        self.n_coefs = self.n_freqs * self.n_steps
+        self.n_coefs = list()
+        self.op_re = list()
+        self.op_im = list()
+        for nf, ns, ts in zip(self.n_freqs, self.n_steps, self.tstep):
+            nc = nf * ns
+            self.n_coefs.append(nc)
+            eye = np.eye(nc).reshape(nf, ns, nf, ns)
+            self.op_re.append(istft(
+                eye, ts, n_times).reshape(nc, n_times))
+            self.op_im.append(istft(
+                eye * 1j, ts, n_times).reshape(nc, n_times))
 
     def __call__(self, z):  # noqa: D105
         if self.n_dicts == 1:
-            return istft(z.reshape(-1, self.n_freqs[0], self.n_steps[0]),
-                         self.tstep[0], self.n_times)
+            return z.real @ self.op_re[0] + z.imag @ self.op_im[0]
         else:
             x_out = np.zeros((z.shape[0], self.n_times))
             z_ = np.array_split(z, np.cumsum(self.n_coefs)[:-1], axis=1)
-            for i in range(self.n_dicts):
-                x_out += istft(z_[i].reshape(-1, self.n_freqs[i],
-                                             self.n_steps[i]),
-                               self.tstep[i], self.n_times)
+            for this_z, op_re, op_im in zip(z_, self.op_re, self.op_im):
+                x_out += this_z.real @ op_re + this_z.imag @ op_im
             return x_out / np.sqrt(self.n_dicts)
 
 
@@ -1128,15 +1137,13 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
                                w_space=None, w_time=None, n_orient=1,
                                maxit=200, tol=1e-8, dgap_freq=10, perc=None,
                                timeit=True, verbose=None):
-
-    # First make G fortran for faster access to blocks of columns
-    G = np.asfortranarray(G)
-
     n_sources = G.shape[1]
     n_positions = n_sources // n_orient
 
-    Gd = G.copy()
-    G = dict(zip(np.arange(n_positions), np.hsplit(G, n_positions)))
+    # First make G fortran for faster access to blocks of columns
+    Gd = np.asfortranarray(G)
+    G = np.ascontiguousarray(
+        Gd.T.reshape(n_positions, n_orient, -1).transpose(0, 2, 1))
 
     R = M.copy()  # residual
     active = np.where(active_set[::n_orient])[0]
@@ -1183,11 +1190,12 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
                     Z[jj] = 0.0
                     active_set_j[:] = False
             else:
+                GTR_phi = phi(GTR)
                 if was_active:
-                    Z_j_new = Z_j + phi(GTR)
+                    Z_j_new = Z_j + GTR_phi
                 else:
-                    Z_j_new = phi(GTR)
-                col_norm = np.sqrt(np.sum(np.abs(Z_j_new) ** 2, axis=0))
+                    Z_j_new = GTR_phi
+                col_norm = np.linalg.norm(Z_j_new, axis=0)
 
                 if np.all(col_norm <= alpha_time_lc[jj]):
                     Z[jj] = 0.0
@@ -1213,7 +1221,8 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
                         Z_j_new *= shrink
                         Z[jj] = Z_j_new.reshape(-1, *shape_init[1:]).copy()
                         active_set_j[:] = True
-                        R -= np.dot(G_j, phiT(Z[jj]))
+                        Z_j_phi_T = phiT(Z[jj])
+                        R -= np.dot(G_j, Z_j_phi_T)
 
         if (i + 1) % dgap_freq == 0:
             Zd = np.vstack([Z[pos] for pos in range(n_positions)
@@ -1419,7 +1428,7 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
     n_steps = np.ceil(M.shape[1] / tstep.astype(float)).astype(int)
     n_freqs = wsize // 2 + 1
     n_coefs = n_steps * n_freqs
-    phi = _Phi(wsize, tstep, n_coefs)
+    phi = _Phi(wsize, tstep, n_coefs, n_times)
     phiT = _PhiT(tstep, n_freqs, n_steps, n_times)
 
     if n_orient == 1:
@@ -1518,7 +1527,7 @@ def iterative_tf_mixed_norm_solver(M, G, alpha_space, alpha_time,
     n_steps = np.ceil(n_times / tstep.astype(float)).astype(int)
     n_freqs = wsize // 2 + 1
     n_coefs = n_steps * n_freqs
-    phi = _Phi(wsize, tstep, n_coefs)
+    phi = _Phi(wsize, tstep, n_coefs, n_times)
     phiT = _PhiT(tstep, n_freqs, n_steps, n_times)
 
     if n_orient == 1:
