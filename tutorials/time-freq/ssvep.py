@@ -132,7 +132,7 @@ psds, freqs = mne.time_frequency.psd_welch(
     epochs,
     n_fft=int(sf * (tmax - tmin)), n_overlap=int(sf * .5), n_per_seg=None,
     tmin=tmin, tmax=tmax,
-    fmin=fmin, fmax=fmax)
+    fmin=fmin, fmax=fmax, verbose=True)
 
 
 ###############################################################################
@@ -275,92 +275,100 @@ fig.show()
 # The PSD spectrum shows a prominent negative peak and average SNR approaches 0.
 #
 
-###############################################################################
-# Find frequency bin containing stimulation frequency
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# Ideally, this bin should should have the stimulation frequency exactly in the
-# center.
-
-stim_freq = 12.
-tmp_distlist = abs(np.subtract(freqs, stim_freq))
-i_signal = np.where(tmp_distlist == min(tmp_distlist))[0][0]
-# could be updated to support multiple frequencies
-
-###############################################################################
-# Calculate SNR
-# ^^^^^^^^^^^^^
-# Extract and average SNRs at this frequency
-snrs_stim = snrs[:, :, i_signal]  # trial subselection can be done here
-print('average SNR at %iHz (all channels, all trials): %.3f '
-      % (stim_freq, snrs_stim.mean()))
-
-
-
-
-
-##############################################################################
-# SNR spectrum - averaged over channels
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-plt.figure()
-plt.semilogy(freqs, snrs.mean(axis=1).T, color='grey', alpha=0.1)
-plt.axvline(x=stim_freq, ls=':')
-plt.semilogy(freqs, snrs.mean(axis=(0, 1)), color='r')
-plt.gca().set(title="SNR spectrum - averaged over channels", xlabel='Frequency [Hz]',
-              ylabel='SNR', ylim=[0, 20])
-plt.show()
-
-##############################################################################
-# SNR topography - grand average per channel
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-
-# create montage (here the default)
-montage = mne.channels.make_standard_montage('easycap-M1', head_size=0.095)  # head_size parameter default = 0.095
-
-# convert digitization to xyz coordinates
-montage.positions = montage._get_ch_pos()  # luckily i dug this out in the mne code!
-
-# plot montage, if wanted
-# montage.plot(show=True)
-
-# snr topography-plot grand average (all subs, all trials)
-
-# get grand average SNR per channel (all subs, all trials) and electrode labels
-snr_grave = snrs_stim.mean(axis=0)
-
-# select only present channels from the standard montage
-topo_pos_grave = []
-[topo_pos_grave.append(montage.positions[ch][:2]) for ch in epochs.info['ch_names']]
-topo_pos_grave = np.array(topo_pos_grave)
-
-# plot SNR topography
-f, ax = plt.subplots()
-mne.viz.plot_topomap(snr_grave, topo_pos_grave, vmin=1., axes=ax)
-print("sub 2, all trials")
-print("average SNR: %f" % snr_grave.mean())
 
 ###############################################################################
 # Subsetting data
 # ---------------
 #
-# For statistical comparison you probably want specific subsets of the SNR
-# array. Either some channels, or - obviously - different trials depending on
-# the stimuli.
+# For statistical comparison you probably need specific subsets of the SNR
+# array. Either different channels/ROIs, or most likely different trials with
+# different stimuli. Lets get some experience with this..
 #
-# - So far, one needs to define the indices of the channels / trials by hand -
-#   not nice.
-# - Alternatively, one can subset trials already at the epoch level using MNEs
-#   event information, and create individual PSD and SNR objects.
+# We will have to find the indices of trials, channels, etc. and subset
+# the data we want from the full dataset with all trials, channels, and frequenciy bins.
+# Alternatively, one could subset the trials already at the epoching step using MNE's
+# event information.
 #
-# Here we have already subsetted trials before snr calculation (only 12Hz
-# stimulation) and will now compare SNR in different channel subsets.
+# Let's have a look at SNR at 12 hz in the trials with 12 hz stimulation, for now:
 #
-# For illustration purposes, we will still subset the first 5 and last 5 of the
-# 10 trials with 12hz stimulation.
+
+# get indices of the trials with 12 hz stimulation
+i_trial_12hz = epochs.events[:, 2] == event_id['12hz']
+
+###############################################################################
+# Find frequency bin containing stimulation frequency
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Ideally, there would be a bin with the stimulation frequency exactly in its
+# center. However, depending on your Spectral decomposition this is not
+# always the case. We will find the bin closest to and thus containing our
+# stimulation frequency.
+#
+# SNR in these bins will be our dependant measure.
+
+# define frequency of choice
+stim_freq = 12.
+
+# find index of closest frequency bin
+tmp_distlist = abs(np.subtract(freqs, stim_freq))
+i_bin_12hz = np.where(tmp_distlist == min(tmp_distlist))[0][0]
+# could be updated to support multiple frequencies
+
+# Now we extract SNRs at this frequency for all channels (only from the 10
+# trials with 12hz stimulation)
+snrs_12hz = snrs[i_trial_12hz, :, i_bin_12hz]
+
+# .. and average SNR per channel
+snrs_12hz_chaverage = snrs_12hz.mean(axis=0)
 
 
 ##############################################################################
+# SNR topography - grand average per channel
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# As described in the intro, we have decided *a priori* to work with average
+# SNR over a subset of occipital channels - a visual region of interest (ROI)
+# - because we expect SNR to be higher on these channels than if we would
+# average over all channels.
+#
+# Lets check out, whether this was a good decision!
+#
+# Here we will plot average SNR for each channel location as a topoplot:
+
+# create a standard montage
+montage = mne.channels.make_standard_montage('easycap-M1', head_size=0.095)  # head_size parameter default = 0.095
+
+# add xyz coordinates for all channels
+montage.positions = montage._get_ch_pos()  # luckily i dug this out in the mne code!
+
+# select only channels from the standard montage that are present in our data
+topo_pos_grave = []
+[topo_pos_grave.append(montage.positions[ch][:2]) for ch in epochs.info['ch_names']]
+topo_pos_grave = np.array(topo_pos_grave)
+
+# plot SNR topography, eventually
+f, ax = plt.subplots()
+mne.viz.plot_topomap(snrs_12hz_chaverage, topo_pos_grave, vmin=1., axes=ax)
+print("sub 2, 12hz trials, SNR at 12hz")
+print("grand average SNR: %f" % snrs_12hz_chaverage.mean())
+
+
+##############################################################################
+# We can see, that there is indeed a cluster of high-SNR channels in the
+# occipital region. Great!
+#
+# keep in mind, that this is only one subject. it can illustrate, however,
+# how easy it might be to do double-dipping (selecting an ROI or individual
+# channels by looking at the data).
+
+##############################################################################
+# select ROI data
+# ^^^^^^^^^^^^^^^
+# Now that we have had a look and saw, that our decision for a visual ROI
+# seemed ok (at least for this subject) lets move on to do what we actually
+# want to do: having statistical fun with our data ;)
+#
+# Therefore, lets do what we have said and apply a visual ROI:
+#
+
 # Define ROIs
 roi_temporal = ['T7', 'F7', 'T8', 'F8']  # temporal
 roi_aud = ['AFz', 'Fz', 'FCz', 'Cz', 'CPz', 'F1', 'FC1',
@@ -368,49 +376,29 @@ roi_aud = ['AFz', 'Fz', 'FCz', 'Cz', 'CPz', 'F1', 'FC1',
 roi_vis = ['POz', 'Oz', 'O1', 'O2', 'PO3', 'PO4', 'PO7',
            'PO8', 'PO9', 'PO10', 'O9', 'O10']  # visual roi
 
-##############################################################################
 # Create corresponding picks
-picks_roi_temp = mne.pick_types(raw.info, eeg=True, stim=False,
+picks_roi_temp = mne.pick_types(epochs.info, eeg=True, stim=False,
                                 exclude='bads', selection=roi_temporal)
-picks_roi_aud = mne.pick_types(raw.info, eeg=True, stim=False,
+picks_roi_aud = mne.pick_types(epochs.info, eeg=True, stim=False,
                                exclude='bads', selection=roi_aud)
-picks_roi_vis = mne.pick_types(raw.info, eeg=True, stim=False,
+picks_roi_vis = mne.pick_types(epochs.info, eeg=True, stim=False,
                                exclude='bads', selection=roi_vis)
 
-##############################################################################
 # Subset data based on ROIs
-snrs_trialwise_roi_aud = snrs_stim[:, picks_roi_aud]
-snrs_trialwise_roi_vis = snrs_stim[:, picks_roi_vis]
-snrs_trialwise_temp = snrs_stim[:, picks_roi_temp]
+snrs_12hz_roi_aud = snrs_12hz[:, picks_roi_aud]
+snrs_12hz_roi_vis = snrs_12hz[:, picks_roi_vis]
+snrs_12hz_roi_temp = snrs_12hz[:, picks_roi_temp]
 
-##############################################################################
-# SNR for different ROIs
+
+# average SNR for different ROIs
 print('mean SNR (all channels, all trials) at %iHz = %.3f '
-      % (stim_freq, snrs_stim.mean()))
+      % (stim_freq, snrs_12hz.mean()))
 print('mean SNR (auditory ROI) at %iHz = %.3f '
-      % (stim_freq, snrs_trialwise_roi_aud.mean()))
+      % (stim_freq, snrs_12hz_roi_aud.mean()))
 print('mean SNR (visual ROI) at %iHz = %.3f '
-      % (stim_freq, snrs_trialwise_roi_vis.mean()))
+      % (stim_freq, snrs_12hz_roi_vis.mean()))
 print('mean SNR (temporal chans) at %iHz = %.3f '
-      % (stim_freq, snrs_trialwise_temp.mean()))
-
-
-##############################################################################
-# Define trial subsets
-i_cat1_1 = [i for i in range(5)]
-i_cat1_2 = [i for i in range(5, 10)]
-
-##############################################################################
-# Subset data trial-wise
-snrs_trialwise_cat1_1 = snrs_stim[i_cat1_1, :]
-snrs_trialwise_cat1_2 = snrs_stim[i_cat1_2, :]
-
-##############################################################################
-# SNR for different subsets of trials
-print('mean SNR (trial subset 1) at %iHz = %.3f '
-      % (stim_freq, snrs_trialwise_cat1_1.mean()))
-print('mean SNR (trial subset 2) at %iHz = %.3f '
-      % (stim_freq, snrs_trialwise_cat1_2.mean()))
+      % (stim_freq, snrs_12hz_roi_temp.mean()))
 
 
 ##############################################################################
@@ -424,10 +412,29 @@ print('mean SNR (trial subset 2) at %iHz = %.3f '
 
 ##############################################################################
 # Compare SNR in ROIs after averaging over channels
-tstat_roi = ttest_rel(snrs_trialwise_roi_vis.mean(axis=1),
-                      snrs_stim.mean(axis=1))
+tstat_roi = ttest_rel(snrs_12hz_roi_vis.mean(axis=1),
+                      snrs_12hz.mean(axis=1))
 print("trial-wise SNR in visual ROI is significantly different from full scalp"
       " montage: t = %.3f, p = %f" % tstat_roi)
+
+##############################################################################
+# Define trial subsets
+i_cat1_1 = [i for i in range(5)]
+i_cat1_2 = [i for i in range(5, 10)]
+
+##############################################################################
+# Subset data trial-wise
+snrs_trialwise_cat1_1 = snrs_12hz[i_cat1_1, :]
+snrs_trialwise_cat1_2 = snrs_12hz[i_cat1_2, :]
+
+##############################################################################
+# SNR for different subsets of trials
+print('mean SNR (trial subset 1) at %iHz = %.3f '
+      % (stim_freq, snrs_trialwise_cat1_1.mean()))
+print('mean SNR (trial subset 2) at %iHz = %.3f '
+      % (stim_freq, snrs_trialwise_cat1_2.mean()))
+
+
 
 ##############################################################################
 # Compare SNR in subsets of trials after averaging over channels
