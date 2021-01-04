@@ -32,11 +32,11 @@ from ..externals.doccer import docformat
 # ``?version=``) and update the md5 hash directly in _data_path.
 _RELEASES = dict(
     testing='0.112',
-    misc='0.7',
+    misc='0.8',
 )
 _HASHES = dict(
     testing='8eabd73532dd7df7c155983962c5b1fd',
-    misc='2b2f2fec9d1197ed459117db1c6341ee',
+    misc='0f88194266121dd9409be94184231f25',
 )
 
 _data_path_doc = """Get path to local copy of {name} dataset.
