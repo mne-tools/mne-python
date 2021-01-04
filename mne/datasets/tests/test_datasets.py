@@ -1,5 +1,6 @@
 import os
 from os import path as op
+import re
 import shutil
 import zipfile
 import sys
@@ -11,7 +12,7 @@ from mne.datasets import testing
 from mne.datasets._fsaverage.base import _set_montage_coreg_path
 from mne.datasets.utils import _manifest_check_download
 
-from mne.utils import (run_tests_if_main, requires_good_network, modified_env,
+from mne.utils import (requires_good_network, modified_env,
                        get_subjects_dir, ArgvSetter, _pl, use_log_level,
                        catch_logging, hashfunc)
 
@@ -52,18 +53,62 @@ def test_datasets_basic(tmpdir):
         assert sd.endswith('MNE-fsaverage-data')
 
 
-def _fake_fetch_file(url, destination, print_destination=False):
-    with open(destination, 'w') as fid:
-        fid.write(url)
-
-
 @requires_good_network
-def test_downloads(tmpdir):
-    """Test dataset URL handling."""
+def test_downloads(tmpdir, monkeypatch, capsys):
+    """Test dataset URL and version handling."""
     # Try actually downloading a dataset
-    path = datasets._fake.data_path(path=str(tmpdir), update_path=False)
+    kwargs = dict(path=str(tmpdir), verbose=True)
+    path = datasets._fake.data_path(update_path=False, **kwargs)
+    out, _ = capsys.readouterr()
+    assert 'Downloading' in out
+    assert op.isdir(path)
     assert op.isfile(op.join(path, 'bar'))
+    assert not datasets.utils.has_dataset('fake')  # not in the desired path
     assert datasets._fake.get_version() is None
+    assert datasets.utils._get_version('fake') is None
+    monkeypatch.setenv('_MNE_FAKE_HOME_DIR', str(tmpdir))
+    with pytest.warns(RuntimeWarning, match='non-standard config'):
+        new_path = datasets._fake.data_path(update_path=True, **kwargs)
+    assert path == new_path
+    out, _ = capsys.readouterr()
+    assert 'Downloading' not in out
+    # No version: shown as existing but unknown version
+    assert datasets.utils.has_dataset('fake')
+    # XXX logic bug, should be "unknown"
+    assert datasets._fake.get_version() == '0.7'
+    # With a version but no required one: shown as existing and gives version
+    fname = tmpdir / 'foo' / 'version.txt'
+    with open(fname, 'w') as fid:
+        fid.write('0.1')
+    assert datasets.utils.has_dataset('fake')
+    assert datasets._fake.get_version() == '0.1'
+    datasets._fake.data_path(download=False, **kwargs)
+    out, _ = capsys.readouterr()
+    assert 'out of date' not in out
+    # With the required version: shown as existing with the required version
+    monkeypatch.setattr(datasets.utils, '_FAKE_VERSION', '0.1')
+    assert datasets.utils.has_dataset('fake')
+    assert datasets._fake.get_version() == '0.1'
+    datasets._fake.data_path(download=False, **kwargs)
+    out, _ = capsys.readouterr()
+    assert 'out of date' not in out
+    monkeypatch.setattr(datasets.utils, '_FAKE_VERSION', '0.2')
+    # With an older version:
+    # 1. Marked as not actually being present
+    assert not datasets.utils.has_dataset('fake')
+    # 2. Will try to update when `data_path` gets called, with logged message
+    want_msg = 'Correctly trying to download newer version'
+
+    def _error_download(url, full_name, print_destination, hash_, hash_type):
+        assert 'foo.tgz' in url
+        assert str(tmpdir) in full_name
+        raise RuntimeError(want_msg)
+
+    monkeypatch.setattr(datasets.utils, '_fetch_file', _error_download)
+    with pytest.raises(RuntimeError, match=want_msg):
+        datasets._fake.data_path(**kwargs)
+    out, _ = capsys.readouterr()
+    assert re.match(r'.* 0\.1 .*out of date.* 0\.2.*', out, re.MULTILINE), out
 
 
 @pytest.mark.slowtest
@@ -151,6 +196,3 @@ def test_manifest_check_download(tmpdir, n_have, monkeypatch):
     assert op.isdir(destination)
     for fname in _zip_fnames:
         assert op.isfile(op.join(destination, fname))
-
-
-run_tests_if_main()
