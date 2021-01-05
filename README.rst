@@ -115,10 +115,10 @@ Please see the documentation on the MNE-Python homepage:
 https://mne.tools/dev/install/contributing.html
 
 
-Mailing list
+Forum
 ^^^^^^^^^^^^
 
-http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis
+https://mne.discourse.group
 
 
 Licensing
