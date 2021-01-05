@@ -27,17 +27,11 @@ stages:
       - bash: echo "##vso[task.setvariable variable=RET]false"
         condition: or(contains(variables.log, '[skip azp]'), contains(variables.log, '[azp skip]'), contains(variables.log, '[skip ci]'), contains(variables.log, '[ci skip]'))
       - bash: |
-          data_log=`grep -o "testing='[0-9.]\+'" mne/datasets/utils.py | cut -d \' -f 2`
           echo "##vso[task.setvariable variable=start_main;isOutput=true]$RET"
-          echo "##vso[task.setvariable variable=testing_version;isOutput=true]$data_log"
         name: result
 
 - stage: Main
   condition: and(succeeded(), eq(dependencies.Check.outputs['Skip.result.start_main'], 'true'))
-  variables:
-    data_version1: $[ dependencies.Check.outputs['Skip.result.testing_version'] ]
-    data_version2: $(dependencies.Check.outputs['Skip.result.testing_version'])
-    data_version3: dependencies.Check.outputs['Skip.result.testing_version']
   dependsOn: Check
   jobs:
   # - job: Style
@@ -148,15 +142,10 @@ stages:
     steps:
     - bash: |
         set -e
-        echo "version1:"
-        echo $(variables.data_version1)
-        echo "version2:"
-        echo $(variables.data_version2)
-        echo "version3:"
-        echo $(variables.data_version3)
-        echo "##vso[task.setvariable variable=data_version]'0.112'"
         echo "Testing version:"
-        echo $[ data_version ]
+        data_log=`grep -o "testing='[0-9.]\+'" mne/datasets/utils.py | cut -d \' -f 2`
+        echo "##vso[task.setvariable variable=testing_version;isOutput=true]$data_log"
+        echo $(testing_version)
     - bash: |
         set -e
         wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh --progress=dot:mega
@@ -174,7 +163,7 @@ stages:
       displayName: 'Print config and test access to commands'
     - task: Cache@2
       inputs:
-        key: 'key $[ variables.data_version ]'
+        key: "key$(testing_version)"
         path: /home/vsts/mne_data
       displayName: 'Cache testing data'
     - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
