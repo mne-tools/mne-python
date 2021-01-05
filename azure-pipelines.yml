@@ -28,7 +28,7 @@ stages:
         name: data_result
       - bash: |
           echo "Testing version:"
-          echo $(testing_version)
+          echo ${{ variables.testing_version }}
       - bash: |
           git_log=`git log --max-count=1 --skip=1 --pretty=format:"%s"`
           echo "##vso[task.setvariable variable=log]$git_log"
@@ -41,8 +41,8 @@ stages:
   condition: and(succeeded(), eq(dependencies.Check.outputs['Skip.result.start_main'], 'true'))
   dependsOn: Check
   variables:
-    # data_version: $[ dependencies.Check.outputs['Skip.data_result.testing_version'] ]
-    data_version: "0.112"
+    data_version: $[ dependencies.Check.outputs['Skip.data_result.testing_version'] ]
+    # data_version: "0.112"
   jobs:
   # - job: Style
   #   pool:
@@ -171,7 +171,7 @@ stages:
       displayName: 'Print config and test access to commands'
     - task: Cache@2
       inputs:
-        key: $(data_version)
+        key: "key: " | $(data_version)
         path: /home/vsts/mne_data
       displayName: 'Cache testing data'
     - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
