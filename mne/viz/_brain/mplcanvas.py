@@ -12,9 +12,9 @@ class MplCanvas(object):
     """Ultimately, this is a QWidget (as well as a FigureCanvasAgg, etc.)."""
 
     def __init__(self, brain, width, height, dpi, notebook=False):
-        import matplotlib.pyplot as plt
         from matplotlib import rc_context
         from matplotlib.figure import Figure
+        self.notebook = notebook
         if brain.separate_canvas:
             parent = None
         else:
@@ -22,20 +22,21 @@ class MplCanvas(object):
         # prefer constrained layout here but live with tight_layout otherwise
         context = nullcontext
         extra_events = ('resize',)
-        self.notebook = notebook
+        try:
+            context = rc_context({'figure.constrained_layout.use': True})
+            extra_events = ()
+        except KeyError:
+            pass
+        with context:
+            self.fig = Figure(figsize=(width, height), dpi=dpi)
         if self.notebook:
-            self.fig = plt.figure(figsize=(width, height), dpi=dpi)
-            self.canvas = plt.gcf().canvas
+            from matplotlib.backends.backend_nbagg import (FigureCanvasNbAgg,
+                                                           FigureManager)
+            self.canvas = FigureCanvasNbAgg(self.fig)
+            self.manager = FigureManager(self.canvas, 0)
         else:
             from PyQt5 import QtWidgets
             from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
-            try:
-                context = rc_context({'figure.constrained_layout.use': True})
-                extra_events = ()
-            except KeyError:
-                pass
-            with context:
-                self.fig = Figure(figsize=(width, height), dpi=dpi)
             self.canvas = FigureCanvasQTAgg(self.fig)
             self.canvas.setParent(parent)
             FigureCanvasQTAgg.setSizePolicy(
@@ -44,6 +45,7 @@ class MplCanvas(object):
                 QtWidgets.QSizePolicy.Expanding
             )
             FigureCanvasQTAgg.updateGeometry(self.canvas)
+            self.manager = None
         self.axes = self.fig.add_subplot(111)
         self.axes.set(xlabel='Time (sec)', ylabel='Activation (AU)')
         self.brain = brain
@@ -92,7 +94,9 @@ class MplCanvas(object):
 
     def show(self):
         """Show the canvas."""
-        if hasattr(self.canvas, "show"):
+        if self.notebook:
+            self.manager.show()
+        else:
             self.canvas.show()
 
     def close(self):
@@ -115,6 +119,7 @@ class MplCanvas(object):
         self.fig.clear()
         self.brain = None
         self.canvas = None
+        self.manager = None
 
     on_motion_notify = on_button_press  # for now they can be the same
 
