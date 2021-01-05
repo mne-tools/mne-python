@@ -48,6 +48,15 @@ if __name__ == "__main__":
     with open('README.rst', 'r') as fid:
         long_description = fid.read()
 
+    hard_dependencies = ('numpy', 'scipy')
+    install_requires = list()
+    with open('requirements.txt', 'r') as fid:
+        for line in fid:
+            req = line.strip()
+            for hard_dep in hard_dependencies:
+                if req.startswith(hard_dep):
+                    install_requires.append(req)
+
     setup(name=DISTNAME,
           maintainer=MAINTAINER,
           include_package_data=True,
@@ -80,7 +89,7 @@ if __name__ == "__main__":
           },
           platforms='any',
           python_requires='>=3.6',
-          install_requires=['numpy>=1.11.3', 'scipy>=0.17.1'],
+          install_requires=install_requires,
           packages=package_tree('mne'),
           package_data={'mne': [
               op.join('data', '*.sel'),

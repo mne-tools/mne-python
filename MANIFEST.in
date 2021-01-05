@@ -50,6 +50,7 @@ exclude .coveragerc
 exclude *.yml
 exclude ignore_words.txt
 exclude .mailmap
+exclude codemeta.json
 recursive-exclude mne *.pyc
 
 recursive-exclude doc *
