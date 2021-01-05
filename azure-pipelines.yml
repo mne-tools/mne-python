@@ -22,26 +22,21 @@ stages:
         RET: 'true'
       steps:
       - bash: |
-          data_log=`grep -o "testing='[0-9.]\+'" mne/datasets/utils.py | cut -d \' -f 2`
-          echo $data_log
-          echo "##vso[task.setvariable variable=testing_version;isOutput=true]$data_log"
-        name: data_result
-      - bash: |
-          echo "Testing version:"
-          echo ${{ variables.testing_version }}
-      - bash: |
           git_log=`git log --max-count=1 --skip=1 --pretty=format:"%s"`
           echo "##vso[task.setvariable variable=log]$git_log"
       - bash: echo "##vso[task.setvariable variable=RET]false"
         condition: or(contains(variables.log, '[skip azp]'), contains(variables.log, '[azp skip]'), contains(variables.log, '[skip ci]'), contains(variables.log, '[ci skip]'))
-      - bash: echo "##vso[task.setvariable variable=start_main;isOutput=true]$RET"
+      - bash: |
+          data_log=`grep -o "testing='[0-9.]\+'" mne/datasets/utils.py | cut -d \' -f 2`
+          echo "##vso[task.setvariable variable=start_main;isOutput=true]$RET"
+          echo "##vso[task.setvariable variable=testing_version;isOutput=true]$data_log"
         name: result
 
 - stage: Main
   condition: and(succeeded(), eq(dependencies.Check.outputs['Skip.result.start_main'], 'true'))
   dependsOn: Check
   variables:
-    data_version: $[ dependencies.Check.outputs['Skip.data_result.testing_version'] ]
+    data_version: $[ dependencies.Check.outputs['Skip.result.testing_version'] ]
     # data_version: "0.112"
   jobs:
   # - job: Style
