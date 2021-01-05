@@ -784,9 +784,11 @@ class _Phi(object):
         self.n_steps = self.n_coefs // self.n_freqs
         self.n_times = n_times
         # ravel freq+time here
-        self.ops = [
-            stft(np.eye(n_times), ws, ts, verbose=False).reshape(n_times, -1)
-            for ws, ts in zip(self.wsize, self.tstep)]
+        self.ops = list()
+        for ws, ts in zip(self.wsize, self.tstep):
+            self.ops.append(
+                stft(np.eye(n_times), ws, ts,
+                     verbose=False).reshape(n_times, -1))
 
     def __call__(self, x):  # noqa: D105
         if self.n_dicts == 1:
