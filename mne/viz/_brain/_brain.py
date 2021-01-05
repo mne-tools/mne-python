@@ -1006,11 +1006,11 @@ class Brain(object):
         if self.notebook:
             dpi = 96
             w, h = self.plotter.window_size
-            h /= ratio
         else:
             dpi = self.window.windowHandle().screen().logicalDotsPerInch()
             w = self.interactor.geometry().width()
-            h = self.interactor.geometry().height() / ratio
+            h = self.interactor.geometry().height()
+        h /= ratio
         # Get the fractional components for the brain and mpl
         self.mpl_canvas = MplCanvas(self, w / dpi, h / dpi, dpi,
                                     self.notebook)
