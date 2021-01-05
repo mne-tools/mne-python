@@ -23,8 +23,9 @@ stages:
       steps:
       - bash: |
           data_log=`grep -o "testing='[0-9.]\+'" mne/datasets/utils.py | cut -d \' -f 2`
+          echo $data_log
           echo "##vso[task.setvariable variable=testing_version;isOutput=true]$data_log"
-        name: testing_version
+        name: data_result
       - bash: |
           echo "Testing version:"
           echo $(testing_version)
@@ -40,8 +41,8 @@ stages:
   condition: and(succeeded(), eq(dependencies.Check.outputs['Skip.result.start_main'], 'true'))
   dependsOn: Check
   variables:
-    # testing_version: $[ dependencies.Check.outputs['Skip.testing_version.testing_version'] ]
-    testing_version: '0.112'
+    # data_version: $[ dependencies.Check.outputs['Skip.data_result.testing_version'] ]
+    data_version: "0.112"
   jobs:
   # - job: Style
   #   pool:
@@ -152,7 +153,7 @@ stages:
     - bash: |
         set -e
         echo "Testing version:"
-        echo $(testing_version)
+        echo $(data_version)
     - bash: |
         set -e
         wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh --progress=dot:mega
@@ -170,7 +171,7 @@ stages:
       displayName: 'Print config and test access to commands'
     - task: Cache@2
       inputs:
-        key: "$(testing_version)"
+        key: $(data_version)
         path: /home/vsts/mne_data
       displayName: 'Cache testing data'
     - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
