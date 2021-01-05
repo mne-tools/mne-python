@@ -6,8 +6,8 @@ Datasets Overview
 .. sidebar:: Contributing datasets to MNE-Python
 
     Do not hesitate to contact MNE-Python developers on the
-    `MNE Forum`_ to discuss the possibility of adding more publicly available
-    datasets.
+    `MNE Forum <https://mne.discourse.group>`_ to discuss the possibility of
+    adding more publicly available datasets.
 
 All the dataset fetchers are available in :mod:`mne.datasets`. To download any of the datasets,
 use the ``data_path`` (fetches full dataset) or the ``load_data`` (fetches dataset partially) functions.
