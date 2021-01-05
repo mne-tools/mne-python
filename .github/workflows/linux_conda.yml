@@ -64,7 +64,7 @@ jobs:
         name: 'Get testing version'
       - uses: actions/cache@v2
         with:
-          path: /home/runner/mne_data
+          path: ~/mne_data
           key: $${{ runner.os }}-{{ env.TESTING_VERSION }}
         name: 'Cache testing data'
       - shell: bash -el {0}
