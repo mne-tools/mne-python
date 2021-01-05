@@ -112,8 +112,14 @@ stages:
         python -m pip install --upgrade pip setuptools
         python -m pip install --upgrade numpy scipy vtk -r requirements.txt -r requirements_testing.txt codecov
       displayName: 'Install dependencies with pip'
+    - task: Cache@2
+      inputs:
+        key: '$(Agent.OS)-0.112'
+        path: '$(Agent.HomeDirectory)/mne_data'
+      displayName: 'Cache testing data'
     - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
       displayName: 'Get test data'
+      condition: always()
     - script: pytest -m "ultraslowtest" --tb=short --cov=mne -vv mne
       displayName: 'Run ultraslow tests'
     - script: codecov --root $BUILD_REPOSITORY_LOCALPATH -t $CODECOV_TOKEN
@@ -148,8 +154,14 @@ stages:
       displayName: 'Install dependencies'
     - script: mne sys_info
       displayName: 'Print config and test access to commands'
+    - task: Cache@2
+      inputs:
+        key: '$(Agent.OS)-0.112'
+        path: '$(Agent.HomeDirectory)/mne_data'
+      displayName: 'Cache testing data'
     - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
       displayName: 'Get test data'
+      condition: always()
     - script: pytest --tb=short --cov=mne -vv mne/viz
       displayName: 'Run viz tests'
     - script: codecov --root $BUILD_REPOSITORY_LOCALPATH -t $CODECOV_TOKEN
@@ -243,15 +255,16 @@ stages:
       displayName: 'Install MNE-Python dev'
     - script: mne sys_info
       displayName: 'Print config and test access to commands'
+    - script: python -c "import numpy; numpy.show_config()"
+      displayName: Print NumPy config
     - task: Cache@2
       inputs:
         key: '$(Agent.OS)-0.112'
         path: '$(Agent.HomeDirectory)/mne_data'
       displayName: 'Cache testing data'
-    - script: python -c "import numpy; numpy.show_config()"
-      displayName: Print NumPy config
     - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
       displayName: 'Get test data'
+      condition: always()
     - script: pytest -m "not slowtest" --tb=short --cov=mne -vv mne
       displayName: 'Run tests'
     - script: codecov --root %BUILD_REPOSITORY_LOCALPATH% -t %CODECOV_TOKEN%
