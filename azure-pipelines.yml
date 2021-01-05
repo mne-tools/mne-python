@@ -158,9 +158,12 @@ stages:
       displayName: 'Install dependencies'
     - script: mne sys_info
       displayName: 'Print config and test access to commands'
+    - bash: |
+        set -e
+        echo "dependencies.Check.outputs['Skip.testing_version.testing_version']"
     - task: Cache@2
       inputs:
-        key: dependencies.Check.outputs['Skip.testing_version.testing_version']
+        key: mne_data
         path: /home/vsts/mne_data
       displayName: 'Cache testing data'
     - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
