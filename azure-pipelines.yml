@@ -36,46 +36,48 @@ stages:
 - stage: Main
   condition: and(succeeded(), eq(dependencies.Check.outputs['Skip.result.start_main'], 'true'))
   dependsOn: Check
+  variables:
+    testing_version: $[ dependencies.Check.outputs['Skip.testing_version.testing_version'] ]
   jobs:
-  - job: Style
-    pool:
-      vmImage: 'ubuntu-18.04'
-    variables:
-      PYTHON_VERSION: '3.8'
-      PYTHON_ARCH: 'x64'
-    steps:
-    - bash: echo $(COMMIT_MSG)
-    - task: UsePythonVersion@0
-      inputs:
-        versionSpec: $(PYTHON_VERSION)
-        architecture: $(PYTHON_ARCH)
-        addToPath: true
-      displayName: 'Get Python'
-    - bash: |
-        set -e
-        python -m pip install --upgrade pip setuptools
-        python -m pip install numpy scipy matplotlib -r requirements_testing.txt
-      displayName: Install dependencies
-      condition: always()
-    - bash: |
-        make pydocstyle
-      displayName: make pydocstyle
-      condition: always()
-    - bash: |
-        make docstring
-      displayName: make docstring
-    - bash: |
-        make nesting
-      displayName: make nesting
-      condition: always()
-    - bash: |
-        make check-manifest
-      displayName: make check-manifest
-      condition: always()
-    - bash: |
-        make check-readme
-      displayName: make check-readme
-      condition: always()
+  # - job: Style
+  #   pool:
+  #     vmImage: 'ubuntu-18.04'
+  #   variables:
+  #     PYTHON_VERSION: '3.8'
+  #     PYTHON_ARCH: 'x64'
+  #   steps:
+  #   - bash: echo $(COMMIT_MSG)
+  #   - task: UsePythonVersion@0
+  #     inputs:
+  #       versionSpec: $(PYTHON_VERSION)
+  #       architecture: $(PYTHON_ARCH)
+  #       addToPath: true
+  #     displayName: 'Get Python'
+  #   - bash: |
+  #       set -e
+  #       python -m pip install --upgrade pip setuptools
+  #       python -m pip install numpy scipy matplotlib -r requirements_testing.txt
+  #     displayName: Install dependencies
+  #     condition: always()
+  #   - bash: |
+  #       make pydocstyle
+  #     displayName: make pydocstyle
+  #     condition: always()
+  #   - bash: |
+  #       make docstring
+  #     displayName: make docstring
+  #   - bash: |
+  #       make nesting
+  #     displayName: make nesting
+  #     condition: always()
+  #   - bash: |
+  #       make check-manifest
+  #     displayName: make check-manifest
+  #     condition: always()
+  #   - bash: |
+  #       make check-readme
+  #     displayName: make check-readme
+  #     condition: always()
 
 
   # - job: Ultraslow
@@ -160,7 +162,7 @@ stages:
       displayName: 'Print config and test access to commands'
     - bash: |
         set -e
-        echo "dependencies.Check.outputs['Skip.testing_version.testing_version']"
+        echo $(testing_version)
     - task: Cache@2
       inputs:
         key: mne_data
