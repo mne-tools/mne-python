@@ -34,6 +34,10 @@ stages:
 
 - stage: Main
   condition: and(succeeded(), eq(dependencies.Check.outputs['Skip.result.start_main'], 'true'))
+  variables:
+    data_version1: $[ dependencies.Check.outputs['Skip.result.testing_version'] ]
+    data_version2: $(dependencies.Check.outputs['Skip.result.testing_version'])
+    data_version3: dependencies.Check.outputs['Skip.result.testing_version']
   dependsOn: Check
   jobs:
   # - job: Style
@@ -144,9 +148,13 @@ stages:
     steps:
     - bash: |
         set -e
-        echo "Testing version:"
-        echo $[ dependencies.Check.outputs['Skip.result.testing_version'] ]
-        echo "##vso[task.setvariable variable=data_version]0.112"
+        echo "version1:"
+        echo $(variables.data_version1)
+        echo "version2:"
+        echo $(variables.data_version2)
+        echo "version3:"
+        echo $(variables.data_version3)
+        echo "##vso[task.setvariable variable=data_version]'0.112'"
         echo "Testing version:"
         echo $[ data_version ]
     - bash: |
@@ -166,7 +174,7 @@ stages:
       displayName: 'Print config and test access to commands'
     - task: Cache@2
       inputs:
-        key: '$[ variables.data_version ]'
+        key: 'key $[ variables.data_version ]'
         path: /home/vsts/mne_data
       displayName: 'Cache testing data'
     - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
