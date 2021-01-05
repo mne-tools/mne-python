@@ -116,7 +116,7 @@ https://mne.tools/dev/install/contributing.html
 
 
 Forum
-^^^^^^^^^^^^
+^^^^^^
 
 https://mne.discourse.group
 
