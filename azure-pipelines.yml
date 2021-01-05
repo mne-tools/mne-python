@@ -144,8 +144,10 @@ stages:
         set -e
         echo "Testing version:"
         data_log=`grep -o "testing='[0-9.]\+'" mne/datasets/utils.py | cut -d \' -f 2`
+        echo $data_log
+        echo "Testing version:"
         echo "##vso[task.setvariable variable=testing_version;isOutput=true]$data_log"
-        echo $(testing_version)
+        echo $[variables.testing_version]
     - bash: |
         set -e
         wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh --progress=dot:mega
@@ -163,7 +165,7 @@ stages:
       displayName: 'Print config and test access to commands'
     - task: Cache@2
       inputs:
-        key: "key$(testing_version)"
+        key: 'key$[variables.testing_version]'
         path: /home/vsts/mne_data
       displayName: 'Cache testing data'
     - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
