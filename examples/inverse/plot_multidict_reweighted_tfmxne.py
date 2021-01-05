@@ -51,7 +51,7 @@ events = mne.find_events(raw, stim_channel='STI 014')
 reject = dict(grad=4000e-13, eog=350e-6)
 event_id, tmin, tmax = dict(unknown=1), -1., 3.
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, reject=reject)
-evoked = epochs.average()
+evoked = epochs.average().filter(1, None)
 evoked.crop(tmin=0.008, tmax=0.2)
 
 # Compute noise covariance matrix
