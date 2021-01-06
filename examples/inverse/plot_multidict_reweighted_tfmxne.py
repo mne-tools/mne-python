@@ -49,10 +49,12 @@ raw.pick_types(meg=True, eog=True, stim=True)
 events = mne.find_events(raw, stim_channel='STI 014')
 
 reject = dict(grad=4000e-13, eog=350e-6)
-event_id, tmin, tmax = dict(unknown=1), -1., 3.
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax, reject=reject)
+event_id, tmin, tmax = dict(unknown=1), -0.5, 0.5
+epochs = mne.Epochs(raw, events, event_id, tmin, tmax, reject=reject,
+                    baseline=(None, 0))
 evoked = epochs.average()
-evoked.crop(tmin=0.008, tmax=0.2)
+
+evoked.crop(tmin=0.0, tmax=0.2)
 
 # Compute noise covariance matrix
 cov = mne.compute_covariance(epochs, rank='info', tmax=0.)
@@ -64,8 +66,8 @@ forward = mne.read_forward_solution(fwd_fname)
 ###############################################################################
 # Run iterative reweighted multidict TF-MxNE solver
 
-alpha, l1_ratio = 25, 0.05
-loose, depth = 1, 0.95
+alpha, l1_ratio = 20, 0.05
+loose, depth = 0.9, 1.
 # Use a multiscale time-frequency dictionary
 wsize, tstep = [4, 16], [2, 4]
 
@@ -78,13 +80,6 @@ dipoles, residual = tf_mixed_norm(
     depth=depth, tol=1e-3,
     wsize=wsize, tstep=tstep, return_as_dipoles=True,
     return_residual=True)
-
-# Crop to remove edges
-for dip in dipoles:
-    dip.crop(tmin=-0.05, tmax=0.3)
-evoked.crop(tmin=-0.05, tmax=0.3)
-residual.crop(tmin=-0.05, tmax=0.3)
-
 
 ###############################################################################
 # Generate stc from dipoles
