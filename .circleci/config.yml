@@ -262,7 +262,7 @@ jobs:
             key: data-cache-7
             paths:
               - ~/mne_data/MNE-spm-face
-              - ~/mne_data/MNE-testing-ata
+              - ~/mne_data/MNE-testing-data
         - save_cache:
             key: data-cache-8
             paths:
