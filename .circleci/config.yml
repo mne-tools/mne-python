@@ -35,6 +35,8 @@ jobs:
               echo "export PATH=~/.local/bin/:${MNE_ROOT}/bin:$PATH" >> $BASH_ENV
               echo "BASH_ENV:"
               cat $BASH_ENV
+              mkdir -p ~/mne_data
+              touch pattern.txt;
         - run:
             name: check neuromag2ft
             command: |
@@ -54,6 +56,9 @@ jobs:
         - restore_cache:
             keys:
               - pip-cache
+        - restore_cache:
+            keys:
+              - user-install-cache
 
         - run:
             name: Install 3D rendering libraries \ PyQt5 dependencies \ graphviz \ optipng (for optimized images)
@@ -84,9 +89,9 @@ jobs:
             command: |
               python -m pip install --user --upgrade --progress-bar off pip setuptools
               python -m pip install --user --upgrade --progress-bar off --pre sphinx
+              python -m pip install --user --upgrade --progress-bar off -r requirements.txt -r requirements_testing.txt -r requirements_doc.txt
               python -m pip install --user --progress-bar off https://github.com/pyvista/pyvista/zipball/master
               python -m pip install --user --progress-bar off https://github.com/pyvista/pyvistaqt/zipball/master
-              python -m pip install --user --upgrade --progress-bar off -r requirements.txt -r requirements_testing.txt -r requirements_doc.txt
               python -m pip uninstall -yq pysurfer mayavi
               python -m pip install --user -e .
 
@@ -94,6 +99,10 @@ jobs:
             key: pip-cache
             paths:
               - ~/.cache/pip
+        - save_cache:
+            key: user-install-cache
+            paths:
+              - ~/.local/lib/python3.8/site-packages
 
         - run:
             name: Check PyQt5
@@ -110,13 +119,6 @@ jobs:
                python -c "import mne; mne.set_config('MNE_USE_CUDA', 'false')"  # this is needed for the config tutorial
                python -c "import mne; mne.set_config('MNE_LOGGING_LEVEL', 'info')"
                python -c "import mne; level = mne.get_config('MNE_LOGGING_LEVEL'); assert level.lower() == 'info', repr(level)"
-
-        - run:
-            name: Set up MNE and the build
-            command: |
-              pip install -ve .
-              mkdir -p ~/mne_data
-              touch pattern.txt;
 
         # Figure out if we should run a full, pattern, or noplot version
         - restore_cache:
@@ -219,15 +221,11 @@ jobs:
             name: Reduce artifact upload time
             command: |
               if grep -q html_dev-pattern-memory build.txt || grep -q html_dev-noplot build.txt; then
-                tar czf doc/_build/html/_downloads.tgz doc/_build/html/_downloads
-                rm -Rf doc/_build/html/_downloads
-                rm -f doc/auto_*/*/*.pickle
-                rm -f doc/auto_*/*/*.codeobj
-                rm -f doc/auto_*/*/*.md5
-                rm -f doc/auto_*/*/*.py
-                rm -f doc/auto_*/*/*.ipynb
-                rm -f doc/generated/*.examples
+                zip -rm doc/_build/html/_downloads.zip doc/_build/html/_downloads
               fi
+              for NAME in generated auto_tutorials auto_examples; do
+                zip -rm doc/${NAME}.zip doc/${NAME}
+              done
 
         # Save the JUnit file
         - store_test_results:
@@ -237,14 +235,11 @@ jobs:
             destination: test-results
         # Save the SG RST
         - store_artifacts:
-            path: doc/auto_examples
-            destination: auto_examples
+            path: doc/auto_examples.zip
         - store_artifacts:
-            path: doc/auto_tutorials
-            destination: auto_tutorials
+            path: doc/auto_tutorials.zip
         - store_artifacts:
-            path: doc/generated
-            destination: generated
+            path: doc/generated.zip
         # Save the HTML
         - store_artifacts:
             path: doc/_build/html/
