@@ -141,6 +141,8 @@ stages:
       vmImage: 'ubuntu-18.04'
     steps:
     - script: tools/get_testing_version.sh
+      env:
+        AZURE_CI: 'true'
     - bash: |
         set -e
         wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh --progress=dot:mega
