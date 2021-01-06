@@ -141,7 +141,7 @@ stages:
       vmImage: 'ubuntu-18.04'
     steps:
     - bash: |
-        data_log=`grep -o "testing='[0-9.]\+'" mne/datasets/utils.py | cut -d \' -f 2`
+        data_log=`grep -o "testing='[0-9.]\+'" mne/datasets/utils.py | cut -d \' -f 2 | sed "s/\./-/g"`
         echo "##vso[task.setvariable variable=testing_version]$data_log"
     - bash: |
         set -e
@@ -160,7 +160,7 @@ stages:
       displayName: 'Print config and test access to commands'
     - task: Cache@2
       inputs:
-        key: `"`$(testing_version)`"`
+        key: $(testing_version)
         path: /home/vsts/mne_data
       displayName: 'Cache testing data'
     - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
