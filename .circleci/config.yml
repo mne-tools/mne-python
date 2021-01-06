@@ -38,18 +38,9 @@ jobs:
                 git fetch upstream master;
               fi
 
-        # Load our data
+        # Load pip cache
         - restore_cache:
             keys:
-              - data-cache-0
-              - data-cache-1
-              - data-cache-2
-              - data-cache-3
-              - data-cache-4
-              - data-cache-5
-              - data-cache-6
-              - data-cache-7
-              - data-cache-8
               - pip-cache
 
         - run:
@@ -109,6 +100,33 @@ jobs:
                python -c "import mne; level = mne.get_config('MNE_LOGGING_LEVEL'); assert level.lower() == 'info', repr(level)"
 
         # Figure out if we should run a full, pattern, or noplot version
+        - restore_cache:
+            keys:
+              - data-cache-0
+        - restore_cache:
+            keys:
+              - data-cache-1
+        - restore_cache:
+            keys:
+              - data-cache-2
+        - restore_cache:
+            keys:
+              - data-cache-3
+        - restore_cache:
+            keys:
+              - data-cache-4
+        - restore_cache:
+            keys:
+              - data-cache-5
+        - restore_cache:
+            keys:
+              - data-cache-6
+        - restore_cache:
+            keys:
+              - data-cache-7
+        - restore_cache:
+            keys:
+              - data-cache-8
         - run:
             name: Get data
             command: |
