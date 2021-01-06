@@ -58,6 +58,14 @@ jobs:
         run: ./tools/github_actions_infos.sh
         name: 'Show infos'
       - shell: bash -el {0}
+        run: ./tools/get_testing_version.sh
+        name: 'Get testing version'
+      - uses: actions/cache@v2
+        with:
+          key: ${{ env.TESTING_VERSION }}
+          path: ~/mne_data
+        name: 'Cache testing data'
+      - shell: bash -el {0}
         run: ./tools/github_actions_download.sh
         name: 'Download testing data'
       - shell: bash -el {0}
