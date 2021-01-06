@@ -429,8 +429,10 @@ class Brain(object):
                                        shape=shape,
                                        fig=figure)
 
-        if _get_3d_backend() == "pyvista":
-            self.plotter = self._renderer.plotter
+        self.plotter = self._renderer.plotter
+        if self.notebook:
+            self.window = None
+        else:
             self.window = self.plotter.app_window
             self.window.signal_close.connect(self._clean)
 
@@ -501,11 +503,6 @@ class Brain(object):
         self.orientation = list(_lh_views_dict.keys())
         self.default_smoothing_range = [0, 15]
 
-        # setup notebook
-        if self.notebook:
-            self._configure_notebook()
-            return
-
         # Default configuration
         self.playback = False
         self.visibility = False
@@ -550,10 +547,15 @@ class Brain(object):
 
         # Direct access parameters:
         self._iren = self._renderer.plotter.iren
-        self.main_menu = self.plotter.main_menu
-        self.tool_bar = self.window.addToolBar("toolbar")
-        self.status_bar = self.window.statusBar()
-        self.interactor = self.plotter.interactor
+        self.tool_bar = None
+        if self.notebook:
+            self.main_menu = None
+            self.status_bar = None
+            self.interactor = None
+        else:
+            self.main_menu = self.plotter.main_menu
+            self.status_bar = self.window.statusBar()
+            self.interactor = self.plotter.interactor
 
         # Derived parameters:
         self.playback_speed = self.default_playback_speed_value
@@ -584,21 +586,24 @@ class Brain(object):
             self.separate_canvas = False
         del show_traces
 
-        self._load_icons()
         self._configure_time_label()
         self._configure_sliders()
         self._configure_scalar_bar()
-        self._configure_playback()
-        self._configure_menu()
-        self._configure_tool_bar()
-        self._configure_status_bar()
+        self._configure_shortcuts()
         self._configure_picking()
-        self._configure_trace_mode()
-
-        # show everything at the end
-        self.toggle_interface()
-        with self.ensure_minimum_sizes():
+        self._configure_tool_bar()
+        if self.notebook:
             self.show()
+        self._configure_trace_mode()
+        self.toggle_interface()
+        if not self.notebook:
+            self._configure_playback()
+            self._configure_menu()
+            self._configure_status_bar()
+
+            # show everything at the end
+            with self.ensure_minimum_sizes():
+                self.show()
 
     @safe_event
     def _clean(self):
@@ -677,10 +682,13 @@ class Brain(object):
             self.visibility = value
 
         # update tool bar icon
-        if self.visibility:
-            self.actions["visibility"].setIcon(self.icons["visibility_on"])
-        else:
-            self.actions["visibility"].setIcon(self.icons["visibility_off"])
+        if not self.notebook:
+            if self.visibility:
+                self.actions["visibility"].setIcon(
+                    self.icons["visibility_on"])
+            else:
+                self.actions["visibility"].setIcon(
+                    self.icons["visibility_off"])
 
         # manage sliders
         for slider in self.plotter.slider_widgets:
@@ -809,10 +817,6 @@ class Brain(object):
                     slider_rep.GetLabelProperty()
                 )
                 slider_rep.GetCapProperty().SetOpacity(0)
-
-    def _configure_notebook(self):
-        from ._notebook import _NotebookInteractor
-        self._renderer.figure.display = _NotebookInteractor(self)
 
     def _configure_time_label(self):
         self.time_actor = self._data.get('time_actor')
@@ -998,19 +1002,24 @@ class Brain(object):
         self.plotter.add_callback(self._play, self.refresh_rate_ms)
 
     def _configure_mplcanvas(self):
-        win = self.plotter.app_window
-        dpi = win.windowHandle().screen().logicalDotsPerInch()
         ratio = (1 - self.interactor_fraction) / self.interactor_fraction
-        w = self.interactor.geometry().width()
-        h = self.interactor.geometry().height() / ratio
+        if self.notebook:
+            dpi = 96
+            w, h = self.plotter.window_size
+        else:
+            dpi = self.window.windowHandle().screen().logicalDotsPerInch()
+            w = self.interactor.geometry().width()
+            h = self.interactor.geometry().height()
+        h /= ratio
         # Get the fractional components for the brain and mpl
-        self.mpl_canvas = MplCanvas(self, w / dpi, h / dpi, dpi)
+        self.mpl_canvas = MplCanvas(self, w / dpi, h / dpi, dpi,
+                                    self.notebook)
         xlim = [np.min(self._data['time']),
                 np.max(self._data['time'])]
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=UserWarning)
             self.mpl_canvas.axes.set(xlim=xlim)
-        if not self.separate_canvas:
+        if not self.notebook and not self.separate_canvas:
             from PyQt5.QtWidgets import QSplitter
             from PyQt5.QtCore import Qt
             canvas = self.mpl_canvas.canvas
@@ -1106,8 +1115,11 @@ class Brain(object):
     def _configure_trace_mode(self):
         from ...source_estimate import _get_allowed_label_modes
         from ...label import _read_annot_cands
-        from PyQt5.QtWidgets import QComboBox, QLabel
         if not self.show_traces:
+            return
+
+        if self.notebook:
+            self._configure_vertex_time_course()
             return
 
         # do not show trace mode for volumes
@@ -1131,6 +1143,7 @@ class Brain(object):
                 self._configure_label_time_course()
             self._update()
 
+        from PyQt5.QtWidgets import QComboBox, QLabel
         dir_name = op.join(self._subjects_dir, self._subject_id, 'label')
         cands = _read_annot_cands(dir_name)
         self.tool_bar.addSeparator()
@@ -1201,60 +1214,109 @@ class Brain(object):
     def _save_movie_noname(self):
         return self.save_movie(None)
 
+    def _screenshot(self):
+        if not self.notebook:
+            self.plotter._qt_screenshot()
+
+    def _initialize_actions(self):
+        if not self.notebook:
+            self._load_icons()
+            self.tool_bar = self.window.addToolBar("toolbar")
+
+    def _add_action(self, name, desc, func, icon_name, qt_icon_name=None,
+                    notebook=True):
+        if self.notebook:
+            if not notebook:
+                return
+            from ipywidgets import Button
+            self.actions[name] = Button(description=desc, icon=icon_name)
+            self.actions[name].on_click(lambda x: func())
+        else:
+            qt_icon_name = name if qt_icon_name is None else qt_icon_name
+            self.actions[name] = self.tool_bar.addAction(
+                self.icons[qt_icon_name],
+                desc,
+                func,
+            )
+
     def _configure_tool_bar(self):
-        self.actions["screenshot"] = self.tool_bar.addAction(
-            self.icons["screenshot"],
-            "Take a screenshot",
-            self.plotter._qt_screenshot
+        self._initialize_actions()
+        self._add_action(
+            name="screenshot",
+            desc="Take a screenshot",
+            func=self._screenshot,
+            icon_name=None,
+            notebook=False,
         )
-        self.actions["movie"] = self.tool_bar.addAction(
-            self.icons["movie"],
-            "Save movie...",
-            self._save_movie_noname,
+        self._add_action(
+            name="movie",
+            desc="Save movie...",
+            func=self._save_movie_noname,
+            icon_name=None,
+            notebook=False,
         )
-        self.actions["visibility"] = self.tool_bar.addAction(
-            self.icons["visibility_on"],
-            "Toggle Visibility",
-            self.toggle_interface
+        self._add_action(
+            name="visibility",
+            desc="Toggle Visibility",
+            func=self.toggle_interface,
+            icon_name="eye",
+            qt_icon_name="visibility_on",
         )
-        self.actions["play"] = self.tool_bar.addAction(
-            self.icons["play"],
-            "Play/Pause",
-            self.toggle_playback
+        self._add_action(
+            name="play",
+            desc="Play/Pause",
+            func=self.toggle_playback,
+            icon_name=None,
+            notebook=False,
         )
-        self.actions["reset"] = self.tool_bar.addAction(
-            self.icons["reset"],
-            "Reset",
-            self.reset
+        self._add_action(
+            name="reset",
+            desc="Reset",
+            func=self.reset,
+            icon_name="history",
         )
-        self.actions["scale"] = self.tool_bar.addAction(
-            self.icons["scale"],
-            "Auto-Scale",
-            self.apply_auto_scaling
+        self._add_action(
+            name="scale",
+            desc="Auto-Scale",
+            func=self.apply_auto_scaling,
+            icon_name="magic",
         )
-        self.actions["restore"] = self.tool_bar.addAction(
-            self.icons["restore"],
-            "Restore scaling",
-            self.restore_user_scaling
+        self._add_action(
+            name="restore",
+            desc="Restore scaling",
+            func=self.restore_user_scaling,
+            icon_name="reply",
         )
-        self.actions["clear"] = self.tool_bar.addAction(
-            self.icons["clear"],
-            "Clear traces",
-            self.clear_glyphs
+        self._add_action(
+            name="clear",
+            desc="Clear traces",
+            func=self.clear_glyphs,
+            icon_name="trash",
         )
-        self.actions["help"] = self.tool_bar.addAction(
-            self.icons["help"],
-            "Help",
-            self.help
+        self._add_action(
+            name="help",
+            desc="Help",
+            func=self.help,
+            icon_name=None,
+            notebook=False,
         )
 
-        self.actions["movie"].setShortcut("ctrl+shift+s")
-        self.actions["visibility"].setShortcut("i")
-        self.actions["play"].setShortcut(" ")
-        self.actions["scale"].setShortcut("s")
-        self.actions["restore"].setShortcut("r")
-        self.actions["clear"].setShortcut("c")
-        self.actions["help"].setShortcut("?")
+        if self.notebook:
+            from IPython import display
+            from ipywidgets import HBox
+            self.tool_bar = HBox(tuple(self.actions.values()))
+            display.display(self.tool_bar)
+        else:
+            # Qt shortcuts
+            self.actions["movie"].setShortcut("ctrl+shift+s")
+            self.actions["play"].setShortcut(" ")
+            self.actions["help"].setShortcut("?")
+
+    def _configure_shortcuts(self):
+        self.plotter.add_key_event("i", self.toggle_interface)
+        self.plotter.add_key_event("s", self.apply_auto_scaling)
+        self.plotter.add_key_event("r", self.restore_user_scaling)
+        self.plotter.add_key_event("c", self.clear_glyphs)
 
     def _configure_menu(self):
         # remove default picking menu
@@ -3123,13 +3185,6 @@ class Brain(object):
         # Restore original time index
         func(current_time_idx)
 
-    def _show(self):
-        """Request rendering of the window."""
-        try:
-            return self._renderer.show()
-        except RuntimeError:
-            logger.info("No active/running renderer available.")
-
     def _check_stc(self, hemi, array, vertices):
         from ...source_estimate import (
             _BaseSourceEstimate, _BaseSurfaceSourceEstimate,
@@ -3220,7 +3275,7 @@ class Brain(object):
         from ..backends import renderer
         if renderer.get_3d_backend() in ['pyvista', 'notebook']:
             if self.notebook and self._renderer.figure.display is not None:
-                self._renderer.figure.display.update()
+                self._renderer.figure.display.update_canvas()
             else:
                 self._renderer.plotter.update()
 

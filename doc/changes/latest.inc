@@ -17,7 +17,7 @@ Current (0.23.dev0)
 
 Enhancements
 ~~~~~~~~~~~~
-- None yet
+- Update the ``notebook`` 3d backend to use ``ipyvtk_simple`` for a better integration within ``Jupyter`` (:gh:`8503` by `Guillaume Favelier`_)
 
 Bugs
 ~~~~

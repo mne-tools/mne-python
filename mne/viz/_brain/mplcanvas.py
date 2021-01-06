@@ -11,11 +11,10 @@ from ...fixes import nullcontext
 class MplCanvas(object):
     """Ultimately, this is a QWidget (as well as a FigureCanvasAgg, etc.)."""
 
-    def __init__(self, brain, width, height, dpi):
-        from PyQt5 import QtWidgets
+    def __init__(self, brain, width, height, dpi, notebook=False):
         from matplotlib import rc_context
         from matplotlib.figure import Figure
-        from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+        self.notebook = notebook
         if brain.separate_canvas:
             parent = None
         else:
@@ -30,16 +29,25 @@ class MplCanvas(object):
             pass
         with context:
             self.fig = Figure(figsize=(width, height), dpi=dpi)
-        self.canvas = FigureCanvasQTAgg(self.fig)
+        if self.notebook:
+            from matplotlib.backends.backend_nbagg import (FigureCanvasNbAgg,
+                                                           FigureManager)
+            self.canvas = FigureCanvasNbAgg(self.fig)
+            self.manager = FigureManager(self.canvas, 0)
+        else:
+            from PyQt5 import QtWidgets
+            from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+            self.canvas = FigureCanvasQTAgg(self.fig)
+            self.canvas.setParent(parent)
+            FigureCanvasQTAgg.setSizePolicy(
+                self.canvas,
+                QtWidgets.QSizePolicy.Expanding,
+                QtWidgets.QSizePolicy.Expanding
+            )
+            FigureCanvasQTAgg.updateGeometry(self.canvas)
+            self.manager = None
         self.axes = self.fig.add_subplot(111)
         self.axes.set(xlabel='Time (sec)', ylabel='Activation (AU)')
-        self.canvas.setParent(parent)
-        FigureCanvasQTAgg.setSizePolicy(
-            self.canvas,
-            QtWidgets.QSizePolicy.Expanding,
-            QtWidgets.QSizePolicy.Expanding
-        )
-        FigureCanvasQTAgg.updateGeometry(self.canvas)
         self.brain = brain
         self.time_func = brain.callbacks["time"]
         for event in ('button_press', 'motion_notify') + extra_events:
@@ -86,7 +94,10 @@ class MplCanvas(object):
 
     def show(self):
         """Show the canvas."""
-        self.canvas.show()
+        if self.notebook:
+            self.manager.show()
+        else:
+            self.canvas.show()
 
     def close(self):
         """Close the canvas."""
@@ -108,6 +119,7 @@ class MplCanvas(object):
         self.fig.clear()
         self.brain = None
         self.canvas = None
+        self.manager = None
 
     on_motion_notify = on_button_press  # for now they can be the same
 
