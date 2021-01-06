@@ -1214,29 +1214,59 @@ class Brain(object):
     def _save_movie_noname(self):
         return self.save_movie(None)
 
+    def _initialize_actions(self):
+        if not self.notebook:
+            self._load_icons()
+            self.tool_bar = self.window.addToolBar("toolbar")
+
+    def _add_action(self, name, desc, func, icon_name=None):
+        if self.notebook:
+            from ipywidgets import Button
+            self.actions[name] = Button(description=name)
+            self.actions[name].on_click(lambda x: func())
+        else:
+            icon_name = name if icon_name is None else icon_name
+            self.actions[name] = self.tool_bar.addAction(
+                self.icons[icon_name],
+                desc,
+                self.plotter._qt_screenshot
+            )
+
     def _configure_tool_bar(self):
+        self._initialize_actions()
+        self._add_action(
+            name="visibility",
+            desc="Toggle Visibility",
+            func=self.toggle_interface,
+            icon_name="visibility_on"
+        )
+        self._add_action(
+            name="reset",
+            desc="Reset",
+            func=self.reset,
+        )
+        self._add_action(
+            name="scale",
+            desc="Auto-Scale",
+            func=self.apply_auto_scaling,
+        )
+        self._add_action(
+            name="restore",
+            desc="Restore scaling",
+            func=self.restore_user_scaling,
+        )
+        self._add_action(
+            name="clear",
+            desc="Clear traces",
+            func=self.clear_glyphs,
+        )
+
         if self.notebook:
             from IPython import display
-            from ipywidgets import HBox, Button
-            self.actions["visibility"] = Button(
-                description="Toggle Visibility",
-            )
-            self.actions["visibility"].on_click(
-                lambda x: self.toggle_interface())
-            self.actions["reset"] = Button(description="Reset")
-            self.actions["reset"].on_click(lambda x: self.reset())
-            self.actions["scale"] = Button(description="Auto-Scale")
-            self.actions["scale"].on_click(lambda x: self.apply_auto_scaling())
-            self.actions["restore"] = Button(description="Restore scaling")
-            self.actions["restore"].on_click(
-                lambda x: self.restore_user_scaling())
-            self.actions["clear"] = Button(description="Clear traces")
-            self.actions["clear"].on_click(lambda x: self.clear_glyphs())
+            from ipywidgets import HBox
             self.tool_bar = HBox(tuple(self.actions.values()))
             display.display(self.tool_bar)
         else:
-            self._load_icons()
-            self.tool_bar = self.window.addToolBar("toolbar")
             self.actions["screenshot"] = self.tool_bar.addAction(
                 self.icons["screenshot"],
                 "Take a screenshot",
@@ -1247,35 +1277,10 @@ class Brain(object):
                 "Save movie...",
                 self._save_movie_noname,
             )
-            self.actions["visibility"] = self.tool_bar.addAction(
-                self.icons["visibility_on"],
-                "Toggle Visibility",
-                self.toggle_interface
-            )
             self.actions["play"] = self.tool_bar.addAction(
                 self.icons["play"],
                 "Play/Pause",
                 self.toggle_playback
-            )
-            self.actions["reset"] = self.tool_bar.addAction(
-                self.icons["reset"],
-                "Reset",
-                self.reset
-            )
-            self.actions["scale"] = self.tool_bar.addAction(
-                self.icons["scale"],
-                "Auto-Scale",
-                self.apply_auto_scaling
-            )
-            self.actions["restore"] = self.tool_bar.addAction(
-                self.icons["restore"],
-                "Restore scaling",
-                self.restore_user_scaling
-            )
-            self.actions["clear"] = self.tool_bar.addAction(
-                self.icons["clear"],
-                "Clear traces",
-                self.clear_glyphs
             )
             self.actions["help"] = self.tool_bar.addAction(
                 self.icons["help"],
