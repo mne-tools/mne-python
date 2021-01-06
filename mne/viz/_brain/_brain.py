@@ -1219,15 +1219,15 @@ class Brain(object):
             self._load_icons()
             self.tool_bar = self.window.addToolBar("toolbar")
 
-    def _add_action(self, name, desc, func, icon_name=None):
+    def _add_action(self, name, desc, func, icon_name, qt_icon_name=None):
         if self.notebook:
             from ipywidgets import Button
-            self.actions[name] = Button(description=name)
+            self.actions[name] = Button(tooltip=desc, icon=icon_name)
             self.actions[name].on_click(lambda x: func())
         else:
-            icon_name = name if icon_name is None else icon_name
+            qt_icon_name = name if qt_icon_name is None else qt_icon_name
             self.actions[name] = self.tool_bar.addAction(
-                self.icons[icon_name],
+                self.icons[qt_icon_name],
                 desc,
                 self.plotter._qt_screenshot
             )
@@ -1238,27 +1238,32 @@ class Brain(object):
             name="visibility",
             desc="Toggle Visibility",
             func=self.toggle_interface,
-            icon_name="visibility_on"
+            icon_name="eye",
+            qt_icon_name="visibility_on",
         )
         self._add_action(
             name="reset",
             desc="Reset",
             func=self.reset,
+            icon_name="history",
         )
         self._add_action(
             name="scale",
             desc="Auto-Scale",
             func=self.apply_auto_scaling,
+            icon_name="magic",
         )
         self._add_action(
             name="restore",
             desc="Restore scaling",
             func=self.restore_user_scaling,
+            icon_name="reply",
         )
         self._add_action(
             name="clear",
             desc="Clear traces",
             func=self.clear_glyphs,
+            icon_name="trash",
         )
 
         if self.notebook:
