@@ -1214,13 +1214,20 @@ class Brain(object):
     def _save_movie_noname(self):
         return self.save_movie(None)
 
+    def _screenshot(self):
+        if not self.notebook:
+            self.plotter._qt_screenshot()
+
     def _initialize_actions(self):
         if not self.notebook:
             self._load_icons()
             self.tool_bar = self.window.addToolBar("toolbar")
 
-    def _add_action(self, name, desc, func, icon_name, qt_icon_name=None):
+    def _add_action(self, name, desc, func, icon_name, qt_icon_name=None,
+                    notebook=True):
         if self.notebook:
+            if not notebook:
+                return
             from ipywidgets import Button
             self.actions[name] = Button(tooltip=desc, icon=icon_name)
             self.actions[name].on_click(lambda x: func())
@@ -1235,11 +1242,32 @@ class Brain(object):
     def _configure_tool_bar(self):
         self._initialize_actions()
         self._add_action(
+            name="screenshot",
+            desc="Take a screenshot",
+            func=self._screenshot,
+            icon_name=None,
+            notebook=False,
+        )
+        self._add_action(
+            name="movie",
+            desc="Save movie...",
+            func=self._save_movie_noname,
+            icon_name=None,
+            notebook=False,
+        )
+        self._add_action(
             name="visibility",
             desc="Toggle Visibility",
             func=self.toggle_interface,
             icon_name="eye",
             qt_icon_name="visibility_on",
+        )
+        self._add_action(
+            name="play",
+            desc="Play/Pause",
+            func=self.toggle_playback,
+            icon_name=None,
+            notebook=False,
         )
         self._add_action(
             name="reset",
@@ -1265,6 +1293,13 @@ class Brain(object):
             func=self.clear_glyphs,
             icon_name="trash",
         )
+        self._add_action(
+            name="help",
+            desc="Help",
+            func=self.help,
+            icon_name=None,
+            notebook=False,
+        )
 
         if self.notebook:
             from IPython import display
@@ -1272,27 +1307,6 @@ class Brain(object):
             self.tool_bar = HBox(tuple(self.actions.values()))
             display.display(self.tool_bar)
         else:
-            self.actions["screenshot"] = self.tool_bar.addAction(
-                self.icons["screenshot"],
-                "Take a screenshot",
-                self.plotter._qt_screenshot
-            )
-            self.actions["movie"] = self.tool_bar.addAction(
-                self.icons["movie"],
-                "Save movie...",
-                self._save_movie_noname,
-            )
-            self.actions["play"] = self.tool_bar.addAction(
-                self.icons["play"],
-                "Play/Pause",
-                self.toggle_playback
-            )
-            self.actions["help"] = self.tool_bar.addAction(
-                self.icons["help"],
-                "Help",
-                self.help
-            )
-
             # Qt shortcuts
             self.actions["movie"].setShortcut("ctrl+shift+s")
             self.actions["play"].setShortcut(" ")
