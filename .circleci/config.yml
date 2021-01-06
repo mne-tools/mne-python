@@ -10,6 +10,13 @@ jobs:
             keys:
               - source-cache
         - checkout
+        - run:
+            name: Complete checkout
+            command: |
+              if ! git remote -v | grep upstream; then
+                git remote add upstream git://github.com/mne-tools/mne-python.git
+              fi
+              git fetch upstream
         - save_cache:
             key: source-cache
             paths:
@@ -40,9 +47,7 @@ jobs:
               echo ${CI_PULL_REQUEST//*pull\//} | tee merge.txt
               if [[ $(cat merge.txt) != "" ]]; then
                 echo "Merging $(cat merge.txt)";
-                git remote add upstream git://github.com/mne-tools/mne-python.git;
                 git pull --ff-only upstream "refs/pull/$(cat merge.txt)/merge";
-                git fetch upstream master;
               fi
 
         # Load pip cache

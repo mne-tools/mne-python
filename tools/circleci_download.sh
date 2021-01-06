@@ -10,8 +10,6 @@ elif [ "$CIRCLE_BRANCH" == "maint/0.22" ]; then
     python -c "import mne; mne.datasets._download_all_example_data()";
 else
     echo "Doing a partial build";
-    if ! git remote -v | grep upstream ; then git remote add upstream git://github.com/mne-tools/mne-python.git; fi
-    git fetch upstream
     FNAMES=$(git diff --name-only $(git merge-base $CIRCLE_BRANCH upstream/master) $CIRCLE_BRANCH);
     if [[ $(cat gitlog.txt) == *"[circle front]"* ]]; then
         FNAMES="tutorials/source-modeling/plot_mne_dspm_source_localization.py tutorials/machine-learning/plot_receptive_field.py examples/connectivity/plot_mne_inverse_label_connectivity.py tutorials/machine-learning/plot_sensors_decoding.py tutorials/stats-source-space/plot_stats_cluster_spatio_temporal.py tutorials/evoked/plot_20_visualize_evoked.py "${FNAMES};
