@@ -114,7 +114,7 @@ stages:
         python -m pip install --upgrade pip setuptools
         python -m pip install --upgrade numpy scipy vtk -r requirements.txt -r requirements_testing.txt codecov
       displayName: 'Install dependencies with pip'
-    - script: tools/get_testing_version.sh
+    - bash: source tools/get_testing_version.sh
       displayName: 'Get testing version'
     - task: Cache@2
       inputs:
@@ -157,7 +157,7 @@ stages:
       displayName: 'Install dependencies'
     - script: mne sys_info
       displayName: 'Print config and test access to commands'
-    - script: tools/get_testing_version.sh
+    - bash: source tools/get_testing_version.sh
       displayName: 'Get testing version'
     - task: Cache@2
       inputs:
@@ -261,7 +261,7 @@ stages:
       displayName: 'Print config and test access to commands'
     - script: python -c "import numpy; numpy.show_config()"
       displayName: Print NumPy config
-    - script: tools/get_testing_version.sh
+    - bash: source tools/get_testing_version.sh
       displayName: 'Get testing version'
     - task: Cache@2
       inputs:
