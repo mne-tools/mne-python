@@ -52,14 +52,6 @@ jobs:
                 git pull --ff-only upstream "refs/pull/$(cat merge.txt)/merge";
               fi
 
-        # Load pip cache
-        - restore_cache:
-            keys:
-              - pip-cache
-        - restore_cache:
-            keys:
-              - user-install-cache
-
         - run:
             name: Install 3D rendering libraries \ PyQt5 dependencies \ graphviz \ optipng (for optimized images)
             command: |
@@ -84,6 +76,14 @@ jobs:
               curl https://codeload.github.com/adobe-fonts/source-sans-pro/tar.gz/3.006R | tar xz -C $HOME/.fonts
               fc-cache -f
 
+        # Load pip cache
+        - restore_cache:
+            keys:
+              - pip-cache
+        - restore_cache:
+            keys:
+              - user-install-bin-cache
+
         - run:
             name: Get Python running
             command: |
@@ -100,13 +100,19 @@ jobs:
             paths:
               - ~/.cache/pip
         - save_cache:
-            key: user-install-cache
+            key: user-install-bin-cache
             paths:
               - ~/.local/lib/python3.8/site-packages
+              - ~/.local/bin
 
         - run:
             name: Check PyQt5
             command: LD_DEBUG=libs python -c "from PyQt5.QtWidgets import QApplication, QWidget; app = QApplication([])"
+
+        # Load tiny cache so that ~/.mne does not need to be created below
+        - restore_cache:
+            keys:
+              - data-cache-tiny-0
 
         # Look at what we have and fail early if there is some library conflict
         - run:
@@ -121,9 +127,6 @@ jobs:
                python -c "import mne; level = mne.get_config('MNE_LOGGING_LEVEL'); assert level.lower() == 'info', repr(level)"
 
         # Figure out if we should run a full, pattern, or noplot version
-        - restore_cache:
-            keys:
-              - data-cache-tiny-0
         - restore_cache:
             keys:
               - data-cache-multimodal
