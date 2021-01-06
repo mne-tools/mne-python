@@ -1229,7 +1229,7 @@ class Brain(object):
             self.actions[name] = self.tool_bar.addAction(
                 self.icons[qt_icon_name],
                 desc,
-                self.plotter._qt_screenshot
+                func,
             )
 
     def _configure_tool_bar(self):
