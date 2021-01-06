@@ -4,9 +4,9 @@ pytest-timeout
 pytest-harvest
 flake8
 flake8-array-spacing
-https://github.com/sphinx-gallery/sphinx-gallery/archive/master.zip
-https://github.com/numpy/numpydoc/archive/master.zip
-https://github.com/codespell-project/codespell/archive/master.zip
+sphinx-gallery
+numpydoc
+codespell
 pydocstyle
 check-manifest
 twine

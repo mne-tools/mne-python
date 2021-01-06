@@ -563,7 +563,12 @@ def sys_info(fid=None, show_paths=False):
             elif mod_name in ('mayavi', 'vtk'):
                 has_3d = True
             if mod_name == 'vtk':
-                version = getattr(mod, 'VTK_VERSION', 'VTK_VERSION missing')
+                version = mod.vtkVersion()
+                # 9.0 dev has VersionFull but 9.0 doesn't
+                for attr in ('GetVTKVersionFull', 'GetVTKVersion'):
+                    if hasattr(version, attr):
+                        version = getattr(version, attr)()
+                        break
             elif mod_name == 'PyQt5':
                 version = _check_pyqt5_version()
             else:
