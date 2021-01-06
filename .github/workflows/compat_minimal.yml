@@ -69,8 +69,8 @@ jobs:
         name: 'Get testing version'
       - uses: actions/cache@v2
         with:
+          key: ${{ env.TESTING_VERSION }}
           path: ~/mne_data
-          key: ${{ runner.os }}-${{ env.TESTING_VERSION }}
         name: 'Cache testing data'
       - shell: bash -el {0}
         run: ./tools/github_actions_download.sh
