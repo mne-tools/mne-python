@@ -1229,7 +1229,7 @@ class Brain(object):
             if not notebook:
                 return
             from ipywidgets import Button
-            self.actions[name] = Button(tooltip=desc, icon=icon_name)
+            self.actions[name] = Button(description=desc, icon=icon_name)
             self.actions[name].on_click(lambda x: func())
         else:
             qt_icon_name = name if qt_icon_name is None else qt_icon_name
