@@ -139,14 +139,12 @@ stages:
   - job: Notebook
     pool:
       vmImage: 'ubuntu-18.04'
-    variables:
-    - name: testing_version
-      value: 0
     steps:
     - bash: |
-        echo "Testing version:"
         data_log=`grep -o "testing='[0-9.]\+'" mne/datasets/utils.py | cut -d \' -f 2`
         echo "##vso[task.setvariable variable=testing_version]$data_log"
+    - bash: |
+        echo "Testing version:"
         echo "$(testing_version)"
         echo "$[testing_version]"
         echo "${{ variables.testing_version }}"
@@ -167,7 +165,7 @@ stages:
       displayName: 'Print config and test access to commands'
     - task: Cache@2
       inputs:
-        key: 'key$(testing_version)'
+        key: '"'$(testing_version)'"'
         path: /home/vsts/mne_data
       displayName: 'Cache testing data'
     - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
