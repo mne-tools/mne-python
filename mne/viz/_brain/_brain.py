@@ -1216,7 +1216,8 @@ class Brain(object):
 
     def _screenshot(self):
         if self.notebook:
-            filename = self.actions.get("screenshot_field", "screenshot.png").value
+            filename = self.actions.get("screenshot_field").value
+            filename = "screenshot.png" if len(filename) == 0 else filename
             self.plotter.screenshot(filename)
         else:
             self.plotter._qt_screenshot()
