@@ -1217,9 +1217,11 @@ class Brain(object):
 
     def _screenshot(self):
         if self.notebook:
+            from PIL import Image
             fname = self.actions.get("screenshot_field").value
             fname = self.default_screenshot_name if len(fname) == 0 else fname
-            self.plotter.screenshot(fname)
+            img = self.screenshot(fname, time_viewer=True)
+            Image.fromarray(img).save(fname)
         else:
             self.plotter._qt_screenshot()
 
