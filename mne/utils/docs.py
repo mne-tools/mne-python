@@ -893,18 +893,21 @@ rank : None | 'info' | 'full' | dict
         make sense if it has been (possibly improperly) regularized without
         taking into account the true data rank.
     :data:`python:dict`
-        A dictionary whose **keys** correspond to channels types in the data
-        (e.g. ``'meg'``, ``'mag'``, ``'grad'``, ``'eeg'``), and whose
-        **values** are integer values representing the respective ranks, which
-        you may have calculated earlier.
-        For example, ``{'mag': 90, 'eeg': 45}`` will assume a rank of ``90``
-        and ``45`` for magnetometer data and EEG data, respectively. The ranks
-        for all channel types present in the data, but **not** specified in the
-        dictionary will be estimated empirically. That is, if you passed a
-        dataset containing magnetometer, gradiometer, and EEG data together
-        with the dictionary from the previous example, only the gradiometer
-        rank would be determined, while the specified magnetometer and EEG
-        ranks would be taken for granted.
+        Calculate the rank only for a subset of channel types, and explicitly
+        specify the rank for the remaining channel types. This can be
+        extremely useful if you already **know** the rank of (part of) your
+        data, for instance in case you have calculated it earlier.
+        This parameter must be a dictionary whose **keys** correspond to
+        channels types in the data (e.g. ``'meg'``, ``'mag'``, ``'grad'``,
+        ``'eeg'``), and whose **values** are integer values representing the
+        respective ranks. For example, ``{'mag': 90, 'eeg': 45}`` will assume
+        a rank of ``90`` and ``45`` for magnetometer data and EEG data,
+        respectively. The ranks for all channel types present in the data, but
+        **not** specified in the dictionary will be estimated empirically.
+        That is, if you passed a dataset containing magnetometer, gradiometer,
+        and EEG data together with the dictionary from the previous example,
+        only the gradiometer rank would be determined, while the specified
+        magnetometer and EEG ranks would be taken for granted.
 """
 docdict['rank_None'] = docdict['rank'] + '\n    The default is ``None``.'
 docdict['rank_info'] = docdict['rank'] + '\n    The default is ``"info"``.'
