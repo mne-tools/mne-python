@@ -876,7 +876,7 @@ rank : None | dict | 'info' | 'full'
     This controls the rank computation that can be read from the
     measurement info or estimated from the data.
 
-    :data:`python:None` (default)
+    ``None``
         The rank will be estimated from the data after proper scaling of
         different channel types.
     ``'info'``
@@ -886,7 +886,7 @@ rank : None | dict | 'info' | 'full'
         In both cases, the number of projectors is subtracted from
         the (effective) number of channels in the data.
         For example, if Maxwell filtering reduces the rank to 68, with
-        two projectors the returned value will be 68.
+        two projectors the returned value will be 66.
     ``'full'``
         The rank is assumed to be full, i.e. equal to the
         number of good channels. If a `~mne.Covariance` is passed, this can
