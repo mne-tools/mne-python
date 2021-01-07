@@ -444,7 +444,7 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
     fig.subplots_adjust(left=0., bottom=0., right=1., top=1., wspace=0.,
                         hspace=0.)
     plt_show(show, fig=fig)
-    return out
+    return out, flip_z
 
 
 def plot_bem(subject=None, subjects_dir=None, orientation='coronal',

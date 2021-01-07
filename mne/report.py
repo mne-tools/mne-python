@@ -37,6 +37,8 @@ from .parallel import parallel_func, check_n_jobs
 from .externals.tempita import HTMLTemplate, Template
 from .externals.h5io import read_hdf5, write_hdf5
 
+_BEM_VIEWS = ('axial', 'sagittal', 'coronal')
+
 VALID_EXTENSIONS = ['raw.fif', 'raw.fif.gz', 'sss.fif', 'sss.fif.gz',
                     'eve.fif', 'eve.fif.gz', 'cov.fif', 'cov.fif.gz',
                     'proj.fif', 'prof.fif.gz', 'trans.fif', 'trans.fif.gz',
@@ -130,9 +132,13 @@ def _figs_to_mrislices(sl, n_jobs, **kwargs):
     parallel, p_fun, _ = parallel_func(_plot_mri_contours, use_jobs)
     outs = parallel(p_fun(slices=s, **kwargs)
                     for s in np.array_split(sl, use_jobs))
-    for o in outs[1:]:
-        outs[0] += o
-    return outs[0]
+    # deal with flip_z
+    flip_z = 1
+    out = list()
+    for o in outs:
+        o, flip_z = o
+        out.extend(o[::flip_z])
+    return out
 
 
 def _iterate_trans_views(function, **kwargs):
@@ -417,33 +423,6 @@ def _build_image_png(data, cmap='gray'):
     output = BytesIO()
     fig.savefig(output, dpi=fig.get_dpi(), format='png')
     return base64.b64encode(output.getvalue()).decode('ascii')
-
-
-def _iterate_sagittal_slices(array, limits=None):
-    """Iterate sagittal slices."""
-    shape = array.shape[0]
-    for ind in range(shape):
-        if limits and ind not in limits:
-            continue
-        yield ind, array[ind, :, :]
-
-
-def _iterate_axial_slices(array, limits=None):
-    """Iterate axial slices."""
-    shape = array.shape[1]
-    for ind in range(shape):
-        if limits and ind not in limits:
-            continue
-        yield ind, array[:, ind, :]
-
-
-def _iterate_coronal_slices(array, limits=None):
-    """Iterate coronal slices."""
-    shape = array.shape[2]
-    for ind in range(shape):
-        if limits and ind not in limits:
-            continue
-        yield ind, np.flipud(np.rot90(array[:, :, ind]))
 
 
 def _iterate_mri_slices(name, ind, global_id, slides_klass, data, cmap):
@@ -905,7 +884,9 @@ class Report(object):
         self.info_fname = str(info_fname) if info_fname is not None else None
         self.cov_fname = str(cov_fname) if cov_fname is not None else None
         self.baseline = baseline
-        self.subjects_dir = get_subjects_dir(subjects_dir, raise_error=False)
+        if subjects_dir is not None:
+            subjects_dir = get_subjects_dir(subjects_dir)
+        self.subjects_dir = subjects_dir
         self.subject = subject
         self.title = title
         self.image_format = _check_image_format(None, image_format)
@@ -1211,10 +1192,10 @@ class Report(object):
                 html_template.substitute(div_klass=div_klass, id=global_id,
                                          caption=caption, html=html), replace)
 
-    @fill_doc
+    @verbose
     def add_bem_to_section(self, subject, caption='BEM', section='bem',
                            decim=2, n_jobs=1, subjects_dir=None,
-                           replace=False):
+                           replace=False, verbose=None):
         """Render a bem slider html str.
 
         Parameters
@@ -1234,6 +1215,7 @@ class Report(object):
         replace : bool
             If ``True``, figures already present that have the same caption
             will be replaced. Defaults to ``False``.
+        %(verbose_meth)s
 
         Notes
         -----
@@ -1747,34 +1729,6 @@ class Report(object):
         self.html.insert(0, html_header)  # Insert header at position 0
         self.html.insert(1, html_toc)  # insert TOC
 
-    def _render_array(self, array, global_id=None, cmap='gray',
-                      limits=None, n_jobs=1):
-        """Render mri without bem contours (only PNG)."""
-        html = []
-        html.append(u'<div class="thumbnail">')
-        # Axial
-        limits = limits or {}
-        axial_limit = limits.get('axial')
-        axial_slices_gen = _iterate_axial_slices(array, axial_limit)
-        html.append(
-            self._render_one_axis(axial_slices_gen, 'axial',
-                                  global_id, cmap, array.shape[1], n_jobs))
-        # Sagittal
-        sagittal_limit = limits.get('sagittal')
-        sagittal_slices_gen = _iterate_sagittal_slices(array, sagittal_limit)
-        html.append(
-            self._render_one_axis(sagittal_slices_gen, 'sagittal',
-                                  global_id, cmap, array.shape[1], n_jobs))
-        # Coronal
-        coronal_limit = limits.get('coronal')
-        coronal_slices_gen = _iterate_coronal_slices(array, coronal_limit)
-        html.append(
-            self._render_one_axis(coronal_slices_gen, 'coronal',
-                                  global_id, cmap, array.shape[1], n_jobs))
-        # Close section
-        html.append(u'</div>')
-        return '\n'.join(html)
-
     def _render_one_bem_axis(self, mri_fname, surfaces, global_id,
                              orientation='coronal', decim=2, n_jobs=1):
         """Render one axis of bem contours (only PNG)."""
@@ -1789,6 +1743,7 @@ class Report(object):
         slides_klass = '%s-%s' % (name, global_id)
 
         sl = np.arange(0, n_slices, decim)
+        logger.debug(f'Rendering BEM {orientation} with {len(sl)} slices')
         kwargs = dict(mri_fname=mri_fname, surfaces=surfaces, show=False,
                       orientation=orientation, img_output=True, src=None,
                       show_orientation=True)
@@ -2088,6 +2043,8 @@ class Report(object):
     def _render_bem(self, subject, subjects_dir, decim, n_jobs,
                     section='bem', caption='BEM'):
         """Render mri+bem (only PNG)."""
+        if subjects_dir is None:
+            subjects_dir = self.subjects_dir
         subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
         # Get the MRI filename
@@ -2114,12 +2071,9 @@ class Report(object):
         name = caption
         html += u'<li class="%s" id="%d">\n' % (klass, global_id)
         html += u'<h4>%s</h4>\n' % name  # all other captions are h4
-        html += self._render_one_bem_axis(mri_fname, surfaces, global_id,
-                                          'axial', decim, n_jobs)
-        html += self._render_one_bem_axis(mri_fname, surfaces, global_id,
-                                          'sagittal', decim, n_jobs)
-        html += self._render_one_bem_axis(mri_fname, surfaces, global_id,
-                                          'coronal', decim, n_jobs)
+        for view in _BEM_VIEWS:
+            html += self._render_one_bem_axis(mri_fname, surfaces, global_id,
+                                              view, decim, n_jobs)
         html += u'</li>\n'
         return ''.join(html)
 
