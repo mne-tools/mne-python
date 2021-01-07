@@ -65,7 +65,7 @@ when choosing which notebook kernel to use. Otherwise, be sure to activate the
 ``mne`` environment before launching the notebook.
 
 If you use another Python setup and you encounter some difficulties please
-report them on the `MNE mailing list`_ or on the `GitHub issues page`_ to get
+report them on the `MNE Forum`_ or on the `GitHub issues page`_ to get
 assistance.
 
 It is also possible to interact with the 3D plots without installing Qt by using
