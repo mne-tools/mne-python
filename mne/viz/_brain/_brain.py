@@ -1215,7 +1215,10 @@ class Brain(object):
         return self.save_movie(None)
 
     def _screenshot(self):
-        if not self.notebook:
+        if self.notebook:
+            filename = self.actions.get("screenshot_field", "screenshot.png").value
+            self.plotter.screenshot(filename)
+        else:
             self.plotter._qt_screenshot()
 
     def _initialize_actions(self):
@@ -1229,7 +1232,7 @@ class Brain(object):
             if not notebook:
                 return
             from ipywidgets import Button
-            self.actions[name] = Button(description=desc, icon=icon_name)
+            self.actions[name] = Button(tooltip=desc, icon=icon_name)
             self.actions[name].on_click(lambda x: func())
         else:
             qt_icon_name = name if qt_icon_name is None else qt_icon_name
@@ -1239,14 +1242,24 @@ class Brain(object):
                 func,
             )
 
+    def _add_text(self, name, value, placeholder):
+        if not self.notebook:
+            return
+        from ipywidgets import Text
+        self.actions[name] = Text(value=value, placeholder=placeholder)
+
     def _configure_tool_bar(self):
         self._initialize_actions()
         self._add_action(
             name="screenshot",
             desc="Take a screenshot",
             func=self._screenshot,
-            icon_name=None,
-            notebook=False,
+            icon_name="camera",
+        )
+        self._add_text(
+            name="screenshot_field",
+            value="screenshot.png",
+            placeholder="Type file name",
         )
         self._add_action(
             name="movie",
