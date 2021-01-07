@@ -279,6 +279,8 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
     channels or vertices) such that non-zero singular values
     should be close to one.
 
+    .. versionadded:: 0.18
+
     Parameters
     ----------
     inst : instance of Raw, Epochs, or Covariance
@@ -304,8 +306,6 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
     rank : dict
         Estimated rank of the data for each channel type.
         To get the total rank, you can use ``sum(rank.values())``.
-
-    .. versionadded:: 0.18
     """
     from .io.base import BaseRaw
     from .epochs import BaseEpochs

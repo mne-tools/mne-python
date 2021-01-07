@@ -876,9 +876,6 @@ rank : None | dict | 'info' | 'full'
     This controls the rank computation that can be read from the
     measurement info or estimated from the data.
 
-    .. note:: For Maxwell-filtered data, you will typically want set this to
-              ``'info'``.
-
     :data:`python:None` (default)
         The rank will be estimated from the data after proper scaling of
         different channel types.
@@ -896,8 +893,8 @@ rank : None | dict | 'info' | 'full'
         make sense if it has been (possibly improperly) regularized without
         taking into account the true data rank.
 """
-docdict['rank_None'] = docdict['rank'] + 'The default is None.'
-docdict['rank_info'] = docdict['rank'] + 'The default is "info".'
+docdict['rank_None'] = docdict['rank'] + '\n    The default is ``None``.'
+docdict['rank_info'] = docdict['rank'] + '\n    The default is ``"info"``.'
 docdict['rank_tol'] = """
 tol : float | 'auto'
     Tolerance for singular values to consider non-zero in
