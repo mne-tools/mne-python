@@ -19,6 +19,8 @@ Enhancements
 ~~~~~~~~~~~~
 - Update the ``notebook`` 3d backend to use ``ipyvtk_simple`` for a better integration within ``Jupyter`` (:gh:`8503` by `Guillaume Favelier`_)
 
+- Speed up :func:`mne.inverse_sparse.tf_mixed_norm` using STFT/ISTFT linearity by `Eric Larson`_
+
 Bugs
 ~~~~
 - Fix zen mode and scalebar toggling for :meth:`raw.plot() <mne.io.Raw.plot>` when using the ``macosx`` matplotlib backend (:gh:`8688` by `Daniel McCloy`_)
