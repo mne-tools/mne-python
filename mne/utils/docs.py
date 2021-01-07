@@ -874,8 +874,28 @@ extended_proj : list
 docdict['rank'] = """
 rank : None | dict | 'info' | 'full'
     This controls the rank computation that can be read from the
-    measurement info or estimated from the data. See ``Notes``
-    of :func:`mne.compute_rank` for details."""
+    measurement info or estimated from the data.
+
+    .. note:: For Maxwell-filtered data, you will typically want set this to
+              ``'info'``.
+
+    :data:`python:None` (default)
+        The rank will be estimated from the data after proper scaling of
+        different channel types.
+    ``'info'``        
+        The rank is inferred from ``info``. If data have been processed
+        with Maxwell filtering, the Maxwell filtering header is used.
+        Otherwise, the channel counts themselves are used.
+        In both cases, the number of projectors is subtracted from
+        the (effective) number of channels in the data.
+        For example, if Maxwell filtering reduces the rank to 68, with
+        two projectors the returned value will be 68.
+    ``'full'``
+        The rank is assumed to be full, i.e. equal to the
+        number of good channels. If a `~mne.Covariance` is passed, this can
+        make sense if it has been (possibly improperly) regularized without
+        taking into account the true data rank.
+"""
 docdict['rank_None'] = docdict['rank'] + 'The default is None.'
 docdict['rank_info'] = docdict['rank'] + 'The default is "info".'
 docdict['rank_tol'] = """

@@ -305,27 +305,6 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
         Estimated rank of the data for each channel type.
         To get the total rank, you can use ``sum(rank.values())``.
 
-    Notes
-    -----
-    The ``rank`` parameter can be:
-
-    :data:`python:None` (default)
-        Rank will be estimated from the data after proper scaling of
-        different channel types.
-    ``'info'``
-        Rank is inferred from ``info``. If data have been processed
-        with Maxwell filtering, the Maxwell filtering header is used.
-        Otherwise, the channel counts themselves are used.
-        In both cases, the number of projectors is subtracted from
-        the (effective) number of channels in the data.
-        For example, if Maxwell filtering reduces the rank to 68, with
-        two projectors the returned value will be 68.
-    ``'full'``
-        Rank is assumed to be full, i.e. equal to the
-        number of good channels. If a `Covariance` is passed, this can make
-        sense if it has been (possibly improperly) regularized without taking
-        into account the true data rank.
-
     .. versionadded:: 0.18
     """
     from .io.base import BaseRaw
