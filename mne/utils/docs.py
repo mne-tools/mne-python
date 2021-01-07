@@ -882,7 +882,7 @@ rank : None | dict | 'info' | 'full'
     :data:`python:None` (default)
         The rank will be estimated from the data after proper scaling of
         different channel types.
-    ``'info'``        
+    ``'info'``
         The rank is inferred from ``info``. If data have been processed
         with Maxwell filtering, the Maxwell filtering header is used.
         Otherwise, the channel counts themselves are used.
