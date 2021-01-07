@@ -516,6 +516,7 @@ class Brain(object):
             "src": ["mean_flip", "pca_flip", "auto"],
         }
         self.default_trace_modes = ('vertex', 'label')
+        self.default_screenshot_name = "screenshot.png"
         self.annot = None
         self.label_extract_mode = None
         all_keys = ('lh', 'rh', 'vol')
@@ -1216,9 +1217,9 @@ class Brain(object):
 
     def _screenshot(self):
         if self.notebook:
-            filename = self.actions.get("screenshot_field").value
-            filename = "screenshot.png" if len(filename) == 0 else filename
-            self.plotter.screenshot(filename)
+            fname = self.actions.get("screenshot_field").value
+            fname = self.default_screenshot_name if len(fname) == 0 else fname
+            self.plotter.screenshot(fname)
         else:
             self.plotter._qt_screenshot()
 
@@ -1259,7 +1260,7 @@ class Brain(object):
         )
         self._add_text(
             name="screenshot_field",
-            value="screenshot.png",
+            value=self.default_screenshot_name,
             placeholder="Type file name",
         )
         self._add_action(
