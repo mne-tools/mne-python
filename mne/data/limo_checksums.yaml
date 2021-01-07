@@ -1,0 +1,103 @@
+# these are the unique identifiers for each file, which are used in the URL to
+# fetch the files (see mne/datasets/limo/limo.py)
+file_ids:
+  Yr.mat:
+    S18: 5cf839833a4d9500178a6ff8
+    S17: 5cf838e83a4d9500168aeb76
+    S16: 5cf83857e650a20019d5778f
+    S15: 5cf837cce650a2001ad591e8
+    S14: 5cf837493a4d9500198a938f
+    S13: 5cf836d23a4d9500178a6df7
+    S12: 5cf83643d4c7d700193e5954
+    S11: 5cf8356ea542b8001cc81517
+    S10: 5cf833b0e650a20019d57454
+    S9:  5cf83201a542b8001cc811cf
+    S8:  5cf8326ce650a20017d60373
+    S7:  5cf834a03a4d9500168ae59b
+    S6:  5cf830e6a542b80019c86a70
+    S5:  5cf8115be650a20018d58041
+    S4:  5cf810c9a542b80019c8450a
+    S3:  5cf80c55d4c7d700163d8f52
+    S2:  5cde827123fec40019e01300
+    S1:  5d6d3071536cf5001a8b0c78
+  LIMO.mat:
+    S18: 5cf83907e650a2001ad592e4
+    S17: 5cf83867a542b80019c87602
+    S16: 5cf837dc3a4d9500188a64fe
+    S15: 5cf83758a542b8001ac7d11d
+    S14: 5cf836e4a542b8001bc7cc53
+    S13: 5cf836543a4d9500168ae7cb
+    S12: 5cf835193a4d9500178a6c92
+    S11: 5cf834f7d4c7d700163daab8
+    S10: 5cf83204e650a20018d59eb2
+    S9:  5cf8316c3a4d9500168ae13b
+    S8:  5cf8316d3a4d9500198a8dc5
+    S7:  5cf83069e650a20017d600d7
+    S6:  5cf83057a542b80019c869ca
+    S5:  5cf80c0bd4c7d700193e213c
+    S4:  5cf80bf83a4d9500198a6eb4
+    S3:  5cf80bdea542b80019c83cab
+    S2:  5cde82682a50c4001677c259
+    S1:  5d6d305f6f41fc001a3151d8
+# these are md5 checksums for each subjects' files
+hashes:
+  Yr.mat:
+    S18: 87f883d442737971a80fc0a35d057e51
+    S17: 7b667ec9eefd7a9996f61ae270e295ee
+    S16: c877afdb4897426421577e863a45921a
+    S15: eea9e0140af598fefc08c886a6f05de5
+    S14: 8bd842cfd8588bd5d32e72fdbe70b66e
+    S13: d7925d2af7288b8a5186dfb5dbb63d34
+    S12: 0e1d05beaa4bf2726e0d0671b78fe41e
+    S11: 1b0016fb9832e43b71f79c1992fcbbb1
+    S10: 13c66f60e241b9a9cc576eaf1b55a417
+    S9:  3ae1d9c3a1d9325deea2f2dddd1ab507
+    S8:  7e9adbca4e03d8d7ce8ea07ccecdc8fd
+    S7:  6b5290a6725ecebf1022d5d2789b186d
+    S6:  420c858a8340bf7c28910b7b0425dc5d
+    S5:  946436cfb474c8debae56ffb1685ecf3
+    S4:  c8216af78ac87b739e86e57b345cafdd
+    S3:  ff02e885b65b7b807146f259a30b1b5e
+    S2:  a4329022e57fd07ceceb7d1735fd2718
+    S1:  076c0ae78fb71d43409c1877707df30e
+  LIMO.mat:
+    S18: 8b4879646f65d7876fa4adf2e40162c5
+    S17: 22eaca4e6fad54431fd61b307fc426b8
+    S16: 86672d7afbea1e8c39305bc3f852c8c2
+    S15: aed5cb71ddbfd27c6a3ac7d3e613d07f
+    S14: 1e07d1f36f2eefad435a77530daf2680
+    S13: ba891015d2f9e447955fffa9833404ca
+    S12: 423fd479d71097995b6614ecb11df9ad
+    S11: 1a281348c2a41ee899f42731d30cda70
+    S10: 3c4b41e221eb352a21bbef1a7e006f06
+    S9:  5e204e2a4bcfe4f535b4b1af469b37f7
+    S8:  88313c21d34428863590e586b2bc3408
+    S7:  8c769219ebc14ce3f595063e84bfc0a9
+    S6:  9cf4e1a405366d6bd0cc6d996e32fd63
+    S5:  241fac95d3a79d2cea081391fb7078bd
+    S4:  8e10ef36c2e075edc2f787581ba33459
+    S3:  59b5fb3a9749003133608b5871309e2c
+    S2:  98b284b567f2dd395c936366e404f2c6
+    S1:  136c8cf89f8f111a11f531bd9fa6ae69
+# these are no longer needed; they're for getting each subject's Yr.mat and
+# LIMO.mat files together as a zip (which we don't do because the zip checksums
+# are unstable)
+folder_ids:
+    S18: 5cf834e73a4d9500198a9122
+    S17: 5cf834e23a4d9500198a911f
+    S16: 5cf834dbe650a20018d5a123
+    S15: 5cf834d63a4d9500168ae5d6
+    S14: 5cf834cf3a4d9500178a6c6c
+    S13: 5cf834caa542b8001cc8149b
+    S12: 5cf834c53a4d9500188a6311
+    S11: 5cf834bfa542b8001bc7cae0
+    S10: 5cf83029e650a20017d600b1
+    S9: 5cf830243a4d9500178a692b
+    S8: 5cf8301ea542b8001ac7cc47
+    S7: 5cf83018a542b8001bc7c75f
+    S6: 5cf8300fe650a20018d59cef
+    S5: 5cf7eeece650a20017d5b153
+    S4: 5cf7eee7d4c7d700193defcb
+    S3: 5cf7eedee650a2001ad560f2
+    S2: 5cde825e23fec40017e0561a
+    S1: 5cde823c8d6e050018595862
