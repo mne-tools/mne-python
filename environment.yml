@@ -37,3 +37,5 @@ dependencies:
 - pyqt
 - mne
 - mffpy>=0.5.7
+- pip:
+  - git+git://github.com/drammock/pooch/@allow-arbitrary-unzip-locations#egg=pooch

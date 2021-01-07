@@ -30,3 +30,4 @@ pyvista>=0.24
 pyvistaqt>=0.2.0
 tqdm
 mffpy>=0.5.7
+git+git://github.com/drammock/pooch/@allow-arbitrary-unzip-locations#egg=pooch

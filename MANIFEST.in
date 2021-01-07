@@ -17,6 +17,8 @@ recursive-include mne/icons *
 recursive-include mne/data/helmets *
 recursive-include mne/data/image *
 recursive-include mne/data/fsaverage *
+include mne/data/dataset_checksums.txt
+include mne/data/eegbci_checksums.txt
 include mne/datasets/_fsaverage/root.txt
 include mne/datasets/_fsaverage/bem.txt
 include mne/datasets/_infant/*.txt

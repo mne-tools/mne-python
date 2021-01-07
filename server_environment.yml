@@ -25,3 +25,4 @@ dependencies:
   - ipywidgets
   - ipyvtk_simple
   - jupyter_client!=6.1.5
+  - git+git://github.com/drammock/pooch/@allow-arbitrary-unzip-locations#egg=pooch
