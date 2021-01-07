@@ -177,12 +177,6 @@ jobs:
             command: |
               ./tools/circleci_download.sh
         - run:
-            name: Get data (again)
-            when: on_fail
-            command: |
-              ./tools/circleci_download.sh
-
-        - run:
             name: Verify build type
             command: |
               echo "PATTERN=$(cat pattern.txt)"
