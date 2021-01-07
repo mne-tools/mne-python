@@ -555,7 +555,7 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
 
     # Plot the contours
     return _plot_mri_contours(mri_fname, surfaces, src, orientation, slices,
-                              show, show_indices, show_orientation)
+                              show, show_indices, show_orientation)[0]
 
 
 def _get_bem_plotting_surfaces(bem_path):
