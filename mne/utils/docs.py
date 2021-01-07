@@ -899,7 +899,7 @@ rank : None | 'info' | 'full' | dict
         data, for instance in case you have calculated it earlier.
         This parameter must be a dictionary whose **keys** correspond to
         channel types in the data (e.g. ``'meg'``, ``'mag'``, ``'grad'``,
-        ``'eeg'``), and whose **values** are integer values representing the
+        ``'eeg'``), and whose **values** are integers representing the
         respective ranks. For example, ``{'mag': 90, 'eeg': 45}`` will assume
         a rank of ``90`` and ``45`` for magnetometer data and EEG data,
         respectively. The ranks for all channel types present in the data, but
