@@ -31,9 +31,8 @@ URL: http://neuroimage.usc.edu/brainstorm/DatasetAuditory
 def data_path(path=None, force_update=False, update_path=True, download=True,
               *, accept=False, verbose=None):  # noqa: D103
     return _data_path(path=path, force_update=force_update,
-                      update_path=update_path, name='brainstorm',
-                      download=download, archive_name='bst_auditory.tar.gz',
-                      accept=accept)
+                      update_path=update_path, name='bst_auditory',
+                      download=download, accept=accept)
 
 
 _data_path_doc = _data_path_doc_accept.format(
