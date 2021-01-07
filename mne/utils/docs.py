@@ -899,7 +899,7 @@ rank : None | 'info' | 'full' | dict
         you may have calculated earlier.
         For example, ``{'mag': 90, 'eeg': 45}`` will assume a rank of ``90``
         and ``45`` for magnetometer data and EEG data, respectively. The ranks
-        for all channel types present in the data, but **not** specified in the 
+        for all channel types present in the data, but **not** specified in the
         dictionary will be estimated empirically. That is, if you passed a
         dataset containing magnetometer, gradiometer, and EEG data together
         with the dictionary from the previous example, only the gradiometer
