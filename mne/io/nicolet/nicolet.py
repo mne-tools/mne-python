@@ -75,8 +75,11 @@ def _get_nicolet_info(fname, ch_type, eog, ecg, emg, misc):
                 value = value[1:-2].split(',')  # strip brackets
             elif var == 'conversion_factor':
                 value = float(value)
-            elif var != 'start_ts':
+            elif var in ['num_channels', 'rec_id', 'adm_id', 'pat_id',
+                         'num_samples']:
                 value = int(value)
+            elif var != 'start_ts':
+                value = float(value)
             header_info[var] = value
 
     ch_names = header_info['elec_names']
