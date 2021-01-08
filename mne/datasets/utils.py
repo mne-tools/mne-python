@@ -14,7 +14,6 @@ import zipfile
 import tempfile
 import pkg_resources
 from distutils.version import LooseVersion
-import pooch
 
 import numpy as np
 
@@ -23,8 +22,10 @@ from ..label import read_labels_from_annot, Label, write_labels_to_annot
 from ..utils import (get_config, set_config, _fetch_file, logger, warn,
                      verbose, get_subjects_dir, _pl, _safe_input)
 from ..utils.docs import docdict
+from ..utils.check import _soft_import
 from ..externals.doccer import docformat
 
+pooch = _soft_import('pooch', 'dataset downloading', True)
 
 _FAKE_VERSION = None  # used for monkeypatching while testing versioning
 
