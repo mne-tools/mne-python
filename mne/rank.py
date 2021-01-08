@@ -279,8 +279,6 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
     channels or vertices) such that non-zero singular values
     should be close to one.
 
-    .. versionadded:: 0.18
-
     Parameters
     ----------
     inst : instance of Raw, Epochs, or Covariance
