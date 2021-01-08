@@ -10,7 +10,6 @@ from ._pyvista import \
 
 class _Renderer(_PyVistaRenderer):
     def __init__(self, *args, **kwargs):
-        self.default_screenshot_name = "screenshot.png"
         self.tool_bar_state = True
         self.tool_bar = None
         self.actions = dict()
@@ -19,7 +18,7 @@ class _Renderer(_PyVistaRenderer):
 
     def _screenshot(self):
         fname = self.actions.get("screenshot_field").value
-        fname = self.default_screenshot_name if len(fname) == 0 else fname
+        fname = self.screenshot_filename if len(fname) == 0 else fname
         self.screenshot(filename=fname)
 
     def _set_tool_bar(self, state):

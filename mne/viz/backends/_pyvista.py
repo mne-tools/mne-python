@@ -170,6 +170,7 @@ class _Renderer(_BaseRenderer):
         self.font_family = "arial"
         self.tube_n_sides = 20
         self.shape = shape
+        self.screenshot_filename = "screenshot.png"
         antialias = _get_3d_option('antialias')
         self.antialias = antialias and not MNE_3D_BACKEND_TESTING
         if isinstance(fig, int):

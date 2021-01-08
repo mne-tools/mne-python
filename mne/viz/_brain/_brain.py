@@ -516,7 +516,6 @@ class Brain(object):
             "src": ["mean_flip", "pca_flip", "auto"],
         }
         self.default_trace_modes = ('vertex', 'label')
-        self.default_screenshot_name = "screenshot.png"
         self.annot = None
         self.label_extract_mode = None
         all_keys = ('lh', 'rh', 'vol')
@@ -1220,7 +1219,8 @@ class Brain(object):
         if self.notebook:
             from PIL import Image
             fname = self.actions.get("screenshot_field").value
-            fname = self.default_screenshot_name if len(fname) == 0 else fname
+            fname = self._renderer.screenshot_filename \
+                if len(fname) == 0 else fname
             img = self.screenshot(fname, time_viewer=True)
             Image.fromarray(img).save(fname)
         else:
@@ -1262,7 +1262,7 @@ class Brain(object):
         )
         self._add_text_field(
             name="screenshot_field",
-            value=self.default_screenshot_name,
+            value=self._renderer.screenshot_filename,
             placeholder="Type file name",
         )
         self._add_button(
