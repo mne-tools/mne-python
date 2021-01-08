@@ -261,28 +261,12 @@ def _soft_import(name, purpose, strict=True):
 
 def _check_pylsl_installed(strict=True):
     """Aux function."""
-    try:
-        import pylsl
-        return pylsl
-    except ImportError:
-        if strict is True:
-            raise RuntimeError('For this functionality to work, the pylsl '
-                               'library is required.')
-        else:
-            return False
+    _soft_import('pylsl', 'streaming data', strict=strict)
 
 
 def _check_pandas_installed(strict=True):
     """Aux function."""
-    try:
-        import pandas
-        return pandas
-    except ImportError:
-        if strict is True:
-            raise RuntimeError('For this functionality to work, the Pandas '
-                               'library is required.')
-        else:
-            return False
+    _soft_import('pandas', 'dataframe integration', strict=strict)
 
 
 def _check_pandas_index_arguments(index, valid):
