@@ -2273,6 +2273,23 @@ def centers_to_edges(*arrays):
 
 
 def concatenate_images(images, axis=0, bgcolor='black'):
+    """Concatenate a list of images.
+
+    Parameters
+    ----------
+    images : list of ndarray
+        The list of images to concatenate.
+    axis : 0 or 1
+        The images are concatenated horizontally if 0 and vertically otherwise.
+    bgcolor : str | list
+        The color of the background. The name of the color is accepted
+        (e.g 'red') or a list of RGB values between 0 and 1.
+
+    Returns
+    -------
+    img : ndarray
+        The concatenated image.
+    """
     from matplotlib.colors import colorConverter
     if isinstance(bgcolor, str):
         bgcolor = colorConverter.to_rgb(bgcolor)
