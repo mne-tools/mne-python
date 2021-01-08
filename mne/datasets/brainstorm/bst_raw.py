@@ -8,9 +8,9 @@ from ...utils import verbose, get_config
 from ..utils import (has_dataset, _data_path, _get_version, _version_doc,
                      _data_path_doc_accept)
 
-has_brainstorm_data = partial(has_dataset, name='brainstorm.bst_raw')
+has_brainstorm_data = partial(has_dataset, name='bst_raw')
 
-_description = u"""
+_description = """
 URL: http://neuroimage.usc.edu/brainstorm/DatasetMedianNerveCtf
     - One subject, one acquisition run of 6 minutes
     - Subject stimulated using Digitimer Constant Current Stimulator
@@ -41,7 +41,7 @@ data_path.__doc__ = _data_path_doc
 
 
 def get_version():  # noqa: D103
-    return _get_version('brainstorm.bst_raw')
+    return _get_version('bst_raw')
 
 
 get_version.__doc__ = _version_doc.format(name='brainstorm')

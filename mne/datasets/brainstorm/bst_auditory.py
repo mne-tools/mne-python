@@ -8,10 +8,10 @@ from ...utils import verbose
 from ..utils import (has_dataset, _data_path, _get_version, _version_doc,
                      _data_path_doc_accept)
 
-has_brainstorm_data = partial(has_dataset, name='brainstorm.bst_auditory')
+has_brainstorm_data = partial(has_dataset, name='bst_auditory')
 
 
-_description = u"""
+_description = """
 URL: http://neuroimage.usc.edu/brainstorm/DatasetAuditory
     - One subject, two acquisition runs of 6 minutes each
     - Subject stimulated binaurally with intra-aural earphones
@@ -43,7 +43,7 @@ data_path.__doc__ = _data_path_doc
 
 
 def get_version():  # noqa: D103
-    return _get_version('brainstorm.bst_auditory')
+    return _get_version('bst_auditory')
 
 
 get_version.__doc__ = _version_doc.format(name='brainstorm')

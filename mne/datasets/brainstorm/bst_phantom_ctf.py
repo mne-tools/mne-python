@@ -8,10 +8,10 @@ from ...utils import verbose
 from ..utils import (has_dataset, _data_path, _get_version, _version_doc,
                      _data_path_doc_accept)
 
-has_brainstorm_data = partial(has_dataset, name='brainstorm.bst_phantom_ctf')
+has_brainstorm_data = partial(has_dataset, name='bst_phantom_ctf')
 
 
-_description = u"""
+_description = """
 URL: http://neuroimage.usc.edu/brainstorm/Tutorials/PhantomCtf
 """
 
@@ -32,7 +32,7 @@ data_path.__doc__ = _data_path_doc
 
 
 def get_version():  # noqa: D103
-    return _get_version('brainstorm.bst_phantom_ctf')
+    return _get_version('bst_phantom_ctf')
 
 
 get_version.__doc__ = _version_doc.format(name='brainstorm')
