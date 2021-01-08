@@ -594,6 +594,7 @@ class Brain(object):
         self._configure_picking()
         self._configure_tool_bar()
         if self.notebook:
+            self._renderer._set_tool_bar(state=False)
             self.show()
         self._configure_trace_mode()
         self.toggle_interface()
@@ -1230,14 +1231,13 @@ class Brain(object):
             self._load_icons()
             self.tool_bar = self.window.addToolBar("toolbar")
 
-    def _add_action(self, name, desc, func, icon_name, qt_icon_name=None,
+    def _add_button(self, name, desc, func, icon_name, qt_icon_name=None,
                     notebook=True):
         if self.notebook:
             if not notebook:
                 return
-            from ipywidgets import Button
-            self.actions[name] = Button(tooltip=desc, icon=icon_name)
-            self.actions[name].on_click(lambda x: func())
+            self.actions[name] = self._renderer._add_button(
+                desc, func, icon_name)
         else:
             qt_icon_name = name if qt_icon_name is None else qt_icon_name
             self.actions[name] = self.tool_bar.addAction(
@@ -1246,71 +1246,71 @@ class Brain(object):
                 func,
             )
 
-    def _add_text(self, name, value, placeholder):
+    def _add_text_field(self, name, value, placeholder):
         if not self.notebook:
             return
-        from ipywidgets import Text
-        self.actions[name] = Text(value=value, placeholder=placeholder)
+        self.actions[name] = self._renderer._add_text_field(
+            value, placeholder)
 
     def _configure_tool_bar(self):
         self._initialize_actions()
-        self._add_action(
+        self._add_button(
             name="screenshot",
             desc="Take a screenshot",
             func=self._screenshot,
             icon_name="camera",
         )
-        self._add_text(
+        self._add_text_field(
             name="screenshot_field",
             value=self.default_screenshot_name,
             placeholder="Type file name",
         )
-        self._add_action(
+        self._add_button(
             name="movie",
             desc="Save movie...",
             func=self._save_movie_noname,
             icon_name=None,
             notebook=False,
         )
-        self._add_action(
+        self._add_button(
             name="visibility",
             desc="Toggle Visibility",
             func=self.toggle_interface,
             icon_name="eye",
             qt_icon_name="visibility_on",
         )
-        self._add_action(
+        self._add_button(
             name="play",
             desc="Play/Pause",
             func=self.toggle_playback,
             icon_name=None,
             notebook=False,
         )
-        self._add_action(
+        self._add_button(
             name="reset",
             desc="Reset",
             func=self.reset,
             icon_name="history",
         )
-        self._add_action(
+        self._add_button(
             name="scale",
             desc="Auto-Scale",
             func=self.apply_auto_scaling,
             icon_name="magic",
         )
-        self._add_action(
+        self._add_button(
             name="restore",
             desc="Restore scaling",
             func=self.restore_user_scaling,
             icon_name="reply",
         )
-        self._add_action(
+        self._add_button(
             name="clear",
             desc="Clear traces",
             func=self.clear_glyphs,
             icon_name="trash",
         )
-        self._add_action(
+        self._add_button(
             name="help",
             desc="Help",
             func=self.help,
@@ -1319,10 +1319,7 @@ class Brain(object):
         )
 
         if self.notebook:
-            from IPython import display
-            from ipywidgets import HBox
-            self.tool_bar = HBox(tuple(self.actions.values()))
-            display.display(self.tool_bar)
+            self.tool_bar = self._renderer._show_tool_bar(self.actions)
         else:
             # Qt shortcuts
             self.actions["movie"].setShortcut("ctrl+shift+s")
