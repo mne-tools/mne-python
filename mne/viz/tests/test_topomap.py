@@ -148,6 +148,7 @@ def test_plot_topomap_animation(capsys):
     plt.close('all')
 
 
+@pytest.mark.filterwarnings('ignore:.*No contour levels.*:UserWarning')
 def test_plot_topomap_animation_nirs(fnirs_evoked, capsys):
     """Test topomap plotting for nirs data."""
     fig, anim = fnirs_evoked.animate_topomap(ch_type='hbo', verbose='debug')
