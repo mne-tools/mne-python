@@ -39,7 +39,8 @@ from ..utils import (logger, verbose, warn, _check_option, get_subjects_dir,
                      _mask_to_onsets_offsets, _pl, _on_missing)
 from ..io.pick import _picks_by_type
 from ..filter import estimate_ringing_samples
-from .utils import tight_layout, _get_color_list, _prepare_trellis, plt_show
+from .utils import (tight_layout, _get_color_list, _prepare_trellis, plt_show,
+                    _figure_agg)
 
 
 def _index_info_cov(info, cov, exclude):
@@ -305,7 +306,7 @@ def plot_source_spectrogram(stcs, freq_bins, tmin=None, tmax=None,
 
 def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
                        slices=None, show=True, show_indices=False,
-                       show_orientation=False, img_output=False):
+                       show_orientation=False, img_output=False, width=512):
     """Plot BEM contours on anatomical slices."""
     import matplotlib.pyplot as plt
     from matplotlib import patheffects
@@ -365,17 +366,21 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
 
     if img_output:
         n_col = n_axes = 1
-        fig, ax = plt.subplots(1, 1, figsize=(7.0, 7.0))
+        dpi = 96
+        # 2x standard MRI resolution is probably good enough for the
+        # traces
+        w = width / dpi
+        figsize = (w, w / data.shape[x] * data.shape[y])
+        fig = _figure_agg(figsize=figsize, dpi=dpi, facecolor='k')
+        ax = fig.add_axes([0, 0, 1, 1], frame_on=False, facecolor='k')
         axs = [ax] * len(slices)
-
-        w = fig.get_size_inches()[0]
-        fig.set_size_inches([w, w / data.shape[x] * data.shape[y]])
         plt.close(fig)
     else:
         n_col = 4
         fig, axs, _, _ = _prepare_trellis(len(slices), n_col)
+        fig.set_facecolor('k')
+        dpi = fig.get_dpi()
         n_axes = len(axs)
-    fig.set_facecolor('k')
     bounds = np.concatenate(
         [[-np.inf], slices[:-1] + np.diff(slices) / 2., [np.inf]])  # float
     slicer = [slice(None)] * 3
@@ -438,7 +443,7 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
         if img_output:
             output = BytesIO()
             fig.savefig(output, bbox_inches='tight',
-                        pad_inches=0, format='png')
+                        pad_inches=0, format='png', dpi=dpi)
             out.append(base64.b64encode(output.getvalue()).decode('ascii'))
 
     fig.subplots_adjust(left=0., bottom=0., right=1., top=1., wspace=0.,
