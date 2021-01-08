@@ -2602,6 +2602,7 @@ class Brain(object):
         screenshot : array
             Image pixel values.
         """
+        from ...viz import concatenate_images
         img = self._renderer.screenshot(mode)
         if time_viewer and self.time_viewer and \
                 self.show_traces and \
@@ -2633,7 +2634,7 @@ class Brain(object):
             if delta > 0:
                 start = delta // 2
                 trace_img = trace_img[:, start:start + img.shape[1]]
-            img = np.concatenate([img, trace_img], axis=0)
+            img = concatenate_images([img, trace_img], bgcolor=self._bg_color)
         return img
 
     @fill_doc

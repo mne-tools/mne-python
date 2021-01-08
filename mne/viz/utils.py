@@ -2270,3 +2270,35 @@ def centers_to_edges(*arrays):
             arr[:-1] + arr_diff,
             [arr[-1] + arr_diff[-1]]]))
     return out
+
+
+def concatenate_images(images, axis=0, bgcolor='black', centered=True):
+    from matplotlib.colors import colorConverter
+    if isinstance(bgcolor, str):
+        bgcolor = colorConverter.to_rgb(bgcolor)
+    bgcolor = np.asarray(bgcolor) * 255
+    if not isinstance(images, list):
+        images = list(images)
+    if axis == 0:
+        ret_height = np.sum([image.shape[0] for image in images])
+        ret_width = np.max([image.shape[1] for image in images])
+    else:
+        ret_height = np.max([image.shape[0] for image in images])
+        ret_width = np.sum([image.shape[1] for image in images])
+    S = np.zeros((ret_height, ret_width, 3), dtype=np.uint8)
+    S[:, :, :] = bgcolor
+    if axis == 0:
+        h_p = 0
+        for image in images:
+            h, w, _ = image.shape
+            d_width = (ret_width - w) // 2 if centered else 0
+            S[h_p:h_p + h, d_width:w + d_width, :] = image
+            h_p += h
+    else:
+        w_p = 0
+        for image in images:
+            h, w, _ = image.shape
+            d_height = (ret_height - h) // 2 if centered else 0
+            S[d_height:h + d_height, w_p:w_p + w, :] = image
+            w_p += w
+    return S
