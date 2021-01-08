@@ -265,6 +265,9 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         fieldtrip_cmc='https://osf.io/j9b6s/download?version=1',
         phantom_4dbti='https://osf.io/v2brw/download?version=2',
         refmeg_noise='https://osf.io/drt6v/download?version=1',
+        hf_sef_raw='https://zenodo.org/record/889296/files/hf_sef_raw.tar.gz',
+        hf_sef_evoked=('https://zenodo.org/record/3523071/files/'
+                       'hf_sef_evoked.tar.gz'),
     )
     # filename of the resulting downloaded archive or file
     archive_names = dict(
@@ -289,6 +292,8 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         visual_92_categories_2='MNE-visual_92_categories-data-part2.tar.gz',
         phantom_4dbti='MNE-phantom-4DBTi.zip',
         refmeg_noise='sample_reference_MEG_noise-raw.zip',
+        hf_sef_raw='hf_sef_raw.tar.gz',
+        hf_sef_evoked='hf_sef_evoked.tar.gz',
     )
     # folder names
     folder_names = dict(
@@ -312,6 +317,8 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         visual_92_categories='MNE-visual_92_categories-data',
         phantom_4dbti='MNE-phantom-4DBTi',
         refmeg_noise='MNE-refmeg-noise-data',
+        hf_sef_raw='HF_SEF',
+        hf_sef_evoked='HF_SEF',
     )
     assert set(archive_names) == set(urls)
     # update the path
@@ -336,6 +343,8 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         fieldtrip_cmc='MNE_DATASETS_FIELDTRIP_CMC_PATH',
         phantom_4dbti='MNE_DATASETS_PHANTOM_4DBTI_PATH',
         refmeg_noise='MNE_DATASETS_REFMEG_NOISE_PATH',
+        hf_sef_raw='MNE_DATASETS_HF_SEF_PATH',
+        hf_sef_evoked='MNE_DATASETS_HF_SEF_PATH',
     )
     path = _get_path(path, config_keys[name], name)
     final_path = op.join(path, folder_names[name])
@@ -350,8 +359,8 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     if outdated:
         logger.info(f'Dataset {name} version {data_version} out of date, '
                     f'latest version is {want_version}')
-    # reasons to bail early:
-    if not force_update and not outdated:
+    # reasons to bail early (hf_sef has separate code for this):
+    if not force_update and not outdated and not name.startswith('hf_sef_'):
         # if target folder exists (otherwise pooch downloads every time,
         # because we don't save the archive files after unpacking)
         if op.isdir(final_path):
@@ -398,6 +407,12 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         visual_92_categories=untar,
         phantom_4dbti=unzip,
         refmeg_noise=unzip,
+        hf_sef_raw=pooch.Untar(
+            extract_dir=path, members=[f'hf_sef/{subdir}' for subdir in
+                                       ('MEG', 'SSS', 'subjects')]),
+        hf_sef_evoked=pooch.Untar(
+            extract_dir=path, members=[f'hf_sef/{subdir}' for subdir in
+                                       ('MEG', 'SSS', 'subjects')]),
     )
     # construct the mapping needed by pooch
     pooch_urls = {archive_names[key]: urls[key] for key in urls}

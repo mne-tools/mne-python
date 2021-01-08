@@ -21,6 +21,10 @@ bst_phantom_elekta.tar.gz                  md5:1badccbe17998d18cc373526e86a7aaf
 bst_raw.tar.gz                             md5:fa2efaaec3f3d462b319bc24898f440c
 bst_resting.tar.gz                         md5:70fc7bf9c3b97c4f2eab6260ee4a0430
 
+# HF-SEF
+hf_sef_raw.tar.gz                          md5:33934351e558542bafa9b262ac071168
+hf_sef_evoked.tar.gz                       md5:13d34cb5db584e00868677d8fb0aab2b
+
 # "fake" dataset (for testing)
 foo.tgz                                    md5:3194e9f7b46039bb050a74f3e1ae9908
 
