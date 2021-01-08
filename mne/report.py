@@ -526,31 +526,59 @@ header_template = Template(u"""
 {{include}}
 <script type="text/javascript">
 
-        var toggle_state = false;
+        function getAllOnOff() {
+            const all = $('.has_toggle');
+            const on = all.parent('.active').children('.has_toggle');
+            const off = all.not(on);
+            return [all, on, off];
+        }
+
+        function toggleAll(){
+            const [all, on, off] = getAllOnOff();
+            if (all.length == on.length)
+                on.trigger('click');
+            else
+                off.trigger('click');
+            updateToggleAllButton();
+        }
+
+        function updateToggleAllButton() {
+            const [all, on, off] = getAllOnOff();
+            const a = $('.mnetoggleall-btn').children();
+            if (all.length == on.length)
+                a.html('☒')
+            else
+                a.html('☑')
+        }
+
         $(document).on('keydown', function (event) {
             if (event.which == 84){
-                if (!toggle_state)
-                    $('.has_toggle').trigger('click');
-                else if (toggle_state)
-                    $('.has_toggle').trigger('click');
-            toggle_state = !toggle_state;
+                toggleAll();
             }
         });
 
-        function togglebutton(class_name){
-            $(class_name).toggle();
-
-            if ($(class_name + '-btn').hasClass('active'))
-                $(class_name + '-btn').removeClass('active');
-            else
-                $(class_name + '-btn').addClass('active');
+        function toggleButton(class_name){
+            if (class_name.includes('mnetoggleall'))
+                toggleAll();
+            else {
+                $(class_name).toggle();
+                if ($(class_name + '-btn').hasClass('active'))
+                    $(class_name + '-btn').removeClass('active');
+                else
+                    $(class_name + '-btn').addClass('active');
+                updateToggleAllButton();
+            }
         }
 
-        /* Scroll down on click to #id so that caption is not hidden
-        by navbar */
+        /* Scroll down on click to #id so that caption is not hidden by navbar */
         var shiftWindow = function() { scrollBy(0, -60) };
         if (location.hash) shiftWindow();
         window.addEventListener("hashchange", shiftWindow);
+
+        /* Update things when document is ready */
+        $( document ).ready(function() {
+            updateToggleAllButton();
+        });
 
         </script>
 <style type="text/css">
@@ -628,6 +656,13 @@ div.footer {
     text-align: right;
 }
 
+.navbar-toggle:after {
+    content: "▲";
+}
+.navbar-toggle.collapsed:after {
+    content: "▼";
+}
+
 </style>
 </head>
 <body>
@@ -636,30 +671,30 @@ div.footer {
     <div class="container-fluid">
         <div class="navbar-header navbar-left">
             <ul class="nav nav-pills"><li class="active">
-                <a class="navbar-btn" data-toggle="collapse"
-                data-target="#viewnavbar" href="javascript:void(0)">
-                ></a></li></ul>
+                <a class="navbar-toggle" data-toggle="collapse" data-target="#viewnavbar" href="javascript:void(0)"></a>
+            </li></ul>
     </div>
         <h3 class="navbar-text" style="color:white">{{title}}</h3>
-        <ul class="nav nav-pills navbar-right" style="margin-top: 7px;"
-        id="viewnavbar">
+        <ul class="nav nav-pills navbar-right in" style="margin-top: 7px;" id="viewnavbar">
 
         {{for section in sections}}
 
         <li class="active {{sectionvars[section]}}-btn">
-           <a href="javascript:void(0)"
-           onclick="togglebutton('.{{sectionvars[section]}}')"
-           class="has_toggle">
-    {{section if section != 'mri' else 'MRI'}}
+           <a href="javascript:void(0)" onclick="toggleButton('.{{sectionvars[section]}}')" class="has_toggle">
+               {{section}}
            </a>
         </li>
 
         {{endfor}}
 
+        <li class="active mnetoggleall-btn">
+           <a href="javascript:void(0)" onclick="toggleButton('.mnetoggleall')"> </a>
+        </li>
+
         </ul>
     </div>
 </nav>
-""")
+""")  # noqa: E501
 
 footer_template = HTMLTemplate(u"""
 </div></body>
@@ -871,9 +906,7 @@ class Report(object):
 
     Notes
     -----
-    See :ref:`tut-report` for an introduction to using ``mne.Report``, and
-    :ref:`this example <ex-report>` for an example of customizing the report
-    with a slider.
+    See :ref:`tut-report` for an introduction to using ``mne.Report``.
 
     .. versionadded:: 0.8.0
     """
@@ -1723,9 +1756,11 @@ class Report(object):
         self._sectionlabels = sectionlabels
 
         lang = getattr(self, 'lang', 'en-us')
+        sections = [section if section != 'mri' else 'MRI'
+                    for section in self.sections]
         html_header = header_template.substitute(
             title=self.title, include=self.include, lang=lang,
-            sections=self.sections, sectionvars=self._sectionvars)
+            sections=sections, sectionvars=self._sectionvars)
         self.html.insert(0, html_header)  # Insert header at position 0
         self.html.insert(1, html_toc)  # insert TOC
 
