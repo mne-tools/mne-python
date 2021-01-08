@@ -28,6 +28,121 @@ from ..externals.doccer import docformat
 
 _FAKE_VERSION = None  # used for monkeypatching while testing versioning
 
+# To update the `testing` or `misc` datasets, push or merge commits to their
+# respective repos, and make a new release of the dataset on GitHub. Then
+# update the checksum in `mne/data/dataset_checksums.txt` and change version
+# here:                  ↓↓↓↓↓         ↓↓↓
+RELEASES = dict(testing='0.112', misc='0.8')
+# To update any other dataset besides `testing` or `misc`, upload the new
+# version of the data archive itself (e.g., to https://osf.io or wherever) and
+# then update the corresponding checksum in `mne/data/dataset_checksums.txt`.
+TESTING_VERSIONED = f'mne-testing-data-{RELEASES["testing"]}'
+MISC_VERSIONED = f'mne-misc-data-{RELEASES["misc"]}'
+# remote locations of the various datasets
+URLS = dict(
+    bst_auditory='https://osf.io/5t9n8/download?version=1',
+    bst_phantom_ctf='https://osf.io/sxr8y/download?version=1',
+    bst_phantom_elekta='https://osf.io/dpcku/download?version=1',
+    bst_raw='https://osf.io/9675n/download?version=2',
+    bst_resting='https://osf.io/m7bd3/download?version=3',
+    fake=('https://github.com/mne-tools/mne-testing-data/raw/master/'
+          'datasets/foo.tgz'),
+    misc=('https://codeload.github.com/mne-tools/mne-misc-data/tar.gz/'
+          f'{RELEASES["misc"]}'),
+    sample='https://osf.io/86qa2/download?version=5',
+    somato='https://osf.io/tp4sg/download?version=7',
+    spm='https://osf.io/je4s8/download?version=2',
+    testing=('https://codeload.github.com/mne-tools/mne-testing-data/'
+             f'tar.gz/{RELEASES["testing"]}'),
+    multimodal='https://ndownloader.figshare.com/files/5999598',
+    fnirs_motor='https://osf.io/dj3eh/download?version=1',
+    opm='https://osf.io/p6ae7/download?version=2',
+    visual_92_categories_1='https://osf.io/8ejrs/download?version=1',
+    visual_92_categories_2='https://osf.io/t4yjp/download?version=1',
+    mtrf='https://osf.io/h85s2/download?version=1',
+    kiloword='https://osf.io/qkvf9/download?version=1',
+    fieldtrip_cmc='https://osf.io/j9b6s/download?version=1',
+    phantom_4dbti='https://osf.io/v2brw/download?version=2',
+    refmeg_noise='https://osf.io/drt6v/download?version=1',
+    hf_sef_raw='https://zenodo.org/record/889296/files/hf_sef_raw.tar.gz',
+    hf_sef_evoked=('https://zenodo.org/record/3523071/files/'
+                   'hf_sef_evoked.tar.gz'),
+)
+ARCHIVE_NAMES = dict(
+    bst_auditory='bst_auditory.tar.gz',
+    bst_phantom_ctf='bst_phantom_ctf.tar.gz',
+    bst_phantom_elekta='bst_phantom_elekta.tar.gz',
+    bst_raw='bst_raw.tar.gz',
+    bst_resting='bst_resting.tar.gz',
+    fake='foo.tgz',
+    fieldtrip_cmc='SubjectCMC.zip',
+    kiloword='MNE-kiloword-data.tar.gz',
+    misc=f'{MISC_VERSIONED}.tar.gz',
+    mtrf='mTRF_1.5.zip',
+    multimodal='MNE-multimodal-data.tar.gz',
+    fnirs_motor='MNE-fNIRS-motor-data.tgz',
+    opm='MNE-OPM-data.tar.gz',
+    sample='MNE-sample-data-processed.tar.gz',
+    somato='MNE-somato-data.tar.gz',
+    spm='MNE-spm-face.tar.gz',
+    testing=f'{TESTING_VERSIONED}.tar.gz',
+    visual_92_categories_1='MNE-visual_92_categories-data-part1.tar.gz',
+    visual_92_categories_2='MNE-visual_92_categories-data-part2.tar.gz',
+    phantom_4dbti='MNE-phantom-4DBTi.zip',
+    refmeg_noise='sample_reference_MEG_noise-raw.zip',
+    hf_sef_raw='hf_sef_raw.tar.gz',
+    hf_sef_evoked='hf_sef_evoked.tar.gz',
+)
+FOLDER_NAMES = dict(
+    bst_auditory='MNE-brainstorm-data',
+    bst_phantom_ctf='MNE-brainstorm-data',
+    bst_phantom_elekta='MNE-brainstorm-data',
+    bst_raw='MNE-brainstorm-data',
+    bst_resting='MNE-brainstorm-data',
+    fake='foo',
+    fieldtrip_cmc='MNE-fieldtrip_cmc-data',
+    kiloword='MNE-kiloword-data',
+    misc='MNE-misc-data',
+    mtrf='mTRF_1.5',
+    multimodal='MNE-multimodal-data',
+    fnirs_motor='MNE-fNIRS-motor-data',
+    opm='MNE-OPM-data',
+    sample='MNE-sample-data',
+    somato='MNE-somato-data',
+    spm='MNE-spm-face',
+    testing='MNE-testing-data',
+    visual_92_categories='MNE-visual_92_categories-data',
+    phantom_4dbti='MNE-phantom-4DBTi',
+    refmeg_noise='MNE-refmeg-noise-data',
+    hf_sef_raw='HF_SEF',
+    hf_sef_evoked='HF_SEF',
+)
+CONFIG_KEYS = dict(
+    fake='MNE_DATASETS_FAKE_PATH',
+    misc='MNE_DATASETS_MISC_PATH',
+    sample='MNE_DATASETS_SAMPLE_PATH',
+    spm='MNE_DATASETS_SPM_FACE_PATH',
+    somato='MNE_DATASETS_SOMATO_PATH',
+    bst_auditory='MNE_DATASETS_BRAINSTORM_PATH',
+    bst_phantom_ctf='MNE_DATASETS_BRAINSTORM_PATH',
+    bst_phantom_elekta='MNE_DATASETS_BRAINSTORM_PATH',
+    bst_raw='MNE_DATASETS_BRAINSTORM_PATH',
+    bst_resting='MNE_DATASETS_BRAINSTORM_PATH',
+    testing='MNE_DATASETS_TESTING_PATH',
+    multimodal='MNE_DATASETS_MULTIMODAL_PATH',
+    fnirs_motor='MNE_DATASETS_FNIRS_MOTOR_PATH',
+    opm='MNE_DATASETS_OPM_PATH',
+    visual_92_categories='MNE_DATASETS_VISUAL_92_CATEGORIES_PATH',
+    kiloword='MNE_DATASETS_KILOWORD_PATH',
+    mtrf='MNE_DATASETS_MTRF_PATH',
+    fieldtrip_cmc='MNE_DATASETS_FIELDTRIP_CMC_PATH',
+    phantom_4dbti='MNE_DATASETS_PHANTOM_4DBTI_PATH',
+    refmeg_noise='MNE_DATASETS_REFMEG_NOISE_PATH',
+    hf_sef_raw='MNE_DATASETS_HF_SEF_PATH',
+    hf_sef_evoked='MNE_DATASETS_HF_SEF_PATH',
+)
+assert set(ARCHIVE_NAMES) == set(URLS)
+
 _data_path_doc = """Get path to local copy of {name} dataset.
 
     Parameters
@@ -71,7 +186,6 @@ _version_doc = """Get version of the local {name} dataset.
         Version of the {name} local dataset, or None if the dataset
         does not exist locally.
 """
-
 
 _bst_license_text = """
 License
@@ -228,131 +342,13 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
                name=None, check_version=False, return_version=False,
                accept=False):
     """Aux function."""
-    # To update the testing or misc datasets, push or merge commits to their
-    # respective repos, and make a new release of the dataset on GitHub.
-    # Then update the checksum in `mne/data/dataset_checksums.txt`,
-    # and change this "releases" variable:
-    releases = dict(testing='0.115', misc='0.8')
-    # To update any other dataset besides `testing` or `misc`, upload the new
-    # version of the data archive itself (e.g., to https://osf.io) and then
-    # update the corresponding checksum in `mne/data/dataset_checksums.txt`.
-    testing_data_name = f'mne-testing-data-{releases["testing"]}'
-    misc_data_name = f'mne-misc-data-{releases["misc"]}'
-
-    # the download URLs
-    urls = dict(
-        bst_auditory='https://osf.io/5t9n8/download?version=1',
-        bst_phantom_ctf='https://osf.io/sxr8y/download?version=1',
-        bst_phantom_elekta='https://osf.io/dpcku/download?version=1',
-        bst_raw='https://osf.io/9675n/download?version=2',
-        bst_resting='https://osf.io/m7bd3/download?version=3',
-        fake=('https://github.com/mne-tools/mne-testing-data/raw/master/'
-              'datasets/foo.tgz'),
-        misc=('https://codeload.github.com/mne-tools/mne-misc-data/tar.gz/'
-              f'{releases["misc"]}'),
-        sample='https://osf.io/86qa2/download?version=5',
-        somato='https://osf.io/tp4sg/download?version=7',
-        spm='https://osf.io/je4s8/download?version=2',
-        testing=('https://codeload.github.com/mne-tools/mne-testing-data/'
-                 f'tar.gz/{releases["testing"]}'),
-        multimodal='https://ndownloader.figshare.com/files/5999598',
-        fnirs_motor='https://osf.io/dj3eh/download?version=1',
-        opm='https://osf.io/p6ae7/download?version=2',
-        visual_92_categories_1='https://osf.io/8ejrs/download?version=1',
-        visual_92_categories_2='https://osf.io/t4yjp/download?version=1',
-        mtrf='https://osf.io/h85s2/download?version=1',
-        kiloword='https://osf.io/qkvf9/download?version=1',
-        fieldtrip_cmc='https://osf.io/j9b6s/download?version=1',
-        phantom_4dbti='https://osf.io/v2brw/download?version=2',
-        refmeg_noise='https://osf.io/drt6v/download?version=1',
-        hf_sef_raw='https://zenodo.org/record/889296/files/hf_sef_raw.tar.gz',
-        hf_sef_evoked=('https://zenodo.org/record/3523071/files/'
-                       'hf_sef_evoked.tar.gz'),
-    )
-    # filename of the resulting downloaded archive or file
-    archive_names = dict(
-        bst_auditory='bst_auditory.tar.gz',
-        bst_phantom_ctf='bst_phantom_ctf.tar.gz',
-        bst_phantom_elekta='bst_phantom_elekta.tar.gz',
-        bst_raw='bst_raw.tar.gz',
-        bst_resting='bst_resting.tar.gz',
-        fake='foo.tgz',
-        fieldtrip_cmc='SubjectCMC.zip',
-        kiloword='MNE-kiloword-data.tar.gz',
-        misc=f'{misc_data_name}.tar.gz',
-        mtrf='mTRF_1.5.zip',
-        multimodal='MNE-multimodal-data.tar.gz',
-        fnirs_motor='MNE-fNIRS-motor-data.tgz',
-        opm='MNE-OPM-data.tar.gz',
-        sample='MNE-sample-data-processed.tar.gz',
-        somato='MNE-somato-data.tar.gz',
-        spm='MNE-spm-face.tar.gz',
-        testing=f'{testing_data_name}.tar.gz',
-        visual_92_categories_1='MNE-visual_92_categories-data-part1.tar.gz',
-        visual_92_categories_2='MNE-visual_92_categories-data-part2.tar.gz',
-        phantom_4dbti='MNE-phantom-4DBTi.zip',
-        refmeg_noise='sample_reference_MEG_noise-raw.zip',
-        hf_sef_raw='hf_sef_raw.tar.gz',
-        hf_sef_evoked='hf_sef_evoked.tar.gz',
-    )
-    # folder names
-    folder_names = dict(
-        bst_auditory='MNE-brainstorm-data',
-        bst_phantom_ctf='MNE-brainstorm-data',
-        bst_phantom_elekta='MNE-brainstorm-data',
-        bst_raw='MNE-brainstorm-data',
-        bst_resting='MNE-brainstorm-data',
-        fake='foo',
-        fieldtrip_cmc='MNE-fieldtrip_cmc-data',
-        kiloword='MNE-kiloword-data',
-        misc='MNE-misc-data',
-        mtrf='mTRF_1.5',
-        multimodal='MNE-multimodal-data',
-        fnirs_motor='MNE-fNIRS-motor-data',
-        opm='MNE-OPM-data',
-        sample='MNE-sample-data',
-        somato='MNE-somato-data',
-        spm='MNE-spm-face',
-        testing='MNE-testing-data',
-        visual_92_categories='MNE-visual_92_categories-data',
-        phantom_4dbti='MNE-phantom-4DBTi',
-        refmeg_noise='MNE-refmeg-noise-data',
-        hf_sef_raw='HF_SEF',
-        hf_sef_evoked='HF_SEF',
-    )
-    assert set(archive_names) == set(urls)
     # update the path
-    config_keys = dict(
-        fake='MNE_DATASETS_FAKE_PATH',
-        misc='MNE_DATASETS_MISC_PATH',
-        sample='MNE_DATASETS_SAMPLE_PATH',
-        spm='MNE_DATASETS_SPM_FACE_PATH',
-        somato='MNE_DATASETS_SOMATO_PATH',
-        bst_auditory='MNE_DATASETS_BRAINSTORM_PATH',
-        bst_phantom_ctf='MNE_DATASETS_BRAINSTORM_PATH',
-        bst_phantom_elekta='MNE_DATASETS_BRAINSTORM_PATH',
-        bst_raw='MNE_DATASETS_BRAINSTORM_PATH',
-        bst_resting='MNE_DATASETS_BRAINSTORM_PATH',
-        testing='MNE_DATASETS_TESTING_PATH',
-        multimodal='MNE_DATASETS_MULTIMODAL_PATH',
-        fnirs_motor='MNE_DATASETS_FNIRS_MOTOR_PATH',
-        opm='MNE_DATASETS_OPM_PATH',
-        visual_92_categories='MNE_DATASETS_VISUAL_92_CATEGORIES_PATH',
-        kiloword='MNE_DATASETS_KILOWORD_PATH',
-        mtrf='MNE_DATASETS_MTRF_PATH',
-        fieldtrip_cmc='MNE_DATASETS_FIELDTRIP_CMC_PATH',
-        phantom_4dbti='MNE_DATASETS_PHANTOM_4DBTI_PATH',
-        refmeg_noise='MNE_DATASETS_REFMEG_NOISE_PATH',
-        hf_sef_raw='MNE_DATASETS_HF_SEF_PATH',
-        hf_sef_evoked='MNE_DATASETS_HF_SEF_PATH',
-    )
-    path = _get_path(path, config_keys[name], name)
-    final_path = op.join(path, folder_names[name])
+    path = _get_path(path, CONFIG_KEYS[name], name)
+    final_path = op.join(path, FOLDER_NAMES[name])
     if name.startswith('bst_'):
         final_path = op.join(final_path, name)
-    # check if the testing or misc data is outdated, if so we'll want to
-    # redownload it
-    want_version = releases.get(name, None)
+    # check if testing or misc data is outdated; if so, redownload it
+    want_version = RELEASES.get(name, None)
     want_version = _FAKE_VERSION if name == 'fake' else want_version
     data_version = _dataset_version(final_path, name)
     outdated = want_version is not None and want_version != data_version
@@ -380,12 +376,11 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
             if answer.lower() != 'y':
                 raise RuntimeError(
                     'You must agree to the license to use this dataset')
-
     # downloader & processors
     downloader = pooch.HTTPDownloader(progressbar=True)  # use tqdm
     unzip = pooch.Unzip(extract_dir=path)
     untar = pooch.Untar(extract_dir=path)
-    nested_untar = pooch.Untar(extract_dir=op.join(path, folder_names[name]))
+    nested_untar = pooch.Untar(extract_dir=op.join(path, FOLDER_NAMES[name]))
     processors = dict(
         bst_auditory=nested_untar,
         bst_phantom_ctf=nested_untar,
@@ -415,7 +410,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
                                        ('MEG', 'SSS', 'subjects')]),
     )
     # construct the mapping needed by pooch
-    pooch_urls = {archive_names[key]: urls[key] for key in urls}
+    pooch_urls = {ARCHIVE_NAMES[key]: URLS[key] for key in URLS}
     # create the download manager
     fetcher = pooch.create(
         path=path,
@@ -431,8 +426,8 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     fetcher.load_registry(registry)
     # update the keys that are versioned
     versioned_keys = {
-        f'{testing_data_name}.tar.gz': fetcher.registry['mne-testing-data'],
-        f'{misc_data_name}.tar.gz': fetcher.registry['mne-misc-data']}
+        f'{TESTING_VERSIONED}.tar.gz': fetcher.registry['mne-testing-data'],
+        f'{MISC_VERSIONED}.tar.gz': fetcher.registry['mne-misc-data']}
     fetcher.registry.update(versioned_keys)
     for key in ('testing', 'misc'):
         del fetcher.registry[f'mne-{key}-data']
@@ -444,19 +439,19 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     else:
         names = [name]
     for this_name in names:
-        archive_name = archive_names[this_name]
+        archive_name = ARCHIVE_NAMES[this_name]
         fetcher.fetch(fname=archive_name, downloader=downloader,
                       processor=processors[name])
         # after unpacking, remove the archive file
         os.remove(op.join(path, archive_name))
     # remove version number from "misc" and "testing" datasets folder names
     if name == 'misc':
-        os.replace(op.join(path, misc_data_name), final_path)
+        os.replace(op.join(path, MISC_VERSIONED), final_path)
     elif name == 'testing':
-        os.replace(op.join(path, testing_data_name), final_path)
+        os.replace(op.join(path, TESTING_VERSIONED), final_path)
     # maybe update the config
     old_name = 'brainstorm' if name.startswith('bst_') else name
-    _do_path_update(path, update_path, config_keys[name], old_name)
+    _do_path_update(path, update_path, CONFIG_KEYS[name], old_name)
     # compare the version of the dataset and mne
     data_version = _dataset_version(final_path, old_name)
     # 0.7 < 0.7.git should be False, therefore strip
@@ -474,12 +469,7 @@ def _get_version(name):
     """Get a dataset version."""
     if not has_dataset(name):
         return None
-    if name.startswith('brainstorm'):
-        name, archive_name = name.split('.')
-    else:
-        archive_name = None
-    return _data_path(name=name, archive_name=archive_name,
-                      return_version=True)[1]
+    return _data_path(name=name, return_version=True)[1]
 
 
 def has_dataset(name):
@@ -489,8 +479,6 @@ def has_dataset(name):
     ----------
     name : str
         The dataset name.
-        For brainstorm datasets, should be formatted like
-        "brainstorm.bst_raw".
 
     Returns
     -------
@@ -498,32 +486,8 @@ def has_dataset(name):
         True if the dataset is present.
     """
     name = 'spm' if name == 'spm_face' else name
-    if name.startswith('brainstorm'):
-        name, archive_name = name.split('.')
-        endswith = archive_name
-    else:
-        archive_name = None
-        # XXX eventually should be refactored with data_path
-        endswith = {
-            'fieldtrip_cmc': 'MNE-fieldtrip_cmc-data',
-            'fake': 'foo',
-            'misc': 'MNE-misc-data',
-            'sample': 'MNE-sample-data',
-            'somato': 'MNE-somato-data',
-            'spm': 'MNE-spm-face',
-            'multimodal': 'MNE-multimodal-data',
-            'fnirs_motor': 'MNE-fNIRS-motor-data',
-            'opm': 'MNE-OPM-data',
-            'testing': 'MNE-testing-data',
-            'visual_92_categories': 'MNE-visual_92_categories-data',
-            'kiloword': 'MNE-kiloword-data',
-            'phantom_4dbti': 'MNE-phantom-4DBTi',
-            'mtrf': 'mTRF_1.5',
-            'refmeg_noise': 'MNE-refmeg-noise-data'
-        }[name]
-    dp = _data_path(download=False, name=name, check_version=False,
-                    archive_name=archive_name)
-    return dp.endswith(endswith)
+    dp = _data_path(download=False, name=name, check_version=False)
+    return dp.endswith(FOLDER_NAMES[name])
 
 
 @verbose
