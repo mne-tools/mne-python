@@ -2272,7 +2272,7 @@ def centers_to_edges(*arrays):
     return out
 
 
-def concatenate_images(images, axis=0, bgcolor='black'):
+def concatenate_images(images, axis=0, bgcolor='black', centered=True):
     """Concatenate a list of images.
 
     Parameters
@@ -2281,9 +2281,13 @@ def concatenate_images(images, axis=0, bgcolor='black'):
         The list of images to concatenate.
     axis : 0 or 1
         The images are concatenated horizontally if 0 and vertically otherwise.
+        The default orientation is horizontal.
     bgcolor : str | list
         The color of the background. The name of the color is accepted
-        (e.g 'red') or a list of RGB values between 0 and 1.
+        (e.g 'red') or a list of RGB values between 0 and 1. Defaults to
+        'black'.
+    centered : bool
+        If True, the images are centered. Defaults to True.
 
     Returns
     -------
@@ -2305,7 +2309,8 @@ def concatenate_images(images, axis=0, bgcolor='black'):
     sec = np.array([0 == axis, 1 == axis]).astype(np.int)
     for image in images:
         shape = image.shape[:-1]
-        dec = ptr + ((ret_shape - shape) // 2) * (1 - sec)
+        dec = ptr
+        dec += ((ret_shape - shape) // 2) * (1 - sec) if centered else 0
         ret[dec[0]:dec[0] + shape[0], dec[1]:dec[1] + shape[1], :] = image
         ptr += shape * sec
     return ret
