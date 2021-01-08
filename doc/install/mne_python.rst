@@ -276,8 +276,8 @@ MNE-Python and its dependencies. Typical output looks like this::
 
 If something else went wrong during installation and you can't figure it out,
 check out the :doc:`advanced` page to see if your problem is discussed there.
-If not, the `MNE mailing list`_ and `MNE gitter channel`_ are
-good resources for troubleshooting installation problems.
+If not, the `MNE Forum`_ is a good resources for troubleshooting installation
+problems.
 
 
 Installing a Python IDE
