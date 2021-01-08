@@ -875,12 +875,48 @@ extended_proj : list
 
 # Rank
 docdict['rank'] = """
-rank : None | dict | 'info' | 'full'
+rank : None | 'info' | 'full' | dict
     This controls the rank computation that can be read from the
-    measurement info or estimated from the data. See ``Notes``
-    of :func:`mne.compute_rank` for details."""
-docdict['rank_None'] = docdict['rank'] + 'The default is None.'
-docdict['rank_info'] = docdict['rank'] + 'The default is "info".'
+    measurement info or estimated from the data.
+
+    :data:`python:None`
+        The rank will be estimated from the data after proper scaling of
+        different channel types.
+    ``'info'``
+        The rank is inferred from ``info``. If data have been processed
+        with Maxwell filtering, the Maxwell filtering header is used.
+        Otherwise, the channel counts themselves are used.
+        In both cases, the number of projectors is subtracted from
+        the (effective) number of channels in the data.
+        For example, if Maxwell filtering reduces the rank to 68, with
+        two projectors the returned value will be 66.
+    ``'full'``
+        The rank is assumed to be full, i.e. equal to the
+        number of good channels. If a `~mne.Covariance` is passed, this can
+        make sense if it has been (possibly improperly) regularized without
+        taking into account the true data rank.
+    :class:`dict`
+        Calculate the rank only for a subset of channel types, and explicitly
+        specify the rank for the remaining channel types. This can be
+        extremely useful if you already **know** the rank of (part of) your
+        data, for instance in case you have calculated it earlier.
+
+        This parameter must be a dictionary whose **keys** correspond to
+        channel types in the data (e.g. ``'meg'``, ``'mag'``, ``'grad'``,
+        ``'eeg'``), and whose **values** are integers representing the
+        respective ranks. For example, ``{'mag': 90, 'eeg': 45}`` will assume
+        a rank of ``90`` and ``45`` for magnetometer data and EEG data,
+        respectively.
+
+        The ranks for all channel types present in the data, but
+        **not** specified in the dictionary will be estimated empirically.
+        That is, if you passed a dataset containing magnetometer, gradiometer,
+        and EEG data together with the dictionary from the previous example,
+        only the gradiometer rank would be determined, while the specified
+        magnetometer and EEG ranks would be taken for granted.
+"""
+docdict['rank_None'] = docdict['rank'] + "\n    The default is ``None``."
+docdict['rank_info'] = docdict['rank'] + "\n    The default is ``'info'``."
 docdict['rank_tol'] = """
 tol : float | 'auto'
     Tolerance for singular values to consider non-zero in
