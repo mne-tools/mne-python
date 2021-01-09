@@ -151,13 +151,6 @@ def test_ssd():
     # difference should be low for the first 5 components and then increases
     index_diff = np.argmax(-np.diff(spec_ratio))
     assert index_diff == n_components_true - 1
-    # check sort_by_spectral_ratio
-    ssd = SSD(info, filt_params_signal, filt_params_noise,
-              n_components=None, sort_by_spectral_ratio=True)
-    ssd.fit(X)
-    sorter_spec2 = ssd.sorter_spec
-    assert all(sorter_spec == sorter_spec2)
-
     # Check detected peaks
     # fit ssd
     n_components = n_components_true
@@ -262,3 +255,38 @@ def test_ssd_pipeline():
     out = pipe.fit_transform(X_e, y)
     assert (out.shape == (100, 2))
     assert (pipe.get_params()['SSD__n_components'] == 5)
+
+
+def test_sorting():
+    """Test sorting learning during training."""
+    X, _, _ = simulate_data(n_trials=100, n_channels=20, n_samples=500)
+    n_components_true = 5
+    # Epoch length is 1 second
+    X = np.reshape(X, (100, 20, 500))
+    # split data
+    Xtr, Xte = X[:80], X[80:]
+    sf = 250
+    n_channels = Xtr.shape[1]
+    info = create_info(ch_names=n_channels, sfreq=sf, ch_types='eeg')
+
+    filt_params_signal = dict(l_freq=freqs_sig[0], h_freq=freqs_sig[1],
+                              l_trans_bandwidth=4, h_trans_bandwidth=4)
+    filt_params_noise = dict(l_freq=freqs_noise[0], h_freq=freqs_noise[1],
+                             l_trans_bandwidth=4, h_trans_bandwidth=4)
+
+    # check sort_by_spectral_ratio set to False
+    ssd = SSD(info, filt_params_signal, filt_params_noise,
+              n_components=None, sort_by_spectral_ratio=False)
+    ssd.fit(Xtr)
+    _, sorter_tr = ssd.get_spectral_ratio(ssd.transform(Xtr))
+    _, sorter_te = ssd.get_spectral_ratio(ssd.transform(Xte))
+    assert any(sorter_tr != sorter_te)
+
+    # check sort_by_spectral_ratio set to True
+    ssd = SSD(info, filt_params_signal, filt_params_noise,
+              n_components=None, sort_by_spectral_ratio=True)
+    ssd.fit(Xtr)
+
+    # we know that the first sources are the true ones
+    estimated_order = ssd.sorter_spec[:n_components_true]
+    assert all(estimated_order == np.arange(n_components_true))
