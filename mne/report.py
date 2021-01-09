@@ -715,7 +715,7 @@ Created on {{date}}.
 </footer>
 </body>
 </html>
-""")
+""")  # noqa: E501
 
 html_template = Template(u"""
 <li class="{{div_klass}}" id="{{id}}">
@@ -1828,7 +1828,6 @@ class Report(object):
 
     def _render_raw(self, raw_fname, data_path):
         """Render raw (only text)."""
-        import matplotlib.pyplot as plt
         global_id = self._get_id()
 
         raw = read_raw_fif(raw_fname, allow_maxshield='yes')

@@ -59,7 +59,7 @@ def test_plot_topomap_interactive():
 
     plt.close('all')
     fig = plt.figure()
-    ax = fig.gca()
+    ax, canvas = fig.gca(), fig.canvas
 
     kwargs = dict(vmin=-240, vmax=240, times=[0.1], colorbar=False, axes=ax,
                   res=8, time_unit='s')
