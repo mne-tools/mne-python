@@ -197,7 +197,7 @@ _ch_kind_named = {key: key for key in (
     FIFF.FIFFV_MISC_CH,
     FIFF.FIFFV_RESP_CH,
     FIFF.FIFFV_SEEG_CH,
-    FIFF.FIFFV_SEEG_CH,
+    FIFF.FIFFV_DBS_CH,
     FIFF.FIFFV_SYST_CH,
     FIFF.FIFFV_ECOG_CH,
     FIFF.FIFFV_IAS_CH,
