@@ -24,11 +24,12 @@ from . import read_evokeds, read_events, pick_types, read_cov
 from .io import read_raw_fif, read_info
 from .io.pick import _DATA_CH_TYPES_SPLIT
 from .source_space import _mri_orientation
-from .utils import (logger, verbose, get_subjects_dir, warn,
+from .utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
                     fill_doc, _check_option, _validate_type, _safe_input)
 from .viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
                   plot_compare_evokeds)
 from .viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
+from .viz.utils import _ndarray_to_fig, _figure_agg
 from .forward import read_forward_solution
 from .epochs import read_epochs
 from .minimum_norm import read_inverse_operator
@@ -51,14 +52,6 @@ SECTION_ORDER = ['raw', 'events', 'epochs', 'ssp', 'evoked', 'covariance',
 
 ###############################################################################
 # PLOTTING FUNCTIONS
-
-def _ndarray_to_fig(img):
-    """Convert to MPL figure, adapted from matplotlib.image.imsave."""
-    figsize = np.array(img.shape[:2][::-1]) / 100.
-    fig = _figure_agg(dpi=100, figsize=figsize, frameon=False)
-    fig.figimage(img)
-    return fig
-
 
 def _fig_to_img(fig, image_format='png', scale=None, **kwargs):
     """Plot figure and create a binary image."""
@@ -401,14 +394,6 @@ def open_report(fname, **params):
 ###############################################################################
 # IMAGE FUNCTIONS
 
-def _figure_agg(**kwargs):
-    from matplotlib.figure import Figure
-    from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-    fig = Figure(**kwargs)
-    FigureCanvas(fig)
-    return fig
-
-
 def _build_image_png(data, cmap='gray'):
     """Build an image encoded in base64."""
     import matplotlib.pyplot as plt
@@ -417,7 +402,7 @@ def _build_image_png(data, cmap='gray'):
     if figsize[0] == 1:
         figsize = tuple(figsize[1:])
         data = data[:, :, 0]
-    fig = _figure_agg(figsize=figsize, dpi=1.0, frameon=False)
+    fig = _figure_agg(figsize=figsize, dpi=100, frameon=False)
     cmap = getattr(plt.cm, cmap, plt.cm.gray)
     fig.figimage(data, cmap=cmap)
     output = BytesIO()
@@ -546,6 +531,7 @@ header_template = Template(u"""
             const [all, on, off] = getAllOnOff();
             const a = $('.mnetoggleall-btn').children();
             if (all.length == on.length)
+                /* If this character is changed, it should be changed in the HTML below as well */
                 a.html('☒')
             else
                 a.html('☑')
@@ -575,11 +561,28 @@ header_template = Template(u"""
         if (location.hash) shiftWindow();
         window.addEventListener("hashchange", shiftWindow);
 
+        /* Prevent navbar from covering content */
+        function fixNavbarPadding() {
+            $('body').css('padding-top', parseInt($('#main-navbar').css("height"))-30);
+        }
+        $(window).resize(function () { fixNavbarPadding(); });
+        $(window).load(function () { fixNavbarPadding(); });
+        var observer = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            if (mutation.attributeName === "class") {
+              var attributeValue = $(mutation.target).prop(mutation.attributeName);
+              if (attributeValue.includes(" in") || attributeValue.includes(" collapse")) {
+                fixNavbarPadding();
+              }
+            }
+          });
+        });
+
         /* Update things when document is ready */
         $( document ).ready(function() {
             updateToggleAllButton();
+            observer.observe($("#viewnavbar")[0], {attributes: true});
         });
-
         </script>
 <style type="text/css">
 
@@ -629,7 +632,6 @@ li{
 }
 
 #toc {
-  margin-top: navbar-height;
   position: fixed;
   width: 20%;
   height: 90%;
@@ -647,13 +649,8 @@ li{
     padding: 0 2px 3px 0;
 }
 
-div.footer {
-    background-color: #C0C0C0;
-    color: #000000;
-    padding: 3px 8px 3px 0;
-    clear: both;
-    font-size: 0.8em;
-    text-align: right;
+#godown{
+   height: 0px;
 }
 
 .navbar-toggle:after {
@@ -662,49 +659,63 @@ div.footer {
 .navbar-toggle.collapsed:after {
     content: "▼";
 }
+footer .navbar-fixed-bottom {
+    min-height: 0px;
+}
+footer .navbar-text {
+    margin-top: 5px;
+    margin-bottom: 5px;
+}
+
+.w-100 {
+    width: 100%;
+}
 
 </style>
 </head>
 <body>
 
-<nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+<nav class="navbar navbar-inverse navbar-fixed-top navbar-static-top" role="navigation" id="main-navbar">
     <div class="container-fluid">
         <div class="navbar-header navbar-left">
             <ul class="nav nav-pills"><li class="active">
                 <a class="navbar-toggle" data-toggle="collapse" data-target="#viewnavbar" href="javascript:void(0)"></a>
             </li></ul>
-    </div>
+        </div>
         <h3 class="navbar-text" style="color:white">{{title}}</h3>
-        <ul class="nav nav-pills navbar-right in" style="margin-top: 7px;" id="viewnavbar">
+        <div class="nav-collapse navbar-right in" id="viewnavbar">
+            <ul class="nav nav-pills">
 
-        {{for section in sections}}
+            {{for section in sections}}
 
-        <li class="active {{sectionvars[section]}}-btn">
-           <a href="javascript:void(0)" onclick="toggleButton('.{{sectionvars[section]}}')" class="has_toggle">
-               {{section}}
-           </a>
-        </li>
+            <li class="active {{sectionvars[section]}}-btn">
+               <a href="javascript:void(0)" onclick="toggleButton('.{{sectionvars[section]}}')" class="has_toggle">
+                   {{section}}
+               </a>
+            </li>
 
-        {{endfor}}
+            {{endfor}}
 
-        <li class="active mnetoggleall-btn">
-           <a href="javascript:void(0)" onclick="toggleButton('.mnetoggleall')"> </a>
-        </li>
+            <li class="active mnetoggleall-btn">
+               <a href="javascript:void(0)" onclick="toggleButton('.mnetoggleall')">☒</a>
+            </li>
 
-        </ul>
+            </ul>
+        </div>
     </div>
 </nav>
 """)  # noqa: E501
 
 footer_template = HTMLTemplate(u"""
-</div></body>
-<div class="footer">
-        &copy; Copyright 2012-{{current_year}}, MNE Developers.
-      Created on {{date}}.
-      Powered by <a href="http://mne.tools/">MNE.
 </div>
+<footer>
+<div class="navbar navbar-default navbar-fixed-bottom text-center"><p class="navbar-text col-md-12">
+Created on {{date}}.
+</p></div></div>
+</footer>
+</body>
 </html>
-""")
+""")  # noqa: E501
 
 html_template = Template(u"""
 <li class="{{div_klass}}" id="{{id}}">
@@ -1228,7 +1239,7 @@ class Report(object):
     @verbose
     def add_bem_to_section(self, subject, caption='BEM', section='bem',
                            decim=2, n_jobs=1, subjects_dir=None,
-                           replace=False, verbose=None):
+                           replace=False, width=512, verbose=None):
         """Render a bem slider html str.
 
         Parameters
@@ -1248,23 +1259,31 @@ class Report(object):
         replace : bool
             If ``True``, figures already present that have the same caption
             will be replaced. Defaults to ``False``.
+        width : int
+            The width of the MRI images (in pixels). Larger values will have
+            clearer surface lines, but will create larger HTML files.
+            Typically a factor of 2 more than the number of MRI voxels along
+            each dimension (typically 512, default) is reasonable.
+
+            .. versionadded:: 0.23
         %(verbose_meth)s
 
         Notes
         -----
         .. versionadded:: 0.9.0
         """
+        width = _ensure_int(width, 'width')
         caption = 'custom plot' if caption == '' else caption
         html = self._render_bem(subject=subject, subjects_dir=subjects_dir,
                                 decim=decim, n_jobs=n_jobs, section=section,
-                                caption=caption)
+                                caption=caption, width=width)
         html, caption, _ = self._validate_input(html, caption, section)
         sectionvar = self._sectionvars[section]
         # convert list->str
         assert isinstance(html, list)
         html = u''.join(html)
         self._add_or_replace('%s-#-%s-#-custom' % (caption[0], sectionvar),
-                             sectionvar, html)
+                             sectionvar, html, replace=replace)
 
     def add_slider_to_section(self, figs, captions=None, section='custom',
                               title='Slider', scale=None, image_format=None,
@@ -1362,7 +1381,8 @@ class Report(object):
             slider_full_template.substitute(id=global_id, title=title,
                                             div_klass=slider_klass,
                                             slider_id=slider_id, html=html,
-                                            image_html=image_html))
+                                            image_html=image_html),
+            replace=replace)
 
     ###########################################################################
     # HTML rendering
@@ -1765,7 +1785,8 @@ class Report(object):
         self.html.insert(1, html_toc)  # insert TOC
 
     def _render_one_bem_axis(self, mri_fname, surfaces, global_id,
-                             orientation='coronal', decim=2, n_jobs=1):
+                             orientation='coronal', decim=2, n_jobs=1,
+                             width=512):
         """Render one axis of bem contours (only PNG)."""
         import nibabel as nib
         nim = nib.load(mri_fname)
@@ -1781,10 +1802,10 @@ class Report(object):
         logger.debug(f'Rendering BEM {orientation} with {len(sl)} slices')
         kwargs = dict(mri_fname=mri_fname, surfaces=surfaces, show=False,
                       orientation=orientation, img_output=True, src=None,
-                      show_orientation=True)
+                      show_orientation=True, width=width)
         imgs = _figs_to_mrislices(sl, n_jobs, **kwargs)
         slices = []
-        img_klass = 'slideimg-%s' % name
+        img_klass = 'slideimg-%s w-100' % name
         div_klass = 'span12 %s' % slides_klass
         for ii, img in enumerate(imgs):
             slice_id = '%s-%s-%s' % (name, global_id, sl[ii])
@@ -1807,7 +1828,6 @@ class Report(object):
 
     def _render_raw(self, raw_fname, data_path):
         """Render raw (only text)."""
-        import matplotlib.pyplot as plt
         global_id = self._get_id()
 
         raw = read_raw_fif(raw_fname, allow_maxshield='yes')
@@ -1838,11 +1858,9 @@ class Report(object):
 
         raw_psd = {} if self.raw_psd is True else self.raw_psd
         if isinstance(raw_psd, dict):
-            from matplotlib.backends.backend_agg import FigureCanvasAgg
             n_ax = sum(kind in raw for kind in _DATA_CH_TYPES_SPLIT)
-            fig, axes = plt.subplots(n_ax, 1, figsize=(6, 1 + 1.5 * n_ax),
-                                     dpi=92)
-            FigureCanvasAgg(fig)
+            fig = _figure_agg(figsize=(6, 1 + 1.5 * n_ax), dpi=92)
+            axes = [fig.add_subplot(1, n_ax, ii + 1) for ii in range(n_ax)]
             img = _fig_to_img(raw.plot_psd, self.image_format,
                               ax=axes, **raw_psd)
             new_html = image_template.substitute(
@@ -2076,7 +2094,7 @@ class Report(object):
             return html
 
     def _render_bem(self, subject, subjects_dir, decim, n_jobs,
-                    section='bem', caption='BEM'):
+                    section='bem', caption='BEM', width=512):
         """Render mri+bem (only PNG)."""
         if subjects_dir is None:
             subjects_dir = self.subjects_dir
@@ -2108,7 +2126,7 @@ class Report(object):
         html += u'<h4>%s</h4>\n' % name  # all other captions are h4
         for view in _BEM_VIEWS:
             html += self._render_one_bem_axis(mri_fname, surfaces, global_id,
-                                              view, decim, n_jobs)
+                                              view, decim, n_jobs, width)
         html += u'</li>\n'
         return ''.join(html)
 

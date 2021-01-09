@@ -14,8 +14,6 @@ from numpy.testing import assert_array_equal, assert_equal
 import pytest
 import matplotlib
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-from matplotlib.figure import Figure
 from matplotlib.patches import Circle
 
 from mne import (read_evokeds, read_proj, make_fixed_length_events, Epochs,
@@ -60,9 +58,8 @@ def test_plot_topomap_interactive():
     evoked.add_proj(compute_proj_evoked(evoked, n_mag=1))
 
     plt.close('all')
-    fig = Figure()
-    canvas = FigureCanvas(fig)
-    ax = fig.gca()
+    fig = plt.figure()
+    ax, canvas = fig.gca(), fig.canvas
 
     kwargs = dict(vmin=-240, vmax=240, times=[0.1], colorbar=False, axes=ax,
                   res=8, time_unit='s')
