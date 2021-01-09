@@ -169,6 +169,8 @@ def test_ssd():
     assert np.abs(corr) > 0.95
 
     # Check return_filtered
+    # Simulated more noise data
+    X, A, S = simulate_data(SNR=1.5)
     n_components = n_components_true
     filt_params_signal = dict(l_freq=freqs_sig[0], h_freq=freqs_sig[1],
                               l_trans_bandwidth=1, h_trans_bandwidth=1)
