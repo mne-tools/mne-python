@@ -280,58 +280,103 @@ fig.show()
 # Subsetting data
 # ---------------
 #
-# For statistical comparison you probably need specific subsets of the SNR
-# array. Either different channels/ROIs, or most likely different trials with
-# different stimuli. Lets get some experience with this..
+# Our processing yielded a large array of many SNR values for each trial x
+# channel x frequency-bin of the PSD array.
 #
-# We will have to find the indices of trials, channels, etc. and subset
-# the data we want from the full dataset with all trials, channels, and frequenciy bins.
-# Alternatively, one could subset the trials already at the epoching step using MNE's
-# event information.
+# For statistical analysis we obviously need to define specific subsets of this
+# array. First of all, we are only interested in SNR at the stimulation frequency,
+# but we also wanted to restrict analysis to a spatial ROI. The most interesting
+# questions, however, will probably rely on comparing SNR in different trials.
 #
-# Let's have a look at SNR at 12 hz in the trials with 12 hz stimulation, for now:
+# Since we here have a large SNR array with all conditions, we will have to find
+# the indices of trials, channels, etc.
+# Alternatively, one could subselect the trials already at the epoching step,
+# using MNE's event information, and process different epoch structures
+# individually.
+#
+# Let's have a look at the trials with 12 hz stimulation, for now.
 #
 
-# get indices of the trials with 12 hz stimulation
-i_trial_12hz = epochs.events[:, 2] == event_id['12hz']
-
-###############################################################################
-# Find frequency bin containing stimulation frequency
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# Ideally, there would be a bin with the stimulation frequency exactly in its
-# center. However, depending on your Spectral decomposition this is not
-# always the case. We will find the bin closest to and thus containing our
-# stimulation frequency.
-#
-# SNR in these bins will be our dependant measure.
-
-# define frequency of choice
+# define stimulation frequency
 stim_freq = 12.
 
-# find index of closest frequency bin
-tmp_distlist = abs(np.subtract(freqs, stim_freq))
-i_bin_12hz = np.where(tmp_distlist == min(tmp_distlist))[0][0]
+###############################################################################
+# get index for the stimulation frequency (12hz)
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Ideally, there would be a bin with the stimulation frequency exactly in its
+# center. However, depending on your Spectral decomposition this is not
+# always the case. We will find the bin closest to it (this one should contain
+# our frequency tagged response.
+#
+
+# find index of frequency bin closest to stimulation frequency
+i_bin_12hz = np.argmin(abs(np.subtract(freqs, stim_freq)))
 # could be updated to support multiple frequencies
 
-# Now we extract SNRs at this frequency for all channels (only from the 10
-# trials with 12hz stimulation)
-snrs_12hz = snrs[i_trial_12hz, :, i_bin_12hz]
+# for later, we will already find the 15 hz bin and the 1st and 2nd harmonic for both.
+i_bin_24hz = np.argmin(abs(np.subtract(freqs, 24)))
+i_bin_36hz = np.argmin(abs(np.subtract(freqs, 36)))
+i_bin_15hz = np.argmin(abs(np.subtract(freqs, 15)))
+i_bin_30hz = np.argmin(abs(np.subtract(freqs, 30)))
+i_bin_45hz = np.argmin(abs(np.subtract(freqs, 45)))
 
-# .. and average SNR per channel
-snrs_12hz_chaverage = snrs_12hz.mean(axis=0)
+
+###############################################################################
+# get indices for the different trial types
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+i_trial_12hz = np.where(epochs.events[:, 2] == event_id['12hz'])
+i_trial_15hz = np.where(epochs.events[:, 2] == event_id['15hz'])
+
+
+###############################################################################
+# get indices for the EEG channels forming the ROI
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+# Define different ROIs
+roi_temporal = ['T7', 'F7', 'T8', 'F8']  # temporal
+roi_aud = ['AFz', 'Fz', 'FCz', 'Cz', 'CPz', 'F1', 'FC1',
+           'C1', 'CP1', 'F2', 'FC2', 'C2', 'CP2']  # auditory roi
+roi_vis = ['POz', 'Oz', 'O1', 'O2', 'PO3', 'PO4', 'PO7',
+           'PO8', 'PO9', 'PO10', 'O9', 'O10']  # visual roi
+
+# Find corresponding indices using mne.pick_types()
+picks_roi_temp = mne.pick_types(epochs.info, eeg=True, stim=False,
+                                exclude='bads', selection=roi_temporal)
+picks_roi_aud = mne.pick_types(epochs.info, eeg=True, stim=False,
+                               exclude='bads', selection=roi_aud)
+picks_roi_vis = mne.pick_types(epochs.info, eeg=True, stim=False,
+                               exclude='bads', selection=roi_vis)
+
+###############################################################################
+# Apply the subset, and check the result
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Now we simply need to apply our selection and yield a result. Therefore,
+# we typically report grand average SNR over the subselection.
+#
+
+snrs_target = snrs[i_trial_12hz, :, i_bin_12hz][0][:, picks_roi_vis]
+print("sub 2, 12hz trials, SNR at 12hz")
+print('average SNR (occipital ROI): %f' % snrs_target.mean())
 
 
 ##############################################################################
-# SNR topography - grand average per channel
+# Topography of the vSSR
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# But wait...
 # As described in the intro, we have decided *a priori* to work with average
 # SNR over a subset of occipital channels - a visual region of interest (ROI)
-# - because we expect SNR to be higher on these channels than if we would
-# average over all channels.
+# - because we expect SNR to be higher on these channels than in other channels.
 #
-# Lets check out, whether this was a good decision!
+# Let's check out, whether this was a good decision!
 #
-# Here we will plot average SNR for each channel location as a topoplot:
+# Here we will plot average SNR for each channel location as a topoplot.
+# Then we will do a simple paired T-test to check, whether average SNRs over
+# the two sets of channels are significantly different.
+
+# get average SNR at 12hz for ALL channels
+snrs_12hz = snrs[i_trial_12hz, :, i_bin_12hz][0]
+snrs_12hz_chaverage = snrs_12hz.mean(axis=0)
 
 # create a standard montage
 montage = mne.channels.make_standard_montage('easycap-M1', head_size=0.095)  # head_size parameter default = 0.095
@@ -347,17 +392,36 @@ topo_pos_grave = np.array(topo_pos_grave)
 # plot SNR topography, eventually
 f, ax = plt.subplots()
 mne.viz.plot_topomap(snrs_12hz_chaverage, topo_pos_grave, vmin=1., axes=ax)
+
 print("sub 2, 12hz trials, SNR at 12hz")
-print("grand average SNR: %f" % snrs_12hz_chaverage.mean())
+print("average SNR (all channels): %f" % snrs_12hz_chaverage.mean())
+
+tstat_roi_vs_scalp = ttest_rel(snrs_target.mean(axis=1), snrs_12hz.mean(axis=1))
+print("12 hz SNR in occipital ROI is significantly different from 12 hz SNR over all channels"
+      ": t = %.3f, p = %f" % tstat_roi_vs_scalp)
 
 
 ##############################################################################
-# We can see, that there is indeed a cluster of high-SNR channels in the
-# occipital region. Great!
+# We can see, that 1) this participant indeed exhibits a cluster of chanels
+# with high SNR in the occipital region and 2) that the average SNR over all
+# channels is smaller than the average of the visual ROI computed above.
+# The difference is statistically significant. Great!
 #
-# keep in mind, that this is only one subject. it can illustrate, however,
-# how easy it might be to do double-dipping (selecting an ROI or individual
-# channels by looking at the data).
+# Such a topoplot can be a nice tool to explore and play with your data - e.g.
+# you could try how changing the reference will affect the spatial
+# distribution of SNR values.
+#
+# However, we also wanted to show this plot to illustrate
+# a large problem with frequency-tagged or any other brain imaging data:
+# there are many channels and somewhere you will likely find some significant
+# effects. It's very easy - even unintended - to end up
+# double-dipping or p-hacking.
+# Avoid this either by selecting your ROI or channels for analysis *a priori*
+# (and ideally preregister this decision, so people will believe you), or if
+# you select an ROI or individual channel for reporting *because this channel
+# or ROI shows an effect* do so transparently and correct for multiple
+# comparison.
+
 
 ##############################################################################
 # select ROI data
