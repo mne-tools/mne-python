@@ -6,7 +6,7 @@
 
 import hashlib
 import os.path as op
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, date
 
 import pytest
 import numpy as np
@@ -665,6 +665,19 @@ def test_anonymize(tmpdir):
     assert raw.annotations.orig_time is None
     assert raw.first_samp == first_samp
     assert_allclose(raw.annotations.onset, expected_onset)
+
+
+def test_anonymize_with_io(tmpdir):
+    """Test that IO does not break anonymization."""
+    raw = read_raw_fif(raw_fname)
+
+    temp_path = tmpdir.join('tmp_raw.fif')
+    raw.save(temp_path)
+
+    raw2 = read_raw_fif(temp_path)
+
+    daysback = (raw2.info['meas_date'].date() - date(1924, 1, 1)).days
+    raw2.anonymize(daysback=daysback)
 
 
 @testing.requires_testing_data

@@ -2150,6 +2150,9 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
     # file_id and meas_id
     for key in ('file_id', 'meas_id'):
         value = info.get(key)
+        if (value['secs'], value['usecs']) == DATE_NONE:
+            # file_id is a placeholder to skip
+            continue
         if value is not None:
             assert 'msecs' not in value
             if none_meas_date:
@@ -2242,7 +2245,7 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
                 'Underlying Error:\n')
     info._check_consistency(prepend_error=err_mesg)
     err_mesg = ('anonymize_info generated an inconsistent info object. '
-                'daysback parameter was too large.'
+                'daysback parameter was too large. '
                 'Underlying Error:\n')
     _check_dates(info, prepend_error=err_mesg)
 
