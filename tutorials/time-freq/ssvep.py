@@ -118,6 +118,7 @@ epochs = mne.Epochs(raw, events=events, event_id=[event_id['12hz'], event_id['15
 # Calculate power spectral density (PSD)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # We use Welch's method for frequency decomposition, since it is really fast.
+# We chose a frequency resolution of 0.1 hz.
 # You could compare it with, e.g., multitaper to get an impression of the
 # influence on SNR. All the other methods implemented in MNE can be used as
 # well.
@@ -130,7 +131,7 @@ sf = epochs.info['sfreq']
 
 psds, freqs = mne.time_frequency.psd_welch(
     epochs,
-    n_fft=int(sf * (tmax - tmin)), n_overlap=int(sf * .5), n_per_seg=None,
+    n_fft=int(sf * 10), n_overlap=int(sf * .5), n_per_seg=None,
     tmin=tmin, tmax=tmax,
     fmin=fmin, fmax=fmax, verbose=True)
 
