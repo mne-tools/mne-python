@@ -518,17 +518,7 @@ print("15 hz trials: 36 hz SNR is significantly different from 45 hz SNR"
 
 
 ##############################################################################
-# SNR for different subsets of trials
-print('mean SNR (trial subset 1) at %iHz = %.3f '
-      % (stim_freq, snrs_trialwise_cat1_1.mean()))
-print('mean SNR (trial subset 2) at %iHz = %.3f '
-      % (stim_freq, snrs_trialwise_cat1_2.mean()))
-
-
-
-##############################################################################
-# Compare SNR in subsets of trials after averaging over channels
-tstat_trials = ttest_ind(snrs_trialwise_cat1_1.mean(axis=1),
-                         snrs_trialwise_cat1_2.mean(axis=1))
-print("trial-wise SNR in trial subset 1 is NOT significantly different from"
-      " trial subset 2: t = %.3f, p = %f" % tstat_trials)
+# debriefing
+# ----------
+# tbd
+#
