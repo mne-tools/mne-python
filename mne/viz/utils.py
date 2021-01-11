@@ -2292,6 +2292,11 @@ def _ndarray_to_fig(img):
 def get_brain_fig(brain):
     """Return the figure associated to the given brain object.
 
+    Parameters
+    ----------
+    brain : object
+        The brain used to extract the figure.
+
     Returns
     -------
     fig : object
