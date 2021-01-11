@@ -425,72 +425,97 @@ print("12 hz SNR in occipital ROI is significantly different from 12 hz SNR over
 
 
 ##############################################################################
-# select ROI data
+# Statistical analysis
 # ^^^^^^^^^^^^^^^
-# Now that we have had a look and saw, that our decision for a visual ROI
-# seemed ok (at least for this subject) lets move on to do what we actually
-# want to do: having statistical fun with our data ;)
+# Now that we finished this edgy little open science lesson let's move on and
+# do the analyses we actually wanted to do:
 #
-# Therefore, lets do what we have said and apply a visual ROI:
+# We will show that we can well discriminate the two responses in the
+# different trials.
+#
+# In the frequency and SNR spectrum plot above, we had all trials mixed up.
+# Now we will extract 12 and 15 hz SNR as well as the 1st and 2nd harmonic
+# in both types of trials individually, and compare the values with a
+# simple t-test.
 #
 
-# Define ROIs
-roi_temporal = ['T7', 'F7', 'T8', 'F8']  # temporal
-roi_aud = ['AFz', 'Fz', 'FCz', 'Cz', 'CPz', 'F1', 'FC1',
-           'C1', 'CP1', 'F2', 'FC2', 'C2', 'CP2']  # auditory roi
-roi_vis = ['POz', 'Oz', 'O1', 'O2', 'PO3', 'PO4', 'PO7',
-           'PO8', 'PO9', 'PO10', 'O9', 'O10']  # visual roi
+snrs_roi = snrs[:,picks_roi_vis,:].mean(axis=1)
 
-# Create corresponding picks
-picks_roi_temp = mne.pick_types(epochs.info, eeg=True, stim=False,
-                                exclude='bads', selection=roi_temporal)
-picks_roi_aud = mne.pick_types(epochs.info, eeg=True, stim=False,
-                               exclude='bads', selection=roi_aud)
-picks_roi_vis = mne.pick_types(epochs.info, eeg=True, stim=False,
-                               exclude='bads', selection=roi_vis)
+stim_12hz_snrs_12hz = snrs_roi[i_trial_12hz, i_bin_12hz][0]
+stim_12hz_snrs_15hz = snrs_roi[i_trial_12hz, i_bin_15hz][0]
+stim_12hz_snrs_24hz = snrs_roi[i_trial_12hz, i_bin_24hz][0]
+stim_12hz_snrs_30hz = snrs_roi[i_trial_12hz, i_bin_30hz][0]
+stim_12hz_snrs_36hz = snrs_roi[i_trial_12hz, i_bin_36hz][0]
+stim_12hz_snrs_45hz = snrs_roi[i_trial_12hz, i_bin_45hz][0]
 
-# Subset data based on ROIs
-snrs_12hz_roi_aud = snrs_12hz[:, picks_roi_aud]
-snrs_12hz_roi_vis = snrs_12hz[:, picks_roi_vis]
-snrs_12hz_roi_temp = snrs_12hz[:, picks_roi_temp]
+stim_15hz_snrs_12hz = snrs_roi[i_trial_15hz, i_bin_12hz][0]
+stim_15hz_snrs_15hz = snrs_roi[i_trial_15hz, i_bin_15hz][0]
+stim_15hz_snrs_24hz = snrs_roi[i_trial_15hz, i_bin_24hz][0]
+stim_15hz_snrs_30hz = snrs_roi[i_trial_15hz, i_bin_30hz][0]
+stim_15hz_snrs_36hz = snrs_roi[i_trial_15hz, i_bin_36hz][0]
+stim_15hz_snrs_45hz = snrs_roi[i_trial_15hz, i_bin_45hz][0]
 
+# plot SNRs at stimulation frequencies and harmonics
+labels = ['12hz trials', '15hz trials']
+SNR_12hz = [stim_12hz_snrs_12hz.mean(), stim_15hz_snrs_12hz.mean()]
+SNR_15hz = [stim_12hz_snrs_15hz.mean(), stim_15hz_snrs_15hz.mean()]
+SNR_24hz = [stim_12hz_snrs_24hz.mean(), stim_15hz_snrs_24hz.mean()]
+SNR_30hz = [stim_12hz_snrs_30hz.mean(), stim_15hz_snrs_30hz.mean()]
+SNR_36hz = [stim_12hz_snrs_36hz.mean(), stim_15hz_snrs_36hz.mean()]
+SNR_45hz = [stim_12hz_snrs_45hz.mean(), stim_15hz_snrs_45hz.mean()]
 
-# average SNR for different ROIs
-print('mean SNR (all channels, all trials) at %iHz = %.3f '
-      % (stim_freq, snrs_12hz.mean()))
-print('mean SNR (auditory ROI) at %iHz = %.3f '
-      % (stim_freq, snrs_12hz_roi_aud.mean()))
-print('mean SNR (visual ROI) at %iHz = %.3f '
-      % (stim_freq, snrs_12hz_roi_vis.mean()))
-print('mean SNR (temporal chans) at %iHz = %.3f '
-      % (stim_freq, snrs_12hz_roi_temp.mean()))
+x = np.arange(len(labels))  # the label locations
+width = 0.6  # the width of the bars
 
+fig, ax = plt.subplots()
+rects1 = ax.bar(x - width*5/12, SNR_12hz, width/6, label='12hz SNR', color='darkblue')
+rects2 = ax.bar(x - width*3/12, SNR_15hz, width/6, label='15hz SNR', color='darkgreen')
+rects3 = ax.bar(x - width*1/12, SNR_24hz, width/6, label='24hz SNR', color='mediumblue')
+rects4 = ax.bar(x + width*1/12, SNR_30hz, width/6, label='30hz SNR', color='green')
+rects5 = ax.bar(x + width*3/12, SNR_36hz, width/6, label='36hz SNR', color='blue')
+rects6 = ax.bar(x + width*5/12, SNR_45hz, width/6, label='45hz SNR', color='seagreen')
+
+# Add some text for labels, title and custom x-axis tick labels, etc.
+ax.set_ylabel('SNR')
+ax.set_title('Average SNR at target frequencies')
+ax.set_xticks(x)
+ax.set_xticklabels(labels)
+ax.legend()
+
+#fig.tight_layout()
+plt.show()
 
 ##############################################################################
-# Statistics
-# ----------
-# Just a toy t-test example to test whether:
+# As you can easily see there are striking differences.
+# Let's verify this using a series of two-tailed paired T-Tests.
 #
-# - SNR in visual ROI is significantly different from full scalp montage at p
-#   < 0.05
-# - SNR in first 5 trials does not significantly differ from 5 last trials
 
-##############################################################################
-# Compare SNR in ROIs after averaging over channels
-tstat_roi = ttest_rel(snrs_12hz_roi_vis.mean(axis=1),
-                      snrs_12hz.mean(axis=1))
-print("trial-wise SNR in visual ROI is significantly different from full scalp"
-      " montage: t = %.3f, p = %f" % tstat_roi)
+# Compare 12 hz and 15 hz SNR in trials after averaging over channels
+tstat_12hz_trial_stim = ttest_rel(stim_12hz_snrs_12hz, stim_12hz_snrs_15hz)
+print("12 hz Trials: 12 hz SNR is significantly different from 15 hz SNR"
+      ": t = %.3f, p = %f" % tstat_12hz_trial_stim)
 
-##############################################################################
-# Define trial subsets
-i_cat1_1 = [i for i in range(5)]
-i_cat1_2 = [i for i in range(5, 10)]
+tstat_12hz_trial_1st_harmonic = ttest_rel(stim_12hz_snrs_24hz, stim_12hz_snrs_30hz)
+print("12 hz Trials: 24 hz SNR is significantly different from 30 hz SNR"
+      ": t = %.3f, p = %f" % tstat_12hz_trial_1st_harmonic)
 
-##############################################################################
-# Subset data trial-wise
-snrs_trialwise_cat1_1 = snrs_12hz[i_cat1_1, :]
-snrs_trialwise_cat1_2 = snrs_12hz[i_cat1_2, :]
+tstat_12hz_trial_2nd_harmonic = ttest_rel(stim_12hz_snrs_36hz, stim_12hz_snrs_45hz)
+print("12 hz Trials: 36 hz SNR is significantly different from 45 hz SNR"
+      ": t = %.3f, p = %f" % tstat_12hz_trial_2nd_harmonic)
+
+print()
+tstat_15hz_trial_stim = ttest_rel(stim_15hz_snrs_12hz, stim_15hz_snrs_15hz)
+print("15 hz trials: 12 hz SNR is significantly different from 15 hz SNR"
+      ": t = %.3f, p = %f" % tstat_15hz_trial_stim)
+
+tstat_15hz_trial_1st_harmonic = ttest_rel(stim_15hz_snrs_24hz, stim_15hz_snrs_30hz)
+print("15 hz trials: 24 hz SNR is significantly different from 30 hz SNR"
+      ": t = %.3f, p = %f" % tstat_15hz_trial_1st_harmonic)
+
+tstat_15hz_trial_2nd_harmonic = ttest_rel(stim_15hz_snrs_36hz, stim_15hz_snrs_45hz)
+print("15 hz trials: 36 hz SNR is significantly different from 45 hz SNR"
+      ": t = %.3f, p = %f" % tstat_15hz_trial_2nd_harmonic)
+
 
 ##############################################################################
 # SNR for different subsets of trials
