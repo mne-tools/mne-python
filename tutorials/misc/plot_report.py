@@ -207,6 +207,11 @@ report.save('report_custom.html', overwrite=True)
 # Adding a stc plot to a report
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
+# Now we see how :class:`~mne.Report` handles :class:`~mne.SourceEstimate`
+# data. The following will produce a stc plot with vertex time courses. In
+# this scenario, we also demonstrate how to use the ``screenshot`` function
+# to save the figs in a slider.
+
 fname_stc = os.path.join(path, 'MEG', 'sample', 'sample_audvis-meg')
 stc = mne.read_source_estimate(fname_stc, subject='sample')
 figs = list()
