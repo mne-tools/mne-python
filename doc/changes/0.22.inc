@@ -18,6 +18,8 @@ Bugs
 
 - Fix bug with :meth:`raw.plot() <mne.io.Raw.plot>` where annotations didn't immediately appear when changing window duration (:gh:`8689` by `Daniel McCloy`_)
 
+- Fix anonymization issue of FIF files after IO round trip (:gh:`8731` by `Alex Gramfort`_)
+
 .. _changes_0_22:
 
 Version 0.22.0
