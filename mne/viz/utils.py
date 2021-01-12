@@ -46,8 +46,9 @@ from ..transforms import apply_trans
 
 _channel_type_prettyprint = {'eeg': "EEG channel", 'grad': "Gradiometer",
                              'mag': "Magnetometer", 'seeg': "sEEG channel",
-                             'eog': "EOG channel", 'ecg': "ECG sensor",
-                             'emg': "EMG sensor", 'ecog': "ECoG channel",
+                             'dbs': "DBS channel", 'eog': "EOG channel",
+                             'ecg': "ECG sensor", 'emg': "EMG sensor",
+                             'ecog': "ECoG channel",
                              'misc': "miscellaneous sensor"}
 
 
@@ -821,9 +822,9 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
         'topomap'.
     ch_type : None | str
         The channel type to plot. Available options 'mag', 'grad', 'eeg',
-        'seeg', 'ecog', 'all'. If ``'all'``, all the available mag, grad, eeg,
-        seeg and ecog channels are plotted. If None (default), then channels
-        are chosen in the order given above.
+        'seeg', 'dbs', 'ecog', 'all'. If ``'all'``, all the available mag,
+        grad, eeg, seeg, dbs and ecog channels are plotted. If None (default),
+        then channels are chosen in the order given above.
     title : str | None
         Title for the figure. If None (default), equals to
         ``'Sensor positions (%%s)' %% ch_type``.

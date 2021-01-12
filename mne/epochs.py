@@ -827,8 +827,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         if self._do_baseline:
             picks = pick_types(self.info, meg=True, eeg=True, stim=False,
                                ref_meg=True, eog=True, ecg=True, seeg=True,
-                               emg=True, bio=True, ecog=True, fnirs=True,
-                               exclude=[])
+                               dbs=True, emg=True, bio=True, ecog=True,
+                               fnirs=True, exclude=[])
             epoch[picks] = rescale(epoch[picks], self._raw_times,
                                    self.baseline, copy=False, verbose=False)
 
@@ -2299,7 +2299,7 @@ class EpochsArray(BaseEpochs):
     -----
     Proper units of measure:
 
-    * V: eeg, eog, seeg, emg, ecg, bio, ecog
+    * V: eeg, eog, seeg, dbs, emg, ecg, bio, ecog
     * T: mag
     * T/m: grad
     * M: hbo, hbr

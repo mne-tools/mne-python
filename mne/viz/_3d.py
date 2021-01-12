@@ -424,8 +424,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                    surfaces='auto', coord_frame='head',
                    meg=None, eeg='original', fwd=None,
                    dig=False, ecog=True, src=None, mri_fiducials=False,
-                   bem=None, seeg=True, fnirs=True, show_axes=False, fig=None,
-                   interaction='trackball', verbose=None):
+                   bem=None, seeg=True, dbs=True, fnirs=True, show_axes=False,
+                   fig=None, interaction='trackball', verbose=None):
     """Plot head, sensor, and source space alignment in 3D.
 
     Parameters
@@ -504,6 +504,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         Defaults to None.
     seeg : bool
         If True (default), show sEEG electrodes.
+    dbs : bool
+        If True (default), show DBS (deep brain stimulation) electrodes.
     fnirs : str | list | bool | None
         Can be "channels", "pairs", "detectors", and/or "sources" to show the
         fNIRS channel locations, optode locations, or line between
@@ -657,11 +659,11 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     eeg_picks = pick_types(info, meg=False, eeg=True, ref_meg=False)
     fnirs_picks = pick_types(info, meg=False, eeg=False,
                              ref_meg=False, fnirs=True)
-    other_bools = dict(ecog=ecog, seeg=seeg,
+    other_bools = dict(ecog=ecog, seeg=seeg, dbs=dbs,
                        fnirs=(('channels' in fnirs) |
                               ('sources' in fnirs) |
                               ('detectors' in fnirs)))
-    del ecog, seeg
+    del ecog, seeg, dbs
     other_keys = sorted(other_bools.keys())
     other_picks = {key: pick_types(info, meg=False, ref_meg=False,
                                    **{key: True}) for key in other_keys}
@@ -866,7 +868,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     skull_alpha = dict()
     skull_colors = dict()
     hemi_val = 0.5
-    max_alpha = 1.0 if len(other_picks['seeg']) == 0 else 0.75
+    max_alpha = 1.0 if len(other_picks['seeg']) == 0 or \
+        len(other_picks['dbs']) == 0 else 0.75
     if src is None or (brain and any(s['type'] == 'surf' for s in src)):
         hemi_val = max_alpha
     alphas = np.linspace(max_alpha / 2., 0, 5)[:len(skull) + 1]

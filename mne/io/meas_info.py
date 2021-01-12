@@ -1948,8 +1948,8 @@ def create_info(ch_names, sfreq, ch_types='misc', verbose=None):
         Channel types, default is ``'misc'`` which is not a
         :term:`data channel <data channels>`.
         Currently supported fields are 'ecg', 'bio', 'stim', 'eog', 'misc',
-        'seeg', 'ecog', 'mag', 'eeg', 'ref_meg', 'grad', 'emg', 'hbr' or 'hbo'.
-        If str, then all channels are assumed to be of the same type.
+        'seeg', 'dbs', 'ecog', 'mag', 'eeg', 'ref_meg', 'grad', 'emg', 'hbr'
+        or 'hbo'. If str, then all channels are assumed to be of the same type.
     %(verbose)s
 
     Returns
@@ -1968,7 +1968,7 @@ def create_info(ch_names, sfreq, ch_types='misc', verbose=None):
     be initialized to the identity transform.
 
     Proper units of measure:
-    * V: eeg, eog, seeg, emg, ecg, bio, ecog
+    * V: eeg, eog, seeg, dbs, emg, ecg, bio, ecog
     * T: mag
     * T/m: grad
     * M: hbo, hbr

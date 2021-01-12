@@ -17,6 +17,9 @@ Current (0.23.dev0)
 
 Enhancements
 ~~~~~~~~~~~~
+.. |Richard Koehler| replace:: **Richard Koehler**
+- Add ``dbs`` as new channel type for deep brain stimulation (DBS) recordings  (:gh:`8710` **Richard Koehler** |Richard Koehler|_)
+
 - Update the ``notebook`` 3d backend to use ``ipyvtk_simple`` for a better integration within ``Jupyter`` (:gh:`8503` by `Guillaume Favelier`_)
 
 - Speed up :func:`mne.inverse_sparse.tf_mixed_norm` using STFT/ISTFT linearity by `Eric Larson`_

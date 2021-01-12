@@ -112,7 +112,8 @@ codemeta_boilerplate = f'''{{
         "EEG",
         "fNIRS",
         "ECoG",
-        "sEEG"
+        "sEEG",
+        "DBS"
     ],
     "programmingLanguage": [
         "Python"

@@ -29,7 +29,7 @@ def read_raw_nicolet(input_fname, ch_type, eog=(),
         Path to the data file.
     ch_type : str
         Channel type to designate to the data channels. Supported data types
-        include 'eeg', 'seeg'.
+        include 'eeg', 'seeg', 'dbs'.
     eog : list | tuple | 'auto'
         Names of channels or list of indices that should be designated
         EOG channels. If 'auto', the channel names beginning with
@@ -102,9 +102,12 @@ def _get_nicolet_info(fname, ch_type, eog, ecg, emg, misc):
     elif ch_type == 'seeg':
         ch_coil = FIFF.FIFFV_COIL_EEG
         ch_kind = FIFF.FIFFV_SEEG_CH
+    elif ch_type == 'dbs':
+        ch_coil = FIFF.FIFFV_COIL_EEG
+        ch_kind = FIFF.FIFFV_DBS_CH
     else:
         raise TypeError("Channel type not recognized. Available types are "
-                        "'eeg' and 'seeg'.")
+                        "'eeg', 'seeg' and 'dbs'.")
     cals = np.repeat(header_info['conversion_factor'] * 1e-6, len(ch_names))
     info['chs'] = _create_chs(ch_names, cals, ch_coil, ch_kind, eog, ecg, emg,
                               misc)
@@ -123,7 +126,7 @@ class RawNicolet(BaseRaw):
         Path to the Nicolet file.
     ch_type : str
         Channel type to designate to the data channels. Supported data types
-        include 'eeg', 'seeg'.
+        include 'eeg', 'seeg' and 'dbs'.
     eog : list | tuple | 'auto'
         Names of channels or list of indices that should be designated
         EOG channels. If 'auto', the channel names beginning with
