@@ -145,6 +145,7 @@ def test_brain_gc(renderer, brain_gc):
 
 
 @requires_pysurfer
+@testing.requires_testing_data
 def test_brain_routines(renderer):
     """Test backend agnostic Brain routines."""
     klass = renderer.get_brain_class()
