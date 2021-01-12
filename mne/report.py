@@ -55,8 +55,8 @@ SECTION_ORDER = ['raw', 'events', 'epochs', 'ssp', 'evoked', 'covariance',
 
 def _fig_to_img(fig, image_format='png', scale=None, **kwargs):
     """Plot figure and create a binary image."""
-    # fig can be ndarray, mpl Figure, Mayavi Figure, or callable that produces
-    # a mpl Figure
+    # fig can be ndarray, mpl Figure, Mayavi Figure, PyVista _Figure or
+    # callable that produces a mpl Figure
     import matplotlib.pyplot as plt
     from matplotlib.figure import Figure
     if isinstance(fig, np.ndarray):
@@ -1095,10 +1095,11 @@ class Report(object):
 
         Parameters
         ----------
-        figs : matplotlib.figure.Figure | mlab.Figure | array | list
+        figs : matplotlib.figure.Figure | mlab.Figure | _Figure | array | list
             A figure or a list of figures to add to the report. Each figure in
             the list can be an instance of :class:`matplotlib.figure.Figure`,
-            :class:`mayavi.core.api.Scene`, or :class:`numpy.ndarray`.
+            :class:`mayavi.core.api.Scene`, ``_Figure``, or
+            :class:`numpy.ndarray`.
         captions : str | list of str
             A caption or a list of captions to the figures.
         section : str
