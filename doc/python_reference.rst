@@ -195,6 +195,7 @@ Datasets
    fetch_aparc_sub_parcellation
    fetch_fsaverage
    fetch_hcp_mmp_parcellation
+   fetch_infant_template
    fnirs_motor.data_path
    hf_sef.data_path
    kiloword.data_path

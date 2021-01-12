@@ -26,6 +26,7 @@ from . import refmeg_noise
 from .utils import (_download_all_example_data, fetch_hcp_mmp_parcellation,
                     fetch_aparc_sub_parcellation)
 from ._fsaverage.base import fetch_fsaverage
+from ._infant.base import fetch_infant_template
 
 __all__ = [
     '_download_all_example_data', '_fake', 'brainstorm', 'eegbci',
