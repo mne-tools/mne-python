@@ -1095,7 +1095,7 @@ class Report(object):
 
         Parameters
         ----------
-        figs : matplotlib.figure.Figure | mlab.Figure | _Figure | array | list
+        figs : Figure | mlab.Figure | pyvista.Figure | array | list
             A figure or a list of figures to add to the report. Each figure in
             the list can be an instance of :class:`matplotlib.figure.Figure`,
             :class:`mayavi.core.api.Scene`, ``_Figure``, or
