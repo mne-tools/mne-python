@@ -6,7 +6,7 @@ from .topomap import (plot_evoked_topomap, plot_projs_topomap, plot_arrowmap,
 from .topo import plot_topo_image_epochs, iter_topography
 from .utils import (tight_layout, mne_analyze_colormap, compare_fiff,
                     ClickableImage, add_background_image, plot_sensors,
-                    centers_to_edges, get_brain_fig)
+                    centers_to_edges)
 from ._3d import (plot_sparse_source_estimates, plot_source_estimates,
                   plot_vector_source_estimates, plot_evoked_field,
                   plot_dipole_locations, snapshot_brain_montage,
@@ -29,6 +29,6 @@ from .ica import (plot_ica_scores, plot_ica_sources, plot_ica_overlay,
 from .montage import plot_montage
 from .backends.renderer import (set_3d_backend, get_3d_backend, use_3d_backend,
                                 set_3d_view, set_3d_title, create_3d_figure,
-                                get_brain_class)
+                                get_brain_class, get_brain_fig)
 from . import backends
 from ._brain import Brain
