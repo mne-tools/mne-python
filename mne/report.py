@@ -57,12 +57,10 @@ def _fig_to_img(fig, image_format='png', scale=None, **kwargs):
     """Plot figure and create a binary image."""
     # fig can be ndarray, mpl Figure, Mayavi Figure, or callable that produces
     # a mpl Figure
-    import matplotlib.pyplot as plt
     from matplotlib.figure import Figure
     if isinstance(fig, np.ndarray):
         fig = _ndarray_to_fig(fig)
     elif callable(fig):
-        plt.close('all')
         fig = fig(**kwargs)
     elif not isinstance(fig, Figure):
         from .viz.backends.renderer import backend, MNE_3D_BACKEND_TESTING
@@ -71,7 +69,6 @@ def _fig_to_img(fig, image_format='png', scale=None, **kwargs):
             img = backend._take_3d_screenshot(figure=fig)
         else:  # Testing mode
             img = np.zeros((2, 2, 3))
-
         fig = _ndarray_to_fig(img)
 
     output = BytesIO()
@@ -83,7 +80,6 @@ def _fig_to_img(fig, image_format='png', scale=None, **kwargs):
         warnings.simplefilter('ignore')  # incompatible axes
         fig.savefig(output, format=image_format, dpi=fig.get_dpi(),
                     bbox_to_inches='tight')
-    plt.close(fig)
     output = output.getvalue()
     return (output.decode('utf-8') if image_format == 'svg' else
             base64.b64encode(output).decode('ascii'))
@@ -118,8 +114,6 @@ def _scale_mpl_figure(fig, scale):
 
 
 def _figs_to_mrislices(sl, n_jobs, **kwargs):
-    import matplotlib.pyplot as plt
-    plt.close('all')
     use_jobs = min(n_jobs, max(1, len(sl)))
     parallel, p_fun, _ = parallel_func(_plot_mri_contours, use_jobs)
     outs = parallel(p_fun(slices=s, **kwargs)
@@ -153,7 +147,6 @@ def _iterate_trans_views(function, **kwargs):
         ax.imshow(im)
         ax.axis('off')
 
-    backend._close_all()
     img = _fig_to_img(fig2, image_format='png')
     return img
 
