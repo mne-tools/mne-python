@@ -170,7 +170,7 @@ def test_ssd():
 
     # Check return_filtered
     # Simulated more noise data
-    X, A, S = simulate_data(SNR=1.5)
+    X, A, S = simulate_data(SNR=.5)
     n_components = n_components_true
     filt_params_signal = dict(l_freq=freqs_sig[0], h_freq=freqs_sig[1],
                               l_trans_bandwidth=1, h_trans_bandwidth=1)
@@ -262,7 +262,6 @@ def test_ssd_pipeline():
 def test_sorting():
     """Test sorting learning during training."""
     X, _, _ = simulate_data(n_trials=100, n_channels=20, n_samples=500)
-    n_components_true = 5
     # Epoch length is 1 second
     X = np.reshape(X, (100, 20, 500))
     # split data
@@ -289,6 +288,11 @@ def test_sorting():
               n_components=None, sort_by_spectral_ratio=True)
     ssd.fit(Xtr)
 
-    # we know that the first sources are the true ones
-    estimated_order = ssd.sorter_spec[:n_components_true]
-    assert all(estimated_order == np.arange(n_components_true))
+    # check sorters
+    sorter_in = ssd.sorter_spec
+    ssd = SSD(info, filt_params_signal, filt_params_noise,
+              n_components=None, sort_by_spectral_ratio=False)
+    ssd.fit(Xtr)
+    _, sorter_out = ssd.get_spectral_ratio(ssd.transform(Xtr))
+
+    assert all(sorter_in == sorter_out)
