@@ -1474,6 +1474,9 @@ class Brain(object):
         # skip if the wrong hemi is selected
         if self.act_data_smooth[hemi][0] is None:
             return
+        if vertex_id not in self._data[hemi]['vertices']:
+            logger.info("vertex_id=%s is outside source space", vertex_id)
+            return
         from ..backends._pyvista import _sphere
         color = next(self.color_cycle)
         line = self.plot_time_course(hemi, vertex_id, color)
