@@ -313,6 +313,6 @@ def get_brain_fig(brain):
     if get_3d_backend() == "mayavi":
         # from mayavi import mlab
         # return mlab.gcf()
-        return brain.figures[0][0]
+        return brain._figures[0][0]
     else:
         return brain._renderer.scene()
