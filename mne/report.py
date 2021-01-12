@@ -72,7 +72,6 @@ def _fig_to_img(fig, image_format='png', scale=None, **kwargs):
         else:  # Testing mode
             img = np.zeros((2, 2, 3))
 
-        backend._close_3d_figure(figure=fig)
         fig = _ndarray_to_fig(img)
 
     output = BytesIO()

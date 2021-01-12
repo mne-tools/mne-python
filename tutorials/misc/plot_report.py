@@ -215,12 +215,19 @@ report.save('report_custom.html', overwrite=True)
 fname_stc = os.path.join(path, 'MEG', 'sample', 'sample_audvis-meg')
 stc = mne.read_source_estimate(fname_stc, subject='sample')
 figs = list()
+kwargs = dict(subjects_dir=subjects_dir, initial_time=0.13,
+              clim=dict(kind='value', lims=[3, 6, 9]))
 for hemi in ('lh', 'rh'):
-    brain = stc.plot(subjects_dir=subjects_dir, initial_time=0.13,
-                     clim=dict(kind='value', lims=[3, 6, 9]), hemi=hemi)
+    brain = stc.plot(hemi=hemi, **kwargs)
     figs.append(brain.screenshot(time_viewer=True))
     brain.close()
 report.add_slider_to_section(figs)
+
+# or alternatively using ``get_brain_fig``:
+brain = stc.plot(**kwargs)
+fig = mne.viz.get_brain_fig(brain)
+report.add_figs_to_section(fig, captions='Source Estimate')
+
 report.save('report_stc.html', overwrite=True)
 
 ###############################################################################
