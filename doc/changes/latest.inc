@@ -39,6 +39,8 @@ Bugs
 
 - Function :func:`mne.set_bipolar_reference` was not working when passing ``Epochs`` constructed with some ``picks`` (:gh:`8728` by `Alex Gramfort`_)
 
+- Fix anonymization issue of FIF files after IO round trip (:gh:`8731` by `Alex Gramfort`_)
+
 
 API changes
 ~~~~~~~~~~~
