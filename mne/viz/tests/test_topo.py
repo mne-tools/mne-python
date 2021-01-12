@@ -85,8 +85,8 @@ def test_plot_joint():
                                                       time_unit='ms'),
                       ts_args=dict(spatial_colors=True, zorder=return_inds,
                                    time_unit='s'))
-    pytest.raises(ValueError, evoked.plot_joint, ts_args=dict(axes=True,
-                                                              time_unit='s'))
+    with pytest.raises(ValueError, match='If one of `ts_args` and'):
+        evoked.plot_joint(ts_args=dict(axes=True, time_unit='s'))
 
     axes = plt.subplots(nrows=3)[-1].flatten().tolist()
     evoked.plot_joint(times=[0], picks=[6, 7, 8], ts_args=dict(axes=axes[0]),
