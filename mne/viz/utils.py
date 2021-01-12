@@ -2272,6 +2272,23 @@ def centers_to_edges(*arrays):
     return out
 
 
+def _figure_agg(**kwargs):
+    from matplotlib.backends.backend_agg import FigureCanvasAgg
+    from matplotlib.figure import Figure
+    fig = Figure(**kwargs)
+    FigureCanvasAgg(fig)
+    return fig
+
+
+def _ndarray_to_fig(img):
+    """Convert to MPL figure, adapted from matplotlib.image.imsave."""
+    dpi = 100
+    figsize = np.array(img.shape[:2][::-1]) / dpi
+    fig = _figure_agg(dpi=dpi, figsize=figsize, frameon=False)
+    fig.figimage(img, resize=True)
+    return fig
+
+
 def concatenate_images(images, axis=0, bgcolor='black', centered=True):
     """Concatenate a list of images.
 

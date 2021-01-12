@@ -9,7 +9,7 @@ from ...fixes import nullcontext
 
 
 class MplCanvas(object):
-    """Ultimately, this is a QWidget (as well as a FigureCanvasAgg, etc.)."""
+    """Ultimately, this is a QWidget (as well as a FigureCanvasQTAgg, etc.)."""
 
     def __init__(self, brain, width, height, dpi, notebook=False):
         from matplotlib import rc_context

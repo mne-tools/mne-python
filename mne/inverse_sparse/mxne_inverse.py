@@ -653,7 +653,7 @@ def tf_mixed_norm(evoked, forward, noise_cov,
     n_steps = np.ceil(M.shape[1] / tstep.astype(float)).astype(int)
     n_freqs = wsize // 2 + 1
     n_coefs = n_steps * n_freqs
-    phi = _Phi(wsize, tstep, n_coefs)
+    phi = _Phi(wsize, tstep, n_coefs, evoked.data.shape[1])
 
     # Scaling to make setting of tol and alpha easy
     tol *= sum_squared(M)

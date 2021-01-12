@@ -129,10 +129,16 @@ jobs:
         # Figure out if we should run a full, pattern, or noplot version
         - restore_cache:
             keys:
+              - data-cache-tiny-1
+        - restore_cache:
+            keys:
               - data-cache-multimodal
         - restore_cache:
             keys:
               - data-cache-limo
+        - restore_cache:
+            keys:
+              - data-cache-fsaverage
         - restore_cache:
             keys:
               - data-cache-bst-phantom-ctf
@@ -176,12 +182,6 @@ jobs:
             name: Get data
             command: |
               ./tools/circleci_download.sh
-        - run:
-            name: Get data (again)
-            when: on_fail
-            command: |
-              ./tools/circleci_download.sh
-
         - run:
             name: Verify build type
             command: |
@@ -267,6 +267,12 @@ jobs:
               - ~/mne_data/mTRF_1.5  # (56 M)
               - ~/mne_data/MNE-phantom-4DBTi  # (77 M)
         - save_cache:
+            key: data-cache-tiny-1  # more to combine
+            paths:
+              - ~/mne_data/MNE-fNIRS-motor-data  # (71 M)
+              - ~/mne_data/MNE-refmeg-noise-data  # (93 M)
+              - ~/mne_data/physionet-sleep-data  # (95 M)
+        - save_cache:
             key: data-cache-multimodal
             paths:
               - ~/mne_data/MNE-multimodal-data  # (240 M)
@@ -275,11 +281,15 @@ jobs:
             paths:
               - ~/mne_data/MNE-limo-data  # (244 M)
         - save_cache:
+            key: data-cache-fsaverage
+            paths:
+              - ~/mne_data/MNE-fsaverage-data  # (762 M)
+        - save_cache:
             key: data-cache-bst-phantom-ctf
             paths:
               - ~/mne_data/MNE-brainstorm-data/bst_phantom_ctf  # (177 M)
         - save_cache:
-            key: data-cache-bst-bst-raw
+            key: data-cache-bst-raw
             paths:
               - ~/mne_data/MNE-brainstorm-data/bst_raw  # (830 M)
         - save_cache:

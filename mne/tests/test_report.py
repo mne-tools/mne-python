@@ -4,10 +4,13 @@
 #
 # License: BSD (3-clause)
 
+import base64
 import copy
 import glob
+from io import BytesIO
 import os
 import os.path as op
+import re
 import shutil
 import pathlib
 
@@ -16,7 +19,7 @@ from numpy.testing import assert_equal
 import pytest
 from matplotlib import pyplot as plt
 
-from mne import Epochs, read_events, read_evokeds
+from mne import Epochs, read_events, read_evokeds, report as report_mod
 from mne.io import read_raw_fif
 from mne.datasets import testing
 from mne.report import Report, open_report, _ReportScraper
@@ -284,6 +287,40 @@ def test_render_mri(renderer, tmpdir):
         html = fid.read()
     assert 'report_report' not in html
     assert html.count('<li class="report_foo"') == 2
+
+
+@testing.requires_testing_data
+@requires_nibabel()
+@pytest.mark.parametrize('n_jobs', [
+    1,
+    pytest.param(2, marks=pytest.mark.slowtest),  # 1.5 sec locally
+])
+def test_add_bem_n_jobs(n_jobs, tmpdir, monkeypatch):
+    """Test add_bem with n_jobs."""
+    from matplotlib.pyplot import imread
+    if n_jobs == 1:  # in one case, do at init -- in the other, pass in
+        use_subjects_dir = None
+    else:
+        use_subjects_dir = subjects_dir
+    report = Report(subjects_dir=use_subjects_dir)
+    # implicitly test that subjects_dir is correctly preserved here
+    monkeypatch.setattr(report_mod, '_BEM_VIEWS', ('axial',))
+    if use_subjects_dir is not None:
+        use_subjects_dir = None
+    report.add_bem_to_section('sample', 'sample', 'sample', decim=15,
+                              n_jobs=n_jobs, verbose='debug',
+                              subjects_dir=subjects_dir)
+    assert len(report.html) == 1
+    imgs = np.array([imread(BytesIO(base64.b64decode(b)), 'png')
+                     for b in re.findall(r'data:image/png;base64,(\S*)">',
+                                         report.html[0])])
+    assert imgs.ndim == 4  # images, h, w, rgba
+    assert len(imgs) == 6
+    imgs.shape = (len(imgs), -1)
+    norms = np.linalg.norm(imgs, axis=-1)
+    # should have down-up-down shape
+    corr = np.corrcoef(norms, np.hanning(len(imgs)))[0, 1]
+    assert 0.78 < corr < 0.80
 
 
 @testing.requires_testing_data

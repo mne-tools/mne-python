@@ -139,7 +139,7 @@ def test_norm_epsilon():
     n_steps = np.ceil(n_times / tstep.astype(float)).astype(int)
     n_freqs = wsize // 2 + 1
     n_coefs = n_steps * n_freqs
-    phi = _Phi(wsize, tstep, n_coefs)
+    phi = _Phi(wsize, tstep, n_coefs, n_times)
 
     Y = np.zeros(n_steps * n_freqs)
     l1_ratio = 0.03
@@ -186,7 +186,7 @@ def test_dgapl21l1():
     n_steps = np.ceil(n_times / tstep.astype(float)).astype(int)
     n_freqs = wsize // 2 + 1
     n_coefs = n_steps * n_freqs
-    phi = _Phi(wsize, tstep, n_coefs)
+    phi = _Phi(wsize, tstep, n_coefs, n_times)
     phiT = _PhiT(tstep, n_freqs, n_steps, n_times)
 
     for l1_ratio in [0.05, 0.1]:
