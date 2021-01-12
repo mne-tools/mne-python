@@ -2150,12 +2150,12 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
     # file_id and meas_id
     for key in ('file_id', 'meas_id'):
         value = info.get(key)
-        if (value['secs'], value['usecs']) == DATE_NONE:
-            # file_id is a placeholder to skip
-            continue
         if value is not None:
             assert 'msecs' not in value
-            if none_meas_date:
+            if (none_meas_date or
+                    ((value['secs'], value['usecs']) == DATE_NONE)):
+                # Don't try to shift backwards in time when no measurement
+                # date is available or when file_id is already a place holder
                 tmp = DATE_NONE
             else:
                 tmp = _add_timedelta_to_stamp(
