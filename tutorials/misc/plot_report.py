@@ -223,11 +223,6 @@ for hemi in ('lh', 'rh'):
     brain.close()
 report.add_slider_to_section(figs)
 
-# or alternatively using ``get_brain_fig``:
-brain = stc.plot(**kwargs)
-fig = mne.viz.get_brain_fig(brain)
-report.add_figs_to_section(fig, captions='Source Estimate')
-
 report.save('report_stc.html', overwrite=True)
 
 ###############################################################################
@@ -277,8 +272,3 @@ with mne.open_report('report.h5') as report:
 ###############################################################################
 # With the context manager, the updated report is also automatically saved
 # back to :file:`report.h5` upon leaving the block.
-
-###############################################################################
-# Finally we close the remaining 3d plot:
-
-brain.close()
