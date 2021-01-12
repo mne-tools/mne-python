@@ -183,7 +183,7 @@ def test_ssd():
 
     out = ssd.transform(X)
     psd_out, freqs = psd_array_welch(out[0], sfreq=250, n_fft=250)
-    freqs_up = int(freqs[psd_out > 2][0]), int(freqs[psd_out > 2][-1])
+    freqs_up = int(freqs[psd_out > 10][0]), int(freqs[psd_out > 10][-1])
     assert (freqs_up == freqs_sig)
 
     # Check pattern estimation
