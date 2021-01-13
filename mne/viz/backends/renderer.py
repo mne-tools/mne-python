@@ -295,24 +295,3 @@ def get_brain_class():
     else:  # PyVista
         from ...viz._brain import Brain
     return Brain
-
-
-def get_brain_fig(brain):
-    """Return the figure associated to the given brain object.
-
-    Parameters
-    ----------
-    brain : object
-        The brain used to extract the figure.
-
-    Returns
-    -------
-    fig : object
-        The brain figure corresponding to the current 3d backend.
-    """
-    if get_3d_backend() == "mayavi":
-        # from mayavi import mlab
-        # return mlab.gcf()
-        return brain._figures[0][0]
-    else:
-        return brain._renderer.scene()

@@ -612,8 +612,6 @@ numpydoc_xref_aliases = {
     # Mayavi
     'mayavi.mlab.Figure': 'mayavi.core.api.Scene',
     'mlab.Figure': 'mayavi.core.api.Scene',
-    # PyVista
-    'pyvista.Figure': 'mne.viz.backends._pyvista._Figure',
     # sklearn
     'LeaveOneOut': 'sklearn.model_selection.LeaveOneOut',
     # joblib

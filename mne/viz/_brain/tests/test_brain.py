@@ -146,19 +146,15 @@ def test_brain_gc(renderer, brain_gc):
 
 @requires_pysurfer
 @testing.requires_testing_data
-def test_brain_routines(renderer):
+def test_brain_routines(renderer, brain_gc):
     """Test backend agnostic Brain routines."""
     klass = renderer.get_brain_class()
     brain = klass(subject_id=subject_id, subjects_dir=subjects_dir,
                   hemi='lh', surf='inflated')
     if renderer.get_3d_backend() == "mayavi":
         from surfer import Brain
-        from mayavi import mlab
-        fig = mlab.gcf()
     else:  # PyVista
         from mne.viz._brain import Brain
-        fig = brain._renderer.scene()
-    assert fig == renderer.get_brain_fig(brain)
     assert isinstance(brain, Brain)
 
 
