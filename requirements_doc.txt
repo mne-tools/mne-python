@@ -1,7 +1,7 @@
 sphinx
 numpydoc
 sphinx_fontawesome
-sphinx_bootstrap_theme
+https://github.com/larsoner/sphinx-bootstrap-theme/archive/language_data.zip
 sphinx-gallery
 sphinxcontrib-bibtex==2.0.0
 memory_profiler
