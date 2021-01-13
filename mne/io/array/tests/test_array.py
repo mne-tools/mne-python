@@ -83,8 +83,9 @@ def test_array_raw():
     types = list()
     for ci in range(101):
         types.extend(('grad', 'grad', 'mag'))
-    types.extend(['ecog', 'seeg', 'dbs', 'hbo'])  # really 4 meg channels
+    types.extend(['ecog', 'seeg', 'hbo'])  # really 4 meg channels
     types.extend(['stim'] * 9)
+    types.extend(['dbs'])  # really eeg channel
     types.extend(['eeg'] * 60)
     picks = np.concatenate([pick_types(raw.info, meg=True)[::20],
                             pick_types(raw.info, meg=False, stim=True),
@@ -139,7 +140,7 @@ def test_array_raw():
 
     # plotting
     raw2.plot()
-    raw2.plot_psd(picks=['meg','eeg'], tmax=2., average=True, n_fft=1024,
+    raw2.plot_psd(tmax=2., average=True, n_fft=1024,
                   spatial_colors=False)
     plt.close('all')
 

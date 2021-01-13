@@ -257,7 +257,7 @@ class ContainsMixin(object):
         # get the channel names and chs data structure
         ch_names, chs = self.info['ch_names'], self.info['chs']
         picks = pick_types(self.info, meg=False, eeg=True,
-                           seeg=True, dbs=True, ecog=True)
+                           seeg=True, ecog=True, dbs=True)
 
         # channel positions from dig do not match ch_names one to one,
         # so use loc[:3] instead
@@ -446,7 +446,7 @@ class SetChannelsMixin(MontageMixin):
                     unit_changes[this_change] = list()
                 unit_changes[this_change].append(ch_name)
             self.info['chs'][c_ind]['unit'] = _human2unit[ch_type]
-            if ch_type in ['eeg', 'seeg', 'dbs', 'ecog']:
+            if ch_type in ['eeg', 'seeg', 'ecog', 'dbs']:
                 coil_type = FIFF.FIFFV_COIL_EEG
             elif ch_type == 'hbo':
                 coil_type = FIFF.FIFFV_COIL_FNIRS_HBO
@@ -656,8 +656,8 @@ class UpdateChannelsMixin(object):
     def pick_types(self, meg=False, eeg=False, stim=False, eog=False,
                    ecg=False, emg=False, ref_meg='auto', misc=False,
                    resp=False, chpi=False, exci=False, ias=False, syst=False,
-                   seeg=False, dbs=False, dipole=False, gof=False, bio=False,
-                   ecog=False, fnirs=False, csd=False, include=(),
+                   seeg=False, dipole=False, gof=False, bio=False,
+                   ecog=False, fnirs=False, csd=False, dbs=False, include=(),
                    exclude='bads', selection=None, verbose=None):
         """Pick some channels by type and names.
 
@@ -740,8 +740,8 @@ class UpdateChannelsMixin(object):
         idx = pick_types(
             self.info, meg=meg, eeg=eeg, stim=stim, eog=eog, ecg=ecg, emg=emg,
             ref_meg=ref_meg, misc=misc, resp=resp, chpi=chpi, exci=exci,
-            ias=ias, syst=syst, seeg=seeg, dbs=dbs, dipole=dipole, gof=gof,
-            bio=bio, ecog=ecog, fnirs=fnirs, include=include, exclude=exclude,
+            ias=ias, syst=syst, seeg=seeg, dipole=dipole, gof=gof, bio=bio,
+            ecog=ecog, fnirs=fnirs, dbs=dbs, include=include, exclude=exclude,
             selection=selection)
 
         self._pick_drop_channels(idx)

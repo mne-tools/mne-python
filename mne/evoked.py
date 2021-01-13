@@ -607,8 +607,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                 picks = _pair_grad_sensors(self.info, topomap_coords=False)
             else:
                 picks = pick_types(self.info, meg=meg, eeg=eeg, misc=misc,
-                                   seeg=seeg, dbs=dbs, ecog=ecog,
-                                   ref_meg=False, fnirs=fnirs)
+                                   seeg=seeg, ecog=ecog, ref_meg=False,
+                                   fnirs=fnirs, dbs=dbs)
         data = self.data
         ch_names = self.ch_names
 

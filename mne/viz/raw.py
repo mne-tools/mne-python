@@ -567,7 +567,7 @@ def _setup_channel_selections(raw, kind, order):
     misc = pick_types(raw.info, meg=False, eeg=False, stim=True, eog=True,
                       ecg=True, emg=True, ref_meg=False, misc=True,
                       resp=True, chpi=True, exci=True, ias=True, syst=True,
-                      seeg=False, dbs=False, bio=True, ecog=False, fnirs=False,
+                      seeg=False, bio=True, ecog=False, fnirs=False, dbs=False,
                       exclude=())
     if len(misc) and np.in1d(misc, order).any():
         selections_dict['Misc'] = misc

@@ -424,7 +424,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                    surfaces='auto', coord_frame='head',
                    meg=None, eeg='original', fwd=None,
                    dig=False, ecog=True, src=None, mri_fiducials=False,
-                   bem=None, seeg=True, dbs=True, fnirs=True, show_axes=False,
+                   bem=None, seeg=True, fnirs=True, show_axes=False, dbs=True,
                    fig=None, interaction='trackball', verbose=None):
     """Plot head, sensor, and source space alignment in 3D.
 
@@ -504,8 +504,6 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         Defaults to None.
     seeg : bool
         If True (default), show sEEG electrodes.
-    dbs : bool
-        If True (default), show DBS (deep brain stimulation) electrodes.
     fnirs : str | list | bool | None
         Can be "channels", "pairs", "detectors", and/or "sources" to show the
         fNIRS channel locations, optode locations, or line between
@@ -522,6 +520,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         * MEG in blue (if MEG sensors are present).
 
         .. versionadded:: 0.16
+    dbs : bool
+        If True (default), show DBS (deep brain stimulation) electrodes.
     fig : mayavi.mlab.Figure | None
         Mayavi Scene in which to plot the alignment.
         If ``None``, creates a new 600x600 pixel figure with black background.
@@ -657,8 +657,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     ref_meg = 'ref' in meg
     meg_picks = pick_types(info, meg=True, ref_meg=ref_meg)
     eeg_picks = pick_types(info, meg=False, eeg=True, ref_meg=False)
-    fnirs_picks = pick_types(info, meg=False, eeg=False,
-                             ref_meg=False, fnirs=True)
+    fnirs_picks = pick_types(info, meg=False, eeg=False, ref_meg=False,
+                             fnirs=True)
     other_bools = dict(ecog=ecog, seeg=seeg, dbs=dbs,
                        fnirs=(('channels' in fnirs) |
                               ('sources' in fnirs) |

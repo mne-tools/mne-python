@@ -827,8 +827,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         if self._do_baseline:
             picks = pick_types(self.info, meg=True, eeg=True, stim=False,
                                ref_meg=True, eog=True, ecg=True, seeg=True,
-                               dbs=True, emg=True, bio=True, ecog=True,
-                               fnirs=True, exclude=[])
+                               emg=True, bio=True, ecog=True, fnirs=True,
+                               dbs=True, exclude=[])
             epoch[picks] = rescale(epoch[picks], self._raw_times,
                                    self.baseline, copy=False, verbose=False)
 

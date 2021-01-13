@@ -1252,10 +1252,11 @@ def _auto_low_rank_model(data, mode, n_jobs, method_params, cv,
 class _RegCovariance(BaseEstimator):
     """Aux class."""
 
-    def __init__(self, info, grad=0.1, mag=0.1, eeg=0.1, seeg=0.1, dbs=0.1,
+    def __init__(self, info, grad=0.1, mag=0.1, eeg=0.1, seeg=0.1,
                  ecog=0.1, hbo=0.1, hbr=0.1, fnirs_cw_amplitude=0.1,
                  fnirs_fd_ac_amplitude=0.1, fnirs_fd_phase=0.1, fnirs_od=0.1,
-                 csd=0.1, store_precision=False, assume_centered=False):
+                 csd=0.1, dbs=0.1, store_precision=False,
+                 assume_centered=False):
         self.info = info
         # For sklearn compat, these cannot (easily?) be combined into
         # a single dictionary
@@ -1548,9 +1549,9 @@ def _smart_eigh(C, info, rank, scalings=None, projs=None,
 
 @verbose
 def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
-               proj=True, seeg=0.1, dbs=0.1, ecog=0.1, hbo=0.1, hbr=0.1,
+               proj=True, seeg=0.1, ecog=0.1, hbo=0.1, hbr=0.1,
                fnirs_cw_amplitude=0.1, fnirs_fd_ac_amplitude=0.1,
-               fnirs_fd_phase=0.1, fnirs_od=0.1, csd=0.1,
+               fnirs_fd_phase=0.1, fnirs_od=0.1, csd=0.1, dbs=0.1,
                rank=None, scalings=None, verbose=None):
     """Regularize noise covariance matrix.
 
@@ -1585,8 +1586,6 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
         Apply projections to keep rank of data.
     seeg : float (default 0.1)
         Regularization factor for sEEG signals.
-    dbs : float (default 0.1)
-        Regularization factor for DBS signals.
     ecog : float (default 0.1)
         Regularization factor for ECoG signals.
     hbo : float (default 0.1)
@@ -1603,6 +1602,8 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
         Regularization factor for fNIRS optical density signals.
     csd : float (default 0.1)
         Regularization factor for EEG-CSD signals.
+    dbs : float (default 0.1)
+        Regularization factor for DBS signals.
     %(rank_None)s
 
         .. versionadded:: 0.17
