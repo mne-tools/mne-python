@@ -6,6 +6,7 @@ import os
 import os.path as op
 
 
+from ..utils import _manifest_check_download, _get_path
 from ...utils import (verbose, get_subjects_dir, set_config)
 
 FSAVERAGE_MANIFEST_PATH = op.dirname(__file__)
@@ -64,7 +65,6 @@ def fetch_fsaverage(subjects_dir=None, verbose=None):
     # with open('fsaverage.txt', 'w') as fid:
     #     fid.write('\n'.join(names))
     #
-    from ..utils import _manifest_check_download
     subjects_dir = _set_montage_coreg_path(subjects_dir)
     subjects_dir = op.abspath(subjects_dir)
     fs_dir = op.join(subjects_dir, 'fsaverage')
@@ -85,7 +85,6 @@ def fetch_fsaverage(subjects_dir=None, verbose=None):
 
 
 def _get_create_subjects_dir(subjects_dir):
-    from ..utils import _get_path
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=False)
     if subjects_dir is None:
         subjects_dir = _get_path(None, 'MNE_DATA', 'montage coregistration')

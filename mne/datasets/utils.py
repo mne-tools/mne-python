@@ -18,7 +18,6 @@ from distutils.version import LooseVersion
 
 import numpy as np
 
-from ._fsaverage.base import fetch_fsaverage
 from .. import __version__ as mne_version
 from ..label import read_labels_from_annot, Label, write_labels_to_annot
 from ..utils import (get_config, set_config, _fetch_file, logger, warn,
@@ -594,7 +593,8 @@ def _download_all_example_data(verbose=True):
     from . import (sample, testing, misc, spm_face, somato, brainstorm,
                    eegbci, multimodal, opm, hf_sef, mtrf, fieldtrip_cmc,
                    kiloword, phantom_4dbti, sleep_physionet, limo,
-                   fnirs_motor, refmeg_noise, fetch_infant_template)
+                   fnirs_motor, refmeg_noise, fetch_infant_template,
+                   fetch_fsaverage)
     sample_path = sample.data_path()
     testing.data_path()
     misc.data_path()
@@ -808,11 +808,9 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, *,
                                   sort=False, table_name=table_name)
 
 
-def _manifest_check_download(manifest_path, destination, url, hash_,
-                             names=None):
-    if names is None:
-        with open(manifest_path, 'r') as fid:
-            names = [name.strip() for name in fid.readlines()]
+def _manifest_check_download(manifest_path, destination, url, hash_):
+    with open(manifest_path, 'r') as fid:
+        names = [name.strip() for name in fid.readlines()]
     manifest_path = op.basename(manifest_path)
     need = list()
     for name in names:

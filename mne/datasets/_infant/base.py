@@ -5,7 +5,7 @@
 import os
 import os.path as op
 
-
+from ..utils import _manifest_check_download
 from ...utils import verbose, get_subjects_dir, _check_option, _validate_type
 
 _AGES = '2wk 1mo 3mo 4.5mo 6mo 7.5mo 9mo 10.5mo 12mo 15mo 18mo 2yr'
@@ -71,7 +71,6 @@ def fetch_infant_template(age, subjects_dir=None, verbose=None):
     # ...         names = sorted(name for name in zip.namelist() if not zipfile.Path(zip, name).is_dir())  # noqa: E501
     # ...     with open(f'{name}.txt', 'w') as fid:
     # ...         fid.write('\n'.join(names))
-    from ..utils import _manifest_check_download
     _validate_type(age, str, 'age')
     _check_option('age', age, _AGES.split())
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
