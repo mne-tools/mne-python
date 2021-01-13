@@ -6,7 +6,6 @@
 #
 # License: Simplified BSD
 
-import warnings
 import os.path as op
 from collections import namedtuple
 
