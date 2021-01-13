@@ -1472,7 +1472,7 @@ class Report(object):
             files. If ``None``, include all supported file formats.
 
             .. versionchanged:: 0.23
-            Include supported non-FIFF files by default.
+               Include supported non-FIFF files by default.
         %(n_jobs)s
         mri_decim : int
             Use this decimation factor for generating MRI/BEM images
