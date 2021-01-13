@@ -210,7 +210,7 @@ def _endswith(fname, suffixes):
     for suffix in suffixes:
         for ext in SUPPORTED_READ_RAW_EXTENSIONS:
             if fname.endswith((f'-{suffix}{ext}', f'-{suffix}{ext}',
-                            f'_{suffix}{ext}', f'_{suffix}{ext}')):
+                               f'_{suffix}{ext}', f'_{suffix}{ext}')):
                 return True
     return False
 
