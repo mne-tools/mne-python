@@ -1369,7 +1369,7 @@ def test_ica_ch_types(ch_type):
     epochs = Epochs(raw, events, None, -0.1, 0.1, preload=True, proj=False)
     evoked = epochs.average()
     # test fit
-    method = 'fastica'
+    method = 'infomax'
     for inst in [raw, epochs]:
         ica = ICA(n_components=2, max_iter=2, method=method)
         with pytest.warns(None):
