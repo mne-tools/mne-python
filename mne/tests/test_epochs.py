@@ -2630,10 +2630,7 @@ def test_add_channels():
 
 
 def test_seeg_ecog():
-    """Test the compatibility of the Epoch object with SEEG, DBS and
-    ECoG data.
-
-    """
+    """Test compatibility of the Epoch object with SEEG, DBS and ECoG data."""
     n_epochs, n_channels, n_times, sfreq = 5, 10, 20, 1000.
     data = np.ones((n_epochs, n_channels, n_times))
     events = np.array([np.arange(n_epochs), [0] * n_epochs, [1] * n_epochs]).T
