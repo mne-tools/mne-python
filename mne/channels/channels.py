@@ -697,8 +697,6 @@ class UpdateChannelsMixin(object):
             System status channel information (on Triux systems only).
         seeg : bool
             Stereotactic EEG channels.
-        dbs : bool
-            Deep brain stimulation channels.
         dipole : bool
             Dipole time course channels.
         gof : bool
@@ -714,6 +712,8 @@ class UpdateChannelsMixin(object):
             include channels measuring deoxyhemoglobin).
         csd : bool
             EEG-CSD channels.
+        dbs : bool
+            Deep brain stimulation channels.
         include : list of str
             List of additional channels to include. If empty do not include
             any.
