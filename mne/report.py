@@ -72,7 +72,6 @@ def _fig_to_img(fig, image_format='png', scale=None, **kwargs):
         else:  # Testing mode
             img = np.zeros((2, 2, 3))
 
-        backend._close_3d_figure(figure=fig)
         fig = _ndarray_to_fig(img)
 
     output = BytesIO()
@@ -154,7 +153,6 @@ def _iterate_trans_views(function, **kwargs):
         ax.imshow(im)
         ax.axis('off')
 
-    backend._close_all()
     img = _fig_to_img(fig2, image_format='png')
     return img
 
