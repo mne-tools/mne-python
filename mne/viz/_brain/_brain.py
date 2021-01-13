@@ -774,6 +774,9 @@ class Brain(object):
             The speed of the playback.
         """
         self.playback_speed = speed
+        if self.notebook and self.actions.get("play") is not None:
+            max_time = len(self._data['time']) - 1
+            self.actions["play"].max = max_time * (1 / self.playback_speed)
 
     @safe_event
     def _play(self):
@@ -1005,15 +1008,17 @@ class Brain(object):
 
             def set_time_point(data):
                 self.callbacks["time"](
-                    value=data['new'],
+                    value=data['new'] * self.playback_speed,
                     update_widget=True,
                 )
 
             self.actions["play"] = Play(
                 value=self._data['time_idx'],
                 min=0,
-                max=max_time,
-                continuous_update=False
+                max=max_time * (1 / self.playback_speed),
+                step=1,
+                continuous_update=False,
+                interval=self.refresh_rate_ms,
             )
             self.actions["play"].observe(set_time_point, 'value')
         else:
