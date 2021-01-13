@@ -591,13 +591,13 @@ class Brain(object):
         self._configure_scalar_bar()
         self._configure_shortcuts()
         self._configure_picking()
+        self._configure_playback()
         self._configure_tool_bar()
         if self.notebook:
             self.show()
         self._configure_trace_mode()
         self.toggle_interface()
         if not self.notebook:
-            self._configure_playback()
             self._configure_menu()
             self._configure_status_bar()
 
@@ -999,7 +999,25 @@ class Brain(object):
         self._set_slider_style()
 
     def _configure_playback(self):
-        self.plotter.add_callback(self._play, self.refresh_rate_ms)
+        if self.notebook:
+            from ipywidgets import Play
+            max_time = len(self._data['time']) - 1
+
+            def set_time_point(data):
+                self.callbacks["time"](
+                    value=data['new'],
+                    update_widget=True,
+                )
+
+            self.actions["play"] = Play(
+                value=self._data['time_idx'],
+                min=0,
+                max=max_time,
+                continuous_update=False
+            )
+            self.actions["play"].observe(set_time_point, 'value')
+        else:
+            self.plotter.add_callback(self._play, self.refresh_rate_ms)
 
     def _configure_mplcanvas(self):
         ratio = (1 - self.interactor_fraction) / self.interactor_fraction
