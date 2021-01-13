@@ -1,66 +1,24 @@
-{% extends "!layout.html" %}
+{%- extends "pydata_sphinx_theme/layout.html" %}
+
+{% block fonts %}
+    <!-- add `style` or `link` tags with your CSS `@font-face` declarations here -->
+    <!-- ... and a `style` tag with setting `font-family` in `body` and `.header-style` -->
+    <!-- ... and optionally preload the `woff2` for snappier page loads -->
+    <!-- or add a `style` tag with a font fallback chain with good cross-platform coverage -->
+    <style>
+        body,h1,h2,h3,h4,h5,h6 {font-family: 'Source Sans Pro', sans-serif;}
+    </style>
+{% endblock %}
 
 {% block extrahead %}
-
     <link rel="canonical" href="https://mne.tools/stable/index.html" />
     <script type="text/javascript" src="{{ pathto('_static/copybutton.js', 1) }}"></script>
-
-{% if use_google_analytics|tobool %}
-    <script type="text/javascript">
-    var _gaq = _gaq || [];
-    _gaq.push(['_setAccount', 'UA-37225609-1']);
-    _gaq.push(['_trackPageview']);
-
-    (function() {
-        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
-        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
-        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
-    })();
-    </script>
-{% endif %}
-
-    <link rel="stylesheet" href="{{ pathto('_static/style.css', 1) }} " type="text/css" />
-    <link rel="stylesheet" href="{{ pathto('_static/font-awesome.css', 1) }}" type="text/css" />
-    <link rel="stylesheet" href="{{ pathto('_static/font-source-code-pro.css', 1) }}" type="text/css" />
-    <link rel="stylesheet" href="{{ pathto('_static/font-source-sans-pro.css', 1) }}" type="text/css" />
-    <link rel="stylesheet" href="{{ pathto('_static/flag-icon.css', 1) }}" type="text/css" />
-
-{% if use_media_buttons|tobool %}
-    <script type="text/javascript">
-    (function() {
-    var po = document.createElement('script'); po.type = 'text/javascript'; po.async = true;
-    po.src = 'https://apis.google.com/js/plusone.js';
-    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(po, s);
-    })();
-    </script>
-{% endif %}
-
-{{ super() }}
-
-{% endblock %}
-
-{% block relbar2 %}{% endblock %}
-
-{% block relbar1 %}
-{% if build_dev_html|tobool %}
-<div class="d-block devbar alert alert-danger">
-This is documentation for the <em>unstable development version</em> of MNE-Python,
-<a href="https://mne.tools/dev/install/advanced.html#using-the-development-version-of-mne-python-latest-main">available here</a>.
-Or, switch to documentation for the <a href="https://mne.tools/stable">current stable version</a>.
-
-</div>
-{% endif %}
-
 {{ super() }}
 {% endblock %}
-
-{# put the sidebar before the body #}
-{% block sidebar1 %}{% endblock %}
-{% block sidebar2 %}{% endblock %}
 
 {%- block footer %}
-<footer class="footer">
-  <div class="container"><div class="row">
+<footer class="footer mt-5 mt-md-0">
+    <div class="container"><div class="row">
     <div class="container col-md-12 institutions">
       <ul class="list-unstyled">
         <li><a href="https://www.massgeneral.org/"><img class="institution" src="{{ pathto('_static/institution_logos/MGH.svg', 1) }}" title="Massachusetts General Hospital" alt="Massachusetts General Hospital"/></a></li>

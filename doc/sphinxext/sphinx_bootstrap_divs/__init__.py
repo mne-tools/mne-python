@@ -74,16 +74,16 @@ class CollapseNode(DivNode):
 
     OPTION_KEYS = ('title', 'id_', 'extra', 'class')
     ELEMENT = 'div'
-    BASECLASS = 'panel'
+    BASECLASS = 'card'
     HEADER_PRETITLE = """.. raw:: html
 
-    <div class="panel-heading"><h4 class="panel-title">
-    <a data-toggle="collapse" href="#collapse_{id_}">"""
+    <h5 class="card-header">
+    <a data-toggle="collapse" href="#collapse_{id_}" role="button" aria-expanded="false" aria-controls="collapse_{id_}">"""
     HEADER_POSTTITLE = """.. raw:: html
 
-    </a></h4></div>
-    <div id="collapse_{id_}" class="panel-collapse collapse{extra}">
-    <div class="panel-body">"""
+    </a></h5>
+    <div id="collapse_{id_}" class="collapse{extra}">
+    <div class="card card-body">"""
     FOOTER = """.. raw:: html
 
     </div></div>"""

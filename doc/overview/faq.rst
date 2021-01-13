@@ -1,3 +1,5 @@
+:orphan:
+
 .. include:: ../links.inc
 
 .. _faq:
@@ -5,9 +7,6 @@
 ================================
 Frequently Asked Questions (FAQ)
 ================================
-
-.. contents:: Page contents
-   :local:
 
 .. highlight:: python
 

@@ -1,14 +1,11 @@
+:orphan:
+
 .. _implementation:
 
 Algorithms and other implementation details
 ===========================================
 
 This page describes some of the technical details of MNE-Python implementation.
-
-.. contents:: Page contents
-   :local:
-   :depth: 1
-
 
 .. _units:
 

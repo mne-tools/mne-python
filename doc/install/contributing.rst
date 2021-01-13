@@ -1,13 +1,7 @@
-:orphan:
-
 .. _contributing:
 
-Contributing to MNE-Python
-==========================
-
-.. contents:: Page contents
-   :local:
-   :depth: 3
+Contributing guide
+==================
 
 .. highlight:: console
 
@@ -71,8 +65,8 @@ The sections :ref:`basic-git` and :ref:`github-workflow` (below) describe this
 process in more detail.
 
 
-Setting up your local environment for MNE-Python development
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Setting up your local development environment
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Configuring git
 ~~~~~~~~~~~~~~~
@@ -138,8 +132,7 @@ into a terminal and you should see ::
 
 If you don't see this or something similar:
 
-.. sidebar::
-   If you get:
+.. sidebar:: If you get:
 
    *bash: conda: command not found*
 
@@ -184,8 +177,8 @@ of how that structure is set up is given here:
    :align: left
 
 
-Setting up the development environment
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Creating the virtual environment
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. sidebar:: Supported Python environments
 

@@ -1,4 +1,4 @@
-.. _roadmap:
+:orphan:
 
 Roadmap
 =======
@@ -7,11 +7,6 @@ This page describes some of the major medium- to long-term goals for
 MNE-Python. These are goals that require substantial effort and/or
 API design considerations. Some of these may be suitable for Google Summer of
 Code projects, while others require more extensive work.
-
-.. contents:: Page contents
-   :local:
-   :depth: 1
-
 
 Clustering statistics API
 ^^^^^^^^^^^^^^^^^^^^^^^^^

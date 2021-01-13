@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with matplotlib (https://matplotlib.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   height="5.28pt"
+   version="1.1"
+   viewBox="0 0 22.08 5.28"
+   width="22.08pt"
+   id="svg21"
+   sodipodi:docname="mne_logo_small_black.svg"
+   inkscape:version="0.92.5 (2060ec1f9f, 2020-04-08)">
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="1920"
+     inkscape:window-height="2136"
+     id="namedview23"
+     showgrid="false"
+     inkscape:zoom="16.915761"
+     inkscape:cx="7.1530923"
+     inkscape:cy="3.5200001"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="axes_1" />
+  <metadata
+     id="metadata2">
+    <rdf:RDF>
+      <cc:Work>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:date>2021-01-19T17:58:35.398623</dc:date>
+        <dc:format>image/svg+xml</dc:format>
+        <dc:creator>
+          <cc:Agent>
+            <dc:title>Matplotlib v3.3.3, https://matplotlib.org/</dc:title>
+          </cc:Agent>
+        </dc:creator>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <defs
+     id="defs6">
+    <style
+       type="text/css"
+       id="style4">*{stroke-linecap:butt;stroke-linejoin:round;}</style>
+  </defs>
+  <g
+     id="figure_1">
+    <g
+       id="axes_1">
+      <g
+         clip-path="url(#p5f95069327)"
+         id="g9">
+        <image
+           height="1.92"
+           id="image0a6688b91f"
+           transform="scale(1 -1)translate(0 -1.92)"
+           width="7.44"
+           x="14"
+           xlink:href="data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAAB8AAAAICAYAAAABfSQaAAAAdElEQVR4nO3NsQ3CMAAF0fN3hzCxoigVEjsxLPsgpQIUEiKo8DcNO1CQ6656we9QPQqPok4RjxHPwndRH8JzxEvEy/efkcvmwK3Zc+qPDNeOYeo4v3rKVjgFnERJojTCu4CzcBalFSUH3Aq3QvywFV/x/8E/2JQwCpYkwJgAAAAASUVORK5CYII="
+           y="-1.36" />
+      </g>
+      <g
+         id="patch_1"
+         style="fill:#808080">
+        <path
+           clip-path="url(#p5f95069327)"
+           d="M 3.793331 4.506059  L 3.793331 2.586641  L 2.995202 3.904832  Q 2.980923 3.93339 2.947104 3.94316  Q 2.913285 3.95293 2.889235 3.95293  Q 2.860677 3.95293 2.826858 3.94316  Q 2.793039 3.93339 2.77876 3.904832  L 1.980631 2.586641  L 1.980631 4.506059  L 1.003636 4.506059  L 1.003636 0.773941  L 1.917502 0.773941  Q 1.9656 0.773941 1.999419 0.816778  L 2.884726 2.293543  L 3.774543 0.816778  Q 3.808362 0.773941 3.851199 0.773941  L 4.770325 0.773941  L 4.770325 4.506059  z M 7.665685 4.50155  L 6.371544 2.509985  L 6.371544 4.50155  L 5.375761 4.50155  L 5.375761 0.773941  L 6.367035 0.773941  L 7.665685 2.784295  L 7.665685 0.773941  L 8.665977 0.773941  L 8.665977 4.50155  z M 9.202272 4.506059  L 9.202272 0.773941  L 12.17985 0.773941  L 12.17985 1.663757  L 10.174005 1.663757  L 10.174005 2.197346  L 12.064114 2.197346  L 12.064114 3.087163  L 10.174005 3.087163  L 10.174005 3.620752  L 12.17985 3.620752  L 12.17985 4.506059  z "
+           id="path11"
+           style="fill:#808080" />
+      </g>
+    </g>
+  </g>
+  <defs
+     id="defs19">
+    <clipPath
+       id="p5f95069327">
+      <rect
+         height="4.10533"
+         width="22.08"
+         x="0"
+         y="0.587335"
+         id="rect16" />
+    </clipPath>
+  </defs>
+</svg>

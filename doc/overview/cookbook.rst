@@ -1,12 +1,10 @@
+:orphan:
+
 .. _cookbook:
 
 ==========================
 The typical M/EEG workflow
 ==========================
-
-.. contents:: Contents
-   :local:
-   :depth: 2
 
 Overview
 ========

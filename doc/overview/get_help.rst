@@ -9,7 +9,7 @@ There are three main channels for obtaining help with MNE software tools.
 
 - There are some troubleshooting tips built into
   :ref:`the installation page <install_python_and_mne_python>` (look for the
-  |hand-stop-o| symbols), and some tips related to 3D plotting problems on
+  |hand-paper| symbols), and some tips related to 3D plotting problems on
   :ref:`the advanced setup page <troubleshoot_3d>`.
 - The `MNE Forum`_ is a good placed to go for both troubleshooting and general
   questions.

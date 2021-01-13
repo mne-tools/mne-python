@@ -1,5 +1,3 @@
-:orphan:
-
 .. include:: ../links.inc
 
 .. _documentation_overview:
@@ -21,7 +19,7 @@ The documentation for MNE-Python is divided into four main sections:
    emphasis is on thorough explanations that get new users up to speed quickly,
    at the expense of covering only a limited number of topics.
 
-2. The :doc:`Examples Gallery <../auto_examples/index>` provides working code
+2. The :doc:`How-to Examples <../auto_examples/index>` provides working code
    samples demonstrating various analysis and visualization techniques. These
    examples often lack the narrative explanations seen in the tutorials, but
    can be a useful way to discover new analysis or plotting ideas, or to see
@@ -40,26 +38,32 @@ The documentation for MNE-Python is divided into four main sections:
    when typing :samp:`mne.{<function_name>}?` in an IPython session or Jupyter
    notebook.
 
+See our :doc:`get_help` page for guidance on where to get help.
 The rest of the MNE-Python documentation pages (parts outside of the four
 categories above) are linked here:
 
-.. toctree::
-    :maxdepth: 1
-
-    faq
-    design_philosophy
-    implementation
-    ../whats_new
-    roadmap
-    datasets_index
-    cookbook
-    ../generated/commands
-    migrating
-    cite
-    get_help
-    ../bibliography
+- :ref:`faq`
+- :ref:`migrating`
+- :ref:`design_philosophy`
+- :ref:`implementation`
+- :ref:`datasets`
+- :ref:`python_commands`
+- :ref:`cookbook`
+- :ref:`cite`
+- :ref:`roadmap`
+- :ref:`whats_new`
+- :ref:`general_bibliography`
 
 Documentation for the related C and MATLAB tools are available here:
 
 - :ref:`MNE-MATLAB <mne_matlab>` (HTML)
 - `MNE-C <MNE-C manual_>`_ (PDF)
+
+
+.. toctree::
+   :hidden:
+
+   Tutorials<../auto_tutorials/index>
+   Examples<../auto_examples/index>
+   ../glossary
+   API<../python_reference>

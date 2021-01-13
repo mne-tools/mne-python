@@ -1,3 +1,5 @@
+:orphan:
+
 .. _datasets:
 
 Datasets Overview
@@ -16,11 +18,6 @@ All fetchers will check the default download location first to see if the datase
 is already on your computer, and only download it if necessary. The default
 download location is also configurable; see the documentation of any of the
 ``data_path`` functions for more information.
-
-.. contents:: Available datasets
-   :local:
-   :depth: 2
-
 
 .. _sample-dataset:
 

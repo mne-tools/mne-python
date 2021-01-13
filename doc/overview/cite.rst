@@ -1,3 +1,5 @@
+:orphan:
+
 .. _cite:
 
 How to cite MNE-Python

@@ -1,5 +1,3 @@
-:orphan:
-
 .. _api_reference:
 
 ====================
@@ -13,11 +11,6 @@ below a module heading are found in the ``mne`` namespace.
 
 MNE-Python also provides multiple command-line scripts that can be called
 directly from a terminal, see :ref:`python_commands`.
-
-.. contents::
-   :local:
-   :depth: 2
-
 
 :py:mod:`mne`:
 
