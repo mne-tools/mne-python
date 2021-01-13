@@ -774,9 +774,7 @@ class Brain(object):
             The speed of the playback.
         """
         self.playback_speed = speed
-        if self.notebook and self.actions.get("play") is not None:
-            max_time = len(self._data['time']) - 1
-            self.actions["play"].max = max_time * (1 / self.playback_speed)
+        self._update()
 
     @safe_event
     def _play(self):
@@ -1004,7 +1002,6 @@ class Brain(object):
     def _configure_playback(self):
         if self.notebook:
             from ipywidgets import Play
-            max_time = len(self._data['time']) - 1
 
             def set_time_point(data):
                 self.callbacks["time"](
@@ -1013,14 +1010,11 @@ class Brain(object):
                 )
 
             self.actions["play"] = Play(
-                value=self._data['time_idx'],
-                min=0,
-                max=max_time * (1 / self.playback_speed),
-                step=1,
                 continuous_update=False,
                 interval=self.refresh_rate_ms,
             )
             self.actions["play"].observe(set_time_point, 'value')
+            self._update()
         else:
             self.plotter.add_callback(self._play, self.refresh_rate_ms)
 
@@ -3299,6 +3293,15 @@ class Brain(object):
         if renderer.get_3d_backend() in ['pyvista', 'notebook']:
             if self.notebook and self._renderer.figure.display is not None:
                 self._renderer.figure.display.update_canvas()
+
+                # synchronize the playback current value
+                if self.actions.get("play") is not None:
+                    max_time = len(self._data['time']) - 1
+                    time_idx = self._data["time_idx"]
+                    inv_speed = 1. / self.playback_speed
+                    self.actions["play"].min = 0
+                    self.actions["play"].max = max_time * inv_speed
+                    self.actions["play"].value = time_idx * inv_speed
             else:
                 self._renderer.plotter.update()
 
