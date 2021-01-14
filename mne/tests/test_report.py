@@ -194,7 +194,6 @@ def test_render_non_fiff(tmpdir):
     for fname in fnames_out:
         assert (op.basename(fname) in
                 [op.basename(x) for x in report.fnames])
-        assert (''.join(report.html).find(op.basename(fname)) != -1)
 
     assert len(report.fnames) == len(fnames_out)
     assert len(report.html) == len(report.fnames)
