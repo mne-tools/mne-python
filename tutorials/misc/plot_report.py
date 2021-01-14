@@ -69,7 +69,7 @@ import mne
 # subject.
 
 path = mne.datasets.sample.data_path(verbose=False)
-report = mne.Report(verbose=True)
+report = mne.Report(auto_close=False, verbose=True)
 report.parse_folder(path, pattern='*raw.fif', render_bem=False)
 report.save('report_basic.html', overwrite=True)
 
