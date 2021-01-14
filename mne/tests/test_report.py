@@ -15,7 +15,6 @@ import shutil
 import pathlib
 
 import numpy as np
-from numpy.testing import assert_equal
 import pytest
 from matplotlib import pyplot as plt
 
@@ -109,9 +108,9 @@ def test_render_report(renderer, tmpdir):
                 [op.basename(x) for x in report.fnames])
         assert (''.join(report.html).find(op.basename(fname)) != -1)
 
-    assert_equal(len(report.fnames), len(fnames))
-    assert_equal(len(report.html), len(report.fnames))
-    assert_equal(len(report.fnames), len(report))
+    assert len(report.fnames) == len(fnames)
+    assert len(report.html) == len(report.fnames)
+    assert len(report.fnames) == len(report)
 
     # Check saving functionality
     report.data_path = tempdir
@@ -130,8 +129,8 @@ def test_render_report(renderer, tmpdir):
     assert 'Topomap (ch_type =' in html
     assert f'Evoked: {op.basename(evoked_fname)} (GFPs)' in html
 
-    assert_equal(len(report.html), len(fnames))
-    assert_equal(len(report.html), len(report.fnames))
+    assert len(report.html) == len(fnames)
+    assert len(report.html) == len(report.fnames)
 
     # Check saving same report to new filename
     report.save(fname=op.join(tempdir, 'report2.html'), open_browser=False)
@@ -197,9 +196,9 @@ def test_render_non_fiff(tmpdir):
                 [op.basename(x) for x in report.fnames])
         assert (''.join(report.html).find(op.basename(fname)) != -1)
 
-    assert_equal(len(report.fnames), len(fnames_out))
-    assert_equal(len(report.html), len(report.fnames))
-    assert_equal(len(report.fnames), len(report))
+    assert len(report.fnames) == len(fnames_out)
+    assert len(report.html) == len(report.fnames)
+    assert len(report.fnames) == len(report)
 
     report.data_path = tempdir
     fname = op.join(tempdir, 'report.html')
@@ -437,7 +436,7 @@ def test_validate_input():
                   comments=comments[:-1])
     values = report._validate_input(items, captions, section, comments=None)
     items_new, captions_new, comments_new = values
-    assert_equal(len(comments_new), len(items))
+    assert len(comments_new) == len(items)
 
 
 @requires_h5py
