@@ -44,8 +44,7 @@ _BEM_VIEWS = ('axial', 'sagittal', 'coronal')
 
 # For raw files, we want to support different suffixes + extensions for all
 # supported file formats
-SUPPORTED_READ_RAW_EXTENSIONS = (('.fif', '.fif.gz') +
-                                 tuple(extension_reader_map.keys()))
+SUPPORTED_READ_RAW_EXTENSIONS = tuple(extension_reader_map.keys())
 RAW_EXTENSIONS = []
 for ext in SUPPORTED_READ_RAW_EXTENSIONS:
     RAW_EXTENSIONS.append(f'raw{ext}')
