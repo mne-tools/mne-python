@@ -157,8 +157,8 @@ class RawNedf(BaseRaw):
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         pass
 
-    def __init__(self, nedffile):
-        eeg, header, triggers, scale = _read_nedf_eeg(nedffile)
+    def __init__(self, filename):
+        eeg, header, triggers, scale = _read_nedf_eeg(filename)
         info = create_info(ch_names=header['ch_names'],
                            sfreq=header['sfreq'],
                            ch_types='eeg')
@@ -166,7 +166,7 @@ class RawNedf(BaseRaw):
         info['bads'] = []
         info['meas_date'] = header['meas_date']
 
-        super().__init__(info, preload=(eeg * scale).T, filenames=nedffile)
+        super().__init__(info, preload=(eeg * scale).T, filenames=[filename])
         self.set_montage('standard_1020')
 
         onsets = triggers[:, 0] / info['sfreq']

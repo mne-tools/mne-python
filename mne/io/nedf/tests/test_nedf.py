@@ -6,11 +6,13 @@
 
 import os.path as op
 
+import pytest
 from numpy.testing import (assert_allclose, assert_equal, assert_raises)
 
 from mne.io.constants import FIFF
-from ..nedf import read_raw_nedf, _parse_nedf_header
+from mne.io.nedf import read_raw_nedf, _parse_nedf_header
 from mne.datasets import testing
+from mne.io.tests.test_raw import _test_raw_reader
 
 eeg_path = testing.data_path(download=False, verbose=True)
 eegfile = op.join(eeg_path, 'nedf', 'testdata.nedf')
@@ -28,23 +30,23 @@ stimhdr = b"""
 </nedf>\x00"""
 
 
-def test_nedf_header_parser():
+@pytest.mark.parametrize('nacc', (0, 3))
+def test_nedf_header_parser(nacc):
     """Test NEDF header parsing and dtype extraction."""
-    for nacc in [0, 3]:
-        info, dt = _parse_nedf_header(stimhdr % nacc)
-        nchan = 4
-        assert_equal(info['nchan'], nchan)
-        assert_equal(dt.itemsize, 200 + nacc * 2)
-        if nacc:
-            assert_equal(dt.names[0], 'acc')
-            assert_equal(dt['acc'].shape, (nacc,))
+    info, dt = _parse_nedf_header(stimhdr % nacc)
+    nchan = 4
+    assert_equal(info['nchan'], nchan)
+    assert_equal(dt.itemsize, 200 + nacc * 2)
+    if nacc:
+        assert_equal(dt.names[0], 'acc')
+        assert_equal(dt['acc'].shape, (nacc,))
 
-        assert_equal(dt['data'].shape, (5,))  # blocks of 5 EEG samples each
+    assert_equal(dt['data'].shape, (5,))  # blocks of 5 EEG samples each
 
-        eegsampledt = dt['data'].subdtype[0]
-        assert_equal(eegsampledt.names, ('eeg', 'stim', 'trig'))
-        assert_equal(eegsampledt['eeg'].shape, (nchan, 3))
-        assert_equal(eegsampledt['stim'].shape, (2, nchan, 3))
+    eegsampledt = dt['data'].subdtype[0]
+    assert_equal(eegsampledt.names, ('eeg', 'stim', 'trig'))
+    assert_equal(eegsampledt['eeg'].shape, (nchan, 3))
+    assert_equal(eegsampledt['stim'].shape, (2, nchan, 3))
 
 
 def test_invalid_headers():
@@ -82,6 +84,7 @@ def test_invalid_headers():
         assert_raises(RuntimeWarning, _parse_nedf_header, sus_hdr)
 
 
+@testing.requires_testing_data
 def test_nedf_data():
     """Test reading raw NEDF files."""
     raw = read_raw_nedf(eegfile)
@@ -102,3 +105,6 @@ def test_nedf_data():
     for ch in raw.info['chs']:
         assert_equal(ch['kind'], FIFF.FIFFV_EEG_CH)
         assert_equal(ch['unit'], FIFF.FIFF_UNIT_V)
+
+    # full tests
+    _test_raw_reader(read_raw_nedf, filename=eegfile, test_preloading=False)
