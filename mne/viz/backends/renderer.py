@@ -258,6 +258,10 @@ def create_3d_figure(size, bgcolor=(0, 0, 0), smooth_shading=True,
         The color of the background.
     smooth_shading : bool
         If True, smooth shading is enabled. Defaults to True.
+    shape : str | list | tuple
+        Number of sub-render windows inside of the main window.
+        As string, for example ``"1|3"``, it means 1 plot on
+        the left and 3 plots on the right.
     handle : int | None
         The figure identifier.
     scene : bool
