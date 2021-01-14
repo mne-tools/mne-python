@@ -129,6 +129,7 @@ def comparative_views(size, func, *args, **kwargs):
         func(*args, **kwargs)
         fig.plotter.camera_position = pos
         fig.plotter.show_axes()
+        fig.plotter.update()
 
 
 comparative_views((800, 600), mne.viz.plot_alignment, raw.info, trans,
