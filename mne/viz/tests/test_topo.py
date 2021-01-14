@@ -84,8 +84,8 @@ def test_plot_joint():
                                                       time_unit='ms'),
                       ts_args=dict(spatial_colors=True, zorder=return_inds,
                                    time_unit='s'))
-    pytest.raises(ValueError, evoked.plot_joint, ts_args=dict(axes=True,
-                                                              time_unit='s'))
+    with pytest.raises(ValueError, match='If one of `ts_args` and'):
+        evoked.plot_joint(ts_args=dict(axes=True, time_unit='s'))
 
     axes = plt.subplots(nrows=3)[-1].flatten().tolist()
     evoked.plot_joint(times=[0], picks=[6, 7, 8], ts_args=dict(axes=axes[0]),
@@ -107,6 +107,13 @@ def test_plot_joint():
     evoked.plot_joint(ts_args=dict(proj='reconstruct'),
                       topomap_args=dict(proj='reconstruct'))
     plt.close('all')
+
+    # test sEEG (gh:8733)
+    evoked.del_proj().pick_types('mag')  # avoid overlapping positions error
+    mapping = {ch_name: 'seeg' for ch_name in evoked.ch_names}
+    with pytest.warns(RuntimeWarning, match='The unit .* has changed from .*'):
+        evoked.set_channel_types(mapping)
+    evoked.plot_joint()
 
 
 def test_plot_topo():

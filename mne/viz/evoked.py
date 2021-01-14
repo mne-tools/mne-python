@@ -1451,7 +1451,9 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     else:
         locator = None
 
-    topomap_args_pass = topomap_args.copy()
+    topomap_args_pass = (dict(extrapolate='local') if ch_type == 'seeg'
+                         else dict())
+    topomap_args_pass.update(topomap_args)
     topomap_args_pass['outlines'] = topomap_args.get('outlines', 'skirt')
     topomap_args_pass['contours'] = contours
     evoked.plot_topomap(times=times_sec, axes=map_ax, show=False,
