@@ -1068,8 +1068,10 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
         picker = partial(_onpick_sensor, fig=fig, ax=ax, pos=pos,
                          ch_names=ch_names, show_names=show_names)
         fig.canvas.mpl_connect('pick_event', picker)
-
-    _set_window_title(fig, title)
+    if axes_was_none:
+        _set_window_title(fig, title)
+    else:
+        ax.set(title=title)
     closed = partial(_close_event, fig=fig)
     fig.canvas.mpl_connect('close_event', closed)
     plt_show(show, block=block)
