@@ -1047,8 +1047,6 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
         ax.set(aspect='equal')
         if axes_was_none:  # we'll show the plot title as the window title
             fig.subplots_adjust(left=0, bottom=0, right=1, top=1)
-        else:  # make room for title in axes
-            fig.subplots_adjust(left=0, bottom=0, right=1, top=0.95)
         ax.axis("off")  # remove border around figure
     del sphere
 
@@ -1072,8 +1070,6 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
         fig.canvas.mpl_connect('pick_event', picker)
     if axes_was_none:
         _set_window_title(fig, title)
-    else:
-        ax.set(title=title)
     closed = partial(_close_event, fig=fig)
     fig.canvas.mpl_connect('close_event', closed)
     plt_show(show, block=block)
