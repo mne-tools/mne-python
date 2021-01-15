@@ -134,7 +134,7 @@ standard_montage_look_up_table = {
     'standard_1020': partial(_mgh_or_standard,
                              basename='standard_1020.elc'),
     'standard_1020-62': partial(_mgh_or_standard,
-                             basename='standard_1020-62.elc'),
+                                basename='standard_1020-62.elc'),
     'standard_alphabetic': partial(_mgh_or_standard,
                                    basename='standard_alphabetic.elc'),
     'standard_postfixed': partial(_mgh_or_standard,

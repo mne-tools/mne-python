@@ -50,8 +50,9 @@ _BUILT_IN_MONTAGES = [
     'biosemi32', 'biosemi64',
     'easycap-M1', 'easycap-M10',
     'mgh60', 'mgh70',
-    'standard_1005', 'standard_1020', 'standard_1020-62', 'standard_alphabetic',
-    'standard_postfixed', 'standard_prefixed', 'standard_primed'
+    'standard_1005', 'standard_1020', 'standard_1020-62',
+    'standard_alphabetic', 'standard_postfixed',
+    'standard_prefixed', 'standard_primed'
 ]
 
 
