@@ -45,6 +45,8 @@ Bugs
 
 - Fix anonymization issue of FIF files after IO round trip (:gh:`8731` by `Alex Gramfort`_)
 
+- Fix title not shown in :func:`mne.viz.plot_montage` (:gh:`8752` by `Clemens Brunner`_)
+
 
 API changes
 ~~~~~~~~~~~
