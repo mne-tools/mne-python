@@ -57,7 +57,8 @@ def test_plot_montage():
 
 @pytest.mark.parametrize('name, n', [
     ('standard_1005', 342), ('standard_postfixed', 85),
-    ('standard_primed', 85), ('standard_1020', 93)
+    ('standard_primed', 85), ('standard_1020', 93),
+    ('standard_1020-62', 65)
 ])
 def test_plot_defect_montage(name, n):
     """Test plotting defect montages (i.e. with duplicate labels)."""

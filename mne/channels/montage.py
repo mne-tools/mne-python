@@ -50,7 +50,7 @@ _BUILT_IN_MONTAGES = [
     'biosemi32', 'biosemi64',
     'easycap-M1', 'easycap-M10',
     'mgh60', 'mgh70',
-    'standard_1005', 'standard_1020', 'standard_alphabetic',
+    'standard_1005', 'standard_1020', 'standard_1020-62', 'standard_alphabetic',
     'standard_postfixed', 'standard_prefixed', 'standard_primed'
 ]
 
@@ -1238,6 +1238,9 @@ def make_standard_montage(kind, head_size=HEAD_SIZE_DEFAULT):
                           international 10-05 system (343+3 locations)
     standard_1020         Electrodes are named and positioned according to the
                           international 10-20 system (94+3 locations)
+    standard_1020-62      Electrodes are named and positioned according to the
+                          international 10-20 system for 62 channels, e.g. SEED
+                          datasets (62 locations)
     standard_alphabetic   Electrodes are named with LETTER-NUMBER combinations
                           (A1, B2, F4, ...) (65+3 locations)
     standard_postfixed    Electrodes are named according to the international

@@ -100,7 +100,6 @@ def _mgh_or_standard(basename, head_size):
     nasion *= scale
     lpa *= scale
     rpa *= scale
-
     return make_dig_montage(ch_pos=ch_pos, coord_frame='unknown',
                             nasion=nasion, lpa=lpa, rpa=rpa)
 
@@ -134,6 +133,8 @@ standard_montage_look_up_table = {
                              basename='standard_1005.elc'),
     'standard_1020': partial(_mgh_or_standard,
                              basename='standard_1020.elc'),
+    'standard_1020-62': partial(_mgh_or_standard,
+                             basename='standard_1020-62.elc'),
     'standard_alphabetic': partial(_mgh_or_standard,
                                    basename='standard_alphabetic.elc'),
     'standard_postfixed': partial(_mgh_or_standard,
