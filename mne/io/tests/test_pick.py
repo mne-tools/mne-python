@@ -267,7 +267,7 @@ def test_pick_dbs():
     # Deal with constant debacle
     raw = read_raw_fif(op.join(io_dir, 'tests', 'data',
                                'test_chpi_raw_sss.fif'))
-    assert_equal(len(pick_types(raw.info, meg=False, dbs=True)), 0)
+    assert len(pick_types(raw.info, meg=False, dbs=True)) == 0
 
 
 def test_pick_chpi():
