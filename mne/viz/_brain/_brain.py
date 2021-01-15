@@ -2651,10 +2651,6 @@ class Brain(object):
             # if delta > 0:
             #     start = delta // 2
             #     trace_img = trace_img[:, start:start + img.shape[1]]
-            # if trace_img.shape[1] != img.shape[1]:
-            #     scale = img.shape[1] / trace_img.shape[1]
-            #     trace_img = ndimage.zoom(trace_img, (scale, scale, 1))
-            #     # import ipdb; ipdb.set_trace()
             img = concatenate_images([img, trace_img], bgcolor=self._bg_color)
         return img
 
