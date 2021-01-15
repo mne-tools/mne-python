@@ -98,6 +98,9 @@ def _prepare_topomap_plot(inst, ch_type, sphere=None):
         elif ch_type == 'csd':
             picks = pick_types(info, meg=False, csd=True, ref_meg=False,
                                exclude='bads')
+        elif ch_type == 'dbs':
+            picks = pick_types(info, meg=False, dbs=True, ref_meg=False,
+                               exclude='bads')
         elif ch_type == 'seeg':
             picks = pick_types(info, meg=False, seeg=True, ref_meg=False,
                                exclude='bads')

@@ -345,3 +345,5 @@
 .. _Jeff Stout: https://megcore.nih.gov/index.php/Staff
 
 .. _Qianliang Li: https://www.dtu.dk/english/service/phonebook/person?id=126774
+
+.. _Richard Koehler: https://github.com/richardkoehler

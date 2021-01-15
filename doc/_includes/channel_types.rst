@@ -36,6 +36,8 @@ ecg            Electrocardiography (ECG)                 Volts
 
 seeg           Stereotactic EEG channels                 Volts
 
+dbs            Deep brain stimulation (DBS)              Volts
+
 ecog           Electrocorticography (ECoG)               Volts
 
 fnirs (hbo)    Functional near-infrared spectroscopy     Moles/liter

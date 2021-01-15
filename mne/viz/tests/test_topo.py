@@ -115,6 +115,14 @@ def test_plot_joint():
         evoked.set_channel_types(mapping)
     evoked.plot_joint()
 
+    # test DBS (gh:8739)
+    evoked = _get_epochs().average().pick_types('mag')
+    mapping = {ch_name: 'dbs' for ch_name in evoked.ch_names}
+    with pytest.warns(RuntimeWarning, match='The unit for'):
+        evoked.set_channel_types(mapping)
+    evoked.plot_joint()
+    plt.close('all')
+
 
 def test_plot_topo():
     """Test plotting of ERP topography."""
