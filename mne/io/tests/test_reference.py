@@ -15,7 +15,8 @@ from mne import (pick_channels, pick_types, Epochs, read_events,
                  set_eeg_reference, set_bipolar_reference,
                  add_reference_channels, create_info, make_sphere_model,
                  make_forward_solution, setup_volume_source_space,
-                 pick_channels_forward, read_evokeds)
+                 pick_channels_forward, read_evokeds,
+                 find_events)
 from mne.epochs import BaseEpochs
 from mne.fixes import nullcontext
 from mne.io import RawArray, read_raw_fif
@@ -330,23 +331,35 @@ def test_set_eeg_reference_rest():
 
 
 @testing.requires_testing_data
-def test_set_bipolar_reference():
+@pytest.mark.parametrize('inst_type', ('raw', 'epochs', 'evoked'))
+def test_set_bipolar_reference(inst_type):
     """Test bipolar referencing."""
     raw = read_raw_fif(fif_fname, preload=True)
     raw.apply_proj()
 
+    if inst_type == 'raw':
+        inst = raw
+        del raw
+    elif inst_type in ['epochs', 'evoked']:
+        events = find_events(raw, stim_channel='STI 014')
+        epochs = Epochs(raw, events, tmin=-0.3, tmax=0.7, preload=True)
+        inst = epochs
+        if inst_type == 'evoked':
+            inst = epochs.average()
+        del epochs
+
     ch_info = {'kind': FIFF.FIFFV_EOG_CH, 'extra': 'some extra value'}
     with pytest.raises(KeyError, match='key errantly present'):
-        set_bipolar_reference(raw, 'EEG 001', 'EEG 002', 'bipolar', ch_info)
+        set_bipolar_reference(inst, 'EEG 001', 'EEG 002', 'bipolar', ch_info)
     ch_info.pop('extra')
     reref = set_bipolar_reference(
-        raw, 'EEG 001', 'EEG 002', 'bipolar', ch_info)
+        inst, 'EEG 001', 'EEG 002', 'bipolar', ch_info)
     assert (reref.info['custom_ref_applied'])
 
     # Compare result to a manual calculation
-    a = raw.copy().pick_channels(['EEG 001', 'EEG 002'])
-    a = a._data[0, :] - a._data[1, :]
-    b = reref.copy().pick_channels(['bipolar'])._data[0, :]
+    a = inst.copy().pick_channels(['EEG 001', 'EEG 002'])
+    a = a._data[..., 0, :] - a._data[..., 1, :]
+    b = reref.copy().pick_channels(['bipolar'])._data[..., 0, :]
     assert_allclose(a, b)
 
     # Original channels should be replaced by a virtual one
@@ -356,7 +369,7 @@ def test_set_bipolar_reference():
 
     # Check channel information
     bp_info = reref.info['chs'][reref.ch_names.index('bipolar')]
-    an_info = reref.info['chs'][raw.ch_names.index('EEG 001')]
+    an_info = reref.info['chs'][inst.ch_names.index('EEG 001')]
     for key in bp_info:
         if key == 'loc':
             assert_array_equal(bp_info[key], 0)
@@ -368,11 +381,11 @@ def test_set_bipolar_reference():
             assert_equal(bp_info[key], an_info[key])
 
     # Minimalist call
-    reref = set_bipolar_reference(raw, 'EEG 001', 'EEG 002')
+    reref = set_bipolar_reference(inst, 'EEG 001', 'EEG 002')
     assert ('EEG 001-EEG 002' in reref.ch_names)
 
     # Minimalist call with twice the same anode
-    reref = set_bipolar_reference(raw,
+    reref = set_bipolar_reference(inst,
                                   ['EEG 001', 'EEG 001', 'EEG 002'],
                                   ['EEG 002', 'EEG 003', 'EEG 003'])
     assert ('EEG 001-EEG 002' in reref.ch_names)
@@ -380,38 +393,41 @@ def test_set_bipolar_reference():
 
     # Set multiple references at once
     reref = set_bipolar_reference(
-        raw,
+        inst,
         ['EEG 001', 'EEG 003'],
         ['EEG 002', 'EEG 004'],
         ['bipolar1', 'bipolar2'],
         [{'kind': FIFF.FIFFV_EOG_CH},
          {'kind': FIFF.FIFFV_EOG_CH}],
     )
-    a = raw.copy().pick_channels(['EEG 001', 'EEG 002', 'EEG 003', 'EEG 004'])
-    a = np.array([a._data[0, :] - a._data[1, :],
-                  a._data[2, :] - a._data[3, :]])
+    a = inst.copy().pick_channels(['EEG 001', 'EEG 002', 'EEG 003', 'EEG 004'])
+    a = np.concatenate(
+        [a._data[..., :1, :] - a._data[..., 1:2, :],
+         a._data[..., 2:3, :] - a._data[..., 3:4, :]],
+        axis=-2
+    )
     b = reref.copy().pick_channels(['bipolar1', 'bipolar2'])._data
     assert_allclose(a, b)
 
     # Test creating a bipolar reference that doesn't involve EEG channels:
     # it should not set the custom_ref_applied flag
-    reref = set_bipolar_reference(raw, 'MEG 0111', 'MEG 0112',
+    reref = set_bipolar_reference(inst, 'MEG 0111', 'MEG 0112',
                                   ch_info={'kind': FIFF.FIFFV_MEG_CH},
                                   verbose='error')
     assert (not reref.info['custom_ref_applied'])
     assert ('MEG 0111-MEG 0112'[:15] in reref.ch_names)
 
     # Test a battery of invalid inputs
-    pytest.raises(ValueError, set_bipolar_reference, raw,
+    pytest.raises(ValueError, set_bipolar_reference, inst,
                   'EEG 001', ['EEG 002', 'EEG 003'], 'bipolar')
-    pytest.raises(ValueError, set_bipolar_reference, raw,
+    pytest.raises(ValueError, set_bipolar_reference, inst,
                   ['EEG 001', 'EEG 002'], 'EEG 003', 'bipolar')
-    pytest.raises(ValueError, set_bipolar_reference, raw,
+    pytest.raises(ValueError, set_bipolar_reference, inst,
                   'EEG 001', 'EEG 002', ['bipolar1', 'bipolar2'])
-    pytest.raises(ValueError, set_bipolar_reference, raw,
+    pytest.raises(ValueError, set_bipolar_reference, inst,
                   'EEG 001', 'EEG 002', 'bipolar',
                   ch_info=[{'foo': 'bar'}, {'foo': 'bar'}])
-    pytest.raises(ValueError, set_bipolar_reference, raw,
+    pytest.raises(ValueError, set_bipolar_reference, inst,
                   'EEG 001', 'EEG 002', ch_name='EEG 003')
 
 

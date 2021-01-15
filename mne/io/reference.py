@@ -500,6 +500,9 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
         logger.info('Bipolar channel added as "%s".' % name)
         inst.info._update_redundant()
 
+    if getattr(inst, 'picks', None) is not None:
+        del inst.picks  # picks cannot be tracked anymore
+
     # Drop remaining channels.
     if drop_refs:
         drop_channels = list((set(anode) | set(cathode)) & set(inst.ch_names))

@@ -2152,7 +2152,10 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
         value = info.get(key)
         if value is not None:
             assert 'msecs' not in value
-            if none_meas_date:
+            if (none_meas_date or
+                    ((value['secs'], value['usecs']) == DATE_NONE)):
+                # Don't try to shift backwards in time when no measurement
+                # date is available or when file_id is already a place holder
                 tmp = DATE_NONE
             else:
                 tmp = _add_timedelta_to_stamp(
@@ -2242,7 +2245,7 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
                 'Underlying Error:\n')
     info._check_consistency(prepend_error=err_mesg)
     err_mesg = ('anonymize_info generated an inconsistent info object. '
-                'daysback parameter was too large.'
+                'daysback parameter was too large. '
                 'Underlying Error:\n')
     _check_dates(info, prepend_error=err_mesg)
 
