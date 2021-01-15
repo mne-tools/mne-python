@@ -254,7 +254,7 @@ def test_pick_dbs():
     assert_indexing(info, picks_by_type)
     assert_array_equal(pick_types(info, meg=False, dbs=True), [4, 5, 6])
     for i, t in enumerate(types):
-        assert_equal(channel_type(info, i), types[i])
+        assert channel_type(info, i) == types[i]
     raw = RawArray(np.zeros((len(names), 7)), info)
     events = np.array([[1, 0, 0], [2, 0, 0]])
     epochs = Epochs(raw, events=events, event_id={'event': 0},
@@ -264,10 +264,9 @@ def test_pick_dbs():
     e_dbs = evoked.copy().pick_types(meg=False, dbs=True)
     for lt, rt in zip(e_dbs.ch_names, [names[4], names[5], names[6]]):
         assert lt == rt
-    # Deal with constant debacle
     raw = read_raw_fif(op.join(io_dir, 'tests', 'data',
                                'test_chpi_raw_sss.fif'))
-    assert_equal(len(pick_types(raw.info, meg=False, dbs=True)), 0)
+    assert len(pick_types(raw.info, meg=False, dbs=True)) == 0
 
 
 def test_pick_chpi():
