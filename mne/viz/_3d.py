@@ -868,8 +868,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     skull_alpha = dict()
     skull_colors = dict()
     hemi_val = 0.5
-    max_alpha = 1.0 if len(other_picks['seeg']) == 0 or \
-        len(other_picks['dbs']) == 0 else 0.75
+    no_deep = all(len(other_picks[key]) == 0 for key in ('dbs', 'seeg'))
+    max_alpha = 1.0 if no_deep else 0.75
     if src is None or (brain and any(s['type'] == 'surf' for s in src)):
         hemi_val = max_alpha
     alphas = np.linspace(max_alpha / 2., 0, 5)[:len(skull) + 1]

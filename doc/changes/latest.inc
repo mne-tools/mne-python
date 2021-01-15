@@ -18,7 +18,7 @@ Current (0.23.dev0)
 
 Enhancements
 ~~~~~~~~~~~~
-- Add dbs as new channel type for deep brain stimulation (DBS) recordings  (:gh:`8739` **by new contributor** |Richard Koehler|_)
+- Add dbs as new channel type for deep brain stimulation (DBS) recordings (:gh:`8739` **by new contributor** |Richard Koehler|_)
 
 - Update the ``notebook`` 3d backend to use ``ipyvtk_simple`` for a better integration within ``Jupyter`` (:gh:`8503` by `Guillaume Favelier`_)
 
