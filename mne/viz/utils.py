@@ -1045,8 +1045,10 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
 
         # Equal aspect for 3D looks bad, so only use for 2D
         ax.set(aspect='equal')
-        if axes_was_none:
+        if axes_was_none:  # we'll show the plot title as the window title
             fig.subplots_adjust(left=0, bottom=0, right=1, top=1)
+        else:  # make room for title in axes
+            fig.subplots_adjust(left=0, bottom=0, right=1, top=0.95)
         ax.axis("off")  # remove border around figure
     del sphere
 
