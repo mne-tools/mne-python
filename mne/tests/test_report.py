@@ -15,7 +15,6 @@ import shutil
 import pathlib
 
 import numpy as np
-from numpy.testing import assert_equal
 import pytest
 from matplotlib import pyplot as plt
 
@@ -41,6 +40,10 @@ trans_fname = op.join(report_dir, 'sample_audvis_trunc-trans.fif')
 inv_fname = op.join(report_dir,
                     'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
 mri_fname = op.join(subjects_dir, 'sample', 'mri', 'T1.mgz')
+bdf_fname = op.realpath(op.join(op.dirname(__file__), '..', 'io',
+                                'edf', 'tests', 'data', 'test.bdf'))
+edf_fname = op.realpath(op.join(op.dirname(__file__), '..', 'io',
+                                'edf', 'tests', 'data', 'test.edf'))
 
 base_dir = op.realpath(op.join(op.dirname(__file__), '..', 'io', 'tests',
                                'data'))
@@ -57,7 +60,7 @@ def _get_example_figures():
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_render_report(renderer, tmpdir):
-    """Test rendering -*.fif files for mne report."""
+    """Test rendering *.fif files for mne report."""
     tempdir = str(tmpdir)
     raw_fname_new = op.join(tempdir, 'temp_raw.fif')
     raw_fname_new_bids = op.join(tempdir, 'temp_meg.fif')
@@ -105,9 +108,9 @@ def test_render_report(renderer, tmpdir):
                 [op.basename(x) for x in report.fnames])
         assert (''.join(report.html).find(op.basename(fname)) != -1)
 
-    assert_equal(len(report.fnames), len(fnames))
-    assert_equal(len(report.html), len(report.fnames))
-    assert_equal(len(report.fnames), len(report))
+    assert len(report.fnames) == len(fnames)
+    assert len(report.html) == len(report.fnames)
+    assert len(report.fnames) == len(report)
 
     # Check saving functionality
     report.data_path = tempdir
@@ -126,8 +129,8 @@ def test_render_report(renderer, tmpdir):
     assert 'Topomap (ch_type =' in html
     assert f'Evoked: {op.basename(evoked_fname)} (GFPs)' in html
 
-    assert_equal(len(report.html), len(fnames))
-    assert_equal(len(report.html), len(report.fnames))
+    assert len(report.html) == len(fnames)
+    assert len(report.html) == len(report.fnames)
 
     # Check saving same report to new filename
     report.save(fname=op.join(tempdir, 'report2.html'), open_browser=False)
@@ -168,6 +171,42 @@ def test_render_report(renderer, tmpdir):
         report.add_figs_to_section('foo', 'caption', 'section')
     with pytest.raises(TypeError, match='figure must be a'):
         report.add_figs_to_section(['foo'], 'caption', 'section')
+
+
+@testing.requires_testing_data
+def test_render_non_fiff(tmpdir):
+    """Test rendering non-FIFF files for mne report."""
+    tempdir = str(tmpdir)
+    fnames_in = [bdf_fname, edf_fname]
+    fnames_out = []
+    for fname in fnames_in:
+        basename = op.basename(fname)
+        basename, ext = op.splitext(basename)
+        fname_out = f'{basename}_raw{ext}'
+        outpath = op.join(tempdir, fname_out)
+        shutil.copyfile(fname, outpath)
+        fnames_out.append(fname_out)
+
+    report = Report()
+    report.parse_folder(data_path=tempdir, render_bem=False, on_error='raise')
+
+    # Check correct paths and filenames
+    for fname in fnames_out:
+        assert (op.basename(fname) in
+                [op.basename(x) for x in report.fnames])
+
+    assert len(report.fnames) == len(fnames_out)
+    assert len(report.html) == len(report.fnames)
+    assert len(report.fnames) == len(report)
+
+    report.data_path = tempdir
+    fname = op.join(tempdir, 'report.html')
+    report.save(fname=fname, open_browser=False)
+    with open(fname, 'rb') as fid:
+        html = fid.read().decode('utf-8')
+
+    assert '<h4>Raw: test_raw.bdf</h4>' in html
+    assert '<h4>Raw: test_raw.edf</h4>' in html
 
 
 @testing.requires_testing_data
@@ -396,7 +435,7 @@ def test_validate_input():
                   comments=comments[:-1])
     values = report._validate_input(items, captions, section, comments=None)
     items_new, captions_new, comments_new = values
-    assert_equal(len(comments_new), len(items))
+    assert len(comments_new) == len(items)
 
 
 @requires_h5py
