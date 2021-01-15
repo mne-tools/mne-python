@@ -170,7 +170,6 @@ class _Renderer(_BaseRenderer):
         self.font_family = "arial"
         self.tube_n_sides = 20
         self.shape = shape
-        self.screenshot_filename = "screenshot.png"
         antialias = _get_3d_option('antialias')
         self.antialias = antialias and not MNE_3D_BACKEND_TESTING
         if isinstance(fig, int):
@@ -212,6 +211,12 @@ class _Renderer(_BaseRenderer):
                 self.plotter.iren = None
 
         self.update_lighting()
+
+    def _get_screenshot_filename(self):
+        from datetime import datetime
+        now = datetime.now()
+        dt_string = now.strftime("_%Y-%m-%d_%H-%M-%S")
+        return "MNE" + dt_string + ".png"
 
     @contextmanager
     def ensure_minimum_sizes(self):

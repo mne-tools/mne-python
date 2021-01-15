@@ -18,7 +18,7 @@ class _Renderer(_PyVistaRenderer):
 
     def _screenshot(self):
         fname = self.actions.get("screenshot_field").value
-        fname = self.screenshot_filename if len(fname) == 0 else fname
+        fname = self._get_screenshot_filename() if len(fname) == 0 else fname
         self.screenshot(filename=fname)
 
     def _set_tool_bar(self, state):
@@ -48,8 +48,8 @@ class _Renderer(_PyVistaRenderer):
             icon_name="camera",
         )
         self.actions["screenshot_field"] = self._add_text_field(
-            value="screenshot.png",
-            placeholder="Type file name",
+            value=None,
+            placeholder="Type a file name",
         )
         self.tool_bar = self._show_tool_bar(self.actions)
 

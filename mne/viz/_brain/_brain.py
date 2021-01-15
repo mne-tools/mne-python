@@ -1220,7 +1220,7 @@ class Brain(object):
         if self.notebook:
             from PIL import Image
             fname = self.actions.get("screenshot_field").value
-            fname = self._renderer.screenshot_filename \
+            fname = self._renderer._get_screenshot_filename() \
                 if len(fname) == 0 else fname
             img = self.screenshot(fname, time_viewer=True)
             Image.fromarray(img).save(fname)
@@ -1263,8 +1263,8 @@ class Brain(object):
         )
         self._add_text_field(
             name="screenshot_field",
-            value=self._renderer.screenshot_filename,
-            placeholder="Type file name",
+            value=None,
+            placeholder="Type a file name",
         )
         self._add_button(
             name="movie",
