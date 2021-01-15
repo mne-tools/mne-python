@@ -2643,10 +2643,13 @@ class Brain(object):
             # renderer tostring_rgb() size. So let's directly use what
             # matplotlib does in lib/matplotlib/backends/backend_agg.py
             # before calling tobytes():
+            #
             # trace_img = np.asarray(
             #     canvas.renderer._renderer).take([0, 1, 2], axis=2)
+            #
             # need to slice into trace_img because generally it's a bit
-            # smaller
+            # smaller:
+            #
             # delta = trace_img.shape[1] - img.shape[1]
             # if delta > 0:
             #     start = delta // 2
