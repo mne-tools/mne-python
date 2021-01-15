@@ -1046,7 +1046,7 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
         # Equal aspect for 3D looks bad, so only use for 2D
         ax.set(aspect='equal')
         if axes_was_none:
-            fig.subplots_adjust(left=0, bottom=0, right=1, top=0.95)
+            fig.subplots_adjust(left=0, bottom=0, right=1, top=1)
         ax.axis("off")  # remove border around figure
     del sphere
 
@@ -1069,7 +1069,7 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
                          ch_names=ch_names, show_names=show_names)
         fig.canvas.mpl_connect('pick_event', picker)
 
-    ax.set(title=title)
+    _set_window_title(fig, title)
     closed = partial(_close_event, fig=fig)
     fig.canvas.mpl_connect('close_event', closed)
     plt_show(show, block=block)
