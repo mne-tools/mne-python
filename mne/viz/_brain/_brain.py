@@ -1274,7 +1274,7 @@ class Brain(object):
         )
         self._add_action(
             name="visibility",
-            desc="Toggle Visibility",
+            desc="Toggle Controls",
             func=self.toggle_interface,
             icon_name="eye",
             qt_icon_name="visibility_on",
