@@ -1046,8 +1046,7 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
         # Equal aspect for 3D looks bad, so only use for 2D
         ax.set(aspect='equal')
         if axes_was_none:
-            fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None,
-                                hspace=None)
+            fig.subplots_adjust(left=0, bottom=0, right=1, top=0.95)
         ax.axis("off")  # remove border around figure
     del sphere
 
