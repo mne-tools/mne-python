@@ -50,6 +50,7 @@ Bugs
 
 - Fix title not shown in :func:`mne.viz.plot_montage` (:gh:`8752` by `Clemens Brunner`_)
 
+- `mne.io.read_raw_egi` now correctly handles `pathlib.Path` filenames (:gh:`8759` by `Richard Höchenberger`_)
 
 API changes
 ~~~~~~~~~~~
