@@ -15,6 +15,7 @@ from math import sqrt
 
 import numpy as np
 from scipy import linalg
+from scipy.signal import windows
 
 from .multitaper import dpss_windows
 
@@ -99,6 +100,67 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
         Ws.append(W)
     return Ws
 
+
+def wavelet(sfreq, freqs,n_cycles,window=windows.hann,sigma=None, zero_mean=False):
+    """Compute Morlet wavelets for the given frequency range.
+
+    Parameters
+    ----------
+    sfreq : float
+        The sampling Frequency.
+    freqs : array
+        Frequency range of interest (1 x Frequencies).
+    n_cycles : float | array of float, default 7.0
+        Number of cycles. Fixed number or one per frequency.
+    sigma : float, default None
+        It controls the width of the wavelet ie its temporal
+        resolution. If sigma is None the temporal resolution
+        is adapted with the frequency like for all wavelet transform.
+        The higher the frequency the shorter is the wavelet.
+        If sigma is fixed the temporal resolution is fixed
+        like for the short time Fourier transform and the number
+        of oscillations increases with the frequency.
+
+
+    Returns
+    -------
+    Ws : list of array
+        The wavelets time series.
+    """
+    Ws = list()
+    n_cycles = np.atleast_1d(n_cycles)
+
+    freqs = np.array(freqs)
+    if np.any(freqs <= 0):
+        raise ValueError("all frequencies in 'freqs' must be "
+                         "greater than 0.")
+
+    if (n_cycles.size != 1) and (n_cycles.size != len(freqs)):
+        raise ValueError("n_cycles should be fixed or defined for "
+                         "each frequency.")
+    for k, f in enumerate(freqs):
+        if len(n_cycles) != 1:
+            this_n_cycles = n_cycles[k]
+        else:
+            this_n_cycles = n_cycles[0]
+        # fixed or scale-dependent window
+        if sigma is None:
+            sigma_t = this_n_cycles / (2.0 * np.pi * f)
+        else:
+            sigma_t = this_n_cycles / (2.0 * np.pi * sigma)
+        # this scaling factor is proportional to (Tallon-Baudry 98):
+        # (sigma_t*sqrt(pi))^(-1/2);
+        t = np.arange(0., 5. * sigma_t, 1.0 / sfreq)
+        t = np.r_[-t[::-1], t[1:]]
+        oscillation = np.exp(2.0 * 1j * np.pi * f * t)
+        enveloppe = window(len(t))
+        if zero_mean:  # to make it zero mean
+            real_offset = np.exp(- 2 * (np.pi * f * sigma_t) ** 2)
+            oscillation -= real_offset
+        W = oscillation * enveloppe
+        W /= sqrt(0.5) * linalg.norm(W.ravel())
+        Ws.append(W)
+    return Ws
 
 def _make_dpss(sfreq, freqs, n_cycles=7., time_bandwidth=4.0, zero_mean=False):
     """Compute DPSS tapers for the given frequency range.
