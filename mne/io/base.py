@@ -19,7 +19,8 @@ import numpy as np
 
 from .constants import FIFF
 from .utils import _construct_bids_filename, _check_orig_units
-from .pick import (pick_types, pick_channels, pick_info, _picks_to_idx)
+from .pick import (pick_types, pick_channels, pick_info, _picks_to_idx,
+                   channel_type)
 from .meas_info import write_meas_info
 from .proj import setup_proj, activate_proj, _proj_equal, ProjMixin
 from ..channels.channels import (ContainsMixin, UpdateChannelsMixin,
@@ -1764,6 +1765,16 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         df = _build_data_frame(self, data, picks, long_format, mindex, index,
                                default_index=['time'])
         return df
+
+    def describe(self):
+        from scipy.stats import scoreatpercentile as q
+        print(self)
+        for idx in range(self.info["nchan"]):
+            ch = self.info["chs"][idx]
+            print(f"  {ch['ch_name']}  {channel_type(self.info, idx).upper()} "
+                  f"({str(ch['unit']).split('_')[-1]}  {q(self[idx][0], 0)} "
+                  f"{q(self[idx][0], 25)} {q(self[idx][0], 50)} "
+                  f"{q(self[idx][0], 75)} {q(self[idx][0], 100)} ")
 
 
 def _allocate_data(preload, shape, dtype):
