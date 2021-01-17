@@ -14,7 +14,7 @@ from ..base import BaseRaw
 from ..utils import _read_segments_file, _create_chs
 from ..meas_info import _empty_info
 from ..constants import FIFF
-from ...utils import verbose, logger, warn
+from ...utils import verbose, logger, warn, _validate_type
 
 
 def _read_header(fid):
@@ -94,7 +94,7 @@ def read_raw_egi(input_fname, eog=None, misc=None,
 
     Parameters
     ----------
-    input_fname : str
+    input_fname : path-like
         Path to the raw file. Files with an extension .mff are automatically
         considered to be EGI's native MFF format files.
     eog : list or tuple
@@ -147,6 +147,9 @@ def read_raw_egi(input_fname, eog=None, misc=None,
 
     This step will fail if events are not mutually exclusive.
     """
+    _validate_type(input_fname, 'path-like', 'input_fname')
+    input_fname = str(input_fname)
+
     if input_fname.endswith('.mff'):
         return _read_raw_egi_mff(input_fname, eog, misc, include,
                                  exclude, preload, channel_naming, verbose)
