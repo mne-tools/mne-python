@@ -242,7 +242,7 @@ def set_3d_title(figure, title, size=40):
 
 
 def create_3d_figure(size, bgcolor=(0, 0, 0), smooth_shading=True,
-                     shape=(1, 1), handle=None, scene=True):
+                     handle=None, scene=True):
     """Return an empty figure based on the current 3d backend.
 
     .. warning:: Proceed with caution when the renderer object is
@@ -258,10 +258,6 @@ def create_3d_figure(size, bgcolor=(0, 0, 0), smooth_shading=True,
         The color of the background.
     smooth_shading : bool
         If True, smooth shading is enabled. Defaults to True.
-    shape : str | list | tuple
-        Number of sub-render windows inside of the main window.
-        As string, for example ``"1|3"``, it means 1 plot on
-        the left and 3 plots on the right.
     handle : int | None
         The figure identifier.
     scene : bool
@@ -278,7 +274,6 @@ def create_3d_figure(size, bgcolor=(0, 0, 0), smooth_shading=True,
         fig=handle,
         size=size,
         bgcolor=bgcolor,
-        shape=shape,
         smooth_shading=smooth_shading,
     )
     if scene:

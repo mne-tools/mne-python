@@ -118,23 +118,9 @@ raw.set_channel_types(
 ###############################################################################
 # Let's check to make sure everything is aligned.
 
-
-def comparative_views(size, func, *args, **kwargs):
-    fig = mne.viz.create_3d_figure(size=size, shape="1|3")
-    kwargs["fig"] = fig
-    func(*args, **kwargs)
-    fig.plotter.show_axes()
-    for idx, pos in enumerate(["xz", "yz", "xy"]):
-        fig.plotter.subplot(idx + 1)
-        func(*args, **kwargs)
-        fig.plotter.camera_position = pos
-        fig.plotter.show_axes()
-        fig.plotter.update()
-
-
-comparative_views((800, 600), mne.viz.plot_alignment, raw.info, trans,
-                  'fsaverage', subjects_dir=subjects_dir, show_axes=True,
-                  surfaces=["pial", "head"])
+fig = mne.viz.plot_alignment(raw.info, trans, 'fsaverage',
+                             subjects_dir=subjects_dir, show_axes=True,
+                             surfaces=["pial", "head"])
 
 ###############################################################################
 # Next, we'll get the raw data and plot its amplitude over time.
