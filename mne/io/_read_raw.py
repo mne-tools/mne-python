@@ -57,7 +57,7 @@ readers = {**supported, **suggested}
 def read_raw(fname, *, preload=False, verbose=None, **kwargs):
     """Read raw file.
 
-    This function is convenient a wrapper for readers defined in `mne.io`. The
+    This function is a convenient wrapper for readers defined in `mne.io`. The
     correct reader is automatically selected based on the detected file format
     All function arguments are passed to the respective reader.
 
