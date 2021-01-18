@@ -118,7 +118,7 @@ raw.set_channel_types(
 ###############################################################################
 # Let's check to make sure everything is aligned.
 
-fig = mne.viz.create_3d_figure()
+fig = mne.viz.create_3d_figure(800, 600)
 mne.viz.plot_alignment(raw.info, trans, 'fsaverage',
                        subjects_dir=subjects_dir, show_axes=True,
                        surfaces=["pial", "head"],
