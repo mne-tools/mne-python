@@ -120,18 +120,19 @@ general neuroimaging concepts. If you think a term is missing, please consider
 
     fiducial point
         Generally speaking, fiducials are objects which are placed in the field of
-        view of an imaging system which appear in the produced image.
+        view of an imaging system and which then appear in the produced image.
         The image of a given fiducial object (or fiducial point) can then be used
-        as a point of reference in the image.
+        as a point of reference in that image.
         In the case of neuroimaging, fiducials are often placed on well-known
-        anatomical landmarks such as the nasion (NAS), or left and right
-        preauricular points (LPA and RPA), also known as cardinal points.
+        anatomical landmarks on the body of a study participant such as the nasion
+        (NAS), or left and right preauricular points (LPA and RPA), also known as
+        cardinal points.
         They are then used to facilitate the localization of sensors
-        and co-registration with other geometric data such as the
+        and for their co-registration with other geometric data such as the
         participant's own T1 weighted magnetic resonance head image,
         a T1 weighted template head image, or a spherical head model.
 
-        Note that due the common use of placing fiducial objects on anatomical
+        Note that due to the common use of placing fiducial objects on anatomical
         landmarks, the terms "fiducial" and "anatomical landmark" are often
         (erroneously) used synonymously. However, fiducials can be placed
         anywhere in an image, and do not have to coincide with an anatomical
