@@ -1032,6 +1032,10 @@ class Report(object):
         css : str
             Style definitions to add to the report. The content of this string
             will be embedded between HTML ``<style>`` and ``</style>`` tags.
+
+        Notes
+        -----
+        .. versionadded:: 0.23
         """
         style = f'\n<style type="text/css">\n{css}\n</style>'
         self.include += style
