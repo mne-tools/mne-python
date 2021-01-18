@@ -302,7 +302,7 @@ class _Renderer(_BaseRenderer):
                  backface_culling=False, scalars=None, colormap=None,
                  vmin=None, vmax=None, interpolate_before_map=True,
                  representation='surface', line_width=1.,
-                 polygon_offset=None, **kwargs):
+                 polygon_offset=None, silhouette=None, **kwargs):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             rgba = False
@@ -343,6 +343,25 @@ class _Renderer(_BaseRenderer):
                 mapper.SetResolveCoincidentTopologyToPolygonOffset()
                 mapper.SetRelativeCoincidentTopologyPolygonOffsetParameters(
                     polygon_offset, polygon_offset)
+
+            if silhouette is not None:
+                silhouette_filter = vtk.vtkPolyDataSilhouette()
+                silhouette_filter.SetInputData(mesh.decimate(0.9))
+                silhouette_filter.SetCamera(
+                    self.plotter.renderer.GetActiveCamera())
+                silhouette_filter.SetEnableFeatureAngle(0)
+                silhouette_mapper = vtk.vtkPolyDataMapper()
+                silhouette_mapper.SetInputConnection(
+                    silhouette_filter.GetOutputPort())
+                _, prop = self.plotter.add_actor(
+                    silhouette_mapper, reset_camera=False, name=None,
+                    culling=False, pickable=False)
+                if "color" in silhouette:
+                    prop.SetColor(silhouette["color"])
+                if "alpha" in silhouette:
+                    prop.SetOpacity(silhouette["alpha"])
+                if "linewidth" in silhouette:
+                    prop.SetLineWidth(silhouette["linewidth"])
 
             return actor, mesh
 
@@ -408,7 +427,8 @@ class _Renderer(_BaseRenderer):
     def surface(self, surface, color=None, opacity=1.0,
                 vmin=None, vmax=None, colormap=None,
                 normalized_colormap=False, scalars=None,
-                backface_culling=False, polygon_offset=None):
+                backface_culling=False, polygon_offset=None,
+                silhouette=None):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             normals = surface.get('nn', None)
@@ -430,6 +450,7 @@ class _Renderer(_BaseRenderer):
             vmin=vmin,
             vmax=vmax,
             polygon_offset=polygon_offset,
+            silhouette=silhouette,
         )
 
     def sphere(self, center, color, scale, opacity=1.0,

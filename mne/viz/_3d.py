@@ -425,7 +425,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                    meg=None, eeg='original', fwd=None,
                    dig=False, ecog=True, src=None, mri_fiducials=False,
                    bem=None, seeg=True, fnirs=True, show_axes=False, fig=None,
-                   interaction='trackball', verbose=None):
+                   interaction='trackball', silhouette=None, verbose=None):
     """Plot head, sensor, and source space alignment in 3D.
 
     Parameters
@@ -520,6 +520,12 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         * MEG in blue (if MEG sensors are present).
 
         .. versionadded:: 0.16
+    silhouette : dict | None
+       As a dict, it contains the ``color``, ``linewidth`` and ``alpha``opacity
+       of the brain's silhouette to display, otherwise it is None.
+       Defauts to None.
+
+        .. versionadded:: 0.22
     fig : mayavi.mlab.Figure | None
         Mayavi Scene in which to plot the alignment.
         If ``None``, creates a new 600x600 pixel figure with black background.
@@ -1029,7 +1035,11 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     for key, surf in surfs.items():
         renderer.surface(surface=surf, color=colors[key],
                          opacity=alphas[key],
-                         backface_culling=(key != 'helmet'))
+                         backface_culling=(key != 'helmet'),
+                         silhouette=dict(
+                             color=(0, 0, 0),
+                             alpha=1.0,
+                             linewidth=4))
     if brain and 'lh' not in surfs:  # one layer sphere
         assert bem['coord_frame'] == FIFF.FIFFV_COORD_HEAD
         center = bem['r0'].copy()

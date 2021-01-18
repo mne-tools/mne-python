@@ -118,9 +118,11 @@ raw.set_channel_types(
 ###############################################################################
 # Let's check to make sure everything is aligned.
 
-fig = mne.viz.plot_alignment(raw.info, trans, 'fsaverage',
-                             subjects_dir=subjects_dir, show_axes=True,
-                             surfaces=["pial", "head"])
+fig = mne.viz.create_3d_figure()
+mne.viz.plot_alignment(raw.info, trans, 'fsaverage',
+                       subjects_dir=subjects_dir, show_axes=True,
+                       surfaces=["pial", "head"],
+                       fig=fig)
 
 ###############################################################################
 # Next, we'll get the raw data and plot its amplitude over time.
