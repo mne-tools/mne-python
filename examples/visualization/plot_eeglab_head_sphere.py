@@ -60,7 +60,7 @@ fake_evoked.set_montage(biosemi_montage)
 
 # first we obtain the 3d positions of selected channels
 chs = ['Oz', 'Fpz', 'T7', 'T8']
-pos = np.stack([biosemi_montage.get_positions()["ch_pos"][ch] for ch in chs])
+pos = np.stack([biosemi_montage.get_positions()['ch_pos'][ch] for ch in chs])
 
 # now we calculate the radius from T7 and T8 x position
 # (we could use Oz and Fpz y positions as well)
