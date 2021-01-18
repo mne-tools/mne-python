@@ -173,6 +173,24 @@ def test_render_report(renderer, tmpdir):
         report.add_figs_to_section(['foo'], 'caption', 'section')
 
 
+def test_add_custom_css(tmpdir):
+    """Test adding custom CSS rules to the report."""
+    tempdir = str(tmpdir)
+    fname = op.join(tempdir, 'report.html')
+    fig = plt.figure()  # Empty figure
+
+    report = Report()
+    report.add_figs_to_section(figs=fig, captions='Test section')
+    custom_css = '.report_custom { color: red; }'
+    report.add_custom_css(css=custom_css)
+
+    assert custom_css in report.include
+    report.save(fname, open_browser=False)
+    with open(fname, 'rb') as fid:
+        html = fid.read().decode('utf-8')
+    assert custom_css in html
+
+
 @testing.requires_testing_data
 def test_render_non_fiff(tmpdir):
     """Test rendering non-FIFF files for mne report."""
