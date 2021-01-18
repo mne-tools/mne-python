@@ -249,7 +249,8 @@ report.save('report_stc.html', overwrite=True)
 # mne.viz.set_3d_view(fig, 45, 90, distance=0.6, focalpoint=(0., 0., 0.))
 
 # # add the custom plot to the report:
-# report.add_figs_to_section(fig, captions='Source Alignment')
+# report.add_figs_to_section(fig, captions='Source Alignment',
+#                            auto_close=False)
 
 # report.save('report_alignment.html', overwrite=True)
 

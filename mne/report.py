@@ -53,7 +53,8 @@ SECTION_ORDER = ['raw', 'events', 'epochs', 'ssp', 'evoked', 'covariance',
 ###############################################################################
 # PLOTTING FUNCTIONS
 
-def _fig_to_img(fig, image_format='png', scale=None, **kwargs):
+def _fig_to_img(fig, image_format='png', scale=None, auto_close=True,
+                **kwargs):
     """Plot figure and create a binary image."""
     # fig can be ndarray, mpl Figure, Mayavi Figure, or callable that produces
     # a mpl Figure
@@ -62,7 +63,8 @@ def _fig_to_img(fig, image_format='png', scale=None, **kwargs):
     if isinstance(fig, np.ndarray):
         fig = _ndarray_to_fig(fig)
     elif callable(fig):
-        plt.close('all')
+        if auto_close:
+            plt.close('all')
         fig = fig(**kwargs)
     elif not isinstance(fig, Figure):
         from .viz.backends.renderer import backend, MNE_3D_BACKEND_TESTING
@@ -72,6 +74,8 @@ def _fig_to_img(fig, image_format='png', scale=None, **kwargs):
         else:  # Testing mode
             img = np.zeros((2, 2, 3))
 
+        if auto_close:
+            backend._close_3d_figure(figure=fig)
         fig = _ndarray_to_fig(img)
 
     output = BytesIO()
@@ -153,6 +157,7 @@ def _iterate_trans_views(function, **kwargs):
         ax.imshow(im)
         ax.axis('off')
 
+    backend._close_all()
     img = _fig_to_img(fig2, image_format='png')
     return img
 
@@ -1090,7 +1095,7 @@ class Report(object):
 
     def add_figs_to_section(self, figs, captions, section='custom',
                             scale=None, image_format=None, comments=None,
-                            replace=False):
+                            replace=False, auto_close=True):
         """Append custom user-defined figures.
 
         Parameters
@@ -1120,6 +1125,9 @@ class Report(object):
         replace : bool
             If ``True``, figures already present that have the same caption
             will be replaced. Defaults to ``False``.
+        auto_close : bool
+            If True, the plots are closed during the generation of the report.
+            Defaults to True.
         """
         figs, captions, comments = self._validate_input(figs, captions,
                                                         section, comments)
@@ -1132,7 +1140,7 @@ class Report(object):
             div_klass = self._sectionvars[section]
             img_klass = self._sectionvars[section]
 
-            img = _fig_to_img(fig, image_format, scale)
+            img = _fig_to_img(fig, image_format, scale, auto_close)
             html = image_template.substitute(img=img, id=global_id,
                                              div_klass=div_klass,
                                              img_klass=img_klass,
@@ -1285,7 +1293,7 @@ class Report(object):
 
     def add_slider_to_section(self, figs, captions=None, section='custom',
                               title='Slider', scale=None, image_format=None,
-                              replace=False):
+                              replace=False, auto_close=True):
         """Render a slider of figs to the report.
 
         Parameters
@@ -1317,6 +1325,9 @@ class Report(object):
         replace : bool
             If ``True``, figures already present that have the same caption
             will be replaced. Defaults to ``False``.
+        auto_close : bool
+            If True, the plots are closed during the generation of the report.
+            Defaults to True.
 
         Notes
         -----
@@ -1358,7 +1369,7 @@ class Report(object):
             raise TypeError('Captions must be None or an iterable of '
                             'float, int, str, Got %s' % type(captions))
         for ii, (fig, caption) in enumerate(zip(figs, captions)):
-            img = _fig_to_img(fig, image_format, scale)
+            img = _fig_to_img(fig, image_format, scale, auto_close)
             slice_id = '%s-%s-%s' % (name, global_id, sl[ii])
             first = True if ii == 0 else False
             slices.append(_build_html_image(img, slice_id, div_klass,
