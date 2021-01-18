@@ -26,7 +26,8 @@ from .pick import (pick_types, pick_channels, pick_info, _picks_to_idx,
 from .meas_info import write_meas_info
 from .proj import setup_proj, activate_proj, _proj_equal, ProjMixin
 from ..channels.channels import (ContainsMixin, UpdateChannelsMixin,
-                                 SetChannelsMixin, InterpolationMixin)
+                                 SetChannelsMixin, InterpolationMixin,
+                                 _unit2human)
 from .compensator import set_current_comp, make_compensator
 from .write import (start_file, end_file, start_block, end_block,
                     write_dau_pack16, write_float, write_double,
@@ -1780,7 +1781,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             ch = self.info["chs"][i]
             data = self[i][0]
             cols["type"].append(channel_type(self.info, i))
-            cols["unit"].append(str(ch["unit"]).split("_")[-1][:-1])
+            cols["unit"].append(_unit2human[ch["unit"]])
             cols["min"].append(np.min(data))
             cols["q1"].append(q(data, 25))
             cols["median"].append(np.median(data))
