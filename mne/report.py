@@ -53,8 +53,7 @@ SECTION_ORDER = ['raw', 'events', 'epochs', 'ssp', 'evoked', 'covariance',
 ###############################################################################
 # PLOTTING FUNCTIONS
 
-def _fig_to_img(fig, image_format='png', scale=None, auto_close=True,
-                **kwargs):
+def _fig_to_img(fig, image_format='png', scale=None, **kwargs):
     """Plot figure and create a binary image."""
     # fig can be ndarray, mpl Figure, Mayavi Figure, or callable that produces
     # a mpl Figure
@@ -63,8 +62,7 @@ def _fig_to_img(fig, image_format='png', scale=None, auto_close=True,
     if isinstance(fig, np.ndarray):
         fig = _ndarray_to_fig(fig)
     elif callable(fig):
-        if auto_close:
-            plt.close('all')
+        plt.close('all')
         fig = fig(**kwargs)
     elif not isinstance(fig, Figure):
         from .viz.backends.renderer import backend, MNE_3D_BACKEND_TESTING
@@ -74,8 +72,6 @@ def _fig_to_img(fig, image_format='png', scale=None, auto_close=True,
         else:  # Testing mode
             img = np.zeros((2, 2, 3))
 
-        if auto_close:
-            backend._close_3d_figure(figure=fig)
         fig = _ndarray_to_fig(img)
 
     output = BytesIO()
@@ -87,8 +83,7 @@ def _fig_to_img(fig, image_format='png', scale=None, auto_close=True,
         warnings.simplefilter('ignore')  # incompatible axes
         fig.savefig(output, format=image_format, dpi=fig.get_dpi(),
                     bbox_to_inches='tight')
-    if auto_close:
-        plt.close(fig)
+    plt.close(fig)
     output = output.getvalue()
     return (output.decode('utf-8') if image_format == 'svg' else
             base64.b64encode(output).decode('ascii'))
@@ -122,10 +117,9 @@ def _scale_mpl_figure(fig, scale):
     fig.canvas.draw()
 
 
-def _figs_to_mrislices(sl, n_jobs, auto_close, **kwargs):
+def _figs_to_mrislices(sl, n_jobs, **kwargs):
     import matplotlib.pyplot as plt
-    if auto_close:
-        plt.close('all')
+    plt.close('all')
     use_jobs = min(n_jobs, max(1, len(sl)))
     parallel, p_fun, _ = parallel_func(_plot_mri_contours, use_jobs)
     outs = parallel(p_fun(slices=s, **kwargs)
@@ -139,7 +133,7 @@ def _figs_to_mrislices(sl, n_jobs, auto_close, **kwargs):
     return out
 
 
-def _iterate_trans_views(function, auto_close, **kwargs):
+def _iterate_trans_views(function, **kwargs):
     """Auxiliary function to iterate over views in trans fig."""
     import matplotlib.pyplot as plt
     from .viz.backends.renderer import backend, MNE_3D_BACKEND_TESTING
@@ -159,9 +153,7 @@ def _iterate_trans_views(function, auto_close, **kwargs):
         ax.imshow(im)
         ax.axis('off')
 
-    if auto_close:
-        backend._close_all()
-    img = _fig_to_img(fig2, image_format='png', auto_close=auto_close)
+    img = _fig_to_img(fig2, image_format='png')
     return img
 
 ###############################################################################
@@ -919,11 +911,6 @@ class Report(object):
         the data. Defaults to ``False``.
 
         .. versionadded:: 0.21
-    auto_close : bool
-        If True, the plots are closed during the generation of the report.
-        Defaults to True.
-
-        .. versionadded:: 0.22
     %(verbose)s
 
     Notes
@@ -935,9 +922,7 @@ class Report(object):
 
     def __init__(self, info_fname=None, subjects_dir=None,
                  subject=None, title=None, cov_fname=None, baseline=None,
-                 image_format='png', raw_psd=False, projs=False,
-                 auto_close=True, verbose=None):
-        self.auto_close = auto_close
+                 image_format='png', raw_psd=False, projs=False, verbose=None):
         self.info_fname = str(info_fname) if info_fname is not None else None
         self.cov_fname = str(cov_fname) if cov_fname is not None else None
         self.baseline = baseline
@@ -1147,7 +1132,7 @@ class Report(object):
             div_klass = self._sectionvars[section]
             img_klass = self._sectionvars[section]
 
-            img = _fig_to_img(fig, image_format, scale, self.auto_close)
+            img = _fig_to_img(fig, image_format, scale)
             html = image_template.substitute(img=img, id=global_id,
                                              div_klass=div_klass,
                                              img_klass=img_klass,
@@ -1373,7 +1358,7 @@ class Report(object):
             raise TypeError('Captions must be None or an iterable of '
                             'float, int, str, Got %s' % type(captions))
         for ii, (fig, caption) in enumerate(zip(figs, captions)):
-            img = _fig_to_img(fig, image_format, scale, self.auto_close)
+            img = _fig_to_img(fig, image_format, scale)
             slice_id = '%s-%s-%s' % (name, global_id, sl[ii])
             first = True if ii == 0 else False
             slices.append(_build_html_image(img, slice_id, div_klass,
@@ -1816,7 +1801,7 @@ class Report(object):
         kwargs = dict(mri_fname=mri_fname, surfaces=surfaces, show=False,
                       orientation=orientation, img_output=True, src=None,
                       show_orientation=True, width=width)
-        imgs = _figs_to_mrislices(sl, n_jobs, self.auto_close, **kwargs)
+        imgs = _figs_to_mrislices(sl, n_jobs, **kwargs)
         slices = []
         img_klass = 'slideimg-%s w-100' % name
         div_klass = 'span12 %s' % slides_klass
@@ -1874,8 +1859,7 @@ class Report(object):
             n_ax = sum(kind in raw for kind in _DATA_CH_TYPES_SPLIT)
             fig = _figure_agg(figsize=(6, 1 + 1.5 * n_ax), dpi=92)
             axes = [fig.add_subplot(1, n_ax, ii + 1) for ii in range(n_ax)]
-            img = _fig_to_img(fig=raw.plot_psd, image_format=self.image_format,
-                              auto_close=self.auto_close,
+            img = _fig_to_img(raw.plot_psd, self.image_format,
                               ax=axes, **raw_psd)
             new_html = image_template.substitute(
                 img=img, div_klass='raw', img_klass='raw',
@@ -1917,9 +1901,7 @@ class Report(object):
 
         img_kws = dict(projs=projs, info=info, colorbar=True, vlim='joint',
                        show=False)
-        img = _fig_to_img(fig=plot_projs_topomap,
-                          image_format=self.image_format,
-                          auto_close=self.auto_close, **img_kws)
+        img = _fig_to_img(plot_projs_topomap, self.image_format, **img_kws)
         html = image_template.substitute(
             img=img, div_klass=div_klass, img_klass=img_klass,
             caption=caption, show=True, image_format=self.image_format,
@@ -1970,9 +1952,8 @@ class Report(object):
                     'ignore',
                     message='Channel locations not available.*',
                     category=RuntimeWarning)
-                img = _fig_to_img(fig=ev.plot, image_format=image_format,
-                                  auto_close=self.auto_close,
-                                  spatial_colors=True, **kwargs)
+                img = _fig_to_img(ev.plot, image_format, spatial_colors=True,
+                                  **kwargs)
 
             caption = self._gen_caption(prefix='Evoked',
                                         suffix=f'({ev.comment})',
@@ -1992,9 +1973,7 @@ class Report(object):
                 has_types.append('mag')
             for ch_type in has_types:
                 logger.debug('    Topomap type %s' % ch_type)
-                img = _fig_to_img(fig=ev.plot_topomap,
-                                  image_format=image_format,
-                                  auto_close=self.auto_close,
+                img = _fig_to_img(ev.plot_topomap, image_format,
                                   ch_type=ch_type, **kwargs)
                 caption = u'Topomap (ch_type = %s)' % ch_type
                 html.append(image_template.substitute(
@@ -2005,8 +1984,7 @@ class Report(object):
         figs = plot_compare_evokeds(evokeds=evokeds, ci=None,
                                     show_sensors=True, **kwargs)
         for fig in figs:
-            img = _fig_to_img(fig=fig, image_format=image_format,
-                              auto_close=self.auto_close)
+            img = _fig_to_img(fig, image_format)
             caption = self._gen_caption(prefix='Evoked',
                                         suffix='(GFPs)',
                                         fname=evoked_fname,
@@ -2025,8 +2003,7 @@ class Report(object):
         global_id = self._get_id()
         events = read_events(eve_fname)
         kwargs = dict(events=events, sfreq=sfreq, show=False)
-        img = _fig_to_img(fig=plot_events, image_format=image_format,
-                          auto_close=self.auto_close, **kwargs)
+        img = _fig_to_img(plot_events, image_format, **kwargs)
         caption = self._gen_caption(prefix='Events', fname=eve_fname,
                                     data_path=data_path)
         html = image_template.substitute(
@@ -2039,10 +2016,7 @@ class Report(object):
         global_id = self._get_id()
         epochs = read_epochs(epo_fname)
         kwargs = dict(subject=self.subject, show=False)
-        img = _fig_to_img(fig=epochs.plot_drop_log,
-                          image_format=image_format,
-                          auto_close=self.auto_close,
-                          **kwargs)
+        img = _fig_to_img(epochs.plot_drop_log, image_format, **kwargs)
         caption = self._gen_caption(prefix='Epochs', fname=epo_fname,
                                     data_path=data_path)
         show = True
@@ -2084,8 +2058,7 @@ class Report(object):
                               verbose=False)
             global_id = self._get_id()
             kwargs = dict(noise_cov=noise_cov, show=False)
-            img = _fig_to_img(fig=ev.plot_white, image_format=image_format,
-                              auto_close=self.auto_close, **kwargs)
+            img = _fig_to_img(ev.plot_white, image_format, **kwargs)
             caption = self._gen_caption(prefix='Whitened evoked',
                                         suffix=f'({ev.comment})',
                                         fname=evoked_fname,
@@ -2103,12 +2076,9 @@ class Report(object):
         kwargs = dict(info=info, trans=trans, subject=subject,
                       subjects_dir=subjects_dir)
         try:
-            img = _iterate_trans_views(function=plot_alignment,
-                                       auto_close=self.auto_close,
-                                       **kwargs)
+            img = _iterate_trans_views(function=plot_alignment, **kwargs)
         except IOError:
             img = _iterate_trans_views(function=plot_alignment,
-                                       auto_close=self.auto_close,
                                        surfaces=['head'], **kwargs)
 
         if img is not None:
