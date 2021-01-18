@@ -15,7 +15,6 @@ import sys
 import time
 import traceback
 import warnings
-from io import BytesIO
 
 import numpy as np
 from scipy import sparse
@@ -2603,30 +2602,38 @@ class Brain(object):
         screenshot : array
             Image pixel values.
         """
-        from ...viz import concatenate_images
         img = self._renderer.screenshot(mode)
         if time_viewer and self.time_viewer and \
                 self.show_traces and \
                 not self.separate_canvas:
             canvas = self.mpl_canvas.fig.canvas
             canvas.draw_idle()
-
-            # Here we need to save to a buffer without taking into
-            # account the dpi to keep the size used on creation
-            # of the canvas which is used for the 3D renderer.
-            # For some reason doing
-            # canvas.get_width_height() overestimates the size
-            # of the image while doing fig.savefig('fname.png')
-            # returns the right number of pixels.
-            fig = self.mpl_canvas.fig
-            output = BytesIO()
-            fig.savefig(output, format='raw')
-            output.seek(0)
-            trace_img = np.reshape(np.frombuffer(output.getvalue(),
-                                                 dtype=np.uint8),
-                                   newshape=(-1, img.shape[1], 4))[:, :, :3]
-            output.close()
-            img = concatenate_images([img, trace_img], bgcolor=self._bg_color)
+            # In theory, one of these should work:
+            #
+            # trace_img = np.frombuffer(
+            #     canvas.tostring_rgb(), dtype=np.uint8)
+            # trace_img.shape = canvas.get_width_height()[::-1] + (3,)
+            #
+            # or
+            #
+            # trace_img = np.frombuffer(
+            #     canvas.tostring_rgb(), dtype=np.uint8)
+            # size = time_viewer.mpl_canvas.getSize()
+            # trace_img.shape = (size.height(), size.width(), 3)
+            #
+            # But in practice, sometimes the sizes does not match the
+            # renderer tostring_rgb() size. So let's directly use what
+            # matplotlib does in lib/matplotlib/backends/backend_agg.py
+            # before calling tobytes():
+            trace_img = np.asarray(
+                canvas.renderer._renderer).take([0, 1, 2], axis=2)
+            # need to slice into trace_img because generally it's a bit
+            # smaller
+            delta = trace_img.shape[1] - img.shape[1]
+            if delta > 0:
+                start = delta // 2
+                trace_img = trace_img[:, start:start + img.shape[1]]
+            img = np.concatenate([img, trace_img], axis=0)
         return img
 
     @fill_doc
