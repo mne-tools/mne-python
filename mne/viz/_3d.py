@@ -1038,10 +1038,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         renderer.surface(surface=surf, color=colors[key],
                          opacity=alphas[key],
                          backface_culling=(key != 'helmet'),
-                         silhouette=dict(
-                             color=(0, 0, 0),
-                             alpha=1.0,
-                             linewidth=4))
+                         silhouette=silhouette)
     if brain and 'lh' not in surfs:  # one layer sphere
         assert bem['coord_frame'] == FIFF.FIFFV_COORD_HEAD
         center = bem['r0'].copy()
