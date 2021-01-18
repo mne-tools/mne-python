@@ -134,7 +134,7 @@ general neuroimaging concepts. If you think a term is missing, please consider
 
         Due to the common neuroimaging practice of placing fiducial objects on
         anatomical landmarks, the terms "fiducial", "anatomical landmark" and
-        "cardinal point" are often (erroneously) used interchangably.
+        "cardinal point" are often (erroneously) used interchangeably.
 
     first_samp
         The :attr:`~mne.io.Raw.first_samp` attribute of :class:`~mne.io.Raw`
