@@ -1767,14 +1767,47 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         return df
 
     def describe(self):
+        """Describe channels."""
         from scipy.stats import scoreatpercentile as q
-        print(self)
-        for idx in range(self.info["nchan"]):
-            ch = self.info["chs"][idx]
-            print(f"  {ch['ch_name']}  {channel_type(self.info, idx).upper()} "
-                  f"({str(ch['unit']).split('_')[-1]}  {q(self[idx][0], 0)} "
-                  f"{q(self[idx][0], 25)} {q(self[idx][0], 50)} "
-                  f"{q(self[idx][0], 75)} {q(self[idx][0], 100)} ")
+        nchan = self.info["nchan"]
+
+        # describe each channel
+        cols = defaultdict(list)
+        cols["name"] = self.ch_names
+        for i in range(nchan):
+            ch = self.info["chs"][i]
+            data = self[i][0]
+            cols["type"].append(channel_type(self.info, i))
+            cols["unit"].append(str(ch["unit"]).split("_")[-1][:-1])
+            cols["min"].append(np.min(data))
+            cols["q1"].append(q(data, 25))
+            cols["median"].append(np.median(data))
+            cols["q3"].append(q(data, 75))
+            cols["max"].append(np.max(data))
+
+        lens = {"name": max(4, max([len(_) for _ in cols["name"]])),
+                "type": max(4, max([len(_) for _ in cols["type"]])),
+                "unit": max(4, max([len(_) for _ in cols["unit"]]))}
+
+        # print description
+        print(self, "\n")
+        print(f"{'name':<{lens['name']}}  "
+              f"{'type':<{lens['type']}}  "
+              f"{'unit':<{lens['unit']}}  "
+              f"{'min':>8}  "
+              f"{'q1':>8}  "
+              f"{'median':>8}  "
+              f"{'q3':>8}  "
+              f"{'max':>8}  ")
+        for i in range(nchan):
+            print(f"{cols['name'][i]:<{lens['name']}}  "
+                  f"{cols['type'][i].upper():<{lens['type']}}  "
+                  f"{cols['unit'][i]:<{lens['unit']}}  "
+                  f"{cols['min'][i]:>8.3f}  "
+                  f"{cols['q1'][i]:>8.3f}  "
+                  f"{cols['median'][i]:>8.3f}  "
+                  f"{cols['q3'][i]:>8.3f}  "
+                  f"{cols['max'][i]:>8.3f}  ")
 
 
 def _allocate_data(preload, shape, dtype):
