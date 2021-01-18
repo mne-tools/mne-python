@@ -1030,7 +1030,7 @@ class Report(object):
         Parameters
         ----------
         css : str
-            Style dedinitions to add to the report. The content of this string
+            Style definitions to add to the report. The content of this string
             will be embedded between HTML ``<style>`` and ``</style>`` tags.
         """
         style = f'\n<style type="text/css">\n{css}\n</style>'
