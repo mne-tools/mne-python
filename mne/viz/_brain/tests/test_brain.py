@@ -373,12 +373,10 @@ def test_brain_save_movie(tmpdir, renderer, brain_gc):
 @testing.requires_testing_data
 @pytest.mark.slowtest
 def test_brain_screenshot(renderer_interactive, time_viewer, brain_gc):
+    """Test time viewer screenshot."""
     if renderer_interactive._get_3d_backend() != 'pyvista':
         pytest.skip('TimeViewer tests only supported on PyVista')
-    brain = _create_testing_brain(
-        hemi='both', surf='white', initial_time=0,
-        volume_options=None,  # for speed, don't upsample
-    )
+    brain = _create_testing_brain(hemi='both')
     brain.screenshot(time_viewer=time_viewer)
     brain.close()
 
