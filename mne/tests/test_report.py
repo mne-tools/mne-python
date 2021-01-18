@@ -174,6 +174,7 @@ def test_render_report(renderer, tmpdir):
 
 
 def test_add_custom_css(tmpdir):
+    """Test adding custom CSS rules to the report."""
     tempdir = str(tmpdir)
     fname = op.join(tempdir, 'report.html')
     fig = plt.figure()  # Empty figure
