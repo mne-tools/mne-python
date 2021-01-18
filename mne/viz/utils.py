@@ -46,8 +46,9 @@ from ..transforms import apply_trans
 
 _channel_type_prettyprint = {'eeg': "EEG channel", 'grad': "Gradiometer",
                              'mag': "Magnetometer", 'seeg': "sEEG channel",
-                             'eog': "EOG channel", 'ecg': "ECG sensor",
-                             'emg': "EMG sensor", 'ecog': "ECoG channel",
+                             'dbs': "DBS channel", 'eog': "EOG channel",
+                             'ecg': "ECG sensor", 'emg': "EMG sensor",
+                             'ecog': "ECoG channel",
                              'misc': "miscellaneous sensor"}
 
 
@@ -821,9 +822,9 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
         'topomap'.
     ch_type : None | str
         The channel type to plot. Available options 'mag', 'grad', 'eeg',
-        'seeg', 'ecog', 'all'. If ``'all'``, all the available mag, grad, eeg,
-        seeg and ecog channels are plotted. If None (default), then channels
-        are chosen in the order given above.
+        'seeg', 'dbs', 'ecog', 'all'. If ``'all'``, all the available mag,
+        grad, eeg, seeg, dbs and ecog channels are plotted. If None (default),
+        then channels are chosen in the order given above.
     title : str | None
         Title for the figure. If None (default), equals to
         ``'Sensor positions (%%s)' %% ch_type``.
@@ -1045,9 +1046,8 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
 
         # Equal aspect for 3D looks bad, so only use for 2D
         ax.set(aspect='equal')
-        if axes_was_none:
-            fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None,
-                                hspace=None)
+        if axes_was_none:  # we'll show the plot title as the window title
+            fig.subplots_adjust(left=0, bottom=0, right=1, top=1)
         ax.axis("off")  # remove border around figure
     del sphere
 
@@ -1069,8 +1069,8 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
         picker = partial(_onpick_sensor, fig=fig, ax=ax, pos=pos,
                          ch_names=ch_names, show_names=show_names)
         fig.canvas.mpl_connect('pick_event', picker)
-
-    ax.set(title=title)
+    if axes_was_none:
+        _set_window_title(fig, title)
     closed = partial(_close_event, fig=fig)
     fig.canvas.mpl_connect('close_event', closed)
     plt_show(show, block=block)

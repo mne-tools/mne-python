@@ -99,7 +99,7 @@ print(info)
 #
 #     The expected units for the different channel types are:
 #
-#     - Volts: eeg, eog, seeg, emg, ecg, bio, ecog
+#     - Volts: eeg, eog, seeg, dbs, emg, ecg, bio, ecog
 #     - Teslas: mag
 #     - Teslas/meter: grad
 #     - Molar: hbo, hbr

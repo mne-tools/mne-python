@@ -108,7 +108,8 @@ def _check_for_unsupported_ica_channels(picks, info, allow_ref_meg=False):
     """Check for channels in picks that are not considered valid channels.
 
     Accepted channels are the data channels
-    ('seeg','ecog','eeg', 'hbo', 'hbr', 'mag', and 'grad'), 'eog' and 'ref_meg'
+    ('seeg', 'dbs', 'ecog', 'eeg', 'hbo', 'hbr', 'mag', and 'grad'), 'eog'
+    and 'ref_meg'.
     This prevents the program from crashing without
     feedback when a bad channel is provided to ICA whitening.
     """
@@ -461,8 +462,8 @@ class ICA(ContainsMixin):
             within ``start`` and ``stop`` are used.
         reject : dict | None
             Rejection parameters based on peak-to-peak amplitude.
-            Valid keys are 'grad', 'mag', 'eeg', 'seeg', 'ecog', 'eog', 'ecg',
-            'hbo', 'hbr'.
+            Valid keys are 'grad', 'mag', 'eeg', 'seeg', 'dbs', 'ecog', 'eog',
+            'ecg', 'hbo', 'hbr'.
             If reject is None then no rejection is done. Example::
 
                 reject = dict(grad=4000e-13, # T / m (gradiometers)
@@ -474,8 +475,8 @@ class ICA(ContainsMixin):
             It only applies if ``inst`` is of type Raw.
         flat : dict | None
             Rejection parameters based on flatness of signal.
-            Valid keys are 'grad', 'mag', 'eeg', 'seeg', 'ecog', 'eog', 'ecg',
-            'hbo', 'hbr'.
+            Valid keys are 'grad', 'mag', 'eeg', 'seeg', 'dbs', 'ecog', 'eog',
+            'ecg', 'hbo', 'hbr'.
             Values are floats that set the minimum acceptable peak-to-peak
             amplitude. If flat is None then no rejection is done.
             It only applies if ``inst`` is of type Raw.
@@ -603,6 +604,8 @@ class ICA(ContainsMixin):
                 if _contains_ch_type(info, ch_type):
                     if ch_type == 'seeg':
                         this_picks = pick_types(info, meg=False, seeg=True)
+                    elif ch_type == 'dbs':
+                        this_picks = pick_types(info, meg=False, dbs=True)
                     elif ch_type == 'ecog':
                         this_picks = pick_types(info, meg=False, ecog=True)
                     elif ch_type == 'eeg':

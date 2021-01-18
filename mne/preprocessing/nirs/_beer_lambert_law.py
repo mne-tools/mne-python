@@ -44,7 +44,7 @@ def beer_lambert_law(raw, ppf=0.1):
         EL = abs_coef * distances[ii] * ppf
         iEL = linalg.pinv(EL)
 
-        raw._data[[ii, ii + 1]] = (raw._data[[ii, ii + 1]].T @ iEL.T).T * 1e-3
+        raw._data[[ii, ii + 1]] = iEL @ raw._data[[ii, ii + 1]] * 1e-3
 
         # Update channel information
         coil_dict = dict(hbo=FIFF.FIFFV_COIL_FNIRS_HBO,

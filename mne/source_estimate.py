@@ -3210,12 +3210,12 @@ def extract_label_time_course(stcs, labels, src, mode='auto',
 @verbose
 def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
                      project=True, subjects_dir=None, src=None, verbose=None):
-    """Create a STC from ECoG and sEEG sensor data.
+    """Create a STC from ECoG, sEEG and DBS sensor data.
 
     Parameters
     ----------
     evoked : instance of Evoked
-        The evoked data. Must contain ECoG, or sEEG channels.
+        The evoked data. Must contain ECoG, sEEG or DBS channels.
     %(trans)s
     subject : str
         The subject name.
@@ -3271,7 +3271,7 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
         ``distance`` (beyond which it is zero).
 
     If creating a Volume STC, ``src`` must be passed in, and this
-    function will project sEEG sensors to nearby surrounding vertices.
+    function will project sEEG and DBS sensors to nearby surrounding vertices.
     Then the activation at each volume vertex is given by the mode
     in the same way as ECoG surface projections.
 
@@ -3284,8 +3284,8 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     _validate_type(src, (None, SourceSpaces), 'src')
     _check_option('mode', mode, ('sum', 'single', 'nearest'))
 
-    # create a copy of Evoked using ecog and seeg
-    evoked = evoked.copy().pick_types(ecog=True, seeg=True)
+    # create a copy of Evoked using ecog, seeg and dbs
+    evoked = evoked.copy().pick_types(ecog=True, seeg=True, dbs=True)
 
     # get channel positions that will be used to pinpoint where
     # in the Source space we will use the evoked data

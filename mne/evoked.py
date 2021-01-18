@@ -563,7 +563,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
             .. versionadded:: 0.16
         """  # noqa: E501
-        supported = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'misc',
+        supported = ('mag', 'grad', 'eeg', 'seeg', 'dbs', 'ecog', 'misc',
                      'None') + _FNIRS_CH_TYPES_SPLIT
         types_used = self.get_channel_types(unique=True, only_data_chs=True)
 
@@ -585,7 +585,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                 raise ValueError('Negative mode (mode=neg) does not make '
                                  'sense with merge_grads=True')
 
-        meg = eeg = misc = seeg = ecog = fnirs = False
+        meg = eeg = misc = seeg = dbs = ecog = fnirs = False
         picks = None
         if ch_type in ('mag', 'grad'):
             meg = ch_type
@@ -595,6 +595,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             misc = True
         elif ch_type == 'seeg':
             seeg = True
+        elif ch_type == 'dbs':
+            dbs = True
         elif ch_type == 'ecog':
             ecog = True
         elif ch_type in _FNIRS_CH_TYPES_SPLIT:
@@ -606,7 +608,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             else:
                 picks = pick_types(self.info, meg=meg, eeg=eeg, misc=misc,
                                    seeg=seeg, ecog=ecog, ref_meg=False,
-                                   fnirs=fnirs)
+                                   fnirs=fnirs, dbs=dbs)
         data = self.data
         ch_names = self.ch_names
 
@@ -732,7 +734,7 @@ class EvokedArray(Evoked):
     Notes
     -----
     Proper units of measure:
-    * V: eeg, eog, seeg, emg, ecg, bio, ecog
+    * V: eeg, eog, seeg, dbs, emg, ecg, bio, ecog
     * T: mag
     * T/m: grad
     * M: hbo, hbr

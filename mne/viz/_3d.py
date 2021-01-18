@@ -424,8 +424,9 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                    surfaces='auto', coord_frame='head',
                    meg=None, eeg='original', fwd=None,
                    dig=False, ecog=True, src=None, mri_fiducials=False,
-                   bem=None, seeg=True, fnirs=True, show_axes=False, fig=None,
-                   interaction='trackball', silhouette=None, verbose=None):
+                   bem=None, seeg=True, fnirs=True, show_axes=False, dbs=True,
+                   fig=None, interaction='trackball', silhouette=None,
+                   verbose=None):
     """Plot head, sensor, and source space alignment in 3D.
 
     Parameters
@@ -520,12 +521,12 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         * MEG in blue (if MEG sensors are present).
 
         .. versionadded:: 0.16
+    dbs : bool
+        If True (default), show DBS (deep brain stimulation) electrodes.
     silhouette : dict | None
        As a dict, it contains the ``color``, ``linewidth`` and ``alpha``opacity
        of the brain's silhouette to display, otherwise it is None.
        Defauts to None.
-
-        .. versionadded:: 0.22
     fig : mayavi.mlab.Figure | None
         Mayavi Scene in which to plot the alignment.
         If ``None``, creates a new 600x600 pixel figure with black background.
@@ -661,13 +662,13 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     ref_meg = 'ref' in meg
     meg_picks = pick_types(info, meg=True, ref_meg=ref_meg)
     eeg_picks = pick_types(info, meg=False, eeg=True, ref_meg=False)
-    fnirs_picks = pick_types(info, meg=False, eeg=False,
-                             ref_meg=False, fnirs=True)
-    other_bools = dict(ecog=ecog, seeg=seeg,
+    fnirs_picks = pick_types(info, meg=False, eeg=False, ref_meg=False,
+                             fnirs=True)
+    other_bools = dict(ecog=ecog, seeg=seeg, dbs=dbs,
                        fnirs=(('channels' in fnirs) |
                               ('sources' in fnirs) |
                               ('detectors' in fnirs)))
-    del ecog, seeg
+    del ecog, seeg, dbs
     other_keys = sorted(other_bools.keys())
     other_picks = {key: pick_types(info, meg=False, ref_meg=False,
                                    **{key: True}) for key in other_keys}
@@ -872,7 +873,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     skull_alpha = dict()
     skull_colors = dict()
     hemi_val = 0.5
-    max_alpha = 1.0 if len(other_picks['seeg']) == 0 else 0.75
+    no_deep = all(len(other_picks[key]) == 0 for key in ('dbs', 'seeg'))
+    max_alpha = 1.0 if no_deep else 0.75
     if src is None or (brain and any(s['type'] == 'surf' for s in src)):
         hemi_val = max_alpha
     alphas = np.linspace(max_alpha / 2., 0, 5)[:len(skull) + 1]
