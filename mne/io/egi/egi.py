@@ -92,6 +92,9 @@ def read_raw_egi(input_fname, eog=None, misc=None,
                  channel_naming='E%d', verbose=None):
     """Read EGI simple binary as raw object.
 
+    .. note:: This function attempts to create a synthetic trigger channel.
+              See the Notes section below.
+
     Parameters
     ----------
     input_fname : path-like
@@ -135,8 +138,8 @@ def read_raw_egi(input_fname, eog=None, misc=None,
     Notes
     -----
     The trigger channel names are based on the arbitrary user dependent event
-    codes used. However this function will attempt to generate a synthetic
-    trigger channel named ``STI 014`` in accordance with the general
+    codes used. However this function will attempt to generate a **synthetic
+    trigger channel** named ``STI 014`` in accordance with the general
     Neuromag / MNE naming pattern.
 
     The event_id assignment equals ``np.arange(n_events) + 1``. The resulting

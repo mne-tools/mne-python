@@ -86,7 +86,6 @@ def read_raw(fname, *, preload=False, verbose=None, **kwargs):
     -------
     raw : mne.io.Raw
         Raw object.
-
     """
     ext = "".join(Path(fname).suffixes)
     if ext in readers:
