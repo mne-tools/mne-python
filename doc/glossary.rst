@@ -120,7 +120,7 @@ general neuroimaging concepts. If you think a term is missing, please consider
 
     fiducial point
         Generally speaking, fiducials are objects which are placed in the field of
-        view of an imaging system which appears in the produced image.
+        view of an imaging system which appear in the produced image.
         The image of a given fiducial object (or fiducial point) can then be used
         as a point of reference in the image.
         In the case of neuroimaging, fiducials are often placed on well-known
