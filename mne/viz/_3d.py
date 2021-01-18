@@ -526,7 +526,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     silhouette : dict | None
        As a dict, it contains the ``color``, ``linewidth`` and ``alpha``opacity
        of the brain's silhouette to display, otherwise it is None.
-       Defauts to None.
+       Defaults to None.
     fig : mayavi.mlab.Figure | None
         Mayavi Scene in which to plot the alignment.
         If ``None``, creates a new 600x600 pixel figure with black background.
