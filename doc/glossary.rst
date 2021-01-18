@@ -119,9 +119,22 @@ general neuroimaging concepts. If you think a term is missing, please consider
         object class, and :ref:`tut-evoked-class` for a narrative overview.
 
     fiducial point
-        There are three fiducial (a.k.a. cardinal) points: the left
-        preauricular point (LPA), the right preauricular point (RPA)
-        and the nasion.
+        Fiducials are objects placed in the field of view of an imaging system
+        to act as a known spatial reference location that is easy to localize.
+        In neuroimaging, fiducials are often placed on anatomical landmarks
+        such as the nasion (NAS) or left/right preauricular points (LPA and
+        RPA).
+
+        These known reference locations are used to define a coordinate system 
+        used for localization of sensors (hence NAS, LPA and RPA are often
+        called "cardinal points" because they define the cardinal directions of
+        the "head" coordinate system). The cardinal points are also useful when
+        co-registering measurements in different coordinate systems (such as
+        aligning EEG sensor locations to an MRI of the subject's head).
+
+        Due to the common neuroimaging practice of placing fiducial objects on
+        anatomical landmarks, the terms "fiducial", "anatomical landmark" and
+        "cardinal point" are often (erroneously) used interchangeably.
 
     first_samp
         The :attr:`~mne.io.Raw.first_samp` attribute of :class:`~mne.io.Raw`
