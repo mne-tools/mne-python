@@ -6,6 +6,7 @@
 #          Teon Brooks <teon.brooks@gmail.com>
 #          Marijn van Vliet <w.m.vanvliet@gmail.com>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
+#          Clemens Brunner <clemens.brunner@gmail.com>
 #
 # License: BSD (3-clause)
 
