@@ -228,33 +228,6 @@ report.add_slider_to_section(figs)
 report.save('report_stc.html', overwrite=True)
 
 ###############################################################################
-# Adding custom figs to a report
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#
-# Here we use :meth:`~mne.viz.create_3d_figure` to create a figure with custom
-# parameters. Then, we send the fig to :meth:`~mne.viz.plot_alignment`:
-
-# raw_fname = os.path.join(path, 'MEG', 'sample', 'sample_audvis_raw.fif')
-# trans_fname = os.path.join(path, 'MEG', 'sample',
-#                            'sample_audvis_raw-trans.fif')
-# raw = mne.io.read_raw_fif(raw_fname)
-# trans = mne.read_trans(trans_fname)
-# fig = mne.viz.create_3d_figure(bgcolor=(0., 0., 0.), size=(800, 600))
-# mne.viz.plot_alignment(raw.info, trans=trans, subject='sample',
-#                        subjects_dir=subjects_dir, surfaces='head-dense',
-#                        show_axes=True, dig=True, eeg=[], meg='sensors',
-#                        coord_frame='meg', mri_fiducials='estimated', fig=fig)
-
-# # we modify the camera settings
-# mne.viz.set_3d_view(fig, 45, 90, distance=0.6, focalpoint=(0., 0., 0.))
-
-# # add the custom plot to the report:
-# report.add_figs_to_section(fig, captions='Source Alignment',
-#                            auto_close=False)
-
-# report.save('report_alignment.html', overwrite=True)
-
-###############################################################################
 # Managing report sections
 # ^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -277,6 +250,29 @@ report.save('report_stc.html', overwrite=True)
 # Editing a saved report
 # ^^^^^^^^^^^^^^^^^^^^^^
 #
+# Here we use :meth:`~mne.viz.create_3d_figure` to create a figure with custom
+# parameters. Then, we send the fig to :meth:`~mne.viz.plot_alignment`:
+
+raw_fname = os.path.join(path, 'MEG', 'sample', 'sample_audvis_raw.fif')
+trans_fname = os.path.join(path, 'MEG', 'sample',
+                           'sample_audvis_raw-trans.fif')
+raw = mne.io.read_raw_fif(raw_fname)
+trans = mne.read_trans(trans_fname)
+fig = mne.viz.create_3d_figure(bgcolor=(0., 0., 0.), size=(800, 600))
+mne.viz.plot_alignment(raw.info, trans=trans, subject='sample',
+                       subjects_dir=subjects_dir, surfaces='head-dense',
+                       show_axes=True, dig=True, eeg=[], meg='sensors',
+                       coord_frame='meg', mri_fiducials='estimated', fig=fig)
+
+# we modify the camera settings
+mne.viz.set_3d_view(fig, 45, 90, distance=0.6, focalpoint=(0., 0., 0.))
+
+# add the custom plot to the report:
+report.add_figs_to_section(fig, captions='Source Alignment',
+                           auto_close=False)
+
+report.save('report_alignment.html', overwrite=True)
+
 # Saving to HTML is a write-only operation, meaning that we cannot read an
 # ``.html`` file back as a :class:`~mne.Report` object. In order to be able
 # to edit a report once it's no longer in-memory in an active Python session,
