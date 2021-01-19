@@ -291,8 +291,7 @@ with mne.open_report('report.h5') as report:
     report.add_figs_to_section(fig,
                                captions='Left Auditory',
                                section='evoked',
-                               replace=True,
-                               auto_close=False)
+                               replace=True)
     report.save('report_final.html', overwrite=True)
 
 ###############################################################################
