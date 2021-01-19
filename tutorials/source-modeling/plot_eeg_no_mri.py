@@ -109,7 +109,7 @@ subject = mne.datasets.fetch_infant_template('6mo', subjects_dir, verbose=True)
 ##############################################################################
 # It comes with several helpful built-in files, including a 10-20 montage
 # in the MRI coordinate frame, which can be used to compute the
-# MRI<->head transform ``trans```:
+# MRI<->head transform ``trans``:
 fname_1020 = op.join(subjects_dir, subject, 'montages', '10-20-montage.fif')
 mon = mne.channels.read_dig_fif(fname_1020)
 mon.rename_channels(
