@@ -63,6 +63,7 @@ Reading raw data
    read_raw_bdf
    read_raw_gdf
    read_raw_kit
+   read_raw_nedf
    read_raw_nicolet
    read_raw_nirx
    read_raw_snirf
@@ -76,7 +77,7 @@ Reading raw data
    read_raw_persyst
    read_raw_nihon
 
-Base class:
+Base classs:
 
 .. autosummary::
    :toctree: generated
