@@ -347,3 +347,5 @@
 .. _Qianliang Li: https://www.dtu.dk/english/service/phonebook/person?id=126774
 
 .. _Richard Koehler: https://github.com/richardkoehler
+
+.. _Tristan Stenner: https://github.com/tstenner/
