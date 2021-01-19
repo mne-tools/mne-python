@@ -77,7 +77,7 @@ Reading raw data
    read_raw_persyst
    read_raw_nihon
 
-Base classs:
+Base class:
 
 .. autosummary::
    :toctree: generated
