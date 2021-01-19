@@ -17,7 +17,7 @@ from numpy.testing import assert_allclose, assert_array_equal
 
 from mne import (read_source_estimate, read_evokeds, read_cov,
                  read_forward_solution, pick_types_forward,
-                 SourceEstimate, MixedSourceEstimate,
+                 SourceEstimate, MixedSourceEstimate, write_surface,
                  VolSourceEstimate)
 from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.source_space import (read_source_spaces, vertex_to_mni,
@@ -369,17 +369,44 @@ def test_brain_save_movie(tmpdir, renderer, brain_gc):
     brain.close()
 
 
-@testing.requires_testing_data
-@pytest.mark.slowtest
-def test_brain_screenshot(renderer_interactive, brain_gc):
-    """Test time viewer screenshot."""
+@pytest.fixture()
+def tiny(tmpdir, request):
+    """Create a tiny fake brain."""
+    renderer_interactive = request.getfixturevalue('renderer_interactive')
     if renderer_interactive._get_3d_backend() != 'pyvista':
         pytest.skip('TimeViewer tests only supported on PyVista')
-    brain = _create_testing_brain(hemi='both')
-    img1 = brain.screenshot(time_viewer=False)
-    img2 = brain.screenshot(time_viewer=True)
+    # This is a minimal version of what we need for our viz-with-timeviewer
+    # support currently
+    subject = 'test'
+    subject_dir = tmpdir.mkdir(subject)
+    surf_dir = subject_dir.mkdir('surf')
+    rng = np.random.RandomState(0)
+    rr = rng.randn(4, 3)
+    tris = np.array([[0, 1, 2], [2, 1, 3]])
+    curv = rng.randn(len(rr))
+    with open(surf_dir.join('lh.curv'), 'wb') as fid:
+        fid.write(np.array([255, 255, 255], dtype=np.uint8))
+        fid.write(np.array([len(rr), 0, 1], dtype='>i4'))
+        fid.write(curv.astype('>f4'))
+    write_surface(surf_dir.join('lh.white'), rr, tris)
+    write_surface(surf_dir.join('rh.white'), rr, tris)  # needed for vertex tc
+    vertices = [np.arange(len(rr)), []]
+    data = rng.randn(len(rr), 10)
+    stc = SourceEstimate(data, vertices, 0, 1, subject)
+    brain = stc.plot(subjects_dir=tmpdir, hemi='lh', surface='white',
+                     size=300)
+    ratio = brain.mpl_canvas.canvas.window().devicePixelRatio()
+    return brain, ratio
+
+
+def test_brain_screenshot(renderer_interactive, brain_gc, tiny):
+    """Test time viewer screenshot."""
+    tiny_brain, ratio = tiny
+    img1 = tiny_brain.screenshot(time_viewer=False)
+    img2 = tiny_brain.screenshot(time_viewer=True)
     assert img1.shape[0] < img2.shape[0]
-    brain.close()
+    assert img1.shape[1] == 300 * ratio
+    tiny_brain.close()
 
 
 @testing.requires_testing_data

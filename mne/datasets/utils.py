@@ -384,7 +384,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     want_version = _FAKE_VERSION if name == 'fake' else want_version
     if not need_download and want_version is not None:
         data_version = _dataset_version(folder_path[0], name)
-        need_download = data_version != want_version
+        need_download = LooseVersion(data_version) < LooseVersion(want_version)
         if need_download:
             logger.info(f'Dataset {name} version {data_version} out of date, '
                         f'latest version is {want_version}')

@@ -1874,9 +1874,11 @@ def _cortex_parcellation(subject, n_parcel, hemis, vertices_, graphs,
     return labels
 
 
-def _read_annot_cands(dir_name):
+def _read_annot_cands(dir_name, raise_error=True):
     """List the candidate parcellations."""
     if not op.isdir(dir_name):
+        if not raise_error:
+            return list()
         raise IOError('Directory for annotation does not exist: %s',
                       dir_name)
     cands = os.listdir(dir_name)

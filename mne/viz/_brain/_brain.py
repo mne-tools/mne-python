@@ -1146,15 +1146,16 @@ class Brain(object):
 
         from PyQt5.QtWidgets import QComboBox, QLabel
         dir_name = op.join(self._subjects_dir, self._subject_id, 'label')
-        cands = _read_annot_cands(dir_name)
+        cands = _read_annot_cands(dir_name, raise_error=False)
         self.tool_bar.addSeparator()
         self.tool_bar.addWidget(QLabel("Annotation"))
         self._annot_cands_widget = QComboBox()
         self.tool_bar.addWidget(self._annot_cands_widget)
-        self._annot_cands_widget.addItem('None')
+        cands = ['None'] + cands
         for cand in cands:
             self._annot_cands_widget.addItem(cand)
         self.annot = cands[0]
+        del cands
 
         # setup label extraction parameters
         def _set_label_mode(mode):
@@ -1607,6 +1608,7 @@ class Brain(object):
         if self.mpl_canvas is None:
             return
         time = self._data['time'].copy()  # avoid circular ref
+        mni = None
         if hemi == 'vol':
             hemi_str = 'V'
             xfm = read_talxfm(
@@ -1619,15 +1621,20 @@ class Brain(object):
             mni = apply_trans(np.dot(xfm['trans'], src_mri_t), ijk)
         else:
             hemi_str = 'L' if hemi == 'lh' else 'R'
-            mni = vertex_to_mni(
-                vertices=vertex_id,
-                hemis=0 if hemi == 'lh' else 1,
-                subject=self._subject_id,
-                subjects_dir=self._subjects_dir
-            )
-        label = "{}:{} MNI: {}".format(
-            hemi_str, str(vertex_id).ljust(6),
-            ', '.join('%5.1f' % m for m in mni))
+            try:
+                mni = vertex_to_mni(
+                    vertices=vertex_id,
+                    hemis=0 if hemi == 'lh' else 1,
+                    subject=self._subject_id,
+                    subjects_dir=self._subjects_dir
+                )
+            except Exception:
+                mni = None
+        if mni is not None:
+            mni = ' MNI: ' + ', '.join('%5.1f' % m for m in mni)
+        else:
+            mni = ''
+        label = "{}:{}{}".format(hemi_str, str(vertex_id).ljust(6), mni)
         act_data, smooth = self.act_data_smooth[hemi]
         if smooth is not None:
             act_data = smooth[vertex_id].dot(act_data)[0]
