@@ -12,6 +12,7 @@ Actual implementation of _Renderer and _Projection classes.
 # License: Simplified BSD
 
 from contextlib import contextmanager
+from datetime import datetime
 from distutils.version import LooseVersion
 import os
 import sys
@@ -213,7 +214,6 @@ class _Renderer(_BaseRenderer):
         self.update_lighting()
 
     def _get_screenshot_filename(self):
-        from datetime import datetime
         now = datetime.now()
         dt_string = now.strftime("_%Y-%m-%d_%H-%M-%S")
         return "MNE" + dt_string + ".png"

@@ -402,10 +402,12 @@ def tiny(tmpdir, request):
 def test_brain_screenshot(renderer_interactive, brain_gc, tiny):
     """Test time viewer screenshot."""
     tiny_brain, ratio = tiny
-    img1 = tiny_brain.screenshot(time_viewer=False)
-    img2 = tiny_brain.screenshot(time_viewer=True)
-    assert img1.shape[0] < img2.shape[0]
-    assert img1.shape[1] == 300 * ratio
+    img_nv = tiny_brain.screenshot(time_viewer=False)
+    want = (300 * ratio, 300 * ratio, 3)
+    assert img_nv.shape == want
+    img_v = tiny_brain.screenshot(time_viewer=True)
+    assert img_v.shape[1:] == want[1:]
+    assert_allclose(img_v.shape[0], want[0] * 4 / 3, atol=3)  # some slop
     tiny_brain.close()
 
 
