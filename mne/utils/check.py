@@ -261,12 +261,12 @@ def _soft_import(name, purpose, strict=True):
 
 def _check_pylsl_installed(strict=True):
     """Aux function."""
-    _soft_import('pylsl', 'streaming data', strict=strict)
+    return _soft_import('pylsl', 'streaming data', strict=strict)
 
 
 def _check_pandas_installed(strict=True):
     """Aux function."""
-    _soft_import('pandas', 'dataframe integration', strict=strict)
+    return _soft_import('pandas', 'dataframe integration', strict=strict)
 
 
 def _check_pandas_index_arguments(index, valid):

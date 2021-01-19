@@ -353,7 +353,8 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     want_version = RELEASES.get(name, None)
     want_version = _FAKE_VERSION if name == 'fake' else want_version
     data_version = _dataset_version(final_path, name)
-    outdated = want_version is not None and want_version != data_version
+    outdated = want_version is not None and \
+        LooseVersion(want_version) > LooseVersion(data_version)
     if outdated:
         logger.info(f'Dataset {name} version {data_version} out of date, '
                     f'latest version is {want_version}')

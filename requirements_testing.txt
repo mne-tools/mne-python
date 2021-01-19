@@ -11,4 +11,3 @@ pydocstyle
 check-manifest
 twine
 wheel
-git+git://github.com/drammock/pooch/@allow-arbitrary-unzip-locations#egg=pooch
