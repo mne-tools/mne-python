@@ -7,7 +7,6 @@ from mne.utils import requires_version
 PATH = os.path.dirname(os.path.realpath(__file__))
 
 
-@pytest.mark.slowtest
 @testing.requires_testing_data
 @requires_version('nbformat')
 @requires_version('nbclient')
