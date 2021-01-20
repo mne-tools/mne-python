@@ -369,12 +369,8 @@ def test_brain_save_movie(tmpdir, renderer, brain_gc):
     brain.close()
 
 
-@pytest.fixture()
-def tiny(tmpdir, request):
+def tiny(tmpdir):
     """Create a tiny fake brain."""
-    renderer_interactive = request.getfixturevalue('renderer_interactive')
-    if renderer_interactive._get_3d_backend() != 'pyvista':
-        pytest.skip('TimeViewer tests only supported on PyVista')
     # This is a minimal version of what we need for our viz-with-timeviewer
     # support currently
     subject = 'test'
@@ -399,9 +395,11 @@ def tiny(tmpdir, request):
     return brain, ratio
 
 
-def test_brain_screenshot(renderer_interactive, brain_gc, tiny):
+def test_brain_screenshot(renderer_interactive, tmpdir, brain_gc):
     """Test time viewer screenshot."""
-    tiny_brain, ratio = tiny
+    if renderer_interactive._get_3d_backend() != 'pyvista':
+        pytest.skip('TimeViewer tests only supported on PyVista')
+    tiny_brain, ratio = tiny(tmpdir)
     img_nv = tiny_brain.screenshot(time_viewer=False)
     want = (300 * ratio, 300 * ratio, 3)
     assert img_nv.shape == want
