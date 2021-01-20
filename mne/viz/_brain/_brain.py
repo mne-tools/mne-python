@@ -656,9 +656,20 @@ class Brain(object):
                 yield
             finally:
                 self.splitter.setSizes([sz[1], mpl_h])
+                # 1. Process events
                 _process_events(self.plotter)
                 _process_events(self.plotter)
-                self.mpl_canvas.canvas.setMinimumSize(0, 0)
+                # 2. Get the window size that accommodates the size
+                sz = self.plotter.app_window.size()
+                # 3. Call app_window.setBaseSize and resize (in pyvistaqt)
+                self.plotter.window_size = (sz.width(), sz.height())
+                # 4. Undo the min size setting and process events
+                self.plotter.interactor.setMinimumSize(0, 0)
+                _process_events(self.plotter)
+                _process_events(self.plotter)
+                # 5. Resize the window (again!) to the correct size
+                #    (not sure why, but this is required on macOS at least)
+                self.plotter.window_size = (sz.width(), sz.height())
             _process_events(self.plotter)
             _process_events(self.plotter)
             # sizes could change, update views
