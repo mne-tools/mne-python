@@ -1151,7 +1151,7 @@ class Brain(object):
         self.tool_bar.addWidget(QLabel("Annotation"))
         self._annot_cands_widget = QComboBox()
         self.tool_bar.addWidget(self._annot_cands_widget)
-        cands = ['None'] + cands
+        cands = cands + ['None']
         for cand in cands:
             self._annot_cands_widget.addItem(cand)
         self.annot = cands[0]
