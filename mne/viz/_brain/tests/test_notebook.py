@@ -1,5 +1,4 @@
 import os
-import pytest
 
 from mne.datasets import testing
 from mne.utils import requires_version
