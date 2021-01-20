@@ -2323,7 +2323,7 @@ def concatenate_images(images, axis=0, bgcolor='black', centered=True):
     ret = np.zeros((ret_shape[0], ret_shape[1], 3), dtype=np.uint8)
     ret[:, :, :] = bgcolor
     ptr = np.array([0, 0])
-    sec = np.array([0 == axis, 1 == axis]).astype(np.int)
+    sec = np.array([0 == axis, 1 == axis]).astype(int)
     for image in images:
         shape = image.shape[:-1]
         dec = ptr
