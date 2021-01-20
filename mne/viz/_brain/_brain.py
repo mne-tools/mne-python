@@ -9,6 +9,7 @@
 
 import contextlib
 from functools import partial
+from io import BytesIO
 import os
 import os.path as op
 import sys
@@ -27,7 +28,7 @@ from .mplcanvas import MplCanvas
 from .callback import (ShowView, IntSlider, TimeSlider, SmartSlider,
                        BumpColorbarPoints, UpdateColorbarScale)
 
-from ..utils import _show_help, _get_color_list
+from ..utils import _show_help, _get_color_list, concatenate_images
 from .._3d import _process_clim, _handle_time, _check_views
 
 from ...externals.decorator import decorator
@@ -2626,50 +2627,17 @@ class Brain(object):
                 not self.separate_canvas:
             canvas = self.mpl_canvas.fig.canvas
             canvas.draw_idle()
-            if self.notebook:
-                from io import BytesIO
-                # Here we need to save to a buffer without taking into
-                # account the dpi to keep the size used on creation
-                # of the canvas which is used for the 3D renderer.
-                # For some reason doing
-                # canvas.get_width_height() overestimates the size
-                # of the image while doing fig.savefig('fname.png')
-                # returns the right number of pixels.
-                fig = self.mpl_canvas.fig
-                output = BytesIO()
-                fig.savefig(output, format='raw')
+            fig = self.mpl_canvas.fig
+            with BytesIO() as output:
+                # Need to pass dpi here so it uses the physical (HiDPI) DPI
+                # rather than logical DPI when saving
+                fig.savefig(output, dpi=fig.get_dpi(), format='raw')
                 output.seek(0)
                 trace_img = np.reshape(
                     np.frombuffer(output.getvalue(), dtype=np.uint8),
                     newshape=(-1, img.shape[1], 4))[:, :, :3]
-                output.close()
-            else:
-                # In theory, one of these should work:
-                #
-                # trace_img = np.frombuffer(
-                #     canvas.tostring_rgb(), dtype=np.uint8)
-                # trace_img.shape = canvas.get_width_height()[::-1] + (3,)
-                #
-                # or
-                #
-                # trace_img = np.frombuffer(
-                #     canvas.tostring_rgb(), dtype=np.uint8)
-                # size = time_viewer.mpl_canvas.getSize()
-                # trace_img.shape = (size.height(), size.width(), 3)
-                #
-                # But in practice, sometimes the sizes does not match the
-                # renderer tostring_rgb() size. So let's directly use what
-                # matplotlib does in lib/matplotlib/backends/backend_agg.py
-                # before calling tobytes():
-                trace_img = np.asarray(
-                    canvas.renderer._renderer).take([0, 1, 2], axis=2)
-            # need to slice into trace_img because generally it's a bit
-            # smaller
-            delta = trace_img.shape[1] - img.shape[1]
-            if delta > 0:
-                start = delta // 2
-                trace_img = trace_img[:, start:start + img.shape[1]]
-            img = np.concatenate([img, trace_img], axis=0)
+            img = concatenate_images(
+                [img, trace_img], bgcolor=self._brain_color[:3])
         return img
 
     @fill_doc
