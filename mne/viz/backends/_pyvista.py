@@ -233,17 +233,17 @@ class _Renderer(_BaseRenderer):
             # 1. Process events
             _process_events(self.plotter)
             _process_events(self.plotter)
-            # 2. Get the window size that accommodates the size
-            sz = self.plotter.app_window.size()
-            # 3. Call app_window.setBaseSize and resize (in pyvistaqt)
-            self.plotter.window_size = (sz.width(), sz.height())
-            # 4. Undo the min size setting and process events
+            # 2. Get the window and interactor sizes that work
+            win_sz = self.plotter.app_window.size()
+            ren_sz = self.plotter.interactor.size()
+            # 3. Undo the min size setting and process events
             self.plotter.interactor.setMinimumSize(0, 0)
             _process_events(self.plotter)
             _process_events(self.plotter)
-            # 5. Resize the window (again!) to the correct size
+            # 4. Resize the window and interactor to the correct size
             #    (not sure why, but this is required on macOS at least)
-            self.plotter.window_size = (sz.width(), sz.height())
+            self.plotter.window_size = (win_sz.width(), win_sz.height())
+            self.plotter.interactor.resize(ren_sz.width(), ren_sz.height())
             _process_events(self.plotter)
             _process_events(self.plotter)
 
