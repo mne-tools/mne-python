@@ -2630,8 +2630,14 @@ class Brain(object):
             fig = self.mpl_canvas.fig
             with BytesIO() as output:
                 # Need to pass dpi here so it uses the physical (HiDPI) DPI
-                # rather than logical DPI when saving
-                fig.savefig(output, dpi=fig.get_dpi(), format='raw')
+                # rather than logical DPI when saving in most cases.
+                # But when matplotlib uses HiDPI and VTK doesn't
+                # (e.g., macOS w/Qt 5.14+ and VTK9) then things won't work,
+                # so let's just calculate the DPI we need to get
+                # the correct size output based on the widths being equal
+                dpi = img.shape[1] / fig.get_size_inches()[0]
+                fig.savefig(output, dpi=dpi, format='raw',
+                            facecolor=self._bg_color, edgecolor='none')
                 output.seek(0)
                 trace_img = np.reshape(
                     np.frombuffer(output.getvalue(), dtype=np.uint8),

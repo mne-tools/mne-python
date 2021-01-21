@@ -369,6 +369,9 @@ def test_brain_save_movie(tmpdir, renderer, brain_gc):
     brain.close()
 
 
+_TINY_SIZE = (300, 250)
+
+
 def tiny(tmpdir):
     """Create a tiny fake brain."""
     # This is a minimal version of what we need for our viz-with-timeviewer
@@ -390,8 +393,16 @@ def tiny(tmpdir):
     data = rng.randn(len(rr), 10)
     stc = SourceEstimate(data, vertices, 0, 1, subject)
     brain = stc.plot(subjects_dir=tmpdir, hemi='lh', surface='white',
-                     size=300)
-    ratio = brain.mpl_canvas.canvas.window().devicePixelRatio()
+                     size=_TINY_SIZE)
+    # in principle this should be sufficient:
+    #
+    # ratio = brain.mpl_canvas.canvas.window().devicePixelRatio()
+    #
+    # but in practice VTK can mess up sizes, so let's just calculate it.
+    sz = brain.plotter.size()
+    sz = (sz.width(), sz.height())
+    sz_ren = brain.plotter.renderer.GetSize()
+    ratio = np.median(np.array(sz_ren) / np.array(sz))
     return brain, ratio
 
 
@@ -401,7 +412,7 @@ def test_brain_screenshot(renderer_interactive, tmpdir, brain_gc):
         pytest.skip('TimeViewer tests only supported on PyVista')
     tiny_brain, ratio = tiny(tmpdir)
     img_nv = tiny_brain.screenshot(time_viewer=False)
-    want = (300 * ratio, 300 * ratio, 3)
+    want = (_TINY_SIZE[1] * ratio, _TINY_SIZE[0] * ratio, 3)
     assert img_nv.shape == want
     img_v = tiny_brain.screenshot(time_viewer=True)
     assert img_v.shape[1:] == want[1:]
