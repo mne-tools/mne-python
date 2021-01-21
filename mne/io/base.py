@@ -1788,9 +1788,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             cols["q3"].append(q(data, 75))
             cols["max"].append(np.max(data))
 
-        lens = {"name": max(4, max([len(_) for _ in cols["name"]])),
-                "type": max(4, max([len(_) for _ in cols["type"]])),
-                "unit": max(4, max([len(_) for _ in cols["unit"]]))}
+        lens = {"name": max(4, max([len(n) for n in cols["name"]])),
+                "type": max(4, max([len(t) for t in cols["type"]])),
+                "unit": max(4, max([len(u) for u in cols["unit"]]))}
 
         # print description, start with header
         print(self, "\n")
