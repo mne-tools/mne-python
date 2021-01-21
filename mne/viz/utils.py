@@ -2287,3 +2287,47 @@ def _ndarray_to_fig(img):
     fig = _figure_agg(dpi=dpi, figsize=figsize, frameon=False)
     fig.figimage(img, resize=True)
     return fig
+
+
+def concatenate_images(images, axis=0, bgcolor='black', centered=True):
+    """Concatenate a list of images.
+
+    Parameters
+    ----------
+    images : list of ndarray
+        The list of images to concatenate.
+    axis : 0 or 1
+        The images are concatenated horizontally if 0 and vertically otherwise.
+        The default orientation is horizontal.
+    bgcolor : str | list
+        The color of the background. The name of the color is accepted
+        (e.g 'red') or a list of RGB values between 0 and 1. Defaults to
+        'black'.
+    centered : bool
+        If True, the images are centered. Defaults to True.
+
+    Returns
+    -------
+    img : ndarray
+        The concatenated image.
+    """
+    from matplotlib.colors import colorConverter
+    if isinstance(bgcolor, str):
+        bgcolor = colorConverter.to_rgb(bgcolor)
+    bgcolor = np.asarray(bgcolor) * 255
+    funcs = [np.sum, np.max]
+    ret_shape = np.asarray([
+        funcs[axis]([image.shape[0] for image in images]),
+        funcs[1 - axis]([image.shape[1] for image in images]),
+    ])
+    ret = np.zeros((ret_shape[0], ret_shape[1], 3), dtype=np.uint8)
+    ret[:, :, :] = bgcolor
+    ptr = np.array([0, 0])
+    sec = np.array([0 == axis, 1 == axis]).astype(int)
+    for image in images:
+        shape = image.shape[:-1]
+        dec = ptr
+        dec += ((ret_shape - shape) // 2) * (1 - sec) if centered else 0
+        ret[dec[0]:dec[0] + shape[0], dec[1]:dec[1] + shape[1], :] = image
+        ptr += shape * sec
+    return ret

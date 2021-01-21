@@ -9,6 +9,7 @@
 
 import contextlib
 from functools import partial
+from io import BytesIO
 import os
 import os.path as op
 import sys
@@ -27,7 +28,7 @@ from .mplcanvas import MplCanvas
 from .callback import (ShowView, IntSlider, TimeSlider, SmartSlider,
                        BumpColorbarPoints, UpdateColorbarScale)
 
-from ..utils import _show_help, _get_color_list
+from ..utils import _show_help, _get_color_list, concatenate_images
 from .._3d import _process_clim, _handle_time, _check_views
 
 from ...externals.decorator import decorator
@@ -591,6 +592,7 @@ class Brain(object):
         self._configure_picking()
         self._configure_tool_bar()
         if self.notebook:
+            self._renderer._set_tool_bar(state=False)
             self.show()
         self._configure_trace_mode()
         self.toggle_interface()
@@ -652,9 +654,20 @@ class Brain(object):
                 yield
             finally:
                 self.splitter.setSizes([sz[1], mpl_h])
+                # 1. Process events
                 self._renderer._process_events()
                 self._renderer._process_events()
-                self.mpl_canvas.canvas.setMinimumSize(0, 0)
+                # 2. Get the window size that accommodates the size
+                sz = self.plotter.app_window.size()
+                # 3. Call app_window.setBaseSize and resize (in pyvistaqt)
+                self.plotter.window_size = (sz.width(), sz.height())
+                # 4. Undo the min size setting and process events
+                self.plotter.interactor.setMinimumSize(0, 0)
+                self._renderer._process_events()
+                self._renderer._process_events()
+                # 5. Resize the window (again!) to the correct size
+                #    (not sure why, but this is required on macOS at least)
+                self.plotter.window_size = (sz.width(), sz.height())
             self._renderer._process_events()
             self._renderer._process_events()
             # sizes could change, update views
@@ -1139,15 +1152,16 @@ class Brain(object):
 
         from PyQt5.QtWidgets import QComboBox, QLabel
         dir_name = op.join(self._subjects_dir, self._subject_id, 'label')
-        cands = _read_annot_cands(dir_name)
+        cands = _read_annot_cands(dir_name, raise_error=False)
         self.tool_bar.addSeparator()
         self.tool_bar.addWidget(QLabel("Annotation"))
         self._annot_cands_widget = QComboBox()
         self.tool_bar.addWidget(self._annot_cands_widget)
-        self._annot_cands_widget.addItem('None')
+        cands = cands + ['None']
         for cand in cands:
             self._annot_cands_widget.addItem(cand)
         self.annot = cands[0]
+        del cands
 
         # setup label extraction parameters
         def _set_label_mode(mode):
@@ -1209,7 +1223,14 @@ class Brain(object):
         return self.save_movie(None)
 
     def _screenshot(self):
-        if not self.notebook:
+        if self.notebook:
+            from PIL import Image
+            fname = self.actions.get("screenshot_field").value
+            fname = self._renderer._get_screenshot_filename() \
+                if len(fname) == 0 else fname
+            img = self.screenshot(fname, time_viewer=True)
+            Image.fromarray(img).save(fname)
+        else:
             self.plotter._qt_screenshot()
 
     def _initialize_actions(self):
@@ -1217,14 +1238,13 @@ class Brain(object):
             self._load_icons()
             self.tool_bar = self.window.addToolBar("toolbar")
 
-    def _add_action(self, name, desc, func, icon_name, qt_icon_name=None,
+    def _add_button(self, name, desc, func, icon_name, qt_icon_name=None,
                     notebook=True):
         if self.notebook:
             if not notebook:
                 return
-            from ipywidgets import Button
-            self.actions[name] = Button(description=desc, icon=icon_name)
-            self.actions[name].on_click(lambda x: func())
+            self.actions[name] = self._renderer._add_button(
+                desc, func, icon_name)
         else:
             qt_icon_name = name if qt_icon_name is None else qt_icon_name
             self.actions[name] = self.tool_bar.addAction(
@@ -1233,61 +1253,71 @@ class Brain(object):
                 func,
             )
 
+    def _add_text_field(self, name, value, placeholder):
+        if not self.notebook:
+            return
+        self.actions[name] = self._renderer._add_text_field(
+            value, placeholder)
+
     def _configure_tool_bar(self):
         self._initialize_actions()
-        self._add_action(
+        self._add_button(
             name="screenshot",
             desc="Take a screenshot",
             func=self._screenshot,
-            icon_name=None,
-            notebook=False,
+            icon_name="camera",
         )
-        self._add_action(
+        self._add_text_field(
+            name="screenshot_field",
+            value=None,
+            placeholder="Type a file name",
+        )
+        self._add_button(
             name="movie",
             desc="Save movie...",
             func=self._save_movie_noname,
             icon_name=None,
             notebook=False,
         )
-        self._add_action(
+        self._add_button(
             name="visibility",
             desc="Toggle Visibility",
             func=self.toggle_interface,
             icon_name="eye",
             qt_icon_name="visibility_on",
         )
-        self._add_action(
+        self._add_button(
             name="play",
             desc="Play/Pause",
             func=self.toggle_playback,
             icon_name=None,
             notebook=False,
         )
-        self._add_action(
+        self._add_button(
             name="reset",
             desc="Reset",
             func=self.reset,
             icon_name="history",
         )
-        self._add_action(
+        self._add_button(
             name="scale",
             desc="Auto-Scale",
             func=self.apply_auto_scaling,
             icon_name="magic",
         )
-        self._add_action(
+        self._add_button(
             name="restore",
             desc="Restore scaling",
             func=self.restore_user_scaling,
             icon_name="reply",
         )
-        self._add_action(
+        self._add_button(
             name="clear",
             desc="Clear traces",
             func=self.clear_glyphs,
             icon_name="trash",
         )
-        self._add_action(
+        self._add_button(
             name="help",
             desc="Help",
             func=self.help,
@@ -1296,10 +1326,7 @@ class Brain(object):
         )
 
         if self.notebook:
-            from IPython import display
-            from ipywidgets import HBox
-            self.tool_bar = HBox(tuple(self.actions.values()))
-            display.display(self.tool_bar)
+            self.tool_bar = self._renderer._show_tool_bar(self.actions)
         else:
             # Qt shortcuts
             self.actions["movie"].setShortcut("ctrl+shift+s")
@@ -1585,6 +1612,7 @@ class Brain(object):
         if self.mpl_canvas is None:
             return
         time = self._data['time'].copy()  # avoid circular ref
+        mni = None
         if hemi == 'vol':
             hemi_str = 'V'
             xfm = read_talxfm(
@@ -1597,15 +1625,20 @@ class Brain(object):
             mni = apply_trans(np.dot(xfm['trans'], src_mri_t), ijk)
         else:
             hemi_str = 'L' if hemi == 'lh' else 'R'
-            mni = vertex_to_mni(
-                vertices=vertex_id,
-                hemis=0 if hemi == 'lh' else 1,
-                subject=self._subject_id,
-                subjects_dir=self._subjects_dir
-            )
-        label = "{}:{} MNI: {}".format(
-            hemi_str, str(vertex_id).ljust(6),
-            ', '.join('%5.1f' % m for m in mni))
+            try:
+                mni = vertex_to_mni(
+                    vertices=vertex_id,
+                    hemis=0 if hemi == 'lh' else 1,
+                    subject=self._subject_id,
+                    subjects_dir=self._subjects_dir
+                )
+            except Exception:
+                mni = None
+        if mni is not None:
+            mni = ' MNI: ' + ', '.join('%5.1f' % m for m in mni)
+        else:
+            mni = ''
+        label = "{}:{}{}".format(hemi_str, str(vertex_id).ljust(6), mni)
         act_data, smooth = self.act_data_smooth[hemi]
         if smooth is not None:
             act_data = smooth[vertex_id].dot(act_data)[0]
@@ -2573,32 +2606,23 @@ class Brain(object):
                 not self.separate_canvas:
             canvas = self.mpl_canvas.fig.canvas
             canvas.draw_idle()
-            # In theory, one of these should work:
-            #
-            # trace_img = np.frombuffer(
-            #     canvas.tostring_rgb(), dtype=np.uint8)
-            # trace_img.shape = canvas.get_width_height()[::-1] + (3,)
-            #
-            # or
-            #
-            # trace_img = np.frombuffer(
-            #     canvas.tostring_rgb(), dtype=np.uint8)
-            # size = time_viewer.mpl_canvas.getSize()
-            # trace_img.shape = (size.height(), size.width(), 3)
-            #
-            # But in practice, sometimes the sizes does not match the
-            # renderer tostring_rgb() size. So let's directly use what
-            # matplotlib does in lib/matplotlib/backends/backend_agg.py
-            # before calling tobytes():
-            trace_img = np.asarray(
-                canvas.renderer._renderer).take([0, 1, 2], axis=2)
-            # need to slice into trace_img because generally it's a bit
-            # smaller
-            delta = trace_img.shape[1] - img.shape[1]
-            if delta > 0:
-                start = delta // 2
-                trace_img = trace_img[:, start:start + img.shape[1]]
-            img = np.concatenate([img, trace_img], axis=0)
+            fig = self.mpl_canvas.fig
+            with BytesIO() as output:
+                # Need to pass dpi here so it uses the physical (HiDPI) DPI
+                # rather than logical DPI when saving in most cases.
+                # But when matplotlib uses HiDPI and VTK doesn't
+                # (e.g., macOS w/Qt 5.14+ and VTK9) then things won't work,
+                # so let's just calculate the DPI we need to get
+                # the correct size output based on the widths being equal
+                dpi = img.shape[1] / fig.get_size_inches()[0]
+                fig.savefig(output, dpi=dpi, format='raw',
+                            facecolor=self._bg_color, edgecolor='none')
+                output.seek(0)
+                trace_img = np.reshape(
+                    np.frombuffer(output.getvalue(), dtype=np.uint8),
+                    newshape=(-1, img.shape[1], 4))[:, :, :3]
+            img = concatenate_images(
+                [img, trace_img], bgcolor=self._brain_color[:3])
         return img
 
     @fill_doc
