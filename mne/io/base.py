@@ -1769,8 +1769,15 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                                default_index=['time'])
         return df
 
-    def describe(self):
-        """Describe channels."""
+    def describe(self, data_frame=False):
+        """Describe channels (name, type, descriptive statistics).
+
+        Parameters
+        ----------
+        data_frame : bool
+            If True, return a pd.DataFrame. If False, print descriptive
+            statistics (and return None).
+        """
         from scipy.stats import scoreatpercentile as q
         nchan = self.info["nchan"]
 
@@ -1788,13 +1795,20 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             cols["q3"].append(q(data, 75))
             cols["max"].append(np.max(data))
 
-        lens = {"name": max(4, max([len(n) for n in cols["name"]])),
+        lens = {"ch": max(2, len(str(nchan))),
+                "name": max(4, max([len(n) for n in cols["name"]])),
                 "type": max(4, max([len(t) for t in cols["type"]])),
                 "unit": max(4, max([len(u) for u in cols["unit"]]))}
 
+        if data_frame:
+            import pandas as pd
+            df = pd.DataFrame(cols)
+            df.index.name = "ch"
+            return df
         # print description, start with header
         print(self, "\n")
-        print(f"{'name':<{lens['name']}}  "
+        print(f"{'ch':>{lens['ch']}}  "
+              f"{'name':<{lens['name']}}  "
               f"{'type':<{lens['type']}}  "
               f"{'unit':<{lens['unit']}}  "
               f"{'min':>9}  "
@@ -1804,7 +1818,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
               f"{'max':>9}  ")
         # print description for each channel
         for i in range(nchan):
-            msg = (f"{cols['name'][i]:<{lens['name']}}  "
+            msg = (f"{i:>{lens['ch']}}  "
+                   f"{cols['name'][i]:<{lens['name']}}  "
                    f"{cols['type'][i].upper():<{lens['type']}}  "
                    f"{cols['unit'][i]:<{lens['unit']}}  ")
             for col in ["min", "q1", "median", "q3", "max"]:
