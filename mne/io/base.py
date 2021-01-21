@@ -47,7 +47,7 @@ from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      copy_function_doc_to_method_doc, _validate_type,
                      _check_preload, _get_argvalues, _check_option,
                      _build_data_frame, _convert_times, _scale_dataframe_data,
-                     _check_time_format, prefix)
+                     _check_time_format, si_prefix)
 from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo, _RAW_CLIP_DEF
 from ..event import find_events, concatenate_events
 from ..annotations import Annotations, _combine_annotations, _sync_onset
@@ -1808,7 +1808,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                    f"{cols['type'][i].upper():<{lens['type']}}  "
                    f"{cols['unit'][i]:<{lens['unit']}}  ")
             for col in ["min", "q1", "median", "q3", "max"]:
-                value_, prefix_ = prefix(cols[col][i])
+                value_, prefix_ = si_prefix(cols[col][i])
                 if prefix_ == "":
                     prefix_ = "0"
                 msg += f"{value_:>8.3f}{prefix_}  "

@@ -49,7 +49,7 @@ from ._testing import (run_tests_if_main, run_command_if_main,
                        assert_dig_allclose, assert_meg_snr, assert_snr,
                        assert_stcs_equal, modified_env, _click_ch_name,
                        _close_event)
-from .numerics import (hashfunc, _compute_row_norms, prefix,
+from .numerics import (hashfunc, _compute_row_norms, si_prefix,
                        _reg_pinv, random_permutation, _reject_data_segments,
                        compute_corr, _get_inst_data, array_split_idx,
                        sum_squared, split_list, _gen_events, create_slices,

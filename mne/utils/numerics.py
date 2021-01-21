@@ -1059,7 +1059,7 @@ class _ReuseCycle(object):
             self.indices.insert(loc, idx)
 
 
-def prefix(number, ten_hundred=False):
+def si_prefix(number, ten_hundred=False):
     """Return the (scaled) number with suitable SI prefix.
 
     Numbers are scaled so that they are always ≥ 1 but < the value
@@ -1081,15 +1081,15 @@ def prefix(number, ten_hundred=False):
 
     Examples
     --------
-    >>> prefix(10)
+    >>> si_prefix(10)
     (10.0, '')
-    >>> prefix(2000)
+    >>> si_prefix(2000)
     (2.0, 'k')
-    >>> prefix(54611234.8)
+    >>> si_prefix(54611234.8)
     (54.6112348, 'M')
-    >>> prefix(0.033)
+    >>> si_prefix(0.033)
     (33.0, 'm')
-    >>> prefix(22.3e-6)
+    >>> si_prefix(22.3e-6)
     (22.3, 'µ')
 
     Notes
