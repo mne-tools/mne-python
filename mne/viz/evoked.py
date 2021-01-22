@@ -681,8 +681,8 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         the same length as the number of channel types. If instance of
         Axes, there must be only one channel type plotted.
     gfp : bool | 'only'
-        Plot the GFP and to the traces for each channel if `True`, or only the
-        GFP if `'only`, i.e., hiding the individual channel traces. The color
+        Plot the GFP and the trace for each channel if `True`; or only the
+        GFP if `'only`, hiding the individual channel traces. The color
         of the GFP trace will be green if `spatial_colors=False`, and black
         otherwise.
     window_title : str | None
