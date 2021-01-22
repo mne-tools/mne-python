@@ -1776,14 +1776,14 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Parameters
         ----------
         data_frame : bool
-            If True, return results in a pd.DataFrame. If False, only print out
+            If True, return results in a pandas.DataFrame. If False, only print
             results.
 
         Returns
         -------
-        result : None | pd.DataFrame
+        result : None | pandas.DataFrame
             If data_frame=False, returns None. If data_frame=True, returns
-            results in a pd.DataFrame.
+            results in a pandas.DataFrame (requires pandas).
         """
         from scipy.stats import scoreatpercentile as q
         nchan = self.info["nchan"]
