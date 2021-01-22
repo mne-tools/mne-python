@@ -266,6 +266,11 @@ class Brain(object):
     units : str
         Can be 'm' or 'mm' (default).
     %(view_layout)s
+    silhouette : dict | bool
+       As a dict, it contains the ``color``, ``linewidth``, ``alpha`` opacity
+       and ``decimate`` LOD of the brain's silhouette to display. If True, the
+       default values are used and if False, no silhouette will be displayed.
+       Defaults to False.
     show : bool
         Display the window as soon as it is ready. Defaults to True.
 
@@ -344,7 +349,7 @@ class Brain(object):
                  foreground=None, figure=None, subjects_dir=None,
                  views='auto', offset=True, show_toolbar=False,
                  offscreen=False, interaction='trackball', units='mm',
-                 view_layout='vertical', show=True):
+                 view_layout='vertical', silhouette=False, show=True):
         from ..backends.renderer import backend, _get_renderer, _get_3d_backend
         from .._3d import _get_cmap
         from matplotlib.colors import colorConverter
@@ -405,6 +410,15 @@ class Brain(object):
         self._labels = {'lh': list(), 'rh': list()}
         self._annots = {'lh': list(), 'rh': list()}
         self._layered_meshes = {}
+        # default values for silhouette
+        self._silhouette = {
+            'color': self._bg_color,
+            'line_width': 2,
+            'alpha': 1.0,
+            'decimate': 0.75,
+        }
+        if isinstance(silhouette, dict):
+            self._silhouette.update(silhouette)
         # for now only one color bar can be added
         # since it is the same for all figures
         self._colorbar_added = False
@@ -461,6 +475,14 @@ class Brain(object):
                         opacity=alpha,
                         name='curv',
                     )
+                    if silhouette is not None:
+                        self._renderer._silhouette(
+                            mesh=mesh._polydata,
+                            color=self._silhouette["color"],
+                            line_width=self._silhouette["line_width"],
+                            alpha=self._silhouette["alpha"],
+                            decimate=self._silhouette["decimate"],
+                        )
                     self._layered_meshes[h] = mesh
                     # add metadata to the mesh for picking
                     mesh._polydata._hemi = h

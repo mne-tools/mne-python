@@ -1898,6 +1898,7 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
     if backend in ['pyvista', 'notebook']:
         kwargs["show"] = False
         kwargs["view_layout"] = view_layout
+        kwargs["silhouette"] = True
     else:
         kwargs.update(_check_pysurfer_antialias(Brain))
         if view_layout != 'vertical':
