@@ -170,8 +170,7 @@ class _LayeredMesh(object):
     def _update(self):
         if self._cache is None:
             return
-        from ..backends._pyvista import _set_mesh_scalars
-        _set_mesh_scalars(
+        self._renderer._set_mesh_scalars(
             mesh=self._polydata,
             scalars=self._cache,
             name=self._default_scalars_name,
@@ -547,7 +546,6 @@ class Brain(object):
         self._label_mode_widget = None
 
         # Direct access parameters:
-        self._iren = self._renderer.plotter.iren
         self.tool_bar = None
         if self.notebook:
             self.main_menu = None
@@ -644,7 +642,6 @@ class Brain(object):
     @contextlib.contextmanager
     def ensure_minimum_sizes(self):
         """Ensure that widgets respect the windows size."""
-        from ..backends._pyvista import _process_events
         sz = self._size
         adjust_mpl = self.show_traces and not self.separate_canvas
         if not adjust_mpl:
@@ -658,26 +655,26 @@ class Brain(object):
             finally:
                 self.splitter.setSizes([sz[1], mpl_h])
                 # 1. Process events
-                _process_events(self.plotter)
-                _process_events(self.plotter)
+                self._renderer._process_events()
+                self._renderer._process_events()
                 # 2. Get the window size that accommodates the size
                 sz = self.plotter.app_window.size()
                 # 3. Call app_window.setBaseSize and resize (in pyvistaqt)
                 self.plotter.window_size = (sz.width(), sz.height())
                 # 4. Undo the min size setting and process events
                 self.plotter.interactor.setMinimumSize(0, 0)
-                _process_events(self.plotter)
-                _process_events(self.plotter)
+                self._renderer._process_events()
+                self._renderer._process_events()
                 # 5. Resize the window (again!) to the correct size
                 #    (not sure why, but this is required on macOS at least)
                 self.plotter.window_size = (sz.width(), sz.height())
-            _process_events(self.plotter)
-            _process_events(self.plotter)
+            self._renderer._process_events()
+            self._renderer._process_events()
             # sizes could change, update views
             for hemi in ('lh', 'rh'):
                 for ri, ci, v in self._iter_views(hemi):
                     self.show_view(view=v, row=ri, col=ci)
-            _process_events(self.plotter)
+            self._renderer._process_events()
 
     def toggle_interface(self, value=None):
         """Toggle the interface.
@@ -1099,8 +1096,6 @@ class Brain(object):
             self._add_vertex_glyph(hemi, mesh, vertex_id)
 
     def _configure_picking(self):
-        from ..backends._pyvista import _update_picking_callback
-
         # get data for each hemi
         for idx, hemi in enumerate(['vol', 'lh', 'rh']):
             hemi_data = self._data.get(hemi)
@@ -1117,8 +1112,7 @@ class Brain(object):
                          (vertices, np.arange(len(vertices)))))
                 self.act_data_smooth[hemi] = (act_data, smooth_mat)
 
-        _update_picking_callback(
-            self.plotter,
+        self._renderer._update_picking_callback(
             self._on_mouse_move,
             self._on_button_press,
             self._on_button_release,
@@ -1211,8 +1205,8 @@ class Brain(object):
 
     def _load_icons(self):
         from PyQt5.QtGui import QIcon
-        from ..backends._pyvista import _init_resources
-        _init_resources()
+        from ..backends._utils import _init_qt_resources
+        _init_qt_resources()
         self.icons["help"] = QIcon(":/help.svg")
         self.icons["play"] = QIcon(":/play.svg")
         self.icons["pause"] = QIcon(":/pause.svg")
@@ -1501,7 +1495,6 @@ class Brain(object):
         # skip if the wrong hemi is selected
         if self.act_data_smooth[hemi][0] is None:
             return
-        from ..backends._pyvista import _sphere
         color = next(self.color_cycle)
         line = self.plot_time_course(hemi, vertex_id, color)
         if hemi == 'vol':
@@ -1535,8 +1528,7 @@ class Brain(object):
             #    mitigated with synchronization/delay?)
             # 2) the glyph filter is used in renderer.sphere() but only one
             #    sphere is required in this function.
-            actor, sphere = _sphere(
-                plotter=self.plotter,
+            actor, sphere = self._renderer._sphere(
                 center=np.array(center),
                 color=color,
                 radius=4.0,
@@ -1700,7 +1692,6 @@ class Brain(object):
         )
 
     def _clear_callbacks(self):
-        from ..backends._pyvista import _remove_picking_callback
         if not hasattr(self, 'callbacks'):
             return
         for callback in self.callbacks.values():
@@ -1712,8 +1703,6 @@ class Brain(object):
                 if hasattr(callback, "slider_rep"):
                     callback.slider_rep = None
         self.callbacks.clear()
-        if self.show_traces:
-            _remove_picking_callback(self._iren, self.plotter.picker)
 
     @property
     def interaction(self):
@@ -2029,7 +2018,6 @@ class Brain(object):
         self._update()
 
     def _add_volume_data(self, hemi, src, volume_options):
-        from ..backends._pyvista import _volume
         _validate_type(src, SourceSpaces, 'src')
         _check_option('src.kind', src.kind, ('volume',))
         _validate_type(
@@ -2099,8 +2087,9 @@ class Brain(object):
             scalars = np.zeros(np.prod(dimensions))
             scalars[vertices] = 1.  # for the outer mesh
             grid, grid_mesh, volume_pos, volume_neg = \
-                _volume(dimensions, origin, spacing, scalars, surface_alpha,
-                        resolution, blending, center)
+                self._renderer._volume(dimensions, origin, spacing, scalars,
+                                       surface_alpha, resolution, blending,
+                                       center)
             self._data[hemi]['alpha'] = alpha  # incorrectly set earlier
             self._data[hemi]['grid'] = grid
             self._data[hemi]['grid_mesh'] = grid_mesh
@@ -2118,7 +2107,6 @@ class Brain(object):
             actor_neg = None
         grid_mesh = self._data[hemi]['grid_mesh']
         if grid_mesh is not None:
-            import vtk
             _, prop = self._renderer.plotter.add_actor(
                 grid_mesh, reset_camera=False, name=None, culling=False,
                 pickable=False)
@@ -2127,20 +2115,12 @@ class Brain(object):
             if silhouette_alpha > 0 and silhouette_linewidth > 0:
                 for ri, ci, v in self._iter_views('vol'):
                     self._renderer.subplot(ri, ci)
-                    grid_silhouette = vtk.vtkPolyDataSilhouette()
-                    grid_silhouette.SetInputData(grid_mesh.GetInput())
-                    grid_silhouette.SetCamera(
-                        self._renderer.plotter.renderer.GetActiveCamera())
-                    grid_silhouette.SetEnableFeatureAngle(0)
-                    grid_silhouette_mapper = vtk.vtkPolyDataMapper()
-                    grid_silhouette_mapper.SetInputConnection(
-                        grid_silhouette.GetOutputPort())
-                    _, prop = self._renderer.plotter.add_actor(
-                        grid_silhouette_mapper, reset_camera=False, name=None,
-                        culling=False, pickable=False)
-                    prop.SetColor(*self._brain_color[:3])
-                    prop.SetOpacity(silhouette_alpha)
-                    prop.SetLineWidth(silhouette_linewidth)
+                    self._renderer._silhouette(
+                        mesh=grid_mesh.GetInput(),
+                        color=self._brain_color[:3],
+                        line_width=silhouette_linewidth,
+                        alpha=silhouette_alpha,
+                    )
 
         return actor_pos, actor_neg
 
@@ -2534,9 +2514,8 @@ class Brain(object):
                 )
                 self._annots[hemi].append(annot)
                 if not self.time_viewer or self.traces_mode == 'vertex':
-                    from ..backends._pyvista import _set_colormap_range
-                    _set_colormap_range(mesh._actor, cmap.astype(np.uint8),
-                                        None)
+                    self._renderer._set_colormap_range(
+                        mesh._actor, cmap.astype(np.uint8), None)
 
         self._update()
 
@@ -2654,7 +2633,6 @@ class Brain(object):
         ----------
         %(fmin_fmid_fmax)s
         """
-        from ..backends._pyvista import _set_colormap_range, _set_volume_range
         center = self._data['center']
         colormap = self._data['colormap']
         transparent = self._data['transparent']
@@ -2684,15 +2662,16 @@ class Brain(object):
                     mesh = self._layered_meshes[hemi]
                     mesh.update_overlay(name='data',
                                         colormap=self._data['ctable'])
-                    _set_colormap_range(mesh._actor, ctable, scalar_bar, rng,
-                                        self._brain_color)
+                    self._renderer._set_colormap_range(
+                        mesh._actor, ctable, scalar_bar, rng,
+                        self._brain_color)
                     scalar_bar = None
 
                 grid_volume_pos = hemi_data.get('grid_volume_pos')
                 grid_volume_neg = hemi_data.get('grid_volume_neg')
                 for grid_volume in (grid_volume_pos, grid_volume_neg):
                     if grid_volume is not None:
-                        _set_volume_range(
+                        self._renderer._set_volume_range(
                             grid_volume, ctable, hemi_data['alpha'],
                             scalar_bar, rng)
                         scalar_bar = None
@@ -2700,7 +2679,7 @@ class Brain(object):
                 glyph_actor = hemi_data.get('glyph_actor')
                 if glyph_actor is not None:
                     for glyph_actor_ in glyph_actor:
-                        _set_colormap_range(
+                        self._renderer._set_colormap_range(
                             glyph_actor_, ctable, scalar_bar, rng)
                         scalar_bar = None
 
@@ -2862,7 +2841,6 @@ class Brain(object):
                 f'available times ({min(self._times)}-{max(self._times)} s).')
 
     def _update_glyphs(self, hemi, vectors):
-        from ..backends._pyvista import _set_colormap_range, _create_actor
         hemi_data = self._data.get(hemi)
         assert hemi_data is not None
         vertices = hemi_data['vertices']
@@ -2897,7 +2875,7 @@ class Brain(object):
                 glyph_dataset.point_arrays['vec'] = vectors
                 glyph_mapper = hemi_data['glyph_mapper']
             if add:
-                glyph_actor = _create_actor(glyph_mapper)
+                glyph_actor = self._renderer._actor(glyph_mapper)
                 prop = glyph_actor.GetProperty()
                 prop.SetLineWidth(2.)
                 prop.SetOpacity(vector_alpha)
@@ -2906,7 +2884,7 @@ class Brain(object):
             else:
                 glyph_actor = hemi_data['glyph_actor'][count]
             count += 1
-            _set_colormap_range(
+            self._renderer._set_colormap_range(
                 actor=glyph_actor,
                 ctable=self._data['ctable'],
                 scalar_bar=None,
@@ -2985,8 +2963,7 @@ class Brain(object):
                     framerate=24, interpolation=None, codec=None,
                     bitrate=None, callback=None, time_viewer=False, **kwargs):
         import imageio
-        from ..backends._pyvista import _disabled_interaction
-        with _disabled_interaction(self._renderer):
+        with self._renderer._disabled_interaction():
             images = self._make_movie_frames(
                 time_dilation, tmin, tmax, framerate, interpolation, callback,
                 time_viewer)
