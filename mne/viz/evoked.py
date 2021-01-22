@@ -473,15 +473,13 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                                 linewidth=0.5)[0])
                     line_list[-1].set_pickradius(3.)
 
-            if gfp and gfp != 'only' and D.shape[0] == 1:
-                # Only a single channel
-                # Leave the test `gfp and gfp != 'only'` so we also handle
-                # non-boolean `gfp` settings correctly.
-                warn('Cannot calculate GFP with only one data channel, '
-                     'not plotting GFP')
-            elif gfp == 'only' and D.shape[0] == 1:
+            if gfp == 'only' and D.shape[0] == 1:
+                # Only a single channel + only GFP -> abort mission!
                 raise ValueError('Cannot calculate GFP with only one data '
                                  'channel')
+            elif gfp and D.shape[0] == 1:
+                warn('Cannot calculate GFP with only one data channel, '
+                     'not plotting GFP')
             elif gfp:  # gfp 'only' or True;
                 gfp_color = 3 * (0.,) if spatial_colors is True else (0., 1.,
                                                                       0.)
