@@ -1834,15 +1834,16 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
               f"{'q1':>8}  "
               f"{'median':>8}  "
               f"{'q3':>8}  "
-              f"{'max':>8}  ")
+              f"{'max':>8}")
         # print description for each channel
         for i in range(nchan):
             msg = (f"{i:>{lens['ch']}}  "
                    f"{cols['name'][i]:<{lens['name']}}  "
                    f"{cols['type'][i].upper():<{lens['type']}}  "
                    f"{cols['unit'][i]:<{lens['unit']}}  ")
-            for col in ["min", "q1", "median", "q3", "max"]:
+            for col in ["min", "q1", "median", "q3"]:
                 msg += f"{cols[col][i]:>8.2f}  "
+            msg += f"{cols['max'][i]:>8.2f}"
             print(msg)
 
 
