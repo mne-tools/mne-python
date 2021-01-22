@@ -473,7 +473,16 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                                 linewidth=0.5)[0])
                     line_list[-1].set_pickradius(3.)
 
-            if gfp:  # 'only' or boolean True
+            if gfp and gfp != 'only' and D.shape[0] == 1:
+                # Only a single channel
+                # Leave the test `gfp and gfp != 'only'` so we also handle
+                # non-boolean `gfp` settings correctly.
+                warn('Cannot calculate GFP with only one data channel, '
+                     'not plotting GFP')
+            elif gfp == 'only' and D.shape[0] == 1:
+                raise ValueError('Cannot calculate GFP with only one data '
+                                 'channel')
+            elif gfp:  # gfp 'only' or True;
                 gfp_color = 3 * (0.,) if spatial_colors is True else (0., 1.,
                                                                       0.)
                 this_gfp = np.sqrt((D * D).mean(axis=0))
@@ -674,8 +683,10 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         the same length as the number of channel types. If instance of
         Axes, there must be only one channel type plotted.
     gfp : bool | 'only'
-        Plot GFP in green if True or "only". If "only", then the individual
-        channel traces will not be shown.
+        Plot the GFP and to the traces for each channel if `True`, or only the
+        GFP if `'only`, i.e., hiding the individual channel traces. The color
+        of the GFP trace will be green if `spatial_colors=False`, and black
+        otherwise.
     window_title : str | None
         The title to put at the top of the figure.
     spatial_colors : bool

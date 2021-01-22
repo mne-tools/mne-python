@@ -59,6 +59,8 @@ Bugs
 
 - `mne.io.read_raw_egi` now correctly handles `pathlib.Path` filenames (:gh:`8759` by `Richard Höchenberger`_)
 
+- `mne.viz.plot_evoked` and `mne.Evoked.plot` won't plot global field power (GFP) anymore if there's only a single channel in the data, raising a warning (`gfp=True`) or an exception (`gfp='only'`) instead (:gh:`8774` by `Richard Höchenberger`_)
+
 API changes
 ~~~~~~~~~~~
 
