@@ -1828,8 +1828,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                 scale = 1e3
             else:
                 scale = 1
-            for col in ["min", "q1", "median", "q3", "max"]:
-                cols[col][i] *= scale
+            if scale != 1:
+                for col in ["min", "q1", "median", "q3", "max"]:
+                    cols[col][i] *= scale
 
         lens = {"ch": max(2, len(str(nchan))),
                 "name": max(4, max([len(n) for n in cols["name"]])),
