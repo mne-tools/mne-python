@@ -414,7 +414,7 @@ class Brain(object):
         self._silhouette = {
             'color': self._bg_color,
             'line_width': 2,
-            'alpha': 1.0,
+            'alpha': alpha,
             'decimate': 0.75,
         }
         if isinstance(silhouette, dict):
