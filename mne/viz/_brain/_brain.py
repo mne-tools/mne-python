@@ -419,6 +419,9 @@ class Brain(object):
         }
         if isinstance(silhouette, dict):
             self._silhouette.update(silhouette)
+            self.silhouette = True
+        else:
+            self.silhouette = silhouette
         # for now only one color bar can be added
         # since it is the same for all figures
         self._colorbar_added = False
@@ -475,7 +478,7 @@ class Brain(object):
                         opacity=alpha,
                         name='curv',
                     )
-                    if silhouette is not None:
+                    if self.silhouette:
                         self._renderer._silhouette(
                             mesh=mesh._polydata,
                             color=self._silhouette["color"],
