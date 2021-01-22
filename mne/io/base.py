@@ -1825,7 +1825,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                 "unit": max(4, max([len(u) for u in cols["unit"]]))}
 
         # print description, start with header
-        print(self, "\n")
+        print(self)
         print(f"{'ch':>{lens['ch']}}  "
               f"{'name':<{lens['name']}}  "
               f"{'type':<{lens['type']}}  "
