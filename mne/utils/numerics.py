@@ -13,7 +13,7 @@ import numbers
 import operator
 import os
 import os.path as op
-from math import ceil, log
+from math import ceil
 import shutil
 import sys
 from datetime import datetime, timedelta, timezone
