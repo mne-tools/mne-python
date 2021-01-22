@@ -480,7 +480,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
             elif gfp and D.shape[0] == 1:
                 warn('Cannot calculate GFP with only one data channel, '
                      'not plotting GFP')
-            elif gfp:  # gfp 'only' or True;
+            elif gfp:  # gfp 'only' or boolean True
                 gfp_color = 3 * (0.,) if spatial_colors is True else (0., 1.,
                                                                       0.)
                 this_gfp = np.sqrt((D * D).mean(axis=0))
