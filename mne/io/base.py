@@ -48,6 +48,7 @@ from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      _check_preload, _get_argvalues, _check_option,
                      _build_data_frame, _convert_times, _scale_dataframe_data,
                      _check_time_format)
+from ..defaults import _handle_default
 from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo, _RAW_CLIP_DEF
 from ..event import find_events, concatenate_events
 from ..annotations import Annotations, _combine_annotations, _sync_onset
@@ -1807,36 +1808,16 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             df.index.name = "ch"
             return df
 
-        exg = "eeg", "eog", "ecg", "emg", "dbs", "bio", "ecog"
         # convert into commonly used units
+        scalings = _handle_default("scalings")
+        units = _handle_default("units")
         for i in range(nchan):
-            kind, unit = cols['type'][i], cols['unit'][i]
-            if kind in exg and unit == "V":
-                cols['unit'][i] = "µV"
-                scale = 1e6
-            elif kind == "seeg" and unit == "V":
-                cols['unit'][i] = "mV"
-                scale = 1e3
-            elif kind in ("mag", "ref_meg") and unit == "T":
-                cols['unit'][i] = "fT"
-                scale = 1e15
-            elif kind == "grad" and unit == "T/m":
-                cols['unit'][i] = "fT/cm"
-                scale = 1e13
-            elif kind == "dipole" and unit == "Am":
-                cols['unit'][i] = "nAm"
-                scale = 1e9
-            elif kind in ("hbo", "hbr") and unit == "M":
-                cols['unit'][i] = "µM"
-                scale = 1e6
-            elif kind == "csd" and unit == "V/m²":
-                cols['unit'][i] = "mV/m²"
-                scale = 1e3
-            else:
-                scale = 1
-            if scale != 1:
+            unit = units.get(cols['type'][i])
+            scaling = scalings.get(cols['type'][i], 1)
+            if scaling != 1:
+                cols['unit'][i] = unit
                 for col in ["min", "q1", "median", "q3", "max"]:
-                    cols[col][i] *= scale
+                    cols[col][i] *= scaling
 
         lens = {"ch": max(2, len(str(nchan))),
                 "name": max(4, max([len(n) for n in cols["name"]])),
