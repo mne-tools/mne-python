@@ -1801,17 +1801,31 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             df.index.name = "ch"
             return df
 
+        exg = "eeg", "eog", "ecg", "emg", "dbs", "bio", "ecog"
         # convert into commonly used units
         for i in range(nchan):
-            if cols['type'][i] == "eeg" and cols['unit'][i] == "V":
+            kind, unit = cols['type'][i], cols['unit'][i]
+            if kind in exg and unit == "V":
                 cols['unit'][i] = "µV"
                 scale = 1e6
-            elif cols['type'][i] == "mag" and cols['unit'][i] == "T":
+            elif kind == "seeg" and unit == "V":
+                cols['unit'][i] = "mV"
+                scale = 1e3
+            elif kind in ("mag", "ref_meg") and unit == "T":
                 cols['unit'][i] = "fT"
                 scale = 1e15
-            elif cols['type'][i] == "grad" and cols['unit'][i] == "T/m":
+            elif kind == "grad" and unit == "T/m":
                 cols['unit'][i] = "fT/cm"
                 scale = 1e13
+            elif kind == "dipole" and unit == "Am":
+                cols['unit'][i] = "nAm"
+                scale = 1e9
+            elif kind in ("hbo", "hbr") and unit == "M":
+                cols['unit'][i] = "µM"
+                scale = 1e6
+            elif kind == "csd" and unit == "V/m²":
+                cols['unit'][i] = "mV/m²"
+                scale = 1e3
             else:
                 scale = 1
             for col in ["min", "q1", "median", "q3", "max"]:
