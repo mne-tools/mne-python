@@ -47,7 +47,7 @@ from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      copy_function_doc_to_method_doc, _validate_type,
                      _check_preload, _get_argvalues, _check_option,
                      _build_data_frame, _convert_times, _scale_dataframe_data,
-                     _check_time_format, si_prefix)
+                     _check_time_format)
 from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo, _RAW_CLIP_DEF
 from ..event import find_events, concatenate_events
 from ..annotations import Annotations, _combine_annotations, _sync_onset
@@ -1795,27 +1795,44 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             cols["q3"].append(q(data, 75))
             cols["max"].append(np.max(data))
 
+        if data_frame:  # return data frame
+            import pandas as pd
+            df = pd.DataFrame(cols)
+            df.index.name = "ch"
+            return df
+
+        # convert into commonly used units
+        for i in range(nchan):
+            if cols['type'][i] == "eeg" and cols['unit'][i] == "V":
+                cols['unit'][i] = "µV"
+                scale = 1e6
+            elif cols['type'][i] == "mag" and cols['unit'][i] == "T":
+                cols['unit'][i] = "fT"
+                scale = 1e15
+            elif cols['type'][i] == "grad" and cols['unit'][i] == "T/m":
+                cols['unit'][i] = "fT/cm"
+                scale = 1e13
+            else:
+                scale = 1
+            for col in ["min", "q1", "median", "q3", "max"]:
+                cols[col][i] *= scale
+
         lens = {"ch": max(2, len(str(nchan))),
                 "name": max(4, max([len(n) for n in cols["name"]])),
                 "type": max(4, max([len(t) for t in cols["type"]])),
                 "unit": max(4, max([len(u) for u in cols["unit"]]))}
 
-        if data_frame:
-            import pandas as pd
-            df = pd.DataFrame(cols)
-            df.index.name = "ch"
-            return df
         # print description, start with header
         print(self, "\n")
         print(f"{'ch':>{lens['ch']}}  "
               f"{'name':<{lens['name']}}  "
               f"{'type':<{lens['type']}}  "
               f"{'unit':<{lens['unit']}}  "
-              f"{'min':>9}  "
-              f"{'q1':>9}  "
-              f"{'median':>9}  "
-              f"{'q3':>9}  "
-              f"{'max':>9}  ")
+              f"{'min':>8}  "
+              f"{'q1':>8}  "
+              f"{'median':>8}  "
+              f"{'q3':>8}  "
+              f"{'max':>8}  ")
         # print description for each channel
         for i in range(nchan):
             msg = (f"{i:>{lens['ch']}}  "
@@ -1823,10 +1840,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                    f"{cols['type'][i].upper():<{lens['type']}}  "
                    f"{cols['unit'][i]:<{lens['unit']}}  ")
             for col in ["min", "q1", "median", "q3", "max"]:
-                value_, prefix_ = si_prefix(cols[col][i])
-                if prefix_ == "":
-                    prefix_ = "0"
-                msg += f"{value_:>8.3f}{prefix_}  "
+                msg += f"{cols[col][i]:>8.2f}  "
             print(msg)
 
 
