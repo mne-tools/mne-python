@@ -268,9 +268,9 @@ class Brain(object):
     %(view_layout)s
     silhouette : dict | bool
        As a dict, it contains the ``color``, ``linewidth``, ``alpha`` opacity
-       and ``decimate`` LOD of the brain's silhouette to display. If True, the
-       default values are used and if False, no silhouette will be displayed.
-       Defaults to False.
+       and ``decimate`` (level of decimation between 0 and 1 or None) of the
+       brain's silhouette to display. If True, the default values are used
+       and if False, no silhouette will be displayed. Defaults to False.
     show : bool
         Display the window as soon as it is ready. Defaults to True.
 
