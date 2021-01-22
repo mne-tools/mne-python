@@ -848,21 +848,45 @@ class _Renderer(_BaseRenderer):
             prop.SetLineWidth(line_width)
 
     def _enable_ssao(self, dataset):
-        # MWE that reproduces the visual artifact:
-        basic_pass = vtk.vtkRenderStepsPass()
-        self.plotter.renderer.SetPass(basic_pass)
+        lightsP = vtk.vtkLightsPass()
+        opaqueP = vtk.vtkOpaquePass()
+        translucentP = vtk.vtkTranslucentPass()
+        volumeP  = vtk.vtkVolumetricPass()
 
-        # minimal code to enable SSAO:
-        # basic_pass = vtk.vtkRenderStepsPass()
-        # bounds = np.asarray(dataset.GetBounds())
-        # scene_size = np.linalg.norm(bounds[:3] - bounds[3:])
-        # ssao = vtk.vtkSSAOPass()
-        # ssao.SetRadius(0.1 * scene_size)  # comparison radius
-        # ssao.SetBias(0.001 * scene_size)  # comparison bias
-        # ssao.SetKernelSize(128)  # number of samples used
-        # ssao.BlurOff()  # do not blur occlusion
-        # ssao.SetDelegatePass(basic_pass)
-        # self.plotter.renderer.SetPass(ssao)
+        collection = vtk.vtkRenderPassCollection()
+        collection.AddItem(lightsP)
+
+        # opaque passes
+        ssaoCamP = vtk.vtkCameraPass()
+        ssaoCamP.SetDelegatePass(opaqueP)
+
+        bounds = np.asarray(dataset.GetBounds())
+        scene_size = np.linalg.norm(bounds[:3] - bounds[3:])
+        ssaoP = vtk.vtkSSAOPass()
+        ssaoP.SetRadius(0.1 * scene_size)  # comparison radius
+        ssaoP.SetBias(0.001 * scene_size)  # comparison bias
+        ssaoP.SetKernelSize(128)  # number of samples used
+        ssaoP.BlurOff()  # do not blur occlusion
+        ssaoP.SetDelegatePass(ssaoCamP)
+        collection.AddItem(ssaoP)
+
+        # translucent and volumic passes
+        ddpP = vtk.vtkDualDepthPeelingPass()
+        ddpP.SetTranslucentPass(translucentP)
+        ddpP.SetVolumetricPass(volumeP)
+        collection.AddItem(ddpP)
+
+        # finally overlays
+        overP = vtk.vtkOverlayPass()
+        collection.AddItem(overP)
+
+        sequence = vtk.vtkSequencePass()
+        sequence.SetPasses(collection)
+
+        camP = vtk.vtkCameraPass()
+        camP.SetDelegatePass(sequence)
+
+        self.plotter.renderer.SetPass(camP)
 
 
 def _compute_normals(mesh):
