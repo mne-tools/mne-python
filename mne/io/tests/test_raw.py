@@ -568,7 +568,7 @@ def test_describe_df():
     df = raw.describe(data_frame=True)
     assert df.shape == (376, 8)
     assert (df.columns.tolist() == ["name", "type", "unit", "min", "q1",
-                                     "median", "q3", "max"])
+                                    "median", "q3", "max"])
     assert df.index.name == "ch"
     assert_allclose(df.iloc[0, 3:].astype(float),
                     np.array([-2.218017605790535e-11,
