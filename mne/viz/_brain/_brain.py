@@ -509,6 +509,9 @@ class Brain(object):
         if hemi == 'rh' and hasattr(self._renderer, "_orient_lights"):
             self._renderer._orient_lights()
 
+        # XXX: experimental feature
+        self._renderer._enable_ssao(mesh._polydata)
+
     def setup_time_viewer(self, time_viewer=True, show_traces=True):
         """Configure the time viewer parameters.
 
