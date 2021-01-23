@@ -61,6 +61,8 @@ Bugs
 
 - `mne.io.read_raw_egi` now correctly handles `pathlib.Path` filenames (:gh:`8759` by `Richard Höchenberger`_)
 
+- `mne.viz.plot_evoked` and `mne.Evoked.plot` now always correctly calculate global field power (GFP) based on the average-referenced signal (we used not to reference to average in previous versions) (:gh:`8775` by `Richard Höchenberger`_)
+
 API changes
 ~~~~~~~~~~~
 

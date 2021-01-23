@@ -474,9 +474,13 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                     line_list[-1].set_pickradius(3.)
 
             if gfp:  # 'only' or boolean True
+                # GFP is the standard deviation of the signal across all
+                # channels for each time point:
+                #
+                # GFP(t) = √{[∑ (xᵢ(t) - x̅(t))²] / N}
+                this_gfp = D.std(axis=0, ddof=0)
                 gfp_color = 3 * (0.,) if spatial_colors is True else (0., 1.,
                                                                       0.)
-                this_gfp = np.sqrt((D * D).mean(axis=0))
                 this_ylim = ax.get_ylim() if (ylim is None or this_type not in
                                               ylim.keys()) else ylim[this_type]
                 if gfp_only:
@@ -674,8 +678,11 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         the same length as the number of channel types. If instance of
         Axes, there must be only one channel type plotted.
     gfp : bool | 'only'
-        Plot GFP in green if True or "only". If "only", then the individual
-        channel traces will not be shown.
+        Plot the global field power (GFP), i.e. the standard deviation of
+        signals across channels. If ``True``,  the traces for all channels will
+        be plotted, too; if ``'only'``, the individual channel traces will
+        not be shown. The color of the GFP trace will be green if
+        ``spatial_colors=False``, and black otherwise.
     window_title : str | None
         The title to put at the top of the figure.
     spatial_colors : bool
