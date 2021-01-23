@@ -556,7 +556,10 @@ plt.xlabel('average SNR per trial')
 plt.ylabel('analysis window [s]')
 plt.show()
 
-
+##############################################################################
+# effect of trial length on vSSR
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
 # second version - shorten data, welch window fix
 window_lengths = [i for i in range(2,31,2)]
 window_snrs = [[]] * len(window_lengths)
@@ -565,7 +568,7 @@ for i_win, win in enumerate(window_lengths):
     # compute spectrogram
     windowed_psd, windowed_freqs = mne.time_frequency.psd_welch(
         epochs[str(event_id['12hz'])],
-        n_fft=int(sf * 1), n_overlap=int(sf * .5), n_per_seg=None,
+        n_fft=int(sf * 2.), n_overlap=int(sf * .5), n_per_seg=None,
         tmin=0, tmax=win,
         fmin=fmin, fmax=fmax, verbose=True)
     # define a bandwidth of 1hz around stimfreq for SNR computation
@@ -583,7 +586,10 @@ plt.xlabel('average SNR per trial')
 plt.ylabel('analysis window [s]')
 plt.show()
 
-
+##############################################################################
+# effect of trial length on vSSR
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
 # thrid version - shorten data and welch window
 window_lengths = [i for i in range(2,31,2)]
 window_snrs = [[]] * len(window_lengths)
