@@ -10,6 +10,8 @@ EEG processing and Event Related Potentials (ERPs)
 
 """
 
+import matplotlib.pyplot as plt
+
 import mne
 from mne.datasets import sample
 from mne.channels import combine_channels
@@ -109,6 +111,56 @@ evoked_custom.plot(titles=dict(eeg=title), time_unit='s')
 evoked_custom.plot_topomap(times=[0.1], size=3., title=title, time_unit='s')
 
 ###############################################################################
+# Global field power (GFP)
+# ------------------------
+#
+# Global field power :footcite:`Lehmann1980,Lehmann1984,Murray2008` is,
+# generally speaking, a measure of agreement of the signals picked up by all
+# sensors across the entire scalp: if all sensors produce the same signal,
+# the GFP will be zero; if the signals differ, the GFP will be non-zero. GFP
+# peaks may be indicative of "interesting" brain activity, warranting further
+# investigation. Mathematically, the GFP is nothing but the population standard
+# deviation across all sensors, calculated separately for every time point.
+#
+# For visualization, you can simply use `Evoked.plot` to add the GFP trace
+# to the butterfly plot by passing `gfp=True`. Let's also use spatial coloring
+# for the channel traces:
+
+evoked_car.plot(gfp=True, spatial_colors=True)
+
+###############################################################################
+# We used the average-referenced evoked signal here, but MNE-Python the choice
+# of reference doesn't change the GFP.
+
+evoked_no_ref.plot(gfp=True, spatial_colors=True)
+
+###############################################################################
+# It is difficult to find out the absolute values of the GFP in the plots we
+# produced above. By passing `grp='only'`, the channel traces are removed, and
+# we can focues on the GFP entirely. Although we don't plot any channel traces,
+# we still pass `spatial_colors=True` to get the GFP in a nice black-and-gray
+# color scheme – without this parameter, it would be bright-green.
+
+evoked_car.plot(gfp='only', spatial_colors=True)
+
+###############################################################################
+# **Calculating the GFP manually** is easy: as stated above, it's simply the
+# population standard deviation of the signal across channels. We can leverage
+# the fact that `Evoked.data` is a NumPy array:
+
+gfp = evoked_car.data.std(axis=0, ddof=0)
+
+###############################################################################
+# Let's try to manually reproduce the GFP plotting from above!
+
+fix, ax = plt.subplots()
+ax.plot(evoked_car.times, gfp * 1e6, color='black')
+ax.fill_between(evoked_car.times, gfp * 1e6, color='lightgray')
+ax.set_xlabel('Time (s)')
+ax.set_ylabel('GFP (µV)')
+ax.set_title('EEG')
+
+###############################################################################
 # Evoked response averaged across channels by ROI
 # -----------------------------------------------
 #
@@ -200,3 +252,9 @@ print(all_evokeds['left/auditory'])
 # Besides for explicit access, this can be used for example to set titles.
 for cond in all_evokeds:
     all_evokeds[cond].plot_joint(title=cond, **joint_kwargs)
+
+
+##############################################################################
+# References
+# ----------
+# .. footbibliography::
