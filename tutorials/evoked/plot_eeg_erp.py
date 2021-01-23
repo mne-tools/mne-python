@@ -122,7 +122,7 @@ evoked_custom.plot_topomap(times=[0.1], size=3., title=title, time_unit='s')
 # investigation. Mathematically, the GFP is nothing but the population standard
 # deviation across all sensors, calculated separately for every time point.
 #
-# For visualization, you can simply use `mne.Evoked.plot` to add the GFP trace
+# For visualization, you can simply use `mne.Evoked.plot` and add the GFP trace
 # to the butterfly plot by passing ``gfp=True```. Let's also use spatial
 # coloring for the channel traces:
 
