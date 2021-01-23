@@ -126,13 +126,6 @@ def test_plot_evoked():
     evoked.plot(gfp='only', time_unit='s')
     pytest.raises(ValueError, evoked.plot, gfp='foo', time_unit='s')
 
-    # test GFP plotting with only a single data channel
-    with pytest.warns(RuntimeWarning, match='Cannot calculate GFP'):
-        evoked.copy().pick(evoked.ch_names[0]).plot(gfp=True)
-    with pytest.raises(ValueError, match='Cannot calculate GFP'):
-        evoked.copy().pick(evoked.ch_names[0]).plot(gfp='only')
-    plt.close('all')
-
     # plot with bad channels excluded, spatial_colors, zorder & pos. layout
     evoked.rename_channels({'MEG 0133': 'MEG 0000'})
     evoked.plot(exclude=evoked.info['bads'], spatial_colors=True, gfp=True,
