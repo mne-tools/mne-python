@@ -1777,7 +1777,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         ----------
         data_frame : bool
             If True, return results in a pandas.DataFrame. If False, only print
-            results.
+            results. Columns `ch`, `type`, and `unit` indicate channel index,
+            channel type, and unit of the remaining five columns. These columns
+            are `min` (minimum), `Q1` (first quartile or 25% percentile),
+            `median`, `Q3` (third quartile or 75% percentile), and `max`
+            (maximum).
 
         Returns
         -------
