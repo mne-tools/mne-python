@@ -122,9 +122,9 @@ evoked_custom.plot_topomap(times=[0.1], size=3., title=title, time_unit='s')
 # investigation. Mathematically, the GFP is nothing but the population standard
 # deviation across all sensors, calculated separately for every time point.
 #
-# For visualization, you can simply use `Evoked.plot` to add the GFP trace
-# to the butterfly plot by passing `gfp=True`. Let's also use spatial coloring
-# for the channel traces:
+# For visualization, you can simply use `mne.Evoked.plot` to add the GFP trace
+# to the butterfly plot by passing ``gfp=True```. Let's also use spatial
+# coloring for the channel traces:
 
 evoked_car.plot(gfp=True, spatial_colors=True)
 
@@ -136,9 +136,9 @@ evoked_no_ref.plot(gfp=True, spatial_colors=True)
 
 ###############################################################################
 # It is difficult to find out the absolute values of the GFP in the plots we
-# produced above. By passing `grp='only'`, the channel traces are removed, and
+# produced above. By passing ``gfp='only'``, the channel traces are removed, and
 # we can focues on the GFP entirely. Although we don't plot any channel traces,
-# we still pass `spatial_colors=True` to get the GFP in a nice black-and-gray
+# we still pass ``spatial_colors=True`` to get the GFP in a nice black-and-gray
 # color scheme – without this parameter, it would be bright-green.
 
 evoked_car.plot(gfp='only', spatial_colors=True)
@@ -146,7 +146,7 @@ evoked_car.plot(gfp='only', spatial_colors=True)
 ###############################################################################
 # **Calculating the GFP manually** is easy: as stated above, it's simply the
 # population standard deviation of the signal across channels. We can leverage
-# the fact that `Evoked.data` is a NumPy array:
+# the fact that `mne.Evoked.data` is a NumPy array:
 
 gfp = evoked_car.data.std(axis=0, ddof=0)
 
