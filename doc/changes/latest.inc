@@ -34,7 +34,7 @@ Enhancements
 
 - Add :func:`mne.io.read_raw_nedf` for reading StarStim / enobio NEDF files (:gh:`8734` by `Tristan Stenner`_)
 
-- Add :meth:`mne.io.Raw.describe` to display (or return) descriptive statistics for each channel (:gh:`8760` by `Clemens Brunner`_)
+- Add :meth:`raw.describe() <mne.io.Raw.describe>` to display (or return) descriptive statistics for each channel (:gh:`8760` by `Clemens Brunner`_)
 
 
 Bugs
