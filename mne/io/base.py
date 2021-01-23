@@ -1797,9 +1797,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             cols["type"].append(channel_type(self.info, i))
             cols["unit"].append(_unit2human[ch["unit"]])
             cols["min"].append(np.min(data))
-            cols["q1"].append(q(data, 25))
+            cols["Q1"].append(q(data, 25))
             cols["median"].append(np.median(data))
-            cols["q3"].append(q(data, 75))
+            cols["Q3"].append(q(data, 75))
             cols["max"].append(np.max(data))
 
         if data_frame:  # return data frame
@@ -1816,7 +1816,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             scaling = scalings.get(cols['type'][i], 1)
             if scaling != 1:
                 cols['unit'][i] = unit
-                for col in ["min", "q1", "median", "q3", "max"]:
+                for col in ["min", "Q1", "median", "Q3", "max"]:
                     cols[col][i] *= scaling
 
         lens = {"ch": max(2, len(str(nchan))),
@@ -1831,9 +1831,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
               f"{'type':<{lens['type']}}  "
               f"{'unit':<{lens['unit']}}  "
               f"{'min':>8}  "
-              f"{'q1':>8}  "
+              f"{'Q1':>8}  "
               f"{'median':>8}  "
-              f"{'q3':>8}  "
+              f"{'Q3':>8}  "
               f"{'max':>8}")
         # print description for each channel
         for i in range(nchan):
@@ -1841,7 +1841,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                    f"{cols['name'][i]:<{lens['name']}}  "
                    f"{cols['type'][i].upper():<{lens['type']}}  "
                    f"{cols['unit'][i]:<{lens['unit']}}  ")
-            for col in ["min", "q1", "median", "q3"]:
+            for col in ["min", "Q1", "median", "Q3"]:
                 msg += f"{cols[col][i]:>8.2f}  "
             msg += f"{cols['max'][i]:>8.2f}"
             print(msg)

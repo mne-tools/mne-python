@@ -554,7 +554,7 @@ def test_describe_print():
     s = f.getvalue().strip().split("\n")
     assert len(s) == 378
     assert s[0] == "<Raw | test_raw.fif, 376 x 14400 (24.0 s), ~3.3 MB, data not loaded>"  # noqa
-    assert s[1] == " ch  name      type  unit        min        q1    median        q3       max"  # noqa
+    assert s[1] == " ch  name      type  unit        min        Q1    median        Q3       max"  # noqa
     assert s[2] == "  0  MEG 0113  GRAD  fT/cm   -221.80    -38.57     -9.64     19.29    414.67"  # noqa
     assert s[-1] == "375  EOG 061   EOG   µV      -231.41    271.28    277.16    285.66    334.69"  # noqa
 
@@ -567,8 +567,8 @@ def test_describe_df():
 
     df = raw.describe(data_frame=True)
     assert df.shape == (376, 8)
-    assert (df.columns.tolist() == ["name", "type", "unit", "min", "q1",
-                                    "median", "q3", "max"])
+    assert (df.columns.tolist() == ["name", "type", "unit", "min", "Q1",
+                                    "median", "Q3", "max"])
     assert df.index.name == "ch"
     assert_allclose(df.iloc[0, 3:].astype(float),
                     np.array([-2.218017605790535e-11,
