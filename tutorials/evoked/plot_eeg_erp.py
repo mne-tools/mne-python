@@ -136,10 +136,11 @@ evoked_no_ref.plot(gfp=True, spatial_colors=True)
 
 ###############################################################################
 # It is difficult to find out the absolute values of the GFP in the plots we
-# produced above. By passing ``gfp='only'``, the channel traces are removed, and
-# we can focues on the GFP entirely. Although we don't plot any channel traces,
-# we still pass ``spatial_colors=True`` to get the GFP in a nice black-and-gray
-# color scheme – without this parameter, it would be bright-green.
+# produced above. By passing ``gfp='only'``, the channel traces are removed,
+# and we can focues on the GFP entirely. Although we don't plot any channel
+# traces, we still pass ``spatial_colors=True`` to get the GFP in a nice
+# black-and-gray color scheme – without this parameter, it would be
+# bright-green.
 
 evoked_car.plot(gfp='only', spatial_colors=True)
 
