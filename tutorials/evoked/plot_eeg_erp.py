@@ -147,7 +147,7 @@ gfp = evoked_car.data.std(axis=0, ddof=0)
 fig, ax = plt.subplots()
 ax.plot(evoked_car.times, gfp * 1e6, color='black')
 ax.fill_between(evoked_car.times, gfp * 1e6, color='lightgray')
-ax.set(xlabel='Time (s)', ylabel('GFP (µV)', title='EEG')
+ax.set(xlabel='Time (s)', ylabel='GFP (µV)', title='EEG')
 
 ###############################################################################
 # Evoked response averaged across channels by ROI
