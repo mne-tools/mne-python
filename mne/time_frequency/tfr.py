@@ -668,6 +668,72 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
     return out
 
 
+def tfr_raw(raw, freqs, n_cycles, decim=1, 
+            time_bandwidth=4.0, use_fft=True,
+            method='multitaper',
+            statistic='average',
+            n_jobs=1, picks=None, output=None,
+            verbose=None):
+    """Compute spectrogram for a Raw object.
+
+    Parameters
+    ----------
+    raw :
+    freqs :
+    n_cycles :
+    decim :
+    time_bandwidth :
+    use_fft :
+    method :
+    statistic :
+    n_jobs :
+    picks :
+    output :
+    verbose :
+
+    Returns
+    -------
+    power : AverageTFR
+    """
+    if statistic == 'average':
+        combine_func = np.mean
+
+    decim = _check_decim(decim)
+    # to make it play nice with _compute_tfr
+    data = raw.get_data()[np.newaxis, ...]
+    info = raw.info.copy()  # make a copy as sfreq can be altered
+
+    info, data = _prepare_picks(info, data, picks, axis=1)
+    del picks
+
+    output = 'power' if output is None else output
+
+    tfr_params = dict(n_cycles=n_cycles, n_jobs=n_jobs, use_fft=use_fft,
+                      zero_mean=True, time_bandwidth=time_bandwidth)
+
+    # compute time frequency map
+    out = _compute_tfr(data, freqs, info['sfreq'], method=method,
+                       output=output, decim=decim, **tfr_params)
+
+    # get rid of dummy epoch dimension
+    out = out.squeeze()
+    times = raw.times[decim].copy()
+    info['sfreq'] /= decim.step
+
+    # combine power across frequencies using a combination
+    # statistic
+    power = out
+    power = combine_func(power, axis=1, keepdims=True)
+
+    # create the TFR object to hold the data
+    nave = 1
+    out = AverageTFR(info, power, times, freqs, nave,
+                     method='%s-power' % method,
+                     comment=f'Combining func {combine_func}'
+                     )
+    return out
+
+
 @verbose
 def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
                n_jobs=1, picks=None, zero_mean=True, average=True,
