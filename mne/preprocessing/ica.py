@@ -2692,9 +2692,11 @@ def read_ica_eeglab(fname):
         An ICA object based on the information contained in the input file.
     """
     eeg = _check_load_mat(fname, None)
-    info = _get_info(eeg)[0]
+    info, eeg_montage, _ = _get_info(eeg)
+    info.set_montage(eeg_montage)
     pick_info(info, np.round(eeg['icachansind']).astype(int) - 1, copy=False)
 
+    rank = eeg.icasphere.shape[0]
     n_components = eeg.icaweights.shape[0]
 
     ica = ICA(method='imported_eeglab', n_components=n_components)
@@ -2704,11 +2706,15 @@ def read_ica_eeglab(fname):
     ica.n_pca_components = None
     ica.n_components_ = n_components
 
-    ica.pre_whitener_ = np.ones((len(eeg.icachansind), 1))
-    ica.pca_mean_ = np.zeros(len(eeg.icachansind))
-
     n_ch = len(ica.ch_names)
-    assert eeg.icaweights.shape == (n_components, n_ch)
+    assert len(eeg.icachansind) == n_ch
+
+    ica.pre_whitener_ = np.ones((n_ch, 1))
+    ica.pca_mean_ = np.zeros(n_ch)
+
+    assert eeg.icasphere.shape[1] == n_ch
+    assert eeg.icaweights.shape == (n_components, rank)
+
     # When PCA reduction is used in EEGLAB, runica returns
     # weights= weights*sphere*eigenvectors(:,1:ncomps)';
     # sphere = eye(urchans). When PCA reduction is not used, we have:
@@ -2722,5 +2728,9 @@ def read_ica_eeglab(fname):
     ica.unmixing_matrix_ = u * s
     ica.pca_components_ = v
     ica.pca_explained_variance_ = s * s
+    ica.info = info
+    ica.icaweights = eeg.icaweights  # XXX remove
+    ica.icasphere = eeg.icasphere  # XXX remove
     ica._update_mixing_matrix()
+    ica._update_ica_names()
     return ica
