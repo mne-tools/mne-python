@@ -1,4 +1,5 @@
 # Authors: Jaakko Leppakangas <jaeilepp@student.jyu.fi>
+#          Robert Luke <mail@robertluke.net>
 #
 # License: BSD 3 clause
 
@@ -6,6 +7,8 @@ from collections import OrderedDict
 from datetime import datetime, timezone
 from itertools import repeat
 import sys
+from contextlib import redirect_stdout
+from io import StringIO
 
 import os.path as op
 
@@ -21,7 +24,7 @@ from mne import (create_info, read_annotations, annotations_from_events,
                  events_from_annotations)
 from mne import Epochs, Annotations
 from mne.utils import (run_tests_if_main, _TempDir, requires_version,
-                       catch_logging)
+                       catch_logging, requires_pandas)
 from mne.utils import (assert_and_remove_boundary_annot, _raw_annot,
                        _dt_to_stamp, _stamp_to_dt)
 from mne.io import read_raw_fif, RawArray, concatenate_raws
@@ -1230,6 +1233,32 @@ def test_repr():
     # empty Annotations
     r = repr(Annotations([], [], []))
     assert r == '<Annotations | 0 segments>'
+
+
+@requires_pandas
+def test_annotation_description():
+    """Test annotation class."""
+    onset = np.arange(1, 10)
+    durations = np.full_like(onset, [4, 5, 6, 4, 5, 6, 4, 5, 6,])
+    description = ["yy"] * onset.shape[0]
+
+    a = Annotations(onset=onset,
+                    duration=durations,
+                    description=description,
+                    orig_time=0)
+
+    f = StringIO()
+    with redirect_stdout(f):
+        a.describe()
+    s = f.getvalue().strip().split("\n")
+    assert len(s) == 2
+    assert s[0] == "description  occurances  mean_duration  std_duration"  # noqa
+    assert s[1] == "0          yy           9            5.0      0.816497"  # noqa
+
+    df = a.describe(data_frame=True)
+    assert 'description' in df.columns
+    assert df.description[0] == 'yy'
+    assert df.mean_duration[0] == np.mean(durations)
 
 
 run_tests_if_main()

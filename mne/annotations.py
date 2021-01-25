@@ -1,4 +1,5 @@
 # Authors: Jaakko Leppakangas <jaeilepp@student.jyu.fi>
+#          Robert Luke <mail@robertluke.net>
 #
 # License: BSD (3-clause)
 
@@ -345,7 +346,7 @@ class Annotations(object):
         unique_annots = np.unique(self.description)
         num_annots = len(unique_annots)
         cols = defaultdict(list)
-        cols["name"] = unique_annots
+        cols["description"] = unique_annots
         for i in range(num_annots):
             ch = unique_annots[i]
             data_idx = np.where([d == ch for d in self.description])[0]
@@ -354,7 +355,6 @@ class Annotations(object):
             cols["mean_duration"].append(np.mean(durations))
             cols["std_duration"].append(np.std(durations))
         df = pd.DataFrame(cols)
-        df.index.name = "ch"
 
         if data_frame:  # return data frame
             return df
@@ -362,7 +362,7 @@ class Annotations(object):
             with pd.option_context('display.max_rows', None,
                                    'display.max_columns', None,
                                    'display.width', None,
-                                   'display.max_colwidth', -1):
+                                   'display.max_colwidth', None):
                 print(df)
 
     def save(self, fname):
