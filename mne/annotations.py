@@ -324,6 +324,47 @@ class Annotations(object):
         self.duration = np.delete(self.duration, idx)
         self.description = np.delete(self.description, idx)
 
+    def describe(self, data_frame=False):
+        """Describe annotations (name, occurances,
+        duration descriptive statistics).
+
+        Parameters
+        ----------
+        data_frame : bool
+            If True, return results in a pandas.DataFrame. If False, only print
+            results.
+        Returns
+        -------
+        result : None | pandas.DataFrame
+            If data_frame=False, returns None. If data_frame=True, returns
+            results in a pandas.DataFrame (requires pandas).
+        """
+        from collections import defaultdict
+        pd = _check_pandas_installed()  # noqa
+
+        unique_annots = np.unique(self.description)
+        num_annots = len(unique_annots)
+        cols = defaultdict(list)
+        cols["name"] = unique_annots
+        for i in range(num_annots):
+            ch = unique_annots[i]
+            data_idx = np.where([d == ch for d in self.description])[0]
+            durations = [self.duration[i] for i in data_idx]
+            cols["occurances"].append(len(data_idx))
+            cols["mean_duration"].append(np.mean(durations))
+            cols["std_duration"].append(np.std(durations))
+        df = pd.DataFrame(cols)
+        df.index.name = "ch"
+
+        if data_frame:  # return data frame
+            return df
+        else:
+            with pd.option_context('display.max_rows', None,
+                                   'display.max_columns', None,
+                                   'display.width', None,
+                                   'display.max_colwidth', -1):
+                print(df)
+
     def save(self, fname):
         """Save annotations to FIF, CSV or TXT.
 
