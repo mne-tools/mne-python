@@ -326,14 +326,14 @@ class Annotations(object):
         self.description = np.delete(self.description, idx)
 
     def describe(self, data_frame=False):
-        """Describe annotations (name, occurances,
-        duration descriptive statistics).
+        """Describe annotations (name, occurances, descriptive statistics).
 
         Parameters
         ----------
         data_frame : bool
             If True, return results in a pandas.DataFrame. If False, only print
             results.
+
         Returns
         -------
         result : None | pandas.DataFrame
