@@ -685,11 +685,14 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         of the data. GFP is the standard deviation of signals across channels.
         This is equivalent to the RMS of an average-referenced signal.
 
-        - ``True``: plot the GFP and the traces for all channels
-        - ``'only'``: plot the GFP, but omit the individual channel traces
-        - ``'power'``: plot the RMS and the traces for all channels
-        - ``'power-only'``: plot the RMS, but omit the individual channel
-           traces
+        - ``True``
+            plot the GFP and the traces for all channels
+        - ``'only'``
+            plot the GFP, but omit the individual channel traces
+        - ``'power'``
+            plot the RMS and the traces for all channels
+        - ``'power-only'``
+            plot the RMS, but omit the individual channel traces
 
         The color of the GFP/RMS trace will be green if
         ``spatial_colors=False``, and black otherwise.
