@@ -1239,7 +1239,7 @@ def test_repr():
 def test_annotation_description():
     """Test annotation class."""
     onset = np.arange(1, 10)
-    durations = np.full_like(onset, [4, 5, 6, 4, 5, 6, 4, 5, 6,])
+    durations = np.full_like(onset, [4, 5, 6, 4, 5, 6, 4, 5, 6])
     description = ["yy"] * onset.shape[0]
 
     a = Annotations(onset=onset,
