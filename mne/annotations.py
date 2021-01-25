@@ -325,45 +325,24 @@ class Annotations(object):
         self.duration = np.delete(self.duration, idx)
         self.description = np.delete(self.description, idx)
 
-    def describe(self, data_frame=False):
-        """Describe annotations (name, occurances, descriptive statistics).
-
-        Parameters
-        ----------
-        data_frame : bool
-            If True, return results in a pandas.DataFrame. If False, only print
-            results.
+    def to_data_frame(self):
+        """Export annotations in tabular structure as a pandas DataFrame.
 
         Returns
         -------
-        result : None | pandas.DataFrame
-            If data_frame=False, returns None. If data_frame=True, returns
-            results in a pandas.DataFrame (requires pandas).
+        result : pandas.DataFrame
+            Returns a pandas DataFrame with columns `onset`, `duration` and
+            `description`.
         """
-        from collections import defaultdict
-        pd = _check_pandas_installed()  # noqa
-
-        unique_annots = np.unique(self.description)
-        num_annots = len(unique_annots)
-        cols = defaultdict(list)
-        cols["description"] = unique_annots
-        for i in range(num_annots):
-            ch = unique_annots[i]
-            data_idx = np.where([d == ch for d in self.description])[0]
-            durations = [self.duration[i] for i in data_idx]
-            cols["occurances"].append(len(data_idx))
-            cols["mean_duration"].append(np.mean(durations))
-            cols["std_duration"].append(np.std(durations))
-        df = pd.DataFrame(cols)
-
-        if data_frame:  # return data frame
-            return df
-        else:
-            with pd.option_context('display.max_rows', None,
-                                   'display.max_columns', None,
-                                   'display.width', None,
-                                   'display.max_colwidth', None):
-                print(df)
+        pd = _check_pandas_installed(strict=True)
+        dt = _handle_meas_date(self.orig_time)
+        if dt is None:
+            dt = _handle_meas_date(0)
+        dt = dt.replace(tzinfo=None)
+        onsets_dt = [dt + timedelta(seconds=o) for o in self.onset]
+        df = pd.DataFrame(dict(onset=onsets_dt, duration=self.duration,
+                               description=self.description))
+        return df
 
     def save(self, fname):
         """Save annotations to FIF, CSV or TXT.
@@ -613,15 +592,7 @@ def _write_annotations(fid, annotations):
 
 
 def _write_annotations_csv(fname, annot):
-    pd = _check_pandas_installed(strict=True)
-    dt = _handle_meas_date(annot.orig_time)
-    if dt is None:
-        dt = _handle_meas_date(0)
-    dt = dt.replace(tzinfo=None)
-    onsets_dt = [dt + timedelta(seconds=o) for o in annot.onset]
-    df = pd.DataFrame(dict(onset=onsets_dt, duration=annot.duration,
-                           description=annot.description))
-    df.to_csv(fname, index=False)
+    annot.to_data_frame().to_csv(fname, index=False)
 
 
 def _write_annotations_txt(fname, annot):
