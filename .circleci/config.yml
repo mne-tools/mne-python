@@ -305,16 +305,16 @@ jobs:
             name: Deploy docs
             command: |
               set -e;
-              if [ "${CIRCLE_BRANCH}" == "master" ] || [ "${CIRCLE_BRANCH}" == "maint/0.22" ]; then
+              if [ "${CIRCLE_BRANCH}" == "main" ] || [ "${CIRCLE_BRANCH}" == "maint/0.22" ]; then
                 git config --global user.email "circle@mne.com";
                 git config --global user.name "Circle CI";
                 cd ~/mne-tools.github.io;
-                git checkout master
+                git checkout main
                 git remote -v
                 git fetch origin
-                git reset --hard origin/master
+                git reset --hard origin/main
                 git clean -xdf
-                if [ "${CIRCLE_BRANCH}" == "master" ]; then
+                if [ "${CIRCLE_BRANCH}" == "main" ]; then
                   echo "Deploying dev docs for ${CIRCLE_BRANCH}.";
                   rm -Rf dev;
                   cp -a /tmp/build/html dev;
@@ -327,7 +327,7 @@ jobs:
                   git add -A;
                   git commit -m "CircleCI update of stable docs (${CIRCLE_BUILD_NUM}).";
                 fi;
-                git push origin master;
+                git push origin main;
               else
                 echo "No deployment (build: ${CIRCLE_BRANCH}).";
               fi
@@ -383,7 +383,7 @@ workflows:
           filters:
             branches:
               only:
-                - master
+                - main
                 - maint/0.22
       # interactive_test
 
@@ -397,4 +397,4 @@ workflows:
           filters:
             branches:
               only:
-                - master
+                - main

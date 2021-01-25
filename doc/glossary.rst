@@ -309,4 +309,4 @@ general neuroimaging concepts. If you think a term is missing, please consider
 .. _`creating a new issue`:
    https://github.com/mne-tools/mne-python/issues/new?template=glossary.md
 .. _`opening a pull request`:
-   https://github.com/mne-tools/mne-python/pull/new/master
+   https://github.com/mne-tools/mne-python/pull/new/main

@@ -40,7 +40,7 @@ MNE-Python.
 .. _`opening an issue`: https://github.com/mne-tools/mne-python/issues/new/choose
 .. _`MNE Forum`: https://mne.discourse.group
 
-.. _`code of conduct`: https://github.com/mne-tools/.github/blob/master/CODE_OF_CONDUCT.md
+.. _`code of conduct`: https://github.com/mne-tools/.github/blob/main/CODE_OF_CONDUCT.md
 .. _`GitHub issues marked "easy"`: https://github.com/mne-tools/mne-python/issues?q=is%3Aissue+is%3Aopen+label%3AEASY
 
 Overview of contribution process
@@ -203,7 +203,7 @@ version of MNE-Python, you should now repeat that process to create a new,
 separate environment for MNE-Python development (here we'll give it the name
 ``mnedev``)::
 
-    $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
+    $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/main/environment.yml
     $ conda env create --file environment.yml --name mnedev
     $ conda activate mnedev
 
@@ -317,22 +317,22 @@ Other commands that you will undoubtedly need relate to `branches`_. Branches
 represent multiple copies of the codebase *within a local clone or remote
 repo*. Branches are typically used to experiment with new features while still
 keeping a clean, working copy of the original codebase that you can switch back
-to at any time. The default branch of any repo is always called ``master``, and
-it is recommended that you reserve the ``master`` branch to be that clean copy
+to at any time. The default branch of any repo is called ``main``, and
+it is recommended that you reserve the ``main`` branch to be that clean copy
 of the working ``upstream`` codebase. Therefore, if you want to add a new
-feature, you should first synchronize your local ``master`` branch with the
-``upstream`` repository, then create a new branch based off of ``master`` and
+feature, you should first synchronize your local ``main`` branch with the
+``upstream`` repository, then create a new branch based off of ``main`` and
 `check it out`_ so that any changes you make will exist on that new branch
-(instead of on ``master``)::
+(instead of on ``main``)::
 
-    $ git checkout master            # switch to local master branch
+    $ git checkout main            # switch to local main branch
     $ git fetch upstream             # get the current state of the remote upstream repo
-    $ git merge upstream/master      # synchronize local master branch with remote upstream master branch
+    $ git merge upstream/main      # synchronize local main branch with remote upstream main branch
     $ git checkout -b new-feature-x  # create local branch "new-feature-x" and check it out
 
 .. sidebar:: Alternative
 
-    You can save some typing by using ``git pull upstream/master`` to replace
+    You can save some typing by using ``git pull upstream/main`` to replace
     the ``fetch`` and ``merge`` lines above.
 
 Now that you're on a new branch, you can fix a bug or add a new feature, add a
@@ -467,7 +467,7 @@ deprecation section <deprecating>` and :class:`mne.utils.deprecated` for
 instructions. Bug fixes (when something isn't doing what it says it will do) do
 not require a deprecation cycle.
 
-Note that any new API elements should be added to the master reference;
+Note that any new API elements should be added to the main reference;
 classes, functions, methods, and attributes cannot be cross-referenced unless
 they are included in the :doc:`python_reference`
 (:file:`doc/python_reference.rst`).
@@ -913,13 +913,13 @@ down the road. Here are the guidelines:
   doing this. Avoid purely cosmetic changes to the code; they make PRs harder
   to review.
 
-- It is usually better to make PRs *from* branches other than your master
-  branch, so that you can use your master branch to easily get back to a
+- It is usually better to make PRs *from* branches other than your main
+  branch, so that you can use your main branch to easily get back to a
   working state of the code if needed (e.g., if you're working on multiple
   changes at once, or need to pull in recent changes from someone else to get
   your new feature to work properly).
 
-- In most cases you should make PRs *into* the upstream's master branch, unless
+- In most cases you should make PRs *into* the upstream's main branch, unless
   you are specifically asked by a maintainer to PR into another branch (e.g.,
   for backports or maintenance bugfixes to the current stable version).
 
@@ -965,8 +965,8 @@ down the road. Here are the guidelines:
 
 `This sample pull request`_ exemplifies many of the conventions listed above:
 it addresses only one problem; it started with an issue to discuss the problem
-and some possible solutions; it is a PR from the user's non-master branch into
-the upstream master branch; it separates different kinds of changes into
+and some possible solutions; it is a PR from the user's non-main branch into
+the upstream main branch; it separates different kinds of changes into
 separate commits and uses labels like ``DOC``, ``FIX``, and ``STY`` to make it
 easier for maintainers to review the changeset; etc. If you are new to GitHub
 it can serve as a useful example of what to expect from the PR review process.
@@ -1045,7 +1045,7 @@ it can serve as a useful example of what to expect from the PR review process.
 .. _continuous integration: https://en.wikipedia.org/wiki/Continuous_integration
 .. _matplotlib: https://matplotlib.org/
 .. _travis: https://travis-ci.org/mne-tools/mne-python/branches
-.. _azure: https://dev.azure.com/mne-tools/mne-python/_build/latest?definitionId=1&branchName=master
+.. _azure: https://dev.azure.com/mne-tools/mne-python/_build/latest?definitionId=1&branchName=main
 .. _circle: https://circleci.com/gh/mne-tools/mne-python
 
 .. optipng

@@ -148,7 +148,7 @@ your operating system.
    Download the MNE-Python `environment file`_ (done here with ``curl``) and
    use it to create a new environment (named ``mne`` by default)::
 
-       $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
+       $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/main/environment.yml
        $ conda env update --file environment.yml
 
    .. collapse:: |hand-stop-o| If you get errors building mayavi...
@@ -166,7 +166,7 @@ your operating system.
    default)::
 
        $ conda install --name base nb_conda_kernels "spyder>=4.2.1"
-       $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
+       $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/main/environment.yml
        $ conda env update --file environment.yml
 
 .. collapse:: |windows| Windows
@@ -334,8 +334,8 @@ Python development are:
 
 .. LINKS
 
-.. _environment file: https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
-.. _server environment file: https://raw.githubusercontent.com/mne-tools/mne-python/master/server_environment.yml
+.. _environment file: https://raw.githubusercontent.com/mne-tools/mne-python/main/environment.yml
+.. _server environment file: https://raw.githubusercontent.com/mne-tools/mne-python/main/server_environment.yml
 .. _`mayavi`: https://docs.enthought.com/mayavi/mayavi/
 .. _`pyvista`: https://docs.pyvista.org/
 .. _`X server`: https://en.wikipedia.org/wiki/X_Window_System
