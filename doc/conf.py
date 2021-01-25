@@ -106,9 +106,9 @@ master_doc = 'index'
 project = u'MNE'
 td = datetime.now(tz=timezone.utc)
 copyright = (
-    '© 2012-%(year)s, MNE Developers. Last updated '
+    '2012-%(year)s, MNE Developers. Last updated '
     '<time datetime="%(iso)s" class="localized">%(short)s</time>\n'
-    '<script type="text/javascript">$(function () { $("time.localized").each(function () { var el = $(this); el.text(new Date(el.attr("datetime")).toLocaleString([], {year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", timeZoneName: "short"})); }); } )</script>'  # noqa: E501
+    '<script type="text/javascript">$(function () { $("time.localized").each(function () { var el = $(this); el.text(new Date(el.attr("datetime")).toLocaleString([], {dateStyle: "medium", timeStyle: "long"})); }); } )</script>'  # noqa: E501
 ) % dict(year=td.year, iso=td.isoformat(),
          short=td.strftime('%Y-%m-%d %H:%M %Z'))
 
