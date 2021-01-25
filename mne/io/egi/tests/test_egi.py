@@ -115,6 +115,7 @@ def test_io_egi_mff():
                            test_scaling=False,  # XXX probably some bug
                            )
     assert raw.info['sfreq'] == 1000.
+    assert len(raw.info['dig']) == 132  # 128 eeg + 1 ref + 3 cardinal points
 
     assert_equal('eeg' in raw, True)
     eeg_chan = [c for c in raw.ch_names if 'EEG' in c]
@@ -359,6 +360,7 @@ def test_io_egi_evokeds_mff(idx, cond, tmax, signals, bads):
     assert evoked_cond.info['nchan'] == 259
     assert evoked_cond.info['sfreq'] == 250.0
     assert not evoked_cond.info['custom_ref_applied']
+    assert len(evoked_cond.info['dig']) == 0  # coordinates.xml missing
 
 
 @requires_version('mffpy', '0.5.7')

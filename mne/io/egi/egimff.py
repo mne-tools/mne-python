@@ -12,6 +12,7 @@ import numpy as np
 from .events import _read_events, _combine_triggers
 from .general import (_get_signalfname, _get_ep_info, _extract, _get_blocks,
                       _get_gains, _block_r)
+from .._digitization import DigPoint
 from ..base import BaseRaw
 from ..constants import FIFF
 from ..meas_info import _empty_info, create_info
@@ -253,21 +254,46 @@ def _read_locs(filepath, chs, egi_info):
     """Read channel locations."""
     fname = op.join(filepath, 'coordinates.xml')
     if not op.exists(fname):
-        return chs
+        return chs, []
+    dig_kind_map = {
+        '': FIFF.FIFFV_POINT_EEG,
+        'VREF': FIFF.FIFFV_POINT_EEG,
+        'Vertex Reference': FIFF.FIFFV_POINT_EEG,
+        'Left periauricular point': FIFF.FIFFV_POINT_CARDINAL,
+        'Right periauricular point': FIFF.FIFFV_POINT_CARDINAL,
+        'Nasion': FIFF.FIFFV_POINT_CARDINAL,
+    }
+    dig_ident_map = {
+        'Left periauricular point': FIFF.FIFFV_POINT_LPA,
+        'Right periauricular point': FIFF.FIFFV_POINT_RPA,
+        'Nasion': FIFF.FIFFV_POINT_NASION,
+    }
     numbers = np.array(egi_info['numbers'])
     coordinates = parse(fname)
     sensors = coordinates.getElementsByTagName('sensor')
+    dig_points = []
     for sensor in sensors:
+        name_element = sensor.getElementsByTagName('name')[0].firstChild
+        name = '' if name_element is None else name_element.data
         nr = sensor.getElementsByTagName('number')[0].firstChild.data.encode()
-        id = np.where(numbers == nr)[0]
+        coords = [float(sensor.getElementsByTagName(coord)[0].firstChild.data)
+                  for coord in 'xyz']
+        loc = np.array(coords) / 100  # cm -> m
+        # create dig entry
+        kind = dig_kind_map[name]
+        if kind == FIFF.FIFFV_POINT_CARDINAL:
+            ident = dig_ident_map[name]
+        else:
+            ident = int(nr)
+        dig_dict = {'kind': kind, 'ident': ident, 'r': loc,
+                    'coord_frame': FIFF.FIFFV_COORD_HEAD}
+        dig_points.append(DigPoint(dig_dict))
+        # add location to channel entry
+        id = np.flatnonzero(numbers == nr)
         if len(id) == 0:
             continue
-        loc = chs[id[0]]['loc']
-        loc[0] = sensor.getElementsByTagName('x')[0].firstChild.data
-        loc[1] = sensor.getElementsByTagName('y')[0].firstChild.data
-        loc[2] = sensor.getElementsByTagName('z')[0].firstChild.data
-        loc /= 100.  # cm -> m
-    return chs
+        chs[id[0]]['loc'][:3] = loc
+    return chs, dig_points
 
 
 def _add_pns_channel_info(chs, egi_info, ch_names):
@@ -453,7 +479,7 @@ class RawMff(BaseRaw):
         ch_coil = FIFF.FIFFV_COIL_EEG
         ch_kind = FIFF.FIFFV_EEG_CH
         chs = _create_chs(ch_names, cals, ch_coil, ch_kind, eog, (), (), misc)
-        chs = _read_locs(input_fname, chs, egi_info)
+        chs, dig = _read_locs(input_fname, chs, egi_info)
         sti_ch_idx = [i for i, name in enumerate(ch_names) if
                       name.startswith('STI') or name in event_codes]
         for idx in sti_ch_idx:
@@ -465,6 +491,7 @@ class RawMff(BaseRaw):
         chs = _add_pns_channel_info(chs, egi_info, ch_names)
 
         info['chs'] = chs
+        info['dig'] = dig
         info._update_redundant()
         file_bin = op.join(input_fname, egi_info['eeg_fname'])
         egi_info['egi_events'] = egi_events
@@ -826,10 +853,11 @@ def _read_evoked_mff(fname, condition, channel_naming='E%d', verbose=None):
     ch_coil = FIFF.FIFFV_COIL_EEG
     ch_kind = FIFF.FIFFV_EEG_CH
     chs = _create_chs(ch_names, cals, ch_coil, ch_kind, (), (), (), ())
-    chs = _read_locs(fname, chs, egi_info)
+    chs, dig = _read_locs(fname, chs, egi_info)
     # Update PNS channel info
     chs = _add_pns_channel_info(chs, egi_info, ch_names)
     info['chs'] = chs
+    info['dig'] = dig
 
     # Add bad channels to info
     info['description'] = category
