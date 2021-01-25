@@ -266,8 +266,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
     if axes is not None and proj == 'interactive':
         raise RuntimeError('Currently only single axis figures are supported'
                            ' for interactive SSP selection.')
-    if isinstance(gfp, str) and gfp != 'only':
-        raise ValueError('gfp must be boolean or "only". Got %s' % gfp)
+
+    _check_option('gfp', gfp, [True, False, 'only', 'power', 'power-only'])
 
     scalings = _handle_default('scalings', scalings)
     titles = _handle_default('titles', titles)
@@ -428,7 +428,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
             # Set amplitude scaling
             D = this_scaling * data[idx, :]
             _check_if_nan(D)
-            gfp_only = (isinstance(gfp, str) and gfp == 'only')
+            gfp_only = gfp == 'only' or gfp == 'power-only'
             if not gfp_only:
                 chs = [info['chs'][i] for i in idx]
                 locs3d = np.array([ch['loc'][:3] for ch in chs])
@@ -473,12 +473,15 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                                 linewidth=0.5)[0])
                     line_list[-1].set_pickradius(3.)
 
-            if gfp:  # 'only' or boolean True
-                # GFP is the standard deviation of the signal across all
-                # channels for each time point:
-                #
-                # GFP(t) = √{[∑ (xᵢ(t) - x̅(t))²] / N}
-                this_gfp = D.std(axis=0, ddof=0)
+            if gfp:
+                if gfp in [True, 'only']:
+                    this_gfp = D.std(axis=0, ddof=0)
+                    label = 'GFP'
+                elif gfp in ['power', 'power-only']:
+                    # RMS
+                    this_gfp = np.sqrt((D ** 2).mean(axis=0))
+                    label = 'RMS'
+
                 gfp_color = 3 * (0.,) if spatial_colors is True else (0., 1.,
                                                                       0.)
                 this_ylim = ax.get_ylim() if (ylim is None or this_type not in
@@ -494,7 +497,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                                          zorder=3, alpha=line_alpha)[0])
                 ax.text(times[0] + 0.01 * (times[-1] - times[0]),
                         this_gfp[0] + 0.05 * np.diff(ax.get_ylim())[0],
-                        'GFP', zorder=4, color=gfp_color,
+                        label, zorder=4, color=gfp_color,
                         path_effects=gfp_path_effects)
             for ii, line in zip(idx, line_list):
                 if ii in bad_ch_idx:
@@ -677,12 +680,24 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         The axes to plot to. If list, the list must be a list of Axes of
         the same length as the number of channel types. If instance of
         Axes, there must be only one channel type plotted.
-    gfp : bool | 'only'
-        Plot the global field power (GFP), i.e. the standard deviation of
-        signals across channels. If ``True``,  the traces for all channels will
-        be plotted, too; if ``'only'``, the individual channel traces will
-        not be shown. The color of the GFP trace will be green if
+    gfp : bool | 'only' | 'power' | 'power-only'
+        Plot the global field power (GFP) or the root mean square (RMS) power
+        of the data. GFP is the standard deviation of signals across channels.
+        This is equivalent to the RMS of an average-referenced signal.
+
+        - ``True``: plot the GFP and the traces for all channels
+        - ``'only'``: plot the GFP, but omit the individual channel traces
+        - ``'power'``: plot the RMS and the traces for all channels
+        - ``'power-only'``: plot the RMS, but omit the individual channel
+           traces
+
+        The color of the GFP/RMS trace will be green if
         ``spatial_colors=False``, and black otherwise.
+
+        .. versionchanged:: 0.23
+           Plot GFP (and not RMS) by default. Add ``'power'`` and
+           ``'power-only'`` options.
+
     window_title : str | None
         The title to put at the top of the figure.
     spatial_colors : bool

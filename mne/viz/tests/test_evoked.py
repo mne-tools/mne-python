@@ -124,7 +124,15 @@ def test_plot_evoked():
 
     # test GFP only
     evoked.plot(gfp='only', time_unit='s')
-    pytest.raises(ValueError, evoked.plot, gfp='foo', time_unit='s')
+
+    # test RMS
+    evoked.plot(gfp='power', time_unit='s')
+    evoked.plot(gfp='power-only', time_unit='s')
+    plt.close('all')
+
+    # Test invalid `gfp`
+    with pytest.raises(ValueError):
+        evoked.plot(gfp='foo', time_unit='s')
 
     # plot with bad channels excluded, spatial_colors, zorder & pos. layout
     evoked.rename_channels({'MEG 0133': 'MEG 0000'})

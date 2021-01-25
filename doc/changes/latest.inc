@@ -36,6 +36,7 @@ Enhancements
 
 - Add :meth:`raw.describe() <mne.io.Raw.describe>` to display (or return) descriptive statistics for each channel (:gh:`8760` by `Clemens Brunner`_)
 
+- `mne.viz.plot_evoked` and `mne.Evoked.plot` have gained the ``gfp='power'`` and ``gfp='power-only'`` parameter values to plot the RMS power of the signal (:gh:`8775` by `Richard Höchenberger`_)
 
 Bugs
 ~~~~
@@ -61,7 +62,7 @@ Bugs
 
 - `mne.io.read_raw_egi` now correctly handles `pathlib.Path` filenames (:gh:`8759` by `Richard Höchenberger`_)
 
-- `mne.viz.plot_evoked` and `mne.Evoked.plot` now always correctly calculate global field power (GFP) based on the average-referenced signal (we used not to reference to average in previous versions) (:gh:`8775` by `Richard Höchenberger`_)
+- `mne.viz.plot_evoked` and `mne.Evoked.plot` now correctly plot global field power (GFP) when ``gfp=True`` or ``gfp='only'`` is passed (we erroneously plotted the RMS in previous versions) (:gh:`8775` by `Richard Höchenberger`_)
 
 API changes
 ~~~~~~~~~~~
