@@ -75,7 +75,12 @@ evks['aud/left'].plot(exclude=[])
 # select channels to plot by name, index, or type. In the next plot we'll show
 # only magnetometer channels, and also color-code the channel traces by their
 # location by passing ``spatial_colors=True``. Finally, we'll superimpose a
-# trace of the :term:`global field power <GFP>` across channels:
+# trace of the root mean square (RMS) of the signal across channels by
+# passing ``gfp=True``. This parameter is called ``gfp`` for historical
+# reasons and behaves correctly for all supported channel types: for MEG data,
+# it will plot the RMS; while for EEG, it would plot the
+# `:term:`global field power <GFP>` (an average-referenced RMS), hence its
+# name:
 
 evks['aud/left'].plot(picks='mag', spatial_colors=True, gfp=True)
 
