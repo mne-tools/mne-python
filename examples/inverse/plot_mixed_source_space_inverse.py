@@ -166,7 +166,7 @@ labels_parc = mne.read_labels_from_annot(
 label_ts = mne.extract_label_time_course(
     [stc], labels_parc, src, mode='mean', allow_empty=True)
 
-# plot the times series of 2 labels
+# Plot the times series of 2 labels
 fig, axes = plt.subplots(1)
 axes.plot(1e3 * stc.times, label_ts[0][0, :], 'k', label='bankssts-lh')
 axes.plot(1e3 * stc.times, label_ts[0][-1, :].T, 'r', label='Brain-stem')
