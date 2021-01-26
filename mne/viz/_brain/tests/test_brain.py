@@ -174,7 +174,7 @@ def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
     renderer.backend._close_all()
 
     brain = Brain(hemi=hemi, surf=surf, size=size, title=title,
-                  cortex=cortex, units='m', **kwargs)
+                  cortex=cortex, units='m', silhouette=True, **kwargs)
     with pytest.raises(TypeError, match='not supported'):
         brain._check_stc(hemi='lh', array=FakeSTC(), vertices=None)
     with pytest.raises(ValueError, match='add_data'):
