@@ -53,8 +53,8 @@ from ..utils import (check_version, logger, check_fname, verbose,
                      compute_corr, _get_inst_data, _ensure_int,
                      copy_function_doc_to_method_doc, _pl, warn, Bunch,
                      _check_preload, _check_compensation_grade, fill_doc,
-                     _check_option, _PCA, int_like)
-from ..utils import _check_all_same_channel_names, verbose
+                     _check_option, _PCA, int_like,
+                     _check_all_same_channel_names)
 
 from ..fixes import _get_args, _safe_svd
 from ..filter import filter_data
@@ -2729,7 +2729,7 @@ def read_ica_eeglab(fname, *, verbose=None):
     use_check = linalg.pinv(eeg.icawinv)
     if not np.allclose(use, use_check, rtol=1e-6):
         warn('Mismatch between icawinv and icaweights @ icasphere from EEGLAB,'
-             'assuming icawinv is correct')
+             ' assuming icawinv is correct')
         use = use_check
     u, s, v = _safe_svd(use, full_matrices=False)
     ica.unmixing_matrix_ = u * s
