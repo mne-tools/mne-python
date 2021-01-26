@@ -2728,8 +2728,9 @@ def read_ica_eeglab(fname, *, verbose=None):
     use = eeg.icaweights @ eeg.icasphere
     use_check = linalg.pinv(eeg.icawinv)
     if not np.allclose(use, use_check, rtol=1e-6):
-        warn('Mismatch between icawinv and icaweights @ icasphere from EEGLAB,'
-             ' assuming icawinv is correct')
+        warn('Mismatch between icawinv and icaweights @ icasphere from EEGLAB '
+             'possibly due to ICA component removal, assuming icawinv is '
+             'correct')
         use = use_check
     u, s, v = _safe_svd(use, full_matrices=False)
     ica.unmixing_matrix_ = u * s
