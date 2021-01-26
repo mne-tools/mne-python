@@ -39,7 +39,8 @@ event_id, tmin, tmax = 1, -0.1, 0.1
 
 # Use a subset of channels for plotting speed
 # make sure we have a magnetometer and a pair of grad pairs for topomap.
-default_picks = (0, 1, 2, 3, 4, 6, 7, 61, 122, 183, 244, 305)
+default_picks = (0, 1, 2, 3, 4, 6, 7, 61, 122, 183, 244, 305,
+                 315, 316, 317, 318)  # EEG channels
 sel = (0, 7)
 
 
@@ -50,7 +51,10 @@ def _get_epochs(picks=default_picks):
     events = read_events(event_name)
     epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
                     decim=10, verbose='error')
-    epochs.info['bads'] = [epochs.ch_names[-1]]
+    epochs.info['bads'] = [
+        epochs.ch_names[-5],  # MEG
+        epochs.ch_names[-1]   # EEG
+    ]
     epochs.info.normalize_proj()
     return epochs
 
@@ -96,7 +100,7 @@ def test_plot_evoked():
     fig = evoked.plot(proj=True, hline=[1], exclude=[], window_title='foo',
                       time_unit='s')
     amplitudes = _get_amplitudes(fig)
-    assert len(amplitudes) == 12
+    assert len(amplitudes) == len(default_picks)
     assert evoked.proj is False
     # Test a click
     ax = fig.get_axes()[0]
@@ -122,12 +126,21 @@ def test_plot_evoked():
                   proj='interactive', axes='foo', time_unit='s')
     plt.close('all')
 
-    # test GFP only
-    evoked.plot(gfp='only', time_unit='s')
+    # test `gfp='only'`: GFP (EEG) and RMS (MEG)
+    fig, ax = plt.subplots(3)
+    evoked.plot(gfp='only', time_unit='s', axes=ax)
 
-    # test RMS
-    evoked.plot(gfp='rms', time_unit='s')
-    evoked.plot(gfp='rms-only', time_unit='s')
+    assert len(ax[0].lines) == len(ax[1].lines) == len(ax[2].lines) == 1
+
+    assert ax[0].get_title() == 'EEG (3 channels)'
+    assert ax[0].texts[0].get_text() == 'GFP'
+
+    assert ax[1].get_title() == 'Gradiometers (9 channels)'
+    assert ax[1].texts[0].get_text() == 'RMS'
+
+    assert ax[2].get_title() == 'Magnetometers (2 channels)'
+    assert ax[1].texts[0].get_text() == 'RMS'
+
     plt.close('all')
 
     # Test invalid `gfp`

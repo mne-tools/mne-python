@@ -38,8 +38,6 @@ Enhancements
 
 - Add :meth:`annotations.to_data_frame() <mne.Annotations.to_data_frame>` to return annotations as a pandas dataframe (:gh:`8783` by `Robert Luke`_)
 
-- `mne.viz.plot_evoked` and `mne.Evoked.plot` have gained the ``gfp='rms'`` and ``gfp='rms-only'`` parameter values to plot the RMS of the signal (:gh:`8775` by `Richard Höchenberger`_)
-
 Bugs
 ~~~~
 - Fix zen mode and scalebar toggling for :meth:`raw.plot() <mne.io.Raw.plot>` when using the ``macosx`` matplotlib backend (:gh:`8688` by `Daniel McCloy`_)
@@ -64,7 +62,7 @@ Bugs
 
 - `mne.io.read_raw_egi` now correctly handles `pathlib.Path` filenames (:gh:`8759` by `Richard Höchenberger`_)
 
-- `mne.viz.plot_evoked` and `mne.Evoked.plot` now correctly plot global field power (GFP) when ``gfp=True`` or ``gfp='only'`` is passed (we erroneously plotted the RMS in previous versions) (:gh:`8775` by `Richard Höchenberger`_)
+- `mne.viz.plot_evoked` and `mne.Evoked.plot` now correctly plot global field power (GFP) for EEG data when ``gfp=True`` or ``gfp='only'`` is passed. For MEG data, we continue to plot the RMS, but now label it correctly as such (:gh:`8775` by `Richard Höchenberger`_)
 
 API changes
 ~~~~~~~~~~~

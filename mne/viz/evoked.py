@@ -267,7 +267,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
         raise RuntimeError('Currently only single axis figures are supported'
                            ' for interactive SSP selection.')
 
-    _check_option('gfp', gfp, [True, False, 'only', 'rms', 'rms-only'])
+    _check_option('gfp', gfp, [True, False, 'only'])
 
     scalings = _handle_default('scalings', scalings)
     titles = _handle_default('titles', titles)
@@ -428,7 +428,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
             # Set amplitude scaling
             D = this_scaling * data[idx, :]
             _check_if_nan(D)
-            gfp_only = gfp == 'only' or gfp == 'rms-only'
+            gfp_only = gfp == 'only'
             if not gfp_only:
                 chs = [info['chs'][i] for i in idx]
                 locs3d = np.array([ch['loc'][:3] for ch in chs])
@@ -475,11 +475,12 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
 
             if gfp:
                 if gfp in [True, 'only']:
-                    this_gfp = D.std(axis=0, ddof=0)
-                    label = 'GFP'
-                elif gfp in ['rms', 'rms-only']:
-                    this_gfp = np.linalg.norm(D, axis=0)
-                    label = 'RMS'
+                    if this_type == 'eeg':
+                        this_gfp = D.std(axis=0, ddof=0)
+                        label = 'GFP'
+                    else:
+                        this_gfp = np.linalg.norm(D, axis=0)
+                        label = 'RMS'
 
                 gfp_color = 3 * (0.,) if spatial_colors is True else (0., 1.,
                                                                       0.)
@@ -679,26 +680,24 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         The axes to plot to. If list, the list must be a list of Axes of
         the same length as the number of channel types. If instance of
         Axes, there must be only one channel type plotted.
-    gfp : bool | 'only' | 'rms' | 'rms-only'
+    gfp : bool | 'only'
         Plot the global field power (GFP) or the root mean square (RMS) of the
-        data. GFP is the standard deviation of signals across channels.
-        This is equivalent to the RMS of an average-referenced signal.
+        data. For MEG data, this will plot the RMS. For EEG, it plots GFP,
+        i.e. the standard deviation of the signal across channels. The GFP is
+        equivalent to the RMS of an average-referenced signal.
 
         - ``True``
-            Plot the GFP and the traces for all channels.
+            Plot GFP or RMS (for EEG and MEG, respectively) and traces for all
+            channels.
         - ``'only'``
-            Plot the GFP, but omit the individual channel traces.
-        - ``'rms'``
-            Plot the RMS and the traces for all channels.
-        - ``'rms-only'``
-            Plot the RMS, but omit the individual channel traces.
+            Plot GFP or RMS (for EEG and MEG, respectively), and omit the
+            traces for individual channels.
 
         The color of the GFP/RMS trace will be green if
         ``spatial_colors=False``, and black otherwise.
 
         .. versionchanged:: 0.23
-           Plot GFP (and not RMS) by default. Add ``'rms'`` and
-           ``'rms-only'`` options.
+           Plot GFP for EEG instead of RMS. Label RMS traces correctly as such.
 
     window_title : str | None
         The title to put at the top of the figure.
