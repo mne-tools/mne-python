@@ -6,8 +6,8 @@ Datasets Overview
 .. sidebar:: Contributing datasets to MNE-Python
 
     Do not hesitate to contact MNE-Python developers on the
-    `MNE mailing list <http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis>`_
-    to discuss the possibility of adding more publicly available datasets.
+    `MNE Forum <https://mne.discourse.group>`_ to discuss the possibility of
+    adding more publicly available datasets.
 
 All the dataset fetchers are available in :mod:`mne.datasets`. To download any of the datasets,
 use the ``data_path`` (fetches full dataset) or the ``load_data`` (fetches dataset partially) functions.
@@ -351,6 +351,12 @@ For convenience, we provide a function to separately download and extract the
 
     :ref:`tut-eeg-fsaverage-source-modeling`
 
+Infant template MRIs
+^^^^^^^^^^^^^^^^^^^^
+:func:`mne.datasets.fetch_infant_template`
+
+This function will download an infant template MRI from
+:footcite:`OReillyEtAl2021` along with MNE-specific files.
 
 ECoG Dataset
 ^^^^^^^^^^^^

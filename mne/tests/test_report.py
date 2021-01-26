@@ -4,19 +4,21 @@
 #
 # License: BSD (3-clause)
 
+import base64
 import copy
 import glob
+from io import BytesIO
 import os
 import os.path as op
+import re
 import shutil
 import pathlib
 
 import numpy as np
-from numpy.testing import assert_equal
 import pytest
 from matplotlib import pyplot as plt
 
-from mne import Epochs, read_events, read_evokeds
+from mne import Epochs, read_events, read_evokeds, report as report_mod
 from mne.io import read_raw_fif
 from mne.datasets import testing
 from mne.report import Report, open_report, _ReportScraper
@@ -38,6 +40,10 @@ trans_fname = op.join(report_dir, 'sample_audvis_trunc-trans.fif')
 inv_fname = op.join(report_dir,
                     'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
 mri_fname = op.join(subjects_dir, 'sample', 'mri', 'T1.mgz')
+bdf_fname = op.realpath(op.join(op.dirname(__file__), '..', 'io',
+                                'edf', 'tests', 'data', 'test.bdf'))
+edf_fname = op.realpath(op.join(op.dirname(__file__), '..', 'io',
+                                'edf', 'tests', 'data', 'test.edf'))
 
 base_dir = op.realpath(op.join(op.dirname(__file__), '..', 'io', 'tests',
                                'data'))
@@ -54,7 +60,7 @@ def _get_example_figures():
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_render_report(renderer, tmpdir):
-    """Test rendering -*.fif files for mne report."""
+    """Test rendering *.fif files for mne report."""
     tempdir = str(tmpdir)
     raw_fname_new = op.join(tempdir, 'temp_raw.fif')
     raw_fname_new_bids = op.join(tempdir, 'temp_meg.fif')
@@ -102,9 +108,9 @@ def test_render_report(renderer, tmpdir):
                 [op.basename(x) for x in report.fnames])
         assert (''.join(report.html).find(op.basename(fname)) != -1)
 
-    assert_equal(len(report.fnames), len(fnames))
-    assert_equal(len(report.html), len(report.fnames))
-    assert_equal(len(report.fnames), len(report))
+    assert len(report.fnames) == len(fnames)
+    assert len(report.html) == len(report.fnames)
+    assert len(report.fnames) == len(report)
 
     # Check saving functionality
     report.data_path = tempdir
@@ -123,8 +129,8 @@ def test_render_report(renderer, tmpdir):
     assert 'Topomap (ch_type =' in html
     assert f'Evoked: {op.basename(evoked_fname)} (GFPs)' in html
 
-    assert_equal(len(report.html), len(fnames))
-    assert_equal(len(report.html), len(report.fnames))
+    assert len(report.html) == len(fnames)
+    assert len(report.html) == len(report.fnames)
 
     # Check saving same report to new filename
     report.save(fname=op.join(tempdir, 'report2.html'), open_browser=False)
@@ -165,6 +171,60 @@ def test_render_report(renderer, tmpdir):
         report.add_figs_to_section('foo', 'caption', 'section')
     with pytest.raises(TypeError, match='figure must be a'):
         report.add_figs_to_section(['foo'], 'caption', 'section')
+
+
+def test_add_custom_css(tmpdir):
+    """Test adding custom CSS rules to the report."""
+    tempdir = str(tmpdir)
+    fname = op.join(tempdir, 'report.html')
+    fig = plt.figure()  # Empty figure
+
+    report = Report()
+    report.add_figs_to_section(figs=fig, captions='Test section')
+    custom_css = '.report_custom { color: red; }'
+    report.add_custom_css(css=custom_css)
+
+    assert custom_css in report.include
+    report.save(fname, open_browser=False)
+    with open(fname, 'rb') as fid:
+        html = fid.read().decode('utf-8')
+    assert custom_css in html
+
+
+@testing.requires_testing_data
+def test_render_non_fiff(tmpdir):
+    """Test rendering non-FIFF files for mne report."""
+    tempdir = str(tmpdir)
+    fnames_in = [bdf_fname, edf_fname]
+    fnames_out = []
+    for fname in fnames_in:
+        basename = op.basename(fname)
+        basename, ext = op.splitext(basename)
+        fname_out = f'{basename}_raw{ext}'
+        outpath = op.join(tempdir, fname_out)
+        shutil.copyfile(fname, outpath)
+        fnames_out.append(fname_out)
+
+    report = Report()
+    report.parse_folder(data_path=tempdir, render_bem=False, on_error='raise')
+
+    # Check correct paths and filenames
+    for fname in fnames_out:
+        assert (op.basename(fname) in
+                [op.basename(x) for x in report.fnames])
+
+    assert len(report.fnames) == len(fnames_out)
+    assert len(report.html) == len(report.fnames)
+    assert len(report.fnames) == len(report)
+
+    report.data_path = tempdir
+    fname = op.join(tempdir, 'report.html')
+    report.save(fname=fname, open_browser=False)
+    with open(fname, 'rb') as fid:
+        html = fid.read().decode('utf-8')
+
+    assert '<h4>Raw: test_raw.bdf</h4>' in html
+    assert '<h4>Raw: test_raw.edf</h4>' in html
 
 
 @testing.requires_testing_data
@@ -288,6 +348,40 @@ def test_render_mri(renderer, tmpdir):
 
 @testing.requires_testing_data
 @requires_nibabel()
+@pytest.mark.parametrize('n_jobs', [
+    1,
+    pytest.param(2, marks=pytest.mark.slowtest),  # 1.5 sec locally
+])
+def test_add_bem_n_jobs(n_jobs, tmpdir, monkeypatch):
+    """Test add_bem with n_jobs."""
+    from matplotlib.pyplot import imread
+    if n_jobs == 1:  # in one case, do at init -- in the other, pass in
+        use_subjects_dir = None
+    else:
+        use_subjects_dir = subjects_dir
+    report = Report(subjects_dir=use_subjects_dir)
+    # implicitly test that subjects_dir is correctly preserved here
+    monkeypatch.setattr(report_mod, '_BEM_VIEWS', ('axial',))
+    if use_subjects_dir is not None:
+        use_subjects_dir = None
+    report.add_bem_to_section('sample', 'sample', 'sample', decim=15,
+                              n_jobs=n_jobs, verbose='debug',
+                              subjects_dir=subjects_dir)
+    assert len(report.html) == 1
+    imgs = np.array([imread(BytesIO(base64.b64decode(b)), 'png')
+                     for b in re.findall(r'data:image/png;base64,(\S*)">',
+                                         report.html[0])])
+    assert imgs.ndim == 4  # images, h, w, rgba
+    assert len(imgs) == 6
+    imgs.shape = (len(imgs), -1)
+    norms = np.linalg.norm(imgs, axis=-1)
+    # should have down-up-down shape
+    corr = np.corrcoef(norms, np.hanning(len(imgs)))[0, 1]
+    assert 0.78 < corr < 0.80
+
+
+@testing.requires_testing_data
+@requires_nibabel()
 def test_render_mri_without_bem(tmpdir):
     """Test rendering MRI without BEM for mne report."""
     tempdir = str(tmpdir)
@@ -359,7 +453,7 @@ def test_validate_input():
                   comments=comments[:-1])
     values = report._validate_input(items, captions, section, comments=None)
     items_new, captions_new, comments_new = values
-    assert_equal(len(comments_new), len(items))
+    assert len(comments_new) == len(items)
 
 
 @requires_h5py

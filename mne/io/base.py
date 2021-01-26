@@ -6,6 +6,7 @@
 #          Teon Brooks <teon.brooks@gmail.com>
 #          Marijn van Vliet <w.m.vanvliet@gmail.com>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
+#          Clemens Brunner <clemens.brunner@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -14,16 +15,19 @@ from datetime import timedelta
 import os
 import os.path as op
 import shutil
+from collections import defaultdict
 
 import numpy as np
 
 from .constants import FIFF
 from .utils import _construct_bids_filename, _check_orig_units
-from .pick import (pick_types, pick_channels, pick_info, _picks_to_idx)
+from .pick import (pick_types, pick_channels, pick_info, _picks_to_idx,
+                   channel_type)
 from .meas_info import write_meas_info
 from .proj import setup_proj, activate_proj, _proj_equal, ProjMixin
 from ..channels.channels import (ContainsMixin, UpdateChannelsMixin,
-                                 SetChannelsMixin, InterpolationMixin)
+                                 SetChannelsMixin, InterpolationMixin,
+                                 _unit2human)
 from .compensator import set_current_comp, make_compensator
 from .write import (start_file, end_file, start_block, end_block,
                     write_dau_pack16, write_float, write_double,
@@ -44,6 +48,7 @@ from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      _check_preload, _get_argvalues, _check_option,
                      _build_data_frame, _convert_times, _scale_dataframe_data,
                      _check_time_format)
+from ..defaults import _handle_default
 from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo, _RAW_CLIP_DEF
 from ..event import find_events, concatenate_events
 from ..annotations import Annotations, _combine_annotations, _sync_onset
@@ -1764,6 +1769,86 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         df = _build_data_frame(self, data, picks, long_format, mindex, index,
                                default_index=['time'])
         return df
+
+    def describe(self, data_frame=False):
+        """Describe channels (name, type, descriptive statistics).
+
+        Parameters
+        ----------
+        data_frame : bool
+            If True, return results in a pandas.DataFrame. If False, only print
+            results. Columns 'ch', 'type', and 'unit' indicate channel index,
+            channel type, and unit of the remaining five columns. These columns
+            are 'min' (minimum), 'Q1' (first quartile or 25% percentile),
+            'median', 'Q3' (third quartile or 75% percentile), and 'max'
+            (maximum).
+
+        Returns
+        -------
+        result : None | pandas.DataFrame
+            If data_frame=False, returns None. If data_frame=True, returns
+            results in a pandas.DataFrame (requires pandas).
+        """
+        from scipy.stats import scoreatpercentile as q
+        nchan = self.info["nchan"]
+
+        # describe each channel
+        cols = defaultdict(list)
+        cols["name"] = self.ch_names
+        for i in range(nchan):
+            ch = self.info["chs"][i]
+            data = self[i][0]
+            cols["type"].append(channel_type(self.info, i))
+            cols["unit"].append(_unit2human[ch["unit"]])
+            cols["min"].append(np.min(data))
+            cols["Q1"].append(q(data, 25))
+            cols["median"].append(np.median(data))
+            cols["Q3"].append(q(data, 75))
+            cols["max"].append(np.max(data))
+
+        if data_frame:  # return data frame
+            import pandas as pd
+            df = pd.DataFrame(cols)
+            df.index.name = "ch"
+            return df
+
+        # convert into commonly used units
+        scalings = _handle_default("scalings")
+        units = _handle_default("units")
+        for i in range(nchan):
+            unit = units.get(cols['type'][i])
+            scaling = scalings.get(cols['type'][i], 1)
+            if scaling != 1:
+                cols['unit'][i] = unit
+                for col in ["min", "Q1", "median", "Q3", "max"]:
+                    cols[col][i] *= scaling
+
+        lens = {"ch": max(2, len(str(nchan))),
+                "name": max(4, max([len(n) for n in cols["name"]])),
+                "type": max(4, max([len(t) for t in cols["type"]])),
+                "unit": max(4, max([len(u) for u in cols["unit"]]))}
+
+        # print description, start with header
+        print(self)
+        print(f"{'ch':>{lens['ch']}}  "
+              f"{'name':<{lens['name']}}  "
+              f"{'type':<{lens['type']}}  "
+              f"{'unit':<{lens['unit']}}  "
+              f"{'min':>8}  "
+              f"{'Q1':>8}  "
+              f"{'median':>8}  "
+              f"{'Q3':>8}  "
+              f"{'max':>8}")
+        # print description for each channel
+        for i in range(nchan):
+            msg = (f"{i:>{lens['ch']}}  "
+                   f"{cols['name'][i]:<{lens['name']}}  "
+                   f"{cols['type'][i].upper():<{lens['type']}}  "
+                   f"{cols['unit'][i]:<{lens['unit']}}  ")
+            for col in ["min", "Q1", "median", "Q3"]:
+                msg += f"{cols[col][i]:>8.2f}  "
+            msg += f"{cols['max'][i]:>8.2f}"
+            print(msg)
 
 
 def _allocate_data(preload, shape, dtype):

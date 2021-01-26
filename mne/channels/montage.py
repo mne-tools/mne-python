@@ -707,16 +707,16 @@ def _set_montage(info, montage, match_case=True, on_missing='raise'):
         # get the channels in the montage in head
         ch_pos = mnt_head._get_ch_pos()
 
-        # only get the eeg, seeg, ecog channels
+        # only get the eeg, seeg, dbs, ecog channels
         _pick_chs = partial(
-            pick_types, exclude=[], eeg=True, seeg=True, ecog=True, meg=False,
-        )
+            pick_types, exclude=[], eeg=True, seeg=True, dbs=True, ecog=True,
+            meg=False)
 
         # get the reference position from the loc[3:6]
         chs = info['chs']
         ref_pos = [chs[ii]['loc'][3:6] for ii in _pick_chs(info)]
 
-        # keep reference location from EEG/ECoG/SEEG channels if they
+        # keep reference location from EEG/ECoG/SEEG/DBS channels if they
         # already exist and are all the same.
         custom_eeg_ref_dig = False
         # Note: ref position is an empty list for fieldtrip data

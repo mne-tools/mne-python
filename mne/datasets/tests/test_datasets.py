@@ -8,7 +8,8 @@ import sys
 import pytest
 
 from mne import datasets, read_labels_from_annot, write_labels_to_annot
-from mne.datasets import testing
+from mne.datasets import testing, fetch_infant_template
+from mne.datasets._infant import base as infant_base
 from mne.datasets._fsaverage.base import _set_montage_coreg_path
 from mne.datasets.utils import _manifest_check_download
 
@@ -196,3 +197,19 @@ def test_manifest_check_download(tmpdir, n_have, monkeypatch):
     assert op.isdir(destination)
     for fname in _zip_fnames:
         assert op.isfile(op.join(destination, fname))
+
+
+def _fake_mcd(manifest_path, destination, url, hash_):
+    name = url.split('/')[-1].split('.')[0]
+    assert name in manifest_path
+    assert name in destination
+    assert name in url
+    assert len(hash_) == 32
+
+
+def test_infant(tmpdir, monkeypatch):
+    """Test fetch_infant_template."""
+    monkeypatch.setattr(infant_base, '_manifest_check_download', _fake_mcd)
+    fetch_infant_template('12mo', subjects_dir=tmpdir)
+    with pytest.raises(ValueError, match='Invalid value for'):
+        fetch_infant_template('0mo', subjects_dir=tmpdir)

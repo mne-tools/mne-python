@@ -2,8 +2,6 @@
 #
 # License: Simplified BSD
 
-import matplotlib.pyplot as plt
-from contextlib import contextmanager
 from ...fixes import nullcontext
 from ._pyvista import _Renderer as _PyVistaRenderer
 from ._pyvista import \
@@ -12,157 +10,58 @@ from ._pyvista import \
 
 class _Renderer(_PyVistaRenderer):
     def __init__(self, *args, **kwargs):
-        from IPython import get_ipython
-        ipython = get_ipython()
-        ipython.magic('matplotlib widget')
+        self.tool_bar_state = True
+        self.tool_bar = None
+        self.actions = dict()
         kwargs["notebook"] = True
         super().__init__(*args, **kwargs)
 
-    def show(self):
-        self.figure.display = _NotebookInteractor(self)
-        return self.scene()
+    def _screenshot(self):
+        fname = self.actions.get("screenshot_field").value
+        fname = self._get_screenshot_filename() if len(fname) == 0 else fname
+        self.screenshot(filename=fname)
 
+    def _set_tool_bar(self, state):
+        self.tool_bar_state = state
 
-class _NotebookInteractor(object):
-    def __init__(self, renderer):
+    def _add_button(self, desc, func, icon_name):
+        from ipywidgets import Button
+        button = Button(tooltip=desc, icon=icon_name)
+        button.on_click(lambda x: func())
+        return button
+
+    def _add_text_field(self, value, placeholder):
+        from ipywidgets import Text
+        return Text(value=value, placeholder=placeholder)
+
+    def _show_tool_bar(self, actions):
         from IPython import display
-        from ipywidgets import HBox, VBox
-        self.dpi = 90
-        self.sliders = dict()
-        self.controllers = dict()
-        self.renderer = renderer
-        self.plotter = self.renderer.plotter
-        with self.disabled_interactivity():
-            self.fig, self.dh = self.screenshot()
-        self.configure_controllers()
-        controllers = VBox(list(self.controllers.values()))
-        layout = HBox([self.fig.canvas, controllers])
-        display.display(layout)
+        from ipywidgets import HBox
+        tool_bar = HBox(tuple(actions.values()))
+        display.display(tool_bar)
+        return tool_bar
 
-    @contextmanager
-    def disabled_interactivity(self):
-        state = plt.isinteractive()
-        plt.ioff()
-        try:
-            yield
-        finally:
-            if state:
-                plt.ion()
-            else:
-                plt.ioff()
-
-    def screenshot(self):
-        width, height = self.renderer.figure.store['window_size']
-
-        fig = plt.figure()
-        fig.figsize = (width / self.dpi, height / self.dpi)
-        fig.dpi = self.dpi
-        fig.canvas.toolbar_visible = False
-        fig.canvas.header_visible = False
-        fig.canvas.resizable = False
-        fig.canvas.callbacks.callbacks.clear()
-        ax = plt.Axes(fig, [0., 0., 1., 1.])
-        ax.set_axis_off()
-        fig.add_axes(ax)
-
-        dh = ax.imshow(self.plotter.screenshot())
-        return fig, dh
-
-    def update(self):
-        self.plotter.render()
-        self.dh.set_data(self.plotter.screenshot())
-        self.fig.canvas.draw()
-
-    def configure_controllers(self):
-        from ipywidgets import (interactive, Label, VBox, FloatSlider,
-                                IntSlider, Checkbox)
-        # continuous update
-        self.continuous_update_button = Checkbox(
-            value=False,
-            description='Continuous update',
-            disabled=False,
-            indent=False,
+    def _configure_tool_bar(self):
+        self.actions["screenshot"] = self._add_button(
+            desc="Take a screenshot",
+            func=self._screenshot,
+            icon_name="camera",
         )
-        self.controllers["continuous_update"] = interactive(
-            self.set_continuous_update,
-            value=self.continuous_update_button
+        self.actions["screenshot_field"] = self._add_text_field(
+            value=None,
+            placeholder="Type a file name",
         )
-        # subplot
-        number_of_plots = len(self.plotter.renderers)
-        if number_of_plots > 1:
-            self.sliders["subplot"] = IntSlider(
-                value=number_of_plots - 1,
-                min=0,
-                max=number_of_plots - 1,
-                step=1,
-                continuous_update=False
-            )
-            self.controllers["subplot"] = VBox([
-                Label(value='Select the subplot'),
-                interactive(
-                    self.set_subplot,
-                    index=self.sliders["subplot"],
-                )
-            ])
-        # azimuth
-        default_azimuth = self.plotter.renderer._azimuth
-        self.sliders["azimuth"] = FloatSlider(
-            value=default_azimuth,
-            min=-180.,
-            max=180.,
-            step=10.,
-            continuous_update=False
-        )
-        # elevation
-        default_elevation = self.plotter.renderer._elevation
-        self.sliders["elevation"] = FloatSlider(
-            value=default_elevation,
-            min=-180.,
-            max=180.,
-            step=10.,
-            continuous_update=False
-        )
-        # distance
-        eps = 1e-5
-        default_distance = self.plotter.renderer._distance
-        self.sliders["distance"] = FloatSlider(
-            value=default_distance,
-            min=eps,
-            max=2. * default_distance - eps,
-            step=default_distance / 10.,
-            continuous_update=False
-        )
-        # camera
-        self.controllers["camera"] = VBox([
-            Label(value='Camera settings'),
-            interactive(
-                self.set_camera,
-                azimuth=self.sliders["azimuth"],
-                elevation=self.sliders["elevation"],
-                distance=self.sliders["distance"],
-            )
-        ])
+        self.tool_bar = self._show_tool_bar(self.actions)
 
-    def set_camera(self, azimuth, elevation, distance):
-        focalpoint = self.plotter.camera.GetFocalPoint()
-        self.renderer.set_camera(azimuth, elevation,
-                                 distance, focalpoint)
-        self.update()
-
-    def set_subplot(self, index):
-        row, col = self.plotter.index_to_loc(index)
-        self.renderer.subplot(row, col)
-        figure = self.renderer.figure
-        default_azimuth = figure.plotter.renderer._azimuth
-        default_elevation = figure.plotter.renderer._elevation
-        default_distance = figure.plotter.renderer._distance
-        self.sliders["azimuth"].value = default_azimuth
-        self.sliders["elevation"].value = default_elevation
-        self.sliders["distance"].value = default_distance
-
-    def set_continuous_update(self, value):
-        for slider in self.sliders.values():
-            slider.continuous_update = value
+    def show(self):
+        from IPython.display import display
+        if self.tool_bar_state:
+            self._configure_tool_bar()
+        self.figure.display = self.plotter.show(use_ipyvtk=True,
+                                                return_viewer=True)
+        self.figure.display.layout.width = None  # unlock the fixed layout
+        display(self.figure.display)
+        return self.scene()
 
 
 _testing_context = nullcontext

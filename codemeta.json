@@ -19,7 +19,8 @@
         "EEG",
         "fNIRS",
         "ECoG",
-        "sEEG"
+        "sEEG",
+        "DBS"
     ],
     "programmingLanguage": [
         "Python"
