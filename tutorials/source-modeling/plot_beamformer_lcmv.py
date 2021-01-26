@@ -58,7 +58,7 @@ event_id = 1  # those are the trials with left-ear auditory stimuli
 tmin, tmax = -0.2, 0.5
 events = mne.find_events(raw)
 
-# Pick relevant channels
+# pick relevant channels
 raw.pick(['meg', 'eog'])  # pick channels of interest
 
 # Create epochs
