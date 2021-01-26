@@ -19,10 +19,6 @@ This problem is tackled as supervised multiclass classification task. The aim
 is to predict the sleep stage from 5 possible stages for each chunk of 30
 seconds of data.
 
-.. contents:: This tutorial covers:
-   :local:
-   :depth: 2
-
 .. _Pipeline: https://scikit-learn.org/stable/modules/generated/sklearn.pipeline.Pipeline.html
 .. _FunctionTransformer: https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.FunctionTransformer.html
 .. _physionet_labels: https://physionet.org/physiobank/database/sleep-edfx/#sleep-cassette-study-and-data

@@ -21,6 +21,10 @@ For users already familiar with Python:
       $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
       $ conda env update --file environment.yml
 
+  If you need to convert structural MRI scans into models of the scalp,
+  inner/outer skull, and cortical surfaces you also need
+  :doc:`FreeSurfer <freesurfer>`.
+
 The :ref:`install_python_and_mne_python` page has more detailed instructions
 for different operating systems (including instructions for installing Python
 if you don't already have it). The :ref:`advanced_setup` page has additional
@@ -36,4 +40,3 @@ dependencies, etc).
     mne_python
     freesurfer
     advanced
-    contributing

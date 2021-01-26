@@ -8,10 +8,6 @@ Annotating continuous data
 This tutorial describes adding annotations to a `~mne.io.Raw` object,
 and how annotations are used in later stages of data processing.
 
-.. contents:: Page contents
-   :local:
-   :depth: 1
-
 As usual we'll start by importing the modules we need, loading some
 :ref:`example data <sample-dataset>`, and (since we won't actually analyze the
 raw data in this tutorial) cropping the `~mne.io.Raw` object to just 60

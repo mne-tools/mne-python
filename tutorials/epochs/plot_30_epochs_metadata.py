@@ -8,10 +8,6 @@ This tutorial shows how to add metadata to :class:`~mne.Epochs` objects, and
 how to use :ref:`Pandas query strings <pandas:indexing.query>` to select and
 plot epochs based on metadata properties.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 For this tutorial we'll use a different dataset than usual: the
 :ref:`kiloword-dataset`, which contains EEG data averaged across 75 subjects
 who were performing a lexical decision (word/non-word) task. The data is in

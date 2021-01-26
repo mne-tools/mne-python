@@ -48,7 +48,7 @@ fake_evoked.set_montage(biosemi_montage)
 # measured
 # in the 10-20 system (a line going through Fpz, T8/T4, Oz and T7/T3 channels).
 # MNE-Python places the head outline lower on the z dimension, at the level of
-# the anatomical landmarks :term:`LPA, RPA, and NAS <fiducial point>`.
+# the anatomical landmarks :term:`LPA, RPA, and NAS <fiducial>`.
 # Therefore to use the EEGLAB layout we
 # have to move the origin of the reference sphere (a sphere that is used as a
 # reference when projecting channel locations to a 2d plane) a few centimeters

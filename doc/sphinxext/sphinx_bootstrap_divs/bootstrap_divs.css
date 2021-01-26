@@ -3,7 +3,7 @@
     text-decoration: none;
 }
 @media (max-width: 991px) {
-    .collapse.in{
+    .collapse.show{
         display:block !important;
     }
   }

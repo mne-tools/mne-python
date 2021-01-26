@@ -44,7 +44,7 @@ sys.path.append(os.path.abspath(os.path.join(curdir, 'sphinxext')))
 # -- Project information -----------------------------------------------------
 
 project = 'MNE'
-td = date.today()
+td = datetime.now(tz=timezone.utc)
 copyright = (
     f'2012–{td.year}, MNE Developers. Last updated <time datetime="{td.isoformat()}" class="localized">{td.strftime("%Y-%m-%d %H:%M %Z")}</time>\n'  # noqa: E501
     '<script type="text/javascript">$(function () { $("time.localized").each(function () { var el = $(this); el.text(new Date(el.attr("datetime")).toLocaleString([], {dateStyle: "medium", timeStyle: "long"})); }); } )</script>')  # noqa: E501
@@ -471,15 +471,14 @@ html_theme_options = {
     'github_url': 'https://github.com/mne-tools/mne-python',
     'twitter_url': 'https://twitter.com/mne_python',
     'use_edit_page_button': False,
-    'search_bar_position': 'navbar',
     'navigation_with_keys': False,
-    'show_toc_level': 2,
+    'show_toc_level': 1,
     'google_analytics_id': 'UA-37225609-1',
 }
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-html_logo = "_static/mne_logo_small_gray.svg"
+html_logo = "_static/mne_logo_small.svg"
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
@@ -509,8 +508,7 @@ html_extra_path = [
 
 # Custom sidebar templates, maps document names to template names.
 html_sidebars = {
-    '**': ['sidebar-dev-version.html', 'sidebar-nav-bs.html'],
-    'index': ['sidebar-dev-version.html'],
+    'index': ['sidebar-whats-new.html', 'sidebar-funders.html'],
 }
 
 # If true, links to the reST sources are added to the pages.
@@ -524,7 +522,7 @@ html_show_sphinx = False
 html_context = {
     'build_dev_html': bool(int(os.environ.get('BUILD_DEV_HTML', False))),
     'versions_dropdown': {
-        'dev': 'v0.23 (development)',
+        'dev': 'v0.23 (devel)',
         'stable': 'v0.22 (stable)',
         '0.21': 'v0.21',
         '0.20': 'v0.20',
@@ -537,7 +535,95 @@ html_context = {
         '0.13': 'v0.13',
         '0.12': 'v0.12',
         '0.11': 'v0.11',
-    }
+    },
+    'institutions': [
+        dict(name='Massachusetts General Hospital',
+             img='MGH.svg',
+             url='https://www.massgeneral.org/'),
+        dict(name='Athinoula A. Martinos Center for Biomedical Imaging',
+             img='Martinos.png',
+             url='https://martinos.org/'),
+        dict(name='Harvard Medical School',
+             img='Harvard.png',
+             url='https://hms.harvard.edu/'),
+        dict(name='Massachusetts Institute of Technology',
+             img='MIT.svg',
+             url='https://web.mit.edu/'),
+        dict(name='New York University',
+             img='NYU.png',
+             url='https://www.nyu.edu/'),
+        dict(name='Commissariat à l´énergie atomique et aux énergies alternatives',  # noqa E501
+             img='CEA.png',
+             url='http://www.cea.fr/'),
+        dict(name='Aalto-yliopiston perustieteiden korkeakoulu',
+             img='Aalto.svg',
+             url='https://sci.aalto.fi/'),
+        dict(name='Télécom ParisTech',
+             img='Telecom_Paris_Tech.png',
+             url='https://www.telecom-paris.fr/'),
+        dict(name='University of Washington',
+             img='Washington.png',
+             url='https://www.washington.edu/'),
+        dict(name='Institut du Cerveau et de la Moelle épinière',
+             img='ICM.jpg',
+             url='https://icm-institute.org/'),
+        dict(name='Boston University',
+             img='BU.svg',
+             url='https://www.bu.edu/'),
+        dict(name='Institut national de la santé et de la recherche médicale',
+             img='Inserm.svg',
+             url='https://www.inserm.fr/'),
+        dict(name='Forschungszentrum Jülich',
+             img='Julich.svg',
+             url='https://www.fz-juelich.de/'),
+        dict(name='Technische Universität Ilmenau',
+             img='Ilmenau.gif',
+             url='https://www.tu-ilmenau.de/'),
+        dict(name='Berkeley Institute for Data Science',
+             img='BIDS.png',
+             url='https://bids.berkeley.edu/'),
+        dict(name='Institut national de recherche en informatique et en automatique',  # noqa E501
+             img='inria.png',
+             url='https://www.inria.fr/'),
+        dict(name='Aarhus Universitet',
+             img='Aarhus.png',
+             url='https://www.au.dk/'),
+        dict(name='Karl-Franzens-Universität Graz',
+             img='Graz.jpg',
+             url='https://www.uni-graz.at/'),
+    ],
+    'carousel': [
+        dict(title='Source Estimation',
+             text='Distributed, sparse, mixed-norm, beamformers, dipole fitting, and more.',  # noqa E501
+             url='auto_tutorials/source-modeling/plot_mne_dspm_source_localization.html',  # noqa E501
+             img='sphx_glr_plot_mne_dspm_source_localization_008.gif',
+             alt='dSPM'),
+        dict(title='Statistics',
+             text='Parametric and non-parametric, permutation tests and clustering.',  # noqa E501
+             url='auto_tutorials/stats-source-space/plot_stats_cluster_spatio_temporal.html',  # noqa E501
+             img='sphx_glr_plot_stats_cluster_spatio_temporal_001.png',
+             alt='Clusters'),
+        dict(title='Machine Learning',
+             text='Advanced decoding models including time generalization.',
+             url='auto_tutorials/machine-learning/plot_sensors_decoding.html',
+             img='sphx_glr_plot_sensors_decoding_006.png',
+             alt='Decoding'),
+        dict(title='Encoding Models',
+             text='Receptive field estimation with optional smoothness priors.',  # noqa E501
+             url='auto_tutorials/machine-learning/plot_receptive_field.html',
+             img='sphx_glr_plot_receptive_field_001.png',
+             alt='STRF'),
+        dict(title='Connectivity',
+             text='All-to-all spectral and effective connectivity measures.',
+             url='auto_examples/connectivity/plot_mne_inverse_label_connectivity.html',  # noqa E501
+             img='sphx_glr_plot_mne_inverse_label_connectivity_001.png',
+             alt='Connectivity'),
+        dict(title='Data Visualization',
+             text='Explore your data from multiple perspectives.',
+             url='auto_tutorials/evoked/plot_20_visualize_evoked.html',
+             img='sphx_glr_plot_20_visualize_evoked_007.png',
+             alt='Visualization'),
+    ]
 }
 
 # Output file base name for HTML help builder.
@@ -641,6 +727,7 @@ icons = {
     'windows': 'b',
     'hand-paper': 's',
     'question': 's',
+    'quote-left': 's',
     'rocket': 's',
     'server': 's',
     'fw-book': 's',

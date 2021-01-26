@@ -1,16 +1,11 @@
 :root {
 
+    --font-size-base: 16px;
+    --font-size-milli: 13px;
     --font-family-base: 'Source Sans Pro', sans-serif;
-    --font-family-heading: 'Source Sans Pro', sans-serif;
+    --font-family-heading: var(--font-family-base);
+    --font-family-monospace: 'Source Code Pro', monospace;
 
-    --carousel-radius: 12px;
-
-}
-
-/* ***************************** devbar (alert for development version docs) */
-.devbox a {
-    font-weight: bold;
-    color: var(--color-danger);
 }
 
 /* ********************************************************** Sphinx-gallery */
@@ -21,12 +16,12 @@ a.sphx-glr-backref-instance:hover {
 }
 /* backreference links: make non-MNE func/meth calls resemble regular code */
 a[class^="sphx-glr-backref-module"] {
-    color: var(--color-text-base);
+    color: rgb(var(--color-text-base));
 }
 /* backreference links: make MNE calls bold and colorful */
 a[class^="sphx-glr-backref-module-mne"] {
     font-weight: 600;
-    color: var(--color-link);
+    color: rgb(var(--color-link));
 }
 /* suppress redundant note at top of every tutorial and signature at the end */
 div.sphx-glr-download-link-note,
@@ -36,7 +31,12 @@ p.sphx-glr-signature {
     margin: 0;
     padding: 0;
 }
-
+/* script/notebook download buttons */
+.sphx-glr-download a.download {
+    background-image: none;
+    background-color: rgba(var(--color-info), 0.1);
+    border-color: rgb(var(--color-info));
+}
 /* Report embedding */
 iframe.sg_report {
     width: 95%;
@@ -56,8 +56,8 @@ div[id^="examples-using-"] h2 {
 
 /* ******************************************* in-text sidebar callout boxes */
 div.sidebar {
-    background-color: rgba(23, 162, 184, 0.1);  /* transparent version of --info color */
-    border: 1px solid var(--info);
+    background-color: rgba(var(--color-info), 0.1);
+    border: 1px solid rgb(var(--color-info));
     border-radius: 4px;
 }
 
@@ -90,22 +90,20 @@ ul.funders li {
 ul.funders li img {
     width: 24px;
 }
+.devbox h5 {
+    background-color: rgb(var(--color-danger));
+    color: #fff;
+}
+
+/* ******************************************************** version dropdown */
+.dropdown {
+    margin-right: 10px;
+}
+.dropdown-toggle {
+    font-weight: 600;
+}
 
 /* ********************************************* institution logos in footer */
-div.institutions {
-    text-align: center;
-    margin-top: 3px;
-    margin-bottom: 3px;
-}
-div.institutions ul {
-    display: grid;
-    line-height: 48px;
-    grid-template-columns: repeat(auto-fill, 59px);
-    justify-content: center;
-}
-div.institutions a {
-    border: 1px;
-}
 img.institution {
     vertical-align: middle;
     max-height: 42px;
@@ -113,92 +111,41 @@ img.institution {
 }
 
 /* ***************************************************** front page carousel */
-div.slide {
-    border-radius: var(--carousel-radius);
+div.frontpage-gallery {
     overflow: hidden;
+    height: 225px;
 }
-div.carousel .chopper {
-    border-radius: var(--carousel-radius);
-    overflow: hidden;
-    min-height: 275px;
-    width: 100%;
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
+div.frontpage-gallery a {
+    text-decoration: none;
+    color: rgb(var(--color-text-base));
 }
-div.jumbotron {
-    background-color: #fff0;
-    padding-top: 12px;
-    padding-bottom: 12px;
+div.frontpage-gallery > img.card-img {
+    transform: scale(1.5);
+    opacity: 0.2;
+    transition: 250ms linear;
 }
-.carousel-control-prev {
-    background-image: linear-gradient(
-      to right,
-      #aaa 0,
-      rgba(0, 0, 0, 0.0001) 100%
-    );
-    border-radius: var(--carousel-radius);
+div.frontpage-gallery:hover > img.card-img {
+    opacity: 1.0;
+    transition: 250ms linear;
 }
-.carousel-control-next {
-    background-image: linear-gradient(
-      to left,
-      #aaa 0,
-      rgba(0, 0, 0, 0.0001) 100%
-    );
-    border-radius: var(--carousel-radius);
+div.frontpage-gallery .fadeout {
+    opacity: 1.0;
+    transition: 250ms linear;
+}
+div.frontpage-gallery:hover .fadeout {
+    opacity: 0.0;
+    transition: 250ms linear;
 }
 
-.cont {
-    width: 100%;
-    display: table;
-    border-spacing: 20px 5px;
+/* ************************************************* Previous / Next buttons */
+.prev-next-bottom a.left-prev:before {
+    content:"❮\00A0"
 }
-.cont:before {
-    content: "";
+.prev-next-bottom a.right-next:after {
+    content:"\00A0❯"
 }
-.cont:after {
-    content: "";
-}
-.btn-cont {
-    display: table-cell;
-    width: 100%;
-}
-.carousel-caption {
-    background-color: #444a;
-    border-radius: var(--carousel-radius);
-    padding-left: 15px;
-    padding-right: 15px;
-    text-shadow: none;
-}
-.carousel-caption h3 {
-    font-size: 24px;
-    font-weight: 600;
-}
-.carousel-caption p {
-    font-weight: 300;
-    font-size: 18px;
-}
-.topmargin {
-    margin-top: 10px;
-}
-.bottommargin {
-    margin-bottom: 10px;
-}
-h4.list-group-item-heading {
-    font-size: 15px;
-}
-.table-like {
-    display: table;
-}
-.cell-like {
-    display: table-cell;
-    vertical-align: middle;
-    float: none;
-}
-.limitedwidth {
-    max-width: 1024px;
-    float: none;
-    margin: auto;
+.prev-next-bottom a.right-next {
+    text-align: right;
 }
 
 /* *********************************************************** miscellaneous */

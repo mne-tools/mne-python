@@ -1,11 +1,9 @@
-:orphan:
-
 .. include:: ../links.inc
 
 .. _design_philosophy:
 
-MNE-Python design philosophy
-============================
+Design philosophy
+=================
 
 Interactive versus scripted analysis
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

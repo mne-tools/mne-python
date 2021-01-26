@@ -64,7 +64,7 @@ epochs = mne.Epochs(raw, events=new_events, tmax=tmax + 0.1,
                     event_id={"square": 2})
 
 ###############################################################################
-# Plot using :term:`Global Field Power <GFP>`
+# Plot using :term:`global field power`
 
 # Parameters for plotting
 order = rts.argsort()  # sorting from fast to slow trials

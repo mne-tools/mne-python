@@ -80,9 +80,7 @@ activity, you will need MNE-Python, plus :doc:`FreeSurfer <freesurfer>` to
 convert structural MRI scans into models of the scalp, inner/outer skull, and
 cortical surfaces (specifically, for command-line functions
 :ref:`mne flash_bem`, :ref:`mne watershed_bem`, and
-:ref:`mne make_scalp_surfaces`). If you follow the recommended installation
-procedure using anaconda, you don't need to do anything extra — Freesurfer will
-automatically be installed.
+:ref:`mne make_scalp_surfaces`).
 
 
 Getting help

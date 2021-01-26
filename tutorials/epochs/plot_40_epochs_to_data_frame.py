@@ -9,10 +9,6 @@ This tutorial shows how to export the data in :class:`~mne.Epochs` objects to a
 :doc:`split-apply-combine <pandas:user_guide/groupby>` workflow to examine the
 latencies of the response maxima across epochs and conditions.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 We'll use the :ref:`sample-dataset` dataset, but load a version of the raw file
 that has already been filtered and downsampled, and has an average reference
 applied to its EEG channels. As usual we'll start by importing the modules we

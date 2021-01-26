@@ -1,0 +1,14 @@
+
+<div class="card d-none d-lg-block mt-4 {% if build_dev_html|tobool %} devbox {% endif %}">
+    <h5 class="card-header mb-0">Version {{ release }}</h5>
+    <div class="card-body">
+        <ul class="list-group list-group-flush version-box">
+            <li><i class="fas fa-newspaper fa-fw"></i> <a href="{{ pathto('whats_new.html', 1) }}">Changelog</a></li>
+            <li><i class="fas fa-book fa-fw"></i> <a href="{{ pathto('overview/index.html', 1) }}">Documentation</a></li>
+            <li><i class="fas fa-question-circle fa-fw"></i> <a href="{{ pathto('overview/get_help.html', 1) }}">Get help</a></li>
+            <li><i class="fas fa-quote-left fa-fw"></i> <a href="{{ pathto('overview/cite.html', 1) }}">Cite</a></li>
+            <li><i class="fas fa-code-branch fa-fw"></i> <a href="{{ pathto('install/contributing.html', 1) }}">Contribute</a></li>
+
+        </ul>
+    </div>
+</div>

@@ -8,11 +8,6 @@ Statistical inference
 
 Here we will briefly cover multiple concepts of inferential statistics in an
 introductory manner, and demonstrate how to use some MNE statistical functions.
-
-.. contents:: Topics
-   :local:
-   :depth: 3
-
 """
 
 # Authors: Eric Larson <larson.eric.d@gmail.com>

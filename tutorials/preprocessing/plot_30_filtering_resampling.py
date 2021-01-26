@@ -8,10 +8,6 @@ Filtering and resampling data
 This tutorial covers filtering and resampling, and gives examples of how
 filtering can be used for artifact repair.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 We begin as always by importing the necessary Python modules and loading some
 :ref:`example data <sample-dataset>`. We'll also crop the data to 60 seconds
 (to save memory on the documentation server):

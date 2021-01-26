@@ -1,5 +1,3 @@
-:orphan:
-
 .. include:: ../links.inc
 
 .. _faq:
@@ -307,7 +305,7 @@ does not contain a systematic signal (time-locked to the event of interest),
 the whitened baseline signal should be follow a multivariate Gaussian
 distribution, i.e., whitened baseline signals should be between -1.96 and 1.96
 at a given time sample. Based on the same reasoning, the expected value for the
-:term:`Global Field Power (GFP) <GFP>` is 1 (calculation of the :term:`GFP`
+:term:`global field power` (GFP) is 1 (calculation of the :term:`GFP`
 should take into account the true degrees of freedom, e.g. ``ddof=3`` with 2
 active SSP vectors)::
 
@@ -339,7 +337,7 @@ compared::
     >>> evoked.plot_white(covs) # doctest: +SKIP
 
 This will plot the whitened evoked for the optimal estimator and display the
-:term:`GFPs <GFP>` for all estimators as separate lines in the related panel.
+:term:`GFP` for all estimators as separate lines in the related panel.
 
 
 .. _faq_watershed_bem_meshes:

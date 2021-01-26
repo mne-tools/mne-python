@@ -1,5 +1,3 @@
-:orphan:
-
 .. _datasets:
 
 Datasets Overview
@@ -330,6 +328,19 @@ data please cite :footcite:`KempEtAl2000` and :footcite:`GoldbergerEtAl2000`.
 
     * :ref:`tut-sleep-stage-classif`
 
+Reference channel noise MEG data set
+====================================
+:func:`mne.datasets.refmeg_noise.data_path`.
+
+This dataset was obtained with a 4D Neuroimaging / BTi system at
+the University Clinic - Erlangen, Germany. There are powerful bursts of
+external magnetic noise throughout the recording, which make it a good
+example for automatic noise removal techniques.
+
+.. topic:: Examples
+
+    * :ref:`ex-megnoise_processing`
+
 Miscellaneous Datasets
 ======================
 These datasets are used for specific purposes in the documentation and in
@@ -410,16 +421,3 @@ References
 .. _resting state dataset tutorial: https://neuroimage.usc.edu/brainstorm/DatasetResting
 .. _median nerve dataset tutorial: https://neuroimage.usc.edu/brainstorm/DatasetMedianNerveCtf
 .. _SPM faces dataset: https://www.fil.ion.ucl.ac.uk/spm/data/mmfaces/
-
-Reference channel noise MEG data set
-====================================
-:func:`mne.datasets.refmeg_noise.data_path`.
-
-This dataset was obtained with a 4D Neuroimaging / BTi system at
-the University Clinic - Erlangen, Germany. There are powerful bursts of
-external magnetic noise throughout the recording, which make it a good
-example for automatic noise removal techniques.
-
-.. topic:: Examples
-
-    * :ref:`ex-megnoise_processing`

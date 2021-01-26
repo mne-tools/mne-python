@@ -17,10 +17,6 @@ The steps we use are:
 4. Frequency: power spectral density (Welch), 4 sec window, 50% overlap.
 5. Standardize: normalize by relative power for each source.
 
-.. contents::
-   :local:
-   :depth: 1
-
 .. _bst_omega: https://neuroimage.usc.edu/brainstorm/Tutorials/RestingOmega
 
 Preprocessing

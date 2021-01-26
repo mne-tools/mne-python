@@ -1,5 +1,3 @@
-:orphan:
-
 .. _migrating:
 
 Migrating from other analysis software

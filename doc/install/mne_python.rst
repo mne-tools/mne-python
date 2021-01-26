@@ -187,7 +187,7 @@ your operating system.
     if (navigator.userAgent.indexOf("Mac")!=-1) OSName="apple-macos";
     $(document).ready(function(){
         var element = document.getElementById("collapse_" + OSName);
-        element.className += " in";
+        element.className += " show";
         element.setAttribute("aria-expanded", "true");
     });
     </script>
