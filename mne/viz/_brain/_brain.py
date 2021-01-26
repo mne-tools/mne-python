@@ -710,11 +710,8 @@ class Brain(object):
 
         # manage time label
         time_label = self._data['time_label']
-        # if we actually have time points, we will show the slider so
-        # hide the time actor
-        have_ts = self._times is not None and len(self._times) > 1
         if self.time_actor is not None:
-            if self.visibility and time_label is not None and not have_ts:
+            if not self.visibility and time_label is not None:
                 self.time_actor.SetInput(time_label(self._current_time))
                 self.time_actor.VisibilityOn()
             else:
