@@ -415,7 +415,7 @@ class Brain(object):
             'color': self._bg_color,
             'line_width': 2,
             'alpha': alpha,
-            'decimate': 0.75,
+            'decimate': 0.9,
         }
         if isinstance(silhouette, dict):
             self._silhouette.update(silhouette)
@@ -478,20 +478,21 @@ class Brain(object):
                         opacity=alpha,
                         name='curv',
                     )
-                    if self.silhouette:
-                        self._renderer._silhouette(
-                            mesh=mesh._polydata,
-                            color=self._silhouette["color"],
-                            line_width=self._silhouette["line_width"],
-                            alpha=self._silhouette["alpha"],
-                            decimate=self._silhouette["decimate"],
-                        )
                     self._layered_meshes[h] = mesh
                     # add metadata to the mesh for picking
                     mesh._polydata._hemi = h
                 else:
                     actor = self._layered_meshes[h]._actor
                     self._renderer.plotter.add_actor(actor)
+                if self.silhouette:
+                    mesh = self._layered_meshes[h]
+                    self._renderer._silhouette(
+                        mesh=mesh._polydata,
+                        color=self._silhouette["color"],
+                        line_width=self._silhouette["line_width"],
+                        alpha=self._silhouette["alpha"],
+                        decimate=self._silhouette["decimate"],
+                    )
                 self._renderer.set_camera(**views_dicts[h][v])
 
         self.interaction = interaction
