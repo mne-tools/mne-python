@@ -1235,7 +1235,7 @@ def test_repr():
 
 @requires_pandas
 def test_annotation_to_data_frame():
-    """Test annotation class to data frame conversion"""
+    """Test annotation class to data frame conversion."""
     onset = np.arange(1, 10)
     durations = np.full_like(onset, [4, 5, 6, 4, 5, 6, 4, 5, 6])
     description = ["yy"] * onset.shape[0]
