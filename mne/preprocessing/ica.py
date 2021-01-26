@@ -54,7 +54,7 @@ from ..utils import (check_version, logger, check_fname, verbose,
                      copy_function_doc_to_method_doc, _pl, warn, Bunch,
                      _check_preload, _check_compensation_grade, fill_doc,
                      _check_option, _PCA, int_like)
-from ..utils.check import _check_all_same_channel_names
+from ..utils import _check_all_same_channel_names, verbose
 
 from ..fixes import _get_args, _safe_svd
 from ..filter import filter_data
@@ -2678,13 +2678,15 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
         return None
 
 
-def read_ica_eeglab(fname):
+@verbose
+def read_ica_eeglab(fname, *, verbose=None):
     """Load ICA information saved in an EEGLAB .set file.
 
     Parameters
     ----------
     fname : str
         Complete path to a .set EEGLAB file that contains an ICA object.
+    %(verbose)s
 
     Returns
     -------
@@ -2724,13 +2726,16 @@ def read_ica_eeglab(fname):
     # So in either case, we can use SVD to get our square whitened
     # weights matrix (u * s) and our PCA vectors (v) back:
     use = eeg.icaweights @ eeg.icasphere
+    use_check = linalg.pinv(eeg.icawinv)
+    if not np.allclose(use, use_check, rtol=1e-6):
+        warn('Mismatch between icawinv and icaweights @ icasphere from EEGLAB,'
+             'assuming icawinv is correct')
+        use = use_check
     u, s, v = _safe_svd(use, full_matrices=False)
     ica.unmixing_matrix_ = u * s
     ica.pca_components_ = v
     ica.pca_explained_variance_ = s * s
     ica.info = info
-    ica.icaweights = eeg.icaweights  # XXX remove
-    ica.icasphere = eeg.icasphere  # XXX remove
     ica._update_mixing_matrix()
     ica._update_ica_names()
     return ica
