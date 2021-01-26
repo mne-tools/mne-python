@@ -331,8 +331,8 @@ class Annotations(object):
         Returns
         -------
         result : pandas.DataFrame
-            Returns a pandas DataFrame with columns `onset`, `duration` and
-            `description`.
+            Returns a pandas DataFrame with onset, duration, and
+            description columns.
         """
         pd = _check_pandas_installed(strict=True)
         dt = _handle_meas_date(self.orig_time)
