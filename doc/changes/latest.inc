@@ -36,6 +36,8 @@ Enhancements
 
 - Add :meth:`raw.describe() <mne.io.Raw.describe>` to display (or return) descriptive statistics for each channel (:gh:`8760` by `Clemens Brunner`_)
 
+- Add :meth:`annotations.to_data_frame() <mne.Annotations.to_data_frame>` to return annotations as a pandas dataframe (:gh:`8783` by `Robert Luke`_)
+
 - `mne.viz.plot_evoked` and `mne.Evoked.plot` have gained the ``gfp='rms'`` and ``gfp='rms-only'`` parameter values to plot the RMS of the signal (:gh:`8775` by `Richard Höchenberger`_)
 
 Bugs
