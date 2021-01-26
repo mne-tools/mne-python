@@ -2511,7 +2511,8 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                  time_unit='s', show_traces='auto',
                                  src=None, volume_options=1.,
                                  view_layout='vertical',
-                                 add_data_kwargs=None, verbose=None):
+                                 add_data_kwargs=None, brain_kwargs=None,
+                                 verbose=None):
     """Plot VectorSourceEstimate with PySurfer.
 
     A "glass brain" is drawn and all dipoles defined in the source estimate
@@ -2587,6 +2588,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     %(src_volume_options)s
     %(view_layout)s
     %(add_data_kwargs)s
+    %(brain_kwargs)s
     %(verbose)s
 
     Returns
@@ -2614,7 +2616,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         vector_alpha=vector_alpha, cortex=cortex, foreground=foreground,
         size=size, scale_factor=scale_factor, show_traces=show_traces,
         src=src, volume_options=volume_options, view_layout=view_layout,
-        add_data_kwargs=add_data_kwargs)
+        add_data_kwargs=add_data_kwargs, brain_kwargs=brain_kwargs)
 
 
 @verbose
