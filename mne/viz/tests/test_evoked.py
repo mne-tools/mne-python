@@ -126,8 +126,8 @@ def test_plot_evoked():
     evoked.plot(gfp='only', time_unit='s')
 
     # test RMS
-    evoked.plot(gfp='power', time_unit='s')
-    evoked.plot(gfp='power-only', time_unit='s')
+    evoked.plot(gfp='rms', time_unit='s')
+    evoked.plot(gfp='rms-only', time_unit='s')
     plt.close('all')
 
     # Test invalid `gfp`

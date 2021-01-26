@@ -36,7 +36,7 @@ Enhancements
 
 - Add :meth:`raw.describe() <mne.io.Raw.describe>` to display (or return) descriptive statistics for each channel (:gh:`8760` by `Clemens Brunner`_)
 
-- `mne.viz.plot_evoked` and `mne.Evoked.plot` have gained the ``gfp='power'`` and ``gfp='power-only'`` parameter values to plot the RMS power of the signal (:gh:`8775` by `Richard Höchenberger`_)
+- `mne.viz.plot_evoked` and `mne.Evoked.plot` have gained the ``gfp='rms'`` and ``gfp='rms-only'`` parameter values to plot the RMS of the signal (:gh:`8775` by `Richard Höchenberger`_)
 
 Bugs
 ~~~~
