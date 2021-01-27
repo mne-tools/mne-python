@@ -6,8 +6,11 @@
 # License: BSD (3-clause)
 
 from os import path as op
+from pathlib import Path
 import math
 import re
+from contextlib import redirect_stdout
+from io import StringIO
 
 import pytest
 import numpy as np
@@ -19,7 +22,7 @@ from mne.datasets import testing
 from mne.externals.h5io import read_hdf5, write_hdf5
 from mne.io import read_raw_fif, RawArray, BaseRaw, Info, _writing_info_hdf5
 from mne.utils import (_TempDir, catch_logging, _raw_annot, _stamp_to_dt,
-                       object_diff, check_version)
+                       object_diff, check_version, requires_pandas)
 from mne.io.meas_info import _get_valid_units
 from mne.io._digitization import DigPoint
 from mne.io.proj import Projection
@@ -537,3 +540,39 @@ def _read_raw_arange(preload=False, verbose=None):
 def test_test_raw_reader():
     """Test _test_raw_reader."""
     _test_raw_reader(_read_raw_arange, test_scaling=False, test_rank='less')
+
+
+def test_describe_print():
+    """Test print output of describe method."""
+    fname = Path(__file__).parent / "data" / "test_raw.fif"
+    raw = read_raw_fif(fname)
+
+    # test print output
+    f = StringIO()
+    with redirect_stdout(f):
+        raw.describe()
+    s = f.getvalue().strip().split("\n")
+    assert len(s) == 378
+    assert s[0] == "<Raw | test_raw.fif, 376 x 14400 (24.0 s), ~3.3 MB, data not loaded>"  # noqa
+    assert s[1] == " ch  name      type  unit        min        Q1    median        Q3       max"  # noqa
+    assert s[2] == "  0  MEG 0113  GRAD  fT/cm   -221.80    -38.57     -9.64     19.29    414.67"  # noqa
+    assert s[-1] == "375  EOG 061   EOG   µV      -231.41    271.28    277.16    285.66    334.69"  # noqa
+
+
+@requires_pandas
+def test_describe_df():
+    """Test returned data frame of describe method."""
+    fname = Path(__file__).parent / "data" / "test_raw.fif"
+    raw = read_raw_fif(fname)
+
+    df = raw.describe(data_frame=True)
+    assert df.shape == (376, 8)
+    assert (df.columns.tolist() == ["name", "type", "unit", "min", "Q1",
+                                    "median", "Q3", "max"])
+    assert df.index.name == "ch"
+    assert_allclose(df.iloc[0, 3:].astype(float),
+                    np.array([-2.218017605790535e-11,
+                              -3.857421923113974e-12,
+                              -9.643554807784935e-13,
+                              1.928710961556987e-12,
+                              4.146728567347522e-11]))

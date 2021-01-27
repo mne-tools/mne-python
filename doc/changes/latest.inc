@@ -34,6 +34,10 @@ Enhancements
 
 - Add :func:`mne.io.read_raw_nedf` for reading StarStim / enobio NEDF files (:gh:`8734` by `Tristan Stenner`_)
 
+- Add :meth:`raw.describe() <mne.io.Raw.describe>` to display (or return) descriptive statistics for each channel (:gh:`8760` by `Clemens Brunner`_)
+
+- Add :meth:`annotations.to_data_frame() <mne.Annotations.to_data_frame>` to return annotations as a pandas dataframe (:gh:`8783` by `Robert Luke`_)
+
 - Add the ``silhouette`` parameter to :class:`mne.viz.Brain` to display sharp edges and improve perception (:gh:`8771` by `Guillaume Favelier`_)
 
 

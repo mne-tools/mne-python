@@ -17,5 +17,5 @@ MNE-Python.
 
 .. _`opening an issue`: https://github.com/mne-tools/mne-python/issues/new/choose
 .. _`MNE Forum`: https://mne.discourse.group
-.. _`code of conduct`: https://github.com/mne-tools/.github/blob/master/CODE_OF_CONDUCT.md
+.. _`code of conduct`: https://github.com/mne-tools/.github/blob/main/CODE_OF_CONDUCT.md
 .. _`contributing guide`: https://mne-tools.github.io/dev/install/contributing.html

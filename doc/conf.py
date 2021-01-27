@@ -12,7 +12,7 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-from datetime import date
+from datetime import datetime, timezone
 from distutils.version import LooseVersion
 import gc
 import os
@@ -99,14 +99,18 @@ source_suffix = '.rst'
 # The encoding of source files.
 # source_encoding = 'utf-8-sig'
 
-# The master toctree document.
+# The main toctree document.
 master_doc = 'index'
 
 # General information about the project.
 project = u'MNE'
-td = date.today()
-copyright = u'2012-%s, MNE Developers. Last updated on %s' % (td.year,
-                                                              td.isoformat())
+td = datetime.now(tz=timezone.utc)
+copyright = (
+    '2012-%(year)s, MNE Developers. Last updated '
+    '<time datetime="%(iso)s" class="localized">%(short)s</time>\n'
+    '<script type="text/javascript">$(function () { $("time.localized").each(function () { var el = $(this); el.text(new Date(el.attr("datetime")).toLocaleString([], {dateStyle: "medium", timeStyle: "long"})); }); } )</script>'  # noqa: E501
+) % dict(year=td.year, iso=td.isoformat(),
+         short=td.strftime('%Y-%m-%d %H:%M %Z'))
 
 nitpicky = True
 nitpick_ignore = [
