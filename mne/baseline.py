@@ -59,9 +59,11 @@ def rescale(data, times, baseline, mode='mean', copy=True, picks=None,
     data_scaled: array
         Array of same shape as data after rescaling.
     """
-    data = data.copy() if copy else data
-    msg = _log_rescale(baseline, mode)
-    logger.info(msg)
+    if copy:
+        data = data.copy()
+    if verbose:
+        msg = _log_rescale(baseline, mode)
+        logger.info(msg)
     if baseline is None or data.shape[-1] == 0:
         return data
 

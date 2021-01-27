@@ -917,13 +917,11 @@ class ICA(ContainsMixin):
         start, stop = _check_start_stop(raw, start, stop)
         if add_channels is not None:
             raw_picked = raw.copy().pick_channels(add_channels)
-            data_, times_ = raw_picked[:, start:stop]
+            data_, _ = raw_picked[:, start:stop]
             data_ = np.r_[sources, data_]
         else:
             data_ = sources
-            _, times_ = raw[0, start:stop]
         out._data = data_
-        out._times = times_
         out._filenames = [None]
         out.preload = True
 
@@ -935,7 +933,6 @@ class ICA(ContainsMixin):
 
         out._projector = None
         self._export_info(out.info, raw, add_channels)
-        out._update_times()
 
         return out
 
