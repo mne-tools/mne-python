@@ -492,9 +492,8 @@ class FiducialsFrame(HasTraits):
         # fiducials
         for key in ('lpa', 'nasion', 'rpa'):
             attr = f'{key}_obj'
-            color_key = f'{key}_color'
             setattr(self, attr, PointObject(
-                scene=self.scene, color=defaults[color_key],
+                scene=self.scene, color=defaults[f'{key}_color'],
                 has_norm=True, point_scale=self.point_scale))
             obj = getattr(self, attr)
             self.panel.sync_trait(key, obj, 'points', mutual=False)
