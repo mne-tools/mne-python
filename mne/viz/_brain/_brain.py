@@ -1330,11 +1330,25 @@ class Brain(object):
             self.actions["play"].setShortcut(" ")
             self.actions["help"].setShortcut("?")
 
+    def _shift_time(self, op):
+        self.callbacks["time"](
+            value=(op(self._current_time, self.playback_speed)),
+            time_as_index=False,
+            update_widget=True,
+        )
+
     def _configure_shortcuts(self):
+        # First, we remove the default bindings:
+        self.plotter._key_press_event_callbacks.clear()
+        # Then, we add our own:
         self.plotter.add_key_event("i", self.toggle_interface)
         self.plotter.add_key_event("s", self.apply_auto_scaling)
         self.plotter.add_key_event("r", self.restore_user_scaling)
         self.plotter.add_key_event("c", self.clear_glyphs)
+        self.plotter.add_key_event("n", partial(self._shift_time,
+                                   op=lambda x, y: x + y))
+        self.plotter.add_key_event("b", partial(self._shift_time,
+                                   op=lambda x, y: x - y))
 
     def _configure_menu(self):
         # remove default picking menu
@@ -1676,6 +1690,8 @@ class Brain(object):
             ('s', 'Apply auto-scaling'),
             ('r', 'Restore original clim'),
             ('c', 'Clear all traces'),
+            ('n', 'Shift the time forward by the playback speed'),
+            ('b', 'Shift the time backward by the playback speed'),
             ('Space', 'Start/Pause playback'),
         ]
         text1, text2 = zip(*pairs)
