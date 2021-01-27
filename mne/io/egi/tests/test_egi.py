@@ -3,6 +3,7 @@
 #          simplified BSD-3 license
 
 
+from pathlib import Path
 import os.path as op
 import os
 import shutil
@@ -148,6 +149,11 @@ def test_io_egi():
 
     with pytest.warns(RuntimeWarning, match='Did not find any event code'):
         raw = read_raw_egi(egi_fname, include=None)
+
+    # The reader should accept a Path, too.
+    with pytest.warns(RuntimeWarning, match='Did not find any event code'):
+        raw = read_raw_egi(Path(egi_fname), include=None)
+
     assert 'RawEGI' in repr(raw)
     data_read, t_read = raw[:256]
     assert_allclose(t_read, t)

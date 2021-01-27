@@ -679,9 +679,9 @@ projection : bool
     must be set to ``False`` (the default in this case).
 """
 docdict['set_eeg_reference_ch_type'] = """
-ch_type : 'auto' | 'eeg' | 'ecog' | 'seeg'
+ch_type : 'auto' | 'eeg' | 'ecog' | 'seeg' | 'dbs'
     The name of the channel type to apply the reference to. If 'auto',
-    the first channel type of eeg, ecog or seeg that is found (in that
+    the first channel type of eeg, ecog, seeg or dbs that is found (in that
     order) will be selected.
 
     .. versionadded:: 0.19
@@ -2365,7 +2365,7 @@ def linkcode_resolve(domain, info):
         linespec = ""
 
     if 'dev' in mne.__version__:
-        kind = 'master'
+        kind = 'main'
     else:
         kind = 'maint/%s' % ('.'.join(mne.__version__.split('.')[:2]))
     return "http://github.com/mne-tools/mne-python/blob/%s/mne/%s%s" % (

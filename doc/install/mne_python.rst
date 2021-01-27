@@ -148,7 +148,7 @@ your operating system.
    Download the MNE-Python `environment file`_ (done here with ``curl``) and
    use it to create a new environment (named ``mne`` by default)::
 
-       $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
+       $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/main/environment.yml
        $ conda env update --file environment.yml
 
    .. collapse:: |hand-stop-o| If you get errors building mayavi...
@@ -165,15 +165,15 @@ your operating system.
    with ``curl``) and use it to create a new environment (named ``mne`` by
    default)::
 
-       $ conda install --name base nb_conda_kernels
-       $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
+       $ conda install --name base nb_conda_kernels "spyder>=4.2.1"
+       $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/main/environment.yml
        $ conda env update --file environment.yml
 
 .. collapse:: |windows| Windows
 
    - Download the `environment file`_
    - Open an Anaconda command prompt
-   - Run :samp:`conda install --name base nb_conda_kernels`
+   - Run :samp:`conda install --name base nb_conda_kernels "spyder>=4.2.1"`
    - :samp:`cd` to the directory where you downloaded the file
    - Run :samp:`conda env update --file environment.yml`
 
@@ -291,16 +291,16 @@ Python development are:
   use Python. It is included by default in the ``base`` environment when you
   install Anaconda, and can be started from a terminal with the command
   ``spyder`` (or on Windows or macOS, launched from the Anaconda Navigator GUI).
-  If you installed MNE-Python into a separate ``mne`` environment (not the
-  ``base`` Anaconda environment), you can set up Spyder to use the ``mne``
-  environment automatically, by opening Spyder and navigating to
+  If you use Spyder, you should *not* install it into the ``mne`` environment;
+  instead, launch Spyder from the ``base`` environment and set it to use the
+  ``mne`` environment automatically, by opening Spyder and navigating to
   :samp:`Tools > Preferences > Python Interpreter > Use the following interpreter`.
   There, paste the output of the following terminal command::
 
       $ conda activate mne && python -c "import sys; print(sys.executable)"
 
   It should be something like ``C:\Users\user\anaconda3\envs\mne\python.exe``
-  (Windows) or ``/Users/user/anaconda3/envs/mne/bin/python`` (macOS).
+  (Windows) or ``/Users/user/opt/anaconda3/envs/mne/bin/python`` (macOS).
 - `Visual Studio Code`_ (often shortened to "VS Code" or "vscode") is a
   development-focused text editor that supports many programming languages in
   addition to Python, includes an integrated terminal console, and has a rich
@@ -334,8 +334,8 @@ Python development are:
 
 .. LINKS
 
-.. _environment file: https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
-.. _server environment file: https://raw.githubusercontent.com/mne-tools/mne-python/master/server_environment.yml
+.. _environment file: https://raw.githubusercontent.com/mne-tools/mne-python/main/environment.yml
+.. _server environment file: https://raw.githubusercontent.com/mne-tools/mne-python/main/server_environment.yml
 .. _`mayavi`: https://docs.enthought.com/mayavi/mayavi/
 .. _`pyvista`: https://docs.pyvista.org/
 .. _`X server`: https://en.wikipedia.org/wiki/X_Window_System

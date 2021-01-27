@@ -17,7 +17,7 @@ from numpy.testing import assert_allclose, assert_array_equal
 
 from mne import (read_source_estimate, read_evokeds, read_cov,
                  read_forward_solution, pick_types_forward,
-                 SourceEstimate, MixedSourceEstimate,
+                 SourceEstimate, MixedSourceEstimate, write_surface,
                  VolSourceEstimate)
 from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.source_space import (read_source_spaces, vertex_to_mni,
@@ -381,6 +381,57 @@ def test_brain_save_movie(tmpdir, renderer, brain_gc):
         assert path.isfile(filename)
         os.remove(filename)
     brain.close()
+
+
+_TINY_SIZE = (300, 250)
+
+
+def tiny(tmpdir):
+    """Create a tiny fake brain."""
+    # This is a minimal version of what we need for our viz-with-timeviewer
+    # support currently
+    subject = 'test'
+    subject_dir = tmpdir.mkdir(subject)
+    surf_dir = subject_dir.mkdir('surf')
+    rng = np.random.RandomState(0)
+    rr = rng.randn(4, 3)
+    tris = np.array([[0, 1, 2], [2, 1, 3]])
+    curv = rng.randn(len(rr))
+    with open(surf_dir.join('lh.curv'), 'wb') as fid:
+        fid.write(np.array([255, 255, 255], dtype=np.uint8))
+        fid.write(np.array([len(rr), 0, 1], dtype='>i4'))
+        fid.write(curv.astype('>f4'))
+    write_surface(surf_dir.join('lh.white'), rr, tris)
+    write_surface(surf_dir.join('rh.white'), rr, tris)  # needed for vertex tc
+    vertices = [np.arange(len(rr)), []]
+    data = rng.randn(len(rr), 10)
+    stc = SourceEstimate(data, vertices, 0, 1, subject)
+    brain = stc.plot(subjects_dir=tmpdir, hemi='lh', surface='white',
+                     size=_TINY_SIZE)
+    # in principle this should be sufficient:
+    #
+    # ratio = brain.mpl_canvas.canvas.window().devicePixelRatio()
+    #
+    # but in practice VTK can mess up sizes, so let's just calculate it.
+    sz = brain.plotter.size()
+    sz = (sz.width(), sz.height())
+    sz_ren = brain.plotter.renderer.GetSize()
+    ratio = np.median(np.array(sz_ren) / np.array(sz))
+    return brain, ratio
+
+
+def test_brain_screenshot(renderer_interactive, tmpdir, brain_gc):
+    """Test time viewer screenshot."""
+    if renderer_interactive._get_3d_backend() != 'pyvista':
+        pytest.skip('TimeViewer tests only supported on PyVista')
+    tiny_brain, ratio = tiny(tmpdir)
+    img_nv = tiny_brain.screenshot(time_viewer=False)
+    want = (_TINY_SIZE[1] * ratio, _TINY_SIZE[0] * ratio, 3)
+    assert img_nv.shape == want
+    img_v = tiny_brain.screenshot(time_viewer=True)
+    assert img_v.shape[1:] == want[1:]
+    assert_allclose(img_v.shape[0], want[0] * 4 / 3, atol=3)  # some slop
+    tiny_brain.close()
 
 
 @testing.requires_testing_data

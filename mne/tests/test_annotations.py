@@ -1,4 +1,5 @@
 # Authors: Jaakko Leppakangas <jaeilepp@student.jyu.fi>
+#          Robert Luke <mail@robertluke.net>
 #
 # License: BSD 3 clause
 
@@ -21,7 +22,7 @@ from mne import (create_info, read_annotations, annotations_from_events,
                  events_from_annotations)
 from mne import Epochs, Annotations
 from mne.utils import (run_tests_if_main, _TempDir, requires_version,
-                       catch_logging)
+                       catch_logging, requires_pandas)
 from mne.utils import (assert_and_remove_boundary_annot, _raw_annot,
                        _dt_to_stamp, _stamp_to_dt)
 from mne.io import read_raw_fif, RawArray, concatenate_raws
@@ -1230,6 +1231,26 @@ def test_repr():
     # empty Annotations
     r = repr(Annotations([], [], []))
     assert r == '<Annotations | 0 segments>'
+
+
+@requires_pandas
+def test_annotation_to_data_frame():
+    """Test annotation class to data frame conversion."""
+    onset = np.arange(1, 10)
+    durations = np.full_like(onset, [4, 5, 6, 4, 5, 6, 4, 5, 6])
+    description = ["yy"] * onset.shape[0]
+
+    a = Annotations(onset=onset,
+                    duration=durations,
+                    description=description,
+                    orig_time=0)
+
+    df = a.to_data_frame()
+    for col in ['onset', 'duration', 'description']:
+        assert col in df.columns
+    assert df.description[0] == 'yy'
+    assert (df.onset[1] - df.onset[0]).seconds == 1
+    assert df.groupby('description').count().onset['yy'] == 9
 
 
 run_tests_if_main()

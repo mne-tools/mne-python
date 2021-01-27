@@ -107,6 +107,8 @@ if __name__ == "__main__":
               op.join('channels', 'data', 'montages', '*.elc'),
               op.join('channels', 'data', 'neighbors', '*.mat'),
               op.join('datasets', 'sleep_physionet', 'SHA1SUMS'),
+              op.join('datasets', '_fsaverage', '*.txt'),
+              op.join('datasets', '_infant', '*.txt'),
               op.join('gui', 'help', '*.json'),
               op.join('html', '*.js'),
               op.join('html', '*.css'),

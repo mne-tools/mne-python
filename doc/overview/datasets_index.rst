@@ -351,6 +351,12 @@ For convenience, we provide a function to separately download and extract the
 
     :ref:`tut-eeg-fsaverage-source-modeling`
 
+Infant template MRIs
+^^^^^^^^^^^^^^^^^^^^
+:func:`mne.datasets.fetch_infant_template`
+
+This function will download an infant template MRI from
+:footcite:`OReillyEtAl2021` along with MNE-specific files.
 
 ECoG Dataset
 ^^^^^^^^^^^^
