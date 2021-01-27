@@ -49,7 +49,7 @@ Bugs
 
 - Fix bug with :func:`mne.io.read_raw_nicolet` where header type values such as num_sample and duration_in_sec where not parsed properly (:gh:`8712` by `Alex Gramfort`_)
 
-- Fix bug with :func:`mne.preprocessing.read_ica_eeglab` with reading AMICA decompositions (:gh:`8780` by `Alex Gramfort`_ and `Eric Larson`_)
+- Fix bug with :func:`mne.preprocessing.read_ica_eeglab` when reading decompositions using PCA dimensionality reduction (:gh:`8780` by `Alex Gramfort`_ and `Eric Larson`_)
 
 - Fix bug with ``replace`` argument of :meth:`mne.Report.add_bem_to_section` and :meth:`mne.Report.add_slider_to_section` (:gh:`8723` by `Eric Larson`_)
 
