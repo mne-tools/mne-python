@@ -827,7 +827,9 @@ class _Renderer(_BaseRenderer):
             volume_neg = None
         return grid, grid_mesh, volume_pos, volume_neg
 
-    def _silhouette(self, mesh, color=None, line_width=None, alpha=None):
+    def _silhouette(self, mesh, color=None, line_width=None, alpha=None,
+                    decimate=None):
+        mesh = mesh.decimate(decimate) if decimate is not None else mesh
         silhouette_filter = vtk.vtkPolyDataSilhouette()
         silhouette_filter.SetInputData(mesh)
         silhouette_filter.SetCamera(self.plotter.renderer.GetActiveCamera())
