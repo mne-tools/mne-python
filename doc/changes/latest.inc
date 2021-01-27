@@ -40,7 +40,6 @@ Enhancements
 
 - Add the ``silhouette`` parameter to :class:`mne.viz.Brain` to display sharp edges and improve perception (:gh:`8771` by `Guillaume Favelier`_)
 
-
 Bugs
 ~~~~
 - Fix zen mode and scalebar toggling for :meth:`raw.plot() <mne.io.Raw.plot>` when using the ``macosx`` matplotlib backend (:gh:`8688` by `Daniel McCloy`_)
@@ -64,6 +63,8 @@ Bugs
 - Fix title not shown in :func:`mne.viz.plot_montage` (:gh:`8752` by `Clemens Brunner`_)
 
 - `mne.io.read_raw_egi` now correctly handles `pathlib.Path` filenames (:gh:`8759` by `Richard Höchenberger`_)
+
+- `mne.viz.plot_evoked` and `mne.Evoked.plot` now correctly plot global field power (GFP) for EEG data when ``gfp=True`` or ``gfp='only'`` is passed (used to plot RMS). For MEG data, we continue to plot the RMS, but now label it correctly as such (:gh:`8775` by `Richard Höchenberger`_)
 
 API changes
 ~~~~~~~~~~~
