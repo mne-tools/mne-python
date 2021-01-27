@@ -1365,6 +1365,7 @@ class Report(object):
             If True, the plots are closed during the generation of the report.
             Defaults to True.
 
+            .. versionadded:: 0.23
         Notes
         -----
         .. versionadded:: 0.10.0
