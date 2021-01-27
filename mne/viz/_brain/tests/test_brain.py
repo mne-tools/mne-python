@@ -23,7 +23,7 @@ from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.source_space import (read_source_spaces, vertex_to_mni,
                               setup_volume_source_space)
 from mne.datasets import testing
-from mne.utils import check_version
+from mne.utils import check_version, requires_pysurfer
 from mne.label import read_label
 from mne.viz._brain import Brain, _LinkViewer, _BrainScraper, _LayeredMesh
 from mne.viz._brain.colormap import calculate_lut
@@ -142,6 +142,18 @@ def test_brain_gc(renderer, brain_gc):
         pytest.skip('TimeViewer tests only supported on PyVista')
     brain = Brain('fsaverage', 'both', 'inflated', subjects_dir=subjects_dir)
     brain.close()
+
+
+@requires_pysurfer
+@testing.requires_testing_data
+def test_brain_routines(renderer, brain_gc):
+    """Test backend agnostic Brain routines."""
+    brain_klass = renderer.get_brain_class()
+    if renderer.get_3d_backend() == "mayavi":
+        from surfer import Brain
+    else:  # PyVista
+        from mne.viz._brain import Brain
+    assert brain_klass == Brain
 
 
 @testing.requires_testing_data
