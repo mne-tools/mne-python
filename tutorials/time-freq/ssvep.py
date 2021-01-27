@@ -439,51 +439,42 @@ print("12 hz SNR in occipital ROI is significantly different from 12 hz SNR over
 # simple t-test.
 #
 
-snrs_roi = snrs[:,picks_roi_vis,:].mean(axis=1)
+snrs_roi = snrs[:, picks_roi_vis, :].mean(axis=1)
 
-stim_12hz_snrs_12hz = snrs_roi[i_trial_12hz, i_bin_12hz][0]
-stim_12hz_snrs_15hz = snrs_roi[i_trial_12hz, i_bin_15hz][0]
-stim_12hz_snrs_24hz = snrs_roi[i_trial_12hz, i_bin_24hz][0]
-stim_12hz_snrs_30hz = snrs_roi[i_trial_12hz, i_bin_30hz][0]
-stim_12hz_snrs_36hz = snrs_roi[i_trial_12hz, i_bin_36hz][0]
-stim_12hz_snrs_45hz = snrs_roi[i_trial_12hz, i_bin_45hz][0]
-
-stim_15hz_snrs_12hz = snrs_roi[i_trial_15hz, i_bin_12hz][0]
-stim_15hz_snrs_15hz = snrs_roi[i_trial_15hz, i_bin_15hz][0]
-stim_15hz_snrs_24hz = snrs_roi[i_trial_15hz, i_bin_24hz][0]
-stim_15hz_snrs_30hz = snrs_roi[i_trial_15hz, i_bin_30hz][0]
-stim_15hz_snrs_36hz = snrs_roi[i_trial_15hz, i_bin_36hz][0]
-stim_15hz_snrs_45hz = snrs_roi[i_trial_15hz, i_bin_45hz][0]
-
-# plot SNRs at stimulation frequencies and harmonics
+freq_plot = [12,15,24,30,36,45]
+color_plot = ['darkblue', 'darkgreen', 'mediumblue', 'green', 'blue', 'seagreen']
+xpos_plot = [-5./12, -3./12, -1./12, 1./12, 3./12, 5./12]
+fig, ax = plt.subplots()
 labels = ['12hz trials', '15hz trials']
-SNR_12hz = [stim_12hz_snrs_12hz.mean(), stim_15hz_snrs_12hz.mean()]
-SNR_15hz = [stim_12hz_snrs_15hz.mean(), stim_15hz_snrs_15hz.mean()]
-SNR_24hz = [stim_12hz_snrs_24hz.mean(), stim_15hz_snrs_24hz.mean()]
-SNR_30hz = [stim_12hz_snrs_30hz.mean(), stim_15hz_snrs_30hz.mean()]
-SNR_36hz = [stim_12hz_snrs_36hz.mean(), stim_15hz_snrs_36hz.mean()]
-SNR_45hz = [stim_12hz_snrs_45hz.mean(), stim_15hz_snrs_45hz.mean()]
-
 x = np.arange(len(labels))  # the label locations
 width = 0.6  # the width of the bars
+res = dict()
 
-fig, ax = plt.subplots()
-rects1 = ax.bar(x - width*5/12, SNR_12hz, width/6, label='12hz SNR', color='darkblue')
-rects2 = ax.bar(x - width*3/12, SNR_15hz, width/6, label='15hz SNR', color='darkgreen')
-rects3 = ax.bar(x - width*1/12, SNR_24hz, width/6, label='24hz SNR', color='mediumblue')
-rects4 = ax.bar(x + width*1/12, SNR_30hz, width/6, label='30hz SNR', color='green')
-rects5 = ax.bar(x + width*3/12, SNR_36hz, width/6, label='36hz SNR', color='blue')
-rects6 = ax.bar(x + width*5/12, SNR_45hz, width/6, label='45hz SNR', color='seagreen')
+# loop to plot SNRs at stimulation frequencies and harmonics
+for i, f in enumerate(freq_plot):
+    # extract snrs
+    stim_12hz_tmp = snrs_roi[i_trial_12hz, np.argmin(abs(np.subtract(freqs, f)))][0]
+    stim_15hz_tmp = snrs_roi[i_trial_15hz, np.argmin(abs(np.subtract(freqs, f)))][0]
+    SNR_tmp = [stim_12hz_tmp.mean(), stim_15hz_tmp.mean()]
+    # plot (with std)
+    ax.bar(
+        x + width * xpos_plot[i], SNR_tmp, width / len(freq_plot),
+        yerr=np.std(SNR_tmp),
+        label='%ihz SNR' % f, color=color_plot[i])
+    # store results for statistical comparison
+    res['stim_12hz_snrs_%ihz' % f] = stim_12hz_tmp
+    res['stim_15hz_snrs_%ihz' % f] = stim_15hz_tmp
 
 # Add some text for labels, title and custom x-axis tick labels, etc.
 ax.set_ylabel('SNR')
 ax.set_title('Average SNR at target frequencies')
 ax.set_xticks(x)
 ax.set_xticklabels(labels)
-ax.legend()
-
-#fig.tight_layout()
-plt.show()
+ax.legend(['%ihz' % f for f in freq_plot], title='SNR at:')
+ax.set_ylim([0, 18])
+ax.axhline(1, ls='--', c='r')
+# fig.tight_layout()
+fig.show()
 
 ##############################################################################
 # As you can easily see there are striking differences.
@@ -491,28 +482,29 @@ plt.show()
 #
 
 # Compare 12 hz and 15 hz SNR in trials after averaging over channels
-tstat_12hz_trial_stim = ttest_rel(stim_12hz_snrs_12hz, stim_12hz_snrs_15hz)
+
+tstat_12hz_trial_stim = ttest_rel(res['stim_12hz_snrs_12hz'], res['stim_12hz_snrs_15hz'])
 print("12 hz Trials: 12 hz SNR is significantly different from 15 hz SNR"
       ": t = %.3f, p = %f" % tstat_12hz_trial_stim)
 
-tstat_12hz_trial_1st_harmonic = ttest_rel(stim_12hz_snrs_24hz, stim_12hz_snrs_30hz)
+tstat_12hz_trial_1st_harmonic = ttest_rel(res['stim_12hz_snrs_24hz'], res['stim_12hz_snrs_30hz'])
 print("12 hz Trials: 24 hz SNR is significantly different from 30 hz SNR"
       ": t = %.3f, p = %f" % tstat_12hz_trial_1st_harmonic)
 
-tstat_12hz_trial_2nd_harmonic = ttest_rel(stim_12hz_snrs_36hz, stim_12hz_snrs_45hz)
+tstat_12hz_trial_2nd_harmonic = ttest_rel(res['stim_12hz_snrs_36hz'], res['stim_12hz_snrs_45hz'])
 print("12 hz Trials: 36 hz SNR is significantly different from 45 hz SNR"
       ": t = %.3f, p = %f" % tstat_12hz_trial_2nd_harmonic)
 
 print()
-tstat_15hz_trial_stim = ttest_rel(stim_15hz_snrs_12hz, stim_15hz_snrs_15hz)
+tstat_15hz_trial_stim = ttest_rel(res['stim_15hz_snrs_12hz'], res['stim_15hz_snrs_15hz'])
 print("15 hz trials: 12 hz SNR is significantly different from 15 hz SNR"
       ": t = %.3f, p = %f" % tstat_15hz_trial_stim)
 
-tstat_15hz_trial_1st_harmonic = ttest_rel(stim_15hz_snrs_24hz, stim_15hz_snrs_30hz)
+tstat_15hz_trial_1st_harmonic = ttest_rel(res['stim_15hz_snrs_24hz'], res['stim_15hz_snrs_30hz'])
 print("15 hz trials: 24 hz SNR is significantly different from 30 hz SNR"
       ": t = %.3f, p = %f" % tstat_15hz_trial_1st_harmonic)
 
-tstat_15hz_trial_2nd_harmonic = ttest_rel(stim_15hz_snrs_36hz, stim_15hz_snrs_45hz)
+tstat_15hz_trial_2nd_harmonic = ttest_rel(res['stim_15hz_snrs_36hz'], res['stim_15hz_snrs_45hz'])
 print("15 hz trials: 36 hz SNR is significantly different from 45 hz SNR"
       ": t = %.3f, p = %f" % tstat_15hz_trial_2nd_harmonic)
 
