@@ -1535,7 +1535,7 @@ add_data_kwargs : dict | None
 """
 docdict['brain_kwargs'] = """
 brain_kwargs : dict | None
-    Additional arguments to brain.__init__ (e.g.,
+    Additional arguments to the :class:`mne.viz.Brain` constructor (e.g.,
     ``dict(silhouette=True)``).
 """
 docdict['views'] = """

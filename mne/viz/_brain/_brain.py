@@ -417,6 +417,7 @@ class Brain(object):
             'alpha': alpha,
             'decimate': 0.9,
         }
+        _validate_type(silhouette, (dict, bool), 'silhouette')
         if isinstance(silhouette, dict):
             self._silhouette.update(silhouette)
             self.silhouette = True
