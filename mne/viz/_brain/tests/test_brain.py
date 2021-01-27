@@ -148,14 +148,12 @@ def test_brain_gc(renderer, brain_gc):
 @testing.requires_testing_data
 def test_brain_routines(renderer, brain_gc):
     """Test backend agnostic Brain routines."""
-    klass = renderer.get_brain_class()
-    brain = klass(subject_id=subject_id, subjects_dir=subjects_dir,
-                  hemi='lh', surf='inflated')
+    brain_klass = renderer.get_brain_class()
     if renderer.get_3d_backend() == "mayavi":
         from surfer import Brain
     else:  # PyVista
         from mne.viz._brain import Brain
-    assert isinstance(brain, Brain)
+    assert brain_klass == Brain
 
 
 @testing.requires_testing_data
