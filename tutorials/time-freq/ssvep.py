@@ -538,7 +538,7 @@ for i_win, win in enumerate(window_lengths):
     # compute spectrogram
     windowed_psd, windowed_freqs = mne.time_frequency.psd_welch(
         epochs[str(event_id['12hz'])],
-        n_fft=int(sf * win), n_overlap=int(sf * .5), n_per_seg=None,
+        n_fft=int(sf * win), n_overlap=int(sf * (win - .1)), n_per_seg=None,
         tmin=tmin, tmax=tmax,
         fmin=fmin, fmax=fmax, verbose=True)
     # define a bandwidth of 1hz around stimfreq for SNR computation
@@ -550,7 +550,7 @@ for i_win, win in enumerate(window_lengths):
                     noise_skip_neighborfreqs=1)
     window_snrs[i_win] = windowed_snrs[:, picks_roi_vis, np.argmin(abs(np.subtract(windowed_freqs, 12.)))].mean(axis=1)
 
-plt.boxplot(window_snrs, labels=window_lengths, vert=False)
+plt.boxplot(window_snrs, labels=window_lengths, vert=True)
 plt.title('Effect of time window length on 12hz SNR - adapt only welch window')
 plt.xlabel('average SNR per trial')
 plt.ylabel('analysis window [s]')
@@ -568,7 +568,7 @@ for i_win, win in enumerate(window_lengths):
     # compute spectrogram
     windowed_psd, windowed_freqs = mne.time_frequency.psd_welch(
         epochs[str(event_id['12hz'])],
-        n_fft=int(sf * 2.), n_overlap=int(sf * .5), n_per_seg=None,
+        n_fft=int(sf * 2.), n_overlap=int(sf * 1.9), n_per_seg=None,
         tmin=0, tmax=win,
         fmin=fmin, fmax=fmax, verbose=True)
     # define a bandwidth of 1hz around stimfreq for SNR computation
@@ -580,7 +580,7 @@ for i_win, win in enumerate(window_lengths):
                     noise_skip_neighborfreqs=noise_skip_neighborfreqs)
     window_snrs[i_win] = windowed_snrs[:, picks_roi_vis, np.argmin(abs(np.subtract(windowed_freqs, 12.)))].mean(axis=1)
 
-plt.boxplot(window_snrs, labels=window_lengths, vert=False)
+plt.boxplot(window_snrs, labels=window_lengths, vert=True)
 plt.title('Effect of time window length on 12hz SNR - adapt only data window')
 plt.xlabel('average SNR per trial')
 plt.ylabel('analysis window [s]')
@@ -598,7 +598,7 @@ for i_win, win in enumerate(window_lengths):
     # compute spectrogram
     windowed_psd, windowed_freqs = mne.time_frequency.psd_welch(
         epochs[str(event_id['12hz'])],
-        n_fft=int(sf * win), n_overlap=int(sf * .5), n_per_seg=None,
+        n_fft=int(sf * win), n_overlap=0, n_per_seg=None,
         tmin=0, tmax=win,
         fmin=fmin, fmax=fmax, verbose=True)
     # define a bandwidth of 1hz around stimfreq for SNR computation
@@ -610,7 +610,7 @@ for i_win, win in enumerate(window_lengths):
                     noise_skip_neighborfreqs=noise_skip_neighborfreqs)
     window_snrs[i_win] = windowed_snrs[:, picks_roi_vis, np.argmin(abs(np.subtract(windowed_freqs, 12.)))].mean(axis=1)
 
-plt.boxplot(window_snrs, labels=window_lengths, vert=False)
+plt.boxplot(window_snrs, labels=window_lengths, vert=True)
 plt.title('Effect of time window length on 12hz SNR - adapt data and welch window')
 plt.xlabel('average SNR per trial')
 plt.ylabel('analysis window [s]')
