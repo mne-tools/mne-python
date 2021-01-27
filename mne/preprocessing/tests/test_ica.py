@@ -1323,7 +1323,8 @@ def test_read_ica_eeglab_mismatch(tmpdir):
     data = loadmat(fname_orig)
     w = data['EEG']['icaweights'][0][0]
     w[:] = np.random.RandomState(0).randn(*w.shape)
-    savemat(str(fname), data)
+    savemat(str(fname), data, appendmat=False)
+    assert op.isfile(fname)
     with pytest.warns(RuntimeWarning, match='Mismatch.*removal.*icawinv.*'):
         ica = read_ica_eeglab(fname)
     _assert_ica_attributes(ica)
