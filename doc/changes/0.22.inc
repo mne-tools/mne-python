@@ -20,6 +20,8 @@ Bugs
 
 - Fix anonymization issue of FIF files after IO round trip (:gh:`8731` by `Alex Gramfort`_)
 
+- `mne.viz.plot_evoked` and `mne.Evoked.plot` now correctly plot global field power (GFP) for EEG data when ``gfp=True`` or ``gfp='only'`` is passed (used to plot RMS). For MEG data, we continue to plot the RMS, but now label it correctly as such (:gh:`8775` by `Richard Höchenberger`_)
+
 .. _changes_0_22:
 
 Version 0.22.0
