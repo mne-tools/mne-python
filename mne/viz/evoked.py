@@ -479,7 +479,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                         this_gfp = D.std(axis=0, ddof=0)
                         label = 'GFP'
                     else:
-                        this_gfp = np.linalg.norm(D, axis=0)
+                        this_gfp = np.sqrt((D ** 2).mean(axis=0))
                         label = 'RMS'
 
                 gfp_color = 3 * (0.,) if spatial_colors is True else (0., 1.,
