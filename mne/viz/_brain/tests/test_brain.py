@@ -186,7 +186,8 @@ def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
     renderer.backend._close_all()
 
     brain = Brain(hemi=hemi, surf=surf, size=size, title=title,
-                  cortex=cortex, units='m', **kwargs)
+                  cortex=cortex, units='m',
+                  silhouette=dict(decimate=0.95), **kwargs)
     with pytest.raises(TypeError, match='not supported'):
         brain._check_stc(hemi='lh', array=FakeSTC(), vertices=None)
     with pytest.raises(ValueError, match='add_data'):
@@ -443,7 +444,10 @@ def test_brain_time_viewer(renderer_interactive, pixel_ratio, brain_gc):
     with pytest.raises(ValueError, match="got unknown keys"):
         _create_testing_brain(hemi='lh', surf='white', src='volume',
                               volume_options={'foo': 'bar'})
-    brain = _create_testing_brain(hemi='both', show_traces=False)
+    brain = _create_testing_brain(
+        hemi='both', show_traces=False,
+        brain_kwargs=dict(silhouette=dict(decimate=0.95))
+    )
     # test sub routines when show_traces=False
     brain._on_pick(None, None)
     brain._configure_vertex_time_course()
