@@ -2584,7 +2584,7 @@ class Brain(object):
         self._renderer.show()
 
     def show_view(self, view=None, roll=None, distance=None, row=0, col=0,
-                  hemi=None):
+                  hemi=None, align=True):
         """Orient camera to display view.
 
         Parameters
@@ -2601,6 +2601,11 @@ class Brain(object):
             The column to set.
         hemi : str
             Which hemi to use for string lookup (when in "both" mode).
+        align : bool
+            If True, consider view arguments relative to canonical MRI
+            directions (closest to MNI for the subject) rather than native MRI
+            space. This helps when MRIs are not in standard orientation (e.g.,
+            have large rotations).
         """
         hemi = self._hemi if hemi is None else hemi
         if hemi == 'split':
@@ -2617,7 +2622,8 @@ class Brain(object):
         if distance is not None:
             view.update(distance=distance)
         self._renderer.subplot(row, col)
-        self._renderer.set_camera(**view, reset_camera=False)
+        xfm = self._rigid if align else None
+        self._renderer.set_camera(**view, reset_camera=False, rigid=xfm)
         self._update()
 
     def reset_view(self):
