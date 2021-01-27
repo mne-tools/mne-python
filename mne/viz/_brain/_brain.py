@@ -22,7 +22,7 @@ from scipy import sparse
 from collections import OrderedDict
 
 from .colormap import calculate_lut
-from .surface import Surface
+from .surface import _Surface
 from .view import views_dicts, _lh_views_dict
 from .mplcanvas import MplCanvas
 from .callback import (ShowView, IntSlider, TimeSlider, SmartSlider,
@@ -35,7 +35,7 @@ from ...externals.decorator import decorator
 from ...defaults import _handle_default
 from ...surface import mesh_edges
 from ...source_space import SourceSpaces, vertex_to_mni, read_talxfm
-from ...transforms import apply_trans
+from ...transforms import apply_trans, invert_transform
 from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
                       use_log_level, Bunch, _ReuseCycle, warn,
                       get_subjects_dir)
@@ -466,10 +466,11 @@ class Brain(object):
             self.window = self.plotter.app_window
             self.window.signal_close.connect(self._clean)
 
+        self._setup_canonical_rotation()
         for h in self._hemis:
             # Initialize a Surface object as the geometry
-            geo = Surface(subject_id, h, surf, subjects_dir, offset,
-                          units=self._units)
+            geo = _Surface(subject_id, h, surf, subjects_dir, offset,
+                           units=self._units, x_dir=self._rigid[0, :3])
             # Load in the geometry and curvature
             geo.load_geometry()
             geo.load_curvature()
@@ -522,6 +523,21 @@ class Brain(object):
 
         if hemi == 'rh' and hasattr(self._renderer, "_orient_lights"):
             self._renderer._orient_lights()
+
+    def _setup_canonical_rotation(self):
+        from ...coreg import fit_matched_points, _trans_from_params
+        self._rigid = np.eye(4)
+        try:
+            xfm = read_talxfm(self._subject_id, self._subjects_dir)
+        except Exception:
+            return
+        # XYZ+origin + halfway
+        pts_tal = np.concatenate([np.eye(4)[:, :3], np.eye(3) * 0.5])
+        pts_subj = apply_trans(invert_transform(xfm), pts_tal)
+        # we fit with scaling enabled, but then discard it (we just need
+        # the rigid-body components)
+        params = fit_matched_points(pts_subj, pts_tal, scale=3, out='params')
+        self._rigid[:] = _trans_from_params((True, True, False), params[:6])
 
     def setup_time_viewer(self, time_viewer=True, show_traces=True):
         """Configure the time viewer parameters.
