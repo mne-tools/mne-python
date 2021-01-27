@@ -1366,6 +1366,7 @@ class Report(object):
             Defaults to True.
 
             .. versionadded:: 0.23
+
         Notes
         -----
         .. versionadded:: 0.10.0
