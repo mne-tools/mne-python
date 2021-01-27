@@ -553,10 +553,21 @@ def test_describe_print():
         raw.describe()
     s = f.getvalue().strip().split("\n")
     assert len(s) == 378
-    assert s[0] == "<Raw | test_raw.fif, 376 x 14400 (24.0 s), ~3.3 MB, data not loaded>"  # noqa
+    assert s[0] == "<Raw | test_raw.fif, 376 x 14400 (24.0 s), ~3.4 MB, data not loaded>"  # noqa
     assert s[1] == " ch  name      type  unit        min        Q1    median        Q3       max"  # noqa
     assert s[2] == "  0  MEG 0113  GRAD  fT/cm   -221.80    -38.57     -9.64     19.29    414.67"  # noqa
     assert s[-1] == "375  EOG 061   EOG   µV      -231.41    271.28    277.16    285.66    334.69"  # noqa
+
+
+def test_size():
+    """Test that our size includes some useful attributes."""
+    MB = 10
+    N = MB * 1024 * 1024
+    data = np.zeros((1, N))
+    info = create_info(1, 1000., 'eeg')
+    raw = RawArray(data, info)
+    want = MB * 2 * 8  # data and times (2) by 8 bytes per sample
+    assert f'~{want}.0 MB' in repr(raw)
 
 
 @requires_pandas

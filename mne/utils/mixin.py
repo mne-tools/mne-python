@@ -50,6 +50,8 @@ class SizeMixin(object):
             size += object_size(self.data)
         elif hasattr(self, '_data'):
             size += object_size(self._data)
+        if hasattr(self, '_times'):
+            size += object_size(self._times)
         return size
 
     def __hash__(self):
