@@ -698,7 +698,6 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
 
         .. versionchanged:: 0.23
            Plot GFP for EEG instead of RMS. Label RMS traces correctly as such.
-
     window_title : str | None
         The title to put at the top of the figure.
     spatial_colors : bool

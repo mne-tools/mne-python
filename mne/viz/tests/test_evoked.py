@@ -188,8 +188,8 @@ def _get_amplitudes(fig):
 
 @pytest.mark.parametrize('picks, rlims, avg_proj', [
     (default_picks[:-4], (0.59, 0.61), False),  # MEG
-    (np.arange(340, 360), (0.49, 0.51), True),  # EEG
-    (np.arange(340, 360), (0.78, 0.80), False),  # EEG
+    (np.arange(340, 360), (0.56, 0.57), True),  # EEG
+    (np.arange(340, 360), (0.79, 0.81), False),  # EEG
 ])
 def test_plot_evoked_reconstruct(picks, rlims, avg_proj):
     """Test proj="reconstruct"."""
