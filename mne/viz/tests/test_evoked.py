@@ -76,7 +76,8 @@ def test_plot_evoked_cov():
     evoked = _get_epochs().average()
     cov = read_cov(cov_fname)
     cov['projs'] = []  # avoid warnings
-    evoked.plot(noise_cov=cov, time_unit='s')
+    with pytest.warns(RuntimeWarning, match='No average EEG reference'):
+        evoked.plot(noise_cov=cov, time_unit='s')
     with pytest.raises(TypeError, match='Covariance'):
         evoked.plot(noise_cov=1., time_unit='s')
     with pytest.raises(IOError, match='No such file'):
@@ -186,7 +187,7 @@ def _get_amplitudes(fig):
 
 
 @pytest.mark.parametrize('picks, rlims, avg_proj', [
-    (default_picks, (0.59, 0.61), False),  # MEG
+    (default_picks[:-4], (0.59, 0.61), False),  # MEG
     (np.arange(340, 360), (0.49, 0.51), True),  # EEG
     (np.arange(340, 360), (0.78, 0.80), False),  # EEG
 ])
@@ -287,23 +288,25 @@ def test_plot_white():
     cov['method'] = 'empirical'
     cov['projs'] = []  # avoid warnings
     evoked = _get_epochs().average()
+    evoked.set_eeg_reference('average')  # Avoid warnings
+
     # test rank param.
-    evoked.plot_white(cov, rank={'mag': 101, 'grad': 201}, time_unit='s')
+    evoked.plot_white(cov, rank={'mag': 101, 'grad': 201, 'eeg': 10},
+                      time_unit='s')
     fig = evoked.plot_white(cov, rank={'mag': 101}, time_unit='s')  # test rank
     evoked.plot_white(cov, rank={'grad': 201}, time_unit='s', axes=fig.axes)
-    with pytest.raises(ValueError, match=r'must have shape \(3,\), got \(2,'):
+    with pytest.raises(ValueError, match=r'must have shape \(4,\), got \(2,'):
         evoked.plot_white(cov, axes=fig.axes[:2])
     with pytest.raises(ValueError, match='When not using SSS'):
         evoked.plot_white(cov, rank={'meg': 306})
     evoked.plot_white([cov, cov], time_unit='s')
     plt.close('all')
 
-    assert 'eeg' not in evoked
     fig = plot_evoked_white(evoked, [cov, cov])
-    assert len(fig.axes) == 2 * 2
-    axes = np.array(fig.axes).reshape(2, 2)
+    assert len(fig.axes) == 3 * 2
+    axes = np.array(fig.axes).reshape(3, 2)
     plot_evoked_white(evoked, [cov, cov], axes=axes)
-    with pytest.raises(ValueError, match=r'have shape \(2, 2\), got'):
+    with pytest.raises(ValueError, match=r'have shape \(3, 2\), got'):
         plot_evoked_white(evoked, [cov, cov], axes=axes[:, :1])
 
     # Hack to test plotting of maxfiltered data
@@ -322,7 +325,7 @@ def test_plot_compare_evokeds():
     evoked = _get_epochs().average()
     # test defaults
     figs = plot_compare_evokeds(evoked)
-    assert len(figs) == 2
+    assert len(figs) == 3
     # test picks, combine, and vlines (1-channel pick also shows sensor inset)
     picks = ['MEG 0113', 'mag'] + 2 * [['MEG 0113', 'MEG 0112']] + [[0, 1]]
     vlines = [[0.1, 0.2], []] + 3 * ['auto']
