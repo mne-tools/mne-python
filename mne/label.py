@@ -921,6 +921,7 @@ def read_label(filename, subject=None, color=None):
     See Also
     --------
     read_labels_from_annot
+    write_labels_to_annot
     """
     if subject is not None and not isinstance(subject, str):
         raise TypeError('subject must be a string')
@@ -2042,6 +2043,11 @@ def read_labels_from_annot(subject, parc='aparc', hemi='both',
     -------
     labels : list of Label
         The labels, sorted by label name (ascending).
+
+    See Also
+    --------
+    write_labels_to_annot
+    morph_labels
     """
     logger.info('Reading labels from parcellation...')
 
@@ -2361,6 +2367,10 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
 
         .. versionadded:: 0.21.0
     %(verbose)s
+
+    See Also
+    --------
+    read_labels_from_annot
 
     Notes
     -----

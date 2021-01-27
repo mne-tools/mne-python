@@ -37,7 +37,8 @@ from ...surface import mesh_edges
 from ...source_space import SourceSpaces, vertex_to_mni, read_talxfm
 from ...transforms import apply_trans
 from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
-                      use_log_level, Bunch, _ReuseCycle, warn)
+                      use_log_level, Bunch, _ReuseCycle, warn,
+                      get_subjects_dir)
 
 
 @decorator
@@ -251,9 +252,15 @@ class Brain(object):
         variable.
     views : list | str
         The views to use.
-    offset : bool
-        If True, aligs origin with medial wall. Useful for viewing inflated
-        surface where hemispheres typically overlap (Default: True).
+    offset : bool | str
+        If True, shifts the right- or left-most x coordinate of the left and
+        right surfaces, respectively, to be at zero. This is useful for viewing
+        inflated surface where hemispheres typically overlap. Can be "auto"
+        (default) use True with inflated surfaces and False otherwise
+        (Default: 'auto'). Only used when ``hemi='both'``.
+
+        .. versionchanged:: 0.23
+           Default changed to "auto".
     show_toolbar : bool
         If True, toolbars will be shown for each view.
     offscreen : bool
@@ -347,7 +354,7 @@ class Brain(object):
     def __init__(self, subject_id, hemi, surf, title=None,
                  cortex="classic", alpha=1.0, size=800, background="black",
                  foreground=None, figure=None, subjects_dir=None,
-                 views='auto', offset=True, show_toolbar=False,
+                 views='auto', offset='auto', show_toolbar=False,
                  offscreen=False, interaction='trackball', units='mm',
                  view_layout='vertical', silhouette=False, show=True):
         from ..backends.renderer import backend, _get_renderer, _get_3d_backend
@@ -395,6 +402,7 @@ class Brain(object):
             raise ValueError('"size" parameter must be an int or length-2 '
                              'sequence of ints.')
         self._size = size if len(size) == 2 else size * 2  # 1-tuple to 2-tuple
+        subjects_dir = get_subjects_dir(subjects_dir)
 
         self.time_viewer = False
         self.notebook = (_get_3d_backend() == "notebook")
@@ -440,6 +448,10 @@ class Brain(object):
         self._brain_color = _get_cmap(geo_kwargs['colormap'])(val)
 
         # load geometry for one or both hemispheres as necessary
+        _validate_type(offset, (str, bool), 'offset')
+        if isinstance(offset, str):
+            _check_option('offset', offset, ('auto',), extra='when str')
+            offset = (surf == 'inflated')
         offset = None if (not offset or hemi != 'both') else 0.0
 
         self._renderer = _get_renderer(name=self._title, size=self._size,
