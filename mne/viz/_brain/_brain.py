@@ -1791,20 +1791,28 @@ class Brain(object):
     def add_sensors(self, info, meg=True, eeg=False, trans=None):
         """Display the sensors."""
         _validate_type(meg, bool, 'meg')
-        meg_picks = pick_types(info, meg=meg, eeg=eeg, ref_meg=False)
-
-        if trans == 'auto':
-            trans = _find_trans(self._subject_id, self._subjects_dir)
         head_mri_t, _ = _get_trans(trans, 'head', 'mri')
         dev_head_t, _ = _get_trans(info['dev_head_t'], 'meg', 'head')
-        meg_trans = combine_transforms(dev_head_t, head_mri_t, 'meg', 'mri')
-
         if meg:
+            meg_trans = combine_transforms(dev_head_t, head_mri_t, 'meg',
+                                           'mri')
+            meg_picks = pick_types(info, meg=meg, eeg=eeg, ref_meg=False)
+            if trans == 'auto':
+                trans = _find_trans(self._subject_id, self._subjects_dir)
             meg_surf = _get_meg_surf(meg=["sensors"], info=info,
                                      picks=meg_picks, trans=meg_trans,
                                      coord_frame='mri', warn_meg=False)
             self._renderer.surface(surface=meg_surf, color="blue",
                                    backface_culling=True)
+        if eeg:
+            head_trans = head_mri_t
+            eeg_picks = pick_types(info, meg=meg, eeg=eeg, ref_meg=False)
+            eeg_loc = np.array([info['chs'][k]['loc'][:3] for k in eeg_picks])
+            if len(eeg_loc) > 0:
+                eeg_loc = apply_trans(head_trans, eeg_loc)
+                if 'original' not in eeg:
+                    eeg_loc = list()
+
         self._update()
 
     @verbose
