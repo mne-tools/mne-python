@@ -150,8 +150,8 @@ def test_persyst_standard():
 
 
 @requires_testing_data
-def test_persyst_repeated_annotations():
-    """Test repeated annotations in Persyst."""
+def test_persyst_annotations():
+    """Test annotations reading in Persyst."""
     out_dir = mne.utils._TempDir()
     new_fname_lay = op.join(out_dir, op.basename(fname_lay))
     new_fname_dat = op.join(out_dir, op.basename(fname_dat))
@@ -160,27 +160,14 @@ def test_persyst_repeated_annotations():
 
     raw = read_raw_persyst(new_fname_lay)
 
-    # get the annotations
+    # get the annotations and make sure that repeated annotations
+    # are in the dataset
     annotations = raw.annotations
     assert np.count_nonzero(annotations.description == 'seizure') == 2
-    raise Exception('hi')
-    # reformat the lay file to have a repeated
-    # comment
-    # with open(fname_lay, "r") as fin:
-    #     with open(new_fname_lay, 'w') as fout:
-    #         # get
-    #         line = fin.readline()
-    #         fout.write(line)
-    #         while line != '[Comments]':
-    #
-    #             line = fin.next()
-    #
-    #         # for each line in the input file
-    #         for idx, line in enumerate(fin):
-    #
-    #             if idx == 1:
-    #                 line = line.replace('=', ',')
-    #             fout.write(line)
+
+    # make sure annotation with a "," character is in there
+    assert 'seizure1,2' in annotations.description
+
 
 @requires_testing_data
 def test_persyst_errors():

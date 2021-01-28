@@ -210,7 +210,6 @@ class RawPersyst(BaseRaw):
             raw_extras=[raw_extras], verbose=verbose)
 
         # set annotations based on the comments read in
-        # num_comments = len(comments_dict)
         onset = np.zeros(num_comments, float)
         duration = np.zeros(num_comments, float)
         description = [''] * num_comments
