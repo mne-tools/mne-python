@@ -707,5 +707,5 @@ def test_plot_sensors(raw):
 
 def test_scalings_int():
     """Test that auto scalings access samples using integers."""
-    raw = RawArray(np.zeros((1, 500)), create_info(1, 1000., 'eeg')
+    raw = RawArray(np.zeros((1, 500)), create_info(1, 1000., 'eeg'))
     raw.plot(scalings='auto')
