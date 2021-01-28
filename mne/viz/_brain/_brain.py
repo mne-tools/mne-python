@@ -38,7 +38,7 @@ from ...defaults import _handle_default
 from ...surface import mesh_edges
 from ...source_space import SourceSpaces, vertex_to_mni, read_talxfm
 from ...transforms import (apply_trans, invert_transform, _get_trans,
-                           _find_trans, combine_transforms, Transform)
+                           _find_trans, combine_transforms)
 from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
                       use_log_level, Bunch, _ReuseCycle, warn,
                       get_subjects_dir)
@@ -1789,8 +1789,7 @@ class Brain(object):
                             )
         return colormap_map[cortex]
 
-    def add_sensors(self, info, meg=True, eeg=False, coord_frame='head',
-                    trans=None):
+    def add_sensors(self, info, meg=True, eeg=False, trans=None):
         """Display the sensors."""
         from ...forward import _create_meg_coils
         _validate_type(meg, bool, 'meg')
@@ -1800,13 +1799,7 @@ class Brain(object):
             trans = _find_trans(self._subject_id, self._subjects_dir)
         head_mri_t, _ = _get_trans(trans, 'head', 'mri')
         dev_head_t, _ = _get_trans(info['dev_head_t'], 'meg', 'head')
-        if coord_frame == 'meg':
-            meg_trans = Transform('meg', 'meg')
-        elif coord_frame == 'mri':
-            meg_trans = combine_transforms(dev_head_t, head_mri_t,
-                                           'meg', 'mri')
-        else:  # coord_frame == 'head'
-            meg_trans = dev_head_t
+        meg_trans = combine_transforms(dev_head_t, head_mri_t, 'meg', 'mri')
 
         if meg:
             meg_rrs, meg_tris = list(), list()
