@@ -418,6 +418,7 @@ class Brain(object):
         self._labels = {'lh': list(), 'rh': list()}
         self._annots = {'lh': list(), 'rh': list()}
         self._layered_meshes = {}
+        self._elevation_rng = [15, 165]  # range of motion of camera on theta
         # default values for silhouette
         self._silhouette = {
             'color': self._bg_color,
@@ -1392,6 +1393,18 @@ class Brain(object):
             update_widget=True,
         )
 
+    def _rotate_azimuth(self, value):
+        azimuth = (self._renderer.figure._azimuth + value) % 360
+        self._renderer.set_camera(azimuth=azimuth, reset_camera=False)
+
+    def _rotate_elevation(self, value):
+        from ..backends._utils import _clamp
+        elevation = _clamp(
+            self._renderer.figure._elevation + value,
+            self._elevation_rng,
+        )
+        self._renderer.set_camera(elevation=elevation, reset_camera=False)
+
     def _configure_shortcuts(self):
         # First, we remove the default bindings:
         self.plotter._key_press_event_callbacks.clear()
@@ -1404,6 +1417,10 @@ class Brain(object):
                                    op=lambda x, y: x + y))
         self.plotter.add_key_event("b", partial(self._shift_time,
                                    op=lambda x, y: x - y))
+        self.plotter.add_key_event("Left", partial(self._rotate_azimuth, 1))
+        self.plotter.add_key_event("Right", partial(self._rotate_azimuth, -1))
+        self.plotter.add_key_event("Up", partial(self._rotate_elevation, -1))
+        self.plotter.add_key_event("Down", partial(self._rotate_elevation, 1))
 
     def _configure_menu(self):
         # remove default picking menu

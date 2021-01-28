@@ -66,6 +66,12 @@ def _alpha_blend_background(ctable, background_color):
     return (use_table * alphas) + background_color * (1 - alphas)
 
 
+def _clamp(value, rng):
+    value = rng[1] if value > rng[1] else value
+    value = rng[0] if value < rng[0] else value
+    return value
+
+
 @decorator
 def run_once(fun, *args, **kwargs):
     """Run the function only once."""
