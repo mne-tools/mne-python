@@ -255,6 +255,7 @@ def _read_locs(filepath, chs, egi_info):
     fname = op.join(filepath, 'coordinates.xml')
     if not op.exists(fname):
         return chs, []
+    reference_names = ('VREF', 'Vertex Reference')
     dig_kind_map = {
         '': FIFF.FIFFV_POINT_EEG,
         'VREF': FIFF.FIFFV_POINT_EEG,
@@ -272,6 +273,7 @@ def _read_locs(filepath, chs, egi_info):
     coordinates = parse(fname)
     sensors = coordinates.getElementsByTagName('sensor')
     dig_points = []
+    dig_reference = None
     for sensor in sensors:
         name_element = sensor.getElementsByTagName('name')[0].firstChild
         name = '' if name_element is None else name_element.data
@@ -285,14 +287,23 @@ def _read_locs(filepath, chs, egi_info):
             ident = dig_ident_map[name]
         else:
             ident = int(nr)
-        dig_dict = {'kind': kind, 'ident': ident, 'r': loc,
-                    'coord_frame': FIFF.FIFFV_COORD_HEAD}
-        dig_points.append(DigPoint(dig_dict))
+        dig_point = DigPoint({'kind': kind, 'ident': ident, 'r': loc,
+                              'coord_frame': FIFF.FIFFV_COORD_HEAD})
+        if name in reference_names:
+            dig_reference = dig_point
+        else:
+            dig_points.append(dig_point)
         # add location to channel entry
         id = np.flatnonzero(numbers == nr)
         if len(id) == 0:
             continue
         chs[id[0]]['loc'][:3] = loc
+    # Insert reference properly
+    if dig_reference is not None:
+        dig_points.insert(0, dig_reference)
+        for ch in chs:
+            if ch['kind'] == FIFF.FIFFV_EEG_CH:
+                ch['loc'][3:6] = dig_reference['r']
     return chs, dig_points
 
 
