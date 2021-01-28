@@ -1372,7 +1372,7 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
     # Deal with "depth"
     if exp is not None:
         exp = float(exp)
-        if not 0 <= exp:
+        if exp < 0:
             raise ValueError('depth exponent should be greater than or '
                              f'equal to 0, got {exp}')
         exp = exp or None  # alias 0. -> None
