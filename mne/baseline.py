@@ -61,7 +61,7 @@ def rescale(data, times, baseline, mode='mean', copy=True, picks=None,
     """
     if copy:
         data = data.copy()
-    if verbose:
+    if verbose is not False:
         msg = _log_rescale(baseline, mode)
         logger.info(msg)
     if baseline is None or data.shape[-1] == 0:
