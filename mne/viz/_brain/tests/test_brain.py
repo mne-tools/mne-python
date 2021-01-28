@@ -359,11 +359,11 @@ def test_single_hemi(hemi, renderer_interactive, brain_gc):
 
 @testing.requires_testing_data
 @pytest.mark.slowtest
-def test_brain_save_movie(tmpdir, renderer, brain_gc):
+def test_brain_save_movie(tmpdir, renderer, brain_gc, qtbot):
     """Test saving a movie of a Brain instance."""
     if renderer._get_3d_backend() == "mayavi":
         pytest.skip('Save movie only supported on PyVista')
-    brain = _create_testing_brain(hemi='lh', time_viewer=False)
+    brain = _create_testing_brain(qtbot, hemi='lh', time_viewer=False)
     filename = str(path.join(tmpdir, "brain_test.mov"))
     for interactive_state in (False, True):
         # for coverage, we set interactivity
@@ -435,17 +435,17 @@ def test_brain_screenshot(renderer_interactive, tmpdir, brain_gc):
 
 @testing.requires_testing_data
 @pytest.mark.slowtest
-def test_brain_time_viewer(renderer_interactive, pixel_ratio, brain_gc):
+def test_brain_time_viewer(renderer_interactive, pixel_ratio, brain_gc, qtbot):
     """Test time viewer primitives."""
     if renderer_interactive._get_3d_backend() != 'pyvista':
         pytest.skip('TimeViewer tests only supported on PyVista')
     with pytest.raises(ValueError, match="between 0 and 1"):
-        _create_testing_brain(hemi='lh', show_traces=-1.0)
+        _create_testing_brain(qtbot, hemi='lh', show_traces=-1.0)
     with pytest.raises(ValueError, match="got unknown keys"):
-        _create_testing_brain(hemi='lh', surf='white', src='volume',
+        _create_testing_brain(qtbot, hemi='lh', surf='white', src='volume',
                               volume_options={'foo': 'bar'})
     brain = _create_testing_brain(
-        hemi='both', show_traces=False,
+        qtbot, hemi='both', show_traces=False,
         brain_kwargs=dict(silhouette=dict(decimate=0.95))
     )
     # test sub routines when show_traces=False
@@ -511,7 +511,7 @@ def test_brain_time_viewer(renderer_interactive, pixel_ratio, brain_gc):
 ])
 @pytest.mark.slowtest
 def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
-                      brain_gc):
+                      brain_gc, qtbot):
     """Test brain traces."""
     if renderer_interactive._get_3d_backend() != 'pyvista':
         pytest.skip('Only PyVista supports traces')
@@ -524,7 +524,7 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
 
     # label traces
     brain = _create_testing_brain(
-        hemi=hemi, surf='white', src=src, show_traces='label',
+        qtbot, hemi=hemi, surf='white', src=src, show_traces='label',
         volume_options=None,  # for speed, don't upsample
         n_time=5, initial_time=0,
     )
@@ -569,7 +569,8 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
     # test colormap
     if src != 'vector':
         brain = _create_testing_brain(
-            hemi=hemi, surf='white', src=src, show_traces=0.5, initial_time=0,
+            qtbot, hemi=hemi, surf='white', src=src, show_traces=0.5,
+            initial_time=0,
             volume_options=None,  # for speed, don't upsample
             n_time=1 if src == 'mixed' else 5, diverging=True,
             add_data_kwargs=dict(colorbar_kwargs=dict(n_labels=3)),
@@ -583,7 +584,8 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
 
     # vertex traces
     brain = _create_testing_brain(
-        hemi=hemi, surf='white', src=src, show_traces=0.5, initial_time=0,
+        qtbot, hemi=hemi, surf='white', src=src, show_traces=0.5,
+        initial_time=0,
         volume_options=None,  # for speed, don't upsample
         n_time=1 if src == 'mixed' else 5,
         add_data_kwargs=dict(colorbar_kwargs=dict(n_labels=3)),
@@ -704,12 +706,12 @@ something
 
 @testing.requires_testing_data
 @pytest.mark.slowtest
-def test_brain_linkviewer(renderer_interactive, brain_gc):
+def test_brain_linkviewer(renderer_interactive, brain_gc, qtbot):
     """Test _LinkViewer primitives."""
     if renderer_interactive._get_3d_backend() != 'pyvista':
         pytest.skip('Linkviewer only supported on PyVista')
-    brain1 = _create_testing_brain(hemi='lh', show_traces=False)
-    brain2 = _create_testing_brain(hemi='lh', show_traces='separate')
+    brain1 = _create_testing_brain(qtbot, hemi='lh', show_traces=False)
+    brain2 = _create_testing_brain(qtbot, hemi='lh', show_traces='separate')
     brain1._times = brain1._times * 2
     with pytest.warns(RuntimeWarning, match='linking time'):
         link_viewer = _LinkViewer(
@@ -720,7 +722,8 @@ def test_brain_linkviewer(renderer_interactive, brain_gc):
             picking=False,
         )
 
-    brain_data = _create_testing_brain(hemi='split', show_traces='vertex')
+    brain_data = _create_testing_brain(
+        qtbot, hemi='split', show_traces='vertex')
     link_viewer = _LinkViewer(
         [brain2, brain_data],
         time=True,
@@ -846,8 +849,8 @@ def test_calculate_lut():
         calculate_lut(colormap, alpha, 1, 0, 2)
 
 
-def _create_testing_brain(hemi, surf='inflated', src='surface', size=300,
-                          n_time=5, diverging=False, **kwargs):
+def _create_testing_brain(qtbot, hemi, surf='inflated', src='surface',
+                          size=300, n_time=5, diverging=False, **kwargs):
     assert src in ('surface', 'vector', 'mixed', 'volume')
     meth = 'plot'
     if src in ('surface', 'mixed'):
@@ -902,4 +905,5 @@ def _create_testing_brain(hemi, surf='inflated', src='surface', size=300,
         subjects_dir=subjects_dir, colormap='auto',
         clim=clim, src=sample_src,
         **kwargs)
-    return brain_data
+    with qtbot.wait_exposed(brain_data.plotter):
+        return brain_data
