@@ -1415,10 +1415,10 @@ class Brain(object):
         self._renderer.set_camera(azimuth=azimuth, reset_camera=False)
 
     def _rotate_elevation(self, value):
-        from ..backends._utils import _clamp
-        elevation = _clamp(
+        elevation = np.clip(
             self._renderer.figure._elevation + value,
-            self._elevation_rng,
+            self._elevation_rng[0],
+            self._elevation_rng[1],
         )
         self._renderer.set_camera(elevation=elevation, reset_camera=False)
 
