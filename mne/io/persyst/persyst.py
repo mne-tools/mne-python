@@ -32,6 +32,14 @@ def read_raw_persyst(fname, preload=False, verbose=None):
     raw : instance of RawPersyst
         A Raw object containing Persyst data.
 
+    Notes
+    -----
+    It is assumed that the ``.lay`` and ``.dat`` file
+    are in the same directory. To get the correct file path to the
+    ``.dat`` file, ``read_raw_persyst`` will get the corresponding dat
+    filename from the lay file, and look for that file inside the same
+    directory as the lay file.
+
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
@@ -59,8 +67,10 @@ class RawPersyst(BaseRaw):
     def __init__(self, fname, preload=False, verbose=None):
         logger.info('Loading %s' % fname)
 
+        # make sure filename is the Lay file
         if not fname.endswith('.lay'):
             fname = fname + '.lay'
+        # get the current directory and Lay filename
         curr_path, lay_fname = op.dirname(fname), op.basename(fname)
         if not op.exists(fname):
             raise FileNotFoundError(f'The path you specified, '
@@ -74,7 +84,7 @@ class RawPersyst(BaseRaw):
         fileinfo_dict = OrderedDict()
         channelmap_dict = OrderedDict()
         patient_dict = OrderedDict()
-        comments_dict = defaultdict(list)
+        comments_dict = OrderedDict()
 
         # keep track of total number of comments
         num_comments = 0
@@ -92,15 +102,15 @@ class RawPersyst(BaseRaw):
             if section == 'fileinfo':
                 # extract the .dat file name
                 if key == 'file':
-                    dat_fname = val
-                    dat_path = op.dirname(dat_fname)
+                    dat_fname = op.basename(val)
                     dat_fpath = op.join(curr_path, op.basename(dat_fname))
 
                     # determine if .dat file exists where it should
                     error_msg = f'The data path you specified ' \
-                                f'does not exist for the lay path, {lay_fname}'
-                    if op.isabs(dat_path) and not op.exists(dat_fname):
-                        raise FileNotFoundError(error_msg)
+                                f'does not exist for the lay path, {lay_fname}. ' \
+                                f'Make sure the dat file is in the same directory ' \
+                                f'as the lay file, and the specified dat filename ' \
+                                f'matches.'
                     if not op.exists(dat_fpath):
                         raise FileNotFoundError(error_msg)
                 fileinfo_dict[key] = val
@@ -113,7 +123,7 @@ class RawPersyst(BaseRaw):
                 patient_dict[key] = val
             # Comments (turned into mne.Annotations)
             elif section == 'comments':
-                comments_dict[key].append(val)
+                comments_dict[key] = comments_dict.get(key, list()) + [val]
                 num_comments += 1
 
         # get numerical metadata
@@ -425,7 +435,7 @@ def _process_lay_line(line, section):
         #  Currently not used
         if section == 'comments':
             # Persyst Comments output 5 variables "," separated
-            time_sec, duration, state, var_type, text = line.split(',', 5)
+            time_sec, duration, state, var_type, text = line.split(',', 4)
             status = 2
             key = text
             value = (time_sec, duration)

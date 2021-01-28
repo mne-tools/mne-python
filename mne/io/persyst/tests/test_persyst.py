@@ -17,10 +17,10 @@ from mne.io.tests.test_raw import _test_raw_reader
 from mne.utils import run_tests_if_main
 
 fname_lay = op.join(
-    data_path(download=True), 'Persyst',
+    data_path(download=False), 'Persyst',
     'sub-pt1_ses-02_task-monitor_acq-ecog_run-01_clip2.lay')
 fname_dat = op.join(
-    data_path(download=True), 'Persyst',
+    data_path(download=False), 'Persyst',
     'sub-pt1_ses-02_task-monitor_acq-ecog_run-01_clip2.dat')
 
 
@@ -124,7 +124,6 @@ def test_persyst_wrong_file(tmpdir):
     with pytest.raises(FileNotFoundError, match='The path you'):
         read_raw_persyst(fname_dat, preload=True)
 
-    out_dir = mne.utils._TempDir()
     out_dir = str(tmpdir)
     new_fname_lay = op.join(out_dir, op.basename(fname_lay))
     new_fname_dat = op.join(out_dir, op.basename(fname_dat))
@@ -139,6 +138,49 @@ def test_persyst_wrong_file(tmpdir):
         read_raw_persyst(new_fname_lay, preload=True)
 
     # once you copy over the .dat file things should work
+    shutil.copy(fname_dat, new_fname_dat)
+    read_raw_persyst(new_fname_lay, preload=True)
+
+
+@requires_testing_data
+def test_persyst_moved_file(tmpdir):
+    """Test reader - Persyst files need to be in same directory."""
+    out_dir = str(tmpdir)
+    new_fname_lay = op.join(out_dir, op.basename(fname_lay))
+    new_fname_dat = op.join(out_dir, op.basename(fname_dat))
+    shutil.copy(fname_lay, new_fname_lay)
+
+    # original file read should work
+    read_raw_persyst(fname_lay)
+
+    # without a .dat file, reader should break
+    # when the lay file was moved
+    desired_err_msg = \
+        'The data path you specified does ' \
+        'not exist for the lay path, ' \
+        'sub-pt1_ses-02_task-monitor_acq-ecog_run-01_clip2.lay'
+    with pytest.raises(FileNotFoundError, match=desired_err_msg):
+        read_raw_persyst(new_fname_lay, preload=True)
+
+    # now change the file contents to point
+    # to the full path, but it should still not work
+    # as reader requires lay and dat file to be in
+    # same directory
+    with open(fname_lay, "r") as fin:
+        with open(new_fname_lay, 'w') as fout:
+            # for each line in the input file
+            for idx, line in enumerate(fin):
+                if line.startswith('File='):
+                    # give it the full path to the old data
+                    test_fpath = op.join(op.dirname(fname_dat),
+                                         line.split('=')[1])
+                    line = f'File={test_fpath}\n'
+                fout.write(line)
+    with pytest.raises(FileNotFoundError, match=desired_err_msg):
+        read_raw_persyst(new_fname_lay, preload=True)
+
+    # once we copy the dat file to the same directory, reader
+    # should work
     shutil.copy(fname_dat, new_fname_dat)
     read_raw_persyst(new_fname_lay, preload=True)
 
