@@ -1790,11 +1790,11 @@ class Brain(object):
         return colormap_map[cortex]
 
     def add_sensors(self, info, meg=True, eeg=False, coord_frame='head',
-                    trans='auto'):
+                    trans=None):
         """Display the sensors."""
         from ...forward import _create_meg_coils
         _validate_type(meg, bool, 'meg')
-        meg_picks = pick_types(info, meg=meg, egg=eeg, ref_meg=False)
+        meg_picks = pick_types(info, meg=meg, eeg=eeg, ref_meg=False)
 
         if trans == 'auto':
             trans = _find_trans(self._subject_id, self._subjects_dir)
