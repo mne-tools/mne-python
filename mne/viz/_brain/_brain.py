@@ -29,13 +29,16 @@ from .callback import (ShowView, IntSlider, TimeSlider, SmartSlider,
                        BumpColorbarPoints, UpdateColorbarScale)
 
 from ..utils import _show_help, _get_color_list, concatenate_images
-from .._3d import _process_clim, _handle_time, _check_views
+from .._3d import _process_clim, _handle_time, _check_views, _sensor_shape
 
 from ...externals.decorator import decorator
+from ...io import _loc_to_coil_trans
+from ...io.pick import pick_types
 from ...defaults import _handle_default
 from ...surface import mesh_edges
 from ...source_space import SourceSpaces, vertex_to_mni, read_talxfm
-from ...transforms import apply_trans, invert_transform
+from ...transforms import (apply_trans, invert_transform, _get_trans,
+                           _find_trans, combine_transforms, Transform)
 from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
                       use_log_level, Bunch, _ReuseCycle, warn,
                       get_subjects_dir)
@@ -1785,6 +1788,48 @@ class Brain(object):
                                       vmin=-.2, vmax=2),
                             )
         return colormap_map[cortex]
+
+    def add_sensors(self, info, meg=True, eeg=False, coord_frame='head',
+                    trans='auto'):
+        """Display the sensors."""
+        from ...forward import _create_meg_coils
+        _validate_type(meg, bool, 'meg')
+        meg_picks = pick_types(info, meg=meg, egg=eeg, ref_meg=False)
+
+        if trans == 'auto':
+            trans = _find_trans(self._subject_id, self._subjects_dir)
+        head_mri_t, _ = _get_trans(trans, 'head', 'mri')
+        dev_head_t, _ = _get_trans(info['dev_head_t'], 'meg', 'head')
+        if coord_frame == 'meg':
+            meg_trans = Transform('meg', 'meg')
+        elif coord_frame == 'mri':
+            meg_trans = combine_transforms(dev_head_t, head_mri_t,
+                                           'meg', 'mri')
+        else:  # coord_frame == 'head'
+            meg_trans = dev_head_t
+
+        if meg:
+            meg_rrs, meg_tris = list(), list()
+            coil_transs = [_loc_to_coil_trans(info['chs'][pick]['loc'])
+                           for pick in meg_picks]
+            coils = _create_meg_coils(
+                [info['chs'][pick] for pick in meg_picks], acc='normal')
+            offset = 0
+            for coil, coil_trans in zip(coils, coil_transs):
+                rrs, tris = _sensor_shape(coil)
+                rrs = apply_trans(coil_trans, rrs)
+                meg_rrs.append(rrs)
+                meg_tris.append(tris + offset)
+                offset += len(meg_rrs[-1])
+            else:
+                meg_rrs = apply_trans(meg_trans,
+                                      np.concatenate(meg_rrs, axis=0))
+                meg_tris = np.concatenate(meg_tris, axis=0)
+
+            color, alpha = (0., 0.25, 0.5), 0.25
+            surf = dict(rr=meg_rrs, tris=meg_tris)
+            self._renderer.surface(surface=surf, color=color,
+                                   opacity=alpha, backface_culling=True)
 
     @verbose
     def add_data(self, array, fmin=None, fmid=None, fmax=None,
