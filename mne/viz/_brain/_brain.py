@@ -550,6 +550,23 @@ class Brain(object):
 
         show_traces : bool
             If True, enable visualization of time traces. Defaults to True.
+
+        Notes
+        -----
+        The keyboard shortcuts are the following:
+
+        '?': Display help window
+        'i': Toggle interface
+        's': Apply auto-scaling
+        'r': Restore original clim
+        'c': Clear all traces
+        'n': Shift the time forward by the playback speed
+        'b': Shift the time backward by the playback speed
+        'Space': Start/Pause playback
+        'Up': Decrease camera elevation angle
+        'Down': Increase camera elevation angle
+        'Left': Decrease camera azimuth angle
+        'Right': Increase camera azimuth angle
         """
         if self.time_viewer:
             return
