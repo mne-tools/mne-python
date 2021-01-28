@@ -32,6 +32,10 @@ def read_raw_persyst(fname, preload=False, verbose=None):
     raw : instance of RawPersyst
         A Raw object containing Persyst data.
 
+    See Also
+    --------
+    mne.io.Raw : Documentation of attribute and methods.
+
     Notes
     -----
     It is assumed that the ``.lay`` and ``.dat`` file
@@ -39,10 +43,6 @@ def read_raw_persyst(fname, preload=False, verbose=None):
     ``.dat`` file, ``read_raw_persyst`` will get the corresponding dat
     filename from the lay file, and look for that file inside the same
     directory as the lay file.
-
-    See Also
-    --------
-    mne.io.Raw : Documentation of attribute and methods.
     """
     return RawPersyst(fname, preload, verbose)
 
