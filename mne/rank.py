@@ -349,6 +349,11 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
     for ch_type, picks in picks_list:
         est_verbose = None
         if ch_type in rank:
+            # raise an error of user-supplied rank exceeds number of channels
+            if rank[ch_type] > len(picks):
+                raise ValueError(
+                    f'rank[{repr(ch_type)}]={rank[ch_type]} exceeds the number'
+                    f' of channels ({len(picks)})')
             # special case: if whitening a covariance, check the passed rank
             # against the estimated one
             est_verbose = False
