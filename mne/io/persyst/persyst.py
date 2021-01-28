@@ -107,10 +107,11 @@ class RawPersyst(BaseRaw):
 
                     # determine if .dat file exists where it should
                     error_msg = f'The data path you specified ' \
-                                f'does not exist for the lay path, {lay_fname}. ' \
-                                f'Make sure the dat file is in the same ' \
-                                f'directory as the lay file, and the ' \
-                                f'specified dat filename matches.'
+                                f'does not exist for the lay path, ' \
+                                f'{lay_fname}. Make sure the dat file ' \
+                                f'is in the same directory as the lay ' \
+                                f'file, and the specified dat filename ' \
+                                f'matches.'
                     if not op.exists(dat_fpath):
                         raise FileNotFoundError(error_msg)
                 fileinfo_dict[key] = val
