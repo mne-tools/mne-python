@@ -419,6 +419,30 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
     return renderer.scene()
 
 
+def _get_meg_surf(meg, info, picks, trans, coord_frame, warn_meg):
+    from ..forward import _create_meg_coils
+    meg_rrs, meg_tris = list(), list()
+    coil_transs = [_loc_to_coil_trans(info['chs'][pick]['loc'])
+                   for pick in picks]
+    coils = _create_meg_coils(
+        [info['chs'][pick] for pick in picks], acc='normal')
+    offset = 0
+    for coil, coil_trans in zip(coils, coil_transs):
+        rrs, tris = _sensor_shape(coil)
+        rrs = apply_trans(coil_trans, rrs)
+        meg_rrs.append(rrs)
+        meg_tris.append(tris + offset)
+        offset += len(meg_rrs[-1])
+    if len(meg_rrs) == 0:
+        if warn_meg:
+            warn('MEG sensors not found. Cannot plot MEG locations.')
+    else:
+        meg_rrs = apply_trans(trans,
+                              np.concatenate(meg_rrs, axis=0))
+        meg_tris = np.concatenate(meg_tris, axis=0)
+    return dict(rr=meg_rrs, tris=meg_tris)
+
+
 @verbose
 def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                    surfaces='auto', coord_frame='head',
@@ -555,7 +579,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
 
     .. versionadded:: 0.15
     """
-    from ..forward import _create_meg_coils, Forward
+    from ..forward import Forward
     from ..coreg import get_mni_fiducials
     # Update the backend
     from .backends.renderer import _get_renderer
@@ -916,7 +940,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                                              mri_trans, head_trans)
 
     # determine points
-    meg_rrs, meg_tris = list(), list()
+    meg_surf = None
     hpi_loc = list()
     ext_loc = list()
     car_loc = list()
@@ -936,23 +960,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                 eeg_loc = list()
     del eeg
     if 'sensors' in meg:
-        coil_transs = [_loc_to_coil_trans(info['chs'][pick]['loc'])
-                       for pick in meg_picks]
-        coils = _create_meg_coils([info['chs'][pick] for pick in meg_picks],
-                                  acc='normal')
-        offset = 0
-        for coil, coil_trans in zip(coils, coil_transs):
-            rrs, tris = _sensor_shape(coil)
-            rrs = apply_trans(coil_trans, rrs)
-            meg_rrs.append(rrs)
-            meg_tris.append(tris + offset)
-            offset += len(meg_rrs[-1])
-        if len(meg_rrs) == 0:
-            if warn_meg:
-                warn('MEG sensors not found. Cannot plot MEG locations.')
-        else:
-            meg_rrs = apply_trans(meg_trans, np.concatenate(meg_rrs, axis=0))
-            meg_tris = np.concatenate(meg_tris, axis=0)
+        meg_surf = _get_meg_surf(meg, info, meg_picks, meg_trans, coord_frame,
+                                 warn_meg)
     del meg
     if dig:
         if dig == 'fiducials':
@@ -1110,10 +1119,9 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
             glyph_center=(0., -defaults['eegp_height'], 0),
             glyph_resolution=20,
             backface_culling=True)
-    if len(meg_rrs) > 0:
+    if meg_surf is not None and len(meg_surf['rr']) > 0:
         color, alpha = (0., 0.25, 0.5), 0.25
-        surf = dict(rr=meg_rrs, tris=meg_tris)
-        renderer.surface(surface=surf, color=color,
+        renderer.surface(surface=meg_surf, color=color,
                          opacity=alpha, backface_culling=True)
     if len(src_rr) > 0:
         renderer.quiver3d(

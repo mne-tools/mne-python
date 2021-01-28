@@ -29,10 +29,9 @@ from .callback import (ShowView, IntSlider, TimeSlider, SmartSlider,
                        BumpColorbarPoints, UpdateColorbarScale)
 
 from ..utils import _show_help, _get_color_list, concatenate_images
-from .._3d import _process_clim, _handle_time, _check_views, _sensor_shape
+from .._3d import (_process_clim, _handle_time, _check_views, _get_meg_surf)
 
 from ...externals.decorator import decorator
-from ...io import _loc_to_coil_trans
 from ...io.pick import pick_types
 from ...defaults import _handle_default
 from ...surface import mesh_edges
@@ -1791,7 +1790,6 @@ class Brain(object):
 
     def add_sensors(self, info, meg=True, eeg=False, trans=None):
         """Display the sensors."""
-        from ...forward import _create_meg_coils
         _validate_type(meg, bool, 'meg')
         meg_picks = pick_types(info, meg=meg, eeg=eeg, ref_meg=False)
 
@@ -1802,27 +1800,11 @@ class Brain(object):
         meg_trans = combine_transforms(dev_head_t, head_mri_t, 'meg', 'mri')
 
         if meg:
-            meg_rrs, meg_tris = list(), list()
-            coil_transs = [_loc_to_coil_trans(info['chs'][pick]['loc'])
-                           for pick in meg_picks]
-            coils = _create_meg_coils(
-                [info['chs'][pick] for pick in meg_picks], acc='normal')
-            offset = 0
-            for coil, coil_trans in zip(coils, coil_transs):
-                rrs, tris = _sensor_shape(coil)
-                rrs = apply_trans(coil_trans, rrs)
-                meg_rrs.append(rrs)
-                meg_tris.append(tris + offset)
-                offset += len(meg_rrs[-1])
-            else:
-                meg_rrs = apply_trans(meg_trans,
-                                      np.concatenate(meg_rrs, axis=0))
-                meg_tris = np.concatenate(meg_tris, axis=0)
-
-            color, alpha = (0., 0.25, 0.5), 0.25
-            surf = dict(rr=meg_rrs, tris=meg_tris)
-            self._renderer.surface(surface=surf, color=color,
-                                   opacity=alpha, backface_culling=True)
+            meg_surf = _get_meg_surf(meg=["sensors"], info=info,
+                                     picks=meg_picks, trans=meg_trans,
+                                     coord_frame='mri', warn_meg=False)
+            self._renderer.surface(surface=meg_surf, color="blue",
+                                   backface_culling=True)
         self._update()
 
     @verbose
