@@ -29,8 +29,7 @@ from mne.io import read_raw_fif, RawArray, read_raw_ctf, read_info
 from mne.io.pick import _DATA_CH_TYPES_SPLIT, pick_info
 from mne.preprocessing import maxwell_filter
 from mne.rank import _compute_rank_int
-from mne.utils import (requires_sklearn, run_tests_if_main,
-                       catch_logging, assert_snr)
+from mne.utils import requires_sklearn, catch_logging, assert_snr
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 cov_fname = op.join(base_dir, 'test-cov.fif')
@@ -806,6 +805,3 @@ def test_compute_whitener_rank():
         _, _, rank = compute_whitener(cov, info, rank=dict(meg=306),
                                       return_rank=True)
     assert rank == 306
-
-
-run_tests_if_main()
