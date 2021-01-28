@@ -695,8 +695,11 @@ def tfr_raw(raw, freqs, n_cycles, decim=1,
     -------
     power : AverageTFR
     """
-    if statistic == 'average':
+    if statistic is None:
+        combine_func = None
+    elif statistic == 'average':
         combine_func = np.mean
+    
 
     decim = _check_decim(decim)
     # to make it play nice with _compute_tfr
@@ -709,7 +712,9 @@ def tfr_raw(raw, freqs, n_cycles, decim=1,
     output = 'power' if output is None else output
 
     tfr_params = dict(n_cycles=n_cycles, n_jobs=n_jobs, use_fft=use_fft,
-                      zero_mean=True, time_bandwidth=time_bandwidth)
+                      zero_mean=True)
+    if method == 'multitaper':
+        tfr_params['time_bandwidth'] = time_bandwidth
 
     # compute time frequency map
     out = _compute_tfr(data, freqs, info['sfreq'], method=method,
@@ -723,7 +728,8 @@ def tfr_raw(raw, freqs, n_cycles, decim=1,
     # combine power across frequencies using a combination
     # statistic
     power = out
-    power = combine_func(power, axis=1, keepdims=True)
+    if combine_func is not None:
+        power = combine_func(power, axis=1, keepdims=True)
 
     # create the TFR object to hold the data
     nave = 1
