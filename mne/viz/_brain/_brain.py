@@ -1417,8 +1417,8 @@ class Brain(object):
                                    op=lambda x, y: x + y))
         self.plotter.add_key_event("b", partial(self._shift_time,
                                    op=lambda x, y: x - y))
-        self.plotter.add_key_event("Left", partial(self._rotate_azimuth, 1))
-        self.plotter.add_key_event("Right", partial(self._rotate_azimuth, -1))
+        self.plotter.add_key_event("Left", partial(self._rotate_azimuth, -1))
+        self.plotter.add_key_event("Right", partial(self._rotate_azimuth, 1))
         self.plotter.add_key_event("Up", partial(self._rotate_elevation, -1))
         self.plotter.add_key_event("Down", partial(self._rotate_elevation, 1))
 
@@ -1765,6 +1765,10 @@ class Brain(object):
             ('n', 'Shift the time forward by the playback speed'),
             ('b', 'Shift the time backward by the playback speed'),
             ('Space', 'Start/Pause playback'),
+            ('Up', 'Decrease camera elevation angle'),
+            ('Down', 'Increase camera elevation angle'),
+            ('Left', 'Decrease camera azimuth angle'),
+            ('Right', 'Increase camera azimuth angle'),
         ]
         text1, text2 = zip(*pairs)
         text1 = '\n'.join(text1)
