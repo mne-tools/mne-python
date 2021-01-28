@@ -2075,6 +2075,10 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         self.preload = True
         self.metadata = metadata
 
+    @property
+    def _detrend_picks(self):
+        return list()
+
     def __repr__(self):  # noqa: D105
         s = "time : [%f, %f]" % (self.times[0], self.times[-1])
         s += ", freq : [%f, %f]" % (self.freqs[0], self.freqs[-1])

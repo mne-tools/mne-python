@@ -1491,7 +1491,6 @@ def apply_forward_raw(fwd, stc, info, start=None, stop=None,
     raw._first_samps = np.array([int(np.round(times[0] * sfreq))])
     raw._last_samps = np.array([raw.first_samp + raw._data.shape[1] - 1])
     raw._projector = None
-    raw._update_times()
     return raw
 
 

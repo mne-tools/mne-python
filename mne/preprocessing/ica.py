@@ -904,7 +904,9 @@ class ICA(ContainsMixin):
     def _sources_as_raw(self, raw, add_channels, start, stop):
         """Aux method."""
         # merge copied instance and picked data with sources
+        start, stop = _check_start_stop(raw, start, stop)
         sources = self._transform_raw(raw, start=start, stop=stop)
+        assert sources.shape[1] == stop - start
         if raw.preload:  # get data and temporarily delete
             data = raw._data
             del raw._data
@@ -914,7 +916,6 @@ class ICA(ContainsMixin):
             raw._data = data
 
         # populate copied raw.
-        start, stop = _check_start_stop(raw, start, stop)
         if add_channels is not None:
             raw_picked = raw.copy().pick_channels(add_channels)
             data_, _ = raw_picked[:, start:stop]
@@ -924,13 +925,8 @@ class ICA(ContainsMixin):
         out._data = data_
         out._filenames = [None]
         out.preload = True
-
-        # update first and last samples
-        out._first_samps = np.array([raw.first_samp +
-                                     (start if start else 0)])
-        out._last_samps = np.array([out.first_samp + stop
-                                    if stop else raw.last_samp])
-
+        out._first_samps[:] = [out.first_samp + start]
+        out._last_samps[:] = [out.first_samp + sources.shape[1] - 1]
         out._projector = None
         self._export_info(out.info, raw, add_channels)
 
@@ -1961,9 +1957,9 @@ def _exp_var_ncomp(var, n):
 def _check_start_stop(raw, start, stop):
     """Aux function."""
     out = list()
-    for st in (start, stop):
+    for st, none_ in ((start, 0), (stop, raw.n_times)):
         if st is None:
-            out.append(st)
+            out.append(none_)
         else:
             try:
                 out.append(_ensure_int(st))
