@@ -476,6 +476,8 @@ def test_brain_time_viewer(renderer_interactive, pixel_ratio, brain_gc):
     brain.callbacks["fmid"](value=4.0)
     brain._shift_time(op=lambda x, y: x + y)
     brain._shift_time(op=lambda x, y: x - y)
+    brain._rotate_azimuth(15)
+    brain._rotate_elevation(15)
     brain.toggle_interface()
     brain.toggle_interface(value=False)
     brain.callbacks["playback_speed"](value=0.1)
