@@ -14,8 +14,7 @@ import matplotlib.pyplot as plt
 from mne import read_events, pick_types, Annotations, create_info
 from mne.datasets import testing
 from mne.io import read_raw_fif, read_raw_ctf, RawArray
-from mne.utils import (run_tests_if_main, _dt_to_stamp, _click_ch_name,
-                       _close_event)
+from mne.utils import _dt_to_stamp, _click_ch_name, _close_event
 from mne.viz.utils import _fake_click
 from mne.annotations import _sync_onset
 from mne.viz import plot_raw, plot_sensors
@@ -706,4 +705,7 @@ def test_plot_sensors(raw):
         raw.plot_sensors()
 
 
-run_tests_if_main()
+def test_scalings_int():
+    """Test that auto scalings access samples using integers."""
+    raw = RawArray(np.zeros((1, 500)), create_info(1, 1000., 'eeg')
+    raw.plot(scalings='auto')

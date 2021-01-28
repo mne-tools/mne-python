@@ -42,8 +42,10 @@ supported = {".edf": read_raw_edf,
              ".bin": read_raw_artemis123,
              ".data": read_raw_nicolet,
              ".sqd": read_raw_kit,
+             ".con": read_raw_kit,
              ".ds": read_raw_ctf,
-             ".txt": read_raw_boxy}
+             ".txt": read_raw_boxy,
+}
 
 # known but unsupported file formats
 suggested = {".vmrk": partial(_read_unsupported, suggest=".vhdr"),
