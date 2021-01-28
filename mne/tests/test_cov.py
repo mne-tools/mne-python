@@ -21,12 +21,12 @@ from mne import (read_cov, write_cov, Epochs, merge_events,
                  find_events, compute_raw_covariance,
                  compute_covariance, read_evokeds, compute_proj_raw,
                  pick_channels_cov, pick_types, make_ad_hoc_cov,
-                 make_fixed_length_events, create_info)
+                 make_fixed_length_events, create_info, compute_rank)
 from mne.channels import equalize_channels
 from mne.datasets import testing
 from mne.fixes import _get_args
-from mne.io import read_raw_fif, RawArray, read_raw_ctf
-from mne.io.pick import _DATA_CH_TYPES_SPLIT
+from mne.io import read_raw_fif, RawArray, read_raw_ctf, read_info
+from mne.io.pick import _DATA_CH_TYPES_SPLIT, pick_info
 from mne.preprocessing import maxwell_filter
 from mne.rank import _compute_rank_int
 from mne.utils import (requires_sklearn, run_tests_if_main,
@@ -782,6 +782,30 @@ def test_equalize_channels():
     cov1, cov2 = equalize_channels([cov1, cov2])
     assert cov1.ch_names == ['CH1', 'CH2']
     assert cov2.ch_names == ['CH1', 'CH2']
+
+
+def test_compute_whitener_rank():
+    """Test risky rank options."""
+    info = read_info(ave_fname)
+    info = pick_info(info, pick_types(info, meg=True))
+    info['projs'] = []
+    # need a square version because the diag one takes shortcuts in
+    # compute_whitener (users shouldn't even need this function so it's
+    # private)
+    cov = make_ad_hoc_cov(info)._as_square()
+    assert len(cov['names']) == 306
+    _, _, rank = compute_whitener(cov, info, rank=None, return_rank=True)
+    assert rank == 306
+    assert compute_rank(cov, info=info, verbose=True) == dict(meg=rank)
+    cov['data'][-1] *= 1e-14  # trivially rank-deficient
+    _, _, rank = compute_whitener(cov, info, rank=None, return_rank=True)
+    assert rank == 305
+    assert compute_rank(cov, info=info, verbose=True) == dict(meg=rank)
+    # this should emit a warning
+    with pytest.warns(RuntimeWarning, match='condition number'):
+        _, _, rank = compute_whitener(cov, info, rank=dict(meg=306),
+                                      return_rank=True)
+    assert rank == 306
 
 
 run_tests_if_main()

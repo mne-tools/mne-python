@@ -198,6 +198,14 @@ class Covariance(dict):
         self['eigvec'] = None
         return self
 
+    def _as_square(self):
+        # This is a hack but it works because np.diag() behaves nicely
+        if self['diag']:
+            self['diag'] = False
+            self.as_diag()
+            self['diag'] = False
+        return self
+
     def _get_square(self):
         if self['diag'] != (self.data.ndim == 1):
             raise RuntimeError(
@@ -1428,7 +1436,7 @@ def _get_ch_whitener(A, pca, ch_type, rank):
 
 @verbose
 def prepare_noise_cov(noise_cov, info, ch_names=None, rank=None,
-                      scalings=None, verbose=None):
+                      scalings=None, check_passed=False, verbose=None):
     """Prepare noise covariance matrix.
 
     Parameters
@@ -1449,6 +1457,7 @@ def prepare_noise_cov(noise_cov, info, ch_names=None, rank=None,
         If dict, it will override the following dict (default if None)::
 
             dict(mag=1e12, grad=1e11, eeg=1e5)
+    %(check_passed)s
     %(verbose)s
 
     Returns
@@ -1480,7 +1489,7 @@ def prepare_noise_cov(noise_cov, info, ch_names=None, rank=None,
         loglik=noise_cov.get('loglik', None))
 
     eig, eigvec, _ = _smart_eigh(noise_cov, info, rank, scalings, projs,
-                                 ch_names)
+                                 ch_names, check_passed=check_passed)
     noise_cov.update(eig=eig, eigvec=eigvec)
     return noise_cov
 
@@ -1488,7 +1497,7 @@ def prepare_noise_cov(noise_cov, info, ch_names=None, rank=None,
 @verbose
 def _smart_eigh(C, info, rank, scalings=None, projs=None,
                 ch_names=None, proj_subspace=False, do_compute_rank=True,
-                verbose=None):
+                check_passed=False, verbose=None):
     """Compute eigh of C taking into account rank and ch_type scalings."""
     scalings = _handle_default('scalings_cov_rank', scalings)
     projs = info['projs'] if projs is None else projs
@@ -1510,7 +1519,8 @@ def _smart_eigh(C, info, rank, scalings=None, projs=None,
 
     noise_cov = Covariance(C, ch_names, [], projs, 0)
     if do_compute_rank:  # if necessary
-        rank = compute_rank(noise_cov, rank, scalings, info)
+        rank = compute_rank(
+            noise_cov, rank, scalings, info, check_passed=check_passed)
     assert C.ndim == 2 and C.shape[0] == C.shape[1]
 
     # time saving short-circuit
@@ -1767,7 +1777,7 @@ def _regularized_covariance(data, reg=None, method_params=None, info=None,
 @verbose
 def compute_whitener(noise_cov, info=None, picks=None, rank=None,
                      scalings=None, return_rank=False, pca=False,
-                     return_colorer=False, verbose=None):
+                     return_colorer=False, check_passed=True, verbose=None):
     """Compute whitening matrix.
 
     Parameters
@@ -1805,6 +1815,7 @@ def compute_whitener(noise_cov, info=None, picks=None, rank=None,
         .. versionadded:: 0.18
     return_colorer : bool
         If True, return the colorer as well.
+    %(check_passed)s
     %(verbose)s
 
     Returns
@@ -1833,7 +1844,8 @@ def compute_whitener(noise_cov, info=None, picks=None, rank=None,
         ch_names = [info['ch_names'][k] for k in picks]
         del picks
         noise_cov = prepare_noise_cov(
-            noise_cov, info, ch_names, rank, scalings)
+            noise_cov, info, ch_names, rank, scalings,
+            check_passed=check_passed)
 
     n_chan = len(ch_names)
     assert n_chan == len(noise_cov['eig'])
