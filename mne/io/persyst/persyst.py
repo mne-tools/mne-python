@@ -3,7 +3,7 @@
 # License: BSD (3-clause)
 import os
 import os.path as op
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict
 from datetime import datetime, timezone
 
 import numpy as np
@@ -108,9 +108,9 @@ class RawPersyst(BaseRaw):
                     # determine if .dat file exists where it should
                     error_msg = f'The data path you specified ' \
                                 f'does not exist for the lay path, {lay_fname}. ' \
-                                f'Make sure the dat file is in the same directory ' \
-                                f'as the lay file, and the specified dat filename ' \
-                                f'matches.'
+                                f'Make sure the dat file is in the same ' \
+                                f'directory as the lay file, and the ' \
+                                f'specified dat filename matches.'
                     if not op.exists(dat_fpath):
                         raise FileNotFoundError(error_msg)
                 fileinfo_dict[key] = val
