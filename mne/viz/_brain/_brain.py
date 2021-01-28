@@ -22,7 +22,7 @@ from scipy import sparse
 from collections import OrderedDict
 
 from .colormap import calculate_lut
-from .surface import Surface
+from .surface import _Surface
 from .view import views_dicts, _lh_views_dict
 from .mplcanvas import MplCanvas
 from .callback import (ShowView, IntSlider, TimeSlider, SmartSlider,
@@ -35,9 +35,10 @@ from ...externals.decorator import decorator
 from ...defaults import _handle_default
 from ...surface import mesh_edges
 from ...source_space import SourceSpaces, vertex_to_mni, read_talxfm
-from ...transforms import apply_trans
+from ...transforms import apply_trans, invert_transform
 from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
-                      use_log_level, Bunch, _ReuseCycle, warn)
+                      use_log_level, Bunch, _ReuseCycle, warn,
+                      get_subjects_dir)
 
 
 @decorator
@@ -251,9 +252,15 @@ class Brain(object):
         variable.
     views : list | str
         The views to use.
-    offset : bool
-        If True, aligs origin with medial wall. Useful for viewing inflated
-        surface where hemispheres typically overlap (Default: True).
+    offset : bool | str
+        If True, shifts the right- or left-most x coordinate of the left and
+        right surfaces, respectively, to be at zero. This is useful for viewing
+        inflated surface where hemispheres typically overlap. Can be "auto"
+        (default) use True with inflated surfaces and False otherwise
+        (Default: 'auto'). Only used when ``hemi='both'``.
+
+        .. versionchanged:: 0.23
+           Default changed to "auto".
     show_toolbar : bool
         If True, toolbars will be shown for each view.
     offscreen : bool
@@ -266,6 +273,11 @@ class Brain(object):
     units : str
         Can be 'm' or 'mm' (default).
     %(view_layout)s
+    silhouette : dict | bool
+       As a dict, it contains the ``color``, ``linewidth``, ``alpha`` opacity
+       and ``decimate`` (level of decimation between 0 and 1 or None) of the
+       brain's silhouette to display. If True, the default values are used
+       and if False, no silhouette will be displayed. Defaults to False.
     show : bool
         Display the window as soon as it is ready. Defaults to True.
 
@@ -342,9 +354,9 @@ class Brain(object):
     def __init__(self, subject_id, hemi, surf, title=None,
                  cortex="classic", alpha=1.0, size=800, background="black",
                  foreground=None, figure=None, subjects_dir=None,
-                 views='auto', offset=True, show_toolbar=False,
+                 views='auto', offset='auto', show_toolbar=False,
                  offscreen=False, interaction='trackball', units='mm',
-                 view_layout='vertical', show=True):
+                 view_layout='vertical', silhouette=False, show=True):
         from ..backends.renderer import backend, _get_renderer, _get_3d_backend
         from .._3d import _get_cmap
         from matplotlib.colors import colorConverter
@@ -390,6 +402,7 @@ class Brain(object):
             raise ValueError('"size" parameter must be an int or length-2 '
                              'sequence of ints.')
         self._size = size if len(size) == 2 else size * 2  # 1-tuple to 2-tuple
+        subjects_dir = get_subjects_dir(subjects_dir)
 
         self.time_viewer = False
         self.notebook = (_get_3d_backend() == "notebook")
@@ -405,6 +418,19 @@ class Brain(object):
         self._labels = {'lh': list(), 'rh': list()}
         self._annots = {'lh': list(), 'rh': list()}
         self._layered_meshes = {}
+        # default values for silhouette
+        self._silhouette = {
+            'color': self._bg_color,
+            'line_width': 2,
+            'alpha': alpha,
+            'decimate': 0.9,
+        }
+        _validate_type(silhouette, (dict, bool), 'silhouette')
+        if isinstance(silhouette, dict):
+            self._silhouette.update(silhouette)
+            self.silhouette = True
+        else:
+            self.silhouette = silhouette
         # for now only one color bar can be added
         # since it is the same for all figures
         self._colorbar_added = False
@@ -422,6 +448,10 @@ class Brain(object):
         self._brain_color = _get_cmap(geo_kwargs['colormap'])(val)
 
         # load geometry for one or both hemispheres as necessary
+        _validate_type(offset, (str, bool), 'offset')
+        if isinstance(offset, str):
+            _check_option('offset', offset, ('auto',), extra='when str')
+            offset = (surf == 'inflated')
         offset = None if (not offset or hemi != 'both') else 0.0
 
         self._renderer = _get_renderer(name=self._title, size=self._size,
@@ -436,10 +466,11 @@ class Brain(object):
             self.window = self.plotter.app_window
             self.window.signal_close.connect(self._clean)
 
+        self._setup_canonical_rotation()
         for h in self._hemis:
             # Initialize a Surface object as the geometry
-            geo = Surface(subject_id, h, surf, subjects_dir, offset,
-                          units=self._units)
+            geo = _Surface(subject_id, h, surf, subjects_dir, offset,
+                           units=self._units, x_dir=self._rigid[0, :3])
             # Load in the geometry and curvature
             geo.load_geometry()
             geo.load_curvature()
@@ -467,6 +498,15 @@ class Brain(object):
                 else:
                     actor = self._layered_meshes[h]._actor
                     self._renderer.plotter.add_actor(actor)
+                if self.silhouette:
+                    mesh = self._layered_meshes[h]
+                    self._renderer._silhouette(
+                        mesh=mesh._polydata,
+                        color=self._silhouette["color"],
+                        line_width=self._silhouette["line_width"],
+                        alpha=self._silhouette["alpha"],
+                        decimate=self._silhouette["decimate"],
+                    )
                 self._renderer.set_camera(**views_dicts[h][v])
 
         self.interaction = interaction
@@ -483,6 +523,21 @@ class Brain(object):
 
         if hemi == 'rh' and hasattr(self._renderer, "_orient_lights"):
             self._renderer._orient_lights()
+
+    def _setup_canonical_rotation(self):
+        from ...coreg import fit_matched_points, _trans_from_params
+        self._rigid = np.eye(4)
+        try:
+            xfm = read_talxfm(self._subject_id, self._subjects_dir)
+        except Exception:
+            return
+        # XYZ+origin + halfway
+        pts_tal = np.concatenate([np.eye(4)[:, :3], np.eye(3) * 0.5])
+        pts_subj = apply_trans(invert_transform(xfm), pts_tal)
+        # we fit with scaling enabled, but then discard it (we just need
+        # the rigid-body components)
+        params = fit_matched_points(pts_subj, pts_tal, scale=3, out='params')
+        self._rigid[:] = _trans_from_params((True, True, False), params[:6])
 
     def setup_time_viewer(self, time_viewer=True, show_traces=True):
         """Configure the time viewer parameters.
@@ -2542,7 +2597,7 @@ class Brain(object):
         self._renderer.show()
 
     def show_view(self, view=None, roll=None, distance=None, row=0, col=0,
-                  hemi=None):
+                  hemi=None, align=True):
         """Orient camera to display view.
 
         Parameters
@@ -2559,6 +2614,11 @@ class Brain(object):
             The column to set.
         hemi : str
             Which hemi to use for string lookup (when in "both" mode).
+        align : bool
+            If True, consider view arguments relative to canonical MRI
+            directions (closest to MNI for the subject) rather than native MRI
+            space. This helps when MRIs are not in standard orientation (e.g.,
+            have large rotations).
         """
         hemi = self._hemi if hemi is None else hemi
         if hemi == 'split':
@@ -2575,7 +2635,8 @@ class Brain(object):
         if distance is not None:
             view.update(distance=distance)
         self._renderer.subplot(row, col)
-        self._renderer.set_camera(**view, reset_camera=False)
+        xfm = self._rigid if align else None
+        self._renderer.set_camera(**view, reset_camera=False, rigid=xfm)
         self._update()
 
     def reset_view(self):

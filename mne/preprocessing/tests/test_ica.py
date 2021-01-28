@@ -6,6 +6,7 @@
 from itertools import product
 import os
 import os.path as op
+import shutil
 from unittest import SkipTest
 
 import pytest
@@ -13,6 +14,7 @@ import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose, assert_equal)
 from scipy import stats, linalg
+from scipy.io import loadmat, savemat
 import matplotlib.pyplot as plt
 
 from mne import (Epochs, read_events, pick_types, create_info, EpochsArray,
@@ -1309,6 +1311,33 @@ def test_read_ica_eeglab():
 
     assert_allclose(raw_cleaned_matlab.get_data(), raw_cleaned.get_data(),
                     rtol=1e-05, atol=1e-08)
+
+
+@testing.requires_testing_data
+def test_read_ica_eeglab_mismatch(tmpdir):
+    """Test read_ica_eeglab function when there is a mismatch."""
+    fname_orig = op.join(test_base_dir, "EEGLAB", "test_raw.set")
+    base = op.basename(fname_orig)[:-3]
+    shutil.copyfile(fname_orig[:-3] + 'fdt', tmpdir.join(base + 'fdt'))
+    fname = tmpdir.join(base)
+    data = loadmat(fname_orig)
+    w = data['EEG']['icaweights'][0][0]
+    w[:] = np.random.RandomState(0).randn(*w.shape)
+    savemat(str(fname), data, appendmat=False)
+    assert op.isfile(fname)
+    with pytest.warns(RuntimeWarning, match='Mismatch.*removal.*icawinv.*'):
+        ica = read_ica_eeglab(fname)
+    _assert_ica_attributes(ica)
+    ica_correct = read_ica_eeglab(fname_orig)
+    attrs = [attr for attr in dir(ica_correct)
+             if attr.endswith('_') and not attr.startswith('_')]
+    assert 'mixing_matrix_' in attrs
+    assert 'unmixing_matrix_' in attrs
+    assert ica.labels_ == ica_correct.labels_ == {}
+    attrs.pop(attrs.index('labels_'))
+    for attr in attrs:
+        a, b = getattr(ica, attr), getattr(ica_correct, attr)
+        assert_allclose(a, b, rtol=1e-12, atol=1e-12, err_msg=attr)
 
 
 def _assert_ica_attributes(ica, data=None, limits=(1.0, 70)):

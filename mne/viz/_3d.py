@@ -1678,7 +1678,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           time_unit='s', backend='auto', spacing='oct6',
                           title=None, show_traces='auto',
                           src=None, volume_options=1., view_layout='vertical',
-                          add_data_kwargs=None, verbose=None):
+                          add_data_kwargs=None, brain_kwargs=None,
+                          verbose=None):
     """Plot SourceEstimate.
 
     Parameters
@@ -1772,6 +1773,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     %(src_volume_options)s
     %(view_layout)s
     %(add_data_kwargs)s
+    %(brain_kwargs)s
     %(verbose)s
 
     Returns
@@ -1828,7 +1830,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         stc, overlay_alpha=alpha, brain_alpha=alpha, vector_alpha=alpha,
         cortex=cortex, foreground=foreground, size=size, scale_factor=None,
         show_traces=show_traces, src=src, volume_options=volume_options,
-        view_layout=view_layout, add_data_kwargs=add_data_kwargs, **kwargs)
+        view_layout=view_layout, add_data_kwargs=add_data_kwargs,
+        brain_kwargs=brain_kwargs, **kwargs)
 
 
 def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
@@ -1836,7 +1839,7 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
               time_unit, background, time_viewer, colorbar, transparent,
               brain_alpha, overlay_alpha, vector_alpha, cortex, foreground,
               size, scale_factor, show_traces, src, volume_options,
-              view_layout, add_data_kwargs):
+              view_layout, add_data_kwargs, brain_kwargs):
     from .backends.renderer import _get_3d_backend
     from ..source_estimate import _BaseVolSourceEstimate
     vec = stc._data_ndim == 3
@@ -1895,6 +1898,8 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
         "figure": figure, "subjects_dir": subjects_dir,
         "views": views, "alpha": brain_alpha,
     }
+    if brain_kwargs is not None:
+        kwargs.update(brain_kwargs)
     if backend in ['pyvista', 'notebook']:
         kwargs["show"] = False
         kwargs["view_layout"] = view_layout
@@ -2506,7 +2511,8 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                  time_unit='s', show_traces='auto',
                                  src=None, volume_options=1.,
                                  view_layout='vertical',
-                                 add_data_kwargs=None, verbose=None):
+                                 add_data_kwargs=None, brain_kwargs=None,
+                                 verbose=None):
     """Plot VectorSourceEstimate with PySurfer.
 
     A "glass brain" is drawn and all dipoles defined in the source estimate
@@ -2582,6 +2588,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     %(src_volume_options)s
     %(view_layout)s
     %(add_data_kwargs)s
+    %(brain_kwargs)s
     %(verbose)s
 
     Returns
@@ -2609,7 +2616,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         vector_alpha=vector_alpha, cortex=cortex, foreground=foreground,
         size=size, scale_factor=scale_factor, show_traces=show_traces,
         src=src, volume_options=volume_options, view_layout=view_layout,
-        add_data_kwargs=add_data_kwargs)
+        add_data_kwargs=add_data_kwargs, brain_kwargs=brain_kwargs)
 
 
 @verbose

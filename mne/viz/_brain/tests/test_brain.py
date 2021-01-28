@@ -23,7 +23,7 @@ from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.source_space import (read_source_spaces, vertex_to_mni,
                               setup_volume_source_space)
 from mne.datasets import testing
-from mne.utils import check_version
+from mne.utils import check_version, requires_pysurfer
 from mne.label import read_label
 from mne.viz._brain import Brain, _LinkViewer, _BrainScraper, _LayeredMesh
 from mne.viz._brain.colormap import calculate_lut
@@ -144,6 +144,18 @@ def test_brain_gc(renderer, brain_gc):
     brain.close()
 
 
+@requires_pysurfer
+@testing.requires_testing_data
+def test_brain_routines(renderer, brain_gc):
+    """Test backend agnostic Brain routines."""
+    brain_klass = renderer.get_brain_class()
+    if renderer.get_3d_backend() == "mayavi":
+        from surfer import Brain
+    else:  # PyVista
+        from mne.viz._brain import Brain
+    assert brain_klass == Brain
+
+
 @testing.requires_testing_data
 def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
     """Test initialization of the Brain instance."""
@@ -174,7 +186,8 @@ def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
     renderer.backend._close_all()
 
     brain = Brain(hemi=hemi, surf=surf, size=size, title=title,
-                  cortex=cortex, units='m', **kwargs)
+                  cortex=cortex, units='m',
+                  silhouette=dict(decimate=0.95), **kwargs)
     with pytest.raises(TypeError, match='not supported'):
         brain._check_stc(hemi='lh', array=FakeSTC(), vertices=None)
     with pytest.raises(ValueError, match='add_data'):
@@ -431,7 +444,10 @@ def test_brain_time_viewer(renderer_interactive, pixel_ratio, brain_gc):
     with pytest.raises(ValueError, match="got unknown keys"):
         _create_testing_brain(hemi='lh', surf='white', src='volume',
                               volume_options={'foo': 'bar'})
-    brain = _create_testing_brain(hemi='both', show_traces=False)
+    brain = _create_testing_brain(
+        hemi='both', show_traces=False,
+        brain_kwargs=dict(silhouette=dict(decimate=0.95))
+    )
     # test sub routines when show_traces=False
     brain._on_pick(None, None)
     brain._configure_vertex_time_course()

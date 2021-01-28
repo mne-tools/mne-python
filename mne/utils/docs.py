@@ -1533,6 +1533,11 @@ add_data_kwargs : dict | None
     Additional arguments to brain.add_data (e.g.,
     ``dict(time_label_size=10)``).
 """
+docdict['brain_kwargs'] = """
+brain_kwargs : dict | None
+    Additional arguments to the :class:`mne.viz.Brain` constructor (e.g.,
+    ``dict(silhouette=True)``).
+"""
 docdict['views'] = """
 views : str | list
     View to use. Can be any of::
