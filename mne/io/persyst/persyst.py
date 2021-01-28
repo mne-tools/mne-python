@@ -3,7 +3,7 @@
 # License: BSD (3-clause)
 import os
 import os.path as op
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from datetime import datetime, timezone
 
 import numpy as np
@@ -74,7 +74,10 @@ class RawPersyst(BaseRaw):
         fileinfo_dict = OrderedDict()
         channelmap_dict = OrderedDict()
         patient_dict = OrderedDict()
-        comments_dict = OrderedDict()
+        comments_dict = defaultdict(list)
+
+        # keep track of total number of comments
+        num_comments = 0
 
         # loop through each line in the lay file
         for key, val, section in zip(keys, data, sections):
@@ -108,8 +111,10 @@ class RawPersyst(BaseRaw):
             # Patient (All optional)
             elif section == 'patient':
                 patient_dict[key] = val
+            # Comments (turned into mne.Annotations)
             elif section == 'comments':
-                comments_dict[key] = val
+                comments_dict[key].append(val)
+                num_comments += 1
 
         # get numerical metadata
         # datatype is either 7 for 32 bit, or 0 for 16 bit
@@ -205,17 +210,22 @@ class RawPersyst(BaseRaw):
             raw_extras=[raw_extras], verbose=verbose)
 
         # set annotations based on the comments read in
-        num_comments = len(comments_dict)
+        # num_comments = len(comments_dict)
         onset = np.zeros(num_comments, float)
         duration = np.zeros(num_comments, float)
         description = [''] * num_comments
-        for t_idx, (_description, (_onset, _duration)) in \
-                enumerate(comments_dict.items()):
-            # extract the onset, duration, description to
-            # create an Annotations object
-            onset[t_idx] = _onset
-            duration[t_idx] = _duration
-            description[t_idx] = _description
+
+        # loop through comments dictionary, which may contain
+        # multiple events for the same "text" annotation
+        t_idx = 0
+        for _description, event_tuples in comments_dict.items():
+            for (_onset, _duration) in event_tuples:
+                # extract the onset, duration, description to
+                # create an Annotations object
+                onset[t_idx] = _onset
+                duration[t_idx] = _duration
+                description[t_idx] = _description
+                t_idx += 1
         annot = Annotations(onset, duration, description)
         self.set_annotations(annot)
 
@@ -365,6 +375,34 @@ def _process_lay_line(line, section):
     value : str
         The string from the line after the ``'='`` character. If section is
         "Comments", then returns the onset and duration as a tuple.
+
+    Notes
+    -----
+    The lay file comprises of multiple "sections" that are documented with
+    bracket ``[]`` characters. For example, ``[FileInfo]`` and the lines
+    afterward indicate metadata about the data file itself. Within
+    each section, there are multiple lines in the format of
+    ``<key>=<value>``.
+
+    For ``FileInfo``, ``Patient`` and ``ChannelMap``
+    each line will be denoted with a ``key`` and a ``value`` that
+    can be represented as a dictionary. The keys describe what sort
+    of data that line holds, while the values contain the corresponding
+    value. In some cases, the ``value``.
+
+    For ``SampleTimes``, the ``key`` and ``value`` pair indicate the
+    start and end time in seconds of the original data file.
+
+    For ``Comments`` section, this denotes an area where users through
+    Persyst actually annotate data in time. These are instead
+    represented as 5 data points that are ``,`` delimited. These
+    data points are ordered as:
+
+        1. time (in seconds) of the annotation
+        2. duration (in seconds) of the annotation
+        3. state (unused)
+        4. variable type (unused)
+        5. free-form text describing the annotation
     """
     key = ''  # default; only return value possibly not set
     line = line.strip()  # remove leading and trailing spaces
@@ -388,7 +426,7 @@ def _process_lay_line(line, section):
         #  Currently not used
         if section == 'comments':
             # Persyst Comments output 5 variables "," separated
-            time_sec, duration, state, var_type, text = line.split(',')
+            time_sec, duration, state, var_type, text = line.split(',', 5)
             status = 2
             key = text
             value = (time_sec, duration)

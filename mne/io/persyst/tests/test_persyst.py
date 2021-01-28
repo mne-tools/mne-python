@@ -8,6 +8,7 @@ import shutil
 
 import pytest
 from numpy.testing import assert_array_equal
+import numpy as np
 
 import mne
 from mne.datasets.testing import data_path, requires_testing_data
@@ -16,10 +17,10 @@ from mne.io.tests.test_raw import _test_raw_reader
 from mne.utils import run_tests_if_main
 
 fname_lay = op.join(
-    data_path(download=False), 'Persyst',
+    data_path(download=True), 'Persyst',
     'sub-pt1_ses-02_task-monitor_acq-ecog_run-01_clip2.lay')
 fname_dat = op.join(
-    data_path(download=False), 'Persyst',
+    data_path(download=True), 'Persyst',
     'sub-pt1_ses-02_task-monitor_acq-ecog_run-01_clip2.dat')
 
 
@@ -147,6 +148,39 @@ def test_persyst_standard():
     """Test standard operations."""
     _test_raw_reader(read_raw_persyst, fname=fname_lay)
 
+
+@requires_testing_data
+def test_persyst_repeated_annotations():
+    """Test repeated annotations in Persyst."""
+    out_dir = mne.utils._TempDir()
+    new_fname_lay = op.join(out_dir, op.basename(fname_lay))
+    new_fname_dat = op.join(out_dir, op.basename(fname_dat))
+    shutil.copy(fname_dat, new_fname_dat)
+    shutil.copy(fname_lay, new_fname_lay)
+
+    raw = read_raw_persyst(new_fname_lay)
+
+    # get the annotations
+    annotations = raw.annotations
+    assert np.count_nonzero(annotations.description == 'seizure') == 2
+    raise Exception('hi')
+    # reformat the lay file to have a repeated
+    # comment
+    # with open(fname_lay, "r") as fin:
+    #     with open(new_fname_lay, 'w') as fout:
+    #         # get
+    #         line = fin.readline()
+    #         fout.write(line)
+    #         while line != '[Comments]':
+    #
+    #             line = fin.next()
+    #
+    #         # for each line in the input file
+    #         for idx, line in enumerate(fin):
+    #
+    #             if idx == 1:
+    #                 line = line.replace('=', ',')
+    #             fout.write(line)
 
 @requires_testing_data
 def test_persyst_errors():
