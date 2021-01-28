@@ -245,20 +245,6 @@ def test_persyst_errors():
                                            'file do not'):
         read_raw_persyst(new_fname_lay)
 
-    # reformat the lay file
-    os.remove(new_fname_lay)
-    with open(fname_lay, "r") as fin:
-        with open(new_fname_lay, 'w') as fout:
-            # for each line in the input file
-            for idx, line in enumerate(fin):
-                if line.startswith('File'):
-                    line = f'File=/{op.basename(fname_dat)}\n'
-                fout.write(line)
-    # file should break
-    with pytest.raises(FileNotFoundError, match='The data path '
-                                                'you specified'):
-        read_raw_persyst(new_fname_lay)
-
     # reformat the lay file to have testdate
     # improperly specified
     os.remove(new_fname_lay)
