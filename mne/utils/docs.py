@@ -1367,6 +1367,16 @@ match_case : bool
 
     .. versionadded:: 0.20
 """
+docdict["match_alias"] = """
+match_alias : bool
+    Some electrode positions have multiple names (aliases), depending
+    on from which convention they are named. If True (default), matched
+    aliases synonymous with provided channel names will be automatically
+    utilized. For more details, please refer to
+    https://github.com/mne-tools/mne-python/blob/main/mne/channels/data/montages/alias.csv.
+
+    .. versionadded:: 0.23
+"""
 docdict['on_header_missing'] = """
 on_header_missing : str
     %s the FastSCAN header is missing.

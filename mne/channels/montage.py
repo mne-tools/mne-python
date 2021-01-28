@@ -35,8 +35,8 @@ from ..io.open import fiff_open
 from ..io.pick import pick_types
 from ..io.constants import FIFF
 from ..utils import (warn, copy_function_doc_to_method_doc, _pl, verbose,
-                     _check_option, _validate_type, _check_fname, _on_missing,
-                     fill_doc)
+                     _check_option, _validate_type, _check_fname,
+                     _check_pandas_installed, _on_missing, fill_doc)
 
 from ._dig_montage_utils import _read_dig_montage_egi
 from ._dig_montage_utils import _parse_brainvision_dig_montage
@@ -53,6 +53,8 @@ _BUILT_IN_MONTAGES = [
     'standard_1005', 'standard_1020', 'standard_alphabetic',
     'standard_postfixed', 'standard_prefixed', 'standard_primed'
 ]
+
+_BUILT_IN_ALIAS = op.join(op.dirname(__file__), 'data/montages/alias.csv')
 
 
 def _check_get_coord_frame(dig):
@@ -667,7 +669,7 @@ def _get_montage_in_head(montage):
 
 
 @fill_doc
-def _set_montage(info, montage, match_case=True, on_missing='raise'):
+def _set_montage(info, montage, match_case=True, match_alias=True, on_missing='raise'):
     """Apply montage to data.
 
     With a DigMontage, this function will replace the digitizer info with
@@ -682,6 +684,7 @@ def _set_montage(info, montage, match_case=True, on_missing='raise'):
         The measurement info to update.
     %(montage)s
     %(match_case)s
+    %(match_alias)s
     %(on_missing_montage)s
 
     Notes
@@ -758,6 +761,19 @@ def _set_montage(info, montage, match_case=True, on_missing='raise'):
                 raise ValueError('Cannot use match_case=False as %s channel '
                                  'name(s) require case sensitivity' % n_dup)
 
+        if match_alias:
+            pd = _check_pandas_installed(strict=True)
+            alias_df = pd.read_csv(_BUILT_IN_ALIAS, sep=',', header=0, usecols=['name', 'alias'], engine='python')
+
+            if not match_case:
+                alias_df['name'] = alias_df['name'].str.lower()
+                alias_df['alias'] = alias_df['alias'].str.lower()
+            ch_pos_names = [ch for ch in ch_pos_use]
+            alias_df = alias_df[alias_df['alias'].isin(ch_pos_names)]
+
+            alias_dict = alias_df.set_index('name')['alias'].to_dict()
+            info_names_use = [alias_dict[use] if use in alias_dict else use for use in info_names_use]
+            
         # warn user if there is not a full overlap of montage with info_chs
         not_in_montage = [name for name, use in zip(info_names, info_names_use)
                           if use not in ch_pos_use]
