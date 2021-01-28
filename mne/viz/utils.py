@@ -1015,7 +1015,7 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
         fig = plt.figure(figsize=(max(rcParams['figure.figsize']),) * 2)
         if kind == '3d':
             Axes3D(fig)
-            ax = fig.gca(projection='3d')
+            ax = fig.add_subplot(projection='3d')
         else:
             ax = fig.add_subplot(111)
     else:
