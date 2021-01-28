@@ -1823,6 +1823,7 @@ class Brain(object):
             surf = dict(rr=meg_rrs, tris=meg_tris)
             self._renderer.surface(surface=surf, color=color,
                                    opacity=alpha, backface_culling=True)
+        self._update()
 
     @verbose
     def add_data(self, array, fmin=None, fmid=None, fmax=None,
