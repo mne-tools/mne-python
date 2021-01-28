@@ -266,8 +266,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
     if axes is not None and proj == 'interactive':
         raise RuntimeError('Currently only single axis figures are supported'
                            ' for interactive SSP selection.')
-    if isinstance(gfp, str) and gfp != 'only':
-        raise ValueError('gfp must be boolean or "only". Got %s' % gfp)
+
+    _check_option('gfp', gfp, [True, False, 'only'])
 
     scalings = _handle_default('scalings', scalings)
     titles = _handle_default('titles', titles)
@@ -428,7 +428,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
             # Set amplitude scaling
             D = this_scaling * data[idx, :]
             _check_if_nan(D)
-            gfp_only = (isinstance(gfp, str) and gfp == 'only')
+            gfp_only = gfp == 'only'
             if not gfp_only:
                 chs = [info['chs'][i] for i in idx]
                 locs3d = np.array([ch['loc'][:3] for ch in chs])
@@ -473,10 +473,17 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                                 linewidth=0.5)[0])
                     line_list[-1].set_pickradius(3.)
 
-            if gfp:  # 'only' or boolean True
+            if gfp:
+                if gfp in [True, 'only']:
+                    if this_type == 'eeg':
+                        this_gfp = D.std(axis=0, ddof=0)
+                        label = 'GFP'
+                    else:
+                        this_gfp = np.sqrt((D ** 2).mean(axis=0))
+                        label = 'RMS'
+
                 gfp_color = 3 * (0.,) if spatial_colors is True else (0., 1.,
                                                                       0.)
-                this_gfp = np.sqrt((D * D).mean(axis=0))
                 this_ylim = ax.get_ylim() if (ylim is None or this_type not in
                                               ylim.keys()) else ylim[this_type]
                 if gfp_only:
@@ -490,7 +497,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                                          zorder=3, alpha=line_alpha)[0])
                 ax.text(times[0] + 0.01 * (times[-1] - times[0]),
                         this_gfp[0] + 0.05 * np.diff(ax.get_ylim())[0],
-                        'GFP', zorder=4, color=gfp_color,
+                        label, zorder=4, color=gfp_color,
                         path_effects=gfp_path_effects)
             for ii, line in zip(idx, line_list):
                 if ii in bad_ch_idx:
@@ -674,8 +681,23 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         the same length as the number of channel types. If instance of
         Axes, there must be only one channel type plotted.
     gfp : bool | 'only'
-        Plot GFP in green if True or "only". If "only", then the individual
-        channel traces will not be shown.
+        Plot the global field power (GFP) or the root mean square (RMS) of the
+        data. For MEG data, this will plot the RMS. For EEG, it plots GFP,
+        i.e. the standard deviation of the signal across channels. The GFP is
+        equivalent to the RMS of an average-referenced signal.
+
+        - ``True``
+            Plot GFP or RMS (for EEG and MEG, respectively) and traces for all
+            channels.
+        - ``'only'``
+            Plot GFP or RMS (for EEG and MEG, respectively), and omit the
+            traces for individual channels.
+
+        The color of the GFP/RMS trace will be green if
+        ``spatial_colors=False``, and black otherwise.
+
+        .. versionchanged:: 0.23
+           Plot GFP for EEG instead of RMS. Label RMS traces correctly as such.
     window_title : str | None
         The title to put at the top of the figure.
     spatial_colors : bool
@@ -1451,7 +1473,9 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     else:
         locator = None
 
-    topomap_args_pass = topomap_args.copy()
+    topomap_args_pass = (dict(extrapolate='local') if ch_type == 'seeg'
+                         else dict())
+    topomap_args_pass.update(topomap_args)
     topomap_args_pass['outlines'] = topomap_args.get('outlines', 'skirt')
     topomap_args_pass['contours'] = contours
     evoked.plot_topomap(times=times_sec, axes=map_ax, show=False,

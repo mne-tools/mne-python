@@ -238,7 +238,8 @@ stc.plot(mode='glass_brain', clim=dict(kind='value', lims=lims), **kwargs)
 brain = stc_vec.plot_3d(
     clim=dict(kind='value', lims=lims), hemi='both',
     views=['coronal', 'sagittal', 'axial'], size=(800, 300),
-    view_layout='horizontal', show_traces=0.3, **kwargs)
+    view_layout='horizontal', show_traces=0.3,
+    brain_kwargs=dict(silhouette=True), **kwargs)
 
 ###############################################################################
 # Visualize the activity of the maximum voxel with all three components

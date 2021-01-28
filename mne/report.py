@@ -21,7 +21,8 @@ import webbrowser
 import numpy as np
 
 from . import read_evokeds, read_events, pick_types, read_cov
-from .io import read_raw_fif, read_info
+from .io import read_raw, read_info
+from .io._read_raw import supported as extension_reader_map
 from .io.pick import _DATA_CH_TYPES_SPLIT
 from .source_space import _mri_orientation
 from .utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
@@ -40,20 +41,39 @@ from .externals.h5io import read_hdf5, write_hdf5
 
 _BEM_VIEWS = ('axial', 'sagittal', 'coronal')
 
-VALID_EXTENSIONS = ['raw.fif', 'raw.fif.gz', 'sss.fif', 'sss.fif.gz',
-                    'eve.fif', 'eve.fif.gz', 'cov.fif', 'cov.fif.gz',
-                    'proj.fif', 'prof.fif.gz', 'trans.fif', 'trans.fif.gz',
-                    'fwd.fif', 'fwd.fif.gz', 'epo.fif', 'epo.fif.gz',
-                    'inv.fif', 'inv.fif.gz', 'ave.fif', 'ave.fif.gz', 'T1.mgz',
-                    'meg.fif']
-SECTION_ORDER = ['raw', 'events', 'epochs', 'ssp', 'evoked', 'covariance',
-                 'trans', 'mri', 'forward', 'inverse']
+
+# For raw files, we want to support different suffixes + extensions for all
+# supported file formats
+SUPPORTED_READ_RAW_EXTENSIONS = tuple(extension_reader_map.keys())
+RAW_EXTENSIONS = []
+for ext in SUPPORTED_READ_RAW_EXTENSIONS:
+    RAW_EXTENSIONS.append(f'raw{ext}')
+    if ext not in ('.bdf', '.edf', '.set', '.vhdr'):  # EEG-only formats
+        RAW_EXTENSIONS.append(f'meg{ext}')
+    RAW_EXTENSIONS.append(f'eeg{ext}')
+
+# Processed data will always be in (gzipped) FIFF format
+VALID_EXTENSIONS = ('sss.fif', 'sss.fif.gz',
+                    'eve.fif', 'eve.fif.gz',
+                    'cov.fif', 'cov.fif.gz',
+                    'proj.fif', 'prof.fif.gz',
+                    'trans.fif', 'trans.fif.gz',
+                    'fwd.fif', 'fwd.fif.gz',
+                    'epo.fif', 'epo.fif.gz',
+                    'inv.fif', 'inv.fif.gz',
+                    'ave.fif', 'ave.fif.gz',
+                    'T1.mgz') + tuple(RAW_EXTENSIONS)
+del RAW_EXTENSIONS
+
+SECTION_ORDER = ('raw', 'events', 'epochs', 'ssp', 'evoked', 'covariance',
+                 'trans', 'mri', 'forward', 'inverse')
 
 
 ###############################################################################
 # PLOTTING FUNCTIONS
 
-def _fig_to_img(fig, image_format='png', scale=None, **kwargs):
+def _fig_to_img(fig, image_format='png', scale=None, auto_close=True,
+                **kwargs):
     """Plot figure and create a binary image."""
     # fig can be ndarray, mpl Figure, Mayavi Figure, or callable that produces
     # a mpl Figure
@@ -62,7 +82,8 @@ def _fig_to_img(fig, image_format='png', scale=None, **kwargs):
     if isinstance(fig, np.ndarray):
         fig = _ndarray_to_fig(fig)
     elif callable(fig):
-        plt.close('all')
+        if auto_close:
+            plt.close('all')
         fig = fig(**kwargs)
     elif not isinstance(fig, Figure):
         from .viz.backends.renderer import backend, MNE_3D_BACKEND_TESTING
@@ -72,7 +93,8 @@ def _fig_to_img(fig, image_format='png', scale=None, **kwargs):
         else:  # Testing mode
             img = np.zeros((2, 2, 3))
 
-        backend._close_3d_figure(figure=fig)
+        if auto_close:
+            backend._close_3d_figure(figure=fig)
         fig = _ndarray_to_fig(img)
 
     output = BytesIO()
@@ -167,7 +189,7 @@ def _is_bad_fname(fname):
     if fname.endswith('(whitened)'):
         fname = fname[:-11]
 
-    if not fname.endswith(tuple(VALID_EXTENSIONS + ['bem', 'custom'])):
+    if not fname.endswith(VALID_EXTENSIONS + ('bem', 'custom')):
         return 'red'
     else:
         return ''
@@ -183,14 +205,15 @@ def _get_fname(fname):
     return fname
 
 
-def _endswith(fname, exts):
-    """Aux function to test if fname ends with ext.fif for any ext in exts."""
-    if isinstance(exts, str):
-        exts = [exts]
-    for ext in exts:
-        if fname.endswith((f'-{ext}.fif', f'-{ext}.fif.gz',
-                           f'_{ext}.fif', f'_{ext}.fif.gz')):
-            return True
+def _endswith(fname, suffixes):
+    """Aux function to test if file name includes the specified suffixes."""
+    if isinstance(suffixes, str):
+        suffixes = [suffixes]
+    for suffix in suffixes:
+        for ext in SUPPORTED_READ_RAW_EXTENSIONS:
+            if fname.endswith((f'-{suffix}{ext}', f'-{suffix}{ext}',
+                               f'_{suffix}{ext}', f'_{suffix}{ext}')):
+                return True
     return False
 
 
@@ -1004,6 +1027,22 @@ class Report(object):
 
         return items, captions, comments
 
+    def add_custom_css(self, css):
+        """Add custom CSS to the report.
+
+        Parameters
+        ----------
+        css : str
+            Style definitions to add to the report. The content of this string
+            will be embedded between HTML ``<style>`` and ``</style>`` tags.
+
+        Notes
+        -----
+        .. versionadded:: 0.23
+        """
+        style = f'\n<style type="text/css">\n{css}\n</style>'
+        self.include += style
+
     def remove(self, caption, section=None):
         """Remove a figure from the report.
 
@@ -1092,7 +1131,7 @@ class Report(object):
 
     def add_figs_to_section(self, figs, captions, section='custom',
                             scale=None, image_format=None, comments=None,
-                            replace=False):
+                            replace=False, auto_close=True):
         """Append custom user-defined figures.
 
         Parameters
@@ -1122,6 +1161,9 @@ class Report(object):
         replace : bool
             If ``True``, figures already present that have the same caption
             will be replaced. Defaults to ``False``.
+        auto_close : bool
+            If True, the plots are closed during the generation of the report.
+            Defaults to True.
         """
         figs, captions, comments = self._validate_input(figs, captions,
                                                         section, comments)
@@ -1134,7 +1176,7 @@ class Report(object):
             div_klass = self._sectionvars[section]
             img_klass = self._sectionvars[section]
 
-            img = _fig_to_img(fig, image_format, scale)
+            img = _fig_to_img(fig, image_format, scale, auto_close)
             html = image_template.substitute(img=img, id=global_id,
                                              div_klass=div_klass,
                                              img_klass=img_klass,
@@ -1287,7 +1329,7 @@ class Report(object):
 
     def add_slider_to_section(self, figs, captions=None, section='custom',
                               title='Slider', scale=None, image_format=None,
-                              replace=False):
+                              replace=False, auto_close=True):
         """Render a slider of figs to the report.
 
         Parameters
@@ -1319,6 +1361,11 @@ class Report(object):
         replace : bool
             If ``True``, figures already present that have the same caption
             will be replaced. Defaults to ``False``.
+        auto_close : bool
+            If True, the plots are closed during the generation of the report.
+            Defaults to True.
+
+            .. versionadded:: 0.23
 
         Notes
         -----
@@ -1360,7 +1407,7 @@ class Report(object):
             raise TypeError('Captions must be None or an iterable of '
                             'float, int, str, Got %s' % type(captions))
         for ii, (fig, caption) in enumerate(zip(figs, captions)):
-            img = _fig_to_img(fig, image_format, scale)
+            img = _fig_to_img(fig, image_format, scale, auto_close)
             slice_id = '%s-%s-%s' % (name, global_id, sl[ii])
             first = True if ii == 0 else False
             slices.append(_build_html_image(img, slice_id, div_klass,
@@ -1435,7 +1482,7 @@ class Report(object):
         self.include = ''.join(include)
 
     @verbose
-    def parse_folder(self, data_path, pattern='*.fif', n_jobs=1, mri_decim=2,
+    def parse_folder(self, data_path, pattern=None, n_jobs=1, mri_decim=2,
                      sort_sections=True, on_error='warn', image_format=None,
                      render_bem=True, verbose=None):
         r"""Render all the files in the folder.
@@ -1445,10 +1492,13 @@ class Report(object):
         data_path : str
             Path to the folder containing data whose HTML report will be
             created.
-        pattern : str | list of str
+        pattern : None | str | list of str
             Filename pattern(s) to include in the report.
             Example: [\*raw.fif, \*ave.fif] will include Raw as well as Evoked
-            files.
+            files. If ``None``, include all supported file formats.
+
+            .. versionchanged:: 0.23
+               Include supported non-FIFF files by default.
         %(n_jobs)s
         mri_decim : int
             Use this decimation factor for generating MRI/BEM images
@@ -1483,7 +1533,9 @@ class Report(object):
         if self.title is None:
             self.title = 'MNE Report for ...%s' % self.data_path[-20:]
 
-        if not isinstance(pattern, (list, tuple)):
+        if pattern is None:
+            pattern = [f'*{ext}' for ext in SUPPORTED_READ_RAW_EXTENSIONS]
+        elif not isinstance(pattern, (list, tuple)):
             pattern = [pattern]
 
         # iterate through the possible patterns
@@ -1498,7 +1550,10 @@ class Report(object):
         fnames_to_remove = []
         for fname in fnames:
             if _endswith(fname, ('raw', 'sss', 'meg')):
-                inst = read_raw_fif(fname, allow_maxshield=True, preload=False)
+                kwargs = dict(fname=fname, preload=False)
+                if fname.endswith(('.fif', '.fif.gz')):
+                    kwargs['allow_maxshield'] = True
+                inst = read_raw(**kwargs)
             else:
                 continue
 
@@ -1758,8 +1813,7 @@ class Report(object):
                         global_id += 1
                         html_toc += u'</ul></li>'
 
-                    elif fname.endswith(tuple(VALID_EXTENSIONS +
-                                        ['bem', 'custom'])):
+                    elif fname.endswith(VALID_EXTENSIONS + ('bem', 'custom')):
                         html_toc += toc_list.substitute(div_klass=div_klass,
                                                         id=global_id,
                                                         tooltip=tooltip,
@@ -1830,7 +1884,11 @@ class Report(object):
         """Render raw (only text)."""
         global_id = self._get_id()
 
-        raw = read_raw_fif(raw_fname, allow_maxshield='yes')
+        kwargs = dict(fname=raw_fname, preload=False)
+        if raw_fname.endswith(('.fif', '.fif.gz')):
+            kwargs['allow_maxshield'] = True
+        raw = read_raw(**kwargs)
+
         extra = '(MaxShield on)' if raw.info.get('maxshield', False) else ''
         caption = self._gen_caption(prefix='Raw', suffix=extra,
                                     fname=raw_fname, data_path=data_path)
@@ -2147,7 +2205,7 @@ def _recursive_search(path, pattern):
         for f in fnmatch.filter(files, pattern):
             # only the following file types are supported
             # this ensures equitable distribution of jobs
-            if f.endswith(tuple(VALID_EXTENSIONS)):
+            if f.endswith(VALID_EXTENSIONS):
                 filtered_files.append(op.realpath(op.join(dirpath, f)))
 
     return filtered_files

@@ -180,6 +180,8 @@ report.save('report_cov.html', overwrite=True)
 # the :meth:`~mne.Report.add_figs_to_section` method, and sliders via the
 # :meth:`~mne.Report.add_slider_to_section`:
 
+report = mne.Report(verbose=True)
+
 # generate a custom plot:
 fname_evoked = os.path.join(path, 'MEG', 'sample', 'sample_audvis-ave.fif')
 evoked = mne.read_evokeds(fname_evoked,
@@ -202,6 +204,32 @@ report.add_slider_to_section(figs, times, 'Evoked Response',
                              image_format='png')  # can also use 'svg'
 
 report.save('report_custom.html', overwrite=True)
+
+###############################################################################
+# Adding a stc plot to a report
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# Now we see how :class:`~mne.Report` handles :class:`~mne.SourceEstimate`
+# data. The following will produce a stc plot with vertex time courses. In
+# this scenario, we also demonstrate how to use the
+# :meth:`mne.viz.Brain.screenshot` method to save the figs in a slider.
+
+report = mne.Report(verbose=True)
+fname_stc = os.path.join(path, 'MEG', 'sample', 'sample_audvis-meg')
+stc = mne.read_source_estimate(fname_stc, subject='sample')
+figs = list()
+kwargs = dict(subjects_dir=subjects_dir, initial_time=0.13,
+              clim=dict(kind='value', lims=[3, 6, 9]))
+for hemi in ('lh', 'rh'):
+    brain = stc.plot(hemi=hemi, **kwargs)
+    brain.toggle_interface(False)
+    figs.append(brain.screenshot(time_viewer=True))
+    brain.close()
+
+# add the stc plot to the report:
+report.add_slider_to_section(figs)
+
+report.save('report_stc.html', overwrite=True)
 
 ###############################################################################
 # Managing report sections

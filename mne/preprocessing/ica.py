@@ -53,8 +53,8 @@ from ..utils import (check_version, logger, check_fname, verbose,
                      compute_corr, _get_inst_data, _ensure_int,
                      copy_function_doc_to_method_doc, _pl, warn, Bunch,
                      _check_preload, _check_compensation_grade, fill_doc,
-                     _check_option, _PCA, int_like)
-from ..utils.check import _check_all_same_channel_names
+                     _check_option, _PCA, int_like,
+                     _check_all_same_channel_names)
 
 from ..fixes import _get_args, _safe_svd
 from ..filter import filter_data
@@ -108,7 +108,8 @@ def _check_for_unsupported_ica_channels(picks, info, allow_ref_meg=False):
     """Check for channels in picks that are not considered valid channels.
 
     Accepted channels are the data channels
-    ('seeg','ecog','eeg', 'hbo', 'hbr', 'mag', and 'grad'), 'eog' and 'ref_meg'
+    ('seeg', 'dbs', 'ecog', 'eeg', 'hbo', 'hbr', 'mag', and 'grad'), 'eog'
+    and 'ref_meg'.
     This prevents the program from crashing without
     feedback when a bad channel is provided to ICA whitening.
     """
@@ -461,8 +462,8 @@ class ICA(ContainsMixin):
             within ``start`` and ``stop`` are used.
         reject : dict | None
             Rejection parameters based on peak-to-peak amplitude.
-            Valid keys are 'grad', 'mag', 'eeg', 'seeg', 'ecog', 'eog', 'ecg',
-            'hbo', 'hbr'.
+            Valid keys are 'grad', 'mag', 'eeg', 'seeg', 'dbs', 'ecog', 'eog',
+            'ecg', 'hbo', 'hbr'.
             If reject is None then no rejection is done. Example::
 
                 reject = dict(grad=4000e-13, # T / m (gradiometers)
@@ -474,8 +475,8 @@ class ICA(ContainsMixin):
             It only applies if ``inst`` is of type Raw.
         flat : dict | None
             Rejection parameters based on flatness of signal.
-            Valid keys are 'grad', 'mag', 'eeg', 'seeg', 'ecog', 'eog', 'ecg',
-            'hbo', 'hbr'.
+            Valid keys are 'grad', 'mag', 'eeg', 'seeg', 'dbs', 'ecog', 'eog',
+            'ecg', 'hbo', 'hbr'.
             Values are floats that set the minimum acceptable peak-to-peak
             amplitude. If flat is None then no rejection is done.
             It only applies if ``inst`` is of type Raw.
@@ -603,6 +604,8 @@ class ICA(ContainsMixin):
                 if _contains_ch_type(info, ch_type):
                     if ch_type == 'seeg':
                         this_picks = pick_types(info, meg=False, seeg=True)
+                    elif ch_type == 'dbs':
+                        this_picks = pick_types(info, meg=False, dbs=True)
                     elif ch_type == 'ecog':
                         this_picks = pick_types(info, meg=False, ecog=True)
                     elif ch_type == 'eeg':
@@ -2675,13 +2678,15 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
         return None
 
 
-def read_ica_eeglab(fname):
+@verbose
+def read_ica_eeglab(fname, *, verbose=None):
     """Load ICA information saved in an EEGLAB .set file.
 
     Parameters
     ----------
     fname : str
         Complete path to a .set EEGLAB file that contains an ICA object.
+    %(verbose)s
 
     Returns
     -------
@@ -2689,9 +2694,11 @@ def read_ica_eeglab(fname):
         An ICA object based on the information contained in the input file.
     """
     eeg = _check_load_mat(fname, None)
-    info = _get_info(eeg)[0]
+    info, eeg_montage, _ = _get_info(eeg)
+    info.set_montage(eeg_montage)
     pick_info(info, np.round(eeg['icachansind']).astype(int) - 1, copy=False)
 
+    rank = eeg.icasphere.shape[0]
     n_components = eeg.icaweights.shape[0]
 
     ica = ICA(method='imported_eeglab', n_components=n_components)
@@ -2701,11 +2708,15 @@ def read_ica_eeglab(fname):
     ica.n_pca_components = None
     ica.n_components_ = n_components
 
-    ica.pre_whitener_ = np.ones((len(eeg.icachansind), 1))
-    ica.pca_mean_ = np.zeros(len(eeg.icachansind))
-
     n_ch = len(ica.ch_names)
-    assert eeg.icaweights.shape == (n_components, n_ch)
+    assert len(eeg.icachansind) == n_ch
+
+    ica.pre_whitener_ = np.ones((n_ch, 1))
+    ica.pca_mean_ = np.zeros(n_ch)
+
+    assert eeg.icasphere.shape[1] == n_ch
+    assert eeg.icaweights.shape == (n_components, rank)
+
     # When PCA reduction is used in EEGLAB, runica returns
     # weights= weights*sphere*eigenvectors(:,1:ncomps)';
     # sphere = eye(urchans). When PCA reduction is not used, we have:
@@ -2715,9 +2726,17 @@ def read_ica_eeglab(fname):
     # So in either case, we can use SVD to get our square whitened
     # weights matrix (u * s) and our PCA vectors (v) back:
     use = eeg.icaweights @ eeg.icasphere
+    use_check = linalg.pinv(eeg.icawinv)
+    if not np.allclose(use, use_check, rtol=1e-6):
+        warn('Mismatch between icawinv and icaweights @ icasphere from EEGLAB '
+             'possibly due to ICA component removal, assuming icawinv is '
+             'correct')
+        use = use_check
     u, s, v = _safe_svd(use, full_matrices=False)
     ica.unmixing_matrix_ = u * s
     ica.pca_components_ = v
     ica.pca_explained_variance_ = s * s
+    ica.info = info
     ica._update_mixing_matrix()
+    ica._update_ica_names()
     return ica

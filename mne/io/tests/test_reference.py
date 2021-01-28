@@ -238,21 +238,37 @@ def test_set_eeg_reference():
         set_eeg_reference(raw, ['EEG 001'], True, True)
 
 
-@pytest.mark.parametrize('ch_type', ('auto', 'ecog'))
+@pytest.mark.parametrize('ch_type', ('auto', 'ecog', 'dbs'))
 def test_set_eeg_reference_ch_type(ch_type):
-    """Test setting EEG reference for ECoG."""
+    """Test setting EEG reference for ECoG or DBS."""
     # gh-6454
+    # gh-8739 added DBS
+    ch_names = ['ECOG01', 'ECOG02', 'DBS01', 'DBS02', 'MISC']
     rng = np.random.RandomState(0)
-    data = rng.randn(3, 1000)
-    raw = RawArray(data, create_info(3, 1000., ['ecog'] * 2 + ['misc']))
+    data = rng.randn(5, 1000)
+    raw = RawArray(data, create_info(ch_names, 1000., ['ecog'] * 2
+                                     + ['dbs'] * 2 + ['misc']))
+    if ch_type == 'auto':
+
+        ref_ch = ch_names[:2]
+    else:
+        ref_ch = raw.copy().pick(picks=ch_type).ch_names
     with catch_logging() as log:
         reref, ref_data = set_eeg_reference(raw.copy(), ch_type=ch_type,
                                             verbose=True)
-    assert 'Applying a custom ECoG' in log.getvalue()
+    if ch_type in ['auto', 'ecog']:
+        assert 'Applying a custom ECoG' in log.getvalue()
+    else:
+        assert 'Applying a custom DBS' in log.getvalue()
     assert reref.info['custom_ref_applied']  # gh-7350
-    _test_reference(raw, reref, ref_data, ['0', '1'])
+    _test_reference(raw, reref, ref_data, ref_ch)
     with pytest.raises(ValueError, match='No channels supplied'):
         set_eeg_reference(raw, ch_type='eeg')
+    # gh-8739
+    raw2 = RawArray(data, create_info(5, 1000., ['mag'] * 4 + ['misc']))
+    with pytest.raises(ValueError, match='No EEG, ECoG, sEEG or DBS channels '
+                       'found to rereference.'):
+        set_eeg_reference(raw2, ch_type='auto')
 
 
 @testing.requires_testing_data

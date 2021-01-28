@@ -121,9 +121,9 @@ def test_set_channel_types():
     with pytest.raises(ValueError, match='cannot change to this channel type'):
         raw.set_channel_types(mapping)
     # Test changing type if in proj
-    mapping = {'EEG 058': 'ecog', 'EEG 059': 'ecg', 'EEG 060': 'eog',
-               'EOG 061': 'seeg', 'MEG 2441': 'eeg', 'MEG 2443': 'eeg',
-               'MEG 2442': 'hbo'}
+    mapping = {'EEG 057': 'dbs', 'EEG 058': 'ecog', 'EEG 059': 'ecg',
+               'EEG 060': 'eog', 'EOG 061': 'seeg', 'MEG 2441': 'eeg',
+               'MEG 2443': 'eeg', 'MEG 2442': 'hbo'}
     raw2 = read_raw_fif(raw_fname)
     raw2.info['bads'] = ['EEG 059', 'EEG 060', 'EOG 061']
     with pytest.raises(RuntimeError, match='type .* in projector "PCA-v1"'):
@@ -132,6 +132,10 @@ def test_set_channel_types():
     with pytest.warns(RuntimeWarning, match='unit for channel.* has changed'):
         raw2 = raw2.set_channel_types(mapping)
     info = raw2.info
+    assert info['chs'][371]['ch_name'] == 'EEG 057'
+    assert info['chs'][371]['kind'] == FIFF.FIFFV_DBS_CH
+    assert info['chs'][371]['unit'] == FIFF.FIFF_UNIT_V
+    assert info['chs'][371]['coil_type'] == FIFF.FIFFV_COIL_EEG
     assert info['chs'][372]['ch_name'] == 'EEG 058'
     assert info['chs'][372]['kind'] == FIFF.FIFFV_ECOG_CH
     assert info['chs'][372]['unit'] == FIFF.FIFF_UNIT_V

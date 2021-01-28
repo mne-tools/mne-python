@@ -29,7 +29,7 @@ def read_raw_nicolet(input_fname, ch_type, eog=(),
         Path to the data file.
     ch_type : str
         Channel type to designate to the data channels. Supported data types
-        include 'eeg', 'seeg'.
+        include 'eeg', 'dbs'.
     eog : list | tuple | 'auto'
         Names of channels or list of indices that should be designated
         EOG channels. If 'auto', the channel names beginning with

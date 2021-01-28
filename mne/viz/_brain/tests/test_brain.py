@@ -17,13 +17,13 @@ from numpy.testing import assert_allclose, assert_array_equal
 
 from mne import (read_source_estimate, read_evokeds, read_cov,
                  read_forward_solution, pick_types_forward,
-                 SourceEstimate, MixedSourceEstimate,
+                 SourceEstimate, MixedSourceEstimate, write_surface,
                  VolSourceEstimate)
 from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.source_space import (read_source_spaces, vertex_to_mni,
                               setup_volume_source_space)
 from mne.datasets import testing
-from mne.utils import check_version
+from mne.utils import check_version, requires_pysurfer
 from mne.label import read_label
 from mne.viz._brain import Brain, _LinkViewer, _BrainScraper, _LayeredMesh
 from mne.viz._brain.colormap import calculate_lut
@@ -144,6 +144,18 @@ def test_brain_gc(renderer, brain_gc):
     brain.close()
 
 
+@requires_pysurfer
+@testing.requires_testing_data
+def test_brain_routines(renderer, brain_gc):
+    """Test backend agnostic Brain routines."""
+    brain_klass = renderer.get_brain_class()
+    if renderer.get_3d_backend() == "mayavi":
+        from surfer import Brain
+    else:  # PyVista
+        from mne.viz._brain import Brain
+    assert brain_klass == Brain
+
+
 @testing.requires_testing_data
 def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
     """Test initialization of the Brain instance."""
@@ -174,7 +186,8 @@ def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
     renderer.backend._close_all()
 
     brain = Brain(hemi=hemi, surf=surf, size=size, title=title,
-                  cortex=cortex, units='m', **kwargs)
+                  cortex=cortex, units='m',
+                  silhouette=dict(decimate=0.95), **kwargs)
     with pytest.raises(TypeError, match='not supported'):
         brain._check_stc(hemi='lh', array=FakeSTC(), vertices=None)
     with pytest.raises(ValueError, match='add_data'):
@@ -369,6 +382,57 @@ def test_brain_save_movie(tmpdir, renderer, brain_gc):
     brain.close()
 
 
+_TINY_SIZE = (300, 250)
+
+
+def tiny(tmpdir):
+    """Create a tiny fake brain."""
+    # This is a minimal version of what we need for our viz-with-timeviewer
+    # support currently
+    subject = 'test'
+    subject_dir = tmpdir.mkdir(subject)
+    surf_dir = subject_dir.mkdir('surf')
+    rng = np.random.RandomState(0)
+    rr = rng.randn(4, 3)
+    tris = np.array([[0, 1, 2], [2, 1, 3]])
+    curv = rng.randn(len(rr))
+    with open(surf_dir.join('lh.curv'), 'wb') as fid:
+        fid.write(np.array([255, 255, 255], dtype=np.uint8))
+        fid.write(np.array([len(rr), 0, 1], dtype='>i4'))
+        fid.write(curv.astype('>f4'))
+    write_surface(surf_dir.join('lh.white'), rr, tris)
+    write_surface(surf_dir.join('rh.white'), rr, tris)  # needed for vertex tc
+    vertices = [np.arange(len(rr)), []]
+    data = rng.randn(len(rr), 10)
+    stc = SourceEstimate(data, vertices, 0, 1, subject)
+    brain = stc.plot(subjects_dir=tmpdir, hemi='lh', surface='white',
+                     size=_TINY_SIZE)
+    # in principle this should be sufficient:
+    #
+    # ratio = brain.mpl_canvas.canvas.window().devicePixelRatio()
+    #
+    # but in practice VTK can mess up sizes, so let's just calculate it.
+    sz = brain.plotter.size()
+    sz = (sz.width(), sz.height())
+    sz_ren = brain.plotter.renderer.GetSize()
+    ratio = np.median(np.array(sz_ren) / np.array(sz))
+    return brain, ratio
+
+
+def test_brain_screenshot(renderer_interactive, tmpdir, brain_gc):
+    """Test time viewer screenshot."""
+    if renderer_interactive._get_3d_backend() != 'pyvista':
+        pytest.skip('TimeViewer tests only supported on PyVista')
+    tiny_brain, ratio = tiny(tmpdir)
+    img_nv = tiny_brain.screenshot(time_viewer=False)
+    want = (_TINY_SIZE[1] * ratio, _TINY_SIZE[0] * ratio, 3)
+    assert img_nv.shape == want
+    img_v = tiny_brain.screenshot(time_viewer=True)
+    assert img_v.shape[1:] == want[1:]
+    assert_allclose(img_v.shape[0], want[0] * 4 / 3, atol=3)  # some slop
+    tiny_brain.close()
+
+
 @testing.requires_testing_data
 @pytest.mark.slowtest
 def test_brain_time_viewer(renderer_interactive, pixel_ratio, brain_gc):
@@ -380,7 +444,10 @@ def test_brain_time_viewer(renderer_interactive, pixel_ratio, brain_gc):
     with pytest.raises(ValueError, match="got unknown keys"):
         _create_testing_brain(hemi='lh', surf='white', src='volume',
                               volume_options={'foo': 'bar'})
-    brain = _create_testing_brain(hemi='both', show_traces=False)
+    brain = _create_testing_brain(
+        hemi='both', show_traces=False,
+        brain_kwargs=dict(silhouette=dict(decimate=0.95))
+    )
     # test sub routines when show_traces=False
     brain._on_pick(None, None)
     brain._configure_vertex_time_course()

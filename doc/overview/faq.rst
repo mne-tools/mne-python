@@ -102,7 +102,7 @@ is a software bug (not bad data or user error):
   dependencies.
 
 - If you're already on the most current version, if possible try using
-  :ref:`the latest development version <installing_master>`, as the bug may
+  :ref:`the latest development version <installing_main>`, as the bug may
   have been fixed already since the latest release. If you can't try the latest
   development version, search the GitHub issues page to see if the problem has
   already been reported and/or fixed.
