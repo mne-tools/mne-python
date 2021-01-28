@@ -1373,8 +1373,8 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
     if exp is not None:
         exp = float(exp)
         if not 0 <= exp:
-            raise ValueError('depth exponent should be a greater than or '
-                             'equal to 0, got %s' % (exp,))
+            raise ValueError('depth exponent should be greater than or '
+                             f'equal to 0, got {exp})
         exp = exp or None  # alias 0. -> None
 
     # put the forward solution in correct orientation
