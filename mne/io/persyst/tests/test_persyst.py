@@ -150,9 +150,9 @@ def test_persyst_standard():
 
 
 @requires_testing_data
-def test_persyst_annotations():
+def test_persyst_annotations(tmpdir):
     """Test annotations reading in Persyst."""
-    out_dir = mne.utils._TempDir()
+    out_dir = str(tmpdir)
     new_fname_lay = op.join(out_dir, op.basename(fname_lay))
     new_fname_dat = op.join(out_dir, op.basename(fname_dat))
     shutil.copy(fname_dat, new_fname_dat)
