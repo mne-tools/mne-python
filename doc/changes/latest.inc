@@ -16,6 +16,8 @@ Current (0.23.dev0)
 
 .. |Richard Koehler| replace:: **Richard Koehler**
 
+.. |Andres Rodriguez| replace:: **Andres Rodriguez**
+
 Enhancements
 ~~~~~~~~~~~~
 - Add dbs as new channel type for deep brain stimulation (DBS) recordings (:gh:`8739` **by new contributor** |Richard Koehler|_)
