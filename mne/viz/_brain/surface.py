@@ -133,7 +133,6 @@ class _Surface(object):
         self.faces = faces
         self.orig_faces = orig_faces
         self.nn = nn
-        self.surf = surf
 
     def __len__(self):
         """Return number of vertices."""

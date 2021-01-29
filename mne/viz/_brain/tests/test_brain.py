@@ -295,6 +295,10 @@ def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
     brain.add_foci([0], coords_as_verts=True,
                    hemi=hemi, color='blue')
 
+    # add sensors
+    evoked = read_evokeds(fname_evoked, baseline=(None, 0))[0]
+    brain.add_sensors(info=evoked.info)
+
     # add text
     brain.add_text(x=0, y=0, text='foo')
     brain.close()

@@ -14,6 +14,7 @@ from itertools import cycle
 import os.path as op
 import sys
 import warnings
+from collections import OrderedDict
 from collections.abc import Iterable
 from functools import partial
 
@@ -446,7 +447,7 @@ def _get_meg_surf(meg, info, picks, trans, coord_frame, warn_meg):
 def _get_coord_frame_trans(coord_frame, info, trans):
     head_mri_t, _ = _get_trans(trans, 'head', 'mri')
     dev_head_t, _ = _get_trans(info['dev_head_t'], 'meg', 'head')
-    trans = dict()
+    trans = OrderedDict()
     if coord_frame == 'meg':
         trans["head"] = invert_transform(dev_head_t)
         trans["meg"] = Transform('meg', 'meg')
@@ -721,9 +722,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
 
     # Figure out our transformations
     trans = _get_coord_frame_trans(coord_frame, info, trans)
-    head_trans = trans["head"]
-    meg_trans = trans["meg"]
-    mri_trans = trans["mri"]
+    head_trans, meg_trans, mri_trans = trans.values()
     del trans
 
     # both the head and helmet will be in MRI coordinates after this
