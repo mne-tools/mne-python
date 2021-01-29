@@ -1799,7 +1799,7 @@ class Brain(object):
         meg : bool
             If True, display MEG sensors. Defaults to True.
         eeg : bool
-            If True, display MEG sensors. Defaults to True.
+            If True, display EEG sensors. Defaults to True.
         %(trans)s
         """
         _validate_type(info, dict, 'info')
