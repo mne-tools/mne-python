@@ -7,7 +7,6 @@
 #
 # License: Simplified BSD
 
-from contextlib import contextmanager
 import os.path as op
 from pathlib import Path
 import sys
@@ -83,16 +82,6 @@ coil_3d = """# custom cube coil def
 """
 
 
-@contextmanager
-def _wait_shown(qtbot, brain, is_pyvista=True):
-    if is_pyvista:
-        qtbot.add_widget(brain.plotter.app_window)
-        with qtbot.wait_exposed(brain.plotter):
-            yield
-    else:
-        yield
-
-
 def test_plot_head_positions():
     """Test plotting of head positions."""
     info = read_info(evoked_fname)
@@ -114,9 +103,9 @@ def test_plot_head_positions():
 @testing.requires_testing_data
 @traits_test
 @pytest.mark.slowtest
-def test_plot_sparse_source_estimates(renderer_interactive, brain_gc, qtbot):
+def test_plot_sparse_source_estimates(renderer_interactive, brain_gc):
     """Test plotting of (sparse) source estimates."""
-    is_pyvista = _check_skip_pysurfer(renderer_interactive)
+    _check_skip_pysurfer(renderer_interactive)
     sample_src = read_source_spaces(src_fname)
 
     # dense version
@@ -134,8 +123,6 @@ def test_plot_sparse_source_estimates(renderer_interactive, brain_gc, qtbot):
     brain = plot_source_estimates(
         stc, 'sample', colormap=colormap, background=(1, 1, 0),
         subjects_dir=subjects_dir, colorbar=True, clim='auto')
-    with _wait_shown(qtbot, brain, is_pyvista):
-        pass
     brain.close()
     del brain
     with pytest.raises(TypeError, match='figure must be'):
@@ -388,9 +375,9 @@ def test_plot_alignment(tmpdir, renderer):
 @pytest.mark.slowtest  # can be slow on OSX
 @testing.requires_testing_data
 @traits_test
-def test_process_clim_plot(renderer_interactive, brain_gc, qtbot):
+def test_process_clim_plot(renderer_interactive, brain_gc):
     """Test functionality for determining control points with stc.plot."""
-    is_pyvista = _check_skip_pysurfer(renderer_interactive)
+    _check_skip_pysurfer(renderer_interactive)
     sample_src = read_source_spaces(src_fname)
     kwargs = dict(subjects_dir=subjects_dir, smoothing_steps=1,
                   time_viewer=False, show_traces=False)
@@ -404,25 +391,17 @@ def test_process_clim_plot(renderer_interactive, brain_gc, qtbot):
 
     # Test for simple use cases
     brain = stc.plot(**kwargs)
-    with _wait_shown(qtbot, brain, is_pyvista):
-        assert brain.data['center'] is None
+    assert brain.data['center'] is None
     brain.close()
     brain = stc.plot(clim=dict(pos_lims=(10, 50, 90)), **kwargs)
-    with _wait_shown(qtbot, brain, is_pyvista):
-        assert brain.data['center'] == 0.
+    assert brain.data['center'] == 0.
     brain.close()
     brain = stc.plot(colormap='hot', clim='auto', **kwargs)
-    with _wait_shown(qtbot, brain, is_pyvista):
-        pass
     brain.close()
     brain = stc.plot(colormap='mne', clim='auto', **kwargs)
-    with _wait_shown(qtbot, brain, is_pyvista):
-        pass
     brain.close()
     brain = stc.plot(clim=dict(kind='value', lims=(10, 50, 90)), figure=99,
                      **kwargs)
-    with _wait_shown(qtbot, brain, is_pyvista):
-        pass
     brain.close()
     with pytest.raises(TypeError, match='must be a'):
         stc.plot(clim='auto', figure=[0], **kwargs)
@@ -448,8 +427,6 @@ def test_process_clim_plot(renderer_interactive, brain_gc, qtbot):
     stc._data.fill(0.)
     with pytest.warns(RuntimeWarning, match='All data were zero'):
         brain = plot_source_estimates(stc, **kwargs)
-    with _wait_shown(qtbot, brain, is_pyvista):
-        pass
     brain.close()
 
 
@@ -626,7 +603,7 @@ def _check_skip_pysurfer(renderer):
 @pytest.mark.parametrize('pick_ori', ('vector', None))
 @pytest.mark.parametrize('kind', ('surface', 'volume', 'mixed'))
 def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
-                               pick_ori, kind, brain_gc, qtbot):
+                               pick_ori, kind, brain_gc):
     """Test plotting of scalar and vector source estimates."""
     is_pyvista = _check_skip_pysurfer(renderer_interactive)
     invs, evoked = all_src_types_inv_evoked
@@ -651,8 +628,6 @@ def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
             meth(**kwargs)
         return
     brain = meth(**kwargs)
-    with _wait_shown(qtbot, brain, is_pyvista):
-        pass
     brain.close()
     del brain
 
@@ -698,8 +673,6 @@ def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
             flat_meth(**these_kwargs)
     else:
         brain = flat_meth(**these_kwargs)
-        with _wait_shown(qtbot, brain, is_pyvista):
-            pass
         brain.close()
         del brain
         these_kwargs.update(surface='inflated', views='flat')
@@ -713,8 +686,6 @@ def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
     brain = meth(
         views=['lat', 'med', 'ven'], hemi='lh',
         view_layout='horizontal', **kwargs)
-    with _wait_shown(qtbot, brain):
-        pass
     brain.close()
     assert brain._subplot_shape == (1, 3)
     del brain
@@ -728,8 +699,6 @@ def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
     # with resampling (actually downsampling but it's okay)
     these_kwargs['volume_options'] = dict(resolution=20., surface_alpha=0.)
     brain = meth(**these_kwargs)
-    with _wait_shown(qtbot, brain):
-        pass
     brain.close()
     del brain
 
@@ -792,9 +761,9 @@ def test_brain_colorbar(orientation, diverging, lims):
 @pytest.mark.slowtest  # slow-ish on Travis OSX
 @testing.requires_testing_data
 @traits_test
-def test_mixed_sources_plot_surface(renderer_interactive, qtbot):
+def test_mixed_sources_plot_surface(renderer_interactive):
     """Test plot_surface() for mixed source space."""
-    is_pyvista = _check_skip_pysurfer(renderer_interactive)
+    _check_skip_pysurfer(renderer_interactive)
     src = read_source_spaces(fwd_fname2)
     N = np.sum([s['nuse'] for s in src])  # number of sources
 
@@ -810,8 +779,6 @@ def test_mixed_sources_plot_surface(renderer_interactive, qtbot):
     brain = stc.surface().plot(views='lat', hemi='split',
                                subject='fsaverage', subjects_dir=subjects_dir,
                                colorbar=False)
-    with _wait_shown(qtbot, brain, is_pyvista):
-        pass
     brain.close()
     del brain
 
