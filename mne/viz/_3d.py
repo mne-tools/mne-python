@@ -1488,7 +1488,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
                   transparent=True):
     """Plot source estimate using mpl."""
     import matplotlib.pyplot as plt
-    from mpl_toolkits.mplot3d import Axes3D  # noqa: F401, analysis:ignore
+    from mpl_toolkits.mplot3d import Axes3D
     from matplotlib import cm
     from matplotlib.widgets import Slider
     import nibabel as nib
@@ -1524,7 +1524,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
 
     time_label, times = _handle_time(time_label, time_unit, stc.times)
     fig = plt.figure(figsize=(6, 6)) if figure is None else figure
-    ax = fig.add_subplot(projection='3d')
+    ax = Axes3D(fig)
     hemi_idx = 0 if hemi == 'lh' else 1
     surf = op.join(subjects_dir, subject, 'surf', '%s.%s' % (hemi, surface))
     if spacing == 'all':
