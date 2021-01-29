@@ -874,7 +874,10 @@ extended_proj : list
 docdict['rank'] = """
 rank : None | 'info' | 'full' | dict
     This controls the rank computation that can be read from the
-    measurement info or estimated from the data.
+    measurement info or estimated from the data. When a noise covariance
+    is used for whitening, this should reflect the rank of that covariance,
+    otherwise amplification of noise components can occur in whitening (e.g.,
+    often during source localization).
 
     :data:`python:None`
         The rank will be estimated from the data after proper scaling of

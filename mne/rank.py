@@ -412,12 +412,13 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
                         ratio = s[this_rank - 1] / s[rank[ch_type] - 1]
                         if ratio > 100:
                             warn(f'The passed rank[{repr(ch_type)}]='
-                                 f'{rank[ch_type]} exceeds the rank estimated '
-                                 f'from the noise covariance ({this_rank}) '
-                                 'leading an increase in condition number by '
-                                 f'a factor of {ratio:0.1g}, this might '
-                                 'amplify noise during whitening by a factor '
-                                 f'of {np.sqrt(ratio):0.1g}')
+                                 f'{rank[ch_type]} exceeds the estimated rank '
+                                 f'of the noise covariance ({this_rank}) '
+                                 f'leading a potential increase in '
+                                 f'noise during whitening by a factor '
+                                 f'of {np.sqrt(ratio):0.1g}. Ensure that the '
+                                 f'rank correctly corresponds to that of the '
+                                 f'given noise covariance matrix.')
                         continue
             this_info_rank = _info_rank(info, ch_type, picks, 'info')
             logger.info('    %s: rank %d computed from %d data channel%s '
