@@ -1823,8 +1823,7 @@ class Brain(object):
         if eeg:
             eeg_picks = pick_types(info, meg=False, eeg=True, ref_meg=False)
             eeg_loc = np.array([info['chs'][k]['loc'][:3] for k in eeg_picks])
-            if len(eeg_loc) > 0:
-                eeg_loc = apply_trans(head_trans, eeg_loc)
+            eeg_loc = apply_trans(head_trans, eeg_loc)
             color = defaults['eeg_color']
             scale = defaults['eeg_scale']
             alpha = 0.8
