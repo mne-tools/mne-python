@@ -245,7 +245,7 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
     else:  # mode == 'field':
         from matplotlib.colors import Normalize
         from mpl_toolkits.mplot3d.art3d import Line3DCollection
-        from mpl_toolkits.mplot3d import axes3d  # noqa: F401, analysis:ignore
+        from mpl_toolkits.mplot3d import Axes3D  # noqa: F401, analysis:ignore
         fig, ax = plt.subplots(1, subplot_kw=dict(projection='3d'))
 
         # First plot the trajectory as a colormap:
@@ -1485,6 +1485,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
                   transparent=True):
     """Plot source estimate using mpl."""
     import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D  # noqa: F401, analysis:ignore
     from matplotlib import cm
     from matplotlib.widgets import Slider
     import nibabel as nib
