@@ -30,15 +30,15 @@ from .callback import (ShowView, IntSlider, TimeSlider, SmartSlider,
 
 from ...defaults import DEFAULTS
 from ..utils import _show_help, _get_color_list, concatenate_images
-from .._3d import (_process_clim, _handle_time, _check_views, _get_meg_surf)
+from .._3d import (_process_clim, _handle_time, _check_views, _get_meg_surf,
+                   _get_coord_frame_trans)
 
 from ...externals.decorator import decorator
 from ...io.pick import pick_types
 from ...defaults import _handle_default
 from ...surface import mesh_edges
 from ...source_space import SourceSpaces, vertex_to_mni, read_talxfm
-from ...transforms import (apply_trans, invert_transform, _get_trans,
-                           _find_trans, combine_transforms)
+from ...transforms import apply_trans, invert_transform, _find_trans
 from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
                       use_log_level, Bunch, _ReuseCycle, warn,
                       get_subjects_dir)
@@ -1793,14 +1793,14 @@ class Brain(object):
         """Display the sensors."""
         defaults = DEFAULTS['coreg']
         _validate_type(meg, bool, 'meg')
-        head_mri_t, _ = _get_trans(trans, 'head', 'mri')
-        dev_head_t, _ = _get_trans(info['dev_head_t'], 'meg', 'head')
+        if trans == 'auto':
+            trans = _find_trans(self._subject_id, self._subjects_dir)
+        trans = _get_coord_frame_trans('mri', info, trans)
+        meg_trans = trans["meg"]
+        head_trans = trans["head"]
+        del trans
         if meg:
-            meg_trans = combine_transforms(dev_head_t, head_mri_t, 'meg',
-                                           'mri')
             meg_picks = pick_types(info, meg=True, eeg=False, ref_meg=False)
-            if trans == 'auto':
-                trans = _find_trans(self._subject_id, self._subjects_dir)
             meg_surf = _get_meg_surf(meg=["sensors"], info=info,
                                      picks=meg_picks, trans=meg_trans,
                                      coord_frame='mri', warn_meg=False)
@@ -1808,7 +1808,6 @@ class Brain(object):
             self._renderer.surface(surface=meg_surf, color=color,
                                    opacity=alpha, backface_culling=True)
         if eeg:
-            head_trans = head_mri_t
             eeg_picks = pick_types(info, meg=False, eeg=True, ref_meg=False)
             eeg_loc = np.array([info['chs'][k]['loc'][:3] for k in eeg_picks])
             if len(eeg_loc) > 0:

@@ -443,6 +443,26 @@ def _get_meg_surf(meg, info, picks, trans, coord_frame, warn_meg):
     return dict(rr=meg_rrs, tris=meg_tris)
 
 
+def _get_coord_frame_trans(coord_frame, info, trans):
+    head_mri_t, _ = _get_trans(trans, 'head', 'mri')
+    dev_head_t, _ = _get_trans(info['dev_head_t'], 'meg', 'head')
+    trans = dict()
+    if coord_frame == 'meg':
+        trans["head"] = invert_transform(dev_head_t)
+        trans["meg"] = Transform('meg', 'meg')
+        trans["mri"] = invert_transform(combine_transforms(
+            dev_head_t, head_mri_t, 'meg', 'mri'))
+    elif coord_frame == 'mri':
+        trans["head"] = head_mri_t
+        trans["meg"] = combine_transforms(dev_head_t, head_mri_t, 'meg', 'mri')
+        trans["mri"] = Transform('mri', 'mri')
+    else:  # coord_frame == 'head'
+        trans["head"] = Transform('head', 'head')
+        trans["meg"] = dev_head_t
+        trans["mri"] = invert_transform(head_mri_t)
+    return trans
+
+
 @verbose
 def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                    surfaces='auto', coord_frame='head',
@@ -698,22 +718,13 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         trans = _find_trans(subject, subjects_dir)
     head_mri_t, _ = _get_trans(trans, 'head', 'mri')
     dev_head_t, _ = _get_trans(info['dev_head_t'], 'meg', 'head')
-    del trans
 
     # Figure out our transformations
-    if coord_frame == 'meg':
-        head_trans = invert_transform(dev_head_t)
-        meg_trans = Transform('meg', 'meg')
-        mri_trans = invert_transform(combine_transforms(
-            dev_head_t, head_mri_t, 'meg', 'mri'))
-    elif coord_frame == 'mri':
-        head_trans = head_mri_t
-        meg_trans = combine_transforms(dev_head_t, head_mri_t, 'meg', 'mri')
-        mri_trans = Transform('mri', 'mri')
-    else:  # coord_frame == 'head'
-        head_trans = Transform('head', 'head')
-        meg_trans = dev_head_t
-        mri_trans = invert_transform(head_mri_t)
+    trans = _get_coord_frame_trans(coord_frame, info, trans)
+    head_trans = trans["head"]
+    meg_trans = trans["meg"]
+    mri_trans = trans["mri"]
+    del trans
 
     # both the head and helmet will be in MRI coordinates after this
     surfs = dict()
