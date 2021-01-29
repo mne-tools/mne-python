@@ -7,10 +7,11 @@
 #
 # License: Simplified BSD
 
-from mne.minimum_norm.inverse import apply_inverse
+from contextlib import contextmanager
 import os.path as op
 from pathlib import Path
 import sys
+import warnings
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
@@ -29,13 +30,14 @@ from mne.io import (read_raw_ctf, read_raw_bti, read_raw_kit, read_info,
 from mne.io._digitization import write_dig
 from mne.io.pick import pick_info
 from mne.io.constants import FIFF
+from mne.minimum_norm import apply_inverse
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      snapshot_brain_montage, plot_head_positions,
                      plot_alignment, plot_sensors_connectivity,
                      plot_brain_colorbar, link_brains, mne_analyze_colormap)
 from mne.viz._3d import _process_clim, _linearize_map, _get_map_ticks
 from mne.viz.utils import _fake_click
-from mne.utils import (requires_pysurfer, requires_nibabel, traits_test,
+from mne.utils import (requires_nibabel, traits_test,
                        catch_logging, run_subprocess, modified_env)
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
@@ -81,6 +83,16 @@ coil_3d = """# custom cube coil def
 """
 
 
+@contextmanager
+def _wait_shown(qtbot, brain, is_pyvista=True):
+    if is_pyvista:
+        qtbot.add_widget(brain.plotter.app_window)
+        with qtbot.wait_exposed(brain.plotter.app_window):
+            yield
+    else:
+        yield
+
+
 def test_plot_head_positions():
     """Test plotting of head positions."""
     info = read_info(evoked_fname)
@@ -100,11 +112,11 @@ def test_plot_head_positions():
 
 
 @testing.requires_testing_data
-@requires_pysurfer
 @traits_test
 @pytest.mark.slowtest
-def test_plot_sparse_source_estimates(renderer_interactive, brain_gc):
+def test_plot_sparse_source_estimates(renderer_interactive, brain_gc, qtbot):
     """Test plotting of (sparse) source estimates."""
+    is_pyvista = _check_skip_pysurfer(renderer_interactive)
     sample_src = read_source_spaces(src_fname)
 
     # dense version
@@ -122,10 +134,14 @@ def test_plot_sparse_source_estimates(renderer_interactive, brain_gc):
     brain = plot_source_estimates(
         stc, 'sample', colormap=colormap, background=(1, 1, 0),
         subjects_dir=subjects_dir, colorbar=True, clim='auto')
+    with _wait_shown(qtbot, brain, is_pyvista):
+        pass
     brain.close()
-    pytest.raises(TypeError, plot_source_estimates, stc, 'sample',
-                  figure='foo', hemi='both', clim='auto',
-                  subjects_dir=subjects_dir)
+    del brain
+    with pytest.raises(TypeError, match='figure must be'):
+        plot_source_estimates(
+            stc, 'sample', figure='foo', hemi='both', clim='auto',
+            subjects_dir=subjects_dir)
 
     # now do sparse version
     vertices = sample_src[0]['vertno']
@@ -371,10 +387,10 @@ def test_plot_alignment(tmpdir, renderer):
 
 @pytest.mark.slowtest  # can be slow on OSX
 @testing.requires_testing_data
-@requires_pysurfer
 @traits_test
 def test_process_clim_plot(renderer_interactive, brain_gc):
     """Test functionality for determining control points with stc.plot."""
+    is_pyvista = _check_skip_pysurfer(renderer_interactive)
     sample_src = read_source_spaces(src_fname)
     kwargs = dict(subjects_dir=subjects_dir, smoothing_steps=1,
                   time_viewer=False, show_traces=False)
@@ -578,18 +594,27 @@ def test_snapshot_brain_montage(renderer):
     pytest.raises(ValueError, snapshot_brain_montage, None, info)
 
 
+def _check_skip_pysurfer(renderer):
+    is_pyvista = renderer._get_3d_backend() == 'pyvista'
+    if not is_pyvista:
+        with warnings.catch_warnings(record=True):
+            try:
+                from surfer import Brain  # noqa: 401 analysis:ignore
+            except Exception:
+                pytest.skip('Requires PySurfer')
+    return is_pyvista
+
+
 @pytest.mark.slowtest  # can be slow on OSX
 @testing.requires_testing_data
-@requires_pysurfer
-@traits_test
 @pytest.mark.parametrize('pick_ori', ('vector', None))
 @pytest.mark.parametrize('kind', ('surface', 'volume', 'mixed'))
 def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
-                               pick_ori, kind, brain_gc):
+                               pick_ori, kind, brain_gc, qtbot):
     """Test plotting of scalar and vector source estimates."""
+    is_pyvista = _check_skip_pysurfer(renderer_interactive)
     invs, evoked = all_src_types_inv_evoked
     inv = invs[kind]
-    is_pyvista = renderer_interactive._get_3d_backend() == 'pyvista'
     with pytest.warns(None):  # PCA mag
         stc = apply_inverse(evoked, inv, pick_ori=pick_ori)
     stc.data[1] *= -1  # make it signed
@@ -610,6 +635,8 @@ def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
             meth(**kwargs)
         return
     brain = meth(**kwargs)
+    with _wait_shown(qtbot, brain, is_pyvista):
+        pass
     brain.close()
     del brain
 
@@ -655,7 +682,10 @@ def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
             flat_meth(**these_kwargs)
     else:
         brain = flat_meth(**these_kwargs)
+        with _wait_shown(qtbot, brain, is_pyvista):
+            pass
         brain.close()
+        del brain
         these_kwargs.update(surface='inflated', views='flat')
         with pytest.raises(ValueError, match='surface="flat".*views="flat"'):
             flat_meth(**these_kwargs)
@@ -667,6 +697,8 @@ def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
     brain = meth(
         views=['lat', 'med', 'ven'], hemi='lh',
         view_layout='horizontal', **kwargs)
+    with _wait_shown(qtbot, brain):
+        pass
     brain.close()
     assert brain._subplot_shape == (1, 3)
     del brain
@@ -680,6 +712,8 @@ def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
     # with resampling (actually downsampling but it's okay)
     these_kwargs['volume_options'] = dict(resolution=20., surface_alpha=0.)
     brain = meth(**these_kwargs)
+    with _wait_shown(qtbot, brain):
+        pass
     brain.close()
     del brain
 
@@ -740,11 +774,11 @@ def test_brain_colorbar(orientation, diverging, lims):
 
 
 @pytest.mark.slowtest  # slow-ish on Travis OSX
-@requires_pysurfer
 @testing.requires_testing_data
 @traits_test
-def test_mixed_sources_plot_surface(renderer_interactive):
-    """Test plot_surface() for  mixed source space."""
+def test_mixed_sources_plot_surface(renderer_interactive, qtbot):
+    """Test plot_surface() for mixed source space."""
+    is_pyvista = _check_skip_pysurfer(renderer_interactive)
     src = read_source_spaces(fwd_fname2)
     N = np.sum([s['nuse'] for s in src])  # number of sources
 
@@ -757,9 +791,13 @@ def test_mixed_sources_plot_surface(renderer_interactive):
 
     stc = MixedSourceEstimate(data, vertno, 0, 1)
 
-    stc.surface().plot(views='lat', hemi='split',
-                       subject='fsaverage', subjects_dir=subjects_dir,
-                       colorbar=False)
+    brain = stc.surface().plot(views='lat', hemi='split',
+                               subject='fsaverage', subjects_dir=subjects_dir,
+                               colorbar=False)
+    with _wait_shown(qtbot, brain, is_pyvista):
+        pass
+    brain.close()
+    del brain
 
 
 @testing.requires_testing_data

@@ -1860,6 +1860,8 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
     _check_option('hemi', hemi, ['lh', 'rh', 'split', 'both'])
     _check_option('view_layout', view_layout, ('vertical', 'horizontal'))
     time_label, times = _handle_time(time_label, time_unit, stc.times)
+    show_traces, time_viewer = _check_st_tv(
+        show_traces, time_viewer, using_mayavi, times)
 
     # convert control points to locations in colormap
     use = stc.magnitude().data if vec else stc.data
@@ -1995,27 +1997,6 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
     elif need_peeling:
         brain.enable_depth_peeling()
 
-    # time_viewer and show_traces
-    _check_option('time_viewer', time_viewer, (True, False, 'auto'))
-    _validate_type(show_traces, (str, bool, 'numeric'), 'show_traces')
-    if isinstance(show_traces, str):
-        _check_option('show_traces', show_traces,
-                      ('auto', 'separate', 'vertex', 'label'),
-                      extra='when a string')
-    if time_viewer == 'auto':
-        time_viewer = not using_mayavi
-    if show_traces == 'auto':
-        show_traces = (
-            not using_mayavi and
-            time_viewer and
-            brain._times is not None and
-            len(brain._times) > 1
-        )
-    if show_traces and not time_viewer:
-        raise ValueError('show_traces cannot be used when time_viewer=False')
-    if using_mayavi and show_traces:
-        raise NotImplementedError("show_traces=True is not available "
-                                  "for the mayavi 3d backend.")
     if time_viewer:
         if using_mayavi:
             from surfer import TimeViewer
@@ -2029,6 +2010,30 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
 
     return brain
 
+
+def _check_st_tv(show_traces, time_viewer, using_mayavi, times):
+    # time_viewer and show_traces
+    _check_option('time_viewer', time_viewer, (True, False, 'auto'))
+    _validate_type(show_traces, (str, bool, 'numeric'), 'show_traces')
+    if isinstance(show_traces, str):
+        _check_option('show_traces', show_traces,
+                      ('auto', 'separate', 'vertex', 'label'),
+                      extra='when a string')
+    if time_viewer == 'auto':
+        time_viewer = not using_mayavi
+    if show_traces == 'auto':
+        show_traces = (
+            not using_mayavi and
+            time_viewer and
+            times is not None and
+            len(times) > 1
+        )
+    if show_traces and not time_viewer:
+        raise ValueError('show_traces cannot be used when time_viewer=False')
+    if using_mayavi and show_traces:
+        raise NotImplementedError("show_traces=True is not available "
+                                  "for the mayavi 3d backend.")
+    return show_traces, time_viewer
 
 def _glass_brain_crosshairs(params, x, y, z):
     for ax, a, b in ((params['ax_y'], x, z),
