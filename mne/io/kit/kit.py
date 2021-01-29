@@ -494,7 +494,9 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
         # directories (0)
         #
         dirs.append(_read_dir(fid))
-        dirs.extend(_read_dir(fid) for _ in range(dirs[0]['count'] - 1))
+        for ii in range(dirs[0]['count'] - 1):
+            logger.debug(f'    KIT dir entry {ii} @ {fid.tell()}')
+            dirs.append(_read_dir(fid))
         assert len(dirs) == dirs[KIT.DIR_INDEX_DIR]['count']
 
         #

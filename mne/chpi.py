@@ -25,7 +25,10 @@ import numpy as np
 from scipy import linalg
 import itertools
 
+from .event import find_events
+from .io import read_raw_kit
 from .io.base import BaseRaw
+from .io.kit.constants import KIT
 from .io.meas_info import _simplify_info
 from .io.pick import (pick_types, pick_channels, pick_channels_regexp,
                       pick_info)
@@ -43,7 +46,7 @@ from .transforms import (apply_trans, invert_transform, _angle_between_quats,
                          quat_to_rot, rot_to_quat, _fit_matched_points,
                          _quat_to_affine)
 from .utils import (verbose, logger, use_log_level, _check_fname, warn,
-                    _validate_type, ProgressBar, _check_option)
+                    _validate_type, ProgressBar, _check_option, _pl)
 
 # Eventually we should add:
 #   hpicons
@@ -209,6 +212,47 @@ def extract_chpi_locs_ctf(raw, verbose=None):
     gofs = np.ones(rrs.shape[:2])  # not encoded, set all good
     moments = np.zeros(rrs.shape)  # not encoded, set all zero
     times = raw.times[indices] + raw._first_time
+    return dict(rrs=rrs, gofs=gofs, times=times, moments=moments)
+
+
+@verbose
+def extract_chpi_locs_kit(fname, *, verbose=None):
+    raw = read_raw_kit(fname)
+    events_on = find_events(
+        raw, stim_channel=raw.ch_names[191], output='onset', verbose=False)
+    events_off = find_events(
+        raw, stim_channel=raw.ch_names[191], output='offset', verbose=False)
+    if events_on[-1, 0] > events_off[-1, 0]:
+        events_on = events_on[:-1]
+    assert events_on.shape == events_off.shape
+    assert (events_on[:, 0] < events_off[:, 0]).all()
+    # use the midpoint for times
+    times = (events_on[:, 0] + events_off[:, 0]) / (2 * raw.info['sfreq'])
+    del events_on, events_off
+    # XXX remove first two rows. It is unknown currently if there is a way to
+    # determine from the con file the number of initial pulses that
+    # indicate the start of reading. The number is shown by opening the con
+    # file in MEG160, but I couldn't find the value in the .con file, so it
+    # may just always be 2...
+    times = times[2:]
+    n_coils = 5  # XXX this can potentially be read elsewhere
+    header = raw._raw_extras[0]['dirs'][KIT.DIR_INDEX_CHPI_DATA]
+    dtype = np.dtype([('good', '<u4'), ('data', '<f8', (4,))])
+    assert dtype.itemsize == header['size'], (dtype.itemsize, header['size'])
+    with open(fname, 'r') as fid:
+        fid.seek(header['offset'])
+        data = np.fromfile(fid, dtype, count=header['count'])
+    data = data.reshape((-1, n_coils))
+    extra = ''
+    if len(times) < len(data):
+        extra = f', truncating to {len(times)} based on events'
+    logger.info(f'Found {len(data)} cHPI measurement{_pl(len(data))}{extra}')
+    data = data[:len(times)]
+    # good is not currently used, but keep this in case we want it later
+    # good = data['good'] == 1
+    data = data['data']
+    rrs, gofs = data[:, :, :3], data[:, :, 3]
+    moments = np.zeros(rrs.shape)  # not encoded, set all zero
     return dict(rrs=rrs, gofs=gofs, times=times, moments=moments)
 
 
