@@ -779,8 +779,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             # Rather than compute the entire thing just compute the subset
             # times = self.times[start:stop]
             # stop can be None here so don't use it directly
-            times = np.arange(
-                start, start + data.shape[1]) / self.info['sfreq']
+            times = np.arange(start, start + data.shape[1], dtype=float)
+            times /= self.info['sfreq']
             return data, times
         else:
             return data
@@ -831,8 +831,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         start = 0 if start is None else start
         stop = min(self.n_times if stop is None else stop, self.n_times)
         if len(self.annotations) == 0 or reject_by_annotation is None:
-            data, times = self[picks, start:stop]
-            return (data, times) if return_times else data
+            return self._getitem(
+                (picks, slice(start, stop)), return_times=return_times)
         _check_option('reject_by_annotation', reject_by_annotation.lower(),
                       ['omit', 'nan'])
         onsets, ends = _annotations_starts_stops(self, ['BAD'])
