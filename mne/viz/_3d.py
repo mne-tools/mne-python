@@ -2035,6 +2035,7 @@ def _check_st_tv(show_traces, time_viewer, using_mayavi, times):
                                   "for the mayavi 3d backend.")
     return show_traces, time_viewer
 
+
 def _glass_brain_crosshairs(params, x, y, z):
     for ax, a, b in ((params['ax_y'], x, z),
                      (params['ax_x'], y, z),

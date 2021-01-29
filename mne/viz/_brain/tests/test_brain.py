@@ -8,7 +8,6 @@
 #
 # License: Simplified BSD
 
-from contextlib import contextmanager
 import os
 import os.path as path
 

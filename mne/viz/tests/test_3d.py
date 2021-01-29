@@ -388,7 +388,7 @@ def test_plot_alignment(tmpdir, renderer):
 @pytest.mark.slowtest  # can be slow on OSX
 @testing.requires_testing_data
 @traits_test
-def test_process_clim_plot(renderer_interactive, brain_gc):
+def test_process_clim_plot(renderer_interactive, brain_gc, qtbot):
     """Test functionality for determining control points with stc.plot."""
     is_pyvista = _check_skip_pysurfer(renderer_interactive)
     sample_src = read_source_spaces(src_fname)
@@ -404,15 +404,28 @@ def test_process_clim_plot(renderer_interactive, brain_gc):
 
     # Test for simple use cases
     brain = stc.plot(**kwargs)
-    assert brain.data['center'] is None
+    with _wait_shown(qtbot, brain, is_pyvista):
+        assert brain.data['center'] is None
     brain.close()
     brain = stc.plot(clim=dict(pos_lims=(10, 50, 90)), **kwargs)
-    assert brain.data['center'] == 0.
+    with _wait_shown(qtbot, brain, is_pyvista):
+        assert brain.data['center'] == 0.
     brain.close()
-    stc.plot(colormap='hot', clim='auto', **kwargs)
-    stc.plot(colormap='mne', clim='auto', **kwargs)
-    stc.plot(clim=dict(kind='value', lims=(10, 50, 90)), figure=99, **kwargs)
-    pytest.raises(TypeError, stc.plot, clim='auto', figure=[0], **kwargs)
+    brain = stc.plot(colormap='hot', clim='auto', **kwargs)
+    with _wait_shown(qtbot, brain, is_pyvista):
+        pass
+    brain.close()
+    brain = stc.plot(colormap='mne', clim='auto', **kwargs)
+    with _wait_shown(qtbot, brain, is_pyvista):
+        pass
+    brain.close()
+    brain = stc.plot(clim=dict(kind='value', lims=(10, 50, 90)), figure=99,
+                     **kwargs)
+    with _wait_shown(qtbot, brain, is_pyvista):
+        pass
+    brain.close()
+    with pytest.raises(TypeError, match='must be a'):
+        stc.plot(clim='auto', figure=[0], **kwargs)
 
     # Test for correct clim values
     with pytest.raises(ValueError, match='monotonically'):
@@ -434,7 +447,10 @@ def test_process_clim_plot(renderer_interactive, brain_gc):
     # Test handling of degenerate data: thresholded maps
     stc._data.fill(0.)
     with pytest.warns(RuntimeWarning, match='All data were zero'):
-        plot_source_estimates(stc, **kwargs)
+        brain = plot_source_estimates(stc, **kwargs)
+    with _wait_shown(qtbot, brain, is_pyvista):
+        pass
+    brain.close()
 
 
 def _assert_mapdata_equal(a, b):
