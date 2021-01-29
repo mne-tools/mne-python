@@ -28,6 +28,7 @@ from .mplcanvas import MplCanvas
 from .callback import (ShowView, IntSlider, TimeSlider, SmartSlider,
                        BumpColorbarPoints, UpdateColorbarScale)
 
+from ...defaults import DEFAULTS
 from ..utils import _show_help, _get_color_list, concatenate_images
 from .._3d import (_process_clim, _handle_time, _check_views, _get_meg_surf)
 
@@ -1790,28 +1791,33 @@ class Brain(object):
 
     def add_sensors(self, info, meg=True, eeg=False, trans=None):
         """Display the sensors."""
+        defaults = DEFAULTS['coreg']
         _validate_type(meg, bool, 'meg')
         head_mri_t, _ = _get_trans(trans, 'head', 'mri')
         dev_head_t, _ = _get_trans(info['dev_head_t'], 'meg', 'head')
         if meg:
             meg_trans = combine_transforms(dev_head_t, head_mri_t, 'meg',
                                            'mri')
-            meg_picks = pick_types(info, meg=meg, eeg=eeg, ref_meg=False)
+            meg_picks = pick_types(info, meg=True, eeg=False, ref_meg=False)
             if trans == 'auto':
                 trans = _find_trans(self._subject_id, self._subjects_dir)
             meg_surf = _get_meg_surf(meg=["sensors"], info=info,
                                      picks=meg_picks, trans=meg_trans,
                                      coord_frame='mri', warn_meg=False)
-            self._renderer.surface(surface=meg_surf, color="blue",
-                                   backface_culling=True)
+            color, alpha = (0., 0.25, 0.5), 0.25
+            self._renderer.surface(surface=meg_surf, color=color,
+                                   opacity=alpha, backface_culling=True)
         if eeg:
             head_trans = head_mri_t
-            eeg_picks = pick_types(info, meg=meg, eeg=eeg, ref_meg=False)
+            eeg_picks = pick_types(info, meg=False, eeg=True, ref_meg=False)
             eeg_loc = np.array([info['chs'][k]['loc'][:3] for k in eeg_picks])
             if len(eeg_loc) > 0:
                 eeg_loc = apply_trans(head_trans, eeg_loc)
-                if 'original' not in eeg:
-                    eeg_loc = list()
+            color = defaults['eeg_color']
+            scale = defaults['eeg_scale']
+            alpha = 0.8
+            self._renderer.sphere(center=eeg_loc, color=color, scale=scale,
+                                  opacity=alpha, backface_culling=True)
 
         self._update()
 
