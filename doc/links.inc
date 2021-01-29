@@ -17,9 +17,8 @@
 .. _`mne command line utilities`: http://www.nmr.mgh.harvard.edu/martinos/userInfo/data/MNE_register/
 .. _`mne-scripts`: https://github.com/mne-tools/mne-scripts/
 .. _`MNE-C manual`: https://mne.tools/mne-c-manual/MNE-manual-2.7.3.pdf
-.. _`MNE mailing list`: http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis
 .. _`GitHub issues page`: https://github.com/mne-tools/mne-python/issues/
-.. _`MNE gitter channel`: https://gitter.im/mne-tools/mne-python
+.. _`MNE Forum`: https://mne.discourse.group
 .. _`MNE-BIDS`: https://mne-tools.github.io/mne-bids/
 .. _`MNE-HCP`: http://mne-tools.github.io/mne-hcp/
 .. _`MNE-Realtime`: https://github.com/mne-tools/mne-realtime
@@ -207,7 +206,7 @@
 
 .. installation links
 
-.. _requirements file:  https://raw.githubusercontent.com/mne-tools/mne-python/master/requirements.txt
+.. _requirements file:  https://raw.githubusercontent.com/mne-tools/mne-python/main/requirements.txt
 .. _NVIDIA CUDA GPU processing: https://developer.nvidia.com/cuda-zone
 .. _NVIDIA proprietary drivers: https://www.geforce.com/drivers
 

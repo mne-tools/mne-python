@@ -679,9 +679,9 @@ projection : bool
     must be set to ``False`` (the default in this case).
 """
 docdict['set_eeg_reference_ch_type'] = """
-ch_type : 'auto' | 'eeg' | 'ecog' | 'seeg'
+ch_type : 'auto' | 'eeg' | 'ecog' | 'seeg' | 'dbs'
     The name of the channel type to apply the reference to. If 'auto',
-    the first channel type of eeg, ecog or seeg that is found (in that
+    the first channel type of eeg, ecog, seeg or dbs that is found (in that
     order) will be selected.
 
     .. versionadded:: 0.19
@@ -872,12 +872,48 @@ extended_proj : list
 
 # Rank
 docdict['rank'] = """
-rank : None | dict | 'info' | 'full'
+rank : None | 'info' | 'full' | dict
     This controls the rank computation that can be read from the
-    measurement info or estimated from the data. See ``Notes``
-    of :func:`mne.compute_rank` for details."""
-docdict['rank_None'] = docdict['rank'] + 'The default is None.'
-docdict['rank_info'] = docdict['rank'] + 'The default is "info".'
+    measurement info or estimated from the data.
+
+    :data:`python:None`
+        The rank will be estimated from the data after proper scaling of
+        different channel types.
+    ``'info'``
+        The rank is inferred from ``info``. If data have been processed
+        with Maxwell filtering, the Maxwell filtering header is used.
+        Otherwise, the channel counts themselves are used.
+        In both cases, the number of projectors is subtracted from
+        the (effective) number of channels in the data.
+        For example, if Maxwell filtering reduces the rank to 68, with
+        two projectors the returned value will be 66.
+    ``'full'``
+        The rank is assumed to be full, i.e. equal to the
+        number of good channels. If a `~mne.Covariance` is passed, this can
+        make sense if it has been (possibly improperly) regularized without
+        taking into account the true data rank.
+    :class:`dict`
+        Calculate the rank only for a subset of channel types, and explicitly
+        specify the rank for the remaining channel types. This can be
+        extremely useful if you already **know** the rank of (part of) your
+        data, for instance in case you have calculated it earlier.
+
+        This parameter must be a dictionary whose **keys** correspond to
+        channel types in the data (e.g. ``'meg'``, ``'mag'``, ``'grad'``,
+        ``'eeg'``), and whose **values** are integers representing the
+        respective ranks. For example, ``{'mag': 90, 'eeg': 45}`` will assume
+        a rank of ``90`` and ``45`` for magnetometer data and EEG data,
+        respectively.
+
+        The ranks for all channel types present in the data, but
+        **not** specified in the dictionary will be estimated empirically.
+        That is, if you passed a dataset containing magnetometer, gradiometer,
+        and EEG data together with the dictionary from the previous example,
+        only the gradiometer rank would be determined, while the specified
+        magnetometer and EEG ranks would be taken for granted.
+"""
+docdict['rank_None'] = docdict['rank'] + "\n    The default is ``None``."
+docdict['rank_info'] = docdict['rank'] + "\n    The default is ``'info'``."
 docdict['rank_tol'] = """
 tol : float | 'auto'
     Tolerance for singular values to consider non-zero in
@@ -910,9 +946,8 @@ docdict['depth'] = """
 depth : None | float | dict
     How to weight (or normalize) the forward using a depth prior.
     If float (default 0.8), it acts as the depth weighting exponent (``exp``)
-    to use, which must be between 0 and 1. None is equivalent to 0, meaning
-    no depth weighting is performed. It can also be a :class:`dict`
-    containing keyword arguments to pass to
+    to use None is equivalent to 0, meaning no depth weighting is performed.
+    It can also be a :class:`dict` containing keyword arguments to pass to
     :func:`mne.forward.compute_depth_prior` (see docstring for details and
     defaults). This is effectively ignored when ``method='eLORETA'``.
 
@@ -1496,6 +1531,11 @@ docdict['add_data_kwargs'] = """
 add_data_kwargs : dict | None
     Additional arguments to brain.add_data (e.g.,
     ``dict(time_label_size=10)``).
+"""
+docdict['brain_kwargs'] = """
+brain_kwargs : dict | None
+    Additional arguments to the :class:`mne.viz.Brain` constructor (e.g.,
+    ``dict(silhouette=True)``).
 """
 docdict['views'] = """
 views : str | list
@@ -2329,7 +2369,7 @@ def linkcode_resolve(domain, info):
         linespec = ""
 
     if 'dev' in mne.__version__:
-        kind = 'master'
+        kind = 'main'
     else:
         kind = 'maint/%s' % ('.'.join(mne.__version__.split('.')[:2]))
     return "http://github.com/mne-tools/mne-python/blob/%s/mne/%s%s" % (

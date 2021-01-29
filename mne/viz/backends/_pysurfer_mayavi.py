@@ -25,6 +25,7 @@ from tvtk.pyface.tvtk_scene import TVTKScene
 
 from .base_renderer import _BaseRenderer
 from ._utils import _check_color, _alpha_blend_background, ALLOWED_QUIVER_MODES
+from ..utils import _ndarray_to_fig
 from ...surface import _normalize_vectors
 from ...utils import (_import_mlab, _validate_type, SilenceStdout,
                       copy_base_doc_to_subclass_doc, _check_option)
@@ -313,7 +314,8 @@ class _Renderer(_BaseRenderer):
         _close_3d_figure(figure=self.fig)
 
     def set_camera(self, azimuth=None, elevation=None, distance=None,
-                   focalpoint=None, roll=None, reset_camera=None):
+                   focalpoint=None, roll=None, reset_camera=None,
+                   rigid=None):
         _set_3d_view(figure=self.fig, azimuth=azimuth,
                      elevation=elevation, distance=distance,
                      focalpoint=focalpoint, roll=roll)
@@ -481,12 +483,7 @@ def _check_3d_figure(figure):
 
 
 def _save_figure(img, filename):
-    from matplotlib.backends.backend_agg import FigureCanvasAgg
-    from matplotlib.figure import Figure
-    fig = Figure(frameon=False)
-    FigureCanvasAgg(fig)
-    fig.figimage(img, resize=True)
-    fig.savefig(filename)
+    _ndarray_to_fig(img).savefig(filename)
 
 
 def _close_3d_figure(figure):

@@ -649,7 +649,7 @@ class _BaseSourceEstimate(TimeMixin):
              foreground=None, initial_time=None, time_unit='s',
              backend='auto', spacing='oct6', title=None, show_traces='auto',
              src=None, volume_options=1., view_layout='vertical',
-             add_data_kwargs=None, verbose=None):
+             add_data_kwargs=None, brain_kwargs=None, verbose=None):
         brain = plot_source_estimates(
             self, subject, surface=surface, hemi=hemi, colormap=colormap,
             time_label=time_label, smoothing_steps=smoothing_steps,
@@ -660,7 +660,8 @@ class _BaseSourceEstimate(TimeMixin):
             initial_time=initial_time, time_unit=time_unit, backend=backend,
             spacing=spacing, title=title, show_traces=show_traces,
             src=src, volume_options=volume_options, view_layout=view_layout,
-            add_data_kwargs=add_data_kwargs, verbose=verbose)
+            add_data_kwargs=add_data_kwargs, brain_kwargs=brain_kwargs,
+            verbose=verbose)
         return brain
 
     @property
@@ -1918,7 +1919,7 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
              background='black', foreground=None, initial_time=None,
              time_unit='s', show_traces='auto', src=None, volume_options=1.,
              view_layout='vertical', add_data_kwargs=None,
-             verbose=None):  # noqa: D102
+             brain_kwargs=None, verbose=None):  # noqa: D102
         return plot_vector_source_estimates(
             self, subject=subject, hemi=hemi, colormap=colormap,
             time_label=time_label, smoothing_steps=smoothing_steps,
@@ -1931,7 +1932,7 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
             initial_time=initial_time, time_unit=time_unit,
             show_traces=show_traces, src=src, volume_options=volume_options,
             view_layout=view_layout, add_data_kwargs=add_data_kwargs,
-            verbose=verbose)
+            brain_kwargs=brain_kwargs, verbose=verbose)
 
 
 class _BaseVolSourceEstimate(_BaseSourceEstimate):
@@ -1949,7 +1950,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
                 foreground=None, initial_time=None, time_unit='s',
                 backend='auto', spacing='oct6', title=None, show_traces='auto',
                 src=None, volume_options=1., view_layout='vertical',
-                add_data_kwargs=None, verbose=None):
+                add_data_kwargs=None, brain_kwargs=None, verbose=None):
         return super().plot(
             subject=subject, surface=surface, hemi=hemi, colormap=colormap,
             time_label=time_label, smoothing_steps=smoothing_steps,
@@ -1961,7 +1962,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
             time_unit=time_unit, backend=backend, spacing=spacing, title=title,
             show_traces=show_traces, src=src, volume_options=volume_options,
             view_layout=view_layout, add_data_kwargs=add_data_kwargs,
-            verbose=verbose)
+            brain_kwargs=brain_kwargs, verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_volume_source_estimates)
     def plot(self, src, subject=None, subjects_dir=None, mode='stat_map',
@@ -2280,7 +2281,8 @@ class VolVectorSourceEstimate(_BaseVolSourceEstimate,
                 background='black', foreground=None, initial_time=None,
                 time_unit='s', show_traces='auto', src=None,
                 volume_options=1., view_layout='vertical',
-                add_data_kwargs=None, verbose=None):  # noqa: D102
+                add_data_kwargs=None, brain_kwargs=None,
+                verbose=None):  # noqa: D102
         return _BaseVectorSourceEstimate.plot(
             self, subject=subject, hemi=hemi, colormap=colormap,
             time_label=time_label, smoothing_steps=smoothing_steps,
@@ -2293,7 +2295,7 @@ class VolVectorSourceEstimate(_BaseVolSourceEstimate,
             initial_time=initial_time, time_unit=time_unit,
             show_traces=show_traces, src=src, volume_options=volume_options,
             view_layout=view_layout, add_data_kwargs=add_data_kwargs,
-            verbose=verbose)
+            brain_kwargs=brain_kwargs, verbose=verbose)
 
 
 @fill_doc
@@ -3210,12 +3212,12 @@ def extract_label_time_course(stcs, labels, src, mode='auto',
 @verbose
 def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
                      project=True, subjects_dir=None, src=None, verbose=None):
-    """Create a STC from ECoG and sEEG sensor data.
+    """Create a STC from ECoG, sEEG and DBS sensor data.
 
     Parameters
     ----------
     evoked : instance of Evoked
-        The evoked data. Must contain ECoG, or sEEG channels.
+        The evoked data. Must contain ECoG, sEEG or DBS channels.
     %(trans)s
     subject : str
         The subject name.
@@ -3271,7 +3273,7 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
         ``distance`` (beyond which it is zero).
 
     If creating a Volume STC, ``src`` must be passed in, and this
-    function will project sEEG sensors to nearby surrounding vertices.
+    function will project sEEG and DBS sensors to nearby surrounding vertices.
     Then the activation at each volume vertex is given by the mode
     in the same way as ECoG surface projections.
 
@@ -3284,8 +3286,8 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     _validate_type(src, (None, SourceSpaces), 'src')
     _check_option('mode', mode, ('sum', 'single', 'nearest'))
 
-    # create a copy of Evoked using ecog and seeg
-    evoked = evoked.copy().pick_types(ecog=True, seeg=True)
+    # create a copy of Evoked using ecog, seeg and dbs
+    evoked = evoked.copy().pick_types(ecog=True, seeg=True, dbs=True)
 
     # get channel positions that will be used to pinpoint where
     # in the Source space we will use the evoked data

@@ -16,6 +16,7 @@ As usual we'll start by importing the modules we need and loading some
 """
 
 import os
+import matplotlib.pyplot as plt
 import mne
 
 ###############################################################################
@@ -176,7 +177,10 @@ report.save('report_cov.html', overwrite=True)
 #
 # The python interface has greater flexibility compared to the :ref:`command
 # line interface <mne report>`. For example, custom plots can be added via
-# the :meth:`~mne.Report.add_figs_to_section` method:
+# the :meth:`~mne.Report.add_figs_to_section` method, and sliders via the
+# :meth:`~mne.Report.add_slider_to_section`:
+
+report = mne.Report(verbose=True)
 
 # generate a custom plot:
 fname_evoked = os.path.join(path, 'MEG', 'sample', 'sample_audvis-ave.fif')
@@ -188,7 +192,44 @@ fig = evoked.plot(show=False)
 
 # add the custom plot to the report:
 report.add_figs_to_section(fig, captions='Left Auditory', section='evoked')
+
+# Add a custom section with an evoked slider:
+figs = list()
+times = evoked.times[::30]
+for t in times:
+    figs.append(evoked.plot_topomap(t, vmin=-300, vmax=300, res=100,
+                                    show=False))
+    plt.close(figs[-1])
+report.add_slider_to_section(figs, times, 'Evoked Response',
+                             image_format='png')  # can also use 'svg'
+
 report.save('report_custom.html', overwrite=True)
+
+###############################################################################
+# Adding a stc plot to a report
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# Now we see how :class:`~mne.Report` handles :class:`~mne.SourceEstimate`
+# data. The following will produce a stc plot with vertex time courses. In
+# this scenario, we also demonstrate how to use the
+# :meth:`mne.viz.Brain.screenshot` method to save the figs in a slider.
+
+report = mne.Report(verbose=True)
+fname_stc = os.path.join(path, 'MEG', 'sample', 'sample_audvis-meg')
+stc = mne.read_source_estimate(fname_stc, subject='sample')
+figs = list()
+kwargs = dict(subjects_dir=subjects_dir, initial_time=0.13,
+              clim=dict(kind='value', lims=[3, 6, 9]))
+for hemi in ('lh', 'rh'):
+    brain = stc.plot(hemi=hemi, **kwargs)
+    brain.toggle_interface(False)
+    figs.append(brain.screenshot(time_viewer=True))
+    brain.close()
+
+# add the stc plot to the report:
+report.add_slider_to_section(figs)
+
+report.save('report_stc.html', overwrite=True)
 
 ###############################################################################
 # Managing report sections
@@ -200,13 +241,14 @@ report.save('report_custom.html', overwrite=True)
 # :meth:`~mne.Report.add_figs_to_section` command. Each section is identified
 # by a toggle button in the top navigation bar of the report which can be used
 # to show or hide the contents of the section. To toggle the show/hide state of
-# all sections in the HTML report, press :kbd:`t`.
+# all sections in the HTML report, press :kbd:`t`, or press the toggle-all
+# button in the upper right.
 #
-# .. note::
+# .. sidebar:: Structure
 #
-#    Although we've been generating separate reports in each example, you could
-#    easily create a single report for all :file:`.fif` files (raw, evoked,
-#    covariance, etc) by passing ``pattern='*.fif'``.
+#    Although we've been generating separate reports in each of these examples,
+#    you could easily create a single report for all :file:`.fif` files (raw,
+#    evoked, covariance, etc) by passing ``pattern='*.fif'``.
 #
 #
 # Editing a saved report

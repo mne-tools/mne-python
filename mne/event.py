@@ -858,12 +858,12 @@ def make_fixed_length_events(raw, id=1, start=0, stop=None, duration=1.,
     id : int
         The id to use (default 1).
     start : float
-        Time of first event.
+        Time of first event (in seconds).
     stop : float | None
-        Maximum time of last event. If None, events extend to the end
-        of the recording.
+        Maximum time of last event (in seconds). If None, events extend to the
+        end of the recording.
     duration : float
-        The duration to separate events by.
+        The duration to separate events by (in seconds).
     first_samp : bool
         If True (default), times will have raw.first_samp added to them, as
         in :func:`mne.find_events`. This behavior is not desirable if the
@@ -871,7 +871,8 @@ def make_fixed_length_events(raw, id=1, start=0, stop=None, duration=1.,
         have ``raw.first_samp`` added to them, e.g. event times that come
         from :func:`mne.find_events`.
     overlap : float
-        The overlap between events. Must be ``0 <= overlap < duration``.
+        The overlap between events (in seconds).
+        Must be ``0 <= overlap < duration``.
 
         .. versionadded:: 0.18
 

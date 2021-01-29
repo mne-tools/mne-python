@@ -1632,6 +1632,8 @@ def _prepare_env(subject, subjects_dir):
     _validate_type(subject, "str")
 
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    subjects_dir = op.abspath(subjects_dir)  # force use of an absolute path
+    subjects_dir = op.expanduser(subjects_dir)
     if not op.isdir(subjects_dir):
         raise RuntimeError('Could not find the MRI data directory "%s"'
                            % subjects_dir)

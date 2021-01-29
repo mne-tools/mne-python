@@ -4,19 +4,19 @@
 
 |MNE|_
 
-.. |GH-Linux| image:: https://github.com/mne-tools/mne-python/workflows/linux%20/%20conda/badge.svg?branch=master
-.. _GH-Linux: https://github.com/mne-tools/mne-python/actions?query=branch:master+event:push
+.. |GH-Linux| image:: https://github.com/mne-tools/mne-python/workflows/linux%20/%20conda/badge.svg?branch=main
+.. _GH-Linux: https://github.com/mne-tools/mne-python/actions?query=branch:main+event:push
 
-.. |GH-macOS| image:: https://github.com/mne-tools/mne-python/workflows/macos%20/%20conda/badge.svg?branch=master
-.. _GH-macOS: https://github.com/mne-tools/mne-python/actions?query=branch:master+event:push
+.. |GH-macOS| image:: https://github.com/mne-tools/mne-python/workflows/macos%20/%20conda/badge.svg?branch=main
+.. _GH-macOS: https://github.com/mne-tools/mne-python/actions?query=branch:main+event:push
 
-.. |Azure| image:: https://dev.azure.com/mne-tools/mne-python/_apis/build/status/mne-tools.mne-python?branchName=master
-.. _Azure: https://dev.azure.com/mne-tools/mne-python/_build/latest?definitionId=1&branchName=master
+.. |Azure| image:: https://dev.azure.com/mne-tools/mne-python/_apis/build/status/mne-tools.mne-python?branchName=main
+.. _Azure: https://dev.azure.com/mne-tools/mne-python/_build/latest?definitionId=1&branchName=main
 
 .. |Circle| image:: https://circleci.com/gh/mne-tools/mne-python.svg?style=shield
 .. _Circle: https://circleci.com/gh/mne-tools/mne-python
 
-.. |Codecov| image:: https://codecov.io/gh/mne-tools/mne-python/branch/master/graph/badge.svg
+.. |Codecov| image:: https://codecov.io/gh/mne-tools/mne-python/branch/main/graph/badge.svg
 .. _Codecov: https://codecov.io/gh/mne-tools/mne-python
 
 .. |PyPI| image:: https://img.shields.io/pypi/dm/mne.svg?label=PyPI%20downloads
@@ -71,7 +71,7 @@ To install the latest version of the code using pip_ open a terminal and type:
 
 .. code-block:: bash
 
-    pip install -U https://github.com/mne-tools/mne-python/archive/master.zip
+    pip install -U https://github.com/mne-tools/mne-python/archive/main.zip
 
 To get the latest code using `git <https://git-scm.com/>`__, open a terminal and type:
 
@@ -80,7 +80,7 @@ To get the latest code using `git <https://git-scm.com/>`__, open a terminal and
     git clone git://github.com/mne-tools/mne-python.git
 
 Alternatively, you can also download a
-`zip file of the latest development version <https://github.com/mne-tools/mne-python/archive/master.zip>`__.
+`zip file of the latest development version <https://github.com/mne-tools/mne-python/archive/main.zip>`__.
 
 
 Dependencies
@@ -115,10 +115,10 @@ Please see the documentation on the MNE-Python homepage:
 https://mne.tools/dev/install/contributing.html
 
 
-Mailing list
-^^^^^^^^^^^^
+Forum
+^^^^^^
 
-http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis
+https://mne.discourse.group
 
 
 Licensing
