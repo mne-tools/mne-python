@@ -116,7 +116,7 @@ pydocstyle:
 
 docstring:
 	@echo "Running docstring tests"
-	@$(PYTESTS) --doctest-modules mne/tests/test_docstring_parameters.py
+	@$(PYTESTS) --doctest-modules mne/tests/test_docstring_parameters.py -p no:pytest-qt
 
 check-manifest:
 	check-manifest -q --ignore .circleci/config.yml,doc,logo,mne/io/*/tests/data*,mne/io/tests/data,mne/preprocessing/tests/data,.DS_Store
@@ -126,7 +126,7 @@ check-readme: clean wheel_quiet
 
 nesting:
 	@echo "Running import nesting tests"
-	@$(PYTESTS) mne/tests/test_import_nesting.py
+	@$(PYTESTS) mne/tests/test_import_nesting.py -p no:pytest-qt
 
 pep:
 	@$(MAKE) -k flake pydocstyle docstring codespell-error check-manifest nesting check-readme
