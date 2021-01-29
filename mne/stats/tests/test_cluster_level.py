@@ -14,9 +14,8 @@ import pytest
 
 from mne import (SourceEstimate, VolSourceEstimate, MixedSourceEstimate,
                  SourceSpaces)
-from mne.fixes import has_numba
 from mne.parallel import _force_serial
-from mne.stats import cluster_level, ttest_ind_no_p, combine_adjacency
+from mne.stats import ttest_ind_no_p, combine_adjacency
 from mne.stats.cluster_level import (permutation_cluster_test, f_oneway,
                                      permutation_cluster_1samp_test,
                                      spatio_temporal_cluster_test,
@@ -24,22 +23,6 @@ from mne.stats.cluster_level import (permutation_cluster_test, f_oneway,
                                      ttest_1samp_no_p, summarize_clusters_stc)
 from mne.utils import (run_tests_if_main, catch_logging, check_version,
                        requires_sklearn)
-
-
-@pytest.fixture(scope="function", params=('Numba', 'NumPy'))
-def numba_conditional(monkeypatch, request):
-    """Test both code paths on machines that have Numba."""
-    assert request.param in ('Numba', 'NumPy')
-    if request.param == 'NumPy' and has_numba:
-        monkeypatch.setattr(
-            cluster_level, '_get_buddies', cluster_level._get_buddies_fallback)
-        monkeypatch.setattr(
-            cluster_level, '_get_selves', cluster_level._get_selves_fallback)
-        monkeypatch.setattr(
-            cluster_level, '_where_first', cluster_level._where_first_fallback)
-    if request.param == 'Numba' and not has_numba:
-        pytest.skip('Numba not installed')
-    yield request.param
 
 
 n_space = 50
