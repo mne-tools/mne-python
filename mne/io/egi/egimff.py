@@ -287,8 +287,8 @@ def _read_locs(filepath, chs, egi_info):
             ident = dig_ident_map[name]
         else:
             ident = int(nr)
-        dig_point = DigPoint({'kind': kind, 'ident': ident, 'r': loc,
-                              'coord_frame': FIFF.FIFFV_COORD_HEAD})
+        dig_point = DigPoint(kind=kind, ident=ident, r=loc,
+                             coord_frame=FIFF.FIFFV_COORD_HEAD)
         dig_points.append(dig_point)
         if name in reference_names:
             dig_reference = dig_point
