@@ -87,7 +87,7 @@ coil_3d = """# custom cube coil def
 def _wait_shown(qtbot, brain, is_pyvista=True):
     if is_pyvista:
         qtbot.add_widget(brain.plotter.app_window)
-        with qtbot.wait_exposed(brain.plotter.app_window):
+        with qtbot.wait_exposed(brain.plotter):
             yield
     else:
         yield
