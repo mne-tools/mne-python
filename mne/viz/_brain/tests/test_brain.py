@@ -905,5 +905,6 @@ def _create_testing_brain(qtbot, hemi, surf='inflated', src='surface',
         subjects_dir=subjects_dir, colormap='auto',
         clim=clim, src=sample_src,
         **kwargs)
+    qtbot.add_widget(brain_data.plotter)
     with qtbot.wait_exposed(brain_data.plotter):
         return brain_data
