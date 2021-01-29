@@ -535,6 +535,7 @@ def test_reuse_cycle():
 @pytest.mark.parametrize('n', (0, 1, 10, 1000))
 @pytest.mark.parametrize('d', (0.0001, 1, 2.5, 1000))
 def test_arange_div(numba_conditional, n, d):
+    """Test Numba arange_div."""
     want = np.arange(n) / d
     got = numerics._arange_div(n, d)
     assert_allclose(got, want)
