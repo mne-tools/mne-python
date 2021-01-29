@@ -1789,10 +1789,23 @@ class Brain(object):
                             )
         return colormap_map[cortex]
 
-    def add_sensors(self, info, meg=True, eeg=False, trans=None):
-        """Display the sensors."""
-        defaults = DEFAULTS['coreg']
+    def add_sensors(self, info, meg=True, eeg=True, trans=None):
+        """Display the sensors.
+
+        Parameters
+        ----------
+        info : dict
+            The measurement info.
+        meg : bool
+            If True, display MEG sensors. Defaults to True.
+        eeg : bool
+            If True, display MEG sensors. Defaults to True.
+        %(trans)s
+        """
+        _validate_type(info, dict, 'info')
         _validate_type(meg, bool, 'meg')
+        _validate_type(eeg, bool, 'eeg')
+        defaults = DEFAULTS['coreg']
         if trans == 'auto':
             trans = _find_trans(self._subject_id, self._subjects_dir)
         trans = _get_coord_frame_trans('mri', info, trans)
