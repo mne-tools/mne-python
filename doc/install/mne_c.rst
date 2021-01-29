@@ -179,8 +179,8 @@ a typical 64-bit Ubuntu-like system this would be accomplished by:
     $ cd /usr/lib/x86_64-linux-gnu
     $ sudo ln -s libgfortran.so.1 $(find . -maxdepth 1 -type f -name libgfortran.so*)
 
-If you encounter other errors installing MNE-C, please send a message to the
-`MNE mailing list`_.
+If you encounter other errors installing MNE-C, please post a message to the
+`MNE Forum`_.
 
 .. links
 

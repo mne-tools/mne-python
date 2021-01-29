@@ -9,6 +9,7 @@
 
 import contextlib
 from functools import partial
+from io import BytesIO
 import os
 import os.path as op
 import sys
@@ -21,22 +22,26 @@ from scipy import sparse
 from collections import OrderedDict
 
 from .colormap import calculate_lut
-from .surface import Surface
+from .surface import _Surface
 from .view import views_dicts, _lh_views_dict
 from .mplcanvas import MplCanvas
 from .callback import (ShowView, IntSlider, TimeSlider, SmartSlider,
                        BumpColorbarPoints, UpdateColorbarScale)
 
-from ..utils import _show_help, _get_color_list
+from ..utils import _show_help, _get_color_list, concatenate_images
 from .._3d import _process_clim, _handle_time, _check_views
 
 from ...externals.decorator import decorator
 from ...defaults import _handle_default
 from ...surface import mesh_edges
 from ...source_space import SourceSpaces, vertex_to_mni, read_talxfm
-from ...transforms import apply_trans
+from ...transforms import apply_trans, invert_transform
 from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
-                      use_log_level, Bunch, _ReuseCycle, warn)
+                      use_log_level, Bunch, _ReuseCycle, warn,
+                      get_subjects_dir)
+
+
+_ARROW_MOVE = 10  # degrees per press
 
 
 @decorator
@@ -169,8 +174,7 @@ class _LayeredMesh(object):
     def _update(self):
         if self._cache is None:
             return
-        from ..backends._pyvista import _set_mesh_scalars
-        _set_mesh_scalars(
+        self._renderer._set_mesh_scalars(
             mesh=self._polydata,
             scalars=self._cache,
             name=self._default_scalars_name,
@@ -251,9 +255,15 @@ class Brain(object):
         variable.
     views : list | str
         The views to use.
-    offset : bool
-        If True, aligs origin with medial wall. Useful for viewing inflated
-        surface where hemispheres typically overlap (Default: True).
+    offset : bool | str
+        If True, shifts the right- or left-most x coordinate of the left and
+        right surfaces, respectively, to be at zero. This is useful for viewing
+        inflated surface where hemispheres typically overlap. Can be "auto"
+        (default) use True with inflated surfaces and False otherwise
+        (Default: 'auto'). Only used when ``hemi='both'``.
+
+        .. versionchanged:: 0.23
+           Default changed to "auto".
     show_toolbar : bool
         If True, toolbars will be shown for each view.
     offscreen : bool
@@ -266,6 +276,11 @@ class Brain(object):
     units : str
         Can be 'm' or 'mm' (default).
     %(view_layout)s
+    silhouette : dict | bool
+       As a dict, it contains the ``color``, ``linewidth``, ``alpha`` opacity
+       and ``decimate`` (level of decimation between 0 and 1 or None) of the
+       brain's silhouette to display. If True, the default values are used
+       and if False, no silhouette will be displayed. Defaults to False.
     show : bool
         Display the window as soon as it is ready. Defaults to True.
 
@@ -342,9 +357,9 @@ class Brain(object):
     def __init__(self, subject_id, hemi, surf, title=None,
                  cortex="classic", alpha=1.0, size=800, background="black",
                  foreground=None, figure=None, subjects_dir=None,
-                 views='auto', offset=True, show_toolbar=False,
+                 views='auto', offset='auto', show_toolbar=False,
                  offscreen=False, interaction='trackball', units='mm',
-                 view_layout='vertical', show=True):
+                 view_layout='vertical', silhouette=False, show=True):
         from ..backends.renderer import backend, _get_renderer, _get_3d_backend
         from .._3d import _get_cmap
         from matplotlib.colors import colorConverter
@@ -390,6 +405,7 @@ class Brain(object):
             raise ValueError('"size" parameter must be an int or length-2 '
                              'sequence of ints.')
         self._size = size if len(size) == 2 else size * 2  # 1-tuple to 2-tuple
+        subjects_dir = get_subjects_dir(subjects_dir)
 
         self.time_viewer = False
         self.notebook = (_get_3d_backend() == "notebook")
@@ -405,6 +421,20 @@ class Brain(object):
         self._labels = {'lh': list(), 'rh': list()}
         self._annots = {'lh': list(), 'rh': list()}
         self._layered_meshes = {}
+        self._elevation_rng = [15, 165]  # range of motion of camera on theta
+        # default values for silhouette
+        self._silhouette = {
+            'color': self._bg_color,
+            'line_width': 2,
+            'alpha': alpha,
+            'decimate': 0.9,
+        }
+        _validate_type(silhouette, (dict, bool), 'silhouette')
+        if isinstance(silhouette, dict):
+            self._silhouette.update(silhouette)
+            self.silhouette = True
+        else:
+            self.silhouette = silhouette
         # for now only one color bar can be added
         # since it is the same for all figures
         self._colorbar_added = False
@@ -422,6 +452,10 @@ class Brain(object):
         self._brain_color = _get_cmap(geo_kwargs['colormap'])(val)
 
         # load geometry for one or both hemispheres as necessary
+        _validate_type(offset, (str, bool), 'offset')
+        if isinstance(offset, str):
+            _check_option('offset', offset, ('auto',), extra='when str')
+            offset = (surf == 'inflated')
         offset = None if (not offset or hemi != 'both') else 0.0
 
         self._renderer = _get_renderer(name=self._title, size=self._size,
@@ -429,15 +463,18 @@ class Brain(object):
                                        shape=shape,
                                        fig=figure)
 
-        if _get_3d_backend() == "pyvista":
-            self.plotter = self._renderer.plotter
+        self.plotter = self._renderer.plotter
+        if self.notebook:
+            self.window = None
+        else:
             self.window = self.plotter.app_window
             self.window.signal_close.connect(self._clean)
 
+        self._setup_canonical_rotation()
         for h in self._hemis:
             # Initialize a Surface object as the geometry
-            geo = Surface(subject_id, h, surf, subjects_dir, offset,
-                          units=self._units)
+            geo = _Surface(subject_id, h, surf, subjects_dir, offset,
+                           units=self._units, x_dir=self._rigid[0, :3])
             # Load in the geometry and curvature
             geo.load_geometry()
             geo.load_curvature()
@@ -465,6 +502,15 @@ class Brain(object):
                 else:
                     actor = self._layered_meshes[h]._actor
                     self._renderer.plotter.add_actor(actor)
+                if self.silhouette:
+                    mesh = self._layered_meshes[h]
+                    self._renderer._silhouette(
+                        mesh=mesh._polydata,
+                        color=self._silhouette["color"],
+                        line_width=self._silhouette["line_width"],
+                        alpha=self._silhouette["alpha"],
+                        decimate=self._silhouette["decimate"],
+                    )
                 self._renderer.set_camera(**views_dicts[h][v])
 
         self.interaction = interaction
@@ -482,6 +528,21 @@ class Brain(object):
         if hemi == 'rh' and hasattr(self._renderer, "_orient_lights"):
             self._renderer._orient_lights()
 
+    def _setup_canonical_rotation(self):
+        from ...coreg import fit_matched_points, _trans_from_params
+        self._rigid = np.eye(4)
+        try:
+            xfm = read_talxfm(self._subject_id, self._subjects_dir)
+        except Exception:
+            return
+        # XYZ+origin + halfway
+        pts_tal = np.concatenate([np.eye(4)[:, :3], np.eye(3) * 0.5])
+        pts_subj = apply_trans(invert_transform(xfm), pts_tal)
+        # we fit with scaling enabled, but then discard it (we just need
+        # the rigid-body components)
+        params = fit_matched_points(pts_subj, pts_tal, scale=3, out='params')
+        self._rigid[:] = _trans_from_params((True, True, False), params[:6])
+
     def setup_time_viewer(self, time_viewer=True, show_traces=True):
         """Configure the time viewer parameters.
 
@@ -492,6 +553,23 @@ class Brain(object):
 
         show_traces : bool
             If True, enable visualization of time traces. Defaults to True.
+
+        Notes
+        -----
+        The keyboard shortcuts are the following:
+
+        '?': Display help window
+        'i': Toggle interface
+        's': Apply auto-scaling
+        'r': Restore original clim
+        'c': Clear all traces
+        'n': Shift the time forward by the playback speed
+        'b': Shift the time backward by the playback speed
+        'Space': Start/Pause playback
+        'Up': Decrease camera elevation angle
+        'Down': Increase camera elevation angle
+        'Left': Decrease camera azimuth angle
+        'Right': Increase camera azimuth angle
         """
         if self.time_viewer:
             return
@@ -500,11 +578,6 @@ class Brain(object):
         self.time_viewer = time_viewer
         self.orientation = list(_lh_views_dict.keys())
         self.default_smoothing_range = [0, 15]
-
-        # setup notebook
-        if self.notebook:
-            self._configure_notebook()
-            return
 
         # Default configuration
         self.playback = False
@@ -549,11 +622,15 @@ class Brain(object):
         self._label_mode_widget = None
 
         # Direct access parameters:
-        self._iren = self._renderer.plotter.iren
-        self.main_menu = self.plotter.main_menu
-        self.tool_bar = self.window.addToolBar("toolbar")
-        self.status_bar = self.window.statusBar()
-        self.interactor = self.plotter.interactor
+        self.tool_bar = None
+        if self.notebook:
+            self.main_menu = None
+            self.status_bar = None
+            self.interactor = None
+        else:
+            self.main_menu = self.plotter.main_menu
+            self.status_bar = self.window.statusBar()
+            self.interactor = self.plotter.interactor
 
         # Derived parameters:
         self.playback_speed = self.default_playback_speed_value
@@ -584,21 +661,25 @@ class Brain(object):
             self.separate_canvas = False
         del show_traces
 
-        self._load_icons()
         self._configure_time_label()
         self._configure_sliders()
         self._configure_scalar_bar()
-        self._configure_playback()
-        self._configure_menu()
-        self._configure_tool_bar()
-        self._configure_status_bar()
+        self._configure_shortcuts()
         self._configure_picking()
-        self._configure_trace_mode()
-
-        # show everything at the end
-        self.toggle_interface()
-        with self.ensure_minimum_sizes():
+        self._configure_tool_bar()
+        if self.notebook:
+            self._renderer._set_tool_bar(state=False)
             self.show()
+        self._configure_trace_mode()
+        self.toggle_interface()
+        if not self.notebook:
+            self._configure_playback()
+            self._configure_menu()
+            self._configure_status_bar()
+
+            # show everything at the end
+            with self.ensure_minimum_sizes():
+                self.show()
 
     @safe_event
     def _clean(self):
@@ -637,7 +718,6 @@ class Brain(object):
     @contextlib.contextmanager
     def ensure_minimum_sizes(self):
         """Ensure that widgets respect the windows size."""
-        from ..backends._pyvista import _process_events
         sz = self._size
         adjust_mpl = self.show_traces and not self.separate_canvas
         if not adjust_mpl:
@@ -650,16 +730,27 @@ class Brain(object):
                 yield
             finally:
                 self.splitter.setSizes([sz[1], mpl_h])
-                _process_events(self.plotter)
-                _process_events(self.plotter)
-                self.mpl_canvas.canvas.setMinimumSize(0, 0)
-            _process_events(self.plotter)
-            _process_events(self.plotter)
+                # 1. Process events
+                self._renderer._process_events()
+                self._renderer._process_events()
+                # 2. Get the window size that accommodates the size
+                sz = self.plotter.app_window.size()
+                # 3. Call app_window.setBaseSize and resize (in pyvistaqt)
+                self.plotter.window_size = (sz.width(), sz.height())
+                # 4. Undo the min size setting and process events
+                self.plotter.interactor.setMinimumSize(0, 0)
+                self._renderer._process_events()
+                self._renderer._process_events()
+                # 5. Resize the window (again!) to the correct size
+                #    (not sure why, but this is required on macOS at least)
+                self.plotter.window_size = (sz.width(), sz.height())
+            self._renderer._process_events()
+            self._renderer._process_events()
             # sizes could change, update views
             for hemi in ('lh', 'rh'):
                 for ri, ci, v in self._iter_views(hemi):
                     self.show_view(view=v, row=ri, col=ci)
-            _process_events(self.plotter)
+            self._renderer._process_events()
 
     def toggle_interface(self, value=None):
         """Toggle the interface.
@@ -677,10 +768,13 @@ class Brain(object):
             self.visibility = value
 
         # update tool bar icon
-        if self.visibility:
-            self.actions["visibility"].setIcon(self.icons["visibility_on"])
-        else:
-            self.actions["visibility"].setIcon(self.icons["visibility_off"])
+        if not self.notebook:
+            if self.visibility:
+                self.actions["visibility"].setIcon(
+                    self.icons["visibility_on"])
+            else:
+                self.actions["visibility"].setIcon(
+                    self.icons["visibility_off"])
 
         # manage sliders
         for slider in self.plotter.slider_widgets:
@@ -692,11 +786,8 @@ class Brain(object):
 
         # manage time label
         time_label = self._data['time_label']
-        # if we actually have time points, we will show the slider so
-        # hide the time actor
-        have_ts = self._times is not None and len(self._times) > 1
         if self.time_actor is not None:
-            if self.visibility and time_label is not None and not have_ts:
+            if not self.visibility and time_label is not None:
                 self.time_actor.SetInput(time_label(self._current_time))
                 self.time_actor.VisibilityOn()
             else:
@@ -809,10 +900,6 @@ class Brain(object):
                     slider_rep.GetLabelProperty()
                 )
                 slider_rep.GetCapProperty().SetOpacity(0)
-
-    def _configure_notebook(self):
-        from ._notebook import _NotebookInteractor
-        self._renderer.figure.display = _NotebookInteractor(self)
 
     def _configure_time_label(self):
         self.time_actor = self._data.get('time_actor')
@@ -998,19 +1085,24 @@ class Brain(object):
         self.plotter.add_callback(self._play, self.refresh_rate_ms)
 
     def _configure_mplcanvas(self):
-        win = self.plotter.app_window
-        dpi = win.windowHandle().screen().logicalDotsPerInch()
         ratio = (1 - self.interactor_fraction) / self.interactor_fraction
-        w = self.interactor.geometry().width()
-        h = self.interactor.geometry().height() / ratio
+        if self.notebook:
+            dpi = 96
+            w, h = self.plotter.window_size
+        else:
+            dpi = self.window.windowHandle().screen().logicalDotsPerInch()
+            w = self.interactor.geometry().width()
+            h = self.interactor.geometry().height()
+        h /= ratio
         # Get the fractional components for the brain and mpl
-        self.mpl_canvas = MplCanvas(self, w / dpi, h / dpi, dpi)
+        self.mpl_canvas = MplCanvas(self, w / dpi, h / dpi, dpi,
+                                    self.notebook)
         xlim = [np.min(self._data['time']),
                 np.max(self._data['time'])]
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=UserWarning)
             self.mpl_canvas.axes.set(xlim=xlim)
-        if not self.separate_canvas:
+        if not self.notebook and not self.separate_canvas:
             from PyQt5.QtWidgets import QSplitter
             from PyQt5.QtCore import Qt
             canvas = self.mpl_canvas.canvas
@@ -1077,8 +1169,6 @@ class Brain(object):
             self._add_vertex_glyph(hemi, mesh, vertex_id)
 
     def _configure_picking(self):
-        from ..backends._pyvista import _update_picking_callback
-
         # get data for each hemi
         for idx, hemi in enumerate(['vol', 'lh', 'rh']):
             hemi_data = self._data.get(hemi)
@@ -1095,8 +1185,7 @@ class Brain(object):
                          (vertices, np.arange(len(vertices)))))
                 self.act_data_smooth[hemi] = (act_data, smooth_mat)
 
-        _update_picking_callback(
-            self.plotter,
+        self._renderer._update_picking_callback(
             self._on_mouse_move,
             self._on_button_press,
             self._on_button_release,
@@ -1106,8 +1195,11 @@ class Brain(object):
     def _configure_trace_mode(self):
         from ...source_estimate import _get_allowed_label_modes
         from ...label import _read_annot_cands
-        from PyQt5.QtWidgets import QComboBox, QLabel
         if not self.show_traces:
+            return
+
+        if self.notebook:
+            self._configure_vertex_time_course()
             return
 
         # do not show trace mode for volumes
@@ -1131,16 +1223,18 @@ class Brain(object):
                 self._configure_label_time_course()
             self._update()
 
+        from PyQt5.QtWidgets import QComboBox, QLabel
         dir_name = op.join(self._subjects_dir, self._subject_id, 'label')
-        cands = _read_annot_cands(dir_name)
+        cands = _read_annot_cands(dir_name, raise_error=False)
         self.tool_bar.addSeparator()
         self.tool_bar.addWidget(QLabel("Annotation"))
         self._annot_cands_widget = QComboBox()
         self.tool_bar.addWidget(self._annot_cands_widget)
-        self._annot_cands_widget.addItem('None')
+        cands = cands + ['None']
         for cand in cands:
             self._annot_cands_widget.addItem(cand)
         self.annot = cands[0]
+        del cands
 
         # setup label extraction parameters
         def _set_label_mode(mode):
@@ -1184,8 +1278,8 @@ class Brain(object):
 
     def _load_icons(self):
         from PyQt5.QtGui import QIcon
-        from ..backends._pyvista import _init_resources
-        _init_resources()
+        from ..backends._utils import _init_qt_resources
+        _init_qt_resources()
         self.icons["help"] = QIcon(":/help.svg")
         self.icons["play"] = QIcon(":/play.svg")
         self.icons["pause"] = QIcon(":/pause.svg")
@@ -1201,60 +1295,153 @@ class Brain(object):
     def _save_movie_noname(self):
         return self.save_movie(None)
 
+    def _screenshot(self):
+        if self.notebook:
+            from PIL import Image
+            fname = self.actions.get("screenshot_field").value
+            fname = self._renderer._get_screenshot_filename() \
+                if len(fname) == 0 else fname
+            img = self.screenshot(fname, time_viewer=True)
+            Image.fromarray(img).save(fname)
+        else:
+            self.plotter._qt_screenshot()
+
+    def _initialize_actions(self):
+        if not self.notebook:
+            self._load_icons()
+            self.tool_bar = self.window.addToolBar("toolbar")
+
+    def _add_button(self, name, desc, func, icon_name, qt_icon_name=None,
+                    notebook=True):
+        if self.notebook:
+            if not notebook:
+                return
+            self.actions[name] = self._renderer._add_button(
+                desc, func, icon_name)
+        else:
+            qt_icon_name = name if qt_icon_name is None else qt_icon_name
+            self.actions[name] = self.tool_bar.addAction(
+                self.icons[qt_icon_name],
+                desc,
+                func,
+            )
+
+    def _add_text_field(self, name, value, placeholder):
+        if not self.notebook:
+            return
+        self.actions[name] = self._renderer._add_text_field(
+            value, placeholder)
+
     def _configure_tool_bar(self):
-        self.actions["screenshot"] = self.tool_bar.addAction(
-            self.icons["screenshot"],
-            "Take a screenshot",
-            self.plotter._qt_screenshot
+        self._initialize_actions()
+        self._add_button(
+            name="screenshot",
+            desc="Take a screenshot",
+            func=self._screenshot,
+            icon_name="camera",
         )
-        self.actions["movie"] = self.tool_bar.addAction(
-            self.icons["movie"],
-            "Save movie...",
-            self._save_movie_noname,
+        self._add_text_field(
+            name="screenshot_field",
+            value=None,
+            placeholder="Type a file name",
         )
-        self.actions["visibility"] = self.tool_bar.addAction(
-            self.icons["visibility_on"],
-            "Toggle Visibility",
-            self.toggle_interface
+        self._add_button(
+            name="movie",
+            desc="Save movie...",
+            func=self._save_movie_noname,
+            icon_name=None,
+            notebook=False,
         )
-        self.actions["play"] = self.tool_bar.addAction(
-            self.icons["play"],
-            "Play/Pause",
-            self.toggle_playback
+        self._add_button(
+            name="visibility",
+            desc="Toggle Visibility",
+            func=self.toggle_interface,
+            icon_name="eye",
+            qt_icon_name="visibility_on",
         )
-        self.actions["reset"] = self.tool_bar.addAction(
-            self.icons["reset"],
-            "Reset",
-            self.reset
+        self._add_button(
+            name="play",
+            desc="Play/Pause",
+            func=self.toggle_playback,
+            icon_name=None,
+            notebook=False,
         )
-        self.actions["scale"] = self.tool_bar.addAction(
-            self.icons["scale"],
-            "Auto-Scale",
-            self.apply_auto_scaling
+        self._add_button(
+            name="reset",
+            desc="Reset",
+            func=self.reset,
+            icon_name="history",
         )
-        self.actions["restore"] = self.tool_bar.addAction(
-            self.icons["restore"],
-            "Restore scaling",
-            self.restore_user_scaling
+        self._add_button(
+            name="scale",
+            desc="Auto-Scale",
+            func=self.apply_auto_scaling,
+            icon_name="magic",
         )
-        self.actions["clear"] = self.tool_bar.addAction(
-            self.icons["clear"],
-            "Clear traces",
-            self.clear_glyphs
+        self._add_button(
+            name="restore",
+            desc="Restore scaling",
+            func=self.restore_user_scaling,
+            icon_name="reply",
         )
-        self.actions["help"] = self.tool_bar.addAction(
-            self.icons["help"],
-            "Help",
-            self.help
+        self._add_button(
+            name="clear",
+            desc="Clear traces",
+            func=self.clear_glyphs,
+            icon_name="trash",
+        )
+        self._add_button(
+            name="help",
+            desc="Help",
+            func=self.help,
+            icon_name=None,
+            notebook=False,
         )
 
-        self.actions["movie"].setShortcut("ctrl+shift+s")
-        self.actions["visibility"].setShortcut("i")
-        self.actions["play"].setShortcut(" ")
-        self.actions["scale"].setShortcut("s")
-        self.actions["restore"].setShortcut("r")
-        self.actions["clear"].setShortcut("c")
-        self.actions["help"].setShortcut("?")
+        if self.notebook:
+            self.tool_bar = self._renderer._show_tool_bar(self.actions)
+        else:
+            # Qt shortcuts
+            self.actions["movie"].setShortcut("ctrl+shift+s")
+            self.actions["play"].setShortcut(" ")
+            self.actions["help"].setShortcut("?")
+
+    def _shift_time(self, op):
+        self.callbacks["time"](
+            value=(op(self._current_time, self.playback_speed)),
+            time_as_index=False,
+            update_widget=True,
+        )
+
+    def _rotate_azimuth(self, value):
+        azimuth = (self._renderer.figure._azimuth + value) % 360
+        self._renderer.set_camera(azimuth=azimuth, reset_camera=False)
+
+    def _rotate_elevation(self, value):
+        elevation = np.clip(
+            self._renderer.figure._elevation + value,
+            self._elevation_rng[0],
+            self._elevation_rng[1],
+        )
+        self._renderer.set_camera(elevation=elevation, reset_camera=False)
+
+    def _configure_shortcuts(self):
+        # First, we remove the default bindings:
+        self.plotter._key_press_event_callbacks.clear()
+        # Then, we add our own:
+        self.plotter.add_key_event("i", self.toggle_interface)
+        self.plotter.add_key_event("s", self.apply_auto_scaling)
+        self.plotter.add_key_event("r", self.restore_user_scaling)
+        self.plotter.add_key_event("c", self.clear_glyphs)
+        self.plotter.add_key_event("n", partial(self._shift_time,
+                                   op=lambda x, y: x + y))
+        self.plotter.add_key_event("b", partial(self._shift_time,
+                                   op=lambda x, y: x - y))
+        for key, func, sign in (("Left", self._rotate_azimuth, 1),
+                                ("Right", self._rotate_azimuth, -1),
+                                ("Up", self._rotate_elevation, 1),
+                                ("Down", self._rotate_elevation, -1)):
+            self.plotter.add_key_event(key, partial(func, sign * _ARROW_MOVE))
 
     def _configure_menu(self):
         # remove default picking menu
@@ -1412,7 +1599,6 @@ class Brain(object):
         # skip if the wrong hemi is selected
         if self.act_data_smooth[hemi][0] is None:
             return
-        from ..backends._pyvista import _sphere
         color = next(self.color_cycle)
         line = self.plot_time_course(hemi, vertex_id, color)
         if hemi == 'vol':
@@ -1446,8 +1632,7 @@ class Brain(object):
             #    mitigated with synchronization/delay?)
             # 2) the glyph filter is used in renderer.sphere() but only one
             #    sphere is required in this function.
-            actor, sphere = _sphere(
-                plotter=self.plotter,
+            actor, sphere = self._renderer._sphere(
                 center=np.array(center),
                 color=color,
                 radius=4.0,
@@ -1531,6 +1716,7 @@ class Brain(object):
         if self.mpl_canvas is None:
             return
         time = self._data['time'].copy()  # avoid circular ref
+        mni = None
         if hemi == 'vol':
             hemi_str = 'V'
             xfm = read_talxfm(
@@ -1543,15 +1729,20 @@ class Brain(object):
             mni = apply_trans(np.dot(xfm['trans'], src_mri_t), ijk)
         else:
             hemi_str = 'L' if hemi == 'lh' else 'R'
-            mni = vertex_to_mni(
-                vertices=vertex_id,
-                hemis=0 if hemi == 'lh' else 1,
-                subject=self._subject_id,
-                subjects_dir=self._subjects_dir
-            )
-        label = "{}:{} MNI: {}".format(
-            hemi_str, str(vertex_id).ljust(6),
-            ', '.join('%5.1f' % m for m in mni))
+            try:
+                mni = vertex_to_mni(
+                    vertices=vertex_id,
+                    hemis=0 if hemi == 'lh' else 1,
+                    subject=self._subject_id,
+                    subjects_dir=self._subjects_dir
+                )
+            except Exception:
+                mni = None
+        if mni is not None:
+            mni = ' MNI: ' + ', '.join('%5.1f' % m for m in mni)
+        else:
+            mni = ''
+        label = "{}:{}{}".format(hemi_str, str(vertex_id).ljust(6), mni)
         act_data, smooth = self.act_data_smooth[hemi]
         if smooth is not None:
             act_data = smooth[vertex_id].dot(act_data)[0]
@@ -1592,7 +1783,13 @@ class Brain(object):
             ('s', 'Apply auto-scaling'),
             ('r', 'Restore original clim'),
             ('c', 'Clear all traces'),
+            ('n', 'Shift the time forward by the playback speed'),
+            ('b', 'Shift the time backward by the playback speed'),
             ('Space', 'Start/Pause playback'),
+            ('Up', 'Decrease camera elevation angle'),
+            ('Down', 'Increase camera elevation angle'),
+            ('Left', 'Decrease camera azimuth angle'),
+            ('Right', 'Increase camera azimuth angle'),
         ]
         text1, text2 = zip(*pairs)
         text1 = '\n'.join(text1)
@@ -1605,7 +1802,6 @@ class Brain(object):
         )
 
     def _clear_callbacks(self):
-        from ..backends._pyvista import _remove_picking_callback
         if not hasattr(self, 'callbacks'):
             return
         for callback in self.callbacks.values():
@@ -1617,8 +1813,6 @@ class Brain(object):
                 if hasattr(callback, "slider_rep"):
                     callback.slider_rep = None
         self.callbacks.clear()
-        if self.show_traces:
-            _remove_picking_callback(self._iren, self.plotter.picker)
 
     @property
     def interaction(self):
@@ -1934,7 +2128,6 @@ class Brain(object):
         self._update()
 
     def _add_volume_data(self, hemi, src, volume_options):
-        from ..backends._pyvista import _volume
         _validate_type(src, SourceSpaces, 'src')
         _check_option('src.kind', src.kind, ('volume',))
         _validate_type(
@@ -2004,8 +2197,9 @@ class Brain(object):
             scalars = np.zeros(np.prod(dimensions))
             scalars[vertices] = 1.  # for the outer mesh
             grid, grid_mesh, volume_pos, volume_neg = \
-                _volume(dimensions, origin, spacing, scalars, surface_alpha,
-                        resolution, blending, center)
+                self._renderer._volume(dimensions, origin, spacing, scalars,
+                                       surface_alpha, resolution, blending,
+                                       center)
             self._data[hemi]['alpha'] = alpha  # incorrectly set earlier
             self._data[hemi]['grid'] = grid
             self._data[hemi]['grid_mesh'] = grid_mesh
@@ -2023,7 +2217,6 @@ class Brain(object):
             actor_neg = None
         grid_mesh = self._data[hemi]['grid_mesh']
         if grid_mesh is not None:
-            import vtk
             _, prop = self._renderer.plotter.add_actor(
                 grid_mesh, reset_camera=False, name=None, culling=False,
                 pickable=False)
@@ -2032,20 +2225,12 @@ class Brain(object):
             if silhouette_alpha > 0 and silhouette_linewidth > 0:
                 for ri, ci, v in self._iter_views('vol'):
                     self._renderer.subplot(ri, ci)
-                    grid_silhouette = vtk.vtkPolyDataSilhouette()
-                    grid_silhouette.SetInputData(grid_mesh.GetInput())
-                    grid_silhouette.SetCamera(
-                        self._renderer.plotter.renderer.GetActiveCamera())
-                    grid_silhouette.SetEnableFeatureAngle(0)
-                    grid_silhouette_mapper = vtk.vtkPolyDataMapper()
-                    grid_silhouette_mapper.SetInputConnection(
-                        grid_silhouette.GetOutputPort())
-                    _, prop = self._renderer.plotter.add_actor(
-                        grid_silhouette_mapper, reset_camera=False, name=None,
-                        culling=False, pickable=False)
-                    prop.SetColor(*self._brain_color[:3])
-                    prop.SetOpacity(silhouette_alpha)
-                    prop.SetLineWidth(silhouette_linewidth)
+                    self._renderer._silhouette(
+                        mesh=grid_mesh.GetInput(),
+                        color=self._brain_color[:3],
+                        line_width=silhouette_linewidth,
+                        alpha=silhouette_alpha,
+                    )
 
         return actor_pos, actor_neg
 
@@ -2439,9 +2624,8 @@ class Brain(object):
                 )
                 self._annots[hemi].append(annot)
                 if not self.time_viewer or self.traces_mode == 'vertex':
-                    from ..backends._pyvista import _set_colormap_range
-                    _set_colormap_range(mesh._actor, cmap.astype(np.uint8),
-                                        None)
+                    self._renderer._set_colormap_range(
+                        mesh._actor, cmap.astype(np.uint8), None)
 
         self._update()
 
@@ -2455,7 +2639,7 @@ class Brain(object):
         self._renderer.show()
 
     def show_view(self, view=None, roll=None, distance=None, row=0, col=0,
-                  hemi=None):
+                  hemi=None, align=True):
         """Orient camera to display view.
 
         Parameters
@@ -2472,6 +2656,11 @@ class Brain(object):
             The column to set.
         hemi : str
             Which hemi to use for string lookup (when in "both" mode).
+        align : bool
+            If True, consider view arguments relative to canonical MRI
+            directions (closest to MNI for the subject) rather than native MRI
+            space. This helps when MRIs are not in standard orientation (e.g.,
+            have large rotations).
         """
         hemi = self._hemi if hemi is None else hemi
         if hemi == 'split':
@@ -2488,7 +2677,8 @@ class Brain(object):
         if distance is not None:
             view.update(distance=distance)
         self._renderer.subplot(row, col)
-        self._renderer.set_camera(**view, reset_camera=False)
+        xfm = self._rigid if align else None
+        self._renderer.set_camera(**view, reset_camera=False, rigid=xfm)
         self._update()
 
     def reset_view(self):
@@ -2532,32 +2722,23 @@ class Brain(object):
                 not self.separate_canvas:
             canvas = self.mpl_canvas.fig.canvas
             canvas.draw_idle()
-            # In theory, one of these should work:
-            #
-            # trace_img = np.frombuffer(
-            #     canvas.tostring_rgb(), dtype=np.uint8)
-            # trace_img.shape = canvas.get_width_height()[::-1] + (3,)
-            #
-            # or
-            #
-            # trace_img = np.frombuffer(
-            #     canvas.tostring_rgb(), dtype=np.uint8)
-            # size = time_viewer.mpl_canvas.getSize()
-            # trace_img.shape = (size.height(), size.width(), 3)
-            #
-            # But in practice, sometimes the sizes does not match the
-            # renderer tostring_rgb() size. So let's directly use what
-            # matplotlib does in lib/matplotlib/backends/backend_agg.py
-            # before calling tobytes():
-            trace_img = np.asarray(
-                canvas.renderer._renderer).take([0, 1, 2], axis=2)
-            # need to slice into trace_img because generally it's a bit
-            # smaller
-            delta = trace_img.shape[1] - img.shape[1]
-            if delta > 0:
-                start = delta // 2
-                trace_img = trace_img[:, start:start + img.shape[1]]
-            img = np.concatenate([img, trace_img], axis=0)
+            fig = self.mpl_canvas.fig
+            with BytesIO() as output:
+                # Need to pass dpi here so it uses the physical (HiDPI) DPI
+                # rather than logical DPI when saving in most cases.
+                # But when matplotlib uses HiDPI and VTK doesn't
+                # (e.g., macOS w/Qt 5.14+ and VTK9) then things won't work,
+                # so let's just calculate the DPI we need to get
+                # the correct size output based on the widths being equal
+                dpi = img.shape[1] / fig.get_size_inches()[0]
+                fig.savefig(output, dpi=dpi, format='raw',
+                            facecolor=self._bg_color, edgecolor='none')
+                output.seek(0)
+                trace_img = np.reshape(
+                    np.frombuffer(output.getvalue(), dtype=np.uint8),
+                    newshape=(-1, img.shape[1], 4))[:, :, :3]
+            img = concatenate_images(
+                [img, trace_img], bgcolor=self._brain_color[:3])
         return img
 
     @fill_doc
@@ -2568,7 +2749,6 @@ class Brain(object):
         ----------
         %(fmin_fmid_fmax)s
         """
-        from ..backends._pyvista import _set_colormap_range, _set_volume_range
         center = self._data['center']
         colormap = self._data['colormap']
         transparent = self._data['transparent']
@@ -2598,15 +2778,16 @@ class Brain(object):
                     mesh = self._layered_meshes[hemi]
                     mesh.update_overlay(name='data',
                                         colormap=self._data['ctable'])
-                    _set_colormap_range(mesh._actor, ctable, scalar_bar, rng,
-                                        self._brain_color)
+                    self._renderer._set_colormap_range(
+                        mesh._actor, ctable, scalar_bar, rng,
+                        self._brain_color)
                     scalar_bar = None
 
                 grid_volume_pos = hemi_data.get('grid_volume_pos')
                 grid_volume_neg = hemi_data.get('grid_volume_neg')
                 for grid_volume in (grid_volume_pos, grid_volume_neg):
                     if grid_volume is not None:
-                        _set_volume_range(
+                        self._renderer._set_volume_range(
                             grid_volume, ctable, hemi_data['alpha'],
                             scalar_bar, rng)
                         scalar_bar = None
@@ -2614,7 +2795,7 @@ class Brain(object):
                 glyph_actor = hemi_data.get('glyph_actor')
                 if glyph_actor is not None:
                     for glyph_actor_ in glyph_actor:
-                        _set_colormap_range(
+                        self._renderer._set_colormap_range(
                             glyph_actor_, ctable, scalar_bar, rng)
                         scalar_bar = None
 
@@ -2776,7 +2957,6 @@ class Brain(object):
                 f'available times ({min(self._times)}-{max(self._times)} s).')
 
     def _update_glyphs(self, hemi, vectors):
-        from ..backends._pyvista import _set_colormap_range, _create_actor
         hemi_data = self._data.get(hemi)
         assert hemi_data is not None
         vertices = hemi_data['vertices']
@@ -2811,7 +2991,7 @@ class Brain(object):
                 glyph_dataset.point_arrays['vec'] = vectors
                 glyph_mapper = hemi_data['glyph_mapper']
             if add:
-                glyph_actor = _create_actor(glyph_mapper)
+                glyph_actor = self._renderer._actor(glyph_mapper)
                 prop = glyph_actor.GetProperty()
                 prop.SetLineWidth(2.)
                 prop.SetOpacity(vector_alpha)
@@ -2820,7 +3000,7 @@ class Brain(object):
             else:
                 glyph_actor = hemi_data['glyph_actor'][count]
             count += 1
-            _set_colormap_range(
+            self._renderer._set_colormap_range(
                 actor=glyph_actor,
                 ctable=self._data['ctable'],
                 scalar_bar=None,
@@ -2899,8 +3079,7 @@ class Brain(object):
                     framerate=24, interpolation=None, codec=None,
                     bitrate=None, callback=None, time_viewer=False, **kwargs):
         import imageio
-        from ..backends._pyvista import _disabled_interaction
-        with _disabled_interaction(self._renderer):
+        with self._renderer._disabled_interaction():
             images = self._make_movie_frames(
                 time_dilation, tmin, tmax, framerate, interpolation, callback,
                 time_viewer)
@@ -3123,13 +3302,6 @@ class Brain(object):
         # Restore original time index
         func(current_time_idx)
 
-    def _show(self):
-        """Request rendering of the window."""
-        try:
-            return self._renderer.show()
-        except RuntimeError:
-            logger.info("No active/running renderer available.")
-
     def _check_stc(self, hemi, array, vertices):
         from ...source_estimate import (
             _BaseSourceEstimate, _BaseSurfaceSourceEstimate,
@@ -3220,7 +3392,7 @@ class Brain(object):
         from ..backends import renderer
         if renderer.get_3d_backend() in ['pyvista', 'notebook']:
             if self.notebook and self._renderer.figure.display is not None:
-                self._renderer.figure.display.update()
+                self._renderer.figure.display.update_canvas()
             else:
                 self._renderer.plotter.update()
 

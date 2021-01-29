@@ -1,4 +1,5 @@
 # Authors: Jaakko Leppakangas <jaeilepp@student.jyu.fi>
+#          Robert Luke <mail@robertluke.net>
 #
 # License: BSD (3-clause)
 
@@ -324,6 +325,25 @@ class Annotations(object):
         self.duration = np.delete(self.duration, idx)
         self.description = np.delete(self.description, idx)
 
+    def to_data_frame(self):
+        """Export annotations in tabular structure as a pandas DataFrame.
+
+        Returns
+        -------
+        result : pandas.DataFrame
+            Returns a pandas DataFrame with onset, duration, and
+            description columns.
+        """
+        pd = _check_pandas_installed(strict=True)
+        dt = _handle_meas_date(self.orig_time)
+        if dt is None:
+            dt = _handle_meas_date(0)
+        dt = dt.replace(tzinfo=None)
+        onsets_dt = [dt + timedelta(seconds=o) for o in self.onset]
+        df = pd.DataFrame(dict(onset=onsets_dt, duration=self.duration,
+                               description=self.description))
+        return df
+
     def save(self, fname):
         """Save annotations to FIF, CSV or TXT.
 
@@ -572,15 +592,7 @@ def _write_annotations(fid, annotations):
 
 
 def _write_annotations_csv(fname, annot):
-    pd = _check_pandas_installed(strict=True)
-    dt = _handle_meas_date(annot.orig_time)
-    if dt is None:
-        dt = _handle_meas_date(0)
-    dt = dt.replace(tzinfo=None)
-    onsets_dt = [dt + timedelta(seconds=o) for o in annot.onset]
-    df = pd.DataFrame(dict(onset=onsets_dt, duration=annot.duration,
-                           description=annot.description))
-    df.to_csv(fname, index=False)
+    annot.to_data_frame().to_csv(fname, index=False)
 
 
 def _write_annotations_txt(fname, annot):

@@ -245,7 +245,7 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
     else:  # mode == 'field':
         from matplotlib.colors import Normalize
         from mpl_toolkits.mplot3d.art3d import Line3DCollection
-        from mpl_toolkits.mplot3d import axes3d  # noqa: F401, analysis:ignore
+        from mpl_toolkits.mplot3d import Axes3D  # noqa: F401, analysis:ignore
         fig, ax = plt.subplots(1, subplot_kw=dict(projection='3d'))
 
         # First plot the trajectory as a colormap:
@@ -424,8 +424,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                    surfaces='auto', coord_frame='head',
                    meg=None, eeg='original', fwd=None,
                    dig=False, ecog=True, src=None, mri_fiducials=False,
-                   bem=None, seeg=True, fnirs=True, show_axes=False, fig=None,
-                   interaction='trackball', verbose=None):
+                   bem=None, seeg=True, fnirs=True, show_axes=False, dbs=True,
+                   fig=None, interaction='trackball', verbose=None):
     """Plot head, sensor, and source space alignment in 3D.
 
     Parameters
@@ -520,6 +520,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         * MEG in blue (if MEG sensors are present).
 
         .. versionadded:: 0.16
+    dbs : bool
+        If True (default), show DBS (deep brain stimulation) electrodes.
     fig : mayavi.mlab.Figure | None
         Mayavi Scene in which to plot the alignment.
         If ``None``, creates a new 600x600 pixel figure with black background.
@@ -655,13 +657,13 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     ref_meg = 'ref' in meg
     meg_picks = pick_types(info, meg=True, ref_meg=ref_meg)
     eeg_picks = pick_types(info, meg=False, eeg=True, ref_meg=False)
-    fnirs_picks = pick_types(info, meg=False, eeg=False,
-                             ref_meg=False, fnirs=True)
-    other_bools = dict(ecog=ecog, seeg=seeg,
+    fnirs_picks = pick_types(info, meg=False, eeg=False, ref_meg=False,
+                             fnirs=True)
+    other_bools = dict(ecog=ecog, seeg=seeg, dbs=dbs,
                        fnirs=(('channels' in fnirs) |
                               ('sources' in fnirs) |
                               ('detectors' in fnirs)))
-    del ecog, seeg
+    del ecog, seeg, dbs
     other_keys = sorted(other_bools.keys())
     other_picks = {key: pick_types(info, meg=False, ref_meg=False,
                                    **{key: True}) for key in other_keys}
@@ -866,7 +868,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     skull_alpha = dict()
     skull_colors = dict()
     hemi_val = 0.5
-    max_alpha = 1.0 if len(other_picks['seeg']) == 0 else 0.75
+    no_deep = all(len(other_picks[key]) == 0 for key in ('dbs', 'seeg'))
+    max_alpha = 1.0 if no_deep else 0.75
     if src is None or (brain and any(s['type'] == 'surf' for s in src)):
         hemi_val = max_alpha
     alphas = np.linspace(max_alpha / 2., 0, 5)[:len(skull) + 1]
@@ -1485,6 +1488,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
                   transparent=True):
     """Plot source estimate using mpl."""
     import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D  # noqa: F401, analysis:ignore
     from matplotlib import cm
     from matplotlib.widgets import Slider
     import nibabel as nib
@@ -1675,7 +1679,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           time_unit='s', backend='auto', spacing='oct6',
                           title=None, show_traces='auto',
                           src=None, volume_options=1., view_layout='vertical',
-                          add_data_kwargs=None, verbose=None):
+                          add_data_kwargs=None, brain_kwargs=None,
+                          verbose=None):
     """Plot SourceEstimate.
 
     Parameters
@@ -1769,6 +1774,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     %(src_volume_options)s
     %(view_layout)s
     %(add_data_kwargs)s
+    %(brain_kwargs)s
     %(verbose)s
 
     Returns
@@ -1825,7 +1831,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         stc, overlay_alpha=alpha, brain_alpha=alpha, vector_alpha=alpha,
         cortex=cortex, foreground=foreground, size=size, scale_factor=None,
         show_traces=show_traces, src=src, volume_options=volume_options,
-        view_layout=view_layout, add_data_kwargs=add_data_kwargs, **kwargs)
+        view_layout=view_layout, add_data_kwargs=add_data_kwargs,
+        brain_kwargs=brain_kwargs, **kwargs)
 
 
 def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
@@ -1833,7 +1840,7 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
               time_unit, background, time_viewer, colorbar, transparent,
               brain_alpha, overlay_alpha, vector_alpha, cortex, foreground,
               size, scale_factor, show_traces, src, volume_options,
-              view_layout, add_data_kwargs):
+              view_layout, add_data_kwargs, brain_kwargs):
     from .backends.renderer import _get_3d_backend
     from ..source_estimate import _BaseVolSourceEstimate
     vec = stc._data_ndim == 3
@@ -1892,6 +1899,8 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
         "figure": figure, "subjects_dir": subjects_dir,
         "views": views, "alpha": brain_alpha,
     }
+    if brain_kwargs is not None:
+        kwargs.update(brain_kwargs)
     if backend in ['pyvista', 'notebook']:
         kwargs["show"] = False
         kwargs["view_layout"] = view_layout
@@ -2503,7 +2512,8 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                  time_unit='s', show_traces='auto',
                                  src=None, volume_options=1.,
                                  view_layout='vertical',
-                                 add_data_kwargs=None, verbose=None):
+                                 add_data_kwargs=None, brain_kwargs=None,
+                                 verbose=None):
     """Plot VectorSourceEstimate with PySurfer.
 
     A "glass brain" is drawn and all dipoles defined in the source estimate
@@ -2579,6 +2589,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     %(src_volume_options)s
     %(view_layout)s
     %(add_data_kwargs)s
+    %(brain_kwargs)s
     %(verbose)s
 
     Returns
@@ -2606,7 +2617,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         vector_alpha=vector_alpha, cortex=cortex, foreground=foreground,
         size=size, scale_factor=scale_factor, show_traces=show_traces,
         src=src, volume_options=volume_options, view_layout=view_layout,
-        add_data_kwargs=add_data_kwargs)
+        add_data_kwargs=add_data_kwargs, brain_kwargs=brain_kwargs)
 
 
 @verbose

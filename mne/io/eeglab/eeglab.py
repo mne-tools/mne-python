@@ -323,7 +323,7 @@ class RawEEGLAB(BaseRaw):
                             ' the .set file contains epochs.' % eeg.trials)
 
         last_samps = [eeg.pnts - 1]
-        info, eeg_montage, update_ch_names = _get_info(eeg, eog=eog)
+        info, eeg_montage, _ = _get_info(eeg, eog=eog)
 
         # read the data
         if isinstance(eeg.data, str):

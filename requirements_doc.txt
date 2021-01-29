@@ -1,8 +1,8 @@
 sphinx
-https://github.com/numpy/numpydoc/archive/master.zip
+numpydoc
 sphinx_fontawesome
-sphinx_bootstrap_theme
-https://github.com/sphinx-gallery/sphinx-gallery/archive/master.zip
+https://github.com/larsoner/sphinx-bootstrap-theme/archive/language_data.zip
+sphinx-gallery
 sphinxcontrib-bibtex==2.0.0
 memory_profiler
 neo

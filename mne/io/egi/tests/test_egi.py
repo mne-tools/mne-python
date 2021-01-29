@@ -3,6 +3,7 @@
 #          simplified BSD-3 license
 
 
+from pathlib import Path
 import os.path as op
 import os
 import shutil
@@ -114,6 +115,12 @@ def test_io_egi_mff():
                            test_scaling=False,  # XXX probably some bug
                            )
     assert raw.info['sfreq'] == 1000.
+    assert len(raw.info['dig']) == 132  # 128 eeg + 1 ref + 3 cardinal points
+    assert raw.info['dig'][0]['ident'] == 1  # EEG channel E1
+    assert raw.info['dig'][128]['ident'] == 129  # Reference channel
+    ref_loc = raw.info['dig'][128]['r']
+    for i in pick_types(raw.info, eeg=True):
+        assert_equal(raw.info['chs'][i]['loc'][3:6], ref_loc)
 
     assert_equal('eeg' in raw, True)
     eeg_chan = [c for c in raw.ch_names if 'EEG' in c]
@@ -148,6 +155,11 @@ def test_io_egi():
 
     with pytest.warns(RuntimeWarning, match='Did not find any event code'):
         raw = read_raw_egi(egi_fname, include=None)
+
+    # The reader should accept a Path, too.
+    with pytest.warns(RuntimeWarning, match='Did not find any event code'):
+        raw = read_raw_egi(Path(egi_fname), include=None)
+
     assert 'RawEGI' in repr(raw)
     data_read, t_read = raw[:256]
     assert_allclose(t_read, t)
@@ -353,6 +365,7 @@ def test_io_egi_evokeds_mff(idx, cond, tmax, signals, bads):
     assert evoked_cond.info['nchan'] == 259
     assert evoked_cond.info['sfreq'] == 250.0
     assert not evoked_cond.info['custom_ref_applied']
+    assert len(evoked_cond.info['dig']) == 0  # coordinates.xml missing
 
 
 @requires_version('mffpy', '0.5.7')

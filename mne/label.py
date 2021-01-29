@@ -921,6 +921,7 @@ def read_label(filename, subject=None, color=None):
     See Also
     --------
     read_labels_from_annot
+    write_labels_to_annot
     """
     if subject is not None and not isinstance(subject, str):
         raise TypeError('subject must be a string')
@@ -1874,9 +1875,11 @@ def _cortex_parcellation(subject, n_parcel, hemis, vertices_, graphs,
     return labels
 
 
-def _read_annot_cands(dir_name):
+def _read_annot_cands(dir_name, raise_error=True):
     """List the candidate parcellations."""
     if not op.isdir(dir_name):
+        if not raise_error:
+            return list()
         raise IOError('Directory for annotation does not exist: %s',
                       dir_name)
     cands = os.listdir(dir_name)
@@ -2040,6 +2043,11 @@ def read_labels_from_annot(subject, parc='aparc', hemi='both',
     -------
     labels : list of Label
         The labels, sorted by label name (ascending).
+
+    See Also
+    --------
+    write_labels_to_annot
+    morph_labels
     """
     logger.info('Reading labels from parcellation...')
 
@@ -2359,6 +2367,10 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
 
         .. versionadded:: 0.21.0
     %(verbose)s
+
+    See Also
+    --------
+    read_labels_from_annot
 
     Notes
     -----

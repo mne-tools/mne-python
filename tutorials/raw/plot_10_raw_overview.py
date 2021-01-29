@@ -283,9 +283,9 @@ print(raw.ch_names[-3:])
 # inaccurate, you can change the type of any channel with the
 # :meth:`~mne.io.Raw.set_channel_types` method. The method takes a
 # :class:`dictionary <dict>` mapping channel names to types; allowed types are
-# ``ecg, eeg, emg, eog, exci, ias, misc, resp, seeg, stim, syst, ecog, hbo,
-# hbr``. A common use case for changing channel type is when using frontal EEG
-# electrodes as makeshift EOG channels:
+# ``ecg, eeg, emg, eog, exci, ias, misc, resp, seeg, dbs, stim, syst, ecog,
+# hbo, hbr``. A common use case for changing channel type is when using frontal
+# EEG electrodes as makeshift EOG channels:
 
 raw.set_channel_types({'EEG_001': 'eog'})
 print(raw.copy().pick_types(meg=False, eog=True).ch_names)

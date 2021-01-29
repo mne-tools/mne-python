@@ -63,6 +63,7 @@ Reading raw data
    read_raw_bdf
    read_raw_gdf
    read_raw_kit
+   read_raw_nedf
    read_raw_nicolet
    read_raw_nirx
    read_raw_snirf
@@ -195,6 +196,7 @@ Datasets
    fetch_aparc_sub_parcellation
    fetch_fsaverage
    fetch_hcp_mmp_parcellation
+   fetch_infant_template
    fnirs_motor.data_path
    hf_sef.data_path
    kiloword.data_path
