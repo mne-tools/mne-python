@@ -41,6 +41,9 @@ from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
                       get_subjects_dir)
 
 
+_ARROW_MOVE = 10  # degrees per press
+
+
 @decorator
 def safe_event(fun, *args, **kwargs):
     """Protect against PyQt5 exiting on event-handling errors."""
@@ -1434,10 +1437,11 @@ class Brain(object):
                                    op=lambda x, y: x + y))
         self.plotter.add_key_event("b", partial(self._shift_time,
                                    op=lambda x, y: x - y))
-        self.plotter.add_key_event("Left", partial(self._rotate_azimuth, -1))
-        self.plotter.add_key_event("Right", partial(self._rotate_azimuth, 1))
-        self.plotter.add_key_event("Up", partial(self._rotate_elevation, -1))
-        self.plotter.add_key_event("Down", partial(self._rotate_elevation, 1))
+        for key, func, sign in (("Left", self._rotate_azimuth, 1),
+                                ("Right", self._rotate_azimuth, -1),
+                                ("Up", self._rotate_elevation, 1),
+                                ("Down", self._rotate_elevation, -1)):
+            self.plotter.add_key_event(key, partial(func, sign * _ARROW_MOVE))
 
     def _configure_menu(self):
         # remove default picking menu
