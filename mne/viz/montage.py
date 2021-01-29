@@ -71,6 +71,7 @@ def plot_montage(montage, scale_factor=20, show_names=True, kind='topomap',
     raw.set_montage(montage, on_missing='ignore')
     fig = plot_sensors(info, kind=kind, show_names=show_names, show=show,
                        title=title, sphere=sphere)
-    collection = fig.axes[0].collections[0]
+    ax = fig.axes[0]
+    collection = ax.collections[0]
     collection.set_sizes([scale_factor])
     return fig
