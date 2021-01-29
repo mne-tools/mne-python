@@ -801,7 +801,7 @@ def test_compute_whitener_rank():
     assert rank == 305
     assert compute_rank(cov, info=info, verbose=True) == dict(meg=rank)
     # this should emit a warning
-    with pytest.warns(RuntimeWarning, match='condition number'):
+    with pytest.warns(RuntimeWarning, match='exceeds the estimated'):
         _, _, rank = compute_whitener(cov, info, rank=dict(meg=306),
                                       return_rank=True)
     assert rank == 306

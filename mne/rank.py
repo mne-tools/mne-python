@@ -13,8 +13,8 @@ from .io.pick import (_picks_by_type, pick_info, pick_channels_cov,
                       _picks_to_idx)
 from .io.proj import make_projector
 from .utils import (logger, _compute_row_norms, _pl, _validate_type,
-                    _apply_scaling_cov, _undo_scaling_cov,
-                    _scaled_array, warn, _check_rank, verbose)
+                    _apply_scaling_cov, _undo_scaling_cov, _check_option,
+                    _scaled_array, warn, _check_rank, _on_missing, verbose)
 
 
 @verbose
@@ -273,7 +273,7 @@ def _compute_rank_int(inst, *args, **kwargs):
 
 @verbose
 def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
-                 proj=True, tol_kind='absolute', check_passed=False,
+                 proj=True, tol_kind='absolute', on_rank_mismatch='ignore',
                  verbose=None):
     """Compute the rank of data or noise covariance.
 
@@ -299,7 +299,7 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
         If True, all projs in ``inst`` and ``info`` will be applied or
         considered when ``rank=None`` or ``rank='info'``.
     %(rank_tol_kind)s
-    %(check_passed)s
+    %(on_rank_mismatch)s
     %(verbose)s
 
     Returns
@@ -318,6 +318,9 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
 
     rank = _check_rank(rank)
     scalings = _handle_default('scalings_cov_rank', scalings)
+    _validate_type(on_rank_mismatch, str, 'on_rank_mismatch')
+    _check_option('on_rank_mismatch', on_rank_mismatch,
+                  ('ignore', 'warn', 'raise'))
 
     if isinstance(inst, Covariance):
         inst_type = 'covariance'
@@ -357,7 +360,7 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
             # special case: if whitening a covariance, check the passed rank
             # against the estimated one
             est_verbose = False
-            if not (check_passed and
+            if not (on_rank_mismatch != 'ignore' and
                     rank_type == 'estimated' and
                     ch_type == 'meg' and
                     isinstance(inst, Covariance) and
@@ -405,20 +408,23 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
                     if proj:
                         data = np.dot(np.dot(proj_op, data), proj_op.T)
 
-                    this_rank, s = _estimate_rank_meeg_cov(
+                    this_rank, sing = _estimate_rank_meeg_cov(
                         data, pick_info(simple_info, picks), scalings, tol,
                         return_singular=True, verbose=est_verbose)
                     if ch_type in rank:
-                        ratio = s[this_rank - 1] / s[rank[ch_type] - 1]
+                        ratio = sing[this_rank - 1] / sing[rank[ch_type] - 1]
                         if ratio > 100:
-                            warn(f'The passed rank[{repr(ch_type)}]='
-                                 f'{rank[ch_type]} exceeds the estimated rank '
-                                 f'of the noise covariance ({this_rank}) '
-                                 f'leading a potential increase in '
-                                 f'noise during whitening by a factor '
-                                 f'of {np.sqrt(ratio):0.1g}. Ensure that the '
-                                 f'rank correctly corresponds to that of the '
-                                 f'given noise covariance matrix.')
+                            msg = (
+                                f'The passed rank[{repr(ch_type)}]='
+                                f'{rank[ch_type]} exceeds the estimated rank '
+                                f'of the noise covariance ({this_rank}) '
+                                f'leading to a potential increase in '
+                                f'noise during whitening by a factor '
+                                f'of {np.sqrt(ratio):0.1g}. Ensure that the '
+                                f'rank correctly corresponds to that of the '
+                                f'given noise covariance matrix.')
+                            _on_missing(on_rank_mismatch, msg,
+                                        'on_rank_mismatch')
                         continue
             this_info_rank = _info_rank(info, ch_type, picks, 'info')
             logger.info('    %s: rank %d computed from %d data channel%s '

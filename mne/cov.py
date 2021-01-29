@@ -38,7 +38,7 @@ from .rank import compute_rank
 from .utils import (check_fname, logger, verbose, check_version, _time_mask,
                     warn, copy_function_doc_to_method_doc, _pl,
                     _undo_scaling_cov, _scaled_array, _validate_type,
-                    _check_option, eigh, fill_doc)
+                    _check_option, eigh, fill_doc, _on_missing)
 from . import viz
 
 from .fixes import (BaseEstimator, EmpiricalCovariance, _logdet,
@@ -880,7 +880,6 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
              'matrix may be inaccurate')
 
     orig = epochs[0].info['dev_head_t']
-    _check_option('on_mismatch', on_mismatch, ['raise', 'warn', 'ignore'])
     for ei, epoch in enumerate(epochs):
         epoch.info._check_consistency()
         if (orig is None) != (epoch.info['dev_head_t'] is None) or \
@@ -890,10 +889,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
             msg = ('MEG<->Head transform mismatch between epochs[0]:\n%s\n\n'
                    'and epochs[%s]:\n%s'
                    % (orig, ei, epoch.info['dev_head_t']))
-            if on_mismatch == 'raise':
-                raise ValueError(msg)
-            elif on_mismatch == 'warn':
-                warn(msg)
+            _on_missing(on_mismatch, msg, 'on_mismatch')
 
     bads = epochs[0].info['bads']
     if projs is None:
@@ -1436,7 +1432,7 @@ def _get_ch_whitener(A, pca, ch_type, rank):
 
 @verbose
 def prepare_noise_cov(noise_cov, info, ch_names=None, rank=None,
-                      scalings=None, check_passed=False, verbose=None):
+                      scalings=None, on_rank_mismatch='ignore', verbose=None):
     """Prepare noise covariance matrix.
 
     Parameters
@@ -1457,7 +1453,7 @@ def prepare_noise_cov(noise_cov, info, ch_names=None, rank=None,
         If dict, it will override the following dict (default if None)::
 
             dict(mag=1e12, grad=1e11, eeg=1e5)
-    %(check_passed)s
+    %(on_rank_mismatch)s
     %(verbose)s
 
     Returns
@@ -1489,7 +1485,7 @@ def prepare_noise_cov(noise_cov, info, ch_names=None, rank=None,
         loglik=noise_cov.get('loglik', None))
 
     eig, eigvec, _ = _smart_eigh(noise_cov, info, rank, scalings, projs,
-                                 ch_names, check_passed=check_passed)
+                                 ch_names, on_rank_mismatch=on_rank_mismatch)
     noise_cov.update(eig=eig, eigvec=eigvec)
     return noise_cov
 
@@ -1497,7 +1493,7 @@ def prepare_noise_cov(noise_cov, info, ch_names=None, rank=None,
 @verbose
 def _smart_eigh(C, info, rank, scalings=None, projs=None,
                 ch_names=None, proj_subspace=False, do_compute_rank=True,
-                check_passed=False, verbose=None):
+                on_rank_mismatch='ignore', verbose=None):
     """Compute eigh of C taking into account rank and ch_type scalings."""
     scalings = _handle_default('scalings_cov_rank', scalings)
     projs = info['projs'] if projs is None else projs
@@ -1520,7 +1516,7 @@ def _smart_eigh(C, info, rank, scalings=None, projs=None,
     noise_cov = Covariance(C, ch_names, [], projs, 0)
     if do_compute_rank:  # if necessary
         rank = compute_rank(
-            noise_cov, rank, scalings, info, check_passed=check_passed)
+            noise_cov, rank, scalings, info, on_rank_mismatch=on_rank_mismatch)
     assert C.ndim == 2 and C.shape[0] == C.shape[1]
 
     # time saving short-circuit
@@ -1777,7 +1773,8 @@ def _regularized_covariance(data, reg=None, method_params=None, info=None,
 @verbose
 def compute_whitener(noise_cov, info=None, picks=None, rank=None,
                      scalings=None, return_rank=False, pca=False,
-                     return_colorer=False, check_passed=True, verbose=None):
+                     return_colorer=False, on_rank_mismatch='warn',
+                     verbose=None):
     """Compute whitening matrix.
 
     Parameters
@@ -1815,7 +1812,7 @@ def compute_whitener(noise_cov, info=None, picks=None, rank=None,
         .. versionadded:: 0.18
     return_colorer : bool
         If True, return the colorer as well.
-    %(check_passed)s
+    %(on_rank_mismatch)s
     %(verbose)s
 
     Returns
@@ -1845,7 +1842,7 @@ def compute_whitener(noise_cov, info=None, picks=None, rank=None,
         del picks
         noise_cov = prepare_noise_cov(
             noise_cov, info, ch_names, rank, scalings,
-            check_passed=check_passed)
+            on_rank_mismatch=on_rank_mismatch)
 
     n_chan = len(ch_names)
     assert n_chan == len(noise_cov['eig'])

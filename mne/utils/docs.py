@@ -1006,10 +1006,12 @@ reduce_rank : bool
         Support for reducing rank in all modes (previously only supported
         ``pick='max_power'`` with weight normalization).
 """
-docdict['check_passed'] = """
-check_passed : bool
-    If True, sanity-check passed MEG values against computed ones (only used
-    for covariances; default False).
+docdict['on_rank_mismatch'] = """
+on_rank_mismatch : str
+    If an explicit MEG value is passed, what to do when it does not match
+    an empirically computed rank (only used for covariances).
+    Can be 'raise' to raise an error, 'warn' (default) to emit a warning, or
+    'ignore' to ignore.
 
     .. versionadded:: 0.23
 """
