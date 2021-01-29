@@ -8,6 +8,7 @@
 #
 # License: Simplified BSD
 
+from contextlib import contextmanager
 import os
 import os.path as path
 
@@ -385,7 +386,14 @@ def test_brain_save_movie(tmpdir, renderer, brain_gc, qtbot):
 _TINY_SIZE = (300, 250)
 
 
-def tiny(tmpdir):
+@contextmanager
+def _wait_shown(qtbot, brain):
+    qtbot.add_widget(brain.plotter.app_window)
+    with qtbot.wait_exposed(brain.plotter.app_window):
+        yield
+
+
+def tiny(tmpdir, qtbot):
     """Create a tiny fake brain."""
     # This is a minimal version of what we need for our viz-with-timeviewer
     # support currently
@@ -416,14 +424,15 @@ def tiny(tmpdir):
     sz = (sz.width(), sz.height())
     sz_ren = brain.plotter.renderer.GetSize()
     ratio = np.median(np.array(sz_ren) / np.array(sz))
-    return brain, ratio
+    with _wait_shown(qtbot, brain):
+        return brain, ratio
 
 
-def test_brain_screenshot(renderer_interactive, tmpdir, brain_gc):
+def test_brain_screenshot(renderer_interactive, tmpdir, brain_gc, qtbot):
     """Test time viewer screenshot."""
     if renderer_interactive._get_3d_backend() != 'pyvista':
         pytest.skip('TimeViewer tests only supported on PyVista')
-    tiny_brain, ratio = tiny(tmpdir)
+    tiny_brain, ratio = tiny(tmpdir, qtbot)
     img_nv = tiny_brain.screenshot(time_viewer=False)
     want = (_TINY_SIZE[1] * ratio, _TINY_SIZE[0] * ratio, 3)
     assert img_nv.shape == want
@@ -905,6 +914,5 @@ def _create_testing_brain(qtbot, hemi, surf='inflated', src='surface',
         subjects_dir=subjects_dir, colormap='auto',
         clim=clim, src=sample_src,
         **kwargs)
-    qtbot.add_widget(brain_data.plotter)
-    with qtbot.wait_exposed(brain_data.plotter):
+    with _wait_shown(qtbot, brain_data):
         return brain_data
