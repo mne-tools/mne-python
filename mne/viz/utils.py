@@ -1012,12 +1012,12 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
     edgecolors[bads] = 'red'
     axes_was_none = ax is None
     if axes_was_none:
-        fig = plt.figure(figsize=(max(rcParams['figure.figsize']),) * 2)
+        subplot_kw = dict()
         if kind == '3d':
-            fig.add_subplot(projection='3d')
-        else:
-            fig.add_subplot(111)
-        ax = fig.axes[0]
+            subplot_kw.update(projection='3d')
+        fig, ax = plt.subplots(
+            1, figsize=(max(rcParams['figure.figsize']),) * 2,
+            subplot_kw=subplot_kw)
     else:
         fig = ax.get_figure()
 

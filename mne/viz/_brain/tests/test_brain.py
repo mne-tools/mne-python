@@ -105,12 +105,15 @@ class TstVTKPicker(object):
         return np.array(self.GetPickPosition()) - (0, 0, 100)
 
 
-def test_layered_mesh(renderer_interactive):
+def test_layered_mesh(renderer_interactive, qtbot):
     """Test management of scalars/colormap overlay."""
     if renderer_interactive._get_3d_backend() != 'pyvista':
         pytest.skip('TimeViewer tests only supported on PyVista')
+    renderer = renderer_interactive._get_renderer(size=[300, 300], show=True)
+    with _wait_shown(qtbot, renderer):
+        pass
     mesh = _LayeredMesh(
-        renderer=renderer_interactive._get_renderer(size=[300, 300]),
+        renderer=renderer,
         vertices=np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0], [1, 1, 0]]),
         triangles=np.array([[0, 1, 2], [1, 2, 3]]),
         normals=np.array([[0, 0, 1]] * 4),
