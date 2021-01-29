@@ -1789,6 +1789,7 @@ class Brain(object):
                             )
         return colormap_map[cortex]
 
+    @fill_doc
     def add_sensors(self, info, meg=True, eeg=True, trans=None):
         """Display the sensors.
 
