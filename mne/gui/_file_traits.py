@@ -314,47 +314,35 @@ class DigSource(HasPrivateTraits):
             if len(dir_tree_find(tree, FIFF.FIFFB_MEAS_INFO)) > 0:
                 info = read_info(self.file, verbose=False)
             elif len(dir_tree_find(tree, FIFF.FIFFB_ISOTRAK)) > 0:
-                info = read_dig_fif(fname=self.file)
+                info = _empty_info(1)
+                info['dig'] = read_dig_fif(fname=self.file).dig
         else:
             info = read_raw(self.file).info
 
-        if isinstance(info, DigMontage):
-            dig = info.dig
-            info = _empty_info(1)
-            info['dig'] = dig
-        elif info is None or info['dig'] is None:
+        # check that digitizer info is present
+        if info is None or info['dig'] is None:
             error(None, "The selected file does not contain digitization "
                   "information. Please select a different file.",
                   "Error Reading Digitization File")
             self.reset_traits(['file'])
             return
-        else:
-            # check that all fiducial points are present
-            has_point = {FIFF.FIFFV_POINT_LPA: False,
-                         FIFF.FIFFV_POINT_NASION: False,
-                         FIFF.FIFFV_POINT_RPA: False}
-            for d in info['dig']:
-                if d['kind'] == FIFF.FIFFV_POINT_CARDINAL:
-                    has_point[d['ident']] = True
-            if not all(has_point.values()):
-                points = _fiducial_coords(info['dig'])
-                if len(points) == 3:
-                    _append_fiducials(info['dig'], *points.T)
-                else:
-                    missing = []
-                    if not has_point[FIFF.FIFFV_POINT_LPA]:
-                        missing.append('LPA')
-                    if not has_point[FIFF.FIFFV_POINT_NASION]:
-                        missing.append('Nasion')
-                    if not has_point[FIFF.FIFFV_POINT_RPA]:
-                        missing.append('RPA')
-                    error(None, "The selected digitization file does not "
-                          "contain all cardinal points (missing: %s). Please "
-                          "select a different file." % ', '.join(missing),
-                          "Error Reading Digitization File")
-                    self.reset_traits(['file'])
-                    return
 
+        # check that all fiducial points are present
+        point_kinds = {d['kind'] for d in info['dig']}
+        missing = [key for key in ('LPA', 'Nasion', 'RPA') if
+                   getattr(FIFF, f'FIFFV_POINT_{key.upper()}') not in
+                   point_kinds]
+        if missing:
+            points = _fiducial_coords(info['dig'])
+            if len(points == 3):
+                _append_fiducials(info['dig'], *points.T)
+            else:
+                error(None, "The selected digitization file does not contain "
+                      f"all cardinal points (missing: {', '.join(missing)}). "
+                      "Please select a different file.",
+                      "Error Reading Digitization File")
+                self.reset_traits(['file'])
+                return
         return info
 
     @cached_property
