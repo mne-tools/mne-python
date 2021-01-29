@@ -115,9 +115,10 @@ def test_io_egi_mff():
                            test_scaling=False,  # XXX probably some bug
                            )
     assert raw.info['sfreq'] == 1000.
-    assert len(raw.info['dig']) == 132  # 1 ref + 128 eeg + 3 cardinal points
-    assert raw.info['dig'][0]['ident'] == 129  # reference channel nr
-    ref_loc = raw.info['dig'][0]['r']
+    assert len(raw.info['dig']) == 132  # 128 eeg + 1 ref + 3 cardinal points
+    assert raw.info['dig'][0]['ident'] == 1  # EEG channel E1
+    assert raw.info['dig'][128]['ident'] == 129  # Reference channel
+    ref_loc = raw.info['dig'][128]['r']
     for i in pick_types(raw.info, eeg=True):
         assert_equal(raw.info['chs'][i]['loc'][3:6], ref_loc)
 
