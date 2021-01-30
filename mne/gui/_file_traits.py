@@ -30,7 +30,7 @@ from ..coreg import (_is_mri_subject, _mri_subject_has_bem,
                      create_default_subject)
 from ..utils import get_config, set_config
 from ..viz._3d import _fiducial_coords
-from ..channels import read_dig_fif, DigMontage
+from ..channels import read_dig_fif
 
 
 fid_wildcard = "*.fif"
