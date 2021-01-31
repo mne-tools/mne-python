@@ -140,7 +140,7 @@ class FileOrDir(File):
     """Subclass File because *.mff files are actually directories."""
 
     def validate(self, object, name, value):
-        """Validates that a specified value is valid for this trait."""
+        """Validate that a specified value is valid for this trait."""
         value = os.fspath(value)
         validated_value = super(BaseFile, self).validate(object, name, value)
         if not self.exists:
