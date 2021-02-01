@@ -419,6 +419,7 @@ class Brain(object):
         self._vertex_to_label_id = dict()
         self._annotation_labels = dict()
         self._labels = {'lh': list(), 'rh': list()}
+        self._unnamed_label_id = 0  # can only grow
         self._annots = {'lh': list(), 'rh': list()}
         self._layered_meshes = {}
         self._elevation_rng = [15, 165]  # range of motion of camera on theta
@@ -2309,9 +2310,9 @@ class Brain(object):
                 hemi = label.hemi
                 ids = label.vertices
                 if label.name is None:
-                    label_name = label.name = 'unnamed'
-                else:
-                    label_name = str(label.name)
+                    label.name = 'unnamed' + str(self._unnamed_label_id)
+                    self._unnamed_label_id += 1
+                label_name = str(label.name)
 
                 if color is None:
                     if hasattr(label, 'color') and label.color is not None:
