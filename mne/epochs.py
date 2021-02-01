@@ -31,10 +31,9 @@ from .io.tree import dir_tree_find
 from .io.tag import read_tag, read_tag_info
 from .io.constants import FIFF
 from .io.fiff.raw import _get_fname_rep
-from .io.pick import (pick_types, channel_indices_by_type, channel_type,
+from .io.pick import (channel_indices_by_type, channel_type,
                       pick_channels, pick_info, _pick_data_channels,
-                      _pick_aux_channels, _DATA_CH_TYPES_SPLIT,
-                      _picks_to_idx)
+                      _DATA_CH_TYPES_SPLIT, _picks_to_idx)
 from .io.proj import setup_proj, ProjMixin, _proj_equal
 from .io.base import BaseRaw, TimeMixin
 from .bem import _check_origin
@@ -722,11 +721,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                 raise RuntimeError('You cannot remove baseline correction '
                                    'from preloaded data once it has been '
                                    'applied.')
-            picks = _pick_data_channels(self.info, exclude=[],
-                                        with_ref_meg=True)
-            picks_aux = _pick_aux_channels(self.info, exclude=[])
-            picks = np.sort(np.concatenate((picks, picks_aux)))
+            self._do_baseline = True
+            picks = self._detrend_picks
             rescale(self._data, self.times, baseline, copy=False, picks=picks)
+            self._do_baseline = False
         else:  # logging happens in "rescale" in "if" branch
             logger.info(_log_rescale(baseline))
             assert self._do_baseline is True
@@ -837,8 +835,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         # Detrend
         if self.detrend is not None:
-            picks = _pick_data_channels(self.info, exclude=[])
-            epoch[picks] = detrend(epoch[picks], self.detrend, axis=1)
+            # We explitly detrend just data channels (not EMG, ECG, EOG which
+            # are processed by baseline correction)
+            use_picks = _pick_data_channels(self.info, exclude=())
+            epoch[use_picks] = detrend(epoch[use_picks], self.detrend, axis=1)
 
         # Baseline correct
         if self._do_baseline:
@@ -1461,10 +1461,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
     @property
     def _detrend_picks(self):
         if self._do_baseline:
-            return pick_types(self.info, meg=True, eeg=True, stim=False,
-                              ref_meg=True, eog=True, ecg=True, seeg=True,
-                              emg=True, bio=True, ecog=True, fnirs=True,
-                              dbs=True, exclude=())
+            return _pick_data_channels(
+                self.info, with_ref_meg=True, with_aux=True, exclude=())
         else:
             return []
 
