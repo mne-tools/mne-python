@@ -15,7 +15,7 @@ DATA:
 
 We use a simple example dataset with frequency tagged visual stimulation:
 N=2 participants observed checkerboards patterns inverting with a constant frequency
-of either 12Hz of 15Hz. 10 trials of 30s length each. 32ch wet EEG was recorded.
+of either 12Hz of 15Hz. 10 trials of 20s length each. 32ch wet EEG was recorded.
 
 Data can be downloaded at https://osf.io/7ne6y/ 
 Data format: BrainVision .eeg/.vhdr/.vmrk files organized according to BIDS standard.
@@ -51,7 +51,7 @@ from scipy.stats import ttest_rel, ttest_ind
 # - Raw data comes with FCz recording reference, so we will apply common-average rereferencing.
 # - We will apply a 50 Hz notch-filter to remove line-noise,
 # - and a 0.1 - 250 Hz bandpass filter.
-# - Lastly we will cut the data in 30 s epochs according to the trials.
+# - Lastly we will cut the data in 20 s epochs according to the trials.
 
 # Load raw data
 data_path = mne.datasets.ssvep.data_path()
@@ -93,7 +93,7 @@ event_id = {
 }
 events, _ = mne.events_from_annotations(raw, verbose=False)
 raw.info["events"] = events
-tmin, tmax = -1., 30.  # in s
+tmin, tmax = -1., 20.  # in s
 baseline = None
 epochs = mne.Epochs(raw, events=events, event_id=[event_id['12hz'], event_id['15hz']], tmin=tmin,
                     tmax=tmax, baseline=baseline, verbose=True)
@@ -124,7 +124,7 @@ epochs = mne.Epochs(raw, events=events, event_id=[event_id['12hz'], event_id['15
 # well.
 
 tmin = 0.
-tmax = 30.
+tmax = 20.
 fmin = 1.
 fmax = 90.
 sf = epochs.info['sfreq']
@@ -523,7 +523,7 @@ print("15 hz trials: 36 hz SNR is significantly different from 45 hz SNR"
 stim_bandwidth = .5
 
 # first version - shorten welch window, full data
-window_lengths = [i for i in range(2,31,2)]
+window_lengths = [i for i in range(2,21,2)]
 window_snrs = [[]] * len(window_lengths)
 for i_win, win in enumerate(window_lengths):
     print('window length: %is' % win)
@@ -544,8 +544,8 @@ for i_win, win in enumerate(window_lengths):
 
 plt.boxplot(window_snrs, labels=window_lengths, vert=True)
 plt.title('Effect of time window length on 12hz SNR - adapt only welch window')
-plt.xlabel('average SNR per trial')
-plt.ylabel('analysis window [s]')
+plt.ylabel('average SNR per trial')
+plt.xlabel('analysis window [s]')
 plt.show()
 
 ##############################################################################
@@ -553,7 +553,7 @@ plt.show()
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # second version - shorten data, welch window fix
-window_lengths = [i for i in range(2,31,2)]
+window_lengths = [i for i in range(2,21,2)]
 window_snrs = [[]] * len(window_lengths)
 for i_win, win in enumerate(window_lengths):
     print('window length: %is' % win)
@@ -574,8 +574,8 @@ for i_win, win in enumerate(window_lengths):
 
 plt.boxplot(window_snrs, labels=window_lengths, vert=True)
 plt.title('Effect of time window length on 12hz SNR - adapt only data window')
-plt.xlabel('average SNR per trial')
-plt.ylabel('analysis window [s]')
+plt.ylabel('average SNR per trial')
+plt.xlabel('analysis window [s]')
 plt.show()
 
 ##############################################################################
@@ -583,7 +583,7 @@ plt.show()
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # thrid version - shorten data and welch window
-window_lengths = [i for i in range(2,31,2)]
+window_lengths = [i for i in range(2,21,2)]
 window_snrs = [[]] * len(window_lengths)
 for i_win, win in enumerate(window_lengths):
     print('window length: %is' % win)
