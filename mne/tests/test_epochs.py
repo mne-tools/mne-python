@@ -1616,6 +1616,7 @@ def test_crop(tmpdir):
     epochs.save(temp_fname)
     mne.read_epochs(temp_fname)
 
+
 def test_resample():
     """Test of resample of epochs."""
     raw, events, picks = _get_data()
