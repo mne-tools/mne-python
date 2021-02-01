@@ -123,6 +123,8 @@ def _set_dig_kit(mrk, elp, hsp, eeg):
         List of digitizer points for info['dig'].
     dev_head_t : dict
         A dictionary describe the device-head transformation.
+    hpi_results : list
+        The hpi results.
     """
     from ...coreg import fit_matched_points, _decimate_points
 
@@ -167,7 +169,12 @@ def _set_dig_kit(mrk, elp, hsp, eeg):
     dig_points = _make_dig_points(nasion, lpa, rpa, elp, hsp, dig_ch_pos=eeg)
     dev_head_t = Transform('meg', 'head', trans)
 
-    return dig_points, dev_head_t
+    hpi_results = [dict(dig_points=[
+        dict(ident=ci, r=r, kind=FIFF.FIFFV_POINT_HPI,
+             coord_frame=FIFF.FIFFV_COORD_UNKNOWN)
+        for ci, r in enumerate(mrk)], coord_trans=dev_head_t)]
+
+    return dig_points, dev_head_t, hpi_results
 
 
 def _read_dig_kit(fname, unit='auto'):

@@ -44,7 +44,7 @@ from .preprocessing.maxwell import (_sss_basis, _prep_mf_coils,
                                     _regularize_out, _get_mf_picks_fix_mags)
 from .transforms import (apply_trans, invert_transform, _angle_between_quats,
                          quat_to_rot, rot_to_quat, _fit_matched_points,
-                         _quat_to_affine)
+                         _quat_to_affine, als_ras_trans)
 from .utils import (verbose, logger, use_log_level, _check_fname, warn,
                     _validate_type, ProgressBar, _check_option, _pl)
 
@@ -252,6 +252,7 @@ def extract_chpi_locs_kit(fname, *, verbose=None):
     # good = data['good'] == 1
     data = data['data']
     rrs, gofs = data[:, :, :3], data[:, :, 3]
+    rrs = apply_trans(als_ras_trans, rrs)
     moments = np.zeros(rrs.shape)  # not encoded, set all zero
     return dict(rrs=rrs, gofs=gofs, times=times, moments=moments)
 
@@ -737,7 +738,7 @@ def compute_head_pos(info, chpi_locs, dist_limit=0.005, gof_limit=0.98,
         #
         if len(use_idx) < 3:
             msg = (_time_prefix(fit_time) + '%s/%s good HPI fits, cannot '
-                   'determine the transformation (%s)!'
+                   'determine the transformation (%s GOF)!'
                    % (len(use_idx), n_coils,
                       ', '.join('%0.2f' % g for g in g_coils)))
             warn(msg)
@@ -762,8 +763,10 @@ def compute_head_pos(info, chpi_locs, dist_limit=0.005, gof_limit=0.98,
         n_good = ((g_coils >= gof_limit) & (errs < dist_limit)).sum()
         if n_good < 3:
             warn(_time_prefix(fit_time) + '%s/%s good HPI fits, cannot '
-                 'determine the transformation (%s)!'
-                 % (n_good, n_coils, ', '.join('%0.2f' % g for g in g_coils)))
+                 'determine the transformation (%s mm/GOF)!'
+                 % (n_good, n_coils,
+                    ', '.join(f'{1000 * e:0.1f}::{g:0.2f}'
+                                 for e, g in zip(errs, g_coils))))
             continue
 
         # velocities, in device coords, of HPI coils

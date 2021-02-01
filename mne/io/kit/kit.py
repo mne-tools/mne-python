@@ -50,10 +50,8 @@ def _call_digitization(info, mrk, elp, hsp, kit_info):
 
     # setup digitization
     if mrk is not None and elp is not None and hsp is not None:
-        dig_points, dev_head_t = _set_dig_kit(
+        info['dig'], info['dev_head_t'], info['hpi_results'] = _set_dig_kit(
             mrk, elp, hsp, kit_info['eeg_dig'])
-        info['dig'] = dig_points
-        info['dev_head_t'] = dev_head_t
     elif mrk is not None or elp is not None or hsp is not None:
         raise ValueError("mrk, elp and hsp need to be provided as a group "
                          "(all or none)")
