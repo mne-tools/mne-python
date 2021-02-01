@@ -26,9 +26,9 @@ from scipy import linalg
 import itertools
 
 from .event import find_events
-from .io import read_raw_kit
 from .io.base import BaseRaw
 from .io.kit.constants import KIT
+from .io.kit.kit import RawKIT
 from .io.meas_info import _simplify_info
 from .io.pick import (pick_types, pick_channels, pick_channels_regexp,
                       pick_info)
@@ -216,12 +216,36 @@ def extract_chpi_locs_ctf(raw, verbose=None):
 
 
 @verbose
-def extract_chpi_locs_kit(fname, *, verbose=None):
-    raw = read_raw_kit(fname)
+def extract_chpi_locs_kit(raw, *, stim_channel='MISC 064', verbose=None):
+    """Extract cHPI locations from KIT data.
+
+    Parameters
+    ----------
+    raw : instance of RawKIT
+        Raw data with KIT cHPI information.
+    stim_channel : str
+        The stimulus channel that contains HPI pulse measurement times.
+    %(verbose)s
+
+    Returns
+    -------
+    %(chpi_locs)s
+
+    Notes
+    -----
+    .. versionadded:: 0.23
+    """
+    _validate_type(raw, (RawKIT,), 'raw')
+    stim_chs = [
+        raw.info['ch_names'][pick] for pick in pick_types(
+            raw.info, stim=True, misc=True, ref_meg=False)]
+    _validate_type(stim_channel, str, 'stim_channel')
+    _check_option('stim_channel', stim_channel, stim_chs)
+    idx = raw.ch_names.index(stim_channel)
     events_on = find_events(
-        raw, stim_channel=raw.ch_names[191], output='onset', verbose=False)
+        raw, stim_channel=raw.ch_names[idx], output='onset', verbose=False)
     events_off = find_events(
-        raw, stim_channel=raw.ch_names[191], output='offset', verbose=False)
+        raw, stim_channel=raw.ch_names[idx], output='offset', verbose=False)
     if events_on[-1, 0] > events_off[-1, 0]:
         events_on = events_on[:-1]
     assert events_on.shape == events_off.shape
@@ -235,14 +259,17 @@ def extract_chpi_locs_kit(fname, *, verbose=None):
     # file in MEG160, but I couldn't find the value in the .con file, so it
     # may just always be 2...
     times = times[2:]
-    n_coils = 5  # XXX this can potentially be read elsewhere
+    n_coils = 5  # KIT always has 5 (hard-coded in reader)
     header = raw._raw_extras[0]['dirs'][KIT.DIR_INDEX_CHPI_DATA]
     dtype = np.dtype([('good', '<u4'), ('data', '<f8', (4,))])
     assert dtype.itemsize == header['size'], (dtype.itemsize, header['size'])
-    with open(fname, 'r') as fid:
-        fid.seek(header['offset'])
-        data = np.fromfile(fid, dtype, count=header['count'])
-    data = data.reshape((-1, n_coils))
+    all_data = list()
+    for fname in raw._filenames:
+        with open(fname, 'r') as fid:
+            fid.seek(header['offset'])
+            all_data.append(np.fromfile(
+                fid, dtype, count=header['count']).reshape(-1, n_coils))
+    data = np.concatenate(all_data)
     extra = ''
     if len(times) < len(data):
         extra = f', truncating to {len(times)} based on events'
