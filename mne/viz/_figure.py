@@ -1294,7 +1294,6 @@ class MNEBrowseFigure(MNEFigure):
 
     def _setup_annotation_colors(self):
         """Set up colors for annotations; init some annotation vars."""
-        raw = self.mne.inst
         segment_colors = getattr(self.mne, 'annotation_segment_colors', dict())
         labels = self._get_annotation_labels()
         colors, red = _get_color_list(annotations=True)
