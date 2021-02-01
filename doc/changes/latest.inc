@@ -16,6 +16,8 @@ Current (0.23.dev0)
 
 .. |Richard Koehler| replace:: **Richard Koehler**
 
+.. |Andres Rodriguez| replace:: **Andres Rodriguez**
+
 Enhancements
 ~~~~~~~~~~~~
 - Add dbs as new channel type for deep brain stimulation (DBS) recordings (:gh:`8739` **by new contributor** |Richard Koehler|_)
@@ -56,6 +58,8 @@ Enhancements
 
 Bugs
 ~~~~
+- Fix bugs with `mne.io.read_raw_persyst` where multiple ``Comments`` with the same name are allowed, and ``Comments`` with a "," character are now allowed (:gh:`8311` and :gh:`8806` **by new contributor** |Andres Rodriguez|_ and `Adam Li`_)
+
 - Fix zen mode and scalebar toggling for :meth:`raw.plot() <mne.io.Raw.plot>` when using the ``macosx`` matplotlib backend (:gh:`8688` by `Daniel McCloy`_)
 
 - Fix bug with :func:`mne.preprocessing.maxwell_filter` where the eSSS basis had to exactly match the good channels instead of being a superset (:gh:`8675` by `Eric Larson`_)
