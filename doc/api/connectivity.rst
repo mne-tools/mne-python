@@ -18,6 +18,3 @@ Connectivity Estimation
    phase_slope_index
    seed_target_indices
    spectral_connectivity
-
-
-.. _api_reference_statistics:
