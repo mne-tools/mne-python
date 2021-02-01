@@ -90,6 +90,8 @@ Bugs
 
 - Fix bug with :ref:`mne make_scalp_surfaces` where ``--overwrite`` was not functional (:gh:`8800` by `Yu-Han Luo`_)
 
+- Fix bug with :func:`mne.viz.plot_topomap` when plotting gradiometers with a missing channel in a pair (:gh:`8817` by `Alex Gramfort`_)
+
 API changes
 ~~~~~~~~~~~
 
