@@ -1794,7 +1794,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     - https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOccipitalFlattenedPatch
     - https://openwetware.org/wiki/Beauchamp:FreeSurfer
     """  # noqa: E501
-    from .backends.renderer import _get_3d_backend, set_3d_backend
+    from .backends.renderer import _get_3d_backend, use_3d_backend
     from ..source_estimate import _BaseSourceEstimate, _check_stc_src
     _check_stc_src(stc, src)
     _validate_type(stc, _BaseSourceEstimate, 'stc', 'source estimate')
@@ -1805,19 +1805,12 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                   ['auto', 'matplotlib', 'mayavi', 'pyvista'])
     plot_mpl = backend == 'matplotlib'
     if not plot_mpl:
-        try:
-            if backend == 'auto':
-                set_3d_backend(_get_3d_backend())
-            else:
-                set_3d_backend(backend)
-        except (ImportError, ModuleNotFoundError):
-            if backend == 'auto':
+        if backend == 'auto':
+            try:
+                backend = _get_3d_backend()
+            except (ImportError, ModuleNotFoundError):
                 warn('No 3D backend found. Resorting to matplotlib 3d.')
                 plot_mpl = True
-            else:  # 'mayavi'
-                raise
-        else:
-            backend = _get_3d_backend()
     kwargs = dict(
         subject=subject, surface=surface, hemi=hemi, colormap=colormap,
         time_label=time_label, smoothing_steps=smoothing_steps,
@@ -1827,12 +1820,15 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         transparent=transparent)
     if plot_mpl:
         return _plot_mpl_stc(stc, spacing=spacing, **kwargs)
-    return _plot_stc(
-        stc, overlay_alpha=alpha, brain_alpha=alpha, vector_alpha=alpha,
-        cortex=cortex, foreground=foreground, size=size, scale_factor=None,
-        show_traces=show_traces, src=src, volume_options=volume_options,
-        view_layout=view_layout, add_data_kwargs=add_data_kwargs,
-        brain_kwargs=brain_kwargs, **kwargs)
+    else:
+        with use_3d_backend(backend):
+            return _plot_stc(
+                stc, overlay_alpha=alpha, brain_alpha=alpha,
+                vector_alpha=alpha, cortex=cortex, foreground=foreground,
+                size=size, scale_factor=None, show_traces=show_traces,
+                src=src, volume_options=volume_options,
+                view_layout=view_layout, add_data_kwargs=add_data_kwargs,
+                brain_kwargs=brain_kwargs, **kwargs)
 
 
 def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
