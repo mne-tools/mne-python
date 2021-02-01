@@ -2335,7 +2335,8 @@ class Brain(object):
         scalars = np.zeros(self.geo[hemi].coords.shape[0])
         scalars[ids] = 1
 
-        if self.time_viewer and self.traces_mode == 'label':
+        if self.time_viewer and self.show_traces \
+                and self.traces_mode == 'label':
             stc = self._data["stc"]
             src = self._data["src"]
             tc = stc.extract_label_time_course(label, src=src,
@@ -2383,7 +2384,8 @@ class Brain(object):
             )
             if reset_camera:
                 self._renderer.set_camera(**views_dicts[hemi][v])
-            if self.time_viewer and self.traces_mode == 'label':
+            if self.time_viewer and self.show_traces \
+                    and self.traces_mode == 'label':
                 label._color = orig_color
                 label._line = line
             self._labels[hemi].append(label)
