@@ -178,6 +178,11 @@ def _get_path(path, key, name):
     # 3. get_config('MNE_DATA')
     path = get_config(key, get_config('MNE_DATA'))
     if path is not None:
+        if not op.exists(path):
+            msg = (f"Download location {path} as specified by MNE_DATA does "
+                   f"not exist. Either create this directory manually and try "
+                   f"again, or set MNE_DATA to an existing directory.")
+            raise FileNotFoundError(msg)
         return path
     # 4. ~/mne_data (but use a fake home during testing so we don't
     #    unnecessarily create ~/mne_data)

@@ -245,7 +245,7 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
     else:  # mode == 'field':
         from matplotlib.colors import Normalize
         from mpl_toolkits.mplot3d.art3d import Line3DCollection
-        from mpl_toolkits.mplot3d import axes3d  # noqa: F401, analysis:ignore
+        from mpl_toolkits.mplot3d import Axes3D  # noqa: F401, analysis:ignore
         fig, ax = plt.subplots(1, subplot_kw=dict(projection='3d'))
 
         # First plot the trajectory as a colormap:
@@ -1488,6 +1488,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
                   transparent=True):
     """Plot source estimate using mpl."""
     import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
     from matplotlib import cm
     from matplotlib.widgets import Slider
     import nibabel as nib
@@ -1523,7 +1524,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
 
     time_label, times = _handle_time(time_label, time_unit, stc.times)
     fig = plt.figure(figsize=(6, 6)) if figure is None else figure
-    ax = fig.gca(projection='3d')
+    ax = Axes3D(fig)
     hemi_idx = 0 if hemi == 'lh' else 1
     surf = op.join(subjects_dir, subject, 'surf', '%s.%s' % (hemi, surface))
     if spacing == 'all':
@@ -1859,6 +1860,8 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
     _check_option('hemi', hemi, ['lh', 'rh', 'split', 'both'])
     _check_option('view_layout', view_layout, ('vertical', 'horizontal'))
     time_label, times = _handle_time(time_label, time_unit, stc.times)
+    show_traces, time_viewer = _check_st_tv(
+        show_traces, time_viewer, using_mayavi, times)
 
     # convert control points to locations in colormap
     use = stc.magnitude().data if vec else stc.data
@@ -1994,6 +1997,21 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
     elif need_peeling:
         brain.enable_depth_peeling()
 
+    if time_viewer:
+        if using_mayavi:
+            from surfer import TimeViewer
+            TimeViewer(brain)
+        else:  # PyVista
+            brain.setup_time_viewer(time_viewer=time_viewer,
+                                    show_traces=show_traces)
+    else:
+        if not using_mayavi:
+            brain.show()
+
+    return brain
+
+
+def _check_st_tv(show_traces, time_viewer, using_mayavi, times):
     # time_viewer and show_traces
     _check_option('time_viewer', time_viewer, (True, False, 'auto'))
     _validate_type(show_traces, (str, bool, 'numeric'), 'show_traces')
@@ -2007,26 +2025,15 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
         show_traces = (
             not using_mayavi and
             time_viewer and
-            brain._times is not None and
-            len(brain._times) > 1
+            times is not None and
+            len(times) > 1
         )
     if show_traces and not time_viewer:
         raise ValueError('show_traces cannot be used when time_viewer=False')
     if using_mayavi and show_traces:
         raise NotImplementedError("show_traces=True is not available "
                                   "for the mayavi 3d backend.")
-    if time_viewer:
-        if using_mayavi:
-            from surfer import TimeViewer
-            TimeViewer(brain)
-        else:  # PyVista
-            brain.setup_time_viewer(time_viewer=time_viewer,
-                                    show_traces=show_traces)
-    else:
-        if not using_mayavi:
-            brain.show()
-
-    return brain
+    return show_traces, time_viewer
 
 
 def _glass_brain_crosshairs(params, x, y, z):
@@ -3095,8 +3102,7 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
     dims = len(data)  # Symmetric size assumed.
     dd = dims // 2
     if ax is None:
-        fig = plt.figure()
-        ax = fig.gca(projection='3d')
+        fig, ax = plt.subplots(1, subplot_kw=dict(projection='3d'))
     else:
         _validate_type(ax, Axes3D, "ax", "Axes3D")
         fig = ax.get_figure()

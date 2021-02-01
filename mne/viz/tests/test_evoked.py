@@ -22,7 +22,7 @@ import mne
 from mne import (read_events, Epochs, read_cov, compute_covariance,
                  make_fixed_length_events, compute_proj_evoked)
 from mne.io import read_raw_fif
-from mne.utils import run_tests_if_main, catch_logging, requires_version
+from mne.utils import catch_logging, requires_version
 from mne.viz import plot_compare_evokeds, plot_evoked_white
 from mne.viz.utils import _fake_click
 from mne.datasets import testing
@@ -291,10 +291,11 @@ def test_plot_white():
     evoked.set_eeg_reference('average')  # Avoid warnings
 
     # test rank param.
-    evoked.plot_white(cov, rank={'mag': 101, 'grad': 201, 'eeg': 10},
-                      time_unit='s')
-    fig = evoked.plot_white(cov, rank={'mag': 101}, time_unit='s')  # test rank
-    evoked.plot_white(cov, rank={'grad': 201}, time_unit='s', axes=fig.axes)
+    with pytest.raises(ValueError, match='exceeds'):
+        evoked.plot_white(cov, rank={'mag': 10})
+    evoked.plot_white(cov, rank={'mag': 1, 'grad': 8, 'eeg': 2}, time_unit='s')
+    fig = evoked.plot_white(cov, rank={'mag': 1}, time_unit='s')  # test rank
+    evoked.plot_white(cov, rank={'grad': 8}, time_unit='s', axes=fig.axes)
     with pytest.raises(ValueError, match=r'must have shape \(4,\), got \(2,'):
         evoked.plot_white(cov, axes=fig.axes[:2])
     with pytest.raises(ValueError, match='When not using SSS'):
@@ -310,14 +311,13 @@ def test_plot_white():
         plot_evoked_white(evoked, [cov, cov], axes=axes[:, :1])
 
     # Hack to test plotting of maxfiltered data
-    evoked_sss = evoked.copy()
+    evoked_sss = _get_epochs(picks='meg').average()
     sss = dict(sss_info=dict(in_order=80, components=np.arange(80)))
     evoked_sss.info['proc_history'] = [dict(max_info=sss)]
     evoked_sss.plot_white(cov, rank={'meg': 64})
     with pytest.raises(ValueError, match='When using SSS'):
         evoked_sss.plot_white(cov, rank={'grad': 201})
     evoked_sss.plot_white(cov, time_unit='s')
-    plt.close('all')
 
 
 def test_plot_compare_evokeds():
@@ -508,6 +508,3 @@ def test_plot_ctf():
                       topomap_args={'axes': topo_axes}, title=None)
     midpoints_after = get_axes_midpoints(topo_axes)
     assert (np.linalg.norm(midpoints_before - midpoints_after) < 0.1).all()
-
-
-run_tests_if_main()

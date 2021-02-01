@@ -474,6 +474,10 @@ def test_brain_time_viewer(renderer_interactive, pixel_ratio, brain_gc):
     brain.callbacks["fscale"](value=1.1)
     brain.callbacks["fmin"](value=12.0)
     brain.callbacks["fmid"](value=4.0)
+    brain._shift_time(op=lambda x, y: x + y)
+    brain._shift_time(op=lambda x, y: x - y)
+    brain._rotate_azimuth(15)
+    brain._rotate_elevation(15)
     brain.toggle_interface()
     brain.toggle_interface(value=False)
     brain.callbacks["playback_speed"](value=0.1)
@@ -569,7 +573,8 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
     # test colormap
     if src != 'vector':
         brain = _create_testing_brain(
-            hemi=hemi, surf='white', src=src, show_traces=0.5, initial_time=0,
+            hemi=hemi, surf='white', src=src, show_traces=0.5,
+            initial_time=0,
             volume_options=None,  # for speed, don't upsample
             n_time=1 if src == 'mixed' else 5, diverging=True,
             add_data_kwargs=dict(colorbar_kwargs=dict(n_labels=3)),
@@ -583,7 +588,8 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
 
     # vertex traces
     brain = _create_testing_brain(
-        hemi=hemi, surf='white', src=src, show_traces=0.5, initial_time=0,
+        hemi=hemi, surf='white', src=src, show_traces=0.5,
+        initial_time=0,
         volume_options=None,  # for speed, don't upsample
         n_time=1 if src == 'mixed' else 5,
         add_data_kwargs=dict(colorbar_kwargs=dict(n_labels=3)),
@@ -846,8 +852,8 @@ def test_calculate_lut():
         calculate_lut(colormap, alpha, 1, 0, 2)
 
 
-def _create_testing_brain(hemi, surf='inflated', src='surface', size=300,
-                          n_time=5, diverging=False, **kwargs):
+def _create_testing_brain(hemi, surf='inflated', src='surface',
+                          size=300, n_time=5, diverging=False, **kwargs):
     assert src in ('surface', 'vector', 'mixed', 'volume')
     meth = 'plot'
     if src in ('surface', 'mixed'):

@@ -41,6 +41,9 @@ from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
                       get_subjects_dir)
 
 
+_ARROW_MOVE = 10  # degrees per press
+
+
 @decorator
 def safe_event(fun, *args, **kwargs):
     """Protect against PyQt5 exiting on event-handling errors."""
@@ -169,7 +172,7 @@ class _LayeredMesh(object):
         self.update()
 
     def _update(self):
-        if self._cache is None:
+        if self._cache is None or self._renderer is None:
             return
         self._renderer._set_mesh_scalars(
             mesh=self._polydata,
@@ -418,6 +421,7 @@ class Brain(object):
         self._labels = {'lh': list(), 'rh': list()}
         self._annots = {'lh': list(), 'rh': list()}
         self._layered_meshes = {}
+        self._elevation_rng = [15, 165]  # range of motion of camera on theta
         # default values for silhouette
         self._silhouette = {
             'color': self._bg_color,
@@ -549,6 +553,23 @@ class Brain(object):
 
         show_traces : bool
             If True, enable visualization of time traces. Defaults to True.
+
+        Notes
+        -----
+        The keyboard shortcuts are the following:
+
+        '?': Display help window
+        'i': Toggle interface
+        's': Apply auto-scaling
+        'r': Restore original clim
+        'c': Clear all traces
+        'n': Shift the time forward by the playback speed
+        'b': Shift the time backward by the playback speed
+        'Space': Start/Pause playback
+        'Up': Decrease camera elevation angle
+        'Down': Increase camera elevation angle
+        'Left': Decrease camera azimuth angle
+        'Right': Increase camera azimuth angle
         """
         if self.time_viewer:
             return
@@ -765,11 +786,8 @@ class Brain(object):
 
         # manage time label
         time_label = self._data['time_label']
-        # if we actually have time points, we will show the slider so
-        # hide the time actor
-        have_ts = self._times is not None and len(self._times) > 1
         if self.time_actor is not None:
-            if self.visibility and time_label is not None and not have_ts:
+            if not self.visibility and time_label is not None:
                 self.time_actor.SetInput(time_label(self._current_time))
                 self.time_actor.VisibilityOn()
             else:
@@ -1388,11 +1406,42 @@ class Brain(object):
             self.actions["play"].setShortcut(" ")
             self.actions["help"].setShortcut("?")
 
+    def _shift_time(self, op):
+        self.callbacks["time"](
+            value=(op(self._current_time, self.playback_speed)),
+            time_as_index=False,
+            update_widget=True,
+        )
+
+    def _rotate_azimuth(self, value):
+        azimuth = (self._renderer.figure._azimuth + value) % 360
+        self._renderer.set_camera(azimuth=azimuth, reset_camera=False)
+
+    def _rotate_elevation(self, value):
+        elevation = np.clip(
+            self._renderer.figure._elevation + value,
+            self._elevation_rng[0],
+            self._elevation_rng[1],
+        )
+        self._renderer.set_camera(elevation=elevation, reset_camera=False)
+
     def _configure_shortcuts(self):
+        # First, we remove the default bindings:
+        self.plotter._key_press_event_callbacks.clear()
+        # Then, we add our own:
         self.plotter.add_key_event("i", self.toggle_interface)
         self.plotter.add_key_event("s", self.apply_auto_scaling)
         self.plotter.add_key_event("r", self.restore_user_scaling)
         self.plotter.add_key_event("c", self.clear_glyphs)
+        self.plotter.add_key_event("n", partial(self._shift_time,
+                                   op=lambda x, y: x + y))
+        self.plotter.add_key_event("b", partial(self._shift_time,
+                                   op=lambda x, y: x - y))
+        for key, func, sign in (("Left", self._rotate_azimuth, 1),
+                                ("Right", self._rotate_azimuth, -1),
+                                ("Up", self._rotate_elevation, 1),
+                                ("Down", self._rotate_elevation, -1)):
+            self.plotter.add_key_event(key, partial(func, sign * _ARROW_MOVE))
 
     def _configure_menu(self):
         # remove default picking menu
@@ -1734,7 +1783,13 @@ class Brain(object):
             ('s', 'Apply auto-scaling'),
             ('r', 'Restore original clim'),
             ('c', 'Clear all traces'),
+            ('n', 'Shift the time forward by the playback speed'),
+            ('b', 'Shift the time backward by the playback speed'),
             ('Space', 'Start/Pause playback'),
+            ('Up', 'Decrease camera elevation angle'),
+            ('Down', 'Increase camera elevation angle'),
+            ('Left', 'Decrease camera azimuth angle'),
+            ('Right', 'Increase camera azimuth angle'),
         ]
         text1, text2 = zip(*pairs)
         text1 = '\n'.join(text1)
