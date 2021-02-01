@@ -26,10 +26,14 @@ from mne.io.constants import FIFF
 from mne.preprocessing.maxwell import (
     maxwell_filter, _get_n_moments, _sss_basis_basic, _sh_complex_to_real,
     _sh_real_to_complex, _sh_negate, _bases_complex_to_real, _trans_sss_basis,
-    _bases_real_to_complex, _prep_mf_coils, find_bad_channels_maxwell)
-from mne.rank import _get_rank_sss, _compute_rank_int
+    _bases_real_to_complex, _prep_mf_coils, find_bad_channels_maxwell,
+    info_maxwell_basis)
+from mne.rank import _get_rank_sss, _compute_rank_int, compute_rank
 from mne.utils import (assert_meg_snr, catch_logging,
                        object_diff, buggy_mkl_svd, use_log_level)
+
+io_path = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
+raw_small_fname = op.join(io_path, 'test_raw.fif')
 
 data_path = testing.data_path(download=False)
 sss_path = op.join(data_path, 'SSS')
@@ -1364,3 +1368,28 @@ def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, ignore_ref,
                           min(min_count, len(got_scores['bins'])))
         bads = set(got_scores['ch_names'][ch_idx])
         assert bads == set(want_bads)
+
+
+@pytest.mark.parametrize('regularize, n', [
+    (None, 80),
+    ('in', 71),
+])
+def test_info_maxwell_basis(regularize, n):
+    """Test info_maxwell_basis."""
+    raw = read_raw_fif(raw_small_fname).crop(0, 2)
+    assert raw.info['bads'] == []
+    raw.del_proj()
+    rank = compute_rank(raw)['meg']
+    assert rank == 306
+    raw.info['bads'] = ['MEG 2443']
+    kwargs = dict(regularize=regularize, verbose=True)
+    raw_sss = maxwell_filter(raw, **kwargs)
+    want = raw_sss.get_data('meg')
+    rank = compute_rank(raw_sss)['meg']
+    assert rank == n
+    S, pS, reg_moments, n_use_in = info_maxwell_basis(raw.info, **kwargs)
+    assert n_use_in == n
+    assert n_use_in == len(reg_moments) - 15  # no externals removed
+    xform = S[:, :n_use_in] @ pS[:n_use_in]
+    got = xform @ raw.pick_types(meg=True, exclude='bads').get_data()
+    assert_allclose(got, want)

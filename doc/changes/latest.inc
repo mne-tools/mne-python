@@ -77,6 +77,8 @@ Enhancements
 
 - Add :meth:`annotations.to_data_frame() <mne.Annotations.to_data_frame>` to return annotations as a pandas dataframe (:gh:`8783` by `Robert Luke`_)
 
+- Add :func:`mne.preprocessing.info_maxwell_basis` to compute the SSS basis function (:gh:`8822` by `Eric Larson`_)
+
 - Add the ``silhouette`` parameter to :class:`mne.viz.Brain` to display sharp edges and improve perception (:gh:`8771` by `Guillaume Favelier`_)
 
 - Add warning to :func:`mne.cov.compute_whitener` when an explicit ``rank`` parameter leads to a large increase in condition number (:gh:`8805` by `Eric Larson`_)

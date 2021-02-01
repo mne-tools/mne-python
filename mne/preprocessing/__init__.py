@@ -18,7 +18,8 @@ from .otp import oversampled_temporal_projection
 from ._peak_finder import peak_finder
 from .infomax_ import infomax
 from .stim import fix_stim_artifact
-from .maxwell import maxwell_filter, find_bad_channels_maxwell
+from .maxwell import (maxwell_filter, find_bad_channels_maxwell,
+                      info_maxwell_basis)
 from .realign import realign_raw
 from .xdawn import Xdawn
 from ._csd import compute_current_source_density

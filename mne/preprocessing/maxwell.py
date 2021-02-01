@@ -24,7 +24,7 @@ from ..transforms import (_str_to_frame, _get_trans, Transform, apply_trans,
 from ..forward import _concatenate_coils, _prep_meg_channels, _create_meg_coils
 from ..surface import _normalize_vectors
 from ..io.constants import FIFF, FWD
-from ..io.meas_info import _simplify_info
+from ..io.meas_info import _simplify_info, Info
 from ..io.proc_history import _read_ctc
 from ..io.write import _generate_meas_id, DATE_NONE
 from ..io import (_loc_to_coil_trans, _coil_trans_to_loc, BaseRaw, RawArray,
@@ -2274,3 +2274,69 @@ def _read_cross_talk(cross_talk, ch_names):
         # I have no idea why, but MF transposes this for storage..
         sss_ctc['decoupler'] = sss_ctc['decoupler'].T.tocsc()
     return ctc, sss_ctc
+
+
+@verbose
+def info_maxwell_basis(info, origin='auto', int_order=8, ext_order=3,
+                       calibration=None, coord_frame='head', regularize='in',
+                       ignore_ref=True, bad_condition='error', mag_scale=100.,
+                       extended_proj=(), verbose=None):
+    r"""Compute the SSS basis for a given measurement info structure.
+
+    Parameters
+    ----------
+    info : instance of Info
+        The measurement info.
+    %(maxwell_origin)s
+    %(maxwell_int)s
+    %(maxwell_ext)s
+    %(maxwell_cal)s
+    %(maxwell_coord)s
+    %(maxwell_reg)s
+    %(maxwell_ref)s
+    %(maxwell_cond)s
+    %(maxwell_mag)s
+    %(maxwell_extended)s
+    %(verbose)s
+
+    Returns
+    -------
+    S : ndarray, shape (n_meg, n_moments)
+        The basis that can be used to reconstruct the data.
+    pS : ndarray, shape (n_moments, n_good_meg)
+        The (stabilized) pseudoinverse of the S array.
+    reg_moments : ndarray, shape (n_moments,)
+        The moments that were kept after regularization.
+    n_use_in : int
+        The number of kept moments that were in the internal space.
+
+    Notes
+    -----
+    This outputs variants of :math:`\mathbf{S}` and :math:`\mathbf{S^\dagger}`
+    from equations 27 and 37 of :footcite:`TauluKajola2005` with the coil scale
+    for magnetometers already factored in so that the resulting denoising
+    transform of the data to obtain :math:`\hat{\phi}_{in}` from equation
+    38 would be::
+
+        phi_in = S[:, :n_use_in] @ pS[:n_use_in] @ data_meg_good
+
+    .. versionadded:: 0.23
+
+    References
+    ----------
+    .. footbibliography::
+    """
+    from ..io import RawArray
+    _validate_type(info, Info, 'info')
+    raw = RawArray(np.zeros((len(info['ch_names']), 1)), info.copy(),
+                   verbose=False)
+    logger.info('Computing Maxwell basis')
+    params = _prep_maxwell_filter(
+        raw=raw, origin=origin, int_order=int_order, ext_order=ext_order,
+        calibration=calibration, coord_frame=coord_frame, destination=None,
+        regularize=regularize, ignore_ref=ignore_ref,
+        bad_condition=bad_condition, mag_scale=mag_scale,
+        extended_proj=extended_proj)
+    _, S_decomp_full, pS_decomp, reg_moments, n_use_in = \
+        params['_get_this_decomp_trans'](info['dev_head_t'], t=0.)
+    return S_decomp_full, pS_decomp, reg_moments, n_use_in
