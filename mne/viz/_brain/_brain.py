@@ -172,7 +172,7 @@ class _LayeredMesh(object):
         self.update()
 
     def _update(self):
-        if self._cache is None:
+        if self._cache is None or self._renderer is None:
             return
         self._renderer._set_mesh_scalars(
             mesh=self._polydata,

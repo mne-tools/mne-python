@@ -1004,7 +1004,7 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
     """Plot sensors."""
     from matplotlib import rcParams
     import matplotlib.pyplot as plt
-    from mpl_toolkits.mplot3d import Axes3D
+    from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 analysis:ignore
     from .topomap import _get_pos_outlines, _draw_outlines
     sphere = _check_sphere(sphere, info)
 
@@ -1012,12 +1012,12 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
     edgecolors[bads] = 'red'
     axes_was_none = ax is None
     if axes_was_none:
-        fig = plt.figure(figsize=(max(rcParams['figure.figsize']),) * 2)
+        subplot_kw = dict()
         if kind == '3d':
-            Axes3D(fig)
-            ax = fig.gca(projection='3d')
-        else:
-            ax = fig.add_subplot(111)
+            subplot_kw.update(projection='3d')
+        fig, ax = plt.subplots(
+            1, figsize=(max(rcParams['figure.figsize']),) * 2,
+            subplot_kw=subplot_kw)
     else:
         fig = ax.get_figure()
 
