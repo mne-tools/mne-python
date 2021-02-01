@@ -834,7 +834,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         assert surfs['helmet']['coord_frame'] == FIFF.FIFFV_COORD_MRI
 
     # Brain:
-    brain = np.intersect1d(surfaces, ['brain', 'pial', 'white', 'inflated'])
+    brain = set(surfaces) & set(['brain', 'pial', 'white', 'inflated'])
     if len(brain) > 1:
         raise ValueError('Only one brain surface can be plotted. '
                          'Got %s.' % brain)

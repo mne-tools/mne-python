@@ -208,12 +208,15 @@ def test_parse_annotation(tmpdir):
                                  samp=(len(annot) - 1) // 2,
                                  dtype_byte='This_parameter_is_not_used')
 
+    want_onset, want_duration, want_description = zip(
+        *[[180., 0., 'Lights off'], [180., 0., 'Close door'],
+          [180., 0., 'Lights off'], [180., 0., 'Close door'],
+          [3.14, 4.2, 'nothing'], [1800.2, 25.5, 'Apnea']])
     for tal_channel in [tal_channel_A, tal_channel_B]:
         onset, duration, description = _read_annotations_edf([tal_channel])
-        assert_equal(np.column_stack((onset, duration, description)),
-                     [[180., 0., 'Lights off'], [180., 0., 'Close door'],
-                      [180., 0., 'Lights off'], [180., 0., 'Close door'],
-                      [3.14, 4.2, 'nothing'], [1800.2, 25.5, 'Apnea']])
+        assert_allclose(onset, want_onset)
+        assert_allclose(duration, want_duration)
+        assert description == want_description
 
 
 def test_find_events_backward_compatibility():
