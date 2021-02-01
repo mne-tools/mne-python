@@ -1,5 +1,6 @@
 import inspect
 from inspect import getsource
+import os
 import os.path as op
 from pkgutil import walk_packages
 import re
@@ -275,19 +276,23 @@ def test_documented():
     else:
         public_modules_.append('mne.gui')
 
-    doc_file = op.abspath(op.join(op.dirname(__file__), '..', '..', 'doc',
-                                  'python_reference.rst'))
+    doc_dir = op.abspath(op.join(op.dirname(__file__), '..', '..', 'doc'))
+    api_dir = op.join(doc_dir, 'api')
+    doc_file = op.join(doc_dir, 'python_reference.rst')
     if not op.isfile(doc_file):
         raise SkipTest('Documentation file not found: %s' % doc_file)
     known_names = list()
-    with open(doc_file, 'rb') as fid:
-        for line in fid:
-            line = line.decode('utf-8')
-            if not line.startswith('  '):  # at least two spaces
-                continue
-            line = line.split()
-            if len(line) == 1 and line[0] != ':':
-                known_names.append(line[0].split('.')[-1])
+    for api_file in os.listdir(api_dir):
+        if api_file == 'generated':
+            continue
+        with open(op.join(api_dir, api_file), 'rb') as fid:
+            for line in fid:
+                line = line.decode('utf-8')
+                if not line.startswith('  '):  # at least two spaces
+                    continue
+                line = line.split()
+                if len(line) == 1 and line[0] != ':':
+                    known_names.append(line[0].split('.')[-1])
     known_names = set(known_names)
 
     missing = []
