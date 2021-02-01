@@ -286,6 +286,7 @@ def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
     assert isinstance(brain.labels[label.hemi], list)
     assert 'unnamed' in brain._layered_meshes[label.hemi]._overlays
     brain.remove_labels()
+    assert 'unnamed' not in brain._layered_meshes[label.hemi]._overlays
     brain.add_label(fname_label)
     brain.add_label('V1', borders=True)
     brain.remove_labels()

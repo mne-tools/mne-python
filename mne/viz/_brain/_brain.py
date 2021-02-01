@@ -2115,7 +2115,8 @@ class Brain(object):
         """Remove all the ROI labels from the image."""
         for hemi in self._hemis:
             mesh = self._layered_meshes[hemi]
-            mesh.remove_overlay(self._labels[hemi])
+            for label in self._labels[hemi]:
+                mesh.remove_overlay(label.name)
             self._labels[hemi].clear()
         self._update()
 
@@ -2308,7 +2309,7 @@ class Brain(object):
                 hemi = label.hemi
                 ids = label.vertices
                 if label.name is None:
-                    label_name = 'unnamed'
+                    label_name = label.name = 'unnamed'
                 else:
                     label_name = str(label.name)
 
