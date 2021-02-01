@@ -13,8 +13,9 @@ from .io.pick import (_picks_by_type, pick_info, pick_channels_cov,
                       _picks_to_idx)
 from .io.proj import make_projector
 from .utils import (logger, _compute_row_norms, _pl, _validate_type,
-                    _apply_scaling_cov, _undo_scaling_cov, _check_option,
-                    _scaled_array, warn, _check_rank, _on_missing, verbose)
+                    _apply_scaling_cov, _undo_scaling_cov,
+                    _scaled_array, warn, _check_rank, _on_missing, verbose,
+                    _check_on_missing)
 
 
 @verbose
@@ -318,9 +319,7 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
 
     rank = _check_rank(rank)
     scalings = _handle_default('scalings_cov_rank', scalings)
-    _validate_type(on_rank_mismatch, str, 'on_rank_mismatch')
-    _check_option('on_rank_mismatch', on_rank_mismatch,
-                  ('ignore', 'warn', 'raise'))
+    _check_on_missing(on_rank_mismatch, 'on_rank_mismatch')
 
     if isinstance(inst, Covariance):
         inst_type = 'covariance'

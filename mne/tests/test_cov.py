@@ -95,8 +95,8 @@ def test_cov_mismatch():
         compute_covariance([epochs, epochs_2], on_mismatch='ignore')
         with pytest.raises(RuntimeWarning, match='transform mismatch'):
             compute_covariance([epochs, epochs_2], on_mismatch='warn')
-        pytest.raises(ValueError, compute_covariance, epochs,
-                      on_mismatch='x')
+        with pytest.raises(ValueError, match='Invalid value'):
+            compute_covariance(epochs, on_mismatch='x')
     # This should work
     epochs.info['dev_head_t'] = None
     epochs_2.info['dev_head_t'] = None

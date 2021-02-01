@@ -38,7 +38,8 @@ from .rank import compute_rank
 from .utils import (check_fname, logger, verbose, check_version, _time_mask,
                     warn, copy_function_doc_to_method_doc, _pl,
                     _undo_scaling_cov, _scaled_array, _validate_type,
-                    _check_option, eigh, fill_doc, _on_missing)
+                    _check_option, eigh, fill_doc, _on_missing,
+                    _check_on_missing)
 from . import viz
 
 from .fixes import (BaseEstimator, EmpiricalCovariance, _logdet,
@@ -880,6 +881,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
              'matrix may be inaccurate')
 
     orig = epochs[0].info['dev_head_t']
+    _check_on_missing(on_mismatch, 'on_mismatch')
     for ei, epoch in enumerate(epochs):
         epoch.info._check_consistency()
         if (orig is None) != (epoch.info['dev_head_t'] is None) or \
