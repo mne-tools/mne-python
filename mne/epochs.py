@@ -835,7 +835,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         # Detrend
         if self.detrend is not None:
-            # We explitly detrend just data channels (not EMG, ECG, EOG which
+            # We explicitly detrend just data channels (not EMG, ECG, EOG which
             # are processed by baseline correction)
             use_picks = _pick_data_channels(self.info, exclude=())
             epoch[use_picks] = detrend(epoch[use_picks], self.detrend, axis=1)
