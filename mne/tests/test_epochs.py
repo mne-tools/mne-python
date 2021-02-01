@@ -1384,8 +1384,11 @@ def test_evoked_standard_error(tmpdir):
             assert ave.first == ave2.first
 
 
-def test_reject_epochs():
+def test_reject_epochs(tmpdir):
     """Test of epochs rejection."""
+    tempdir = str(tmpdir)
+    temp_fname = op.join(tempdir, 'test-epo.fif')
+
     raw, events, picks = _get_data()
     events1 = events[events[:, 2] == event_id]
     epochs = Epochs(raw, events1, event_id, tmin, tmax,
@@ -1436,6 +1439,17 @@ def test_reject_epochs():
     assert epochs._is_good_epoch(np.zeros((1, 1))) == (False, ('TOO_SHORT',))
     data = epochs[0].get_data()[0]
     assert epochs._is_good_epoch(data) == (True, None)
+
+    # Check that reject_tmin and reject_tmax are being adjusted for small time
+    # inaccuracies due to sfreq
+    epochs = Epochs(raw=raw, events=events1, event_id=event_id,
+                    tmin=tmin, tmax=tmax, reject_tmin=tmin, reject_tmax=tmax)
+    assert epochs.tmin != tmin
+    assert epochs.tmax != tmax
+    assert np.isclose(epochs.tmin, epochs.reject_tmin)
+    assert np.isclose(epochs.tmax, epochs.reject_tmax)
+    epochs.save(temp_fname, overwrite=True)
+    read_epochs(temp_fname)
 
 
 def test_preload_epochs():
