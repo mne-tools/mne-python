@@ -79,6 +79,12 @@ def _make_xy_sfunc(func, ndim_output=False):
     return sfunc
 
 
+# Violate our assumption that the output is 1D so can't be used.
+# Could eventually be added but probably not worth the effort unless someone
+# requests it.
+_BLOCKLIST = {'somersd'}
+
+
 # makes score funcs attr accessible for users
 def get_score_funcs():
     """Get the score functions.
@@ -92,9 +98,11 @@ def get_score_funcs():
     from scipy.spatial import distance
     score_funcs = Bunch()
     xy_arg_dist_funcs = [(n, f) for n, f in vars(distance).items()
-                         if isfunction(f) and not n.startswith('_')]
+                         if isfunction(f) and not n.startswith('_') and
+                         n not in _BLOCKLIST]
     xy_arg_stats_funcs = [(n, f) for n, f in vars(stats).items()
-                          if isfunction(f) and not n.startswith('_')]
+                          if isfunction(f) and not n.startswith('_') and
+                          n not in _BLOCKLIST]
     score_funcs.update({n: _make_xy_sfunc(f)
                         for n, f in xy_arg_dist_funcs
                         if _get_args(f) == ['u', 'v']})
