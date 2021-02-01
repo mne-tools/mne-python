@@ -1810,8 +1810,7 @@ class Brain(object):
         if trans == 'auto':
             trans = _find_trans(self._subject_id, self._subjects_dir)
         trans = _get_coord_frame_trans('mri', info, trans)
-        meg_trans = trans["meg"]
-        head_trans = trans["head"]
+        head_trans, meg_trans, _ = trans.values()
         del trans
         if meg:
             meg_picks = pick_types(info, meg=True, eeg=False, ref_meg=False)
