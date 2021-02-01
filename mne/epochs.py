@@ -1572,6 +1572,16 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         self._set_times(self.times[tmask])
         self._raw_times = self._raw_times[tmask]
         self._data = self._data[:, :, tmask]
+
+        # Adjust rejection period
+        if self.reject_tmin is not None and self.reject_tmin < self.tmin:
+            warn('reject_tmin is not in epochs time interval. reject_tmin is '
+                 'set to epochs.tmin')
+            self.reject_tmin = self.tmin
+        if self.reject_tmax is not None and self.reject_tmax > self.tmax:
+            warn('reject_tmax is not in epochs time interval. reject_tmax is '
+                 'set to epochs.tmax')
+            self.reject_tmax = self.tmax
         return self
 
     def copy(self):

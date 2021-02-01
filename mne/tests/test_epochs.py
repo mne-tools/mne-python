@@ -1539,8 +1539,11 @@ def test_comparision_with_c():
     assert_array_almost_equal(evoked.times, c_evoked.times, 12)
 
 
-def test_crop():
+def test_crop(tmpdir):
     """Test of crop of epochs."""
+    tempdir = str(tmpdir)
+    temp_fname = op.join(tempdir, 'test-epo.fif')
+
     raw, events, picks = _get_data()
     epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
                     preload=False, reject=reject, flat=flat)
@@ -1598,6 +1601,20 @@ def test_crop():
         pytest.raises(ValueError, epochs.crop, 1000, 2000)
         pytest.raises(ValueError, epochs.crop, 0.1, 0)
 
+    # Test that cropping adjusts reject_tmin and reject_tmax if need be.
+    epochs = Epochs(raw=raw, events=events[:5], event_id=event_id,
+                    tmin=tmin, tmax=tmax, reject_tmin=tmin, reject_tmax=tmax)
+    epochs.load_data()
+    with pytest.warns(RuntimeWarning, match='reject_tmin is not in.*interval'):
+        epochs.copy().crop(0, None)
+    with pytest.warns(RuntimeWarning, match='reject_tmax is not in.*interval'):
+        epochs.copy().crop(None, 0.1)
+
+    # Cropping & I/O roundtrip
+    with pytest.warns(RuntimeWarning, match='not in.*interval'):
+        epochs.crop(0, 0.1)
+    epochs.save(temp_fname)
+    mne.read_epochs(temp_fname)
 
 def test_resample():
     """Test of resample of epochs."""
