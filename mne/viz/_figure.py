@@ -1163,8 +1163,8 @@ class MNEBrowseFigure(MNEFigure):
 
     def _get_annotation_labels(self):
         """Get the unique labels in the raw object and added in the UI."""
-        labels = list(set(self.mne.inst.annotations.description))
-        return np.union1d(labels, self.mne.new_annotation_labels)
+        return sorted(set(self.mne.inst.annotations.description) |
+                      set(self.mne.new_annotation_labels))
 
     def _update_annotation_fig(self):
         """Draw or redraw the radio buttons and annotation labels."""
@@ -1296,16 +1296,13 @@ class MNEBrowseFigure(MNEFigure):
         """Set up colors for annotations; init some annotation vars."""
         raw = self.mne.inst
         segment_colors = getattr(self.mne, 'annotation_segment_colors', dict())
-        # sort the segments by start time
-        ann_order = raw.annotations.onset.argsort(axis=0)
-        descriptions = raw.annotations.description[ann_order]
-        color_keys = np.union1d(descriptions, self.mne.new_annotation_labels)
+        labels = self._get_annotation_labels()
         colors, red = _get_color_list(annotations=True)
         color_cycle = cycle(colors)
         for key, color in segment_colors.items():
-            if color != red and key in color_keys:
+            if color != red and key in labels:
                 next(color_cycle)
-        for idx, key in enumerate(color_keys):
+        for idx, key in enumerate(labels):
             if key in segment_colors:
                 continue
             elif key.lower().startswith('bad') or \
@@ -1315,7 +1312,6 @@ class MNEBrowseFigure(MNEFigure):
                 segment_colors[key] = next(color_cycle)
         self.mne.annotation_segment_colors = segment_colors
         # init a couple other annotation-related variables
-        labels = self._get_annotation_labels()
         self.mne.visible_annotations = {label: True for label in labels}
         self.mne.show_hide_annotation_checkboxes = None
 
