@@ -28,7 +28,7 @@ import itertools
 from .event import find_events
 from .io.base import BaseRaw
 from .io.kit.constants import KIT
-from .io.kit.kit import RawKIT
+from .io.kit.kit import RawKIT as _RawKIT
 from .io.meas_info import _simplify_info
 from .io.pick import (pick_types, pick_channels, pick_channels_regexp,
                       pick_info)
@@ -216,7 +216,7 @@ def extract_chpi_locs_ctf(raw, verbose=None):
 
 
 @verbose
-def extract_chpi_locs_kit(raw, *, stim_channel='MISC 064', verbose=None):
+def extract_chpi_locs_kit(raw, stim_channel='MISC 064', *, verbose=None):
     """Extract cHPI locations from KIT data.
 
     Parameters
@@ -224,7 +224,7 @@ def extract_chpi_locs_kit(raw, *, stim_channel='MISC 064', verbose=None):
     raw : instance of RawKIT
         Raw data with KIT cHPI information.
     stim_channel : str
-        The stimulus channel that contains HPI pulse measurement times.
+        The stimulus channel that encodes HPI measurement intervals.
     %(verbose)s
 
     Returns
@@ -235,7 +235,7 @@ def extract_chpi_locs_kit(raw, *, stim_channel='MISC 064', verbose=None):
     -----
     .. versionadded:: 0.23
     """
-    _validate_type(raw, (RawKIT,), 'raw')
+    _validate_type(raw, (_RawKIT,), 'raw')
     stim_chs = [
         raw.info['ch_names'][pick] for pick in pick_types(
             raw.info, stim=True, misc=True, ref_meg=False)]
@@ -243,15 +243,25 @@ def extract_chpi_locs_kit(raw, *, stim_channel='MISC 064', verbose=None):
     _check_option('stim_channel', stim_channel, stim_chs)
     idx = raw.ch_names.index(stim_channel)
     events_on = find_events(
-        raw, stim_channel=raw.ch_names[idx], output='onset', verbose=False)
+        raw, stim_channel=raw.ch_names[idx], output='onset',
+        verbose=False)[:, 0]
     events_off = find_events(
-        raw, stim_channel=raw.ch_names[idx], output='offset', verbose=False)
-    if events_on[-1, 0] > events_off[-1, 0]:
-        events_on = events_on[:-1]
-    assert events_on.shape == events_off.shape
-    assert (events_on[:, 0] < events_off[:, 0]).all()
+        raw, stim_channel=raw.ch_names[idx], output='offset',
+        verbose=False)[:, 0]
+    bad = False
+    if len(events_on) == 0 or len(events_off) == 0:
+        bad = True
+    else:
+        if events_on[-1] > events_off[-1]:
+            events_on = events_on[:-1]
+        if events_on.size != events_off.size or not \
+                (events_on < events_off).all():
+            bad = True
+    if bad:
+        raise RuntimeError(
+            f'Could not find appropriate cHPI intervals from {stim_channel}')
     # use the midpoint for times
-    times = (events_on[:, 0] + events_off[:, 0]) / (2 * raw.info['sfreq'])
+    times = (events_on + events_off) / (2 * raw.info['sfreq'])
     del events_on, events_off
     # XXX remove first two rows. It is unknown currently if there is a way to
     # determine from the con file the number of initial pulses that
@@ -793,7 +803,7 @@ def compute_head_pos(info, chpi_locs, dist_limit=0.005, gof_limit=0.98,
                  'determine the transformation (%s mm/GOF)!'
                  % (n_good, n_coils,
                     ', '.join(f'{1000 * e:0.1f}::{g:0.2f}'
-                                 for e, g in zip(errs, g_coils))))
+                              for e, g in zip(errs, g_coils))))
             continue
 
         # velocities, in device coords, of HPI coils
