@@ -12,7 +12,6 @@ import glob
 
 import numpy as np
 from copy import deepcopy
-from scipy import linalg
 
 from .fixes import einsum, jit, mean
 from .io.constants import FIFF
@@ -330,9 +329,9 @@ def rotation3d_align_z_axis(target_z_axis):
 
     # assert that r is a rotation matrix r^t * r = I and det(r) = 1
     assert(np.any((r.dot(r.T) - np.identity(3)) < 1E-12))
-    assert((linalg.det(r) - 1.0) < 1E-12)
+    assert((np.linalg.det(r) - 1.0) < 1E-12)
     # assert that r maps [0 0 1] on the device z axis (target_z_axis)
-    assert(linalg.norm(target_z_axis - r.dot([0, 0, 1])) < 1e-12)
+    assert(np.linalg.norm(target_z_axis - r.dot([0, 0, 1])) < 1e-12)
 
     return r
 
@@ -587,7 +586,7 @@ def invert_transform(trans):
     inv_trans : dict
         Inverse transform.
     """
-    return Transform(trans['to'], trans['from'], linalg.inv(trans['trans']))
+    return Transform(trans['to'], trans['from'], np.linalg.inv(trans['trans']))
 
 
 def transform_surface_to(surf, dest, trans, copy=False):
@@ -660,12 +659,12 @@ def get_ras_to_neuromag_trans(nasion, lpa, rpa):
                              "arrays of length 3.")
 
     right = rpa - lpa
-    right_unit = right / linalg.norm(right)
+    right_unit = right / np.linalg.norm(right)
 
     origin = lpa + np.dot(nasion - lpa, right_unit) * right_unit
 
     anterior = nasion - origin
-    anterior_unit = anterior / linalg.norm(anterior)
+    anterior_unit = anterior / np.linalg.norm(anterior)
 
     superior_unit = np.cross(right_unit, anterior_unit)
 
@@ -912,6 +911,7 @@ class _TPSWarp(object):
     """
 
     def fit(self, source, destination, reg=1e-3):
+        from scipy import linalg
         from scipy.spatial.distance import cdist
         assert source.shape[1] == destination.shape[1] == 3
         assert source.shape[0] == destination.shape[0]
@@ -1040,6 +1040,7 @@ class _SphericalSurfaceWarp(object):
         inst : instance of SphericalSurfaceWarp
             The warping object (for chaining).
         """
+        from scipy import linalg
         from .bem import _fit_sphere
         from .source_space import _check_spacing
         match_rr = _check_spacing(match, verbose=False)[2]['rr']
@@ -1383,6 +1384,7 @@ def _fit_matched_points(p, x, weights=None, scale=False):
 
 def _average_quats(quats, weights=None):
     """Average unit quaternions properly."""
+    from scipy import linalg
     assert quats.ndim == 2 and quats.shape[1] in (3, 4)
     if weights is None:
         weights = np.ones(quats.shape[0])

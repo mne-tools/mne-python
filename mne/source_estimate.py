@@ -11,13 +11,12 @@ import os.path as op
 from types import GeneratorType
 
 import numpy as np
-from scipy import linalg, sparse
-from scipy.sparse import coo_matrix, block_diag as sparse_block_diag
 
 from .baseline import rescale
 from .cov import Covariance
 from .evoked import _get_peak
 from .filter import resample
+from .fixes import _safe_svd
 from .io.constants import FIFF
 from .surface import (read_surface, _get_ico_surface, mesh_edges,
                       _project_onto_surface)
@@ -2643,6 +2642,7 @@ def spatio_temporal_tris_adjacency(tris, n_times, remap_vertices=False,
         vertices are time 1, the nodes from 2 to 2N are the vertices
         during time 2, etc.
     """
+    from scipy import sparse
     if remap_vertices:
         logger.info('Reassigning vertex indices.')
         tris = np.searchsorted(np.unique(tris), tris)
@@ -2679,6 +2679,7 @@ def spatio_temporal_dist_adjacency(src, n_times, dist, verbose=None):
         vertices are time 1, the nodes from 2 to 2N are the vertices
         during time 2, etc.
     """
+    from scipy.sparse import block_diag as sparse_block_diag
     if src[0]['dist'] is None:
         raise RuntimeError('src must have distances included, consider using '
                            'setup_source_space with add_dist=True')
@@ -2787,6 +2788,7 @@ def spatial_inter_hemi_adjacency(src, dist, verbose=None):
         existing intra-hemispheric adjacency matrix, e.g. computed
         using geodesic distances.
     """
+    from scipy import sparse
     from scipy.spatial.distance import cdist
     src = _ensure_src(src, kind='surface')
     adj = cdist(src[0]['rr'][src[0]['vertno']],
@@ -2801,6 +2803,7 @@ def spatial_inter_hemi_adjacency(src, dist, verbose=None):
 @verbose
 def _get_adjacency_from_edges(edges, n_times, verbose=None):
     """Given edges sparse matrix, create adjacency matrix."""
+    from scipy.sparse import coo_matrix
     n_vertices = edges.shape[0]
     logger.info("-- number of adjacent vertices : %d" % n_vertices)
     nnz = edges.col.size
@@ -2832,11 +2835,11 @@ def _get_ico_tris(grade, verbose=None, return_surf=False):
 
 
 def _pca_flip(flip, data):
-    U, s, V = linalg.svd(data, full_matrices=False)
+    U, s, V = _safe_svd(data, full_matrices=False)
     # determine sign-flip
     sign = np.sign(np.dot(U[:, 0], flip))
     # use average power in label for scaling
-    scale = linalg.norm(s) / np.sqrt(len(data))
+    scale = np.linalg.norm(s) / np.sqrt(len(data))
     return sign * scale * V[0]
 
 
@@ -2878,6 +2881,7 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
     # of vol src space.
     # If stc=None (i.e. no activation time courses provided) and mode='mean',
     # only computes vertex indices and label_flip will be list of None.
+    from scipy import sparse
     from .label import label_sign_flip, Label, BiHemiLabel
 
     # if source estimate provided in stc, get vertices from source space and
@@ -3069,6 +3073,7 @@ def _gen_extract_label_time_course(stcs, labels, src, *, mode='mean',
                                    allow_empty=False,
                                    mri_resolution=True, verbose=None):
     # loop through source estimates and extract time series
+    from scipy import sparse
     if src is None and mode in ['mean', 'max']:
         kind = 'surface'
     else:

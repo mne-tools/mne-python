@@ -4,10 +4,10 @@
 # License: BSD (3-clause)
 
 import numpy as np
-from scipy import linalg
 
 from ..epochs import Epochs, make_fixed_length_events
 from ..evoked import EvokedArray
+from ..fixes import _safe_svd
 from ..io.constants import FIFF
 from ..io.pick import pick_info
 from ..source_estimate import _make_stc
@@ -48,7 +48,7 @@ def _prepare_source_params(inst, inverse_operator, label=None,
         inv, label, method, pick_ori, use_cps=use_cps)
 
     if pca:
-        U, s, Vh = linalg.svd(K, full_matrices=False)
+        U, s, Vh = _safe_svd(K, full_matrices=False)
         rank = np.sum(s > 1e-8 * s[0])
         K = s[:rank] * U[:, :rank]
         Vh = Vh[:rank]

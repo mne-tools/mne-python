@@ -22,7 +22,6 @@
 from functools import partial
 
 import numpy as np
-from scipy import linalg
 import itertools
 
 from .io.base import BaseRaw
@@ -487,7 +486,7 @@ def _setup_hpi_amplitude_fitting(info, t_window, remove_aliased=False,
     model += [np.sin(l_t), np.cos(l_t)]  # line freqs
     model += [slope, np.ones(slope.shape)]
     model = np.concatenate(model, axis=1)
-    inv_model = linalg.pinv(model)
+    inv_model = np.linalg.pinv(model)
     inv_model_reord = _reorder_inv_model(inv_model, len(hpi_freqs))
     proj, proj_op, meg_picks = _setup_ext_proj(info, ext_order)
 
@@ -508,6 +507,7 @@ def _reorder_inv_model(inv_model, n_freqs):
 
 
 def _setup_ext_proj(info, ext_order):
+    from scipy import linalg
     meg_picks = pick_types(info, meg=True, eeg=False, exclude='bads')
     info = pick_info(_simplify_info(info), meg_picks)  # makes a copy
     _, _, _, _, mag_or_fine = _get_mf_picks_fix_mags(
@@ -1095,7 +1095,7 @@ def filter_chpi(raw, include_line=True, t_step=0.01, t_window='auto',
             this_recon = recon
         else:  # first or last window
             model = hpi['model'][:this_len]
-            inv_model = linalg.pinv(model)
+            inv_model = np.linalg.pinv(model)
             this_recon = np.dot(model[:, :n_remove], inv_model[:n_remove]).T
         this_data = raw._data[meg_picks, time_sl]
         subt_pt = min(midpt + n_step, n_times)

@@ -12,8 +12,8 @@ import copy as cp
 import re
 
 import numpy as np
-from scipy import linalg, sparse
 
+from .fixes import _safe_svd
 from .parallel import parallel_func, check_n_jobs
 from .source_estimate import (SourceEstimate, VolSourceEstimate,
                               _center_of_mass, extract_label_time_course,
@@ -1150,6 +1150,7 @@ def split_label(label, parts=2, subject=None, subjects_dir=None,
     projecting all label vertex coordinates onto this axis and dividing them at
     regular spatial intervals.
     """
+    from scipy import linalg
     label, subject, subjects_dir = _prep_label_split(label, subject,
                                                      subjects_dir)
 
@@ -1282,7 +1283,7 @@ def label_sign_flip(label, src):
     if len(ori) == 0:
         return np.array([], int)
 
-    _, _, Vh = linalg.svd(ori, full_matrices=False)
+    _, _, Vh = _safe_svd(ori, full_matrices=False)
 
     # The sign of Vh is ambiguous, so we should align to the max-positive
     # (outward) direction
@@ -2265,6 +2266,7 @@ def _check_values_labels(values, n_labels):
 
 
 def _labels_to_stc_surf(labels, values, tmin, tstep, subject):
+    from scipy import sparse
     subject = _check_labels_subject(labels, subject, 'subject')
     _check_values_labels(values, len(labels))
     vertices = dict(lh=[], rh=[])

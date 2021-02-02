@@ -11,7 +11,6 @@ from math import log
 import os
 
 import numpy as np
-from scipy import linalg, sparse
 
 from .defaults import _EXTRAPOLATE_DEFAULT, _BORDER_DEFAULT, DEFAULTS
 from .io.write import start_file, end_file
@@ -42,7 +41,7 @@ from .utils import (check_fname, logger, verbose, check_version, _time_mask,
                     _check_on_missing)
 from . import viz
 
-from .fixes import (BaseEstimator, EmpiricalCovariance, _logdet,
+from .fixes import (BaseEstimator, EmpiricalCovariance, _logdet, _safe_svd,
                     empirical_covariance, log_likelihood)
 
 
@@ -1711,7 +1710,7 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
                 P, ncomp, _ = make_projector(projs, this_ch_names)
                 if ncomp > 0:
                     # This adjustment ends up being redundant if rank is None:
-                    U = linalg.svd(P)[0][:, :-ncomp]
+                    U = _safe_svd(P)[0][:, :-ncomp]
                     logger.info('    Created an SSP operator for %s '
                                 '(dimension = %d)' % (desc, ncomp))
         else:
@@ -1934,6 +1933,7 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=None, rank=None,
 def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
     """Read a noise covariance matrix."""
     #   Find all covariance matrices
+    from scipy import sparse
     covs = dir_tree_find(node, FIFF.FIFFB_MNE_COV)
     if len(covs) == 0:
         raise ValueError('No covariance matrices found')

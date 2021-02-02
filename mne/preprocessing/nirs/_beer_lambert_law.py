@@ -7,7 +7,6 @@
 import os.path as op
 
 import numpy as np
-from scipy import linalg
 
 from ...io import BaseRaw
 from ...io.constants import FIFF
@@ -42,7 +41,7 @@ def beer_lambert_law(raw, ppf=0.1):
     for ii in picks[::2]:
 
         EL = abs_coef * distances[ii] * ppf
-        iEL = linalg.pinv(EL)
+        iEL = np.linalg.pinv(EL)
 
         raw._data[[ii, ii + 1]] = iEL @ raw._data[[ii, ii + 1]] * 1e-3
 

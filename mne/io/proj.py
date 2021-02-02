@@ -10,7 +10,6 @@ from itertools import count
 from math import sqrt
 
 import numpy as np
-from scipy import linalg
 
 from .tree import dir_tree_find
 from .tag import find_tag
@@ -19,6 +18,7 @@ from .pick import pick_types, pick_info
 from .write import (write_int, write_float, write_string, write_name_list,
                     write_float_matrix, end_block, start_block)
 from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT
+from ..fixes import _safe_svd
 from ..utils import logger, verbose, warn, fill_doc, _validate_type
 
 
@@ -635,7 +635,7 @@ def _make_projector(projs, ch_names, bads=(), include_active=True,
         return default_return
 
     # Reorthogonalize the vectors
-    U, S, V = linalg.svd(vecs[:, :nvec], full_matrices=False)
+    U, S, V = _safe_svd(vecs[:, :nvec], full_matrices=False)
 
     # Throw away the linearly dependent guys
     nproj = np.sum((S / S[0]) > 1e-2)

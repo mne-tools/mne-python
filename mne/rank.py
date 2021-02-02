@@ -5,7 +5,6 @@
 # License: BSD (3-clause)
 
 import numpy as np
-from scipy import linalg
 
 from .defaults import _handle_default
 from .io.meas_info import _simplify_info
@@ -52,7 +51,7 @@ def estimate_rank(data, tol='auto', return_singular=False, norm=True,
         data = data.copy()  # operate on a copy
         norms = _compute_row_norms(data)
         data /= norms[:, np.newaxis]
-    s = linalg.svdvals(data)
+    s = np.linalg.svd(data, compute_uv=False)
     rank = _estimate_rank_from_s(s, tol, tol_kind)
     if return_singular is True:
         return rank, s

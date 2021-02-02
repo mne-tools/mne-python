@@ -16,7 +16,6 @@ import shutil
 from copy import deepcopy
 
 import numpy as np
-from scipy import linalg
 
 from .io.constants import FIFF, FWD
 from .io._digitization import _dig_kind_dict, _dig_kind_rev, _dig_kind_ints
@@ -33,7 +32,7 @@ from .transforms import _ensure_trans, apply_trans, Transform
 from .utils import (verbose, logger, run_subprocess, get_subjects_dir, warn,
                     _pl, _validate_type, _TempDir, _check_freesurfer_home,
                     _check_fname, has_nibabel, _check_option)
-from .fixes import einsum
+from .fixes import einsum, _safe_svd
 from .externals.h5io import write_hdf5, read_hdf5
 
 
@@ -228,7 +227,7 @@ def _fwd_bem_multi_solution(solids, gamma, nps):
             slice_k = slice(offsets[si_2], offsets[si_2 + 1])
             solids[slice_j, slice_k] = defl - solids[slice_j, slice_k] * mult
     solids += np.eye(n_tot)
-    return linalg.inv(solids, overwrite_a=True)
+    return np.linalg.inv(solids)
 
 
 def _fwd_bem_homog_solution(solids, nps):
@@ -641,7 +640,7 @@ def _compose_linear_fitting_data(mu, u):
     # model matrix
     M = u['w'][:-1, np.newaxis] * (mu[1:] ** k1[:, np.newaxis] -
                                    mu1ns[:, np.newaxis])
-    uu, sing, vv = linalg.svd(M, full_matrices=False)
+    uu, sing, vv = _safe_svd(M, full_matrices=False)
     ncomp = u['nfit'] - 1
     uu, sing, vv = uu[:, :ncomp], sing[:ncomp], vv[:ncomp]
     return y, uu, sing, vv

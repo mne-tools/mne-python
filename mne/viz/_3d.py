@@ -18,7 +18,6 @@ from collections.abc import Iterable
 from functools import partial
 
 import numpy as np
-from scipy import linalg
 
 from ..defaults import DEFAULTS
 from ..fixes import einsum, _crop_colorbar, _get_img_fdata, _get_args
@@ -2043,7 +2042,7 @@ def _glass_brain_crosshairs(params, x, y, z):
 
 
 def _cut_coords_to_ijk(cut_coords, img):
-    ijk = apply_trans(linalg.inv(img.affine), cut_coords)
+    ijk = apply_trans(np.linalg.inv(img.affine), cut_coords)
     ijk = np.clip(np.round(ijk).astype(int), 0, np.array(img.shape[:3]) - 1)
     return ijk
 
@@ -3034,7 +3033,7 @@ def plot_sensors_connectivity(info, con, picks=None):
     con_nodes = list()
     con_val = list()
     for i, j in zip(ii, jj):
-        if linalg.norm(sens_loc[i] - sens_loc[j]) > min_dist:
+        if np.linalg.norm(sens_loc[i] - sens_loc[j]) > min_dist:
             con_nodes.append((i, j))
             con_val.append(con[i, j])
 

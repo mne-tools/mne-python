@@ -14,7 +14,6 @@ from math import sin, cos
 from os import SEEK_CUR, path as op
 
 import numpy as np
-from scipy import linalg
 
 from ..pick import pick_types
 from ...utils import (verbose, logger, warn, fill_doc, _check_option,
@@ -790,7 +789,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
             y = sin(theta) * sin(phi)
             z = cos(theta)
             vec_z = np.array([x, y, z])
-            vec_z /= linalg.norm(vec_z)
+            vec_z /= np.linalg.norm(vec_z)
             vec_x = np.zeros(vec_z.size, dtype=np.float64)
             if vec_z[1] < vec_z[2]:
                 if vec_z[0] < vec_z[1]:
@@ -802,7 +801,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
             else:
                 vec_x[2] = 1.0
             vec_x -= np.sum(vec_x * vec_z) * vec_z
-            vec_x /= linalg.norm(vec_x)
+            vec_x /= np.linalg.norm(vec_x)
             vec_y = np.cross(vec_z, vec_x)
             # transform to Neuromag like coordinate space
             vecs = np.vstack((ch['loc'][:3], vec_x, vec_y, vec_z))

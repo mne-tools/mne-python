@@ -12,7 +12,6 @@ from math import factorial
 from os import path as op
 
 import numpy as np
-from scipy import linalg
 
 from .. import __version__
 from ..annotations import _annotations_starts_stops
@@ -33,7 +32,7 @@ from ..io import (_loc_to_coil_trans, _coil_trans_to_loc, BaseRaw, RawArray,
 from ..io.pick import pick_types, pick_info
 from ..utils import (verbose, logger, _clean_names, warn, _time_mask, _pl,
                      _check_option, _ensure_int, _validate_type, use_log_level)
-from ..fixes import _get_args, _safe_svd, einsum, bincount
+from ..fixes import _safe_svd, einsum, bincount
 from ..channels.channels import _get_T1T2_mag_inds, fix_mag_coil_types
 
 
@@ -840,6 +839,7 @@ def _get_decomp(trans, all_coils, cal, regularize, exp, ignore_ref,
                 coil_scale, grad_picks, mag_picks, good_mask, mag_or_fine,
                 bad_condition, t, mag_scale):
     """Get a decomposition matrix and pseudoinverse matrices."""
+    from scipy import linalg
     #
     # Fine calibration processing (point-like magnetometers and calib. coeffs)
     #
@@ -1545,9 +1545,7 @@ def _reset_meg_bads(info):
                     if info['ch_names'].index(bad) not in meg_picks]
 
 
-check_disable = dict()  # not available on really old versions of SciPy
-if 'check_finite' in _get_args(linalg.svd):
-    check_disable['check_finite'] = False
+check_disable = dict(check_finite=False)
 
 
 def _orth_overwrite(A):
@@ -1576,6 +1574,7 @@ def _overlap_projector(data_int, data_res, corr):
     # computation
 
     # we use np.linalg.norm instead of sp.linalg.norm here: ~2x faster!
+    from scipy import linalg
     n = np.linalg.norm(data_int)
     n = 1. if n == 0 else n  # all-zero data should gracefully continue
     data_int = _orth_overwrite((data_int / n).T)

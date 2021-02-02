@@ -7,7 +7,6 @@
 import numbers
 
 import numpy as np
-from scipy import linalg
 
 from .base import get_coef, BaseEstimator, _check_estimator
 from .time_delaying_ridge import TimeDelayingRidge
@@ -244,7 +243,7 @@ class ReceptiveField(BaseEstimator):
             # Inverse output covariance
             if y.ndim == 2 and y.shape[1] != 1:
                 y = y - y.mean(0, keepdims=True)
-                inv_Y = linalg.pinv(np.cov(y.T))
+                inv_Y = np.linalg.pinv(np.cov(y.T))
             else:
                 inv_Y = 1. / float(n_times * n_epochs - 1)
             del y

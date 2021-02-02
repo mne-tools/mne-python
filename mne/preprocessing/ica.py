@@ -17,7 +17,6 @@ import os
 import json
 
 import numpy as np
-from scipy import linalg
 
 from .ecg import (qrs_detector, _get_ecg_channel_index, _make_ecg,
                   create_ecg_epochs)
@@ -764,6 +763,7 @@ class ICA(ContainsMixin):
         self.current_fit = fit_type
 
     def _update_mixing_matrix(self):
+        from scipy import linalg
         self.mixing_matrix_ = linalg.pinv(self.unmixing_matrix_)
 
     def _update_ica_names(self):
@@ -1695,7 +1695,7 @@ class ICA(ContainsMixin):
         if self.noise_cov is None:  # revert standardization
             data *= self.pre_whitener_
         else:
-            data = np.dot(linalg.pinv(self.pre_whitener_, cond=1e-14), data)
+            data = np.linalg.pinv(self.pre_whitener_, rcond=1e-14) @ data
 
         return data
 
@@ -2692,6 +2692,7 @@ def read_ica_eeglab(fname, *, verbose=None):
     ica : instance of ICA
         An ICA object based on the information contained in the input file.
     """
+    from scipy import linalg
     eeg = _check_load_mat(fname, None)
     info, eeg_montage, _ = _get_info(eeg)
     info.set_montage(eeg_montage)

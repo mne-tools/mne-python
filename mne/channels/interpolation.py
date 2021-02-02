@@ -4,7 +4,6 @@
 
 import numpy as np
 from numpy.polynomial.legendre import legval
-from scipy import linalg
 
 from ..utils import logger, warn, verbose
 from ..io.meas_info import _simplify_info
@@ -105,7 +104,7 @@ def _make_interpolation_matrix(pos_from, pos_to, alpha=1e-5):
 
     C = np.vstack([np.hstack([G_from, np.ones((n_from, 1))]),
                    np.hstack([np.ones((1, n_from)), [[0]]])])
-    C_inv = linalg.pinv(C)
+    C_inv = np.linalg.pinv(C)
 
     interpolation = np.hstack([G_to_from, np.ones((n_to, 1))]) @ C_inv[:, :-1]
     assert interpolation.shape == (n_to, n_from)

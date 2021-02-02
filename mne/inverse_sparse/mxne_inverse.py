@@ -4,11 +4,11 @@
 # License: Simplified BSD
 
 import numpy as np
-from scipy import linalg
 
 from ..source_estimate import SourceEstimate, _BaseSourceEstimate, _make_stc
 from ..minimum_norm.inverse import (combine_xyz, _prepare_forward,
                                     _check_reference, _log_exp_var)
+from ..fixes import _safe_svd
 from ..forward import is_fixed_orient
 from ..io.pick import pick_channels_evoked
 from ..io.proj import deactivate_proj
@@ -406,7 +406,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
     M = np.dot(whitener, M)
 
     if time_pca:
-        U, s, Vh = linalg.svd(M, full_matrices=False)
+        U, s, Vh = _safe_svd(M, full_matrices=False)
         if not isinstance(time_pca, bool) and isinstance(time_pca, int):
             U = U[:, :time_pca]
             s = s[:time_pca]

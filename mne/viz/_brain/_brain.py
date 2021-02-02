@@ -18,7 +18,6 @@ import traceback
 import warnings
 
 import numpy as np
-from scipy import sparse
 from collections import OrderedDict
 
 from .colormap import calculate_lut
@@ -1173,6 +1172,7 @@ class Brain(object):
 
     def _configure_picking(self):
         # get data for each hemi
+        from scipy import sparse
         for idx, hemi in enumerate(['vol', 'lh', 'rh']):
             hemi_data = self._data.get(hemi)
             if hemi_data is not None:
@@ -2813,6 +2813,7 @@ class Brain(object):
         n_steps : int
             Number of smoothing steps.
         """
+        from scipy import sparse
         from ...morph import _hemi_morph
         for hemi in ['lh', 'rh']:
             hemi_data = self._data.get(hemi)
