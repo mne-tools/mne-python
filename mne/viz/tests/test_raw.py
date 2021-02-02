@@ -541,7 +541,7 @@ def test_plot_annotations(raw):
 
 @pytest.mark.parametrize('hide_which', (0, 1))
 def test_remove_annotations(raw, hide_which):
-    # test right-click doesn't remove hidden annotation spans
+    """Test that right-click doesn't remove hidden annotation spans."""
     ann = Annotations(onset=[2, 1], duration=[1, 3],
                       description=['foo', 'bar'])
     raw.set_annotations(ann)
