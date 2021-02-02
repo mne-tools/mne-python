@@ -172,7 +172,7 @@ class _LayeredMesh(object):
         self.update()
 
     def _update(self):
-        if self._cache is None:
+        if self._cache is None or self._renderer is None:
             return
         self._renderer._set_mesh_scalars(
             mesh=self._polydata,
@@ -419,6 +419,7 @@ class Brain(object):
         self._vertex_to_label_id = dict()
         self._annotation_labels = dict()
         self._labels = {'lh': list(), 'rh': list()}
+        self._unnamed_label_id = 0  # can only grow
         self._annots = {'lh': list(), 'rh': list()}
         self._layered_meshes = {}
         self._elevation_rng = [15, 165]  # range of motion of camera on theta
@@ -2115,7 +2116,8 @@ class Brain(object):
         """Remove all the ROI labels from the image."""
         for hemi in self._hemis:
             mesh = self._layered_meshes[hemi]
-            mesh.remove_overlay(self._labels[hemi])
+            for label in self._labels[hemi]:
+                mesh.remove_overlay(label.name)
             self._labels[hemi].clear()
         self._update()
 
@@ -2308,9 +2310,9 @@ class Brain(object):
                 hemi = label.hemi
                 ids = label.vertices
                 if label.name is None:
-                    label_name = 'unnamed'
-                else:
-                    label_name = str(label.name)
+                    label.name = 'unnamed' + str(self._unnamed_label_id)
+                    self._unnamed_label_id += 1
+                label_name = str(label.name)
 
                 if color is None:
                     if hasattr(label, 'color') and label.color is not None:
@@ -2334,7 +2336,8 @@ class Brain(object):
         scalars = np.zeros(self.geo[hemi].coords.shape[0])
         scalars[ids] = 1
 
-        if self.time_viewer and self.show_traces:
+        if self.time_viewer and self.show_traces \
+                and self.traces_mode == 'label':
             stc = self._data["stc"]
             src = self._data["src"]
             tc = stc.extract_label_time_course(label, src=src,
@@ -2382,7 +2385,8 @@ class Brain(object):
             )
             if reset_camera:
                 self._renderer.set_camera(**views_dicts[hemi][v])
-            if self.time_viewer and self.traces_mode == 'label':
+            if self.time_viewer and self.show_traces \
+                    and self.traces_mode == 'label':
                 label._color = orig_color
                 label._line = line
             self._labels[hemi].append(label)

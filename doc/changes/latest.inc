@@ -16,6 +16,8 @@ Current (0.23.dev0)
 
 .. |Richard Koehler| replace:: **Richard Koehler**
 
+.. |Andres Rodriguez| replace:: **Andres Rodriguez**
+
 Enhancements
 ~~~~~~~~~~~~
 - Add dbs as new channel type for deep brain stimulation (DBS) recordings (:gh:`8739` **by new contributor** |Richard Koehler|_)
@@ -27,6 +29,8 @@ Enhancements
 - Add infant template MRI dataset downloader :func:`mne.datasets.fetch_infant_template` (:gh:`8738` by `Eric Larson`_ and `Christian O'Reilly`_)
 
 - Add digitizer information to :func:`mne.io.read_raw_egi` (:gh:`8789` by `Christian Brodbeck`_)
+
+- Allow reading digitization from files other than ``*.fif`` in the coregistration GUI (:gh:`8790` by `Christian Brodbeck`_)
 
 - Speed up :func:`mne.inverse_sparse.tf_mixed_norm` using STFT/ISTFT linearity (:gh:`8697` by `Eric Larson`_)
 
@@ -46,12 +50,16 @@ Enhancements
 
 - Add the ``silhouette`` parameter to :class:`mne.viz.Brain` to display sharp edges and improve perception (:gh:`8771` by `Guillaume Favelier`_)
 
+- Add warning to :func:`mne.cov.compute_whitener` when an explicit ``rank`` parameter leads to a large increase in condition number (:gh:`8805` by `Eric Larson`_)
+
 - Add parameter ``align=True`` to `mne.viz.Brain.show_view` to make views relative to the closest canonical (MNI) axes rather than the native MRI surface RAS coordinates (:gh:`8794` by `Eric Larson`_)
 
 - Add ``auto_close`` to `mne.Report.add_figs_to_section` and `mne.Report.add_slider_to_section` to manage closing figures (:gh`8730` by `Guillaume Favelier`_)
 
 Bugs
 ~~~~
+- Fix bugs with `mne.io.read_raw_persyst` where multiple ``Comments`` with the same name are allowed, and ``Comments`` with a "," character are now allowed (:gh:`8311` and :gh:`8806` **by new contributor** |Andres Rodriguez|_ and `Adam Li`_)
+
 - Fix zen mode and scalebar toggling for :meth:`raw.plot() <mne.io.Raw.plot>` when using the ``macosx`` matplotlib backend (:gh:`8688` by `Daniel McCloy`_)
 
 - Fix bug with :func:`mne.preprocessing.maxwell_filter` where the eSSS basis had to exactly match the good channels instead of being a superset (:gh:`8675` by `Eric Larson`_)
@@ -89,6 +97,12 @@ Bugs
 - `mne.viz.plot_evoked` and `mne.Evoked.plot` now correctly plot global field power (GFP) for EEG data when ``gfp=True`` or ``gfp='only'`` is passed (used to plot RMS). For MEG data, we continue to plot the RMS, but now label it correctly as such (:gh:`8775` by `Richard Höchenberger`_)
 
 - Fix bug with :ref:`mne make_scalp_surfaces` where ``--overwrite`` was not functional (:gh:`8800` by `Yu-Han Luo`_)
+
+- Fix bug with :func:`mne.viz.plot_topomap` when plotting gradiometers with a missing channel in a pair (:gh:`8817` by `Alex Gramfort`_)
+
+- :meth:`epochs.crop() <mne.Epochs.crop>` now also adjusts the ``reject_tmin`` and ``reject_tmax`` attributes if necessary (:gh:`8821` by `Richard Höchenberger`_)
+
+- When creating `~mne.Epochs`, we now ensure that ``reject_tmin`` and ``reject_tmax`` cannot fall outside of the epochs' time interval anymore (:gh:`8821` by `Richard Höchenberger`_)
 
 API changes
 ~~~~~~~~~~~

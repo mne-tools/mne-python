@@ -478,20 +478,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             self.metadata = metadata
             # do not set self.events here, let subclass do it
 
-        # check reject_tmin and reject_tmax
-        if (reject_tmin is not None) and (reject_tmin < tmin):
-            raise ValueError("reject_tmin needs to be None or >= tmin")
-        if (reject_tmax is not None) and (reject_tmax > tmax):
-            raise ValueError("reject_tmax needs to be None or <= tmax")
-        if (reject_tmin is not None) and (reject_tmax is not None):
-            if reject_tmin >= reject_tmax:
-                raise ValueError('reject_tmin needs to be < reject_tmax')
         if (detrend not in [None, 0, 1]) or isinstance(detrend, bool):
             raise ValueError('detrend must be None, 0, or 1')
-
-        self.reject_tmin = reject_tmin
-        self.reject_tmax = reject_tmax
         self.detrend = detrend
+
         self._raw = raw
         info._check_consistency()
         self.picks = _picks_to_idx(info, picks, none='all', exclude=(),
@@ -526,6 +516,33 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         self._raw_times = np.arange(start_idx,
                                     int(round(tmax * sfreq)) + 1) / sfreq
         self._set_times(self._raw_times)
+
+        # check reject_tmin and reject_tmax
+        if reject_tmin is not None:
+            if (np.isclose(reject_tmin, tmin)):
+                # adjust for potential small deviations due to sampling freq
+                reject_tmin = self.tmin
+            elif reject_tmin < tmin:
+                raise ValueError(f'reject_tmin needs to be None or >= tmin '
+                                 f'(got {reject_tmin})')
+
+        if reject_tmax is not None:
+            if (np.isclose(reject_tmax, tmax)):
+                # adjust for potential small deviations due to sampling freq
+                reject_tmax = self.tmax
+            elif reject_tmax > tmax:
+                raise ValueError(f'reject_tmax needs to be None or <= tmax '
+                                 f'(got {reject_tmax})')
+
+        if (reject_tmin is not None) and (reject_tmax is not None):
+            if reject_tmin >= reject_tmax:
+                raise ValueError(f'reject_tmin ({reject_tmin}) needs to be '
+                                 f' < reject_tmax ({reject_tmax})')
+
+        self.reject_tmin = reject_tmin
+        self.reject_tmax = reject_tmax
+
+        # decimation
         self._decim = 1
         self.decimate(decim)
 
@@ -1560,6 +1577,18 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         self._set_times(self.times[tmask])
         self._raw_times = self._raw_times[tmask]
         self._data = self._data[:, :, tmask]
+
+        # Adjust rejection period
+        if self.reject_tmin is not None and self.reject_tmin < self.tmin:
+            logger.info(
+                f'reject_tmin is not in epochs time interval. '
+                f'Setting reject_tmin to epochs.tmin ({self.tmin} sec)')
+            self.reject_tmin = self.tmin
+        if self.reject_tmax is not None and self.reject_tmax > self.tmax:
+            logger.info(
+                f'reject_tmax is not in epochs time interval. '
+                f'Setting reject_tmax to epochs.tmax ({self.tmax} sec)')
+            self.reject_tmax = self.tmax
         return self
 
     def copy(self):
