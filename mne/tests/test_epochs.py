@@ -1605,14 +1605,18 @@ def test_crop(tmpdir):
     epochs = Epochs(raw=raw, events=events[:5], event_id=event_id,
                     tmin=tmin, tmax=tmax, reject_tmin=tmin, reject_tmax=tmax)
     epochs.load_data()
-    with pytest.warns(RuntimeWarning, match='reject_tmin is not in.*interval'):
+    with catch_logging() as log:
         epochs.copy().crop(0, None)
-    with pytest.warns(RuntimeWarning, match='reject_tmax is not in.*interval'):
+    log = log.getvalue()
+    assert 'reject_tmin is not in' in log
+
+    with catch_logging() as log:
         epochs.copy().crop(None, 0.1)
+    log = log.getvalue()
+    assert 'reject_tmax is not in' in log
 
     # Cropping & I/O roundtrip
-    with pytest.warns(RuntimeWarning, match='not in.*interval'):
-        epochs.crop(0, 0.1)
+    epochs.crop(0, 0.1)
     epochs.save(temp_fname)
     mne.read_epochs(temp_fname)
 
