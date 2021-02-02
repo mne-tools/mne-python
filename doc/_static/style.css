@@ -119,22 +119,23 @@ div.frontpage-gallery a {
     text-decoration: none;
     color: rgb(var(--color-text-base));
 }
-div.frontpage-gallery > img.card-img {
-    transform: scale(1.5);
+div.frontpage-gallery img.card-img {
+    transform: scale(1.7);
     opacity: 0.2;
-    transition: 250ms linear;
+    transition: 400ms ease-out;
 }
-div.frontpage-gallery:hover > img.card-img {
+div.frontpage-gallery:hover img.card-img {
+    transform: scale(1.1);
     opacity: 1.0;
-    transition: 250ms linear;
+    transition: 400ms ease-out;
 }
 div.frontpage-gallery .fadeout {
     opacity: 1.0;
-    transition: 250ms linear;
+    transition: 200ms linear;
 }
 div.frontpage-gallery:hover .fadeout {
     opacity: 0.0;
-    transition: 250ms linear;
+    transition: 200ms linear;
 }
 
 /* ************************************************* Previous / Next buttons */
