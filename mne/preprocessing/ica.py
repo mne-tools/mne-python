@@ -905,8 +905,8 @@ class ICA(ContainsMixin):
         """Aux method."""
         # merge copied instance and picked data with sources
         start, stop = _check_start_stop(raw, start, stop)
-        sources = self._transform_raw(raw, start=start, stop=stop)
-        assert sources.shape[1] == stop - start
+        data_ = self._transform_raw(raw, start=start, stop=stop)
+        assert data_.shape[1] == stop - start
         if raw.preload:  # get data and temporarily delete
             data = raw._data
             del raw._data
@@ -916,17 +916,15 @@ class ICA(ContainsMixin):
             raw._data = data
 
         # populate copied raw.
-        if add_channels is not None:
-            raw_picked = raw.copy().pick_channels(add_channels)
-            data_, _ = raw_picked[:, start:stop]
-            data_ = np.r_[sources, data_]
-        else:
-            data_ = sources
+        if add_channels is not None and len(add_channels):
+            picks = pick_channels(raw.ch_names, add_channels)
+            data_ = np.concatenate([
+                data_, raw.get_data(picks, start=start, stop=stop)])
         out._data = data_
         out._filenames = [None]
         out.preload = True
         out._first_samps[:] = [out.first_samp + start]
-        out._last_samps[:] = [out.first_samp + sources.shape[1] - 1]
+        out._last_samps[:] = [out.first_samp + data_.shape[1] - 1]
         out._projector = None
         self._export_info(out.info, raw, add_channels)
 
