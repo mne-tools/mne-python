@@ -388,7 +388,7 @@ def object_diff(a, b, pre=''):
     diffs : str
         A string representation of the differences.
     """
-
+    sparse = _import_sparse()
     try:
         from pandas import DataFrame, Series
     except ImportError:
