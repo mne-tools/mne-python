@@ -30,6 +30,7 @@ def beer_lambert_law(raw, ppf=0.1):
     raw : instance of Raw
         The modified raw instance.
     """
+    from scipy import linalg
     raw = raw.copy().load_data()
     _validate_type(raw, BaseRaw, 'raw')
 
@@ -41,7 +42,7 @@ def beer_lambert_law(raw, ppf=0.1):
     for ii in picks[::2]:
 
         EL = abs_coef * distances[ii] * ppf
-        iEL = np.linalg.pinv(EL)
+        iEL = linalg.pinv(EL)
 
         raw._data[[ii, ii + 1]] = iEL @ raw._data[[ii, ii + 1]] * 1e-3
 

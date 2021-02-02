@@ -169,6 +169,7 @@ class ReceptiveField(BaseEstimator):
         self : instance
             The instance so you can chain operations.
         """
+        from scipy import linalg
         if self.scoring not in _SCORERS.keys():
             raise ValueError('scoring must be one of %s, got'
                              '%s ' % (sorted(_SCORERS.keys()), self.scoring))
@@ -243,7 +244,7 @@ class ReceptiveField(BaseEstimator):
             # Inverse output covariance
             if y.ndim == 2 and y.shape[1] != 1:
                 y = y - y.mean(0, keepdims=True)
-                inv_Y = np.linalg.pinv(np.cov(y.T))
+                inv_Y = linalg.pinv(np.cov(y.T))
             else:
                 inv_Y = 1. / float(n_times * n_epochs - 1)
             del y

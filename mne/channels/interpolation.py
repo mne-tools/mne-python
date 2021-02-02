@@ -82,6 +82,7 @@ def _make_interpolation_matrix(pos_from, pos_to, alpha=1e-5):
         Spherical splines for scalp potential and current density mapping.
         Electroencephalography Clinical Neurophysiology, Feb; 72(2):184-7.
     """
+    from scipy import linalg
     pos_from = pos_from.copy()
     pos_to = pos_to.copy()
     n_from = pos_from.shape[0]
@@ -104,7 +105,7 @@ def _make_interpolation_matrix(pos_from, pos_to, alpha=1e-5):
 
     C = np.vstack([np.hstack([G_from, np.ones((n_from, 1))]),
                    np.hstack([np.ones((1, n_from)), [[0]]])])
-    C_inv = np.linalg.pinv(C)
+    C_inv = linalg.pinv(C)
 
     interpolation = np.hstack([G_to_from, np.ones((n_to, 1))]) @ C_inv[:, :-1]
     assert interpolation.shape == (n_to, n_from)

@@ -30,13 +30,13 @@ import numpy as np
 # For efficiency, names should be str or tuple of str, dtype a builtin
 # NumPy dtype
 
-@functools.cache
+@functools.lru_cache(None)
 def _get_blas_funcs(dtype, names):
     from scipy import linalg
     return linalg.get_blas_funcs(names, (np.empty(0, dtype),))
 
 
-@functools.cache
+@functools.lru_cache(None)
 def _get_lapack_funcs(dtype, names):
     from scipy import linalg
     assert dtype in (np.float64, np.complex128)
@@ -81,7 +81,7 @@ def _repeated_svd(x, lwork, overwrite_a=False):
 ###############################################################################
 # linalg.eigh
 
-@functools.cache
+@functools.lru_cache(None)
 def _get_evd(dtype):
     from scipy import linalg
     x = np.empty(0, dtype)

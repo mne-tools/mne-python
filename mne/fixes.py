@@ -148,7 +148,7 @@ def _read_geometry(filepath, read_metadata=False, read_stamp=False):
 ###############################################################################
 # Triaging FFT functions to get fast pocketfft (SciPy 1.4)
 
-@functools.cache
+@functools.lru_cache(None)
 def _import_fft(name):
     single = False
     if not isinstance(name, tuple):

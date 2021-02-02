@@ -13,7 +13,7 @@ from ..utils import logger, verbose, sum_squared, warn, _get_blas_funcs
 from ..time_frequency._stft import stft_norm1, stft_norm2, stft, istft
 
 
-@functools.cache
+@functools.lru_cache(None)
 def _get_dgemm():
     return _get_blas_funcs(np.float64, 'gemm')
 

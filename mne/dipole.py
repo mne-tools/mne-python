@@ -760,7 +760,7 @@ def _fit_eval(rd, B, B2, fwd_svd=None, fwd_data=None, whitener=None,
     return 1. - gof
 
 
-@functools.cache
+@functools.lru_cache(None)
 def _get_ddot_dgemv_dgemm():
     return _get_blas_funcs(np.float64, ('dot', 'gemv', 'gemm'))
 
