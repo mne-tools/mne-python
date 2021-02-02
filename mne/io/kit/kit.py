@@ -462,6 +462,17 @@ def _read_dir(fid):
 
 
 @verbose
+def _read_dirs(fid, verbose=None):
+    dirs = list()
+    dirs.append(_read_dir(fid))
+    for ii in range(dirs[0]['count'] - 1):
+        logger.debug(f'    KIT dir entry {ii} @ {fid.tell()}')
+        dirs.append(_read_dir(fid))
+    assert len(dirs) == dirs[KIT.DIR_INDEX_DIR]['count']
+    return dirs
+
+
+@verbose
 def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
                  verbose=None):
     """Extract all the information from the sqd/con file.
@@ -486,16 +497,11 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
     sqd = dict()
     sqd['rawfile'] = rawfile
     unsupported_format = False
-    sqd['dirs'] = dirs = list()
     with open(rawfile, 'rb', buffering=0) as fid:  # buffering=0 for np bug
         #
         # directories (0)
         #
-        dirs.append(_read_dir(fid))
-        for ii in range(dirs[0]['count'] - 1):
-            logger.debug(f'    KIT dir entry {ii} @ {fid.tell()}')
-            dirs.append(_read_dir(fid))
-        assert len(dirs) == dirs[KIT.DIR_INDEX_DIR]['count']
+        sqd['dirs'] = dirs = _read_dirs(fid)
 
         #
         # system (1)
