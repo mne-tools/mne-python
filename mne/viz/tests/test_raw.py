@@ -539,6 +539,21 @@ def test_plot_annotations(raw):
     assert len(fig.mne.annotation_texts) == 1
 
 
+@pytest.mark.parametrize('hide_which', (0, 1))
+def test_remove_annotations(raw, hide_which):
+    # test right-click doesn't remove hidden annotation spans
+    ann = Annotations(onset=[2, 1], duration=[1, 3],
+                      description=['foo', 'bar'])
+    raw.set_annotations(ann)
+    assert len(raw.annotations) == 2
+    fig = raw.plot()
+    fig.canvas.key_press_event('a')  # start annotation mode
+    checkboxes = fig.mne.show_hide_annotation_checkboxes
+    checkboxes.set_active(hide_which)
+    _fake_click(fig, fig.mne.ax_main, (2.5, 0.1), xform='data', button=3)
+    assert len(raw.annotations) == 1
+
+
 @pytest.mark.parametrize('filtorder', (0, 2))  # FIR, IIR
 def test_plot_raw_filtered(filtorder, raw):
     """Test filtering of raw plots."""
