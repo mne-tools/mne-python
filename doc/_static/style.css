@@ -149,6 +149,14 @@ div.frontpage-gallery:hover .fadeout {
     text-align: right;
 }
 
+/* ********************* fix theme bug (handled by doc/_static/scrollfix.js) */
+:target::before {
+    display: unset;
+    margin: unset;
+    background-color: unset;
+    content: unset;
+}
+
 /* *********************************************************** miscellaneous */
 .hidden {
     display: none;
