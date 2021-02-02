@@ -1605,20 +1605,19 @@ def test_crop(tmpdir):
     epochs = Epochs(raw=raw, events=events[:5], event_id=event_id,
                     tmin=tmin, tmax=tmax, reject_tmin=tmin, reject_tmax=tmax)
     epochs.load_data()
-    with catch_logging() as log:
-        epochs.copy().crop(0, None)
-    log = log.getvalue()
-    assert 'reject_tmin is not in' in log
+    epochs_cropped = epochs.copy().crop(0, None)
+    assert np.isclose(epochs_cropped.tmin, epochs_cropped.reject_tmin)
 
-    with catch_logging() as log:
-        epochs.copy().crop(None, 0.1)
-    log = log.getvalue()
-    assert 'reject_tmax is not in' in log
+    epochs_cropped = epochs.copy().crop(None, 0.1)
+    assert np.isclose(epochs_cropped.tmax, epochs_cropped.reject_tmax)
+    del epochs_cropped
 
     # Cropping & I/O roundtrip
     epochs.crop(0, 0.1)
     epochs.save(temp_fname)
-    mne.read_epochs(temp_fname)
+    epochs_read = mne.read_epochs(temp_fname)
+    assert np.isclose(epochs_read.tmin, epochs_read.reject_tmin)
+    assert np.isclose(epochs_read.tmax, epochs_read.reject_tmax)
 
 
 def test_resample():
