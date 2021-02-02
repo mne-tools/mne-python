@@ -13,6 +13,7 @@ import logging
 import os.path as op
 import warnings
 
+from .docs import fill_doc
 from ..externals.decorator import FunctionMaker
 
 
@@ -79,6 +80,7 @@ def verbose(function):
     Examples
     --------
     You can use the ``verbose`` argument to set the verbose level on the fly::
+
         >>> import mne
         >>> cov = mne.compute_raw_covariance(raw, verbose='WARNING')  # doctest: +SKIP
         >>> cov = mne.compute_raw_covariance(raw, verbose='INFO')  # doctest: +SKIP
@@ -88,7 +90,6 @@ def verbose(function):
     """  # noqa: E501
     # See https://decorator.readthedocs.io/en/latest/tests.documentation.html
     # #dealing-with-third-party-decorators
-    from .docs import fill_doc
     try:
         fill_doc(function)
     except TypeError:  # nothing to add
