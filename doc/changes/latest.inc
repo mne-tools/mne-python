@@ -36,6 +36,8 @@ Enhancements
 
 - Reduce memory consumption of `mne.io.Raw` and speed up epoching when thousands of events are present for `mne.Epochs` (:gh:`8801` by `Eric Larson`_)
 
+- Speed up ``import mne`` by reducing function creation overhead (:gh:`8829` by `Eric Larson`_)
+
 - `mne.Report.parse_folder` now processes supported non-FIFF files by default, too (:gh:`8744` by `Richard Höchenberger`_)
 
 - `mne.Report` has gained a new method `~mne.Report.add_custom_css` for adding user-defined styles (:gh:`8762` by `Richard Höchenberger`_)
