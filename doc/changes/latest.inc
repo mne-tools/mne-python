@@ -100,6 +100,10 @@ Bugs
 
 - Fix bug with :func:`mne.viz.plot_topomap` when plotting gradiometers with a missing channel in a pair (:gh:`8817` by `Alex Gramfort`_)
 
+- :meth:`epochs.crop() <mne.Epochs.crop>` now also adjusts the ``reject_tmin`` and ``reject_tmax`` attributes if necessary (:gh:`8821` by `Richard Höchenberger`_)
+
+- When creating `~mne.Epochs`, we now ensure that ``reject_tmin`` and ``reject_tmax`` cannot fall outside of the epochs' time interval anymore (:gh:`8821` by `Richard Höchenberger`_)
+
 API changes
 ~~~~~~~~~~~
 
