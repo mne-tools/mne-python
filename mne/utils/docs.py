@@ -874,7 +874,10 @@ extended_proj : list
 docdict['rank'] = """
 rank : None | 'info' | 'full' | dict
     This controls the rank computation that can be read from the
-    measurement info or estimated from the data.
+    measurement info or estimated from the data. When a noise covariance
+    is used for whitening, this should reflect the rank of that covariance,
+    otherwise amplification of noise components can occur in whitening (e.g.,
+    often during source localization).
 
     :data:`python:None`
         The rank will be estimated from the data after proper scaling of
@@ -946,9 +949,8 @@ docdict['depth'] = """
 depth : None | float | dict
     How to weight (or normalize) the forward using a depth prior.
     If float (default 0.8), it acts as the depth weighting exponent (``exp``)
-    to use, which must be between 0 and 1. None is equivalent to 0, meaning
-    no depth weighting is performed. It can also be a :class:`dict`
-    containing keyword arguments to pass to
+    to use None is equivalent to 0, meaning no depth weighting is performed.
+    It can also be a :class:`dict` containing keyword arguments to pass to
     :func:`mne.forward.compute_depth_prior` (see docstring for details and
     defaults). This is effectively ignored when ``method='eLORETA'``.
 
@@ -1002,6 +1004,15 @@ reduce_rank : bool
     .. versionchanged:: 0.20
         Support for reducing rank in all modes (previously only supported
         ``pick='max_power'`` with weight normalization).
+"""
+docdict['on_rank_mismatch'] = """
+on_rank_mismatch : str
+    If an explicit MEG value is passed, what to do when it does not match
+    an empirically computed rank (only used for covariances).
+    Can be 'raise' to raise an error, 'warn' (default) to emit a warning, or
+    'ignore' to ignore.
+
+    .. versionadded:: 0.23
 """
 docdict['weight_norm'] = """
 weight_norm : str | None

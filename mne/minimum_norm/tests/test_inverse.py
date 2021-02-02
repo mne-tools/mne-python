@@ -208,6 +208,8 @@ def test_warn_inverse_operator(evoked, noise_cov):
     bad_info['projs'] = list()
     fwd_op = convert_forward_solution(read_forward_solution(fname_fwd),
                                       surf_ori=True, copy=False)
+    with pytest.raises(ValueError, match='greater than or'):
+        make_inverse_operator(bad_info, fwd_op, noise_cov, depth=-0.1)
     noise_cov['projs'].pop(-1)  # get rid of avg EEG ref proj
     with pytest.warns(RuntimeWarning, match='reference'):
         make_inverse_operator(bad_info, fwd_op, noise_cov)
@@ -254,7 +256,7 @@ def test_inverse_operator_channel_ordering(evoked, noise_cov):
     fwd_orig = make_forward_solution(evoked.info, fname_trans, src_fname,
                                      fname_bem, eeg=True, mindist=5.0)
     fwd_orig = convert_forward_solution(fwd_orig, surf_ori=True)
-    depth = dict(exp=0.8, limit_depth_chs=False)
+    depth = dict(exp=2.8, limit_depth_chs=False)  # test depth > 1 as well
     with catch_logging() as log:
         inv_orig = make_inverse_operator(evoked.info, fwd_orig, noise_cov,
                                          loose=0.2, depth=depth, verbose=True)

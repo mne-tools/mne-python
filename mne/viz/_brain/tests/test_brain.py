@@ -282,10 +282,16 @@ def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
     with pytest.raises(ValueError, match="does not exist"):
         brain.add_label('foo', subdir='bar')
     label.name = None  # test unnamed label
-    brain.add_label(label, scalar_thresh=0.)
+    brain.add_label(label, scalar_thresh=0., color="green")
     assert isinstance(brain.labels[label.hemi], list)
-    assert 'unnamed' in brain._layered_meshes[label.hemi]._overlays
+    overlays = brain._layered_meshes[label.hemi]._overlays
+    assert 'unnamed0' in overlays
+    assert np.allclose(overlays['unnamed0']._colormap[0],
+                       [0, 0, 0, 0])  # first component is transparent
+    assert np.allclose(overlays['unnamed0']._colormap[1],
+                       [0, 128, 0, 255])  # second is green
     brain.remove_labels()
+    assert 'unnamed0' not in overlays
     brain.add_label(fname_label)
     brain.add_label('V1', borders=True)
     brain.remove_labels()
@@ -478,6 +484,10 @@ def test_brain_time_viewer(renderer_interactive, pixel_ratio, brain_gc):
     brain.callbacks["fscale"](value=1.1)
     brain.callbacks["fmin"](value=12.0)
     brain.callbacks["fmid"](value=4.0)
+    brain._shift_time(op=lambda x, y: x + y)
+    brain._shift_time(op=lambda x, y: x - y)
+    brain._rotate_azimuth(15)
+    brain._rotate_elevation(15)
     brain.toggle_interface()
     brain.toggle_interface(value=False)
     brain.callbacks["playback_speed"](value=0.1)
@@ -573,7 +583,8 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
     # test colormap
     if src != 'vector':
         brain = _create_testing_brain(
-            hemi=hemi, surf='white', src=src, show_traces=0.5, initial_time=0,
+            hemi=hemi, surf='white', src=src, show_traces=0.5,
+            initial_time=0,
             volume_options=None,  # for speed, don't upsample
             n_time=1 if src == 'mixed' else 5, diverging=True,
             add_data_kwargs=dict(colorbar_kwargs=dict(n_labels=3)),
@@ -587,7 +598,8 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
 
     # vertex traces
     brain = _create_testing_brain(
-        hemi=hemi, surf='white', src=src, show_traces=0.5, initial_time=0,
+        hemi=hemi, surf='white', src=src, show_traces=0.5,
+        initial_time=0,
         volume_options=None,  # for speed, don't upsample
         n_time=1 if src == 'mixed' else 5,
         add_data_kwargs=dict(colorbar_kwargs=dict(n_labels=3)),
@@ -850,8 +862,8 @@ def test_calculate_lut():
         calculate_lut(colormap, alpha, 1, 0, 2)
 
 
-def _create_testing_brain(hemi, surf='inflated', src='surface', size=300,
-                          n_time=5, diverging=False, **kwargs):
+def _create_testing_brain(hemi, surf='inflated', src='surface',
+                          size=300, n_time=5, diverging=False, **kwargs):
     assert src in ('surface', 'vector', 'mixed', 'volume')
     meth = 'plot'
     if src in ('surface', 'mixed'):

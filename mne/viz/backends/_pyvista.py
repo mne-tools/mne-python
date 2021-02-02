@@ -75,6 +75,8 @@ class _Figure(object):
         # multi_samples > 1 is broken on macOS + Intel Iris + volume rendering
         self.store['multi_samples'] = 1 if sys.platform == 'darwin' else 4
 
+        self._azimuth = self._elevation = None
+
     def build(self):
         if self.plotter_class is None:
             self.plotter_class = BackgroundPlotter
@@ -1005,6 +1007,9 @@ def _set_3d_view(figure, azimuth, elevation, focalpoint, distance, roll=None,
         distance * np.cos(phi) * np.sin(theta),
         distance * np.sin(phi) * np.sin(theta),
         distance * np.cos(theta)]
+
+    figure._azimuth = _rad2deg(phi)
+    figure._elevation = _rad2deg(theta)
 
     # restore to the original frame
     rigid = np.linalg.inv(rigid)
