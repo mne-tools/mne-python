@@ -1116,6 +1116,21 @@ def _arrow_glyph(grid, factor):
     return mapper
 
 
+def _sphere_glyph(grid, factor):
+    glyph = vtk.vtkSphereSource()
+    glyph.Update()
+
+    alg = _glyph(
+        grid,
+        factor=factor,
+        scale_mode=False,
+        geom=glyph.GetOutputPort(),
+    )
+    mapper = vtk.vtkDataSetMapper()
+    mapper.SetInputConnection(alg.GetOutputPort())
+    return mapper
+
+
 def _glyph(dataset, scale_mode='scalar', orient=True, scalars=True, factor=1.0,
            geom=None, tolerance=0.0, absolute=False, clamping=False, rng=None):
     if geom is None:
