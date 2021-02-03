@@ -134,15 +134,15 @@ class MontageMixin(object):
     """Mixin for Montage setting."""
 
     @verbose
-    def set_montage(self, montage, match_case=True, match_alias=True,
+    def set_montage(self, montage, match_case=True, match_alias=False,
                     on_missing='raise', verbose=None):
         """Set EEG sensor configuration and head digitization.
 
         Parameters
         ----------
         %(montage)s
-        %(match_alias)s
         %(match_case)s
+        %(match_alias)s
         %(on_missing_montage)s
         %(verbose_meth)s
 

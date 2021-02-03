@@ -1368,12 +1368,12 @@ match_case : bool
     .. versionadded:: 0.20
 """
 docdict["match_alias"] = """
-match_alias : bool
-    Some electrode positions have multiple names (aliases), depending
-    on from which convention they are named. If True (default), matched
-    aliases synonymous with provided channel names will be automatically
-    utilized. For more details, please refer to
-    https://github.com/mne-tools/mne-python/blob/main/mne/channels/data/montages/alias.csv.
+match_alias : bool | dict
+    Whether to use a lookup table to match unrecognized channel location names
+    to their known aliases. If True, uses the mapping in
+    `mne.io.constants.CHANNEL_LOC_ALIASES`. If a :class:`dict` is passed, it
+    will be used instead, and should map from non-standard channel names to 
+    names in the specified ``montage``. Default is ``False``.
 
     .. versionadded:: 0.23
 """
