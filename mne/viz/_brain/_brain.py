@@ -7,6 +7,7 @@
 #
 # License: Simplified BSD
 
+import contextlib
 from functools import partial
 from io import BytesIO
 import os
@@ -571,7 +572,6 @@ class Brain(object):
         'Left': Decrease camera azimuth angle
         'Right': Increase camera azimuth angle
         """
-        from ..backends.renderer import MNE_3D_BACKEND_TESTING
         if self.time_viewer:
             return
         if not self._data:
@@ -679,10 +679,8 @@ class Brain(object):
             self._configure_status_bar()
 
             # show everything at the end
-            self._pre_ensure_minimum_sizes()
-            self.show()
-            if not MNE_3D_BACKEND_TESTING:
-                self._post_ensure_minimum_sizes()
+            with self.ensure_minimum_sizes():
+                self.show()
 
     @safe_event
     def _clean(self):
@@ -718,42 +716,42 @@ class Brain(object):
                     'actions', 'sliders', 'geo', '_hemi_actors', '_data'):
             setattr(self, key, None)
 
-    def _pre_ensure_minimum_sizes(self):
-        if not self.show_traces or self.separate_canvas:
-            return
+    @contextlib.contextmanager
+    def ensure_minimum_sizes(self):
+        """Ensure that widgets respect the windows size."""
         sz = self._size
-        mpl_h = int(round((sz[1] * self.interactor_fraction) /
-                          (1 - self.interactor_fraction)))
-        self.mpl_canvas.canvas.setMinimumSize(sz[0], mpl_h)
-
-    def _post_ensure_minimum_sizes(self):
-        if not self.show_traces or self.separate_canvas:
-            return
-        sz = self._size
-        mpl_h = int(round((sz[1] * self.interactor_fraction) /
-                          (1 - self.interactor_fraction)))
-        self.splitter.setSizes([sz[1], mpl_h])
-        # 1. Process events
-        self._renderer._process_events()
-        self._renderer._process_events()
-        # 2. Get the window size that accommodates the size
-        sz = self.plotter.app_window.size()
-        # 3. Call app_window.setBaseSize and resize (in pyvistaqt)
-        self.plotter.window_size = (sz.width(), sz.height())
-        # 4. Undo the min size setting and process events
-        self.plotter.interactor.setMinimumSize(0, 0)
-        self._renderer._process_events()
-        self._renderer._process_events()
-        # 5. Resize the window (again!) to the correct size
-        #    (not sure why, but this is required on macOS at least)
-        self.plotter.window_size = (sz.width(), sz.height())
-        self._renderer._process_events()
-        self._renderer._process_events()
-        # sizes could change, update views
-        for hemi in ('lh', 'rh'):
-            for ri, ci, v in self._iter_views(hemi):
-                self.show_view(view=v, row=ri, col=ci)
-        self._renderer._process_events()
+        adjust_mpl = self.show_traces and not self.separate_canvas
+        if not adjust_mpl:
+            yield
+        else:
+            mpl_h = int(round((sz[1] * self.interactor_fraction) /
+                              (1 - self.interactor_fraction)))
+            self.mpl_canvas.canvas.setMinimumSize(sz[0], mpl_h)
+            try:
+                yield
+            finally:
+                self.splitter.setSizes([sz[1], mpl_h])
+                # 1. Process events
+                self._renderer._process_events()
+                self._renderer._process_events()
+                # 2. Get the window size that accommodates the size
+                sz = self.plotter.app_window.size()
+                # 3. Call app_window.setBaseSize and resize (in pyvistaqt)
+                self.plotter.window_size = (sz.width(), sz.height())
+                # 4. Undo the min size setting and process events
+                self.plotter.interactor.setMinimumSize(0, 0)
+                self._renderer._process_events()
+                self._renderer._process_events()
+                # 5. Resize the window (again!) to the correct size
+                #    (not sure why, but this is required on macOS at least)
+                self.plotter.window_size = (sz.width(), sz.height())
+            self._renderer._process_events()
+            self._renderer._process_events()
+            # sizes could change, update views
+            for hemi in ('lh', 'rh'):
+                for ri, ci, v in self._iter_views(hemi):
+                    self.show_view(view=v, row=ri, col=ci)
+            self._renderer._process_events()
 
     def toggle_interface(self, value=None):
         """Toggle the interface.
