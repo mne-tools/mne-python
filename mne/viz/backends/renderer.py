@@ -158,7 +158,7 @@ def use_3d_backend(backend_name):
     """Create a 3d visualization context using the designated backend.
 
     See :func:`mne.viz.set_3d_backend` for more details on the available
-    3d backends and their capabilities.
+    backend_name : 'mayavi' | 'pyvista' | 'notebook'
 
     Parameters
     ----------
