@@ -23,6 +23,7 @@ MNE-Python Homepage
    Open-source Python package for exploring, visualizing, and analyzing
    human neurophysiological data: MEG, EEG, sEEG, ECoG, NIRS, and more.
 
+.. frontpage gallery is added by a conditional in _templates/layout.html
 
 .. toctree::
    :hidden:
