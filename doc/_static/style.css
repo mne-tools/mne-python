@@ -105,14 +105,17 @@ img.institution {
 /* ***************************************************** front page carousel */
 div.frontpage-gallery {
     overflow: hidden;
-    height: 225px;
+    height: 200px;
+    max-width: 400px;
+    justify-content: center;
 }
 div.frontpage-gallery a {
     text-decoration: none;
     color: rgb(var(--color-text-base));
 }
 div.frontpage-gallery img.card-img {
-    transform: scale(1.7);
+    transform: scale(1.8);
+    transform-origin: 50% 30%;
     opacity: 0.2;
     transition: 400ms ease-out;
 }
