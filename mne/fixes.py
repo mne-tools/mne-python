@@ -157,9 +157,9 @@ def _import_fft(name):
     try:
         from scipy.fft import rfft  # noqa analysis:ignore
     except ImportError:
-        from numpy import fft
+        from numpy import fft  # noqa
     else:
-        from scipy.fft import fft
+        from scipy import fft  # noqa
     out = [getattr(fft, n) for n in name]
     if single:
         out = out[0]
