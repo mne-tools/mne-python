@@ -155,9 +155,11 @@ def _import_fft(name):
         name = (name,)
         single = True
     try:
-        from scipy import fft
+        from scipy.fft import rfft  # noqa analysis:ignore
     except ImportError:
         from numpy import fft
+    else:
+        from scipy.fft import fft
     out = [getattr(fft, n) for n in name]
     if single:
         out = out[0]

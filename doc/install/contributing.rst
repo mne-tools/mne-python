@@ -777,17 +777,17 @@ Code organization
 Importing
 ---------
 
-Import modules in this order:
+Import modules in this order, preferably alphabetized within each subsection:
 
-1. Python built-in (``os``, ``copy``, ``functools``, etc)
-2. standard scientific (``numpy as np``, ``scipy.signal``, etc)
-3. others
-4. MNE-Python imports (e.g., ``from .pick import pick_types``)
+1. Python built-in (``copy``, ``functools``, ``os``, etc.)
+2. NumPy (``numpy as np``) and, in test files, pytest (``pytest``)
+3. MNE-Python imports (e.g., ``from .pick import pick_types``)
 
 When importing from other parts of MNE-Python, use relative imports in the main
 codebase and absolute imports in tests, tutorials, and how-to examples. Imports
-for ``matplotlib`` and optional modules (``sklearn``, ``pandas``, etc.) should
-be nested (i.e., within a function or method, not at the top of a file).
+for ``matplotlib``, ``scipy``, and optional modules (``sklearn``, ``pandas``,
+etc.) should be nested (i.e., within a function or method, not at the top of a
+file). This helps reduce import time and limit hard requirements for using MNE.
 
 
 Return types

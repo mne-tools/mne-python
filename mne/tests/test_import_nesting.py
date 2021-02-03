@@ -12,10 +12,21 @@ import mne
 
 out = set()
 
+# check scipy (Numba imports it to check the version)
+ok_scipy_submodules = set(['scipy', 'numpy',  # these appear in old scipy
+                           'version'])
+scipy_submodules = set(x.split('.')[1] for x in sys.modules.keys()
+                       if x.startswith('scipy.') and '__' not in x and
+                       not x.split('.')[1].startswith('_')
+                       and sys.modules[x] is not None)
+bad = scipy_submodules - ok_scipy_submodules
+if len(bad) > 0:
+    out |= {'scipy submodules: %s' % list(bad)}
+
 # check sklearn and others
 for x in sys.modules.keys():
     for key in ('sklearn', 'pandas', 'mayavi', 'pyvista', 'matplotlib',
-                'dipy', 'nibabel', 'cupy', 'picard', 'pyvistaqt', 'scipy'):
+                'dipy', 'nibabel', 'cupy', 'picard', 'pyvistaqt'):
         if x.startswith(key):
             x = '.'.join(x.split('.')[:2])
             out |= {x}
