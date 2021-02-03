@@ -82,9 +82,12 @@ ul.funders li {
 ul.funders li img {
     width: 24px;
 }
-.devbox h5 {
-    background-color: rgb(var(--color-danger));
-    color: #fff;
+
+/* ************************************************* dev version warning bar */
+.devbar {
+    /* body top padding minus navbar height; */
+    /*might be possible to calc from theme variables */
+    margin-top: -20px;
 }
 
 /* ******************************************************** version dropdown */
