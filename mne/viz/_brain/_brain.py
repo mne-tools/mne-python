@@ -727,6 +727,8 @@ class Brain(object):
             mpl_h = int(round((sz[1] * self.interactor_fraction) /
                               (1 - self.interactor_fraction)))
             self.mpl_canvas.canvas.setMinimumSize(sz[0], mpl_h)
+            paint_func = self.plotter.paintEvent
+            self.plotter.paintEvent = lambda ev: None
             try:
                 yield
             finally:
@@ -752,6 +754,7 @@ class Brain(object):
                 for ri, ci, v in self._iter_views(hemi):
                     self.show_view(view=v, row=ri, col=ci)
             self._renderer._process_events()
+            self.plotter.paintEvent = paint_func
 
     def toggle_interface(self, value=None):
         """Toggle the interface.
