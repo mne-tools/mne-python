@@ -2104,8 +2104,7 @@ def make_metadata(*, events, event_id, tmin, tmax, sfreq):
         The events corresponding to the generated metadata, i.e. one
         time-locked event per row.
     """
-    _check_pandas_installed()
-    import pandas as pd
+    pd = _check_pandas_installed()
 
     # First and last sample of each epoch, relative to the time-locked event
     # This follows the approach taken in mne.Epochs
@@ -2117,7 +2116,7 @@ def make_metadata(*, events, event_id, tmin, tmax, sfreq):
     # indices corresponding to the original event indices. Not used for now,
     # but might come in handy sometime later
     events_df = pd.DataFrame(events, columns=('sample', 'prev_id', 'id'))
-    id_to_name_map = dict(zip(event_id.values(), event_id.keys()))
+    id_to_name_map = {v: k for k, v in event_id.items())}
 
     # Only keep events that are of interest
     events = events[np.in1d(events[:, 2], list(event_id.values()))]
