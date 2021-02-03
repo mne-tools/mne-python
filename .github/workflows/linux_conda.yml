@@ -75,7 +75,7 @@ jobs:
         name: 'Print locale'
       - shell: bash -el {0}
         run: |
-          pip uninstall mayavi
+          pip uninstall -y mayavi
           pytest -vv mne/viz
         name: 'Run tests'
       - uses: codecov/codecov-action@v1
