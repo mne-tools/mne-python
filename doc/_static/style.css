@@ -47,9 +47,7 @@ iframe.sg_report {
   }
 
 /* ********************************* Long API titles need to wrap for mobile */
-div[id^="mne-"] h1 {
-    word-break: break-word;
-}
+div[id^="mne-"] h1,
 div[id^="examples-using-"] h2 {
     word-break: break-word;
 }
@@ -67,20 +65,14 @@ img.logo {
     width: 100%;
 }
 
-/* ************************************** homepage version box & funders box */
+/* ******************** collapsible divs; homepage version box & funders box */
 h5.card-header {
-    font-weight: bold;
     margin-top: 0px;
+    margin-bottom: 0px;
 }
 h5.card-header::before {
     height: 0px;
     margin-top: 0px;
-}
-h5.card-header > p {
-    margin-bottom: 0px;
-}
-ul.funders, ul.version-box {
-    list-style: none;
 }
 ul.funders li {
     margin-left: 30px;
@@ -96,9 +88,6 @@ ul.funders li img {
 }
 
 /* ******************************************************** version dropdown */
-.dropdown {
-    margin-right: 10px;
-}
 .dropdown-toggle {
     font-weight: 600;
 }
