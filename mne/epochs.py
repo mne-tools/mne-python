@@ -2062,6 +2062,115 @@ def _drop_log_stats(drop_log, ignore=('IGNORED',)):
     return perc
 
 
+def make_metadata(*, events, event_id, tmin, tmax, sfreq):
+    """Generate a default set of `~mne.Epochs` metadata.
+
+    This function generated metadata based on all events falling into the time
+    interval ``[tmin, tmax]``. Only events specified in ``event_id`` will be
+    considered.
+
+    The function will also return a subset the events array that corresponds to
+    the generated metadata, so both the metadata and the events may directly be
+    used to create `~mne.Epochs`.
+
+    Parameters
+    ----------
+    events : array, shape (m, 3)
+        The events array.
+    event_id : dict
+        The mapping from event names (keys) to event IDs (values). This
+        function assumes that only event IDs listed here will be used to
+        create `~mne.Epochs`, that is, the number of rows of the generated
+        metadata will equal the number of events with the specified IDs.
+        Moreover, metadata will only be generated for the events listed here.
+    tmin : float
+        Start of the time interval for event extraction in seconds, relative to
+        time-locked event of the respective epoch. This will typically be the
+        same ``tmin`` you'll pass to `~mne.Epochs`, but it may also be
+        different to include more or fewer events in the metadata.
+    tmax : float
+        Start of the time interval for event extraction in seconds, relative to
+        time-locked event of the respective epoch. This will typically be the
+        same ``tmax`` you'll pass to `~mne.Epochs`, but it may also be
+        different to include more or fewer events in the metadata.
+    sfreq : float
+        The sampling frequency during data acquisiton.
+
+    Returns
+    -------
+    metadata : pandas.DataFrame
+        The pre-assembled metadata.
+    events : array, shape (n, 3)
+        The events corresponding to the generated metadata, i.e. one
+        time-locked event per row.
+    """
+    _check_pandas_installed()
+    import pandas as pd
+
+    # First and last sample of each epoch, relative to the time-locked event
+    # This follows the approach taken in mne.Epochs
+    start_sample = int(round(tmin * sfreq))
+    stop_sample = int(round(tmax * sfreq)) + 1
+
+    # Make indexing easier
+    # We create the DataFrame before subsetting the events so we end up with
+    # indices corresponding to the original event indices. Not used for now,
+    # but might come in handy sometime later
+    events_df = pd.DataFrame(events, columns=('sample', 'prev_id', 'id'))
+    id_to_name_map = dict(zip(event_id.values(), event_id.keys()))
+
+    # Only keep events that are of interest
+    events = events[np.in1d(events[:, 2], list(event_id.values()))]
+    events_df = events_df.loc[events_df['id'].isin(event_id.values()), :]
+
+    # Prepare & condition the metadata DataFrame
+    columns = ['event_name',
+               *event_id.keys(),
+               *[f'{e}_time' for e in event_id.keys()]]
+    data = np.empty((len(events_df), len(columns)))
+    metadata = pd.DataFrame(data=data, columns=columns, index=events_df.index)
+
+    metadata[metadata.columns[0]] = ''
+
+    # First half of the columns: boolean values indicating whether the
+    # respective event occurred in that epoch
+    for col in metadata.columns[1:-len(event_id)]:
+        metadata[col] = False
+
+    # Second half of the columns: event times
+    for col in metadata.columns[-len(event_id):]:
+        metadata[col] = np.nan
+
+    # We're all set, let's iterate over ALL events; whenever we encounter a
+    # "target event", we'll fill in the respective cells in the metadata
+    for row_idx, time_locked_event in events_df.iterrows():
+        metadata.loc[row_idx, 'event_name'] = \
+            id_to_name_map[time_locked_event['id']]
+
+        # Determine which events fall into the current epoch
+        epoch_start_sample = time_locked_event['sample'] + start_sample
+        epoch_stop_sample = time_locked_event['sample'] + stop_sample
+        events_in_epoch = events_df.loc[
+            (events_df['sample'] >= epoch_start_sample) &
+            (events_df['sample'] <= epoch_stop_sample), :]
+
+        assert not events_in_epoch.empty
+
+        # Store the metadata
+        for _, epochs_event in events_in_epoch.iterrows():
+            event_col_name = id_to_name_map[epochs_event['id']]
+            event_time_col_name = f'{event_col_name}_time'
+
+            event_sample = epochs_event['sample'] - time_locked_event['sample']
+            event_time = event_sample / sfreq
+            event_time = 0 if np.isclose(event_time, 0) else event_time
+
+            metadata.loc[row_idx, event_col_name] = True
+            metadata.loc[row_idx, event_time_col_name] = event_time
+
+    return metadata, events
+
+
 @fill_doc
 class Epochs(BaseEpochs):
     """Epochs extracted from a Raw instance.

@@ -37,7 +37,7 @@ from mne.preprocessing import maxwell_filter
 from mne.epochs import (
     bootstrap, equalize_epoch_counts, combine_event_ids, add_channels_epochs,
     EpochsArray, concatenate_epochs, BaseEpochs, average_movements,
-    _handle_event_repeated)
+    _handle_event_repeated, make_metadata)
 from mne.utils import (requires_pandas, object_diff,
                        catch_logging, _FakeNoPandas,
                        assert_meg_snr, check_version, _dt_to_stamp)
@@ -2888,6 +2888,49 @@ def assert_metadata_equal(got, exp):
             got = got[exp.columns]
         check = (got == exp)
         assert check.all().all()
+
+
+@pytest.mark.parametrize(
+    'event_id',
+    [{'a/1': 1, 'a/2': 2, 'b/1': 3, 'b/2': 4, 'c': 32},  # all events
+     {'a/1': 1, 'a/2': 2},  # subset of events
+     dict()]  # empty set of events
+)
+@requires_pandas
+def test_make_metadata(event_id):
+    """Test that make_metadata works."""
+
+    raw, all_events, picks = _get_data()
+    tmin, tmax = -0.5, 1
+    sfreq = raw.info['sfreq']
+
+    metadata, events = make_metadata(events=all_events, event_id=event_id,
+                                     tmin=tmin, tmax=tmax, sfreq=sfreq)
+
+    assert len(metadata) == len(events)
+    assert set(metadata['event_name']) == set(event_id.keys())
+
+    # Check we we columns for each event
+    for event_name in event_id.keys():
+        assert event_name in metadata.columns
+        assert f'{event_name}_time' in metadata.columns
+
+    # Check the time-locked event's metadata
+    for _, row in metadata.iterrows():
+        event_name = row['event_name']
+        assert row[event_name] is True
+        assert np.isclose(row[f'{event_name}_time'], 0)
+
+    # Check the non-time-locked events' metadata
+    for _, row in metadata.iterrows():
+        event_names = sorted(set(event_id.keys()) - set(row['event_name']))
+        for event_name in event_names:
+            if row[event_name] is True:
+                assert not np.isnan(row[f'{event_name}_time'])
+            else:
+                assert np.isnan(row[f'{event_name}_time'])
+
+    Epochs(raw, events=events, event_id=event_id, metadata=metadata)
 
 
 def test_events_list():
