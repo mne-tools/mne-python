@@ -220,34 +220,32 @@ class _Renderer(_BaseRenderer):
         dt_string = now.strftime("_%Y-%m-%d_%H-%M-%S")
         return "MNE" + dt_string + ".png"
 
-    @contextmanager
-    def ensure_minimum_sizes(self):
+    def _pre_ensure_minimum_sizes(self):
         sz = self.figure.store['window_size']
+        self.plotter.interactor.setMinimumSize(*sz)
+
+    def _post_ensure_minimum_sizes(self):
         # plotter:            pyvista.plotting.qt_plotting.BackgroundPlotter
         # plotter.interactor: vtk.qt.QVTKRenderWindowInteractor.QVTKRenderWindowInteractor -> QWidget  # noqa
         # plotter.app_window: pyvista.plotting.qt_plotting.MainWindow -> QMainWindow  # noqa
         # plotter.frame:      QFrame with QVBoxLayout with plotter.interactor as centralWidget  # noqa
         # plotter.ren_win:    vtkXOpenGLRenderWindow
-        self.plotter.interactor.setMinimumSize(*sz)
-        try:
-            yield  # show
-        finally:
-            # 1. Process events
-            _process_events(self.plotter)
-            _process_events(self.plotter)
-            # 2. Get the window and interactor sizes that work
-            win_sz = self.plotter.app_window.size()
-            ren_sz = self.plotter.interactor.size()
-            # 3. Undo the min size setting and process events
-            self.plotter.interactor.setMinimumSize(0, 0)
-            _process_events(self.plotter)
-            _process_events(self.plotter)
-            # 4. Resize the window and interactor to the correct size
-            #    (not sure why, but this is required on macOS at least)
-            self.plotter.window_size = (win_sz.width(), win_sz.height())
-            self.plotter.interactor.resize(ren_sz.width(), ren_sz.height())
-            _process_events(self.plotter)
-            _process_events(self.plotter)
+        # 1. Process events
+        _process_events(self.plotter)
+        _process_events(self.plotter)
+        # 2. Get the window and interactor sizes that work
+        win_sz = self.plotter.app_window.size()
+        ren_sz = self.plotter.interactor.size()
+        # 3. Undo the min size setting and process events
+        self.plotter.interactor.setMinimumSize(0, 0)
+        _process_events(self.plotter)
+        _process_events(self.plotter)
+        # 4. Resize the window and interactor to the correct size
+        #    (not sure why, but this is required on macOS at least)
+        self.plotter.window_size = (win_sz.width(), win_sz.height())
+        self.plotter.interactor.resize(ren_sz.width(), ren_sz.height())
+        _process_events(self.plotter)
+        _process_events(self.plotter)
 
     def subplot(self, x, y):
         x = np.max([0, np.min([x, self.shape[0] - 1])])
@@ -629,10 +627,13 @@ class _Renderer(_BaseRenderer):
             self.plotter.add_scalar_bar(**kwargs)
 
     def show(self):
+        from .renderer import MNE_3D_BACKEND_TESTING
         self.figure.display = self.plotter.show()
         if hasattr(self.plotter, "app_window"):
-            with self.ensure_minimum_sizes():
-                self.plotter.app_window.show()
+            self._pre_ensure_minimum_sizes()
+            self.plotter.app_window.show()
+            if not MNE_3D_BACKEND_TESTING:
+                self._post_ensure_minimum_sizes()
         return self.scene()
 
     def close(self):
