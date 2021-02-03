@@ -794,7 +794,11 @@ class MNEBrowseFigure(MNEFigure):
                     start = _sync_onset(inst, inst.annotations.onset)
                     end = start + inst.annotations.duration
                     ann_idx = np.where((xdata > start) & (xdata < end))[0]
-                    inst.annotations.delete(ann_idx)  # only first one deleted
+                    for idx in sorted(ann_idx)[::-1]:
+                        # only remove visible annotation spans
+                        descr = inst.annotations[idx]['description']
+                        if self.mne.visible_annotations[descr]:
+                            inst.annotations.delete(idx)
                 self._remove_annotation_hover_line()
                 self._draw_annotations()
                 self.canvas.draw_idle()

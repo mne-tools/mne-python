@@ -86,6 +86,8 @@ Bugs
 
 - Allow sEEG channel types in :meth:`mne.Evoked.plot_joint` (:gh:`8736` by `Daniel McCloy`_)
 
+- Fix bug where hidden annotations could be deleted interactively in :meth:`mne.io.Raw.plot` windows (:gh:`8831` by `Daniel McCloy`_)
+
 - Function :func:`mne.set_bipolar_reference` was not working when passing ``Epochs`` constructed with some ``picks`` (:gh:`8728` by `Alex Gramfort`_)
 
 - Fix anonymization issue of FIF files after IO round trip (:gh:`8731` by `Alex Gramfort`_)
