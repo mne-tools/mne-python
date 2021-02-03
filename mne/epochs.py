@@ -2062,7 +2062,7 @@ def _drop_log_stats(drop_log, ignore=('IGNORED',)):
     return perc
 
 
-def make_metadata(*, events, event_id, tmin, tmax, sfreq):
+def make_metadata(events, event_id, tmin, tmax, sfreq):
     """Generate a default set of `~mne.Epochs` metadata.
 
     This function generated metadata based on all events falling into the time
