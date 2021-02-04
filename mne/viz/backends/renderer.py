@@ -162,7 +162,7 @@ def use_3d_backend(backend_name):
 
     Parameters
     ----------
-    backend_name : 'mayavi' | 'pyvista' | 'notebook'
+    backend_name : {'mayavi', 'pyvista', 'notebook'}
         The 3d backend to use in the context.
     """
     old_backend = _get_3d_backend()
