@@ -572,6 +572,7 @@ class Brain(object):
         'Left': Decrease camera azimuth angle
         'Right': Increase camera azimuth angle
         """
+        from ..backends._utils import _qt_disable_paint
         if self.time_viewer:
             return
         if not self._data:
@@ -679,8 +680,9 @@ class Brain(object):
             self._configure_status_bar()
 
             # show everything at the end
-            with self.ensure_minimum_sizes():
-                self.show()
+            with _qt_disable_paint(self.plotter):
+                with self._ensure_minimum_sizes():
+                    self.show()
 
     @safe_event
     def _clean(self):
@@ -717,7 +719,7 @@ class Brain(object):
             setattr(self, key, None)
 
     @contextlib.contextmanager
-    def ensure_minimum_sizes(self):
+    def _ensure_minimum_sizes(self):
         """Ensure that widgets respect the windows size."""
         sz = self._size
         adjust_mpl = self.show_traces and not self.separate_canvas
@@ -727,8 +729,6 @@ class Brain(object):
             mpl_h = int(round((sz[1] * self.interactor_fraction) /
                               (1 - self.interactor_fraction)))
             self.mpl_canvas.canvas.setMinimumSize(sz[0], mpl_h)
-            paint_func = self.plotter.paintEvent
-            self.plotter.paintEvent = lambda ev: None
             try:
                 yield
             finally:
@@ -754,7 +754,6 @@ class Brain(object):
                 for ri, ci, v in self._iter_views(hemi):
                     self.show_view(view=v, row=ri, col=ci)
             self._renderer._process_events()
-            self.plotter.paintEvent = paint_func
 
     def toggle_interface(self, value=None):
         """Toggle the interface.
