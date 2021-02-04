@@ -299,8 +299,11 @@ def get_brain_class():
         close_func = Brain.close
 
         def patched_close(self, *args, **kwargs):
-            vtk_widget = self._f._content
-            with _qt_disable_paint(vtk_widget):
+            try:
+                vtk_widget = self._figures[0][0].scene._content
+                with _qt_disable_paint(vtk_widget):
+                    close_func(self, *args, **kwargs)
+            except (AttributeError, IndexError):
                 close_func(self, *args, **kwargs)
 
         Brain.close = patched_close
