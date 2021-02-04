@@ -349,3 +349,5 @@
 .. _Richard Koehler: https://github.com/richardkoehler
 
 .. _Tristan Stenner: https://github.com/tstenner/
+
+.. _Andres Rodriguez: https://github.com/infinitejest/
