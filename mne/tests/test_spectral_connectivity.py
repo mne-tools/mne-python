@@ -25,6 +25,7 @@ reject = dict(grad=1000e-12, mag=4e-12, eeg=80e-6, eog=150e-6)
 flat = dict(grad=1e-15, mag=1e-15)
 
 
+@testing.requires_testing_data
 def test_spectral_connectivity():
     """Test spectral.spectral_connectivity with different data objects"""
     event_id, tmin, tmax = 1, -1, 1
