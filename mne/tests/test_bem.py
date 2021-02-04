@@ -10,7 +10,7 @@ from shutil import copy
 
 import numpy as np
 import pytest
-from numpy.testing import assert_equal, assert_allclose
+from numpy.testing import assert_allclose, assert_array_equal
 
 from mne import (make_bem_model, read_bem_surfaces, write_bem_surfaces,
                  make_bem_solution, read_bem_solution, write_bem_solution,
@@ -19,10 +19,12 @@ from mne.preprocessing.maxfilter import fit_sphere_to_headshape
 from mne.io.constants import FIFF
 from mne.transforms import translation
 from mne.datasets import testing
-from mne.utils import (run_tests_if_main, catch_logging, requires_h5py)
+from mne.utils import (requires_nibabel, catch_logging, requires_h5py,
+                       requires_fsl)
 from mne.bem import (_ico_downsample, _get_ico_map, _order_surfaces,
-                     _assert_complete_surface, _assert_inside,
-                     _check_surface_size, _bem_find_surface)
+                     _assert_complete_surface, _assert_inside, make_fsl_bem,
+                     _check_surface_size, _bem_find_surface,
+                     _extract_volume_info)
 from mne.surface import read_surface
 from mne.io import read_info
 
@@ -44,8 +46,8 @@ def _compare_bem_surfaces(surfs_1, surfs_2):
     names = ['id', 'nn', 'rr', 'coord_frame', 'tris', 'sigma', 'ntri', 'np']
     ignores = ['tri_cent', 'tri_nn', 'tri_area', 'neighbor_tri']
     for s0, s1 in zip(surfs_1, surfs_2):
-        assert_equal(set(names), set(s0.keys()) - set(ignores))
-        assert_equal(set(names), set(s1.keys()) - set(ignores))
+        assert set(names) == set(s0.keys()) - set(ignores)
+        assert set(names) == set(s1.keys()) - set(ignores)
         for name in names:
             assert_allclose(s0[name], s1[name], rtol=1e-3, atol=1e-6,
                             err_msg='Mismatch: "%s"' % name)
@@ -58,8 +60,8 @@ def _compare_bem_solutions(sol_a, sol_b):
     # compare the actual solutions
     names = ['bem_method', 'field_mult', 'gamma', 'is_sphere',
              'nsol', 'sigma', 'source_mult', 'solution']
-    assert_equal(set(sol_a.keys()), set(sol_b.keys()))
-    assert_equal(set(names + ['surfs']), set(sol_b.keys()))
+    assert set(sol_a.keys()) == set(sol_b.keys())
+    assert set(names + ['surfs']) == set(sol_b.keys())
     for key in names:
         assert_allclose(sol_a[key], sol_b[key], rtol=1e-3, atol=1e-5,
                         err_msg='Mismatch: %s' % key)
@@ -387,4 +389,52 @@ def test_fit_sphere_to_headshape():
     pytest.raises(TypeError, fit_sphere_to_headshape, 1, units='m')
 
 
-run_tests_if_main()
+@testing.requires_testing_data
+@requires_nibabel()
+def test_extract_volume_info():
+    subject = 'sample'  # fsaverage is a bit wacky
+    subj_dir = op.join(subjects_dir, subject)
+    vol_info = _extract_volume_info(op.join(subj_dir, 'mri', 'T1.mgz'))
+    _, _, meta = read_surface(op.join(subj_dir, 'surf', 'lh.white'),
+                              read_metadata=True)
+    assert set(meta) == set(vol_info)  # same keys
+    for key in ('filename',):
+        assert isinstance(meta.pop(key), str)
+        assert isinstance(vol_info.pop(key), str)
+    for key in ('xras', 'yras', 'zras', 'cras', 'head'):
+        m_ = meta.pop(key)
+        v_ = vol_info.pop(key)
+        assert_allclose(m_, v_, atol=1e-7, err_msg=key)
+    # We resampled the volumes after generating surfaces so these differ
+    m_ = meta.pop('volume')
+    v_ = vol_info.pop('volume')
+    assert_array_equal(m_, [256, 256, 256])
+    assert_array_equal(v_, [86, 86, 86])
+    m_ = meta.pop('voxelsize')
+    v_ = vol_info.pop('voxelsize')
+    assert_array_equal(m_, [1., 1., 1.])
+    assert_array_equal(v_, [3., 3., 3.])
+    assert meta.pop('valid') == vol_info.pop('valid')
+    assert len(meta) == len(vol_info) == 0
+
+
+@testing.requires_testing_data
+@requires_nibabel()
+@requires_fsl()
+@pytest.mark.parametrize('subject', [
+    pytest.param('sample', marks=pytest.mark.slowtest),  # ~10 sec
+    pytest.param('fsaverage', marks=pytest.mark.ultraslowtest),  # ~1 min
+])
+def test_make_fsl_bem(tmpdir, subject):
+    """Test making a BEM with fsl bet."""
+    subj_dir = tmpdir.mkdir(subject)
+    mri_dir = subj_dir.mkdir('mri')
+    copy(op.join(subjects_dir, subject, 'mri', 'T1.mgz'),
+         op.join(mri_dir, 'T1.mgz'))
+    make_fsl_bem(subject, subjects_dir=str(tmpdir), verbose=True)
+    bem_dir = op.join(tmpdir, subject, 'bem')
+    assert op.isdir(bem_dir)
+    for fname in ('brain', 'inner_skull', 'outer_skull', 'outer_skin'):
+        rr, tris = read_surface(op.join(bem_dir, f'{fname}.surf'))
+        assert rr.shape == (2562, 3)
+        assert tris.shape == (5120, 3)

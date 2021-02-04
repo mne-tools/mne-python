@@ -33,7 +33,7 @@ from .transforms import (transform_surface_to, _pol_to_cart, _cart_to_sph,
                          _get_trans, apply_trans, Transform)
 from .utils import (logger, verbose, get_subjects_dir, warn, _check_fname,
                     _check_option, _ensure_int, _TempDir, run_subprocess,
-                    _check_freesurfer_home)
+                    _check_freesurfer_home, _validate_type)
 from .fixes import (_serialize_volume_info, _get_read_geometry, einsum, jit,
                     prange, bincount)
 
@@ -1032,8 +1032,9 @@ def _decimate_surface_spacing(surf, spacing):
     return surf
 
 
+@verbose
 def write_surface(fname, coords, faces, create_stamp='', volume_info=None,
-                  file_format='auto', overwrite=False):
+                  file_format='auto', overwrite=False, verbose=None):
     """Write a triangular Freesurfer surface mesh.
 
     Accepts the same data format as is returned by read_surface().
@@ -1840,3 +1841,60 @@ def dig_mri_distances(info, trans, subject, subjects_dir=None,
         info, dig_kinds, exclude_frontal=exclude_frontal)
     dists = _compute_nearest(pts, info_dig, return_dists=True)[1]
     return dists
+
+
+def _read_vtk_mesh(fname):
+    header = dict()
+    rr = tris = None
+    with open(fname, 'r') as fid:
+        for key, opts in (['kind', ('surface file',)],
+                          ['encoding', ('ASCII', 'UTF8')],
+                          ['dataset', ('DATASET POLYDATA',)]):
+            while True:
+                line = fid.readline()
+                _validate_type(line, str, 'line in VTK file')
+                if line.startswith('#'):
+                    continue
+                got = line.strip()
+                _check_option(key, got, opts)
+                header[key] = got
+                break
+        while rr is None or tris is None:
+            line = fid.readline()
+            _validate_type(line, str, 'line in VTK file')
+            which_split = line.strip().lower().split()
+            which, n = which_split[:2]
+            n = int(n)
+            dtype = dict(points=float, tris=int).get(which, None)
+            data = np.genfromtxt(fid, max_rows=n, dtype=dtype)
+            if which == 'points':
+                rr = data
+                assert rr.shape == (n, 3)
+                continue
+            elif which == 'polygons':
+                tris = data
+                assert tris.shape == (n, 4)
+                tris = tris[:, 1:]  # cut off leading 3's
+                continue
+    _validate_type(rr, np.ndarray, 'rr in VTK file')
+    _validate_type(tris, np.ndarray, 'tris in VTK file')
+    return rr, tris
+
+
+def _write_vtk_mesh(fname, rr, tris):
+    assert rr.ndim == 2 and rr.shape[1] == 3
+    assert tris.ndim == 2 and tris.shape[1] == 3
+    tris = np.pad(tris, ((0, 0), (1, 0)), 'constant', constant_values=1)
+    with open(fname, 'w') as fid:
+        fid.write(f"""\
+# vtk DataFile Version 3.0
+surface file
+ASCII
+DATASET POLYDATA
+POINTS {len(rr)}  float
+""")
+        np.savetxt(fid, rr, fmt='%0.6f', delimiter=' ')
+        fid.write(f"""\
+POLYGONS {len(tris)} {tris.size}
+""")
+        np.savetxt(fid, tris, fmt='%d', delimiter=' ')

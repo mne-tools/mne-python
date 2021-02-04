@@ -83,8 +83,9 @@ def pformat(temp, **fmt):
 
 
 def _enqueue_output(out, queue):
-    for line in iter(out.readline, b''):
-        queue.put(line)
+    if out is not None:  # can be None when output is not captured
+        for line in iter(out.readline, b''):
+            queue.put(line)
 
 
 @verbose
@@ -140,7 +141,7 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
                     break
                 else:
                     out = out.decode('utf-8')
-                    logger.info(out)
+                    logger.info(out.rstrip('\n'))  # logger adds its own \n
                     all_out += out
             while True:
                 try:
@@ -153,8 +154,10 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
                     all_err += err
             if do_break:
                 break
-    p.stdout.close()
-    p.stderr.close()
+    for attr in ('stdout', 'stderr'):
+        std = getattr(p, attr)
+        if std is not None:
+            std.close()
     output = (all_out, all_err)
 
     if return_code:

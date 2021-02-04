@@ -749,3 +749,16 @@ def _safe_input(msg, *, alt=None, use=None):
         raise RuntimeError(
             f'Could not use input() to get a response to:\n{msg}\n'
             f'You can {alt} to avoid this error.')
+
+
+def _import_nibabel(why='use MRI files'):
+    nib = None
+    try:
+        import nibabel as nib
+    except ImportError as exp:
+        msg = 'nibabel is required to %s, got:\n%s' % (why, exp)
+    else:
+        msg = ''
+    if msg:
+        raise ImportError(msg)
+    return nib

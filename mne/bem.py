@@ -28,11 +28,13 @@ from .io.tree import dir_tree_find
 from .io.open import fiff_open
 from .surface import (read_surface, write_surface, complete_surface_info,
                       _compute_nearest, _get_ico_surface, read_tri,
-                      _fast_cross_nd_sum, _get_solids)
-from .transforms import _ensure_trans, apply_trans, Transform
+                      _fast_cross_nd_sum, _get_solids, _read_vtk_mesh,
+                      _write_vtk_mesh, decimate_surface)
+from .transforms import _ensure_trans, apply_trans, Transform, read_ras_mni_t
 from .utils import (verbose, logger, run_subprocess, get_subjects_dir, warn,
                     _pl, _validate_type, _TempDir, _check_freesurfer_home,
-                    _check_fname, has_nibabel, _check_option)
+                    _check_fname, has_nibabel, _check_option, _import_nibabel,
+                    wrapped_stdout, _require_version)
 from .fixes import einsum
 from .externals.h5io import write_hdf5, read_hdf5
 
@@ -1090,31 +1092,28 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     See Also
     --------
     mne.viz.plot_bem
+    mne.bem.make_fsl_bem
 
     Notes
     -----
     If your BEM meshes do not look correct when viewed in
     :func:`mne.viz.plot_alignment` or :func:`mne.viz.plot_bem`, consider
-    potential solutions from the :ref:`FAQ <faq_watershed_bem_meshes>`.
+    potential solutions from the :ref:`FAQ <faq_watershed_bem_meshes>` or
+    using :func:`mne.bem.make_fsl_bem` instead.
 
     .. versionadded:: 0.10
     """
-    from .viz.misc import plot_bem
-    env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir)
-    tempdir = _TempDir()  # fsl and Freesurfer create some random junk in CWD
-    run_subprocess_env = partial(run_subprocess, env=env,
-                                 cwd=tempdir)
+    env, mri_dir, bem_dir, tempdir, run_env = _prepare_env(
+        subject, subjects_dir)
 
     subjects_dir = env['SUBJECTS_DIR']  # Set by _prepare_env() above.
-    subject_dir = op.join(subjects_dir, subject)
     ws_dir = op.join(bem_dir, 'watershed')
     T1_dir = op.join(mri_dir, volume)
     T1_mgz = T1_dir
     if not T1_dir.endswith('.mgz'):
         T1_mgz += '.mgz'
 
-    if not op.isdir(bem_dir):
-        os.makedirs(bem_dir)
+    os.makedirs(bem_dir, exist_ok=True)
     _check_fname(T1_mgz, overwrite='read', must_exist=True, name='MRI data')
     if op.isdir(ws_dir):
         if not overwrite:
@@ -1138,7 +1137,8 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
         fname = sorted(glob.glob(fname))[::-1][0]
         logger.info('Using GCA atlas: %s' % (fname,))
         cmd += ['-atlas', '-brain_atlas', fname,
-                subject_dir + '/mri/transforms/talairach_with_skull.lta']
+                f'{subjects_dir}/{subject}/mri/transforms/'
+                'talairach_with_skull.lta']
     elif atlas:
         cmd += ['-atlas']
     if op.exists(T1_mgz):
@@ -1152,10 +1152,10 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
                 'following parameters:\n\nResults dir = %s\nCommand = %s\n'
                 % (ws_dir, ' '.join(cmd)))
     os.makedirs(op.join(ws_dir))
-    run_subprocess_env(cmd)
+    run_env(cmd)
     del tempdir  # clean up directory
     if op.isfile(T1_mgz):
-        new_info = _extract_volume_info(T1_mgz) if has_nibabel() else dict()
+        new_info = _extract_volume_info(T1_mgz)[0] if has_nibabel() else dict()
         if not new_info:
             warn('nibabel is not available or the volumn info is invalid.'
                  'Volume info not updated in the written surface.')
@@ -1202,29 +1202,187 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     write_bem_surfaces(fname_head, surf)
 
     # Show computed BEM surfaces
-    if show:
-        plot_bem(subject=subject, subjects_dir=subjects_dir,
-                 orientation='coronal', slices=None, show=True)
-
     logger.info('Created %s\n\nComplete.' % (fname_head,))
+    _show_bem(show, subject, subjects_dir)
+
+
+@verbose
+def make_fsl_bem(subject, subjects_dir=None, overwrite=False,
+                 volume='T1', brainmask=None, smooth=5, fraction=None,
+                 talairach=True, show=False, verbose=None):
+    """Create BEM surfaces using FSL.
+
+    Parameters
+    ----------
+    subject : str
+        Subject name.
+    %(subjects_dir)s
+    overwrite : bool
+        Write over existing files.
+    volume : str
+        Defaults to T1.
+    brainmask : None | str
+        Image to use as a brainmask. Can be useful when ``bet`` does an
+        inadequate job of extracting the initial brain mesh.
+    smooth : float
+        Amount to smooth the ``brainmask`` (in voxels). Larger values produce
+        smoother surfaces. 0 will not smooth at all.
+        Only used when ``brainmask`` is not None.
+    fraction : float | None
+        Fractional intensity threshold, smaller values give larger brain
+        outline estimates. None (default) will use 0.5 for ``bet`` and
+        0.55 for when ``smooth`` is used with ``brainmask``.
+    talairach : bool
+        If True (default), use the talairach transform computed by Freesurfer
+        rather than computing a new one using FLIRT.
+    show : bool
+        Show surfaces to visually inspect all three BEM surfaces (recommended).
+    %(verbose)s
+
+    See Also
+    --------
+    mne.viz.plot_bem
+
+    Notes
+    -----
+    This uses `bet and betsurf <https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/BET/UserGuide>`__,
+    which is distributed as part of `FSL <https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FslInstallation>`__.
+
+    .. versionadded:: 0.23
+    """  # noqa: E501
+    from scipy import ndimage
+    _validate_type(brainmask, (None, str), 'brainmask')
+    _validate_type(fraction, (None, 'numeric'), 'fraction')
+    if fraction is None:
+        fraction = 0.5 if brainmask is None else 0.55
+    _validate_type(smooth, 'numeric', 'smooth')
+    nib = _import_nibabel('create BEM surfaces using fsl')
+    env, mri_dir, bem_dir, tempdir, run_env = _prepare_env(
+        subject, subjects_dir, 'fsl')
+    subjects_dir = env['SUBJECTS_DIR']
+    fname = op.join(mri_dir, volume)
+    if not fname.endswith('.mgz'):
+        fname += '.mgz'
+    os.makedirs(bem_dir, exist_ok=True)
+    _check_fname(fname, overwrite='read', must_exist=True, name='MRI data')
+    # check for output filenames
+    bet_map = dict(
+        brain='',
+        outer_skin='_outskin',
+        inner_skull='_inskull',
+        outer_skull='_outskull',
+    )
+    meta, img = _extract_volume_info(fname)
+    xfm = img.header.get_vox2ras_tkr()
+    # This all-caps naming is obnoxious but it helps match the bet script
+    IN = op.join(tempdir, op.splitext(op.basename(fname))[0] + '.nii.gz')
+    nib.save(img, IN)
+    OUT = op.join(tempdir, 'stripped')
+    FSLDIR = env["FSLDIR"]
+    env['FSLOUTPUTTYPE'] = 'NIFTI_GZ'
+    # Disabled for now, but let's keep it in case we want it someday --
+    # bias correction:
+    # logger.info('Running bias correction')
+    # with wrapped_stdout(indent='    '):
+    #     run_env([f'{FSLDIR}/bin/standard_space_roi',
+    #             IN, f'{OUT}_tmp_premask', '-b', '-d'])
+    #     run_env([f'{FSLDIR}/bin/fast',
+    #             '-b', f'{OUT}_tmp_premask'])
+    #     run_env([f'{FSLDIR}/bin/fslmaths',
+    #             IN, '-div', f'{OUT}_tmp_premask_bias',
+    #             f'{OUT}_tmp_unbiased'])
+    # IN = f'{OUT}_tmp_unbiased.nii.gz'
+    # cmd = [f'{FSLDIR}/bin/bet', IN, OUT + '.nii.gz',
+    #        '-n', '-A', '-v', '-e', '-f', str(fraction)]
+    pre = f'Registering {subject} {volume} to MNI152 using '
+    OUT_reg = f'{OUT}_tmp_T1_to_std.mat'
+    if talairach:
+        logger.info(pre + 'talaraich.xfm')
+        ras_mni_t = read_ras_mni_t(subject, subjects_dir)['trans']
+        # $FREESURFER_HOME/average/mni152.register.dat (all RAS) is:
+        mni_mni152_t = np.array([
+            [9.975314e-01, -7.324822e-03, 1.760415e-02, 9.570923e-01],
+            [-1.296475e-02, -9.262221e-03, 9.970638e-01, -1.781596e+01],
+            [-1.459537e-02, -1.000945e+00, 2.444772e-03, -1.854964e+01],
+            [0, 0, 0, 1]])
+        ras_mni152_t = mni_mni152_t @ ras_mni_t
+        # From https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FLIRT/FAQ#Can_I_register_to_an_image_but_use_higher.2Flower_resolution_.28voxel_size.29.3F  # noqa: E501
+        # "The appropriate offset to keep the COV constant is half of the
+        # difference in the respective FOVs (in mm)."
+        fov = np.diff(apply_trans(
+            img.affine, np.array([[1, 1, 1], np.array(img.shape)])), axis=0)[0]
+        # the MNI152 FOV below was calculated as above using the image
+        # $FSLDIR/data/standard/MNI152_T1_2mm.nii.gz. The extra multplication
+        # is necessary (probably) because of the data orientation of MNI152
+        # which is negative along the first axis.
+        delta_fov = ((abs(fov) - [180, 216, 180]) / 2) * [-1, 1, 1]
+        ras_mni152_t[:3, 3] += delta_fov
+        np.savetxt(OUT_reg, ras_mni152_t.astype(np.float32), delimiter='  ')
+    else:
+        logger.info(pre + 'FLIRT')
+        with wrapped_stdout(indent='    '):
+            run_env([f'{FSLDIR}/bin/flirt',
+                     '-ref', f'{FSLDIR}/data/standard/MNI152_T1_2mm',
+                     '-in', IN, '-omat', OUT_reg])
+    OUT_brain_mesh = f'{OUT}_mesh.vtk'
+    if brainmask is not None:
+        logger.info(f'Tesselating brain mesh using {brainmask}')
+        _require_version('skimage', 'Tesselating a brainmask')
+        from skimage import measure
+        brainmask = str(brainmask)
+        if op.splitext(brainmask)[1] == '':
+            brainmask = brainmask + '.mgz'
+        if not op.isfile(brainmask) and \
+                op.isfile(op.join(mri_dir, brainmask)):
+            brainmask = op.join(mri_dir, brainmask)
+        img = nib.load(brainmask)
+        img_data = img.get_fdata()
+        img_data = img_data.astype(bool).astype(float)
+        if smooth > 0:
+            logger.info(f'    Gaussian smoothing ({smooth} voxels)')
+            img_data = ndimage.gaussian_filter(
+                img_data, smooth, mode='constant')
+            img_data = img_data > fraction
+        logger.info('    Marching cubes')
+        rr, tris = measure.marching_cubes(
+            img_data, spacing=(1, 1, 1), allow_degenerate=False)[:2]
+        logger.info(f'    Decimating {len(tris)} triangles to 5120')
+        rr, tris = decimate_surface(rr, tris, 5120)
+        _write_vtk_mesh(OUT_brain_mesh, rr, tris)
+    else:
+        logger.info('Extracting brain mesh using bet2')
+        with wrapped_stdout(indent='    '):
+            run_env([f'{FSLDIR}/bin/bet2',
+                    IN, OUT, '-e', '-n', '-v', '-e', '-f', str(fraction)])
+    with wrapped_stdout(indent='    '):
+        logger.info('Running betsurf to extract skull and outer skin')
+        run_env([f'{FSLDIR}/bin/betsurf',
+                 '--t1only', '-o', IN, OUT_brain_mesh, OUT_reg, OUT])
+    for fs_name, bet_name in bet_map.items():
+        rr, tris = _read_vtk_mesh(f'{OUT}{bet_name}_mesh.vtk')
+        rr = apply_trans(xfm, rr)
+        write_surface(op.join(bem_dir, f'{fs_name}.surf'), rr, tris,
+                      volume_info=meta, overwrite=overwrite, verbose=False)
+    logger.info('[done]')
+    _show_bem(show, subject, subjects_dir)
 
 
 def _extract_volume_info(mgz):
     """Extract volume info from a mgz file."""
     import nibabel
-    header = nibabel.load(mgz).header
+    img = nibabel.load(mgz)
+    header = img.header
     version = header['version']
     vol_info = dict()
     if version == 1:
-        version = '%s  # volume info valid' % version
-        vol_info['valid'] = version
+        vol_info['head'] = np.array([2, 0, 20], np.int32)
+        vol_info['valid'] = f'{version}  # volume info valid'
         vol_info['filename'] = mgz
         vol_info['volume'] = header['dims'][:3]
         vol_info['voxelsize'] = header['delta']
         vol_info['xras'], vol_info['yras'], vol_info['zras'] = header['Mdc']
         vol_info['cras'] = header['Pxyz_c']
-
-    return vol_info
+    return vol_info, img
 
 
 # ############################################################################
@@ -1623,14 +1781,10 @@ def _write_bem_solution_fif(fname, bem):
 # #############################################################################
 # Create 3-Layers BEM model from Flash MRI images
 
-def _prepare_env(subject, subjects_dir):
+def _prepare_env(subject, subjects_dir, api='freesurfer'):
     """Prepare an env object for subprocess calls."""
     env = os.environ.copy()
-
-    fs_home = _check_freesurfer_home()
-
     _validate_type(subject, "str")
-
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     subjects_dir = op.abspath(subjects_dir)  # force use of an absolute path
     subjects_dir = op.expanduser(subjects_dir)
@@ -1641,11 +1795,19 @@ def _prepare_env(subject, subjects_dir):
     if not op.isdir(subject_dir):
         raise RuntimeError('Could not find the subject data directory "%s"'
                            % (subject_dir,))
-    env.update(SUBJECT=subject, SUBJECTS_DIR=subjects_dir,
-               FREESURFER_HOME=fs_home)
+    env.update(SUBJECT=subject, SUBJECTS_DIR=subjects_dir)
+    if api == 'freesurfer':
+        fs_home = _check_freesurfer_home()
+        env['FREESURFER_HOME'] = fs_home
+    else:
+        assert api == 'fsl', api
+        if 'FSLDIR' not in env:
+            raise RuntimeError('FSLDIR not set in the environment')
     mri_dir = op.join(subject_dir, 'mri')
     bem_dir = op.join(subject_dir, 'bem')
-    return env, mri_dir, bem_dir
+    tempdir = _TempDir()
+    run_env = partial(run_subprocess, env=env, cwd=tempdir)
+    return env, mri_dir, bem_dir, tempdir, run_env
 
 
 @verbose
@@ -1695,13 +1857,11 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
     has been completed. In particular, the T1.mgz and brain.mgz MRI volumes
     should be, as usual, in the subject's mri directory.
     """
-    env, mri_dir = _prepare_env(subject, subjects_dir)[:2]
-    tempdir = _TempDir()  # fsl and Freesurfer create some random junk in CWD
-    run_subprocess_env = partial(run_subprocess, env=env,
-                                 cwd=tempdir)
+    _, mri_dir, _, tempdir, run_env = _prepare_env(
+        subject, subjects_dir)
     # Step 1a : Data conversion to mgz format
-    if not op.exists(op.join(mri_dir, 'flash', 'parameter_maps')):
-        os.makedirs(op.join(mri_dir, 'flash', 'parameter_maps'))
+    os.makedirs(op.join(mri_dir, 'flash', 'parameter_maps'),
+                exist_ok=True)
     echos_done = 0
     if convert:
         logger.info("\n---- Converting Flash images ----")
@@ -1737,7 +1897,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
                     logger.info("The file %s is already there")
                 else:
                     cmd = ['mri_convert', sample_file, dest_file]
-                    run_subprocess_env(cmd)
+                    run_env(cmd)
                     echos_done += 1
     # Step 1b : Run grad_unwarp on converted files
     flash_dir = op.join(mri_dir, "flash")
@@ -1751,14 +1911,13 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
             outfile = infile.replace(".mgz", "u.mgz")
             cmd = ['grad_unwarp', '-i', infile, '-o', outfile, '-unwarp',
                    'true']
-            run_subprocess_env(cmd)
+            run_env(cmd)
     # Clear parameter maps if some of the data were reconverted
     pm_dir = op.join(flash_dir, 'parameter_maps')
     if echos_done > 0 and op.exists(pm_dir):
         shutil.rmtree(pm_dir)
         logger.info("\nParameter maps directory cleared")
-    if not op.exists(pm_dir):
-        os.makedirs(pm_dir)
+    os.makedirs(pm_dir, exist_ok=True)
     # Step 2 : Create the parameter maps
     if flash30:
         logger.info("\n---- Creating the parameter maps ----")
@@ -1768,7 +1927,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
             cmd = (['mri_ms_fitparms'] +
                    files +
                    [op.join(flash_dir, 'parameter_maps')])
-            run_subprocess_env(cmd)
+            run_env(cmd)
         else:
             logger.info("Parameter maps were already computed")
         # Step 3 : Synthesize the flash 5 images
@@ -1779,7 +1938,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
                    op.join(pm_dir, 'PD.mgz'),
                    op.join(pm_dir, 'flash5.mgz')
                    ]
-            run_subprocess_env(cmd)
+            run_env(cmd)
             os.remove(op.join(pm_dir, 'flash5_reg.mgz'))
         else:
             logger.info("Synthesized flash 5 volume is already there")
@@ -1793,7 +1952,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
         cmd = (['mri_average', '-noconform'] +
                files +
                [op.join(pm_dir, 'flash5.mgz')])
-        run_subprocess_env(cmd)
+        run_env(cmd)
         if op.exists(op.join(pm_dir, 'flash5_reg.mgz')):
             os.remove(op.join(pm_dir, 'flash5_reg.mgz'))
     del tempdir  # finally done running subprocesses
@@ -1838,12 +1997,8 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     --------
     convert_flash_mris
     """
-    from .viz.misc import plot_bem
-
-    env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir)
-    tempdir = _TempDir()  # fsl and Freesurfer create some random junk in CWD
-    run_subprocess_env = partial(run_subprocess, env=env,
-                                 cwd=tempdir)
+    env, mri_dir, bem_dir, tempdir, run_env = _prepare_env(
+        subject, subjects_dir)
 
     if flash_path is None:
         flash_path = op.join(mri_dir, 'flash', 'parameter_maps')
@@ -1868,7 +2023,7 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
             ref_volume = op.join(mri_dir, 'T1')
         cmd = ['fsl_rigid_register', '-r', ref_volume, '-i', flash5,
                '-o', flash5_reg]
-        run_subprocess_env(cmd)
+        run_env(cmd)
     else:
         logger.info("Registered flash 5 image is already there")
     # Step 5a : Convert flash5 into COR
@@ -1877,7 +2032,7 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     shutil.rmtree(flash5_dir, ignore_errors=True)
     os.makedirs(flash5_dir)
     cmd = ['mri_convert', flash5_reg, op.join(mri_dir, 'flash5')]
-    run_subprocess_env(cmd)
+    run_env(cmd)
     # Step 5b and c : Convert the mgz volumes into COR
     convert_T1 = False
     T1_dir = op.join(mri_dir, 'T1')
@@ -1895,7 +2050,7 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
             raise RuntimeError("Both T1 mgz and T1 COR volumes missing.")
         os.makedirs(T1_dir)
         cmd = ['mri_convert', T1_fname, T1_dir]
-        run_subprocess_env(cmd)
+        run_env(cmd)
     else:
         logger.info("T1 volume is already in COR format")
     logger.info("\n---- Converting brain volume into COR format ----")
@@ -1905,19 +2060,18 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
             raise RuntimeError("Both brain mgz and brain COR volumes missing.")
         os.makedirs(brain_dir)
         cmd = ['mri_convert', brain_fname, brain_dir]
-        run_subprocess_env(cmd)
+        run_env(cmd)
     else:
         logger.info("Brain volume is already in COR format")
     # Finally ready to go
     logger.info("\n---- Creating the BEM surfaces ----")
     cmd = ['mri_make_bem_surfaces', subject]
-    run_subprocess_env(cmd)
+    run_env(cmd)
     del tempdir  # ran our last subprocess; clean up directory
 
     logger.info("\n---- Converting the tri files into surf files ----")
     flash_bem_dir = op.join(bem_dir, 'flash')
-    if not op.exists(flash_bem_dir):
-        os.makedirs(flash_bem_dir)
+    os.makedirs(flash_bem_dir, exist_ok=True)
     surfs = ['inner_skull', 'outer_skull', 'outer_skin']
     for surf in surfs:
         out_fname = op.join(flash_bem_dir, surf + '.tri')
@@ -1964,6 +2118,11 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
                 "created will facilitate your MEG and EEG data analyses."
                 % dest)
     # Show computed BEM surfaces
+    _show_bem(show, subject, subjects_dir)
+
+
+def _show_bem(show, subject, subjects_dir):
+    from .viz.misc import plot_bem
     if show:
         plot_bem(subject=subject, subjects_dir=subjects_dir,
                  orientation='coronal', slices=None, show=True)

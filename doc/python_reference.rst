@@ -669,6 +669,7 @@ Forward Modeling
    ConductorModel
    fit_sphere_to_headshape
    get_fitting_dig
+   make_fsl_bem
    make_watershed_bem
    make_flash_bem
    convert_flash_mris

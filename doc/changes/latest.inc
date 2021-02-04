@@ -26,6 +26,8 @@ Enhancements
 
 - Add toggle-all button to :class:`mne.Report` HTML and ``width`` argument to :meth:`mne.Report.add_bem_to_section` (:gh:`8723` by `Eric Larson`_)
 
+- Add :ref:`mne fsl_bem` and :func:`mne.bem.make_fsl_bem` to use FSL's ``bet`` and ``betsurf`` to generate BEM surfaces (:gh:`8839` by `Eric Larson`_)
+
 - Add infant template MRI dataset downloader :func:`mne.datasets.fetch_infant_template` (:gh:`8738` by `Eric Larson`_ and `Christian O'Reilly`_)
 
 - Add digitizer information to :func:`mne.io.read_raw_egi` (:gh:`8789` by `Christian Brodbeck`_)

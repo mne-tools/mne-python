@@ -23,7 +23,7 @@ from .surface import (read_surface, _get_ico_surface, mesh_edges,
                       _project_onto_surface)
 from .source_space import (_ensure_src, _get_morph_src_reordering,
                            _ensure_src_subject, SourceSpaces, _get_src_nn,
-                           _import_nibabel, _get_mri_info_data,
+                           _get_mri_info_data,
                            _get_atlas_values, _check_volume_labels,
                            read_freesurfer_lut)
 from .transforms import _get_trans, apply_trans
@@ -33,7 +33,7 @@ from .utils import (get_subjects_dir, _check_subject, logger, verbose, _pl,
                     _check_stc_units, _check_pandas_installed,
                     _check_pandas_index_arguments, _convert_times, _ensure_int,
                     _build_data_frame, _check_time_format, _check_path_like,
-                    sizeof_fmt, object_size)
+                    sizeof_fmt, object_size, _import_nibabel)
 from .viz import (plot_source_estimates, plot_vector_source_estimates,
                   plot_volume_source_estimates)
 from .io.base import TimeMixin

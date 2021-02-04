@@ -13,9 +13,10 @@ from mne import (read_surface, write_surface, decimate_surface, pick_types,
                  dig_mri_distances)
 from mne.surface import (read_morph_map, _compute_nearest, _tessellate_sphere,
                          fast_cross_3d, get_head_surf, read_curvature,
-                         get_meg_helmet_surf, _normal_orth, _read_patch)
-from mne.utils import (_TempDir, requires_vtk, catch_logging,
-                       run_tests_if_main, object_diff, requires_freesurfer)
+                         get_meg_helmet_surf, _normal_orth, _read_patch,
+                         _read_vtk_mesh, _write_vtk_mesh)
+from mne.utils import (requires_vtk, catch_logging, object_diff,
+                       requires_freesurfer)
 from mne.io import read_info
 from mne.io.constants import FIFF
 from mne.transforms import _get_trans
@@ -27,6 +28,7 @@ fname = op.join(subjects_dir, 'sample', 'bem',
 fname_trans = op.join(data_path, 'MEG', 'sample',
                       'sample_audvis_trunc-trans.fif')
 fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
+fname_inner_skull = op.join(subjects_dir, 'sample', 'bem', 'inner_skull.surf')
 
 rng = np.random.RandomState(0)
 
@@ -114,10 +116,10 @@ def test_compute_nearest():
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_make_morph_maps():
+def test_make_morph_maps(tmpdir):
     """Test reading and creating morph maps."""
     # make a new fake subjects_dir
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     for subject in ('sample', 'sample_ds', 'fsaverage_ds'):
         os.mkdir(op.join(tempdir, subject))
         os.mkdir(op.join(tempdir, subject, 'surf'))
@@ -154,9 +156,9 @@ def test_make_morph_maps():
 
 
 @testing.requires_testing_data
-def test_io_surface():
+def test_io_surface(tmpdir):
     """Test reading and writing of Freesurfer surface mesh files."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     fname_quad = op.join(data_path, 'subjects', 'bert', 'surf',
                          'lh.inflated.nofix')
     fname_tri = op.join(data_path, 'subjects', 'sample', 'bem',
@@ -260,4 +262,20 @@ def test_normal_orth():
         assert_allclose(ori[2], nn, atol=1e-12)
 
 
-run_tests_if_main()
+@pytest.mark.parametrize('surface', [
+    'random',
+    pytest.param('inner_skull', marks=testing._pytest_mark()),
+])
+def test_vtk_mesh_io(surface, tmpdir):
+    """Test VTK mesh I/O."""
+    if surface == 'random':
+        rng = np.random.RandomState(0)
+        rr = rng.randn(100, 3) * 1000
+        tris = rng.choice(100, (256, 3), replace=True)
+    else:
+        assert surface == 'inner_skull'
+        rr, tris = read_surface(fname_inner_skull)
+    _write_vtk_mesh(fname, rr, tris)
+    rr_read, tris_read = _read_vtk_mesh(fname)
+    assert_allclose(rr_read, rr, atol=1e-6)
+    assert_array_equal(tris_read, tris)

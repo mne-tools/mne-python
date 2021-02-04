@@ -11,6 +11,7 @@ if [ "${DEPS}" != "minimal" ]; then
 		export LD_LIBRARY_PATH=${MNE_ROOT}/lib:$LD_LIBRARY_PATH
 		export NEUROMAG2FT_ROOT="${PWD}/minimal_cmds/bin"
 		export FREESURFER_HOME="${MNE_ROOT}"
+		export FSLDIR="${MNE_ROOT}/fsl"
 	else
 		if [ ! -d "${PWD}/minimal_cmds" ]; then
 			curl -L https://osf.io/rjcz4/download | tar xz

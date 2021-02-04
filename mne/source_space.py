@@ -36,7 +36,7 @@ from .utils import (get_subjects_dir, check_fname, logger, verbose, fill_doc,
                     _ensure_int, check_version, _get_call_line, warn,
                     _check_fname, _check_path_like, has_nibabel, _check_sphere,
                     _validate_type, _check_option, _is_numeric, _pl, _suggest,
-                    object_size, sizeof_fmt)
+                    object_size, sizeof_fmt, _import_nibabel)
 from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
                          combine_transforms, _get_trans,
@@ -1932,18 +1932,6 @@ def _make_discrete_source_space(pos, coord_frame='mri'):
               inuse=np.ones(npts, int), vertno=np.arange(npts), rr=rr, nn=nn,
               id=-1)
     return sp
-
-
-def _import_nibabel(why='use MRI files'):
-    try:
-        import nibabel as nib
-    except ImportError as exp:
-        msg = 'nibabel is required to %s, got:\n%s' % (why, exp)
-    else:
-        msg = ''
-    if msg:
-        raise ImportError(msg)
-    return nib
 
 
 def _mri_orientation(img, orientation):

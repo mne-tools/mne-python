@@ -166,6 +166,13 @@ run_subprocess([%r, '--version'])
         return requires_module(arg, name='Freesurfer', call=_fs_call)
 
 
+def requires_fsl():
+    """Require FSL."""
+    cmd = "from . import run_subprocess; run_subprocess(['betsurf', '--help'])"
+    return partial(
+        requires_module, name='FSL (bet)', call=cmd)
+
+
 requires_neuromag2ft = partial(requires_module, name='neuromag2ft',
                                call=_n2ft_call)
 
