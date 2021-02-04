@@ -10,7 +10,7 @@
 from contextlib import contextmanager
 import importlib
 
-from ._utils import VALID_3D_BACKENDS, _qt_disable_paint
+from ._utils import VALID_3D_BACKENDS
 from ...utils import (logger, verbose, get_config, _check_option,
                       _require_version)
 
@@ -294,19 +294,6 @@ def get_brain_class():
     if get_3d_backend() == "mayavi":
         from surfer import Brain
         _require_version('surfer', 'stc.plot', '0.9')
-        # Here we patch to avoid segfault:
-        # https://github.com/mne-tools/mne-python/pull/8828
-        close_func = Brain.close
-
-        def patched_close(self, *args, **kwargs):
-            try:
-                vtk_widget = self._figures[0][0].scene._content
-                with _qt_disable_paint(vtk_widget):
-                    close_func(self, *args, **kwargs)
-            except (AttributeError, IndexError):
-                close_func(self, *args, **kwargs)
-
-        Brain.close = patched_close
     else:  # PyVista
         from ...viz._brain import Brain
     return Brain

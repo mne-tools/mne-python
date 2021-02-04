@@ -1837,6 +1837,7 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
               brain_alpha, overlay_alpha, vector_alpha, cortex, foreground,
               size, scale_factor, show_traces, src, volume_options,
               view_layout, add_data_kwargs, brain_kwargs):
+    from .backends._utils import _qt_disable_paint
     from .backends.renderer import _get_3d_backend, get_brain_class
     from ..source_estimate import _BaseVolSourceEstimate
     vec = stc._data_ndim == 3
@@ -1906,6 +1907,22 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
     with warnings.catch_warnings(record=True):  # traits warnings
         brain = Brain(**kwargs)
     del kwargs
+
+    if using_mayavi:
+        # Here we patch to avoid segfault:
+        # https://github.com/mne-tools/mne-python/pull/8828
+        close_func = brain.close
+
+        def patched_close(*args, **kwargs):
+            try:
+                vtk_widget = brain._figures[0][0].scene._content
+                with _qt_disable_paint(vtk_widget):
+                    close_func(*args, **kwargs)
+            except (AttributeError, IndexError):
+                close_func(*args, **kwargs)
+
+        brain.close = patched_close
+
     if scale_factor is None:
         # Configure the glyphs scale directly
         width = np.mean([np.ptp(brain.geo[hemi].coords[:, 1])
