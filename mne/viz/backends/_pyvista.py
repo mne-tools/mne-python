@@ -230,8 +230,6 @@ class _Renderer(_BaseRenderer):
         # plotter.frame:      QFrame with QVBoxLayout with plotter.interactor as centralWidget  # noqa
         # plotter.ren_win:    vtkXOpenGLRenderWindow
         self.plotter.interactor.setMinimumSize(*sz)
-        paint_func = self.plotter.paintEvent
-        self.plotter.paintEvent = lambda ev: None
         try:
             yield  # show
         finally:
@@ -251,7 +249,6 @@ class _Renderer(_BaseRenderer):
             self.plotter.interactor.resize(ren_sz.width(), ren_sz.height())
             _process_events(self.plotter)
             _process_events(self.plotter)
-            self.plotter.paintEvent = paint_func
 
     def subplot(self, x, y):
         x = np.max([0, np.min([x, self.shape[0] - 1])])
