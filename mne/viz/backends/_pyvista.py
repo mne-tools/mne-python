@@ -23,7 +23,8 @@ import vtk
 
 from .base_renderer import _BaseRenderer
 from ._utils import (_get_colormap_from_array, _alpha_blend_background,
-                     ALLOWED_QUIVER_MODES, _init_qt_resources)
+                     ALLOWED_QUIVER_MODES, _init_qt_resources,
+                     _qt_disable_paint)
 from ...fixes import _get_args
 from ...transforms import apply_trans
 from ...utils import copy_base_doc_to_subclass_doc, _check_option
@@ -221,7 +222,7 @@ class _Renderer(_BaseRenderer):
         return "MNE" + dt_string + ".png"
 
     @contextmanager
-    def ensure_minimum_sizes(self):
+    def _ensure_minimum_sizes(self):
         sz = self.figure.store['window_size']
         # plotter:            pyvista.plotting.qt_plotting.BackgroundPlotter
         # plotter.interactor: vtk.qt.QVTKRenderWindowInteractor.QVTKRenderWindowInteractor -> QWidget  # noqa
@@ -634,8 +635,9 @@ class _Renderer(_BaseRenderer):
     def show(self):
         self.figure.display = self.plotter.show()
         if hasattr(self.plotter, "app_window"):
-            with self.ensure_minimum_sizes():
-                self.plotter.app_window.show()
+            with _qt_disable_paint(self.plotter):
+                with self._ensure_minimum_sizes():
+                    self.plotter.app_window.show()
         return self.scene()
 
     def close(self):
