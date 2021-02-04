@@ -772,6 +772,8 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     if isinstance(data, BaseEpochs):
         times_in = data.times  # input times for Epochs input type
         sfreq = data.info['sfreq']
+    else:
+        times_in = None
 
     # loop over data; it could be a generator that returns
     # (n_signals x n_times) arrays or SourceEstimates
@@ -783,9 +785,9 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
             (n_cons, times, n_times, times_in, n_times_in, tmin_idx,
              tmax_idx, n_freqs, freq_mask, freqs, freqs_bands, freq_idx_bands,
              n_signals, indices_use) = _prepare_connectivity(
-                epoch_block=epoch_block, tmin=tmin, tmax=tmax, fmin=fmin,
-                fmax=fmax, sfreq=sfreq, indices=indices, mode=mode,
-                fskip=fskip, n_bands=n_bands,
+                epoch_block=epoch_block, times_in=times_in, tmin=tmin, tmax=tmax,
+                fmin=fmin, fmax=fmax, sfreq=sfreq, indices=indices,
+                mode=mode, fskip=fskip, n_bands=n_bands,
                 cwt_freqs=cwt_freqs, faverage=faverage)
 
             # get the window function, wavelets, etc for different modes
@@ -930,14 +932,15 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     return con, freqs, times, n_epochs, n_tapers
 
 
-def _prepare_connectivity(epoch_block, tmin, tmax, fmin, fmax, sfreq, indices,
+def _prepare_connectivity(epoch_block, times_in, tmin, tmax,
+                          fmin, fmax, sfreq, indices,
                           mode, fskip, n_bands,
                           cwt_freqs, faverage):
     """Check and precompute dimensions of results data."""
     first_epoch = epoch_block[0]
 
     # get the data size and time scale
-    n_signals, n_times_in, times_in = _get_and_verify_data_sizes(first_epoch)
+    n_signals, n_times_in, times_in = _get_and_verify_data_sizes(first_epoch, times=times_in)
 
     if times_in is None:
         # we are not using Epochs or SourceEstimate(s) as input
@@ -945,6 +948,14 @@ def _prepare_connectivity(epoch_block, tmin, tmax, fmin, fmax, sfreq, indices,
                                endpoint=False)
 
     n_times_in = len(times_in)
+
+    if tmin < times_in[0]:
+        warn('start time tmin=%0.2f s outside of the time scope of the data [%0.2f s, %0.2f s]'
+              % (tmin, times_in[0], times_in[-1]))
+    if tmax > times_in[-1]:
+        warn('stop time tmax=%0.2f s outside of the time scope of the data [%0.2f s, %0.2f s]'
+              % (tmax, times_in[0], times_in[-1]))
+
     mask = _time_mask(times_in, tmin, tmax, sfreq=sfreq)
     tmin_idx, tmax_idx = np.where(mask)[0][[0, -1]]
     tmax_idx += 1
