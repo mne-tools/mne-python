@@ -75,6 +75,7 @@ h5.card-header::before {
     margin-top: 0px;
 }
 ul.funders li {
+    line-height: initial;
     margin-left: 30px;
     text-indent: -30px;
     padding-bottom: 6px;
