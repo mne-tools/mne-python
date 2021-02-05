@@ -66,6 +66,9 @@ img.logo {
 }
 
 /* ************************************** homepage quick links & funders box */
+ul.quicklinks {
+    font-weight: 600;
+}
 ul.quicklinks a:hover {
     text-decoration: none;
 }
