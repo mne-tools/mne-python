@@ -19,6 +19,7 @@ stages:
       pool:
         vmImage: 'ubuntu-18.04'
       variables:
+        DECODE_PERCENTS: 'false'
         RET: 'true'
       steps:
       - bash: |

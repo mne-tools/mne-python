@@ -38,8 +38,7 @@ from ..transforms import (_find_trans, apply_trans, rot_to_quat,
                           read_ras_mni_t, _print_coord_trans)
 from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
                      has_nibabel, check_version, fill_doc, _pl, get_config,
-                     _ensure_int, _validate_type, _check_option,
-                     _require_version)
+                     _ensure_int, _validate_type, _check_option)
 from .utils import (mne_analyze_colormap, _get_color_list,
                     plt_show, tight_layout, figure_nobar, _check_time_unit)
 from .misc import _check_mri
@@ -1838,7 +1837,7 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
               brain_alpha, overlay_alpha, vector_alpha, cortex, foreground,
               size, scale_factor, show_traces, src, volume_options,
               view_layout, add_data_kwargs, brain_kwargs):
-    from .backends.renderer import _get_3d_backend
+    from .backends.renderer import _get_3d_backend, get_brain_class
     from ..source_estimate import _BaseVolSourceEstimate
     vec = stc._data_ndim == 3
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
@@ -1848,11 +1847,7 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
     backend = _get_3d_backend()
     del _get_3d_backend
     using_mayavi = backend == "mayavi"
-    if using_mayavi:
-        from surfer import Brain
-        _require_version('surfer', 'stc.plot', '0.9')
-    else:  # PyVista
-        from ._brain import Brain
+    Brain = get_brain_class()
     views = _check_views(surface, views, hemi, stc, backend)
     _check_option('hemi', hemi, ['lh', 'rh', 'split', 'both'])
     _check_option('view_layout', view_layout, ('vertical', 'horizontal'))
@@ -1911,6 +1906,12 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
     with warnings.catch_warnings(record=True):  # traits warnings
         brain = Brain(**kwargs)
     del kwargs
+
+    if using_mayavi:
+        # Here we patch to avoid segfault:
+        # https://github.com/mne-tools/mne-python/pull/8828
+        brain.close = lambda *args, **kwargs: brain._close(False)
+
     if scale_factor is None:
         # Configure the glyphs scale directly
         width = np.mean([np.ptp(brain.geo[hemi].coords[:, 1])

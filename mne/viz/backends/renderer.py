@@ -11,7 +11,8 @@ from contextlib import contextmanager
 import importlib
 
 from ._utils import VALID_3D_BACKENDS
-from ...utils import logger, verbose, get_config, _check_option
+from ...utils import (logger, verbose, get_config, _check_option,
+                      _require_version)
 
 MNE_3D_BACKEND = None
 MNE_3D_BACKEND_TESTING = False
@@ -292,6 +293,7 @@ def get_brain_class():
     """
     if get_3d_backend() == "mayavi":
         from surfer import Brain
+        _require_version('surfer', 'stc.plot', '0.9')
     else:  # PyVista
         from ...viz._brain import Brain
     return Brain
