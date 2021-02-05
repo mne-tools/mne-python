@@ -1096,7 +1096,7 @@ def permutation_cluster_test(
         no points are excluded.
     %(clust_stepdown)s
     %(clust_power_f)s
-    %(clust_out_none)s
+    %(clust_out)s
     %(clust_disjoint)s
     %(clust_buffer)s
     %(verbose)s
@@ -1156,7 +1156,7 @@ def permutation_cluster_1samp_test(
         no points are excluded.
     %(clust_stepdown)s
     %(clust_power_t)s
-    %(clust_out_none)s
+    %(clust_out)s
     %(clust_disjoint)s
     %(clust_buffer)s
     %(verbose)s
