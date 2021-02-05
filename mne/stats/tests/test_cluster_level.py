@@ -21,8 +21,7 @@ from mne.stats.cluster_level import (permutation_cluster_test, f_oneway,
                                      spatio_temporal_cluster_test,
                                      spatio_temporal_cluster_1samp_test,
                                      ttest_1samp_no_p, summarize_clusters_stc)
-from mne.utils import (run_tests_if_main, catch_logging, check_version,
-                       requires_sklearn)
+from mne.utils import catch_logging, check_version, requires_sklearn
 
 
 n_space = 50
@@ -671,4 +670,43 @@ def test_tfce_thresholds(numba_conditional):
             data, tail=1, out_type='mask', threshold=dict(start=1, step=-0.5))
 
 
-run_tests_if_main()
+# 1D gives slices, 2D+ gives boolean masks
+@pytest.mark.parametrize('shape', ((11,), (11, 3), (11, 1, 2)))
+@pytest.mark.parametrize('out_type', ('mask', 'indices'))
+@pytest.mark.parametrize('adjacency', (None, 'sparse'))
+def test_output_equiv(shape, out_type, adjacency):
+    """Test equivalence of output types."""
+    rng = np.random.RandomState(0)
+    n_subjects = 10
+    data = rng.randn(n_subjects, *shape)
+    data -= data.mean(axis=0, keepdims=True)
+    data[:, 2:4] += 2
+    data[:, 6:9] += 2
+    want_mask = np.zeros(shape, int)
+    want_mask[2:4] = 1
+    want_mask[6:9] = 2
+    if adjacency is not None:
+        assert adjacency == 'sparse'
+        adjacency = combine_adjacency(*shape)
+    clusters = permutation_cluster_1samp_test(
+        X=data, n_permutations=1, adjacency=adjacency, out_type=out_type)[1]
+    got_mask = np.zeros_like(want_mask)
+    for n, clu in enumerate(clusters, 1):
+        if out_type == 'mask':
+            if len(shape) == 1 and adjacency is None:
+                assert isinstance(clu, tuple)
+                assert len(clu) == 1
+                assert isinstance(clu[0], slice)
+            else:
+                assert isinstance(clu, np.ndarray)
+                assert clu.dtype == bool
+                assert clu.shape == shape
+            got_mask[clu] = n
+        else:
+            assert isinstance(clu, tuple)
+            for c in clu:
+                assert isinstance(c, np.ndarray)
+                assert c.dtype.kind == 'i'
+            assert out_type == 'indices'
+            got_mask[np.ix_(*clu)] = n
+    assert_array_equal(got_mask, want_mask)

@@ -557,11 +557,20 @@ def _cluster_indices_to_mask(components, n_tot):
     return components
 
 
-def _cluster_mask_to_indices(components):
+def _cluster_mask_to_indices(components, shape):
     """Convert to the old format of clusters, which were bool arrays."""
     for ci, c in enumerate(components):
-        if not isinstance(c, slice):
-            components[ci] = np.where(c)[0]
+        if isinstance(c, np.ndarray):  # mask
+            components[ci] = np.where(c.reshape(shape))
+        else:
+            assert isinstance(c, tuple), type(c)
+            c = list(c)  # tuple->list
+            for ii, cc in enumerate(c):
+                if isinstance(cc, slice):
+                    c[ii] = np.arange(cc.start, cc.stop)
+                else:
+                    c[ii] = np.where(cc)[0]
+            components[ci] = tuple(c)
     return components
 
 
@@ -918,7 +927,7 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
     else:
         # ndimage outputs slices or boolean masks by default
         if out_type == 'indices':
-            clusters = _cluster_mask_to_indices(clusters)
+            clusters = _cluster_mask_to_indices(clusters, t_obs.shape)
 
     # convert our seed to orders
     # check to see if we can do an exact test
@@ -1087,7 +1096,7 @@ def permutation_cluster_test(
         no points are excluded.
     %(clust_stepdown)s
     %(clust_power_f)s
-    %(clust_out_none)s
+    %(clust_out)s
     %(clust_disjoint)s
     %(clust_buffer)s
     %(verbose)s
@@ -1147,7 +1156,7 @@ def permutation_cluster_1samp_test(
         no points are excluded.
     %(clust_stepdown)s
     %(clust_power_t)s
-    %(clust_out_none)s
+    %(clust_out)s
     %(clust_disjoint)s
     %(clust_buffer)s
     %(verbose)s
