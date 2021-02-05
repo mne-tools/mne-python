@@ -723,7 +723,7 @@ def test_output_equiv(shape, out_type, adjacency):
             assert isinstance(clu, tuple)
             for c in clu:
                 assert isinstance(c, np.ndarray)
-                assert c.dtype == int
+                assert c.dtype.kind == 'i'
             assert out_type == 'indices'
             got_mask[np.ix_(*clu)] = n
     assert_array_equal(got_mask, want_mask)
