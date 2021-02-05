@@ -41,6 +41,7 @@ fname_bem_sol_1 = op.join(subjects_dir, 'sample', 'bem',
 fname_dense_head = op.join(subjects_dir, 'sample', 'bem',
                            'sample-head-dense.fif')
 
+
 def _compare_bem_surfaces(surfs_1, surfs_2):
     """Compare BEM surfaces."""
     names = ['id', 'nn', 'rr', 'coord_frame', 'tris', 'sigma', 'ntri', 'np']
