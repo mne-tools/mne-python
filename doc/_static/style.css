@@ -65,7 +65,20 @@ img.logo {
     width: 100%;
 }
 
-/* ******************** collapsible divs; homepage version box & funders box */
+/* ************************************** homepage quick links & funders box */
+ul.quicklinks a:hover {
+    text-decoration: none;
+}
+ul.funders li {
+    line-height: initial;
+    margin-left: 24px;
+    text-indent: -24px;
+    padding-bottom: 6px;
+}
+ul.funders li img {
+    width: 18px;
+}
+/* these two also affect collapsible divs */
 h5.card-header {
     margin-top: 0px;
     margin-bottom: 0px;
@@ -73,15 +86,6 @@ h5.card-header {
 h5.card-header::before {
     height: 0px;
     margin-top: 0px;
-}
-ul.funders li {
-    line-height: initial;
-    margin-left: 30px;
-    text-indent: -30px;
-    padding-bottom: 6px;
-}
-ul.funders li img {
-    width: 24px;
 }
 
 /* ************************************************* dev version warning bar */
