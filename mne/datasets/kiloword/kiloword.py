@@ -7,8 +7,7 @@ from ..utils import _data_path, _get_version, _version_doc
 @verbose
 def data_path(path=None, force_update=False, update_path=True, download=True,
               verbose=None):
-    """
-    Get path to local copy of the kiloword dataset.
+    """Get path to local copy of the kiloword dataset.
 
     This is the dataset from [1]_.
 
@@ -27,6 +26,11 @@ def data_path(path=None, force_update=False, update_path=True, download=True,
     update_path : bool | None
         If True, set the MNE_DATASETS_KILOWORD_PATH in mne-python
         config to the given path. If None, the user is prompted.
+    download : bool
+        If False and the kiloword dataset has not been downloaded yet,
+        it will not be downloaded and the path will be returned as
+        '' (empty string). This is mostly used for debugging purposes
+        and can be safely ignored by most users.
     %(verbose)s
 
     Returns

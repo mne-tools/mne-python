@@ -691,4 +691,17 @@ numpydoc_xref_ignore = {
     'CoregFrame', 'Kit2FiffFrame', 'FiducialsFrame',
 }
 numpydoc_validate = True
-numpydoc_validation_checks = set(('all',)) | set(error_ignores)
+numpydoc_validation_checks = {'all'} | set(error_ignores)
+numpydoc_validation_exclude = (  # list of regex
+    # dict subclasses
+    r'\.clear', r'\.get$', r'\.copy$', r'\.fromkeys', r'\.items', r'\.keys',
+    r'\.pop', r'\.popitem', r'\.setdefault', r'\.update', r'\.values',
+    # list subclasses
+    r'\.append', r'\.count', r'\.extend', r'\.index', r'\.insert', r'\.remove',
+    r'\.sort',
+    # we currently don't document these properly (probably okay)
+    r'\.__getitem__', r'\.__contains__', r'\.__hash__', r'\.__mul__',
+    r'\.__sub__', r'\.__add__', r'\.__iter__', r'\.__div__', r'\.__neg__',
+    # copied from sklearn
+    r'mne\.utils\.deprecated',
+)

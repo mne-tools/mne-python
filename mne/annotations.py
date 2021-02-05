@@ -227,7 +227,13 @@ class Annotations(object):
         return '<' + shorten(s, width=77, placeholder=' ...') + '>'
 
     def __len__(self):
-        """Return the number of annotations."""
+        """Return the number of annotations.
+
+        Returns
+        -------
+        n_annot : int
+            The number of annotations.
+        """
         return len(self.duration)
 
     def __add__(self, other):

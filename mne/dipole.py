@@ -328,7 +328,6 @@ class Dipole(object):
 
             >>> len(dipoles)  # doctest: +SKIP
             10
-
         """
         return self.pos.shape[0]
 

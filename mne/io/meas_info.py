@@ -202,8 +202,16 @@ class Info(dict, MontageMixin):
                  modified by various MNE-Python functions or methods (which
                  have safeguards to ensure all fields remain in sync).
 
-    This class should not be instantiated directly. To create a measurement
-    information structure, use :func:`mne.create_info`.
+    .. warning:: This class should not be instantiated directly. To create a
+                 measurement information structure, use
+                 :func:`mne.create_info`.
+
+    Parameters
+    ----------
+    *args : list
+        Arguments.
+    **kwargs : dict
+        Keyword arguments.
 
     Attributes
     ----------

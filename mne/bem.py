@@ -846,11 +846,6 @@ def fit_sphere_to_headshape(info, dig_kinds='auto', units='m', verbose=None):
         Can be "m" (default) or "mm".
 
         .. versionadded:: 0.12
-    move_origin : bool
-        If True, allow the origin to vary. Otherwise, fix it at (0, 0, 0).
-
-        .. versionadded:: 0.20
-
     %(verbose)s
 
     Returns
@@ -1062,7 +1057,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     gcaatlas : bool
         Specify the --brain_atlas option for mri_watershed.
     preflood : int
-        Change the preflood height
+        Change the preflood height.
     show : bool
         Show surfaces to visually inspect all three BEM surfaces (recommended).
 
@@ -1826,6 +1821,10 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
         .. versionadded:: 0.18
     %(verbose)s
 
+    See Also
+    --------
+    convert_flash_mris
+
     Notes
     -----
     This program assumes that FreeSurfer is installed and sourced properly.
@@ -1833,10 +1832,6 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     This function extracts the BEM surfaces (outer skull, inner skull, and
     outer skin) from multiecho FLASH MRI data with spin angles of 5 and 30
     degrees, in mgz format.
-
-    See Also
-    --------
-    convert_flash_mris
     """
     from .viz.misc import plot_bem
 

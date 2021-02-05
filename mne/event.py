@@ -98,7 +98,7 @@ def define_target_events(events, reference_id, target_id, sfreq, tmin, tmax,
     tmax : float
         The upper limit border in seconds from the target event.
     new_id : int
-        new_id for the new event
+        New ID for the new event.
     fill_na : int | None
         Fill event to be inserted if target is not available within the time
         window specified. If None, the 'null' events will be dropped.
@@ -106,9 +106,9 @@ def define_target_events(events, reference_id, target_id, sfreq, tmin, tmax,
     Returns
     -------
     new_events : ndarray
-        The new defined events
+        The new defined events.
     lag : ndarray
-        time lag between reference and target in milliseconds.
+        Time lag between reference and target in milliseconds.
     """
     if new_id is None:
         new_id = reference_id
@@ -823,7 +823,7 @@ def shift_time_events(events, ids, tshift, sfreq):
     Parameters
     ----------
     events : array, shape=(n_events, 3)
-        The events
+        The events.
     ids : ndarray of int | None
         The ids of events to shift.
     tshift : float
@@ -1143,7 +1143,13 @@ class AcqParserFIF(object):
         return cats[0] if len(cats) == 1 else cats
 
     def __len__(self):
-        """Return number of averaging categories marked active in DACQ."""
+        """Return number of averaging categories marked active in DACQ.
+
+        Returns
+        -------
+        n_cat : int
+            The number of categories.
+        """
         return len(self.categories)
 
     def _events_from_acq_pars(self):
