@@ -692,7 +692,7 @@ numpydoc_xref_ignore = {
 }
 numpydoc_validate = True
 numpydoc_validation_checks = {'all'} | set(error_ignores)
-numpydoc_validation_exclude = (  # list of regex
+numpydoc_validation_exclude = {  # set of regex
     # dict subclasses
     r'\.clear', r'\.get$', r'\.copy$', r'\.fromkeys', r'\.items', r'\.keys',
     r'\.pop', r'\.popitem', r'\.setdefault', r'\.update', r'\.values',
@@ -704,4 +704,4 @@ numpydoc_validation_exclude = (  # list of regex
     r'\.__sub__', r'\.__add__', r'\.__iter__', r'\.__div__', r'\.__neg__',
     # copied from sklearn
     r'mne\.utils\.deprecated',
-)
+}
