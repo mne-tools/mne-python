@@ -135,3 +135,54 @@ mne.write_surface(op.join(bem_dir, 'inner_skull.surf'), coords, faces,
 ###############################################################################
 # That's it! You are ready to continue with your analysis pipeline (e.g.
 # running :func:`mne.make_bem_model`).
+#
+# Error after making BEM model
+# ---------------------------------
+#
+# When editing BEM surfaces/meshes in Blender, make sure that you use the
+# tools that do not change the number or order of vertices, or the geometry
+# of triangular faces. For example, avoid the extrusion tool as that
+# replicates the extruded vertices.
+#
+# Did you come across these errors after exporting surfaces and running
+# the :func:`mne.make_bem_model` function?
+#
+#
+# * This error below is caused by adding or deleting vertices:
+#
+#   RuntimeError: Cannot decimate to requested ico grade 4. The provided
+#   BEM surface has 20516 triangles, which cannot be isomorphic with a
+#   subdivided icosahedron. Consider manually decimating the surface to a
+#   suitable density and then use ico=None in make_bem_model.
+#
+# * If you have tried to match with the original number of triangles by
+#   decimating vertices, that might have changed the geometry of the
+#   triangular faces:
+#
+#   RuntimeError: Surface inner skull has topological defects: 12 / 20484
+#   vertices have fewer than three neighboring triangles [733, 1014, 2068,
+#   7732, 8435, 8489, 10181, 11120, 11121, 11122, 11304, 11788]
+#
+# * Changing the geometry might also result in:
+#
+#   RuntimeError: Surface inner skull is not complete (sum of solid
+#   angles yielded 0.999668, should be 1.)
+#
+# * Once the number or order of vertices has been tampered with, it would be
+#   difficult to get back to the original geometry of the surface.
+#
+#   RuntimeError: The source surface has a matching number of
+#   triangles but ordering is wrong
+#
+#
+# Suggestion:
+#
+# When such errors occur, it is easiest to start afresh. Delete the edited
+# surfaces in Blender. Import the original BEM surface into Blender again, and
+# make changes in it without creation of any new vertices or triangles. For
+# example, select a circle of vertices, then press 'G' to drag them to desired
+# places. Lastly, smooth out the vertices in Blender by right clicking at a
+# group of vertices selected, and selecting Smooth Vertices to get a rounded
+# shape of the surface. These tools do not change the number or order of
+# vertices. This surface when exported out of Blender, and converted to
+# Freesurfer format might not give you the above errors!
