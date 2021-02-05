@@ -313,6 +313,7 @@ class GetEpochsMixin(object):
         :meth:`mne.Epochs.next`.
         """
         self._current = 0
+        self._current_detrend_picks = self._detrend_picks
         return self
 
     def __next__(self, return_event_id=False):
@@ -332,16 +333,17 @@ class GetEpochsMixin(object):
         """
         if self.preload:
             if self._current >= len(self._data):
-                raise StopIteration  # signal the end
+                self._stop_iter()
             epoch = self._data[self._current]
             self._current += 1
         else:
             is_good = False
             while not is_good:
                 if self._current >= len(self.events):
-                    raise StopIteration  # signal the end properly
+                    self._stop_iter()
                 epoch_noproj = self._get_epoch_from_raw(self._current)
-                epoch_noproj = self._detrend_offset_decim(epoch_noproj)
+                epoch_noproj = self._detrend_offset_decim(
+                    epoch_noproj, self._current_detrend_picks)
                 epoch = self._project_epoch(epoch_noproj)
                 self._current += 1
                 is_good, _ = self._is_good_epoch(epoch)
@@ -353,6 +355,11 @@ class GetEpochsMixin(object):
             return epoch
         else:
             return epoch, self.events[self._current - 1][-1]
+
+    def _stop_iter(self):
+        del self._current
+        del self._current_detrend_picks
+        raise StopIteration  # signal the end
 
     next = __next__  # originally for Python2, now b/c public
 

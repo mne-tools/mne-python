@@ -12,23 +12,14 @@ import shutil
 import sys
 import warnings
 import pytest
-# For some unknown reason, on Travis-xenial there are segfaults caused on
-# the line pytest -> pdb.Pdb.__init__ -> "import readline". Forcing an
-# import here seems to prevent them (!?). This suggests a potential problem
-# with some other library stepping on memory where it shouldn't. It only
-# seems to happen on the Linux runs that install Mayavi. Anectodally,
-# @larsoner has had problems a couple of years ago where a mayavi import
-# seemed to corrupt SciPy linalg function results (!), likely due to the
-# associated VTK import, so this could be another manifestation of that.
-try:
-    import readline  # noqa
-except Exception:
-    pass
 
 import numpy as np
+
 import mne
 from mne.datasets import testing
-from mne.utils import _pl, _assert_no_instances
+from mne.fixes import has_numba
+from mne.stats import cluster_level
+from mne.utils import _pl, _assert_no_instances, numerics
 
 test_path = testing.data_path(download=False)
 s_path = op.join(test_path, 'MEG', 'sample')
@@ -571,3 +562,21 @@ def pytest_sessionfinish(session, exitstatus):
         timings = [timing.rjust(rjust) for timing in timings]
         for name, timing in zip(names, timings):
             writer.line(f'{timing.ljust(15)}{name}')
+
+
+@pytest.fixture(scope="function", params=('Numba', 'NumPy'))
+def numba_conditional(monkeypatch, request):
+    """Test both code paths on machines that have Numba."""
+    assert request.param in ('Numba', 'NumPy')
+    if request.param == 'NumPy' and has_numba:
+        monkeypatch.setattr(
+            cluster_level, '_get_buddies', cluster_level._get_buddies_fallback)
+        monkeypatch.setattr(
+            cluster_level, '_get_selves', cluster_level._get_selves_fallback)
+        monkeypatch.setattr(
+            cluster_level, '_where_first', cluster_level._where_first_fallback)
+        monkeypatch.setattr(
+            numerics, '_arange_div', numerics._arange_div_fallback)
+    if request.param == 'Numba' and not has_numba:
+        pytest.skip('Numba not installed')
+    yield request.param

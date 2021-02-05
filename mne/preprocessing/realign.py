@@ -94,7 +94,6 @@ def realign_raw(raw, other, t_raw, t_other, verbose=None):
     sfreq_new = raw.info['sfreq'] * coef
     other.load_data().resample(sfreq_new, verbose=True)
     other.info['sfreq'] = raw.info['sfreq']
-    other._update_times()
 
     # 4. Crop the end of one of the recordings if necessary
     delta = raw.times[-1] - other.times[-1]

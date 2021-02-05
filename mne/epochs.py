@@ -31,10 +31,9 @@ from .io.tree import dir_tree_find
 from .io.tag import read_tag, read_tag_info
 from .io.constants import FIFF
 from .io.fiff.raw import _get_fname_rep
-from .io.pick import (pick_types, channel_indices_by_type, channel_type,
+from .io.pick import (channel_indices_by_type, channel_type,
                       pick_channels, pick_info, _pick_data_channels,
-                      _pick_aux_channels, _DATA_CH_TYPES_SPLIT,
-                      _picks_to_idx)
+                      _DATA_CH_TYPES_SPLIT, _picks_to_idx)
 from .io.proj import setup_proj, ProjMixin, _proj_equal
 from .io.base import BaseRaw, TimeMixin
 from .bem import _check_origin
@@ -722,11 +721,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                 raise RuntimeError('You cannot remove baseline correction '
                                    'from preloaded data once it has been '
                                    'applied.')
-            picks = _pick_data_channels(self.info, exclude=[],
-                                        with_ref_meg=True)
-            picks_aux = _pick_aux_channels(self.info, exclude=[])
-            picks = np.sort(np.concatenate((picks, picks_aux)))
+            self._do_baseline = True
+            picks = self._detrend_picks
             rescale(self._data, self.times, baseline, copy=False, picks=picks)
+            self._do_baseline = False
         else:  # logging happens in "rescale" in "if" branch
             logger.info(_log_rescale(baseline))
             assert self._do_baseline is True
@@ -827,7 +825,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                             ignore_chs=self.info['bads'])
 
     @verbose
-    def _detrend_offset_decim(self, epoch, verbose=None):
+    def _detrend_offset_decim(self, epoch, picks, verbose=None):
         """Aux Function: detrend, baseline correct, offset, decim.
 
         Note: operates inplace
@@ -837,17 +835,16 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         # Detrend
         if self.detrend is not None:
-            picks = _pick_data_channels(self.info, exclude=[])
-            epoch[picks] = detrend(epoch[picks], self.detrend, axis=1)
+            # We explicitly detrend just data channels (not EMG, ECG, EOG which
+            # are processed by baseline correction)
+            use_picks = _pick_data_channels(self.info, exclude=())
+            epoch[use_picks] = detrend(epoch[use_picks], self.detrend, axis=1)
 
         # Baseline correct
         if self._do_baseline:
-            picks = pick_types(self.info, meg=True, eeg=True, stim=False,
-                               ref_meg=True, eog=True, ecg=True, seeg=True,
-                               emg=True, bio=True, ecog=True, fnirs=True,
-                               dbs=True, exclude=[])
-            epoch[picks] = rescale(epoch[picks], self._raw_times,
-                                   self.baseline, copy=False, verbose=False)
+            rescale(
+                epoch, self._raw_times, self.baseline, picks=picks, copy=False,
+                verbose=False)
 
         # Decimate if necessary (i.e., epoch not preloaded)
         epoch = epoch[:, self._decim_slice]
@@ -872,7 +869,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             If False copies of data and measurement info will be omitted
             to save time.
         """
-        self._current = 0
+        self.__iter__()
 
         while True:
             try:
@@ -1378,10 +1375,12 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                     return data[:, picks]
 
             # we need to load from disk, drop, and return data
+            detrend_picks = self._detrend_picks
             for ii, idx in enumerate(use_idx):
                 # faster to pre-allocate memory here
                 epoch_noproj = self._get_epoch_from_raw(idx)
-                epoch_noproj = self._detrend_offset_decim(epoch_noproj)
+                epoch_noproj = self._detrend_offset_decim(
+                    epoch_noproj, detrend_picks)
                 if self._do_delayed_proj:
                     epoch_out = epoch_noproj
                 else:
@@ -1397,6 +1396,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             n_out = 0
             drop_log = list(self.drop_log)
             assert n_events == len(self.selection)
+            if not self.preload:
+                detrend_picks = self._detrend_picks
             for idx, sel in enumerate(self.selection):
                 if self.preload:  # from memory
                     if self._do_delayed_proj:
@@ -1407,7 +1408,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                         epoch = self._data[idx]
                 else:  # from disk
                     epoch_noproj = self._get_epoch_from_raw(idx)
-                    epoch_noproj = self._detrend_offset_decim(epoch_noproj)
+                    epoch_noproj = self._detrend_offset_decim(
+                        epoch_noproj, detrend_picks)
                     epoch = self._project_epoch(epoch_noproj)
 
                 epoch_out = epoch_noproj if self._do_delayed_proj else epoch
@@ -1455,6 +1457,14 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                 return data[:, picks]
         else:
             return None
+
+    @property
+    def _detrend_picks(self):
+        if self._do_baseline:
+            return _pick_data_channels(
+                self.info, with_ref_meg=True, with_aux=True, exclude=())
+        else:
+            return []
 
     @fill_doc
     def get_data(self, picks=None, item=None):
@@ -2367,9 +2377,10 @@ class EpochsArray(BaseEpochs):
                                   list(self.event_id.values())).sum():
             raise ValueError('The events must only contain event numbers from '
                              'event_id')
-        for ii, e in enumerate(self._data):
+        detrend_picks = self._detrend_picks
+        for e in self._data:
             # This is safe without assignment b/c there is no decim
-            self._detrend_offset_decim(e)
+            self._detrend_offset_decim(e, detrend_picks)
         self.drop_bad()
 
 
