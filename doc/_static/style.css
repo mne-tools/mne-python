@@ -102,6 +102,10 @@ img.institution {
     max-height: 42px;
     max-width: 52px;
 }
+/* prevent footer from getting pushed offscreen */
+.bd-sidebar {
+    height: unset;
+}
 
 /* ***************************************************** front page carousel */
 div.frontpage-gallery {
