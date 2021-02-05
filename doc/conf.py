@@ -508,7 +508,7 @@ html_extra_path = [
 
 # Custom sidebar templates, maps document names to template names.
 html_sidebars = {
-    'index': ['sidebar-whats-new.html', 'sidebar-funders.html'],
+    'index': ['sidebar-quicklinks.html', 'sidebar-funders.html'],
 }
 
 # If true, links to the reST sources are added to the pages.
