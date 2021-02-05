@@ -47,11 +47,12 @@ def estimate_rank(data, tol='auto', return_singular=False, norm=True,
         If return_singular is True, the singular values that were
         thresholded to determine the rank are also returned.
     """
+    from scipy import linalg
     if norm:
         data = data.copy()  # operate on a copy
         norms = _compute_row_norms(data)
         data /= norms[:, np.newaxis]
-    s = np.linalg.svd(data, compute_uv=False)
+    s = linalg.svdvals(data)
     rank = _estimate_rank_from_s(s, tol, tol_kind)
     if return_singular is True:
         return rank, s

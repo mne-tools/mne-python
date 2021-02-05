@@ -32,7 +32,7 @@ from .transforms import _ensure_trans, apply_trans, Transform
 from .utils import (verbose, logger, run_subprocess, get_subjects_dir, warn,
                     _pl, _validate_type, _TempDir, _check_freesurfer_home,
                     _check_fname, has_nibabel, _check_option)
-from .fixes import einsum, _safe_svd
+from .fixes import einsum
 from .externals.h5io import write_hdf5, read_hdf5
 
 
@@ -633,6 +633,7 @@ def _fwd_eeg_get_multi_sphere_model_coeffs(m, n_terms):
 
 def _compose_linear_fitting_data(mu, u):
     """Get the linear fitting data."""
+    from scipy import linalg
     k1 = np.arange(1, u['nterms'])
     mu1ns = mu[0] ** k1
     # data to be fitted
@@ -640,7 +641,7 @@ def _compose_linear_fitting_data(mu, u):
     # model matrix
     M = u['w'][:-1, np.newaxis] * (mu[1:] ** k1[:, np.newaxis] -
                                    mu1ns[:, np.newaxis])
-    uu, sing, vv = _safe_svd(M, full_matrices=False)
+    uu, sing, vv = linalg.svd(M, full_matrices=False)
     ncomp = u['nfit'] - 1
     uu, sing, vv = uu[:, :ncomp], sing[:ncomp], vv[:ncomp]
     return y, uu, sing, vv

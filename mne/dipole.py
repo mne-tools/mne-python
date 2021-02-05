@@ -14,7 +14,6 @@ import re
 import numpy as np
 
 from .cov import read_cov, compute_whitener
-from .fixes import _safe_svd
 from .io.constants import FIFF
 from .io.pick import pick_types
 from .io.proj import make_projector, _needs_eeg_average_ref_proj
@@ -777,6 +776,7 @@ def _dipole_gof(uu, sing, vv, B, B2):
 
 def _fit_Q(fwd_data, whitener, B, B2, B_orig, rd, ori=None):
     """Fit the dipole moment once the location is known."""
+    from scipy import linalg
     if 'fwd' in fwd_data:
         # should be a single precomputed "guess" (i.e., fixed position)
         assert rd is None
@@ -793,7 +793,7 @@ def _fit_Q(fwd_data, whitener, B, B2, B_orig, rd, ori=None):
         fwd_svd = None
     if ori is None:
         if fwd_svd is None:
-            fwd_svd = _safe_svd(fwd, full_matrices=False)
+            fwd_svd = linalg.svd(fwd, full_matrices=False)
         uu, sing, vv = fwd_svd
         gof, one = _dipole_gof(uu, sing, vv, B, B2)
         ncomp = len(one)
@@ -1166,6 +1166,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     -----
     .. versionadded:: 0.9.0
     """
+    from scipy import linalg
     # This could eventually be adapted to work with other inputs, these
     # are what is needed:
 
@@ -1359,7 +1360,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     guess_fwd, guess_fwd_orig, guess_fwd_scales = _dipole_forwards(
         fwd_data, whitener, guess_src['rr'], n_jobs=fit_n_jobs)
     # decompose ahead of time
-    guess_fwd_svd = [_safe_svd(fwd, full_matrices=False)
+    guess_fwd_svd = [linalg.svd(fwd, full_matrices=False)
                      for fwd in np.array_split(guess_fwd,
                                                len(guess_src['rr']))]
     guess_data = dict(fwd=guess_fwd, fwd_svd=guess_fwd_svd,

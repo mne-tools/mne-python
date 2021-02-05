@@ -13,7 +13,6 @@ import re
 
 import numpy as np
 
-from .fixes import _safe_svd
 from .parallel import parallel_func, check_n_jobs
 from .source_estimate import (SourceEstimate, VolSourceEstimate,
                               _center_of_mass, extract_label_time_course,
@@ -1261,6 +1260,7 @@ def label_sign_flip(label, src):
     flip : array
         Sign flip vector (contains 1 or -1).
     """
+    from scipy import linalg
     if len(src) != 2:
         raise ValueError('Only source spaces with 2 hemisphers are accepted')
 
@@ -1283,7 +1283,7 @@ def label_sign_flip(label, src):
     if len(ori) == 0:
         return np.array([], int)
 
-    _, _, Vh = _safe_svd(ori, full_matrices=False)
+    _, _, Vh = linalg.svd(ori, full_matrices=False)
 
     # The sign of Vh is ambiguous, so we should align to the max-positive
     # (outward) direction

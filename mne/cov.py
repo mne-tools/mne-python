@@ -41,7 +41,7 @@ from .utils import (check_fname, logger, verbose, check_version, _time_mask,
                     _check_on_missing)
 from . import viz
 
-from .fixes import (BaseEstimator, EmpiricalCovariance, _logdet, _safe_svd,
+from .fixes import (BaseEstimator, EmpiricalCovariance, _logdet,
                     empirical_covariance, log_likelihood)
 
 
@@ -1633,6 +1633,7 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     --------
     mne.compute_covariance
     """  # noqa: E501
+    from scipy import linalg
     cov = cov.copy()
     info._check_consistency()
     scalings = _handle_default('scalings_cov_rank', scalings)
@@ -1710,7 +1711,7 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
                 P, ncomp, _ = make_projector(projs, this_ch_names)
                 if ncomp > 0:
                     # This adjustment ends up being redundant if rank is None:
-                    U = _safe_svd(P)[0][:, :-ncomp]
+                    U = linalg.svd(P)[0][:, :-ncomp]
                     logger.info('    Created an SSP operator for %s '
                                 '(dimension = %d)' % (desc, ncomp))
         else:

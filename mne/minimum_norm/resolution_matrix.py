@@ -8,7 +8,6 @@ from copy import deepcopy
 import numpy as np
 
 from .. import pick_channels_forward, EvokedArray, SourceEstimate
-from ..fixes import _safe_svd
 from ..io.constants import FIFF
 from ..utils import logger, verbose
 from ..forward.forward import convert_forward_solution
@@ -197,6 +196,7 @@ def _normalise_psf_ctf(funcs, norm):
 
 def _summarise_psf_ctf(funcs, mode, n_comp, return_pca_vars):
     """Summarise PSFs/CTFs across vertices."""
+    from scipy import linalg
     s_var = None  # only computed for return_pca_vars=True
 
     if mode == 'maxval':  # pick PSF/CTF with maximum absolute value
@@ -225,7 +225,7 @@ def _summarise_psf_ctf(funcs, mode, n_comp, return_pca_vars):
 
     elif mode == 'pca':  # SVD across PSFs/CTFs
         # compute SVD of PSFs/CTFs across vertices
-        u, s, _ = _safe_svd(funcs, full_matrices=False)
+        u, s, _ = linalg.svd(funcs, full_matrices=False)
         funcs = u[:, :n_comp]
         # if explained variances for SVD components requested
         if return_pca_vars:

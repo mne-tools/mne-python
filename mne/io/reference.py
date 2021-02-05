@@ -51,6 +51,7 @@ def _apply_reference(inst, ref_from, ref_to=None, forward=None,
                      ch_type='auto'):
     """Apply a custom EEG referencing scheme."""
     # Check to see that data is preloaded
+    from scipy import linalg
     _check_preload(inst, "Applying a reference")
 
     ch_type = _get_ch_type(inst, ch_type)
@@ -126,7 +127,7 @@ def _apply_reference(inst, ref_from, ref_to=None, forward=None,
             # 4. Compute the forward (G) and average-reference it (Ga):
             Ga = G - np.mean(G, axis=0, keepdims=True)
             # 5. Compute the Ga_inv by SVD
-            Ga_inv = np.linalg.pinv(Ga, rcond=1e-6)
+            Ga_inv = linalg.pinv(Ga, rcond=1e-6)
             # 6. Compute Ra = (G @ Ga_inv) in eq (8) from G and Ga_inv
             Ra = G @ Ga_inv
             # 7-8. Compute Vp = Ra @ Va; then Vpa=average(Vp)

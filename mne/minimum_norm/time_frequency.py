@@ -7,7 +7,6 @@ import numpy as np
 
 from ..epochs import Epochs, make_fixed_length_events
 from ..evoked import EvokedArray
-from ..fixes import _safe_svd
 from ..io.constants import FIFF
 from ..io.pick import pick_info
 from ..source_estimate import _make_stc
@@ -28,6 +27,7 @@ def _prepare_source_params(inst, inverse_operator, label=None,
                            prepared=False, method_params=None,
                            use_cps=True, verbose=None):
     """Prepare inverse operator and params for spectral / TFR analysis."""
+    from scipy import linalg
     inv = _check_or_prepare(inverse_operator, nave, lambda2, method,
                             method_params, prepared)
 
@@ -48,7 +48,7 @@ def _prepare_source_params(inst, inverse_operator, label=None,
         inv, label, method, pick_ori, use_cps=use_cps)
 
     if pca:
-        U, s, Vh = _safe_svd(K, full_matrices=False)
+        U, s, Vh = linalg.svd(K, full_matrices=False)
         rank = np.sum(s > 1e-8 * s[0])
         K = s[:rank] * U[:, :rank]
         Vh = Vh[:rank]
