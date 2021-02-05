@@ -113,6 +113,9 @@ img.institution {
 .bd-sidebar {
     height: unset;
 }
+.bd-toc {
+    height: unset;
+}
 
 /* ***************************************************** front page carousel */
 div.frontpage-gallery {
