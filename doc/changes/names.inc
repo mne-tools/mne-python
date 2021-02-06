@@ -268,7 +268,7 @@
 
 .. _Robert Seymour: https://neurofractal.github.io
 
-.. _Matt Sanderson: https://www.linkedin.com.au/in/matt-sanderson-0a3667180
+.. _Matt Sanderson: https://github.com/monkeyman192
 
 .. _Mohammad Daneshzand: https://github.com/mdaneshzand
 
