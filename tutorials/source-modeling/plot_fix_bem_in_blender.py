@@ -162,10 +162,8 @@ coords, faces = mne.read_surface(op.join(bem_dir, 'outer_skin.surf'))
 # Make sure we are in the correct directory
 if 'flash' in bem_dir:
     bem_dir = op.join(subjects_dir, 'sample', 'bem')
-# Backup the original head file
-shutil.copy(op.join(bem_dir, 'sample-head.fif'),
-            op.join(bem_dir, 'sample-head_orig.fif'))
 
+# Remember to backup the original head file in advance!
 # Overwrite the original head file
 mne.write_head_bem(op.join(bem_dir, 'sample-head.fif'),
                    coords, faces, overwrite=True)
@@ -176,27 +174,33 @@ mne.write_head_bem(op.join(bem_dir, 'sample-head.fif'),
 #
 # We use :func:`mne.read_bem_surfaces` to read the head surface files. After
 # editing, we again output the head file with :func:`mne.write_head_bem`.
+# Here we use ``-head.fif`` for speed.
 
 # If ``-head-dense.fif`` does not exist, you need to run
 # ``mne make_scalp_surfaces`` first.
 # [0] because a list of surfaces is returned
 surf = mne.read_bem_surfaces(
-    op.join(bem_dir, 'sample-head-dense.fif'))[0]
+    op.join(bem_dir, 'sample-head.fif'))[0]
 
 # For consistency only
 coords = surf['rr']
 faces = surf['tris']
 
 # Write the head as an .obj file for editing
-mne.write_surface(op.join(conv_dir, 'sample-head-dense.obj'),
+mne.write_surface(op.join(conv_dir, 'sample-head.obj'),
                   coords, faces, overwrite=True)
 
-# After editing, read in the .obj file
-coords, faces = mne.read_surface(
-    op.join(conv_dir, 'sample-head-dense_fixed.obj'))
+# We use the same surface to simulate editing
+mne.write_surface(op.join(conv_dir, 'sample-head_fixed.obj'),
+                  coords, faces, overwrite=True)
 
+# Read in the .obj file
+coords, faces = mne.read_surface(
+    op.join(conv_dir, 'sample-head_fixed.obj'))
+
+# Remember to backup the original head file in advance!
 # Overwrite the original head file
-mne.write_head_bem(op.join(bem_dir, 'sample-head-dense.fif'),
+mne.write_head_bem(op.join(bem_dir, 'sample-head.fif'),
                    coords, faces, overwrite=True)
 
 ###############################################################################
