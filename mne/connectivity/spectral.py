@@ -950,10 +950,10 @@ def _prepare_connectivity(epoch_block, times_in, tmin, tmax,
 
     n_times_in = len(times_in)
 
-    if tmin < times_in[0]:
+    if tmin is not None and tmin < times_in[0]:
         warn('start time tmin=%0.2f s outside of the time scope of the data '
              '[%0.2f s, %0.2f s]' % (tmin, times_in[0], times_in[-1]))
-    if tmax > times_in[-1]:
+    if tmax is not None and tmax > times_in[-1]:
         warn('stop time tmax=%0.2f s outside of the time scope of the data '
              '[%0.2f s, %0.2f s]' % (tmax, times_in[0], times_in[-1]))
 

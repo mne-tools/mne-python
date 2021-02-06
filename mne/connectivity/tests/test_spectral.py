@@ -1,13 +1,15 @@
+from pathlib import Path
+
 import numpy as np
 from numpy.testing import assert_array_almost_equal
 import pytest
 
+from mne import Epochs, SourceEstimate, io, pick_types, read_events
 from mne.connectivity import spectral_connectivity
 from mne.connectivity.spectral import _CohEst, _get_n_epochs
-
-from mne import SourceEstimate
-from mne.utils import run_tests_if_main
+from mne.datasets import testing
 from mne.filter import filter_data
+from mne.utils import run_tests_if_main
 
 
 def _stc_gen(data, sfreq, tmin, combo=False):
@@ -210,6 +212,43 @@ def test_spectral_connectivity(method, mode):
     out_lens = np.array([len(x) for x in _get_n_epochs(full_list, 11)])
     assert (len(out_lens) > 0)
     assert (out_lens[0] == 10)
+
+
+@testing.requires_testing_data
+def test_epochs():
+    """Test spectral.spectral_connectivity with different data objects."""
+    data_dir = Path(__file__).parent.parent.parent / 'io' / 'tests' / 'data'
+    raw_fname = data_dir / 'test_raw.fif'
+    event_fname = data_dir / 'test-eve.fif'
+
+    raw = io.read_raw_fif(raw_fname)
+    events = read_events(event_fname)
+    picks = pick_types(raw.info, meg=True, eeg=True, stim=True, ecg=True,
+                       eog=True, include=['STI 014'], exclude='bads')
+
+    reject = dict(grad=1000e-12, mag=4e-12, eeg=80e-6, eog=150e-6)
+    event_id, tmin, tmax = 1, -1, 1
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), reject=reject)
+    epochs.load_data().pick_types(meg='grad')
+
+    # Parameters for computing connectivity
+    fmin, fmax = 8., 13.
+    sfreq = raw.info['sfreq']
+    tmin, tmax = -0.9, -0.2
+
+    spectral_connectivity(epochs, method='pli', mode='multitaper',
+                          sfreq=sfreq, fmin=fmin, fmax=fmax,
+                          faverage=True, tmin=tmin, tmax=tmax,
+                          mt_adaptive=False, n_jobs=1)
+
+    # Test with a numpy array
+    myarray = np.random.rand(3, 203, raw.n_times)
+    tmin, tmax = 0.1, 0.8
+    spectral_connectivity(myarray, method='pli', mode='multitaper',
+                          sfreq=sfreq, fmin=fmin, fmax=fmax,
+                          faverage=True, tmin=tmin, tmax=tmax,
+                          mt_adaptive=False, n_jobs=1)
 
 
 run_tests_if_main()
