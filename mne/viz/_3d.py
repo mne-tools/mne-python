@@ -91,7 +91,6 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
     mode : str
         Can be 'traces' (default) to show position and quaternion traces,
         or 'field' to show the position as a vector field over time.
-        The 'field' mode requires matplotlib 1.4+.
     cmap : colormap
         Colormap to use for the trace plot, default is "viridis".
     direction : str
