@@ -1152,6 +1152,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         if stim_picks is None:
             stim_picks = pick_types(self.info, meg=False, ref_meg=False,
                                     stim=True, exclude=[])
+        else:
+            stim_picks = _picks_to_idx(self.info, stim_picks, exclude=(), with_ref_meg=False)
+            
         stim_picks = np.asanyarray(stim_picks)
 
         kwargs = dict(up=sfreq, down=o_sfreq, npad=npad, window=window,
