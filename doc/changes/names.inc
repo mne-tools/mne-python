@@ -355,3 +355,5 @@
 .. _Tristan Stenner: https://github.com/tstenner/
 
 .. _Andres Rodriguez: https://github.com/infinitejest/
+
+.. _Enrico Varano: https://github.com/enricovara/
