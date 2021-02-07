@@ -19,7 +19,6 @@ import sys
 from datetime import datetime, timedelta, timezone
 
 import numpy as np
-from scipy import sparse
 
 from ._logging import logger, warn, verbose
 from .check import check_random_state, _ensure_int, _validate_type
@@ -670,6 +669,7 @@ def object_size(x, memo=None):
     size : int
         The estimated size in bytes of the object.
     """
+    from scipy import sparse
     # Note: this will not process object arrays properly (since those only)
     # hold references
     if memo is None:
@@ -739,6 +739,7 @@ def object_diff(a, b, pre=''):
     diffs : str
         A string representation of the differences.
     """
+    from scipy import sparse
     out = ''
     if type(a) != type(b):
         # Deal with NamedInt and NamedFloat

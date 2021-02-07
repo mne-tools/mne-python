@@ -18,7 +18,6 @@ import warnings
 from struct import pack
 
 import numpy as np
-from scipy.sparse import coo_matrix, csr_matrix, eye as speye
 
 from .io.constants import FIFF
 from .io.open import fiff_open
@@ -279,6 +278,7 @@ def _triangle_neighbors(tris, npts):
     # for ti, tri in enumerate(tris):
     #     for t in tri:
     #         neighbor_tri[t].append(ti)
+    from scipy.sparse import coo_matrix
     rows = tris.ravel()
     cols = np.repeat(np.arange(len(tris)), 3)
     data = np.ones(len(cols))
@@ -1483,6 +1483,7 @@ def _make_morph_map(subject_from, subject_to, subjects_dir, xhemi):
 def _make_morph_map_hemi(subject_from, subject_to, subjects_dir, reg_from,
                          reg_to):
     """Construct morph map for one hemisphere."""
+    from scipy.sparse import csr_matrix, eye as speye
     # add speedy short-circuit for self-maps
     if subject_from == subject_to and reg_from == reg_to:
         fname = op.join(subjects_dir, subject_from, 'surf', reg_from)
@@ -1656,6 +1657,7 @@ def mesh_edges(tris):
     edges : sparse matrix
         The adjacency matrix.
     """
+    from scipy.sparse import coo_matrix
     if np.max(tris) > len(np.unique(tris)):
         raise ValueError(
             'Cannot compute adjacency on a selection of triangles.')
@@ -1690,6 +1692,7 @@ def mesh_dist(tris, vert):
     dist_matrix : scipy.sparse.csr_matrix
         Sparse matrix with distances between adjacent vertices.
     """
+    from scipy.sparse import csr_matrix
     edges = mesh_edges(tris).tocoo()
 
     # Euclidean distances between neighboring vertices

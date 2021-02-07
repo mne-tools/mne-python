@@ -12,17 +12,15 @@ at which the fix is no longer needed.
 #          Lars Buitinck <L.J.Buitinck@uva.nl>
 # License: BSD
 
-import inspect
 from distutils.version import LooseVersion
+import functools
+import inspect
 from math import log
 import os
 from pathlib import Path
 import warnings
 
 import numpy as np
-import scipy
-from scipy import linalg
-from scipy.linalg import LinAlgError
 
 
 ###############################################################################
@@ -49,6 +47,7 @@ def _safe_svd(A, **kwargs):
     #     https://software.intel.com/en-us/forums/intel-distribution-for-python/topic/628049  # noqa: E501
     # For SciPy 0.18 and up, we can work around it by using
     # lapack_driver='gesvd' instead.
+    from scipy import linalg
     if kwargs.get('overwrite_a', False):
         raise ValueError('Cannot set overwrite_a=True with this function')
     try:
@@ -61,6 +60,11 @@ def _safe_svd(A, **kwargs):
             return linalg.svd(A, lapack_driver='gesvd', **kwargs)
         else:
             raise
+
+
+def _csc_matrix_cast(x):
+    from scipy.sparse import csc_matrix
+    return csc_matrix(x)
 
 
 ###############################################################################
@@ -144,10 +148,22 @@ def _read_geometry(filepath, read_metadata=False, read_stamp=False):
 ###############################################################################
 # Triaging FFT functions to get fast pocketfft (SciPy 1.4)
 
-try:
-    from scipy.fft import fft, ifft, fftfreq, rfft, irfft, rfftfreq, ifftshift
-except ImportError:
-    from numpy.fft import fft, ifft, fftfreq, rfft, irfft, rfftfreq, ifftshift
+@functools.lru_cache(None)
+def _import_fft(name):
+    single = False
+    if not isinstance(name, tuple):
+        name = (name,)
+        single = True
+    try:
+        from scipy.fft import rfft  # noqa analysis:ignore
+    except ImportError:
+        from numpy import fft  # noqa
+    else:
+        from scipy import fft  # noqa
+    out = [getattr(fft, n) for n in name]
+    if single:
+        out = out[0]
+    return out
 
 
 ###############################################################################
@@ -564,6 +580,7 @@ class EmpiricalCovariance(BaseEstimator):
             is computed.
 
         """
+        from scipy import linalg
         # covariance = check_array(covariance)
         # set covariance
         self.covariance_ = covariance
@@ -582,6 +599,7 @@ class EmpiricalCovariance(BaseEstimator):
             The precision matrix associated to the current covariance object.
 
         """
+        from scipy import linalg
         if self.store_precision:
             precision = self.precision_
         else:
@@ -677,6 +695,7 @@ class EmpiricalCovariance(BaseEstimator):
         `self` and `comp_cov` covariance estimators.
 
         """
+        from scipy import linalg
         # compute the error
         error = comp_cov - self.covariance_
         # compute the error norm
@@ -753,6 +772,7 @@ def log_likelihood(emp_cov, precision):
 
 def _logdet(A):
     """Compute the log det of a positive semidefinite matrix."""
+    from scipy import linalg
     vals = linalg.eigvalsh(A)
     # avoid negative (numerical errors) or zero (semi-definite matrix) values
     tol = vals.max() * vals.size * np.finfo(np.float64).eps

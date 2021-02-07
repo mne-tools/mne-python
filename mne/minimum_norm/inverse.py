@@ -8,7 +8,6 @@
 from copy import deepcopy
 from math import sqrt
 import numpy as np
-from scipy import linalg
 
 from ._eloreta import _compute_eloreta
 from ..fixes import _safe_svd
@@ -528,6 +527,7 @@ def prepare_inverse_operator(orig, nave, lambda2, method='dSPM',
     inv : instance of InverseOperator
         Prepared inverse operator.
     """
+    from scipy import linalg
     if nave <= 0:
         raise ValueError('The number of averages should be positive')
 
@@ -1454,7 +1454,7 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
     # Adjusting Source Covariance matrix to make trace of G*R*G' equal
     # to number of sensors.
     logger.info('Adjusting source covariance matrix.')
-    trace_GRGT = linalg.norm(gain, ord='fro') ** 2
+    trace_GRGT = np.linalg.norm(gain, ord='fro') ** 2
     n_nzero = (noise_cov['eig'] > 0).sum()
     scale = np.sqrt(n_nzero / trace_GRGT)
     source_std *= scale

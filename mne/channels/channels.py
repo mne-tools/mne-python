@@ -15,7 +15,6 @@ from copy import deepcopy
 from functools import partial
 
 import numpy as np
-from scipy import sparse
 
 from ..defaults import HEAD_SIZE_DEFAULT, _handle_default
 from ..transforms import _frame_to_str
@@ -1281,6 +1280,7 @@ def _ch_neighbor_adjacency(ch_names, neighbors):
     ch_adjacency : scipy.sparse matrix
         The adjacency matrix.
     """
+    from scipy import sparse
     if len(ch_names) != len(neighbors):
         raise ValueError('`ch_names` and `neighbors` must '
                          'have the same length')
@@ -1408,6 +1408,7 @@ def _compute_ch_adjacency(info, ch_type):
     ch_names : list
         The list of channel names present in adjacency matrix.
     """
+    from scipy import sparse
     from scipy.spatial import Delaunay
     from .. import spatial_tris_adjacency
     from ..channels.layout import _find_topomap_coords, _pair_grad_sensors

@@ -5,7 +5,6 @@
 # License: BSD (3-clause)
 
 import numpy as np
-from scipy import linalg
 
 from .defaults import _handle_default
 from .io.meas_info import _simplify_info
@@ -48,6 +47,7 @@ def estimate_rank(data, tol='auto', return_singular=False, norm=True,
         If return_singular is True, the singular values that were
         thresholded to determine the rank are also returned.
     """
+    from scipy import linalg
     if norm:
         data = data.copy()  # operate on a copy
         norms = _compute_row_norms(data)

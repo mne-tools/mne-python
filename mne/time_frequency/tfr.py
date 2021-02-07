@@ -11,15 +11,13 @@ Morlet code inspired by Matlab code from Sheraz Khan & Brainstorm & SPM
 
 from copy import deepcopy
 from functools import partial
-from math import sqrt
 
 import numpy as np
-from scipy import linalg
 
 from .multitaper import dpss_windows
 
 from ..baseline import rescale
-from ..fixes import fft, ifft
+from ..fixes import _import_fft
 from ..filter import next_fast_len
 from ..parallel import parallel_func
 from ..utils import (logger, verbose, _time_mask, _freq_mask, check_fname,
@@ -96,7 +94,7 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
             real_offset = np.exp(- 2 * (np.pi * f * sigma_t) ** 2)
             oscillation -= real_offset
         W = oscillation * gaussian_enveloppe
-        W /= sqrt(0.5) * linalg.norm(W.ravel())
+        W /= np.sqrt(0.5) * np.linalg.norm(W.ravel())
         Ws.append(W)
     return Ws
 
@@ -162,7 +160,7 @@ def _make_dpss(sfreq, freqs, n_cycles=7., time_bandwidth=4.0, zero_mean=False):
             if zero_mean:  # to make it zero mean
                 real_offset = Wk.mean()
                 Wk -= real_offset
-            Wk /= sqrt(0.5) * linalg.norm(Wk.ravel())
+            Wk /= np.sqrt(0.5) * np.linalg.norm(Wk.ravel())
 
             Wm.append(Wk)
 
@@ -219,6 +217,7 @@ def _cwt_gen(X, Ws, *, fsize=0, mode="same", decim=1, use_fft=True):
     out : array, shape (n_signals, n_freqs, n_time_decim)
         The time-frequency transform of the signals.
     """
+    fft, ifft = _import_fft(('fft', 'ifft'))
     _check_option('mode', mode, ['same', 'valid', 'full'])
     decim = _check_decim(decim)
     X = np.asarray(X)

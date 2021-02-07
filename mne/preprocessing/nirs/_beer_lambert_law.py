@@ -7,7 +7,6 @@
 import os.path as op
 
 import numpy as np
-from scipy import linalg
 
 from ...io import BaseRaw
 from ...io.constants import FIFF
@@ -31,6 +30,7 @@ def beer_lambert_law(raw, ppf=0.1):
     raw : instance of Raw
         The modified raw instance.
     """
+    from scipy import linalg
     raw = raw.copy().load_data()
     _validate_type(raw, BaseRaw, 'raw')
 

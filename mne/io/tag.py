@@ -7,7 +7,6 @@ from functools import partial
 import struct
 
 import numpy as np
-from scipy import sparse
 
 from .constants import (FIFF, _dig_kind_named, _dig_cardinal_named,
                         _ch_kind_named, _ch_coil_type_named, _ch_unit_named,
@@ -168,6 +167,7 @@ _matrix_bit_dtype = {
 
 def _read_matrix(fid, tag, shape, rlims, matrix_coding):
     """Read a matrix (dense or sparse) tag."""
+    from scipy import sparse
     matrix_coding = matrix_coding >> 16
 
     # This should be easy to implement (see _frombuffer_rows)
