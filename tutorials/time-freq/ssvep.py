@@ -48,7 +48,7 @@ from scipy.stats import ttest_rel, ttest_ind
 # are considered optional. this doesnt mean, that a proper cleaning would not
 # increase your signal quality!
 #
-# - Raw data comes with FCz recording reference, so we will apply common-average rereferencing.
+# - Raw data come with FCz recording reference, so we will apply common-average rereferencing.
 # - We will apply a 50 Hz notch-filter to remove line-noise,
 # - and a 0.1 - 250 Hz bandpass filter.
 # - Lastly we will cut the data in 20 s epochs according to the trials.
@@ -74,17 +74,17 @@ montage = mne.channels.make_standard_montage(
 raw.set_montage(montage, verbose=False)
 
 # Set common average reference
-raw.set_eeg_reference('average', projection=False, verbose=True)
+raw.set_eeg_reference('average', projection=False, verbose=False)
 
 # Apply notch filter to remove line-noise
 notch = np.arange(raw.info['line_freq'], raw.info['lowpass'] / 2,
                   raw.info['line_freq'])
-raw.notch_filter(notch, filter_length='auto', phase='zero')
+raw.notch_filter(notch, filter_length='auto', phase='zero', verbose=False)
 
 # Apply bandpass filter
 hp = .1
 lp = 250.
-raw.filter(hp, lp, fir_design='firwin')
+raw.filter(hp, lp, fir_design='firwin', verbose=False)
 
 # Construct epochs
 event_id = {
@@ -96,7 +96,7 @@ raw.info["events"] = events
 tmin, tmax = -1., 20.  # in s
 baseline = None
 epochs = mne.Epochs(raw, events=events, event_id=[event_id['12hz'], event_id['15hz']], tmin=tmin,
-                    tmax=tmax, baseline=baseline, verbose=True)
+                    tmax=tmax, baseline=baseline, verbose=False)
 
 ###############################################################################
 # Frequency analysis
@@ -133,7 +133,7 @@ psds, freqs = mne.time_frequency.psd_welch(
     epochs,
     n_fft=int(sf * 10), n_overlap=int(sf * .5), n_per_seg=None,
     tmin=tmin, tmax=tmax,
-    fmin=fmin, fmax=fmax, verbose=True)
+    fmin=fmin, fmax=fmax, verbose=False)
 
 
 ###############################################################################
@@ -363,7 +363,7 @@ print('average SNR (occipital ROI): %f' % snrs_target.mean())
 
 ##############################################################################
 # Topography of the vSSR
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# ----------------------
 # But wait...
 # As described in the intro, we have decided *a priori* to work with average
 # SNR over a subset of occipital channels - a visual region of interest (ROI)
@@ -396,9 +396,10 @@ mne.viz.plot_topomap(snrs_12hz_chaverage, topo_pos_grave, vmin=1., axes=ax)
 
 print("sub 2, 12hz trials, SNR at 12hz")
 print("average SNR (all channels): %f" % snrs_12hz_chaverage.mean())
+print("average SNR (occipital ROI): %f" % snrs_target.mean())
 
 tstat_roi_vs_scalp = ttest_rel(snrs_target.mean(axis=1), snrs_12hz.mean(axis=1))
-print("12 hz SNR in occipital ROI is significantly different from 12 hz SNR over all channels"
+print("12 hz SNR in occipital ROI is significantly larger than 12 hz SNR over all channels"
       ": t = %.3f, p = %f" % tstat_roi_vs_scalp)
 
 
@@ -426,7 +427,7 @@ print("12 hz SNR in occipital ROI is significantly different from 12 hz SNR over
 
 ##############################################################################
 # Statistical analysis
-# ^^^^^^^^^^^^^^^
+# --------------------
 # Now that we finished this edgy little open science lesson let's move on and
 # do the analyses we actually wanted to do:
 #
@@ -471,7 +472,7 @@ ax.set_title('Average SNR at target frequencies')
 ax.set_xticks(x)
 ax.set_xticklabels(labels)
 ax.legend(['%ihz' % f for f in freq_plot], title='SNR at:')
-ax.set_ylim([0, 18])
+ax.set_ylim([0, 20])
 ax.axhline(1, ls='--', c='r')
 # fig.tight_layout()
 fig.show()
@@ -484,55 +485,116 @@ fig.show()
 # Compare 12 hz and 15 hz SNR in trials after averaging over channels
 
 tstat_12hz_trial_stim = ttest_rel(res['stim_12hz_snrs_12hz'], res['stim_12hz_snrs_15hz'])
-print("12 hz Trials: 12 hz SNR is significantly different from 15 hz SNR"
+print("12 hz Trials: 12 hz SNR is significantly higher than 15 hz SNR"
       ": t = %.3f, p = %f" % tstat_12hz_trial_stim)
 
 tstat_12hz_trial_1st_harmonic = ttest_rel(res['stim_12hz_snrs_24hz'], res['stim_12hz_snrs_30hz'])
-print("12 hz Trials: 24 hz SNR is significantly different from 30 hz SNR"
+print("12 hz Trials: 24 hz SNR is significantly higher than 30 hz SNR"
       ": t = %.3f, p = %f" % tstat_12hz_trial_1st_harmonic)
 
 tstat_12hz_trial_2nd_harmonic = ttest_rel(res['stim_12hz_snrs_36hz'], res['stim_12hz_snrs_45hz'])
-print("12 hz Trials: 36 hz SNR is significantly different from 45 hz SNR"
+print("12 hz Trials: 36 hz SNR is significantly higher than 45 hz SNR"
       ": t = %.3f, p = %f" % tstat_12hz_trial_2nd_harmonic)
 
 print()
 tstat_15hz_trial_stim = ttest_rel(res['stim_15hz_snrs_12hz'], res['stim_15hz_snrs_15hz'])
-print("15 hz trials: 12 hz SNR is significantly different from 15 hz SNR"
+print("15 hz trials: 12 hz SNR is significantly lower than 15 hz SNR"
       ": t = %.3f, p = %f" % tstat_15hz_trial_stim)
 
 tstat_15hz_trial_1st_harmonic = ttest_rel(res['stim_15hz_snrs_24hz'], res['stim_15hz_snrs_30hz'])
-print("15 hz trials: 24 hz SNR is significantly different from 30 hz SNR"
+print("15 hz trials: 24 hz SNR is significantly lower than 30 hz SNR"
       ": t = %.3f, p = %f" % tstat_15hz_trial_1st_harmonic)
 
 tstat_15hz_trial_2nd_harmonic = ttest_rel(res['stim_15hz_snrs_36hz'], res['stim_15hz_snrs_45hz'])
-print("15 hz trials: 36 hz SNR is significantly different from 45 hz SNR"
+print("15 hz trials: 36 hz SNR is significantly lower than 45 hz SNR"
       ": t = %.3f, p = %f" % tstat_15hz_trial_2nd_harmonic)
 
-
 ##############################################################################
-# debriefing
+# Debriefing
 # ----------
 # tbd
 #
 
 ##############################################################################
-# effect of trial length on vSSR
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Bonus exercises
+# ---------------
+# For the overly motivated amongst you, let's see what else we can show with
+# these our data..
+#
+# Using Welch's method as implemented in MNE makes it very easy to change
+# the amount of data that is actually used in the spectrum
+# estimation. We can tweak both the length of the actual trial, and the length
+# of the Welch window.
+#
+# Here we employ this to show you some features of frequency
+# tagging data that you might or might not have already intuitively expected:
+#
+
+##############################################################################
+# Effect of trial duration on SNR
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# First we will simulate shorter trials by taking the first x s of our 20s trials
+# (2,4,6,8, ..,20 s), and compute the SNR using a welch window that covers the
+# entire epoch:
 #
 
 stim_bandwidth = .5
 
-# first version - shorten welch window, full data
+# shorten data and welch window
+window_lengths = [i for i in range(2, 21, 2)]
+window_snrs = [[]] * len(window_lengths)
+for i_win, win in enumerate(window_lengths):
+    # compute spectrogram
+    windowed_psd, windowed_freqs = mne.time_frequency.psd_welch(
+        epochs[str(event_id['12hz'])],
+        n_fft=int(sf * win), n_overlap=0, n_per_seg=None,
+        tmin=0, tmax=win,
+        fmin=fmin, fmax=fmax, verbose=False)
+    # define a bandwidth of 1hz around stimfreq for SNR computation
+    bin_width = windowed_freqs[1] - windowed_freqs[0]
+    noise_skip_neighborfreqs = round((stim_bandwidth/2)/bin_width - bin_width/2. - .5) if bin_width < stim_bandwidth else 0
+    noise_n_neighborfreqs = int((sum((windowed_freqs <= 13) & (windowed_freqs >= 11)) - 1 - 2*noise_skip_neighborfreqs) / 2)
+    # compute snr
+    windowed_snrs = snr_spectrum(windowed_psd, noise_n_neighborfreqs=noise_n_neighborfreqs if noise_n_neighborfreqs > 0 else 1,
+                    noise_skip_neighborfreqs=noise_skip_neighborfreqs)
+    window_snrs[i_win] = windowed_snrs[:, picks_roi_vis, np.argmin(abs(np.subtract(windowed_freqs, 12.)))].mean(axis=1)
+
+plt.boxplot(window_snrs, labels=window_lengths, vert=True)
+plt.title('Effect of trial length on 12hz SNR')
+plt.axhline(1, ls='--', c='r')
+plt.ylabel('average SNR')
+plt.xlabel('trial length [s]')
+plt.show()
+
+##############################################################################
+# You can see that the signal estimate / our SNR measure increases with the
+# trial duration.
+#
+# This should be easy to understand: in longer recordings there is simply more signal
+# (one second of additional stimulation adds, in our case, 12 cycles of signal)
+# while the noise is (hopefully) stochastic and not locked to the stimulation frequency.
+# in other words: with more data the signal term grows faster than the noise term.
+#
+
+##############################################################################
+# Effect of Welch window
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Let's now look at the effect of the Welch window from two different perspectives:
+# For the first plot we kept the entire 20s of data, but changed the length of the Welch window.
+# For the second plot we fixed the Welch window, and again simulated different trial lengths.
+#
+
+
+# fig 1 - shorten welch window, full data
 window_lengths = [i for i in range(2,21,2)]
 window_snrs = [[]] * len(window_lengths)
 for i_win, win in enumerate(window_lengths):
-    print('window length: %is' % win)
     # compute spectrogram
     windowed_psd, windowed_freqs = mne.time_frequency.psd_welch(
         epochs[str(event_id['12hz'])],
         n_fft=int(sf * win), n_overlap=int(sf * (win - .1)), n_per_seg=None,
         tmin=tmin, tmax=tmax,
-        fmin=fmin, fmax=fmax, verbose=True)
+        fmin=fmin, fmax=fmax, verbose=False)
     # define a bandwidth of 1hz around stimfreq for SNR computation
     bin_width = windowed_freqs[1] - windowed_freqs[0]
     noise_skip_neighborfreqs = round((stim_bandwidth/2)/bin_width - bin_width/2. - .5) if bin_width < stim_bandwidth else 0
@@ -542,27 +604,27 @@ for i_win, win in enumerate(window_lengths):
                     noise_skip_neighborfreqs=1)
     window_snrs[i_win] = windowed_snrs[:, picks_roi_vis, np.argmin(abs(np.subtract(windowed_freqs, 12.)))].mean(axis=1)
 
+plt.figure()
 plt.boxplot(window_snrs, labels=window_lengths, vert=True)
 plt.title('Effect of time window length on 12hz SNR - adapt only welch window')
-plt.ylabel('average SNR per trial')
-plt.xlabel('analysis window [s]')
+plt.title('Varying Welch window, fixed trial length')
+plt.ylabel('average SNR')
+plt.xlabel('Welch window [s]')
+plt.axhline(1, ls='--', c='r')
 plt.show()
 
-##############################################################################
-# effect of trial length on vSSR
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#
-# second version - shorten data, welch window fix
+
+# fig 2 - shorten data, welch window fix
 window_lengths = [i for i in range(2,21,2)]
+window_lengths[0] = 3
 window_snrs = [[]] * len(window_lengths)
 for i_win, win in enumerate(window_lengths):
-    print('window length: %is' % win)
     # compute spectrogram
     windowed_psd, windowed_freqs = mne.time_frequency.psd_welch(
         epochs[str(event_id['12hz'])],
-        n_fft=int(sf * 2.), n_overlap=int(sf * 1.9), n_per_seg=None,
+        n_fft=int(sf * 3.), n_overlap=int(sf * 2.9), n_per_seg=None,
         tmin=0, tmax=win,
-        fmin=fmin, fmax=fmax, verbose=True)
+        fmin=fmin, fmax=fmax, verbose=False)
     # define a bandwidth of 1hz around stimfreq for SNR computation
     bin_width = windowed_freqs[1] - windowed_freqs[0]
     noise_skip_neighborfreqs = round((stim_bandwidth/2)/bin_width - bin_width/2. - .5) if bin_width < stim_bandwidth else 0
@@ -572,59 +634,52 @@ for i_win, win in enumerate(window_lengths):
                     noise_skip_neighborfreqs=noise_skip_neighborfreqs)
     window_snrs[i_win] = windowed_snrs[:, picks_roi_vis, np.argmin(abs(np.subtract(windowed_freqs, 12.)))].mean(axis=1)
 
+plt.figure()
 plt.boxplot(window_snrs, labels=window_lengths, vert=True)
-plt.title('Effect of time window length on 12hz SNR - adapt only data window')
-plt.ylabel('average SNR per trial')
-plt.xlabel('analysis window [s]')
+plt.title('3s Welch window, varying trial length')
+plt.ylabel('average SNR')
+plt.xlabel('trial length [s]')
+plt.axhline(1, ls='--', c='r')
 plt.show()
 
 ##############################################################################
-# effect of trial length on vSSR
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# In these plots you can see that a shorter Welch window (relative to the amount of data)
+# leads not only to lower SNR values (as described above)
+# but also to lower variance / higher confidence in the means.
 #
-# thrid version - shorten data and welch window
-window_lengths = [i for i in range(2,21,2)]
-window_snrs = [[]] * len(window_lengths)
-for i_win, win in enumerate(window_lengths):
-    print('window length: %is' % win)
-    # compute spectrogram
-    windowed_psd, windowed_freqs = mne.time_frequency.psd_welch(
-        epochs[str(event_id['12hz'])],
-        n_fft=int(sf * win), n_overlap=0, n_per_seg=None,
-        tmin=0, tmax=win,
-        fmin=fmin, fmax=fmax, verbose=True)
-    # define a bandwidth of 1hz around stimfreq for SNR computation
-    bin_width = windowed_freqs[1] - windowed_freqs[0]
-    noise_skip_neighborfreqs = round((stim_bandwidth/2)/bin_width - bin_width/2. - .5) if bin_width < stim_bandwidth else 0
-    noise_n_neighborfreqs = int((sum((windowed_freqs <= 13) & (windowed_freqs >= 11)) - 1 - 2*noise_skip_neighborfreqs) / 2)
-    # compute snr
-    windowed_snrs = snr_spectrum(windowed_psd, noise_n_neighborfreqs=noise_n_neighborfreqs if noise_n_neighborfreqs > 0 else 1,
-                    noise_skip_neighborfreqs=noise_skip_neighborfreqs)
-    window_snrs[i_win] = windowed_snrs[:, picks_roi_vis, np.argmin(abs(np.subtract(windowed_freqs, 12.)))].mean(axis=1)
+# This is the very idea of Welch's method, and is relevant to remember when
+# you decide for your analysis parameters:
+#
+# there is no such thing as an optimal welch window, its always a tradeoff -
+# - longer window => higher average SNR values
+# - shorter window => lower values but more robust / higher confidence in the measure.
+#
+# Yet, one should also not aim too low: in these data we can see that the very
+# short Welch windows < 2-3s are not great - here we've hit the noise bottom.
 
-plt.boxplot(window_snrs, labels=window_lengths, vert=True)
-plt.title('Effect of time window length on 12hz SNR - adapt data and welch window')
-plt.ylabel('average SNR per trial')
-plt.xlabel('analysis window [s]')
-plt.show()
 
 ##############################################################################
-# vSSR over time
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Time resolved SNR
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# ..and finally we can trick MNE's PSD implementation to make it a
+# sliding window analysis and come up with a time resolved SNR measure.
+# This will reveal whether a participant blinked or scratched their head..
+# differently colored lines for the ten different trials.
 #
-# 2s sliding window
-window_length = 2
+
+
+# 3s sliding window
+window_length = 3
 window_starts = [i for i in range(20-window_length)]
 window_snrs = [[]] * len(window_starts)
 
 for i_win, win in enumerate(window_starts):
-    print('window length: %is' % window_length)
     # compute spectrogram
     windowed_psd, windowed_freqs = mne.time_frequency.psd_welch(
         epochs[str(event_id['12hz'])],
         n_fft=int(sf * window_length)-1, n_overlap=0, n_per_seg=None,
         tmin=win, tmax=win+window_length,
-        fmin=fmin, fmax=fmax, verbose=True)
+        fmin=fmin, fmax=fmax, verbose=False)
     # define a bandwidth of 1hz around stimfreq for SNR computation
     bin_width = windowed_freqs[1] - windowed_freqs[0]
     noise_skip_neighborfreqs = round((stim_bandwidth/2)/bin_width - bin_width/2. - .5) if bin_width < stim_bandwidth else 0
@@ -634,10 +689,21 @@ for i_win, win in enumerate(window_starts):
                     noise_skip_neighborfreqs=noise_skip_neighborfreqs)
     window_snrs[i_win] = windowed_snrs[:, picks_roi_vis, np.argmin(abs(np.subtract(windowed_freqs, 12.)))].mean(axis=1)
 
-plt.boxplot(window_snrs, labels=window_starts, vert=True)
+plt.figure()
+plt.plot(window_starts, np.array(window_snrs))
 plt.title('Time resolved 12hz SNR - %is sliding window' % window_length)
-plt.ylabel('average SNR per trial')
+plt.legend(['individual trials'])
+plt.ylabel('average SNR')
 plt.xlabel('t0 of analysis window [s]')
-plt.axhline(1)
-plt.ylim([0,60])
+plt.axhline(1, ls='--', c='r')
 plt.show()
+
+##############################################################################
+# well.. turns out this was a bit too optimistic ;)
+#
+# but seriously: this was a nice idea, but we've simply reached the limit of
+# what's possible with this single-subject example dataset.
+# There are certainly data or applications where such an analysis makes more sense.
+
+
+
