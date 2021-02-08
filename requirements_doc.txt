@@ -1,5 +1,5 @@
 sphinx
-https://github.com/rossbar/numpydoc/archive/npdoc-validation-sphinx-build.zip
+https://github.com/numpy/numpydoc/archive/master.zip
 sphinx_fontawesome
 https://github.com/larsoner/sphinx-bootstrap-theme/archive/language_data.zip
 sphinx-gallery
