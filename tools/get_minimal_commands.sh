@@ -2,7 +2,7 @@
 
 if [ "${DEPS}" == "minimal" ]; then
 	exit 0;
-fi:
+fi;
 pushd ~ > /dev/null
 export MNE_ROOT="${PWD}/minimal_cmds"
 export PATH=${MNE_ROOT}/bin:$PATH
