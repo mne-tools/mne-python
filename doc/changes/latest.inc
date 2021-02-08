@@ -88,6 +88,8 @@ Bugs
 
 - Fix bug with ``replace`` argument of :meth:`mne.Report.add_bem_to_section` and :meth:`mne.Report.add_slider_to_section` (:gh:`8723` by `Eric Larson`_)
 
+- Fix compatibility bugs with :mod:`mne_realtime` (:gh:`8845` by `Eric Larson`_)
+
 - Fix bug with `mne.viz.Brain` where non-inflated surfaces had an X-offset imposed by default (:gh:`8794` by `Eric Larson`_)
 
 - Fix bug with :ref:`mne coreg` where nasion values were not updated when clicking (:gh:`8793` by `Eric Larson`_)

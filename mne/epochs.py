@@ -472,7 +472,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             else:
                 raise ValueError('No desired events found.')
         else:
-            self.drop_log = list()
+            self.drop_log = tuple()
             self.selection = np.array([], int)
             self.metadata = metadata
             # do not set self.events here, let subclass do it
@@ -588,10 +588,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
     def _check_consistency(self):
         """Check invariants of epochs object."""
-        assert len(self.selection) == len(self.events)
+        if hasattr(self, 'events'):
+            assert len(self.selection) == len(self.events)
+            assert len(self.drop_log) >= len(self.events)
         assert len(self.selection) == sum(
             (len(dl) == 0 for dl in self.drop_log))
-        assert len(self.drop_log) >= len(self.events)
         assert hasattr(self, '_times_readonly')
         assert not self.times.flags['WRITEABLE']
         assert isinstance(self.drop_log, tuple)

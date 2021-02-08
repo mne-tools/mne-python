@@ -3275,3 +3275,11 @@ def test_epochs_baseline_after_cropping(tmpdir):
     assert_allclose(epochs_orig.baseline, epochs_cropped_read.baseline)
     assert 'baseline period was cropped' in str(epochs_cropped_read)
     assert_allclose(epochs_cropped.get_data(), epochs_cropped_read.get_data())
+
+
+def test_empty_constructor():
+    """Test empty constructor for RtEpochs."""
+    info = create_info(1, 1000., 'eeg')
+    event_id = 1
+    tmin, tmax, baseline = -0.2, 0.5, None
+    BaseEpochs(info, None, None, event_id, tmin, tmax, baseline)
