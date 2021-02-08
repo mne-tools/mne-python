@@ -16,8 +16,8 @@ if [ "${AZURE_CI}" == "true" ]; then
 	echo "##vso[task.setvariable variable=PATH]${PATH}";
 fi;
 if [ "${CIRCLECI}" == "true" ]; then
-	echo "export MNE_ROOT=${MNE_ROOT}" >> $BASH_ENV;
-	echo "export PATH=${MNE_ROOT}/bin:$PATH" >> $BASH_ENV;
+	echo "export MNE_ROOT=${MNE_ROOT}" >> "$BASH_ENV";
+	echo "export PATH=${MNE_ROOT}/bin:$PATH" >> "$BASH_ENV";
 fi;
 if [ "${CI_OS_NAME}" != "osx" ]; then
 	if [ ! -d "${PWD}/minimal_cmds" ]; then
@@ -27,9 +27,9 @@ if [ "${CI_OS_NAME}" != "osx" ]; then
 	export NEUROMAG2FT_ROOT="${PWD}/minimal_cmds/bin"
 	export FREESURFER_HOME="${MNE_ROOT}"
 	if [ "${GITHUB_ACTIONS}" == "true" ]; then
-		echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}" >> $GITHUB_ENV;
-		echo "NEUROMAG2FT_ROOT=${NEUROMAG2FT_ROOT}" >> $GITHUB_ENV;
-		echo "FREESURFER_HOME=${FREESURFER_HOME}" >> $GITHUB_ENV;
+		echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}" >> "$GITHUB_ENV";
+		echo "NEUROMAG2FT_ROOT=${NEUROMAG2FT_ROOT}" >> "$GITHUB_ENV";
+		echo "FREESURFER_HOME=${FREESURFER_HOME}" >> "$GITHUB_ENV";
 	fi;
 	if [ "${AZURE_CI}" == "true" ]; then
 		echo "##vso[task.setvariable variable=LD_LIBRARY_PATH]${LD_LIBRARY_PATH}"
@@ -37,9 +37,9 @@ if [ "${CI_OS_NAME}" != "osx" ]; then
 		echo "##vso[task.setvariable variable=FREESURFER_HOME]${FREESURFER_HOME}"
 	fi;
 	if [ "${CIRCLECI}" == "true" ]; then
-		echo "export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}" >> $BASH_ENV;
-		echo "export NEUROMAG2FT_ROOT=${NEUROMAG2FT_ROOT}" >> $BASH_ENV;
-		echo "export FREESURFER_HOME=${FREESURFER_HOME}" >> $BASH_ENV;
+		echo "export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}" >> "$BASH_ENV";
+		echo "export NEUROMAG2FT_ROOT=${NEUROMAG2FT_ROOT}" >> "$BASH_ENV";
+		echo "export FREESURFER_HOME=${FREESURFER_HOME}" >> "$BASH_ENV";
 	fi;
 else
 	if [ ! -d "${PWD}/minimal_cmds" ]; then
@@ -47,7 +47,7 @@ else
 	fi;
 	export DYLD_LIBRARY_PATH=${MNE_ROOT}/lib:$DYLD_LIBRARY_PATH
 	if [ "${GITHUB_ACTIONS}" == "true" ]; then
-		echo "DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}" >> $GITHUB_ENV;
+		echo "DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}" >> "$GITHUB_ENV";
 		wget https://dl.bintray.com/xquartz/downloads/XQuartz-2.7.11.dmg
 		sudo hdiutil attach XQuartz-2.7.11.dmg
 		sudo installer -package /Volumes/XQuartz-2.7.11/XQuartz.pkg -target /
@@ -57,7 +57,7 @@ else
 		echo "##vso[task.setvariable variable=DYLD_LIBRARY_PATH]${DYLD_LIBRARY_PATH}"
 	fi;
 	if [ "${CIRCLECI}" == "true" ]; then
-		echo "export DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}" >> $BASH_ENV;
+		echo "export DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}" >> "$BASH_ENV";
 	fi;
 fi
 popd > /dev/null
