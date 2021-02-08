@@ -667,7 +667,8 @@ def _get_montage_in_head(montage):
 
 
 @fill_doc
-def _set_montage(info, montage, match_case=True, match_alias=False, on_missing='raise'):
+def _set_montage(info, montage, match_case=True, match_alias=False,
+                 on_missing='raise'):
     """Apply montage to data.
 
     With a DigMontage, this function will replace the digitizer info with
@@ -759,18 +760,18 @@ def _set_montage(info, montage, match_case=True, match_alias=False, on_missing='
                 raise ValueError('Cannot use match_case=False as %s channel '
                                  'name(s) require case sensitivity' % n_dup)
 
-        # use a lookup table to match unrecognized channel location names to their known aliases.
+        # use lookup table to match unrecognized channel names to known aliases
         if match_alias:
-            alias_dict = match_alias if isinstance(match_alias, dict) else CHANNEL_LOC_ALIASES
+            alias_dict = (match_alias if isinstance(match_alias, dict) else
+                          CHANNEL_LOC_ALIASES)
             if not match_case:
-                alias_dict = {k.lower(): v.lower() for k, v in alias_dict.items()}
+                alias_dict = {k.lower(): v.lower() for k, v in
+                              alias_dict.items()}
 
-            ch_pos_names = [ch for ch in ch_pos_use]
-            info_names_use = [
-                alias_dict[use] if use in alias_dict and alias_dict[use] in ch_pos_names else use
-                for use in info_names_use
-            ]
-            
+            info_names_use = [alias_dict[use] if use in alias_dict
+                              and alias_dict[use] in ch_pos_use else use
+                              for use in info_names_use]
+
         # warn user if there is not a full overlap of montage with info_chs
         not_in_montage = [name for name, use in zip(info_names, info_names_use)
                           if use not in ch_pos_use]
