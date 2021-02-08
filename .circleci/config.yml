@@ -31,7 +31,7 @@ jobs:
               echo "export XDG_RUNTIME_DIR=/tmp/runtime-circleci"  >> $BASH_ENV
               source tools/get_minimal_commands.sh
               echo "export MNE_3D_BACKEND=pyvista" >> $BASH_ENV
-              echo "export PATH=~/.local/bin/:${MNE_ROOT}/bin:$PATH" >> $BASH_ENV
+              echo "export PATH=~/.local/bin/:$PATH" >> $BASH_ENV
               echo "BASH_ENV:"
               cat $BASH_ENV
               mkdir -p ~/mne_data
