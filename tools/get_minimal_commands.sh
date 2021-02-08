@@ -4,8 +4,10 @@ if [ "${DEPS}" != "minimal" ]; then
 	pushd ~ > /dev/null
 	export MNE_ROOT="${PWD}/minimal_cmds"
 	export PATH=${MNE_ROOT}/bin:$PATH
-	echo "MNE_ROOT=${MNE_ROOT}" >> $GITHUB_ENV;
-	echo "${MNE_ROOT}/bin" >> $GITHUB_PATH;
+	if [ "${GITHUB_ACTIONS}" == "true" ]; then
+		echo "MNE_ROOT=${MNE_ROOT}" >> $GITHUB_ENV;
+		echo "${MNE_ROOT}/bin" >> $GITHUB_PATH;
+	fi;
 	if [ "${CI_OS_NAME}" != "osx" ]; then
 		if [ ! -d "${PWD}/minimal_cmds" ]; then
 			curl -L https://osf.io/g7dzs/download | tar xz
