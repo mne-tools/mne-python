@@ -16,7 +16,7 @@ if [ "${DEPS}" != "minimal" ]; then
 		export NEUROMAG2FT_ROOT="${PWD}/minimal_cmds/bin"
 		export FREESURFER_HOME="${MNE_ROOT}"
 		if [ "${GITHUB_ACTIONS}" == "true" ]; then
-			echo "LD_LIBRARY_PATH=${DYLD_PATH}" >> $GITHUB_ENV;
+			echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}" >> $GITHUB_ENV;
 			echo "NEUROMAG2FT_ROOT=${NEUROMAG2FT_ROOT}" >> $GITHUB_ENV;
 			echo "FREESURFER_HOME=${FREESURFER_HOME}" >> $GITHUB_ENV;
 		fi;
