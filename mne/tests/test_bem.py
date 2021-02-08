@@ -394,14 +394,6 @@ def test_fit_sphere_to_headshape():
 def test_io_head_bem(tmpdir):
     """Test reading and writing of defective head surfaces."""
     head = read_bem_surfaces(fname_dense_head)[0]
-    fname_out = op.join(str(tmpdir), 'temp-head-out.fif')
-    write_head_bem(fname_out, head['rr'], head['tris'])
-    head_out = read_bem_surfaces(fname_out)[0]
-
-    assert head['id'] == head_out['id'] == FIFF.FIFFV_BEM_SURF_ID_HEAD
-    assert np.all(head['rr'] == head_out['rr'])
-    assert np.all(head['tris'] == head_out['tris'])
-
     fname_defect = op.join(str(tmpdir), 'temp-head-defect.fif')
     # create defects
     head['rr'][0] = np.array([-0.01487014, -0.04563854, -0.12660208])
@@ -416,7 +408,11 @@ def test_io_head_bem(tmpdir):
     with pytest.raises(RuntimeError, match='topological defects:'):
         read_bem_surfaces(fname_defect)
     with pytest.warns(RuntimeWarning, match='topological defects:'):
-        read_bem_surfaces(fname_defect, on_defects='warn')
+        head_defect = read_bem_surfaces(fname_defect, on_defects='warn')[0]
+
+    assert head['id'] == head_defect['id'] == FIFF.FIFFV_BEM_SURF_ID_HEAD
+    assert np.allclose(head['rr'], head_defect['rr'])
+    assert np.allclose(head['tris'], head_defect['tris'])
 
 
 run_tests_if_main()

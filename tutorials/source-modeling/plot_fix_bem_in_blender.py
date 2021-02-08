@@ -190,13 +190,10 @@ faces = surf['tris']
 mne.write_surface(op.join(conv_dir, 'sample-head.obj'),
                   coords, faces, overwrite=True)
 
-# We use the same surface to simulate editing
-mne.write_surface(op.join(conv_dir, 'sample-head_fixed.obj'),
-                  coords, faces, overwrite=True)
-
+# We use the same surface to simulate the fixed version here
 # Read in the .obj file
 coords, faces = mne.read_surface(
-    op.join(conv_dir, 'sample-head_fixed.obj'))
+    op.join(conv_dir, 'sample-head.obj'))
 
 # Remember to backup the original head file in advance!
 # Overwrite the original head file

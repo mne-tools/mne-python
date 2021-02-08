@@ -1246,6 +1246,8 @@ def read_bem_surfaces(fname, patch_stats=False, s_id=None, on_defects='raise',
         An error will be raised if it doesn't exist. If None, all
         surfaces are read and returned.
     %(on_defects)s
+
+        .. versionadded:: 0.23
     %(verbose)s
 
     Returns
