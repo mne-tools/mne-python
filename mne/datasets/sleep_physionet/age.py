@@ -16,7 +16,7 @@ BASE_URL = 'https://physionet.org/physiobank/database/sleep-edfx/sleep-cassette/
 
 
 @verbose
-def fetch_data(subjects, recording=[1, 2], path=None, force_update=False,
+def fetch_data(subjects, recording=(1, 2), path=None, force_update=False,
                update_path=None, base_url=BASE_URL, on_missing='raise',
                verbose=None):  # noqa: D301
     """Get paths to local copies of PhysioNet Polysomnography dataset files.
@@ -52,6 +52,8 @@ def fetch_data(subjects, recording=[1, 2], path=None, force_update=False,
     update_path : bool | None
         If True, set the MNE_DATASETS_EEGBCI_PATH in mne-python
         config to the given path. If None, the user is prompted.
+    base_url : str
+        The URL root.
     on_missing : 'raise' | 'warn' | 'ignore'
         What to do if one or several recordings are not available. Valid keys
         are 'raise' | 'warn' | 'ignore'. Default is 'error'. If on_missing
@@ -63,6 +65,10 @@ def fetch_data(subjects, recording=[1, 2], path=None, force_update=False,
     -------
     paths : list
         List of local data paths of the given type.
+
+    See Also
+    --------
+    mne.datasets.sleep_physionet.temazepam.fetch_data
 
     Notes
     -----
@@ -83,10 +89,6 @@ def fetch_data(subjects, recording=[1, 2], path=None, force_update=False,
            PhysioBank, PhysioToolkit, and PhysioNet: Components of a New
            Research Resource for Complex Physiologic Signals.
            Circulation 101(23):e215-e220
-
-    See Also
-    --------
-    :func:`mne.datasets.sleep_physionet.temazepam.fetch_data`
     """  # noqa: E501
     records = np.loadtxt(AGE_SLEEP_RECORDS,
                          skiprows=1,

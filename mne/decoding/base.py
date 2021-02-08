@@ -144,7 +144,6 @@ class LinearModel(BaseEstimator):
         -------
         y_pred : array, shape (n_samples,)
             The predicted targets.
-
         """
         return self.fit(X, y).transform(X)
 

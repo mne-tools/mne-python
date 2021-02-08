@@ -269,7 +269,13 @@ class Label(object):
         return "<Label | %s, %s : %i vertices>" % (name, self.hemi, n_vert)
 
     def __len__(self):
-        """Return the number of vertices."""
+        """Return the number of vertices.
+
+        Returns
+        -------
+        n_vertices : int
+            The number of vertices.
+        """
         return len(self.vertices)
 
     def __add__(self, other):
@@ -844,7 +850,13 @@ class BiHemiLabel(object):
         return temp % (name, len(self.lh), len(self.rh))
 
     def __len__(self):
-        """Return the number of vertices."""
+        """Return the number of vertices.
+
+        Returns
+        -------
+        n_vertices : int
+            The number of vertices.
+        """
         return len(self.lh) + len(self.rh)
 
     def __add__(self, other):
@@ -2574,8 +2586,7 @@ def select_sources(subject, label, location='center', extent=0.,
 
     Parameters
     ----------
-    subject : string
-        Name of the subject as in SUBJECTS_DIR.
+    %(subject)s
     label : instance of Label | str
         Define where the seed will be chosen. If str, can be 'lh' or 'rh',
         which correspond to left or right hemisphere, respectively.
@@ -2594,7 +2605,7 @@ def select_sources(subject, label, location='center', extent=0.,
     name : None | str
         Assign name to the new label.
     %(random_state)s
-    surf : string
+    surf : str
         The surface used to simulated the label, defaults to the white surface.
 
     Returns

@@ -285,7 +285,6 @@ class GetEpochsMixin(object):
             43
             >>> len(epochs.events)  # doctest: +SKIP
             43
-
         """
         from ..epochs import BaseEpochs
         if isinstance(self, BaseEpochs) and not self._bad_dropped:

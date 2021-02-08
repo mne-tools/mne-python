@@ -2400,9 +2400,14 @@ def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):
     copy : bool
         Whether to return a new instance or modify in place.
 
+    Returns
+    -------
+    epochs : instance of Epochs
+        The modified epochs.
+
     Notes
     -----
-    This For example (if epochs.event_id was {'Left': 1, 'Right': 2}:
+    This For example (if epochs.event_id was ``{'Left': 1, 'Right': 2}``::
 
         combine_event_ids(epochs, ['Left', 'Right'], {'Directional': 12})
 
@@ -3187,7 +3192,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
                       origin='auto', weight_all=True, int_order=8, ext_order=3,
                       destination=None, ignore_ref=False, return_mapping=False,
                       mag_scale=100., verbose=None):
-    u"""Average data using Maxwell filtering, transforming using head positions.
+    """Average data using Maxwell filtering, transforming using head positions.
 
     Parameters
     ----------
@@ -3206,7 +3211,6 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
         receive uniform weight per epoch.
     %(maxwell_int)s
     %(maxwell_ext)s
-    %(maxwell_reg)s
     %(maxwell_dest)s
     %(maxwell_ref)s
     return_mapping : bool
@@ -3244,7 +3248,6 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
     .. [1] Taulu S. and Kajola M. "Presentation of electromagnetic
            multichannel data: The signal space separation method,"
            Journal of Applied Physics, vol. 97, pp. 124905 1-10, 2005.
-
     .. [2] Wehner DT, Hämäläinen MS, Mody M, Ahlfors SP. "Head movements
            of children in MEG: Quantification, effects on source
            estimation, and compensation. NeuroImage 40:541–550, 2008.

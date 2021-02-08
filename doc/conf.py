@@ -26,9 +26,10 @@ from sphinx_gallery.sorting import FileNameSortKey, ExplicitOrder
 from numpydoc import docscrape
 import matplotlib
 import mne
-from mne.viz import Brain  # noqa
+from mne.tests.test_docstring_parameters import error_ignores
 from mne.utils import (linkcode_resolve, # noqa, analysis:ignore
                        _assert_no_instances, sizeof_fmt)
+from mne.viz import Brain  # noqa
 
 if LooseVersion(sphinx_gallery.__version__) < LooseVersion('0.2'):
     raise ImportError('Must have at least version 0.2 of sphinx-gallery, got '
@@ -688,4 +689,19 @@ numpydoc_xref_ignore = {
     # unlinkable
     'mayavi.mlab.pipeline.surface',
     'CoregFrame', 'Kit2FiffFrame', 'FiducialsFrame',
+}
+numpydoc_validate = True
+numpydoc_validation_checks = {'all'} | set(error_ignores)
+numpydoc_validation_exclude = {  # set of regex
+    # dict subclasses
+    r'\.clear', r'\.get$', r'\.copy$', r'\.fromkeys', r'\.items', r'\.keys',
+    r'\.pop', r'\.popitem', r'\.setdefault', r'\.update', r'\.values',
+    # list subclasses
+    r'\.append', r'\.count', r'\.extend', r'\.index', r'\.insert', r'\.remove',
+    r'\.sort',
+    # we currently don't document these properly (probably okay)
+    r'\.__getitem__', r'\.__contains__', r'\.__hash__', r'\.__mul__',
+    r'\.__sub__', r'\.__add__', r'\.__iter__', r'\.__div__', r'\.__neg__',
+    # copied from sklearn
+    r'mne\.utils\.deprecated',
 }
