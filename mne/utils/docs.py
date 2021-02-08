@@ -1372,7 +1372,7 @@ match_alias : bool | dict
     Whether to use a lookup table to match unrecognized channel location names
     to their known aliases. If True, uses the mapping in
     `mne.io.constants.CHANNEL_LOC_ALIASES`. If a :class:`dict` is passed, it
-    will be used instead, and should map from non-standard channel names to 
+    will be used instead, and should map from non-standard channel names to
     names in the specified ``montage``. Default is ``False``.
 
     .. versionadded:: 0.23
