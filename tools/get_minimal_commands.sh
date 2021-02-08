@@ -12,6 +12,10 @@ if [ "${DEPS}" != "minimal" ]; then
 		echo "##vso[task.setvariable variable=MNE_ROOT]${MNE_ROOT}"
 		echo "##vso[task.setvariable variable=PATH]${PATH}";
 	fi;
+	if [ "${CIRCLECI}" == "true" ]; then
+		echo "export MNE_ROOT=${MNE_ROOT}" >> $BASH_ENV;
+		echo "export PATH=${MNE_ROOT}/bin:$PATH" >> $BASH_ENV;
+	fi;
 	if [ "${CI_OS_NAME}" != "osx" ]; then
 		if [ ! -d "${PWD}/minimal_cmds" ]; then
 			curl -L https://osf.io/g7dzs/download | tar xz
@@ -29,6 +33,11 @@ if [ "${DEPS}" != "minimal" ]; then
 			echo "##vso[task.setvariable variable=NEUROMAG2FT_ROOT]${NEUROMAG2FT_ROOT}"
 			echo "##vso[task.setvariable variable=FREESURFER_HOME]${FREESURFER_HOME}"
 		fi;
+		if [ "${CIRCLECI}" == "true" ]; then
+			echo "export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}" >> $BASH_ENV;
+			echo "export NEUROMAG2FT_ROOT=${NEUROMAG2FT_ROOT}" >> $BASH_ENV;
+			echo "export FREESURFER_HOME=${FREESURFER_HOME}" >> $BASH_ENV;
+		fi;
 	else
 		if [ ! -d "${PWD}/minimal_cmds" ]; then
 			curl -L https://osf.io/rjcz4/download | tar xz
@@ -43,6 +52,9 @@ if [ "${DEPS}" != "minimal" ]; then
 		fi;
 		if [ "${AZURE_CI}" == "true" ]; then
 			echo "##vso[task.setvariable variable=DYLD_LIBRARY_PATH]${DYLD_LIBRARY_PATH}"
+		fi;
+		if [ "${CIRCLECI}" == "true" ]; then
+			echo "export DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}";
 		fi;
 	fi
 	popd > /dev/null
