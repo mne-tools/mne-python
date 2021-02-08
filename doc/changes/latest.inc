@@ -116,7 +116,7 @@ Bugs
 
 - When creating `~mne.Epochs`, we now ensure that ``reject_tmin`` and ``reject_tmax`` cannot fall outside of the epochs' time interval anymore (:gh:`8821` by `Richard Höchenberger`_)
 
-- :meth:`raw.rename_channels() <mne.Raw.rename_channels>` now also applies the new channel names to ``raw._orig_units``, if present (:gh:`8846` by `Richard Höchenberger`_)
+- :meth:`raw.rename_channels() <mne.io.Raw.rename_channels>` now also applies the new channel names to ``raw._orig_units``, if present (:gh:`8846` by `Richard Höchenberger`_)
 
 API changes
 ~~~~~~~~~~~
