@@ -15,7 +15,7 @@ import os
 import os.path as op
 
 import mne
-from mne.utils import run_subprocess, get_subjects_dir
+from mne.utils import run_subprocess, get_subjects_dir, _check_freesurfer_home
 
 
 def freeview_bem_surfaces(subject, subjects_dir, method):
@@ -41,39 +41,33 @@ def freeview_bem_surfaces(subject, subjects_dir, method):
         raise ValueError("Wrong path: '{}'. Check subjects-dir or"
                          "subject argument.".format(subject_dir))
 
+    fs_home = _check_freesurfer_home()
     env = os.environ.copy()
-    env['SUBJECT'] = subject
-    env['SUBJECTS_DIR'] = subjects_dir
-
-    if 'FREESURFER_HOME' not in env:
-        raise RuntimeError('The FreeSurfer environment needs to be set up.')
+    env.update(SUBJECT=subject, SUBJECTS_DIR=subjects_dir,
+               PATH=f'{fs_home}/bin:' + env.get('PATH', ''))
 
     mri_dir = op.join(subject_dir, 'mri')
     bem_dir = op.join(subject_dir, 'bem')
     mri = op.join(mri_dir, 'T1.mgz')
-
-    if method == 'watershed':
-        bem_dir = op.join(bem_dir, 'watershed')
-        outer_skin = op.join(bem_dir, '%s_outer_skin_surface' % subject)
-        outer_skull = op.join(bem_dir, '%s_outer_skull_surface' % subject)
-        inner_skull = op.join(bem_dir, '%s_inner_skull_surface' % subject)
-    else:
-        if method == 'flash':
-            bem_dir = op.join(bem_dir, 'flash')
-        outer_skin = op.join(bem_dir, 'outer_skin.surf')
-        outer_skull = op.join(bem_dir, 'outer_skull.surf')
-        inner_skull = op.join(bem_dir, 'inner_skull.surf')
-
-    # put together the command
-    cmd = ['freeview']
-    cmd += ["--volume", mri]
-    cmd += ["--surface", "%s:color=red:edgecolor=red" % inner_skull]
-    cmd += ["--surface", "%s:color=yellow:edgecolor=yellow" % outer_skull]
-    cmd += ["--surface",
-            "%s:color=255,170,127:edgecolor=255,170,127" % outer_skin]
+    cmd = ['freeview', '-v', mri]
+    colors = dict(
+        outer_skin='255,170,127', outer_skull='yellow', inner_skull='red',
+        brain='white')
+    for key in ('brain', 'inner_skull', 'outer_skull', 'outer_skin'):
+        if method == 'watershed':
+            bem_dir = op.join(bem_dir, 'watershed')
+            fname = op.join(bem_dir, f'{subject}_{key}_surface')
+        else:
+            if method == 'flash':
+                bem_dir = op.join(bem_dir, 'flash')
+            fname = op.join(bem_dir, f'{key}.surf')
+        color = colors[key]
+        this_cmd = ['--surface',
+                    f"{fname}"
+                    f":color={color}:edgecolor={color}"]
+        cmd += this_cmd if key != 'brain' or op.isfile(fname) else []
 
     run_subprocess(cmd, env=env, stdout=sys.stdout)
-    print("[done]")
 
 
 def run():
