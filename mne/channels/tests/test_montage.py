@@ -1200,8 +1200,7 @@ def test_set_montage_with_sub_super_set_of_ch_names():
 
 
 def test_set_montage_with_known_aliases():
-    """Test set montage to match unrecognized channel location names to
-    their known aliases."""
+    """Test matching unrecognized channel locations to known aliases."""
     # montage and info match
     mock_montage_ch_names = ['POO7', 'POO8']
     n_channels = len(mock_montage_ch_names)
