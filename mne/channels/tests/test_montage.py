@@ -1200,18 +1200,18 @@ def test_set_montage_with_sub_super_set_of_ch_names():
 
 
 def test_set_montage_with_known_aliases():
-    """Test set montage to match unrecognized channel location names to their known aliases."""
+    """Test set montage to match unrecognized channel location names to
+    their known aliases."""
     # montage and info match
     mock_montage_ch_names = ['POO7', 'POO8']
     n_channels = len(mock_montage_ch_names)
 
-    montage = make_dig_montage(
-        ch_pos=dict(zip(
+    montage = make_dig_montage(ch_pos=dict(
+        zip(
             mock_montage_ch_names,
             np.arange(n_channels * 3).reshape(n_channels, 3),
         )),
-        coord_frame='head'
-    )
+                               coord_frame='head')
 
     mock_info_ch_names = ['Cb1', 'Cb2']
     info = create_info(ch_names=mock_info_ch_names, sfreq=1, ch_types='eeg')
