@@ -9,7 +9,6 @@ from mne.connectivity import spectral_connectivity
 from mne.connectivity.spectral import _CohEst, _get_n_epochs
 from mne.datasets import testing
 from mne.filter import filter_data
-from mne.utils import run_tests_if_main
 
 
 def _stc_gen(data, sfreq, tmin, combo=False):
@@ -226,10 +225,9 @@ def test_epochs():
     picks = pick_types(raw.info, meg=True, eeg=True, stim=True, ecg=True,
                        eog=True, include=['STI 014'], exclude='bads')
 
-    reject = dict(grad=1000e-12, mag=4e-12, eeg=80e-6, eog=150e-6)
     event_id, tmin, tmax = 1, -1, 1
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), reject=reject)
+                    baseline=(None, 0))
     epochs.load_data().pick_types(meg='grad')
 
     # Parameters for computing connectivity
@@ -242,6 +240,21 @@ def test_epochs():
                           faverage=True, tmin=tmin, tmax=tmax,
                           mt_adaptive=False, n_jobs=1)
 
+    # Checks for warning if tmin, tmax is outside of the time limits of data
+    tmin, tmax = -1.5, 0.5
+    with pytest.warns(RuntimeWarning, match='start time tmin'):
+        spectral_connectivity(epochs, method='pli', mode='multitaper',
+                              sfreq=sfreq, fmin=fmin, fmax=fmax,
+                              faverage=True, tmin=tmin, tmax=tmax,
+                              mt_adaptive=False, n_jobs=1)
+
+    tmin, tmax = -0.5, 1.5
+    with pytest.warns(RuntimeWarning, match='stop time tmax'):
+        spectral_connectivity(epochs, method='pli', mode='multitaper',
+                              sfreq=sfreq, fmin=fmin, fmax=fmax,
+                              faverage=True, tmin=tmin, tmax=tmax,
+                              mt_adaptive=False, n_jobs=1)
+
     # Test with a numpy array
     myarray = np.random.rand(3, 203, raw.n_times)
     tmin, tmax = 0.1, 0.8
@@ -249,6 +262,3 @@ def test_epochs():
                           sfreq=sfreq, fmin=fmin, fmax=fmax,
                           faverage=True, tmin=tmin, tmax=tmax,
                           mt_adaptive=False, n_jobs=1)
-
-
-run_tests_if_main()
