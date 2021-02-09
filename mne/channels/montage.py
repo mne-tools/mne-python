@@ -762,15 +762,13 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
 
         # use lookup table to match unrecognized channel names to known aliases
         if match_alias:
-            alias_dict = (match_alias if isinstance(match_alias, dict) else
-                          CHANNEL_LOC_ALIASES)
+            alias_dict = (match_alias if isinstance(match_alias, dict) else CHANNEL_LOC_ALIASES)
             if not match_case:
-                alias_dict = {k.lower(): v.lower() for k, v in
-                              alias_dict.items()}
+                alias_dict = {ch_name.lower(): ch_alias.lower() for ch_name, ch_alias in alias_dict.items()}
 
-            info_names_use = [alias_dict[use] if use in alias_dict
-                              and alias_dict[use] in ch_pos_use else use
-                              for use in info_names_use]
+            # excluded ch_alias not in info, to prevent unnecessary mapping and warning messages based on aliases.
+            alias_dict = {ch_name: ch_alias for ch_name, ch_alias in alias_dict.items() if ch_alias in ch_pos_use}
+            info_names_use = [alias_dict.get(ch_name, ch_name) for ch_name in info_names_use]
 
         # warn user if there is not a full overlap of montage with info_chs
         not_in_montage = [name for name, use in zip(info_names, info_names_use)

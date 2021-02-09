@@ -30,7 +30,7 @@ from mne.channels import (get_builtin_montages, DigMontage, read_dig_dat,
 from mne.channels.montage import transform_to_head, _check_get_coord_frame
 from mne.utils import run_tests_if_main, assert_dig_allclose
 from mne.bem import _fit_sphere
-from mne.io.constants import FIFF
+from mne.io.constants import FIFF, CHANNEL_LOC_ALIASES
 from mne.io._digitization import (_format_dig_points,
                                   _get_fid_coords, _get_dig_eeg,
                                   _count_points_by_type)
@@ -1197,6 +1197,36 @@ def test_set_montage_with_sub_super_set_of_ch_names():
     # plus suggestions
     assert exc.match('set_channel_types')
     assert exc.match('on_missing')
+
+
+def test_set_montage_with_known_aliases():
+    """Test set montage to match unrecognized channel location names to their known aliases."""
+    # montage and info match
+    mock_montage_ch_names = ['POO7', 'POO8']
+    n_channels = len(mock_montage_ch_names)
+
+    montage = make_dig_montage(
+        ch_pos=dict(zip(
+            mock_montage_ch_names,
+            np.arange(n_channels * 3).reshape(n_channels, 3),
+        )),
+        coord_frame='head'
+    )
+
+    mock_info_ch_names = ['Cb1', 'Cb2']
+    info = create_info(ch_names=mock_info_ch_names, sfreq=1, ch_types='eeg')
+    info.set_montage(montage, match_alias=True)
+
+    # work with match_case
+    mock_info_ch_names = ['cb1', 'cb2']
+    info = create_info(ch_names=mock_info_ch_names, sfreq=1, ch_types='eeg')
+    info.set_montage(montage, match_case=False, match_alias=True)
+
+    # should warn user T1 instead of its alias T9
+    mock_info_ch_names = ['Cb1', 'T1']
+    info = create_info(ch_names=mock_info_ch_names, sfreq=1, ch_types='eeg')
+    with pytest.raises(ValueError, match='T1'):
+        info.set_montage(montage, match_case=False, match_alias=True)
 
 
 def test_heterogeneous_ch_type():
