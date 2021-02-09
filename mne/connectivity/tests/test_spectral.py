@@ -215,7 +215,7 @@ def test_spectral_connectivity(method, mode):
 
 @testing.requires_testing_data
 def test_epochs():
-    """Test spectral.spectral_connectivity with different data objects."""
+    """Test spectral.spectral_connectivity with epochs and arrays."""
     data_dir = Path(__file__).parent.parent.parent / 'io' / 'tests' / 'data'
     raw_fname = data_dir / 'test_raw.fif'
     event_fname = data_dir / 'test-eve.fif'
@@ -233,32 +233,21 @@ def test_epochs():
     # Parameters for computing connectivity
     fmin, fmax = 8., 13.
     sfreq = raw.info['sfreq']
-    tmin, tmax = -0.9, -0.2
 
-    spectral_connectivity(epochs, method='pli', mode='multitaper',
-                          sfreq=sfreq, fmin=fmin, fmax=fmax,
-                          faverage=True, tmin=tmin, tmax=tmax,
-                          mt_adaptive=False, n_jobs=1)
+    kwargs = {'method': 'pli', 'mode': 'multitaper', 'sfreq': sfreq,
+              'fmin': fmin, 'fmax': fmax, 'faverage': True,
+              'mt_adaptive': False, 'n_jobs': 1}
 
-    # Checks for warning if tmin, tmax is outside of the time limits of data
-    tmin, tmax = -1.5, 0.5
+    # Checks for a time interval before the event
+    spectral_connectivity(epochs, **kwargs, tmin=-0.9, tmax=-0.2)
+
+    # Check for warning if tmin, tmax is outside of the time limits of data
     with pytest.warns(RuntimeWarning, match='start time tmin'):
-        spectral_connectivity(epochs, method='pli', mode='multitaper',
-                              sfreq=sfreq, fmin=fmin, fmax=fmax,
-                              faverage=True, tmin=tmin, tmax=tmax,
-                              mt_adaptive=False, n_jobs=1)
+        spectral_connectivity(epochs, **kwargs, tmin=-1.5, tmax=0.5)
 
-    tmin, tmax = -0.5, 1.5
     with pytest.warns(RuntimeWarning, match='stop time tmax'):
-        spectral_connectivity(epochs, method='pli', mode='multitaper',
-                              sfreq=sfreq, fmin=fmin, fmax=fmax,
-                              faverage=True, tmin=tmin, tmax=tmax,
-                              mt_adaptive=False, n_jobs=1)
+        spectral_connectivity(epochs, **kwargs, tmin=-0.5, tmax=1.5)
 
     # Test with a numpy array
     myarray = np.random.rand(3, 203, raw.n_times)
-    tmin, tmax = 0.1, 0.8
-    spectral_connectivity(myarray, method='pli', mode='multitaper',
-                          sfreq=sfreq, fmin=fmin, fmax=fmax,
-                          faverage=True, tmin=tmin, tmax=tmax,
-                          mt_adaptive=False, n_jobs=1)
+    spectral_connectivity(myarray, **kwargs, tmin=0.1, tmax=0.8)

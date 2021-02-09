@@ -14,6 +14,8 @@ Current (0.23.dev0)
 
 .. |New Contributor| replace:: **New Contributor**
 
+.. |Anna Padee| replace:: **Anna Padee**
+
 .. |Richard Koehler| replace:: **Richard Koehler**
 
 .. |Andres Rodriguez| replace:: **Andres Rodriguez**
@@ -58,6 +60,8 @@ Enhancements
 
 Bugs
 ~~~~
+- Fix bug with `mne.connectivity.spectral_connectivity` where time axis in Epochs data object was dropped. (:gh:`8839` **by new contributor** |Anna Padee|_)
+
 - Fix bugs with `mne.io.read_raw_persyst` where multiple ``Comments`` with the same name are allowed, and ``Comments`` with a "," character are now allowed (:gh:`8311` and :gh:`8806` **by new contributor** |Andres Rodriguez|_ and `Adam Li`_)
 
 - Fix zen mode and scalebar toggling for :meth:`raw.plot() <mne.io.Raw.plot>` when using the ``macosx`` matplotlib backend (:gh:`8688` by `Daniel McCloy`_)
