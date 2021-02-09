@@ -1,5 +1,4 @@
 import numpy as np
-from scipy import linalg
 
 from .constants import FIFF
 
@@ -94,7 +93,7 @@ def make_compensator(info, from_, to, exclude_comp_chs=False):
     #   s_to   = (I - C2)*(I + C1)*s_from = (I + C1 - C2 - C2*C1)*s_from
     if from_ != 0:
         C1 = _make_compensator(info, from_)
-        comp_from_0 = linalg.inv(np.eye(info['nchan']) - C1)
+        comp_from_0 = np.linalg.inv(np.eye(info['nchan']) - C1)
     if to != 0:
         C2 = _make_compensator(info, to)
         comp_0_to = np.eye(info['nchan']) - C2

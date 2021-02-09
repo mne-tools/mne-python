@@ -4,7 +4,6 @@
 # License: Simplified BSD
 
 import numpy as np
-from scipy import linalg
 
 from ..source_estimate import SourceEstimate, _BaseSourceEstimate, _make_stc
 from ..minimum_norm.inverse import (combine_xyz, _prepare_forward,
@@ -372,6 +371,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
        MEG/EEG Source Reconstruction", IEEE Transactions of Medical Imaging,
        Volume 35 (10), pp. 2218-2228, 2016.
     """
+    from scipy import linalg
     if not (0. <= alpha < 100.):
         raise ValueError('alpha must be in [0, 100). '
                          'Got alpha = %s' % alpha)

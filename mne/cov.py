@@ -11,7 +11,6 @@ from math import log
 import os
 
 import numpy as np
-from scipy import linalg, sparse
 
 from .defaults import _EXTRAPOLATE_DEFAULT, _BORDER_DEFAULT, DEFAULTS
 from .io.write import start_file, end_file
@@ -1634,6 +1633,7 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     --------
     mne.compute_covariance
     """  # noqa: E501
+    from scipy import linalg
     cov = cov.copy()
     info._check_consistency()
     scalings = _handle_default('scalings_cov_rank', scalings)
@@ -1934,6 +1934,7 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=None, rank=None,
 def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
     """Read a noise covariance matrix."""
     #   Find all covariance matrices
+    from scipy import sparse
     covs = dir_tree_find(node, FIFF.FIFFB_MNE_COV)
     if len(covs) == 0:
         raise ValueError('No covariance matrices found')

@@ -17,7 +17,6 @@ import os
 import json
 
 import numpy as np
-from scipy import linalg
 
 from .ecg import (qrs_detector, _get_ecg_channel_index, _make_ecg,
                   create_ecg_epochs)
@@ -764,6 +763,7 @@ class ICA(ContainsMixin):
         self.current_fit = fit_type
 
     def _update_mixing_matrix(self):
+        from scipy import linalg
         self.mixing_matrix_ = linalg.pinv(self.unmixing_matrix_)
 
     def _update_ica_names(self):
@@ -904,7 +904,9 @@ class ICA(ContainsMixin):
     def _sources_as_raw(self, raw, add_channels, start, stop):
         """Aux method."""
         # merge copied instance and picked data with sources
-        sources = self._transform_raw(raw, start=start, stop=stop)
+        start, stop = _check_start_stop(raw, start, stop)
+        data_ = self._transform_raw(raw, start=start, stop=stop)
+        assert data_.shape[1] == stop - start
         if raw.preload:  # get data and temporarily delete
             data = raw._data
             del raw._data
@@ -914,28 +916,17 @@ class ICA(ContainsMixin):
             raw._data = data
 
         # populate copied raw.
-        start, stop = _check_start_stop(raw, start, stop)
-        if add_channels is not None:
-            raw_picked = raw.copy().pick_channels(add_channels)
-            data_, times_ = raw_picked[:, start:stop]
-            data_ = np.r_[sources, data_]
-        else:
-            data_ = sources
-            _, times_ = raw[0, start:stop]
+        if add_channels is not None and len(add_channels):
+            picks = pick_channels(raw.ch_names, add_channels)
+            data_ = np.concatenate([
+                data_, raw.get_data(picks, start=start, stop=stop)])
         out._data = data_
-        out._times = times_
         out._filenames = [None]
         out.preload = True
-
-        # update first and last samples
-        out._first_samps = np.array([raw.first_samp +
-                                     (start if start else 0)])
-        out._last_samps = np.array([out.first_samp + stop
-                                    if stop else raw.last_samp])
-
+        out._first_samps[:] = [out.first_samp + start]
+        out._last_samps[:] = [out.first_samp + data_.shape[1] - 1]
         out._projector = None
         self._export_info(out.info, raw, add_channels)
-        out._update_times()
 
         return out
 
@@ -1704,7 +1695,7 @@ class ICA(ContainsMixin):
         if self.noise_cov is None:  # revert standardization
             data *= self.pre_whitener_
         else:
-            data = np.dot(linalg.pinv(self.pre_whitener_, cond=1e-14), data)
+            data = np.linalg.pinv(self.pre_whitener_, rcond=1e-14) @ data
 
         return data
 
@@ -1964,9 +1955,9 @@ def _exp_var_ncomp(var, n):
 def _check_start_stop(raw, start, stop):
     """Aux function."""
     out = list()
-    for st in (start, stop):
+    for st, none_ in ((start, 0), (stop, raw.n_times)):
         if st is None:
-            out.append(st)
+            out.append(none_)
         else:
             try:
                 out.append(_ensure_int(st))
@@ -2701,6 +2692,7 @@ def read_ica_eeglab(fname, *, verbose=None):
     ica : instance of ICA
         An ICA object based on the information contained in the input file.
     """
+    from scipy import linalg
     eeg = _check_load_mat(fname, None)
     info, eeg_montage, _ = _get_info(eeg)
     info.set_montage(eeg_montage)

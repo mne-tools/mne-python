@@ -982,19 +982,14 @@ _DATA_CH_TYPES_SPLIT = (
     'mag', 'grad', 'eeg', 'csd', 'seeg', 'ecog', 'dbs') + _FNIRS_CH_TYPES_SPLIT
 
 
-def _pick_data_channels(info, exclude='bads', with_ref_meg=True):
+def _pick_data_channels(info, exclude='bads', with_ref_meg=True,
+                        with_aux=False):
     """Pick only data channels."""
-    return pick_types(info, ref_meg=with_ref_meg, exclude=exclude,
-                      **_PICK_TYPES_DATA_DICT)
-
-
-def _pick_aux_channels(info, exclude='bads'):
-    """Pick only auxiliary channels.
-
-    Corresponds to EOG, ECG, EMG and BIO
-    """
-    return pick_types(info, meg=False, eog=True, ecg=True, emg=True, bio=True,
-                      ref_meg=False, exclude=exclude)
+    kwargs = _PICK_TYPES_DATA_DICT
+    if with_aux:
+        kwargs = kwargs.copy()
+        kwargs.update(eog=True, ecg=True, emg=True, bio=True)
+    return pick_types(info, ref_meg=with_ref_meg, exclude=exclude, **kwargs)
 
 
 def _pick_data_or_ica(info, exclude=()):

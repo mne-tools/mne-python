@@ -266,6 +266,10 @@
 
 .. _Robert Luke: https://github.com/rob-luke
 
+.. _Robert Seymour: https://neurofractal.github.io
+
+.. _Matt Sanderson: https://github.com/monkeyman192
+
 .. _Mohammad Daneshzand: https://github.com/mdaneshzand
 
 .. _Fahimeh Mamashli: https://github.com/fmamashli

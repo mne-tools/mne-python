@@ -18,7 +18,6 @@ from collections.abc import Iterable
 from functools import partial
 
 import numpy as np
-from scipy import linalg
 
 from ..defaults import DEFAULTS
 from ..fixes import einsum, _crop_colorbar, _get_img_fdata, _get_args
@@ -38,8 +37,7 @@ from ..transforms import (_find_trans, apply_trans, rot_to_quat,
                           read_ras_mni_t, _print_coord_trans)
 from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
                      has_nibabel, check_version, fill_doc, _pl, get_config,
-                     _ensure_int, _validate_type, _check_option,
-                     _require_version)
+                     _ensure_int, _validate_type, _check_option)
 from .utils import (mne_analyze_colormap, _get_color_list,
                     plt_show, tight_layout, figure_nobar, _check_time_unit)
 from .misc import _check_mri
@@ -92,7 +90,6 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
     mode : str
         Can be 'traces' (default) to show position and quaternion traces,
         or 'field' to show the position as a vector field over time.
-        The 'field' mode requires matplotlib 1.4+.
     cmap : colormap
         Colormap to use for the trace plot, default is "viridis".
     direction : str
@@ -1780,9 +1777,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
 
     Returns
     -------
-    figure : instance of surfer.Brain | matplotlib.figure.Figure
-        An instance of :class:`surfer.Brain` from PySurfer or
-        matplotlib figure.
+    figure : instance of mne.viz.Brain | matplotlib.figure.Figure
+        An instance of :class:`mne.viz.Brain` or matplotlib figure.
 
     Notes
     -----
@@ -1838,7 +1834,7 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
               brain_alpha, overlay_alpha, vector_alpha, cortex, foreground,
               size, scale_factor, show_traces, src, volume_options,
               view_layout, add_data_kwargs, brain_kwargs):
-    from .backends.renderer import _get_3d_backend
+    from .backends.renderer import _get_3d_backend, get_brain_class
     from ..source_estimate import _BaseVolSourceEstimate
     vec = stc._data_ndim == 3
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
@@ -1848,11 +1844,7 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
     backend = _get_3d_backend()
     del _get_3d_backend
     using_mayavi = backend == "mayavi"
-    if using_mayavi:
-        from surfer import Brain
-        _require_version('surfer', 'stc.plot', '0.9')
-    else:  # PyVista
-        from ._brain import Brain
+    Brain = get_brain_class()
     views = _check_views(surface, views, hemi, stc, backend)
     _check_option('hemi', hemi, ['lh', 'rh', 'split', 'both'])
     _check_option('view_layout', view_layout, ('vertical', 'horizontal'))
@@ -1911,6 +1903,12 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
     with warnings.catch_warnings(record=True):  # traits warnings
         brain = Brain(**kwargs)
     del kwargs
+
+    if using_mayavi:
+        # Here we patch to avoid segfault:
+        # https://github.com/mne-tools/mne-python/pull/8828
+        brain.close = lambda *args, **kwargs: brain._close(False)
+
     if scale_factor is None:
         # Configure the glyphs scale directly
         width = np.mean([np.ptp(brain.geo[hemi].coords[:, 1])
@@ -2042,7 +2040,7 @@ def _glass_brain_crosshairs(params, x, y, z):
 
 
 def _cut_coords_to_ijk(cut_coords, img):
-    ijk = apply_trans(linalg.inv(img.affine), cut_coords)
+    ijk = apply_trans(np.linalg.inv(img.affine), cut_coords)
     ijk = np.clip(np.round(ijk).astype(int), 0, np.array(img.shape[:3]) - 1)
     return ijk
 
@@ -2597,8 +2595,8 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
 
     Returns
     -------
-    brain : surfer.Brain
-        A instance of :class:`surfer.Brain` from PySurfer.
+    brain : mne.viz.Brain
+        A instance of :class:`mne.viz.Brain`.
 
     Notes
     -----
@@ -3033,7 +3031,7 @@ def plot_sensors_connectivity(info, con, picks=None):
     con_nodes = list()
     con_val = list()
     for i, j in zip(ii, jj):
-        if linalg.norm(sens_loc[i] - sens_loc[j]) > min_dist:
+        if np.linalg.norm(sens_loc[i] - sens_loc[j]) > min_dist:
             con_nodes.append((i, j))
             con_val.append(con[i, j])
 

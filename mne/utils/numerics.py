@@ -19,11 +19,11 @@ import sys
 from datetime import datetime, timedelta, timezone
 
 import numpy as np
-from scipy import sparse
 
 from ._logging import logger, warn, verbose
 from .check import check_random_state, _ensure_int, _validate_type
-from ..fixes import _infer_dimension_, svd_flip, stable_cumsum, _safe_svd
+from ..fixes import (_infer_dimension_, svd_flip, stable_cumsum, _safe_svd,
+                     jit, has_numba)
 from .docs import fill_doc
 
 
@@ -669,6 +669,7 @@ def object_size(x, memo=None):
     size : int
         The estimated size in bytes of the object.
     """
+    from scipy import sparse
     # Note: this will not process object arrays properly (since those only)
     # hold references
     if memo is None:
@@ -738,6 +739,7 @@ def object_diff(a, b, pre=''):
     diffs : str
         A string representation of the differences.
     """
+    from scipy import sparse
     out = ''
     if type(a) != type(b):
         # Deal with NamedInt and NamedFloat
@@ -1057,3 +1059,20 @@ class _ReuseCycle(object):
         else:
             loc = np.searchsorted(self.indices, idx)
             self.indices.insert(loc, idx)
+
+
+def _arange_div_fallback(n, d):
+    x = np.arange(n, dtype=np.float64)
+    x /= d
+    return x
+
+
+if has_numba:
+    @jit(fastmath=False)
+    def _arange_div(n, d):
+        out = np.empty(n, np.float64)
+        for i in range(n):
+            out[i] = i / d
+        return out
+else:  # pragma: no cover
+    _arange_div = _arange_div_fallback

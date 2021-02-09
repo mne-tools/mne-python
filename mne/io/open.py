@@ -9,7 +9,6 @@ from io import BytesIO, SEEK_SET
 from gzip import GzipFile
 
 import numpy as np
-from scipy import sparse
 
 from .tag import read_tag_info, read_tag, Tag, _call_dict_names
 from .tree import make_dir_tree, dir_tree_find
@@ -244,6 +243,7 @@ def _find_type(value, fmts=['FIFF_'], exclude=['FIFF_UNIT']):
 
 def _show_tree(fid, tree, indent, level, read_limit, max_str, tag_id):
     """Show FIFF tree."""
+    from scipy import sparse
     this_idt = indent * level
     next_idt = indent * (level + 1)
     # print block-level information

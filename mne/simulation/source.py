@@ -348,7 +348,7 @@ class SourceSimulator(object):
 
     @property
     def duration(self):
-        """Duration of the simulation"""
+        """Duration of the simulation."""
         # If not, the precomputed maximum last sample is used
         if self._duration is None:
             return np.max(self._last_samples) * self._tstep
@@ -356,7 +356,7 @@ class SourceSimulator(object):
 
     @property
     def n_times(self):
-        """Number of time samples in the simulation"""
+        """Number of time samples in the simulation."""
         return int(self.duration / self._tstep)
 
     def add_data(self, label, waveform, events):

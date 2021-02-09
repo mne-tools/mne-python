@@ -13,18 +13,20 @@ import pytest
 from mne import pick_types, pick_info
 from mne.forward._compute_forward import _MAG_FACTOR
 from mne.io import (read_raw_fif, read_raw_artemis123, read_raw_ctf, read_info,
-                    RawArray)
+                    RawArray, read_raw_kit)
 from mne.io.constants import FIFF
 from mne.chpi import (compute_chpi_amplitudes, compute_chpi_locs,
                       compute_head_pos, _setup_ext_proj,
                       _chpi_locs_to_times_dig, _compute_good_distances,
                       extract_chpi_locs_ctf, head_pos_to_trans_rot_t,
                       read_head_pos, write_head_pos, filter_chpi,
-                      _get_hpi_info, _get_hpi_initial_fit)
-from mne.transforms import rot_to_quat, _angle_between_quats
-from mne.simulation import add_chpi
-from mne.utils import run_tests_if_main, catch_logging, assert_meg_snr, verbose
+                      _get_hpi_info, _get_hpi_initial_fit,
+                      extract_chpi_locs_kit)
 from mne.datasets import testing
+from mne.simulation import add_chpi
+from mne.transforms import rot_to_quat, _angle_between_quats
+from mne.utils import catch_logging, assert_meg_snr, verbose
+from mne.viz import plot_head_positions
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 ctf_fname = op.join(base_dir, 'test_ctf_raw.fif')
@@ -48,6 +50,12 @@ art_fname = op.join(data_path, 'ARTEMIS123', 'Artemis_Data_2017-04-04' +
                     '-15h-44m-22s_Motion_Translation-z.bin')
 art_mc_fname = op.join(data_path, 'ARTEMIS123', 'Artemis_Data_2017-04-04' +
                        '-15h-44m-22s_Motion_Translation-z_mc.pos')
+
+con_fname = op.join(data_path, 'KIT', 'MQKIT_125_2sec.con')
+mrk_fname = op.join(data_path, 'KIT', 'MQKIT_125.mrk')
+elp_fname = op.join(data_path, 'KIT', 'MQKIT_125.elp')
+hsp_fname = op.join(data_path, 'KIT', 'MQKIT_125.hsp')
+berlin_fname = op.join(data_path, 'KIT', 'data_berlin.con')
 
 
 @testing.requires_testing_data
@@ -592,25 +600,42 @@ def test_chpi_subtraction_filter_chpi():
     assert '2 cHPI' in log.getvalue()
 
 
-def calculate_head_pos_ctf(raw):
-    """Wrap to facilitate API change."""
-    chpi_locs = extract_chpi_locs_ctf(raw)
-    return compute_head_pos(raw.info, chpi_locs)
-
-
 @testing.requires_testing_data
 def test_calculate_head_pos_ctf():
-    """Test extracting of cHPI positions from ctf data."""
+    """Test extracting of cHPI positions from CTF data."""
     raw = read_raw_ctf(ctf_chpi_fname)
-    quats = calculate_head_pos_ctf(raw)
+    chpi_locs = extract_chpi_locs_ctf(raw)
+    quats = compute_head_pos(raw.info, chpi_locs)
     mc_quats = read_head_pos(ctf_chpi_pos_fname)
     mc_quats[:, 9] /= 10000  # had old factor in there twice somehow...
     _assert_quats(quats, mc_quats, dist_tol=0.004, angle_tol=2.5, err_rtol=1.,
                   vel_atol=7e-3)  # 7 mm/s
+    plot_head_positions(quats, info=raw.info)
 
     raw = read_raw_fif(ctf_fname)
     with pytest.raises(RuntimeError, match='Could not find'):
-        calculate_head_pos_ctf(raw)
+        extract_chpi_locs_ctf(raw)
 
 
-run_tests_if_main()
+@testing.requires_testing_data
+def test_calculate_head_pos_kit():
+    """Test calculation of head position using KIT data."""
+    raw = read_raw_kit(con_fname, mrk_fname, elp_fname, hsp_fname)
+    assert len(raw.info['hpi_results']) == 1
+    chpi_locs = extract_chpi_locs_kit(raw)
+    assert chpi_locs['rrs'].shape == (2, 5, 3)
+    assert_array_less(chpi_locs['gofs'], 1.)
+    assert_array_less(0.98, chpi_locs['gofs'])
+    quats = compute_head_pos(raw.info, chpi_locs)
+    assert quats.shape == (2, 10)
+    # plotting works
+    plot_head_positions(quats, info=raw.info)
+    raw_berlin = read_raw_kit(berlin_fname)
+    assert_allclose(raw_berlin.info['dev_head_t']['trans'], np.eye(4))
+    assert len(raw_berlin.info['hpi_results']) == 0
+    with pytest.raises(ValueError, match='Invalid value'):
+        extract_chpi_locs_kit(raw_berlin)
+    with pytest.raises(RuntimeError, match='not find appropriate'):
+        extract_chpi_locs_kit(raw_berlin, 'STI 014')
+    with pytest.raises(RuntimeError, match='no initial cHPI'):
+        compute_head_pos(raw_berlin.info, chpi_locs)

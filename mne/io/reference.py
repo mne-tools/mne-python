@@ -6,7 +6,6 @@
 
 from copy import deepcopy
 import numpy as np
-from scipy import linalg
 
 from .constants import FIFF
 from .meas_info import _check_ch_keys
@@ -52,6 +51,7 @@ def _apply_reference(inst, ref_from, ref_to=None, forward=None,
                      ch_type='auto'):
     """Apply a custom EEG referencing scheme."""
     # Check to see that data is preloaded
+    from scipy import linalg
     _check_preload(inst, "Applying a reference")
 
     ch_type = _get_ch_type(inst, ch_type)

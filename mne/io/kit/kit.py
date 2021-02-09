@@ -14,7 +14,6 @@ from math import sin, cos
 from os import SEEK_CUR, path as op
 
 import numpy as np
-from scipy import linalg
 
 from ..pick import pick_types
 from ...utils import (verbose, logger, warn, fill_doc, _check_option,
@@ -50,10 +49,8 @@ def _call_digitization(info, mrk, elp, hsp, kit_info):
 
     # setup digitization
     if mrk is not None and elp is not None and hsp is not None:
-        dig_points, dev_head_t = _set_dig_kit(
+        info['dig'], info['dev_head_t'], info['hpi_results'] = _set_dig_kit(
             mrk, elp, hsp, kit_info['eeg_dig'])
-        info['dig'] = dig_points
-        info['dev_head_t'] = dev_head_t
     elif mrk is not None or elp is not None or hsp is not None:
         raise ValueError("mrk, elp and hsp need to be provided as a group "
                          "(all or none)")
@@ -464,6 +461,17 @@ def _read_dir(fid):
 
 
 @verbose
+def _read_dirs(fid, verbose=None):
+    dirs = list()
+    dirs.append(_read_dir(fid))
+    for ii in range(dirs[0]['count'] - 1):
+        logger.debug(f'    KIT dir entry {ii} @ {fid.tell()}')
+        dirs.append(_read_dir(fid))
+    assert len(dirs) == dirs[KIT.DIR_INDEX_DIR]['count']
+    return dirs
+
+
+@verbose
 def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
                  verbose=None):
     """Extract all the information from the sqd/con file.
@@ -488,14 +496,11 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
     sqd = dict()
     sqd['rawfile'] = rawfile
     unsupported_format = False
-    sqd['dirs'] = dirs = list()
     with open(rawfile, 'rb', buffering=0) as fid:  # buffering=0 for np bug
         #
         # directories (0)
         #
-        dirs.append(_read_dir(fid))
-        dirs.extend(_read_dir(fid) for _ in range(dirs[0]['count'] - 1))
-        assert len(dirs) == dirs[KIT.DIR_INDEX_DIR]['count']
+        sqd['dirs'] = dirs = _read_dirs(fid)
 
         #
         # system (1)
@@ -790,7 +795,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
             y = sin(theta) * sin(phi)
             z = cos(theta)
             vec_z = np.array([x, y, z])
-            vec_z /= linalg.norm(vec_z)
+            vec_z /= np.linalg.norm(vec_z)
             vec_x = np.zeros(vec_z.size, dtype=np.float64)
             if vec_z[1] < vec_z[2]:
                 if vec_z[0] < vec_z[1]:
@@ -802,7 +807,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
             else:
                 vec_x[2] = 1.0
             vec_x -= np.sum(vec_x * vec_z) * vec_z
-            vec_x /= linalg.norm(vec_x)
+            vec_x /= np.linalg.norm(vec_x)
             vec_y = np.cross(vec_z, vec_x)
             # transform to Neuromag like coordinate space
             vecs = np.vstack((ch['loc'][:3], vec_x, vec_y, vec_z))

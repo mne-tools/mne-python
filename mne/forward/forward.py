@@ -12,7 +12,6 @@ from copy import deepcopy
 import re
 
 import numpy as np
-from scipy import sparse
 
 import shutil
 import os
@@ -168,6 +167,7 @@ def _block_diag(A, n):
     bd : sparse matrix
         The block diagonal matrix
     """
+    from scipy import sparse
     if sparse.issparse(A):  # then make block sparse
         raise NotImplementedError('sparse reversal not implemented yet')
     ma, na = A.shape
@@ -583,6 +583,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
     fwd : Forward
         The modified forward solution.
     """
+    from scipy import sparse
     fwd = fwd.copy() if copy else fwd
 
     if force_fixed is True:
@@ -1491,7 +1492,6 @@ def apply_forward_raw(fwd, stc, info, start=None, stop=None,
     raw._first_samps = np.array([int(np.round(times[0] * sfreq))])
     raw._last_samps = np.array([raw.first_samp + raw._data.shape[1] - 1])
     raw._projector = None
-    raw._update_times()
     return raw
 
 

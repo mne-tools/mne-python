@@ -10,7 +10,7 @@ import numpy as np
 
 from .utils import check_indices
 from ..utils import _check_option
-from ..fixes import _get_args, rfftfreq
+from ..fixes import _get_args, _import_fft
 from ..parallel import parallel_func
 from ..source_estimate import _BaseSourceEstimate
 from ..epochs import BaseEpochs
@@ -937,6 +937,7 @@ def _prepare_connectivity(epoch_block, times_in, tmin, tmax,
                           mode, fskip, n_bands,
                           cwt_freqs, faverage):
     """Check and precompute dimensions of results data."""
+    rfftfreq = _import_fft('rfftfreq')
     first_epoch = epoch_block[0]
 
     # get the data size and time scale

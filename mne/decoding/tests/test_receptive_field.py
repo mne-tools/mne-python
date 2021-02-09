@@ -6,9 +6,10 @@ import os.path as op
 import pytest
 import numpy as np
 
+from numpy import einsum
+from numpy.fft import rfft, irfft
 from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 
-from mne.fixes import einsum, rfft, irfft
 from mne.utils import requires_sklearn, run_tests_if_main
 from mne.decoding import ReceptiveField, TimeDelayingRidge
 from mne.decoding.receptive_field import (_delay_time_series, _SCORERS,

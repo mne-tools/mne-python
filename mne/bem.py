@@ -16,7 +16,6 @@ import shutil
 from copy import deepcopy
 
 import numpy as np
-from scipy import linalg
 
 from .io.constants import FIFF, FWD
 from .io._digitization import _dig_kind_dict, _dig_kind_rev, _dig_kind_ints
@@ -228,7 +227,7 @@ def _fwd_bem_multi_solution(solids, gamma, nps):
             slice_k = slice(offsets[si_2], offsets[si_2 + 1])
             solids[slice_j, slice_k] = defl - solids[slice_j, slice_k] * mult
     solids += np.eye(n_tot)
-    return linalg.inv(solids, overwrite_a=True)
+    return np.linalg.inv(solids)
 
 
 def _fwd_bem_homog_solution(solids, nps):
@@ -634,6 +633,7 @@ def _fwd_eeg_get_multi_sphere_model_coeffs(m, n_terms):
 
 def _compose_linear_fitting_data(mu, u):
     """Get the linear fitting data."""
+    from scipy import linalg
     k1 = np.arange(1, u['nterms'])
     mu1ns = mu[0] ** k1
     # data to be fitted
@@ -846,11 +846,6 @@ def fit_sphere_to_headshape(info, dig_kinds='auto', units='m', verbose=None):
         Can be "m" (default) or "mm".
 
         .. versionadded:: 0.12
-    move_origin : bool
-        If True, allow the origin to vary. Otherwise, fix it at (0, 0, 0).
-
-        .. versionadded:: 0.20
-
     %(verbose)s
 
     Returns
@@ -1062,7 +1057,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     gcaatlas : bool
         Specify the --brain_atlas option for mri_watershed.
     preflood : int
-        Change the preflood height
+        Change the preflood height.
     show : bool
         Show surfaces to visually inspect all three BEM surfaces (recommended).
 
@@ -1826,6 +1821,10 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
         .. versionadded:: 0.18
     %(verbose)s
 
+    See Also
+    --------
+    convert_flash_mris
+
     Notes
     -----
     This program assumes that FreeSurfer is installed and sourced properly.
@@ -1833,10 +1832,6 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     This function extracts the BEM surfaces (outer skull, inner skull, and
     outer skin) from multiecho FLASH MRI data with spin angles of 5 and 30
     degrees, in mgz format.
-
-    See Also
-    --------
-    convert_flash_mris
     """
     from .viz.misc import plot_bem
 

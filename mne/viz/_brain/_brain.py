@@ -18,7 +18,6 @@ import traceback
 import warnings
 
 import numpy as np
-from scipy import sparse
 from collections import OrderedDict
 
 from .colormap import calculate_lut
@@ -572,6 +571,7 @@ class Brain(object):
         'Left': Decrease camera azimuth angle
         'Right': Increase camera azimuth angle
         """
+        from ..backends._utils import _qt_disable_paint
         if self.time_viewer:
             return
         if not self._data:
@@ -679,8 +679,9 @@ class Brain(object):
             self._configure_status_bar()
 
             # show everything at the end
-            with self.ensure_minimum_sizes():
-                self.show()
+            with _qt_disable_paint(self.plotter):
+                with self._ensure_minimum_sizes():
+                    self.show()
 
     @safe_event
     def _clean(self):
@@ -717,7 +718,7 @@ class Brain(object):
             setattr(self, key, None)
 
     @contextlib.contextmanager
-    def ensure_minimum_sizes(self):
+    def _ensure_minimum_sizes(self):
         """Ensure that widgets respect the windows size."""
         sz = self._size
         adjust_mpl = self.show_traces and not self.separate_canvas
@@ -1171,6 +1172,7 @@ class Brain(object):
 
     def _configure_picking(self):
         # get data for each hemi
+        from scipy import sparse
         for idx, hemi in enumerate(['vol', 'lh', 'rh']):
             hemi_data = self._data.get(hemi)
             if hemi_data is not None:
@@ -2811,6 +2813,7 @@ class Brain(object):
         n_steps : int
             Number of smoothing steps.
         """
+        from scipy import sparse
         from ...morph import _hemi_morph
         for hemi in ['lh', 'rh']:
             hemi_data = self._data.get(hemi)

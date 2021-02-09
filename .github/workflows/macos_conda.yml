@@ -51,6 +51,9 @@ jobs:
           source tools/get_minimal_commands.sh
         name: 'Install dependencies'
       - shell: bash -el {0}
+        run: mne_surf2bem --version
+        name: 'Check minimal commands'
+      - shell: bash -el {0}
         run: ./tools/github_actions_install.sh
         name: 'Install MNE'
       - shell: bash -el {0}

@@ -4,7 +4,6 @@
 
 import numpy as np
 from numpy.polynomial.legendre import legval
-from scipy import linalg
 
 from ..utils import logger, warn, verbose
 from ..io.meas_info import _simplify_info
@@ -83,6 +82,7 @@ def _make_interpolation_matrix(pos_from, pos_to, alpha=1e-5):
         Spherical splines for scalp potential and current density mapping.
         Electroencephalography Clinical Neurophysiology, Feb; 72(2):184-7.
     """
+    from scipy import linalg
     pos_from = pos_from.copy()
     pos_to = pos_to.copy()
     n_from = pos_from.shape[0]
