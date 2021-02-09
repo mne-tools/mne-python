@@ -350,4 +350,6 @@
 
 .. _Tristan Stenner: https://github.com/tstenner/
 
+.. _Anna Padee: https://github.com/apadee/
+
 .. _Andres Rodriguez: https://github.com/infinitejest/
