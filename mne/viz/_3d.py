@@ -1777,9 +1777,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
 
     Returns
     -------
-    figure : instance of surfer.Brain | matplotlib.figure.Figure
-        An instance of :class:`surfer.Brain` from PySurfer or
-        matplotlib figure.
+    figure : instance of mne.viz.Brain | matplotlib.figure.Figure
+        An instance of :class:`mne.viz.Brain` or matplotlib figure.
 
     Notes
     -----
@@ -2596,8 +2595,8 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
 
     Returns
     -------
-    brain : surfer.Brain
-        A instance of :class:`surfer.Brain` from PySurfer.
+    brain : mne.viz.Brain
+        A instance of :class:`mne.viz.Brain`.
 
     Notes
     -----
