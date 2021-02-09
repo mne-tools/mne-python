@@ -483,10 +483,6 @@ class SetChannelsMixin(MontageMixin):
             .. versionchanged:: 0.20
                Return the instance.
 
-            .. versionchanged:: 0.23
-               For `~mne.io.Raw` instances, ``_orig_units`` will be adjusted
-               if necessary.
-
         Notes
         -----
         .. versionadded:: 0.9.0
