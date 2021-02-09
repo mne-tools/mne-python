@@ -31,10 +31,7 @@ import mne
 
 data_path = mne.datasets.sample.data_path()
 subjects_dir = op.join(data_path, 'subjects')
-bem_dir = op.join(subjects_dir, 'sample', 'bem')
-# in case the sample surfaces are not in there
-if not op.exists(op.join(bem_dir, 'inner_skull.surf')):
-    bem_dir = op.join(bem_dir, 'flash')
+bem_dir = op.join(subjects_dir, 'sample', 'bem', 'flash')
 ###############################################################################
 # Exporting surfaces to Blender
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -139,8 +136,12 @@ shutil.copy(op.join(bem_dir, 'inner_skull.surf'),
 
 # Overwrite the original surface with the fixed version
 # In real study you should provide the correct metadata using ``volume_info=``
-mne.write_surface(op.join(bem_dir, 'inner_skull.surf'), coords, faces,
-                  overwrite=True)
+# This could be accomplished for example with:
+#
+# _, _, vol_info = mne.read_surface(op.join(bem_dir, 'inner_skull.surf'),
+#                                   read_metadata=True)
+# mne.write_surface(op.join(bem_dir, 'inner_skull.surf'), coords, faces,
+#                   volume_info=vol_info, overwrite=True)
 
 ###############################################################################
 # Editing the head surfaces
@@ -160,13 +161,13 @@ mne.write_surface(op.join(bem_dir, 'inner_skull.surf'), coords, faces,
 coords, faces = mne.read_surface(op.join(bem_dir, 'outer_skin.surf'))
 
 # Make sure we are in the correct directory
-if 'flash' in bem_dir:
-    bem_dir = op.join(subjects_dir, 'sample', 'bem')
+head_dir = op.dirname(bem_dir)
 
 # Remember to backup the original head file in advance!
 # Overwrite the original head file
-mne.write_head_bem(op.join(bem_dir, 'sample-head.fif'),
-                   coords, faces, overwrite=True)
+#
+# mne.write_head_bem(op.join(head_dir, 'sample-head.fif'), coords, faces,
+#                    overwrite=True)
 
 ###############################################################################
 # High-resolution head
@@ -179,8 +180,7 @@ mne.write_head_bem(op.join(bem_dir, 'sample-head.fif'),
 # If ``-head-dense.fif`` does not exist, you need to run
 # ``mne make_scalp_surfaces`` first.
 # [0] because a list of surfaces is returned
-surf = mne.read_bem_surfaces(
-    op.join(bem_dir, 'sample-head.fif'))[0]
+surf = mne.read_bem_surfaces(op.join(head_dir, 'sample-head.fif'))[0]
 
 # For consistency only
 coords = surf['rr']
@@ -190,15 +190,17 @@ faces = surf['tris']
 mne.write_surface(op.join(conv_dir, 'sample-head.obj'),
                   coords, faces, overwrite=True)
 
-# We use the same surface to simulate the fixed version here
+# Usually here you would go and edit your meshes.
+#
+# Here we just use the same surface as if it were fixed
 # Read in the .obj file
-coords, faces = mne.read_surface(
-    op.join(conv_dir, 'sample-head.obj'))
+coords, faces = mne.read_surface(op.join(conv_dir, 'sample-head.obj'))
 
 # Remember to backup the original head file in advance!
 # Overwrite the original head file
-mne.write_head_bem(op.join(bem_dir, 'sample-head.fif'),
-                   coords, faces, overwrite=True)
+#
+# mne.write_head_bem(op.join(head_dir, 'sample-head.fif'), coords, faces,
+#                    overwrite=True)
 
 ###############################################################################
 # That's it! You are ready to continue with your analysis pipeline (e.g.

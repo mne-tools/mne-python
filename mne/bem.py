@@ -1579,11 +1579,10 @@ def write_head_bem(fname, rr, tris, on_defects='raise', overwrite=False,
         If True (default False), overwrite the file.
     %(verbose)s
     """
-    fname = _check_fname(fname, overwrite=overwrite, name='fname')
     surf = _surfaces_to_bem([dict(rr=rr, tris=tris)],
                             [FIFF.FIFFV_BEM_SURF_ID_HEAD], [1], rescale=False,
                             incomplete=on_defects)
-    write_bem_surfaces(fname, surf, overwrite=True)
+    write_bem_surfaces(fname, surf, overwrite=overwrite)
 
 
 def _write_bem_surfaces_block(fid, surfs):
