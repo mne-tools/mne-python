@@ -107,6 +107,15 @@ def test_rename_channels():
     rename_channels(info2, mapping)
     assert_array_equal(['EEG060', 'EEG060'], info2['bads'])
 
+    # test that keys in Raw._orig_units will be renamed, too
+    raw = read_raw_fif(raw_fname).crop(0, 0.1)
+    old, new = 'EEG 060', 'New'
+    raw._orig_units = {old: 'V'}
+
+    raw.rename_channels({old: new})
+    assert old not in raw._orig_units
+    assert new in raw._orig_units
+
 
 def test_set_channel_types():
     """Test set_channel_types."""

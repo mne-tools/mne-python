@@ -487,7 +487,25 @@ class SetChannelsMixin(MontageMixin):
         -----
         .. versionadded:: 0.9.0
         """
+        from ..io import BaseRaw
+
+        ch_names_orig = list(self.info['ch_names'])
         rename_channels(self.info, mapping)
+
+        # Update self._orig_units for Raw
+        if isinstance(self, BaseRaw) and self._orig_units is not None:
+            if isinstance(mapping, dict):
+                new_names = [(ch_names_orig.index(ch_name), new_name)
+                             for ch_name, new_name in mapping.items()]
+            elif callable(mapping):
+                new_names = [(ci, mapping(ch_name))
+                             for ci, ch_name in enumerate(ch_names_orig)]
+
+            for c_ind, new_name in new_names:
+                old_name = ch_names_orig[c_ind]
+                self._orig_units[new_name] = self._orig_units[old_name]
+                del self._orig_units[old_name]
+
         return self
 
     @verbose
