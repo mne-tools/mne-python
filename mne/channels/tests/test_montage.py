@@ -1211,7 +1211,7 @@ def test_set_montage_with_known_aliases():
             mock_montage_ch_names,
             np.arange(n_channels * 3).reshape(n_channels, 3),
         )),
-                               coord_frame='head')
+        coord_frame='head')
 
     mock_info_ch_names = ['Cb1', 'Cb2']
     info = create_info(ch_names=mock_info_ch_names, sfreq=1, ch_types='eeg')
