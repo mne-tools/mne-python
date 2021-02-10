@@ -571,7 +571,6 @@ class Brain(object):
         'Left': Decrease camera azimuth angle
         'Right': Increase camera azimuth angle
         """
-        from ..backends._utils import _qt_disable_paint
         if self.time_viewer:
             return
         if not self._data:
@@ -679,10 +678,7 @@ class Brain(object):
             self._configure_status_bar()
 
             # show everything at the end
-            with _qt_disable_paint(self.plotter):
-                with self._ensure_minimum_sizes():
-                    self.show()
-            self._update()
+            self.show()
 
     @safe_event
     def _clean(self):
