@@ -351,7 +351,6 @@ except AttributeError:  # only on 3.6+
         _multi['path-like'] += (PathBase,)
 
 
-
 def _validate_type(item, types=None, item_name=None, type_name=None):
     """Validate that `item` is an instance of `types`.
 
@@ -714,23 +713,6 @@ def _check_on_missing(on_missing, name='on_missing'):
 
 
 def _on_missing(on_missing, msg, name='on_missing', error_klass=None):
-    """Raise error or print warning with a message.
-
-    Parameters
-    ----------
-    on_missing : 'raise' | 'warn' | 'ignore'
-        Whether to raise an error, print a warning or ignore. Valid keys are
-        'raise' | 'warn' | 'ignore'. Default is 'raise'. If on_missing is
-        'warn' it will proceed but warn, if 'ignore' it will proceed silently.
-    msg : str
-        Message to print along with the error or the warning. Ignore if
-        on_missing is 'ignore'.
-
-    Raises
-    ------
-    ValueError
-        When on_missing is 'raise'.
-    """
     _check_on_missing(on_missing, name)
     error_klass = ValueError if error_klass is None else error_klass
     on_missing = 'raise' if on_missing == 'error' else on_missing
