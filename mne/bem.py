@@ -1226,7 +1226,8 @@ def _extract_volume_info(mgz):
 # Read
 
 @verbose
-def read_bem_surfaces(fname, patch_stats=False, s_id=None, verbose=None):
+def read_bem_surfaces(fname, patch_stats=False, s_id=None, on_defects='raise',
+                      verbose=None):
     """Read the BEM surfaces from a FIF file.
 
     Parameters
@@ -1239,6 +1240,9 @@ def read_bem_surfaces(fname, patch_stats=False, s_id=None, verbose=None):
         If int, only read and return the surface with the given s_id.
         An error will be raised if it doesn't exist. If None, all
         surfaces are read and returned.
+    %(on_defects)s
+
+        .. versionadded:: 0.23
     %(verbose)s
 
     Returns
@@ -1262,7 +1266,7 @@ def read_bem_surfaces(fname, patch_stats=False, s_id=None, verbose=None):
         raise ValueError('surface with id %d not found' % s_id)
     for this in surf:
         if patch_stats or this['nn'] is None:
-            _check_complete_surface(this)
+            _check_complete_surface(this, incomplete=on_defects)
     return surf[0] if s_id is not None else surf
 
 
@@ -1549,6 +1553,31 @@ def write_bem_surfaces(fname, surfs, overwrite=False, verbose=None):
             _write_bem_surfaces_block(fid, surfs)
             end_block(fid, FIFF.FIFFB_BEM)
             end_file(fid)
+
+
+@verbose
+def write_head_bem(fname, rr, tris, on_defects='raise', overwrite=False,
+                   verbose=None):
+    """Write a head surface to a fiff file.
+
+    Parameters
+    ----------
+    fname : str
+        Filename to write.
+    rr : array, shape (n_vertices, 3)
+        Coordinate points in the MRI coordinate system.
+    tris : ndarray of int, shape (n_tris, 3)
+        Triangulation (each line contains indices for three points which
+        together form a face).
+    %(on_defects)s
+    overwrite : bool
+        If True (default False), overwrite the file.
+    %(verbose)s
+    """
+    surf = _surfaces_to_bem([dict(rr=rr, tris=tris)],
+                            [FIFF.FIFFV_BEM_SURF_ID_HEAD], [1], rescale=False,
+                            incomplete=on_defects)
+    write_bem_surfaces(fname, surf, overwrite=overwrite)
 
 
 def _write_bem_surfaces_block(fid, surfs):

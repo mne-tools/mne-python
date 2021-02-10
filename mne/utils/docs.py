@@ -1376,6 +1376,16 @@ match_case : bool
 
     .. versionadded:: 0.20
 """
+docdict["match_alias"] = """
+match_alias : bool | dict
+    Whether to use a lookup table to match unrecognized channel location names
+    to their known aliases. If True, uses the mapping in
+    ``mne.io.constants.CHANNEL_LOC_ALIASES``. If a :class:`dict` is passed, it
+    will be used instead, and should map from non-standard channel names to
+    names in the specified ``montage``. Default is ``False``.
+
+    .. versionadded:: 0.23
+"""
 docdict['on_header_missing'] = """
 on_header_missing : str
     %s the FastSCAN header is missing.
@@ -2077,6 +2087,17 @@ docdict['compute_proj_ecg'] = f"""%(create_ecg_epochs)s {compute_proj_common}
 """ % docdict
 docdict['compute_proj_eog'] = f"""%(create_eog_epochs)s {compute_proj_common}
 """ % docdict
+
+# BEM
+docdict['on_defects'] = """
+on_defects : str
+    What to do if the surface is found to have topological defects. Can be
+    ``'raise'`` (default) to raise an error, or ``'warn'`` to emit a warning.
+    Note that a lot of computations in MNE-Python assume the surfaces to be
+    topologically correct, topological defects may still make other
+    computations (e.g., ``mne.make_bem_model`` and ``mne.make_bem_solution``)
+    fail irrespective of this parameter.
+"""
 
 # Other
 docdict['accept'] = """

@@ -33,7 +33,7 @@ from ..io._digitization import (_count_points_by_type,
 from ..io.meas_info import create_info
 from ..io.open import fiff_open
 from ..io.pick import pick_types
-from ..io.constants import FIFF
+from ..io.constants import FIFF, CHANNEL_LOC_ALIASES
 from ..utils import (warn, copy_function_doc_to_method_doc, _pl, verbose,
                      _check_option, _validate_type, _check_fname, _on_missing,
                      fill_doc)
@@ -667,7 +667,8 @@ def _get_montage_in_head(montage):
 
 
 @fill_doc
-def _set_montage(info, montage, match_case=True, on_missing='raise'):
+def _set_montage(info, montage, match_case=True, match_alias=False,
+                 on_missing='raise'):
     """Apply montage to data.
 
     With a DigMontage, this function will replace the digitizer info with
@@ -682,6 +683,7 @@ def _set_montage(info, montage, match_case=True, on_missing='raise'):
         The measurement info to update.
     %(montage)s
     %(match_case)s
+    %(match_alias)s
     %(on_missing_montage)s
 
     Notes
@@ -757,6 +759,27 @@ def _set_montage(info, montage, match_case=True, on_missing='raise'):
             if n_dup:
                 raise ValueError('Cannot use match_case=False as %s channel '
                                  'name(s) require case sensitivity' % n_dup)
+
+        # use lookup table to match unrecognized channel names to known aliases
+        if match_alias:
+            alias_dict = (match_alias if isinstance(match_alias, dict) else
+                          CHANNEL_LOC_ALIASES)
+            if not match_case:
+                alias_dict = {
+                    ch_name.lower(): ch_alias.lower()
+                    for ch_name, ch_alias in alias_dict.items()
+                }
+
+            # excluded ch_alias not in info, to prevent unnecessary mapping and
+            # warning messages based on aliases.
+            alias_dict = {
+                ch_name: ch_alias
+                for ch_name, ch_alias in alias_dict.items()
+                if ch_alias in ch_pos_use
+            }
+            info_names_use = [
+                alias_dict.get(ch_name, ch_name) for ch_name in info_names_use
+            ]
 
         # warn user if there is not a full overlap of montage with info_chs
         not_in_montage = [name for name, use in zip(info_names, info_names_use)

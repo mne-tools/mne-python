@@ -18,9 +18,13 @@ Current (0.23.dev0)
 
 .. |Richard Koehler| replace:: **Richard Koehler**
 
+.. |Zhi Zhang| replace:: **Zhi Zhang**
+
 .. |Andres Rodriguez| replace:: **Andres Rodriguez**
 
 .. |Matt Sanderson| replace:: **Matt Sanderson**
+
+.. |Enrico Varano| replace:: **Enrico Varano**
 
 Enhancements
 ~~~~~~~~~~~~
@@ -66,9 +70,13 @@ Enhancements
 
 - Add ``auto_close`` to `mne.Report.add_figs_to_section` and `mne.Report.add_slider_to_section` to manage closing figures (:gh`8730` by `Guillaume Favelier`_)
 
+- Add :func:`mne.write_head_bem` to support writing head surface files (:gh:`8841` by `Yu-Han Luo`_)
+
 Bugs
 ~~~~
 - Fix bug with `mne.connectivity.spectral_connectivity` where time axis in Epochs data object was dropped. (:gh:`8839` **by new contributor** |Anna Padee|_)
+
+- Fix bug with `mne.io.Raw.resample` to allow passing ``stim_picks='misc'`` (:gh:`8844` **by new contributor** |Enrico Varano|_ and `Eric Larson`_)
 
 - Fix bugs with `mne.io.read_raw_persyst` where multiple ``Comments`` with the same name are allowed, and ``Comments`` with a "," character are now allowed (:gh:`8311` and :gh:`8806` **by new contributor** |Andres Rodriguez|_ and `Adam Li`_)
 
@@ -125,4 +133,4 @@ Bugs
 API changes
 ~~~~~~~~~~~
 
-- None yet
+- Add ``match_alias`` parameter to :meth:`mne.io.Raw.set_montage` and related functions to match unrecognized channel location names to known aliases (:gh`8799` **by new contributor** |Zhi Zhang|_)

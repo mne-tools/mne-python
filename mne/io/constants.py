@@ -1011,3 +1011,23 @@ FIFF.FIFFB_MNE_ANNOTATIONS         = 3810  # annotations block
 
 # MNE Metadata Dataframes
 FIFF.FIFFB_MNE_METADATA            = 3811  # metadata dataframes block
+
+# Table to match unrecognized channel location names to their known aliases
+CHANNEL_LOC_ALIASES = {
+    # this set of aliases are published in doi:10.1097/WNP.0000000000000316 and
+    # doi:10.1016/S1388-2457(00)00527-7.
+    'Cb1': 'POO7',
+    'Cb2': 'POO8',
+    'CB1': 'POO7',
+    'CB2': 'POO8',
+    'T1': 'T9',
+    'T2': 'T10',
+    'T3': 'T7',
+    'T4': 'T8',
+    'T5': 'T9',
+    'T6': 'T10',
+    'M1': 'TP9',
+    'M2': 'TP10'
+    # add a comment here (with doi of a published source) above any new
+    # aliases, as they are added
+}
