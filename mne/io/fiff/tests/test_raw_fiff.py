@@ -1201,6 +1201,14 @@ def test_resample(tmpdir, preload, n, npad):
     assert len(raw) == 10
 
 
+def test_resample_stim():
+    """Test stim_picks argument."""
+    data = np.ones((2, 1000))
+    info = create_info(2, 1000., ('eeg', 'misc'))
+    raw = RawArray(data, info)
+    raw.resample(500., stim_picks='misc')
+
+
 @testing.requires_testing_data
 def test_hilbert():
     """Test computation of analytic signal using hilbert."""
