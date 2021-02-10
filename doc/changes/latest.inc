@@ -22,6 +22,8 @@ Current (0.23.dev0)
 
 .. |Matt Sanderson| replace:: **Matt Sanderson**
 
+.. |Enrico Varano| replace:: **Enrico Varano**
+
 Enhancements
 ~~~~~~~~~~~~
 - Add dbs as new channel type for deep brain stimulation (DBS) recordings (:gh:`8739` **by new contributor** |Richard Koehler|_)
@@ -66,8 +68,12 @@ Enhancements
 
 - Add ``auto_close`` to `mne.Report.add_figs_to_section` and `mne.Report.add_slider_to_section` to manage closing figures (:gh`8730` by `Guillaume Favelier`_)
 
+- Add :func:`mne.write_head_bem` to support writing head surface files (:gh:`8841` by `Yu-Han Luo`_)
+
 Bugs
 ~~~~
+- Fix bug with `mne.io.Raw.resample` to allow passing ``stim_picks='misc'`` (:gh:`8844` **by new contributor** |Enrico Varano|_ and `Eric Larson`_)
+
 - Fix bugs with `mne.io.read_raw_persyst` where multiple ``Comments`` with the same name are allowed, and ``Comments`` with a "," character are now allowed (:gh:`8311` and :gh:`8806` **by new contributor** |Andres Rodriguez|_ and `Adam Li`_)
 
 - Fix zen mode and scalebar toggling for :meth:`raw.plot() <mne.io.Raw.plot>` when using the ``macosx`` matplotlib backend (:gh:`8688` by `Daniel McCloy`_)
