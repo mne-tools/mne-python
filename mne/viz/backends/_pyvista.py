@@ -635,6 +635,7 @@ class _Renderer(_BaseRenderer):
             with _qt_disable_paint(self.plotter):
                 with self._ensure_minimum_sizes():
                     self.plotter.app_window.show()
+            self.plotter.update()
         return self.scene()
 
     def close(self):

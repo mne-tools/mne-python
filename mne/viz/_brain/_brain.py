@@ -682,6 +682,7 @@ class Brain(object):
             with _qt_disable_paint(self.plotter):
                 with self._ensure_minimum_sizes():
                     self.show()
+            self._update()
 
     @safe_event
     def _clean(self):
