@@ -702,8 +702,7 @@ class UpdateChannelsMixin(object):
         misc : bool
             If True include miscellaneous analog channels.
         resp : bool
-            If True include response-trigger channel. For some MEG systems this
-            is separate from the stim channel.
+            If ``True`` include respiratory channels.
         chpi : bool
             If True include continuous HPI coil channels.
         exci : bool

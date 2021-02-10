@@ -130,6 +130,8 @@ Bugs
 
 - When creating `~mne.Epochs`, we now ensure that ``reject_tmin`` and ``reject_tmax`` cannot fall outside of the epochs' time interval anymore (:gh:`8821` by `Richard Höchenberger`_)
 
+- `~mne.io.read_raw_bti` erroneously treated response channels as respiratory channels (:gh:`8855` by `Richard Höchenberger`_)
+
 API changes
 ~~~~~~~~~~~
 
