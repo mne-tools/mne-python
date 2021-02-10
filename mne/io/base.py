@@ -1156,8 +1156,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             stim_picks = _picks_to_idx(self.info, stim_picks, exclude=(),
                                        with_ref_meg=False)
 
-        stim_picks = np.asanyarray(stim_picks)
-
         kwargs = dict(up=sfreq, down=o_sfreq, npad=npad, window=window,
                       n_jobs=n_jobs, pad=pad)
         ratio, n_news = zip(*(_resamp_ratio_len(sfreq, o_sfreq, old_len)
