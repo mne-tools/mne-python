@@ -14,7 +14,8 @@ from numpy.testing import assert_equal, assert_allclose
 
 from mne import (make_bem_model, read_bem_surfaces, write_bem_surfaces,
                  make_bem_solution, read_bem_solution, write_bem_solution,
-                 make_sphere_model, Transform, Info, write_surface)
+                 make_sphere_model, Transform, Info, write_surface,
+                 write_head_bem)
 from mne.preprocessing.maxfilter import fit_sphere_to_headshape
 from mne.io.constants import FIFF
 from mne.transforms import translation
@@ -37,6 +38,8 @@ fname_bem_sol_3 = op.join(subjects_dir, 'sample', 'bem',
                           'sample-320-320-320-bem-sol.fif')
 fname_bem_sol_1 = op.join(subjects_dir, 'sample', 'bem',
                           'sample-320-bem-sol.fif')
+fname_dense_head = op.join(subjects_dir, 'sample', 'bem',
+                           'sample-head-dense.fif')
 
 
 def _compare_bem_surfaces(surfs_1, surfs_2):
@@ -385,6 +388,31 @@ def test_fit_sphere_to_headshape():
     info = Info(dig=dig[:6], dev_head_t=dev_head_t)
     pytest.raises(ValueError, fit_sphere_to_headshape, info, units='m')
     pytest.raises(TypeError, fit_sphere_to_headshape, 1, units='m')
+
+
+@testing.requires_testing_data
+def test_io_head_bem(tmpdir):
+    """Test reading and writing of defective head surfaces."""
+    head = read_bem_surfaces(fname_dense_head)[0]
+    fname_defect = op.join(str(tmpdir), 'temp-head-defect.fif')
+    # create defects
+    head['rr'][0] = np.array([-0.01487014, -0.04563854, -0.12660208])
+    head['tris'][0] = np.array([21919, 21918, 21907])
+
+    with pytest.raises(RuntimeError, match='topological defects:'):
+        write_head_bem(fname_defect, head['rr'], head['tris'])
+    with pytest.warns(RuntimeWarning, match='topological defects:'):
+        write_head_bem(fname_defect, head['rr'], head['tris'],
+                       on_defects='warn')
+    # test on_defects in read_bem_surfaces
+    with pytest.raises(RuntimeError, match='topological defects:'):
+        read_bem_surfaces(fname_defect)
+    with pytest.warns(RuntimeWarning, match='topological defects:'):
+        head_defect = read_bem_surfaces(fname_defect, on_defects='warn')[0]
+
+    assert head['id'] == head_defect['id'] == FIFF.FIFFV_BEM_SURF_ID_HEAD
+    assert np.allclose(head['rr'], head_defect['rr'])
+    assert np.allclose(head['tris'], head_defect['tris'])
 
 
 run_tests_if_main()
