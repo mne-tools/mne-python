@@ -18,7 +18,7 @@ from ..time_frequency.multitaper import (_mt_spectra, _compute_mt_params,
                                          _psd_from_mt, _csd_from_mt,
                                          _psd_from_mt_adaptive)
 from ..time_frequency.tfr import morlet, cwt
-from ..utils import logger, verbose, _time_mask, warn
+from ..utils import logger, verbose, _time_mask, warn, _arange_div
 
 ########################################################################
 # Various connectivity estimators
@@ -475,7 +475,8 @@ def _check_method(method):
     return True, None
 
 
-def _get_and_verify_data_sizes(data, n_signals=None, n_times=None, times=None):
+def _get_and_verify_data_sizes(data, sfreq, n_signals=None, n_times=None,
+                               times=None):
     """Get and/or verify the data sizes and time scales."""
     if not isinstance(data, (list, tuple)):
         raise ValueError('data has to be a list or tuple')
@@ -491,12 +492,15 @@ def _get_and_verify_data_sizes(data, n_signals=None, n_times=None, times=None):
         n_signals_tot += this_n_signals
 
         if hasattr(this_data, 'times'):
+            assert isinstance(this_data, _BaseSourceEstimate)
             this_times = this_data.times
             if times is not None:
                 if np.any(times != this_times):
                     warn('time scales of input time series do not match')
             else:
                 times = this_times
+        elif times is None:
+            times = _arange_div(n_times, sfreq)
 
     if n_signals is not None:
         if n_signals != n_signals_tot:
@@ -825,8 +829,8 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
 
         # check dimensions and time scale
         for this_epoch in epoch_block:
-            _get_and_verify_data_sizes(this_epoch, n_signals, n_times_in,
-                                       times_in)
+            _get_and_verify_data_sizes(
+                this_epoch, sfreq, n_signals, n_times_in, times_in)
 
         call_params = dict(
             sig_idx=sig_idx, tmin_idx=tmin_idx,
@@ -941,13 +945,8 @@ def _prepare_connectivity(epoch_block, times_in, tmin, tmax,
     first_epoch = epoch_block[0]
 
     # get the data size and time scale
-    (n_signals, n_times_in,
-     times_in) = _get_and_verify_data_sizes(first_epoch, times=times_in)
-
-    if times_in is None:
-        # we are not using Epochs or SourceEstimate(s) as input
-        times_in = np.linspace(0.0, n_times_in / sfreq, n_times_in,
-                               endpoint=False)
+    n_signals, n_times_in, times_in = _get_and_verify_data_sizes(
+        first_epoch, sfreq, times=times_in)
 
     n_times_in = len(times_in)
 
