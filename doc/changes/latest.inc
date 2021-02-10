@@ -15,6 +15,7 @@ Current (0.23.dev0)
 .. |New Contributor| replace:: **New Contributor**
 
 .. |Richard Koehler| replace:: **Richard Koehler**
+
 .. |Zhi Zhang| replace:: **Zhi Zhang**
 
 .. |Andres Rodriguez| replace:: **Andres Rodriguez**
@@ -64,8 +65,6 @@ Enhancements
 - Add parameter ``align=True`` to `mne.viz.Brain.show_view` to make views relative to the closest canonical (MNI) axes rather than the native MRI surface RAS coordinates (:gh:`8794` by `Eric Larson`_)
 
 - Add ``auto_close`` to `mne.Report.add_figs_to_section` and `mne.Report.add_slider_to_section` to manage closing figures (:gh`8730` by `Guillaume Favelier`_)
-
-- Add ``match_alias=False`` to :meth:`mne.io.Raw.set_montage` and related functions to match unrecognized channel location names to their known aliases (:gh`8799` by `Zhi Zhang`_)
 
 Bugs
 ~~~~
@@ -124,4 +123,4 @@ Bugs
 API changes
 ~~~~~~~~~~~
 
-- None yet
+- Add ``match_alias`` parameter to :meth:`mne.io.Raw.set_montage` and related functions to match unrecognized channel location names to known aliases (:gh`8799` **by new contributor** |Zhi Zhang|_)
