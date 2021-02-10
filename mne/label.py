@@ -12,7 +12,6 @@ import copy as cp
 import re
 
 import numpy as np
-from scipy import linalg, sparse
 
 from .parallel import parallel_func, check_n_jobs
 from .source_estimate import (SourceEstimate, VolSourceEstimate,
@@ -270,7 +269,13 @@ class Label(object):
         return "<Label | %s, %s : %i vertices>" % (name, self.hemi, n_vert)
 
     def __len__(self):
-        """Return the number of vertices."""
+        """Return the number of vertices.
+
+        Returns
+        -------
+        n_vertices : int
+            The number of vertices.
+        """
         return len(self.vertices)
 
     def __add__(self, other):
@@ -845,7 +850,13 @@ class BiHemiLabel(object):
         return temp % (name, len(self.lh), len(self.rh))
 
     def __len__(self):
-        """Return the number of vertices."""
+        """Return the number of vertices.
+
+        Returns
+        -------
+        n_vertices : int
+            The number of vertices.
+        """
         return len(self.lh) + len(self.rh)
 
     def __add__(self, other):
@@ -921,6 +932,7 @@ def read_label(filename, subject=None, color=None):
     See Also
     --------
     read_labels_from_annot
+    write_labels_to_annot
     """
     if subject is not None and not isinstance(subject, str):
         raise TypeError('subject must be a string')
@@ -1149,6 +1161,7 @@ def split_label(label, parts=2, subject=None, subjects_dir=None,
     projecting all label vertex coordinates onto this axis and dividing them at
     regular spatial intervals.
     """
+    from scipy import linalg
     label, subject, subjects_dir = _prep_label_split(label, subject,
                                                      subjects_dir)
 
@@ -1259,6 +1272,7 @@ def label_sign_flip(label, src):
     flip : array
         Sign flip vector (contains 1 or -1).
     """
+    from scipy import linalg
     if len(src) != 2:
         raise ValueError('Only source spaces with 2 hemisphers are accepted')
 
@@ -2042,6 +2056,11 @@ def read_labels_from_annot(subject, parc='aparc', hemi='both',
     -------
     labels : list of Label
         The labels, sorted by label name (ascending).
+
+    See Also
+    --------
+    write_labels_to_annot
+    morph_labels
     """
     logger.info('Reading labels from parcellation...')
 
@@ -2259,6 +2278,7 @@ def _check_values_labels(values, n_labels):
 
 
 def _labels_to_stc_surf(labels, values, tmin, tstep, subject):
+    from scipy import sparse
     subject = _check_labels_subject(labels, subject, 'subject')
     _check_values_labels(values, len(labels))
     vertices = dict(lh=[], rh=[])
@@ -2361,6 +2381,10 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
 
         .. versionadded:: 0.21.0
     %(verbose)s
+
+    See Also
+    --------
+    read_labels_from_annot
 
     Notes
     -----
@@ -2562,8 +2586,7 @@ def select_sources(subject, label, location='center', extent=0.,
 
     Parameters
     ----------
-    subject : string
-        Name of the subject as in SUBJECTS_DIR.
+    %(subject)s
     label : instance of Label | str
         Define where the seed will be chosen. If str, can be 'lh' or 'rh',
         which correspond to left or right hemisphere, respectively.
@@ -2582,7 +2605,7 @@ def select_sources(subject, label, location='center', extent=0.,
     name : None | str
         Assign name to the new label.
     %(random_state)s
-    surf : string
+    surf : str
         The surface used to simulated the label, defaults to the white surface.
 
     Returns

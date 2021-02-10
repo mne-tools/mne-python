@@ -18,7 +18,7 @@ import numpy as np
 from .utils import (_pl, check_fname, _validate_type, verbose, warn, logger,
                     _check_pandas_installed, _mask_to_onsets_offsets,
                     _DefaultEventParser, _check_dt, _stamp_to_dt, _dt_to_stamp,
-                    _check_fname)
+                    _check_fname, int_like)
 
 from .io.write import (start_block, end_block, write_float, write_name_list,
                        write_double, start_file)
@@ -227,7 +227,13 @@ class Annotations(object):
         return '<' + shorten(s, width=77, placeholder=' ...') + '>'
 
     def __len__(self):
-        """Return the number of annotations."""
+        """Return the number of annotations.
+
+        Returns
+        -------
+        n_annot : int
+            The number of annotations.
+        """
         return len(self.duration)
 
     def __add__(self, other):
@@ -257,7 +263,7 @@ class Annotations(object):
 
     def __getitem__(self, key):
         """Propagate indexing and slicing to the underlying numpy structure."""
-        if isinstance(key, int):
+        if isinstance(key, int_like):
             out_keys = ('onset', 'duration', 'description', 'orig_time')
             out_vals = (self.onset[key], self.duration[key],
                         self.description[key], self.orig_time)

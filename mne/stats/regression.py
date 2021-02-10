@@ -10,7 +10,6 @@ from inspect import isgenerator
 from collections import namedtuple
 
 import numpy as np
-from scipy import linalg, sparse
 
 from ..source_estimate import SourceEstimate
 from ..epochs import BaseEpochs
@@ -100,7 +99,7 @@ def linear_regression(inst, design_matrix, names=None):
 
 def _fit_lm(data, design_matrix, names):
     """Aux function."""
-    from scipy import stats
+    from scipy import stats, linalg
     n_samples = len(data)
     n_features = np.product(data.shape[1:])
     if design_matrix.ndim != 2:
@@ -242,6 +241,7 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
            waveforms: II. Non-linear effects, overlap correction, and practical
            considerations. Psychophysiology, 52(2), 169-189.
     """
+    from scipy import linalg
     if isinstance(solver, str):
         if solver not in {"cholesky"}:
             raise ValueError("No such solver: {}".format(solver))
@@ -312,6 +312,7 @@ def _prepare_rerp_data(raw, events, picks=None, decim=1):
 def _prepare_rerp_preds(n_samples, sfreq, events, event_id=None, tmin=-.1,
                         tmax=1, covariates=None):
     """Build predictor matrix and metadata (e.g. condition time windows)."""
+    from scipy import sparse
     conds = list(event_id)
     if covariates is not None:
         conds += list(covariates)

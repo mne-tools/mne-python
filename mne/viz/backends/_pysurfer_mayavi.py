@@ -314,7 +314,8 @@ class _Renderer(_BaseRenderer):
         _close_3d_figure(figure=self.fig)
 
     def set_camera(self, azimuth=None, elevation=None, distance=None,
-                   focalpoint=None, roll=None, reset_camera=None):
+                   focalpoint=None, roll=None, reset_camera=None,
+                   rigid=None):
         _set_3d_view(figure=self.fig, azimuth=azimuth,
                      elevation=elevation, distance=distance,
                      focalpoint=focalpoint, roll=roll)

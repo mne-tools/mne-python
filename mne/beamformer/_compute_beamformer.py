@@ -9,7 +9,6 @@
 from copy import deepcopy
 
 import numpy as np
-from scipy import linalg
 
 from ..cov import Covariance, make_ad_hoc_cov
 from ..forward.forward import is_fixed_orient, _restrict_forward_to_src_sel
@@ -377,7 +376,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
                         'matrix or using regularization.')
                 noise = loading_factor
             else:
-                noise, _ = linalg.eigh(Cm)
+                noise, _ = np.linalg.eigh(Cm)
                 noise = noise[-rank]
                 noise = max(noise, loading_factor)
             W /= np.sqrt(noise)

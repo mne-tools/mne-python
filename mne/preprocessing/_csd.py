@@ -14,8 +14,6 @@
 
 import numpy as np
 
-from scipy import linalg
-
 from .. import pick_types
 from ..utils import _validate_type, _ensure_int, _check_preload
 from ..io import BaseRaw
@@ -29,7 +27,7 @@ from ..channels.interpolation import _calc_g, _calc_h
 def _prepare_G(G, lambda2):
     G.flat[::len(G) + 1] += lambda2
     # compute the CSD
-    Gi = linalg.inv(G)
+    Gi = np.linalg.inv(G)
 
     TC = Gi.sum(0)
     sgi = np.sum(TC)  # compute sum total

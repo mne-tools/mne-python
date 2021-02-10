@@ -18,11 +18,10 @@ import traceback
 import warnings
 
 import numpy as np
-from scipy import sparse
 from collections import OrderedDict
 
 from .colormap import calculate_lut
-from .surface import Surface
+from .surface import _Surface
 from .view import views_dicts, _lh_views_dict
 from .mplcanvas import MplCanvas
 from .callback import (ShowView, IntSlider, TimeSlider, SmartSlider,
@@ -35,9 +34,13 @@ from ...externals.decorator import decorator
 from ...defaults import _handle_default
 from ...surface import mesh_edges
 from ...source_space import SourceSpaces, vertex_to_mni, read_talxfm
-from ...transforms import apply_trans
+from ...transforms import apply_trans, invert_transform
 from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
-                      use_log_level, Bunch, _ReuseCycle, warn)
+                      use_log_level, Bunch, _ReuseCycle, warn,
+                      get_subjects_dir)
+
+
+_ARROW_MOVE = 10  # degrees per press
 
 
 @decorator
@@ -168,7 +171,7 @@ class _LayeredMesh(object):
         self.update()
 
     def _update(self):
-        if self._cache is None:
+        if self._cache is None or self._renderer is None:
             return
         self._renderer._set_mesh_scalars(
             mesh=self._polydata,
@@ -251,9 +254,15 @@ class Brain(object):
         variable.
     views : list | str
         The views to use.
-    offset : bool
-        If True, aligs origin with medial wall. Useful for viewing inflated
-        surface where hemispheres typically overlap (Default: True).
+    offset : bool | str
+        If True, shifts the right- or left-most x coordinate of the left and
+        right surfaces, respectively, to be at zero. This is useful for viewing
+        inflated surface where hemispheres typically overlap. Can be "auto"
+        (default) use True with inflated surfaces and False otherwise
+        (Default: 'auto'). Only used when ``hemi='both'``.
+
+        .. versionchanged:: 0.23
+           Default changed to "auto".
     show_toolbar : bool
         If True, toolbars will be shown for each view.
     offscreen : bool
@@ -347,7 +356,7 @@ class Brain(object):
     def __init__(self, subject_id, hemi, surf, title=None,
                  cortex="classic", alpha=1.0, size=800, background="black",
                  foreground=None, figure=None, subjects_dir=None,
-                 views='auto', offset=True, show_toolbar=False,
+                 views='auto', offset='auto', show_toolbar=False,
                  offscreen=False, interaction='trackball', units='mm',
                  view_layout='vertical', silhouette=False, show=True):
         from ..backends.renderer import backend, _get_renderer, _get_3d_backend
@@ -395,6 +404,7 @@ class Brain(object):
             raise ValueError('"size" parameter must be an int or length-2 '
                              'sequence of ints.')
         self._size = size if len(size) == 2 else size * 2  # 1-tuple to 2-tuple
+        subjects_dir = get_subjects_dir(subjects_dir)
 
         self.time_viewer = False
         self.notebook = (_get_3d_backend() == "notebook")
@@ -408,8 +418,10 @@ class Brain(object):
         self._vertex_to_label_id = dict()
         self._annotation_labels = dict()
         self._labels = {'lh': list(), 'rh': list()}
+        self._unnamed_label_id = 0  # can only grow
         self._annots = {'lh': list(), 'rh': list()}
         self._layered_meshes = {}
+        self._elevation_rng = [15, 165]  # range of motion of camera on theta
         # default values for silhouette
         self._silhouette = {
             'color': self._bg_color,
@@ -440,6 +452,10 @@ class Brain(object):
         self._brain_color = _get_cmap(geo_kwargs['colormap'])(val)
 
         # load geometry for one or both hemispheres as necessary
+        _validate_type(offset, (str, bool), 'offset')
+        if isinstance(offset, str):
+            _check_option('offset', offset, ('auto',), extra='when str')
+            offset = (surf == 'inflated')
         offset = None if (not offset or hemi != 'both') else 0.0
 
         self._renderer = _get_renderer(name=self._title, size=self._size,
@@ -454,10 +470,11 @@ class Brain(object):
             self.window = self.plotter.app_window
             self.window.signal_close.connect(self._clean)
 
+        self._setup_canonical_rotation()
         for h in self._hemis:
             # Initialize a Surface object as the geometry
-            geo = Surface(subject_id, h, surf, subjects_dir, offset,
-                          units=self._units)
+            geo = _Surface(subject_id, h, surf, subjects_dir, offset,
+                           units=self._units, x_dir=self._rigid[0, :3])
             # Load in the geometry and curvature
             geo.load_geometry()
             geo.load_curvature()
@@ -511,6 +528,21 @@ class Brain(object):
         if hemi == 'rh' and hasattr(self._renderer, "_orient_lights"):
             self._renderer._orient_lights()
 
+    def _setup_canonical_rotation(self):
+        from ...coreg import fit_matched_points, _trans_from_params
+        self._rigid = np.eye(4)
+        try:
+            xfm = read_talxfm(self._subject_id, self._subjects_dir)
+        except Exception:
+            return
+        # XYZ+origin + halfway
+        pts_tal = np.concatenate([np.eye(4)[:, :3], np.eye(3) * 0.5])
+        pts_subj = apply_trans(invert_transform(xfm), pts_tal)
+        # we fit with scaling enabled, but then discard it (we just need
+        # the rigid-body components)
+        params = fit_matched_points(pts_subj, pts_tal, scale=3, out='params')
+        self._rigid[:] = _trans_from_params((True, True, False), params[:6])
+
     def setup_time_viewer(self, time_viewer=True, show_traces=True):
         """Configure the time viewer parameters.
 
@@ -521,7 +553,25 @@ class Brain(object):
 
         show_traces : bool
             If True, enable visualization of time traces. Defaults to True.
+
+        Notes
+        -----
+        The keyboard shortcuts are the following:
+
+        '?': Display help window
+        'i': Toggle interface
+        's': Apply auto-scaling
+        'r': Restore original clim
+        'c': Clear all traces
+        'n': Shift the time forward by the playback speed
+        'b': Shift the time backward by the playback speed
+        'Space': Start/Pause playback
+        'Up': Decrease camera elevation angle
+        'Down': Increase camera elevation angle
+        'Left': Decrease camera azimuth angle
+        'Right': Increase camera azimuth angle
         """
+        from ..backends._utils import _qt_disable_paint
         if self.time_viewer:
             return
         if not self._data:
@@ -629,8 +679,9 @@ class Brain(object):
             self._configure_status_bar()
 
             # show everything at the end
-            with self.ensure_minimum_sizes():
-                self.show()
+            with _qt_disable_paint(self.plotter):
+                with self._ensure_minimum_sizes():
+                    self.show()
 
     @safe_event
     def _clean(self):
@@ -667,7 +718,7 @@ class Brain(object):
             setattr(self, key, None)
 
     @contextlib.contextmanager
-    def ensure_minimum_sizes(self):
+    def _ensure_minimum_sizes(self):
         """Ensure that widgets respect the windows size."""
         sz = self._size
         adjust_mpl = self.show_traces and not self.separate_canvas
@@ -737,11 +788,8 @@ class Brain(object):
 
         # manage time label
         time_label = self._data['time_label']
-        # if we actually have time points, we will show the slider so
-        # hide the time actor
-        have_ts = self._times is not None and len(self._times) > 1
         if self.time_actor is not None:
-            if self.visibility and time_label is not None and not have_ts:
+            if not self.visibility and time_label is not None:
                 self.time_actor.SetInput(time_label(self._current_time))
                 self.time_actor.VisibilityOn()
             else:
@@ -1124,6 +1172,7 @@ class Brain(object):
 
     def _configure_picking(self):
         # get data for each hemi
+        from scipy import sparse
         for idx, hemi in enumerate(['vol', 'lh', 'rh']):
             hemi_data = self._data.get(hemi)
             if hemi_data is not None:
@@ -1360,11 +1409,42 @@ class Brain(object):
             self.actions["play"].setShortcut(" ")
             self.actions["help"].setShortcut("?")
 
+    def _shift_time(self, op):
+        self.callbacks["time"](
+            value=(op(self._current_time, self.playback_speed)),
+            time_as_index=False,
+            update_widget=True,
+        )
+
+    def _rotate_azimuth(self, value):
+        azimuth = (self._renderer.figure._azimuth + value) % 360
+        self._renderer.set_camera(azimuth=azimuth, reset_camera=False)
+
+    def _rotate_elevation(self, value):
+        elevation = np.clip(
+            self._renderer.figure._elevation + value,
+            self._elevation_rng[0],
+            self._elevation_rng[1],
+        )
+        self._renderer.set_camera(elevation=elevation, reset_camera=False)
+
     def _configure_shortcuts(self):
+        # First, we remove the default bindings:
+        self.plotter._key_press_event_callbacks.clear()
+        # Then, we add our own:
         self.plotter.add_key_event("i", self.toggle_interface)
         self.plotter.add_key_event("s", self.apply_auto_scaling)
         self.plotter.add_key_event("r", self.restore_user_scaling)
         self.plotter.add_key_event("c", self.clear_glyphs)
+        self.plotter.add_key_event("n", partial(self._shift_time,
+                                   op=lambda x, y: x + y))
+        self.plotter.add_key_event("b", partial(self._shift_time,
+                                   op=lambda x, y: x - y))
+        for key, func, sign in (("Left", self._rotate_azimuth, 1),
+                                ("Right", self._rotate_azimuth, -1),
+                                ("Up", self._rotate_elevation, 1),
+                                ("Down", self._rotate_elevation, -1)):
+            self.plotter.add_key_event(key, partial(func, sign * _ARROW_MOVE))
 
     def _configure_menu(self):
         # remove default picking menu
@@ -1706,7 +1786,13 @@ class Brain(object):
             ('s', 'Apply auto-scaling'),
             ('r', 'Restore original clim'),
             ('c', 'Clear all traces'),
+            ('n', 'Shift the time forward by the playback speed'),
+            ('b', 'Shift the time backward by the playback speed'),
             ('Space', 'Start/Pause playback'),
+            ('Up', 'Decrease camera elevation angle'),
+            ('Down', 'Increase camera elevation angle'),
+            ('Left', 'Decrease camera azimuth angle'),
+            ('Right', 'Increase camera azimuth angle'),
         ]
         text1, text2 = zip(*pairs)
         text1 = '\n'.join(text1)
@@ -2032,7 +2118,8 @@ class Brain(object):
         """Remove all the ROI labels from the image."""
         for hemi in self._hemis:
             mesh = self._layered_meshes[hemi]
-            mesh.remove_overlay(self._labels[hemi])
+            for label in self._labels[hemi]:
+                mesh.remove_overlay(label.name)
             self._labels[hemi].clear()
         self._update()
 
@@ -2225,9 +2312,9 @@ class Brain(object):
                 hemi = label.hemi
                 ids = label.vertices
                 if label.name is None:
-                    label_name = 'unnamed'
-                else:
-                    label_name = str(label.name)
+                    label.name = 'unnamed' + str(self._unnamed_label_id)
+                    self._unnamed_label_id += 1
+                label_name = str(label.name)
 
                 if color is None:
                     if hasattr(label, 'color') and label.color is not None:
@@ -2251,7 +2338,8 @@ class Brain(object):
         scalars = np.zeros(self.geo[hemi].coords.shape[0])
         scalars[ids] = 1
 
-        if self.time_viewer and self.show_traces:
+        if self.time_viewer and self.show_traces \
+                and self.traces_mode == 'label':
             stc = self._data["stc"]
             src = self._data["src"]
             tc = stc.extract_label_time_course(label, src=src,
@@ -2299,7 +2387,8 @@ class Brain(object):
             )
             if reset_camera:
                 self._renderer.set_camera(**views_dicts[hemi][v])
-            if self.time_viewer and self.traces_mode == 'label':
+            if self.time_viewer and self.show_traces \
+                    and self.traces_mode == 'label':
                 label._color = orig_color
                 label._line = line
             self._labels[hemi].append(label)
@@ -2556,7 +2645,7 @@ class Brain(object):
         self._renderer.show()
 
     def show_view(self, view=None, roll=None, distance=None, row=0, col=0,
-                  hemi=None):
+                  hemi=None, align=True):
         """Orient camera to display view.
 
         Parameters
@@ -2573,6 +2662,11 @@ class Brain(object):
             The column to set.
         hemi : str
             Which hemi to use for string lookup (when in "both" mode).
+        align : bool
+            If True, consider view arguments relative to canonical MRI
+            directions (closest to MNI for the subject) rather than native MRI
+            space. This helps when MRIs are not in standard orientation (e.g.,
+            have large rotations).
         """
         hemi = self._hemi if hemi is None else hemi
         if hemi == 'split':
@@ -2589,7 +2683,8 @@ class Brain(object):
         if distance is not None:
             view.update(distance=distance)
         self._renderer.subplot(row, col)
-        self._renderer.set_camera(**view, reset_camera=False)
+        xfm = self._rigid if align else None
+        self._renderer.set_camera(**view, reset_camera=False, rigid=xfm)
         self._update()
 
     def reset_view(self):
@@ -2718,6 +2813,7 @@ class Brain(object):
         n_steps : int
             Number of smoothing steps.
         """
+        from scipy import sparse
         from ...morph import _hemi_morph
         for hemi in ['lh', 'rh']:
             hemi_data = self._data.get(hemi)

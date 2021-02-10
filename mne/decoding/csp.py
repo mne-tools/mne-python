@@ -10,7 +10,6 @@
 import copy as cp
 
 import numpy as np
-from scipy import linalg
 
 from .base import BaseEstimator
 from .mixin import TransformerMixin
@@ -160,6 +159,7 @@ class CSP(TransformerMixin, BaseEstimator):
         self : instance of CSP
             Returns the modified instance.
         """
+        from scipy import linalg
         self._check_Xy(X, y)
 
         self._classes = np.unique(y)
@@ -532,6 +532,7 @@ class CSP(TransformerMixin, BaseEstimator):
         return cov, weight
 
     def _decompose_covs(self, covs, sample_weights):
+        from scipy import linalg
         n_classes = len(covs)
         if n_classes == 2:
             eigen_values, eigen_vectors = linalg.eigh(covs[0], covs.sum(0))
@@ -761,6 +762,7 @@ class SPoC(CSP):
         self : instance of SPoC
             Returns the modified instance.
         """
+        from scipy import linalg
         self._check_Xy(X, y)
 
         if len(np.unique(y)) < 2:

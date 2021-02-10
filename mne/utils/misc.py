@@ -341,9 +341,11 @@ def _assert_no_instances(cls, when=''):
                         r is not globals() and \
                         r is not locals() and \
                         not inspect.isframe(r):
-                    ref.append(
-                        f'{r.__class__.__name__}: ' +
-                        repr(r)[:100].replace('\n', ' '))
+                    if isinstance(r, (list, dict)):
+                        rep = f'len={len(r)}'
+                    else:
+                        rep = repr(r)[:100].replace('\n', ' ')
+                    ref.append(f'{r.__class__.__name__}: {rep}')
                     count += 1
                 del r
             del rr

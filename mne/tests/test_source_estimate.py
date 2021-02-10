@@ -9,6 +9,7 @@ from shutil import copyfile
 import re
 
 import numpy as np
+from numpy.fft import fft
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose, assert_equal, assert_array_less)
 import pytest
@@ -32,7 +33,7 @@ from mne import (stats, SourceEstimate, VectorSourceEstimate,
                  write_source_spaces)
 from mne.datasets import testing
 from mne.externals.h5io import write_hdf5
-from mne.fixes import fft, _get_img_fdata, nullcontext
+from mne.fixes import _get_img_fdata, nullcontext
 from mne.io import read_info
 from mne.io.constants import FIFF
 from mne.source_estimate import grade_to_tris, _get_vol_mask

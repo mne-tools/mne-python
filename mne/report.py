@@ -992,7 +992,13 @@ class Report(object):
         return s
 
     def __len__(self):
-        """Return the number of items in report."""
+        """Return the number of files processed by the report.
+
+        Returns
+        -------
+        n_files : int
+            The number of files processed.
+        """
         return len(self.fnames)
 
     def _get_id(self):

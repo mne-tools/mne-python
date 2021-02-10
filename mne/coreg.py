@@ -1226,11 +1226,8 @@ def get_mni_fiducials(subject, subjects_dir=None, verbose=None):
 
     Parameters
     ----------
-    subject : str
-        Name of the mri subject
-    subjects_dir : None | str
-        Override the SUBJECTS_DIR environment variable
-        (sys.environ['SUBJECTS_DIR'])
+    %(subject)s
+    %(subjects_dir)s
     %(verbose)s
 
     Returns

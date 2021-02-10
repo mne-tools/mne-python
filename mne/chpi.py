@@ -22,10 +22,12 @@
 from functools import partial
 
 import numpy as np
-from scipy import linalg
 import itertools
 
+from .event import find_events
 from .io.base import BaseRaw
+from .io.kit.constants import KIT
+from .io.kit.kit import RawKIT as _RawKIT
 from .io.meas_info import _simplify_info
 from .io.pick import (pick_types, pick_channels, pick_channels_regexp,
                       pick_info)
@@ -41,9 +43,9 @@ from .preprocessing.maxwell import (_sss_basis, _prep_mf_coils,
                                     _regularize_out, _get_mf_picks_fix_mags)
 from .transforms import (apply_trans, invert_transform, _angle_between_quats,
                          quat_to_rot, rot_to_quat, _fit_matched_points,
-                         _quat_to_affine)
+                         _quat_to_affine, als_ras_trans)
 from .utils import (verbose, logger, use_log_level, _check_fname, warn,
-                    _validate_type, ProgressBar, _check_option)
+                    _validate_type, ProgressBar, _check_option, _pl)
 
 # Eventually we should add:
 #   hpicons
@@ -209,6 +211,85 @@ def extract_chpi_locs_ctf(raw, verbose=None):
     gofs = np.ones(rrs.shape[:2])  # not encoded, set all good
     moments = np.zeros(rrs.shape)  # not encoded, set all zero
     times = raw.times[indices] + raw._first_time
+    return dict(rrs=rrs, gofs=gofs, times=times, moments=moments)
+
+
+@verbose
+def extract_chpi_locs_kit(raw, stim_channel='MISC 064', *, verbose=None):
+    """Extract cHPI locations from KIT data.
+
+    Parameters
+    ----------
+    raw : instance of RawKIT
+        Raw data with KIT cHPI information.
+    stim_channel : str
+        The stimulus channel that encodes HPI measurement intervals.
+    %(verbose)s
+
+    Returns
+    -------
+    %(chpi_locs)s
+
+    Notes
+    -----
+    .. versionadded:: 0.23
+    """
+    _validate_type(raw, (_RawKIT,), 'raw')
+    stim_chs = [
+        raw.info['ch_names'][pick] for pick in pick_types(
+            raw.info, stim=True, misc=True, ref_meg=False)]
+    _validate_type(stim_channel, str, 'stim_channel')
+    _check_option('stim_channel', stim_channel, stim_chs)
+    idx = raw.ch_names.index(stim_channel)
+    events_on = find_events(
+        raw, stim_channel=raw.ch_names[idx], output='onset',
+        verbose=False)[:, 0]
+    events_off = find_events(
+        raw, stim_channel=raw.ch_names[idx], output='offset',
+        verbose=False)[:, 0]
+    bad = False
+    if len(events_on) == 0 or len(events_off) == 0:
+        bad = True
+    else:
+        if events_on[-1] > events_off[-1]:
+            events_on = events_on[:-1]
+        if events_on.size != events_off.size or not \
+                (events_on < events_off).all():
+            bad = True
+    if bad:
+        raise RuntimeError(
+            f'Could not find appropriate cHPI intervals from {stim_channel}')
+    # use the midpoint for times
+    times = (events_on + events_off) / (2 * raw.info['sfreq'])
+    del events_on, events_off
+    # XXX remove first two rows. It is unknown currently if there is a way to
+    # determine from the con file the number of initial pulses that
+    # indicate the start of reading. The number is shown by opening the con
+    # file in MEG160, but I couldn't find the value in the .con file, so it
+    # may just always be 2...
+    times = times[2:]
+    n_coils = 5  # KIT always has 5 (hard-coded in reader)
+    header = raw._raw_extras[0]['dirs'][KIT.DIR_INDEX_CHPI_DATA]
+    dtype = np.dtype([('good', '<u4'), ('data', '<f8', (4,))])
+    assert dtype.itemsize == header['size'], (dtype.itemsize, header['size'])
+    all_data = list()
+    for fname in raw._filenames:
+        with open(fname, 'r') as fid:
+            fid.seek(header['offset'])
+            all_data.append(np.fromfile(
+                fid, dtype, count=header['count']).reshape(-1, n_coils))
+    data = np.concatenate(all_data)
+    extra = ''
+    if len(times) < len(data):
+        extra = f', truncating to {len(times)} based on events'
+    logger.info(f'Found {len(data)} cHPI measurement{_pl(len(data))}{extra}')
+    data = data[:len(times)]
+    # good is not currently used, but keep this in case we want it later
+    # good = data['good'] == 1
+    data = data['data']
+    rrs, gofs = data[:, :, :3], data[:, :, 3]
+    rrs = apply_trans(als_ras_trans, rrs)
+    moments = np.zeros(rrs.shape)  # not encoded, set all zero
     return dict(rrs=rrs, gofs=gofs, times=times, moments=moments)
 
 
@@ -487,7 +568,7 @@ def _setup_hpi_amplitude_fitting(info, t_window, remove_aliased=False,
     model += [np.sin(l_t), np.cos(l_t)]  # line freqs
     model += [slope, np.ones(slope.shape)]
     model = np.concatenate(model, axis=1)
-    inv_model = linalg.pinv(model)
+    inv_model = np.linalg.pinv(model)
     inv_model_reord = _reorder_inv_model(inv_model, len(hpi_freqs))
     proj, proj_op, meg_picks = _setup_ext_proj(info, ext_order)
 
@@ -508,6 +589,7 @@ def _reorder_inv_model(inv_model, n_freqs):
 
 
 def _setup_ext_proj(info, ext_order):
+    from scipy import linalg
     meg_picks = pick_types(info, meg=True, eeg=False, exclude='bads')
     info = pick_info(_simplify_info(info), meg_picks)  # makes a copy
     _, _, _, _, mag_or_fine = _get_mf_picks_fix_mags(
@@ -693,7 +775,7 @@ def compute_head_pos(info, chpi_locs, dist_limit=0.005, gof_limit=0.98,
         #
         if len(use_idx) < 3:
             msg = (_time_prefix(fit_time) + '%s/%s good HPI fits, cannot '
-                   'determine the transformation (%s)!'
+                   'determine the transformation (%s GOF)!'
                    % (len(use_idx), n_coils,
                       ', '.join('%0.2f' % g for g in g_coils)))
             warn(msg)
@@ -718,8 +800,10 @@ def compute_head_pos(info, chpi_locs, dist_limit=0.005, gof_limit=0.98,
         n_good = ((g_coils >= gof_limit) & (errs < dist_limit)).sum()
         if n_good < 3:
             warn(_time_prefix(fit_time) + '%s/%s good HPI fits, cannot '
-                 'determine the transformation (%s)!'
-                 % (n_good, n_coils, ', '.join('%0.2f' % g for g in g_coils)))
+                 'determine the transformation (%s mm/GOF)!'
+                 % (n_good, n_coils,
+                    ', '.join(f'{1000 * e:0.1f}::{g:0.2f}'
+                              for e, g in zip(errs, g_coils))))
             continue
 
         # velocities, in device coords, of HPI coils
@@ -1095,7 +1179,7 @@ def filter_chpi(raw, include_line=True, t_step=0.01, t_window='auto',
             this_recon = recon
         else:  # first or last window
             model = hpi['model'][:this_len]
-            inv_model = linalg.pinv(model)
+            inv_model = np.linalg.pinv(model)
             this_recon = np.dot(model[:, :n_remove], inv_model[:n_remove]).T
         this_data = raw._data[meg_picks, time_sl]
         subt_pt = min(midpt + n_step, n_times)

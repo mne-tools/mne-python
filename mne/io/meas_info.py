@@ -15,7 +15,6 @@ import operator
 from textwrap import shorten
 
 import numpy as np
-from scipy import linalg
 
 from .pick import (channel_type, pick_channels, pick_info,
                    get_channel_type_constants)
@@ -203,8 +202,16 @@ class Info(dict, MontageMixin):
                  modified by various MNE-Python functions or methods (which
                  have safeguards to ensure all fields remain in sync).
 
-    This class should not be instantiated directly. To create a measurement
-    information structure, use :func:`mne.create_info`.
+    .. warning:: This class should not be instantiated directly. To create a
+                 measurement information structure, use
+                 :func:`mne.create_info`.
+
+    Parameters
+    ----------
+    *args : list
+        Arguments.
+    **kwargs : dict
+        Keyword arguments.
 
     Attributes
     ----------
@@ -1406,7 +1413,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     info['dev_ctf_t'] = dev_ctf_t
     if dev_head_t is not None and ctf_head_t is not None and dev_ctf_t is None:
         from ..transforms import Transform
-        head_ctf_trans = linalg.inv(ctf_head_t['trans'])
+        head_ctf_trans = np.linalg.inv(ctf_head_t['trans'])
         dev_ctf_trans = np.dot(head_ctf_trans, info['dev_head_t']['trans'])
         info['dev_ctf_t'] = Transform('meg', 'ctf_head', dev_ctf_trans)
 

@@ -18,7 +18,6 @@ from collections.abc import Iterable
 from functools import partial
 
 import numpy as np
-from scipy import linalg
 
 from ..defaults import DEFAULTS
 from ..fixes import einsum, _crop_colorbar, _get_img_fdata, _get_args
@@ -38,8 +37,7 @@ from ..transforms import (_find_trans, apply_trans, rot_to_quat,
                           read_ras_mni_t, _print_coord_trans)
 from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
                      has_nibabel, check_version, fill_doc, _pl, get_config,
-                     _ensure_int, _validate_type, _check_option,
-                     _require_version)
+                     _ensure_int, _validate_type, _check_option)
 from .utils import (mne_analyze_colormap, _get_color_list,
                     plt_show, tight_layout, figure_nobar, _check_time_unit)
 from .misc import _check_mri
@@ -92,7 +90,6 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
     mode : str
         Can be 'traces' (default) to show position and quaternion traces,
         or 'field' to show the position as a vector field over time.
-        The 'field' mode requires matplotlib 1.4+.
     cmap : colormap
         Colormap to use for the trace plot, default is "viridis".
     direction : str
@@ -245,7 +242,7 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
     else:  # mode == 'field':
         from matplotlib.colors import Normalize
         from mpl_toolkits.mplot3d.art3d import Line3DCollection
-        from mpl_toolkits.mplot3d import axes3d  # noqa: F401, analysis:ignore
+        from mpl_toolkits.mplot3d import Axes3D  # noqa: F401, analysis:ignore
         fig, ax = plt.subplots(1, subplot_kw=dict(projection='3d'))
 
         # First plot the trajectory as a colormap:
@@ -834,7 +831,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         assert surfs['helmet']['coord_frame'] == FIFF.FIFFV_COORD_MRI
 
     # Brain:
-    brain = np.intersect1d(surfaces, ['brain', 'pial', 'white', 'inflated'])
+    brain = sorted(
+        set(surfaces) & set(['brain', 'pial', 'white', 'inflated']))
     if len(brain) > 1:
         raise ValueError('Only one brain surface can be plotted. '
                          'Got %s.' % brain)
@@ -1488,6 +1486,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
                   transparent=True):
     """Plot source estimate using mpl."""
     import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
     from matplotlib import cm
     from matplotlib.widgets import Slider
     import nibabel as nib
@@ -1523,7 +1522,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
 
     time_label, times = _handle_time(time_label, time_unit, stc.times)
     fig = plt.figure(figsize=(6, 6)) if figure is None else figure
-    ax = fig.gca(projection='3d')
+    ax = Axes3D(fig)
     hemi_idx = 0 if hemi == 'lh' else 1
     surf = op.join(subjects_dir, subject, 'surf', '%s.%s' % (hemi, surface))
     if spacing == 'all':
@@ -1778,9 +1777,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
 
     Returns
     -------
-    figure : instance of surfer.Brain | matplotlib.figure.Figure
-        An instance of :class:`surfer.Brain` from PySurfer or
-        matplotlib figure.
+    figure : instance of mne.viz.Brain | matplotlib.figure.Figure
+        An instance of :class:`mne.viz.Brain` or matplotlib figure.
 
     Notes
     -----
@@ -1793,7 +1791,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     - https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOccipitalFlattenedPatch
     - https://openwetware.org/wiki/Beauchamp:FreeSurfer
     """  # noqa: E501
-    from .backends.renderer import _get_3d_backend, set_3d_backend
+    from .backends.renderer import _get_3d_backend, use_3d_backend
     from ..source_estimate import _BaseSourceEstimate, _check_stc_src
     _check_stc_src(stc, src)
     _validate_type(stc, _BaseSourceEstimate, 'stc', 'source estimate')
@@ -1804,19 +1802,12 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                   ['auto', 'matplotlib', 'mayavi', 'pyvista'])
     plot_mpl = backend == 'matplotlib'
     if not plot_mpl:
-        try:
-            if backend == 'auto':
-                set_3d_backend(_get_3d_backend())
-            else:
-                set_3d_backend(backend)
-        except (ImportError, ModuleNotFoundError):
-            if backend == 'auto':
+        if backend == 'auto':
+            try:
+                backend = _get_3d_backend()
+            except (ImportError, ModuleNotFoundError):
                 warn('No 3D backend found. Resorting to matplotlib 3d.')
                 plot_mpl = True
-            else:  # 'mayavi'
-                raise
-        else:
-            backend = _get_3d_backend()
     kwargs = dict(
         subject=subject, surface=surface, hemi=hemi, colormap=colormap,
         time_label=time_label, smoothing_steps=smoothing_steps,
@@ -1826,12 +1817,15 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         transparent=transparent)
     if plot_mpl:
         return _plot_mpl_stc(stc, spacing=spacing, **kwargs)
-    return _plot_stc(
-        stc, overlay_alpha=alpha, brain_alpha=alpha, vector_alpha=alpha,
-        cortex=cortex, foreground=foreground, size=size, scale_factor=None,
-        show_traces=show_traces, src=src, volume_options=volume_options,
-        view_layout=view_layout, add_data_kwargs=add_data_kwargs,
-        brain_kwargs=brain_kwargs, **kwargs)
+    else:
+        with use_3d_backend(backend):
+            return _plot_stc(
+                stc, overlay_alpha=alpha, brain_alpha=alpha,
+                vector_alpha=alpha, cortex=cortex, foreground=foreground,
+                size=size, scale_factor=None, show_traces=show_traces,
+                src=src, volume_options=volume_options,
+                view_layout=view_layout, add_data_kwargs=add_data_kwargs,
+                brain_kwargs=brain_kwargs, **kwargs)
 
 
 def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
@@ -1840,7 +1834,7 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
               brain_alpha, overlay_alpha, vector_alpha, cortex, foreground,
               size, scale_factor, show_traces, src, volume_options,
               view_layout, add_data_kwargs, brain_kwargs):
-    from .backends.renderer import _get_3d_backend
+    from .backends.renderer import _get_3d_backend, get_brain_class
     from ..source_estimate import _BaseVolSourceEstimate
     vec = stc._data_ndim == 3
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
@@ -1850,15 +1844,13 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
     backend = _get_3d_backend()
     del _get_3d_backend
     using_mayavi = backend == "mayavi"
-    if using_mayavi:
-        from surfer import Brain
-        _require_version('surfer', 'stc.plot', '0.9')
-    else:  # PyVista
-        from ._brain import Brain
+    Brain = get_brain_class()
     views = _check_views(surface, views, hemi, stc, backend)
     _check_option('hemi', hemi, ['lh', 'rh', 'split', 'both'])
     _check_option('view_layout', view_layout, ('vertical', 'horizontal'))
     time_label, times = _handle_time(time_label, time_unit, stc.times)
+    show_traces, time_viewer = _check_st_tv(
+        show_traces, time_viewer, using_mayavi, times)
 
     # convert control points to locations in colormap
     use = stc.magnitude().data if vec else stc.data
@@ -1911,6 +1903,12 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
     with warnings.catch_warnings(record=True):  # traits warnings
         brain = Brain(**kwargs)
     del kwargs
+
+    if using_mayavi:
+        # Here we patch to avoid segfault:
+        # https://github.com/mne-tools/mne-python/pull/8828
+        brain.close = lambda *args, **kwargs: brain._close(False)
+
     if scale_factor is None:
         # Configure the glyphs scale directly
         width = np.mean([np.ptp(brain.geo[hemi].coords[:, 1])
@@ -1994,27 +1992,6 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
     elif need_peeling:
         brain.enable_depth_peeling()
 
-    # time_viewer and show_traces
-    _check_option('time_viewer', time_viewer, (True, False, 'auto'))
-    _validate_type(show_traces, (str, bool, 'numeric'), 'show_traces')
-    if isinstance(show_traces, str):
-        _check_option('show_traces', show_traces,
-                      ('auto', 'separate', 'vertex', 'label'),
-                      extra='when a string')
-    if time_viewer == 'auto':
-        time_viewer = not using_mayavi
-    if show_traces == 'auto':
-        show_traces = (
-            not using_mayavi and
-            time_viewer and
-            brain._times is not None and
-            len(brain._times) > 1
-        )
-    if show_traces and not time_viewer:
-        raise ValueError('show_traces cannot be used when time_viewer=False')
-    if using_mayavi and show_traces:
-        raise NotImplementedError("show_traces=True is not available "
-                                  "for the mayavi 3d backend.")
     if time_viewer:
         if using_mayavi:
             from surfer import TimeViewer
@@ -2029,6 +2006,31 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
     return brain
 
 
+def _check_st_tv(show_traces, time_viewer, using_mayavi, times):
+    # time_viewer and show_traces
+    _check_option('time_viewer', time_viewer, (True, False, 'auto'))
+    _validate_type(show_traces, (str, bool, 'numeric'), 'show_traces')
+    if isinstance(show_traces, str):
+        _check_option('show_traces', show_traces,
+                      ('auto', 'separate', 'vertex', 'label'),
+                      extra='when a string')
+    if time_viewer == 'auto':
+        time_viewer = not using_mayavi
+    if show_traces == 'auto':
+        show_traces = (
+            not using_mayavi and
+            time_viewer and
+            times is not None and
+            len(times) > 1
+        )
+    if show_traces and not time_viewer:
+        raise ValueError('show_traces cannot be used when time_viewer=False')
+    if using_mayavi and show_traces:
+        raise NotImplementedError("show_traces=True is not available "
+                                  "for the mayavi 3d backend.")
+    return show_traces, time_viewer
+
+
 def _glass_brain_crosshairs(params, x, y, z):
     for ax, a, b in ((params['ax_y'], x, z),
                      (params['ax_x'], y, z),
@@ -2038,7 +2040,7 @@ def _glass_brain_crosshairs(params, x, y, z):
 
 
 def _cut_coords_to_ijk(cut_coords, img):
-    ijk = apply_trans(linalg.inv(img.affine), cut_coords)
+    ijk = apply_trans(np.linalg.inv(img.affine), cut_coords)
     ijk = np.clip(np.round(ijk).astype(int), 0, np.array(img.shape[:3]) - 1)
     return ijk
 
@@ -2593,8 +2595,8 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
 
     Returns
     -------
-    brain : surfer.Brain
-        A instance of :class:`surfer.Brain` from PySurfer.
+    brain : mne.viz.Brain
+        A instance of :class:`mne.viz.Brain`.
 
     Notes
     -----
@@ -3029,7 +3031,7 @@ def plot_sensors_connectivity(info, con, picks=None):
     con_nodes = list()
     con_val = list()
     for i, j in zip(ii, jj):
-        if linalg.norm(sens_loc[i] - sens_loc[j]) > min_dist:
+        if np.linalg.norm(sens_loc[i] - sens_loc[j]) > min_dist:
             con_nodes.append((i, j))
             con_val.append(con[i, j])
 
@@ -3095,8 +3097,7 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
     dims = len(data)  # Symmetric size assumed.
     dd = dims // 2
     if ax is None:
-        fig = plt.figure()
-        ax = fig.gca(projection='3d')
+        fig, ax = plt.subplots(1, subplot_kw=dict(projection='3d'))
     else:
         _validate_type(ax, Axes3D, "ax", "Axes3D")
         fig = ax.get_figure()

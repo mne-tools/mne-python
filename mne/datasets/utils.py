@@ -178,6 +178,11 @@ def _get_path(path, key, name):
     # 3. get_config('MNE_DATA')
     path = get_config(key, get_config('MNE_DATA'))
     if path is not None:
+        if not op.exists(path):
+            msg = (f"Download location {path} as specified by MNE_DATA does "
+                   f"not exist. Either create this directory manually and try "
+                   f"again, or set MNE_DATA to an existing directory.")
+            raise FileNotFoundError(msg)
         return path
     # 4. ~/mne_data (but use a fake home during testing so we don't
     #    unnecessarily create ~/mne_data)
@@ -246,7 +251,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     path = _get_path(path, key, name)
     # To update the testing or misc dataset, push commits, then make a new
     # release on GitHub. Then update the "releases" variable:
-    releases = dict(testing='0.113', misc='0.8')
+    releases = dict(testing='0.115', misc='0.8')
     # And also update the "md5_hashes['testing']" variable below.
     # To update any other dataset, update the data archive itself (upload
     # an updated version) and update the md5 hash.
@@ -332,7 +337,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         sample='12b75d1cb7df9dfb4ad73ed82f61094f',
         somato='32fd2f6c8c7eb0784a1de6435273c48b',
         spm='9f43f67150e3b694b523a21eb929ea75',
-        testing='ce114ad6d5e3dbed06119386e6b1ce0c',
+        testing='731f4ce20f0cb439c04c719a67ccf4d5',
         multimodal='26ec847ae9ab80f58f204d09e2c08367',
         fnirs_motor='c4935d19ddab35422a69f3326a01fef8',
         opm='370ad1dcfd5c47e029e692c85358a374',

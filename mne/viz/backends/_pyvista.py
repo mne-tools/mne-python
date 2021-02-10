@@ -23,8 +23,10 @@ import vtk
 
 from .base_renderer import _BaseRenderer
 from ._utils import (_get_colormap_from_array, _alpha_blend_background,
-                     ALLOWED_QUIVER_MODES, _init_qt_resources)
+                     ALLOWED_QUIVER_MODES, _init_qt_resources,
+                     _qt_disable_paint)
 from ...fixes import _get_args
+from ...transforms import apply_trans
 from ...utils import copy_base_doc_to_subclass_doc, _check_option
 
 
@@ -73,6 +75,8 @@ class _Figure(object):
         self.store['auto_update'] = False
         # multi_samples > 1 is broken on macOS + Intel Iris + volume rendering
         self.store['multi_samples'] = 1 if sys.platform == 'darwin' else 4
+
+        self._azimuth = self._elevation = None
 
     def build(self):
         if self.plotter_class is None:
@@ -218,7 +222,7 @@ class _Renderer(_BaseRenderer):
         return "MNE" + dt_string + ".png"
 
     @contextmanager
-    def ensure_minimum_sizes(self):
+    def _ensure_minimum_sizes(self):
         sz = self.figure.store['window_size']
         # plotter:            pyvista.plotting.qt_plotting.BackgroundPlotter
         # plotter.interactor: vtk.qt.QVTKRenderWindowInteractor.QVTKRenderWindowInteractor -> QWidget  # noqa
@@ -628,18 +632,20 @@ class _Renderer(_BaseRenderer):
     def show(self):
         self.figure.display = self.plotter.show()
         if hasattr(self.plotter, "app_window"):
-            with self.ensure_minimum_sizes():
-                self.plotter.app_window.show()
+            with _qt_disable_paint(self.plotter):
+                with self._ensure_minimum_sizes():
+                    self.plotter.app_window.show()
         return self.scene()
 
     def close(self):
         _close_3d_figure(figure=self.figure)
 
     def set_camera(self, azimuth=None, elevation=None, distance=None,
-                   focalpoint=None, roll=None, reset_camera=True):
+                   focalpoint=None, roll=None, reset_camera=True,
+                   rigid=None):
         _set_3d_view(self.figure, azimuth=azimuth, elevation=elevation,
                      distance=distance, focalpoint=focalpoint, roll=roll,
-                     reset_camera=reset_camera)
+                     reset_camera=reset_camera, rigid=rigid)
 
     def reset_camera(self):
         self.plotter.reset_camera()
@@ -959,17 +965,21 @@ def _get_camera_direction(focalpoint, position):
     r = np.sqrt(x * x + y * y + z * z)
     theta = np.arccos(z / r)
     phi = np.arctan2(y, x)
-    return r, theta, phi, focalpoint
+    return r, theta, phi
 
 
 def _set_3d_view(figure, azimuth, elevation, focalpoint, distance, roll=None,
-                 reset_camera=True):
+                 reset_camera=True, rigid=None):
+    rigid = np.eye(4) if rigid is None else rigid
     position = np.array(figure.plotter.camera_position[0])
     if reset_camera:
         figure.plotter.reset_camera()
     if focalpoint is None:
         focalpoint = np.array(figure.plotter.camera_position[1])
-    r, theta, phi, fp = _get_camera_direction(focalpoint, position)
+    # work in the transformed space
+    position = apply_trans(rigid, position)
+    focalpoint = apply_trans(rigid, focalpoint)
+    _, theta, phi = _get_camera_direction(focalpoint, position)
 
     if azimuth is not None:
         phi = _deg2rad(azimuth)
@@ -993,21 +1003,28 @@ def _set_3d_view(figure, azimuth, elevation, focalpoint, distance, roll=None,
     if elevation is None or 5. <= abs(elevation) <= 175.:
         view_up = [0, 0, 1]
     else:
-        view_up = [np.sin(phi), np.cos(phi), 0]
+        view_up = [0, 1, 0]
 
     position = [
         distance * np.cos(phi) * np.sin(theta),
         distance * np.sin(phi) * np.sin(theta),
         distance * np.cos(theta)]
+
+    figure._azimuth = _rad2deg(phi)
+    figure._elevation = _rad2deg(theta)
+
+    # restore to the original frame
+    rigid = np.linalg.inv(rigid)
+    position = apply_trans(rigid, position)
+    focalpoint = apply_trans(rigid, focalpoint)
+    view_up = apply_trans(rigid, view_up, move=False)
     figure.plotter.camera_position = [
         position, focalpoint, view_up]
+    # We need to add the requested roll to the roll dictated by the
+    # transformed view_up
     if roll is not None:
-        figure.plotter.camera.SetRoll(roll)
+        figure.plotter.camera.SetRoll(figure.plotter.camera.GetRoll() + roll)
 
-    figure.plotter.renderer._azimuth = azimuth
-    figure.plotter.renderer._elevation = elevation
-    figure.plotter.renderer._distance = distance
-    figure.plotter.renderer._roll = roll
     figure.plotter.update()
     _process_events(figure.plotter)
 

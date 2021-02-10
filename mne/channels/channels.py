@@ -15,7 +15,6 @@ from copy import deepcopy
 from functools import partial
 
 import numpy as np
-from scipy import sparse
 
 from ..defaults import HEAD_SIZE_DEFAULT, _handle_default
 from ..transforms import _frame_to_str
@@ -488,7 +487,25 @@ class SetChannelsMixin(MontageMixin):
         -----
         .. versionadded:: 0.9.0
         """
+        from ..io import BaseRaw
+
+        ch_names_orig = list(self.info['ch_names'])
         rename_channels(self.info, mapping)
+
+        # Update self._orig_units for Raw
+        if isinstance(self, BaseRaw) and self._orig_units is not None:
+            if isinstance(mapping, dict):
+                new_names = [(ch_names_orig.index(ch_name), new_name)
+                             for ch_name, new_name in mapping.items()]
+            elif callable(mapping):
+                new_names = [(ci, mapping(ch_name))
+                             for ci, ch_name in enumerate(ch_names_orig)]
+
+            for c_ind, new_name in new_names:
+                old_name = ch_names_orig[c_ind]
+                self._orig_units[new_name] = self._orig_units[old_name]
+                del self._orig_units[old_name]
+
         return self
 
     @verbose
@@ -1281,6 +1298,7 @@ def _ch_neighbor_adjacency(ch_names, neighbors):
     ch_adjacency : scipy.sparse matrix
         The adjacency matrix.
     """
+    from scipy import sparse
     if len(ch_names) != len(neighbors):
         raise ValueError('`ch_names` and `neighbors` must '
                          'have the same length')
@@ -1408,6 +1426,7 @@ def _compute_ch_adjacency(info, ch_type):
     ch_names : list
         The list of channel names present in adjacency matrix.
     """
+    from scipy import sparse
     from scipy.spatial import Delaunay
     from .. import spatial_tris_adjacency
     from ..channels.layout import _find_topomap_coords, _pair_grad_sensors

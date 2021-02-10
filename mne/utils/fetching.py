@@ -7,8 +7,6 @@
 import os
 import shutil
 import time
-from urllib import parse, request
-from urllib.error import HTTPError, URLError
 
 from .progressbar import ProgressBar
 from .numerics import hashfunc
@@ -21,6 +19,8 @@ from ._logging import logger, verbose
 
 def _get_http(url, temp_file_name, initial_size, timeout, verbose_bool):
     """Safely (resume a) download to a file from http(s)."""
+    from urllib import request
+    from urllib.error import HTTPError, URLError
     # Actually do the reading
     response = None
     extra = ''
@@ -94,6 +94,7 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
     """
     # Adapted from NISL:
     # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
+    from urllib import parse
     if hash_ is not None and (not isinstance(hash_, str) or
                               len(hash_) != 32) and hash_type == 'md5':
         raise ValueError('Bad hash value given, should be a 32-character '
@@ -135,6 +136,7 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
 
 def _url_to_local_path(url, path):
     """Mirror a url path in a local destination (keeping folder structure)."""
+    from urllib import parse, request
     destination = parse.urlparse(url).path
     # First char should be '/', and it needs to be discarded
     if len(destination) < 2 or destination[0] != '/':
