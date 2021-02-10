@@ -66,7 +66,7 @@ Enhancements
 
 Bugs
 ~~~~
-- Fix bug with `mne.io.Raw.resample` to allow passing ``stim_picks='misc'`` (:gh:`6801` **by new contributor** |Enrico Varano|_ and `Eric Larson`_)
+- Fix bug with `mne.io.Raw.resample` to allow passing ``stim_picks='misc'`` (:gh:`8844` **by new contributor** |Enrico Varano|_ and `Eric Larson`_)
 
 - Fix bugs with `mne.io.read_raw_persyst` where multiple ``Comments`` with the same name are allowed, and ``Comments`` with a "," character are now allowed (:gh:`8311` and :gh:`8806` **by new contributor** |Andres Rodriguez|_ and `Adam Li`_)
 
