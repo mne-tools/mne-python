@@ -65,7 +65,7 @@ Enhancements
 
 - Add ``auto_close`` to `mne.Report.add_figs_to_section` and `mne.Report.add_slider_to_section` to manage closing figures (:gh`8730` by `Guillaume Favelier`_)
 
-- Add ``match_alias=False`` to :meth:`mne.io.Raw.set_montage` and related functions to match unrecognized channel location names to their known aliases coordinates by `Zhi Zhang`_
+- Add ``match_alias=False`` to :meth:`mne.io.Raw.set_montage` and related functions to match unrecognized channel location names to their known aliases (:gh`8799` by `Zhi Zhang`_)
 
 Bugs
 ~~~~
