@@ -1569,8 +1569,8 @@ def write_head_bem(fname, rr, tris, on_defects='raise', overwrite=False,
     ----------
     fname : str
         Filename to write.
-    rr : array, shape=(n_vertices, 3)
-        Coordinate points.
+    rr : array, shape (n_vertices, 3)
+        Coordinate points in the MRI coordinate system.
     tris : ndarray of int, shape (n_tris, 3)
         Triangulation (each line contains indices for three points which
         together form a face).
