@@ -323,6 +323,7 @@ class _IntLike(object):
 
 
 int_like = _IntLike()
+path_like = (str, Path)
 
 
 class _Callable(object):
@@ -334,7 +335,7 @@ class _Callable(object):
 _multi = {
     'str': (str,),
     'numeric': (np.floating, float, int_like),
-    'path-like': (str, Path),
+    'path-like': path_like,
     'int-like': (int_like,),
     'callable': (_Callable(),),
 }
@@ -348,6 +349,7 @@ except AttributeError:  # only on 3.6+
         pass
     else:
         _multi['path-like'] += (PathBase,)
+
 
 
 def _validate_type(item, types=None, item_name=None, type_name=None):
@@ -711,7 +713,7 @@ def _check_on_missing(on_missing, name='on_missing'):
     _check_option(name, on_missing, ['raise', 'warn', 'ignore'])
 
 
-def _on_missing(on_missing, msg, name='on_missing'):
+def _on_missing(on_missing, msg, name='on_missing', error_klass=None):
     """Raise error or print warning with a message.
 
     Parameters
@@ -730,10 +732,11 @@ def _on_missing(on_missing, msg, name='on_missing'):
         When on_missing is 'raise'.
     """
     _check_on_missing(on_missing, name)
+    error_klass = ValueError if error_klass is None else error_klass
     on_missing = 'raise' if on_missing == 'error' else on_missing
     on_missing = 'warn' if on_missing == 'warning' else on_missing
     if on_missing == 'raise':
-        raise ValueError(msg)
+        raise error_klass(msg)
     elif on_missing == 'warn':
         warn(msg)
     else:  # Ignore
