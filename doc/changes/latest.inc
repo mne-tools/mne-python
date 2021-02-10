@@ -16,6 +16,8 @@ Current (0.23.dev0)
 
 .. |Richard Koehler| replace:: **Richard Koehler**
 
+.. |Zhi Zhang| replace:: **Zhi Zhang**
+
 .. |Andres Rodriguez| replace:: **Andres Rodriguez**
 
 .. |Matt Sanderson| replace:: **Matt Sanderson**
@@ -127,4 +129,4 @@ Bugs
 API changes
 ~~~~~~~~~~~
 
-- None yet
+- Add ``match_alias`` parameter to :meth:`mne.io.Raw.set_montage` and related functions to match unrecognized channel location names to known aliases (:gh`8799` **by new contributor** |Zhi Zhang|_)

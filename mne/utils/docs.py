@@ -1376,6 +1376,16 @@ match_case : bool
 
     .. versionadded:: 0.20
 """
+docdict["match_alias"] = """
+match_alias : bool | dict
+    Whether to use a lookup table to match unrecognized channel location names
+    to their known aliases. If True, uses the mapping in
+    ``mne.io.constants.CHANNEL_LOC_ALIASES``. If a :class:`dict` is passed, it
+    will be used instead, and should map from non-standard channel names to
+    names in the specified ``montage``. Default is ``False``.
+
+    .. versionadded:: 0.23
+"""
 docdict['on_header_missing'] = """
 on_header_missing : str
     %s the FastSCAN header is missing.
