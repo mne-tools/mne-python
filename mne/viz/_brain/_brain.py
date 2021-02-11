@@ -781,6 +781,12 @@ class Brain(object):
                 self.actions["visibility"].setIcon(
                     self.icons["visibility_off"])
 
+        # manage dock
+        if self.visibility:
+            self.dock_widget.show()
+        else:
+            self.dock_widget.hide()
+
         # manage sliders
         for slider in self.plotter.slider_widgets:
             slider_rep = slider.GetRepresentation()
@@ -971,6 +977,7 @@ class Brain(object):
         content_widget.setLayout(layout)
         dock_widget.setWidget(content_widget)
         self.window.addDockWidget(QtCore.Qt.LeftDockWidgetArea, dock_widget)
+        self.dock_widget = dock_widget
 
     def _configure_sliders(self):
         # Orientation slider
