@@ -992,6 +992,24 @@ class Brain(object):
             self.callbacks["playback_speed"].widget = \
                 self.widgets["playback_speed"]
 
+        # Renderer widget
+        def select_renderer(idx):
+            self.plotter._active_renderer_index = idx
+
+        self.callbacks["renderer"] = SmartSlider(
+            callback=select_renderer,
+        )
+        self.widgets["renderer"] = _add_spin_box(
+            name="Renderer",
+            layout=layout,
+            value=0,
+            rng=[0, len(self.plotter.renderers) - 1],
+            callback=self.callbacks["renderer"],
+            double=False,
+        )
+        self.callbacks["renderer"].widget = \
+            self.widgets["renderer"]
+
         layout.addStretch()
         content_widget.setLayout(layout)
         dock_widget.setWidget(content_widget)
@@ -3477,16 +3495,17 @@ def _get_range(brain):
     return [np.min(val), np.max(val)]
 
 
-def _add_spin_box(name, layout, value, rng, callback):
+def _add_spin_box(name, layout, value, rng, callback, double=True):
     from PyQt5 import QtCore
-    from PyQt5.QtWidgets import QLabel, QDoubleSpinBox
+    from PyQt5.QtWidgets import QLabel, QDoubleSpinBox, QSpinBox
     label = QLabel()
     label.setTextFormat(QtCore.Qt.RichText)
     label.setText("<b>" + name + "</b>")
     label.setAlignment(QtCore.Qt.AlignCenter)
     layout.addWidget(label)
 
-    spin_box = QDoubleSpinBox()
+    value = value if double else int(value)
+    spin_box = QDoubleSpinBox() if double else QSpinBox()
     spin_box.setMinimum(rng[0])
     spin_box.setMaximum(rng[1])
     spin_box.setValue(value)
