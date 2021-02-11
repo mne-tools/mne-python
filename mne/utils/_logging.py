@@ -12,6 +12,7 @@ import sys
 import logging
 import os.path as op
 import warnings
+from typing import Any, Callable, TypeVar
 
 from .docs import fill_doc
 from ..externals.decorator import FunctionMaker
@@ -49,7 +50,13 @@ _filter = _FrameFilter()
 logger.addFilter(_filter)
 
 
-def verbose(function):
+# Provide help for static type checkers: see
+# https://github.com/microsoft/pyright/blob/8ca2c14a7a71a5f19db2082ecb531cb0f76b484d/docs/type-stubs.md#cleaning-up-generated-type-stubs  # noqa
+# point 3
+_FuncT = TypeVar('_FuncT', bound=Callable[..., Any])
+
+
+def verbose(function) -> Callable[[_FuncT], _FuncT]:
     """Verbose decorator to allow functions to override log-level.
 
     Parameters
