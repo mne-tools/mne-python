@@ -78,8 +78,8 @@ ALICE, BOB = 0, 1
 [alice_files, bob_files] = fetch_data(subjects=[ALICE, BOB], recording=[1])
 
 mapping = {'EOG horizontal': 'eog',
-           'Resp oro-nasal': 'misc',
-           'EMG submental': 'misc',
+           'Resp oro-nasal': 'resp',
+           'EMG submental': 'emg',
            'Temp rectal': 'misc',
            'Event marker': 'misc'}
 
@@ -90,7 +90,11 @@ raw_train.set_annotations(annot_train, emit_warning=False)
 raw_train.set_channel_types(mapping)
 
 # plot some data
-raw_train.plot(duration=60, scalings='auto')
+# scalings were chosen manually to allow for simultaneous visualization of
+# different channel types in this specific dataset
+raw_train.plot(start=60, duration=60,
+               scalings=dict(eeg=1e-4, resp=1e3, eog=1e-4, emg=1e-7,
+                             misc=1e-1))
 
 ##############################################################################
 # Extract 30s events from annotations
