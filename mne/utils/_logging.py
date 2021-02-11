@@ -354,9 +354,12 @@ def warn(message, category=RuntimeWarning, module='mne'):
             globals().get('__warningregistry__', {}))
     # To avoid a duplicate warning print, we only emit the logger.warning if
     # one of the handlers is a FileHandler. See gh-5592
+    # But it's also nice to be able to do:
+    # with mne.utils.use_log_level('warning', add_frames=3):
+    # so also check our add_frames attribute.
     if any(isinstance(h, logging.FileHandler) or getattr(h, '_mne_file_like',
                                                          False)
-           for h in logger.handlers):
+           for h in logger.handlers) or _filter.add_frames:
         logger.warning(message)
 
 
