@@ -695,6 +695,7 @@ class Brain(object):
         for hemi in self._hemis:
             self._layered_meshes[hemi]._clean()
         self._clear_callbacks()
+        self.controllers.clear()
         if getattr(self, 'mpl_canvas', None) is not None:
             self.mpl_canvas.clear()
         if getattr(self, 'act_data_smooth', None) is not None:
@@ -973,6 +974,24 @@ class Brain(object):
             self.time_actor.SetInput(current_time)
         del current_time
 
+        # Playback speed slider
+        if self.controllers["time"] is None:
+            self.callbacks["playback_speed"] = None
+            self.controllers["playback_speed"] = None
+        else:
+            self.callbacks["playback_speed"] = SmartSlider(
+                callback=self.set_playback_speed,
+            )
+            self.controllers["playback_speed"] = _add_spin_box(
+                name="Speed",
+                layout=layout,
+                value=self.default_playback_speed_value,
+                rng=self.default_playback_speed_range,
+                callback=self.callbacks["playback_speed"],
+            )
+            self.callbacks["playback_speed"].controller = \
+                self.controllers["playback_speed"]
+
         layout.addStretch()
         content_widget.setLayout(layout)
         dock_widget.setWidget(content_widget)
@@ -1035,26 +1054,6 @@ class Brain(object):
         )
         self.callbacks["smoothing"].slider_rep = \
             self.sliders["smoothing"].GetRepresentation()
-
-        # Playback speed slider
-        if self.controllers["time"] is None:
-            self.callbacks["playback_speed"] = None
-            self.sliders["playback_speed"] = None
-        else:
-            self.callbacks["playback_speed"] = SmartSlider(
-                plotter=self.plotter,
-                callback=self.set_playback_speed,
-            )
-            self.sliders["playback_speed"] = self.plotter.add_slider_widget(
-                self.callbacks["playback_speed"],
-                value=self.default_playback_speed_value,
-                rng=self.default_playback_speed_range, title="speed",
-                pointa=(0.02, 0.1),
-                pointb=(0.18, 0.1),
-                event_type='always'
-            )
-            self.callbacks["playback_speed"].slider_rep = \
-                self.sliders["playback_speed"].GetRepresentation()
 
         # Colormap slider
         pointa = np.array((0.82, 0.26))

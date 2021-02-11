@@ -175,15 +175,12 @@ class SmartSlider(object):
     and uses it when necessary.
     """
 
-    def __init__(self, plotter=None, callback=None):
-        self.plotter = plotter
+    def __init__(self, callback=None):
         self.callback = callback
-        self.slider_rep = None
+        self.controller = None
 
     def __call__(self, value, update_widget=False):
         """Update the value."""
         self.callback(value)
-        if update_widget:
-            if self.slider_rep is not None:
-                self.slider_rep.SetValue(value)
-                self.plotter.update()
+        if update_widget and self.controller is not None:
+            self.controller.setValue(value)
