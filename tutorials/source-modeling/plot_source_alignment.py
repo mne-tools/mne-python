@@ -343,7 +343,8 @@ sphere = mne.make_sphere_model(info=raw.info, r0='auto', head_radius='auto')
 src = mne.setup_volume_source_space(sphere=sphere, pos=10.)
 mne.viz.plot_alignment(
     raw.info, eeg='projected', bem=sphere, src=src, dig=True,
-    surfaces=['brain', 'outer_skin'], coord_frame='meg', show_axes=True)
+    surfaces=['brain', 'inner_skull', 'outer_skull', 'outer_skin'],
+    coord_frame='meg', show_axes=True)
 
 ###############################################################################
 # It is also possible to use :func:`mne.gui.coregistration`

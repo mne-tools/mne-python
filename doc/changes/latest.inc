@@ -100,6 +100,8 @@ Bugs
 
 - Fix bug with :func:`mne.stats.permutation_cluster_1samp_test` and related clustering functions when ``adjacency=None`` and ``out_type='indices'`` (:gh:`#8842` by `Eric Larson`_)
 
+- Fix bug with :func:`mne.viz.plot_alignment` where plotting a sphere model could ignore the ``brain`` argument (:gh:`8857` by `Eric Larson`_)
+- 
 - Fix bug with ``replace`` argument of :meth:`mne.Report.add_bem_to_section` and :meth:`mne.Report.add_slider_to_section` (:gh:`8723` by `Eric Larson`_)
 
 - Fix compatibility bugs with :mod:`mne_realtime` (:gh:`8845` by `Eric Larson`_)

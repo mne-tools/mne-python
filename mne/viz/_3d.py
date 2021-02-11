@@ -28,9 +28,9 @@ from ..io.meas_info import read_fiducials, create_info
 from ..source_space import (_ensure_src, _create_surf_spacing, _check_spacing,
                             _read_mri_info, SourceSpaces)
 
-from ..surface import (get_meg_helmet_surf, read_surface, _DistanceQuery,
+from ..surface import (get_meg_helmet_surf, _read_mri_surface, _DistanceQuery,
                        transform_surface_to, _project_onto_surface,
-                       _reorder_ccw, _complete_sphere_surf)
+                       _reorder_ccw)
 from ..transforms import (_find_trans, apply_trans, rot_to_quat,
                           combine_transforms, _get_trans, _ensure_trans,
                           invert_transform, Transform, rotation,
@@ -41,8 +41,8 @@ from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
 from .utils import (mne_analyze_colormap, _get_color_list,
                     plt_show, tight_layout, figure_nobar, _check_time_unit)
 from .misc import _check_mri
-from ..bem import (ConductorModel, _bem_find_surface, _surf_dict, _surf_name,
-                   read_bem_surfaces)
+from ..bem import (ConductorModel, _bem_find_surface,
+                   read_bem_surfaces, _ensure_bem_surfaces)
 
 
 verbose_dec = verbose
@@ -618,15 +618,13 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     else:
         user_alpha = {}
     surfaces = list(surfaces)
-    for s in surfaces:
-        _validate_type(s, "str", "all entries in surfaces")
+    for si, s in enumerate(surfaces):
+        _validate_type(s, "str", f"surfaces[{si}]")
+    brain = sorted(
+        set(surfaces) & set(['brain', 'pial', 'white', 'inflated']))
 
-    is_sphere = False
-    if isinstance(bem, ConductorModel) and bem['is_sphere']:
-        if len(bem['layers']) != 4 and len(surfaces) > 1:
-            raise ValueError('The sphere conductor model must have three '
-                             'layers for plotting skull and head.')
-        is_sphere = True
+    bem = _ensure_bem_surfaces(bem, extra_allow=(ConductorModel, None))
+    assert isinstance(bem, ConductorModel) or bem is None
 
     _check_option('coord_frame', coord_frame, ['head', 'meg', 'mri'])
     if src is not None:
@@ -692,7 +690,6 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     surfs = dict()
 
     # Head:
-    sphere_level = 4
     head = False
     for s in surfaces:
         if s in ('auto', 'head', 'outer_skin', 'head-dense', 'seghead'):
@@ -708,23 +705,10 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                         'Could not find the surface for '
                         'head in the provided BEM model, '
                         'looking in the subject directory.')
-                    if isinstance(bem, ConductorModel):
-                        if is_sphere:
-                            head_surf = _complete_sphere_surf(
-                                bem, 3, sphere_level, complete=False)
-                        else:  # BEM solution
-                            try:
-                                head_surf = _bem_find_surface(
-                                    bem, FIFF.FIFFV_BEM_SURF_ID_HEAD)
-                            except RuntimeError:
-                                logger.info(head_missing)
-                    elif bem is not None:  # list of dict
-                        for this_surf in bem:
-                            if this_surf['id'] == FIFF.FIFFV_BEM_SURF_ID_HEAD:
-                                head_surf = this_surf
-                                break
-                        else:
-                            logger.info(head_missing)
+                    try:
+                        head_surf = _bem_find_surface(bem, 'head')
+                    except RuntimeError:
+                        logger.info(head_missing)
             if head_surf is None:
                 if subject is None:
                     if s == 'auto':
@@ -757,10 +741,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                         if op.splitext(fname)[-1] == '.fif':
                             head_surf = read_bem_surfaces(fname)[0]
                         else:
-                            head_surf = read_surface(
-                                fname, return_dict=True)[2]
-                            head_surf['rr'] /= 1000.
-                            head_surf.update(coord_frame=FIFF.FIFFV_COORD_MRI)
+                            head_surf = _read_mri_surface(fname)
                         break
                 else:
                     raise IOError('No head surface found for subject '
@@ -770,8 +751,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
 
     # Skull:
     skull = list()
-    for name, id_ in (('outer_skull', FIFF.FIFFV_BEM_SURF_ID_SKULL),
-                      ('inner_skull', FIFF.FIFFV_BEM_SURF_ID_BRAIN)):
+    for name in ('outer_skull', 'inner_skull'):
         if name in surfaces:
             surfaces.pop(surfaces.index(name))
             if bem is None:
@@ -781,30 +761,12 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                 if not op.isfile(fname):
                     raise ValueError('bem is None and the the %s file cannot '
                                      'be found:\n%s' % (name, fname))
-                surf = read_surface(fname, return_dict=True)[2]
-                surf.update(coord_frame=FIFF.FIFFV_COORD_MRI,
-                            id=_surf_dict[name])
-                surf['rr'] /= 1000.
-                skull.append(surf)
-            elif isinstance(bem, ConductorModel):
-                if is_sphere:
-                    if len(bem['layers']) != 4:
-                        raise ValueError('The sphere model must have three '
-                                         'layers for plotting %s' % (name,))
-                    this_idx = 1 if name == 'inner_skull' else 2
-                    skull.append(_complete_sphere_surf(
-                        bem, this_idx, sphere_level))
-                    skull[-1]['id'] = _surf_dict[name]
-                else:
-                    skull.append(_bem_find_surface(bem, id_))
-            else:  # BEM model
-                for this_surf in bem:
-                    if this_surf['id'] == _surf_dict[name]:
-                        skull.append(this_surf)
-                        break
-                else:
-                    raise ValueError('Could not find the surface for %s.'
-                                     % name)
+                surf = _read_mri_surface(fname)
+            else:
+                surf = _bem_find_surface(bem, name).copy()
+            surf['name'] = name
+            skull.append(surf)
+    assert all(isinstance(s, dict) for s in skull)
 
     if mri_fiducials:
         if mri_fiducials is True:
@@ -831,8 +793,6 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         assert surfs['helmet']['coord_frame'] == FIFF.FIFFV_COORD_MRI
 
     # Brain:
-    brain = sorted(
-        set(surfaces) & set(['brain', 'pial', 'white', 'inflated']))
     if len(brain) > 1:
         raise ValueError('Only one brain surface can be plotted. '
                          'Got %s.' % brain)
@@ -843,19 +803,15 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         surfaces.pop(surfaces.index(brain))
         if brain in user_alpha:
             user_alpha['lh'] = user_alpha['rh'] = user_alpha.pop(brain)
-        brain = 'pial' if brain == 'brain' else brain
-        if is_sphere:
-            if len(bem['layers']) > 0:
-                surfs['lh'] = _complete_sphere_surf(
-                    bem, 0, sphere_level)  # only plot 1
+        if bem is not None and bem['is_sphere'] and brain == 'brain':
+            surfs['lh'] = _bem_find_surface(bem, 'brain')
         else:
+            brain = 'pial' if brain == 'brain' else brain
             subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
             for hemi in ['lh', 'rh']:
                 fname = op.join(subjects_dir, subject, 'surf',
                                 '%s.%s' % (hemi, brain))
-                surfs[hemi] = read_surface(fname, return_dict=True)[2]
-                surfs[hemi]['rr'] /= 1000.
-                surfs[hemi].update(coord_frame=FIFF.FIFFV_COORD_MRI)
+                surfs[hemi] = _read_mri_surface(fname)
         brain = True
 
     # we've looked through all of them, raise if some remain
@@ -873,36 +829,20 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     alphas = np.linspace(max_alpha / 2., 0, 5)[:len(skull) + 1]
 
     for idx, this_skull in enumerate(skull):
-        if isinstance(this_skull, dict):
-            skull_surf = this_skull
-            this_skull = _surf_name[skull_surf['id']]
-        elif is_sphere:  # this_skull == str
-            this_idx = 1 if this_skull == 'inner_skull' else 2
-            skull_surf = _complete_sphere_surf(bem, this_idx, sphere_level)
-        else:  # str
-            skull_fname = op.join(subjects_dir, subject, 'bem', 'flash',
-                                  '%s.surf' % this_skull)
-            if not op.exists(skull_fname):
-                skull_fname = op.join(subjects_dir, subject, 'bem',
-                                      '%s.surf' % this_skull)
-            if not op.exists(skull_fname):
-                raise IOError('No skull surface %s found for subject %s.'
-                              % (this_skull, subject))
-            logger.info('Using %s for head surface.' % skull_fname)
-            skull_surf = read_surface(skull_fname, return_dict=True)[2]
-            skull_surf['rr'] /= 1000.
-            skull_surf['coord_frame'] = FIFF.FIFFV_COORD_MRI
-        skull_alpha[this_skull] = alphas[idx + 1]
-        skull_colors[this_skull] = (0.95 - idx * 0.2, 0.85, 0.95 - idx * 0.2)
-        surfs[this_skull] = skull_surf
+        name = this_skull['name']
+        skull_alpha[name] = alphas[idx + 1]
+        skull_colors[name] = (0.95 - idx * 0.2, 0.85, 0.95 - idx * 0.2)
+        surfs[name] = this_skull
 
     if src is None and brain is False and len(skull) == 0 and not show_axes:
         head_alpha = max_alpha
     else:
         head_alpha = alphas[0]
 
-    for key in surfs.keys():
+    for key in surfs:
         # Surfs can sometimes be in head coords (e.g., if coming from sphere)
+        surf = surfs[key]
+        assert isinstance(surf, dict), f'{key}: {type(surf)}'
         surfs[key] = transform_surface_to(surfs[key], coord_frame,
                                           [mri_trans, head_trans], copy=True)
 

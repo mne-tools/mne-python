@@ -87,7 +87,7 @@ epochs['1'].average().plot(time_unit='s')
 sphere = mne.make_sphere_model(r0=(0., 0., 0.), head_radius=0.08)
 
 mne.viz.plot_alignment(epochs.info, subject=subject, show_axes=True,
-                       bem=sphere, dig=True, surfaces='inner_skull')
+                       bem=sphere, dig=True, surfaces='head')
 
 ###############################################################################
 # Let's do some dipole fits. We first compute the noise covariance,

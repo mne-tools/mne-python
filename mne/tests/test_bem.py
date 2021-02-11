@@ -102,7 +102,7 @@ def test_io_bem(tmpdir, ext):
     sol_read = read_bem_solution(temp_sol)
     _compare_bem_solutions(sol, sol_read)
     sol = read_bem_solution(fname_bem_sol_1)
-    with pytest.raises(RuntimeError, match='BEM model does not have'):
+    with pytest.raises(RuntimeError, match='BEM does not have.*triangulation'):
         _bem_find_surface(sol, 3)
 
 

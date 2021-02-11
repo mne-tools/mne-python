@@ -738,6 +738,13 @@ def read_surface(fname, read_metadata=False, return_dict=False,
     return ret
 
 
+def _read_mri_surface(fname):
+    surf = read_surface(fname, return_dict=True)[2]
+    surf['rr'] /= 1000.
+    surf.update(coord_frame=FIFF.FIFFV_COORD_MRI)
+    return surf
+
+
 def _read_wavefront_obj(fname):
     """Read a surface form a Wavefront .obj file.
 
