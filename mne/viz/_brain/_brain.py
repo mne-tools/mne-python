@@ -612,7 +612,7 @@ class Brain(object):
         self.actions = dict()
         self.callbacks = dict()
         self.sliders = dict()
-        self.controllers = dict()
+        self.widgets = dict()
         self.keys = ('fmin', 'fmid', 'fmax')
         self.slider_length = 0.02
         self.slider_width = 0.04
@@ -695,7 +695,7 @@ class Brain(object):
         for hemi in self._hemis:
             self._layered_meshes[hemi]._clean()
         self._clear_callbacks()
-        self.controllers.clear()
+        self.widgets.clear()
         if getattr(self, 'mpl_canvas', None) is not None:
             self.mpl_canvas.clear()
         if getattr(self, 'act_data_smooth', None) is not None:
@@ -946,21 +946,21 @@ class Brain(object):
         max_time = len(self._data['time']) - 1
         if max_time < 1:
             self.callbacks["time"] = None
-            self.controllers["time"] = None
+            self.widgets["time"] = None
         else:
             self.callbacks["time"] = TimeCallBack(
                 brain=self,
                 first_call=False,
                 callback=self.plot_time_line,
             )
-            self.controllers["time"] = _add_spin_box(
+            self.widgets["time"] = _add_spin_box(
                 name="Time",
                 layout=layout,
                 value=self._data['time_idx'],
                 rng=[0, max_time],
                 callback=self.callbacks["time"],
             )
-            self.callbacks["time"].controller = self.controllers["time"]
+            self.callbacks["time"].widget = self.widgets["time"]
 
         # Time label
         current_time = self._current_time
@@ -975,22 +975,22 @@ class Brain(object):
         del current_time
 
         # Playback speed slider
-        if self.controllers["time"] is None:
+        if self.widgets["time"] is None:
             self.callbacks["playback_speed"] = None
-            self.controllers["playback_speed"] = None
+            self.widgets["playback_speed"] = None
         else:
             self.callbacks["playback_speed"] = SmartSlider(
                 callback=self.set_playback_speed,
             )
-            self.controllers["playback_speed"] = _add_spin_box(
+            self.widgets["playback_speed"] = _add_spin_box(
                 name="Speed",
                 layout=layout,
                 value=self.default_playback_speed_value,
                 rng=self.default_playback_speed_range,
                 callback=self.callbacks["playback_speed"],
             )
-            self.callbacks["playback_speed"].controller = \
-                self.controllers["playback_speed"]
+            self.callbacks["playback_speed"].widget = \
+                self.widgets["playback_speed"]
 
         layout.addStretch()
         content_widget.setLayout(layout)

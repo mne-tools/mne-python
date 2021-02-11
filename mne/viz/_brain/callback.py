@@ -34,7 +34,7 @@ class TimeCallBack(object):
     def __init__(self, brain=None, callback=None, first_call=True):
         self.brain = brain
         self.callback = callback
-        self.controller = None
+        self.widget = None
         self.first_call = first_call
         self._first_time = True
         self.time_label = None
@@ -51,11 +51,11 @@ class TimeCallBack(object):
         if self.callback is not None:
             self.callback()
         current_time = self.brain._current_time
-        if self.controller is not None:
+        if self.widget is not None:
             if self.time_label is not None:
                 current_time = self.time_label(current_time)
             if update_widget:
-                self.controller.setValue(value)
+                self.widget.setValue(value)
         if self._first_time:
             self._first_time = False
 
@@ -177,10 +177,10 @@ class SmartSlider(object):
 
     def __init__(self, callback=None):
         self.callback = callback
-        self.controller = None
+        self.widget = None
 
     def __call__(self, value, update_widget=False):
         """Update the value."""
         self.callback(value)
-        if update_widget and self.controller is not None:
-            self.controller.setValue(value)
+        if update_widget and self.widget is not None:
+            self.widget.setValue(value)
