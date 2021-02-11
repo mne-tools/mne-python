@@ -72,6 +72,8 @@ Enhancements
 
 - Add :func:`mne.write_head_bem` to support writing head surface files (:gh:`8841` by `Yu-Han Luo`_)
 
+- The signal of ``resp`` (respiratory) channels is now assumed to be in the unit Volt  (:gh:`8858` by `Richard Höchenberger`_)
+
 Bugs
 ~~~~
 - Fix bug with `mne.connectivity.spectral_connectivity` where time axis in Epochs data object was dropped. (:gh:`8839` **by new contributor** |Anna Padee|_)

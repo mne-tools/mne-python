@@ -132,7 +132,7 @@ def test_set_channel_types():
     # Test changing type if in proj
     mapping = {'EEG 057': 'dbs', 'EEG 058': 'ecog', 'EEG 059': 'ecg',
                'EEG 060': 'eog', 'EOG 061': 'seeg', 'MEG 2441': 'eeg',
-               'MEG 2443': 'eeg', 'MEG 2442': 'hbo'}
+               'MEG 2443': 'eeg', 'MEG 2442': 'hbo', 'EEG 001': 'resp'}
     raw2 = read_raw_fif(raw_fname)
     raw2.info['bads'] = ['EEG 059', 'EEG 060', 'EOG 061']
     with pytest.raises(RuntimeError, match='type .* in projector "PCA-v1"'):
@@ -169,6 +169,12 @@ def test_set_channel_types():
     assert info['chs'][idx]['kind'] == FIFF.FIFFV_FNIRS_CH
     assert info['chs'][idx]['unit'] == FIFF.FIFF_UNIT_MOL
     assert info['chs'][idx]['coil_type'] == FIFF.FIFFV_COIL_FNIRS_HBO
+
+    # resp channel type
+    idx = pick_channels(raw.ch_names, ['EEG 001'])[0]
+    assert info['chs'][idx]['kind'] == FIFF.FIFFV_RESP_CH
+    assert info['chs'][idx]['unit'] == FIFF.FIFF_UNIT_V
+    assert info['chs'][idx]['coil_type'] == FIFF.FIFFV_COIL_NONE
 
     # Test meaningful error when setting channel type with unknown unit
     raw.info['chs'][0]['unit'] = 0.

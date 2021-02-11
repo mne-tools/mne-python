@@ -58,10 +58,10 @@ def get_channel_type_constants(include_defaults=False):
                 eog=dict(kind=FIFF.FIFFV_EOG_CH, unit=FIFF.FIFF_UNIT_V),
                 emg=dict(kind=FIFF.FIFFV_EMG_CH, unit=FIFF.FIFF_UNIT_V),
                 ecg=dict(kind=FIFF.FIFFV_ECG_CH, unit=FIFF.FIFF_UNIT_V),
+                resp=dict(kind=FIFF.FIFFV_RESP_CH, unit=FIFF.FIFF_UNIT_V),
                 bio=dict(kind=FIFF.FIFFV_BIO_CH, unit=FIFF.FIFF_UNIT_V),
                 misc=dict(kind=FIFF.FIFFV_MISC_CH, unit=FIFF.FIFF_UNIT_V),
                 stim=dict(kind=FIFF.FIFFV_STIM_CH),
-                resp=dict(kind=FIFF.FIFFV_RESP_CH),
                 exci=dict(kind=FIFF.FIFFV_EXCI_CH),
                 syst=dict(kind=FIFF.FIFFV_SYST_CH),
                 ias=dict(kind=FIFF.FIFFV_IAS_CH),
@@ -971,12 +971,12 @@ _MEG_CH_TYPES_SPLIT = ('mag', 'grad', 'planar1', 'planar2')
 _FNIRS_CH_TYPES_SPLIT = ('hbo', 'hbr', 'fnirs_cw_amplitude',
                          'fnirs_fd_ac_amplitude', 'fnirs_fd_phase', 'fnirs_od')
 _DATA_CH_TYPES_ORDER_DEFAULT = (
-    'mag', 'grad', 'eeg', 'csd', 'eog', 'ecg', 'emg', 'ref_meg', 'misc',
-    'stim', 'resp', 'chpi', 'exci', 'ias', 'syst', 'seeg', 'bio', 'ecog',
+    'mag', 'grad', 'eeg', 'csd', 'eog', 'ecg', 'resp', 'emg', 'ref_meg',
+    'misc', 'stim', 'chpi', 'exci', 'ias', 'syst', 'seeg', 'bio', 'ecog',
     'dbs') + _FNIRS_CH_TYPES_SPLIT + ('whitened',)
 # Valid data types, ordered for consistency, used in viz/evoked.
 _VALID_CHANNEL_TYPES = (
-    'eeg', 'grad', 'mag', 'seeg', 'eog', 'ecg', 'emg', 'dipole', 'gof',
+    'eeg', 'grad', 'mag', 'seeg', 'eog', 'ecg', 'resp', 'emg', 'dipole', 'gof',
     'bio', 'ecog', 'dbs') + _FNIRS_CH_TYPES_SPLIT + ('misc', 'csd')
 _DATA_CH_TYPES_SPLIT = (
     'mag', 'grad', 'eeg', 'csd', 'seeg', 'ecog', 'dbs') + _FNIRS_CH_TYPES_SPLIT
