@@ -457,7 +457,7 @@ def _check_surface_size(surf):
     if (sizes < 0.05).any():
         raise RuntimeError(
             f'Dimensions of the surface {_bem_surf_name[surf["id"]]} seem too '
-            f'small ({1000 * sizes.min():9.5f}). Maybe the the unit of measure'
+            f'small ({1000 * sizes.min():9.5f}). Maybe the unit of measure'
             ' is meters instead of mm')
 
 
