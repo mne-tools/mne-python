@@ -663,6 +663,7 @@ class Brain(object):
         del show_traces
 
         self._configure_time_label()
+        self._configure_dock()
         self._configure_sliders()
         self._configure_scalar_bar()
         self._configure_shortcuts()
@@ -919,6 +920,43 @@ class Brain(object):
             scalar_bar.SetHeight(0.6)
             scalar_bar.SetWidth(0.05)
             scalar_bar.SetPosition(0.02, 0.2)
+
+    def _configure_dock(self):
+        from PyQt5 import QtCore
+        from PyQt5.QtWidgets import (
+            QDockWidget,
+            QVBoxLayout,
+            QWidget,
+        )
+        dock_widget = QDockWidget()
+        dock_widget.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea)
+        dock_widget.setFeatures(QDockWidget.NoDockWidgetFeatures)
+        content_widget = QWidget()
+        layout = QVBoxLayout()
+
+        # Time slider
+        max_time = len(self._data['time']) - 1
+        if max_time < 1:
+            pass
+        else:
+            _add_slider(
+                name="Time",
+                layout=layout,
+                value=self._data['time_idx'],
+                rng=[0, max_time],
+                callback=lambda x: None,
+            )
+            _add_slider(
+                name="Speed",
+                layout=layout,
+                value=self.default_playback_speed_value,
+                rng=self.default_playback_speed_range,
+                callback=lambda x: None,
+            )
+        layout.addStretch()
+        content_widget.setLayout(layout)
+        dock_widget.setWidget(content_widget)
+        self.window.addDockWidget(QtCore.Qt.LeftDockWidgetArea, dock_widget)
 
     def _configure_sliders(self):
         # Orientation slider
@@ -3458,6 +3496,23 @@ def _update_limits(fmin, fmid, fmax, center, array):
 def _get_range(brain):
     val = np.abs(np.concatenate(list(brain._current_act_data.values())))
     return [np.min(val), np.max(val)]
+
+
+def _add_slider(name, layout, value, rng, callback):
+    from PyQt5 import QtCore
+    from PyQt5.QtWidgets import QLabel, QSlider
+    label = QLabel()
+    label.setTextFormat(QtCore.Qt.RichText)
+    label.setText("<b>" + name + "</b>")
+    label.setAlignment(QtCore.Qt.AlignCenter)
+    layout.addWidget(label)
+
+    slider = QSlider(QtCore.Qt.Horizontal)
+    slider.setMinimum(rng[0])
+    slider.setMaximum(rng[1])
+    slider.setValue(value)
+    slider.valueChanged.connect(callback)
+    layout.addWidget(slider)
 
 
 class _FakeIren():
