@@ -476,11 +476,14 @@ def _check_method(method):
 
 
 def _get_and_verify_data_sizes(data, sfreq, n_signals=None, n_times=None,
-                               times=None):
+                               times=None, warn_times=True):
     """Get and/or verify the data sizes and time scales."""
     if not isinstance(data, (list, tuple)):
         raise ValueError('data has to be a list or tuple')
     n_signals_tot = 0
+    # Sometimes data can be (ndarray, SourceEstimate) groups so in the case
+    # where ndarray comes first, don't use it for times
+    times_inferred = False
     for this_data in data:
         this_n_signals, this_n_times = this_data.shape
         if n_times is not None:
@@ -494,12 +497,16 @@ def _get_and_verify_data_sizes(data, sfreq, n_signals=None, n_times=None,
         if hasattr(this_data, 'times'):
             assert isinstance(this_data, _BaseSourceEstimate)
             this_times = this_data.times
-            if times is not None:
-                if np.any(times != this_times):
-                    warn('time scales of input time series do not match')
+            if times is not None and not times_inferred:
+                if warn_times and not np.allclose(times, this_times):
+                    with np.printoptions(threshold=4, linewidth=120):
+                        warn('time scales of input time series do not match:\n'
+                             f'{this_times}\n{times}')
+                    warn_times = False
             else:
                 times = this_times
         elif times is None:
+            times_inferred = True
             times = _arange_div(n_times, sfreq)
 
     if n_signals is not None:
@@ -508,7 +515,7 @@ def _get_and_verify_data_sizes(data, sfreq, n_signals=None, n_times=None,
                              'each epoch')
     n_signals = n_signals_tot
 
-    return n_signals, n_times, times
+    return n_signals, n_times, times, warn_times
 
 
 # map names to estimator types
@@ -783,12 +790,13 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     # (n_signals x n_times) arrays or SourceEstimates
     epoch_idx = 0
     logger.info('Connectivity computation...')
+    warn_times = True
     for epoch_block in _get_n_epochs(data, n_jobs):
         if epoch_idx == 0:
             # initialize everything times and frequencies
             (n_cons, times, n_times, times_in, n_times_in, tmin_idx,
              tmax_idx, n_freqs, freq_mask, freqs, freqs_bands, freq_idx_bands,
-             n_signals, indices_use) = _prepare_connectivity(
+             n_signals, indices_use, warn_times) = _prepare_connectivity(
                 epoch_block=epoch_block, times_in=times_in,
                 tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, sfreq=sfreq,
                 indices=indices, mode=mode, fskip=fskip, n_bands=n_bands,
@@ -829,8 +837,9 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
 
         # check dimensions and time scale
         for this_epoch in epoch_block:
-            _get_and_verify_data_sizes(
-                this_epoch, sfreq, n_signals, n_times_in, times_in)
+            _, _, _, warn_times = _get_and_verify_data_sizes(
+                this_epoch, sfreq, n_signals, n_times_in, times_in,
+                warn_times=warn_times)
 
         call_params = dict(
             sig_idx=sig_idx, tmin_idx=tmin_idx,
@@ -945,7 +954,7 @@ def _prepare_connectivity(epoch_block, times_in, tmin, tmax,
     first_epoch = epoch_block[0]
 
     # get the data size and time scale
-    n_signals, n_times_in, times_in = _get_and_verify_data_sizes(
+    n_signals, n_times_in, times_in, warn_times = _get_and_verify_data_sizes(
         first_epoch, sfreq, times=times_in)
 
     n_times_in = len(times_in)
@@ -1056,7 +1065,7 @@ def _prepare_connectivity(epoch_block, times_in, tmin, tmax,
 
     return (n_cons, times, n_times, times_in, n_times_in, tmin_idx,
             tmax_idx, n_freqs, freq_mask, freqs, freqs_bands, freq_idx_bands,
-            n_signals, indices_use)
+            n_signals, indices_use, warn_times)
 
 
 def _assemble_spectral_params(mode, n_times, mt_adaptive, mt_bandwidth, sfreq,
