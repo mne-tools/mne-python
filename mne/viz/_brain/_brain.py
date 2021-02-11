@@ -24,7 +24,7 @@ from .colormap import calculate_lut
 from .surface import _Surface
 from .view import views_dicts, _lh_views_dict
 from .mplcanvas import MplCanvas
-from .callback import (ShowView, IntSlider, TimeSlider, SmartSlider,
+from .callback import (ShowView, IntSlider, TimeCallBack, SmartSlider,
                        BumpColorbarPoints, UpdateColorbarScale)
 
 from ..utils import _show_help, _get_color_list, concatenate_images
@@ -612,6 +612,7 @@ class Brain(object):
         self.actions = dict()
         self.callbacks = dict()
         self.sliders = dict()
+        self.controllers = dict()
         self.keys = ('fmin', 'fmid', 'fmax')
         self.slider_length = 0.02
         self.slider_width = 0.04
@@ -937,22 +938,35 @@ class Brain(object):
         # Time slider
         max_time = len(self._data['time']) - 1
         if max_time < 1:
-            pass
+            self.callbacks["time"] = None
+            self.controllers["time"] = None
         else:
-            _add_slider(
+            self.callbacks["time"] = TimeCallBack(
+                brain=self,
+                first_call=False,
+                callback=self.plot_time_line,
+            )
+            self.controllers["time"] = _add_spin_box(
                 name="Time",
                 layout=layout,
                 value=self._data['time_idx'],
                 rng=[0, max_time],
-                callback=lambda x: None,
+                callback=self.callbacks["time"],
             )
-            _add_slider(
-                name="Speed",
-                layout=layout,
-                value=self.default_playback_speed_value,
-                rng=self.default_playback_speed_range,
-                callback=lambda x: None,
-            )
+            self.callbacks["time"].controller = self.controllers["time"]
+
+        # Time label
+        current_time = self._current_time
+        assert current_time is not None  # should never be the case, float
+        time_label = self._data['time_label']
+        if callable(time_label):
+            current_time = time_label(current_time)
+        else:
+            current_time = time_label
+        if self.time_actor is not None:
+            self.time_actor.SetInput(current_time)
+        del current_time
+
         layout.addStretch()
         content_widget.setLayout(layout)
         dock_widget.setWidget(content_widget)
@@ -1015,49 +1029,8 @@ class Brain(object):
         self.callbacks["smoothing"].slider_rep = \
             self.sliders["smoothing"].GetRepresentation()
 
-        # Time slider
-        max_time = len(self._data['time']) - 1
-        # VTK on macOS bombs if we create these then hide them, so don't
-        # even create them
-        if max_time < 1:
-            self.callbacks["time"] = None
-            self.sliders["time"] = None
-        else:
-            self.callbacks["time"] = TimeSlider(
-                plotter=self.plotter,
-                brain=self,
-                first_call=False,
-                callback=self.plot_time_line,
-            )
-            self.sliders["time"] = self.plotter.add_slider_widget(
-                self.callbacks["time"],
-                value=self._data['time_idx'],
-                rng=[0, max_time],
-                pointa=(0.23, 0.1),
-                pointb=(0.77, 0.1),
-                event_type='always'
-            )
-            self.callbacks["time"].slider_rep = \
-                self.sliders["time"].GetRepresentation()
-            # configure properties of the time slider
-            self.sliders["time"].GetRepresentation().SetLabelFormat(
-                'idx=%0.1f')
-
-        current_time = self._current_time
-        assert current_time is not None  # should never be the case, float
-        time_label = self._data['time_label']
-        if callable(time_label):
-            current_time = time_label(current_time)
-        else:
-            current_time = time_label
-        if self.sliders["time"] is not None:
-            self.sliders["time"].GetRepresentation().SetTitleText(current_time)
-        if self.time_actor is not None:
-            self.time_actor.SetInput(current_time)
-        del current_time
-
         # Playback speed slider
-        if self.sliders["time"] is None:
+        if self.controllers["time"] is None:
             self.callbacks["playback_speed"] = None
             self.sliders["playback_speed"] = None
         else:
@@ -3498,21 +3471,22 @@ def _get_range(brain):
     return [np.min(val), np.max(val)]
 
 
-def _add_slider(name, layout, value, rng, callback):
+def _add_spin_box(name, layout, value, rng, callback):
     from PyQt5 import QtCore
-    from PyQt5.QtWidgets import QLabel, QSlider
+    from PyQt5.QtWidgets import QLabel, QDoubleSpinBox
     label = QLabel()
     label.setTextFormat(QtCore.Qt.RichText)
     label.setText("<b>" + name + "</b>")
     label.setAlignment(QtCore.Qt.AlignCenter)
     layout.addWidget(label)
 
-    slider = QSlider(QtCore.Qt.Horizontal)
-    slider.setMinimum(rng[0])
-    slider.setMaximum(rng[1])
-    slider.setValue(value)
-    slider.valueChanged.connect(callback)
-    layout.addWidget(slider)
+    spin_box = QDoubleSpinBox()
+    spin_box.setMinimum(rng[0])
+    spin_box.setMaximum(rng[1])
+    spin_box.setValue(value)
+    spin_box.valueChanged.connect(callback)
+    layout.addWidget(spin_box)
+    return spin_box
 
 
 class _FakeIren():

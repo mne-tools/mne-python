@@ -28,15 +28,13 @@ class IntSlider(object):
             self._first_time = False
 
 
-class TimeSlider(object):
-    """Class to update the time slider."""
+class TimeCallBack(object):
+    """Callback to update the time."""
 
-    def __init__(self, plotter=None, brain=None, callback=None,
-                 first_call=True):
-        self.plotter = plotter
+    def __init__(self, brain=None, callback=None, first_call=True):
         self.brain = brain
         self.callback = callback
-        self.slider_rep = None
+        self.controller = None
         self.first_call = first_call
         self._first_time = True
         self.time_label = None
@@ -53,13 +51,11 @@ class TimeSlider(object):
         if self.callback is not None:
             self.callback()
         current_time = self.brain._current_time
-        if self.slider_rep is not None:
+        if self.controller is not None:
             if self.time_label is not None:
                 current_time = self.time_label(current_time)
-                self.slider_rep.SetTitleText(current_time)
             if update_widget:
-                self.slider_rep.SetValue(value)
-                self.plotter.update()
+                self.controller.setValue(value)
         if self._first_time:
             self._first_time = False
 
