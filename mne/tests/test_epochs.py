@@ -171,7 +171,7 @@ def test_handle_event_repeated():
 
 def _get_data(preload=False):
     """Get data."""
-    raw = read_raw_fif(raw_fname, preload=preload)
+    raw = read_raw_fif(raw_fname, preload=preload, verbose='warning')
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, eeg=True, stim=True,
                        ecg=True, eog=True, include=['STI 014'],
@@ -2891,27 +2891,49 @@ def assert_metadata_equal(got, exp):
 
 
 @pytest.mark.parametrize(
-    'event_id',
-    [{'a/1': 1, 'a/2': 2, 'b/1': 3, 'b/2': 4, 'c': 32},  # all events
-     {'a/1': 1, 'a/2': 2},  # subset of events
-     dict()]  # empty set of events
+    ('all_event_id', 'time_locked_events', 'keep_first', 'keep_last'),
+    [({'a/1': 1, 'a/2': 2, 'b/1': 3, 'b/2': 4, 'c': 32},  # all events
+      None, None, None),
+     ({'a/1': 1, 'a/2': 2},  # subset of events
+      None, None, None),
+     (dict(), None, None, None),  # empty set of events
+     ({'a/1': 1, 'a/2': 2, 'b/1': 3, 'b/2': 4, 'c': 32},
+      ('a/1', 'a/2', 'b/1', 'b/2'), ('a', 'b'), 'c')]
 )
 @requires_pandas
-def test_make_metadata(event_id):
+def test_make_metadata(all_event_id, time_locked_events, keep_first,
+                       keep_last):
     """Test that make_metadata works."""
-
-    raw, all_events, picks = _get_data()
-    tmin, tmax = -0.5, 1
+    raw, all_events, _ = _get_data()
+    tmin, tmax = -0.5, 1.5
     sfreq = raw.info['sfreq']
+    kwargs = dict(events=all_events, event_id=all_event_id,
+                  time_locked_events=time_locked_events,
+                  keep_first=keep_first, keep_last=keep_last,
+                  tmin=tmin, tmax=tmax,
+                  sfreq=sfreq)
 
-    metadata, events = make_metadata(events=all_events, event_id=event_id,
-                                     tmin=tmin, tmax=tmax, sfreq=sfreq)
+    if not kwargs['event_id']:
+        with pytest.raises(ValueError, match='must contain at least one'):
+            make_metadata(**kwargs)
+        return
+
+    metadata, events, event_id = make_metadata(**kwargs)
 
     assert len(metadata) == len(events)
-    assert set(metadata['event_name']) == set(event_id.keys())
 
-    # Check we we columns for each event
-    for event_name in event_id.keys():
+    if time_locked_events:
+        assert set(metadata['event_name']) == set(time_locked_events)
+    else:
+        assert set(metadata['event_name']) == set(event_id.keys())
+
+    # Check we have columns all events
+    keep_first = [] if keep_first is None else keep_first
+    keep_last = [] if keep_last is None else keep_last
+    event_names = sorted(set(event_id.keys()) | set(keep_first) |
+                         set(keep_last))
+
+    for event_name in event_names:
         assert event_name in metadata.columns
         assert f'{event_name}_time' in metadata.columns
 
@@ -2921,16 +2943,20 @@ def test_make_metadata(event_id):
         assert row[event_name] is True
         assert np.isclose(row[f'{event_name}_time'], 0)
 
-    # Check the non-time-locked events' metadata
+    # Check non-time-locked events' metadata
     for _, row in metadata.iterrows():
-        event_names = sorted(set(event_id.keys()) - set(row['event_name']))
+        event_names = sorted(set(event_id.keys()) | set(keep_first) |
+                             set(keep_last) - set(row['event_name']))
         for event_name in event_names:
-            if row[event_name] is True:
+            assert row[event_name] in [True, False, None]
+
+            if  row[event_name] not in [False, None]:
                 assert not np.isnan(row[f'{event_name}_time'])
             else:
                 assert np.isnan(row[f'{event_name}_time'])
 
-    Epochs(raw, events=events, event_id=event_id, metadata=metadata)
+    Epochs(raw, events=events, event_id=event_id, metadata=metadata,
+           verbose='warning')
 
 
 def test_events_list():
