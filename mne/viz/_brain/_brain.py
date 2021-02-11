@@ -664,7 +664,7 @@ class Brain(object):
         del show_traces
 
         self._configure_time_label()
-        self._configure_dock()
+        self._configure_widgets()
         self._configure_sliders()
         self._configure_scalar_bar()
         self._configure_shortcuts()
@@ -929,7 +929,7 @@ class Brain(object):
             scalar_bar.SetWidth(0.05)
             scalar_bar.SetPosition(0.02, 0.2)
 
-    def _configure_dock(self):
+    def _configure_widgets(self):
         from PyQt5 import QtCore
         from PyQt5.QtWidgets import (
             QDockWidget,
@@ -942,7 +942,7 @@ class Brain(object):
         content_widget = QWidget()
         layout = QVBoxLayout()
 
-        # Time slider
+        # Time widget
         max_time = len(self._data['time']) - 1
         if max_time < 1:
             self.callbacks["time"] = None
@@ -974,7 +974,7 @@ class Brain(object):
             self.time_actor.SetInput(current_time)
         del current_time
 
-        # Playback speed slider
+        # Playback speed widget
         if self.widgets["time"] is None:
             self.callbacks["playback_speed"] = None
             self.widgets["playback_speed"] = None
