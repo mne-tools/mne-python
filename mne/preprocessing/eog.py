@@ -19,6 +19,9 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
                     reject_by_annotation=False, thresh=None, verbose=None):
     """Locate EOG artifacts.
 
+    .. note:: To control true-positive and true-negative detection rates, you
+              may adjust the ``thresh`` parameter.
+
     Parameters
     ----------
     raw : instance of Raw
@@ -37,8 +40,12 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
         Start detection after tstart seconds.
     reject_by_annotation : bool
         Whether to omit data that is annotated as bad.
-    thresh : float
-        Threshold to trigger EOG event.
+    thresh : float | None
+        Threshold to trigger the detection of an EOG event. This controls the
+        thresholding of the underlying peak-finding algorithm. Larger values
+        mean that fewer peaks (i.e., fewer EOG events) will be detected.
+        If ``None``, use the default of ``(max(eog) - min(eog)) / 4``,
+        with ``eog`` being the filtered EOG signal.
     %(verbose)s
 
     Returns
