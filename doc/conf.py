@@ -689,6 +689,8 @@ numpydoc_xref_ignore = {
     # unlinkable
     'mayavi.mlab.pipeline.surface',
     'CoregFrame', 'Kit2FiffFrame', 'FiducialsFrame',
+    # type hint used in @verbose decorator
+    '_FuncT',
 }
 numpydoc_validate = True
 numpydoc_validation_checks = {'all'} | set(error_ignores)
