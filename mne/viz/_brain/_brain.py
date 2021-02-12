@@ -24,7 +24,7 @@ from .colormap import calculate_lut
 from .surface import _Surface
 from .view import views_dicts, _lh_views_dict
 from .mplcanvas import MplCanvas
-from .callback import (ShowView, IntSlider, TimeCallBack, SmartSlider,
+from .callback import (ShowView, TimeCallBack, SmartCallBack,
                        BumpColorbarPoints, UpdateColorbarScale)
 
 from ..utils import _show_help, _get_color_list, concatenate_images
@@ -811,14 +811,14 @@ class Brain(object):
         """Detect automatically fitting scaling parameters."""
         self._update_auto_scaling()
         for key in ('fmin', 'fmid', 'fmax'):
-            self.reps[key].SetValue(self._data[key])
+            self.widgets[key].setValue(self._data[key])
         self._update()
 
     def restore_user_scaling(self):
         """Restore original scaling parameters."""
         self._update_auto_scaling(restore=True)
         for key in ('fmin', 'fmid', 'fmax'):
-            self.reps[key].SetValue(self._data[key])
+            self.widgets[key].SetValue(self._data[key])
         self._update()
 
     def toggle_playback(self, value=None):
@@ -950,7 +950,6 @@ class Brain(object):
         else:
             self.callbacks["time"] = TimeCallBack(
                 brain=self,
-                first_call=False,
                 callback=self.plot_time_line,
             )
             self.widgets["time"] = _add_spin_box(
@@ -979,7 +978,7 @@ class Brain(object):
             self.callbacks["playback_speed"] = None
             self.widgets["playback_speed"] = None
         else:
-            self.callbacks["playback_speed"] = SmartSlider(
+            self.callbacks["playback_speed"] = SmartCallBack(
                 callback=self.set_playback_speed,
             )
             self.widgets["playback_speed"] = _add_spin_box(
@@ -996,7 +995,7 @@ class Brain(object):
         def select_renderer(idx):
             self.plotter._active_renderer_index = idx
 
-        self.callbacks["renderer"] = SmartSlider(
+        self.callbacks["renderer"] = SmartCallBack(
             callback=select_renderer,
         )
         self.widgets["renderer"] = _add_spin_box(
@@ -1009,6 +1008,55 @@ class Brain(object):
         )
         self.callbacks["renderer"].widget = \
             self.widgets["renderer"]
+
+        # Colormap slider
+        for idx, key in enumerate(self.keys):
+            name = "clim" if not idx else None
+            rng = _get_range(self)
+            self.callbacks[key] = BumpColorbarPoints(
+                brain=self,
+                name=key
+            )
+            self.widgets[key] = _add_spin_box(
+                layout=layout,
+                value=self._data[key],
+                rng=rng,
+                callback=self.callbacks[key],
+                name=name,
+            )
+
+        # fscale
+        self.callbacks["fscale"] = UpdateColorbarScale(
+            brain=self,
+        )
+        self.widgets["fscale"] = _add_spin_box(
+            layout=layout,
+            value=1.0,
+            rng=self.default_scaling_range,
+            callback=self.callbacks["fscale"],
+            name=None,
+        )
+        self.callbacks["fscale"].widget = self.widgets["fscale"]
+
+        # register colorbar slider representations
+        widgets = {key: self.widgets[key] for key in self.keys}
+        for name in ("fmin", "fmid", "fmax", "fscale"):
+            self.callbacks[name].widgets = widgets
+
+        # Smoothing slider
+        self.callbacks["smoothing"] = SmartCallBack(
+            callback=self.set_data_smoothing,
+        )
+        self.widgets["smoothing"] = _add_spin_box(
+            name="Smoothing",
+            layout=layout,
+            value=self._data['smoothing_steps'],
+            rng=self.default_smoothing_range,
+            callback=self.callbacks["smoothing"],
+            double=False,
+        )
+        self.callbacks["smoothing"].widget = \
+            self.widgets["smoothing"]
 
         layout.addStretch()
         content_widget.setLayout(layout)
@@ -1056,65 +1104,6 @@ class Brain(object):
         # Put other sliders on the bottom right view
         ri, ci = np.array(self._subplot_shape) - 1
         self.plotter.subplot(ri, ci)
-
-        # Smoothing slider
-        self.callbacks["smoothing"] = IntSlider(
-            plotter=self.plotter,
-            callback=self.set_data_smoothing,
-            first_call=False,
-        )
-        self.sliders["smoothing"] = self.plotter.add_slider_widget(
-            self.callbacks["smoothing"],
-            value=self._data['smoothing_steps'],
-            rng=self.default_smoothing_range, title="smoothing",
-            pointa=(0.82, 0.90),
-            pointb=(0.98, 0.90)
-        )
-        self.callbacks["smoothing"].slider_rep = \
-            self.sliders["smoothing"].GetRepresentation()
-
-        # Colormap slider
-        pointa = np.array((0.82, 0.26))
-        pointb = np.array((0.98, 0.26))
-        shift = np.array([0, 0.1])
-
-        for idx, key in enumerate(self.keys):
-            title = "clim" if not idx else ""
-            rng = _get_range(self)
-            self.callbacks[key] = BumpColorbarPoints(
-                plotter=self.plotter,
-                brain=self,
-                name=key
-            )
-            self.sliders[key] = self.plotter.add_slider_widget(
-                self.callbacks[key],
-                value=self._data[key],
-                rng=rng, title=title,
-                pointa=pointa + idx * shift,
-                pointb=pointb + idx * shift,
-                event_type="always",
-            )
-
-        # fscale
-        self.callbacks["fscale"] = UpdateColorbarScale(
-            plotter=self.plotter,
-            brain=self,
-        )
-        self.sliders["fscale"] = self.plotter.add_slider_widget(
-            self.callbacks["fscale"],
-            value=1.0,
-            rng=self.default_scaling_range, title="fscale",
-            pointa=(0.82, 0.10),
-            pointb=(0.98, 0.10)
-        )
-        self.callbacks["fscale"].slider_rep = \
-            self.sliders["fscale"].GetRepresentation()
-
-        # register colorbar slider representations
-        self.reps = \
-            {key: self.sliders[key].GetRepresentation() for key in self.keys}
-        for name in ("fmin", "fmid", "fmax", "fscale"):
-            self.callbacks[name].reps = self.reps
 
         # set the slider style
         self._set_slider_style()
@@ -2840,6 +2829,7 @@ class Brain(object):
                         self._renderer._set_colormap_range(
                             glyph_actor_, ctable, scalar_bar, rng)
                         scalar_bar = None
+        self._update()
 
     def set_data_smoothing(self, n_steps):
         """Set the number of smoothing steps.
@@ -3495,14 +3485,15 @@ def _get_range(brain):
     return [np.min(val), np.max(val)]
 
 
-def _add_spin_box(name, layout, value, rng, callback, double=True):
+def _add_spin_box(layout, value, rng, callback, double=True, name=None):
     from PyQt5 import QtCore
     from PyQt5.QtWidgets import QLabel, QDoubleSpinBox, QSpinBox
-    label = QLabel()
-    label.setTextFormat(QtCore.Qt.RichText)
-    label.setText("<b>" + name + "</b>")
-    label.setAlignment(QtCore.Qt.AlignCenter)
-    layout.addWidget(label)
+    if name is not None:
+        label = QLabel()
+        label.setTextFormat(QtCore.Qt.RichText)
+        label.setText("<b>" + name + "</b>")
+        label.setAlignment(QtCore.Qt.AlignCenter)
+        layout.addWidget(label)
 
     value = value if double else int(value)
     spin_box = QDoubleSpinBox() if double else QSpinBox()
