@@ -786,15 +786,6 @@ class Brain(object):
         else:
             self.dock_widget.hide()
 
-        # manage time label
-        time_label = self._data['time_label']
-        if self.time_actor is not None:
-            if not self.visibility and time_label is not None:
-                self.time_actor.SetInput(time_label(self._current_time))
-                self.time_actor.VisibilityOn()
-            else:
-                self.time_actor.VisibilityOff()
-
         self._update()
 
     def apply_auto_scaling(self):
@@ -892,7 +883,6 @@ class Brain(object):
             self.time_actor.SetPosition(0.5, 0.03)
             self.time_actor.GetTextProperty().SetJustificationToCentered()
             self.time_actor.GetTextProperty().BoldOn()
-            self.time_actor.VisibilityOff()
 
     def _configure_scalar_bar(self):
         if self._colorbar_added:
