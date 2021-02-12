@@ -993,7 +993,8 @@ class Brain(object):
 
         # Renderer widget
         def select_renderer(idx):
-            self.plotter._active_renderer_index = idx
+            loc = self.plotter.index_to_loc(idx)
+            self.plotter.subplot(*loc)
 
         self.callbacks["renderer"] = SmartCallBack(
             callback=select_renderer,
