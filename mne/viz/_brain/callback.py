@@ -103,30 +103,23 @@ class BumpColorbarPoints(object):
 class ShowView(object):
     """Class that selects the correct view."""
 
-    def __init__(self, plotter=None, brain=None, orientation=None,
-                 row=None, col=None, hemi=None):
-        self.plotter = plotter
+    def __init__(self, brain=None, data=None):
         self.brain = brain
-        self.orientation = orientation
-        self.short_orientation = [s[:3] for s in orientation]
-        self.row = row
-        self.col = col
-        self.hemi = hemi
-        self.slider_rep = None
+        self.data = data
+        self.widget = None
 
     def __call__(self, value, update_widget=False):
         """Update the view."""
-        self.brain.show_view(value, row=self.row, col=self.col,
-                             hemi=self.hemi)
-        if update_widget:
-            if len(value) > 3:
-                idx = self.orientation.index(value)
-            else:
-                idx = self.short_orientation.index(value)
-            if self.slider_rep is not None:
-                self.slider_rep.SetValue(idx)
-                self.slider_rep.SetTitleText(self.orientation[idx])
-                self.plotter.update()
+        idx = self.brain.widgets["renderer"].value()
+        if self.data[idx] is not None:
+            self.brain.show_view(
+                value,
+                row=self.data[idx]['row'],
+                col=self.data[idx]['col'],
+                hemi=self.data[idx]['hemi'],
+            )
+        if update_widget and self.widget is not None:
+            self.widget.setValue(value)
 
 
 class SmartCallBack(object):

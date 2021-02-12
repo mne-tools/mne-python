@@ -611,7 +611,6 @@ class Brain(object):
         self.icons = dict()
         self.actions = dict()
         self.callbacks = dict()
-        self.sliders = dict()
         self.widgets = dict()
         self.keys = ('fmin', 'fmid', 'fmax')
         self.slider_length = 0.02
@@ -665,7 +664,6 @@ class Brain(object):
 
         self._configure_time_label()
         self._configure_widgets()
-        self._configure_sliders()
         self._configure_scalar_bar()
         self._configure_shortcuts()
         self._configure_picking()
@@ -715,10 +713,10 @@ class Brain(object):
         if getattr(self.plotter, 'picker', None) is not None:
             self.plotter.picker = None
         # XXX end PyVista
-        for key in ('reps', 'plotter', 'main_menu', 'window', 'tool_bar',
+        for key in ('plotter', 'main_menu', 'window', 'tool_bar',
                     'status_bar', 'interactor', 'mpl_canvas', 'time_actor',
                     'picked_renderer', 'act_data_smooth', '_iren',
-                    'actions', 'sliders', 'geo', '_hemi_actors', '_data'):
+                    'actions', 'geo', '_hemi_actors', '_data'):
             setattr(self, key, None)
 
     @contextlib.contextmanager
@@ -787,14 +785,6 @@ class Brain(object):
             self.dock_widget.show()
         else:
             self.dock_widget.hide()
-
-        # manage sliders
-        for slider in self.plotter.slider_widgets:
-            slider_rep = slider.GetRepresentation()
-            if self.visibility:
-                slider_rep.VisibilityOn()
-            else:
-                slider_rep.VisibilityOff()
 
         # manage time label
         time_label = self._data['time_label']
@@ -896,23 +886,6 @@ class Brain(object):
         if time_point == max_time:
             self.toggle_playback(value=False)
 
-    def _set_slider_style(self):
-        for slider in self.sliders.values():
-            if slider is not None:
-                slider_rep = slider.GetRepresentation()
-                slider_rep.SetSliderLength(self.slider_length)
-                slider_rep.SetSliderWidth(self.slider_width)
-                slider_rep.SetTubeWidth(self.slider_tube_width)
-                slider_rep.GetSliderProperty().SetColor(self.slider_color)
-                slider_rep.GetTubeProperty().SetColor(self.slider_tube_color)
-                slider_rep.GetLabelProperty().SetShadow(False)
-                slider_rep.GetLabelProperty().SetBold(True)
-                slider_rep.GetLabelProperty().SetColor(self._fg_color)
-                slider_rep.GetTitleProperty().ShallowCopy(
-                    slider_rep.GetLabelProperty()
-                )
-                slider_rep.GetCapProperty().SetOpacity(0)
-
     def _configure_time_label(self):
         self.time_actor = self._data.get('time_actor')
         if self.time_actor is not None:
@@ -1010,6 +983,33 @@ class Brain(object):
         self.callbacks["renderer"].widget = \
             self.widgets["renderer"]
 
+        # Orientation widget
+        # Use 'lh' as a reference for orientation for 'both'
+        if self._hemi == 'both':
+            hemis_ref = ['lh']
+        else:
+            hemis_ref = self._hemis
+        orientation_data = [None] * 4
+        for hemi in hemis_ref:
+            for ri, ci, view in self._iter_views(hemi):
+                idx = self.plotter.loc_to_index((ri, ci))
+                if view == 'flat':
+                    _data = None
+                else:
+                    _data = dict(default=view, hemi=hemi, row=ri, col=ci)
+                orientation_data[idx] = _data
+        self.callbacks["orientation"] = ShowView(
+            brain=self,
+            data=orientation_data,
+        )
+        self.widgets["orientation"] = _add_combo_box(
+            layout=layout,
+            value=orientation_data[0]["default"],
+            rng=self.orientation,
+            callback=self.callbacks["orientation"],
+            name="Orientation",
+        )
+
         # Colormap slider
         for idx, key in enumerate(self.keys):
             name = "clim" if not idx else None
@@ -1064,50 +1064,6 @@ class Brain(object):
         dock_widget.setWidget(content_widget)
         self.window.addDockWidget(QtCore.Qt.LeftDockWidgetArea, dock_widget)
         self.dock_widget = dock_widget
-
-    def _configure_sliders(self):
-        # Orientation slider
-        # Use 'lh' as a reference for orientation for 'both'
-        if self._hemi == 'both':
-            hemis_ref = ['lh']
-        else:
-            hemis_ref = self._hemis
-        for hemi in hemis_ref:
-            for ri, ci, view in self._iter_views(hemi):
-                orientation_name = f"orientation_{hemi}_{ri}_{ci}"
-                self.plotter.subplot(ri, ci)
-                if view == 'flat':
-                    self.callbacks[orientation_name] = None
-                    continue
-                self.callbacks[orientation_name] = ShowView(
-                    plotter=self.plotter,
-                    brain=self,
-                    orientation=self.orientation,
-                    hemi=hemi,
-                    row=ri,
-                    col=ci,
-                )
-                self.sliders[orientation_name] = \
-                    self.plotter.add_text_slider_widget(
-                    self.callbacks[orientation_name],
-                    value=0,
-                    data=self.orientation,
-                    pointa=(0.82, 0.74),
-                    pointb=(0.98, 0.74),
-                    event_type='always'
-                )
-                orientation_rep = \
-                    self.sliders[orientation_name].GetRepresentation()
-                orientation_rep.ShowSliderLabelOff()
-                self.callbacks[orientation_name].slider_rep = orientation_rep
-                self.callbacks[orientation_name](view, update_widget=True)
-
-        # Put other sliders on the bottom right view
-        ri, ci = np.array(self._subplot_shape) - 1
-        self.plotter.subplot(ri, ci)
-
-        # set the slider style
-        self._set_slider_style()
 
     def _configure_playback(self):
         self.plotter.add_callback(self._play, self.refresh_rate_ms)
@@ -3486,15 +3442,20 @@ def _get_range(brain):
     return [np.min(val), np.max(val)]
 
 
-def _add_spin_box(layout, value, rng, callback, double=True, name=None):
+def _add_label(layout, value):
     from PyQt5 import QtCore
-    from PyQt5.QtWidgets import QLabel, QDoubleSpinBox, QSpinBox
+    from PyQt5.QtWidgets import QLabel
+    label = QLabel()
+    label.setTextFormat(QtCore.Qt.RichText)
+    label.setText("<b>" + value + "</b>")
+    label.setAlignment(QtCore.Qt.AlignCenter)
+    layout.addWidget(label)
+
+
+def _add_spin_box(layout, value, rng, callback, double=True, name=None):
+    from PyQt5.QtWidgets import QDoubleSpinBox, QSpinBox
     if name is not None:
-        label = QLabel()
-        label.setTextFormat(QtCore.Qt.RichText)
-        label.setText("<b>" + name + "</b>")
-        label.setAlignment(QtCore.Qt.AlignCenter)
-        layout.addWidget(label)
+        _add_label(layout, name)
 
     value = value if double else int(value)
     spin_box = QDoubleSpinBox() if double else QSpinBox()
@@ -3504,6 +3465,19 @@ def _add_spin_box(layout, value, rng, callback, double=True, name=None):
     spin_box.valueChanged.connect(callback)
     layout.addWidget(spin_box)
     return spin_box
+
+
+def _add_combo_box(layout, value, rng, callback, name=None):
+    from PyQt5.QtWidgets import QComboBox
+    if name is not None:
+        _add_label(layout, name)
+
+    combo_box = QComboBox()
+    combo_box.addItems(rng)
+    combo_box.setCurrentText(value)
+    combo_box.textActivated.connect(callback)
+    layout.addWidget(combo_box)
+    return combo_box
 
 
 class _FakeIren():
