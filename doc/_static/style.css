@@ -160,18 +160,31 @@ div.frontpage-gallery:hover .fadeout {
     text-align: right;
 }
 
-/* ********************* fix theme bug (handled by doc/_static/scrollfix.js) */
-:target::before {
-    display: unset;
-    margin: unset;
-    background-color: unset;
-    content: unset;
-}
-
 /* *********************************************************** miscellaneous */
 .hidden {
     display: none;
 }
 img.hidden {
     visibility: hidden;
+}
+
+/* workaround for https://github.com/pydata/pydata-sphinx-theme/issues/315
+   (other part of workaround is in doc/_static/scrollfix.js) */
+   :target::before {
+    /* must use !important here to override sphinx-gallery CSS too, which
+       uses more specific selectors */
+    display: unset !important;
+    margin: unset !important;
+    height: unset !important;
+    background-color: unset !important;
+}
+
+/* workaround for https://github.com/pydata/pydata-sphinx-theme/pull/313     */
+.navbar {
+    overflow: visible;
+    height: var(--header-height);
+    min-height: unset;
+}
+#navbar-menu {
+    background-color: #fff;
 }
