@@ -243,11 +243,6 @@ axes[0].set(title="PSD spectrum", ylabel='Power Spectral Density [dB]')
 snr_mean = snrs.mean(axis=(0, 1))[rng]
 snr_std = snrs.std(axis=(0, 1))[rng]
 
-
-#axes[1].plot(freqs, snrs.mean(axis=0).T, color='grey', alpha=0.1)
-#axes[1].axvline(x=stim_freq, ls=':')
-#axes[1].plot(freqs, snrs.mean(axis=(0, 1)), color='r')
-
 axes[1].plot(freqs[rng], snr_mean, color='r')
 axes[1].fill_between(freqs[rng], snr_mean - snr_std, snr_mean + snr_std,
                   color='r', alpha=.2)
@@ -335,17 +330,10 @@ i_trial_15hz = np.where(epochs.events[:, 2] == event_id['15hz'])
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 # Define different ROIs
-roi_temporal = ['T7', 'F7', 'T8', 'F8']  # temporal
-roi_aud = ['AFz', 'Fz', 'FCz', 'Cz', 'CPz', 'F1', 'FC1',
-           'C1', 'CP1', 'F2', 'FC2', 'C2', 'CP2']  # auditory roi
 roi_vis = ['POz', 'Oz', 'O1', 'O2', 'PO3', 'PO4', 'PO7',
            'PO8', 'PO9', 'PO10', 'O9', 'O10']  # visual roi
 
 # Find corresponding indices using mne.pick_types()
-picks_roi_temp = mne.pick_types(epochs.info, eeg=True, stim=False,
-                                exclude='bads', selection=roi_temporal)
-picks_roi_aud = mne.pick_types(epochs.info, eeg=True, stim=False,
-                               exclude='bads', selection=roi_aud)
 picks_roi_vis = mne.pick_types(epochs.info, eeg=True, stim=False,
                                exclude='bads', selection=roi_vis)
 
@@ -404,40 +392,40 @@ print("12 hz SNR in occipital ROI is significantly larger than 12 hz SNR over al
 
 
 ##############################################################################
-# We can see, that 1) this participant indeed exhibits a cluster of chanels
+# We can see, that 1) this participant indeed exhibits a cluster of channels
 # with high SNR in the occipital region and 2) that the average SNR over all
 # channels is smaller than the average of the visual ROI computed above.
 # The difference is statistically significant. Great!
 #
-# Such a topoplot can be a nice tool to explore and play with your data - e.g.
-# you could try how changing the reference will affect the spatial
+# Such a topography plot can be a nice tool to explore and play with your data
+# - e.g. you could try how changing the reference will affect the spatial
 # distribution of SNR values.
 #
-# However, we also wanted to show this plot to illustrate
-# a large problem with frequency-tagged or any other brain imaging data:
-# there are many channels and somewhere you will likely find some significant
-# effects. It's very easy - even unintended - to end up
-# double-dipping or p-hacking.
-# Avoid this either by selecting your ROI or channels for analysis *a priori*
-# (and ideally preregister this decision, so people will believe you), or if
-# you select an ROI or individual channel for reporting *because this channel
-# or ROI shows an effect* do so transparently and correct for multiple
-# comparison.
-
+# However, we also wanted to show this plot to point at a potential
+# problem with frequency-tagged (or any other brain imaging) data:
+# there are many channels and somewhere you will likely find some
+# statistically significant effect.
+# It is very easy - even unintended - to end up double-dipping or p-hacking.
+# So if you want to work with an ROI or individual channels, ideally select
+# them *a priori* - before collecting or looking at the data - and preregister
+# this decision so people will believe you.
+# If you end up selecting an ROI or individual channel for reporting *because
+# this channel or ROI shows an effect*, e.g. in an explorative analysis, this
+# is also fine but make it transparently and correct for multiple comparison.
 
 ##############################################################################
 # Statistical analysis
 # --------------------
-# Now that we finished this edgy little open science lesson let's move on and
+# Back from this little detour into open science, let's move on and
 # do the analyses we actually wanted to do:
 #
-# We will show that we can easily discriminate the two responses in the
-# different trials.
+# We will show that we can easily discriminate the brains responses in the
+# trials with different stimulation frequencies.
 #
 # In the frequency and SNR spectrum plot above, we had all trials mixed up.
-# Now we will extract 12 and 15 hz SNR as well as the 1st and 2nd harmonic
-# in both types of trials individually, and compare the values with a
-# simple t-test.
+# Now we will extract 12 and 15 hz SNR as well as SNR of the 1st and 2nd
+# harmonic in both types of trials individually, and compare the values with
+# a simple t-test.
 #
 
 snrs_roi = snrs[:, picks_roi_vis, :].mean(axis=1)
@@ -512,7 +500,13 @@ print("15 hz trials: 36 hz SNR is significantly lower than 45 hz SNR"
 ##############################################################################
 # Debriefing
 # ----------
-# tbd
+# So that's it, we hope you enjoyed our little tour through this example
+# dataset.
+#
+# As you could see, frequency-tagging is a very powerful tool that can yield
+# very high signal to noise ratios and effect sizes that enable you to detect
+# brain responses even within a single participant and single trials of only
+# a few seconds duration.
 #
 
 ##############################################################################
