@@ -818,7 +818,7 @@ class Brain(object):
         """Restore original scaling parameters."""
         self._update_auto_scaling(restore=True)
         for key in ('fmin', 'fmid', 'fmax'):
-            self.widgets[key].SetValue(self._data[key])
+            self.widgets[key].setValue(self._data[key])
         self._update()
 
     def toggle_playback(self, value=None):
