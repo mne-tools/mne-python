@@ -479,6 +479,8 @@ def _run_maxwell_filter(
     logger.info(
         '    Processing %s data chunk%s' % (len(starts), _pl(starts)))
     for ii, (start, stop) in enumerate(zip(starts, stops)):
+        if start == stop:
+            continue  # Skip zero-length annotations
         tsss_valid = (stop - start) >= st_duration
         rel_times = raw_sss.times[start:stop]
         t_str = '%8.3f - %8.3f sec' % tuple(rel_times[[0, -1]])
