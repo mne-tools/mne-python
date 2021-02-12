@@ -48,8 +48,8 @@ class UpdateColorbarScale(object):
         for key in self.keys:
             if self.widgets[key] is not None:
                 self.widgets[key].setValue(self.brain._data[key])
-        # if self.widget is not None:
-        #     self.widget.setValue(1.0)
+        if self.widget is not None:
+            self.widget.setValue(1.0)
 
 
 class BumpColorbarPoints(object):
