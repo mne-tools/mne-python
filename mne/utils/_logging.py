@@ -50,13 +50,12 @@ _filter = _FrameFilter()
 logger.addFilter(_filter)
 
 
-# Provide help for static type checkers: see
-# https://github.com/microsoft/pyright/blob/8ca2c14a7a71a5f19db2082ecb531cb0f76b484d/docs/type-stubs.md#cleaning-up-generated-type-stubs  # noqa
-# point 3
+# Provide help for static type checkers:
+# https://mypy.readthedocs.io/en/stable/generics.html#declaring-decorators
 _FuncT = TypeVar('_FuncT', bound=Callable[..., Any])
 
 
-def verbose(function) -> Callable[[_FuncT], _FuncT]:
+def verbose(function: _FuncT) -> _FuncT:
     """Verbose decorator to allow functions to override log-level.
 
     Parameters
