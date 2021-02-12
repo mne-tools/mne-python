@@ -45,13 +45,13 @@ from scipy.stats import ttest_rel, ttest_ind
 # Data preprocessing
 # ------------------
 # Due to a generally high SNR in SSVEP/vSSR, typical preprocessing steps
-# are considered optional. this doesnt mean, that a proper cleaning would not
+# are considered optional. This doesn't mean, that a proper cleaning would not
 # increase your signal quality!
 #
 # - Raw data come with FCz recording reference, so we will apply common-average rereferencing.
-# - We will apply a 50 Hz notch-filter to remove line-noise,
+# - We will apply a 50 Hz notch filter to remove line noise,
 # - and a 0.1 - 250 Hz bandpass filter.
-# - Lastly we will cut the data in 20 s epochs according to the trials.
+# - Lastly, we will cut the data in 20 s epochs corresponding to the trials.
 
 # Load raw data
 data_path = mne.datasets.ssvep.data_path()
@@ -106,8 +106,8 @@ epochs = mne.Epochs(raw, events=events, event_id=[event_id['12hz'], event_id['15
 # their harmonics, without any further processing.
 #
 # The 'classical' PSD plot will be compared to a plot of the SNR spectrum.
-# SNR will be computed as the power in a given frequency bin
-# relative to the average power in it's neighboring bins.
+# SNR will be computed as a ratio of the power in a given frequency bin
+# to the average power in its neighboring bins.
 # This procedure has two advantages over using the raw PSD:
 #
 # * it normalizes the spectrum and accounts for 1/f power decay.
@@ -142,7 +142,7 @@ psds, freqs = mne.time_frequency.psd_welch(
 #
 # SNR - as we define it here - is a measure of relative power:
 # it's the ratio of power in a given frequency bin - the 'signal' -
-# compared to a 'noise' baseline - the average power in the surrounding frequency bins.
+# to a 'noise' baseline - the average power in the surrounding frequency bins.
 #
 # Hence, we need to set some parameters for this baseline - how many
 # neighboring bins should be taken for this computation, and do we want to skip
@@ -220,7 +220,7 @@ snrs = snr_spectrum(psds, noise_n_neighborfreqs=3,
 ##############################################################################
 # Plot PSD and SNR spectra
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# Now we will plot grand average PSD (in blue) and SNR (in red) +- STD
+# Now we will plot grand average PSD (in blue) and SNR (in red) ± sd
 # for every frequency bin.
 # PSD is plotted on a log scale.
 #
@@ -266,7 +266,7 @@ fig.show()
 # and also removes the 1/f decay in the PSD.
 #
 # Note, that while the SNR plot implies the possibility of values below 0
-# (mean minus STD) such values do not make sense.
+# (mean minus sd) such values do not make sense.
 # Each SNR value is a ratio of positive PSD values, and the lowest possible PSD
 # value is 0 (negative Y-axis values in the upper panel only result from
 # plotting PSD on a log scale).
@@ -286,7 +286,7 @@ fig.show()
 #
 # For statistical analysis we obviously need to define specific subsets of this
 # array. First of all, we are only interested in SNR at the stimulation frequency,
-# but we also wanted to restrict analysis to a spatial ROI. The most interesting
+# but we also want to restrict the analysis to a spatial ROI. The most interesting
 # questions, however, will probably rely on comparing SNR in different trials.
 #
 # Since we here have a large SNR array with all conditions, we will have to find
@@ -431,7 +431,7 @@ print("12 hz SNR in occipital ROI is significantly larger than 12 hz SNR over al
 # Now that we finished this edgy little open science lesson let's move on and
 # do the analyses we actually wanted to do:
 #
-# We will show that we can well discriminate the two responses in the
+# We will show that we can easily discriminate the two responses in the
 # different trials.
 #
 # In the frequency and SNR spectrum plot above, we had all trials mixed up.
@@ -519,7 +519,7 @@ print("15 hz trials: 36 hz SNR is significantly lower than 45 hz SNR"
 # Bonus exercises
 # ---------------
 # For the overly motivated amongst you, let's see what else we can show with
-# these our data..
+# these data.
 #
 # Using Welch's method as implemented in MNE makes it very easy to change
 # the amount of data that is actually used in the spectrum
@@ -534,7 +534,7 @@ print("15 hz trials: 36 hz SNR is significantly lower than 45 hz SNR"
 # Effect of trial duration on SNR
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # First we will simulate shorter trials by taking the first x s of our 20s trials
-# (2,4,6,8, ..,20 s), and compute the SNR using a welch window that covers the
+# (2, 4, 6, 8, ..., 20 s), and compute the SNR using a welch window that covers the
 # entire epoch:
 #
 
@@ -573,11 +573,11 @@ plt.show()
 # This should be easy to understand: in longer recordings there is simply more signal
 # (one second of additional stimulation adds, in our case, 12 cycles of signal)
 # while the noise is (hopefully) stochastic and not locked to the stimulation frequency.
-# in other words: with more data the signal term grows faster than the noise term.
+# In other words: with more data the signal term grows faster than the noise term.
 #
 
 ##############################################################################
-# Effect of Welch window
+# Effect of the Welch window size
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # Let's now look at the effect of the Welch window from two different perspectives:
 # For the first plot we kept the entire 20s of data, but changed the length of the Welch window.
@@ -664,8 +664,8 @@ plt.show()
 # ..and finally we can trick MNE's PSD implementation to make it a
 # sliding window analysis and come up with a time resolved SNR measure.
 # This will reveal whether a participant blinked or scratched their head..
-# differently colored lines for the ten different trials.
-#
+# 
+# Each of the ten trials is coded with a different color in the plot below.
 
 
 # 3s sliding window
@@ -699,11 +699,10 @@ plt.axhline(1, ls='--', c='r')
 plt.show()
 
 ##############################################################################
-# well.. turns out this was a bit too optimistic ;)
+# Well.. turns out this was a bit too optimistic ;)
 #
-# but seriously: this was a nice idea, but we've simply reached the limit of
+# But seriously: this was a nice idea, but we've simply reached the limit of
 # what's possible with this single-subject example dataset.
 # There are certainly data or applications where such an analysis makes more sense.
-
 
 
