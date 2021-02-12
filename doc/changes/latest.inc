@@ -74,6 +74,8 @@ Enhancements
 
 - The signal of ``resp`` (respiratory) channels is now assumed to be in the unit Volt  (:gh:`8858` by `Richard Höchenberger`_)
 
+- Static type checkers like Pylance (comes with VS Code) now display the parameters of many more functions correctly, largely improving overall usability for VS Code users (:gh:`8862` by `Richard Höchenberger`_)
+
 Bugs
 ~~~~
 - Fix bug with `mne.connectivity.spectral_connectivity` where time axis in Epochs data object was dropped. (:gh:`8839` **by new contributor** |Anna Padee|_)

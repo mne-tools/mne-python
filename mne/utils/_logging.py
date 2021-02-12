@@ -12,6 +12,7 @@ import sys
 import logging
 import os.path as op
 import warnings
+from typing import Any, Callable, TypeVar
 
 from .docs import fill_doc
 from ..externals.decorator import FunctionMaker
@@ -49,7 +50,12 @@ _filter = _FrameFilter()
 logger.addFilter(_filter)
 
 
-def verbose(function):
+# Provide help for static type checkers:
+# https://mypy.readthedocs.io/en/stable/generics.html#declaring-decorators
+_FuncT = TypeVar('_FuncT', bound=Callable[..., Any])
+
+
+def verbose(function: _FuncT) -> _FuncT:
     """Verbose decorator to allow functions to override log-level.
 
     Parameters
