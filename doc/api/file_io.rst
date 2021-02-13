@@ -41,6 +41,7 @@ File I/O
    write_labels_to_annot
    write_bem_solution
    write_bem_surfaces
+   write_head_bem
    write_cov
    write_events
    write_evokeds
