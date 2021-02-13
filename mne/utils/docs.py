@@ -2583,5 +2583,5 @@ def deprecated_alias(dep_name, func, removed_in=None):
     # Inject a deprecated version into the namespace
     inspect.currentframe().f_back.f_globals[dep_name] = deprecated(
         f'{dep_name} has been deprecated in favor of {func.__name__} and will '
-        f'be removed in {removed_in}'
+        f'be removed in {removed_in}.'
     )(deepcopy(func))
