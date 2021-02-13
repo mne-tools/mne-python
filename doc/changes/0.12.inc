@@ -50,7 +50,7 @@ Changelog
 
 - Add epoch rejection based on annotated segments by `Jaakko Leppakangas`_
 
-- Add option to use new-style MEG channel names in :func:`mne.read_selection` by `Eric Larson`_
+- Add option to use new-style MEG channel names in ``mne.read_selection`` by `Eric Larson`_
 
 - Add option for ``proj`` in :class:`mne.EpochsArray` by `Eric Larson`_
 

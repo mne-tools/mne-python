@@ -2,7 +2,7 @@ import os.path as op
 
 import pytest
 
-from mne import read_selection
+from mne import read_neuromag_selection
 from mne.io import read_raw_fif
 from mne.utils import run_tests_if_main
 
@@ -11,7 +11,7 @@ raw_fname = op.join(test_path, 'test_raw.fif')
 raw_new_fname = op.join(test_path, 'test_chpi_raw_sss.fif')
 
 
-def test_read_selection():
+def test_read_neuromag_selection():
     """Test reading of selections."""
     # test one channel for each selection
     ch_names = ['MEG 2211', 'MEG 0223', 'MEG 1312', 'MEG 0412', 'MEG 1043',
@@ -22,30 +22,30 @@ def test_read_selection():
 
     raw = read_raw_fif(raw_fname)
     for i, name in enumerate(sel_names):
-        sel = read_selection(name)
+        sel = read_neuromag_selection(name)
         assert ch_names[i] in sel
-        sel_info = read_selection(name, info=raw.info)
+        sel_info = read_neuromag_selection(name, info=raw.info)
         assert sel == sel_info
 
     # test some combinations
-    all_ch = read_selection(['L', 'R'])
-    left = read_selection('L')
-    right = read_selection('R')
+    all_ch = read_neuromag_selection(['L', 'R'])
+    left = read_neuromag_selection('L')
+    right = read_neuromag_selection('R')
 
     assert len(all_ch) == len(left) + len(right)
     assert len(set(left).intersection(set(right))) == 0
 
-    frontal = read_selection('frontal')
-    occipital = read_selection('Right-occipital')
+    frontal = read_neuromag_selection('frontal')
+    occipital = read_neuromag_selection('Right-occipital')
     assert len(set(frontal).intersection(set(occipital))) == 0
 
     ch_names_new = [ch.replace(' ', '') for ch in ch_names]
     raw_new = read_raw_fif(raw_new_fname)
     for i, name in enumerate(sel_names):
-        sel = read_selection(name, info=raw_new.info)
+        sel = read_neuromag_selection(name, info=raw_new.info)
         assert ch_names_new[i] in sel
 
-    pytest.raises(TypeError, read_selection, name, info='foo')
+    pytest.raises(TypeError, read_neuromag_selection, name, info='foo')
 
 
 run_tests_if_main()

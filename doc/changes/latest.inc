@@ -76,6 +76,16 @@ Enhancements
 
 - Static type checkers like Pylance (comes with VS Code) now display the parameters of many more functions correctly, largely improving overall usability for VS Code users (:gh:`8862` by `Richard Höchenberger`_)
 
+- Add ``match_alias`` parameter to :meth:`mne.io.Raw.set_montage` and related functions to match unrecognized channel location names to known aliases (:gh`8799` **by new contributor** |Zhi Zhang|_)
+
+API changes
+~~~~~~~~~~~
+- None
+
+Deprecations
+~~~~~~~~~~~~
+- ``mne.read_selection`` has been deprecated in favor of `mne.read_neuromag_selection`. ``mne.read_selection`` will be removed in MNE-Python 0.24 (:gh:`8870` by `Richard Höchenberger`_)
+
 Bugs
 ~~~~
 - Fix bug with `mne.connectivity.spectral_connectivity` where time axis in Epochs data object was dropped. (:gh:`8839` **by new contributor** |Anna Padee|_)
@@ -138,7 +148,3 @@ Bugs
 
 - `~mne.io.read_raw_bti` erroneously treated response channels as respiratory channels (:gh:`8855` by `Richard Höchenberger`_)
 
-API changes
-~~~~~~~~~~~
-
-- Add ``match_alias`` parameter to :meth:`mne.io.Raw.set_montage` and related functions to match unrecognized channel location names to known aliases (:gh`8799` **by new contributor** |Zhi Zhang|_)

@@ -15,7 +15,9 @@ from .montage import (DigMontage,
                       compute_native_head_t)
 from .channels import (equalize_channels, rename_channels, fix_mag_coil_types,
                        read_ch_adjacency, _get_ch_type, find_ch_adjacency,
-                       make_1020_channel_selections, combine_channels)
+                       make_1020_channel_selections, combine_channels,
+                       read_neuromag_selection, _SELECTIONS, _EEG_SELECTIONS,
+                       _divide_to_regions)
 
 __all__ = [
     # Data Structures
@@ -35,6 +37,7 @@ __all__ = [
     'rename_channels', 'make_1020_channel_selections',
     '_get_ch_type', 'equalize_channels', 'find_ch_adjacency', 'find_layout',
     'fix_mag_coil_types', 'generate_2d_layout', 'get_builtin_montages',
+    'combine_channels', 'read_neuromag_selection',
 
     # Other
     'compute_dev_head_t', 'compute_native_head_t',

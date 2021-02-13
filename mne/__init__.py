@@ -89,9 +89,9 @@ from .transforms import (read_trans, write_trans,
                          transform_surface_to, Transform)
 from .proj import (read_proj, write_proj, compute_proj_epochs,
                    compute_proj_evoked, compute_proj_raw, sensitivity_map)
-from .selection import read_selection
 from .dipole import read_dipole, Dipole, DipoleFixed, fit_dipole
-from .channels import equalize_channels, rename_channels, find_layout
+from .channels import (equalize_channels, rename_channels, find_layout,
+                       read_neuromag_selection)
 from .report import Report, open_report
 
 from .io import read_epochs_fieldtrip, read_evoked_fieldtrip, read_evokeds_mff
@@ -121,6 +121,10 @@ from . import surface
 from . import time_frequency
 from . import viz
 from . import decoding
+
+# deprecations
+from .utils import deprecated_alias
+deprecated_alias('read_selection', read_neuromag_selection)
 
 # initialize logging
 set_log_level(None, False)

@@ -12,7 +12,7 @@ import mne
 from mne.transforms import apply_trans, invert_transform
 from mne import (convert_forward_solution, read_forward_solution, compute_rank,
                  VolVectorSourceEstimate, VolSourceEstimate, EvokedArray,
-                 pick_channels_cov)
+                 pick_channels_cov, read_neuromag_selection)
 from mne.beamformer import (make_lcmv, apply_lcmv, apply_lcmv_epochs,
                             apply_lcmv_raw, Beamformer,
                             read_beamformer, apply_lcmv_cov, make_dics)
@@ -70,7 +70,7 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
     # Setup for reading the raw data
     raw.info['bads'] = ['MEG 2443', 'EEG 053']  # 2 bad channels
     # Set up pick list: MEG - bad channels
-    left_temporal_channels = mne.read_selection('Left-temporal')
+    left_temporal_channels = read_neuromag_selection('Left-temporal')
     picks = mne.pick_types(raw.info, meg=True,
                            selection=left_temporal_channels)
     picks = picks[::2]  # decimate for speed
