@@ -924,7 +924,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     else:
         if ch_groups in ['position', 'selection']:
             # Avoid circular import
-            from ..channels import (read_neuromag_selection, _SELECTIONS,
+            from ..channels import (read_vectorview_selection, _SELECTIONS,
                                     _EEG_SELECTIONS, _divide_to_regions)
 
             if ch_groups == 'position':
@@ -935,7 +935,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
                 for selection in _SELECTIONS + _EEG_SELECTIONS:
                     channels = pick_channels(
                         info['ch_names'],
-                        read_neuromag_selection(selection, info=info))
+                        read_vectorview_selection(selection, info=info))
                     ch_groups.append(channels)
             color_vals = np.ones((len(ch_groups), 4))
             for idx, ch_group in enumerate(ch_groups):

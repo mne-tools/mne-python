@@ -36,7 +36,7 @@ raw.info['bads'] = ['MEG 2443']  # 1 bad MEG channel
 # Pick a selection of magnetometer channels. A subset of all channels was used
 # to speed up the example. For a solution based on all MEG channels use
 # meg=True, selection=None and add mag=4e-12 to the reject dictionary.
-left_temporal_channels = mne.read_neuromag_selection('Left-temporal')
+left_temporal_channels = mne.read_vectorview_selection('Left-temporal')
 picks = mne.pick_types(raw.info, meg='mag', eeg=False, eog=False,
                        stim=False, exclude='bads',
                        selection=left_temporal_channels)

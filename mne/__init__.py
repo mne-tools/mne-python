@@ -91,7 +91,7 @@ from .proj import (read_proj, write_proj, compute_proj_epochs,
                    compute_proj_evoked, compute_proj_raw, sensitivity_map)
 from .dipole import read_dipole, Dipole, DipoleFixed, fit_dipole
 from .channels import (equalize_channels, rename_channels, find_layout,
-                       read_neuromag_selection)
+                       read_vectorview_selection)
 from .report import Report, open_report
 
 from .io import read_epochs_fieldtrip, read_evoked_fieldtrip, read_evokeds_mff
@@ -124,7 +124,7 @@ from . import decoding
 
 # deprecations
 from .utils import deprecated_alias
-deprecated_alias('read_selection', read_neuromag_selection)
+deprecated_alias('read_selection', read_vectorview_selection)
 
 # initialize logging
 set_log_level(None, False)

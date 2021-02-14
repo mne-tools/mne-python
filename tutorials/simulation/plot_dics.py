@@ -188,7 +188,7 @@ assert len(epochs) == 2  # ensure that we got the two expected events
 # Plot some of the channels of the simulated data that are situated above one
 # of our simulated sources.
 picks = mne.pick_channels(epochs.ch_names,
-                          mne.read_neuromag_selection('Left-frontal'))
+                          mne.read_vectorview_selection('Left-frontal'))
 epochs.plot(picks=picks)
 
 ###############################################################################

@@ -84,7 +84,7 @@ API changes
 
 Deprecations
 ~~~~~~~~~~~~
-- ``mne.read_selection`` has been deprecated in favor of `mne.read_neuromag_selection`. ``mne.read_selection`` will be removed in MNE-Python 0.24 (:gh:`8870` by `Richard Höchenberger`_)
+- ``mne.read_selection`` has been deprecated in favor of `mne.read_vectorview_selection`. ``mne.read_selection`` will be removed in MNE-Python 0.24 (:gh:`8870` by `Richard Höchenberger`_)
 
 Bugs
 ~~~~

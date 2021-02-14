@@ -1844,8 +1844,8 @@ def _divide_side(lobe, x):
 
 
 @verbose
-def read_neuromag_selection(name, fname=None, info=None, verbose=None):
-    """Read NeuroMag channel selection from a file.
+def read_vectorview_selection(name, fname=None, info=None, verbose=None):
+    """Read Neuromag Vector View channel selection from a file.
 
     By default, the selections used in ``mne_browse_raw`` are supported.
     Additional selections can be added by specifying a selection file (e.g.

@@ -13,7 +13,7 @@ import pytest
 from pathlib import Path
 
 import mne
-from mne import read_neuromag_selection
+from mne import read_vectorview_selection
 from mne.datasets import testing
 from mne.io.pick import pick_channels_cov
 from mne.utils import (check_random_state, _check_fname, check_fname,
@@ -85,7 +85,7 @@ def _get_data():
     event_id, tmin, tmax = 1, -0.1, 0.15
 
     # decimate for speed
-    left_temporal_channels = read_neuromag_selection('Left-temporal')
+    left_temporal_channels = read_vectorview_selection('Left-temporal')
     picks = mne.pick_types(raw.info, meg=True,
                            selection=left_temporal_channels)
     picks = picks[::2]
