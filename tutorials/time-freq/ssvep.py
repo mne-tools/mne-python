@@ -4,35 +4,35 @@ Basic analysis of an SSVEP/vSSR dataset
 =======================================
 
 In this tutorial we compute the frequency spectrum and quantify signal-to-noise
-ratio (SNR) at a target frequency in EEG data recorded during fast periodic 
-visual stimulation (FPVS). 
-Extracting SNR at stimulation frequency is a simple way to quantify frequency 
-tagged responses in MEEG (a.k.a. steady state visually evoked potentials, 
-SSVEP, or visual steady-state responses, vSSR in the visual domain, 
+ratio (SNR) at a target frequency in EEG data recorded during fast periodic
+visual stimulation (FPVS).
+Extracting SNR at stimulation frequency is a simple way to quantify frequency
+tagged responses in MEEG (a.k.a. steady state visually evoked potentials,
+SSVEP, or visual steady-state responses, vSSR in the visual domain,
 or auditory steady-state responses, aSSR in the auditory domain).
 
 DATA:
 
 We use a simple example dataset with frequency tagged visual stimulation:
-N=2 participants observed checkerboards patterns inverting with a constant 
-frequency of either 12Hz of 15Hz. 10 trials of 20s length each. 
+N=2 participants observed checkerboards patterns inverting with a constant
+frequency of either 12Hz of 15Hz. 10 trials of 20s length each.
 32ch wet EEG was recorded.
 
-Data can be downloaded at https://osf.io/7ne6y/ 
-Data format: BrainVision .eeg/.vhdr/.vmrk files organized according to BIDS 
+Data can be downloaded at https://osf.io/7ne6y/
+Data format: BrainVision .eeg/.vhdr/.vmrk files organized according to BIDS
 standard.
 
 OUTLINE:
 
-- We will visualize both the PSD spectrum and the SNR spectrum of our epoched 
+- We will visualize both the PSD spectrum and the SNR spectrum of our epoched
 data.
 - We will extract SNR at stimulation frequency for all trials and channels.
-- We will show, that we can statistically separate 12hz and 15 hz responses 
-in our data. 
+- We will show, that we can statistically separate 12hz and 15 hz responses
+in our data.
 
-Since the evoked response is mainly generated in early visual areas of the 
-brain we will stick with an ROI analysis and extract SNR from occipital 
-channels. 
+Since the evoked response is mainly generated in early visual areas of the
+brain we will stick with an ROI analysis and extract SNR from occipital
+channels.
 """  # noqa: E501
 # Authors: Dominik Welke <dominik.welke@web.de>
 #          Evgenii Kalenkovich <e.kalenkovich@gmail.com>
@@ -394,8 +394,7 @@ montage.positions = montage._get_ch_pos()
 # select only channels from the standard montage that are present in our data
 topo_pos_grave = []
 [topo_pos_grave.append(
-    montage.positions[ch][:2]) for ch in epochs.info['ch_names']
-]
+    montage.positions[ch][:2]) for ch in epochs.info['ch_names']]
 topo_pos_grave = np.array(topo_pos_grave)
 
 # plot SNR topography, eventually
@@ -578,7 +577,7 @@ for i_win, win in enumerate(window_lengths):
     bin_width = windowed_freqs[1] - windowed_freqs[0]
     noise_skip_neighborfreqs = \
         round((stim_bandwidth / 2) / bin_width - bin_width / 2. - .5) if (
-                bin_width < stim_bandwidth) else 0
+            bin_width < stim_bandwidth) else 0
     noise_n_neighborfreqs = \
         int((sum((windowed_freqs <= 13) & (windowed_freqs >= 11)
                  ) - 1 - 2 * noise_skip_neighborfreqs) / 2)
@@ -641,7 +640,7 @@ for i_win, win in enumerate(window_lengths):
     bin_width = windowed_freqs[1] - windowed_freqs[0]
     noise_skip_neighborfreqs = \
         round((stim_bandwidth / 2) / bin_width - bin_width / 2. - .5) if (
-                bin_width < stim_bandwidth) else 0
+            bin_width < stim_bandwidth) else 0
     noise_n_neighborfreqs = \
         int((sum((windowed_freqs <= 13) & (windowed_freqs >= 11)
                  ) - 1 - 2 * noise_skip_neighborfreqs) / 2)
@@ -650,7 +649,7 @@ for i_win, win in enumerate(window_lengths):
         snr_spectrum(
             windowed_psd,
             noise_n_neighborfreqs=noise_n_neighborfreqs if (
-                    noise_n_neighborfreqs > 0) else 1,
+                noise_n_neighborfreqs > 0) else 1,
             noise_skip_neighborfreqs=1)
     window_snrs[i_win] = \
         windowed_snrs[
@@ -681,7 +680,7 @@ for i_win, win in enumerate(window_lengths):
     bin_width = windowed_freqs[1] - windowed_freqs[0]
     noise_skip_neighborfreqs = \
         round((stim_bandwidth / 2) / bin_width - bin_width / 2. - .5) if (
-                bin_width < stim_bandwidth) else 0
+            bin_width < stim_bandwidth) else 0
     noise_n_neighborfreqs = \
         int((sum((windowed_freqs <= 13) & (windowed_freqs >= 11)
                  ) - 1 - 2 * noise_skip_neighborfreqs) / 2)
@@ -690,12 +689,12 @@ for i_win, win in enumerate(window_lengths):
         snr_spectrum(
             windowed_psd,
             noise_n_neighborfreqs=noise_n_neighborfreqs if (
-                    noise_n_neighborfreqs > 0) else 1,
+                noise_n_neighborfreqs > 0) else 1,
             noise_skip_neighborfreqs=noise_skip_neighborfreqs)
     window_snrs[i_win] = \
         windowed_snrs[
-        :, picks_roi_vis,
-        np.argmin(abs(np.subtract(windowed_freqs, 12.)))
+            :, picks_roi_vis,
+            np.argmin(abs(np.subtract(windowed_freqs, 12.)))
         ].mean(axis=1)
 
 plt.figure()
@@ -714,13 +713,14 @@ plt.show()
 # This is the very idea of Welch's method, and is relevant to remember when
 # you decide for your analysis parameters:
 #
-# there is no such thing as an optimal welch window, its always a tradeoff -
-# - longer window => higher average SNR values
-# - shorter window => lower values but more robust / higher confidence in the
-# measure.
+# there is no such thing as an optimal welch window, its always a tradeoff:
+# a longer Welch window results in higher average SNR values;
+# a shorter window results in lower values but is more robust /
+# there is a higher confidence in the mean.
 #
-# Yet, one should also not aim too low: in these data we can see that the very
-# short Welch windows < 2-3s are not great - here we've hit the noise bottom.
+# Yet, one should also not pick too small a window: in our data we can see
+# that the very short Welch windows < 2-3s are not great -
+# here we've hit the noise bottom.
 
 
 ##############################################################################
@@ -749,7 +749,7 @@ for i_win, win in enumerate(window_starts):
     bin_width = windowed_freqs[1] - windowed_freqs[0]
     noise_skip_neighborfreqs = \
         round((stim_bandwidth / 2) / bin_width - bin_width / 2. - .5) if (
-                bin_width < stim_bandwidth) else 0
+            bin_width < stim_bandwidth) else 0
     noise_n_neighborfreqs = \
         int((sum((windowed_freqs <= 13) & (windowed_freqs >= 11)
                  ) - 1 - 2 * noise_skip_neighborfreqs) / 2)
@@ -757,11 +757,12 @@ for i_win, win in enumerate(window_starts):
     windowed_snrs = snr_spectrum(
         windowed_psd,
         noise_n_neighborfreqs=noise_n_neighborfreqs if (
-                noise_n_neighborfreqs > 0) else 1,
+            noise_n_neighborfreqs > 0) else 1,
         noise_skip_neighborfreqs=noise_skip_neighborfreqs)
     window_snrs[i_win] = windowed_snrs[
-                         :, picks_roi_vis,
-                         np.argmin(abs(np.subtract(windowed_freqs, 12.)))
+                            :,
+                            picks_roi_vis,
+                            np.argmin(abs(np.subtract(windowed_freqs, 12.)))
                          ].mean(axis=1)
 
 plt.figure()
