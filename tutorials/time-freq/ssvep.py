@@ -694,8 +694,7 @@ for i_win, win in enumerate(window_lengths):
     window_snrs[i_win] = \
         windowed_snrs[
             :, picks_roi_vis,
-            np.argmin(abs(np.subtract(windowed_freqs, 12.)))
-        ].mean(axis=1)
+            np.argmin(abs(np.subtract(windowed_freqs, 12.)))].mean(axis=1)
 
 plt.figure()
 plt.boxplot(window_snrs, labels=window_lengths, vert=True)
@@ -759,11 +758,9 @@ for i_win, win in enumerate(window_starts):
         noise_n_neighborfreqs=noise_n_neighborfreqs if (
             noise_n_neighborfreqs > 0) else 1,
         noise_skip_neighborfreqs=noise_skip_neighborfreqs)
-    window_snrs[i_win] = windowed_snrs[
-                            :,
-                            picks_roi_vis,
-                            np.argmin(abs(np.subtract(windowed_freqs, 12.)))
-                         ].mean(axis=1)
+    window_snrs[i_win] = \
+        windowed_snrs[:, picks_roi_vis, np.argmin(
+            abs(np.subtract(windowed_freqs, 12.)))].mean(axis=1)
 
 plt.figure()
 plt.plot(window_starts, np.array(window_snrs))
