@@ -109,7 +109,7 @@ def test_layered_mesh(renderer_interactive):
     if renderer_interactive._get_3d_backend() != 'pyvista':
         pytest.skip('TimeViewer tests only supported on PyVista')
     mesh = _LayeredMesh(
-        renderer=renderer_interactive._get_renderer(size=[300, 300]),
+        renderer=renderer_interactive._get_renderer(size=(300, 300)),
         vertices=np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0], [1, 1, 0]]),
         triangles=np.array([[0, 1, 2], [1, 2, 3]]),
         normals=np.array([[0, 0, 1]] * 4),
