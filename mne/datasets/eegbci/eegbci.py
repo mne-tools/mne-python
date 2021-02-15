@@ -156,7 +156,7 @@ def load_data(subject, runs, path=None, force_update=False, update_path=None,
     References
     ----------
     .. footbibliography::
-    """
+    """  # noqa E501
     if not hasattr(runs, '__iter__'):
         runs = [runs]
 

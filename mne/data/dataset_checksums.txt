@@ -33,5 +33,5 @@ foo.tgz                                    md5:3194e9f7b46039bb050a74f3e1ae9908
 # misc datasets (it gets done automatically
 # in mne/datasets/utils.py). Only update
 # the md5 hashes as needed.
-mne-testing-data                           md5:8eabd73532dd7df7c155983962c5b1fd
-mne-misc-data                              md5:2b2f2fec9d1197ed459117db1c6341ee
+mne-testing-data                           md5:731f4ce20f0cb439c04c719a67ccf4d5
+mne-misc-data                              md5:0f88194266121dd9409be94184231f25
