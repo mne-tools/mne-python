@@ -25,4 +25,3 @@ def get_version():  # noqa: D103
 
 
 get_version.__doc__ = _version_doc.format(name='ssvep')
-
