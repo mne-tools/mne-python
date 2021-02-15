@@ -460,11 +460,12 @@ def test_brain_time_viewer(renderer_interactive, pixel_ratio, brain_gc):
     brain._configure_label_time_course()
     brain.setup_time_viewer()  # for coverage
     brain.callbacks["time"](value=0)
-    brain.callbacks["orientation_lh_0_0"](
+    brain.callbacks["renderer"](value=0)
+    brain.callbacks["orientation"](
         value='lat',
         update_widget=True
     )
-    brain.callbacks["orientation_lh_0_0"](
+    brain.callbacks["orientation"](
         value='medial',
         update_widget=True
     )
