@@ -915,7 +915,7 @@ class Brain(object):
                 brain=self,
                 callback=self.plot_time_line,
             )
-            self.widgets["time"] = _add_spin_box(
+            self.widgets["time"] = _add_slider(
                 name="Time",
                 layout=layout,
                 value=self._data['time_idx'],
@@ -3440,6 +3440,21 @@ def _add_label(layout, value):
     label.setText("<b>" + value + "</b>")
     label.setAlignment(QtCore.Qt.AlignCenter)
     layout.addWidget(label)
+
+
+def _add_slider(layout, value, rng, callback, name=None):
+    from PyQt5 import QtCore
+    from PyQt5.QtWidgets import QSlider
+    if name is not None:
+        _add_label(layout, name)
+
+    slider = QSlider(QtCore.Qt.Horizontal)
+    slider.setMinimum(rng[0])
+    slider.setMaximum(rng[1])
+    slider.setValue(int(value))
+    slider.valueChanged.connect(callback)
+    layout.addWidget(slider)
+    return slider
 
 
 def _add_spin_box(layout, value, rng, callback, double=True, name=None):

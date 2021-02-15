@@ -20,7 +20,6 @@ class TimeCallBack(object):
 
     def __call__(self, value, update_widget=False, time_as_index=True):
         """Update the time slider."""
-        value = float(value)
         if not time_as_index:
             value = self.brain._to_time_index(value)
         self.brain.set_time_point(value)
@@ -30,7 +29,7 @@ class TimeCallBack(object):
         if self.time_label is not None:
             current_time = self.time_label(current_time)
         if self.widget is not None and update_widget:
-            self.widget.setValue(value)
+            self.widget.setValue(int(value))
 
 
 class UpdateColorbarScale(object):
