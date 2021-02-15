@@ -13,9 +13,10 @@ class TimeCallBack(object):
         self.brain = brain
         self.callback = callback
         self.widget = None
-        self.time_label = None
         if self.brain is not None and callable(self.brain._data['time_label']):
             self.time_label = self.brain._data['time_label']
+        else:
+            self.time_label = None
 
     def __call__(self, value, update_widget=False, time_as_index=True):
         """Update the time slider."""
@@ -26,11 +27,10 @@ class TimeCallBack(object):
         if self.callback is not None:
             self.callback()
         current_time = self.brain._current_time
-        if self.widget is not None:
-            if self.time_label is not None:
-                current_time = self.time_label(current_time)
-            if update_widget:
-                self.widget.setValue(value)
+        if self.time_label is not None:
+            current_time = self.time_label(current_time)
+        if self.widget is not None and update_widget:
+            self.widget.setValue(value)
 
 
 class UpdateColorbarScale(object):
@@ -42,7 +42,7 @@ class UpdateColorbarScale(object):
         self.widget = None
         self.widgets = {key: None for key in self.keys}
 
-    def __call__(self, value, update_widget=False):
+    def __call__(self, value):
         """Update the colorbar sliders."""
         self.brain._update_fscale(value)
         for key in self.keys:
@@ -136,5 +136,5 @@ class SmartCallBack(object):
     def __call__(self, value, update_widget=False):
         """Update the value."""
         self.callback(value)
-        if update_widget and self.widget is not None:
+        if self.widget is not None and update_widget:
             self.widget.setValue(value)
