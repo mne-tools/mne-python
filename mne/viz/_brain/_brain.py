@@ -693,7 +693,8 @@ class Brain(object):
         for hemi in self._hemis:
             self._layered_meshes[hemi]._clean()
         self._clear_callbacks()
-        self.widgets.clear()
+        if getattr(self, 'widgets', None) is not None:
+            self.widgets.clear()
         if getattr(self, 'mpl_canvas', None) is not None:
             self.mpl_canvas.clear()
         if getattr(self, 'act_data_smooth', None) is not None:
