@@ -7,7 +7,6 @@
 import numbers
 
 import numpy as np
-from scipy import linalg
 
 from .base import get_coef, BaseEstimator, _check_estimator
 from .time_delaying_ridge import TimeDelayingRidge
@@ -170,6 +169,7 @@ class ReceptiveField(BaseEstimator):
         self : instance
             The instance so you can chain operations.
         """
+        from scipy import linalg
         if self.scoring not in _SCORERS.keys():
             raise ValueError('scoring must be one of %s, got'
                              '%s ' % (sorted(_SCORERS.keys()), self.scoring))

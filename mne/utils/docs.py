@@ -12,10 +12,8 @@ import sys
 import warnings
 import webbrowser
 
-from .config import get_config
 from ..defaults import HEAD_SIZE_DEFAULT
-from ..externals.doccer import filldoc, unindent_dict
-from .check import _check_option
+from ..externals.doccer import indentcount_lines
 
 
 ##############################################################################
@@ -679,9 +677,9 @@ projection : bool
     must be set to ``False`` (the default in this case).
 """
 docdict['set_eeg_reference_ch_type'] = """
-ch_type : 'auto' | 'eeg' | 'ecog' | 'seeg'
+ch_type : 'auto' | 'eeg' | 'ecog' | 'seeg' | 'dbs'
     The name of the channel type to apply the reference to. If 'auto',
-    the first channel type of eeg, ecog or seeg that is found (in that
+    the first channel type of eeg, ecog, seeg or dbs that is found (in that
     order) will be selected.
 
     .. versionadded:: 0.19
@@ -872,12 +870,51 @@ extended_proj : list
 
 # Rank
 docdict['rank'] = """
-rank : None | dict | 'info' | 'full'
+rank : None | 'info' | 'full' | dict
     This controls the rank computation that can be read from the
-    measurement info or estimated from the data. See ``Notes``
-    of :func:`mne.compute_rank` for details."""
-docdict['rank_None'] = docdict['rank'] + 'The default is None.'
-docdict['rank_info'] = docdict['rank'] + 'The default is "info".'
+    measurement info or estimated from the data. When a noise covariance
+    is used for whitening, this should reflect the rank of that covariance,
+    otherwise amplification of noise components can occur in whitening (e.g.,
+    often during source localization).
+
+    :data:`python:None`
+        The rank will be estimated from the data after proper scaling of
+        different channel types.
+    ``'info'``
+        The rank is inferred from ``info``. If data have been processed
+        with Maxwell filtering, the Maxwell filtering header is used.
+        Otherwise, the channel counts themselves are used.
+        In both cases, the number of projectors is subtracted from
+        the (effective) number of channels in the data.
+        For example, if Maxwell filtering reduces the rank to 68, with
+        two projectors the returned value will be 66.
+    ``'full'``
+        The rank is assumed to be full, i.e. equal to the
+        number of good channels. If a `~mne.Covariance` is passed, this can
+        make sense if it has been (possibly improperly) regularized without
+        taking into account the true data rank.
+    :class:`dict`
+        Calculate the rank only for a subset of channel types, and explicitly
+        specify the rank for the remaining channel types. This can be
+        extremely useful if you already **know** the rank of (part of) your
+        data, for instance in case you have calculated it earlier.
+
+        This parameter must be a dictionary whose **keys** correspond to
+        channel types in the data (e.g. ``'meg'``, ``'mag'``, ``'grad'``,
+        ``'eeg'``), and whose **values** are integers representing the
+        respective ranks. For example, ``{'mag': 90, 'eeg': 45}`` will assume
+        a rank of ``90`` and ``45`` for magnetometer data and EEG data,
+        respectively.
+
+        The ranks for all channel types present in the data, but
+        **not** specified in the dictionary will be estimated empirically.
+        That is, if you passed a dataset containing magnetometer, gradiometer,
+        and EEG data together with the dictionary from the previous example,
+        only the gradiometer rank would be determined, while the specified
+        magnetometer and EEG ranks would be taken for granted.
+"""
+docdict['rank_None'] = docdict['rank'] + "\n    The default is ``None``."
+docdict['rank_info'] = docdict['rank'] + "\n    The default is ``'info'``."
 docdict['rank_tol'] = """
 tol : float | 'auto'
     Tolerance for singular values to consider non-zero in
@@ -910,9 +947,8 @@ docdict['depth'] = """
 depth : None | float | dict
     How to weight (or normalize) the forward using a depth prior.
     If float (default 0.8), it acts as the depth weighting exponent (``exp``)
-    to use, which must be between 0 and 1. None is equivalent to 0, meaning
-    no depth weighting is performed. It can also be a :class:`dict`
-    containing keyword arguments to pass to
+    to use None is equivalent to 0, meaning no depth weighting is performed.
+    It can also be a :class:`dict` containing keyword arguments to pass to
     :func:`mne.forward.compute_depth_prior` (see docstring for details and
     defaults). This is effectively ignored when ``method='eLORETA'``.
 
@@ -966,6 +1002,15 @@ reduce_rank : bool
     .. versionchanged:: 0.20
         Support for reducing rank in all modes (previously only supported
         ``pick='max_power'`` with weight normalization).
+"""
+docdict['on_rank_mismatch'] = """
+on_rank_mismatch : str
+    If an explicit MEG value is passed, what to do when it does not match
+    an empirically computed rank (only used for covariances).
+    Can be 'raise' to raise an error, 'warn' (default) to emit a warning, or
+    'ignore' to ignore.
+
+    .. versionadded:: 0.23
 """
 docdict['weight_norm'] = """
 weight_norm : str | None
@@ -1331,6 +1376,16 @@ match_case : bool
 
     .. versionadded:: 0.20
 """
+docdict["match_alias"] = """
+match_alias : bool | dict
+    Whether to use a lookup table to match unrecognized channel location names
+    to their known aliases. If True, uses the mapping in
+    ``mne.io.constants.CHANNEL_LOC_ALIASES``. If a :class:`dict` is passed, it
+    will be used instead, and should map from non-standard channel names to
+    names in the specified ``montage``. Default is ``False``.
+
+    .. versionadded:: 0.23
+"""
 docdict['on_header_missing'] = """
 on_header_missing : str
     %s the FastSCAN header is missing.
@@ -1496,6 +1551,11 @@ docdict['add_data_kwargs'] = """
 add_data_kwargs : dict | None
     Additional arguments to brain.add_data (e.g.,
     ``dict(time_label_size=10)``).
+"""
+docdict['brain_kwargs'] = """
+brain_kwargs : dict | None
+    Additional arguments to the :class:`mne.viz.Brain` constructor (e.g.,
+    ``dict(silhouette=True)``).
 """
 docdict['views'] = """
 views : str | list
@@ -1701,22 +1761,15 @@ docdict['clust_power_t'] = docdict['clust_power'].format('t')
 docdict['clust_power_f'] = docdict['clust_power'].format('F')
 docdict['clust_out'] = """
 out_type : 'mask' | 'indices'
-    Output format of clusters. If ``'mask'``, returns boolean arrays the same
-    shape as the input data, with ``True`` values indicating locations that are
-    part of a cluster. If ``'indices'``, returns a list of lists, where each
-    sublist contains the indices of locations that together form a cluster.
-    Note that for large datasets, ``'indices'`` may use far less memory than
-    ``'mask'``. Default is ``'indices'``.
-"""
-docdict['clust_out_none'] = """
-out_type : 'mask' | 'indices'
-    Output format of clusters. If ``'mask'``, returns boolean arrays the same
-    shape as the input data, with ``True`` values indicating locations that are
-    part of a cluster. If ``'indices'``, returns a list of lists, where each
-    sublist contains the indices of locations that together form a cluster.
-    Note that for large datasets, ``'indices'`` may use far less memory than
-    ``'mask'``. The default translates to ``'mask'`` in version 0.21 but will
-    change to ``'indices'`` in version 0.22.
+    Output format of clusters within a list.
+    If ``'mask'``, returns a list of boolean arrays,
+    each with the same shape as the input data (or slices if the shape is 1D
+    and adjacency is None), with ``True`` values indicating locations that are
+    part of a cluster. If ``'indices'``, returns a list of tuple of ndarray,
+    where each ndarray contains the indices of locations that together form the
+    given cluster along the given dimension. Note that for large datasets,
+    ``'indices'`` may use far less memory than ``'mask'``.
+    Default is ``'indices'``.
 """
 docdict['clust_disjoint'] = """
 check_disjoint : bool
@@ -2035,15 +2088,71 @@ docdict['compute_proj_ecg'] = f"""%(create_ecg_epochs)s {compute_proj_common}
 docdict['compute_proj_eog'] = f"""%(create_eog_epochs)s {compute_proj_common}
 """ % docdict
 
+# BEM
+docdict['on_defects'] = """
+on_defects : str
+    What to do if the surface is found to have topological defects. Can be
+    ``'raise'`` (default) to raise an error, or ``'warn'`` to emit a warning.
+    Note that a lot of computations in MNE-Python assume the surfaces to be
+    topologically correct, topological defects may still make other
+    computations (e.g., ``mne.make_bem_model`` and ``mne.make_bem_solution``)
+    fail irrespective of this parameter.
+"""
+
 # Other
 docdict['accept'] = """
 accept : bool
     If True (default False), accept the license terms of this dataset.
 """
 
-# Finalize
-docdict = unindent_dict(docdict)
-fill_doc = filldoc(docdict, unindent_params=False)
+docdict_indented = {}
+
+
+def fill_doc(f):
+    """Fill a docstring with docdict entries.
+
+    Parameters
+    ----------
+    f : callable
+        The function to fill the docstring of. Will be modified in place.
+
+    Returns
+    -------
+    f : callable
+        The function, potentially with an updated ``__doc__``.
+    """
+    docstring = f.__doc__
+    if not docstring:
+        return f
+    lines = docstring.splitlines()
+    # Find the minimum indent of the main docstring, after first line
+    if len(lines) < 2:
+        icount = 0
+    else:
+        icount = indentcount_lines(lines[1:])
+    # Insert this indent to dictionary docstrings
+    try:
+        indented = docdict_indented[icount]
+    except KeyError:
+        indent = ' ' * icount
+        docdict_indented[icount] = indented = {}
+        for name, dstr in docdict.items():
+            lines = dstr.splitlines()
+            try:
+                newlines = [lines[0]]
+                for line in lines[1:]:
+                    newlines.append(indent + line)
+                indented[name] = '\n'.join(newlines)
+            except IndexError:
+                indented[name] = dstr
+    try:
+        f.__doc__ = docstring % indented
+    except (TypeError, ValueError, KeyError) as exp:
+        funcname = f.__name__
+        funcname = docstring.split('\n')[0] if funcname is None else funcname
+        raise RuntimeError('Error documenting %s:\n%s'
+                           % (funcname, str(exp)))
+    return f
 
 
 ##############################################################################
@@ -2329,7 +2438,7 @@ def linkcode_resolve(domain, info):
         linespec = ""
 
     if 'dev' in mne.__version__:
-        kind = 'master'
+        kind = 'main'
     else:
         kind = 'maint/%s' % ('.'.join(mne.__version__.split('.')[:2]))
     return "http://github.com/mne-tools/mne-python/blob/%s/mne/%s%s" % (
@@ -2350,6 +2459,8 @@ def open_docs(kind=None, version=None):
         The default can be changed by setting the configuration value
         MNE_DOCS_VERSION.
     """
+    from .check import _check_option
+    from .config import get_config
     if kind is None:
         kind = get_config('MNE_DOCS_KIND', 'api')
     help_dict = dict(api='python_reference.html', tutorials='tutorials.html',

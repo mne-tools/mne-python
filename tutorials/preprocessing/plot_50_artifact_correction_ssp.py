@@ -10,10 +10,6 @@ how SSP can be used for artifact repair; extended examples illustrate use
 of SSP for environmental noise reduction, and for repair of ocular and
 heartbeat artifacts.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 We begin as always by importing the necessary Python modules. To save ourselves
 from repeatedly typing ``mne.preprocessing`` we'll directly import a handful of
 functions from that submodule:

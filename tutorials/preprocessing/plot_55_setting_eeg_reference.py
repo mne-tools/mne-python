@@ -7,10 +7,6 @@ Setting the EEG reference
 
 This tutorial describes how to set or change the EEG reference in MNE-Python.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 As usual we'll start by importing the modules we need, loading some
 :ref:`example data <sample-dataset>`, and cropping it to save memory. Since
 this tutorial deals specifically with EEG, we'll also restrict the dataset to

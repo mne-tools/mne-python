@@ -6,6 +6,7 @@
 #          Teon Brooks <teon.brooks@gmail.com>
 #          Marijn van Vliet <w.m.vanvliet@gmail.com>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
+#          Clemens Brunner <clemens.brunner@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -14,16 +15,19 @@ from datetime import timedelta
 import os
 import os.path as op
 import shutil
+from collections import defaultdict
 
 import numpy as np
 
 from .constants import FIFF
 from .utils import _construct_bids_filename, _check_orig_units
-from .pick import (pick_types, pick_channels, pick_info, _picks_to_idx)
+from .pick import (pick_types, pick_channels, pick_info, _picks_to_idx,
+                   channel_type)
 from .meas_info import write_meas_info
 from .proj import setup_proj, activate_proj, _proj_equal, ProjMixin
 from ..channels.channels import (ContainsMixin, UpdateChannelsMixin,
-                                 SetChannelsMixin, InterpolationMixin)
+                                 SetChannelsMixin, InterpolationMixin,
+                                 _unit2human)
 from .compensator import set_current_comp, make_compensator
 from .write import (start_file, end_file, start_block, end_block,
                     write_dau_pack16, write_float, write_double,
@@ -43,7 +47,8 @@ from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      copy_function_doc_to_method_doc, _validate_type,
                      _check_preload, _get_argvalues, _check_option,
                      _build_data_frame, _convert_times, _scale_dataframe_data,
-                     _check_time_format)
+                     _check_time_format, _arange_div)
+from ..defaults import _handle_default
 from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo, _RAW_CLIP_DEF
 from ..event import find_events, concatenate_events
 from ..annotations import Annotations, _combine_annotations, _sync_onset
@@ -244,7 +249,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         self._dtype_ = dtype
         self.set_annotations(None)
         # If we have True or a string, actually do the preloading
-        self._update_times()
         if load_from_disk:
             self._preload_data(preload)
         self._init_kwargs = _get_argvalues()
@@ -493,7 +497,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             for descr in annot.description[overlaps]:
                 if descr.lower().startswith('bad'):
                     return descr
-        return self[picks, start:stop][0]
+        return self._getitem((picks, slice(start, stop)), return_times=False)
 
     @verbose
     def load_data(self, verbose=None):
@@ -533,12 +537,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         self.preload = True
         self._comp = None  # no longer needed
         self.close()
-
-    def _update_times(self):
-        """Update times."""
-        self._times = np.arange(self.n_times) / float(self.info['sfreq'])
-        # make it immutable
-        self._times.flags.writeable = False
 
     @property
     def _first_time(self):
@@ -767,14 +765,25 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             >>> data, times = raw[picks, t_idx[0]:t_idx[1]]  # doctest: +SKIP
 
         """  # noqa: E501
+        return self._getitem(item)
+
+    def _getitem(self, item, return_times=True):
         sel, start, stop = self._parse_get_set_params(item)
         if self.preload:
             data = self._data[sel, start:stop]
         else:
             data = self._read_segment(start=start, stop=stop, sel=sel,
                                       projector=self._projector)
-        times = self.times[start:stop]
-        return data, times
+
+        if return_times:
+            # Rather than compute the entire thing just compute the subset
+            # times = self.times[start:stop]
+            # stop can be None here so don't use it directly
+            times = np.arange(start, start + data.shape[1], dtype=float)
+            times /= self.info['sfreq']
+            return data, times
+        else:
+            return data
 
     def __setitem__(self, item, value):
         """Set raw data content."""
@@ -822,8 +831,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         start = 0 if start is None else start
         stop = min(self.n_times if stop is None else stop, self.n_times)
         if len(self.annotations) == 0 or reject_by_annotation is None:
-            data, times = self[picks, start:stop]
-            return (data, times) if return_times else data
+            return self._getitem(
+                (picks, slice(start, stop)), return_times=return_times)
         _check_option('reject_by_annotation', reject_by_annotation.lower(),
                       ['omit', 'nan'])
         onsets, ends = _annotations_starts_stops(self, ['BAD'])
@@ -1143,7 +1152,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         if stim_picks is None:
             stim_picks = pick_types(self.info, meg=False, ref_meg=False,
                                     stim=True, exclude=[])
-        stim_picks = np.asanyarray(stim_picks)
+        else:
+            stim_picks = _picks_to_idx(self.info, stim_picks, exclude=(),
+                                       with_ref_meg=False)
 
         kwargs = dict(up=sfreq, down=o_sfreq, npad=npad, window=window,
                       n_jobs=n_jobs, pad=pad)
@@ -1191,7 +1202,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         lowpass = self.info.get('lowpass')
         lowpass = np.inf if lowpass is None else lowpass
         self.info['lowpass'] = min(lowpass, sfreq / 2.)
-        self._update_times()
 
         # See the comment above why we ignore all errors here.
         if events is None:
@@ -1275,7 +1285,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         if self.preload:
             # slice and copy to avoid the reference to large array
             self._data = self._data[:, smin:smax + 1].copy()
-        self._update_times()
 
         if self.annotations.orig_time is None:
             self.annotations.onset -= tmin
@@ -1477,7 +1486,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     @property
     def times(self):
         """Time points."""
-        return self._times
+        out = _arange_div(self.n_times, float(self.info['sfreq']))
+        out.flags['WRITEABLE'] = False
+        return out
 
     @property
     def n_times(self):
@@ -1498,7 +1509,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
             >>> len(raw)  # doctest: +SKIP
             1000
-
         """
         return self.n_times
 
@@ -1620,7 +1630,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             self._raw_extras += r._raw_extras
             self._filenames += r._filenames
         assert annotations.orig_time == self.info['meas_date']
-        self._update_times()
         self.set_annotations(annotations)
         for edge_samp in edge_samps:
             onset = _sync_onset(self, (edge_samp) / self.info['sfreq'], True)
@@ -1764,6 +1773,86 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         df = _build_data_frame(self, data, picks, long_format, mindex, index,
                                default_index=['time'])
         return df
+
+    def describe(self, data_frame=False):
+        """Describe channels (name, type, descriptive statistics).
+
+        Parameters
+        ----------
+        data_frame : bool
+            If True, return results in a pandas.DataFrame. If False, only print
+            results. Columns 'ch', 'type', and 'unit' indicate channel index,
+            channel type, and unit of the remaining five columns. These columns
+            are 'min' (minimum), 'Q1' (first quartile or 25% percentile),
+            'median', 'Q3' (third quartile or 75% percentile), and 'max'
+            (maximum).
+
+        Returns
+        -------
+        result : None | pandas.DataFrame
+            If data_frame=False, returns None. If data_frame=True, returns
+            results in a pandas.DataFrame (requires pandas).
+        """
+        from scipy.stats import scoreatpercentile as q
+        nchan = self.info["nchan"]
+
+        # describe each channel
+        cols = defaultdict(list)
+        cols["name"] = self.ch_names
+        for i in range(nchan):
+            ch = self.info["chs"][i]
+            data = self[i][0]
+            cols["type"].append(channel_type(self.info, i))
+            cols["unit"].append(_unit2human[ch["unit"]])
+            cols["min"].append(np.min(data))
+            cols["Q1"].append(q(data, 25))
+            cols["median"].append(np.median(data))
+            cols["Q3"].append(q(data, 75))
+            cols["max"].append(np.max(data))
+
+        if data_frame:  # return data frame
+            import pandas as pd
+            df = pd.DataFrame(cols)
+            df.index.name = "ch"
+            return df
+
+        # convert into commonly used units
+        scalings = _handle_default("scalings")
+        units = _handle_default("units")
+        for i in range(nchan):
+            unit = units.get(cols['type'][i])
+            scaling = scalings.get(cols['type'][i], 1)
+            if scaling != 1:
+                cols['unit'][i] = unit
+                for col in ["min", "Q1", "median", "Q3", "max"]:
+                    cols[col][i] *= scaling
+
+        lens = {"ch": max(2, len(str(nchan))),
+                "name": max(4, max([len(n) for n in cols["name"]])),
+                "type": max(4, max([len(t) for t in cols["type"]])),
+                "unit": max(4, max([len(u) for u in cols["unit"]]))}
+
+        # print description, start with header
+        print(self)
+        print(f"{'ch':>{lens['ch']}}  "
+              f"{'name':<{lens['name']}}  "
+              f"{'type':<{lens['type']}}  "
+              f"{'unit':<{lens['unit']}}  "
+              f"{'min':>8}  "
+              f"{'Q1':>8}  "
+              f"{'median':>8}  "
+              f"{'Q3':>8}  "
+              f"{'max':>8}")
+        # print description for each channel
+        for i in range(nchan):
+            msg = (f"{i:>{lens['ch']}}  "
+                   f"{cols['name'][i]:<{lens['name']}}  "
+                   f"{cols['type'][i].upper():<{lens['type']}}  "
+                   f"{cols['unit'][i]:<{lens['unit']}}  ")
+            for col in ["min", "Q1", "median", "Q3"]:
+                msg += f"{cols[col][i]:>8.2f}  "
+            msg += f"{cols['max'][i]:>8.2f}"
+            print(msg)
 
 
 def _allocate_data(preload, shape, dtype):

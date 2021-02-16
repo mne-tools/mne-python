@@ -4,11 +4,6 @@ Source reconstruction using an LCMV beamformer
 
 This tutorial gives an overview of the beamformer method
 and shows how to use an LCMV beamformer to reconstruct source activity.
-
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 """
 # Authors: Britta Westner <britta.wstnr@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
@@ -238,7 +233,8 @@ stc.plot(mode='glass_brain', clim=dict(kind='value', lims=lims), **kwargs)
 brain = stc_vec.plot_3d(
     clim=dict(kind='value', lims=lims), hemi='both',
     views=['coronal', 'sagittal', 'axial'], size=(800, 300),
-    view_layout='horizontal', show_traces=0.3, **kwargs)
+    view_layout='horizontal', show_traces=0.3,
+    brain_kwargs=dict(silhouette=True), **kwargs)
 
 ###############################################################################
 # Visualize the activity of the maximum voxel with all three components

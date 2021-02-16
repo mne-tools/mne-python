@@ -3,7 +3,7 @@ trigger:
   batch: False
   branches:
     include:
-      - 'master'
+      - 'main'
       - 'maint/*'
 pr:
   branches:
@@ -19,6 +19,7 @@ stages:
       pool:
         vmImage: 'ubuntu-18.04'
       variables:
+        DECODE_PERCENTS: 'false'
         RET: 'true'
       steps:
       - bash: |
@@ -32,6 +33,8 @@ stages:
 - stage: Main
   condition: and(succeeded(), eq(dependencies.Check.outputs['Skip.result.start_main'], 'true'))
   dependsOn: Check
+  variables:
+    AZURE_CI: 'true'
   jobs:
   - job: Style
     pool:
@@ -86,12 +89,6 @@ stages:
       displayName: 'Install Ubuntu dependencies'
     - bash: |
         source tools/get_minimal_commands.sh
-        echo "##vso[task.setvariable variable=MNE_ROOT]${MNE_ROOT}"
-        echo "##vso[task.setvariable variable=PATH]${PATH}"
-        echo "##vso[task.setvariable variable=LD_LIBRARY_PATH]${LD_LIBRARY_PATH}"
-        echo "##vso[task.setvariable variable=NEUROMAG2FT_ROOT]${NEUROMAG2FT_ROOT}"
-        echo "##vso[task.setvariable variable=FREESURFER_HOME]${FREESURFER_HOME}"
-        echo "##vso[task.setvariable variable=MNE_SKIP_FS_FLASH_CALL]${MNE_SKIP_FS_FLASH_CALL}"
       displayName: 'Install minimal commands'
     - bash: |
         echo $PATH
@@ -112,6 +109,13 @@ stages:
         python -m pip install --upgrade pip setuptools
         python -m pip install --upgrade numpy scipy vtk -r requirements.txt -r requirements_testing.txt codecov
       displayName: 'Install dependencies with pip'
+    - bash: source tools/get_testing_version.sh
+      displayName: 'Get testing version'
+    - task: Cache@2
+      inputs:
+        key: $(testing_version)
+        path: /home/vsts/mne_data
+      displayName: 'Cache testing data'
     - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
       displayName: 'Get test data'
     - script: pytest -m "ultraslowtest" --tb=short --cov=mne -vv mne
@@ -148,6 +152,13 @@ stages:
       displayName: 'Install dependencies'
     - script: mne sys_info
       displayName: 'Print config and test access to commands'
+    - bash: source tools/get_testing_version.sh
+      displayName: 'Get testing version'
+    - task: Cache@2
+      inputs:
+        key: $(testing_version)
+        path: /home/vsts/mne_data
+      displayName: 'Cache testing data'
     - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
       displayName: 'Get test data'
     - script: pytest --tb=short --cov=mne -vv mne/viz
@@ -245,6 +256,13 @@ stages:
       displayName: 'Print config and test access to commands'
     - script: python -c "import numpy; numpy.show_config()"
       displayName: Print NumPy config
+    - bash: source tools/get_testing_version.sh
+      displayName: 'Get testing version'
+    - task: Cache@2
+      inputs:
+        key: $(testing_version)
+        path: C:\Users\VssAdministrator\mne_data
+      displayName: 'Cache testing data'
     - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
       displayName: 'Get test data'
     - script: pytest -m "not slowtest" --tb=short --cov=mne -vv mne

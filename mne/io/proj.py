@@ -10,7 +10,6 @@ from itertools import count
 from math import sqrt
 
 import numpy as np
-from scipy import linalg
 
 from .tree import dir_tree_find
 from .tag import find_tag
@@ -554,6 +553,7 @@ def _make_projector(projs, ch_names, bads=(), include_active=True,
     warning will be raised next time projectors are constructed with
     the given inputs. If inplace=True, no meaningful data are returned.
     """
+    from scipy import linalg
     nchan = len(ch_names)
     if nchan == 0:
         raise ValueError('No channel names specified')
@@ -635,7 +635,7 @@ def _make_projector(projs, ch_names, bads=(), include_active=True,
         return default_return
 
     # Reorthogonalize the vectors
-    U, S, V = linalg.svd(vecs[:, :nvec], full_matrices=False)
+    U, S, _ = linalg.svd(vecs[:, :nvec], full_matrices=False)
 
     # Throw away the linearly dependent guys
     nproj = np.sum((S / S[0]) > 1e-2)

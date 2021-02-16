@@ -7,10 +7,6 @@ Creating MNE-Python data structures from scratch
 This tutorial shows how to create MNE-Python's core data structures using an
 existing :class:`NumPy array <numpy.ndarray>` of (real or synthetic) data.
 
-.. contents:: Page contents
-   :local:
-   :depth: 1
-
 We begin by importing the necessary Python modules:
 """
 
@@ -99,7 +95,7 @@ print(info)
 #
 #     The expected units for the different channel types are:
 #
-#     - Volts: eeg, eog, seeg, emg, ecg, bio, ecog
+#     - Volts: eeg, eog, seeg, dbs, emg, ecg, bio, ecog
 #     - Teslas: mag
 #     - Teslas/meter: grad
 #     - Molar: hbo, hbr

@@ -15,7 +15,7 @@ dependencies:
 - pyvista
 - nilearn
 - nibabel
-- nbformat
+- nbformat <5.1  # XXX remove pinning once https://github.com/jupyter/nbformat/issues/206 has been fixed
 - nbclient
 - mffpy>=0.5.7
 - pip:
@@ -23,4 +23,5 @@ dependencies:
   - jupyter
   - ipympl
   - ipywidgets
+  - ipyvtk_simple
   - jupyter_client!=6.1.5

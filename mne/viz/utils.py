@@ -46,8 +46,9 @@ from ..transforms import apply_trans
 
 _channel_type_prettyprint = {'eeg': "EEG channel", 'grad': "Gradiometer",
                              'mag': "Magnetometer", 'seeg': "sEEG channel",
-                             'eog': "EOG channel", 'ecg': "ECG sensor",
-                             'emg': "EMG sensor", 'ecog': "ECoG channel",
+                             'dbs': "DBS channel", 'eog': "EOG channel",
+                             'ecg': "ECG sensor", 'emg': "EMG sensor",
+                             'ecog': "ECoG channel",
                              'misc': "miscellaneous sensor"}
 
 
@@ -821,9 +822,9 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
         'topomap'.
     ch_type : None | str
         The channel type to plot. Available options 'mag', 'grad', 'eeg',
-        'seeg', 'ecog', 'all'. If ``'all'``, all the available mag, grad, eeg,
-        seeg and ecog channels are plotted. If None (default), then channels
-        are chosen in the order given above.
+        'seeg', 'dbs', 'ecog', 'all'. If ``'all'``, all the available mag,
+        grad, eeg, seeg, dbs and ecog channels are plotted. If None (default),
+        then channels are chosen in the order given above.
     title : str | None
         Title for the figure. If None (default), equals to
         ``'Sensor positions (%%s)' %% ch_type``.
@@ -1003,7 +1004,7 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
     """Plot sensors."""
     from matplotlib import rcParams
     import matplotlib.pyplot as plt
-    from mpl_toolkits.mplot3d import Axes3D
+    from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 analysis:ignore
     from .topomap import _get_pos_outlines, _draw_outlines
     sphere = _check_sphere(sphere, info)
 
@@ -1011,12 +1012,12 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
     edgecolors[bads] = 'red'
     axes_was_none = ax is None
     if axes_was_none:
-        fig = plt.figure(figsize=(max(rcParams['figure.figsize']),) * 2)
+        subplot_kw = dict()
         if kind == '3d':
-            Axes3D(fig)
-            ax = fig.gca(projection='3d')
-        else:
-            ax = fig.add_subplot(111)
+            subplot_kw.update(projection='3d')
+        fig, ax = plt.subplots(
+            1, figsize=(max(rcParams['figure.figsize']),) * 2,
+            subplot_kw=subplot_kw)
     else:
         fig = ax.get_figure()
 
@@ -1045,9 +1046,8 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
 
         # Equal aspect for 3D looks bad, so only use for 2D
         ax.set(aspect='equal')
-        if axes_was_none:
-            fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None,
-                                hspace=None)
+        if axes_was_none:  # we'll show the plot title as the window title
+            fig.subplots_adjust(left=0, bottom=0, right=1, top=1)
         ax.axis("off")  # remove border around figure
     del sphere
 
@@ -1069,8 +1069,8 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
         picker = partial(_onpick_sensor, fig=fig, ax=ax, pos=pos,
                          ch_names=ch_names, show_names=show_names)
         fig.canvas.mpl_connect('pick_event', picker)
-
-    ax.set(title=title)
+    if axes_was_none:
+        _set_window_title(fig, title)
     closed = partial(_close_event, fig=fig)
     fig.canvas.mpl_connect('close_event', closed)
     plt_show(show, block=block)
@@ -1125,7 +1125,9 @@ def _compute_scalings(scalings, inst, remove_dc=False, duration=10):
             time_middle = np.mean(inst.times)
             tmin = np.clip(time_middle - n_secs / 2., inst.times.min(), None)
             tmax = np.clip(time_middle + n_secs / 2., None, inst.times.max())
-            data = inst._read_segment(tmin, tmax)
+            smin, smax = [
+                int(round(x * inst.info['sfreq'])) for x in (tmin, tmax)]
+            data = inst._read_segment(smin, smax)
         elif isinstance(inst, BaseEpochs):
             # Load a random subset of epochs up to 100mb in size
             n_epochs = 1e8 // (len(inst.ch_names) * len(inst.times) * 8)
@@ -2270,3 +2272,64 @@ def centers_to_edges(*arrays):
             arr[:-1] + arr_diff,
             [arr[-1] + arr_diff[-1]]]))
     return out
+
+
+def _figure_agg(**kwargs):
+    from matplotlib.backends.backend_agg import FigureCanvasAgg
+    from matplotlib.figure import Figure
+    fig = Figure(**kwargs)
+    FigureCanvasAgg(fig)
+    return fig
+
+
+def _ndarray_to_fig(img):
+    """Convert to MPL figure, adapted from matplotlib.image.imsave."""
+    dpi = 100
+    figsize = np.array(img.shape[:2][::-1]) / dpi
+    fig = _figure_agg(dpi=dpi, figsize=figsize, frameon=False)
+    fig.figimage(img, resize=True)
+    return fig
+
+
+def concatenate_images(images, axis=0, bgcolor='black', centered=True):
+    """Concatenate a list of images.
+
+    Parameters
+    ----------
+    images : list of ndarray
+        The list of images to concatenate.
+    axis : 0 or 1
+        The images are concatenated horizontally if 0 and vertically otherwise.
+        The default orientation is horizontal.
+    bgcolor : str | list
+        The color of the background. The name of the color is accepted
+        (e.g 'red') or a list of RGB values between 0 and 1. Defaults to
+        'black'.
+    centered : bool
+        If True, the images are centered. Defaults to True.
+
+    Returns
+    -------
+    img : ndarray
+        The concatenated image.
+    """
+    from matplotlib.colors import colorConverter
+    if isinstance(bgcolor, str):
+        bgcolor = colorConverter.to_rgb(bgcolor)
+    bgcolor = np.asarray(bgcolor) * 255
+    funcs = [np.sum, np.max]
+    ret_shape = np.asarray([
+        funcs[axis]([image.shape[0] for image in images]),
+        funcs[1 - axis]([image.shape[1] for image in images]),
+    ])
+    ret = np.zeros((ret_shape[0], ret_shape[1], 3), dtype=np.uint8)
+    ret[:, :, :] = bgcolor
+    ptr = np.array([0, 0])
+    sec = np.array([0 == axis, 1 == axis]).astype(int)
+    for image in images:
+        shape = image.shape[:-1]
+        dec = ptr
+        dec += ((ret_shape - shape) // 2) * (1 - sec) if centered else 0
+        ret[dec[0]:dec[0] + shape[0], dec[1]:dec[1] + shape[1], :] = image
+        ptr += shape * sec
+    return ret

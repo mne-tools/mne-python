@@ -14,8 +14,6 @@ from numpy.testing import assert_array_equal, assert_equal
 import pytest
 import matplotlib
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-from matplotlib.figure import Figure
 from matplotlib.patches import Circle
 
 from mne import (read_evokeds, read_proj, make_fixed_length_events, Epochs,
@@ -60,9 +58,8 @@ def test_plot_topomap_interactive():
     evoked.add_proj(compute_proj_evoked(evoked, n_mag=1))
 
     plt.close('all')
-    fig = Figure()
-    canvas = FigureCanvas(fig)
-    ax = fig.gca()
+    fig = plt.figure()
+    ax, canvas = fig.gca(), fig.canvas
 
     kwargs = dict(vmin=-240, vmax=240, times=[0.1], colorbar=False, axes=ax,
                   res=8, time_unit='s')
@@ -148,6 +145,7 @@ def test_plot_topomap_animation(capsys):
     plt.close('all')
 
 
+@pytest.mark.filterwarnings('ignore:.*No contour levels.*:UserWarning')
 def test_plot_topomap_animation_nirs(fnirs_evoked, capsys):
     """Test topomap plotting for nirs data."""
     fig, anim = fnirs_evoked.animate_topomap(ch_type='hbo', verbose='debug')
@@ -556,6 +554,19 @@ def test_plot_topomap_bads():
         raw.info['bads'] = raw.ch_names[:count]
         raw.info._check_consistency()
         plot_topomap(data[:, 0], raw.info)
+    plt.close('all')
+
+
+def test_plot_topomap_bads_grad():
+    """Test plotting topomap with bad gradiometer channels (gh-8802)."""
+    import matplotlib.pyplot as plt
+    data = np.random.RandomState(0).randn(203)
+    info = read_info(evoked_fname)
+    info['bads'] = ['MEG 2242']
+    picks = pick_types(info, meg='grad')
+    info = pick_info(info, picks)
+    assert len(info['chs']) == 203
+    plot_topomap(data, info, res=8)
     plt.close('all')
 
 

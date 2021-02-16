@@ -13,7 +13,6 @@ are used which produces strong connectvitiy in the right occipital sensors.
 # License: BSD (3-clause)
 
 import mne
-from mne import io
 from mne.connectivity import spectral_connectivity
 from mne.datasets import sample
 from mne.viz import plot_sensors_connectivity
@@ -27,7 +26,7 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 
 # Setup for reading the raw data
-raw = io.read_raw_fif(raw_fname)
+raw = mne.io.read_raw_fif(raw_fname)
 events = mne.read_events(event_fname)
 
 # Add a bad channel
@@ -44,7 +43,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 
 # Compute connectivity for band containing the evoked response.
 # We exclude the baseline period
-fmin, fmax = 3., 9.
+fmin, fmax = 4., 9.
 sfreq = raw.info['sfreq']  # the sampling frequency
 tmin = 0.0  # exclude the baseline period
 epochs.load_data().pick_types(meg='grad')  # just keep MEG and no EOG now

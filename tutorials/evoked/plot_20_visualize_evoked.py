@@ -7,10 +7,6 @@ Visualizing Evoked data
 This tutorial shows the different visualization methods for
 `~mne.Evoked` objects.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 As usual we'll start by importing the modules we need:
 """
 
@@ -75,7 +71,12 @@ evks['aud/left'].plot(exclude=[])
 # select channels to plot by name, index, or type. In the next plot we'll show
 # only magnetometer channels, and also color-code the channel traces by their
 # location by passing ``spatial_colors=True``. Finally, we'll superimpose a
-# trace of the :term:`global field power <GFP>` across channels:
+# trace of the root mean square (RMS) of the signal across channels by
+# passing ``gfp=True``. This parameter is called ``gfp`` for historical
+# reasons and behaves correctly for all supported channel types: for MEG data,
+# it will plot the RMS; while for EEG, it would plot the
+# :term:`global field power <GFP>` (an average-referenced RMS), hence its
+# name:
 
 evks['aud/left'].plot(picks='mag', spatial_colors=True, gfp=True)
 
@@ -140,7 +141,7 @@ evks['vis/right'].plot_joint()
 # all on the same axes. Like most MNE-Python visualization functions, it has a
 # ``picks`` parameter for selecting channels, but by default will generate one
 # figure for each channel type, and combine information across channels of the
-# same type by calculating the :term:`global field power <GFP>`. Information
+# same type by calculating the :term:`global field power`. Information
 # may be combined across channels in other ways too; support for combining via
 # mean, median, or standard deviation are built-in, and custom callable
 # functions may also be used, as shown here:

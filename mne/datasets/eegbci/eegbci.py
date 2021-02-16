@@ -98,19 +98,7 @@ def load_data(subject, runs, path=None, force_update=False, update_path=None,
     subject : int
         The subject to use. Can be in the range of 1-109 (inclusive).
     runs : int | list of int
-        The runs to use. The runs correspond to:
-
-        =========  ===================================
-        run        task
-        =========  ===================================
-        1          Baseline, eyes open
-        2          Baseline, eyes closed
-        3, 7, 11   Motor execution: left vs right hand
-        4, 8, 12   Motor imagery: left vs right hand
-        5, 9, 13   Motor execution: hands vs feet
-        6, 10, 14  Motor imagery: hands vs feet
-        =========  ===================================
-
+        The runs to use. See Notes for details.
     path : None | str
         Location of where to look for the EEGBCI data storing location.
         If None, the environment variable or config parameter
@@ -123,6 +111,8 @@ def load_data(subject, runs, path=None, force_update=False, update_path=None,
     update_path : bool | None
         If True, set the MNE_DATASETS_EEGBCI_PATH in mne-python
         config to the given path. If None, the user is prompted.
+    base_url : str
+        The URL root for the data.
     %(verbose)s
 
     Returns
@@ -132,11 +122,23 @@ def load_data(subject, runs, path=None, force_update=False, update_path=None,
 
     Notes
     -----
-    For example, one could do:
+    The run numbers correspond to:
+
+    =========  ===================================
+    run        task
+    =========  ===================================
+    1          Baseline, eyes open
+    2          Baseline, eyes closed
+    3, 7, 11   Motor execution: left vs right hand
+    4, 8, 12   Motor imagery: left vs right hand
+    5, 9, 13   Motor execution: hands vs feet
+    6, 10, 14  Motor imagery: hands vs feet
+    =========  ===================================
+
+    For example, one could do::
 
         >>> from mne.datasets import eegbci
-        >>> eegbci.load_data(1, [4, 10, 14],\
-                             os.getenv('HOME') + '/datasets') # doctest:+SKIP
+        >>> eegbci.load_data(1, [4, 10, 14], os.getenv('HOME') + '/datasets') # doctest:+SKIP
 
     This would download runs 4, 10, and 14 (hand/foot motor imagery) runs from
     subject 1 in the EEGBCI dataset to the 'datasets' folder, and prompt the
@@ -153,7 +155,7 @@ def load_data(subject, runs, path=None, force_update=False, update_path=None,
            PhysioBank, PhysioToolkit, and PhysioNet: Components of a New
            Research Resource for Complex Physiologic Signals.
            Circulation 101(23):e215-e220
-    """
+    """  # noqa: E501
     if not hasattr(runs, '__iter__'):
         runs = [runs]
 

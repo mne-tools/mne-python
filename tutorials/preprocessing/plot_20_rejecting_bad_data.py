@@ -7,10 +7,6 @@ Rejecting bad data spans
 This tutorial covers manual marking of bad spans of data, and automated
 rejection of data spans based on signal amplitude.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 We begin as always by importing the necessary Python modules and loading some
 :ref:`example data <sample-dataset>`; to save memory we'll use a pre-filtered
 and downsampled version of the example data, and we'll also load an events

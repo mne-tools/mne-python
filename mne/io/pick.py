@@ -49,16 +49,19 @@ def get_channel_type_constants(include_defaults=False):
                 seeg=dict(kind=FIFF.FIFFV_SEEG_CH,
                           unit=FIFF.FIFF_UNIT_V,
                           coil_type=FIFF.FIFFV_COIL_EEG),
+                dbs=dict(kind=FIFF.FIFFV_DBS_CH,
+                         unit=FIFF.FIFF_UNIT_V,
+                         coil_type=FIFF.FIFFV_COIL_EEG),
                 ecog=dict(kind=FIFF.FIFFV_ECOG_CH,
                           unit=FIFF.FIFF_UNIT_V,
                           coil_type=FIFF.FIFFV_COIL_EEG),
                 eog=dict(kind=FIFF.FIFFV_EOG_CH, unit=FIFF.FIFF_UNIT_V),
                 emg=dict(kind=FIFF.FIFFV_EMG_CH, unit=FIFF.FIFF_UNIT_V),
                 ecg=dict(kind=FIFF.FIFFV_ECG_CH, unit=FIFF.FIFF_UNIT_V),
+                resp=dict(kind=FIFF.FIFFV_RESP_CH, unit=FIFF.FIFF_UNIT_V),
                 bio=dict(kind=FIFF.FIFFV_BIO_CH, unit=FIFF.FIFF_UNIT_V),
                 misc=dict(kind=FIFF.FIFFV_MISC_CH, unit=FIFF.FIFF_UNIT_V),
                 stim=dict(kind=FIFF.FIFFV_STIM_CH),
-                resp=dict(kind=FIFF.FIFFV_RESP_CH),
                 exci=dict(kind=FIFF.FIFFV_EXCI_CH),
                 syst=dict(kind=FIFF.FIFFV_SYST_CH),
                 ias=dict(kind=FIFF.FIFFV_IAS_CH),
@@ -127,6 +130,7 @@ _first_rule = {
     FIFF.FIFFV_IAS_CH: 'ias',
     FIFF.FIFFV_SYST_CH: 'syst',
     FIFF.FIFFV_SEEG_CH: 'seeg',
+    FIFF.FIFFV_DBS_CH: 'dbs',
     FIFF.FIFFV_BIO_CH: 'bio',
     FIFF.FIFFV_QUAT_0: 'chpi',
     FIFF.FIFFV_QUAT_1: 'chpi',
@@ -181,8 +185,8 @@ def channel_type(info, idx):
         Type of channel. Will be one of::
 
             {'grad', 'mag', 'eeg', 'csd', 'stim', 'eog', 'emg', 'ecg',
-             'ref_meg', 'resp', 'exci', 'ias', 'syst', 'misc', 'seeg', 'bio',
-             'chpi', 'dipole', 'gof', 'ecog', 'hbo', 'hbr'}
+             'ref_meg', 'resp', 'exci', 'ias', 'syst', 'misc', 'seeg', 'dbs',
+              'bio', 'chpi', 'dipole', 'gof', 'ecog', 'hbo', 'hbr'}
     """
     # This is faster than the original _channel_type_old now in test_pick.py
     # because it uses (at most!) two dict lookups plus one conditional
@@ -366,7 +370,7 @@ def pick_types(info, meg=False, eeg=False, stim=False, eog=False, ecg=False,
                emg=False, ref_meg='auto', misc=False, resp=False, chpi=False,
                exci=False, ias=False, syst=False, seeg=False, dipole=False,
                gof=False, bio=False, ecog=False, fnirs=False, csd=False,
-               include=(), exclude='bads', selection=None):
+               dbs=False, include=(), exclude='bads', selection=None):
     """Pick channels by type and names.
 
     Parameters
@@ -421,6 +425,8 @@ def pick_types(info, meg=False, eeg=False, stim=False, eog=False, ecg=False,
         include channels measuring deoxyhemoglobin).
     csd : bool
         Current source density channels.
+    dbs : bool
+        Deep brain stimulation channels.
     include : list of str
         List of additional channels to include. If empty do not include any.
     exclude : list of str | str
@@ -449,7 +455,7 @@ def pick_types(info, meg=False, eeg=False, stim=False, eog=False, ecg=False,
                    len(info['comps']) > 0 and meg is not False)
 
     for param in (eeg, stim, eog, ecg, emg, misc, resp, chpi, exci,
-                  ias, syst, seeg, dipole, gof, bio, ecog, csd):
+                  ias, syst, seeg, dipole, gof, bio, ecog, csd, dbs):
         if not isinstance(param, bool):
             w = ('Parameters for all channel types (with the exception of '
                  '"meg", "ref_meg" and "fnirs") must be of type bool, not {}.')
@@ -457,7 +463,7 @@ def pick_types(info, meg=False, eeg=False, stim=False, eog=False, ecg=False,
 
     param_dict = dict(eeg=eeg, stim=stim, eog=eog, ecg=ecg, emg=emg,
                       misc=misc, resp=resp, chpi=chpi, exci=exci,
-                      ias=ias, syst=syst, seeg=seeg, dipole=dipole,
+                      ias=ias, syst=syst, seeg=seeg, dbs=dbs, dipole=dipole,
                       gof=gof, bio=bio, ecog=ecog, csd=csd)
     # avoid triage if possible
     if isinstance(meg, bool):
@@ -705,7 +711,7 @@ def pick_channels_forward(orig, include=[], exclude=[], ordered=False,
 
 
 def pick_types_forward(orig, meg=False, eeg=False, ref_meg=True, seeg=False,
-                       ecog=False, include=[], exclude=[]):
+                       ecog=False, dbs=False, include=[], exclude=[]):
     """Pick by channel type and names from a forward operator.
 
     Parameters
@@ -724,6 +730,8 @@ def pick_types_forward(orig, meg=False, eeg=False, ref_meg=True, seeg=False,
         If True include stereotactic EEG channels.
     ecog : bool
         If True include electrocorticography channels.
+    dbs : bool
+        If True include deep brain stimulation channels.
     include : list of str
         List of additional channels to include. If empty do not include any.
     exclude : list of str | str
@@ -736,8 +744,8 @@ def pick_types_forward(orig, meg=False, eeg=False, ref_meg=True, seeg=False,
         Forward solution restricted to selected channel types.
     """
     info = orig['info']
-    sel = pick_types(info, meg, eeg, ref_meg=ref_meg, seeg=seeg, ecog=ecog,
-                     include=include, exclude=exclude)
+    sel = pick_types(info, meg, eeg, ref_meg=ref_meg, seeg=seeg,
+                     ecog=ecog, dbs=dbs, include=include, exclude=exclude)
     if len(sel) == 0:
         raise ValueError('No valid channels found')
     include_ch_names = [info['ch_names'][k] for k in sel]
@@ -956,36 +964,32 @@ def _check_excludes_includes(chs, info=None, allow_bads=False):
 _PICK_TYPES_DATA_DICT = dict(
     meg=True, eeg=True, csd=True, stim=False, eog=False, ecg=False, emg=False,
     misc=False, resp=False, chpi=False, exci=False, ias=False, syst=False,
-    seeg=True, dipole=False, gof=False, bio=False, ecog=True, fnirs=True)
+    seeg=True, dipole=False, gof=False, bio=False, ecog=True, fnirs=True,
+    dbs=True)
 _PICK_TYPES_KEYS = tuple(list(_PICK_TYPES_DATA_DICT) + ['ref_meg'])
 _MEG_CH_TYPES_SPLIT = ('mag', 'grad', 'planar1', 'planar2')
 _FNIRS_CH_TYPES_SPLIT = ('hbo', 'hbr', 'fnirs_cw_amplitude',
                          'fnirs_fd_ac_amplitude', 'fnirs_fd_phase', 'fnirs_od')
 _DATA_CH_TYPES_ORDER_DEFAULT = (
-    'mag', 'grad', 'eeg', 'csd', 'eog', 'ecg', 'emg', 'ref_meg', 'misc',
-    'stim', 'resp', 'chpi', 'exci', 'ias', 'syst', 'seeg', 'bio',
-    'ecog') + _FNIRS_CH_TYPES_SPLIT + ('whitened',)
+    'mag', 'grad', 'eeg', 'csd', 'eog', 'ecg', 'resp', 'emg', 'ref_meg',
+    'misc', 'stim', 'chpi', 'exci', 'ias', 'syst', 'seeg', 'bio', 'ecog',
+    'dbs') + _FNIRS_CH_TYPES_SPLIT + ('whitened',)
 # Valid data types, ordered for consistency, used in viz/evoked.
 _VALID_CHANNEL_TYPES = (
-    'eeg', 'grad', 'mag', 'seeg', 'eog', 'ecg', 'emg', 'dipole', 'gof', 'bio',
-    'ecog') + _FNIRS_CH_TYPES_SPLIT + ('misc', 'csd')
+    'eeg', 'grad', 'mag', 'seeg', 'eog', 'ecg', 'resp', 'emg', 'dipole', 'gof',
+    'bio', 'ecog', 'dbs') + _FNIRS_CH_TYPES_SPLIT + ('misc', 'csd')
 _DATA_CH_TYPES_SPLIT = (
-    'mag', 'grad', 'eeg', 'csd', 'seeg', 'ecog') + _FNIRS_CH_TYPES_SPLIT
+    'mag', 'grad', 'eeg', 'csd', 'seeg', 'ecog', 'dbs') + _FNIRS_CH_TYPES_SPLIT
 
 
-def _pick_data_channels(info, exclude='bads', with_ref_meg=True):
+def _pick_data_channels(info, exclude='bads', with_ref_meg=True,
+                        with_aux=False):
     """Pick only data channels."""
-    return pick_types(info, ref_meg=with_ref_meg, exclude=exclude,
-                      **_PICK_TYPES_DATA_DICT)
-
-
-def _pick_aux_channels(info, exclude='bads'):
-    """Pick only auxiliary channels.
-
-    Corresponds to EOG, ECG, EMG and BIO
-    """
-    return pick_types(info, meg=False, eog=True, ecg=True, emg=True, bio=True,
-                      ref_meg=False, exclude=exclude)
+    kwargs = _PICK_TYPES_DATA_DICT
+    if with_aux:
+        kwargs = kwargs.copy()
+        kwargs.update(eog=True, ecg=True, emg=True, bio=True)
+    return pick_types(info, ref_meg=with_ref_meg, exclude=exclude, **kwargs)
 
 
 def _pick_data_or_ica(info, exclude=()):

@@ -4,11 +4,9 @@
 EEG processing and Event Related Potentials (ERPs)
 ==================================================
 
-.. contents:: Here we cover the specifics of EEG, namely:
-   :local:
-   :depth: 1
-
 """
+
+import matplotlib.pyplot as plt
 
 import mne
 from mne.datasets import sample
@@ -109,6 +107,45 @@ evoked_custom.plot(titles=dict(eeg=title), time_unit='s')
 evoked_custom.plot_topomap(times=[0.1], size=3., title=title, time_unit='s')
 
 ###############################################################################
+# Global field power (GFP)
+# ------------------------
+#
+# Global field power :footcite:`Lehmann1980,Lehmann1984,Murray2008` is,
+# generally speaking, a measure of agreement of the signals picked up by all
+# sensors across the entire scalp: if all sensors have the same value at a
+# given time point, the GFP will be zero at that time point; if the signals
+# differ, the GFP will be non-zero at that time point. GFP
+# peaks may reflect "interesting" brain activity, warranting further
+# investigation. Mathematically, the GFP is the population standard
+# deviation across all sensors, calculated separately for every time point.
+#
+# You can plot the GFP using `evoked.plot(gfp=True) <mne.Evoked.plot>`. The GFP
+# trace will be black if ``spatial_colors=True`` and green otherwise. The EEG
+# reference will not affect the GFP:
+
+for evk in (evoked_car, evoked_no_ref):
+    evk.plot(gfp=True, spatial_colors=True, ylim=dict(eeg=[-10, 10]))
+
+###############################################################################
+# To plot the GFP by itself you can pass ``gfp='only'`` (this makes it easier
+# to read off the GFP data values, because the scale is aligned):
+
+evoked_car.plot(gfp='only')
+
+###############################################################################
+# As stated above, the GFP is the population standard deviation of the signal
+# across channels. To compute it manually, we can leverage
+# the fact that `evoked.data <mne.Evoked.data>` is a NumPy array:
+
+gfp = evoked_car.data.std(axis=0, ddof=0)
+
+# Reproducing the plot style from above:
+fig, ax = plt.subplots()
+ax.plot(evoked_car.times, gfp * 1e6, color='lime')
+ax.fill_between(evoked_car.times, gfp * 1e6, color='lime', alpha=0.2)
+ax.set(xlabel='Time (s)', ylabel='GFP (µV)', title='EEG')
+
+###############################################################################
 # Evoked response averaged across channels by ROI
 # -----------------------------------------------
 #
@@ -200,3 +237,9 @@ print(all_evokeds['left/auditory'])
 # Besides for explicit access, this can be used for example to set titles.
 for cond in all_evokeds:
     all_evokeds[cond].plot_joint(title=cond, **joint_kwargs)
+
+
+##############################################################################
+# References
+# ----------
+# .. footbibliography::

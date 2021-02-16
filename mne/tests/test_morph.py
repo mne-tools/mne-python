@@ -778,7 +778,7 @@ def test_volume_labels_morph(tmpdir, sl, n_real, n_mri, n_orig):
     n_got_real = np.in1d(
         aseg_img.ravel(), [lut[name] for name in use_label_names]).sum()
     assert n_got_real == n_real
-    # - This was 291 on `master` before gh-5590
+    # - This was 291 on `main` before gh-5590
     # - Refactoring transforms it became 279 with a < 1e-8 change in vox_mri_t
     # - Dropped to 123 once nearest-voxel was used in gh-7653
     # - Jumped back up to 330 with morphing fixes actually correctly
@@ -791,7 +791,7 @@ def test_volume_labels_morph(tmpdir, sl, n_real, n_mri, n_orig):
             src[0]['interpolator'] = None
         img = stc.as_volume(src, mri_resolution=False)
         n_on = np.array(img.dataobj).astype(bool).sum()
-        # was 20 on `master` before gh-5590
+        # was 20 on `main` before gh-5590
         # then 44 before gh-7653, which took it back to 20
         assert n_on == n_orig
     # without the interpolator, this should fail

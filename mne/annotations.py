@@ -1,4 +1,5 @@
 # Authors: Jaakko Leppakangas <jaeilepp@student.jyu.fi>
+#          Robert Luke <mail@robertluke.net>
 #
 # License: BSD (3-clause)
 
@@ -17,7 +18,7 @@ import numpy as np
 from .utils import (_pl, check_fname, _validate_type, verbose, warn, logger,
                     _check_pandas_installed, _mask_to_onsets_offsets,
                     _DefaultEventParser, _check_dt, _stamp_to_dt, _dt_to_stamp,
-                    _check_fname)
+                    _check_fname, int_like)
 
 from .io.write import (start_block, end_block, write_float, write_name_list,
                        write_double, start_file)
@@ -226,7 +227,13 @@ class Annotations(object):
         return '<' + shorten(s, width=77, placeholder=' ...') + '>'
 
     def __len__(self):
-        """Return the number of annotations."""
+        """Return the number of annotations.
+
+        Returns
+        -------
+        n_annot : int
+            The number of annotations.
+        """
         return len(self.duration)
 
     def __add__(self, other):
@@ -256,7 +263,7 @@ class Annotations(object):
 
     def __getitem__(self, key):
         """Propagate indexing and slicing to the underlying numpy structure."""
-        if isinstance(key, int):
+        if isinstance(key, int_like):
             out_keys = ('onset', 'duration', 'description', 'orig_time')
             out_vals = (self.onset[key], self.duration[key],
                         self.description[key], self.orig_time)
@@ -323,6 +330,25 @@ class Annotations(object):
         self.onset = np.delete(self.onset, idx)
         self.duration = np.delete(self.duration, idx)
         self.description = np.delete(self.description, idx)
+
+    def to_data_frame(self):
+        """Export annotations in tabular structure as a pandas DataFrame.
+
+        Returns
+        -------
+        result : pandas.DataFrame
+            Returns a pandas DataFrame with onset, duration, and
+            description columns.
+        """
+        pd = _check_pandas_installed(strict=True)
+        dt = _handle_meas_date(self.orig_time)
+        if dt is None:
+            dt = _handle_meas_date(0)
+        dt = dt.replace(tzinfo=None)
+        onsets_dt = [dt + timedelta(seconds=o) for o in self.onset]
+        df = pd.DataFrame(dict(onset=onsets_dt, duration=self.duration,
+                               description=self.description))
+        return df
 
     def save(self, fname):
         """Save annotations to FIF, CSV or TXT.
@@ -572,15 +598,7 @@ def _write_annotations(fid, annotations):
 
 
 def _write_annotations_csv(fname, annot):
-    pd = _check_pandas_installed(strict=True)
-    dt = _handle_meas_date(annot.orig_time)
-    if dt is None:
-        dt = _handle_meas_date(0)
-    dt = dt.replace(tzinfo=None)
-    onsets_dt = [dt + timedelta(seconds=o) for o in annot.onset]
-    df = pd.DataFrame(dict(onset=onsets_dt, duration=annot.duration,
-                           description=annot.description))
-    df.to_csv(fname, index=False)
+    annot.to_data_frame().to_csv(fname, index=False)
 
 
 def _write_annotations_txt(fname, annot):

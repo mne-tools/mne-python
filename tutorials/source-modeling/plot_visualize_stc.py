@@ -5,10 +5,7 @@ Visualize source time courses (stcs)
 ====================================
 
 This tutorial focuses on visualization of
-:term:`stcs <source estimates (abbr. stc)>`.
-
-.. contents:: Table of Contents
-   :local:
+:term:`source estimates<STC>`.
 
 Surface Source Estimates
 ------------------------
@@ -166,7 +163,8 @@ fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
 inv = read_inverse_operator(fname_inv)
 stc = apply_inverse(evoked, inv, lambda2, 'dSPM', pick_ori='vector')
 brain = stc.plot(subject='sample', subjects_dir=subjects_dir,
-                 initial_time=initial_time)
+                 initial_time=initial_time, brain_kwargs=dict(
+                     silhouette=True))
 
 ###############################################################################
 # Dipole fits

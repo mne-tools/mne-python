@@ -8,10 +8,6 @@ This tutorial covers how to convert functional near-infrared spectroscopy
 (fNIRS) data from raw measurements to relative oxyhaemoglobin (HbO) and
 deoxyhaemoglobin (HbR) concentration.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 Here we will work with the :ref:`fNIRS motor data <fnirs-motor-dataset>`.
 """
 

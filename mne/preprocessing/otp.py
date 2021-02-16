@@ -7,7 +7,6 @@
 from functools import partial
 
 import numpy as np
-from scipy import linalg
 
 from .._ola import _COLA, _Storer
 from ..io.pick import _picks_to_idx
@@ -19,7 +18,7 @@ def _svd_cov(cov, data):
     """Use a covariance matrix to compute the SVD faster."""
     # This makes use of mathematical equivalences between PCA and SVD
     # on zero-mean data
-    s, u = linalg.eigh(cov)
+    s, u = np.linalg.eigh(cov)
     norm = np.ones((s.size,))
     mask = s > np.finfo(float).eps * s[-1]  # largest is last
     s = np.sqrt(s, out=s)

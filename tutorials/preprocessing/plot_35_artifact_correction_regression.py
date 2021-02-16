@@ -8,10 +8,6 @@ Repairing artifacts with regression
 This tutorial covers removal of artifacts using regression as in Gratton et al.
 (1983) :footcite:`GrattonEtAl1983`.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 Generally speaking, artifacts that result in time waveforms on the sensors
 that are accurately reflected by some reference signal can be removed by
 regression. Blink artifacts captured by bipolar EOG channels serve as a good

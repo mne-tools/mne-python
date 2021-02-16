@@ -112,7 +112,7 @@ def _run(subjects_dir, subject, force, overwrite, no_decimate, verbose=None):
     surf = mne.bem._surfaces_to_bem(
         [surf], [mne.io.constants.FIFF.FIFFV_BEM_SURF_ID_HEAD], [1],
         incomplete=incomplete, extra=msg)[0]
-    mne.write_bem_surfaces(dense_fname, surf)
+    mne.write_bem_surfaces(dense_fname, surf, overwrite=overwrite)
     levels = 'medium', 'sparse'
     tris = [] if no_decimate else [30000, 2500]
     if os.getenv('_MNE_TESTING_SCALP', 'false') == 'true':
@@ -131,7 +131,7 @@ def _run(subjects_dir, subject, force, overwrite, no_decimate, verbose=None):
             [dict(rr=points, tris=tris)],
             [mne.io.constants.FIFF.FIFFV_BEM_SURF_ID_HEAD], [1], rescale=False,
             incomplete=incomplete, extra=msg)
-        mne.write_bem_surfaces(dec_fname, dec_surf)
+        mne.write_bem_surfaces(dec_fname, dec_surf, overwrite=overwrite)
 
 
 mne.utils.run_command_if_main()

@@ -9,10 +9,6 @@ spectral density of epoched data, how to plot epochs as an imagemap, and how to
 plot the sensor locations and projectors stored in `~mne.Epochs`
 objects.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 We'll start by importing the modules we need, loading the continuous (raw)
 sample data, and cropping it to save memory:
 """

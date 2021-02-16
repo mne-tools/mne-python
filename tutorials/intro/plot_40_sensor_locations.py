@@ -7,10 +7,6 @@ Working with sensor locations
 This tutorial describes how to read and plot sensor locations, and how
 the physical location of sensors is handled in MNE-Python.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 As usual we'll start by importing the modules we need and loading some
 :ref:`example data <sample-dataset>`:
 """
@@ -127,7 +123,8 @@ biosemi_montage.plot(show_names=False, sphere=(0.03, 0.02, 0.01, 0.075))
 
 ###############################################################################
 # In mne-python the head center and therefore the sphere center are calculated
-# using fiducial points. Because of this the head circle represents head
+# using :term:`fiducial points <fiducial>`.
+# Because of this the head circle represents head
 # circumference at the nasion and ear level, and not where it is commonly
 # measured in 10-20 EEG system: above nasion at T4/T8, T3/T7, Oz, Fz level.
 # Notice below that by default T7 and Oz channels are placed within the head

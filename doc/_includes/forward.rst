@@ -7,10 +7,6 @@ This page covers the definitions of different coordinate systems employed in
 MNE software and FreeSurfer, the details of the computation of the forward
 solutions, and the associated low-level utilities.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 .. NOTE: part of this file is included in doc/overview/implementation.rst.
    Changes here are reflected there. If you want to link to this content, link
    to :ref:`ch_forward` to link to that section of the implementation.rst page.
@@ -30,7 +26,7 @@ MEG/EEG and MRI coordinate systems
    :class:`~mne.SourceSpaces`, etc), information about the coordinate frame is
    encoded as a constant integer value. The meaning of those integers is
    determined `in the source code
-   <https://github.com/mne-tools/mne-python/blob/master/mne/io/constants.py#L186-L197>`__.
+   <https://github.com/mne-tools/mne-python/blob/main/mne/io/constants.py#L186-L197>`__.
 
 The coordinate systems used in MNE software (and FreeSurfer) and their
 relationships are depicted in :ref:`coordinate_system_figure`. Except for the
@@ -726,8 +722,3 @@ solutions. Usually the EEG forward solution is identical across runs because
 the electrode locations do not change.
 
 .. target for :end-before: forward-end-content
-
-References
-~~~~~~~~~~
-
-.. footbibliography::

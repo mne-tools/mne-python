@@ -13,10 +13,6 @@ object. For more info on visualization of :class:`~mne.io.Raw` objects, see
 from simulated data in a :class:`NumPy array <numpy.ndarray>`, see
 :ref:`tut_creating_data_structures`.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 As usual we'll start by importing the modules we need:
 """
 
@@ -283,9 +279,9 @@ print(raw.ch_names[-3:])
 # inaccurate, you can change the type of any channel with the
 # :meth:`~mne.io.Raw.set_channel_types` method. The method takes a
 # :class:`dictionary <dict>` mapping channel names to types; allowed types are
-# ``ecg, eeg, emg, eog, exci, ias, misc, resp, seeg, stim, syst, ecog, hbo,
-# hbr``. A common use case for changing channel type is when using frontal EEG
-# electrodes as makeshift EOG channels:
+# ``ecg, eeg, emg, eog, exci, ias, misc, resp, seeg, dbs, stim, syst, ecog,
+# hbo, hbr``. A common use case for changing channel type is when using frontal
+# EEG electrodes as makeshift EOG channels:
 
 raw.set_channel_types({'EEG_001': 'eog'})
 print(raw.copy().pick_types(meg=False, eog=True).ch_names)

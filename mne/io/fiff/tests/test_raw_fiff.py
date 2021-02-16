@@ -973,16 +973,16 @@ def test_filter():
 
 def test_filter_picks():
     """Test filtering default channel picks."""
-    ch_types = ['mag', 'grad', 'eeg', 'seeg', 'misc', 'stim', 'ecog', 'hbo',
-                'hbr']
+    ch_types = ['mag', 'grad', 'eeg', 'seeg', 'dbs', 'misc', 'stim', 'ecog',
+                'hbo', 'hbr']
     info = create_info(ch_names=ch_types, ch_types=ch_types, sfreq=256)
     raw = RawArray(data=np.zeros((len(ch_types), 1000)), info=info)
 
     # -- Deal with meg mag grad and fnirs exceptions
-    ch_types = ('misc', 'stim', 'meg', 'eeg', 'seeg', 'ecog')
+    ch_types = ('misc', 'stim', 'meg', 'eeg', 'seeg', 'dbs', 'ecog')
 
     # -- Filter data channels
-    for ch_type in ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'hbo', 'hbr'):
+    for ch_type in ('mag', 'grad', 'eeg', 'seeg', 'dbs', 'ecog', 'hbo', 'hbr'):
         picks = {ch: ch == ch_type for ch in ch_types}
         picks['meg'] = ch_type if ch_type in ('mag', 'grad') else False
         picks['fnirs'] = ch_type if ch_type in ('hbo', 'hbr') else False
@@ -1199,6 +1199,14 @@ def test_resample(tmpdir, preload, n, npad):
     raw.resample(10, npad=npad)
     assert raw.info['lowpass'] == 5.
     assert len(raw) == 10
+
+
+def test_resample_stim():
+    """Test stim_picks argument."""
+    data = np.ones((2, 1000))
+    info = create_info(2, 1000., ('eeg', 'misc'))
+    raw = RawArray(data, info)
+    raw.resample(500., stim_picks='misc')
 
 
 @testing.requires_testing_data

@@ -15,7 +15,6 @@ import operator
 from textwrap import shorten
 
 import numpy as np
-from scipy import linalg
 
 from .pick import (channel_type, pick_channels, pick_info,
                    get_channel_type_constants)
@@ -134,7 +133,7 @@ class MontageMixin(object):
     """Mixin for Montage setting."""
 
     @verbose
-    def set_montage(self, montage, match_case=True,
+    def set_montage(self, montage, match_case=True, match_alias=False,
                     on_missing='raise', verbose=None):
         """Set EEG sensor configuration and head digitization.
 
@@ -142,6 +141,7 @@ class MontageMixin(object):
         ----------
         %(montage)s
         %(match_case)s
+        %(match_alias)s
         %(on_missing_montage)s
         %(verbose_meth)s
 
@@ -159,7 +159,7 @@ class MontageMixin(object):
 
         from ..channels.montage import _set_montage
         info = self if isinstance(self, Info) else self.info
-        _set_montage(info, montage, match_case, on_missing)
+        _set_montage(info, montage, match_case, match_alias, on_missing)
         return self
 
 
@@ -202,8 +202,16 @@ class Info(dict, MontageMixin):
                  modified by various MNE-Python functions or methods (which
                  have safeguards to ensure all fields remain in sync).
 
-    This class should not be instantiated directly. To create a measurement
-    information structure, use :func:`mne.create_info`.
+    .. warning:: This class should not be instantiated directly. To create a
+                 measurement information structure, use
+                 :func:`mne.create_info`.
+
+    Parameters
+    ----------
+    *args : list
+        Arguments.
+    **kwargs : dict
+        Keyword arguments.
 
     Attributes
     ----------
@@ -1405,7 +1413,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     info['dev_ctf_t'] = dev_ctf_t
     if dev_head_t is not None and ctf_head_t is not None and dev_ctf_t is None:
         from ..transforms import Transform
-        head_ctf_trans = linalg.inv(ctf_head_t['trans'])
+        head_ctf_trans = np.linalg.inv(ctf_head_t['trans'])
         dev_ctf_trans = np.dot(head_ctf_trans, info['dev_head_t']['trans'])
         info['dev_ctf_t'] = Transform('meg', 'ctf_head', dev_ctf_trans)
 
@@ -1948,8 +1956,8 @@ def create_info(ch_names, sfreq, ch_types='misc', verbose=None):
         Channel types, default is ``'misc'`` which is not a
         :term:`data channel <data channels>`.
         Currently supported fields are 'ecg', 'bio', 'stim', 'eog', 'misc',
-        'seeg', 'ecog', 'mag', 'eeg', 'ref_meg', 'grad', 'emg', 'hbr' or 'hbo'.
-        If str, then all channels are assumed to be of the same type.
+        'seeg', 'dbs', 'ecog', 'mag', 'eeg', 'ref_meg', 'grad', 'emg', 'hbr'
+        or 'hbo'. If str, then all channels are assumed to be of the same type.
     %(verbose)s
 
     Returns
@@ -1968,7 +1976,7 @@ def create_info(ch_names, sfreq, ch_types='misc', verbose=None):
     be initialized to the identity transform.
 
     Proper units of measure:
-    * V: eeg, eog, seeg, emg, ecg, bio, ecog
+    * V: eeg, eog, seeg, dbs, emg, ecg, bio, ecog
     * T: mag
     * T/m: grad
     * M: hbo, hbr
@@ -2152,7 +2160,10 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
         value = info.get(key)
         if value is not None:
             assert 'msecs' not in value
-            if none_meas_date:
+            if (none_meas_date or
+                    ((value['secs'], value['usecs']) == DATE_NONE)):
+                # Don't try to shift backwards in time when no measurement
+                # date is available or when file_id is already a place holder
                 tmp = DATE_NONE
             else:
                 tmp = _add_timedelta_to_stamp(
@@ -2242,7 +2253,7 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
                 'Underlying Error:\n')
     info._check_consistency(prepend_error=err_mesg)
     err_mesg = ('anonymize_info generated an inconsistent info object. '
-                'daysback parameter was too large.'
+                'daysback parameter was too large. '
                 'Underlying Error:\n')
     _check_dates(info, prepend_error=err_mesg)
 

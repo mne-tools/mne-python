@@ -36,7 +36,7 @@ from .io.reference import (set_eeg_reference, set_bipolar_reference,
                            add_reference_channels)
 from .io.what import what
 from .bem import (make_sphere_model, make_bem_model, make_bem_solution,
-                  read_bem_surfaces, write_bem_surfaces,
+                  read_bem_surfaces, write_bem_surfaces, write_head_bem,
                   read_bem_solution, write_bem_solution)
 from .cov import (read_cov, write_cov, Covariance, compute_raw_covariance,
                   compute_covariance, whiten_evoked, make_ad_hoc_cov)

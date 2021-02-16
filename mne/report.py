@@ -21,14 +21,16 @@ import webbrowser
 import numpy as np
 
 from . import read_evokeds, read_events, pick_types, read_cov
-from .io import read_raw_fif, read_info
+from .io import read_raw, read_info
+from .io._read_raw import supported as extension_reader_map
 from .io.pick import _DATA_CH_TYPES_SPLIT
 from .source_space import _mri_orientation
-from .utils import (logger, verbose, get_subjects_dir, warn,
+from .utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
                     fill_doc, _check_option, _validate_type, _safe_input)
 from .viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
                   plot_compare_evokeds)
 from .viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
+from .viz.utils import _ndarray_to_fig, _figure_agg
 from .forward import read_forward_solution
 from .epochs import read_epochs
 from .minimum_norm import read_inverse_operator
@@ -37,28 +39,41 @@ from .parallel import parallel_func, check_n_jobs
 from .externals.tempita import HTMLTemplate, Template
 from .externals.h5io import read_hdf5, write_hdf5
 
-VALID_EXTENSIONS = ['raw.fif', 'raw.fif.gz', 'sss.fif', 'sss.fif.gz',
-                    'eve.fif', 'eve.fif.gz', 'cov.fif', 'cov.fif.gz',
-                    'proj.fif', 'prof.fif.gz', 'trans.fif', 'trans.fif.gz',
-                    'fwd.fif', 'fwd.fif.gz', 'epo.fif', 'epo.fif.gz',
-                    'inv.fif', 'inv.fif.gz', 'ave.fif', 'ave.fif.gz', 'T1.mgz',
-                    'meg.fif']
-SECTION_ORDER = ['raw', 'events', 'epochs', 'ssp', 'evoked', 'covariance',
-                 'trans', 'mri', 'forward', 'inverse']
+_BEM_VIEWS = ('axial', 'sagittal', 'coronal')
+
+
+# For raw files, we want to support different suffixes + extensions for all
+# supported file formats
+SUPPORTED_READ_RAW_EXTENSIONS = tuple(extension_reader_map.keys())
+RAW_EXTENSIONS = []
+for ext in SUPPORTED_READ_RAW_EXTENSIONS:
+    RAW_EXTENSIONS.append(f'raw{ext}')
+    if ext not in ('.bdf', '.edf', '.set', '.vhdr'):  # EEG-only formats
+        RAW_EXTENSIONS.append(f'meg{ext}')
+    RAW_EXTENSIONS.append(f'eeg{ext}')
+
+# Processed data will always be in (gzipped) FIFF format
+VALID_EXTENSIONS = ('sss.fif', 'sss.fif.gz',
+                    'eve.fif', 'eve.fif.gz',
+                    'cov.fif', 'cov.fif.gz',
+                    'proj.fif', 'prof.fif.gz',
+                    'trans.fif', 'trans.fif.gz',
+                    'fwd.fif', 'fwd.fif.gz',
+                    'epo.fif', 'epo.fif.gz',
+                    'inv.fif', 'inv.fif.gz',
+                    'ave.fif', 'ave.fif.gz',
+                    'T1.mgz') + tuple(RAW_EXTENSIONS)
+del RAW_EXTENSIONS
+
+SECTION_ORDER = ('raw', 'events', 'epochs', 'ssp', 'evoked', 'covariance',
+                 'trans', 'mri', 'forward', 'inverse')
 
 
 ###############################################################################
 # PLOTTING FUNCTIONS
 
-def _ndarray_to_fig(img):
-    """Convert to MPL figure, adapted from matplotlib.image.imsave."""
-    figsize = np.array(img.shape[:2][::-1]) / 100.
-    fig = _figure_agg(dpi=100, figsize=figsize, frameon=False)
-    fig.figimage(img)
-    return fig
-
-
-def _fig_to_img(fig, image_format='png', scale=None, **kwargs):
+def _fig_to_img(fig, image_format='png', scale=None, auto_close=True,
+                **kwargs):
     """Plot figure and create a binary image."""
     # fig can be ndarray, mpl Figure, Mayavi Figure, or callable that produces
     # a mpl Figure
@@ -67,7 +82,8 @@ def _fig_to_img(fig, image_format='png', scale=None, **kwargs):
     if isinstance(fig, np.ndarray):
         fig = _ndarray_to_fig(fig)
     elif callable(fig):
-        plt.close('all')
+        if auto_close:
+            plt.close('all')
         fig = fig(**kwargs)
     elif not isinstance(fig, Figure):
         from .viz.backends.renderer import backend, MNE_3D_BACKEND_TESTING
@@ -77,7 +93,8 @@ def _fig_to_img(fig, image_format='png', scale=None, **kwargs):
         else:  # Testing mode
             img = np.zeros((2, 2, 3))
 
-        backend._close_3d_figure(figure=fig)
+        if auto_close:
+            backend._close_3d_figure(figure=fig)
         fig = _ndarray_to_fig(img)
 
     output = BytesIO()
@@ -130,9 +147,13 @@ def _figs_to_mrislices(sl, n_jobs, **kwargs):
     parallel, p_fun, _ = parallel_func(_plot_mri_contours, use_jobs)
     outs = parallel(p_fun(slices=s, **kwargs)
                     for s in np.array_split(sl, use_jobs))
-    for o in outs[1:]:
-        outs[0] += o
-    return outs[0]
+    # deal with flip_z
+    flip_z = 1
+    out = list()
+    for o in outs:
+        o, flip_z = o
+        out.extend(o[::flip_z])
+    return out
 
 
 def _iterate_trans_views(function, **kwargs):
@@ -168,7 +189,7 @@ def _is_bad_fname(fname):
     if fname.endswith('(whitened)'):
         fname = fname[:-11]
 
-    if not fname.endswith(tuple(VALID_EXTENSIONS + ['bem', 'custom'])):
+    if not fname.endswith(VALID_EXTENSIONS + ('bem', 'custom')):
         return 'red'
     else:
         return ''
@@ -184,14 +205,15 @@ def _get_fname(fname):
     return fname
 
 
-def _endswith(fname, exts):
-    """Aux function to test if fname ends with ext.fif for any ext in exts."""
-    if isinstance(exts, str):
-        exts = [exts]
-    for ext in exts:
-        if fname.endswith((f'-{ext}.fif', f'-{ext}.fif.gz',
-                           f'_{ext}.fif', f'_{ext}.fif.gz')):
-            return True
+def _endswith(fname, suffixes):
+    """Aux function to test if file name includes the specified suffixes."""
+    if isinstance(suffixes, str):
+        suffixes = [suffixes]
+    for suffix in suffixes:
+        for ext in SUPPORTED_READ_RAW_EXTENSIONS:
+            if fname.endswith((f'-{suffix}{ext}', f'-{suffix}{ext}',
+                               f'_{suffix}{ext}', f'_{suffix}{ext}')):
+                return True
     return False
 
 
@@ -395,14 +417,6 @@ def open_report(fname, **params):
 ###############################################################################
 # IMAGE FUNCTIONS
 
-def _figure_agg(**kwargs):
-    from matplotlib.figure import Figure
-    from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-    fig = Figure(**kwargs)
-    FigureCanvas(fig)
-    return fig
-
-
 def _build_image_png(data, cmap='gray'):
     """Build an image encoded in base64."""
     import matplotlib.pyplot as plt
@@ -411,39 +425,12 @@ def _build_image_png(data, cmap='gray'):
     if figsize[0] == 1:
         figsize = tuple(figsize[1:])
         data = data[:, :, 0]
-    fig = _figure_agg(figsize=figsize, dpi=1.0, frameon=False)
+    fig = _figure_agg(figsize=figsize, dpi=100, frameon=False)
     cmap = getattr(plt.cm, cmap, plt.cm.gray)
     fig.figimage(data, cmap=cmap)
     output = BytesIO()
     fig.savefig(output, dpi=fig.get_dpi(), format='png')
     return base64.b64encode(output.getvalue()).decode('ascii')
-
-
-def _iterate_sagittal_slices(array, limits=None):
-    """Iterate sagittal slices."""
-    shape = array.shape[0]
-    for ind in range(shape):
-        if limits and ind not in limits:
-            continue
-        yield ind, array[ind, :, :]
-
-
-def _iterate_axial_slices(array, limits=None):
-    """Iterate axial slices."""
-    shape = array.shape[1]
-    for ind in range(shape):
-        if limits and ind not in limits:
-            continue
-        yield ind, array[:, ind, :]
-
-
-def _iterate_coronal_slices(array, limits=None):
-    """Iterate coronal slices."""
-    shape = array.shape[2]
-    for ind in range(shape):
-        if limits and ind not in limits:
-            continue
-        yield ind, np.flipud(np.rot90(array[:, :, ind]))
 
 
 def _iterate_mri_slices(name, ind, global_id, slides_klass, data, cmap):
@@ -547,32 +534,78 @@ header_template = Template(u"""
 {{include}}
 <script type="text/javascript">
 
-        var toggle_state = false;
+        function getAllOnOff() {
+            const all = $('.has_toggle');
+            const on = all.parent('.active').children('.has_toggle');
+            const off = all.not(on);
+            return [all, on, off];
+        }
+
+        function toggleAll(){
+            const [all, on, off] = getAllOnOff();
+            if (all.length == on.length)
+                on.trigger('click');
+            else
+                off.trigger('click');
+            updateToggleAllButton();
+        }
+
+        function updateToggleAllButton() {
+            const [all, on, off] = getAllOnOff();
+            const a = $('.mnetoggleall-btn').children();
+            if (all.length == on.length)
+                /* If this character is changed, it should be changed in the HTML below as well */
+                a.html('☒')
+            else
+                a.html('☑')
+        }
+
         $(document).on('keydown', function (event) {
             if (event.which == 84){
-                if (!toggle_state)
-                    $('.has_toggle').trigger('click');
-                else if (toggle_state)
-                    $('.has_toggle').trigger('click');
-            toggle_state = !toggle_state;
+                toggleAll();
             }
         });
 
-        function togglebutton(class_name){
-            $(class_name).toggle();
-
-            if ($(class_name + '-btn').hasClass('active'))
-                $(class_name + '-btn').removeClass('active');
-            else
-                $(class_name + '-btn').addClass('active');
+        function toggleButton(class_name){
+            if (class_name.includes('mnetoggleall'))
+                toggleAll();
+            else {
+                $(class_name).toggle();
+                if ($(class_name + '-btn').hasClass('active'))
+                    $(class_name + '-btn').removeClass('active');
+                else
+                    $(class_name + '-btn').addClass('active');
+                updateToggleAllButton();
+            }
         }
 
-        /* Scroll down on click to #id so that caption is not hidden
-        by navbar */
+        /* Scroll down on click to #id so that caption is not hidden by navbar */
         var shiftWindow = function() { scrollBy(0, -60) };
         if (location.hash) shiftWindow();
         window.addEventListener("hashchange", shiftWindow);
 
+        /* Prevent navbar from covering content */
+        function fixNavbarPadding() {
+            $('body').css('padding-top', parseInt($('#main-navbar').css("height"))-30);
+        }
+        $(window).resize(function () { fixNavbarPadding(); });
+        $(window).load(function () { fixNavbarPadding(); });
+        var observer = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            if (mutation.attributeName === "class") {
+              var attributeValue = $(mutation.target).prop(mutation.attributeName);
+              if (attributeValue.includes(" in") || attributeValue.includes(" collapse")) {
+                fixNavbarPadding();
+              }
+            }
+          });
+        });
+
+        /* Update things when document is ready */
+        $( document ).ready(function() {
+            updateToggleAllButton();
+            observer.observe($("#viewnavbar")[0], {attributes: true});
+        });
         </script>
 <style type="text/css">
 
@@ -622,7 +655,6 @@ li{
 }
 
 #toc {
-  margin-top: navbar-height;
   position: fixed;
   width: 20%;
   height: 90%;
@@ -640,57 +672,73 @@ li{
     padding: 0 2px 3px 0;
 }
 
-div.footer {
-    background-color: #C0C0C0;
-    color: #000000;
-    padding: 3px 8px 3px 0;
-    clear: both;
-    font-size: 0.8em;
-    text-align: right;
+#godown{
+   height: 0px;
+}
+
+.navbar-toggle:after {
+    content: "▲";
+}
+.navbar-toggle.collapsed:after {
+    content: "▼";
+}
+footer .navbar-fixed-bottom {
+    min-height: 0px;
+}
+footer .navbar-text {
+    margin-top: 5px;
+    margin-bottom: 5px;
+}
+
+.w-100 {
+    width: 100%;
 }
 
 </style>
 </head>
 <body>
 
-<nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+<nav class="navbar navbar-inverse navbar-fixed-top navbar-static-top" role="navigation" id="main-navbar">
     <div class="container-fluid">
         <div class="navbar-header navbar-left">
             <ul class="nav nav-pills"><li class="active">
-                <a class="navbar-btn" data-toggle="collapse"
-                data-target="#viewnavbar" href="javascript:void(0)">
-                ></a></li></ul>
-    </div>
+                <a class="navbar-toggle" data-toggle="collapse" data-target="#viewnavbar" href="javascript:void(0)"></a>
+            </li></ul>
+        </div>
         <h3 class="navbar-text" style="color:white">{{title}}</h3>
-        <ul class="nav nav-pills navbar-right" style="margin-top: 7px;"
-        id="viewnavbar">
+        <div class="nav-collapse navbar-right in" id="viewnavbar">
+            <ul class="nav nav-pills">
 
-        {{for section in sections}}
+            {{for section in sections}}
 
-        <li class="active {{sectionvars[section]}}-btn">
-           <a href="javascript:void(0)"
-           onclick="togglebutton('.{{sectionvars[section]}}')"
-           class="has_toggle">
-    {{section if section != 'mri' else 'MRI'}}
-           </a>
-        </li>
+            <li class="active {{sectionvars[section]}}-btn">
+               <a href="javascript:void(0)" onclick="toggleButton('.{{sectionvars[section]}}')" class="has_toggle">
+                   {{section}}
+               </a>
+            </li>
 
-        {{endfor}}
+            {{endfor}}
 
-        </ul>
+            <li class="active mnetoggleall-btn">
+               <a href="javascript:void(0)" onclick="toggleButton('.mnetoggleall')">☒</a>
+            </li>
+
+            </ul>
+        </div>
     </div>
 </nav>
-""")
+""")  # noqa: E501
 
 footer_template = HTMLTemplate(u"""
-</div></body>
-<div class="footer">
-        &copy; Copyright 2012-{{current_year}}, MNE Developers.
-      Created on {{date}}.
-      Powered by <a href="http://mne.tools/">MNE.
 </div>
+<footer>
+<div class="navbar navbar-default navbar-fixed-bottom text-center"><p class="navbar-text col-md-12">
+Created on {{date}}.
+</p></div></div>
+</footer>
+</body>
 </html>
-""")
+""")  # noqa: E501
 
 html_template = Template(u"""
 <li class="{{div_klass}}" id="{{id}}">
@@ -892,9 +940,7 @@ class Report(object):
 
     Notes
     -----
-    See :ref:`tut-report` for an introduction to using ``mne.Report``, and
-    :ref:`this example <ex-report>` for an example of customizing the report
-    with a slider.
+    See :ref:`tut-report` for an introduction to using ``mne.Report``.
 
     .. versionadded:: 0.8.0
     """
@@ -905,7 +951,9 @@ class Report(object):
         self.info_fname = str(info_fname) if info_fname is not None else None
         self.cov_fname = str(cov_fname) if cov_fname is not None else None
         self.baseline = baseline
-        self.subjects_dir = get_subjects_dir(subjects_dir, raise_error=False)
+        if subjects_dir is not None:
+            subjects_dir = get_subjects_dir(subjects_dir)
+        self.subjects_dir = subjects_dir
         self.subject = subject
         self.title = title
         self.image_format = _check_image_format(None, image_format)
@@ -944,7 +992,13 @@ class Report(object):
         return s
 
     def __len__(self):
-        """Return the number of items in report."""
+        """Return the number of files processed by the report.
+
+        Returns
+        -------
+        n_files : int
+            The number of files processed.
+        """
         return len(self.fnames)
 
     def _get_id(self):
@@ -978,6 +1032,22 @@ class Report(object):
             self._sectionvars[section] = _clean_varnames(section)
 
         return items, captions, comments
+
+    def add_custom_css(self, css):
+        """Add custom CSS to the report.
+
+        Parameters
+        ----------
+        css : str
+            Style definitions to add to the report. The content of this string
+            will be embedded between HTML ``<style>`` and ``</style>`` tags.
+
+        Notes
+        -----
+        .. versionadded:: 0.23
+        """
+        style = f'\n<style type="text/css">\n{css}\n</style>'
+        self.include += style
 
     def remove(self, caption, section=None):
         """Remove a figure from the report.
@@ -1067,7 +1137,7 @@ class Report(object):
 
     def add_figs_to_section(self, figs, captions, section='custom',
                             scale=None, image_format=None, comments=None,
-                            replace=False):
+                            replace=False, auto_close=True):
         """Append custom user-defined figures.
 
         Parameters
@@ -1097,6 +1167,9 @@ class Report(object):
         replace : bool
             If ``True``, figures already present that have the same caption
             will be replaced. Defaults to ``False``.
+        auto_close : bool
+            If True, the plots are closed during the generation of the report.
+            Defaults to True.
         """
         figs, captions, comments = self._validate_input(figs, captions,
                                                         section, comments)
@@ -1109,7 +1182,7 @@ class Report(object):
             div_klass = self._sectionvars[section]
             img_klass = self._sectionvars[section]
 
-            img = _fig_to_img(fig, image_format, scale)
+            img = _fig_to_img(fig, image_format, scale, auto_close)
             html = image_template.substitute(img=img, id=global_id,
                                              div_klass=div_klass,
                                              img_klass=img_klass,
@@ -1211,10 +1284,10 @@ class Report(object):
                 html_template.substitute(div_klass=div_klass, id=global_id,
                                          caption=caption, html=html), replace)
 
-    @fill_doc
+    @verbose
     def add_bem_to_section(self, subject, caption='BEM', section='bem',
                            decim=2, n_jobs=1, subjects_dir=None,
-                           replace=False):
+                           replace=False, width=512, verbose=None):
         """Render a bem slider html str.
 
         Parameters
@@ -1234,26 +1307,35 @@ class Report(object):
         replace : bool
             If ``True``, figures already present that have the same caption
             will be replaced. Defaults to ``False``.
+        width : int
+            The width of the MRI images (in pixels). Larger values will have
+            clearer surface lines, but will create larger HTML files.
+            Typically a factor of 2 more than the number of MRI voxels along
+            each dimension (typically 512, default) is reasonable.
+
+            .. versionadded:: 0.23
+        %(verbose_meth)s
 
         Notes
         -----
         .. versionadded:: 0.9.0
         """
+        width = _ensure_int(width, 'width')
         caption = 'custom plot' if caption == '' else caption
         html = self._render_bem(subject=subject, subjects_dir=subjects_dir,
                                 decim=decim, n_jobs=n_jobs, section=section,
-                                caption=caption)
+                                caption=caption, width=width)
         html, caption, _ = self._validate_input(html, caption, section)
         sectionvar = self._sectionvars[section]
         # convert list->str
         assert isinstance(html, list)
         html = u''.join(html)
         self._add_or_replace('%s-#-%s-#-custom' % (caption[0], sectionvar),
-                             sectionvar, html)
+                             sectionvar, html, replace=replace)
 
     def add_slider_to_section(self, figs, captions=None, section='custom',
                               title='Slider', scale=None, image_format=None,
-                              replace=False):
+                              replace=False, auto_close=True):
         """Render a slider of figs to the report.
 
         Parameters
@@ -1285,6 +1367,11 @@ class Report(object):
         replace : bool
             If ``True``, figures already present that have the same caption
             will be replaced. Defaults to ``False``.
+        auto_close : bool
+            If True, the plots are closed during the generation of the report.
+            Defaults to True.
+
+            .. versionadded:: 0.23
 
         Notes
         -----
@@ -1326,7 +1413,7 @@ class Report(object):
             raise TypeError('Captions must be None or an iterable of '
                             'float, int, str, Got %s' % type(captions))
         for ii, (fig, caption) in enumerate(zip(figs, captions)):
-            img = _fig_to_img(fig, image_format, scale)
+            img = _fig_to_img(fig, image_format, scale, auto_close)
             slice_id = '%s-%s-%s' % (name, global_id, sl[ii])
             first = True if ii == 0 else False
             slices.append(_build_html_image(img, slice_id, div_klass,
@@ -1347,7 +1434,8 @@ class Report(object):
             slider_full_template.substitute(id=global_id, title=title,
                                             div_klass=slider_klass,
                                             slider_id=slider_id, html=html,
-                                            image_html=image_html))
+                                            image_html=image_html),
+            replace=replace)
 
     ###########################################################################
     # HTML rendering
@@ -1400,7 +1488,7 @@ class Report(object):
         self.include = ''.join(include)
 
     @verbose
-    def parse_folder(self, data_path, pattern='*.fif', n_jobs=1, mri_decim=2,
+    def parse_folder(self, data_path, pattern=None, n_jobs=1, mri_decim=2,
                      sort_sections=True, on_error='warn', image_format=None,
                      render_bem=True, verbose=None):
         r"""Render all the files in the folder.
@@ -1410,10 +1498,13 @@ class Report(object):
         data_path : str
             Path to the folder containing data whose HTML report will be
             created.
-        pattern : str | list of str
+        pattern : None | str | list of str
             Filename pattern(s) to include in the report.
             Example: [\*raw.fif, \*ave.fif] will include Raw as well as Evoked
-            files.
+            files. If ``None``, include all supported file formats.
+
+            .. versionchanged:: 0.23
+               Include supported non-FIFF files by default.
         %(n_jobs)s
         mri_decim : int
             Use this decimation factor for generating MRI/BEM images
@@ -1448,7 +1539,9 @@ class Report(object):
         if self.title is None:
             self.title = 'MNE Report for ...%s' % self.data_path[-20:]
 
-        if not isinstance(pattern, (list, tuple)):
+        if pattern is None:
+            pattern = [f'*{ext}' for ext in SUPPORTED_READ_RAW_EXTENSIONS]
+        elif not isinstance(pattern, (list, tuple)):
             pattern = [pattern]
 
         # iterate through the possible patterns
@@ -1463,7 +1556,10 @@ class Report(object):
         fnames_to_remove = []
         for fname in fnames:
             if _endswith(fname, ('raw', 'sss', 'meg')):
-                inst = read_raw_fif(fname, allow_maxshield=True, preload=False)
+                kwargs = dict(fname=fname, preload=False)
+                if fname.endswith(('.fif', '.fif.gz')):
+                    kwargs['allow_maxshield'] = True
+                inst = read_raw(**kwargs)
             else:
                 continue
 
@@ -1723,8 +1819,7 @@ class Report(object):
                         global_id += 1
                         html_toc += u'</ul></li>'
 
-                    elif fname.endswith(tuple(VALID_EXTENSIONS +
-                                        ['bem', 'custom'])):
+                    elif fname.endswith(VALID_EXTENSIONS + ('bem', 'custom')):
                         html_toc += toc_list.substitute(div_klass=div_klass,
                                                         id=global_id,
                                                         tooltip=tooltip,
@@ -1741,42 +1836,17 @@ class Report(object):
         self._sectionlabels = sectionlabels
 
         lang = getattr(self, 'lang', 'en-us')
+        sections = [section if section != 'mri' else 'MRI'
+                    for section in self.sections]
         html_header = header_template.substitute(
             title=self.title, include=self.include, lang=lang,
-            sections=self.sections, sectionvars=self._sectionvars)
+            sections=sections, sectionvars=self._sectionvars)
         self.html.insert(0, html_header)  # Insert header at position 0
         self.html.insert(1, html_toc)  # insert TOC
 
-    def _render_array(self, array, global_id=None, cmap='gray',
-                      limits=None, n_jobs=1):
-        """Render mri without bem contours (only PNG)."""
-        html = []
-        html.append(u'<div class="thumbnail">')
-        # Axial
-        limits = limits or {}
-        axial_limit = limits.get('axial')
-        axial_slices_gen = _iterate_axial_slices(array, axial_limit)
-        html.append(
-            self._render_one_axis(axial_slices_gen, 'axial',
-                                  global_id, cmap, array.shape[1], n_jobs))
-        # Sagittal
-        sagittal_limit = limits.get('sagittal')
-        sagittal_slices_gen = _iterate_sagittal_slices(array, sagittal_limit)
-        html.append(
-            self._render_one_axis(sagittal_slices_gen, 'sagittal',
-                                  global_id, cmap, array.shape[1], n_jobs))
-        # Coronal
-        coronal_limit = limits.get('coronal')
-        coronal_slices_gen = _iterate_coronal_slices(array, coronal_limit)
-        html.append(
-            self._render_one_axis(coronal_slices_gen, 'coronal',
-                                  global_id, cmap, array.shape[1], n_jobs))
-        # Close section
-        html.append(u'</div>')
-        return '\n'.join(html)
-
     def _render_one_bem_axis(self, mri_fname, surfaces, global_id,
-                             orientation='coronal', decim=2, n_jobs=1):
+                             orientation='coronal', decim=2, n_jobs=1,
+                             width=512):
         """Render one axis of bem contours (only PNG)."""
         import nibabel as nib
         nim = nib.load(mri_fname)
@@ -1789,12 +1859,13 @@ class Report(object):
         slides_klass = '%s-%s' % (name, global_id)
 
         sl = np.arange(0, n_slices, decim)
+        logger.debug(f'Rendering BEM {orientation} with {len(sl)} slices')
         kwargs = dict(mri_fname=mri_fname, surfaces=surfaces, show=False,
                       orientation=orientation, img_output=True, src=None,
-                      show_orientation=True)
+                      show_orientation=True, width=width)
         imgs = _figs_to_mrislices(sl, n_jobs, **kwargs)
         slices = []
-        img_klass = 'slideimg-%s' % name
+        img_klass = 'slideimg-%s w-100' % name
         div_klass = 'span12 %s' % slides_klass
         for ii, img in enumerate(imgs):
             slice_id = '%s-%s-%s' % (name, global_id, sl[ii])
@@ -1817,10 +1888,13 @@ class Report(object):
 
     def _render_raw(self, raw_fname, data_path):
         """Render raw (only text)."""
-        import matplotlib.pyplot as plt
         global_id = self._get_id()
 
-        raw = read_raw_fif(raw_fname, allow_maxshield='yes')
+        kwargs = dict(fname=raw_fname, preload=False)
+        if raw_fname.endswith(('.fif', '.fif.gz')):
+            kwargs['allow_maxshield'] = True
+        raw = read_raw(**kwargs)
+
         extra = '(MaxShield on)' if raw.info.get('maxshield', False) else ''
         caption = self._gen_caption(prefix='Raw', suffix=extra,
                                     fname=raw_fname, data_path=data_path)
@@ -1848,11 +1922,9 @@ class Report(object):
 
         raw_psd = {} if self.raw_psd is True else self.raw_psd
         if isinstance(raw_psd, dict):
-            from matplotlib.backends.backend_agg import FigureCanvasAgg
             n_ax = sum(kind in raw for kind in _DATA_CH_TYPES_SPLIT)
-            fig, axes = plt.subplots(n_ax, 1, figsize=(6, 1 + 1.5 * n_ax),
-                                     dpi=92)
-            FigureCanvasAgg(fig)
+            fig = _figure_agg(figsize=(6, 1 + 1.5 * n_ax), dpi=92)
+            axes = [fig.add_subplot(1, n_ax, ii + 1) for ii in range(n_ax)]
             img = _fig_to_img(raw.plot_psd, self.image_format,
                               ax=axes, **raw_psd)
             new_html = image_template.substitute(
@@ -2086,8 +2158,10 @@ class Report(object):
             return html
 
     def _render_bem(self, subject, subjects_dir, decim, n_jobs,
-                    section='bem', caption='BEM'):
+                    section='bem', caption='BEM', width=512):
         """Render mri+bem (only PNG)."""
+        if subjects_dir is None:
+            subjects_dir = self.subjects_dir
         subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
         # Get the MRI filename
@@ -2114,12 +2188,9 @@ class Report(object):
         name = caption
         html += u'<li class="%s" id="%d">\n' % (klass, global_id)
         html += u'<h4>%s</h4>\n' % name  # all other captions are h4
-        html += self._render_one_bem_axis(mri_fname, surfaces, global_id,
-                                          'axial', decim, n_jobs)
-        html += self._render_one_bem_axis(mri_fname, surfaces, global_id,
-                                          'sagittal', decim, n_jobs)
-        html += self._render_one_bem_axis(mri_fname, surfaces, global_id,
-                                          'coronal', decim, n_jobs)
+        for view in _BEM_VIEWS:
+            html += self._render_one_bem_axis(mri_fname, surfaces, global_id,
+                                              view, decim, n_jobs, width)
         html += u'</li>\n'
         return ''.join(html)
 
@@ -2140,7 +2211,7 @@ def _recursive_search(path, pattern):
         for f in fnmatch.filter(files, pattern):
             # only the following file types are supported
             # this ensures equitable distribution of jobs
-            if f.endswith(tuple(VALID_EXTENSIONS)):
+            if f.endswith(VALID_EXTENSIONS):
                 filtered_files.append(op.realpath(op.join(dirpath, f)))
 
     return filtered_files

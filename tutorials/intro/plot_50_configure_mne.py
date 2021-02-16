@@ -8,10 +8,6 @@ Configuring MNE-Python
 This tutorial covers how to configure MNE-Python to suit your local system and
 your analysis preferences.
 
-.. contents:: Page contents
-   :local:
-   :depth: 1
-
 We begin by importing the necessary Python modules:
 """
 

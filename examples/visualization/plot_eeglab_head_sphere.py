@@ -48,7 +48,7 @@ fake_evoked.set_montage(biosemi_montage)
 # measured
 # in the 10-20 system (a line going through Fpz, T8/T4, Oz and T7/T3 channels).
 # MNE-Python places the head outline lower on the z dimension, at the level of
-# the anatomical landmarks :term:`LPA, RPA, and NAS <fiducial point>`.
+# the anatomical landmarks :term:`LPA, RPA, and NAS <fiducial>`.
 # Therefore to use the EEGLAB layout we
 # have to move the origin of the reference sphere (a sphere that is used as a
 # reference when projecting channel locations to a 2d plane) a few centimeters
@@ -59,9 +59,8 @@ fake_evoked.set_montage(biosemi_montage)
 # the position of Fpz, T8, Oz and T7 channels available in our montage.
 
 # first we obtain the 3d positions of selected channels
-check_ch = ['Oz', 'Fpz', 'T7', 'T8']
-ch_idx = [fake_evoked.ch_names.index(ch) for ch in check_ch]
-pos = np.stack([fake_evoked.info['chs'][idx]['loc'][:3] for idx in ch_idx])
+chs = ['Oz', 'Fpz', 'T7', 'T8']
+pos = np.stack([biosemi_montage.get_positions()['ch_pos'][ch] for ch in chs])
 
 # now we calculate the radius from T7 and T8 x position
 # (we could use Oz and Fpz y positions as well)

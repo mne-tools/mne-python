@@ -6,7 +6,6 @@
 
 from copy import deepcopy
 import numpy as np
-from scipy import linalg
 
 from .constants import FIFF
 from .meas_info import _check_ch_keys
@@ -52,6 +51,7 @@ def _apply_reference(inst, ref_from, ref_to=None, forward=None,
                      ch_type='auto'):
     """Apply a custom EEG referencing scheme."""
     # Check to see that data is preloaded
+    from scipy import linalg
     _check_preload(inst, "Applying a reference")
 
     ch_type = _get_ch_type(inst, ch_type)
@@ -113,8 +113,8 @@ def _apply_reference(inst, ref_from, ref_to=None, forward=None,
         data[..., ref_to, :] -= ref_data
         ref_data = ref_data[..., 0, :]
 
-        # If the reference touches EEG/ECoG/sEEG electrodes, note in the info
-        # that a non-CAR has been applied.
+        # If the reference touches EEG/ECoG/sEEG/DBS electrodes, note in the
+        # info that a non-CAR has been applied.
         if len(np.intersect1d(ref_to, eeg_idx)) > 0:
             inst.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
         # REST
@@ -355,11 +355,11 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
 
 def _get_ch_type(inst, ch_type):
     _validate_type(ch_type, str, 'ch_type')
-    _check_option('ch_type', ch_type, ('auto', 'eeg', 'ecog', 'seeg'))
+    _check_option('ch_type', ch_type, ('auto', 'eeg', 'ecog', 'seeg', 'dbs'))
     # if ch_type is 'auto', search through list to find first reasonable
     # reference-able channel type.
     if ch_type == 'auto':
-        for type_ in ['eeg', 'ecog', 'seeg']:
+        for type_ in ['eeg', 'ecog', 'seeg', 'dbs']:
             if type_ in inst:
                 ch_type = type_
                 logger.info('%s channel type selected for '
@@ -367,7 +367,7 @@ def _get_ch_type(inst, ch_type):
                 break
         # if auto comes up empty, or the user specifies a bad ch_type.
         else:
-            raise ValueError('No EEG, ECoG or sEEG channels found '
+            raise ValueError('No EEG, ECoG, sEEG or DBS channels found '
                              'to rereference.')
     return ch_type
 
@@ -499,6 +499,9 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
         inst.info['chs'][an_idx]['ch_name'] = name
         logger.info('Bipolar channel added as "%s".' % name)
         inst.info._update_redundant()
+
+    if getattr(inst, 'picks', None) is not None:
+        del inst.picks  # picks cannot be tracked anymore
 
     # Drop remaining channels.
     if drop_refs:

@@ -11,6 +11,7 @@ compound_surnames = (
     'Dupré la Tour',
     'de la Torre',
     'van den Bosch',
+    'Van den Bossche',
     'Van Der Donckt',
     'van der Meer',
     'van Harmelen',
@@ -112,7 +113,8 @@ codemeta_boilerplate = f'''{{
         "EEG",
         "fNIRS",
         "ECoG",
-        "sEEG"
+        "sEEG",
+        "DBS"
     ],
     "programmingLanguage": [
         "Python"

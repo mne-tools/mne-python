@@ -8,10 +8,6 @@ Overview of artifact detection
 This tutorial covers the basics of artifact detection, and introduces the
 artifact detection tools available in MNE-Python.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 We begin as always by importing the necessary Python modules and loading some
 :ref:`example data <sample-dataset>`:
 """

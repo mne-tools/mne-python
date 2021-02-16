@@ -9,9 +9,6 @@ This tutorial explains how MRI coordinate frames are handled in MNE-Python,
 and how MNE-Python integrates with FreeSurfer for handling MRI data and
 source space data in general.
 
-.. contents::
-    :local:
-
 As usual we'll start by importing the necessary packages; for this tutorial
 that includes :mod:`nibabel` to handle loading the MRI images (MNE-Python also
 uses :mod:`nibabel` under the hood). We'll also use a special :mod:`Matplotlib
