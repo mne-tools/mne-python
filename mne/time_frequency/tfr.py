@@ -616,6 +616,8 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
     from ..epochs import BaseEpochs
     """Help reduce redundancy between tfr_morlet and tfr_multitaper."""
     decim = _check_decim(decim)
+
+    # obtain data as a 3D array - epochs x ch x time
     data = _get_data(inst, return_itc)
     info = inst.info.copy()  # make a copy as sfreq can be altered
 
@@ -667,78 +669,6 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
     return out
 
 
-def tfr_raw(raw, freqs, n_cycles, decim=1, 
-            time_bandwidth=4.0, use_fft=True,
-            method='multitaper',
-            statistic='average',
-            n_jobs=1, picks=None, output=None,
-            verbose=None):
-    """Compute spectrogram for a Raw object.
-
-    Parameters
-    ----------
-    raw :
-    freqs :
-    n_cycles :
-    decim :
-    time_bandwidth :
-    use_fft :
-    method :
-    statistic :
-    n_jobs :
-    picks :
-    output :
-    verbose :
-
-    Returns
-    -------
-    power : AverageTFR
-    """
-    if statistic is None:
-        combine_func = None
-    elif statistic == 'average':
-        combine_func = np.mean
-    
-
-    decim = _check_decim(decim)
-    # to make it play nice with _compute_tfr
-    data = raw.get_data()[np.newaxis, ...]
-    info = raw.info.copy()  # make a copy as sfreq can be altered
-
-    info, data = _prepare_picks(info, data, picks, axis=1)
-    del picks
-
-    output = 'power' if output is None else output
-
-    tfr_params = dict(n_cycles=n_cycles, n_jobs=n_jobs, use_fft=use_fft,
-                      zero_mean=True)
-    if method == 'multitaper':
-        tfr_params['time_bandwidth'] = time_bandwidth
-
-    # compute time frequency map
-    out = _compute_tfr(data, freqs, info['sfreq'], method=method,
-                       output=output, decim=decim, **tfr_params)
-
-    # get rid of dummy epoch dimension
-    out = out.squeeze()
-    times = raw.times[decim].copy()
-    info['sfreq'] /= decim.step
-
-    # combine power across frequencies using a combination
-    # statistic
-    power = out
-    if combine_func is not None:
-        power = combine_func(power, axis=1, keepdims=True)
-
-    # create the TFR object to hold the data
-    nave = 1
-    out = AverageTFR(info, power, times, freqs, nave,
-                     method='%s-power' % method,
-                     comment=f'Combining func {combine_func}'
-                     )
-    return out
-
-
 @verbose
 def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
                n_jobs=1, picks=None, zero_mean=True, average=True,
@@ -746,13 +676,13 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
     """Compute Time-Frequency Representation (TFR) using Morlet wavelets.
 
     Same computation as `~mne.time_frequency.tfr_array_morlet`, but
-    operates on `~mne.Epochs` objects instead of
-    :class:`NumPy arrays <numpy.ndarray>`.
+    operates on `~mne.Epochs`, `~mne.Evoked`, or `~mne.io.Raw` objects
+    instead of :class:`NumPy arrays <numpy.ndarray>`.
 
     Parameters
     ----------
-    inst : Epochs | Evoked
-        The epochs or evoked object.
+    inst : Epochs | Evoked | Raw
+        The epochs, evoked, or raw object.
     freqs : ndarray, shape (n_freqs,)
         The frequencies in Hz.
     n_cycles : float | ndarray, shape (n_freqs,)
@@ -800,6 +730,12 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
     mne.time_frequency.tfr_array_multitaper
     mne.time_frequency.tfr_stockwell
     mne.time_frequency.tfr_array_stockwell
+
+    Notes
+    -----
+    If the function is run on a ``Raw`` object, then it one should be
+    wary that the resulting ``AverageTFR`` object might be very large.
+    One can reduce RAM usage via the ``decim`` argument.
     """
     tfr_params = dict(n_cycles=n_cycles, n_jobs=n_jobs, use_fft=use_fft,
                       zero_mean=zero_mean, output=output)
@@ -889,13 +825,13 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
     """Compute Time-Frequency Representation (TFR) using DPSS tapers.
 
     Same computation as `~mne.time_frequency.tfr_array_multitaper`, but
-    operates on `~mne.Epochs` objects instead of
-    :class:`NumPy arrays <numpy.ndarray>`.
+    operates on `~mne.Epochs`, `~mne.Evoked`, or `~mne.io.Raw` objects
+    instead of :class:`NumPy arrays <numpy.ndarray>`.
 
     Parameters
     ----------
-    inst : Epochs | Evoked
-        The epochs or evoked object.
+    inst : Epochs | Evoked | Raw
+        The epochs, evoked, or raw object.
     freqs : ndarray, shape (n_freqs,)
         The frequencies in Hz.
     n_cycles : float | ndarray, shape (n_freqs,)
@@ -944,6 +880,10 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
     Notes
     -----
     .. versionadded:: 0.9.0
+
+    If the function is run on a ``Raw`` object, then it one should be
+    wary that the resulting ``AverageTFR`` object might be very large.
+    One can reduce RAM usage via the ``decim`` argument.
     """
     tfr_params = dict(n_cycles=n_cycles, n_jobs=n_jobs, use_fft=use_fft,
                       zero_mean=True, time_bandwidth=time_bandwidth)
@@ -2244,13 +2184,17 @@ def combine_tfr(all_tfr, weights='nave'):
 
 
 def _get_data(inst, return_itc):
-    """Get data from Epochs or Evoked instance as epochs x ch x time."""
+    """Get data from Epochs, Evoked, or Raw instance as epochs x ch x time."""
     from ..epochs import BaseEpochs
     from ..evoked import Evoked
-    if not isinstance(inst, (BaseEpochs, Evoked)):
-        raise TypeError('inst must be Epochs or Evoked')
+    from ..io import BaseRaw
+    if not isinstance(inst, (BaseEpochs, Evoked, BaseRaw)):
+        raise TypeError('inst must be Epochs or Evoked or Raw')
     if isinstance(inst, BaseEpochs):
         data = inst.get_data()
+    elif isinstance(inst, BaseRaw):
+        # make data into 3D to play nice with epochs x ch x time
+        data = inst.get_data()[np.newaxis, ...]
     else:
         if return_itc:
             raise ValueError('return_itc must be False for evoked data')

@@ -202,15 +202,16 @@ def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
     """Compute Time-Frequency Representation (TFR) using Stockwell Transform.
 
     Same computation as `~mne.time_frequency.tfr_array_stockwell`, but operates
-    on `~mne.Epochs` objects instead of :class:`NumPy arrays <numpy.ndarray>`.
+    on `~mne.Epochs`, `~mne.Evoked`, or `~mne.io.Raw` objects instead of
+    :class:`NumPy arrays <numpy.ndarray>`.
 
     See :footcite:`Stockwell2007,MoukademEtAl2014,WheatEtAl2010,JonesEtAl2006`
     for more information.
 
     Parameters
     ----------
-    inst : Epochs | Evoked
-        The epochs or evoked object.
+    inst : Epochs | Evoked | Raw
+        The epochs, evoked, or raw object.
     fmin : None, float
         The minimum frequency to include. If None defaults to the minimum fft
         frequency greater than zero.
@@ -249,6 +250,10 @@ def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
     Notes
     -----
     .. versionadded:: 0.9.0
+
+    If the function is run on a ``Raw`` object, then it one should be
+    wary that the resulting ``AverageTFR`` object might be very large.
+    One can reduce RAM usage via the ``decim`` argument.
 
     References
     ----------

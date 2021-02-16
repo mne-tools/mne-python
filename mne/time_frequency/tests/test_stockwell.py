@@ -27,6 +27,20 @@ raw_fname = op.join(base_dir, 'test_raw.fif')
 raw_ctf_fname = op.join(base_dir, 'test_ctf_raw.fif')
 
 
+def test_tfr_raw():
+    """Test stockwell TFR function on Raw object."""
+    # setup raw data with only a few seconds and channels
+    raw = read_raw_fif(raw_fname)
+    raw.crop(tmin=0, tmax=10)
+    raw.pick_types(meg=True, eeg=True)
+    raw.pick_channels(raw.ch_names[:5])
+
+    # run tfr analyses
+    power = tfr_stockwell(raw)
+
+    assert isinstance(power, AverageTFR)
+
+
 def test_stockwell_ctf():
     """Test that Stockwell can be calculated on CTF data."""
     raw = read_raw_fif(raw_ctf_fname)

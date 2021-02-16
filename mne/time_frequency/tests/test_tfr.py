@@ -279,6 +279,26 @@ def test_dpsswavelet():
     assert (len(Ws[0]) == len(freqs))  # As many wavelets as asked for
 
 
+@pytest.mark.parametrize('tfr_func', [
+    tfr_morlet,
+    tfr_multitaper
+])
+def test_tfr_raw(tfr_func):
+    """Test TFR functions on Raw object."""
+    # setup raw data with only a few seconds and channels
+    raw = read_raw_fif(raw_fname)
+    raw.crop(tmin=0, tmax=10)
+    raw.pick_types(meg=True, eeg=True)
+    raw.pick_channels(raw.ch_names[:5])
+
+    # run tfr analyses
+    freqs = np.arange(35, 70, 5, dtype=np.float64)
+    n_cycles = freqs / 2.0
+    power = tfr_func(raw, freqs=freqs, n_cycles=n_cycles, return_itc=False)
+
+    assert isinstance(power, AverageTFR)
+
+
 @pytest.mark.slowtest
 def test_tfr_multitaper():
     """Test tfr_multitaper."""
