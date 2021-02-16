@@ -1297,8 +1297,8 @@ class MNEBrowseFigure(MNEFigure):
         raw = self.mne.inst
         segment_colors = getattr(self.mne, 'annotation_segment_colors', dict())
         # sort the segments by start time
-        ann_order = raw.annotations.onset.argsort(axis=0)
-        descriptions = raw.annotations.description[ann_order]
+        ann_order = raw.annotations.onset.argsort(axis=0)        
+        descriptions = np.array([k.split(",")[0] for k in raw.annotations.description[ann_order]])        
         color_keys = np.union1d(descriptions, self.mne.new_annotation_labels)
         colors, red = _get_color_list(annotations=True)
         color_cycle = cycle(colors)
@@ -1315,8 +1315,8 @@ class MNEBrowseFigure(MNEFigure):
                 segment_colors[key] = next(color_cycle)
         self.mne.annotation_segment_colors = segment_colors
         # init a couple other annotation-related variables
-        labels = self._get_annotation_labels()
-        self.mne.visible_annotations = {label: True for label in labels}
+        labels = self._get_annotation_labels()        
+        self.mne.visible_annotations = {label.split(",")[0]: True for label in labels}
         self.mne.show_hide_annotation_checkboxes = None
 
     def _select_annotation_span(self, vmin, vmax):
@@ -1387,14 +1387,21 @@ class MNEBrowseFigure(MNEFigure):
         segments = self.mne.annotation_segments
         times = self.mne.times
         ax = self.mne.ax_main
-        ylim = ax.get_ylim()
+        ylim = ax.get_ylim()        
         for idx, (start, end) in enumerate(segments):
-            descr = self.mne.inst.annotations.description[idx]
+            if len(self.mne.inst.annotations.description[idx].split(","))==2:
+                descr = self.mne.inst.annotations.description[idx].split(",")[0]
+                chname = self.mne.inst.annotations.description[idx].split(",")[1]                
+                yindex = [tt.get_position()[1] for tt in ax.yaxis.get_ticklabels() \
+                          if tt.get_text()==chname][0]
+                ylim = [yindex-0.1,yindex+0.1]
+            else:
+                descr = self.mne.inst.annotations.description[idx]            
             segment_color = self.mne.annotation_segment_colors[descr]
             kwargs = dict(color=segment_color, alpha=0.3,
                           zorder=self.mne.zorder['ann'])
             if self.mne.visible_annotations[descr]:
-                # draw all segments on ax_hscroll
+                # draw all segments on ax_hscroll                
                 annot = self.mne.ax_hscroll.fill_betweenx((0, 1), start, end,
                                                           **kwargs)
                 self.mne.hscroll_annotations.append(annot)
