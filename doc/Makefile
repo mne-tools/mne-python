@@ -34,7 +34,7 @@ help:
 	@echo "  doctest          to run all doctests embedded in the documentation (if enabled)"
 
 clean:
-	-rm -rf _build auto_examples auto_tutorials generated api/generated *.stc *.fif *.nii.gz
+	-rm -rf _build auto_examples auto_tutorials generated *.stc *.fif *.nii.gz
 
 html_stable:
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) _build/html_stable
