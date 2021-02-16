@@ -62,6 +62,7 @@ data_path = mne.datasets.ssvep.data_path()
 bids_fname = data_path + '/sub-02/ses-01/eeg/sub-02_ses-01_task-ssvep_eeg.vhdr'
 
 raw = mne.io.read_raw_brainvision(bids_fname, preload=True, verbose=False)
+raw.info['line_freq'] = 50.
 
 # Set montage
 montage_style = 'easycap-M1'
@@ -85,8 +86,8 @@ raw.filter(hp, lp, fir_design='firwin', verbose=False)
 
 # Construct epochs
 event_id = {
-    '12hz': 10001,
-    '15hz': 10002
+    '12hz': 255,
+    '15hz': 155
 }
 events, _ = mne.events_from_annotations(raw, verbose=False)
 raw.info["events"] = events
@@ -474,7 +475,7 @@ ax.set_title('Average SNR at target frequencies')
 ax.set_xticks(x)
 ax.set_xticklabels(labels)
 ax.legend(['%ihz' % f for f in freq_plot], title='SNR at:')
-ax.set_ylim([0, 20])
+ax.set_ylim([0, 30])
 ax.axhline(1, ls='--', c='r')
 # fig.tight_layout()
 fig.show()
