@@ -9,7 +9,7 @@ visual stimulation (FPVS).
 Extracting SNR at stimulation frequency is a simple way to quantify frequency
 tagged responses in MEEG (a.k.a. steady state visually evoked potentials,
 SSVEP, or visual steady-state responses, vSSR in the visual domain,
-or auditory steady-state responses, aSSR in the auditory domain).
+or auditory steady-state responses, ASSR in the auditory domain).
 
 DATA:
 
@@ -29,7 +29,7 @@ OUTLINE:
 - We will extract SNR at stimulation frequency for all trials and channels.
 
 - We will show, that we can statistically separate 12hz and 15 hz responses
-in our data.
+  in our data.
 
 
 Since the evoked response is mainly generated in early visual areas of the
