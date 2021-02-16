@@ -120,9 +120,6 @@ epochs = mne.Epochs(
 #
 # * power modulations which are not very narrow band will disappear.
 #
-#
-
-###############################################################################
 # Calculate power spectral density (PSD)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # We use Welch's method for frequency decomposition, since it is really fast.
