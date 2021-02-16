@@ -557,8 +557,6 @@ print("15 hz trials: 36 hz SNR is significantly lower than 45 hz SNR"
 # Here we employ this to show you some features of frequency
 # tagging data that you might or might not have already intuitively expected:
 #
-
-##############################################################################
 # Effect of trial duration on SNR
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # First we will simulate shorter trials by taking the first x s of our 20s
