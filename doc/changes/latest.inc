@@ -82,7 +82,7 @@ Enhancements
 
 - Reading and writing FIFF files whose filenames end with ``_meg.fif.gz``, ``_eeg.fif(.gz)``, and ``_ieeg.fif(.gz)`` doesn't emit a warning anymore; this improves interobaility with BIDS-formatted datasets (:gh:`8868` by `Richard Höchenberger`_)
 
-- :func:`mne.time_frequency.EpochsTFR.average` now allows different ways of averaging, such as "median", or callable functions (:gh:`` by `Adam Li`_)
+- :func:`mne.time_frequency.EpochsTFR.average` now allows different ways of averaging, such as "median", or callable functions (:gh:`8879` by `Adam Li`_)
 
 Bugs
 ~~~~
