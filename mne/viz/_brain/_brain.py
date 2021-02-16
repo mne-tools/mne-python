@@ -958,7 +958,7 @@ class Brain(object):
         combo_box = QComboBox()
         combo_box.addItems(rng)
         combo_box.setCurrentText(value)
-        combo_box.textActivated.connect(callback)
+        combo_box.currentTextChanged.connect(callback)
         self.dock.widget().layout().addWidget(combo_box)
         return combo_box
 
