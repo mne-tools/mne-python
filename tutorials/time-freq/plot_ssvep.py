@@ -726,8 +726,6 @@ plt.show()
 # that the very short Welch windows < 2-3s are not great -
 # here we've hit the noise bottom.
 #
-
-##############################################################################
 # Time resolved SNR
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # ..and finally we can trick MNE's PSD implementation to make it a
