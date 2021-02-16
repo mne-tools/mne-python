@@ -26,36 +26,23 @@ class _LinkViewer(object):
 
         if time:
             # link time sliders
-            def _set_time_point(value):
-                for brain in brains:
-                    brain.callbacks["time"](value, update_widget=True)
             self.link_widgets(
                 name="time",
-                callback=_set_time_point,
+                callback=self.set_time_point,
                 signal_type="valueChanged",
             )
 
             # link playback speed sliders
-            def _set_playback_speed(value):
-                for brain in brains:
-                    brain.callbacks["playback_speed"](
-                        value, update_widget=True)
             self.link_widgets(
                 name="playback_speed",
-                callback=_set_playback_speed,
+                callback=self.set_playback_speed,
                 signal_type="valueChanged",
             )
 
             # link toggle to start/pause playback
-            def _toggle_playback():
-                value = self.leader.callbacks["time"].widget.value()
-                # synchronize starting points before playback
-                self.set_time_point(value)
-                for brain in brains:
-                    brain.toggle_playback()
             self.link_widgets(
                 name="play",
-                callback=_toggle_playback,
+                callback=self.toggle_playback,
                 signal_type="triggered",
                 actions=True,
             )
@@ -109,30 +96,40 @@ class _LinkViewer(object):
                 brain.callbacks["fmin"](fmin)
                 brain.callbacks["fmid"](fmid)
                 brain.callbacks["fmax"](fmax)
-
-            def set_fmin(value):
-                for brain in brains:
-                    brain.callbacks["fmin"](value)
-
-            def set_fmid(value):
-                for brain in brains:
-                    brain.callbacks["fmid"](value)
-
-            def set_fmax(value):
-                for brain in brains:
-                    brain.callbacks["fmax"](value)
-
-            funcs = {
-                'fmin': set_fmin,
-                'fmid': set_fmid,
-                'fmax': set_fmax,
-            }
             for name in ('fmin', 'fmid', 'fmax'):
+                func = getattr(self, "set_" + name)
                 self.link_widgets(
                     name=name,
-                    callback=funcs[name],
+                    callback=func,
                     signal_type="valueChanged"
                 )
+
+    def set_fmin(self, value):
+        for brain in self.brains:
+            brain.callbacks["fmin"](value)
+
+    def set_fmid(self, value):
+        for brain in self.brains:
+            brain.callbacks["fmid"](value)
+
+    def set_fmax(self, value):
+        for brain in self.brains:
+            brain.callbacks["fmax"](value)
+
+    def set_time_point(self, value):
+        for brain in self.brains:
+            brain.callbacks["time"](value, update_widget=True)
+
+    def set_playback_speed(self, value):
+        for brain in self.brains:
+            brain.callbacks["playback_speed"](value, update_widget=True)
+
+    def toggle_playback(self):
+        value = self.leader.callbacks["time"].widget.value()
+        # synchronize starting points before playback
+        self.set_time_point(value)
+        for brain in self.brains:
+            brain.toggle_playback()
 
     def link_widgets(self, name, callback, signal_type, actions=False):
         for brain in self.brains:
