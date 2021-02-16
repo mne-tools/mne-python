@@ -2739,7 +2739,7 @@ class Brain(object):
 
     @contextlib.contextmanager
     def _ensure_screenshot_size(self):
-        if not self.time_viewer:
+        if self.notebook or not self.time_viewer:
             yield
         else:
             self.dock.hide()
