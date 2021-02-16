@@ -24,9 +24,10 @@ standard.
 
 OUTLINE:
 
-- We will visualize both the PSD spectrum and the SNR spectrum of our epoched
-data.
+- We will visualize both the PSD and the SNR spectrum of our epoched data.
+
 - We will extract SNR at stimulation frequency for all trials and channels.
+
 - We will show, that we can statistically separate 12hz and 15 hz responses
 in our data.
 
@@ -51,11 +52,14 @@ from scipy.stats import ttest_rel
 # are considered optional. This doesn't mean, that a proper cleaning would not
 # increase your signal quality!
 #
-# - Raw data come with FCz recording reference, so we will apply common-average
-# rereferencing.
-# - We will apply a 50 Hz notch filter to remove line noise,
-# - and a 0.1 - 250 Hz bandpass filter.
-# - Lastly, we will cut the data in 20 s epochs corresponding to the trials.
+# * Raw data have FCz reference, so we will apply common-average rereferencing.
+#
+# * We will apply a 50 Hz notch filter to remove line noise,
+#
+# * and a 0.1 - 250 Hz bandpass filter.
+#
+# * Lastly, we will cut the data in 20 s epochs corresponding to the trials.
+#
 
 # Load raw data
 data_path = mne.datasets.ssvep.data_path()
@@ -111,6 +115,7 @@ epochs = mne.Epochs(
 # This procedure has two advantages over using the raw PSD:
 #
 # * it normalizes the spectrum and accounts for 1/f power decay.
+#
 # * power modulations which are not very narrow band will disappear.
 #
 
@@ -206,6 +211,7 @@ def snr_spectrum(psd, noise_n_neighborfreqs=1, noise_skip_neighborfreqs=1):
 # As described above, we have to define two parameters.
 #
 # * how many noise bins do you want?
+#
 # * do you want to skip n bins directly next to the target bin?
 #
 # Tweaking these parameters *can* drastically impact the resulting spectrum,
