@@ -2687,6 +2687,8 @@ class Brain(object):
             yield
         else:
             self.dock_widget.hide()
+            if self.mpl_canvas is not None:
+                self.mpl_canvas.canvas.hide()
             wsz = self.window.size()
             sz = self._size
             self.window.resize(2 * sz[0], 2 * sz[1])
@@ -2698,6 +2700,8 @@ class Brain(object):
                 self.plotter.setMinimumSize(0, 0)
                 self.window.resize(wsz)
                 self.dock_widget.show()
+                if self.mpl_canvas is not None:
+                    self.mpl_canvas.canvas.show()
 
     @fill_doc
     def screenshot(self, mode='rgb', time_viewer=False):
