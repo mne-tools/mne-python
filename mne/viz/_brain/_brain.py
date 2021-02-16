@@ -734,7 +734,8 @@ class Brain(object):
             try:
                 yield
             finally:
-                self.splitter.setSizes([sz[1], mpl_h])
+                # XXX: less painful solution?
+                # self.splitter.setSizes([sz[1], mpl_h])
                 # 1. Process events
                 self._renderer._process_events()
                 self._renderer._process_events()
@@ -2680,6 +2681,23 @@ class Brain(object):
         """
         self._renderer.screenshot(mode=mode, filename=filename)
 
+    @contextlib.contextmanager
+    def _ensure_screenshot_size(self):
+        self.dock_widget.hide()
+        self.mpl_canvas.canvas.hide()
+        wsz = self.window.size()
+        sz = self._size
+        self.window.resize(2 * sz[0], 2 * sz[1])
+        self.plotter.setMinimumSize(sz[0], sz[1])
+        self.plotter.window_size = (sz[0], sz[1])
+        try:
+            yield
+        finally:
+            self.window.resize(wsz)
+            self.plotter.setMinimumSize(0, 0)
+            self.dock_widget.show()
+            self.mpl_canvas.canvas.show()
+
     @fill_doc
     def screenshot(self, mode='rgb', time_viewer=False):
         """Generate a screenshot of current view.
@@ -2695,7 +2713,8 @@ class Brain(object):
         screenshot : array
             Image pixel values.
         """
-        img = self._renderer.screenshot(mode)
+        with self._ensure_screenshot_size():
+            img = self._renderer.screenshot(mode)
         if time_viewer and self.time_viewer and \
                 self.show_traces and \
                 not self.separate_canvas:
