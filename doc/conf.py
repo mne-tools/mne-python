@@ -97,7 +97,7 @@ exclude_patterns = ['_includes']
 # The suffix of source filenames.
 source_suffix = '.rst'
 
-# The master toctree document.
+# The main toctree document.
 master_doc = 'index'
 
 # List of documents that shouldn't be included in the build.
