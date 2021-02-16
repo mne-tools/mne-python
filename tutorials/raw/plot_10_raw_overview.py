@@ -13,10 +13,6 @@ object. For more info on visualization of :class:`~mne.io.Raw` objects, see
 from simulated data in a :class:`NumPy array <numpy.ndarray>`, see
 :ref:`tut_creating_data_structures`.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 As usual we'll start by importing the modules we need:
 """
 

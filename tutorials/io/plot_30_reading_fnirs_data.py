@@ -9,11 +9,6 @@ Importing data from fNIRS devices
 MNE includes various functions and utilities for reading NIRS
 data and optode locations.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
-
 .. _import-nirx:
 
 NIRx (directory)

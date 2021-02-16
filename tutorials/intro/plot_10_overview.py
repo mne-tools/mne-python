@@ -12,10 +12,6 @@ from sensor data. It introduces the core MNE-Python data structures
 covers a lot of ground fairly quickly (at the expense of depth). Subsequent
 tutorials address each of these topics in greater detail.
 
-.. contents:: Page contents
-   :local:
-   :depth: 1
-
 We begin by importing the necessary Python modules:
 """
 

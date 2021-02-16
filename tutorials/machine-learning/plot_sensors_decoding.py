@@ -3,10 +3,6 @@ r"""
 Decoding (MVPA)
 ===============
 
-.. contents:: Contents
-   :local:
-   :depth: 3
-
 .. include:: ../../links.inc
 
 Design philosophy

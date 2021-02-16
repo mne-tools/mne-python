@@ -7,10 +7,6 @@ Getting started with ``mne.Report``
 This tutorial covers making interactive HTML summaries with
 :class:`mne.Report`.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 As usual we'll start by importing the modules we need and loading some
 :ref:`example data <sample-dataset>`:
 """

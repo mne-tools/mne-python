@@ -275,19 +275,26 @@ def test_documented():
     else:
         public_modules_.append('mne.gui')
 
-    doc_file = op.abspath(op.join(op.dirname(__file__), '..', '..', 'doc',
-                                  'python_reference.rst'))
+    doc_dir = op.abspath(op.join(op.dirname(__file__), '..', '..', 'doc'))
+    doc_file = op.join(doc_dir, 'python_reference.rst')
     if not op.isfile(doc_file):
         raise SkipTest('Documentation file not found: %s' % doc_file)
+    api_files = (
+        'connectivity', 'covariance', 'creating_from_arrays', 'datasets',
+        'decoding', 'events', 'file_io', 'forward', 'inverse', 'logging',
+        'most_used_classes', 'mri', 'preprocessing', 'reading_raw_data',
+        'realtime', 'report', 'sensor_space', 'simulation', 'source_space',
+        'statistics', 'time_frequency', 'visualization')
     known_names = list()
-    with open(doc_file, 'rb') as fid:
-        for line in fid:
-            line = line.decode('utf-8')
-            if not line.startswith('  '):  # at least two spaces
-                continue
-            line = line.split()
-            if len(line) == 1 and line[0] != ':':
-                known_names.append(line[0].split('.')[-1])
+    for api_file in api_files:
+        with open(op.join(doc_dir, f'{api_file}.rst'), 'rb') as fid:
+            for line in fid:
+                line = line.decode('utf-8')
+                if not line.startswith('  '):  # at least two spaces
+                    continue
+                line = line.split()
+                if len(line) == 1 and line[0] != ':':
+                    known_names.append(line[0].split('.')[-1])
     known_names = set(known_names)
 
     missing = []

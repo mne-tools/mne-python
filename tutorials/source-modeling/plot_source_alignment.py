@@ -10,10 +10,6 @@ locations, digitized scalp landmark and sensor locations, and MRI volumes. This
 alignment process is crucial for computing the forward solution, as is
 understanding the different coordinate frames involved in this process.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 Let's start out by loading some data.
 """
 import os.path as op
