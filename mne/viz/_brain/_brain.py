@@ -895,6 +895,8 @@ class Brain(object):
             scalar_bar.SetPosition(0.02, 0.2)
 
     def _configure_widgets(self):
+        if self.notebook:
+            return
         from PyQt5 import QtCore
         from PyQt5.QtWidgets import (
             QDockWidget,
