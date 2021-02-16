@@ -49,32 +49,32 @@ class _LinkViewer(object):
 
             # link time course canvas
             def _time_func(*args, **kwargs):
-                for brain in brains:
+                for brain in self.brains:
                     brain.callbacks["time"](*args, **kwargs)
-            for brain in brains:
+            for brain in self.brains:
                 if brain.show_traces:
                     brain.mpl_canvas.time_func = _time_func
 
         if picking:
             def _func_add(*args, **kwargs):
-                for brain in brains:
+                for brain in self.brains:
                     brain._add_vertex_glyph2(*args, **kwargs)
                     brain.plotter.update()
 
             def _func_remove(*args, **kwargs):
-                for brain in brains:
+                for brain in self.brains:
                     brain._remove_vertex_glyph2(*args, **kwargs)
 
             # save initial picked points
             initial_points = dict()
             for hemi in ('lh', 'rh'):
                 initial_points[hemi] = set()
-                for brain in brains:
+                for brain in self.brains:
                     initial_points[hemi] |= \
                         set(brain.picked_points[hemi])
 
             # link the viewers
-            for brain in brains:
+            for brain in self.brains:
                 brain.clear_glyphs()
                 brain._add_vertex_glyph2 = brain._add_vertex_glyph
                 brain._add_vertex_glyph = _func_add
@@ -92,7 +92,7 @@ class _LinkViewer(object):
             fmin = self.leader._data["fmin"]
             fmid = self.leader._data["fmid"]
             fmax = self.leader._data["fmax"]
-            for brain in brains:
+            for brain in self.brains:
                 brain.callbacks["fmin"](fmin)
                 brain.callbacks["fmid"](fmid)
                 brain.callbacks["fmax"](fmax)
