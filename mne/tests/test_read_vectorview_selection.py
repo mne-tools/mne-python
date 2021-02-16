@@ -45,7 +45,8 @@ def test_read_vectorview_selection():
         sel = read_vectorview_selection(name, info=raw_new.info)
         assert ch_names_new[i] in sel
 
-    pytest.raises(TypeError, read_vectorview_selection, name, info='foo')
+    with pytest.raises(TypeError, match='must be an instance of Info or None'):
+        read_vectorview_selection(name, info='foo')
 
 
 run_tests_if_main()
