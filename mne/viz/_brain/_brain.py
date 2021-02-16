@@ -693,8 +693,8 @@ class Brain(object):
         for hemi in self._hemis:
             self._layered_meshes[hemi]._clean()
         self._clear_callbacks()
-        if getattr(self, 'widgets', None) is not None:
-            self.widgets.clear()
+        self._clear_widgets()
+        self.plotter._key_press_event_callbacks.clear()
         if getattr(self, 'mpl_canvas', None) is not None:
             self.mpl_canvas.clear()
         if getattr(self, 'act_data_smooth', None) is not None:
@@ -717,7 +717,7 @@ class Brain(object):
         for key in ('plotter', 'main_menu', 'window', 'tool_bar',
                     'status_bar', 'interactor', 'mpl_canvas', 'time_actor',
                     'picked_renderer', 'act_data_smooth', '_iren',
-                    'actions', 'geo', '_hemi_actors', '_data'):
+                    'actions', 'widgets', 'geo', '_hemi_actors', '_data'):
             setattr(self, key, None)
 
     @contextlib.contextmanager
@@ -1783,13 +1783,19 @@ class Brain(object):
             return
         for callback in self.callbacks.values():
             if callback is not None:
-                if hasattr(callback, "plotter"):
-                    callback.plotter = None
-                if hasattr(callback, "brain"):
-                    callback.brain = None
-                if hasattr(callback, "slider_rep"):
-                    callback.slider_rep = None
+                for key in ('plotter', 'brain', 'callback',
+                            'widget', 'widgets'):
+                    setattr(callback, key, None)
         self.callbacks.clear()
+
+    def _clear_widgets(self):
+        if not hasattr(self, 'widgets'):
+            return
+        for widget in self.widgets.values():
+            if widget is not None:
+                for key in ('triggered', 'valueChanged'):
+                    setattr(widget, key, None)
+        self.widgets.clear()
 
     @property
     def interaction(self):

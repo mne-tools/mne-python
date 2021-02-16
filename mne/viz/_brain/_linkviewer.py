@@ -26,54 +26,68 @@ class _LinkViewer(object):
 
         if time:
             # link time sliders
-            self.link_sliders(
+            def _set_time_point(value):
+                for brain in brains:
+                    brain.callbacks["time"](value, update_widget=True)
+            self.link_widgets(
                 name="time",
-                callback=self.set_time_point,
-                event_type="always"
+                callback=_set_time_point,
+                signal_type="valueChanged",
             )
 
             # link playback speed sliders
-            self.link_sliders(
+            def _set_playback_speed(value):
+                for brain in brains:
+                    brain.callbacks["playback_speed"](
+                        value, update_widget=True)
+            self.link_widgets(
                 name="playback_speed",
-                callback=self.set_playback_speed,
-                event_type="always"
+                callback=_set_playback_speed,
+                signal_type="valueChanged",
             )
 
             # link toggle to start/pause playback
-            for brain in self.brains:
-                brain.actions["play"].triggered.disconnect()
-                brain.actions["play"].triggered.connect(
-                    self.toggle_playback)
+            def _toggle_playback():
+                value = self.leader.callbacks["time"].widget.value()
+                # synchronize starting points before playback
+                self.set_time_point(value)
+                for brain in brains:
+                    brain.toggle_playback()
+            self.link_widgets(
+                name="play",
+                callback=_toggle_playback,
+                signal_type="triggered",
+                actions=True,
+            )
 
             # link time course canvas
             def _time_func(*args, **kwargs):
-                for brain in self.brains:
+                for brain in brains:
                     brain.callbacks["time"](*args, **kwargs)
-
-            for brain in self.brains:
+            for brain in brains:
                 if brain.show_traces:
                     brain.mpl_canvas.time_func = _time_func
 
         if picking:
             def _func_add(*args, **kwargs):
-                for brain in self.brains:
+                for brain in brains:
                     brain._add_vertex_glyph2(*args, **kwargs)
                     brain.plotter.update()
 
             def _func_remove(*args, **kwargs):
-                for brain in self.brains:
+                for brain in brains:
                     brain._remove_vertex_glyph2(*args, **kwargs)
 
             # save initial picked points
             initial_points = dict()
             for hemi in ('lh', 'rh'):
                 initial_points[hemi] = set()
-                for brain in self.brains:
+                for brain in brains:
                     initial_points[hemi] |= \
                         set(brain.picked_points[hemi])
 
             # link the viewers
-            for brain in self.brains:
+            for brain in brains:
                 brain.clear_glyphs()
                 brain._add_vertex_glyph2 = brain._add_vertex_glyph
                 brain._add_vertex_glyph = _func_add
@@ -91,56 +105,45 @@ class _LinkViewer(object):
             fmin = self.leader._data["fmin"]
             fmid = self.leader._data["fmid"]
             fmax = self.leader._data["fmax"]
-            for brain in self.brains:
+            for brain in brains:
                 brain.callbacks["fmin"](fmin)
                 brain.callbacks["fmid"](fmid)
                 brain.callbacks["fmax"](fmax)
 
-            for slider_name in ('fmin', 'fmid', 'fmax'):
-                func = getattr(self, "set_" + slider_name)
-                self.link_sliders(
-                    name=slider_name,
-                    callback=func,
-                    event_type="always"
+            def set_fmin(value):
+                for brain in brains:
+                    brain.callbacks["fmin"](value)
+
+            def set_fmid(value):
+                for brain in brains:
+                    brain.callbacks["fmid"](value)
+
+            def set_fmax(value):
+                for brain in brains:
+                    brain.callbacks["fmax"](value)
+
+            funcs = {
+                'fmin': set_fmin,
+                'fmid': set_fmid,
+                'fmax': set_fmax,
+            }
+            for name in ('fmin', 'fmid', 'fmax'):
+                self.link_widgets(
+                    name=name,
+                    callback=funcs[name],
+                    signal_type="valueChanged"
                 )
 
-    def set_fmin(self, value):
+    def link_widgets(self, name, callback, signal_type, actions=False):
         for brain in self.brains:
-            brain.callbacks["fmin"](value)
-
-    def set_fmid(self, value):
-        for brain in self.brains:
-            brain.callbacks["fmid"](value)
-
-    def set_fmax(self, value):
-        for brain in self.brains:
-            brain.callbacks["fmax"](value)
-
-    def set_time_point(self, value):
-        for brain in self.brains:
-            brain.callbacks["time"](value, update_widget=True)
-
-    def set_playback_speed(self, value):
-        for brain in self.brains:
-            brain.callbacks["playback_speed"](value, update_widget=True)
-
-    def toggle_playback(self):
-        value = self.leader.callbacks["time"].slider_rep.GetValue()
-        # synchronize starting points before playback
-        self.set_time_point(value)
-        for brain in self.brains:
-            brain.toggle_playback()
-
-    def link_sliders(self, name, callback, event_type):
-        from ..backends._pyvista import _update_slider_callback
-        for brain in self.brains:
-            slider = brain.sliders[name]
-            if slider is not None:
-                _update_slider_callback(
-                    slider=slider,
-                    callback=callback,
-                    event_type=event_type
-                )
+            if actions:
+                widget = brain.actions[name]
+            else:
+                widget = brain.widgets[name]
+            if widget is not None:
+                signal = getattr(widget, signal_type)
+                signal.disconnect()
+                signal.connect(callback)
 
     def link_cameras(self):
         from ..backends._pyvista import _add_camera_callback

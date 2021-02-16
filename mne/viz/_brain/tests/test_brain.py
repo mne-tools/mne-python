@@ -732,6 +732,7 @@ def test_brain_linkviewer(renderer_interactive, brain_gc):
             colorbar=False,
             picking=False,
         )
+    brain1.close()
 
     brain_data = _create_testing_brain(hemi='split', show_traces='vertex')
     link_viewer = _LinkViewer(
@@ -741,15 +742,13 @@ def test_brain_linkviewer(renderer_interactive, brain_gc):
         colorbar=True,
         picking=True,
     )
-    link_viewer.set_time_point(value=0)
-    link_viewer.brains[0].mpl_canvas.time_func(0)
-    link_viewer.set_fmin(0)
-    link_viewer.set_fmid(0.5)
-    link_viewer.set_fmax(1)
-    link_viewer.set_playback_speed(value=0.1)
-    link_viewer.toggle_playback()
-    del link_viewer
-    brain1.close()
+    link_viewer.leader.set_time_point(0)
+    link_viewer.leader.mpl_canvas.time_func(0)
+    link_viewer.leader.callbacks["fmin"](0)
+    link_viewer.leader.callbacks["fmid"](0.5)
+    link_viewer.leader.callbacks["fmax"](1)
+    link_viewer.leader.set_playback_speed(0.1)
+    link_viewer.leader.toggle_playback()
     brain2.close()
     brain_data.close()
 
