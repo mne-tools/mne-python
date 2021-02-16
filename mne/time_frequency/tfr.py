@@ -2097,7 +2097,6 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
 
         Parameters
         ----------
-        %(picks_all_data)s
         method : str | callable
             How to combine the data. If "mean"/"median", the mean/median
             are returned.
