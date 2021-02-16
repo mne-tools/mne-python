@@ -277,15 +277,18 @@ def test_documented():
         public_modules_.append('mne.gui')
 
     doc_dir = op.abspath(op.join(op.dirname(__file__), '..', '..', 'doc'))
-    api_dir = op.join(doc_dir, 'api')
     doc_file = op.join(doc_dir, 'python_reference.rst')
     if not op.isfile(doc_file):
         raise SkipTest('Documentation file not found: %s' % doc_file)
+    api_files = (
+        'connectivity', 'covariance', 'creating_from_arrays', 'datasets',
+        'decoding', 'events', 'file_io', 'forward', 'inverse', 'logging',
+        'most_used_classes', 'mri', 'preprocessing', 'reading_raw_data',
+        'realtime', 'report', 'sensor_space', 'simulation', 'source_space',
+        'statistics', 'time_frequency', 'visualization')
     known_names = list()
-    for api_file in os.listdir(api_dir):
-        if api_file == 'generated':
-            continue
-        with open(op.join(api_dir, api_file), 'rb') as fid:
+    for api_file in api_files:
+        with open(op.join(doc_dir, f'{api_file}.rst'), 'rb') as fid:
             for line in fid:
                 line = line.decode('utf-8')
                 if not line.startswith('  '):  # at least two spaces
