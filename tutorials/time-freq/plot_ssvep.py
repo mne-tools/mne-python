@@ -396,7 +396,7 @@ topo_pos_grave = []
 topo_pos_grave = np.array(topo_pos_grave)
 
 # plot SNR topography, eventually
-f, ax = plt.subplots()
+fig, ax = plt.subplots(1)
 mne.viz.plot_topomap(snrs_12hz_chaverage, topo_pos_grave, vmin=1., axes=ax)
 
 print("sub 2, 12hz trials, SNR at 12hz")
@@ -588,12 +588,13 @@ for i_win, win in enumerate(window_lengths):
         np.argmin(
             abs(np.subtract(windowed_freqs, 12.)))].mean(axis=1)
 
-plt.boxplot(window_snrs, labels=window_lengths, vert=True)
-plt.title('Effect of trial length on 12hz SNR')
-plt.axhline(1, ls='--', c='r')
-plt.ylabel('average SNR')
-plt.xlabel('trial length [s]')
-plt.show()
+fig, ax = plt.subplots(1)
+ax.boxplot(window_snrs, labels=window_lengths, vert=True)
+ax.set(title='Effect of trial length on 12hz SNR',
+       ylabel='Average SNR', xlabel='Trial length [s]')
+ax.axhline(1, ls='--', c='r')
+fig.show()
+
 
 ##############################################################################
 # You can see that the signal estimate / our SNR measure increases with the
@@ -647,14 +648,12 @@ for i_win, win in enumerate(window_lengths):
         :, picks_roi_vis,
         np.argmin(abs(np.subtract(windowed_freqs, 12.)))].mean(axis=1)
 
-plt.figure()
-plt.boxplot(window_snrs, labels=window_lengths, vert=True)
-plt.title('Effect of time window length on 12hz SNR - adapt only welch window')
-plt.title('Varying Welch window, fixed trial length')
-plt.ylabel('average SNR')
-plt.xlabel('Welch window [s]')
-plt.axhline(1, ls='--', c='r')
-plt.show()
+fig, ax = plt.subplots(1)
+ax.boxplot(window_snrs, labels=window_lengths, vert=True)
+ax.set(title='Varying Welch window, fixed trial length',
+       ylabel='Average SNR', xlabel='Welch window [s]')
+ax.axhline(1, ls='--', c='r')
+fig.show()
 
 # fig 2 - shorten data, welch window fix
 window_lengths = [i for i in range(2, 21, 2)]
@@ -687,13 +686,12 @@ for i_win, win in enumerate(window_lengths):
             :, picks_roi_vis,
             np.argmin(abs(np.subtract(windowed_freqs, 12.)))].mean(axis=1)
 
-plt.figure()
-plt.boxplot(window_snrs, labels=window_lengths, vert=True)
-plt.title('3s Welch window, varying trial length')
-plt.ylabel('average SNR')
-plt.xlabel('trial length [s]')
-plt.axhline(1, ls='--', c='r')
-plt.show()
+fig, ax = plt.subplots(1)
+ax.boxplot(window_snrs, labels=window_lengths, vert=True)
+ax.set(title='3s Welch window, varying trial length',
+       ylabel='Average SNR', xlabel='Trial length [s]')
+ax.axhline(1, ls='--', c='r')
+fig.show()
 
 ##############################################################################
 # In these plots you can see that a shorter Welch window (relative to the
@@ -751,14 +749,13 @@ for i_win, win in enumerate(window_starts):
         windowed_snrs[:, picks_roi_vis, np.argmin(
             abs(np.subtract(windowed_freqs, 12.)))].mean(axis=1)
 
-plt.figure()
-plt.plot(window_starts, np.array(window_snrs))
-plt.title('Time resolved 12hz SNR - %is sliding window' % window_length)
-plt.legend(['individual trials'])
-plt.ylabel('average SNR')
-plt.xlabel('t0 of analysis window [s]')
-plt.axhline(1, ls='--', c='r')
-plt.show()
+fig, ax = plt.subplots(1)
+ax.plot(window_starts, np.array(window_snrs))
+ax.set(title='Time resolved 12hz SNR - %is sliding window' % window_length,
+       ylabel='Average SNR', xlabel='t0 of analysis window [s]')
+ax.axhline(1, ls='--', c='r')
+ax.legend(['individual trials'])
+fig.show()
 
 ##############################################################################
 # Well.. turns out this was a bit too optimistic ;)
