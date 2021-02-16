@@ -909,6 +909,13 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         """Channel names."""
         return self.info['ch_names']
 
+    def average_freqs(self, l_freq, h_freq, name=None):
+        """Average data within frequency band."""
+        # average band
+
+        # optionally set name of the band (e.g. gamma)
+        pass
+
     @fill_doc
     def crop(self, tmin=None, tmax=None, fmin=None, fmax=None,
              include_tmax=True):
@@ -1936,6 +1943,10 @@ class AverageTFR(_BaseTFR):
                                 title=title, axes=axes, show=show,
                                 outlines=outlines,
                                 contours=contours, sphere=sphere)
+
+    def plot_spectrogram(self, l_freq=None, h_freq=None):
+        """Plot spectrogram of channels x time of a frequency band."""
+        pass
 
     def _check_compat(self, tfr):
         """Check that self and tfr have the same time-frequency ranges."""
