@@ -165,7 +165,7 @@ def snr_spectrum(psd, noise_n_neighborfreqs=1, noise_skip_neighborfreqs=1):
     """
     Parameters
     ----------
-    psd - np.array
+    psd : ndarray
         containing psd values as spit out by mne functions. must be 2d or 3d
         with frequencies in the last dimension
     noise_n_neighborfreqs - int
