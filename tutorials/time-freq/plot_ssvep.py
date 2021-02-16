@@ -618,8 +618,6 @@ plt.show()
 # In other words: with more data the signal term grows faster than the noise
 # term.
 #
-
-##############################################################################
 # Effect of the Welch window size
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # Let's now look at the effect of the Welch window from two different
