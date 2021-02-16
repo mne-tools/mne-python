@@ -2683,20 +2683,21 @@ class Brain(object):
 
     @contextlib.contextmanager
     def _ensure_screenshot_size(self):
-        self.dock_widget.hide()
-        self.mpl_canvas.canvas.hide()
-        wsz = self.window.size()
-        sz = self._size
-        self.window.resize(2 * sz[0], 2 * sz[1])
-        self.plotter.setMinimumSize(sz[0], sz[1])
-        self.plotter.window_size = (sz[0], sz[1])
-        try:
+        if not self.time_viewer:
             yield
-        finally:
-            self.window.resize(wsz)
-            self.plotter.setMinimumSize(0, 0)
-            self.dock_widget.show()
-            self.mpl_canvas.canvas.show()
+        else:
+            self.dock_widget.hide()
+            wsz = self.window.size()
+            sz = self._size
+            self.window.resize(2 * sz[0], 2 * sz[1])
+            self.plotter.setMinimumSize(sz[0], sz[1])
+            self.plotter.window_size = (sz[0], sz[1])
+            try:
+                yield
+            finally:
+                self.plotter.setMinimumSize(0, 0)
+                self.window.resize(wsz)
+                self.dock_widget.show()
 
     @fill_doc
     def screenshot(self, mode='rgb', time_viewer=False):
