@@ -17,6 +17,7 @@ else # pip 3.9 (missing statsmodels and dipy)
 	pip install --progress-bar off https://github.com/pyvista/pyvista/zipball/5ee02e2f295f667e33f11e71946e774cca40256c
 	pip install --progress-bar off https://github.com/pyvista/pyvistaqt/zipball/master
 	pip install --progress-bar off --upgrade --pre PyQt5
+	pip install --progress-bar off https://github.com/drammock/pooch/zipball/allow-arbitrary-unzip-locations
 	python -c "import vtk"
 	python -c "import pyvistaqt"
 fi
