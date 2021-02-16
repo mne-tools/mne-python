@@ -31,6 +31,7 @@ OUTLINE:
 - We will show, that we can statistically separate 12hz and 15 hz responses
 in our data.
 
+
 Since the evoked response is mainly generated in early visual areas of the
 brain we will stick with an ROI analysis and extract SNR from occipital
 channels.
@@ -59,6 +60,7 @@ from scipy.stats import ttest_rel
 # * and a 0.1 - 250 Hz bandpass filter.
 #
 # * Lastly, we will cut the data in 20 s epochs corresponding to the trials.
+#
 #
 
 # Load raw data
@@ -118,6 +120,7 @@ epochs = mne.Epochs(
 #
 # * power modulations which are not very narrow band will disappear.
 #
+#
 
 ###############################################################################
 # Calculate power spectral density (PSD)
@@ -127,6 +130,7 @@ epochs = mne.Epochs(
 # You could compare it with, e.g., multitaper to get an impression of the
 # influence on SNR. All the other methods implemented in MNE can be used as
 # well.
+#
 
 tmin = 0.
 tmax = 20.
@@ -213,6 +217,7 @@ def snr_spectrum(psd, noise_n_neighborfreqs=1, noise_skip_neighborfreqs=1):
 # * how many noise bins do you want?
 #
 # * do you want to skip n bins directly next to the target bin?
+#
 #
 # Tweaking these parameters *can* drastically impact the resulting spectrum,
 # but mainly if you choose extremes.
@@ -378,6 +383,7 @@ print('average SNR (occipital ROI): %f' % snrs_target.mean())
 # Here we will plot average SNR for each channel location as a topoplot.
 # Then we will do a simple paired T-test to check, whether average SNRs over
 # the two sets of channels are significantly different.
+#
 
 # get average SNR at 12hz for ALL channels
 snrs_12hz = snrs[i_trial_12hz, :, i_bin_12hz][0]
@@ -429,6 +435,7 @@ print("12 hz SNR in occipital ROI is significantly larger than 12 hz SNR over "
 # If you end up selecting an ROI or individual channel for reporting *because
 # this channel or ROI shows an effect*, e.g. in an explorative analysis, this
 # is also fine but make it transparently and correct for multiple comparison.
+#
 
 ##############################################################################
 # Statistical analysis
@@ -718,7 +725,7 @@ plt.show()
 # Yet, one should also not pick too small a window: in our data we can see
 # that the very short Welch windows < 2-3s are not great -
 # here we've hit the noise bottom.
-
+#
 
 ##############################################################################
 # Time resolved SNR
@@ -728,7 +735,7 @@ plt.show()
 # This will reveal whether a participant blinked or scratched their head..
 #
 # Each of the ten trials is coded with a different color in the plot below.
-
+#
 
 # 3s sliding window
 window_length = 3
@@ -776,3 +783,4 @@ plt.show()
 # what's possible with this single-subject example dataset.
 # There are certainly data or applications where such an analysis makes more
 # sense.
+#
