@@ -542,8 +542,6 @@ print("15 hz trials: 36 hz SNR is significantly lower than 45 hz SNR"
 # brain responses even within a single participant and single trials of only
 # a few seconds duration.
 #
-
-##############################################################################
 # Bonus exercises
 # ---------------
 # For the overly motivated amongst you, let's see what else we can show with
