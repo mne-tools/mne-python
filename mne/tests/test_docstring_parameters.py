@@ -1,6 +1,5 @@
 import inspect
 from inspect import getsource
-import os
 import os.path as op
 from pkgutil import walk_packages
 import re
