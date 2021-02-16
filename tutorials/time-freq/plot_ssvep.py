@@ -291,9 +291,6 @@ fig.show()
 # The PSD spectrum shows a prominent negative peak and average SNR approaches
 # 0.
 #
-
-
-###############################################################################
 # Subsetting data
 # ---------------
 #
