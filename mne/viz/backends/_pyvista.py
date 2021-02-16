@@ -38,7 +38,6 @@ with warnings.catch_warnings():
         from pyvistaqt import BackgroundPlotter  # noqa
     except ImportError:
         from pyvista import BackgroundPlotter
-    from pyvista.utilities import try_callback
     from pyvista.plotting.plotting import _ALL_PLOTTERS
 VTK9 = LooseVersion(getattr(vtk, 'VTK_VERSION', '9.0')) >= LooseVersion('9.0')
 
@@ -1070,27 +1069,6 @@ def _process_events(plotter):
         with warnings.catch_warnings(record=True):
             warnings.filterwarnings('ignore', 'constrained_layout')
             plotter.app.processEvents()
-
-
-def _update_slider_callback(slider, callback, event_type):
-    _check_option('event_type', event_type, ['start', 'end', 'always'])
-
-    def _the_callback(widget, event):
-        value = widget.GetRepresentation().GetValue()
-        if hasattr(callback, '__call__'):
-            try_callback(callback, value)
-        return
-
-    if event_type == 'start':
-        event = vtk.vtkCommand.StartInteractionEvent
-    elif event_type == 'end':
-        event = vtk.vtkCommand.EndInteractionEvent
-    else:
-        assert event_type == 'always', event_type
-        event = vtk.vtkCommand.InteractionEvent
-
-    slider.RemoveObserver(event)
-    slider.AddObserver(event, _the_callback)
 
 
 def _add_camera_callback(camera, callback):
