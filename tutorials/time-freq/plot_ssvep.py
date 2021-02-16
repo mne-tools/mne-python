@@ -43,7 +43,6 @@ import warnings
 import matplotlib.pyplot as plt
 import mne
 import numpy as np
-from mne_bids import read_raw_bids, BIDSPath
 from scipy.stats import ttest_rel
 
 ###############################################################################
@@ -61,16 +60,9 @@ from scipy.stats import ttest_rel
 
 # Load raw data
 data_path = mne.datasets.ssvep.data_path()
-bids_path = BIDSPath(subject='02', session='01', task='ssvep', root=data_path)
+bids_fname = data_path + '/sub-02/ses-01/eeg/sub-02_ses-01_task-ssvep_eeg.vhdr'
 
-# read_raw_bids issues warnings about missing electrodes.tsv and
-# coordsystem.json.
-# These warning prevent successful building of the tutorial.
-# As a quick workaround, we just suppress the warnings here.
-with warnings.catch_warnings():
-    warnings.simplefilter("ignore")
-    raw = read_raw_bids(bids_path, verbose=False)
-raw.load_data()
+raw = mne.io.read_raw_brainvision(bids_fname, preload=True, verbose=False)
 
 # Set montage
 montage_style = 'easycap-M1'
