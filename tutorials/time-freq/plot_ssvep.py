@@ -436,8 +436,6 @@ print("12 hz SNR in occipital ROI is significantly larger than 12 hz SNR over "
 # this channel or ROI shows an effect*, e.g. in an explorative analysis, this
 # is also fine but make it transparently and correct for multiple comparison.
 #
-
-##############################################################################
 # Statistical analysis
 # --------------------
 # Back from this little detour into open science, let's move on and
