@@ -22,7 +22,7 @@ from ..defaults import HEAD_SIZE_DEFAULT, _handle_default
 from ..transforms import _frame_to_str
 from ..utils import (verbose, logger, warn,
                      _check_preload, _validate_type, fill_doc, _check_option,
-                     _get_stim_channel)
+                     _get_stim_channel, _check_fname)
 from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
 from ..io.meas_info import anonymize_info, Info, MontageMixin, create_info
@@ -1847,27 +1847,19 @@ def _divide_side(lobe, x):
 def read_vectorview_selection(name, fname=None, info=None, verbose=None):
     """Read Neuromag Vector View channel selection from a file.
 
-    By default, the selections used in ``mne_browse_raw`` are supported.
-    Additional selections can be added by specifying a selection file (e.g.
-    produced using ``mne_browse_raw``) using the ``fname`` parameter.
-
-    The ``name`` parameter can be a string or a list of string. The returned
-    selection will be the combination of all selections in the file where
-    (at least) one element in name is a substring of the selection name in
-    the file. For example, ``name=['temporal', 'Right-frontal']`` will produce
-    a combination of ``'Left-temporal'``, ``'Right-temporal'``, and
-    ``'Right-frontal'``.
-
     Parameters
     ----------
     name : str | list of str
-        Name of the selection. If is a list, the selections are combined.
+        Name of the selection. If a list, the selections are combined.
         Supported selections are: ``'Vertex'``, ``'Left-temporal'``,
         ``'Right-temporal'``, ``'Left-parietal'``, ``'Right-parietal'``,
         ``'Left-occipital'``, ``'Right-occipital'``, ``'Left-frontal'`` and
-        ``'Right-frontal'``.
+        ``'Right-frontal'``. Selections can also be matched and combined by
+        spcecifying common substrings. For example, ``name='temporal`` will
+        produce a combination of ``'Left-temporal'`` and ``'Right-temporal'``.
     fname : str
-        Filename of the selection file (if None, built-in selections are used).
+        Filename of the selection file (if ``None``, built-in selections are
+        used).
     info : instance of Info
         Measurement info file, which will be used to determine the spacing
         of channel names to return, e.g. ``'MEG 0111'`` for old Neuromag
