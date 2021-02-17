@@ -149,7 +149,7 @@ mne.write_surface(op.join(bem_dir, 'inner_skull.surf'), coords, faces,
 #
 #
 # 1. Cannot decimate to requested ico grade
-# 
+#
 #    This error is caused by having too few or too many vertices. The full
 #    error is something like:
 #
