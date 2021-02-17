@@ -1898,8 +1898,7 @@ def read_vectorview_selection(name, fname=None, info=None, verbose=None):
     if fname is None:
         fname = op.join(op.dirname(__file__), '..', 'data', 'mne_analyze.sel')
 
-    if not op.isfile(fname):
-        raise ValueError('The file %s does not exist.' % fname)
+    fname = _check_fname(fname, must_exist=True, overwrite='read')
 
     # use this to make sure we find at least one match for each name
     name_found = {n: False for n in name}
