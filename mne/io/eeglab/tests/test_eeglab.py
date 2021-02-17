@@ -422,6 +422,8 @@ def test_position_information(one_chanpos_fname):
 
     _assert_array_allclose_nan(np.array([ch['loc'] for ch in raw.info['chs']]),
                                EXPECTED_LOCATIONS_FROM_MONTAGE)
+
+
 @testing.requires_testing_data
 def test_io_set_raw_2021():
     """Test reading new default file format (no EEG struct)."""
