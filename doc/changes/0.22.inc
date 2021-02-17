@@ -128,6 +128,8 @@ Enhancements
 
 - Add ``group_by`` parameter to `mne.viz.plot_epochs` and `mne.Epochs.plot` to allow displaying channel data by sensor position (:gh:`8381` by `Daniel McCloy`_)
 
+- Support new EEGLAB file format (:gh:`8874` by `Clemens Brunner`_)
+
 Bugs
 ~~~~
 - Fix orthogonalization of power envelopes in :func:`mne.connectivity.envelope_correlation` (:gh:`8658` **by new contributor** |Qianliang Li|_ and `Eric Larson`_)
