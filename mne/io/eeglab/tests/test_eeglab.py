@@ -34,7 +34,7 @@ epochs_fname_onefile_mat = op.join(base_dir, 'test_epochs_onefile.set')
 raw_mat_fnames = [raw_fname_mat, raw_fname_onefile_mat]
 epochs_mat_fnames = [epochs_fname_mat, epochs_fname_onefile_mat]
 raw_fname_chanloc = op.join(base_dir, 'test_raw_chanloc.set')
-
+raw_fname_2021 = op.join(base_dir, 'test_raw_2021.set')
 raw_fname_h5 = op.join(base_dir, 'test_raw_h5.set')
 raw_fname_onefile_h5 = op.join(base_dir, 'test_raw_onefile_h5.set')
 epochs_fname_h5 = op.join(base_dir, 'test_epochs_h5.set')
@@ -422,3 +422,10 @@ def test_position_information(one_chanpos_fname):
 
     _assert_array_allclose_nan(np.array([ch['loc'] for ch in raw.info['chs']]),
                                EXPECTED_LOCATIONS_FROM_MONTAGE)
+
+@testing.requires_testing_data
+def test_io_set_raw_2021():
+    """Test reading new default file format (no EEG struct)."""
+    assert "EEG" not in io.loadmat(raw_fname_2021)
+    _test_raw_reader(reader=read_raw_eeglab, input_fname=raw_fname_2021,
+                     test_preloading=False, preload=True)
