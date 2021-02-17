@@ -1858,22 +1858,14 @@ def read_vectorview_selection(name, fname=None, info=None, verbose=None):
     a combination of ``'Left-temporal'``, ``'Right-temporal'``, and
     ``'Right-frontal'``.
 
-    The included selections are:
-
-        * ``'Vertex'``
-        * ``'Left-temporal'``
-        * ``'Right-temporal'``
-        * ``'Left-parietal'``
-        * ``'Right-parietal'``
-        * ``'Left-occipital'``
-        * ``'Right-occipital'``
-        * ``'Left-frontal'``
-        * ``'Right-frontal'``
-
     Parameters
     ----------
-    name : str or list of str
+    name : str | list of str
         Name of the selection. If is a list, the selections are combined.
+        Supported selections are: ``'Vertex'``, ``'Left-temporal'``,
+        ``'Right-temporal'``, ``'Left-parietal'``, ``'Right-parietal'``,
+        ``'Left-occipital'``, ``'Right-occipital'``, ``'Left-frontal'`` and
+        ``'Right-frontal'``.
     fname : str
         Filename of the selection file (if None, built-in selections are used).
     info : instance of Info
@@ -1884,7 +1876,7 @@ def read_vectorview_selection(name, fname=None, info=None, verbose=None):
 
     Returns
     -------
-    sel : list of string
+    sel : list of str
         List with channel names in the selection.
     """
     # convert name to list of string
