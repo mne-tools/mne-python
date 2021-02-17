@@ -61,9 +61,7 @@ def _check_load_mat(fname, uint16_codec):
         raise NotImplementedError(
             'Loading an ALLEEG array is not supported. Please contact'
             'mne-python developers for more information.')
-    if 'EEG' not in eeg:
-        raise ValueError('Could not find EEG array in the .set file.')
-    else:
+    if 'EEG' in eeg:  # fields are contained in EEG structure
         eeg = eeg['EEG']
     eeg = eeg.get('EEG', eeg)  # handle nested EEG structure
     eeg = Bunch(**eeg)
