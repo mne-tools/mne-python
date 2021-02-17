@@ -152,7 +152,7 @@ mne.write_surface(op.join(bem_dir, 'inner_skull.surf'), coords, faces,
 # 
 #    This error is caused by having too few or too many vertices. The full
 #    error is something like:
-#   
+#
 #    .. code-block:: console
 #    
 #        RuntimeError: Cannot decimate to requested ico grade 4. The provided
@@ -164,7 +164,7 @@ mne.write_surface(op.join(bem_dir, 'inner_skull.surf'), coords, faces,
 #
 #    This error can occur when trying to match the original number of
 #    triangles by removing vertices. The full error looks like:
-#   
+#
 #    .. code-block:: console
 #   
 #       RuntimeError: Surface inner skull has topological defects: 12 / 20484
