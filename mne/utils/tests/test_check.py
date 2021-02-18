@@ -5,7 +5,6 @@
 # License: BSD (3-clause)
 import os
 import os.path as op
-import shutil
 import sys
 
 import numpy as np
