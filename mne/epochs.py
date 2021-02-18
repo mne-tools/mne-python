@@ -2285,9 +2285,8 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
         for _, epochs_event in events_in_epoch.iterrows():
             event_col_name = id_to_name_map[epochs_event['id']]
             event_time_col_name = f'{event_col_name}_time'
-            # print(f'event: {event_col_name}')
-            # print(metadata.loc[row_idx, event_time_col_name], type(metadata.loc[row_idx, event_time_col_name]))
-            if not np.isnan(metadata.loc[row_idx, event_time_col_name]):
+            if (not np.isnan(metadata.loc[row_idx, event_time_col_name]) and
+                    event_col_name in keep_first):
                 # Event already exists in current time period! Skip
                 continue
 
@@ -2311,7 +2310,14 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
                         continue
 
                 if col_name not in event_id:
-                    metadata.loc[row_idx, col_name] = event_col_name
+                    # This is an HED. Strip redundant information from the
+                    # event name
+                    event_name = (event_col_name
+                                  .replace(col_name, '')
+                                  .replace('//', '/')
+                                  .strip('/'))
+                    metadata.loc[row_idx, col_name] = event_name
+                    del event_name
                 metadata.loc[row_idx, time_col_name] = event_time
 
     # Only keep rows of interest
