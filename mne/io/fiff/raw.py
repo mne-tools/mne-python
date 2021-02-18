@@ -141,7 +141,7 @@ class Raw(BaseRaw):
                 endings = ('raw.fif', 'raw_sss.fif', 'raw_tsss.fif',
                            '_meg.fif', '_eeg.fif', '_ieeg.fif')
                 endings += tuple([f'{e}.gz' for e in endings])
-                check_fname(fname, 'raw', tuple(endings))
+                check_fname(fname, 'raw', endings)
             # filename
             fname = op.realpath(fname)
             ext = os.path.splitext(fname)[1].lower()
