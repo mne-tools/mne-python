@@ -36,10 +36,11 @@ class Raw(BaseRaw):
     ----------
     fname : str | file-like
         The raw filename to load. For files that have automatically been split,
-        the split part will be automatically loaded. Filenames should end
-        with raw.fif, raw.fif.gz, raw_sss.fif, raw_sss.fif.gz, raw_tsss.fif,
-        raw_tsss.fif.gz, or _meg.fif. If a file-like object is provided,
-        preloading must be used.
+        the split part will be automatically loaded. Filenames not ending with
+        ``raw.fif``, ``raw_sss.fif``, ``raw_tsss.fif``, ``_meg.fif``,
+        ``_eeg.fif``,  or ``_ieeg.fif`` (with or without an optional additional
+        ``.gz`` extension) will generate a warning. If a file-like object is
+        provided, preloading must be used.
 
         .. versionchanged:: 0.18
            Support for file-like objects.
