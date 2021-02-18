@@ -38,9 +38,6 @@ from ..rank import compute_rank
 from ..io.proj import setup_proj
 from ..utils import (verbose, get_config, warn, _check_ch_locs, _check_option,
                      logger, fill_doc, _pl, _check_sphere, _ensure_int)
-
-from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
-                         _divide_to_regions)
 from ..transforms import apply_trans
 
 
@@ -926,6 +923,10 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
                   for i, pick in enumerate(picks)]
     else:
         if ch_groups in ['position', 'selection']:
+            # Avoid circular import
+            from ..channels import (read_vectorview_selection, _SELECTIONS,
+                                    _EEG_SELECTIONS, _divide_to_regions)
+
             if ch_groups == 'position':
                 ch_groups = _divide_to_regions(info, add_stim=False)
                 ch_groups = list(ch_groups.values())
@@ -933,7 +934,8 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
                 ch_groups, color_vals = list(), list()
                 for selection in _SELECTIONS + _EEG_SELECTIONS:
                     channels = pick_channels(
-                        info['ch_names'], read_selection(selection, info=info))
+                        info['ch_names'],
+                        read_vectorview_selection(selection, info=info))
                     ch_groups.append(channels)
             color_vals = np.ones((len(ch_groups), 4))
             for idx, ch_group in enumerate(ch_groups):

@@ -13,6 +13,7 @@ import pytest
 from pathlib import Path
 
 import mne
+from mne import read_vectorview_selection
 from mne.datasets import testing
 from mne.io.pick import pick_channels_cov
 from mne.utils import (check_random_state, _check_fname, check_fname,
@@ -20,6 +21,7 @@ from mne.utils import (check_random_state, _check_fname, check_fname,
                        _check_mayavi_version, _check_info_inv, _check_option,
                        check_version, _check_path_like, _validate_type,
                        _suggest, _on_missing, requires_nibabel, _safe_input)
+
 data_path = testing.data_path(download=False)
 base_dir = op.join(data_path, 'MEG', 'sample')
 fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
@@ -83,7 +85,7 @@ def _get_data():
     event_id, tmin, tmax = 1, -0.1, 0.15
 
     # decimate for speed
-    left_temporal_channels = mne.read_selection('Left-temporal')
+    left_temporal_channels = read_vectorview_selection('Left-temporal')
     picks = mne.pick_types(raw.info, meg=True,
                            selection=left_temporal_channels)
     picks = picks[::2]
