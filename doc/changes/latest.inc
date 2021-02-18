@@ -80,10 +80,6 @@ Enhancements
 
 - Support new EEGLAB file format (:gh:`8874` by `Clemens Brunner`_)
 
-API changes
-~~~~~~~~~~~
-- ``mne.read_selection`` has been deprecated in favor of `mne.read_vectorview_selection`. ``mne.read_selection`` will be removed in MNE-Python 0.24 (:gh:`8870` by `Richard Höchenberger`_)
-
 Bugs
 ~~~~
 - Fix bug with `mne.connectivity.spectral_connectivity` where time axis in Epochs data object was dropped. (:gh:`8839` **by new contributor** |Anna Padee|_)
@@ -146,3 +142,6 @@ Bugs
 
 - `~mne.io.read_raw_bti` erroneously treated response channels as respiratory channels (:gh:`8855` by `Richard Höchenberger`_)
 
+API changes
+~~~~~~~~~~~
+- ``mne.read_selection`` has been deprecated in favor of `mne.read_vectorview_selection`. ``mne.read_selection`` will be removed in MNE-Python 0.24 (:gh:`8870` by `Richard Höchenberger`_)
