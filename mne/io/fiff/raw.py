@@ -138,9 +138,10 @@ class Raw(BaseRaw):
         #   Read in the whole file if preload is on and .fif.gz (saves time)
         if not _file_like(fname):
             if do_check_fname:
-                check_fname(fname, 'raw', (
-                    'raw.fif', 'raw_sss.fif', 'raw_tsss.fif', 'raw.fif.gz',
-                    'raw_sss.fif.gz', 'raw_tsss.fif.gz', '_meg.fif'))
+                endings = ('raw.fif', 'raw_sss.fif', 'raw_tsss.fif',
+                           '_meg.fif', '_eeg.fif', '_ieeg.fif')
+                endings += tuple([f'{e}.gz' for e in endings])
+                check_fname(fname, 'raw', tuple(endings))
             # filename
             fname = op.realpath(fname)
             ext = os.path.splitext(fname)[1].lower()

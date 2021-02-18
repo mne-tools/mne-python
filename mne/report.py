@@ -51,6 +51,7 @@ for ext in SUPPORTED_READ_RAW_EXTENSIONS:
     if ext not in ('.bdf', '.edf', '.set', '.vhdr'):  # EEG-only formats
         RAW_EXTENSIONS.append(f'meg{ext}')
     RAW_EXTENSIONS.append(f'eeg{ext}')
+    RAW_EXTENSIONS.append(f'ieeg{ext}')
 
 # Processed data will always be in (gzipped) FIFF format
 VALID_EXTENSIONS = ('sss.fif', 'sss.fif.gz',
