@@ -165,7 +165,7 @@ def snr_spectrum(psd, noise_n_neighborfreqs=1, noise_skip_neighborfreqs=1):
     psd : ndarray
         containing psd values as spit out by mne functions. must be 2d or 3d
         with frequencies in the last dimension
-    noise_n_neighborfreqs - int
+    noise_n_neighborfreqs : int
         number of neighboring frequencies used to compute noise level.
         increment by one to add one frequency bin ON BOTH SIDES
     noise_skip_neighborfreqs - int
@@ -334,14 +334,14 @@ i_bin_30hz = np.argmin(abs(np.subtract(freqs, 30)))
 i_bin_45hz = np.argmin(abs(np.subtract(freqs, 45)))
 
 ###############################################################################
-# get indices for the different trial types
+# Get indices for the different trial types
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 i_trial_12hz = np.where(epochs.events[:, 2] == event_id['12hz'])
 i_trial_15hz = np.where(epochs.events[:, 2] == event_id['15hz'])
 
 ###############################################################################
-# get indices for the EEG channels forming the ROI
+# Get indices for the EEG channels forming the ROI
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 # Define different ROIs
