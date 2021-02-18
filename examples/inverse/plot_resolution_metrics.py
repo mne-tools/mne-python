@@ -4,11 +4,10 @@ Compute spatial resolution metrics in source space
 ==============================================================
 
 Compute peak localisation error and spatial deviation for the point-spread
-functions of dSPM and MNE. Plot their distributions and difference
-distributions.
-This example mimics some results from [1]_, namely Figure 3 (peak localisation
-error for PSFs, L2-MNE vs dSPM) and Figure 4 (spatial deviation for PSFs,
-L2-MNE vs dSPM).
+functions of dSPM and MNE. Plot their distributions and difference of
+distributions. This example mimics some results from :footcite:`HaukEtAl2019`,
+namely Figure 3 (peak localisation error for PSFs, L2-MNE vs dSPM) and Figure 4
+(spatial deviation for PSFs, L2-MNE vs dSPM).
 """
 # Author: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
 #
@@ -74,22 +73,26 @@ ple_dspm_psf = resolution_metrics(rm_dspm, inverse_operator['src'],
                                   function='psf', metric='peak_err')
 sd_dspm_psf = resolution_metrics(rm_dspm, inverse_operator['src'],
                                  function='psf', metric='sd_ext')
-del rm_dspm
+del rm_dspm, forward
 
 ###############################################################################
 # Visualize results
 # -----------------
-# Visualise peak localisation error (PLE) across the whole cortex for PSF
+# Visualise peak localisation error (PLE) across the whole cortex for MNE PSF:
 brain_ple_mne = ple_mne_psf.plot('sample', 'inflated', 'lh',
                                  subjects_dir=subjects_dir, figure=1,
                                  clim=dict(kind='value', lims=(0, 2, 4)))
 brain_ple_mne.add_text(0.1, 0.9, 'PLE MNE', 'title', font_size=16)
+
+###############################################################################
+# And dSPM:
 
 brain_ple_dspm = ple_dspm_psf.plot('sample', 'inflated', 'lh',
                                    subjects_dir=subjects_dir, figure=2,
                                    clim=dict(kind='value', lims=(0, 2, 4)))
 brain_ple_dspm.add_text(0.1, 0.9, 'PLE dSPM', 'title', font_size=16)
 
+###############################################################################
 # Subtract the two distributions and plot this difference
 diff_ple = ple_mne_psf - ple_dspm_psf
 
@@ -103,19 +106,25 @@ brain_ple_diff.add_text(0.1, 0.9, 'PLE MNE-dSPM', 'title', font_size=16)
 # color) than MNE in deeper brain areas, but higher error (blue color) in more
 # superficial areas.
 #
-# Next we'll visualise spatial deviation (SD) across the whole cortex for PSF:
+# Next we'll visualise spatial deviation (SD) across the whole cortex for MNE
+# PSF:
 
 brain_sd_mne = sd_mne_psf.plot('sample', 'inflated', 'lh',
                                subjects_dir=subjects_dir, figure=4,
                                clim=dict(kind='value', lims=(0, 2, 4)))
 brain_sd_mne.add_text(0.1, 0.9, 'SD MNE', 'title', font_size=16)
 
+###############################################################################
+# And dSPM:
+
 brain_sd_dspm = sd_dspm_psf.plot('sample', 'inflated', 'lh',
                                  subjects_dir=subjects_dir, figure=5,
                                  clim=dict(kind='value', lims=(0, 2, 4)))
 brain_sd_dspm.add_text(0.1, 0.9, 'SD dSPM', 'title', font_size=16)
 
-# Subtract the two distributions and plot this difference
+###############################################################################
+# Subtract the two distributions and plot this difference:
+
 diff_sd = sd_mne_psf - sd_dspm_psf
 
 brain_sd_diff = diff_sd.plot('sample', 'inflated', 'lh',
@@ -129,6 +138,4 @@ brain_sd_diff.add_text(0.1, 0.9, 'SD MNE-dSPM', 'title', font_size=16)
 #
 # References
 # ----------
-# .. [1] Hauk O, Stenroos M, Treder M (2019). "Towards an Objective Evaluation
-#        of EEG/MEG Source Estimation Methods: The Linear Tool Kit", bioRxiv,
-#        doi: https://doi.org/10.1101/672956.
+# .. footbibliography::

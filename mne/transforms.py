@@ -1433,7 +1433,7 @@ def read_ras_mni_t(subject, subjects_dir=None):
     Returns
     -------
     ras_mni_t : instance of Transform
-        The transform from RAS to MNI.
+        The transform from RAS to MNI (in mm).
     """
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)

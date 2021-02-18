@@ -1047,8 +1047,8 @@ def _check_fun(X, stat_fun, threshold, tail=0, kind='within'):
 def permutation_cluster_test(
         X, threshold=None, n_permutations=1024, tail=0, stat_fun=None,
         adjacency=None, n_jobs=1, seed=None, max_step=1, exclude=None,
-        step_down_p=0, t_power=1, out_type=None, check_disjoint=False,
-        buffer_size=1000, connectivity=None, verbose=None):
+        step_down_p=0, t_power=1, out_type='indices', check_disjoint=False,
+        buffer_size=1000, verbose=None):
     """Cluster-level statistical permutation test.
 
     For a list of :class:`NumPy arrays <numpy.ndarray>` of data,
@@ -1090,7 +1090,6 @@ def permutation_cluster_test(
     %(clust_out_none)s
     %(clust_disjoint)s
     %(clust_buffer)s
-    %(clust_con_dep)s
     %(verbose)s
 
     Returns
@@ -1108,13 +1107,7 @@ def permutation_cluster_test(
     ----------
     .. footbibliography::
     """
-    adjacency = _dep_con(adjacency, connectivity)
     stat_fun, threshold = _check_fun(X, stat_fun, threshold, tail, 'between')
-    if out_type is None:
-        warn('The default for "out_type" will change from "mask" to "indices" '
-             'in version 0.22. To avoid this warning, explicitly set '
-             '"out_type" to one of its string values.', DeprecationWarning)
-        out_type = 'mask'
     return _permutation_cluster_test(
         X=X, threshold=threshold, n_permutations=n_permutations, tail=tail,
         stat_fun=stat_fun, adjacency=adjacency, n_jobs=n_jobs, seed=seed,
@@ -1127,9 +1120,8 @@ def permutation_cluster_test(
 def permutation_cluster_1samp_test(
         X, threshold=None, n_permutations=1024, tail=0, stat_fun=None,
         adjacency=None, n_jobs=1, seed=None, max_step=1,
-        exclude=None, step_down_p=0, t_power=1, out_type=None,
-        check_disjoint=False, buffer_size=1000, connectivity=None,
-        verbose=None):
+        exclude=None, step_down_p=0, t_power=1, out_type='indices',
+        check_disjoint=False, buffer_size=1000, verbose=None):
     """Non-parametric cluster-level paired t-test.
 
     Parameters
@@ -1158,7 +1150,6 @@ def permutation_cluster_1samp_test(
     %(clust_out_none)s
     %(clust_disjoint)s
     %(clust_buffer)s
-    %(clust_con_dep)s
     %(verbose)s
 
     Returns
@@ -1200,13 +1191,7 @@ def permutation_cluster_1samp_test(
     ----------
     .. footbibliography::
     """
-    adjacency = _dep_con(adjacency, connectivity)
     stat_fun, threshold = _check_fun(X, stat_fun, threshold, tail)
-    if out_type is None:
-        warn('The default for "out_type" will change from "mask" to "indices" '
-             'in version 0.22. To avoid this warning, explicitly set '
-             '"out_type" to one of its string values.', DeprecationWarning)
-        out_type = 'mask'
     return _permutation_cluster_test(
         X=[X], threshold=threshold, n_permutations=n_permutations, tail=tail,
         stat_fun=stat_fun, adjacency=adjacency, n_jobs=n_jobs, seed=seed,
@@ -1221,7 +1206,7 @@ def spatio_temporal_cluster_1samp_test(
         stat_fun=None, adjacency=None, n_jobs=1, seed=None,
         max_step=1, spatial_exclude=None, step_down_p=0, t_power=1,
         out_type='indices', check_disjoint=False, buffer_size=1000,
-        connectivity=None, verbose=None):
+        verbose=None):
     """Non-parametric cluster-level paired t-test for spatio-temporal data.
 
     This function provides a convenient wrapper for
@@ -1249,7 +1234,6 @@ def spatio_temporal_cluster_1samp_test(
     %(clust_out)s
     %(clust_disjoint)s
     %(clust_buffer)s
-    %(clust_con_dep)s
     %(verbose)s
 
     Returns
@@ -1267,7 +1251,6 @@ def spatio_temporal_cluster_1samp_test(
     ----------
     .. footbibliography::
     """
-    adjacency = _dep_con(adjacency, connectivity)
     n_samples, n_times, n_vertices = X.shape
     # convert spatial_exclude before passing on if necessary
     if spatial_exclude is not None:
@@ -1283,20 +1266,12 @@ def spatio_temporal_cluster_1samp_test(
         check_disjoint=check_disjoint, buffer_size=buffer_size)
 
 
-def _dep_con(adjacency, connectivity):
-    if connectivity is not None:
-        warn('connectivity is deprecated and will be removed in 0.22, use '
-             'adjacency instead', DeprecationWarning)
-        adjacency = connectivity
-    return adjacency
-
-
 @verbose
 def spatio_temporal_cluster_test(
         X, threshold=None, n_permutations=1024, tail=0, stat_fun=None,
         adjacency=None, n_jobs=1, seed=None, max_step=1,
         spatial_exclude=None, step_down_p=0, t_power=1, out_type='indices',
-        check_disjoint=False, buffer_size=1000, connectivity=None,
+        check_disjoint=False, buffer_size=1000,
         verbose=None):
     """Non-parametric cluster-level test for spatio-temporal data.
 
@@ -1328,7 +1303,6 @@ def spatio_temporal_cluster_test(
     %(clust_out)s
     %(clust_disjoint)s
     %(clust_buffer)s
-    %(clust_con_dep)s
     %(verbose)s
 
     Returns
@@ -1346,7 +1320,6 @@ def spatio_temporal_cluster_test(
     ----------
     .. footbibliography::
     """
-    adjacency = _dep_con(adjacency, connectivity)
     n_samples, n_times, n_vertices = X[0].shape
     # convert spatial_exclude before passing on if necessary
     if spatial_exclude is not None:

@@ -19,10 +19,9 @@ import matplotlib.pyplot as plt
 
 from mne import __file__ as _mne_file, create_info, read_evokeds, pick_types
 from mne.fixes import nullcontext
-from mne.utils._testing import _dig_sort_key, assert_object_equal
+from mne.utils._testing import assert_object_equal
 from mne.channels import (get_builtin_montages, DigMontage, read_dig_dat,
                           read_dig_egi, read_dig_captrak, read_dig_fif,
-                          read_dig_captrack,  # XXX: remove with 0.22
                           make_standard_montage, read_custom_montage,
                           compute_dev_head_t, make_dig_montage,
                           read_dig_polhemus_isotrak, compute_native_head_t,
@@ -103,7 +102,7 @@ def _get_dig_montage_pos(montage):
     return np.array([d['r'] for d in _get_dig_eeg(montage.dig)])
 
 
-def test_dig_montage_trans():
+def test_dig_montage_trans(tmpdir):
     """Test getting a trans from montage."""
     nasion, lpa, rpa, *ch_pos = np.random.RandomState(0).randn(10, 3)
     ch_pos = {f'EEG{ii:3d}': pos for ii, pos in enumerate(ch_pos, 1)}
@@ -111,6 +110,9 @@ def test_dig_montage_trans():
                                coord_frame='mri')
     trans = compute_native_head_t(montage)
     _ensure_trans(trans)
+    # ensure that we can save and load it, too
+    fname = tmpdir.join('temp-mon.fif')
+    _check_roundtrip(montage, fname, 'mri')
 
 
 def test_fiducials():
@@ -519,7 +521,7 @@ def test_read_dig_montage_using_polhemus_fastscan_error_handling(tmpdir):
     with open(fname, 'w') as fid:
         fid.write(content)
 
-    with pytest.raises(ValueError, match='not contain Polhemus FastSCAN'):
+    with pytest.raises(ValueError, match='not contain.*Polhemus FastSCAN'):
         _ = read_polhemus_fastscan(fname)
 
     EXPECTED_ERR_MSG = "allowed value is '.txt', but got '.bar' instead"
@@ -650,7 +652,7 @@ def test_read_dig_polhemus_isotrak_error_handling(isotrak_eeg, tmpdir):
     fname = op.join(tmpdir, 'foo.bar')
     with pytest.raises(
         ValueError,
-        match="Allowed val.*'.hsp', '.elp' and '.eeg', but got '.bar' instead"
+        match="Allowed val.*'.hsp', '.elp', and '.eeg', but got '.bar' instead"
     ):
         _ = read_dig_polhemus_isotrak(fname=fname, ch_names=None)
 
@@ -846,11 +848,12 @@ def test_fif_dig_montage(tmpdir):
                                 lpa=elp_points[1],
                                 rpa=elp_points[2],
                                 ch_pos=ch_pos)
-
-    pytest.raises(RuntimeError, montage.save, fname_temp)  # must be head coord
-
+    _check_roundtrip(montage, fname_temp, 'unknown')
     montage = transform_to_head(montage)
     _check_roundtrip(montage, fname_temp)
+    montage.dig[0]['coord_frame'] = FIFF.FIFFV_COORD_UNKNOWN
+    with pytest.raises(RuntimeError, match='Only a single coordinate'):
+        montage.save(fname_temp)
 
 
 @testing.requires_testing_data
@@ -892,9 +895,9 @@ def test_egi_dig_montage(tmpdir):
     )
 
     # test round-trip IO
-    temp_dir = str(tmpdir)
-    fname_temp = op.join(temp_dir, 'egi_test.fif')
-    _check_roundtrip(dig_montage_in_head, fname_temp)  # XXX: write forces head
+    fname_temp = tmpdir.join('egi_test.fif')
+    _check_roundtrip(dig_montage, fname_temp, 'unknown')
+    _check_roundtrip(dig_montage_in_head, fname_temp)
 
 
 def _pop_montage(dig_montage, ch_name):
@@ -933,14 +936,6 @@ def test_read_dig_captrak(tmpdir):
     montage = read_dig_captrak(
         fname=op.join(data_path, 'montage', 'captrak_coords.bvct')
     )
-
-    # XXX: remove with 0.22 once captrCK is deprecated
-    with pytest.warns(DeprecationWarning,
-                      match='read_dig_captrack is deprecated'):
-        montage2 = read_dig_captrack(
-            fname=op.join(data_path, 'montage', 'captrak_coords.bvct')
-        )
-        assert repr(montage) == repr(montage2)
 
     assert montage.ch_names == EXPECTED_CH_NAMES
     assert repr(montage) == (
@@ -1028,25 +1023,14 @@ def test_set_montage_mgh(rename):
 
 
 # XXX: this does not check ch_names + it cannot work because of write_dig
-def _check_roundtrip(montage, fname):
+def _check_roundtrip(montage, fname, coord_frame='head'):
     """Check roundtrip writing."""
     montage.save(fname)
     montage_read = read_dig_fif(fname=fname)
 
     assert_equal(repr(montage), repr(montage_read))
-    assert_equal(_check_get_coord_frame(montage_read.dig), 'head')
-
-    # XXX:  it tests the same as assert_dig_all_close but without info
-    #       This is a possible refactor
-    dig_py = sorted(montage_read.dig, key=_dig_sort_key)
-    dig_bin = sorted(montage.dig, key=_dig_sort_key)
-    assert len(dig_py) == len(dig_bin)
-    for ii, (d_py, d_bin) in enumerate(zip(dig_py, dig_bin)):
-        for key in ('ident', 'kind', 'coord_frame'):
-            assert d_py[key] == d_bin[key]
-        assert_allclose(d_py['r'], d_bin['r'], rtol=1e-5, atol=1e-5,
-                        err_msg='Failure on %s:\n%s\n%s'
-                        % (ii, d_py['r'], d_bin['r']))
+    assert_equal(_check_get_coord_frame(montage_read.dig), coord_frame)
+    assert_dig_allclose(montage, montage_read)
 
 
 def _fake_montage(ch_names):
@@ -1114,7 +1098,7 @@ def test_transform_to_head_and_compute_dev_head_t():
 
     montage_meg = make_dig_montage(hpi=hpi_dev, coord_frame='meg')
 
-    # Test regular worflow to get dev_head_t
+    # Test regular workflow to get dev_head_t
     montage = montage_polhemus + montage_meg
     fids, _ = _get_fid_coords(montage.dig)
     for kk in fids:
@@ -1343,6 +1327,10 @@ def test_get_montage():
     # the montage does not change
     assert_object_equal(montage.dig, test_montage.dig)
 
+    # the montage should fulfill a roundtrip with make_dig_montage
+    test2_montage = make_dig_montage(**montage.get_positions())
+    assert_object_equal(test2_montage.dig, test_montage.dig)
+
     # 2. now do a standard montage
     montage = make_standard_montage('mgh60')
     # set the montage; note renaming to make standard montage map
@@ -1353,6 +1341,10 @@ def test_get_montage():
     raw2 = raw.copy()
     test_montage = raw.get_montage()
     raw.set_montage(test_montage, on_missing='ignore')
+
+    # the montage should fulfill a roundtrip with make_dig_montage
+    test2_montage = make_dig_montage(**test_montage.get_positions())
+    assert_object_equal(test2_montage.dig, test_montage.dig)
 
     # chs should not change
     assert_object_equal(raw2.info['chs'], raw.info['chs'])
@@ -1403,6 +1395,10 @@ def test_get_montage():
     # if dig is not set in the info, then montage returns None
     raw.info['dig'] = None
     assert raw.get_montage() is None
+
+    # the montage should fulfill a roundtrip with make_dig_montage
+    test2_montage = make_dig_montage(**test_montage.get_positions())
+    assert_object_equal(test2_montage.dig, test_montage.dig)
 
 
 def test_read_dig_hpts():

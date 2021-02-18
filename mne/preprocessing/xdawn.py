@@ -411,9 +411,9 @@ class Xdawn(_XdawnTransformer):
         """Init."""
         super(Xdawn, self).__init__(n_components=n_components,
                                     signal_cov=signal_cov, reg=reg)
-        _check_option('correct_overlap', correct_overlap,
-                      ['auto', True, False])
-        self.correct_overlap = correct_overlap
+        self.correct_overlap = _check_option('correct_overlap',
+                                             correct_overlap,
+                                             ['auto', True, False])
 
     def fit(self, epochs, y=None):
         """Fit Xdawn from epochs.

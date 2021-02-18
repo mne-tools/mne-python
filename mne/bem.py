@@ -197,8 +197,8 @@ def _fwd_bem_lin_pot_coeff(surfs):
                 # if sidx1 == sidx2 and (tri == j).any():
                 #     continue
                 # Otherwise do the hard job
-                coeffs = _lin_pot_coeff(surf1['rr'], tri_rr[k], tri_nn[k],
-                                        tri_area[k])
+                coeffs = _lin_pot_coeff(fros=surf1['rr'], tri_rr=tri_rr[k],
+                                        tri_nn=tri_nn[k], tri_area=tri_area[k])
                 coeffs[skip_idx] = 0.
                 submat[:, tri] -= coeffs
             if si_1 == si_2:
@@ -233,7 +233,7 @@ def _fwd_bem_multi_solution(solids, gamma, nps):
 
 def _fwd_bem_homog_solution(solids, nps):
     """Make a homogeneous solution."""
-    return _fwd_bem_multi_solution(solids, None, nps)
+    return _fwd_bem_multi_solution(solids, gamma=None, nps=nps)
 
 
 def _fwd_bem_ip_modify_solution(solution, ip_solution, ip_mult, n_tri):
@@ -273,33 +273,33 @@ def _check_complete_surface(surf, copy=False, incomplete='raise', extra=''):
     return surf
 
 
-def _fwd_bem_linear_collocation_solution(m):
+def _fwd_bem_linear_collocation_solution(bem):
     """Compute the linear collocation potential solution."""
     # first, add surface geometries
-    for surf in m['surfs']:
+    for surf in bem['surfs']:
         _check_complete_surface(surf)
 
     logger.info('Computing the linear collocation solution...')
     logger.info('    Matrix coefficients...')
-    coeff = _fwd_bem_lin_pot_coeff(m['surfs'])
-    m['nsol'] = len(coeff)
+    coeff = _fwd_bem_lin_pot_coeff(bem['surfs'])
+    bem['nsol'] = len(coeff)
     logger.info("    Inverting the coefficient matrix...")
-    nps = [surf['np'] for surf in m['surfs']]
-    m['solution'] = _fwd_bem_multi_solution(coeff, m['gamma'], nps)
-    if len(m['surfs']) == 3:
-        ip_mult = m['sigma'][1] / m['sigma'][2]
+    nps = [surf['np'] for surf in bem['surfs']]
+    bem['solution'] = _fwd_bem_multi_solution(coeff, bem['gamma'], nps)
+    if len(bem['surfs']) == 3:
+        ip_mult = bem['sigma'][1] / bem['sigma'][2]
         if ip_mult <= FWD.BEM_IP_APPROACH_LIMIT:
             logger.info('IP approach required...')
             logger.info('    Matrix coefficients (homog)...')
-            coeff = _fwd_bem_lin_pot_coeff([m['surfs'][-1]])
+            coeff = _fwd_bem_lin_pot_coeff([bem['surfs'][-1]])
             logger.info('    Inverting the coefficient matrix (homog)...')
             ip_solution = _fwd_bem_homog_solution(coeff,
-                                                  [m['surfs'][-1]['np']])
+                                                  [bem['surfs'][-1]['np']])
             logger.info('    Modify the original solution to incorporate '
                         'IP approach...')
-            _fwd_bem_ip_modify_solution(m['solution'], ip_solution, ip_mult,
+            _fwd_bem_ip_modify_solution(bem['solution'], ip_solution, ip_mult,
                                         nps)
-    m['bem_method'] = FWD.BEM_LINEAR_COLL
+    bem['bem_method'] = FWD.BEM_LINEAR_COLL
     logger.info("Solution ready.")
 
 
@@ -1052,7 +1052,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     ----------
     subject : str
         Subject name.
-    $(subjects_dir)s
+    %(subjects_dir)s
     overwrite : bool
         Write over existing files.
     volume : str
@@ -1527,19 +1527,8 @@ def _bem_find_surface(bem, id_):
 # Write
 
 
-def _check_dep_overwrite(fname, overwrite):
-    fname = _check_fname(
-        fname, overwrite=True if overwrite is None else overwrite,
-        name='fname')
-    if op.isfile(fname) and overwrite is None:
-        warn(f'file {fname} exists; overwrite will default to True in 0.21 '
-             'and change to False in 0.22, set it explicitly to avoid this '
-             'warning', DeprecationWarning)
-    return fname
-
-
 @verbose
-def write_bem_surfaces(fname, surfs, overwrite=None, verbose=None):
+def write_bem_surfaces(fname, surfs, overwrite=False, verbose=None):
     """Write BEM surfaces to a fiff file.
 
     Parameters
@@ -1549,12 +1538,13 @@ def write_bem_surfaces(fname, surfs, overwrite=None, verbose=None):
     surfs : dict | list of dict
         The surfaces, or a single surface.
     overwrite : bool
-        If True (default in 0.21), overwrite the file.
+        If True (default False), overwrite the file.
     %(verbose)s
     """
     if isinstance(surfs, dict):
         surfs = [surfs]
-    fname = _check_dep_overwrite(fname, overwrite)
+    fname = _check_fname(fname, overwrite=overwrite, name='fname')
+
     if fname.endswith('.h5'):
         write_hdf5(fname, dict(surfs=surfs), overwrite=True)
     else:
@@ -1585,7 +1575,7 @@ def _write_bem_surfaces_block(fid, surfs):
 
 
 @verbose
-def write_bem_solution(fname, bem, overwrite=None, verbose=None):
+def write_bem_solution(fname, bem, overwrite=False, verbose=None):
     """Write a BEM model with solution.
 
     Parameters
@@ -1595,14 +1585,14 @@ def write_bem_solution(fname, bem, overwrite=None, verbose=None):
     bem : instance of ConductorModel
         The BEM model with solution to save.
     overwrite : bool
-        If True (default in 0.21), overwrite the file.
+        If True (default False), overwrite the file.
     %(verbose)s
 
     See Also
     --------
     read_bem_solution
     """
-    fname = _check_dep_overwrite(fname, overwrite)
+    fname = _check_fname(fname, overwrite=overwrite, name='fname')
     if fname.endswith('.h5'):
         bem = {k: bem[k] for k in ('surfs', 'solution', 'bem_method')}
         write_hdf5(fname, bem, overwrite=True)

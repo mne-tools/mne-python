@@ -13,7 +13,7 @@ from .cuda import (_setup_cuda_fft_multiply_repeated, _fft_multiply_repeated,
 from .fixes import irfft, ifftshift, fftfreq
 from .parallel import parallel_func, check_n_jobs
 from .time_frequency.multitaper import _mt_spectra, _compute_mt_params
-from .utils import (logger, verbose, sum_squared, check_version, warn, _pl,
+from .utils import (logger, verbose, sum_squared, warn, _pl,
                     _check_preload, _validate_type, _check_option, _ensure_int)
 from ._ola import _COLA
 
@@ -1205,7 +1205,7 @@ def _get_window_thresh(n_times, sfreq, mt_bandwidth, p_value):
     # but if we have a new enough scipy,
     # it's only ~0.175 sec for 8 tapers even with 100000 samples
     from scipy import stats
-    dpss_n_times_max = 100000 if check_version('scipy', '1.1') else 1000
+    dpss_n_times_max = 100000
 
     # figure out what tapers to use
     window_fun, _, _ = _compute_mt_params(
@@ -1224,10 +1224,7 @@ def _mt_spectrum_proc(x, sfreq, line_freqs, notch_widths, mt_bandwidth,
     n_jobs = check_n_jobs(n_jobs)
     x, orig_shape, picks = _prep_for_filtering(x, copy, picks)
     if isinstance(filter_length, str) and filter_length == 'auto':
-        filter_length = None
-        warn('The default for "filter_length" when using method="spectrum_fit"'
-             ' is None in 0.21 but will change to 10. in 0.22, set it '
-             'explicitly to avoid this warning', DeprecationWarning)
+        filter_length = '10s'
     if filter_length is None:
         filter_length = x.shape[-1]
     filter_length = min(_to_samples(filter_length, sfreq, '', ''), x.shape[-1])
@@ -2020,6 +2017,9 @@ class FilterMixin(object):
     def resample(self, sfreq, npad='auto', window='boxcar', n_jobs=1,
                  pad='edge', verbose=None):  # lgtm
         """Resample data.
+
+        If appropriate, an anti-aliasing filter is applied before resampling.
+        See :ref:`resampling-and-decimating` for more information.
 
         .. note:: Data must be loaded.
 

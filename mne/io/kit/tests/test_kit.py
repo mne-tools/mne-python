@@ -15,7 +15,7 @@ import mne
 from mne import pick_types, Epochs, find_events, read_events
 from mne.datasets.testing import requires_testing_data
 from mne.transforms import apply_trans
-from mne.utils import run_tests_if_main, assert_dig_allclose
+from mne.utils import assert_dig_allclose
 from mne.io import read_raw_fif, read_raw_kit, read_epochs_kit
 from mne.io.constants import FIFF
 from mne.io.kit.coreg import read_sns
@@ -49,6 +49,7 @@ ricoh_systems_paths += [op.join(
     data_path, 'KIT', 'Example_RICOH160-1_10020-export_anonymyze.con')]
 ricoh_systems_paths += [op.join(
     data_path, 'KIT', 'Example_RICOH160-1_10021-export_anonymyze.con')]
+berlin_path = op.join(data_path, 'KIT', 'data_berlin.con')
 
 
 @requires_testing_data
@@ -161,8 +162,7 @@ def _assert_sinusoid(data, t, freq, amp, msg):
 ])
 def test_ricoh_data(tmpdir, fname, desc):
     """Test reading channel names and dig information from Ricoh systems."""
-    with pytest.deprecated_call(match='standardize_names'):
-        raw = read_raw_kit(fname)
+    raw = read_raw_kit(fname, standardize_names=True)
     assert raw.ch_names[0] == 'MEG 001'
     raw = read_raw_kit(fname, standardize_names=False, verbose='debug')
     assert raw.info['description'] == desc
@@ -338,4 +338,18 @@ def test_ricoh_systems(tmpdir, fname, desc, system_id):
     assert raw.info['kit_system_id'] == system_id
 
 
-run_tests_if_main()
+@requires_testing_data
+def test_berlin():
+    """Test data from Berlin."""
+    # gh-8535
+    raw = read_raw_kit(berlin_path)
+    assert raw.info['description'] == 'Physikalisch Technische Bundesanstalt, Berlin/128-channel MEG System (124) V2R004 PQ1128R-N2'  # noqa: E501
+    assert raw.info['kit_system_id'] == 124
+    assert raw.info['highpass'] == 0.
+    assert raw.info['lowpass'] == 200.
+    assert raw.info['sfreq'] == 500.
+    n = int(round(28.77 * raw.info['sfreq']))
+    meg = raw.get_data('MEG 003', n, n + 1)[0, 0]
+    assert_allclose(meg, -8.89e-12, rtol=1e-3)
+    eeg = raw.get_data('E14', n, n + 1)[0, 0]
+    assert_allclose(eeg, -2.55, rtol=1e-3)

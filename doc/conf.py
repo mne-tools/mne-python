@@ -12,12 +12,13 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-from datetime import date
+from datetime import datetime, timezone
 from distutils.version import LooseVersion
 import gc
 import os
 import os.path as op
 import sys
+import time
 import warnings
 
 import sphinx_gallery
@@ -25,7 +26,9 @@ from sphinx_gallery.sorting import FileNameSortKey, ExplicitOrder
 from numpydoc import docscrape
 import matplotlib
 import mne
-from mne.utils import linkcode_resolve  # noqa, analysis:ignore
+from mne.viz import Brain  # noqa
+from mne.utils import (linkcode_resolve, # noqa, analysis:ignore
+                       _assert_no_instances, sizeof_fmt)
 
 if LooseVersion(sphinx_gallery.__version__) < LooseVersion('0.2'):
     raise ImportError('Must have at least version 0.2 of sphinx-gallery, got '
@@ -67,7 +70,6 @@ extensions = [
     'sphinx_bootstrap_theme',
     'sphinx_bootstrap_divs',
     'sphinxcontrib.bibtex',
-    'sphinxcontrib.bibtex2',
 ]
 
 linkcheck_ignore = [
@@ -97,14 +99,18 @@ source_suffix = '.rst'
 # The encoding of source files.
 # source_encoding = 'utf-8-sig'
 
-# The master toctree document.
+# The main toctree document.
 master_doc = 'index'
 
 # General information about the project.
 project = u'MNE'
-td = date.today()
-copyright = u'2012-%s, MNE Developers. Last updated on %s' % (td.year,
-                                                              td.isoformat())
+td = datetime.now(tz=timezone.utc)
+copyright = (
+    '2012-%(year)s, MNE Developers. Last updated '
+    '<time datetime="%(iso)s" class="localized">%(short)s</time>\n'
+    '<script type="text/javascript">$(function () { $("time.localized").each(function () { var el = $(this); el.text(new Date(el.attr("datetime")).toLocaleString([], {dateStyle: "medium", timeStyle: "long"})); }); } )</script>'  # noqa: E501
+) % dict(year=td.year, iso=td.isoformat(),
+         short=td.strftime('%Y-%m-%d %H:%M %Z'))
 
 nitpicky = True
 nitpick_ignore = [
@@ -115,6 +121,7 @@ nitpick_ignore = [
     ("py:class", "None.  Update D from dict/iterable E and F."),
     ("py:class", "an object providing a view on D's values"),
     ("py:class", "a shallow copy of D"),
+    ("py:class", "(k, v), remove and return some (key, value) pair as a"),
 ]
 for key in ('AcqParserFIF', 'BiHemiLabel', 'Dipole', 'DipoleFixed', 'Label',
             'MixedSourceEstimate', 'MixedVectorSourceEstimate', 'Report',
@@ -123,7 +130,7 @@ for key in ('AcqParserFIF', 'BiHemiLabel', 'Dipole', 'DipoleFixed', 'Label',
             'channels.DigMontage', 'channels.Layout',
             'decoding.CSP', 'decoding.EMS', 'decoding.FilterEstimator',
             'decoding.GeneralizingEstimator', 'decoding.LinearModel',
-            'decoding.PSDEstimator', 'decoding.ReceptiveField',
+            'decoding.PSDEstimator', 'decoding.ReceptiveField', 'decoding.SSD',
             'decoding.SPoC', 'decoding.Scaler', 'decoding.SlidingEstimator',
             'decoding.TemporalFilter', 'decoding.TimeDelayingRidge',
             'decoding.TimeFrequency', 'decoding.UnsupervisedSpatialFilter',
@@ -351,10 +358,9 @@ intersphinx_mapping = {
     'patsy': ('https://patsy.readthedocs.io/en/latest', None),
     'pyvista': ('https://docs.pyvista.org', None),
     'imageio': ('https://imageio.readthedocs.io/en/latest', None),
-    # There are some problems with dipy's redirect:
-    # https://github.com/nipy/dipy/issues/1955
-    'dipy': ('https://dipy.org/documentation/latest',
-             'https://dipy.org/documentation/1.1.1./objects.inv/'),
+    # We need to stick with 1.2.0 for now:
+    # https://github.com/dipy/dipy/issues/2290
+    'dipy': ('https://dipy.org/documentation/1.2.0.', None),
     'mne_realtime': ('https://mne.tools/mne-realtime', None),
     'picard': ('https://pierreablin.github.io/picard/', None),
 }
@@ -370,8 +376,8 @@ bibtex_footbibliography_header = ''
 ##############################################################################
 # sphinx-gallery
 
-examples_dirs = ['../examples', '../tutorials']
-gallery_dirs = ['auto_examples', 'auto_tutorials']
+examples_dirs = ['../tutorials', '../examples']
+gallery_dirs = ['auto_tutorials', 'auto_examples']
 os.environ['_MNE_BUILDING_DOC'] = 'true'
 
 scrapers = ('matplotlib',)
@@ -441,17 +447,34 @@ def setup(app):
 class Resetter(object):
     """Simple class to make the str(obj) static for Sphinx build env hash."""
 
+    def __init__(self):
+        self.t0 = time.time()
+
     def __repr__(self):
         return '<%s>' % (self.__class__.__name__,)
 
     def __call__(self, gallery_conf, fname):
         import matplotlib.pyplot as plt
+        try:
+            from pyvista import Plotter  # noqa
+        except ImportError:
+            Plotter = None  # noqa
         reset_warnings(gallery_conf, fname)
         # in case users have interactive mode turned on in matplotlibrc,
         # turn it off here (otherwise the build can be very slow)
         plt.ioff()
-        gc.collect()
         plt.rcParams['animation.embed_limit'] = 30.
+        gc.collect()
+        # _assert_no_instances(Brain, 'running')  # calls gc.collect()
+        # if Plotter is not None:
+        #     _assert_no_instances(Plotter, 'running')
+        # This will overwrite some Sphinx printing but it's useful
+        # for memory timestamps
+        if os.getenv('SG_STAMP_STARTS', '').lower() == 'true':
+            import psutil
+            process = psutil.Process(os.getpid())
+            mem = sizeof_fmt(process.memory_info().rss)
+            print(f'{time.time() - self.t0:6.1f} s : {mem}'.ljust(22))
 
 
 def reset_warnings(gallery_conf, fname):
@@ -556,7 +579,6 @@ sphinx_gallery_conf = {
     'default_thumb_file': os.path.join('_static', 'mne_helmet.png'),
     'backreferences_dir': 'generated',
     'plot_gallery': 'True',  # Avoid annoying Unicode/bool default warning
-    'download_section_examples': False,
     'thumbnail_size': (160, 112),
     'remove_config_comments': True,
     'min_reported_time': 1.,
@@ -630,6 +652,7 @@ numpydoc_xref_aliases = {
     'Vectorizer': 'mne.decoding.Vectorizer',
     'UnsupervisedSpatialFilter': 'mne.decoding.UnsupervisedSpatialFilter',
     'TemporalFilter': 'mne.decoding.TemporalFilter',
+    'SSD': 'mne.decoding.SSD',
     'Scaler': 'mne.decoding.Scaler', 'SPoC': 'mne.decoding.SPoC',
     'PSDEstimator': 'mne.decoding.PSDEstimator',
     'LinearModel': 'mne.decoding.LinearModel',
@@ -658,7 +681,7 @@ numpydoc_xref_ignore = {
     'n_dipoles_fwd', 'n_picks_ref', 'n_coords',
     # Undocumented (on purpose)
     'RawKIT', 'RawEximia', 'RawEGI', 'RawEEGLAB', 'RawEDF', 'RawCTF', 'RawBTi',
-    'RawBrainVision', 'RawCurry', 'RawNIRX', 'RawGDF', 'RawSNIRF',
+    'RawBrainVision', 'RawCurry', 'RawNIRX', 'RawGDF', 'RawSNIRF', 'RawBOXY',
     'RawPersyst', 'RawNihon',
     # sklearn subclasses
     'mapping', 'to', 'any',

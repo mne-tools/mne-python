@@ -3,13 +3,8 @@
 Time-frequency beamforming using DICS
 =====================================
 
-Compute DICS source power [1]_ in a grid of time-frequency windows.
-
-References
-----------
-.. [1] Dalal et al. Five-dimensional neuroimaging: Localization of the
-       time-frequency dynamics of cortical activity.
-       NeuroImage (2008) vol. 40 (4) pp. 1686-1700
+Compute DICS source power :footcite:`DalalEtAl2008` in a grid of time-frequency
+windows.
 """
 # Author: Roman Goj <roman.goj@gmail.com>
 #
@@ -122,3 +117,8 @@ stcs = tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
 # time windows.
 plot_source_spectrogram(stcs, freq_bins, tmin=tmin_plot, tmax=tmax_plot,
                         source_index=None, colorbar=True)
+
+###############################################################################
+# References
+# ----------
+# .. footbibliography::

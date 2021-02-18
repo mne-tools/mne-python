@@ -719,9 +719,10 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         perform estimates using multiple methods.
         If 'auto' or a list of methods, the best estimator will be determined
         based on log-likelihood and cross-validation on unseen data as
-        described in [1]_. Valid methods are 'empirical', 'diagonal_fixed',
-        'shrunk', 'oas', 'ledoit_wolf', 'factor_analysis', 'shrinkage',
-        and 'pca' (see Notes). If ``'auto'``, it expands to::
+        described in :footcite:`EngemannGramfort2015`. Valid methods are
+        'empirical', 'diagonal_fixed', 'shrunk', 'oas', 'ledoit_wolf',
+        'factor_analysis', 'shrinkage', and 'pca' (see Notes). If ``'auto'``,
+        it expands to::
 
              ['shrunk', 'diagonal_fixed', 'empirical', 'factor_analysis']
 
@@ -803,9 +804,10 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
       .. versionadded:: 0.16
     * ``'ledoit_wolf'``
         The Ledoit-Wolf estimator, which uses an
-        empirical formula for the optimal shrinkage value [2]_.
+        empirical formula for the optimal shrinkage value
+        :footcite:`LedoitWolf2004`.
     * ``'oas'``
-        The OAS estimator [5]_, which uses a different
+        The OAS estimator :footcite:`ChenEtAl2010`, which uses a different
         empricial formula for the optimal shrinkage value.
 
       .. versionadded:: 0.16
@@ -813,9 +815,9 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         Like 'ledoit_wolf', but with cross-validation
         for optimal alpha.
     * ``'pca'``
-        Probabilistic PCA with low rank [3]_.
+        Probabilistic PCA with low rank :footcite:`TippingBishop1999`.
     * ``'factor_analysis'``
-        Factor analysis with low rank [4]_.
+        Factor analysis with low rank :footcite:`Barber2012`.
 
     ``'ledoit_wolf'`` and ``'pca'`` are similar to ``'shrunk'`` and
     ``'factor_analysis'``, respectively, except that they use
@@ -833,27 +835,14 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     The ``method`` parameter allows to regularize the covariance in an
     automated way. It also allows to select between different alternative
     estimation algorithms which themselves achieve regularization.
-    Details are described in [1]_.
+    Details are described in :footcite:`EngemannGramfort2015`.
 
     For more information on the advanced estimation methods, see
     :ref:`the sklearn manual <sklearn:covariance>`.
 
     References
     ----------
-    .. [1] Engemann D. and Gramfort A. (2015) Automated model selection in
-           covariance estimation and spatial whitening of MEG and EEG
-           signals, vol. 108, 328-342, NeuroImage.
-    .. [2] Ledoit, O., Wolf, M., (2004). A well-conditioned estimator for
-           large-dimensional covariance matrices. Journal of Multivariate
-           Analysis 88 (2), 365 - 411.
-    .. [3] Tipping, M. E., Bishop, C. M., (1999). Probabilistic principal
-           component analysis. Journal of the Royal Statistical Society:
-           Series B (Statistical Methodology) 61 (3), 611 - 622.
-    .. [4] Barber, D., (2012). Bayesian reasoning and machine learning.
-           Cambridge University Press., Algorithm 21.1
-    .. [5] Chen et al. (2010). Shrinkage Algorithms for MMSE Covariance
-           Estimation. IEEE Trans. on Sign. Proc., Volume 58, Issue 10,
-           October 2010.
+    .. footbibliography::
     """
     # scale to natural unit for best stability with MEG/EEG
     scalings = _check_scalings_user(scalings)
@@ -1264,7 +1253,8 @@ class _RegCovariance(BaseEstimator):
     """Aux class."""
 
     def __init__(self, info, grad=0.1, mag=0.1, eeg=0.1, seeg=0.1, ecog=0.1,
-                 hbo=0.1, hbr=0.1, fnirs_cw_amplitude=0.1, fnirs_od=0.1,
+                 hbo=0.1, hbr=0.1, fnirs_cw_amplitude=0.1,
+                 fnirs_fd_ac_amplitude=0.1, fnirs_fd_phase=0.1, fnirs_od=0.1,
                  csd=0.1, store_precision=False, assume_centered=False):
         self.info = info
         # For sklearn compat, these cannot (easily?) be combined into
@@ -1277,6 +1267,8 @@ class _RegCovariance(BaseEstimator):
         self.hbo = hbo
         self.hbr = hbr
         self.fnirs_cw_amplitude = fnirs_cw_amplitude
+        self.fnirs_fd_ac_amplitude = fnirs_fd_ac_amplitude
+        self.fnirs_fd_phase = fnirs_fd_phase
         self.fnirs_od = fnirs_od
         self.csd = csd
         self.store_precision = store_precision
@@ -1556,7 +1548,8 @@ def _smart_eigh(C, info, rank, scalings=None, projs=None,
 @verbose
 def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
                proj=True, seeg=0.1, ecog=0.1, hbo=0.1, hbr=0.1,
-               fnirs_cw_amplitude=0.1, fnirs_od=0.1, csd=0.1,
+               fnirs_cw_amplitude=0.1, fnirs_fd_ac_amplitude=0.1,
+               fnirs_fd_phase=0.1, fnirs_od=0.1, csd=0.1,
                rank=None, scalings=None, verbose=None):
     """Regularize noise covariance matrix.
 
@@ -1598,7 +1591,11 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     hbr : float (default 0.1)
         Regularization factor for HBR signals.
     fnirs_cw_amplitude : float (default 0.1)
-        Regularization factor for fNIRS raw signals.
+        Regularization factor for fNIRS CW raw signals.
+    fnirs_fd_ac_amplitude : float (default 0.1)
+        Regularization factor for fNIRS FD AC raw signals.
+    fnirs_fd_phase : float (default 0.1)
+        Regularization factor for fNIRS raw phase signals.
     fnirs_od : float (default 0.1)
         Regularization factor for fNIRS optical density signals.
     csd : float (default 0.1)
@@ -1630,7 +1627,8 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     scalings = _handle_default('scalings_cov_rank', scalings)
     regs = dict(eeg=eeg, seeg=seeg, ecog=ecog, hbo=hbo, hbr=hbr,
                 fnirs_cw_amplitude=fnirs_cw_amplitude,
-                fnirs_od=fnirs_od, csd=csd)
+                fnirs_fd_ac_amplitude=fnirs_fd_ac_amplitude,
+                fnirs_fd_phase=fnirs_fd_phase, fnirs_od=fnirs_od, csd=csd)
 
     if exclude is None:
         raise ValueError('exclude must be a list of strings or "bads"')

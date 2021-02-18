@@ -7,25 +7,199 @@
 #
 # License: Simplified BSD
 
+import contextlib
 from functools import partial
 import os
 import os.path as op
+import sys
+import time
+import traceback
+import warnings
 
 import numpy as np
 from scipy import sparse
+from collections import OrderedDict
 
 from .colormap import calculate_lut
 from .surface import Surface
-from .view import views_dicts
+from .view import views_dicts, _lh_views_dict
+from .mplcanvas import MplCanvas
+from .callback import (ShowView, IntSlider, TimeSlider, SmartSlider,
+                       BumpColorbarPoints, UpdateColorbarScale)
 
+from ..utils import _show_help, _get_color_list
 from .._3d import _process_clim, _handle_time, _check_views
 
+from ...externals.decorator import decorator
 from ...defaults import _handle_default
 from ...surface import mesh_edges
-from ...source_space import SourceSpaces
+from ...source_space import SourceSpaces, vertex_to_mni, read_talxfm
 from ...transforms import apply_trans
 from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
-                      use_log_level, Bunch)
+                      use_log_level, Bunch, _ReuseCycle, warn)
+
+
+@decorator
+def safe_event(fun, *args, **kwargs):
+    """Protect against PyQt5 exiting on event-handling errors."""
+    try:
+        return fun(*args, **kwargs)
+    except Exception:
+        traceback.print_exc(file=sys.stderr)
+
+
+class _Overlay(object):
+    def __init__(self, scalars, colormap, rng, opacity):
+        self._scalars = scalars
+        self._colormap = colormap
+        self._rng = rng
+        self._opacity = opacity
+
+    def to_colors(self):
+        from .._3d import _get_cmap
+        from matplotlib.colors import ListedColormap
+        if isinstance(self._colormap, str):
+            cmap = _get_cmap(self._colormap)
+        else:
+            cmap = ListedColormap(self._colormap / 255.)
+
+        def diff(x):
+            return np.max(x) - np.min(x)
+
+        def norm(x, rng=None):
+            if rng is None:
+                rng = [np.min(x), np.max(x)]
+            return (x - rng[0]) / (rng[1] - rng[0])
+
+        rng = self._rng
+        scalars = self._scalars
+        if diff(scalars) != 0:
+            scalars = norm(scalars, rng)
+
+        colors = cmap(scalars)
+        if self._opacity is not None:
+            colors[:, 3] *= self._opacity
+        return colors
+
+
+class _LayeredMesh(object):
+    def __init__(self, renderer, vertices, triangles, normals):
+        self._renderer = renderer
+        self._vertices = vertices
+        self._triangles = triangles
+        self._normals = normals
+
+        self._polydata = None
+        self._actor = None
+        self._is_mapped = False
+
+        self._cache = None
+        self._overlays = OrderedDict()
+
+        self._default_scalars = np.ones(vertices.shape)
+        self._default_scalars_name = 'Data'
+
+    def map(self):
+        kwargs = {
+            "color": None,
+            "pickable": True,
+            "rgba": True,
+        }
+        mesh_data = self._renderer.mesh(
+            x=self._vertices[:, 0],
+            y=self._vertices[:, 1],
+            z=self._vertices[:, 2],
+            triangles=self._triangles,
+            normals=self._normals,
+            scalars=self._default_scalars,
+            **kwargs
+        )
+        self._actor, self._polydata = mesh_data
+        self._is_mapped = True
+
+    def _compute_over(self, B, A):
+        assert A.ndim == B.ndim == 2
+        assert A.shape[1] == B.shape[1] == 4
+        A_w = A[:, 3:]  # * 1
+        B_w = B[:, 3:] * (1 - A_w)
+        C = A.copy()
+        C[:, :3] *= A_w
+        C[:, :3] += B[:, :3] * B_w
+        C[:, 3:] += B_w
+        C[:, :3] /= C[:, 3:]
+        return np.clip(C, 0, 1, out=C)
+
+    def _compose_overlays(self):
+        B = None
+        for overlay in self._overlays.values():
+            A = overlay.to_colors()
+            if B is None:
+                B = A
+            else:
+                B = self._compute_over(B, A)
+        return B
+
+    def add_overlay(self, scalars, colormap, rng, opacity, name):
+        overlay = _Overlay(
+            scalars=scalars,
+            colormap=colormap,
+            rng=rng,
+            opacity=opacity
+        )
+        self._overlays[name] = overlay
+        colors = overlay.to_colors()
+
+        # save colors in cache
+        if self._cache is None:
+            self._cache = colors
+        else:
+            self._cache = self._compute_over(self._cache, colors)
+
+        # update the texture
+        self._update()
+
+    def remove_overlay(self, names):
+        if not isinstance(names, list):
+            names = [names]
+        for name in names:
+            if name in self._overlays:
+                del self._overlays[name]
+        self.update()
+
+    def _update(self):
+        if self._cache is None:
+            return
+        from ..backends._pyvista import _set_mesh_scalars
+        _set_mesh_scalars(
+            mesh=self._polydata,
+            scalars=self._cache,
+            name=self._default_scalars_name,
+        )
+
+    def update(self):
+        self._cache = self._compose_overlays()
+        self._update()
+
+    def _clean(self):
+        mapper = self._actor.GetMapper()
+        mapper.SetLookupTable(None)
+        self._actor.SetMapper(None)
+        self._actor = None
+        self._polydata = None
+        self._renderer = None
+
+    def update_overlay(self, name, scalars=None, colormap=None,
+                       opacity=None):
+        overlay = self._overlays.get(name, None)
+        if overlay is None:
+            return
+        if scalars is not None:
+            overlay._scalars = scalars
+        if colormap is not None:
+            overlay._colormap = colormap
+        if opacity is not None:
+            overlay._opacity = opacity
+        self.update()
 
 
 @fill_doc
@@ -129,15 +303,15 @@ class Brain(object):
        +---------------------------+--------------+---------------+
        | foci                      | ✓            |               |
        +---------------------------+--------------+---------------+
-       | labels                    | ✓            |               |
-       +---------------------------+--------------+---------------+
-       | labels_dict               | ✓            |               |
-       +---------------------------+--------------+---------------+
-       | remove_data               | ✓            |               |
+       | labels                    | ✓            | ✓             |
        +---------------------------+--------------+---------------+
        | remove_foci               | ✓            |               |
        +---------------------------+--------------+---------------+
        | remove_labels             | ✓            | ✓             |
+       +---------------------------+--------------+---------------+
+       | remove_annotations        | -            | ✓             |
+       +---------------------------+--------------+---------------+
+       | scale_data_colormap       | ✓            |               |
        +---------------------------+--------------+---------------+
        | save_image                | ✓            | ✓             |
        +---------------------------+--------------+---------------+
@@ -159,6 +333,10 @@ class Brain(object):
        +---------------------------+--------------+---------------+
        | flatmaps                  |              | ✓             |
        +---------------------------+--------------+---------------+
+       | vertex picking            |              | ✓             |
+       +---------------------------+--------------+---------------+
+       | label picking             |              | ✓             |
+       +---------------------------+--------------+---------------+
     """
 
     def __init__(self, subject_id, hemi, surf, title=None,
@@ -168,8 +346,8 @@ class Brain(object):
                  offscreen=False, interaction='trackball', units='mm',
                  view_layout='vertical', show=True):
         from ..backends.renderer import backend, _get_renderer, _get_3d_backend
+        from .._3d import _get_cmap
         from matplotlib.colors import colorConverter
-        from matplotlib.cm import get_cmap
 
         if hemi in ('both', 'split'):
             self._hemis = ('lh', 'rh')
@@ -178,8 +356,8 @@ class Brain(object):
         else:
             raise KeyError('hemi has to be either "lh", "rh", "split", '
                            'or "both"')
-        _check_option('view_layout', view_layout, ('vertical', 'horizontal'))
-        self._view_layout = view_layout
+        self._view_layout = _check_option('view_layout', view_layout,
+                                          ('vertical', 'horizontal'))
 
         if figure is not None and not isinstance(figure, int):
             backend._check_3d_figure(figure)
@@ -213,7 +391,8 @@ class Brain(object):
                              'sequence of ints.')
         self._size = size if len(size) == 2 else size * 2  # 1-tuple to 2-tuple
 
-        self._notebook = (_get_3d_backend() == "notebook")
+        self.time_viewer = False
+        self.notebook = (_get_3d_backend() == "notebook")
         self._hemi = hemi
         self._units = units
         self._alpha = float(alpha)
@@ -221,9 +400,11 @@ class Brain(object):
         self._subjects_dir = subjects_dir
         self._views = views
         self._times = None
-        self._label_data = list()
-        self._hemi_actors = {}
-        self._hemi_meshes = {}
+        self._vertex_to_label_id = dict()
+        self._annotation_labels = dict()
+        self._labels = {'lh': list(), 'rh': list()}
+        self._annots = {'lh': list(), 'rh': list()}
+        self._layered_meshes = {}
         # for now only one color bar can be added
         # since it is the same for all figures
         self._colorbar_added = False
@@ -232,13 +413,13 @@ class Brain(object):
         self._time_label_added = False
         # array of data used by TimeViewer
         self._data = {}
-        self.geo, self._overlays = {}, {}
+        self.geo = {}
         self.set_time_interpolation('nearest')
 
         geo_kwargs = self._cortex_colormap(cortex)
         # evaluate at the midpoint of the used colormap
         val = -geo_kwargs['vmin'] / (geo_kwargs['vmax'] - geo_kwargs['vmin'])
-        self._brain_color = get_cmap(geo_kwargs['colormap'])(val)
+        self._brain_color = _get_cmap(geo_kwargs['colormap'])(val)
 
         # load geometry for one or both hemispheres as necessary
         offset = None if (not offset or hemi != 'both') else 0.0
@@ -247,6 +428,12 @@ class Brain(object):
                                        bgcolor=background,
                                        shape=shape,
                                        fig=figure)
+
+        if _get_3d_backend() == "pyvista":
+            self.plotter = self._renderer.plotter
+            self.window = self.plotter.app_window
+            self.window.signal_close.connect(self._clean)
+
         for h in self._hemis:
             # Initialize a Surface object as the geometry
             geo = Surface(subject_id, h, surf, subjects_dir, offset,
@@ -257,44 +444,33 @@ class Brain(object):
             self.geo[h] = geo
             for ri, ci, v in self._iter_views(h):
                 self._renderer.subplot(ri, ci)
-                kwargs = {
-                    "color": None,
-                    "scalars": self.geo[h].bin_curv,
-                    "vmin": geo_kwargs["vmin"],
-                    "vmax": geo_kwargs["vmax"],
-                    "colormap": geo_kwargs["colormap"],
-                    "opacity": alpha,
-                    "pickable": False,
-                }
-                if self._hemi_meshes.get(h) is None:
-                    mesh_data = self._renderer.mesh(
-                        x=self.geo[h].coords[:, 0],
-                        y=self.geo[h].coords[:, 1],
-                        z=self.geo[h].coords[:, 2],
+                if self._layered_meshes.get(h) is None:
+                    mesh = _LayeredMesh(
+                        renderer=self._renderer,
+                        vertices=self.geo[h].coords,
                         triangles=self.geo[h].faces,
                         normals=self.geo[h].nn,
-                        **kwargs,
                     )
-                    if isinstance(mesh_data, tuple):
-                        actor, mesh = mesh_data
-                        # add metadata to the mesh for picking
-                        mesh._hemi = h
-                    else:
-                        actor, mesh = mesh_data.actor, mesh_data
-                    self._hemi_meshes[h] = mesh
-                    self._hemi_actors[h] = actor
+                    mesh.map()  # send to GPU
+                    mesh.add_overlay(
+                        scalars=self.geo[h].bin_curv,
+                        colormap=geo_kwargs["colormap"],
+                        rng=[geo_kwargs["vmin"], geo_kwargs["vmax"]],
+                        opacity=alpha,
+                        name='curv',
+                    )
+                    self._layered_meshes[h] = mesh
+                    # add metadata to the mesh for picking
+                    mesh._polydata._hemi = h
                 else:
-                    self._renderer.polydata(
-                        self._hemi_meshes[h],
-                        **kwargs,
-                    )
-                del kwargs
+                    actor = self._layered_meshes[h]._actor
+                    self._renderer.plotter.add_actor(actor)
                 self._renderer.set_camera(**views_dicts[h][v])
 
         self.interaction = interaction
         self._closed = False
         if show:
-            self._renderer.show()
+            self.show()
         # update the views once the geometry is all set
         for h in self._hemis:
             for ri, ci, v in self._iter_views(h):
@@ -305,6 +481,1144 @@ class Brain(object):
 
         if hemi == 'rh' and hasattr(self._renderer, "_orient_lights"):
             self._renderer._orient_lights()
+
+    def setup_time_viewer(self, time_viewer=True, show_traces=True):
+        """Configure the time viewer parameters.
+
+        Parameters
+        ----------
+        time_viewer : bool
+            If True, enable widgets interaction. Defaults to True.
+
+        show_traces : bool
+            If True, enable visualization of time traces. Defaults to True.
+        """
+        if self.time_viewer:
+            return
+        if not self._data:
+            raise ValueError("No data to visualize. See ``add_data``.")
+        self.time_viewer = time_viewer
+        self.orientation = list(_lh_views_dict.keys())
+        self.default_smoothing_range = [0, 15]
+
+        # setup notebook
+        if self.notebook:
+            self._configure_notebook()
+            return
+
+        # Default configuration
+        self.playback = False
+        self.visibility = False
+        self.refresh_rate_ms = max(int(round(1000. / 60.)), 1)
+        self.default_scaling_range = [0.2, 2.0]
+        self.default_playback_speed_range = [0.01, 1]
+        self.default_playback_speed_value = 0.05
+        self.default_status_bar_msg = "Press ? for help"
+        self.default_label_extract_modes = {
+            "stc": ["mean", "max"],
+            "src": ["mean_flip", "pca_flip", "auto"],
+        }
+        self.default_trace_modes = ('vertex', 'label')
+        self.annot = None
+        self.label_extract_mode = None
+        all_keys = ('lh', 'rh', 'vol')
+        self.act_data_smooth = {key: (None, None) for key in all_keys}
+        self.color_list = _get_color_list()
+        # remove grey for better contrast on the brain
+        self.color_list.remove("#7f7f7f")
+        self.color_cycle = _ReuseCycle(self.color_list)
+        self.mpl_canvas = None
+        self.gfp = None
+        self.picked_patches = {key: list() for key in all_keys}
+        self.picked_points = {key: list() for key in all_keys}
+        self.pick_table = dict()
+        self._spheres = list()
+        self._mouse_no_mvt = -1
+        self.icons = dict()
+        self.actions = dict()
+        self.callbacks = dict()
+        self.sliders = dict()
+        self.keys = ('fmin', 'fmid', 'fmax')
+        self.slider_length = 0.02
+        self.slider_width = 0.04
+        self.slider_color = (0.43137255, 0.44313725, 0.45882353)
+        self.slider_tube_width = 0.04
+        self.slider_tube_color = (0.69803922, 0.70196078, 0.70980392)
+        self._trace_mode_widget = None
+        self._annot_cands_widget = None
+        self._label_mode_widget = None
+
+        # Direct access parameters:
+        self._iren = self._renderer.plotter.iren
+        self.main_menu = self.plotter.main_menu
+        self.tool_bar = self.window.addToolBar("toolbar")
+        self.status_bar = self.window.statusBar()
+        self.interactor = self.plotter.interactor
+
+        # Derived parameters:
+        self.playback_speed = self.default_playback_speed_value
+        _validate_type(show_traces, (bool, str, 'numeric'), 'show_traces')
+        self.interactor_fraction = 0.25
+        if isinstance(show_traces, str):
+            self.show_traces = True
+            self.separate_canvas = False
+            self.traces_mode = 'vertex'
+            if show_traces == 'separate':
+                self.separate_canvas = True
+            elif show_traces == 'label':
+                self.traces_mode = 'label'
+            else:
+                assert show_traces == 'vertex'  # guaranteed above
+        else:
+            if isinstance(show_traces, bool):
+                self.show_traces = show_traces
+            else:
+                show_traces = float(show_traces)
+                if not 0 < show_traces < 1:
+                    raise ValueError(
+                        'show traces, if numeric, must be between 0 and 1, '
+                        f'got {show_traces}')
+                self.show_traces = True
+                self.interactor_fraction = show_traces
+            self.traces_mode = 'vertex'
+            self.separate_canvas = False
+        del show_traces
+
+        self._load_icons()
+        self._configure_time_label()
+        self._configure_sliders()
+        self._configure_scalar_bar()
+        self._configure_playback()
+        self._configure_menu()
+        self._configure_tool_bar()
+        self._configure_status_bar()
+        self._configure_picking()
+        self._configure_trace_mode()
+
+        # show everything at the end
+        self.toggle_interface()
+        with self.ensure_minimum_sizes():
+            self.show()
+
+    @safe_event
+    def _clean(self):
+        # resolve the reference cycle
+        self.clear_glyphs()
+        self.remove_annotations()
+        # clear init actors
+        for hemi in self._hemis:
+            self._layered_meshes[hemi]._clean()
+        self._clear_callbacks()
+        if getattr(self, 'mpl_canvas', None) is not None:
+            self.mpl_canvas.clear()
+        if getattr(self, 'act_data_smooth', None) is not None:
+            for key in list(self.act_data_smooth.keys()):
+                self.act_data_smooth[key] = None
+        # XXX this should be done in PyVista
+        for renderer in self.plotter.renderers:
+            renderer.RemoveAllLights()
+        # app_window cannot be set to None because it is used in __del__
+        for key in ('lighting', 'interactor', '_RenderWindow'):
+            setattr(self.plotter, key, None)
+        # Qt LeaveEvent requires _Iren so we use _FakeIren instead of None
+        # to resolve the ref to vtkGenericRenderWindowInteractor
+        self.plotter._Iren = _FakeIren()
+        if getattr(self.plotter, 'scalar_bar', None) is not None:
+            self.plotter.scalar_bar = None
+        if getattr(self.plotter, 'picker', None) is not None:
+            self.plotter.picker = None
+        # XXX end PyVista
+        for key in ('reps', 'plotter', 'main_menu', 'window', 'tool_bar',
+                    'status_bar', 'interactor', 'mpl_canvas', 'time_actor',
+                    'picked_renderer', 'act_data_smooth', '_iren',
+                    'actions', 'sliders', 'geo', '_hemi_actors', '_data'):
+            setattr(self, key, None)
+
+    @contextlib.contextmanager
+    def ensure_minimum_sizes(self):
+        """Ensure that widgets respect the windows size."""
+        from ..backends._pyvista import _process_events
+        sz = self._size
+        adjust_mpl = self.show_traces and not self.separate_canvas
+        if not adjust_mpl:
+            yield
+        else:
+            mpl_h = int(round((sz[1] * self.interactor_fraction) /
+                              (1 - self.interactor_fraction)))
+            self.mpl_canvas.canvas.setMinimumSize(sz[0], mpl_h)
+            try:
+                yield
+            finally:
+                self.splitter.setSizes([sz[1], mpl_h])
+                _process_events(self.plotter)
+                _process_events(self.plotter)
+                self.mpl_canvas.canvas.setMinimumSize(0, 0)
+            _process_events(self.plotter)
+            _process_events(self.plotter)
+            # sizes could change, update views
+            for hemi in ('lh', 'rh'):
+                for ri, ci, v in self._iter_views(hemi):
+                    self.show_view(view=v, row=ri, col=ci)
+            _process_events(self.plotter)
+
+    def toggle_interface(self, value=None):
+        """Toggle the interface.
+
+        Parameters
+        ----------
+        value : bool | None
+            If True, the widgets are shown and if False, they
+            are hidden. If None, the state of the widgets is
+            toggled. Defaults to None.
+        """
+        if value is None:
+            self.visibility = not self.visibility
+        else:
+            self.visibility = value
+
+        # update tool bar icon
+        if self.visibility:
+            self.actions["visibility"].setIcon(self.icons["visibility_on"])
+        else:
+            self.actions["visibility"].setIcon(self.icons["visibility_off"])
+
+        # manage sliders
+        for slider in self.plotter.slider_widgets:
+            slider_rep = slider.GetRepresentation()
+            if self.visibility:
+                slider_rep.VisibilityOn()
+            else:
+                slider_rep.VisibilityOff()
+
+        # manage time label
+        time_label = self._data['time_label']
+        # if we actually have time points, we will show the slider so
+        # hide the time actor
+        have_ts = self._times is not None and len(self._times) > 1
+        if self.time_actor is not None:
+            if self.visibility and time_label is not None and not have_ts:
+                self.time_actor.SetInput(time_label(self._current_time))
+                self.time_actor.VisibilityOn()
+            else:
+                self.time_actor.VisibilityOff()
+
+        self._update()
+
+    def apply_auto_scaling(self):
+        """Detect automatically fitting scaling parameters."""
+        self._update_auto_scaling()
+        for key in ('fmin', 'fmid', 'fmax'):
+            self.reps[key].SetValue(self._data[key])
+        self._update()
+
+    def restore_user_scaling(self):
+        """Restore original scaling parameters."""
+        self._update_auto_scaling(restore=True)
+        for key in ('fmin', 'fmid', 'fmax'):
+            self.reps[key].SetValue(self._data[key])
+        self._update()
+
+    def toggle_playback(self, value=None):
+        """Toggle time playback.
+
+        Parameters
+        ----------
+        value : bool | None
+            If True, automatic time playback is enabled and if False,
+            it's disabled. If None, the state of time playback is toggled.
+            Defaults to None.
+        """
+        if value is None:
+            self.playback = not self.playback
+        else:
+            self.playback = value
+
+        # update tool bar icon
+        if self.playback:
+            self.actions["play"].setIcon(self.icons["pause"])
+        else:
+            self.actions["play"].setIcon(self.icons["play"])
+
+        if self.playback:
+            time_data = self._data['time']
+            max_time = np.max(time_data)
+            if self._current_time == max_time:  # start over
+                self.set_time_point(0)  # first index
+            self._last_tick = time.time()
+
+    def reset(self):
+        """Reset view and time step."""
+        self.reset_view()
+        max_time = len(self._data['time']) - 1
+        if max_time > 0:
+            self.callbacks["time"](
+                self._data["initial_time_idx"],
+                update_widget=True,
+            )
+        self._update()
+
+    def set_playback_speed(self, speed):
+        """Set the time playback speed.
+
+        Parameters
+        ----------
+        speed : float
+            The speed of the playback.
+        """
+        self.playback_speed = speed
+
+    @safe_event
+    def _play(self):
+        if self.playback:
+            try:
+                self._advance()
+            except Exception:
+                self.toggle_playback(value=False)
+                raise
+
+    def _advance(self):
+        this_time = time.time()
+        delta = this_time - self._last_tick
+        self._last_tick = time.time()
+        time_data = self._data['time']
+        times = np.arange(self._n_times)
+        time_shift = delta * self.playback_speed
+        max_time = np.max(time_data)
+        time_point = min(self._current_time + time_shift, max_time)
+        # always use linear here -- this does not determine the data
+        # interpolation mode, it just finds where we are (in time) in
+        # terms of the time indices
+        idx = np.interp(time_point, time_data, times)
+        self.callbacks["time"](idx, update_widget=True)
+        if time_point == max_time:
+            self.toggle_playback(value=False)
+
+    def _set_slider_style(self):
+        for slider in self.sliders.values():
+            if slider is not None:
+                slider_rep = slider.GetRepresentation()
+                slider_rep.SetSliderLength(self.slider_length)
+                slider_rep.SetSliderWidth(self.slider_width)
+                slider_rep.SetTubeWidth(self.slider_tube_width)
+                slider_rep.GetSliderProperty().SetColor(self.slider_color)
+                slider_rep.GetTubeProperty().SetColor(self.slider_tube_color)
+                slider_rep.GetLabelProperty().SetShadow(False)
+                slider_rep.GetLabelProperty().SetBold(True)
+                slider_rep.GetLabelProperty().SetColor(self._fg_color)
+                slider_rep.GetTitleProperty().ShallowCopy(
+                    slider_rep.GetLabelProperty()
+                )
+                slider_rep.GetCapProperty().SetOpacity(0)
+
+    def _configure_notebook(self):
+        from ._notebook import _NotebookInteractor
+        self._renderer.figure.display = _NotebookInteractor(self)
+
+    def _configure_time_label(self):
+        self.time_actor = self._data.get('time_actor')
+        if self.time_actor is not None:
+            self.time_actor.SetPosition(0.5, 0.03)
+            self.time_actor.GetTextProperty().SetJustificationToCentered()
+            self.time_actor.GetTextProperty().BoldOn()
+            self.time_actor.VisibilityOff()
+
+    def _configure_scalar_bar(self):
+        if self._colorbar_added:
+            scalar_bar = self.plotter.scalar_bar
+            scalar_bar.SetOrientationToVertical()
+            scalar_bar.SetHeight(0.6)
+            scalar_bar.SetWidth(0.05)
+            scalar_bar.SetPosition(0.02, 0.2)
+
+    def _configure_sliders(self):
+        # Orientation slider
+        # Use 'lh' as a reference for orientation for 'both'
+        if self._hemi == 'both':
+            hemis_ref = ['lh']
+        else:
+            hemis_ref = self._hemis
+        for hemi in hemis_ref:
+            for ri, ci, view in self._iter_views(hemi):
+                orientation_name = f"orientation_{hemi}_{ri}_{ci}"
+                self.plotter.subplot(ri, ci)
+                if view == 'flat':
+                    self.callbacks[orientation_name] = None
+                    continue
+                self.callbacks[orientation_name] = ShowView(
+                    plotter=self.plotter,
+                    brain=self,
+                    orientation=self.orientation,
+                    hemi=hemi,
+                    row=ri,
+                    col=ci,
+                )
+                self.sliders[orientation_name] = \
+                    self.plotter.add_text_slider_widget(
+                    self.callbacks[orientation_name],
+                    value=0,
+                    data=self.orientation,
+                    pointa=(0.82, 0.74),
+                    pointb=(0.98, 0.74),
+                    event_type='always'
+                )
+                orientation_rep = \
+                    self.sliders[orientation_name].GetRepresentation()
+                orientation_rep.ShowSliderLabelOff()
+                self.callbacks[orientation_name].slider_rep = orientation_rep
+                self.callbacks[orientation_name](view, update_widget=True)
+
+        # Put other sliders on the bottom right view
+        ri, ci = np.array(self._subplot_shape) - 1
+        self.plotter.subplot(ri, ci)
+
+        # Smoothing slider
+        self.callbacks["smoothing"] = IntSlider(
+            plotter=self.plotter,
+            callback=self.set_data_smoothing,
+            first_call=False,
+        )
+        self.sliders["smoothing"] = self.plotter.add_slider_widget(
+            self.callbacks["smoothing"],
+            value=self._data['smoothing_steps'],
+            rng=self.default_smoothing_range, title="smoothing",
+            pointa=(0.82, 0.90),
+            pointb=(0.98, 0.90)
+        )
+        self.callbacks["smoothing"].slider_rep = \
+            self.sliders["smoothing"].GetRepresentation()
+
+        # Time slider
+        max_time = len(self._data['time']) - 1
+        # VTK on macOS bombs if we create these then hide them, so don't
+        # even create them
+        if max_time < 1:
+            self.callbacks["time"] = None
+            self.sliders["time"] = None
+        else:
+            self.callbacks["time"] = TimeSlider(
+                plotter=self.plotter,
+                brain=self,
+                first_call=False,
+                callback=self.plot_time_line,
+            )
+            self.sliders["time"] = self.plotter.add_slider_widget(
+                self.callbacks["time"],
+                value=self._data['time_idx'],
+                rng=[0, max_time],
+                pointa=(0.23, 0.1),
+                pointb=(0.77, 0.1),
+                event_type='always'
+            )
+            self.callbacks["time"].slider_rep = \
+                self.sliders["time"].GetRepresentation()
+            # configure properties of the time slider
+            self.sliders["time"].GetRepresentation().SetLabelFormat(
+                'idx=%0.1f')
+
+        current_time = self._current_time
+        assert current_time is not None  # should never be the case, float
+        time_label = self._data['time_label']
+        if callable(time_label):
+            current_time = time_label(current_time)
+        else:
+            current_time = time_label
+        if self.sliders["time"] is not None:
+            self.sliders["time"].GetRepresentation().SetTitleText(current_time)
+        if self.time_actor is not None:
+            self.time_actor.SetInput(current_time)
+        del current_time
+
+        # Playback speed slider
+        if self.sliders["time"] is None:
+            self.callbacks["playback_speed"] = None
+            self.sliders["playback_speed"] = None
+        else:
+            self.callbacks["playback_speed"] = SmartSlider(
+                plotter=self.plotter,
+                callback=self.set_playback_speed,
+            )
+            self.sliders["playback_speed"] = self.plotter.add_slider_widget(
+                self.callbacks["playback_speed"],
+                value=self.default_playback_speed_value,
+                rng=self.default_playback_speed_range, title="speed",
+                pointa=(0.02, 0.1),
+                pointb=(0.18, 0.1),
+                event_type='always'
+            )
+            self.callbacks["playback_speed"].slider_rep = \
+                self.sliders["playback_speed"].GetRepresentation()
+
+        # Colormap slider
+        pointa = np.array((0.82, 0.26))
+        pointb = np.array((0.98, 0.26))
+        shift = np.array([0, 0.1])
+
+        for idx, key in enumerate(self.keys):
+            title = "clim" if not idx else ""
+            rng = _get_range(self)
+            self.callbacks[key] = BumpColorbarPoints(
+                plotter=self.plotter,
+                brain=self,
+                name=key
+            )
+            self.sliders[key] = self.plotter.add_slider_widget(
+                self.callbacks[key],
+                value=self._data[key],
+                rng=rng, title=title,
+                pointa=pointa + idx * shift,
+                pointb=pointb + idx * shift,
+                event_type="always",
+            )
+
+        # fscale
+        self.callbacks["fscale"] = UpdateColorbarScale(
+            plotter=self.plotter,
+            brain=self,
+        )
+        self.sliders["fscale"] = self.plotter.add_slider_widget(
+            self.callbacks["fscale"],
+            value=1.0,
+            rng=self.default_scaling_range, title="fscale",
+            pointa=(0.82, 0.10),
+            pointb=(0.98, 0.10)
+        )
+        self.callbacks["fscale"].slider_rep = \
+            self.sliders["fscale"].GetRepresentation()
+
+        # register colorbar slider representations
+        self.reps = \
+            {key: self.sliders[key].GetRepresentation() for key in self.keys}
+        for name in ("fmin", "fmid", "fmax", "fscale"):
+            self.callbacks[name].reps = self.reps
+
+        # set the slider style
+        self._set_slider_style()
+
+    def _configure_playback(self):
+        self.plotter.add_callback(self._play, self.refresh_rate_ms)
+
+    def _configure_mplcanvas(self):
+        win = self.plotter.app_window
+        dpi = win.windowHandle().screen().logicalDotsPerInch()
+        ratio = (1 - self.interactor_fraction) / self.interactor_fraction
+        w = self.interactor.geometry().width()
+        h = self.interactor.geometry().height() / ratio
+        # Get the fractional components for the brain and mpl
+        self.mpl_canvas = MplCanvas(self, w / dpi, h / dpi, dpi)
+        xlim = [np.min(self._data['time']),
+                np.max(self._data['time'])]
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=UserWarning)
+            self.mpl_canvas.axes.set(xlim=xlim)
+        if not self.separate_canvas:
+            from PyQt5.QtWidgets import QSplitter
+            from PyQt5.QtCore import Qt
+            canvas = self.mpl_canvas.canvas
+            vlayout = self.plotter.frame.layout()
+            vlayout.removeWidget(self.interactor)
+            self.splitter = splitter = QSplitter(
+                orientation=Qt.Vertical, parent=self.plotter.frame)
+            vlayout.addWidget(splitter)
+            splitter.addWidget(self.interactor)
+            splitter.addWidget(canvas)
+        self.mpl_canvas.set_color(
+            bg_color=self._bg_color,
+            fg_color=self._fg_color,
+        )
+        self.mpl_canvas.show()
+
+    def _configure_vertex_time_course(self):
+        if not self.show_traces:
+            return
+        if self.mpl_canvas is None:
+            self._configure_mplcanvas()
+        else:
+            self.clear_glyphs()
+
+        # plot the GFP
+        y = np.concatenate(list(v[0] for v in self.act_data_smooth.values()
+                                if v[0] is not None))
+        y = np.linalg.norm(y, axis=0) / np.sqrt(len(y))
+        self.gfp, = self.mpl_canvas.axes.plot(
+            self._data['time'], y,
+            lw=3, label='GFP', zorder=3, color=self._fg_color,
+            alpha=0.5, ls=':')
+
+        # now plot the time line
+        self.plot_time_line()
+
+        # then the picked points
+        for idx, hemi in enumerate(['lh', 'rh', 'vol']):
+            act_data = self.act_data_smooth.get(hemi, [None])[0]
+            if act_data is None:
+                continue
+            hemi_data = self._data[hemi]
+            vertices = hemi_data['vertices']
+
+            # simulate a picked renderer
+            if self._hemi in ('both', 'rh') or hemi == 'vol':
+                idx = 0
+            self.picked_renderer = self.plotter.renderers[idx]
+
+            # initialize the default point
+            if self._data['initial_time'] is not None:
+                # pick at that time
+                use_data = act_data[
+                    :, [np.round(self._data['time_idx']).astype(int)]]
+            else:
+                use_data = act_data
+            ind = np.unravel_index(np.argmax(np.abs(use_data), axis=None),
+                                   use_data.shape)
+            if hemi == 'vol':
+                mesh = hemi_data['grid']
+            else:
+                mesh = self._layered_meshes[hemi]._polydata
+            vertex_id = vertices[ind[0]]
+            self._add_vertex_glyph(hemi, mesh, vertex_id)
+
+    def _configure_picking(self):
+        from ..backends._pyvista import _update_picking_callback
+
+        # get data for each hemi
+        for idx, hemi in enumerate(['vol', 'lh', 'rh']):
+            hemi_data = self._data.get(hemi)
+            if hemi_data is not None:
+                act_data = hemi_data['array']
+                if act_data.ndim == 3:
+                    act_data = np.linalg.norm(act_data, axis=1)
+                smooth_mat = hemi_data.get('smooth_mat')
+                vertices = hemi_data['vertices']
+                if hemi == 'vol':
+                    assert smooth_mat is None
+                    smooth_mat = sparse.csr_matrix(
+                        (np.ones(len(vertices)),
+                         (vertices, np.arange(len(vertices)))))
+                self.act_data_smooth[hemi] = (act_data, smooth_mat)
+
+        _update_picking_callback(
+            self.plotter,
+            self._on_mouse_move,
+            self._on_button_press,
+            self._on_button_release,
+            self._on_pick
+        )
+
+    def _configure_trace_mode(self):
+        from ...source_estimate import _get_allowed_label_modes
+        from ...label import _read_annot_cands
+        from PyQt5.QtWidgets import QComboBox, QLabel
+        if not self.show_traces:
+            return
+
+        # do not show trace mode for volumes
+        if (self._data.get('src', None) is not None and
+                self._data['src'].kind == 'volume'):
+            self._configure_vertex_time_course()
+            return
+
+        # setup candidate annots
+        def _set_annot(annot):
+            self.clear_glyphs()
+            self.remove_labels()
+            self.remove_annotations()
+            self.annot = annot
+
+            if annot == 'None':
+                self.traces_mode = 'vertex'
+                self._configure_vertex_time_course()
+            else:
+                self.traces_mode = 'label'
+                self._configure_label_time_course()
+            self._update()
+
+        dir_name = op.join(self._subjects_dir, self._subject_id, 'label')
+        cands = _read_annot_cands(dir_name)
+        self.tool_bar.addSeparator()
+        self.tool_bar.addWidget(QLabel("Annotation"))
+        self._annot_cands_widget = QComboBox()
+        self.tool_bar.addWidget(self._annot_cands_widget)
+        self._annot_cands_widget.addItem('None')
+        for cand in cands:
+            self._annot_cands_widget.addItem(cand)
+        self.annot = cands[0]
+
+        # setup label extraction parameters
+        def _set_label_mode(mode):
+            if self.traces_mode != 'label':
+                return
+            import copy
+            glyphs = copy.deepcopy(self.picked_patches)
+            self.label_extract_mode = mode
+            self.clear_glyphs()
+            for hemi in self._hemis:
+                for label_id in glyphs[hemi]:
+                    label = self._annotation_labels[hemi][label_id]
+                    vertex_id = label.vertices[0]
+                    self._add_label_glyph(hemi, None, vertex_id)
+            self.mpl_canvas.axes.relim()
+            self.mpl_canvas.axes.autoscale_view()
+            self.mpl_canvas.update_plot()
+            self._update()
+
+        self.tool_bar.addSeparator()
+        self.tool_bar.addWidget(QLabel("Label extraction mode"))
+        self._label_mode_widget = QComboBox()
+        self.tool_bar.addWidget(self._label_mode_widget)
+        stc = self._data["stc"]
+        modes = _get_allowed_label_modes(stc)
+        if self._data["src"] is None:
+            modes = [m for m in modes if m not in
+                     self.default_label_extract_modes["src"]]
+        for mode in modes:
+            self._label_mode_widget.addItem(mode)
+            self.label_extract_mode = mode
+
+        if self.traces_mode == 'vertex':
+            _set_annot('None')
+        else:
+            _set_annot(self.annot)
+        self._annot_cands_widget.setCurrentText(self.annot)
+        self._label_mode_widget.setCurrentText(self.label_extract_mode)
+        self._annot_cands_widget.currentTextChanged.connect(_set_annot)
+        self._label_mode_widget.currentTextChanged.connect(_set_label_mode)
+
+    def _load_icons(self):
+        from PyQt5.QtGui import QIcon
+        from ..backends._pyvista import _init_resources
+        _init_resources()
+        self.icons["help"] = QIcon(":/help.svg")
+        self.icons["play"] = QIcon(":/play.svg")
+        self.icons["pause"] = QIcon(":/pause.svg")
+        self.icons["reset"] = QIcon(":/reset.svg")
+        self.icons["scale"] = QIcon(":/scale.svg")
+        self.icons["clear"] = QIcon(":/clear.svg")
+        self.icons["movie"] = QIcon(":/movie.svg")
+        self.icons["restore"] = QIcon(":/restore.svg")
+        self.icons["screenshot"] = QIcon(":/screenshot.svg")
+        self.icons["visibility_on"] = QIcon(":/visibility_on.svg")
+        self.icons["visibility_off"] = QIcon(":/visibility_off.svg")
+
+    def _save_movie_noname(self):
+        return self.save_movie(None)
+
+    def _configure_tool_bar(self):
+        self.actions["screenshot"] = self.tool_bar.addAction(
+            self.icons["screenshot"],
+            "Take a screenshot",
+            self.plotter._qt_screenshot
+        )
+        self.actions["movie"] = self.tool_bar.addAction(
+            self.icons["movie"],
+            "Save movie...",
+            self._save_movie_noname,
+        )
+        self.actions["visibility"] = self.tool_bar.addAction(
+            self.icons["visibility_on"],
+            "Toggle Visibility",
+            self.toggle_interface
+        )
+        self.actions["play"] = self.tool_bar.addAction(
+            self.icons["play"],
+            "Play/Pause",
+            self.toggle_playback
+        )
+        self.actions["reset"] = self.tool_bar.addAction(
+            self.icons["reset"],
+            "Reset",
+            self.reset
+        )
+        self.actions["scale"] = self.tool_bar.addAction(
+            self.icons["scale"],
+            "Auto-Scale",
+            self.apply_auto_scaling
+        )
+        self.actions["restore"] = self.tool_bar.addAction(
+            self.icons["restore"],
+            "Restore scaling",
+            self.restore_user_scaling
+        )
+        self.actions["clear"] = self.tool_bar.addAction(
+            self.icons["clear"],
+            "Clear traces",
+            self.clear_glyphs
+        )
+        self.actions["help"] = self.tool_bar.addAction(
+            self.icons["help"],
+            "Help",
+            self.help
+        )
+
+        self.actions["movie"].setShortcut("ctrl+shift+s")
+        self.actions["visibility"].setShortcut("i")
+        self.actions["play"].setShortcut(" ")
+        self.actions["scale"].setShortcut("s")
+        self.actions["restore"].setShortcut("r")
+        self.actions["clear"].setShortcut("c")
+        self.actions["help"].setShortcut("?")
+
+    def _configure_menu(self):
+        # remove default picking menu
+        to_remove = list()
+        for action in self.main_menu.actions():
+            if action.text() == "Tools":
+                to_remove.append(action)
+        for action in to_remove:
+            self.main_menu.removeAction(action)
+
+        # add help menu
+        menu = self.main_menu.addMenu('Help')
+        menu.addAction('Show MNE key bindings\t?', self.help)
+
+    def _configure_status_bar(self):
+        from PyQt5.QtWidgets import QLabel, QProgressBar
+        self.status_msg = QLabel(self.default_status_bar_msg)
+        self.status_progress = QProgressBar()
+        self.status_bar.layout().addWidget(self.status_msg, 1)
+        self.status_bar.layout().addWidget(self.status_progress, 0)
+        self.status_progress.hide()
+
+    def _on_mouse_move(self, vtk_picker, event):
+        if self._mouse_no_mvt:
+            self._mouse_no_mvt -= 1
+
+    def _on_button_press(self, vtk_picker, event):
+        self._mouse_no_mvt = 2
+
+    def _on_button_release(self, vtk_picker, event):
+        if self._mouse_no_mvt > 0:
+            x, y = vtk_picker.GetEventPosition()
+            # programmatically detect the picked renderer
+            self.picked_renderer = self.plotter.iren.FindPokedRenderer(x, y)
+            # trigger the pick
+            self.plotter.picker.Pick(x, y, 0, self.picked_renderer)
+        self._mouse_no_mvt = 0
+
+    def _on_pick(self, vtk_picker, event):
+        if not self.show_traces:
+            return
+
+        # vtk_picker is a vtkCellPicker
+        cell_id = vtk_picker.GetCellId()
+        mesh = vtk_picker.GetDataSet()
+
+        if mesh is None or cell_id == -1 or not self._mouse_no_mvt:
+            return  # don't pick
+
+        # 1) Check to see if there are any spheres along the ray
+        if len(self._spheres):
+            collection = vtk_picker.GetProp3Ds()
+            found_sphere = None
+            for ii in range(collection.GetNumberOfItems()):
+                actor = collection.GetItemAsObject(ii)
+                for sphere in self._spheres:
+                    if any(a is actor for a in sphere._actors):
+                        found_sphere = sphere
+                        break
+                if found_sphere is not None:
+                    break
+            if found_sphere is not None:
+                assert found_sphere._is_glyph
+                mesh = found_sphere
+
+        # 2) Remove sphere if it's what we have
+        if hasattr(mesh, "_is_glyph"):
+            self._remove_vertex_glyph(mesh)
+            return
+
+        # 3) Otherwise, pick the objects in the scene
+        try:
+            hemi = mesh._hemi
+        except AttributeError:  # volume
+            hemi = 'vol'
+        else:
+            assert hemi in ('lh', 'rh')
+        if self.act_data_smooth[hemi][0] is None:  # no data to add for hemi
+            return
+        pos = np.array(vtk_picker.GetPickPosition())
+        if hemi == 'vol':
+            # VTK will give us the point closest to the viewer in the vol.
+            # We want to pick the point with the maximum value along the
+            # camera-to-click array, which fortunately we can get "just"
+            # by inspecting the points that are sufficiently close to the
+            # ray.
+            grid = mesh = self._data[hemi]['grid']
+            vertices = self._data[hemi]['vertices']
+            coords = self._data[hemi]['grid_coords'][vertices]
+            scalars = grid.cell_arrays['values'][vertices]
+            spacing = np.array(grid.GetSpacing())
+            max_dist = np.linalg.norm(spacing) / 2.
+            origin = vtk_picker.GetRenderer().GetActiveCamera().GetPosition()
+            ori = pos - origin
+            ori /= np.linalg.norm(ori)
+            # the magic formula: distance from a ray to a given point
+            dists = np.linalg.norm(np.cross(ori, coords - pos), axis=1)
+            assert dists.shape == (len(coords),)
+            mask = dists <= max_dist
+            idx = np.where(mask)[0]
+            if len(idx) == 0:
+                return  # weird point on edge of volume?
+            # useful for debugging the ray by mapping it into the volume:
+            # dists = dists - dists.min()
+            # dists = (1. - dists / dists.max()) * self._cmap_range[1]
+            # grid.cell_arrays['values'][vertices] = dists * mask
+            idx = idx[np.argmax(np.abs(scalars[idx]))]
+            vertex_id = vertices[idx]
+            # Naive way: convert pos directly to idx; i.e., apply mri_src_t
+            # shape = self._data[hemi]['grid_shape']
+            # taking into account the cell vs point difference (spacing/2)
+            # shift = np.array(grid.GetOrigin()) + spacing / 2.
+            # ijk = np.round((pos - shift) / spacing).astype(int)
+            # vertex_id = np.ravel_multi_index(ijk, shape, order='F')
+        else:
+            vtk_cell = mesh.GetCell(cell_id)
+            cell = [vtk_cell.GetPointId(point_id) for point_id
+                    in range(vtk_cell.GetNumberOfPoints())]
+            vertices = mesh.points[cell]
+            idx = np.argmin(abs(vertices - pos), axis=0)
+            vertex_id = cell[idx[0]]
+
+        if self.traces_mode == 'label':
+            self._add_label_glyph(hemi, mesh, vertex_id)
+        else:
+            self._add_vertex_glyph(hemi, mesh, vertex_id)
+
+    def _add_label_glyph(self, hemi, mesh, vertex_id):
+        if hemi == 'vol':
+            return
+        label_id = self._vertex_to_label_id[hemi][vertex_id]
+        label = self._annotation_labels[hemi][label_id]
+
+        # remove the patch if already picked
+        if label_id in self.picked_patches[hemi]:
+            self._remove_label_glyph(hemi, label_id)
+            return
+
+        if hemi == label.hemi:
+            self.add_label(label, borders=True, reset_camera=False)
+            self.picked_patches[hemi].append(label_id)
+
+    def _remove_label_glyph(self, hemi, label_id):
+        label = self._annotation_labels[hemi][label_id]
+        label._line.remove()
+        self.color_cycle.restore(label._color)
+        self.mpl_canvas.update_plot()
+        self._layered_meshes[hemi].remove_overlay(label.name)
+        self.picked_patches[hemi].remove(label_id)
+
+    def _add_vertex_glyph(self, hemi, mesh, vertex_id):
+        if vertex_id in self.picked_points[hemi]:
+            return
+
+        # skip if the wrong hemi is selected
+        if self.act_data_smooth[hemi][0] is None:
+            return
+        from ..backends._pyvista import _sphere
+        color = next(self.color_cycle)
+        line = self.plot_time_course(hemi, vertex_id, color)
+        if hemi == 'vol':
+            ijk = np.unravel_index(
+                vertex_id, np.array(mesh.GetDimensions()) - 1, order='F')
+            # should just be GetCentroid(center), but apparently it's VTK9+:
+            # center = np.empty(3)
+            # voxel.GetCentroid(center)
+            voxel = mesh.GetCell(*ijk)
+            pts = voxel.GetPoints()
+            n_pts = pts.GetNumberOfPoints()
+            center = np.empty((n_pts, 3))
+            for ii in range(pts.GetNumberOfPoints()):
+                pts.GetPoint(ii, center[ii])
+            center = np.mean(center, axis=0)
+        else:
+            center = mesh.GetPoints().GetPoint(vertex_id)
+        del mesh
+
+        # from the picked renderer to the subplot coords
+        rindex = self.plotter.renderers.index(self.picked_renderer)
+        row, col = self.plotter.index_to_loc(rindex)
+
+        actors = list()
+        spheres = list()
+        for ri, ci, _ in self._iter_views(hemi):
+            self.plotter.subplot(ri, ci)
+            # Using _sphere() instead of renderer.sphere() for 2 reasons:
+            # 1) renderer.sphere() fails on Windows in a scenario where a lot
+            #    of picking requests are done in a short span of time (could be
+            #    mitigated with synchronization/delay?)
+            # 2) the glyph filter is used in renderer.sphere() but only one
+            #    sphere is required in this function.
+            actor, sphere = _sphere(
+                plotter=self.plotter,
+                center=np.array(center),
+                color=color,
+                radius=4.0,
+            )
+            actors.append(actor)
+            spheres.append(sphere)
+
+        # add metadata for picking
+        for sphere in spheres:
+            sphere._is_glyph = True
+            sphere._hemi = hemi
+            sphere._line = line
+            sphere._actors = actors
+            sphere._color = color
+            sphere._vertex_id = vertex_id
+
+        self.picked_points[hemi].append(vertex_id)
+        self._spheres.extend(spheres)
+        self.pick_table[vertex_id] = spheres
+        return sphere
+
+    def _remove_vertex_glyph(self, mesh, render=True):
+        vertex_id = mesh._vertex_id
+        if vertex_id not in self.pick_table:
+            return
+
+        hemi = mesh._hemi
+        color = mesh._color
+        spheres = self.pick_table[vertex_id]
+        spheres[0]._line.remove()
+        self.mpl_canvas.update_plot()
+        self.picked_points[hemi].remove(vertex_id)
+
+        with warnings.catch_warnings(record=True):
+            # We intentionally ignore these in case we have traversed the
+            # entire color cycle
+            warnings.simplefilter('ignore')
+            self.color_cycle.restore(color)
+        for sphere in spheres:
+            # remove all actors
+            self.plotter.remove_actor(sphere._actors, render=render)
+            sphere._actors = None
+            self._spheres.pop(self._spheres.index(sphere))
+        self.pick_table.pop(vertex_id)
+
+    def clear_glyphs(self):
+        """Clear the picking glyphs."""
+        if not self.time_viewer:
+            return
+        for sphere in list(self._spheres):  # will remove itself, so copy
+            self._remove_vertex_glyph(sphere, render=False)
+        assert sum(len(v) for v in self.picked_points.values()) == 0
+        assert len(self.pick_table) == 0
+        assert len(self._spheres) == 0
+        for hemi in self._hemis:
+            for label_id in list(self.picked_patches[hemi]):
+                self._remove_label_glyph(hemi, label_id)
+        assert sum(len(v) for v in self.picked_patches.values()) == 0
+        if self.gfp is not None:
+            self.gfp.remove()
+            self.gfp = None
+        self._update()
+
+    def plot_time_course(self, hemi, vertex_id, color):
+        """Plot the vertex time course.
+
+        Parameters
+        ----------
+        hemi : str
+            The hemisphere id of the vertex.
+        vertex_id : int
+            The vertex identifier in the mesh.
+        color : matplotlib color
+            The color of the time course.
+
+        Returns
+        -------
+        line : matplotlib object
+            The time line object.
+        """
+        if self.mpl_canvas is None:
+            return
+        time = self._data['time'].copy()  # avoid circular ref
+        if hemi == 'vol':
+            hemi_str = 'V'
+            xfm = read_talxfm(
+                self._subject_id, self._subjects_dir)
+            if self._units == 'mm':
+                xfm['trans'][:3, 3] *= 1000.
+            ijk = np.unravel_index(
+                vertex_id, self._data[hemi]['grid_shape'], order='F')
+            src_mri_t = self._data[hemi]['grid_src_mri_t']
+            mni = apply_trans(np.dot(xfm['trans'], src_mri_t), ijk)
+        else:
+            hemi_str = 'L' if hemi == 'lh' else 'R'
+            mni = vertex_to_mni(
+                vertices=vertex_id,
+                hemis=0 if hemi == 'lh' else 1,
+                subject=self._subject_id,
+                subjects_dir=self._subjects_dir
+            )
+        label = "{}:{} MNI: {}".format(
+            hemi_str, str(vertex_id).ljust(6),
+            ', '.join('%5.1f' % m for m in mni))
+        act_data, smooth = self.act_data_smooth[hemi]
+        if smooth is not None:
+            act_data = smooth[vertex_id].dot(act_data)[0]
+        else:
+            act_data = act_data[vertex_id].copy()
+        line = self.mpl_canvas.plot(
+            time,
+            act_data,
+            label=label,
+            lw=1.,
+            color=color,
+            zorder=4,
+        )
+        return line
+
+    def plot_time_line(self):
+        """Add the time line to the MPL widget."""
+        if self.mpl_canvas is None:
+            return
+        if isinstance(self.show_traces, bool) and self.show_traces:
+            # add time information
+            current_time = self._current_time
+            if not hasattr(self, "time_line"):
+                self.time_line = self.mpl_canvas.plot_time_line(
+                    x=current_time,
+                    label='time',
+                    color=self._fg_color,
+                    lw=1,
+                )
+            self.time_line.set_xdata(current_time)
+            self.mpl_canvas.update_plot()
+
+    def help(self):
+        """Display the help window."""
+        pairs = [
+            ('?', 'Display help window'),
+            ('i', 'Toggle interface'),
+            ('s', 'Apply auto-scaling'),
+            ('r', 'Restore original clim'),
+            ('c', 'Clear all traces'),
+            ('Space', 'Start/Pause playback'),
+        ]
+        text1, text2 = zip(*pairs)
+        text1 = '\n'.join(text1)
+        text2 = '\n'.join(text2)
+        _show_help(
+            col1=text1,
+            col2=text2,
+            width=5,
+            height=2,
+        )
+
+    def _clear_callbacks(self):
+        from ..backends._pyvista import _remove_picking_callback
+        if not hasattr(self, 'callbacks'):
+            return
+        for callback in self.callbacks.values():
+            if callback is not None:
+                if hasattr(callback, "plotter"):
+                    callback.plotter = None
+                if hasattr(callback, "brain"):
+                    callback.brain = None
+                if hasattr(callback, "slider_rep"):
+                    callback.slider_rep = None
+        self.callbacks.clear()
+        if self.show_traces:
+            _remove_picking_callback(self._iren, self.plotter.picker)
 
     @property
     def interaction(self):
@@ -443,6 +1757,7 @@ class Brain(object):
                                  f'{time_label_size}')
 
         hemi = self._check_hemi(hemi, extras=['vol'])
+        stc, array, vertices = self._check_stc(hemi, array, vertices)
         array = np.asarray(array)
         vector_alpha = alpha if vector_alpha is None else vector_alpha
         self._data['vector_alpha'] = vector_alpha
@@ -506,6 +1821,8 @@ class Brain(object):
                             ' NoneType but {} was given.'.format(
                                 type(smoothing_steps)))
 
+        self._data['stc'] = stc
+        self._data['src'] = src
         self._data['smoothing_steps'] = smoothing_steps
         self._data['clim'] = clim
         self._data['time'] = time
@@ -516,8 +1833,6 @@ class Brain(object):
         self._data['transparent'] = transparent
         # data specific for a hemi
         self._data[hemi] = dict()
-        self._data[hemi]['actors'] = None
-        self._data[hemi]['mesh'] = None
         self._data[hemi]['glyph_dataset'] = None
         self._data[hemi]['glyph_mapper'] = None
         self._data[hemi]['glyph_actor'] = None
@@ -536,13 +1851,10 @@ class Brain(object):
         for ri, ci, _ in self._iter_views(hemi):
             self._renderer.subplot(ri, ci)
             if hemi in ('lh', 'rh'):
-                if self._data[hemi]['actors'] is None:
-                    self._data[hemi]['actors'] = list()
-                actor, mesh = self._add_surface_data(hemi)
-                self._data[hemi]['actors'].append(actor)
-                self._data[hemi]['mesh'] = mesh
+                actor = self._layered_meshes[hemi]._actor
             else:
-                actor, _ = self._add_volume_data(hemi, src, volume_options)
+                src_vol = src[2:] if src.kind == 'mixed' else src
+                actor, _ = self._add_volume_data(hemi, src_vol, volume_options)
         assert actor is not None  # should have added one
 
         # 2) update time and smoothing properties
@@ -576,6 +1888,13 @@ class Brain(object):
                 self._renderer.scalarbar(**kwargs)
                 self._colorbar_added = True
             self._renderer.set_camera(**views_dicts[hemi][v])
+
+        # 4) update the scalar bar and opacity
+        self.update_lut()
+        if hemi in self._layered_meshes:
+            mesh = self._layered_meshes[hemi]
+            mesh.update_overlay(name='data', opacity=alpha)
+
         self._update()
 
     def _iter_views(self, hemi):
@@ -598,44 +1917,20 @@ class Brain(object):
             for ri, ci in zip(rows[hemi], cols[hemi]):
                 yield ri, ci, view
 
-    def _add_surface_data(self, hemi):
-        rng = self._cmap_range
-        kwargs = {
-            "color": None,
-            "colormap": self._data['ctable'],
-            "vmin": rng[0],
-            "vmax": rng[1],
-            "opacity": self._data['alpha'],
-            "scalars": np.zeros(len(self.geo[hemi].coords)),
-        }
-        if self._data[hemi]['mesh'] is not None:
-            actor, mesh = self._renderer.polydata(
-                self._data[hemi]['mesh'],
-                **kwargs,
-            )
-            return actor, mesh
-        mesh_data = self._renderer.mesh(
-            x=self.geo[hemi].coords[:, 0],
-            y=self.geo[hemi].coords[:, 1],
-            z=self.geo[hemi].coords[:, 2],
-            triangles=self.geo[hemi].faces,
-            normals=self.geo[hemi].nn,
-            polygon_offset=-2,
-            **kwargs,
-        )
-        if isinstance(mesh_data, tuple):
-            actor, mesh = mesh_data
-            # add metadata to the mesh for picking
-            mesh._hemi = hemi
-        else:
-            actor, mesh = mesh_data, None
-        return actor, mesh
-
     def remove_labels(self):
         """Remove all the ROI labels from the image."""
-        for data in self._label_data:
-            self._renderer.remove_mesh(data)
-        self._label_data.clear()
+        for hemi in self._hemis:
+            mesh = self._layered_meshes[hemi]
+            mesh.remove_overlay(self._labels[hemi])
+            self._labels[hemi].clear()
+        self._update()
+
+    def remove_annotations(self):
+        """Remove all annotations from the image."""
+        for hemi in self._hemis:
+            mesh = self._layered_meshes[hemi]
+            mesh.remove_overlay(self._annots[hemi])
+            self._annots[hemi].clear()
         self._update()
 
     def _add_volume_data(self, hemi, src, volume_options):
@@ -665,9 +1960,9 @@ class Brain(object):
         if len(extra_keys):
             raise ValueError(
                 f'volume_options got unknown keys {sorted(extra_keys)}')
-        _check_option('volume_options["blending"]', volume_options['blending'],
-                      ('composite', 'mip'))
-        blending = volume_options['blending']
+        blending = _check_option('volume_options["blending"]',
+                                 volume_options['blending'],
+                                 ('composite', 'mip'))
         alpha = volume_options['alpha']
         if alpha is None:
             alpha = 0.4 if self._data[hemi]['array'].ndim == 3 else 1.
@@ -755,7 +2050,8 @@ class Brain(object):
         return actor_pos, actor_neg
 
     def add_label(self, label, color=None, alpha=1, scalar_thresh=None,
-                  borders=False, hemi=None, subdir=None):
+                  borders=False, hemi=None, subdir=None,
+                  reset_camera=True):
         """Add an ROI label to the image.
 
         Parameters
@@ -786,6 +2082,9 @@ class Brain(object):
             label directory rather than in the label directory itself (e.g.
             for ``$SUBJECTS_DIR/$SUBJECT/label/aparc/lh.cuneus.label``
             ``brain.add_label('cuneus', subdir='aparc')``).
+        reset_camera : bool
+            If True, reset the camera view after adding the label. Defaults
+            to True.
 
         Notes
         -----
@@ -847,11 +2146,23 @@ class Brain(object):
         if scalar_thresh is not None:
             ids = ids[scalars >= scalar_thresh]
 
-        # XXX: add support for label_name
-        self._label_name = label_name
+        scalars = np.zeros(self.geo[hemi].coords.shape[0])
+        scalars[ids] = 1
 
-        label = np.zeros(self.geo[hemi].coords.shape[0])
-        label[ids] = 1
+        if self.time_viewer and self.show_traces:
+            stc = self._data["stc"]
+            src = self._data["src"]
+            tc = stc.extract_label_time_course(label, src=src,
+                                               mode=self.label_extract_mode)
+            tc = tc[0] if tc.ndim == 2 else tc[0, 0, :]
+            color = next(self.color_cycle)
+            line = self.mpl_canvas.plot(
+                self._data['time'], tc, label=label_name,
+                color=color)
+        else:
+            line = None
+
+        orig_color = color
         color = colorConverter.to_rgba(color, alpha)
         cmap = np.array([(0, 0, 0, 0,), color])
         ctable = np.round(cmap * 255).astype(np.uint8)
@@ -859,37 +2170,42 @@ class Brain(object):
         for ri, ci, v in self._iter_views(hemi):
             self._renderer.subplot(ri, ci)
             if borders:
-                surface = {
-                    'rr': self.geo[hemi].coords,
-                    'tris': self.geo[hemi].faces,
-                }
-                mesh_data = self._renderer.contour(
-                    surface=surface,
-                    scalars=label,
-                    contours=[1.0],
-                    color=color,
-                    kind='tube',
-                )
-            else:
-                mesh_data = self._renderer.mesh(
-                    x=self.geo[hemi].coords[:, 0],
-                    y=self.geo[hemi].coords[:, 1],
-                    z=self.geo[hemi].coords[:, 2],
-                    triangles=self.geo[hemi].faces,
-                    scalars=label,
-                    color=None,
-                    colormap=ctable,
-                    backface_culling=False,
-                    polygon_offset=-2,
-                )
-            self._label_data.append(mesh_data)
-            self._renderer.set_camera(**views_dicts[hemi][v])
+                n_vertices = scalars.size
+                edges = mesh_edges(self.geo[hemi].faces)
+                edges = edges.tocoo()
+                border_edges = scalars[edges.row] != scalars[edges.col]
+                show = np.zeros(n_vertices, dtype=np.int64)
+                keep_idx = np.unique(edges.row[border_edges])
+                if isinstance(borders, int):
+                    for _ in range(borders):
+                        keep_idx = np.in1d(
+                            self.geo[hemi].faces.ravel(), keep_idx)
+                        keep_idx.shape = self.geo[hemi].faces.shape
+                        keep_idx = self.geo[hemi].faces[np.any(
+                            keep_idx, axis=1)]
+                        keep_idx = np.unique(keep_idx)
+                show[keep_idx] = 1
+                scalars *= show
 
+            mesh = self._layered_meshes[hemi]
+            mesh.add_overlay(
+                scalars=scalars,
+                colormap=ctable,
+                rng=None,
+                opacity=alpha,
+                name=label_name,
+            )
+            if reset_camera:
+                self._renderer.set_camera(**views_dicts[hemi][v])
+            if self.time_viewer and self.traces_mode == 'label':
+                label._color = orig_color
+                label._line = line
+            self._labels[hemi].append(label)
         self._update()
 
     def add_foci(self, coords, coords_as_verts=False, map_surface=None,
                  scale_factor=1, color="white", alpha=1, name=None,
-                 hemi=None):
+                 hemi=None, resolution=50):
         """Add spherical foci, possibly mapping to displayed surf.
 
         The foci spheres can be displayed at the coordinates given, or
@@ -919,9 +2235,11 @@ class Brain(object):
             If None, it is assumed to belong to the hemipshere being
             shown. If two hemispheres are being shown, an error will
             be thrown.
+        resolution : int
+            The resolution of the spheres.
         """
         from matplotlib.colors import colorConverter
-        hemi = self._check_hemi(hemi)
+        hemi = self._check_hemi(hemi, extras=['vol'])
 
         # those parameters are not supported yet, only None is allowed
         _check_option('map_surface', map_surface, [None])
@@ -940,7 +2258,7 @@ class Brain(object):
             self._renderer.subplot(ri, ci)
             self._renderer.sphere(center=coords, color=color,
                                   scale=(10. * scale_factor),
-                                  opacity=alpha)
+                                  opacity=alpha, resolution=resolution)
             self._renderer.set_camera(**views_dicts[hemi][v])
 
     def add_text(self, x, y, text, name=None, color=None, opacity=1.0,
@@ -978,6 +2296,34 @@ class Brain(object):
 
         self._renderer.text2d(x_window=x, y_window=y, text=text, color=color,
                               size=font_size, justification=justification)
+
+    def _configure_label_time_course(self):
+        from ...label import read_labels_from_annot
+        if not self.show_traces:
+            return
+        if self.mpl_canvas is None:
+            self._configure_mplcanvas()
+        else:
+            self.clear_glyphs()
+        self.traces_mode = 'label'
+        self.add_annotation(self.annot, color="w", alpha=0.75)
+
+        # now plot the time line
+        self.plot_time_line()
+        self.mpl_canvas.update_plot()
+
+        for hemi in self._hemis:
+            labels = read_labels_from_annot(
+                subject=self._subject_id,
+                parc=self.annot,
+                hemi=hemi,
+                subjects_dir=self._subjects_dir
+            )
+            self._vertex_to_label_id[hemi] = np.full(
+                self.geo[hemi].coords.shape[0], -1)
+            self._annotation_labels[hemi] = labels
+            for idx, label in enumerate(labels):
+                self._vertex_to_label_id[hemi][label.vertices] = idx
 
     def add_annotation(self, annot, borders=True, alpha=1, hemi=None,
                        remove_existing=True, color=None, **kwargs):
@@ -1052,7 +2398,6 @@ class Brain(object):
             annot = 'annotation'
 
         for hemi, (labels, cmap) in zip(hemis, annots):
-
             # Maybe zero-out the non-border vertices
             self._to_borders(labels, hemi, borders)
 
@@ -1081,28 +2426,22 @@ class Brain(object):
                 rgb = np.round(np.multiply(colorConverter.to_rgb(color), 255))
                 cmap[:, :3] = rgb.astype(cmap.dtype)
 
-            ctable = cmap.astype(np.float64) / 255.
-
-            mesh_data = self._renderer.mesh(
-                x=self.geo[hemi].coords[:, 0],
-                y=self.geo[hemi].coords[:, 1],
-                z=self.geo[hemi].coords[:, 2],
-                triangles=self.geo[hemi].faces,
-                color=None,
-                colormap=ctable,
-                vmin=np.min(ids),
-                vmax=np.max(ids),
-                scalars=ids,
-                interpolate_before_map=False,
-                polygon_offset=-2,
-            )
-            if isinstance(mesh_data, tuple):
-                from ..backends._pyvista import _set_colormap_range
-                actor, mesh = mesh_data
-                # add metadata to the mesh for picking
-                mesh._hemi = hemi
-                _set_colormap_range(actor, cmap.astype(np.uint8),
-                                    None)
+            ctable = cmap.astype(np.float64)
+            for ri, ci, _ in self._iter_views(hemi):
+                self._renderer.subplot(ri, ci)
+                mesh = self._layered_meshes[hemi]
+                mesh.add_overlay(
+                    scalars=ids,
+                    colormap=ctable,
+                    rng=[np.min(ids), np.max(ids)],
+                    opacity=alpha,
+                    name=annot,
+                )
+                self._annots[hemi].append(annot)
+                if not self.time_viewer or self.traces_mode == 'vertex':
+                    from ..backends._pyvista import _set_colormap_range
+                    _set_colormap_range(mesh._actor, cmap.astype(np.uint8),
+                                        None)
 
         self._update()
 
@@ -1149,8 +2488,7 @@ class Brain(object):
         if distance is not None:
             view.update(distance=distance)
         self._renderer.subplot(row, col)
-        self._renderer.set_camera(**view)
-        self._renderer.reset_camera()
+        self._renderer.set_camera(**view, reset_camera=False)
         self._update()
 
     def reset_view(self):
@@ -1158,7 +2496,8 @@ class Brain(object):
         for h in self._hemis:
             for ri, ci, v in self._iter_views(h):
                 self._renderer.subplot(ri, ci)
-                self._renderer.set_camera(**views_dicts[h][v])
+                self._renderer.set_camera(**views_dicts[h][v],
+                                          reset_camera=False)
 
     def save_image(self, filename, mode='rgb'):
         """Save view from all panels to disk.
@@ -1188,10 +2527,10 @@ class Brain(object):
             Image pixel values.
         """
         img = self._renderer.screenshot(mode)
-        if time_viewer and getattr(self, 'time_viewer', None) is not None and \
-                self.time_viewer.show_traces and \
-                not self.time_viewer.separate_canvas:
-            canvas = self.time_viewer.mpl_canvas.fig.canvas
+        if time_viewer and self.time_viewer and \
+                self.show_traces and \
+                not self.separate_canvas:
+            canvas = self.mpl_canvas.fig.canvas
             canvas.draw_idle()
             # In theory, one of these should work:
             #
@@ -1255,10 +2594,13 @@ class Brain(object):
         for hemi in ['lh', 'rh', 'vol']:
             hemi_data = self._data.get(hemi)
             if hemi_data is not None:
-                if hemi_data.get('actors') is not None:
-                    for actor in hemi_data['actors']:
-                        _set_colormap_range(actor, ctable, scalar_bar, rng)
-                        scalar_bar = None
+                if hemi in self._layered_meshes:
+                    mesh = self._layered_meshes[hemi]
+                    mesh.update_overlay(name='data',
+                                        colormap=self._data['ctable'])
+                    _set_colormap_range(mesh._actor, ctable, scalar_bar, rng,
+                                        self._brain_color)
+                    scalar_bar = None
 
                 grid_volume_pos = hemi_data.get('grid_volume_pos')
                 grid_volume_neg = hemi_data.get('grid_volume_neg')
@@ -1324,11 +2666,11 @@ class Brain(object):
         ----------
         %(brain_time_interpolation)s
         """
-        _check_option('interpolation', interpolation,
-                      ('linear', 'nearest', 'zero', 'slinear', 'quadratic',
-                       'cubic'))
-        self._time_interpolation = str(interpolation)
-        del interpolation
+        self._time_interpolation = _check_option(
+            'interpolation',
+            interpolation,
+            ('linear', 'nearest', 'zero', 'slinear', 'quadratic', 'cubic')
+        )
         self._time_interp_funcs = dict()
         self._time_interp_inv = None
         if self._times is not None:
@@ -1351,7 +2693,6 @@ class Brain(object):
             The time index to use. Can be a float to use interpolation
             between indices.
         """
-        from ..backends._pyvista import _set_mesh_scalars
         self._current_act_data = dict()
         time_actor = self._data.get('time_actor', None)
         time_label = self._data.get('time_label', None)
@@ -1395,9 +2736,18 @@ class Brain(object):
                     act_data = smooth_mat.dot(act_data)
 
                 # update the mesh scalar values
-                if hemi_data.get('mesh') is not None:
-                    mesh = hemi_data['mesh']
-                    _set_mesh_scalars(mesh, act_data, 'Data')
+                if hemi in self._layered_meshes:
+                    mesh = self._layered_meshes[hemi]
+                    if 'data' in mesh._overlays:
+                        mesh.update_overlay(name='data', scalars=act_data)
+                    else:
+                        mesh.add_overlay(
+                            scalars=act_data,
+                            colormap=self._data['ctable'],
+                            rng=self._cmap_range,
+                            opacity=None,
+                            name='data',
+                        )
 
                 # update the glyphs
                 if vectors is not None:
@@ -1405,6 +2755,25 @@ class Brain(object):
 
         self._data['time_idx'] = time_idx
         self._update()
+
+    def set_time(self, time):
+        """Set the time to display (in seconds).
+
+        Parameters
+        ----------
+        time : float
+            The time to show, in seconds.
+        """
+        if self._times is None:
+            raise ValueError(
+                'Cannot set time when brain has no defined times.')
+        elif min(self._times) <= time <= max(self._times):
+            self.set_time_point(np.interp(float(time), self._times,
+                                          np.arange(self._n_times)))
+        else:
+            raise ValueError(
+                f'Requested time ({time} s) is outside the range of '
+                f'available times ({min(self._times)}-{max(self._times)} s).')
 
     def _update_glyphs(self, hemi, vectors):
         from ..backends._pyvista import _set_colormap_range, _create_actor
@@ -1515,12 +2884,34 @@ class Brain(object):
         return self._data
 
     @property
+    def labels(self):
+        return self._labels
+
+    @property
     def views(self):
         return self._views
 
     @property
     def hemis(self):
         return self._hemis
+
+    def _save_movie(self, filename, time_dilation=4., tmin=None, tmax=None,
+                    framerate=24, interpolation=None, codec=None,
+                    bitrate=None, callback=None, time_viewer=False, **kwargs):
+        import imageio
+        from ..backends._pyvista import _disabled_interaction
+        with _disabled_interaction(self._renderer):
+            images = self._make_movie_frames(
+                time_dilation, tmin, tmax, framerate, interpolation, callback,
+                time_viewer)
+        # find imageio FFMPEG parameters
+        if 'fps' not in kwargs:
+            kwargs['fps'] = framerate
+        if codec is not None:
+            kwargs['codec'] = codec
+        if bitrate is not None:
+            kwargs['bitrate'] = bitrate
+        imageio.mimwrite(filename, images, **kwargs)
 
     @fill_doc
     def save_movie(self, filename, time_dilation=4., tmin=None, tmax=None,
@@ -1569,20 +2960,89 @@ class Brain(object):
         %(brain_screenshot_time_viewer)s
         **kwargs : dict
             Specify additional options for :mod:`imageio`.
-        """
-        import imageio
-        images = self._make_movie_frames(
-            time_dilation, tmin, tmax, framerate, interpolation, callback,
-            time_viewer)
-        # find imageio FFMPEG parameters
-        if 'fps' not in kwargs:
-            kwargs['fps'] = framerate
-        if codec is not None:
-            kwargs['codec'] = codec
-        if bitrate is not None:
-            kwargs['bitrate'] = bitrate
 
-        imageio.mimwrite(filename, images)
+        Returns
+        -------
+        dialog : object
+            The opened dialog is returned for testing purpose only.
+        """
+        if self.time_viewer:
+            try:
+                from pyvista.plotting.qt_plotting import FileDialog
+            except ImportError:
+                from pyvistaqt.plotting import FileDialog
+
+            if filename is None:
+                self.status_msg.setText("Choose movie path ...")
+                self.status_msg.show()
+                self.status_progress.setValue(0)
+
+                def _post_setup(unused):
+                    del unused
+                    self.status_msg.hide()
+                    self.status_progress.hide()
+
+                dialog = FileDialog(
+                    self.plotter.app_window,
+                    callback=partial(self._save_movie, **kwargs)
+                )
+                dialog.setDirectory(os.getcwd())
+                dialog.finished.connect(_post_setup)
+                return dialog
+            else:
+                from PyQt5.QtCore import Qt
+                from PyQt5.QtGui import QCursor
+
+                def frame_callback(frame, n_frames):
+                    if frame == n_frames:
+                        # On the ImageIO step
+                        self.status_msg.setText(
+                            "Saving with ImageIO: %s"
+                            % filename
+                        )
+                        self.status_msg.show()
+                        self.status_progress.hide()
+                        self.status_bar.layout().update()
+                    else:
+                        self.status_msg.setText(
+                            "Rendering images (frame %d / %d) ..."
+                            % (frame + 1, n_frames)
+                        )
+                        self.status_msg.show()
+                        self.status_progress.show()
+                        self.status_progress.setRange(0, n_frames - 1)
+                        self.status_progress.setValue(frame)
+                        self.status_progress.update()
+                        self.status_progress.repaint()
+                    self.status_msg.update()
+                    self.status_msg.parent().update()
+                    self.status_msg.repaint()
+
+                # temporarily hide interface
+                default_visibility = self.visibility
+                self.toggle_interface(value=False)
+                # set cursor to busy
+                default_cursor = self.interactor.cursor()
+                self.interactor.setCursor(QCursor(Qt.WaitCursor))
+
+                try:
+                    self._save_movie(
+                        filename=filename,
+                        time_dilation=(1. / self.playback_speed),
+                        callback=frame_callback,
+                        **kwargs
+                    )
+                except (Exception, KeyboardInterrupt):
+                    warn('Movie saving aborted:\n' + traceback.format_exc())
+
+                # restore visibility
+                self.toggle_interface(value=default_visibility)
+                # restore cursor
+                self.interactor.setCursor(default_cursor)
+        else:
+            self._save_movie(filename, time_dilation, tmin, tmax,
+                             framerate, interpolation, codec,
+                             bitrate, callback, time_viewer, **kwargs)
 
     def _make_movie_frames(self, time_dilation, tmin, tmax, framerate,
                            interpolation, callback, time_viewer):
@@ -1622,14 +3082,14 @@ class Brain(object):
         try:
             images = [
                 self.screenshot(time_viewer=time_viewer)
-                for _ in self._iter_time(time_idx, callback, time_viewer)]
+                for _ in self._iter_time(time_idx, callback)]
         finally:
             self.set_time_interpolation(old_mode)
         if callback is not None:
             callback(frame=len(time_idx), n_frames=len(time_idx))
         return images
 
-    def _iter_time(self, time_idx, callback, time_viewer=False):
+    def _iter_time(self, time_idx, callback):
         """Iterate through time points, then reset to current time.
 
         Parameters
@@ -1638,8 +3098,6 @@ class Brain(object):
             Time point indexes through which to iterate.
         callback : callable | None
             Callback to call before yielding each frame.
-        time_viewer : bool
-            If True, route through self.time_viewer.
 
         Yields
         ------
@@ -1650,8 +3108,8 @@ class Brain(object):
         -----
         Used by movie and image sequence saving functions.
         """
-        if hasattr(self, 'time_viewer'):
-            func = partial(self.time_viewer.callbacks["time"],
+        if self.time_viewer:
+            func = partial(self.callbacks["time"],
                            update_widget=True)
         else:
             func = self.set_time_point
@@ -1671,6 +3129,36 @@ class Brain(object):
             return self._renderer.show()
         except RuntimeError:
             logger.info("No active/running renderer available.")
+
+    def _check_stc(self, hemi, array, vertices):
+        from ...source_estimate import (
+            _BaseSourceEstimate, _BaseSurfaceSourceEstimate,
+            _BaseMixedSourceEstimate, _BaseVolSourceEstimate
+        )
+        if isinstance(array, _BaseSourceEstimate):
+            stc = array
+            stc_surf = stc_vol = None
+            if isinstance(stc, _BaseSurfaceSourceEstimate):
+                stc_surf = stc
+            elif isinstance(stc, _BaseMixedSourceEstimate):
+                stc_surf = stc.surface() if hemi != 'vol' else None
+                stc_vol = stc.volume() if hemi == 'vol' else None
+            elif isinstance(stc, _BaseVolSourceEstimate):
+                stc_vol = stc if hemi == 'vol' else None
+            else:
+                raise TypeError("stc not supported")
+
+            if stc_surf is None and stc_vol is None:
+                raise ValueError("No data to be added")
+            if stc_surf is not None:
+                array = getattr(stc_surf, hemi + '_data')
+                vertices = stc_surf.vertices[0 if hemi == 'lh' else 1]
+            if stc_vol is not None:
+                array = stc_vol.data
+                vertices = np.concatenate(stc_vol.vertices)
+        else:
+            stc = None
+        return stc, array, vertices
 
     def _check_hemi(self, hemi, extras=()):
         """Check for safe single-hemi input, returns str."""
@@ -1724,40 +3212,6 @@ class Brain(object):
             show[keep_idx] = 1
             label *= show
 
-    @verbose
-    def scale_data_colormap(self, fmin, fmid, fmax, transparent,
-                            center=None, alpha=1.0, verbose=None):
-        """Scale the data colormap.
-
-        Parameters
-        ----------
-        %(fmin_fmid_fmax)s
-        %(transparent)s
-        %(center)s
-        alpha : float in [0, 1]
-            Alpha level to control opacity.
-        %(verbose_meth)s
-        """
-        # XXX fmid/transparent/center not used, this is a bug
-        lut_lst = self._data['ctable']
-        n_col = len(lut_lst)
-
-        # apply the lut on every surfaces
-        for hemi in ['lh', 'rh']:
-            hemi_data = self._data.get(hemi)
-            if hemi_data is not None:
-                if hemi_data['actors'] is not None:
-                    for actor in hemi_data['actors']:
-                        vtk_lut = actor.GetMapper().GetLookupTable()
-                        vtk_lut.SetNumberOfColors(n_col)
-                        vtk_lut.SetRange([fmin, fmax])
-                        vtk_lut.Build()
-                        for i in range(0, n_col):
-                            lt = lut_lst[i]
-                            vtk_lut.SetTableValue(
-                                i, lt[0], lt[1], lt[2], alpha)
-        self._update_fscale(1.0)
-
     def enable_depth_peeling(self):
         """Enable depth peeling."""
         self._renderer.enable_depth_peeling()
@@ -1765,8 +3219,10 @@ class Brain(object):
     def _update(self):
         from ..backends import renderer
         if renderer.get_3d_backend() in ['pyvista', 'notebook']:
-            if self._notebook and self._renderer.figure.display is not None:
+            if self.notebook and self._renderer.figure.display is not None:
                 self._renderer.figure.display.update()
+            else:
+                self._renderer.plotter.update()
 
     def get_picked_points(self):
         """Return the vertices of the picked points.
@@ -1777,7 +3233,7 @@ class Brain(object):
             The vertices picked by the time viewer.
         """
         if hasattr(self, "time_viewer"):
-            return self.time_viewer.picked_points
+            return self.picked_points
 
     def __hash__(self):
         """Hash the object."""
@@ -1817,3 +3273,31 @@ def _update_limits(fmin, fmid, fmax, center, array):
                            % (fmid, fmax))
 
     return fmin, fmid, fmax
+
+
+def _get_range(brain):
+    val = np.abs(np.concatenate(list(brain._current_act_data.values())))
+    return [np.min(val), np.max(val)]
+
+
+class _FakeIren():
+    def EnterEvent(self):
+        pass
+
+    def MouseMoveEvent(self):
+        pass
+
+    def LeaveEvent(self):
+        pass
+
+    def SetEventInformation(self, *args, **kwargs):
+        pass
+
+    def CharEvent(self):
+        pass
+
+    def KeyPressEvent(self, *args, **kwargs):
+        pass
+
+    def KeyReleaseEvent(self, *args, **kwargs):
+        pass

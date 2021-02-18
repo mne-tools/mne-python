@@ -4,14 +4,7 @@ Compute Rap-Music on evoked data
 ================================
 
 Compute a Recursively Applied and Projected MUltiple Signal Classification
-(RAP-MUSIC) [1]_ on evoked data.
-
-References
-----------
-.. [1] J.C. Mosher and R.M. Leahy. 1999. Source localization using recursively
-       applied and projected (RAP) MUSIC. Trans. Sig. Proc. 47, 2
-       (February 1999), 332-340.
-       DOI=10.1109/78.740118 https://doi.org/10.1109/78.740118
+(RAP-MUSIC) :footcite:`MosherLeahy1999` on evoked data.
 """
 
 # Author: Yousra Bekhti <yousra.bekhti@gmail.com>
@@ -58,3 +51,8 @@ evoked.plot(ylim=dict(grad=[-300, 300], mag=[-800, 800], eeg=[-6, 8]),
             time_unit='s')
 residual.plot(ylim=dict(grad=[-300, 300], mag=[-800, 800], eeg=[-6, 8]),
               time_unit='s')
+
+###############################################################################
+# References
+# ----------
+# .. footbibliography::

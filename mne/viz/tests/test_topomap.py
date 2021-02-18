@@ -133,22 +133,27 @@ def test_plot_projs_topomap():
         plot_projs_topomap([eeg_proj], info_meg)
 
 
-def test_plot_topomap_animation():
+def test_plot_topomap_animation(capsys):
     """Test topomap plotting."""
     # evoked
     evoked = read_evokeds(evoked_fname, 'Left Auditory',
                           baseline=(None, 0))
     # Test animation
     _, anim = evoked.animate_topomap(ch_type='grad', times=[0, 0.1],
-                                     butterfly=False, time_unit='s')
+                                     butterfly=False, time_unit='s',
+                                     verbose='debug')
     anim._func(1)  # _animate has to be tested separately on 'Agg' backend.
+    out, _ = capsys.readouterr()
+    assert 'Interpolation mode local to 0' in out
     plt.close('all')
 
 
-def test_plot_topomap_animation_nirs(fnirs_evoked):
+def test_plot_topomap_animation_nirs(fnirs_evoked, capsys):
     """Test topomap plotting for nirs data."""
-    fig, anim = fnirs_evoked.animate_topomap(ch_type='hbo')
+    fig, anim = fnirs_evoked.animate_topomap(ch_type='hbo', verbose='debug')
     anim._func(1)  # _animate has to be tested separately on 'Agg' backend.
+    out, _ = capsys.readouterr()
+    assert 'Interpolation mode head to 0' in out
     assert len(fig.axes) == 2
     plt.close('all')
 
@@ -198,14 +203,14 @@ def test_plot_topomap_basic(monkeypatch):
 
     # border=0 and border='mean':
     # ---------------------------
-    ch_names = list('abcde')
-    ch_pos = np.array([[0, 0, 1], [1, 0, 0], [-1, 0, 0],
-                       [0, -1, 0], [0, 1, 0]])
-    ch_pos_dict = {name: pos for name, pos in zip(ch_names, ch_pos)}
+    ch_pos = np.array(sum(([[0, 0, r], [r, 0, 0], [-r, 0, 0],
+                            [0, -r, 0], [0, r, 0]]
+                           for r in np.linspace(0.2, 1.0, 5)), []))
+    rng = np.random.RandomState(23)
+    data = np.full(len(ch_pos), 5) + rng.randn(len(ch_pos))
+    info = create_info(len(ch_pos), 250, 'eeg')
+    ch_pos_dict = {name: pos for name, pos in zip(info['ch_names'], ch_pos)}
     dig = make_dig_montage(ch_pos_dict, coord_frame='head')
-
-    data = np.full(5, 5) + np.random.RandomState(23).randn(5)
-    info = create_info(ch_names, 250, ['eeg'] * 5)
     info.set_montage(dig)
 
     # border=0
@@ -213,7 +218,7 @@ def test_plot_topomap_basic(monkeypatch):
     img_data = ax.get_array().data
 
     assert np.abs(img_data[31, 31] - data[0]) < 0.12
-    assert np.abs(img_data[10, 55]) < 0.3
+    assert np.abs(img_data[0, 0]) < 1.5
 
     # border='mean'
     ax, _ = plot_topomap(data, info, extrapolate='head', border='mean',
@@ -221,7 +226,7 @@ def test_plot_topomap_basic(monkeypatch):
     img_data = ax.get_array().data
 
     assert np.abs(img_data[31, 31] - data[0]) < 0.12
-    assert img_data[10, 54] > 5
+    assert img_data[0, 0] > 5
 
     # error when not numeric or str:
     error_msg = 'border must be an instance of numeric or str'

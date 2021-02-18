@@ -22,7 +22,7 @@ from ._fsaverage.base import fetch_fsaverage
 from .. import __version__ as mne_version
 from ..label import read_labels_from_annot, Label, write_labels_to_annot
 from ..utils import (get_config, set_config, _fetch_file, logger, warn,
-                     verbose, get_subjects_dir, hashfunc, _pl)
+                     verbose, get_subjects_dir, hashfunc, _pl, _safe_input)
 from ..utils.docs import docdict
 from ..externals.doccer import docformat
 
@@ -55,7 +55,12 @@ _data_path_doc = """Get path to local copy of {name} dataset.
     path : str
         Path to {name} dataset directory.
 """
+_data_path_doc_accept = _data_path_doc.split('%(verbose)s')
+_data_path_doc_accept[-1] = '%(verbose)s' + _data_path_doc_accept[-1]
+_data_path_doc_accept.insert(1, '    %(accept)s')
+_data_path_doc_accept = ''.join(_data_path_doc_accept)
 _data_path_doc = docformat(_data_path_doc, docdict)
+_data_path_doc_accept = docformat(_data_path_doc_accept, docdict)
 
 _version_doc = """Get version of the local {name} dataset.
 
@@ -204,7 +209,7 @@ def _do_path_update(path, update_path, key, name):
                 msg = ('Do you want to set the path:\n    %s\nas the default '
                        '%s dataset path in the mne-python config [y]/n? '
                        % (path, name))
-                answer = input(msg)
+                answer = _safe_input(msg, alt='pass update_path=True')
             if answer.lower() == 'n':
                 update_path = False
 
@@ -215,7 +220,7 @@ def _do_path_update(path, update_path, key, name):
 
 def _data_path(path=None, force_update=False, update_path=True, download=True,
                name=None, check_version=False, return_version=False,
-               archive_name=None):
+               archive_name=None, accept=False):
     """Aux function."""
     key = {
         'fake': 'MNE_DATASETS_FAKE_PATH',
@@ -240,7 +245,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     path = _get_path(path, key, name)
     # To update the testing or misc dataset, push commits, then make a new
     # release on GitHub. Then update the "releases" variable:
-    releases = dict(testing='0.106', misc='0.6')
+    releases = dict(testing='0.112', misc='0.7')
     # And also update the "md5_hashes['testing']" variable below.
     # To update any other dataset, update the data archive itself (upload
     # an updated version) and update the md5 hash.
@@ -258,7 +263,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         misc='https://codeload.github.com/mne-tools/mne-misc-data/'
              'tar.gz/%s' % releases['misc'],
         sample='https://osf.io/86qa2/download?version=5',
-        somato='https://osf.io/tp4sg/download?version=6',
+        somato='https://osf.io/tp4sg/download?version=7',
         spm='https://osf.io/je4s8/download?version=2',
         testing='https://codeload.github.com/mne-tools/mne-testing-data/'
                 'tar.gz/%s' % releases['testing'],
@@ -322,11 +327,11 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
             bst_raw='fa2efaaec3f3d462b319bc24898f440c',
             bst_resting='70fc7bf9c3b97c4f2eab6260ee4a0430'),
         fake='3194e9f7b46039bb050a74f3e1ae9908',
-        misc='e00808c3b05123059e2cf49ff276e919',
+        misc='2b2f2fec9d1197ed459117db1c6341ee',
         sample='12b75d1cb7df9dfb4ad73ed82f61094f',
-        somato='ea825966c0a1e9b2f84e3826c5500161',
+        somato='32fd2f6c8c7eb0784a1de6435273c48b',
         spm='9f43f67150e3b694b523a21eb929ea75',
-        testing='d67eff9e1089f15b69f88931dbbf35df',
+        testing='8eabd73532dd7df7c155983962c5b1fd',
         multimodal='26ec847ae9ab80f58f204d09e2c08367',
         fnirs_motor='c4935d19ddab35422a69f3326a01fef8',
         opm='370ad1dcfd5c47e029e692c85358a374',
@@ -381,10 +386,13 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         for f in folder_path:
             logger.debug('  Exists: %s: %s' % (f, op.exists(f)))
         if name == 'brainstorm':
-            if '--accept-brainstorm-license' in sys.argv:
+            if accept or '--accept-brainstorm-license' in sys.argv:
                 answer = 'y'
             else:
-                answer = input('%sAgree (y/[n])? ' % _bst_license_text)
+                # If they don't have stdin, just accept the license
+                # https://github.com/mne-tools/mne-python/issues/8513#issuecomment-726823724  # noqa: E501
+                answer = _safe_input(
+                    '%sAgree (y/[n])? ' % _bst_license_text, use='y')
             if answer.lower() != 'y':
                 raise RuntimeError('You must agree to the license to use this '
                                    'dataset')
@@ -590,15 +598,11 @@ def _download_all_example_data(verbose=True):
     kiloword.data_path()
     phantom_4dbti.data_path()
     refmeg_noise.data_path()
-    sys.argv += ['--accept-brainstorm-license']
-    try:
-        brainstorm.bst_raw.data_path()
-        brainstorm.bst_auditory.data_path()
-        brainstorm.bst_resting.data_path()
-        brainstorm.bst_phantom_elekta.data_path()
-        brainstorm.bst_phantom_ctf.data_path()
-    finally:
-        sys.argv.pop(-1)
+    brainstorm.bst_raw.data_path(accept=True)
+    brainstorm.bst_auditory.data_path(accept=True)
+    brainstorm.bst_resting.data_path(accept=True)
+    brainstorm.bst_phantom_elekta.data_path(accept=True)
+    brainstorm.bst_phantom_ctf.data_path(accept=True)
     eegbci.load_data(1, [6, 10, 14], update_path=True)
     for subj in range(4):
         eegbci.load_data(subj + 1, runs=[3], update_path=True)
@@ -607,11 +611,8 @@ def _download_all_example_data(verbose=True):
     # If the user has SUBJECTS_DIR, respect it, if not, set it to the EEG one
     # (probably on CircleCI, or otherwise advanced user)
     fetch_fsaverage(None)
-    sys.argv += ['--accept-hcpmmp-license']
-    try:
-        fetch_hcp_mmp_parcellation(subjects_dir=sample_path + '/subjects')
-    finally:
-        sys.argv.pop(-1)
+    fetch_hcp_mmp_parcellation(
+        subjects_dir=sample_path + '/subjects', accept=True)
     limo.load_data(subject=1, update_path=True)
 
 
@@ -619,7 +620,8 @@ def _download_all_example_data(verbose=True):
 def fetch_aparc_sub_parcellation(subjects_dir=None, verbose=None):
     """Fetch the modified subdivided aparc parcellation.
 
-    This will download and install the subdivided aparc parcellation [1]_ files for
+    This will download and install the subdivided aparc parcellation
+    :footcite:'KhanEtAl2018' files for
     FreeSurfer's fsaverage to the specified directory.
 
     Parameters
@@ -631,10 +633,8 @@ def fetch_aparc_sub_parcellation(subjects_dir=None, verbose=None):
 
     References
     ----------
-    .. [1] Khan S et al. (2018) Maturation trajectories of cortical
-           resting-state networks depend on the mediating frequency band.
-           Neuroimage 174 57-68.
-    """  # noqa: E501
+    .. footbibliography::
+    """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     destination = op.join(subjects_dir, 'fsaverage', 'label')
     urls = dict(lh='https://osf.io/p92yb/download',
@@ -648,7 +648,8 @@ def fetch_aparc_sub_parcellation(subjects_dir=None, verbose=None):
 
 
 @verbose
-def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, verbose=None):
+def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, *,
+                               accept=False, verbose=None):
     """Fetch the HCP-MMP parcellation.
 
     This will download and install the HCP-MMP parcellation
@@ -664,6 +665,7 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, verbose=None):
         If True, also produce the combined/reduced set of 23 labels per
         hemisphere as ``HCPMMP1_combined.annot``
         :footcite:`GlasserEtAl2016supp`.
+    %(accept)s
     %(verbose)s
 
     Notes
@@ -684,10 +686,10 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, verbose=None):
     hashes = dict(lh='46a102b59b2fb1bb4bd62d51bf02e975',
                   rh='75e96b331940227bbcb07c1c791c2463')
     if not all(op.isfile(fname) for fname in fnames):
-        if '--accept-hcpmmp-license' in sys.argv:
+        if accept or '--accept-hcpmmp-license' in sys.argv:
             answer = 'y'
         else:
-            answer = input('%s\nAgree (y/[n])? ' % _hcp_mmp_license_text)
+            answer = _safe_input('%s\nAgree (y/[n])? ' % _hcp_mmp_license_text)
         if answer.lower() != 'y':
             raise RuntimeError('You must agree to the license to use this '
                                'dataset')

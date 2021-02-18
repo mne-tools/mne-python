@@ -59,7 +59,6 @@ raw.rename_channels(new_names)
 
 # Read and set the EEG electrode locations
 montage = mne.channels.make_standard_montage('standard_1005')
-
 raw.set_montage(montage)
 raw.set_eeg_reference(projection=True)  # needed for inverse modeling
 
@@ -76,7 +75,7 @@ fwd = mne.make_forward_solution(raw.info, trans=trans, src=src,
                                 bem=bem, eeg=True, mindist=5.0, n_jobs=1)
 print(fwd)
 
-# for illustration purposes use fwd to compute the sensitivity map
+# Use fwd to compute the sensitivity map for illustration purposes
 eeg_map = mne.sensitivity_map(fwd, ch_type='eeg', mode='fixed')
-eeg_map.plot(time_label='EEG sensitivity', subjects_dir=subjects_dir,
-             clim=dict(lims=[5, 50, 100]))
+brain = eeg_map.plot(time_label='EEG sensitivity', subjects_dir=subjects_dir,
+                     clim=dict(lims=[5, 50, 100]))

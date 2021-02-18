@@ -1058,6 +1058,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                  verbose=None):  # lgtm
         """Resample all channels.
 
+        If appropriate, an anti-aliasing filter is applied before resampling.
+        See :ref:`resampling-and-decimating` for more information.
+
         .. warning:: The intended purpose of this function is primarily to
                      speed up computations (e.g., projection calculation) when
                      precise timing of events is not required, as downsampling
@@ -1440,7 +1443,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                  picks=None, ax=None, color='black', xscale='linear',
                  area_mode='std', area_alpha=0.33, dB=True, estimate='auto',
                  show=True, n_jobs=1, average=False, line_alpha=None,
-                 spatial_colors=True, sphere=None, verbose=None):
+                 spatial_colors=True, sphere=None, window='hamming',
+                 verbose=None):
         return plot_raw_psd(self, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
                             proj=proj, n_fft=n_fft, n_overlap=n_overlap,
                             reject_by_annotation=reject_by_annotation,
@@ -1449,7 +1453,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                             dB=dB, estimate=estimate, show=show, n_jobs=n_jobs,
                             average=average, line_alpha=line_alpha,
                             spatial_colors=spatial_colors, sphere=sphere,
-                            verbose=verbose)
+                            window=window, verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_raw_psd_topo)
     def plot_psd_topo(self, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
@@ -2121,11 +2125,14 @@ def _write_raw_buffer(fid, buf, cals, fmt):
 
     _check_option('fmt', fmt, ['short', 'int', 'single', 'double'])
 
+    cast_int = False  # allow unsafe cast
     if np.isrealobj(buf):
         if fmt == 'short':
             write_function = write_dau_pack16
+            cast_int = True
         elif fmt == 'int':
             write_function = write_int
+            cast_int = True
         elif fmt == 'single':
             write_function = write_float
         else:
@@ -2140,6 +2147,8 @@ def _write_raw_buffer(fid, buf, cals, fmt):
                              'writing complex data')
 
     buf = buf / np.ravel(cals)[:, None]
+    if cast_int:
+        buf = buf.astype(np.int32)
     write_function(fid, FIFF.FIFF_DATA_BUFFER, buf)
 
 

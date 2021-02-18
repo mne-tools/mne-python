@@ -17,7 +17,7 @@ import os.path as op
 import numpy as np
 
 from ..transforms import _pol_to_cart, _cart_to_sph
-from ..io.pick import pick_types, _picks_to_idx
+from ..io.pick import pick_types, _picks_to_idx, _FNIRS_CH_TYPES_SPLIT
 from ..io.constants import FIFF
 from ..io.meas_info import Info
 from ..utils import (_clean_names, warn, _check_ch_locs, fill_doc,
@@ -917,7 +917,7 @@ def _merge_ch_data(data, ch_type, names, method='rms'):
     if ch_type == 'grad':
         data = _merge_grad_data(data, method)
     else:
-        assert ch_type in ('hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_od')
+        assert ch_type in _FNIRS_CH_TYPES_SPLIT
         data, names = _merge_nirs_data(data, names)
     return data, names
 

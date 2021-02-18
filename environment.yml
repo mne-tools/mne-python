@@ -1,6 +1,6 @@
 name: mne
 channels:
-- defaults
+- conda-forge
 dependencies:
 - python>=3.8
 - pip
@@ -23,19 +23,17 @@ dependencies:
 - traitsui
 - imageio
 - tqdm
-- spyder-kernels
-- pip:
-  - mne
-  - imageio-ffmpeg>=0.4.1
-  - vtk>=9.0.1
-  - pyvista>=0.24
-  - pyvistaqt>=0.2.0
-  - mayavi
-  - PySurfer[save_movie]
-  - dipy --only-binary dipy
-  - nibabel
-  - nilearn
-  - neo
-  - python-picard
-  - PyQt5>=5.10,<5.14; platform_system == "Darwin"
-  - PyQt5>=5.10; platform_system != "Darwin"
+- spyder-kernels>=1.10.0
+- imageio-ffmpeg>=0.4.1
+- vtk>=9.0.1
+- pyvista>=0.24
+- pyvistaqt>=0.2.0
+- mayavi
+- PySurfer
+- dipy
+- nibabel
+- nilearn
+- python-picard
+- pyqt
+- mne
+- mffpy>=0.5.7

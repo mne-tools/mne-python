@@ -6,7 +6,8 @@ import matplotlib.pyplot as plt
 from contextlib import contextmanager
 from ...fixes import nullcontext
 from ._pyvista import _Renderer as _PyVistaRenderer
-from ._pyvista import _set_3d_view, _set_3d_title  # noqa: F401 analysis:ignore
+from ._pyvista import \
+    _close_all, _set_3d_view, _set_3d_title  # noqa: F401 analysis:ignore
 
 
 class _Renderer(_PyVistaRenderer):
@@ -68,6 +69,7 @@ class _NotebookInteractor(object):
         return fig, dh
 
     def update(self):
+        self.plotter.render()
         self.dh.set_data(self.plotter.screenshot())
         self.fig.canvas.draw()
 

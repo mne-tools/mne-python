@@ -14,7 +14,8 @@ from mne import find_events, Epochs, pick_types
 from mne.io import read_raw_fif
 from mne.io.array import RawArray
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.io.meas_info import create_info, _kind_dict
+from mne.io.meas_info import create_info
+from mne.io.pick import get_channel_type_constants
 from mne.utils import run_tests_if_main
 from mne.channels import make_dig_montage
 
@@ -101,7 +102,8 @@ def test_array_raw():
     types[-1] = 'eog'
     # default type
     info = create_info(ch_names, sfreq)
-    assert_equal(info['chs'][0]['kind'], _kind_dict['misc'][0])
+    assert_equal(info['chs'][0]['kind'],
+                 get_channel_type_constants()['misc']['kind'])
     # use real types
     info = create_info(ch_names, sfreq, types)
     raw2 = _test_raw_reader(RawArray, test_preloading=False,

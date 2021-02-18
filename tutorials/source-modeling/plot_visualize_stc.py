@@ -54,7 +54,7 @@ brain = stc.plot(subjects_dir=subjects_dir, initial_time=initial_time,
                  clim=dict(kind='value', lims=[3, 6, 9]))
 
 ###############################################################################
-# You can also morph it to fsaverage and visualize it using a flatmap:
+# You can also morph it to fsaverage and visualize it using a flatmap
 
 # sphinx_gallery_thumbnail_number = 3
 stc_fs = mne.compute_source_morph(stc, 'sample', 'fsaverage', subjects_dir,
@@ -136,8 +136,7 @@ stc.plot(src, subject='sample', subjects_dir=subjects_dir, mode='glass_brain')
 
 fname_aseg = op.join(subjects_dir, 'sample', 'mri', 'aparc.a2009s+aseg.mgz')
 label_names = mne.get_volume_labels_from_aseg(fname_aseg)
-label_tc = stc.extract_label_time_course(
-    fname_aseg, src=src, trans=mri_head_t)
+label_tc = stc.extract_label_time_course(fname_aseg, src=src)
 
 lidx, tidx = np.unravel_index(np.argmax(label_tc), label_tc.shape)
 fig, ax = plt.subplots(1)
@@ -150,6 +149,13 @@ ax.set(xlim=stc.times[[0, -1]], xlabel='Time (s)', ylabel='Activation')
 for key in ('right', 'top'):
     ax.spines[key].set_visible(False)
 fig.tight_layout()
+
+###############################################################################
+# And we can project these label time courses back to their original
+# locations and see how the plot has been smoothed:
+
+stc_back = mne.labels_to_stc(fname_aseg, label_tc, src=src)
+stc_back.plot(src, subjects_dir=subjects_dir, mode='glass_brain')
 
 ###############################################################################
 # Vector Source Estimates

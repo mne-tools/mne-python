@@ -21,6 +21,7 @@ from .multitaper import dpss_windows
 
 from ..baseline import rescale
 from ..fixes import fft, ifft
+from ..filter import next_fast_len
 from ..parallel import parallel_func
 from ..utils import (logger, verbose, _time_mask, _freq_mask, check_fname,
                      sizeof_fmt, GetEpochsMixin, _prepare_read_metadata,
@@ -234,7 +235,24 @@ def _make_dpss(sfreq, freqs, n_cycles=7., time_bandwidth=4.0, zero_mean=False):
 
 # Low level convolution
 
-def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
+def _get_nfft(wavelets, X, use_fft=True, check=True):
+    n_times = X.shape[-1]
+    max_size = max(w.size for w in wavelets)
+    if max_size > n_times:
+        msg = (f'At least one of the wavelets ({max_size}) is longer than the '
+               f'signal ({n_times}). Consider using a longer signal or '
+               'shorter wavelets.')
+        if check:
+            if use_fft:
+                warn(msg, UserWarning)
+            else:
+                raise ValueError(msg)
+    nfft = n_times + max_size - 1
+    nfft = next_fast_len(nfft)  # 2 ** int(np.ceil(np.log2(nfft)))
+    return nfft
+
+
+def _cwt_gen(X, Ws, *, fsize=0, mode="same", decim=1, use_fft=True):
     """Compute cwt with fft based convolutions or temporal convolutions.
 
     Parameters
@@ -243,6 +261,8 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
         The data.
     Ws : list of array
         Wavelets time series.
+    fsize : int
+        FFT length.
     mode : {'full', 'valid', 'same'}
         See numpy.convolve.
     decim : int | slice, default 1
@@ -266,31 +286,15 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
     X = np.asarray(X)
 
     # Precompute wavelets for given frequency range to save time
-    n_signals, n_times = X.shape
+    _, n_times = X.shape
     n_times_out = X[:, decim].shape[1]
     n_freqs = len(Ws)
-
-    Ws_max_size = max(W.size for W in Ws)
-    size = n_times + Ws_max_size - 1
-    # Always use 2**n-sized FFT
-    fsize = 2 ** int(np.ceil(np.log2(size)))
 
     # precompute FFTs of Ws
     if use_fft:
         fft_Ws = np.empty((n_freqs, fsize), dtype=np.complex128)
-
-    warn_me = True
-    for i, W in enumerate(Ws):
-        if use_fft:
+        for i, W in enumerate(Ws):
             fft_Ws[i] = fft(W, fsize)
-        if len(W) > n_times and warn_me:
-            msg = ('At least one of the wavelets is longer than the signal. '
-                   'Consider padding the signal or using shorter wavelets.')
-            if use_fft:
-                warn(msg, UserWarning)
-                warn_me = False  # Suppress further warnings
-            else:
-                raise ValueError(msg)
 
     # Make generator looping across signals
     tfr = np.zeros((n_freqs, n_times_out), dtype=np.complex128)
@@ -442,6 +446,8 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
         out = np.empty((n_chans, n_epochs, n_freqs, n_times), dtype)
 
     # Parallel computation
+    all_Ws = sum([list(W) for W in Ws], list())
+    _get_nfft(all_Ws, epoch_data, use_fft)
     parallel, my_cwt, _ = parallel_func(_time_frequency_loop, n_jobs)
 
     # Parallelization is applied across channels.
@@ -572,7 +578,10 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
 
     # Loops across tapers.
     for W in Ws:
-        coefs = _cwt(X, W, mode, decim=decim, use_fft=use_fft)
+        # No need to check here, it's done earlier (outside parallel part)
+        nfft = _get_nfft(W, X, use_fft, check=False)
+        coefs = _cwt_gen(
+            X, W, fsize=nfft, mode=mode, decim=decim, use_fft=use_fft)
 
         # Inter-trial phase locking is apparently computed per taper...
         if 'itc' in output:
@@ -648,11 +657,16 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
     mne.time_frequency.tfr_morlet : Compute time-frequency decomposition
                                     with Morlet wavelets.
     """
+    nfft = _get_nfft(Ws, X, use_fft)
+    return _cwt_array(X, Ws, nfft, mode, decim, use_fft)
+
+
+def _cwt_array(X, Ws, nfft, mode, decim, use_fft):
     decim = _check_decim(decim)
+    coefs = _cwt_gen(
+        X, Ws, fsize=nfft, mode=mode, decim=decim, use_fft=use_fft)
+
     n_signals, n_times = X[:, decim].shape
-
-    coefs = _cwt(X, Ws, mode, decim=decim, use_fft=use_fft)
-
     tfrs = np.empty((n_signals, len(Ws), n_times), dtype=np.complex128)
     for k, tfr in enumerate(coefs):
         tfrs[k] = tfr

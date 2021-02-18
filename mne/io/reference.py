@@ -241,7 +241,8 @@ def add_reference_channels(inst, ref_channels, copy=True):
             inst._read_picks[pi] = np.concatenate(
                 [picks, np.max(picks) + range_])
     inst.info._check_consistency()
-    set_eeg_reference(inst, ref_channels=ref_channels, copy=False)
+    set_eeg_reference(inst, ref_channels=ref_channels, copy=False,
+                      verbose=False)
     return inst
 
 

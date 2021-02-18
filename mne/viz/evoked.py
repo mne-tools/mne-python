@@ -177,7 +177,8 @@ def _plot_legend(pos, colors, axis, bads, outlines, loc, size=30):
     ratio = bbox.width / bbox.height
     ax = inset_axes(axis, width=str(size / ratio) + '%',
                     height=str(size) + '%', loc=loc)
-    ax.set_adjustable("box")
+    ax.set_adjustable('box')
+    ax.set_aspect('equal')
     _prepare_topomap(pos, ax, check_nonzero=False)
     pos_x, pos_y = pos.T
     ax.scatter(pos_x, pos_y, color=colors, s=size * .8, marker='.', zorder=1)
@@ -191,7 +192,7 @@ def _plot_legend(pos, colors, axis, bads, outlines, loc, size=30):
 def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                  units, scalings, titles, axes, plot_type, cmap=None,
                  gfp=False, window_title=None, spatial_colors=False,
-                 set_tight_layout=True, selectable=True, zorder='unsorted',
+                 selectable=True, zorder='unsorted',
                  noise_cov=None, colorbar=True, mask=None, mask_style=None,
                  mask_cmap=None, mask_alpha=.25, time_unit='s',
                  show_names=False, group_by=None, sphere=None):
@@ -223,7 +224,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
             raise ValueError("If `group_by` is a dict, `axes` must be "
                              "a dict of axes or None.")
         _validate_if_list_of_axes(list(axes.values()))
-        remove_xlabels = any([ax.is_last_row() for ax in axes.values()])
+        remove_xlabels = any([_is_last_row(ax) for ax in axes.values()])
         for sel in group_by:  # ... we loop over selections
             if sel not in axes:
                 raise ValueError(sel + " present in `group_by`, but not "
@@ -236,14 +237,13 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                          proj, xlim, hline, units, scalings, titles,
                          ax, plot_type, cmap=cmap, gfp=gfp,
                          window_title=window_title,
-                         set_tight_layout=set_tight_layout,
                          selectable=selectable, noise_cov=noise_cov,
                          colorbar=colorbar, mask=mask,
                          mask_style=mask_style, mask_cmap=mask_cmap,
                          mask_alpha=mask_alpha, time_unit=time_unit,
                          show_names=show_names,
                          sphere=sphere)
-            if remove_xlabels and not ax.is_last_row():
+            if remove_xlabels and not _is_last_row(ax):
                 ax.set_xticklabels([])
                 ax.set_xlabel("")
         ims = [ax.images[0] for ax in axes.values()]
@@ -266,8 +266,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
     if axes is not None and proj == 'interactive':
         raise RuntimeError('Currently only single axis figures are supported'
                            ' for interactive SSP selection.')
-    if isinstance(gfp, str) and gfp != 'only':
-        raise ValueError('gfp must be boolean or "only". Got %s' % gfp)
+
+    _check_option('gfp', gfp, [True, False, 'only'])
 
     scalings = _handle_default('scalings', scalings)
     titles = _handle_default('titles', titles)
@@ -300,7 +300,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
     fig = None
     if axes is None:
         fig, axes = plt.subplots(len(ch_types_used), 1)
-        plt.subplots_adjust(0.175, 0.08, 0.94, 0.94, 0.2, 0.63)
+        fig.subplots_adjust(left=0.125, bottom=0.1, right=0.975, top=0.92,
+                            hspace=0.63)
         if isinstance(axes, plt.Axes):
             axes = [axes]
         fig.set_size_inches(6.4, 2 + len(axes))
@@ -363,10 +364,15 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
 
     plt.setp(fig.axes[:len(ch_types_used) - 1], xlabel='')
     fig.canvas.draw()  # for axes plots update axes.
-    if set_tight_layout:
-        tight_layout(fig=fig)
     plt_show(show)
     return fig
+
+
+def _is_last_row(ax):
+    try:
+        return ax.get_subplotspec().is_last_row()
+    except AttributeError:  # XXX old mpl
+        return ax.is_last_row()
 
 
 def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
@@ -422,7 +428,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
             # Set amplitude scaling
             D = this_scaling * data[idx, :]
             _check_if_nan(D)
-            gfp_only = (isinstance(gfp, str) and gfp == 'only')
+            gfp_only = gfp == 'only'
             if not gfp_only:
                 chs = [info['chs'][i] for i in idx]
                 locs3d = np.array([ch['loc'][:3] for ch in chs])
@@ -467,10 +473,17 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                                 linewidth=0.5)[0])
                     line_list[-1].set_pickradius(3.)
 
-            if gfp:  # 'only' or boolean True
+            if gfp:
+                if gfp in [True, 'only']:
+                    if this_type == 'eeg':
+                        this_gfp = D.std(axis=0, ddof=0)
+                        label = 'GFP'
+                    else:
+                        this_gfp = np.sqrt((D ** 2).mean(axis=0))
+                        label = 'RMS'
+
                 gfp_color = 3 * (0.,) if spatial_colors is True else (0., 1.,
                                                                       0.)
-                this_gfp = np.sqrt((D * D).mean(axis=0))
                 this_ylim = ax.get_ylim() if (ylim is None or this_type not in
                                               ylim.keys()) else ylim[this_type]
                 if gfp_only:
@@ -484,7 +497,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                                          zorder=3, alpha=line_alpha)[0])
                 ax.text(times[0] + 0.01 * (times[-1] - times[0]),
                         this_gfp[0] + 0.05 * np.diff(ax.get_ylim())[0],
-                        'GFP', zorder=4, color=gfp_color,
+                        label, zorder=4, color=gfp_color,
                         path_effects=gfp_path_effects)
             for ii, line in zip(idx, line_list):
                 if ii in bad_ch_idx:
@@ -492,10 +505,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                     if spatial_colors is True:
                         line.set_linestyle("--")
             ax.set_ylabel(ch_unit)
-            # for old matplotlib, we actually need this to have a bounding
-            # box (!), so we have to put some valid text here, change
-            # alpha and path effects later
-            texts.append(ax.text(0, 0, 'blank', zorder=3,
+            texts.append(ax.text(0, 0, '', zorder=3,
                                  verticalalignment='baseline',
                                  horizontalalignment='left',
                                  fontweight='bold', alpha=0,
@@ -671,8 +681,23 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         the same length as the number of channel types. If instance of
         Axes, there must be only one channel type plotted.
     gfp : bool | 'only'
-        Plot GFP in green if True or "only". If "only", then the individual
-        channel traces will not be shown.
+        Plot the global field power (GFP) or the root mean square (RMS) of the
+        data. For MEG data, this will plot the RMS. For EEG, it plots GFP,
+        i.e. the standard deviation of the signal across channels. The GFP is
+        equivalent to the RMS of an average-referenced signal.
+
+        - ``True``
+            Plot GFP or RMS (for EEG and MEG, respectively) and traces for all
+            channels.
+        - ``'only'``
+            Plot GFP or RMS (for EEG and MEG, respectively), and omit the
+            traces for individual channels.
+
+        The color of the GFP/RMS trace will be green if
+        ``spatial_colors=False``, and black otherwise.
+
+        .. versionchanged:: 0.23
+           Plot GFP for EEG instead of RMS. Label RMS traces correctly as such.
     window_title : str | None
         The title to put at the top of the figure.
     spatial_colors : bool
@@ -1420,7 +1445,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
                        sphere=None)
     ts_args_def.update(ts_args)
     _plot_evoked(evoked, axes=ts_ax, show=False, plot_type='butterfly',
-                 exclude=[], set_tight_layout=False, **ts_args_def)
+                 exclude=[], **ts_args_def)
 
     # handle title
     # we use a new axis for the title to handle scaling of plots
@@ -1928,7 +1953,7 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
         If a single Evoked instance, it is plotted as a time series.
         If a list of Evokeds, the contents are plotted with their
         ``.comment`` attributes used as condition labels. If no comment is set,
-        the index of the respectiv Evoked the list will be used instead,
+        the index of the respective Evoked the list will be used instead,
         starting with ``1`` for the first Evoked.
         If a dict whose values are Evoked objects, the contents are plotted as
         single time series each and the keys are used as labels.
@@ -2136,13 +2161,15 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
     if isinstance(evokeds, (list, tuple)):
         evokeds_copy = evokeds.copy()
         evokeds = dict()
-
-        for evk_idx, evk in enumerate(evokeds_copy, start=1):
-            label = None
-            if hasattr(evk, 'comment'):
-                label = evk.comment
-            label = label if label else str(evk_idx)
-            evokeds[label] = evk
+        comments = [getattr(_evk, 'comment', None) for _evk in evokeds_copy]
+        for idx, (comment, _evoked) in enumerate(zip(comments, evokeds_copy)):
+            key = str(idx + 1)
+            if comment:  # only update key if comment is non-empty
+                if comments.count(comment) == 1:  # comment is unique
+                    key = comment
+                else:  # comment is non-unique: prepend index
+                    key = f'{key}: {comment}'
+            evokeds[key] = _evoked
         del evokeds_copy
 
     if not isinstance(evokeds, dict):

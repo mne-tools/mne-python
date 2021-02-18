@@ -20,7 +20,8 @@ class ReceptiveField(BaseEstimator):
 
     This allows you to fit an encoding model (stimulus to brain) or a decoding
     model (brain to stimulus) using time-lagged input features (for example, a
-    spectro- or spatio-temporal receptive field, or STRF).
+    spectro- or spatio-temporal receptive field, or STRF)
+    :footcite:`TheunissenEtAl2001,WillmoreSmyth2003,CrosseEtAl2016,HoldgrafEtAl2016`.
 
     Parameters
     ----------
@@ -51,7 +52,8 @@ class ReceptiveField(BaseEstimator):
     patterns : bool
         If True, inverse coefficients will be computed upon fitting using the
         covariance matrix of the inputs, and the cross-covariance of the
-        inputs/outputs, according to [5]_. Defaults to False.
+        inputs/outputs, according to :footcite:`HaufeEtAl2014`. Defaults to
+        False.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if CuPy
         is installed properly and ``estimator is None``.
@@ -101,29 +103,8 @@ class ReceptiveField(BaseEstimator):
 
     References
     ----------
-    .. [1] Theunissen, F. E. et al. Estimating spatio-temporal receptive
-           fields of auditory and visual neurons from their responses to
-           natural stimuli. Network 12, 289-316 (2001).
-
-    .. [2] Willmore, B. & Smyth, D. Methods for first-order kernel
-           estimation: simple-cell receptive fields from responses to
-           natural scenes. Network 14, 553-77 (2003).
-
-    .. [3] Crosse, M. J., Di Liberto, G. M., Bednar, A. & Lalor, E. C. (2016).
-           The Multivariate Temporal Response Function (mTRF) Toolbox:
-           A MATLAB Toolbox for Relating Neural Signals to Continuous Stimuli.
-           Frontiers in Human Neuroscience 10, 604.
-           doi:10.3389/fnhum.2016.00604
-
-    .. [4] Holdgraf, C. R. et al. Rapid tuning shifts in human auditory cortex
-           enhance speech intelligibility. Nature Communications,
-           7, 13654 (2016). doi:10.1038/ncomms13654
-
-    .. [5] Haufe, S., Meinecke, F., Goergen, K., Daehne, S., Haynes, J.-D.,
-           Blankertz, B., & Biessmann, F. (2014). On the interpretation of
-           weight vectors of linear models in multivariate neuroimaging.
-           NeuroImage, 87, 96-110. doi:10.1016/j.neuroimage.2013.10.067
-    """
+    .. footbibliography::
+    """  # noqa E501
 
     @verbose
     def __init__(self, tmin, tmax, sfreq, feature_names=None, estimator=None,
@@ -316,7 +297,7 @@ class ReceptiveField(BaseEstimator):
         """Score predictions generated with a receptive field.
 
         This calls ``self.predict``, then masks the output of this
-        and ``y` with ``self.mask_prediction_``. Finally, it passes
+        and ``y` with ``self.valid_samples_``. Finally, it passes
         this to a :mod:`sklearn.metrics` scorer.
 
         Parameters

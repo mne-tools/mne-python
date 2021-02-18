@@ -7,7 +7,7 @@ Contributing to MNE-Python
 
 .. contents:: Page contents
    :local:
-   :depth: 2
+   :depth: 3
 
 .. highlight:: console
 
@@ -22,9 +22,8 @@ documentation improvements (even just typo corrections). The best way to start
 contributing is by `opening an issue`_ on our GitHub page to discuss your ideas
 for changes or enhancements, or to tell us about behavior that you think might
 be a bug in MNE-Python. *For general troubleshooting of scripts that use
-MNE-Python*, you should instead write to the `MNE mailing list`_ or chat with
-developers on the `MNE gitter channel`_. Users and contributors to MNE-Python
-are expected to follow our `code of conduct`_.
+MNE-Python*, you should instead post on the `MNE Forum`_. Users and
+contributors to MNE-Python are expected to follow our `code of conduct`_.
 
 This page has details on the preferred contribution workflow
 and how best to configure your system for a smooth experience contributing to
@@ -39,10 +38,9 @@ MNE-Python.
    guide!
 
 .. _`opening an issue`: https://github.com/mne-tools/mne-python/issues/new/choose
-.. _`MNE mailing list`: http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis
-.. _`MNE gitter channel`: https://gitter.im/mne-tools/mne-python
+.. _`MNE Forum`: https://mne.discourse.group
 
-.. _`code of conduct`: https://github.com/mne-tools/.github/blob/master/CODE_OF_CONDUCT.md
+.. _`code of conduct`: https://github.com/mne-tools/.github/blob/main/CODE_OF_CONDUCT.md
 .. _`GitHub issues marked "easy"`: https://github.com/mne-tools/mne-python/issues?q=is%3Aissue+is%3Aopen+label%3AEASY
 
 Overview of contribution process
@@ -205,7 +203,7 @@ version of MNE-Python, you should now repeat that process to create a new,
 separate environment for MNE-Python development (here we'll give it the name
 ``mnedev``)::
 
-    $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
+    $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/main/environment.yml
     $ conda env create --file environment.yml --name mnedev
     $ conda activate mnedev
 
@@ -275,6 +273,15 @@ And for building our documentation::
     $ pip install -r requirements_doc.txt
     $ conda install graphviz
 
+.. note::
+   On Windows, if you installed graphviz using the conda command above but still get an error like this::
+
+      WARNING: dot command 'dot' cannot be run (needed for graphviz output), check the graphviz_dot setting
+
+   try adding the graphviz folder to path::
+
+      $ PATH=$CONDA_PREFIX\\Library\\bin\\graphviz:$PATH
+
 To build documentation, you will also require `optipng`_:
 
 - On Linux, use the command ``sudo apt install optipng``.
@@ -310,22 +317,22 @@ Other commands that you will undoubtedly need relate to `branches`_. Branches
 represent multiple copies of the codebase *within a local clone or remote
 repo*. Branches are typically used to experiment with new features while still
 keeping a clean, working copy of the original codebase that you can switch back
-to at any time. The default branch of any repo is always called ``master``, and
-it is recommended that you reserve the ``master`` branch to be that clean copy
+to at any time. The default branch of any repo is called ``main``, and
+it is recommended that you reserve the ``main`` branch to be that clean copy
 of the working ``upstream`` codebase. Therefore, if you want to add a new
-feature, you should first synchronize your local ``master`` branch with the
-``upstream`` repository, then create a new branch based off of ``master`` and
+feature, you should first synchronize your local ``main`` branch with the
+``upstream`` repository, then create a new branch based off of ``main`` and
 `check it out`_ so that any changes you make will exist on that new branch
-(instead of on ``master``)::
+(instead of on ``main``)::
 
-    $ git checkout master            # switch to local master branch
+    $ git checkout main            # switch to local main branch
     $ git fetch upstream             # get the current state of the remote upstream repo
-    $ git merge upstream/master      # synchronize local master branch with remote upstream master branch
+    $ git merge upstream/main      # synchronize local main branch with remote upstream main branch
     $ git checkout -b new-feature-x  # create local branch "new-feature-x" and check it out
 
 .. sidebar:: Alternative
 
-    You can save some typing by using ``git pull upstream/master`` to replace
+    You can save some typing by using ``git pull upstream/main`` to replace
     the ``fetch`` and ``merge`` lines above.
 
 Now that you're on a new branch, you can fix a bug or add a new feature, add a
@@ -460,7 +467,7 @@ deprecation section <deprecating>` and :class:`mne.utils.deprecated` for
 instructions. Bug fixes (when something isn't doing what it says it will do) do
 not require a deprecation cycle.
 
-Note that any new API elements should be added to the master reference;
+Note that any new API elements should be added to the main reference;
 classes, functions, methods, and attributes cannot be cross-referenced unless
 they are included in the :doc:`python_reference`
 (:file:`doc/python_reference.rst`).
@@ -538,13 +545,76 @@ Describe your changes in the changelog
 --------------------------------------
 
 Include in your changeset a brief description of the change in the
-:doc:`changelog <whats_new>` (:file:`doc/whats_new.rst`; this can be skipped
-for very minor changes like correcting typos in the documentation). Note that
-there are sections of the changelog for each release, and separate subsections
-for bugfixes, new features, and changes to the public API. It is usually best
-to wait to add a line to the changelog until your PR is finalized, to avoid
-merge conflicts (since the changelog is updated with almost every PR).
+:ref:`changelog <whats_new>` (:file:`doc/changes/latest.inc`; this can be
+skipped for very minor changes like correcting typos in the documentation).
 
+There are different sections of the changelog for each release, and separate
+**subsections for bugfixes, new features, and changes to the public API.**
+Please be sure to add your entry to the appropriate subsection.
+
+The styling and positioning of the entry depends on whether you are a
+first-time contributor or have been mentioned in the changelog before.
+
+First-time contributors
+"""""""""""""""""""""""
+
+Welcome to MNE-Python! We're very happy to have you here. 🤗 And to ensure you
+get proper credit for your work, please add a changelog entry with the
+following pattern **at the top** of the respective subsection (bugfix,
+new feature etc.):
+
+.. code-block:: rst
+
+
+  Bug
+  ---
+
+  .. |Your Name| replace:: **Your Name**
+
+  - Short description of the changes (:gh:`0000` **by new contributor** |Your Name|_)
+  
+  - ...
+
+where ``0000`` must be replaced with the respective GitHub pull request (PR)
+number.
+
+It is usually best to wait to add a line to the changelog until your PR is
+finalized, to avoid merge conflicts (since the changelog is updated with
+almost every PR).
+
+Lastly, make sure that your name is included in the list of authors in
+:file:`doc/changes/names.inc`, otherwise the documentation build will fail.
+To add an author name, simply append a line with the following pattern (note
+how the syntax is different from that used in the changelog):
+
+.. code-block:: rst
+
+  .. _Your Name: https://www.your-website.com/
+
+Many contributors opt to link to their GitHub profile that way. Have a look
+at the existing entries in the file to get some inspiration.
+
+Recurring contributors
+""""""""""""""""""""""
+
+The changelog entry should follow the following patterns:
+
+.. code-block:: rst
+
+    - Short description of the changes from one contributor (:gh:`0000` by `Contributor Name`_)
+    - Short description of the changes from several contributors (:gh:`0000` by `Contributor Name`_, `Second Contributor`_, and `Third Contributor`_)
+
+where ``0000`` must be replaced with the respective GitHub pull request (PR)
+number. Mind the Oxford comma in the case of multiple contributors.
+
+Sometimes, changes that shall appear as a single changelog entry are spread out
+across multiple PRs. In this case, simply name all relevant PRs, separated by
+commas:
+
+.. code-block:: rst
+
+    - Short description of the changes from one contributor in multiple PRs (:gh:`0000`, :gh:`1111` by `Contributor Name`_)
+    - Short description of the changes from several contributors in multiple PRs (:gh:`0000`, :gh:`1111` by `Contributor Name`_, `Second Contributor`_, and `Third Contributor`_)
 
 Test locally before opening pull requests (PRs)
 -----------------------------------------------
@@ -696,7 +766,7 @@ for the return value, even if the function or method's return value is never
 stored under that name in the code.
 
 
-Vizualization
+Visualization
 -------------
 
 Visualization capabilities should be made available in both function and method
@@ -843,13 +913,13 @@ down the road. Here are the guidelines:
   doing this. Avoid purely cosmetic changes to the code; they make PRs harder
   to review.
 
-- It is usually better to make PRs *from* branches other than your master
-  branch, so that you can use your master branch to easily get back to a
+- It is usually better to make PRs *from* branches other than your main
+  branch, so that you can use your main branch to easily get back to a
   working state of the code if needed (e.g., if you're working on multiple
   changes at once, or need to pull in recent changes from someone else to get
   your new feature to work properly).
 
-- In most cases you should make PRs *into* the upstream's master branch, unless
+- In most cases you should make PRs *into* the upstream's main branch, unless
   you are specifically asked by a maintainer to PR into another branch (e.g.,
   for backports or maintenance bugfixes to the current stable version).
 
@@ -895,8 +965,8 @@ down the road. Here are the guidelines:
 
 `This sample pull request`_ exemplifies many of the conventions listed above:
 it addresses only one problem; it started with an issue to discuss the problem
-and some possible solutions; it is a PR from the user's non-master branch into
-the upstream master branch; it separates different kinds of changes into
+and some possible solutions; it is a PR from the user's non-main branch into
+the upstream main branch; it separates different kinds of changes into
 separate commits and uses labels like ``DOC``, ``FIX``, and ``STY`` to make it
 easier for maintainers to review the changeset; etc. If you are new to GitHub
 it can serve as a useful example of what to expect from the PR review process.
@@ -975,7 +1045,7 @@ it can serve as a useful example of what to expect from the PR review process.
 .. _continuous integration: https://en.wikipedia.org/wiki/Continuous_integration
 .. _matplotlib: https://matplotlib.org/
 .. _travis: https://travis-ci.org/mne-tools/mne-python/branches
-.. _azure: https://dev.azure.com/mne-tools/mne-python/_build/latest?definitionId=1&branchName=master
+.. _azure: https://dev.azure.com/mne-tools/mne-python/_build/latest?definitionId=1&branchName=main
 .. _circle: https://circleci.com/gh/mne-tools/mne-python
 
 .. optipng

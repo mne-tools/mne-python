@@ -25,7 +25,7 @@ from mne.source_space import write_source_spaces
 data_path = testing.data_path(download=False)
 
 
-@pytest.yield_fixture
+@pytest.fixture
 def few_surfaces():
     """Set the _MNE_FEW_SURFACES env var."""
     with modified_env(_MNE_FEW_SURFACES='true'):
@@ -277,7 +277,7 @@ def test_get_mni_fiducials():
     fids = np.array([f['r'] for f in fids])
     fids_est = get_mni_fiducials('sample', subjects_dir)
     fids_est = np.array([f['r'] for f in fids_est])
-    dists = np.linalg.norm(fids - fids_est, axis=-1) * 1000
+    dists = np.linalg.norm(fids - fids_est, axis=-1) * 1000.  # -> mm
     assert (dists < 8).all(), dists
 
 

@@ -14,11 +14,13 @@ import numpy as np
 from scipy import linalg, sparse
 from scipy.sparse import coo_matrix, block_diag as sparse_block_diag
 
+from .baseline import rescale
 from .cov import Covariance
 from .evoked import _get_peak
 from .filter import resample
 from .io.constants import FIFF
-from .surface import read_surface, _get_ico_surface, mesh_edges
+from .surface import (read_surface, _get_ico_surface, mesh_edges,
+                      _project_onto_surface)
 from .source_space import (_ensure_src, _get_morph_src_reordering,
                            _ensure_src_subject, SourceSpaces, _get_src_nn,
                            _import_nibabel, _get_mri_info_data,
@@ -28,7 +30,7 @@ from .transforms import _get_trans, apply_trans
 from .utils import (get_subjects_dir, _check_subject, logger, verbose, _pl,
                     _time_mask, warn, copy_function_doc_to_method_doc,
                     fill_doc, _check_option, _validate_type, _check_src_normal,
-                    _check_stc_units, _check_pandas_installed, deprecated,
+                    _check_stc_units, _check_pandas_installed,
                     _check_pandas_index_arguments, _convert_times, _ensure_int,
                     _build_data_frame, _check_time_format, _check_path_like,
                     sizeof_fmt, object_size)
@@ -494,8 +496,9 @@ class _BaseSourceEstimate(TimeMixin):
                                  '%s' % (data.shape, self._data_ndim,
                                          self.__class__.__name__))
             if data.shape[0] != n_src:
-                raise ValueError('Number of vertices (%i) and stc.shape[0] '
-                                 '(%i) must match' % (n_src, data.shape[0]))
+                raise ValueError(
+                    f'Number of vertices ({n_src}) and stc.data.shape[0] '
+                    f'({data.shape[0]}) must match')
             if self._data_ndim == 3:
                 if data.shape[1] != 3:
                     raise ValueError(
@@ -586,6 +589,29 @@ class _BaseSourceEstimate(TimeMixin):
         return extract_label_time_course(
             self, labels, src, mode=mode, return_generator=False,
             allow_empty=allow_empty, verbose=verbose)
+
+    @verbose
+    def apply_baseline(self, baseline=(None, 0), *, verbose=None):
+        """Baseline correct source estimate data.
+
+        Parameters
+        ----------
+        %(baseline_stc)s
+            Defaults to ``(None, 0)``, i.e. beginning of the the data until
+            time point zero.
+        %(verbose_meth)s
+
+        Returns
+        -------
+        stc : instance of SourceEstimate
+            The baseline-corrected source estimate object.
+
+        Notes
+        -----
+        Baseline correction can be done multiple times.
+        """
+        self.data = rescale(self.data, self.times, baseline, copy=False)
+        return self
 
     @verbose
     def save(self, fname, ftype='h5', verbose=None):
@@ -685,6 +711,9 @@ class _BaseSourceEstimate(TimeMixin):
     def resample(self, sfreq, npad='auto', window='boxcar', n_jobs=1,
                  verbose=None):
         """Resample data.
+
+        If appropriate, an anti-aliasing filter is applied before resampling.
+        See :ref:`resampling-and-decimating` for more information.
 
         Parameters
         ----------
@@ -1789,30 +1818,6 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
             data_mag, self.vertices, self.tmin, self.tstep, self.subject,
             self.verbose)
 
-    @deprecated('stc.normal(src) is deprecated and will be removed in 0.22, '
-                'use stc.project("normal", src)[0] instead')
-    @fill_doc
-    def normal(self, src, use_cps=True):
-        """Compute activity orthogonal to the cortex.
-
-        Parameters
-        ----------
-        src : instance of SourceSpaces
-            The source space for which this source estimate is specified.
-        %(use_cps)s
-            Should be the same value that was used when the forward model
-            was computed (typically True).
-
-            .. versionadded:: 0.20
-
-        Returns
-        -------
-        stc : instance of SourceEstimate
-            The source estimate only retaining the activity orthogonal to the
-            cortex.
-        """
-        return self.project('normal', src, use_cps)[0]
-
     def _get_src_normals(self, src, use_cps):
         normals = np.vstack([_get_src_nn(s, use_cps, v) for s, v in
                             zip(src, self.vertices)])
@@ -1974,7 +1979,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
     # Override here to provide the volume-specific options
     @verbose
     def extract_label_time_course(self, labels, src, mode='auto',
-                                  allow_empty=False, trans=None,
+                                  allow_empty=False, *, trans=None,
                                   mri_resolution=True, verbose=None):
         """Extract label time courses for lists of labels.
 
@@ -1987,7 +1992,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         %(eltc_src)s
         %(eltc_mode)s
         %(eltc_allow_empty)s
-        %(eltc_trans)s
+        %(trans_deprecated)s
         %(eltc_mri_resolution)s
         %(verbose_meth)s
 
@@ -2025,7 +2030,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         src : instance of SourceSpaces
             The volumetric source space. It must be a single, whole-brain
             volume.
-        %(trans_not_none)s
+        %(trans_deprecated)s
 
         Returns
         -------
@@ -2044,8 +2049,8 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
             volume_label = [label]
         else:
             volume_label = {'Volume ID %s' % (label): _ensure_int(label)}
-        label = _volume_labels(src, (mri, volume_label), trans,
-                               mri_resolution=False)
+        _dep_trans(trans)
+        label = _volume_labels(src, (mri, volume_label), mri_resolution=False)
         assert len(label) == 1
         label = label[0]
         vertices = label.vertices
@@ -2446,86 +2451,6 @@ class MixedSourceEstimate(_BaseMixedSourceEstimate):
     -----
     .. versionadded:: 0.9.0
     """
-
-    @fill_doc
-    @deprecated('stc_mixed.plot_surface(...) is deprecated and will be removed'
-                ' in 0.22, use stc_mixed.surface().plot(...)')
-    def plot_surface(self, src, subject=None, surface='inflated', hemi='lh',
-                     colormap='auto', time_label='time=%02.f ms',
-                     smoothing_steps=10,
-                     transparent=None, alpha=1.0, time_viewer='auto',
-                     subjects_dir=None, figure=None,
-                     views='lat', colorbar=True, clim='auto'):
-        """Plot surface source estimates with PySurfer.
-
-        Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
-        which will automatically be set by this function. Plotting multiple
-        SourceEstimates with different values for subjects_dir will cause
-        PySurfer to use the wrong FreeSurfer surfaces when using methods of
-        the returned Brain object. It is therefore recommended to set the
-        SUBJECTS_DIR environment variable or always use the same value for
-        subjects_dir (within the same Python session).
-
-        Parameters
-        ----------
-        src : SourceSpaces
-            The source spaces to plot.
-        subject : str | None
-            The subject name corresponding to FreeSurfer environment
-            variable SUBJECT. If None stc.subject will be used. If that
-            is None, the environment will be used.
-        surface : str
-            The type of surface (inflated, white etc.).
-        hemi : str, 'lh' | 'rh' | 'split' | 'both'
-            The hemisphere to display. Using 'both' or 'split' requires
-            PySurfer version 0.4 or above.
-        colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
-            Name of colormap to use. See `~mne.viz.plot_source_estimates`.
-        time_label : str
-            How to print info about the time instant visualized.
-        smoothing_steps : int
-            The amount of smoothing.
-        transparent : bool | None
-            If True, use a linear transparency between fmin and fmid.
-            None will choose automatically based on colormap type.
-        alpha : float
-            Alpha value to apply globally to the overlay.
-        time_viewer : bool
-            Display time viewer GUI.
-        %(subjects_dir)s
-        figure : instance of mayavi.mlab.Figure | None
-            If None, the last figure will be cleaned and a new figure will
-            be created.
-        views : str | list
-            View to use. See `surfer.Brain`.
-        colorbar : bool
-            If True, display colorbar on scene.
-        clim : str | dict
-            Colorbar properties specification.
-            See `~mne.viz.plot_source_estimates`.
-
-        Returns
-        -------
-        brain : instance of surfer.Brain
-            A instance of `surfer.Brain` from PySurfer.
-        """
-        # extract surface source spaces
-        surf = _ensure_src(src, kind='surface')
-
-        # extract surface source estimate
-        data = self.data[:surf[0]['nuse'] + surf[1]['nuse']]
-        vertices = [s['vertno'] for s in surf]
-
-        stc = SourceEstimate(data, vertices, self.tmin, self.tstep,
-                             self.subject, self.verbose)
-
-        return plot_source_estimates(stc, subject, surface=surface, hemi=hemi,
-                                     colormap=colormap, time_label=time_label,
-                                     smoothing_steps=smoothing_steps,
-                                     transparent=transparent, alpha=alpha,
-                                     time_viewer=time_viewer,
-                                     subjects_dir=subjects_dir, figure=figure,
-                                     views=views, colorbar=colorbar, clim=clim)
 
 
 @fill_doc
@@ -2935,6 +2860,16 @@ def _temporary_vertices(src, vertices):
             s['vertno'] = v
 
 
+def _check_stc_src(stc, src):
+    if stc is not None and src is not None:
+        for s, v, hemi in zip(src, stc.vertices, ('left', 'right')):
+            n_missing = (~np.in1d(v, s['vertno'])).sum()
+            if n_missing:
+                raise ValueError('%d/%d %s hemisphere stc vertices '
+                                 'missing from the source space, likely '
+                                 'mismatch' % (n_missing, len(v), hemi))
+
+
 def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
     """Prepare indices and flips for extract_label_time_course."""
     # If src is a mixed src space, the first 2 src spaces are surf type and
@@ -2947,18 +2882,8 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
 
     # if source estimate provided in stc, get vertices from source space and
     # check that they are the same as in the stcs
-    if stc is not None:
-        vertno = stc.vertices
-
-        for s, v, hemi in zip(src, stc.vertices, ('left', 'right')):
-            n_missing = (~np.in1d(v, s['vertno'])).sum()
-            if n_missing:
-                raise ValueError('%d/%d %s hemisphere stc vertices missing '
-                                 'from the source space, likely mismatch'
-                                 % (n_missing, len(v), hemi))
-    else:
-        vertno = [s['vertno'] for s in src]
-
+    _check_stc_src(stc, src)
+    vertno = [s['vertno'] for s in src] if stc is None else stc.vertices
     nvert = [len(vn) for vn in vertno]
 
     # initialization
@@ -3036,7 +2961,17 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
     return label_vertidx, label_flip
 
 
-def _volume_labels(src, labels, trans, mri_resolution):
+def _vol_src_rr(src):
+    return apply_trans(
+        src[0]['src_mri_t'], np.array(
+            [d.ravel(order='F')
+             for d in np.meshgrid(
+                 *(np.arange(s) for s in src[0]['shape']),
+                 indexing='ij')],
+            float).T)
+
+
+def _volume_labels(src, labels, mri_resolution):
     # This will create Label objects that should do the right thing for our
     # given volumetric source space when used with extract_label_time_course
     from .label import Label
@@ -3106,11 +3041,7 @@ def _volume_labels(src, labels, trans, mri_resolution):
     else:
         # Use nearest values
         vertno = src[0]['vertno']
-        src_values = _get_atlas_values(vol_info, src[0]['rr'][vertno])
-        rr = src[0]['rr']
-        if src[0]['coord_frame'] != FIFF.FIFFV_COORD_MRI:
-            trans, _ = _get_trans(trans, 'head', 'mri', allow_none=False)
-            rr = apply_trans(trans, rr)
+        rr = _vol_src_rr(src)
         del src
         src_values = _get_atlas_values(vol_info, rr[vertno])
         vertices = [vertno[src_values == val] for val in labels.values()]
@@ -3122,20 +3053,42 @@ def _volume_labels(src, labels, trans, mri_resolution):
     return out_labels
 
 
+def _dep_trans(trans):
+    if trans is not None:
+        warn('trans is no longer needed and will be removed in 0.23, do not '
+             'pass it as an argument', DeprecationWarning)
+
+
+def _get_default_label_modes():
+    return sorted(_label_funcs.keys()) + ['auto']
+
+
+def _get_allowed_label_modes(stc):
+    if isinstance(stc, (_BaseVolSourceEstimate,
+                        _BaseVectorSourceEstimate)):
+        return ('mean', 'max', 'auto')
+    else:
+        return _get_default_label_modes()
+
+
 def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
                                    allow_empty=False, trans=None,
                                    mri_resolution=True, verbose=None):
     # loop through source estimates and extract time series
-    _validate_type(src, SourceSpaces)
-    _check_option('mode', mode, sorted(_label_funcs.keys()) + ['auto'])
+    if src is None and mode in ['mean', 'max']:
+        kind = 'surface'
+    else:
+        _validate_type(src, SourceSpaces)
+        kind = src.kind
+    _dep_trans(trans)
+    _check_option('mode', mode, _get_default_label_modes())
 
-    kind = src.kind
     if kind in ('surface', 'mixed'):
         if not isinstance(labels, list):
             labels = [labels]
         use_sparse = False
     else:
-        labels = _volume_labels(src, labels, trans, mri_resolution)
+        labels = _volume_labels(src, labels, mri_resolution)
         use_sparse = bool(mri_resolution)
     n_mode = len(labels)  # how many processed with the given mode
     n_mean = len(src[2:]) if kind == 'mixed' else 0
@@ -3144,11 +3097,11 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
     for si, stc in enumerate(stcs):
         _validate_type(stc, _BaseSourceEstimate, 'stcs[%d]' % (si,),
                        'source estimate')
+        _check_option(
+            'mode', mode, _get_allowed_label_modes(stc),
+            'when using a vector and/or volume source estimate')
         if isinstance(stc, (_BaseVolSourceEstimate,
                             _BaseVectorSourceEstimate)):
-            _check_option(
-                'mode', mode, ('mean', 'max', 'auto'),
-                'when using a vector and/or volume source estimate')
             mode = 'mean' if mode == 'auto' else mode
         else:
             mode = 'mean_flip' if mode == 'auto' else mode
@@ -3206,7 +3159,7 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
 @verbose
 def extract_label_time_course(stcs, labels, src, mode='auto',
                               allow_empty=False, return_generator=False,
-                              trans=None, mri_resolution=True,
+                              *, trans=None, mri_resolution=True,
                               verbose=None):
     """Extract label time course for lists of labels and source estimates.
 
@@ -3224,7 +3177,7 @@ def extract_label_time_course(stcs, labels, src, mode='auto',
     %(eltc_allow_empty)s
     return_generator : bool
         If True, a generator instead of a list is returned.
-    %(trans_not_none)s
+    %(trans_deprecated)s
     %(eltc_mri_resolution)s
     %(verbose)s
 
@@ -3263,3 +3216,177 @@ def extract_label_time_course(stcs, labels, src, mode='auto',
         label_tc = label_tc[0]
 
     return label_tc
+
+
+@verbose
+def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
+                     project=True, subjects_dir=None, src=None, verbose=None):
+    """Create a STC from ECoG and sEEG sensor data.
+
+    Parameters
+    ----------
+    evoked : instance of Evoked
+        The evoked data. Must contain ECoG, or sEEG channels.
+    %(trans)s
+    subject : str
+        The subject name.
+    distance : float
+        Distance (m) defining the activation "ball" of the sensor.
+    mode : str
+        Can be "sum" to do a linear sum of weights, "nearest" to
+        use only the weight of the nearest sensor, or "zero" to use a
+        zero-order hold. See Notes.
+    project : bool
+        If True, project the electrodes to the nearest ``'pial`` surface
+        vertex before computing distances. Only used when doing a
+        surface projection.
+    %(subjects_dir)s
+    src : instance of SourceSpaces
+        The source space.
+
+        .. warning:: If a surface source space is used, make sure that
+                     ``surf='pial'`` was used during construction.
+    %(verbose)s
+
+    Returns
+    -------
+    stc : instance of SourceEstimate
+        The surface source estimate. If src is None, a surface source
+        estimate will be produced, and the number of vertices will equal
+        the number of pial-surface vertices that were close enough to
+        the sensors to take on a non-zero volue. If src is not None,
+        a surface, volume, or mixed source estimate will be produced
+        (depending on the kind of source space passed) and the
+        vertices will match those of src (i.e., there may be me
+        many all-zero values in stc.data).
+
+    Notes
+    -----
+    For surface projections, this function projects the ECoG sensors to
+    the pial surface (if ``project``), then the activation at each pial
+    surface vertex is given by the mode:
+
+    - ``'sum'``
+        Activation is the sum across each sensor weighted by the fractional
+        ``distance`` from each sensor. A sensor with zero distance gets weight
+        1 and a sensor at ``distance`` meters away (or larger) gets weight 0.
+        If ``distance`` is less than the distance between any two electrodes,
+        this will be the same as ``'nearest'``.
+    - ``'weighted'``
+        Same as ``'sum'`` except that only the nearest electrode is used,
+        rather than summing across electrodes within the ``distance`` radius.
+        As as ``'nearest'`` for vertices with distance zero to the projected
+        sensor.
+    - ``'nearest'``
+        The value is given by the value of the nearest sensor, up to a
+        ``distance`` (beyond which it is zero).
+
+    If creating a Volume STC, ``src`` must be passed in, and this
+    function will project sEEG sensors to nearby surrounding vertices.
+    Then the activation at each volume vertex is given by the mode
+    in the same way as ECoG surface projections.
+
+    .. versionadded:: 0.22
+    """
+    from scipy.spatial.distance import cdist, pdist
+    from .evoked import Evoked
+    _validate_type(evoked, Evoked, 'evoked')
+    _validate_type(mode, str, 'mode')
+    _validate_type(src, (None, SourceSpaces), 'src')
+    _check_option('mode', mode, ('sum', 'single', 'nearest'))
+
+    # create a copy of Evoked using ecog and seeg
+    evoked = evoked.copy().pick_types(ecog=True, seeg=True)
+
+    # get channel positions that will be used to pinpoint where
+    # in the Source space we will use the evoked data
+    pos = evoked._get_channel_positions()
+
+    # remove nan channels
+    nan_inds = np.where(np.isnan(pos).any(axis=1))[0]
+    nan_chs = [evoked.ch_names[idx] for idx in nan_inds]
+    evoked.drop_channels(nan_chs)
+    pos = [pos[idx] for idx in range(len(pos)) if idx not in nan_inds]
+
+    # coord_frame transformation from native mne "head" to MRI coord_frame
+    trans, _ = _get_trans(trans, 'head', 'mri', allow_none=True)
+
+    # convert head positions -> coord_frame MRI
+    pos = apply_trans(trans, pos)
+
+    subject = _check_subject(None, subject, False)
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    if src is None:  # fake a full surface one
+        rrs = [read_surface(op.join(subjects_dir, subject,
+                                    'surf', f'{hemi}.pial'))[0]
+               for hemi in ('lh', 'rh')]
+        src = SourceSpaces([
+            dict(rr=rr / 1000., vertno=np.arange(len(rr)), type='surf',
+                 coord_frame=FIFF.FIFFV_COORD_MRI)
+            for rr in rrs])
+        del rrs
+        keep_all = False
+    else:
+        keep_all = True
+    # ensure it's a usable one
+    klass = dict(
+        surface=SourceEstimate,
+        volume=VolSourceEstimate,
+        mixed=MixedSourceEstimate,
+    )
+    _check_option('src.kind', src.kind, sorted(klass.keys()))
+    klass = klass[src.kind]
+    rrs = np.concatenate([s['rr'][s['vertno']] for s in src])
+    if src[0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD:
+        rrs = apply_trans(trans, rrs)
+    # projection will only occur with surfaces
+    logger.info(
+        f'Projecting data from {len(pos)} sensor{_pl(pos)} onto {len(rrs)} '
+        f'{src.kind} vertices: {mode} mode')
+    if project and src.kind == 'surface':
+        logger.info('    Projecting electrodes onto surface')
+        pos = _project_onto_surface(pos, dict(rr=rrs), project_rrs=True,
+                                    method='nearest')[2]
+
+    min_dist = pdist(pos).min() * 1000
+    logger.info(
+        f'    Minimum {"projected " if project else ""}intra-sensor distance: '
+        f'{min_dist:0.1f} mm')
+
+    # compute pairwise distance between source space points and sensors
+    dists = cdist(rrs, pos)
+    assert dists.shape == (len(rrs), len(pos))
+
+    # only consider vertices within our "epsilon-ball"
+    # characterized by distance kwarg
+    vertices = np.where((dists <= distance).any(-1))[0]
+    logger.info(f'    {len(vertices)} / {len(rrs)} non-zero vertices')
+    w = np.maximum(1. - dists[vertices] / distance, 0)
+    # now we triage based on mode
+    if mode in ('single', 'nearest'):
+        range_ = np.arange(w.shape[0])
+        idx = np.argmax(w, axis=1)
+        vals = w[range_, idx] if mode == 'single' else 1.
+        w.fill(0)
+        w[range_, idx] = vals
+    missing = np.where(~np.any(w, axis=0))[0]
+    if len(missing):
+        warn(f'Channel{_pl(missing)} missing in STC: '
+             f'{", ".join(evoked.ch_names[mi] for mi in missing)}')
+
+    nz_data = w @ evoked.data
+    if not keep_all:
+        assert src.kind == 'surface'
+        data = nz_data
+        offset = len(src[0]['vertno'])
+        vertices = [vertices[vertices < offset],
+                    vertices[vertices >= offset] - offset]
+    else:
+        data = np.zeros(
+            (sum(len(s['vertno']) for s in src), len(evoked.times)),
+            dtype=nz_data.dtype)
+        data[vertices] = nz_data
+        vertices = [s['vertno'].copy() for s in src]
+
+    return klass(data, vertices, evoked.times[0], 1. / evoked.info['sfreq'],
+                 subject=subject, verbose=verbose)

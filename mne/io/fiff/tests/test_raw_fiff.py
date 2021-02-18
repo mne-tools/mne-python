@@ -428,6 +428,14 @@ def test_split_files(tmpdir, mod, monkeypatch):
     data_bids, times_bids = raw_bids[:, :]
     assert_array_equal(data_1, data_bids)
     assert_array_equal(times_1, times_bids)
+    del raw_bids
+    # split missing behaviors
+    os.remove(split_fname_bids_part2)
+    with pytest.raises(ValueError, match='manually renamed'):
+        read_raw_fif(split_fname_bids_part1, on_split_missing='raise')
+    with pytest.deprecated_call():
+        read_raw_fif(split_fname_bids_part1)
+    read_raw_fif(split_fname_bids_part1, on_split_missing='ignore')
 
     # test the case where we only end up with one buffer to write
     # (GH#3210). These tests rely on writing meas info and annotations
@@ -598,7 +606,7 @@ def test_io_raw(tmpdir):
 def test_io_raw_additional(fname_in, fname_out, tmpdir):
     """Test IO for raw data (Neuromag + CTF + gz)."""
     fname_out = tmpdir.join(fname_out)
-    raw = read_raw_fif(fname_in)
+    raw = read_raw_fif(fname_in).crop(0, 2)
 
     nchan = raw.info['nchan']
     ch_names = raw.info['ch_names']
@@ -1059,16 +1067,21 @@ def test_resample_equiv():
 
 
 @testing.requires_testing_data
-@pytest.mark.parametrize('preload', (True, False))
-def test_resample(tmpdir, preload):
+@pytest.mark.parametrize('preload, n, npad', [
+    (True, 512, 'auto'),
+    (False, 512, 0),
+])
+def test_resample(tmpdir, preload, n, npad):
     """Test resample (with I/O and multiple files)."""
-    raw = read_raw_fif(fif_fname).crop(0, 3)
+    raw = read_raw_fif(fif_fname)
+    raw.crop(0, raw.times[n - 1])
+    assert len(raw.times) == n
     if preload:
         raw.load_data()
     raw_resamp = raw.copy()
     sfreq = raw.info['sfreq']
     # test parallel on upsample
-    raw_resamp.resample(sfreq * 2, n_jobs=2, npad='auto')
+    raw_resamp.resample(sfreq * 2, n_jobs=2, npad=npad)
     assert raw_resamp.n_times == len(raw_resamp.times)
     raw_resamp.save(tmpdir.join('raw_resamp-raw.fif'))
     raw_resamp = read_raw_fif(tmpdir.join('raw_resamp-raw.fif'),
@@ -1078,7 +1091,7 @@ def test_resample(tmpdir, preload):
     assert raw_resamp.get_data().shape[1] == raw_resamp.n_times
     assert raw.get_data().shape[0] == raw_resamp._data.shape[0]
     # test non-parallel on downsample
-    raw_resamp.resample(sfreq, n_jobs=1, npad='auto')
+    raw_resamp.resample(sfreq, n_jobs=1, npad=npad)
     assert raw_resamp.info['sfreq'] == sfreq
     assert raw.get_data().shape == raw_resamp._data.shape
     assert raw.first_samp == raw_resamp.first_samp
@@ -1101,9 +1114,9 @@ def test_resample(tmpdir, preload):
     raw3 = raw.copy()
     raw4 = raw.copy()
     raw1 = concatenate_raws([raw1, raw2])
-    raw1.resample(10., npad='auto')
-    raw3.resample(10., npad='auto')
-    raw4.resample(10., npad='auto')
+    raw1.resample(10., npad=npad)
+    raw3.resample(10., npad=npad)
+    raw4.resample(10., npad=npad)
     raw3 = concatenate_raws([raw3, raw4])
     assert_array_equal(raw1._data, raw3._data)
     assert_array_equal(raw1._first_samps, raw3._first_samps)
@@ -1121,12 +1134,12 @@ def test_resample(tmpdir, preload):
     # basic decimation
     stim = [1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0]
     raw = RawArray([stim], create_info(1, len(stim), ['stim']))
-    assert_allclose(raw.resample(8., npad='auto')._data,
+    assert_allclose(raw.resample(8., npad=npad)._data,
                     [[1, 1, 0, 0, 1, 1, 0, 0]])
 
     # decimation of multiple stim channels
     raw = RawArray(2 * [stim], create_info(2, len(stim), 2 * ['stim']))
-    assert_allclose(raw.resample(8., npad='auto', verbose='error')._data,
+    assert_allclose(raw.resample(8., npad=npad, verbose='error')._data,
                     [[1, 1, 0, 0, 1, 1, 0, 0],
                      [1, 1, 0, 0, 1, 1, 0, 0]])
 
@@ -1134,20 +1147,20 @@ def test_resample(tmpdir, preload):
     # done naively
     stim = [0, 0, 0, 1, 1, 0, 0, 0]
     raw = RawArray([stim], create_info(1, len(stim), ['stim']))
-    assert_allclose(raw.resample(4., npad='auto')._data,
+    assert_allclose(raw.resample(4., npad=npad)._data,
                     [[0, 1, 1, 0]])
 
     # two events are merged in this case (warning)
     stim = [0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0]
     raw = RawArray([stim], create_info(1, len(stim), ['stim']))
     with pytest.warns(RuntimeWarning, match='become unreliable'):
-        raw.resample(8., npad='auto')
+        raw.resample(8., npad=npad)
 
     # events are dropped in this case (warning)
     stim = [0, 1, 1, 0, 0, 1, 1, 0]
     raw = RawArray([stim], create_info(1, len(stim), ['stim']))
     with pytest.warns(RuntimeWarning, match='become unreliable'):
-        raw.resample(4., npad='auto')
+        raw.resample(4., npad=npad)
 
     # test resampling events: this should no longer give a warning
     # we often have first_samp != 0, include it here too
@@ -1159,7 +1172,7 @@ def test_resample(tmpdir, preload):
     raw = RawArray([stim], create_info(1, o_sfreq, ['stim']),
                    first_samp=first_samp)
     events = find_events(raw)
-    raw, events = raw.resample(n_sfreq, events=events, npad='auto')
+    raw, events = raw.resample(n_sfreq, events=events, npad=npad)
     # Try index into raw.times with resampled events:
     raw.times[events[:, 0] - raw.first_samp]
     n_fsamp = int(first_samp * sfreq_ratio)  # how it's calc'd in base.py
@@ -1175,15 +1188,15 @@ def test_resample(tmpdir, preload):
     # test copy flag
     stim = [1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0]
     raw = RawArray([stim], create_info(1, len(stim), ['stim']))
-    raw_resampled = raw.copy().resample(4., npad='auto')
+    raw_resampled = raw.copy().resample(4., npad=npad)
     assert (raw_resampled is not raw)
-    raw_resampled = raw.resample(4., npad='auto')
+    raw_resampled = raw.resample(4., npad=npad)
     assert (raw_resampled is raw)
 
     # resample should still work even when no stim channel is present
     raw = RawArray(np.random.randn(1, 100), create_info(1, 100, ['eeg']))
     raw.info['lowpass'] = 50.
-    raw.resample(10, npad='auto')
+    raw.resample(10, npad=npad)
     assert raw.info['lowpass'] == 5.
     assert len(raw) == 10
 
@@ -1665,13 +1678,9 @@ def test_file_like(kind, preload, split, tmpdir):
         assert not file_fid.closed
         # Use test_preloading=False but explicitly pass the preload type
         # so that we don't bother testing preload=False
-        kwargs = dict(fname=fid, preload=preload,
+        kwargs = dict(fname=fid, preload=preload, on_split_missing='ignore',
                       test_preloading=False, test_kwargs=False)
-        if split:
-            with pytest.warns(RuntimeWarning, match='Split raw file detected'):
-                _test_raw_reader(read_raw_fif, **kwargs)
-        else:
-            _test_raw_reader(read_raw_fif, **kwargs)
+        _test_raw_reader(read_raw_fif, **kwargs)
         assert not fid.closed
         assert not file_fid.closed
     assert file_fid.closed

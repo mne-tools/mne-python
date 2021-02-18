@@ -318,6 +318,8 @@
 
 .. _Rahul Nadkarni: https://github.com/rahuln
 
+.. _Jonathan Kuziek:  https://github.com/kuziekj
+
 .. _Lau Møller Andersen: https://github.com/ualsbombe
 
 .. _Martin Schulz: https://github.com/marsipu
@@ -329,3 +331,17 @@
 .. _Eduard Ort: https://github.com/eort
 
 .. _Aniket Pradhan: https://github.com/Aniket-Pradhan
+
+.. _Tod Flak: https://github.com/todflak
+
+.. _Austin Hurst: https://github.com/a-hurst
+
+.. _Victoria Peterson: https://github.com/vpeterson
+
+.. _Evan Hathaway: https://github.com/ephathaway
+
+.. _Hongjiang Ye: https://github.com/rubyyhj
+
+.. _Jeff Stout: https://megcore.nih.gov/index.php/Staff
+
+.. _Qianliang Li: https://www.dtu.dk/english/service/phonebook/person?id=126774

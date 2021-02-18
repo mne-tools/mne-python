@@ -8,6 +8,15 @@ Working with ECoG data
 MNE supports working with more than just MEG and EEG data. Here we show some
 of the functions that can be used to facilitate working with
 electrocorticography (ECoG) data.
+
+This example shows how to use:
+
+- ECoG data
+- channel locations in subject's MRI space
+- projection onto a surface
+
+For an example that involves sEEG data, channel locations in
+MNI space, or projection into a volume, see :ref:`tut_working_with_seeg`.
 """
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Chris Holdgraf <choldgraf@gmail.com>
@@ -80,6 +89,9 @@ raw.crop(0, 2)  # just process 2 sec of data for speed
 
 # attach montage
 raw.set_montage(montage)
+
+# set channel types to ECoG (instead of EEG)
+raw.set_channel_types({ch_name: 'ecog' for ch_name in raw.ch_names})
 
 ###############################################################################
 # We can then plot the locations of our electrodes on our subject's brain.
@@ -154,7 +166,7 @@ def animate(i, activity):
 
 # create the figure and apply the animation of the
 # gamma frequency band activity
-fig, ax = plt.subplots(figsize=(10, 10))
+fig, ax = plt.subplots(figsize=(5, 5))
 ax.imshow(im)
 ax.set_axis_off()
 paths = ax.scatter(*xy_pts.T, c=np.zeros(len(xy_pts)), s=200,
@@ -163,10 +175,28 @@ fig.colorbar(paths, ax=ax)
 ax.set_title('Gamma frequency over time (Hilbert transform)',
              size='large')
 
-# sphinx_gallery_thumbnail_number = 3
 # avoid edge artifacts and decimate, showing just a short chunk
-show_power = gamma_power_t[:, 100:-1700:2]
+sl = slice(100, 150)
+show_power = gamma_power_t[:, sl]
 anim = animation.FuncAnimation(fig, animate, init_func=init,
                                fargs=(show_power,),
                                frames=show_power.shape[1],
                                interval=100, blit=True)
+
+###############################################################################
+# Alternatively, we can project the sensor data to the nearest locations on
+# the pial surface and visualize that:
+
+# sphinx_gallery_thumbnail_number = 4
+
+evoked = mne.EvokedArray(
+    gamma_power_t[:, sl], raw.info, tmin=raw.times[sl][0])
+stc = mne.stc_near_sensors(evoked, trans, subject, subjects_dir=subjects_dir)
+clim = dict(kind='value', lims=[vmin * 0.9, vmin, vmax])
+brain = stc.plot(surface='pial', hemi='both', initial_time=0.68,
+                 colormap='viridis', clim=clim, views='parietal',
+                 subjects_dir=subjects_dir, size=(500, 500))
+
+# You can save a movie like the one on our documentation website with:
+# brain.save_movie(time_dilation=50, interpolation='linear', framerate=10,
+#                  time_viewer=True)

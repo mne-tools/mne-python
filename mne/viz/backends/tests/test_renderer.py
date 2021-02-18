@@ -157,7 +157,8 @@ def test_3d_backend(renderer):
                      scalars=np.array([[1.0, 1.0]]))
 
     # scalar bar
-    rend.scalarbar(source=tube, title="Scalar Bar")
+    rend.scalarbar(source=tube, title="Scalar Bar",
+                   bgcolor=[1, 1, 1])
 
     # use text
     rend.text2d(x_window=txt_x, y_window=txt_y, text=txt_text,

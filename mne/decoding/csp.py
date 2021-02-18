@@ -113,9 +113,8 @@ class CSP(TransformerMixin, BaseEstimator):
         self.cov_est = cov_est
 
         # Init default transform_into
-        _check_option('transform_into', transform_into,
-                      ['average_power', 'csp_space'])
-        self.transform_into = transform_into
+        self.transform_into = _check_option('transform_into', transform_into,
+                                            ['average_power', 'csp_space'])
 
         # Init default log
         if transform_into == 'average_power':
@@ -131,9 +130,9 @@ class CSP(TransformerMixin, BaseEstimator):
         _validate_type(norm_trace, bool, 'norm_trace')
         self.norm_trace = norm_trace
         self.cov_method_params = cov_method_params
-        _check_option('component_order', component_order,
-                      ('mutual_info', 'alternate'))
-        self.component_order = component_order
+        self.component_order = _check_option('component_order',
+                                             component_order,
+                                             ('mutual_info', 'alternate'))
 
     def _check_Xy(self, X, y=None):
         """Check input data."""
@@ -476,7 +475,7 @@ class CSP(TransformerMixin, BaseEstimator):
         info = cp.deepcopy(info)
         info['sfreq'] = 1.
         # create an evoked
-        filters = EvokedArray(self.filters_, info, tmin=0)
+        filters = EvokedArray(self.filters_.T, info, tmin=0)
         # the call plot_topomap
         return filters.plot_topomap(
             times=components, ch_type=ch_type, vmin=vmin,
@@ -676,7 +675,8 @@ def _ajd_pham(X, eps=1e-6, max_iter=15):
 class SPoC(CSP):
     """Implementation of the SPoC spatial filtering.
 
-    Source Power Comodulation (SPoC) [1]_ allows to extract spatial filters and
+    Source Power Comodulation (SPoC) :footcite:`DahneEtAl2014` allows to
+    extract spatial filters and
     patterns by using a target (continuous) variable in the decomposition
     process in order to give preference to components whose power correlates
     with the target variable.
@@ -729,10 +729,7 @@ class SPoC(CSP):
 
     References
     ----------
-    .. [1] Dahne, S., Meinecke, F. C., Haufe, S., Hohne, J., Tangermann, M.,
-           Muller, K. R., & Nikulin, V. V. (2014). SPoC: a novel framework for
-           relating the amplitude of neuronal oscillations to behaviorally
-           relevant parameters. NeuroImage, 86, 111-122.
+    .. footbibliography::
     """
 
     def __init__(self, n_components=4, reg=None, log=None,

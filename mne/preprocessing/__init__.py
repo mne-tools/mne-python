@@ -7,7 +7,7 @@
 #
 # License: BSD (3-clause)
 
-from .flat import annotate_flat, mark_flat
+from .flat import annotate_flat
 from .maxfilter import apply_maxfilter
 from .ssp import compute_proj_ecg, compute_proj_eog
 from .eog import find_eog_events, create_eog_epochs
@@ -19,6 +19,7 @@ from ._peak_finder import peak_finder
 from .infomax_ import infomax
 from .stim import fix_stim_artifact
 from .maxwell import maxwell_filter, find_bad_channels_maxwell
+from .realign import realign_raw
 from .xdawn import Xdawn
 from ._csd import compute_current_source_density
 from . import nirs

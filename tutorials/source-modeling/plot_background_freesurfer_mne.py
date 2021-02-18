@@ -183,6 +183,18 @@ imshow_mri(data, t1, vox, {'Scanner RAS': xyz_ras}, 'MRI slice')
 # axes of the volume itself. For more information, see
 # :ref:`coordinate_systems`.
 #
+# .. note:: In general, you should assume that the MRI coordinate system for
+#           a given subject is specific to that subject, i.e., it is not the
+#           same coordinate MRI coordinate system that is used for any other
+#           FreeSurfer subject. Even though during processing FreeSurfer will
+#           align each subject's MRI to ``fsaverage`` to do reconstruction,
+#           all data (surfaces, MRIs, etc.) get stored in the coordinate frame
+#           specific to that subject. This is why it's important for group
+#           analyses to transform data to a common coordinate frame for example
+#           by :ref:`surface <ex-morph-surface>` or
+#           :ref:`volumetric <ex-morph-volume>` morphing, or even by just
+#           applying :ref:`mni-affine-transformation` to points.
+#
 # Since MNE-Python uses FreeSurfer extensively for surface computations (e.g.,
 # white matter, inner/outer skull meshes), internally MNE-Python uses the
 # Freeurfer surface RAS coordinate system (not the :mod:`nibabel` scanner RAS
@@ -425,7 +437,40 @@ renderer.quiver3d([0], [-width / 2.], [0], [0], [1], [0], 'k', width, 'arrow')
 mne.viz.set_3d_view(figure=renderer.figure, distance=400, **view_kwargs)
 renderer.show()
 
+
 ###############################################################################
 # .. warning::
 #    Some source space vertices can be removed during forward computation.
 #    See :ref:`tut-forward` for more information.
+#
+# .. _mni-affine-transformation:
+#
+# FreeSurfer's MNI affine transformation
+# --------------------------------------
+# In addition to surface-based approaches, FreeSurfer also provides a simple
+# affine coregistration of each subject's data to the ``fsaverage`` subject.
+# Let's pick a point for ``sample`` and plot it on the brain:
+
+brain = mne.viz.Brain('sample', 'lh', 'white', subjects_dir=subjects_dir,
+                      background='w')
+xyz = np.array([[-55, -10, 35]])
+brain.add_foci(xyz, hemi='lh', color='k')
+brain.show_view('lat')
+
+###############################################################################
+# We can take this point and transform it to MNI space:
+
+mri_mni_trans = mne.read_talxfm(subject, subjects_dir)
+print(mri_mni_trans)
+xyz_mni = apply_trans(mri_mni_trans, xyz / 1000.) * 1000.
+print(np.round(xyz_mni, 1))
+
+###############################################################################
+# And because ``fsaverage`` is special in that it's already in MNI space
+# (its MRI-to-MNI transform is identity), it should land in the equivalent
+# anatomical location:
+
+brain = mne.viz.Brain('fsaverage', 'lh', 'white', subjects_dir=subjects_dir,
+                      background='w')
+brain.add_foci(xyz_mni, hemi='lh', color='k')
+brain.show_view('lat')

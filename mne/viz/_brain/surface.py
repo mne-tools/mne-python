@@ -81,12 +81,11 @@ class Surface(object):
             raise ValueError('offset should either float or int, given ' +
                              'type {0}'.format(type(offset).__name__))
 
-        _check_option('units', units, ('mm', 'm'))
+        self.units = _check_option('units', units, ('mm', 'm'))
         self.subject_id = subject_id
         self.hemi = hemi
         self.surf = surf
         self.offset = offset
-        self.units = units
         self.bin_curv = None
         self.coords = None
         self.curv = None

@@ -9,9 +9,8 @@
 #
 # License: Simplified BSD
 
-from ._brain import Brain
+from ._brain import Brain, _LayeredMesh
 from ._scraper import _BrainScraper
-from ._timeviewer import _TimeViewer
 from ._linkviewer import _LinkViewer
 
 __all__ = ['Brain']

@@ -11,7 +11,7 @@ from numpy.testing import assert_array_equal
 
 import mne
 from mne.utils import requires_good_network
-from mne.utils import requires_pandas, requires_version, check_version
+from mne.utils import requires_pandas, requires_version
 from mne.datasets.sleep_physionet import age, temazepam
 from mne.datasets.sleep_physionet._utils import _update_sleep_temazepam_records
 from mne.datasets.sleep_physionet._utils import _update_sleep_age_records
@@ -79,15 +79,7 @@ def test_run_update_age_records(tmpdir):
     fname = op.join(str(tmpdir), "records.csv")
     _update_sleep_age_records(fname)
     data = pd.read_csv(fname)
-
-    if not check_version('pandas', '0.23.0'):
-        expected = pd.read_csv(AGE_SLEEP_RECORDS)
-        assert_array_equal(
-            data[['subject', 'sha', 'fname']].values,
-            expected[['subject', 'sha', 'fname']].values,
-        )
-    else:
-        pd.testing.assert_frame_equal(data, pd.read_csv(AGE_SLEEP_RECORDS))
+    pd.testing.assert_frame_equal(data, pd.read_csv(AGE_SLEEP_RECORDS))
 
 
 @pytest.mark.parametrize('subject', [39, 68, 69, 78, 79, 83])
@@ -189,15 +181,8 @@ def test_run_update_temazepam_records(tmpdir):
     _update_sleep_temazepam_records(fname)
     data = pd.read_csv(fname)
 
-    if not check_version('pandas', '0.23.0'):
-        expected = pd.read_csv(TEMAZEPAM_SLEEP_RECORDS)
-        assert_array_equal(
-            data[['subject', 'sha_Hypnogram', 'sha_PSG']].values,
-            expected[['subject', 'sha_Hypnogram', 'sha_PSG']].values,
-        )
-    else:
-        pd.testing.assert_frame_equal(
-            data, pd.read_csv(TEMAZEPAM_SLEEP_RECORDS))
+    pd.testing.assert_frame_equal(
+        data, pd.read_csv(TEMAZEPAM_SLEEP_RECORDS))
 
 
 def test_sleep_physionet_temazepam(physionet_tmpdir, monkeypatch):

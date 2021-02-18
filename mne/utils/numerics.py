@@ -651,7 +651,7 @@ def object_hash(x, h=None):
     return int(h.hexdigest(), 16)
 
 
-def object_size(x):
+def object_size(x, memo=None):
     """Estimate the size of a reasonable python object.
 
     Parameters
@@ -660,6 +660,8 @@ def object_size(x):
         Object to approximate the size of.
         Can be anything comprised of nested versions of:
         {dict, list, tuple, ndarray, str, bytes, float, int, None}.
+    memo : dict | None
+        The memodict.
 
     Returns
     -------
@@ -668,28 +670,36 @@ def object_size(x):
     """
     # Note: this will not process object arrays properly (since those only)
     # hold references
+    if memo is None:
+        memo = dict()
+    id_ = id(x)
+    if id_ in memo:
+        return 0  # do not add already existing ones
     if isinstance(x, (bytes, str, int, float, type(None))):
         size = sys.getsizeof(x)
     elif isinstance(x, np.ndarray):
         # On newer versions of NumPy, just doing sys.getsizeof(x) works,
         # but on older ones you always get something small :(
-        size = sys.getsizeof(np.array([])) + x.nbytes
+        size = sys.getsizeof(np.array([]))
+        if x.base is None or id(x.base) not in memo:
+            size += x.nbytes
     elif isinstance(x, np.generic):
         size = x.nbytes
     elif isinstance(x, dict):
         size = sys.getsizeof(x)
         for key, value in x.items():
-            size += object_size(key)
-            size += object_size(value)
+            size += object_size(key, memo)
+            size += object_size(value, memo)
     elif isinstance(x, (list, tuple)):
-        size = sys.getsizeof(x) + sum(object_size(xx) for xx in x)
+        size = sys.getsizeof(x) + sum(object_size(xx, memo) for xx in x)
     elif isinstance(x, datetime):
-        size = object_size(_dt_to_stamp(x))
+        size = object_size(_dt_to_stamp(x), memo)
     elif sparse.isspmatrix_csc(x) or sparse.isspmatrix_csr(x):
         size = sum(sys.getsizeof(xx)
                    for xx in [x, x.data, x.indices, x.indptr])
     else:
         raise RuntimeError('unsupported type: %s (%s)' % (type(x), x))
+    memo[id_] = size
     return size
 
 

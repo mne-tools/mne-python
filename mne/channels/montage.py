@@ -28,14 +28,15 @@ from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
 from ..io._digitization import (_count_points_by_type,
                                 _get_dig_eeg, _make_dig_points, write_dig,
                                 _read_dig_fif, _format_dig_points,
-                                _get_fid_coords, _coord_frame_const)
+                                _get_fid_coords, _coord_frame_const,
+                                _get_data_as_dict_from_dig)
 from ..io.meas_info import create_info
 from ..io.open import fiff_open
 from ..io.pick import pick_types
 from ..io.constants import FIFF
-from ..utils import (warn, copy_function_doc_to_method_doc, _pl,
+from ..utils import (warn, copy_function_doc_to_method_doc, _pl, verbose,
                      _check_option, _validate_type, _check_fname, _on_missing,
-                     fill_doc, deprecated)
+                     fill_doc)
 
 from ._dig_montage_utils import _read_dig_montage_egi
 from ._dig_montage_utils import _parse_brainvision_dig_montage
@@ -55,9 +56,11 @@ _BUILT_IN_MONTAGES = [
 
 
 def _check_get_coord_frame(dig):
-    _MSG = 'Only single coordinate frame in dig is supported'
-    dig_coord_frames = set([d['coord_frame'] for d in dig])
-    assert len(dig_coord_frames) <= 1, _MSG
+    dig_coord_frames = sorted(set(d['coord_frame'] for d in dig))
+    if len(dig_coord_frames) != 1:
+        raise RuntimeError(
+            'Only a single coordinate frame in dig is supported, got '
+            f'{dig_coord_frames}')
     return _frame_to_str[dig_coord_frames.pop()] if dig_coord_frames else None
 
 
@@ -217,10 +220,8 @@ class DigMontage(object):
         fname : str
             The filename to use. Should end in .fif or .fif.gz.
         """
-        if _check_get_coord_frame(self.dig) != 'head':
-            raise RuntimeError('Can only write out digitization points in '
-                               'head coordinates.')
-        write_dig(fname, self.dig)
+        coord_frame = _check_get_coord_frame(self.dig)
+        write_dig(fname, self.dig, coord_frame)
 
     def __iadd__(self, other):
         """Add two DigMontages in place.
@@ -303,6 +304,49 @@ class DigMontage(object):
             dig_names[dig_idx] = self.ch_names[ch_name_idx]
 
         return dig_names
+
+    def get_positions(self):
+        """Get all channel and fiducial positions.
+
+        Returns
+        -------
+        positions : dict
+            A dictionary of the positions for channels (``ch_pos``),
+            coordinate frame (``coord_frame``), nasion (``nasion``),
+            left preauricular point (``lpa``),
+            right preauricular point (``rpa``),
+            Head Shape Polhemus (``hsp``), and
+            Head Position Indicator(``hpi``).
+            E.g.::
+
+                {
+                    'ch_pos': {'EEG061': [0, 0, 0]},
+                    'nasion': [0, 0, 1],
+                    'lpa': [0, 1, 0],
+                    'rpa': [1, 0, 0],
+                    'hsp': None,
+                    'hpi': None
+                }
+        """
+        # get channel positions as dict
+        ch_pos = self._get_ch_pos()
+
+        # _get_fid_coords(self.dig)
+        # get coordframe and fiducial coordinates
+        montage_bunch = _get_data_as_dict_from_dig(self.dig)
+        coord_frame = _frame_to_str.get(montage_bunch.coord_frame)
+
+        # return dictionary
+        positions = dict(
+            ch_pos=ch_pos,
+            coord_frame=coord_frame,
+            nasion=montage_bunch.nasion,
+            lpa=montage_bunch.lpa,
+            rpa=montage_bunch.rpa,
+            hsp=montage_bunch.hsp,
+            hpi=montage_bunch.hpi,
+        )
+        return positions
 
 
 VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
@@ -612,36 +656,6 @@ def read_dig_captrak(fname):
     data = _parse_brainvision_dig_montage(fname, scale=1e-3)
 
     return make_dig_montage(**data)
-
-
-@deprecated('read_dig_captrack is deprecated and will be removed in 0.22; '
-            'please use read_dig_captrak instead '
-            '(note the spelling correction: captraCK -> captraK).')
-def read_dig_captrack(fname):
-    """Read electrode locations from CapTrak Brain Products system.
-
-    Parameters
-    ----------
-    fname : path-like
-        BrainVision CapTrak coordinates file from which to read EEG electrode
-        locations. This is typically in XML format with the .bvct extension.
-
-    Returns
-    -------
-    montage : instance of DigMontage
-        The montage.
-
-    See Also
-    --------
-    DigMontage
-    read_dig_dat
-    read_dig_egi
-    read_dig_fif
-    read_dig_hpts
-    read_dig_polhemus_isotrak
-    make_dig_montage
-    """
-    return read_dig_captrak(fname)
 
 
 def _get_montage_in_head(montage):
@@ -957,7 +971,9 @@ def _is_polhemus_fastscan(fname):
     return 'FastSCAN' in header
 
 
-def read_polhemus_fastscan(fname, unit='mm'):
+@verbose
+def read_polhemus_fastscan(fname, unit='mm', on_header_missing='raise', *,
+                           verbose=None):
     """Read Polhemus FastSCAN digitizer data from a ``.txt`` file.
 
     Parameters
@@ -967,6 +983,8 @@ def read_polhemus_fastscan(fname, unit='mm'):
     unit : 'm' | 'cm' | 'mm'
         Unit of the digitizer file. Polhemus FastSCAN systems data is usually
         exported in millimeters. Defaults to 'mm'.
+    %(on_header_missing)s
+    %(verbose)s
 
     Returns
     -------
@@ -985,11 +1003,11 @@ def read_polhemus_fastscan(fname, unit='mm'):
     _check_option('fname', ext, VALID_FILE_EXT)
 
     if not _is_polhemus_fastscan(fname):
-        raise ValueError(
-            "%s does not contain Polhemus FastSCAN header" % fname)
+        msg = "%s does not contain a valid Polhemus FastSCAN header" % fname
+        _on_missing(on_header_missing, msg)
 
     points = _scale * np.loadtxt(fname, comments='%', ndmin=2)
-
+    _check_dig_shape(points)
     return points
 
 
@@ -1263,3 +1281,10 @@ def make_standard_montage(kind, head_size=HEAD_SIZE_DEFAULT):
     from ._standard_montage_utils import standard_montage_look_up_table
     _check_option('kind', kind, _BUILT_IN_MONTAGES)
     return standard_montage_look_up_table[kind](head_size=head_size)
+
+
+def _check_dig_shape(pts):
+    _validate_type(pts, np.ndarray, 'points')
+    if pts.ndim != 2 or pts.shape[-1] != 3:
+        raise ValueError(
+            f'Points must be of shape (n, 3) instead of {pts.shape}')

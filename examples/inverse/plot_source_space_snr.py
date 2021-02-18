@@ -4,7 +4,8 @@
 Computing source space SNR
 ===============================
 
-This example shows how to compute and plot source space SNR as in [1]_.
+This example shows how to compute and plot source space SNR as in
+:footcite:`GoldenholzEtAl2009`.
 """
 # Author: Padma Sundaram <tottochan@gmail.com>
 #         Kaisu Lankinen <klankinen@mgh.harvard.edu>
@@ -52,7 +53,7 @@ ax.plot(evoked.times, ave)
 ax.set(xlabel='Time (sec)', ylabel='SNR MEG-EEG')
 fig.tight_layout()
 
-# Find time point of maximum SNR:
+# Find time point of maximum SNR
 maxidx = np.argmax(ave)
 
 # Plot SNR on source space at the time point of maximum SNR:
@@ -80,8 +81,4 @@ brain = snr_stc_eeg.plot(**kwargs)
 #
 # References
 # ----------
-# .. [1] Goldenholz, D. M., Ahlfors, S. P., Hämäläinen, M. S., Sharon, D.,
-#        Ishitobi, M., Vaina, L. M., & Stufflebeam, S. M. (2009). Mapping the
-#        Signal-To-Noise-Ratios of Cortical Sources in Magnetoencephalography
-#        and Electroencephalography. Human Brain Mapping, 30(4), 1077–1086.
-#        doi:10.1002/hbm.20571
+# .. footbibliography::

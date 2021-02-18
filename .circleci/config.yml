@@ -81,6 +81,8 @@ jobs:
             command: |
               python -m pip install --user --upgrade --progress-bar off pip setuptools
               python -m pip install --user --upgrade --progress-bar off --pre sphinx
+              python -m pip install --user --progress-bar off https://github.com/pyvista/pyvista/zipball/master
+              python -m pip install --user --progress-bar off https://github.com/pyvista/pyvistaqt/zipball/master
               python -m pip install --user --upgrade --progress-bar off -r requirements.txt -r requirements_testing.txt -r requirements_doc.txt
               python -m pip uninstall -yq pysurfer mayavi
               python -m pip install --user -e .
@@ -113,115 +115,13 @@ jobs:
               python setup.py develop --user
               mkdir -p ~/mne_data
               touch pattern.txt;
-              if [ "$CIRCLE_BRANCH" == "master" ] || [[ $(cat gitlog.txt) == *"[circle full]"* ]]; then
-                echo "Doing a full dev build";
-                echo html_dev > build.txt;
-                python -c "import mne; mne.datasets._download_all_example_data()";
-              elif [ "$CIRCLE_BRANCH" == "maint/0.21" ]; then
-                echo "Doing a full stable build";
-                echo html_stable > build.txt;
-                python -c "import mne; mne.datasets._download_all_example_data()";
-              else
-                echo "Doing a partial build";
-                if ! git remote -v | grep upstream ; then git remote add upstream git://github.com/mne-tools/mne-python.git; fi
-                git fetch upstream
-                FNAMES=$(git diff --name-only $(git merge-base $CIRCLE_BRANCH upstream/master) $CIRCLE_BRANCH);
-                if [[ $(cat gitlog.txt) == *"[circle front]"* ]]; then
-                  FNAMES="tutorials/source-modeling/plot_mne_dspm_source_localization.py tutorials/machine-learning/plot_receptive_field.py examples/connectivity/plot_mne_inverse_label_connectivity.py tutorials/machine-learning/plot_sensors_decoding.py tutorials/stats-source-space/plot_stats_cluster_spatio_temporal.py tutorials/evoked/plot_20_visualize_evoked.py "${FNAMES};
-                  python -c "import mne; print(mne.datasets.testing.data_path(update_path=True))";
-                fi;
-                echo FNAMES="$FNAMES";
-                for FNAME in $FNAMES; do
-                  if [[ `expr match $FNAME "\(tutorials\|examples\)/.*plot_.*\.py"` ]] ; then
-                    echo "Checking example $FNAME ...";
-                    PATTERN=`basename $FNAME`"\\|"$PATTERN;
-                    if [[ $(cat $FNAME | grep -x ".*datasets.*sample.*" | wc -l) -gt 0 ]]; then
-                      python -c "import mne; print(mne.datasets.sample.data_path(update_path=True))";
-                    fi;
-                    if [[ $(cat $FNAME | grep -x ".*datasets.*fetch_fsaverage.*" | wc -l) -gt 0 ]]; then
-                      python -c "import mne; print(mne.datasets.fetch_fsaverage(verbose=True))";
-                    fi;
-                    if [[ $(cat $FNAME | grep -x ".*datasets.*spm_face.*" | wc -l) -gt 0 ]]; then
-                      python -c "import mne; print(mne.datasets.spm_face.data_path(update_path=True))";
-                    fi;
-                    if [[ $(cat $FNAME | grep -x ".*datasets.*somato.*" | wc -l) -gt 0 ]]; then
-                      python -c "import mne; print(mne.datasets.somato.data_path(update_path=True))";
-                    fi;
-                    if [[ $(cat $FNAME | grep -x ".*datasets.*eegbci.*" | wc -l) -gt 0 ]]; then
-                      python -c "import mne; print(mne.datasets.eegbci.load_data(1, [3, 6, 10, 14], update_path=True))";
-                      python -c "import mne; print(mne.datasets.eegbci.load_data(2, [3], update_path=True))";
-                      python -c "import mne; print(mne.datasets.eegbci.load_data(3, [3], update_path=True))";
-                      python -c "import mne; print(mne.datasets.eegbci.load_data(4, [3], update_path=True))";
-                    fi;
-                    if [[ $(cat $FNAME | grep -x ".*datasets.*sleep_physionet.*" | wc -l) -gt 0 ]]; then
-                      python -c "import mne; print(mne.datasets.sleep_physionet.age.fetch_data([0, 1], recording=[1], update_path=True))";
-                    fi;
-                    if [[ $(cat $FNAME | grep -x ".*datasets.*hf_sef.*" | wc -l) -gt 0 ]]; then
-                      python -c "import mne; print(mne.datasets.hf_sef.data_path(update_path=True))";
-                    fi;
-                    if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_auditory.*" | wc -l) -gt 0 ]]; then
-                      python -c "import mne; print(mne.datasets.brainstorm.bst_auditory.data_path(update_path=True))" --accept-brainstorm-license;
-                    fi;
-                    if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_resting.*" | wc -l) -gt 0 ]]; then
-                      python -c "import mne; print(mne.datasets.brainstorm.bst_resting.data_path(update_path=True))" --accept-brainstorm-license;
-                    fi;
-                    if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_raw.*" | wc -l) -gt 0 ]]; then
-                      python -c "import mne; print(mne.datasets.brainstorm.bst_raw.data_path(update_path=True))" --accept-brainstorm-license;
-                    fi;
-                    if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_phantom_ctf.*" | wc -l) -gt 0 ]]; then
-                      python -c "import mne; print(mne.datasets.brainstorm.bst_phantom_ctf.data_path(update_path=True))" --accept-brainstorm-license;
-                    fi;
-                    if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_phantom_elekta.*" | wc -l) -gt 0 ]]; then
-                      python -c "import mne; print(mne.datasets.brainstorm.bst_phantom_elekta.data_path(update_path=True))" --accept-brainstorm-license;
-                    fi;
-                    if [[ $(cat $FNAME | grep -x ".*datasets.*hcp_mmp_parcellation.*" | wc -l) -gt 0 ]]; then
-                      python -c "import mne; print(mne.datasets.sample.data_path(update_path=True))";
-                      python -c "import mne; print(mne.datasets.fetch_hcp_mmp_parcellation(subjects_dir=mne.datasets.sample.data_path() + '/subjects'))" --accept-hcpmmp-license;
-                    fi;
-                    if [[ $(cat $FNAME | grep -x ".*datasets.*misc.*" | wc -l) -gt 0 ]]; then
-                      python -c "import mne; print(mne.datasets.misc.data_path(update_path=True))";
-                    fi;
-                    if [[ $(cat $FNAME | grep -x ".*datasets.*testing.*" | wc -l) -gt 0 ]]; then
-                      python -c "import mne; print(mne.datasets.testing.data_path(update_path=True))";
-                    fi;
-                    if [[ $(cat $FNAME | grep -x ".*datasets.*kiloword.*" | wc -l) -gt 0 ]]; then
-                      python -c "import mne; print(mne.datasets.kiloword.data_path(update_path=True))";
-                    fi;
-                    if [[ $(cat $FNAME | grep -x ".*datasets.*mtrf.*" | wc -l) -gt 0 ]]; then
-                      python -c "import mne; print(mne.datasets.mtrf.data_path(update_path=True))";
-                    fi;
-                    if [[ $(cat $FNAME | grep -x ".*datasets.*fieldtrip_cmc.*" | wc -l) -gt 0 ]]; then
-                      python -c "import mne; print(mne.datasets.fieldtrip_cmc.data_path(update_path=True))";
-                    fi;
-                    if [[ $(cat $FNAME | grep -x ".*datasets.*multimodal.*" | wc -l) -gt 0 ]]; then
-                      python -c "import mne; print(mne.datasets.multimodal.data_path(update_path=True))";
-                    fi;
-                    if [[ $(cat $FNAME | grep -x ".*datasets.*fnirs_motor.*" | wc -l) -gt 0 ]]; then
-                      python -c "import mne; print(mne.datasets.fnirs_motor.data_path(update_path=True))";
-                    fi;
-                    if [[ $(cat $FNAME | grep -x ".*datasets.*opm.*" | wc -l) -gt 0 ]]; then
-                      python -c "import mne; print(mne.datasets.opm.data_path(update_path=True))";
-                    fi;
-                    if [[ $(cat $FNAME | grep -x ".*datasets.*phantom_4dbti.*" | wc -l) -gt 0 ]]; then
-                      python -c "import mne; print(mne.datasets.phantom_4dbti.data_path(update_path=True))";
-                    fi;
-                    if [[ $(cat $FNAME | grep -x ".*datasets.*limo.*" | wc -l) -gt 0 ]]; then
-                      python -c "import mne; print(mne.datasets.limo.data_path(subject=1, update_path=True))";
-                    fi;
-                    if [[ $(cat $FNAME | grep -x ".*datasets.*refmeg_noise.*" | wc -l) -gt 0 ]]; then
-                      python -c "import mne; print(mne.datasets.refmeg_noise.data_path(update_path=True))";
-                    fi;
-                  fi;
-                done;
-                echo PATTERN="$PATTERN";
-                if [[ $PATTERN ]]; then
-                  PATTERN="\(${PATTERN::-2}\)";
-                  echo html_dev-pattern > build.txt;
-                else
-                  echo html_dev-noplot > build.txt;
-                fi;
-              fi;
-              echo "$PATTERN" > pattern.txt;
+              ./tools/circleci_download.sh
+
+        - run:
+            name: Get data (again)
+            when: on_fail
+            command: |
+              ./tools/circleci_download.sh
 
         - run:
             name: Verify build type
@@ -234,7 +134,7 @@ jobs:
         - run:
             name: make test-doc
             command: |
-              if [[ $(cat gitlog.txt) == *"[circle front]"* ]] || [[ $(cat build.txt) == "html_dev" ]] || [[ $(cat build.txt) == "html_stable" ]]; then
+              if [[ $(cat gitlog.txt) == *"[circle front]"* ]] || [[ $(cat build.txt) == "html_dev-memory" ]] || [[ $(cat build.txt) == "html_stable-memory" ]]; then
                 make test-doc;
                 mkdir -p doc/_build/test-results/test-doc;
                 cp junit-results.xml doc/_build/test-results/test-doc/junit.xml;
@@ -246,6 +146,16 @@ jobs:
               cd doc;
               PATTERN=$(cat ../pattern.txt) make $(cat ../build.txt);
         - run:
+            name: Show profiling output
+            when: always
+            command: |
+              if compgen -G "doc/*.dat" > /dev/null; then
+                mkdir -p doc/generated
+                mprof plot doc/*.dat --output doc/generated/memory.png
+              else
+                echo "No profile data found in doc/"
+              fi
+        - run:
             name: Sanity check system state
             command: |
               python -c "import mne; level = mne.get_config('MNE_LOGGING_LEVEL'); assert level.lower() == 'info', repr(level)"
@@ -254,7 +164,7 @@ jobs:
         - run:
             name: Reduce artifact upload time
             command: |
-              if grep -q html_dev-pattern build.txt || grep -q html_dev-noplot build.txt; then
+              if grep -q html_dev-pattern-memory build.txt || grep -q html_dev-noplot build.txt; then
                 tar czf doc/_build/html/_downloads.tgz doc/_build/html/_downloads
                 rm -Rf doc/_build/html/_downloads
                 rm -f doc/auto_*/*/*.pickle
@@ -395,16 +305,16 @@ jobs:
             name: Deploy docs
             command: |
               set -e;
-              if [ "${CIRCLE_BRANCH}" == "master" ] || [ "${CIRCLE_BRANCH}" == "maint/0.21" ]; then
+              if [ "${CIRCLE_BRANCH}" == "main" ] || [ "${CIRCLE_BRANCH}" == "maint/0.22" ]; then
                 git config --global user.email "circle@mne.com";
                 git config --global user.name "Circle CI";
                 cd ~/mne-tools.github.io;
-                git checkout master
+                git checkout main
                 git remote -v
                 git fetch origin
-                git reset --hard origin/master
+                git reset --hard origin/main
                 git clean -xdf
-                if [ "${CIRCLE_BRANCH}" == "master" ]; then
+                if [ "${CIRCLE_BRANCH}" == "main" ]; then
                   echo "Deploying dev docs for ${CIRCLE_BRANCH}.";
                   rm -Rf dev;
                   cp -a /tmp/build/html dev;
@@ -417,7 +327,7 @@ jobs:
                   git add -A;
                   git commit -m "CircleCI update of stable docs (${CIRCLE_BUILD_NUM}).";
                 fi;
-                git push origin master;
+                git push origin main;
               else
                 echo "No deployment (build: ${CIRCLE_BRANCH}).";
               fi
@@ -425,6 +335,41 @@ jobs:
             key: website-cache
             paths:
               - ~/mne_data/MNE-visual_92_categories-data
+
+
+    interactive_test:
+      docker:
+        - image: circleci/python:3.8.5-buster
+      steps:
+        - checkout
+        - run:
+            name: Get Python running
+            command: |
+              python -m pip install --user --upgrade --progress-bar off pip setuptools
+              python -m pip install -i "https://pypi.anaconda.org/scipy-wheels-nightly/simple" --pre numpy
+              python -m pip install -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" scipy pandas scikit-learn matplotlib h5py Pillow
+              python -m pip install -r requirements_testing.txt
+              python -m pip install --user -e .
+
+        # Look at what we have and fail early if there is some library conflict
+        - run:
+            name: Check installation
+            command: |
+              which python
+              python -c "import numpy; numpy.show_config()"
+              python -c "from numpy._pytesttester import _show_numpy_info; _show_numpy_info()"
+
+        # Figure out if we should run a full, pattern, or noplot version
+        - run:
+            name: Get data
+            command: |
+              python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
+
+        # Run doctest (if it's full or front) before building the docs
+        - run:
+            name: pytest
+            command: |
+              pytest -m "not ultraslowtest" mne -xv
 
 workflows:
   version: 2
@@ -438,8 +383,9 @@ workflows:
           filters:
             branches:
               only:
-                - master
-                - maint/0.21
+                - main
+                - maint/0.22
+      # interactive_test
 
   weekly:
     jobs:
@@ -451,4 +397,4 @@ workflows:
           filters:
             branches:
               only:
-                - master
+                - main

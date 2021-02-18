@@ -48,8 +48,8 @@ def my_callback(ax, ch_idx):
     two parameters, the axis and the channel or data index.
     """
     ax.plot(freqs, psds[ch_idx], color='red')
-    ax.set_xlabel = 'Frequency (Hz)'
-    ax.set_ylabel = 'Power (dB)'
+    ax.set_xlabel('Frequency (Hz)')
+    ax.set_ylabel('Power (dB)')
 
 
 for ax, idx in iter_topography(raw.info,

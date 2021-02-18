@@ -4,8 +4,8 @@ Compute iterative reweighted TF-MxNE with multiscale time-frequency dictionary
 ==============================================================================
 
 The iterative reweighted TF-MxNE solver is a distributed inverse method
-based on the TF-MxNE solver, which promotes focal (sparse) sources [1]_.
-The benefit of this approach is that:
+based on the TF-MxNE solver, which promotes focal (sparse) sources
+:footcite:`StrohmeierEtAl2015`. The benefit of this approach is that:
 
   - it is spatio-temporal without assuming stationarity (sources properties
     can vary over time),
@@ -13,7 +13,7 @@ The benefit of this approach is that:
   - the solver uses non-convex penalties in the TF domain, which results in a
     solution less biased towards zero than when simple TF-MxNE is used,
   - using a multiscale dictionary allows to capture short transient
-    activations along with slower brain waves [2]_.
+    activations along with slower brain waves :footcite:`BekhtiEtAl2016`.
 """
 # Author: Mathurin Massias <mathurin.massias@gmail.com>
 #         Yousra Bekhti <yousra.bekhti@gmail.com>
@@ -113,14 +113,4 @@ residual.plot(titles=dict(grad='Residuals: Gradiometers'), ylim=ylim,
 ###############################################################################
 # References
 # ----------
-# .. [1] D. Strohmeier, A. Gramfort, J. Haueisen
-#  "MEG/EEG Source Imaging with a Non-Convex Penalty in the Time-Frequency
-#  Domain", 5th International Workshop on Pattern Recognition in
-#  Neuroimaging (PRNI), 2015
-#  DOI: 10.1109/PRNI.2015.14
-#
-# .. [2] Y. Bekhti, D. Strohmeier, M. Jas, R. Badeau, A. Gramfort
-#  "M/EEG Source Localization with Multi-Scale Time-Frequency Dictionaries"
-#  6th International Workshop on Pattern Recognition in
-#  Neuroimaging (PRNI), 2016
-#  DOI: 10.1109/PRNI.2016.7552337
+# .. footbibliography::

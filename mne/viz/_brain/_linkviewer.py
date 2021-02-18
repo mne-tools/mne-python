@@ -8,12 +8,12 @@ from ...utils import warn
 
 
 class _LinkViewer(object):
-    """Class to link multiple _TimeViewer objects."""
+    """Class to link multiple Brain objects."""
 
     def __init__(self, brains, time=True, camera=False, colorbar=True,
                  picking=False):
         self.brains = brains
-        self.time_viewers = [brain.time_viewer for brain in brains]
+        self.leader = self.brains[0]  # select a brain as leader
 
         # check time infos
         times = [brain._times for brain in brains]
@@ -40,63 +40,61 @@ class _LinkViewer(object):
             )
 
             # link toggle to start/pause playback
-            for time_viewer in self.time_viewers:
-                time_viewer.actions["play"].triggered.disconnect()
-                time_viewer.actions["play"].triggered.connect(
+            for brain in self.brains:
+                brain.actions["play"].triggered.disconnect()
+                brain.actions["play"].triggered.connect(
                     self.toggle_playback)
 
             # link time course canvas
             def _time_func(*args, **kwargs):
-                for time_viewer in self.time_viewers:
-                    time_viewer.callbacks["time"](*args, **kwargs)
+                for brain in self.brains:
+                    brain.callbacks["time"](*args, **kwargs)
 
-            for time_viewer in self.time_viewers:
-                if time_viewer.show_traces:
-                    time_viewer.mpl_canvas.time_func = _time_func
+            for brain in self.brains:
+                if brain.show_traces:
+                    brain.mpl_canvas.time_func = _time_func
 
         if picking:
             def _func_add(*args, **kwargs):
-                for time_viewer in self.time_viewers:
-                    time_viewer._add_point(*args, **kwargs)
-                    time_viewer.plotter.update()
+                for brain in self.brains:
+                    brain._add_vertex_glyph2(*args, **kwargs)
+                    brain.plotter.update()
 
             def _func_remove(*args, **kwargs):
-                for time_viewer in self.time_viewers:
-                    time_viewer._remove_point(*args, **kwargs)
+                for brain in self.brains:
+                    brain._remove_vertex_glyph2(*args, **kwargs)
 
             # save initial picked points
             initial_points = dict()
             for hemi in ('lh', 'rh'):
                 initial_points[hemi] = set()
-                for time_viewer in self.time_viewers:
+                for brain in self.brains:
                     initial_points[hemi] |= \
-                        set(time_viewer.picked_points[hemi])
+                        set(brain.picked_points[hemi])
 
             # link the viewers
-            for time_viewer in self.time_viewers:
-                time_viewer.clear_points()
-                time_viewer._add_point = time_viewer.add_point
-                time_viewer.add_point = _func_add
-                time_viewer._remove_point = time_viewer.remove_point
-                time_viewer.remove_point = _func_remove
+            for brain in self.brains:
+                brain.clear_glyphs()
+                brain._add_vertex_glyph2 = brain._add_vertex_glyph
+                brain._add_vertex_glyph = _func_add
+                brain._remove_vertex_glyph2 = brain._remove_vertex_glyph
+                brain._remove_vertex_glyph = _func_remove
 
             # link the initial points
-            leader = self.time_viewers[0]  # select a time_viewer as leader
             for hemi in initial_points.keys():
-                if hemi in time_viewer.brain._hemi_meshes:
-                    mesh = time_viewer.brain._hemi_meshes[hemi]
+                if hemi in brain._layered_meshes:
+                    mesh = brain._layered_meshes[hemi]._polydata
                     for vertex_id in initial_points[hemi]:
-                        leader.add_point(hemi, mesh, vertex_id)
+                        self.leader._add_vertex_glyph(hemi, mesh, vertex_id)
 
         if colorbar:
-            leader = self.time_viewers[0]  # select a time_viewer as leader
-            fmin = leader.brain._data["fmin"]
-            fmid = leader.brain._data["fmid"]
-            fmax = leader.brain._data["fmax"]
-            for time_viewer in self.time_viewers:
-                time_viewer.callbacks["fmin"](fmin)
-                time_viewer.callbacks["fmid"](fmid)
-                time_viewer.callbacks["fmax"](fmax)
+            fmin = self.leader._data["fmin"]
+            fmid = self.leader._data["fmid"]
+            fmax = self.leader._data["fmax"]
+            for brain in self.brains:
+                brain.callbacks["fmin"](fmin)
+                brain.callbacks["fmid"](fmid)
+                brain.callbacks["fmax"](fmax)
 
             for slider_name in ('fmin', 'fmid', 'fmax'):
                 func = getattr(self, "set_" + slider_name)
@@ -107,37 +105,36 @@ class _LinkViewer(object):
                 )
 
     def set_fmin(self, value):
-        for time_viewer in self.time_viewers:
-            time_viewer.callbacks["fmin"](value)
+        for brain in self.brains:
+            brain.callbacks["fmin"](value)
 
     def set_fmid(self, value):
-        for time_viewer in self.time_viewers:
-            time_viewer.callbacks["fmid"](value)
+        for brain in self.brains:
+            brain.callbacks["fmid"](value)
 
     def set_fmax(self, value):
-        for time_viewer in self.time_viewers:
-            time_viewer.callbacks["fmax"](value)
+        for brain in self.brains:
+            brain.callbacks["fmax"](value)
 
     def set_time_point(self, value):
-        for time_viewer in self.time_viewers:
-            time_viewer.callbacks["time"](value, update_widget=True)
+        for brain in self.brains:
+            brain.callbacks["time"](value, update_widget=True)
 
     def set_playback_speed(self, value):
-        for time_viewer in self.time_viewers:
-            time_viewer.callbacks["playback_speed"](value, update_widget=True)
+        for brain in self.brains:
+            brain.callbacks["playback_speed"](value, update_widget=True)
 
     def toggle_playback(self):
-        leader = self.time_viewers[0]  # select a time_viewer as leader
-        value = leader.callbacks["time"].slider_rep.GetValue()
+        value = self.leader.callbacks["time"].slider_rep.GetValue()
         # synchronize starting points before playback
         self.set_time_point(value)
-        for time_viewer in self.time_viewers:
-            time_viewer.toggle_playback()
+        for brain in self.brains:
+            brain.toggle_playback()
 
     def link_sliders(self, name, callback, event_type):
         from ..backends._pyvista import _update_slider_callback
-        for time_viewer in self.time_viewers:
-            slider = time_viewer.sliders[name]
+        for brain in self.brains:
+            slider = brain.sliders[name]
             if slider is not None:
                 _update_slider_callback(
                     slider=slider,
@@ -149,12 +146,11 @@ class _LinkViewer(object):
         from ..backends._pyvista import _add_camera_callback
 
         def _update_camera(vtk_picker, event):
-            for time_viewer in self.time_viewers:
-                time_viewer.plotter.update()
+            for brain in self.brains:
+                brain.plotter.update()
 
-        leader = self.time_viewers[0]  # select a time_viewer as leader
-        camera = leader.plotter.camera
+        camera = self.leader.plotter.camera
         _add_camera_callback(camera, _update_camera)
-        for time_viewer in self.time_viewers:
-            for renderer in time_viewer.plotter.renderers:
+        for brain in self.brains:
+            for renderer in brain.plotter.renderers:
                 renderer.camera = camera

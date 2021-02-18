@@ -65,7 +65,7 @@ when choosing which notebook kernel to use. Otherwise, be sure to activate the
 ``mne`` environment before launching the notebook.
 
 If you use another Python setup and you encounter some difficulties please
-report them on the `MNE mailing list`_ or on the `GitHub issues page`_ to get
+report them on the `MNE Forum`_ or on the `GitHub issues page`_ to get
 assistance.
 
 It is also possible to interact with the 3D plots without installing Qt by using
@@ -81,10 +81,10 @@ The notebook 3d backend requires PyVista to be installed along with other packag
 please follow :doc:`mne_python`
 
 
-.. _installing_master:
+.. _installing_main:
 
-Using the development version of MNE-Python (latest master)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Using the development version of MNE-Python (latest main)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If you want access to the latest features and bugfixes, you can easily switch
 from the stable version of MNE-Python to the current development version.
@@ -92,14 +92,14 @@ from the stable version of MNE-Python to the current development version.
 .. warning:: In between releases, function and class APIs can change without
              warning.
 
-For a one-time update to latest master, make sure you're in the conda
+For a one-time update to latest main, make sure you're in the conda
 environment where MNE-Python is installed (if you followed the default install
 instructions, this will be ``base``), and use ``pip`` to upgrade:
 
 .. code-block:: console
 
    $ conda activate name_of_my_mne_environment
-   $ pip install --upgrade --no-deps https://github.com/mne-tools/mne-python/archive/master.zip
+   $ pip install --upgrade --no-deps https://github.com/mne-tools/mne-python/archive/main.zip
 
 If you plan to contribute to MNE-Python, or just prefer to use git rather than
 pip to make frequent updates, check out the :ref:`contributing guide
@@ -124,7 +124,7 @@ the provided `requirements file`_:
 
 .. code-block:: console
 
-    curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/requirements.txt
+    curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/main/requirements.txt
     pip install --user requirements.txt
 
 Other configurations will probably also work, but we may be unable to offer

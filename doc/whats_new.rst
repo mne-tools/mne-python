@@ -5,6 +5,7 @@ What's new
 
 .. currentmodule:: mne
 
+.. include:: changes/0.22.inc
 .. include:: changes/0.21.inc
 .. include:: changes/0.20.inc
 .. include:: changes/0.19.inc

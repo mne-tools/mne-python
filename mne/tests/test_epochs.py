@@ -14,9 +14,10 @@ import pickle
 
 import pytest
 from numpy.testing import (assert_array_equal, assert_array_almost_equal,
-                           assert_allclose, assert_equal)
+                           assert_allclose, assert_equal, assert_array_less)
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy.signal
 
 import mne
 from mne import (Epochs, Annotations, read_events, pick_events, read_epochs,
@@ -24,23 +25,22 @@ from mne import (Epochs, Annotations, read_events, pick_events, read_epochs,
                  write_evokeds, create_info, make_fixed_length_events,
                  make_fixed_length_epochs, combine_evoked)
 from mne.baseline import rescale
+from mne.datasets import testing
+from mne.chpi import read_head_pos, head_pos_to_trans_rot_t
+from mne.event import merge_events
 from mne.fixes import rfft, rfftfreq
+from mne.io import RawArray, read_raw_fif
+from mne.io.constants import FIFF
+from mne.io.proj import _has_eeg_average_ref_proj
+from mne.io.write import write_int, INT32_MAX, _get_split_size
 from mne.preprocessing import maxwell_filter
 from mne.epochs import (
     bootstrap, equalize_epoch_counts, combine_event_ids, add_channels_epochs,
     EpochsArray, concatenate_epochs, BaseEpochs, average_movements,
     _handle_event_repeated)
-from mne.utils import (requires_pandas, run_tests_if_main, object_diff,
+from mne.utils import (requires_pandas, object_diff,
                        catch_logging, _FakeNoPandas,
                        assert_meg_snr, check_version, _dt_to_stamp)
-from mne.chpi import read_head_pos, head_pos_to_trans_rot_t
-
-from mne.io import RawArray, read_raw_fif
-from mne.io.proj import _has_eeg_average_ref_proj
-from mne.io.write import _get_split_size
-from mne.event import merge_events
-from mne.io.constants import FIFF
-from mne.datasets import testing
 
 data_path = testing.data_path(download=False)
 fname_raw_testing = op.join(data_path, 'MEG', 'sample',
@@ -155,6 +155,18 @@ def test_handle_event_repeated():
     assert_array_equal(selection, [3])
     assert drop_log[5] == ('MERGE DUPLICATE',)
     assert set(event_id.keys()) == set(['aud'])
+
+    # new numbers
+    for vals, want in (((1, 3), 2), ((2, 3), 1), ((1, 2), 3)):
+        events = np.zeros((2, 3), int)
+        events[:, 2] = vals
+        event_id = {str(v): v for v in events[:, 2]}
+        selection = np.arange(len(events))
+        drop_log = [tuple() for _ in range(len(events))]
+        events, event_id, selection, drop_log = _handle_event_repeated(
+            events, event_id, 'merge', selection, drop_log)
+        want = np.array([[0, 0, want]])
+        assert_array_equal(events, want)
 
 
 def _get_data(preload=False):
@@ -298,9 +310,16 @@ def _assert_drop_log_types(drop_log):
 
 def test_reject():
     """Test epochs rejection."""
-    raw, events, picks = _get_data()
+    raw, events, _ = _get_data()
+    names = raw.ch_names[::5]
+    assert 'MEG 2443' in names
+    raw.pick(names).load_data()
+    assert 'eog' in raw
+    raw.info.normalize_proj()
+    picks = np.arange(len(raw.ch_names))
     # cull the list just to contain the relevant event
     events = events[events[:, 2] == event_id, :]
+    assert len(events) == 7
     selection = np.arange(3)
     drop_log = ((),) * 3 + (('MEG 2443',),) * 4
     _assert_drop_log_types(drop_log)
@@ -447,7 +466,6 @@ def test_own_data():
     epochs = mne.Epochs(raw, events, preload=True)
     assert epochs._data.flags['C_CONTIGUOUS']
     assert epochs._data.flags['OWNDATA']
-
     epochs.crop(tmin=-0.1, tmax=0.4)
     assert len(epochs) == epochs._data.shape[0] == len(epochs.events)
     assert len(epochs) == n_epochs
@@ -745,6 +763,12 @@ def test_epochs_baseline(preload):
     expected[0] = [-0.5, 0.5]
     assert_allclose(epochs.get_data()[0], expected)
 
+    # Preloading applies baseline correction.
+    if preload:
+        assert epochs._do_baseline is False
+    else:
+        assert epochs._do_baseline is True
+
     # we should not be able to remove baseline correction after the data
     # has been loaded
     epochs.apply_baseline((None, None))
@@ -760,8 +784,13 @@ def test_epochs_baseline(preload):
 def test_epochs_bad_baseline():
     """Test Epochs initialization with bad baseline parameters."""
     raw, events = _get_data()[:2]
-    pytest.raises(ValueError, Epochs, raw, events, None, -0.1, 0.3, (-0.2, 0))
-    pytest.raises(ValueError, Epochs, raw, events, None, -0.1, 0.3, (0, 0.4))
+
+    with pytest.raises(ValueError, match='interval.*outside of epochs data'):
+        epochs = Epochs(raw, events, None, -0.1, 0.3, (-0.2, 0))
+
+    with pytest.raises(ValueError, match='interval.*outside of epochs data'):
+        epochs = Epochs(raw, events, None, -0.1, 0.3, (0, 0.4))
+
     pytest.raises(ValueError, Epochs, raw, events, None, -0.1, 0.3, (0.1, 0))
     pytest.raises(ValueError, Epochs, raw, events, None, 0.1, 0.3, (None, 0))
     pytest.raises(ValueError, Epochs, raw, events, None, -0.3, -0.1, (0, None))
@@ -841,8 +870,9 @@ def test_io_epochs_basic(tmpdir):
     data = epochs.get_data()
 
     # Bad tmin/tmax parameters
-    pytest.raises(ValueError, Epochs, raw, events, event_id, tmax, tmin,
-                  baseline=None)
+    with pytest.raises(ValueError,
+                       match='tmin has to be less than or equal to tmax'):
+        Epochs(raw, events, event_id, tmax, tmin, baseline=None)
 
     epochs_no_id = Epochs(raw, pick_events(events, include=event_id),
                           None, tmin, tmax, picks=picks)
@@ -946,7 +976,7 @@ def test_epochs_io_preload(tmpdir, preload):
 
     epochs_no_bl = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                           baseline=None, preload=True)
-    assert (epochs_no_bl.baseline is None)
+    assert epochs_no_bl.baseline is None
     epochs_no_bl.save(temp_fname_no_bl, overwrite=True)
 
     epochs_read = read_epochs(temp_fname, preload=preload)
@@ -956,7 +986,7 @@ def test_epochs_io_preload(tmpdir, preload):
     pytest.raises(ValueError, epochs.apply_baseline, baseline=[1, 2, 3])
     epochs_with_bl = epochs_no_bl_read.copy().apply_baseline(baseline)
     assert (isinstance(epochs_with_bl, BaseEpochs))
-    assert (epochs_with_bl.baseline == baseline)
+    assert (epochs_with_bl.baseline == (epochs_no_bl_read.tmin, baseline[1]))
     assert (epochs_no_bl_read.baseline != baseline)
     assert (str(epochs_read).startswith('<Epochs'))
 
@@ -991,13 +1021,14 @@ def test_epochs_io_preload(tmpdir, preload):
     assert epochs.times[0] < 0
     assert epochs.times[-1] > 0
     epochs.apply_baseline((None, 0))
-    with pytest.warns(RuntimeWarning,
-                      match=r'setting epochs\.baseline = None'):
-        epochs.crop(1. / epochs.info['sfreq'], None)
-    assert epochs.baseline is None
+    baseline_before_crop = (epochs.times[0], 0)
+    epochs.crop(1. / epochs.info['sfreq'], None)
+    # baseline shouldn't be modified by crop()
+    assert epochs.baseline == baseline_before_crop
     epochs.save(fname_temp, overwrite=True)
     epochs_read = read_epochs(fname_temp, preload=preload)
-    assert epochs_read.baseline is None
+    assert_allclose(epochs_read.baseline, baseline_before_crop)
+
     assert_allclose(epochs.get_data(), epochs_read.get_data(),
                     rtol=6e-4)  # XXX this rtol should be better...?
     del epochs, epochs_read
@@ -1040,10 +1071,7 @@ def test_epochs_io_preload(tmpdir, preload):
     epochs = Epochs(raw, events, dict(foo=1, bar=999), tmin, tmax,
                     picks=picks, on_missing='ignore')
     epochs.save(temp_fname, overwrite=True)
-    split_fname_1 = temp_fname[:-4] + '-1.fif'
-    split_fname_2 = temp_fname[:-4] + '-2.fif'
-    assert op.isfile(temp_fname)
-    assert not op.isfile(split_fname_1)
+    _assert_splits(temp_fname, 0, np.inf)
     epochs_read = read_epochs(temp_fname, preload=preload)
     assert_allclose(epochs.get_data(), epochs_read.get_data(), **tols)
     assert_array_equal(epochs.events, epochs_read.events)
@@ -1059,16 +1087,10 @@ def test_epochs_io_preload(tmpdir, preload):
     epochs.save(temp_fname, split_size=split_size, overwrite=True)
     # ... but we correctly account for the other stuff we need to write,
     # so end up with two files ...
-    assert op.isfile(temp_fname)
-    assert op.isfile(split_fname_1)
-    assert not op.isfile(split_fname_2)
+    _assert_splits(temp_fname, 1, split_size_bytes)
     epochs_read = read_epochs(temp_fname, preload=preload)
     # ... and none of the files exceed our limit.
-    for fname in (temp_fname, split_fname_1):
-        with open(fname, 'r') as fid:
-            fid.seek(0, 2)
-            fsize = fid.tell()
-        assert fsize <= split_size_bytes
+    _assert_splits(temp_fname, 1, split_size_bytes)
     assert_allclose(epochs.get_data(), epochs_read.get_data(), **tols)
     assert_array_equal(epochs.events, epochs_read.events)
     assert_array_equal(epochs.selection, epochs_read.selection)
@@ -1076,9 +1098,9 @@ def test_epochs_io_preload(tmpdir, preload):
 
     # Test that having a single time point works
     assert epochs.baseline is not None
-    with pytest.warns(RuntimeWarning, match=r'setting epochs\.baseline'):
-        epochs.load_data().crop(0, 0)
-    assert epochs.baseline is None
+    baseline_before_crop = epochs.baseline
+    epochs.load_data().crop(0, 0)
+    assert epochs.baseline == baseline_before_crop
     assert_equal(len(epochs.times), 1)
     assert_equal(epochs.get_data().shape[-1], 1)
     epochs.save(temp_fname, overwrite=True)
@@ -1087,33 +1109,98 @@ def test_epochs_io_preload(tmpdir, preload):
     assert_equal(epochs.get_data().shape[-1], 1)
 
 
-def test_split_saving(tmpdir):
+@pytest.mark.parametrize('split_size, n_epochs, n_files, size', [
+    ('1.5MB', 9, 6, 1572864),
+    ('3MB', 18, 3, 3 * 1024 * 1024),
+])
+@pytest.mark.parametrize('metadata', [
+    False,
+    pytest.param(True, marks=pytest.mark.skipif(
+        not check_version('pandas'), reason='Requires Pandas'))
+])
+@pytest.mark.parametrize('concat', (False, True))
+def test_split_saving(tmpdir, split_size, n_epochs, n_files, size, metadata,
+                      concat):
     """Test saving split epochs."""
     # See gh-5102
-    tempdir = str(tmpdir)
-    raw = mne.io.RawArray(np.random.RandomState(0).randn(100, 10000),
+    fs = 1000.
+    n_times = int(round(fs * (n_epochs + 1)))
+    raw = mne.io.RawArray(np.random.RandomState(0).randn(100, n_times),
                           mne.create_info(100, 1000.))
     events = mne.make_fixed_length_events(raw, 1)
     epochs = mne.Epochs(raw, events)
+    if split_size == '2MB' and (metadata or concat):
+        n_files += 1
+    if metadata:
+        from pandas import DataFrame
+        junk = ['*' * 10000 for _ in range(len(events))]
+        metadata = DataFrame({
+            'event_time': events[:, 0] / raw.info['sfreq'],
+            'trial_number': range(len(events)),
+            'junk': junk})
+        epochs.metadata = metadata
+    if concat:
+        epochs.drop_bad()
+        epochs = concatenate_epochs([epochs[ii] for ii in range(len(epochs))])
     epochs_data = epochs.get_data()
-    assert len(epochs) == 9
-    fname = op.join(tempdir, 'test-epo.fif')
-    epochs.save(fname, split_size='1MB', overwrite=True)
-    size = _get_split_size('1MB')
-    assert size == 1048576 == 1024 * 1024
-    written_fnames = [fname] + [
-        fname[:-4] + '-%d.fif' % ii for ii in range(1, 4)]
-    for this_fname in written_fnames:
-        assert op.isfile(this_fname)
-        with open(this_fname, 'r') as fid:
-            fid.seek(0, 2)
-            file_size = fid.tell()
-        assert size * 0.5 < file_size <= size
-    assert not op.isfile(fname[:-4] + '-4.fif')
+    assert len(epochs) == n_epochs
+    fname = str(tmpdir.join('test-epo.fif'))
+    epochs.save(fname, split_size=split_size, overwrite=True)
+    got_size = _get_split_size(split_size)
+    assert got_size == size
+    _assert_splits(fname, n_files, size)
+    assert not op.isfile(f'{fname[:-4]}-{n_files + 1}.fif')
     for preload in (True, False):
         epochs2 = mne.read_epochs(fname, preload=preload)
         assert_allclose(epochs2.get_data(), epochs_data)
         assert_array_equal(epochs.events, epochs2.events)
+
+
+def test_split_many_reset(tmpdir):
+    """Test splitting with many events and using reset."""
+    data = np.zeros((1000, 1, 1024))  # 1 ch, 1024 samples
+    assert data[0, 0].nbytes == 8192  # 8 kB per epoch
+    info = mne.create_info(1, 1000., 'eeg')
+    selection = np.arange(len(data)) + 100000
+    epochs = EpochsArray(data, info, tmin=0., selection=selection)
+    assert len(epochs.drop_log) == 101000
+    assert len(epochs) == len(data) == len(epochs.events)
+    fname = str(tmpdir.join('temp-epo.fif'))
+    for split_size in ('0.5MB', '1MB', '2MB'):  # tons of overhead from sel
+        with pytest.raises(ValueError, match='too small to safely'):
+            epochs.save(fname, split_size=split_size, verbose='debug')
+    with pytest.raises(ValueError, match='would result in writing'):  # ~200
+        epochs.save(fname, split_size='2.27MB', verbose='debug')
+    with pytest.warns(RuntimeWarning, match='writing overhead'):
+        epochs.save(fname, split_size='3MB', verbose='debug')
+    epochs_read = read_epochs(fname)
+    assert_allclose(epochs.get_data(), epochs_read.get_data())
+    assert epochs.drop_log == epochs_read.drop_log
+    mb = 3 * 1024 * 1024
+    _assert_splits(fname, 6, mb)
+    # reset, then it should work
+    fname = str(tmpdir.join('temp-reset-epo.fif'))
+    epochs.reset_drop_log_selection()
+    epochs.save(fname, split_size=split_size, verbose='debug')
+    _assert_splits(fname, 4, mb)
+    epochs_read = read_epochs(fname)
+    assert_allclose(epochs.get_data(), epochs_read.get_data())
+
+
+def _assert_splits(fname, n, size):
+    __tracebackhide__ = True
+    assert n >= 0
+    next_fnames = [fname] + [
+        fname[:-4] + '-%d.fif' % ii for ii in range(1, n + 2)]
+    bad_fname = next_fnames.pop(-1)
+    for ii, this_fname in enumerate(next_fnames[:-1]):
+        assert op.isfile(this_fname), f'Missing file: {this_fname}'
+        with open(this_fname, 'r') as fid:
+            fid.seek(0, 2)
+            file_size = fid.tell()
+        min_ = 0.1 if ii < len(next_fnames) - 1 else 0.1
+        assert size * min_ < file_size <= size, f'{this_fname}'
+    assert not op.isfile(bad_fname), f'Errantly wrote {bad_fname}'
 
 
 def test_epochs_proj(tmpdir):
@@ -1457,10 +1544,14 @@ def test_crop():
     tmask = (epochs.times >= tmin_window) & (epochs.times <= tmax_window)
     assert (tmin_window > tmin)
     assert (tmax_window < tmax)
+
     epochs3 = epochs2.copy().crop(tmin_window, tmax_window)
+    assert epochs3.baseline == epochs2.baseline
     data3 = epochs3.get_data()
+
     epochs2.crop(tmin_window, tmax_window)
     data2 = epochs2.get_data()
+
     assert_array_equal(data2, data_normal[:, :, tmask])
     assert_array_equal(data3, data_normal[:, :, tmask])
     assert_array_equal(epochs.time_as_index([tmin, tmax], use_rounding=True),
@@ -2340,12 +2431,12 @@ def test_array_epochs(tmpdir):
     events = np.c_[np.arange(1, 600, 60),
                    np.zeros(10, int),
                    [1, 2] * 5]
-    event_id = {'a': 1, 'b': 2}
-    epochs = EpochsArray(data, info, events, tmin, event_id)
+    epochs = EpochsArray(data, info, events, tmin)
+    assert epochs.event_id == {'1': 1, '2': 2}
     assert (str(epochs).startswith('<EpochsArray'))
     # From GH#1963
-    pytest.raises(ValueError, EpochsArray, data[:-1], info, events, tmin,
-                  event_id)
+    with pytest.raises(ValueError, match='number of events must match'):
+        EpochsArray(data[:-1], info, events, tmin)
     pytest.raises(ValueError, EpochsArray, data, info, events, tmin,
                   dict(a=1))
     pytest.raises(ValueError, EpochsArray, data, info, events, tmin,
@@ -2368,13 +2459,13 @@ def test_array_epochs(tmpdir):
     plt.close('all')
 
     # indexing
-    assert_array_equal(np.unique(epochs['a'].events[:, 2]), np.array([1]))
+    assert_array_equal(np.unique(epochs['1'].events[:, 2]), np.array([1]))
     assert_equal(len(epochs[:2]), 2)
     data[0, 5, 150] = 3000
     data[1, :, :] = 0
     data[2, 5, 210] = 3000
     data[3, 5, 260] = 0
-    epochs = EpochsArray(data, info, events=events, event_id=event_id,
+    epochs = EpochsArray(data, info, events=events,
                          tmin=0, reject=dict(eeg=1000), flat=dict(eeg=1e-1),
                          reject_tmin=0.1, reject_tmax=0.2)
     assert_equal(len(epochs), len(events) - 2)
@@ -2384,14 +2475,12 @@ def test_array_epochs(tmpdir):
 
     # baseline
     data = np.ones((10, 20, 300))
-    epochs = EpochsArray(data, info, events, event_id=event_id, tmin=-.2,
-                         baseline=(None, 0))
+    epochs = EpochsArray(data, info, events, tmin=-.2, baseline=(None, 0))
     ep_data = epochs.get_data()
     assert_array_equal(ep_data, np.zeros_like(ep_data))
 
     # one time point
-    epochs = EpochsArray(data[:, :, :1], info, events=events,
-                         event_id=event_id, tmin=0.)
+    epochs = EpochsArray(data[:, :, :1], info, events=events, tmin=0.)
     assert_allclose(epochs.times, [0.])
     assert_allclose(epochs.get_data(), data[:, :, :1])
     epochs.save(temp_fname, overwrite=True)
@@ -3045,4 +3134,97 @@ def test_make_fixed_length_epochs():
     assert len(epochs) > len(epochs_annot)
 
 
-run_tests_if_main()
+def test_epochs_huge_events(tmpdir):
+    """Test epochs with event numbers that are too large."""
+    data = np.zeros((1, 1, 1000))
+    info = create_info(1, 1000., 'eeg')
+    events = np.array([0, 0, 2147483648], np.int64)
+    with pytest.raises(ValueError, match=r'shape \(N, 3\)'):
+        EpochsArray(data, info, events)
+    events = events[np.newaxis]
+    with pytest.raises(ValueError, match='must not exceed'):
+        EpochsArray(data, info, events)
+    epochs = EpochsArray(data, info)
+    epochs.events = events
+    with pytest.raises(TypeError, match='exceeds maximum'):
+        epochs.save(tmpdir.join('temp-epo.fif'))
+
+
+def _old_bad_write(fid, kind, arr):
+    if kind == FIFF.FIFF_MNE_EVENT_LIST:
+        arr = arr.copy()
+        arr[0, -1] = -1000  # it's transposed
+    return write_int(fid, kind, arr)
+
+
+def test_concat_overflow(tmpdir, monkeypatch):
+    """Test overflow events during concat."""
+    data = np.zeros((2, 10, 1000))
+    events = np.array([[0, 0, 1], [INT32_MAX, 0, 2]])
+    info = mne.create_info(10, 1000., 'eeg')
+    epochs_1 = mne.EpochsArray(data, info, events)
+    epochs_2 = mne.EpochsArray(data, info, events)
+    with pytest.warns(RuntimeWarning, match='consecutive increasing'):
+        epochs = mne.concatenate_epochs((epochs_1, epochs_2))
+    assert_array_less(0, epochs.events[:, 0])
+    fname = tmpdir.join('temp-epo.fif')
+    epochs.save(fname)
+    epochs = read_epochs(fname)
+    assert_array_less(0, epochs.events[:, 0])
+    assert_array_less(epochs.events[:, 0], INT32_MAX + 1)
+    # with our old behavior
+    monkeypatch.setattr(mne.epochs, 'write_int', _old_bad_write)
+    epochs.save(fname, overwrite=True)
+    with pytest.warns(RuntimeWarning, match='Incorrect events'):
+        epochs = read_epochs(fname)
+    assert_array_less(0, epochs.events[:, 0])
+    assert_array_less(epochs.events[:, 0], INT32_MAX + 1)
+
+
+def test_epochs_baseline_after_cropping(tmpdir):
+    """Epochs.baseline should be retained if baseline period was cropped."""
+    sfreq = 1000
+    tstep = 1. / sfreq
+    times = np.arange(0, 2 + tstep, tstep)
+
+    # Linear ramp: 0–100 µV
+    data = (scipy.signal.sawtooth(2 * np.pi * 0.25 * times, 0.5)
+            .reshape(1, -1)) * 50e-6 + 50e-6
+
+    ch_names = ['EEG 001']
+    ch_types = ['eeg']
+    info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
+    raw = mne.io.RawArray(data, info)
+
+    event_id = dict(event=1)
+    events = np.array([[1000, 0, event_id['event']]])
+    epochs_orig = mne.Epochs(raw=raw, events=events, event_id=event_id,
+                             tmin=-0.2, tmax=0.2, baseline=(-0.1, 0.1))
+
+    # Assert baseline correction is working as intended.
+    samp_min = 1000 - 200
+    samp_max = 1000 + 200
+    expected_data = data.copy()[0, samp_min:samp_max + 1]
+    baseline = expected_data[100:301]
+    expected_data -= baseline.mean()
+    expected_data = expected_data.reshape(1, 1, -1)
+    assert_equal(epochs_orig.get_data(), expected_data)
+    del expected_data, baseline, samp_min, samp_max
+
+    # Even after cropping the baseline period, Epochs.baseline should remain
+    # unchanged
+    epochs_cropped = epochs_orig.copy().load_data().crop(tmin=0, tmax=None)
+
+    assert_equal(epochs_orig.baseline, epochs_cropped.baseline)
+    assert 'baseline period was cropped' in str(epochs_cropped)
+    assert_equal(epochs_cropped.get_data().squeeze(),
+                 epochs_orig.get_data().squeeze()[200:])
+
+    # Test I/O roundtrip.
+    epochs_fname = tmpdir.join('temp-cropped-epo.fif')
+    epochs_cropped.save(epochs_fname)
+    epochs_cropped_read = mne.read_epochs(epochs_fname)
+
+    assert_allclose(epochs_orig.baseline, epochs_cropped_read.baseline)
+    assert 'baseline period was cropped' in str(epochs_cropped_read)
+    assert_allclose(epochs_cropped.get_data(), epochs_cropped_read.get_data())

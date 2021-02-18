@@ -7,9 +7,8 @@ from ..backends._notebook \
 
 
 class _NotebookInteractor(_PyVistaNotebookInteractor):
-    def __init__(self, time_viewer):
-        self.time_viewer = time_viewer
-        self.brain = self.time_viewer.brain
+    def __init__(self, brain):
+        self.brain = brain
         super().__init__(self.brain._renderer)
 
     def configure_controllers(self):
@@ -19,13 +18,13 @@ class _NotebookInteractor(_PyVistaNotebookInteractor):
         # orientation
         self.controllers["orientation"] = interactive(
             self.set_orientation,
-            orientation=self.time_viewer.orientation,
+            orientation=self.brain.orientation,
         )
         # smoothing
         self.sliders["smoothing"] = IntSlider(
             value=self.brain._data['smoothing_steps'],
-            min=self.time_viewer.default_smoothing_range[0],
-            max=self.time_viewer.default_smoothing_range[1],
+            min=self.brain.default_smoothing_range[0],
+            max=self.brain.default_smoothing_range[1],
             continuous_update=False
         )
         self.controllers["smoothing"] = VBox([

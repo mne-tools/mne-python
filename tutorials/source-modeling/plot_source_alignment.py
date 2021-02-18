@@ -35,7 +35,7 @@ trans = mne.read_trans(trans_fname)
 src = mne.read_source_spaces(op.join(subjects_dir, 'sample', 'bem',
                                      'sample-oct-6-src.fif'))
 
-# load the T1 file and change the header information to the correct units
+# Load the T1 file and change the header information to the correct units
 t1w = nib.load(op.join(data_path, 'subjects', 'sample', 'mri', 'T1.mgz'))
 t1w = nib.Nifti1Image(t1w.dataobj, t1w.affine)
 t1w.header['xyzt_units'] = np.array(10, dtype='uint8')
@@ -104,7 +104,7 @@ t1_mgh = nib.MGHImage(t1w.dataobj, t1w.affine)
 fig = mne.viz.plot_alignment(raw.info, trans=trans, subject='sample',
                              subjects_dir=subjects_dir, surfaces='head-dense',
                              show_axes=True, dig=True, eeg=[], meg='sensors',
-                             coord_frame='meg')
+                             coord_frame='meg', mri_fiducials='estimated')
 mne.viz.set_3d_view(fig, 45, 90, distance=0.6, focalpoint=(0., 0., 0.))
 print('Distance from head origin to MEG origin: %0.1f mm'
       % (1000 * np.linalg.norm(raw.info['dev_head_t']['trans'][:3, 3])))
@@ -208,18 +208,18 @@ mne.viz.plot_alignment(raw.info, trans=trans, subject='sample',
 # rather, its XYZ directions are based on the acquisition order of the T1 image
 # slices.
 
-# the head surface is stored in "mri" coordinate frame
+# The head surface is stored in "mri" coordinate frame
 # (origin at center of volume, units=mm)
 seghead_rr, seghead_tri = mne.read_surface(
     op.join(subjects_dir, 'sample', 'surf', 'lh.seghead'))
 
-# to put the scalp in the "head" coordinate frame, we apply the inverse of
+# To put the scalp in the "head" coordinate frame, we apply the inverse of
 # the precomputed `trans` (which maps head → mri)
 mri_to_head = linalg.inv(trans['trans'])
 scalp_pts_in_head_coord = mne.transforms.apply_trans(
     mri_to_head, seghead_rr, move=True)
 
-# to put the scalp in the "meg" coordinate frame, we use the inverse of
+# To put the scalp in the "meg" coordinate frame, we use the inverse of
 # raw.info['dev_head_t']
 head_to_meg = linalg.inv(raw.info['dev_head_t']['trans'])
 scalp_pts_in_meg_coord = mne.transforms.apply_trans(
@@ -272,19 +272,19 @@ renderer.show()
 # images. Here's what that would look like (we'll use the nasion landmark as a
 # representative example):
 
-# get the nasion
+# Get the nasion
 nasion = [p for p in raw.info['dig'] if
           p['kind'] == FIFF.FIFFV_POINT_CARDINAL and
           p['ident'] == FIFF.FIFFV_POINT_NASION][0]
 assert nasion['coord_frame'] == FIFF.FIFFV_COORD_HEAD
 nasion = nasion['r']  # get just the XYZ values
 
-# transform it from head to MRI space (recall that `trans` is head → mri)
+# Transform it from head to MRI space (recall that `trans` is head → mri)
 nasion_mri = mne.transforms.apply_trans(trans, nasion, move=True)
-# then transform to voxel space, after converting from meters to millimeters
+# Then transform to voxel space, after converting from meters to millimeters
 nasion_vox = mne.transforms.apply_trans(
     mri_to_vox, nasion_mri * 1e3, move=True)
-# plot it to make sure the transforms worked
+# Plot it to make sure the transforms worked
 renderer = mne.viz.backends.renderer.create_3d_figure(
     size=(400, 400), bgcolor='w', scene=False)
 add_head(renderer, scalp_points_in_vox, 'green', opacity=1)

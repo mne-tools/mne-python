@@ -10,7 +10,8 @@ This example demonstrates how to morph an individual subject's
 :class:`mne.SourceMorph`. Pre-computed data will be morphed based on
 a spherical representation of the cortex computed using the spherical
 registration of :ref:`FreeSurfer <tut-freesurfer-mne>`
-(https://surfer.nmr.mgh.harvard.edu/fswiki/SurfaceRegAndTemplates) [1]_. This
+(https://surfer.nmr.mgh.harvard.edu/fswiki/SurfaceRegAndTemplates)
+:footcite:`GreveEtAl2013`. This
 transform will be used to morph the surface vertices of the subject towards the
 reference vertices. Here we will use 'fsaverage' as a reference space (see
 https://surfer.nmr.mgh.harvard.edu/fswiki/FsAverage).
@@ -19,13 +20,6 @@ The transformation will be applied to the surface source estimate. A plot
 depicting the successful morph will be created for the spherical and inflated
 surface representation of ``'fsaverage'``, overlaid with the morphed surface
 source estimate.
-
-References
-----------
-.. [1] Greve D. N., Van der Haegen L., Cai Q., Stufflebeam S., Sabuncu M.
-       R., Fischl B., Brysbaert M.
-       A Surface-based Analysis of Language Lateralization and Cortical
-       Asymmetry. Journal of Cognitive Neuroscience 25(9), 1477-1492, 2013.
 
 .. note:: For background information about morphing see :ref:`ch_morph`.
 """
@@ -167,3 +161,8 @@ stc_fsaverage = mne.compute_source_morph(stc,
 ###############################################################################
 # For more examples, check out :ref:`examples using SourceMorph.apply
 # <sphx_glr_backreferences_mne.SourceMorph.apply>`.
+#
+#
+# References
+# ----------
+# .. footbibliography::

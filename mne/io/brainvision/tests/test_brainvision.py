@@ -5,6 +5,7 @@
 #
 # License: BSD (3-clause)
 import os.path as op
+import re
 import shutil
 
 import numpy as np
@@ -270,6 +271,46 @@ def test_ascii(tmpdir):
     data_new, times_new = raw[:]
     assert_allclose(data_new, data, atol=1e-15)
     assert_allclose(times_new, times)
+
+
+def test_ch_names_comma(tmpdir):
+    """Test that channel names containing commas are properly read."""
+    # commas in BV are encoded as \1
+    replace_dict = {
+        r"^Ch4=F4,": r"Ch4=F4\\1foo,",
+        r"^4\s\s\s\s\sF4": "4     F4,foo ",
+    }
+
+    # Copy existing vhdr file to tmpdir and manipulate to contain
+    # a channel with comma
+    for src, dest in zip((vhdr_path, vmrk_path, eeg_path),
+                         ('test.vhdr', 'test.vmrk', 'test.eeg')):
+        shutil.copyfile(src, tmpdir / dest)
+
+    comma_vhdr = tmpdir / 'test.vhdr'
+    with open(comma_vhdr, 'r') as fin:
+        lines = fin.readlines()
+
+    new_lines = []
+    nperformed_replacements = 0
+    for line in lines:
+        for to_replace, replacement in replace_dict.items():
+            match = re.search(to_replace, line)
+            if match is not None:
+                new = re.sub(to_replace, replacement, line)
+                new_lines.append(new)
+                nperformed_replacements += 1
+                break
+        else:
+            new_lines.append(line)
+    assert nperformed_replacements == len(replace_dict)
+
+    with open(comma_vhdr, 'w') as fout:
+        fout.writelines(new_lines)
+
+    # Read the line containing a "comma channel name"
+    raw = read_raw_brainvision(comma_vhdr)
+    assert "F4,foo" in raw.ch_names
 
 
 def test_brainvision_data_highpass_filters():
@@ -577,32 +618,41 @@ def test_read_vmrk_annotations(tmpdir):
 
 
 @testing.requires_testing_data
-def test_read_vhdr_annotations_and_events():
+def test_read_vhdr_annotations_and_events(tmpdir):
     """Test load brainvision annotations and parse them to events."""
+    # First we add a custom event that contains a comma in its description
+    for src, dest in zip((vhdr_path, vmrk_path, eeg_path),
+                         ('test.vhdr', 'test.vmrk', 'test.eeg')):
+        shutil.copyfile(src, tmpdir / dest)
+
+    # Commas are encoded as "\1"
+    with open(tmpdir / 'test.vmrk', 'a') as fout:
+        fout.write(r"Mk15=Comma\1Type,CommaValue\11,7800,1,0\n")
+
     sfreq = 1000.0
     expected_orig_time = _stamp_to_dt((1384359243, 794232))
     expected_onset_latency = np.array(
         [0, 486., 496., 1769., 1779., 3252., 3262., 4935., 4945., 5999., 6619.,
-         6629., 7629., 7699.]
+         6629., 7629., 7699., 7799.]
     )
     expected_annot_description = [
         'New Segment/', 'Stimulus/S253', 'Stimulus/S255', 'Event/254',
         'Stimulus/S255', 'Event/254', 'Stimulus/S255', 'Stimulus/S253',
         'Stimulus/S255', 'Response/R255', 'Event/254', 'Stimulus/S255',
-        'SyncStatus/Sync On', 'Optic/O  1'
+        'SyncStatus/Sync On', 'Optic/O  1', 'Comma,Type/CommaValue,1'
     ]
     expected_events = np.stack([
         expected_onset_latency,
         np.zeros_like(expected_onset_latency),
         [99999, 253, 255, 254, 255, 254, 255, 253, 255, 1255, 254, 255, 99998,
-         2001],
+         2001, 10001],
     ]).astype('int64').T
     expected_event_id = {'New Segment/': 99999, 'Stimulus/S253': 253,
                          'Stimulus/S255': 255, 'Event/254': 254,
                          'Response/R255': 1255, 'SyncStatus/Sync On': 99998,
-                         'Optic/O  1': 2001}
+                         'Optic/O  1': 2001, 'Comma,Type/CommaValue,1': 10001}
 
-    raw = read_raw_brainvision(vhdr_path, eog=eog)
+    raw = read_raw_brainvision(tmpdir / 'test.vhdr', eog=eog)
 
     # validate annotations
     assert raw.annotations.orig_time == expected_orig_time
@@ -623,7 +673,9 @@ def test_read_vhdr_annotations_and_events():
     # Add some custom ones, plus a 2-digit one
     s_10 = 'Stimulus/S 10'
     raw.annotations.append([1, 2, 3], 10, ['ZZZ', s_10, 'YYY'])
-    expected_event_id.update(YYY=10001, ZZZ=10002)  # others starting at 10001
+    # others starting at 10001 ...
+    # we already have "Comma,Type/CommaValue,1" as 10001
+    expected_event_id.update(YYY=10002, ZZZ=10003)
     expected_event_id[s_10] = 10
     _, event_id = events_from_annotations(raw)
     assert event_id == expected_event_id
@@ -646,7 +698,7 @@ def test_automatic_vmrk_sfreq_recovery():
 @testing.requires_testing_data
 def test_event_id_stability_when_save_and_fif_reload(tmpdir):
     """Test load events from brainvision annotations when read_raw_fif."""
-    fname = op.join(str(tmpdir), 'bv-raw.fif')
+    fname = tmpdir / 'bv-raw.fif'
     raw = read_raw_brainvision(vhdr_path, eog=eog)
     original_events, original_event_id = events_from_annotations(raw)
 

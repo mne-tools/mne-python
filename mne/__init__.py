@@ -60,14 +60,14 @@ from .source_estimate import (read_source_estimate,
                               spatio_temporal_src_adjacency,
                               spatio_temporal_tris_adjacency,
                               spatio_temporal_dist_adjacency,
-                              extract_label_time_course)
+                              extract_label_time_course, stc_near_sensors)
 from .surface import (read_surface, write_surface, decimate_surface, read_tri,
                       read_morph_map, get_head_surf, get_meg_helmet_surf,
                       dig_mri_distances)
 from .morph import (SourceMorph, read_source_morph, grade_to_vertices,
                     compute_source_morph)
 from .source_space import (read_source_spaces, vertex_to_mni,
-                           head_to_mni, head_to_mri,
+                           head_to_mni, head_to_mri, read_talxfm,
                            write_source_spaces, setup_source_space,
                            setup_volume_source_space, SourceSpaces,
                            add_source_space_distances, morph_source_spaces,
@@ -94,7 +94,7 @@ from .dipole import read_dipole, Dipole, DipoleFixed, fit_dipole
 from .channels import equalize_channels, rename_channels, find_layout
 from .report import Report, open_report
 
-from .io import read_epochs_fieldtrip, read_evoked_fieldtrip
+from .io import read_epochs_fieldtrip, read_evoked_fieldtrip, read_evokeds_mff
 from .rank import compute_rank
 
 from . import beamformer
@@ -121,23 +121,6 @@ from . import surface
 from . import time_frequency
 from . import viz
 from . import decoding
-
-from .utils import deprecated_alias
-deprecated_alias(
-    'spatial_src_connectivity', spatial_src_adjacency)
-deprecated_alias(
-    'spatial_tris_connectivity', spatial_tris_adjacency)
-deprecated_alias(
-    'spatial_dist_connectivity', spatial_dist_adjacency)
-deprecated_alias(
-    'spatial_inter_hemi_connectivity', spatial_inter_hemi_adjacency)
-deprecated_alias(
-    'spatio_temporal_src_connectivity', spatio_temporal_src_adjacency)
-deprecated_alias(
-    'spatio_temporal_tris_connectivity', spatio_temporal_tris_adjacency)
-deprecated_alias(
-    'spatio_temporal_dist_connectivity', spatio_temporal_dist_adjacency)
-del deprecated_alias
 
 # initialize logging
 set_log_level(None, False)

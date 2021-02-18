@@ -5,11 +5,11 @@
 Compute source power using DICS beamformer
 ==========================================
 
-Compute a Dynamic Imaging of Coherent Sources (DICS)
-:footcite:`GrossEtAl2001` filter from
-single-trial activity to estimate source power across a frequency band. This
-example demonstrates how to source localize the event-related synchronization
-(ERS) of beta band activity in this dataset: :ref:`somato-dataset`
+Compute a Dynamic Imaging of Coherent Sources (DICS) :footcite:`GrossEtAl2001`
+filter from single-trial activity to estimate source power across a frequency
+band. This example demonstrates how to source localize the event-related
+synchronization (ERS) of beta band activity in the
+:ref:`somato dataset <somato-dataset>`.
 """
 # Author: Marijn van Vliet <w.m.vanvliet@gmail.com>
 #         Roman Goj <roman.goj@gmail.com>

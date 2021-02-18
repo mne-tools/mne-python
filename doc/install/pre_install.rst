@@ -58,6 +58,7 @@ MNE-Python, including packages for:
   (`pyprep`_)
 - automatic multi-dipole localization and uncertainty quantification with
   the Bayesian algorithm SESAME (`sesameeg`_)
+- GLM and group level analysis of near-infrared spectroscopy data (`mne-nirs`_)
 
 
 What should I install?
@@ -84,8 +85,8 @@ automatically be installed.
 Getting help
 ^^^^^^^^^^^^
 
-Help with installation is available through the `MNE mailing list`_ and
-`MNE gitter channel`_. See the :ref:`help` page for more information.
+Help with installation is available through the `MNE Forum`_. See the
+:ref:`help` page for more information.
 
 
 **Next:** :doc:`mne_python`
@@ -105,3 +106,4 @@ Help with installation is available through the `MNE mailing list`_ and
 .. _posthoc: https://users.aalto.fi/~vanvlm1/posthoc/python/
 .. _pyprep: https://github.com/sappelhoff/pyprep
 .. _sesameeg: https://pybees.github.io/sesameeg
+.. _mne-nirs: https://github.com/mne-tools/mne-nirs

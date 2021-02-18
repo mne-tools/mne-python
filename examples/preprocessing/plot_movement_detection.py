@@ -35,9 +35,8 @@ trans_fname = op.join(data_path, 'MEG', 'bst_auditory',
                       'bst_auditory-trans.fif')
 raw_fname1 = op.join(data_path_MEG, 'bst_auditory', 'S01_AEF_20131218_01.ds')
 raw_fname2 = op.join(data_path_MEG, 'bst_auditory', 'S01_AEF_20131218_02.ds')
-
+# read and concatenate two files
 raw = read_raw_ctf(raw_fname1, preload=False)
-
 mne.io.concatenate_raws([raw, read_raw_ctf(raw_fname2, preload=False)])
 raw.crop(350, 410).load_data()
 raw.resample(100, npad="auto")
@@ -46,7 +45,7 @@ raw.resample(100, npad="auto")
 # Plot continuous head position with respect to the mean recording position
 # --------------------------------------------------------------------------
 
-# get cHPI time series and compute average
+# Get cHPI time series and compute average
 chpi_locs = mne.chpi.extract_chpi_locs_ctf(raw)
 head_pos = mne.chpi.compute_head_pos(raw.info, chpi_locs)
 original_head_dev_t = mne.transforms.invert_transform(
@@ -77,6 +76,5 @@ raw.plot(n_channels=100, duration=20)
 # and plot it:
 new_dev_head_t = compute_average_dev_head_t(raw, head_pos)
 raw.info['dev_head_t'] = new_dev_head_t
-mne.viz.plot_alignment(
-    raw.info, show_axes=True, subject=subject, trans=trans_fname,
-    subjects_dir=subjects_dir)
+mne.viz.plot_alignment(raw.info, show_axes=True, subject=subject,
+                       trans=trans_fname, subjects_dir=subjects_dir)

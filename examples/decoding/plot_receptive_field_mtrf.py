@@ -5,8 +5,8 @@
 Receptive Field Estimation and Prediction
 =========================================
 
-This example reproduces figures from Lalor et al's mTRF toolbox in
-matlab :footcite:`CrosseEtAl2016`. We will show how the
+This example reproduces figures from Lalor et al.'s mTRF toolbox in
+MATLAB :footcite:`CrosseEtAl2016`. We will show how the
 :class:`mne.decoding.ReceptiveField` class
 can perform a similar function along with scikit-learn. We will first fit a
 linear encoding model using the continuously-varying speech envelope to predict
@@ -150,7 +150,6 @@ mne.viz.plot_topomap(mean_coefs[:, ix_plot], pos=info, axes=ax, show=False,
 ax.set(title="Topomap of model coefficients\nfor delay %s" % time_plot)
 mne.viz.tight_layout()
 
-
 ###############################################################################
 # Create and fit a stimulus reconstruction model
 # ----------------------------------------------
@@ -258,8 +257,6 @@ mne.viz.plot_topomap(np.mean(mean_patterns[:, ix_plot], axis=1),
 ax[1].set(title="Inverse-transformed coefficients\nbetween delays %s and %s"
           % (time_plot[0], time_plot[1]))
 mne.viz.tight_layout()
-
-plt.show()
 
 ###############################################################################
 # References
