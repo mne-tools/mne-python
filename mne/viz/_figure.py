@@ -1162,8 +1162,9 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.draggable_annotations = not self.mne.draggable_annotations
 
     def _get_annotation_labels(self):
-        """Get the unique labels in the raw object and added in the UI."""
-        labels = list(set(self.mne.inst.annotations.description))
+        """Get the unique labels in the raw object and added in the UI."""        
+        labels = list(set(np.array([desc.split(",")[0]\
+                                    for desc in self.mne.inst.annotations.description])))
         return np.union1d(labels, self.mne.new_annotation_labels)
 
     def _update_annotation_fig(self):
@@ -1386,9 +1387,9 @@ class MNEBrowseFigure(MNEFigure):
         self._update_annotation_segments()
         segments = self.mne.annotation_segments
         times = self.mne.times
-        ax = self.mne.ax_main
-        ylim = ax.get_ylim()        
+        ax = self.mne.ax_main        
         for idx, (start, end) in enumerate(segments):
+            ylim = ax.get_ylim()        
             if len(self.mne.inst.annotations.description[idx].split(","))==2:
                 descr = self.mne.inst.annotations.description[idx].split(",")[0]
                 chname = self.mne.inst.annotations.description[idx].split(",")[1]                
