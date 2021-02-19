@@ -1,11 +1,14 @@
 """
+.. _tut-ssvep:
+
 ==========================================================
 Frequency-tagging: Basic analysis of an SSVEP/vSSR dataset
 ==========================================================
 
 In this tutorial we compute the frequency spectrum and quantify signal-to-noise
 ratio (SNR) at a target frequency in EEG data recorded during fast periodic
-visual stimulation (FPVS).
+visual stimulation (FPVS) at 12 Hz and 15 Hz in different trials
+(see :ref:`ssvep-dataset` for more information).
 Extracting SNR at stimulation frequency is a simple way to quantify frequency
 tagged responses in MEEG (a.k.a. steady state visually evoked potentials,
 SSVEP, or visual steady-state responses, vSSR in the visual domain,
