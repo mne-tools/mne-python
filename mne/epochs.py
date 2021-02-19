@@ -2826,7 +2826,7 @@ class EpochsFIF(BaseEpochs):
             # we also retain original baseline without re-applying baseline
             # correction (data is being baseline-corrected when written to
             # disk)
-            epoch = BaseEpochs(
+            epoch = super().__init__(
                 info, data, events, event_id, tmin, tmax,
                 baseline=None,
                 metadata=metadata, on_missing='ignore',
