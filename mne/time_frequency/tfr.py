@@ -925,6 +925,12 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         name : str | None
             Optional name to provide the frequency band.
             Will be appended to the ``comment`` property.
+        method : str | callable
+            How to combine the data. If "mean"/"median", the mean/median
+            are returned. Otherwise, must be a callable which, when passed
+            an array of shape (*, n_channels, n_freqs, n_time) returns an
+            array of shape (*, n_channels, n_time). Note that due to file
+            type limitations, the kind for all these will be "average".
         """
         # average band
 
