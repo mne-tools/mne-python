@@ -913,7 +913,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         """Channel names."""
         return self.info['ch_names']
 
-    def average_freqs(self, fmin, fmax, name=None):
+    def average_freqs(self, fmin, fmax, name=None, method='mean'):
         """Average data within frequency band.
 
         Parameters
