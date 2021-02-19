@@ -122,14 +122,27 @@ epochs = mne.Epochs(
 #
 # Calculate power spectral density (PSD)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# We use Welch's method for frequency decomposition, since it is really fast.
-# We chose a frequency resolution of 0.1 hz.
-# You could compare it with, e.g., multitaper to get an impression of the
-# influence on SNR. All the other methods implemented in MNE can be used as
-# well.
+# The frequency spectrum will be computed using Fast Fourier transform (FFT).
+# This seems to be common practice in the steady-state literature and is
+# based on the exact knowledge of the stimulus and the assumed response -
+# especially in terms of it's stability over time.
+# For a discussion see e.g.
+# `Bach & Meigen (1999) <https://doi.org/10.1023/A:1002648202420>`_
+#
+# We will exclude the first second of each trial from the analysis:
+#
+# * steady-state response often take a while to stabilize, and the
+#   transient phase in the beginning can distort the signal estimate.
+#
+# * this section of data is expected to be dominated by responses related to
+#   the stimulus onset, and we are not interested in this.
+#
+# In MNE we call plain FFT as a special case of Welch's method, with only a
+# single Welch window spanning the entire trial and no specific windowing
+# function (i.e. applying a boxcar window).
 #
 
-tmin = 0.
+tmin = 1.
 tmax = 20.
 fmin = 1.
 fmax = 90.
@@ -137,9 +150,12 @@ sf = epochs.info['sfreq']
 
 psds, freqs = mne.time_frequency.psd_welch(
     epochs,
-    n_fft=int(sf * 10), n_overlap=int(sf * .5), n_per_seg=None,
+    n_fft=int(sf * (tmax-tmin)),
+    n_overlap=0, n_per_seg=None,
     tmin=tmin, tmax=tmax,
-    fmin=fmin, fmax=fmax, verbose=False)
+    fmin=fmin, fmax=fmax,
+    window='boxcar',
+    verbose=False)
 
 
 ###############################################################################
@@ -266,7 +282,7 @@ axes[1].fill_between(
     color='r', alpha=.2)
 axes[1].set(
     title="SNR spectrum", xlabel='Frequency [Hz]',
-    ylabel='SNR', ylim=[-1, 15], xlim=[fmin, fmax])
+    ylabel='SNR', ylim=[-2, 30], xlim=[fmin, fmax])
 fig.show()
 
 ###############################################################################
@@ -481,9 +497,8 @@ ax.set_title('Average SNR at target frequencies')
 ax.set_xticks(x)
 ax.set_xticklabels(labels)
 ax.legend(['%ihz' % f for f in freq_plot], title='SNR at:')
-ax.set_ylim([0, 30])
+ax.set_ylim([0, 70])
 ax.axhline(1, ls='--', c='r')
-# fig.tight_layout()
 fig.show()
 
 ###############################################################################
@@ -540,10 +555,9 @@ print("15 hz trials: 36 hz SNR is significantly lower than 45 hz SNR"
 # For the overly motivated amongst you, let's see what else we can show with
 # these data.
 #
-# Using Welch's method as implemented in MNE makes it very easy to change
+# Using the PSD function as implemented in MNE makes it very easy to change
 # the amount of data that is actually used in the spectrum
-# estimation. We can tweak both the length of the actual trial, and the length
-# of the Welch window.
+# estimation.
 #
 # Here we employ this to show you some features of frequency
 # tagging data that you might or might not have already intuitively expected:
@@ -564,8 +578,10 @@ for i_win, win in enumerate(window_lengths):
     # compute spectrogram
     windowed_psd, windowed_freqs = mne.time_frequency.psd_welch(
         epochs[str(event_id['12hz'])],
-        n_fft=int(sf * win), n_overlap=0, n_per_seg=None,
+        n_fft=int(sf * win),
+        n_overlap=0, n_per_seg=None,
         tmin=0, tmax=win,
+        window='boxcar',
         fmin=fmin, fmax=fmax, verbose=False)
     # define a bandwidth of 1hz around stimfreq for SNR computation
     bin_width = windowed_freqs[1] - windowed_freqs[0]
@@ -721,7 +737,7 @@ fig.show()
 #
 
 # 3s sliding window
-window_length = 3
+window_length = 4
 window_starts = [i for i in range(20 - window_length)]
 window_snrs = [[]] * len(window_starts)
 
@@ -729,9 +745,12 @@ for i_win, win in enumerate(window_starts):
     # compute spectrogram
     windowed_psd, windowed_freqs = mne.time_frequency.psd_welch(
         epochs[str(event_id['12hz'])],
-        n_fft=int(sf * window_length) - 1, n_overlap=0, n_per_seg=None,
+        n_fft=int(sf * window_length) - 1,
+        n_overlap=0, n_per_seg=None,
+        window='boxcar',
         tmin=win, tmax=win + window_length,
-        fmin=fmin, fmax=fmax, verbose=False)
+        fmin=fmin, fmax=fmax,
+        verbose=False)
     # define a bandwidth of 1hz around stimfreq for SNR computation
     bin_width = windowed_freqs[1] - windowed_freqs[0]
     noise_skip_neighborfreqs = \
