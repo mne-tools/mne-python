@@ -251,7 +251,6 @@ plot_epochs_psd_topomap
 plot_raw_psd_topo
 plot_source_spectrogram
 prepare_inverse_operator
-read_bad_channels
 read_fiducials
 read_tag
 rescale

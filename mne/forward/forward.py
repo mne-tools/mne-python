@@ -25,7 +25,7 @@ from ..io.tree import dir_tree_find
 from ..io.tag import find_tag, read_tag
 from ..io.matrix import (_read_named_matrix, _transpose_named_matrix,
                          write_named_matrix)
-from ..io.meas_info import (read_bad_channels, write_info, _write_ch_infos,
+from ..io.meas_info import (_read_bad_channels, write_info, _write_ch_infos,
                             _read_extended_ch_info, _make_ch_names_mapping,
                             _rename_list)
 from ..io.pick import (pick_channels_forward, pick_info, pick_channels,
@@ -324,7 +324,7 @@ def _read_forward_meas_info(tree, fid):
     else:
         raise ValueError('MEG/head coordinate transformation not found')
 
-    info['bads'] = read_bad_channels(
+    info['bads'] = _read_bad_channels(
         fid, parent_meg, ch_names_mapping=ch_names_mapping)
     # clean up our bad list, old versions could have non-existent bads
     info['bads'] = [bad for bad in info['bads'] if bad in info['ch_names']]

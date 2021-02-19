@@ -25,7 +25,7 @@ from .tag import (read_tag, find_tag, _ch_coord_dict, _update_ch_info_named,
                   _rename_list)
 from .proj import (_read_proj, _write_proj, _uniquify_projs, _normalize_proj,
                    Projection)
-from .ctf_comp import read_ctf_comp, write_ctf_comp
+from .ctf_comp import _read_ctf_comp, write_ctf_comp
 from .write import (start_file, end_file, start_block, end_block,
                     write_string, write_dig_points, write_float, write_int,
                     write_coord_trans, write_ch_info, write_name_list,
@@ -920,7 +920,7 @@ def read_info(fname, verbose=None):
     return info
 
 
-def read_bad_channels(fid, node, *, ch_names_mapping=None):
+def read_bad_channels(fid, node):
     """Read bad channels.
 
     Parameters
@@ -929,14 +929,16 @@ def read_bad_channels(fid, node, *, ch_names_mapping=None):
         The file descriptor.
     node : dict
         The node of the FIF tree that contains info on the bad channels.
-    ch_names_mapping : dict | None
-        Short-to-long name mapping.
 
     Returns
     -------
     bads : list
         A list of bad channel's names.
     """
+    return _read_bad_channels(fid, node)
+
+
+def _read_bad_channels(fid, node, ch_names_mapping):
     ch_names_mapping = {} if ch_names_mapping is None else ch_names_mapping
     nodes = dir_tree_find(node, FIFF.FIFFB_MNE_BAD_CHANNELS)
 
@@ -1134,14 +1136,16 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
                 acq_stim = tag.data
 
     #   Load the SSP data
-    projs = _read_proj(fid, meas_info, ch_names_mapping=ch_names_mapping)
+    projs = _read_proj(
+        fid, meas_info, ch_names_mapping=ch_names_mapping)
 
     #   Load the CTF compensation data
-    comps = read_ctf_comp(
+    comps = _read_ctf_comp(
         fid, meas_info, chs, ch_names_mapping=ch_names_mapping)
 
     #   Load the bad channel list
-    bads = read_bad_channels(fid, meas_info, ch_names_mapping=ch_names_mapping)
+    bads = _read_bad_channels(
+        fid, meas_info, ch_names_mapping=ch_names_mapping)
 
     #
     #   Put the data together

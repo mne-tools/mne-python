@@ -24,7 +24,7 @@ from .io.pick import (pick_types, pick_channels_cov, pick_channels, pick_info,
                       _DATA_CH_TYPES_SPLIT)
 
 from .io.constants import FIFF
-from .io.meas_info import read_bad_channels, create_info
+from .io.meas_info import _read_bad_channels, create_info
 from .io.tag import find_tag
 from .io.tree import dir_tree_find
 from .io.write import (start_block, end_block, write_int, write_name_list,
@@ -2022,7 +2022,7 @@ def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
             projs = _read_proj(fid, this)
 
             #   Read the bad channel list
-            bads = read_bad_channels(fid, this)
+            bads = _read_bad_channels(fid, this, None)
 
             #   Put it together
             assert dim == len(data)

@@ -55,7 +55,29 @@ def _calibrate_comp(comp, chs, row_names, col_names,
 
 
 @verbose
-def read_ctf_comp(fid, node, chs, *, ch_names_mapping=None, verbose=None):
+def read_ctf_comp(fid, node, chs, verbose=None):
+    """Read the CTF software compensation data from the given node.
+
+    Parameters
+    ----------
+    fid : file
+        The file descriptor.
+    node : dict
+        The node in the FIF tree.
+    chs : list
+        The list of channels from info['chs'] to match with
+        compensators that are read.
+    %(verbose)s
+
+    Returns
+    -------
+    compdata : list
+        The compensation data
+    """
+    return _read_ctf_comp(fid, node, chs, None)
+
+
+def _read_ctf_comp(fid, node, chs, ch_names_mapping):
     """Read the CTF software compensation data from the given node.
 
     Parameters
