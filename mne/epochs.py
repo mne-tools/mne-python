@@ -11,6 +11,7 @@
 #
 # License: BSD (3-clause)
 
+from abc import ABC, abstractmethod
 from collections import Counter
 from copy import deepcopy
 import json
@@ -314,7 +315,7 @@ def _handle_event_repeated(events, event_id, event_repeated, selection,
 @fill_doc
 class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                  SetChannelsMixin, InterpolationMixin, FilterMixin,
-                 TimeMixin, SizeMixin, GetEpochsMixin):
+                 TimeMixin, SizeMixin, GetEpochsMixin, ABC):
     """Abstract base class for Epochs-type classes.
 
     This class provides basic functionality and should never be instantiated
@@ -384,6 +385,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
     used as a constructor for Epochs objects (use instead :class:`mne.Epochs`).
     """
 
+    @abstractmethod
     @verbose
     def __init__(self, info, data, events, event_id=None, tmin=-0.2, tmax=0.5,
                  baseline=(None, 0), raw=None, picks=None, reject=None,
