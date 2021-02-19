@@ -5,7 +5,6 @@
 # License: BSD (3-clause)
 import os
 import os.path as op
-import shutil
 import sys
 
 import numpy as np
@@ -61,10 +60,17 @@ def test_check(tmpdir):
     if check_version('numpy', '1.17'):
         check_random_state(np.random.default_rng(0)).choice(1)
 
-    # _meg.fif is a valid ending and should not raise an error
-    new_fname = str(
-        tmpdir.join(op.basename(fname_raw).replace('_raw.', '_meg.')))
-    shutil.copyfile(fname_raw, new_fname)
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('suffix',
+                         ('_meg.fif', '_eeg.fif', '_ieeg.fif',
+                          '_meg.fif.gz', '_eeg.fif.gz', '_ieeg.fif.gz'))
+def test_check_fname_suffixes(suffix, tmpdir):
+    """Test checking for valid filename suffixes."""
+    new_fname = str(tmpdir.join(op.basename(fname_raw)
+                                .replace('_raw.fif', suffix)))
+    raw = mne.io.read_raw_fif(fname_raw).crop(0, 0.1)
+    raw.save(new_fname)
     mne.io.read_raw_fif(new_fname)
 
 
