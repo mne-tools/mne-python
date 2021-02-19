@@ -1,7 +1,7 @@
 """
-=======================================
-Basic analysis of an SSVEP/vSSR dataset
-=======================================
+==========================================================
+Frequency-tagging: Basic analysis of an SSVEP/vSSR dataset
+==========================================================
 
 In this tutorial we compute the frequency spectrum and quantify signal-to-noise
 ratio (SNR) at a target frequency in EEG data recorded during fast periodic
@@ -10,6 +10,11 @@ Extracting SNR at stimulation frequency is a simple way to quantify frequency
 tagged responses in MEEG (a.k.a. steady state visually evoked potentials,
 SSVEP, or visual steady-state responses, vSSR in the visual domain,
 or auditory steady-state responses, ASSR in the auditory domain).
+
+For a general introduction to the method see
+`Norcia et al. (2015) <https://doi.org/10.1167/15.6.4>`_ for the visual domain,
+and `Picton et al. (2003) <https://doi.org/10.3109/14992020309101316>`_ for
+the auditory domain.
 
 DATA:
 
@@ -81,7 +86,7 @@ raw.set_montage(montage, verbose=False)
 raw.set_eeg_reference('average', projection=False, verbose=False)
 
 # Apply notch filter to remove line-noise
-notch = np.arange(raw.info['line_freq'], raw.info['lowpass'] / 2,
+notch = np.arange(raw.info['line_freq'], raw.info['sfreq'] / 2,
                   raw.info['line_freq'])
 raw.notch_filter(notch, filter_length='auto', phase='zero', verbose=False)
 
@@ -165,6 +170,8 @@ psds, freqs = mne.time_frequency.psd_welch(
 # SNR - as we define it here - is a measure of relative power:
 # it's the ratio of power in a given frequency bin - the 'signal' -
 # to a 'noise' baseline - the average power in the surrounding frequency bins.
+# This approach was initially proposed by
+# `Meigen & Bach (1999) <https://doi.org/10.1023/A:1002097208337>`_
 #
 # Hence, we need to set some parameters for this baseline - how many
 # neighboring bins should be taken for this computation, and do we want to skip
@@ -228,9 +235,9 @@ def snr_spectrum(psd, noise_n_neighborfreqs=1, noise_skip_neighborfreqs=1):
 #
 # As described above, we have to define two parameters.
 #
-# * how many noise bins do you want?
+# * how many noise bins do we want?
 #
-# * do you want to skip n bins directly next to the target bin?
+# * do we want to skip the n bins directly next to the target bin?
 #
 #
 # Tweaking these parameters *can* drastically impact the resulting spectrum,
@@ -334,7 +341,7 @@ stim_freq = 12.
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # Ideally, there would be a bin with the stimulation frequency exactly in its
 # center. However, depending on your Spectral decomposition this is not
-# always the case. We will find the bin closest to it (this one should contain
+# always the case. We will find the bin closest to it - this one should contain
 # our frequency tagged response.
 #
 
@@ -564,8 +571,8 @@ print("15 hz trials: 36 hz SNR is significantly lower than 45 hz SNR"
 #
 # Effect of trial duration on SNR
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# First we will simulate shorter trials by taking the first x s of our 20s
-# trials (2, 4, 6, 8, ..., 20 s), and compute the SNR using a welch window
+# First we will simulate shorter trials by taking only the first x s of our 20s
+# trials (2, 4, 6, 8, ..., 20 s), and compute the SNR using a FFT window
 # that covers the entire epoch:
 #
 
@@ -607,8 +614,8 @@ for i_win, win in enumerate(window_lengths):
 
 fig, ax = plt.subplots(1)
 ax.boxplot(window_snrs, labels=window_lengths, vert=True)
-ax.set(title='Effect of trial length on 12hz SNR',
-       ylabel='Average SNR', xlabel='Trial length [s]')
+ax.set(title='Effect of trial duration on 12hz SNR',
+       ylabel='Average SNR', xlabel='Trial duration [s]')
 ax.axhline(1, ls='--', c='r')
 fig.show()
 
@@ -624,108 +631,13 @@ fig.show()
 # In other words: with more data the signal term grows faster than the noise
 # term.
 #
-# Effect of the Welch window size
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# Let's now look at the effect of the Welch window from two different
-# perspectives:
-# For the first plot we kept the entire 20s of data, but changed the length
-# of the Welch window.
-# For the second plot we fixed the Welch window, and again simulated different
-# trial lengths.
+# We can further see that the very short trials with FFT windows < 2-3s are not
+# great - here we've either hit the noise floor and/or the transient response
+# at the trial onset covers too much of the trial.
 #
-
-
-# fig 1 - shorten welch window, full data
-window_lengths = [i for i in range(2, 21, 2)]
-window_snrs = [[]] * len(window_lengths)
-for i_win, win in enumerate(window_lengths):
-    # compute spectrogram
-    windowed_psd, windowed_freqs = mne.time_frequency.psd_welch(
-        epochs[str(event_id['12hz'])],
-        n_fft=int(sf * win), n_overlap=int(sf * (win - .1)), n_per_seg=None,
-        tmin=tmin, tmax=tmax,
-        fmin=fmin, fmax=fmax, verbose=False)
-    # define a bandwidth of 1hz around stimfreq for SNR computation
-    bin_width = windowed_freqs[1] - windowed_freqs[0]
-    noise_skip_neighborfreqs = \
-        round((stim_bandwidth / 2) / bin_width - bin_width / 2. - .5) if (
-            bin_width < stim_bandwidth) else 0
-    noise_n_neighborfreqs = \
-        int((sum((windowed_freqs <= 13) & (windowed_freqs >= 11)
-                 ) - 1 - 2 * noise_skip_neighborfreqs) / 2)
-    # compute snr
-    windowed_snrs = \
-        snr_spectrum(
-            windowed_psd,
-            noise_n_neighborfreqs=noise_n_neighborfreqs if (
-                noise_n_neighborfreqs > 0) else 1,
-            noise_skip_neighborfreqs=1)
-    window_snrs[i_win] = \
-        windowed_snrs[
-        :, picks_roi_vis,
-        np.argmin(abs(np.subtract(windowed_freqs, 12.)))].mean(axis=1)
-
-fig, ax = plt.subplots(1)
-ax.boxplot(window_snrs, labels=window_lengths, vert=True)
-ax.set(title='Varying Welch window, fixed trial length',
-       ylabel='Average SNR', xlabel='Welch window [s]')
-ax.axhline(1, ls='--', c='r')
-fig.show()
-
-# fig 2 - shorten data, welch window fix
-window_lengths = [i for i in range(2, 21, 2)]
-window_lengths[0] = 3
-window_snrs = [[]] * len(window_lengths)
-for i_win, win in enumerate(window_lengths):
-    # compute spectrogram
-    windowed_psd, windowed_freqs = mne.time_frequency.psd_welch(
-        epochs[str(event_id['12hz'])],
-        n_fft=int(sf * 3.), n_overlap=int(sf * 2.9), n_per_seg=None,
-        tmin=0, tmax=win,
-        fmin=fmin, fmax=fmax, verbose=False)
-    # define a bandwidth of 1hz around stimfreq for SNR computation
-    bin_width = windowed_freqs[1] - windowed_freqs[0]
-    noise_skip_neighborfreqs = \
-        round((stim_bandwidth / 2) / bin_width - bin_width / 2. - .5) if (
-            bin_width < stim_bandwidth) else 0
-    noise_n_neighborfreqs = \
-        int((sum((windowed_freqs <= 13) & (windowed_freqs >= 11)
-                 ) - 1 - 2 * noise_skip_neighborfreqs) / 2)
-    # compute snr
-    windowed_snrs = \
-        snr_spectrum(
-            windowed_psd,
-            noise_n_neighborfreqs=noise_n_neighborfreqs if (
-                noise_n_neighborfreqs > 0) else 1,
-            noise_skip_neighborfreqs=noise_skip_neighborfreqs)
-    window_snrs[i_win] = \
-        windowed_snrs[
-            :, picks_roi_vis,
-            np.argmin(abs(np.subtract(windowed_freqs, 12.)))].mean(axis=1)
-
-fig, ax = plt.subplots(1)
-ax.boxplot(window_snrs, labels=window_lengths, vert=True)
-ax.set(title='3s Welch window, varying trial length',
-       ylabel='Average SNR', xlabel='Trial length [s]')
-ax.axhline(1, ls='--', c='r')
-fig.show()
-
-##############################################################################
-# In these plots you can see that a shorter Welch window (relative to the
-# amount of data) leads not only to lower SNR values (as described above)
-# but also to lower variance / higher confidence in the means.
-#
-# This is the very idea of Welch's method, and is relevant to remember when
-# you decide for your analysis parameters:
-#
-# there is no such thing as an optimal welch window, its always a tradeoff:
-# a longer Welch window results in higher average SNR values;
-# a shorter window results in lower values but is more robust /
-# there is a higher confidence in the mean.
-#
-# Yet, one should also not pick too small a window: in our data we can see
-# that the very short Welch windows < 2-3s are not great -
-# here we've hit the noise bottom.
+# This tutorial doesn't address determining the presence of a neural response,
+# but an F-test or Hotelling T² would be appropriate for these purposes.
+# they are commonly used e.g. in the auditory domain / ASSR literature.
 #
 # Time resolved SNR
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -780,8 +692,8 @@ fig.show()
 ##############################################################################
 # Well.. turns out this was a bit too optimistic ;)
 #
-# But seriously: this was a nice idea, but we've simply reached the limit of
+# But seriously: this was a nice idea, but we've reached the limit of
 # what's possible with this single-subject example dataset.
-# There are certainly data or applications where such an analysis makes more
-# sense.
+# However, there might be data, applications, or research questions
+# where such an analysis makes sense.
 #
