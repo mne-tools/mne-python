@@ -2099,10 +2099,9 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         ----------
         method : str | callable
             How to combine the data. If "mean"/"median", the mean/median
-            are returned.
-            Otherwise, must be a callable which, when passed an array of shape
-            (n_epochs, n_channels, n_freqs, n_time) returns an array of shape
-            (n_channels, n_freqs, n_time).
+            are returned. Otherwise, must be a callable which, when passed
+            an array of shape (n_epochs, n_channels, n_freqs, n_time)
+            returns an array of shape (n_channels, n_freqs, n_time).
             Note that due to file type limitations, the kind for all
             these will be "average".
 
