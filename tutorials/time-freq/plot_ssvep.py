@@ -159,12 +159,13 @@ psds, freqs = mne.time_frequency.psd_welch(
 #
 
 def snr_spectrum(psd, noise_n_neighborfreqs=1, noise_skip_neighborfreqs=1):
-    """
+    """Compute SNR spectrum from PSD spectrum using convolution.
+
     Parameters
     ----------
-    psd : ndarray
-        containing psd values as spit out by mne functions. must be 2d or 3d
-        with frequencies in the last dimension
+    psd : ndarray, shape=(n_trials, [n_channels,] n_frequency_bins)
+        containing psd values as spit out by MNE's PSD functions.
+        must be 2d or 3d array with frequencies in the last dimension
     noise_n_neighborfreqs : int
         number of neighboring frequencies used to compute noise level.
         increment by one to add one frequency bin ON BOTH SIDES
