@@ -155,7 +155,7 @@ sf = epochs.info['sfreq']
 
 psds, freqs = mne.time_frequency.psd_welch(
     epochs,
-    n_fft=int(sf * (tmax-tmin)),
+    n_fft=int(sf * (tmax - tmin)),
     n_overlap=0, n_per_seg=None,
     tmin=tmin, tmax=tmax,
     fmin=fmin, fmax=fmax,
