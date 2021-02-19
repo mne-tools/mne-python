@@ -1,4 +1,10 @@
 # -*- coding: utf-8 -*-
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#          Joan Massich <mailsik@gmail.com>
+#          Eric Larson <larson.eric.d@gmail.com>
+#
+# License: BSD Style.
+
 """
 .. _tut-eeg-fsaverage-source-modeling:
 
@@ -12,19 +18,10 @@ using the standard template MRI subject ``fsaverage``.
              subject will be less accurate. Do not over interpret
              activity locations which can be off by multiple centimeters.
 
-.. contents:: This tutorial covers:
-   :local:
-   :depth: 2
-
 Adult template MRI (fsaverage)
 ------------------------------
 First we show how ``fsaverage`` can be used as a surrogate subject.
 """
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Joan Massich <mailsik@gmail.com>
-#          Eric Larson <larson.eric.d@gmail.com>
-#
-# License: BSD Style.
 
 import os.path as op
 import numpy as np

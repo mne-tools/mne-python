@@ -15,9 +15,6 @@ M/EEG context we recommend reading Widmann *et al.* (2015) [7]_.
 To see how to use the default filters in MNE-Python on actual data, see
 the :ref:`tut-filter-resample` tutorial.
 
-.. contents::
-    :local:
-
 Problem statement
 =================
 

@@ -158,7 +158,7 @@ evoked.plot_white(noise_covs, time_unit='s')
 
 ##############################################################################
 # This will plot the whitened evoked for the optimal estimator and display the
-# :term:`GFPs <GFP>` for all estimators as separate lines in the related panel.
+# :term:`GFP` for all estimators as separate lines in the related panel.
 
 
 ##############################################################################

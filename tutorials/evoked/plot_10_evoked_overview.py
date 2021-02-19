@@ -11,10 +11,6 @@ including how to load, query, subselect, export, and plot data from an
 object from (possibly simulated) data in a :class:`NumPy array
 <numpy.ndarray>`, see :ref:`tut_creating_data_structures`.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 As usual we'll start by importing the modules we need:
 """
 
@@ -63,7 +59,7 @@ evoked.plot()
 # :meth:`Epochs <mne.Epochs.plot>` objects,
 # :meth:`evoked.plot() <mne.Evoked.plot>` has many parameters for customizing
 # the plot output, such as color-coding channel traces by scalp location, or
-# plotting the :term:`global field power <GFP>` alongside the channel traces.
+# plotting the :term:`global field power` alongside the channel traces.
 # See :ref:`tut-visualize-evoked` for more information about visualizing
 # :class:`~mne.Evoked` objects.
 #

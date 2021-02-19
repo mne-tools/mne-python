@@ -804,7 +804,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                 reject_imax = idxs[-1]
             self._reject_time = slice(reject_imin, reject_imax)
 
-    @verbose
+    @verbose  # verbose is used by mne-realtime
     def _is_good_epoch(self, data, verbose=None):
         """Determine if epoch is good."""
         if isinstance(data, str):
@@ -1220,7 +1220,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                rej in (reject, flat)):
             raise ValueError('reject and flat, if strings, must be "existing"')
         self._reject_setup(reject, flat)
-        self._get_data(out=False)
+        self._get_data(out=False, verbose=verbose)
         return self
 
     def drop_log_stats(self, ignore=('IGNORED',)):
@@ -1414,7 +1414,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                     epoch = self._project_epoch(epoch_noproj)
 
                 epoch_out = epoch_noproj if self._do_delayed_proj else epoch
-                is_good, bad_tuple = self._is_good_epoch(epoch)
+                is_good, bad_tuple = self._is_good_epoch(
+                    epoch, verbose=verbose)
                 if not is_good:
                     assert isinstance(bad_tuple, tuple)
                     assert all(isinstance(x, str) for x in bad_tuple)

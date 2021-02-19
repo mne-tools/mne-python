@@ -4,10 +4,6 @@
 EEG processing and Event Related Potentials (ERPs)
 ==================================================
 
-.. contents:: Here we cover the specifics of EEG, namely:
-   :local:
-   :depth: 1
-
 """
 
 import matplotlib.pyplot as plt

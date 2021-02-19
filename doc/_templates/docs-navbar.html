@@ -1,0 +1,68 @@
+<div class="container-xl">
+    <a class="navbar-brand" href="{{ pathto(master_doc) }}">
+        {% if logo %}
+        <img src="{{ pathto('_static/' + logo, 1) }}" class="logo" alt="logo" />
+        {% else %}
+        <p class="title">{{ project }}</p>
+        {% endif %}
+    </a>
+
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbar-menu" aria-controls="navbar-menu" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div id="navbar-menu" class="col-auto col-lg-9 collapse navbar-collapse">
+        <ul id="navbar-main-elements" class="navbar-nav mr-auto">
+            {% set nav = get_nav_object(maxdepth=1, collapse=True) %}
+            {% for main_nav_item in nav %}
+            <li class="nav-item {% if main_nav_item.active%}active{% endif %}">
+                <a class="nav-link" href="{{ main_nav_item.url }}">{{ main_nav_item.title }}</a>
+            </li>
+            {% endfor %}
+            {% for external_link in theme_external_links %}
+            <li class="nav-item">
+                <a class="nav-link nav-external" href="{{ external_link.url }}">{{ external_link.name }}<i class="fas fa-external-link-alt"></i></a>
+            </li>
+            {% endfor %}
+        </ul>
+
+        {% if theme_search_bar_position == 'navbar' %}
+        {%- include "search-field.html" %}
+        {% endif %}
+
+        <ul class="navbar-nav">
+            <!-- version dropdown -->
+            <li class="mr-2 dropdown">
+                <button type="button" class="btn btn-{% if (build_dev_html|tobool) %}danger{% else %}primary{% endif %} btn-sm navbar-btn dropdown-toggle" id="dLabelMore" data-toggle="dropdown">
+                    v{{ release }}
+                    <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="dLabelMore">
+                    {%- for ver, txt in versions_dropdown.items() %}
+                    <li><a href="https://mne-tools.github.io/{{ ver }}/index.html">{{ txt }}</a></li>
+                    {%- endfor %}
+                </ul>
+            </li>
+            {% if theme_github_url | length > 2 %}
+            <li class="nav-item">
+                <a class="nav-link" href="{{ theme_github_url }}" target="_blank" rel="noopener">
+                    <span><i class="fab fa-github-square"></i></span>
+                </a>
+            </li>
+            {% endif %}
+            {% if theme_twitter_url | length > 2 %}
+            <li class="nav-item">
+                <a class="nav-link" href="{{ theme_twitter_url }}" target="_blank" rel="noopener">
+                    <span><i class="fab fa-twitter-square"></i></span>
+                </a>
+            </li>
+            {% endif %}
+            <!-- discourse forum link -->
+            <li class="nav-item">
+                <a class="nav-link" href="https://mne.discourse.group" target="_blank" rel="noopener">
+                    <span><i class="fab fa-discourse"></i></span>
+                </a>
+            </li>
+        </ul>
+    </div>
+</div>

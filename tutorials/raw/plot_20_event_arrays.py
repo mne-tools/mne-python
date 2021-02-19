@@ -8,10 +8,6 @@ Working with events
 This tutorial describes event representation and how event arrays are used to
 subselect data.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 As usual we'll start by importing the modules we need, loading some
 :ref:`example data <sample-dataset>`, and cropping the :class:`~mne.io.Raw`
 object to just 60 seconds before loading it into RAM to save memory:
