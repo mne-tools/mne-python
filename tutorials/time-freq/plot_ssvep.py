@@ -20,12 +20,8 @@ DATA:
 
 We use a simple example dataset with frequency tagged visual stimulation:
 N=2 participants observed checkerboards patterns inverting with a constant
-frequency of either 12Hz of 15Hz. 10 trials of 20s length each.
+frequency of either 12Hz of 15Hz.
 32ch wet EEG was recorded.
-
-Data can be downloaded at https://osf.io/7ne6y/
-Data format: BrainVision .eeg/.vhdr/.vmrk files organized according to BIDS
-standard.
 
 OUTLINE:
 

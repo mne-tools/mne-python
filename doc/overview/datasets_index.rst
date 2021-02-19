@@ -401,6 +401,24 @@ discriminate.
       and demonstrates how to fit a single trial linear regression using the
       information contained in the metadata of the individual datasets.
 
+.. _ssvep-dataset:
+
+SSVEP
+=====
+:func:`mne.datasets.ssvep.data_path`
+
+This is a simple example dataset with frequency tagged visual stimulation:
+N=2 participants observed checkerboards patterns inverting with a constant
+frequency of either 12Hz of 15Hz. 10 trials of 20s length each.
+32ch wet EEG was recorded.
+
+Data format: BrainVision .eeg/.vhdr/.vmrk files organized according to BIDS
+standard.
+
+.. topic:: Examples
+
+    * :ref:`tut-ssvep`
+
 References
 ==========
 
