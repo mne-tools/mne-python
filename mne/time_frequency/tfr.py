@@ -2101,8 +2101,8 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
             How to combine the data. If "mean"/"median", the mean/median
             are returned.
             Otherwise, must be a callable which, when passed an array of shape
-            (n_epochs, n_channels, n_time) returns an array of shape
-            (n_channels, n_time).
+            (n_epochs, n_channels, n_freqs, n_time) returns an array of shape
+            (n_channels, n_freqs, n_time).
             Note that due to file type limitations, the kind for all
             these will be "average".
 
@@ -2118,7 +2118,7 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
 
             >>> from scipy.stats import trim_mean  # doctest:+SKIP
             >>> trim = lambda x: trim_mean(x, 0.1, axis=0)  # doctest:+SKIP
-            >>> epochs.average(method=trim)  # doctest:+SKIP
+            >>> epochs_tfr.average(method=trim)  # doctest:+SKIP
 
         This would compute the trimmed mean.
         """
