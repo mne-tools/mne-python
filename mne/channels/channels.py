@@ -1440,7 +1440,8 @@ def _compute_ch_adjacency(info, ch_type):
     from .. import spatial_tris_adjacency
     from ..channels.layout import _find_topomap_coords, _pair_grad_sensors
     combine_grads = (ch_type == 'grad'
-                     and any([coil_type in [ch['coil_type'] for ch in info['chs']]
+                     and any([coil_type in [ch['coil_type']
+                                            for ch in info['chs']]
                               for coil_type in
                               [FIFF.FIFFV_COIL_VV_PLANAR_T1,
                                FIFF.FIFFV_COIL_NM_122]]))
