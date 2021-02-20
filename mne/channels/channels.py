@@ -1383,8 +1383,8 @@ def find_ch_adjacency(info, ch_type):
         conn_name = 'neuromag306mag'
     elif has_vv_grad and ch_type == 'grad':
         conn_name = 'neuromag306planar'
-    elif has_neuromag_122_grad:
-        conn_name = 'neuromag122'
+    # elif has_neuromag_122_grad:
+    #     conn_name = 'neuromag122'
     elif has_4D_mag:
         if 'MEG 248' in info['ch_names']:
             idx = info['ch_names'].index('MEG 248')
@@ -1439,8 +1439,11 @@ def _compute_ch_adjacency(info, ch_type):
     from scipy.spatial import Delaunay
     from .. import spatial_tris_adjacency
     from ..channels.layout import _find_topomap_coords, _pair_grad_sensors
-    combine_grads = (ch_type == 'grad' and FIFF.FIFFV_COIL_VV_PLANAR_T1 in
-                     np.unique([ch['coil_type'] for ch in info['chs']]))
+    combine_grads = (ch_type == 'grad'
+                     and any([coil_type in [ch['coil_type'] for ch in info['chs']]
+                              for coil_type in
+                              [FIFF.FIFFV_COIL_VV_PLANAR_T1,
+                               FIFF.FIFFV_COIL_NM_122]]))
 
     picks = dict(_picks_by_type(info, exclude=[]))[ch_type]
     ch_names = [info['ch_names'][pick] for pick in picks]
