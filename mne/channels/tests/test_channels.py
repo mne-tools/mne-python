@@ -83,10 +83,6 @@ def test_rename_channels():
     # Test bad input
     pytest.raises(ValueError, rename_channels, info, 1.)
     pytest.raises(ValueError, rename_channels, info, 1.)
-    # Test name too long (channel names must be less than 15 characters)
-    A16 = 'A' * 16
-    mapping = {'MEG 2641': A16}
-    pytest.raises(ValueError, rename_channels, info, mapping)
 
     # Test successful changes
     # Test ch_name and ch_names are changed

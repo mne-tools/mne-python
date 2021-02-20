@@ -31,6 +31,7 @@ FIFF.FIFFB_HPI_RESULT         = 109  # Result of a HPI fitting procedure
 FIFF.FIFFB_HPI_COIL           = 110  # Data acquired from one HPI coil
 FIFF.FIFFB_PROJECT            = 111
 FIFF.FIFFB_CONTINUOUS_DATA    = 112
+FIFF.FIFFB_CH_INFO            = 113  # Extra channel information
 FIFF.FIFFB_VOID               = 114
 FIFF.FIFFB_EVENTS             = 115
 FIFF.FIFFB_INDEX              = 116
@@ -156,6 +157,23 @@ FIFF.FIFF_HPI_FIT_DIST_LIMIT     = 244   # Limit for the coil distance differenc
 FIFF.FIFF_HPI_COIL_NO            = 245   # Coil number listed by HPI measurement
 FIFF.FIFF_HPI_COILS_USED         = 246   # List of coils finally used when the transformation was computed
 FIFF.FIFF_HPI_DIGITIZATION_ORDER = 247   # Which Isotrak digitization point corresponds to each of the coils energized
+
+
+#
+# Tags used for storing channel info
+#
+FIFF.FIFF_CH_SCAN_NO             = 250   # Channel scan number. Corresponds to fiffChInfoRec.scanNo field
+FIFF.FIFF_CH_LOGICAL_NO          = 251   # Channel logical number. Corresponds to fiffChInfoRec.logNo field
+FIFF.FIFF_CH_KIND                = 252   # Channel type. Corresponds to fiffChInfoRec.kind field"
+FIFF.FIFF_CH_RANGE               = 253   # Conversion from recorded number to (possibly virtual) voltage at the output"
+FIFF.FIFF_CH_CAL                 = 254   # Calibration coefficient from output voltage to some real units
+FIFF.FIFF_CH_LOC                 = 255   # Channel loc
+FIFF.FIFF_CH_UNIT                = 256   # Unit of the data
+FIFF.FIFF_CH_UNIT_MUL            = 257   # Unit multiplier exponent
+FIFF.FIFF_CH_DACQ_NAME           = 258   # Name of the channel in the data acquisition system. Corresponds to fiffChInfoRec.name.
+FIFF.FIFF_CH_COIL_TYPE           = 350   # Coil type in coil_def.dat
+FIFF.FIFF_CH_COORD_FRAME         = 351   # Coordinate frame (integer)
+
 #
 # Pointers
 #

@@ -36,6 +36,8 @@ Enhancements
 
 - Update the ``notebook`` 3d backend to use ``ipyvtk_simple`` for a better integration within ``Jupyter`` (:gh:`8503` by `Guillaume Favelier`_)
 
+- Remove the 15-character limitation for channel names when writing to FIF format. If you need the old 15-character names, you can use something like ``raw.rename_channels({n: n[:13] for n in raw.ch_names}, allow_duplicates=True)``, by `Eric Larson`_ (:gh:`8346`)
+
 - Add toggle-all button to :class:`mne.Report` HTML and ``width`` argument to :meth:`mne.Report.add_bem_to_section` (:gh:`8723` by `Eric Larson`_)
 
 - Add infant template MRI dataset downloader :func:`mne.datasets.fetch_infant_template` (:gh:`8738` by `Eric Larson`_ and `Christian O'Reilly`_)
