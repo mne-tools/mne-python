@@ -78,6 +78,7 @@ def test_time_frequency():
     # Test first with a single epoch
     power, itc = tfr_morlet(epochs[0], freqs=freqs, n_cycles=n_cycles,
                             use_fft=True, return_itc=True)
+
     # Now compute evoked
     evoked = epochs.average()
     pytest.raises(ValueError, tfr_morlet, evoked, freqs, 1., return_itc=True)
@@ -733,6 +734,46 @@ def test_compute_tfr_correct(method, decim):
     tfr = _compute_tfr(data, freqs, sfreq, method=method, decim=decim,
                        n_cycles=2)[0, 0]
     assert freqs[np.argmax(np.abs(tfr).mean(-1))] == f
+
+
+def test_averaging_epochsTFR():
+    # Setup for reading the raw data
+    event_id = 1
+    tmin = -0.2
+    tmax = 0.498  # Allows exhaustive decimation testing
+
+    freqs = np.arange(6, 20, 5)  # define frequencies of interest
+    n_cycles = freqs / 4.
+
+    raw = read_raw_fif(raw_fname)
+    # only pick a few events for speed
+    events = read_events(event_fname)[:4]
+
+    include = []
+    exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
+
+    # picks MEG gradiometers
+    picks = pick_types(raw.info, meg='grad', eeg=False,
+                       stim=False, include=include, exclude=exclude)
+    picks = picks[:2]
+
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks)
+
+    # Obtain EpochsTFR
+    power = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles,
+                       average=False, use_fft=True,
+                       return_itc=False)
+
+    # Test average methods
+    for func, method in zip(
+            [np.mean, np.median, np.mean],
+            ['mean', 'median', lambda x: np.mean(x, axis=0)]):
+        avgpower = power.average(method=method)
+        np.testing.assert_array_equal(func(power.data, axis=0),
+                                      avgpower.data)
+    with pytest.raises(RuntimeError, match='You passed a function that '
+                                           'resulted in data'):
+        power.average(method=np.mean)
 
 
 @requires_pandas

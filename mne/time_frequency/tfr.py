@@ -2128,7 +2128,7 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
 
         if data.shape != self._data.shape[1:]:
             raise RuntimeError(
-                'You passed a function that resulted n data of shape {}, '
+                'You passed a function that resulted in data of shape {}, '
                 'but it should be {}.'.format(
                     data.shape, self._data.shape[1:]))
 
