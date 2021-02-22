@@ -1383,8 +1383,6 @@ def find_ch_adjacency(info, ch_type):
         conn_name = 'neuromag306mag'
     elif has_vv_grad and ch_type == 'grad':
         conn_name = 'neuromag306planar'
-    # elif has_neuromag_122_grad:
-    #     conn_name = 'neuromag122'
     elif has_4D_mag:
         if 'MEG 248' in info['ch_names']:
             idx = info['ch_names'].index('MEG 248')
