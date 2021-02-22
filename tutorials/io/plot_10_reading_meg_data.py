@@ -8,11 +8,6 @@ Importing data from MEG devices
 
 This section describes how to read data for various MEG manufacturers.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
-
 .. _import-neuromag:
 
 Elekta NeuroMag (.fif)

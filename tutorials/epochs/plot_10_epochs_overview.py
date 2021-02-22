@@ -13,10 +13,6 @@ detail, including how to load, query, subselect, export, and plot data from an
 creating an :class:`~mne.Epochs` object from (possibly simulated) data in a
 :class:`NumPy array <numpy.ndarray>`, see :ref:`tut_creating_data_structures`.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 As usual we'll start by importing the modules we need:
 """
 

@@ -28,11 +28,15 @@ def test_long_names():
     info = create_info(['a' * 15 + 'b', 'a' * 16], 1000., verbose='error')
     data = np.empty((2, 1000))
     raw = RawArray(data, info)
+    assert raw.ch_names == ['a' * 15 + 'b', 'a' * 16]
+    # and a way to get the old behavior
+    raw.rename_channels({k: k[:13] for k in raw.ch_names},
+                        allow_duplicates=True, verbose='error')
     assert raw.ch_names == ['a' * 13 + '-0', 'a' * 13 + '-1']
     info = create_info(['a' * 16] * 11, 1000., verbose='error')
     data = np.empty((11, 1000))
     raw = RawArray(data, info)
-    assert raw.ch_names == ['a' * 12 + '-%s' % ii for ii in range(11)]
+    assert raw.ch_names == ['a' * 16 + '-%s' % ii for ii in range(11)]
 
 
 def test_array_copy():

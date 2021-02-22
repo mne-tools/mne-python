@@ -520,7 +520,7 @@ def tf_mixed_norm(evoked, forward, noise_cov,
 
     Compute L1/L2 + L1 mixed-norm solution on time-frequency
     dictionary. Works with evoked data
-    :footcite:`GramfortEtAl2013,GramfortEtAl2011`.
+    :footcite:`GramfortEtAl2013b,GramfortEtAl2011`.
 
     Parameters
     ----------

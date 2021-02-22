@@ -36,10 +36,11 @@ class Raw(BaseRaw):
     ----------
     fname : str | file-like
         The raw filename to load. For files that have automatically been split,
-        the split part will be automatically loaded. Filenames should end
-        with raw.fif, raw.fif.gz, raw_sss.fif, raw_sss.fif.gz, raw_tsss.fif,
-        raw_tsss.fif.gz, or _meg.fif. If a file-like object is provided,
-        preloading must be used.
+        the split part will be automatically loaded. Filenames not ending with
+        ``raw.fif``, ``raw_sss.fif``, ``raw_tsss.fif``, ``_meg.fif``,
+        ``_eeg.fif``,  or ``_ieeg.fif`` (with or without an optional additional
+        ``.gz`` extension) will generate a warning. If a file-like object is
+        provided, preloading must be used.
 
         .. versionchanged:: 0.18
            Support for file-like objects.
@@ -138,9 +139,10 @@ class Raw(BaseRaw):
         #   Read in the whole file if preload is on and .fif.gz (saves time)
         if not _file_like(fname):
             if do_check_fname:
-                check_fname(fname, 'raw', (
-                    'raw.fif', 'raw_sss.fif', 'raw_tsss.fif', 'raw.fif.gz',
-                    'raw_sss.fif.gz', 'raw_tsss.fif.gz', '_meg.fif'))
+                endings = ('raw.fif', 'raw_sss.fif', 'raw_tsss.fif',
+                           '_meg.fif', '_eeg.fif', '_ieeg.fif')
+                endings += tuple([f'{e}.gz' for e in endings])
+                check_fname(fname, 'raw', endings)
             # filename
             fname = op.realpath(fname)
             ext = os.path.splitext(fname)[1].lower()

@@ -523,8 +523,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             self._preload_data(True)
         return self
 
-    @verbose
-    def _preload_data(self, preload, verbose=None):
+    def _preload_data(self, preload):
         """Actually preload the data."""
         data_buffer = preload
         if isinstance(preload, (bool, np.bool_)) and not preload:
@@ -1305,8 +1304,12 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         fname : str
             File name of the new dataset. This has to be a new filename
             unless data have been preloaded. Filenames should end with
-            raw.fif, raw.fif.gz, raw_sss.fif, raw_sss.fif.gz, raw_tsss.fif,
-            raw_tsss.fif.gz, or _meg.fif.
+            ``raw.fif`` (common raw data), ``raw_sss.fif``
+            (Maxwell-filtered continuous data),
+            ``raw_tsss.fif`` (temporally signal-space-separated data),
+            ``_meg.fif`` (common MEG data), ``_eeg.fif`` (common EEG data),
+            or ``_ieeg.fif`` (common intracranial EEG data). You may also
+            append an additional ``.gz`` suffix to enable gzip compression.
         %(picks_all)s
         %(raw_tmin)s
         %(raw_tmax)s
@@ -1360,9 +1363,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         then save raw files for this reason.
         """
         fname = op.realpath(fname)
-        check_fname(fname, 'raw', ('raw.fif', 'raw_sss.fif', 'raw_tsss.fif',
-                                   'raw.fif.gz', 'raw_sss.fif.gz',
-                                   'raw_tsss.fif.gz', '_meg.fif'))
+        endings = ('raw.fif', 'raw_sss.fif', 'raw_tsss.fif',
+                   '_meg.fif', '_eeg.fif', '_ieeg.fif')
+        endings += tuple([f'{e}.gz' for e in endings])
+        check_fname(fname, 'raw', endings)
 
         split_size = _get_split_size(split_size)
         if not self.preload and fname in self._filenames:

@@ -7,10 +7,6 @@ Getting started with ``mne.Report``
 This tutorial covers making interactive HTML summaries with
 :class:`mne.Report`.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 As usual we'll start by importing the modules we need and loading some
 :ref:`example data <sample-dataset>`:
 """
@@ -29,7 +25,8 @@ import mne
 # ============== ==============================================================
 # Data object    Filename convention (ends with)
 # ============== ==============================================================
-# raw            -raw.fif(.gz), -raw_sss.fif(.gz), -raw_tsss.fif(.gz), _meg.fif
+# raw            -raw.fif(.gz), -raw_sss.fif(.gz), -raw_tsss.fif(.gz),
+#                _meg.fif(.gz), _eeg.fif(.gz), _ieeg.fif(.gz)
 # events         -eve.fif(.gz)
 # epochs         -epo.fif(.gz)
 # evoked         -ave.fif(.gz)

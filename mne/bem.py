@@ -8,6 +8,7 @@
 # The computations in this code were primarily derived from Matti Hämäläinen's
 # C code.
 
+from collections import OrderedDict
 from functools import partial
 import glob
 import os
@@ -27,11 +28,12 @@ from .io.tree import dir_tree_find
 from .io.open import fiff_open
 from .surface import (read_surface, write_surface, complete_surface_info,
                       _compute_nearest, _get_ico_surface, read_tri,
-                      _fast_cross_nd_sum, _get_solids)
+                      _fast_cross_nd_sum, _get_solids, _complete_sphere_surf)
 from .transforms import _ensure_trans, apply_trans, Transform
 from .utils import (verbose, logger, run_subprocess, get_subjects_dir, warn,
                     _pl, _validate_type, _TempDir, _check_freesurfer_home,
-                    _check_fname, has_nibabel, _check_option)
+                    _check_fname, has_nibabel, _check_option, path_like,
+                    _on_missing)
 from .fixes import einsum
 from .externals.h5io import write_hdf5, read_hdf5
 
@@ -176,8 +178,8 @@ def _fwd_bem_lin_pot_coeff(surfs):
         rr_ord = np.arange(nps[si_1])
         for si_2, surf2 in enumerate(surfs):
             logger.info("        %s (%d) -> %s (%d) ..." %
-                        (_surf_name[surf1['id']], nps[si_1],
-                         _surf_name[surf2['id']], nps[si_2]))
+                        (_bem_surf_name[surf1['id']], nps[si_1],
+                         _bem_surf_name[surf2['id']], nps[si_2]))
             tri_rr = surf2['rr'][surf2['tris']]
             tri_nn = surf2['tri_nn']
             tri_area = surf2['tri_area']
@@ -263,7 +265,7 @@ def _check_complete_surface(surf, copy=False, incomplete='raise', extra=''):
     if len(fewer) > 0:
         msg = ('Surface {} has topological defects: {:.0f} / {:.0f} vertices '
                'have fewer than three neighboring triangles [{}]{}'
-               .format(_surf_name[surf['id']], len(fewer), surf['ntri'],
+               .format(_bem_surf_name[surf['id']], len(fewer), surf['ntri'],
                        ', '.join(str(f) for f in fewer), extra))
         if incomplete == 'raise':
             raise RuntimeError(msg)
@@ -330,11 +332,7 @@ def make_bem_solution(surfs, verbose=None):
     .. versionadded:: 0.10.0
     """
     logger.info('Approximation method : Linear collocation\n')
-    if isinstance(surfs, str):
-        # Load the surfaces
-        logger.info('Loading surfaces...')
-        surfs = read_bem_surfaces(surfs)
-    bem = ConductorModel(is_sphere=False, surfs=surfs)
+    bem = _ensure_bem_surfaces(surfs)
     _add_gamma_multipliers(bem)
     if len(bem['surfs']) == 3:
         logger.info('Three-layer model surfaces loaded.')
@@ -420,35 +418,28 @@ def _assert_complete_surface(surf, incomplete='raise'):
     # Center of mass....
     cm = surf['rr'].mean(axis=0)
     logger.info('%s CM is %6.2f %6.2f %6.2f mm' %
-                (_surf_name[surf['id']],
+                (_bem_surf_name[surf['id']],
                  1000 * cm[0], 1000 * cm[1], 1000 * cm[2]))
     tot_angle = _get_solids(surf['rr'][surf['tris']], cm[np.newaxis, :])[0]
     prop = tot_angle / (2 * np.pi)
     if np.abs(prop - 1.0) > 1e-5:
-        msg = ('Surface %s is not complete (sum of solid angles '
-               'yielded %g, should be 1.)'
-               % (_surf_name[surf['id']], prop))
-        if incomplete == 'raise':
-            raise RuntimeError(msg)
-        else:
-            warn(msg)
-
-
-_surf_name = {
-    FIFF.FIFFV_BEM_SURF_ID_HEAD: 'outer skin ',
-    FIFF.FIFFV_BEM_SURF_ID_SKULL: 'outer skull',
-    FIFF.FIFFV_BEM_SURF_ID_BRAIN: 'inner skull',
-    FIFF.FIFFV_BEM_SURF_ID_UNKNOWN: 'unknown    ',
-}
+        msg = (f'Surface {_bem_surf_name[surf["id"]]} is not complete (sum of '
+               f'solid angles yielded {prop}, should be 1.)')
+        _on_missing(
+            incomplete, msg, name='incomplete', error_klass=RuntimeError)
 
 
 def _assert_inside(fro, to):
     """Check one set of points is inside a surface."""
     # this is "is_inside" in surface_checks.c
+    fro_name = _bem_surf_name[fro["id"]]
+    to_name = _bem_surf_name[to["id"]]
+    logger.info(
+        f'Checking that surface {fro_name} is inside surface {to_name} ...')
     tot_angle = _get_solids(to['rr'][to['tris']], fro['rr'])
     if (np.abs(tot_angle / (2 * np.pi) - 1.0) > 1e-5).any():
-        raise RuntimeError('Surface %s is not completely inside surface %s'
-                           % (_surf_name[fro['id']], _surf_name[to['id']]))
+        raise RuntimeError(
+            f'Surface {fro_name} is not completely inside surface {to_name}')
 
 
 def _check_surfaces(surfs, incomplete='raise'):
@@ -457,8 +448,6 @@ def _check_surfaces(surfs, incomplete='raise'):
         _assert_complete_surface(surf, incomplete=incomplete)
     # Then check the topology
     for surf_1, surf_2 in zip(surfs[:-1], surfs[1:]):
-        logger.info('Checking that %s surface is inside %s surface...' %
-                    (_surf_name[surf_2['id']], _surf_name[surf_1['id']]))
         _assert_inside(surf_2, surf_1)
 
 
@@ -466,10 +455,10 @@ def _check_surface_size(surf):
     """Check that the coordinate limits are reasonable."""
     sizes = surf['rr'].max(axis=0) - surf['rr'].min(axis=0)
     if (sizes < 0.05).any():
-        raise RuntimeError('Dimensions of the surface %s seem too small '
-                           '(%9.5f mm). Maybe the the unit of measure is '
-                           'meters instead of mm' %
-                           (_surf_name[surf['id']], 1000 * sizes.min()))
+        raise RuntimeError(
+            f'Dimensions of the surface {_bem_surf_name[surf["id"]]} seem too '
+            f'small ({1000 * sizes.min():9.5f}). Maybe the unit of measure'
+            ' is meters instead of mm')
 
 
 def _check_thicknesses(surfs):
@@ -478,12 +467,11 @@ def _check_thicknesses(surfs):
         min_dist = _compute_nearest(surf_1['rr'], surf_2['rr'],
                                     return_dists=True)[1]
         min_dist = min_dist.min()
-        logger.info('Checking distance between %s and %s surfaces...' %
-                    (_surf_name[surf_1['id']], _surf_name[surf_2['id']]))
-        logger.info('Minimum distance between the %s and %s surfaces is '
-                    'approximately %6.1f mm' %
-                    (_surf_name[surf_1['id']], _surf_name[surf_2['id']],
-                     1000 * min_dist))
+        fro = _bem_surf_name[surf_1['id']]
+        to = _bem_surf_name[surf_2['id']]
+        logger.info(f'Checking distance between {fro} and {to} surfaces...')
+        logger.info(f'Minimum distance between the {fro} and {to} surfaces is '
+                    f'approximately {1000 * min_dist:6.1f} mm')
 
 
 def _surfaces_to_bem(surfs, ids, sigmas, ico=None, rescale=True,
@@ -1503,22 +1491,56 @@ def _add_gamma_multipliers(bem):
                     (sigma[1:] + sigma[:-1])[:, np.newaxis])
 
 
-_surf_dict = {'inner_skull': FIFF.FIFFV_BEM_SURF_ID_BRAIN,
-              'outer_skull': FIFF.FIFFV_BEM_SURF_ID_SKULL,
-              'head': FIFF.FIFFV_BEM_SURF_ID_HEAD}
+# In our BEM code we do not model the CSF so we assign the innermost surface
+# the id BRAIN. Our 4-layer sphere we model CSF (at least by default), so when
+# searching for and referring to surfaces we need to keep track of this.
+_sm_surf_dict = OrderedDict([
+    ('brain', FIFF.FIFFV_BEM_SURF_ID_BRAIN),
+    ('inner_skull', FIFF.FIFFV_BEM_SURF_ID_CSF),
+    ('outer_skull', FIFF.FIFFV_BEM_SURF_ID_SKULL),
+    ('head', FIFF.FIFFV_BEM_SURF_ID_HEAD),
+])
+_bem_surf_dict = {
+    'inner_skull': FIFF.FIFFV_BEM_SURF_ID_BRAIN,
+    'outer_skull': FIFF.FIFFV_BEM_SURF_ID_SKULL,
+    'head': FIFF.FIFFV_BEM_SURF_ID_HEAD,
+}
+_bem_surf_name = {
+    FIFF.FIFFV_BEM_SURF_ID_BRAIN: 'inner skull',
+    FIFF.FIFFV_BEM_SURF_ID_SKULL: 'outer skull',
+    FIFF.FIFFV_BEM_SURF_ID_HEAD: 'outer skin ',
+    FIFF.FIFFV_BEM_SURF_ID_UNKNOWN: 'unknown    ',
+}
+_sm_surf_name = {
+    FIFF.FIFFV_BEM_SURF_ID_BRAIN: 'brain',
+    FIFF.FIFFV_BEM_SURF_ID_CSF: 'csf',
+    FIFF.FIFFV_BEM_SURF_ID_SKULL: 'outer skull',
+    FIFF.FIFFV_BEM_SURF_ID_HEAD: 'outer skin ',
+    FIFF.FIFFV_BEM_SURF_ID_UNKNOWN: 'unknown    ',
+}
 
 
 def _bem_find_surface(bem, id_):
-    """Find surface from already-loaded BEM."""
+    """Find surface from already-loaded conductor model."""
+    if bem['is_sphere']:
+        _surf_dict = _sm_surf_dict
+        _name_dict = _sm_surf_name
+        kind = 'Sphere model'
+        tri = 'boundary'
+    else:
+        _surf_dict = _bem_surf_dict
+        _name_dict = _bem_surf_name
+        kind = 'BEM'
+        tri = 'triangulation'
     if isinstance(id_, str):
         name = id_
         id_ = _surf_dict[id_]
     else:
-        name = _surf_name[id_]
+        name = _name_dict[id_]
+    kind = 'Sphere model' if bem['is_sphere'] else 'BEM'
     idx = np.where(np.array([s['id'] for s in bem['surfs']]) == id_)[0]
     if len(idx) != 1:
-        raise RuntimeError('BEM model does not have the %s triangulation'
-                           % name.replace('_', ' '))
+        raise RuntimeError(f'{kind} does not have the {name} {tri}')
     return bem['surfs'][idx[0]]
 
 
@@ -2014,3 +2036,33 @@ def _symlink(src, dest, copy=False):
             copy = True
     if copy:
         shutil.copy(src, dest)
+
+
+def _ensure_bem_surfaces(bem, extra_allow=(), name='bem'):
+    # by default only allow path-like and list, but handle None and
+    # ConductorModel properly if need be. Always return a ConductorModel
+    # even though it's incomplete (and might have is_sphere=True).
+    assert all(extra in (None, ConductorModel) for extra in extra_allow)
+    allowed = ('path-like', list) + extra_allow
+    _validate_type(bem, allowed, name)
+    if isinstance(bem, path_like):
+        # Load the surfaces
+        logger.info(f'Loading BEM surfaces from {str(bem)}...')
+        bem = read_bem_surfaces(bem)
+        bem = ConductorModel(is_sphere=False, surfs=bem)
+    elif isinstance(bem, list):
+        for ii, this_surf in enumerate(bem):
+            _validate_type(this_surf, dict, f'{name}[{ii}]')
+    if isinstance(bem, list):
+        bem = ConductorModel(is_sphere=False, surfs=bem)
+    # add surfaces in the spherical case
+    if isinstance(bem, ConductorModel) and bem['is_sphere']:
+        bem = bem.copy()
+        bem['surfs'] = []
+        if len(bem['layers']) == 4:
+            for idx, id_ in enumerate(_sm_surf_dict.values()):
+                bem['surfs'].append(_complete_sphere_surf(
+                    bem, idx, 4, complete=False))
+                bem['surfs'][-1]['id'] = id_
+
+    return bem

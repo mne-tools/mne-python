@@ -8,10 +8,6 @@ Interpolating bad channels
 This tutorial covers manual marking of bad channels and reconstructing bad
 channels based on good signals at other sensors.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 As usual we'll start by importing the modules we need, and loading some example
 data:
 """
@@ -167,7 +163,7 @@ epochs = mne.Epochs(raw2, events=events)['2'].average().plot()
 # can lead to too many epochs being discarded based on signal amplitude
 # rejection thresholds, which in turn can lead to less robust estimation of the
 # noise covariance across sensors. Noisy channels can also interfere with
-# :term:`SSP <projector>` computations, because the projectors will be
+# :term:`SSP` computations, because the projectors will be
 # spatially biased in the direction of the noisy channel, which can cause
 # adjacent good channels to be suppressed. ICA is corrupted by noisy channels
 # for similar reasons. On the other hand, when performing machine learning

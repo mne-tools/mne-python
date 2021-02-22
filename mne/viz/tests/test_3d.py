@@ -282,10 +282,15 @@ def test_plot_alignment(tmpdir, renderer):
                    src=src, dig=True, surfaces=['brain', 'inner_skull',
                                                 'outer_skull', 'outer_skin'])
     sphere = make_sphere_model('auto', None, evoked.info)  # one layer
+    # if you ask for a brain surface with a 1-layer sphere model it's an error
+    with pytest.raises(RuntimeError, match='Sphere model does not have'):
+        fig = plot_alignment(subject='sample', subjects_dir=subjects_dir,
+                             surfaces=['brain'], bem=sphere)
+    # but you can ask for a specific brain surface, and
     # no info is permitted
     fig = plot_alignment(trans=trans_fname, subject='sample', meg=False,
                          coord_frame='mri', subjects_dir=subjects_dir,
-                         surfaces=['brain'], bem=sphere, show_axes=True)
+                         surfaces=['white'], bem=sphere, show_axes=True)
     renderer.backend._close_all()
     if renderer._get_3d_backend() == 'mayavi':
         import mayavi  # noqa: F401 analysis:ignore
@@ -303,7 +308,7 @@ def test_plot_alignment(tmpdir, renderer):
         plot_alignment(info_cube, meg='sensors', surfaces=(), dig=True)
 
     # one layer bem with skull surfaces:
-    with pytest.raises(ValueError, match='sphere conductor model must have'):
+    with pytest.raises(RuntimeError, match='Sphere model does not.*boundary'):
         plot_alignment(info=info, trans=trans_fname,
                        subject='sample', subjects_dir=subjects_dir,
                        surfaces=['brain', 'head', 'inner_skull'], bem=sphere)
@@ -320,7 +325,7 @@ def test_plot_alignment(tmpdir, renderer):
         plot_alignment(info=info, trans=trans_fname,
                        subject='sample', subjects_dir=subjects_dir,
                        surfaces=['white', 'pial'])
-    with pytest.raises(TypeError, match='all entries in surfaces must be'):
+    with pytest.raises(TypeError, match='surfaces.*must be'):
         plot_alignment(info=info, trans=trans_fname,
                        subject='sample', subjects_dir=subjects_dir,
                        surfaces=[1])

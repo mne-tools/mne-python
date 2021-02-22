@@ -7,10 +7,6 @@ Visualizing Evoked data
 This tutorial shows the different visualization methods for
 `~mne.Evoked` objects.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 As usual we'll start by importing the modules we need:
 """
 
@@ -145,7 +141,7 @@ evks['vis/right'].plot_joint()
 # all on the same axes. Like most MNE-Python visualization functions, it has a
 # ``picks`` parameter for selecting channels, but by default will generate one
 # figure for each channel type, and combine information across channels of the
-# same type by calculating the :term:`global field power <GFP>`. Information
+# same type by calculating the :term:`global field power`. Information
 # may be combined across channels in other ways too; support for combining via
 # mean, median, or standard deviation are built-in, and custom callable
 # functions may also be used, as shown here:

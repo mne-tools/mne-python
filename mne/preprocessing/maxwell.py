@@ -771,7 +771,8 @@ def _copy_preload_add_channels(raw, add_channels, copy, info):
             raw._data = out_data
         else:
             logger.info(msg + 'loading raw data from disk')
-            raw._preload_data(out_data[:len(raw.ch_names)], verbose=False)
+            with use_log_level(False):
+                raw._preload_data(out_data[:len(raw.ch_names)])
             raw._data = out_data
         assert raw.preload is True
         off = len(raw.ch_names)

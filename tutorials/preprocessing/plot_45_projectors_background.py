@@ -10,10 +10,6 @@ Projection (SSP), and covers loading and saving projectors, adding and removing
 projectors from Raw objects, the difference between "applied" and "unapplied"
 projectors, and at what stages MNE-Python applies projectors automatically.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 We'll start by importing the Python modules we need; we'll also define a short
 function to make it easier to make several plots that look similar:
 """
@@ -207,7 +203,7 @@ ax.quiver3D(*arrow_coords, length=0.96, arrow_length_ratio=0.1,
 # .. sidebar:: Terminology
 #
 #     In MNE-Python, the matrix used to project a raw signal into a subspace is
-#     usually called a :term:`projector <projector>` or a *projection
+#     usually called a :term:`projector` or a *projection
 #     operator* — these terms are interchangeable with the term *projection
 #     matrix* used above.
 #

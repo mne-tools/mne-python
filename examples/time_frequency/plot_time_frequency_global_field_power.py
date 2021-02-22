@@ -8,7 +8,7 @@ Explore event-related dynamics for specific frequency bands
 The objective is to show you how to explore spectrally localized
 effects. For this purpose we adapt the method described in [1]_ and use it on
 the somato dataset. The idea is to track the band-limited temporal evolution
-of spatial patterns by using the :term:`Global Field Power(GFP) <GFP>`.
+of spatial patterns by using the :term:`global field power` (GFP).
 
 We first bandpass filter the signals and then apply a Hilbert transform. To
 reveal oscillatory activity the evoked response is then subtracted from every
@@ -16,10 +16,10 @@ single trial. Finally, we rectify the signals prior to averaging across trials
 by taking the magniude of the Hilbert.
 Then the :term:`GFP` is computed as described in [2]_, using the sum of the
 squares but without normalization by the rank.
-Baselining is subsequently applied to make the :term:`GFPs <GFP>` comparable
+Baselining is subsequently applied to make the :term:`GFP` comparable
 between frequencies.
 The procedure is then repeated for each frequency band of interest and
-all :term:`GFPs <GFP>` are visualized. To estimate uncertainty, non-parametric
+all :term:`GFPs<GFP>` are visualized. To estimate uncertainty, non-parametric
 confidence intervals are computed as described in [3]_ across channels.
 
 The advantage of this method over summarizing the Space x Time x Frequency

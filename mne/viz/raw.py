@@ -535,8 +535,8 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
 
 def _setup_channel_selections(raw, kind, order):
     """Get dictionary of channel groupings."""
-    from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
-                             _divide_to_regions)
+    from ..channels import (read_vectorview_selection, _SELECTIONS,
+                            _EEG_SELECTIONS, _divide_to_regions)
     from ..utils import _get_stim_channel
     _check_option('group_by', kind, ('position', 'selection'))
     if kind == 'position':
@@ -557,7 +557,7 @@ def _setup_channel_selections(raw, kind, order):
         # loop over regions
         keys = np.concatenate([_SELECTIONS, _EEG_SELECTIONS])
         for key in keys:
-            channels = read_selection(key, info=raw.info)
+            channels = read_vectorview_selection(key, info=raw.info)
             picks = pick_channels(raw.ch_names, channels)
             picks = np.intersect1d(picks, order)
             if not len(picks):
