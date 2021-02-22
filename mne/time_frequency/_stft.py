@@ -52,6 +52,7 @@ def tfr_stft(inst, window_size, step_size=None, average=True, verbose=None):
     if average:
         # how many epochs are we averaging
         nave = len(data)
+        power = np.mean(power, axis=0)
         out = AverageTFR(info, power, times, freqs, nave, method='stft-power')
     else:
         if isinstance(inst, BaseEpochs):
@@ -92,7 +93,7 @@ def tfr_array_stft(data, sfreq, window_size, step_size=None,
 
     Returns
     -------
-    X : array, shape (n_channels, wsize // 2 + 1, n_step)
+    X : array, shape (n_epochs, n_channels, wsize // 2 + 1, n_step)
         STFT coefficients for positive frequencies with
         ``n_step = ceil(T / tstep)``.
     freqs : array, shape (wsize // 2 + 1,)
@@ -103,13 +104,20 @@ def tfr_array_stft(data, sfreq, window_size, step_size=None,
     istft
     stftfreq
     """
+    _validate_type(data, np.ndarray, 'data')
+    if data.ndim != 3:
+        raise ValueError(
+            'data must be 3D with shape (n_epochs, n_channels, n_times), '
+            f'got {data.shape}')
+
     n_epochs, n_channels, n_signals = data.shape
 
     power_list = []
 
     for epochidx in range(n_epochs):
         # compute STFT
-        power = _stft(data, window_size=window_size, step_size=step_size,
+        power = _stft(data[epochidx, ...], window_size=window_size,
+                      step_size=step_size,
                       verbose=verbose)
         power_list.append(power)
     power_list = np.array(power_list)
@@ -159,41 +167,7 @@ def stft(x, wsize, tstep=None, verbose=None):
     return _stft(x, window_size=wsize, step_size=tstep, verbose=verbose)
 
 
-def _stft_times(n_signals, window_size, step_size, sfreq):
-    """Compute time points in seconds of STFT."""
-    # Creates a [n,2] array that holds the sample range of each window that
-    # is used to index the raw data for a sliding window analysis
-    samples_start = np.arange(0, n_signals - window_size + 1.0, step_size).astype(int)
-    samples_end = np.arange(window_size, n_signals + 1, step_size).astype(int)
-
-    # compute window endpoints in samples and frequencies
-    samples_wins = np.append(
-        samples_start[:, np.newaxis], samples_end[:, np.newaxis], axis=1
-    )
-    second_wins = np.divide(samples_wins, sfreq)
-    second_points = np.mean(second_wins, axis=1)
-    return second_points
-
-
-def _stft(data, window_size, step_size, verbose):
-    rfft = _import_fft('rfft')
-    _validate_type(data, np.ndarray, 'data')
-    if not np.isrealobj(data):
-        raise ValueError("x is not a real valued array")
-
-    if data.ndim == 1:
-        data = data[None, :]
-
-    # XXX: do we want this?
-    # if data.ndim != 3:
-    #     raise ValueError(
-    #         'data must be 3D with shape (n_epochs, n_channels, n_times), '
-    #         f'got {data.shape}')
-
-    # get the data shape
-    n_signals, T = data.shape
-    window_size = int(window_size)
-
+def _check_input_stft(window_size, step_size):
     # Errors and warnings
     if window_size % 4:
         raise ValueError('The window length must be a multiple of 4.')
@@ -210,6 +184,41 @@ def _stft(data, window_size, step_size, verbose):
     if step_size > window_size / 2:
         raise ValueError('The step size must be smaller than half the '
                          'window length.')
+    return window_size, step_size
+
+
+def _stft_times(n_signals, window_size, step_size, sfreq):
+    """Compute time points in seconds of STFT."""
+    window_size, step_size = _check_input_stft(window_size, step_size)
+
+    n_step = int(ceil(n_signals / float(step_size)))
+
+    # Creates a [n,2] array that holds the sample range of each window that
+    # is used to index the raw data for a sliding window analysis
+    sample_wins = np.zeros((n_step, 2))
+    for t in range(n_step):
+        sample_wins[t, :] = [t * step_size, t * step_size + window_size]
+
+    # compute window endpoints in samples and seconds
+    second_wins = np.divide(sample_wins, sfreq)
+    second_points = np.mean(second_wins, axis=1)
+    return second_points
+
+
+def _stft(data, window_size, step_size, verbose):
+    rfft = _import_fft('rfft')
+    _validate_type(data, np.ndarray, 'data')
+    if not np.isrealobj(data):
+        raise ValueError("x is not a real valued array")
+
+    if data.ndim == 1:
+        data = data[None, :]
+
+    # get the data shape
+    n_signals, T = data.shape
+    window_size = int(window_size)
+
+    window_size, step_size = _check_input_stft(window_size, step_size)
 
     n_step = int(ceil(T / float(step_size)))
     n_freq = window_size // 2 + 1

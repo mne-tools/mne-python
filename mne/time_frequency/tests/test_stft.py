@@ -4,14 +4,61 @@
 # License : BSD 3-clause
 
 import pytest
+import os.path as op
 import numpy as np
 from scipy import linalg
-from numpy.testing import assert_almost_equal, assert_array_almost_equal
+from numpy.testing import (assert_almost_equal, assert_array_almost_equal)
 
-from mne.time_frequency import stft, istft, stftfreq
+from mne import read_events, Epochs
+from mne.io import read_raw_fif
+from mne.time_frequency import stft, istft, stftfreq, tfr_stft, tfr_array_stft, AverageTFR
 from mne.time_frequency._stft import stft_norm2
 
 
+base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
+raw_fname = op.join(base_dir, 'test_raw.fif')
+raw_ctf_fname = op.join(base_dir, 'test_ctf_raw.fif')
+
+
+def test_stft_api():
+    """Test STFT functions."""
+    raw = read_raw_fif(raw_fname)
+    event_id, tmin, tmax = 1, -0.2, 0.5
+    event_name = op.join(base_dir, 'test-eve.fif')
+    events = read_events(event_name)
+    epochs = Epochs(raw, events,  # XXX pick 2 has epochs of zeros.
+                    event_id, tmin, tmax, picks=[0, 1, 3])
+    sfreq = raw.info['sfreq']
+    window_size = 200
+
+    # error if window size is not a multiple of 4
+    with pytest.raises(ValueError, match='The window length must '
+                                         'be a multiple of 4.'):
+        tfr_stft(epochs, window_size=333,
+                 average=True)
+
+    power = tfr_stft(epochs, window_size=window_size,
+                            average=True)
+
+    assert (isinstance(power, AverageTFR))
+    assert (np.log(power.data.max()) * 20 <= 0.0)
+    assert (np.log(power.data.min()) * 20 <= 0.0)
+
+    with pytest.raises(TypeError, match='ndarray'):
+        tfr_array_stft('foo', 1000., window_size=window_size)
+
+    data = np.random.RandomState(0).randn(1, 1024)
+    with pytest.raises(ValueError, match='3D with shape'):
+        tfr_array_stft(data, 1000., window_size=window_size)
+    data = data[np.newaxis]
+
+    power, freqs, times = tfr_array_stft(data, sfreq=sfreq,
+                                         window_size=window_size,
+                                         return_times=True)
+    assert power.shape == (1, 1, len(freqs), times.size)
+
+
+@pytest.mark.filterwarnings('ignore:This function call for STFT is deprecated:DeprecationWarning')
 @pytest.mark.parametrize('T', (127, 128, 255, 256, 1337))
 @pytest.mark.parametrize('wsize', (128, 256))
 @pytest.mark.parametrize('tstep', (4, 64))
