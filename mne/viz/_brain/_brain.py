@@ -663,14 +663,14 @@ class Brain(object):
         del show_traces
 
         self._configure_time_label()
-        self._configure_dock()
         self._configure_scalar_bar()
         self._configure_shortcuts()
         self._configure_picking()
         self._configure_tool_bar()
+        self._configure_dock()
         if self.notebook:
             self._renderer.show()
-        self._configure_trace_mode()
+            self.mpl_canvas.show()
         self.toggle_interface()
         if not self.notebook:
             self._configure_playback()
@@ -1152,11 +1152,102 @@ class Brain(object):
         for name in ("fmin", "fmid", "fmax", "fscale"):
             self.callbacks[name].widgets = widgets
 
+    def _add_dock_trace_widget(self, name):
+        if not self.show_traces:
+            return
+        if self.notebook:
+            self._configure_vertex_time_course()
+            return
+        # do not show trace mode for volumes
+        if (self._data.get('src', None) is not None and
+                self._data['src'].kind == 'volume'):
+            self._configure_vertex_time_course()
+            return
+
+        if self.notebook:
+            layout = None
+        else:
+            from PyQt5.QtWidgets import QGroupBox, QVBoxLayout
+            layout = QVBoxLayout()
+            widget = QGroupBox(name)
+            widget.setLayout(layout)
+            self.dock.widget().layout().addWidget(widget)
+
+        # setup candidate annots
+        def _set_annot(annot):
+            self.clear_glyphs()
+            self.remove_labels()
+            self.remove_annotations()
+            self.annot = annot
+
+            if annot == 'None':
+                self.traces_mode = 'vertex'
+                self._configure_vertex_time_course()
+            else:
+                self.traces_mode = 'label'
+                self._configure_label_time_course()
+            self._update()
+
+        # setup label extraction parameters
+        def _set_label_mode(mode):
+            if self.traces_mode != 'label':
+                return
+            import copy
+            glyphs = copy.deepcopy(self.picked_patches)
+            self.label_extract_mode = mode
+            self.clear_glyphs()
+            for hemi in self._hemis:
+                for label_id in glyphs[hemi]:
+                    label = self._annotation_labels[hemi][label_id]
+                    vertex_id = label.vertices[0]
+                    self._add_label_glyph(hemi, None, vertex_id)
+            self.mpl_canvas.axes.relim()
+            self.mpl_canvas.axes.autoscale_view()
+            self.mpl_canvas.update_plot()
+            self._update()
+
+        from ...source_estimate import _get_allowed_label_modes
+        from ...label import _read_annot_cands
+        dir_name = op.join(self._subjects_dir, self._subject_id, 'label')
+        cands = _read_annot_cands(dir_name, raise_error=False)
+        cands = cands + ['None']
+        annot = "None" if self.traces_mode == 'vertex' else self.annot
+
+        stc = self._data["stc"]
+        modes = _get_allowed_label_modes(stc)
+        if self._data["src"] is None:
+            modes = [m for m in modes if m not in
+                     self.default_label_extract_modes["src"]]
+        self.label_extract_mode = modes[-1]
+        self._add_dock_combo_box(
+            widget_name="annotation",
+            label_name="Annotation",
+            value=annot,
+            rng=cands,
+            callback=_set_annot,
+            layout=layout,
+        )
+
+        self._add_dock_combo_box(
+            widget_name="extract_mode",
+            label_name="Extract mode",
+            value=self.label_extract_mode,
+            rng=modes,
+            callback=_set_label_mode,
+            layout=layout,
+        )
+
+        if self.traces_mode == 'vertex':
+            _set_annot('None')
+        else:
+            _set_annot(self.annot)
+
     def _configure_dock(self):
         self._initialize_dock()
         self._add_dock_time_widget(name="Time")
         self._add_dock_orientation_widget(name="Orientation")
         self._add_dock_colormap_widget(name="Colormap")
+        self._add_dock_trace_widget(name="Trace")
 
         # Smoothing widget
         self.callbacks["smoothing"] = SmartCallBack(
@@ -1211,7 +1302,8 @@ class Brain(object):
             bg_color=self._bg_color,
             fg_color=self._fg_color,
         )
-        self.mpl_canvas.show()
+        if not self.notebook:
+            self.mpl_canvas.show()
 
     def _configure_vertex_time_course(self):
         if not self.show_traces:
@@ -1286,90 +1378,6 @@ class Brain(object):
             self._on_button_release,
             self._on_pick
         )
-
-    def _configure_trace_mode(self):
-        from ...source_estimate import _get_allowed_label_modes
-        from ...label import _read_annot_cands
-        if not self.show_traces:
-            return
-
-        if self.notebook:
-            self._configure_vertex_time_course()
-            return
-
-        # do not show trace mode for volumes
-        if (self._data.get('src', None) is not None and
-                self._data['src'].kind == 'volume'):
-            self._configure_vertex_time_course()
-            return
-
-        # setup candidate annots
-        def _set_annot(annot):
-            self.clear_glyphs()
-            self.remove_labels()
-            self.remove_annotations()
-            self.annot = annot
-
-            if annot == 'None':
-                self.traces_mode = 'vertex'
-                self._configure_vertex_time_course()
-            else:
-                self.traces_mode = 'label'
-                self._configure_label_time_course()
-            self._update()
-
-        from PyQt5.QtWidgets import QComboBox, QLabel
-        dir_name = op.join(self._subjects_dir, self._subject_id, 'label')
-        cands = _read_annot_cands(dir_name, raise_error=False)
-        self.tool_bar.addSeparator()
-        self.tool_bar.addWidget(QLabel("Annotation"))
-        self._annot_cands_widget = QComboBox()
-        self.tool_bar.addWidget(self._annot_cands_widget)
-        cands = cands + ['None']
-        for cand in cands:
-            self._annot_cands_widget.addItem(cand)
-        self.annot = cands[0]
-        del cands
-
-        # setup label extraction parameters
-        def _set_label_mode(mode):
-            if self.traces_mode != 'label':
-                return
-            import copy
-            glyphs = copy.deepcopy(self.picked_patches)
-            self.label_extract_mode = mode
-            self.clear_glyphs()
-            for hemi in self._hemis:
-                for label_id in glyphs[hemi]:
-                    label = self._annotation_labels[hemi][label_id]
-                    vertex_id = label.vertices[0]
-                    self._add_label_glyph(hemi, None, vertex_id)
-            self.mpl_canvas.axes.relim()
-            self.mpl_canvas.axes.autoscale_view()
-            self.mpl_canvas.update_plot()
-            self._update()
-
-        self.tool_bar.addSeparator()
-        self.tool_bar.addWidget(QLabel("Label extraction mode"))
-        self._label_mode_widget = QComboBox()
-        self.tool_bar.addWidget(self._label_mode_widget)
-        stc = self._data["stc"]
-        modes = _get_allowed_label_modes(stc)
-        if self._data["src"] is None:
-            modes = [m for m in modes if m not in
-                     self.default_label_extract_modes["src"]]
-        for mode in modes:
-            self._label_mode_widget.addItem(mode)
-            self.label_extract_mode = mode
-
-        if self.traces_mode == 'vertex':
-            _set_annot('None')
-        else:
-            _set_annot(self.annot)
-        self._annot_cands_widget.setCurrentText(self.annot)
-        self._label_mode_widget.setCurrentText(self.label_extract_mode)
-        self._annot_cands_widget.currentTextChanged.connect(_set_annot)
-        self._label_mode_widget.currentTextChanged.connect(_set_label_mode)
 
     def _load_icons(self):
         from PyQt5.QtGui import QIcon
