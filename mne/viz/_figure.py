@@ -780,7 +780,7 @@ class MNEBrowseFigure(MNEFigure):
             # click in horizontal scrollbar
             elif event.inaxes == self.mne.ax_hscroll:
                 if self._check_update_hscroll_clicked(event):
-                    self._redraw()
+                    self._redraw(annotations=True)
             # click on proj button
             elif event.inaxes == self.mne.ax_proj:
                 self._toggle_proj_fig(event)
