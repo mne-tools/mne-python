@@ -144,6 +144,18 @@ reject_by_annotation : bool
 docdict['reject_by_annotation_raw'] = docdict['reject_by_annotation_all'] + """
     Has no effect if ``inst`` is not a :class:`mne.io.Raw` object.
 """
+docdict['annot_ch_names'] = """
+ch_names : array-like | None
+    Array-like of lists of channel names associated with the annotations.
+    Empty entries or entries with None are assumed to be associated with all
+    channels (i.e., with the time slice itself). For example, to create two
+    annotations, associating the second with two channels could be done
+    by using ``ch_names`` like::
+
+        Annotations(onset=[0, 3, 10], duration=[1, 0.25, 0.5],
+                    description=['Start', 'BAD_flux', 'BAD_noise'],
+                    ch_names=[[], ['MEG0111', 'MEG2563']])
+"""
 
 # General plotting
 docdict["show"] = """
@@ -2108,6 +2120,11 @@ on_defects : str
 docdict['accept'] = """
 accept : bool
     If True (default False), accept the license terms of this dataset.
+"""
+docdict['overwrite'] = """
+overwrite : bool
+    If True (default False), overwrite the destination file if it
+    exists.
 """
 
 docdict_indented = {}

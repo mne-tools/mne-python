@@ -1334,9 +1334,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             and neither complex data types nor real data stored as 'double'
             can be loaded with the MNE command-line tools. See raw.orig_format
             to determine the format the original data were stored in.
-        overwrite : bool
-            If True, the destination file (if it exists) will be overwritten.
-            If False (default), an error will be raised if the file exists.
+        %(overwrite)s
             To overwrite original file (the same one that was loaded),
             data must be preloaded upon reading.
         split_size : str | int

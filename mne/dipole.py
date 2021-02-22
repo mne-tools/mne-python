@@ -114,17 +114,18 @@ class Dipole(object):
         s += ", tmax : %0.3f" % np.max(self.times)
         return "<Dipole | %s>" % s
 
-    def save(self, fname, overwrite=False):
+    @verbose
+    def save(self, fname, overwrite=False, *, verbose=None):
         """Save dipole in a .dip or .bdip file.
 
         Parameters
         ----------
         fname : str
             The name of the .dip or .bdip file.
-        overwrite : bool
-            If True, overwrite the file (if it exists).
+        %(overwrite)s
 
             .. versionadded:: 0.20
+        %(verbose_meth)s
 
         Notes
         -----

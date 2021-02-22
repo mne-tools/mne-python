@@ -21,10 +21,10 @@ import mne
 from mne import (create_info, read_annotations, annotations_from_events,
                  events_from_annotations)
 from mne import Epochs, Annotations
-from mne.utils import (run_tests_if_main, _TempDir, requires_version,
+from mne.utils import (requires_version,
                        catch_logging, requires_pandas)
 from mne.utils import (assert_and_remove_boundary_annot, _raw_annot,
-                       _dt_to_stamp, _stamp_to_dt)
+                       _dt_to_stamp, _stamp_to_dt, check_version)
 from mne.io import read_raw_fif, RawArray, concatenate_raws
 from mne.annotations import (_sync_onset, _handle_meas_date,
                              _read_annotations_txt_parse_header)
@@ -35,6 +35,10 @@ fif_fname = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data',
                     'test_raw.fif')
 
 first_samps = pytest.mark.parametrize('first_samp', (0, 10000))
+
+
+needs_pandas = pytest.mark.skipif(
+    not check_version('pandas'), reason='Needs pandas')
 
 
 # On Windows, datetime.fromtimestamp throws an error for negative times.
@@ -111,7 +115,7 @@ def test_annot_sanitizing(tmpdir):
     _assert_annotations_equal(annot, annot_read)
 
     # make sure pytest raises error on char-sequence that is not allowed
-    with pytest.raises(ValueError, match='in descriptions not supported'):
+    with pytest.raises(ValueError, match='in description not supported'):
         Annotations([0], [1], ['a{COLON}b'])
 
 
@@ -165,7 +169,7 @@ def test_raw_array_orig_times():
         assert raw.annotations.orig_time == orig_time
 
 
-def test_crop():
+def test_crop(tmpdir):
     """Test cropping with annotations."""
     raw = read_raw_fif(fif_fname)
     events = mne.find_events(raw)
@@ -217,7 +221,7 @@ def test_crop():
     assert_array_almost_equal(raw.annotations.onset, expected_onset, decimal=2)
 
     # Test IO
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     fname = op.join(tempdir, 'test-annot.fif')
     raw.annotations.save(fname)
     annot_read = read_annotations(fname)
@@ -227,7 +231,7 @@ def test_crop():
     assert annot_read.orig_time == raw.annotations.orig_time
     assert_array_equal(annot_read.description, raw.annotations.description)
     annot = Annotations((), (), ())
-    annot.save(fname)
+    annot.save(fname, overwrite=True)
     pytest.raises(IOError, read_annotations, fif_fname)  # none in old raw
     annot = read_annotations(fname)
     assert isinstance(annot, Annotations)
@@ -788,83 +792,124 @@ def _assert_annotations_equal(a, b, tol=0):
     assert_allclose(a.onset, b.onset, rtol=0, atol=tol)
     assert_allclose(a.duration, b.duration, rtol=0, atol=tol)
     assert_array_equal(a.description, b.description)
+    assert_array_equal(a.ch_names, b.ch_names)
     a_orig_time = a.orig_time
     b_orig_time = b.orig_time
     assert a_orig_time == b_orig_time
 
 
-@pytest.fixture(scope='session')
-def dummy_annotation_csv_file(tmpdir_factory):
-    """Create csv file for testing."""
-    content = ("onset,duration,description\n"
-               "2002-12-03 19:01:11.720100,1.0,AA\n"
-               "2002-12-03 19:01:20.720100,2.425,BB")
+_ORIG_TIME = datetime.fromtimestamp(1038942071.7201, timezone.utc)
 
-    fname = tmpdir_factory.mktemp('data').join('annotations.csv')
-    fname.write(content)
+
+@pytest.fixture(scope='function', params=('ch_names', 'fmt'))
+def dummy_annotation_file(tmpdir_factory, ch_names, fmt):
+    """Create csv file for testing."""
+    if fmt == 'csv':
+        content = ("onset,duration,description\n"
+                   "2002-12-03 19:01:11.720100,1.0,AA\n"
+                   "2002-12-03 19:01:20.720100,2.425,BB")
+    elif fmt == 'txt':
+        content = ("# MNE-Annotations\n"
+                   "# orig_time : 2002-12-03 19:01:11.720100\n"
+                   "# onset, duration, description\n"
+                   "0, 1, AA \n"
+                   "9, 2.425, BB")
+    else:
+        assert fmt == 'fif'
+        content = Annotations(
+            [0, 9], [1, 2.425], ['AA', 'BB'], orig_time=_ORIG_TIME)
+
+    if ch_names:
+        if isinstance(content, Annotations):
+            # this is a bit of a hack but it works
+            content.ch_names[:] = ((), ('MEG0111', 'MEG2563'))
+        else:
+            content = content.splitlines()
+            content[-3] += ',ch_names'
+            content[-2] += ','
+            content[-1] += ',MEG0111:MEG2563'
+            content = '\n'.join(content)
+
+    fname = tmpdir_factory.mktemp('data').join(f'annotations-annot.{fmt}')
+    if isinstance(content, str):
+        fname.write(content)
+    else:
+        content.save(fname)
     return fname
 
 
-@pytest.fixture(scope='session')
-def dummy_broken_annotation_csv_file(tmpdir_factory):
-    """Create csv file for testing."""
-    content = ("onset,duration,description\n"
-               "1.,1.0,AA\n"
-               "3.,2.425,BB")
-
-    fname = tmpdir_factory.mktemp('data').join('annotations_broken.csv')
-    fname.write(content)
-    return fname
-
-
-@requires_version('pandas', '0.16')
-def test_io_annotation_csv(dummy_annotation_csv_file,
-                           dummy_broken_annotation_csv_file,
-                           tmpdir_factory):
-    """Test CSV input/output."""
-    annot = read_annotations(str(dummy_annotation_csv_file))
-    assert annot.orig_time == _handle_meas_date(1038942071.7201)
-    assert_array_equal(annot.onset, np.array([0., 9.], dtype=np.float32))
-    assert_array_almost_equal(annot.duration, [1., 2.425])
-    assert_array_equal(annot.description, ['AA', 'BB'])
+@pytest.mark.parametrize('ch_names', (False, True))
+@pytest.mark.parametrize('fmt', [
+    pytest.param('csv', marks=needs_pandas),
+    'txt',
+    'fif'
+])
+def test_io_annotation(dummy_annotation_file, tmpdir, fmt, ch_names):
+    """Test CSV, TXT, and FIF input/output (which support ch_names)."""
+    annot = read_annotations(dummy_annotation_file)
+    assert annot.orig_time == _ORIG_TIME
+    kwargs = dict(orig_time=_ORIG_TIME)
+    if ch_names:
+        kwargs['ch_names'] = ((), ('MEG0111', 'MEG2563'))
+    _assert_annotations_equal(
+        annot, Annotations([0., 9.], [1., 2.425], ['AA', 'BB'], **kwargs),
+        tol=1e-6)
 
     # Now test writing
-    fname = str(tmpdir_factory.mktemp('data').join('annotations.csv'))
+    fname = tmpdir.join(f'annotations-annot.{fmt}')
     annot.save(fname)
     annot2 = read_annotations(fname)
     _assert_annotations_equal(annot, annot2)
 
     # Now without an orig_time
     annot._orig_time = None
-    annot.save(fname)
+    annot.save(fname, overwrite=True)
     annot2 = read_annotations(fname)
     _assert_annotations_equal(annot, annot2)
 
-    # Test broken .csv that does not use timestamps
+
+@requires_version('pandas')
+def test_broken_csv(tmpdir):
+    """Test broken .csv that does not use timestamps."""
+    content = ("onset,duration,description\n"
+               "1.,1.0,AA\n"
+               "3.,2.425,BB")
+
+    fname = tmpdir.join('annotations_broken.csv')
+    fname.write(content)
     with pytest.warns(RuntimeWarning, match='save your CSV as a TXT'):
-        annot2 = read_annotations(str(dummy_broken_annotation_csv_file))
+        read_annotations(fname)
 
 
 # Test for IO with .txt files
 
-@pytest.fixture(scope='session')
-def dummy_annotation_txt_file(tmpdir_factory):
+@pytest.fixture(scope='function', params=('ch_names',))
+def dummy_annotation_txt_file(tmpdir_factory, ch_names):
     """Create txt file for testing."""
     content = ("3.14, 42, AA \n"
                "6.28, 48, BB")
+    if ch_names:
+        content = content.splitlines()
+        content[0] = content[0].strip() + ','
+        content[1] = content[1].strip() + ', MEG0111:MEG2563'
+        content = '\n'.join(content)
 
     fname = tmpdir_factory.mktemp('data').join('annotations.txt')
     fname.write(content)
     return fname
 
 
-def test_io_annotation_txt(dummy_annotation_txt_file, tmpdir_factory):
-    """Test TXT input/output."""
+@pytest.mark.parametrize('ch_names', (False, True))
+def test_io_annotation_txt(dummy_annotation_txt_file, tmpdir_factory,
+                           ch_names):
+    """Test TXT input/output without meas_date."""
     annot = read_annotations(str(dummy_annotation_txt_file))
     assert annot.orig_time is None
-    assert_array_equal(annot.onset, [3.14, 6.28])
-    assert_array_equal(annot.duration, [42., 48])
-    assert_array_equal(annot.description, ['AA', 'BB'])
+    kwargs = dict()
+    if ch_names:
+        kwargs['ch_names'] = [(), ('MEG0111', 'MEG2563')]
+    _assert_annotations_equal(
+        annot, Annotations([3.14, 6.28], [42., 48], ['AA', 'BB'], **kwargs))
 
     # Now test writing
     fname = str(tmpdir_factory.mktemp('data').join('annotations.txt'))
@@ -876,24 +921,10 @@ def test_io_annotation_txt(dummy_annotation_txt_file, tmpdir_factory):
     assert annot.orig_time is None
     annot._orig_time = _handle_meas_date(1038942071.7201)
     assert annot.orig_time is not None
-    annot.save(fname)
+    annot.save(fname, overwrite=True)
     annot2 = read_annotations(fname)
     assert annot2.orig_time is not None
     _assert_annotations_equal(annot, annot2)
-
-
-@pytest.fixture(scope='session')
-def dummy_annotation_txt_header(tmpdir_factory):
-    """Create txt header."""
-    content = ("# A something \n"
-               "# orig_time : 42\n"
-               "# orig_time : 2002-12-03 19:01:11.720100\n"
-               "# orig_time : 42\n"
-               "# C\n"
-               "Done")
-    fname = tmpdir_factory.mktemp('data').join('header.txt')
-    fname.write(content)
-    return str(fname)
 
 
 @pytest.mark.parametrize('meas_date, out', [
@@ -914,73 +945,40 @@ def test_handle_meas_date(meas_date, out):
     assert _handle_meas_date(meas_date) == out
 
 
-def test_read_annotation_txt_header(dummy_annotation_txt_header):
+def test_read_annotation_txt_header(tmpdir):
     """Test TXT orig_time recovery."""
-    orig_time = _read_annotations_txt_parse_header(dummy_annotation_txt_header)
+    content = ("# A something \n"
+               "# orig_time : 42\n"
+               "# orig_time : 2002-12-03 19:01:11.720100\n"
+               "# orig_time : 42\n"
+               "# C\n"
+               "Done")
+    fname = tmpdir.join('header.txt')
+    fname.write(content)
+    orig_time = _read_annotations_txt_parse_header(fname)
     want = datetime.fromtimestamp(1038942071.7201, timezone.utc)
     assert orig_time == want
 
 
-@pytest.fixture(scope='session')
-def dummy_annotation_txt_file_with_orig_time(tmpdir_factory):
-    """Create TXT annotations with header."""
-    content = ("# MNE-Annotations\n"
-               "# orig_time : 2002-12-03 19:01:11.720100\n"
-               "# onset, duration, description\n"
-               "3.14, 42, AA \n"
-               "6.28, 48, BB")
-
-    fname = tmpdir_factory.mktemp('data').join('annotations.txt')
-    fname.write(content)
-    return fname
-
-
-def test_read_annotation_txt_orig_time(
-        dummy_annotation_txt_file_with_orig_time):
-    """Test TXT input/output."""
-    annot = read_annotations(str(dummy_annotation_txt_file_with_orig_time))
-    dt = datetime.fromtimestamp(1038942071.7201, timezone.utc)
-    want = Annotations([3.14, 6.28], [42., 48], ['AA', 'BB'], dt)
-    assert annot == want
-
-
-@pytest.fixture(scope='session')
-def dummy_annotation_txt_one_segment(tmpdir_factory):
-    """Create empty TXT annotations."""
+def test_read_annotation_txt_one_segment(tmpdir):
+    """Test empty TXT input/output."""
     content = ("# MNE-Annotations\n"
                "# onset, duration, description\n"
                "3.14, 42, AA")
-    fname = tmpdir_factory.mktemp('data').join('one-annotations.txt')
+    fname = tmpdir.join('one-annotations.txt')
     fname.write(content)
-    return fname
+    annot = read_annotations(fname)
+    _assert_annotations_equal(annot, Annotations(3.14, 42, ['AA']))
 
 
-def test_read_annotation_txt_one_segment(
-        dummy_annotation_txt_one_segment):
+def test_read_annotation_txt_empty(tmpdir):
     """Test empty TXT input/output."""
-    annot = read_annotations(str(dummy_annotation_txt_one_segment))
-    assert_array_equal(annot.onset, 3.14)
-    assert_array_equal(annot.duration, 42)
-    assert_array_equal(annot.description, 'AA')
-
-
-@pytest.fixture(scope='session')
-def dummy_annotation_txt_file_empty(tmpdir_factory):
-    """Create empty TXT annotations."""
     content = ("# MNE-Annotations\n"
                "# onset, duration, description\n")
-    fname = tmpdir_factory.mktemp('data').join('empty-annotations.txt')
+    fname = tmpdir.join('empty-annotations.txt')
     fname.write(content)
-    return fname
-
-
-def test_read_annotation_txt_empty(
-        dummy_annotation_txt_file_empty):
-    """Test empty TXT input/output."""
-    annot = read_annotations(str(dummy_annotation_txt_file_empty))
-    assert_array_equal(annot.onset, np.array([], dtype=np.float64))
-    assert_array_equal(annot.duration, np.array([], dtype=np.float64))
-    assert_array_equal(annot.description, np.array([], dtype='<U1'))
+    annot = read_annotations(fname)
+    _assert_annotations_equal(annot, Annotations([], [], []))
 
 
 def test_annotations_simple_iteration():
@@ -1251,6 +1249,3 @@ def test_annotation_to_data_frame():
     assert df.description[0] == 'yy'
     assert (df.onset[1] - df.onset[0]).seconds == 1
     assert df.groupby('description').count().onset['yy'] == 9
-
-
-run_tests_if_main()
