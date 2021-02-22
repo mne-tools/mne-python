@@ -1061,21 +1061,22 @@ class Brain(object):
             self.dock.widget().layout().addWidget(widget)
 
         # Renderer widget
-        if len(self.plotter.renderers) > 1:
+        rends = [str(i) for i in range(len(self.plotter.renderers))]
+        if len(rends) > 1:
             def select_renderer(idx):
+                idx = int(idx)
                 loc = self.plotter.index_to_loc(idx)
                 self.plotter.subplot(*loc)
 
             self.callbacks["renderer"] = SmartCallBack(
                 callback=select_renderer,
             )
-            self._add_dock_spin_box(
+            self._add_dock_combo_box(
                 widget_name="renderer",
                 label_name="Renderer",
-                value=0,
-                rng=[0, len(self.plotter.renderers) - 1],
+                value="0",
+                rng=rends,
                 callback=self.callbacks["renderer"],
-                double=False,
                 layout=layout,
             )
             self.callbacks["renderer"].widget = \

@@ -18,14 +18,20 @@ class Widget(object):
         if self.notebook:
             self.widget.value = value
         else:
-            self.widget.setValue(value)
+            if hasattr(self.widget, "setValue"):
+                self.widget.setValue(value)
+            elif hasattr(self.widget, "setCurrentText"):
+                self.widget.setCurrentText(value)
 
     def get_value(self):
         """Get the widget value."""
         if self.notebook:
             return self.widget.value
         else:
-            return self.widget.value()
+            if hasattr(self.widget, "value"):
+                return self.widget.value()
+            elif hasattr(self.widget, "currentText"):
+                return self.widget.currentText()
 
 
 class TimeCallBack(object):
@@ -133,6 +139,7 @@ class ShowView(object):
             idx = self.brain.widgets["renderer"].get_value()
         else:
             idx = 0
+        idx = int(idx)
         if self.data[idx] is not None:
             self.brain.show_view(
                 value,
