@@ -24,7 +24,7 @@ from .colormap import calculate_lut
 from .surface import _Surface
 from .view import views_dicts, _lh_views_dict
 from .mplcanvas import MplCanvas
-from .callback import (ShowView, TimeCallBack, SmartCallBack,
+from .callback import (ShowView, TimeCallBack, SmartCallBack, Widget,
                        BumpColorbarPoints, UpdateColorbarScale)
 
 from ..utils import _show_help, _get_color_list, concatenate_images
@@ -789,14 +789,14 @@ class Brain(object):
         """Detect automatically fitting scaling parameters."""
         self._update_auto_scaling()
         for key in ('fmin', 'fmid', 'fmax'):
-            self.widgets[key].setValue(self._data[key])
+            self.widgets[key].set_value(self._data[key])
         self._update()
 
     def restore_user_scaling(self):
         """Restore original scaling parameters."""
         self._update_auto_scaling(restore=True)
         for key in ('fmin', 'fmid', 'fmax'):
-            self.widgets[key].setValue(self._data[key])
+            self.widgets[key].set_value(self._data[key])
         self._update()
 
     def toggle_playback(self, value=None):
@@ -933,7 +933,8 @@ class Brain(object):
             widget.setValue(int(value))
             widget.valueChanged.connect(callback)
             self.dock.widget().layout().addWidget(widget)
-        self.widgets[_sanitize_widget_name(name)] = widget
+        self.widgets[_sanitize_widget_name(name)] = Widget(
+            widget, self.notebook)
 
     def _add_dock_spin_box(self, name, value, rng, callback, double=True):
         if self.notebook:
@@ -949,7 +950,8 @@ class Brain(object):
             widget.setValue(value)
             widget.valueChanged.connect(callback)
             self.dock.widget().layout().addWidget(widget)
-        self.widgets[_sanitize_widget_name(name)] = widget
+        self.widgets[_sanitize_widget_name(name)] = Widget(
+            widget, self.notebook)
 
     def _add_dock_combo_box(self, name, value, rng, callback):
         if self.notebook:
@@ -963,7 +965,8 @@ class Brain(object):
             widget.setCurrentText(value)
             widget.currentTextChanged.connect(callback)
             self.dock.widget().layout().addWidget(widget)
-        self.widgets[_sanitize_widget_name(name)] = widget
+        self.widgets[_sanitize_widget_name(name)] = Widget(
+            widget, self.notebook)
 
     def _configure_dock(self):
         self._initialize_dock()
@@ -1016,22 +1019,23 @@ class Brain(object):
                 self.widgets["playback_speed"]
 
         # Renderer widget
-        def select_renderer(idx):
-            loc = self.plotter.index_to_loc(idx)
-            self.plotter.subplot(*loc)
+        if len(self.plotter.renderers) > 1:
+            def select_renderer(idx):
+                loc = self.plotter.index_to_loc(idx)
+                self.plotter.subplot(*loc)
 
-        self.callbacks["renderer"] = SmartCallBack(
-            callback=select_renderer,
-        )
-        self._add_dock_spin_box(
-            name="Renderer",
-            value=0,
-            rng=[0, len(self.plotter.renderers) - 1],
-            callback=self.callbacks["renderer"],
-            double=False,
-        )
-        self.callbacks["renderer"].widget = \
-            self.widgets["renderer"]
+            self.callbacks["renderer"] = SmartCallBack(
+                callback=select_renderer,
+            )
+            self._add_dock_spin_box(
+                name="Renderer",
+                value=0,
+                rng=[0, len(self.plotter.renderers) - 1],
+                callback=self.callbacks["renderer"],
+                double=False,
+            )
+            self.callbacks["renderer"].widget = \
+                self.widgets["renderer"]
 
         # Orientation widget
         # Use 'lh' as a reference for orientation for 'both'

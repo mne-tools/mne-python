@@ -6,6 +6,28 @@
 import time
 
 
+class Widget(object):
+    """Helper class to interface widgets."""
+
+    def __init__(self, widget, notebook=False):
+        self.widget = widget
+        self.notebook = notebook
+
+    def set_value(self, value):
+        """Set the widget value."""
+        if self.notebook:
+            self.widget.value = value
+        else:
+            self.widget.setValue(value)
+
+    def get_value(self):
+        """Get the widget value."""
+        if self.notebook:
+            return self.widget.value
+        else:
+            return self.widget.value()
+
+
 class TimeCallBack(object):
     """Callback to update the time."""
 
@@ -29,7 +51,7 @@ class TimeCallBack(object):
         if self.time_label is not None:
             current_time = self.time_label(current_time)
         if self.widget is not None and update_widget:
-            self.widget.setValue(int(value))
+            self.widget.set_value(int(value))
 
 
 class UpdateColorbarScale(object):
@@ -46,9 +68,9 @@ class UpdateColorbarScale(object):
         self.brain._update_fscale(value)
         for key in self.keys:
             if self.widgets[key] is not None:
-                self.widgets[key].setValue(self.brain._data[key])
+                self.widgets[key].set_value(self.brain._data[key])
         if self.widget is not None:
-            self.widget.setValue(1.0)
+            self.widget.set_value(1.0)
 
 
 class BumpColorbarPoints(object):
@@ -72,27 +94,27 @@ class BumpColorbarPoints(object):
         if self.name == "fmin" and self.widgets["fmin"] is not None:
             if vals['fmax'] < value:
                 vals['fmax'] = value
-                self.widgets['fmax'].setValue(value)
+                self.widgets['fmax'].set_value(value)
             if vals['fmid'] < value:
                 vals['fmid'] = value
-                self.widgets['fmid'].setValue(value)
-            self.widgets['fmin'].setValue(value)
+                self.widgets['fmid'].set_value(value)
+            self.widgets['fmin'].set_value(value)
         elif self.name == "fmid" and self.widgets['fmid'] is not None:
             if vals['fmin'] > value:
                 vals['fmin'] = value
-                self.widgets['fmin'].setValue(value)
+                self.widgets['fmin'].set_value(value)
             if vals['fmax'] < value:
                 vals['fmax'] = value
-                self.widgets['fmax'].setValue(value)
-            self.widgets['fmid'].setValue(value)
+                self.widgets['fmax'].set_value(value)
+            self.widgets['fmid'].set_value(value)
         elif self.name == "fmax" and self.widgets['fmax'] is not None:
             if vals['fmin'] > value:
                 vals['fmin'] = value
-                self.widgets['fmin'].setValue(value)
+                self.widgets['fmin'].set_value(value)
             if vals['fmid'] > value:
                 vals['fmid'] = value
-                self.widgets['fmid'].setValue(value)
-            self.widgets['fmax'].setValue(value)
+                self.widgets['fmid'].set_value(value)
+            self.widgets['fmax'].set_value(value)
         self.brain.update_lut(**vals)
         if time.time() > self.last_update + 1. / 60.:
             self.callback[self.name](value)
@@ -109,7 +131,10 @@ class ShowView(object):
 
     def __call__(self, value, update_widget=False):
         """Update the view."""
-        idx = self.brain.widgets["renderer"].value()
+        if "renderer" in self.brain.widgets:
+            idx = self.brain.widgets["renderer"].get_value()
+        else:
+            idx = 0
         if self.data[idx] is not None:
             self.brain.show_view(
                 value,
@@ -118,7 +143,7 @@ class ShowView(object):
                 hemi=self.data[idx]['hemi'],
             )
         if update_widget and self.widget is not None:
-            self.widget.setValue(value)
+            self.widget.set_value(value)
 
 
 class SmartCallBack(object):
@@ -136,4 +161,4 @@ class SmartCallBack(object):
         """Update the value."""
         self.callback(value)
         if self.widget is not None and update_widget:
-            self.widget.setValue(value)
+            self.widget.set_value(value)

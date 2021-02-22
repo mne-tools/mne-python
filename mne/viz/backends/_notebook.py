@@ -77,7 +77,7 @@ class _Renderer(_PyVistaRenderer):
     def _add_dock_combo_box(self, name, value, rng, callback):
         from ipywidgets import widgets
         widget = widgets.Combobox(
-            # value=value,
+            value=value,
             options=rng,
             description=name,
             ensure_option=True,
@@ -98,7 +98,7 @@ class _Renderer(_PyVistaRenderer):
         if self.widgets is None:
             return None
         from ipywidgets import VBox
-        widgets = [w for w in self.widgets.values() if w is not None]
+        widgets = [w.widget for w in self.widgets.values() if w is not None]
         dock = VBox(widgets)
         return dock
 
