@@ -37,8 +37,8 @@ def fetch_infant_template(age, subjects_dir=None, verbose=None):
     Parameters
     ----------
     age : str
-        Age to download. Can be one of ``{'2wk', '1mo', '2mo', '3mo', '4.5mo', '6mo',
-        '7.5mo', '9mo', '10.5mo', '12mo', '15mo', '18mo', '2yr'}``.
+        Age to download. Can be one of ``{'2wk', '1mo', '2mo', '3mo', '4.5mo',
+        '6mo', '7.5mo', '9mo', '10.5mo', '12mo', '15mo', '18mo', '2yr'}``.
     subjects_dir : str | None
         The path to download the template data to.
     %(verbose)s
