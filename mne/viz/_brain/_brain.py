@@ -618,9 +618,6 @@ class Brain(object):
         self.slider_color = (0.43137255, 0.44313725, 0.45882353)
         self.slider_tube_width = 0.04
         self.slider_tube_color = (0.69803922, 0.70196078, 0.70980392)
-        self._trace_mode_widget = None
-        self._annot_cands_widget = None
-        self._label_mode_widget = None
 
         # Direct access parameters:
         self.tool_bar = None
@@ -1211,23 +1208,25 @@ class Brain(object):
         dir_name = op.join(self._subjects_dir, self._subject_id, 'label')
         cands = _read_annot_cands(dir_name, raise_error=False)
         cands = cands + ['None']
-        annot = "None" if self.traces_mode == 'vertex' else self.annot
-
+        self.annot = cands[0]
         stc = self._data["stc"]
         modes = _get_allowed_label_modes(stc)
         if self._data["src"] is None:
             modes = [m for m in modes if m not in
                      self.default_label_extract_modes["src"]]
         self.label_extract_mode = modes[-1]
+        if self.traces_mode == 'vertex':
+            _set_annot('None')
+        else:
+            _set_annot(self.annot)
         self._add_dock_combo_box(
             widget_name="annotation",
             label_name="Annotation",
-            value=annot,
+            value=self.annot,
             rng=cands,
             callback=_set_annot,
             layout=layout,
         )
-
         self._add_dock_combo_box(
             widget_name="extract_mode",
             label_name="Extract mode",
@@ -1236,11 +1235,6 @@ class Brain(object):
             callback=_set_label_mode,
             layout=layout,
         )
-
-        if self.traces_mode == 'vertex':
-            _set_annot('None')
-        else:
-            _set_annot(self.annot)
 
     def _configure_dock(self):
         self._initialize_dock()
