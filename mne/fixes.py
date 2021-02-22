@@ -26,6 +26,21 @@ import numpy as np
 ###############################################################################
 # Misc
 
+def _median_complex(data, axis):
+    """Compute median on complex data safely.
+
+    XXX: Can be removed when numpy introduces a fix.
+    See: https://github.com/scipy/scipy/pull/12676/.
+    """
+    # np.median must be passed real arrays for the desired result
+    if np.iscomplexobj(data):
+        data = (np.median(np.real(data), axis=axis)
+                + 1j * np.median(np.imag(data), axis=axis))
+    else:
+        data = np.median(data, axis=axis)
+    return data
+
+
 # helpers to get function arguments
 def _get_args(function, varargs=False):
     params = inspect.signature(function).parameters
