@@ -919,33 +919,41 @@ class Brain(object):
         else:
             layout.addWidget(widget)
 
-    def _add_dock_slider(self, widget_name, label_name, value, rng, callback):
+    def _add_dock_slider(self, widget_name, label_name, value, rng, callback,
+                         layout=None):
         if self.notebook:
+            label_name = widget_name if label_name is None else widget_name
             widget = self._renderer._add_dock_slider(
                 label_name, value, rng, callback)
         else:
             from PyQt5 import QtCore
             from PyQt5.QtWidgets import QSlider, QHBoxLayout
             hlayout = QHBoxLayout()
-            self._add_dock_label(label_name, hlayout)
+            if label_name is not None:
+                self._add_dock_label(label_name, hlayout)
             widget = QSlider(QtCore.Qt.Horizontal)
             widget.setMinimum(rng[0])
             widget.setMaximum(rng[1])
             widget.setValue(int(value))
             widget.valueChanged.connect(callback)
             hlayout.addWidget(widget)
-            self.dock.widget().layout().addLayout(hlayout)
+            if layout is None:
+                self.dock.widget().layout().addLayout(hlayout)
+            else:
+                layout.addLayout(hlayout)
         self.widgets[widget_name] = Widget(widget, self.notebook)
 
     def _add_dock_spin_box(self, widget_name, label_name, value, rng, callback,
                            double=True, layout=None):
         if self.notebook:
+            label_name = widget_name if label_name is None else widget_name
             widget = self._renderer._add_dock_spin_box(
                 label_name, value, rng, callback)
         else:
             from PyQt5.QtWidgets import QDoubleSpinBox, QSpinBox, QHBoxLayout
             hlayout = QHBoxLayout()
-            self._add_dock_label(label_name, hlayout)
+            if label_name is not None:
+                self._add_dock_label(label_name, hlayout)
             value = value if double else int(value)
             widget = QDoubleSpinBox() if double else QSpinBox()
             widget.setMinimum(rng[0])
@@ -960,21 +968,145 @@ class Brain(object):
         self.widgets[widget_name] = Widget(widget, self.notebook)
 
     def _add_dock_combo_box(self, widget_name, label_name, value, rng,
-                            callback):
+                            callback, layout=None):
         if self.notebook:
+            label_name = widget_name if label_name is None else widget_name
             widget = self._renderer._add_dock_combo_box(
                 label_name, value, rng, callback)
         else:
             from PyQt5.QtWidgets import QComboBox, QHBoxLayout
             hlayout = QHBoxLayout()
-            self._add_dock_label(label_name, hlayout)
+            if label_name is not None:
+                self._add_dock_label(label_name, hlayout)
             widget = QComboBox()
             widget.addItems(rng)
             widget.setCurrentText(value)
             widget.currentTextChanged.connect(callback)
             hlayout.addWidget(widget)
-            self.dock.widget().layout().addLayout(hlayout)
+            if layout is None:
+                self.dock.widget().layout().addLayout(hlayout)
+            else:
+                layout.addLayout(hlayout)
         self.widgets[widget_name] = Widget(widget, self.notebook)
+
+    def _add_dock_time_widget(self, name):
+        if self.notebook:
+            layout = None
+        else:
+            from PyQt5.QtWidgets import QGroupBox, QVBoxLayout
+            layout = QVBoxLayout()
+            widget = QGroupBox(name)
+            widget.setLayout(layout)
+            self.dock.widget().layout().addWidget(widget)
+        max_time = len(self._data['time']) - 1
+
+        # Playback speed widget
+        if max_time < 1:
+            self.callbacks["playback_speed"] = None
+            self.widgets["playback_speed"] = None
+        else:
+            self.callbacks["playback_speed"] = SmartCallBack(
+                callback=self.set_playback_speed,
+            )
+            self._add_dock_spin_box(
+                widget_name="playback_speed",
+                label_name="Playback Speed",
+                value=self.default_playback_speed_value,
+                rng=self.default_playback_speed_range,
+                callback=self.callbacks["playback_speed"],
+                layout=layout,
+            )
+            self.callbacks["playback_speed"].widget = \
+                self.widgets["playback_speed"]
+
+        # Time widget
+        if max_time < 1:
+            self.callbacks["time"] = None
+            self.widgets["time"] = None
+        else:
+            self.callbacks["time"] = TimeCallBack(
+                brain=self,
+                callback=self.plot_time_line,
+            )
+            self._add_dock_slider(
+                widget_name="time",
+                label_name=None,
+                value=self._data['time_idx'],
+                rng=[0, max_time],
+                callback=self.callbacks["time"],
+                layout=layout,
+            )
+            self.callbacks["time"].widget = self.widgets["time"]
+
+        # Time label
+        current_time = self._current_time
+        assert current_time is not None  # should never be the case, float
+        time_label = self._data['time_label']
+        if callable(time_label):
+            current_time = time_label(current_time)
+        else:
+            current_time = time_label
+        if self.time_actor is not None:
+            self.time_actor.SetInput(current_time)
+        del current_time
+
+    def _add_dock_orientation_widget(self, name):
+        if self.notebook:
+            layout = None
+        else:
+            from PyQt5.QtWidgets import QGroupBox, QVBoxLayout
+            layout = QVBoxLayout()
+            widget = QGroupBox(name)
+            widget.setLayout(layout)
+            self.dock.widget().layout().addWidget(widget)
+
+        # Renderer widget
+        if len(self.plotter.renderers) > 1:
+            def select_renderer(idx):
+                loc = self.plotter.index_to_loc(idx)
+                self.plotter.subplot(*loc)
+
+            self.callbacks["renderer"] = SmartCallBack(
+                callback=select_renderer,
+            )
+            self._add_dock_spin_box(
+                widget_name="renderer",
+                label_name="Renderer",
+                value=0,
+                rng=[0, len(self.plotter.renderers) - 1],
+                callback=self.callbacks["renderer"],
+                double=False,
+                layout=layout,
+            )
+            self.callbacks["renderer"].widget = \
+                self.widgets["renderer"]
+
+        # Use 'lh' as a reference for orientation for 'both'
+        if self._hemi == 'both':
+            hemis_ref = ['lh']
+        else:
+            hemis_ref = self._hemis
+        orientation_data = [None] * 4
+        for hemi in hemis_ref:
+            for ri, ci, view in self._iter_views(hemi):
+                idx = self.plotter.loc_to_index((ri, ci))
+                if view == 'flat':
+                    _data = None
+                else:
+                    _data = dict(default=view, hemi=hemi, row=ri, col=ci)
+                orientation_data[idx] = _data
+        self.callbacks["orientation"] = ShowView(
+            brain=self,
+            data=orientation_data,
+        )
+        self._add_dock_combo_box(
+            widget_name="orientation",
+            label_name=None,
+            value=orientation_data[0]["default"],
+            rng=self.orientation,
+            callback=self.callbacks["orientation"],
+            layout=layout,
+        )
 
     def _add_dock_colormap_widget(self, name):
         if self.notebook:
@@ -1021,104 +1153,8 @@ class Brain(object):
 
     def _configure_dock(self):
         self._initialize_dock()
-
-        # Time widget
-        max_time = len(self._data['time']) - 1
-        if max_time < 1:
-            self.callbacks["time"] = None
-            self.widgets["time"] = None
-        else:
-            self.callbacks["time"] = TimeCallBack(
-                brain=self,
-                callback=self.plot_time_line,
-            )
-            self._add_dock_slider(
-                widget_name="time",
-                label_name="Time",
-                value=self._data['time_idx'],
-                rng=[0, max_time],
-                callback=self.callbacks["time"],
-            )
-            self.callbacks["time"].widget = self.widgets["time"]
-
-        # Time label
-        current_time = self._current_time
-        assert current_time is not None  # should never be the case, float
-        time_label = self._data['time_label']
-        if callable(time_label):
-            current_time = time_label(current_time)
-        else:
-            current_time = time_label
-        if self.time_actor is not None:
-            self.time_actor.SetInput(current_time)
-        del current_time
-
-        # Playback speed widget
-        if self.widgets["time"] is None:
-            self.callbacks["playback_speed"] = None
-            self.widgets["playback_speed"] = None
-        else:
-            self.callbacks["playback_speed"] = SmartCallBack(
-                callback=self.set_playback_speed,
-            )
-            self._add_dock_spin_box(
-                widget_name="playback_speed",
-                label_name="Playback Speed",
-                value=self.default_playback_speed_value,
-                rng=self.default_playback_speed_range,
-                callback=self.callbacks["playback_speed"],
-            )
-            self.callbacks["playback_speed"].widget = \
-                self.widgets["playback_speed"]
-
-        # Renderer widget
-        if len(self.plotter.renderers) > 1:
-            def select_renderer(idx):
-                loc = self.plotter.index_to_loc(idx)
-                self.plotter.subplot(*loc)
-
-            self.callbacks["renderer"] = SmartCallBack(
-                callback=select_renderer,
-            )
-            self._add_dock_spin_box(
-                widget_name="renderer",
-                label_name="Renderer",
-                value=0,
-                rng=[0, len(self.plotter.renderers) - 1],
-                callback=self.callbacks["renderer"],
-                double=False,
-            )
-            self.callbacks["renderer"].widget = \
-                self.widgets["renderer"]
-
-        # Orientation widget
-        # Use 'lh' as a reference for orientation for 'both'
-        if self._hemi == 'both':
-            hemis_ref = ['lh']
-        else:
-            hemis_ref = self._hemis
-        orientation_data = [None] * 4
-        for hemi in hemis_ref:
-            for ri, ci, view in self._iter_views(hemi):
-                idx = self.plotter.loc_to_index((ri, ci))
-                if view == 'flat':
-                    _data = None
-                else:
-                    _data = dict(default=view, hemi=hemi, row=ri, col=ci)
-                orientation_data[idx] = _data
-        self.callbacks["orientation"] = ShowView(
-            brain=self,
-            data=orientation_data,
-        )
-        self._add_dock_combo_box(
-            widget_name="orientation",
-            label_name="Orientation",
-            value=orientation_data[0]["default"],
-            rng=self.orientation,
-            callback=self.callbacks["orientation"],
-        )
-
-        # Colormap widget
+        self._add_dock_time_widget(name="Time")
+        self._add_dock_orientation_widget(name="Orientation")
         self._add_dock_colormap_widget(name="Colormap")
 
         # Smoothing widget
