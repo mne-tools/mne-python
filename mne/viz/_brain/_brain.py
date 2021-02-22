@@ -1445,6 +1445,14 @@ class Brain(object):
         self.actions[name] = self._renderer._add_text_field(
             value, placeholder)
 
+    def _add_spacer(self):
+        if self.notebook:
+            return
+        from PyQt5.QtWidgets import QSizePolicy, QWidget
+        spacer = QWidget()
+        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        self.tool_bar.addWidget(spacer)
+
     def _configure_tool_bar(self):
         self._initialize_tool_bar()
         self._add_button(
@@ -1503,6 +1511,7 @@ class Brain(object):
             func=self.clear_glyphs,
             icon_name="trash",
         )
+        self._add_spacer()
         self._add_button(
             name="help",
             desc="Help",
