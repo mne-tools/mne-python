@@ -41,16 +41,7 @@ class _Renderer(_PyVistaRenderer):
             readout=False,
             description=name,
         )
-
-        def _func(data):
-            if isinstance(data["new"], dict):
-                if "value" in data["new"]:
-                    value = data["new"]["value"]
-                else:
-                    value = data["old"]["value"]
-                callback(value)
-
-        widget.observe(_func)
+        widget.observe(_generate_callback(callback))
         return widget
 
     def _add_dock_spin_box(self, name, value, rng, callback):
@@ -62,16 +53,7 @@ class _Renderer(_PyVistaRenderer):
             readout=False,
             description=name,
         )
-
-        def _func(data):
-            if isinstance(data["new"], dict):
-                if "value" in data["new"]:
-                    value = data["new"]["value"]
-                else:
-                    value = data["old"]["value"]
-                callback(value)
-
-        widget.observe(_func)
+        widget.observe(_generate_callback(callback))
         return widget
 
     def _add_dock_combo_box(self, name, value, rng, callback):
@@ -80,18 +62,8 @@ class _Renderer(_PyVistaRenderer):
             value=value,
             options=rng,
             description=name,
-            ensure_option=True,
         )
-
-        def _func(data):
-            if isinstance(data["new"], dict):
-                if "value" in data["new"]:
-                    value = data["new"]["value"]
-                else:
-                    value = data["old"]["value"]
-                callback(value)
-
-        widget.observe(_func)
+        widget.observe(_generate_callback(callback))
         return widget
 
     def _finalize_dock(self):
@@ -149,6 +121,17 @@ class _Renderer(_PyVistaRenderer):
         display(main_widget)
         self.figure.display = viewer
         return self.scene()
+
+
+def _generate_callback(callback):
+    def func(data):
+        if isinstance(data["new"], dict):
+            if "value" in data["new"]:
+                value = data["new"]["value"]
+            else:
+                value = data["old"]["value"]
+            callback(value)
+    return func
 
 
 _testing_context = nullcontext
