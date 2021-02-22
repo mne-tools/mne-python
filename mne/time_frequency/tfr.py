@@ -17,7 +17,7 @@ import numpy as np
 from .multitaper import dpss_windows
 
 from ..baseline import rescale
-from ..fixes import _import_fft, _median_complex
+from ..fixes import _import_fft
 from ..filter import next_fast_len
 from ..parallel import parallel_func
 from ..utils import (logger, verbose, _time_mask, _freq_mask, check_fname,
