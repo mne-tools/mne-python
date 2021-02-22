@@ -737,6 +737,7 @@ def test_compute_tfr_correct(method, decim):
 
 
 def test_averaging_epochsTFR():
+    """Test that EpochsTFR averaging methods work."""
     # Setup for reading the raw data
     event_id = 1
     tmin = -0.2
