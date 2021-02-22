@@ -986,7 +986,7 @@ class Brain(object):
                 layout.addLayout(hlayout)
         self.widgets[widget_name] = Widget(widget, self.notebook)
 
-    def _add_dock_time_widget(self, name):
+    def _add_dock_group_box(self, name):
         if self.notebook:
             layout = None
         else:
@@ -995,6 +995,10 @@ class Brain(object):
             widget = QGroupBox(name)
             widget.setLayout(layout)
             self.dock.widget().layout().addWidget(widget)
+        return layout
+
+    def _add_dock_time_widget(self, name):
+        layout = self._add_dock_group_box(name)
         max_time = len(self._data['time']) - 1
 
         # Playback speed widget
@@ -1048,15 +1052,7 @@ class Brain(object):
         del current_time
 
     def _add_dock_orientation_widget(self, name):
-        if self.notebook:
-            layout = None
-        else:
-            from PyQt5.QtWidgets import QGroupBox, QVBoxLayout
-            layout = QVBoxLayout()
-            widget = QGroupBox(name)
-            widget.setLayout(layout)
-            self.dock.widget().layout().addWidget(widget)
-
+        layout = self._add_dock_group_box(name)
         # Renderer widget
         rends = [str(i) for i in range(len(self.plotter.renderers))]
         if len(rends) > 1:
@@ -1107,15 +1103,7 @@ class Brain(object):
         )
 
     def _add_dock_colormap_widget(self, name):
-        if self.notebook:
-            layout = None
-        else:
-            from PyQt5.QtWidgets import QGroupBox, QVBoxLayout
-            layout = QVBoxLayout()
-            widget = QGroupBox(name)
-            widget.setLayout(layout)
-            self.dock.widget().layout().addWidget(widget)
-
+        layout = self._add_dock_group_box(name)
         for idx, key in enumerate(self.keys):
             rng = _get_range(self)
             self.callbacks[key] = BumpColorbarPoints(
@@ -1161,14 +1149,7 @@ class Brain(object):
             self._configure_vertex_time_course()
             return
 
-        if self.notebook:
-            layout = None
-        else:
-            from PyQt5.QtWidgets import QGroupBox, QVBoxLayout
-            layout = QVBoxLayout()
-            widget = QGroupBox(name)
-            widget.setLayout(layout)
-            self.dock.widget().layout().addWidget(widget)
+        layout = self._add_dock_group_box(name)
 
         # setup candidate annots
         def _set_annot(annot):
