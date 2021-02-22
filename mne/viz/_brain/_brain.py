@@ -788,14 +788,14 @@ class Brain(object):
     def apply_auto_scaling(self):
         """Detect automatically fitting scaling parameters."""
         self._update_auto_scaling()
-        for key in ('fmin', 'fmid', 'fmax'):
+        for key in self.keys:
             self.widgets[key].set_value(self._data[key])
         self._update()
 
     def restore_user_scaling(self):
         """Restore original scaling parameters."""
         self._update_auto_scaling(restore=True)
-        for key in ('fmin', 'fmid', 'fmax'):
+        for key in self.keys:
             self.widgets[key].set_value(self._data[key])
         self._update()
 
@@ -908,65 +908,116 @@ class Brain(object):
             return
         self.dock.widget().layout().addStretch()
 
-    def _add_dock_label(self, value):
+    def _add_dock_label(self, value, layout=None):
         if self.notebook:
             return
-        from PyQt5 import QtCore
         from PyQt5.QtWidgets import QLabel
-        label = QLabel()
-        label.setTextFormat(QtCore.Qt.RichText)
-        label.setText("<b>" + value + "</b>")
-        label.setAlignment(QtCore.Qt.AlignCenter)
-        self.dock.widget().layout().addWidget(label)
+        widget = QLabel()
+        widget.setText(value)
+        if layout is None:
+            self.dock.widget().layout().addWidget(widget)
+        else:
+            layout.addWidget(widget)
 
-    def _add_dock_slider(self, name, value, rng, callback):
+    def _add_dock_slider(self, widget_name, label_name, value, rng, callback):
         if self.notebook:
             widget = self._renderer._add_dock_slider(
-                name, value, rng, callback)
+                label_name, value, rng, callback)
         else:
             from PyQt5 import QtCore
-            from PyQt5.QtWidgets import QSlider
-            self._add_dock_label(name)
+            from PyQt5.QtWidgets import QSlider, QHBoxLayout
+            hlayout = QHBoxLayout()
+            self._add_dock_label(label_name, hlayout)
             widget = QSlider(QtCore.Qt.Horizontal)
             widget.setMinimum(rng[0])
             widget.setMaximum(rng[1])
             widget.setValue(int(value))
             widget.valueChanged.connect(callback)
-            self.dock.widget().layout().addWidget(widget)
-        self.widgets[_sanitize_widget_name(name)] = Widget(
-            widget, self.notebook)
+            hlayout.addWidget(widget)
+            self.dock.widget().layout().addLayout(hlayout)
+        self.widgets[widget_name] = Widget(widget, self.notebook)
 
-    def _add_dock_spin_box(self, name, value, rng, callback, double=True):
+    def _add_dock_spin_box(self, widget_name, label_name, value, rng, callback,
+                           double=True, layout=None):
         if self.notebook:
             widget = self._renderer._add_dock_spin_box(
-                name, value, rng, callback)
+                label_name, value, rng, callback)
         else:
-            from PyQt5.QtWidgets import QDoubleSpinBox, QSpinBox
-            self._add_dock_label(name)
+            from PyQt5.QtWidgets import QDoubleSpinBox, QSpinBox, QHBoxLayout
+            hlayout = QHBoxLayout()
+            self._add_dock_label(label_name, hlayout)
             value = value if double else int(value)
             widget = QDoubleSpinBox() if double else QSpinBox()
             widget.setMinimum(rng[0])
             widget.setMaximum(rng[1])
             widget.setValue(value)
             widget.valueChanged.connect(callback)
-            self.dock.widget().layout().addWidget(widget)
-        self.widgets[_sanitize_widget_name(name)] = Widget(
-            widget, self.notebook)
+            hlayout.addWidget(widget)
+            if layout is None:
+                self.dock.widget().layout().addLayout(hlayout)
+            else:
+                layout.addLayout(hlayout)
+        self.widgets[widget_name] = Widget(widget, self.notebook)
 
-    def _add_dock_combo_box(self, name, value, rng, callback):
+    def _add_dock_combo_box(self, widget_name, label_name, value, rng,
+                            callback):
         if self.notebook:
             widget = self._renderer._add_dock_combo_box(
-                name, value, rng, callback)
+                label_name, value, rng, callback)
         else:
-            from PyQt5.QtWidgets import QComboBox
-            self._add_dock_label(name)
+            from PyQt5.QtWidgets import QComboBox, QHBoxLayout
+            hlayout = QHBoxLayout()
+            self._add_dock_label(label_name, hlayout)
             widget = QComboBox()
             widget.addItems(rng)
             widget.setCurrentText(value)
             widget.currentTextChanged.connect(callback)
+            hlayout.addWidget(widget)
+            self.dock.widget().layout().addLayout(hlayout)
+        self.widgets[widget_name] = Widget(widget, self.notebook)
+
+    def _add_dock_colormap_widget(self, name):
+        if self.notebook:
+            layout = None
+        else:
+            from PyQt5.QtWidgets import QGroupBox, QVBoxLayout
+            layout = QVBoxLayout()
+            widget = QGroupBox(name)
+            widget.setLayout(layout)
             self.dock.widget().layout().addWidget(widget)
-        self.widgets[_sanitize_widget_name(name)] = Widget(
-            widget, self.notebook)
+
+        for idx, key in enumerate(self.keys):
+            rng = _get_range(self)
+            self.callbacks[key] = BumpColorbarPoints(
+                brain=self,
+                name=key
+            )
+            self._add_dock_spin_box(
+                widget_name=key,
+                label_name=key[1:],
+                value=self._data[key],
+                rng=rng,
+                callback=self.callbacks[key],
+                layout=layout,
+            )
+
+        # fscale
+        self.callbacks["fscale"] = UpdateColorbarScale(
+            brain=self,
+        )
+        self._add_dock_spin_box(
+            widget_name="fscale",
+            label_name="scale",
+            value=1.0,
+            rng=self.default_scaling_range,
+            callback=self.callbacks["fscale"],
+            layout=layout,
+        )
+
+        # register colorbar slider representations
+        widgets = {key: self.widgets[key] for key in self.keys}
+        for name in ("fmin", "fmid", "fmax", "fscale"):
+            self.callbacks[name].widgets = widgets
 
     def _configure_dock(self):
         self._initialize_dock()
@@ -982,7 +1033,8 @@ class Brain(object):
                 callback=self.plot_time_line,
             )
             self._add_dock_slider(
-                name="Time",
+                widget_name="time",
+                label_name="Time",
                 value=self._data['time_idx'],
                 rng=[0, max_time],
                 callback=self.callbacks["time"],
@@ -1010,7 +1062,8 @@ class Brain(object):
                 callback=self.set_playback_speed,
             )
             self._add_dock_spin_box(
-                name="Playback Speed",
+                widget_name="playback_speed",
+                label_name="Playback Speed",
                 value=self.default_playback_speed_value,
                 rng=self.default_playback_speed_range,
                 callback=self.callbacks["playback_speed"],
@@ -1028,7 +1081,8 @@ class Brain(object):
                 callback=select_renderer,
             )
             self._add_dock_spin_box(
-                name="Renderer",
+                widget_name="renderer",
+                label_name="Renderer",
                 value=0,
                 rng=[0, len(self.plotter.renderers) - 1],
                 callback=self.callbacks["renderer"],
@@ -1057,48 +1111,23 @@ class Brain(object):
             data=orientation_data,
         )
         self._add_dock_combo_box(
-            name="Orientation",
+            widget_name="orientation",
+            label_name="Orientation",
             value=orientation_data[0]["default"],
             rng=self.orientation,
             callback=self.callbacks["orientation"],
         )
 
-        # Colormap slider
-        for idx, key in enumerate(self.keys):
-            rng = _get_range(self)
-            self.callbacks[key] = BumpColorbarPoints(
-                brain=self,
-                name=key
-            )
-            self._add_dock_spin_box(
-                name=key,
-                value=self._data[key],
-                rng=rng,
-                callback=self.callbacks[key],
-            )
+        # Colormap widget
+        self._add_dock_colormap_widget(name="Colormap")
 
-        # fscale
-        self.callbacks["fscale"] = UpdateColorbarScale(
-            brain=self,
-        )
-        self._add_dock_spin_box(
-            name="fscale",
-            value=1.0,
-            rng=self.default_scaling_range,
-            callback=self.callbacks["fscale"],
-        )
-
-        # register colorbar slider representations
-        widgets = {key: self.widgets[key] for key in self.keys}
-        for name in ("fmin", "fmid", "fmax", "fscale"):
-            self.callbacks[name].widgets = widgets
-
-        # Smoothing slider
+        # Smoothing widget
         self.callbacks["smoothing"] = SmartCallBack(
             callback=self.set_data_smoothing,
         )
         self._add_dock_spin_box(
-            name="Smoothing",
+            widget_name="smoothing",
+            label_name="Smoothing",
             value=self._data['smoothing_steps'],
             rng=self.default_smoothing_range,
             callback=self.callbacks["smoothing"],
@@ -3516,10 +3545,6 @@ def _update_limits(fmin, fmid, fmax, center, array):
 def _get_range(brain):
     val = np.abs(np.concatenate(list(brain._current_act_data.values())))
     return [np.min(val), np.max(val)]
-
-
-def _sanitize_widget_name(name):
-    return name.lower().replace(" ", "_")
 
 
 class _FakeIren():
