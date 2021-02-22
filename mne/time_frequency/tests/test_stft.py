@@ -11,7 +11,8 @@ from numpy.testing import (assert_almost_equal, assert_array_almost_equal)
 
 from mne import read_events, Epochs
 from mne.io import read_raw_fif
-from mne.time_frequency import stft, istft, stftfreq, tfr_stft, tfr_array_stft, AverageTFR
+from mne.time_frequency import (stft, istft, stftfreq, tfr_stft,
+                                tfr_array_stft, AverageTFR)
 from mne.time_frequency._stft import stft_norm2
 
 
