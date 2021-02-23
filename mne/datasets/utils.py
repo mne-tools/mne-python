@@ -246,6 +246,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         'phantom_4dbti': 'MNE_DATASETS_PHANTOM_4DBTI_PATH',
         'limo': 'MNE_DATASETS_LIMO_PATH',
         'refmeg_noise': 'MNE_DATASETS_REFMEG_NOISE_PATH',
+        'erp_core': 'MNE_DATASETS_ERP_CORE_PATH'
     }[name]
 
     path = _get_path(path, key, name)
@@ -284,6 +285,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         fieldtrip_cmc='https://osf.io/j9b6s/download?version=1',
         phantom_4dbti='https://osf.io/v2brw/download?version=2',
         refmeg_noise='https://osf.io/drt6v/download?version=1',
+        erp_core='https://osf.io/rzgba/download?version=1'
     )
     # filename of the resulting downloaded archive (only needed if the URL
     # name does not match resulting filename)
@@ -302,7 +304,8 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         visual_92_categories=['MNE-visual_92_categories-data-part1.tar.gz',
                               'MNE-visual_92_categories-data-part2.tar.gz'],
         phantom_4dbti='MNE-phantom-4DBTi.zip',
-        refmeg_noise='sample_reference_MEG_noise-raw.zip'
+        refmeg_noise='sample_reference_MEG_noise-raw.zip',
+        erp_core='MNE-ERP-CORE-data.tar.gz'
     )
     # original folder names that get extracted (only needed if the
     # archive does not extract the right folder name; e.g., usually GitHub)
@@ -323,7 +326,8 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         visual_92_categories='MNE-visual_92_categories-data',
         fieldtrip_cmc='MNE-fieldtrip_cmc-data',
         phantom_4dbti='MNE-phantom-4DBTi',
-        refmeg_noise='MNE-refmeg-noise-data'
+        refmeg_noise='MNE-refmeg-noise-data',
+        erp_core='MNE-ERP-CORE-data'
     )
     md5_hashes = dict(
         brainstorm=dict(
@@ -347,7 +351,8 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         mtrf='273a390ebbc48da2c3184b01a82e4636',
         fieldtrip_cmc='6f9fd6520f9a66e20994423808d2528c',
         phantom_4dbti='938a601440f3ffa780d20a17bae039ff',
-        refmeg_noise='779fecd890d98b73a4832e717d7c7c45'
+        refmeg_noise='779fecd890d98b73a4832e717d7c7c45',
+        erp_core='5866c0d6213bd7ac97f254c776f6c4b1'
     )
     assert set(md5_hashes.keys()) == set(urls.keys())
     url = urls[name]
@@ -576,7 +581,8 @@ def has_dataset(name):
             'kiloword': 'MNE-kiloword-data',
             'phantom_4dbti': 'MNE-phantom-4DBTi',
             'mtrf': 'mTRF_1.5',
-            'refmeg_noise': 'MNE-refmeg-noise-data'
+            'refmeg_noise': 'MNE-refmeg-noise-data',
+            'erp_core': 'MNE-ERP-CORE-data'
         }[name]
     dp = _data_path(download=False, name=name, check_version=False,
                     archive_name=archive_name)
@@ -598,7 +604,7 @@ def _download_all_example_data(verbose=True):
     from . import (sample, testing, misc, spm_face, somato, brainstorm,
                    eegbci, multimodal, opm, hf_sef, mtrf, fieldtrip_cmc,
                    kiloword, phantom_4dbti, sleep_physionet, limo,
-                   fnirs_motor, refmeg_noise, fetch_infant_template,
+                   fnirs_motor, refmeg_noise, erp_core, fetch_infant_template,
                    fetch_fsaverage)
     sample_path = sample.data_path()
     testing.data_path()
@@ -631,6 +637,8 @@ def _download_all_example_data(verbose=True):
     fetch_hcp_mmp_parcellation(
         subjects_dir=sample_path + '/subjects', accept=True)
     limo.load_data(subject=1, update_path=True)
+
+    erp_core.data_path()
 
 
 @verbose

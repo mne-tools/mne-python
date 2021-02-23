@@ -409,6 +409,33 @@ discriminate.
       and demonstrates how to fit a single trial linear regression using the
       information contained in the metadata of the individual datasets.
 
+ERP CORE Dataset
+^^^^^^^^^^^^^^^^
+:func:`mne.datasets.erp_core.data_path`
+:func:`mne.datasets.erp_core.load_data`
+
+The original `ERP CORE dataset`_ :footcite:`Kappenman2021` contains data from
+40 participants who completed 6 EEG experiments, carefully crafted to evoke
+7 well-known event-related potential (ERP) components.
+
+Currently, the MNE-Python ERP CORE dataset only provides data from one
+participant (subject `001`) of the Flankers paradigm, which elicits the
+lateralized readiness potential (LRP) and error-related negativity (ERN). The
+data provided is **not** the original data from the ERP CORE dataset, but
+rather a slightly modified version, designed to demonstrate the Epochs metadata
+functionality. For example, we already set the references and montage
+correctly, and stored events as Annotations. Data is provided in ``FIFF``
+format.
+
+TODO
+
+.. topic:: Examples
+
+    * :ref:`Single trial linear regression analysis with the LIMO dataset
+      <ex-limo-data>`: Explores data from a single subject of the LIMO dataset
+      and demonstrates how to fit a single trial linear regression using the
+      information contained in the metadata of the individual datasets.
+
 References
 ==========
 
@@ -421,3 +448,4 @@ References
 .. _resting state dataset tutorial: https://neuroimage.usc.edu/brainstorm/DatasetResting
 .. _median nerve dataset tutorial: https://neuroimage.usc.edu/brainstorm/DatasetMedianNerveCtf
 .. _SPM faces dataset: https://www.fil.ion.ucl.ac.uk/spm/data/mmfaces/
+.. _ERP-CORE dataset: https://erpinfo.org/erp-core
