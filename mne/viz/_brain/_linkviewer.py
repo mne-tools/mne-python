@@ -136,7 +136,7 @@ class _LinkViewer(object):
             if actions:
                 widget = brain.actions[name]
             else:
-                widget = brain.widgets[name]
+                widget = brain.widgets[name].widget
             if widget is not None:
                 signal = getattr(widget, signal_type)
                 signal.disconnect()
