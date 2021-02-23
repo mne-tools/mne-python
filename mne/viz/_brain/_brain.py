@@ -1011,7 +1011,7 @@ class Brain(object):
             self.dock_layout.addWidget(widget)
         return layout
 
-    def _add_dock_time_widget(self, name):
+    def _add_dock_playback_widget(self, name):
         layout = self._add_dock_group_box(name)
         max_time = len(self._data['time']) - 1
 
@@ -1241,7 +1241,7 @@ class Brain(object):
 
     def _configure_dock(self):
         self._initialize_dock()
-        self._add_dock_time_widget(name="Playback")
+        self._add_dock_playback_widget(name="Playback")
         self._add_dock_orientation_widget(name="Orientation")
         self._add_dock_colormap_widget(name="Color Limits")
         self._add_dock_trace_widget(name="Trace")
