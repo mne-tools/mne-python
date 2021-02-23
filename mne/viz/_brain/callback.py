@@ -58,7 +58,7 @@ class TimeCallBack(object):
         self.brain.set_time_point(value)
         if self.label is not None:
             current_time = self.brain._current_time
-            self.label.set_value(f"{current_time: .3}")
+            self.label.set_value(f"{current_time: .3f}")
         if self.callback is not None:
             self.callback()
         if self.widget is not None and update_widget:
