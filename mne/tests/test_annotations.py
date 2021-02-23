@@ -1249,3 +1249,38 @@ def test_annotation_to_data_frame():
     assert df.description[0] == 'yy'
     assert (df.onset[1] - df.onset[0]).seconds == 1
     assert df.groupby('description').count().onset['yy'] == 9
+
+
+def test_annotation_ch_names():
+    """Test annotation ch_names updating and pruning."""
+    info = create_info(10, 1000., 'eeg')
+    raw = RawArray(np.zeros((10, 1000)), info)
+    onset = [0.1, 0.3, 0.6]
+    duration = [0.05, 0.1, 0.2]
+    description = ['first', 'second', 'third']
+    ch_names = [[], raw.ch_names[4:6], raw.ch_names[5:7]]
+    annot = Annotations(onset, duration, description, ch_names=ch_names)
+    raw.set_annotations(annot)
+    # renaming
+    rename = {name: name + 'new' for name in raw.ch_names}
+    raw_2 = raw.copy().rename_channels(rename)
+    for ch_rename, ch in zip(raw_2.annotations.ch_names, annot.ch_names):
+        assert all(name in raw_2.ch_names for name in ch_rename)
+        assert all(name in raw.ch_names for name in ch)
+        assert not any(name in raw.ch_names for name in ch_rename)
+        assert not any(name in raw_2.ch_names for name in ch)
+    raw_2.rename_channels({val: key for key, val in rename.items()})
+    _assert_annotations_equal(raw.annotations, raw_2.annotations)
+    # dropping
+    raw_2.drop_channels(raw.ch_names[5:])
+    annot_pruned = raw_2.annotations
+    assert len(raw_2.annotations) == 2  # dropped the last one
+    assert raw_2.annotations.ch_names[1] == tuple(raw.ch_names[4:5])
+    for ch_drop in raw_2.annotations.ch_names:
+        assert all(name in raw_2.ch_names for name in ch_drop)
+    with pytest.raises(ValueError, match='channel name in annotations missin'):
+        raw_2.set_annotations(annot)
+    with pytest.warns(RuntimeWarning, match='channel name in annotations mis'):
+        raw_2.set_annotations(annot, on_missing='warn')
+    assert raw_2.annotations is not annot_pruned
+    _assert_annotations_equal(raw_2.annotations, annot_pruned)

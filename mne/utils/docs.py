@@ -145,16 +145,16 @@ docdict['reject_by_annotation_raw'] = docdict['reject_by_annotation_all'] + """
     Has no effect if ``inst`` is not a :class:`mne.io.Raw` object.
 """
 docdict['annot_ch_names'] = """
-ch_names : array-like | None
-    Array-like of lists of channel names associated with the annotations.
-    Empty entries or entries with None are assumed to be associated with all
-    channels (i.e., with the time slice itself). For example, to create two
-    annotations, associating the second with two channels could be done
-    by using ``ch_names`` like::
+ch_names : array-like, shape (n_annotations,) | None
+    1D object array of tuples of channel names associated with the annotations.
+    Empty entries are assumed to be associated with all channels (i.e., with
+    the time slice itself). For example, this creates three annotations,
+    associating the first with all channels, the second with two channels,
+    and the third with a single channel::
 
         Annotations(onset=[0, 3, 10], duration=[1, 0.25, 0.5],
                     description=['Start', 'BAD_flux', 'BAD_noise'],
-                    ch_names=[[], ['MEG0111', 'MEG2563']])
+                    ch_names=[[], ['MEG0111', 'MEG2563'], ['MEG1443']])
 """
 
 # General plotting
@@ -1418,6 +1418,12 @@ on_missing : str
     %s channels have missing coordinates.
 
     .. versionadded:: 0.20.1
+""" % (_on_missing_base,)
+docdict['on_missing_ch_names'] = """
+on_missing : str
+    %s entries in ch_names are not present in the raw instance.
+
+    .. versionadded:: 0.23.0
 """ % (_on_missing_base,)
 docdict['rename_channels_mapping_duplicates'] = """
 mapping : dict | callable

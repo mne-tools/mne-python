@@ -19,7 +19,8 @@ import numpy as np
 from .utils import (_pl, check_fname, _validate_type, verbose, warn, logger,
                     _check_pandas_installed, _mask_to_onsets_offsets,
                     _DefaultEventParser, _check_dt, _stamp_to_dt, _dt_to_stamp,
-                    _check_fname, int_like, _check_option, fill_doc)
+                    _check_fname, int_like, _check_option, fill_doc,
+                    _on_missing)
 
 from .io.write import (start_block, end_block, write_float, write_name_list,
                        write_double, start_file, write_string)
@@ -60,12 +61,10 @@ def _check_o_d_s_c(onset, duration, description, ch_names):
         ch_names = [()] * len(onset)
     ch_names = list(ch_names)
     for ai, ch in enumerate(ch_names):
-        _validate_type(ch, (list, tuple, None), f'ch_names[{ai}]')
-        if ch is None:
-            ch = ()
-        for cj, name in enumerate(ch):
-            _validate_type(name, str, 'ch_names[{ai}][{cj}]')
+        _validate_type(ch, (list, tuple, np.ndarray), f'ch_names[{ai}]')
         ch_names[ai] = tuple(ch)
+        for ci, name in enumerate(ch_names[ai]):
+            _validate_type(name, str, f'ch_names[{ai}][{ci}]')
     ch_names = _ndarray_ch_names(ch_names)
 
     if not (len(onset) == len(duration) == len(description) == len(ch_names)):
@@ -144,6 +143,15 @@ class Annotations(object):
     >>> annotations = mne.Annotations(onset, duration, description)  # doctest: +SKIP
     >>> raw.set_annotations(annotations)  # doctest: +SKIP
     >>> epochs = mne.Epochs(raw, events, event_id, tmin, tmax)  # doctest: +SKIP
+
+    **ch_names**
+
+    Specifying channel names allows the creation of channel-specific
+    annotations. Once the annotations are assigned to a raw instance with
+    :meth:`mne.io.Raw.set_annotations`, if channels are renamed by the raw
+    instance, the annotation channels also get renamed. If channels are dropped
+    from the raw instance, any channel-specific annotation that has no channels
+    left in the raw instance will also be removed.
 
     **orig_time**
 
@@ -396,6 +404,32 @@ class Annotations(object):
 
     def _any_ch_names(self):
         return any(len(ch) for ch in self.ch_names)
+
+    def _prune_ch_names(self, info, on_missing):
+        # this prunes channel names and if a given channel-specific annotation
+        # no longer has any channels left, it gets dropped
+        keep = set(info['ch_names'])
+        ch_names = self.ch_names
+        warned = False
+        drop_idx = list()
+        for ci, ch in enumerate(ch_names):
+            if len(ch):
+                names = list()
+                for name in ch:
+                    if name not in keep:
+                        if not warned:
+                            _on_missing(
+                                on_missing, 'At least one channel name in '
+                                f'annotations missing from info: {name}')
+                            warned = True
+                    else:
+                        names.append(name)
+                ch_names[ci] = tuple(names)
+                if not len(ch_names[ci]):
+                    drop_idx.append(ci)
+        if len(drop_idx):
+            self.delete(drop_idx)
+        return self
 
     @verbose
     def save(self, fname, *, overwrite=False, verbose=None):

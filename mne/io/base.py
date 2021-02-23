@@ -611,7 +611,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """The filenames used."""
         return tuple(self._filenames)
 
-    def set_annotations(self, annotations, emit_warning=True):
+    @verbose
+    def set_annotations(self, annotations, emit_warning=True,
+                        on_missing='raise', *, verbose=None):
         """Setter for annotations.
 
         This setter checks if they are inside the data range.
@@ -622,7 +624,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             Annotations to set. If None, the annotations is defined
             but empty.
         emit_warning : bool
-            Whether to emit warnings when limiting or omitting annotations.
+            Whether to emit warnings when cropping or omitting annotations.
+        %(on_missing_ch_names)s
+        %(verbose_meth)s
 
         Returns
         -------
@@ -648,6 +652,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
             delta = 1. / self.info['sfreq']
             new_annotations = annotations.copy()
+            new_annotations._prune_ch_names(self.info, on_missing)
             if annotations.orig_time is None:
                 new_annotations.crop(0, self.times[-1] + delta,
                                      emit_warning=emit_warning)
