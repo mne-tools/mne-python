@@ -17,6 +17,11 @@ class _Renderer(_PyVistaRenderer):
         kwargs["notebook"] = True
         super().__init__(*args, **kwargs)
 
+    def _add_widget(self, layout, widget):
+        children = list(layout.children)
+        children.append(widget)
+        layout.children = tuple(children)
+
     def _screenshot(self):
         fname = self.actions.get("screenshot_field").value
         fname = self._get_screenshot_filename() if len(fname) == 0 else fname
@@ -72,25 +77,14 @@ class _Renderer(_PyVistaRenderer):
         widget.observe(_generate_callback(callback))
         return widget
 
-    def _finalize_dock(self):
-        if self.widgets is None:
-            return None
+    def _add_dock_group_box(self):
         from ipywidgets import VBox
-        widgets = [w.widget for w in self.widgets.values() if w is not None]
-        dock = VBox(widgets)
-        return dock
+        return VBox()
 
-    def _initialize_dock(self, widgets=None):
-        self.widgets = widgets
-
-    def _finalize_tool_bar(self):
-        if self.actions is None:
-            return None
-        from IPython import display
-        from ipywidgets import HBox
-        tool_bar = HBox(tuple(self.actions.values()))
-        display.display(tool_bar)
-        return tool_bar
+    def _initialize_dock(self):
+        from ipywidgets import VBox
+        self.dock = VBox()
+        return self.dock
 
     def _initialize_tool_bar(self, actions=None):
         if actions is None:
@@ -106,6 +100,15 @@ class _Renderer(_PyVistaRenderer):
             )
         self.actions = actions
 
+    def _finalize_tool_bar(self):
+        if self.actions is None:
+            return None
+        from IPython import display
+        from ipywidgets import HBox
+        tool_bar = HBox(tuple(self.actions.values()))
+        display.display(tool_bar)
+        return tool_bar
+
     def show(self):
         from ipywidgets import HBox
         from IPython.display import display
@@ -113,8 +116,6 @@ class _Renderer(_PyVistaRenderer):
         if self.actions is None:
             self._initialize_tool_bar()
         self.tool_bar = self._finalize_tool_bar()
-        # dock
-        self.dock = self._finalize_dock()
         # viewer
         viewer = self.plotter.show(
             use_ipyvtk=True, return_viewer=True)
