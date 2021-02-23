@@ -6,7 +6,7 @@ Auto-generating ``Epochs`` metadata
 ===================================
 
 This tutorial shows how to auto-generate `~mne.Epochs` metadata based on events
-via :func:`mne.epochs.make_metadata`.
+via `mne.epochs.make_metadata`.
 
 We are going to use data from the :ref:`erp-core-dataset` (derived from
 :footcite:`Kappenman2021`). This is EEG data from a single participant
@@ -71,7 +71,7 @@ all_events, all_event_id = mne.events_from_annotations(raw)
 # considered invalid, because they don't capture the neuronal processes of
 # interest. Yet, we wish to create epochs of only 500 ms duration, starting
 # 100 ms before and ending 400 ms after the stimulus. We can approach this  in
-# the following way with the help of :func:`mne.epochs.make_metadata`:
+# the following way with the help of `mne.epochs.make_metadata`:
 
 # epochs range: [-0.1, 0.4] s
 epochs_tmin, epochs_tmax = -0.1, 0.4
