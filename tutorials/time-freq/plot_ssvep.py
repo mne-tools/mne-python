@@ -21,8 +21,8 @@ the auditory domain.
 DATA:
 
 We use a simple example dataset with frequency tagged visual stimulation:
-N=2 participants observed checkerboards patterns inverting with a constant
-frequency of either 12Hz of 15Hz.
+N=2 participants observed checkerboard patterns inverting with a constant
+frequency of either 12.0 Hz of 15.0 Hz.
 32 channels wet EEG was recorded.
 (see :ref:`ssvep-dataset` for more information).
 
@@ -32,7 +32,7 @@ OUTLINE:
 
 - We will extract SNR at stimulation frequency for all trials and channels.
 
-- We will show, that we can statistically separate 12Hz and 15Hz responses
+- We will show, that we can statistically separate 12 Hz and 15 Hz responses
   in our data.
 
 
@@ -59,9 +59,7 @@ from scipy.stats import ttest_rel
 #
 # * Raw data have FCz reference, so we will apply common-average rereferencing.
 #
-# * We will apply a 50 Hz notch filter to remove line noise,
-#
-# * and a 0.1 - 250 Hz bandpass filter.
+# * We  will apply a 0.1 highpass filter.
 #
 # * Lastly, we will cut the data in 20 s epochs corresponding to the trials.
 #
@@ -83,15 +81,8 @@ raw.set_montage(montage, verbose=False)
 # Set common average reference
 raw.set_eeg_reference('average', projection=False, verbose=False)
 
-# Apply notch filter to remove line-noise
-notch = np.arange(raw.info['line_freq'], raw.info['sfreq'] / 2,
-                  raw.info['line_freq'])
-raw.notch_filter(notch, filter_length='auto', phase='zero', verbose=False)
-
 # Apply bandpass filter
-hp = .1
-lp = 250.
-raw.filter(hp, lp, fir_design='firwin', verbose=False)
+raw.filter(l_freq=0.1, h_freq=None, fir_design='firwin', verbose=False)
 
 # Construct epochs
 event_id = {
@@ -292,7 +283,8 @@ fig.show()
 
 ###############################################################################
 # You can see that the peaks at the stimulation frequencies (12 Hz, 15 Hz)
-# and their harmonics are visible in both plots.
+# and their harmonics are visible in both plots (just as the line noise at
+# 50 Hz).
 # Yet, the SNR spectrum shows them more prominently as peaks from a
 # noisy but more or less constant baseline of SNR = 1.
 # You can further see that the SNR processing removes any broad-band power
@@ -305,10 +297,6 @@ fig.show()
 # value is 0 (negative Y-axis values in the upper panel only result from
 # plotting PSD on a log scale).
 # Hence SNR values must be positive and can minimally go towards 0.
-# You can nicely see this at 50 Hz with the artifact induced by notch
-# filtering the line noise:
-# The PSD spectrum shows a prominent negative peak and average SNR approaches
-# 0.
 #
 # Subsetting data
 # ---------------

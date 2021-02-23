@@ -417,7 +417,7 @@ SSVEP
 
 This is a simple example dataset with frequency tagged visual stimulation:
 N=2 participants observed checkerboards patterns inverting with a constant
-frequency of either 12Hz of 15Hz. 10 trials of 20s length each.
+frequency of either 12.0 Hz of 15.0 Hz. 10 trials of 20.0 s length each.
 32 channels wet EEG was recorded.
 
 Data format: BrainVision .eeg/.vhdr/.vmrk files organized according to BIDS
