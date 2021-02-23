@@ -1011,7 +1011,8 @@ class Brain(object):
             self.dock_layout.addWidget(widget)
         return layout
 
-    def _add_dock_time_widget(self):
+    def _add_dock_time_widget(self, name):
+        layout = self._add_dock_group_box(name)
         max_time = len(self._data['time']) - 1
 
         # Time widget
@@ -1025,10 +1026,11 @@ class Brain(object):
             )
             self._add_dock_slider(
                 widget_name="time",
-                label_name="Time",
+                label_name=None,
                 value=self._data['time_idx'],
                 rng=[0, max_time],
                 callback=self.callbacks["time"],
+                layout=layout,
             )
             self.callbacks["time"].widget = self.widgets["time"]
 
@@ -1042,10 +1044,11 @@ class Brain(object):
             )
             self._add_dock_spin_box(
                 widget_name="playback_speed",
-                label_name="Playback Speed",
+                label_name="Speed",
                 value=self.default_playback_speed_value,
                 rng=self.default_playback_speed_range,
                 callback=self.callbacks["playback_speed"],
+                layout=layout,
             )
             self.callbacks["playback_speed"].widget = \
                 self.widgets["playback_speed"]
@@ -1238,9 +1241,9 @@ class Brain(object):
 
     def _configure_dock(self):
         self._initialize_dock()
-        self._add_dock_time_widget()
+        self._add_dock_time_widget(name="Playback")
         self._add_dock_orientation_widget(name="Orientation")
-        self._add_dock_colormap_widget(name="Colormap")
+        self._add_dock_colormap_widget(name="Color Limits")
         self._add_dock_trace_widget(name="Trace")
 
         # Smoothing widget
