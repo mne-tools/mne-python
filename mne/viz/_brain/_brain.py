@@ -1490,12 +1490,12 @@ class Brain(object):
         self.actions["play"].setShortcut(" ")
         self.actions["help"].setShortcut("?")
 
-    def _add_button(self, name, desc, func, icon_name, qt_icon_name=None,
-                    notebook=True):
+    def _add_tool_bar_button(self, name, desc, func, icon_name,
+                             qt_icon_name=None, notebook=True):
         if self.notebook:
             if not notebook:
                 return
-            self.actions[name] = self._renderer._add_button(
+            self.actions[name] = self._renderer._add_tool_bar_button(
                 desc, func, icon_name)
         else:
             qt_icon_name = name if qt_icon_name is None else qt_icon_name
@@ -1505,13 +1505,13 @@ class Brain(object):
                 func,
             )
 
-    def _add_text_field(self, name, value, placeholder):
+    def _add_tool_bar_text(self, name, value, placeholder):
         if not self.notebook:
             return
-        self.actions[name] = self._renderer._add_text_field(
+        self.actions[name] = self._renderer._add_tool_bar_text(
             value, placeholder)
 
-    def _add_spacer(self):
+    def _add_tool_bar_spacer(self):
         if self.notebook:
             return
         from PyQt5.QtWidgets import QSizePolicy, QWidget
@@ -1521,57 +1521,57 @@ class Brain(object):
 
     def _configure_tool_bar(self):
         self._initialize_tool_bar()
-        self._add_button(
+        self._add_tool_bar_button(
             name="screenshot",
             desc="Take a screenshot",
             func=self._screenshot,
             icon_name="camera",
         )
-        self._add_text_field(
+        self._add_tool_bar_text(
             name="screenshot_field",
             value=None,
             placeholder="Type a file name",
         )
-        self._add_button(
+        self._add_tool_bar_button(
             name="movie",
             desc="Save movie...",
             func=self._save_movie_noname,
             icon_name=None,
             notebook=False,
         )
-        self._add_button(
+        self._add_tool_bar_button(
             name="visibility",
             desc="Toggle Visibility",
             func=self.toggle_interface,
             icon_name="eye",
             qt_icon_name="visibility_on",
         )
-        self._add_button(
+        self._add_tool_bar_button(
             name="play",
             desc="Play/Pause",
             func=self.toggle_playback,
             icon_name=None,
             notebook=False,
         )
-        self._add_button(
+        self._add_tool_bar_button(
             name="reset",
             desc="Reset",
             func=self.reset,
             icon_name="history",
         )
-        self._add_button(
+        self._add_tool_bar_button(
             name="scale",
             desc="Auto-Scale",
             func=self.apply_auto_scaling,
             icon_name="magic",
         )
-        self._add_button(
+        self._add_tool_bar_button(
             name="clear",
             desc="Clear traces",
             func=self.clear_glyphs,
             icon_name="trash",
         )
-        self._add_spacer()
+        self._add_tool_bar_spacer()
         self._add_button(
             name="help",
             desc="Help",

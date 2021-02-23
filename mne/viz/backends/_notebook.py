@@ -27,13 +27,13 @@ class _Renderer(_PyVistaRenderer):
         fname = self._get_screenshot_filename() if len(fname) == 0 else fname
         self.screenshot(filename=fname)
 
-    def _add_button(self, desc, func, icon_name):
+    def _add_tool_bar_button(self, desc, func, icon_name):
         from ipywidgets import Button
         button = Button(tooltip=desc, icon=icon_name)
         button.on_click(lambda x: func())
         return button
 
-    def _add_text_field(self, value, placeholder):
+    def _add_tool_bar_text(self, value, placeholder):
         from ipywidgets import Text
         return Text(value=value, placeholder=placeholder)
 
