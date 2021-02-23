@@ -23,7 +23,7 @@ DATA:
 We use a simple example dataset with frequency tagged visual stimulation:
 N=2 participants observed checkerboards patterns inverting with a constant
 frequency of either 12Hz of 15Hz.
-32ch wet EEG was recorded
+32 channels wet EEG was recorded.
 (see :ref:`ssvep-dataset` for more information).
 
 OUTLINE:
@@ -32,7 +32,7 @@ OUTLINE:
 
 - We will extract SNR at stimulation frequency for all trials and channels.
 
-- We will show, that we can statistically separate 12hz and 15 hz responses
+- We will show, that we can statistically separate 12Hz and 15Hz responses
   in our data.
 
 
@@ -75,9 +75,8 @@ raw = mne.io.read_raw_brainvision(bids_fname, preload=True, verbose=False)
 raw.info['line_freq'] = 50.
 
 # Set montage
-montage_style = 'easycap-M1'
 montage = mne.channels.make_standard_montage(
-    montage_style,
+    'easycap-M1',
     head_size=0.095)  # head_size parameter default = 0.095
 raw.set_montage(montage, verbose=False)
 
@@ -185,22 +184,22 @@ def snr_spectrum(psd, noise_n_neighborfreqs=1, noise_skip_neighborfreqs=1):
 
     Parameters
     ----------
-    psd : ndarray, shape=(n_trials, [n_channels,] n_frequency_bins)
-        containing psd values as spit out by MNE's PSD functions.
+    psd : ndarray, shape (n_trials, [n_channels,] n_frequency_bins)
+        Contains PSD values as spit out by MNE's PSD functions.
         must be 2d or 3d array with frequencies in the last dimension
     noise_n_neighborfreqs : int
-        number of neighboring frequencies used to compute noise level.
+        Number of neighboring frequencies used to compute noise level.
         increment by one to add one frequency bin ON BOTH SIDES
-    noise_skip_neighborfreqs - int
+    noise_skip_neighborfreqs : int
         set this >=1 if you want to exclude the immediately neighboring
         frequency bins in noise level calculation
 
     Returns
     -------
-    snr - np.array
-        array containing snr for all epochs, channels, frequency bins.
-        NaN for frequencies on the edge, that do not have enoug neighbors on
-        one side to calculate snr
+    snr : ndarray, shape (XXX)
+        Array containing SNR for all epochs, channels, frequency bins.
+        NaN for frequencies on the edge, that do not have enough neighbors on
+        one side to calculate SNR.
     """
     # Construct a kernel that calculates the mean of the neighboring
     # frequencies
@@ -292,12 +291,12 @@ axes[1].set(
 fig.show()
 
 ###############################################################################
-# You can see that the peaks at the stimulation frequencies (12 hz, 15 hz)
+# You can see that the peaks at the stimulation frequencies (12 Hz, 15 Hz)
 # and their harmonics are visible in both plots.
 # Yet, the SNR spectrum shows them more prominently as peaks from a
 # noisy but more or less constant baseline of SNR = 1.
 # You can further see that the SNR processing removes any broad-band power
-# differences (such as the increased power in alpha band around 10 hz),
+# differences (such as the increased power in alpha band around 10 Hz),
 # and also removes the 1/f decay in the PSD.
 #
 # Note, that while the SNR plot implies the possibility of values below 0
@@ -329,14 +328,14 @@ fig.show()
 # using MNE's event information, and process different epoch structures
 # individually.
 #
-# Let's have a look at the trials with 12 hz stimulation, for now.
+# Let's have a look at the trials with 12 Hz stimulation, for now.
 #
 
 # define stimulation frequency
 stim_freq = 12.
 
 ###############################################################################
-# Get index for the stimulation frequency (12hz)
+# Get index for the stimulation frequency (12 Hz)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # Ideally, there would be a bin with the stimulation frequency exactly in its
 # center. However, depending on your Spectral decomposition this is not
@@ -348,7 +347,7 @@ stim_freq = 12.
 i_bin_12hz = np.argmin(abs(np.subtract(freqs, stim_freq)))
 # could be updated to support multiple frequencies
 
-# for later, we will already find the 15 hz bin and the 1st and 2nd harmonic
+# for later, we will already find the 15 Hz bin and the 1st and 2nd harmonic
 # for both.
 i_bin_24hz = np.argmin(abs(np.subtract(freqs, 24)))
 i_bin_36hz = np.argmin(abs(np.subtract(freqs, 36)))
@@ -383,8 +382,8 @@ picks_roi_vis = mne.pick_types(epochs.info, eeg=True, stim=False,
 #
 
 snrs_target = snrs[i_trial_12hz, :, i_bin_12hz][0][:, picks_roi_vis]
-print("sub 2, 12hz trials, SNR at 12hz")
-print('average SNR (occipital ROI): %f' % snrs_target.mean())
+print("sub 2, 12hz trials, SNR at 12 Hz")
+print(f'average SNR (occipital ROI): {snrs_target.mean()}')
 
 ##############################################################################
 # Topography of the vSSR
@@ -422,13 +421,13 @@ topo_pos_grave = np.array(topo_pos_grave)
 fig, ax = plt.subplots(1)
 mne.viz.plot_topomap(snrs_12hz_chaverage, topo_pos_grave, vmin=1., axes=ax)
 
-print("sub 2, 12hz trials, SNR at 12hz")
+print("sub 2, 12 Hz trials, SNR at 12 Hz")
 print("average SNR (all channels): %f" % snrs_12hz_chaverage.mean())
 print("average SNR (occipital ROI): %f" % snrs_target.mean())
 
 tstat_roi_vs_scalp = \
     ttest_rel(snrs_target.mean(axis=1), snrs_12hz.mean(axis=1))
-print("12 hz SNR in occipital ROI is significantly larger than 12 hz SNR over "
+print("12 Hz SNR in occipital ROI is significantly larger than 12 Hz SNR over "
       "all channels: t = %.3f, p = %f" % tstat_roi_vs_scalp)
 
 ##############################################################################
@@ -462,7 +461,7 @@ print("12 hz SNR in occipital ROI is significantly larger than 12 hz SNR over "
 # trials with different stimulation frequencies.
 #
 # In the frequency and SNR spectrum plot above, we had all trials mixed up.
-# Now we will extract 12 and 15 hz SNR as well as SNR of the 1st and 2nd
+# Now we will extract 12 and 15 Hz SNR as well as SNR of the 1st and 2nd
 # harmonic in both types of trials individually, and compare the values with
 # a simple t-test.
 #
