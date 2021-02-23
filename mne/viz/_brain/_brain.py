@@ -586,7 +586,7 @@ class Brain(object):
         self.refresh_rate_ms = max(int(round(1000. / 60.)), 1)
         self.default_scaling_range = [0.2, 2.0]
         self.default_playback_speed_range = [0.01, 1]
-        self.default_playback_speed_value = 0.05
+        self.default_playback_speed_value = 0.01
         self.default_status_bar_msg = "Press ? for help"
         self.default_label_extract_modes = {
             "stc": ["mean", "max"],
