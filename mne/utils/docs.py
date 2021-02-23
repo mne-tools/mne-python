@@ -145,12 +145,13 @@ docdict['reject_by_annotation_raw'] = docdict['reject_by_annotation_all'] + """
     Has no effect if ``inst`` is not a :class:`mne.io.Raw` object.
 """
 docdict['annot_ch_names'] = """
-ch_names : array-like, shape (n_annotations,) | None
-    1D object array of tuples of channel names associated with the annotations.
-    Empty entries are assumed to be associated with all channels (i.e., with
-    the time slice itself). For example, this creates three annotations,
-    associating the first with all channels, the second with two channels,
-    and the third with a single channel::
+ch_names : list | None
+    List of lists of channel names associated with the annotations.
+    Empty entries are assumed to be associated with no specific channel,
+    i.e., with all channels or with the time slice itself. None (default) is
+    the same as passing all empty lists. For example, this creates three
+    annotations, associating the first with the time interval itself, the
+    second with two channels, and the third with a single channel::
 
         Annotations(onset=[0, 3, 10], duration=[1, 0.25, 0.5],
                     description=['Start', 'BAD_flux', 'BAD_noise'],
