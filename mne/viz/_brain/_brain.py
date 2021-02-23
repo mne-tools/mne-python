@@ -1028,9 +1028,27 @@ class Brain(object):
             self.dock_layout.addWidget(widget)
         return layout
 
-    def _add_dock_time_widget(self, name):
-        layout = self._add_dock_group_box(name)
+    def _add_dock_time_widget(self):
         max_time = len(self._data['time']) - 1
+
+        # Time widget
+        if max_time < 1:
+            self.callbacks["time"] = None
+            self.widgets["time"] = None
+        else:
+            self.callbacks["time"] = TimeCallBack(
+                brain=self,
+                callback=self.plot_time_line,
+            )
+            self._add_dock_slider(
+                widget_name="time",
+                label_name="Time",
+                value=self._data['time_idx'],
+                rng=[0, max_time],
+                callback=self.callbacks["time"],
+                compact=False,
+            )
+            self.callbacks["time"].widget = self.widgets["time"]
 
         # Playback speed widget
         if max_time < 1:
@@ -1047,29 +1065,9 @@ class Brain(object):
                 rng=self.default_playback_speed_range,
                 callback=self.callbacks["playback_speed"],
                 compact=False,
-                layout=layout,
             )
             self.callbacks["playback_speed"].widget = \
                 self.widgets["playback_speed"]
-
-        # Time widget
-        if max_time < 1:
-            self.callbacks["time"] = None
-            self.widgets["time"] = None
-        else:
-            self.callbacks["time"] = TimeCallBack(
-                brain=self,
-                callback=self.plot_time_line,
-            )
-            self._add_dock_slider(
-                widget_name="time",
-                label_name=None,
-                value=self._data['time_idx'],
-                rng=[0, max_time],
-                callback=self.callbacks["time"],
-                layout=layout,
-            )
-            self.callbacks["time"].widget = self.widgets["time"]
 
         # Time label
         current_time = self._current_time
@@ -1260,7 +1258,7 @@ class Brain(object):
 
     def _configure_dock(self):
         self._initialize_dock()
-        self._add_dock_time_widget(name="Time")
+        self._add_dock_time_widget()
         self._add_dock_orientation_widget(name="Orientation")
         self._add_dock_colormap_widget(name="Colormap")
         self._add_dock_trace_widget(name="Trace")
