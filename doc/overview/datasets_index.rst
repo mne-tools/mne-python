@@ -414,14 +414,13 @@ discriminate.
 ERP CORE Dataset
 ^^^^^^^^^^^^^^^^
 :func:`mne.datasets.erp_core.data_path`
-:func:`mne.datasets.erp_core.load_data`
 
 The original `ERP CORE dataset`_ :footcite:`Kappenman2021` contains data from
 40 participants who completed 6 EEG experiments, carefully crafted to evoke
 7 well-known event-related potential (ERP) components.
 
 Currently, the MNE-Python ERP CORE dataset only provides data from one
-participant (subject `001`) of the Flankers paradigm, which elicits the
+participant (subject ``001``) of the Flankers paradigm, which elicits the
 lateralized readiness potential (LRP) and error-related negativity (ERN). The
 data provided is **not** the original data from the ERP CORE dataset, but
 rather a slightly modified version, designed to demonstrate the Epochs metadata
@@ -431,8 +430,9 @@ format.
 
 .. topic:: Examples
 
-    * :ref:`autogenerate-metadata`: Learn how to auto-generate `~mne.Epochs`
-      metadata, and visualize the error-related negativity (ERN) ERP component.
+    * :ref:`tut-autogenerate-metadata`: Learn how to auto-generate
+      `~mne.Epochs` metadata, and visualize the error-related negativity (ERN)
+      ERP component.
 
 References
 ==========

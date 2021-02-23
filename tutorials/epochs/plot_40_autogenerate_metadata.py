@@ -1,3 +1,4 @@
+# %%
 """
 .. _tut-autogenerate-metadata:
 
@@ -5,7 +6,7 @@ Auto-generating ``Epochs`` metadata
 ===================================
 
 This tutorial shows how to auto-generate `~mne.Epochs` metadata based on events
-via `mne.epochs.make_metadata`.
+via :func:`mne.epochs.make_metadata`.
 
 We are going to use data from the :ref:`erp-core-dataset` (derived from
 :footcite:`Kappenman2021`). This is EEG data from a single participant
@@ -70,7 +71,7 @@ all_events, all_event_id = mne.events_from_annotations(raw)
 # considered invalid, because they don't capture the neuronal processes of
 # interest. Yet, we wish to create epochs of only 500 ms duration, starting
 # 100 ms before and ending 400 ms after the stimulus. We can approach this  in
-# the following way with the help of `mne.epochs.make_metadata`:
+# the following way with the help of :func:`mne.epochs.make_metadata`:
 
 # epochs range: [-0.1, 0.4] s
 epochs_tmin, epochs_tmax = -0.1, 0.4
@@ -357,16 +358,19 @@ epochs = mne.Epochs(raw=raw, tmin=epochs_tmin, tmax=epochs_tmax,
 epochs.metadata.loc[epochs.metadata['stimulus'].isnull(), :]
 
 ###############################################################################
-# Bummer! It seems the very first two responses were recorded before the first
-# stimulus appeared: the values in the ``stimulus`` column are ``None``. There
-# is a very simple way to select only those epochs that **do** have a stimulus:
+# Bummer! ☹️ It seems the very first two responses were recorded before the
+# first stimulus appeared: the values in the ``stimulus`` column are ``None``.
+# There is a very simple way to select only those epochs that **do** have a
+# stimulus:
 
 epochs = epochs['stimulus']
 
 ###############################################################################
 # Time to calculate the ERPs for correct  and incorrect responses.
 # For visualization, we'll only look at sensor ``FCz``, which is known to show
-# the ERN nicely in the given paradigm.
+# the ERN nicely in the given paradigm. We'll also create a topoplot to get an
+# impression of the average scalp potentials measured in the first 100 ms after
+# an incorrect response.
 
 resp_erp_correct = epochs['response_correct == True'].average()
 resp_erp_incorrect = epochs['response_correct == False'].average()
@@ -376,9 +380,15 @@ mne.viz.plot_compare_evokeds({'Correct Response': resp_erp_correct,
                              picks='FCz', show_sensors=True,
                              title='ERPs at FCz, time-locked to response')
 
+# topoplot at t=0.05 s, averaged from 0.05-0.05 = 0 to 0.05+0.05 = 0.1 s
+resp_erp_incorrect.plot_topomap(times=0.05, average=0.05, size=3,
+                                title='Avg. topography 0–100 ms after '
+                                      'incorrect responses')
+
 ###############################################################################
 # We can see a strong negative deflection immediately after incorrect
-# responses, compared to correct responses. The is the ERN.
+# responses, compared to correct responses. The topoplot, too, leaves no doubt:
+# what we're looking at is the ERN.
 #
 # Some researchers suggest to construct the difference wave between ERPs for
 # correct and incorrect responses, as it more clearly reveals signal

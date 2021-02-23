@@ -2127,8 +2127,8 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
         ``response_time``, with the time relative to the time-locked event.
         If ``None`` all events are kept.
     keep_last : list of str | None
-        Same as ``keep_first``, but for keeping the only the **last** occurance
-        of matching events.
+        Same as ``keep_first``, but for keeping the only the **last**
+        occurrence of matching events.
 
     Returns
     -------
