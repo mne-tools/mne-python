@@ -22,6 +22,8 @@ class Widget(object):
                 self.widget.setValue(value)
             elif hasattr(self.widget, "setCurrentText"):
                 self.widget.setCurrentText(value)
+            elif hasattr(self.widget, "setText"):
+                self.widget.setText(value)
 
     def get_value(self):
         """Get the widget value."""
@@ -32,6 +34,8 @@ class Widget(object):
                 return self.widget.value()
             elif hasattr(self.widget, "currentText"):
                 return self.widget.currentText()
+            elif hasattr(self.widget, "text"):
+                return self.widget.text()
 
 
 class TimeCallBack(object):
@@ -41,6 +45,7 @@ class TimeCallBack(object):
         self.brain = brain
         self.callback = callback
         self.widget = None
+        self.label = None
         if self.brain is not None and callable(self.brain._data['time_label']):
             self.time_label = self.brain._data['time_label']
         else:
@@ -51,11 +56,11 @@ class TimeCallBack(object):
         if not time_as_index:
             value = self.brain._to_time_index(value)
         self.brain.set_time_point(value)
+        if self.label is not None:
+            current_time = self.brain._current_time
+            self.label.set_value(f"{current_time: .3}")
         if self.callback is not None:
             self.callback()
-        current_time = self.brain._current_time
-        if self.time_label is not None:
-            current_time = self.time_label(current_time)
         if self.widget is not None and update_widget:
             self.widget.set_value(int(value))
 

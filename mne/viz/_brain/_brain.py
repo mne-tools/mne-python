@@ -916,6 +916,7 @@ class Brain(object):
             self.dock_layout.addWidget(widget)
         else:
             layout.addWidget(widget)
+        return widget
 
     def _add_dock_button(self, widget_name, label_name, callback, layout=None):
         layout = self.dock_layout if layout is None else layout
@@ -1011,12 +1012,36 @@ class Brain(object):
             self.dock_layout.addWidget(widget)
         return layout
 
+    def _add_dock_time_widget(self, layout=None):
+        layout = self.dock_layout if layout is None else layout
+        if self.notebook:
+            return
+        else:
+            from PyQt5.QtWidgets import QHBoxLayout
+            hlayout = QHBoxLayout()
+            self.widgets["min_time"] = Widget(
+                widget=self._add_dock_label("-", hlayout),
+                notebook=self.notebook
+            )
+            hlayout.addStretch()
+            self.widgets["current_time"] = Widget(
+                widget=self._add_dock_label("x", hlayout),
+                notebook=self.notebook,
+            )
+            hlayout.addStretch()
+            self.widgets["max_time"] = Widget(
+                widget=self._add_dock_label("+", hlayout),
+                notebook=self.notebook,
+            )
+            layout.addLayout(hlayout)
+
     def _add_dock_playback_widget(self, name):
         layout = self._add_dock_group_box(name)
-        max_time = len(self._data['time']) - 1
+        self._add_dock_time_widget(layout)
+        len_time = len(self._data['time']) - 1
 
         # Time widget
-        if max_time < 1:
+        if len_time < 1:
             self.callbacks["time"] = None
             self.widgets["time"] = None
         else:
@@ -1028,14 +1053,23 @@ class Brain(object):
                 widget_name="time",
                 label_name=None,
                 value=self._data['time_idx'],
-                rng=[0, max_time],
+                rng=[0, len_time],
                 callback=self.callbacks["time"],
                 layout=layout,
             )
             self.callbacks["time"].widget = self.widgets["time"]
 
+            # Init and connect label widgets
+            min_time = self._data['time'][0]
+            max_time = self._data['time'][-1]
+            current_time = self._current_time
+            self.widgets["min_time"].set_value(f"{min_time: .3}")
+            self.widgets["max_time"].set_value(f"{max_time: .3}")
+            self.widgets["current_time"].set_value(f"{current_time: .3}")
+            self.callbacks["time"].label = self.widgets["current_time"]
+
         # Playback speed widget
-        if max_time < 1:
+        if len_time < 1:
             self.callbacks["playback_speed"] = None
             self.widgets["playback_speed"] = None
         else:
