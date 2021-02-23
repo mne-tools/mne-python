@@ -32,6 +32,12 @@ class _Renderer(_PyVistaRenderer):
         from ipywidgets import Text
         return Text(value=value, placeholder=placeholder)
 
+    def _add_dock_button(self, name, callback):
+        from ipywidgets import Button
+        button = Button(description=name)
+        button.on_click(lambda x: callback())
+        return button
+
     def _add_dock_slider(self, name, value, rng, callback):
         from ipywidgets import widgets
         widget = widgets.IntSlider(

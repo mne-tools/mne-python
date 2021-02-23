@@ -916,6 +916,19 @@ class Brain(object):
         else:
             layout.addWidget(widget)
 
+    def _add_dock_button(self, widget_name, label_name, callback, layout=None):
+        if self.notebook:
+            widget = self._renderer._add_dock_button(
+                label_name, callback)
+        else:
+            from PyQt5.QtWidgets import QPushButton
+            widget = QPushButton(label_name)
+            widget.released.connect(callback)
+            if layout is None:
+                layout = self.dock.widget().layout()
+            layout.addWidget(widget)
+        self.widgets[widget_name] = Widget(widget, self.notebook)
+
     def _add_dock_slider(self, widget_name, label_name, value, rng, callback,
                          layout=None):
         if self.notebook:
@@ -1129,6 +1142,14 @@ class Brain(object):
             value=1.0,
             rng=self.default_scaling_range,
             callback=self.callbacks["fscale"],
+            layout=layout,
+        )
+
+        # reset
+        self._add_dock_button(
+            widget_name="reset",
+            label_name="Reset",
+            callback=self.restore_user_scaling,
             layout=layout,
         )
 
@@ -1473,12 +1494,6 @@ class Brain(object):
             desc="Auto-Scale",
             func=self.apply_auto_scaling,
             icon_name="magic",
-        )
-        self._add_button(
-            name="restore",
-            desc="Restore scaling",
-            func=self.restore_user_scaling,
-            icon_name="reply",
         )
         self._add_button(
             name="clear",
