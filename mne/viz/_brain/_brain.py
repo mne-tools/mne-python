@@ -906,21 +906,22 @@ class Brain(object):
             return
         self.dock_layout.addStretch()
 
-    def _add_dock_label(self, value, layout=None):
+    def _add_dock_label(self, value, width=None, layout=None):
+        layout = self.dock_layout if layout is None else layout
         if self.notebook:
-            return
-        from PyQt5.QtWidgets import QLabel
-        widget = QLabel()
-        widget.setText(value)
-        if layout is None:
-            self.dock_layout.addWidget(widget)
+            widget = self._renderer._add_dock_label(value, width)
+            self._renderer._add_widget(layout, widget)
         else:
+            from PyQt5.QtWidgets import QLabel
+            widget = QLabel()
+            widget.setText(value)
             layout.addWidget(widget)
         return widget
 
     def _add_dock_button(self, widget_name, label_name, callback, layout=None):
         layout = self.dock_layout if layout is None else layout
         if self.notebook:
+            label_name = widget_name if label_name is None else label_name
             widget = self._renderer._add_dock_button(
                 label_name, callback)
             self._renderer._add_widget(layout, widget)
@@ -935,7 +936,7 @@ class Brain(object):
                          layout=None):
         layout = self.dock_layout if layout is None else layout
         if self.notebook:
-            label_name = widget_name if label_name is None else widget_name
+            label_name = widget_name if label_name is None else label_name
             widget = self._renderer._add_dock_slider(
                 label_name, value, rng, callback)
             self._renderer._add_widget(layout, widget)
@@ -958,7 +959,7 @@ class Brain(object):
                            double=True, layout=None):
         layout = self.dock_layout if layout is None else layout
         if self.notebook:
-            label_name = widget_name if label_name is None else widget_name
+            label_name = widget_name if label_name is None else label_name
             widget = self._renderer._add_dock_spin_box(
                 label_name, value, rng, callback)
             self._renderer._add_widget(layout, widget)
@@ -983,7 +984,7 @@ class Brain(object):
                             callback, layout=None):
         layout = self.dock_layout if layout is None else layout
         if self.notebook:
-            label_name = widget_name if label_name is None else widget_name
+            label_name = widget_name if label_name is None else label_name
             widget = self._renderer._add_dock_combo_box(
                 label_name, value, rng, callback)
             self._renderer._add_widget(layout, widget)
@@ -1013,9 +1014,26 @@ class Brain(object):
         return layout
 
     def _add_dock_time_widget(self, layout=None):
+        len_time = len(self._data['time']) - 1
+        if len_time < 1:
+            return
         layout = self.dock_layout if layout is None else layout
         if self.notebook:
-            return
+            from ipywidgets import HBox
+            hlayout = HBox()
+            self.widgets["min_time"] = Widget(
+                widget=self._add_dock_label("-", "100px", hlayout),
+                notebook=self.notebook
+            )
+            self.widgets["current_time"] = Widget(
+                widget=self._add_dock_label("x", "100px", hlayout),
+                notebook=self.notebook,
+            )
+            self.widgets["max_time"] = Widget(
+                widget=self._add_dock_label("+", "100px", hlayout),
+                notebook=self.notebook,
+            )
+            self._renderer._add_widget(layout, hlayout)
         else:
             from PyQt5.QtWidgets import QHBoxLayout
             hlayout = QHBoxLayout()
@@ -1034,6 +1052,11 @@ class Brain(object):
                 notebook=self.notebook,
             )
             layout.addLayout(hlayout)
+        min_time = self._data['time'][0]
+        max_time = self._data['time'][-1]
+        self.widgets["min_time"].set_value(f"{min_time}")
+        self.widgets["max_time"].set_value(f"{max_time}")
+        self.widgets["current_time"].set_value(f"{self._current_time: .3}")
 
     def _add_dock_playback_widget(self, name):
         layout = self._add_dock_group_box(name)
@@ -1058,14 +1081,6 @@ class Brain(object):
                 layout=layout,
             )
             self.callbacks["time"].widget = self.widgets["time"]
-
-            # Init and connect label widgets
-            min_time = self._data['time'][0]
-            max_time = self._data['time'][-1]
-            current_time = self._current_time
-            self.widgets["min_time"].set_value(f"{min_time: .3}")
-            self.widgets["max_time"].set_value(f"{max_time: .3}")
-            self.widgets["current_time"].set_value(f"{current_time: .3}")
             self.callbacks["time"].label = self.widgets["current_time"]
 
         # Playback speed widget

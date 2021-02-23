@@ -7,7 +7,7 @@ import time
 
 
 class Widget(object):
-    """Helper class to interface widgets."""
+    """Helper class to interface with widgets."""
 
     def __init__(self, widget, notebook=False):
         self.widget = widget

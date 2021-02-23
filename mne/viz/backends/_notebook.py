@@ -37,11 +37,18 @@ class _Renderer(_PyVistaRenderer):
         from ipywidgets import Text
         return Text(value=value, placeholder=placeholder)
 
+    def _add_dock_label(self, value, width=None):
+        from ipywidgets import Text
+        widget = Text(value=value, disabled=True)
+        if width is not None:
+            widget.layout.max_width = width
+        return widget
+
     def _add_dock_button(self, name, callback):
         from ipywidgets import Button
-        button = Button(description=name)
-        button.on_click(lambda x: callback())
-        return button
+        widget = Button(description=name)
+        widget.on_click(lambda x: callback())
+        return widget
 
     def _add_dock_slider(self, name, value, rng, callback):
         from ipywidgets import widgets
