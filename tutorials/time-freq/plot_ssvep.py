@@ -393,21 +393,9 @@ print(f'average SNR (occipital ROI): {snrs_target.mean()}')
 snrs_12hz = snrs[i_trial_12hz, :, i_bin_12hz]
 snrs_12hz_chaverage = snrs_12hz.mean(axis=0)
 
-# create a standard montage
-montage = mne.channels.make_standard_montage('easycap-M1', head_size=0.095)
-
-# add xyz coordinates for all channels
-montage.positions = montage._get_ch_pos()
-
-# select only channels from the standard montage that are present in our data
-topo_pos_grave = []
-[topo_pos_grave.append(
-    montage.positions[ch][:2]) for ch in epochs.info['ch_names']]
-topo_pos_grave = np.array(topo_pos_grave)
-
 # plot SNR topography, eventually
 fig, ax = plt.subplots(1)
-mne.viz.plot_topomap(snrs_12hz_chaverage, topo_pos_grave, vmin=1., axes=ax)
+mne.viz.plot_topomap(snrs_12hz_chaverage, epochs.info, vmin=1., axes=ax)
 
 print("sub 2, 12 Hz trials, SNR at 12 Hz")
 print("average SNR (all channels): %f" % snrs_12hz_chaverage.mean())
