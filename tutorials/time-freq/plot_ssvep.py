@@ -324,7 +324,7 @@ stim_freq = 12.
 
 ###############################################################################
 # Get index for the stimulation frequency (12 Hz)
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # Ideally, there would be a bin with the stimulation frequency exactly in its
 # center. However, depending on your Spectral decomposition this is not
 # always the case. We will find the bin closest to it - this one should contain
