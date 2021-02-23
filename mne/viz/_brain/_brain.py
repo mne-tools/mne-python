@@ -1572,7 +1572,7 @@ class Brain(object):
             icon_name="trash",
         )
         self._add_tool_bar_spacer()
-        self._add_button(
+        self._add_tool_bar_button(
             name="help",
             desc="Help",
             func=self.help,
