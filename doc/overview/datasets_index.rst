@@ -409,6 +409,8 @@ discriminate.
       and demonstrates how to fit a single trial linear regression using the
       information contained in the metadata of the individual datasets.
 
+.. _erp-core-dataset:
+
 ERP CORE Dataset
 ^^^^^^^^^^^^^^^^
 :func:`mne.datasets.erp_core.data_path`
@@ -427,14 +429,10 @@ functionality. For example, we already set the references and montage
 correctly, and stored events as Annotations. Data is provided in ``FIFF``
 format.
 
-TODO
-
 .. topic:: Examples
 
-    * :ref:`Single trial linear regression analysis with the LIMO dataset
-      <ex-limo-data>`: Explores data from a single subject of the LIMO dataset
-      and demonstrates how to fit a single trial linear regression using the
-      information contained in the metadata of the individual datasets.
+    * :ref:`autogenerate-metadata`: Learn how to auto-generate `~mne.Epochs`
+      metadata, and visualize the error-related negativity (ERN) ERP component.
 
 References
 ==========

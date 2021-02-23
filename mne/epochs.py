@@ -2070,9 +2070,9 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
     interval ``[tmin, tmax]``. Only events specified in ``event_id`` will be
     considered.
 
-    The function will also return a subset the events array that corresponds to
-    the generated metadata, so both the metadata and the events may directly be
-    used to create `~mne.Epochs`.
+    The function will also return a subset of the events array that corresponds
+    to the generated metadata, so both the metadata and the events may directly
+    be used to create `~mne.Epochs`.
 
     You may specify which events are the time-locked events that will later
     be used to create `~mne.Epochs` via the ``time_locked_events`` parameter.
@@ -2081,12 +2081,12 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
     from every time period. To keep the **last occurrence** of a certain
     event instead, pass ``keep_last``.
 
-    Lastly, you may specify hierachical event descriptors (HED) in
+    Lastly, you may specify hierarchical event descriptors (HED) in
     ``keep_first`` and ``keep_last`` to keep the time of the first and last
     occurrence, respectively, of an entire group of different events.
     For example, if you have the following hierarchical event names:
     ``stim/a``, ``stim/b`` and pass ``keep_first='stim'``, the time of
-    **either** of the two events will be extraced, depending on which of the
+    **either** of the two events will be extracted, depending on which of the
     two occurred first in the current time period.
 
     Parameters
@@ -2118,13 +2118,14 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
         one row for each event in ``event_id``.
     keep_first : str | list of str | None
         Specify hierarchical event descriptors(s) (HED) of events from which
-        only the **first occurence only** within any time period shall be kept,
-        in case there are multiple. For example, you might have two response
-        events, ``response/left`` and ``response/right``; and in trials with
-        more than one response, you want to keep only the very first response.
-        In this case, you can set ``keep_first=['response']``. This will add a
-        new column, ``response``, to the metadata. If ``None``, all events are
-        kept.
+        only the **first occurrence only** within any time period shall be
+        kept, in case there are multiple. For example, you might have two
+        response events, ``response/left`` and ``response/right``; and in
+        trials with more than one response, you want to keep only the very
+        first response. In this case, you can set ``keep_first=['response']``.
+        This will add two new columns to the metadata: , ``response`` and
+        ``response_time``, with the time relative to the time-locked event.
+        If ``None`` all events are kept.
     keep_last : list of str | None
         Same as ``keep_first``, but for keeping the only the **last** occurance
         of matching events.
@@ -2140,7 +2141,7 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
         - one column per key in ``event_id``, with the same name; boolean
           values indicating whether that specific event occurred within the
           given time period
-        
+
         - if applicable, additional columns for ``keep_first`` and
           ``keep_last`` event names, if HEDs were specified; the values will
           be strings indicating which event was matched through the HED
@@ -2207,7 +2208,7 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
             f'Present in time_locked_events, but missing from event_id: '
             f'{", ".join(event_name_diff)}')
     del event_name_diff
-        
+
     # First and last sample of each epoch, relative to the time-locked event
     # This follows the approach taken in mne.Epochs
     start_sample = int(round(tmin * sfreq))
@@ -2298,7 +2299,7 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
             metadata.loc[row_idx, event_time_col_name] = event_time
 
             for col_name in keep_first + keep_last:
-                if not event_col_name in _hid_match(event_id, [col_name]):
+                if event_col_name not in _hid_match(event_id, [col_name]):
                     continue
 
                 time_col_name = f'{col_name}_time'
@@ -2324,7 +2325,7 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
     if time_locked_events:
         event_id_timelocked = {name: val for name, val in event_id.items()
                                if name in time_locked_events}
-        
+
         events = events[np.in1d(events[:, 2],
                                 list(event_id_timelocked.values()))]
         metadata = metadata.loc[

@@ -2950,7 +2950,7 @@ def test_make_metadata(all_event_id, time_locked_events, keep_first,
         for event_name in event_names:
             assert row[event_name] in [True, False, None]
 
-            if  row[event_name] not in [False, None]:
+            if row[event_name] not in [False, None]:
                 assert not np.isnan(row[f'{event_name}_time'])
             else:
                 assert np.isnan(row[f'{event_name}_time'])
