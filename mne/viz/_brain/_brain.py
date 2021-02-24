@@ -946,9 +946,9 @@ class Brain(object):
         else:
             from PyQt5 import QtCore
             from PyQt5.QtWidgets import QSlider, QHBoxLayout, QVBoxLayout
-            from .float_slider import QFloatSlider
+            from .float_slider import float_slider_class
             value = value if double else int(value)
-            slider_class = QFloatSlider if double else QSlider
+            slider_class = float_slider_class() if double else QSlider
             hlayout = QHBoxLayout() if compact else QVBoxLayout()
             if label_name is not None:
                 self._add_dock_label(value=label_name, align=not compact,
