@@ -242,9 +242,9 @@ print(f'Correct responses: {correct_response_count}\n'
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # It's finally time to create our epochs! We set the metadata directly on
-# instantiation via the ``metadata`` parameter. **Also it is important to
+# instantiation via the ``metadata`` parameter. Also it is important to
 # remember to pass ``events`` and ``event_id`` as returned from
-# `~mne.epochs.make_metadata`,** as we only created metadata for a subset of
+# `~mne.epochs.make_metadata`, as we only created metadata for a subset of
 # our original events by passing ``time_locked_events``. Otherwise, the length
 # of the metadata and the number of epochs would not match and MNE-Python
 # would raise an error.
