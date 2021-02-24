@@ -794,6 +794,7 @@ class Brain(object):
         self._update_auto_scaling(restore=True)
         for key in self.keys:
             self.widgets[key].set_value(self._data[key])
+            self.widgets[f"entry_{key}"].set_value(str(self._data[key]))
         self._update()
 
     def toggle_playback(self, value=None):
@@ -947,7 +948,9 @@ class Brain(object):
                        layout=None):
         layout = self.dock_layout if layout is None else layout
         if self.notebook:
-            return
+            widget = self._renderer._add_dock_text(
+                value, callback, validator)
+            self._renderer._add_widget(layout, widget)
         else:
             from PyQt5.QtGui import QDoubleValidator
             from PyQt5.QtWidgets import QLineEdit

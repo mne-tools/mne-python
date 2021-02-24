@@ -54,6 +54,13 @@ class _Renderer(_PyVistaRenderer):
         widget.on_click(lambda x: callback())
         return widget
 
+    def _add_dock_text(self, value, callback, validator=False):
+        from ipywidgets import Text
+        widget = Text(value=value)
+        widget.observe(
+            _generate_callback(callback, to_float=validator))
+        return widget
+
     def _add_dock_slider(self, value, rng, callback, double):
         from ipywidgets import IntSlider, FloatSlider
         klass = FloatSlider if double else IntSlider
@@ -140,14 +147,14 @@ class _Renderer(_PyVistaRenderer):
         return self.scene()
 
 
-def _generate_callback(callback):
+def _generate_callback(callback, to_float=False):
     def func(data):
         if isinstance(data["new"], dict):
             if "value" in data["new"]:
                 value = data["new"]["value"]
             else:
                 value = data["old"]["value"]
-            callback(value)
+            callback(float(value) if to_float else value)
     return func
 
 
