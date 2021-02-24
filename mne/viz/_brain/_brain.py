@@ -1238,7 +1238,6 @@ class Brain(object):
                 value=self._data[key],
                 rng=rng,
                 callback=self.callbacks[key],
-                compact=False,
                 double=True,
                 layout=hlayout,
             )

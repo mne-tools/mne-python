@@ -11,7 +11,7 @@ from ._pyvista import \
 class _Renderer(_PyVistaRenderer):
     def __init__(self, *args, **kwargs):
         self.tool_bar = None
-        self.dock_width = "300px"
+        self.dock_width = 300
         self.dock = None
         self.actions = None
         self.widgets = None
@@ -19,11 +19,19 @@ class _Renderer(_PyVistaRenderer):
         super().__init__(*args, **kwargs)
 
     def _add_widget(self, layout, widget):
+        from ipywidgets import HBox, FloatSlider, IntSlider
         widget.layout.margin = "2px 0px 2px 0px"
         widget.layout.min_width = "0px"
         children = list(layout.children)
         children.append(widget)
         layout.children = tuple(children)
+        is_slider = isinstance(widget, FloatSlider) \
+            or isinstance(widget, IntSlider)
+        if isinstance(widget, HBox) and is_slider:
+            children = widget.children
+            n_children = len(children)
+            width = int(self.dock_width / n_children)
+            children[0].layout.width = f"{width}px"
 
     def _screenshot(self):
         fname = self.actions.get("screenshot_field").value
@@ -100,7 +108,7 @@ class _Renderer(_PyVistaRenderer):
     def _initialize_dock(self):
         from ipywidgets import VBox
         self.dock = VBox()
-        self.dock.layout.width = self.dock_width
+        self.dock.layout.width = f"{self.dock_width}px"
         return self.dock
 
     def _initialize_tool_bar(self, actions=None):
