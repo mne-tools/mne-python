@@ -26,7 +26,7 @@ frequency of either 12.0 Hz of 15.0 Hz.
 32 channels wet EEG was recorded.
 (see :ref:`ssvep-dataset` for more information).
 
-We will visualize both the power-spectral density (PSD) and the SNR 
+We will visualize both the power-spectral density (PSD) and the SNR
 spectrum of the epoched data,
 extract SNR at stimulation frequency,
 plot the topography of the response,
