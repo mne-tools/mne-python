@@ -943,6 +943,28 @@ class Brain(object):
             layout.addWidget(widget)
         self.widgets[widget_name] = Widget(widget, self.notebook)
 
+    def _add_dock_text(self, widget_name, value, callback, validator=None,
+                       layout=None):
+        layout = self.dock_layout if layout is None else layout
+        if self.notebook:
+            return
+        else:
+            from PyQt5.QtGui import QDoubleValidator
+            from PyQt5.QtWidgets import QLineEdit
+            widget = QLineEdit(value)
+            if validator is not None:
+                widget.setValidator(
+                    QDoubleValidator(validator[0], validator[1], 2))
+
+                def _callback():
+                    callback(float(widget.text()))
+            else:
+                def _callback():
+                    callback(widget.text())
+            widget.returnPressed.connect(_callback)
+            layout.addWidget(widget)
+        self.widgets[widget_name] = Widget(widget, self.notebook)
+
     def _add_dock_slider(self, widget_name, label_name, value, rng, callback,
                          compact=True, double=False, layout=None):
         layout = self.dock_layout if layout is None else layout
@@ -1188,8 +1210,13 @@ class Brain(object):
 
     def _add_dock_colormap_widget(self, name):
         layout = self._add_dock_group_box(name)
+        self._add_dock_label(
+            value="min / mid / max",
+            align=True,
+            layout=layout,
+        )
         for idx, key in enumerate(self.keys):
-            label_name = "min / mid / max" if not idx else None
+            hlayout = self._add_dock_layout(vertical=False)
             rng = _get_range(self)
             self.callbacks[key] = BumpColorbarPoints(
                 brain=self,
@@ -1197,14 +1224,25 @@ class Brain(object):
             )
             self._add_dock_slider(
                 widget_name=key,
-                label_name=label_name,
+                label_name=None,
                 value=self._data[key],
                 rng=rng,
                 callback=self.callbacks[key],
                 compact=False,
                 double=True,
-                layout=layout,
+                layout=hlayout,
             )
+            self._add_dock_text(
+                widget_name=f"entry_{key}",
+                value=str(self._data[key]),
+                callback=self.callbacks[key],
+                validator=rng,
+                layout=hlayout,
+            )
+            if self.notebook:
+                self._renderer._add_widget(layout, hlayout)
+            else:
+                layout.addLayout(hlayout)
 
         # fscale
         self.callbacks["fscale"] = UpdateColorbarScale(
