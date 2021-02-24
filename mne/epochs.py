@@ -2128,7 +2128,7 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
         metadata: ``response``, indicating which of the events (``'left'`` or
         ``'right'``) occurred, and ``response_time``, with the time relative to
         the time-locked event.  To specify multiple events, pass a list of
-        their names, e.g. ``keep_first=['response', 'stimulus']``. 
+        their names, e.g. ``keep_first=['response', 'stimulus']``.
         If ``None``, no new columns are created.
 
         .. note::
