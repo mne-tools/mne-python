@@ -25,13 +25,13 @@ class _Renderer(_PyVistaRenderer):
         children = list(layout.children)
         children.append(widget)
         layout.children = tuple(children)
-        is_slider = isinstance(widget, FloatSlider) \
+        is_slider_widget = isinstance(widget, FloatSlider) \
             or isinstance(widget, IntSlider)
-        if isinstance(widget, HBox) and is_slider:
+        if isinstance(widget, HBox) and is_slider_widget:
             children = widget.children
-            n_children = len(children)
-            width = int(self.dock_width / n_children)
-            children[0].layout.width = f"{width}px"
+            width = int(self.dock_width / len(children))
+            for child in children:
+                child.layout.width = f"{width}px"
 
     def _screenshot(self):
         fname = self.actions.get("screenshot_field").value
