@@ -96,6 +96,10 @@ else
             if [[ $(cat $FNAME | grep -x ".*datasets.*refmeg_noise.*" | wc -l) -gt 0 ]]; then
                 python -c "import mne; print(mne.datasets.refmeg_noise.data_path(update_path=True))";
             fi;
+            if [[ $(cat $FNAME | grep -x ".*datasets.*ssvep.*" | wc -l) -gt 0 ]]; then
+                python -c "import mne; print(mne.datasets.ssvep.data_path(subject=1, update_path=True))";
+            fi;
+
         fi;
     done;
     echo PATTERN="$PATTERN";
