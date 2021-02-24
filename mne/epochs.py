@@ -2068,27 +2068,25 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
 
     This function generates metadata based on events falling into the time
     interval ``[tmin, tmax]``. Only events specified in ``event_id`` will be
-    considered.
+    considered. The metadata can be attached to existing `~mne.Epochs`, or
+     attached to `~mne.Epochs` on creation by passing the ``metadata``
+     parameter to `mne.Epochs`. Notably, ``[tmin, tmax]`` need not
+     correspond to the time period used to create the `~mne.Epochs`; it may
+     well me much shorter or longer, if desired.
 
-    The function will also return a subset of the events array that corresponds
-    to the generated metadata, so both the metadata and the events may directly
-    be used to create `~mne.Epochs`.
+    You may specify which events are the time-locked events you use to create
+    `~mne.Epochs`. This function will create one row for each time-locked
+    event. This behavior can be controlled via the ``time_locked_events``
+    parameter.
 
-    You may specify which events are the time-locked events that will later
-    be used to create `~mne.Epochs` via the ``time_locked_events`` parameter;
-    this function will create one row for each time-locked event.
-
-    By default, the time of the **first occurrence** of each event is extracted
-    from every time period in case of repeated events. To keep the
-    **last occurrence** of a certain event instead, pass ``keep_last``.
-
-    Lastly, you may specify subsets of hierarchical event descriptors (HEDs) in
-    ``keep_first`` and ``keep_last`` to keep the time of the first and last
-    occurrence, respectively, of an entire set of different events identified
-    by those subsets.  For example, if you have the following hierarchical
-    event names: ``stim/a``, ``stim/b`` and pass ``keep_first='stim'``, this
-    function will extract whichever of the two events occurred first in the
-    current time period.
+    The function will also return a new ``events`` array ``event_id``
+    dictionary that correspond to the generated metadata. This becomes relevant
+    in case you pass ``time_locked_events``, which will lead to a descrepancy
+    between the generated metadata and the input values (e.g., the number of
+    metadata rows will be less than the number of originally passed events). By
+    returning appropriate subsets of ``events`` and ``event_id``, it is
+    ensured that you will always receive event specifications that match your
+    metadata.
 
     Parameters
     ----------
@@ -2173,7 +2171,8 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
     event_id : dict
         The event dictionary corresponding to the new events array. This will
         be identical to the input dictionary unless ``time_locked_events``
-        was supplied.
+        was supplied, in which case it will only contain the events listed
+        in ``time_locked_events``.
 
     Notes
     -----
