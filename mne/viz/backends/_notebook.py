@@ -50,9 +50,10 @@ class _Renderer(_PyVistaRenderer):
         widget.on_click(lambda x: callback())
         return widget
 
-    def _add_dock_slider(self, name, value, rng, callback):
-        from ipywidgets import widgets
-        widget = widgets.IntSlider(
+    def _add_dock_slider(self, name, value, rng, callback, double):
+        from ipywidgets import IntSlider, FloatSlider
+        klass = FloatSlider if double else IntSlider
+        widget = klass(
             value=value,
             min=rng[0],
             max=rng[1],
@@ -63,8 +64,8 @@ class _Renderer(_PyVistaRenderer):
         return widget
 
     def _add_dock_spin_box(self, name, value, rng, callback):
-        from ipywidgets import widgets
-        widget = widgets.FloatText(
+        from ipywidgets import FloatText
+        widget = FloatText(
             value=value,
             min=rng[0],
             max=rng[1],
@@ -75,8 +76,8 @@ class _Renderer(_PyVistaRenderer):
         return widget
 
     def _add_dock_combo_box(self, name, value, rng, callback):
-        from ipywidgets import widgets
-        widget = widgets.Combobox(
+        from ipywidgets import Combobox
+        widget = Combobox(
             value=value,
             options=rng,
             description=name,

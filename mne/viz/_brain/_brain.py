@@ -936,29 +936,27 @@ class Brain(object):
         self.widgets[widget_name] = Widget(widget, self.notebook)
 
     def _add_dock_slider(self, widget_name, label_name, value, rng, callback,
-                         compact=True, layout=None):
+                         compact=True, double=False, layout=None):
         layout = self.dock_layout if layout is None else layout
         if self.notebook:
             label_name = widget_name if label_name is None else label_name
             widget = self._renderer._add_dock_slider(
-                label_name, value, rng, callback)
+                label_name, value, rng, callback, double)
             self._renderer._add_widget(layout, widget)
         else:
             from PyQt5 import QtCore
             from PyQt5.QtWidgets import QSlider, QHBoxLayout, QVBoxLayout
-            if compact:
-                hlayout = QHBoxLayout()
-                align = False
-            else:
-                hlayout = QVBoxLayout()
-                align = True
+            from .float_slider import QFloatSlider
+            value = value if double else int(value)
+            slider_class = QFloatSlider if double else QSlider
+            hlayout = QHBoxLayout() if compact else QVBoxLayout()
             if label_name is not None:
-                self._add_dock_label(value=label_name, align=align,
+                self._add_dock_label(value=label_name, align=not compact,
                                      layout=hlayout)
-            widget = QSlider(QtCore.Qt.Horizontal)
+            widget = slider_class(QtCore.Qt.Horizontal)
             widget.setMinimum(rng[0])
             widget.setMaximum(rng[1])
-            widget.setValue(int(value))
+            widget.setValue(value)
             widget.valueChanged.connect(callback)
             hlayout.addWidget(widget)
             layout.addLayout(hlayout)
@@ -1193,12 +1191,13 @@ class Brain(object):
                 brain=self,
                 name=key
             )
-            self._add_dock_spin_box(
+            self._add_dock_slider(
                 widget_name=key,
                 label_name=key[1:],
                 value=self._data[key],
                 rng=rng,
                 callback=self.callbacks[key],
+                double=True,
                 layout=layout,
             )
 
