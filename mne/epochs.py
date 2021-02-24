@@ -2098,15 +2098,18 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
         events for which metadata **rows** are created, pass the
         ``time_locked_events`` parameter.
     tmin : float
-        Start of the time interval for event extraction in seconds, relative to
-        time-locked event of the respective epoch. This will typically be the
-        same ``tmin`` you'll pass to `~mne.Epochs`, but it may also be
-        different to include more or fewer events in the metadata.
+        Start of the time interval for metadata generation in seconds, relative
+        to the time-locked event of the respective time period.
+
+        .. note::
+           If you are planning to attach the generated metadata to
+           `~mne.Epochs` and intend to include only events that fall inside
+           your epochs time interval, pass the same ``tmin`` and ``tmax``
+           values as you use for your epochs.
+
     tmax : float
-        Start of the time interval for event extraction in seconds, relative to
-        time-locked event of the respective epoch. This will typically be the
-        same ``tmax`` you'll pass to `~mne.Epochs`, but it may also be
-        different to include more or fewer events in the metadata.
+        End of the time interval for metadata generation in seconds, relative
+        to the time-locked event of the respective time period.
     sfreq : float
         The sampling frequency during data acquisiton.
     time_locked_events : list of str | str | None
@@ -2157,9 +2160,8 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
           given time period
 
         - if applicable, additional columns for ``keep_first`` and
-          ``keep_last`` event names, if HEDs were specified; the values will
-          be strings indicating which event was matched through the HED
-          pattern
+          ``keep_last`` event names, if provided; the values will be strings
+          indicating which events were matched
 
         - columns named ``[event_name]_time``, whose values indicate the time
           of event occurrence in seconds, relative to the time-locked event
