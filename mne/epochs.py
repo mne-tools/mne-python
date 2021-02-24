@@ -2064,9 +2064,9 @@ def _drop_log_stats(drop_log, ignore=('IGNORED',)):
 
 def make_metadata(events, event_id, tmin, tmax, sfreq,
                   time_locked_events=None, keep_first=None, keep_last=None):
-    """Generate a default set of `~mne.Epochs` metadata.
+    """Generate metadata from events for use with `~mne.Epochs`.
 
-    This function generates metadata based on all events falling into the time
+    This function generates metadata based on events falling into the time
     interval ``[tmin, tmax]``. Only events specified in ``event_id`` will be
     considered.
 
@@ -2075,19 +2075,20 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
     be used to create `~mne.Epochs`.
 
     You may specify which events are the time-locked events that will later
-    be used to create `~mne.Epochs` via the ``time_locked_events`` parameter.
+    be used to create `~mne.Epochs` via the ``time_locked_events`` parameter;
+    this function will create one row for each time-locked event.
 
     By default, the time of the **first occurrence** of each event is extracted
-    from every time period. To keep the **last occurrence** of a certain
-    event instead, pass ``keep_last``.
+    from every time period in case of repeated events. To keep the
+    **last occurrence** of a certain event instead, pass ``keep_last``.
 
-    Lastly, you may specify hierarchical event descriptors (HED) in
+    Lastly, you may specify subsets of hierarchical event descriptors (HEDs) in
     ``keep_first`` and ``keep_last`` to keep the time of the first and last
-    occurrence, respectively, of an entire group of different events.
-    For example, if you have the following hierarchical event names:
-    ``stim/a``, ``stim/b`` and pass ``keep_first='stim'``, the time of
-    **either** of the two events will be extracted, depending on which of the
-    two occurred first in the current time period.
+    occurrence, respectively, of an entire set of different events identified
+    by those subsets.  For example, if you have the following hierarchical
+    event names: ``stim/a``, ``stim/b`` and pass ``keep_first='stim'``, this
+    function will extract whichever of the two events occurred first in the
+    current time period.
 
     Parameters
     ----------
@@ -2140,7 +2141,7 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
            retain **all** occurrences of a repeated event. The ``keep_first``
            parameter can be used to specify subsets of HEDs, effectively
            creating a new event that is the union of the matching HED pattern,
-           and keeping the very first event of this group.
+           and keeping the very first event of this set.
 
     keep_last : list of str | None
         Same as ``keep_first``, but for keeping only the **last**  occurrence
