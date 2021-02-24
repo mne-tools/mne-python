@@ -4,7 +4,7 @@ import logging
 
 import numpy as np
 from scipy import linalg, signal
-from statsmodels.robust.scale import mad
+from scipy.stats import median_abs_deviation
 
 from .asr_utils import (sliding_window, geometric_median, fit_eeg_distribution, yulewalk,
                         yulewalk_filter, block_covariance, nonlinear_eigenspace)
@@ -370,7 +370,7 @@ def clean_windows(X, sfreq, max_bad_chans=0.2, zthresholds=[-3.5, 5],
     if np.min(zthresholds) < 0:
         mask2 = (swz[1 + np.int(max_bad_chans - 1), :] < np.min(zthresholds))
 
-    bad_by_mad = mad(wz, c=1, axis=0) < .1
+    bad_by_mad = median_abs_deviation(wz, scale=1, axis=0) < .1
     bad_by_std = np.std(wz, axis=0) < .1
     mask3 = np.logical_or(bad_by_mad, bad_by_std)
 
