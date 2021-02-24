@@ -770,11 +770,16 @@ class Brain(object):
             self.visibility = value
 
         # update tool bar and dock
-        if not self.notebook:
-            if self.visibility:
+        if self.visibility:
+            if self.notebook:
+                self.dock_layout.layout.visibility = "visible"
+            else:
                 self.actions["visibility"].setIcon(
                     self.icons["visibility_on"])
                 self.dock.show()
+        else:
+            if self.notebook:
+                self.dock_layout.layout.visibility = "hidden"
             else:
                 self.actions["visibility"].setIcon(
                     self.icons["visibility_off"])
