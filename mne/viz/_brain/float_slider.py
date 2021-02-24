@@ -1,4 +1,5 @@
 def float_slider_class():
+    """Return the QFloatSlider class."""
     from PyQt5.QtCore import pyqtSignal
     from PyQt5.QtWidgets import QSlider
 

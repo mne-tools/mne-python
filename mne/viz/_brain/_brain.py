@@ -952,9 +952,11 @@ class Brain(object):
                 value, callback, validator)
             self._renderer._add_widget(layout, widget)
         else:
+            from PyQt5 import QtCore
             from PyQt5.QtGui import QDoubleValidator
             from PyQt5.QtWidgets import QLineEdit
             widget = QLineEdit(value)
+            widget.setAlignment(QtCore.Qt.AlignCenter)
             if validator is not None:
                 widget.setValidator(
                     QDoubleValidator(validator[0], validator[1], 2))
