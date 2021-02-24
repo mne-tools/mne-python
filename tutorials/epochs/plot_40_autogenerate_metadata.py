@@ -4,8 +4,8 @@
 Auto-generating ``Epochs`` metadata
 ===================================
 
-This tutorial shows how to auto-generate `~mne.Epochs` metadata based on events
-via `mne.epochs.make_metadata`.
+This tutorial shows how to auto-generate metadata for `~mne.Epochs`, based on
+events via `mne.epochs.make_metadata`.
 
 We are going to use data from the :ref:`erp-core-dataset` (derived from
 :footcite:`Kappenman2021`). This is EEG data from a single participant
@@ -13,24 +13,27 @@ performing an active visual task (Flankers task).
 
 We will first focus on producing ERP time-locked to the **visual stimulation**,
 conditional on response correctness and response time in order to familiarize
-ourselves with the `~mne.epochs.make_metadata` function. In the second part,
-we will focus on ERPs time-locked to the **responses** –again conditional on
+ourselves with the `~mne.epochs.make_metadata` function. After that, we will
+calculate ERPs time-locked to the **responses** – again, conditional on
 response correctness – to visualize the error-related negativity (ERN), i.e.
 the ERP component associated with incorrect behavioral responses.
 
-The data is pretty clean and contains very few blinks, so we can keep the
-preprocessing and data cleaning steps to a bare minimum.
+.. contents:: :local:
+  :depth: 3
+
+Preparation
+^^^^^^^^^^^
 
 Data import and filtering
-^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Let's start by reading, filtering, and producing a simple visualization of the
-raw data:
+raw data. The data is pretty clean and contains very few blinks, so there's no
+need to apply sophisticated preprocessing and data cleaning procedures.
 """
+
 from pathlib import Path
-
 import matplotlib.pyplot as plt
-
 import mne
 
 
@@ -43,7 +46,7 @@ raw.plot(start=60)
 
 ###############################################################################
 # Event creation
-# ^^^^^^^^^^^^^^
+# ~~~~~~~~~~~~~~
 #
 # To create epochs with corresponding metadata, we first need to extract all
 # relevant events. In the ERP CORE dataset, experimental events are stored
@@ -53,8 +56,11 @@ raw.plot(start=60)
 all_events, all_event_id = mne.events_from_annotations(raw)
 
 ###############################################################################
-# Auto-creating metadata from events
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Creating metadata from events
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# The basics of ``make_metadata``
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
 # Now it's time to think about the time periods to use for epoching and
 # metadata generation. **It is important to understand that these time periods
@@ -68,12 +74,8 @@ all_events, all_event_id = mne.events_from_annotations(raw)
 # (ERPs) of trials with correct responses. Based on literature studies, we
 # decide that responses later than 1500 ms after stimulus onset are to be
 # considered invalid, because they don't capture the neuronal processes of
-# interest. Yet, we wish to create epochs of only 500 ms duration, starting
-# 100 ms before and ending 400 ms after the stimulus. We can approach this  in
-# the following way with the help of `mne.epochs.make_metadata`:
-
-# epochs range: [-0.1, 0.4] s
-epochs_tmin, epochs_tmax = -0.1, 0.4
+# interest. We can approach this  in the following way with the help of
+# `mne.epochs.make_metadata`:
 
 # metadata for each epoch shall include events from the range: [0.0, 1.5] s,
 # i.e. starting with stimulus onset and expanding beyond the end of the epoch
@@ -90,8 +92,8 @@ metadata, events, event_id = mne.epochs.make_metadata(
 metadata
 
 ###############################################################################
-# Advanced metadata creation: specifying time-locked events
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Specifying time-locked events
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
 # We can see that the generated table has 802 rows, each one corresponding to
 # an individual event in ``all_events``. The first column, ``event_name``,
@@ -142,8 +144,8 @@ metadata, events, event_id = mne.epochs.make_metadata(
 metadata
 
 ###############################################################################
-# Advanced metadata creation: keeping only the first event of a kind
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Keeping only the first event of a kind
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
 # The metadata now contains 400 rows – one per stimulation – and the same
 # number of columns as before. Great!
@@ -249,7 +251,8 @@ print(f'Correct responses: {correct_response_count}\n'
 # of the metadata and the number of epochs would not match and MNE-Python
 # would raise an error.
 
-reject = {'eeg': 250e-6}  # Exclude epochs with strong artifacts
+epochs_tmin, epochs_tmax = -0.1, 0.4  # epochs range: [-0.1, 0.4] s
+reject = {'eeg': 250e-6}  # exclude epochs with strong artifacts
 epochs = mne.Epochs(raw=raw, tmin=epochs_tmin, tmax=epochs_tmax,
                     events=events, event_id=event_id, metadata=metadata,
                     reject=reject, preload=True)
@@ -276,26 +279,26 @@ fig
 # noisier – which is entirely to be expected – not much of an ERP difference
 # can be seen.
 #
-# Calculating and visualizing the error-related negativity (ERN)
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Applying the knowledge: visualizing the ERN component
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # In the following analysis, we will use the same dataset as above, but
 # we'll time-lock our epochs to the **response events,** not to the stimulus
-# onset. Comparing ERPs in associated to correct and incorrect behavioral
+# onset. Comparing ERPs associated with correct and incorrect behavioral
 # responses, we should be able to see the error-related negativity (ERN) in
 # the difference wave.
 #
 # Since we want to time-lock our analysis to responses, for the automated
 # metadata generation we'll consider events occurring up to 1500 ms before
-# the response.
+# the response trigger.
 #
 # We only wish to consider the **last** stimulus and response in each time
 # period: Remember that we're dealing with rapid stimulus presentations in
 # this paradigm; taking the last response – at time point zero – and the last
-# stimulus – the one closest to the last response – ensures we actually create
-# the right stimulus-response pairs. We can achieve this by passing the
+# stimulus – the one closest to the response – ensures we actually create
+# the right stimulus-response pairings. We can achieve this by passing the
 # ``keep_last`` parameter, which works exactly like ``keep_first`` we got to
-# know above, only that it keeps the **last** occurrence of the specified
+# know above, only that it keeps the **last** occurrences of the specified
 # events.
 
 metadata_tmin, metadata_tmax = -1.5, 0
@@ -360,7 +363,7 @@ epochs.metadata.loc[epochs.metadata['stimulus'].isnull(), :]
 # Bummer! ☹️ It seems the very first two responses were recorded before the
 # first stimulus appeared: the values in the ``stimulus`` column are ``None``.
 # There is a very simple way to select only those epochs that **do** have a
-# stimulus:
+# stimulus (i.e., are not ``None``):
 
 epochs = epochs['stimulus']
 
