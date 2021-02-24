@@ -36,7 +36,7 @@ brain the statistical analysis will be carried out on an occipital
 ROI.
 
 .. contents:: local
-   :depth: 1
+   :depth: 2
 """  # noqa: E501
 # Authors: Dominik Welke <dominik.welke@web.de>
 #          Evgenii Kalenkovich <e.kalenkovich@gmail.com>
