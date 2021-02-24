@@ -175,9 +175,9 @@ def snr_spectrum(psd, noise_n_neighbor_freqs=1, noise_skip_neighbor_freqs=1):
 
     Parameters
     ----------
-    psd : ndarray, shape (n_trials, [n_channels,] n_frequency_bins)
-        Contains PSD values as spit out by MNE's PSD functions.
-        must be 2d or 3d array with frequencies in the last dimension
+    psd : ndarray, shape ([n_trials, n_channels,] n_frequency_bins)
+        Data object ontaining PSD values. Works with arrays as spit out by
+        MNE's PSD functions or channel/trial subsets.
     noise_n_neighbor_freqs : int
         Number of neighboring frequencies used to compute noise level.
         increment by one to add one frequency bin ON BOTH SIDES
@@ -187,9 +187,9 @@ def snr_spectrum(psd, noise_n_neighbor_freqs=1, noise_skip_neighbor_freqs=1):
 
     Returns
     -------
-    snr : ndarray, shape (XXX)
+    snr : ndarray, shape ([n_trials, n_channels,] n_frequency_bins)
         Array containing SNR for all epochs, channels, frequency bins.
-        NaN for frequencies on the edge, that do not have enough neighbors on
+        NaN for frequencies on the edges, that do not have enough neighbors on
         one side to calculate SNR.
     """
     # Construct a kernel that calculates the mean of the neighboring
