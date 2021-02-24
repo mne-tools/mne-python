@@ -176,7 +176,7 @@ def snr_spectrum(psd, noise_n_neighbor_freqs=1, noise_skip_neighbor_freqs=1):
     Parameters
     ----------
     psd : ndarray, shape ([n_trials, n_channels,] n_frequency_bins)
-        Data object ontaining PSD values. Works with arrays as spit out by
+        Data object containing PSD values. Works with arrays as spit out by
         MNE's PSD functions or channel/trial subsets.
     noise_n_neighbor_freqs : int
         Number of neighboring frequencies used to compute noise level.
