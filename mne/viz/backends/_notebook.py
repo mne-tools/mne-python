@@ -11,6 +11,7 @@ from ._pyvista import \
 class _Renderer(_PyVistaRenderer):
     def __init__(self, *args, **kwargs):
         self.tool_bar = None
+        self.dock_width = "300px"
         self.dock = None
         self.actions = None
         self.widgets = None
@@ -18,6 +19,8 @@ class _Renderer(_PyVistaRenderer):
         super().__init__(*args, **kwargs)
 
     def _add_widget(self, layout, widget):
+        widget.layout.margin = "2px 0px 2px 0px"
+        widget.layout.min_width = "0px"
         children = list(layout.children)
         children.append(widget)
         layout.children = tuple(children)
@@ -37,12 +40,13 @@ class _Renderer(_PyVistaRenderer):
         from ipywidgets import Text
         return Text(value=value, placeholder=placeholder)
 
-    def _add_dock_label(self, value, width=None):
+    def _add_dock_layout(self, vertical=True):
+        from ipywidgets import VBox, HBox
+        return VBox() if vertical else HBox()
+
+    def _add_dock_label(self, value):
         from ipywidgets import Text
-        widget = Text(value=value, disabled=True)
-        if width is not None:
-            widget.layout.max_width = width
-        return widget
+        return Text(value=value, disabled=True)
 
     def _add_dock_button(self, name, callback):
         from ipywidgets import Button
@@ -50,7 +54,7 @@ class _Renderer(_PyVistaRenderer):
         widget.on_click(lambda x: callback())
         return widget
 
-    def _add_dock_slider(self, name, value, rng, callback, double):
+    def _add_dock_slider(self, value, rng, callback, double):
         from ipywidgets import IntSlider, FloatSlider
         klass = FloatSlider if double else IntSlider
         widget = klass(
@@ -58,29 +62,26 @@ class _Renderer(_PyVistaRenderer):
             min=rng[0],
             max=rng[1],
             readout=False,
-            description=name,
         )
         widget.observe(_generate_callback(callback))
         return widget
 
-    def _add_dock_spin_box(self, name, value, rng, callback):
+    def _add_dock_spin_box(self, value, rng, callback):
         from ipywidgets import FloatText
         widget = FloatText(
             value=value,
             min=rng[0],
             max=rng[1],
             readout=False,
-            description=name,
         )
         widget.observe(_generate_callback(callback))
         return widget
 
-    def _add_dock_combo_box(self, name, value, rng, callback):
+    def _add_dock_combo_box(self, value, rng, callback):
         from ipywidgets import Combobox
         widget = Combobox(
             value=value,
             options=rng,
-            description=name,
         )
         widget.observe(_generate_callback(callback))
         return widget
@@ -92,6 +93,7 @@ class _Renderer(_PyVistaRenderer):
     def _initialize_dock(self):
         from ipywidgets import VBox
         self.dock = VBox()
+        self.dock.layout.width = self.dock_width
         return self.dock
 
     def _initialize_tool_bar(self, actions=None):

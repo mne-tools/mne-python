@@ -906,10 +906,18 @@ class Brain(object):
             return
         self.dock_layout.addStretch()
 
-    def _add_dock_label(self, value, align=False, width=None, layout=None):
+    def _add_dock_layout(self, vertical=True):
+        if self.notebook:
+            layout = self._renderer._add_dock_layout(vertical)
+        else:
+            from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout
+            layout = QVBoxLayout() if vertical else QHBoxLayout()
+        return layout
+
+    def _add_dock_label(self, value, align=False, layout=None):
         layout = self.dock_layout if layout is None else layout
         if self.notebook:
-            widget = self._renderer._add_dock_label(value, width)
+            widget = self._renderer._add_dock_label(value)
             self._renderer._add_widget(layout, widget)
         else:
             from PyQt5 import QtCore
@@ -938,44 +946,44 @@ class Brain(object):
     def _add_dock_slider(self, widget_name, label_name, value, rng, callback,
                          compact=True, double=False, layout=None):
         layout = self.dock_layout if layout is None else layout
+        hlayout = self._add_dock_layout(not compact)
+        if label_name is not None:
+            self._add_dock_label(value=label_name, align=not compact,
+                                 layout=hlayout)
         if self.notebook:
-            label_name = widget_name if label_name is None else label_name
             widget = self._renderer._add_dock_slider(
-                label_name, value, rng, callback, double)
-            self._renderer._add_widget(layout, widget)
+                value, rng, callback, double)
+            self._renderer._add_widget(hlayout, widget)
+            self._renderer._add_widget(layout, hlayout)
         else:
             from PyQt5 import QtCore
-            from PyQt5.QtWidgets import QSlider, QHBoxLayout, QVBoxLayout
+            from PyQt5.QtWidgets import QSlider
             from .float_slider import float_slider_class
-            value = value if double else int(value)
             slider_class = float_slider_class() if double else QSlider
-            hlayout = QHBoxLayout() if compact else QVBoxLayout()
-            if label_name is not None:
-                self._add_dock_label(value=label_name, align=not compact,
-                                     layout=hlayout)
             widget = slider_class(QtCore.Qt.Horizontal)
             widget.setMinimum(rng[0])
             widget.setMaximum(rng[1])
-            widget.setValue(value)
+            widget.setValue(value if double else int(value))
             widget.valueChanged.connect(callback)
             hlayout.addWidget(widget)
             layout.addLayout(hlayout)
         self.widgets[widget_name] = Widget(widget, self.notebook)
 
     def _add_dock_spin_box(self, widget_name, label_name, value, rng, callback,
-                           double=True, layout=None):
+                           double=True, compact=True, layout=None):
         layout = self.dock_layout if layout is None else layout
+        hlayout = self._add_dock_layout(not compact)
+        if label_name is not None:
+            self._add_dock_label(
+                value=label_name, align=not compact, layout=hlayout)
         if self.notebook:
-            label_name = widget_name if label_name is None else label_name
             widget = self._renderer._add_dock_spin_box(
-                label_name, value, rng, callback)
-            self._renderer._add_widget(layout, widget)
+                value, rng, callback)
+            self._renderer._add_widget(hlayout, widget)
+            self._renderer._add_widget(layout, hlayout)
         else:
             from PyQt5 import QtCore
-            from PyQt5.QtWidgets import QDoubleSpinBox, QSpinBox, QHBoxLayout
-            hlayout = QHBoxLayout()
-            if label_name is not None:
-                self._add_dock_label(value=label_name, layout=hlayout)
+            from PyQt5.QtWidgets import QDoubleSpinBox, QSpinBox
             value = value if double else int(value)
             widget = QDoubleSpinBox() if double else QSpinBox()
             widget.setAlignment(QtCore.Qt.AlignCenter)
@@ -988,18 +996,19 @@ class Brain(object):
         self.widgets[widget_name] = Widget(widget, self.notebook)
 
     def _add_dock_combo_box(self, widget_name, label_name, value, rng,
-                            callback, layout=None):
+                            callback, compact=True, layout=None):
         layout = self.dock_layout if layout is None else layout
+        hlayout = self._add_dock_layout(not compact)
+        if label_name is not None:
+            self._add_dock_label(
+                value=label_name, align=not compact, layout=hlayout)
         if self.notebook:
-            label_name = widget_name if label_name is None else label_name
             widget = self._renderer._add_dock_combo_box(
-                label_name, value, rng, callback)
-            self._renderer._add_widget(layout, widget)
+                value, rng, callback)
+            self._renderer._add_widget(hlayout, widget)
+            self._renderer._add_widget(layout, hlayout)
         else:
-            from PyQt5.QtWidgets import QComboBox, QHBoxLayout
-            hlayout = QHBoxLayout()
-            if label_name is not None:
-                self._add_dock_label(value=label_name, layout=hlayout)
+            from PyQt5.QtWidgets import QComboBox
             widget = QComboBox()
             widget.addItems(rng)
             widget.setCurrentText(value)
@@ -1025,28 +1034,22 @@ class Brain(object):
         if len_time < 1:
             return
         layout = self.dock_layout if layout is None else layout
+        hlayout = self._add_dock_layout(vertical=False)
         if self.notebook:
-            from ipywidgets import HBox
-            hlayout = HBox()
             self.widgets["min_time"] = Widget(
-                widget=self._add_dock_label(value="-", width="100px",
-                                            layout=hlayout),
+                widget=self._add_dock_label(value="-", layout=hlayout),
                 notebook=self.notebook
             )
             self.widgets["current_time"] = Widget(
-                widget=self._add_dock_label(value="x", width="100px",
-                                            layout=hlayout),
+                widget=self._add_dock_label(value="x", layout=hlayout),
                 notebook=self.notebook,
             )
             self.widgets["max_time"] = Widget(
-                widget=self._add_dock_label(value="+", width="100px",
-                                            layout=hlayout),
+                widget=self._add_dock_label(value="+", layout=hlayout),
                 notebook=self.notebook,
             )
             self._renderer._add_widget(layout, hlayout)
         else:
-            from PyQt5.QtWidgets import QHBoxLayout
-            hlayout = QHBoxLayout()
             self.widgets["min_time"] = Widget(
                 widget=self._add_dock_label(value="-", layout=hlayout),
                 notebook=self.notebook
@@ -1186,10 +1189,7 @@ class Brain(object):
     def _add_dock_colormap_widget(self, name):
         layout = self._add_dock_group_box(name)
         for idx, key in enumerate(self.keys):
-            if self.notebook:
-                label_name = key[1:]
-            else:
-                label_name = "min / mid / max" if not idx else None
+            label_name = "min / mid / max" if not idx else None
             rng = _get_range(self)
             self.callbacks[key] = BumpColorbarPoints(
                 brain=self,
