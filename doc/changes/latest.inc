@@ -104,6 +104,8 @@ Bugs
 
 - Fix bug with :meth:`raw.plot() <mne.io.Raw.plot>` where ``scalings='auto'`` did not compute scalings using the full range of data (:gh:`8806` by `Eric Larson`_)
 
+- Fix bug with :meth:`raw.plot() <mne.io.Raw.plot>` where setting a ``lowpass`` could lead to non-data-channels not plotting (:gh:`8954` by `Eric Larson`_)
+
 - Fix bug with :meth:`mne.io.Raw.load_data` and :meth:`mne.Epochs.drop_bad` where ``verbose`` logging was not handled properly (:gh:`8884` by `Eric Larson`_)
 
 - Fix bug with :func:`mne.io.read_raw_nicolet` where header type values such as num_sample and duration_in_sec where not parsed properly (:gh:`8712` by `Alex Gramfort`_)
