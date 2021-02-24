@@ -18,7 +18,7 @@ For a general introduction to the method see
 and `Picton et al. (2003) <https://doi.org/10.3109/14992020309101316>`_ for
 the auditory domain.
 
-DATA:
+**Data and outline:**
 
 We use a simple example dataset with frequency tagged visual stimulation:
 N=2 participants observed checkerboard patterns inverting with a constant
@@ -26,19 +26,17 @@ frequency of either 12.0 Hz of 15.0 Hz.
 32 channels wet EEG was recorded.
 (see :ref:`ssvep-dataset` for more information).
 
-OUTLINE:
-
-- We will visualize both the PSD and the SNR spectrum of our epoched data.
-
-- We will extract SNR at stimulation frequency for all trials and channels.
-
-- We will show, that we can statistically separate 12 Hz and 15 Hz responses
-  in our data.
-
-
+We will visualize both the power-spectral density (PSD) and the SNR 
+spectrum of the epoched data,
+extract SNR at stimulation frequency,
+plot the topography of the response,
+and statistically separate 12 Hz and 15 Hz responses in the different trials.
 Since the evoked response is mainly generated in early visual areas of the
-brain we will stick with an ROI analysis and extract SNR from occipital
-channels.
+brain the statistical analysis will be carried out on an occipital
+ROI.
+
+.. contents:: local
+   :depth: 1
 """  # noqa: E501
 # Authors: Dominik Welke <dominik.welke@web.de>
 #          Evgenii Kalenkovich <e.kalenkovich@gmail.com>
@@ -154,7 +152,7 @@ psds, freqs = mne.time_frequency.psd_welch(
 
 ###############################################################################
 # Calculate signal to noise ratio (SNR)
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # SNR - as we define it here - is a measure of relative power:
 # it's the ratio of power in a given frequency bin - the 'signal' -
@@ -249,7 +247,7 @@ snrs = snr_spectrum(psds, noise_n_neighbor_freqs=3,
 
 ##############################################################################
 # Plot PSD and SNR spectra
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# ^^^^^^^^^^^^^^^^^^^^^^^^
 # Now we will plot grand average PSD (in blue) and SNR (in red) ± sd
 # for every frequency bin.
 # PSD is plotted on a log scale.
@@ -298,25 +296,24 @@ fig.show()
 # plotting PSD on a log scale).
 # Hence SNR values must be positive and can minimally go towards 0.
 #
-# Subsetting data
-# ---------------
+# Extract SNR values at the stimulation frequency
+# -----------------------------------------------
 #
 # Our processing yielded a large array of many SNR values for each trial x
 # channel x frequency-bin of the PSD array.
 #
 # For statistical analysis we obviously need to define specific subsets of this
 # array. First of all, we are only interested in SNR at the stimulation
-# frequency, but we also want to restrict the analysis to a spatial ROI. The
-# most interesting questions, however, will probably rely on comparing SNR in
-# different trials.
+# frequency, but we also want to restrict the analysis to a spatial ROI.
+# Lastly, answering your interesting research questions will probably rely on
+# comparing SNR in different trials.
 #
-# Since we here have a large SNR array with all conditions, we will have to
-# find the indices of trials, channels, etc.
+# Therefore we will have to find the indices of trials, channels, etc.
 # Alternatively, one could subselect the trials already at the epoching step,
 # using MNE's event information, and process different epoch structures
-# individually.
+# separately.
 #
-# Let's have a look at the trials with 12 Hz stimulation, for now.
+# Let's only have a look at the trials with 12 Hz stimulation, for now.
 #
 
 # define stimulation frequency
@@ -324,7 +321,7 @@ stim_freq = 12.
 
 ###############################################################################
 # Get index for the stimulation frequency (12 Hz)
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # Ideally, there would be a bin with the stimulation frequency exactly in its
 # center. However, depending on your Spectral decomposition this is not
 # always the case. We will find the bin closest to it - this one should contain
@@ -345,14 +342,14 @@ i_bin_45hz = np.argmin(abs(freqs - 45))
 
 ###############################################################################
 # Get indices for the different trial types
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 i_trial_12hz = np.where(epochs.events[:, 2] == event_id['12hz'])[0]
 i_trial_15hz = np.where(epochs.events[:, 2] == event_id['15hz'])[0]
 
 ###############################################################################
-# Get indices for the EEG channels forming the ROI
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Get indices of EEG channels forming the ROI
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 # Define different ROIs
 roi_vis = ['POz', 'Oz', 'O1', 'O2', 'PO3', 'PO4', 'PO7',
@@ -364,10 +361,14 @@ picks_roi_vis = mne.pick_types(epochs.info, eeg=True, stim=False,
 
 ###############################################################################
 # Apply the subset, and check the result
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # Now we simply need to apply our selection and yield a result. Therefore,
 # we typically report grand average SNR over the subselection.
 #
+# In this tutorial we don't verify the presence of a neural response.
+# This is commonly done in the ASSR literature where SNR is
+# often lower. An F-test or Hotelling T² would be
+# appropriate for this purpose.
 
 snrs_target = snrs[i_trial_12hz, :, i_bin_12hz][:, picks_roi_vis]
 print("sub 2, 12 Hz trials, SNR at 12 Hz")
@@ -393,7 +394,7 @@ print(f'average SNR (occipital ROI): {snrs_target.mean()}')
 snrs_12hz = snrs[i_trial_12hz, :, i_bin_12hz]
 snrs_12hz_chaverage = snrs_12hz.mean(axis=0)
 
-# plot SNR topography, eventually
+# plot SNR topography
 fig, ax = plt.subplots(1)
 mne.viz.plot_topomap(snrs_12hz_chaverage, epochs.info, vmin=1., axes=ax)
 
@@ -428,18 +429,20 @@ print("12 Hz SNR in occipital ROI is significantly larger than 12 Hz SNR over "
 # this channel or ROI shows an effect*, e.g. in an explorative analysis, this
 # is also fine but make it transparently and correct for multiple comparison.
 #
-# Statistical analysis
-# --------------------
-# Back from this little detour into open science, let's move on and
+# Statistical separation of 12 Hz and 15 Hz vSSR
+# ----------------------------------------------
+# After this little detour into open science, let's move on and
 # do the analyses we actually wanted to do:
 #
-# We will show that we can easily discriminate the brains responses in the
-# trials with different stimulation frequencies.
+# We will show that we can easily detect and discriminate the brains responses
+# in the trials with different stimulation frequencies.
 #
 # In the frequency and SNR spectrum plot above, we had all trials mixed up.
-# Now we will extract 12 and 15 Hz SNR as well as SNR of the 1st and 2nd
-# harmonic in both types of trials individually, and compare the values with
-# a simple t-test.
+# Now we will extract 12 and 15 Hz SNR in both types of trials individually,
+# and compare the values with a simple t-test.
+# We will also extract SNR of the 1st and 2nd harmonic for both stimulation
+# frequencies. These are often reported as well and can show interesting
+# interactions.
 #
 
 snrs_roi = snrs[:, picks_roi_vis, :].mean(axis=1)
@@ -483,7 +486,7 @@ ax.axhline(1, ls='--', c='r')
 fig.show()
 
 ###############################################################################
-# As you can easily see there are striking differences.
+# As you can easily see there are striking differences between the trials.
 # Let's verify this using a series of two-tailed paired T-Tests.
 #
 
@@ -609,12 +612,12 @@ fig.show()
 # great - here we've either hit the noise floor and/or the transient response
 # at the trial onset covers too much of the trial.
 #
-# This tutorial doesn't address determining the presence of a neural response,
-# but an F-test or Hotelling T² would be appropriate for these purposes.
-# they are commonly used e.g. in the auditory domain / ASSR literature.
+# Again, this tutorial doesn't statistically test for the presence of a neural
+# response, but an F-test or Hotelling T² would be appropriate for this
+# purpose.
 #
 # Time resolved SNR
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# ^^^^^^^^^^^^^^^^^
 # ..and finally we can trick MNE's PSD implementation to make it a
 # sliding window analysis and come up with a time resolved SNR measure.
 # This will reveal whether a participant blinked or scratched their head..
