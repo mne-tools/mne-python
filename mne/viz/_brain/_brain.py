@@ -1186,6 +1186,7 @@ class Brain(object):
     def _add_dock_colormap_widget(self, name):
         layout = self._add_dock_group_box(name)
         for idx, key in enumerate(self.keys):
+            label_name = "min / mid / max" if not idx else None
             rng = _get_range(self)
             self.callbacks[key] = BumpColorbarPoints(
                 brain=self,
@@ -1193,10 +1194,11 @@ class Brain(object):
             )
             self._add_dock_slider(
                 widget_name=key,
-                label_name=key[1:],
+                label_name=label_name,
                 value=self._data[key],
                 rng=rng,
                 callback=self.callbacks[key],
+                compact=False,
                 double=True,
                 layout=layout,
             )
