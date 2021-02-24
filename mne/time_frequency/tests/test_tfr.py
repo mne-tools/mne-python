@@ -519,8 +519,14 @@ def test_plot():
     fig.canvas.key_press_event(' ')
     fig.canvas.key_press_event('pagedown')
 
-    cbar = fig.get_axes()[0].CB  # Fake dragging with mouse.
-    ax = cbar.cbar.ax
+    # Fake dragging with mouse.
+    ax = None
+    for _ax in fig.axes:
+        if _ax.get_label() == '<colorbar>':
+            ax = _ax
+            break
+    if ax is None:
+        ax = fig.get_axes()[0].CB.cbar.ax
     _fake_click(fig, ax, (0.1, 0.1))
     _fake_click(fig, ax, (0.1, 0.2), kind='motion')
     _fake_click(fig, ax, (0.1, 0.3), kind='release')
