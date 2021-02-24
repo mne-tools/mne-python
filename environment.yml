@@ -19,7 +19,7 @@ dependencies:
 - psutil
 - numexpr
 - traits
-- pyface
+- pyface!=7.3.0
 - traitsui
 - imageio
 - tqdm
@@ -34,6 +34,6 @@ dependencies:
 - nibabel
 - nilearn
 - python-picard
-- pyqt
+- pyqt!=5.15.3
 - mne
 - mffpy>=0.5.7
