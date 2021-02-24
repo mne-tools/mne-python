@@ -2093,11 +2093,10 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
     events : array, shape (m, 3)
         The events array.
     event_id : dict
-        The mapping from event names (keys) to event IDs (values). This
-        function assumes that only event IDs listed here will be used to
-        create `~mne.Epochs`, that is, the number of rows of the generated
-        metadata will equal the number of events with the specified IDs.
-        Moreover, metadata will only be generated for the events listed here.
+        The mapping from event names (keys) to event IDs (values). Metadata
+        will only be generated for the events listed here. To restrict the
+        events for which metadata **rows** are created, pass the
+        ``time_locked_events`` parameter.
     tmin : float
         Start of the time interval for event extraction in seconds, relative to
         time-locked event of the respective epoch. This will typically be the
