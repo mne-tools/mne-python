@@ -500,18 +500,17 @@ class SetChannelsMixin(MontageMixin):
         rename_channels(self.info, mapping, allow_duplicates)
 
         # Update self._orig_units for Raw
-        if isinstance(self, BaseRaw) and self._orig_units is not None:
-            if isinstance(mapping, dict):
-                new_names = [(ch_names_orig.index(ch_name), new_name)
-                             for ch_name, new_name in mapping.items()]
-            elif callable(mapping):
-                new_names = [(ci, mapping(ch_name))
-                             for ci, ch_name in enumerate(ch_names_orig)]
-
-            for c_ind, new_name in new_names:
-                old_name = ch_names_orig[c_ind]
-                self._orig_units[new_name] = self._orig_units[old_name]
-                del self._orig_units[old_name]
+        if isinstance(self, BaseRaw):
+            # whatever mapping was provided, now we can just use a dict
+            mapping = dict(zip(ch_names_orig, self.info['ch_names']))
+            if self._orig_units is not None:
+                for old_name, new_name in mapping.items():
+                    if old_name != new_name:
+                        self._orig_units[new_name] = self._orig_units[old_name]
+                        del self._orig_units[old_name]
+            ch_names = self.annotations.ch_names
+            for ci, ch in enumerate(ch_names):
+                ch_names[ci] = tuple(mapping.get(name, name) for name in ch)
 
         return self
 
@@ -954,6 +953,9 @@ class UpdateChannelsMixin(object):
             self._data = self._data.take(idx, axis=axis)
         else:
             assert isinstance(self, BaseRaw) and not self.preload
+
+        if isinstance(self, BaseRaw):
+            self.annotations._prune_ch_names(self.info, on_missing='ignore')
 
         self._pick_projs()
         return self
