@@ -2117,18 +2117,34 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
         all events present in ``event_id``. If ``None`` (default), create
         one row for each event in ``event_id``.
     keep_first : str | list of str | None
-        Specify hierarchical event descriptors(s) (HED) of events from which
-        only the **first occurrence only** within any time period shall be
-        kept, in case there are multiple. For example, you might have two
-        response events, ``response/left`` and ``response/right``; and in
-        trials with more than one response, you want to keep only the very
-        first response. In this case, you can set ``keep_first=['response']``.
-        This will add two new columns to the metadata: , ``response`` and
-        ``response_time``, with the time relative to the time-locked event.
-        If ``None`` all events are kept.
+        Specify subsets of hierarchical event descriptors (HEDs) matching
+        events of which  the **first occurrence** within each
+        time period shall be stored in addition to the original events.
+        For example, you might have two response events, ``response/left`` and
+        ``response/right``; and in trials with both responses occurring, you
+        want to keep only the very first response. In this case, you can pass
+        ``keep_first='response'``. This will add two new columns to the
+        metadata: ``response``, indicating which of the events (``'left'`` or
+        ``'right'``) occurred, and ``response_time``, with the time relative to
+        the time-locked event.  To specify multiple events, pass a list of
+        their names, e.g. ``keep_first=['response', 'stimulus']``. 
+        If ``None``, no new columns are created.
+
+        .. note::
+           By default, this function will only retain  the first occurrence
+           of any event in each time period. For example, if a time period
+           contains two ``'response'`` events, the generated ``response`` and
+           ``response_time`` columns will refer to the first of the two events.
+           In this specific case, it is **not** necessary to make use of the
+           ``keep_first`` parameter. Note that there is currently no way to
+           retain **all** occurrences of a repeated event. The ``keep_first``
+           parameter can be used to specify subsets of HEDs, effectively
+           creating a new event that is the union of the matching HED pattern,
+           and keeping the very first event of this group.
+
     keep_last : list of str | None
-        Same as ``keep_first``, but for keeping the only the **last**
-        occurrence of matching events.
+        Same as ``keep_first``, but for keeping only the **last**  occurrence
+        of matching events.
 
     Returns
     -------
