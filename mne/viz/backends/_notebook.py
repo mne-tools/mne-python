@@ -96,12 +96,12 @@ class _Renderer(_PyVistaRenderer):
     def _initialize_tool_bar(self, actions=None):
         if actions is None:
             actions = dict()
-            actions["screenshot"] = self._add_button(
+            actions["screenshot"] = self._add_tool_bar_button(
                 desc="Take a screenshot",
                 func=self._screenshot,
                 icon_name="camera",
             )
-            actions["screenshot_field"] = self._add_text_field(
+            actions["screenshot_field"] = self._add_tool_bar_text(
                 value=None,
                 placeholder="Type a file name",
             )
