@@ -19,15 +19,14 @@ class _Renderer(_PyVistaRenderer):
         super().__init__(*args, **kwargs)
 
     def _add_widget(self, layout, widget):
-        from ipywidgets import HBox, FloatSlider, IntSlider
+        from ipywidgets import HBox
         widget.layout.margin = "2px 0px 2px 0px"
         widget.layout.min_width = "0px"
         children = list(layout.children)
         children.append(widget)
         layout.children = tuple(children)
-        is_slider_widget = isinstance(widget, FloatSlider) \
-            or isinstance(widget, IntSlider)
-        if isinstance(widget, HBox) and is_slider_widget:
+        # Fix columns
+        if isinstance(widget, HBox):
             children = widget.children
             width = int(self.dock_width / len(children))
             for child in children:
