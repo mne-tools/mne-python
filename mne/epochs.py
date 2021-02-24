@@ -2069,10 +2069,9 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
     This function generates metadata based on events falling into the time
     interval ``[tmin, tmax]``. Only events specified in ``event_id`` will be
     considered. The metadata can be attached to existing `~mne.Epochs`, or
-    attached to `~mne.Epochs` on creation by passing the ``metadata``
-    parameter to `mne.Epochs`. Notably, ``[tmin, tmax]`` need not
-    correspond to the time period used to create the `~mne.Epochs`; it may
-    well me much shorter or longer, if desired.
+    passed to `mne.Epochs` on via the ``metadata`` parameter. Notably,
+    ``[tmin, tmax]`` need not correspond to the time period used to create the
+    `~mne.Epochs`; it may well be much shorter or longer, if desired.
 
     You may specify which events are the time-locked events you use to create
     `~mne.Epochs`. This function will create one row for each time-locked
