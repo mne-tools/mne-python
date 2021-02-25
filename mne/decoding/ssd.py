@@ -115,11 +115,17 @@ class SSD(BaseEstimator, TransformerMixin):
                             filt_params_noise['h_freq'])
         self.filt_params_signal = filt_params_signal
         self.filt_params_noise = filt_params_noise
+        # check if boolean
+        if not isinstance(sort_by_spectral_ratio, (bool)):
+            raise ValueError('sort_by_spectral_ratio must be boolean')
         self.sort_by_spectral_ratio = sort_by_spectral_ratio
         if n_fft is None:
             self.n_fft = int(self.info['sfreq'])
         else:
             self.n_fft = int(n_fft)
+        # check if boolean
+        if not isinstance(return_filtered, (bool)):
+            raise ValueError('return_filtered must be boolean')
         self.return_filtered = return_filtered
         self.reg = reg
         self.n_components = n_components

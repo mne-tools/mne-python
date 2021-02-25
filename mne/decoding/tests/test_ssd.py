@@ -100,6 +100,16 @@ def test_ssd():
 
     pytest.raises(TypeError, ssd.fit, raw)
 
+    # check non-boolean return_filtered
+    with pytest.raises(ValueError, match='return_filtered'):
+        ssd = SSD(info, filt_params_signal, filt_params_noise,
+                  return_filtered=0)
+
+    # check non-boolean sort_by_spectral_ratio
+    with pytest.raises(ValueError, match='sort_by_spectral_ratio'):
+        ssd = SSD(info, filt_params_signal, filt_params_noise,
+                  sort_by_spectral_ratio=0)
+
     # More than 1 channel type
     ch_types = np.reshape([['mag'] * 10, ['eeg'] * 10], n_channels)
     info_2 = create_info(ch_names=n_channels, sfreq=sf, ch_types=ch_types)
@@ -282,8 +292,8 @@ def test_sorting():
 def test_return_filtered():
     """Test return filtered option."""
     # Check return_filtered
-    # Simulated more noise data
-    X, A, S = simulate_data(SNR=0.9, freqs_sig=[4, 13])
+    # Simulated more noise data and with broader freqquency than the desired
+    X, _, _ = simulate_data(SNR=0.9, freqs_sig=[4, 13])
     sf = 250
     n_channels = X.shape[0]
     info = create_info(ch_names=n_channels, sfreq=sf, ch_types='eeg')
@@ -292,6 +302,7 @@ def test_return_filtered():
                               l_trans_bandwidth=1, h_trans_bandwidth=1)
     filt_params_noise = dict(l_freq=freqs_noise[0], h_freq=freqs_noise[1],
                              l_trans_bandwidth=1, h_trans_bandwidth=1)
+
     # return filtered to true
     ssd = SSD(info, filt_params_signal, filt_params_noise,
               sort_by_spectral_ratio=False, return_filtered=True)
