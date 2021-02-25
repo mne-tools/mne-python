@@ -98,6 +98,12 @@ def _prepare_topomap_plot(inst, ch_type, sphere=None):
         elif ch_type == 'csd':
             picks = pick_types(info, meg=False, csd=True, ref_meg=False,
                                exclude='bads')
+        elif ch_type == 'dbs':
+            picks = pick_types(info, meg=False, dbs=True, ref_meg=False,
+                               exclude='bads')
+        elif ch_type == 'seeg':
+            picks = pick_types(info, meg=False, seeg=True, ref_meg=False,
+                               exclude='bads')
         else:
             picks = pick_types(info, meg=ch_type, ref_meg=False,
                                exclude='bads')
@@ -349,11 +355,10 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
     n_projs = len(projs)
     if axes is None:
         fig, axes, ncols, nrows = _prepare_trellis(
-            n_projs, ncols='auto', nrows='auto')
+            n_projs, ncols='auto', nrows='auto', sharex=True, sharey=True)
     elif isinstance(axes, plt.Axes):
         axes = [axes]
-    if len(axes) != n_projs:
-        raise RuntimeError('There must be an axes for each picked projector.')
+    _validate_if_list_of_axes(axes, n_projs)
 
     # handle vmin/vmax
     vlims = [None for _ in range(len(datas))]
@@ -568,9 +573,10 @@ def _get_extra_points(pos, extrapolate, origin, radii):
     else:
         assert extrapolate == 'head'
         # return points on the head circle
-        angle = np.arcsin(distance / 2 / np.mean(radii))
-        points_l = np.arange(0, 2 * np.pi, angle)
-        use_radii = radii * 1.1
+        angle = np.arcsin(distance / np.mean(radii))
+        n_pnts = max(12, int(np.round(2 * np.pi / angle)))
+        points_l = np.linspace(0, 2 * np.pi, n_pnts, endpoint=False)
+        use_radii = radii * 1.1 + distance
         points_x = np.cos(points_l) * use_radii[0] + x
         points_y = np.sin(points_l) * use_radii[1] + y
         new_pos = np.stack([points_x, points_y], axis=1)

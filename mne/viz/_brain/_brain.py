@@ -56,10 +56,10 @@ class _Overlay(object):
         self._opacity = opacity
 
     def to_colors(self):
-        from matplotlib.cm import get_cmap
+        from .._3d import _get_cmap
         from matplotlib.colors import ListedColormap
         if isinstance(self._colormap, str):
-            cmap = get_cmap(self._colormap)
+            cmap = _get_cmap(self._colormap)
         else:
             cmap = ListedColormap(self._colormap / 255.)
 
@@ -303,15 +303,13 @@ class Brain(object):
        +---------------------------+--------------+---------------+
        | foci                      | ✓            |               |
        +---------------------------+--------------+---------------+
-       | labels                    | ✓            |               |
-       +---------------------------+--------------+---------------+
-       | labels_dict               | ✓            |               |
-       +---------------------------+--------------+---------------+
-       | remove_data               | ✓            |               |
+       | labels                    | ✓            | ✓             |
        +---------------------------+--------------+---------------+
        | remove_foci               | ✓            |               |
        +---------------------------+--------------+---------------+
        | remove_labels             | ✓            | ✓             |
+       +---------------------------+--------------+---------------+
+       | remove_annotations        | -            | ✓             |
        +---------------------------+--------------+---------------+
        | scale_data_colormap       | ✓            |               |
        +---------------------------+--------------+---------------+
@@ -335,6 +333,10 @@ class Brain(object):
        +---------------------------+--------------+---------------+
        | flatmaps                  |              | ✓             |
        +---------------------------+--------------+---------------+
+       | vertex picking            |              | ✓             |
+       +---------------------------+--------------+---------------+
+       | label picking             |              | ✓             |
+       +---------------------------+--------------+---------------+
     """
 
     def __init__(self, subject_id, hemi, surf, title=None,
@@ -344,8 +346,8 @@ class Brain(object):
                  offscreen=False, interaction='trackball', units='mm',
                  view_layout='vertical', show=True):
         from ..backends.renderer import backend, _get_renderer, _get_3d_backend
+        from .._3d import _get_cmap
         from matplotlib.colors import colorConverter
-        from matplotlib.cm import get_cmap
 
         if hemi in ('both', 'split'):
             self._hemis = ('lh', 'rh')
@@ -398,7 +400,10 @@ class Brain(object):
         self._subjects_dir = subjects_dir
         self._views = views
         self._times = None
-        self._label_data = {'lh': list(), 'rh': list()}
+        self._vertex_to_label_id = dict()
+        self._annotation_labels = dict()
+        self._labels = {'lh': list(), 'rh': list()}
+        self._annots = {'lh': list(), 'rh': list()}
         self._layered_meshes = {}
         # for now only one color bar can be added
         # since it is the same for all figures
@@ -414,7 +419,7 @@ class Brain(object):
         geo_kwargs = self._cortex_colormap(cortex)
         # evaluate at the midpoint of the used colormap
         val = -geo_kwargs['vmin'] / (geo_kwargs['vmax'] - geo_kwargs['vmin'])
-        self._brain_color = get_cmap(geo_kwargs['colormap'])(val)
+        self._brain_color = _get_cmap(geo_kwargs['colormap'])(val)
 
         # load geometry for one or both hemispheres as necessary
         offset = None if (not offset or hemi != 'both') else 0.0
@@ -424,8 +429,10 @@ class Brain(object):
                                        shape=shape,
                                        fig=figure)
 
-        if _get_3d_backend() == "pyvista":
-            self.plotter = self._renderer.plotter
+        self.plotter = self._renderer.plotter
+        if self.notebook:
+            self.window = None
+        else:
             self.window = self.plotter.app_window
             self.window.signal_close.connect(self._clean)
 
@@ -490,14 +497,11 @@ class Brain(object):
         """
         if self.time_viewer:
             return
+        if not self._data:
+            raise ValueError("No data to visualize. See ``add_data``.")
         self.time_viewer = time_viewer
         self.orientation = list(_lh_views_dict.keys())
         self.default_smoothing_range = [0, 15]
-
-        # setup notebook
-        if self.notebook:
-            self._configure_notebook()
-            return
 
         # Default configuration
         self.playback = False
@@ -507,12 +511,25 @@ class Brain(object):
         self.default_playback_speed_range = [0.01, 1]
         self.default_playback_speed_value = 0.05
         self.default_status_bar_msg = "Press ? for help"
+        self.default_label_extract_modes = {
+            "stc": ["mean", "max"],
+            "src": ["mean_flip", "pca_flip", "auto"],
+        }
+        self.default_trace_modes = ('vertex', 'label')
+        self.annot = None
+        self.label_extract_mode = None
         all_keys = ('lh', 'rh', 'vol')
         self.act_data_smooth = {key: (None, None) for key in all_keys}
-        self.color_cycle = None
+        self.color_list = _get_color_list()
+        # remove grey for better contrast on the brain
+        self.color_list.remove("#7f7f7f")
+        self.color_cycle = _ReuseCycle(self.color_list)
         self.mpl_canvas = None
+        self.gfp = None
+        self.picked_patches = {key: list() for key in all_keys}
         self.picked_points = {key: list() for key in all_keys}
         self.pick_table = dict()
+        self._spheres = list()
         self._mouse_no_mvt = -1
         self.icons = dict()
         self.actions = dict()
@@ -524,22 +541,36 @@ class Brain(object):
         self.slider_color = (0.43137255, 0.44313725, 0.45882353)
         self.slider_tube_width = 0.04
         self.slider_tube_color = (0.69803922, 0.70196078, 0.70980392)
+        self._trace_mode_widget = None
+        self._annot_cands_widget = None
+        self._label_mode_widget = None
 
         # Direct access parameters:
         self._iren = self._renderer.plotter.iren
-        self.main_menu = self.plotter.main_menu
-        self.tool_bar = self.window.addToolBar("toolbar")
-        self.status_bar = self.window.statusBar()
-        self.interactor = self.plotter.interactor
+        self.tool_bar = None
+        if self.notebook:
+            self.main_menu = None
+            self.status_bar = None
+            self.interactor = None
+        else:
+            self.main_menu = self.plotter.main_menu
+            self.status_bar = self.window.statusBar()
+            self.interactor = self.plotter.interactor
 
         # Derived parameters:
         self.playback_speed = self.default_playback_speed_value
         _validate_type(show_traces, (bool, str, 'numeric'), 'show_traces')
         self.interactor_fraction = 0.25
         if isinstance(show_traces, str):
-            assert show_traces == 'separate'  # should be guaranteed earlier
             self.show_traces = True
-            self.separate_canvas = True
+            self.separate_canvas = False
+            self.traces_mode = 'vertex'
+            if show_traces == 'separate':
+                self.separate_canvas = True
+            elif show_traces == 'label':
+                self.traces_mode = 'label'
+            else:
+                assert show_traces == 'vertex'  # guaranteed above
         else:
             if isinstance(show_traces, bool):
                 self.show_traces = show_traces
@@ -551,29 +582,34 @@ class Brain(object):
                         f'got {show_traces}')
                 self.show_traces = True
                 self.interactor_fraction = show_traces
+            self.traces_mode = 'vertex'
             self.separate_canvas = False
         del show_traces
 
-        self._spheres = list()
-        self._load_icons()
         self._configure_time_label()
         self._configure_sliders()
         self._configure_scalar_bar()
-        self._configure_playback()
-        self._configure_point_picking()
-        self._configure_menu()
+        self._configure_shortcuts()
+        self._configure_picking()
         self._configure_tool_bar()
-        self._configure_status_bar()
-
-        # show everything at the end
-        self.toggle_interface()
-        with self.ensure_minimum_sizes():
+        if self.notebook:
             self.show()
+        self._configure_trace_mode()
+        self.toggle_interface()
+        if not self.notebook:
+            self._configure_playback()
+            self._configure_menu()
+            self._configure_status_bar()
+
+            # show everything at the end
+            with self.ensure_minimum_sizes():
+                self.show()
 
     @safe_event
     def _clean(self):
         # resolve the reference cycle
-        self.clear_points()
+        self.clear_glyphs()
+        self.remove_annotations()
         # clear init actors
         for hemi in self._hemis:
             self._layered_meshes[hemi]._clean()
@@ -646,10 +682,13 @@ class Brain(object):
             self.visibility = value
 
         # update tool bar icon
-        if self.visibility:
-            self.actions["visibility"].setIcon(self.icons["visibility_on"])
-        else:
-            self.actions["visibility"].setIcon(self.icons["visibility_off"])
+        if not self.notebook:
+            if self.visibility:
+                self.actions["visibility"].setIcon(
+                    self.icons["visibility_on"])
+            else:
+                self.actions["visibility"].setIcon(
+                    self.icons["visibility_off"])
 
         # manage sliders
         for slider in self.plotter.slider_widgets:
@@ -778,10 +817,6 @@ class Brain(object):
                     slider_rep.GetLabelProperty()
                 )
                 slider_rep.GetCapProperty().SetOpacity(0)
-
-    def _configure_notebook(self):
-        from ._notebook import _NotebookInteractor
-        self._renderer.figure.display = _NotebookInteractor(self)
 
     def _configure_time_label(self):
         self.time_actor = self._data.get('time_actor')
@@ -966,25 +1001,25 @@ class Brain(object):
     def _configure_playback(self):
         self.plotter.add_callback(self._play, self.refresh_rate_ms)
 
-    def _configure_point_picking(self):
-        if not self.show_traces:
-            return
-        from ..backends._pyvista import _update_picking_callback
-        # use a matplotlib canvas
-        self.color_cycle = _ReuseCycle(_get_color_list())
-        win = self.plotter.app_window
-        dpi = win.windowHandle().screen().logicalDotsPerInch()
+    def _configure_mplcanvas(self):
         ratio = (1 - self.interactor_fraction) / self.interactor_fraction
-        w = self.interactor.geometry().width()
-        h = self.interactor.geometry().height() / ratio
+        if self.notebook:
+            dpi = 96
+            w, h = self.plotter.window_size
+        else:
+            dpi = self.window.windowHandle().screen().logicalDotsPerInch()
+            w = self.interactor.geometry().width()
+            h = self.interactor.geometry().height()
+        h /= ratio
         # Get the fractional components for the brain and mpl
-        self.mpl_canvas = MplCanvas(self, w / dpi, h / dpi, dpi)
+        self.mpl_canvas = MplCanvas(self, w / dpi, h / dpi, dpi,
+                                    self.notebook)
         xlim = [np.min(self._data['time']),
                 np.max(self._data['time'])]
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=UserWarning)
             self.mpl_canvas.axes.set(xlim=xlim)
-        if not self.separate_canvas:
+        if not self.notebook and not self.separate_canvas:
             from PyQt5.QtWidgets import QSplitter
             from PyQt5.QtCore import Qt
             canvas = self.mpl_canvas.canvas
@@ -1001,27 +1036,19 @@ class Brain(object):
         )
         self.mpl_canvas.show()
 
-        # get data for each hemi
-        for idx, hemi in enumerate(['vol', 'lh', 'rh']):
-            hemi_data = self._data.get(hemi)
-            if hemi_data is not None:
-                act_data = hemi_data['array']
-                if act_data.ndim == 3:
-                    act_data = np.linalg.norm(act_data, axis=1)
-                smooth_mat = hemi_data.get('smooth_mat')
-                vertices = hemi_data['vertices']
-                if hemi == 'vol':
-                    assert smooth_mat is None
-                    smooth_mat = sparse.csr_matrix(
-                        (np.ones(len(vertices)),
-                         (vertices, np.arange(len(vertices)))))
-                self.act_data_smooth[hemi] = (act_data, smooth_mat)
+    def _configure_vertex_time_course(self):
+        if not self.show_traces:
+            return
+        if self.mpl_canvas is None:
+            self._configure_mplcanvas()
+        else:
+            self.clear_glyphs()
 
         # plot the GFP
         y = np.concatenate(list(v[0] for v in self.act_data_smooth.values()
                                 if v[0] is not None))
         y = np.linalg.norm(y, axis=0) / np.sqrt(len(y))
-        self.mpl_canvas.axes.plot(
+        self.gfp, = self.mpl_canvas.axes.plot(
             self._data['time'], y,
             lw=3, label='GFP', zorder=3, color=self._fg_color,
             alpha=0.5, ls=':')
@@ -1056,7 +1083,26 @@ class Brain(object):
             else:
                 mesh = self._layered_meshes[hemi]._polydata
             vertex_id = vertices[ind[0]]
-            self.add_point(hemi, mesh, vertex_id)
+            self._add_vertex_glyph(hemi, mesh, vertex_id)
+
+    def _configure_picking(self):
+        from ..backends._pyvista import _update_picking_callback
+
+        # get data for each hemi
+        for idx, hemi in enumerate(['vol', 'lh', 'rh']):
+            hemi_data = self._data.get(hemi)
+            if hemi_data is not None:
+                act_data = hemi_data['array']
+                if act_data.ndim == 3:
+                    act_data = np.linalg.norm(act_data, axis=1)
+                smooth_mat = hemi_data.get('smooth_mat')
+                vertices = hemi_data['vertices']
+                if hemi == 'vol':
+                    assert smooth_mat is None
+                    smooth_mat = sparse.csr_matrix(
+                        (np.ones(len(vertices)),
+                         (vertices, np.arange(len(vertices)))))
+                self.act_data_smooth[hemi] = (act_data, smooth_mat)
 
         _update_picking_callback(
             self.plotter,
@@ -1065,6 +1111,89 @@ class Brain(object):
             self._on_button_release,
             self._on_pick
         )
+
+    def _configure_trace_mode(self):
+        from ...source_estimate import _get_allowed_label_modes
+        from ...label import _read_annot_cands
+        if not self.show_traces:
+            return
+
+        if self.notebook:
+            self._configure_vertex_time_course()
+            return
+
+        # do not show trace mode for volumes
+        if (self._data.get('src', None) is not None and
+                self._data['src'].kind == 'volume'):
+            self._configure_vertex_time_course()
+            return
+
+        # setup candidate annots
+        def _set_annot(annot):
+            self.clear_glyphs()
+            self.remove_labels()
+            self.remove_annotations()
+            self.annot = annot
+
+            if annot == 'None':
+                self.traces_mode = 'vertex'
+                self._configure_vertex_time_course()
+            else:
+                self.traces_mode = 'label'
+                self._configure_label_time_course()
+            self._update()
+
+        from PyQt5.QtWidgets import QComboBox, QLabel
+        dir_name = op.join(self._subjects_dir, self._subject_id, 'label')
+        cands = _read_annot_cands(dir_name)
+        self.tool_bar.addSeparator()
+        self.tool_bar.addWidget(QLabel("Annotation"))
+        self._annot_cands_widget = QComboBox()
+        self.tool_bar.addWidget(self._annot_cands_widget)
+        self._annot_cands_widget.addItem('None')
+        for cand in cands:
+            self._annot_cands_widget.addItem(cand)
+        self.annot = cands[0]
+
+        # setup label extraction parameters
+        def _set_label_mode(mode):
+            if self.traces_mode != 'label':
+                return
+            import copy
+            glyphs = copy.deepcopy(self.picked_patches)
+            self.label_extract_mode = mode
+            self.clear_glyphs()
+            for hemi in self._hemis:
+                for label_id in glyphs[hemi]:
+                    label = self._annotation_labels[hemi][label_id]
+                    vertex_id = label.vertices[0]
+                    self._add_label_glyph(hemi, None, vertex_id)
+            self.mpl_canvas.axes.relim()
+            self.mpl_canvas.axes.autoscale_view()
+            self.mpl_canvas.update_plot()
+            self._update()
+
+        self.tool_bar.addSeparator()
+        self.tool_bar.addWidget(QLabel("Label extraction mode"))
+        self._label_mode_widget = QComboBox()
+        self.tool_bar.addWidget(self._label_mode_widget)
+        stc = self._data["stc"]
+        modes = _get_allowed_label_modes(stc)
+        if self._data["src"] is None:
+            modes = [m for m in modes if m not in
+                     self.default_label_extract_modes["src"]]
+        for mode in modes:
+            self._label_mode_widget.addItem(mode)
+            self.label_extract_mode = mode
+
+        if self.traces_mode == 'vertex':
+            _set_annot('None')
+        else:
+            _set_annot(self.annot)
+        self._annot_cands_widget.setCurrentText(self.annot)
+        self._label_mode_widget.setCurrentText(self.label_extract_mode)
+        self._annot_cands_widget.currentTextChanged.connect(_set_annot)
+        self._label_mode_widget.currentTextChanged.connect(_set_label_mode)
 
     def _load_icons(self):
         from PyQt5.QtGui import QIcon
@@ -1085,60 +1214,109 @@ class Brain(object):
     def _save_movie_noname(self):
         return self.save_movie(None)
 
+    def _screenshot(self):
+        if not self.notebook:
+            self.plotter._qt_screenshot()
+
+    def _initialize_actions(self):
+        if not self.notebook:
+            self._load_icons()
+            self.tool_bar = self.window.addToolBar("toolbar")
+
+    def _add_action(self, name, desc, func, icon_name, qt_icon_name=None,
+                    notebook=True):
+        if self.notebook:
+            if not notebook:
+                return
+            from ipywidgets import Button
+            self.actions[name] = Button(description=desc, icon=icon_name)
+            self.actions[name].on_click(lambda x: func())
+        else:
+            qt_icon_name = name if qt_icon_name is None else qt_icon_name
+            self.actions[name] = self.tool_bar.addAction(
+                self.icons[qt_icon_name],
+                desc,
+                func,
+            )
+
     def _configure_tool_bar(self):
-        self.actions["screenshot"] = self.tool_bar.addAction(
-            self.icons["screenshot"],
-            "Take a screenshot",
-            self.plotter._qt_screenshot
+        self._initialize_actions()
+        self._add_action(
+            name="screenshot",
+            desc="Take a screenshot",
+            func=self._screenshot,
+            icon_name=None,
+            notebook=False,
         )
-        self.actions["movie"] = self.tool_bar.addAction(
-            self.icons["movie"],
-            "Save movie...",
-            self._save_movie_noname,
+        self._add_action(
+            name="movie",
+            desc="Save movie...",
+            func=self._save_movie_noname,
+            icon_name=None,
+            notebook=False,
         )
-        self.actions["visibility"] = self.tool_bar.addAction(
-            self.icons["visibility_on"],
-            "Toggle Visibility",
-            self.toggle_interface
+        self._add_action(
+            name="visibility",
+            desc="Toggle Visibility",
+            func=self.toggle_interface,
+            icon_name="eye",
+            qt_icon_name="visibility_on",
         )
-        self.actions["play"] = self.tool_bar.addAction(
-            self.icons["play"],
-            "Play/Pause",
-            self.toggle_playback
+        self._add_action(
+            name="play",
+            desc="Play/Pause",
+            func=self.toggle_playback,
+            icon_name=None,
+            notebook=False,
         )
-        self.actions["reset"] = self.tool_bar.addAction(
-            self.icons["reset"],
-            "Reset",
-            self.reset
+        self._add_action(
+            name="reset",
+            desc="Reset",
+            func=self.reset,
+            icon_name="history",
         )
-        self.actions["scale"] = self.tool_bar.addAction(
-            self.icons["scale"],
-            "Auto-Scale",
-            self.apply_auto_scaling
+        self._add_action(
+            name="scale",
+            desc="Auto-Scale",
+            func=self.apply_auto_scaling,
+            icon_name="magic",
         )
-        self.actions["restore"] = self.tool_bar.addAction(
-            self.icons["restore"],
-            "Restore scaling",
-            self.restore_user_scaling
+        self._add_action(
+            name="restore",
+            desc="Restore scaling",
+            func=self.restore_user_scaling,
+            icon_name="reply",
         )
-        self.actions["clear"] = self.tool_bar.addAction(
-            self.icons["clear"],
-            "Clear traces",
-            self.clear_points
+        self._add_action(
+            name="clear",
+            desc="Clear traces",
+            func=self.clear_glyphs,
+            icon_name="trash",
         )
-        self.actions["help"] = self.tool_bar.addAction(
-            self.icons["help"],
-            "Help",
-            self.help
+        self._add_action(
+            name="help",
+            desc="Help",
+            func=self.help,
+            icon_name=None,
+            notebook=False,
         )
 
-        self.actions["movie"].setShortcut("ctrl+shift+s")
-        self.actions["visibility"].setShortcut("i")
-        self.actions["play"].setShortcut(" ")
-        self.actions["scale"].setShortcut("s")
-        self.actions["restore"].setShortcut("r")
-        self.actions["clear"].setShortcut("c")
-        self.actions["help"].setShortcut("?")
+        if self.notebook:
+            from IPython import display
+            from ipywidgets import HBox
+            self.tool_bar = HBox(tuple(self.actions.values()))
+            display.display(self.tool_bar)
+        else:
+            # Qt shortcuts
+            self.actions["movie"].setShortcut("ctrl+shift+s")
+            self.actions["play"].setShortcut(" ")
+            self.actions["help"].setShortcut("?")
+
+    def _configure_shortcuts(self):
+        self.plotter.add_key_event("i", self.toggle_interface)
+        self.plotter.add_key_event("s", self.apply_auto_scaling)
+        self.plotter.add_key_event("r", self.restore_user_scaling)
+        self.plotter.add_key_event("c", self.clear_glyphs)
 
     def _configure_menu(self):
         # remove default picking menu
@@ -1178,6 +1356,9 @@ class Brain(object):
         self._mouse_no_mvt = 0
 
     def _on_pick(self, vtk_picker, event):
+        if not self.show_traces:
+            return
+
         # vtk_picker is a vtkCellPicker
         cell_id = vtk_picker.GetCellId()
         mesh = vtk_picker.GetDataSet()
@@ -1198,12 +1379,12 @@ class Brain(object):
                 if found_sphere is not None:
                     break
             if found_sphere is not None:
-                assert found_sphere._is_point
+                assert found_sphere._is_glyph
                 mesh = found_sphere
 
         # 2) Remove sphere if it's what we have
-        if hasattr(mesh, "_is_point"):
-            self.remove_point(mesh)
+        if hasattr(mesh, "_is_glyph"):
+            self._remove_vertex_glyph(mesh)
             return
 
         # 3) Otherwise, pick the objects in the scene
@@ -1258,26 +1439,38 @@ class Brain(object):
             idx = np.argmin(abs(vertices - pos), axis=0)
             vertex_id = cell[idx[0]]
 
-        if vertex_id not in self.picked_points[hemi]:
-            self.add_point(hemi, mesh, vertex_id)
+        if self.traces_mode == 'label':
+            self._add_label_glyph(hemi, mesh, vertex_id)
+        else:
+            self._add_vertex_glyph(hemi, mesh, vertex_id)
 
-    def add_point(self, hemi, mesh, vertex_id):
-        """Pick a vertex on the brain.
+    def _add_label_glyph(self, hemi, mesh, vertex_id):
+        if hemi == 'vol':
+            return
+        label_id = self._vertex_to_label_id[hemi][vertex_id]
+        label = self._annotation_labels[hemi][label_id]
 
-        Parameters
-        ----------
-        hemi : str
-            The hemisphere id of the vertex.
-        mesh : object
-            The mesh where picking is expected.
-        vertex_id : int
-            The vertex identifier in the mesh.
+        # remove the patch if already picked
+        if label_id in self.picked_patches[hemi]:
+            self._remove_label_glyph(hemi, label_id)
+            return
 
-        Returns
-        -------
-        sphere : object
-            The glyph created for the picked point.
-        """
+        if hemi == label.hemi:
+            self.add_label(label, borders=True, reset_camera=False)
+            self.picked_patches[hemi].append(label_id)
+
+    def _remove_label_glyph(self, hemi, label_id):
+        label = self._annotation_labels[hemi][label_id]
+        label._line.remove()
+        self.color_cycle.restore(label._color)
+        self.mpl_canvas.update_plot()
+        self._layered_meshes[hemi].remove_overlay(label.name)
+        self.picked_patches[hemi].remove(label_id)
+
+    def _add_vertex_glyph(self, hemi, mesh, vertex_id):
+        if vertex_id in self.picked_points[hemi]:
+            return
+
         # skip if the wrong hemi is selected
         if self.act_data_smooth[hemi][0] is None:
             return
@@ -1326,7 +1519,7 @@ class Brain(object):
 
         # add metadata for picking
         for sphere in spheres:
-            sphere._is_point = True
+            sphere._is_glyph = True
             sphere._hemi = hemi
             sphere._line = line
             sphere._actors = actors
@@ -1338,14 +1531,7 @@ class Brain(object):
         self.pick_table[vertex_id] = spheres
         return sphere
 
-    def remove_point(self, mesh):
-        """Remove the picked point from its glyph.
-
-        Parameters
-        ----------
-        mesh : object
-            The mesh associated to the point to remove.
-        """
+    def _remove_vertex_glyph(self, mesh, render=True):
         vertex_id = mesh._vertex_id
         if vertex_id not in self.pick_table:
             return
@@ -1364,20 +1550,28 @@ class Brain(object):
             self.color_cycle.restore(color)
         for sphere in spheres:
             # remove all actors
-            self.plotter.remove_actor(sphere._actors)
+            self.plotter.remove_actor(sphere._actors, render=render)
             sphere._actors = None
             self._spheres.pop(self._spheres.index(sphere))
         self.pick_table.pop(vertex_id)
 
-    def clear_points(self):
-        """Clear the picked points."""
-        if not hasattr(self, '_spheres'):
+    def clear_glyphs(self):
+        """Clear the picking glyphs."""
+        if not self.time_viewer:
             return
         for sphere in list(self._spheres):  # will remove itself, so copy
-            self.remove_point(sphere)
+            self._remove_vertex_glyph(sphere, render=False)
         assert sum(len(v) for v in self.picked_points.values()) == 0
         assert len(self.pick_table) == 0
         assert len(self._spheres) == 0
+        for hemi in self._hemis:
+            for label_id in list(self.picked_patches[hemi]):
+                self._remove_label_glyph(hemi, label_id)
+        assert sum(len(v) for v in self.picked_patches.values()) == 0
+        if self.gfp is not None:
+            self.gfp.remove()
+            self.gfp = None
+        self._update()
 
     def plot_time_course(self, hemi, vertex_id, color):
         """Plot the vertex time course.
@@ -1701,8 +1895,6 @@ class Brain(object):
         self._data['transparent'] = transparent
         # data specific for a hemi
         self._data[hemi] = dict()
-        self._data[hemi]['actors'] = None
-        self._data[hemi]['mesh'] = None
         self._data[hemi]['glyph_dataset'] = None
         self._data[hemi]['glyph_mapper'] = None
         self._data[hemi]['glyph_actor'] = None
@@ -1791,8 +1983,16 @@ class Brain(object):
         """Remove all the ROI labels from the image."""
         for hemi in self._hemis:
             mesh = self._layered_meshes[hemi]
-            mesh.remove_overlay(self._label_data[hemi])
-            self._label_data[hemi].clear()
+            mesh.remove_overlay(self._labels[hemi])
+            self._labels[hemi].clear()
+        self._update()
+
+    def remove_annotations(self):
+        """Remove all annotations from the image."""
+        for hemi in self._hemis:
+            mesh = self._layered_meshes[hemi]
+            mesh.remove_overlay(self._annots[hemi])
+            self._annots[hemi].clear()
         self._update()
 
     def _add_volume_data(self, hemi, src, volume_options):
@@ -1912,7 +2112,8 @@ class Brain(object):
         return actor_pos, actor_neg
 
     def add_label(self, label, color=None, alpha=1, scalar_thresh=None,
-                  borders=False, hemi=None, subdir=None):
+                  borders=False, hemi=None, subdir=None,
+                  reset_camera=True):
         """Add an ROI label to the image.
 
         Parameters
@@ -1943,6 +2144,9 @@ class Brain(object):
             label directory rather than in the label directory itself (e.g.
             for ``$SUBJECTS_DIR/$SUBJECT/label/aparc/lh.cuneus.label``
             ``brain.add_label('cuneus', subdir='aparc')``).
+        reset_camera : bool
+            If True, reset the camera view after adding the label. Defaults
+            to True.
 
         Notes
         -----
@@ -2004,11 +2208,23 @@ class Brain(object):
         if scalar_thresh is not None:
             ids = ids[scalars >= scalar_thresh]
 
-        # XXX: add support for label_name
-        self._label_name = label_name
+        scalars = np.zeros(self.geo[hemi].coords.shape[0])
+        scalars[ids] = 1
 
-        label = np.zeros(self.geo[hemi].coords.shape[0])
-        label[ids] = 1
+        if self.time_viewer and self.show_traces:
+            stc = self._data["stc"]
+            src = self._data["src"]
+            tc = stc.extract_label_time_course(label, src=src,
+                                               mode=self.label_extract_mode)
+            tc = tc[0] if tc.ndim == 2 else tc[0, 0, :]
+            color = next(self.color_cycle)
+            line = self.mpl_canvas.plot(
+                self._data['time'], tc, label=label_name,
+                color=color)
+        else:
+            line = None
+
+        orig_color = color
         color = colorConverter.to_rgba(color, alpha)
         cmap = np.array([(0, 0, 0, 0,), color])
         ctable = np.round(cmap * 255).astype(np.uint8)
@@ -2016,11 +2232,11 @@ class Brain(object):
         for ri, ci, v in self._iter_views(hemi):
             self._renderer.subplot(ri, ci)
             if borders:
-                n_vertices = label.size
+                n_vertices = scalars.size
                 edges = mesh_edges(self.geo[hemi].faces)
                 edges = edges.tocoo()
-                border_edges = label[edges.row] != label[edges.col]
-                show = np.zeros(n_vertices, dtype=np.int)
+                border_edges = scalars[edges.row] != scalars[edges.col]
+                show = np.zeros(n_vertices, dtype=np.int64)
                 keep_idx = np.unique(edges.row[border_edges])
                 if isinstance(borders, int):
                     for _ in range(borders):
@@ -2031,19 +2247,22 @@ class Brain(object):
                             keep_idx, axis=1)]
                         keep_idx = np.unique(keep_idx)
                 show[keep_idx] = 1
-                label *= show
+                scalars *= show
 
             mesh = self._layered_meshes[hemi]
             mesh.add_overlay(
-                scalars=label,
+                scalars=scalars,
                 colormap=ctable,
                 rng=None,
                 opacity=alpha,
                 name=label_name,
             )
-            self._label_data[hemi].append(label_name)
-            self._renderer.set_camera(**views_dicts[hemi][v])
-
+            if reset_camera:
+                self._renderer.set_camera(**views_dicts[hemi][v])
+            if self.time_viewer and self.traces_mode == 'label':
+                label._color = orig_color
+                label._line = line
+            self._labels[hemi].append(label)
         self._update()
 
     def add_foci(self, coords, coords_as_verts=False, map_surface=None,
@@ -2140,6 +2359,34 @@ class Brain(object):
         self._renderer.text2d(x_window=x, y_window=y, text=text, color=color,
                               size=font_size, justification=justification)
 
+    def _configure_label_time_course(self):
+        from ...label import read_labels_from_annot
+        if not self.show_traces:
+            return
+        if self.mpl_canvas is None:
+            self._configure_mplcanvas()
+        else:
+            self.clear_glyphs()
+        self.traces_mode = 'label'
+        self.add_annotation(self.annot, color="w", alpha=0.75)
+
+        # now plot the time line
+        self.plot_time_line()
+        self.mpl_canvas.update_plot()
+
+        for hemi in self._hemis:
+            labels = read_labels_from_annot(
+                subject=self._subject_id,
+                parc=self.annot,
+                hemi=hemi,
+                subjects_dir=self._subjects_dir
+            )
+            self._vertex_to_label_id[hemi] = np.full(
+                self.geo[hemi].coords.shape[0], -1)
+            self._annotation_labels[hemi] = labels
+            for idx, label in enumerate(labels):
+                self._vertex_to_label_id[hemi][label.vertices] = idx
+
     def add_annotation(self, annot, borders=True, alpha=1, hemi=None,
                        remove_existing=True, color=None, **kwargs):
         """Add an annotation file.
@@ -2213,7 +2460,6 @@ class Brain(object):
             annot = 'annotation'
 
         for hemi, (labels, cmap) in zip(hemis, annots):
-
             # Maybe zero-out the non-border vertices
             self._to_borders(labels, hemi, borders)
 
@@ -2243,14 +2489,21 @@ class Brain(object):
                 cmap[:, :3] = rgb.astype(cmap.dtype)
 
             ctable = cmap.astype(np.float64)
-            mesh = self._layered_meshes[hemi]
-            mesh.add_overlay(
-                scalars=ids,
-                colormap=ctable,
-                rng=[np.min(ids), np.max(ids)],
-                opacity=alpha,
-                name=annot,
-            )
+            for ri, ci, _ in self._iter_views(hemi):
+                self._renderer.subplot(ri, ci)
+                mesh = self._layered_meshes[hemi]
+                mesh.add_overlay(
+                    scalars=ids,
+                    colormap=ctable,
+                    rng=[np.min(ids), np.max(ids)],
+                    opacity=alpha,
+                    name=annot,
+                )
+                self._annots[hemi].append(annot)
+                if not self.time_viewer or self.traces_mode == 'vertex':
+                    from ..backends._pyvista import _set_colormap_range
+                    _set_colormap_range(mesh._actor, cmap.astype(np.uint8),
+                                        None)
 
         self._update()
 
@@ -2693,6 +2946,10 @@ class Brain(object):
         return self._data
 
     @property
+    def labels(self):
+        return self._labels
+
+    @property
     def views(self):
         return self._views
 
@@ -2928,13 +3185,6 @@ class Brain(object):
         # Restore original time index
         func(current_time_idx)
 
-    def _show(self):
-        """Request rendering of the window."""
-        try:
-            return self._renderer.show()
-        except RuntimeError:
-            logger.info("No active/running renderer available.")
-
     def _check_stc(self, hemi, array, vertices):
         from ...source_estimate import (
             _BaseSourceEstimate, _BaseSurfaceSourceEstimate,
@@ -3025,7 +3275,7 @@ class Brain(object):
         from ..backends import renderer
         if renderer.get_3d_backend() in ['pyvista', 'notebook']:
             if self.notebook and self._renderer.figure.display is not None:
-                self._renderer.figure.display.update()
+                self._renderer.figure.display.update_canvas()
             else:
                 self._renderer.plotter.update()
 
@@ -3096,6 +3346,9 @@ class _FakeIren():
         pass
 
     def SetEventInformation(self, *args, **kwargs):
+        pass
+
+    def CharEvent(self):
         pass
 
     def KeyPressEvent(self, *args, **kwargs):

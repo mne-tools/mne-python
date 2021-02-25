@@ -3,6 +3,7 @@
 #          simplified BSD-3 license
 
 
+from pathlib import Path
 import os.path as op
 import os
 import shutil
@@ -59,11 +60,15 @@ egi_pause_w1337_skips = [(21956000.0, 40444000.0), (60936000.0, 89332000.0)]
 ])
 def test_egi_mff_pause(fname, skip_times, event_times):
     """Test EGI MFF with pauses."""
-    with pytest.warns(RuntimeWarning, match='Acquisition skips detected'):
-        raw = _test_raw_reader(read_raw_egi, input_fname=fname,
-                               test_scaling=False,  # XXX probably some bug
-                               test_rank='less',
-                               )
+    if fname == egi_pause_w1337_fname:
+        # too slow to _test_raw_reader
+        raw = read_raw_egi(fname).load_data()
+    else:
+        with pytest.warns(RuntimeWarning, match='Acquisition skips detected'):
+            raw = _test_raw_reader(read_raw_egi, input_fname=fname,
+                                   test_scaling=False,  # XXX probably some bug
+                                   test_rank='less',
+                                   )
     assert raw.info['sfreq'] == 250.  # true for all of these files
     assert len(raw.annotations) == len(skip_times)
 
@@ -144,6 +149,11 @@ def test_io_egi():
 
     with pytest.warns(RuntimeWarning, match='Did not find any event code'):
         raw = read_raw_egi(egi_fname, include=None)
+
+    # The reader should accept a Path, too.
+    with pytest.warns(RuntimeWarning, match='Did not find any event code'):
+        raw = read_raw_egi(Path(egi_fname), include=None)
+
     assert 'RawEGI' in repr(raw)
     data_read, t_read = raw[:256]
     assert_allclose(t_read, t)

@@ -1979,7 +1979,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
     # Override here to provide the volume-specific options
     @verbose
     def extract_label_time_course(self, labels, src, mode='auto',
-                                  allow_empty=False, *, trans=None,
+                                  allow_empty=False, *,
                                   mri_resolution=True, verbose=None):
         """Extract label time courses for lists of labels.
 
@@ -1992,7 +1992,6 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         %(eltc_src)s
         %(eltc_mode)s
         %(eltc_allow_empty)s
-        %(trans_deprecated)s
         %(eltc_mri_resolution)s
         %(verbose_meth)s
 
@@ -2010,11 +2009,11 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         """
         return extract_label_time_course(
             self, labels, src, mode=mode, return_generator=False,
-            allow_empty=allow_empty, trans=trans,
+            allow_empty=allow_empty,
             mri_resolution=mri_resolution, verbose=verbose)
 
-    @fill_doc
-    def in_label(self, label, mri, src, trans=None):
+    @verbose
+    def in_label(self, label, mri, src, *, verbose=None):
         """Get a source estimate object restricted to a label.
 
         SourceEstimate contains the time course of
@@ -2030,7 +2029,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         src : instance of SourceSpaces
             The volumetric source space. It must be a single, whole-brain
             volume.
-        %(trans_deprecated)s
+        %(verbose_meth)s
 
         Returns
         -------
@@ -2049,7 +2048,6 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
             volume_label = [label]
         else:
             volume_label = {'Volume ID %s' % (label): _ensure_int(label)}
-        _dep_trans(trans)
         label = _volume_labels(src, (mri, volume_label), mri_resolution=False)
         assert len(label) == 1
         label = label[0]
@@ -2860,6 +2858,16 @@ def _temporary_vertices(src, vertices):
             s['vertno'] = v
 
 
+def _check_stc_src(stc, src):
+    if stc is not None and src is not None:
+        for s, v, hemi in zip(src, stc.vertices, ('left', 'right')):
+            n_missing = (~np.in1d(v, s['vertno'])).sum()
+            if n_missing:
+                raise ValueError('%d/%d %s hemisphere stc vertices '
+                                 'missing from the source space, likely '
+                                 'mismatch' % (n_missing, len(v), hemi))
+
+
 def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
     """Prepare indices and flips for extract_label_time_course."""
     # If src is a mixed src space, the first 2 src spaces are surf type and
@@ -2872,18 +2880,8 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
 
     # if source estimate provided in stc, get vertices from source space and
     # check that they are the same as in the stcs
-    if stc is not None:
-        vertno = stc.vertices
-
-        for s, v, hemi in zip(src, stc.vertices, ('left', 'right')):
-            n_missing = (~np.in1d(v, s['vertno'])).sum()
-            if n_missing:
-                raise ValueError('%d/%d %s hemisphere stc vertices missing '
-                                 'from the source space, likely mismatch'
-                                 % (n_missing, len(v), hemi))
-    else:
-        vertno = [s['vertno'] for s in src]
-
+    _check_stc_src(stc, src)
+    vertno = [s['vertno'] for s in src] if stc is None else stc.vertices
     nvert = [len(vn) for vn in vertno]
 
     # initialization
@@ -3053,21 +3051,29 @@ def _volume_labels(src, labels, mri_resolution):
     return out_labels
 
 
-def _dep_trans(trans):
-    if trans is not None:
-        warn('trans is no longer needed and will be removed in 0.23, do not '
-             'pass it as an argument', DeprecationWarning)
+def _get_default_label_modes():
+    return sorted(_label_funcs.keys()) + ['auto']
 
 
-def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
-                                   allow_empty=False, trans=None,
+def _get_allowed_label_modes(stc):
+    if isinstance(stc, (_BaseVolSourceEstimate,
+                        _BaseVectorSourceEstimate)):
+        return ('mean', 'max', 'auto')
+    else:
+        return _get_default_label_modes()
+
+
+def _gen_extract_label_time_course(stcs, labels, src, *, mode='mean',
+                                   allow_empty=False,
                                    mri_resolution=True, verbose=None):
     # loop through source estimates and extract time series
-    _dep_trans(trans)
-    _validate_type(src, SourceSpaces)
-    _check_option('mode', mode, sorted(_label_funcs.keys()) + ['auto'])
+    if src is None and mode in ['mean', 'max']:
+        kind = 'surface'
+    else:
+        _validate_type(src, SourceSpaces)
+        kind = src.kind
+    _check_option('mode', mode, _get_default_label_modes())
 
-    kind = src.kind
     if kind in ('surface', 'mixed'):
         if not isinstance(labels, list):
             labels = [labels]
@@ -3082,11 +3088,11 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
     for si, stc in enumerate(stcs):
         _validate_type(stc, _BaseSourceEstimate, 'stcs[%d]' % (si,),
                        'source estimate')
+        _check_option(
+            'mode', mode, _get_allowed_label_modes(stc),
+            'when using a vector and/or volume source estimate')
         if isinstance(stc, (_BaseVolSourceEstimate,
                             _BaseVectorSourceEstimate)):
-            _check_option(
-                'mode', mode, ('mean', 'max', 'auto'),
-                'when using a vector and/or volume source estimate')
             mode = 'mean' if mode == 'auto' else mode
         else:
             mode = 'mean_flip' if mode == 'auto' else mode
@@ -3144,8 +3150,7 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
 @verbose
 def extract_label_time_course(stcs, labels, src, mode='auto',
                               allow_empty=False, return_generator=False,
-                              *, trans=None, mri_resolution=True,
-                              verbose=None):
+                              *, mri_resolution=True, verbose=None):
     """Extract label time course for lists of labels and source estimates.
 
     This function will extract one time course for each label and source
@@ -3162,7 +3167,6 @@ def extract_label_time_course(stcs, labels, src, mode='auto',
     %(eltc_allow_empty)s
     return_generator : bool
         If True, a generator instead of a list is returned.
-    %(trans_deprecated)s
     %(eltc_mri_resolution)s
     %(verbose)s
 
@@ -3190,7 +3194,7 @@ def extract_label_time_course(stcs, labels, src, mode='auto',
 
     label_tc = _gen_extract_label_time_course(
         stcs, labels, src, mode=mode, allow_empty=allow_empty,
-        trans=trans, mri_resolution=mri_resolution)
+        mri_resolution=mri_resolution)
 
     if not return_generator:
         # do the extraction and return a list
@@ -3206,12 +3210,12 @@ def extract_label_time_course(stcs, labels, src, mode='auto',
 @verbose
 def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
                      project=True, subjects_dir=None, src=None, verbose=None):
-    """Create a STC from ECoG and sEEG sensor data.
+    """Create a STC from ECoG, sEEG and DBS sensor data.
 
     Parameters
     ----------
     evoked : instance of Evoked
-        The evoked data. Must contain ECoG, or sEEG channels.
+        The evoked data. Must contain ECoG, sEEG or DBS channels.
     %(trans)s
     subject : str
         The subject name.
@@ -3267,7 +3271,7 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
         ``distance`` (beyond which it is zero).
 
     If creating a Volume STC, ``src`` must be passed in, and this
-    function will project sEEG sensors to nearby surrounding vertices.
+    function will project sEEG and DBS sensors to nearby surrounding vertices.
     Then the activation at each volume vertex is given by the mode
     in the same way as ECoG surface projections.
 
@@ -3280,8 +3284,8 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     _validate_type(src, (None, SourceSpaces), 'src')
     _check_option('mode', mode, ('sum', 'single', 'nearest'))
 
-    # create a copy of Evoked using ecog and seeg
-    evoked = evoked.copy().pick_types(ecog=True, seeg=True)
+    # create a copy of Evoked using ecog, seeg and dbs
+    evoked = evoked.copy().pick_types(ecog=True, seeg=True, dbs=True)
 
     # get channel positions that will be used to pinpoint where
     # in the Source space we will use the evoked data

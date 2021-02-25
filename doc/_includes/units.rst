@@ -14,7 +14,7 @@ Irrespective of the units used in your manufacturer's format, when importing
 data, MNE-Python will always convert measurements to the same standard units.
 Thus the in-memory representation of data are always in:
 
-- Volts (eeg, eog, seeg, emg, ecg, bio, ecog)
+- Volts (eeg, eog, seeg, emg, ecg, bio, ecog, dbs)
 - Teslas (magnetometers)
 - Teslas/meter (gradiometers)
 - Amperes*meter (dipole fits, minimum-norm estimates, etc.)

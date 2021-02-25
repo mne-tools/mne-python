@@ -176,6 +176,7 @@ FIFF.FIFFV_ECG_CH       = 402
 FIFF.FIFFV_MISC_CH      = 502
 FIFF.FIFFV_RESP_CH      = 602  # Respiration monitoring
 FIFF.FIFFV_SEEG_CH      = 802  # stereotactic EEG
+FIFF.FIFFV_DBS_CH       = 803  # deep brain stimulation
 FIFF.FIFFV_SYST_CH      = 900  # some system status information (on Triux systems only)
 FIFF.FIFFV_ECOG_CH      = 902
 FIFF.FIFFV_IAS_CH       = 910  # Internal Active Shielding data (maybe on Triux only)
@@ -196,6 +197,7 @@ _ch_kind_named = {key: key for key in (
     FIFF.FIFFV_MISC_CH,
     FIFF.FIFFV_RESP_CH,
     FIFF.FIFFV_SEEG_CH,
+    FIFF.FIFFV_DBS_CH,
     FIFF.FIFFV_SYST_CH,
     FIFF.FIFFV_ECOG_CH,
     FIFF.FIFFV_IAS_CH,

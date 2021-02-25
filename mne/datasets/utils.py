@@ -18,7 +18,6 @@ from distutils.version import LooseVersion
 
 import numpy as np
 
-from ._fsaverage.base import fetch_fsaverage
 from .. import __version__ as mne_version
 from ..label import read_labels_from_annot, Label, write_labels_to_annot
 from ..utils import (get_config, set_config, _fetch_file, logger, warn,
@@ -26,6 +25,8 @@ from ..utils import (get_config, set_config, _fetch_file, logger, warn,
 from ..utils.docs import docdict
 from ..externals.doccer import docformat
 
+
+_FAKE_VERSION = None  # used for monkeypatching while testing versioning
 
 _data_path_doc = """Get path to local copy of {name} dataset.
 
@@ -245,7 +246,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     path = _get_path(path, key, name)
     # To update the testing or misc dataset, push commits, then make a new
     # release on GitHub. Then update the "releases" variable:
-    releases = dict(testing='0.112', misc='0.7')
+    releases = dict(testing='0.113', misc='0.8')
     # And also update the "md5_hashes['testing']" variable below.
     # To update any other dataset, update the data archive itself (upload
     # an updated version) and update the md5 hash.
@@ -327,11 +328,11 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
             bst_raw='fa2efaaec3f3d462b319bc24898f440c',
             bst_resting='70fc7bf9c3b97c4f2eab6260ee4a0430'),
         fake='3194e9f7b46039bb050a74f3e1ae9908',
-        misc='2b2f2fec9d1197ed459117db1c6341ee',
+        misc='0f88194266121dd9409be94184231f25',
         sample='12b75d1cb7df9dfb4ad73ed82f61094f',
         somato='32fd2f6c8c7eb0784a1de6435273c48b',
         spm='9f43f67150e3b694b523a21eb929ea75',
-        testing='8eabd73532dd7df7c155983962c5b1fd',
+        testing='ce114ad6d5e3dbed06119386e6b1ce0c',
         multimodal='26ec847ae9ab80f58f204d09e2c08367',
         fnirs_motor='c4935d19ddab35422a69f3326a01fef8',
         opm='370ad1dcfd5c47e029e692c85358a374',
@@ -377,6 +378,15 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     logger.debug('folder_path:  %s' % (folder_path,))
 
     need_download = any(not op.exists(f) for f in folder_path)
+    # additional condition: check for version.txt and parse it
+    want_version = releases.get(name, None)
+    want_version = _FAKE_VERSION if name == 'fake' else want_version
+    if not need_download and want_version is not None:
+        data_version = _dataset_version(folder_path[0], name)
+        need_download = data_version != want_version
+        if need_download:
+            logger.info(f'Dataset {name} version {data_version} out of date, '
+                        f'latest version is {want_version}')
     if need_download and not download:
         return ''
 
@@ -583,7 +593,8 @@ def _download_all_example_data(verbose=True):
     from . import (sample, testing, misc, spm_face, somato, brainstorm,
                    eegbci, multimodal, opm, hf_sef, mtrf, fieldtrip_cmc,
                    kiloword, phantom_4dbti, sleep_physionet, limo,
-                   fnirs_motor, refmeg_noise)
+                   fnirs_motor, refmeg_noise, fetch_infant_template,
+                   fetch_fsaverage)
     sample_path = sample.data_path()
     testing.data_path()
     misc.data_path()
@@ -611,6 +622,7 @@ def _download_all_example_data(verbose=True):
     # If the user has SUBJECTS_DIR, respect it, if not, set it to the EEG one
     # (probably on CircleCI, or otherwise advanced user)
     fetch_fsaverage(None)
+    fetch_infant_template('6mo')
     fetch_hcp_mmp_parcellation(
         subjects_dir=sample_path + '/subjects', accept=True)
     limo.load_data(subject=1, update_path=True)
@@ -799,6 +811,7 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, *,
 def _manifest_check_download(manifest_path, destination, url, hash_):
     with open(manifest_path, 'r') as fid:
         names = [name.strip() for name in fid.readlines()]
+    manifest_path = op.basename(manifest_path)
     need = list()
     for name in names:
         if not op.isfile(op.join(destination, name)):

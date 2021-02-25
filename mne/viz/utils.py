@@ -46,8 +46,9 @@ from ..transforms import apply_trans
 
 _channel_type_prettyprint = {'eeg': "EEG channel", 'grad': "Gradiometer",
                              'mag': "Magnetometer", 'seeg': "sEEG channel",
-                             'eog': "EOG channel", 'ecg': "ECG sensor",
-                             'emg': "EMG sensor", 'ecog': "ECoG channel",
+                             'dbs': "DBS channel", 'eog': "EOG channel",
+                             'ecg': "ECG sensor", 'emg': "EMG sensor",
+                             'ecog': "ECoG channel",
                              'misc': "miscellaneous sensor"}
 
 
@@ -362,9 +363,9 @@ def _make_event_color_dict(event_color, events=None, event_id=None):
 
 
 def _prepare_trellis(n_cells, ncols, nrows='auto', title=False, colorbar=False,
-                     size=1.3):
-    import matplotlib.pyplot as plt
+                     size=1.3, sharex=False, sharey=False):
     from matplotlib.gridspec import GridSpec
+    from ._figure import _figure
 
     if n_cells == 1:
         nrows = ncols = 1
@@ -389,9 +390,8 @@ def _prepare_trellis(n_cells, ncols, nrows='auto', title=False, colorbar=False,
     width = size * ncols
     height = (size + max(0, 0.1 * (4 - size))) * nrows + bool(title) * 0.5
     height_ratios = None
-    g_kwargs = {}
-    figure_nobar(figsize=(width * 1.5, height * 1.5))
-    gs = GridSpec(nrows, ncols, height_ratios=height_ratios, **g_kwargs)
+    fig = _figure(toolbar=False, figsize=(width * 1.5, 0.25 + height * 1.5))
+    gs = GridSpec(nrows, ncols, figure=fig, height_ratios=height_ratios)
 
     axes = []
     if colorbar:
@@ -401,9 +401,13 @@ def _prepare_trellis(n_cells, ncols, nrows='auto', title=False, colorbar=False,
     else:
         ax_idxs = range(n_cells)
     for ax_idx in ax_idxs:
-        axes.append(plt.subplot(gs[ax_idx]))
-
-    fig = axes[0].get_figure()
+        subplot_kw = dict()
+        if ax_idx > 0:
+            if sharex:
+                subplot_kw.update(sharex=axes[0])
+            if sharey:
+                subplot_kw.update(sharey=axes[0])
+        axes.append(fig.add_subplot(gs[ax_idx], **subplot_kw))
 
     return fig, axes, ncols, nrows
 
@@ -818,9 +822,9 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
         'topomap'.
     ch_type : None | str
         The channel type to plot. Available options 'mag', 'grad', 'eeg',
-        'seeg', 'ecog', 'all'. If ``'all'``, all the available mag, grad, eeg,
-        seeg and ecog channels are plotted. If None (default), then channels
-        are chosen in the order given above.
+        'seeg', 'dbs', 'ecog', 'all'. If ``'all'``, all the available mag,
+        grad, eeg, seeg, dbs and ecog channels are plotted. If None (default),
+        then channels are chosen in the order given above.
     title : str | None
         Title for the figure. If None (default), equals to
         ``'Sensor positions (%%s)' %% ch_type``.
@@ -1042,9 +1046,8 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
 
         # Equal aspect for 3D looks bad, so only use for 2D
         ax.set(aspect='equal')
-        if axes_was_none:
-            fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None,
-                                hspace=None)
+        if axes_was_none:  # we'll show the plot title as the window title
+            fig.subplots_adjust(left=0, bottom=0, right=1, top=1)
         ax.axis("off")  # remove border around figure
     del sphere
 
@@ -1066,8 +1069,8 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
         picker = partial(_onpick_sensor, fig=fig, ax=ax, pos=pos,
                          ch_names=ch_names, show_names=show_names)
         fig.canvas.mpl_connect('pick_event', picker)
-
-    ax.set(title=title)
+    if axes_was_none:
+        _set_window_title(fig, title)
     closed = partial(_close_event, fig=fig)
     fig.canvas.mpl_connect('close_event', closed)
     plt_show(show, block=block)
@@ -2267,3 +2270,20 @@ def centers_to_edges(*arrays):
             arr[:-1] + arr_diff,
             [arr[-1] + arr_diff[-1]]]))
     return out
+
+
+def _figure_agg(**kwargs):
+    from matplotlib.backends.backend_agg import FigureCanvasAgg
+    from matplotlib.figure import Figure
+    fig = Figure(**kwargs)
+    FigureCanvasAgg(fig)
+    return fig
+
+
+def _ndarray_to_fig(img):
+    """Convert to MPL figure, adapted from matplotlib.image.imsave."""
+    dpi = 100
+    figsize = np.array(img.shape[:2][::-1]) / dpi
+    fig = _figure_agg(dpi=dpi, figsize=figsize, frameon=False)
+    fig.figimage(img, resize=True)
+    return fig

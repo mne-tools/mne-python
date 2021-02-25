@@ -29,7 +29,7 @@ def read_raw_nicolet(input_fname, ch_type, eog=(),
         Path to the data file.
     ch_type : str
         Channel type to designate to the data channels. Supported data types
-        include 'eeg', 'seeg'.
+        include 'eeg', 'dbs'.
     eog : list | tuple | 'auto'
         Names of channels or list of indices that should be designated
         EOG channels. If 'auto', the channel names beginning with
@@ -75,8 +75,11 @@ def _get_nicolet_info(fname, ch_type, eog, ecg, emg, misc):
                 value = value[1:-2].split(',')  # strip brackets
             elif var == 'conversion_factor':
                 value = float(value)
-            elif var != 'start_ts':
+            elif var in ['num_channels', 'rec_id', 'adm_id', 'pat_id',
+                         'num_samples']:
                 value = int(value)
+            elif var != 'start_ts':
+                value = float(value)
             header_info[var] = value
 
     ch_names = header_info['elec_names']

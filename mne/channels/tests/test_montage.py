@@ -1201,7 +1201,7 @@ def test_set_montage_with_sub_super_set_of_ch_names():
 
 def test_heterogeneous_ch_type():
     """Test ch_names matching criteria with heterogeneous ch_type."""
-    VALID_MONTAGE_NAMED_CHS = ('eeg', 'ecog', 'seeg')
+    VALID_MONTAGE_NAMED_CHS = ('eeg', 'ecog', 'seeg', 'dbs')
 
     montage = _make_toy_dig_montage(
         n_channels=len(VALID_MONTAGE_NAMED_CHS),
@@ -1210,7 +1210,7 @@ def test_heterogeneous_ch_type():
 
     # Montage and info match
     info = create_info(montage.ch_names, 1., list(VALID_MONTAGE_NAMED_CHS))
-    RawArray(np.zeros((3, 1)), info, copy=None).set_montage(montage)
+    RawArray(np.zeros((4, 1)), info, copy=None).set_montage(montage)
 
 
 def test_set_montage_coord_frame_in_head_vs_unknown():

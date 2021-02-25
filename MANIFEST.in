@@ -19,6 +19,7 @@ recursive-include mne/data/image *
 recursive-include mne/data/fsaverage *
 include mne/datasets/_fsaverage/root.txt
 include mne/datasets/_fsaverage/bem.txt
+include mne/datasets/_infant/*.txt
 
 recursive-include mne/channels/data/layouts *
 recursive-include mne/channels/data/montages *
@@ -50,6 +51,7 @@ exclude .coveragerc
 exclude *.yml
 exclude ignore_words.txt
 exclude .mailmap
+exclude codemeta.json
 recursive-exclude mne *.pyc
 
 recursive-exclude doc *

@@ -310,9 +310,16 @@ def _assert_drop_log_types(drop_log):
 
 def test_reject():
     """Test epochs rejection."""
-    raw, events, picks = _get_data()
+    raw, events, _ = _get_data()
+    names = raw.ch_names[::5]
+    assert 'MEG 2443' in names
+    raw.pick(names).load_data()
+    assert 'eog' in raw
+    raw.info.normalize_proj()
+    picks = np.arange(len(raw.ch_names))
     # cull the list just to contain the relevant event
     events = events[events[:, 2] == event_id, :]
+    assert len(events) == 7
     selection = np.arange(3)
     drop_log = ((),) * 3 + (('MEG 2443',),) * 4
     _assert_drop_log_types(drop_log)
@@ -2212,19 +2219,30 @@ def test_contains():
                 'proj_name'):
         seeg.info[key] = raw.info[key]
     raw.add_channels([seeg])
-    tests = [(('mag', False, False), ('grad', 'eeg', 'seeg')),
-             (('grad', False, False), ('mag', 'eeg', 'seeg')),
-             ((False, True, False), ('grad', 'mag', 'seeg')),
-             ((False, False, True), ('grad', 'mag', 'eeg'))]
+    # Add dbs channel
+    dbs = RawArray(np.zeros((1, len(raw.times))),
+                   create_info(['DBS 001'], raw.info['sfreq'], 'dbs'))
+    for key in ('dev_head_t', 'highpass', 'lowpass',
+                'dig', 'description', 'acq_pars', 'experimenter',
+                'proj_name'):
+        dbs.info[key] = raw.info[key]
+    raw.add_channels([dbs])
+    tests = [(('mag', False, False, False), ('grad', 'eeg', 'seeg', 'dbs')),
+             (('grad', False, False, False), ('mag', 'eeg', 'seeg', 'dbs')),
+             ((False, True, False, False), ('grad', 'mag', 'seeg', 'dbs')),
+             ((False, False, True, False), ('grad', 'mag', 'eeg', 'dbs'))]
 
-    for (meg, eeg, seeg), others in tests:
-        picks_contains = pick_types(raw.info, meg=meg, eeg=eeg, seeg=seeg)
+    for (meg, eeg, seeg, dbs), others in tests:
+        picks_contains = pick_types(raw.info, meg=meg, eeg=eeg, seeg=seeg,
+                                    dbs=dbs)
         epochs = Epochs(raw, events, {'a': 1, 'b': 2}, tmin, tmax,
                         picks=picks_contains)
         if eeg:
             test = 'eeg'
         elif seeg:
             test = 'seeg'
+        elif dbs:
+            test = 'dbs'
         else:
             test = meg
         assert (test in epochs)
@@ -2612,12 +2630,12 @@ def test_add_channels():
 
 
 def test_seeg_ecog():
-    """Test the compatibility of the Epoch object with SEEG and ECoG data."""
+    """Test compatibility of the Epoch object with SEEG, DBS and ECoG data."""
     n_epochs, n_channels, n_times, sfreq = 5, 10, 20, 1000.
     data = np.ones((n_epochs, n_channels, n_times))
     events = np.array([np.arange(n_epochs), [0] * n_epochs, [1] * n_epochs]).T
     pick_dict = dict(meg=False, exclude=[])
-    for key in ('seeg', 'ecog'):
+    for key in ('seeg', 'dbs', 'ecog'):
         info = create_info(n_channels, sfreq, key)
         epochs = EpochsArray(data, info, events)
         pick_dict.update({key: True})

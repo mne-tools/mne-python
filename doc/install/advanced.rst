@@ -65,7 +65,7 @@ when choosing which notebook kernel to use. Otherwise, be sure to activate the
 ``mne`` environment before launching the notebook.
 
 If you use another Python setup and you encounter some difficulties please
-report them on the `MNE mailing list`_ or on the `GitHub issues page`_ to get
+report them on the `MNE Forum`_ or on the `GitHub issues page`_ to get
 assistance.
 
 It is also possible to interact with the 3D plots without installing Qt by using
@@ -190,6 +190,43 @@ disable with:
 or by doing
 :func:`mne.viz.set_3d_options(antialias=False) <mne.viz.set_3d_options>` within
 a given Python session.
+
+Another issue that may come up is that the MESA software itself may be out of date
+in certain operating systems, for example CentOS. This may lead to incomplete
+rendering of some 3D plots. A solution is described in this `Github comment <https://github.com/mne-tools/mne-python/issues/7977#issuecomment-729921035>`_.
+It boils down to building a newer version (e.g., 18.3.6)
+locally following a variant of `these instructions <https://xorg-team.pages.debian.net/xorg/howto/build-mesa.html#_preparing_mesa_sources>`_.
+If you have CentOS 7 or newer, you can also try some `prebuilt binaries <https://osf.io/sp9qg/download>`_ we made.
+After downloading the files, untar them and add them to the appropriate library paths
+using the following commands:
+
+.. code-block:: console
+
+    $ tar xzvf mesa_18.3.6_centos_lib.tgz
+    $ export LIBGL_DRIVERS_PATH="${PWD}/lib"
+    $ export LD_LIBRARY_PATH="${PWD}/lib"
+
+To check that everything went well, type the following:
+
+.. code-block:: console
+
+    $ glxinfo | grep "OpenGL core profile version"
+
+which should give::
+
+    OpenGL core profile version string: 3.3 (Core Profile) Mesa 18.3.6
+
+Another way to check is to type:
+
+.. code-block:: console
+
+    $ mne sys_info
+
+and it should show the right version of MESA::
+
+    ...
+    pyvista:       0.27.4 {pyvistaqt=0.2.0, OpenGL 3.3 (Core Profile) Mesa 18.3.6 via llvmpipe (LLVM 3.4, 256 bits)}
+    ...
 
 .. _troubleshoot_3d:
 

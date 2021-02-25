@@ -108,7 +108,8 @@ def _check_for_unsupported_ica_channels(picks, info, allow_ref_meg=False):
     """Check for channels in picks that are not considered valid channels.
 
     Accepted channels are the data channels
-    ('seeg','ecog','eeg', 'hbo', 'hbr', 'mag', and 'grad'), 'eog' and 'ref_meg'
+    ('seeg', 'dbs', 'ecog', 'eeg', 'hbo', 'hbr', 'mag', and 'grad'), 'eog'
+    and 'ref_meg'.
     This prevents the program from crashing without
     feedback when a bad channel is provided to ICA whitening.
     """
@@ -144,8 +145,8 @@ class ICA(ContainsMixin):
         are passed to the ICA algorithm during fitting:
 
         - :class:`int`
-            Must be greater than 1 and less than or equal to
-            ``n_pca_components``.
+            Must be greater than 1 and less than or equal to the number of
+            channels.
         - :class:`float` between 0 and 1 (exclusive)
             Will select the smallest number of components required to explain
             the cumulative variance of the data greater than ``n_components``.
@@ -157,10 +158,9 @@ class ICA(ContainsMixin):
             requested threshold of 80%% explained variance can be exceeded. The
             third component, on the other hand, would be excluded.
         - ``None``
-            ``n_pca_components`` (deprecated) or ``0.999999`` (will become the
-            default in 0.23) will be used, whichever results in fewer
-            components. This is done to avoid numerical stability problems when
-            whitening, particularly when working with rank-deficient data.
+            ``0.999999`` will be used. This is done to avoid numerical
+            stability problems when whitening, particularly when working with
+            rank-deficient data.
 
         Defaults to ``None``. The actual number used when executing the
         :meth:`ICA.fit` method will be stored in the attribute
@@ -171,17 +171,6 @@ class ICA(ContainsMixin):
            for *greater than* the given variance level instead of *less than or
            equal to* it. The default (None) will also take into account the
            rank deficiency of the data.
-    max_pca_components : int | None
-        This parameter is deprecated and will be removed in 0.23. Use the
-        ``n_pca_components`` parameter in :meth:`apply` instead.
-    n_pca_components : int | float | None
-        This parameter is deprecated and will be removed in 0.23. Use the
-        ``n_pca_components`` parameter in :meth:`apply` instead.
-
-        .. versionchanged:: 0.22
-           For a :class:`python:float`, the number of components will account
-           for *greater than* the given variance level instead of *less than or
-           equal to* it.
     noise_cov : None | instance of Covariance
         Noise covariance used for pre-whitening. If None (default), channels
         are scaled to unit variance ("z-standardized") as a group by channel
@@ -362,18 +351,12 @@ class ICA(ContainsMixin):
     """  # noqa: E501
 
     @verbose
-    def __init__(self, n_components=None, *, max_pca_components=None,
-                 n_pca_components=None, noise_cov=None, random_state=None,
-                 method='fastica', fit_params=None, max_iter=200,
-                 allow_ref_meg=False, verbose=None):  # noqa: D102
+    def __init__(self, n_components=None, *, noise_cov=None,
+                 random_state=None, method='fastica', fit_params=None,
+                 max_iter=200, allow_ref_meg=False,
+                 verbose=None):  # noqa: D102
         _validate_type(method, str, 'method')
         _validate_type(n_components, (float, 'int-like', None))
-        _validate_type(n_pca_components, (float, 'int-like', None))
-        _validate_type(max_pca_components, ('int-like', None))
-        if max_pca_components is not None:
-            warn(f'max_pca_components ({max_pca_components}) is deprecated and'
-                 ' will be removed in 0.23, use n_pca_components instead',
-                 DeprecationWarning)
 
         if method != 'imported_eeglab':  # internal use only
             _check_option('method', method, _KNOWN_ICA_METHODS)
@@ -386,22 +369,7 @@ class ICA(ContainsMixin):
 
         self.noise_cov = noise_cov
 
-        if (n_components is not None and
-                max_pca_components is not None and
-                n_components > max_pca_components):
-            raise ValueError(f'n_components ({n_components}) must be smaller '
-                             f'than max_pca_components ({max_pca_components})')
-
-        if (n_components is not None and
-                n_pca_components is not None and
-                not isinstance(n_pca_components, float) and
-                n_components > n_pca_components):
-            raise ValueError(f'n_components ({n_components}) must be smaller '
-                             f'than n_pca_components ({n_pca_components})')
-
-        for (kind, val) in [('n_components', n_components),
-                            ('n_pca_components', n_pca_components),
-                            ('max_pca_components', max_pca_components)]:
+        for (kind, val) in [('n_components', n_components)]:
             if isinstance(val, float) and not 0 < val < 1:
                 raise ValueError('Selecting ICA components by explained '
                                  'variance needs values between 0.0 and 1.0 '
@@ -414,13 +382,12 @@ class ICA(ContainsMixin):
         self.current_fit = 'unfitted'
         self.verbose = verbose
         self.n_components = n_components
-        self._max_pca_components = max_pca_components
-        self.n_pca_components = n_pca_components
+        # In newer ICAs this should always be None, but keep it for
+        # backward compat with older versions of MNE that used it
+        self._max_pca_components = None
+        self.n_pca_components = None
         self.ch_names = None
         self.random_state = random_state
-        if n_pca_components is not None:
-            warn('n_pca_components is deprecated and will be removed in 0.23, '
-                 'use it in apply() instead', DeprecationWarning)
 
         if fit_params is None:
             fit_params = {}
@@ -444,13 +411,6 @@ class ICA(ContainsMixin):
         self.method = method
         self.labels_ = dict()
         self.allow_ref_meg = allow_ref_meg
-
-    @property
-    def max_pca_components(self):
-        warn('The max_pca_components property is deprecated and will be '
-             'removed in 0.21, use n_pca_components instead',
-             DeprecationWarning)
-        return self._max_pca_components
 
     def __repr__(self):
         """ICA fit information."""
@@ -502,8 +462,8 @@ class ICA(ContainsMixin):
             within ``start`` and ``stop`` are used.
         reject : dict | None
             Rejection parameters based on peak-to-peak amplitude.
-            Valid keys are 'grad', 'mag', 'eeg', 'seeg', 'ecog', 'eog', 'ecg',
-            'hbo', 'hbr'.
+            Valid keys are 'grad', 'mag', 'eeg', 'seeg', 'dbs', 'ecog', 'eog',
+            'ecg', 'hbo', 'hbr'.
             If reject is None then no rejection is done. Example::
 
                 reject = dict(grad=4000e-13, # T / m (gradiometers)
@@ -515,8 +475,8 @@ class ICA(ContainsMixin):
             It only applies if ``inst`` is of type Raw.
         flat : dict | None
             Rejection parameters based on flatness of signal.
-            Valid keys are 'grad', 'mag', 'eeg', 'seeg', 'ecog', 'eog', 'ecg',
-            'hbo', 'hbr'.
+            Valid keys are 'grad', 'mag', 'eeg', 'seeg', 'dbs', 'ecog', 'eog',
+            'ecg', 'hbo', 'hbr'.
             Values are floats that set the minimum acceptable peak-to-peak
             amplitude. If flat is None then no rejection is done.
             It only applies if ``inst`` is of type Raw.
@@ -546,12 +506,6 @@ class ICA(ContainsMixin):
 
         logger.info('Fitting ICA to data using %i channels '
                     '(please be patient, this may take a while)' % len(picks))
-
-        if self._max_pca_components is not None and \
-                self._max_pca_components > len(picks):
-            raise ValueError(
-                f'ica.max_pca_components ({self._max_pca_components}) cannot '
-                f'be greater than len(picks) ({len(picks)})')
 
         # n_components could be float 0 < x < 1, but that's okay here
         if self.n_components is not None and self.n_components > len(picks):
@@ -650,6 +604,8 @@ class ICA(ContainsMixin):
                 if _contains_ch_type(info, ch_type):
                     if ch_type == 'seeg':
                         this_picks = pick_types(info, meg=False, seeg=True)
+                    elif ch_type == 'dbs':
+                        this_picks = pick_types(info, meg=False, dbs=True)
                     elif ch_type == 'ecog':
                         this_picks = pick_types(info, meg=False, ecog=True)
                     elif ch_type == 'eeg':
@@ -2746,7 +2702,6 @@ def read_ica_eeglab(fname):
     ica.current_fit = "eeglab"
     ica.ch_names = info["ch_names"]
     ica.n_pca_components = None
-    ica._max_pca_components = None
     ica.n_components_ = n_components
 
     ica.pre_whitener_ = np.ones((len(eeg.icachansind), 1))

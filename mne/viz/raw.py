@@ -374,7 +374,8 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
                  picks=None, ax=None, color='black', xscale='linear',
                  area_mode='std', area_alpha=0.33, dB=True, estimate='auto',
                  show=True, n_jobs=1, average=False, line_alpha=None,
-                 spatial_colors=True, sphere=None, verbose=None):
+                 spatial_colors=True, sphere=None, window='hamming',
+                 verbose=None):
     """%(plot_psd_doc)s.
 
     Parameters
@@ -414,6 +415,9 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
     %(plot_psd_line_alpha)s
     %(plot_psd_spatial_colors)s
     %(topomap_sphere_auto)s
+    %(window-psd)s
+
+        .. versionadded:: 0.22.0
     %(verbose)s
 
     Returns
@@ -435,7 +439,8 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
         average=average, estimate=estimate, area_mode=area_mode,
         line_alpha=line_alpha, area_alpha=area_alpha, color=color,
         spatial_colors=spatial_colors, n_jobs=n_jobs, n_fft=n_fft,
-        n_overlap=n_overlap, reject_by_annotation=reject_by_annotation)
+        n_overlap=n_overlap, reject_by_annotation=reject_by_annotation,
+        window=window)
     plt_show(show)
     return fig
 
@@ -562,7 +567,7 @@ def _setup_channel_selections(raw, kind, order):
     misc = pick_types(raw.info, meg=False, eeg=False, stim=True, eog=True,
                       ecg=True, emg=True, ref_meg=False, misc=True,
                       resp=True, chpi=True, exci=True, ias=True, syst=True,
-                      seeg=False, bio=True, ecog=False, fnirs=False,
+                      seeg=False, bio=True, ecog=False, fnirs=False, dbs=False,
                       exclude=())
     if len(misc) and np.in1d(misc, order).any():
         selections_dict['Misc'] = misc

@@ -424,8 +424,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                    surfaces='auto', coord_frame='head',
                    meg=None, eeg='original', fwd=None,
                    dig=False, ecog=True, src=None, mri_fiducials=False,
-                   bem=None, seeg=True, fnirs=True, show_axes=False, fig=None,
-                   interaction='trackball', verbose=None):
+                   bem=None, seeg=True, fnirs=True, show_axes=False, dbs=True,
+                   fig=None, interaction='trackball', verbose=None):
     """Plot head, sensor, and source space alignment in 3D.
 
     Parameters
@@ -520,6 +520,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         * MEG in blue (if MEG sensors are present).
 
         .. versionadded:: 0.16
+    dbs : bool
+        If True (default), show DBS (deep brain stimulation) electrodes.
     fig : mayavi.mlab.Figure | None
         Mayavi Scene in which to plot the alignment.
         If ``None``, creates a new 600x600 pixel figure with black background.
@@ -655,13 +657,13 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     ref_meg = 'ref' in meg
     meg_picks = pick_types(info, meg=True, ref_meg=ref_meg)
     eeg_picks = pick_types(info, meg=False, eeg=True, ref_meg=False)
-    fnirs_picks = pick_types(info, meg=False, eeg=False,
-                             ref_meg=False, fnirs=True)
-    other_bools = dict(ecog=ecog, seeg=seeg,
+    fnirs_picks = pick_types(info, meg=False, eeg=False, ref_meg=False,
+                             fnirs=True)
+    other_bools = dict(ecog=ecog, seeg=seeg, dbs=dbs,
                        fnirs=(('channels' in fnirs) |
                               ('sources' in fnirs) |
                               ('detectors' in fnirs)))
-    del ecog, seeg
+    del ecog, seeg, dbs
     other_keys = sorted(other_bools.keys())
     other_picks = {key: pick_types(info, meg=False, ref_meg=False,
                                    **{key: True}) for key in other_keys}
@@ -866,7 +868,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     skull_alpha = dict()
     skull_colors = dict()
     hemi_val = 0.5
-    max_alpha = 1.0 if len(other_picks['seeg']) == 0 else 0.75
+    no_deep = all(len(other_picks[key]) == 0 for key in ('dbs', 'seeg'))
+    max_alpha = 1.0 if no_deep else 0.75
     if src is None or (brain and any(s['type'] == 'surf' for s in src)):
         hemi_val = max_alpha
     alphas = np.linspace(max_alpha / 2., 0, 5)[:len(skull) + 1]
@@ -1242,6 +1245,15 @@ def _sensor_shape(coil):
     return rrs, tris
 
 
+def _get_cmap(colormap):
+    import matplotlib.pyplot as plt
+    if isinstance(colormap, str) and colormap in ('mne', 'mne_analyze'):
+        colormap = mne_analyze_colormap([0, 1, 2], format='matplotlib')
+    else:
+        colormap = plt.get_cmap(colormap)
+    return colormap
+
+
 def _process_clim(clim, colormap, transparent, data=0., allow_pos_lims=True):
     """Convert colormap/clim options to dict.
 
@@ -1249,7 +1261,6 @@ def _process_clim(clim, colormap, transparent, data=0., allow_pos_lims=True):
     calling gives the same results.
     """
     # Based on type of limits specified, get cmap control points
-    import matplotlib.pyplot as plt
     from matplotlib.colors import Colormap
     _validate_type(colormap, (str, Colormap), 'colormap')
     data = np.asarray(data)
@@ -1265,10 +1276,7 @@ def _process_clim(clim, colormap, transparent, data=0., allow_pos_lims=True):
                     colormap = 'hot'
                 else:  # 'pos_lims' in clim
                     colormap = 'mne'
-        if colormap in ('mne', 'mne_analyze'):
-            colormap = mne_analyze_colormap([0, 1, 2], format='matplotlib')
-        else:
-            colormap = plt.get_cmap(colormap)
+        colormap = _get_cmap(colormap)
     assert isinstance(colormap, Colormap)
     diverging_maps = ['PiYG', 'PRGn', 'BrBG', 'PuOr', 'RdGy', 'RdBu',
                       'RdYlBu', 'RdYlGn', 'Spectral', 'coolwarm', 'bwr',
@@ -1784,7 +1792,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     - https://openwetware.org/wiki/Beauchamp:FreeSurfer
     """  # noqa: E501
     from .backends.renderer import _get_3d_backend, set_3d_backend
-    from ..source_estimate import _BaseSourceEstimate
+    from ..source_estimate import _BaseSourceEstimate, _check_stc_src
+    _check_stc_src(stc, src)
     _validate_type(stc, _BaseSourceEstimate, 'stc', 'source estimate')
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
@@ -1905,8 +1914,8 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
 
     if transparent is None:
         transparent = True
-    sd_kwargs = dict(transparent=transparent, verbose=False)
     center = 0. if diverging else None
+    sd_kwargs = dict(transparent=transparent, center=center, verbose=False)
     kwargs = {
         "array": stc,
         "colormap": colormap,
@@ -1984,7 +1993,8 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
     _check_option('time_viewer', time_viewer, (True, False, 'auto'))
     _validate_type(show_traces, (str, bool, 'numeric'), 'show_traces')
     if isinstance(show_traces, str):
-        _check_option('show_traces', show_traces, ('auto', 'separate'),
+        _check_option('show_traces', show_traces,
+                      ('auto', 'separate', 'vertex', 'label'),
                       extra='when a string')
     if time_viewer == 'auto':
         time_viewer = not using_mayavi
