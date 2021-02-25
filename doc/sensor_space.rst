@@ -20,7 +20,7 @@ Sensor Space Data
    pick_info
    read_epochs
    read_reject_parameters
-   read_selection
+   read_vectorview_selection
    rename_channels
 
 :py:mod:`mne.baseline`:

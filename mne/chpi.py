@@ -28,7 +28,7 @@ from .event import find_events
 from .io.base import BaseRaw
 from .io.kit.constants import KIT
 from .io.kit.kit import RawKIT as _RawKIT
-from .io.meas_info import _simplify_info
+from .io.meas_info import _simplify_info, Info
 from .io.pick import (pick_types, pick_channels, pick_channels_regexp,
                       pick_info)
 from .io.proj import Projection, setup_proj
@@ -754,6 +754,7 @@ def compute_head_pos(info, chpi_locs, dist_limit=0.005, gof_limit=0.98,
     .. versionadded:: 0.20
     """
     _check_chpi_param(chpi_locs, 'chpi_locs')
+    _validate_type(info, Info, 'info')
     hpi_dig_head_rrs = _get_hpi_initial_fit(info, adjust=adjust_dig,
                                             verbose='error')
     n_coils = len(hpi_dig_head_rrs)
@@ -1014,6 +1015,7 @@ def compute_chpi_locs(info, chpi_amplitudes, t_step_max=1., too_close='raise',
     # Set up magnetic dipole fits
     _check_option('too_close', too_close, ['raise', 'warning', 'info'])
     _check_chpi_param(chpi_amplitudes, 'chpi_amplitudes')
+    _validate_type(info, Info, 'info')
     sin_fits = chpi_amplitudes  # use the old name below
     del chpi_amplitudes
     proj = sin_fits['proj']
@@ -1049,6 +1051,7 @@ def compute_chpi_locs(info, chpi_amplitudes, t_step_max=1., too_close='raise',
         _get_hpi_initial_fit(info, adjust=adjust_dig))
     last = dict(sin_fit=None, coil_fit_time=sin_fits['times'][0] - 1,
                 coil_dev_rrs=hpi_dig_dev_rrs)
+    n_hpi = len(hpi_dig_dev_rrs)
     del hpi_dig_dev_rrs
     for fit_time, sin_fit in ProgressBar(iter_, mesg='cHPI locations '):
         # skip this window if bad
@@ -1084,8 +1087,15 @@ def compute_chpi_locs(info, chpi_amplitudes, t_step_max=1., too_close='raise',
         chpi_locs['moments'].append(moments)
         last['coil_fit_time'] = fit_time
         last['coil_dev_rrs'] = rrs
+    n_times = len(chpi_locs['times'])
+    shapes = dict(
+        times=(n_times,),
+        rrs=(n_times, n_hpi, 3),
+        gofs=(n_times, n_hpi),
+        moments=(n_times, n_hpi, 3),
+    )
     for key, val in chpi_locs.items():
-        chpi_locs[key] = np.array(val, float)
+        chpi_locs[key] = np.array(val, float).reshape(shapes[key])
     return chpi_locs
 
 

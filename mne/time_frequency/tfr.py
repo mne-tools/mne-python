@@ -1011,15 +1011,16 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         rescale(self.data, self.times, baseline, mode, copy=False)
         return self
 
-    def save(self, fname, overwrite=False):
+    @verbose
+    def save(self, fname, overwrite=False, *, verbose=None):
         """Save TFR object to hdf5 file.
 
         Parameters
         ----------
         fname : str
             The file name, which should end with ``-tfr.h5``.
-        overwrite : bool
-            If True, overwrite file (if it exists). Defaults to False.
+        %(overwrite)s
+        %(verbose)s
 
         See Also
         --------
@@ -2278,7 +2279,8 @@ def _check_decim(decim):
 # i/o
 
 
-def write_tfrs(fname, tfr, overwrite=False):
+@verbose
+def write_tfrs(fname, tfr, overwrite=False, *, verbose=None):
     """Write a TFR dataset to hdf5.
 
     Parameters
@@ -2289,8 +2291,8 @@ def write_tfrs(fname, tfr, overwrite=False):
         The TFR dataset, or list of TFR datasets, to save in one file.
         Note. If .comment is not None, a name will be generated on the fly,
         based on the order in which the TFR objects are passed.
-    overwrite : bool
-        If True, overwrite file (if it exists). Defaults to False.
+    %(overwrite)s
+    %(verbose)s
 
     See Also
     --------

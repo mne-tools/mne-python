@@ -646,8 +646,7 @@ class SourceMorph(object):
         fname : str
             The stem of the file name. '-morph.h5' will be added if fname does
             not end with '.h5'.
-        overwrite : bool
-            If True, overwrite existing file.
+        %(overwrite)s
         %(verbose_meth)s
         """
         fname = _check_fname(fname, overwrite=overwrite, must_exist=False)
