@@ -1012,7 +1012,7 @@ class Brain(object):
             hemis_ref = ['lh']
         else:
             hemis_ref = self._hemis
-        orientation_data = [None] * 4
+        orientation_data = [None] * len(rends)
         for hemi in hemis_ref:
             for ri, ci, view in self._iter_views(hemi):
                 idx = self.plotter.loc_to_index((ri, ci))
