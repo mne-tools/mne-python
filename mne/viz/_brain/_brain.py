@@ -895,6 +895,7 @@ class Brain(object):
     def _initialize_dock(self):
         if self.notebook:
             self.dock_layout = self._renderer._initialize_dock()
+            self.dock = None
         else:
             from PyQt5 import QtCore
             from PyQt5.QtWidgets import QDockWidget, QVBoxLayout, QWidget
@@ -908,17 +909,19 @@ class Brain(object):
             self.dock = dock
 
     def _finalize_dock(self):
+        self._add_dock_stretch(self.dock_layout)
+
+    def _add_dock_stretch(self, layout):
         if self.notebook:
             return
-        self.dock_layout.addStretch()
+        layout.addStretch()
 
     def _add_dock_layout(self, vertical=True):
         if self.notebook:
-            layout = self._renderer._add_dock_layout(vertical)
+            return self._renderer._add_dock_layout(vertical)
         else:
             from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout
-            layout = QVBoxLayout() if vertical else QHBoxLayout()
-        return layout
+            return QVBoxLayout() if vertical else QHBoxLayout()
 
     def _add_dock_label(self, value, align=False, layout=None):
         layout = self.dock_layout if layout is None else layout
@@ -1067,35 +1070,23 @@ class Brain(object):
             return
         layout = self.dock_layout if layout is None else layout
         hlayout = self._add_dock_layout(vertical=False)
+        self.widgets["min_time"] = Widget(
+            widget=self._add_dock_label(value="-", layout=hlayout),
+            notebook=self.notebook
+        )
+        self._add_dock_stretch(hlayout)
+        self.widgets["current_time"] = Widget(
+            widget=self._add_dock_label(value="x", layout=hlayout),
+            notebook=self.notebook,
+        )
+        self._add_dock_stretch(hlayout)
+        self.widgets["max_time"] = Widget(
+            widget=self._add_dock_label(value="+", layout=hlayout),
+            notebook=self.notebook,
+        )
         if self.notebook:
-            self.widgets["min_time"] = Widget(
-                widget=self._add_dock_label(value="-", layout=hlayout),
-                notebook=self.notebook
-            )
-            self.widgets["current_time"] = Widget(
-                widget=self._add_dock_label(value="x", layout=hlayout),
-                notebook=self.notebook,
-            )
-            self.widgets["max_time"] = Widget(
-                widget=self._add_dock_label(value="+", layout=hlayout),
-                notebook=self.notebook,
-            )
             self._renderer._add_widget(layout, hlayout)
         else:
-            self.widgets["min_time"] = Widget(
-                widget=self._add_dock_label(value="-", layout=hlayout),
-                notebook=self.notebook
-            )
-            hlayout.addStretch()
-            self.widgets["current_time"] = Widget(
-                widget=self._add_dock_label(value="x", layout=hlayout),
-                notebook=self.notebook,
-            )
-            hlayout.addStretch()
-            self.widgets["max_time"] = Widget(
-                widget=self._add_dock_label(value="+", layout=hlayout),
-                notebook=self.notebook,
-            )
             layout.addLayout(hlayout)
         min_time = float(self._data['time'][0])
         max_time = float(self._data['time'][-1])
