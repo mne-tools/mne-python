@@ -883,7 +883,7 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
     -----
     .. versionadded:: 0.9.0
 
-    If the function is run on a ``Raw`` object, then it one should be
+    If the function is run on a ``Raw`` object, then it should be
     wary that the resulting ``AverageTFR`` object might be very large.
     One can reduce RAM usage via the ``decim`` argument. Alternatively,
     if one is trying to compute spectral analysis of only short time
