@@ -104,9 +104,15 @@ class ASR():
                  min_clean_fraction=0.25, name='asrfilter', method='euclid',
                  estimator='scm', **kwargs):
 
-        if pyriemann is None and method == 'riemann':
-            logging.warning('Need pyriemann to use riemannian ASR flavor.')
-            method = 'euclid'
+        if pyriemann is None:
+            if method == 'riemann':
+                logging.warning("Need pyriemann package to use riemannian "
+                                "ASR flavor. Changing to Euclidean ASR.")
+                method = 'euclid'
+            if estimator != 'scm':
+                logging.warning("Need pyriemann package for {0} estimator. "
+                                "Changing to 'scm'.".format(estimator))
+                estimator = 'scm'
 
         self.cutoff = cutoff
         self.blocksize = blocksize
@@ -511,8 +517,8 @@ def asr_calibrate(X, sfreq, cutoff=5, blocksize=100, win_len=0.5,
 
     # get the mixing matrix M
     M = linalg.sqrtm(np.real(Uavg))
-    D, Vtmp = linalg.eigh(M)
-    # D, Vtmp = nonlinear_eigenspace(M, nc)  TODO
+    #D, Vtmp = linalg.eigh(M)
+    D, Vtmp = nonlinear_eigenspace(M, nc) if method == "riemann" else linalg.eigh(M)
     V = Vtmp[:, np.argsort(D)]
 
     # get the threshold matrix T
@@ -521,6 +527,7 @@ def asr_calibrate(X, sfreq, cutoff=5, blocksize=100, win_len=0.5,
 
     mu = np.zeros(nc)
     sig = np.zeros(nc)
+
     for ichan in range(nc):
         rms = x[ichan, :] ** 2
         Y = []

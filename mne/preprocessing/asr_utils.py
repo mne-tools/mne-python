@@ -2,7 +2,6 @@
 import numpy as np
 from scipy import linalg
 from scipy import signal
-from scipy.stats import norm
 from scipy.linalg import toeplitz
 from scipy.spatial.distance import cdist, euclidean
 from scipy.special import gamma, gammaincinv
@@ -10,6 +9,7 @@ import pymanopt
 from pymanopt import Problem
 from pymanopt.manifolds import Grassmann
 from pymanopt.solvers import TrustRegions
+
 
 def sliding_window(data, window, step=1, padded=False, axis=-1, copy=True):
     """Calculate a sliding window over a signal.
@@ -566,6 +566,7 @@ def nonlinear_eigenspace(L, k, alpha=1):
     This example is motivated in [1]_ and was adapted from the manopt toolbox
     in Matlab.
     TODO : check this
+    TODO: check equivalence with matlab
     Parameters
     ----------
     L : array, shape=(n_channels, n_channels)
@@ -591,21 +592,15 @@ def nonlinear_eigenspace(L, k, alpha=1):
 
     # Grassmann manifold description
     manifold = Grassmann(n, k)
-    manifold._dimension = 1  # hack
-
-    # A solver that involves the hessian (check if correct TODO)
-    solver = TrustRegions()
+    #manifold._dimension = 1  # hack # TODO: not sure why we should need this hack
 
     # Cost function evaluation
-    @pymanopt.function.Callable
     def cost(X):
         rhoX = np.sum(X ** 2, 1, keepdims=True)  # diag(X*X')
-        val = 0.5 * np.trace(X.T @ (L * X)) + \
-            (alpha / 4) * (rhoX.T @ mldivide(L, rhoX))
+        val = 0.5 * np.trace(X.T @ (L * X)) + (alpha / 4) * (rhoX.T @ mldivide(L, rhoX))
         return val
 
     # Euclidean gradient evaluation
-    @pymanopt.function.Callable
     def egrad(X):
         rhoX = np.sum(X ** 2, 1, keepdims=True)  # diag(X*X')
         g = L @ X + alpha * np.diagflat(mldivide(L, rhoX)) @ X
@@ -613,7 +608,6 @@ def nonlinear_eigenspace(L, k, alpha=1):
 
     # Euclidean Hessian evaluation
     # Note: Manopt automatically converts it to the Riemannian counterpart.
-    @pymanopt.function.Callable
     def ehess(X, U):
         rhoX = np.sum(X ** 2, 1, keepdims=True)  # np.diag(X * X')
         rhoXdot = 2 * np.sum(X.dot(U), 1)
@@ -635,6 +629,7 @@ def nonlinear_eigenspace(L, k, alpha=1):
     # ingredients, namely, gradient and Hessian, information.
     problem = Problem(manifold=manifold, cost=cost, egrad=egrad, ehess=ehess,
                       verbosity=0)
-    Xsol = solver.solve(problem, U0)
+
+    Xsol = TrustRegions().solve(problem, U0)
 
     return S0, Xsol
