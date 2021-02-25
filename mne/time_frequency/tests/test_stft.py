@@ -39,7 +39,7 @@ def test_stft_api():
                  average=True)
 
     power = tfr_stft(epochs, window_size=window_size,
-                            average=True)
+                     average=True)
 
     assert (isinstance(power, AverageTFR))
     assert (np.log(power.data.max()) * 20 <= 0.0)
@@ -59,7 +59,8 @@ def test_stft_api():
     assert power.shape == (1, 1, len(freqs), times.size)
 
 
-@pytest.mark.filterwarnings('ignore:This function call for STFT is deprecated:DeprecationWarning')
+@pytest.mark.filterwarnings('ignore:This function call for '
+                            'STFT is deprecated:DeprecationWarning')
 @pytest.mark.parametrize('T', (127, 128, 255, 256, 1337))
 @pytest.mark.parametrize('wsize', (128, 256))
 @pytest.mark.parametrize('tstep', (4, 64))

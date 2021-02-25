@@ -206,6 +206,8 @@ def _stft_times(n_signals, window_size, step_size, sfreq):
 
 
 def _stft(data, window_size, step_size, verbose):
+    # XXX: substitute for scipy implementation when
+    # their roundtrip is fixed
     rfft = _import_fft('rfft')
     _validate_type(data, np.ndarray, 'data')
     if not np.isrealobj(data):
@@ -242,13 +244,17 @@ def _stft(data, window_size, step_size, verbose):
     # Zero-padding and Pre-processing for edges
     xp = np.zeros((n_signals, window_size + (n_step - 1) * step_size),
                   dtype=data.dtype)
-    xp[:, (window_size - step_size) // 2: (window_size - step_size) // 2 + T] = data
+    data_start_idx = (window_size - step_size) // 2
+    data_end_idx = (window_size - step_size) // 2 + T
+    xp[:, data_start_idx: data_end_idx] = data
     data = xp
 
     for t in range(n_step):
         # Framing
         wwin = win / swin[t * step_size: t * step_size + window_size]
-        frame = data[:, t * step_size: t * step_size + window_size] * wwin[None, :]
+        start_idx = t * step_size
+        end_idx = t * step_size + window_size
+        frame = data[:, start_idx: end_idx] * wwin[None, :]
         # FFT
         X[:, :, t] = rfft(frame)
 
