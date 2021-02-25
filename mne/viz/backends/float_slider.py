@@ -1,3 +1,11 @@
+"""Qt slider for float values."""
+
+# Authors: Guillaume Favelier <guillaume.favelier@gmail.com
+#          Eric Larson <larson.eric.d@gmail.com>
+#
+# License: Simplified BSD
+
+
 def float_slider_class():
     """Return the QFloatSlider class."""
     from PyQt5.QtCore import pyqtSignal

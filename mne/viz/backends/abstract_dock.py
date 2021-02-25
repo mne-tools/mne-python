@@ -1,3 +1,10 @@
+"""Basic dock support."""
+
+# Authors: Guillaume Favelier <guillaume.favelier@gmail.com
+#          Eric Larson <larson.eric.d@gmail.com>
+#
+# License: Simplified BSD
+
 from abc import ABC, abstractmethod
 
 
