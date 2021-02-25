@@ -613,11 +613,6 @@ class Brain(object):
         self.callbacks = dict()
         self.widgets = dict()
         self.keys = ('fmin', 'fmid', 'fmax')
-        self.slider_length = 0.02
-        self.slider_width = 0.04
-        self.slider_color = (0.43137255, 0.44313725, 0.45882353)
-        self.slider_tube_width = 0.04
-        self.slider_tube_color = (0.69803922, 0.70196078, 0.70980392)
 
         # Direct access parameters:
         self.tool_bar = None
