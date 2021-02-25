@@ -888,7 +888,7 @@ class Brain(object):
             scalar_bar.SetWidth(0.05)
             scalar_bar.SetPosition(0.02, 0.2)
 
-    def _dock_add_time_widget(self, layout=None):
+    def _configure_dock_time_widget(self, layout=None):
         len_time = len(self._data['time']) - 1
         if len_time < 1:
             return
@@ -918,7 +918,7 @@ class Brain(object):
         self.widgets["max_time"].set_value(f"{max_time: .3f}")
         self.widgets["current_time"].set_value(f"{self._current_time: .3f}")
 
-    def _dock_add_playback_widget(self, name):
+    def _configure_dock_playback_widget(self, name):
         layout = self._renderer._dock_add_group_box(name)
         len_time = len(self._data['time']) - 1
 
@@ -950,7 +950,7 @@ class Brain(object):
             self.widgets["max_time"] = None
             self.widgets["current_time"] = None
         else:
-            self._dock_add_time_widget(layout)
+            self._configure_dock_time_widget(layout)
             self.callbacks["time"].label = self.widgets["current_time"]
 
         # Playback speed widget
@@ -986,7 +986,7 @@ class Brain(object):
             self.time_actor.SetInput(current_time)
         del current_time
 
-    def _dock_add_orientation_widget(self, name):
+    def _configure_dock_orientation_widget(self, name):
         layout = self._renderer._dock_add_group_box(name)
         # Renderer widget
         rends = [str(i) for i in range(len(self.plotter.renderers))]
@@ -1041,7 +1041,7 @@ class Brain(object):
             notebook=self.notebook,
         )
 
-    def _dock_add_colormap_widget(self, name):
+    def _configure_dock_colormap_widget(self, name):
         layout = self._renderer._dock_add_group_box(name)
         self._renderer._dock_add_label(
             value="min / mid / max",
@@ -1110,7 +1110,7 @@ class Brain(object):
         for name in ("fmin", "fmid", "fmax", "fscale"):
             self.callbacks[name].widgets = widgets
 
-    def _dock_add_trace_widget(self, name):
+    def _configure_dock_trace_widget(self, name):
         if not self.show_traces:
             return
         if self.notebook:
@@ -1196,10 +1196,10 @@ class Brain(object):
 
     def _configure_dock(self):
         self._renderer._dock_initialize()
-        self._dock_add_playback_widget(name="Playback")
-        self._dock_add_orientation_widget(name="Orientation")
-        self._dock_add_colormap_widget(name="Color Limits")
-        self._dock_add_trace_widget(name="Trace")
+        self._configure_dock_playback_widget(name="Playback")
+        self._configure_dock_orientation_widget(name="Orientation")
+        self._configure_dock_colormap_widget(name="Color Limits")
+        self._configure_dock_trace_widget(name="Trace")
 
         # Smoothing widget
         self.callbacks["smoothing"] = SmartCallBack(
