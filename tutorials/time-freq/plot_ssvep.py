@@ -71,9 +71,7 @@ raw = mne.io.read_raw_brainvision(bids_fname, preload=True, verbose=False)
 raw.info['line_freq'] = 50.
 
 # Set montage
-montage = mne.channels.make_standard_montage(
-    'easycap-M1',
-    head_size=0.095)  # head_size parameter default = 0.095
+montage = mne.channels.make_standard_montage('easycap-M1')
 raw.set_montage(montage, verbose=False)
 
 # Set common average reference
@@ -174,7 +172,7 @@ def snr_spectrum(psd, noise_n_neighbor_freqs=1, noise_skip_neighbor_freqs=1):
     Parameters
     ----------
     psd : ndarray, shape ([n_trials, n_channels,] n_frequency_bins)
-        Data object containing PSD values. Works with arrays as spit out by
+        Data object containing PSD values. Works with arrays as produced by
         MNE's PSD functions or channel/trial subsets.
     noise_n_neighbor_freqs : int
         Number of neighboring frequencies used to compute noise level.
