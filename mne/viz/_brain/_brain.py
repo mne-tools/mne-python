@@ -1033,7 +1033,7 @@ class Brain(object):
         self.widgets["orientation"] = Widget(
             widget=self._renderer._dock_add_combo_box(
                 name=None,
-                value=orientation_data[0]["default"],
+                value=self.orientation[0],
                 rng=self.orientation,
                 callback=self.callbacks["orientation"],
                 layout=layout,

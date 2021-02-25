@@ -88,7 +88,7 @@ class _Renderer(_PyVistaRenderer):
         layout = self.dock_layout if layout is None else layout
         widget = Text(value=value)
         widget.observe(
-            _generate_callback(callback, to_float=validator))
+            _generate_callback(callback, to_float=validator), names='value')
         self._add_widget(layout, widget)
         return widget
 
@@ -107,7 +107,7 @@ class _Renderer(_PyVistaRenderer):
             max=rng[1],
             readout=False,
         )
-        widget.observe(_generate_callback(callback))
+        widget.observe(_generate_callback(callback), names='value')
         self._add_widget(hlayout, widget)
         self._add_widget(layout, hlayout)
         return widget
@@ -127,24 +127,24 @@ class _Renderer(_PyVistaRenderer):
             max=rng[1],
             readout=False,
         )
-        widget.observe(_generate_callback(callback))
+        widget.observe(_generate_callback(callback), names='value')
         self._add_widget(hlayout, widget)
         self._add_widget(layout, hlayout)
         return widget
 
     def _dock_add_combo_box(self, name, value, rng,
                             callback, compact=True, layout=None):
-        from ipywidgets import Combobox
+        from ipywidgets import Dropdown
         layout = self.dock_layout if layout is None else layout
         hlayout = self._dock_add_layout(not compact)
         if name is not None:
             self._dock_add_label(
                 value=name, align=not compact, layout=hlayout)
-        widget = Combobox(
+        widget = Dropdown(
             value=value,
             options=rng,
         )
-        widget.observe(_generate_callback(callback))
+        widget.observe(_generate_callback(callback), names='value')
         self._add_widget(hlayout, widget)
         self._add_widget(layout, hlayout)
         return widget
@@ -202,12 +202,11 @@ class _Renderer(_PyVistaRenderer):
 
 def _generate_callback(callback, to_float=False):
     def func(data):
-        if isinstance(data["new"], dict):
-            if "value" in data["new"]:
-                value = data["new"]["value"]
-            else:
-                value = data["old"]["value"]
-            callback(float(value) if to_float else value)
+        if "new" in data:
+            value = data["new"]
+        else:
+            value = data["old"]
+        callback(float(value) if to_float else value)
     return func
 
 
