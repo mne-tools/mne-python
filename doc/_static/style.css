@@ -168,17 +168,6 @@ img.hidden {
     visibility: hidden;
 }
 
-/* workaround for https://github.com/pydata/pydata-sphinx-theme/issues/315
-   (other part of workaround is in doc/_static/scrollfix.js) */
-   :target::before {
-    /* must use !important here to override sphinx-gallery CSS too, which
-       uses more specific selectors */
-    display: unset !important;
-    margin: unset !important;
-    height: unset !important;
-    background-color: unset !important;
-}
-
 /* workaround for https://github.com/pydata/pydata-sphinx-theme/pull/313     */
 .navbar {
     overflow: visible;
