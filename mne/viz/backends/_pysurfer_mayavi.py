@@ -23,7 +23,7 @@ from mayavi.core.scene import Scene
 from mayavi.core.ui.mayavi_scene import MayaviScene
 from tvtk.pyface.tvtk_scene import TVTKScene
 
-from .base_renderer import _BaseRenderer
+from .abstract_renderer import _AbstractRenderer
 from ._utils import _check_color, _alpha_blend_background, ALLOWED_QUIVER_MODES
 from ..utils import _ndarray_to_fig
 from ...surface import _normalize_vectors
@@ -54,7 +54,7 @@ class _Projection(object):
 
 
 @copy_base_doc_to_subclass_doc
-class _Renderer(_BaseRenderer):
+class _Renderer(_AbstractRenderer):
     """Class managing rendering scene.
 
     Attributes

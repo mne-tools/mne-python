@@ -21,7 +21,7 @@ import warnings
 import numpy as np
 import vtk
 
-from .base_renderer import _BaseRenderer
+from .abstract_renderer import _AbstractRenderer
 from .abstract_dock import _AbstractDock
 from ._utils import (_get_colormap_from_array, _alpha_blend_background,
                      ALLOWED_QUIVER_MODES, _init_qt_resources,
@@ -152,7 +152,7 @@ def _enable_aa(figure, plotter):
 
 
 @copy_base_doc_to_subclass_doc
-class _Renderer(_BaseRenderer, _AbstractDock):
+class _Renderer(_AbstractRenderer, _AbstractDock):
     """Class managing rendering scene.
 
     Attributes

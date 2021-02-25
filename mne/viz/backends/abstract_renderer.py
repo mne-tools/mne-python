@@ -7,10 +7,10 @@
 #
 # License: Simplified BSD
 
-from abc import ABCMeta, abstractclassmethod
+from abc import ABC, abstractclassmethod
 
 
-class _BaseRenderer(metaclass=ABCMeta):
+class _AbstractRenderer(ABC):
     @abstractclassmethod
     def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
                  name=None, show=False, shape=(1, 1)):
