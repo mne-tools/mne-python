@@ -88,6 +88,8 @@ Enhancements
 
 - On macOS, we now set the environment variable ``QT_MAC_WANTS_LAYER`` to ``"1"`` if it hasn't been set explicitly by the user, in order to ensure that `~mne.SourceEstimate` plots work on macOS 11 with older versions of Qt and PyQt (:gh:`8959` by `Richard Höchenberger`_)
 
+- All ``tfr_*`` functions now allow the input of a ``Raw`` object, (:gh:`8781` by `Adam Li`_)
+
 Bugs
 ~~~~
 - Fix bug with `mne.connectivity.spectral_connectivity` where time axis in Epochs data object was dropped. (:gh:`8839` **by new contributor** |Anna Padee|_)
