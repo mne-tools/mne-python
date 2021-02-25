@@ -22,6 +22,7 @@ import numpy as np
 import vtk
 
 from .base_renderer import _BaseRenderer
+from .abstract_dock import _AbstractDock
 from ._utils import (_get_colormap_from_array, _alpha_blend_background,
                      ALLOWED_QUIVER_MODES, _init_qt_resources,
                      _qt_disable_paint)
@@ -151,7 +152,7 @@ def _enable_aa(figure, plotter):
 
 
 @copy_base_doc_to_subclass_doc
-class _Renderer(_BaseRenderer):
+class _Renderer(_BaseRenderer, _AbstractDock):
     """Class managing rendering scene.
 
     Attributes
@@ -852,6 +853,140 @@ class _Renderer(_BaseRenderer):
             prop.SetOpacity(alpha)
         if line_width is not None:
             prop.SetLineWidth(line_width)
+
+    def _initialize_dock(self):
+        from PyQt5 import QtCore
+        from PyQt5.QtWidgets import QDockWidget, QVBoxLayout, QWidget
+        self.dock = QDockWidget()
+        self.dock.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea)
+        self.dock.setFeatures(QDockWidget.NoDockWidgetFeatures)
+        self.plotter.app_window.addDockWidget(
+            QtCore.Qt.LeftDockWidgetArea, self.dock)
+        self.dock.setWidget(QWidget())
+        self.dock_layout = QVBoxLayout()
+        self.dock.widget().setLayout(self.dock_layout)
+
+    def _finalize_dock(self):
+        self._add_dock_stretch(self.dock_layout)
+
+    def _add_dock_stretch(self, layout):
+        layout.addStretch()
+
+    def _add_dock_layout(self, vertical=True):
+        from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout
+        layout = QVBoxLayout() if vertical else QHBoxLayout()
+        return layout
+
+    def _add_dock_label(self, value, align=False, layout=None):
+        from PyQt5 import QtCore
+        from PyQt5.QtWidgets import QLabel
+        layout = self.dock_layout if layout is None else layout
+        widget = QLabel()
+        if align:
+            widget.setAlignment(QtCore.Qt.AlignCenter)
+        widget.setText(value)
+        layout.addWidget(widget)
+        return widget
+
+    def _add_dock_button(self, name, callback, layout=None):
+        from PyQt5.QtWidgets import QPushButton
+        layout = self.dock_layout if layout is None else layout
+        widget = QPushButton(name)
+        widget.released.connect(callback)
+        layout.addWidget(widget)
+        return widget
+
+    def _add_dock_text(self, value, callback, validator=None,
+                       layout=None):
+        from PyQt5 import QtCore
+        from PyQt5.QtGui import QDoubleValidator
+        from PyQt5.QtWidgets import QLineEdit
+        layout = self.dock_layout if layout is None else layout
+        widget = QLineEdit(value)
+        widget.setAlignment(QtCore.Qt.AlignCenter)
+        if validator is not None:
+            widget.setValidator(
+                QDoubleValidator(validator[0], validator[1], 2))
+
+            def _callback():
+                callback(float(widget.text()))
+        else:
+            def _callback():
+                callback(widget.text())
+        widget.returnPressed.connect(_callback)
+        layout.addWidget(widget)
+        return widget
+
+    def _add_dock_slider(self, label_name, value, rng, callback,
+                         compact=True, double=False, layout=None):
+        from PyQt5 import QtCore
+        from PyQt5.QtWidgets import QSlider
+        from .float_slider import float_slider_class
+        layout = self.dock_layout if layout is None else layout
+        hlayout = self._add_dock_layout(not compact)
+        if label_name is not None:
+            self._add_dock_label(
+                value=label_name, align=not compact, layout=hlayout)
+        slider_class = float_slider_class() if double else QSlider
+        widget = slider_class(QtCore.Qt.Horizontal)
+        widget.setMinimum(rng[0] if double else int(rng[0]))
+        widget.setMaximum(rng[1] if double else int(rng[1]))
+        widget.setValue(value if double else int(value))
+        widget.valueChanged.connect(callback)
+        hlayout.addWidget(widget)
+        layout.addLayout(hlayout)
+        return widget
+
+    def _add_dock_spin_box(self, label_name, value, rng, callback,
+                           compact=True, double=True, layout=None):
+        from PyQt5 import QtCore
+        from PyQt5.QtWidgets import QDoubleSpinBox, QSpinBox
+        layout = self.dock_layout if layout is None else layout
+        hlayout = self._add_dock_layout(not compact)
+        if label_name is not None:
+            self._add_dock_label(
+                value=label_name, align=not compact, layout=hlayout)
+        value = value if double else int(value)
+        widget = QDoubleSpinBox() if double else QSpinBox()
+        widget.setAlignment(QtCore.Qt.AlignCenter)
+        widget.setMinimum(rng[0])
+        widget.setMaximum(rng[1])
+        widget.setValue(value)
+        widget.valueChanged.connect(callback)
+        hlayout.addWidget(widget)
+        layout.addLayout(hlayout)
+        return widget
+
+    def _add_dock_combo_box(self, label_name, value, rng,
+                            callback, compact=True, layout=None):
+        from PyQt5.QtWidgets import QComboBox
+        layout = self.dock_layout if layout is None else layout
+        hlayout = self._add_dock_layout(not compact)
+        if label_name is not None:
+            self._add_dock_label(
+                value=label_name, align=not compact, layout=hlayout)
+        widget = QComboBox()
+        widget.addItems(rng)
+        widget.setCurrentText(value)
+        widget.currentTextChanged.connect(callback)
+        hlayout.addWidget(widget)
+        layout.addLayout(hlayout)
+        return widget
+
+    def _add_dock_group_box(self, name, layout=None):
+        from PyQt5.QtWidgets import QGroupBox, QVBoxLayout
+        layout = self.dock_layout if layout is None else layout
+        hlayout = QVBoxLayout()
+        widget = QGroupBox(name)
+        widget.setLayout(hlayout)
+        layout.addWidget(widget)
+        return hlayout
+
+    def _show_dock(self):
+        self.dock.show()
+
+    def _hide_dock(self):
+        self.dock.hide()
 
 
 def _compute_normals(mesh):

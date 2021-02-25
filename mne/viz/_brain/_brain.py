@@ -771,19 +771,15 @@ class Brain(object):
 
         # update tool bar and dock
         if self.visibility:
-            if self.notebook:
-                self.dock_layout.layout.visibility = "visible"
-            else:
+            self._renderer._show_dock()
+            if not self.notebook:
                 self.actions["visibility"].setIcon(
                     self.icons["visibility_on"])
-                self.dock.show()
         else:
-            if self.notebook:
-                self.dock_layout.layout.visibility = "hidden"
-            else:
+            self._renderer._hide_dock()
+            if not self.notebook:
                 self.actions["visibility"].setIcon(
                     self.icons["visibility_off"])
-                self.dock.hide()
 
         self._update()
 
@@ -892,196 +888,55 @@ class Brain(object):
             scalar_bar.SetWidth(0.05)
             scalar_bar.SetPosition(0.02, 0.2)
 
-    def _initialize_dock(self):
-        if self.notebook:
-            self.dock_layout = self._renderer._initialize_dock()
-            self.dock = None
-        else:
-            from PyQt5 import QtCore
-            from PyQt5.QtWidgets import QDockWidget, QVBoxLayout, QWidget
-            dock = QDockWidget()
-            dock.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea)
-            dock.setFeatures(QDockWidget.NoDockWidgetFeatures)
-            self.window.addDockWidget(QtCore.Qt.LeftDockWidgetArea, dock)
-            dock.setWidget(QWidget())
-            self.dock_layout = QVBoxLayout()
-            dock.widget().setLayout(self.dock_layout)
-            self.dock = dock
-
-    def _finalize_dock(self):
-        self._add_dock_stretch(self.dock_layout)
-
-    def _add_dock_stretch(self, layout):
-        if self.notebook:
-            return
-        layout.addStretch()
-
-    def _add_dock_layout(self, vertical=True):
-        if self.notebook:
-            return self._renderer._add_dock_layout(vertical)
-        else:
-            from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout
-            return QVBoxLayout() if vertical else QHBoxLayout()
-
-    def _add_dock_label(self, value, align=False, layout=None):
-        layout = self.dock_layout if layout is None else layout
-        if self.notebook:
-            widget = self._renderer._add_dock_label(value)
-            self._renderer._add_widget(layout, widget)
-        else:
-            from PyQt5 import QtCore
-            from PyQt5.QtWidgets import QLabel
-            widget = QLabel()
-            if align:
-                widget.setAlignment(QtCore.Qt.AlignCenter)
-            widget.setText(value)
-            layout.addWidget(widget)
-        return widget
-
     def _add_dock_button(self, widget_name, label_name, callback, layout=None):
-        layout = self.dock_layout if layout is None else layout
-        if self.notebook:
-            label_name = widget_name if label_name is None else label_name
-            widget = self._renderer._add_dock_button(
-                label_name, callback)
-            self._renderer._add_widget(layout, widget)
-        else:
-            from PyQt5.QtWidgets import QPushButton
-            widget = QPushButton(label_name)
-            widget.released.connect(callback)
-            layout.addWidget(widget)
+        widget = self._renderer._add_dock_button(label_name, callback, layout)
         self.widgets[widget_name] = Widget(widget, self.notebook)
 
     def _add_dock_text(self, widget_name, value, callback, validator=None,
                        layout=None):
-        layout = self.dock_layout if layout is None else layout
-        if self.notebook:
-            widget = self._renderer._add_dock_text(
-                value, callback, validator)
-            self._renderer._add_widget(layout, widget)
-        else:
-            from PyQt5 import QtCore
-            from PyQt5.QtGui import QDoubleValidator
-            from PyQt5.QtWidgets import QLineEdit
-            widget = QLineEdit(value)
-            widget.setAlignment(QtCore.Qt.AlignCenter)
-            if validator is not None:
-                widget.setValidator(
-                    QDoubleValidator(validator[0], validator[1], 2))
-
-                def _callback():
-                    callback(float(widget.text()))
-            else:
-                def _callback():
-                    callback(widget.text())
-            widget.returnPressed.connect(_callback)
-            layout.addWidget(widget)
+        widget = self._renderer._add_dock_text(
+            value, callback, validator, layout)
         self.widgets[widget_name] = Widget(widget, self.notebook)
 
     def _add_dock_slider(self, widget_name, label_name, value, rng, callback,
                          compact=True, double=False, layout=None):
-        layout = self.dock_layout if layout is None else layout
-        hlayout = self._add_dock_layout(not compact)
-        if label_name is not None:
-            self._add_dock_label(value=label_name, align=not compact,
-                                 layout=hlayout)
-        if self.notebook:
-            widget = self._renderer._add_dock_slider(
-                value, rng, callback, double)
-            self._renderer._add_widget(hlayout, widget)
-            self._renderer._add_widget(layout, hlayout)
-        else:
-            from PyQt5 import QtCore
-            from PyQt5.QtWidgets import QSlider
-            from .float_slider import float_slider_class
-            slider_class = float_slider_class() if double else QSlider
-            widget = slider_class(QtCore.Qt.Horizontal)
-            widget.setMinimum(rng[0])
-            widget.setMaximum(rng[1])
-            widget.setValue(value if double else int(value))
-            widget.valueChanged.connect(callback)
-            hlayout.addWidget(widget)
-            layout.addLayout(hlayout)
+        widget = self._renderer._add_dock_slider(
+            label_name, value, rng, callback, compact, double, layout)
         self.widgets[widget_name] = Widget(widget, self.notebook)
 
     def _add_dock_spin_box(self, widget_name, label_name, value, rng, callback,
-                           double=True, compact=True, layout=None):
-        layout = self.dock_layout if layout is None else layout
-        hlayout = self._add_dock_layout(not compact)
-        if label_name is not None:
-            self._add_dock_label(
-                value=label_name, align=not compact, layout=hlayout)
-        if self.notebook:
-            widget = self._renderer._add_dock_spin_box(
-                value, rng, callback)
-            self._renderer._add_widget(hlayout, widget)
-            self._renderer._add_widget(layout, hlayout)
-        else:
-            from PyQt5 import QtCore
-            from PyQt5.QtWidgets import QDoubleSpinBox, QSpinBox
-            value = value if double else int(value)
-            widget = QDoubleSpinBox() if double else QSpinBox()
-            widget.setAlignment(QtCore.Qt.AlignCenter)
-            widget.setMinimum(rng[0])
-            widget.setMaximum(rng[1])
-            widget.setValue(value)
-            widget.valueChanged.connect(callback)
-            hlayout.addWidget(widget)
-            layout.addLayout(hlayout)
+                           compact=True, double=True, layout=None):
+        widget = self._renderer._add_dock_spin_box(
+            label_name, value, rng, callback, compact, double, layout)
         self.widgets[widget_name] = Widget(widget, self.notebook)
 
     def _add_dock_combo_box(self, widget_name, label_name, value, rng,
                             callback, compact=True, layout=None):
-        layout = self.dock_layout if layout is None else layout
-        hlayout = self._add_dock_layout(not compact)
-        if label_name is not None:
-            self._add_dock_label(
-                value=label_name, align=not compact, layout=hlayout)
-        if self.notebook:
-            widget = self._renderer._add_dock_combo_box(
-                value, rng, callback)
-            self._renderer._add_widget(hlayout, widget)
-            self._renderer._add_widget(layout, hlayout)
-        else:
-            from PyQt5.QtWidgets import QComboBox
-            widget = QComboBox()
-            widget.addItems(rng)
-            widget.setCurrentText(value)
-            widget.currentTextChanged.connect(callback)
-            hlayout.addWidget(widget)
-            layout.addLayout(hlayout)
+        widget = self._renderer._add_dock_combo_box(
+            label_name, value, rng, callback, compact, layout)
         self.widgets[widget_name] = Widget(widget, self.notebook)
 
-    def _add_dock_group_box(self, name):
-        if self.notebook:
-            layout = self._renderer._add_dock_group_box()
-            self._renderer._add_widget(self.dock_layout, layout)
-        else:
-            from PyQt5.QtWidgets import QGroupBox, QVBoxLayout
-            layout = QVBoxLayout()
-            widget = QGroupBox(name)
-            widget.setLayout(layout)
-            self.dock_layout.addWidget(widget)
-        return layout
+    def _add_dock_group_box(self, name, layout=None):
+        return self._renderer._add_dock_group_box(name)
 
     def _add_dock_time_widget(self, layout=None):
         len_time = len(self._data['time']) - 1
         if len_time < 1:
             return
-        layout = self.dock_layout if layout is None else layout
-        hlayout = self._add_dock_layout(vertical=False)
+        layout = self._renderer.dock_layout if layout is None else layout
+        hlayout = self._renderer._add_dock_layout(vertical=False)
         self.widgets["min_time"] = Widget(
-            widget=self._add_dock_label(value="-", layout=hlayout),
+            widget=self._renderer._add_dock_label(value="-", layout=hlayout),
             notebook=self.notebook
         )
-        self._add_dock_stretch(hlayout)
+        self._renderer._add_dock_stretch(hlayout)
         self.widgets["current_time"] = Widget(
-            widget=self._add_dock_label(value="x", layout=hlayout),
+            widget=self._renderer._add_dock_label(value="x", layout=hlayout),
             notebook=self.notebook,
         )
-        self._add_dock_stretch(hlayout)
+        self._renderer._add_dock_stretch(hlayout)
         self.widgets["max_time"] = Widget(
-            widget=self._add_dock_label(value="+", layout=hlayout),
+            widget=self._renderer._add_dock_label(value="+", layout=hlayout),
             notebook=self.notebook,
         )
         if self.notebook:
@@ -1211,13 +1066,13 @@ class Brain(object):
 
     def _add_dock_colormap_widget(self, name):
         layout = self._add_dock_group_box(name)
-        self._add_dock_label(
+        self._renderer._add_dock_label(
             value="min / mid / max",
             align=True,
             layout=layout,
         )
         for idx, key in enumerate(self.keys):
-            hlayout = self._add_dock_layout(vertical=False)
+            hlayout = self._renderer._add_dock_layout(vertical=False)
             rng = _get_range(self)
             self.callbacks[key] = BumpColorbarPoints(
                 brain=self,
@@ -1351,7 +1206,7 @@ class Brain(object):
         )
 
     def _configure_dock(self):
-        self._initialize_dock()
+        self._renderer._initialize_dock()
         self._add_dock_playback_widget(name="Playback")
         self._add_dock_orientation_widget(name="Orientation")
         self._add_dock_colormap_widget(name="Color Limits")
@@ -1372,7 +1227,7 @@ class Brain(object):
         self.callbacks["smoothing"].widget = \
             self.widgets["smoothing"]
 
-        self._finalize_dock()
+        self._renderer._finalize_dock()
 
     def _configure_playback(self):
         self.plotter.add_callback(self._play, self.refresh_rate_ms)
@@ -2932,7 +2787,7 @@ class Brain(object):
         if self.notebook or not self.time_viewer:
             yield
         else:
-            self.dock.hide()
+            self._renderer._hide_dock()
             if self.mpl_canvas is not None:
                 self.mpl_canvas.canvas.hide()
             wsz = self.window.size()
@@ -2945,7 +2800,7 @@ class Brain(object):
             finally:
                 self.plotter.setMinimumSize(0, 0)
                 self.window.resize(wsz)
-                self.dock.show()
+                self._renderer._show_dock()
                 if self.mpl_canvas is not None:
                     self.mpl_canvas.canvas.show()
 
