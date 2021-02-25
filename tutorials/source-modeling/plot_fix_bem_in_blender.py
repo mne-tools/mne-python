@@ -155,10 +155,10 @@ mne.write_surface(op.join(bem_dir, 'inner_skull.surf'), coords, faces,
 #
 #    .. code-block:: console
 #    
-#        RuntimeError: Cannot decimate to requested ico grade 4. The provided
-#        BEM surface has 20516 triangles, which cannot be isomorphic with a
-#        subdivided icosahedron. Consider manually decimating the surface to a
-#        suitable density and then use ico=None in make_bem_model.
+#       RuntimeError: Cannot decimate to requested ico grade 4. The provided
+#       BEM surface has 20516 triangles, which cannot be isomorphic with a
+#       subdivided icosahedron. Consider manually decimating the surface to a
+#       suitable density and then use ico=None in make_bem_model.
 #
 # 2. Surface inner skull has topological defects
 #
