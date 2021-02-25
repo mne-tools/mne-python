@@ -47,36 +47,42 @@ class _Renderer(_PyVistaRenderer):
         from ipywidgets import Text
         return Text(value=value, placeholder=placeholder)
 
-    def _initialize_dock(self):
+    def _dock_initialize(self):
         from ipywidgets import VBox
         self.dock = self.dock_layout = VBox()
         self.dock.layout.width = f"{self.dock_width}px"
 
-    def _finalize_dock(self):
+    def _dock_finalize(self):
         pass
 
-    def _add_dock_stretch(self, layout):
+    def _dock_show(self):
+        self.dock_layout.layout.visibility = "visible"
+
+    def _dock_hide(self):
+        self.dock_layout.layout.visibility = "hidden"
+
+    def _dock_add_stretch(self, layout):
         pass
 
-    def _add_dock_layout(self, vertical=True):
+    def _dock_add_layout(self, vertical=True):
         from ipywidgets import VBox, HBox
         return VBox() if vertical else HBox()
 
-    def _add_dock_label(self, value, align=False, layout=None):
+    def _dock_add_label(self, value, align=False, layout=None):
         from ipywidgets import Text
         layout = self.dock_layout if layout is None else layout
         widget = Text(value=value, disabled=True)
         self._add_widget(layout, widget)
         return widget
 
-    def _add_dock_button(self, name, callback, layout=None):
+    def _dock_add_button(self, name, callback, layout=None):
         from ipywidgets import Button
         widget = Button(description=name)
         widget.on_click(lambda x: callback())
         self._add_widget(layout, widget)
         return widget
 
-    def _add_dock_text(self, value, callback, validator=None,
+    def _dock_add_text(self, value, callback, validator=None,
                        layout=None):
         from ipywidgets import Text
         layout = self.dock_layout if layout is None else layout
@@ -86,13 +92,13 @@ class _Renderer(_PyVistaRenderer):
         self._add_widget(layout, widget)
         return widget
 
-    def _add_dock_slider(self, label_name, value, rng, callback,
+    def _dock_add_slider(self, label_name, value, rng, callback,
                          compact=True, double=False, layout=None):
         from ipywidgets import IntSlider, FloatSlider
         layout = self.dock_layout if layout is None else layout
-        hlayout = self._add_dock_layout(not compact)
+        hlayout = self._dock_add_layout(not compact)
         if label_name is not None:
-            self._add_dock_label(
+            self._dock_add_label(
                 value=label_name, align=not compact, layout=hlayout)
         klass = FloatSlider if double else IntSlider
         widget = klass(
@@ -106,13 +112,13 @@ class _Renderer(_PyVistaRenderer):
         self._add_widget(layout, hlayout)
         return widget
 
-    def _add_dock_spin_box(self, label_name, value, rng, callback,
+    def _dock_add_spin_box(self, label_name, value, rng, callback,
                            compact=True, double=True, layout=None):
         from ipywidgets import IntText, FloatText
         layout = self.dock_layout if layout is None else layout
-        hlayout = self._add_dock_layout(not compact)
+        hlayout = self._dock_add_layout(not compact)
         if label_name is not None:
-            self._add_dock_label(
+            self._dock_add_label(
                 value=label_name, align=not compact, layout=hlayout)
         klass = FloatText if double else IntText
         widget = klass(
@@ -126,13 +132,13 @@ class _Renderer(_PyVistaRenderer):
         self._add_widget(layout, hlayout)
         return widget
 
-    def _add_dock_combo_box(self, label_name, value, rng,
+    def _dock_add_combo_box(self, label_name, value, rng,
                             callback, compact=True, layout=None):
         from ipywidgets import Combobox
         layout = self.dock_layout if layout is None else layout
-        hlayout = self._add_dock_layout(not compact)
+        hlayout = self._dock_add_layout(not compact)
         if label_name is not None:
-            self._add_dock_label(
+            self._dock_add_label(
                 value=label_name, align=not compact, layout=hlayout)
         widget = Combobox(
             value=value,
@@ -143,18 +149,12 @@ class _Renderer(_PyVistaRenderer):
         self._add_widget(layout, hlayout)
         return widget
 
-    def _add_dock_group_box(self, name, layout=None):
+    def _dock_add_group_box(self, name, layout=None):
         from ipywidgets import VBox
         layout = self.dock_layout if layout is None else layout
         hlayout = VBox()
         self._add_widget(layout, hlayout)
         return hlayout
-
-    def _show_dock(self):
-        self.dock_layout.layout.visibility = "visible"
-
-    def _hide_dock(self):
-        self.dock_layout.layout.visibility = "hidden"
 
     def _initialize_tool_bar(self, actions=None):
         if actions is None:
