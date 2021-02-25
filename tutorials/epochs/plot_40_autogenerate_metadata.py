@@ -11,14 +11,24 @@ We are going to use data from the :ref:`erp-core-dataset` (derived from
 :footcite:`Kappenman2021`). This is EEG data from a single participant
 performing an active visual task (Flankers task).
 
-We will first focus on producing ERP time-locked to the **visual stimulation**,
-conditional on response correctness and response time in order to familiarize
-ourselves with the `~mne.epochs.make_metadata` function. After that, we will
-calculate ERPs time-locked to the **responses** – again, conditional on
-response correctness – to visualize the error-related negativity (ERN), i.e.
-the ERP component associated with incorrect behavioral responses.
+.. note::
+   If you wish to skip the introductory parts of this tutorial, you may skip
+   straight to a self-contained example in section
+   :ref:`tut-autogenerate-metadata-ern`.
 
-.. contents:: :local:
+This tutorial is loosely divided into two parts:
+
+1. We will first focus on producing ERP time-locked to the **visual
+   stimulation**, conditional on response correctness and response time in
+   order to familiarize ourselves with the `~mne.epochs.make_metadata`
+   function.
+2. After that, we will calculate ERPs time-locked to the **responses** – again,
+   conditional on response correctness – to visualize the error-related
+   negativity (ERN), i.e. the ERP component associated with incorrect
+   behavioral responses.
+
+.. contents:: Table of contents
+  :local:
   :depth: 3
 
 Preparation
@@ -144,8 +154,8 @@ metadata, events, event_id = mne.epochs.make_metadata(
 metadata
 
 ###############################################################################
-# Keeping only the first event of a kind
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Keeping only the first events of a group
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
 # The metadata now contains 400 rows – one per stimulation – and the same
 # number of columns as before. Great!
@@ -172,11 +182,11 @@ metadata, events, event_id = mne.epochs.make_metadata(
     keep_first=keep_first)
 
 # visualize response times regardless of side
-metadata['response_time'].plot.hist(bins=50)
+metadata['response_time'].plot.hist(bins=50, title='Response Times')
 
 # the "response" column contains only "left" and "right" entries, derived from
 # the initial event named "response/left" and "response/right"
-metadata['response']
+print(metadata['response'])
 
 ###############################################################################
 # We're facing a similar issue with the stimulus events, and now there are not
@@ -204,10 +214,12 @@ metadata, events, event_id = mne.epochs.make_metadata(
     time_locked_events=time_locked_events,
     keep_first=keep_first)
 
-# all times should be zero
-metadata['stimulus_time'].plot.box()
+# all times of the time-locked events should be zero
+assert all(metadata['stimulus_time'] == 0)
 
-metadata['stimulus']
+# the values in the new "stimulus" and "response" columns indicate which events
+# were selected via "keep_first"
+metadata[['stimulus', 'response']]
 
 ###############################################################################
 # Adding new columns to describe stimulation side and response correctness
@@ -279,6 +291,8 @@ fig
 # noisier – which is entirely to be expected – not much of an ERP difference
 # can be seen.
 #
+# .. _tut-autogenerate-metadata-ern:
+#
 # Applying the knowledge: visualizing the ERN component
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -301,6 +315,19 @@ fig
 # know above, only that it keeps the **last** occurrences of the specified
 # events.
 
+from pathlib import Path
+import matplotlib.pyplot as plt
+import mne
+
+
+# import and filter the data, and extract events
+data_dir = Path(mne.datasets.erp_core.data_path())
+infile = data_dir / 'ERP-CORE_Subject-001_Task-Flankers_eeg.fif'
+raw = mne.io.read_raw(infile, preload=True)
+raw.filter(l_freq=0.1, h_freq=40)
+all_events, all_event_id = mne.events_from_annotations(raw)
+
+# generate metadata from events
 metadata_tmin, metadata_tmax = -1.5, 0
 time_locked_events = ['response/left', 'response/right']
 keep_last = ['stimulus', 'response']
@@ -312,8 +339,8 @@ metadata, events, event_id = mne.epochs.make_metadata(
     keep_last=keep_last)
 
 ###############################################################################
-# Exactly like in the previous example, create new columns "stimulus_side"
-# and "response_correct".
+# Exactly like in the previous example, create new columns ``stimulus_side``
+# and ``response_correct``.
 
 # left-side stimulation
 metadata.loc[metadata['stimulus'].isin(['compatible/target_left',
@@ -330,6 +357,8 @@ metadata.loc[metadata['stimulus'].isin(['compatible/target_right',
 metadata['response_correct'] = False
 metadata.loc[metadata['stimulus_side'] == metadata['response'],
              'response_correct'] = True
+
+metadata
 
 ###############################################################################
 # Now it's already time to epoch the data! When deciding upon the epochs
