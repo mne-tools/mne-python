@@ -122,7 +122,7 @@ Bugs
 
 - Fix bug with ``replace`` argument of :meth:`mne.Report.add_bem_to_section` and :meth:`mne.Report.add_slider_to_section` (:gh:`8723` by `Eric Larson`_)
 
-- Fix bug with :func:`mne.compute_chpi_locs` where all cHPI coils being off would lead to an empty array of the wrong dimensionality (:gh:`8956` by `Eric Larson`_)
+- Fix bug with :func:`mne.chpi.compute_chpi_locs` where all cHPI coils being off would lead to an empty array of the wrong dimensionality (:gh:`8956` by `Eric Larson`_)
 
 - Fix compatibility bugs with :mod:`mne_realtime` (:gh:`8845` by `Eric Larson`_)
 
