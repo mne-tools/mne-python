@@ -2113,9 +2113,12 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
 
         Notes
         -----
-        Passing in ``median`` is considered unsafe when there is complex
-        data. Use with caution. We use the marginal median in the
-        complex case.
+        Passing in ``np.median`` is considered unsafe when there is complex
+        data because NumPy doesn't compute the marginal median. Numpy currently
+        sorts the complex values by real part and return whatever value is
+        computed. Use with caution. We use the marginal median in the
+        complex case (i.e. the median of each component separately) if
+        one passes in ``median``.
 
         The ``method`` parameter allows e.g. robust averaging.
         For example, one could do:
