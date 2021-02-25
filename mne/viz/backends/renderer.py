@@ -115,8 +115,7 @@ def set_3d_backend(backend_name, verbose=None):
         MNE_3D_BACKEND = backend_name
 
     # Qt5 macOS 11 compatibility
-    if (backend_name == 'pyvista' and sys.platform == 'darwin' and
-            'QT_MAC_WANTS_LAYER' not in os.environ):
+    if sys.platform == 'darwin' and 'QT_MAC_WANTS_LAYER' not in os.environ:
         os.environ['QT_MAC_WANTS_LAYER'] = '1'
 
 
