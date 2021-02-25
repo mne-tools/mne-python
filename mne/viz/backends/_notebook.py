@@ -92,14 +92,14 @@ class _Renderer(_PyVistaRenderer):
         self._add_widget(layout, widget)
         return widget
 
-    def _dock_add_slider(self, label_name, value, rng, callback,
+    def _dock_add_slider(self, name, value, rng, callback,
                          compact=True, double=False, layout=None):
         from ipywidgets import IntSlider, FloatSlider
         layout = self.dock_layout if layout is None else layout
         hlayout = self._dock_add_layout(not compact)
-        if label_name is not None:
+        if name is not None:
             self._dock_add_label(
-                value=label_name, align=not compact, layout=hlayout)
+                value=name, align=not compact, layout=hlayout)
         klass = FloatSlider if double else IntSlider
         widget = klass(
             value=value,
@@ -112,14 +112,14 @@ class _Renderer(_PyVistaRenderer):
         self._add_widget(layout, hlayout)
         return widget
 
-    def _dock_add_spin_box(self, label_name, value, rng, callback,
+    def _dock_add_spin_box(self, name, value, rng, callback,
                            compact=True, double=True, layout=None):
         from ipywidgets import IntText, FloatText
         layout = self.dock_layout if layout is None else layout
         hlayout = self._dock_add_layout(not compact)
-        if label_name is not None:
+        if name is not None:
             self._dock_add_label(
-                value=label_name, align=not compact, layout=hlayout)
+                value=name, align=not compact, layout=hlayout)
         klass = FloatText if double else IntText
         widget = klass(
             value=value,
@@ -132,14 +132,14 @@ class _Renderer(_PyVistaRenderer):
         self._add_widget(layout, hlayout)
         return widget
 
-    def _dock_add_combo_box(self, label_name, value, rng,
+    def _dock_add_combo_box(self, name, value, rng,
                             callback, compact=True, layout=None):
         from ipywidgets import Combobox
         layout = self.dock_layout if layout is None else layout
         hlayout = self._dock_add_layout(not compact)
-        if label_name is not None:
+        if name is not None:
             self._dock_add_label(
-                value=label_name, align=not compact, layout=hlayout)
+                value=name, align=not compact, layout=hlayout)
         widget = Combobox(
             value=value,
             options=rng,

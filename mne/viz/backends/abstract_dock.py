@@ -42,22 +42,22 @@ class _AbstractDock(ABC):
         pass
 
     @abstractmethod
-    def _dock_add_text(self, widget_name, value, callback, validator=None,
+    def _dock_add_text(self, value, callback, validator=None,
                        layout=None):
         pass
 
     @abstractmethod
-    def _dock_add_slider(self, label_name, value, rng, callback,
+    def _dock_add_slider(self, name, value, rng, callback,
                          compact=True, double=False, layout=None):
         pass
 
     @abstractmethod
-    def _dock_add_spin_box(self, label_name, value, rng, callback,
+    def _dock_add_spin_box(self, name, value, rng, callback,
                            compact=True, double=True, layout=None):
         pass
 
     @abstractmethod
-    def _dock_add_combo_box(self, label_name, value, rng,
+    def _dock_add_combo_box(self, name, value, rng,
                             callback, compact=True, layout=None):
         pass
 

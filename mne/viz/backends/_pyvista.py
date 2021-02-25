@@ -923,16 +923,16 @@ class _Renderer(_AbstractRenderer, _AbstractDock):
         layout.addWidget(widget)
         return widget
 
-    def _dock_add_slider(self, label_name, value, rng, callback,
+    def _dock_add_slider(self, name, value, rng, callback,
                          compact=True, double=False, layout=None):
         from PyQt5 import QtCore
         from PyQt5.QtWidgets import QSlider
         from .float_slider import float_slider_class
         layout = self.dock_layout if layout is None else layout
         hlayout = self._dock_add_layout(not compact)
-        if label_name is not None:
+        if name is not None:
             self._dock_add_label(
-                value=label_name, align=not compact, layout=hlayout)
+                value=name, align=not compact, layout=hlayout)
         slider_class = float_slider_class() if double else QSlider
         widget = slider_class(QtCore.Qt.Horizontal)
         widget.setMinimum(rng[0] if double else int(rng[0]))
@@ -943,15 +943,15 @@ class _Renderer(_AbstractRenderer, _AbstractDock):
         layout.addLayout(hlayout)
         return widget
 
-    def _dock_add_spin_box(self, label_name, value, rng, callback,
+    def _dock_add_spin_box(self, name, value, rng, callback,
                            compact=True, double=True, layout=None):
         from PyQt5 import QtCore
         from PyQt5.QtWidgets import QDoubleSpinBox, QSpinBox
         layout = self.dock_layout if layout is None else layout
         hlayout = self._dock_add_layout(not compact)
-        if label_name is not None:
+        if name is not None:
             self._dock_add_label(
-                value=label_name, align=not compact, layout=hlayout)
+                value=name, align=not compact, layout=hlayout)
         value = value if double else int(value)
         widget = QDoubleSpinBox() if double else QSpinBox()
         widget.setAlignment(QtCore.Qt.AlignCenter)
@@ -963,14 +963,14 @@ class _Renderer(_AbstractRenderer, _AbstractDock):
         layout.addLayout(hlayout)
         return widget
 
-    def _dock_add_combo_box(self, label_name, value, rng,
+    def _dock_add_combo_box(self, name, value, rng,
                             callback, compact=True, layout=None):
         from PyQt5.QtWidgets import QComboBox
         layout = self.dock_layout if layout is None else layout
         hlayout = self._dock_add_layout(not compact)
-        if label_name is not None:
+        if name is not None:
             self._dock_add_label(
-                value=label_name, align=not compact, layout=hlayout)
+                value=name, align=not compact, layout=hlayout)
         widget = QComboBox()
         widget.addItems(rng)
         widget.setCurrentText(value)
