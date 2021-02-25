@@ -167,25 +167,6 @@ def test_ssd():
     psd_S, _ = psd_array_welch(S[0], sfreq=250, n_fft=250)
     corr = np.abs(np.corrcoef((psd_out, psd_S))[0, 1])
     assert np.abs(corr) > 0.95
-
-    # Check return_filtered
-    # Simulated more noise data
-    X, A, S = simulate_data(SNR=.5)
-    n_components = n_components_true
-    filt_params_signal = dict(l_freq=freqs_sig[0], h_freq=freqs_sig[1],
-                              l_trans_bandwidth=1, h_trans_bandwidth=1)
-    filt_params_noise = dict(l_freq=freqs_noise[0], h_freq=freqs_noise[1],
-                             l_trans_bandwidth=1, h_trans_bandwidth=1)
-    ssd = SSD(info, filt_params_signal, filt_params_noise,
-              n_components=n_components, sort_by_spectral_ratio=False,
-              return_filtered=True)
-    ssd.fit(X)
-
-    out = ssd.transform(X)
-    psd_out, freqs = psd_array_welch(out[0], sfreq=250, n_fft=250)
-    freqs_up = int(freqs[psd_out > 10][0]), int(freqs[psd_out > 10][-1])
-    assert (freqs_up == freqs_sig)
-
     # Check pattern estimation
     # Since there is no exact ordering of the recovered patterns
     # a pair-wise greedy search will be done
@@ -296,3 +277,37 @@ def test_sorting():
     _, sorter_out = ssd.get_spectral_ratio(ssd.transform(Xtr))
 
     assert all(sorter_in == sorter_out)
+
+
+def test_return_filtered():
+    """Test return filtered option."""
+    # Check return_filtered
+    # Simulated more noise data
+    X, A, S = simulate_data(SNR=0.9, freqs_sig=[4, 13])
+    sf = 250
+    n_channels = X.shape[0]
+    info = create_info(ch_names=n_channels, sfreq=sf, ch_types='eeg')
+
+    filt_params_signal = dict(l_freq=freqs_sig[0], h_freq=freqs_sig[1],
+                              l_trans_bandwidth=1, h_trans_bandwidth=1)
+    filt_params_noise = dict(l_freq=freqs_noise[0], h_freq=freqs_noise[1],
+                             l_trans_bandwidth=1, h_trans_bandwidth=1)
+    # return filtered to true
+    ssd = SSD(info, filt_params_signal, filt_params_noise,
+              sort_by_spectral_ratio=False, return_filtered=True)
+    ssd.fit(X)
+
+    out = ssd.transform(X)
+    psd_out, freqs = psd_array_welch(out[0], sfreq=250, n_fft=250)
+    freqs_up = int(freqs[psd_out > 0.5][0]), int(freqs[psd_out > 0.5][-1])
+    assert (freqs_up == freqs_sig)
+
+    # return filtered to false
+    ssd = SSD(info, filt_params_signal, filt_params_noise,
+              sort_by_spectral_ratio=False, return_filtered=False)
+    ssd.fit(X)
+
+    out = ssd.transform(X)
+    psd_out, freqs = psd_array_welch(out[0], sfreq=250, n_fft=250)
+    freqs_up = int(freqs[psd_out > 0.5][0]), int(freqs[psd_out > 0.5][-1])
+    assert (freqs_up != freqs_sig)
