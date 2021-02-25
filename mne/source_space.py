@@ -321,16 +321,16 @@ class SourceSpaces(list):
             ss.append(deepcopy(s, memodict))
         return SourceSpaces(ss, info)
 
-    def save(self, fname, overwrite=False):
+    @verbose
+    def save(self, fname, overwrite=False, *, verbose=None):
         """Save the source spaces to a fif file.
 
         Parameters
         ----------
         fname : str
             File to write.
-        overwrite : bool
-            If True, the destination file (if it exists) will be overwritten.
-            If False (default), an error will be raised if the file exists.
+        %(overwrite)s
+        %(verbose_meth)s
         """
         write_source_spaces(fname, self, overwrite)
 
@@ -373,8 +373,7 @@ class SourceSpaces(list):
         use_lut : bool
             If True, assigns a numeric value to each source space that
             corresponds to a color on the freesurfer lookup table.
-        overwrite : bool
-            If True, overwrite the file if it exists.
+        %(overwrite)s
 
             .. versionadded:: 0.19
         %(verbose_meth)s
@@ -1063,9 +1062,7 @@ def write_source_spaces(fname, src, overwrite=False, verbose=None):
         -src.fif.gz.
     src : SourceSpaces
         The source spaces (as returned by read_source_spaces).
-    overwrite : bool
-        If True, the destination file (if it exists) will be overwritten.
-        If False (default), an error will be raised if the file exists.
+    %(overwrite)s
     %(verbose)s
 
     See Also

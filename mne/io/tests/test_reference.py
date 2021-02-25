@@ -415,7 +415,7 @@ def test_set_bipolar_reference(inst_type):
                                   ch_info={'kind': FIFF.FIFFV_MEG_CH},
                                   verbose='error')
     assert (not reref.info['custom_ref_applied'])
-    assert ('MEG 0111-MEG 0112'[:15] in reref.ch_names)
+    assert ('MEG 0111-MEG 0112' in reref.ch_names)
 
     # Test a battery of invalid inputs
     pytest.raises(ValueError, set_bipolar_reference, inst,

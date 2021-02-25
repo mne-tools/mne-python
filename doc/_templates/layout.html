@@ -18,19 +18,6 @@
 {{ super() }}
 {% endblock %}
 
-<!-- dev version warning bar -->
-{% block relbar1 %}
-  {% if build_dev_html|tobool %}
-    <div class="container-fluid alert-danger devbar">
-      <div class="row no-gutters">
-        <div class="col-12 text-center">
-          This is documentation for the <em>unstable development version</em> of MNE-Python. <a class="alert-link" href="https://mne.tools/stable">Click here</a> to switch to the stable version.
-        </div>
-      </div>
-    </div>
-  {% endif %}
-{% endblock %}
-
 <!-- homepage gallery -->
 {% block docs_body %}
 <div>

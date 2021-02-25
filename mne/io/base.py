@@ -611,7 +611,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """The filenames used."""
         return tuple(self._filenames)
 
-    def set_annotations(self, annotations, emit_warning=True):
+    @verbose
+    def set_annotations(self, annotations, emit_warning=True,
+                        on_missing='raise', *, verbose=None):
         """Setter for annotations.
 
         This setter checks if they are inside the data range.
@@ -622,7 +624,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             Annotations to set. If None, the annotations is defined
             but empty.
         emit_warning : bool
-            Whether to emit warnings when limiting or omitting annotations.
+            Whether to emit warnings when cropping or omitting annotations.
+        %(on_missing_ch_names)s
+        %(verbose_meth)s
 
         Returns
         -------
@@ -648,6 +652,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
             delta = 1. / self.info['sfreq']
             new_annotations = annotations.copy()
+            new_annotations._prune_ch_names(self.info, on_missing)
             if annotations.orig_time is None:
                 new_annotations.crop(0, self.times[-1] + delta,
                                      emit_warning=emit_warning)
@@ -1334,9 +1339,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             and neither complex data types nor real data stored as 'double'
             can be loaded with the MNE command-line tools. See raw.orig_format
             to determine the format the original data were stored in.
-        overwrite : bool
-            If True, the destination file (if it exists) will be overwritten.
-            If False (default), an error will be raised if the file exists.
+        %(overwrite)s
             To overwrite original file (the same one that was loaded),
             data must be preloaded upon reading.
         split_size : str | int
