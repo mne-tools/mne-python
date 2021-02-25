@@ -202,10 +202,7 @@ class _Renderer(_PyVistaRenderer):
 
 def _generate_callback(callback, to_float=False):
     def func(data):
-        if "new" in data:
-            value = data["new"]
-        else:
-            value = data["old"]
+        value = data["new"] if "new" in data else data["old"]
         callback(float(value) if to_float else value)
     return func
 
