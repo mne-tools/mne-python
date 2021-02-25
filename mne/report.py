@@ -1667,7 +1667,9 @@ class Report(object):
                 setattr(self, param, state[param])
         return state
 
-    def save(self, fname=None, open_browser=True, overwrite=False):
+    @verbose
+    def save(self, fname=None, open_browser=True, overwrite=False, *,
+             verbose=None):
         """Save the report and optionally open it in browser.
 
         Parameters
@@ -1682,8 +1684,8 @@ class Report(object):
         open_browser : bool
             When saving to HTML, open the rendered HTML file browser after
             saving if True. Defaults to True.
-        overwrite : bool
-            If True, overwrite report if it already exists. Defaults to False.
+        %(overwrite)s
+        %(verbose_meth)s
 
         Returns
         -------

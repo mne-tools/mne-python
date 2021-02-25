@@ -502,13 +502,20 @@ def test_calculate_chpi_coil_locs_artemis():
     _check_dists(raw.info, cHPI_digs[5])
     coil_amplitudes = compute_chpi_amplitudes(raw)
     with pytest.raises(ValueError, match='too_close'):
-        compute_chpi_locs(raw, coil_amplitudes, too_close='foo')
+        compute_chpi_locs(raw.info, coil_amplitudes, too_close='foo')
     # ensure values are in a reasonable range
     amps = np.linalg.norm(coil_amplitudes['slopes'], axis=-1)
     amps /= coil_amplitudes['slopes'].shape[-1]
     assert amps.shape == (len(coil_amplitudes['times']), 3)
     assert_array_less(amps, 1e-11)
     assert_array_less(1e-13, amps)
+    # with nan amplitudes (i.e., cHPI off) it should return an empty array,
+    # but still one that is 3D
+    coil_amplitudes['slopes'].fill(np.nan)
+    chpi_locs = compute_chpi_locs(raw.info, coil_amplitudes)
+    assert chpi_locs['rrs'].shape == (0, 3, 3)
+    pos = compute_head_pos(raw.info, chpi_locs)
+    assert pos.shape == (0, 10)
 
 
 def assert_suppressed(new, old, suppressed, retained):

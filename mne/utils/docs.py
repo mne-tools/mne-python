@@ -144,6 +144,19 @@ reject_by_annotation : bool
 docdict['reject_by_annotation_raw'] = docdict['reject_by_annotation_all'] + """
     Has no effect if ``inst`` is not a :class:`mne.io.Raw` object.
 """
+docdict['annot_ch_names'] = """
+ch_names : list | None
+    List of lists of channel names associated with the annotations.
+    Empty entries are assumed to be associated with no specific channel,
+    i.e., with all channels or with the time slice itself. None (default) is
+    the same as passing all empty lists. For example, this creates three
+    annotations, associating the first with the time interval itself, the
+    second with two channels, and the third with a single channel::
+
+        Annotations(onset=[0, 3, 10], duration=[1, 0.25, 0.5],
+                    description=['Start', 'BAD_flux', 'BAD_noise'],
+                    ch_names=[[], ['MEG0111', 'MEG2563'], ['MEG1443']])
+"""
 
 # General plotting
 docdict["show"] = """
@@ -1407,6 +1420,12 @@ on_missing : str
 
     .. versionadded:: 0.20.1
 """ % (_on_missing_base,)
+docdict['on_missing_ch_names'] = """
+on_missing : str
+    %s entries in ch_names are not present in the raw instance.
+
+    .. versionadded:: 0.23.0
+""" % (_on_missing_base,)
 docdict['rename_channels_mapping_duplicates'] = """
 mapping : dict | callable
     A dictionary mapping the old channel to a new channel name
@@ -2108,6 +2127,11 @@ on_defects : str
 docdict['accept'] = """
 accept : bool
     If True (default False), accept the license terms of this dataset.
+"""
+docdict['overwrite'] = """
+overwrite : bool
+    If True (default False), overwrite the destination file if it
+    exists.
 """
 
 docdict_indented = {}
