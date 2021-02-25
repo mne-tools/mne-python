@@ -2118,7 +2118,9 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         sorts the complex values by real part and return whatever value is
         computed. Use with caution. We use the marginal median in the
         complex case (i.e. the median of each component separately) if
-        one passes in ``median``.
+        one passes in ``median``. See a discussion in scipy:
+
+        https://github.com/scipy/scipy/pull/12676#issuecomment-783370228
 
         The ``method`` parameter allows e.g. robust averaging.
         For example, one could do:
