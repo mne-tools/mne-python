@@ -125,7 +125,7 @@ class _LinkViewer(object):
             brain.callbacks["playback_speed"](value, update_widget=True)
 
     def toggle_playback(self):
-        value = self.leader.callbacks["time"].widget.value()
+        value = self.leader.callbacks["time"].widget.get_value()
         # synchronize starting points before playback
         self.set_time_point(value)
         for brain in self.brains:
