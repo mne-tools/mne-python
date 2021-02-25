@@ -2066,26 +2066,19 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
                   time_locked_events=None, keep_first=None, keep_last=None):
     """Generate metadata from events for use with `~mne.Epochs`.
 
-    This function generates metadata based on events falling into the time
-    interval ``[tmin, tmax]``. Only events specified in ``event_id`` will be
-    considered. The metadata can be attached to existing `~mne.Epochs`, or
-    passed to `mne.Epochs` on via the ``metadata`` parameter. Notably,
-    ``[tmin, tmax]`` need not correspond to the time period used to create the
-    `~mne.Epochs`; it may well be much shorter or longer, if desired.
+    This function mimics the epoching process (constructs time windows around
+    events of interest) and collates information about other events that
+    occurred within those time windows. The information is returned as a
+    :class:`pandas.DataFrame` suitable for use as `~mne.Epochs` metadata: one
+    row per time-locked event, and columns indicating presence/absence and
+    latency of each ancillary event type.
 
-    You may specify which events are the time-locked events you use to create
-    `~mne.Epochs`. This function will create one row for each time-locked
-    event. This behavior can be controlled via the ``time_locked_events``
-    parameter.
+    Notably, the time window used for metadata generation need not correspond
+    to the time period used to create the `~mne.Epochs`; it may well be much
+    shorter or longer, if desired.
 
-    The function will also return a new ``events`` array ``event_id``
-    dictionary that correspond to the generated metadata. This becomes relevant
-    in case you pass ``time_locked_events``, which will lead to a descrepancy
-    between the generated metadata and the input values (e.g., the number of
-    metadata rows will be less than the number of originally passed events). By
-    returning appropriate subsets of ``events`` and ``event_id``, it is
-    ensured that you will always receive event specifications that match your
-    metadata.
+    The function will also return a new ``events`` array and ``event_id``
+    dictionary that correspond to the generated metadata.
 
     Parameters
     ----------
@@ -2131,7 +2124,7 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
         If ``None``, no new columns are created.
 
         .. note::
-           By default, this function will only retain  the first occurrence
+           By default, this function will always retain  the first instance
            of any event in each time period. For example, if a time period
            contains two ``'response'`` events, the generated ``response`` and
            ``response_time`` columns will refer to the first of the two events.
