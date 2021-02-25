@@ -166,7 +166,7 @@ mne.write_surface(op.join(bem_dir, 'inner_skull.surf'), coords, faces,
 #    triangles by removing vertices. The full error looks like:
 #
 #    .. code-block:: console
-#   
+#    
 #       RuntimeError: Surface inner skull has topological defects: 12 / 20484
 #       vertices have fewer than three neighboring triangles [733, 1014, 2068,
 #       7732, 8435, 8489, 10181, 11120, 11121, 11122, 11304, 11788]
@@ -178,7 +178,7 @@ mne.write_surface(op.join(bem_dir, 'inner_skull.surf'), coords, faces,
 #    disrupted).
 #
 #    .. code-block:: console
-#   
+#    
 #       RuntimeError: Surface inner skull is not complete (sum of solid
 #       angles yielded 0.999668, should be 1.)
 #
@@ -189,7 +189,7 @@ mne.write_surface(op.join(bem_dir, 'inner_skull.surf'), coords, faces,
 #    MNE-Python.  The full error is:
 #
 #    .. code-block:: console
-#   
+#    
 #       RuntimeError: The source surface has a matching number of
 #       triangles but ordering is wrong
 #
