@@ -347,7 +347,8 @@ def test_find_ch_adjacency():
 @testing.requires_testing_data
 def test_neuromag122_adjacency():
     """Test computing the adjacency matrix of Neuromag122-Data"""
-    nm122_fname = op.join(testing.data_path(), 'misc', 'neuromag122_test_file-raw.fif')
+    nm122_fname = op.join(testing.data_path(), 'misc',
+                          'neuromag122_test_file-raw.fif')
     raw = read_raw_fif(nm122_fname, preload=True)
     conn, ch_names = find_ch_adjacency(raw.info, 'grad')
     assert_equal(conn.getnnz(), 1564)
