@@ -1,6 +1,6 @@
 sphinx
 https://github.com/numpy/numpydoc/archive/master.zip
-git+git://github.com/pydata/pydata-sphinx-theme.git@270bf6c60de2c9f16aa32c3eeb6de39f0ee0e734
+https://github.com/pydata/pydata-sphinx-theme/zipball/93b5115834435c995138da4be9ad7bbcfbca8127
 sphinx-gallery
 sphinxcontrib-bibtex>=2.1.2
 memory_profiler
