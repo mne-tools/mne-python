@@ -351,8 +351,9 @@ def test_neuromag122_adjacency():
                           'neuromag122_test_file-raw.fif')
     raw = read_raw_fif(nm122_fname, preload=True)
     conn, ch_names = find_ch_adjacency(raw.info, 'grad')
-    assert_equal(conn.getnnz(), 1564)
-    assert_equal(len(ch_names), 122)
+    assert conn.getnnz() == 1564
+    assert len(ch_names) == 122
+    assert conn.shape == (122, 122)
 
 
 def test_drop_channels():
