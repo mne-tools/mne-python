@@ -12,9 +12,10 @@ We are going to use data from the :ref:`erp-core-dataset` (derived from
 performing an active visual task (Flankers task).
 
 .. note::
-   If you wish to skip the introductory parts of this tutorial, you may skip
-   straight to a self-contained example in section
-   :ref:`tut-autogenerate-metadata-ern`.
+   If you wish to skip the introductory parts of this tutorial, you may jump
+   straight to :ref:`tut-autogenerate-metadata-ern` after completing the data
+   import and event creation in the
+   :ref:`tut-autogenerate-metadata-preparation` section.
 
 This tutorial is loosely divided into two parts:
 
@@ -30,6 +31,8 @@ This tutorial is loosely divided into two parts:
 .. contents:: Table of contents
   :local:
   :depth: 3
+
+.. _tut-autogenerate-metadata-preparation:
 
 Preparation
 ^^^^^^^^^^^
@@ -315,19 +318,6 @@ fig
 # know above, only that it keeps the **last** occurrences of the specified
 # events.
 
-from pathlib import Path
-import matplotlib.pyplot as plt
-import mne
-
-
-# import and filter the data, and extract events
-data_dir = Path(mne.datasets.erp_core.data_path())
-infile = data_dir / 'ERP-CORE_Subject-001_Task-Flankers_eeg.fif'
-raw = mne.io.read_raw(infile, preload=True)
-raw.filter(l_freq=0.1, h_freq=40)
-all_events, all_event_id = mne.events_from_annotations(raw)
-
-# generate metadata from events
 metadata_tmin, metadata_tmax = -1.5, 0
 time_locked_events = ['response/left', 'response/right']
 keep_last = ['stimulus', 'response']
