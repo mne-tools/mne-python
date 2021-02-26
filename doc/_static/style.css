@@ -167,13 +167,3 @@ div.frontpage-gallery:hover .fadeout {
 img.hidden {
     visibility: hidden;
 }
-
-/* workaround for https://github.com/pydata/pydata-sphinx-theme/pull/313     */
-.navbar {
-    overflow: visible;
-    height: var(--header-height);
-    min-height: unset;
-}
-#navbar-menu {
-    background-color: #fff;
-}
