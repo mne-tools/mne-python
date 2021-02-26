@@ -86,6 +86,8 @@ Enhancements
 
 - Reading and writing FIFF files whose filenames end with ``_meg.fif.gz``, ``_eeg.fif(.gz)``, and ``_ieeg.fif(.gz)`` doesn't emit a warning anymore; this improves interobaility with BIDS-formatted datasets (:gh:`8868` by `Richard Höchenberger`_)
 
+- On macOS, we now set the environment variable ``QT_MAC_WANTS_LAYER`` to ``"1"`` if it hasn't been set explicitly by the user, in order to ensure that `~mne.SourceEstimate` plots work on macOS 11 with older versions of Qt and PyQt (:gh:`8959` by `Richard Höchenberger`_)
+
 Bugs
 ~~~~
 - Fix bug with `mne.connectivity.spectral_connectivity` where time axis in Epochs data object was dropped. (:gh:`8839` **by new contributor** |Anna Padee|_)
