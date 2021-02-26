@@ -21,9 +21,7 @@ import warnings
 import numpy as np
 import vtk
 
-from .abstract_renderer import _AbstractRenderer
-from ._qt_dock import _QtDock
-from ._qt_tool_bar import _QtToolBar
+from ._abstract import _AbstractRenderer
 from ._utils import (_get_colormap_from_array, _alpha_blend_background,
                      ALLOWED_QUIVER_MODES, _init_qt_resources,
                      _qt_disable_paint)
@@ -856,11 +854,6 @@ class _PyVistaRenderer(_AbstractRenderer):
             prop.SetLineWidth(line_width)
 
 
-class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-
 def _compute_normals(mesh):
     """Patch PyVista compute_normals."""
     if 'Normals' not in mesh.point_arrays:
@@ -1145,27 +1138,6 @@ def _require_minimum_version(version_required):
         raise ImportError('pyvista>={} is required for this module but the '
                           'version found is {}'.format(version_required,
                                                        version))
-
-
-@contextmanager
-def _testing_context(interactive):
-    from . import renderer
-    orig_offscreen = pyvista.OFF_SCREEN
-    orig_testing = renderer.MNE_3D_BACKEND_TESTING
-    orig_interactive = renderer.MNE_3D_BACKEND_INTERACTIVE
-    renderer.MNE_3D_BACKEND_TESTING = True
-    if interactive:
-        pyvista.OFF_SCREEN = False
-        renderer.MNE_3D_BACKEND_INTERACTIVE = True
-    else:
-        pyvista.OFF_SCREEN = True
-        renderer.MNE_3D_BACKEND_INTERACTIVE = False
-    try:
-        yield
-    finally:
-        pyvista.OFF_SCREEN = orig_offscreen
-        renderer.MNE_3D_BACKEND_TESTING = orig_testing
-        renderer.MNE_3D_BACKEND_INTERACTIVE = orig_interactive
 
 
 @contextmanager

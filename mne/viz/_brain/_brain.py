@@ -903,7 +903,7 @@ class Brain(object):
             notebook=self.notebook,
         )
         if self.notebook:
-            from ..backends._utils import _ipy_add_widget
+            from ..backends._notebook import _ipy_add_widget
             _ipy_add_widget(layout, hlayout, self._renderer.dock_width)
         else:
             layout.addLayout(hlayout)
@@ -1071,7 +1071,7 @@ class Brain(object):
                 notebook=self.notebook,
             )
             if self.notebook:
-                from ..backends._utils import _ipy_add_widget
+                from ..backends._notebook import _ipy_add_widget
                 _ipy_add_widget(layout, hlayout, self._renderer.dock_width)
             else:
                 layout.addLayout(hlayout)
