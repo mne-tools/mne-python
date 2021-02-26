@@ -1021,7 +1021,7 @@ class _Renderer(_PyVistaRenderer, _AbstractDock, _AbstractToolBar):
         self.actions[name] = self.tool_bar.addAction(icon, desc, func)
 
     def _tool_bar_update_button_icon(self, name, icon_name):
-        pass
+        self.actions[name].setIcon(self.icons[icon_name])
 
     def _tool_bar_add_text(self, name, value, placeholder):
         pass

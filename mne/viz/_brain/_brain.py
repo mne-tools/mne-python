@@ -1342,7 +1342,7 @@ class Brain(object):
 
     def _configure_tool_bar(self):
         self._renderer._tool_bar_load_icons()
-        self._renderer._tool_bar_initialize("toolbar")
+        self._renderer._tool_bar_initialize()
         self._renderer._tool_bar_add_button(
             name="screenshot",
             desc="Take a screenshot",
@@ -1391,8 +1391,8 @@ class Brain(object):
             func=self.help,
         )
         self._renderer._tool_bar_finalize()
+        # Qt shortcuts
         if not self.notebook:
-            # Qt shortcuts
             self._renderer.actions["movie"].setShortcut("ctrl+shift+s")
             self._renderer.actions["play"].setShortcut(" ")
             self._renderer.actions["help"].setShortcut("?")

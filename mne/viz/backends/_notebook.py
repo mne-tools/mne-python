@@ -15,7 +15,6 @@ class _Renderer(_PyVistaRenderer, _AbstractDock, _AbstractToolBar):
         self.tool_bar = None
         self.dock_width = 300
         self.dock = None
-        self.actions = None
         kwargs["notebook"] = True
         super().__init__(*args, **kwargs)
 
