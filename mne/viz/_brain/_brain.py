@@ -14,6 +14,7 @@ import os
 import os.path as op
 import sys
 import time
+import copy
 import traceback
 import warnings
 
@@ -1138,7 +1139,6 @@ class Brain(object):
         def _set_label_mode(mode):
             if self.traces_mode != 'label':
                 return
-            import copy
             glyphs = copy.deepcopy(self.picked_patches)
             self.label_extract_mode = mode
             self.clear_glyphs()
