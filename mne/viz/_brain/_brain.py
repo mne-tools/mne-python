@@ -714,7 +714,9 @@ class Brain(object):
     def _ensure_minimum_sizes(self):
         """Ensure that widgets respect the windows size."""
         sz = self._size
-        adjust_mpl = self.show_traces and not self.separate_canvas
+        adjust_mpl = (self.show_traces and
+                      not self.separate_canvas and
+                      not self.notebook)
         if not adjust_mpl:
             yield
         else:
