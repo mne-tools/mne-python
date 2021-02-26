@@ -941,9 +941,10 @@ def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
         (picks, ica.n_components_ + np.arange(len(extra_picks))))
     ch_order = np.arange(len(picks))
     n_channels = min([20, len(picks)])
+    ch_names_picked = [ch_names[x] for x in picks]
 
     # create info
-    info = create_info([ch_names[x] for x in picks], sfreq, ch_types=ch_types)
+    info = create_info(ch_names_picked, sfreq, ch_types=ch_types)
     info['meas_date'] = inst.info['meas_date']
     info['bads'] = [ch_names[x] for x in exclude if x in picks]
     if is_raw:
@@ -984,7 +985,7 @@ def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
                   ica_inst=inst,
                   info=info,
                   # channels and channel order
-                  ch_names=np.array(ch_names),
+                  ch_names=np.array(ch_names_picked),
                   ch_types=np.array(ch_types),
                   ch_order=ch_order,
                   picks=picks,
