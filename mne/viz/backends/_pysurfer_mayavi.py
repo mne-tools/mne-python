@@ -23,7 +23,7 @@ from mayavi.core.scene import Scene
 from mayavi.core.ui.mayavi_scene import MayaviScene
 from tvtk.pyface.tvtk_scene import TVTKScene
 
-from .abstract_renderer import _AbstractRenderer
+from ._abstract import _AbstractRenderer
 from ._utils import _check_color, _alpha_blend_background, ALLOWED_QUIVER_MODES
 from ..utils import _ndarray_to_fig
 from ...surface import _normalize_vectors
