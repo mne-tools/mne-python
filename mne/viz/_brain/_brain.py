@@ -903,7 +903,8 @@ class Brain(object):
             notebook=self.notebook,
         )
         if self.notebook:
-            self._renderer._add_widget(layout, hlayout)
+            from ..backends._utils import _ipy_add_widget
+            _ipy_add_widget(layout, hlayout, self._renderer.dock_width)
         else:
             layout.addLayout(hlayout)
         min_time = float(self._data['time'][0])
@@ -1070,7 +1071,8 @@ class Brain(object):
                 notebook=self.notebook,
             )
             if self.notebook:
-                self._renderer._add_widget(layout, hlayout)
+                from ..backends._utils import _ipy_add_widget
+                _ipy_add_widget(layout, hlayout, self._renderer.dock_width)
             else:
                 layout.addLayout(hlayout)
 

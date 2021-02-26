@@ -1,0 +1,134 @@
+"""Dock implemented with Qt."""
+
+# Authors: Guillaume Favelier <guillaume.favelier@gmail.com
+#          Eric Larson <larson.eric.d@gmail.com>
+#
+# License: Simplified BSD
+
+from .abstract_dock import _AbstractDock
+from .float_slider import QFloatSlider
+from PyQt5 import QtCore
+from PyQt5.QtGui import QDoubleValidator
+from PyQt5.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
+                             QHBoxLayout, QLabel, QLineEdit, QPushButton,
+                             QSlider, QSpinBox, QVBoxLayout, QWidget)
+
+
+class _QtDock(_AbstractDock):
+    def _dock_initialize(self):
+        self.dock = QDockWidget()
+        self.dock.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea)
+        self.dock.setFeatures(QDockWidget.NoDockWidgetFeatures)
+        self.plotter.app_window.addDockWidget(
+            QtCore.Qt.LeftDockWidgetArea, self.dock)
+        self.dock.setWidget(QWidget())
+        self.dock_layout = QVBoxLayout()
+        self.dock.widget().setLayout(self.dock_layout)
+
+    def _dock_finalize(self):
+        self._dock_add_stretch(self.dock_layout)
+
+    def _dock_show(self):
+        self.dock.show()
+
+    def _dock_hide(self):
+        self.dock.hide()
+
+    def _dock_add_stretch(self, layout):
+        layout.addStretch()
+
+    def _dock_add_layout(self, vertical=True):
+        layout = QVBoxLayout() if vertical else QHBoxLayout()
+        return layout
+
+    def _dock_add_label(self, value, align=False, layout=None):
+        layout = self.dock_layout if layout is None else layout
+        widget = QLabel()
+        if align:
+            widget.setAlignment(QtCore.Qt.AlignCenter)
+        widget.setText(value)
+        layout.addWidget(widget)
+        return widget
+
+    def _dock_add_button(self, name, callback, layout=None):
+        layout = self.dock_layout if layout is None else layout
+        widget = QPushButton(name)
+        widget.released.connect(callback)
+        layout.addWidget(widget)
+        return widget
+
+    def _dock_add_text(self, value, callback, validator=None,
+                       layout=None):
+        layout = self.dock_layout if layout is None else layout
+        widget = QLineEdit(value)
+        widget.setAlignment(QtCore.Qt.AlignCenter)
+        if validator is not None:
+            widget.setValidator(
+                QDoubleValidator(validator[0], validator[1], 2))
+
+            def _callback():
+                callback(float(widget.text()))
+        else:
+            def _callback():
+                callback(widget.text())
+        widget.returnPressed.connect(_callback)
+        layout.addWidget(widget)
+        return widget
+
+    def _dock_add_slider(self, name, value, rng, callback,
+                         compact=True, double=False, layout=None):
+        layout = self.dock_layout if layout is None else layout
+        hlayout = self._dock_add_layout(not compact)
+        if name is not None:
+            self._dock_add_label(
+                value=name, align=not compact, layout=hlayout)
+        slider_class = QFloatSlider if double else QSlider
+        widget = slider_class(QtCore.Qt.Horizontal)
+        widget.setMinimum(rng[0] if double else int(rng[0]))
+        widget.setMaximum(rng[1] if double else int(rng[1]))
+        widget.setValue(value if double else int(value))
+        widget.valueChanged.connect(callback)
+        hlayout.addWidget(widget)
+        layout.addLayout(hlayout)
+        return widget
+
+    def _dock_add_spin_box(self, name, value, rng, callback,
+                           compact=True, double=True, layout=None):
+        layout = self.dock_layout if layout is None else layout
+        hlayout = self._dock_add_layout(not compact)
+        if name is not None:
+            self._dock_add_label(
+                value=name, align=not compact, layout=hlayout)
+        value = value if double else int(value)
+        widget = QDoubleSpinBox() if double else QSpinBox()
+        widget.setAlignment(QtCore.Qt.AlignCenter)
+        widget.setMinimum(rng[0])
+        widget.setMaximum(rng[1])
+        widget.setValue(value)
+        widget.valueChanged.connect(callback)
+        hlayout.addWidget(widget)
+        layout.addLayout(hlayout)
+        return widget
+
+    def _dock_add_combo_box(self, name, value, rng,
+                            callback, compact=True, layout=None):
+        layout = self.dock_layout if layout is None else layout
+        hlayout = self._dock_add_layout(not compact)
+        if name is not None:
+            self._dock_add_label(
+                value=name, align=not compact, layout=hlayout)
+        widget = QComboBox()
+        widget.addItems(rng)
+        widget.setCurrentText(value)
+        widget.currentTextChanged.connect(callback)
+        hlayout.addWidget(widget)
+        layout.addLayout(hlayout)
+        return widget
+
+    def _dock_add_group_box(self, name, layout=None):
+        layout = self.dock_layout if layout is None else layout
+        hlayout = QVBoxLayout()
+        widget = QGroupBox(name)
+        widget.setLayout(hlayout)
+        layout.addWidget(widget)
+        return hlayout

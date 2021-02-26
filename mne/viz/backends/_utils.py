@@ -67,6 +67,21 @@ def _alpha_blend_background(ctable, background_color):
     return (use_table * alphas) + background_color * (1 - alphas)
 
 
+def _ipy_add_widget(layout, widget, max_width=None):
+    from ipywidgets import HBox
+    widget.layout.margin = "2px 0px 2px 0px"
+    widget.layout.min_width = "0px"
+    children = list(layout.children)
+    children.append(widget)
+    layout.children = tuple(children)
+    # Fix columns
+    if max_width is not None and isinstance(widget, HBox):
+        children = widget.children
+        width = int(max_width / len(children))
+        for child in children:
+            child.layout.width = f"{width}px"
+
+
 @decorator
 def run_once(fun, *args, **kwargs):
     """Run the function only once."""
