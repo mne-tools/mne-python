@@ -945,7 +945,7 @@ def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
     # create info
     info = create_info([ch_names[x] for x in picks], sfreq, ch_types=ch_types)
     info['meas_date'] = inst.info['meas_date']
-    info['bads'] = [ch_names[x] for x in exclude]
+    info['bads'] = [ch_names[x] for x in exclude if x in picks]
     if is_raw:
         inst_array = RawArray(data, info, inst.first_samp)
         inst_array.set_annotations(inst.annotations)
