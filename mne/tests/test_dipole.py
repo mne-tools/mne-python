@@ -480,5 +480,9 @@ def test_bdip(fname_dip_, fname_bdip_, tmpdir):
         assert this_bdip.name is None
         assert_allclose(this_bdip.nfree, 0.)
 
+        # Test whether indexing works
+        this_bdip0 = this_bdip[0]
+        _check_dipole(this_bdip0)
+
 
 run_tests_if_main()
