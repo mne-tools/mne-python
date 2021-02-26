@@ -609,8 +609,6 @@ class Brain(object):
         self.pick_table = dict()
         self._spheres = list()
         self._mouse_no_mvt = -1
-        self.icons = dict()
-        self.actions = dict()
         self.callbacks = dict()
         self.widgets = dict()
         self.keys = ('fmin', 'fmid', 'fmax')
@@ -768,14 +766,12 @@ class Brain(object):
         # update tool bar and dock
         if self.visibility:
             self._renderer._dock_show()
-            if not self.notebook:
-                self.actions["visibility"].setIcon(
-                    self.icons["visibility_on"])
+            self._renderer._tool_bar_update_button_icon(
+                name="visibility", icon_name="visibility_on")
         else:
             self._renderer._dock_hide()
-            if not self.notebook:
-                self.actions["visibility"].setIcon(
-                    self.icons["visibility_off"])
+            self._renderer._tool_bar_update_button_icon(
+                name="visibility", icon_name="visibility_off")
 
         self._update()
 
@@ -811,9 +807,11 @@ class Brain(object):
 
         # update tool bar icon
         if self.playback:
-            self.actions["play"].setIcon(self.icons["pause"])
+            self._renderer._tool_bar_update_button_icon(
+                name="play", icon_name="pause")
         else:
-            self.actions["play"].setIcon(self.icons["play"])
+            self._renderer._tool_bar_update_button_icon(
+                name="play", icon_name="play")
 
         if self.playback:
             time_data = self._data['time']
@@ -1328,29 +1326,13 @@ class Brain(object):
             self._on_pick
         )
 
-    def _load_icons(self):
-        from PyQt5.QtGui import QIcon
-        from ..backends._utils import _init_qt_resources
-        _init_qt_resources()
-        self.icons["help"] = QIcon(":/help.svg")
-        self.icons["play"] = QIcon(":/play.svg")
-        self.icons["pause"] = QIcon(":/pause.svg")
-        self.icons["reset"] = QIcon(":/reset.svg")
-        self.icons["scale"] = QIcon(":/scale.svg")
-        self.icons["clear"] = QIcon(":/clear.svg")
-        self.icons["movie"] = QIcon(":/movie.svg")
-        self.icons["restore"] = QIcon(":/restore.svg")
-        self.icons["screenshot"] = QIcon(":/screenshot.svg")
-        self.icons["visibility_on"] = QIcon(":/visibility_on.svg")
-        self.icons["visibility_off"] = QIcon(":/visibility_off.svg")
-
     def _save_movie_noname(self):
         return self.save_movie(None)
 
     def _screenshot(self):
         if self.notebook:
             from PIL import Image
-            fname = self.actions.get("screenshot_field").value
+            fname = self._renderer.actions.get("screenshot_field").value
             fname = self._renderer._get_screenshot_filename() \
                 if len(fname) == 0 else fname
             img = self.screenshot(fname, time_viewer=True)
@@ -1358,111 +1340,62 @@ class Brain(object):
         else:
             self.plotter._qt_screenshot()
 
-    def _initialize_tool_bar(self):
-        if self.notebook:
-            self._renderer._initialize_tool_bar(self.actions)
-        else:
-            self._load_icons()
-            self.tool_bar = self.window.addToolBar("toolbar")
-
-    def _finalize_tool_bar(self):
-        if self.notebook:
-            return
-        # Qt shortcuts
-        self.actions["movie"].setShortcut("ctrl+shift+s")
-        self.actions["play"].setShortcut(" ")
-        self.actions["help"].setShortcut("?")
-
-    def _add_tool_bar_button(self, name, desc, func, icon_name,
-                             qt_icon_name=None, notebook=True):
-        if self.notebook:
-            if not notebook:
-                return
-            self.actions[name] = self._renderer._add_tool_bar_button(
-                desc, func, icon_name)
-        else:
-            qt_icon_name = name if qt_icon_name is None else qt_icon_name
-            self.actions[name] = self.tool_bar.addAction(
-                self.icons[qt_icon_name],
-                desc,
-                func,
-            )
-
-    def _add_tool_bar_text(self, name, value, placeholder):
-        if not self.notebook:
-            return
-        self.actions[name] = self._renderer._add_tool_bar_text(
-            value, placeholder)
-
-    def _add_tool_bar_spacer(self):
-        if self.notebook:
-            return
-        from PyQt5.QtWidgets import QSizePolicy, QWidget
-        spacer = QWidget()
-        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        self.tool_bar.addWidget(spacer)
-
     def _configure_tool_bar(self):
-        self._initialize_tool_bar()
-        self._add_tool_bar_button(
+        self._renderer._tool_bar_load_icons()
+        self._renderer._tool_bar_initialize("toolbar")
+        self._renderer._tool_bar_add_button(
             name="screenshot",
             desc="Take a screenshot",
             func=self._screenshot,
-            icon_name="camera",
         )
-        self._add_tool_bar_text(
+        self._renderer._tool_bar_add_text(
             name="screenshot_field",
             value=None,
             placeholder="Type a file name",
         )
-        self._add_tool_bar_button(
+        self._renderer._tool_bar_add_button(
             name="movie",
             desc="Save movie...",
             func=self._save_movie_noname,
-            icon_name=None,
-            notebook=False,
         )
-        self._add_tool_bar_button(
+        self._renderer._tool_bar_add_button(
             name="visibility",
             desc="Toggle Visibility",
             func=self.toggle_interface,
-            icon_name="eye",
-            qt_icon_name="visibility_on",
+            icon_name="visibility_on"
         )
-        self._add_tool_bar_button(
+        self._renderer._tool_bar_add_button(
             name="play",
             desc="Play/Pause",
             func=self.toggle_playback,
-            icon_name=None,
-            notebook=False,
         )
-        self._add_tool_bar_button(
+        self._renderer._tool_bar_add_button(
             name="reset",
             desc="Reset",
             func=self.reset,
-            icon_name="history",
         )
-        self._add_tool_bar_button(
+        self._renderer._tool_bar_add_button(
             name="scale",
             desc="Auto-Scale",
             func=self.apply_auto_scaling,
-            icon_name="magic",
         )
-        self._add_tool_bar_button(
+        self._renderer._tool_bar_add_button(
             name="clear",
             desc="Clear traces",
             func=self.clear_glyphs,
-            icon_name="trash",
         )
-        self._add_tool_bar_spacer()
-        self._add_tool_bar_button(
+        self._renderer._tool_bar_add_spacer()
+        self._renderer._tool_bar_add_button(
             name="help",
             desc="Help",
             func=self.help,
-            icon_name=None,
-            notebook=False,
         )
-        self._finalize_tool_bar()
+        self._renderer._tool_bar_finalize()
+        if not self.notebook:
+            # Qt shortcuts
+            self._renderer.actions["movie"].setShortcut("ctrl+shift+s")
+            self._renderer.actions["play"].setShortcut(" ")
+            self._renderer.actions["help"].setShortcut("?")
 
     def _shift_time(self, op):
         self.callbacks["time"](

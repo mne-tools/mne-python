@@ -3,18 +3,19 @@
 # License: Simplified BSD
 
 from ...fixes import nullcontext
-from ._pyvista import _Renderer as _PyVistaRenderer
+from .abstract_dock import _AbstractDock
+from .abstract_tool_bar import _AbstractToolBar
+from ._pyvista import _PyVistaRenderer
 from ._pyvista import \
     _close_all, _set_3d_view, _set_3d_title  # noqa: F401 analysis:ignore
 
 
-class _Renderer(_PyVistaRenderer):
+class _Renderer(_PyVistaRenderer, _AbstractDock, _AbstractToolBar):
     def __init__(self, *args, **kwargs):
         self.tool_bar = None
         self.dock_width = 300
         self.dock = None
         self.actions = None
-        self.widgets = None
         kwargs["notebook"] = True
         super().__init__(*args, **kwargs)
 
@@ -36,16 +37,6 @@ class _Renderer(_PyVistaRenderer):
         fname = self.actions.get("screenshot_field").value
         fname = self._get_screenshot_filename() if len(fname) == 0 else fname
         self.screenshot(filename=fname)
-
-    def _add_tool_bar_button(self, desc, func, icon_name):
-        from ipywidgets import Button
-        button = Button(tooltip=desc, icon=icon_name)
-        button.on_click(lambda x: func())
-        return button
-
-    def _add_tool_bar_text(self, value, placeholder):
-        from ipywidgets import Text
-        return Text(value=value, placeholder=placeholder)
 
     def _dock_initialize(self):
         from ipywidgets import VBox
@@ -156,36 +147,72 @@ class _Renderer(_PyVistaRenderer):
         self._add_widget(layout, hlayout)
         return hlayout
 
-    def _initialize_tool_bar(self, actions=None):
-        if actions is None:
-            actions = dict()
-            actions["screenshot"] = self._add_tool_bar_button(
-                desc="Take a screenshot",
-                func=self._screenshot,
-                icon_name="camera",
-            )
-            actions["screenshot_field"] = self._add_tool_bar_text(
-                value=None,
-                placeholder="Type a file name",
-            )
-        self.actions = actions
+    def _tool_bar_load_icons(self):
+        self.icons = dict()
+        self.icons["help"] = None
+        self.icons["play"] = None
+        self.icons["pause"] = None
+        self.icons["reset"] = "history"
+        self.icons["scale"] = "magic"
+        self.icons["clear"] = "trash"
+        self.icons["movie"] = None
+        self.icons["restore"] = "replay"
+        self.icons["screenshot"] = "camera"
+        self.icons["visibility_on"] = "eye"
+        self.icons["visibility_off"] = "eye"
 
-    def _finalize_tool_bar(self):
-        if self.actions is None:
-            return None
-        from IPython import display
+    def _tool_bar_initialize(self, name="default"):
         from ipywidgets import HBox
-        tool_bar = HBox(tuple(self.actions.values()))
-        display.display(tool_bar)
-        return tool_bar
+        self.actions = dict()
+        self.tool_bar = HBox()
+
+    def _create_default_tool_bar(self):
+        self._tool_bar_load_icons()
+        self._tool_bar_initialize()
+        self._tool_bar_add_button(
+            name="screenshot",
+            desc="Take a screenshot",
+            func=self._screenshot,
+        )
+        self._tool_bar_add_text(
+            name="screenshot_field",
+            value=None,
+            placeholder="Type a file name",
+        )
+
+    def _tool_bar_finalize(self):
+        pass
+
+    def _tool_bar_add_button(self, name, desc, func, icon_name=None):
+        from ipywidgets import Button
+        icon_name = name if icon_name is None else icon_name
+        icon = self.icons[icon_name]
+        if icon is None:
+            return
+        widget = Button(tooltip=desc, icon=icon)
+        widget.on_click(lambda x: func())
+        self._add_widget(self.tool_bar, widget)
+        self.actions[name] = widget
+
+    def _tool_bar_update_button_icon(self, name, icon_name):
+        self.actions[name].icon = self.icons[icon_name]
+
+    def _tool_bar_add_text(self, name, value, placeholder):
+        from ipywidgets import Text
+        widget = Text(value=value, placeholder=placeholder)
+        self._add_widget(self.tool_bar, widget)
+        self.actions[name] = widget
+
+    def _tool_bar_add_spacer(self):
+        pass
 
     def show(self):
         from ipywidgets import HBox
         from IPython.display import display
-        # tool bar
-        if self.actions is None:
-            self._initialize_tool_bar()
-        self.tool_bar = self._finalize_tool_bar()
+        # default tool bar
+        if self.tool_bar is None:
+            self._create_default_tool_bar()
+        display(self.tool_bar)
         # viewer
         viewer = self.plotter.show(
             use_ipyvtk=True, return_viewer=True)
