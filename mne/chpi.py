@@ -491,7 +491,7 @@ def _fit_chpi_quat(coil_dev_rrs, coil_head_rrs):
     return quat, gof
 
 
-def _fit_coil_order_dev_head_trans(dev_pnts, head_pnts, pen_large_rots=True):
+def _fit_coil_order_dev_head_trans(dev_pnts, head_pnts, bias=True):
     """Compute Device to Head transform allowing for permutiatons of points."""
     id_quat = np.zeros(6)
     best_order = None
@@ -501,7 +501,7 @@ def _fit_coil_order_dev_head_trans(dev_pnts, head_pnts, pen_large_rots=True):
         head_pnts_tmp = head_pnts[np.array(this_order)]
         this_quat, g = _fit_chpi_quat(dev_pnts, head_pnts_tmp)
         assert np.linalg.det(quat_to_rot(this_quat[:3])) > 0.9999
-        if pen_large_rots:
+        if bias:
             # For symmetrical arrangements, flips can produce roughly
             # equivalent g values. To avoid this, heavily penalize
             # large rotations.
