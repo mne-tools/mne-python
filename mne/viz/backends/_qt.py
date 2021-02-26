@@ -14,7 +14,7 @@ from PyQt5.QtGui import QDoubleValidator, QIcon
 from PyQt5.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
                              QHBoxLayout, QLabel, QLineEdit, QPushButton,
                              QSlider, QSpinBox, QVBoxLayout, QWidget,
-                             QSizePolicy)
+                             QSizePolicy, QScrollArea)
 
 from ._pyvista import _PyVistaRenderer, _close_all, _check_3d_figure  # noqa: F401,E501 analysis:ignore
 from ._abstract import _AbstractDock, _AbstractToolBar
@@ -24,14 +24,19 @@ from ._utils import _init_qt_resources
 class _QtDock(_AbstractDock):
     def _dock_initialize(self):
         self.dock = QDockWidget()
+        self.scroll = QScrollArea(self.dock)
+        self.dock.setWidget(self.scroll)
+        widget = QWidget(self.scroll)
+        self.scroll.setWidget(widget)
+        self.scroll.setWidgetResizable(True)
         self.dock.setAllowedAreas(Qt.LeftDockWidgetArea)
         self.dock.setFeatures(QDockWidget.NoDockWidgetFeatures)
         self.plotter.app_window.addDockWidget(Qt.LeftDockWidgetArea, self.dock)
-        self.dock.setWidget(QWidget())
         self.dock_layout = QVBoxLayout()
-        self.dock.widget().setLayout(self.dock_layout)
+        widget.setLayout(self.dock_layout)
 
     def _dock_finalize(self):
+        self.dock.setMinimumSize(self.dock.sizeHint().width(), 0)
         self._dock_add_stretch(self.dock_layout)
 
     def _dock_show(self):

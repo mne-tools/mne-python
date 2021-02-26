@@ -724,8 +724,7 @@ class Brain(object):
             try:
                 yield
             finally:
-                # XXX: less painful solution?
-                # self.splitter.setSizes([sz[1], mpl_h])
+                self.splitter.setSizes([sz[1], mpl_h])
                 # 1. Process events
                 self._renderer._process_events()
                 self._renderer._process_events()
@@ -764,14 +763,15 @@ class Brain(object):
             self.visibility = value
 
         # update tool bar and dock
-        if self.visibility:
-            self._renderer._dock_show()
-            self._renderer._tool_bar_update_button_icon(
-                name="visibility", icon_name="visibility_on")
-        else:
-            self._renderer._dock_hide()
-            self._renderer._tool_bar_update_button_icon(
-                name="visibility", icon_name="visibility_off")
+        with self._ensure_minimum_sizes():
+            if self.visibility:
+                self._renderer._dock_show()
+                self._renderer._tool_bar_update_button_icon(
+                    name="visibility", icon_name="visibility_on")
+            else:
+                self._renderer._dock_hide()
+                self._renderer._tool_bar_update_button_icon(
+                    name="visibility", icon_name="visibility_off")
 
         self._update()
 
@@ -2703,28 +2703,6 @@ class Brain(object):
         """
         self._renderer.screenshot(mode=mode, filename=filename)
 
-    @contextlib.contextmanager
-    def _ensure_screenshot_size(self):
-        if self.notebook or not self.time_viewer:
-            yield
-        else:
-            self._renderer._dock_hide()
-            if self.mpl_canvas is not None:
-                self.mpl_canvas.canvas.hide()
-            wsz = self.window.size()
-            sz = self._size
-            self.window.resize(2 * sz[0], 2 * sz[1])
-            self.plotter.setMinimumSize(sz[0], sz[1])
-            self.plotter.window_size = (sz[0], sz[1])
-            try:
-                yield
-            finally:
-                self.plotter.setMinimumSize(0, 0)
-                self.window.resize(wsz)
-                self._renderer._dock_show()
-                if self.mpl_canvas is not None:
-                    self.mpl_canvas.canvas.show()
-
     @fill_doc
     def screenshot(self, mode='rgb', time_viewer=False):
         """Generate a screenshot of current view.
@@ -2740,8 +2718,7 @@ class Brain(object):
         screenshot : array
             Image pixel values.
         """
-        with self._ensure_screenshot_size():
-            img = self._renderer.screenshot(mode)
+        img = self._renderer.screenshot(mode)
         if time_viewer and self.time_viewer and \
                 self.show_traces and \
                 not self.separate_canvas:
@@ -3224,9 +3201,6 @@ class Brain(object):
                     self.status_msg.parent().update()
                     self.status_msg.repaint()
 
-                # temporarily hide interface
-                default_visibility = self.visibility
-                self.toggle_interface(value=False)
                 # set cursor to busy
                 default_cursor = self.interactor.cursor()
                 self.interactor.setCursor(QCursor(Qt.WaitCursor))
@@ -3240,11 +3214,8 @@ class Brain(object):
                     )
                 except (Exception, KeyboardInterrupt):
                     warn('Movie saving aborted:\n' + traceback.format_exc())
-
-                # restore visibility
-                self.toggle_interface(value=default_visibility)
-                # restore cursor
-                self.interactor.setCursor(default_cursor)
+                finally:
+                    self.interactor.setCursor(default_cursor)
         else:
             self._save_movie(filename, time_dilation, tmin, tmax,
                              framerate, interpolation, codec,
