@@ -495,6 +495,7 @@ def test_calculate_chpi_coil_locs_artemis():
     raw = read_raw_artemis123(art_fname, preload=True)
     times, cHPI_digs = _calculate_chpi_coil_locs(raw, verbose='debug')
 
+    assert len(np.setdiff1d(times, raw.times + raw.first_time)) == 0
     assert_allclose(times[5], 1.5, atol=1e-3)
     assert_allclose(cHPI_digs[5][0]['gof'], 0.995, atol=5e-3)
     assert_allclose(cHPI_digs[5][0]['r'],
