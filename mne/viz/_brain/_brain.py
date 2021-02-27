@@ -1133,7 +1133,7 @@ class Brain(object):
         # plot RMS of the activation
         y = np.concatenate(list(v[0] for v in self.act_data_smooth.values()
                                 if v[0] is not None))
-        rms = np.sqrt((y ** 2).mean(axis=0))
+        rms = np.linalg.norm(y, axis=0) / np.sqrt(len(y))
         del y
 
         self.rms = self.mpl_canvas.axes.plot(
