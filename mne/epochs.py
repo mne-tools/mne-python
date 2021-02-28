@@ -2073,10 +2073,6 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
     row per event of interest, and columns indicating presence/absence and
     latency of each ancillary event type.
 
-    Notably, the time window used for metadata generation need not correspond
-    to the time period used to create the `~mne.Epochs`; it may well be much
-    shorter or longer, if desired.
-
     The function will also return a new ``events`` array and ``event_id``
     dictionary that correspond to the generated metadata.
 
@@ -2168,6 +2164,12 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
 
     Notes
     -----
+    The time window used for metadata generation need not correspond to the
+    time period used to create the `~mne.Epochs`, to which the metadata will
+    be attached; it may well be much shorter or longer, or not overlap at all,
+    if desired. The can be useful, for example, to include events that ccurred
+    before or after an epoch, e.g. during the inter-trial interval.
+
     .. versionadded:: 0.23
     """
     from .utils.mixin import _hid_match
