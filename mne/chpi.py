@@ -943,8 +943,8 @@ def compute_chpi_amplitudes(raw, t_step_min=0.01, t_window='auto',
                 % (len(hpi['freqs']), len(fit_idxs), tmax - tmin))
     del tmin, tmax
     sin_fits = dict()
-    sin_fits['times'] = (fit_idxs + raw.first_samp -
-                         hpi['n_window'] / 2.) / raw.info['sfreq']
+    sin_fits['times'] = np.round(fit_idxs + raw.first_samp -
+                                 hpi['n_window'] / 2.) / raw.info['sfreq']
     sin_fits['proj'] = hpi['proj']
     sin_fits['slopes'] = np.empty(
         (len(sin_fits['times']),
