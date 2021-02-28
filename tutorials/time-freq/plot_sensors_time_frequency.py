@@ -6,7 +6,8 @@ Frequency and time-frequency sensor analysis
 ============================================
 
 The objective is to show you how to explore the spectral content
-of your data (frequency and time-frequency). Here we'll work on Epochs.
+of your data (frequency and time-frequency). Here we'll work on Epochs and 
+Raw objects.
 
 We will use this dataset: :ref:`somato-dataset`. It contains so-called event
 related synchronizations (ERS) / desynchronizations (ERD) in the beta band.
@@ -53,7 +54,7 @@ epochs.resample(200., npad='auto')  # resample to reduce computation time
 # Frequency analysis
 # ------------------
 #
-# We start by exploring the frequence content of our epochs.
+# We start by exploring the frequency content of our epochs.
 
 
 ###############################################################################
@@ -179,6 +180,60 @@ power.plot_joint(baseline=(-0.5, 0), mode='mean', tmin=-.5, tmax=2,
 # Inspect ITC
 # -----------
 itc.plot_topo(title='Inter-Trial coherence', vmin=0., vmax=1., cmap='Reds')
+
+###############################################################################
+# Frequency analysis on Raw object
+# --------------------------------
+#
+# Besides exploring the time-frequency content on Epochs data structures, we
+# can also explore it on Raw data structures. Note that Raw objects may be
+# **very** long, so the resulting :class:`mne.time_frequency.AverageTFR`
+# data structure can be very large. However, if you're only interested
+# in analyzing a short segment, then this shouldn't be an issue.
+
+# First we'll trim the raw object to be very short for the sake of
+# demonstration
+raw = raw.crop(tmin=0, tmax=5)
+
+# Just as with Epochs, we can compute the PSD using Welch's method
+psds_welch_unagg, freqs_unagg = psd_welch(raw, average=None, **kwargs)
+print(psds_welch_unagg.shape)
+
+###############################################################################
+# Time-frequency analysis on Raw objects: power
+# ---------------------------------------------
+#
+# We now compute time-frequency representations (TFRs) from our Raw.
+# We'll look at power. Note that inter-trial coherence (ITC) is not
+# defined for Raw objects.
+#
+# To this we'll use the function :func:`mne.time_frequency.tfr_morlet`
+# but you can also use :func:`mne.time_frequency.tfr_multitaper`
+# or :func:`mne.time_frequency.tfr_stockwell`.
+power, itc = tfr_morlet(raw, freqs=freqs, n_cycles=n_cycles, use_fft=True,
+                        return_itc=True, decim=3, n_jobs=1)
+
+###############################################################################
+# Inspect power
+# -------------
+#
+# .. note::
+#     The generated figures are interactive. In the topo you can click
+#     on an image to visualize the data for one sensor.
+#     You can also select a portion in the time-frequency plane to
+#     obtain a topomap for a certain time-frequency region.
+power.plot_topo(baseline=(-0.5, 0), mode='logratio', title='Average power')
+power.plot([82], baseline=(-0.5, 0), mode='logratio', title=power.ch_names[82])
+
+fig, axis = plt.subplots(1, 2, figsize=(7, 4))
+power.plot_topomap(ch_type='grad', tmin=0.5, tmax=1.5, fmin=8, fmax=12,
+                   baseline=(-0.5, 0), mode='logratio', axes=axis[0],
+                   title='Alpha', show=False)
+power.plot_topomap(ch_type='grad', tmin=0.5, tmax=1.5, fmin=13, fmax=25,
+                   baseline=(-0.5, 0), mode='logratio', axes=axis[1],
+                   title='Beta', show=False)
+mne.viz.tight_layout()
+plt.show()
 
 ###############################################################################
 # .. note::
