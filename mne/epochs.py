@@ -2070,7 +2070,7 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
     events of interest) and collates information about other events that
     occurred within those time windows. The information is returned as a
     :class:`pandas.DataFrame` suitable for use as `~mne.Epochs` metadata: one
-    row per time-locked event, and columns indicating presence/absence and
+    row per event of interest, and columns indicating presence/absence and
     latency of each ancillary event type.
 
     Notably, the time window used for metadata generation need not correspond
@@ -2085,10 +2085,9 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
     events : array, shape (m, 3)
         The events array.
     event_id : dict
-        The mapping from event names (keys) to event IDs (values). Metadata
-        will only be generated for the events listed here. To restrict the
-        events for which metadata **rows** are created, pass the
-        ``time_locked_events`` parameter.
+        A mapping from event names (keys) to event IDs (values). Only events
+        included in ``event_id`` will be incorporated as columns of the
+        returned metadata :class:`pandas.DataFrame`.
     tmin : float
         Start of the time interval for metadata generation in seconds, relative
         to the time-locked event of the respective time period.
@@ -2105,10 +2104,10 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
     sfreq : float
         The sampling frequency during data acquisiton.
     time_locked_events : list of str | str | None
-        This can be a subset of event names (keys of ``event_id``). Metadata
-        rows will only be created for the specified event(s), instead of for
-        all events present in ``event_id``. If ``None`` (default), create
-        one row for each event in ``event_id``.
+        Event types around which to create the time windows / for which to
+        create *rows* in the returned metadata :class:`pandas.DataFrame`. If
+        provided, the string(s) should be keys in ``event_id``. If ``None``
+        (default), create rows for all event types present in ``event_id``.
     keep_first : str | list of str | None
         Specify subsets of hierarchical event descriptors (HEDs) matching
         events of which  the **first occurrence** within each
