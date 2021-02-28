@@ -197,7 +197,7 @@ print(metadata['response'])
 # ``stimulus/compatible/target_right``, ``stimulus/incompatible/target_left``,
 # and ``stimulus/incompatible/target_right``. Even more, because in the present
 # paradigm stimuli were presented in rapid succession, sometimes multiple
-# stimulus events occurred within the 1.5 second time period were using to
+# stimulus events occurred within the 1.5 second time period we're using to
 # generate our metadata. See for example:
 
 metadata.loc[metadata['stimulus/compatible/target_left'] &
@@ -205,10 +205,10 @@ metadata.loc[metadata['stimulus/compatible/target_left'] &
              :]
 
 ###############################################################################
-# This can easily lead to lead to confusion during later staged of processing,
-# so let's create a column for the first stimulus – which will always be the
-# time-locked stimulus, as our time interval starts at 0 seconds. We can pass a
-# **list** of strings to ``keep_first``.
+# This can easily lead to confusion during later stages of processing, so let's
+# create a column for the first stimulus – which will always be the time-locked
+# stimulus, as our time interval starts at 0 seconds. We can pass a **list** of
+# strings to ``keep_first``.
 
 keep_first = ['stimulus', 'response']
 metadata, events, event_id = mne.epochs.make_metadata(
@@ -409,7 +409,7 @@ resp_erp_incorrect.plot_topomap(times=0.05, average=0.05, size=3,
 ###############################################################################
 # We can see a strong negative deflection immediately after incorrect
 # responses, compared to correct responses. The topoplot, too, leaves no doubt:
-# what we're looking at is the ERN.
+# what we're looking at is, in fact, the ERN.
 #
 # Some researchers suggest to construct the difference wave between ERPs for
 # correct and incorrect responses, as it more clearly reveals signal
