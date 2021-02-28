@@ -27,7 +27,7 @@ import numpy as np
 # Misc
 
 def _median_complex(data, axis):
-    """Compute median on complex data safely.
+    """Compute marginal median on complex data safely.
 
     XXX: Can be removed when numpy introduces a fix.
     See: https://github.com/scipy/scipy/pull/12676/.
