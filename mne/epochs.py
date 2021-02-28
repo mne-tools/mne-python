@@ -2063,15 +2063,15 @@ def _drop_log_stats(drop_log, ignore=('IGNORED',)):
 
 
 def make_metadata(events, event_id, tmin, tmax, sfreq,
-                  time_locked_events=None, keep_first=None, keep_last=None):
+                  row_events=None, keep_first=None, keep_last=None):
     """Generate metadata from events for use with `~mne.Epochs`.
 
-    This function mimics the epoching process (constructs time windows around
-    events of interest) and collates information about other events that
-    occurred within those time windows. The information is returned as a
-    :class:`pandas.DataFrame` suitable for use as `~mne.Epochs` metadata: one
-    row per event of interest, and columns indicating presence/absence and
-    latency of each ancillary event type.
+    This function mimics the epoching process (it constructs time windows
+    around time-locked "events of interest") and collates information about
+    any other events that occurred within those time windows. The information
+    is returned as a :class:`pandas.DataFrame` suitable for use as
+    `~mne.Epochs` metadata: one row per time-locked event, and columns
+    indicating presence/absence and latency of each ancillary event type.
 
     The function will also return a new ``events`` array and ``event_id``
     dictionary that correspond to the generated metadata.
@@ -2079,14 +2079,17 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
     Parameters
     ----------
     events : array, shape (m, 3)
-        The events array.
+        The events array. By default, the returned metadata
+        :class:`pandas.DataFrame` will have as many rows as the events array.
+        To create rows for only a subset of events, pass the ``row_events``
+        parameter.
     event_id : dict
-        A mapping from event names (keys) to event IDs (values). Only events
-        included in ``event_id`` will be incorporated as columns of the
-        returned metadata :class:`pandas.DataFrame`.
+        A mapping from event names (keys) to event IDs (values). The event
+        names will be incorporated as columns of the returned metadata
+        :class:`pandas.DataFrame`.
     tmin : float
         Start of the time interval for metadata generation in seconds, relative
-        to the time-locked event of the respective time period.
+        to the time-locked event of the respective time window.
 
         .. note::
            If you are planning to attach the generated metadata to
@@ -2096,39 +2099,45 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
 
     tmax : float
         End of the time interval for metadata generation in seconds, relative
-        to the time-locked event of the respective time period.
+        to the time-locked event of the respective time window.
     sfreq : float
         The sampling frequency during data acquisiton.
-    time_locked_events : list of str | str | None
+    row_events : list of str | str | None
         Event types around which to create the time windows / for which to
-        create *rows* in the returned metadata :class:`pandas.DataFrame`. If
-        provided, the string(s) should be keys in ``event_id``. If ``None``
-        (default), create rows for all event types present in ``event_id``.
+        create **rows** in the returned metadata :class:`pandas.DataFrame`. If
+        provided, the string(s) must be keys of ``event_id``. If ``None``
+        (default), create rows for **all** event types present in ``event_id``.
     keep_first : str | list of str | None
         Specify subsets of hierarchical event descriptors (HEDs) matching
         events of which  the **first occurrence** within each
-        time period shall be stored in addition to the original events.
-        For example, you might have two response events, ``response/left`` and
-        ``response/right``; and in trials with both responses occurring, you
-        want to keep only the very first response. In this case, you can pass
-        ``keep_first='response'``. This will add two new columns to the
-        metadata: ``response``, indicating which of the events (``'left'`` or
-        ``'right'``) occurred, and ``response_time``, with the time relative to
-        the time-locked event.  To specify multiple events, pass a list of
-        their names, e.g. ``keep_first=['response', 'stimulus']``.
-        If ``None``, no new columns are created.
+        time window shall be stored in addition to the original events.
+
+        .. note::
+           There is currently no way to retain **all** occurrences of a
+           repeated event. The ``keep_first`` parameter can be used to specify
+           subsets of HEDs, effectively creating a new event that is the union
+           of the matching HED pattern, and keeping the very first event of
+           this set.
+
+        For example, you might have two response events types,
+        ``response/left`` and ``response/right``; and in trials with both
+        responses occurring, you want to keep only the first response. In this
+        case, you can pass ``keep_first='response'``. This will add two new
+        columns to the metadata: ``response``, indicating which **type** of
+        event (``'left'`` or``'right'``) occurred, and ``response_time``, with
+        the **time** relative to the time-locked event. To match specific
+        subsets of HEDs matching different sets of events, pass a list of
+        these subsets, e.g. ``keep_first=['response', 'stimulus']``.
+        If ``None`` (default), no event aggregation will take place and no
+        new columns will be created.
 
         .. note::
            By default, this function will always retain  the first instance
-           of any event in each time period. For example, if a time period
+           of any event in each time window. For example, if a time window
            contains two ``'response'`` events, the generated ``response`` and
-           ``response_time`` columns will refer to the first of the two events.
-           In this specific case, it is **not** necessary to make use of the
-           ``keep_first`` parameter. Note that there is currently no way to
-           retain **all** occurrences of a repeated event. The ``keep_first``
-           parameter can be used to specify subsets of HEDs, effectively
-           creating a new event that is the union of the matching HED pattern,
-           and keeping the very first event of this set.
+           ``response_time`` columns will automatically refer to the first of
+           the two events. In this specific case, it is therefore **not**
+           necessary to make use of the ``keep_first`` parameter.
 
     keep_last : list of str | None
         Same as ``keep_first``, but for keeping only the **last**  occurrence
@@ -2140,11 +2149,11 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
         The pre-assembled metadata. It contains the following columns:
 
         - ``event_name``, with strings indicating the name of the time-locked
-          event for that specific time period
+          event for that specific time window
 
         - one column per key in ``event_id``, with the same name; boolean
           values indicating whether that specific event occurred within the
-          given time period
+          given time window
 
         - if applicable, additional columns for ``keep_first`` and
           ``keep_last`` event names, if provided; the values will be strings
@@ -2158,14 +2167,13 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
         time-locked event per row.
     event_id : dict
         The event dictionary corresponding to the new events array. This will
-        be identical to the input dictionary unless ``time_locked_events``
-        was supplied, in which case it will only contain the events listed
-        in ``time_locked_events``.
+        be identical to the input dictionary unless ``row_events`` is supplied,
+        in which case it will only contain the events provided there.
 
     Notes
     -----
     The time window used for metadata generation need not correspond to the
-    time period used to create the `~mne.Epochs`, to which the metadata will
+    time window used to create the `~mne.Epochs`, to which the metadata will
     be attached; it may well be much shorter or longer, or not overlap at all,
     if desired. The can be useful, for example, to include events that ccurred
     before or after an epoch, e.g. during the inter-trial interval.
@@ -2176,8 +2184,8 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
     pd = _check_pandas_installed()
 
     _validate_type(event_id, types=(dict,), item_name='event_id')
-    _validate_type(time_locked_events, types=(None, str, list, tuple),
-                   item_name='time_locked_events')
+    _validate_type(row_events, types=(None, str, list, tuple),
+                   item_name='row_events')
     _validate_type(keep_first, types=(None, str, list, tuple),
                    item_name='keep_first')
     _validate_type(keep_last, types=(None, str, list, tuple),
@@ -2194,7 +2202,7 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
         else:
             return list(x)
 
-    time_locked_events = _ensure_list(time_locked_events)
+    row_events = _ensure_list(row_events)
     keep_first = _ensure_list(keep_first)
     keep_last = _ensure_list(keep_last)
 
@@ -2212,10 +2220,10 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
                     f'Event "{event_name}", specified in {param_name}, '
                     f'cannot be found in event_id dictionary')
 
-    event_name_diff = sorted(set(time_locked_events) - set(event_id.keys()))
+    event_name_diff = sorted(set(row_events) - set(event_id.keys()))
     if event_name_diff:
         raise ValueError(
-            f'Present in time_locked_events, but missing from event_id: '
+            f'Present in row_events, but missing from event_id: '
             f'{", ".join(event_name_diff)}')
     del event_name_diff
 
@@ -2278,7 +2286,7 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
     # print(metadata.dtypes)
     # We're all set, let's iterate over all eventns and fill in in the
     # respective cells in the metadata. We will subset this to include only
-    # `time_locked_events` later
+    # `row_events` later
     for row_idx, time_locked_event in events_df.iterrows():
         metadata.loc[row_idx, 'event_name'] = \
             id_to_name_map[time_locked_event['id']]
@@ -2332,9 +2340,9 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
                 metadata.loc[row_idx, time_col_name] = event_time
 
     # Only keep rows of interest
-    if time_locked_events:
+    if row_events:
         event_id_timelocked = {name: val for name, val in event_id.items()
-                               if name in time_locked_events}
+                               if name in row_events}
 
         events = events[np.in1d(events[:, 2],
                                 list(event_id_timelocked.values()))]

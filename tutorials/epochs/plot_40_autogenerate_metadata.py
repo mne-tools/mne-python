@@ -75,8 +75,8 @@ all_events, all_event_id = mne.events_from_annotations(raw)
 # The basics of ``make_metadata``
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
-# Now it's time to think about the time periods to use for epoching and
-# metadata generation. **It is important to understand that these time periods
+# Now it's time to think about the time windows to use for epoching and
+# metadata generation. **It is important to understand that these time windows
 # need not be the same!** That is, the automatically generated metadata might
 # include information about events from only a fraction of the epochs duration;
 # or it might include events that occurred well outside a given epoch.
@@ -121,13 +121,13 @@ metadata
 # The names of columns 2 to 7 correspond to the event names specified in the
 # ``all_event_id`` dictionary. These columns contain boolean values – ``True``
 # or ``False`` – indicating whether that specific event occurred during the
-# specified time period (in our case, 0.0 to 1.5 seconds after stimulus
+# specified time window (in our case, 0.0 to 1.5 seconds after stimulus
 # onset).
 #
 # The names of all columns after those carry the same names, but with the
 # suffix ``_time``. These values represent the time in seconds relative to
 # the time-locked event (the one mentioned in the ``event_name`` column).
-# For events that didn't occur within the given time period, you'll see
+# For events that didn't occur within the given time window, you'll see
 # a value of ``NaN``, simply indicating that no event time could be generated.
 #
 # Now, there's a problem here. We want investigate the visual ERPs only,
@@ -135,7 +135,7 @@ metadata
 # one row for **every** event, including responses. While we **could** create
 # epochs for all events, allowing us to pass those metadata, and later subset
 # the created events, there's a more elegant way to handle things:
-# `~mne.epochs.make_metadata` has a ``time_locked_events`` parameter that
+# `~mne.epochs.make_metadata` has a ``row_events`` parameter that
 # allows us to specify for which events to create metadata **rows**, while
 # still creating **columns for all events** in the ``event_id`` dictionary.
 #
@@ -144,15 +144,15 @@ metadata
 # later use when we're actually going to create our epochs, to ensure that
 # metadata, events, and event descriptions stay in sync.
 
-time_locked_events = ['stimulus/compatible/target_left',
-                      'stimulus/compatible/target_right',
-                      'stimulus/incompatible/target_left',
-                      'stimulus/incompatible/target_right']
+row_events = ['stimulus/compatible/target_left',
+              'stimulus/compatible/target_right',
+              'stimulus/incompatible/target_left',
+              'stimulus/incompatible/target_right']
 
 metadata, events, event_id = mne.epochs.make_metadata(
     events=all_events, event_id=all_event_id,
     tmin=metadata_tmin, tmax=metadata_tmax, sfreq=raw.info['sfreq'],
-    time_locked_events=time_locked_events)
+    row_events=row_events)
 
 metadata
 
@@ -181,7 +181,7 @@ keep_first = 'response'
 metadata, events, event_id = mne.epochs.make_metadata(
     events=all_events, event_id=all_event_id,
     tmin=metadata_tmin, tmax=metadata_tmax, sfreq=raw.info['sfreq'],
-    time_locked_events=time_locked_events,
+    row_events=row_events,
     keep_first=keep_first)
 
 # visualize response times regardless of side
@@ -197,7 +197,7 @@ print(metadata['response'])
 # ``stimulus/compatible/target_right``, ``stimulus/incompatible/target_left``,
 # and ``stimulus/incompatible/target_right``. Even more, because in the present
 # paradigm stimuli were presented in rapid succession, sometimes multiple
-# stimulus events occurred within the 1.5 second time period we're using to
+# stimulus events occurred within the 1.5 second time window we're using to
 # generate our metadata. See for example:
 
 metadata.loc[metadata['stimulus/compatible/target_left'] &
@@ -214,7 +214,7 @@ keep_first = ['stimulus', 'response']
 metadata, events, event_id = mne.epochs.make_metadata(
     events=all_events, event_id=all_event_id,
     tmin=metadata_tmin, tmax=metadata_tmax, sfreq=raw.info['sfreq'],
-    time_locked_events=time_locked_events,
+    row_events=row_events,
     keep_first=keep_first)
 
 # all times of the time-locked events should be zero
@@ -262,7 +262,7 @@ print(f'Correct responses: {correct_response_count}\n'
 # instantiation via the ``metadata`` parameter. Also it is important to
 # remember to pass ``events`` and ``event_id`` as returned from
 # `~mne.epochs.make_metadata`, as we only created metadata for a subset of
-# our original events by passing ``time_locked_events``. Otherwise, the length
+# our original events by passing ``row_events``. Otherwise, the length
 # of the metadata and the number of epochs would not match and MNE-Python
 # would raise an error.
 
@@ -310,7 +310,7 @@ fig
 # the response trigger.
 #
 # We only wish to consider the **last** stimulus and response in each time
-# period: Remember that we're dealing with rapid stimulus presentations in
+# window: Remember that we're dealing with rapid stimulus presentations in
 # this paradigm; taking the last response – at time point zero – and the last
 # stimulus – the one closest to the response – ensures we actually create
 # the right stimulus-response pairings. We can achieve this by passing the
@@ -319,13 +319,13 @@ fig
 # events.
 
 metadata_tmin, metadata_tmax = -1.5, 0
-time_locked_events = ['response/left', 'response/right']
+row_events = ['response/left', 'response/right']
 keep_last = ['stimulus', 'response']
 
 metadata, events, event_id = mne.epochs.make_metadata(
     events=all_events, event_id=all_event_id,
     tmin=metadata_tmin, tmax=metadata_tmax, sfreq=raw.info['sfreq'],
-    time_locked_events=time_locked_events,
+    row_events=row_events,
     keep_last=keep_last)
 
 ###############################################################################

@@ -2891,7 +2891,7 @@ def assert_metadata_equal(got, exp):
 
 
 @pytest.mark.parametrize(
-    ('all_event_id', 'time_locked_events', 'keep_first', 'keep_last'),
+    ('all_event_id', 'row_events', 'keep_first', 'keep_last'),
     [({'a/1': 1, 'a/2': 2, 'b/1': 3, 'b/2': 4, 'c': 32},  # all events
       None, None, None),
      ({'a/1': 1, 'a/2': 2},  # subset of events
@@ -2901,14 +2901,14 @@ def assert_metadata_equal(got, exp):
       ('a/1', 'a/2', 'b/1', 'b/2'), ('a', 'b'), 'c')]
 )
 @requires_pandas
-def test_make_metadata(all_event_id, time_locked_events, keep_first,
+def test_make_metadata(all_event_id, row_events, keep_first,
                        keep_last):
     """Test that make_metadata works."""
     raw, all_events, _ = _get_data()
     tmin, tmax = -0.5, 1.5
     sfreq = raw.info['sfreq']
     kwargs = dict(events=all_events, event_id=all_event_id,
-                  time_locked_events=time_locked_events,
+                  row_events=row_events,
                   keep_first=keep_first, keep_last=keep_last,
                   tmin=tmin, tmax=tmax,
                   sfreq=sfreq)
@@ -2922,8 +2922,8 @@ def test_make_metadata(all_event_id, time_locked_events, keep_first,
 
     assert len(metadata) == len(events)
 
-    if time_locked_events:
-        assert set(metadata['event_name']) == set(time_locked_events)
+    if row_events:
+        assert set(metadata['event_name']) == set(row_events)
     else:
         assert set(metadata['event_name']) == set(event_id.keys())
 
