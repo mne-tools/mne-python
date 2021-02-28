@@ -2197,12 +2197,11 @@ def _get_data(inst, return_itc):
         raise TypeError('inst must be Epochs or Evoked or Raw')
     if isinstance(inst, BaseEpochs):
         data = inst.get_data()
-    elif isinstance(inst, BaseRaw):
-        # make data into 3D to play nice with epochs x ch x time
-        data = inst.get_data()[np.newaxis, ...]
     else:
         if return_itc:
-            raise ValueError('return_itc must be False for evoked data')
+            raise ValueError('return_itc must be False for evoked '
+                             'and raw data')
+        # make data into 3D to play nice with epochs x ch x time
         data = inst.data[np.newaxis].copy()
     return data
 
