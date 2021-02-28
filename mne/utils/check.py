@@ -598,7 +598,7 @@ def _check_combine(mode, valid=('mean', 'median', 'std')):
     elif mode == "std":
         def fun(data):
             return np.std(data, axis=0)
-    elif mode == "median":
+    elif mode == "median" or mode == np.median:
         def fun(data):
             return _median_complex(data, axis=0)
     elif callable(mode):

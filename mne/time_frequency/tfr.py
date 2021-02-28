@@ -2121,15 +2121,6 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         one passes in ``median``. See a discussion in scipy:
 
         https://github.com/scipy/scipy/pull/12676#issuecomment-783370228
-
-        The ``method`` parameter allows e.g. robust averaging.
-        For example, one could do:
-
-            >>> from scipy.stats import trim_mean  # doctest:+SKIP
-            >>> trim = lambda x: trim_mean(x, 0.1, axis=0)  # doctest:+SKIP
-            >>> epochs_tfr.average(method=trim)  # doctest:+SKIP
-
-        This would compute the trimmed mean.
         """
         # return a lambda function for computing a combination metric
         # over epochs
