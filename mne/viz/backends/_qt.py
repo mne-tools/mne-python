@@ -16,7 +16,8 @@ from PyQt5.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
                              QSlider, QSpinBox, QVBoxLayout, QWidget,
                              QSizePolicy, QScrollArea)
 
-from ._pyvista import _PyVistaRenderer, _close_all, _check_3d_figure  # noqa: F401,E501 analysis:ignore
+from ._pyvista import _PyVistaRenderer
+from ._pyvista import _close_all, _close_3d_figure, _check_3d_figure, _set_3d_view  # noqa: F401,E501 analysis:ignore
 from ._abstract import _AbstractDock, _AbstractToolBar
 from ._utils import _init_qt_resources
 
