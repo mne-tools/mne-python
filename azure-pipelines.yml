@@ -213,9 +213,6 @@ stages:
     # https://github.com/MicrosoftDocs/pipelines-anaconda
     # Qt 5.9 post-link failure:
     # https://github.com/ContinuumIO/anaconda-issues/issues/10949
-    - script: echo "##vso[task.prependpath]%CONDA%;%CONDA%\condabin;%CONDA%\Scripts;%CONDA%\Library\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;"
-      condition: in(variables['TEST_MODE'], 'conda')
-      displayName: Add conda to PATH, deal with Qt 5.9 bug
     - bash: |
         set -e
         git clone --depth 1 git://github.com/pyvista/gl-ci-helpers.git
@@ -223,33 +220,8 @@ stages:
       displayName: Install OpenGL
     - bash: |
         set -e
-        python -m pip install --upgrade pip setuptools
-        python -m pip install --upgrade numpy scipy vtk
-        python -m pip install --upgrade --use-deprecated=legacy-resolver --only-binary="numba,llvmlite" -r requirements.txt -r requirements_testing.txt
-        python -m pip install codecov
-      condition: eq(variables['TEST_MODE'], 'pip')
-      displayName: 'Install dependencies with pip'
-    - bash: |
-        set -e
-        python -m pip install --upgrade pip setuptools
-        python -m pip install --use-deprecated=legacy-resolver --upgrade --pre --only-binary ":all:" -i "https://pypi.anaconda.org/scipy-wheels-nightly/simple" numpy
-        python -m pip install --use-deprecated=legacy-resolver --upgrade --pre --only-binary ":all:" -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" scipy pandas scikit-learn matplotlib h5py Pillow
-        python -m pip install --upgrade --only-binary vtk vtk;
-        python -m pip install https://github.com/pyvista/pyvista/zipball/master
-        python -m pip install https://github.com/pyvista/pyvistaqt/zipball/master
-        python -m pip install --use-deprecated=legacy-resolver --only-binary="numba,llvmlite" -r requirements.txt -r requirements_testing.txt codecov
-      condition: eq(variables['TEST_MODE'], 'pre-pip')
-      displayName: 'Install dependencies with pip --pre'
-    - powershell: |
-        Set-StrictMode -Version Latest
-        $ErrorActionPreference = "Stop"
-        $PSDefaultParameterValues['*:ErrorAction']='Stop'
-        conda update -n base -c defaults conda
-        conda env update --name base --file environment.yml
-        pip uninstall -yq mne
-        pip install -r requirements_testing.txt codecov
-      condition: eq(variables['TEST_MODE'], 'conda')
-      displayName: 'Install dependencies with conda'
+        ./tools/azure_dependencies.sh
+      displayName: 'Install dependencies'
     - script: python setup.py develop
       displayName: 'Install MNE-Python dev'
     - script: mne sys_info
