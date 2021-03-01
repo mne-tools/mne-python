@@ -1270,7 +1270,7 @@ class Brain(object):
         rms = np.linalg.norm(y, axis=0) / np.sqrt(len(y))
         del y
 
-        self.rms = self.mpl_canvas.axes.plot(
+        self.rms, = self.mpl_canvas.axes.plot(
             self._data['time'], rms,
             lw=3, label='RMS', zorder=3, color=self._fg_color,
             alpha=0.5, ls=':')
