@@ -271,25 +271,26 @@ class _Renderer(_BaseRenderer):
 
     def update_lighting(self):
         # Inspired from Mayavi's version of Raymond Maple 3-lights illumination
-        lights = list(self.plotter.renderer.GetLights())
-        headlight = lights.pop(0)
-        headlight.SetSwitch(False)
-        for i in range(len(lights)):
-            if i < 3:
-                lights[i].SetSwitch(True)
-                lights[i].SetIntensity(1.0)
-                lights[i].SetColor(1.0, 1.0, 1.0)
-            else:
-                lights[i].SetSwitch(False)
-                lights[i].SetPosition(_to_pos(0.0, 0.0))
-                lights[i].SetIntensity(1.0)
-                lights[i].SetColor(1.0, 1.0, 1.0)
+        for renderer in self.plotter.renderers:
+            lights = list(renderer.GetLights())
+            headlight = lights.pop(0)
+            headlight.SetSwitch(False)
+            for i in range(len(lights)):
+                if i < 3:
+                    lights[i].SetSwitch(True)
+                    lights[i].SetIntensity(1.0)
+                    lights[i].SetColor(1.0, 1.0, 1.0)
+                else:
+                    lights[i].SetSwitch(False)
+                    lights[i].SetPosition(_to_pos(0.0, 0.0))
+                    lights[i].SetIntensity(1.0)
+                    lights[i].SetColor(1.0, 1.0, 1.0)
 
-        lights[0].SetPosition(_to_pos(45.0, 45.0))
-        lights[1].SetPosition(_to_pos(-30.0, -60.0))
-        lights[1].SetIntensity(0.6)
-        lights[2].SetPosition(_to_pos(-30.0, 60.0))
-        lights[2].SetIntensity(0.5)
+            lights[0].SetPosition(_to_pos(45.0, 45.0))
+            lights[1].SetPosition(_to_pos(-30.0, -60.0))
+            lights[1].SetIntensity(0.6)
+            lights[2].SetPosition(_to_pos(-30.0, 60.0))
+            lights[2].SetIntensity(0.5)
 
     def set_interaction(self, interaction):
         if not hasattr(self.plotter, "iren") or self.plotter.iren is None:
