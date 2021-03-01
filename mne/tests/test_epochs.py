@@ -2948,12 +2948,19 @@ def test_make_metadata(all_event_id, row_events, keep_first,
         event_names = sorted(set(event_id.keys()) | set(keep_first) |
                              set(keep_last) - set(row['event_name']))
         for event_name in event_names:
-            assert row[event_name] in [True, False, None]
-
-            if row[event_name] not in [False, None]:
-                assert not np.isnan(row[f'{event_name}_time'])
+            if event_name in keep_first or event_name in keep_last:
+                if event_name in all_event_id:
+                    assert  row[event_name] in [True, False]
+                else:
+                    assert (row[event_name] is None or
+                            isinstance(row[event_name], str))
             else:
+                assert row[event_name] in [True, False]
+
+            if row[event_name] in [False, None]:
                 assert np.isnan(row[f'{event_name}_time'])
+            else:
+                assert not np.isnan(row[f'{event_name}_time'])
 
     Epochs(raw, events=events, event_id=event_id, metadata=metadata,
            verbose='warning')

@@ -2206,9 +2206,12 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
     keep_first = _ensure_list(keep_first)
     keep_last = _ensure_list(keep_last)
 
-    if set(keep_last) & set(keep_first):
-        raise ValueError('The event names in keep_first and keep_last must be '
-                         'mutually exclusive')
+    keep_first_and_last = set(keep_first) & set(keep_last)
+    if keep_first_and_last:
+        raise ValueError(f'The event names in keep_first and keep_last must '
+                         f'be mutually exclusive. Specified in both: '
+                         f'{", ".join(sorted(keep_first_and_last))}')
+    del keep_first_and_last
 
     for param_name, values in dict(keep_first=keep_first,
                                    keep_last=keep_last).items():
@@ -2247,8 +2250,8 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
 
     # Avoid column name duplications if the exact same event name appears in
     # event_id.keys() and keep_first / keep_last simultaneously
-    keep_first_cols = [col for col in keep_first if col not in event_id.keys()]
-    keep_last_cols = [col for col in keep_last if col not in event_id.keys()]
+    keep_first_cols = [col for col in keep_first if col not in event_id]
+    keep_last_cols = [col for col in keep_last if col not in event_id]
 
     columns = ['event_name',
                *event_id.keys(),
@@ -2268,32 +2271,30 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
     # respective event occurred in that epoch
     start_idx = 1
     stop_idx = start_idx + len(event_id.keys())
-    for col in metadata.columns[start_idx:stop_idx]:
-        metadata[col] = False
+    metadata.iloc[:, start_idx:stop_idx] = False
 
     # Second set of columns: keep_first and keep_last
     start_idx = stop_idx
     stop_idx = start_idx + len(keep_first_cols + keep_last_cols)
-    for col in metadata.columns[start_idx:stop_idx]:
-        metadata[col] = None
+    metadata.iloc[:, start_idx:stop_idx] = None
 
     # Last set of columns: event times
     start_idx = stop_idx
-    for col in metadata.columns[start_idx:]:
-        metadata[col] = np.nan
+    metadata.iloc[:, start_idx:] = np.nan
 
     # print(metadata)
     # print(metadata.dtypes)
     # We're all set, let's iterate over all eventns and fill in in the
     # respective cells in the metadata. We will subset this to include only
     # `row_events` later
-    for row_idx, time_locked_event in events_df.iterrows():
+    for time_locked_event in events_df.itertuples(name='TimeLockedEvent'):
+        row_idx = time_locked_event.Index
         metadata.loc[row_idx, 'event_name'] = \
-            id_to_name_map[time_locked_event['id']]
+            id_to_name_map[time_locked_event.id]
 
         # Determine which events fall into the current epoch
-        epoch_start_sample = time_locked_event['sample'] + start_sample
-        epoch_stop_sample = time_locked_event['sample'] + stop_sample
+        epoch_start_sample = time_locked_event.sample + start_sample
+        epoch_stop_sample = time_locked_event.sample + stop_sample
         events_in_epoch = events_df.loc[
             (events_df['sample'] >= epoch_start_sample) &
             (events_df['sample'] <= epoch_stop_sample), :]
@@ -2301,21 +2302,22 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
         assert not events_in_epoch.empty
 
         # Store the metadata
-        for _, epochs_event in events_in_epoch.iterrows():
-            event_col_name = id_to_name_map[epochs_event['id']]
+        for epochs_event in events_in_epoch.itertuples(name='EpochsEvent'):
+            event_col_name = id_to_name_map[epochs_event.id]
             event_time_col_name = f'{event_col_name}_time'
             if (not np.isnan(metadata.loc[row_idx, event_time_col_name]) and
                     event_col_name in keep_first):
-                # Event already exists in current time period! Skip
+                # Event already exists in current time window! Skip
                 continue
 
-            event_sample = epochs_event['sample'] - time_locked_event['sample']
+            event_sample = epochs_event.sample - time_locked_event.sample
             event_time = event_sample / sfreq
             event_time = 0 if np.isclose(event_time, 0) else event_time
 
             metadata.loc[row_idx, event_col_name] = True
             metadata.loc[row_idx, event_time_col_name] = event_time
 
+            # Handle keep_first and keep_last event aggregation
             for col_name in keep_first + keep_last:
                 if event_col_name not in _hid_match(event_id, [col_name]):
                     continue
@@ -2324,8 +2326,9 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
                 old_time = metadata.loc[row_idx, time_col_name]
 
                 if not np.isnan(old_time):
-                    if ((col_name in keep_first and old_time < event_time) or
-                            (col_name in keep_last and old_time > event_time)):
+                    if ((col_name in keep_first and old_time <= event_time) or
+                            (col_name in keep_last and
+                             old_time >= event_time)):
                         continue
 
                 if col_name not in event_id:
