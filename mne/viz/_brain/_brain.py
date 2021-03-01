@@ -1334,15 +1334,25 @@ class Brain(object):
         return self.save_movie(None)
 
     def _screenshot(self):
+        from PIL import Image
+        img = self.screenshot(time_viewer=True)
+
+        def _save_image(fname, img):
+            Image.fromarray(img).save(fname)
         if self.notebook:
-            from PIL import Image
             fname = self._renderer.actions.get("screenshot_field").value
             fname = self._renderer._get_screenshot_filename() \
                 if len(fname) == 0 else fname
-            img = self.screenshot(fname, time_viewer=True)
-            Image.fromarray(img).save(fname)
+            _save_image(fname, img)
         else:
-            self.plotter._qt_screenshot()
+            try:
+                from pyvista.plotting.qt_plotting import FileDialog
+            except ImportError:
+                from pyvistaqt.plotting import FileDialog
+            FileDialog(
+                self.plotter.app_window,
+                callback=partial(_save_image, img=img)
+            )
 
     def _configure_tool_bar(self):
         self._renderer._tool_bar_load_icons()
