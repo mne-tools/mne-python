@@ -679,11 +679,7 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
         raise ValueError('When using multitaper mode and specifying '
                          'multitaper transform bandwidth, one value must be '
                          'provided per frequency bin')
-<<<<<<< HEAD
     if isinstance(cwt_n_cycles, (int, float)):
-=======
-    if isinstance(cwt_n_cycles, [int, float]):
->>>>>>> Update mne/beamformer/_dics.py
         # create a list out of single values to match n_freq_bins
         n_cyc = cwt_n_cycles
         cwt_n_cycles = [n_cyc] * n_freq_bins
