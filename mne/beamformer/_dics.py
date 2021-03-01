@@ -679,10 +679,10 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
         raise ValueError('When using multitaper mode and specifying '
                          'multitaper transform bandwidth, one value must be '
                          'provided per frequency bin')
-    if isinstance(cwt_n_cycles, int) or isinstance(cwt_n_cycles, float):
+    if isinstance(cwt_n_cycles, (int, float)):
         # create a list out of single values to match n_freq_bins
         n_cyc = cwt_n_cycles
-        cwt_n_cycles = [n_cyc for fb in range(n_freq_bins)]
+        cwt_n_cycles = [n_cyc] * n_freq_bins
 
     # Multiplying by 1e3 to avoid numerical issues, e.g. 0.3 // 0.05 == 5
     n_time_steps = int(((tmax - tmin) * 1e3) // (tstep * 1e3))
