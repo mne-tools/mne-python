@@ -164,13 +164,13 @@ metadata
 # number of columns as before. Great!
 #
 # We have two types of responses in our data: ``response/left`` and
-# ``respnse/right``. We would like to map those to "correct" and "incorrect".
+# ``response/right``. We would like to map those to "correct" and "incorrect".
 # To make this easier, we can ask `~mne.epochs.make_metadata` to generate an
 # entirely **new** column that refers to the first response observed during the
 # given time interval. This works by passing a subset of the hierarchical
 # event descriptions (HEDs) used to name events via the ``keep_first``
-# parameter. For example, in the case of the HEDs``response/left`` and
-# ``respnse/right``, we could pass ``keep_first='response'`` to generate a new
+# parameter. For example, in the case of the HEDs ``response/left`` and
+# ``response/right``, we could pass ``keep_first='response'`` to generate a new
 # column ``response``, containing the name of the respective event (sans the
 # string used for matching, as it is already encoded as the column name).
 # And of course, there'll be a corresponding ``response_time`` column,
