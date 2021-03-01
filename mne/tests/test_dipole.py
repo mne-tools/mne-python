@@ -478,7 +478,11 @@ def test_bdip(fname_dip_, fname_bdip_, tmpdir):
                                 err_msg='%s: %s' % (kind, key))
         # Not stored
         assert this_bdip.name is None
-        assert_allclose(this_bdip.nfree, 0.)
+        assert this_bdip.nfree is None
+
+        # Test whether indexing works
+        this_bdip0 = this_bdip[0]
+        _check_dipole(this_bdip0, 1)
 
 
 run_tests_if_main()
