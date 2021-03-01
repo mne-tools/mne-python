@@ -500,6 +500,10 @@ def test_brain_time_viewer(renderer_interactive, pixel_ratio, brain_gc):
     assert len(plt.get_fignums()) == 0
 
     # screenshot
+    # Need to turn the interface back on otherwise the window is too wide
+    # (it keeps the window size and expands the 3D area when the interface
+    # is toggled off)
+    brain.toggle_interface(value=True)
     brain.show_view(view=dict(azimuth=180., elevation=90.))
     img = brain.screenshot(mode='rgb')
     want_shape = np.array([300 * pixel_ratio, 300 * pixel_ratio, 3])
