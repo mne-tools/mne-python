@@ -1,4 +1,4 @@
-name: 'linux / pip'
+name: 'linux / pip-pre'
 on:
   push:
     branches:
@@ -22,7 +22,7 @@ jobs:
           commit-filter: '[skip ci];[ci skip];[skip github]'
           commit-filter-separator: ';'
 
-  # PIP + non-default stim channel + log level info
+  # PIP-pre + non-default stim channel + log level info
   job:
     needs: check_skip
     if: ${{ needs.check_skip.outputs.skip == 'false' }}

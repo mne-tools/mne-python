@@ -4,7 +4,7 @@ if [ ! -z "$CONDA_ENV" ]; then
 	pip uninstall -yq mne
 elif [ ! -z "$CONDA_DEPENDENCIES" ]; then
 	conda install -y $CONDA_DEPENDENCIES
-else # pip 3.9 (missing statsmodels and dipy)
+else # pip --pre 3.9 (missing statsmodels and dipy)
 	python -m pip install --progress-bar off --upgrade "pip!=20.3.0" setuptools wheel
 	pip uninstall -yq numpy
 	pip install --progress-bar off --upgrade --pre --only-binary ":all:" python-dateutil pytz joblib threadpoolctl
