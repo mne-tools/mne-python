@@ -124,7 +124,7 @@ class BumpColorbarPoints(object):
                 vals['fmid'] = value
                 self.widgets['fmid'].set_value(value)
             self.widgets['fmax'].set_value(value)
-        self.brain.widgets[f'entry_{self.name}'].set_value(str(value))
+        self.brain.widgets[f'entry_{self.name}'].set_value(value)
         self.brain.update_lut(**vals)
         if time.time() > self.last_update + 1. / 60.:
             self.callback[self.name](value)

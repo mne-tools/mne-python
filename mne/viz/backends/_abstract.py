@@ -507,11 +507,6 @@ class _AbstractDock(ABC):
         pass
 
     @abstractmethod
-    def _dock_add_text(self, value, callback, validator=None,
-                       layout=None):
-        pass
-
-    @abstractmethod
     def _dock_add_slider(self, name, value, rng, callback,
                          compact=True, double=False, layout=None):
         pass

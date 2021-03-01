@@ -10,11 +10,12 @@ from contextlib import contextmanager
 import pyvista
 
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QDoubleValidator, QIcon
+from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
-                             QHBoxLayout, QLabel, QLineEdit, QPushButton,
+                             QHBoxLayout, QLabel, QPushButton,
                              QSlider, QSpinBox, QVBoxLayout, QWidget,
-                             QSizePolicy, QScrollArea)
+                             QSizePolicy, QScrollArea, QStyle,
+                             QStyleOptionSlider)
 
 from ._pyvista import _PyVistaRenderer
 from ._pyvista import (_close_all, _close_3d_figure, _check_3d_figure,  # noqa: F401,E501 analysis:ignore
@@ -70,72 +71,55 @@ class _QtDock(_AbstractDock):
         layout.addWidget(widget)
         return widget
 
-    def _dock_add_text(self, value, callback, validator=None,
-                       layout=None):
+    def _named_layout(self, name, layout, compact):
         layout = self.dock_layout if layout is None else layout
-        widget = QLineEdit(value)
-        widget.setAlignment(Qt.AlignCenter)
-        if validator is not None:
-            widget.setValidator(
-                QDoubleValidator(validator[0], validator[1], 2))
-
-            def _callback():
-                callback(float(widget.text()))
-        else:
-            def _callback():
-                callback(widget.text())
-        widget.returnPressed.connect(_callback)
-        layout.addWidget(widget)
-        return widget
-
-    def _dock_add_slider(self, name, value, rng, callback,
-                         compact=True, double=False, layout=None):
-        layout = self.dock_layout if layout is None else layout
-        hlayout = self._dock_add_layout(not compact)
         if name is not None:
+            hlayout = self._dock_add_layout(not compact)
+            layout.addLayout(hlayout)
+            layout = hlayout
             self._dock_add_label(
                 value=name, align=not compact, layout=hlayout)
+        return layout
+
+    def _dock_add_slider(self, name, value, rng, callback,
+                         compact=True, double=False, layout=None,
+                         stretch=0):
+        layout = self._named_layout(name, layout, compact)
         slider_class = QFloatSlider if double else QSlider
+        cast = float if double else int
         widget = slider_class(Qt.Horizontal)
-        widget.setMinimum(rng[0] if double else int(rng[0]))
-        widget.setMaximum(rng[1] if double else int(rng[1]))
-        widget.setValue(value if double else int(value))
+        widget.setMinimum(cast(rng[0]))
+        widget.setMaximum(cast(rng[1]))
+        widget.setValue(cast(value))
         widget.valueChanged.connect(callback)
-        hlayout.addWidget(widget)
-        layout.addLayout(hlayout)
+        layout.addWidget(widget)
         return widget
 
     def _dock_add_spin_box(self, name, value, rng, callback,
                            compact=True, double=True, layout=None):
-        layout = self.dock_layout if layout is None else layout
-        hlayout = self._dock_add_layout(not compact)
-        if name is not None:
-            self._dock_add_label(
-                value=name, align=not compact, layout=hlayout)
+        layout = self._named_layout(name, layout, compact)
         value = value if double else int(value)
         widget = QDoubleSpinBox() if double else QSpinBox()
         widget.setAlignment(Qt.AlignCenter)
         widget.setMinimum(rng[0])
         widget.setMaximum(rng[1])
+        inc = (rng[1] - rng[0]) / 20.
+        inc = max(int(round(inc)), 1) if not double else inc
+        widget.setKeyboardTracking(False)
+        widget.setSingleStep(inc)
         widget.setValue(value)
         widget.valueChanged.connect(callback)
-        hlayout.addWidget(widget)
-        layout.addLayout(hlayout)
+        layout.addWidget(widget)
         return widget
 
     def _dock_add_combo_box(self, name, value, rng,
                             callback, compact=True, layout=None):
-        layout = self.dock_layout if layout is None else layout
-        hlayout = self._dock_add_layout(not compact)
-        if name is not None:
-            self._dock_add_label(
-                value=name, align=not compact, layout=hlayout)
+        layout = self._named_layout(name, layout, compact)
         widget = QComboBox()
         widget.addItems(rng)
         widget.setCurrentText(value)
         widget.currentTextChanged.connect(callback)
-        hlayout.addWidget(widget)
-        layout.addLayout(hlayout)
+        layout.addWidget(widget)
         return widget
 
     def _dock_add_group_box(self, name, layout=None):
@@ -155,6 +139,12 @@ class QFloatSlider(QSlider):
     def __init__(self, ori, parent=None):
         """Initialize the slider."""
         super().__init__(ori, parent)
+        self._opt = QStyleOptionSlider()
+        self.initStyleOption(self._opt)
+        self._gr = self.style().subControlRect(
+            QStyle.CC_Slider, self._opt, QStyle.SC_SliderGroove, self)
+        self._sr = self.style().subControlRect(
+            QStyle.CC_Slider, self._opt, QStyle.SC_SliderHandle, self)
         self._precision = 10000
         super().valueChanged.connect(self._convert)
 
@@ -184,6 +174,33 @@ class QFloatSlider(QSlider):
     def setValue(self, value):
         """Set the current value."""
         super().setValue(int(value * self._precision))
+
+    # Adapted from:
+    # https://stackoverflow.com/questions/52689047/moving-qslider-to-mouse-click-position  # noqa: E501
+    def mousePressEvent(self, event):
+        """Add snap-to-location handling."""
+        opt = QStyleOptionSlider()
+        self.initStyleOption(opt)
+        sr = self.style().subControlRect(QStyle.CC_Slider, opt, QStyle.SC_SliderHandle, self)
+        if (event.button() != Qt.LeftButton or sr.contains(event.pos())):
+            super().mousePressEvent(event)
+            return
+        if self.orientation() == Qt.Vertical:
+            half = (0.5 * sr.height()) + 0.5
+            max_ = self.height()
+            pos = max_ - event.y()
+        else:
+            half = (0.5 * sr.width()) + 0.5
+            max_ = self.width()
+            pos = event.x()
+        max_ = max_ - 2 * half
+        pos = min(max(pos - half, 0), max_) / max_
+        val = self.minimum() + (self.maximum() - self.minimum()) * pos
+        val = (self.maximum() - val) if self.invertedAppearance() else val
+        self.setValue(val)
+        event.accept()
+        # Process afterward so it's seen as a drag
+        super().mousePressEvent(event)
 
 
 class _QtToolBar(_AbstractToolBar):

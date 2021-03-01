@@ -786,7 +786,7 @@ class Brain(object):
         self._update_auto_scaling(restore=True)
         for key in self.keys:
             self.widgets[key].set_value(self._data[key])
-            self.widgets[f"entry_{key}"].set_value(str(self._data[key]))
+            self.widgets[f"entry_{key}"].set_value(self._data[key])
         self._update()
 
     def toggle_playback(self, value=None):
@@ -930,6 +930,7 @@ class Brain(object):
                     name="Time (s)",
                     value=self._data['time_idx'],
                     rng=[0, len_time],
+                    double=True,
                     callback=self.callbacks["time"],
                     compact=False,
                     layout=layout,
@@ -1061,10 +1062,11 @@ class Brain(object):
                 notebook=self.notebook,
             )
             self.widgets[f"entry_{key}"] = Widget(
-                widget=self._renderer._dock_add_text(
-                    value=str(self._data[key]),
+                widget=self._renderer._dock_add_spin_box(
+                    name=None,
+                    value=self._data[key],
                     callback=self.callbacks[key],
-                    validator=rng,
+                    rng=rng,
                     layout=hlayout,
                 ),
                 notebook=self.notebook,

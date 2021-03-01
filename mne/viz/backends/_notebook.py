@@ -46,15 +46,6 @@ class _IpyDock(_AbstractDock):
         _ipy_add_widget(layout, widget, self.dock_width)
         return widget
 
-    def _dock_add_text(self, value, callback, validator=None,
-                       layout=None):
-        layout = self.dock_layout if layout is None else layout
-        widget = Text(value=value)
-        widget.observe(
-            _generate_callback(callback, to_float=validator), names='value')
-        _ipy_add_widget(layout, widget, self.dock_width)
-        return widget
-
     def _dock_add_slider(self, name, value, rng, callback,
                          compact=True, double=False, layout=None):
         layout = self.dock_layout if layout is None else layout
