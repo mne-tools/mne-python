@@ -262,35 +262,24 @@ class _Renderer(_BaseRenderer):
     def scene(self):
         return self.figure
 
-    def _orient_lights(self):
-        lights = list(self.plotter.renderer.GetLights())
-        lights.pop(0)  # unused headlight
-        lights[0].SetPosition(_to_pos(45.0, -45.0))
-        lights[1].SetPosition(_to_pos(-30.0, 60.0))
-        lights[2].SetPosition(_to_pos(-30.0, -60.0))
-
     def update_lighting(self):
         # Inspired from Mayavi's version of Raymond Maple 3-lights illumination
         for renderer in self.plotter.renderers:
             lights = list(renderer.GetLights())
             headlight = lights.pop(0)
             headlight.SetSwitch(False)
-            for i in range(len(lights)):
-                if i < 3:
-                    lights[i].SetSwitch(True)
-                    lights[i].SetIntensity(1.0)
-                    lights[i].SetColor(1.0, 1.0, 1.0)
+            # below and centered, left and above, right and above
+            az_el_in = ((0, -45, 0.7), (-60, 30, 0.7), (60, 30, 0.7))
+            for li, light in enumerate(lights):
+                if li < len(az_el_in):
+                    light.SetSwitch(True)
+                    light.SetPosition(_to_pos(*az_el_in[li][:2]))
+                    light.SetIntensity(az_el_in[li][2])
                 else:
-                    lights[i].SetSwitch(False)
-                    lights[i].SetPosition(_to_pos(0.0, 0.0))
-                    lights[i].SetIntensity(1.0)
-                    lights[i].SetColor(1.0, 1.0, 1.0)
-
-            lights[0].SetPosition(_to_pos(45.0, 45.0))
-            lights[1].SetPosition(_to_pos(-30.0, -60.0))
-            lights[1].SetIntensity(0.6)
-            lights[2].SetPosition(_to_pos(-30.0, 60.0))
-            lights[2].SetIntensity(0.5)
+                    light.SetSwitch(False)
+                    light.SetPosition(_to_pos(0.0, 0.0))
+                    light.SetIntensity(0.0)
+                light.SetColor(1.0, 1.0, 1.0)
 
     def set_interaction(self, interaction):
         if not hasattr(self.plotter, "iren") or self.plotter.iren is None:
@@ -897,7 +886,7 @@ def _rad2deg(rad):
     return rad * 180. / np.pi
 
 
-def _to_pos(elevation, azimuth):
+def _to_pos(azimuth, elevation):
     theta = azimuth * np.pi / 180.0
     phi = (90.0 - elevation) * np.pi / 180.0
     x = np.sin(theta) * np.sin(phi)

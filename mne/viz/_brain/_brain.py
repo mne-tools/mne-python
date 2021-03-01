@@ -525,9 +525,6 @@ class Brain(object):
         if surf == 'flat':
             self._renderer.set_interaction("rubber_band_2d")
 
-        if hemi == 'rh' and hasattr(self._renderer, "_orient_lights"):
-            self._renderer._orient_lights()
-
     def _setup_canonical_rotation(self):
         from ...coreg import fit_matched_points, _trans_from_params
         self._rigid = np.eye(4)
