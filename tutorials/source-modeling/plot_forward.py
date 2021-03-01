@@ -4,8 +4,7 @@
 Head model and forward computation
 ==================================
 
-The aim of this tutorial is to be a getting started for forward
-computation.
+The aim of this tutorial is to be a getting started for forward computation.
 
 For more extensive details and presentation of the general
 concepts for forward modeling, see :ref:`ch_forward`.
@@ -102,17 +101,21 @@ mne.viz.plot_alignment(info, trans, subject=subject, dig=True,
 # :func:`mne.setup_source_space`, while **volumetric** source space is computed
 # using :func:`mne.setup_volume_source_space`.
 #
-# We will now compute a surface-based source space with an ``'oct6'``
+# We will now compute a surface-based source space with an ``'oct4'``
 # resolution. See :ref:`setting_up_source_space` for details on source space
 # definition and spacing parameter.
+#
+# .. warning::
+#     ``'oct4'`` is used here just for speed, for real analyses the recommended
+#     spacing is ``'oct6'``.
 
-src = mne.setup_source_space(subject, spacing='oct6', add_dist='patch',
+src = mne.setup_source_space(subject, spacing='oct4', add_dist='patch',
                              subjects_dir=subjects_dir)
 print(src)
 
 ###############################################################################
 # The surface based source space ``src`` contains two parts, one for the left
-# hemisphere (4098 locations) and one for the right hemisphere (4098
+# hemisphere (258 locations) and one for the right hemisphere (258
 # locations). Sources can be visualized on top of the BEM surfaces in purple.
 
 mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
@@ -195,8 +198,20 @@ bem = mne.make_bem_solution(model)
 # parameter.
 
 fwd = mne.make_forward_solution(raw_fname, trans=trans, src=src, bem=bem,
-                                meg=True, eeg=False, mindist=5.0, n_jobs=2)
+                                meg=True, eeg=False, mindist=5.0, n_jobs=1,
+                                verbose=True)
 print(fwd)
+
+###############################################################################
+# .. warning::
+#    Forward computation can remove vertices that are too close to (or outside)
+#    the inner skull surface. For example, here we have gone from 516 to 474
+#    vertices in use. For many functions, such as
+#    :func:`mne.compute_source_morph`, it is important to pass ``fwd['src']``
+#    or ``inv['src']`` so that this removal is adequately accounted for.
+
+print(f'Before: {src}')
+print(f'After:  {fwd["src"]}')
 
 ###############################################################################
 # We can explore the content of ``fwd`` to access the numpy array that contains

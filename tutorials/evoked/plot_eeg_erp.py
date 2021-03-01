@@ -4,14 +4,13 @@
 EEG processing and Event Related Potentials (ERPs)
 ==================================================
 
-.. contents:: Here we cover the specifics of EEG, namely:
-   :local:
-   :depth: 1
-
 """
+
+import matplotlib.pyplot as plt
 
 import mne
 from mne.datasets import sample
+from mne.channels import combine_channels
 
 ###############################################################################
 # Setup for reading the raw data
@@ -108,6 +107,65 @@ evoked_custom.plot(titles=dict(eeg=title), time_unit='s')
 evoked_custom.plot_topomap(times=[0.1], size=3., title=title, time_unit='s')
 
 ###############################################################################
+# Global field power (GFP)
+# ------------------------
+#
+# Global field power :footcite:`Lehmann1980,Lehmann1984,Murray2008` is,
+# generally speaking, a measure of agreement of the signals picked up by all
+# sensors across the entire scalp: if all sensors have the same value at a
+# given time point, the GFP will be zero at that time point; if the signals
+# differ, the GFP will be non-zero at that time point. GFP
+# peaks may reflect "interesting" brain activity, warranting further
+# investigation. Mathematically, the GFP is the population standard
+# deviation across all sensors, calculated separately for every time point.
+#
+# You can plot the GFP using `evoked.plot(gfp=True) <mne.Evoked.plot>`. The GFP
+# trace will be black if ``spatial_colors=True`` and green otherwise. The EEG
+# reference will not affect the GFP:
+
+for evk in (evoked_car, evoked_no_ref):
+    evk.plot(gfp=True, spatial_colors=True, ylim=dict(eeg=[-10, 10]))
+
+###############################################################################
+# To plot the GFP by itself you can pass ``gfp='only'`` (this makes it easier
+# to read off the GFP data values, because the scale is aligned):
+
+evoked_car.plot(gfp='only')
+
+###############################################################################
+# As stated above, the GFP is the population standard deviation of the signal
+# across channels. To compute it manually, we can leverage
+# the fact that `evoked.data <mne.Evoked.data>` is a NumPy array:
+
+gfp = evoked_car.data.std(axis=0, ddof=0)
+
+# Reproducing the plot style from above:
+fig, ax = plt.subplots()
+ax.plot(evoked_car.times, gfp * 1e6, color='lime')
+ax.fill_between(evoked_car.times, gfp * 1e6, color='lime', alpha=0.2)
+ax.set(xlabel='Time (s)', ylabel='GFP (µV)', title='EEG')
+
+###############################################################################
+# Evoked response averaged across channels by ROI
+# -----------------------------------------------
+#
+# It is possible to average channels by region of interest (for example left
+# and right) when studying the response to this left auditory stimulus. Here we
+# use our Raw object on which the average reference projection has been added
+# back.
+evoked = mne.Epochs(raw, **epochs_params).average()
+
+left_idx = mne.pick_channels(evoked.info['ch_names'],
+                             ['EEG 017', 'EEG 018', 'EEG 025', 'EEG 026'])
+right_idx = mne.pick_channels(evoked.info['ch_names'],
+                              ['EEG 023', 'EEG 024', 'EEG 034', 'EEG 035'])
+roi_dict = dict(Left=left_idx, Right=right_idx)
+evoked_combined = combine_channels(evoked, roi_dict, method='mean')
+
+title = 'Evoked response averaged by side'
+evoked_combined.plot(titles=dict(eeg=title), time_unit='s')
+
+###############################################################################
 # Evoked arithmetic (e.g. differences)
 # ------------------------------------
 #
@@ -169,7 +227,8 @@ mne.combine_evoked(
 # If they are stored in a list, they can be easily averaged, for example,
 # for a grand average across subjects (or conditions).
 grand_average = mne.grand_average(all_evokeds)
-mne.write_evokeds('/tmp/tmp-ave.fif', all_evokeds)
+# And they can be written to disk like any other evoked data, e.g.:
+# mne.write_evokeds('tmp-ave.fif', all_evokeds)
 
 # If Evokeds objects are stored in a dictionary, they can be retrieved by name.
 all_evokeds = dict((cond, epochs[cond].average()) for cond in event_id)
@@ -178,3 +237,9 @@ print(all_evokeds['left/auditory'])
 # Besides for explicit access, this can be used for example to set titles.
 for cond in all_evokeds:
     all_evokeds[cond].plot_joint(title=cond, **joint_kwargs)
+
+
+##############################################################################
+# References
+# ----------
+# .. footbibliography::

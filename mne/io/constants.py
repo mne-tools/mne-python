@@ -31,6 +31,7 @@ FIFF.FIFFB_HPI_RESULT         = 109  # Result of a HPI fitting procedure
 FIFF.FIFFB_HPI_COIL           = 110  # Data acquired from one HPI coil
 FIFF.FIFFB_PROJECT            = 111
 FIFF.FIFFB_CONTINUOUS_DATA    = 112
+FIFF.FIFFB_CH_INFO            = 113  # Extra channel information
 FIFF.FIFFB_VOID               = 114
 FIFF.FIFFB_EVENTS             = 115
 FIFF.FIFFB_INDEX              = 116
@@ -156,6 +157,23 @@ FIFF.FIFF_HPI_FIT_DIST_LIMIT     = 244   # Limit for the coil distance differenc
 FIFF.FIFF_HPI_COIL_NO            = 245   # Coil number listed by HPI measurement
 FIFF.FIFF_HPI_COILS_USED         = 246   # List of coils finally used when the transformation was computed
 FIFF.FIFF_HPI_DIGITIZATION_ORDER = 247   # Which Isotrak digitization point corresponds to each of the coils energized
+
+
+#
+# Tags used for storing channel info
+#
+FIFF.FIFF_CH_SCAN_NO             = 250   # Channel scan number. Corresponds to fiffChInfoRec.scanNo field
+FIFF.FIFF_CH_LOGICAL_NO          = 251   # Channel logical number. Corresponds to fiffChInfoRec.logNo field
+FIFF.FIFF_CH_KIND                = 252   # Channel type. Corresponds to fiffChInfoRec.kind field"
+FIFF.FIFF_CH_RANGE               = 253   # Conversion from recorded number to (possibly virtual) voltage at the output"
+FIFF.FIFF_CH_CAL                 = 254   # Calibration coefficient from output voltage to some real units
+FIFF.FIFF_CH_LOC                 = 255   # Channel loc
+FIFF.FIFF_CH_UNIT                = 256   # Unit of the data
+FIFF.FIFF_CH_UNIT_MUL            = 257   # Unit multiplier exponent
+FIFF.FIFF_CH_DACQ_NAME           = 258   # Name of the channel in the data acquisition system. Corresponds to fiffChInfoRec.name.
+FIFF.FIFF_CH_COIL_TYPE           = 350   # Coil type in coil_def.dat
+FIFF.FIFF_CH_COORD_FRAME         = 351   # Coordinate frame (integer)
+
 #
 # Pointers
 #
@@ -176,6 +194,7 @@ FIFF.FIFFV_ECG_CH       = 402
 FIFF.FIFFV_MISC_CH      = 502
 FIFF.FIFFV_RESP_CH      = 602  # Respiration monitoring
 FIFF.FIFFV_SEEG_CH      = 802  # stereotactic EEG
+FIFF.FIFFV_DBS_CH       = 803  # deep brain stimulation
 FIFF.FIFFV_SYST_CH      = 900  # some system status information (on Triux systems only)
 FIFF.FIFFV_ECOG_CH      = 902
 FIFF.FIFFV_IAS_CH       = 910  # Internal Active Shielding data (maybe on Triux only)
@@ -183,6 +202,28 @@ FIFF.FIFFV_EXCI_CH      = 920  # flux excitation channel used to be a stimulus c
 FIFF.FIFFV_DIPOLE_WAVE  = 1000  # Dipole time curve (xplotter/xfit)
 FIFF.FIFFV_GOODNESS_FIT = 1001  # Goodness of fit (xplotter/xfit)
 FIFF.FIFFV_FNIRS_CH     = 1100  # Functional near-infrared spectroscopy
+_ch_kind_named = {key: key for key in (
+    FIFF.FIFFV_BIO_CH,
+    FIFF.FIFFV_MEG_CH,
+    FIFF.FIFFV_REF_MEG_CH,
+    FIFF.FIFFV_EEG_CH,
+    FIFF.FIFFV_MCG_CH,
+    FIFF.FIFFV_STIM_CH,
+    FIFF.FIFFV_EOG_CH,
+    FIFF.FIFFV_EMG_CH,
+    FIFF.FIFFV_ECG_CH,
+    FIFF.FIFFV_MISC_CH,
+    FIFF.FIFFV_RESP_CH,
+    FIFF.FIFFV_SEEG_CH,
+    FIFF.FIFFV_DBS_CH,
+    FIFF.FIFFV_SYST_CH,
+    FIFF.FIFFV_ECOG_CH,
+    FIFF.FIFFV_IAS_CH,
+    FIFF.FIFFV_EXCI_CH,
+    FIFF.FIFFV_DIPOLE_WAVE,
+    FIFF.FIFFV_GOODNESS_FIT,
+    FIFF.FIFFV_FNIRS_CH,
+)}
 
 #
 # Quaternion channels for head position monitoring
@@ -210,6 +251,18 @@ FIFF.FIFFV_COORD_MRI_SLICE      = 6
 FIFF.FIFFV_COORD_MRI_DISPLAY    = 7
 FIFF.FIFFV_COORD_DICOM_DEVICE   = 8
 FIFF.FIFFV_COORD_IMAGING_DEVICE = 9
+_coord_frame_named = {key: key for key in (
+    FIFF.FIFFV_COORD_UNKNOWN,
+    FIFF.FIFFV_COORD_DEVICE,
+    FIFF.FIFFV_COORD_ISOTRAK,
+    FIFF.FIFFV_COORD_HPI,
+    FIFF.FIFFV_COORD_HEAD,
+    FIFF.FIFFV_COORD_MRI,
+    FIFF.FIFFV_COORD_MRI_SLICE,
+    FIFF.FIFFV_COORD_MRI_DISPLAY,
+    FIFF.FIFFV_COORD_DICOM_DEVICE,
+    FIFF.FIFFV_COORD_IMAGING_DEVICE,
+)}
 #
 # Needed for raw and evoked-response data
 #
@@ -332,6 +385,13 @@ FIFF.FIFFV_POINT_EEG      = 3
 FIFF.FIFFV_POINT_ECG      = FIFF.FIFFV_POINT_EEG
 FIFF.FIFFV_POINT_EXTRA    = 4
 FIFF.FIFFV_POINT_HEAD     = 5  # Point on the surface of the head
+_dig_kind_named = {key: key for key in(
+    FIFF.FIFFV_POINT_CARDINAL,
+    FIFF.FIFFV_POINT_HPI,
+    FIFF.FIFFV_POINT_EEG,
+    FIFF.FIFFV_POINT_EXTRA,
+    FIFF.FIFFV_POINT_HEAD,
+)}
 #
 # Cardinal point types (enum(cardinal_point))
 #
@@ -339,6 +399,12 @@ FIFF.FIFFV_POINT_LPA = 1
 FIFF.FIFFV_POINT_NASION = 2
 FIFF.FIFFV_POINT_RPA = 3
 FIFF.FIFFV_POINT_INION = 4
+_dig_cardinal_named = {key: key for key in (
+    FIFF.FIFFV_POINT_LPA,
+    FIFF.FIFFV_POINT_NASION,
+    FIFF.FIFFV_POINT_RPA,
+    FIFF.FIFFV_POINT_INION,
+)}
 #
 #   SSP
 #
@@ -788,6 +854,18 @@ FIFF.FIFF_UNIT_T_M   = 201  # T/m
 FIFF.FIFF_UNIT_AM    = 202  # Am
 FIFF.FIFF_UNIT_AM_M2 = 203  # Am/m^2
 FIFF.FIFF_UNIT_AM_M3 = 204  # Am/m^3
+_ch_unit_named = {key: key for key in(
+    FIFF.FIFF_UNIT_NONE, FIFF.FIFF_UNIT_UNITLESS, FIFF.FIFF_UNIT_M,
+    FIFF.FIFF_UNIT_KG, FIFF.FIFF_UNIT_SEC, FIFF.FIFF_UNIT_A, FIFF.FIFF_UNIT_K,
+    FIFF.FIFF_UNIT_MOL, FIFF.FIFF_UNIT_RAD, FIFF.FIFF_UNIT_SR,
+    FIFF.FIFF_UNIT_CD, FIFF.FIFF_UNIT_MOL_M3, FIFF.FIFF_UNIT_HZ,
+    FIFF.FIFF_UNIT_N, FIFF.FIFF_UNIT_PA, FIFF.FIFF_UNIT_J, FIFF.FIFF_UNIT_W,
+    FIFF.FIFF_UNIT_C, FIFF.FIFF_UNIT_V, FIFF.FIFF_UNIT_F, FIFF.FIFF_UNIT_OHM,
+    FIFF.FIFF_UNIT_MHO, FIFF.FIFF_UNIT_WB, FIFF.FIFF_UNIT_T, FIFF.FIFF_UNIT_H,
+    FIFF.FIFF_UNIT_CEL, FIFF.FIFF_UNIT_LM, FIFF.FIFF_UNIT_LX,
+    FIFF.FIFF_UNIT_V_M2, FIFF.FIFF_UNIT_T_M, FIFF.FIFF_UNIT_AM,
+    FIFF.FIFF_UNIT_AM_M2, FIFF.FIFF_UNIT_AM_M3,
+)}
 #
 # Multipliers
 #
@@ -808,6 +886,14 @@ FIFF.FIFF_UNITM_N    = -9
 FIFF.FIFF_UNITM_P    = -12
 FIFF.FIFF_UNITM_F    = -15
 FIFF.FIFF_UNITM_A    = -18
+_ch_unit_mul_named = {key: key for key in (
+    FIFF.FIFF_UNITM_E, FIFF.FIFF_UNITM_PET, FIFF.FIFF_UNITM_T,
+    FIFF.FIFF_UNITM_GIG, FIFF.FIFF_UNITM_MEG, FIFF.FIFF_UNITM_K,
+    FIFF.FIFF_UNITM_H, FIFF.FIFF_UNITM_DA, FIFF.FIFF_UNITM_NONE,
+    FIFF.FIFF_UNITM_D, FIFF.FIFF_UNITM_C, FIFF.FIFF_UNITM_M,
+    FIFF.FIFF_UNITM_MU, FIFF.FIFF_UNITM_N, FIFF.FIFF_UNITM_P,
+    FIFF.FIFF_UNITM_F, FIFF.FIFF_UNITM_A,
+)}
 
 #
 # Coil types
@@ -901,6 +987,33 @@ FIFF.FIFFV_COIL_KRISS_GRAD         = 9001
 #
 FIFF.FIFFV_COIL_COMPUMEDICS_ADULT_GRAD      = 9101
 FIFF.FIFFV_COIL_COMPUMEDICS_PEDIATRIC_GRAD  = 9102
+_ch_coil_type_named = {key: key for key in (
+    FIFF.FIFFV_COIL_NONE, FIFF.FIFFV_COIL_EEG, FIFF.FIFFV_COIL_NM_122,
+    FIFF.FIFFV_COIL_NM_24, FIFF.FIFFV_COIL_NM_MCG_AXIAL,
+    FIFF.FIFFV_COIL_EEG_BIPOLAR, FIFF.FIFFV_COIL_EEG_CSD,
+    FIFF.FIFFV_COIL_DIPOLE, FIFF.FIFFV_COIL_FNIRS_HBO,
+    FIFF.FIFFV_COIL_FNIRS_HBR, FIFF.FIFFV_COIL_FNIRS_RAW,
+    FIFF.FIFFV_COIL_FNIRS_OD, FIFF.FIFFV_COIL_FNIRS_FD_AC_AMPLITUDE,
+    FIFF.FIFFV_COIL_FNIRS_FD_PHASE, FIFF.FIFFV_COIL_MCG_42,
+    FIFF.FIFFV_COIL_POINT_MAGNETOMETER, FIFF.FIFFV_COIL_AXIAL_GRAD_5CM,
+    FIFF.FIFFV_COIL_VV_PLANAR_W, FIFF.FIFFV_COIL_VV_PLANAR_T1,
+    FIFF.FIFFV_COIL_VV_PLANAR_T2, FIFF.FIFFV_COIL_VV_PLANAR_T3,
+    FIFF.FIFFV_COIL_VV_PLANAR_T4, FIFF.FIFFV_COIL_VV_MAG_W,
+    FIFF.FIFFV_COIL_VV_MAG_T1, FIFF.FIFFV_COIL_VV_MAG_T2,
+    FIFF.FIFFV_COIL_VV_MAG_T3, FIFF.FIFFV_COIL_VV_MAG_T4,
+    FIFF.FIFFV_COIL_MAGNES_MAG, FIFF.FIFFV_COIL_MAGNES_GRAD,
+    FIFF.FIFFV_COIL_MAGNES_REF_MAG, FIFF.FIFFV_COIL_MAGNES_REF_GRAD,
+    FIFF.FIFFV_COIL_MAGNES_OFFDIAG_REF_GRAD, FIFF.FIFFV_COIL_CTF_GRAD,
+    FIFF.FIFFV_COIL_CTF_REF_MAG, FIFF.FIFFV_COIL_CTF_REF_GRAD,
+    FIFF.FIFFV_COIL_CTF_OFFDIAG_REF_GRAD, FIFF.FIFFV_COIL_KIT_GRAD,
+    FIFF.FIFFV_COIL_KIT_REF_MAG, FIFF.FIFFV_COIL_BABY_GRAD,
+    FIFF.FIFFV_COIL_BABY_MAG, FIFF.FIFFV_COIL_BABY_REF_MAG,
+    FIFF.FIFFV_COIL_BABY_REF_MAG2, FIFF.FIFFV_COIL_ARTEMIS123_GRAD,
+    FIFF.FIFFV_COIL_ARTEMIS123_REF_MAG, FIFF.FIFFV_COIL_ARTEMIS123_REF_GRAD,
+    FIFF.FIFFV_COIL_QUSPIN_ZFOPM_MAG, FIFF.FIFFV_COIL_QUSPIN_ZFOPM_MAG2,
+    FIFF.FIFFV_COIL_KRISS_GRAD, FIFF.FIFFV_COIL_COMPUMEDICS_ADULT_GRAD,
+    FIFF.FIFFV_COIL_COMPUMEDICS_PEDIATRIC_GRAD,
+)}
 
 # MNE RealTime
 FIFF.FIFF_MNE_RT_COMMAND           = 3700  # realtime command
@@ -916,3 +1029,23 @@ FIFF.FIFFB_MNE_ANNOTATIONS         = 3810  # annotations block
 
 # MNE Metadata Dataframes
 FIFF.FIFFB_MNE_METADATA            = 3811  # metadata dataframes block
+
+# Table to match unrecognized channel location names to their known aliases
+CHANNEL_LOC_ALIASES = {
+    # this set of aliases are published in doi:10.1097/WNP.0000000000000316 and
+    # doi:10.1016/S1388-2457(00)00527-7.
+    'Cb1': 'POO7',
+    'Cb2': 'POO8',
+    'CB1': 'POO7',
+    'CB2': 'POO8',
+    'T1': 'T9',
+    'T2': 'T10',
+    'T3': 'T7',
+    'T4': 'T8',
+    'T5': 'T9',
+    'T6': 'T10',
+    'M1': 'TP9',
+    'M2': 'TP10'
+    # add a comment here (with doi of a published source) above any new
+    # aliases, as they are added
+}

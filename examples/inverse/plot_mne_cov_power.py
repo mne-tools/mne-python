@@ -5,7 +5,14 @@ Compute source power estimate by projecting the covariance with MNE
 
 We can apply the MNE inverse operator to a covariance matrix to obtain
 an estimate of source power. This is computationally more efficient than first
-estimating the source timecourses and then computing their power.
+estimating the source timecourses and then computing their power. This
+code is based on the code from :footcite:`Sabbagh2020` and has been useful to
+correct for individual field spread using source localization in the context of
+predictive modeling.
+
+References
+----------
+.. footbibliography::
 """
 # Author: Denis A. Engemann <denis-alexander.engemann@inria.fr>
 #         Luke Bloy <luke.bloy@gmail.com>
@@ -87,28 +94,11 @@ fig_data_cov = mne.viz.plot_cov(data_cov, epochs.info, show_svd=False)
 evoked = epochs.average().pick('meg')
 evoked.drop_channels(evoked.info['bads'])
 evoked.plot(time_unit='s')
-evoked.plot_topomap(times=np.linspace(0.05, 0.15, 5), ch_type='mag',
-                    time_unit='s')
-
-evoked_noise_cov = mne.EvokedArray(data=np.diag(noise_cov['data'])[:, None],
-                                   info=evoked.info)
-evoked_data_cov = mne.EvokedArray(data=np.diag(data_cov['data'])[:, None],
-                                  info=evoked.info)
-evoked_data_cov_white = mne.whiten_evoked(evoked_data_cov, noise_cov)
-
-
-def plot_cov_diag_topomap(evoked, ch_type='grad'):
-    evoked.plot_topomap(
-        ch_type=ch_type, times=[0],
-        vmin=np.min, vmax=np.max, cmap='viridis',
-        units=dict(mag='None', grad='None'),
-        scalings=dict(mag=1, grad=1),
-        cbar_fmt=None)
-
-
-plot_cov_diag_topomap(evoked_noise_cov, 'grad')
-plot_cov_diag_topomap(evoked_data_cov, 'grad')
-plot_cov_diag_topomap(evoked_data_cov_white, 'grad')
+evoked.plot_topomap(times=np.linspace(0.05, 0.15, 5), ch_type='mag')
+noise_cov.plot_topomap(evoked.info, 'grad', title='Noise')
+data_cov.plot_topomap(evoked.info, 'grad', title='Data')
+data_cov.plot_topomap(evoked.info, 'grad', noise_cov=noise_cov,
+                      title='Whitened data')
 
 ###############################################################################
 # Apply inverse operator to covariance
@@ -134,6 +124,9 @@ stc_base = apply_inverse_cov(base_cov, evoked.info, inverse_operator,
 
 ###############################################################################
 # And visualize power is relative to the baseline:
+
+# sphinx_gallery_thumbnail_number = 9
+
 stc_data /= stc_base
 brain = stc_data.plot(subject='sample', subjects_dir=subjects_dir,
                       clim=dict(kind='percent', lims=(50, 90, 98)))

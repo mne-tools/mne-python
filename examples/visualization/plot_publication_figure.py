@@ -5,24 +5,34 @@
 Make figures more publication ready
 ===================================
 
-In this example, we take some MNE plots and make some changes to make
-a figure closer to publication-ready.
+In this example, we show several use cases to take MNE plots and
+customize them for a more publication-ready look.
 """
 
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Daniel McCloy <dan.mccloy@gmail.com>
+#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
+
+###############################################################################
+# Imports
+# -------
+# We are importing everything we need for this example:
 
 import os.path as op
 
 import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1 import make_axes_locatable, ImageGrid
+from mpl_toolkits.axes_grid1 import (make_axes_locatable, ImageGrid,
+                                     inset_locator)
 
 import mne
 
 ###############################################################################
+# Evoked plot with brain activation
+# ---------------------------------
+#
 # Suppose we want a figure with an evoked plot on top, and the brain activation
 # below, with the brain subplot slightly bigger than the evoked plot. Let's
 # start by loading some :ref:`example data <sample-dataset>`.
@@ -165,3 +175,100 @@ fig.subplots_adjust(
 for ax, label in zip(axes, 'AB'):
     ax.text(0.03, ax.get_position().ymax, label, transform=fig.transFigure,
             fontsize=12, fontweight='bold', va='top', ha='left')
+
+###############################################################################
+# Custom timecourse with montage inset
+# ------------------------------------
+#
+# Suppose we want a figure with some mean timecourse extracted from a number of
+# sensors, and we want a smaller panel within the figure to show a head outline
+# with the positions of those sensors clearly marked.
+# If you are familiar with MNE, you know that this is something that
+# :func:`mne.viz.plot_compare_evokeds` does, see an example output in
+# :ref:`ex-hf-sef-data` at the bottom.
+#
+# In this part of the example, we will show you how to achieve this result on
+# your own figure, without having to use :func:`mne.viz.plot_compare_evokeds`!
+#
+# Let's start by loading some :ref:`example data <sample-dataset>`.
+
+data_path = mne.datasets.sample.data_path()
+fname_raw = op.join(data_path, "MEG", "sample", "sample_audvis_raw.fif")
+raw = mne.io.read_raw_fif(fname_raw)
+
+# For the sake of the example, we focus on EEG data
+raw.pick_types(meg=False, eeg=True)
+
+
+###############################################################################
+# Let's make a plot.
+
+# channels to plot:
+to_plot = [f"EEG {i:03}" for i in range(1, 5)]
+
+# get the data for plotting in a short time interval from 10 to 20 seconds
+start = int(raw.info['sfreq'] * 10)
+stop = int(raw.info['sfreq'] * 20)
+data, times = raw.get_data(picks=to_plot,
+                           start=start, stop=stop, return_times=True)
+
+# Scale the data from the MNE internal unit V to µV
+data *= 1e6
+# Take the mean of the channels
+mean = np.mean(data, axis=0)
+# make a figure
+fig, ax = plt.subplots(figsize=(4.5, 3))
+# plot some EEG data
+ax.plot(times, mean)
+
+###############################################################################
+# So far so good. Now let's add the smaller figure within the figure to show
+# exactly, which sensors we used to make the timecourse.
+# For that, we use an "inset_axes" that we plot into our existing axes.
+# The head outline with the sensor positions can be plotted using the
+# `~mne.io.Raw` object that is the source of our data.
+# Specifically, that object already contains all the sensor positions,
+# and we can plot them using the ``plot_sensors`` method.
+
+# recreate the figure (only necessary for our documentation server)
+fig, ax = plt.subplots(figsize=(4.5, 3))
+ax.plot(times, mean)
+axins = inset_locator.inset_axes(ax, width="30%", height="30%", loc=2)
+
+# pick_channels() edits the raw object in place, so we'll make a copy here
+# so that our raw object stays intact for potential later analysis
+raw.copy().pick_channels(to_plot).plot_sensors(title="", axes=axins)
+
+###############################################################################
+# That looks nice. But the sensor dots are way too big for our taste. Luckily,
+# all MNE-Python plots use Matplotlib under the hood and we can customize
+# each and every facet of them.
+# To make the sensor dots smaller, we need to first get a handle on them to
+# then apply a ``*.set_*`` method on them.
+
+# If we inspect our axes we find the objects contained in our plot:
+print(axins.get_children())
+
+###############################################################################
+# That's quite a a lot of objects, but we know that we want to change the
+# sensor dots, and those are most certainly a "PathCollection" object.
+# So let's have a look at how many "collections" we have in the axes.
+print(axins.collections)
+
+###############################################################################
+# There is only one! Those must be the sensor dots we were looking for.
+# We finally found exactly what we needed. Sometimes this can take a bit of
+# experimentation.
+
+sensor_dots = axins.collections[0]
+
+# Recreate the figure once more; shrink the sensor dots; add axis labels
+fig, ax = plt.subplots(figsize=(4.5, 3))
+ax.plot(times, mean)
+axins = inset_locator.inset_axes(ax, width="30%", height="30%", loc=2)
+raw.copy().pick_channels(to_plot).plot_sensors(title="", axes=axins)
+sensor_dots = axins.collections[0]
+sensor_dots.set_sizes([1])
+# add axis labels, and adjust bottom figure margin to make room for them
+ax.set(xlabel="Time (s)", ylabel="Amplitude (µV)")
+fig.subplots_adjust(bottom=0.2)

@@ -12,6 +12,7 @@ import numpy as np
 
 from mne.viz.backends.tests._utils import (skips_if_not_mayavi,
                                            skips_if_not_pyvista)
+from mne.viz.backends._utils import ALLOWED_QUIVER_MODES
 
 
 @pytest.fixture
@@ -82,7 +83,6 @@ def test_3d_backend(renderer):
         "tris": tet_indices
     }
 
-    qv_mode = "arrow"
     qv_color = 'blue'
     qv_scale = tet_size / 2.0
     qv_center = np.array([np.mean((sph_center[va, :],
@@ -102,13 +102,24 @@ def test_3d_backend(renderer):
     cam_distance = 5 * tet_size
 
     # init scene
-    rend = renderer.backend._Renderer(size=win_size, bgcolor=win_color)
-    rend.set_interactive()
+    rend = renderer.create_3d_figure(
+        size=win_size,
+        bgcolor=win_color,
+        smooth_shading=True,
+        scene=False,
+    )
+    for interaction in ('terrain', 'trackball'):
+        rend.set_interaction(interaction)
 
     # use mesh
-    rend.mesh(x=tet_x, y=tet_y, z=tet_z,
-              triangles=tet_indices,
-              color=tet_color)
+    mesh_data = rend.mesh(
+        x=tet_x,
+        y=tet_y,
+        z=tet_z,
+        triangles=tet_indices,
+        color=tet_color,
+    )
+    rend.remove_mesh(mesh_data)
 
     # use contour
     rend.contour(surface=ct_surface, scalars=ct_scalars,
@@ -121,17 +132,22 @@ def test_3d_backend(renderer):
                 scale=sph_scale, radius=1.0)
 
     # use quiver3d
-    rend.quiver3d(x=qv_center[:, 0],
-                  y=qv_center[:, 1],
-                  z=qv_center[:, 2],
-                  u=qv_dir[:, 0],
-                  v=qv_dir[:, 1],
-                  w=qv_dir[:, 2],
-                  color=qv_color,
-                  scale=qv_scale,
-                  scale_mode=qv_scale_mode,
-                  scalars=qv_scalars,
-                  mode=qv_mode)
+    kwargs = dict(
+        x=qv_center[:, 0],
+        y=qv_center[:, 1],
+        z=qv_center[:, 2],
+        u=qv_dir[:, 0],
+        v=qv_dir[:, 1],
+        w=qv_dir[:, 2],
+        color=qv_color,
+        scale=qv_scale,
+        scale_mode=qv_scale_mode,
+        scalars=qv_scalars,
+    )
+    for mode in ALLOWED_QUIVER_MODES:
+        rend.quiver3d(mode=mode, **kwargs)
+    with pytest.raises(ValueError, match='Invalid value'):
+        rend.quiver3d(mode='foo', **kwargs)
 
     # use tube
     rend.tube(origin=np.array([[0, 0, 0]]),
@@ -141,7 +157,8 @@ def test_3d_backend(renderer):
                      scalars=np.array([[1.0, 1.0]]))
 
     # scalar bar
-    rend.scalarbar(source=tube, title="Scalar Bar")
+    rend.scalarbar(source=tube, title="Scalar Bar",
+                   bgcolor=[1, 1, 1])
 
     # use text
     rend.text2d(x_window=txt_x, y_window=txt_y, text=txt_text,

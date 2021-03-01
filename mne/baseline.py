@@ -1,4 +1,4 @@
-"""Util function to baseline correct data."""
+"""Utility functions to baseline-correct data."""
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
@@ -32,14 +32,7 @@ def rescale(data, times, baseline, mode='mean', copy=True, picks=None,
         dimension should be time.
     times : 1D array
         Time instants is seconds.
-    baseline : tuple or list of length 2, or None
-        The time interval to apply rescaling / baseline correction.
-        If None do not apply it. If baseline is ``(bmin, bmax)``
-        the interval is between ``bmin`` (s) and ``bmax`` (s).
-        If ``bmin is None`` the beginning of the data is used
-        and if ``bmax is None`` then ``bmax`` is set to the end of the
-        interval. If baseline is ``(None, None)`` the entire time
-        interval is used. If baseline is None, no correction is applied.
+    %(rescale_baseline)s
     mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio'
         Perform baseline correction by
 
@@ -66,9 +59,11 @@ def rescale(data, times, baseline, mode='mean', copy=True, picks=None,
     data_scaled: array
         Array of same shape as data after rescaling.
     """
-    data = data.copy() if copy else data
-    msg = _log_rescale(baseline, mode)
-    logger.info(msg)
+    if copy:
+        data = data.copy()
+    if verbose is not False:
+        msg = _log_rescale(baseline, mode)
+        logger.info(msg)
     if baseline is None or data.shape[-1] == 0:
         return data
 

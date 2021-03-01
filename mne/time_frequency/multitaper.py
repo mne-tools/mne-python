@@ -6,7 +6,7 @@
 import operator
 import numpy as np
 
-from ..fixes import _get_dpss, rfft, irfft, rfftfreq
+from ..fixes import _import_fft
 from ..parallel import parallel_func
 from ..utils import sum_squared, warn, verbose, logger, _check_option
 
@@ -60,7 +60,9 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
     Volume 57 (1978), 1371430
     """
     from scipy import interpolate
+    from scipy.signal.windows import dpss as sp_dpss
     from ..filter import next_fast_len
+    rfft, irfft = _import_fft(('rfft', 'irfft'))
     # This np.int32 business works around a weird Windows bug, see
     # gh-5039 and https://github.com/scipy/scipy/pull/8608
     Kmax = np.int32(operator.index(Kmax))
@@ -92,7 +94,7 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
         dpss = np.array(dpss)
 
     else:
-        dpss = _get_dpss()(N, half_nbw, Kmax)
+        dpss = sp_dpss(N, half_nbw, Kmax)
 
     # Now find the eigenvalues of the original spectral concentration problem
     # Use the autocorr sequence technique from Percival and Walden, 1993 pg 390
@@ -298,6 +300,7 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
     freqs : array
         The frequency points in Hz of the spectra
     """
+    rfft, rfftfreq = _import_fft(('rfft', 'rfftfreq'))
     if n_fft is None:
         n_fft = x.shape[-1]
 
@@ -409,6 +412,7 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
     -----
     .. versionadded:: 0.14.0
     """
+    rfftfreq = _import_fft('rfftfreq')
     _check_option('normalization', normalization, ['length', 'full'])
 
     # Reshape data so its 2-D for parallelization
@@ -458,9 +462,10 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
                          zero_mean=True, time_bandwidth=None, use_fft=True,
                          decim=1, output='complex', n_jobs=1,
                          verbose=None):
-    """Compute time-frequency transforms using wavelets and multitaper windows.
+    """Compute Time-Frequency Representation (TFR) using DPSS tapers.
 
-    Uses Morlet wavelets windowed with multiple DPSS tapers.
+    Same computation as `~mne.time_frequency.tfr_multitaper`, but operates on
+    :class:`NumPy arrays <numpy.ndarray>` instead of `~mne.Epochs` objects.
 
     Parameters
     ----------
@@ -471,7 +476,7 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
     freqs : array-like of float, shape (n_freqs,)
         The frequencies.
     n_cycles : float | array of float
-        Number of cycles  in the Morlet wavelet. Fixed number or one per
+        Number of cycles in the wavelet. Fixed number or one per
         frequency. Defaults to 7.0.
     zero_mean : bool
         If True, make sure the wavelets have a mean of zero. Defaults to True.

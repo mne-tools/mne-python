@@ -22,7 +22,7 @@ from .io import read_fiducials, write_fiducials, read_info
 from .io.constants import FIFF
 from .label import read_label, Label
 from .source_space import (add_source_space_distances, read_source_spaces,
-                           write_source_spaces, _read_talxfm, _read_mri_info)
+                           write_source_spaces, read_talxfm, _read_mri_info)
 from .surface import read_surface, write_surface, _normalize_vectors
 from .bem import read_bem_surfaces, write_bem_surfaces
 from .transforms import (rotation, rotation3d, scaling, translation, Transform,
@@ -1091,10 +1091,10 @@ def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
         ss['subject_his_id'] = subject_to
         ss['rr'] *= scale
         # additional tags for volume source spaces
-        if 'vox_mri_t' in ss:
+        for key in ('vox_mri_t', 'src_mri_t'):
             # maintain transform to original MRI volume ss['mri_volume_name']
-            ss['vox_mri_t']['trans'][:3, :3] /= scale
-            ss['src_mri_t']['trans'][:3, :3] /= scale
+            if key in ss:
+                ss[key]['trans'][:3] *= scale[:, np.newaxis]
         # distances and patch info
         if uniform:
             if ss['dist'] is not None:
@@ -1226,17 +1226,15 @@ def get_mni_fiducials(subject, subjects_dir=None, verbose=None):
 
     Parameters
     ----------
-    subject : str
-        Name of the mri subject
-    subjects_dir : None | str
-        Override the SUBJECTS_DIR environment variable
-        (sys.environ['SUBJECTS_DIR'])
+    %(subject)s
+    %(subjects_dir)s
     %(verbose)s
 
     Returns
     -------
     fids_mri : list
-        List of estimated fiducials (each point in a dict)
+        List of estimated fiducials (each point in a dict), in the order
+        LPA, nasion, RPA.
 
     Notes
     -----
@@ -1264,14 +1262,7 @@ def get_mni_fiducials(subject, subjects_dir=None, verbose=None):
     assert coord_frame == FIFF.FIFFV_COORD_MRI
     if subject == 'fsaverage':
         return fids  # special short-circuit for fsaverage
-    mni_mri_t = invert_transform(_read_talxfm(subject, subjects_dir))
-
-    # Convert to mm since this is Freesurfer's unit.
-    lnr = np.array([f['r'] for f in fids]) * 1000.
-    assert lnr.shape == (3, 3)
-
-    # Apply transformation, to fsaverage (MNI) fiducials, convert back to m
-    lnr = apply_trans(mni_mri_t, lnr) / 1000.
-    for ii in range(3):
-        fids[ii]['r'] = lnr[ii]
+    mni_mri_t = invert_transform(read_talxfm(subject, subjects_dir))
+    for f in fids:
+        f['r'] = apply_trans(mni_mri_t, f['r'])
     return fids

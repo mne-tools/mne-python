@@ -11,7 +11,7 @@ __all__ = ['docformat', 'indentcount_lines',
            'filldoc', 'unindent_dict', 'unindent_string']
 
 
-def docformat(docstring, docdict=None):
+def docformat(docstring, docdict=None, funcname=None):
     ''' Fill a function docstring from variables in dictionary
 
     Adapt the indent of the inserted docs
@@ -67,11 +67,12 @@ def docformat(docstring, docdict=None):
             indented[name] = '\n'.join(newlines)
         except IndexError:
             indented[name] = dstr
+    funcname = docstring.split('\n')[0] if funcname is None else funcname
     try:
         return docstring % indented
-    except TypeError as exp:
-        raise TypeError('Error documenting %s:\n%s'
-                        % (docstring.split('\n')[0], str(exp)))
+    except (TypeError, ValueError, KeyError) as exp:
+        raise RuntimeError('Error documenting %s:\n%s'
+                           % (funcname, str(exp)))
 
 
 def indentcount_lines(lines):
@@ -120,7 +121,7 @@ def filldoc(docdict, unindent_params=True):
         docdict = unindent_dict(docdict)
 
     def decorate(f):
-        f.__doc__ = docformat(f.__doc__, docdict)
+        f.__doc__ = docformat(f.__doc__, docdict, f.__name__)
         return f
     return decorate
 

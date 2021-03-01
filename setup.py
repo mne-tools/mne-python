@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright (C) 2011-2019 Alexandre Gramfort
+# Copyright (C) 2011-2020 Alexandre Gramfort
 # <alexandre.gramfort@inria.fr>
 
 import os
@@ -48,6 +48,15 @@ if __name__ == "__main__":
     with open('README.rst', 'r') as fid:
         long_description = fid.read()
 
+    hard_dependencies = ('numpy', 'scipy')
+    install_requires = list()
+    with open('requirements.txt', 'r') as fid:
+        for line in fid:
+            req = line.strip()
+            for hard_dep in hard_dependencies:
+                if req.startswith(hard_dep):
+                    install_requires.append(req)
+
     setup(name=DISTNAME,
           maintainer=MAINTAINER,
           include_package_data=True,
@@ -72,9 +81,15 @@ if __name__ == "__main__":
                        'Operating System :: MacOS',
                        'Programming Language :: Python :: 3',
                        ],
+          keywords='neuroscience neuroimaging MEG EEG ECoG fNIRS brain',
+          project_urls={
+              'Documentation': 'https://mne.tools/',
+              'Source': 'https://github.com/mne-tools/mne-python/',
+              'Tracker': 'https://github.com/mne-tools/mne-python/issues/',
+          },
           platforms='any',
           python_requires='>=3.6',
-          install_requires=['numpy>=1.11.3', 'scipy>=0.17.1'],
+          install_requires=install_requires,
           packages=package_tree('mne'),
           package_data={'mne': [
               op.join('data', '*.sel'),
@@ -92,10 +107,13 @@ if __name__ == "__main__":
               op.join('channels', 'data', 'montages', '*.elc'),
               op.join('channels', 'data', 'neighbors', '*.mat'),
               op.join('datasets', 'sleep_physionet', 'SHA1SUMS'),
+              op.join('datasets', '_fsaverage', '*.txt'),
+              op.join('datasets', '_infant', '*.txt'),
               op.join('gui', 'help', '*.json'),
               op.join('html', '*.js'),
               op.join('html', '*.css'),
               op.join('icons', '*.svg'),
+              op.join('icons', '*.png'),
               op.join('io', 'artemis123', 'resources', '*.csv'),
               op.join('io', 'edf', 'gdf_encodes.txt')
           ]},

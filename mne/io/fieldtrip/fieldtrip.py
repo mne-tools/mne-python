@@ -43,7 +43,7 @@ def read_raw_fieldtrip(fname, info, data_name='data'):
     raw : instance of RawArray
         A Raw Object containing the loaded data.
     """
-    from ...externals.pymatreader.pymatreader import read_mat
+    from ...externals.pymatreader import read_mat
 
     ft_struct = read_mat(fname,
                          ignore_fields=['previous'],
@@ -107,7 +107,7 @@ def read_epochs_fieldtrip(fname, info, data_name='data',
     epochs : instance of EpochsArray
         An EpochsArray containing the loaded data.
     """
-    from ...externals.pymatreader.pymatreader import read_mat
+    from ...externals.pymatreader import read_mat
     ft_struct = read_mat(fname,
                          ignore_fields=['previous'],
                          variable_names=[data_name])
@@ -164,7 +164,7 @@ def read_evoked_fieldtrip(fname, info, comment=None,
     evoked : instance of EvokedArray
         An EvokedArray containing the loaded data.
     """
-    from ...externals.pymatreader.pymatreader import read_mat
+    from ...externals.pymatreader import read_mat
     ft_struct = read_mat(fname,
                          ignore_fields=['previous'],
                          variable_names=[data_name])

@@ -14,7 +14,8 @@ import pytest
 import matplotlib
 import matplotlib.pyplot as plt
 
-from mne import read_events, Epochs, pick_channels_evoked, read_cov
+from mne import (read_events, Epochs, pick_channels_evoked, read_cov,
+                 compute_proj_evoked)
 from mne.channels import read_layout
 from mne.io import read_raw_fif
 from mne.time_frequency.tfr import AverageTFR
@@ -83,8 +84,8 @@ def test_plot_joint():
                                                       time_unit='ms'),
                       ts_args=dict(spatial_colors=True, zorder=return_inds,
                                    time_unit='s'))
-    pytest.raises(ValueError, evoked.plot_joint, ts_args=dict(axes=True,
-                                                              time_unit='s'))
+    with pytest.raises(ValueError, match='If one of `ts_args` and'):
+        evoked.plot_joint(ts_args=dict(axes=True, time_unit='s'))
 
     axes = plt.subplots(nrows=3)[-1].flatten().tolist()
     evoked.plot_joint(times=[0], picks=[6, 7, 8], ts_args=dict(axes=axes[0]),
@@ -92,6 +93,34 @@ def test_plot_joint():
     with pytest.raises(ValueError, match='array of length 6'):
         evoked.plot_joint(picks=[6, 7, 8], ts_args=dict(axes=axes[0]),
                           topomap_args=dict(axes=axes[2:]))
+    plt.close('all')
+
+    # test proj options
+    assert len(evoked.info['projs']) == 0
+    evoked.pick_types(meg=True)
+    evoked.add_proj(compute_proj_evoked(
+        evoked, n_mag=1, n_grad=1, meg='combined'))
+    assert len(evoked.info['projs']) == 1
+    with pytest.raises(ValueError, match='must match ts_args'):
+        evoked.plot_joint(ts_args=dict(proj=True),
+                          topomap_args=dict(proj=False))
+    evoked.plot_joint(ts_args=dict(proj='reconstruct'),
+                      topomap_args=dict(proj='reconstruct'))
+    plt.close('all')
+
+    # test sEEG (gh:8733)
+    evoked.del_proj().pick_types('mag')  # avoid overlapping positions error
+    mapping = {ch_name: 'seeg' for ch_name in evoked.ch_names}
+    with pytest.warns(RuntimeWarning, match='The unit .* has changed from .*'):
+        evoked.set_channel_types(mapping)
+    evoked.plot_joint()
+
+    # test DBS (gh:8739)
+    evoked = _get_epochs().average().pick_types('mag')
+    mapping = {ch_name: 'dbs' for ch_name in evoked.ch_names}
+    with pytest.warns(RuntimeWarning, match='The unit for'):
+        evoked.set_channel_types(mapping)
+    evoked.plot_joint()
     plt.close('all')
 
 
@@ -235,7 +264,7 @@ def test_plot_tfr_topo():
     # test opening tfr by clicking
     num_figures_before = len(plt.get_fignums())
     # could use np.reshape(fig.axes[-1].images[0].get_extent(), (2, 2)).mean(1)
-    with pytest.warns(None):  # on old mpl (at least 2.0) there is a warning
+    with pytest.warns(RuntimeWarning, match='not masking'):
         _fake_click(fig, fig.axes[0], (0.08, 0.65))
     assert num_figures_before + 1 == len(plt.get_fignums())
     plt.close('all')

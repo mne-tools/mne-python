@@ -44,7 +44,7 @@ layout_name = 'custom_layout.lout'
 # Load data
 # ---------
 #
-# First we'll load a sample ECoG dataset which we'll use for generating
+# First we will load a sample ECoG dataset which we'll use for generating
 # a 2D snapshot.
 
 mat = loadmat(path_data)

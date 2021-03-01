@@ -54,17 +54,17 @@ events = mne.events_from_annotations(raw, event_id)[0]
 # define target events:
 # 1. find response times: distance between "square" and "rt" events
 # 2. extract A. "square" events B. followed by a button press within 700 msec
-tmax = .7
+tmax = 0.7
 sfreq = raw.info["sfreq"]
 reference_id, target_id = 2, 1
 new_events, rts = define_target_events(events, reference_id, target_id, sfreq,
                                        tmin=0., tmax=tmax, new_id=2)
 
-epochs = mne.Epochs(raw, events=new_events, tmax=tmax + .1,
+epochs = mne.Epochs(raw, events=new_events, tmax=tmax + 0.1,
                     event_id={"square": 2})
 
 ###############################################################################
-# Plot using :term:`Global Field Power <GFP>`
+# Plot using :term:`global field power`
 
 # Parameters for plotting
 order = rts.argsort()  # sorting from fast to slow trials

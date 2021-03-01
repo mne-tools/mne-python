@@ -12,10 +12,9 @@ import mne
 
 out = set()
 
-# check scipy
+# check scipy (Numba imports it to check the version)
 ok_scipy_submodules = set(['scipy', 'numpy',  # these appear in old scipy
-                           'fftpack', 'lib', 'linalg', 'fft',
-                           'misc', 'sparse', 'version'])
+                           'version'])
 scipy_submodules = set(x.split('.')[1] for x in sys.modules.keys()
                        if x.startswith('scipy.') and '__' not in x and
                        not x.split('.')[1].startswith('_')
@@ -25,12 +24,12 @@ if len(bad) > 0:
     out |= {'scipy submodules: %s' % list(bad)}
 
 # check sklearn and others
-_sklearn = _pandas = _mayavi = _matplotlib = False
 for x in sys.modules.keys():
     for key in ('sklearn', 'pandas', 'mayavi', 'pyvista', 'matplotlib',
-                'dipy', 'nibabel', 'cupy', 'picard'):
+                'dipy', 'nibabel', 'cupy', 'picard', 'pyvistaqt'):
         if x.startswith(key):
-            out |= {key}
+            x = '.'.join(x.split('.')[:2])
+            out |= {x}
 if len(out) > 0:
     print('\\nFound un-nested import(s) for %s' % (sorted(out),), end='')
 exit(len(out))

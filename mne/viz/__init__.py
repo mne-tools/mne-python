@@ -5,7 +5,8 @@ from .topomap import (plot_evoked_topomap, plot_projs_topomap, plot_arrowmap,
                       plot_epochs_psd_topomap, plot_layout)
 from .topo import plot_topo_image_epochs, iter_topography
 from .utils import (tight_layout, mne_analyze_colormap, compare_fiff,
-                    ClickableImage, add_background_image, plot_sensors)
+                    ClickableImage, add_background_image, plot_sensors,
+                    centers_to_edges, concatenate_images)
 from ._3d import (plot_sparse_source_estimates, plot_source_estimates,
                   plot_vector_source_estimates, plot_evoked_field,
                   plot_dipole_locations, snapshot_brain_montage,
@@ -24,9 +25,10 @@ from .epochs import (plot_drop_log, plot_epochs, plot_epochs_psd,
                      plot_epochs_image)
 from .raw import plot_raw, plot_raw_psd, plot_raw_psd_topo, _RAW_CLIP_DEF
 from .ica import (plot_ica_scores, plot_ica_sources, plot_ica_overlay,
-                  _plot_sources_raw, _plot_sources_epochs, plot_ica_properties)
+                  _plot_sources, plot_ica_properties)
 from .montage import plot_montage
 from .backends.renderer import (set_3d_backend, get_3d_backend, use_3d_backend,
                                 set_3d_view, set_3d_title, create_3d_figure,
                                 get_brain_class)
 from . import backends
+from ._brain import Brain

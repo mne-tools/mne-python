@@ -1,49 +1,39 @@
-name: base
+name: mne
 channels:
-- defaults
+- conda-forge
 dependencies:
-- python>=3.5
+- python>=3.8
 - pip
 - numpy
 - scipy
 - matplotlib
 - numba
-- pandas>=0.18
+- pandas
 - xlrd
 - scikit-learn
 - h5py
 - pillow
 - statsmodels
 - jupyter
-- pytest<5.4
-- pytest-cov
-- pytest-mock
-- pytest-timeout
-- pytest-xdist
 - joblib
 - psutil
-- flake8
 - numexpr
-- traits>=4.6.0
-- pyface>=6
-- traitsui>=6
-- imageio>=2.6.1
-- pip:
-  - mne
-  - https://github.com/numpy/numpydoc/archive/master.zip
-  - imageio-ffmpeg>=0.4.1
-  - vtk>=9.0.1
-  - pyvista>=0.24
-  - pyvistaqt
-  - https://github.com/enthought/mayavi/archive/master.zip
-  - PySurfer[save_movie]
-  - dipy --only-binary dipy
-  - nibabel
-  - nilearn
-  - neo
-  - pytest-sugar
-  - pydocstyle
-  - codespell
-  - python-picard
-  - tqdm
-  - PyQt5>=5.10
+- traits
+- pyface!=7.3.0
+- traitsui
+- imageio
+- tqdm
+- spyder-kernels>=1.10.0
+- imageio-ffmpeg>=0.4.1
+- vtk>=9.0.1
+- pyvista>=0.24
+- pyvistaqt>=0.2.0
+- mayavi
+- PySurfer
+- dipy
+- nibabel
+- nilearn
+- python-picard
+- pyqt!=5.15.3
+- mne
+- mffpy>=0.5.7

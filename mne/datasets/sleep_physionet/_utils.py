@@ -9,7 +9,8 @@ import os.path as op
 import numpy as np
 from distutils.version import LooseVersion
 
-from ...utils import _fetch_file, verbose, _TempDir, _check_pandas_installed
+from ...utils import (_fetch_file, verbose, _TempDir, _check_pandas_installed,
+                      _on_missing)
 from ..utils import _get_path
 
 AGE_SLEEP_RECORDS = op.join(op.dirname(__file__), 'age_records.csv')
@@ -192,12 +193,30 @@ def _update_sleep_age_records(fname=AGE_SLEEP_RECORDS):
     data.to_csv(fname, index=False)
 
 
-def _check_subjects(subjects, n_subjects):
+def _check_subjects(subjects, n_subjects, missing=None, on_missing='raise'):
+    """Check whether subjects are available.
+
+    Parameters
+    ----------
+    subjects : list
+        Subject numbers to be checked.
+    n_subjects : int
+        Number of subjects available.
+    missing : list | None
+        Subject numbers that are missing.
+    on_missing : 'raise' | 'warn' | 'ignore'
+        What to do if one or several subjects are not available. Valid keys
+        are 'raise' | 'warn' | 'ignore'. Default is 'error'. If on_missing
+        is 'warn' it will proceed but warn, if 'ignore' it will proceed
+        silently.
+    """
     valid_subjects = np.arange(n_subjects)
+    if missing is not None:
+        valid_subjects = np.setdiff1d(valid_subjects, missing)
     unknown_subjects = np.setdiff1d(subjects, valid_subjects)
     if unknown_subjects.size > 0:
         subjects_list = ', '.join([str(s) for s in unknown_subjects])
-        raise ValueError('Only subjects 0 to {} are'
-                         ' available from this dataset.'
-                         ' Unknown subjects: {}'.format(n_subjects - 1,
-                                                        subjects_list))
+        msg = (f'This dataset contains subjects 0 to {n_subjects - 1} with '
+               f'missing subjects {missing}. Unknown subjects: '
+               f'{subjects_list}.')
+        _on_missing(on_missing, msg)

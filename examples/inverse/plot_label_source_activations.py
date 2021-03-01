@@ -41,7 +41,7 @@ src = inverse_operator['src']
 ###############################################################################
 # Compute inverse solution
 # ------------------------
-pick_ori = "normal"  # Get signed values to see the effect of sign filp
+pick_ori = "normal"  # Get signed values to see the effect of sign flip
 stc = apply_inverse(evoked, inverse_operator, lambda2, method,
                     pick_ori=pick_ori)
 

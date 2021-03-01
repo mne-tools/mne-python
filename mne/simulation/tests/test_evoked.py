@@ -71,7 +71,7 @@ def test_simulate_evoked():
     mv = np.max(fwd['src'][0]['vertno'][fwd['src'][0]['inuse']])
     stc_bad.vertices[0][0] = mv + 1
 
-    pytest.raises(RuntimeError, simulate_evoked, fwd, stc_bad,
+    pytest.raises(ValueError, simulate_evoked, fwd, stc_bad,
                   evoked_template.info, cov)
     evoked_1 = simulate_evoked(fwd, stc, evoked_template.info, cov,
                                nave=np.inf)

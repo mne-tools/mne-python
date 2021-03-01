@@ -36,7 +36,7 @@ from .io.reference import (set_eeg_reference, set_bipolar_reference,
                            add_reference_channels)
 from .io.what import what
 from .bem import (make_sphere_model, make_bem_model, make_bem_solution,
-                  read_bem_surfaces, write_bem_surfaces,
+                  read_bem_surfaces, write_bem_surfaces, write_head_bem,
                   read_bem_solution, write_bem_solution)
 from .cov import (read_cov, write_cov, Covariance, compute_raw_covariance,
                   compute_covariance, whiten_evoked, make_ad_hoc_cov)
@@ -60,14 +60,14 @@ from .source_estimate import (read_source_estimate,
                               spatio_temporal_src_adjacency,
                               spatio_temporal_tris_adjacency,
                               spatio_temporal_dist_adjacency,
-                              extract_label_time_course)
+                              extract_label_time_course, stc_near_sensors)
 from .surface import (read_surface, write_surface, decimate_surface, read_tri,
                       read_morph_map, get_head_surf, get_meg_helmet_surf,
                       dig_mri_distances)
 from .morph import (SourceMorph, read_source_morph, grade_to_vertices,
                     compute_source_morph)
 from .source_space import (read_source_spaces, vertex_to_mni,
-                           head_to_mni, head_to_mri,
+                           head_to_mni, head_to_mri, read_talxfm,
                            write_source_spaces, setup_source_space,
                            setup_volume_source_space, SourceSpaces,
                            add_source_space_distances, morph_source_spaces,
@@ -89,12 +89,12 @@ from .transforms import (read_trans, write_trans,
                          transform_surface_to, Transform)
 from .proj import (read_proj, write_proj, compute_proj_epochs,
                    compute_proj_evoked, compute_proj_raw, sensitivity_map)
-from .selection import read_selection
 from .dipole import read_dipole, Dipole, DipoleFixed, fit_dipole
-from .channels import equalize_channels, rename_channels, find_layout
+from .channels import (equalize_channels, rename_channels, find_layout,
+                       read_vectorview_selection)
 from .report import Report, open_report
 
-from .io import read_epochs_fieldtrip, read_evoked_fieldtrip
+from .io import read_epochs_fieldtrip, read_evoked_fieldtrip, read_evokeds_mff
 from .rank import compute_rank
 
 from . import beamformer
@@ -117,26 +117,14 @@ from . import minimum_norm
 from . import preprocessing
 from . import simulation
 from . import stats
+from . import surface
 from . import time_frequency
 from . import viz
 from . import decoding
 
+# deprecations
 from .utils import deprecated_alias
-deprecated_alias(
-    'spatial_src_connectivity', spatial_src_adjacency)
-deprecated_alias(
-    'spatial_tris_connectivity', spatial_tris_adjacency)
-deprecated_alias(
-    'spatial_dist_connectivity', spatial_dist_adjacency)
-deprecated_alias(
-    'spatial_inter_hemi_connectivity', spatial_inter_hemi_adjacency)
-deprecated_alias(
-    'spatio_temporal_src_connectivity', spatio_temporal_src_adjacency)
-deprecated_alias(
-    'spatio_temporal_tris_connectivity', spatio_temporal_tris_adjacency)
-deprecated_alias(
-    'spatio_temporal_dist_connectivity', spatio_temporal_dist_adjacency)
-del deprecated_alias
+deprecated_alias('read_selection', read_vectorview_selection)
 
 # initialize logging
 set_log_level(None, False)

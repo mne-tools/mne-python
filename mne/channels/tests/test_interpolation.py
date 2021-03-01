@@ -1,7 +1,7 @@
 import os.path as op
 
 import numpy as np
-from numpy.testing import (assert_allclose, assert_array_equal)
+from numpy.testing import assert_allclose, assert_array_equal
 import pytest
 from itertools import compress
 
@@ -12,6 +12,7 @@ from mne.utils import run_tests_if_main
 from mne.preprocessing.nirs import optical_density, scalp_coupling_index
 from mne.datasets.testing import data_path
 from mne.io import read_raw_nirx
+from mne.io.proj import _has_eeg_average_ref_proj
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -44,12 +45,20 @@ def _load_data(kind):
 
 
 @pytest.mark.parametrize('offset', (0., 0.1))
+@pytest.mark.parametrize('avg_proj, ctol', [
+    (True, (0.86, 0.93)),
+    (False, (0.97, 0.99)),
+])
+@pytest.mark.parametrize('method, atol', [
+    (None, 3e-6),
+    (dict(eeg='MNE'), 4e-6),
+])
 @pytest.mark.filterwarnings('ignore:.*than 20 mm from head frame origin.*')
-@pytest.mark.slowtest
-def test_interpolation_eeg(offset):
+def test_interpolation_eeg(offset, avg_proj, ctol, atol, method):
     """Test interpolation of EEG channels."""
     raw, epochs_eeg = _load_data('eeg')
     epochs_eeg = epochs_eeg.copy()
+    assert not _has_eeg_average_ref_proj(epochs_eeg.info['projs'])
     # Offsetting the coordinate frame should have no effect on the output
     for inst in (raw, epochs_eeg):
         for ch in inst.info['chs']:
@@ -62,47 +71,62 @@ def test_interpolation_eeg(offset):
     # check that interpolation does nothing if no bads are marked
     epochs_eeg.info['bads'] = []
     evoked_eeg = epochs_eeg.average()
+    kw = dict(method=method)
     with pytest.warns(RuntimeWarning, match='Doing nothing'):
-        evoked_eeg.interpolate_bads()
+        evoked_eeg.interpolate_bads(**kw)
 
     # create good and bad channels for EEG
     epochs_eeg.info['bads'] = []
     goods_idx = np.ones(len(epochs_eeg.ch_names), dtype=bool)
     goods_idx[epochs_eeg.ch_names.index('EEG 012')] = False
     bads_idx = ~goods_idx
+    pos = epochs_eeg._get_channel_positions()
 
     evoked_eeg = epochs_eeg.average()
+    if avg_proj:
+        evoked_eeg.set_eeg_reference(projection=True).apply_proj()
+        assert_allclose(evoked_eeg.data.mean(0), 0., atol=1e-20)
     ave_before = evoked_eeg.data[bads_idx]
 
     # interpolate bad channels for EEG
-    pos = epochs_eeg._get_channel_positions()
-    pos_good = pos[goods_idx]
-    pos_bad = pos[bads_idx]
-    interpolation = _make_interpolation_matrix(pos_good, pos_bad)
-    assert interpolation.shape == (1, len(epochs_eeg.ch_names) - 1)
-    interp_manual = np.dot(interpolation, evoked_eeg.data[goods_idx])
-
     epochs_eeg.info['bads'] = ['EEG 012']
     evoked_eeg = epochs_eeg.average()
-    interp_zero = evoked_eeg.interpolate_bads(
-        origin=(0., 0., 0.)).data[bads_idx]
-    assert_array_equal(interp_manual, interp_zero)
-    assert_allclose(ave_before, interp_zero, atol=3e-6)
-    assert 0.985 < np.corrcoef(ave_before, interp_zero)[0, 1] < 0.99
-    evoked_eeg.info['bads'] = ['EEG 012']
-    interp_fit = evoked_eeg.interpolate_bads().data[bads_idx]
-    assert_allclose(ave_before, interp_fit, atol=2e-6)
-    assert 0.99 < np.corrcoef(ave_before, interp_fit)[0, 1]  # better
+    if avg_proj:
+        evoked_eeg.set_eeg_reference(projection=True).apply_proj()
+        good_picks = pick_types(evoked_eeg.info, meg=False, eeg=True)
+        assert_allclose(evoked_eeg.data[good_picks].mean(0), 0., atol=1e-20)
+    evoked_eeg_bad = evoked_eeg.copy()
+    evoked_eeg_bad.data[
+        evoked_eeg.ch_names.index(epochs_eeg.info['bads'][0])] = 1e10
+    evoked_eeg_interp = evoked_eeg_bad.copy().interpolate_bads(
+        origin=(0., 0., 0.), **kw)
+    if avg_proj:
+        assert_allclose(evoked_eeg_interp.data.mean(0), 0., atol=1e-6)
+    interp_zero = evoked_eeg_interp.data[bads_idx]
+    if method is None:  # using
+        pos_good = pos[goods_idx]
+        pos_bad = pos[bads_idx]
+        interpolation = _make_interpolation_matrix(pos_good, pos_bad)
+        assert interpolation.shape == (1, len(epochs_eeg.ch_names) - 1)
+        interp_manual = np.dot(interpolation, evoked_eeg_bad.data[goods_idx])
+        assert_array_equal(interp_manual, interp_zero)
+        del interp_manual, interpolation, pos, pos_good, pos_bad
+    assert_allclose(ave_before, interp_zero, atol=atol)
+    assert ctol[0] < np.corrcoef(ave_before, interp_zero)[0, 1] < ctol[1]
+    interp_fit = evoked_eeg_bad.copy().interpolate_bads(**kw).data[bads_idx]
+    assert_allclose(ave_before, interp_fit, atol=2.5e-6)
+    assert ctol[1] < np.corrcoef(ave_before, interp_fit)[0, 1]  # better
 
     # check that interpolation fails when preload is False
     epochs_eeg.preload = False
-    pytest.raises(RuntimeError, epochs_eeg.interpolate_bads)
+    with pytest.raises(RuntimeError, match='requires epochs data to be loade'):
+        epochs_eeg.interpolate_bads(**kw)
     epochs_eeg.preload = True
 
     # check that interpolation changes the data in raw
     raw_eeg = io.RawArray(data=epochs_eeg._data[0], info=epochs_eeg.info)
     raw_before = raw_eeg._data[bads_idx]
-    raw_after = raw_eeg.interpolate_bads()._data[bads_idx]
+    raw_after = raw_eeg.interpolate_bads(**kw)._data[bads_idx]
     assert not np.all(raw_before == raw_after)
 
     # check that interpolation fails when preload is False
@@ -110,7 +134,8 @@ def test_interpolation_eeg(offset):
         assert hasattr(inst, 'preload')
         inst.preload = False
         inst.info['bads'] = [inst.ch_names[1]]
-        pytest.raises(RuntimeError, inst.interpolate_bads)
+        with pytest.raises(RuntimeError, match='requires.*data to be loaded'):
+            inst.interpolate_bads(**kw)
 
     # check that interpolation works with few channels
     raw_few = raw.copy().crop(0, 0.1).load_data()
@@ -120,7 +145,7 @@ def test_interpolation_eeg(offset):
     raw_few.info['bads'] = [raw_few.ch_names[-1]]
     orig_data = raw_few[1][0]
     with pytest.warns(None) as w:
-        raw_few.interpolate_bads(reset_bads=False)
+        raw_few.interpolate_bads(reset_bads=False, **kw)
     assert len([ww for ww in w if 'more than' not in str(ww.message)]) == 0
     new_data = raw_few[1][0]
     assert (new_data == 0).mean() < 0.5
@@ -132,7 +157,7 @@ def test_interpolation_meg():
     """Test interpolation of MEG channels."""
     # speed accuracy tradeoff: channel subselection is faster but the
     # correlation drops
-    thresh = 0.7
+    thresh = 0.68
 
     raw, epochs_meg = _load_data('meg')
 
@@ -230,7 +255,7 @@ def test_interpolation_ctf_comp():
 def test_interpolation_nirs():
     """Test interpolating bad nirs channels."""
     fname = op.join(data_path(download=False),
-                    'NIRx', 'nirx_15_2_recording_w_overlap')
+                    'NIRx', 'nirscout', 'nirx_15_2_recording_w_overlap')
     raw_intensity = read_raw_nirx(fname, preload=False)
     raw_od = optical_density(raw_intensity)
     sci = scalp_coupling_index(raw_od)

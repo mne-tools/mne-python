@@ -10,7 +10,6 @@ The sources matching the ECG are automatically found and displayed.
 .. note:: This example does quite a bit of processing, so even on a
           fast machine it can take about a minute to complete.
 """
-
 # Authors: Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
@@ -59,5 +58,5 @@ ica.plot_components(ecg_inds)
 ica.plot_properties(epochs, picks=ecg_inds)
 
 ###############################################################################
-# Plot the estimated source of detected ECG related components
+# Plot the estimated source of detected ECG related components:
 ica.plot_sources(raw, picks=ecg_inds)

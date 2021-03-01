@@ -8,6 +8,7 @@ omit =
     */setup.py
     */mne/fixes*
     */mne/utils/linalg.py
+    */mne/conftest.py
 
 [report]
 exclude_lines =

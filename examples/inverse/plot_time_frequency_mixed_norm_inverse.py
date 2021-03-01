@@ -5,7 +5,8 @@ Compute MxNE with time-frequency sparse prior
 
 The TF-MxNE solver is a distributed inverse method (like dSPM or sLORETA)
 that promotes focal (sparse) sources (such as dipole fitting techniques)
-[1]_ [2]_. The benefit of this approach is that:
+:footcite:`GramfortEtAl2013b,GramfortEtAl2011`.
+The benefit of this approach is that:
 
   - it is spatio-temporal without assuming stationarity (sources properties
     can vary over time)
@@ -15,21 +16,6 @@ that promotes focal (sparse) sources (such as dipole fitting techniques)
     to make the signals zero mean).
   - the solver solves a convex optimization problem, hence cannot be
     trapped in local minima.
-
-References
-----------
-.. [1] A. Gramfort, D. Strohmeier, J. Haueisen, M. Hämäläinen, M. Kowalski
-   "Time-Frequency Mixed-Norm Estimates: Sparse M/EEG imaging with
-   non-stationary source activations",
-   Neuroimage, Volume 70, pp. 410-422, 15 April 2013.
-   DOI: 10.1016/j.neuroimage.2012.12.051
-
-.. [2] A. Gramfort, D. Strohmeier, J. Haueisen, M. Hämäläinen, M. Kowalski
-   "Functional Brain Imaging with M/EEG Using Structured Sparsity in
-   Time-Frequency Dictionaries",
-   Proceedings Information Processing in Medical Imaging
-   Lecture Notes in Computer Science, Volume 6801/2011, pp. 600-611, 2011.
-   DOI: 10.1007/978-3-642-22092-0_49
 """
 # Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #         Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
@@ -101,13 +87,14 @@ residual.crop(tmin=-0.05, tmax=0.3)
 # Plot dipole activations
 plot_dipole_amplitudes(dipoles)
 
-# Plot dipole location of the strongest dipole with MRI slices
+###############################################################################
+# Plot location of the strongest dipole with MRI slices
 idx = np.argmax([np.max(np.abs(dip.amplitude)) for dip in dipoles])
 plot_dipole_locations(dipoles[idx], forward['mri_head_t'], 'sample',
                       subjects_dir=subjects_dir, mode='orthoview',
                       idx='amplitude')
 
-# # Plot dipole locations of all dipoles with MRI slices
+# # Plot dipole locations of all dipoles with MRI slices:
 # for dip in dipoles:
 #     plot_dipole_locations(dip, forward['mri_head_t'], 'sample',
 #                           subjects_dir=subjects_dir, mode='orthoview',
@@ -141,3 +128,8 @@ brain = stc.plot('sample', 'inflated', 'rh', views='medial',
                  subjects_dir=subjects_dir, initial_time=150, time_unit='ms')
 brain.add_label("V1", color="yellow", scalar_thresh=.5, borders=True)
 brain.add_label("V2", color="red", scalar_thresh=.5, borders=True)
+
+###############################################################################
+# References
+# ----------
+# .. footbibliography::

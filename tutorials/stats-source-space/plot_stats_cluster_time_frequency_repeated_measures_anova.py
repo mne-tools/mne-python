@@ -156,7 +156,7 @@ for effect, sig, effect_label in zip(fvals, pvals, effect_labels):
                times[-1], freqs[0], freqs[-1]], aspect='auto',
                origin='lower')
     # create mask for significant Time-frequency locations
-    effect = np.ma.masked_array(effect, [sig > .05])
+    effect[sig >= 0.05] = np.nan
     plt.imshow(effect.reshape(8, 211), cmap='RdBu_r', extent=[times[0],
                times[-1], freqs[0], freqs[-1]], aspect='auto',
                origin='lower')
@@ -203,8 +203,8 @@ T_obs, clusters, cluster_p_values, h0 = mne.stats.permutation_cluster_test(
 # Create new stats image with only significant clusters:
 
 good_clusters = np.where(cluster_p_values < .05)[0]
-T_obs_plot = np.ma.masked_array(T_obs,
-                                np.invert(clusters[np.squeeze(good_clusters)]))
+T_obs_plot = T_obs.copy()
+T_obs_plot[~clusters[np.squeeze(good_clusters)]] = np.nan
 
 plt.figure()
 for f_image, cmap in zip([T_obs, T_obs_plot], [plt.cm.gray, 'RdBu_r']):
@@ -221,10 +221,13 @@ plt.show()
 # Now using FDR:
 
 mask, _ = fdr_correction(pvals[2])
-T_obs_plot2 = np.ma.masked_array(T_obs, np.invert(mask))
+T_obs_plot2 = T_obs.copy()
+T_obs_plot2[~mask.reshape(T_obs_plot.shape)] = np.nan
 
 plt.figure()
 for f_image, cmap in zip([T_obs, T_obs_plot2], [plt.cm.gray, 'RdBu_r']):
+    if np.isnan(f_image).all():
+        continue  # nothing to show
     plt.imshow(f_image, cmap=cmap, extent=[times[0], times[-1],
                freqs[0], freqs[-1]], aspect='auto',
                origin='lower')

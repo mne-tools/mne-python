@@ -11,7 +11,7 @@ import time
 import numbers
 from ..parallel import parallel_func
 from ..fixes import BaseEstimator, is_classifier, _get_check_scoring
-from ..utils import check_version, logger, warn, fill_doc
+from ..utils import logger, warn, fill_doc
 
 
 class LinearModel(BaseEstimator):
@@ -54,10 +54,7 @@ class LinearModel(BaseEstimator):
     def __init__(self, model=None):  # noqa: D102
         if model is None:
             from sklearn.linear_model import LogisticRegression
-            if check_version('sklearn', '0.20'):
-                model = LogisticRegression(solver='liblinear')
-            else:
-                model = LogisticRegression()
+            model = LogisticRegression(solver='liblinear')
 
         self.model = model
         self._estimator_type = getattr(model, "_estimator_type", None)
@@ -147,7 +144,6 @@ class LinearModel(BaseEstimator):
         -------
         y_pred : array, shape (n_samples,)
             The predicted targets.
-
         """
         return self.fit(X, y).transform(X)
 

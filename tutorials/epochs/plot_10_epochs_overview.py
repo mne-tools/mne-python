@@ -13,10 +13,6 @@ detail, including how to load, query, subselect, export, and plot data from an
 creating an :class:`~mne.Epochs` object from (possibly simulated) data in a
 :class:`NumPy array <numpy.ndarray>`, see :ref:`tut_creating_data_structures`.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 As usual we'll start by importing the modules we need:
 """
 
@@ -311,6 +307,14 @@ shorter_epochs = epochs.copy().crop(tmin=-0.1, tmax=0.1, include_tmax=True)
 for name, obj in dict(Original=epochs, Cropped=shorter_epochs).items():
     print('{} epochs has {} time samples'
           .format(name, obj.get_data().shape[-1]))
+
+###############################################################################
+# Cropping removed part of the baseline. When printing the
+# cropped :class:`~mne.Epochs`, MNE-Python will inform you about the time
+# period that was originally used to perform baseline correction by displaying
+# the string "baseline period cropped after baseline correction":
+
+print(shorter_epochs)
 
 ###############################################################################
 # However, if you wanted to *expand* the time domain of an :class:`~mne.Epochs`

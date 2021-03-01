@@ -7,8 +7,8 @@
 
 import os.path as op
 
-import pytest
 import numpy as np
+import pytest
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_equal)
 
@@ -47,6 +47,44 @@ def simulate_data(target, n_trials=100, n_channels=10, random_state=42):
     return X, mixing_mat
 
 
+def deterministic_toy_data(classes=('class_a', 'class_b')):
+    """Generate a small deterministic toy data set.
+
+    Four independent sources are modulated by the target class and mixed
+    into signal space.
+    """
+    sources_a = np.array([[0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+                          [0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1],
+                          [0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1],
+                          [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1]],
+                         dtype=float) * 2 - 1
+
+    sources_b = np.array([[0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+                          [0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1],
+                          [0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1],
+                          [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1]],
+                         dtype=float) * 2 - 1
+
+    sources_a[0, :] *= 1
+    sources_a[1, :] *= 2
+
+    sources_b[2, :] *= 3
+    sources_b[3, :] *= 4
+
+    mixing = np.array([[1.0, 0.8, 0.6, 0.4],
+                       [0.8, 1.0, 0.8, 0.6],
+                       [0.6, 0.8, 1.0, 0.8],
+                       [0.4, 0.6, 0.8, 1.0]])
+
+    x_class_a = mixing @ sources_a
+    x_class_b = mixing @ sources_b
+
+    x = np.stack([x_class_a, x_class_b])
+    y = np.array(classes)
+
+    return x, y
+
+
 @pytest.mark.slowtest
 def test_csp():
     """Test Common Spatial Patterns algorithm on epochs."""
@@ -71,7 +109,8 @@ def test_csp():
         CSP(reg=reg, norm_trace=False)
     for cov_est in ['foo', None]:
         pytest.raises(ValueError, CSP, cov_est=cov_est, norm_trace=False)
-    pytest.raises(ValueError, CSP, norm_trace='foo')
+    with pytest.raises(TypeError, match='instance of bool'):
+        CSP(norm_trace='foo')
     for cov_est in ['concat', 'epoch']:
         CSP(cov_est=cov_est, norm_trace=False)
 
@@ -280,3 +319,40 @@ def test_spoc():
     out = spoc.transform(X)
     corr = np.abs(np.corrcoef(out[:, 0], y)[0, 1])
     assert np.abs(corr) > 0.85
+
+
+def test_csp_twoclass_symmetry():
+    """Test that CSP is symmetric when swapping classes."""
+    x, y = deterministic_toy_data(['class_a', 'class_b'])
+    csp = CSP(norm_trace=False, transform_into='average_power', log=True)
+    log_power = csp.fit_transform(x, y)
+    log_power_ratio_ab = log_power[0] - log_power[1]
+
+    x, y = deterministic_toy_data(['class_b', 'class_a'])
+    csp = CSP(norm_trace=False, transform_into='average_power', log=True)
+    log_power = csp.fit_transform(x, y)
+    log_power_ratio_ba = log_power[0] - log_power[1]
+
+    assert_array_almost_equal(log_power_ratio_ab,
+                              log_power_ratio_ba)
+
+
+def test_csp_component_ordering():
+    """Test that CSP component ordering works as expected."""
+    x, y = deterministic_toy_data(['class_a', 'class_b'])
+
+    pytest.raises(ValueError, CSP, component_order='invalid')
+
+    # component_order='alternate' only works with two classes
+    csp = CSP(component_order='alternate')
+    with pytest.raises(ValueError):
+        csp.fit(np.zeros((3, 0, 0)), ['a', 'b', 'c'])
+
+    p_alt = CSP(component_order='alternate').fit(x, y).patterns_
+    p_mut = CSP(component_order='mutual_info').fit(x, y).patterns_
+
+    # This permutation of p_alt and p_mut is explained by the particular
+    # eigenvalues of the toy data: [0.06, 0.1,   0.5,  0.8].
+    # p_alt arranges them to [0.8, 0.06, 0.5, 0.1]
+    # p_mut arranges them to [0.06, 0.1, 0.8, 0.5]
+    assert_array_almost_equal(p_alt, p_mut[[2, 0, 3, 1]])

@@ -321,10 +321,10 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
             logger.info('    %d STC iteration%s provided'
                         % (n + 1, _pl(n + 1)))
             break
+        del fwd
     else:
         raise RuntimeError('Maximum number of STC iterations (%d) '
                            'exceeded' % (n,))
-        del fwd
     raw_data = np.concatenate(raw_datas, axis=-1)
     raw = RawArray(raw_data, info, first_samp=first_samp, verbose=False)
     raw.set_annotations(raw.annotations)
@@ -524,7 +524,7 @@ def _add_exg(raw, kind, head_pos, interp, n_jobs, random_state):
     proc_lims = np.concatenate([np.arange(0, len(used), 10000), [len(used)]])
     for start, stop in zip(proc_lims[:-1], proc_lims[1:]):
         fwd, _ = interper.feed(stop - start)
-        data[picks, start:stop] = einsum(
+        data[picks, start:stop] += einsum(
             'svt,vt->st', fwd, exg_data[:, start:stop])
         assert not used[start:stop].any()
         used[start:stop] = True
@@ -580,7 +580,7 @@ def add_chpi(raw, head_pos=None, interp='cos2', n_jobs=1, verbose=None):
     lims = np.concatenate([offsets, [len(raw.times)]])
     for start, stop in zip(lims[:-1], lims[1:]):
         fwd, = interper.feed(stop - start)
-        data[meg_picks, start:stop] = einsum(
+        data[meg_picks, start:stop] += einsum(
             'svt,vt->st', fwd, sinusoids[:, start:stop])
         assert not used[start:stop].any()
         used[start:stop] = True

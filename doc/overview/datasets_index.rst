@@ -6,8 +6,8 @@ Datasets Overview
 .. sidebar:: Contributing datasets to MNE-Python
 
     Do not hesitate to contact MNE-Python developers on the
-    `MNE mailing list <http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis>`_
-    to discuss the possibility of adding more publicly available datasets.
+    `MNE Forum <https://mne.discourse.group>`_ to discuss the possibility of
+    adding more publicly available datasets.
 
 All the dataset fetchers are available in :mod:`mne.datasets`. To download any of the datasets,
 use the ``data_path`` (fetches full dataset) or the ``load_data`` (fetches dataset partially) functions.
@@ -16,11 +16,6 @@ All fetchers will check the default download location first to see if the datase
 is already on your computer, and only download it if necessary. The default
 download location is also configurable; see the documentation of any of the
 ``data_path`` functions for more information.
-
-.. contents:: Available datasets
-   :local:
-   :depth: 2
-
 
 .. _sample-dataset:
 
@@ -333,6 +328,19 @@ data please cite :footcite:`KempEtAl2000` and :footcite:`GoldbergerEtAl2000`.
 
     * :ref:`tut-sleep-stage-classif`
 
+Reference channel noise MEG data set
+====================================
+:func:`mne.datasets.refmeg_noise.data_path`.
+
+This dataset was obtained with a 4D Neuroimaging / BTi system at
+the University Clinic - Erlangen, Germany. There are powerful bursts of
+external magnetic noise throughout the recording, which make it a good
+example for automatic noise removal techniques.
+
+.. topic:: Examples
+
+    * :ref:`ex-megnoise_processing`
+
 Miscellaneous Datasets
 ======================
 These datasets are used for specific purposes in the documentation and in
@@ -351,6 +359,12 @@ For convenience, we provide a function to separately download and extract the
 
     :ref:`tut-eeg-fsaverage-source-modeling`
 
+Infant template MRIs
+^^^^^^^^^^^^^^^^^^^^
+:func:`mne.datasets.fetch_infant_template`
+
+This function will download an infant template MRI from
+:footcite:`OReillyEtAl2021` along with MNE-specific files.
 
 ECoG Dataset
 ^^^^^^^^^^^^
@@ -407,16 +421,3 @@ References
 .. _resting state dataset tutorial: https://neuroimage.usc.edu/brainstorm/DatasetResting
 .. _median nerve dataset tutorial: https://neuroimage.usc.edu/brainstorm/DatasetMedianNerveCtf
 .. _SPM faces dataset: https://www.fil.ion.ucl.ac.uk/spm/data/mmfaces/
-
-Reference channel noise MEG data set
-====================================
-:func:`mne.datasets.refmeg_noise.data_path`.
-
-This dataset was obtained with a 4D Neuroimaging / BTi system at
-the University Clinic - Erlangen, Germany. There are powerful bursts of
-external magnetic noise throughout the recording, which make it a good
-example for automatic noise removal techniques.
-
-.. topic:: Examples
-
-    * :ref:`ex-megnoise_processing`

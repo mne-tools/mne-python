@@ -122,8 +122,8 @@ plt.subplots_adjust(left=0.01, right=0.99, bottom=0.01, top=0.88)
 # Animating the topomap
 # ---------------------
 #
-# Instead of using a still image we can plot magnetometer data as an animation
-# (animates only in matplotlib interactive mode)
+# Instead of using a still image we can plot magnetometer data as an animation,
+# which animates properly only in matplotlib interactive mode.
 
 # sphinx_gallery_thumbnail_number = 9
 times = np.arange(0.05, 0.151, 0.01)

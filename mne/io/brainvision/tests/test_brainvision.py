@@ -5,6 +5,7 @@
 #
 # License: BSD (3-clause)
 import os.path as op
+import re
 import shutil
 
 import numpy as np
@@ -12,7 +13,8 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose, assert_equal)
 import pytest
 
-from mne.utils import run_tests_if_main, _stamp_to_dt
+import datetime
+from mne.utils import run_tests_if_main, _stamp_to_dt, object_diff
 from mne import pick_types, read_annotations, concatenate_raws
 from mne.io.constants import FIFF
 from mne.io import read_raw_fif, read_raw_brainvision
@@ -71,9 +73,16 @@ def test_orig_units(recwarn):
     raw = read_raw_brainvision(vhdr_path)
     orig_units = raw._orig_units
     assert len(orig_units) == 32
-    assert orig_units['FP1'] == u'µV'
+    assert orig_units['FP1'] == 'µV'
+
+    # no unit specified in the vhdr, ensure we default to µV here
+    assert orig_units['FP2'] == 'µV'
+    assert orig_units['F3'] == 'µV'
+
+    sum([v == 'µV' for v in orig_units.values()]) == 26
+
     assert orig_units['CP5'] == 'n/a'  # originally BS, not a valid unit
-    assert orig_units['CP6'] == u'µS'
+    assert orig_units['CP6'] == 'µS'
     assert orig_units['HL'] == 'n/a'  # originally ARU, not a valid unit
     assert orig_units['HR'] == 'n/a'  # originally uS ...
     assert orig_units['Vb'] == 'S'
@@ -262,6 +271,46 @@ def test_ascii(tmpdir):
     data_new, times_new = raw[:]
     assert_allclose(data_new, data, atol=1e-15)
     assert_allclose(times_new, times)
+
+
+def test_ch_names_comma(tmpdir):
+    """Test that channel names containing commas are properly read."""
+    # commas in BV are encoded as \1
+    replace_dict = {
+        r"^Ch4=F4,": r"Ch4=F4\\1foo,",
+        r"^4\s\s\s\s\sF4": "4     F4,foo ",
+    }
+
+    # Copy existing vhdr file to tmpdir and manipulate to contain
+    # a channel with comma
+    for src, dest in zip((vhdr_path, vmrk_path, eeg_path),
+                         ('test.vhdr', 'test.vmrk', 'test.eeg')):
+        shutil.copyfile(src, tmpdir / dest)
+
+    comma_vhdr = tmpdir / 'test.vhdr'
+    with open(comma_vhdr, 'r') as fin:
+        lines = fin.readlines()
+
+    new_lines = []
+    nperformed_replacements = 0
+    for line in lines:
+        for to_replace, replacement in replace_dict.items():
+            match = re.search(to_replace, line)
+            if match is not None:
+                new = re.sub(to_replace, replacement, line)
+                new_lines.append(new)
+                nperformed_replacements += 1
+                break
+        else:
+            new_lines.append(line)
+    assert nperformed_replacements == len(replace_dict)
+
+    with open(comma_vhdr, 'w') as fout:
+        fout.writelines(new_lines)
+
+    # Read the line containing a "comma channel name"
+    raw = read_raw_brainvision(comma_vhdr)
+    assert "F4,foo" in raw.ch_names
 
 
 def test_brainvision_data_highpass_filters():
@@ -569,32 +618,41 @@ def test_read_vmrk_annotations(tmpdir):
 
 
 @testing.requires_testing_data
-def test_read_vhdr_annotations_and_events():
+def test_read_vhdr_annotations_and_events(tmpdir):
     """Test load brainvision annotations and parse them to events."""
+    # First we add a custom event that contains a comma in its description
+    for src, dest in zip((vhdr_path, vmrk_path, eeg_path),
+                         ('test.vhdr', 'test.vmrk', 'test.eeg')):
+        shutil.copyfile(src, tmpdir / dest)
+
+    # Commas are encoded as "\1"
+    with open(tmpdir / 'test.vmrk', 'a') as fout:
+        fout.write(r"Mk15=Comma\1Type,CommaValue\11,7800,1,0\n")
+
     sfreq = 1000.0
     expected_orig_time = _stamp_to_dt((1384359243, 794232))
     expected_onset_latency = np.array(
         [0, 486., 496., 1769., 1779., 3252., 3262., 4935., 4945., 5999., 6619.,
-         6629., 7629., 7699.]
+         6629., 7629., 7699., 7799.]
     )
     expected_annot_description = [
         'New Segment/', 'Stimulus/S253', 'Stimulus/S255', 'Event/254',
         'Stimulus/S255', 'Event/254', 'Stimulus/S255', 'Stimulus/S253',
         'Stimulus/S255', 'Response/R255', 'Event/254', 'Stimulus/S255',
-        'SyncStatus/Sync On', 'Optic/O  1'
+        'SyncStatus/Sync On', 'Optic/O  1', 'Comma,Type/CommaValue,1'
     ]
     expected_events = np.stack([
         expected_onset_latency,
         np.zeros_like(expected_onset_latency),
         [99999, 253, 255, 254, 255, 254, 255, 253, 255, 1255, 254, 255, 99998,
-         2001],
+         2001, 10001],
     ]).astype('int64').T
     expected_event_id = {'New Segment/': 99999, 'Stimulus/S253': 253,
                          'Stimulus/S255': 255, 'Event/254': 254,
                          'Response/R255': 1255, 'SyncStatus/Sync On': 99998,
-                         'Optic/O  1': 2001}
+                         'Optic/O  1': 2001, 'Comma,Type/CommaValue,1': 10001}
 
-    raw = read_raw_brainvision(vhdr_path, eog=eog)
+    raw = read_raw_brainvision(tmpdir / 'test.vhdr', eog=eog)
 
     # validate annotations
     assert raw.annotations.orig_time == expected_orig_time
@@ -615,7 +673,9 @@ def test_read_vhdr_annotations_and_events():
     # Add some custom ones, plus a 2-digit one
     s_10 = 'Stimulus/S 10'
     raw.annotations.append([1, 2, 3], 10, ['ZZZ', s_10, 'YYY'])
-    expected_event_id.update(YYY=10001, ZZZ=10002)  # others starting at 10001
+    # others starting at 10001 ...
+    # we already have "Comma,Type/CommaValue,1" as 10001
+    expected_event_id.update(YYY=10002, ZZZ=10003)
     expected_event_id[s_10] = 10
     _, event_id = events_from_annotations(raw)
     assert event_id == expected_event_id
@@ -638,7 +698,7 @@ def test_automatic_vmrk_sfreq_recovery():
 @testing.requires_testing_data
 def test_event_id_stability_when_save_and_fif_reload(tmpdir):
     """Test load events from brainvision annotations when read_raw_fif."""
-    fname = op.join(str(tmpdir), 'bv-raw.fif')
+    fname = tmpdir / 'bv-raw.fif'
     raw = read_raw_brainvision(vhdr_path, eog=eog)
     original_events, original_event_id = events_from_annotations(raw)
 
@@ -648,6 +708,59 @@ def test_event_id_stability_when_save_and_fif_reload(tmpdir):
 
     assert event_id == original_event_id
     assert_array_equal(events, original_events)
+
+
+def test_parse_impedance():
+    """Test case for parsing the impedances from header."""
+    expected_imp_meas_time = datetime.datetime(2013, 11, 13, 16, 12, 27,
+                                               tzinfo=datetime.timezone.utc)
+    expected_imp_unit = 'kOhm'
+    expected_electrodes = [
+        'FP1', 'FP2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2', 'F7',
+        'F8', 'P7', 'P8', 'Fz', 'FCz', 'Cz', 'CPz', 'Pz', 'POz', 'FC1', 'FC2',
+        'CP1', 'CP2', 'FC5', 'FC6', 'CP5', 'CP6', 'HL', 'HR', 'Vb', 'ReRef',
+        'Ref', 'Gnd'
+    ]
+    n_electrodes = len(expected_electrodes)
+    expected_imps = [np.nan] * (n_electrodes - 2) + [0., 4.]
+    expected_imp_lower_bound = 0.
+    expected_imp_upper_bound = [100.] * (n_electrodes - 2) + [10., 10.]
+
+    expected_impedances = {elec: {
+        'imp': expected_imps[i],
+        'imp_unit': expected_imp_unit,
+        'imp_meas_time': expected_imp_meas_time,
+        'imp_lower_bound': expected_imp_lower_bound,
+        'imp_upper_bound': expected_imp_upper_bound[i],
+        'imp_range_unit': expected_imp_unit,
+    } for i, elec in enumerate(expected_electrodes)}
+
+    raw = read_raw_brainvision(vhdr_path, eog=eog)
+    assert object_diff(expected_impedances, raw.impedances) == ''
+
+    # Test "Impedances Imported from actiCAP Control Software"
+    expected_imp_meas_time = expected_imp_meas_time.replace(hour=10,
+                                                            minute=17,
+                                                            second=2)
+    tmpidx = expected_electrodes.index('CP6')
+    expected_electrodes = expected_electrodes[:tmpidx] + [
+        'CP 6', 'ECG+', 'ECG-', 'HEOG+', 'HEOG-', 'VEOG+', 'VEOG-', 'ReRef',
+        'Ref', 'Gnd'
+    ]
+    n_electrodes = len(expected_electrodes)
+    expected_imps = [np.nan] * (n_electrodes - 9) + [
+        35., 46., 6., 8., 3., 4., 0., 8., 2.5
+    ]
+    expected_impedances = {elec: {
+        'imp': expected_imps[i],
+        'imp_unit': expected_imp_unit,
+        'imp_meas_time': expected_imp_meas_time,
+    } for i, elec in enumerate(expected_electrodes)}
+
+    with pytest.warns(RuntimeWarning, match='different .*pass filters'):
+        raw = read_raw_brainvision(vhdr_mixed_lowpass_path,
+                                   eog=['HEOG', 'VEOG'], misc=['ECG'])
+    assert object_diff(expected_impedances, raw.impedances) == ''
 
 
 run_tests_if_main()

@@ -3,17 +3,11 @@
 Decoding sensor space data with generalization across time and conditions
 =========================================================================
 
-This example runs the analysis described in [1]_. It illustrates how one can
+This example runs the analysis described in :footcite:`KingDehaene2014`. It
+illustrates how one can
 fit a linear classifier to identify a discriminatory topography at a given time
 instant and subsequently assess whether this linear model can accurately
 predict all of the time samples of a second set of conditions.
-
-References
-----------
-
-.. [1] King & Dehaene (2014) 'Characterizing the dynamics of mental
-       representations: the Temporal Generalization method', Trends In
-       Cognitive Sciences, 18(4), 203-210. doi: 10.1016/j.tics.2014.01.002.
 """
 # Authors: Jean-Remi King <jeanremi.king@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
@@ -83,3 +77,8 @@ ax.set_ylabel('Training Time (s)')
 ax.set_title('Generalization across time and condition')
 plt.colorbar(im, ax=ax)
 plt.show()
+
+##############################################################################
+# References
+# ----------
+# .. footbibliography::

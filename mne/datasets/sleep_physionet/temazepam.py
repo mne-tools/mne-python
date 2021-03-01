@@ -16,8 +16,7 @@ BASE_URL = 'https://physionet.org/physiobank/database/sleep-edfx/sleep-telemetry
 
 
 @verbose
-def fetch_data(subjects, recording=[b'Placebo', 'temazepam'],
-               path=None, force_update=False,
+def fetch_data(subjects, *, path=None, force_update=False,
                update_path=None, base_url=BASE_URL, verbose=None):
     """Get paths to local copies of PhysioNet Polysomnography dataset files.
 
@@ -45,12 +44,18 @@ def fetch_data(subjects, recording=[b'Placebo', 'temazepam'],
     update_path : bool | None
         If True, set the MNE_DATASETS_EEGBCI_PATH in mne-python
         config to the given path. If None, the user is prompted.
+    base_url : str
+        The base URL to download from.
     %(verbose)s
 
     Returns
     -------
     paths : list
         List of local data paths of the given type.
+
+    See Also
+    --------
+    mne.datasets.sleep_physionet.age.fetch_data
 
     Notes
     -----
@@ -71,10 +76,6 @@ def fetch_data(subjects, recording=[b'Placebo', 'temazepam'],
            PhysioBank, PhysioToolkit, and PhysioNet: Components of a New
            Research Resource for Complex Physiologic Signals.
            Circulation 101(23):e215-e220
-
-    See Also
-    --------
-    :func:`mne.datasets.sleep_physionet.age.fetch_data`
     """
     records = np.loadtxt(TEMAZEPAM_SLEEP_RECORDS,
                          skiprows=1,

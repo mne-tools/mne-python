@@ -8,6 +8,15 @@ Working with ECoG data
 MNE supports working with more than just MEG and EEG data. Here we show some
 of the functions that can be used to facilitate working with
 electrocorticography (ECoG) data.
+
+This example shows how to use:
+
+- ECoG data
+- channel locations in subject's MRI space
+- projection onto a surface
+
+For an example that involves sEEG data, channel locations in
+MNI space, or projection into a volume, see :ref:`tut_working_with_seeg`.
 """
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Chris Holdgraf <choldgraf@gmail.com>
@@ -28,11 +37,13 @@ print(__doc__)
 # paths to mne datasets - sample ECoG and FreeSurfer subject
 misc_path = mne.datasets.misc.data_path()
 sample_path = mne.datasets.sample.data_path()
+subject = 'sample'
+subjects_dir = sample_path + '/subjects'
 
 ###############################################################################
 # Let's load some ECoG electrode locations and names, and turn them into
-# a :class:`mne.channels.DigMontage` class.
-# First, use pandas to read in the .tsv file.
+# a :class:`mne.channels.DigMontage` class. First, use pandas to read in the
+# ``.tsv`` file.
 
 # In this tutorial, the electrode coordinates are assumed to be in meters
 elec_df = pd.read_csv(misc_path + '/ecog/sample_ecog_electrodes.tsv',
@@ -40,15 +51,28 @@ elec_df = pd.read_csv(misc_path + '/ecog/sample_ecog_electrodes.tsv',
 ch_names = elec_df['name'].tolist()
 ch_coords = elec_df[['x', 'y', 'z']].to_numpy(dtype=float)
 ch_pos = dict(zip(ch_names, ch_coords))
+# Ideally the nasion/LPA/RPA will also be present from the digitization, here
+# we use fiducials estimated from the subject's FreeSurfer MNI transformation:
+lpa, nasion, rpa = mne.coreg.get_mni_fiducials(
+    subject, subjects_dir=subjects_dir)
+lpa, nasion, rpa = lpa['r'], nasion['r'], rpa['r']
 
 ###############################################################################
 # Now we make a :class:`mne.channels.DigMontage` stating that the ECoG
-# contacts are in head coordinate system (although they are in MRI). This is
-# compensated below by the fact that we do not specify a trans file so the
-# Head<->MRI transform is the identity.
+# contacts are in the FreeSurfer surface RAS (i.e., MRI) coordinate system.
 
-montage = mne.channels.make_dig_montage(ch_pos, coord_frame='head')
+montage = mne.channels.make_dig_montage(
+    ch_pos, coord_frame='mri', nasion=nasion, lpa=lpa, rpa=rpa)
 print('Created %s channel positions' % len(ch_names))
+
+###############################################################################
+# Now we get the :term:`trans` that transforms from our MRI coordinate system
+# to the head coordinate frame. This transform will be applied to the
+# data when applying the montage so that standard plotting functions like
+# :func:`mne.viz.plot_evoked_topomap` will be aligned properly.
+
+trans = mne.channels.compute_native_head_t(montage)
+print(trans)
 
 ###############################################################################
 # Now that we have our montage, we can load in our corresponding
@@ -66,6 +90,9 @@ raw.crop(0, 2)  # just process 2 sec of data for speed
 # attach montage
 raw.set_montage(montage)
 
+# set channel types to ECoG (instead of EEG)
+raw.set_channel_types({ch_name: 'ecog' for ch_name in raw.ch_names})
+
 ###############################################################################
 # We can then plot the locations of our electrodes on our subject's brain.
 # We'll use :func:`~mne.viz.snapshot_brain_montage` to save the plot as image
@@ -75,10 +102,9 @@ raw.set_montage(montage)
 # .. note:: These are not real electrodes for this subject, so they
 #           do not align to the cortical surface perfectly.
 
-subjects_dir = sample_path + '/subjects'
-fig = plot_alignment(raw.info, subject='sample', subjects_dir=subjects_dir,
-                     surfaces=['pial'])
-mne.viz.set_3d_view(fig, 200, 70)
+fig = plot_alignment(raw.info, subject=subject, subjects_dir=subjects_dir,
+                     surfaces=['pial'], trans=trans, coord_frame='mri')
+mne.viz.set_3d_view(fig, 200, 70, focalpoint=[0, -0.005, 0.03])
 
 xy, im = snapshot_brain_montage(fig, montage)
 
@@ -140,7 +166,7 @@ def animate(i, activity):
 
 # create the figure and apply the animation of the
 # gamma frequency band activity
-fig, ax = plt.subplots(figsize=(10, 10))
+fig, ax = plt.subplots(figsize=(5, 5))
 ax.imshow(im)
 ax.set_axis_off()
 paths = ax.scatter(*xy_pts.T, c=np.zeros(len(xy_pts)), s=200,
@@ -149,10 +175,28 @@ fig.colorbar(paths, ax=ax)
 ax.set_title('Gamma frequency over time (Hilbert transform)',
              size='large')
 
-# sphinx_gallery_thumbnail_number = 3
 # avoid edge artifacts and decimate, showing just a short chunk
-show_power = gamma_power_t[:, 100:-1700:2]
+sl = slice(100, 150)
+show_power = gamma_power_t[:, sl]
 anim = animation.FuncAnimation(fig, animate, init_func=init,
                                fargs=(show_power,),
                                frames=show_power.shape[1],
                                interval=100, blit=True)
+
+###############################################################################
+# Alternatively, we can project the sensor data to the nearest locations on
+# the pial surface and visualize that:
+
+# sphinx_gallery_thumbnail_number = 4
+
+evoked = mne.EvokedArray(
+    gamma_power_t[:, sl], raw.info, tmin=raw.times[sl][0])
+stc = mne.stc_near_sensors(evoked, trans, subject, subjects_dir=subjects_dir)
+clim = dict(kind='value', lims=[vmin * 0.9, vmin, vmax])
+brain = stc.plot(surface='pial', hemi='both', initial_time=0.68,
+                 colormap='viridis', clim=clim, views='parietal',
+                 subjects_dir=subjects_dir, size=(500, 500))
+
+# You can save a movie like the one on our documentation website with:
+# brain.save_movie(time_dilation=50, interpolation='linear', framerate=10,
+#                  time_viewer=True)

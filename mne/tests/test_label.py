@@ -23,7 +23,7 @@ from mne.label import (Label, _blend_colors, label_sign_flip, _load_vert_pos,
                        select_sources)
 from mne.utils import (_TempDir, requires_sklearn, get_subjects_dir,
                        run_tests_if_main, check_version)
-from mne.label import _n_colors
+from mne.label import _n_colors, _read_annot, _read_annot_cands
 from mne.source_space import SourceSpaces
 from mne.source_estimate import mesh_edges
 
@@ -433,7 +433,10 @@ def test_labels_to_stc():
         labels_to_stc(labels, values[:, np.newaxis, np.newaxis])
     with pytest.raises(ValueError, match=r'values\.shape'):
         labels_to_stc(labels, values[np.newaxis])
+    with pytest.raises(ValueError, match='multiple values of subject'):
+        labels_to_stc(labels, values, subject='foo')
     stc = labels_to_stc(labels, values)
+    assert stc.subject == 'sample'
     for value, label in zip(values, labels):
         stc_label = stc.in_label(label)
         assert (stc_label.data == value).all()
@@ -441,13 +444,17 @@ def test_labels_to_stc():
 
 
 @testing.requires_testing_data
-def test_read_labels_from_annot():
+def test_read_labels_from_annot(tmpdir):
     """Test reading labels from FreeSurfer parcellation."""
     # test some invalid inputs
     pytest.raises(ValueError, read_labels_from_annot, 'sample', hemi='bla',
                   subjects_dir=subjects_dir)
     pytest.raises(ValueError, read_labels_from_annot, 'sample',
                   annot_fname='bla.annot', subjects_dir=subjects_dir)
+    with pytest.raises(IOError, match='does not exist'):
+        _read_annot_cands('foo')
+    with pytest.raises(IOError, match='no candidate'):
+        _read_annot(str(tmpdir))
 
     # read labels using hemi specification
     labels_lh = read_labels_from_annot('sample', hemi='lh',
@@ -810,6 +817,24 @@ def test_grow_labels():
     assert_equal(l02.name, 'Label_1-lh')
     assert_equal(l11.name, 'Label_0-lh')
     assert_equal(l12.name, 'Label_1-lh')
+
+    # test color assignment
+    l11_c, l12_c = grow_labels('fsaverage', seeds, 20, [0, 0], subjects_dir,
+                               overlap=False, colors=None)
+    assert_equal(l11_c.color, _n_colors(2)[0])
+    assert_equal(l12_c.color, _n_colors(2)[1])
+
+    lab_colors = np.array([[0, 0, 1, 1], [1, 0, 0, 1]])
+    l11_c, l12_c = grow_labels('fsaverage', seeds, 20, [0, 0], subjects_dir,
+                               overlap=False, colors=lab_colors)
+    assert_array_equal(l11_c.color, lab_colors[0, :])
+    assert_array_equal(l12_c.color, lab_colors[1, :])
+
+    lab_colors = np.array([.1, .2, .3, .9])
+    l11_c, l12_c = grow_labels('fsaverage', seeds, 20, [0, 0], subjects_dir,
+                               overlap=False, colors=lab_colors)
+    assert_array_equal(l11_c.color, lab_colors)
+    assert_array_equal(l12_c.color, lab_colors)
 
     # make sure set 1 does not overlap
     overlap = np.intersect1d(l11.vertices, l12.vertices, True)

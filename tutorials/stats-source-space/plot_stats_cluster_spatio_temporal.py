@@ -179,7 +179,7 @@ stc_all_cluster_vis = summarize_clusters_stc(clu, tstep=tstep,
                                              subject='fsaverage')
 
 #    Let's actually plot the first "time point" in the SourceEstimate, which
-#    shows all the clusters, weighted by duration
+#    shows all the clusters, weighted by duration.
 subjects_dir = op.join(data_path, 'subjects')
 # blue blobs are for condition A < condition B, red for A > B
 brain = stc_all_cluster_vis.plot(

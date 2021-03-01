@@ -1,7 +1,7 @@
 """
-============================================================================
-Decoding in time-frequency space data using the Common Spatial Pattern (CSP)
-============================================================================
+====================================================================
+Decoding in time-frequency space using Common Spatial Patterns (CSP)
+====================================================================
 
 The time-frequency decomposition is estimated by iterating over raw data that
 has been band-passed at different frequencies. This is used to compute a
@@ -49,9 +49,9 @@ raw.load_data()
 clf = make_pipeline(CSP(n_components=4, reg=None, log=True, norm_trace=False),
                     LinearDiscriminantAnalysis())
 n_splits = 5  # how many folds to use for cross-validation
-cv = StratifiedKFold(n_splits=n_splits, shuffle=True)
+cv = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
 
-# Classification & Time-frequency parameters
+# Classification & time-frequency parameters
 tmin, tmax = -.200, 2.000
 n_cycles = 10.  # how many complete cycles: used to define window size
 min_freq = 5.

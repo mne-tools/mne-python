@@ -5,7 +5,8 @@ from numpy.testing import assert_array_equal
 import pytest
 
 from mne.parallel import parallel_func
-from mne.utils import ProgressBar, array_split_idx, use_log_level
+from mne.utils import (ProgressBar, array_split_idx, use_log_level,
+                       modified_env, catch_logging)
 
 
 def test_progressbar():
@@ -23,7 +24,27 @@ def test_progressbar():
     def iter_func(a):
         for ii in a:
             pass
-    pytest.raises(Exception, iter_func, ProgressBar(20))
+    with pytest.raises(TypeError, match='not iterable'):
+        iter_func(pbar)
+
+    # Make sure different progress bars can be used
+    with catch_logging() as log, modified_env(MNE_TQDM='tqdm'), \
+            use_log_level('debug'), ProgressBar(np.arange(3)) as pbar:
+        for p in pbar:
+            pass
+    log = log.getvalue()
+    assert 'Using ProgressBar with tqdm\n' in log
+    with modified_env(MNE_TQDM='broken'), pytest.raises(ValueError):
+        ProgressBar(np.arange(3))
+    with modified_env(MNE_TQDM='tqdm.broken'), pytest.raises(AttributeError):
+        ProgressBar(np.arange(3))
+    # off
+    with catch_logging() as log, modified_env(MNE_TQDM='off'), \
+            use_log_level('debug'), ProgressBar(np.arange(3)) as pbar:
+        for p in pbar:
+            pass
+    log = log.getvalue()
+    assert 'Using ProgressBar with off\n' == log
 
 
 def _identity(x):

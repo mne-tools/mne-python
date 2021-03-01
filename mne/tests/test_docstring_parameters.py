@@ -14,7 +14,9 @@ from mne.utils import run_tests_if_main, requires_numpydoc, _pl
 public_modules = [
     # the list of modules users need to access for all functionality
     'mne',
+    'mne.baseline',
     'mne.beamformer',
+    'mne.channels',
     'mne.chpi',
     'mne.connectivity',
     'mne.cov',
@@ -69,6 +71,8 @@ docstring_ignores = {
 }
 char_limit = 800  # XX eventually we should probably get this lower
 tab_ignores = [
+    'mne.externals.tqdm._tqdm.__main__',
+    'mne.externals.tqdm._tqdm.cli',
     'mne.channels.tests.test_montage',
     'mne.io.curry.tests.test_curry',
 ]
@@ -84,6 +88,9 @@ error_ignores = {
     'RT02',  # The first line of the Returns section should contain only the type, unless multiple values are being returned  # noqa
     # XXX should also verify that | is used rather than , to separate params
     # XXX should maybe also restore the parameter-desc-length < 800 char check
+}
+error_ignores_specific = {  # specific instances to skip
+    ('regress_artifact', 'SS05'),  # "Regress" is actually imperative
 }
 subclass_name_ignores = (
     (dict, {'values', 'setdefault', 'popitems', 'keys', 'pop', 'update',
@@ -110,7 +117,8 @@ def check_parameters_match(func, cls=None):
                 return list()
     incorrect = ['%s : %s : %s' % (name, err[0], err[1])
                  for err in validate(name)['errors']
-                 if err[0] not in error_ignores]
+                 if err[0] not in error_ignores and
+                 (name.split('.')[-1], err[0]) not in error_ignores_specific]
     return incorrect
 
 
@@ -172,7 +180,7 @@ def test_tabs():
                       ('_coreg_gui', '_fiducials_gui', '_file_traits', '_help',
                        '_kit2fiff_gui', '_marker_gui', '_viewer'))
 
-    for importer, modname, ispkg in walk_packages(mne.__path__, prefix='mne.'):
+    for _, modname, ispkg in walk_packages(mne.__path__, prefix='mne.'):
         # because we don't import e.g. mne.tests w/mne
         if not ispkg and modname not in ignore:
             # mod = importlib.import_module(modname)  # not py26 compatible!
@@ -243,7 +251,6 @@ plot_epochs_psd_topomap
 plot_raw_psd_topo
 plot_source_spectrogram
 prepare_inverse_operator
-read_bad_channels
 read_fiducials
 read_tag
 rescale
@@ -267,19 +274,26 @@ def test_documented():
     else:
         public_modules_.append('mne.gui')
 
-    doc_file = op.abspath(op.join(op.dirname(__file__), '..', '..', 'doc',
-                                  'python_reference.rst'))
+    doc_dir = op.abspath(op.join(op.dirname(__file__), '..', '..', 'doc'))
+    doc_file = op.join(doc_dir, 'python_reference.rst')
     if not op.isfile(doc_file):
         raise SkipTest('Documentation file not found: %s' % doc_file)
+    api_files = (
+        'connectivity', 'covariance', 'creating_from_arrays', 'datasets',
+        'decoding', 'events', 'file_io', 'forward', 'inverse', 'logging',
+        'most_used_classes', 'mri', 'preprocessing', 'reading_raw_data',
+        'realtime', 'report', 'sensor_space', 'simulation', 'source_space',
+        'statistics', 'time_frequency', 'visualization')
     known_names = list()
-    with open(doc_file, 'rb') as fid:
-        for line in fid:
-            line = line.decode('utf-8')
-            if not line.startswith('  '):  # at least two spaces
-                continue
-            line = line.split()
-            if len(line) == 1 and line[0] != ':':
-                known_names.append(line[0].split('.')[-1])
+    for api_file in api_files:
+        with open(op.join(doc_dir, f'{api_file}.rst'), 'rb') as fid:
+            for line in fid:
+                line = line.decode('utf-8')
+                if not line.startswith('  '):  # at least two spaces
+                    continue
+                line = line.split()
+                if len(line) == 1 and line[0] != ':':
+                    known_names.append(line[0].split('.')[-1])
     known_names = set(known_names)
 
     missing = []

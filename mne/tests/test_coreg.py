@@ -25,7 +25,7 @@ from mne.source_space import write_source_spaces
 data_path = testing.data_path(download=False)
 
 
-@pytest.yield_fixture
+@pytest.fixture
 def few_surfaces():
     """Set the _MNE_FEW_SURFACES env var."""
     with modified_env(_MNE_FEW_SURFACES='true'):
@@ -113,10 +113,13 @@ def test_scale_mri(tmpdir, few_surfaces, scale):
     assert os.path.isfile(os.path.join(tempdir, 'flachkopf', 'surf',
                                        'lh.sphere.reg'))
     vsrc_s = mne.read_source_spaces(spath % 'vol-50')
-    pt = np.array([0.12, 0.41, -0.22])
-    assert_array_almost_equal(
-        apply_trans(vsrc_s[0]['src_mri_t'], pt * np.array(scale)),
-        apply_trans(vsrc[0]['src_mri_t'], pt))
+    for vox in ([0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1], [1, 2, 3]):
+        idx = np.ravel_multi_index(vox, vsrc[0]['shape'], order='F')
+        err_msg = f'idx={idx} @ {vox}, scale={scale}'
+        assert_allclose(apply_trans(vsrc[0]['src_mri_t'], vox),
+                        vsrc[0]['rr'][idx], err_msg=err_msg)
+        assert_allclose(apply_trans(vsrc_s[0]['src_mri_t'], vox),
+                        vsrc_s[0]['rr'][idx], err_msg=err_msg)
     scale_labels('flachkopf', subjects_dir=tempdir)
 
     # add distances to source space after hacking the properties to make
@@ -274,7 +277,7 @@ def test_get_mni_fiducials():
     fids = np.array([f['r'] for f in fids])
     fids_est = get_mni_fiducials('sample', subjects_dir)
     fids_est = np.array([f['r'] for f in fids_est])
-    dists = np.linalg.norm(fids - fids_est, axis=-1) * 1000
+    dists = np.linalg.norm(fids - fids_est, axis=-1) * 1000.  # -> mm
     assert (dists < 8).all(), dists
 
 

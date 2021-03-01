@@ -39,10 +39,10 @@ def _get_test_info():
     loc = np.array([0., 0., 0., 1., 0., 0., 0., 1., 0., 0., 0., 1.],
                    dtype=np.float32)
     test_info['chs'] = [
-        {'cal': 1, 'ch_name': 'ICA 001', 'coil_type': 0, 'coord_Frame': 0,
+        {'cal': 1, 'ch_name': 'ICA 001', 'coil_type': 0, 'coord_frame': 0,
          'kind': 502, 'loc': loc.copy(), 'logno': 1, 'range': 1.0, 'scanno': 1,
          'unit': -1, 'unit_mul': 0},
-        {'cal': 1, 'ch_name': 'ICA 002', 'coil_type': 0, 'coord_Frame': 0,
+        {'cal': 1, 'ch_name': 'ICA 002', 'coil_type': 0, 'coord_frame': 0,
          'kind': 502, 'loc': loc.copy(), 'logno': 2, 'range': 1.0, 'scanno': 2,
          'unit': -1, 'unit_mul': 0},
         {'cal': 0.002142000012099743, 'ch_name': 'EOG 061', 'coil_type': 1,
@@ -256,13 +256,15 @@ def test_find_layout():
     lout = find_layout(raw_kit.info)
     assert_equal(lout.kind, 'KIT-157')
 
-    raw_kit.info['bads'] = ['MEG  13', 'MEG  14', 'MEG  15', 'MEG  16']
+    raw_kit.info['bads'] = ['MEG 013', 'MEG 014', 'MEG 015', 'MEG 016']
+    raw_kit.info._check_consistency()
     lout = find_layout(raw_kit.info)
     assert_equal(lout.kind, 'KIT-157')
     # fallback for missing IDs
-    raw_kit.info['kit_system_id'] = 35
-    lout = find_layout(raw_kit.info)
-    assert lout.kind == 'custom'
+    for val in (35, 52, 54, 1001):
+        raw_kit.info['kit_system_id'] = val
+        lout = find_layout(raw_kit.info)
+        assert lout.kind == 'custom'
 
     raw_umd = read_raw_kit(fname_kit_umd)
     lout = find_layout(raw_umd.info)

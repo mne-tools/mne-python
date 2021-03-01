@@ -27,8 +27,11 @@ from . import fiff
 from . import kit
 from . import nicolet
 from . import nirx
+from . import boxy
+from . import persyst
 from . import eeglab
 from . import pick
+from . import nihon
 
 from .array import RawArray
 from .brainvision import read_raw_brainvision
@@ -37,16 +40,21 @@ from .cnt import read_raw_cnt
 from .ctf import read_raw_ctf
 from .curry import read_raw_curry
 from .edf import read_raw_edf, read_raw_bdf, read_raw_gdf
-from .egi import read_raw_egi
+from .egi import read_raw_egi, read_evokeds_mff
 from .kit import read_raw_kit, read_epochs_kit
 from .fiff import read_raw_fif
+from .nedf import read_raw_nedf
 from .nicolet import read_raw_nicolet
 from .artemis123 import read_raw_artemis123
 from .eeglab import read_raw_eeglab, read_epochs_eeglab
 from .eximia import read_raw_eximia
 from .nirx import read_raw_nirx
+from .boxy import read_raw_boxy
+from .snirf import read_raw_snirf
+from .persyst import read_raw_persyst
 from .fieldtrip import (read_raw_fieldtrip, read_epochs_fieldtrip,
                         read_evoked_fieldtrip)
+from .nihon import read_raw_nihon
 from ._read_raw import read_raw
 
 # for backward compatibility

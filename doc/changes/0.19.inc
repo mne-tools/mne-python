@@ -121,7 +121,7 @@ Bug
 
 - Fix bug in :meth:`mne.SourceMorph.apply` where the default was errantly ``mri_space=False`` instead of ``mri_space=None`` (as documented), by `Eric Larson`_
 
-- Fix :meth:`mne.VolVectorSourceEstimate.normal` and :func:`mne.minimum_norm.apply_inverse` to only allow normal extraction/orientation for surface and discrete source spaces by `Eric Larson`_
+- Fix ``mne.VolVectorSourceEstimate.normal`` and :func:`mne.minimum_norm.apply_inverse` to only allow normal extraction/orientation for surface and discrete source spaces by `Eric Larson`_
 
 - Fix :meth:`mne.io.Raw.set_annotations` for ``meas_date`` previous to 1970 by `Joan Massich`_
 

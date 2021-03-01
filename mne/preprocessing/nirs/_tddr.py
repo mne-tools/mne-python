@@ -8,11 +8,12 @@ import numpy as np
 
 from ... import pick_types
 from ...io import BaseRaw
-from ...utils import _validate_type
+from ...utils import _validate_type, verbose
 from ...io.pick import _picks_to_idx
 
 
-def temporal_derivative_distribution_repair(raw):
+@verbose
+def temporal_derivative_distribution_repair(raw, *, verbose=None):
     """Apply temporal derivative distribution repair to data.
 
     Applies temporal derivative distribution repair (TDDR) to data

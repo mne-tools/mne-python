@@ -6,7 +6,6 @@
 
 import re
 import numpy as np
-from scipy import linalg
 
 from ...io.pick import _picks_to_idx
 from ...utils import fill_doc
@@ -28,7 +27,7 @@ def source_detector_distances(info, picks=None):
         Array containing distances in meters.
         Of shape equal to number of channels, or shape of picks if supplied.
     """
-    dist = [linalg.norm(ch['loc'][3:6] - ch['loc'][6:9])
+    dist = [np.linalg.norm(ch['loc'][3:6] - ch['loc'][6:9])
             for ch in info['chs']]
     picks = _picks_to_idx(info, picks, exclude=[])
     return np.array(dist, float)[picks]

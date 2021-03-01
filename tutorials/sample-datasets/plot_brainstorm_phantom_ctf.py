@@ -94,7 +94,7 @@ evoked.crop(0., 0.)
 #
 # Let's use a :ref:`sphere head geometry model <eeg_sphere_model>`
 # and let's see the coordinate alignment and the sphere location.
-sphere = mne.make_sphere_model(r0=(0., 0., 0.), head_radius=None)
+sphere = mne.make_sphere_model(r0=(0., 0., 0.), head_radius=0.08)
 
 mne.viz.plot_alignment(raw.info, subject='sample',
                        meg='helmet', bem=sphere, dig=True,

@@ -21,9 +21,9 @@ from tvtk.api import tvtk
 
 from ..defaults import DEFAULTS
 from ..surface import _CheckInside, _DistanceQuery
-from ..transforms import apply_trans
+from ..transforms import apply_trans, rotation
 from ..utils import SilenceStdout
-from ..viz.backends._pysurfer_mayavi import (_create_mesh_surf,
+from ..viz.backends._pysurfer_mayavi import (_create_mesh_surf, _oct_glyph,
                                              _toggle_mlab_render)
 
 try:
@@ -235,14 +235,14 @@ class PointObject(Object):
 
         Parameters
         ----------
-        view : 'points' | 'cloud'
+        view : 'points' | 'cloud' | 'arrow' | 'oct'
             Whether the view options should be tailored to individual points
             or a point cloud.
         has_norm : bool
             Whether a norm can be defined; adds view options based on point
             norms (default False).
         """
-        assert view in ('points', 'cloud', 'arrow')
+        assert view in ('points', 'cloud', 'arrow', 'oct')
         self._view = view
         self._has_norm = bool(has_norm)
         super(PointObject, self).__init__(*args, **kwargs)
@@ -264,7 +264,7 @@ class PointObject(Object):
         if self._view == 'arrow':
             visible = Item('visible', label='Show', show_label=False)
             return View(HGroup(visible, scale, 'opacity', 'label', Spring()))
-        elif self._view == 'points':
+        elif self._view in ('points', 'oct'):
             visible = Item('visible', label='Show', show_label=True)
             views = (visible, color, scale, 'label')
         else:
@@ -327,11 +327,15 @@ class PointObject(Object):
             # this can occur sometimes during testing w/ui.dispose()
             return
         # fig.scene.engine.current_object is scatter
-        mode = 'arrow' if self._view == 'arrow' else 'sphere'
+        mode = {'cloud': 'sphere', 'points': 'sphere', 'oct': 'sphere'}.get(
+            self._view, self._view)
+        assert mode in ('sphere', 'arrow')
         glyph = pipeline.glyph(scatter, color=self.color,
                                figure=fig, scale_factor=self.point_scale,
                                opacity=1., resolution=self.resolution,
                                mode=mode)
+        if self._view == 'oct':
+            _oct_glyph(glyph.glyph.glyph_source, rotation(0, 0, np.pi / 4))
         glyph.actor.property.backface_culling = True
         glyph.glyph.glyph.vector_mode = 'use_normal'
         glyph.glyph.glyph.clamping = False
@@ -430,6 +434,8 @@ class PointObject(Object):
         gs = self.glyph.glyph.glyph_source
         res = getattr(gs.glyph_source, 'theta_resolution',
                       getattr(gs.glyph_source, 'resolution', None))
+        if res is None:
+            return
         if self.project_to_surface or self.orient_to_surface:
             gs.glyph_source = tvtk.CylinderSource()
             gs.glyph_source.height = defaults['eegp_height']
@@ -482,6 +488,7 @@ class SurfaceObject(Object):
 
     surf = Instance(Surface)
     surf_rear = Instance(Surface)
+    rear_opacity = Float(1.)
 
     view = View(HGroup(Item('visible', show_label=False),
                        Item('color', show_label=False),
@@ -526,7 +533,9 @@ class SurfaceObject(Object):
             self.sync_trait('color', self.surf_rear.actor.property,
                             mutual=False)
             self.sync_trait('visible', self.surf_rear, 'visible')
-            self.surf_rear.actor.property.opacity = 1.
+            self.surf_rear.actor.property.opacity = self.rear_opacity
+            self.sync_trait(
+                'rear_opacity', self.surf_rear.actor.property, 'opacity')
         surf = pipeline.surface(
             normals, figure=fig, color=self.color, representation=rep,
             line_width=1)

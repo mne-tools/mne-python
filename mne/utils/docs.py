@@ -12,10 +12,8 @@ import sys
 import warnings
 import webbrowser
 
-from .config import get_config
 from ..defaults import HEAD_SIZE_DEFAULT
-from ..externals.doccer import filldoc, unindent_dict
-from .check import _check_option
+from ..externals.doccer import indentcount_lines
 
 
 ##############################################################################
@@ -27,7 +25,8 @@ docdict = dict()
 docdict['verbose'] = """
 verbose : bool, str, int, or None
     If not None, override default verbose level (see :func:`mne.verbose`
-    and :ref:`Logging documentation <tut_logging>` for more)."""
+    and :ref:`Logging documentation <tut_logging>` for more).
+    If used, it should be passed as a keyword-argument only."""
 docdict['verbose_meth'] = (docdict['verbose'] + ' Defaults to self.verbose.')
 
 # Preload
@@ -49,6 +48,17 @@ preload : bool, str, or None (default None)
     of the instances passed in.
 """
 
+# Raw
+_on_missing_base = """\
+Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
+    warning, or ``'ignore'`` to ignore when"""
+docdict['on_split_missing'] = """
+on_split_missing : str
+    %s split file is missing.
+
+    .. versionadded:: 0.22
+""" % (_on_missing_base,)
+
 # Cropping
 docdict['include_tmax'] = """
 include_tmax : bool
@@ -56,6 +66,12 @@ include_tmax : bool
     Python indexing typically works).
 
     .. versionadded:: 0.19
+"""
+docdict['notes_tmax_included_by_default'] = """
+Unlike Python slices, MNE time intervals by default include **both**
+their end points; ``crop(tmin, tmax)`` returns the interval
+``tmin <= t <= tmax``. Pass ``include_tmax=False`` to specify the half-open
+interval ``tmin <= t < tmax`` instead.
 """
 docdict['raw_tmin'] = """
 tmin : float
@@ -66,10 +82,180 @@ tmax : float
     End time of the raw data to use in seconds (cannot exceed data duration).
 """
 
+# Raw
+docdict['standardize_names'] = """
+standardize_names : bool
+    If True, standardize MEG and EEG channel names to be
+    ``"MEG ###"`` and ``"EEG ###"``. If False (default), native
+    channel names in the file will be used when possible.
+"""
+
+docdict['event_color'] = """
+event_color : color object | dict | None
+    Color(s) to use for events. To show all events in the same color, pass any
+    matplotlib-compatible color. To color events differently, pass a `dict`
+    that maps event names or integer event numbers to colors (must include
+    entries for *all* events, or include a "fallback" entry with key ``-1``).
+    If ``None``, colors are chosen from the current Matplotlib color cycle.
+"""
+
+docdict['browse_group_by'] = """
+group_by : str
+    How to group channels. ``'type'`` groups by channel type,
+    ``'original'`` plots in the order of ch_names, ``'selection'`` uses
+    Elekta's channel groupings (only works for Neuromag data),
+    ``'position'`` groups the channels by the positions of the sensors.
+    ``'selection'`` and ``'position'`` modes allow custom selections by
+    using a lasso selector on the topomap. In butterfly mode, ``'type'``
+    and ``'original'`` group the channels by type, whereas ``'selection'``
+    and ``'position'`` use regional grouping. ``'type'`` and ``'original'``
+    modes are ignored when ``order`` is not ``None``. Defaults to ``'type'``.
+"""
+
+
+# Epochs
+docdict['proj_epochs'] = """
+proj : bool | 'delayed'
+    Apply SSP projection vectors. If proj is 'delayed' and reject is not
+    None the single epochs will be projected before the rejection
+    decision, but used in unprojected state if they are kept.
+    This way deciding which projection vectors are good can be postponed
+    to the evoked stage without resulting in lower epoch counts and
+    without producing results different from early SSP application
+    given comparable parameters. Note that in this case baselining,
+    detrending and temporal decimation will be postponed.
+    If proj is False no projections will be applied which is the
+    recommended value if SSPs are not used for cleaning the data.
+"""
+
+# Reject by annotation
+docdict['reject_by_annotation_all'] = """
+reject_by_annotation : bool
+    Whether to omit bad segments from the data before fitting. If ``True``
+    (default), annotated segments whose description begins with ``'bad'`` are
+    omitted. If ``False``, no rejection based on annotations is performed.
+"""
+docdict['reject_by_annotation_epochs'] = """
+reject_by_annotation : bool
+    Whether to reject based on annotations. If ``True`` (default), epochs
+    overlapping with segments whose description begins with ``'bad'`` are
+    rejected. If ``False``, no rejection based on annotations is performed.
+"""
+docdict['reject_by_annotation_raw'] = docdict['reject_by_annotation_all'] + """
+    Has no effect if ``inst`` is not a :class:`mne.io.Raw` object.
+"""
+docdict['annot_ch_names'] = """
+ch_names : list | None
+    List of lists of channel names associated with the annotations.
+    Empty entries are assumed to be associated with no specific channel,
+    i.e., with all channels or with the time slice itself. None (default) is
+    the same as passing all empty lists. For example, this creates three
+    annotations, associating the first with the time interval itself, the
+    second with two channels, and the third with a single channel::
+
+        Annotations(onset=[0, 3, 10], duration=[1, 0.25, 0.5],
+                    description=['Start', 'BAD_flux', 'BAD_noise'],
+                    ch_names=[[], ['MEG0111', 'MEG2563'], ['MEG1443']])
+"""
+
 # General plotting
 docdict["show"] = """
 show : bool
-    Show figure if True."""
+    Show figure if True.
+"""
+docdict["title_None"] = """
+title : str | None
+    Title. If None (default), no title is displayed.
+"""
+docdict["plot_proj"] = """
+proj : bool | 'interactive' | 'reconstruct'
+    If true SSP projections are applied before display. If 'interactive',
+    a check box for reversible selection of SSP projection vectors will
+    be shown. If 'reconstruct', projection vectors will be applied and then
+    M/EEG data will be reconstructed via field mapping to reduce the signal
+    bias caused by projection.
+
+    .. versionchanged:: 0.21
+       Support for 'reconstruct' was added.
+"""
+docdict["topomap_ch_type"] = """
+ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
+    The channel type to plot. For 'grad', the gradiometers are collected in
+    pairs and the RMS for each pair is plotted.
+    If None, then channels are chosen in the order given above.
+"""
+docdict["topomap_vmin_vmax"] = """
+vmin, vmax : float | callable | None
+    Lower and upper bounds of the colormap, in the same units as the data.
+    If ``vmin`` and ``vmax`` are both ``None``, they are set at ± the
+    maximum absolute value of the data (yielding a colormap with midpoint
+    at 0). If only one of ``vmin``, ``vmax`` is ``None``, will use
+    ``min(data)`` or ``max(data)``, respectively. If callable, should
+    accept a :class:`NumPy array <numpy.ndarray>` of data and return a
+    float.
+"""
+docdict["topomap_cmap"] = """
+cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
+    Colormap to use. If tuple, the first value indicates the colormap to
+    use and the second value is a boolean defining interactivity. In
+    interactive mode the colors are adjustable by clicking and dragging the
+    colorbar with left and right mouse button. Left mouse button moves the
+    scale up and down and right mouse button adjusts the range (zoom).
+    The mouse scroll can also be used to adjust the range. Hitting space
+    bar resets the range. Up and down arrows can be used to change the
+    colormap. If None (default), 'Reds' is used for all positive data,
+    otherwise defaults to 'RdBu_r'. If 'interactive', translates to
+    (None, True).
+
+    .. warning::  Interactive mode works smoothly only for a small amount
+        of topomaps. Interactive mode is disabled by default for more than
+        2 topomaps.
+"""
+docdict["topomap_sensors"] = """
+sensors : bool | str
+    Add markers for sensor locations to the plot. Accepts matplotlib plot
+    format string (e.g., 'r+' for red plusses). If True (default),
+    circles will be used.
+"""
+docdict["topomap_colorbar"] = """
+colorbar : bool
+    Plot a colorbar in the rightmost column of the figure.
+"""
+docdict["topomap_scalings"] = """
+scalings : dict | float | None
+    The scalings of the channel types to be applied for plotting.
+    If None, defaults to ``dict(eeg=1e6, grad=1e13, mag=1e15)``.
+"""
+docdict["topomap_units"] = """
+units : dict | str | None
+    The unit of the channel type used for colorbar label. If
+    scale is None the unit is automatically determined.
+"""
+docdict["topomap_res"] = """
+res : int
+    The resolution of the topomap image (n pixels along each side).
+"""
+docdict["topomap_size"] = """
+size : float
+    Side length per topomap in inches.
+"""
+docdict["topomap_cbar_fmt"] = """
+cbar_fmt : str
+    String format for colorbar values.
+"""
+docdict["topomap_mask"] = """
+mask : ndarray of bool, shape (n_channels, n_times) | None
+    The channels to be marked as significant at a given time point.
+    Indices set to ``True`` will be considered. Defaults to ``None``.
+"""
+docdict["topomap_mask_params"] = """
+mask_params : dict | None
+    Additional plotting parameters for plotting significant sensors.
+    Default (None) equals::
+
+        dict(marker='o', markerfacecolor='w', markeredgecolor='k',
+                linewidth=0, markersize=4)
+"""
 docdict['topomap_outlines'] = """
 outlines : 'head' | 'skirt' | dict | None
     The outlines to be drawn. If 'head', the default head scheme will be
@@ -81,6 +267,35 @@ outlines : 'head' | 'skirt' | dict | None
     masking options, either directly or as a function that returns patches
     (required for multi-axis plots). If None, nothing will be drawn.
     Defaults to 'head'.
+"""
+docdict['topomap_contours'] = """
+contours : int | array of float
+    The number of contour lines to draw. If 0, no contours will be drawn.
+    When an integer, matplotlib ticker locator is used to find suitable
+    values for the contour thresholds (may sometimes be inaccurate, use
+    array for accuracy). If an array, the values represent the levels for
+    the contours. The values are in µV for EEG, fT for magnetometers and
+    fT/m for gradiometers. If colorbar=True, the ticks in colorbar
+    correspond to the contour levels. Defaults to 6.
+"""
+docdict['topomap_image_interp'] = """
+image_interp : str
+    The image interpolation to be used. All matplotlib options are
+    accepted.
+"""
+docdict['topomap_average'] = """
+average : float | None
+    The time window around a given time to be used for averaging (seconds).
+    For example, 0.01 would translate into window that starts 5 ms before
+    and ends 5 ms after a given time point. Defaults to None, which means
+    no averaging.
+"""
+docdict['topomap_axes'] = """
+axes : instance of Axes | list | None
+    The axes to plot to. If list, the list must be a list of Axes of the
+    same length as ``times`` (unless ``times`` is None). If instance of
+    Axes, ``times`` must be a float or a list of one float.
+    Defaults to None.
 """
 docdict['topomap_extrapolate'] = """
 extrapolate : str
@@ -222,27 +437,30 @@ axes : list of Axes | None
 """
 
 # Picks
-docdict['picks_header'] = 'picks : str | list | slice | None'
-docdict['picks_base'] = docdict['picks_header'] + """
-    Channels to include. Slices and lists of integers will be
-    interpreted as channel indices. In lists, channel *type* strings
+picks_header = 'picks : str | list | slice | None'
+picks_intro = ('Channels to include. Slices and lists of integers will be '
+               'interpreted as channel indices.')
+_reminder = ("Note that channels in ``info['bads']`` *will be included* if "
+             "their {}indices are explicitly provided.\n")
+reminder = _reminder.format('names or ')
+reminder_nostr = _reminder.format('')
+noref = f'(excluding reference MEG channels). {reminder}'
+picks_base = f"""{picks_header}
+    {picks_intro} In lists, channel *type* strings
     (e.g., ``['meg', 'eeg']``) will pick channels of those
     types, channel *name* strings (e.g., ``['MEG0111', 'MEG2623']``
     will pick the given channels. Can also be the string values
     "all" to pick all channels, or "data" to pick :term:`data channels`.
-    None (default) will pick """
-docdict['picks_all'] = docdict['picks_base'] + 'all channels.\n'
-docdict['picks_all_data'] = docdict['picks_base'] + 'all data channels.\n'
-docdict['picks_all_data_noref'] = (docdict['picks_all_data'][:-2] +
-                                   '(excluding reference MEG channels).\n')
-docdict['picks_good_data'] = docdict['picks_base'] + 'good data channels.\n'
-docdict['picks_good_data_noref'] = (docdict['picks_good_data'][:-2] +
-                                    '(excluding reference MEG channels).\n')
-docdict['picks_nostr'] = """
-picks : list | slice | None
-    Channels to include. Slices and lists of integers will be
-    interpreted as channel indices. None (default) will pick all channels.
-"""
+    None (default) will pick"""
+docdict['picks_header'] = picks_header  # these get reused as stubs in a
+docdict['picks_base'] = picks_base      # couple places (e.g., BaseEpochs)
+docdict['picks_all'] = f'{picks_base} all channels. {reminder}'
+docdict['picks_all_data'] = f'{picks_base} all data channels. {reminder}'
+docdict['picks_good_data'] = f'{picks_base} good data channels. {reminder}'
+docdict['picks_all_data_noref'] = f'{picks_base} all data channels {noref}'
+docdict['picks_good_data_noref'] = f'{picks_base} good data channels {noref}'
+docdict['picks_nostr'] = f"""picks : list | slice | None
+    {picks_intro} None (default) will pick all channels. {reminder_nostr}"""
 
 # Filtering
 docdict['l_freq'] = """
@@ -270,6 +488,15 @@ filter_length : str | int
       ``phase="zero-double"``.
     * **int**: Specified length in samples. For fir_design="firwin",
       this should not be used.
+"""
+docdict['filter_length_notch'] = docdict['filter_length'] + """
+    When ``method=='spectrum_fit'``, this sets the effective window duration
+    over which fits are computed. See :func:`mne.filter.create_filter`
+    for options. Longer window lengths will give more stable frequency
+    estimates, but require (potentially much) more processing and are not able
+    to adapt as well to non-stationarities.
+
+    The default in 0.21 is None, but this will change to ``'10s'`` in 0.22.
 """
 docdict['l_trans_bandwidth'] = """
 l_trans_bandwidth : float | str
@@ -359,6 +586,54 @@ window : str | tuple
     Frequency-domain window to use in resampling.
     See :func:`scipy.signal.resample`.
 """
+docdict['average-psd'] = """
+average : str | None
+    How to average the segments. If ``mean`` (default), calculate the
+    arithmetic mean. If ``median``, calculate the median, corrected for
+    its bias relative to the mean. If ``None``, returns the unaggregated
+    segments.
+"""
+docdict['window-psd'] = """
+window : str | float | tuple
+    Windowing function to use. See :func:`scipy.signal.get_window`.
+"""
+docdict['decim'] = """
+decim : int
+    Factor by which to subsample the data.
+
+    .. warning:: Low-pass filtering is not performed, this simply selects
+                 every Nth sample (where N is the value passed to
+                 ``decim``), i.e., it compresses the signal (see Notes).
+                 If the data are not properly filtered, aliasing artifacts
+                 may occur.
+"""
+docdict['decim_offset'] = """
+offset : int
+    Apply an offset to where the decimation starts relative to the
+    sample corresponding to t=0. The offset is in samples at the
+    current sampling rate.
+
+    .. versionadded:: 0.12
+"""
+docdict['decim_notes'] = """
+For historical reasons, ``decim`` / "decimation" refers to simply subselecting
+samples from a given signal. This contrasts with the broader signal processing
+literature, where decimation is defined as (quoting
+:footcite:`OppenheimEtAl1999`, p. 172; which cites
+:footcite:`CrochiereRabiner1983`):
+
+    "... a general system for downsampling by a factor of M is the one shown
+    in Figure 4.23. Such a system is called a decimator, and downsampling
+    by lowpass filtering followed by compression [i.e, subselecting samples]
+    has been termed decimation (Crochiere and Rabiner, 1983)."
+
+Hence "decimation" in MNE is what is considered "compression" in the signal
+processing community.
+
+Decimation can be done multiple times. For example,
+``inst.decimate(2).decimate(2)`` will be the same as
+``inst.decimate(4)``.
+"""
 
 # cHPI
 docdict['chpi_t_window'] = """
@@ -392,6 +667,42 @@ chpi_locs : dict
 """
 
 # EEG reference: set_eeg_reference
+docdict['set_eeg_reference_ref_channels'] = """
+ref_channels : list of str | str
+    Can be:
+
+    - The name(s) of the channel(s) used to construct the reference.
+    - ``'average'`` to apply an average reference (default)
+    - ``'REST'`` to use the Reference Electrode Standardization Technique
+      infinity reference :footcite:`Yao2001`.
+    - An empty list, in which case MNE will not attempt any re-referencing of
+      the data
+"""
+docdict['set_eeg_reference_projection'] = """
+projection : bool
+    If ``ref_channels='average'`` this argument specifies if the
+    average reference should be computed as a projection (True) or not
+    (False; default). If ``projection=True``, the average reference is
+    added as a projection and is not applied to the data (it can be
+    applied afterwards with the ``apply_proj`` method). If
+    ``projection=False``, the average reference is directly applied to
+    the data. If ``ref_channels`` is not ``'average'``, ``projection``
+    must be set to ``False`` (the default in this case).
+"""
+docdict['set_eeg_reference_ch_type'] = """
+ch_type : 'auto' | 'eeg' | 'ecog' | 'seeg' | 'dbs'
+    The name of the channel type to apply the reference to. If 'auto',
+    the first channel type of eeg, ecog, seeg or dbs that is found (in that
+    order) will be selected.
+
+    .. versionadded:: 0.19
+"""
+docdict['set_eeg_reference_forward'] = """
+forward : instance of Forward | None
+    Forward solution to use. Only used with ``ref_channels='REST'``.
+
+    .. versionadded:: 0.21
+"""
 docdict['set_eeg_reference_see_also_notes'] = """
 See Also
 --------
@@ -419,6 +730,10 @@ Some common referencing schemes and the corresponding value for the
     channels to use. For example, to apply an average mastoid reference,
     when using the 10-20 naming scheme, set ``ref_channels=['M1', 'M2']``.
 
+- REST
+    The given EEG electrodes are referenced to a point at infinity using the
+    lead fields in ``forward``, which helps standardize the signals.
+
 1. If a reference is requested that is not the average reference, this
    function removes any pre-existing average reference projections.
 
@@ -428,15 +743,27 @@ Some common referencing schemes and the corresponding value for the
 3. In order to apply a reference, the data must be preloaded. This is not
    necessary if ``ref_channels='average'`` and ``projection=True``.
 
-4. For an average reference, bad EEG channels are automatically excluded if
-   they are properly set in ``info['bads']``.
+4. For an average or REST reference, bad EEG channels are automatically
+   excluded if they are properly set in ``info['bads']``.
 
 .. versionadded:: 0.9.0
+
+References
+----------
+.. footbibliography::
 """
 
+# ICA
+docdict['n_pca_components_apply'] = """
+n_pca_components : int | float | None
+    The number of PCA components to be kept, either absolute (int)
+    or fraction of the explained variance (float). If None (default),
+    the ``ica.n_pca_components`` from initialization will be used in 0.22;
+    in 0.23 all components will be used.
+"""
 
 # Maxwell filtering
-docdict['maxwell_origin_int_ext_calibration_cross'] = """
+docdict['maxwell_origin'] = """
 origin : array-like, shape (3,) | str
     Origin of internal and external multipolar moment space in meters.
     The default is ``'auto'``, which means ``(0., 0., 0.)`` when
@@ -446,14 +773,22 @@ origin : array-like, shape (3,) | str
     to having too few digitization points),
     consider separately calling the fitting function with different
     options or specifying the origin manually.
+"""
+docdict['maxwell_int'] = """
 int_order : int
     Order of internal component of spherical expansion.
+"""
+docdict['maxwell_ext'] = """
 ext_order : int
     Order of external component of spherical expansion.
+"""
+docdict['maxwell_cal'] = """
 calibration : str | None
     Path to the ``'.dat'`` file with fine calibration coefficients.
     File can have 1D or 3D gradiometer imbalance correction.
     This file is machine/site-specific.
+"""
+docdict['maxwell_cross'] = """
 cross_talk : str | None
     Path to the FIF file with cross-talk correction information.
 """
@@ -464,22 +799,38 @@ coord_frame : str
     a head<->meg transform ``info['dev_head_t']``, the MEG coordinate
     frame should be used.
 """
-docdict['maxwell_reg_ref_cond_pos'] = """
+docdict['maxwell_reg'] = """
 regularize : str | None
     Basis regularization type, must be "in" or None.
     "in" is the same algorithm as the "-regularize in" option in
     MaxFilter™.
+"""
+docdict['maxwell_ref'] = """
 ignore_ref : bool
     If True, do not include reference channels in compensation. This
     option should be True for KIT files, since Maxwell filtering
     with reference channels is not currently supported.
+"""
+docdict['maxwell_cond'] = """
 bad_condition : str
     How to deal with ill-conditioned SSS matrices. Can be "error"
     (default), "warning", "info", or "ignore".
+"""
+docdict['maxwell_pos'] = """
 head_pos : array | None
     If array, movement compensation will be performed.
     The array should be of shape (N, 10), holding the position
     parameters as returned by e.g. ``read_head_pos``.
+"""
+docdict['maxwell_dest'] = """
+destination : str | array-like, shape (3,) | None
+    The destination location for the head. Can be ``None``, which
+    will not change the head position, or a string path to a FIF file
+    containing a MEG device<->head transformation, or a 3-element array
+    giving the coordinates to translate to (with no rotations).
+    For example, ``destination=(0, 0, 0.04)`` would translate the bases
+    as ``--trans default`` would in MaxFilter™ (i.e., to the default
+    head location).
 """
 docdict['maxwell_st_fixed_only'] = """
 st_fixed : bool
@@ -522,15 +873,61 @@ skip_by_annotation : str | list of str
     or :meth:`mne.io.Raw.append`, or separated during acquisition.
     To disable, provide an empty list.
 """
+docdict['maxwell_extended'] = """
+extended_proj : list
+    The empty-room projection vectors used to extend the external
+    SSS basis (i.e., use eSSS).
+
+    .. versionadded:: 0.21
+"""
 
 # Rank
 docdict['rank'] = """
-rank : None | dict | 'info' | 'full'
+rank : None | 'info' | 'full' | dict
     This controls the rank computation that can be read from the
-    measurement info or estimated from the data. See ``Notes``
-    of :func:`mne.compute_rank` for details."""
-docdict['rank_None'] = docdict['rank'] + 'The default is None.'
-docdict['rank_info'] = docdict['rank'] + 'The default is "info".'
+    measurement info or estimated from the data. When a noise covariance
+    is used for whitening, this should reflect the rank of that covariance,
+    otherwise amplification of noise components can occur in whitening (e.g.,
+    often during source localization).
+
+    :data:`python:None`
+        The rank will be estimated from the data after proper scaling of
+        different channel types.
+    ``'info'``
+        The rank is inferred from ``info``. If data have been processed
+        with Maxwell filtering, the Maxwell filtering header is used.
+        Otherwise, the channel counts themselves are used.
+        In both cases, the number of projectors is subtracted from
+        the (effective) number of channels in the data.
+        For example, if Maxwell filtering reduces the rank to 68, with
+        two projectors the returned value will be 66.
+    ``'full'``
+        The rank is assumed to be full, i.e. equal to the
+        number of good channels. If a `~mne.Covariance` is passed, this can
+        make sense if it has been (possibly improperly) regularized without
+        taking into account the true data rank.
+    :class:`dict`
+        Calculate the rank only for a subset of channel types, and explicitly
+        specify the rank for the remaining channel types. This can be
+        extremely useful if you already **know** the rank of (part of) your
+        data, for instance in case you have calculated it earlier.
+
+        This parameter must be a dictionary whose **keys** correspond to
+        channel types in the data (e.g. ``'meg'``, ``'mag'``, ``'grad'``,
+        ``'eeg'``), and whose **values** are integers representing the
+        respective ranks. For example, ``{'mag': 90, 'eeg': 45}`` will assume
+        a rank of ``90`` and ``45`` for magnetometer data and EEG data,
+        respectively.
+
+        The ranks for all channel types present in the data, but
+        **not** specified in the dictionary will be estimated empirically.
+        That is, if you passed a dataset containing magnetometer, gradiometer,
+        and EEG data together with the dictionary from the previous example,
+        only the gradiometer rank would be determined, while the specified
+        magnetometer and EEG ranks would be taken for granted.
+"""
+docdict['rank_None'] = docdict['rank'] + "\n    The default is ``None``."
+docdict['rank_info'] = docdict['rank'] + "\n    The default is ``'info'``."
 docdict['rank_tol'] = """
 tol : float | 'auto'
     Tolerance for singular values to consider non-zero in
@@ -563,14 +960,28 @@ docdict['depth'] = """
 depth : None | float | dict
     How to weight (or normalize) the forward using a depth prior.
     If float (default 0.8), it acts as the depth weighting exponent (``exp``)
-    to use, which must be between 0 and 1. None is equivalent to 0, meaning
-    no depth weighting is performed. It can also be a :class:`dict`
-    containing keyword arguments to pass to
+    to use None is equivalent to 0, meaning no depth weighting is performed.
+    It can also be a :class:`dict` containing keyword arguments to pass to
     :func:`mne.forward.compute_depth_prior` (see docstring for details and
     defaults). This is effectively ignored when ``method='eLORETA'``.
 
     .. versionchanged:: 0.20
        Depth bias ignored for ``method='eLORETA'``.
+"""
+docdict['loose'] = """
+loose : float | 'auto' | dict
+    Value that weights the source variances of the dipole components
+    that are parallel (tangential) to the cortical surface. Can be:
+
+    - float between 0 and 1 (inclusive)
+        If 0, then the solution is computed with fixed orientation.
+        If 1, it corresponds to free orientations.
+    - ``'auto'`` (default)
+        Uses 0.2 for surface source spaces (unless ``fixed`` is True) and
+        1.0 for other source spaces (volume or mixed).
+    - dict
+        Mapping from the key for a given source space type (surface, volume,
+        discrete) to the loose value. Useful mostly for mixed source spaces.
 """
 _pick_ori_novec = """
     Options:
@@ -605,6 +1016,73 @@ reduce_rank : bool
         Support for reducing rank in all modes (previously only supported
         ``pick='max_power'`` with weight normalization).
 """
+docdict['on_rank_mismatch'] = """
+on_rank_mismatch : str
+    If an explicit MEG value is passed, what to do when it does not match
+    an empirically computed rank (only used for covariances).
+    Can be 'raise' to raise an error, 'warn' (default) to emit a warning, or
+    'ignore' to ignore.
+
+    .. versionadded:: 0.23
+"""
+docdict['weight_norm'] = """
+weight_norm : str | None
+    Can be:
+
+    - ``None``
+        The unit-gain LCMV beamformer :footcite:`SekiharaNagarajan2008` will be
+        computed.
+    - ``'unit-noise-gain'``
+        The unit-noise gain minimum variance beamformer will be computed
+        (Borgiotti-Kaplan beamformer) :footcite:`SekiharaNagarajan2008`,
+        which is not rotation invariant when ``pick_ori='vector'``.
+        This should be combined with
+        :meth:`stc.project('pca') <mne.VectorSourceEstimate.project>` to follow
+        the definition in :footcite:`SekiharaNagarajan2008`.
+    - ``'nai'``
+        The Neural Activity Index :footcite:`VanVeenEtAl1997` will be computed,
+        which simply scales all values from ``'unit-noise-gain'`` by a fixed
+        value.
+    - ``'unit-noise-gain-invariante'``
+        Compute a rotation-invariant normalization using the matrix square
+        root. This differs from ``'unit-noise-gain'`` only when
+        ``pick_ori='vector'``, creating a solution that:
+
+        1. Is rotation invariant (``'unit-noise-gain'`` is not);
+        2. Satisfies the first requirement from
+           :footcite:`SekiharaNagarajan2008` that ``w @ w.conj().T == I``,
+           whereas ``'unit-noise-gain'`` has non-zero off-diagonals; but
+        3. Does not satisfy the second requirement that ``w @ G.T = θI``,
+           which arguably does not make sense for a rotation-invariant
+           solution.
+"""
+docdict['bf_pick_ori'] = """
+pick_ori : None | str
+    For forward solutions with fixed orientation, None (default) must be
+    used and a scalar beamformer is computed. For free-orientation forward
+    solutions, a vector beamformer is computed and:
+
+    - ``None``
+        Orientations are pooled after computing a vector beamformer (Default).
+    - ``'normal'``
+        Filters are computed for the orientation tangential to the
+        cortical surface.
+    - ``'max-power'``
+        Filters are computed for the orientation that maximizes power.
+"""
+docdict['bf_inversion'] = """
+inversion : 'single' | 'matrix'
+    This determines how the beamformer deals with source spaces in "free"
+    orientation. Such source spaces define three orthogonal dipoles at each
+    source point. When ``inversion='single'``, each dipole is considered
+    as an individual source and the corresponding spatial filter is
+    computed for each dipole separately. When ``inversion='matrix'``, all
+    three dipoles at a source vertex are considered as a group and the
+    spatial filters are computed jointly using a matrix inversion. While
+    ``inversion='single'`` is more stable, ``inversion='matrix'`` is more
+    precise. See section 5 of :footcite:`vanVlietEtAl2018`.
+    Defaults to ``'matrix'``.
+"""
 docdict['use_cps'] = """
 use_cps : bool
     Whether to use cortical patch statistics to define normal orientations for
@@ -614,12 +1092,73 @@ docdict['use_cps_restricted'] = docdict['use_cps'] + """
     Only used when the inverse is free orientation (``loose=1.``),
     not in surface orientation, and ``pick_ori='normal'``.
 """
+docdict['pctf_mode'] = """
+mode : None | 'mean' | 'max' | 'svd'
+    Compute summary of PSFs/CTFs across all indices specified in 'idx'.
+    Can be:
+
+    * None : Output individual PSFs/CTFs for each specific vertex
+      (Default).
+    * 'mean' : Mean of PSFs/CTFs across vertices.
+    * 'max' : PSFs/CTFs with maximum norm across vertices. Returns the
+      n_comp largest PSFs/CTFs.
+    * 'svd' : SVD components across PSFs/CTFs across vertices. Returns the
+      n_comp first SVD components.
+"""
+docdict['pctf_idx'] = """
+idx : list of int | list of Label
+    Source for indices for which to compute PSFs or CTFs. If mode is None,
+    PSFs/CTFs will be returned for all indices. If mode is not None, the
+    corresponding summary measure will be computed across all PSFs/CTFs
+    available from idx.
+    Can be:
+
+    * list of integers : Compute PSFs/CTFs for all indices to source space
+      vertices specified in idx.
+    * list of Label : Compute PSFs/CTFs for source space vertices in
+      specified labels.
+"""
+docdict['pctf_n_comp'] = """
+n_comp : int
+    Number of PSF/CTF components to return for mode='max' or mode='svd'.
+    Default n_comp=1.
+"""
+docdict['pctf_norm'] = """
+norm : None | 'max' | 'norm'
+    Whether and how to normalise the PSFs and CTFs. This will be applied
+    before computing summaries as specified in 'mode'.
+    Can be:
+
+    * None : Use un-normalized PSFs/CTFs (Default).
+    * 'max' : Normalize to maximum absolute value across all PSFs/CTFs.
+    * 'norm' : Normalize to maximum norm across all PSFs/CTFs.
+"""
+docdict['pctf_return_pca_vars'] = """
+return_pca_vars : bool
+    Whether or not to return the explained variances across the specified
+    vertices for individual SVD components. This is only valid if
+    mode='svd'.
+    Default return_pca_vars=False.
+"""
+docdict['pctf_pca_vars'] = """
+pca_vars : array, shape (n_comp,) | list of array
+    The explained variances of the first n_comp SVD components across the
+    PSFs/CTFs for the specified vertices. Arrays for multiple labels are
+    returned as list. Only returned if mode='svd' and return_pca_vars=True.
+"""
+docdict['pctf_stcs'] = """
+stcs : instance of SourceEstimate | list of instances of SourceEstimate
+    PSFs or CTFs as STC objects.
+    All PSFs/CTFs will be returned as successive samples in STC objects,
+    in the order they are specified in idx. STCs for different labels will
+    be returned as a list.
+"""
 
 # Forward
-docdict['on_missing'] = """
+docdict['on_missing_fwd'] = """
 on_missing : str
-    Behavior when ``stc`` has vertices that are not in ``fwd``.
-    Can be "ignore", "warn"", or "raise"."""
+    %s ``stc`` has vertices that are not in ``fwd``.
+""" % (_on_missing_base,)
 docdict['dig_kinds'] = """
 dig_kinds : list of str | str
     Kind of digitization points to use in the fitting. These can be any
@@ -651,8 +1190,12 @@ trans : str | dict | instance of Transform | None
 """ % (_trans_base,)
 docdict['subjects_dir'] = """
 subjects_dir : str | None
-    The path to the freesurfer subjects reconstructions.
-    It corresponds to Freesurfer environment variable SUBJECTS_DIR.
+    The path to the FreeSurfer subjects reconstructions.
+    It corresponds to FreeSurfer environment variable ``SUBJECTS_DIR``.
+"""
+docdict['subject'] = """
+subject : str
+    The FreeSurfer subject name.
 """
 
 # Simulation
@@ -720,9 +1263,9 @@ docdict["plot_psd_doc"] = """
 Plot the power spectral density across channels.
 
 Different channel types are drawn in sub-plots. When the data have been
-processed with a bandpass, lowpass or highpass filter, dashed lines
-indicate the boundaries of the filter (--). The line noise frequency is
-also indicated with a dashed line (-.)
+processed with a bandpass, lowpass or highpass filter, dashed lines (╎)
+indicate the boundaries of the filter. The line noise frequency is
+also indicated with a dashed line (⋮)
 """
 docdict['plot_psd_picks_good_data'] = docdict['picks_good_data'][:-2] + """
     Cannot be None if ``ax`` is supplied.If both ``picks`` and ``ax`` are None
@@ -846,15 +1389,44 @@ match_case : bool
 
     .. versionadded:: 0.20
 """
+docdict["match_alias"] = """
+match_alias : bool | dict
+    Whether to use a lookup table to match unrecognized channel location names
+    to their known aliases. If True, uses the mapping in
+    ``mne.io.constants.CHANNEL_LOC_ALIASES``. If a :class:`dict` is passed, it
+    will be used instead, and should map from non-standard channel names to
+    names in the specified ``montage``. Default is ``False``.
+
+    .. versionadded:: 0.23
+"""
+docdict['on_header_missing'] = """
+on_header_missing : str
+    %s the FastSCAN header is missing.
+
+    .. versionadded:: 0.22
+""" % (_on_missing_base,)
+docdict['on_missing_events'] = """
+on_missing : str
+    %s event numbers from ``event_id`` are missing from ``events``.
+    When numbers from ``events`` are missing from ``event_id`` they will be
+    ignored and a warning emitted; consider using ``verbose='error'`` in
+    this case.
+
+    .. versionadded:: 0.21
+""" % (_on_missing_base,)
 docdict['on_missing_montage'] = """
 on_missing : str
-    Either 'raise', or 'warn' to raise an error/warning when
-    channels have missing coordinates,
-    or 'ignore' to set channels to np.nan and set montage.
+    %s channels have missing coordinates.
 
     .. versionadded:: 0.20.1
-"""
-docdict['rename_channels_mapping'] = """
+""" % (_on_missing_base,)
+docdict['on_missing_ch_names'] = """
+on_missing : str
+    %s entries in ch_names are not present in the raw instance.
+
+    .. versionadded:: 0.23.0
+""" % (_on_missing_base,)
+docdict['rename_channels_mapping_duplicates'] = """
 mapping : dict | callable
     A dictionary mapping the old channel to a new channel name
     e.g. {'EEG061' : 'EEG161'}. Can also be a callable function
@@ -862,6 +1434,11 @@ mapping : dict | callable
 
     .. versionchanged:: 0.10.0
        Support for a callable function.
+allow_duplicates : bool
+    If True (default False), allow duplicates, which will automatically
+    be renamed with ``-N`` at the end.
+
+    .. versionadded:: 0.22.0
 """
 
 # Brain plotting
@@ -904,23 +1481,32 @@ colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
 """
 docdict["transparent"] = """
 transparent : bool | None
-    If True, use a linear transparency between fmin and fmid.
-    None will choose automatically based on colormap type.
+    If True: use a linear transparency between fmin and fmid
+    and make values below fmin fully transparent (symmetrically for
+    divergent colormaps). None will choose automatically based on colormap
+    type.
 """
 docdict["brain_time_interpolation"] = """
 interpolation : str | None
-    Interpolation method (:func:`scipy.interpolate.interp1d` parameter).
+    Interpolation method (:class:`scipy.interpolate.interp1d` parameter).
     Must be one of 'linear', 'nearest', 'zero', 'slinear', 'quadratic',
     or 'cubic'.
 """
+docdict["brain_screenshot_time_viewer"] = """
+time_viewer : bool
+    If True, include time viewer traces. Only used if
+    ``time_viewer=True`` and ``separate_canvas=False``.
+"""
 docdict["show_traces"] = """
-show_traces : bool | str
+show_traces : bool | str | float
     If True, enable interactive picking of a point on the surface of the
-    brain and plot it's time course using the bottom 1/3 of the figure.
-    This feature is only available with the PyVista 3d backend when
+    brain and plot its time course.
+    This feature is only available with the PyVista 3d backend, and requires
     ``time_viewer=True``. Defaults to 'auto', which will use True if and
     only if ``time_viewer=True``, the backend is PyVista, and there is more
-    than one time point.
+    than one time point. If float (between zero and one), it specifies what
+    proportion of the total window should be devoted to traces (True is
+    equivalent to 0.25, i.e., it will occupy the bottom 1/4 of the figure).
 
     .. versionadded:: 0.20.0
 """
@@ -931,7 +1517,80 @@ time_label : str | callable | None
     default is ``'auto'``, which will use ``time=%0.2f ms`` if there
     is more than one time point.
 """
+docdict["fmin_fmid_fmax"] = """
+fmin : float
+    Minimum value in colormap (uses real fmin if None).
+fmid : float
+    Intermediate value in colormap (fmid between fmin and
+    fmax if None).
+fmax : float
+    Maximum value in colormap (uses real max if None).
+"""
+docdict["thresh"] = """
+thresh : None or float
+    Not supported yet.
+    If not None, values below thresh will not be visible.
+"""
+docdict["center"] = """
+center : float or None
+    If not None, center of a divergent colormap, changes the meaning of
+    fmin, fmax and fmid.
+"""
+docdict["src_volume_options"] = """
+src : instance of SourceSpaces | None
+    The source space corresponding to the source estimate. Only necessary
+    if the STC is a volume or mixed source estimate.
+volume_options : float | dict | None
+    Options for volumetric source estimate plotting, with key/value pairs:
 
+    - ``'resolution'`` : float | None
+        Resolution (in mm) of volume rendering. Smaller (e.g., 1.) looks
+        better at the cost of speed. None (default) uses the volume source
+        space resolution, which is often something like 7 or 5 mm,
+        without resampling.
+    - ``'blending'`` : str
+        Can be "mip" (default) for :term:`maximum intensity projection` or
+        "composite" for composite blending using alpha values.
+    - ``'alpha'`` : float | None
+        Alpha for the volumetric rendering. Defaults are 0.4 for vector source
+        estimates and 1.0 for scalar source estimates.
+    - ``'surface_alpha'`` : float | None
+        Alpha for the surface enclosing the volume(s). None (default) will use
+        half the volume alpha. Set to zero to avoid plotting the surface.
+    - ``'silhouette_alpha'`` : float | None
+        Alpha for a silhouette along the outside of the volume. None (default)
+        will use ``0.25 * surface_alpha``.
+    - ``'silhouette_linewidth'`` : float
+        The line width to use for the silhouette. Default is 2.
+
+    A float input (default 1.) or None will be used for the ``'resolution'``
+    entry.
+"""
+docdict['view_layout'] = """
+view_layout : str
+    Can be "vertical" (default) or "horizontal". When using "horizontal" mode,
+    the PyVista backend must be used and hemi cannot be "split".
+"""
+docdict['add_data_kwargs'] = """
+add_data_kwargs : dict | None
+    Additional arguments to brain.add_data (e.g.,
+    ``dict(time_label_size=10)``).
+"""
+docdict['brain_kwargs'] = """
+brain_kwargs : dict | None
+    Additional arguments to the :class:`mne.viz.Brain` constructor (e.g.,
+    ``dict(silhouette=True)``).
+"""
+docdict['views'] = """
+views : str | list
+    View to use. Can be any of::
+
+        ['lateral', 'medial', 'rostral', 'caudal', 'dorsal', 'ventral',
+         'frontal', 'parietal', 'axial', 'sagittal', 'coronal']
+
+    Three letter abbreviations (e.g., ``'lat'``) are also supported.
+    Using multiple views (list) is not supported for mpl backend.
+"""
 
 # STC label time course
 docdict['eltc_labels'] = """
@@ -970,12 +1629,6 @@ allow_empty : bool | str
        Support for "ignore".
 """
 docdict
-docdict['eltc_trans'] = """%s
-    Only needed when using a volume atlas and
-    ``src`` is in head coordinates (i.e., comes from a forward or inverse).
-
-    .. versionadded:: 0.21.0
-""" % (docdict['trans_not_none'],)
 docdict['eltc_mri_resolution'] = """
 mri_resolution : bool
     If True (default), the volume source space will be upsampled to the
@@ -1107,10 +1760,6 @@ docdict['clust_adj_st1'] = docdict['clust_adj'].format(**st).format(**nogroups)
 docdict['clust_adj_stn'] = docdict['clust_adj'].format(**st).format(**groups)
 docdict['clust_adj_1'] = docdict['clust_adj'].format(**tf).format(**nogroups)
 docdict['clust_adj_n'] = docdict['clust_adj'].format(**tf).format(**groups)
-docdict['clust_con_dep'] = """
-connectivity : None
-    Deprecated and will be removed in 0.22, use ``adjacency`` instead.
-"""
 docdict['clust_maxstep'] = """
 max_step : int
     Maximum distance along the second dimension (typically this is the "time"
@@ -1136,22 +1785,15 @@ docdict['clust_power_t'] = docdict['clust_power'].format('t')
 docdict['clust_power_f'] = docdict['clust_power'].format('F')
 docdict['clust_out'] = """
 out_type : 'mask' | 'indices'
-    Output format of clusters. If ``'mask'``, returns boolean arrays the same
-    shape as the input data, with ``True`` values indicating locations that are
-    part of a cluster. If ``'indices'``, returns a list of lists, where each
-    sublist contains the indices of locations that together form a cluster.
-    Note that for large datasets, ``'indices'`` may use far less memory than
-    ``'mask'``. Default is ``'indices'``.
-"""
-docdict['clust_out_none'] = """
-out_type : 'mask' | 'indices'
-    Output format of clusters. If ``'mask'``, returns boolean arrays the same
-    shape as the input data, with ``True`` values indicating locations that are
-    part of a cluster. If ``'indices'``, returns a list of lists, where each
-    sublist contains the indices of locations that together form a cluster.
-    Note that for large datasets, ``'indices'`` may use far less memory than
-    ``'mask'``. The default translates to ``'mask'`` in version 0.21 but will
-    change to ``'indices'`` in version 0.22.
+    Output format of clusters within a list.
+    If ``'mask'``, returns a list of boolean arrays,
+    each with the same shape as the input data (or slices if the shape is 1D
+    and adjacency is None), with ``True`` values indicating locations that are
+    part of a cluster. If ``'indices'``, returns a list of tuple of ndarray,
+    where each ndarray contains the indices of locations that together form the
+    given cluster along the given dimension. Note that for large datasets,
+    ``'indices'`` may use far less memory than ``'mask'``.
+    Default is ``'indices'``.
 """
 docdict['clust_disjoint'] = """
 check_disjoint : bool
@@ -1192,8 +1834,9 @@ time_format : str | None
     remain as float values in seconds. If ``'ms'``, time values will be rounded
     to the nearest millisecond and converted to integers. If ``'timedelta'``,
     time values will be converted to :class:`pandas.Timedelta` values. {}
-    Defaults to ``'ms'``.
-"""
+    Default is ``'ms'`` in version 0.22, and will change to ``None`` in
+    version 0.23.
+"""  # XXX make sure we deal with this deprecation in 0.23
 raw_tf = ("If ``'datetime'``, time values will be converted to "
           ":class:`pandas.Timestamp` values, relative to "
           "``raw.info['meas_date']`` and offset by ``raw.first_samp``. ")
@@ -1238,9 +1881,307 @@ title : str | None
     orientation etc.) will be shown. Defaults to ``None``.
 """
 
-# Finalize
-docdict = unindent_dict(docdict)
-fill_doc = filldoc(docdict, unindent_params=False)
+# TFRs
+docdict['tfr_average'] = """
+average : bool, default True
+    If ``False`` return an `EpochsTFR` containing separate TFRs for each
+    epoch. If ``True`` return an `AverageTFR` containing the average of all
+    TFRs across epochs.
+
+    .. note::
+        Using ``average=True`` is functionally equivalent to using
+        ``average=False`` followed by ``EpochsTFR.average()``, but is
+        more memory efficient.
+
+    .. versionadded:: 0.13.0
+"""
+
+# Anonymization
+docdict['anonymize_info_parameters'] = """
+daysback : int | None
+    Number of days to subtract from all dates.
+    If ``None`` (default), the acquisition date, ``info['meas_date']``,
+    will be set to ``January 1ˢᵗ, 2000``. This parameter is ignored if
+    ``info['meas_date']`` is ``None`` (i.e., no acquisition date has been set).
+keep_his : bool
+    If ``True``, ``his_id`` of ``subject_info`` will **not** be overwritten.
+    Defaults to ``False``.
+
+    .. warning:: This could mean that ``info`` is not fully
+                 anonymized. Use with caution.
+"""
+docdict['anonymize_info_notes'] = """
+Removes potentially identifying information if it exists in ``info``.
+Specifically for each of the following we use:
+
+- meas_date, file_id, meas_id
+        A default value, or as specified by ``daysback``.
+- subject_info
+        Default values, except for 'birthday' which is adjusted
+        to maintain the subject age.
+- experimenter, proj_name, description
+        Default strings.
+- utc_offset
+        ``None``.
+- proj_id
+        Zeros.
+- proc_history
+        Dates use the ``meas_date`` logic, and experimenter a default string.
+- helium_info, device_info
+        Dates use the ``meas_date`` logic, meta info uses defaults.
+
+If ``info['meas_date']`` is ``None``, it will remain ``None`` during processing
+the above fields.
+
+Operates in place.
+"""
+
+# Baseline
+docdict['rescale_baseline'] = """
+baseline : None | tuple of length 2
+    The time interval to consider as "baseline" when applying baseline
+    correction. If ``None``, do not apply baseline correction.
+    If a tuple ``(a, b)``, the interval is between ``a`` and ``b``
+    (in seconds), including the endpoints.
+    If ``a`` is ``None``, the **beginning** of the data is used; and if ``b``
+    is ``None``, it is set to the **end** of the interval.
+    If ``(None, None)``, the entire time interval is used.
+
+    .. note:: The baseline ``(a, b)`` includes both endpoints, i.e. all
+                timepoints ``t`` such that ``a <= t <= b``.
+"""
+docdict['baseline_epochs'] = """%(rescale_baseline)s
+    Correction is applied **to each epoch and channel individually** in the
+    following way:
+
+    1. Calculate the mean signal of the baseline period.
+    2. Subtract this mean from the **entire** epoch.
+
+""" % docdict
+docdict['baseline_evoked'] = """%(rescale_baseline)s
+    Correction is applied **to each channel individually** in the following
+    way:
+
+    1. Calculate the mean signal of the baseline period.
+    2. Subtract this mean from the **entire** ``Evoked``.
+
+""" % docdict
+docdict['baseline_stc'] = """%(rescale_baseline)s
+    Correction is applied **to each source individually** in the following
+    way:
+
+    1. Calculate the mean signal of the baseline period.
+    2. Subtract this mean from the **entire** source estimate data.
+
+    .. note:: Baseline correction is appropriate when signal and noise are
+              approximately additive, and the noise level can be estimated from
+              the baseline interval. This can be the case for non-normalized
+              source activities (e.g. signed and unsigned MNE), but it is not
+              the case for normalized estimates (e.g. signal-to-noise ratios,
+              dSPM, sLORETA).
+
+""" % docdict
+docdict['baseline_report'] = """%(rescale_baseline)s
+    Correction is applied in the following way **to each channel:**
+
+    1. Calculate the mean signal of the baseline period.
+    2. Subtract this mean from the **entire** time period.
+
+    For `~mne.Epochs`, this algorithm is run **on each epoch individually.**
+""" % docdict
+
+# Epochs
+reject_common = """
+    Reject epochs based on peak-to-peak signal amplitude (PTP), i.e. the
+    absolute difference between the lowest and the highest signal value. In
+    each individual epoch, the PTP is calculated for every channel. If the
+    PTP of any one channel exceeds the rejection threshold, the respective
+    epoch will be dropped.
+
+    The dictionary keys correspond to the different channel types; valid
+    keys are: ``'grad'``, ``'mag'``, ``'eeg'``, ``'eog'``, and ``'ecg'``.
+
+    Example::
+
+        reject = dict(grad=4000e-13,  # unit: T / m (gradiometers)
+                      mag=4e-12,      # unit: T (magnetometers)
+                      eeg=40e-6,      # unit: V (EEG channels)
+                      eog=250e-6      # unit: V (EOG channels)
+                      )
+
+    .. note:: Since rejection is based on a signal **difference**
+              calculated for each channel separately, applying baseline
+              correction does not affect the rejection procedure, as the
+              difference will be preserved.
+"""
+docdict['reject_epochs'] = f"""
+reject : dict | None
+{reject_common}
+    If ``reject`` is ``None`` (default), no rejection is performed.
+"""
+docdict['reject_drop_bad'] = f"""
+reject : dict | str | None
+{reject_common}
+    If ``reject`` is ``None``, no rejection is performed. If ``'existing'``
+    (default), then the rejection parameters set at instantiation are used.
+"""
+flat_common = """
+    Rejection parameters based on flatness of signal.
+    Valid **keys** are ``'grad'``, ``'mag'``, ``'eeg'``, ``'eog'``, ``'ecg'``.
+    The **values** are floats that set the minimum acceptable peak-to-peak
+    amplitude (PTP). If the PTP is smaller than this threshold, the epoch will
+    be dropped. If ``None`` then no rejection is performed based on flatness
+    of the signal."""
+docdict['flat'] = f"""
+flat : dict | None
+{flat_common}
+"""
+docdict['flat_drop_bad'] = f"""
+flat : dict | str | None
+{flat_common}
+    If ``'existing'``, then the flat parameters set during epoch creation are
+    used.
+"""
+
+# ECG detection
+docdict['ecg_event_id'] = """
+event_id : int
+    The index to assign to found ECG events.
+"""
+docdict['ecg_ch_name'] = """
+ch_name : None | str
+    The name of the channel to use for ECG peak detection.
+    If ``None`` (default), ECG channel is used if present. If ``None`` and
+    **no** ECG channel is present, a synthetic ECG channel is created from
+    the cross-channel average. This synthetic channel can only be created from
+    MEG channels.
+"""
+docdict['ecg_filter_freqs'] = """
+l_freq : float
+    Low pass frequency to apply to the ECG channel while finding events.
+h_freq : float
+    High pass frequency to apply to the ECG channel while finding events.
+"""
+docdict['ecg_filter_length'] = """
+filter_length : str | int | None
+    Number of taps to use for filtering.
+"""
+docdict['ecg_tstart'] = """
+tstart : float
+    Start ECG detection after ``tstart`` seconds. Useful when the beginning
+    of the run is noisy.
+"""
+docdict['create_ecg_epochs'] = """This function will:
+
+#. Filter the ECG data channel.
+
+#. Find ECG R wave peaks using :func:`mne.preprocessing.find_ecg_events`.
+
+#. Filter the raw data.
+
+#. Create `~mne.Epochs` around the R wave peaks, capturing the heartbeats.
+"""
+
+# EOG detection
+docdict['create_eog_epochs'] = """This function will:
+
+#. Filter the EOG data channel.
+
+#. Find the peaks of eyeblinks in the EOG data using
+   :func:`mne.preprocessing.find_eog_events`.
+
+#. Filter the raw data.
+
+#. Create `~mne.Epochs` around the eyeblinks.
+"""
+
+# SSP
+docdict['compute_ssp'] = """This function aims to find those SSP vectors that
+will project out the ``n`` most prominent signals from the data for each
+specified sensor type. Consequently, if the provided input data contains high
+levels of noise, the produced SSP vectors can then be used to eliminate that
+noise from the data.
+"""
+compute_proj_common = """
+#. Optionally average the `~mne.Epochs` to produce an `~mne.Evoked` if
+   ``average=True`` was passed (default).
+
+#. Calculate SSP projection vectors on that data to capture the artifacts."""
+docdict['compute_proj_ecg'] = f"""%(create_ecg_epochs)s {compute_proj_common}
+""" % docdict
+docdict['compute_proj_eog'] = f"""%(create_eog_epochs)s {compute_proj_common}
+""" % docdict
+
+# BEM
+docdict['on_defects'] = """
+on_defects : str
+    What to do if the surface is found to have topological defects. Can be
+    ``'raise'`` (default) to raise an error, or ``'warn'`` to emit a warning.
+    Note that a lot of computations in MNE-Python assume the surfaces to be
+    topologically correct, topological defects may still make other
+    computations (e.g., ``mne.make_bem_model`` and ``mne.make_bem_solution``)
+    fail irrespective of this parameter.
+"""
+
+# Other
+docdict['accept'] = """
+accept : bool
+    If True (default False), accept the license terms of this dataset.
+"""
+docdict['overwrite'] = """
+overwrite : bool
+    If True (default False), overwrite the destination file if it
+    exists.
+"""
+
+docdict_indented = {}
+
+
+def fill_doc(f):
+    """Fill a docstring with docdict entries.
+
+    Parameters
+    ----------
+    f : callable
+        The function to fill the docstring of. Will be modified in place.
+
+    Returns
+    -------
+    f : callable
+        The function, potentially with an updated ``__doc__``.
+    """
+    docstring = f.__doc__
+    if not docstring:
+        return f
+    lines = docstring.splitlines()
+    # Find the minimum indent of the main docstring, after first line
+    if len(lines) < 2:
+        icount = 0
+    else:
+        icount = indentcount_lines(lines[1:])
+    # Insert this indent to dictionary docstrings
+    try:
+        indented = docdict_indented[icount]
+    except KeyError:
+        indent = ' ' * icount
+        docdict_indented[icount] = indented = {}
+        for name, dstr in docdict.items():
+            lines = dstr.splitlines()
+            try:
+                newlines = [lines[0]]
+                for line in lines[1:]:
+                    newlines.append(indent + line)
+                indented[name] = '\n'.join(newlines)
+            except IndexError:
+                indented[name] = dstr
+    try:
+        f.__doc__ = docstring % indented
+    except (TypeError, ValueError, KeyError) as exp:
+        funcname = f.__name__
+        funcname = docstring.split('\n')[0] if funcname is None else funcname
+        raise RuntimeError('Error documenting %s:\n%s'
+                           % (funcname, str(exp)))
+    return f
 
 
 ##############################################################################
@@ -1526,7 +2467,7 @@ def linkcode_resolve(domain, info):
         linespec = ""
 
     if 'dev' in mne.__version__:
-        kind = 'master'
+        kind = 'main'
     else:
         kind = 'maint/%s' % ('.'.join(mne.__version__.split('.')[:2]))
     return "http://github.com/mne-tools/mne-python/blob/%s/mne/%s%s" % (
@@ -1547,6 +2488,8 @@ def open_docs(kind=None, version=None):
         The default can be changed by setting the configuration value
         MNE_DOCS_VERSION.
     """
+    from .check import _check_option
+    from .config import get_config
     if kind is None:
         kind = get_config('MNE_DOCS_KIND', 'api')
     help_dict = dict(api='python_reference.html', tutorials='tutorials.html',
@@ -1669,5 +2612,5 @@ def deprecated_alias(dep_name, func, removed_in=None):
     # Inject a deprecated version into the namespace
     inspect.currentframe().f_back.f_globals[dep_name] = deprecated(
         f'{dep_name} has been deprecated in favor of {func.__name__} and will '
-        f'be removed in {removed_in}'
+        f'be removed in {removed_in}.'
     )(deepcopy(func))

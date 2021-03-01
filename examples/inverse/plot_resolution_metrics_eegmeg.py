@@ -5,12 +5,11 @@ Compute spatial resolution metrics to compare MEG with EEG+MEG
 
 Compute peak localisation error and spatial deviation for the point-spread
 functions of dSPM and MNE. Plot their distributions and difference of
-distributions.
-This example mimics some results from [1]_, namely Figure 3 (peak localisation
-error for PSFs, L2-MNE vs dSPM) and Figure 4 (spatial deviation for PSFs,
-L2-MNE vs dSPM). It shows that combining MEG with EEG reduces the
-point-spread function and increases the spatial resolution of source imaging,
-especially for deeper sources.
+distributions. This example mimics some results from :footcite:`HaukEtAl2019`,
+namely Figure 3 (peak localisation error for PSFs, L2-MNE vs dSPM) and Figure 4
+(spatial deviation for PSFs, L2-MNE vs dSPM). It shows that combining MEG with
+EEG reduces the point-spread function and increases the spatial resolution of
+source imaging, especially for deeper sources.
 """
 # Author: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
 #
@@ -95,13 +94,18 @@ brain_ple_emeg = ple_psf_emeg.plot('sample', 'inflated', 'lh',
 
 brain_ple_emeg.add_text(0.1, 0.9, 'PLE PSF EMEG', 'title', font_size=16)
 
+###############################################################################
+# For MEG only:
+
 brain_ple_meg = ple_psf_meg.plot('sample', 'inflated', 'lh',
                                  subjects_dir=subjects_dir, figure=2,
                                  clim=dict(kind='value', lims=(0, 2, 4)))
 
 brain_ple_meg.add_text(0.1, 0.9, 'PLE PSF MEG', 'title', font_size=16)
 
-# Subtract the two distributions and plot this difference
+###############################################################################
+# Subtract the two distributions and plot this difference:
+
 diff_ple = ple_psf_emeg - ple_psf_meg
 
 brain_ple_diff = diff_ple.plot('sample', 'inflated', 'lh',
@@ -122,13 +126,18 @@ brain_sd_emeg = sd_psf_emeg.plot('sample', 'inflated', 'lh',
 
 brain_sd_emeg.add_text(0.1, 0.9, 'SD PSF EMEG', 'title', font_size=16)
 
+###############################################################################
+# For MEG only:
+
 brain_sd_meg = sd_psf_meg.plot('sample', 'inflated', 'lh',
                                subjects_dir=subjects_dir, figure=5,
                                clim=dict(kind='value', lims=(0, 2, 4)))
 
 brain_sd_meg.add_text(0.1, 0.9, 'SD PSF MEG', 'title', font_size=16)
 
-# Subtract the two distributions and plot this difference
+###############################################################################
+# Subtract the two distributions and plot this difference:
+
 diff_sd = sd_psf_emeg - sd_psf_meg
 
 brain_sd_diff = diff_sd.plot('sample', 'inflated', 'lh',
@@ -145,6 +154,4 @@ brain_sd_diff.add_text(0.1, 0.9, 'SD EMEG-MEG', 'title', font_size=16)
 #
 # References
 # ----------
-# .. [1] Hauk O, Stenroos M, Treder M (2019). "Towards an Objective Evaluation
-#        of EEG/MEG Source Estimation Methods: The Linear Tool Kit", bioRxiv,
-#        doi: https://doi.org/10.1101/672956.
+# .. footbibliography::

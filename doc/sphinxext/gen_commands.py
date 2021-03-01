@@ -32,10 +32,6 @@ header = """\
 Command line tools using Python
 ===============================
 
-.. contents:: Page contents
-   :local:
-   :depth: 1
-
 """
 
 command_rst = """
@@ -66,7 +62,7 @@ def generate_commands_rst(app=None):
         for fname in glob.glob(op.join(command_path, 'mne_*.py'))])
     iterator = sphinx_compatibility.status_iterator(
         fnames, 'generating MNE command help ... ', length=len(fnames))
-    with open(out_fname, 'w') as f:
+    with open(out_fname, 'w', encoding='utf8') as f:
         f.write(header)
         for fname in iterator:
             cmd_name = fname[:-3]

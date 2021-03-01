@@ -17,8 +17,8 @@ from scipy.io import loadmat
 from scipy import linalg
 
 from mne.channels import make_dig_montage
-from mne import create_info, EvokedArray, pick_types
-from mne.io import read_raw_fif
+from mne import create_info, EvokedArray, pick_types, Epochs
+from mne.io import read_raw_fif, RawArray
 from mne.io.constants import FIFF
 from mne.utils import object_diff, run_tests_if_main
 from mne.datasets import testing
@@ -139,6 +139,24 @@ def test_csd_degenerate(evoked_csd_sphere):
 
     with pytest.raises(TypeError):
         compute_current_source_density(evoked, copy=2, sphere=sphere)
+
+    # gh-7859
+    raw = RawArray(evoked.data, evoked.info)
+    epochs = Epochs(
+        raw, [[0, 0, 1]], tmin=0, tmax=evoked.times[-1] - evoked.times[0],
+        baseline=None, preload=False, proj=False)
+    epochs.drop_bad()
+    assert len(epochs) == 1
+    assert_allclose(epochs.get_data()[0], evoked.data)
+    with pytest.raises(RuntimeError, match='Computing CSD requires.*preload'):
+        compute_current_source_density(epochs)
+    epochs.load_data()
+    raw = compute_current_source_density(raw)
+    assert not np.allclose(raw.get_data(), evoked.data)
+    evoked = compute_current_source_density(evoked)
+    assert_allclose(raw.get_data(), evoked.data)
+    epochs = compute_current_source_density(epochs)
+    assert_allclose(epochs.get_data()[0], evoked.data)
 
 
 def test_csd_fif():

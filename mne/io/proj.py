@@ -10,16 +10,15 @@ from itertools import count
 from math import sqrt
 
 import numpy as np
-from scipy import linalg
 
 from .tree import dir_tree_find
-from .tag import find_tag
+from .tag import find_tag, _rename_list
 from .constants import FIFF
-from .pick import pick_types
+from .pick import pick_types, pick_info
 from .write import (write_int, write_float, write_string, write_name_list,
                     write_float_matrix, end_block, start_block)
 from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT
-from ..utils import logger, verbose, warn, fill_doc
+from ..utils import logger, verbose, warn, fill_doc, _validate_type
 
 
 class Projection(dict):
@@ -31,7 +30,7 @@ class Projection(dict):
     def __repr__(self):  # noqa: D105
         s = "%s" % self['desc']
         s += ", active : %s" % self['active']
-        s += ", n_channels : %s" % self['data']['ncol']
+        s += f", n_channels : {len(self['data']['col_names'])}"
         return "<Projection | %s>" % s
 
     # speed up info copy by taking advantage of mutability
@@ -152,8 +151,13 @@ class ProjMixin(object):
                                              check_active=False, sort=False)
         return self
 
-    def apply_proj(self):
+    @verbose
+    def apply_proj(self, verbose=None):
         """Apply the signal space projection (SSP) operators to the data.
+
+        Parameters
+        ----------
+        %(verbose_meth)s
 
         Returns
         -------
@@ -238,9 +242,17 @@ class ProjMixin(object):
         if isinstance(idx, str) and idx == 'all':
             idx = list(range(len(self.info['projs'])))
         idx = np.atleast_1d(np.array(idx, int)).ravel()
-        if any(self.info['projs'][ii]['active'] for ii in idx):
-            raise ValueError('Cannot remove projectors that have already '
-                             'been applied')
+
+        for ii in idx:
+            proj = self.info['projs'][ii]
+            if (proj['active'] and
+                    set(self.info['ch_names']) &
+                    set(proj['data']['col_names'])):
+                msg = (f'Cannot remove projector that has already been '
+                       f'applied, unless you first remove all channels it '
+                       f'applies to. The problematic projector is: {proj}')
+                raise ValueError(msg)
+
         keep = np.ones(len(self.info['projs']))
         keep[idx] = False  # works with negative indexing and does checks
         self.info['projs'] = [p for p, k in zip(self.info['projs'], keep) if k]
@@ -288,6 +300,29 @@ class ProjMixin(object):
             raise ValueError("Info is missing projs. Nothing to plot.")
         return fig
 
+    def _reconstruct_proj(self, mode='accurate', origin='auto'):
+        from ..forward import _map_meg_or_eeg_channels
+        if len(self.info['projs']) == 0:
+            return self
+        self.apply_proj()
+        for kind in ('meg', 'eeg'):
+            kwargs = dict(meg=False)
+            kwargs[kind] = True
+            picks = pick_types(self.info, **kwargs)
+            if len(picks) == 0:
+                continue
+            info_from = pick_info(self.info, picks)
+            info_to = info_from.copy()
+            info_to['projs'] = []
+            if kind == 'eeg' and _has_eeg_average_ref_proj(info_from['projs']):
+                info_to['projs'] = [
+                    make_eeg_average_ref_proj(info_to, verbose=False)]
+            mapping = _map_meg_or_eeg_channels(
+                info_from, info_to, mode=mode, origin=origin)
+            self.data[..., picks, :] = np.matmul(
+                mapping, self.data[..., picks, :])
+        return self
+
 
 def _proj_equal(a, b, check_active=True):
     """Test if two projectors are equal."""
@@ -303,22 +338,8 @@ def _proj_equal(a, b, check_active=True):
 
 
 @verbose
-def _read_proj(fid, node, verbose=None):
-    """Read spatial projections from a FIF file.
-
-    Parameters
-    ----------
-    fid : file
-        The file descriptor of the open file.
-    node : tree node
-        The node of the tree where to look.
-    %(verbose)s
-
-    Returns
-    -------
-    projs : list of Projection
-        The list of projections.
-    """
+def _read_proj(fid, node, *, ch_names_mapping=None, verbose=None):
+    ch_names_mapping = {} if ch_names_mapping is None else ch_names_mapping
     projs = list()
 
     #   Locate the projection data
@@ -326,18 +347,23 @@ def _read_proj(fid, node, verbose=None):
     if len(nodes) == 0:
         return projs
 
-    tag = find_tag(fid, nodes[0], FIFF.FIFF_NCHAN)
-    if tag is not None:
-        global_nchan = int(tag.data)
+    # This might exist but we won't use it:
+    # global_nchan = None
+    # tag = find_tag(fid, nodes[0], FIFF.FIFF_NCHAN)
+    # if tag is not None:
+    #     global_nchan = int(tag.data)
 
     items = dir_tree_find(nodes[0], FIFF.FIFFB_PROJ_ITEM)
     for item in items:
         #   Find all desired tags in one item
-        tag = find_tag(fid, item, FIFF.FIFF_NCHAN)
-        if tag is not None:
-            nchan = int(tag.data)
-        else:
-            nchan = global_nchan
+
+        # This probably also exists but used to be written incorrectly
+        # sometimes
+        # tag = find_tag(fid, item, FIFF.FIFF_NCHAN)
+        # if tag is not None:
+        #     nchan = int(tag.data)
+        # else:
+        #     nchan = global_nchan
 
         tag = find_tag(fid, item, FIFF.FIFF_DESCRIPTION)
         if tag is not None:
@@ -348,13 +374,6 @@ def _read_proj(fid, node, verbose=None):
                 desc = tag.data
             else:
                 raise ValueError('Projection item description missing')
-
-        # XXX : is this useful ?
-        # tag = find_tag(fid, item, FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST)
-        # if tag is not None:
-        #     namelist = tag.data
-        # else:
-        #     raise ValueError('Projection item channel list missing')
 
         tag = find_tag(fid, item, FIFF.FIFF_PROJ_ITEM_KIND)
         if tag is not None:
@@ -400,6 +419,10 @@ def _read_proj(fid, node, verbose=None):
             raise ValueError('Number of channel names does not match the '
                              'size of data matrix')
 
+        # just always use this, we used to have bugs with writing the
+        # number correctly...
+        nchan = len(names)
+        names[:] = _rename_list(names, ch_names_mapping)
         #   Use exactly the same fields in data as in a named matrix
         one = Projection(kind=kind, active=active, desc=desc,
                          data=dict(nrow=nvec, ncol=nchan, row_names=None,
@@ -410,14 +433,11 @@ def _read_proj(fid, node, verbose=None):
 
     if len(projs) > 0:
         logger.info('    Read a total of %d projection items:' % len(projs))
-        for k in range(len(projs)):
-            if projs[k]['active']:
-                misc = 'active'
-            else:
-                misc = ' idle'
-            logger.info('        %s (%d x %d) %s'
-                        % (projs[k]['desc'], projs[k]['data']['nrow'],
-                           projs[k]['data']['ncol'], misc))
+        for proj in projs:
+            misc = 'active' if proj['active'] else ' idle'
+            logger.info(f'        {proj["desc"]} '
+                        f'({proj["data"]["nrow"]} x '
+                        f'{len(proj["data"]["col_names"])}) {misc}')
 
     return projs
 
@@ -425,7 +445,7 @@ def _read_proj(fid, node, verbose=None):
 ###############################################################################
 # Write
 
-def _write_proj(fid, projs):
+def _write_proj(fid, projs, *, ch_names_mapping=None):
     """Write a projection operator to a file.
 
     Parameters
@@ -437,13 +457,20 @@ def _write_proj(fid, projs):
     """
     if len(projs) == 0:
         return
+
+    ch_names_mapping = dict() if ch_names_mapping is None else ch_names_mapping
+    # validation
+    _validate_type(projs, (list, tuple), 'projs')
+    for pi, proj in enumerate(projs):
+        _validate_type(proj, Projection, f'projs[{pi}]')
+
     start_block(fid, FIFF.FIFFB_PROJ)
 
     for proj in projs:
         start_block(fid, FIFF.FIFFB_PROJ_ITEM)
-        write_int(fid, FIFF.FIFF_NCHAN, proj['data']['ncol'])
-        write_name_list(fid, FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST,
-                        proj['data']['col_names'])
+        write_int(fid, FIFF.FIFF_NCHAN, len(proj['data']['col_names']))
+        names = _rename_list(proj['data']['col_names'], ch_names_mapping)
+        write_name_list(fid, FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST, names)
         write_string(fid, FIFF.FIFF_NAME, proj['desc'])
         write_int(fid, FIFF.FIFF_PROJ_ITEM_KIND, proj['kind'])
         if proj['kind'] == FIFF.FIFFV_PROJ_ITEM_FIELD:
@@ -514,6 +541,7 @@ def _make_projector(projs, ch_names, bads=(), include_active=True,
     warning will be raised next time projectors are constructed with
     the given inputs. If inplace=True, no meaningful data are returned.
     """
+    from scipy import linalg
     nchan = len(ch_names)
     if nchan == 0:
         raise ValueError('No channel names specified')
@@ -587,6 +615,7 @@ def _make_projector(projs, ch_names, bads=(), include_active=True,
                 p['data']['data'] = this_vecs[sel].T
                 p['data']['col_names'] = [p['data']['col_names'][ii]
                                           for ii in vecsel]
+                p['data']['ncol'] = len(p['data']['col_names'])
             nvec += p['data']['nrow']
 
     #   Check whether all of the vectors are exactly zero
@@ -594,7 +623,7 @@ def _make_projector(projs, ch_names, bads=(), include_active=True,
         return default_return
 
     # Reorthogonalize the vectors
-    U, S, V = linalg.svd(vecs[:, :nvec], full_matrices=False)
+    U, S, _ = linalg.svd(vecs[:, :nvec], full_matrices=False)
 
     # Throw away the linearly dependent guys
     nproj = np.sum((S / S[0]) > 1e-2)

@@ -266,6 +266,10 @@
 
 .. _Robert Luke: https://github.com/rob-luke
 
+.. _Robert Seymour: https://neurofractal.github.io
+
+.. _Matt Sanderson: https://github.com/monkeyman192
+
 .. _Mohammad Daneshzand: https://github.com/mdaneshzand
 
 .. _Fahimeh Mamashli: https://github.com/fmamashli
@@ -298,7 +302,11 @@
 
 .. _Adam Li: http://github.com/adam2392
 
+.. _Simeon Wong: https://github.com/dtxe
+
 .. _Ramiro Gatti: https://github.com/ragatti
+
+.. _Liberty Hamilton: https://github.com/libertyh
 
 .. _Svea Marie Meyer: https://github.com/SveaMeyer13
 
@@ -307,3 +315,49 @@
 .. _Kyle Mathewson: https://github.com/kylemath
 
 .. _Ezequiel Mikulan: https://github.com/ezemikulan
+
+.. _Jan Sedivy: https://github.com/honzaseda
+
+.. _Johann Benerradi: https://github.com/HanBnrd
+
+.. _Rahul Nadkarni: https://github.com/rahuln
+
+.. _Jonathan Kuziek:  https://github.com/kuziekj
+
+.. _Lau Møller Andersen: https://github.com/ualsbombe
+
+.. _Martin Schulz: https://github.com/marsipu
+
+.. _Jeroen Van Der Donckt: https://github.com/jvdd
+
+.. _Steven Bierer: https://github.com/neurolaunch
+
+.. _Eduard Ort: https://github.com/eort
+
+.. _Aniket Pradhan: https://github.com/Aniket-Pradhan
+
+.. _Tod Flak: https://github.com/todflak
+
+.. _Austin Hurst: https://github.com/a-hurst
+
+.. _Victoria Peterson: https://github.com/vpeterson
+
+.. _Evan Hathaway: https://github.com/ephathaway
+
+.. _Hongjiang Ye: https://github.com/rubyyhj
+
+.. _Jeff Stout: https://megcore.nih.gov/index.php/Staff
+
+.. _Qianliang Li: https://www.dtu.dk/english/service/phonebook/person?id=126774
+
+.. _Richard Koehler: https://github.com/richardkoehler
+
+.. _Tristan Stenner: https://github.com/tstenner/
+
+.. _Anna Padee: https://github.com/apadee/
+
+.. _Andres Rodriguez: https://github.com/infinitejest/
+
+.. _Zhi Zhang: https://github.com/tczhangzhi/
+
+.. _Enrico Varano: https://github.com/enricovara/

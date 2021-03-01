@@ -61,9 +61,7 @@ def _check_load_mat(fname, uint16_codec):
         raise NotImplementedError(
             'Loading an ALLEEG array is not supported. Please contact'
             'mne-python developers for more information.')
-    if 'EEG' not in eeg:
-        raise ValueError('Could not find EEG array in the .set file.')
-    else:
+    if 'EEG' in eeg:  # fields are contained in EEG structure
         eeg = eeg['EEG']
     eeg = eeg.get('EEG', eeg)  # handle nested EEG structure
     eeg = Bunch(**eeg)
@@ -323,7 +321,7 @@ class RawEEGLAB(BaseRaw):
                             ' the .set file contains epochs.' % eeg.trials)
 
         last_samps = [eeg.pnts - 1]
-        info, eeg_montage, update_ch_names = _get_info(eeg, eog=eog)
+        info, eeg_montage, _ = _get_info(eeg, eog=eog)
 
         # read the data
         if isinstance(eeg.data, str):
@@ -609,7 +607,11 @@ def _read_annotations_eeglab(eeg, uint16_codec=None):
     onset = [event.latency - 1 for event in events]
     duration = np.zeros(len(onset))
     if len(events) > 0 and hasattr(events[0], 'duration'):
-        duration[:] = [event.duration for event in events]
+        for idx, event in enumerate(events):
+            # empty duration fields are read as empty arrays
+            is_empty_array = (isinstance(event.duration, np.ndarray)
+                              and len(event.duration) == 0)
+            duration[idx] = np.nan if is_empty_array else event.duration
 
     return Annotations(onset=np.array(onset) / eeg.srate,
                        duration=duration / eeg.srate,

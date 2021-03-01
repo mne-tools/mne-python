@@ -18,7 +18,6 @@ import warnings
 from struct import pack
 
 import numpy as np
-from scipy.sparse import coo_matrix, csr_matrix, eye as speye
 
 from .io.constants import FIFF
 from .io.open import fiff_open
@@ -144,7 +143,7 @@ def get_meg_helmet_surf(info, trans=None, verbose=None):
     will be approximated based on the sensor locations.
     """
     from scipy.spatial import ConvexHull, Delaunay
-    from .bem import read_bem_surfaces
+    from .bem import read_bem_surfaces, _fit_sphere
     system, have_helmet = _get_meg_system(info)
     if have_helmet:
         logger.info('Getting helmet for system %s' % system)
@@ -158,10 +157,19 @@ def get_meg_helmet_surf(info, trans=None, verbose=None):
                                               exclude=())])
         logger.info('Getting helmet for system %s (derived from %d MEG '
                     'channel locations)' % (system, len(rr)))
-        rr = rr[np.unique(ConvexHull(rr).simplices)]
-        com = rr.mean(axis=0)
-        xy = _pol_to_cart(_cart_to_sph(rr - com)[:, 1:][:, ::-1])
-        tris = _reorder_ccw(rr, Delaunay(xy).simplices)
+        hull = ConvexHull(rr)
+        rr = rr[np.unique(hull.simplices)]
+        R, center = _fit_sphere(rr, disp=False)
+        sph = _cart_to_sph(rr - center)[:, 1:]
+        # add a point at the front of the helmet (where the face should be):
+        # 90 deg az and maximal el (down from Z/up axis)
+        front_sph = [[np.pi / 2., sph[:, 1].max()]]
+        sph = np.concatenate((sph, front_sph))
+        xy = _pol_to_cart(sph[:, ::-1])
+        tris = Delaunay(xy).simplices
+        # remove the frontal point we added from the simplices
+        tris = tris[(tris != len(sph) - 1).all(-1)]
+        tris = _reorder_ccw(rr, tris)
 
         surf = dict(rr=rr, tris=tris)
         complete_surface_info(surf, copy=False, verbose=False)
@@ -270,6 +278,7 @@ def _triangle_neighbors(tris, npts):
     # for ti, tri in enumerate(tris):
     #     for t in tri:
     #         neighbor_tri[t].append(ti)
+    from scipy.sparse import coo_matrix
     rows = tris.ravel()
     cols = np.repeat(np.arange(len(tris)), 3)
     data = np.ones(len(cols))
@@ -303,8 +312,8 @@ def _triangle_coords(r, best, r1, nn, r12, r13, a, b, c):  # pragma: no cover
 def _project_onto_surface(rrs, surf, project_rrs=False, return_nn=False,
                           method='accurate'):
     """Project points onto (scalp) surface."""
-    surf_geom = _get_tri_supp_geom(surf)
     if method == 'accurate':
+        surf_geom = _get_tri_supp_geom(surf)
         pt_tris = np.empty((0,), int)
         pt_lens = np.zeros(len(rrs) + 1, int)
         out = _find_nearest_tri_pts(rrs, pt_tris, pt_lens,
@@ -729,6 +738,13 @@ def read_surface(fname, read_metadata=False, return_dict=False,
     return ret
 
 
+def _read_mri_surface(fname):
+    surf = read_surface(fname, return_dict=True)[2]
+    surf['rr'] /= 1000.
+    surf.update(coord_frame=FIFF.FIFFV_COORD_MRI)
+    return surf
+
+
 def _read_wavefront_obj(fname):
     """Read a surface form a Wavefront .obj file.
 
@@ -762,6 +778,53 @@ def _read_wavefront_obj(fname):
                 # In .obj files, indexing starts at 1
                 faces.append([d - 1 for d in dat])
     return np.array(coords), np.array(faces)
+
+
+def _read_patch(fname):
+    """Load a FreeSurfer binary patch file.
+
+    Parameters
+    ----------
+    fname : str
+        The filename.
+
+    Returns
+    -------
+    rrs : ndarray, shape (n_vertices, 3)
+        The points.
+    tris : ndarray, shape (n_tris, 3)
+        The patches. Not all vertices will be present.
+    """
+    # This is adapted from PySurfer PR #269, Bruce Fischl's read_patch.m,
+    # and PyCortex (BSD)
+    patch = dict()
+    with open(fname, 'r') as fid:
+        ver = np.fromfile(fid, dtype='>i4', count=1)[0]
+        if ver != -1:
+            raise RuntimeError(f'incorrect version # {ver} (not -1) found')
+        npts = np.fromfile(fid, dtype='>i4', count=1)[0]
+        dtype = np.dtype(
+            [('vertno', '>i4'), ('x', '>f'), ('y', '>f'), ('z', '>f')])
+        recs = np.fromfile(fid, dtype=dtype, count=npts)
+    # numpy to dict
+    patch = {key: recs[key] for key in dtype.fields.keys()}
+    patch['vertno'] -= 1
+
+    # read surrogate surface
+    rrs, tris = read_surface(
+        op.join(op.dirname(fname), op.basename(fname)[:3] + 'sphere'))
+    orig_tris = tris
+    is_vert = patch['vertno'] > 0  # negative are edges, ignored for now
+    verts = patch['vertno'][is_vert]
+
+    # eliminate invalid tris and zero out unused rrs
+    mask = np.zeros((len(rrs),), dtype=bool)
+    mask[verts] = True
+    rrs[~mask] = 0.
+    tris = tris[mask[tris].all(1)]
+    for ii, key in enumerate(['x', 'y', 'z']):
+        rrs[verts, ii] = patch[key][is_vert]
+    return rrs, tris, orig_tris
 
 
 ##############################################################################
@@ -976,8 +1039,9 @@ def _decimate_surface_spacing(surf, spacing):
     return surf
 
 
+@verbose
 def write_surface(fname, coords, faces, create_stamp='', volume_info=None,
-                  file_format='auto', overwrite=False):
+                  file_format='auto', overwrite=False, *, verbose=None):
     """Write a triangular Freesurfer surface mesh.
 
     Accepts the same data format as is returned by read_surface().
@@ -1016,8 +1080,8 @@ def write_surface(fname, coords, faces, create_stamp='', volume_info=None,
         file name. Defaults to 'auto'.
 
         .. versionadded:: 0.21.0
-    overwrite : bool
-        If True, overwrite the file if it exists.
+    %(overwrite)s
+    %(verbose)s
 
     See Also
     --------
@@ -1427,6 +1491,7 @@ def _make_morph_map(subject_from, subject_to, subjects_dir, xhemi):
 def _make_morph_map_hemi(subject_from, subject_to, subjects_dir, reg_from,
                          reg_to):
     """Construct morph map for one hemisphere."""
+    from scipy.sparse import csr_matrix, eye as speye
     # add speedy short-circuit for self-maps
     if subject_from == subject_to and reg_from == reg_to:
         fname = op.join(subjects_dir, subject_from, 'surf', reg_from)
@@ -1600,6 +1665,7 @@ def mesh_edges(tris):
     edges : sparse matrix
         The adjacency matrix.
     """
+    from scipy.sparse import coo_matrix
     if np.max(tris) > len(np.unique(tris)):
         raise ValueError(
             'Cannot compute adjacency on a selection of triangles.')
@@ -1634,6 +1700,7 @@ def mesh_dist(tris, vert):
     dist_matrix : scipy.sparse.csr_matrix
         Sparse matrix with distances between adjacent vertices.
     """
+    from scipy.sparse import csr_matrix
     edges = mesh_edges(tris).tocoo()
 
     # Euclidean distances between neighboring vertices

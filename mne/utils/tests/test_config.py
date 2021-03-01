@@ -1,10 +1,11 @@
-from io import StringIO
 import os
+import platform
 import pytest
 from pathlib import Path
 
 from mne.utils import (set_config, get_config, get_config_path,
-                       set_memmap_min_size, _get_stim_channel, sys_info)
+                       set_memmap_min_size, _get_stim_channel, sys_info,
+                       ClosingStringIO)
 
 
 def test_config(tmpdir):
@@ -79,7 +80,10 @@ def test_config(tmpdir):
 
 def test_sys_info():
     """Test info-showing utility."""
-    out = StringIO()
+    out = ClosingStringIO()
     sys_info(fid=out)
     out = out.getvalue()
     assert ('numpy:' in out)
+
+    if platform.system() == 'Darwin':
+        assert 'Platform:      macOS-' in out

@@ -5,16 +5,12 @@
 Annotating continuous data
 ==========================
 
-This tutorial describes adding annotations to a :class:`~mne.io.Raw` object,
+This tutorial describes adding annotations to a `~mne.io.Raw` object,
 and how annotations are used in later stages of data processing.
-
-.. contents:: Page contents
-   :local:
-   :depth: 1
 
 As usual we'll start by importing the modules we need, loading some
 :ref:`example data <sample-dataset>`, and (since we won't actually analyze the
-raw data in this tutorial) cropping the :class:`~mne.io.Raw` object to just 60
+raw data in this tutorial) cropping the `~mne.io.Raw` object to just 60
 seconds before loading it into RAM to save memory:
 """
 
@@ -29,12 +25,12 @@ raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False)
 raw.crop(tmax=60).load_data()
 
 ###############################################################################
-# :class:`~mne.Annotations` in MNE-Python are a way of storing short strings of
-# information about temporal spans of a :class:`~mne.io.Raw` object. Below the
-# surface, :class:`~mne.Annotations` are :class:`list-like <list>` objects,
+# `~mne.Annotations` in MNE-Python are a way of storing short strings of
+# information about temporal spans of a `~mne.io.Raw` object. Below the
+# surface, `~mne.Annotations` are `list-like <list>` objects,
 # where each element comprises three pieces of information: an ``onset`` time
 # (in seconds), a ``duration`` (also in seconds), and a ``description`` (a text
-# string). Additionally, the :class:`~mne.Annotations` object itself also keeps
+# string). Additionally, the `~mne.Annotations` object itself also keeps
 # track of ``orig_time``, which is a `POSIX timestamp`_ denoting a real-world
 # time relative to which the annotation onsets should be interpreted.
 #
@@ -44,9 +40,9 @@ raw.crop(tmax=60).load_data()
 # Creating annotations programmatically
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# If you know in advance what spans of the :class:`~mne.io.Raw` object you want
-# to annotate, :class:`~mne.Annotations` can be created programmatically, and
-# you can even pass lists or arrays to the :class:`~mne.Annotations`
+# If you know in advance what spans of the `~mne.io.Raw` object you want
+# to annotate, `~mne.Annotations` can be created programmatically, and
+# you can even pass lists or arrays to the `~mne.Annotations`
 # constructor to annotate multiple spans at once:
 
 my_annot = mne.Annotations(onset=[3, 5, 7],
@@ -56,7 +52,7 @@ print(my_annot)
 
 ###############################################################################
 # Notice that ``orig_time`` is ``None``, because we haven't specified it. In
-# those cases, when you add the annotations to a :class:`~mne.io.Raw` object,
+# those cases, when you add the annotations to a `~mne.io.Raw` object,
 # it is assumed that the ``orig_time`` matches the time of the first sample of
 # the recording, so ``orig_time`` will be set to match the recording
 # measurement date (``raw.info['meas_date']``).
@@ -72,7 +68,7 @@ print(meas_date == orig_time)
 ###############################################################################
 # Since the example data comes from a Neuromag system that starts counting
 # sample numbers before the recording begins, adding ``my_annot`` to the
-# :class:`~mne.io.Raw` object also involved another automatic change: an offset
+# `~mne.io.Raw` object also involved another automatic change: an offset
 # equalling the time of the first recorded sample (``raw.first_samp /
 # raw.info['sfreq']``) was added to the ``onset`` values of each annotation
 # (see :ref:`time-as-index` for more info on ``raw.first_samp``):
@@ -87,7 +83,7 @@ print(raw.annotations.onset)
 # and the onset times will get adjusted based on the time difference between
 # your specified ``orig_time`` and ``raw.info['meas_date']``, but without the
 # additional adjustment for ``raw.first_samp``. ``orig_time`` can be specified
-# in various ways (see the documentation of :class:`~mne.Annotations` for the
+# in various ways (see the documentation of `~mne.Annotations` for the
 # options); here we'll use an `ISO 8601`_ formatted string, and set it to be 50
 # seconds later than ``raw.info['meas_date']``.
 
@@ -108,11 +104,11 @@ print(raw2.annotations.onset)
 # .. note::
 #
 #     If your annotations fall outside the range of data times in the
-#     :class:`~mne.io.Raw` object, the annotations outside the data range will
+#     `~mne.io.Raw` object, the annotations outside the data range will
 #     not be added to ``raw.annotations``, and a warning will be issued.
 #
-# Now that your annotations have been added to a :class:`~mne.io.Raw` object,
-# you can see them when you visualize the :class:`~mne.io.Raw` object:
+# Now that your annotations have been added to a `~mne.io.Raw` object,
+# you can see them when you visualize the `~mne.io.Raw` object:
 
 fig = raw.plot(start=2, duration=6)
 
@@ -121,14 +117,14 @@ fig = raw.plot(start=2, duration=6)
 # have different ``description`` values (which are printed along the top
 # edge of the plot area). Notice also that colored spans appear in the small
 # scroll bar at the bottom of the plot window, making it easy to quickly view
-# where in a :class:`~mne.io.Raw` object the annotations are so you can easily
+# where in a `~mne.io.Raw` object the annotations are so you can easily
 # browse through the data to find and examine them.
 #
 #
 # Annotating Raw objects interactively
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# Annotations can also be added to a :class:`~mne.io.Raw` object interactively
+# Annotations can also be added to a `~mne.io.Raw` object interactively
 # by clicking-and-dragging the mouse in the plot window. To do this, you must
 # first enter "annotation mode" by pressing :kbd:`a` while the plot window is
 # focused; this will bring up the annotation controls window:
@@ -149,13 +145,13 @@ fig.canvas.key_press_event('a')
 # .. warning::
 #
 #     Calling :meth:`~mne.io.Raw.set_annotations` **replaces** any annotations
-#     currently stored in the :class:`~mne.io.Raw` object, so be careful when
+#     currently stored in the `~mne.io.Raw` object, so be careful when
 #     working with annotations that were created interactively (you could lose
 #     a lot of work if you accidentally overwrite your interactive
 #     annotations). A good safeguard is to run
 #     ``interactive_annot = raw.annotations`` after you finish an interactive
 #     annotation session, so that the annotations are stored in a separate
-#     variable outside the :class:`~mne.io.Raw` object.
+#     variable outside the `~mne.io.Raw` object.
 #
 #
 # How annotations affect preprocessing and analysis
@@ -170,18 +166,18 @@ fig.canvas.key_press_event('a')
 # are "annotation aware" and will avoid using data that is annotated with a
 # description that begins with "bad" or "BAD"; such operations typically have a
 # boolean ``reject_by_annotation`` parameter. Examples of such operations are
-# independent components analysis (:class:`mne.preprocessing.ICA`), functions
+# independent components analysis (`mne.preprocessing.ICA`), functions
 # for finding heartbeat and blink artifacts
 # (:func:`~mne.preprocessing.find_ecg_events`,
 # :func:`~mne.preprocessing.find_eog_events`), and creation of epoched data
-# from continuous data (:class:`mne.Epochs`). See :ref:`tut-reject-data-spans`
+# from continuous data (`mne.Epochs`). See :ref:`tut-reject-data-spans`
 # for details.
 #
 #
 # Operations on Annotations objects
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# :class:`~mne.Annotations` objects can be combined by simply adding them with
+# `~mne.Annotations` objects can be combined by simply adding them with
 # the ``+`` operator, as long as they share the same ``orig_time``:
 
 new_annot = mne.Annotations(onset=3.75, duration=0.75, description='AAA')
@@ -196,7 +192,7 @@ raw.plot(start=2, duration=6)
 # new annotations to be merged.
 #
 # Individual annotations can be accessed by indexing an
-# :class:`~mne.Annotations` object, and subsets of the annotations can be
+# `~mne.Annotations` object, and subsets of the annotations can be
 # achieved by either slicing or indexing with a list, tuple, or array of
 # indices:
 
@@ -205,7 +201,7 @@ print(raw.annotations[:2])      # the first two annotations
 print(raw.annotations[(3, 2)])  # the fourth and third annotations
 
 ###############################################################################
-# You can also iterate over the annotations within an :class:`~mne.Annotations`
+# You can also iterate over the annotations within an `~mne.Annotations`
 # object:
 
 for ann in raw.annotations:
@@ -215,9 +211,9 @@ for ann in raw.annotations:
     print("'{}' goes from {} to {}".format(descr, start, end))
 
 ###############################################################################
-# Note that iterating, indexing and slicing :class:`~mne.Annotations` all
+# Note that iterating, indexing and slicing `~mne.Annotations` all
 # return a copy, so changes to an indexed, sliced, or iterated element will not
-# modify the original :class:`~mne.Annotations` object.
+# modify the original `~mne.Annotations` object.
 
 # later_annot WILL be changed, because we're modifying the first element of
 # later_annot.onset directly:
@@ -233,7 +229,7 @@ print(later_annot[0]['onset'])
 # Reading and writing Annotations to/from a file
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# :class:`~mne.Annotations` objects have a :meth:`~mne.Annotations.save` method
+# `~mne.Annotations` objects have a :meth:`~mne.Annotations.save` method
 # which can write :file:`.fif`, :file:`.csv`, and :file:`.txt` formats (the
 # format to write is inferred from the file extension in the filename you
 # provide). There is a corresponding :func:`~mne.read_annotations` function to

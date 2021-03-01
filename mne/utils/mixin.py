@@ -4,7 +4,7 @@
 #
 # License: BSD (3-clause)
 
-
+from collections import OrderedDict
 from copy import deepcopy
 import logging
 import json
@@ -92,40 +92,54 @@ class GetEpochsMixin(object):
         -----
         Epochs can be accessed as ``epochs[...]`` in several ways:
 
-            1. ``epochs[idx]``: Return ``Epochs`` object with a subset of
-               epochs (supports single index and python-style slicing).
+        1. **Integer or slice:** ``epochs[idx]`` will return an `~mne.Epochs`
+           object with a subset of epochs chosen by index (supports single
+           index and Python-style slicing).
 
-            2. ``epochs['name']``: Return ``Epochs`` object with a copy of the
-               subset of epochs corresponding to an experimental condition as
-               specified by 'name'.
+        2. **String:** ``epochs['name']`` will return an `~mne.Epochs` object
+           comprising only the epochs labeled ``'name'`` (i.e., epochs created
+           around events with the label ``'name'``).
 
-               If conditions are tagged by names separated by '/' (e.g.
-               'audio/left', 'audio/right'), and 'name' is not in itself an
-               event key, this selects every event whose condition contains
-               the 'name' tag (e.g., 'left' matches 'audio/left' and
-               'visual/left'; but not 'audio_left'). Note that tags selection
-               is insensitive to order: tags like 'auditory/left' and
-               'left/auditory' will be treated the same way when accessed.
+           If there are no epochs labeled ``'name'`` but there are epochs
+           labeled with /-separated tags (e.g. ``'name/left'``,
+           ``'name/right'``), then ``epochs['name']`` will select the epochs
+           with labels that contain that tag (e.g., ``epochs['left']`` selects
+           epochs labeled ``'audio/left'`` and ``'visual/left'``, but not
+           ``'audio_left'``).
 
-            3. ``epochs[['name_1', 'name_2', ... ]]``: Return ``Epochs`` object
-               with a copy of the subset of epochs corresponding to multiple
-               experimental conditions as specified by
-               ``'name_1', 'name_2', ...`` .
+           If multiple tags are provided *as a single string* (e.g.,
+           ``epochs['name_1/name_2']``), this selects epochs containing *all*
+           provided tags. For example, ``epochs['audio/left']`` selects
+           ``'audio/left'`` and ``'audio/quiet/left'``, but not
+           ``'audio/right'``. Note that tag-based selection is insensitive to
+           order: tags like ``'audio/left'`` and ``'left/audio'`` will be
+           treated the same way when selecting via tag.
 
-               If conditions are separated by '/', selects every item
-               containing every list tag (e.g. ['audio', 'left'] selects
-               'audio/left' and 'audio/center/left', but not 'audio/right').
+        3. **List of strings:** ``epochs[['name_1', 'name_2', ... ]]`` will
+           return an `~mne.Epochs` object comprising epochs that match *any* of
+           the provided names (i.e., the list of names is treated as an
+           inclusive-or condition). If *none* of the provided names match any
+           epoch labels, a ``KeyError`` will be raised.
 
-            4. ``epochs['pandas query']``: Return ``Epochs`` object with a
-               copy of the subset of epochs (and matching metadata) that match
-               ``pandas query`` called with ``self.metadata.eval``, e.g.::
+           If epoch labels are /-separated tags, then providing multiple tags
+           *as separate list entries* will likewise act as an inclusive-or
+           filter. For example, ``epochs[['audio', 'left']]`` would select
+           ``'audio/left'``, ``'audio/right'``, and ``'visual/left'``, but not
+           ``'visual/right'``.
 
-                   epochs["col_a > 2 and col_b == 'foo'"]
+        4. **Pandas query:** ``epochs['pandas query']`` will return an
+           `~mne.Epochs` object with a subset of epochs (and matching
+           metadata) selected by the query called with
+           ``self.metadata.eval``, e.g.::
 
-               This is only called if Pandas is installed and ``self.metadata``
-               is a :class:`pandas.DataFrame`.
+               epochs["col_a > 2 and col_b == 'foo'"]
 
-               .. versionadded:: 0.16
+           would return all epochs whose associated ``col_a`` metadata was
+           greater than two, and whose ``col_b`` metadata was the string 'foo'.
+           Query-based indexing only works if Pandas is installed and
+           ``self.metadata`` is a :class:`pandas.DataFrame`.
+
+           .. versionadded:: 0.16
         """
         return self._getitem(item)
 
@@ -271,7 +285,6 @@ class GetEpochsMixin(object):
             43
             >>> len(epochs.events)  # doctest: +SKIP
             43
-
         """
         from ..epochs import BaseEpochs
         if isinstance(self, BaseEpochs) and not self._bad_dropped:
@@ -299,6 +312,7 @@ class GetEpochsMixin(object):
         :meth:`mne.Epochs.next`.
         """
         self._current = 0
+        self._current_detrend_picks = self._detrend_picks
         return self
 
     def __next__(self, return_event_id=False):
@@ -318,16 +332,17 @@ class GetEpochsMixin(object):
         """
         if self.preload:
             if self._current >= len(self._data):
-                raise StopIteration  # signal the end
+                self._stop_iter()
             epoch = self._data[self._current]
             self._current += 1
         else:
             is_good = False
             while not is_good:
                 if self._current >= len(self.events):
-                    raise StopIteration  # signal the end properly
+                    self._stop_iter()
                 epoch_noproj = self._get_epoch_from_raw(self._current)
-                epoch_noproj = self._detrend_offset_decim(epoch_noproj)
+                epoch_noproj = self._detrend_offset_decim(
+                    epoch_noproj, self._current_detrend_picks)
                 epoch = self._project_epoch(epoch_noproj)
                 self._current += 1
                 is_good, _ = self._is_good_epoch(epoch)
@@ -339,6 +354,11 @@ class GetEpochsMixin(object):
             return epoch
         else:
             return epoch, self.events[self._current - 1][-1]
+
+    def _stop_iter(self):
+        del self._current
+        del self._current_detrend_picks
+        raise StopIteration  # signal the end
 
     next = __next__  # originally for Python2, now b/c public
 
@@ -413,7 +433,7 @@ def _prepare_read_metadata(metadata):
         pd = _check_pandas_installed(strict=False)
         # use json.loads because this preserves ordering
         # (which is necessary for round-trip equivalence)
-        metadata = json.loads(metadata, object_pairs_hook=dict)
+        metadata = json.loads(metadata, object_pairs_hook=OrderedDict)
         assert isinstance(metadata, list)
         if pd:
             metadata = pd.DataFrame.from_records(metadata)

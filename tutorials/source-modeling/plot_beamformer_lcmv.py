@@ -3,19 +3,12 @@ Source reconstruction using an LCMV beamformer
 ==============================================
 
 This tutorial gives an overview of the beamformer method
-and shows how to use an LCMV beamformer to reconstruct source
-activity.
-
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
+and shows how to use an LCMV beamformer to reconstruct source activity.
 """
-# Author: Britta Westner <britta.wstnr@gmail.com>
+# Authors: Britta Westner <britta.wstnr@gmail.com>
+#          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD (3-clause)
-
-# sphinx_gallery_thumbnail_number = 5
 
 import matplotlib.pyplot as plt
 import mne
@@ -69,8 +62,10 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
                     baseline=(None, 0), preload=True, proj=proj,
                     reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
 
+# for speed purposes, cut to a window of interest
+evoked = epochs.average().crop(0.05, 0.15)
+
 # Visualize averaged sensor space data
-evoked = epochs.average()
 evoked.plot_joint()
 
 del raw  # save memory
@@ -100,8 +95,8 @@ data_cov = mne.compute_covariance(epochs, tmin=0.01, tmax=0.25,
                                   method='empirical')
 noise_cov = mne.compute_covariance(epochs, tmin=tmin, tmax=0,
                                    method='empirical')
-
 data_cov.plot(epochs.info)
+del epochs
 
 ###############################################################################
 # When looking at the covariance matrix plots, we can see that our data is
@@ -127,7 +122,6 @@ data_cov.plot(epochs.info)
 
 fwd_fname = data_path + '/MEG/sample/sample_audvis-meg-vol-7-fwd.fif'
 forward = mne.read_forward_solution(fwd_fname)
-
 
 ###############################################################################
 # Handling depth bias
@@ -178,6 +172,9 @@ filters = make_lcmv(evoked.info, forward, data_cov, reg=0.05,
 filters_vec = make_lcmv(evoked.info, forward, data_cov, reg=0.05,
                         noise_cov=noise_cov, pick_ori='vector',
                         weight_norm='unit-noise-gain', rank=None)
+# save a bit of memory
+src = forward['src']
+del forward
 
 ###############################################################################
 # Apply the spatial filter
@@ -193,32 +190,51 @@ filters_vec = make_lcmv(evoked.info, forward, data_cov, reg=0.05,
 
 stc = apply_lcmv(evoked, filters, max_ori_out='signed')
 stc_vec = apply_lcmv(evoked, filters_vec, max_ori_out='signed')
+del filters, filters_vec
 
 ###############################################################################
 # Visualize the reconstructed source activity
 # -------------------------------------------
-# We can visualize the source estimate in different ways, e.g. as an overlay
-# onto the MRI or as a glass brain.
+# We can visualize the source estimate in different ways, e.g. as a volume
+# rendering, an overlay onto the MRI, or as an overlay onto a glass brain.
+#
 # The plots for the scalar beamformer show brain activity in the right temporal
 # lobe around 100 ms post stimulus. This is expected given the left-ear
 # auditory stimulation of the experiment.
 
 lims = [0.3, 0.45, 0.6]
-
-kwargs = dict(src=forward['src'], subject='sample', subjects_dir=subjects_dir,
+kwargs = dict(src=src, subject='sample', subjects_dir=subjects_dir,
               initial_time=0.087, verbose=True)
 
-stc.plot(mode='stat_map', clim=dict(kind='value', pos_lims=lims), **kwargs)
 ###############################################################################
+# On MRI slices (orthoview; 2D)
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+stc.plot(mode='stat_map', clim=dict(kind='value', pos_lims=lims), **kwargs)
+
+###############################################################################
+# On MNI glass brain (orthoview; 2D)
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 stc.plot(mode='glass_brain', clim=dict(kind='value', lims=lims), **kwargs)
 
 ###############################################################################
-# Now let's visualize the vector beamformer case. Here we get three source time
-# courses out per voxel (one for each component of the dipole moment: x, y,
-# and z). To be able to visualize this, the plotting function combines those
-# estimates into one:
+# Volumetric rendering (3D) with vectors
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# These plots can also be shown using a volumetric rendering via
+# :meth:`~mne.VolVectorSourceEstimate.plot_3d`. Let's try visualizing the
+# vector beamformer case. Here we get three source time courses out per voxel
+# (one for each component of the dipole moment: x, y, and z), which appear
+# as small vectors in the visualization (in the 2D plotters, only the
+# magnitude can be shown):
 
-stc_vec.plot(mode='stat_map', clim=dict(kind='value', pos_lims=lims), **kwargs)
+# sphinx_gallery_thumbnail_number = 7
+
+brain = stc_vec.plot_3d(
+    clim=dict(kind='value', lims=lims), hemi='both',
+    views=['coronal', 'sagittal', 'axial'], size=(800, 300),
+    view_layout='horizontal', show_traces=0.3,
+    brain_kwargs=dict(silhouette=True), **kwargs)
 
 ###############################################################################
 # Visualize the activity of the maximum voxel with all three components
@@ -236,6 +252,7 @@ ax.legend(loc='lower right')
 ax.set(title='Activity per orientation in the peak voxel', xlabel='Time (s)',
        ylabel='Amplitude (a. u.)')
 mne.viz.utils.plt_show()
+del stc_vec
 
 ###############################################################################
 # Morph the output to fsaverage
@@ -253,11 +270,11 @@ fname_fs_src = subjects_dir + '/fsaverage/bem/fsaverage-vol-5-src.fif'
 
 src_fs = mne.read_source_spaces(fname_fs_src)
 morph = mne.compute_source_morph(
-    forward['src'], subject_from='sample', src_to=src_fs,
-    subjects_dir=subjects_dir,
+    src, subject_from='sample', src_to=src_fs, subjects_dir=subjects_dir,
     niter_sdr=[10, 10, 5], niter_affine=[10, 10, 5],  # just for speed
     verbose=True)
-stc_fs = morph.apply(stc.crop(0.05, 0.15))
+stc_fs = morph.apply(stc)
+del stc
 
 stc_fs.plot(
     src=src_fs, mode='stat_map', initial_time=0.085, subjects_dir=subjects_dir,

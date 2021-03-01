@@ -21,7 +21,7 @@ from mne.utils import (_get_inst_data, hashfunc,
                        _undo_scaling_array, _PCA, requires_sklearn,
                        _array_equal_nan, _julian_to_cal, _cal_to_julian,
                        _dt_to_julian, _julian_to_dt, grand_average,
-                       _ReuseCycle)
+                       _ReuseCycle, requires_version, numerics)
 
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -236,10 +236,14 @@ def test_cov_scaling():
     assert_allclose(data, evoked.data, atol=1e-20)
 
 
-def test_reg_pinv():
+@requires_version('numpy', '1.17')  # hermitian kwarg
+@pytest.mark.parametrize('ndim', (2, 3))
+def test_reg_pinv(ndim):
     """Test regularization and inversion of covariance matrix."""
     # create rank-deficient array
     a = np.array([[1., 0., 1.], [0., 1., 0.], [1., 0., 1.]])
+    for _ in range(ndim - 2):
+        a = a[np.newaxis]
 
     # Test if rank-deficient matrix without regularization throws
     # specific warning
@@ -247,7 +251,7 @@ def test_reg_pinv():
         _reg_pinv(a, reg=0.)
 
     # Test inversion with explicit rank
-    a_inv_np = np.linalg.pinv(a)
+    a_inv_np = np.linalg.pinv(a, hermitian=True)
     a_inv_mne, loading_factor, rank = _reg_pinv(a, rank=2)
     assert loading_factor == 0
     assert rank == 2
@@ -266,7 +270,7 @@ def test_reg_pinv():
     # The estimated rank should be that of the non-regularized matrix
     assert estimated_rank == 2
     # Test result against the NumPy version
-    a_inv_np = np.linalg.pinv(a + loading_factor * np.eye(3))
+    a_inv_np = np.linalg.pinv(a + loading_factor * np.eye(3), hermitian=True)
     assert_allclose(a_inv_np, a_inv_mne, atol=1e-14)
 
     # Test setting rcond
@@ -300,6 +304,21 @@ def test_object_size():
         size = object_size(obj)
         assert lower < size < upper, \
             '%s < %s < %s:\n%s' % (lower, size, upper, obj)
+    # views work properly
+    x = dict(a=1)
+    assert object_size(x) < 1000
+    x['a'] = np.ones(100000, float)
+    nb = x['a'].nbytes
+    sz = object_size(x)
+    assert nb < sz < nb * 1.01
+    x['b'] = x['a']
+    sz = object_size(x)
+    assert nb < sz < nb * 1.01
+    x['b'] = x['a'].view()
+    x['b'].flags.writeable = False
+    assert x['a'].flags.writeable
+    sz = object_size(x)
+    assert nb < sz < nb * 1.01
 
 
 def test_object_diff_with_nan():
@@ -310,6 +329,8 @@ def test_object_diff_with_nan():
 
     assert object_diff(d0, d1) == ''
     assert object_diff(d0, d2) != ''
+    assert object_diff(np.nan, np.nan) == ''
+    assert object_diff(np.nan, 3.5) == ' value mismatch (nan, 3.5)\n'
 
 
 def test_hash():
@@ -399,7 +420,7 @@ def test_hash():
 
 
 @requires_sklearn
-@pytest.mark.parametrize('n_components', (None, 0.8, 8, 'mle'))
+@pytest.mark.parametrize('n_components', (None, 0.9999, 8, 'mle'))
 @pytest.mark.parametrize('whiten', (True, False))
 def test_pca(n_components, whiten):
     """Test PCA equivalence."""
@@ -415,12 +436,13 @@ def test_pca(n_components, whiten):
     X_mne = pca_mne.fit_transform(X)
     assert_array_equal(X, X_orig)
     assert_allclose(X_skl, X_mne)
+    assert pca_mne.n_components_ == pca_skl.n_components_
     for key in ('mean_', 'components_',
                 'explained_variance_', 'explained_variance_ratio_'):
         val_skl, val_mne = getattr(pca_skl, key), getattr(pca_mne, key)
         assert_allclose(val_skl, val_mne)
     if isinstance(n_components, float):
-        assert 1 < pca_mne.n_components_ < n_dim
+        assert pca_mne.n_components_ == n_dim - 1
     elif isinstance(n_components, int):
         assert pca_mne.n_components_ == n_components
     elif n_components == 'mle':
@@ -508,3 +530,12 @@ def test_reuse_cycle():
         iterable.restore('a')
     assert ''.join(next(iterable) for _ in range(4)) == 'acde'
     assert ''.join(next(iterable) for _ in range(5)) == 'abcde'
+
+
+@pytest.mark.parametrize('n', (0, 1, 10, 1000))
+@pytest.mark.parametrize('d', (0.0001, 1, 2.5, 1000))
+def test_arange_div(numba_conditional, n, d):
+    """Test Numba arange_div."""
+    want = np.arange(n) / d
+    got = numerics._arange_div(n, d)
+    assert_allclose(got, want)

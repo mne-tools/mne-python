@@ -8,10 +8,6 @@ Overview of artifact detection
 This tutorial covers the basics of artifact detection, and introduces the
 artifact detection tools available in MNE-Python.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 We begin as always by importing the necessary Python modules and loading some
 :ref:`example data <sample-dataset>`:
 """
@@ -141,7 +137,7 @@ raw.plot(duration=60, order=mag_channels, n_channels=len(mag_channels),
 
 fig = raw.plot_psd(tmax=np.inf, fmax=250, average=True)
 # add some arrows at 60 Hz and its harmonics:
-for ax in fig.axes[:2]:
+for ax in fig.axes[1:]:
     freqs = ax.lines[-1].get_xdata()
     psds = ax.lines[-1].get_ydata()
     for freq in (60, 120, 180, 240):
@@ -174,7 +170,7 @@ for ax in fig.axes[:2]:
 # show all three channel types, even though EEG channels are less strongly
 # affected by heartbeat artifacts:
 
-# sphinx_gallery_thumbnail_number = 3
+# sphinx_gallery_thumbnail_number = 4
 ecg_epochs = mne.preprocessing.create_ecg_epochs(raw)
 ecg_epochs.plot_image(combine='mean')
 
@@ -189,7 +185,7 @@ ecg_epochs.plot_image(combine='mean')
 # via the :meth:`~mne.Epochs.average` method, and then using the
 # :meth:`mne.Evoked.plot_topomap` method:
 
-avg_ecg_epochs = ecg_epochs.average()
+avg_ecg_epochs = ecg_epochs.average().apply_baseline((-0.5, -0.2))
 
 ###############################################################################
 # Here again we can visualize the spatial pattern of the associated field at

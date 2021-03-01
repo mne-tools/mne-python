@@ -1,7 +1,7 @@
 """
-===================================================================
-Compute MNE inverse solution on evoked data in a mixed source space
-===================================================================
+=====================================================================
+Compute MNE inverse solution on evoked data with a mixed source space
+=====================================================================
 
 Create a mixed source space and compute an MNE inverse solution on an
 evoked dataset.
@@ -71,16 +71,16 @@ vol_src = mne.setup_volume_source_space(
 
 # Generate the mixed source space
 src += vol_src
-
-# Visualize the source space.
-src.plot(subjects_dir=subjects_dir)
-
-n = sum(src[i]['nuse'] for i in range(len(src)))
-print('the src space contains %d spaces and %d points' % (len(src), n))
+print(f"The source space contains {len(src)} spaces and "
+      f"{sum(s['nuse'] for s in src)} vertices")
 
 ###############################################################################
-# Viewing the source space
-# ------------------------
+# View the source space
+# ---------------------
+
+src.plot(subjects_dir=subjects_dir)
+
+###############################################################################
 # We could write the mixed source space with::
 #
 #    >>> write_source_spaces(fname_mixed_src, src, overwrite=True)
@@ -98,13 +98,12 @@ fwd = mne.make_forward_solution(
     fname_evoked, fname_trans, src, fname_bem,
     mindist=5.0,  # ignore sources<=5mm from innerskull
     meg=True, eeg=False, n_jobs=1)
+del src  # save memory
 
 leadfield = fwd['sol']['data']
 print("Leadfield size : %d sensors x %d dipoles" % leadfield.shape)
-
-src_fwd = fwd['src']
-n = sum(src_fwd[i]['nuse'] for i in range(len(src_fwd)))
-print('the fwd src space contains %d spaces and %d points' % (len(src_fwd), n))
+print(f"The fwd source space contains {len(fwd['src'])} spaces and "
+      f"{sum(s['nuse'] for s in fwd['src'])} vertices")
 
 # Load data
 condition = 'Left Auditory'
@@ -118,27 +117,40 @@ noise_cov = mne.read_cov(fname_cov)
 snr = 3.0            # use smaller SNR for raw data
 inv_method = 'dSPM'  # sLORETA, MNE, dSPM
 parc = 'aparc'       # the parcellation to use, e.g., 'aparc' 'aparc.a2009s'
+loose = dict(surface=0.2, volume=1.)
 
 lambda2 = 1.0 / snr ** 2
 
-inverse_operator = make_inverse_operator(evoked.info, fwd, noise_cov,
-                                         depth=None, fixed=False)
+inverse_operator = make_inverse_operator(
+    evoked.info, fwd, noise_cov, depth=None, loose=loose, verbose=True)
+del fwd
 
 stc = apply_inverse(evoked, inverse_operator, lambda2, inv_method,
                     pick_ori=None)
 src = inverse_operator['src']
 
 ###############################################################################
+# Plot the mixed source estimate
+# ------------------------------
+
+# sphinx_gallery_thumbnail_number = 3
+initial_time = 0.1
+stc_vec = apply_inverse(evoked, inverse_operator, lambda2, inv_method,
+                        pick_ori='vector')
+brain = stc_vec.plot(
+    hemi='both', src=inverse_operator['src'], views='coronal',
+    initial_time=initial_time, subjects_dir=subjects_dir,
+    brain_kwargs=dict(silhouette=True))
+
+###############################################################################
 # Plot the surface
 # ----------------
-initial_time = 0.1
 brain = stc.surface().plot(initial_time=initial_time,
                            subjects_dir=subjects_dir)
 ###############################################################################
 # Plot the volume
 # ----------------
 
-# sphinx_gallery_thumbnail_number = 4
 fig = stc.volume().plot(initial_time=initial_time, src=src,
                         subjects_dir=subjects_dir)
 
@@ -158,7 +170,7 @@ label_ts = mne.extract_label_time_course(
 # plot the times series of 2 labels
 fig, axes = plt.subplots(1)
 axes.plot(1e3 * stc.times, label_ts[0][0, :], 'k', label='bankssts-lh')
-axes.plot(1e3 * stc.times, label_ts[0][71, :].T, 'r', label='Brain-stem')
+axes.plot(1e3 * stc.times, label_ts[0][-1, :].T, 'r', label='Brain-stem')
 axes.set(xlabel='Time (ms)', ylabel='MNE current (nAm)')
 axes.legend()
 mne.viz.tight_layout()

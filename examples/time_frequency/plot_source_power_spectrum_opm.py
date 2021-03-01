@@ -17,10 +17,6 @@ The steps we use are:
 4. Frequency: power spectral density (Welch), 4 sec window, 50% overlap.
 5. Standardize: normalize by relative power for each source.
 
-.. contents::
-   :local:
-   :depth: 1
-
 .. _bst_omega: https://neuroimage.usc.edu/brainstorm/Tutorials/RestingOmega
 
 Preprocessing
@@ -122,20 +118,30 @@ src = mne.setup_source_space(
 del src[0]['dist'], src[1]['dist']
 bem = mne.read_bem_solution(bem_fname)
 fwd = dict()
-trans = dict(vv=vv_trans_fname, opm=opm_trans_fname)
-# check alignment and generate forward
+
+# check alignment and generate forward for VectorView
+kwargs = dict(azimuth=0, elevation=90, distance=0.6, focalpoint=(0., 0., 0.))
+fig = mne.viz.plot_alignment(
+    raws['vv'].info, trans=vv_trans_fname, subject=subject,
+    subjects_dir=subjects_dir, dig=True, coord_frame='mri',
+    surfaces=('head', 'white'))
+mne.viz.set_3d_view(figure=fig, **kwargs)
+fwd['vv'] = mne.make_forward_solution(
+    raws['vv'].info, vv_trans_fname, src, bem, eeg=False, verbose=True)
+
+##############################################################################
+# And for OPM:
+
 with mne.use_coil_def(opm_coil_def_fname):
-    for kind in kinds:
-        dig = True if kind == 'vv' else False
-        fig = mne.viz.plot_alignment(
-            raws[kind].info, trans=trans[kind], subject=subject,
-            subjects_dir=subjects_dir, dig=dig, coord_frame='mri',
-            surfaces=('head', 'white'))
-        mne.viz.set_3d_view(figure=fig, azimuth=0, elevation=90,
-                            distance=0.6, focalpoint=(0., 0., 0.))
-        fwd[kind] = mne.make_forward_solution(
-            raws[kind].info, trans[kind], src, bem, eeg=False, verbose=True)
-del trans, src, bem
+    fig = mne.viz.plot_alignment(
+        raws['opm'].info, trans=opm_trans_fname, subject=subject,
+        subjects_dir=subjects_dir, dig=False, coord_frame='mri',
+        surfaces=('head', 'white'))
+    mne.viz.set_3d_view(figure=fig, **kwargs)
+    fwd['opm'] = mne.make_forward_solution(
+        raws['opm'].info, opm_trans_fname, src, bem, eeg=False, verbose=True)
+
+del src, bem
 
 ##############################################################################
 # Compute and apply inverse to PSD estimated using multitaper + Welch.
@@ -187,6 +193,7 @@ def plot_band(kind, band):
     brain = stcs[kind][band].plot(
         subject=subject, subjects_dir=subjects_dir, views='cau', hemi='both',
         time_label=title, title=title, colormap='inferno',
+        time_viewer=False, show_traces=False,
         clim=dict(kind='percent', lims=(70, 85, 99)), smoothing_steps=10)
     brain.show_view(dict(azimuth=0, elevation=0), roll=0)
     return fig, brain
@@ -204,9 +211,12 @@ fig_alpha, brain_alpha = plot_band('vv', 'alpha')
 # Beta
 # ----
 # Here we also show OPM data, which shows a profile similar to the VectorView
-# data beneath the sensors.
+# data beneath the sensors. VectorView first:
 
 fig_beta, brain_beta = plot_band('vv', 'beta')
+
+###############################################################################
+# Then OPM:
 fig_beta_opm, brain_beta_opm = plot_band('opm', 'beta')
 
 ###############################################################################

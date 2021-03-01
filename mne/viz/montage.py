@@ -67,8 +67,8 @@ def plot_montage(montage, scale_factor=20, show_names=True, kind='topomap',
         montage = make_dig_montage(ch_pos=ch_pos, **fid)
 
     info = create_info(ch_names, sfreq=256, ch_types="eeg")
-    RawArray(np.zeros((len(ch_names), 1)), info,
-             copy=None).set_montage(montage)
+    raw = RawArray(np.zeros((len(ch_names), 1)), info, copy=None)
+    raw.set_montage(montage, on_missing='ignore')
     fig = plot_sensors(info, kind=kind, show_names=show_names, show=show,
                        title=title, sphere=sphere)
     collection = fig.axes[0].collections[0]

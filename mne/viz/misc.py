@@ -21,23 +21,55 @@ from distutils.version import LooseVersion
 from collections import defaultdict
 
 import numpy as np
-from scipy import linalg
 
 from ..defaults import DEFAULTS
 from ..fixes import _get_img_fdata
 from ..rank import compute_rank
+from ..source_space import _mri_orientation
 from ..surface import read_surface
+from ..io.constants import FIFF
 from ..io.proj import make_projector
 from ..io.pick import (_DATA_CH_TYPES_SPLIT, pick_types, pick_info,
                        pick_channels)
 from ..source_space import (read_source_spaces, SourceSpaces, _read_mri_info,
                             _check_mri, _ensure_src)
-from ..transforms import invert_transform, apply_trans
+from ..transforms import invert_transform, apply_trans, _frame_to_str
 from ..utils import (logger, verbose, warn, _check_option, get_subjects_dir,
-                     _mask_to_onsets_offsets, _pl)
+                     _mask_to_onsets_offsets, _pl, _on_missing)
 from ..io.pick import _picks_by_type
 from ..filter import estimate_ringing_samples
-from .utils import tight_layout, _get_color_list, _prepare_trellis, plt_show
+from .utils import (tight_layout, _get_color_list, _prepare_trellis, plt_show,
+                    _figure_agg)
+
+
+def _index_info_cov(info, cov, exclude):
+    if exclude == 'bads':
+        exclude = info['bads']
+    info = pick_info(info, pick_channels(info['ch_names'], cov['names'],
+                                         exclude))
+    del exclude
+    picks_list = \
+        _picks_by_type(info, meg_combined=False, ref_meg=False,
+                       exclude=())
+    picks_by_type = dict(picks_list)
+
+    ch_names = [n for n in cov.ch_names if n in info['ch_names']]
+    ch_idx = [cov.ch_names.index(n) for n in ch_names]
+
+    info_ch_names = info['ch_names']
+    idx_by_type = defaultdict(list)
+    for ch_type, sel in picks_by_type.items():
+        idx_by_type[ch_type] = [ch_names.index(info_ch_names[c])
+                                for c in sel if info_ch_names[c] in ch_names]
+    idx_names = [(idx_by_type[key],
+                  '%s covariance' % DEFAULTS['titles'][key],
+                  DEFAULTS['units'][key],
+                  DEFAULTS['scalings'][key],
+                  key)
+                 for key in _DATA_CH_TYPES_SPLIT
+                 if len(idx_by_type[key]) > 0]
+    C = cov.data[ch_idx][:, ch_idx]
+    return info, C, ch_names, idx_names
 
 
 @verbose
@@ -84,36 +116,13 @@ def plot_cov(cov, info, exclude=(), colorbar=True, proj=False, show_svd=True,
     .. versionchanged:: 0.19
        Approximate ranks for each channel type are shown with red dashed lines.
     """
-    from ..cov import Covariance
     import matplotlib.pyplot as plt
     from matplotlib.colors import Normalize
+    from scipy import linalg
+    from ..cov import Covariance
 
-    if exclude == 'bads':
-        exclude = info['bads']
-    info = pick_info(info, pick_channels(info['ch_names'], cov['names'],
-                                         exclude))
-    del exclude
-    picks_list = \
-        _picks_by_type(info, meg_combined=False, ref_meg=False,
-                       exclude=())
-    picks_by_type = dict(picks_list)
-
-    ch_names = [n for n in cov.ch_names if n in info['ch_names']]
-    ch_idx = [cov.ch_names.index(n) for n in ch_names]
-
-    info_ch_names = info['ch_names']
-    idx_by_type = defaultdict(list)
-    for ch_type, sel in picks_by_type.items():
-        idx_by_type[ch_type] = [ch_names.index(info_ch_names[c])
-                                for c in sel if info_ch_names[c] in ch_names]
-    idx_names = [(idx_by_type[key],
-                  '%s covariance' % DEFAULTS['titles'][key],
-                  DEFAULTS['units'][key],
-                  DEFAULTS['scalings'][key],
-                  key)
-                 for key in _DATA_CH_TYPES_SPLIT
-                 if len(idx_by_type[key]) > 0]
-    C = cov.data[ch_idx][:, ch_idx]
+    info, C, ch_names, idx_names = _index_info_cov(info, cov, exclude)
+    del cov, exclude
 
     projs = []
     if proj:
@@ -295,24 +304,9 @@ def plot_source_spectrogram(stcs, freq_bins, tmin=None, tmax=None,
     return fig
 
 
-def _mri_ori(nim, orientation):
-    import nibabel as nib
-    axcodes = ''.join(nib.orientations.aff2axcodes(nim.affine))
-    flips = {o: (1 if o in axcodes else -1) for o in 'RAS'}
-    axcodes = axcodes.replace('L', 'R').replace('P', 'A').replace('I', 'S')
-    order = dict(
-        coronal=('R', 'S', 'A'),
-        axial=('R', 'A', 'S'),
-        sagittal=('A', 'S', 'R'),
-    )[orientation]
-    xyz = [axcodes.index(c) for c in order]
-    flips = [flips[c] for c in order]
-    return xyz, flips, order
-
-
 def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
                        slices=None, show=True, show_indices=False,
-                       show_orientation=False, img_output=False):
+                       show_orientation=False, img_output=False, width=512):
     """Plot BEM contours on anatomical slices."""
     import matplotlib.pyplot as plt
     from matplotlib import patheffects
@@ -326,7 +320,8 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
     del vox_mri_t
 
     # plot axes (x, y, z) as data axes
-    (x, y, z), (flip_x, flip_y, flip_z), order = _mri_ori(nim, orientation)
+    (x, y, z), (flip_x, flip_y, flip_z), order = _mri_orientation(
+        nim, orientation)
     transpose = x < y
 
     data = _get_img_fdata(nim)
@@ -356,23 +351,36 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
         surf['rr'] = apply_trans(mri_vox_t, surf['rr'])
         surfs.append((surf, color))
 
-    src_points = list()
+    sources = list()
     if src is not None:
         _ensure_src(src, extra=' or None')
+        # Eventually we can relax this by allowing ``trans`` if need be
+        if src[0]['coord_frame'] != FIFF.FIFFV_COORD_MRI:
+            raise ValueError(
+                'Source space must be in MRI coordinates, got '
+                f'{_frame_to_str[src[0]["coord_frame"]]}')
+        for src_ in src:
+            points = src_['rr'][src_['inuse'].astype(bool)]
+            sources.append(apply_trans(mri_vox_t, points * 1e3))
+        sources = np.concatenate(sources, axis=0)
 
     if img_output:
         n_col = n_axes = 1
-        fig, ax = plt.subplots(1, 1, figsize=(7.0, 7.0))
+        dpi = 96
+        # 2x standard MRI resolution is probably good enough for the
+        # traces
+        w = width / dpi
+        figsize = (w, w / data.shape[x] * data.shape[y])
+        fig = _figure_agg(figsize=figsize, dpi=dpi, facecolor='k')
+        ax = fig.add_axes([0, 0, 1, 1], frame_on=False, facecolor='k')
         axs = [ax] * len(slices)
-
-        w = fig.get_size_inches()[0]
-        fig.set_size_inches([w, w / data.shape[x] * data.shape[y]])
         plt.close(fig)
     else:
         n_col = 4
         fig, axs, _, _ = _prepare_trellis(len(slices), n_col)
+        fig.set_facecolor('k')
+        dpi = fig.get_dpi()
         n_axes = len(axs)
-    fig.set_facecolor('k')
     bounds = np.concatenate(
         [[-np.inf], slices[:-1] + np.diff(slices) / 2., [np.inf]])  # float
     slicer = [slice(None)] * 3
@@ -407,7 +415,7 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
                               levels=[sl], colors=color, linewidths=1.0,
                               zorder=1)
 
-        for sources in src_points:
+        if len(sources):
             in_slice = (sources[:, z] >= lower) & (sources[:, z] < upper)
             ax.scatter(flip_x * sources[in_slice, x] + shift_x,
                        flip_y * sources[in_slice, y] + shift_y,
@@ -435,13 +443,13 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
         if img_output:
             output = BytesIO()
             fig.savefig(output, bbox_inches='tight',
-                        pad_inches=0, format='png')
+                        pad_inches=0, format='png', dpi=dpi)
             out.append(base64.b64encode(output.getvalue()).decode('ascii'))
 
     fig.subplots_adjust(left=0., bottom=0., right=1., top=1., wspace=0.,
                         hspace=0.)
     plt_show(show, fig=fig)
-    return out
+    return out, flip_z
 
 
 def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
@@ -552,7 +560,7 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
 
     # Plot the contours
     return _plot_mri_contours(mri_fname, surfaces, src, orientation, slices,
-                              show, show_indices, show_orientation)
+                              show, show_indices, show_orientation)[0]
 
 
 def _get_bem_plotting_surfaces(bem_path):
@@ -568,8 +576,10 @@ def _get_bem_plotting_surfaces(bem_path):
     return surfaces
 
 
+@verbose
 def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
-                axes=None, equal_spacing=True, show=True):
+                axes=None, equal_spacing=True, show=True, on_missing='raise',
+                verbose=None):
     """Plot events to get a visual display of the paradigm.
 
     Parameters
@@ -599,6 +609,8 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
         Use equal spacing between events in y-axis.
     show : bool
         Show figure if True.
+    %(on_missing_events)s
+    %(verbose)s
 
     Returns
     -------
@@ -627,15 +639,22 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
         conditions, unique_events_id = zip(*sorted(event_id.items(),
                                                    key=lambda x: x[1]))
 
-        for this_event in unique_events_id:
+        keep = np.ones(len(unique_events_id), bool)
+        for ii, this_event in enumerate(unique_events_id):
             if this_event not in unique_events:
-                raise ValueError('%s from event_id is not present in events.'
-                                 % this_event)
+                msg = f'{this_event} from event_id is not present in events.'
+                _on_missing(on_missing, msg)
+                keep[ii] = False
+        conditions = [cond for cond, k in zip(conditions, keep) if k]
+        unique_events_id = [id_ for id_, k in zip(unique_events_id, keep) if k]
+        if len(unique_events_id) == 0:
+            raise RuntimeError('No usable event IDs found')
 
         for this_event in unique_events:
             if this_event not in unique_events_id:
                 warn('event %s missing from event_id will be ignored'
                      % this_event)
+
     else:
         unique_events_id = unique_events
 
@@ -679,7 +698,7 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
     else:
         ax.set_ylim([min_event - 1, max_event + 1])
 
-    ax.set(xlabel=xlabel, ylabel='Events id', xlim=[0, max_x])
+    ax.set(xlabel=xlabel, ylabel='Event id', xlim=[0, max_x])
 
     ax.grid(True)
 

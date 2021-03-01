@@ -4,7 +4,7 @@
 
 import numpy as np
 
-from ..annotations import _annotations_starts_stops
+from ..annotations import _annotations_starts_stops, Annotations
 from ..io import BaseRaw
 from ..io.pick import _picks_to_idx
 from ..utils import (_validate_type, verbose, logger, _pl,
@@ -12,9 +12,9 @@ from ..utils import (_validate_type, verbose, logger, _pl,
 
 
 @verbose
-def mark_flat(raw, bad_percent=5., min_duration=0.005, picks=None,
-              verbose=None):
-    r"""Mark flat segments of raw data using annotations or in info['bads'].
+def annotate_flat(raw, bad_percent=5., min_duration=0.005, picks=None,
+                  verbose=None):
+    """Annotate flat segments of raw data (or add to a bad channel list).
 
     Parameters
     ----------
@@ -36,8 +36,10 @@ def mark_flat(raw, bad_percent=5., min_duration=0.005, picks=None,
 
     Returns
     -------
-    raw : instance of Raw
-        The modified raw instance. Operates in place.
+    annot : instance of Annotations
+        The annotated bad segments.
+    bads : list
+        The channels detected as bad.
 
     Notes
     -----
@@ -94,11 +96,10 @@ def mark_flat(raw, bad_percent=5., min_duration=0.005, picks=None,
                 % (100 * any_flat[idx].mean(), len(starts), _pl(starts),
                    len(bads), len(picks), _pl(bads),
                    (': %s' % (bads,)) if bads else ''))
-    add_bads = [bad for bad in bads if bad not in raw.info['bads']]
-    raw.info['bads'] = list(raw.info['bads']) + add_bads
-    if len(starts) > 0:
-        starts, stops = np.array(starts), np.array(stops)
-        onsets = (starts + raw.first_samp) / raw.info['sfreq']
-        durations = (stops - starts) / raw.info['sfreq']
-        raw.annotations.append(onsets, durations, ['BAD_flat'] * len(onsets))
-    return raw
+    bads = [bad for bad in bads if bad not in raw.info['bads']]
+    starts, stops = np.array(starts), np.array(stops)
+    onsets = (starts + raw.first_samp) / raw.info['sfreq']
+    durations = (stops - starts) / raw.info['sfreq']
+    annot = Annotations(onsets, durations, ['BAD_flat'] * len(onsets),
+                        orig_time=raw.annotations.orig_time)
+    return annot, bads

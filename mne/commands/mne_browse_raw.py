@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 r"""Browse raw data.
 
+This uses :func:`mne.io.read_raw` so it supports the same formats
+(without keyword arguments).
+
 Examples
 --------
 .. code-block:: console
@@ -105,8 +108,10 @@ def run():
         parser.print_help()
         sys.exit(1)
 
-    raw = mne.io.read_raw_fif(raw_in, preload=preload,
-                              allow_maxshield=maxshield)
+    kwargs = dict(preload=preload)
+    if maxshield:
+        kwargs.update(allow_maxshield='yes')
+    raw = mne.io.read_raw(raw_in, **kwargs)
     if len(proj_in) > 0:
         projs = mne.read_proj(proj_in)
         raw.info['projs'] = projs

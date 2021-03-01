@@ -181,7 +181,7 @@ def _bem_specify_coils(bem, coils, coord_frame, mults, n_jobs):
 
     Parameters
     ----------
-    bem : dict
+    bem : instance of ConductorModel
         BEM information
     coils : list of dict, len(n_MEG_sensors)
         MEG sensor information dicts
@@ -231,7 +231,7 @@ def _bem_specify_els(bem, els, mults):
 
     Parameters
     ----------
-    bem : dict
+    bem : instance of ConductorModel
         BEM information
     els : list of dict, len(n_EEG_sensors)
         List of EEG sensor information dicts
@@ -475,10 +475,11 @@ def _do_prim_curr(rr, coils):
     del coils
     pc = np.empty((len(rr) * 3, n_coils))
     for start, stop in _rr_bounds(rr, chunk=1):
-        p = _bem_inf_fields(rr[start:stop], rmags, cosmags)
-        p *= ws
-        p.shape = (3 * (stop - start), -1)
-        pc[3 * start:3 * stop] = [bincount(bins, pp, bins[-1] + 1) for pp in p]
+        pp = _bem_inf_fields(rr[start:stop], rmags, cosmags)
+        pp *= ws
+        pp.shape = (3 * (stop - start), -1)
+        pc[3 * start:3 * stop] = [bincount(bins, this_pp, bins[-1] + 1)
+                                  for this_pp in pp]
     return pc
 
 
@@ -732,7 +733,7 @@ def _prep_field_computation(rr, bem, fwd_data, n_jobs, verbose=None):
     ----------
     rr : ndarray, shape (n_dipoles, 3)
         3D dipole source positions in head coordinates
-    bem : dict
+    bem : instance of ConductorModel
         Boundary Element Model information
     fwd_data : dict
         Dict containing sensor information. Gets updated here with BEM and
@@ -893,7 +894,7 @@ def _compute_forwards(rr, bem, coils_list, ccoils_list, infos, coil_types,
     ----------
     rr : ndarray, shape (n_sources, 3)
         3D dipole in head coordinates
-    bem : dict
+    bem : instance of ConductorModel
         Boundary Element Model information for all surfaces
     coils_list : list
         List of MEG and/or EEG sensor information dicts

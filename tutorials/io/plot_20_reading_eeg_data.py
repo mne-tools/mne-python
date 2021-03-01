@@ -9,11 +9,6 @@ Importing data from EEG devices
 MNE includes various functions and utilities for reading EEG
 data and electrode locations.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
-
 .. _import-bv:
 
 BrainVision (.vhdr, .vmrk, .eeg)
@@ -39,13 +34,15 @@ You can view the specification hosted on the
 `Brain Products website <https://www.brainproducts.com/productdetails.php?id=21&tab=5>`_
 
 BrainVision EEG files can be read in using :func:`mne.io.read_raw_brainvision`
-with the .vhdr header file as an input.
+with the ``.vhdr`` header file as an input.
 
 .. warning:: Renaming BrainVision files can be problematic due to their
              multifile structure. See this
-             `example <https://mne.tools/mne-bids/stable/auto_examples/rename_brainvision_files.html>`_
+             `example <https://mne.tools/mne-bids/stable/auto_examples/rename_brainvision_files.html#sphx-glr-auto-examples-rename-brainvision-files-py>`_
              for an instruction.
 
+.. note:: For *writing* BrainVision files, you can use the Python package
+          `pybv <https://pypi.org/project/pybv/>`_.
 
 .. _import-edf:
 
@@ -166,6 +163,44 @@ eXimia EEG data (.nxe)
 
 EEG data from the Nexstim eXimia system can be read in using the
 :func:`mne.io.read_raw_eximia` function.
+
+
+.. _import-persyst:
+
+Persyst EEG data (.lay, .dat)
+=============================
+
+EEG data from the Persyst system can be read in using the
+:func:`mne.io.read_raw_persyst` function.
+
+Note that not all the subject metadata may be properly read in
+due to the fact that Persyst changes its specification
+sometimes from version to version. Please submit an issue, or
+pull request if you encounter a problem.
+
+Nihon Kohden EEG data (.EEG, .21E, .PNT, .LOG)
+==============================================
+
+EEG data from the Nihon Kohden (NK) system can be read using the
+:func:`mne.io.read_raw_nihon` function.
+
+Files with the following extensions will be read:
+
+- The ``.EEG`` file contains the actual raw EEG data.
+- The ``.PNT`` file contains the metadata related to the recording, such
+  as the measurement date.
+- The ``.LOG`` file contains annotations for the recording.
+- The ``.21E`` file contains the channel and electrode
+  recording system information.
+
+Reading ``.11D``, ``.CMT``, ``.CN2``, and ``.EDF`` files is currently not
+supported.
+
+Note that not all the subject metadata may be properly read in
+due to the fact that NK changes the specification
+sometimes from version to version. Please submit an issue, or
+pull request if you encounter a problem.
+
 
 Setting EEG references
 ======================

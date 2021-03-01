@@ -12,32 +12,16 @@ from numpy.testing import (assert_equal, assert_array_equal,
                            assert_array_almost_equal, assert_allclose)
 import pytest
 
-from mne.fixes import has_numba
+from mne import (SourceEstimate, VolSourceEstimate, MixedSourceEstimate,
+                 SourceSpaces)
 from mne.parallel import _force_serial
-from mne.stats import cluster_level, ttest_ind_no_p, combine_adjacency
+from mne.stats import ttest_ind_no_p, combine_adjacency
 from mne.stats.cluster_level import (permutation_cluster_test, f_oneway,
                                      permutation_cluster_1samp_test,
                                      spatio_temporal_cluster_test,
                                      spatio_temporal_cluster_1samp_test,
                                      ttest_1samp_no_p, summarize_clusters_stc)
-from mne.utils import (run_tests_if_main, catch_logging, check_version,
-                       requires_sklearn)
-
-
-@pytest.fixture(scope="function", params=('Numba', 'NumPy'))
-def numba_conditional(monkeypatch, request):
-    """Test both code paths on machines that have Numba."""
-    assert request.param in ('Numba', 'NumPy')
-    if request.param == 'NumPy' and has_numba:
-        monkeypatch.setattr(
-            cluster_level, '_get_buddies', cluster_level._get_buddies_fallback)
-        monkeypatch.setattr(
-            cluster_level, '_get_selves', cluster_level._get_selves_fallback)
-        monkeypatch.setattr(
-            cluster_level, '_where_first', cluster_level._where_first_fallback)
-    if request.param == 'Numba' and not has_numba:
-        pytest.skip('Numba not installed')
-    yield request.param
+from mne.utils import catch_logging, check_version, requires_sklearn
 
 
 n_space = 50
@@ -218,11 +202,6 @@ def test_cluster_permutation_test(numba_conditional):
                                      n_jobs=2, buffer_size=buffer_size,
                                      out_type='mask')
         assert_array_equal(cluster_p_values, cluster_p_values_buff)
-
-    # test param deprecation
-    with pytest.deprecated_call():
-        _ = permutation_cluster_test(
-            [condition1_1d, condition2_1d], n_permutations=10, out_type=None)
 
     def stat_fun(X, Y):
         return stats.f_oneway(X, Y)[0]
@@ -610,16 +589,44 @@ def ttest_1samp(X):
     return stats.ttest_1samp(X, 0)[0]
 
 
-def test_summarize_clusters():
+@pytest.mark.parametrize('kind', ('surface', 'volume', 'mixed'))
+def test_summarize_clusters(kind):
     """Test cluster summary stcs."""
-    clu = (np.random.random([1, 20484]),
+    src_surf = SourceSpaces(
+        [dict(vertno=np.arange(10242), type='surf') for _ in range(2)])
+    assert src_surf.kind == 'surface'
+    src_vol = SourceSpaces(
+        [dict(vertno=np.arange(10), type='vol')])
+    assert src_vol.kind == 'volume'
+    if kind == 'surface':
+        src = src_surf
+        klass = SourceEstimate
+    elif kind == 'volume':
+        src = src_vol
+        klass = VolSourceEstimate
+    else:
+        assert kind == 'mixed'
+        src = src_surf + src_vol
+        klass = MixedSourceEstimate
+    n_vertices = sum(len(s['vertno']) for s in src)
+    clu = (np.random.random([1, n_vertices]),
            [(np.array([0]), np.array([0, 2, 4]))],
            np.array([0.02, 0.1]),
            np.array([12, -14, 30]))
-    stc_sum = summarize_clusters_stc(clu)
+    kwargs = dict()
+    if kind == 'volume':
+        with pytest.raises(ValueError, match='did not match'):
+            summarize_clusters_stc(clu)
+        assert len(src) == 1
+        kwargs['vertices'] = [src[0]['vertno']]
+    elif kind == 'mixed':
+        kwargs['vertices'] = src
+    stc_sum = summarize_clusters_stc(clu, **kwargs)
+    assert isinstance(stc_sum, klass)
     assert stc_sum.data.shape[1] == 2
     clu[2][0] = 0.3
-    pytest.raises(RuntimeError, summarize_clusters_stc, clu)
+    with pytest.raises(RuntimeError, match='No significant'):
+        summarize_clusters_stc(clu, **kwargs)
 
 
 def test_permutation_test_H0(numba_conditional):
@@ -663,4 +670,43 @@ def test_tfce_thresholds(numba_conditional):
             data, tail=1, out_type='mask', threshold=dict(start=1, step=-0.5))
 
 
-run_tests_if_main()
+# 1D gives slices, 2D+ gives boolean masks
+@pytest.mark.parametrize('shape', ((11,), (11, 3), (11, 1, 2)))
+@pytest.mark.parametrize('out_type', ('mask', 'indices'))
+@pytest.mark.parametrize('adjacency', (None, 'sparse'))
+def test_output_equiv(shape, out_type, adjacency):
+    """Test equivalence of output types."""
+    rng = np.random.RandomState(0)
+    n_subjects = 10
+    data = rng.randn(n_subjects, *shape)
+    data -= data.mean(axis=0, keepdims=True)
+    data[:, 2:4] += 2
+    data[:, 6:9] += 2
+    want_mask = np.zeros(shape, int)
+    want_mask[2:4] = 1
+    want_mask[6:9] = 2
+    if adjacency is not None:
+        assert adjacency == 'sparse'
+        adjacency = combine_adjacency(*shape)
+    clusters = permutation_cluster_1samp_test(
+        X=data, n_permutations=1, adjacency=adjacency, out_type=out_type)[1]
+    got_mask = np.zeros_like(want_mask)
+    for n, clu in enumerate(clusters, 1):
+        if out_type == 'mask':
+            if len(shape) == 1 and adjacency is None:
+                assert isinstance(clu, tuple)
+                assert len(clu) == 1
+                assert isinstance(clu[0], slice)
+            else:
+                assert isinstance(clu, np.ndarray)
+                assert clu.dtype == bool
+                assert clu.shape == shape
+            got_mask[clu] = n
+        else:
+            assert isinstance(clu, tuple)
+            for c in clu:
+                assert isinstance(c, np.ndarray)
+                assert c.dtype.kind == 'i'
+            assert out_type == 'indices'
+            got_mask[np.ix_(*clu)] = n
+    assert_array_equal(got_mask, want_mask)

@@ -19,7 +19,7 @@ data_path = testing.data_path(download=False)
 @pytest.mark.slowtest
 @requires_sklearn
 @testing.requires_testing_data
-def test_what(tmpdir):
+def test_what(tmpdir, verbose_debug):
     """Test mne.what."""
     # ICA
     ica = ICA(max_iter=1)

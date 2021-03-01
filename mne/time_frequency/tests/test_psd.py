@@ -6,7 +6,7 @@ import pytest
 
 from mne import pick_types, Epochs, read_events
 from mne.io import RawArray, read_raw_fif
-from mne.utils import run_tests_if_main
+from mne.utils import catch_logging
 from mne.time_frequency import psd_welch, psd_multitaper, psd_array_welch
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -30,6 +30,12 @@ def test_psd_nan():
         x[0], float(n_fft), n_fft=n_fft, n_overlap=n_overlap)
     assert_allclose(freqs, freqs_2)
     assert_allclose(psds[0], psds_2)
+    # defaults
+    with catch_logging() as log:
+        psd_array_welch(x, float(n_fft), verbose='debug')
+    log = log.getvalue()
+    assert 'using 256-point FFT on 256 samples with 0 overlap' in log
+    assert 'hamming window' in log
 
 
 def test_psd():
@@ -61,7 +67,15 @@ def test_psd():
     for func, kws in funcs:
         kws = kws.copy()
         kws.update(kws_psd)
-        psds, freqs = func(raw, proj=False, **kws)
+        kws.update(verbose='debug')
+        if func is psd_welch:
+            kws.update(window='hann')
+        with catch_logging() as log:
+            psds, freqs = func(raw, proj=False, **kws)
+        log = log.getvalue()
+        if func is psd_welch:
+            assert f'{n_fft}-point FFT on {n_fft} samples with 0 overl' in log
+            assert 'hann window' in log
         psds_proj, freqs_proj = func(raw, proj=True, **kws)
 
         assert psds.shape == (len(kws['picks']), len(freqs))
@@ -88,13 +102,15 @@ def test_psd():
     assert (len(freqs1) == np.floor(len(freqs2) / 2.))
     assert (psds1.shape[-1] == np.floor(psds2.shape[-1] / 2.))
 
-    # tests ValueError when n_per_seg=None and n_fft > signal length
     kws_psd.update(dict(n_fft=tmax * 1.1 * raw.info['sfreq']))
-    pytest.raises(ValueError, psd_welch, raw, proj=False, n_per_seg=None,
+    with pytest.raises(ValueError, match='n_fft is not allowed to be > n_tim'):
+        psd_welch(raw, proj=False, n_per_seg=None,
                   **kws_psd)
-    # ValueError when n_overlap > n_per_seg
     kws_psd.update(dict(n_fft=128, n_per_seg=64, n_overlap=90))
-    pytest.raises(ValueError, psd_welch, raw, proj=False, **kws_psd)
+    with pytest.raises(ValueError, match='n_overlap cannot be greater'):
+        psd_welch(raw, proj=False, **kws_psd)
+    with pytest.raises(ValueError, match='No frequencies found'):
+        psd_array_welch(np.zeros((1, 1000)), 1000., fmin=10, fmax=1)
 
     # -- Epochs/Evoked --
     events = read_events(event_fname)
@@ -262,6 +278,3 @@ def test_compares_psd():
 
     assert (np.sum(psds_welch < 0) == 0)
     assert (np.sum(psds_mpl < 0) == 0)
-
-
-run_tests_if_main()

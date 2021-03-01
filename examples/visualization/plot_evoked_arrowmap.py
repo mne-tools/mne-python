@@ -8,14 +8,11 @@ points. An arrowmap is based upon the Hosaka-Cohen transformation and
 represents an estimation of the current flow underneath the MEG sensors.
 They are a poor man's MNE.
 
-See [1]_ for details.
+See :footcite:`CohenHosaka1976` for details.
 
 References
 ----------
-.. [1] D. Cohen, H. Hosaka
-   "Part II magnetic field produced by a current dipole",
-   Journal of electrocardiology, Volume 9, Number 4, pp. 409-417, 1976.
-   DOI: 10.1016/S0022-0736(76)80041-6
+.. footbibliography::
 """
 
 # Authors: Sheraz Khan <sheraz@khansheraz.com>
@@ -67,8 +64,8 @@ plot_arrowmap(evoked_grad.data[:, max_time_idx], info_from=evoked_grad.info,
 # Plot gradiometer data as an arrowmap along with the topoplot at the time
 # of the maximum sensor space activity:
 path = bst_raw.data_path()
-raw_fname = path + '/MEG/bst_raw/' \
-                   'subj001_somatosensory_20111109_01_AUX-f.ds'
+raw_fname = path + ('/MEG/bst_raw/'
+                    'subj001_somatosensory_20111109_01_AUX-f.ds')
 raw_ctf = mne.io.read_raw_ctf(raw_fname)
 raw_ctf_info = mne.pick_info(
     raw_ctf.info, mne.pick_types(raw_ctf.info, meg=True, ref_meg=False))

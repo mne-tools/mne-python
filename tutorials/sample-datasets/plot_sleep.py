@@ -19,10 +19,6 @@ This problem is tackled as supervised multiclass classification task. The aim
 is to predict the sleep stage from 5 possible stages for each chunk of 30
 seconds of data.
 
-.. contents:: This tutorial covers:
-   :local:
-   :depth: 2
-
 .. _Pipeline: https://scikit-learn.org/stable/modules/generated/sklearn.pipeline.Pipeline.html
 .. _FunctionTransformer: https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.FunctionTransformer.html
 .. _physionet_labels: https://physionet.org/physiobank/database/sleep-edfx/#sleep-cassette-study-and-data
@@ -78,8 +74,8 @@ ALICE, BOB = 0, 1
 [alice_files, bob_files] = fetch_data(subjects=[ALICE, BOB], recording=[1])
 
 mapping = {'EOG horizontal': 'eog',
-           'Resp oro-nasal': 'misc',
-           'EMG submental': 'misc',
+           'Resp oro-nasal': 'resp',
+           'EMG submental': 'emg',
            'Temp rectal': 'misc',
            'Event marker': 'misc'}
 
@@ -90,7 +86,11 @@ raw_train.set_annotations(annot_train, emit_warning=False)
 raw_train.set_channel_types(mapping)
 
 # plot some data
-raw_train.plot(duration=60, scalings='auto')
+# scalings were chosen manually to allow for simultaneous visualization of
+# different channel types in this specific dataset
+raw_train.plot(start=60, duration=60,
+               scalings=dict(eeg=1e-4, resp=1e3, eog=1e-4, emg=1e-7,
+                             misc=1e-1))
 
 ##############################################################################
 # Extract 30s events from annotations
@@ -107,6 +107,11 @@ raw_train.plot(duration=60, scalings='auto')
 # REM sleep (R). To do so, we use the ``event_id`` parameter in
 # :func:`mne.events_from_annotations` to select which events are we
 # interested in and we associate an event identifier to each of them.
+#
+# Moreover, the recordings contain long awake (W) regions before and after each
+# night. To limit the impact of class imbalance, we trim each recording by only
+# keeping 30 minutes of wake time before the first occurrence and 30 minutes
+# after the last occurrence of sleep stages.
 
 annotation_desc_2_event_id = {'Sleep stage W': 1,
                               'Sleep stage 1': 2,
@@ -114,6 +119,12 @@ annotation_desc_2_event_id = {'Sleep stage W': 1,
                               'Sleep stage 3': 4,
                               'Sleep stage 4': 4,
                               'Sleep stage R': 5}
+
+# keep last 30-min wake events before sleep and first 30-min wake events after
+# sleep and redefine annotations on raw data
+annot_train.crop(annot_train[1]['onset'] - 30 * 60,
+                 annot_train[-2]['onset'] + 30 * 60)
+raw_train.set_annotations(annot_train, emit_warning=False)
 
 events_train, _ = mne.events_from_annotations(
     raw_train, event_id=annotation_desc_2_event_id, chunk_duration=30.)
@@ -126,8 +137,9 @@ event_id = {'Sleep stage W': 1,
             'Sleep stage R': 5}
 
 # plot events
-mne.viz.plot_events(events_train, event_id=event_id,
-                    sfreq=raw_train.info['sfreq'])
+fig = mne.viz.plot_events(events_train, event_id=event_id,
+                          sfreq=raw_train.info['sfreq'],
+                          first_samp=events_train[0, 0])
 
 # keep the color-code for further plotting
 stage_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
@@ -149,6 +161,8 @@ print(epochs_train)
 
 raw_test = mne.io.read_raw_edf(bob_files[0])
 annot_test = mne.read_annotations(bob_files[1])
+annot_test.crop(annot_test[1]['onset'] - 30 * 60,
+                annot_test[-2]['onset'] + 30 * 60)
 raw_test.set_annotations(annot_test, emit_warning=False)
 raw_test.set_channel_types(mapping)
 events_test, _ = mne.events_from_annotations(

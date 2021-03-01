@@ -8,10 +8,9 @@ from collections import Counter
 import os
 import queue
 import sys
+from threading import Thread
 
 import numpy as np
-from scipy.linalg import inv
-from threading import Thread
 
 from mayavi.core.ui.mayavi_scene import MayaviScene
 from mayavi.tools.mlab_scene_model import MlabSceneModel
@@ -27,7 +26,8 @@ from traitsui.menu import NoButtons
 from tvtk.pyface.scene_editor import SceneEditor
 
 from ..io.constants import FIFF
-from ..io._digitization import _read_dig_points, _make_dig_points
+from ..io._digitization import _make_dig_points
+from ..io.kit.coreg import _read_dig_kit
 from ..io.kit.kit import (RawKIT, KIT, _make_stim_channel, _default_stim_chs,
                           UnsupportedKITFormat)
 from ..transforms import (apply_trans, als_ras_trans,
@@ -175,7 +175,7 @@ class Kit2FiffModel(HasPrivateTraits):
             return
 
         try:
-            pts = _read_dig_points(self.fid_file)
+            pts = _read_dig_kit(self.fid_file)
             if len(pts) < 8:
                 raise ValueError("File contains %i points, need 8" % len(pts))
         except Exception as err:
@@ -203,7 +203,7 @@ class Kit2FiffModel(HasPrivateTraits):
 
     @cached_property
     def _get_head_dev_trans(self):
-        return inv(self.dev_head_trans)
+        return np.linalg.inv(self.dev_head_trans)
 
     @cached_property
     def _get_hsp(self):
@@ -227,7 +227,7 @@ class Kit2FiffModel(HasPrivateTraits):
             return
 
         try:
-            pts = _read_dig_points(fname)
+            pts = _read_dig_kit(fname)
             n_pts = len(pts)
             if n_pts > KIT.DIG_POINTS:
                 msg = ("The selected head shape contains {n_in} points, "

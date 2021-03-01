@@ -1,11 +1,13 @@
 """
 .. _tut_creating_data_structures:
 
-Creating MNE's data structures from scratch
-===========================================
+Creating MNE-Python data structures from scratch
+================================================
 
-MNE provides mechanisms for creating various core objects directly from
-NumPy arrays.
+This tutorial shows how to create MNE-Python's core data structures using an
+existing :class:`NumPy array <numpy.ndarray>` of (real or synthetic) data.
+
+We begin by importing the necessary Python modules:
 """
 
 import mne
@@ -13,179 +15,176 @@ import numpy as np
 
 
 ###############################################################################
-# ------------------------------------------------------
-# Creating :class:`~mne.Info` objects
-# ------------------------------------------------------
+# Creating `~mne.Info` objects
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# .. note:: for full documentation on the :class:`~mne.Info` object, see
-#           :ref:`tut-info-class`. See also :ref:`ex-array-classes`.
+# .. sidebar:: Info objects
 #
-# Normally, :class:`mne.Info` objects are created by the various
-# data import functions.
-# However, if you wish to create one from scratch, you can use the
-# :func:`mne.create_info` function to initialize the minimally required
-# fields. Further fields can be assigned later as one would with a regular
-# dictionary.
+#      For full documentation on the `~mne.Info` object, see
+#      :ref:`tut-info-class`.
 #
-# The following creates the absolute minimum info structure:
+# The core data structures for continuous (`~mne.io.Raw`), discontinuous
+# (`~mne.Epochs`), and averaged (`~mne.Evoked`) data all have an ``info``
+# attribute comprising an `mne.Info` object. When reading recorded data using
+# one of the functions in the ``mne.io`` submodule, `~mne.Info` objects are
+# created and populated automatically. But if we want to create a
+# `~mne.io.Raw`, `~mne.Epochs`, or `~mne.Evoked` object from scratch, we need
+# to create an appropriate `~mne.Info` object as well. The easiest way to do
+# this is with the `mne.create_info` function to initialize the required info
+# fields. Additional fields can be assigned later as one would with a regular
+# :class:`dictionary <dict>`.
+#
+# To initialize a minimal `~mne.Info` object requires a list of channel names,
+# and the sampling frequency. As a convenience for simulated data, channel
+# names can be provided as a single integer, and the names will be
+# automatically created as sequential integers (starting with ``0``):
 
 # Create some dummy metadata
 n_channels = 32
-sampling_rate = 200
-info = mne.create_info(n_channels, sampling_rate)
+sampling_freq = 200  # in Hertz
+info = mne.create_info(n_channels, sfreq=sampling_freq)
 print(info)
 
 ###############################################################################
-# You can also supply more extensive metadata:
+# You can see in the output above that, by default, the channels are assigned
+# as type "misc" (where it says ``chs: 32 MISC``). You can assign the channel
+# type when initializing the `~mne.Info` object if you want:
 
-# Names for each channel
-channel_names = ['MEG1', 'MEG2', 'Cz', 'Pz', 'EOG']
+ch_names = [f'MEG{n:03}' for n in range(1, 10)] + ['EOG001']
+ch_types = ['mag', 'grad', 'grad'] * 3 + ['eog']
+info = mne.create_info(ch_names, ch_types=ch_types, sfreq=sampling_freq)
+print(info)
 
-# The type (mag, grad, eeg, eog, misc, ...) of each channel
-channel_types = ['grad', 'grad', 'eeg', 'eeg', 'eog']
+###############################################################################
+# If the channel names follow one of the standard montage naming schemes, their
+# spatial locations can be automatically added using the
+# `~mne.Info.set_montage` method:
 
-# The sampling rate of the recording
-sfreq = 1000  # in Hertz
+ch_names = ['Fp1', 'Fp2', 'Fz', 'Cz', 'Pz', 'O1', 'O2']
+ch_types = ['eeg'] * 7
+info = mne.create_info(ch_names, ch_types=ch_types, sfreq=sampling_freq)
+info.set_montage('standard_1020')
 
-# The EEG channels use the standard naming strategy.
-# By supplying the 'montage' parameter, approximate locations
-# will be added for them
-montage = 'standard_1005'
+###############################################################################
+# .. sidebar:: Info consistency
+#
+#     When assigning new values to the fields of an `~mne.Info` object, it is
+#     important that the fields stay consistent. if there are ``N`` channels:
+#
+#     - The length of the channel information field ``chs`` must be ``N``.
+#     - The length of the ``ch_names`` field must be ``N``.
+#     - The ``ch_names`` field should be consistent with the ``name``
+#       field of the channel information contained in ``chs``.
+#
+# Note the new field ``dig`` that includes our seven channel locations as well
+# as theoretical values for the three
+# :term:`cardinal scalp landmarks <fiducial point>`.
+#
+# Additional fields can be added in the same way that Python dictionaries are
+# modified, using square-bracket key assignment:
 
-# Initialize required fields
-info = mne.create_info(channel_names, sfreq, channel_types)
-info.set_montage(montage)
-
-# Add some more information
 info['description'] = 'My custom dataset'
-info['bads'] = ['Pz']  # Names of bad channels
-
+info['bads'] = ['O1']  # Names of bad channels
 print(info)
 
 ###############################################################################
-# .. note:: When assigning new values to the fields of an
-#           :class:`mne.Info` object, it is important that the
-#           fields are consistent:
+# Creating `~mne.io.Raw` objects
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-#           - The length of the channel information field ``chs`` must be
-#             ``nchan``.
-#           - The length of the ``ch_names`` field must be ``nchan``.
-#           - The ``ch_names`` field should be consistent with the ``name``
-#             field of the channel information contained in ``chs``.
+# .. sidebar:: Units
 #
-# -------------------------------------
-# Creating :class:`~mne.io.Raw` objects
-# -------------------------------------
+#     The expected units for the different channel types are:
 #
-# To create a :class:`mne.io.Raw` object from scratch, you can use the
-# :class:`mne.io.RawArray` class, which implements raw data that is backed by a
-# numpy array. The correct units for the data are:
+#     - Volts: eeg, eog, seeg, dbs, emg, ecg, bio, ecog
+#     - Teslas: mag
+#     - Teslas/meter: grad
+#     - Molar: hbo, hbr
+#     - Amperes: dipole
+#     - Arbitrary units: misc
 #
-# - V: eeg, eog, seeg, emg, ecg, bio, ecog
-# - T: mag
-# - T/m: grad
-# - M: hbo, hbr
-# - Am: dipole
-# - AU: misc
-#
-# The :class:`mne.io.RawArray` constructor simply takes the data matrix and
-# :class:`mne.Info` object:
+# To create a `~mne.io.Raw` object from scratch, you can use the
+# `mne.io.RawArray` class constructor, which takes an `~mne.Info` object and a
+# :class:`NumPy array <numpy.ndarray>` of shape ``(n_channels, n_samples)``.
+# Here, we'll create some sinusoidal data and plot it:
 
-# Generate some random data
-data = np.random.randn(5, 1000)
+times = np.linspace(0, 1, sampling_freq, endpoint=False)
+sine = np.sin(20 * np.pi * times)
+cosine = np.cos(10 * np.pi * times)
+data = np.array([sine, cosine])
 
-# Initialize an info structure
-info = mne.create_info(
-    ch_names=['MEG1', 'MEG2', 'EEG1', 'EEG2', 'EOG'],
-    ch_types=['grad', 'grad', 'eeg', 'eeg', 'eog'],
-    sfreq=100)
+info = mne.create_info(ch_names=['10 Hz sine', '5 Hz cosine'],
+                       ch_types=['misc'] * 2,
+                       sfreq=sampling_freq)
 
-custom_raw = mne.io.RawArray(data, info)
-print(custom_raw)
+simulated_raw = mne.io.RawArray(data, info)
+simulated_raw.plot(show_scrollbars=False, show_scalebars=False)
+
 
 ###############################################################################
-# -------------------------------------
-# Creating :class:`~mne.Epochs` objects
-# -------------------------------------
+# Creating `~mne.Epochs` objects
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# To create an :class:`mne.Epochs` object from scratch, you can use the
-# :class:`mne.EpochsArray` class, which uses a numpy array directly without
-# wrapping a raw object. The array must be of shape
-# ``(n_epochs, n_chans, n_times)``. The proper units of measure are listed
-# above.
+# To create an `~mne.Epochs` object from scratch, you can use the
+# `mne.EpochsArray` class constructor, which takes an `~mne.Info` object and a
+# :class:`NumPy array <numpy.ndarray>` of shape ``(n_epochs, n_channels,
+# n_samples)``. Here we'll create 5 epochs of our 2-channel data, and plot it.
+# Notice that we have to pass ``picks='misc'`` to the `~mne.Epochs.plot`
+# method, because by default it only plots :term:`data channels`.
 
-# Generate some random data: 10 epochs, 5 channels, 2 seconds per epoch
-sfreq = 100
-data = np.random.randn(10, 5, sfreq * 2)
+data = np.array([[0.2 * sine, 1.0 * cosine],
+                 [0.4 * sine, 0.8 * cosine],
+                 [0.6 * sine, 0.6 * cosine],
+                 [0.8 * sine, 0.4 * cosine],
+                 [1.0 * sine, 0.2 * cosine]])
 
-# Initialize an info structure
-info = mne.create_info(
-    ch_names=['MEG1', 'MEG2', 'EEG1', 'EEG2', 'EOG'],
-    ch_types=['grad', 'grad', 'eeg', 'eeg', 'eog'],
-    sfreq=sfreq)
-
-###############################################################################
-# It is necessary to supply an "events" array in order to create an Epochs
-# object. This is of shape ``(n_events, 3)`` where the first column is the
-# sample number (time) of the event, the second column indicates the value from
-# which the transition is made from (only used when the new value is bigger
-# than the old one), and the third column is the new event value.
-
-# Create an event matrix: 10 events with alternating event codes
-events = np.array([
-    [0, 0, 1],
-    [1, 0, 2],
-    [2, 0, 1],
-    [3, 0, 2],
-    [4, 0, 1],
-    [5, 0, 2],
-    [6, 0, 1],
-    [7, 0, 2],
-    [8, 0, 1],
-    [9, 0, 2],
-])
+simulated_epochs = mne.EpochsArray(data, info)
+simulated_epochs.plot(picks='misc', show_scrollbars=False)
 
 ###############################################################################
-# More information about the event codes: subject was either smiling or
-# frowning
-event_id = dict(smiling=1, frowning=2)
+# Since we did not supply an events array, the `~mne.EpochsArray` constructor
+# automatically created one for us, with all epochs having the same event
+# number:
+
+print(simulated_epochs.events[:, -1])
 
 ###############################################################################
-# Finally, we must specify the beginning of an epoch (the end will be inferred
-# from the sampling frequency and n_samples)
+# If we want to simulate having different experimental conditions, we can pass
+# an event array (and an event ID dictionary) to the constructor. Since our
+# epochs are 1 second long and have 200 samples/second, we'll put our events
+# spaced 200 samples apart, and pass ``tmin=-0.5``, so that the events
+# land in the middle of each epoch (the events are always placed at time=0 in
+# each epoch).
 
-# Trials were cut from -0.1 to 1.0 seconds
-tmin = -0.1
+events = np.column_stack((np.arange(0, 1000, sampling_freq),
+                          np.zeros(5, dtype=int),
+                          np.array([1, 2, 1, 2, 1])))
+event_dict = dict(condition_A=1, condition_B=2)
+simulated_epochs = mne.EpochsArray(data, info, tmin=-0.5, events=events,
+                                   event_id=event_dict)
+simulated_epochs.plot(picks='misc', show_scrollbars=False, events=events,
+                      event_id=event_dict)
 
 ###############################################################################
-# Now we can create the :class:`mne.EpochsArray` object
-custom_epochs = mne.EpochsArray(data, info, events, tmin, event_id)
-
-print(custom_epochs)
-
-# We can treat the epochs object as we would any other
-_ = custom_epochs['smiling'].average().plot(time_unit='s')
-
-###############################################################################
-# -------------------------------------
-# Creating :class:`~mne.Evoked` Objects
-# -------------------------------------
-# If you already have data that is collapsed across trials, you may also
-# directly create an evoked array.  Its constructor accepts an array of shape
-# ``(n_chans, n_times)`` in addition to some bookkeeping parameters.
-# The proper units of measure for the data are listed above.
-
-# The averaged data
-data_evoked = data.mean(0)
-
-# The number of epochs that were averaged
-nave = data.shape[0]
-
-# A comment to describe to evoked (usually the condition name)
-comment = "Smiley faces"
+# You could also create simulated epochs by using the normal `~mne.Epochs`
+# (not `~mne.EpochsArray`) constructor on the simulated `~mne.io.RawArray`
+# object, by creating an events array (e.g., using
+# `mne.make_fixed_length_events`) and extracting epochs around those events.
+#
+#
+# Creating `~mne.Evoked` Objects
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# If you already have data that was averaged across trials, you can use it to
+# create an `~mne.Evoked` object using the `~mne.EvokedArray` class
+# constructor.  It requires an `~mne.Info` object and a data array of shape
+# ``(n_channels, n_times)``, and has an optional ``tmin`` parameter like
+# `~mne.EpochsArray` does. It also has a parameter ``nave`` indicating how many
+# trials were averaged together, and a ``comment`` parameter useful for keeping
+# track of experimental conditions, etc. Here we'll do the averaging on our
+# NumPy array and use the resulting averaged data to make our `~mne.Evoked`.
 
 # Create the Evoked object
-evoked_array = mne.EvokedArray(data_evoked, info, tmin,
-                               comment=comment, nave=nave)
+evoked_array = mne.EvokedArray(data.mean(axis=0), info, tmin=-0.5,
+                               nave=data.shape[0], comment='simulated')
 print(evoked_array)
-_ = evoked_array.plot(time_unit='s')
+evoked_array.plot()

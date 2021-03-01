@@ -10,12 +10,8 @@ how SSP can be used for artifact repair; extended examples illustrate use
 of SSP for environmental noise reduction, and for repair of ocular and
 heartbeat artifacts.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 We begin as always by importing the necessary Python modules. To save ourselves
-from repeatedly typing ``mne.preprocessing`` we'll directly import a couple
+from repeatedly typing ``mne.preprocessing`` we'll directly import a handful of
 functions from that submodule:
 """
 
@@ -63,7 +59,7 @@ from mne.preprocessing import (create_eog_epochs, create_ecg_epochs,
 # The :ref:`example data <sample-dataset>` was recorded on a Neuromag system,
 # which stores SSP projectors for environmental noise removal in the system
 # configuration (so that reasonably clean raw data can be viewed in real-time
-# during acquisition). For this reason, all the :class:`~mne.io.Raw` data in
+# during acquisition). For this reason, all the `~mne.io.Raw` data in
 # the example dataset already includes SSP projectors, which are noted in the
 # output when loading the data:
 
@@ -109,14 +105,14 @@ for average in (False, True):
 # Creating the empty-room projectors
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
-# We create the SSP vectors using :func:`~mne.compute_proj_raw`, and control
+# We create the SSP vectors using `~mne.compute_proj_raw`, and control
 # the number of projectors with parameters ``n_grad`` and ``n_mag``. Once
 # created, the field pattern of the projectors can be easily visualized with
-# :func:`~mne.viz.plot_projs_topomap`. We include the parameter
+# `~mne.viz.plot_projs_topomap`. We include the parameter
 # ``vlim='joint'`` so that the colormap is computed jointly for all projectors
 # of a given channel type; this makes it easier to compare their relative
 # smoothness. Note that for the function to know the types of channels in a
-# projector, you must also provide the corresponding :class:`~mne.Info` object:
+# projector, you must also provide the corresponding `~mne.Info` object:
 
 # sphinx_gallery_thumbnail_number = 3
 empty_room_projs = mne.compute_proj_raw(empty_room_raw, n_grad=3, n_mag=3)
@@ -143,8 +139,8 @@ for idx, _projs in enumerate([system_projs, empty_room_projs[3:]]):
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
 # We could visualize the different effects these have on the data by applying
-# each set of projectors to different copies of the :class:`~mne.io.Raw` object
-# using :meth:`~mne.io.Raw.apply_proj`. However, the :meth:`~mne.io.Raw.plot`
+# each set of projectors to different copies of the `~mne.io.Raw` object
+# using `~mne.io.Raw.apply_proj`. However, the `~mne.io.Raw.plot`
 # method has a ``proj`` parameter that allows us to *temporarily* apply
 # projectors while plotting, so we can use this to visualize the difference
 # without needing to copy the data. Because the projectors are so similar, we
@@ -160,7 +156,7 @@ for title, projs in [('system', system_projs),
 
 ###############################################################################
 # The effect is sometimes easier to see on averaged data. Here we use an
-# interactive feature of :func:`mne.Evoked.plot_topomap` to turn projectors on
+# interactive feature of `mne.Evoked.plot_topomap` to turn projectors on
 # and off to see the effect on the data. Of course, the interactivity won't
 # work on the tutorial website, but you can download the tutorial and try it
 # locally:
@@ -182,8 +178,9 @@ fig = epochs.average().plot_topomap(times, proj='interactive')
 
 ###############################################################################
 # Plotting the ERP/F using ``evoked.plot()`` or ``evoked.plot_joint()`` with
-# and without projectors applied can also be informative.
-#
+# and without projectors applied can also be informative, as can plotting with
+# ``proj='reconstruct'``, which can reduce the signal bias introduced by
+# projections (see :ref:`tut-artifact-ssp-reconstruction` below).
 #
 # Example: EOG and ECG artifact repair
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -206,8 +203,8 @@ raw.plot(order=artifact_picks, n_channels=len(artifact_picks))
 #
 # MNE-Python provides several functions for detecting and removing heartbeats
 # from EEG and MEG data. As we saw in :ref:`tut-artifact-overview`,
-# :func:`~mne.preprocessing.create_ecg_epochs` can be used to both detect and
-# extract heartbeat artifacts into an :class:`~mne.Epochs` object, which can
+# `~mne.preprocessing.create_ecg_epochs` can be used to both detect and
+# extract heartbeat artifacts into an `~mne.Epochs` object, which can
 # be used to visualize how the heartbeat artifacts manifest across the sensors:
 
 ecg_evoked = create_ecg_epochs(raw).average()
@@ -222,20 +219,21 @@ ecg_evoked.plot_joint()
 
 ###############################################################################
 # To compute SSP projectors for the heartbeat artifact, you can use
-# :func:`~mne.preprocessing.compute_proj_ecg`, which takes a
-# :class:`~mne.io.Raw` object as input and returns the requested number of
+# `~mne.preprocessing.compute_proj_ecg`, which takes a
+# `~mne.io.Raw` object as input and returns the requested number of
 # projectors for magnetometers, gradiometers, and EEG channels (default is two
 # projectors for each channel type).
-# :func:`~mne.preprocessing.compute_proj_ecg` also returns an :term:`events`
-# array containing the sample numbers corresponding to the onset of each
-# detected heartbeat.
+# `~mne.preprocessing.compute_proj_ecg` also returns an :term:`events`
+# array containing the sample numbers corresponding to the peak of the
+# `R wave <https://en.wikipedia.org/wiki/QRS_complex>`__ of each detected
+# heartbeat.
 
 projs, events = compute_proj_ecg(raw, n_grad=1, n_mag=1, n_eeg=1, reject=None)
 
 ###############################################################################
 # The first line of output tells us that
-# :func:`~mne.preprocessing.compute_proj_ecg` found three existing projectors
-# already in the :class:`~mne.io.Raw` object, and will include those in the
+# `~mne.preprocessing.compute_proj_ecg` found three existing projectors
+# already in the `~mne.io.Raw` object, and will include those in the
 # list of projectors that it returns (appending the new ECG projectors to the
 # end of the list). If you don't want that, you can change that behavior with
 # the boolean ``no_proj`` parameter. Since we've already run the computation,
@@ -253,24 +251,24 @@ mne.viz.plot_projs_topomap(ecg_projs, info=raw.info)
 
 ###############################################################################
 # Since no dedicated ECG sensor channel was detected in the
-# :class:`~mne.io.Raw` object, by default
-# :func:`~mne.preprocessing.compute_proj_ecg` used the magnetometers to
+# `~mne.io.Raw` object, by default
+# `~mne.preprocessing.compute_proj_ecg` used the magnetometers to
 # estimate the ECG signal (as stated on the third line of output, above). You
 # can also supply the ``ch_name`` parameter to restrict which channel to use
 # for ECG artifact detection; this is most useful when you had an ECG sensor
-# but it is not labeled as such in the :class:`~mne.io.Raw` file.
+# but it is not labeled as such in the `~mne.io.Raw` file.
 #
 # The next few lines of the output describe the filter used to isolate ECG
 # events. The default settings are usually adequate, but the filter can be
 # customized via the parameters ``ecg_l_freq``, ``ecg_h_freq``, and
 # ``filter_length`` (see the documentation of
-# :func:`~mne.preprocessing.compute_proj_ecg` for details).
+# `~mne.preprocessing.compute_proj_ecg` for details).
 #
 # .. TODO what are the cases where you might need to customize the ECG filter?
 #    infants? Heart murmur?
 #
 # Once the ECG events have been identified,
-# :func:`~mne.preprocessing.compute_proj_ecg` will also filter the data
+# `~mne.preprocessing.compute_proj_ecg` will also filter the data
 # channels before extracting epochs around each heartbeat, using the parameter
 # values given in ``l_freq``, ``h_freq``, ``filter_length``, ``filter_method``,
 # and ``iir_params``. Here again, the default parameter values are usually
@@ -282,9 +280,9 @@ mne.viz.plot_projs_topomap(ecg_projs, info=raw.info)
 #
 # By default, the filtered epochs will be averaged together
 # before the projection is computed; this can be controlled with the boolean
-# ``average`` parameter.
-#
-# .. TODO what is the (dis)advantage of **not** averaging before projection?
+# ``average`` parameter. In general this improves the signal-to-noise (where
+# "signal" here is our artifact!) ratio because the artifact temporal waveform
+# is fairly similar across epochs and well time locked to the detected events.
 #
 # To get a sense of how the heartbeat affects the signal at each sensor, you
 # can plot the data with and without the ECG projectors:
@@ -300,7 +298,7 @@ for title, proj in [('Without', empty_room_projs), ('With', ecg_projs)]:
 
 ###############################################################################
 # Finally, note that above we passed ``reject=None`` to the
-# :func:`~mne.preprocessing.compute_proj_ecg` function, meaning that all
+# `~mne.preprocessing.compute_proj_ecg` function, meaning that all
 # detected ECG epochs would be used when computing the projectors (regardless
 # of signal quality in the data sensors during those epochs). The default
 # behavior is to reject epochs based on signal amplitude: epochs with
@@ -317,23 +315,23 @@ for title, proj in [('Without', empty_room_projs), ('With', ecg_projs)]:
 #
 # .. note::
 #
-#     :func:`~mne.preprocessing.compute_proj_ecg` has a similar parameter
+#     `~mne.preprocessing.compute_proj_ecg` has a similar parameter
 #     ``flat`` for specifying the *minimum* acceptable peak-to-peak amplitude
 #     for each channel type.
 #
-# While :func:`~mne.preprocessing.compute_proj_ecg` conveniently combines
+# While `~mne.preprocessing.compute_proj_ecg` conveniently combines
 # several operations into a single function, MNE-Python also provides functions
 # for performing each part of the process. Specifically:
 #
-# - :func:`mne.preprocessing.find_ecg_events` for detecting heartbeats in a
-#   :class:`~mne.io.Raw` object and returning a corresponding :term:`events`
+# - `mne.preprocessing.find_ecg_events` for detecting heartbeats in a
+#   `~mne.io.Raw` object and returning a corresponding :term:`events`
 #   array
 #
-# - :func:`mne.preprocessing.create_ecg_epochs` for detecting heartbeats in a
-#   :class:`~mne.io.Raw` object and returning an :class:`~mne.Epochs` object
+# - `mne.preprocessing.create_ecg_epochs` for detecting heartbeats in a
+#   `~mne.io.Raw` object and returning an `~mne.Epochs` object
 #
-# - :func:`mne.compute_proj_epochs` for creating projector(s) from any
-#   :class:`~mne.Epochs` object
+# - `mne.compute_proj_epochs` for creating projector(s) from any
+#   `~mne.Epochs` object
 #
 # See the documentation of each function for further details.
 #
@@ -351,12 +349,12 @@ eog_evoked.plot_joint()
 
 ###############################################################################
 # Just like we did with the heartbeat artifact, we can compute SSP projectors
-# for the ocular artifact using :func:`~mne.preprocessing.compute_proj_eog`,
-# which again takes a :class:`~mne.io.Raw` object as input and returns the
+# for the ocular artifact using `~mne.preprocessing.compute_proj_eog`,
+# which again takes a `~mne.io.Raw` object as input and returns the
 # requested number of projectors for magnetometers, gradiometers, and EEG
 # channels (default is two projectors for each channel type). This time, we'll
 # pass ``no_proj`` parameter (so we get back only the new EOG projectors, not
-# also the existing projectors in the :class:`~mne.io.Raw` object), and we'll
+# also the existing projectors in the `~mne.io.Raw` object), and we'll
 # ignore the events array by assigning it to ``_`` (the conventional way of
 # handling unwanted return elements in Python).
 
@@ -402,6 +400,59 @@ for title in ('Without', 'With'):
 # projectors are capturing something else other than a heartbeat artifact (and
 # thus may be removing brain signal and should be discarded).
 #
+# .. _tut-artifact-ssp-reconstruction:
+#
+# Visualizing SSP sensor-space bias via signal reconstruction
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# .. sidebar:: SSP reconstruction
+#
+#     Internally, the reconstruction is performed by effectively using a
+#     minimum-norm source localization to a spherical source space with the
+#     projections accounted for, and then projecting the source-space data
+#     back out to sensor space.
+#
+# Because SSP performs an orthogonal projection, any spatial component in the
+# data that is not perfectly orthogonal to the SSP spatial direction(s) will
+# have its overall amplitude reduced by the projection operation. In other
+# words, SSP typically introduces some amount of amplitude reduction bias in
+# the sensor space data.
+#
+# When performing source localization of M/EEG data, these projections are
+# properly taken into account by being applied not just to the M/EEG data
+# but also to the forward solution, and hence SSP should not bias the estimated
+# source amplitudes. However, for sensor space analyses, it can be useful to
+# visualize the extent to which SSP projection has biased the data. This can be
+# explored by using ``proj='reconstruct'`` in evoked plotting functions, for
+# example via `evoked.plot() <mne.Evoked.plot>`:
+
+evoked = epochs.average()
+# Apply the average ref first:
+# It's how we typically view EEG data, and here we're really just interested
+# in the effect of the EOG+ECG SSPs
+evoked.del_proj().set_eeg_reference(projection=True).apply_proj()
+evoked.add_proj(ecg_projs).add_proj(eog_projs)
+fig, axes = plt.subplots(3, 3, figsize=(8, 6))
+for ii in range(3):
+    axes[ii, 0].get_shared_y_axes().join(*axes[ii])
+for pi, proj in enumerate((False, True, 'reconstruct')):
+    evoked.plot(proj=proj, axes=axes[:, pi], spatial_colors=True)
+    if pi == 0:
+        for ax in axes[:, pi]:
+            parts = ax.get_title().split('(')
+            ax.set(ylabel=f'{parts[0]} ({ax.get_ylabel()})\n'
+                          f'{parts[1].replace(")", "")}')
+    axes[0, pi].set(title=f'proj={proj}')
+    axes[0, pi].texts = []
+plt.setp(axes[1:, :].ravel(), title='')
+plt.setp(axes[:, 1:].ravel(), ylabel='')
+plt.setp(axes[:-1, :].ravel(), xlabel='')
+mne.viz.tight_layout()
+
+###############################################################################
+# Note that here the bias in the EEG and magnetometer channels is reduced by
+# the reconstruction. This suggests that the application of SSP has slightly
+# reduced the amplitude of our signals in sensor space, but that it should not
+# bias the amplitudes in source space.
 #
 # References
 # ^^^^^^^^^^

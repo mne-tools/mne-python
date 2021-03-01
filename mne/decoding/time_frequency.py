@@ -74,8 +74,8 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
         self.use_fft = use_fft
         self.decim = decim
         # Check that output is not an average metric (e.g. ITC)
-        _check_option('output', output, ['complex', 'power', 'phase'])
-        self.output = output
+        self.output = _check_option('output', output,
+                                    ['complex', 'power', 'phase'])
         self.n_jobs = n_jobs
         self.verbose = verbose
 

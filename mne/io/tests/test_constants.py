@@ -8,18 +8,23 @@ import shutil
 import zipfile
 
 import numpy as np
+import pytest
 
-from mne.io.constants import FIFF, FWD
+from mne.io.constants import (FIFF, FWD, _coord_frame_named, _ch_kind_named,
+                              _ch_unit_named, _ch_unit_mul_named,
+                              _ch_coil_type_named, _dig_kind_named,
+                              _dig_cardinal_named)
 from mne.forward._make_forward import _read_coil_defs
 from mne.utils import _fetch_file, requires_good_network
 
 
 # https://github.com/mne-tools/fiff-constants/commits/master
-commit = '198d943d0ff92ecdfb947b84af6289a0e79ad060'
+REPO = 'mne-tools'
+COMMIT = '5bd84d224de502bee66f70b7867b8f45b45264c1'
 
 # These are oddities that we won't address:
 iod_dups = (355, 359)  # these are in both MEGIN and MNE files
-tag_dups = (3501, 3507)  # in both MEGIN and MNE files
+tag_dups = (3501,)  # in both MEGIN and MNE files
 
 _dir_ignore_names = ('clear', 'copy', 'fromkeys', 'get', 'items', 'keys',
                      'pop', 'popitem', 'setdefault', 'update', 'values',
@@ -77,8 +82,8 @@ def test_constants(tmpdir):
     """Test compensation."""
     tmpdir = str(tmpdir)  # old pytest...
     dest = op.join(tmpdir, 'fiff.zip')
-    _fetch_file('https://codeload.github.com/mne-tools/fiff-constants/zip/' +
-                commit, dest)
+    _fetch_file('https://codeload.github.com/'
+                f'{REPO}/fiff-constants/zip/{COMMIT}', dest)
     names = list()
     with zipfile.ZipFile(dest, 'r') as ff:
         for name in ff.namelist():
@@ -314,3 +319,22 @@ def test_constants(tmpdir):
             bad_list.append(('    %s,' % key).ljust(10) + '  # ' + desc)
     assert len(bad_list) == 0, \
         'In coil_def, missing  from fiff-constants:\n' + '\n'.join(bad_list)
+
+
+@pytest.mark.parametrize('dict_, match, extras', [
+    ({**_dig_kind_named, **_dig_cardinal_named}, 'FIFFV_POINT_', ()),
+    (_ch_kind_named, '^FIFFV_.*_CH$',
+     (FIFF.FIFFV_DIPOLE_WAVE, FIFF.FIFFV_GOODNESS_FIT)),
+    (_coord_frame_named, 'FIFFV_COORD_', ()),
+    (_ch_unit_named, 'FIFF_UNIT_', ()),
+    (_ch_unit_mul_named, 'FIFF_UNITM_', ()),
+    (_ch_coil_type_named, 'FIFFV_COIL_', ()),
+])
+def test_dict_completion(dict_, match, extras):
+    """Test readable dict completions."""
+    regex = re.compile(match)
+    got = set(FIFF[key] for key in FIFF if regex.search(key) is not None)
+    for e in extras:
+        got.add(e)
+    want = set(dict_)
+    assert got == want

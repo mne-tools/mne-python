@@ -10,7 +10,7 @@ from mne.datasets import testing
 from mne import (read_forward_solution, apply_forward, apply_forward_raw,
                  average_forward_solutions, write_forward_solution,
                  convert_forward_solution, SourceEstimate, pick_types_forward,
-                 read_evokeds)
+                 read_evokeds, VectorSourceEstimate)
 from mne.io import read_info
 from mne.label import read_label
 from mne.utils import (requires_mne, run_subprocess,
@@ -214,6 +214,15 @@ def test_apply_forward():
     assert_array_almost_equal(np.sum(data, axis=1), n_times * gain_sum)
     assert_array_almost_equal(times[0], t_start)
     assert_array_almost_equal(times[-1], t_start + (n_times - 1) / sfreq)
+
+    # vector
+    stc_vec = VectorSourceEstimate(
+        fwd['source_nn'][:, :, np.newaxis] * stc.data[:, np.newaxis],
+        stc.vertices, stc.tmin, stc.tstep)
+    with pytest.warns(RuntimeWarning, match='very large'):
+        evoked_2 = apply_forward(fwd, stc_vec, evoked.info)
+    assert np.abs(evoked_2.data).mean() > 1e-5
+    assert_allclose(evoked.data, evoked_2.data, atol=1e-10)
 
     # Raw
     with pytest.warns(RuntimeWarning, match='only .* positive values'):

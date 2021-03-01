@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Some utility functions."""
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#          Clemens Brunner <clemens.brunner@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -18,12 +19,11 @@ import sys
 from datetime import datetime, timedelta, timezone
 
 import numpy as np
-from scipy import sparse
 
 from ._logging import logger, warn, verbose
 from .check import check_random_state, _ensure_int, _validate_type
-from .linalg import _svd_lwork, _repeated_svd, dgemm, zgemm
-from ..fixes import _infer_dimension_, svd_flip, stable_cumsum, _safe_svd
+from ..fixes import (_infer_dimension_, svd_flip, stable_cumsum, _safe_svd,
+                     jit, has_numba)
 from .docs import fill_doc
 
 
@@ -88,8 +88,8 @@ def _compute_row_norms(data):
     return norms
 
 
-def _reg_pinv(x, reg=0, rank='full', rcond=1e-15, svd_lwork=None):
-    """Compute a regularized pseudoinverse of a square matrix.
+def _reg_pinv(x, reg=0, rank='full', rcond=1e-15):
+    """Compute a regularized pseudoinverse of Hermitian matrices.
 
     Regularization is performed by adding a constant value to each diagonal
     element of the matrix before inversion. This is known as "diagonal
@@ -103,8 +103,8 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15, svd_lwork=None):
 
     Parameters
     ----------
-    x : ndarray, shape (n, n)
-        Square matrix to invert.
+    x : ndarray, shape (..., n, n)
+        Square, Hermitian matrices to invert.
     reg : float
         Regularization parameter. Defaults to 0.
     rank : int | None | 'full'
@@ -124,7 +124,7 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15, svd_lwork=None):
 
     Returns
     -------
-    x_inv : ndarray, shape (n, n)
+    x_inv : ndarray, shape (..., n, n)
         The inverted matrix.
     loading_factor : float
         Value added to the diagonal of the matrix during regularization.
@@ -136,67 +136,63 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15, svd_lwork=None):
     from ..rank import _estimate_rank_from_s
     if rank is not None and rank != 'full':
         rank = int(operator.index(rank))
-    if x.ndim != 2 or x.shape[0] != x.shape[1]:
+    if x.ndim < 2 or x.shape[-2] != x.shape[-1]:
         raise ValueError('Input matrix must be square.')
-    if not np.allclose(x, x.conj().T):
+    if not np.allclose(x, x.conj().swapaxes(-2, -1)):
         raise ValueError('Input matrix must be Hermitian (symmetric)')
+    assert x.ndim >= 2 and x.shape[-2] == x.shape[-1]
+    n = x.shape[-1]
 
-    # Decompose the matrix
-    if svd_lwork is None:
-        svd_lwork = _svd_lwork(x.shape, x.dtype)
-    U, s, V = _repeated_svd(x, lwork=svd_lwork)
+    # Decompose the matrix, not necessarily positive semidefinite
+    from mne.fixes import svd
+    U, s, Vh = svd(x, hermitian=True)
 
     # Estimate the rank before regularization
-    tol = 'auto' if rcond == 'auto' else rcond * s.max()
+    tol = 'auto' if rcond == 'auto' else rcond * s[..., :1]
     rank_before = _estimate_rank_from_s(s, tol)
 
     # Decompose the matrix again after regularization
-    loading_factor = reg * np.mean(s)
-    U, s, V = _repeated_svd(x + loading_factor * np.eye(len(x)),
-                            lwork=svd_lwork)
+    loading_factor = reg * np.mean(s, axis=-1)
+    if reg:
+        U, s, Vh = svd(
+            x + loading_factor[..., np.newaxis, np.newaxis] * np.eye(n),
+            hermitian=True)
 
     # Estimate the rank after regularization
-    tol = 'auto' if rcond == 'auto' else rcond * s.max()
+    tol = 'auto' if rcond == 'auto' else rcond * s[..., :1]
     rank_after = _estimate_rank_from_s(s, tol)
 
     # Warn the user if both all parameters were kept at their defaults and the
     # matrix is rank deficient.
-    if rank_after < len(x) and reg == 0 and rank == 'full' and rcond == 1e-15:
+    if (rank_after < n).any() and reg == 0 and \
+            rank == 'full' and rcond == 1e-15:
         warn('Covariance matrix is rank-deficient and no regularization is '
              'done.')
-    elif isinstance(rank, int) and rank > len(x):
+    elif isinstance(rank, int) and rank > n:
         raise ValueError('Invalid value for the rank parameter (%d) given '
                          'the shape of the input matrix (%d x %d).' %
                          (rank, x.shape[0], x.shape[1]))
 
     # Pick the requested number of singular values
+    mask = np.arange(s.shape[-1]).reshape((1,) * (x.ndim - 2) + (-1,))
     if rank is None:
-        sel_s = s[:rank_before]
+        cmp = ret = rank_before
     elif rank == 'full':
-        sel_s = s[:rank_after]
+        cmp = rank_after
+        ret = rank_before
     else:
-        sel_s = s[:rank]
+        cmp = ret = rank
+    mask = mask < np.asarray(cmp)[..., np.newaxis]
+    mask &= s > 0
 
     # Invert only non-zero singular values
     s_inv = np.zeros(s.shape)
-    nonzero_inds = np.flatnonzero(sel_s != 0)
-    if len(nonzero_inds) > 0:
-        s_inv[nonzero_inds] = 1. / sel_s[nonzero_inds]
+    s_inv[mask] = 1. / s[mask]
 
     # Compute the pseudo inverse
-    U *= s_inv
-    if U.dtype == np.float64:
-        gemm = dgemm
-    else:
-        assert U.dtype == np.complex128
-        gemm = zgemm
+    x_inv = np.matmul(U * s_inv[..., np.newaxis, :], Vh)
 
-    x_inv = gemm(1., U, V).conj().T
-
-    if rank is None or rank == 'full':
-        return x_inv, loading_factor, rank_before
-    else:
-        return x_inv, loading_factor, rank
+    return x_inv, loading_factor, ret
 
 
 def _gen_events(n_epochs):
@@ -656,7 +652,7 @@ def object_hash(x, h=None):
     return int(h.hexdigest(), 16)
 
 
-def object_size(x):
+def object_size(x, memo=None):
     """Estimate the size of a reasonable python object.
 
     Parameters
@@ -665,36 +661,47 @@ def object_size(x):
         Object to approximate the size of.
         Can be anything comprised of nested versions of:
         {dict, list, tuple, ndarray, str, bytes, float, int, None}.
+    memo : dict | None
+        The memodict.
 
     Returns
     -------
     size : int
         The estimated size in bytes of the object.
     """
+    from scipy import sparse
     # Note: this will not process object arrays properly (since those only)
     # hold references
+    if memo is None:
+        memo = dict()
+    id_ = id(x)
+    if id_ in memo:
+        return 0  # do not add already existing ones
     if isinstance(x, (bytes, str, int, float, type(None))):
         size = sys.getsizeof(x)
     elif isinstance(x, np.ndarray):
         # On newer versions of NumPy, just doing sys.getsizeof(x) works,
         # but on older ones you always get something small :(
-        size = sys.getsizeof(np.array([])) + x.nbytes
+        size = sys.getsizeof(np.array([]))
+        if x.base is None or id(x.base) not in memo:
+            size += x.nbytes
     elif isinstance(x, np.generic):
         size = x.nbytes
     elif isinstance(x, dict):
         size = sys.getsizeof(x)
         for key, value in x.items():
-            size += object_size(key)
-            size += object_size(value)
+            size += object_size(key, memo)
+            size += object_size(value, memo)
     elif isinstance(x, (list, tuple)):
-        size = sys.getsizeof(x) + sum(object_size(xx) for xx in x)
+        size = sys.getsizeof(x) + sum(object_size(xx, memo) for xx in x)
     elif isinstance(x, datetime):
-        size = object_size(_dt_to_stamp(x))
+        size = object_size(_dt_to_stamp(x), memo)
     elif sparse.isspmatrix_csc(x) or sparse.isspmatrix_csr(x):
         size = sum(sys.getsizeof(xx)
                    for xx in [x, x.data, x.indices, x.indptr])
     else:
         raise RuntimeError('unsupported type: %s (%s)' % (type(x), x))
+    memo[id_] = size
     return size
 
 
@@ -732,6 +739,7 @@ def object_diff(a, b, pre=''):
     diffs : str
         A string representation of the differences.
     """
+    from scipy import sparse
     out = ''
     if type(a) != type(b):
         # Deal with NamedInt and NamedFloat
@@ -758,7 +766,10 @@ def object_diff(a, b, pre=''):
         else:
             for ii, (xx1, xx2) in enumerate(zip(a, b)):
                 out += object_diff(xx1, xx2, pre + '[%s]' % ii)
-    elif isinstance(a, (str, int, float, bytes, np.generic)):
+    elif isinstance(a, float):
+        if not _array_equal_nan(a, b):
+            out += pre + ' value mismatch (%s, %s)\n' % (a, b)
+    elif isinstance(a, (str, int, bytes, np.generic)):
         if a != b:
             out += pre + ' value mismatch (%s, %s)\n' % (a, b)
     elif a is None:
@@ -1048,3 +1059,20 @@ class _ReuseCycle(object):
         else:
             loc = np.searchsorted(self.indices, idx)
             self.indices.insert(loc, idx)
+
+
+def _arange_div_fallback(n, d):
+    x = np.arange(n, dtype=np.float64)
+    x /= d
+    return x
+
+
+if has_numba:
+    @jit(fastmath=False)
+    def _arange_div(n, d):
+        out = np.empty(n, np.float64)
+        for i in range(n):
+            out[i] = i / d
+        return out
+else:  # pragma: no cover
+    _arange_div = _arange_div_fallback

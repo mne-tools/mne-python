@@ -158,7 +158,7 @@ evoked.plot_white(noise_covs, time_unit='s')
 
 ##############################################################################
 # This will plot the whitened evoked for the optimal estimator and display the
-# :term:`GFPs <GFP>` for all estimators as separate lines in the related panel.
+# :term:`GFP` for all estimators as separate lines in the related panel.
 
 
 ##############################################################################
@@ -173,7 +173,8 @@ evoked_meg.plot_white([noise_cov_baseline, noise_cov], time_unit='s')
 
 ##############################################################################
 # Based on the negative log-likelihood, the baseline covariance
-# seems more appropriate.
+# seems more appropriate. See :ref:`ex-covariance-whitening-dspm` for more
+# information.
 
 ###############################################################################
 # References

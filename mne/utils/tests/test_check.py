@@ -5,7 +5,6 @@
 # License: BSD (3-clause)
 import os
 import os.path as op
-import shutil
 import sys
 
 import numpy as np
@@ -13,13 +12,15 @@ import pytest
 from pathlib import Path
 
 import mne
+from mne import read_vectorview_selection
 from mne.datasets import testing
 from mne.io.pick import pick_channels_cov
 from mne.utils import (check_random_state, _check_fname, check_fname,
                        _check_subject, requires_mayavi, traits_test,
                        _check_mayavi_version, _check_info_inv, _check_option,
                        check_version, _check_path_like, _validate_type,
-                       _suggest)
+                       _suggest, _on_missing, requires_nibabel, _safe_input)
+
 data_path = testing.data_path(download=False)
 base_dir = op.join(data_path, 'MEG', 'sample')
 fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
@@ -59,10 +60,17 @@ def test_check(tmpdir):
     if check_version('numpy', '1.17'):
         check_random_state(np.random.default_rng(0)).choice(1)
 
-    # _meg.fif is a valid ending and should not raise an error
-    new_fname = str(
-        tmpdir.join(op.basename(fname_raw).replace('_raw.', '_meg.')))
-    shutil.copyfile(fname_raw, new_fname)
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('suffix',
+                         ('_meg.fif', '_eeg.fif', '_ieeg.fif',
+                          '_meg.fif.gz', '_eeg.fif.gz', '_ieeg.fif.gz'))
+def test_check_fname_suffixes(suffix, tmpdir):
+    """Test checking for valid filename suffixes."""
+    new_fname = str(tmpdir.join(op.basename(fname_raw)
+                                .replace('_raw.fif', suffix)))
+    raw = mne.io.read_raw_fif(fname_raw).crop(0, 0.1)
+    raw.save(new_fname)
     mne.io.read_raw_fif(new_fname)
 
 
@@ -83,7 +91,7 @@ def _get_data():
     event_id, tmin, tmax = 1, -0.1, 0.15
 
     # decimate for speed
-    left_temporal_channels = mne.read_selection('Left-temporal')
+    left_temporal_channels = read_vectorview_selection('Left-temporal')
     picks = mne.pick_types(raw.info, meg=True,
                            selection=left_temporal_channels)
     picks = picks[::2]
@@ -157,7 +165,7 @@ def test_check_option():
 
     # Check error message for invalid value
     msg = ("Invalid value for the 'option' parameter. Allowed values are "
-           "'valid', 'good' and 'ok', but got 'bad' instead.")
+           "'valid', 'good', and 'ok', but got 'bad' instead.")
     with pytest.raises(ValueError, match=msg):
         assert _check_option('option', 'bad', allowed_values)
 
@@ -186,6 +194,7 @@ def test_validate_type():
         _validate_type(False, 'int-like')
 
 
+@requires_nibabel()
 @testing.requires_testing_data
 def test_suggest():
     """Test suggestions."""
@@ -196,3 +205,29 @@ def test_suggest():
     assert sug == " Did you mean 'Left-Cerebellum-Cortex'?"
     sug = _suggest('Cerebellum-Cortex', names)
     assert sug == " Did you mean one of ['Left-Cerebellum-Cortex', 'Right-Cerebellum-Cortex', 'Left-Cerebral-Cortex']?"  # noqa: E501
+
+
+def test_on_missing():
+    """Test _on_missing."""
+    msg = 'test'
+    with pytest.raises(ValueError, match=msg):
+        _on_missing('raise', msg)
+    with pytest.warns(RuntimeWarning, match=msg):
+        _on_missing('warn', msg)
+    _on_missing('ignore', msg)
+
+    with pytest.raises(ValueError,
+                       match='Invalid value for the \'on_missing\' parameter'):
+        _on_missing('foo', msg)
+
+
+def _matlab_input(msg):
+    raise EOFError()
+
+
+def test_safe_input(monkeypatch):
+    """Test _safe_input."""
+    monkeypatch.setattr(mne.utils.check, 'input', _matlab_input)
+    with pytest.raises(RuntimeError, match='Could not use input'):
+        _safe_input('whatever', alt='nothing')
+    assert _safe_input('whatever', use='nothing') == 'nothing'

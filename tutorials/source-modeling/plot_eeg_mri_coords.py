@@ -7,11 +7,6 @@ EEG source localization given electrode locations on an MRI
 
 This tutorial explains how to compute the forward operator from EEG data
 when the electrodes are in MRI voxel coordinates.
-
-.. contents:: This tutorial covers:
-   :local:
-   :depth: 2
-
 """
 
 # Authors: Eric Larson <larson.eric.d@gmail.com>
@@ -138,8 +133,9 @@ evoked.plot_joint()
 # New we have all of the components we need to compute a forward solution,
 # but first we should sanity check that everything is well aligned:
 
-plot_alignment(evoked.info, trans=trans, show_axes=True, surfaces='head-dense',
-               subject='sample', subjects_dir=subjects_dir)
+fig = plot_alignment(
+    evoked.info, trans=trans, show_axes=True, surfaces='head-dense',
+    subject='sample', subjects_dir=subjects_dir)
 
 ##############################################################################
 # Now we can actually compute the forward:
@@ -153,4 +149,4 @@ fwd = mne.make_forward_solution(
 inv = mne.minimum_norm.make_inverse_operator(
     evoked.info, fwd, cov, verbose=True)
 stc = mne.minimum_norm.apply_inverse(evoked, inv)
-stc.plot(subjects_dir=subjects_dir, initial_time=0.1)
+brain = stc.plot(subjects_dir=subjects_dir, initial_time=0.1)

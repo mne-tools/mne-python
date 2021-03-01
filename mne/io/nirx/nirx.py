@@ -6,16 +6,17 @@ from configparser import ConfigParser, RawConfigParser
 import glob as glob
 import re as re
 import os.path as op
+import datetime as dt
 
 import numpy as np
 
 from ..base import BaseRaw
+from ..utils import _mult_cal_one
 from ..constants import FIFF
 from ..meas_info import create_info, _format_dig_points
 from ...annotations import Annotations
 from ...transforms import apply_trans, _get_trans
-from ...utils import logger, verbose, fill_doc
-from ...utils import warn
+from ...utils import logger, verbose, fill_doc, warn
 
 
 @fill_doc
@@ -73,7 +74,7 @@ class RawNIRX(BaseRaw):
             fname = op.dirname(op.abspath(fname))
 
         if not op.isdir(fname):
-            raise RuntimeError('The path you specified does not exist.')
+            raise FileNotFoundError('The path you specified does not exist.')
 
         # Check if required files exist and store names for later use
         files = dict()
@@ -107,8 +108,7 @@ class RawNIRX(BaseRaw):
         hdr.read_string(hdr_str)
 
         # Check that the file format version is supported
-        if not any(item == hdr['GeneralInfo']['NIRStar'] for item in
-                   ["\"15.0\"", "\"15.2\""]):
+        if hdr['GeneralInfo']['NIRStar'] not in ['"15.0"', '"15.2"', '"15.3"']:
             raise RuntimeError('MNE does not support this NIRStar version'
                                ' (%s)' % (hdr['GeneralInfo']['NIRStar'],))
         if "NIRScout" not in hdr['GeneralInfo']['Device']:
@@ -118,25 +118,41 @@ class RawNIRX(BaseRaw):
 
         # Parse required header fields
 
+        # Extract measurement date and time
+        datetime_str = hdr['GeneralInfo']['Date'] + hdr['GeneralInfo']['Time']
+        meas_date = None
+        # Several formats have been observed so we try each in turn
+        for dt_code in ['"%a, %b %d, %Y""%H:%M:%S.%f"',
+                        '"%a, %d %b %Y""%H:%M:%S.%f"']:
+            try:
+                meas_date = dt.datetime.strptime(datetime_str, dt_code)
+                meas_date = meas_date.replace(tzinfo=dt.timezone.utc)
+                break
+            except ValueError:
+                pass
+        if meas_date is None:
+            warn("Extraction of measurement date from NIRX file failed. "
+                 "This can be caused by files saved in certain locales. "
+                 "Please report this as a github issue. "
+                 "The date is being set to January 1st, 2000, "
+                 "instead of {}".format(datetime_str))
+            meas_date = dt.datetime(2000, 1, 1, 0, 0, 0,
+                                    tzinfo=dt.timezone.utc)
+
         # Extract frequencies of light used by machine
         fnirs_wavelengths = [int(s) for s in
                              re.findall(r'(\d+)',
-                             hdr['ImagingParameters']['Wavelengths'])]
+                                        hdr['ImagingParameters'][
+                                            'Wavelengths'])]
 
         # Extract source-detectors
         sources = np.asarray([int(s) for s in re.findall(r'(\d+)-\d+:\d+',
-                              hdr['DataStructure']['S-D-Key'])], int)
+                                                         hdr['DataStructure'][
+                                                             'S-D-Key'])], int)
         detectors = np.asarray([int(s) for s in re.findall(r'\d+-(\d+):\d+',
-                                hdr['DataStructure']['S-D-Key'])], int)
-
-        # Determine if short channels are present and on which detectors
-        if 'shortbundles' in hdr['ImagingParameters']:
-            short_det = [int(s) for s in
-                         re.findall(r'(\d+)',
-                         hdr['ImagingParameters']['ShortDetIndex'])]
-            short_det = np.array(short_det, int)
-        else:
-            short_det = []
+                                                           hdr['DataStructure']
+                                                           ['S-D-Key'])],
+                               int)
 
         # Extract sampling rate
         samplingrate = float(hdr['ImagingParameters']['SamplingRate'])
@@ -150,6 +166,7 @@ class RawNIRX(BaseRaw):
         # Note: NIRX also records "Study Type", "Experiment History",
         #       "Additional Notes", "Contact Information" and this information
         #       is currently discarded
+        # NIRStar does not record an id, or handedness by default
         subject_info = {}
         names = inf['name'].split()
         if len(names) > 0:
@@ -161,14 +178,17 @@ class RawNIRX(BaseRaw):
         if len(names) > 2:
             subject_info['middle_name'] = \
                 inf['name'].split()[-2].replace("\"", "")
-        # subject_info['birthday'] = inf['age']  # TODO: not formatted properly
         subject_info['sex'] = inf['gender'].replace("\"", "")
         # Recode values
         if subject_info['sex'] in {'M', 'Male', '1'}:
             subject_info['sex'] = FIFF.FIFFV_SUBJ_SEX_MALE
         elif subject_info['sex'] in {'F', 'Female', '2'}:
             subject_info['sex'] = FIFF.FIFFV_SUBJ_SEX_FEMALE
-        # NIRStar does not record an id, or handedness by default
+        else:
+            subject_info['sex'] = FIFF.FIFFV_SUBJ_SEX_UNKNOWN
+        subject_info['birthday'] = (meas_date.year - int(inf['age']),
+                                    meas_date.month,
+                                    meas_date.day)
 
         # Read information about probe/montage/optodes
         # A word on terminology used here:
@@ -217,10 +237,11 @@ class RawNIRX(BaseRaw):
         req_ind = req_ind.astype(int)
 
         # Generate meaningful channel names
-        def prepend(list, str):
+        def prepend(li, str):
             str += '{0}'
-            list = [str.format(i) for i in list]
-            return(list)
+            li = [str.format(i) for i in li]
+            return li
+
         snames = prepend(sources[req_ind], 'S')
         dnames = prepend(detectors[req_ind], '_D')
         sdnames = [m + str(n) for m, n in zip(snames, dnames)]
@@ -233,6 +254,7 @@ class RawNIRX(BaseRaw):
                            samplingrate,
                            ch_types='fnirs_cw_amplitude')
         info.update(subject_info=subject_info, dig=dig)
+        info['meas_date'] = meas_date
 
         # Store channel, source, and detector locations
         # The channel location is stored in the first 3 entries of loc.
@@ -249,15 +271,10 @@ class RawNIRX(BaseRaw):
             det = int(requested_channels[ch_idx2, 1]) - 1
             info['chs'][ch_idx2 * 2]['loc'][6:9] = det_locs[det, :]
             info['chs'][ch_idx2 * 2 + 1]['loc'][6:9] = det_locs[det, :]
-            # Store channel location
-            # Channel locations for short channels are bodged,
-            # for short channels use the source location.
-            if det + 1 in short_det:
-                info['chs'][ch_idx2 * 2]['loc'][:3] = src_locs[src, :]
-                info['chs'][ch_idx2 * 2 + 1]['loc'][:3] = src_locs[src, :]
-            else:
-                info['chs'][ch_idx2 * 2]['loc'][:3] = ch_locs[ch_idx2, :]
-                info['chs'][ch_idx2 * 2 + 1]['loc'][:3] = ch_locs[ch_idx2, :]
+            # Store channel location as midpoint between source and detector.
+            midpoint = (src_locs[src, :] + det_locs[det, :]) / 2
+            info['chs'][ch_idx2 * 2]['loc'][:3] = midpoint
+            info['chs'][ch_idx2 * 2 + 1]['loc'][:3] = midpoint
             info['chs'][ch_idx2 * 2]['loc'][9] = fnirs_wavelengths[0]
             info['chs'][ch_idx2 * 2 + 1]['loc'][9] = fnirs_wavelengths[1]
 
@@ -325,8 +342,7 @@ class RawNIRX(BaseRaw):
         this_data = np.zeros((len(wls[0]) * 2, stop - start))
         this_data[0::2, :] = wls[0]
         this_data[1::2, :] = wls[1]
-        data[:] = this_data[idx]
-
+        _mult_cal_one(data, this_data, idx, cals, mult)
         return data
 
 

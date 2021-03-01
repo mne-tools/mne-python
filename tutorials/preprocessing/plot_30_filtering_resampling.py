@@ -8,10 +8,6 @@ Filtering and resampling data
 This tutorial covers filtering and resampling, and gives examples of how
 filtering can be used for artifact repair.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 We begin as always by importing the necessary Python modules and loading some
 :ref:`example data <sample-dataset>`. We'll also crop the data to 60 seconds
 (to save memory on the documentation server):
@@ -152,7 +148,21 @@ for title, data in zip(['Un', 'Notch '], [raw, raw_notch]):
 # width, transition bandwidth and other aspects of the filter. See the
 # docstring for details.
 #
-#
+# It's also possible to try to use a spectrum fitting routine to notch filter.
+# In principle it can automatically detect the frequencies to notch, but our
+# implementation generally does not do so reliably, so we specify the
+# frequencies to remove instead, and it does a good job of removing the
+# line noise at those frequencies:
+
+raw_notch_fit = raw.copy().notch_filter(
+    freqs=freqs, picks=meg_picks, method='spectrum_fit', filter_length='10s')
+for title, data in zip(['Un', 'spectrum_fit '], [raw, raw_notch_fit]):
+    fig = data.plot_psd(fmax=250, average=True)
+    fig.subplots_adjust(top=0.85)
+    fig.suptitle('{}filtered'.format(title), size='xx-large', weight='bold')
+    add_arrows(fig.axes[:2])
+
+###############################################################################
 # Resampling
 # ^^^^^^^^^^
 #

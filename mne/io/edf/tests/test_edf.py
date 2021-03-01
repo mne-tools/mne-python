@@ -8,6 +8,7 @@
 #
 # License: BSD (3-clause)
 
+from functools import partial
 import os.path as op
 import inspect
 
@@ -20,17 +21,17 @@ import pytest
 
 from mne import pick_types, Annotations
 from mne.datasets import testing
-from mne.utils import run_tests_if_main, requires_pandas
-from mne.io import read_raw_edf, read_raw_bdf
+from mne.fixes import nullcontext
+from mne.utils import requires_pandas
+from mne.io import read_raw_edf, read_raw_bdf, read_raw_fif, edf, read_raw_gdf
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.io.edf.edf import _get_edf_default_event_id
-from mne.io.edf.edf import _read_annotations_edf
-from mne.io.edf.edf import _read_ch
-from mne.io.edf.edf import _parse_prefilter_string
-from mne.io.pick import channel_indices_by_type
+from mne.io.edf.edf import (_get_edf_default_event_id, _read_annotations_edf,
+                            _read_ch, _parse_prefilter_string, _edf_str,
+                            _read_edf_header, _read_header)
+from mne.io.pick import channel_indices_by_type, get_channel_type_constants
 from mne.annotations import events_from_annotations, read_annotations
-from mne.io.meas_info import _kind_dict as _KIND_DICT
 
+td_mark = testing._pytest_mark()
 
 FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
@@ -72,15 +73,36 @@ def test_orig_units():
     assert orig_units['A1'] == 'µV'  # formerly 'uV' edit by _check_orig_units
 
 
+def test_subject_info(tmpdir):
+    """Test exposure of original channel units."""
+    raw = read_raw_edf(edf_path)
+    assert raw.info['subject_info'] is None  # XXX this is arguably a bug
+    edf_info = raw._raw_extras[0]
+    assert edf_info['subject_info'] is not None
+    want = {'id': 'X', 'sex': 'X', 'birthday': 'X', 'name': 'X'}
+    for key, val in want.items():
+        assert edf_info['subject_info'][key] == val, key
+    fname = tmpdir.join('test_raw.fif')
+    raw.save(fname)
+    raw = read_raw_fif(fname)
+    assert raw.info['subject_info'] is None  # XXX should eventually round-trip
+
+
 def test_bdf_data():
     """Test reading raw bdf files."""
+    # XXX BDF data for these is around 0.01 when it should be in the uV range,
+    # probably some bug
+    test_scaling = False
     raw_py = _test_raw_reader(read_raw_bdf, input_fname=bdf_path,
                               eog=eog, misc=misc,
-                              exclude=['M2', 'IEOG'])
+                              exclude=['M2', 'IEOG'],
+                              test_scaling=test_scaling,
+                              )
     assert len(raw_py.ch_names) == 71
     raw_py = _test_raw_reader(read_raw_bdf, input_fname=bdf_path,
                               montage='biosemi64', eog=eog, misc=misc,
-                              exclude=['M2', 'IEOG'])
+                              exclude=['M2', 'IEOG'],
+                              test_scaling=test_scaling)
     assert len(raw_py.ch_names) == 71
     assert 'RawEDF' in repr(raw_py)
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
@@ -181,17 +203,20 @@ def test_parse_annotation(tmpdir):
                              dtype=np.int64)
 
     with open(str(annot_file), 'rb') as fid:
-        # ch_data = np.fromfile(fid, dtype=np.int16, count=len(annot))
-        tal_channel_B = _read_ch(fid, subtype='EDF', dtype=np.int16,
+        # ch_data = np.fromfile(fid, dtype='<i2', count=len(annot))
+        tal_channel_B = _read_ch(fid, subtype='EDF', dtype='<i2',
                                  samp=(len(annot) - 1) // 2,
                                  dtype_byte='This_parameter_is_not_used')
 
+    want_onset, want_duration, want_description = zip(
+        *[[180., 0., 'Lights off'], [180., 0., 'Close door'],
+          [180., 0., 'Lights off'], [180., 0., 'Close door'],
+          [3.14, 4.2, 'nothing'], [1800.2, 25.5, 'Apnea']])
     for tal_channel in [tal_channel_A, tal_channel_B]:
         onset, duration, description = _read_annotations_edf([tal_channel])
-        assert_equal(np.column_stack((onset, duration, description)),
-                     [[180., 0., 'Lights off'], [180., 0., 'Close door'],
-                      [180., 0., 'Lights off'], [180., 0., 'Close door'],
-                      [3.14, 4.2, 'nothing'], [1800.2, 25.5, 'Apnea']])
+        assert_allclose(onset, want_onset)
+        assert_allclose(duration, want_duration)
+        assert description == want_description
 
 
 def test_find_events_backward_compatibility():
@@ -279,7 +304,7 @@ def test_read_annot(tmpdir):
 
     # Now test when reading from buffer of data
     with open(str(annot_file), 'rb') as fid:
-        ch_data = np.fromfile(fid, dtype=np.int16, count=len(annot))
+        ch_data = np.fromfile(fid, dtype='<i2', count=len(annot))
     onset, duration, desc = _read_annotations_edf([ch_data])
     annotation = Annotations(onset=onset, duration=duration, description=desc,
                              orig_time=None)
@@ -357,7 +382,9 @@ def test_load_generator(fname, recwarn):
 def test_edf_stim_ch_pick_up(test_input, EXPECTED):
     """Test stim_channel."""
     # This is fragile for EEG/EEG-CSD, so just omit csd
-    TYPE_LUT = {v[0]: k for k, v in _KIND_DICT.items() if k != 'csd'}
+    KIND_DICT = get_channel_type_constants()
+    TYPE_LUT = {v['kind']: k for k, v in KIND_DICT.items() if k not in
+                ('csd', 'chpi')}  # chpi not needed, and unhashable (a list)
     fname = op.join(data_dir, 'test_stim_channel.edf')
 
     raw = read_raw_edf(fname, stim_channel=test_input)
@@ -377,14 +404,12 @@ def test_bdf_multiple_annotation_channels():
     assert_array_equal(descriptions, raw.annotations.description)
 
 
-run_tests_if_main()
-
-
 @testing.requires_testing_data
 def test_edf_lowpass_zero():
     """Test if a lowpass filter of 0Hz is mapped to the Nyquist frequency."""
-    with pytest.warns(RuntimeWarning, match='too long.*truncated'):
-        raw = read_raw_edf(edf_stim_resamp_path)
+    raw = read_raw_edf(edf_stim_resamp_path)
+    assert raw.ch_names[100] == 'EEG LDAMT_01-REF'
+    assert len(raw.ch_names[100]) > 15
     assert_allclose(raw.info["lowpass"], raw.info["sfreq"] / 2)
 
 
@@ -393,3 +418,97 @@ def test_edf_annot_sub_s_onset():
     """Test reading of sub-second annotation onsets."""
     raw = read_raw_edf(edf_annot_sub_s_path)
     assert_allclose(raw.annotations.onset, [1.951172, 3.492188])
+
+
+def test_invalid_date(tmpdir):
+    """Test handling of invalid date in EDF header."""
+    with open(edf_path, 'rb') as f:  # read valid test file
+        edf = bytearray(f.read())
+
+    # original date in header is 29.04.14 (2014-04-29) at pos 168:176
+    # but we also use Startdate if available,
+    # which starts at byte 88 and is b'Startdate 29-APR-2014 X X X'
+    # create invalid date 29.02.14 (2014 is not a leap year)
+
+    # one wrong: no warning
+    edf[101:104] = b'FEB'
+    assert edf[172] == ord('4')
+    fname = op.join(str(tmpdir), "temp.edf")
+    with open(fname, "wb") as f:
+        f.write(edf)
+    read_raw_edf(fname)
+
+    # other wrong: no warning
+    edf[101:104] = b'APR'
+    edf[172] = ord('2')
+    with open(fname, "wb") as f:
+        f.write(edf)
+    read_raw_edf(fname)
+
+    # both wrong: warning
+    edf[101:104] = b'FEB'
+    edf[172] = ord('2')
+    with open(fname, "wb") as f:
+        f.write(edf)
+    with pytest.warns(RuntimeWarning, match='Invalid date'):
+        read_raw_edf(fname)
+
+    # another invalid date 29.00.14 (0 is not a month)
+    assert edf[101:104] == b'FEB'
+    edf[172] = ord('0')
+    with open(fname, "wb") as f:
+        f.write(edf)
+    with pytest.warns(RuntimeWarning, match='Invalid date'):
+        read_raw_edf(fname)
+
+
+def test_empty_chars():
+    """Test blank char support."""
+    assert int(_edf_str(b'1819\x00 ')) == 1819
+
+
+def _hp_lp_rev(*args, **kwargs):
+    out, orig_units = _read_edf_header(*args, **kwargs)
+    out['lowpass'], out['highpass'] = out['highpass'], out['lowpass']
+    # this will happen for test_edf_stim_resamp.edf
+    if len(out['lowpass']) and out['lowpass'][0] == '0.000' and \
+            len(out['highpass']) and out['highpass'][0] == '0.0':
+        out['highpass'][0] = '10.0'
+    return out, orig_units
+
+
+@pytest.mark.filterwarnings('ignore:.*too long.*:RuntimeWarning')
+@pytest.mark.parametrize('fname, lo, hi, warns', [
+    (edf_path, 256, 0, False),
+    (edf_uneven_path, 50, 0, False),
+    (edf_stim_channel_path, 64, 0, False),
+    pytest.param(edf_overlap_annot_path, 64, 0, False, marks=td_mark),
+    pytest.param(edf_reduced, 256, 0, False, marks=td_mark),
+    pytest.param(test_generator_edf, 100, 0, False, marks=td_mark),
+    pytest.param(edf_stim_resamp_path, 256, 0, True, marks=td_mark),
+])
+def test_hp_lp_reversed(fname, lo, hi, warns, monkeypatch):
+    """Test HP/LP reversed (gh-8584)."""
+    fname = str(fname)
+    raw = read_raw_edf(fname)
+    assert raw.info['lowpass'] == lo
+    assert raw.info['highpass'] == hi
+    monkeypatch.setattr(edf.edf, '_read_edf_header', _hp_lp_rev)
+    if warns:
+        ctx = pytest.warns(RuntimeWarning, match='greater than lowpass')
+        new_lo, new_hi = raw.info['sfreq'] / 2., 0.
+    else:
+        ctx = nullcontext()
+        new_lo, new_hi = lo, hi
+    with ctx:
+        raw = read_raw_edf(fname)
+    assert raw.info['lowpass'] == new_lo
+    assert raw.info['highpass'] == new_hi
+
+
+def test_degenerate():
+    """Test checking of some bad inputs."""
+    for func in (read_raw_edf, read_raw_bdf, read_raw_gdf,
+                 partial(_read_header, exclude=())):
+        with pytest.raises(NotImplementedError, match='Only.*txt.*'):
+            func(edf_txt_stim_channel_path)

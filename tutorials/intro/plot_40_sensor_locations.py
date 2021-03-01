@@ -7,10 +7,6 @@ Working with sensor locations
 This tutorial describes how to read and plot sensor locations, and how
 the physical location of sensors is handled in MNE-Python.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 As usual we'll start by importing the modules we need and loading some
 :ref:`example data <sample-dataset>`:
 """
@@ -97,6 +93,62 @@ fig.gca().view_init(azim=70, elev=15)
 ten_twenty_montage.plot(kind='topomap', show_names=False)
 
 ###############################################################################
+# .. _control-chan-projection:
+#
+# Controlling channel projection (MNE vs EEGLAB)
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# Channel positions in 2d space are obtained by projecting their actual 3d
+# positions using a sphere as a reference. Because ``'standard_1020'`` montage
+# contains realistic, not spherical, channel positions, we will use a different
+# montage to demonstrate controlling how channels are projected to 2d space.
+
+biosemi_montage = mne.channels.make_standard_montage('biosemi64')
+biosemi_montage.plot(show_names=False)
+
+###############################################################################
+# By default a sphere  with an origin in ``(0, 0, 0)`` x, y, z coordinates and
+# radius of ``0.095`` meters (9.5 cm) is used. You can use a different sphere
+# radius by passing a single value to ``sphere`` argument in any function that
+# plots channels in 2d (like :meth:`~mne.channels.DigMontage.plot` that we use
+# here, but also for example :func:`mne.viz.plot_topomap`):
+
+biosemi_montage.plot(show_names=False, sphere=0.07)
+
+###############################################################################
+# To control not only radius, but also the sphere origin, pass a
+# ``(x, y, z, radius)`` tuple to ``sphere`` argument:
+
+biosemi_montage.plot(show_names=False, sphere=(0.03, 0.02, 0.01, 0.075))
+
+###############################################################################
+# In mne-python the head center and therefore the sphere center are calculated
+# using :term:`fiducial points <fiducial>`.
+# Because of this the head circle represents head
+# circumference at the nasion and ear level, and not where it is commonly
+# measured in 10-20 EEG system: above nasion at T4/T8, T3/T7, Oz, Fz level.
+# Notice below that by default T7 and Oz channels are placed within the head
+# circle, not on the head outline:
+
+biosemi_montage.plot()
+
+###############################################################################
+# If you have previous EEGLAB experience you may prefer its convention to
+# represent 10-20 head circumference with the head circle. To get EEGLAB-like
+# channel layout you would have to move the sphere origin a few centimeters
+# up on the z dimension:
+
+biosemi_montage.plot(sphere=(0, 0, 0.035, 0.094))
+
+###############################################################################
+# Instead of approximating the EEGLAB-esque sphere location as above, you can
+# calculate the sphere origin from position of Oz, Fpz, T3/T7 or T4/T8
+# channels. This is easier once the montage has been applied to the data and
+# channel positions are in the head space - see
+# :ref:`this example <ex-topomap-eeglab-style>`.
+
+
+###############################################################################
 # .. _reading-dig-montages:
 #
 # Reading sensor digitization files
@@ -117,7 +169,7 @@ ten_twenty_montage.plot(kind='topomap', show_names=False)
 # existing matplotlib ``axes`` object (so the channel positions can easily be
 # made as a subplot in a multi-panel figure):
 
-# sphinx_gallery_thumbnail_number = 3
+# sphinx_gallery_thumbnail_number = 8
 fig = plt.figure()
 ax2d = fig.add_subplot(121)
 ax3d = fig.add_subplot(122, projection='3d')
@@ -154,8 +206,7 @@ ax3d.view_init(azim=70, elev=15)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # It is also possible to render an image of a MEG sensor helmet in 3D, using
-# mayavi instead of matplotlib, by calling the :func:`mne.viz.plot_alignment`
-# function:
+# mayavi instead of matplotlib, by calling :func:`mne.viz.plot_alignment`
 
 fig = mne.viz.plot_alignment(raw.info, trans=None, dig=False, eeg=False,
                              surfaces=[], meg=['helmet', 'sensors'],
@@ -168,8 +219,7 @@ mne.viz.set_3d_view(fig, azimuth=50, elevation=90, distance=0.5)
 # keywords like ``'head'``, ``'outer_skull'``, or ``'brain'`` to the
 # ``surfaces`` parameter) making it useful for :ref:`assessing coordinate frame
 # transformations <plot_source_alignment>`. For examples of various uses of
-# :func:`~mne.viz.plot_alignment`, see
-# :doc:`../../auto_examples/visualization/plot_montage`,
+# :func:`~mne.viz.plot_alignment`, see :ref:`plot_montage`,
 # :doc:`../../auto_examples/visualization/plot_eeg_on_scalp`, and
 # :doc:`../../auto_examples/visualization/plot_meg_sensors`.
 #

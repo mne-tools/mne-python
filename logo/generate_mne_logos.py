@@ -17,12 +17,12 @@ from matplotlib import rcParams
 from scipy.stats import multivariate_normal
 from matplotlib.path import Path
 from matplotlib.text import TextPath
-from matplotlib.patches import PathPatch
+from matplotlib.patches import PathPatch, Ellipse
 from matplotlib.colors import LinearSegmentedColormap
 
 # manually set values
 dpi = 300.
-center_fudge = np.array([2, 0])  # compensate for font bounding box padding
+center_fudge = np.array([15, 0])  # compensate for font bounding box padding
 tagline_scale_fudge = 0.97  # to get justification right
 tagline_offset_fudge = np.array([0, -100.])
 
@@ -113,6 +113,23 @@ plt.draw()
 static_dir = op.join(op.dirname(__file__), '..', 'doc', '_static')
 assert op.isdir(static_dir)
 plt.savefig(op.join(static_dir, 'mne_logo.svg'), transparent=True)
+
+# modify to make an icone
+data_dir = op.join(op.dirname(__file__), '..', 'mne', 'icons')
+ax.patches.pop(-1)  # no tag line for our icon
+ax.collections[:] = []
+bounds = np.array([
+    [mne_path.vertices[:, ii].min(), mne_path.vertices[:, ii].max()]
+    for ii in range(2)])
+bounds *= (plot_dims / dims)
+xy = np.mean(bounds, axis=1) - [100, 0]
+r = np.diff(bounds, axis=1).max() * 1.2
+ax.add_patch(Ellipse(xy, r, r, clip_on=False, zorder=-1, fc='k'))
+ax.set_ylim(xy[1] + r / 1.9, xy[1] - r / 1.9)
+fig.set_size_inches((256 / dpi, 256 / dpi))
+# Qt does not support clip paths in SVG rendering so we have to use PNG here
+# then use "optipng -o7" on it afterward (14% reduction in file size)
+plt.savefig(op.join(data_dir, 'mne-circle-black.png'), transparent=True)
 plt.close()
 
 # 92x22 image

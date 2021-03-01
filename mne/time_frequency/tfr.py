@@ -11,15 +11,14 @@ Morlet code inspired by Matlab code from Sheraz Khan & Brainstorm & SPM
 
 from copy import deepcopy
 from functools import partial
-from math import sqrt
 
 import numpy as np
-from scipy import linalg
 
 from .multitaper import dpss_windows
 
 from ..baseline import rescale
-from ..fixes import fft, ifft
+from ..fixes import _import_fft
+from ..filter import next_fast_len
 from ..parallel import parallel_func
 from ..utils import (logger, verbose, _time_mask, _freq_mask, check_fname,
                      sizeof_fmt, GetEpochsMixin, _prepare_read_metadata,
@@ -95,7 +94,7 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
             real_offset = np.exp(- 2 * (np.pi * f * sigma_t) ** 2)
             oscillation -= real_offset
         W = oscillation * gaussian_enveloppe
-        W /= sqrt(0.5) * linalg.norm(W.ravel())
+        W /= np.sqrt(0.5) * np.linalg.norm(W.ravel())
         Ws.append(W)
     return Ws
 
@@ -161,7 +160,7 @@ def _make_dpss(sfreq, freqs, n_cycles=7., time_bandwidth=4.0, zero_mean=False):
             if zero_mean:  # to make it zero mean
                 real_offset = Wk.mean()
                 Wk -= real_offset
-            Wk /= sqrt(0.5) * linalg.norm(Wk.ravel())
+            Wk /= np.sqrt(0.5) * np.linalg.norm(Wk.ravel())
 
             Wm.append(Wk)
 
@@ -172,7 +171,24 @@ def _make_dpss(sfreq, freqs, n_cycles=7., time_bandwidth=4.0, zero_mean=False):
 
 # Low level convolution
 
-def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
+def _get_nfft(wavelets, X, use_fft=True, check=True):
+    n_times = X.shape[-1]
+    max_size = max(w.size for w in wavelets)
+    if max_size > n_times:
+        msg = (f'At least one of the wavelets ({max_size}) is longer than the '
+               f'signal ({n_times}). Consider using a longer signal or '
+               'shorter wavelets.')
+        if check:
+            if use_fft:
+                warn(msg, UserWarning)
+            else:
+                raise ValueError(msg)
+    nfft = n_times + max_size - 1
+    nfft = next_fast_len(nfft)  # 2 ** int(np.ceil(np.log2(nfft)))
+    return nfft
+
+
+def _cwt_gen(X, Ws, *, fsize=0, mode="same", decim=1, use_fft=True):
     """Compute cwt with fft based convolutions or temporal convolutions.
 
     Parameters
@@ -181,6 +197,8 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
         The data.
     Ws : list of array
         Wavelets time series.
+    fsize : int
+        FFT length.
     mode : {'full', 'valid', 'same'}
         See numpy.convolve.
     decim : int | slice, default 1
@@ -199,36 +217,21 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
     out : array, shape (n_signals, n_freqs, n_time_decim)
         The time-frequency transform of the signals.
     """
+    fft, ifft = _import_fft(('fft', 'ifft'))
     _check_option('mode', mode, ['same', 'valid', 'full'])
     decim = _check_decim(decim)
     X = np.asarray(X)
 
     # Precompute wavelets for given frequency range to save time
-    n_signals, n_times = X.shape
+    _, n_times = X.shape
     n_times_out = X[:, decim].shape[1]
     n_freqs = len(Ws)
-
-    Ws_max_size = max(W.size for W in Ws)
-    size = n_times + Ws_max_size - 1
-    # Always use 2**n-sized FFT
-    fsize = 2 ** int(np.ceil(np.log2(size)))
 
     # precompute FFTs of Ws
     if use_fft:
         fft_Ws = np.empty((n_freqs, fsize), dtype=np.complex128)
-
-    warn_me = True
-    for i, W in enumerate(Ws):
-        if use_fft:
+        for i, W in enumerate(Ws):
             fft_Ws[i] = fft(W, fsize)
-        if len(W) > n_times and warn_me:
-            msg = ('At least one of the wavelets is longer than the signal. '
-                   'Consider padding the signal or using shorter wavelets.')
-            if use_fft:
-                warn(msg, UserWarning)
-                warn_me = False  # Suppress further warnings
-            else:
-                raise ValueError(msg)
 
     # Make generator looping across signals
     tfr = np.zeros((n_freqs, n_times_out), dtype=np.complex128)
@@ -283,10 +286,10 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
         Sampling frequency of the data.
     method : 'multitaper' | 'morlet', default 'morlet'
         The time-frequency method. 'morlet' convolves a Morlet wavelet.
-        'multitaper' uses Morlet wavelets windowed with multiple DPSS
-        multitapers.
+        'multitaper' uses complex exponentials windowed with multiple DPSS
+        tapers.
     n_cycles : float | array of float, default 7.0
-        Number of cycles  in the Morlet wavelet. Fixed number
+        Number of cycles in the wavelet. Fixed number
         or one per frequency.
     zero_mean : bool | None, default None
         None means True for method='multitaper' and False for method='morlet'.
@@ -368,7 +371,7 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
     n_freqs = len(freqs)
     n_epochs, n_chans, n_times = epoch_data[:, :, decim].shape
     if output in ('power', 'phase', 'avg_power', 'itc'):
-        dtype = np.float
+        dtype = np.float64
     elif output in ('complex', 'avg_power_itc'):
         # avg_power_itc is stored as power + 1i * itc to keep a
         # simple dimensionality
@@ -380,6 +383,8 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
         out = np.empty((n_chans, n_epochs, n_freqs, n_times), dtype)
 
     # Parallel computation
+    all_Ws = sum([list(W) for W in Ws], list())
+    _get_nfft(all_Ws, epoch_data, use_fft)
     parallel, my_cwt, _ = parallel_func(_time_frequency_loop, n_jobs)
 
     # Parallelization is applied across channels.
@@ -495,7 +500,7 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
         The decimation slice: e.g. power[:, decim]
     """
     # Set output type
-    dtype = np.float
+    dtype = np.float64
     if output in ['complex', 'avg_power_itc']:
         dtype = np.complex128
 
@@ -510,7 +515,10 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
 
     # Loops across tapers.
     for W in Ws:
-        coefs = _cwt(X, W, mode, decim=decim, use_fft=use_fft)
+        # No need to check here, it's done earlier (outside parallel part)
+        nfft = _get_nfft(W, X, use_fft, check=False)
+        coefs = _cwt_gen(
+            X, W, fsize=nfft, mode=mode, decim=decim, use_fft=use_fft)
 
         # Inter-trial phase locking is apparently computed per taper...
         if 'itc' in output:
@@ -586,11 +594,16 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
     mne.time_frequency.tfr_morlet : Compute time-frequency decomposition
                                     with Morlet wavelets.
     """
+    nfft = _get_nfft(Ws, X, use_fft)
+    return _cwt_array(X, Ws, nfft, mode, decim, use_fft)
+
+
+def _cwt_array(X, Ws, nfft, mode, decim, use_fft):
     decim = _check_decim(decim)
+    coefs = _cwt_gen(
+        X, Ws, fsize=nfft, mode=mode, decim=decim, use_fft=use_fft)
+
     n_signals, n_times = X[:, decim].shape
-
-    coefs = _cwt(X, Ws, mode, decim=decim, use_fft=use_fft)
-
     tfrs = np.empty((n_signals, len(Ws), n_times), dtype=np.complex128)
     for k, tfr in enumerate(coefs):
         tfrs[k] = tfr
@@ -660,6 +673,10 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
                output='power', verbose=None):
     """Compute Time-Frequency Representation (TFR) using Morlet wavelets.
 
+    Same computation as `~mne.time_frequency.tfr_array_morlet`, but
+    operates on `~mne.Epochs` objects instead of
+    :class:`NumPy arrays <numpy.ndarray>`.
+
     Parameters
     ----------
     inst : Epochs | Evoked
@@ -688,10 +705,7 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
         Make sure the wavelet has a mean of zero.
 
         .. versionadded:: 0.13.0
-    average : bool, default True
-        If True average across Epochs.
-
-        .. versionadded:: 0.13.0
+    %(tfr_average)s
     output : str
         Can be "power" (default) or "complex". If "complex", then
         average must be False.
@@ -725,9 +739,10 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
 def tfr_array_morlet(epoch_data, sfreq, freqs, n_cycles=7.0,
                      zero_mean=False, use_fft=True, decim=1, output='complex',
                      n_jobs=1, verbose=None):
-    """Compute time-frequency transform using Morlet wavelets.
+    """Compute Time-Frequency Representation (TFR) using Morlet wavelets.
 
-    Convolves epoch data with selected Morlet wavelets.
+    Same computation as `~mne.time_frequency.tfr_morlet`, but operates on
+    :class:`NumPy arrays <numpy.ndarray>` instead of `~mne.Epochs` objects.
 
     Parameters
     ----------
@@ -801,6 +816,10 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
                    n_jobs=1, picks=None, average=True, verbose=None):
     """Compute Time-Frequency Representation (TFR) using DPSS tapers.
 
+    Same computation as `~mne.time_frequency.tfr_array_multitaper`, but
+    operates on `~mne.Epochs` objects instead of
+    :class:`NumPy arrays <numpy.ndarray>`.
+
     Parameters
     ----------
     inst : Epochs | Evoked
@@ -831,10 +850,7 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
         .. note:: Decimation may create aliasing artifacts.
     %(n_jobs)s
     %(picks_good_data)s
-    average : bool, default True
-        If True average across Epochs.
-
-        .. versionadded:: 0.13.0
+    %(tfr_average)s
     %(verbose)s
 
     Returns
@@ -979,15 +995,20 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         rescale(self.data, self.times, baseline, mode, copy=False)
         return self
 
-    def save(self, fname, overwrite=False):
+    @verbose
+    def save(self, fname, overwrite=False, *, verbose=None):
         """Save TFR object to hdf5 file.
 
         Parameters
         ----------
         fname : str
             The file name, which should end with ``-tfr.h5``.
-        overwrite : bool
-            If True, overwrite file (if it exists). Defaults to False.
+        %(overwrite)s
+        %(verbose)s
+
+        See Also
+        --------
+        read_tfrs, write_tfrs
         """
         write_tfrs(fname, self, overwrite=overwrite)
 
@@ -1458,6 +1479,7 @@ class AverageTFR(_BaseTFR):
                              k not in ('axes', 'show', 'colorbar')}
         topomap_args_pass['outlines'] = topomap_args.get('outlines', 'skirt')
         topomap_args_pass["contours"] = topomap_args.get('contours', 6)
+        topomap_args_pass['ch_type'] = ch_type
 
         ##############
         # Image plot #
@@ -1598,8 +1620,10 @@ class AverageTFR(_BaseTFR):
         plt_show(show)
         return fig
 
+    @verbose
     def _onselect(self, eclick, erelease, baseline=None, mode=None,
-                  cmap=None, source_plot_joint=False, topomap_args=None):
+                  cmap=None, source_plot_joint=False, topomap_args=None,
+                  verbose=None):
         """Handle rubber band selector in channel tfr."""
         from ..viz.topomap import plot_tfr_topomap, plot_topomap, _add_colorbar
         if abs(eclick.x - erelease.x) < .1 or abs(eclick.y - erelease.y) < .1:
@@ -1653,13 +1677,13 @@ class AverageTFR(_BaseTFR):
                                  baseline=baseline, mode=mode, cmap=None,
                                  title=ch_type, vmin=None, vmax=None, axes=ax)
 
-    @fill_doc
+    @verbose
     def plot_topo(self, picks=None, baseline=None, mode='mean', tmin=None,
                   tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
                   layout=None, cmap='RdBu_r', title=None, dB=False,
                   colorbar=True, layout_scale=0.945, show=True,
                   border='none', fig_facecolor='k', fig_background=None,
-                  font_color='w', yscale='auto'):
+                  font_color='w', yscale='auto', verbose=None):
         """Plot TFRs in a topography with images.
 
         Parameters
@@ -1735,6 +1759,7 @@ class AverageTFR(_BaseTFR):
             The scale of y (frequency) axis. 'linear' gives linear y axis,
             'log' leads to log-spaced y axis and 'auto' detects if frequencies
             are log-spaced and only then sets the y axis to 'log'.
+        %(verbose)s
 
         Returns
         -------
@@ -2050,6 +2075,10 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         self.preload = True
         self.metadata = metadata
 
+    @property
+    def _detrend_picks(self):
+        return list()
+
     def __repr__(self):  # noqa: D105
         s = "time : [%f, %f]" % (self.times[0], self.times[-1])
         s += ", freq : [%f, %f]" % (self.freqs[0], self.freqs[-1])
@@ -2230,7 +2259,8 @@ def _check_decim(decim):
 # i/o
 
 
-def write_tfrs(fname, tfr, overwrite=False):
+@verbose
+def write_tfrs(fname, tfr, overwrite=False, *, verbose=None):
     """Write a TFR dataset to hdf5.
 
     Parameters
@@ -2241,8 +2271,8 @@ def write_tfrs(fname, tfr, overwrite=False):
         The TFR dataset, or list of TFR datasets, to save in one file.
         Note. If .comment is not None, a name will be generated on the fly,
         based on the order in which the TFR objects are passed.
-    overwrite : bool
-        If True, overwrite file (if it exists). Defaults to False.
+    %(overwrite)s
+    %(verbose)s
 
     See Also
     --------

@@ -8,7 +8,7 @@ The aim of this tutorial is to teach you how to compute and apply a linear
 minimum-norm inverse method on evoked/raw/epochs data.
 """
 
-# sphinx_gallery_thumbnail_number = 10
+import os.path as op
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -21,7 +21,8 @@ from mne.minimum_norm import make_inverse_operator, apply_inverse
 # Process MEG data
 
 data_path = sample.data_path()
-raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
+raw_fname = op.join(data_path, 'MEG', 'sample',
+                    'sample_audvis_filt-0-40_raw.fif')
 
 raw = mne.io.read_raw_fif(raw_fname)  # already has an average reference
 events = mne.find_events(raw, stim_channel='STI 014')
@@ -57,20 +58,25 @@ evoked.plot(time_unit='s')
 evoked.plot_topomap(times=np.linspace(0.05, 0.15, 5), ch_type='mag',
                     time_unit='s')
 
-# Show whitening:
-evoked.plot_white(noise_cov, time_unit='s')
+###############################################################################
+# It's also a good idea to look at whitened data:
 
+evoked.plot_white(noise_cov, time_unit='s')
 del epochs, raw  # to save memory
 
 ###############################################################################
 # Inverse modeling: MNE/dSPM on evoked and raw data
 # -------------------------------------------------
+# Here we first read the forward solution. You will likely need to compute
+# one for your own data -- see :ref:`tut-forward` for information on how
+# to do it.
 
-# Read the forward solution and compute the inverse operator
 fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-oct-6-fwd.fif'
 fwd = mne.read_forward_solution(fname_fwd)
 
-# make an MEG inverse operator
+###############################################################################
+# Next, we make an MEG inverse operator.
+
 inverse_operator = make_inverse_operator(
     evoked.info, fwd, noise_cov, loose=0.2, depth=0.8)
 del fwd
@@ -84,6 +90,8 @@ del fwd
 ###############################################################################
 # Compute inverse solution
 # ------------------------
+# We can use this to compute the inverse solution and obtain source time
+# courses:
 
 method = "dSPM"
 snr = 3.
@@ -95,7 +103,7 @@ stc, residual = apply_inverse(evoked, inverse_operator, lambda2,
 ###############################################################################
 # Visualization
 # -------------
-# View activation time-series
+# We can look at different dipole activations:
 
 fig, ax = plt.subplots()
 ax.plot(1e3 * stc.times, stc.data[::100, :].T)
@@ -116,6 +124,8 @@ residual.plot(axes=axes)
 # Here we use peak getter to move visualization to the time point of the peak
 # and draw a marker at the maximum peak vertex.
 
+# sphinx_gallery_thumbnail_number = 9
+
 vertno_max, time_max = stc.get_peak(hemi='rh')
 
 subjects_dir = data_path + '/subjects'
@@ -129,45 +139,19 @@ brain.add_foci(vertno_max, coords_as_verts=True, hemi='rh', color='blue',
 brain.add_text(0.1, 0.9, 'dSPM (plus location of maximal activation)', 'title',
                font_size=14)
 
-###############################################################################
-# Morph data to average brain
-# ---------------------------
-
-# setup source morph
-morph = mne.compute_source_morph(
-    src=inverse_operator['src'], subject_from=stc.subject,
-    subject_to='fsaverage', spacing=5,  # to ico-5
-    subjects_dir=subjects_dir)
-# morph data
-stc_fsaverage = morph.apply(stc)
-
-brain = stc_fsaverage.plot(**surfer_kwargs)
-brain.add_text(0.1, 0.9, 'Morphed to fsaverage', 'title', font_size=20)
-del stc_fsaverage
+# The documentation website's movie is generated with:
+# brain.save_movie(..., tmin=0.05, tmax=0.15, interpolation='linear',
+#                  time_dilation=20, framerate=10, time_viewer=True)
 
 ###############################################################################
-# Dipole orientations
-# -------------------
-# The ``pick_ori`` parameter of the
-# :func:`mne.minimum_norm.apply_inverse` function controls
-# the orientation of the dipoles. One useful setting is ``pick_ori='vector'``,
-# which will return an estimate that does not only contain the source power at
-# each dipole, but also the orientation of the dipoles.
-
-stc_vec = apply_inverse(evoked, inverse_operator, lambda2,
-                        method=method, pick_ori='vector')
-brain = stc_vec.plot(**surfer_kwargs)
-brain.add_text(0.1, 0.9, 'Vector solution', 'title', font_size=20)
-del stc_vec
-
-###############################################################################
-# Note that there is a relationship between the orientation of the dipoles and
-# the surface of the cortex. For this reason, we do not use an inflated
-# cortical surface for visualization, but the original surface used to define
-# the source space.
+# There are many other ways to visualize and work with source data, see
+# for example:
 #
-# For more information about dipole orientations, see
-# :ref:`tut-dipole-orientations`. To see outputs using different methods, see
-# :ref:`tut-mne-fixed-free`. For other examples using evoked data, see
-# :ref:`examples using apply_inverse
-# <sphx_glr_backreferences_mne.minimum_norm.apply_inverse>`.
+# - :ref:`tut-viz-stcs`
+# - :ref:`ex-morph-surface`
+# - :ref:`ex-morph-volume`
+# - :ref:`ex-vector-mne-solution`
+# - :ref:`tut-dipole-orientations`
+# - :ref:`tut-mne-fixed-free`
+# - :ref:`examples using apply_inverse
+#   <sphx_glr_backreferences_mne.minimum_norm.apply_inverse>`.

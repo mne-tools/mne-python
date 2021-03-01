@@ -63,16 +63,14 @@ fig = mne.viz.create_3d_figure(size=(600, 400), bgcolor=white)
 coord_frame = 'mri'
 
 # Plot the cortex
-fig = mne.viz.plot_alignment(subject=subject, subjects_dir=subjects_dir,
-                             trans=trans, surfaces='white',
-                             coord_frame=coord_frame, fig=fig)
+mne.viz.plot_alignment(
+    subject=subject, subjects_dir=subjects_dir, trans=trans, surfaces='white',
+    coord_frame=coord_frame, fig=fig)
 
 # Mark the position of the dipoles with small red dots
-fig = mne.viz.plot_dipole_locations(dipoles=dipoles, trans=trans,
-                                    mode='sphere', subject=subject,
-                                    subjects_dir=subjects_dir,
-                                    coord_frame=coord_frame,
-                                    scale=7e-4, fig=fig)
+mne.viz.plot_dipole_locations(
+    dipoles=dipoles, trans=trans, mode='sphere', subject=subject,
+    subjects_dir=subjects_dir, coord_frame=coord_frame, scale=7e-4, fig=fig)
 
 mne.viz.set_3d_view(figure=fig, azimuth=180, distance=0.25)
 
@@ -96,16 +94,14 @@ mne.viz.set_3d_view(figure=fig, azimuth=180, distance=0.25)
 fig = mne.viz.create_3d_figure(size=(600, 400))
 
 # Plot the cortex
-fig = mne.viz.plot_alignment(subject=subject, subjects_dir=subjects_dir,
-                             trans=trans,
-                             surfaces='white', coord_frame='head', fig=fig)
+mne.viz.plot_alignment(
+    subject=subject, subjects_dir=subjects_dir, trans=trans,
+    surfaces='white', coord_frame='head', fig=fig)
 
 # Show the dipoles as arrows pointing along the surface normal
-fig = mne.viz.plot_dipole_locations(dipoles=dipoles, trans=trans,
-                                    mode='arrow', subject=subject,
-                                    subjects_dir=subjects_dir,
-                                    coord_frame='head',
-                                    scale=7e-4, fig=fig)
+mne.viz.plot_dipole_locations(
+    dipoles=dipoles, trans=trans, mode='arrow', subject=subject,
+    subjects_dir=subjects_dir, coord_frame='head', scale=7e-4, fig=fig)
 
 mne.viz.set_3d_view(figure=fig, azimuth=180, distance=0.1)
 
@@ -147,14 +143,14 @@ brain_fixed = stc.plot(surface='white', subjects_dir=subjects_dir,
 fig = mne.viz.create_3d_figure(size=(600, 400))
 
 # Plot the cortex
-fig = mne.viz.plot_alignment(subject=subject, subjects_dir=subjects_dir,
-                             trans=trans,
-                             surfaces='white', coord_frame='head', fig=fig)
+mne.viz.plot_alignment(
+    subject=subject, subjects_dir=subjects_dir, trans=trans,
+    surfaces='white', coord_frame='head', fig=fig)
 
 # Show the three dipoles defined at each location in the source space
-fig = mne.viz.plot_alignment(subject=subject, subjects_dir=subjects_dir,
-                             trans=trans, fwd=fwd,
-                             surfaces='white', coord_frame='head', fig=fig)
+mne.viz.plot_alignment(
+    subject=subject, subjects_dir=subjects_dir, trans=trans, fwd=fwd,
+    surfaces='white', coord_frame='head', fig=fig)
 
 mne.viz.set_3d_view(figure=fig, azimuth=180, distance=0.1)
 
@@ -210,7 +206,7 @@ brain_loose = stc.plot(subjects_dir=subjects_dir, initial_time=time_max,
 # Only retain vector magnitudes
 stc = apply_inverse(left_auditory, inv, pick_ori=None)
 
-# Visualize it at the moment of peak activity.
+# Visualize it at the moment of peak activity
 _, time_max = stc.get_peak(hemi='lh')
 brain = stc.plot(surface='white', subjects_dir=subjects_dir,
                  initial_time=time_max, time_unit='s', size=(600, 400))

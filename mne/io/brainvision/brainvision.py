@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Conversion tool from Brain Vision EEG to FIF."""
+"""Conversion tool from BrainVision EEG to FIF."""
 # Authors: Teon Brooks <teon.brooks@gmail.com>
 #          Christian Brodbeck <christianbrodbeck@nyu.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
@@ -51,6 +51,11 @@ class RawBrainVision(BaseRaw):
     %(preload)s
     %(verbose)s
 
+    Attributes
+    ----------
+    impedances : dict
+        A dictionary of all electrodes and their impedances.
+
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
@@ -93,6 +98,11 @@ class RawBrainVision(BaseRaw):
 
         self.set_montage(montage)
 
+        settings, cfg, cinfo, _ = _aux_vhdr_info(vhdr_fname)
+        split_settings = settings.splitlines()
+        self.impedances = _parse_impedance(split_settings,
+                                           self.info['meas_date'])
+
         # Get annotations from vmrk file
         annots = read_annotations(mrk_fname, info['sfreq'])
         self.set_annotations(annots)
@@ -129,13 +139,11 @@ def _read_segments_c(raw, data, idx, fi, start, stop, cals, mult):
     n_channels = raw._raw_extras[fi]['orig_nchan']
     block = np.zeros((n_channels, stop - start))
     with open(raw._filenames[fi], 'rb', buffering=0) as fid:
-        if isinstance(idx, slice):
-            idx = np.arange(idx.start, idx.stop)
-        for ch_id in idx:
+        ids = np.arange(idx.start, idx.stop) if isinstance(idx, slice) else idx
+        for ch_id in ids:
             fid.seek(start * n_bytes + ch_id * n_bytes * n_samples)
             block[ch_id] = np.fromfile(fid, dtype, stop - start)
-
-        _mult_cal_one(data, block, idx, cals, mult)
+    _mult_cal_one(data, block, idx, cals, mult)
 
 
 def _read_vmrk(fname):
@@ -212,6 +220,9 @@ def _read_vmrk(fname):
     for info in items:
         info_data = info.split(',')
         mtype, mdesc, this_onset, this_duration = info_data[:4]
+        # commas in mtype and mdesc are handled as "\1". convert back to comma
+        mtype = mtype.replace(r'\1', ',')
+        mdesc = mdesc.replace(r'\1', ',')
         if date_str == '' and len(info_data) == 5 and mtype == 'New Segment':
             # to handle the origin of time and handle the presence of multiple
             # New Segment annotations. We only keep the first one that is
@@ -360,7 +371,8 @@ def _aux_vhdr_info(vhdr_fname):
     else:
         params, settings = settings, ''
     cfg = configparser.ConfigParser()
-    cfg.read_file(StringIO(params))
+    with StringIO(params) as fid:
+        cfg.read_file(fid)
 
     # get sampling info
     # Sampling interval is given in microsec
@@ -489,12 +501,20 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
     for chan, props in cfg.items('Channel Infos'):
         n = int(re.findall(r'ch(\d+)', chan)[0]) - 1
         props = props.split(',')
-        # default to microvolts because that's what the older brainvision
-        # standard explicitly assumed; the unit is only allowed to be
+
+        # default to µV, following the BV specs; the unit is only allowed to be
         # something else if explicitly stated (cf. EEGLAB export below)
         if len(props) < 4:
-            props += (u'µV',)
+            # deal with older files, which have no unit property
+            props += ('µV',)
+        elif props[3] == '':
+            # deal with files where the unit property is simply empty, which
+            # are created e.g. by PyCorder
+            props[3] = 'µV'
+
         name, _, resolution, unit = props[:4]
+        # in BrainVision, commas in channel names are encoded as "\1"
+        name = name.replace(r'\1', ',')
         ch_dict[chan] = name
         ch_names[n] = name
         if resolution == "":
@@ -843,3 +863,101 @@ def _check_bv_annot(descriptions):
     bv_markers = (set(_BV_EVENT_IO_OFFSETS.keys())
                   .union(set(_OTHER_ACCEPTED_MARKERS.keys())))
     return len(markers_basename - bv_markers) == 0
+
+
+def _parse_impedance(settings, recording_date=None):
+    """Parse impedances from the header file.
+
+    Parameters
+    ----------
+    settings : list
+        The header settings lines fom the VHDR file.
+    recording_date : datetime.datetime | None
+        The date of the recording as extracted from the VMRK file.
+
+    Returns
+    -------
+    impedances : dict
+        A dictionary of all electrodes and their impedances.
+    """
+    ranges = _parse_impedance_ranges(settings)
+    impedance_setting_lines = [i for i in settings if
+                               i.startswith('Impedance [') and
+                               i.endswith(' :')]
+    impedances = dict()
+    if len(impedance_setting_lines) > 0:
+        idx = settings.index(impedance_setting_lines[0])
+        impedance_setting = impedance_setting_lines[0].split()
+        impedance_unit = impedance_setting[1].lstrip('[').rstrip(']')
+        impedance_time = None
+
+        # If we have a recording date, we can update it with the time of
+        # impedance measurement
+        if recording_date is not None:
+            meas_time = [int(i) for i in impedance_setting[3].split(':')]
+            impedance_time = recording_date.replace(hour=meas_time[0],
+                                                    minute=meas_time[1],
+                                                    second=meas_time[2],
+                                                    microsecond=0)
+        for setting in settings[idx + 1:]:
+            # Parse channel impedances until we find a line that doesn't start
+            # with a channel name and optional +/- polarity for passive elecs
+            match = re.match(r'[ a-zA-Z0-9_+-]+:', setting)
+            if match:
+                channel_name = match.group().rstrip(':')
+                channel_imp_line = setting.split()
+                imp_as_number = re.findall(r"[-+]?\d*\.\d+|\d+",
+                                           channel_imp_line[-1])
+                channel_impedance = dict(
+                    imp=float(imp_as_number[0]) if imp_as_number else np.nan,
+                    imp_unit=impedance_unit,
+                )
+                if impedance_time is not None:
+                    channel_impedance.update({'imp_meas_time': impedance_time})
+
+                if channel_name == 'Ref' and 'Reference' in ranges:
+                    channel_impedance.update(ranges['Reference'])
+                elif channel_name == 'Gnd' and 'Ground' in ranges:
+                    channel_impedance.update(ranges['Ground'])
+                elif 'Data' in ranges:
+                    channel_impedance.update(ranges['Data'])
+                impedances[channel_name] = channel_impedance
+            else:
+                break
+    return impedances
+
+
+def _parse_impedance_ranges(settings):
+    """Parse the selected electrode impedance ranges from the header.
+
+    Parameters
+    ----------
+    settings : list
+        The header settings lines fom the VHDR file.
+
+    Returns
+    -------
+    electrode_imp_ranges : dict
+        A dictionary of impedance ranges for each type of electrode.
+    """
+    impedance_ranges = [item for item in settings if
+                        "Selected Impedance Measurement Range" in item]
+    electrode_imp_ranges = dict()
+    if impedance_ranges:
+        if len(impedance_ranges) == 1:
+            img_range = impedance_ranges[0].split()
+            for electrode_type in ['Data', 'Reference', 'Ground']:
+                electrode_imp_ranges[electrode_type] = {
+                    "imp_lower_bound": float(img_range[-4]),
+                    "imp_upper_bound": float(img_range[-2]),
+                    "imp_range_unit": img_range[-1]
+                }
+        else:
+            for electrode_range in impedance_ranges:
+                electrode_range = electrode_range.split()
+                electrode_imp_ranges[electrode_range[0]] = {
+                    "imp_lower_bound": float(electrode_range[6]),
+                    "imp_upper_bound": float(electrode_range[8]),
+                    "imp_range_unit": electrode_range[9]
+                }
+    return electrode_imp_ranges

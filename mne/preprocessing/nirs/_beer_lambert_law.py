@@ -7,7 +7,6 @@
 import os.path as op
 
 import numpy as np
-from scipy import linalg
 
 from ...io import BaseRaw
 from ...io.constants import FIFF
@@ -31,6 +30,7 @@ def beer_lambert_law(raw, ppf=0.1):
     raw : instance of Raw
         The modified raw instance.
     """
+    from scipy import linalg
     raw = raw.copy().load_data()
     _validate_type(raw, BaseRaw, 'raw')
 
@@ -44,7 +44,7 @@ def beer_lambert_law(raw, ppf=0.1):
         EL = abs_coef * distances[ii] * ppf
         iEL = linalg.pinv(EL)
 
-        raw._data[[ii, ii + 1]] = (raw._data[[ii, ii + 1]].T @ iEL.T).T * 1e-3
+        raw._data[[ii, ii + 1]] = iEL @ raw._data[[ii, ii + 1]] * 1e-3
 
         # Update channel information
         coil_dict = dict(hbo=FIFF.FIFFV_COIL_FNIRS_HBO,

@@ -11,10 +11,6 @@ including how to load, query, subselect, export, and plot data from an
 object from (possibly simulated) data in a :class:`NumPy array
 <numpy.ndarray>`, see :ref:`tut_creating_data_structures`.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 As usual we'll start by importing the modules we need:
 """
 
@@ -63,7 +59,7 @@ evoked.plot()
 # :meth:`Epochs <mne.Epochs.plot>` objects,
 # :meth:`evoked.plot() <mne.Evoked.plot>` has many parameters for customizing
 # the plot output, such as color-coding channel traces by scalp location, or
-# plotting the :term:`global field power <GFP>` alongside the channel traces.
+# plotting the :term:`global field power` alongside the channel traces.
 # See :ref:`tut-visualize-evoked` for more information about visualizing
 # :class:`~mne.Evoked` objects.
 #
@@ -207,7 +203,7 @@ print(type(right_vis))
 ###############################################################################
 # Above, when we created an :class:`~mne.Evoked` object by averaging epochs,
 # baseline correction was applied by default when we extracted epochs from the
-# class:`~mne.io.Raw` object (the default baseline period is ``(None, 0)``,
+# `~mne.io.Raw` object (the default baseline period is ``(None, 0)``,
 # which assured zero mean for times before the stimulus event). In contrast, if
 # we plot the first :class:`~mne.Evoked` object in the list that was loaded
 # from disk, we'll see that the data have not been baseline-corrected:

@@ -6,30 +6,37 @@
 
 import hashlib
 import os.path as op
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, date
 
 import pytest
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
 from scipy import sparse
 
-from mne import Epochs, read_events, pick_info, pick_types, Annotations
+from mne import (Epochs, read_events, pick_info, pick_types, Annotations,
+                 read_evokeds, make_forward_solution, make_sphere_model,
+                 setup_volume_source_space, write_forward_solution,
+                 read_forward_solution, write_cov, read_cov, read_epochs,
+                 compute_covariance)
+from mne.channels import read_polhemus_fastscan
 from mne.event import make_fixed_length_events
 from mne.datasets import testing
 from mne.io import (read_fiducials, write_fiducials, _coil_trans_to_loc,
-                    _loc_to_coil_trans, read_raw_fif, read_info, write_info)
+                    _loc_to_coil_trans, read_raw_fif, read_info, write_info,
+                    meas_info, Projection)
 from mne.io.constants import FIFF
 from mne.io.write import _generate_meas_id, DATE_NONE
 from mne.io.meas_info import (Info, create_info, _merge_info,
                               _force_update_info, RAW_INFO_FIELDS,
                               _bad_chans_comp, _get_valid_units,
                               anonymize_info, _stamp_to_dt, _dt_to_stamp,
-                              _add_timedelta_to_stamp)
-from mne.io._digitization import (_write_dig_points, _read_dig_points,
-                                  _make_dig_points,)
+                              _add_timedelta_to_stamp, _read_extended_ch_info)
+from mne.minimum_norm import (make_inverse_operator, write_inverse_operator,
+                              read_inverse_operator, apply_inverse)
+from mne.io._digitization import _write_dig_points, _make_dig_points
 from mne.io import read_raw_ctf
 from mne.transforms import Transform
-from mne.utils import run_tests_if_main, catch_logging, assert_object_equal
+from mne.utils import catch_logging, assert_object_equal
 from mne.channels import make_standard_montage, equalize_channels
 
 fiducials_fname = op.join(op.dirname(__file__), '..', '..', 'data',
@@ -289,7 +296,7 @@ def test_read_write_info(tmpdir):
 
 def test_io_dig_points(tmpdir):
     """Test Writing for dig files."""
-    points = _read_dig_points(hsp_fname)
+    points = read_polhemus_fastscan(hsp_fname, on_header_missing='ignore')
 
     dest = str(tmpdir.join('test.txt'))
     dest_bad = str(tmpdir.join('test.mne'))
@@ -298,19 +305,22 @@ def test_io_dig_points(tmpdir):
     with pytest.raises(ValueError, match='extension'):
         _write_dig_points(dest_bad, points)
     _write_dig_points(dest, points)
-    points1 = _read_dig_points(dest, unit='m')
+    points1 = read_polhemus_fastscan(
+        dest, unit='m', on_header_missing='ignore')
     err = "Dig points diverged after writing and reading."
     assert_array_equal(points, points1, err)
 
     points2 = np.array([[-106.93, 99.80], [99.80, 68.81]])
     np.savetxt(dest, points2, delimiter='\t', newline='\n')
     with pytest.raises(ValueError, match='must be of shape'):
-        _read_dig_points(dest)
+        with pytest.warns(RuntimeWarning, match='FastSCAN header'):
+            read_polhemus_fastscan(dest, on_header_missing='warn')
 
 
 def test_make_dig_points():
     """Test application of Polhemus HSP to info."""
-    extra_points = _read_dig_points(hsp_fname)
+    extra_points = read_polhemus_fastscan(
+        hsp_fname, on_header_missing='ignore')
     info = create_info(ch_names=['Test Ch'], sfreq=1000.)
     assert info['dig'] is None
 
@@ -318,7 +328,7 @@ def test_make_dig_points():
     assert (info['dig'])
     assert_allclose(info['dig'][0]['r'], [-.10693, .09980, .06881])
 
-    elp_points = _read_dig_points(elp_fname)
+    elp_points = read_polhemus_fastscan(elp_fname, on_header_missing='ignore')
     nasion, lpa, rpa = elp_points[:3]
     info = create_info(ch_names=['Test Ch'], sfreq=1000.)
     assert info['dig'] is None
@@ -326,8 +336,7 @@ def test_make_dig_points():
     info['dig'] = _make_dig_points(nasion, lpa, rpa, elp_points[3:], None)
     assert (info['dig'])
     idx = [d['ident'] for d in info['dig']].index(FIFF.FIFFV_POINT_NASION)
-    assert_array_equal(info['dig'][idx]['r'],
-                       np.array([.0013930, .0131613, -.0046967]))
+    assert_allclose(info['dig'][idx]['r'], [.0013930, .0131613, -.0046967])
     pytest.raises(ValueError, _make_dig_points, nasion[:2])
     pytest.raises(ValueError, _make_dig_points, None, lpa[:2])
     pytest.raises(ValueError, _make_dig_points, None, None, rpa[:2])
@@ -484,6 +493,16 @@ def test_check_consistency():
         ch[key] = old
         if key == 'ch_name':
             info['ch_names'][idx] = old
+
+    # bad channel entries
+    info2 = info.copy()
+    info2['chs'][0]['foo'] = 'bar'
+    with pytest.raises(KeyError, match='key errantly present'):
+        info2._check_consistency()
+    info2 = info.copy()
+    del info2['chs'][0]['loc']
+    with pytest.raises(KeyError, match='key missing'):
+        info2._check_consistency()
 
 
 def _test_anonymize_info(base_info):
@@ -655,6 +674,19 @@ def test_anonymize(tmpdir):
     assert_allclose(raw.annotations.onset, expected_onset)
 
 
+def test_anonymize_with_io(tmpdir):
+    """Test that IO does not break anonymization."""
+    raw = read_raw_fif(raw_fname)
+
+    temp_path = tmpdir.join('tmp_raw.fif')
+    raw.save(temp_path)
+
+    raw2 = read_raw_fif(temp_path)
+
+    daysback = (raw2.info['meas_date'].date() - date(1924, 1, 1)).days
+    raw2.anonymize(daysback=daysback)
+
+
 @testing.requires_testing_data
 def test_csr_csc(tmpdir):
     """Test CSR and CSC."""
@@ -747,6 +779,7 @@ def test_repr():
     assert 'dev_head_t: MEG device -> isotrak transform' in repr(info)
 
 
+@testing.requires_testing_data
 def test_invalid_subject_birthday():
     """Test handling of an invalid birthday in the raw file."""
     with pytest.warns(RuntimeWarning, match='No birthday will be set'):
@@ -754,4 +787,148 @@ def test_invalid_subject_birthday():
     assert 'birthday' not in raw.info['subject_info']
 
 
-run_tests_if_main()
+@pytest.mark.parametrize('fname', [
+    pytest.param(ctf_fname, marks=testing._pytest_mark()),
+    raw_fname,
+])
+def test_channel_name_limit(tmpdir, monkeypatch, fname):
+    """Test that our remapping works properly."""
+    #
+    # raw
+    #
+    if fname.endswith('fif'):
+        raw = read_raw_fif(fname)
+        raw.pick_channels(raw.ch_names[:3])
+        ref_names = []
+        data_names = raw.ch_names
+    else:
+        assert fname.endswith('.ds')
+        raw = read_raw_ctf(fname)
+        ref_names = [raw.ch_names[pick]
+                     for pick in pick_types(raw.info, meg=False, ref_meg=True)]
+        data_names = raw.ch_names[32:35]
+    proj = dict(data=np.ones((1, len(data_names))),
+                col_names=data_names[:2].copy(), row_names=None, nrow=1)
+    proj = Projection(
+        data=proj, active=False, desc='test', kind=0, explained_var=0.)
+    raw.add_proj(proj, remove_existing=True)
+    raw.info.normalize_proj()
+    raw.pick_channels(data_names + ref_names).crop(0, 2)
+    long_names = ['123456789abcdefg' + name for name in raw.ch_names]
+    fname = tmpdir.join('test-raw.fif')
+    with catch_logging() as log:
+        raw.save(fname)
+    log = log.getvalue()
+    assert 'truncated' not in log
+    rename = dict(zip(raw.ch_names, long_names))
+    long_data_names = [rename[name] for name in data_names]
+    long_proj_names = long_data_names[:2]
+    raw.rename_channels(rename)
+    for comp in raw.info['comps']:
+        for key in ('row_names', 'col_names'):
+            for name in comp['data'][key]:
+                assert name in raw.ch_names
+    if raw.info['comps']:
+        assert raw.compensation_grade == 0
+        raw.apply_gradient_compensation(3)
+        assert raw.compensation_grade == 3
+    assert len(raw.info['projs']) == 1
+    assert raw.info['projs'][0]['data']['col_names'] == long_proj_names
+    raw.info['bads'] = bads = long_data_names[2:3]
+    good_long_data_names = [
+        name for name in long_data_names if name not in bads]
+    with catch_logging() as log:
+        raw.save(fname, overwrite=True, verbose=True)
+    log = log.getvalue()
+    assert 'truncated to 15' in log
+    for name in raw.ch_names:
+        assert len(name) > 15
+    # first read the full way
+    with catch_logging() as log:
+        raw_read = read_raw_fif(fname, verbose=True)
+    log = log.getvalue()
+    assert 'Reading extended channel information' in log
+    for ra in (raw, raw_read):
+        assert ra.ch_names == long_names
+    assert raw_read.info['projs'][0]['data']['col_names'] == long_proj_names
+    del raw_read
+    # next read as if no longer names could be read
+    monkeypatch.setattr(
+        meas_info, '_read_extended_ch_info', lambda x, y, z: None)
+    with catch_logging() as log:
+        raw_read = read_raw_fif(fname, verbose=True)
+    log = log.getvalue()
+    assert 'extended' not in log
+    if raw.info['comps']:
+        assert raw_read.compensation_grade == 3
+        raw_read.apply_gradient_compensation(0)
+        assert raw_read.compensation_grade == 0
+    monkeypatch.setattr(  # restore
+        meas_info, '_read_extended_ch_info', _read_extended_ch_info)
+    short_proj_names = [
+        f'{name[:13 - bool(len(ref_names))]}-{len(ref_names) + ni}'
+        for ni, name in enumerate(long_data_names[:2])]
+    assert raw_read.info['projs'][0]['data']['col_names'] == short_proj_names
+    #
+    # epochs
+    #
+    epochs = Epochs(raw, make_fixed_length_events(raw))
+    fname = tmpdir.join('test-epo.fif')
+    epochs.save(fname)
+    epochs_read = read_epochs(fname)
+    for ep in (epochs, epochs_read):
+        assert ep.info['ch_names'] == long_names
+        assert ep.ch_names == long_names
+    del raw, epochs_read
+    # cov
+    epochs.info['bads'] = []
+    cov = compute_covariance(epochs, verbose='error')
+    fname = tmpdir.join('test-cov.fif')
+    write_cov(fname, cov)
+    cov_read = read_cov(fname)
+    for co in (cov, cov_read):
+        assert co['names'] == long_data_names
+        assert co['bads'] == []
+    del cov_read
+
+    #
+    # evoked
+    #
+    evoked = epochs.average()
+    evoked.info['bads'] = bads
+    assert evoked.nave == 1
+    fname = tmpdir.join('test-ave.fif')
+    evoked.save(fname)
+    evoked_read = read_evokeds(fname)[0]
+    for ev in (evoked, evoked_read):
+        assert ev.ch_names == long_names
+        assert ev.info['bads'] == bads
+    del evoked_read, epochs
+
+    #
+    # forward
+    #
+    with pytest.warns(None):  # not enough points for CTF
+        sphere = make_sphere_model('auto', 'auto', evoked.info)
+    src = setup_volume_source_space(
+        pos=dict(rr=[[0, 0, 0.04]], nn=[[0, 1., 0.]]))
+    fwd = make_forward_solution(evoked.info, None, src, sphere)
+    fname = tmpdir.join('temp-fwd.fif')
+    write_forward_solution(fname, fwd)
+    fwd_read = read_forward_solution(fname)
+    for fw in (fwd, fwd_read):
+        assert fw['sol']['row_names'] == long_data_names
+        assert fw['info']['ch_names'] == long_data_names
+        assert fw['info']['bads'] == bads
+    del fwd_read
+
+    #
+    # inv
+    #
+    inv = make_inverse_operator(evoked.info, fwd, cov)
+    fname = tmpdir.join('test-inv.fif')
+    write_inverse_operator(fname, inv)
+    inv_read = read_inverse_operator(fname)
+    for iv in (inv, inv_read):
+        assert iv['info']['ch_names'] == good_long_data_names
+    apply_inverse(evoked, inv)  # smoke test

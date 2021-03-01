@@ -8,10 +8,6 @@ Working with events
 This tutorial describes event representation and how event arrays are used to
 subselect data.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 As usual we'll start by importing the modules we need, loading some
 :ref:`example data <sample-dataset>`, and cropping the :class:`~mne.io.Raw`
 object to just 60 seconds before loading it into RAM to save memory:
@@ -77,6 +73,11 @@ assert np.array_equal(events, events_from_file[:len(events)])
 mne.find_events(raw, stim_channel='STI 014')
 
 ###############################################################################
+# .. sidebar:: Including/excluding events
+#
+#     Just like `~mne.pick_events`, `~mne.read_events` also has ``include``
+#     and ``exclude`` parameters.
+#
 # If some of those events are not of interest, you can easily subselect events
 # using :func:`mne.pick_events`, which has parameters ``include`` and
 # ``exclude``. For example, in the sample data Event ID 32 corresponds to a
