@@ -198,7 +198,7 @@ stages:
           TEST_MODE: 'pip'
           PYTHON_VERSION: '3.7'
         3.8 pip pre:
-          TEST_MODE: 'pre-pip'
+          TEST_MODE: 'pip-pre'
           PYTHON_VERSION: '3.8'
           OPENBLAS_CORETYPE: 'prescott'  # workaround for https://github.com/numpy/numpy/issues/16913
     steps:
@@ -207,7 +207,7 @@ stages:
         versionSpec: $(PYTHON_VERSION)
         architecture: $(PYTHON_ARCH)
         addToPath: true
-      condition: in(variables['TEST_MODE'], 'pip', 'pre-pip')
+      condition: in(variables['TEST_MODE'], 'pip', 'pip-pre')
       displayName: 'Get Python'
     # https://docs.microsoft.com/en-us/azure/devops/pipelines/ecosystems/anaconda
     # https://github.com/MicrosoftDocs/pipelines-anaconda
