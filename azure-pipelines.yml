@@ -213,6 +213,9 @@ stages:
     # https://github.com/MicrosoftDocs/pipelines-anaconda
     # Qt 5.9 post-link failure:
     # https://github.com/ContinuumIO/anaconda-issues/issues/10949
+    - script: echo "##vso[task.prependpath]%CONDA%;%CONDA%\condabin;%CONDA%\Scripts;%CONDA%\Library\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;"
+      condition: in(variables['TEST_MODE'], 'conda')
+      displayName: Add conda to PATH, deal with Qt 5.9 bug
     - bash: |
         set -e
         git clone --depth 1 git://github.com/pyvista/gl-ci-helpers.git

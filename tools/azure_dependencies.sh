@@ -1,8 +1,6 @@
 #!/bin/bash -ef
 
 if [ "${TEST_MODE}" == "conda" ]; then
-	echo "##vso[task.prependpath]%CONDA%;%CONDA%\condabin;%CONDA%\Scripts;%CONDA%\Library\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;"
-	export PATH="$CONDA:$CONDA\condabin:$CONDA\Scripts:$CONDA\Library\bin:$SystemRoot\system32:$SystemRoot:$SystemRoot\System32\Wbem:$PATH"
 	conda update -n base -c defaults conda
 	conda env update --name base --file environment.yml
 	pip uninstall -yq mne
