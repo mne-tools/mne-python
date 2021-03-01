@@ -2950,7 +2950,7 @@ def test_make_metadata(all_event_id, row_events, keep_first,
         for event_name in event_names:
             if event_name in keep_first or event_name in keep_last:
                 if event_name in all_event_id:
-                    assert  row[event_name] in [True, False]
+                    assert row[event_name] in [True, False]
                 else:
                     assert (row[event_name] is None or
                             isinstance(row[event_name], str))
