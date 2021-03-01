@@ -460,11 +460,12 @@ def test_brain_time_viewer(renderer_interactive, pixel_ratio, brain_gc):
     brain._configure_label_time_course()
     brain.setup_time_viewer()  # for coverage
     brain.callbacks["time"](value=0)
-    brain.callbacks["orientation_lh_0_0"](
+    assert "renderer" not in brain.callbacks
+    brain.callbacks["orientation"](
         value='lat',
         update_widget=True
     )
-    brain.callbacks["orientation_lh_0_0"](
+    brain.callbacks["orientation"](
         value='medial',
         update_widget=True
     )
@@ -499,6 +500,10 @@ def test_brain_time_viewer(renderer_interactive, pixel_ratio, brain_gc):
     assert len(plt.get_fignums()) == 0
 
     # screenshot
+    # Need to turn the interface back on otherwise the window is too wide
+    # (it keeps the window size and expands the 3D area when the interface
+    # is toggled off)
+    brain.toggle_interface(value=True)
     brain.show_view(view=dict(azimuth=180., elevation=90.))
     img = brain.screenshot(mode='rgb')
     want_shape = np.array([300 * pixel_ratio, 300 * pixel_ratio, 3])
@@ -543,7 +548,7 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
     if src in ('surface', 'vector', 'mixed'):
         assert brain.show_traces
         assert brain.traces_mode == 'label'
-        brain._label_mode_widget.setCurrentText('max')
+        brain.widgets["extract_mode"].set_value('max')
 
         # test picking a cell at random
         rng = np.random.RandomState(0)
@@ -560,7 +565,7 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
             for label_id in list(brain.picked_patches[current_hemi]):
                 label = brain._annotation_labels[current_hemi][label_id]
                 assert isinstance(label._line, Line2D)
-            brain._label_mode_widget.setCurrentText('mean')
+            brain.widgets["extract_mode"].set_value('mean')
             brain.clear_glyphs()
             assert len(brain.picked_patches[current_hemi]) == 0
             brain._on_pick(test_picker, None)  # picked and added
@@ -568,12 +573,11 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
             brain._on_pick(test_picker, None)  # picked again so removed
             assert len(brain.picked_patches[current_hemi]) == 0
         # test switching from 'label' to 'vertex'
-        brain._annot_cands_widget.setCurrentText('None')
-        brain._label_mode_widget.setCurrentText('max')
+        brain.widgets["annotation"].set_value('None')
+        brain.widgets["extract_mode"].set_value('max')
     else:  # volume
-        assert brain._trace_mode_widget is None
-        assert brain._annot_cands_widget is None
-        assert brain._label_mode_widget is None
+        assert "annotation" not in brain.widgets
+        assert "extract_mode" not in brain.widgets
     brain.close()
 
     # test colormap
@@ -621,8 +625,8 @@ def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
 
     # test switching from 'vertex' to 'label'
     if src == 'surface':
-        brain._annot_cands_widget.setCurrentText('aparc')
-        brain._annot_cands_widget.setCurrentText('None')
+        brain.widgets["annotation"].set_value('aparc')
+        brain.widgets["annotation"].set_value('None')
     # test removing points
     brain.clear_glyphs()
     assert len(spheres) == 0
@@ -731,6 +735,7 @@ def test_brain_linkviewer(renderer_interactive, brain_gc):
             colorbar=False,
             picking=False,
         )
+    brain1.close()
 
     brain_data = _create_testing_brain(hemi='split', show_traces='vertex')
     link_viewer = _LinkViewer(
@@ -740,15 +745,13 @@ def test_brain_linkviewer(renderer_interactive, brain_gc):
         colorbar=True,
         picking=True,
     )
-    link_viewer.set_time_point(value=0)
-    link_viewer.brains[0].mpl_canvas.time_func(0)
-    link_viewer.set_fmin(0)
-    link_viewer.set_fmid(0.5)
-    link_viewer.set_fmax(1)
-    link_viewer.set_playback_speed(value=0.1)
-    link_viewer.toggle_playback()
-    del link_viewer
-    brain1.close()
+    link_viewer.leader.set_time_point(0)
+    link_viewer.leader.mpl_canvas.time_func(0)
+    link_viewer.leader.callbacks["fmin"](0)
+    link_viewer.leader.callbacks["fmid"](0.5)
+    link_viewer.leader.callbacks["fmax"](1)
+    link_viewer.leader.set_playback_speed(0.1)
+    link_viewer.leader.toggle_playback()
     brain2.close()
     brain_data.close()
 

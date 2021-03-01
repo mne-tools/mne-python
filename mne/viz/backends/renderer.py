@@ -23,7 +23,7 @@ MNE_3D_BACKEND_INTERACTIVE = False
 
 _backend_name_map = dict(
     mayavi='._pysurfer_mayavi',
-    pyvista='._pyvista',
+    pyvista='._qt',
     notebook='._notebook',
 )
 backend = None

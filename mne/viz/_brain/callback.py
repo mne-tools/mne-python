@@ -6,94 +6,87 @@
 import time
 
 
-class IntSlider(object):
-    """Class to set a integer slider."""
+class Widget(object):
+    """Helper class to interface with widgets."""
 
-    def __init__(self, plotter=None, callback=None, first_call=True):
-        self.plotter = plotter
-        self.callback = callback
-        self.slider_rep = None
-        self.first_call = first_call
-        self._first_time = True
+    def __init__(self, widget, notebook=False):
+        self.widget = widget
+        self.notebook = notebook
 
-    def __call__(self, value):
-        """Round the label of the slider."""
-        idx = int(round(value))
-        if self.slider_rep is not None:
-            self.slider_rep.SetValue(idx)
-            self.plotter.update()
-        if not self._first_time or all([self._first_time, self.first_call]):
-            self.callback(idx)
-        if self._first_time:
-            self._first_time = False
+    def set_value(self, value):
+        """Set the widget value."""
+        if self.notebook:
+            self.widget.value = value
+        else:
+            if hasattr(self.widget, "setValue"):
+                self.widget.setValue(value)
+            elif hasattr(self.widget, "setCurrentText"):
+                self.widget.setCurrentText(value)
+            elif hasattr(self.widget, "setText"):
+                self.widget.setText(value)
+
+    def get_value(self):
+        """Get the widget value."""
+        if self.notebook:
+            return self.widget.value
+        else:
+            if hasattr(self.widget, "value"):
+                return self.widget.value()
+            elif hasattr(self.widget, "currentText"):
+                return self.widget.currentText()
+            elif hasattr(self.widget, "text"):
+                return self.widget.text()
 
 
-class TimeSlider(object):
-    """Class to update the time slider."""
+class TimeCallBack(object):
+    """Callback to update the time."""
 
-    def __init__(self, plotter=None, brain=None, callback=None,
-                 first_call=True):
-        self.plotter = plotter
+    def __init__(self, brain=None, callback=None):
         self.brain = brain
         self.callback = callback
-        self.slider_rep = None
-        self.first_call = first_call
-        self._first_time = True
-        self.time_label = None
+        self.widget = None
+        self.label = None
         if self.brain is not None and callable(self.brain._data['time_label']):
             self.time_label = self.brain._data['time_label']
+        else:
+            self.time_label = None
 
     def __call__(self, value, update_widget=False, time_as_index=True):
         """Update the time slider."""
-        value = float(value)
         if not time_as_index:
             value = self.brain._to_time_index(value)
-        if not self._first_time or all([self._first_time, self.first_call]):
-            self.brain.set_time_point(value)
+        self.brain.set_time_point(value)
+        if self.label is not None:
+            current_time = self.brain._current_time
+            self.label.set_value(f"{current_time: .3f}")
         if self.callback is not None:
             self.callback()
-        current_time = self.brain._current_time
-        if self.slider_rep is not None:
-            if self.time_label is not None:
-                current_time = self.time_label(current_time)
-                self.slider_rep.SetTitleText(current_time)
-            if update_widget:
-                self.slider_rep.SetValue(value)
-                self.plotter.update()
-        if self._first_time:
-            self._first_time = False
+        if self.widget is not None and update_widget:
+            self.widget.set_value(int(value))
 
 
 class UpdateColorbarScale(object):
     """Class to update the values of the colorbar sliders."""
 
-    def __init__(self, plotter=None, brain=None):
-        self.plotter = plotter
+    def __init__(self, brain=None):
         self.brain = brain
-        self.keys = ('fmin', 'fmid', 'fmax')
-        self.reps = {key: None for key in self.keys}
-        self.slider_rep = None
-        self._first_time = True
+        self.widget = None
+        self.widgets = {key: None for key in self.brain.keys}
 
     def __call__(self, value):
         """Update the colorbar sliders."""
-        if self._first_time:
-            self._first_time = False
-            return
         self.brain._update_fscale(value)
-        for key in self.keys:
-            if self.reps[key] is not None:
-                self.reps[key].SetValue(self.brain._data[key])
-        if self.slider_rep is not None:
-            self.slider_rep.SetValue(1.0)
-        self.plotter.update()
+        for key in self.brain.keys:
+            if self.widgets[key] is not None:
+                self.widgets[key].set_value(self.brain._data[key])
+        if self.widget is not None:
+            self.widget.set_value(1.0)
 
 
 class BumpColorbarPoints(object):
     """Class that ensure constraints over the colorbar points."""
 
-    def __init__(self, plotter=None, brain=None, name=None):
-        self.plotter = plotter
+    def __init__(self, brain=None, name=None):
         self.brain = brain
         self.name = name
         self.callback = {
@@ -101,93 +94,82 @@ class BumpColorbarPoints(object):
             "fmid": lambda fmid: brain.update_lut(fmid=fmid),
             "fmax": lambda fmax: brain.update_lut(fmax=fmax),
         }
-        self.keys = ('fmin', 'fmid', 'fmax')
-        self.reps = {key: None for key in self.keys}
+        self.widgets = {key: None for key in self.brain.keys}
         self.last_update = time.time()
-        self._first_time = True
 
     def __call__(self, value):
         """Update the colorbar sliders."""
-        if self._first_time:
-            self._first_time = False
-            return
-        vals = {key: self.brain._data[key] for key in self.keys}
-        if self.name == "fmin" and self.reps["fmin"] is not None:
+        vals = {key: self.brain._data[key] for key in self.brain.keys}
+        if self.name == "fmin" and self.widgets["fmin"] is not None:
             if vals['fmax'] < value:
                 vals['fmax'] = value
-                self.reps['fmax'].SetValue(value)
+                self.widgets['fmax'].set_value(value)
             if vals['fmid'] < value:
                 vals['fmid'] = value
-                self.reps['fmid'].SetValue(value)
-            self.reps['fmin'].SetValue(value)
-        elif self.name == "fmid" and self.reps['fmid'] is not None:
+                self.widgets['fmid'].set_value(value)
+            self.widgets['fmin'].set_value(value)
+        elif self.name == "fmid" and self.widgets['fmid'] is not None:
             if vals['fmin'] > value:
                 vals['fmin'] = value
-                self.reps['fmin'].SetValue(value)
+                self.widgets['fmin'].set_value(value)
             if vals['fmax'] < value:
                 vals['fmax'] = value
-                self.reps['fmax'].SetValue(value)
-            self.reps['fmid'].SetValue(value)
-        elif self.name == "fmax" and self.reps['fmax'] is not None:
+                self.widgets['fmax'].set_value(value)
+            self.widgets['fmid'].set_value(value)
+        elif self.name == "fmax" and self.widgets['fmax'] is not None:
             if vals['fmin'] > value:
                 vals['fmin'] = value
-                self.reps['fmin'].SetValue(value)
+                self.widgets['fmin'].set_value(value)
             if vals['fmid'] > value:
                 vals['fmid'] = value
-                self.reps['fmid'].SetValue(value)
-            self.reps['fmax'].SetValue(value)
+                self.widgets['fmid'].set_value(value)
+            self.widgets['fmax'].set_value(value)
+        self.brain.widgets[f'entry_{self.name}'].set_value(str(value))
         self.brain.update_lut(**vals)
         if time.time() > self.last_update + 1. / 60.:
             self.callback[self.name](value)
             self.last_update = time.time()
-        self.plotter.update()
 
 
 class ShowView(object):
     """Class that selects the correct view."""
 
-    def __init__(self, plotter=None, brain=None, orientation=None,
-                 row=None, col=None, hemi=None):
-        self.plotter = plotter
+    def __init__(self, brain=None, data=None):
         self.brain = brain
-        self.orientation = orientation
-        self.short_orientation = [s[:3] for s in orientation]
-        self.row = row
-        self.col = col
-        self.hemi = hemi
-        self.slider_rep = None
+        self.data = data
+        self.widget = None
 
     def __call__(self, value, update_widget=False):
         """Update the view."""
-        self.brain.show_view(value, row=self.row, col=self.col,
-                             hemi=self.hemi)
-        if update_widget:
-            if len(value) > 3:
-                idx = self.orientation.index(value)
-            else:
-                idx = self.short_orientation.index(value)
-            if self.slider_rep is not None:
-                self.slider_rep.SetValue(idx)
-                self.slider_rep.SetTitleText(self.orientation[idx])
-                self.plotter.update()
+        if "renderer" in self.brain.widgets:
+            idx = self.brain.widgets["renderer"].get_value()
+        else:
+            idx = 0
+        idx = int(idx)
+        if self.data[idx] is not None:
+            self.brain.show_view(
+                value,
+                row=self.data[idx]['row'],
+                col=self.data[idx]['col'],
+                hemi=self.data[idx]['hemi'],
+            )
+        if update_widget and self.widget is not None:
+            self.widget.set_value(value)
 
 
-class SmartSlider(object):
+class SmartCallBack(object):
     """Class to manage smart slider.
 
     It stores it's own slider representation for efficiency
     and uses it when necessary.
     """
 
-    def __init__(self, plotter=None, callback=None):
-        self.plotter = plotter
+    def __init__(self, callback=None):
         self.callback = callback
-        self.slider_rep = None
+        self.widget = None
 
     def __call__(self, value, update_widget=False):
         """Update the value."""
         self.callback(value)
-        if update_widget:
-            if self.slider_rep is not None:
-                self.slider_rep.SetValue(value)
-                self.plotter.update()
+        if self.widget is not None and update_widget:
+            self.widget.set_value(value)
