@@ -181,7 +181,8 @@ class QFloatSlider(QSlider):
         """Add snap-to-location handling."""
         opt = QStyleOptionSlider()
         self.initStyleOption(opt)
-        sr = self.style().subControlRect(QStyle.CC_Slider, opt, QStyle.SC_SliderHandle, self)
+        sr = self.style().subControlRect(
+            QStyle.CC_Slider, opt, QStyle.SC_SliderHandle, self)
         if (event.button() != Qt.LeftButton or sr.contains(event.pos())):
             super().mousePressEvent(event)
             return
