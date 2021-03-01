@@ -1,16 +1,14 @@
-"""Core visualization operations."""
+"""ABCs."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+# Authors: Guillaume Favelier <guillaume.favelier@gmail.com
 #          Eric Larson <larson.eric.d@gmail.com>
-#          Oleh Kozynets <ok7mailbox@gmail.com>
-#          Guillaume Favelier <guillaume.favelier@gmail.com>
 #
 # License: Simplified BSD
 
-from abc import ABCMeta, abstractclassmethod
+from abc import ABC, abstractmethod, abstractclassmethod
 
 
-class _BaseRenderer(metaclass=ABCMeta):
+class _AbstractRenderer(ABC):
     @abstractclassmethod
     def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
                  name=None, show=False, shape=(1, 1)):
@@ -442,4 +440,92 @@ class _BaseRenderer(metaclass=ABCMeta):
         mesh_data : tuple | Surface
             The mesh to remove.
         """
+        pass
+
+
+class _AbstractToolBar(ABC):
+    @abstractmethod
+    def _tool_bar_load_icons(self):
+        pass
+
+    @abstractmethod
+    def _tool_bar_initialize(self, name="default"):
+        pass
+
+    @abstractmethod
+    def _tool_bar_finalize(self):
+        pass
+
+    @abstractmethod
+    def _tool_bar_add_button(self, name, desc, func, icon_name=None):
+        pass
+
+    @abstractmethod
+    def _tool_bar_update_button_icon(self, name, icon_name):
+        pass
+
+    @abstractmethod
+    def _tool_bar_add_text(self, name, value, placeholder):
+        pass
+
+    @abstractmethod
+    def _tool_bar_add_spacer(self):
+        pass
+
+
+class _AbstractDock(ABC):
+    @abstractmethod
+    def _dock_initialize(self):
+        pass
+
+    @abstractmethod
+    def _dock_finalize(self):
+        pass
+
+    @abstractmethod
+    def _dock_show(self):
+        pass
+
+    @abstractmethod
+    def _dock_hide(self):
+        pass
+
+    @abstractmethod
+    def _dock_add_stretch(self, layout):
+        pass
+
+    @abstractmethod
+    def _dock_add_layout(self, vertical=True):
+        pass
+
+    @abstractmethod
+    def _dock_add_label(self, value, align=False, layout=None):
+        pass
+
+    @abstractmethod
+    def _dock_add_button(self, name, callback, layout=None):
+        pass
+
+    @abstractmethod
+    def _dock_add_text(self, value, callback, validator=None,
+                       layout=None):
+        pass
+
+    @abstractmethod
+    def _dock_add_slider(self, name, value, rng, callback,
+                         compact=True, double=False, layout=None):
+        pass
+
+    @abstractmethod
+    def _dock_add_spin_box(self, name, value, rng, callback,
+                           compact=True, double=True, layout=None):
+        pass
+
+    @abstractmethod
+    def _dock_add_combo_box(self, name, value, rng,
+                            callback, compact=True, layout=None):
+        pass
+
+    @abstractmethod
+    def _dock_add_group_box(self, name, layout=None):
         pass
