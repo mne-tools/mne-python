@@ -44,7 +44,12 @@ iframe.sg_report {
     margin: 20px auto;
     display: block;
     border-style: solid;
-  }
+}
+
+/* ******************************** make HTML'd pandas dataframes scrollable */
+output_html {
+    overflow: auto;
+}
 
 /* ********************************* Long API titles need to wrap for mobile */
 div[id^="mne-"] h1,
