@@ -1108,7 +1108,6 @@ class Brain(object):
             )
         layout.addLayout(hlayout)
 
-
         # register colorbar slider representations
         widgets = {key: self.widgets[key] for key in self.keys}
         for name in ("fmin", "fmid", "fmax", "fminus", "fplus"):
