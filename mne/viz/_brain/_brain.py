@@ -1077,34 +1077,41 @@ class Brain(object):
             else:
                 layout.addLayout(hlayout)
 
-        # fscale
-        self.callbacks["fscale"] = UpdateColorbarScale(
-            brain=self,
+        # reset / minus / plus
+        hlayout = self._renderer._dock_add_layout(vertical=False)
+        self._renderer._dock_add_label(
+            value="Rescale",
+            align=True,
+            layout=hlayout,
         )
-        self.widgets["fscale"] = Widget(
-            widget=self._renderer._dock_add_spin_box(
-                name="scale",
-                value=1.0,
-                rng=self.default_scaling_range,
-                callback=self.callbacks["fscale"],
-                layout=layout,
-            ),
-            notebook=self.notebook,
-        )
-
-        # reset
         self.widgets["reset"] = Widget(
             widget=self._renderer._dock_add_button(
-                name="Reset",
+                name="↺",
                 callback=self.restore_user_scaling,
-                layout=layout,
+                layout=hlayout,
             ),
             notebook=self.notebook,
         )
+        for key, char, val in (("fminus", "➖", 1.2 ** -0.25),
+                               ("fplus", "➕", 1.2 ** 0.25)):
+            self.callbacks[key] = UpdateColorbarScale(
+                brain=self,
+                factor=val,
+            )
+            self.widgets[key] = Widget(
+                widget=self._renderer._dock_add_button(
+                    name=char,
+                    callback=self.callbacks[key],
+                    layout=hlayout,
+                ),
+                notebook=self.notebook,
+            )
+        layout.addLayout(hlayout)
+
 
         # register colorbar slider representations
         widgets = {key: self.widgets[key] for key in self.keys}
-        for name in ("fmin", "fmid", "fmax", "fscale"):
+        for name in ("fmin", "fmid", "fmax", "fminus", "fplus"):
             self.callbacks[name].widgets = widgets
 
     def _configure_dock_trace_widget(self, name):

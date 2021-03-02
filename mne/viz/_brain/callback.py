@@ -68,19 +68,18 @@ class TimeCallBack(object):
 class UpdateColorbarScale(object):
     """Class to update the values of the colorbar sliders."""
 
-    def __init__(self, brain=None):
+    def __init__(self, brain, factor):
         self.brain = brain
+        self.factor = factor
         self.widget = None
         self.widgets = {key: None for key in self.brain.keys}
 
-    def __call__(self, value):
+    def __call__(self):
         """Update the colorbar sliders."""
-        self.brain._update_fscale(value)
+        self.brain._update_fscale(self.factor)
         for key in self.brain.keys:
             if self.widgets[key] is not None:
                 self.widgets[key].set_value(self.brain._data[key])
-        if self.widget is not None:
-            self.widget.set_value(1.0)
 
 
 class BumpColorbarPoints(object):

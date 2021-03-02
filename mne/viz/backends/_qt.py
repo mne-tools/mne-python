@@ -12,7 +12,7 @@ import pyvista
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
-                             QHBoxLayout, QLabel, QPushButton,
+                             QHBoxLayout, QLabel, QToolButton,
                              QSlider, QSpinBox, QVBoxLayout, QWidget,
                              QSizePolicy, QScrollArea, QStyle,
                              QStyleOptionSlider)
@@ -66,8 +66,11 @@ class _QtDock(_AbstractDock):
 
     def _dock_add_button(self, name, callback, layout=None):
         layout = self.dock_layout if layout is None else layout
-        widget = QPushButton(name)
-        widget.released.connect(callback)
+        # If we want one with text instead of an icon, we should use
+        # QPushButton(name)
+        widget = QToolButton()
+        widget.clicked.connect(callback)
+        widget.setText(name)
         layout.addWidget(widget)
         return widget
 
@@ -119,6 +122,7 @@ class _QtDock(_AbstractDock):
         widget.addItems(rng)
         widget.setCurrentText(value)
         widget.currentTextChanged.connect(callback)
+        widget.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         layout.addWidget(widget)
         return widget
 
