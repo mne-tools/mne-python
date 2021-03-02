@@ -2935,13 +2935,11 @@ def test_make_metadata(all_event_id, row_events, keep_first,
 
     for event_name in event_names:
         assert event_name in metadata.columns
-        assert f'{event_name}_time' in metadata.columns
 
     # Check the time-locked event's metadata
     for _, row in metadata.iterrows():
         event_name = row['event_name']
-        assert row[event_name] is True
-        assert np.isclose(row[f'{event_name}_time'], 0)
+        assert np.isclose(row[event_name], 0)
 
     # Check non-time-locked events' metadata
     for _, row in metadata.iterrows():
@@ -2949,18 +2947,14 @@ def test_make_metadata(all_event_id, row_events, keep_first,
                              set(keep_last) - set(row['event_name']))
         for event_name in event_names:
             if event_name in keep_first or event_name in keep_last:
-                if event_name in all_event_id:
-                    assert row[event_name] in [True, False]
-                else:
-                    assert (row[event_name] is None or
-                            isinstance(row[event_name], str))
-            else:
-                assert row[event_name] in [True, False]
+                assert isinstance(row[event_name], float)
 
-            if row[event_name] in [False, None]:
-                assert np.isnan(row[f'{event_name}_time'])
-            else:
-                assert not np.isnan(row[f'{event_name}_time'])
+            if event_name in keep_first and event_name not in all_event_id:
+                assert (row[f'first_{event_name}'] is None or
+                        isinstance(row[f'first_{event_name}'], str))
+            elif event_name in keep_last and event_name not in all_event_id:
+                assert (row[f'last_{event_name}'] is None or
+                        isinstance(row[f'last_{event_name}'], str))
 
     Epochs(raw, events=events, event_id=event_id, metadata=metadata,
            verbose='warning')

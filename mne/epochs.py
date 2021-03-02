@@ -2087,19 +2087,16 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
         A mapping from event names (keys) to event IDs (values). The event
         names will be incorporated as columns of the returned metadata
         :class:`pandas.DataFrame`.
-    tmin : float
-        Start of the time interval for metadata generation in seconds, relative
-        to the time-locked event of the respective time window.
+    tmin, tmax : float
+        Start and end of the time interval for metadata generation in seconds,
+        relative to the time-locked event of the respective time window.
 
         .. note::
            If you are planning to attach the generated metadata to
            `~mne.Epochs` and intend to include only events that fall inside
            your epochs time interval, pass the same ``tmin`` and ``tmax``
-           values as you use for your epochs.
+           values here as you use for your epochs.
 
-    tmax : float
-        End of the time interval for metadata generation in seconds, relative
-        to the time-locked event of the respective time window.
     sfreq : float
         The sampling frequency during data acquisiton.
     row_events : list of str | str | None
@@ -2115,9 +2112,9 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
         .. note::
            There is currently no way to retain **all** occurrences of a
            repeated event. The ``keep_first`` parameter can be used to specify
-           subsets of HEDs, effectively creating a new event that is the union
-           of the matching HED pattern, and keeping the very first event of
-           this set.
+           subsets of HEDs, effectively creating a new event type that is the
+           union of all events types described by the matching HED pattern.
+           Only the very first event of this set will be kept.
 
         For example, you might have two response events types,
         ``response/left`` and ``response/right``; and in trials with both
@@ -2149,18 +2146,20 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
         The pre-assembled metadata. It contains the following columns:
 
         - ``event_name``, with strings indicating the name of the time-locked
-          event for that specific time window
+          event ("row event") for that specific time window
 
-        - one column per key in ``event_id``, with the same name; boolean
-          values indicating whether that specific event occurred within the
-          given time window
+        - one column per event type in ``event_id``, with the same name; floats
+          indicating the latency of the event in seconds, relative to the
+          time-locked event
 
-        - if applicable, additional columns for ``keep_first`` and
-          ``keep_last`` event names, if provided; the values will be strings
-          indicating which events were matched
-
-        - columns named ``[event_name]_time``, whose values indicate the time
-          of event occurrence in seconds, relative to the time-locked event
+        - if applicable, additional columns named after the ``keep_first`` and
+          ``keep_last`` event types; floats indicating the latency  of the
+          event in seconds, relative to the time-locked event
+          
+        - if applicable, additional columns ``first_{event_type}`` and
+          ``last_{event_type}`` for ``keep_first`` and ``keep_last`` event
+          types, respetively; the values will be strings indicating which event
+          types were matched by the provided HED patterns
 
     events : array, shape (n, 3)
         The events corresponding to the generated metadata, i.e. one
@@ -2215,12 +2214,12 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
 
     for param_name, values in dict(keep_first=keep_first,
                                    keep_last=keep_last).items():
-        for event_name in values:
+        for first_last_event_name in values:
             try:
-                _hid_match(event_id, [event_name])
+                _hid_match(event_id, [first_last_event_name])
             except KeyError:
                 raise ValueError(
-                    f'Event "{event_name}", specified in {param_name}, '
+                    f'Event "{first_last_event_name}", specified in {param_name}, '
                     f'cannot be found in event_id dictionary')
 
     event_name_diff = sorted(set(row_events) - set(event_id.keys()))
@@ -2252,14 +2251,15 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
     # event_id.keys() and keep_first / keep_last simultaneously
     keep_first_cols = [col for col in keep_first if col not in event_id]
     keep_last_cols = [col for col in keep_last if col not in event_id]
+    keep_first_name_cols = [f'first_{col}' for col in keep_first_cols]
+    keep_last_name_cols = [f'last_{col}' for col in keep_last_cols]
 
     columns = ['event_name',
                *event_id.keys(),
                *keep_first_cols,
                *keep_last_cols,
-               *[f'{e}_time' for e in event_id.keys()],
-               *[f'{e}_time' for e in keep_first_cols],
-               *[f'{e}_time' for e in keep_last_cols]]
+               *keep_first_name_cols,
+               *keep_last_name_cols]
 
     data = np.empty((len(events_df), len(columns)))
     metadata = pd.DataFrame(data=data, columns=columns, index=events_df.index)
@@ -2267,84 +2267,84 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
     # Event names
     metadata[metadata.columns[0]] = ''
 
-    # First set of columns: boolean values indicating whether the
-    # respective event occurred in that epoch
+    # Event times
     start_idx = 1
-    stop_idx = start_idx + len(event_id.keys())
-    metadata.iloc[:, start_idx:stop_idx] = False
+    stop_idx = (start_idx + len(event_id.keys()) +
+                len(keep_first_cols + keep_last_cols))
+    metadata.iloc[:, start_idx:stop_idx] = np.nan
 
-    # Second set of columns: keep_first and keep_last
+    # keep_first and keep_last names
     start_idx = stop_idx
-    stop_idx = start_idx + len(keep_first_cols + keep_last_cols)
-    metadata.iloc[:, start_idx:stop_idx] = None
-
-    # Last set of columns: event times
-    start_idx = stop_idx
-    metadata.iloc[:, start_idx:] = np.nan
+    metadata.iloc[:, start_idx:] = None
 
     # We're all set, let's iterate over all eventns and fill in in the
     # respective cells in the metadata. We will subset this to include only
     # `row_events` later
-    for time_locked_event in events_df.itertuples(name='TimeLockedEvent'):
-        row_idx = time_locked_event.Index
+    for row_event in events_df.itertuples(name='RowEvent'):
+        row_idx = row_event.Index
         metadata.loc[row_idx, 'event_name'] = \
-            id_to_name_map[time_locked_event.id]
+            id_to_name_map[row_event.id]
 
         # Determine which events fall into the current epoch
-        epoch_start_sample = time_locked_event.sample + start_sample
-        epoch_stop_sample = time_locked_event.sample + stop_sample
-        events_in_epoch = events_df.loc[
-            (events_df['sample'] >= epoch_start_sample) &
-            (events_df['sample'] <= epoch_stop_sample), :]
+        window_start_sample = row_event.sample + start_sample
+        window_stop_sample = row_event.sample + stop_sample
+        events_in_window = events_df.loc[
+            (events_df['sample'] >= window_start_sample) &
+            (events_df['sample'] <= window_stop_sample), :]
 
-        assert not events_in_epoch.empty
+        assert not events_in_window.empty
 
         # Store the metadata
-        for epochs_event in events_in_epoch.itertuples(name='EpochsEvent'):
-            event_col_name = id_to_name_map[epochs_event.id]
-            event_time_col_name = f'{event_col_name}_time'
-            if (not np.isnan(metadata.loc[row_idx, event_time_col_name]) and
-                    event_col_name in keep_first):
-                # Event already exists in current time window! Skip
-                continue
-
-            event_sample = epochs_event.sample - time_locked_event.sample
+        for event in events_in_window.itertuples(name='Event'):
+            event_sample = event.sample - row_event.sample
             event_time = event_sample / sfreq
             event_time = 0 if np.isclose(event_time, 0) else event_time
+            event_name = id_to_name_map[event.id]
 
-            metadata.loc[row_idx, event_col_name] = True
-            metadata.loc[row_idx, event_time_col_name] = event_time
-
-            # Handle keep_first and keep_last event aggregation
-            for col_name in keep_first + keep_last:
-                if event_col_name not in _hid_match(event_id, [col_name]):
+            if not np.isnan(metadata.loc[row_idx, event_name]):
+                # Event already exists in current time window!
+                assert metadata.loc[row_idx, event_name] <= event_time
+    
+                if event_name in keep_first or event_name in event_id:
+                    # We already have an event that is "firster", so abort here
                     continue
 
-                time_col_name = f'{col_name}_time'
-                old_time = metadata.loc[row_idx, time_col_name]
+            metadata.loc[row_idx, event_name] = event_time
 
+            # Handle keep_first and keep_last event aggregation
+            for event_group_name in keep_first + keep_last:
+                if event_name not in _hid_match(event_id, [event_group_name]):
+                    continue
+
+                if event_group_name in keep_first:
+                    event_type_col = f'first_{event_group_name}'
+                else:
+                    event_type_col = f'last_{event_group_name}'
+
+                old_time = metadata.loc[row_idx, event_group_name]
                 if not np.isnan(old_time):
-                    if ((col_name in keep_first and old_time <= event_time) or
-                            (col_name in keep_last and
-                             old_time >= event_time)):
+                    if ((event_group_name in keep_first and
+                         old_time <= event_time) or
+                        (event_group_name in keep_last and
+                         old_time >= event_time)):
                         continue
 
-                if col_name not in event_id:
+                if event_group_name not in event_id:
                     # This is an HED. Strip redundant information from the
                     # event name
-                    event_name = (event_col_name
-                                  .replace(col_name, '')
-                                  .replace('//', '/')
-                                  .strip('/'))
-                    metadata.loc[row_idx, col_name] = event_name
-                    del event_name
-                metadata.loc[row_idx, time_col_name] = event_time
+                    name = (event_name
+                            .replace(event_group_name, '')
+                            .replace('//', '/')
+                            .strip('/'))
+                    metadata.loc[row_idx, event_type_col] = name
+                    del name
+
+                metadata.loc[row_idx, event_name] = event_time
 
     # Only keep rows of interest
     if row_events:
         event_id_timelocked = {name: val for name, val in event_id.items()
                                if name in row_events}
-
         events = events[np.in1d(events[:, 2],
                                 list(event_id_timelocked.values()))]
         metadata = metadata.loc[
