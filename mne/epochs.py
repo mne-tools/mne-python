@@ -2282,8 +2282,6 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
     start_idx = stop_idx
     metadata.iloc[:, start_idx:] = np.nan
 
-    # print(metadata)
-    # print(metadata.dtypes)
     # We're all set, let's iterate over all eventns and fill in in the
     # respective cells in the metadata. We will subset this to include only
     # `row_events` later
