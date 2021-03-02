@@ -46,13 +46,19 @@ class _IpyDock(_AbstractDock):
         _ipy_add_widget(layout, widget, self.dock_width)
         return widget
 
-    def _dock_add_slider(self, name, value, rng, callback,
-                         compact=True, double=False, layout=None):
+    def _dock_named_layout(self, name, layout, compact):
         layout = self.dock_layout if layout is None else layout
-        hlayout = self._dock_add_layout(not compact)
         if name is not None:
+            hlayout = self._dock_add_layout(not compact)
             self._dock_add_label(
                 value=name, align=not compact, layout=hlayout)
+            _ipy_add_widget(layout, hlayout, self.dock_width)
+            layout = hlayout
+        return layout
+
+    def _dock_add_slider(self, name, value, rng, callback,
+                         compact=True, double=False, layout=None):
+        layout = self._dock_named_layout(name, layout, compact)
         klass = FloatSlider if double else IntSlider
         widget = klass(
             value=value,
@@ -61,17 +67,12 @@ class _IpyDock(_AbstractDock):
             readout=False,
         )
         widget.observe(_generate_callback(callback), names='value')
-        _ipy_add_widget(hlayout, widget, self.dock_width)
-        _ipy_add_widget(layout, hlayout, self.dock_width)
+        _ipy_add_widget(layout, widget, self.dock_width)
         return widget
 
     def _dock_add_spin_box(self, name, value, rng, callback,
                            compact=True, double=True, layout=None):
-        layout = self.dock_layout if layout is None else layout
-        hlayout = self._dock_add_layout(not compact)
-        if name is not None:
-            self._dock_add_label(
-                value=name, align=not compact, layout=hlayout)
+        layout = self._dock_named_layout(name, layout, compact)
         klass = FloatText if double else IntText
         widget = klass(
             value=value,
@@ -80,24 +81,18 @@ class _IpyDock(_AbstractDock):
             readout=False,
         )
         widget.observe(_generate_callback(callback), names='value')
-        _ipy_add_widget(hlayout, widget, self.dock_width)
-        _ipy_add_widget(layout, hlayout, self.dock_width)
+        _ipy_add_widget(layout, widget, self.dock_width)
         return widget
 
     def _dock_add_combo_box(self, name, value, rng,
                             callback, compact=True, layout=None):
-        layout = self.dock_layout if layout is None else layout
-        hlayout = self._dock_add_layout(not compact)
-        if name is not None:
-            self._dock_add_label(
-                value=name, align=not compact, layout=hlayout)
+        layout = self._dock_named_layout(name, layout, compact)
         widget = Dropdown(
             value=value,
             options=rng,
         )
         widget.observe(_generate_callback(callback), names='value')
-        _ipy_add_widget(hlayout, widget, self.dock_width)
-        _ipy_add_widget(layout, hlayout, self.dock_width)
+        _ipy_add_widget(layout, widget, self.dock_width)
         return widget
 
     def _dock_add_group_box(self, name, layout=None):

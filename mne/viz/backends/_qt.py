@@ -71,20 +71,20 @@ class _QtDock(_AbstractDock):
         layout.addWidget(widget)
         return widget
 
-    def _named_layout(self, name, layout, compact):
+    def _dock_named_layout(self, name, layout, compact):
         layout = self.dock_layout if layout is None else layout
         if name is not None:
             hlayout = self._dock_add_layout(not compact)
-            layout.addLayout(hlayout)
-            layout = hlayout
             self._dock_add_label(
                 value=name, align=not compact, layout=hlayout)
+            layout.addLayout(hlayout)
+            layout = hlayout
         return layout
 
     def _dock_add_slider(self, name, value, rng, callback,
                          compact=True, double=False, layout=None,
                          stretch=0):
-        layout = self._named_layout(name, layout, compact)
+        layout = self._dock_named_layout(name, layout, compact)
         slider_class = QFloatSlider if double else QSlider
         cast = float if double else int
         widget = slider_class(Qt.Horizontal)
@@ -97,7 +97,7 @@ class _QtDock(_AbstractDock):
 
     def _dock_add_spin_box(self, name, value, rng, callback,
                            compact=True, double=True, layout=None):
-        layout = self._named_layout(name, layout, compact)
+        layout = self._dock_named_layout(name, layout, compact)
         value = value if double else int(value)
         widget = QDoubleSpinBox() if double else QSpinBox()
         widget.setAlignment(Qt.AlignCenter)
@@ -114,7 +114,7 @@ class _QtDock(_AbstractDock):
 
     def _dock_add_combo_box(self, name, value, rng,
                             callback, compact=True, layout=None):
-        layout = self._named_layout(name, layout, compact)
+        layout = self._dock_named_layout(name, layout, compact)
         widget = QComboBox()
         widget.addItems(rng)
         widget.setCurrentText(value)

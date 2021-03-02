@@ -507,6 +507,10 @@ class _AbstractDock(ABC):
         pass
 
     @abstractmethod
+    def _dock_named_layout(self, name, layout, compact):
+        pass
+
+    @abstractmethod
     def _dock_add_slider(self, name, value, rng, callback,
                          compact=True, double=False, layout=None):
         pass
