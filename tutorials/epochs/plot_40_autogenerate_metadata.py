@@ -9,7 +9,7 @@ events via `mne.epochs.make_metadata`.
 
 We are going to use data from the :ref:`erp-core-dataset` (derived from
 :footcite:`Kappenman2021`). This is EEG data from a single participant
-performing an active visual task (Flankers task).
+performing an active visual task (Eriksen flanker task).
 
 .. note::
    If you wish to skip the introductory parts of this tutorial, you may jump
@@ -28,9 +28,6 @@ This tutorial is loosely divided into two parts:
    negativity (ERN), i.e. the ERP component associated with incorrect
    behavioral responses.
 
-.. contents:: Table of contents
-  :local:
-  :depth: 3
 
 .. _tut-autogenerate-metadata-preparation:
 
@@ -114,13 +111,9 @@ metadata
 # specific column was generated – we'll call that the "time-locked event",
 # because we'll assign it time point zero.
 #
-# Unless you have a very wide screen, you'll most likely have to scroll
-# horizontally to look at the rest of the columns that were automatically
-# created.
-#
 # The names of columns 2 to 7 correspond to the event names specified in the
-# ``all_event_id`` dictionary. These columns contain boolean values – ``True``
-# or ``False`` – indicating whether that specific event occurred during the
+# ``all_event_id`` dictionary. These columns contain boolean values — ``True``
+# or ``False`` — indicating whether that specific event occurred during the
 # specified time window (in our case, 0.0 to 1.5 seconds after stimulus
 # onset).
 #
@@ -401,7 +394,7 @@ mne.viz.plot_compare_evokeds({'Correct Response': resp_erp_correct,
                              picks='FCz', show_sensors=True,
                              title='ERPs at FCz, time-locked to response')
 
-# topoplot at t=0.05 s, averaged from 0.05-0.05 = 0 to 0.05+0.05 = 0.1 s
+# topoplot of average field from time 0.0-0.1 s
 resp_erp_incorrect.plot_topomap(times=0.05, average=0.05, size=3,
                                 title='Avg. topography 0–100 ms after '
                                       'incorrect responses')
