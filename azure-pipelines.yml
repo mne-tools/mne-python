@@ -224,7 +224,18 @@ stages:
     - bash: |
         set -e
         ./tools/azure_dependencies.sh
-      displayName: 'Install dependencies'
+      condition: in(variables['TEST_MODE'], 'pip', 'pip-pre')
+      displayName: 'Install dependencies with pip'
+    - powershell: |
+        Set-StrictMode -Version Latest
+        $ErrorActionPreference = "Stop"
+        $PSDefaultParameterValues['*:ErrorAction']='Stop'
+        conda update -n base -c defaults conda
+        conda env update --name base --file environment.yml
+        pip uninstall -yq mne
+        pip install -r requirements_testing.txt codecov
+      condition: eq(variables['TEST_MODE'], 'conda')
+      displayName: 'Install dependencies with conda'
     - script: python setup.py develop
       displayName: 'Install MNE-Python dev'
     - script: mne sys_info

@@ -15,6 +15,7 @@ from pathlib import Path
 
 import numpy as np
 
+from ..fixes import _median_complex
 from ._logging import warn, logger
 
 
@@ -597,9 +598,9 @@ def _check_combine(mode, valid=('mean', 'median', 'std')):
     elif mode == "std":
         def fun(data):
             return np.std(data, axis=0)
-    elif mode == "median":
+    elif mode == "median" or mode == np.median:
         def fun(data):
-            return np.median(data, axis=0)
+            return _median_complex(data, axis=0)
     elif callable(mode):
         fun = mode
     else:

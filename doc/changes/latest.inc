@@ -88,6 +88,8 @@ Enhancements
 
 - On macOS, we now set the environment variable ``QT_MAC_WANTS_LAYER`` to ``"1"`` if it hasn't been set explicitly by the user, in order to ensure that `~mne.SourceEstimate` plots work on macOS 11 with older versions of Qt and PyQt (:gh:`8959` by `Richard Höchenberger`_)
 
+- :func:`mne.time_frequency.EpochsTFR.average` now allows different ways of averaging, such as "median", or callable functions (:gh:`8879` by `Adam Li`_)
+
 Bugs
 ~~~~
 - Fix bug with `mne.connectivity.spectral_connectivity` where time axis in Epochs data object was dropped. (:gh:`8839` **by new contributor** |Anna Padee|_)
@@ -159,6 +161,8 @@ Bugs
 - `~mne.io.read_raw_bti` erroneously treated response channels as respiratory channels (:gh:`8855` by `Richard Höchenberger`_)
 
 - The RMS trace shown in the time viewer of `~mne.SourceEstimate` plots is now correctly labeled as ``RMS`` (was ``GFP`` before) (:gh:`8965` by `Richard Höchenberger`_)
+
+- Fix bug with mne.channels.find_ch_adjacency() returning wrong adjacency for Neuromag122-Data (:gh:`8891` by `Martin Schulz`_)
 
 - Fix :func:`mne.read_dipole` yielding :class:`mne.Dipole` objects that could not be indexed (:gh:`8963` by `Marijn van Vliet`_)
 

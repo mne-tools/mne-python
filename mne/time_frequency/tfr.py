@@ -24,7 +24,7 @@ from ..utils import (logger, verbose, _time_mask, _freq_mask, check_fname,
                      sizeof_fmt, GetEpochsMixin, _prepare_read_metadata,
                      fill_doc, _prepare_write_metadata, _check_event_id,
                      _gen_events, SizeMixin, _is_numeric, _check_option,
-                     _validate_type)
+                     _validate_type, _check_combine)
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..channels.layout import _merge_ch_data, _pair_grad_sensors
 from ..io.pick import (pick_info, _picks_to_idx, channel_type, _pick_inst,
@@ -2093,15 +2093,46 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         epochs.data = np.abs(self.data)
         return epochs
 
-    def average(self):
+    def average(self, method='mean'):
         """Average the data across epochs.
+
+        Parameters
+        ----------
+        method : str | callable
+            How to combine the data. If "mean"/"median", the mean/median
+            are returned. Otherwise, must be a callable which, when passed
+            an array of shape (n_epochs, n_channels, n_freqs, n_time)
+            returns an array of shape (n_channels, n_freqs, n_time).
+            Note that due to file type limitations, the kind for all
+            these will be "average".
 
         Returns
         -------
         ave : instance of AverageTFR
             The averaged data.
+
+        Notes
+        -----
+        Passing in ``np.median`` is considered unsafe when there is complex
+        data because NumPy doesn't compute the marginal median. Numpy currently
+        sorts the complex values by real part and return whatever value is
+        computed. Use with caution. We use the marginal median in the
+        complex case (i.e. the median of each component separately) if
+        one passes in ``median``. See a discussion in scipy:
+
+        https://github.com/scipy/scipy/pull/12676#issuecomment-783370228
         """
-        data = np.mean(self.data, axis=0)
+        # return a lambda function for computing a combination metric
+        # over epochs
+        func = _check_combine(mode=method)
+        data = func(self.data)
+
+        if data.shape != self._data.shape[1:]:
+            raise RuntimeError(
+                'You passed a function that resulted in data of shape {}, '
+                'but it should be {}.'.format(
+                    data.shape, self._data.shape[1:]))
+
         return AverageTFR(info=self.info.copy(), data=data,
                           times=self.times.copy(), freqs=self.freqs.copy(),
                           nave=self.data.shape[0], method=self.method,
