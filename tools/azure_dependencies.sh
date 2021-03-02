@@ -1,10 +1,6 @@
 #!/bin/bash -ef
 
-if [ "${TEST_MODE}" == "conda" ]; then
-	conda update -n base -c defaults conda
-	conda env update --name base --file environment.yml
-	pip uninstall -yq mne
-elif [ "${TEST_MODE}" == "pip" ]; then
+if [ "${TEST_MODE}" == "pip" ]; then
 	python -m pip install --upgrade pip setuptools
 	python -m pip install --upgrade numpy scipy vtk
 	python -m pip install --use-deprecated=legacy-resolver --only-binary="numba,llvmlite" -r requirements.txt
