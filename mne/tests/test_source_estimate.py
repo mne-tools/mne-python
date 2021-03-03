@@ -1323,7 +1323,7 @@ def test_source_estime_project(real):
     stc_max, directions = stc.project('pca')
     flips = np.sign(np.sum(directions * want_nn, axis=1, keepdims=True))
     directions *= flips
-    assert_allclose(directions, want_nn, atol=1e-6)
+    assert_allclose(directions, want_nn, atol=2e-6)
 
 
 @testing.requires_testing_data

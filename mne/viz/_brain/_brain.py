@@ -49,37 +49,48 @@ def safe_event(fun, *args, **kwargs):
 
 
 class _Overlay(object):
-    def __init__(self, scalars, colormap, rng, opacity):
+    def __init__(self, scalars, colormap, rng, opacity, name):
         self._scalars = scalars
         self._colormap = colormap
+        assert rng is not None
         self._rng = rng
         self._opacity = opacity
+        self._name = name
 
     def to_colors(self):
         from .._3d import _get_cmap
         from matplotlib.colors import ListedColormap
+
         if isinstance(self._colormap, str):
+            kind = self._colormap
             cmap = _get_cmap(self._colormap)
         else:
             cmap = ListedColormap(self._colormap / 255.)
-
-        def diff(x):
-            return np.max(x) - np.min(x)
-
-        def norm(x, rng=None):
-            if rng is None:
-                rng = [np.min(x), np.max(x)]
-            return (x - rng[0]) / (rng[1] - rng[0])
+            kind = str(type(self._colormap))
+        logger.debug(
+            f'Color mapping {repr(self._name)} with {kind} '
+            f'colormap and range {self._rng}')
 
         rng = self._rng
-        scalars = self._scalars
-        if diff(scalars) != 0:
-            scalars = norm(scalars, rng)
+        assert rng is not None
+        scalars = _norm(self._scalars, rng)
 
         colors = cmap(scalars)
         if self._opacity is not None:
             colors[:, 3] *= self._opacity
         return colors
+
+
+def _range(x):
+    return np.max(x) - np.min(x)
+
+
+def _norm(x, rng):
+    if rng[0] == rng[1]:
+        factor = factor = 1 if rng[0] == 0 else 1e-6 * rng[0]
+    else:
+        factor = rng[1] - rng[0]
+    return (x - rng[0]) / factor
 
 
 class _LayeredMesh(object):
@@ -144,7 +155,8 @@ class _LayeredMesh(object):
             scalars=scalars,
             colormap=colormap,
             rng=rng,
-            opacity=opacity
+            opacity=opacity,
+            name=name,
         )
         self._overlays[name] = overlay
         colors = overlay.to_colors()
@@ -189,7 +201,7 @@ class _LayeredMesh(object):
         self._renderer = None
 
     def update_overlay(self, name, scalars=None, colormap=None,
-                       opacity=None):
+                       opacity=None, rng=None):
         overlay = self._overlays.get(name, None)
         if overlay is None:
             return
@@ -199,6 +211,8 @@ class _LayeredMesh(object):
             overlay._colormap = colormap
         if opacity is not None:
             overlay._opacity = opacity
+        if rng is not None:
+            overlay._rng = rng
         self.update()
 
 
@@ -1890,11 +1904,7 @@ class Brain(object):
             self._renderer.set_camera(**views_dicts[hemi][v])
 
         # 4) update the scalar bar and opacity
-        self.update_lut()
-        if hemi in self._layered_meshes:
-            mesh = self._layered_meshes[hemi]
-            mesh.update_overlay(name='data', opacity=alpha)
-
+        self.update_lut(alpha=alpha)
         self._update()
 
     def _iter_views(self, hemi):
@@ -2191,7 +2201,7 @@ class Brain(object):
             mesh.add_overlay(
                 scalars=scalars,
                 colormap=ctable,
-                rng=None,
+                rng=[np.min(scalars), np.max(scalars)],
                 opacity=alpha,
                 name=label_name,
             )
@@ -2561,12 +2571,14 @@ class Brain(object):
         return img
 
     @fill_doc
-    def update_lut(self, fmin=None, fmid=None, fmax=None):
+    def update_lut(self, fmin=None, fmid=None, fmax=None, alpha=None):
         """Update color map.
 
         Parameters
         ----------
         %(fmin_fmid_fmax)s
+        alpha : float | None
+            Alpha to use in the update.
         """
         from ..backends._pyvista import _set_colormap_range, _set_volume_range
         center = self._data['center']
@@ -2597,7 +2609,9 @@ class Brain(object):
                 if hemi in self._layered_meshes:
                     mesh = self._layered_meshes[hemi]
                     mesh.update_overlay(name='data',
-                                        colormap=self._data['ctable'])
+                                        colormap=self._data['ctable'],
+                                        opacity=alpha,
+                                        rng=rng)
                     _set_colormap_range(mesh._actor, ctable, scalar_bar, rng,
                                         self._brain_color)
                     scalar_bar = None

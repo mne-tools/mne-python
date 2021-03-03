@@ -28,6 +28,8 @@ Bugs
 
 - Fix bug with matplotlib-based 3D plotting where ``Axes3D`` were not properly initialized in :func:`mne.viz.plot_source_estimates` (:gh:`8811` by `Chris Bailey`_)
 
+- Fix bug with :func:`mne.SourceEstimate.plot` and related functions where the scalars were not interactively updated properly (:gh:`8985` by `Eric Larson`_)
+
 .. _changes_0_22:
 
 Version 0.22.0
