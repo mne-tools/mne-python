@@ -425,6 +425,7 @@ def tiny(tmpdir):
     return brain, ratio
 
 
+@pytest.mark.filterwarnings('ignore:.*constrained_layout not applied.*:')
 def test_brain_screenshot(renderer_interactive, tmpdir, brain_gc):
     """Test time viewer screenshot."""
     if renderer_interactive._get_3d_backend() != 'pyvista':
@@ -478,7 +479,8 @@ def test_brain_time_viewer(renderer_interactive, pixel_ratio, brain_gc):
     brain.callbacks["fmax"](value=4.0)
     brain.callbacks["fmid"](value=6.0)
     brain.callbacks["fmid"](value=4.0)
-    brain.callbacks["fscale"](value=1.1)
+    brain.callbacks["fplus"]()
+    brain.callbacks["fminus"]()
     brain.callbacks["fmin"](value=12.0)
     brain.callbacks["fmid"](value=4.0)
     brain._shift_time(op=lambda x, y: x + y)

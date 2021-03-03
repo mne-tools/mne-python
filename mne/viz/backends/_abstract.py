@@ -507,8 +507,7 @@ class _AbstractDock(ABC):
         pass
 
     @abstractmethod
-    def _dock_add_text(self, value, callback, validator=None,
-                       layout=None):
+    def _dock_named_layout(self, name, layout, compact):
         pass
 
     @abstractmethod
