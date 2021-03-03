@@ -440,6 +440,17 @@ def test_brain_screenshot(renderer_interactive, tmpdir, brain_gc):
     tiny_brain.close()
 
 
+def _assert_brain_range(brain, rng):
+    __tracebackhide__ = True
+    assert brain._cmap_range == rng
+    for hemi, layerer in brain._layered_meshes.items():
+        for key, mesh in layerer._overlays.items():
+            if key == 'curv':
+                continue
+            assert mesh._rng == rng, \
+                f'_layered_meshes[{repr(hemi)}][{repr(key)}]._rng != {rng}'
+
+
 @testing.requires_testing_data
 @pytest.mark.slowtest
 def test_brain_time_viewer(renderer_interactive, pixel_ratio, brain_gc):
@@ -475,14 +486,18 @@ def test_brain_time_viewer(renderer_interactive, pixel_ratio, brain_gc):
         time_as_index=False,
     )
     brain.callbacks["smoothing"](value=1)
+    _assert_brain_range(brain, [0.1, 0.3])
     brain.callbacks["fmin"](value=12.0)
     brain.callbacks["fmax"](value=4.0)
+    _assert_brain_range(brain, [4.0, 4.0])
     brain.callbacks["fmid"](value=6.0)
+    _assert_brain_range(brain, [4.0, 6.0])
     brain.callbacks["fmid"](value=4.0)
     brain.callbacks["fplus"]()
     brain.callbacks["fminus"]()
     brain.callbacks["fmin"](value=12.0)
     brain.callbacks["fmid"](value=4.0)
+    _assert_brain_range(brain, [4.0, 12.0])
     brain._shift_time(op=lambda x, y: x + y)
     brain._shift_time(op=lambda x, y: x - y)
     brain._rotate_azimuth(15)
