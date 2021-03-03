@@ -12,6 +12,10 @@
 Version 0.22.1
 --------------
 
+Enhancements
+~~~~~~~~~~~~
+- Support new EEGLAB file format (:gh:`8874` by `Clemens Brunner`_)
+
 Bugs
 ~~~~
 - Fix bug with :func:`mne.io.read_raw_nicolet` where header type values such as num_sample and duration_in_sec where not parsed properly (:gh:`8712` by `Alex Gramfort`_)
@@ -127,8 +131,6 @@ Enhancements
 - Update the ``backend`` parameter of :func:`mne.viz.plot_source_estimates` to integrate ``pyvista`` (:gh:`8395` by `Guillaume Favelier`_)
 
 - Add ``group_by`` parameter to `mne.viz.plot_epochs` and `mne.Epochs.plot` to allow displaying channel data by sensor position (:gh:`8381` by `Daniel McCloy`_)
-
-- Support new EEGLAB file format (:gh:`8874` by `Clemens Brunner`_)
 
 Bugs
 ~~~~
