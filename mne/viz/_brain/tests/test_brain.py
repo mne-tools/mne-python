@@ -123,7 +123,7 @@ def test_layered_mesh(renderer_interactive):
     mesh.add_overlay(
         scalars=np.array([0, 1, 1, 0]),
         colormap=np.array([(1, 1, 1, 1), (0, 0, 0, 0)]),
-        rng=None,
+        rng=[0, 1],
         opacity=None,
         name='test',
     )

@@ -2409,7 +2409,7 @@ class Brain(object):
             mesh.add_overlay(
                 scalars=scalars,
                 colormap=ctable,
-                rng=None,
+                rng=[np.min(scalars), np.max(scalars)],
                 opacity=alpha,
                 name=label_name,
             )
