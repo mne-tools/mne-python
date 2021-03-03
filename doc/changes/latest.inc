@@ -92,7 +92,7 @@ Enhancements
 
 - :func:`mne.time_frequency.EpochsTFR.average` now allows different ways of averaging, such as "median", or callable functions (:gh:`8879` by `Adam Li`_)
 
-- New Tutorial for analyzing frequency-tagging data (:gh: `8867` **by new contributor** |Dominik Welke|_ and `kalenkovich`_)
+- New Tutorial for analyzing frequency-tagging data (:gh:`8867` **by new contributor** |Dominik Welke|_ and `kalenkovich`_)
 
 Bugs
 ~~~~
