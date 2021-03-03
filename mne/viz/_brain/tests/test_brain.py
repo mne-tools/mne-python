@@ -425,6 +425,7 @@ def tiny(tmpdir):
     return brain, ratio
 
 
+@pytest.mark.filterwarnings('ignore:.*constrained_layout not applied.*:')
 def test_brain_screenshot(renderer_interactive, tmpdir, brain_gc):
     """Test time viewer screenshot."""
     if renderer_interactive._get_3d_backend() != 'pyvista':
