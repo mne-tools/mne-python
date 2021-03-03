@@ -1106,7 +1106,11 @@ class Brain(object):
                 ),
                 notebook=self.notebook,
             )
-        layout.addLayout(hlayout)
+        if self.notebook:
+            from ..backends._notebook import _ipy_add_widget
+            _ipy_add_widget(layout, hlayout, self._renderer.dock_width)
+        else:
+            layout.addLayout(hlayout)
 
         # register colorbar slider representations
         widgets = {key: self.widgets[key] for key in self.keys}
