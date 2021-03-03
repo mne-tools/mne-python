@@ -7,6 +7,8 @@
 #
 # License: Simplified BSD
 
+import sys
+import os
 from contextlib import contextmanager
 import importlib
 
@@ -21,7 +23,7 @@ MNE_3D_BACKEND_INTERACTIVE = False
 
 _backend_name_map = dict(
     mayavi='._pysurfer_mayavi',
-    pyvista='._pyvista',
+    pyvista='._qt',
     notebook='._notebook',
 )
 backend = None
@@ -111,6 +113,10 @@ def set_3d_backend(backend_name, verbose=None):
     if MNE_3D_BACKEND != backend_name:
         _reload_backend(backend_name)
         MNE_3D_BACKEND = backend_name
+
+    # Qt5 macOS 11 compatibility
+    if sys.platform == 'darwin' and 'QT_MAC_WANTS_LAYER' not in os.environ:
+        os.environ['QT_MAC_WANTS_LAYER'] = '1'
 
 
 def get_3d_backend():

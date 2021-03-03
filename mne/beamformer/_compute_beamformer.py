@@ -459,8 +459,7 @@ class Beamformer(dict):
         fname : str
             The filename to use to write the HDF5 data.
             Should end in ``'-lcmv.h5'`` or ``'-dics.h5'``.
-        overwrite : bool
-            If True, overwrite the file (if it exists).
+        %(overwrite)s
         %(verbose)s
         """
         ending = '-%s.h5' % (self['kind'].lower(),)

@@ -210,12 +210,12 @@ def test_io_egi_pns_mff(tmpdir):
     pns_chans = pick_types(raw.info, ecg=True, bio=True, emg=True)
     assert_equal(len(pns_chans), 7)
     names = [raw.ch_names[x] for x in pns_chans]
-    pns_names = ['Resp. Temperature'[:15],
+    pns_names = ['Resp. Temperature',
                  'Resp. Pressure',
                  'ECG',
                  'Body Position',
-                 'Resp. Effort Chest'[:15],
-                 'Resp. Effort Abdomen'[:15],
+                 'Resp. Effort Chest',
+                 'Resp. Effort Abdomen',
                  'EMG-Leg']
     _test_raw_reader(read_raw_egi, input_fname=egi_mff_pns_fname,
                      channel_naming='EEG %03d', verbose='error',
@@ -224,14 +224,13 @@ def test_io_egi_pns_mff(tmpdir):
                      )
     assert_equal(names, pns_names)
     mat_names = [
-        'Resp_Temperature'[:15],
+        'Resp_Temperature',
         'Resp_Pressure',
         'ECG',
         'Body_Position',
-        'Resp_Effort_Chest'[:15],
-        'Resp_Effort_Abdomen'[:15],
+        'Resp_Effort_Chest',
+        'Resp_Effort_Abdomen',
         'EMGLeg'
-
     ]
     egi_fname_mat = op.join(data_path(), 'EGI', 'test_egi_pns.mat')
     mc = sio.loadmat(egi_fname_mat)

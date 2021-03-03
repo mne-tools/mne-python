@@ -21,7 +21,7 @@ import warnings
 import numpy as np
 import vtk
 
-from .base_renderer import _BaseRenderer
+from ._abstract import _AbstractRenderer
 from ._utils import (_get_colormap_from_array, _alpha_blend_background,
                      ALLOWED_QUIVER_MODES, _init_qt_resources,
                      _qt_disable_paint)
@@ -38,7 +38,6 @@ with warnings.catch_warnings():
         from pyvistaqt import BackgroundPlotter  # noqa
     except ImportError:
         from pyvista import BackgroundPlotter
-    from pyvista.utilities import try_callback
     from pyvista.plotting.plotting import _ALL_PLOTTERS
 VTK9 = LooseVersion(getattr(vtk, 'VTK_VERSION', '9.0')) >= LooseVersion('9.0')
 
@@ -152,7 +151,7 @@ def _enable_aa(figure, plotter):
 
 
 @copy_base_doc_to_subclass_doc
-class _Renderer(_BaseRenderer):
+class _PyVistaRenderer(_AbstractRenderer):
     """Class managing rendering scene.
 
     Attributes
@@ -262,34 +261,24 @@ class _Renderer(_BaseRenderer):
     def scene(self):
         return self.figure
 
-    def _orient_lights(self):
-        lights = list(self.plotter.renderer.GetLights())
-        lights.pop(0)  # unused headlight
-        lights[0].SetPosition(_to_pos(45.0, -45.0))
-        lights[1].SetPosition(_to_pos(-30.0, 60.0))
-        lights[2].SetPosition(_to_pos(-30.0, -60.0))
-
     def update_lighting(self):
         # Inspired from Mayavi's version of Raymond Maple 3-lights illumination
-        lights = list(self.plotter.renderer.GetLights())
-        headlight = lights.pop(0)
-        headlight.SetSwitch(False)
-        for i in range(len(lights)):
-            if i < 3:
-                lights[i].SetSwitch(True)
-                lights[i].SetIntensity(1.0)
-                lights[i].SetColor(1.0, 1.0, 1.0)
-            else:
-                lights[i].SetSwitch(False)
-                lights[i].SetPosition(_to_pos(0.0, 0.0))
-                lights[i].SetIntensity(1.0)
-                lights[i].SetColor(1.0, 1.0, 1.0)
-
-        lights[0].SetPosition(_to_pos(45.0, 45.0))
-        lights[1].SetPosition(_to_pos(-30.0, -60.0))
-        lights[1].SetIntensity(0.6)
-        lights[2].SetPosition(_to_pos(-30.0, 60.0))
-        lights[2].SetIntensity(0.5)
+        for renderer in self.plotter.renderers:
+            lights = list(renderer.GetLights())
+            headlight = lights.pop(0)
+            headlight.SetSwitch(False)
+            # below and centered, left and above, right and above
+            az_el_in = ((0, -45, 0.7), (-60, 30, 0.7), (60, 30, 0.7))
+            for li, light in enumerate(lights):
+                if li < len(az_el_in):
+                    light.SetSwitch(True)
+                    light.SetPosition(_to_pos(*az_el_in[li][:2]))
+                    light.SetIntensity(az_el_in[li][2])
+                else:
+                    light.SetSwitch(False)
+                    light.SetPosition(_to_pos(0.0, 0.0))
+                    light.SetIntensity(0.0)
+                light.SetColor(1.0, 1.0, 1.0)
 
     def set_interaction(self, interaction):
         if not hasattr(self.plotter, "iren") or self.plotter.iren is None:
@@ -896,7 +885,7 @@ def _rad2deg(rad):
     return rad * 180. / np.pi
 
 
-def _to_pos(elevation, azimuth):
+def _to_pos(azimuth, elevation):
     theta = azimuth * np.pi / 180.0
     phi = (90.0 - elevation) * np.pi / 180.0
     x = np.sin(theta) * np.sin(phi)
@@ -1072,27 +1061,6 @@ def _process_events(plotter):
             plotter.app.processEvents()
 
 
-def _update_slider_callback(slider, callback, event_type):
-    _check_option('event_type', event_type, ['start', 'end', 'always'])
-
-    def _the_callback(widget, event):
-        value = widget.GetRepresentation().GetValue()
-        if hasattr(callback, '__call__'):
-            try_callback(callback, value)
-        return
-
-    if event_type == 'start':
-        event = vtk.vtkCommand.StartInteractionEvent
-    elif event_type == 'end':
-        event = vtk.vtkCommand.EndInteractionEvent
-    else:
-        assert event_type == 'always', event_type
-        event = vtk.vtkCommand.InteractionEvent
-
-    slider.RemoveObserver(event)
-    slider.AddObserver(event, _the_callback)
-
-
 def _add_camera_callback(camera, callback):
     camera.AddObserver(vtk.vtkCommand.ModifiedEvent, callback)
 
@@ -1160,27 +1128,6 @@ def _require_minimum_version(version_required):
         raise ImportError('pyvista>={} is required for this module but the '
                           'version found is {}'.format(version_required,
                                                        version))
-
-
-@contextmanager
-def _testing_context(interactive):
-    from . import renderer
-    orig_offscreen = pyvista.OFF_SCREEN
-    orig_testing = renderer.MNE_3D_BACKEND_TESTING
-    orig_interactive = renderer.MNE_3D_BACKEND_INTERACTIVE
-    renderer.MNE_3D_BACKEND_TESTING = True
-    if interactive:
-        pyvista.OFF_SCREEN = False
-        renderer.MNE_3D_BACKEND_INTERACTIVE = True
-    else:
-        pyvista.OFF_SCREEN = True
-        renderer.MNE_3D_BACKEND_INTERACTIVE = False
-    try:
-        yield
-    finally:
-        pyvista.OFF_SCREEN = orig_offscreen
-        renderer.MNE_3D_BACKEND_TESTING = orig_testing
-        renderer.MNE_3D_BACKEND_INTERACTIVE = orig_interactive
 
 
 @contextmanager

@@ -780,7 +780,7 @@ class MNEBrowseFigure(MNEFigure):
             # click in horizontal scrollbar
             elif event.inaxes == self.mne.ax_hscroll:
                 if self._check_update_hscroll_clicked(event):
-                    self._redraw()
+                    self._redraw(annotations=True)
             # click on proj button
             elif event.inaxes == self.mne.ax_proj:
                 self._toggle_proj_fig(event)
@@ -1916,7 +1916,9 @@ class MNEBrowseFigure(MNEFigure):
             starts = np.maximum(starts[mask], start) - start
             stops = np.minimum(stops[mask], stop) - start
             for _start, _stop in zip(starts, stops):
-                _picks = np.where(np.in1d(picks, self.mne.picks_data))
+                _picks = np.where(np.in1d(picks, self.mne.picks_data))[0]
+                if len(_picks) == 0:
+                    break
                 this_data = data[_picks, _start:_stop]
                 if isinstance(self.mne.filter_coefs, np.ndarray):  # FIR
                     this_data = _overlap_add_filter(

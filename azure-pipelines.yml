@@ -198,7 +198,7 @@ stages:
           TEST_MODE: 'pip'
           PYTHON_VERSION: '3.7'
         3.8 pip pre:
-          TEST_MODE: 'pre-pip'
+          TEST_MODE: 'pip-pre'
           PYTHON_VERSION: '3.8'
           OPENBLAS_CORETYPE: 'prescott'  # workaround for https://github.com/numpy/numpy/issues/16913
     steps:
@@ -207,7 +207,7 @@ stages:
         versionSpec: $(PYTHON_VERSION)
         architecture: $(PYTHON_ARCH)
         addToPath: true
-      condition: in(variables['TEST_MODE'], 'pip', 'pre-pip')
+      condition: in(variables['TEST_MODE'], 'pip', 'pip-pre')
       displayName: 'Get Python'
     # https://docs.microsoft.com/en-us/azure/devops/pipelines/ecosystems/anaconda
     # https://github.com/MicrosoftDocs/pipelines-anaconda
@@ -223,23 +223,9 @@ stages:
       displayName: Install OpenGL
     - bash: |
         set -e
-        python -m pip install --upgrade pip setuptools
-        python -m pip install --upgrade numpy scipy vtk
-        python -m pip install --upgrade --use-deprecated=legacy-resolver --only-binary="numba,llvmlite" -r requirements.txt -r requirements_testing.txt
-        python -m pip install codecov
-      condition: eq(variables['TEST_MODE'], 'pip')
+        ./tools/azure_dependencies.sh
+      condition: in(variables['TEST_MODE'], 'pip', 'pip-pre')
       displayName: 'Install dependencies with pip'
-    - bash: |
-        set -e
-        python -m pip install --upgrade pip setuptools
-        python -m pip install --use-deprecated=legacy-resolver --upgrade --pre --only-binary ":all:" -i "https://pypi.anaconda.org/scipy-wheels-nightly/simple" numpy
-        python -m pip install --use-deprecated=legacy-resolver --upgrade --pre --only-binary ":all:" -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" scipy pandas scikit-learn matplotlib h5py Pillow
-        python -m pip install --upgrade --only-binary vtk vtk;
-        python -m pip install https://github.com/pyvista/pyvista/zipball/master
-        python -m pip install https://github.com/pyvista/pyvistaqt/zipball/master
-        python -m pip install --use-deprecated=legacy-resolver --only-binary="numba,llvmlite" -r requirements.txt -r requirements_testing.txt codecov
-      condition: eq(variables['TEST_MODE'], 'pre-pip')
-      displayName: 'Install dependencies with pip --pre'
     - powershell: |
         Set-StrictMode -Version Latest
         $ErrorActionPreference = "Stop"
