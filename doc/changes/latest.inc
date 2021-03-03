@@ -26,6 +26,8 @@ Current (0.23.dev0)
 
 .. |Enrico Varano| replace:: **Enrico Varano**
 
+.. |Dominik Welke| replace:: **Dominik Welke**
+
 Enhancements
 ~~~~~~~~~~~~
 - Add dbs as new channel type for deep brain stimulation (DBS) recordings (:gh:`8739` **by new contributor** |Richard Koehler|_)
@@ -89,6 +91,8 @@ Enhancements
 - On macOS, we now set the environment variable ``QT_MAC_WANTS_LAYER`` to ``"1"`` if it hasn't been set explicitly by the user, in order to ensure that `~mne.SourceEstimate` plots work on macOS 11 with older versions of Qt and PyQt (:gh:`8959` by `Richard Höchenberger`_)
 
 - :func:`mne.time_frequency.EpochsTFR.average` now allows different ways of averaging, such as "median", or callable functions (:gh:`8879` by `Adam Li`_)
+
+- New Tutorial for analyzing frequency-tagging data (:gh: `8867` **by new contributor** |Dominik Welke|_ and `kalenkovich`_)
 
 Bugs
 ~~~~
