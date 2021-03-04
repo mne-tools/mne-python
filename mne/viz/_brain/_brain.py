@@ -26,7 +26,7 @@ from .surface import _Surface
 from .view import views_dicts, _lh_views_dict
 from .mplcanvas import MplCanvas
 from .callback import (ShowView, TimeCallBack, SmartCallBack, Widget,
-                       BumpColorbarPoints, UpdateColorbarScale)
+                       UpdateLUT, UpdateColorbarScale)
 
 from ..utils import _show_help, _get_color_list, concatenate_images
 from .._3d import _process_clim, _handle_time, _check_views
@@ -433,7 +433,7 @@ class Brain(object):
         self._annots = {'lh': list(), 'rh': list()}
         self._layered_meshes = {}
         self._elevation_rng = [15, 165]  # range of motion of camera on theta
-        self._lut_updatable = True
+        self._lut_locked = None
         # default values for silhouette
         self._silhouette = {
             'color': self._bg_color,
@@ -1047,13 +1047,11 @@ class Brain(object):
             align=True,
             layout=layout,
         )
+        up = UpdateLUT(brain=self)
         for key in self.keys:
             hlayout = self._renderer._dock_add_layout(vertical=False)
             rng = _get_range(self)
-            self.callbacks[key] = BumpColorbarPoints(
-                brain=self,
-                name=key
-            )
+            self.callbacks[key] = lambda value, key=key: up(**{key: value})
             self.widgets[key] = Widget(
                 widget=self._renderer._dock_add_slider(
                     name=None,
@@ -1075,6 +1073,7 @@ class Brain(object):
                 ),
                 notebook=self.notebook,
             )
+            up.widgets[key] = [self.widgets[key], self.widgets[f"entry_{key}"]]
             if self.notebook:
                 from ..backends._notebook import _ipy_add_widget
                 _ipy_add_widget(layout, hlayout, self._renderer.dock_width)
@@ -2765,46 +2764,14 @@ class Brain(object):
                 [img, trace_img], bgcolor=self._brain_color[:3])
         return img
 
-    def _bump_points(self, **kwargs):
-        logger.debug(f'    Bump points {kwargs}')
-        vals = {key: self._data[key] for key in ('fmin', 'fmid', 'fmax')}
-        if 'fmin' in kwargs:
-            value = vals['fmin'] = kwargs['fmin']
-            if vals['fmax'] < value:
-                logger.debug(f'    Bumping fmax = {vals["fmax"]} to {value}')
-                vals['fmax'] = value
-            if vals['fmid'] < value:
-                logger.debug(f'    Bumping fmid = {vals["fmid"]} to {value}')
-                vals['fmid'] = value
-        assert vals['fmin'] <= vals['fmid'] <= vals['fmax']
-        if 'fmid' in kwargs:
-            value = vals['fmid'] = kwargs['fmid']
-            if vals['fmin'] > value:
-                logger.debug(f'    Bumping fmin = {vals["fmin"]} to {value}')
-                vals['fmin'] = value
-            if vals['fmax'] < value:
-                logger.debug(f'    Bumping fmax = {vals["fmax"]} to {value}')
-                vals['fmax'] = value
-        assert vals['fmin'] <= vals['fmid'] <= vals['fmax']
-        if 'fmax' in kwargs:
-            value = vals['fmax'] = kwargs['fmax']
-            if vals['fmin'] > value:
-                logger.debug(f'    Bumping fmin = {vals["fmin"]} to {value}')
-                vals['fmin'] = value
-            if vals['fmid'] > value:
-                logger.debug(f'    Bumping fmid = {vals["fmid"]} to {value}')
-                vals['fmid'] = value
-        assert vals['fmin'] <= vals['fmid'] <= vals['fmax']
-        return vals
-
     @contextlib.contextmanager
-    def _no_lut_update(self):
-        orig = self._lut_updatable
-        self._lut_updatable = False
+    def _no_lut_update(self, why):
+        orig = self._lut_locked
+        self._lut_locked = why
         try:
             yield
         finally:
-            self._lut_updatable = orig
+            self._lut_locked = orig
 
     @fill_doc
     def update_lut(self, fmin=None, fmid=None, fmax=None, alpha=None):
@@ -2817,7 +2784,7 @@ class Brain(object):
             Alpha to use in the update.
         """
         args = f'{fmin}, {fmid}, {fmax}, {alpha}'
-        if not self._lut_updatable:
+        if self._lut_locked is not None:
             logger.debug(f'LUT update postponed with {args}')
             return
         logger.debug(f'Updating LUT with {args}')
@@ -2825,10 +2792,9 @@ class Brain(object):
         colormap = self._data['colormap']
         transparent = self._data['transparent']
         lims = {key: self._data[key] for key in ('fmin', 'fmid', 'fmax')}
+        _update_monotonic(lims, fmin=fmin, fmid=fmid, fmax=fmax)
         assert all(val is not None for val in lims.values())
-        lims = self._bump_points(**{
-            key: val for key, val in
-            dict(fmin=fmin, fmid=fmid, fmax=fmax).items() if val is not None})
+
         self._data.update(lims)
         self._data['ctable'] = np.round(
             calculate_lut(colormap, alpha=1., center=center,
@@ -2869,10 +2835,10 @@ class Brain(object):
                         self._renderer._set_colormap_range(
                             glyph_actor_, ctable, scalar_bar, rng)
                         scalar_bar = None
-        with self._no_lut_update():
-            if self.time_viewer:
+        if self.time_viewer:
+            with self._no_lut_update(f'update_lut {args}'):
                 for key in ('fmin', 'fmid', 'fmax'):
-                    self.callbacks[key].widgets[key].set_value(lims[key])
+                    self.callbacks[key](lims[key])
         self._update()
 
     def set_data_smoothing(self, n_steps):
@@ -3516,6 +3482,36 @@ def _update_limits(fmin, fmid, fmax, center, array):
                            % (fmid, fmax))
 
     return fmin, fmid, fmax
+
+
+def _update_monotonic(lims, fmin, fmid, fmax):
+    if fmin is not None:
+        lims['fmin'] = fmin
+        if lims['fmax'] < fmin:
+            logger.debug(f'    Bumping fmax = {lims["fmax"]} to {fmin}')
+            lims['fmax'] = fmin
+        if lims['fmid'] < fmin:
+            logger.debug(f'    Bumping fmid = {lims["fmid"]} to {fmin}')
+            lims['fmid'] = fmin
+    assert lims['fmin'] <= lims['fmid'] <= lims['fmax']
+    if fmid is not None:
+        lims['fmid'] = fmid
+        if lims['fmin'] > fmid:
+            logger.debug(f'    Bumping fmin = {lims["fmin"]} to {fmid}')
+            lims['fmin'] = fmid
+        if lims['fmax'] < fmid:
+            logger.debug(f'    Bumping fmax = {lims["fmax"]} to {fmid}')
+            lims['fmax'] = fmid
+    assert lims['fmin'] <= lims['fmid'] <= lims['fmax']
+    if fmax is not None:
+        lims['fmax'] = fmax
+        if lims['fmin'] > fmax:
+            logger.debug(f'    Bumping fmin = {lims["fmin"]} to {fmax}')
+            lims['fmin'] = fmax
+        if lims['fmid'] > fmax:
+            logger.debug(f'    Bumping fmid = {lims["fmid"]} to {fmax}')
+            lims['fmid'] = fmax
+    assert lims['fmin'] <= lims['fmid'] <= lims['fmax']
 
 
 def _get_range(brain):

@@ -82,38 +82,22 @@ class UpdateColorbarScale(object):
                 self.widgets[key].set_value(self.brain._data[key])
 
 
-class BumpColorbarPoints(object):
-    """Class that ensure constraints over the colorbar points."""
+class UpdateLUT(object):
+    """Update the LUT."""
 
-    def __init__(self, brain=None, name=None):
+    def __init__(self, brain=None):
         self.brain = brain
-        self.name = name
-        self.callback = {
-            "fmin": lambda fmin: brain.update_lut(fmin=fmin),
-            "fmid": lambda fmid: brain.update_lut(fmid=fmid),
-            "fmax": lambda fmax: brain.update_lut(fmax=fmax),
-        }
-        self.widgets = {key: None for key in self.brain.keys}
-        self._updatable = True
+        self.widgets = {key: list() for key in self.brain.keys}
 
-    def __call__(self, value):
+    def __call__(self, fmin=None, fmid=None, fmax=None):
         """Update the colorbar sliders."""
-        if not self.brain._lut_updatable:
-            # Something else is going to take care of it, don't update any
-            # widgets, etc.
-            logger.debug(f'Updating postponed: {self.name} = {value}')
-            return
-        kwargs = self.brain._bump_points(**{self.name: value})
-        logger.debug(
-            f'Updating {self.name} = {kwargs[self.name]} from {value}')
-        with self.brain._no_lut_update():
+        self.brain.update_lut(fmin=fmin, fmid=fmid, fmax=fmax)
+        with self.brain._no_lut_update(f'UpdateLUT {fmin} {fmid} {fmax}'):
             for key in ('fmin', 'fmid', 'fmax'):
-                value = kwargs[key]
-                if self.widgets[key] is not None and \
-                        value != self.brain._data[key]:
-                    self.widgets[key].set_value(value)
-                self.brain.widgets[f'entry_{key}'].set_value(value)
-        self.brain.update_lut(**kwargs)
+                value = self.brain._data[key]
+                logger.debug(f'Updating {key} = {value}')
+                for widget in self.widgets[key]:
+                    widget.set_value(value)
 
 
 class ShowView(object):
