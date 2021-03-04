@@ -34,7 +34,7 @@ class _QtDock(_AbstractDock):
         self.scroll.setWidgetResizable(True)
         self.dock.setAllowedAreas(Qt.LeftDockWidgetArea)
         self.dock.setFeatures(QDockWidget.NoDockWidgetFeatures)
-        self.plotter.app_window.addDockWidget(Qt.LeftDockWidgetArea, self.dock)
+        self.plotter._window.addDockWidget(Qt.LeftDockWidgetArea, self.dock)
         self.dock_layout = QVBoxLayout()
         widget.setLayout(self.dock_layout)
 
@@ -226,7 +226,7 @@ class _QtToolBar(_AbstractToolBar):
 
     def _tool_bar_initialize(self, name="default"):
         self.actions = dict()
-        self.tool_bar = self.plotter.app_window.addToolBar(name)
+        self.tool_bar = self.plotter._window.addToolBar(name)
 
     def _tool_bar_finalize(self):
         pass

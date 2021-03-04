@@ -34,10 +34,7 @@ with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     import pyvista
     from pyvista import Plotter, PolyData, Line, close_all, UnstructuredGrid
-    try:
-        from pyvistaqt import BackgroundPlotter  # noqa
-    except ImportError:
-        from pyvista import BackgroundPlotter
+    from pyvistaqt import MultiPlotter
     from pyvista.plotting.plotting import _ALL_PLOTTERS
 VTK9 = LooseVersion(getattr(vtk, 'VTK_VERSION', '9.0')) >= LooseVersion('9.0')
 
@@ -46,8 +43,8 @@ _FIGURES = dict()
 
 
 class _Figure(object):
-    def __init__(self, plotter=None,
-                 plotter_class=None,
+    def __init__(self,
+                 plotter=None,
                  display=None,
                  show=False,
                  title='PyVista Scene',
@@ -58,7 +55,6 @@ class _Figure(object):
                  off_screen=False,
                  notebook=False):
         self.plotter = plotter
-        self.plotter_class = plotter_class
         self.display = display
         self.background_color = background_color
         self.smooth_shading = smooth_shading
@@ -75,42 +71,46 @@ class _Figure(object):
         # multi_samples > 1 is broken on macOS + Intel Iris + volume rendering
         self.store['multi_samples'] = 1 if sys.platform == 'darwin' else 4
 
+        self.viewer = None
         self._azimuth = self._elevation = None
 
     def build(self):
-        if self.plotter_class is None:
-            self.plotter_class = BackgroundPlotter
         if self.notebook:
-            self.plotter_class = Plotter
-
-        if self.plotter_class is Plotter:
+            plotter_class = Plotter
+        else:
+            plotter_class = MultiPlotter
             self.store.pop('show', None)
             self.store.pop('title', None)
             self.store.pop('auto_update', None)
 
         if self.plotter is None:
-            if self.plotter_class is BackgroundPlotter:
+            if not self.notebook:
                 from PyQt5.QtWidgets import QApplication
                 app = QApplication.instance()
                 if app is None:
                     app = QApplication(["MNE"])
                 self.store['app'] = app
-            plotter = self.plotter_class(**self.store)
+            plotter = plotter_class(**self.store)
             plotter.background_color = self.background_color
             self.plotter = plotter
-            if self.plotter_class is BackgroundPlotter and \
-                    hasattr(BackgroundPlotter, 'set_icon'):
+            if not self.notebook and hasattr(self.plotter, 'set_icon'):
                 _init_qt_resources()
                 _process_events(plotter)
-                plotter.set_icon(":/mne-icon.png")
+                self.plotter.set_icon(":/mne-icon.png")
+
+            if self.notebook:
+                self.viewer = self.plotter
+            else:
+                self.viewer = self.plotter._plotter
+
         _process_events(self.plotter)
         _process_events(self.plotter)
-        return self.plotter
+        return self.plotter, self.viewer
 
     def is_active(self):
-        if self.plotter is None:
+        if self.viewer is None:
             return False
-        return hasattr(self.plotter, 'ren_win')
+        return hasattr(self.viewer, 'ren_win')
 
 
 class _Projection(object):
@@ -199,19 +199,14 @@ class _PyVistaRenderer(_AbstractRenderer):
                 # smooth_shading=True fails on MacOS CIs
                 self.figure.smooth_shading = False
             with _disabled_depth_peeling():
-                self.plotter = self.figure.build()
-            self.plotter.hide_axes()
-            if hasattr(self.plotter, "default_camera_tool_bar"):
-                self.plotter.default_camera_tool_bar.close()
-            if hasattr(self.plotter, "saved_cameras_tool_bar"):
-                self.plotter.saved_cameras_tool_bar.close()
+                self.plotter, self.viewer = self.figure.build()
+            self.viewer.hide_axes()
+            if hasattr(self.viewer, "default_camera_tool_bar"):
+                self.viewer.default_camera_tool_bar.close()
+            if hasattr(self.viewer, "saved_cameras_tool_bar"):
+                self.viewer.saved_cameras_tool_bar.close()
             if self.antialias:
-                _enable_aa(self.figure, self.plotter)
-
-        # FIX: https://github.com/pyvista/pyvistaqt/pull/68
-        if LooseVersion(pyvista.__version__) >= '0.27.0':
-            if not hasattr(self.plotter, "iren"):
-                self.plotter.iren = None
+                _enable_aa(self.figure, self.viewer)
 
         self.update_lighting()
 
@@ -220,50 +215,64 @@ class _PyVistaRenderer(_AbstractRenderer):
         dt_string = now.strftime("_%Y-%m-%d_%H-%M-%S")
         return "MNE" + dt_string + ".png"
 
-    @contextmanager
-    def _ensure_minimum_sizes(self):
-        sz = self.figure.store['window_size']
-        # plotter:            pyvista.plotting.qt_plotting.BackgroundPlotter
-        # plotter.interactor: vtk.qt.QVTKRenderWindowInteractor.QVTKRenderWindowInteractor -> QWidget  # noqa
-        # plotter.app_window: pyvista.plotting.qt_plotting.MainWindow -> QMainWindow  # noqa
-        # plotter.frame:      QFrame with QVBoxLayout with plotter.interactor as centralWidget  # noqa
-        # plotter.ren_win:    vtkXOpenGLRenderWindow
-        self.plotter.interactor.setMinimumSize(*sz)
-        try:
-            yield  # show
-        finally:
-            # 1. Process events
-            _process_events(self.plotter)
-            _process_events(self.plotter)
-            # 2. Get the window and interactor sizes that work
-            win_sz = self.plotter.app_window.size()
-            ren_sz = self.plotter.interactor.size()
-            # 3. Undo the min size setting and process events
-            self.plotter.interactor.setMinimumSize(0, 0)
-            _process_events(self.plotter)
-            _process_events(self.plotter)
-            # 4. Resize the window and interactor to the correct size
-            #    (not sure why, but this is required on macOS at least)
-            self.plotter.window_size = (win_sz.width(), win_sz.height())
-            self.plotter.interactor.resize(ren_sz.width(), ren_sz.height())
-            _process_events(self.plotter)
-            _process_events(self.plotter)
+    def _get_all_renderers(self):
+        return _get_all_renderers(self.plotter)
+
+    def _update(self):
+        if self.figure.notebook:
+            self.plotter.update()
+
+    # XXX:WIP
+    # @contextmanager
+    # def _ensure_minimum_sizes(self):
+    #     sz = self.figure.store['window_size']
+    #     # plotter:            pyvista.plotting.qt_plotting.BackgroundPlotter
+    #     # plotter.interactor: vtk.qt.QVTKRenderWindowInteractor.QVTKRenderWindowInteractor -> QWidget  # noqa
+    #     # plotter.app_window: pyvista.plotting.qt_plotting.MainWindow -> QMainWindow  # noqa
+    #     # plotter.frame:      QFrame with QVBoxLayout with plotter.interactor as centralWidget  # noqa
+    #     # plotter.ren_win:    vtkXOpenGLRenderWindow
+    #     self.plotter.interactor.setMinimumSize(*sz)
+    #     try:
+    #         yield  # show
+    #     finally:
+    #         # 1. Process events
+    #         _process_events(self.plotter)
+    #         _process_events(self.plotter)
+    #         # 2. Get the window and interactor sizes that work
+    #         win_sz = self.plotter.app_window.size()
+    #         ren_sz = self.plotter.interactor.size()
+    #         # 3. Undo the min size setting and process events
+    #         self.plotter.interactor.setMinimumSize(0, 0)
+    #         _process_events(self.plotter)
+    #         _process_events(self.plotter)
+    #         # 4. Resize the window and interactor to the correct size
+    #         #    (not sure why, but this is required on macOS at least)
+    #         self.plotter.window_size = (win_sz.width(), win_sz.height())
+    #         self.plotter.interactor.resize(ren_sz.width(), ren_sz.height())
+    #         _process_events(self.plotter)
+    #         _process_events(self.plotter)
+
+    def _subplot(self, x, y):
+        if self.figure.notebook:
+            self.plotter.subplot(x, y)
+        else:
+            self.viewer = self.plotter[x, y]
 
     def subplot(self, x, y):
         x = np.max([0, np.min([x, self.shape[0] - 1])])
         y = np.max([0, np.min([y, self.shape[1] - 1])])
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            self.plotter.subplot(x, y)
+            self._subplot(x, y)
             if self.antialias:
-                _enable_aa(self.figure, self.plotter)
+                _enable_aa(self.figure, self.viewer)
 
     def scene(self):
         return self.figure
 
     def update_lighting(self):
         # Inspired from Mayavi's version of Raymond Maple 3-lights illumination
-        for renderer in self.plotter.renderers:
+        for renderer in self._get_all_renderers():
             lights = list(renderer.GetLights())
             headlight = lights.pop(0)
             headlight.SetSwitch(False)
@@ -280,21 +289,24 @@ class _PyVistaRenderer(_AbstractRenderer):
                     light.SetIntensity(0.0)
                 light.SetColor(1.0, 1.0, 1.0)
 
+    # XXX:WIP
     def set_interaction(self, interaction):
-        if not hasattr(self.plotter, "iren") or self.plotter.iren is None:
-            return
-        if interaction == "rubber_band_2d":
-            for renderer in self.plotter.renderers:
-                renderer.enable_parallel_projection()
-            if hasattr(self.plotter, 'enable_rubber_band_2d_style'):
-                self.plotter.enable_rubber_band_2d_style()
-            else:
-                style = vtk.vtkInteractorStyleRubberBand2D()
-                self.plotter.interactor.SetInteractorStyle(style)
-        else:
-            for renderer in self.plotter.renderers:
-                renderer.disable_parallel_projection()
-            getattr(self.plotter, f'enable_{interaction}_style')()
+        pass
+    # def set_interaction(self, interaction):
+    #     if not hasattr(self.plotter, "iren") or self.plotter.iren is None:
+    #         return
+    #     if interaction == "rubber_band_2d":
+    #         for renderer in self.plotter.renderers:
+    #             renderer.enable_parallel_projection()
+    #         if hasattr(self.plotter, 'enable_rubber_band_2d_style'):
+    #             self.plotter.enable_rubber_band_2d_style()
+    #         else:
+    #             style = vtk.vtkInteractorStyleRubberBand2D()
+    #             self.plotter.interactor.SetInteractorStyle(style)
+    #     else:
+    #         for renderer in self.plotter.renderers:
+    #             renderer.disable_parallel_projection()
+    #         getattr(self.plotter, f'enable_{interaction}_style')()
 
     def polydata(self, mesh, color=None, opacity=1.0, normals=None,
                  backface_culling=False, scalars=None, colormap=None,
@@ -326,7 +338,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                 rgba = kwargs["rgba"]
                 kwargs.pop('rgba')
             actor = _add_mesh(
-                plotter=self.plotter,
+                plotter=self.viewer,
                 mesh=mesh, color=color, scalars=scalars,
                 rgba=rgba, opacity=opacity, cmap=colormap,
                 backface_culling=backface_culling,
@@ -391,7 +403,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                 contour = contour.tube(radius=width, n_sides=self.tube_n_sides)
                 line_width = 1.0
             actor = _add_mesh(
-                plotter=self.plotter,
+                plotter=self.viewer,
                 mesh=contour,
                 show_scalar_bar=False,
                 line_width=line_width,
@@ -447,7 +459,7 @@ class _PyVistaRenderer(_AbstractRenderer):
             glyph = mesh.glyph(orient=False, scale=False,
                                factor=factor, geom=geom)
             actor = _add_mesh(
-                self.plotter,
+                plotter=self.viewer,
                 mesh=glyph, color=color, opacity=opacity,
                 backface_culling=backface_culling,
                 smooth_shading=self.figure.smooth_shading
@@ -470,7 +482,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                     scalars = None
                 tube = line.tube(radius, n_sides=self.tube_n_sides)
                 _add_mesh(
-                    plotter=self.plotter,
+                    plotter=self.viewer,
                     mesh=tube,
                     scalars=scalars,
                     flip_scalars=reverse_lut,
@@ -559,7 +571,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                 mesh = grid.glyph(orient='vec', scale=scale, factor=factor,
                                   geom=geom)
             _add_mesh(
-                self.plotter,
+                plotter=self.viewer,
                 mesh=mesh,
                 color=color,
                 opacity=opacity,
@@ -572,11 +584,9 @@ class _PyVistaRenderer(_AbstractRenderer):
         position = (x_window, y_window)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            actor = self.plotter.add_text(text, position=position,
-                                          font_size=size,
-                                          font=self.font_family,
-                                          color=color,
-                                          viewport=True)
+            actor = self.viewer.add_text(
+                text, position=position, font_size=size,
+                font=self.font_family, color=color, viewport=True)
             if isinstance(justification, str):
                 if justification == 'left':
                     actor.GetTextProperty().SetJustificationToLeft()
@@ -602,9 +612,9 @@ class _PyVistaRenderer(_AbstractRenderer):
                 name=text,
                 shape_opacity=0,
             )
-            if 'always_visible' in _get_args(self.plotter.add_point_labels):
+            if 'always_visible' in _get_args(self.viewer.add_point_labels):
                 kwargs['always_visible'] = True
-            self.plotter.add_point_labels(**kwargs)
+            self.viewer.add_point_labels(**kwargs)
 
     def scalarbar(self, source, color="white", title=None, n_labels=4,
                   bgcolor=None, **extra_kwargs):
@@ -616,15 +626,16 @@ class _PyVistaRenderer(_AbstractRenderer):
                           label_font_size=22, font_family=self.font_family,
                           background_color=bgcolor)
             kwargs.update(extra_kwargs)
-            self.plotter.add_scalar_bar(**kwargs)
+            self.viewer.add_scalar_bar(**kwargs)
 
     def show(self):
         self.figure.display = self.plotter.show()
-        if hasattr(self.plotter, "app_window"):
-            with _qt_disable_paint(self.plotter):
-                with self._ensure_minimum_sizes():
-                    self.plotter.app_window.show()
-            self.plotter.update()
+        # XXX:WIP
+        # if hasattr(self.plotter, "app_window"):
+        #     with _qt_disable_paint(self.plotter):
+        #         with self._ensure_minimum_sizes():
+        #             self.plotter.app_window.show()
+        #     self.plotter.update()
         return self.scene()
 
     def close(self):
@@ -638,39 +649,39 @@ class _PyVistaRenderer(_AbstractRenderer):
                      reset_camera=reset_camera, rigid=rigid)
 
     def reset_camera(self):
-        self.plotter.reset_camera()
+        self.viewer.reset_camera()
 
     def screenshot(self, mode='rgb', filename=None):
         return _take_3d_screenshot(figure=self.figure, mode=mode,
                                    filename=filename)
 
     def project(self, xyz, ch_names):
-        xy = _3d_to_2d(self.plotter, xyz)
+        xy = _3d_to_2d(self.viewer, xyz)
         xy = dict(zip(ch_names, xy))
         # pts = self.fig.children[-1]
-        pts = self.plotter.renderer.GetActors().GetLastItem()
+        pts = self.viewer.renderer.GetActors().GetLastItem()
 
         return _Projection(xy=xy, pts=pts)
 
     def enable_depth_peeling(self):
         if not self.figure.store['off_screen']:
-            for renderer in self.plotter.renderers:
+            for renderer in self._get_all_renderers():
                 renderer.enable_depth_peeling()
 
     def remove_mesh(self, mesh_data):
         actor, _ = mesh_data
-        self.plotter.remove_actor(actor)
+        self.viewer.remove_actor(actor)
 
     @contextmanager
     def _disabled_interaction(self):
-        if not self.plotter.renderer.GetInteractive():
+        if not self.viewer.renderer.GetInteractive():
             yield
         else:
-            self.plotter.disable()
+            self.viewer.disable()
             try:
                 yield
             finally:
-                self.plotter.enable()
+                self.viewer.enable()
 
     def _actor(self, mapper=None):
         actor = vtk.vtkActor()
@@ -686,24 +697,24 @@ class _PyVistaRenderer(_AbstractRenderer):
                                  on_button_press,
                                  on_button_release,
                                  on_pick):
-        self.plotter.iren.AddObserver(
+        self.viewer.iren.AddObserver(
             vtk.vtkCommand.RenderEvent,
             on_mouse_move
         )
-        self.plotter.iren.AddObserver(
+        self.viewer.iren.AddObserver(
             vtk.vtkCommand.LeftButtonPressEvent,
             on_button_press
         )
-        self.plotter.iren.AddObserver(
+        self.viewer.iren.AddObserver(
             vtk.vtkCommand.EndInteractionEvent,
             on_button_release
         )
-        self.plotter.picker = vtk.vtkCellPicker()
-        self.plotter.picker.AddObserver(
+        self.viewer.picker = vtk.vtkCellPicker()
+        self.viewer.picker.AddObserver(
             vtk.vtkCommand.EndPickEvent,
             on_pick
         )
-        self.plotter.picker.SetVolumeOpacityIsovalue(0.)
+        self.viewer.picker.SetVolumeOpacityIsovalue(0.)
 
     def _set_mesh_scalars(self, mesh, scalars, name):
         # Catch:  FutureWarning: Conversion of the second argument of
@@ -756,7 +767,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         sphere.Update()
         mesh = pyvista.wrap(sphere.GetOutput())
         actor = _add_mesh(
-            self.plotter,
+            plotter=self.viewer,
             mesh=mesh,
             color=color
         )
@@ -828,12 +839,12 @@ class _PyVistaRenderer(_AbstractRenderer):
         mesh = mesh.decimate(decimate) if decimate is not None else mesh
         silhouette_filter = vtk.vtkPolyDataSilhouette()
         silhouette_filter.SetInputData(mesh)
-        silhouette_filter.SetCamera(self.plotter.renderer.GetActiveCamera())
+        silhouette_filter.SetCamera(self.viewer.renderer.GetActiveCamera())
         silhouette_filter.SetEnableFeatureAngle(0)
         silhouette_mapper = vtk.vtkPolyDataMapper()
         silhouette_mapper.SetInputConnection(
             silhouette_filter.GetOutputPort())
-        _, prop = self.plotter.add_actor(
+        _, prop = self.viewer.add_actor(
             silhouette_mapper, reset_camera=False, name=None,
             culling=False, pickable=False)
         if color is not None:
@@ -842,6 +853,16 @@ class _PyVistaRenderer(_AbstractRenderer):
             prop.SetOpacity(alpha)
         if line_width is not None:
             prop.SetLineWidth(line_width)
+
+
+def _get_all_renderers(plotter):
+    if not isinstance(plotter, MultiPlotter):
+        return plotter.renderers
+    else:
+        lst = list()
+        for p in plotter._plotters:
+            lst.extend(_get_all_renderers(p))
+        return lst
 
 
 def _compute_normals(mesh):
@@ -953,12 +974,13 @@ def _get_camera_direction(focalpoint, position):
 
 def _set_3d_view(figure, azimuth, elevation, focalpoint, distance, roll=None,
                  reset_camera=True, rigid=None):
+    viewer = figure.viewer
     rigid = np.eye(4) if rigid is None else rigid
-    position = np.array(figure.plotter.camera_position[0])
+    position = np.array(viewer.camera_position[0])
     if reset_camera:
-        figure.plotter.reset_camera()
+        viewer.reset_camera()
     if focalpoint is None:
-        focalpoint = np.array(figure.plotter.camera_position[1])
+        focalpoint = np.array(viewer.camera_position[1])
     # work in the transformed space
     position = apply_trans(rigid, position)
     focalpoint = apply_trans(rigid, focalpoint)
@@ -970,7 +992,7 @@ def _set_3d_view(figure, azimuth, elevation, focalpoint, distance, roll=None,
         theta = _deg2rad(elevation)
 
     # set the distance
-    renderer = figure.plotter.renderer
+    renderer = viewer.renderer
     bounds = np.array(renderer.ComputeVisiblePropBounds())
     if distance is None:
         distance = max(bounds[1::2] - bounds[::2]) * 2.0
@@ -1001,15 +1023,15 @@ def _set_3d_view(figure, azimuth, elevation, focalpoint, distance, roll=None,
     position = apply_trans(rigid, position)
     focalpoint = apply_trans(rigid, focalpoint)
     view_up = apply_trans(rigid, view_up, move=False)
-    figure.plotter.camera_position = [
+    viewer.camera_position = [
         position, focalpoint, view_up]
     # We need to add the requested roll to the roll dictated by the
     # transformed view_up
     if roll is not None:
-        figure.plotter.camera.SetRoll(figure.plotter.camera.GetRoll() + roll)
+        viewer.camera.SetRoll(viewer.camera.GetRoll() + roll)
 
-    figure.plotter.update()
-    _process_events(figure.plotter)
+    viewer.update()
+    _process_events(viewer)
 
 
 def _set_3d_title(figure, title, size=16):

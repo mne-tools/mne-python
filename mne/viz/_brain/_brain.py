@@ -476,10 +476,11 @@ class Brain(object):
                                        fig=figure)
 
         self.plotter = self._renderer.plotter
+        self.viewer = self._renderer.viewer
         if self.notebook:
             self.window = None
         else:
-            self.window = self.plotter.app_window
+            self.window = self.plotter._window
             self.window.signal_close.connect(self._clean)
 
         self._setup_canonical_rotation()
@@ -628,9 +629,10 @@ class Brain(object):
             self.status_bar = None
             self.interactor = None
         else:
-            self.main_menu = self.plotter.main_menu
             self.status_bar = self.window.statusBar()
-            self.interactor = self.plotter.interactor
+            # XXX:WIP
+            # self.main_menu = self.plotter.main_menu
+            # self.interactor = self.plotter.interactor
 
         # Derived parameters:
         self.playback_speed = self.default_playback_speed_value
@@ -672,14 +674,16 @@ class Brain(object):
             self.mpl_canvas.show()
         self.toggle_interface()
         if not self.notebook:
-            self._configure_playback()
-            self._configure_menu()
+            # XXX:WIP
+            # self._configure_playback()
+            # self._configure_menu()
             self._configure_status_bar()
-
-            # show everything at the end
-            with _qt_disable_paint(self.plotter):
-                with self._ensure_minimum_sizes():
-                    self.show()
+            
+            # XXX:WIP
+            # # show everything at the end
+            # with _qt_disable_paint(self.plotter):
+            #     with self._ensure_minimum_sizes():
+            #         self.show()
             self._update()
 
     @safe_event
@@ -692,14 +696,14 @@ class Brain(object):
             self._layered_meshes[hemi]._clean()
         self._clear_callbacks()
         self._clear_widgets()
-        self.plotter._key_press_event_callbacks.clear()
+        self.viewer._key_press_event_callbacks.clear()
         if getattr(self, 'mpl_canvas', None) is not None:
             self.mpl_canvas.clear()
         if getattr(self, 'act_data_smooth', None) is not None:
             for key in list(self.act_data_smooth.keys()):
                 self.act_data_smooth[key] = None
         # XXX this should be done in PyVista
-        for renderer in self.plotter.renderers:
+        for renderer in self._renderer._get_all_renderers():
             renderer.RemoveAllLights()
         # app_window cannot be set to None because it is used in __del__
         for key in ('lighting', 'interactor', '_RenderWindow'):
@@ -718,44 +722,45 @@ class Brain(object):
                     'actions', 'widgets', 'geo', '_hemi_actors', '_data'):
             setattr(self, key, None)
 
-    @contextlib.contextmanager
-    def _ensure_minimum_sizes(self):
-        """Ensure that widgets respect the windows size."""
-        sz = self._size
-        adjust_mpl = (self.show_traces and
-                      not self.separate_canvas and
-                      not self.notebook)
-        if not adjust_mpl:
-            yield
-        else:
-            mpl_h = int(round((sz[1] * self.interactor_fraction) /
-                              (1 - self.interactor_fraction)))
-            self.mpl_canvas.canvas.setMinimumSize(sz[0], mpl_h)
-            try:
-                yield
-            finally:
-                self.splitter.setSizes([sz[1], mpl_h])
-                # 1. Process events
-                self._renderer._process_events()
-                self._renderer._process_events()
-                # 2. Get the window size that accommodates the size
-                sz = self.plotter.app_window.size()
-                # 3. Call app_window.setBaseSize and resize (in pyvistaqt)
-                self.plotter.window_size = (sz.width(), sz.height())
-                # 4. Undo the min size setting and process events
-                self.plotter.interactor.setMinimumSize(0, 0)
-                self._renderer._process_events()
-                self._renderer._process_events()
-                # 5. Resize the window (again!) to the correct size
-                #    (not sure why, but this is required on macOS at least)
-                self.plotter.window_size = (sz.width(), sz.height())
-            self._renderer._process_events()
-            self._renderer._process_events()
-            # sizes could change, update views
-            for hemi in ('lh', 'rh'):
-                for ri, ci, v in self._iter_views(hemi):
-                    self.show_view(view=v, row=ri, col=ci)
-            self._renderer._process_events()
+    # XXX:WIP
+    # @contextlib.contextmanager
+    # def _ensure_minimum_sizes(self):
+    #     """Ensure that widgets respect the windows size."""
+    #     sz = self._size
+    #     adjust_mpl = (self.show_traces and
+    #                   not self.separate_canvas and
+    #                   not self.notebook)
+    #     if not adjust_mpl:
+    #         yield
+    #     else:
+    #         mpl_h = int(round((sz[1] * self.interactor_fraction) /
+    #                           (1 - self.interactor_fraction)))
+    #         self.mpl_canvas.canvas.setMinimumSize(sz[0], mpl_h)
+    #         try:
+    #             yield
+    #         finally:
+    #             self.splitter.setSizes([sz[1], mpl_h])
+    #             # 1. Process events
+    #             self._renderer._process_events()
+    #             self._renderer._process_events()
+    #             # 2. Get the window size that accommodates the size
+    #             sz = self.plotter.app_window.size()
+    #             # 3. Call app_window.setBaseSize and resize (in pyvistaqt)
+    #             self.plotter.window_size = (sz.width(), sz.height())
+    #             # 4. Undo the min size setting and process events
+    #             self.plotter.interactor.setMinimumSize(0, 0)
+    #             self._renderer._process_events()
+    #             self._renderer._process_events()
+    #             # 5. Resize the window (again!) to the correct size
+    #             #    (not sure why, but this is required on macOS at least)
+    #             self.plotter.window_size = (sz.width(), sz.height())
+    #         self._renderer._process_events()
+    #         self._renderer._process_events()
+    #         # sizes could change, update views
+    #         for hemi in ('lh', 'rh'):
+    #             for ri, ci, v in self._iter_views(hemi):
+    #                 self.show_view(view=v, row=ri, col=ci)
+    #         self._renderer._process_events()
 
     def toggle_interface(self, value=None):
         """Toggle the interface.
@@ -772,16 +777,17 @@ class Brain(object):
         else:
             self.visibility = value
 
-        # update tool bar and dock
-        with self._ensure_minimum_sizes():
-            if self.visibility:
-                self._renderer._dock_show()
-                self._renderer._tool_bar_update_button_icon(
-                    name="visibility", icon_name="visibility_on")
-            else:
-                self._renderer._dock_hide()
-                self._renderer._tool_bar_update_button_icon(
-                    name="visibility", icon_name="visibility_off")
+        # XXX:WIP
+        # # update tool bar and dock
+        # with self._ensure_minimum_sizes():
+        #     if self.visibility:
+        #         self._renderer._dock_show()
+        #         self._renderer._tool_bar_update_button_icon(
+        #             name="visibility", icon_name="visibility_on")
+        #     else:
+        #         self._renderer._dock_hide()
+        #         self._renderer._tool_bar_update_button_icon(
+        #             name="visibility", icon_name="visibility_off")
 
         self._update()
 
@@ -879,7 +885,7 @@ class Brain(object):
 
     def _configure_scalar_bar(self):
         if self._colorbar_added:
-            scalar_bar = self.plotter.scalar_bar
+            scalar_bar = self.viewer.scalar_bar
             scalar_bar.SetOrientationToVertical()
             scalar_bar.SetHeight(0.6)
             scalar_bar.SetWidth(0.05)
@@ -988,11 +994,11 @@ class Brain(object):
     def _configure_dock_orientation_widget(self, name):
         layout = self._renderer._dock_add_group_box(name)
         # Renderer widget
-        rends = [str(i) for i in range(len(self.plotter.renderers))]
+        rends = [str(i) for i in range(len(self._renderer._get_all_renderers()))]
         if len(rends) > 1:
             def select_renderer(idx):
                 idx = int(idx)
-                loc = self.plotter.index_to_loc(idx)
+                loc = self.viewer.index_to_loc(idx)
                 self.plotter.subplot(*loc)
 
             self.callbacks["renderer"] = SmartCallBack(
@@ -1019,7 +1025,7 @@ class Brain(object):
         orientation_data = [None] * len(rends)
         for hemi in hemis_ref:
             for ri, ci, view in self._iter_views(hemi):
-                idx = self.plotter.loc_to_index((ri, ci))
+                idx = self.viewer.loc_to_index((ri, ci))
                 if view == 'flat':
                     _data = None
                 else:
@@ -1229,44 +1235,46 @@ class Brain(object):
 
         self._renderer._dock_finalize()
 
-    def _configure_playback(self):
-        self.plotter.add_callback(self._play, self.refresh_rate_ms)
+    # XXX:WIP
+    # def _configure_playback(self):
+    #     self.plotter.add_callback(self._play, self.refresh_rate_ms)
 
-    def _configure_mplcanvas(self):
-        ratio = (1 - self.interactor_fraction) / self.interactor_fraction
-        if self.notebook:
-            dpi = 96
-            w, h = self.plotter.window_size
-        else:
-            dpi = self.window.windowHandle().screen().logicalDotsPerInch()
-            w = self.interactor.geometry().width()
-            h = self.interactor.geometry().height()
-        h /= ratio
-        # Get the fractional components for the brain and mpl
-        self.mpl_canvas = MplCanvas(self, w / dpi, h / dpi, dpi,
-                                    self.notebook)
-        xlim = [np.min(self._data['time']),
-                np.max(self._data['time'])]
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=UserWarning)
-            self.mpl_canvas.axes.set(xlim=xlim)
-        if not self.notebook and not self.separate_canvas:
-            from PyQt5.QtWidgets import QSplitter
-            from PyQt5.QtCore import Qt
-            canvas = self.mpl_canvas.canvas
-            vlayout = self.plotter.frame.layout()
-            vlayout.removeWidget(self.interactor)
-            self.splitter = splitter = QSplitter(
-                orientation=Qt.Vertical, parent=self.plotter.frame)
-            vlayout.addWidget(splitter)
-            splitter.addWidget(self.interactor)
-            splitter.addWidget(canvas)
-        self.mpl_canvas.set_color(
-            bg_color=self._bg_color,
-            fg_color=self._fg_color,
-        )
-        if not self.notebook:
-            self.mpl_canvas.show()
+    # XXX:WIP
+    # def _configure_mplcanvas(self):
+    #     ratio = (1 - self.interactor_fraction) / self.interactor_fraction
+    #     if self.notebook:
+    #         dpi = 96
+    #         w, h = self.plotter.window_size
+    #     else:
+    #         dpi = self.window.windowHandle().screen().logicalDotsPerInch()
+    #         w = self.interactor.geometry().width()
+    #         h = self.interactor.geometry().height()
+    #     h /= ratio
+    #     # Get the fractional components for the brain and mpl
+    #     self.mpl_canvas = MplCanvas(self, w / dpi, h / dpi, dpi,
+    #                                 self.notebook)
+    #     xlim = [np.min(self._data['time']),
+    #             np.max(self._data['time'])]
+    #     with warnings.catch_warnings():
+    #         warnings.filterwarnings("ignore", category=UserWarning)
+    #         self.mpl_canvas.axes.set(xlim=xlim)
+    #     if not self.notebook and not self.separate_canvas:
+    #         from PyQt5.QtWidgets import QSplitter
+    #         from PyQt5.QtCore import Qt
+    #         canvas = self.mpl_canvas.canvas
+    #         vlayout = self.plotter.frame.layout()
+    #         vlayout.removeWidget(self.interactor)
+    #         self.splitter = splitter = QSplitter(
+    #             orientation=Qt.Vertical, parent=self.plotter.frame)
+    #         vlayout.addWidget(splitter)
+    #         splitter.addWidget(self.interactor)
+    #         splitter.addWidget(canvas)
+    #     self.mpl_canvas.set_color(
+    #         bg_color=self._bg_color,
+    #         fg_color=self._fg_color,
+    #     )
+    #     if not self.notebook:
+    #         self.mpl_canvas.show()
 
     def _configure_vertex_time_course(self):
         if not self.show_traces:
@@ -1446,34 +1454,35 @@ class Brain(object):
 
     def _configure_shortcuts(self):
         # First, we remove the default bindings:
-        self.plotter._key_press_event_callbacks.clear()
+        self.viewer._key_press_event_callbacks.clear()
         # Then, we add our own:
-        self.plotter.add_key_event("i", self.toggle_interface)
-        self.plotter.add_key_event("s", self.apply_auto_scaling)
-        self.plotter.add_key_event("r", self.restore_user_scaling)
-        self.plotter.add_key_event("c", self.clear_glyphs)
-        self.plotter.add_key_event("n", partial(self._shift_time,
+        self.viewer.add_key_event("i", self.toggle_interface)
+        self.viewer.add_key_event("s", self.apply_auto_scaling)
+        self.viewer.add_key_event("r", self.restore_user_scaling)
+        self.viewer.add_key_event("c", self.clear_glyphs)
+        self.viewer.add_key_event("n", partial(self._shift_time,
                                    op=lambda x, y: x + y))
-        self.plotter.add_key_event("b", partial(self._shift_time,
+        self.viewer.add_key_event("b", partial(self._shift_time,
                                    op=lambda x, y: x - y))
         for key, func, sign in (("Left", self._rotate_azimuth, 1),
                                 ("Right", self._rotate_azimuth, -1),
                                 ("Up", self._rotate_elevation, 1),
                                 ("Down", self._rotate_elevation, -1)):
-            self.plotter.add_key_event(key, partial(func, sign * _ARROW_MOVE))
+            self.viewer.add_key_event(key, partial(func, sign * _ARROW_MOVE))
 
-    def _configure_menu(self):
-        # remove default picking menu
-        to_remove = list()
-        for action in self.main_menu.actions():
-            if action.text() == "Tools":
-                to_remove.append(action)
-        for action in to_remove:
-            self.main_menu.removeAction(action)
+    # XXX:WIP
+    # def _configure_menu(self):
+    #     # remove default picking menu
+    #     to_remove = list()
+    #     for action in self.main_menu.actions():
+    #         if action.text() == "Tools":
+    #             to_remove.append(action)
+    #     for action in to_remove:
+    #         self.main_menu.removeAction(action)
 
-        # add help menu
-        menu = self.main_menu.addMenu('Help')
-        menu.addAction('Show MNE key bindings\t?', self.help)
+    #     # add help menu
+    #     menu = self.main_menu.addMenu('Help')
+    #     menu.addAction('Show MNE key bindings\t?', self.help)
 
     def _configure_status_bar(self):
         from PyQt5.QtWidgets import QLabel, QProgressBar
@@ -3135,130 +3144,131 @@ class Brain(object):
             kwargs['bitrate'] = bitrate
         imageio.mimwrite(filename, images, **kwargs)
 
-    @fill_doc
-    def save_movie(self, filename, time_dilation=4., tmin=None, tmax=None,
-                   framerate=24, interpolation=None, codec=None,
-                   bitrate=None, callback=None, time_viewer=False, **kwargs):
-        """Save a movie (for data with a time axis).
+    # XXX:WIP
+    # @fill_doc
+    # def save_movie(self, filename, time_dilation=4., tmin=None, tmax=None,
+    #                framerate=24, interpolation=None, codec=None,
+    #                bitrate=None, callback=None, time_viewer=False, **kwargs):
+    #     """Save a movie (for data with a time axis).
 
-        The movie is created through the :mod:`imageio` module. The format is
-        determined by the extension, and additional options can be specified
-        through keyword arguments that depend on the format. For available
-        formats and corresponding parameters see the imageio documentation:
-        http://imageio.readthedocs.io/en/latest/formats.html#multiple-images
+    #     The movie is created through the :mod:`imageio` module. The format is
+    #     determined by the extension, and additional options can be specified
+    #     through keyword arguments that depend on the format. For available
+    #     formats and corresponding parameters see the imageio documentation:
+    #     http://imageio.readthedocs.io/en/latest/formats.html#multiple-images
 
-        .. Warning::
-            This method assumes that time is specified in seconds when adding
-            data. If time is specified in milliseconds this will result in
-            movies 1000 times longer than expected.
+    #     .. Warning::
+    #         This method assumes that time is specified in seconds when adding
+    #         data. If time is specified in milliseconds this will result in
+    #         movies 1000 times longer than expected.
 
-        Parameters
-        ----------
-        filename : str
-            Path at which to save the movie. The extension determines the
-            format (e.g., ``'*.mov'``, ``'*.gif'``, ...; see the :mod:`imageio`
-            documentation for available formats).
-        time_dilation : float
-            Factor by which to stretch time (default 4). For example, an epoch
-            from -100 to 600 ms lasts 700 ms. With ``time_dilation=4`` this
-            would result in a 2.8 s long movie.
-        tmin : float
-            First time point to include (default: all data).
-        tmax : float
-            Last time point to include (default: all data).
-        framerate : float
-            Framerate of the movie (frames per second, default 24).
-        %(brain_time_interpolation)s
-            If None, it uses the current ``brain.interpolation``,
-            which defaults to ``'nearest'``. Defaults to None.
-        codec : str | None
-            The codec to use.
-        bitrate : float | None
-            The bitrate to use.
-        callback : callable | None
-            A function to call on each iteration. Useful for status message
-            updates. It will be passed keyword arguments ``frame`` and
-            ``n_frames``.
-        %(brain_screenshot_time_viewer)s
-        **kwargs : dict
-            Specify additional options for :mod:`imageio`.
+    #     Parameters
+    #     ----------
+    #     filename : str
+    #         Path at which to save the movie. The extension determines the
+    #         format (e.g., ``'*.mov'``, ``'*.gif'``, ...; see the :mod:`imageio`
+    #         documentation for available formats).
+    #     time_dilation : float
+    #         Factor by which to stretch time (default 4). For example, an epoch
+    #         from -100 to 600 ms lasts 700 ms. With ``time_dilation=4`` this
+    #         would result in a 2.8 s long movie.
+    #     tmin : float
+    #         First time point to include (default: all data).
+    #     tmax : float
+    #         Last time point to include (default: all data).
+    #     framerate : float
+    #         Framerate of the movie (frames per second, default 24).
+    #     %(brain_time_interpolation)s
+    #         If None, it uses the current ``brain.interpolation``,
+    #         which defaults to ``'nearest'``. Defaults to None.
+    #     codec : str | None
+    #         The codec to use.
+    #     bitrate : float | None
+    #         The bitrate to use.
+    #     callback : callable | None
+    #         A function to call on each iteration. Useful for status message
+    #         updates. It will be passed keyword arguments ``frame`` and
+    #         ``n_frames``.
+    #     %(brain_screenshot_time_viewer)s
+    #     **kwargs : dict
+    #         Specify additional options for :mod:`imageio`.
 
-        Returns
-        -------
-        dialog : object
-            The opened dialog is returned for testing purpose only.
-        """
-        if self.time_viewer:
-            try:
-                from pyvista.plotting.qt_plotting import FileDialog
-            except ImportError:
-                from pyvistaqt.plotting import FileDialog
+    #     Returns
+    #     -------
+    #     dialog : object
+    #         The opened dialog is returned for testing purpose only.
+    #     """
+    #     if self.time_viewer:
+    #         try:
+    #             from pyvista.plotting.qt_plotting import FileDialog
+    #         except ImportError:
+    #             from pyvistaqt.plotting import FileDialog
 
-            if filename is None:
-                self.status_msg.setText("Choose movie path ...")
-                self.status_msg.show()
-                self.status_progress.setValue(0)
+    #         if filename is None:
+    #             self.status_msg.setText("Choose movie path ...")
+    #             self.status_msg.show()
+    #             self.status_progress.setValue(0)
 
-                def _post_setup(unused):
-                    del unused
-                    self.status_msg.hide()
-                    self.status_progress.hide()
+    #             def _post_setup(unused):
+    #                 del unused
+    #                 self.status_msg.hide()
+    #                 self.status_progress.hide()
 
-                dialog = FileDialog(
-                    self.plotter.app_window,
-                    callback=partial(self._save_movie, **kwargs)
-                )
-                dialog.setDirectory(os.getcwd())
-                dialog.finished.connect(_post_setup)
-                return dialog
-            else:
-                from PyQt5.QtCore import Qt
-                from PyQt5.QtGui import QCursor
+    #             dialog = FileDialog(
+    #                 self.plotter.app_window,
+    #                 callback=partial(self._save_movie, **kwargs)
+    #             )
+    #             dialog.setDirectory(os.getcwd())
+    #             dialog.finished.connect(_post_setup)
+    #             return dialog
+    #         else:
+    #             from PyQt5.QtCore import Qt
+    #             from PyQt5.QtGui import QCursor
 
-                def frame_callback(frame, n_frames):
-                    if frame == n_frames:
-                        # On the ImageIO step
-                        self.status_msg.setText(
-                            "Saving with ImageIO: %s"
-                            % filename
-                        )
-                        self.status_msg.show()
-                        self.status_progress.hide()
-                        self.status_bar.layout().update()
-                    else:
-                        self.status_msg.setText(
-                            "Rendering images (frame %d / %d) ..."
-                            % (frame + 1, n_frames)
-                        )
-                        self.status_msg.show()
-                        self.status_progress.show()
-                        self.status_progress.setRange(0, n_frames - 1)
-                        self.status_progress.setValue(frame)
-                        self.status_progress.update()
-                        self.status_progress.repaint()
-                    self.status_msg.update()
-                    self.status_msg.parent().update()
-                    self.status_msg.repaint()
+    #             def frame_callback(frame, n_frames):
+    #                 if frame == n_frames:
+    #                     # On the ImageIO step
+    #                     self.status_msg.setText(
+    #                         "Saving with ImageIO: %s"
+    #                         % filename
+    #                     )
+    #                     self.status_msg.show()
+    #                     self.status_progress.hide()
+    #                     self.status_bar.layout().update()
+    #                 else:
+    #                     self.status_msg.setText(
+    #                         "Rendering images (frame %d / %d) ..."
+    #                         % (frame + 1, n_frames)
+    #                     )
+    #                     self.status_msg.show()
+    #                     self.status_progress.show()
+    #                     self.status_progress.setRange(0, n_frames - 1)
+    #                     self.status_progress.setValue(frame)
+    #                     self.status_progress.update()
+    #                     self.status_progress.repaint()
+    #                 self.status_msg.update()
+    #                 self.status_msg.parent().update()
+    #                 self.status_msg.repaint()
 
-                # set cursor to busy
-                default_cursor = self.interactor.cursor()
-                self.interactor.setCursor(QCursor(Qt.WaitCursor))
+    #             # set cursor to busy
+    #             default_cursor = self.interactor.cursor()
+    #             self.interactor.setCursor(QCursor(Qt.WaitCursor))
 
-                try:
-                    self._save_movie(
-                        filename=filename,
-                        time_dilation=(1. / self.playback_speed),
-                        callback=frame_callback,
-                        **kwargs
-                    )
-                except (Exception, KeyboardInterrupt):
-                    warn('Movie saving aborted:\n' + traceback.format_exc())
-                finally:
-                    self.interactor.setCursor(default_cursor)
-        else:
-            self._save_movie(filename, time_dilation, tmin, tmax,
-                             framerate, interpolation, codec,
-                             bitrate, callback, time_viewer, **kwargs)
+    #             try:
+    #                 self._save_movie(
+    #                     filename=filename,
+    #                     time_dilation=(1. / self.playback_speed),
+    #                     callback=frame_callback,
+    #                     **kwargs
+    #                 )
+    #             except (Exception, KeyboardInterrupt):
+    #                 warn('Movie saving aborted:\n' + traceback.format_exc())
+    #             finally:
+    #                 self.interactor.setCursor(default_cursor)
+    #     else:
+    #         self._save_movie(filename, time_dilation, tmin, tmax,
+    #                          framerate, interpolation, codec,
+    #                          bitrate, callback, time_viewer, **kwargs)
 
     def _make_movie_frames(self, time_dilation, tmin, tmax, framerate,
                            interpolation, callback, time_viewer):
@@ -3431,7 +3441,7 @@ class Brain(object):
             if self.notebook and self._renderer.figure.display is not None:
                 self._renderer.figure.display.update_canvas()
             else:
-                self._renderer.plotter.update()
+                self._renderer._update()
 
     def get_picked_points(self):
         """Return the vertices of the picked points.
