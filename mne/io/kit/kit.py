@@ -12,8 +12,10 @@ RawKIT class is adapted from Denis Engemann et al.'s mne_bti2fiff.py.
 from collections import defaultdict, OrderedDict
 from math import sin, cos
 from os import SEEK_CUR, path as op
+from struct import unpack
 
 import numpy as np
+from scipy import linalg
 
 from ..pick import pick_types
 from ...utils import (verbose, logger, warn, fill_doc, _check_option,
@@ -25,13 +27,10 @@ from ...epochs import BaseEpochs
 from ..constants import FIFF
 from ..meas_info import _empty_info
 from .constants import KIT, LEGACY_AMP_PARAMS
-from .coreg import read_mrk, _set_dig_kit
+from .coreg import read_mrk
 from ...event import read_events
 
-
-FLOAT64 = '<f8'
-UINT32 = '<u4'
-INT32 = '<i4'
+from .._digitization import _set_dig_kit
 
 
 def _call_digitization(info, mrk, elp, hsp, kit_info):
@@ -49,8 +48,10 @@ def _call_digitization(info, mrk, elp, hsp, kit_info):
 
     # setup digitization
     if mrk is not None and elp is not None and hsp is not None:
-        info['dig'], info['dev_head_t'], info['hpi_results'] = _set_dig_kit(
+        dig_points, dev_head_t = _set_dig_kit(
             mrk, elp, hsp, kit_info['eeg_dig'])
+        info['dig'] = dig_points
+        info['dev_head_t'] = dev_head_t
     elif mrk is not None or elp is not None or hsp is not None:
         raise ValueError("mrk, elp and hsp need to be provided as a group "
                          "(all or none)")
@@ -454,21 +455,10 @@ class EpochsKIT(BaseEpochs):
 
 
 def _read_dir(fid):
-    return dict(offset=np.fromfile(fid, UINT32, 1)[0],
-                size=np.fromfile(fid, INT32, 1)[0],
-                max_count=np.fromfile(fid, INT32, 1)[0],
-                count=np.fromfile(fid, INT32, 1)[0])
-
-
-@verbose
-def _read_dirs(fid, verbose=None):
-    dirs = list()
-    dirs.append(_read_dir(fid))
-    for ii in range(dirs[0]['count'] - 1):
-        logger.debug(f'    KIT dir entry {ii} @ {fid.tell()}')
-        dirs.append(_read_dir(fid))
-    assert len(dirs) == dirs[KIT.DIR_INDEX_DIR]['count']
-    return dirs
+    return dict(offset=np.fromfile(fid, np.uint32, 1)[0],
+                size=np.fromfile(fid, np.int32, 1)[0],
+                max_count=np.fromfile(fid, np.int32, 1)[0],
+                count=np.fromfile(fid, np.int32, 1)[0])
 
 
 @verbose
@@ -496,18 +486,21 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
     sqd = dict()
     sqd['rawfile'] = rawfile
     unsupported_format = False
+    sqd['dirs'] = dirs = list()
     with open(rawfile, 'rb', buffering=0) as fid:  # buffering=0 for np bug
         #
         # directories (0)
         #
-        sqd['dirs'] = dirs = _read_dirs(fid)
+        dirs.append(_read_dir(fid))
+        dirs.extend(_read_dir(fid) for _ in range(dirs[0]['count'] - 1))
+        assert len(dirs) == dirs[KIT.DIR_INDEX_DIR]['count']
 
         #
         # system (1)
         #
         fid.seek(dirs[KIT.DIR_INDEX_SYSTEM]['offset'])
         # check file format version
-        version, revision = np.fromfile(fid, INT32, 2)
+        version, revision = unpack('2i', fid.read(2 * KIT.INT))
         if version < 2 or (version == 2 and revision < 3):
             version_string = "V%iR%03i" % (version, revision)
             if allow_unknown_format:
@@ -520,30 +513,31 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
                     "Set allow_unknown_format=True to load it anyways." %
                     (version_string,))
 
-        sysid = np.fromfile(fid, INT32, 1)[0]
+        sysid = unpack('i', fid.read(KIT.INT))[0]
         # basic info
-        system_name = _read_name(fid, n=128)
+        system_name = unpack('128s', fid.read(128))[0].decode()
         # model name
-        model_name = _read_name(fid, n=128)
+        model_name = unpack('128s', fid.read(128))[0].decode()
         # channels
-        sqd['nchan'] = channel_count = int(np.fromfile(fid, INT32, 1)[0])
-        comment = _read_name(fid, n=256)
-        create_time, last_modified_time = np.fromfile(fid, INT32, 2)
+        sqd['nchan'] = channel_count = unpack('i', fid.read(KIT.INT))[0]
+        comment = unpack('256s', fid.read(256))[0].decode()
+        create_time, last_modified_time = unpack('2i', fid.read(2 * KIT.INT))
         fid.seek(KIT.INT * 3, SEEK_CUR)  # reserved
-        dewar_style = np.fromfile(fid, INT32, 1)[0]
+        dewar_style = unpack('i', fid.read(KIT.INT))[0]
         fid.seek(KIT.INT * 3, SEEK_CUR)  # spare
-        fll_type = np.fromfile(fid, INT32, 1)[0]
+        fll_type = unpack('i', fid.read(KIT.INT))[0]
         fid.seek(KIT.INT * 3, SEEK_CUR)  # spare
-        trigger_type = np.fromfile(fid, INT32, 1)[0]
+        trigger_type = unpack('i', fid.read(KIT.INT))[0]
         fid.seek(KIT.INT * 3, SEEK_CUR)  # spare
-        adboard_type = np.fromfile(fid, INT32, 1)[0]
+        adboard_type = unpack('i', fid.read(KIT.INT))[0]
         fid.seek(KIT.INT * 29, SEEK_CUR)  # reserved
 
         if version < 2 or (version == 2 and revision <= 3):
-            adc_range = float(np.fromfile(fid, INT32, 1)[0])
+            adc_range = float(unpack('i', fid.read(KIT.INT))[0])
         else:
-            adc_range = np.fromfile(fid, FLOAT64, 1)[0]
-        adc_polarity, adc_allocated, adc_stored = np.fromfile(fid, INT32, 3)
+            adc_range = unpack('d', fid.read(KIT.DOUBLE))[0]
+        adc_polarity, adc_allocated, adc_stored = unpack('3i',
+                                                         fid.read(3 * KIT.INT))
         system_name = system_name.replace('\x00', '')
         system_name = system_name.strip().replace('\n', '/')
         model_name = model_name.replace('\x00', '')
@@ -567,8 +561,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
         # MGH description: 'acquisition (megacq) VectorView system at NMR-MGH'
         description = \
             f'{system_name} ({sysid}) {full_version} {model_name}'
-        assert adc_allocated % 8 == 0
-        sqd['dtype'] = np.dtype(f'<i{adc_allocated // 8}')
+        sqd['dtype'] = np.dtype(getattr(np, f'int{adc_allocated}'))
 
         # check that we can read this file
         if fll_type not in KIT.FLL_SETTINGS:
@@ -591,7 +584,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
         exg_gains = list()
         for i in range(channel_count):
             fid.seek(chan_offset + chan_size * i)
-            channel_type, = np.fromfile(fid, INT32, 1)
+            channel_type, = unpack('i', fid.read(KIT.INT))
             # System 52 mislabeled reference channels as NULL. This was fixed
             # in system 53; not sure about 51...
             if sysid == 52 and i < 160 and channel_type == KIT.CHANNEL_NULL:
@@ -606,13 +599,13 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
                     'type': channel_type,
                     # (x, y, z, theta, phi) for all MEG channels. Some channel
                     # types have additional information which we're not using.
-                    'loc': np.fromfile(fid, dtype=FLOAT64, count=5),
+                    'loc': np.fromfile(fid, dtype='d', count=5),
                 })
                 if channel_type in KIT.CHANNEL_NAME_NCHAR:
                     fid.seek(16, SEEK_CUR)  # misc fields
                     channels[-1]['name'] = _read_name(fid, channel_type)
             elif channel_type in KIT.CHANNELS_MISC:
-                channel_no, = np.fromfile(fid, INT32, 1)
+                channel_no, = unpack('i', fid.read(KIT.INT))
                 fid.seek(4, SEEK_CUR)
                 name = _read_name(fid, channel_type)
                 channels.append({
@@ -623,7 +616,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
                 if channel_type in (KIT.CHANNEL_EEG, KIT.CHANNEL_ECG):
                     offset = 6 if channel_type == KIT.CHANNEL_EEG else 8
                     fid.seek(offset, SEEK_CUR)
-                    exg_gains.append(np.fromfile(fid, FLOAT64, 1)[0])
+                    exg_gains.append(np.fromfile(fid, 'd', 1)[0])
             elif channel_type == KIT.CHANNEL_NULL:
                 channels.append({'type': channel_type})
             else:
@@ -639,7 +632,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
         # through unaffected
         fid.seek(dirs[KIT.DIR_INDEX_CALIBRATION]['offset'])
         # (offset [Volt], gain [Tesla/Volt]) for each channel
-        sensitivity = np.fromfile(fid, dtype=FLOAT64, count=channel_count * 2)
+        sensitivity = np.fromfile(fid, dtype='d', count=channel_count * 2)
         sensitivity.shape = (channel_count, 2)
         channel_offset, channel_gain = sensitivity.T
         assert (channel_offset == 0).all()  # otherwise we have a problem
@@ -648,7 +641,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
         # amplifier gain (7)
         #
         fid.seek(dirs[KIT.DIR_INDEX_AMP_FILTER]['offset'])
-        amp_data = np.fromfile(fid, INT32, 1)[0]
+        amp_data = unpack('i', fid.read(KIT.INT))[0]
         if fll_type >= 100:  # Kapper Type
             # gain:             mask           bit
             gain1 = (amp_data & 0x00007000) >> 12
@@ -677,17 +670,17 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
         # Acquisition Parameters (8)
         #
         fid.seek(dirs[KIT.DIR_INDEX_ACQ_COND]['offset'])
-        sqd['acq_type'], = acq_type, = np.fromfile(fid, INT32, 1)
-        sqd['sfreq'], = np.fromfile(fid, FLOAT64, 1)
+        sqd['acq_type'], = acq_type, = unpack('i', fid.read(KIT.INT))
+        sqd['sfreq'], = unpack('d', fid.read(KIT.DOUBLE))
         if acq_type == KIT.CONTINUOUS:
-            # samples_count, = np.fromfile(fid, INT32, 1)
+            # samples_count, = unpack('i', fid.read(KIT.INT))
             fid.seek(KIT.INT, SEEK_CUR)
-            sqd['n_samples'], = np.fromfile(fid, INT32, 1)
+            sqd['n_samples'], = unpack('i', fid.read(KIT.INT))
         elif acq_type == KIT.EVOKED or acq_type == KIT.EPOCHS:
-            sqd['frame_length'], = np.fromfile(fid, INT32, 1)
-            sqd['pretrigger_length'], = np.fromfile(fid, INT32, 1)
-            sqd['average_count'], = np.fromfile(fid, INT32, 1)
-            sqd['n_epochs'], = np.fromfile(fid, INT32, 1)
+            sqd['frame_length'], = unpack('i', fid.read(KIT.INT))
+            sqd['pretrigger_length'], = unpack('i', fid.read(KIT.INT))
+            sqd['average_count'], = unpack('i', fid.read(KIT.INT))
+            sqd['n_epochs'], = unpack('i', fid.read(KIT.INT))
             if acq_type == KIT.EVOKED:
                 sqd['n_samples'] = sqd['frame_length']
             else:
@@ -712,42 +705,55 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
                 # the channel name and its digitized, name, so let's be case
                 # insensitive. It will also prevent collisions with HSP
                 name = name.lower()
-                rr = np.fromfile(fid, FLOAT64, 3)
+                rr = np.fromfile(fid, 'd', 3)
                 if name:
                     assert name not in dig
                     dig[name] = rr
                 else:
                     hsp.append(rr)
-
+            
             # nasion, lpa, rpa, HPI in native space
-            elp = [dig.pop(key) for key in (
+            #elp = [dig.pop(key) for key in (
+            #    'fidnz', 'fidt9', 'fidt10',
+            #    'hpi_1', 'hpi_2', 'hpi_3', 'hpi_4')]
+            elp = []
+            for key in (
                 'fidnz', 'fidt9', 'fidt10',
-                'hpi_1', 'hpi_2', 'hpi_3', 'hpi_4')]
+                'hpi_1', 'hpi_2', 'hpi_3', 'hpi_4'):
+                if key in dig:
+                    elp.append(dig.pop(key))
             if 'hpi_5' in dig and dig['hpi_5'].any():
                 elp.append(dig.pop('hpi_5'))
             elp = np.array(elp)
             hsp = np.array(hsp, float).reshape(-1, 3)
+            #print(elp.shape)
             assert elp.shape in ((7, 3), (8, 3))
             # coregistration
             fid.seek(cor_dir['offset'])
             mrk = np.zeros((elp.shape[0] - 3, 3))
             for _ in range(cor_dir['count']):
-                done = np.fromfile(fid, INT32, 1)[0]
+                done = np.fromfile(fid, np.int32, 1)[0]
                 fid.seek(16 * KIT.DOUBLE +  # meg_to_mri
                          16 * KIT.DOUBLE,  # mri_to_meg
                          SEEK_CUR)
-                marker_count = np.fromfile(fid, INT32, 1)[0]
+                marker_count = np.fromfile(fid, np.int32, 1)[0]
                 if not done:
                     continue
                 assert marker_count >= len(mrk)
                 for mi in range(len(mrk)):
                     mri_type, meg_type, mri_done, meg_done = \
-                        np.fromfile(fid, INT32, 4)
+                        np.fromfile(fid, np.int32, 4)
                     assert meg_done
                     fid.seek(3 * KIT.DOUBLE, SEEK_CUR)  # mri_pos
-                    mrk[mi] = np.fromfile(fid, FLOAT64, 3)
+                    mrk[mi] = np.fromfile(fid, 'd', 3)
                 fid.seek(256, SEEK_CUR)  # marker_file (char)
             sqd.update(hsp=hsp, elp=elp, mrk=mrk)
+
+    all_names = set(ch.get('name', '') for ch in channels)
+    if standardize_names is None and all_names.difference({'', 'EEG'}):
+        standardize_names = True
+        warn('standardize_names defaults to True in 0.21 but will change '
+             'to False in 0.22', DeprecationWarning)
 
     # precompute conversion factor for reading data
     if unsupported_format:
@@ -756,7 +762,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
                           (sysid,))
         adc_range, adc_stored = LEGACY_AMP_PARAMS[sysid]
     is_meg = np.array([ch['type'] in KIT.CHANNELS_MEG for ch in channels])
-    ad_to_volt = adc_range / (2. ** adc_stored)
+    ad_to_volt = adc_range / (2 ** adc_stored)
     ad_to_tesla = ad_to_volt / amp_gain * channel_gain
     conv_factor = np.where(is_meg, ad_to_tesla, ad_to_volt)
     # XXX this is a bit of a hack. Should probably do this more cleanly at
@@ -766,8 +772,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
     # for the EEG data.
     is_exg = [ch['type'] in (KIT.CHANNEL_EEG, KIT.CHANNEL_ECG)
               for ch in channels]
-    exg_gains /= 2. ** (adc_stored - 14)
-    exg_gains[exg_gains == 0] = ad_to_volt
+    exg_gains /= 2 ** (adc_stored - 14)
     conv_factor[is_exg] = exg_gains
     sqd['conv_factor'] = conv_factor[:, np.newaxis]
 
@@ -795,7 +800,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
             y = sin(theta) * sin(phi)
             z = cos(theta)
             vec_z = np.array([x, y, z])
-            vec_z /= np.linalg.norm(vec_z)
+            vec_z /= linalg.norm(vec_z)
             vec_x = np.zeros(vec_z.size, dtype=np.float64)
             if vec_z[1] < vec_z[2]:
                 if vec_z[0] < vec_z[1]:
@@ -807,7 +812,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
             else:
                 vec_x[2] = 1.0
             vec_x -= np.sum(vec_x * vec_z) * vec_z
-            vec_x /= np.linalg.norm(vec_x)
+            vec_x /= linalg.norm(vec_x)
             vec_y = np.cross(vec_z, vec_x)
             # transform to Neuromag like coordinate space
             vecs = np.vstack((ch['loc'][:3], vec_x, vec_y, vec_z))
@@ -845,7 +850,7 @@ def _read_name(fid, ch_type=None, n=None):
 @fill_doc
 def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
                  slope='-', stimthresh=1, preload=False, stim_code='binary',
-                 allow_unknown_format=False, standardize_names=False,
+                 allow_unknown_format=False, standardize_names=None,
                  verbose=None):
     """Reader function for Ricoh/KIT conversion to FIF.
 
@@ -912,7 +917,7 @@ def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
 @fill_doc
 def read_epochs_kit(input_fname, events, event_id=None, mrk=None, elp=None,
                     hsp=None, allow_unknown_format=False,
-                    standardize_names=False, verbose=None):
+                    standardize_names=None, verbose=None):
     """Reader function for Ricoh/KIT epochs files.
 
     Parameters
