@@ -722,10 +722,10 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
             # nasion, lpa, rpa, HPI in native space
             elp = []
             for key in (
-                'fidnz', 'fidt9', 'fidt10',
-                'hpi_1', 'hpi_2', 'hpi_3', 'hpi_4'):
-                    if key in dig:
-                        elp.append(dig.pop(key))
+                    'fidnz', 'fidt9', 'fidt10',
+                    'hpi_1', 'hpi_2', 'hpi_3', 'hpi_4'):
+                if key in dig:
+                    elp.append(dig.pop(key))
             if 'hpi_5' in dig and dig['hpi_5'].any():
                 elp.append(dig.pop('hpi_5'))
             elp = np.array(elp)
