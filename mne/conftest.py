@@ -503,10 +503,16 @@ def brain_gc(request):
         yield
         return
     from mne.viz import Brain
-    _assert_no_instances(Brain, 'before')
     ignore = set(id(o) for o in gc.get_objects())
     yield
     close_func()
+    # no need to warn if the test itself failed, pytest-harvest helps us here
+    try:
+        outcome = request.node.harvest_rep_call
+    except Exception:
+        outcome = 'failed'
+    if outcome != 'passed':
+        return
     _assert_no_instances(Brain, 'after')
     # We only check VTK for PyVista -- Mayavi/PySurfer is not as strict
     objs = gc.get_objects()
