@@ -442,7 +442,7 @@ def test_brain_screenshot(renderer_interactive, tmpdir, brain_gc):
 
 def _assert_brain_range(brain, rng):
     __tracebackhide__ = True
-    assert brain._cmap_range == rng
+    assert brain._cmap_range == rng, 'brain._cmap_range == rng'
     for hemi, layerer in brain._layered_meshes.items():
         for key, mesh in layerer._overlays.items():
             if key == 'curv':
@@ -485,9 +485,14 @@ def test_brain_time_viewer(renderer_interactive, pixel_ratio, brain_gc):
         value=0.0,
         time_as_index=False,
     )
+    # Need to process events for old Qt
     brain.callbacks["smoothing"](value=1)
     _assert_brain_range(brain, [0.1, 0.3])
-    brain.callbacks["fmin"](value=12.0)
+    from mne.utils import use_log_level
+    print('\nCallback fmin\n')
+    with use_log_level('debug'):
+        brain.callbacks["fmin"](value=12.0)
+    assert brain._data["fmin"] == 12.0
     brain.callbacks["fmax"](value=4.0)
     _assert_brain_range(brain, [4.0, 4.0])
     brain.callbacks["fmid"](value=6.0)

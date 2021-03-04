@@ -503,7 +503,6 @@ def brain_gc(request):
         yield
         return
     from mne.viz import Brain
-    _assert_no_instances(Brain, 'before')
     ignore = set(id(o) for o in gc.get_objects())
     yield
     close_func()

@@ -3,7 +3,7 @@
 #          Guillaume Favelier <guillaume.favelier@gmail.com>
 #
 # License: Simplified BSD
-import time
+from ...utils import logger
 
 
 class Widget(object):
@@ -94,39 +94,26 @@ class BumpColorbarPoints(object):
             "fmax": lambda fmax: brain.update_lut(fmax=fmax),
         }
         self.widgets = {key: None for key in self.brain.keys}
-        self.last_update = time.time()
+        self._updatable = True
 
     def __call__(self, value):
         """Update the colorbar sliders."""
-        vals = {key: self.brain._data[key] for key in self.brain.keys}
-        if self.name == "fmin" and self.widgets["fmin"] is not None:
-            if vals['fmax'] < value:
-                vals['fmax'] = value
-                self.widgets['fmax'].set_value(value)
-            if vals['fmid'] < value:
-                vals['fmid'] = value
-                self.widgets['fmid'].set_value(value)
-            self.widgets['fmin'].set_value(value)
-        elif self.name == "fmid" and self.widgets['fmid'] is not None:
-            if vals['fmin'] > value:
-                vals['fmin'] = value
-                self.widgets['fmin'].set_value(value)
-            if vals['fmax'] < value:
-                vals['fmax'] = value
-                self.widgets['fmax'].set_value(value)
-            self.widgets['fmid'].set_value(value)
-        elif self.name == "fmax" and self.widgets['fmax'] is not None:
-            if vals['fmin'] > value:
-                vals['fmin'] = value
-                self.widgets['fmin'].set_value(value)
-            if vals['fmid'] > value:
-                vals['fmid'] = value
-                self.widgets['fmid'].set_value(value)
-            self.widgets['fmax'].set_value(value)
-        self.brain.widgets[f'entry_{self.name}'].set_value(value)
-        if time.time() > self.last_update + 1. / 60.:
-            self.callback[self.name](value)
-            self.last_update = time.time()
+        if not self.brain._lut_updatable:
+            # Something else is going to take care of it, don't update any
+            # widgets, etc.
+            logger.debug(f'Updating postponed: {self.name} = {value}')
+            return
+        kwargs = self.brain._bump_points(**{self.name: value})
+        logger.debug(
+            f'Updating {self.name} = {kwargs[self.name]} from {value}')
+        with self.brain._no_lut_update():
+            for key in ('fmin', 'fmid', 'fmax'):
+                value = kwargs[key]
+                if self.widgets[key] is not None and \
+                        value != self.brain._data[key]:
+                    self.widgets[key].set_value(value)
+                self.brain.widgets[f'entry_{key}'].set_value(value)
+        self.brain.update_lut(**kwargs)
 
 
 class ShowView(object):

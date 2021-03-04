@@ -91,10 +91,11 @@ def _range(x):
 
 
 def _norm(x, rng):
-    if rng[0] != rng[1]:
-        return (x - rng[0]) / (rng[1] - rng[0])
+    if rng[0] == rng[1]:
+        factor = 1 if rng[0] == 0 else 1e-6 * rng[0]
     else:
-        return np.full_like(x, rng[0])
+        factor = rng[1] - rng[0]
+    return (x - rng[0]) / factor
 
 
 class _LayeredMesh(object):
@@ -436,6 +437,7 @@ class Brain(object):
         self._annots = {'lh': list(), 'rh': list()}
         self._layered_meshes = {}
         self._elevation_rng = [15, 165]  # range of motion of camera on theta
+        self._lut_updatable = True
         # default values for silhouette
         self._silhouette = {
             'color': self._bg_color,
@@ -790,17 +792,10 @@ class Brain(object):
     def apply_auto_scaling(self):
         """Detect automatically fitting scaling parameters."""
         self._update_auto_scaling()
-        for key in self.keys:
-            self.widgets[key].set_value(self._data[key])
-        self._update()
 
     def restore_user_scaling(self):
         """Restore original scaling parameters."""
         self._update_auto_scaling(restore=True)
-        for key in self.keys:
-            self.widgets[key].set_value(self._data[key])
-            self.widgets[f"entry_{key}"].set_value(self._data[key])
-        self._update()
 
     def toggle_playback(self, value=None):
         """Toggle time playback.
@@ -1056,7 +1051,7 @@ class Brain(object):
             align=True,
             layout=layout,
         )
-        for idx, key in enumerate(self.keys):
+        for key in self.keys:
             hlayout = self._renderer._dock_add_layout(vertical=False)
             rng = _get_range(self)
             self.callbacks[key] = BumpColorbarPoints(
@@ -2120,7 +2115,6 @@ class Brain(object):
 
         # 4) update the scalar bar and opacity
         self.update_lut(alpha=alpha)
-        self._update()
 
     def _iter_views(self, hemi):
         # which rows and columns each type of visual needs to be added to
@@ -2775,6 +2769,47 @@ class Brain(object):
                 [img, trace_img], bgcolor=self._brain_color[:3])
         return img
 
+    def _bump_points(self, **kwargs):
+        logger.debug(f'    Bump points {kwargs}')
+        vals = {key: self._data[key] for key in ('fmin', 'fmid', 'fmax')}
+        if 'fmin' in kwargs:
+            value = vals['fmin'] = kwargs['fmin']
+            if vals['fmax'] < value:
+                logger.debug(f'    Bumping fmax = {vals["fmax"]} to {value}')
+                vals['fmax'] = value
+            if vals['fmid'] < value:
+                logger.debug(f'    Bumping fmid = {vals["fmid"]} to {value}')
+                vals['fmid'] = value
+        assert vals['fmin'] <= vals['fmid'] <= vals['fmax']
+        if 'fmid' in kwargs:
+            value = vals['fmid'] = kwargs['fmid']
+            if vals['fmin'] > value:
+                logger.debug(f'    Bumping fmin = {vals["fmin"]} to {value}')
+                vals['fmin'] = value
+            if vals['fmax'] < value:
+                logger.debug(f'    Bumping fmax = {vals["fmax"]} to {value}')
+                vals['fmax'] = value
+        assert vals['fmin'] <= vals['fmid'] <= vals['fmax']
+        if 'fmax' in kwargs:
+            value = vals['fmax'] = kwargs['fmax']
+            if vals['fmin'] > value:
+                logger.debug(f'    Bumping fmin = {vals["fmin"]} to {value}')
+                vals['fmin'] = value
+            if vals['fmid'] > value:
+                logger.debug(f'    Bumping fmid = {vals["fmid"]} to {value}')
+                vals['fmid'] = value
+        assert vals['fmin'] <= vals['fmid'] <= vals['fmax']
+        return vals
+
+    @contextlib.contextmanager
+    def _no_lut_update(self):
+        orig = self._lut_updatable
+        self._lut_updatable = False
+        try:
+            yield
+        finally:
+            self._lut_updatable = orig
+
     @fill_doc
     def update_lut(self, fmin=None, fmid=None, fmax=None, alpha=None):
         """Update color map.
@@ -2785,17 +2820,19 @@ class Brain(object):
         alpha : float | None
             Alpha to use in the update.
         """
+        args = f'{fmin}, {fmid}, {fmax}, {alpha}'
+        if not self._lut_updatable:
+            logger.debug(f'LUT update postponed with {args}')
+            return
+        logger.debug(f'Updating LUT with {args}')
         center = self._data['center']
         colormap = self._data['colormap']
         transparent = self._data['transparent']
-        lims = dict(fmin=fmin, fmid=fmid, fmax=fmax)
-        lims = {key: self._data[key] if val is None else val
-                for key, val in lims.items()}
+        lims = {key: self._data[key] for key in ('fmin', 'fmid', 'fmax')}
         assert all(val is not None for val in lims.values())
-        if lims['fmin'] > lims['fmid']:
-            lims['fmin'] = lims['fmid']
-        if lims['fmax'] < lims['fmid']:
-            lims['fmax'] = lims['fmid']
+        lims = self._bump_points(**{
+            key: val for key, val in
+            dict(fmin=fmin, fmid=fmid, fmax=fmax).items() if val is not None})
         self._data.update(lims)
         self._data['ctable'] = np.round(
             calculate_lut(colormap, alpha=1., center=center,
@@ -2836,6 +2873,10 @@ class Brain(object):
                         self._renderer._set_colormap_range(
                             glyph_actor_, ctable, scalar_bar, rng)
                         scalar_bar = None
+        with self._no_lut_update():
+            if self.time_viewer:
+                for key in ('fmin', 'fmid', 'fmax'):
+                    self.callbacks[key].widgets[key].set_value(lims[key])
         self._update()
 
     def set_data_smoothing(self, n_steps):
