@@ -361,3 +361,5 @@
 .. _Zhi Zhang: https://github.com/tczhangzhi/
 
 .. _Enrico Varano: https://github.com/enricovara/
+
+.. _Dominik Welke: https://github.com/dominikwelke/
