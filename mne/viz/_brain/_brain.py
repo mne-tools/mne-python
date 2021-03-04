@@ -86,10 +86,6 @@ class _Overlay(object):
         return colors
 
 
-def _range(x):
-    return np.max(x) - np.min(x)
-
-
 def _norm(x, rng):
     if rng[0] == rng[1]:
         factor = 1 if rng[0] == 0 else 1e-6 * rng[0]
