@@ -68,19 +68,18 @@ class TimeCallBack(object):
 class UpdateColorbarScale(object):
     """Class to update the values of the colorbar sliders."""
 
-    def __init__(self, brain=None):
+    def __init__(self, brain, factor):
         self.brain = brain
+        self.factor = factor
         self.widget = None
         self.widgets = {key: None for key in self.brain.keys}
 
-    def __call__(self, value):
+    def __call__(self):
         """Update the colorbar sliders."""
-        self.brain._update_fscale(value)
+        self.brain._update_fscale(self.factor)
         for key in self.brain.keys:
             if self.widgets[key] is not None:
                 self.widgets[key].set_value(self.brain._data[key])
-        if self.widget is not None:
-            self.widget.set_value(1.0)
 
 
 class BumpColorbarPoints(object):
@@ -124,8 +123,7 @@ class BumpColorbarPoints(object):
                 vals['fmid'] = value
                 self.widgets['fmid'].set_value(value)
             self.widgets['fmax'].set_value(value)
-        self.brain.widgets[f'entry_{self.name}'].set_value(str(value))
-        self.brain.update_lut(**vals)
+        self.brain.widgets[f'entry_{self.name}'].set_value(value)
         if time.time() > self.last_update + 1. / 60.:
             self.callback[self.name](value)
             self.last_update = time.time()

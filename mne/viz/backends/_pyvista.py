@@ -902,22 +902,15 @@ def _mat_to_array(vtk_mat):
 
 
 def _3d_to_2d(plotter, xyz):
-    size = plotter.window_size
-    xyz = np.column_stack([xyz, np.ones(xyz.shape[0])])
-
-    # Transform points into 'unnormalized' view coordinates
-    comb_trans_mat = _get_world_to_view_matrix(plotter)
-    view_coords = np.dot(comb_trans_mat, xyz.T).T
-
-    # Divide through by the fourth element for normalized view coords
-    norm_view_coords = view_coords / (view_coords[:, 3].reshape(-1, 1))
-
-    # Transform from normalized view coordinates to display coordinates.
-    view_to_disp_mat = _get_view_to_display_matrix(size)
-    xy = np.dot(view_to_disp_mat, norm_view_coords.T).T
-
-    # Pull the first two columns since they're meaningful for 2d plotting
-    xy = xy[:, :2]
+    # https://vtk.org/Wiki/VTK/Examples/Cxx/Utilities/Coordinate
+    import vtk
+    coordinate = vtk.vtkCoordinate()
+    coordinate.SetCoordinateSystemToWorld()
+    xy = list()
+    for coord in xyz:
+        coordinate.SetValue(*coord)
+        xy.append(coordinate.GetComputedLocalDisplayValue(plotter.renderer))
+    xy = np.array(xy, float).reshape(-1, 2)  # in case it's empty
     return xy
 
 
