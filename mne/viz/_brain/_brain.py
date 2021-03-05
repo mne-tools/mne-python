@@ -699,7 +699,7 @@ class Brain(object):
             for key in list(self.act_data_smooth.keys()):
                 self.act_data_smooth[key] = None
         # XXX this should be done in PyVista
-        for renderer in self._renderer._all_renderers():
+        for renderer in self._renderer._all_renderers:
             renderer.RemoveAllLights()
         # app_window cannot be set to None because it is used in __del__
         for key in ('lighting', 'interactor', '_RenderWindow'):
@@ -988,7 +988,7 @@ class Brain(object):
     def _configure_dock_orientation_widget(self, name):
         layout = self._renderer._dock_add_group_box(name)
         # Renderer widget
-        rends = [str(i) for i in range(len(self._renderer._all_renderers()))]
+        rends = [str(i) for i in range(len(self._renderer._all_renderers))]
         if len(rends) > 1:
             def select_renderer(idx):
                 idx = int(idx)
@@ -1297,7 +1297,7 @@ class Brain(object):
                 continue
             hemi_data = self._data[hemi]
             vertices = hemi_data['vertices']
-            self.picked_renderer = self._renderer._all_renderers()[0]
+            self.picked_renderer = self._renderer._all_renderers[0]
 
             # initialize the default point
             if self._data['initial_time'] is not None:
@@ -1634,7 +1634,7 @@ class Brain(object):
         del mesh
 
         # from the picked renderer to the subplot coords
-        rindex = self._renderer._all_renderers().index(self.picked_renderer)
+        rindex = self._renderer._all_renderers.index(self.picked_renderer)
         row, col = self.plotter.index_to_loc(rindex)
 
         actors = list()

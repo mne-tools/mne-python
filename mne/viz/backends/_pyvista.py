@@ -191,14 +191,16 @@ class _PyVistaRenderer(_AbstractRenderer):
 
         self.update_lighting()
 
+    @property
     def _all_plotters(self):
         return [self.figure.plotter]
 
+    @property
     def _all_renderers(self):
         return self.figure.plotter.renderers
 
     def _hide_axes(self):
-        for renderer in self._all_renderers():
+        for renderer in self._all_renderers:
             renderer.hide_axes()
 
     def _get_screenshot_filename(self):
@@ -247,7 +249,7 @@ class _PyVistaRenderer(_AbstractRenderer):
 
     def update_lighting(self):
         # Inspired from Mayavi's version of Raymond Maple 3-lights illumination
-        for renderer in self._all_renderers():
+        for renderer in self._all_renderers:
             lights = list(renderer.GetLights())
             headlight = lights.pop(0)
             headlight.SetSwitch(False)
@@ -268,7 +270,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         if not hasattr(self.plotter, "iren") or self.plotter.iren is None:
             return
         if interaction == "rubber_band_2d":
-            for renderer in self._all_renderers():
+            for renderer in self._all_renderers:
                 renderer.enable_parallel_projection()
             if hasattr(self.plotter, 'enable_rubber_band_2d_style'):
                 self.plotter.enable_rubber_band_2d_style()
@@ -276,7 +278,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                 style = vtk.vtkInteractorStyleRubberBand2D()
                 self.plotter.interactor.SetInteractorStyle(style)
         else:
-            for renderer in self._all_renderers():
+            for renderer in self._all_renderers:
                 renderer.disable_parallel_projection()
             getattr(self.plotter, f'enable_{interaction}_style')()
 
@@ -638,7 +640,7 @@ class _PyVistaRenderer(_AbstractRenderer):
 
     def enable_depth_peeling(self):
         if not self.figure.store['off_screen']:
-            for renderer in self._all_renderers():
+            for renderer in self._all_renderers:
                 renderer.enable_depth_peeling()
 
     def _enable_aa(self):
@@ -655,9 +657,9 @@ class _PyVistaRenderer(_AbstractRenderer):
             return
         if self.figure.is_active():
             if sys.platform != 'darwin':
-                for renderer in self._all_renderers():
+                for renderer in self._all_renderers:
                     renderer.enable_anti_aliasing()
-            for plotter in self._all_plotters():
+            for plotter in self._all_plotters:
                 plotter.ren_win.LineSmoothingOn()
 
     def remove_mesh(self, mesh_data):
