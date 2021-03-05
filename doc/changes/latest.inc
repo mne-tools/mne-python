@@ -94,6 +94,8 @@ Enhancements
 
 - :func:`mne.time_frequency.EpochsTFR.average` now allows different ways of averaging, such as "median", or callable functions (:gh:`8879` by `Adam Li`_)
 
+- `~mne.Epochs` metadata can now be generated automatically from events using `mne.epochs.make_metadata` (:gh:`8834` by `Richard Höchenberger`_)
+
 Bugs
 ~~~~
 - Fix bug with `mne.connectivity.spectral_connectivity` where time axis in Epochs data object was dropped. (:gh:`8839` **by new contributor** |Anna Padee|_)
