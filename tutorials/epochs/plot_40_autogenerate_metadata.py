@@ -37,12 +37,11 @@ This tutorial is loosely divided into two parts:
 Preparation
 ^^^^^^^^^^^
 
-Data import and filtering
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
 Let's start by reading, filtering, and producing a simple visualization of the
 raw data. The data is pretty clean and contains very few blinks, so there's no
 need to apply sophisticated preprocessing and data cleaning procedures.
+We will also convert the `~mne.Annotations` contained in this dataset to events
+by calling `mne.events_from_annotations`.
 """
 
 from pathlib import Path
@@ -57,15 +56,7 @@ raw = mne.io.read_raw(infile, preload=True)
 raw.filter(l_freq=0.1, h_freq=40)
 raw.plot(start=60)
 
-###############################################################################
-# Event creation
-# ~~~~~~~~~~~~~~
-#
-# To create epochs with corresponding metadata, we first need to extract all
-# relevant events. In the ERP CORE dataset, experimental events are stored
-# as `~mne.Annotations`. We can convert them to events via
-# `mne.events_from_annotations`:
-
+# extract events
 all_events, all_event_id = mne.events_from_annotations(raw)
 
 ###############################################################################
@@ -84,10 +75,10 @@ all_events, all_event_id = mne.events_from_annotations(raw)
 # Let us look at a concrete example. In the Flankers task of the ERP CORE
 # dataset, participants were required to respond to visual stimuli by
 # pressing a button. We're interested in looking at the visual evoked responses
-# (ERPs) of trials with correct responses. Based on literature studies, we
-# decide that responses later than 1500 ms after stimulus onset are to be
-# considered invalid, because they don't capture the neuronal processes of
-# interest. We can approach this  in the following way with the help of
+# (ERPs) of trials with correct responses. Assume that based on literature
+# studies, we decide that responses later than 1500 ms after stimulus onset are
+# to be considered invalid, because they don't capture the neuronal processes
+# of interest here. We can approach this  in the following way with the help of
 # `mne.epochs.make_metadata`:
 
 # metadata for each epoch shall include events from the range: [0.0, 1.5] s,
@@ -114,21 +105,13 @@ metadata
 # specific column was generated – we'll call that the "time-locked event",
 # because we'll assign it time point zero.
 #
-# Unless you have a very wide screen, you'll most likely have to scroll
-# horizontally to look at the rest of the columns that were automatically
-# created.
-#
-# The names of columns 2 to 7 correspond to the event names specified in the
-# ``all_event_id`` dictionary. These columns contain boolean values – ``True``
-# or ``False`` – indicating whether that specific event occurred during the
-# specified time window (in our case, 0.0 to 1.5 seconds after stimulus
-# onset).
-#
-# The names of all columns after those carry the same names, but with the
-# suffix ``_time``. These values represent the time in seconds relative to
+# The names of the remaining columns correspond to the event names specified in
+# the ``all_event_id`` dictionary. These columns contain floats; the values
+# represent the latency of that specific event in seconds, relative to
 # the time-locked event (the one mentioned in the ``event_name`` column).
 # For events that didn't occur within the given time window, you'll see
-# a value of ``NaN``, simply indicating that no event time could be generated.
+# a value of ``NaN``, simply indicating that no event latency could be
+# extracted.
 #
 # Now, there's a problem here. We want investigate the visual ERPs only,
 # conditional on responses. But the metadata that was just created contains
@@ -139,7 +122,7 @@ metadata
 # allows us to specify for which events to create metadata **rows**, while
 # still creating **columns for all events** in the ``event_id`` dictionary.
 #
-# Because the metadata now only pertains to a subset of our original events,
+# Because the metadata, then, only pertains to a subset of our original events,
 # it's important to keep the returned ``events`` and ``event_id`` around for
 # later use when we're actually going to create our epochs, to ensure that
 # metadata, events, and event descriptions stay in sync.
@@ -171,11 +154,14 @@ metadata
 # event descriptions (HEDs) used to name events via the ``keep_first``
 # parameter. For example, in the case of the HEDs ``response/left`` and
 # ``response/right``, we could pass ``keep_first='response'`` to generate a new
-# column ``response``, containing the name of the respective event (sans the
-# string used for matching, as it is already encoded as the column name).
-# And of course, there'll be a corresponding ``response_time`` column,
-# pertaining only the first (or, in this specific example: the only) response,
-# regardless of side (left or right).
+# column, ``response``, containing the latency of the respective event.
+# This value pertains only the first (or, in this specific example: the only)
+# response, regardless of side (left or right). To indicate **which** event
+# type (here: response side) was matched, a second column is added:
+# ``first_recponse``. The values in this column are the event types sans
+# the string used for matching, as it is already encoded as the column name,
+# i.e. in our example, it we expect it to only contain ``'left'`` and
+# ``'right'``.
 
 keep_first = 'response'
 metadata, events, event_id = mne.epochs.make_metadata(
@@ -185,11 +171,11 @@ metadata, events, event_id = mne.epochs.make_metadata(
     keep_first=keep_first)
 
 # visualize response times regardless of side
-metadata['response_time'].plot.hist(bins=50, title='Response Times')
+metadata['response'].plot.hist(bins=50, title='Response Times')
 
-# the "response" column contains only "left" and "right" entries, derived from
-# the initial event named "response/left" and "response/right"
-print(metadata['response'])
+# the "first_response" column contains only "left" and "right" entries, derived
+# from the initial event named "response/left" and "response/right"
+print(metadata['first_response'])
 
 ###############################################################################
 # We're facing a similar issue with the stimulus events, and now there are not
@@ -218,11 +204,11 @@ metadata, events, event_id = mne.epochs.make_metadata(
     keep_first=keep_first)
 
 # all times of the time-locked events should be zero
-assert all(metadata['stimulus_time'] == 0)
+assert all(metadata['stimulus'] == 0)
 
-# the values in the new "stimulus" and "response" columns indicate which events
-# were selected via "keep_first"
-metadata[['stimulus', 'response']]
+# the values in the new "first_stimulus" and "first_response" columns indicate
+# which events were selected via "keep_first"
+metadata[['first_stimulus', 'first_response']]
 
 ###############################################################################
 # Adding new columns to describe stimulation side and response correctness
@@ -234,13 +220,13 @@ metadata[['stimulus', 'response']]
 # to another column.
 
 # left-side stimulation
-metadata.loc[metadata['stimulus'].isin(['compatible/target_left',
-                                        'incompatible/target_left']),
+metadata.loc[metadata['first_stimulus'].isin(['compatible/target_left',
+                                              'incompatible/target_left']),
              'stimulus_side'] = 'left'
 
 # right-side stimulation
-metadata.loc[metadata['stimulus'].isin(['compatible/target_right',
-                                        'incompatible/target_right']),
+metadata.loc[metadata['first_stimulus'].isin(['compatible/target_right',
+                                              'incompatible/target_right']),
              'stimulus_side'] = 'right'
 
 # first assume all responses were incorrect, then mark those as correct where
@@ -250,7 +236,7 @@ metadata.loc[metadata['stimulus_side'] == metadata['response'],
              'response_correct'] = True
 
 
-correct_response_count = metadata["response_correct"].sum()
+correct_response_count = metadata['response_correct'].sum()
 print(f'Correct responses: {correct_response_count}\n'
       f'Incorrect responses: {len(metadata) - correct_response_count}')
 
@@ -277,9 +263,9 @@ epochs = mne.Epochs(raw=raw, tmin=epochs_tmin, tmax=epochs_tmax,
 # all trials with correct responses, and once for all trials with correct
 # responses and a response time greater than 0.5 seconds
 # (i.e., slow responses).
-vis_erp = epochs['response_correct == True'].average()
-vis_erp_slow = epochs['response_correct == True and '
-                      'response_time > 0.5'].average()
+vis_erp = epochs['response_correct'].average()
+vis_erp_slow = epochs['(not response_correct) & '
+                      '(response > 0.5)'].average()
 
 fig, ax = plt.subplots(2, figsize=(6, 6))
 vis_erp.plot(gfp=True, spatial_colors=True, axes=ax[0])
@@ -316,7 +302,7 @@ fig
 # the right stimulus-response pairings. We can achieve this by passing the
 # ``keep_last`` parameter, which works exactly like ``keep_first`` we got to
 # know above, only that it keeps the **last** occurrences of the specified
-# events.
+# events and stores them in columns whose names start with ``last_``.
 
 metadata_tmin, metadata_tmax = -1.5, 0
 row_events = ['response/left', 'response/right']
@@ -333,19 +319,19 @@ metadata, events, event_id = mne.epochs.make_metadata(
 # and ``response_correct``.
 
 # left-side stimulation
-metadata.loc[metadata['stimulus'].isin(['compatible/target_left',
-                                        'incompatible/target_left']),
+metadata.loc[metadata['last_stimulus'].isin(['compatible/target_left',
+                                             'incompatible/target_left']),
              'stimulus_side'] = 'left'
 
 # right-side stimulation
-metadata.loc[metadata['stimulus'].isin(['compatible/target_right',
-                                        'incompatible/target_right']),
+metadata.loc[metadata['last_stimulus'].isin(['compatible/target_right',
+                                             'incompatible/target_right']),
              'stimulus_side'] = 'right'
 
 # first assume all responses were incorrect, then mark those as correct where
 # the stimulation side matches the response side
 metadata['response_correct'] = False
-metadata.loc[metadata['stimulus_side'] == metadata['response'],
+metadata.loc[metadata['stimulus_side'] == metadata['last_response'],
              'response_correct'] = True
 
 metadata
@@ -376,7 +362,7 @@ epochs = mne.Epochs(raw=raw, tmin=epochs_tmin, tmax=epochs_tmax,
 # MNE-Python always ensures that ``epochs.metadata`` stays in sync with the
 # available epochs.
 
-epochs.metadata.loc[epochs.metadata['stimulus'].isnull(), :]
+epochs.metadata.loc[epochs.metadata['last_stimulus'].isna(), :]
 
 ###############################################################################
 # Bummer! ☹️ It seems the very first two responses were recorded before the
@@ -384,7 +370,7 @@ epochs.metadata.loc[epochs.metadata['stimulus'].isnull(), :]
 # There is a very simple way to select only those epochs that **do** have a
 # stimulus (i.e., are not ``None``):
 
-epochs = epochs['stimulus']
+epochs = epochs['last_stimulus.notna()']
 
 ###############################################################################
 # Time to calculate the ERPs for correct  and incorrect responses.
@@ -393,8 +379,8 @@ epochs = epochs['stimulus']
 # impression of the average scalp potentials measured in the first 100 ms after
 # an incorrect response.
 
-resp_erp_correct = epochs['response_correct == True'].average()
-resp_erp_incorrect = epochs['response_correct == False'].average()
+resp_erp_correct = epochs['response_correct'].average()
+resp_erp_incorrect = epochs['not response_correct'].average()
 
 mne.viz.plot_compare_evokeds({'Correct Response': resp_erp_correct,
                               'Incorrect Response': resp_erp_incorrect},
