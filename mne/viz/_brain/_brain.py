@@ -26,7 +26,7 @@ from .surface import _Surface
 from .view import views_dicts, _lh_views_dict
 from .mplcanvas import MplCanvas
 from .callback import (ShowView, TimeCallBack, SmartCallBack, Widget,
-                       BumpColorbarPoints, UpdateColorbarScale)
+                       UpdateLUT, UpdateColorbarScale)
 
 from ..utils import _show_help, _get_color_list, concatenate_images
 from .._3d import _process_clim, _handle_time, _check_views
@@ -54,37 +54,44 @@ def safe_event(fun, *args, **kwargs):
 
 
 class _Overlay(object):
-    def __init__(self, scalars, colormap, rng, opacity):
+    def __init__(self, scalars, colormap, rng, opacity, name):
         self._scalars = scalars
         self._colormap = colormap
+        assert rng is not None
         self._rng = rng
         self._opacity = opacity
+        self._name = name
 
     def to_colors(self):
         from .._3d import _get_cmap
         from matplotlib.colors import ListedColormap
+
         if isinstance(self._colormap, str):
+            kind = self._colormap
             cmap = _get_cmap(self._colormap)
         else:
             cmap = ListedColormap(self._colormap / 255.)
-
-        def diff(x):
-            return np.max(x) - np.min(x)
-
-        def norm(x, rng=None):
-            if rng is None:
-                rng = [np.min(x), np.max(x)]
-            return (x - rng[0]) / (rng[1] - rng[0])
+            kind = str(type(self._colormap))
+        logger.debug(
+            f'Color mapping {repr(self._name)} with {kind} '
+            f'colormap and range {self._rng}')
 
         rng = self._rng
-        scalars = self._scalars
-        if diff(scalars) != 0:
-            scalars = norm(scalars, rng)
+        assert rng is not None
+        scalars = _norm(self._scalars, rng)
 
         colors = cmap(scalars)
         if self._opacity is not None:
             colors[:, 3] *= self._opacity
         return colors
+
+
+def _norm(x, rng):
+    if rng[0] == rng[1]:
+        factor = 1 if rng[0] == 0 else 1e-6 * rng[0]
+    else:
+        factor = rng[1] - rng[0]
+    return (x - rng[0]) / factor
 
 
 class _LayeredMesh(object):
@@ -149,7 +156,8 @@ class _LayeredMesh(object):
             scalars=scalars,
             colormap=colormap,
             rng=rng,
-            opacity=opacity
+            opacity=opacity,
+            name=name,
         )
         self._overlays[name] = overlay
         colors = overlay.to_colors()
@@ -193,7 +201,7 @@ class _LayeredMesh(object):
         self._renderer = None
 
     def update_overlay(self, name, scalars=None, colormap=None,
-                       opacity=None):
+                       opacity=None, rng=None):
         overlay = self._overlays.get(name, None)
         if overlay is None:
             return
@@ -203,6 +211,8 @@ class _LayeredMesh(object):
             overlay._colormap = colormap
         if opacity is not None:
             overlay._opacity = opacity
+        if rng is not None:
+            overlay._rng = rng
         self.update()
 
 
@@ -423,6 +433,7 @@ class Brain(object):
         self._annots = {'lh': list(), 'rh': list()}
         self._layered_meshes = {}
         self._elevation_rng = [15, 165]  # range of motion of camera on theta
+        self._lut_locked = None
         # default values for silhouette
         self._silhouette = {
             'color': self._bg_color,
@@ -777,17 +788,10 @@ class Brain(object):
     def apply_auto_scaling(self):
         """Detect automatically fitting scaling parameters."""
         self._update_auto_scaling()
-        for key in self.keys:
-            self.widgets[key].set_value(self._data[key])
-        self._update()
 
     def restore_user_scaling(self):
         """Restore original scaling parameters."""
         self._update_auto_scaling(restore=True)
-        for key in self.keys:
-            self.widgets[key].set_value(self._data[key])
-            self.widgets[f"entry_{key}"].set_value(str(self._data[key]))
-        self._update()
 
     def toggle_playback(self, value=None):
         """Toggle time playback.
@@ -930,6 +934,7 @@ class Brain(object):
                     name="Time (s)",
                     value=self._data['time_idx'],
                     rng=[0, len_time],
+                    double=True,
                     callback=self.callbacks["time"],
                     compact=False,
                     layout=layout,
@@ -1042,13 +1047,11 @@ class Brain(object):
             align=True,
             layout=layout,
         )
-        for idx, key in enumerate(self.keys):
+        up = UpdateLUT(brain=self)
+        for key in self.keys:
             hlayout = self._renderer._dock_add_layout(vertical=False)
             rng = _get_range(self)
-            self.callbacks[key] = BumpColorbarPoints(
-                brain=self,
-                name=key
-            )
+            self.callbacks[key] = lambda value, key=key: up(**{key: value})
             self.widgets[key] = Widget(
                 widget=self._renderer._dock_add_slider(
                     name=None,
@@ -1061,48 +1064,60 @@ class Brain(object):
                 notebook=self.notebook,
             )
             self.widgets[f"entry_{key}"] = Widget(
-                widget=self._renderer._dock_add_text(
-                    value=str(self._data[key]),
+                widget=self._renderer._dock_add_spin_box(
+                    name=None,
+                    value=self._data[key],
                     callback=self.callbacks[key],
-                    validator=rng,
+                    rng=rng,
                     layout=hlayout,
                 ),
                 notebook=self.notebook,
             )
+            up.widgets[key] = [self.widgets[key], self.widgets[f"entry_{key}"]]
             if self.notebook:
                 from ..backends._notebook import _ipy_add_widget
                 _ipy_add_widget(layout, hlayout, self._renderer.dock_width)
             else:
                 layout.addLayout(hlayout)
 
-        # fscale
-        self.callbacks["fscale"] = UpdateColorbarScale(
-            brain=self,
+        # reset / minus / plus
+        hlayout = self._renderer._dock_add_layout(vertical=False)
+        self._renderer._dock_add_label(
+            value="Rescale",
+            align=True,
+            layout=hlayout,
         )
-        self.widgets["fscale"] = Widget(
-            widget=self._renderer._dock_add_spin_box(
-                name="scale",
-                value=1.0,
-                rng=self.default_scaling_range,
-                callback=self.callbacks["fscale"],
-                layout=layout,
-            ),
-            notebook=self.notebook,
-        )
-
-        # reset
         self.widgets["reset"] = Widget(
             widget=self._renderer._dock_add_button(
-                name="Reset",
+                name="↺",
                 callback=self.restore_user_scaling,
-                layout=layout,
+                layout=hlayout,
             ),
             notebook=self.notebook,
         )
+        for key, char, val in (("fminus", "➖", 1.2 ** -0.25),
+                               ("fplus", "➕", 1.2 ** 0.25)):
+            self.callbacks[key] = UpdateColorbarScale(
+                brain=self,
+                factor=val,
+            )
+            self.widgets[key] = Widget(
+                widget=self._renderer._dock_add_button(
+                    name=char,
+                    callback=self.callbacks[key],
+                    layout=hlayout,
+                ),
+                notebook=self.notebook,
+            )
+        if self.notebook:
+            from ..backends._notebook import _ipy_add_widget
+            _ipy_add_widget(layout, hlayout, self._renderer.dock_width)
+        else:
+            layout.addLayout(hlayout)
 
         # register colorbar slider representations
         widgets = {key: self.widgets[key] for key in self.keys}
-        for name in ("fmin", "fmid", "fmax", "fscale"):
+        for name in ("fmin", "fmid", "fmax", "fminus", "fplus"):
             self.callbacks[name].widgets = widgets
 
     def _configure_dock_trace_widget(self, name):
@@ -2094,12 +2109,7 @@ class Brain(object):
             self._renderer.set_camera(**views_dicts[hemi][v])
 
         # 4) update the scalar bar and opacity
-        self.update_lut()
-        if hemi in self._layered_meshes:
-            mesh = self._layered_meshes[hemi]
-            mesh.update_overlay(name='data', opacity=alpha)
-
-        self._update()
+        self.update_lut(alpha=alpha)
 
     def _iter_views(self, hemi):
         # which rows and columns each type of visual needs to be added to
@@ -2388,7 +2398,7 @@ class Brain(object):
             mesh.add_overlay(
                 scalars=scalars,
                 colormap=ctable,
-                rng=None,
+                rng=[np.min(scalars), np.max(scalars)],
                 opacity=alpha,
                 name=label_name,
             )
@@ -2754,25 +2764,37 @@ class Brain(object):
                 [img, trace_img], bgcolor=self._brain_color[:3])
         return img
 
+    @contextlib.contextmanager
+    def _no_lut_update(self, why):
+        orig = self._lut_locked
+        self._lut_locked = why
+        try:
+            yield
+        finally:
+            self._lut_locked = orig
+
     @fill_doc
-    def update_lut(self, fmin=None, fmid=None, fmax=None):
+    def update_lut(self, fmin=None, fmid=None, fmax=None, alpha=None):
         """Update color map.
 
         Parameters
         ----------
         %(fmin_fmid_fmax)s
+        alpha : float | None
+            Alpha to use in the update.
         """
+        args = f'{fmin}, {fmid}, {fmax}, {alpha}'
+        if self._lut_locked is not None:
+            logger.debug(f'LUT update postponed with {args}')
+            return
+        logger.debug(f'Updating LUT with {args}')
         center = self._data['center']
         colormap = self._data['colormap']
         transparent = self._data['transparent']
-        lims = dict(fmin=fmin, fmid=fmid, fmax=fmax)
-        lims = {key: self._data[key] if val is None else val
-                for key, val in lims.items()}
+        lims = {key: self._data[key] for key in ('fmin', 'fmid', 'fmax')}
+        _update_monotonic(lims, fmin=fmin, fmid=fmid, fmax=fmax)
         assert all(val is not None for val in lims.values())
-        if lims['fmin'] > lims['fmid']:
-            lims['fmin'] = lims['fmid']
-        if lims['fmax'] < lims['fmid']:
-            lims['fmax'] = lims['fmid']
+
         self._data.update(lims)
         self._data['ctable'] = np.round(
             calculate_lut(colormap, alpha=1., center=center,
@@ -2790,7 +2812,9 @@ class Brain(object):
                 if hemi in self._layered_meshes:
                     mesh = self._layered_meshes[hemi]
                     mesh.update_overlay(name='data',
-                                        colormap=self._data['ctable'])
+                                        colormap=self._data['ctable'],
+                                        opacity=alpha,
+                                        rng=rng)
                     self._renderer._set_colormap_range(
                         mesh._actor, ctable, scalar_bar, rng,
                         self._brain_color)
@@ -2811,6 +2835,10 @@ class Brain(object):
                         self._renderer._set_colormap_range(
                             glyph_actor_, ctable, scalar_bar, rng)
                         scalar_bar = None
+        if self.time_viewer:
+            with self._no_lut_update(f'update_lut {args}'):
+                for key in ('fmin', 'fmid', 'fmax'):
+                    self.callbacks[key](lims[key])
         self._update()
 
     def set_data_smoothing(self, n_steps):
@@ -3454,6 +3482,36 @@ def _update_limits(fmin, fmid, fmax, center, array):
                            % (fmid, fmax))
 
     return fmin, fmid, fmax
+
+
+def _update_monotonic(lims, fmin, fmid, fmax):
+    if fmin is not None:
+        lims['fmin'] = fmin
+        if lims['fmax'] < fmin:
+            logger.debug(f'    Bumping fmax = {lims["fmax"]} to {fmin}')
+            lims['fmax'] = fmin
+        if lims['fmid'] < fmin:
+            logger.debug(f'    Bumping fmid = {lims["fmid"]} to {fmin}')
+            lims['fmid'] = fmin
+    assert lims['fmin'] <= lims['fmid'] <= lims['fmax']
+    if fmid is not None:
+        lims['fmid'] = fmid
+        if lims['fmin'] > fmid:
+            logger.debug(f'    Bumping fmin = {lims["fmin"]} to {fmid}')
+            lims['fmin'] = fmid
+        if lims['fmax'] < fmid:
+            logger.debug(f'    Bumping fmax = {lims["fmax"]} to {fmid}')
+            lims['fmax'] = fmid
+    assert lims['fmin'] <= lims['fmid'] <= lims['fmax']
+    if fmax is not None:
+        lims['fmax'] = fmax
+        if lims['fmin'] > fmax:
+            logger.debug(f'    Bumping fmin = {lims["fmin"]} to {fmax}')
+            lims['fmin'] = fmax
+        if lims['fmid'] > fmax:
+            logger.debug(f'    Bumping fmid = {lims["fmid"]} to {fmax}')
+            lims['fmid'] = fmax
+    assert lims['fmin'] <= lims['fmid'] <= lims['fmax']
 
 
 def _get_range(brain):

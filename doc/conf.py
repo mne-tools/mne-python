@@ -45,9 +45,14 @@ sys.path.append(os.path.abspath(os.path.join(curdir, 'sphinxext')))
 
 project = 'MNE'
 td = datetime.now(tz=timezone.utc)
+
+# We need to triage which date type we use so that incremental builds work
+# (Sphinx looks at variable changes and rewrites all files if some change)
 copyright = (
     f'2012–{td.year}, MNE Developers. Last updated <time datetime="{td.isoformat()}" class="localized">{td.strftime("%Y-%m-%d %H:%M %Z")}</time>\n'  # noqa: E501
     '<script type="text/javascript">$(function () { $("time.localized").each(function () { var el = $(this); el.text(new Date(el.attr("datetime")).toLocaleString([], {dateStyle: "medium", timeStyle: "long"})); }); } )</script>')  # noqa: E501
+if os.getenv('MNE_FULL_DATE', 'false').lower() != 'true':
+    copyright = f'2012–{td.year}, MNE Developers. Last updated locally.'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

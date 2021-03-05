@@ -246,6 +246,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         'phantom_4dbti': 'MNE_DATASETS_PHANTOM_4DBTI_PATH',
         'limo': 'MNE_DATASETS_LIMO_PATH',
         'refmeg_noise': 'MNE_DATASETS_REFMEG_NOISE_PATH',
+        'ssvep': 'MNE_DATASETS_SSVEP_PATH',
         'erp_core': 'MNE_DATASETS_ERP_CORE_PATH'
     }[name]
 
@@ -285,6 +286,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         fieldtrip_cmc='https://osf.io/j9b6s/download?version=1',
         phantom_4dbti='https://osf.io/v2brw/download?version=2',
         refmeg_noise='https://osf.io/drt6v/download?version=1',
+        ssvep='https://osf.io/z8h6k/download?version=5',
         erp_core='https://osf.io/rzgba/download?version=1'
     )
     # filename of the resulting downloaded archive (only needed if the URL
@@ -305,6 +307,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
                               'MNE-visual_92_categories-data-part2.tar.gz'],
         phantom_4dbti='MNE-phantom-4DBTi.zip',
         refmeg_noise='sample_reference_MEG_noise-raw.zip',
+        ssvep='ssvep_example_data.zip',
         erp_core='MNE-ERP-CORE-data.tar.gz'
     )
     # original folder names that get extracted (only needed if the
@@ -312,6 +315,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     folder_origs = dict(  # not listed means None (no need to move)
         misc='mne-misc-data-%s' % releases['misc'],
         testing='mne-testing-data-%s' % releases['testing'],
+        ssvep='ssvep-example-data'
     )
     # finally, where we want them to extract to (only needed if the folder name
     # is not the same as the last bit of the archive name without the file
@@ -327,6 +331,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         fieldtrip_cmc='MNE-fieldtrip_cmc-data',
         phantom_4dbti='MNE-phantom-4DBTi',
         refmeg_noise='MNE-refmeg-noise-data',
+        ssvep='ssvep-example-data',
         erp_core='MNE-ERP-CORE-data'
     )
     md5_hashes = dict(
@@ -352,6 +357,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         fieldtrip_cmc='6f9fd6520f9a66e20994423808d2528c',
         phantom_4dbti='938a601440f3ffa780d20a17bae039ff',
         refmeg_noise='779fecd890d98b73a4832e717d7c7c45',
+        ssvep='af866bbc0f921114ac9d683494fe87d6',
         erp_core='5866c0d6213bd7ac97f254c776f6c4b1'
     )
     assert set(md5_hashes.keys()) == set(urls.keys())
@@ -582,6 +588,7 @@ def has_dataset(name):
             'phantom_4dbti': 'MNE-phantom-4DBTi',
             'mtrf': 'mTRF_1.5',
             'refmeg_noise': 'MNE-refmeg-noise-data',
+            'ssvep': 'ssvep-example-data',
             'erp_core': 'MNE-ERP-CORE-data'
         }[name]
     dp = _data_path(download=False, name=name, check_version=False,
@@ -604,8 +611,8 @@ def _download_all_example_data(verbose=True):
     from . import (sample, testing, misc, spm_face, somato, brainstorm,
                    eegbci, multimodal, opm, hf_sef, mtrf, fieldtrip_cmc,
                    kiloword, phantom_4dbti, sleep_physionet, limo,
-                   fnirs_motor, refmeg_noise, erp_core, fetch_infant_template,
-                   fetch_fsaverage)
+                   fnirs_motor, refmeg_noise, fetch_infant_template,
+                   fetch_fsaverage, ssvep, erp_core)
     sample_path = sample.data_path()
     testing.data_path()
     misc.data_path()
@@ -620,6 +627,7 @@ def _download_all_example_data(verbose=True):
     kiloword.data_path()
     phantom_4dbti.data_path()
     refmeg_noise.data_path()
+    ssvep.data_path()
     brainstorm.bst_raw.data_path(accept=True)
     brainstorm.bst_auditory.data_path(accept=True)
     brainstorm.bst_resting.data_path(accept=True)
