@@ -229,7 +229,7 @@ metadata.loc[metadata['first_stimulus'].isin(['compatible/target_right',
 # first assume all responses were incorrect, then mark those as correct where
 # the stimulation side matches the response side
 metadata['response_correct'] = False
-metadata.loc[metadata['stimulus_side'] == metadata['response'],
+metadata.loc[metadata['stimulus_side'] == metadata['first_response'],
              'response_correct'] = True
 
 
@@ -262,12 +262,12 @@ epochs = mne.Epochs(raw=raw, tmin=epochs_tmin, tmax=epochs_tmax,
 # (i.e., slow responses).
 vis_erp = epochs['response_correct'].average()
 vis_erp_slow = epochs['(not response_correct) & '
-                      '(response > 0.5)'].average()
+                      '(response > 0.3)'].average()
 
 fig, ax = plt.subplots(2, figsize=(6, 6))
 vis_erp.plot(gfp=True, spatial_colors=True, axes=ax[0])
 vis_erp_slow.plot(gfp=True, spatial_colors=True, axes=ax[1])
-ax[0].set_title('Visual ERPs – Correct Responses')
+ax[0].set_title('Visual ERPs – All Correct Responses')
 ax[1].set_title('Visual ERPs – Slow Correct Responses')
 fig.tight_layout()
 fig
