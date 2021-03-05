@@ -2064,7 +2064,7 @@ def _drop_log_stats(drop_log, ignore=('IGNORED',)):
 
 def make_metadata(events, event_id, tmin, tmax, sfreq,
                   row_events=None, keep_first=None, keep_last=None):
-    """Generate metadata from events for use with `~mne.Epochs`.
+    """Generate metadata from events for use with `mne.Epochs`.
 
     This function mimics the epoching process (it constructs time windows
     around time-locked "events of interest") and collates information about
@@ -2079,14 +2079,14 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
     Parameters
     ----------
     events : array, shape (m, 3)
-        The events array. By default, the returned metadata
-        :class:`pandas.DataFrame` will have as many rows as the events array.
+        The :term:`events array <events>`. By default, the returned metadata
+        :class:`~pandas.DataFrame` will have as many rows as the events array.
         To create rows for only a subset of events, pass the ``row_events``
         parameter.
     event_id : dict
         A mapping from event names (keys) to event IDs (values). The event
         names will be incorporated as columns of the returned metadata
-        :class:`pandas.DataFrame`.
+        :class:`~pandas.DataFrame`.
     tmin, tmax : float
         Start and end of the time interval for metadata generation in seconds,
         relative to the time-locked event of the respective time window.
@@ -2104,7 +2104,8 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
         Event types around which to create the time windows / for which to
         create **rows** in the returned metadata :class:`pandas.DataFrame`. If
         provided, the string(s) must be keys of ``event_id``. If ``None``
-        (default), create rows for **all** event types present in ``event_id``.
+        (default), rows are created for **all** event types present in
+        ``event_id``.
     keep_first : str | list of str | None
         Specify subsets of hierarchical event descriptors (HEDs) matching
         events of which  the **first occurrence** within each
@@ -2144,7 +2145,7 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
     Returns
     -------
     metadata : pandas.DataFrame
-        The pre-assembled metadata. It contains the following columns:
+        Metadata for each row event, with the following columns:
 
         - ``event_name``, with strings indicating the name of the time-locked
           event ("row event") for that specific time window

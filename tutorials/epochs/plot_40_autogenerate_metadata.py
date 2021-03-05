@@ -9,7 +9,7 @@ events via `mne.epochs.make_metadata`.
 
 We are going to use data from the :ref:`erp-core-dataset` (derived from
 :footcite:`Kappenman2021`). This is EEG data from a single participant
-performing an active visual task (Flankers task).
+performing an active visual task (Eriksen flanker task).
 
 .. note::
    If you wish to skip the introductory parts of this tutorial, you may jump
@@ -28,9 +28,6 @@ This tutorial is loosely divided into two parts:
    negativity (ERN), i.e. the ERP component associated with incorrect
    behavioral responses.
 
-.. contents:: Table of contents
-  :local:
-  :depth: 3
 
 .. _tut-autogenerate-metadata-preparation:
 
@@ -387,7 +384,7 @@ mne.viz.plot_compare_evokeds({'Correct Response': resp_erp_correct,
                              picks='FCz', show_sensors=True,
                              title='ERPs at FCz, time-locked to response')
 
-# topoplot at t=0.05 s, averaged from 0.05-0.05 = 0 to 0.05+0.05 = 0.1 s
+# topoplot of average field from time 0.0-0.1 s
 resp_erp_incorrect.plot_topomap(times=0.05, average=0.05, size=3,
                                 title='Avg. topography 0–100 ms after '
                                       'incorrect responses')
