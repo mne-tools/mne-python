@@ -37,7 +37,7 @@ from mne.preprocessing import maxwell_filter
 from mne.epochs import (
     bootstrap, equalize_epoch_counts, combine_event_ids, add_channels_epochs,
     EpochsArray, concatenate_epochs, BaseEpochs, average_movements,
-    _handle_event_repeated)
+    _handle_event_repeated, make_metadata)
 from mne.utils import (requires_pandas, object_diff,
                        catch_logging, _FakeNoPandas,
                        assert_meg_snr, check_version, _dt_to_stamp)
@@ -171,7 +171,7 @@ def test_handle_event_repeated():
 
 def _get_data(preload=False):
     """Get data."""
-    raw = read_raw_fif(raw_fname, preload=preload)
+    raw = read_raw_fif(raw_fname, preload=preload, verbose='warning')
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, eeg=True, stim=True,
                        ecg=True, eog=True, include=['STI 014'],
@@ -2888,6 +2888,80 @@ def assert_metadata_equal(got, exp):
             got = got[exp.columns]
         check = (got == exp)
         assert check.all().all()
+
+
+@pytest.mark.parametrize(
+    ('all_event_id', 'row_events', 'keep_first', 'keep_last'),
+    [({'a/1': 1, 'a/2': 2, 'b/1': 3, 'b/2': 4, 'c': 32},  # all events
+      None, None, None),
+     ({'a/1': 1, 'a/2': 2},  # subset of events
+      None, None, None),
+     (dict(), None, None, None),  # empty set of events
+     ({'a/1': 1, 'a/2': 2, 'b/1': 3, 'b/2': 4, 'c': 32},
+      ('a/1', 'a/2', 'b/1', 'b/2'), ('a', 'b'), 'c')]
+)
+@requires_pandas
+def test_make_metadata(all_event_id, row_events, keep_first,
+                       keep_last):
+    """Test that make_metadata works."""
+    raw, all_events, _ = _get_data()
+    tmin, tmax = -0.5, 1.5
+    sfreq = raw.info['sfreq']
+    kwargs = dict(events=all_events, event_id=all_event_id,
+                  row_events=row_events,
+                  keep_first=keep_first, keep_last=keep_last,
+                  tmin=tmin, tmax=tmax,
+                  sfreq=sfreq)
+
+    if not kwargs['event_id']:
+        with pytest.raises(ValueError, match='must contain at least one'):
+            make_metadata(**kwargs)
+        return
+
+    metadata, events, event_id = make_metadata(**kwargs)
+
+    assert len(metadata) == len(events)
+
+    if row_events:
+        assert set(metadata['event_name']) == set(row_events)
+    else:
+        assert set(metadata['event_name']) == set(event_id.keys())
+
+    # Check we have columns all events
+    keep_first = [] if keep_first is None else keep_first
+    keep_last = [] if keep_last is None else keep_last
+    event_names = sorted(set(event_id.keys()) | set(keep_first) |
+                         set(keep_last))
+
+    for event_name in event_names:
+        assert event_name in metadata.columns
+
+    # Check the time-locked event's metadata
+    for _, row in metadata.iterrows():
+        event_name = row['event_name']
+        assert np.isclose(row[event_name], 0)
+
+    # Check non-time-locked events' metadata
+    for row_idx, row in metadata.iterrows():
+        event_names = sorted(set(event_id.keys()) | set(keep_first) |
+                             set(keep_last) - set(row['event_name']))
+        for event_name in event_names:
+            if event_name in keep_first or event_name in keep_last:
+                assert isinstance(row[event_name], float)
+                if not ((event_name == 'a' and row_idx == 30) or
+                        (event_name == 'b' and row_idx == 14) or
+                        (event_name == 'c' and row_idx != 16)):
+                    assert not np.isnan(row[event_name])
+
+            if event_name in keep_first and event_name not in all_event_id:
+                assert (row[f'first_{event_name}'] is None or
+                        isinstance(row[f'first_{event_name}'], str))
+            elif event_name in keep_last and event_name not in all_event_id:
+                assert (row[f'last_{event_name}'] is None or
+                        isinstance(row[f'last_{event_name}'], str))
+
+    Epochs(raw, events=events, event_id=event_id, metadata=metadata,
+           verbose='warning')
 
 
 def test_events_list():
