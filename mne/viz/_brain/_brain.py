@@ -1291,13 +1291,17 @@ class Brain(object):
         self.plot_time_line()
 
         # then the picked points
-        for hemi in ['lh', 'rh', 'vol']:
+        for idx, hemi in enumerate(['lh', 'rh', 'vol']):
             act_data = self.act_data_smooth.get(hemi, [None])[0]
             if act_data is None:
                 continue
             hemi_data = self._data[hemi]
             vertices = hemi_data['vertices']
-            self.picked_renderer = self._renderer._all_renderers[0]
+
+            # simulate a picked renderer
+            if self._hemi in ('both', 'rh') or hemi == 'vol':
+                idx = 0
+            self.picked_renderer = self._renderer._all_renderers[idx]
 
             # initialize the default point
             if self._data['initial_time'] is not None:
