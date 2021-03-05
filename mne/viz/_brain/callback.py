@@ -3,7 +3,7 @@
 #          Guillaume Favelier <guillaume.favelier@gmail.com>
 #
 # License: Simplified BSD
-import time
+from ...utils import logger
 
 
 class Widget(object):
@@ -82,51 +82,22 @@ class UpdateColorbarScale(object):
                 self.widgets[key].set_value(self.brain._data[key])
 
 
-class BumpColorbarPoints(object):
-    """Class that ensure constraints over the colorbar points."""
+class UpdateLUT(object):
+    """Update the LUT."""
 
-    def __init__(self, brain=None, name=None):
+    def __init__(self, brain=None):
         self.brain = brain
-        self.name = name
-        self.callback = {
-            "fmin": lambda fmin: brain.update_lut(fmin=fmin),
-            "fmid": lambda fmid: brain.update_lut(fmid=fmid),
-            "fmax": lambda fmax: brain.update_lut(fmax=fmax),
-        }
-        self.widgets = {key: None for key in self.brain.keys}
-        self.last_update = time.time()
+        self.widgets = {key: list() for key in self.brain.keys}
 
-    def __call__(self, value):
+    def __call__(self, fmin=None, fmid=None, fmax=None):
         """Update the colorbar sliders."""
-        vals = {key: self.brain._data[key] for key in self.brain.keys}
-        if self.name == "fmin" and self.widgets["fmin"] is not None:
-            if vals['fmax'] < value:
-                vals['fmax'] = value
-                self.widgets['fmax'].set_value(value)
-            if vals['fmid'] < value:
-                vals['fmid'] = value
-                self.widgets['fmid'].set_value(value)
-            self.widgets['fmin'].set_value(value)
-        elif self.name == "fmid" and self.widgets['fmid'] is not None:
-            if vals['fmin'] > value:
-                vals['fmin'] = value
-                self.widgets['fmin'].set_value(value)
-            if vals['fmax'] < value:
-                vals['fmax'] = value
-                self.widgets['fmax'].set_value(value)
-            self.widgets['fmid'].set_value(value)
-        elif self.name == "fmax" and self.widgets['fmax'] is not None:
-            if vals['fmin'] > value:
-                vals['fmin'] = value
-                self.widgets['fmin'].set_value(value)
-            if vals['fmid'] > value:
-                vals['fmid'] = value
-                self.widgets['fmid'].set_value(value)
-            self.widgets['fmax'].set_value(value)
-        self.brain.widgets[f'entry_{self.name}'].set_value(value)
-        if time.time() > self.last_update + 1. / 60.:
-            self.callback[self.name](value)
-            self.last_update = time.time()
+        self.brain.update_lut(fmin=fmin, fmid=fmid, fmax=fmax)
+        with self.brain._no_lut_update(f'UpdateLUT {fmin} {fmid} {fmax}'):
+            for key in ('fmin', 'fmid', 'fmax'):
+                value = self.brain._data[key]
+                logger.debug(f'Updating {key} = {value}')
+                for widget in self.widgets[key]:
+                    widget.set_value(value)
 
 
 class ShowView(object):

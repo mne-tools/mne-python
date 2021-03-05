@@ -26,8 +26,12 @@ Current (0.23.dev0)
 
 .. |Enrico Varano| replace:: **Enrico Varano**
 
+.. |Dominik Welke| replace:: **Dominik Welke**
+
 Enhancements
 ~~~~~~~~~~~~
+- New Tutorial for analyzing frequency-tagging data (:gh:`8867` **by new contributor** |Dominik Welke|_ and `kalenkovich`_)
+
 - Add dbs as new channel type for deep brain stimulation (DBS) recordings (:gh:`8739` **by new contributor** |Richard Koehler|_)
 
 - Add :func:`mne.chpi.extract_chpi_locs_kit` to read cHPI coil locations from KIT/Yokogawa data (:gh:`` **by new contributor** |Matt Sanderson|_, `Robert Seymour`_, and `Eric Larson`_)
@@ -163,6 +167,8 @@ Bugs
 - `~mne.io.read_raw_bti` erroneously treated response channels as respiratory channels (:gh:`8855` by `Richard Höchenberger`_)
 
 - The RMS trace shown in the time viewer of `~mne.SourceEstimate` plots is now correctly labeled as ``RMS`` (was ``GFP`` before) (:gh:`8965` by `Richard Höchenberger`_)
+
+- Fix bug with :func:`mne.SourceEstimate.plot` and related functions where the scalars were not interactively updated properly (:gh:`8985` by `Eric Larson`_)
 
 - Fix bug with mne.channels.find_ch_adjacency() returning wrong adjacency for Neuromag122-Data (:gh:`8891` by `Martin Schulz`_)
 
