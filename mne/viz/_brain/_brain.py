@@ -475,12 +475,10 @@ class Brain(object):
                                        shape=shape,
                                        fig=figure)
 
-        self.plotter = self._renderer.plotter
-        self.viewer = self._renderer.viewer
         if self.notebook:
             self.window = None
         else:
-            self.window = self.plotter._window
+            self.window = self._renderer.figure.plotter._window
             self.window.signal_close.connect(self._clean)
 
         self._setup_canonical_rotation()
@@ -514,7 +512,7 @@ class Brain(object):
                     mesh._polydata._hemi = h
                 else:
                     actor = self._layered_meshes[h]._actor
-                    self._renderer.plotter.add_actor(actor)
+                    self._renderer.figure.viewer.add_actor(actor)
                 if self.silhouette:
                     mesh = self._layered_meshes[h]
                     self._renderer._silhouette(
@@ -664,6 +662,7 @@ class Brain(object):
         del show_traces
 
         self._configure_time_label()
+        # XXX:WIP
         self._configure_scalar_bar()
         self._configure_shortcuts()
         self._configure_picking()
@@ -696,7 +695,7 @@ class Brain(object):
             self._layered_meshes[hemi]._clean()
         self._clear_callbacks()
         self._clear_widgets()
-        self.viewer._key_press_event_callbacks.clear()
+        self._renderer.figure.viewer._key_press_event_callbacks.clear()
         if getattr(self, 'mpl_canvas', None) is not None:
             self.mpl_canvas.clear()
         if getattr(self, 'act_data_smooth', None) is not None:
@@ -707,14 +706,14 @@ class Brain(object):
             renderer.RemoveAllLights()
         # app_window cannot be set to None because it is used in __del__
         for key in ('lighting', 'interactor', '_RenderWindow'):
-            setattr(self.plotter, key, None)
+            setattr(self._renderer.figure.plotter, key, None)
         # Qt LeaveEvent requires _Iren so we use _FakeIren instead of None
         # to resolve the ref to vtkGenericRenderWindowInteractor
-        self.plotter._Iren = _FakeIren()
-        if getattr(self.plotter, 'scalar_bar', None) is not None:
-            self.plotter.scalar_bar = None
-        if getattr(self.plotter, 'picker', None) is not None:
-            self.plotter.picker = None
+        self._renderer.figure.plotter._Iren = _FakeIren()
+        if getattr(self._renderer.figure.plotter, 'scalar_bar', None) is not None:
+            self._renderer.figure.plotter.scalar_bar = None
+        if getattr(self._renderer.figure.plotter, 'picker', None) is not None:
+            self._renderer.figure.plotter.picker = None
         # XXX end PyVista
         for key in ('plotter', 'main_menu', 'window', 'tool_bar',
                     'status_bar', 'interactor', 'mpl_canvas', 'time_actor',
@@ -885,7 +884,7 @@ class Brain(object):
 
     def _configure_scalar_bar(self):
         if self._colorbar_added:
-            scalar_bar = self.viewer.scalar_bar
+            scalar_bar = self._renderer.figure.viewer.scalar_bar
             scalar_bar.SetOrientationToVertical()
             scalar_bar.SetHeight(0.6)
             scalar_bar.SetWidth(0.05)
@@ -998,8 +997,8 @@ class Brain(object):
         if len(rends) > 1:
             def select_renderer(idx):
                 idx = int(idx)
-                loc = self.viewer.index_to_loc(idx)
-                self.plotter.subplot(*loc)
+                loc = self._renderer._index_to_loc(idx)
+                self._renderer.subplot(*loc)
 
             self.callbacks["renderer"] = SmartCallBack(
                 callback=select_renderer,
@@ -1025,7 +1024,7 @@ class Brain(object):
         orientation_data = [None] * len(rends)
         for hemi in hemis_ref:
             for ri, ci, view in self._iter_views(hemi):
-                idx = self.viewer.loc_to_index((ri, ci))
+                idx = self._renderer._loc_to_index((ri, ci))
                 if view == 'flat':
                     _data = None
                 else:
@@ -1309,7 +1308,7 @@ class Brain(object):
             # simulate a picked renderer
             if self._hemi in ('both', 'rh') or hemi == 'vol':
                 idx = 0
-            self.picked_renderer = self.plotter.renderers[idx]
+            self.picked_renderer = self._renderer.figure.plotter.renderers[idx]
 
             # initialize the default point
             if self._data['initial_time'] is not None:
@@ -1372,7 +1371,7 @@ class Brain(object):
             except ImportError:
                 from pyvistaqt.plotting import FileDialog
             FileDialog(
-                self.plotter.app_window,
+                self.window,
                 callback=partial(_save_image, img=img)
             )
 
@@ -1454,21 +1453,21 @@ class Brain(object):
 
     def _configure_shortcuts(self):
         # First, we remove the default bindings:
-        self.viewer._key_press_event_callbacks.clear()
+        self._renderer.figure.viewer._key_press_event_callbacks.clear()
         # Then, we add our own:
-        self.viewer.add_key_event("i", self.toggle_interface)
-        self.viewer.add_key_event("s", self.apply_auto_scaling)
-        self.viewer.add_key_event("r", self.restore_user_scaling)
-        self.viewer.add_key_event("c", self.clear_glyphs)
-        self.viewer.add_key_event("n", partial(self._shift_time,
+        self._renderer.figure.viewer.add_key_event("i", self.toggle_interface)
+        self._renderer.figure.viewer.add_key_event("s", self.apply_auto_scaling)
+        self._renderer.figure.viewer.add_key_event("r", self.restore_user_scaling)
+        self._renderer.figure.viewer.add_key_event("c", self.clear_glyphs)
+        self._renderer.figure.viewer.add_key_event("n", partial(self._shift_time,
                                    op=lambda x, y: x + y))
-        self.viewer.add_key_event("b", partial(self._shift_time,
+        self._renderer.figure.viewer.add_key_event("b", partial(self._shift_time,
                                    op=lambda x, y: x - y))
         for key, func, sign in (("Left", self._rotate_azimuth, 1),
                                 ("Right", self._rotate_azimuth, -1),
                                 ("Up", self._rotate_elevation, 1),
                                 ("Down", self._rotate_elevation, -1)):
-            self.viewer.add_key_event(key, partial(func, sign * _ARROW_MOVE))
+            self._renderer.figure.viewer.add_key_event(key, partial(func, sign * _ARROW_MOVE))
 
     # XXX:WIP
     # def _configure_menu(self):
@@ -1503,9 +1502,9 @@ class Brain(object):
         if self._mouse_no_mvt > 0:
             x, y = vtk_picker.GetEventPosition()
             # programmatically detect the picked renderer
-            self.picked_renderer = self.plotter.iren.FindPokedRenderer(x, y)
+            self.picked_renderer = self._renderer.figure.plotter.iren.FindPokedRenderer(x, y)
             # trigger the pick
-            self.plotter.picker.Pick(x, y, 0, self.picked_renderer)
+            self._renderer.figure.plotter.picker.Pick(x, y, 0, self.picked_renderer)
         self._mouse_no_mvt = 0
 
     def _on_pick(self, vtk_picker, event):
@@ -1647,13 +1646,13 @@ class Brain(object):
         del mesh
 
         # from the picked renderer to the subplot coords
-        rindex = self.plotter.renderers.index(self.picked_renderer)
-        row, col = self.plotter.index_to_loc(rindex)
+        rindex = self._renderer.figure.plotter.renderers.index(self.picked_renderer)
+        row, col = self._renderer._index_to_loc(rindex)
 
         actors = list()
         spheres = list()
         for ri, ci, _ in self._iter_views(hemi):
-            self.plotter.subplot(ri, ci)
+            self._renderer.subplot(ri, ci)
             # Using _sphere() instead of renderer.sphere() for 2 reasons:
             # 1) renderer.sphere() fails on Windows in a scenario where a lot
             #    of picking requests are done in a short span of time (could be
@@ -1701,7 +1700,7 @@ class Brain(object):
             self.color_cycle.restore(color)
         for sphere in spheres:
             # remove all actors
-            self.plotter.remove_actor(sphere._actors, render=render)
+            self._renderer.figure.plotter.remove_actor(sphere._actors, render=render)
             sphere._actors = None
             self._spheres.pop(self._spheres.index(sphere))
         self.pick_table.pop(vertex_id)
@@ -2238,16 +2237,16 @@ class Brain(object):
             self._data[hemi]['grid_shape'] = dimensions
             self._data[hemi]['grid_volume_pos'] = volume_pos
             self._data[hemi]['grid_volume_neg'] = volume_neg
-        actor_pos, _ = self._renderer.plotter.add_actor(
+        actor_pos, _ = self._renderer.figure.viewer.add_actor(
             volume_pos, reset_camera=False, name=None, culling=False)
         if volume_neg is not None:
-            actor_neg, _ = self._renderer.plotter.add_actor(
+            actor_neg, _ = self._renderer.figure.viewer.add_actor(
                 volume_neg, reset_camera=False, name=None, culling=False)
         else:
             actor_neg = None
         grid_mesh = self._data[hemi]['grid_mesh']
         if grid_mesh is not None:
-            _, prop = self._renderer.plotter.add_actor(
+            _, prop = self._renderer.figure.viewer.add_actor(
                 grid_mesh, reset_camera=False, name=None, culling=False,
                 pickable=False)
             prop.SetColor(*self._brain_color[:3])
@@ -3047,7 +3046,7 @@ class Brain(object):
                 prop = glyph_actor.GetProperty()
                 prop.SetLineWidth(2.)
                 prop.SetOpacity(vector_alpha)
-                self._renderer.plotter.add_actor(glyph_actor)
+                self._renderer.figure.viewer.add_actor(glyph_actor)
                 hemi_data['glyph_actor'].append(glyph_actor)
             else:
                 glyph_actor = hemi_data['glyph_actor'][count]

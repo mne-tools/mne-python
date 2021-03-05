@@ -79,6 +79,11 @@ class _Figure(object):
             plotter_class = Plotter
         else:
             plotter_class = MultiPlotter
+            self.store["menu_bar"] = False
+            self.store["toolbar"] = False
+            self.store["nrows"] = self.store["shape"][0]
+            self.store["ncols"] = self.store["shape"][1]
+            self.store.pop('shape', None)
             self.store.pop('show', None)
             self.store.pop('title', None)
             self.store.pop('auto_update', None)
@@ -105,7 +110,6 @@ class _Figure(object):
 
         _process_events(self.plotter)
         _process_events(self.plotter)
-        return self.plotter, self.viewer
 
     def is_active(self):
         if self.viewer is None:
@@ -199,14 +203,10 @@ class _PyVistaRenderer(_AbstractRenderer):
                 # smooth_shading=True fails on MacOS CIs
                 self.figure.smooth_shading = False
             with _disabled_depth_peeling():
-                self.plotter, self.viewer = self.figure.build()
-            self.viewer.hide_axes()
-            if hasattr(self.viewer, "default_camera_tool_bar"):
-                self.viewer.default_camera_tool_bar.close()
-            if hasattr(self.viewer, "saved_cameras_tool_bar"):
-                self.viewer.saved_cameras_tool_bar.close()
+                self.figure.build()
+            self.figure.viewer.hide_axes()
             if self.antialias:
-                _enable_aa(self.figure, self.viewer)
+                _enable_aa(self.figure, self.figure.viewer)
 
         self.update_lighting()
 
@@ -216,11 +216,11 @@ class _PyVistaRenderer(_AbstractRenderer):
         return "MNE" + dt_string + ".png"
 
     def _get_all_renderers(self):
-        return _get_all_renderers(self.plotter)
+        return _get_all_renderers(self.figure.plotter)
 
     def _update(self):
         if self.figure.notebook:
-            self.plotter.update()
+            self.figure.plotter.update()
 
     # XXX:WIP
     # @contextmanager
@@ -252,11 +252,27 @@ class _PyVistaRenderer(_AbstractRenderer):
     #         _process_events(self.plotter)
     #         _process_events(self.plotter)
 
+    def _index_to_loc(self, idx):
+        if self.figure.notebook:
+            return self.figure.plotter.index_to_loc(idx)
+        else:
+            _ncols = self.figure.store["ncols"]
+            row = idx // _ncols
+            col = idx % _ncols
+            return (row, col)
+
+    def _loc_to_index(self, loc):
+        if self.figure.notebook:
+            return self.figure.plotter.loc_to_index(loc)
+        else:
+            _ncols = self.figure.store["ncols"]
+            return loc[0] * _ncols + loc[1]
+
     def _subplot(self, x, y):
         if self.figure.notebook:
-            self.plotter.subplot(x, y)
+            self.figure.plotter.subplot(x, y)
         else:
-            self.viewer = self.plotter[x, y]
+            self.figure.viewer = self.figure.plotter[x, y]
 
     def subplot(self, x, y):
         x = np.max([0, np.min([x, self.shape[0] - 1])])
@@ -265,7 +281,7 @@ class _PyVistaRenderer(_AbstractRenderer):
             warnings.filterwarnings("ignore", category=FutureWarning)
             self._subplot(x, y)
             if self.antialias:
-                _enable_aa(self.figure, self.viewer)
+                _enable_aa(self.figure, self.figure.viewer)
 
     def scene(self):
         return self.figure
@@ -338,7 +354,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                 rgba = kwargs["rgba"]
                 kwargs.pop('rgba')
             actor = _add_mesh(
-                plotter=self.viewer,
+                plotter=self.figure.viewer,
                 mesh=mesh, color=color, scalars=scalars,
                 rgba=rgba, opacity=opacity, cmap=colormap,
                 backface_culling=backface_culling,
@@ -403,7 +419,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                 contour = contour.tube(radius=width, n_sides=self.tube_n_sides)
                 line_width = 1.0
             actor = _add_mesh(
-                plotter=self.viewer,
+                plotter=self.figure.viewer,
                 mesh=contour,
                 show_scalar_bar=False,
                 line_width=line_width,
@@ -459,7 +475,7 @@ class _PyVistaRenderer(_AbstractRenderer):
             glyph = mesh.glyph(orient=False, scale=False,
                                factor=factor, geom=geom)
             actor = _add_mesh(
-                plotter=self.viewer,
+                plotter=self.figure.viewer,
                 mesh=glyph, color=color, opacity=opacity,
                 backface_culling=backface_culling,
                 smooth_shading=self.figure.smooth_shading
@@ -482,7 +498,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                     scalars = None
                 tube = line.tube(radius, n_sides=self.tube_n_sides)
                 _add_mesh(
-                    plotter=self.viewer,
+                    plotter=self.figure.viewer,
                     mesh=tube,
                     scalars=scalars,
                     flip_scalars=reverse_lut,
@@ -571,7 +587,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                 mesh = grid.glyph(orient='vec', scale=scale, factor=factor,
                                   geom=geom)
             _add_mesh(
-                plotter=self.viewer,
+                plotter=self.figure.viewer,
                 mesh=mesh,
                 color=color,
                 opacity=opacity,
@@ -584,7 +600,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         position = (x_window, y_window)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            actor = self.viewer.add_text(
+            actor = self.figure.viewer.add_text(
                 text, position=position, font_size=size,
                 font=self.font_family, color=color, viewport=True)
             if isinstance(justification, str):
@@ -612,9 +628,9 @@ class _PyVistaRenderer(_AbstractRenderer):
                 name=text,
                 shape_opacity=0,
             )
-            if 'always_visible' in _get_args(self.viewer.add_point_labels):
+            if 'always_visible' in _get_args(self.figure.viewer.add_point_labels):
                 kwargs['always_visible'] = True
-            self.viewer.add_point_labels(**kwargs)
+            self.figure.viewer.add_point_labels(**kwargs)
 
     def scalarbar(self, source, color="white", title=None, n_labels=4,
                   bgcolor=None, **extra_kwargs):
@@ -626,10 +642,10 @@ class _PyVistaRenderer(_AbstractRenderer):
                           label_font_size=22, font_family=self.font_family,
                           background_color=bgcolor)
             kwargs.update(extra_kwargs)
-            self.viewer.add_scalar_bar(**kwargs)
+            self.figure.viewer.add_scalar_bar(**kwargs)
 
     def show(self):
-        self.figure.display = self.plotter.show()
+        self.figure.display = self.figure.plotter.show()
         # XXX:WIP
         # if hasattr(self.plotter, "app_window"):
         #     with _qt_disable_paint(self.plotter):
@@ -649,17 +665,17 @@ class _PyVistaRenderer(_AbstractRenderer):
                      reset_camera=reset_camera, rigid=rigid)
 
     def reset_camera(self):
-        self.viewer.reset_camera()
+        self.figure.viewer.reset_camera()
 
     def screenshot(self, mode='rgb', filename=None):
         return _take_3d_screenshot(figure=self.figure, mode=mode,
                                    filename=filename)
 
     def project(self, xyz, ch_names):
-        xy = _3d_to_2d(self.viewer, xyz)
+        xy = _3d_to_2d(self.figure.viewer, xyz)
         xy = dict(zip(ch_names, xy))
         # pts = self.fig.children[-1]
-        pts = self.viewer.renderer.GetActors().GetLastItem()
+        pts = self.figure.viewer.renderer.GetActors().GetLastItem()
 
         return _Projection(xy=xy, pts=pts)
 
@@ -670,18 +686,18 @@ class _PyVistaRenderer(_AbstractRenderer):
 
     def remove_mesh(self, mesh_data):
         actor, _ = mesh_data
-        self.viewer.remove_actor(actor)
+        self.figure.viewer.remove_actor(actor)
 
     @contextmanager
     def _disabled_interaction(self):
-        if not self.viewer.renderer.GetInteractive():
+        if not self.figure.viewer.renderer.GetInteractive():
             yield
         else:
-            self.viewer.disable()
+            self.figure.viewer.disable()
             try:
                 yield
             finally:
-                self.viewer.enable()
+                self.figure.viewer.enable()
 
     def _actor(self, mapper=None):
         actor = vtk.vtkActor()
@@ -690,31 +706,31 @@ class _PyVistaRenderer(_AbstractRenderer):
         return actor
 
     def _process_events(self):
-        _process_events(self.plotter)
+        _process_events(self.figure.plotter)
 
     def _update_picking_callback(self,
                                  on_mouse_move,
                                  on_button_press,
                                  on_button_release,
                                  on_pick):
-        self.viewer.iren.AddObserver(
+        self.figure.viewer.iren.AddObserver(
             vtk.vtkCommand.RenderEvent,
             on_mouse_move
         )
-        self.viewer.iren.AddObserver(
+        self.figure.viewer.iren.AddObserver(
             vtk.vtkCommand.LeftButtonPressEvent,
             on_button_press
         )
-        self.viewer.iren.AddObserver(
+        self.figure.viewer.iren.AddObserver(
             vtk.vtkCommand.EndInteractionEvent,
             on_button_release
         )
-        self.viewer.picker = vtk.vtkCellPicker()
-        self.viewer.picker.AddObserver(
+        self.figure.viewer.picker = vtk.vtkCellPicker()
+        self.figure.viewer.picker.AddObserver(
             vtk.vtkCommand.EndPickEvent,
             on_pick
         )
-        self.viewer.picker.SetVolumeOpacityIsovalue(0.)
+        self.figure.viewer.picker.SetVolumeOpacityIsovalue(0.)
 
     def _set_mesh_scalars(self, mesh, scalars, name):
         # Catch:  FutureWarning: Conversion of the second argument of
@@ -767,7 +783,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         sphere.Update()
         mesh = pyvista.wrap(sphere.GetOutput())
         actor = _add_mesh(
-            plotter=self.viewer,
+            plotter=self.figure.viewer,
             mesh=mesh,
             color=color
         )
@@ -839,12 +855,12 @@ class _PyVistaRenderer(_AbstractRenderer):
         mesh = mesh.decimate(decimate) if decimate is not None else mesh
         silhouette_filter = vtk.vtkPolyDataSilhouette()
         silhouette_filter.SetInputData(mesh)
-        silhouette_filter.SetCamera(self.viewer.renderer.GetActiveCamera())
+        silhouette_filter.SetCamera(self.figure.viewer.renderer.GetActiveCamera())
         silhouette_filter.SetEnableFeatureAngle(0)
         silhouette_mapper = vtk.vtkPolyDataMapper()
         silhouette_mapper.SetInputConnection(
             silhouette_filter.GetOutputPort())
-        _, prop = self.viewer.add_actor(
+        _, prop = self.figure.viewer.add_actor(
             silhouette_mapper, reset_camera=False, name=None,
             culling=False, pickable=False)
         if color is not None:
