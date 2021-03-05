@@ -141,6 +141,9 @@ class _IpyToolBar(_AbstractToolBar):
         _ipy_add_widget(self.tool_bar, widget)
         self.actions[name] = widget
 
+    def _tool_bar_add_color_picker(self, name, func):
+        pass
+
     def _tool_bar_update_button_icon(self, name, icon_name):
         self.actions[name].icon = self.icons[icon_name]
 

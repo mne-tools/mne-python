@@ -465,6 +465,10 @@ class _AbstractToolBar(ABC):
         pass
 
     @abstractmethod
+    def _tool_bar_add_color_picker(self, name, func):
+        pass
+
+    @abstractmethod
     def _tool_bar_add_text(self, name, value, placeholder):
         pass
 

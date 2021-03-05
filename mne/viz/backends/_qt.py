@@ -7,15 +7,16 @@
 
 from contextlib import contextmanager
 
+import numpy as np
 import pyvista
 
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QIcon
+from PyQt5.QtGui import QIcon, QColor
 from PyQt5.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
-                             QHBoxLayout, QLabel, QToolButton,
+                             QHBoxLayout, QLabel, QPushButton, QToolButton,
                              QSlider, QSpinBox, QVBoxLayout, QWidget,
                              QSizePolicy, QScrollArea, QStyle,
-                             QStyleOptionSlider)
+                             QStyleOptionSlider, QColorDialog)
 
 from ._pyvista import _PyVistaRenderer
 from ._pyvista import (_close_all, _close_3d_figure, _check_3d_figure,  # noqa: F401,E501 analysis:ignore
@@ -135,6 +136,45 @@ class _QtDock(_AbstractDock):
         return hlayout
 
 
+# from https://github.com/GuillaumeFavelier/blockbuilder
+class QColorButton(QPushButton):
+    """Select a color interactively."""
+
+    colorChanged = pyqtSignal(list)
+
+    def __init__(self, parent=None):
+        """Initialize the ColorButton."""
+        super().__init__(parent=parent)
+        self.color_dialog = QColorDialog(self)
+        self.clicked.connect(self.color_dialog.show)
+        self.setObjectName("ColorButton")
+        self.color_dialog.colorSelected.connect(self.setColor)
+
+    def _rgb2str(self, color, is_int=False):
+        if not is_int:
+            color = np.asarray(color) * 255
+            color = color.astype(np.uint8)
+        return str(tuple(color))
+
+    def _qrgb2rgb(self, color):
+        return (
+            color.red(),
+            color.green(),
+            color.blue()
+        )
+
+    def setColor(self, color, is_int=True):
+        """Set the current button color."""
+        if isinstance(color, QColor):
+            color = self._qrgb2rgb(color)
+        color = np.asarray(color)
+        self.setStyleSheet(
+            "#ColorButton{background-color: rgb" +
+            self._rgb2str(color, is_int) + "}")
+        if is_int:
+            self.colorChanged.emit(list(color / 255.))
+
+
 class QFloatSlider(QSlider):
     """Slider that handles float values."""
 
@@ -235,6 +275,12 @@ class _QtToolBar(_AbstractToolBar):
         icon_name = name if icon_name is None else icon_name
         icon = self.icons[icon_name]
         self.actions[name] = self.tool_bar.addAction(icon, desc, func)
+
+    def _tool_bar_add_color_picker(self, name, func):
+        widget = QColorButton()
+        widget.colorChanged.connect(func)
+        self.tool_bar.addWidget(widget)
+        self.actions[name] = widget
 
     def _tool_bar_update_button_icon(self, name, icon_name):
         self.actions[name].setIcon(self.icons[icon_name])

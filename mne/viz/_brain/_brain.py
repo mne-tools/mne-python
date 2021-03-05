@@ -1368,9 +1368,16 @@ class Brain(object):
                 callback=partial(_save_image, img=img)
             )
 
+    def _set_background(self, val):
+        self.plotter.background_color = val
+
     def _configure_tool_bar(self):
         self._renderer._tool_bar_load_icons()
         self._renderer._tool_bar_initialize()
+        self._renderer._tool_bar_add_color_picker(
+            name="background",
+            func=self._set_background,
+        )
         self._renderer._tool_bar_add_button(
             name="screenshot",
             desc="Take a screenshot",
