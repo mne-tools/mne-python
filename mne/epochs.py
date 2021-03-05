@@ -2098,7 +2098,8 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
            values here as you use for your epochs.
 
     sfreq : float
-        The sampling frequency during data acquisiton.
+        The sampling frequency of the data from which the events array was
+        extracted.
     row_events : list of str | str | None
         Event types around which to create the time windows / for which to
         create **rows** in the returned metadata :class:`pandas.DataFrame`. If
@@ -2155,7 +2156,7 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
         - if applicable, additional columns named after the ``keep_first`` and
           ``keep_last`` event types; floats indicating the latency  of the
           event in seconds, relative to the time-locked event
-          
+
         - if applicable, additional columns ``first_{event_type}`` and
           ``last_{event_type}`` for ``keep_first`` and ``keep_last`` event
           types, respetively; the values will be strings indicating which event
@@ -2219,8 +2220,8 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
                 _hid_match(event_id, [first_last_event_name])
             except KeyError:
                 raise ValueError(
-                    f'Event "{first_last_event_name}", specified in {param_name}, '
-                    f'cannot be found in event_id dictionary')
+                    f'Event "{first_last_event_name}", specified in '
+                    f'{param_name}, cannot be found in event_id dictionary')
 
     event_name_diff = sorted(set(row_events) - set(event_id.keys()))
     if event_name_diff:
@@ -2304,7 +2305,7 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
             if not np.isnan(metadata.loc[row_idx, event_name]):
                 # Event already exists in current time window!
                 assert metadata.loc[row_idx, event_name] <= event_time
-    
+
                 if event_name in keep_first or event_name in event_id:
                     # We already have an event that is "firster", so abort here
                     continue
