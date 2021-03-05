@@ -992,7 +992,7 @@ class Brain(object):
         if len(rends) > 1:
             def select_renderer(idx):
                 idx = int(idx)
-                loc = self.plotter.index_to_loc(idx)
+                loc = self._renderer._index_to_loc(idx)
                 self.plotter.subplot(*loc)
 
             self.callbacks["renderer"] = SmartCallBack(
@@ -1019,7 +1019,7 @@ class Brain(object):
         orientation_data = [None] * len(rends)
         for hemi in hemis_ref:
             for ri, ci, view in self._iter_views(hemi):
-                idx = self.plotter.loc_to_index((ri, ci))
+                idx = self._renderer._loc_to_index((ri, ci))
                 if view == 'flat':
                     _data = None
                 else:
@@ -1639,7 +1639,7 @@ class Brain(object):
 
         # from the picked renderer to the subplot coords
         rindex = self.plotter.renderers.index(self.picked_renderer)
-        row, col = self.plotter.index_to_loc(rindex)
+        row, col = self._renderer._index_to_loc(rindex)
 
         actors = list()
         spheres = list()
