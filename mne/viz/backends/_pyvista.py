@@ -96,7 +96,7 @@ class _Figure(object):
             plotter = plotter_class(**self.store)
             plotter.background_color = self.background_color
             self.plotter = plotter
-            if not self.notebook and hasattr(BackgroundPlotter, 'set_icon'):
+            if not self.notebook and hasattr(plotter_class, 'set_icon'):
                 _init_qt_resources()
                 _process_events(plotter)
                 plotter.set_icon(":/mne-icon.png")
