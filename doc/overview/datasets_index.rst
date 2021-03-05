@@ -433,6 +433,7 @@ format.
     * :ref:`tut-autogenerate-metadata`: Learn how to auto-generate
       `~mne.Epochs` metadata, and visualize the error-related negativity (ERN)
       ERP component.
+
 .. _ssvep-dataset:
 
 SSVEP
