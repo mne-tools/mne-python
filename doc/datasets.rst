@@ -39,3 +39,4 @@ Datasets
    phantom_4dbti.data_path
    refmeg_noise.data_path
    ssvep.data_path
+   erp_core.data_path
