@@ -730,7 +730,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
                 elp.append(dig.pop('hpi_5'))
             elp = np.array(elp)
             hsp = np.array(hsp, float).reshape(-1, 3)
-            assert elp.shape in ((7, 3), (8, 3))
+            assert elp.shape in ((6, 3), (7, 3), (8, 3))
             # coregistration
             fid.seek(cor_dir['offset'])
             mrk = np.zeros((elp.shape[0] - 3, 3))
