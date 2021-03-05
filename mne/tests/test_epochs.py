@@ -2942,12 +2942,16 @@ def test_make_metadata(all_event_id, row_events, keep_first,
         assert np.isclose(row[event_name], 0)
 
     # Check non-time-locked events' metadata
-    for _, row in metadata.iterrows():
+    for row_idx, row in metadata.iterrows():
         event_names = sorted(set(event_id.keys()) | set(keep_first) |
                              set(keep_last) - set(row['event_name']))
         for event_name in event_names:
             if event_name in keep_first or event_name in keep_last:
                 assert isinstance(row[event_name], float)
+                if not ((event_name == 'a' and row_idx == 30) or
+                        (event_name == 'b' and row_idx == 14) or
+                        (event_name == 'c' and row_idx != 16)):
+                    assert not np.isnan(row[event_name])
 
             if event_name in keep_first and event_name not in all_event_id:
                 assert (row[f'first_{event_name}'] is None or

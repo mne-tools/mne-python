@@ -2253,21 +2253,21 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
     # event_id.keys() and keep_first / keep_last simultaneously
     keep_first_cols = [col for col in keep_first if col not in event_id]
     keep_last_cols = [col for col in keep_last if col not in event_id]
-    keep_first_name_cols = [f'first_{col}' for col in keep_first_cols]
-    keep_last_name_cols = [f'last_{col}' for col in keep_last_cols]
+    first_cols = [f'first_{col}' for col in keep_first_cols]
+    last_cols = [f'last_{col}' for col in keep_last_cols]
 
     columns = ['event_name',
                *event_id.keys(),
                *keep_first_cols,
                *keep_last_cols,
-               *keep_first_name_cols,
-               *keep_last_name_cols]
+               *first_cols,
+               *last_cols]
 
     data = np.empty((len(events_df), len(columns)))
     metadata = pd.DataFrame(data=data, columns=columns, index=events_df.index)
 
     # Event names
-    metadata[metadata.columns[0]] = ''
+    metadata.iloc[:, 0] = ''
 
     # Event times
     start_idx = 1
@@ -2307,8 +2307,7 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
                 # Event already exists in current time window!
                 assert metadata.loc[row_idx, event_name] <= event_time
 
-                if event_name in keep_first or event_name in event_id:
-                    # We already have an event that is "firster", so abort here
+                if event_name not in keep_last:
                     continue
 
             metadata.loc[row_idx, event_name] = event_time
@@ -2319,9 +2318,9 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
                     continue
 
                 if event_group_name in keep_first:
-                    event_type_col = f'first_{event_group_name}'
+                    first_last_col = f'first_{event_group_name}'
                 else:
-                    event_type_col = f'last_{event_group_name}'
+                    first_last_col = f'last_{event_group_name}'
 
                 old_time = metadata.loc[row_idx, event_group_name]
                 if not np.isnan(old_time):
@@ -2338,10 +2337,10 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
                             .replace(event_group_name, '')
                             .replace('//', '/')
                             .strip('/'))
-                    metadata.loc[row_idx, event_type_col] = name
+                    metadata.loc[row_idx, first_last_col] = name
                     del name
 
-                metadata.loc[row_idx, event_name] = event_time
+                metadata.loc[row_idx, event_group_name] = event_time
 
     # Only keep rows of interest
     if row_events:

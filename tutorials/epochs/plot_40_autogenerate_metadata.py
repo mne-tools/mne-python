@@ -183,8 +183,8 @@ print(metadata['first_response'])
 # stimulus events occurred within the 1.5 second time window we're using to
 # generate our metadata. See for example:
 
-metadata.loc[metadata['stimulus/compatible/target_left'] &
-             metadata['stimulus/compatible/target_right'],
+metadata.loc[metadata['stimulus/compatible/target_left'].notna() &
+             metadata['stimulus/compatible/target_right'].notna(),
              :]
 
 ###############################################################################
