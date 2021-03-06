@@ -659,11 +659,9 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
         The title of the window. If None, epochs name will be displayed.
         Defaults to None.
     events : None, array, shape (n_events, 3)
-        Events to show with vertical bars. If events are provided, the epoch
-        numbers are not shown to prevent overlap. You can toggle epoch
-        numbering through options (press 'o' key). You can use
-        `~mne.viz.plot_events` as a legend for the colors. By default, the
-        coloring scheme is the same.
+        Events to show with vertical bars. You can use `~mne.viz.plot_events`
+        as a legend for the colors. By default, the coloring scheme is the
+        same. Defaults to ``None``.
 
         .. warning::  If the epochs have been resampled, the events no longer
             align with the data.
