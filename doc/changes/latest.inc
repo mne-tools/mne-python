@@ -7,6 +7,11 @@
    - "Bugs" for bug fixes
    - "API changes" for backward-incompatible changes
 
+.. NOTE: changes from first-time contributors should be added to the TOP of
+   the relevant section (Enhancements / Bugs / API changes), and should look
+   like this (where xxxx is the pull request number):
+   - description of enhancement/bugfix/API change (:gh:`xxxx` **by new contributor** |Firstname Lastname|_)
+
 .. _current:
 
 Current (0.23.dev0)
@@ -151,6 +156,8 @@ Bugs
 - Function :func:`mne.set_bipolar_reference` was not working when passing ``Epochs`` constructed with some ``picks`` (:gh:`8728` by `Alex Gramfort`_)
 
 - Fix anonymization issue of FIF files after IO round trip (:gh:`8731` by `Alex Gramfort`_)
+
+- Fix bug in `mne.preprocessing.ICA.plot_sources` where right-clicking component names could yield `~mne.preprocessing.ICA.plot_properties` windows for the wrong component if ``picks`` had been specified (:gh:`8996` by `Daniel McCloy`_)
 
 - Fix title not shown in :func:`mne.viz.plot_montage` (:gh:`8752` by `Clemens Brunner`_)
 
