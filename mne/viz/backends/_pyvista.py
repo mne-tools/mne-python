@@ -82,8 +82,6 @@ class _Figure(object):
             plotter_class = MultiPlotter
             self.store["menu_bar"] = False
             self.store["toolbar"] = False
-            self.store["nrows"] = self.store["shape"][0]
-            self.store["ncols"] = self.store["shape"][1]
             self.store.pop('shape', None)
             self.store.pop('show', None)
             self.store.pop('title', None)
@@ -251,22 +249,6 @@ class _PyVistaRenderer(_AbstractRenderer):
     #         self.plotter.interactor.resize(ren_sz.width(), ren_sz.height())
     #         _process_events(self.plotter)
     #         _process_events(self.plotter)
-
-    def _index_to_loc(self, idx):
-        if self.figure.notebook:
-            return self.figure.plotter.index_to_loc(idx)
-        else:
-            _ncols = self.figure.store["ncols"]
-            row = idx // _ncols
-            col = idx % _ncols
-            return (row, col)
-
-    def _loc_to_index(self, loc):
-        if self.figure.notebook:
-            return self.figure.plotter.loc_to_index(loc)
-        else:
-            _ncols = self.figure.store["ncols"]
-            return loc[0] * _ncols + loc[1]
 
     def _subplot(self, x, y):
         if self.figure.notebook:
