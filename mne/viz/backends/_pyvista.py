@@ -977,7 +977,9 @@ def _set_3d_view(figure, azimuth=None, elevation=None, focalpoint='auto',
     # focalpoint: if 'auto', we use the center of mass of the visible
     # bounds, if None, we use the existing camera focal point otherwise
     # we use the values given by the user
-    if focalpoint == 'auto':
+    if isinstance(focalpoint, str):
+        _check_option('focalpoint', focalpoint, ('auto',),
+                      extra='when a string')
         focalpoint = (bounds[1::2] + bounds[::2]) * 0.5
     elif focalpoint is None:
         focalpoint = np.array(figure.plotter.camera_position[1])
