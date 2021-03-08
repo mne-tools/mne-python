@@ -5,10 +5,6 @@ from scipy import signal
 from scipy.linalg import toeplitz
 from scipy.spatial.distance import cdist, euclidean
 from scipy.special import gamma, gammaincinv
-import pymanopt
-from pymanopt import Problem
-from pymanopt.manifolds import Grassmann
-from pymanopt.solvers import TrustRegions
 
 
 def sliding_window(data, window, step=1, padded=False, axis=-1, copy=True):
@@ -361,9 +357,8 @@ def yulewalk_filter(X, sfreq, zi=None, ab=None, axis=-1):
 
     # apply the signal shaping filter and initialize the IIR filter state
     if zi is None:
-        zi = signal.lfilter_zi(B, A)
-        zi = np.transpose(X[:, 0] * zi[:, None])
-        out, zf = signal.lfilter(B, A, X, zi=zi, axis=axis)
+        out = signal.lfilter(B, A, X, axis=axis)
+        zf = None
     else:
         out, zf = signal.lfilter(B, A, X, zi=zi, axis=axis)
 
@@ -505,6 +500,7 @@ def block_covariance(data, window=128, overlap=0.5, padding=True,
     """
     from pyriemann.utils.covariance import _check_est
 
+    """
     assert 0 <= overlap < 1, "overlap must be < 1"
     est = _check_est(estimator)
     cov = []
@@ -518,6 +514,21 @@ def block_covariance(data, window=128, overlap=0.5, padding=True,
     while (ix + window < n_samples):
         cov.append(est(data[:, ix:ix + window]))
         ix = ix + jump
+    """
+    #window = 256
+    n_ch, n_times = data.shape
+    U = np.zeros([len(np.arange(0, n_times-1, window)), n_ch**2])
+    data = data.T
+    print(window)
+    for k in range(0, window):
+        idx_range = np.minimum(n_times-1, np.arange(k, n_times + k - 2, window))
+        #idx_range = n_times-1 if n_times-1 < np.max(idx_range) else idx_range
+        U = U + np.reshape(data[idx_range].reshape([-1, 1, n_ch]) * data[idx_range].reshape(-1, n_ch, 1), U.shape)
+        print(U[:3, :3])
+
+    #"""
+    cov = U
+    print("U after sample covariance matrices generation: ", cov[:3, :3]) #np.array(cov).reshape((-1, n_chans * n_chans))[:3, :3])
 
     return np.array(cov)
 
@@ -587,6 +598,10 @@ def nonlinear_eigenspace(L, k, alpha=1):
        Zhi Zhao, Zheng-Jian Bai, and Xiao-Qing Jin, SIAM Journal on Matrix
        Analysis and Applications, 36(2), 752-774, 2015.
     """
+    from pymanopt import Problem
+    from pymanopt.manifolds import Grassmann
+    from pymanopt.solvers import TrustRegions
+
     n = L.shape[0]
     assert L.shape[1] == n, 'L must be square.'
 

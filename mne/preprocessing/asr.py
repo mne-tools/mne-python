@@ -13,6 +13,10 @@ try:
     import pyriemann
 except ImportError:
     pyriemann = None
+try:
+    import pymanopt
+except ImportError:
+    pymanopt = None
 
 
 class ASR():
@@ -104,15 +108,15 @@ class ASR():
                  min_clean_fraction=0.25, name='asrfilter', method='euclid',
                  estimator='scm', **kwargs):
 
-        if pyriemann is None:
-            if method == 'riemann':
-                logging.warning("Need pyriemann package to use riemannian "
-                                "ASR flavor. Changing to Euclidean ASR.")
-                method = 'euclid'
-            if estimator != 'scm':
-                logging.warning("Need pyriemann package for {0} estimator. "
-                                "Changing to 'scm'.".format(estimator))
-                estimator = 'scm'
+        if method == 'riemann' and (pyriemann is None or pymanopt is None):
+            logging.warning("Need pyriemann and pymanopt packages to use "
+                            "riemannian ASR flavor. Changing to Euclidean "
+                            "ASR.")
+            method = 'euclid'
+        if estimator != 'scm' and pyriemann is None:
+            logging.warning("Need pyriemann package for {0} estimator. "
+                            "Changing to 'scm'.".format(estimator))
+            estimator = 'scm'
 
         self.cutoff = cutoff
         self.blocksize = blocksize
@@ -184,6 +188,7 @@ class ASR():
             max_bad_chans=self.max_bad_chans,
             min_clean_fraction=self.min_clean_fraction,
             max_dropout_fraction=self.max_dropout_fraction)
+
 
         # Perform calibration
         M, T = asr_calibrate(
@@ -396,7 +401,8 @@ def clean_windows(X, sfreq, max_bad_chans=0.2, zthresholds=[-3.5, 5],
             ))
 
     sample_mask2remove = np.unique(sample_maskidx)
-    clean = np.delete(X, sample_mask2remove, 1)
+    print(sample_mask2remove)
+    clean = np.delete(X, sample_mask2remove, 1) if sample_mask2remove.size else X
     sample_mask = np.ones((1, ns), dtype=bool)
 
     if sample_mask2remove.size:
@@ -504,22 +510,30 @@ def asr_calibrate(X, sfreq, cutoff=5, blocksize=100, win_len=0.5,
 
     [nc, ns] = X.shape
 
+    print("X at start: ", X[:3, :3])
+    X, _zf = yulewalk_filter(X, 128)
+    print("X after filtering", X[:3, :3])
+
     # window length for calculating thresholds
     N = int(np.round(win_len * sfreq))
 
     U = block_covariance(X, window=blocksize, overlap=win_overlap,
                          estimator=estimator)
     if method == 'euclid':
-        Uavg = geometric_median(U.reshape((-1, nc * nc)))
+        Uavg = geometric_median(U.reshape((-1, nc * nc))/blocksize)
         Uavg = Uavg.reshape((nc, nc))
     else:  # method == 'riemann'
         Uavg = pyriemann.utils.mean.mean_covariance(U, metric='riemann')
+
+    print("Uavg after sample covariance matrices generation: ", Uavg[:3, :3])
 
     # get the mixing matrix M
     M = linalg.sqrtm(np.real(Uavg))
     #D, Vtmp = linalg.eigh(M)
     D, Vtmp = nonlinear_eigenspace(M, nc) if method == "riemann" else linalg.eigh(M)
-    V = Vtmp[:, np.argsort(D)]
+    V = -Vtmp[:, np.argsort(D)]
+    print("M at start: ", M[:3, :3])
+    print("V after strat: ", V[:3, :3])
 
     # get the threshold matrix T
     x = np.abs(np.dot(V, X))
@@ -528,7 +542,7 @@ def asr_calibrate(X, sfreq, cutoff=5, blocksize=100, win_len=0.5,
     mu = np.zeros(nc)
     sig = np.zeros(nc)
 
-    for ichan in range(nc):
+    for ichan in reversed(range(nc)):
         rms = x[ichan, :] ** 2
         Y = []
         for o in offsets:
@@ -538,6 +552,9 @@ def asr_calibrate(X, sfreq, cutoff=5, blocksize=100, win_len=0.5,
             Y, min_clean_fraction, max_dropout_fraction)
 
     T = np.dot(np.diag(mu + cutoff * sig), V.T)
+
+    print("T at start: ", T[:3, :3])
+
     logging.debug('[ASR] Calibration done.')
     return M, T
 
