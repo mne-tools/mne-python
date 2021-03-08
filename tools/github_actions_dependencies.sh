@@ -9,8 +9,8 @@ else # pip --pre 3.9 (missing dipy in pre)
 	pip uninstall -yq numpy
 	pip install --progress-bar off --upgrade --pre --only-binary ":all:" python-dateutil pytz joblib threadpoolctl
 	pip install --progress-bar off --upgrade --pre --only-binary ":all:" -i "https://pypi.anaconda.org/scipy-wheels-nightly/simple" --extra-index-url https://www.riverbankcomputing.com/pypi/simple numpy scipy pandas scikit-learn PyQt5
-	pip install --progress-bar off --upgrade --pre --only-binary ":all:" -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" h5py pillow matplotlib
-	pip install --progress-bar off --upgrade --pre --only-binary ":all:" dipy numba llvmlite
+	pip install --progress-bar off --upgrade --pre --only-binary ":all:" -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" h5py pillow
+	pip install --progress-bar off --upgrade --pre --only-binary ":all:" numba llvmlite matplotlib
 	# built using vtk master branch on an Ubuntu 18.04.5 VM and uploaded to OSF:
 	wget -q https://osf.io/kej3v/download -O vtk-9.0.20201117-cp39-cp39-linux_x86_64.whl
 	pip install --progress-bar off vtk-9.0.20201117-cp39-cp39-linux_x86_64.whl
