@@ -14,6 +14,7 @@ Ezequiel Mikulan.
 
 # Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
 #          Ezequiel Mikulan <e.mikulan@gmail.com>
+#          Manorama Kadwani <manorama.kadwani@gmail.com>
 #
 # License: BSD (3-clause)
 
