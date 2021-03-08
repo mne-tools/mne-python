@@ -862,9 +862,12 @@ class MNEBrowseFigure(MNEFigure):
         fig.lasso.style_sensors(inds)
         plt_show(fig=fig)
 
-    def _create_ica_properties_fig(self, pick):
+    def _create_ica_properties_fig(self, idx):
         """Show ICA properties for the selected component."""
-        ch_name = self.mne.ch_names[pick]
+        ch_name = self.mne.ch_names[idx]
+        if ch_name not in self.mne.ica._ica_names:  # for EOG chans: do nothing
+            return
+        pick = self.mne.ica._ica_names.index(ch_name)
         fig = self._new_child_figure(figsize=(7, 6), fig_name=None,
                                      window_title=f'{ch_name} properties')
         fig, axes = _create_properties_layout(fig=fig)

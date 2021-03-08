@@ -72,6 +72,7 @@ class _Figure(object):
         self.store['multi_samples'] = 1 if sys.platform == 'darwin' else 4
 
         self.viewer = None
+        self._nrows, self._ncols = self.store["shape"]
         self._azimuth = self._elevation = None
 
     def build(self):
@@ -176,7 +177,6 @@ class _PyVistaRenderer(_AbstractRenderer):
                          smooth_shading=smooth_shading)
         self.font_family = "arial"
         self.tube_n_sides = 20
-        self.shape = shape
         antialias = _get_3d_option('antialias')
         self.antialias = antialias and not MNE_3D_BACKEND_TESTING
         if isinstance(fig, int):
@@ -274,9 +274,19 @@ class _PyVistaRenderer(_AbstractRenderer):
         else:
             self.figure.viewer = self.figure.plotter[x, y]
 
+    def _index_to_loc(self, idx):
+        _ncols = self.figure._ncols
+        row = idx // _ncols
+        col = idx % _ncols
+        return (row, col)
+
+    def _loc_to_index(self, loc):
+        _ncols = self.figure._ncols
+        return loc[0] * _ncols + loc[1]
+
     def subplot(self, x, y):
-        x = np.max([0, np.min([x, self.shape[0] - 1])])
-        y = np.max([0, np.min([y, self.shape[1] - 1])])
+        x = np.max([0, np.min([x, self.figure._nrows - 1])])
+        y = np.max([0, np.min([y, self.figure._ncols - 1])])
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             self._subplot(x, y)
