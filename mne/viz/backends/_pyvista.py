@@ -82,6 +82,8 @@ class _Figure(object):
             plotter_class = MultiPlotter
             self.store["menu_bar"] = False
             self.store["toolbar"] = False
+            self.store["nrows"] = self.store['shape'][0]
+            self.store["ncols"] = self.store['shape'][1]
             self.store.pop('shape', None)
             self.store.pop('show', None)
             self.store.pop('title', None)
