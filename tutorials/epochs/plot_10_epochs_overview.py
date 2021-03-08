@@ -176,20 +176,17 @@ print(epochs.drop_log[-4:])
 # The :class:`~mne.Epochs` object can be visualized with its events (and
 # browsed interactively) using its :meth:`~mne.Epochs.plot` method:
 
-epochs.plot(n_epochs=10, events=epochs.events)
+epochs.plot(n_epochs=10)
 
 ###############################################################################
 # Notice that the individual epochs are sequentially numbered along the bottom
-# axis; the event ID associated with the epoch is marked on the top axis;
-# epochs are separated by vertical dashed lines; and a vertical solid green
-# line marks time=0 for each epoch (i.e., in this case, the stimulus onset
-# time for each trial). Epoch plots are interactive (similar to
-# :meth:`raw.plot() <mne.io.Raw.plot>`) and have many of the same interactive
-# controls as :class:`~mne.io.Raw` plots. Horizontal and vertical scrollbars
-# allow browsing through epochs or channels (respectively), and pressing
-# :kbd:`?` when the plot is focused will show a help screen with all the
-# available controls. See :ref:`tut-visualize-epochs` for more details (as well
-# as other ways of visualizing epoched data).
+# axis. Epoch plots are interactive (similar to :meth:`raw.plot()
+# <mne.io.Raw.plot>`) and have many of the same interactive controls as
+# :class:`~mne.io.Raw` plots. Horizontal and vertical scrollbars allow browsing
+# through epochs or channels (respectively), and pressing :kbd:`?` when the
+# plot is focused will show a help screen with all the available controls. See
+# :ref:`tut-visualize-epochs` for more details (as well as other ways of
+# visualizing epoched data).
 #
 #
 # .. _tut-section-subselect-epochs:
