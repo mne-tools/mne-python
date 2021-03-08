@@ -74,6 +74,7 @@ Projections:
    compute_average_dev_head_t
    compute_current_source_density
    compute_fine_calibration
+   compute_maxwell_basis
    compute_proj_ecg
    compute_proj_eog
    create_ecg_epochs
@@ -85,7 +86,6 @@ Projections:
    ica_find_ecg_events
    ica_find_eog_events
    infomax
-   info_maxwell_basis
    maxwell_filter
    oversampled_temporal_projection
    peak_finder

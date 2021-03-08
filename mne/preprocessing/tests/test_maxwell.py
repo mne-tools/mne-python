@@ -27,7 +27,7 @@ from mne.preprocessing.maxwell import (
     maxwell_filter, _get_n_moments, _sss_basis_basic, _sh_complex_to_real,
     _sh_real_to_complex, _sh_negate, _bases_complex_to_real, _trans_sss_basis,
     _bases_real_to_complex, _prep_mf_coils, find_bad_channels_maxwell,
-    info_maxwell_basis)
+    compute_maxwell_basis)
 from mne.rank import _get_rank_sss, _compute_rank_int, compute_rank
 from mne.utils import (assert_meg_snr, catch_logging,
                        object_diff, buggy_mkl_svd, use_log_level)
@@ -1374,8 +1374,8 @@ def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, ignore_ref,
     (None, 80),
     ('in', 71),
 ])
-def test_info_maxwell_basis(regularize, n):
-    """Test info_maxwell_basis."""
+def test_compute_maxwell_basis(regularize, n):
+    """Test compute_maxwell_basis."""
     raw = read_raw_fif(raw_small_fname).crop(0, 2)
     assert raw.info['bads'] == []
     raw.del_proj()
@@ -1387,7 +1387,7 @@ def test_info_maxwell_basis(regularize, n):
     want = raw_sss.get_data('meg')
     rank = compute_rank(raw_sss)['meg']
     assert rank == n
-    S, pS, reg_moments, n_use_in = info_maxwell_basis(raw.info, **kwargs)
+    S, pS, reg_moments, n_use_in = compute_maxwell_basis(raw.info, **kwargs)
     assert n_use_in == n
     assert n_use_in == len(reg_moments) - 15  # no externals removed
     xform = S[:, :n_use_in] @ pS[:n_use_in]

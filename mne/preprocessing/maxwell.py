@@ -2277,10 +2277,11 @@ def _read_cross_talk(cross_talk, ch_names):
 
 
 @verbose
-def info_maxwell_basis(info, origin='auto', int_order=8, ext_order=3,
-                       calibration=None, coord_frame='head', regularize='in',
-                       ignore_ref=True, bad_condition='error', mag_scale=100.,
-                       extended_proj=(), verbose=None):
+def compute_maxwell_basis(info, origin='auto', int_order=8, ext_order=3,
+                          calibration=None, coord_frame='head',
+                          regularize='in', ignore_ref=True,
+                          bad_condition='error', mag_scale=100.,
+                          extended_proj=(), verbose=None):
     r"""Compute the SSS basis for a given measurement info structure.
 
     Parameters
