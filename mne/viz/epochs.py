@@ -658,7 +658,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     title : str | None
         The title of the window. If None, epochs name will be displayed.
         Defaults to None.
-    events : None, array, shape (n_events, 3)
+    events : None | array, shape (n_events, 3)
         Events to show with vertical bars. You can use `~mne.viz.plot_events`
         as a legend for the colors. By default, the coloring scheme is the
         same. Defaults to ``None``.
