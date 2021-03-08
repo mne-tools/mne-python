@@ -61,18 +61,25 @@ class _Figure(object):
         self.notebook = notebook
 
         self.store = dict()
-        self.store['show'] = show
-        self.store['title'] = title
         self.store['window_size'] = size
-        self.store['shape'] = shape
         self.store['off_screen'] = off_screen
         self.store['border'] = False
-        self.store['auto_update'] = False
         # multi_samples > 1 is broken on macOS + Intel Iris + volume rendering
         self.store['multi_samples'] = 1 if sys.platform == 'darwin' else 4
 
+        if self.notebook:
+            self.store['shape'] = shape
+        else:
+            # XXX:WIP
+            # self.store['show'] = show
+            self.store['title'] = title
+            self.store['auto_update'] = False
+            self.store["menu_bar"] = False
+            self.store["toolbar"] = False
+            self.store["nrows"] = shape[0]
+            self.store["ncols"] = shape[1]
+
         self.viewer = None
-        self._nrows, self._ncols = self.store["shape"]
         self._azimuth = self._elevation = None
 
     def build(self):
@@ -80,14 +87,6 @@ class _Figure(object):
             plotter_class = Plotter
         else:
             plotter_class = MultiPlotter
-            self.store["menu_bar"] = False
-            self.store["toolbar"] = False
-            self.store["nrows"] = self.store['shape'][0]
-            self.store["ncols"] = self.store['shape'][1]
-            self.store.pop('shape', None)
-            self.store.pop('show', None)
-            self.store.pop('title', None)
-            self.store.pop('auto_update', None)
 
         if self.plotter is None:
             if not self.notebook:
@@ -259,18 +258,18 @@ class _PyVistaRenderer(_AbstractRenderer):
             self.figure.viewer = self.figure.plotter[x, y]
 
     def _index_to_loc(self, idx):
-        _ncols = self.figure._ncols
+        _ncols = self.figure.store["ncols"]
         row = idx // _ncols
         col = idx % _ncols
         return (row, col)
 
     def _loc_to_index(self, loc):
-        _ncols = self.figure._ncols
+        _ncols = self.figure.store["ncols"]
         return loc[0] * _ncols + loc[1]
 
     def subplot(self, x, y):
-        x = np.max([0, np.min([x, self.figure._nrows - 1])])
-        y = np.max([0, np.min([y, self.figure._ncols - 1])])
+        x = np.max([0, np.min([x, self.figure.store["nrows"] - 1])])
+        y = np.max([0, np.min([y, self.figure.store["ncols"] - 1])])
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             self._subplot(x, y)
