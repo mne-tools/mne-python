@@ -6,7 +6,7 @@
 #
 # License: Simplified BSD
 
-ORIGIN = (0., 0., 0.)
+ORIGIN = 'auto'
 
 _lh_views_dict = {
     'lateral': dict(azimuth=180., elevation=90., focalpoint=ORIGIN),
