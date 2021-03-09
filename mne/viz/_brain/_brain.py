@@ -900,11 +900,7 @@ class Brain(object):
             widget=self._renderer._dock_add_label(value="+", layout=hlayout),
             notebook=self.notebook,
         )
-        if self.notebook:
-            from ..backends._notebook import _ipy_add_widget
-            _ipy_add_widget(layout, hlayout, self._renderer.dock_width)
-        else:
-            layout.addLayout(hlayout)
+        self._renderer._layout_add_widget(layout, hlayout)
         min_time = float(self._data['time'][0])
         max_time = float(self._data['time'][-1])
         self.widgets["min_time"].set_value(f"{min_time: .3f}")
@@ -1069,11 +1065,7 @@ class Brain(object):
                 notebook=self.notebook,
             )
             up.widgets[key] = [self.widgets[key], self.widgets[f"entry_{key}"]]
-            if self.notebook:
-                from ..backends._notebook import _ipy_add_widget
-                _ipy_add_widget(layout, hlayout, self._renderer.dock_width)
-            else:
-                layout.addLayout(hlayout)
+            self._renderer._layout_add_widget(layout, hlayout)
 
         # reset / minus / plus
         hlayout = self._renderer._dock_add_layout(vertical=False)
@@ -1104,11 +1096,7 @@ class Brain(object):
                 ),
                 notebook=self.notebook,
             )
-        if self.notebook:
-            from ..backends._notebook import _ipy_add_widget
-            _ipy_add_widget(layout, hlayout, self._renderer.dock_width)
-        else:
-            layout.addLayout(hlayout)
+        self._renderer._layout_add_widget(layout, hlayout)
 
         # register colorbar slider representations
         widgets = {key: self.widgets[key] for key in self.keys}

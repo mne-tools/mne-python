@@ -15,13 +15,13 @@ from PyQt5.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
                              QHBoxLayout, QLabel, QToolButton, QMenuBar,
                              QSlider, QSpinBox, QVBoxLayout, QWidget,
                              QSizePolicy, QScrollArea, QStyle, QProgressBar,
-                             QStyleOptionSlider)
+                             QStyleOptionSlider, QLayout)
 
 from ._pyvista import _PyVistaRenderer
 from ._pyvista import (_close_all, _close_3d_figure, _check_3d_figure,  # noqa: F401,E501 analysis:ignore
                        _set_3d_view, _set_3d_title, _take_3d_screenshot)  # noqa: F401,E501 analysis:ignore
 from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
-                        _AbstractStatusBar)
+                        _AbstractStatusBar, _AbstractLayout)
 from ._utils import _init_qt_resources
 
 
@@ -280,8 +280,19 @@ class _QtStatusBar(_AbstractStatusBar):
         return widget
 
 
+class _QtLayout(_AbstractLayout):
+    def _layout_initialize(self, max_width):
+        pass
+
+    def _layout_add_widget(self, layout, widget, max_width=None):
+        if isinstance(widget, QLayout):
+            layout.addLayout(widget)
+        else:
+            layout.addWidget(widget)
+
+
 class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
-                _QtStatusBar):
+                _QtStatusBar, _QtLayout):
     pass
 
 

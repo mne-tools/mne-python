@@ -443,6 +443,16 @@ class _AbstractRenderer(ABC):
         pass
 
 
+class _AbstractLayout(ABC):
+    @abstractmethod
+    def _layout_initialize(self, max_width):
+        pass
+
+    @abstractmethod
+    def _layout_add_widget(self, layout, widget):
+        pass
+
+
 class _AbstractToolBar(ABC):
     @abstractmethod
     def _tool_bar_load_icons(self):

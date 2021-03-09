@@ -10,7 +10,7 @@ from ipywidgets import (Button, Dropdown, FloatSlider, FloatText, HBox,
 
 from ...fixes import nullcontext
 from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
-                        _AbstractStatusBar)
+                        _AbstractStatusBar, _AbstractLayout)
 from ._pyvista import _PyVistaRenderer, _close_all, _set_3d_view, _set_3d_title  # noqa: F401,E501, analysis:ignore
 
 
@@ -19,6 +19,7 @@ class _IpyDock(_AbstractDock):
         self.dock_width = 300
         self.dock = self.dock_layout = VBox()
         self.dock.layout.width = f"{self.dock_width}px"
+        self._layout_initialize(self.dock_width)
 
     def _dock_finalize(self):
         pass
@@ -38,13 +39,13 @@ class _IpyDock(_AbstractDock):
     def _dock_add_label(self, value, align=False, layout=None):
         layout = self.dock_layout if layout is None else layout
         widget = Text(value=value, disabled=True)
-        _ipy_add_widget(layout, widget, self.dock_width)
+        self._layout_add_widget(layout, widget)
         return widget
 
     def _dock_add_button(self, name, callback, layout=None):
         widget = Button(description=name)
         widget.on_click(lambda x: callback())
-        _ipy_add_widget(layout, widget, self.dock_width)
+        self._layout_add_widget(layout, widget)
         return widget
 
     def _dock_named_layout(self, name, layout, compact):
@@ -53,7 +54,7 @@ class _IpyDock(_AbstractDock):
             hlayout = self._dock_add_layout(not compact)
             self._dock_add_label(
                 value=name, align=not compact, layout=hlayout)
-            _ipy_add_widget(layout, hlayout, self.dock_width)
+            self._layout_add_widget(layout, hlayout)
             layout = hlayout
         return layout
 
@@ -68,7 +69,7 @@ class _IpyDock(_AbstractDock):
             readout=False,
         )
         widget.observe(_generate_callback(callback), names='value')
-        _ipy_add_widget(layout, widget, self.dock_width)
+        self._layout_add_widget(layout, widget)
         return widget
 
     def _dock_add_spin_box(self, name, value, rng, callback,
@@ -82,7 +83,7 @@ class _IpyDock(_AbstractDock):
             readout=False,
         )
         widget.observe(_generate_callback(callback), names='value')
-        _ipy_add_widget(layout, widget, self.dock_width)
+        self._layout_add_widget(layout, widget)
         return widget
 
     def _dock_add_combo_box(self, name, value, rng,
@@ -93,13 +94,13 @@ class _IpyDock(_AbstractDock):
             options=rng,
         )
         widget.observe(_generate_callback(callback), names='value')
-        _ipy_add_widget(layout, widget, self.dock_width)
+        self._layout_add_widget(layout, widget)
         return widget
 
     def _dock_add_group_box(self, name, layout=None):
         layout = self.dock_layout if layout is None else layout
         hlayout = VBox()
-        _ipy_add_widget(layout, hlayout, self.dock_width)
+        self._layout_add_widget(layout, hlayout)
         return hlayout
 
 
@@ -128,6 +129,7 @@ class _IpyToolBar(_AbstractToolBar):
     def _tool_bar_initialize(self, window, name="default"):
         self.actions = dict()
         self.tool_bar = HBox()
+        self._layout_initialize(None)
 
     def _tool_bar_finalize(self):
         pass
@@ -139,7 +141,7 @@ class _IpyToolBar(_AbstractToolBar):
             return
         widget = Button(tooltip=desc, icon=icon)
         widget.on_click(lambda x: func())
-        _ipy_add_widget(self.tool_bar, widget)
+        self._layout_add_widget(self.tool_bar, widget)
         self.actions[name] = widget
 
     def _tool_bar_update_button_icon(self, name, icon_name):
@@ -147,7 +149,7 @@ class _IpyToolBar(_AbstractToolBar):
 
     def _tool_bar_add_text(self, name, value, placeholder):
         widget = Text(value=value, placeholder=placeholder)
-        _ipy_add_widget(self.tool_bar, widget)
+        self._layout_add_widget(self.tool_bar, widget)
         self.actions[name] = widget
 
     def _tool_bar_add_spacer(self):
@@ -176,8 +178,26 @@ class _IpyStatusBar(_AbstractStatusBar):
         pass
 
 
+class _IpyLayout(_AbstractLayout):
+    def _layout_initialize(self, max_width):
+        self._layout_max_width = max_width
+
+    def _layout_add_widget(self, layout, widget):
+        widget.layout.margin = "2px 0px 2px 0px"
+        widget.layout.min_width = "0px"
+        children = list(layout.children)
+        children.append(widget)
+        layout.children = tuple(children)
+        # Fix columns
+        if self._layout_max_width is not None and isinstance(widget, HBox):
+            children = widget.children
+            width = int(self._layout_max_width / len(children))
+            for child in children:
+                child.layout.width = f"{width}px"
+
+
 class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
-                _IpyStatusBar):
+                _IpyStatusBar, _IpyLayout):
     def __init__(self, *args, **kwargs):
         self.dock = None
         self.tool_bar = None
@@ -224,20 +244,6 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
         display(main_widget)
         self.figure.display = viewer
         return self.scene()
-
-
-def _ipy_add_widget(layout, widget, max_width=None):
-    widget.layout.margin = "2px 0px 2px 0px"
-    widget.layout.min_width = "0px"
-    children = list(layout.children)
-    children.append(widget)
-    layout.children = tuple(children)
-    # Fix columns
-    if max_width is not None and isinstance(widget, HBox):
-        children = widget.children
-        width = int(max_width / len(children))
-        for child in children:
-            child.layout.width = f"{width}px"
 
 
 _testing_context = nullcontext
