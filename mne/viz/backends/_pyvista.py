@@ -75,10 +75,10 @@ class _Figure(object):
             self.store['show'] = show
             self.store['title'] = title
             self.store['auto_update'] = False
-            self.store["menu_bar"] = False
-            self.store["toolbar"] = False
+            self.store['menu_bar'] = False
+            self.store['toolbar'] = False
 
-        self._nrows, self._ncols = self.store["shape"]
+        self._nrows, self._ncols = self.store['shape']
         self._azimuth = self._elevation = None
 
     def build(self):
