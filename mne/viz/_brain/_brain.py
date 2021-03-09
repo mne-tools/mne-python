@@ -921,7 +921,7 @@ class Brain(object):
                 double=True,
                 callback=self.callbacks["time"],
                 compact=False,
-                layout=layout
+                layout=layout,
             )
             self.callbacks["time"].widget = self.widgets["time"]
 
@@ -947,7 +947,7 @@ class Brain(object):
                 value=self.default_playback_speed_value,
                 rng=self.default_playback_speed_range,
                 callback=self.callbacks["playback_speed"],
-                layout=layout
+                layout=layout,
             )
             self.callbacks["playback_speed"].widget = \
                 self.widgets["playback_speed"]
@@ -982,7 +982,7 @@ class Brain(object):
                 value="0",
                 rng=rends,
                 callback=self.callbacks["renderer"],
-                layout=layout
+                layout=layout,
             )
             self.callbacks["renderer"].widget = \
                 self.widgets["renderer"]
@@ -1010,7 +1010,7 @@ class Brain(object):
             value=self.orientation[0],
             rng=self.orientation,
             callback=self.callbacks["orientation"],
-            layout=layout
+            layout=layout,
         )
 
     def _configure_dock_colormap_widget(self, name):
@@ -1031,14 +1031,14 @@ class Brain(object):
                 rng=rng,
                 callback=self.callbacks[key],
                 double=True,
-                layout=hlayout
+                layout=hlayout,
             )
             self.widgets[f"entry_{key}"] = self._renderer._dock_add_spin_box(
                 name=None,
                 value=self._data[key],
                 callback=self.callbacks[key],
                 rng=rng,
-                layout=hlayout
+                layout=hlayout,
             )
             up.widgets[key] = [self.widgets[key], self.widgets[f"entry_{key}"]]
             self._renderer._layout_add_widget(layout, hlayout)
@@ -1053,7 +1053,7 @@ class Brain(object):
         self.widgets["reset"] = self._renderer._dock_add_button(
             name="↺",
             callback=self.restore_user_scaling,
-            layout=hlayout
+            layout=hlayout,
         )
         for key, char, val in (("fminus", "➖", 1.2 ** -0.25),
                                ("fplus", "➕", 1.2 ** 0.25)):
@@ -1064,7 +1064,7 @@ class Brain(object):
             self.widgets[key] = self._renderer._dock_add_button(
                 name=char,
                 callback=self.callbacks[key],
-                layout=hlayout
+                layout=hlayout,
             )
         self._renderer._layout_add_widget(layout, hlayout)
 
@@ -1137,14 +1137,14 @@ class Brain(object):
             value=self.annot,
             rng=cands,
             callback=_set_annot,
-            layout=layout
+            layout=layout,
         )
         self.widgets["extract_mode"] = self._renderer._dock_add_combo_box(
             name="Extract mode",
             value=self.label_extract_mode,
             rng=modes,
             callback=_set_label_mode,
-            layout=layout
+            layout=layout,
         )
 
     def _configure_dock(self):
