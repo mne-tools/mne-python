@@ -173,8 +173,8 @@ print(epochs.drop_log[-4:])
 # Basic visualization of ``Epochs`` objects
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
-# The :class:`~mne.Epochs` object can be visualized with its events (and
-# browsed interactively) using its :meth:`~mne.Epochs.plot` method:
+# The :class:`~mne.Epochs` object can be visualized (and browsed interactively)
+# using its :meth:`~mne.Epochs.plot` method:
 
 epochs.plot(n_epochs=10)
 
