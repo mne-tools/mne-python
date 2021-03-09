@@ -98,7 +98,7 @@ class _Figure(object):
             plotter = plotter_class(**self.store)
             plotter.background_color = self.background_color
             self.plotter = plotter
-            if not self.notebook and hasattr(self.plotter, 'set_icon'):
+            if not self.notebook and hasattr(plotter_class, 'set_icon'):
                 _init_qt_resources()
                 _process_events(plotter)
                 self.plotter.set_icon(":/mne-icon.png")
@@ -136,22 +136,6 @@ class _Projection(object):
     def visible(self, state):
         """Modify visibility attribute of the sensors."""
         self.pts.SetVisibility(state)
-
-
-def _enable_aa(figure, plotter):
-    """Enable it everywhere except Azure."""
-    # XXX for some reason doing this on Azure causes access violations:
-    #     ##[error]Cmd.exe exited with code '-1073741819'
-    # So for now don't use it there. Maybe has to do with setting these
-    # before the window has actually been made "active"...?
-    # For Mayavi we have an "on activated" event or so, we should look into
-    # using this for Azure at some point, too.
-    if os.getenv('AZURE_CI_WINDOWS', 'false').lower() == 'true':
-        return
-    if figure.is_active():
-        if sys.platform != 'darwin':
-            plotter.enable_anti_aliasing()
-        plotter.ren_win.LineSmoothingOn()
 
 
 @copy_base_doc_to_subclass_doc
@@ -203,23 +187,36 @@ class _PyVistaRenderer(_AbstractRenderer):
                 self.figure.smooth_shading = False
             with _disabled_depth_peeling():
                 self.figure.build()
-            self.figure.viewer.hide_axes()
-            if self.antialias:
-                _enable_aa(self.figure, self.figure.viewer)
-
+            self._hide_axes()
+            self._enable_aa()
         self.update_lighting()
+
+    @property
+    def _all_plotters(self):
+        if self.figure.notebook:
+            return [self.figure.plotter]
+        else:
+            return self.figure.plotter._plotters
+
+    @property
+    def _all_renderers(self):
+        lst = list()
+        for plotter in self._all_plotters:
+            lst.extend(plotter.renderers)
+        return lst
+
+    def _hide_axes(self):
+        for renderer in self._all_renderers:
+            renderer.hide_axes()
+
+    def _update(self):
+        if self.figure.notebook:
+            self.figure.plotter.update()
 
     def _get_screenshot_filename(self):
         now = datetime.now()
         dt_string = now.strftime("_%Y-%m-%d_%H-%M-%S")
         return "MNE" + dt_string + ".png"
-
-    def _get_all_renderers(self):
-        return _get_all_renderers(self.figure.plotter)
-
-    def _update(self):
-        if self.figure.notebook:
-            self.figure.plotter.update()
 
     # XXX:WIP
     # @contextmanager
@@ -273,15 +270,13 @@ class _PyVistaRenderer(_AbstractRenderer):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             self._subplot(x, y)
-            if self.antialias:
-                _enable_aa(self.figure, self.figure.viewer)
 
     def scene(self):
         return self.figure
 
     def update_lighting(self):
         # Inspired from Mayavi's version of Raymond Maple 3-lights illumination
-        for renderer in self._get_all_renderers():
+        for renderer in self._all_renderers:
             lights = list(renderer.GetLights())
             headlight = lights.pop(0)
             headlight.SetSwitch(False)
@@ -301,21 +296,20 @@ class _PyVistaRenderer(_AbstractRenderer):
     # XXX:WIP
     def set_interaction(self, interaction):
         pass
-    # def set_interaction(self, interaction):
-    #     if not hasattr(self.plotter, "iren") or self.plotter.iren is None:
-    #         return
-    #     if interaction == "rubber_band_2d":
-    #         for renderer in self.plotter.renderers:
-    #             renderer.enable_parallel_projection()
-    #         if hasattr(self.plotter, 'enable_rubber_band_2d_style'):
-    #             self.plotter.enable_rubber_band_2d_style()
-    #         else:
-    #             style = vtk.vtkInteractorStyleRubberBand2D()
-    #             self.plotter.interactor.SetInteractorStyle(style)
-    #     else:
-    #         for renderer in self.plotter.renderers:
-    #             renderer.disable_parallel_projection()
-    #         getattr(self.plotter, f'enable_{interaction}_style')()
+        # if not hasattr(self.plotter, "iren") or self.plotter.iren is None:
+        #     return
+        # if interaction == "rubber_band_2d":
+        #     for renderer in self._all_renderers:
+        #         renderer.enable_parallel_projection()
+        #     if hasattr(self.plotter, 'enable_rubber_band_2d_style'):
+        #         self.plotter.enable_rubber_band_2d_style()
+        #     else:
+        #         style = vtk.vtkInteractorStyleRubberBand2D()
+        #         self.plotter.interactor.SetInteractorStyle(style)
+        # else:
+        #     for renderer in self._all_renderers:
+        #         renderer.disable_parallel_projection()
+        #     getattr(self.plotter, f'enable_{interaction}_style')()
 
     def polydata(self, mesh, color=None, opacity=1.0, normals=None,
                  backface_culling=False, scalars=None, colormap=None,
@@ -674,8 +668,27 @@ class _PyVistaRenderer(_AbstractRenderer):
 
     def enable_depth_peeling(self):
         if not self.figure.store['off_screen']:
-            for renderer in self._get_all_renderers():
+            for renderer in self._all_renderers:
                 renderer.enable_depth_peeling()
+
+    def _enable_aa(self):
+        """Enable it everywhere except Azure."""
+        if not self.antialias:
+            return
+        # XXX for some reason doing this on Azure causes access violations:
+        #     ##[error]Cmd.exe exited with code '-1073741819'
+        # So for now don't use it there. Maybe has to do with setting these
+        # before the window has actually been made "active"...?
+        # For Mayavi we have an "on activated" event or so, we should look into
+        # using this for Azure at some point, too.
+        if os.getenv('AZURE_CI_WINDOWS', 'false').lower() == 'true':
+            return
+        if self.figure.is_active():
+            if sys.platform != 'darwin':
+                for renderer in self._all_renderers:
+                    renderer.enable_anti_aliasing()
+            for plotter in self._all_plotters:
+                plotter.ren_win.LineSmoothingOn()
 
     def remove_mesh(self, mesh_data):
         actor, _ = mesh_data
@@ -862,16 +875,6 @@ class _PyVistaRenderer(_AbstractRenderer):
             prop.SetOpacity(alpha)
         if line_width is not None:
             prop.SetLineWidth(line_width)
-
-
-def _get_all_renderers(plotter):
-    if not isinstance(plotter, MultiPlotter):
-        return plotter.renderers
-    else:
-        lst = list()
-        for p in plotter._plotters:
-            lst.extend(_get_all_renderers(p))
-        return lst
 
 
 def _compute_normals(mesh):
