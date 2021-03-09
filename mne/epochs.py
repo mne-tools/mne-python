@@ -2122,25 +2122,28 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
         ``response/left`` and ``response/right``; and in trials with both
         responses occurring, you want to keep only the first response. In this
         case, you can pass ``keep_first='response'``. This will add two new
-        columns to the metadata: ``response``, indicating which **type** of
-        event (``'left'`` or``'right'``) occurred, and ``response_time``, with
-        the **time** relative to the time-locked event. To match specific
-        subsets of HEDs matching different sets of events, pass a list of
-        these subsets, e.g. ``keep_first=['response', 'stimulus']``.
-        If ``None`` (default), no event aggregation will take place and no
-        new columns will be created.
+        columns to the metadata: ``response``, indicating at what **time** the
+        event  occurred, relative to the time-locked event; and
+        ``first_response``, stating which **type** (``'left'`` or``'right'``)
+        of event occurred.
+        To match specific subsets of HEDs describing different sets of events,
+        pass a list of these subsets, e.g.
+        ``keep_first=['response', 'stimulus']``. If ``None`` (default), no
+        event aggregation will take place and no new columns will be created.
 
         .. note::
            By default, this function will always retain  the first instance
            of any event in each time window. For example, if a time window
-           contains two ``'response'`` events, the generated ``response`` and
-           ``response_time`` columns will automatically refer to the first of
-           the two events. In this specific case, it is therefore **not**
-           necessary to make use of the ``keep_first`` parameter.
+           contains two ``'response'`` events, the generated ``response``
+           column will automatically refer to the first of the two events. In
+           this specific case, it is therefore **not** necessary to make use of
+           the ``keep_first`` parameter – unless you need to differentiate
+           between two types of responses, like in the example above.
 
     keep_last : list of str | None
         Same as ``keep_first``, but for keeping only the **last**  occurrence
-        of matching events.
+        of matching events. The column indicating the **type** of an event
+        ``myevent`` will be named ``last_myevent``.
 
     Returns
     -------
