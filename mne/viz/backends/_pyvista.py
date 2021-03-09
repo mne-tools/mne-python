@@ -64,15 +64,19 @@ class _Figure(object):
         self.notebook = notebook
 
         self.store = dict()
-        self.store['show'] = show
-        self.store['title'] = title
         self.store['window_size'] = size
         self.store['shape'] = shape
         self.store['off_screen'] = off_screen
         self.store['border'] = False
-        self.store['auto_update'] = False
         # multi_samples > 1 is broken on macOS + Intel Iris + volume rendering
         self.store['multi_samples'] = 1 if sys.platform == 'darwin' else 4
+
+        if not self.notebook:
+            self.store['show'] = show
+            self.store['title'] = title
+            self.store['auto_update'] = False
+            self.store["menu_bar"] = False
+            self.store["toolbar"] = False
 
         self._nrows, self._ncols = self.store["shape"]
         self._azimuth = self._elevation = None
@@ -80,12 +84,8 @@ class _Figure(object):
     def build(self):
         if self.notebook:
             plotter_class = Plotter
-            self.store.pop('show', None)
-            self.store.pop('title', None)
-            self.store.pop('auto_update', None)
         else:
             plotter_class = BackgroundPlotter
-            self.store["toolbar"] = False
 
         if self.plotter is None:
             if not self.notebook:

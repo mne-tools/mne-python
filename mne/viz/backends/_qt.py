@@ -12,7 +12,7 @@ import pyvista
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
-                             QHBoxLayout, QLabel, QToolButton,
+                             QHBoxLayout, QLabel, QToolButton, QMenuBar,
                              QSlider, QSpinBox, QVBoxLayout, QWidget,
                              QSizePolicy, QScrollArea, QStyle,
                              QStyleOptionSlider)
@@ -248,7 +248,23 @@ class _QtToolBar(_AbstractToolBar):
         self.tool_bar.addWidget(spacer)
 
 
-class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar):
+class _QtMenuBar():
+    def _menu_initialize(self):
+        self._menus = dict()
+        self._menu_actions = dict()
+        self.menu_bar = QMenuBar()
+        self.menu_bar.setNativeMenuBar(False)
+        self.tool_bar = self.plotter.app_window.setMenuBar(self.menu_bar)
+
+    def _menu_add_submenu(self, name, desc):
+        self._menus[name] = self.menu_bar.addMenu(desc)
+
+    def _menu_add_button(self, menu_name, name, desc, func):
+        menu = self._menus[menu_name]
+        self._menu_actions[name] = menu.addAction(desc, func)
+
+
+class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar):
     pass
 
 

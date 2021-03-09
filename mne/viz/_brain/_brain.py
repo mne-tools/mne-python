@@ -624,11 +624,9 @@ class Brain(object):
         # Direct access parameters:
         self.tool_bar = None
         if self.notebook:
-            self.main_menu = None
             self.status_bar = None
             self.interactor = None
         else:
-            self.main_menu = self.plotter.main_menu
             self.status_bar = self.window.statusBar()
             self.interactor = self.plotter.interactor
 
@@ -667,13 +665,13 @@ class Brain(object):
         self._configure_picking()
         self._configure_tool_bar()
         self._configure_dock()
+        self._configure_menu()
         if self.notebook:
             self._renderer.show()
             self.mpl_canvas.show()
         self.toggle_interface()
         if not self.notebook:
             self._configure_playback()
-            self._configure_menu()
             self._configure_status_bar()
 
             # show everything at the end
@@ -712,10 +710,10 @@ class Brain(object):
         if getattr(self.plotter, 'picker', None) is not None:
             self.plotter.picker = None
         # XXX end PyVista
-        for key in ('plotter', 'main_menu', 'window', 'tool_bar',
+        for key in ('plotter', 'window', 'dock', 'tool_bar', 'menu_bar',
                     'status_bar', 'interactor', 'mpl_canvas', 'time_actor',
-                    'picked_renderer', 'act_data_smooth', '_iren',
-                    'actions', 'widgets', 'geo', '_hemi_actors', '_data'):
+                    'picked_renderer', 'act_data_smooth',
+                    'actions', 'widgets', 'geo', '_data'):
             setattr(self, key, None)
 
     @contextlib.contextmanager
@@ -1463,17 +1461,19 @@ class Brain(object):
             self.plotter.add_key_event(key, partial(func, sign * _ARROW_MOVE))
 
     def _configure_menu(self):
-        # remove default picking menu
-        to_remove = list()
-        for action in self.main_menu.actions():
-            if action.text() == "Tools":
-                to_remove.append(action)
-        for action in to_remove:
-            self.main_menu.removeAction(action)
-
-        # add help menu
-        menu = self.main_menu.addMenu('Help')
-        menu.addAction('Show MNE key bindings\t?', self.help)
+        if self.notebook:
+            return
+        self._renderer._menu_initialize()
+        self._renderer._menu_add_submenu(
+            name="help",
+            desc="Help",
+        )
+        self._renderer._menu_add_button(
+            menu_name="help",
+            name="help",
+            desc="Show MNE key bindings\t?",
+            func=self.help,
+        )
 
     def _configure_status_bar(self):
         from PyQt5.QtWidgets import QLabel, QProgressBar
