@@ -566,3 +566,16 @@ class _AbstractStatusBar(ABC):
     @abstractmethod
     def _status_bar_add_progress_bar(self, stretch=0):
         pass
+
+
+class _AbstractWidget(ABC):
+    def __init__(self, widget):
+        self.widget = widget
+
+    @abstractmethod
+    def set_value(self, value):
+        pass
+
+    @abstractmethod
+    def get_value(self):
+        pass

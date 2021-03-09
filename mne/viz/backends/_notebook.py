@@ -10,7 +10,7 @@ from ipywidgets import (Button, Dropdown, FloatSlider, FloatText, HBox,
 
 from ...fixes import nullcontext
 from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
-                        _AbstractStatusBar, _AbstractLayout)
+                        _AbstractStatusBar, _AbstractLayout, _AbstractWidget)
 from ._pyvista import _PyVistaRenderer, _close_all, _set_3d_view, _set_3d_title  # noqa: F401,E501, analysis:ignore
 
 
@@ -40,13 +40,13 @@ class _IpyDock(_AbstractDock):
         layout = self.dock_layout if layout is None else layout
         widget = Text(value=value, disabled=True)
         self._layout_add_widget(layout, widget)
-        return widget
+        return _IpyWidget(widget)
 
     def _dock_add_button(self, name, callback, layout=None):
         widget = Button(description=name)
         widget.on_click(lambda x: callback())
         self._layout_add_widget(layout, widget)
-        return widget
+        return _IpyWidget(widget)
 
     def _dock_named_layout(self, name, layout, compact):
         layout = self.dock_layout if layout is None else layout
@@ -70,7 +70,7 @@ class _IpyDock(_AbstractDock):
         )
         widget.observe(_generate_callback(callback), names='value')
         self._layout_add_widget(layout, widget)
-        return widget
+        return _IpyWidget(widget)
 
     def _dock_add_spin_box(self, name, value, rng, callback,
                            compact=True, double=True, layout=None):
@@ -84,7 +84,7 @@ class _IpyDock(_AbstractDock):
         )
         widget.observe(_generate_callback(callback), names='value')
         self._layout_add_widget(layout, widget)
-        return widget
+        return _IpyWidget(widget)
 
     def _dock_add_combo_box(self, name, value, rng,
                             callback, compact=True, layout=None):
@@ -95,7 +95,7 @@ class _IpyDock(_AbstractDock):
         )
         widget.observe(_generate_callback(callback), names='value')
         self._layout_add_widget(layout, widget)
-        return widget
+        return _IpyWidget(widget)
 
     def _dock_add_group_box(self, name, layout=None):
         layout = self.dock_layout if layout is None else layout
@@ -194,6 +194,14 @@ class _IpyLayout(_AbstractLayout):
             width = int(self._layout_max_width / len(children))
             for child in children:
                 child.layout.width = f"{width}px"
+
+
+class _IpyWidget(_AbstractWidget):
+    def set_value(self, value):
+        self.widget.value = value
+
+    def get_value(self):
+        return self.widget.value
 
 
 class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,

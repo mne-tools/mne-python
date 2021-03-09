@@ -21,7 +21,7 @@ from ._pyvista import _PyVistaRenderer
 from ._pyvista import (_close_all, _close_3d_figure, _check_3d_figure,  # noqa: F401,E501 analysis:ignore
                        _set_3d_view, _set_3d_title, _take_3d_screenshot)  # noqa: F401,E501 analysis:ignore
 from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
-                        _AbstractStatusBar, _AbstractLayout)
+                        _AbstractStatusBar, _AbstractLayout, _AbstractWidget)
 from ._utils import _init_qt_resources
 
 
@@ -63,7 +63,7 @@ class _QtDock(_AbstractDock):
             widget.setAlignment(Qt.AlignCenter)
         widget.setText(value)
         layout.addWidget(widget)
-        return widget
+        return _QtWidget(widget)
 
     def _dock_add_button(self, name, callback, layout=None):
         layout = self.dock_layout if layout is None else layout
@@ -73,7 +73,7 @@ class _QtDock(_AbstractDock):
         widget.clicked.connect(callback)
         widget.setText(name)
         layout.addWidget(widget)
-        return widget
+        return _QtWidget(widget)
 
     def _dock_named_layout(self, name, layout, compact):
         layout = self.dock_layout if layout is None else layout
@@ -97,7 +97,7 @@ class _QtDock(_AbstractDock):
         widget.setValue(cast(value))
         widget.valueChanged.connect(callback)
         layout.addWidget(widget)
-        return widget
+        return _QtWidget(widget)
 
     def _dock_add_spin_box(self, name, value, rng, callback,
                            compact=True, double=True, layout=None):
@@ -114,7 +114,7 @@ class _QtDock(_AbstractDock):
         widget.setValue(value)
         widget.valueChanged.connect(callback)
         layout.addWidget(widget)
-        return widget
+        return _QtWidget(widget)
 
     def _dock_add_combo_box(self, name, value, rng,
                             callback, compact=True, layout=None):
@@ -125,7 +125,7 @@ class _QtDock(_AbstractDock):
         widget.currentTextChanged.connect(callback)
         widget.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         layout.addWidget(widget)
-        return widget
+        return _QtWidget(widget)
 
     def _dock_add_group_box(self, name, layout=None):
         layout = self.dock_layout if layout is None else layout
@@ -278,6 +278,24 @@ class _QtStatusBar(_AbstractStatusBar):
         widget = QProgressBar()
         self.status_bar.layout().addWidget(widget, stretch)
         return widget
+
+
+class _QtWidget(_AbstractWidget):
+    def set_value(self, value):
+        if hasattr(self.widget, "setValue"):
+            self.widget.setValue(value)
+        elif hasattr(self.widget, "setCurrentText"):
+            self.widget.setCurrentText(value)
+        elif hasattr(self.widget, "setText"):
+            self.widget.setText(value)
+
+    def get_value(self):
+        if hasattr(self.widget, "value"):
+            return self.widget.value()
+        elif hasattr(self.widget, "currentText"):
+            return self.widget.currentText()
+        elif hasattr(self.widget, "text"):
+            return self.widget.text()
 
 
 class _QtLayout(_AbstractLayout):

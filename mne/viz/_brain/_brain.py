@@ -25,7 +25,7 @@ from .colormap import calculate_lut
 from .surface import _Surface
 from .view import views_dicts, _lh_views_dict
 from .mplcanvas import MplCanvas
-from .callback import (ShowView, TimeCallBack, SmartCallBack, Widget,
+from .callback import (ShowView, TimeCallBack, SmartCallBack,
                        UpdateLUT, UpdateColorbarScale)
 
 from ..utils import _show_help, _get_color_list, concatenate_images
@@ -886,20 +886,14 @@ class Brain(object):
             return
         layout = self._renderer.dock_layout if layout is None else layout
         hlayout = self._renderer._dock_add_layout(vertical=False)
-        self.widgets["min_time"] = Widget(
-            widget=self._renderer._dock_add_label(value="-", layout=hlayout),
-            notebook=self.notebook
-        )
+        self.widgets["min_time"] = \
+            self._renderer._dock_add_label(value="-", layout=hlayout)
         self._renderer._dock_add_stretch(hlayout)
-        self.widgets["current_time"] = Widget(
-            widget=self._renderer._dock_add_label(value="x", layout=hlayout),
-            notebook=self.notebook,
-        )
+        self.widgets["current_time"] = \
+            self._renderer._dock_add_label(value="x", layout=hlayout)
         self._renderer._dock_add_stretch(hlayout)
-        self.widgets["max_time"] = Widget(
-            widget=self._renderer._dock_add_label(value="+", layout=hlayout),
-            notebook=self.notebook,
-        )
+        self.widgets["max_time"] = \
+            self._renderer._dock_add_label(value="+", layout=hlayout)
         self._renderer._layout_add_widget(layout, hlayout)
         min_time = float(self._data['time'][0])
         max_time = float(self._data['time'][-1])
@@ -920,18 +914,15 @@ class Brain(object):
                 brain=self,
                 callback=self.plot_time_line,
             )
-            self.widgets["time"] = Widget(
-                widget=self._renderer._dock_add_slider(
+            self.widgets["time"] = \
+                self._renderer._dock_add_slider(
                     name="Time (s)",
                     value=self._data['time_idx'],
                     rng=[0, len_time],
                     double=True,
                     callback=self.callbacks["time"],
                     compact=False,
-                    layout=layout,
-                ),
-                notebook=self.notebook,
-            )
+                    layout=layout)
             self.callbacks["time"].widget = self.widgets["time"]
 
         # Time labels
@@ -951,16 +942,13 @@ class Brain(object):
             self.callbacks["playback_speed"] = SmartCallBack(
                 callback=self.set_playback_speed,
             )
-            self.widgets["playback_speed"] = Widget(
-                widget=self._renderer._dock_add_spin_box(
+            self.widgets["playback_speed"] = \
+                self._renderer._dock_add_spin_box(
                     name="Speed",
                     value=self.default_playback_speed_value,
                     rng=self.default_playback_speed_range,
                     callback=self.callbacks["playback_speed"],
-                    layout=layout,
-                ),
-                notebook=self.notebook,
-            )
+                    layout=layout)
             self.callbacks["playback_speed"].widget = \
                 self.widgets["playback_speed"]
 
@@ -989,16 +977,13 @@ class Brain(object):
             self.callbacks["renderer"] = SmartCallBack(
                 callback=select_renderer,
             )
-            self.widgets["renderer"] = Widget(
-                widget=self._renderer._dock_add_combo_box(
+            self.widgets["renderer"] = \
+                self._renderer._dock_add_combo_box(
                     name="Renderer",
                     value="0",
                     rng=rends,
                     callback=self.callbacks["renderer"],
-                    layout=layout,
-                ),
-                notebook=self.notebook,
-            )
+                    layout=layout)
             self.callbacks["renderer"].widget = \
                 self.widgets["renderer"]
 
@@ -1020,16 +1005,13 @@ class Brain(object):
             brain=self,
             data=orientation_data,
         )
-        self.widgets["orientation"] = Widget(
-            widget=self._renderer._dock_add_combo_box(
+        self.widgets["orientation"] = \
+            self._renderer._dock_add_combo_box(
                 name=None,
                 value=self.orientation[0],
                 rng=self.orientation,
                 callback=self.callbacks["orientation"],
-                layout=layout,
-            ),
-            notebook=self.notebook,
-        )
+                layout=layout)
 
     def _configure_dock_colormap_widget(self, name):
         layout = self._renderer._dock_add_group_box(name)
@@ -1043,27 +1025,21 @@ class Brain(object):
             hlayout = self._renderer._dock_add_layout(vertical=False)
             rng = _get_range(self)
             self.callbacks[key] = lambda value, key=key: up(**{key: value})
-            self.widgets[key] = Widget(
-                widget=self._renderer._dock_add_slider(
+            self.widgets[key] = \
+                self._renderer._dock_add_slider(
                     name=None,
                     value=self._data[key],
                     rng=rng,
                     callback=self.callbacks[key],
                     double=True,
-                    layout=hlayout,
-                ),
-                notebook=self.notebook,
-            )
-            self.widgets[f"entry_{key}"] = Widget(
-                widget=self._renderer._dock_add_spin_box(
+                    layout=hlayout)
+            self.widgets[f"entry_{key}"] = \
+                self._renderer._dock_add_spin_box(
                     name=None,
                     value=self._data[key],
                     callback=self.callbacks[key],
                     rng=rng,
-                    layout=hlayout,
-                ),
-                notebook=self.notebook,
-            )
+                    layout=hlayout)
             up.widgets[key] = [self.widgets[key], self.widgets[f"entry_{key}"]]
             self._renderer._layout_add_widget(layout, hlayout)
 
@@ -1074,28 +1050,22 @@ class Brain(object):
             align=True,
             layout=hlayout,
         )
-        self.widgets["reset"] = Widget(
-            widget=self._renderer._dock_add_button(
+        self.widgets["reset"] = \
+            self._renderer._dock_add_button(
                 name="↺",
                 callback=self.restore_user_scaling,
-                layout=hlayout,
-            ),
-            notebook=self.notebook,
-        )
+                layout=hlayout)
         for key, char, val in (("fminus", "➖", 1.2 ** -0.25),
                                ("fplus", "➕", 1.2 ** 0.25)):
             self.callbacks[key] = UpdateColorbarScale(
                 brain=self,
                 factor=val,
             )
-            self.widgets[key] = Widget(
-                widget=self._renderer._dock_add_button(
+            self.widgets[key] = \
+                self._renderer._dock_add_button(
                     name=char,
                     callback=self.callbacks[key],
-                    layout=hlayout,
-                ),
-                notebook=self.notebook,
-            )
+                    layout=hlayout)
         self._renderer._layout_add_widget(layout, hlayout)
 
         # register colorbar slider representations
@@ -1162,26 +1132,20 @@ class Brain(object):
             _set_annot('None')
         else:
             _set_annot(self.annot)
-        self.widgets["annotation"] = Widget(
-            widget=self._renderer._dock_add_combo_box(
+        self.widgets["annotation"] = \
+            self._renderer._dock_add_combo_box(
                 name="Annotation",
                 value=self.annot,
                 rng=cands,
                 callback=_set_annot,
-                layout=layout,
-            ),
-            notebook=self.notebook,
-        )
-        self.widgets["extract_mode"] = Widget(
-            widget=self._renderer._dock_add_combo_box(
+                layout=layout)
+        self.widgets["extract_mode"] = \
+            self._renderer._dock_add_combo_box(
                 name="Extract mode",
                 value=self.label_extract_mode,
                 rng=modes,
                 callback=_set_label_mode,
-                layout=layout,
-            ),
-            notebook=self.notebook,
-        )
+                layout=layout)
 
     def _configure_dock(self):
         self._renderer._dock_initialize(window=self.window)
@@ -1194,16 +1158,13 @@ class Brain(object):
         self.callbacks["smoothing"] = SmartCallBack(
             callback=self.set_data_smoothing,
         )
-        self.widgets["smoothing"] = Widget(
-            widget=self._renderer._dock_add_spin_box(
+        self.widgets["smoothing"] = \
+            self._renderer._dock_add_spin_box(
                 name="Smoothing",
                 value=self._data['smoothing_steps'],
                 rng=self.default_smoothing_range,
                 callback=self.callbacks["smoothing"],
-                double=False,
-            ),
-            notebook=self.notebook,
-        )
+                double=False)
         self.callbacks["smoothing"].widget = \
             self.widgets["smoothing"]
 
