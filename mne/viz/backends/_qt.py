@@ -254,7 +254,7 @@ class _QtMenuBar():
         self._menu_actions = dict()
         self.menu_bar = QMenuBar()
         self.menu_bar.setNativeMenuBar(False)
-        self.tool_bar = self.plotter.app_window.setMenuBar(self.menu_bar)
+        self.plotter.app_window.setMenuBar(self.menu_bar)
 
     def _menu_add_submenu(self, name, desc):
         self._menus[name] = self.menu_bar.addMenu(desc)
