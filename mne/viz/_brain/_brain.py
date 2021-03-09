@@ -675,7 +675,7 @@ class Brain(object):
             with _qt_disable_paint(self.plotter):
                 with self._ensure_minimum_sizes():
                     self.show()
-            self._update()
+            self._renderer._update()
 
     @safe_event
     def _clean(self):
@@ -778,7 +778,7 @@ class Brain(object):
                 self._renderer._tool_bar_update_button_icon(
                     name="visibility", icon_name="visibility_off")
 
-        self._update()
+        self._renderer._update()
 
     def apply_auto_scaling(self):
         """Detect automatically fitting scaling parameters."""
@@ -827,7 +827,7 @@ class Brain(object):
                 self._data["initial_time_idx"],
                 update_widget=True,
             )
-        self._update()
+        self._renderer._update()
 
     def set_playback_speed(self, speed):
         """Set the time playback speed.
@@ -1118,9 +1118,6 @@ class Brain(object):
     def _configure_dock_trace_widget(self, name):
         if not self.show_traces:
             return
-        if self.notebook:
-            self._configure_vertex_time_course()
-            return
         # do not show trace mode for volumes
         if (self._data.get('src', None) is not None and
                 self._data['src'].kind == 'volume'):
@@ -1142,7 +1139,7 @@ class Brain(object):
             else:
                 self.traces_mode = 'label'
                 self._configure_label_time_course()
-            self._update()
+            self._renderer._update()
 
         # setup label extraction parameters
         def _set_label_mode(mode):
@@ -1159,7 +1156,7 @@ class Brain(object):
             self.mpl_canvas.axes.relim()
             self.mpl_canvas.axes.autoscale_view()
             self.mpl_canvas.update_plot()
-            self._update()
+            self._renderer._update()
 
         from ...source_estimate import _get_allowed_label_modes
         from ...label import _read_annot_cands
@@ -1708,7 +1705,7 @@ class Brain(object):
         if self.rms is not None:
             self.rms.remove()
             self.rms = None
-        self._update()
+        self._renderer._update()
 
     def plot_time_course(self, hemi, vertex_id, color):
         """Plot the vertex time course.
@@ -2133,7 +2130,7 @@ class Brain(object):
             for label in self._labels[hemi]:
                 mesh.remove_overlay(label.name)
             self._labels[hemi].clear()
-        self._update()
+        self._renderer._update()
 
     def remove_annotations(self):
         """Remove all annotations from the image."""
@@ -2141,7 +2138,7 @@ class Brain(object):
             mesh = self._layered_meshes[hemi]
             mesh.remove_overlay(self._annots[hemi])
             self._annots[hemi].clear()
-        self._update()
+        self._renderer._update()
 
     def _add_volume_data(self, hemi, src, volume_options):
         _validate_type(src, SourceSpaces, 'src')
@@ -2404,7 +2401,7 @@ class Brain(object):
                 label._color = orig_color
                 label._line = line
             self._labels[hemi].append(label)
-        self._update()
+        self._renderer._update()
 
     def add_foci(self, coords, coords_as_verts=False, map_surface=None,
                  scale_factor=1, color="white", alpha=1, name=None,
@@ -2645,7 +2642,7 @@ class Brain(object):
                     self._renderer._set_colormap_range(
                         mesh._actor, cmap.astype(np.uint8), None)
 
-        self._update()
+        self._renderer._update()
 
     def close(self):
         """Close all figures and cleanup data structure."""
@@ -2697,7 +2694,7 @@ class Brain(object):
         self._renderer.subplot(row, col)
         xfm = self._rigid if align else None
         self._renderer.set_camera(**view, reset_camera=False, rigid=xfm)
-        self._update()
+        self._renderer._update()
 
     def reset_view(self):
         """Reset the camera."""
@@ -2834,7 +2831,7 @@ class Brain(object):
             with self._no_lut_update(f'update_lut {args}'):
                 for key in ('fmin', 'fmid', 'fmax'):
                     self.callbacks[key](lims[key])
-        self._update()
+        self._renderer._update()
 
     def set_data_smoothing(self, n_steps):
         """Set the number of smoothing steps.
@@ -2973,7 +2970,7 @@ class Brain(object):
                     self._update_glyphs(hemi, vectors)
 
         self._data['time_idx'] = time_idx
-        self._update()
+        self._renderer._update()
 
     def set_time(self, time):
         """Set the time to display (in seconds).
@@ -3419,14 +3416,6 @@ class Brain(object):
     def enable_depth_peeling(self):
         """Enable depth peeling."""
         self._renderer.enable_depth_peeling()
-
-    def _update(self):
-        from ..backends import renderer
-        if renderer.get_3d_backend() in ['pyvista', 'notebook']:
-            if self.notebook and self._renderer.figure.display is not None:
-                self._renderer.figure.display.update_canvas()
-            else:
-                self._renderer.plotter.update()
 
     def get_picked_points(self):
         """Return the vertices of the picked points.

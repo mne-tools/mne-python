@@ -184,6 +184,10 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
         kwargs["notebook"] = True
         super().__init__(*args, **kwargs)
 
+    def _update(self):
+        if self.figure.display is not None:
+            self.figure.display.update_canvas()
+
     def _screenshot(self):
         fname = self.actions["screenshot_field"].value
         fname = self._get_screenshot_filename() if len(fname) == 0 else fname
