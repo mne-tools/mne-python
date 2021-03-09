@@ -214,8 +214,8 @@ class _PyVistaRenderer(_AbstractRenderer):
             renderer.hide_axes()
 
     def _update(self):
-        if self.figure.notebook:
-            self.figure.plotter.update()
+        for plotter in self._all_plotters:
+            plotter.update()
 
     def _get_screenshot_filename(self):
         now = datetime.now()
