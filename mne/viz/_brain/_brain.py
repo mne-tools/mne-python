@@ -622,7 +622,6 @@ class Brain(object):
         self.keys = ('fmin', 'fmid', 'fmax')
 
         # Direct access parameters:
-        self.tool_bar = None
         if self.notebook:
             self.status_bar = None
             self.interactor = None
