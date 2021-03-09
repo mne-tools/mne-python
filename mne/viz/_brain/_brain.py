@@ -622,14 +622,9 @@ class Brain(object):
         self.keys = ('fmin', 'fmid', 'fmax')
 
         # Direct access parameters:
-        self.tool_bar = None
         if self.notebook:
-            self.main_menu = None
-            self.status_bar = None
             self.interactor = None
         else:
-            self.main_menu = self.plotter.main_menu
-            self.status_bar = self.window.statusBar()
             self.interactor = self.plotter.interactor
 
         # Derived parameters:
@@ -667,14 +662,14 @@ class Brain(object):
         self._configure_picking()
         self._configure_tool_bar()
         self._configure_dock()
+        self._configure_menu()
+        self._configure_status_bar()
         if self.notebook:
             self._renderer.show()
             self.mpl_canvas.show()
         self.toggle_interface()
         if not self.notebook:
             self._configure_playback()
-            self._configure_menu()
-            self._configure_status_bar()
 
             # show everything at the end
             with _qt_disable_paint(self.plotter):
@@ -712,10 +707,10 @@ class Brain(object):
         if getattr(self.plotter, 'picker', None) is not None:
             self.plotter.picker = None
         # XXX end PyVista
-        for key in ('plotter', 'main_menu', 'window', 'tool_bar',
+        for key in ('plotter', 'window', 'dock', 'tool_bar', 'menu_bar',
                     'status_bar', 'interactor', 'mpl_canvas', 'time_actor',
-                    'picked_renderer', 'act_data_smooth', '_iren',
-                    'actions', 'widgets', 'geo', '_hemi_actors', '_data'):
+                    'picked_renderer', 'act_data_smooth',
+                    'actions', 'widgets', 'geo', '_data'):
             setattr(self, key, None)
 
     @contextlib.contextmanager
@@ -1204,7 +1199,7 @@ class Brain(object):
         )
 
     def _configure_dock(self):
-        self._renderer._dock_initialize()
+        self._renderer._dock_initialize(window=self.window)
         self._configure_dock_playback_widget(name="Playback")
         self._configure_dock_orientation_widget(name="Orientation")
         self._configure_dock_colormap_widget(name="Color Limits")
@@ -1370,7 +1365,7 @@ class Brain(object):
 
     def _configure_tool_bar(self):
         self._renderer._tool_bar_load_icons()
-        self._renderer._tool_bar_initialize()
+        self._renderer._tool_bar_initialize(window=self.window)
         self._renderer._tool_bar_add_button(
             name="screenshot",
             desc="Take a screenshot",
@@ -1463,25 +1458,25 @@ class Brain(object):
             self.plotter.add_key_event(key, partial(func, sign * _ARROW_MOVE))
 
     def _configure_menu(self):
-        # remove default picking menu
-        to_remove = list()
-        for action in self.main_menu.actions():
-            if action.text() == "Tools":
-                to_remove.append(action)
-        for action in to_remove:
-            self.main_menu.removeAction(action)
-
-        # add help menu
-        menu = self.main_menu.addMenu('Help')
-        menu.addAction('Show MNE key bindings\t?', self.help)
+        self._renderer._menu_initialize(window=self.window)
+        self._renderer._menu_add_submenu(
+            name="help",
+            desc="Help",
+        )
+        self._renderer._menu_add_button(
+            menu_name="help",
+            name="help",
+            desc="Show MNE key bindings\t?",
+            func=self.help,
+        )
 
     def _configure_status_bar(self):
-        from PyQt5.QtWidgets import QLabel, QProgressBar
-        self.status_msg = QLabel(self.default_status_bar_msg)
-        self.status_progress = QProgressBar()
-        self.status_bar.layout().addWidget(self.status_msg, 1)
-        self.status_bar.layout().addWidget(self.status_progress, 0)
-        self.status_progress.hide()
+        self._renderer._status_bar_initialize(window=self.window)
+        self.status_msg = self._renderer._status_bar_add_label(
+            self.default_status_bar_msg, stretch=1)
+        self.status_progress = self._renderer._status_bar_add_progress_bar()
+        if self.status_progress is not None:
+            self.status_progress.hide()
 
     def _on_mouse_move(self, vtk_picker, event):
         if self._mouse_no_mvt:

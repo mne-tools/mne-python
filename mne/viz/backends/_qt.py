@@ -12,20 +12,21 @@ import pyvista
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
-                             QHBoxLayout, QLabel, QToolButton,
+                             QHBoxLayout, QLabel, QToolButton, QMenuBar,
                              QSlider, QSpinBox, QVBoxLayout, QWidget,
-                             QSizePolicy, QScrollArea, QStyle,
+                             QSizePolicy, QScrollArea, QStyle, QProgressBar,
                              QStyleOptionSlider)
 
 from ._pyvista import _PyVistaRenderer
 from ._pyvista import (_close_all, _close_3d_figure, _check_3d_figure,  # noqa: F401,E501 analysis:ignore
                        _set_3d_view, _set_3d_title, _take_3d_screenshot)  # noqa: F401,E501 analysis:ignore
-from ._abstract import _AbstractDock, _AbstractToolBar
+from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
+                        _AbstractStatusBar)
 from ._utils import _init_qt_resources
 
 
 class _QtDock(_AbstractDock):
-    def _dock_initialize(self):
+    def _dock_initialize(self, window):
         self.dock = QDockWidget()
         self.scroll = QScrollArea(self.dock)
         self.dock.setWidget(self.scroll)
@@ -34,7 +35,7 @@ class _QtDock(_AbstractDock):
         self.scroll.setWidgetResizable(True)
         self.dock.setAllowedAreas(Qt.LeftDockWidgetArea)
         self.dock.setFeatures(QDockWidget.NoDockWidgetFeatures)
-        self.plotter.app_window.addDockWidget(Qt.LeftDockWidgetArea, self.dock)
+        window.addDockWidget(Qt.LeftDockWidgetArea, self.dock)
         self.dock_layout = QVBoxLayout()
         widget.setLayout(self.dock_layout)
 
@@ -224,9 +225,9 @@ class _QtToolBar(_AbstractToolBar):
         self.icons["visibility_on"] = QIcon(":/visibility_on.svg")
         self.icons["visibility_off"] = QIcon(":/visibility_off.svg")
 
-    def _tool_bar_initialize(self, name="default"):
+    def _tool_bar_initialize(self, window, name="default"):
         self.actions = dict()
-        self.tool_bar = self.plotter.app_window.addToolBar(name)
+        self.tool_bar = window.addToolBar(name)
 
     def _tool_bar_finalize(self):
         pass
@@ -248,7 +249,39 @@ class _QtToolBar(_AbstractToolBar):
         self.tool_bar.addWidget(spacer)
 
 
-class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar):
+class _QtMenuBar(_AbstractMenuBar):
+    def _menu_initialize(self, window):
+        self._menus = dict()
+        self._menu_actions = dict()
+        self.menu_bar = QMenuBar()
+        self.menu_bar.setNativeMenuBar(False)
+        window.setMenuBar(self.menu_bar)
+
+    def _menu_add_submenu(self, name, desc):
+        self._menus[name] = self.menu_bar.addMenu(desc)
+
+    def _menu_add_button(self, menu_name, name, desc, func):
+        menu = self._menus[menu_name]
+        self._menu_actions[name] = menu.addAction(desc, func)
+
+
+class _QtStatusBar(_AbstractStatusBar):
+    def _status_bar_initialize(self, window):
+        self.status_bar = window.statusBar()
+
+    def _status_bar_add_label(self, value, stretch=0):
+        widget = QLabel(value)
+        self.status_bar.layout().addWidget(widget, stretch)
+        return widget
+
+    def _status_bar_add_progress_bar(self, stretch=0):
+        widget = QProgressBar()
+        self.status_bar.layout().addWidget(widget, stretch)
+        return widget
+
+
+class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
+                _QtStatusBar):
     pass
 
 

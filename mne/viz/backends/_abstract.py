@@ -449,7 +449,7 @@ class _AbstractToolBar(ABC):
         pass
 
     @abstractmethod
-    def _tool_bar_initialize(self, name="default"):
+    def _tool_bar_initialize(self, window, name="default"):
         pass
 
     @abstractmethod
@@ -475,7 +475,7 @@ class _AbstractToolBar(ABC):
 
 class _AbstractDock(ABC):
     @abstractmethod
-    def _dock_initialize(self):
+    def _dock_initialize(self, window):
         pass
 
     @abstractmethod
@@ -527,4 +527,32 @@ class _AbstractDock(ABC):
 
     @abstractmethod
     def _dock_add_group_box(self, name, layout=None):
+        pass
+
+
+class _AbstractMenuBar(ABC):
+    @abstractmethod
+    def _menu_initialize(self, window):
+        pass
+
+    @abstractmethod
+    def _menu_add_submenu(self, name, desc):
+        pass
+
+    @abstractmethod
+    def _menu_add_button(self, menu_name, name, desc, func):
+        pass
+
+
+class _AbstractStatusBar(ABC):
+    @abstractmethod
+    def _status_bar_initialize(self, window):
+        pass
+
+    @abstractmethod
+    def _status_bar_add_label(self, value, stretch=0):
+        pass
+
+    @abstractmethod
+    def _status_bar_add_progress_bar(self, stretch=0):
         pass

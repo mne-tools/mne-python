@@ -9,12 +9,13 @@ from ipywidgets import (Button, Dropdown, FloatSlider, FloatText, HBox,
                         IntSlider, IntText, Text, VBox)
 
 from ...fixes import nullcontext
-from ._abstract import _AbstractDock, _AbstractToolBar
+from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
+                        _AbstractStatusBar)
 from ._pyvista import _PyVistaRenderer, _close_all, _set_3d_view, _set_3d_title  # noqa: F401,E501, analysis:ignore
 
 
 class _IpyDock(_AbstractDock):
-    def _dock_initialize(self):
+    def _dock_initialize(self, window):
         self.dock_width = 300
         self.dock = self.dock_layout = VBox()
         self.dock.layout.width = f"{self.dock_width}px"
@@ -124,7 +125,7 @@ class _IpyToolBar(_AbstractToolBar):
         self.icons["visibility_on"] = "eye"
         self.icons["visibility_off"] = "eye"
 
-    def _tool_bar_initialize(self, name="default"):
+    def _tool_bar_initialize(self, window, name="default"):
         self.actions = dict()
         self.tool_bar = HBox()
 
@@ -153,7 +154,30 @@ class _IpyToolBar(_AbstractToolBar):
         pass
 
 
-class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar):
+class _IpyMenuBar(_AbstractMenuBar):
+    def _menu_initialize(self, window):
+        pass
+
+    def _menu_add_submenu(self, name, desc):
+        pass
+
+    def _menu_add_button(self, menu_name, name, desc, func):
+        pass
+
+
+class _IpyStatusBar(_AbstractStatusBar):
+    def _status_bar_initialize(self, window):
+        pass
+
+    def _status_bar_add_label(self, value, stretch=0):
+        pass
+
+    def _status_bar_add_progress_bar(self, stretch=0):
+        pass
+
+
+class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
+                _IpyStatusBar):
     def __init__(self, *args, **kwargs):
         self.dock = None
         self.tool_bar = None
@@ -167,7 +191,7 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar):
 
     def _create_default_tool_bar(self):
         self._tool_bar_load_icons()
-        self._tool_bar_initialize()
+        self._tool_bar_initialize(window=None)
         self._tool_bar_add_button(
             name="screenshot",
             desc="Take a screenshot",
