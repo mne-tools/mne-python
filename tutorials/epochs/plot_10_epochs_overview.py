@@ -180,7 +180,8 @@ epochs.plot(n_epochs=10)
 
 ###############################################################################
 # Notice that the individual epochs are sequentially numbered along the bottom
-# axis. Epoch plots are interactive (similar to :meth:`raw.plot()
+# axis and are separated by vertical dashed lines.
+# Epoch plots are interactive (similar to :meth:`raw.plot()
 # <mne.io.Raw.plot>`) and have many of the same interactive controls as
 # :class:`~mne.io.Raw` plots. Horizontal and vertical scrollbars allow browsing
 # through epochs or channels (respectively), and pressing :kbd:`?` when the
