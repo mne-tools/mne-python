@@ -80,6 +80,7 @@ class _Figure(object):
             self.store["ncols"] = shape[1]
 
         self.viewer = None
+        self._nrows, self._ncols = shape
         self._azimuth = self._elevation = None
 
     def build(self):
@@ -248,28 +249,21 @@ class _PyVistaRenderer(_AbstractRenderer):
     #         _process_events(self.plotter)
     #         _process_events(self.plotter)
 
-    def _subplot(self, x, y):
+    def _index_to_loc(self, idx):
+        row = idx // self.figure._ncols
+        col = idx % self.figure._ncols
+        return (row, col)
+
+    def _loc_to_index(self, loc):
+        return loc[0] * self.figure._ncols + loc[1]
+
+    def subplot(self, x, y):
+        x = np.max([0, np.min([x, self.figure._nrows - 1])])
+        y = np.max([0, np.min([y, self.figure._ncols - 1])])
         if self.figure.notebook:
             self.figure.plotter.subplot(x, y)
         else:
             self.figure.viewer = self.figure.plotter[x, y]
-
-    def _index_to_loc(self, idx):
-        _ncols = self.figure.store["ncols"]
-        row = idx // _ncols
-        col = idx % _ncols
-        return (row, col)
-
-    def _loc_to_index(self, loc):
-        _ncols = self.figure.store["ncols"]
-        return loc[0] * _ncols + loc[1]
-
-    def subplot(self, x, y):
-        x = np.max([0, np.min([x, self.figure.store["nrows"] - 1])])
-        y = np.max([0, np.min([y, self.figure.store["ncols"] - 1])])
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=FutureWarning)
-            self._subplot(x, y)
 
     def scene(self):
         return self.figure
