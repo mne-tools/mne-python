@@ -201,10 +201,13 @@ class _PyVistaRenderer(_AbstractRenderer):
 
     @property
     def _all_renderers(self):
-        lst = list()
-        for plotter in self._all_plotters:
-            lst.extend(plotter.renderers)
-        return lst
+        if self.figure.notebook:
+            self.figure.plotter.renderers
+        else:
+            lst = list()
+            for plotter in self._all_plotters:
+                lst.extend(plotter.renderers)
+            return lst
 
     def _hide_axes(self):
         for renderer in self._all_renderers:
