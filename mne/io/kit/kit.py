@@ -720,14 +720,17 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
                     hsp.append(rr)
 
             # nasion, lpa, rpa, HPI in native space
-            elp = [dig.pop(key) for key in (
-                'fidnz', 'fidt9', 'fidt10',
-                'hpi_1', 'hpi_2', 'hpi_3', 'hpi_4')]
-            if 'hpi_5' in dig and dig['hpi_5'].any():
-                elp.append(dig.pop('hpi_5'))
+            elp = []
+            for key in (
+                    'fidnz', 'fidt9', 'fidt10',
+                    'hpi_1', 'hpi_2', 'hpi_3', 'hpi_4', 'hpi_5'):
+                if key in dig and np.isfinite(dig[key]).all():
+                    elp.append(dig.pop(key))
             elp = np.array(elp)
             hsp = np.array(hsp, float).reshape(-1, 3)
-            assert elp.shape in ((7, 3), (8, 3))
+            if elp.shape not in ((6, 3), (7, 3), (8, 3)):
+                raise RuntimeError(
+                    f'Fewer than 3 HPI coils found, got {len(elp) - 3}')
             # coregistration
             fid.seek(cor_dir['offset'])
             mrk = np.zeros((elp.shape[0] - 3, 3))
