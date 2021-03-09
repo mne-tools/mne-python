@@ -25,7 +25,7 @@ from ._utils import _init_qt_resources
 
 
 class _QtDock(_AbstractDock):
-    def _dock_initialize(self):
+    def _dock_initialize(self, window):
         self.dock = QDockWidget()
         self.scroll = QScrollArea(self.dock)
         self.dock.setWidget(self.scroll)
@@ -34,7 +34,7 @@ class _QtDock(_AbstractDock):
         self.scroll.setWidgetResizable(True)
         self.dock.setAllowedAreas(Qt.LeftDockWidgetArea)
         self.dock.setFeatures(QDockWidget.NoDockWidgetFeatures)
-        self.plotter.app_window.addDockWidget(Qt.LeftDockWidgetArea, self.dock)
+        window.addDockWidget(Qt.LeftDockWidgetArea, self.dock)
         self.dock_layout = QVBoxLayout()
         widget.setLayout(self.dock_layout)
 
@@ -224,9 +224,9 @@ class _QtToolBar(_AbstractToolBar):
         self.icons["visibility_on"] = QIcon(":/visibility_on.svg")
         self.icons["visibility_off"] = QIcon(":/visibility_off.svg")
 
-    def _tool_bar_initialize(self, name="default"):
+    def _tool_bar_initialize(self, window, name="default"):
         self.actions = dict()
-        self.tool_bar = self.plotter.app_window.addToolBar(name)
+        self.tool_bar = window.addToolBar(name)
 
     def _tool_bar_finalize(self):
         pass
@@ -249,12 +249,12 @@ class _QtToolBar(_AbstractToolBar):
 
 
 class _QtMenuBar():
-    def _menu_initialize(self):
+    def _menu_initialize(self, window):
         self._menus = dict()
         self._menu_actions = dict()
         self.menu_bar = QMenuBar()
         self.menu_bar.setNativeMenuBar(False)
-        self.plotter.app_window.setMenuBar(self.menu_bar)
+        window.setMenuBar(self.menu_bar)
 
     def _menu_add_submenu(self, name, desc):
         self._menus[name] = self.menu_bar.addMenu(desc)

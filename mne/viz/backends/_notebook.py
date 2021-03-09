@@ -14,7 +14,7 @@ from ._pyvista import _PyVistaRenderer, _close_all, _set_3d_view, _set_3d_title 
 
 
 class _IpyDock(_AbstractDock):
-    def _dock_initialize(self):
+    def _dock_initialize(self, window):
         self.dock_width = 300
         self.dock = self.dock_layout = VBox()
         self.dock.layout.width = f"{self.dock_width}px"
@@ -124,7 +124,7 @@ class _IpyToolBar(_AbstractToolBar):
         self.icons["visibility_on"] = "eye"
         self.icons["visibility_off"] = "eye"
 
-    def _tool_bar_initialize(self, name="default"):
+    def _tool_bar_initialize(self, window, name="default"):
         self.actions = dict()
         self.tool_bar = HBox()
 

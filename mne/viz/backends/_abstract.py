@@ -449,7 +449,7 @@ class _AbstractToolBar(ABC):
         pass
 
     @abstractmethod
-    def _tool_bar_initialize(self, name="default"):
+    def _tool_bar_initialize(self, window, name="default"):
         pass
 
     @abstractmethod
@@ -475,7 +475,7 @@ class _AbstractToolBar(ABC):
 
 class _AbstractDock(ABC):
     @abstractmethod
-    def _dock_initialize(self):
+    def _dock_initialize(self, window):
         pass
 
     @abstractmethod

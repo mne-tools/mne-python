@@ -1201,7 +1201,7 @@ class Brain(object):
         )
 
     def _configure_dock(self):
-        self._renderer._dock_initialize()
+        self._renderer._dock_initialize(window=self.window)
         self._configure_dock_playback_widget(name="Playback")
         self._configure_dock_orientation_widget(name="Orientation")
         self._configure_dock_colormap_widget(name="Color Limits")
@@ -1367,7 +1367,7 @@ class Brain(object):
 
     def _configure_tool_bar(self):
         self._renderer._tool_bar_load_icons()
-        self._renderer._tool_bar_initialize()
+        self._renderer._tool_bar_initialize(window=self.window)
         self._renderer._tool_bar_add_button(
             name="screenshot",
             desc="Take a screenshot",
@@ -1462,7 +1462,7 @@ class Brain(object):
     def _configure_menu(self):
         if self.notebook:
             return
-        self._renderer._menu_initialize()
+        self._renderer._menu_initialize(window=self.window)
         self._renderer._menu_add_submenu(
             name="help",
             desc="Help",
