@@ -20,7 +20,8 @@ from PyQt5.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
 from ._pyvista import _PyVistaRenderer
 from ._pyvista import (_close_all, _close_3d_figure, _check_3d_figure,  # noqa: F401,E501 analysis:ignore
                        _set_3d_view, _set_3d_title, _take_3d_screenshot)  # noqa: F401,E501 analysis:ignore
-from ._abstract import _AbstractDock, _AbstractToolBar
+from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
+                        _AbstractStatusBar)
 from ._utils import _init_qt_resources
 
 
@@ -248,7 +249,7 @@ class _QtToolBar(_AbstractToolBar):
         self.tool_bar.addWidget(spacer)
 
 
-class _QtMenuBar():
+class _QtMenuBar(_AbstractMenuBar):
     def _menu_initialize(self, window):
         self._menus = dict()
         self._menu_actions = dict()
@@ -264,7 +265,7 @@ class _QtMenuBar():
         self._menu_actions[name] = menu.addAction(desc, func)
 
 
-class _QtStatusBar():
+class _QtStatusBar(_AbstractStatusBar):
     def _status_bar_initialize(self, window):
         self.status_bar = window.statusBar()
 

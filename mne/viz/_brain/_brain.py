@@ -1458,8 +1458,6 @@ class Brain(object):
             self.plotter.add_key_event(key, partial(func, sign * _ARROW_MOVE))
 
     def _configure_menu(self):
-        if self.notebook:
-            return
         self._renderer._menu_initialize(window=self.window)
         self._renderer._menu_add_submenu(
             name="help",
@@ -1473,13 +1471,12 @@ class Brain(object):
         )
 
     def _configure_status_bar(self):
-        if self.notebook:
-            return
         self._renderer._status_bar_initialize(window=self.window)
         self.status_msg = self._renderer._status_bar_add_label(
             self.default_status_bar_msg, stretch=1)
         self.status_progress = self._renderer._status_bar_add_progress_bar()
-        self.status_progress.hide()
+        if self.status_progress is not None:
+            self.status_progress.hide()
 
     def _on_mouse_move(self, vtk_picker, event):
         if self._mouse_no_mvt:
