@@ -623,10 +623,8 @@ class Brain(object):
 
         # Direct access parameters:
         if self.notebook:
-            self.status_bar = None
             self.interactor = None
         else:
-            self.status_bar = self.window.statusBar()
             self.interactor = self.plotter.interactor
 
         # Derived parameters:
@@ -665,13 +663,13 @@ class Brain(object):
         self._configure_tool_bar()
         self._configure_dock()
         self._configure_menu()
+        self._configure_status_bar()
         if self.notebook:
             self._renderer.show()
             self.mpl_canvas.show()
         self.toggle_interface()
         if not self.notebook:
             self._configure_playback()
-            self._configure_status_bar()
 
             # show everything at the end
             with _qt_disable_paint(self.plotter):
@@ -1475,11 +1473,12 @@ class Brain(object):
         )
 
     def _configure_status_bar(self):
-        from PyQt5.QtWidgets import QLabel, QProgressBar
-        self.status_msg = QLabel(self.default_status_bar_msg)
-        self.status_progress = QProgressBar()
-        self.status_bar.layout().addWidget(self.status_msg, 1)
-        self.status_bar.layout().addWidget(self.status_progress, 0)
+        if self.notebook:
+            return
+        self._renderer._status_bar_initialize(window=self.window)
+        self.status_msg = self._renderer._status_bar_add_label(
+            self.default_status_bar_msg, stretch=1)
+        self.status_progress = self._renderer._status_bar_add_progress_bar()
         self.status_progress.hide()
 
     def _on_mouse_move(self, vtk_picker, event):

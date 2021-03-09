@@ -167,7 +167,7 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar):
 
     def _create_default_tool_bar(self):
         self._tool_bar_load_icons()
-        self._tool_bar_initialize()
+        self._tool_bar_initialize(window=None)
         self._tool_bar_add_button(
             name="screenshot",
             desc="Take a screenshot",

@@ -14,7 +14,7 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
                              QHBoxLayout, QLabel, QToolButton, QMenuBar,
                              QSlider, QSpinBox, QVBoxLayout, QWidget,
-                             QSizePolicy, QScrollArea, QStyle,
+                             QSizePolicy, QScrollArea, QStyle, QProgressBar,
                              QStyleOptionSlider)
 
 from ._pyvista import _PyVistaRenderer
@@ -264,7 +264,23 @@ class _QtMenuBar():
         self._menu_actions[name] = menu.addAction(desc, func)
 
 
-class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar):
+class _QtStatusBar():
+    def _status_bar_initialize(self, window):
+        self.status_bar = window.statusBar()
+
+    def _status_bar_add_label(self, value, stretch=0):
+        widget = QLabel(value)
+        self.status_bar.layout().addWidget(widget, stretch)
+        return widget
+
+    def _status_bar_add_progress_bar(self, stretch=0):
+        widget = QProgressBar()
+        self.status_bar.layout().addWidget(widget, stretch)
+        return widget
+
+
+class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
+                _QtStatusBar):
     pass
 
 
