@@ -309,7 +309,8 @@ class _QtWidget(_AbstractWidget):
             self._widget.setValue(value)
         elif hasattr(self._widget, "setCurrentText"):
             self._widget.setCurrentText(value)
-        elif hasattr(self._widget, "setText"):
+        else:
+            assert hasattr(self._widget, "setText")
             self._widget.setText(value)
 
     def get_value(self):
