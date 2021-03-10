@@ -217,9 +217,19 @@ class _IpyStatusBar(_AbstractStatusBar):
 class _IpyWindow(_AbstractWindow):
     def _window_initialize(self, func=None):
         self._window = None
+        self._interactor = None
 
     def _window_get_dpi(self):
         return 96
+
+    def _window_get_size(self):
+        return self.figure.plotter.window_size
+
+    def _window_get_cursor(self):
+        pass
+
+    def _window_set_cursor(self, cursor):
+        pass
 
 
 class _IpyWidget(_AbstractWidget):

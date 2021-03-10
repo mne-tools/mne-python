@@ -318,11 +318,23 @@ class _QtStatusBar(_AbstractStatusBar):
 class _QtWindow(_AbstractWindow):
     def _window_initialize(self, func=None):
         self._window = self.figure.plotter.app_window
+        self._interactor = self.figure.plotter.interactor
         if func is not None:
             self._window.signal_close.connect(func)
 
     def _window_get_dpi(self):
         return self._window.windowHandle().screen().logicalDotsPerInch()
+
+    def _window_get_size(self):
+        w = self._interactor.geometry().width()
+        h = self._interactor.geometry().height()
+        return (w, h)
+
+    def _window_get_cursor(self):
+        return self._interactor.cursor()
+
+    def _window_set_cursor(self, cursor):
+        self._interactor.setCursor(cursor)
 
 
 class _QtWidget(_AbstractWidget):

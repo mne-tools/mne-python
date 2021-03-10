@@ -593,3 +593,15 @@ class _AbstractWindow(ABC):
     @abstractmethod
     def _window_get_dpi(self):
         pass
+
+    @abstractmethod
+    def _window_get_size(self):
+        pass
+
+    @abstractmethod
+    def _window_get_cursor(self):
+        pass
+
+    @abstractmethod
+    def _window_set_cursor(self, cursor):
+        pass

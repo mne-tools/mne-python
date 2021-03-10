@@ -618,10 +618,7 @@ class Brain(object):
         self.keys = ('fmin', 'fmid', 'fmax')
 
         # Direct access parameters:
-        if self.notebook:
-            self.interactor = None
-        else:
-            self.interactor = self.plotter.interactor
+        self.interactor = self._renderer._interactor
 
         # Derived parameters:
         self.playback_speed = self.default_playback_speed_value
@@ -1172,11 +1169,7 @@ class Brain(object):
     def _configure_mplcanvas(self):
         ratio = (1 - self.interactor_fraction) / self.interactor_fraction
         dpi = self._renderer._window_get_dpi()
-        if self.notebook:
-            w, h = self.plotter.window_size
-        else:
-            w = self.interactor.geometry().width()
-            h = self.interactor.geometry().height()
+        w, h = self._renderer._window_get_size()
         h /= ratio
         # Get the fractional components for the brain and mpl
         self.mpl_canvas = MplCanvas(self, w / dpi, h / dpi, dpi,
@@ -3150,8 +3143,8 @@ class Brain(object):
                     self.status_msg.repaint()
 
                 # set cursor to busy
-                default_cursor = self.interactor.cursor()
-                self.interactor.setCursor(QCursor(Qt.WaitCursor))
+                default_cursor = self._renderer._window_get_cursor()
+                self._renderer._window_set_cursor(QCursor(Qt.WaitCursor))
 
                 try:
                     self._save_movie(
@@ -3163,7 +3156,7 @@ class Brain(object):
                 except (Exception, KeyboardInterrupt):
                     warn('Movie saving aborted:\n' + traceback.format_exc())
                 finally:
-                    self.interactor.setCursor(default_cursor)
+                    self._renderer._window_set_cursor(default_cursor)
         else:
             self._save_movie(filename, time_dilation, tmin, tmax,
                              framerate, interpolation, codec,
