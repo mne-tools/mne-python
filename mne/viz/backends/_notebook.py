@@ -198,10 +198,10 @@ class _IpyLayout(_AbstractLayout):
 
 class _IpyWidget(_AbstractWidget):
     def set_value(self, value):
-        self.widget.value = value
+        self._widget.value = value
 
     def get_value(self):
-        return self.widget.value
+        return self._widget.value
 
 
 class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,

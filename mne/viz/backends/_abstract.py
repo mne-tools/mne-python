@@ -443,16 +443,6 @@ class _AbstractRenderer(ABC):
         pass
 
 
-class _AbstractLayout(ABC):
-    @abstractmethod
-    def _layout_initialize(self, max_width):
-        pass
-
-    @abstractmethod
-    def _layout_add_widget(self, layout, widget):
-        pass
-
-
 class _AbstractToolBar(ABC):
     @abstractmethod
     def _tool_bar_load_icons(self):
@@ -568,9 +558,19 @@ class _AbstractStatusBar(ABC):
         pass
 
 
+class _AbstractLayout(ABC):
+    @abstractmethod
+    def _layout_initialize(self, max_width):
+        pass
+
+    @abstractmethod
+    def _layout_add_widget(self, layout, widget):
+        pass
+
+
 class _AbstractWidget(ABC):
     def __init__(self, widget):
-        self.widget = widget
+        self._widget = widget
 
     @abstractmethod
     def set_value(self, value):

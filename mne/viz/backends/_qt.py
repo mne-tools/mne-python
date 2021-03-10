@@ -280,24 +280,6 @@ class _QtStatusBar(_AbstractStatusBar):
         return widget
 
 
-class _QtWidget(_AbstractWidget):
-    def set_value(self, value):
-        if hasattr(self.widget, "setValue"):
-            self.widget.setValue(value)
-        elif hasattr(self.widget, "setCurrentText"):
-            self.widget.setCurrentText(value)
-        elif hasattr(self.widget, "setText"):
-            self.widget.setText(value)
-
-    def get_value(self):
-        if hasattr(self.widget, "value"):
-            return self.widget.value()
-        elif hasattr(self.widget, "currentText"):
-            return self.widget.currentText()
-        elif hasattr(self.widget, "text"):
-            return self.widget.text()
-
-
 class _QtLayout(_AbstractLayout):
     def _layout_initialize(self, max_width):
         pass
@@ -307,6 +289,24 @@ class _QtLayout(_AbstractLayout):
             layout.addLayout(widget)
         else:
             layout.addWidget(widget)
+
+
+class _QtWidget(_AbstractWidget):
+    def set_value(self, value):
+        if hasattr(self._widget, "setValue"):
+            self._widget.setValue(value)
+        elif hasattr(self._widget, "setCurrentText"):
+            self._widget.setCurrentText(value)
+        elif hasattr(self._widget, "setText"):
+            self._widget.setText(value)
+
+    def get_value(self):
+        if hasattr(self._widget, "value"):
+            return self._widget.value()
+        elif hasattr(self._widget, "currentText"):
+            return self._widget.currentText()
+        elif hasattr(self._widget, "text"):
+            return self._widget.text()
 
 
 class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
