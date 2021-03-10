@@ -171,6 +171,26 @@ class _IpyToolBar(_AbstractToolBar, _IpyLayout):
     def _tool_bar_add_spacer(self):
         pass
 
+    def _tool_bar_add_screenshot_button(self, name, desc, func):
+        def _screenshot():
+            from PIL import Image
+            fname = self.actions[f"{name}_field"].value
+            fname = self._get_screenshot_filename() \
+                if len(fname) == 0 else fname
+            img = func()
+            Image.fromarray(img).save(fname)
+
+        self._tool_bar_add_button(
+            name=name,
+            desc=desc,
+            func=_screenshot,
+        )
+        self._tool_bar_add_text(
+            name=f"{name}_field",
+            value=None,
+            placeholder="Type a file name",
+        )
+
 
 class _IpyMenuBar(_AbstractMenuBar):
     def _menu_initialize(self, window=None):
@@ -222,23 +242,13 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
         if self.figure.display is not None:
             self.figure.display.update_canvas()
 
-    def _screenshot(self):
-        fname = self.actions["screenshot_field"].value
-        fname = self._get_screenshot_filename() if len(fname) == 0 else fname
-        self.screenshot(filename=fname)
-
     def _create_default_tool_bar(self):
         self._tool_bar_load_icons()
         self._tool_bar_initialize()
-        self._tool_bar_add_button(
+        self._tool_bar_add_screenshot_button(
             name="screenshot",
             desc="Take a screenshot",
-            func=self._screenshot,
-        )
-        self._tool_bar_add_text(
-            name="screenshot_field",
-            value=None,
-            placeholder="Type a file name",
+            func=self.screenshot,
         )
 
     def show(self):

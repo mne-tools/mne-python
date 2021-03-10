@@ -1283,39 +1283,13 @@ class Brain(object):
     def _save_movie_noname(self):
         return self.save_movie(None)
 
-    def _screenshot(self):
-        from PIL import Image
-        img = self.screenshot(time_viewer=True)
-
-        def _save_image(fname, img):
-            Image.fromarray(img).save(fname)
-        if self.notebook:
-            fname = self._renderer.actions.get("screenshot_field").value
-            fname = self._renderer._get_screenshot_filename() \
-                if len(fname) == 0 else fname
-            _save_image(fname, img)
-        else:
-            try:
-                from pyvista.plotting.qt_plotting import FileDialog
-            except ImportError:
-                from pyvistaqt.plotting import FileDialog
-            FileDialog(
-                self.plotter.app_window,
-                callback=partial(_save_image, img=img)
-            )
-
     def _configure_tool_bar(self):
         self._renderer._tool_bar_load_icons()
         self._renderer._tool_bar_initialize()
-        self._renderer._tool_bar_add_button(
+        self._renderer._tool_bar_add_screenshot_button(
             name="screenshot",
             desc="Take a screenshot",
-            func=self._screenshot,
-        )
-        self._renderer._tool_bar_add_text(
-            name="screenshot_field",
-            value=None,
-            placeholder="Type a file name",
+            func=partial(self.screenshot, time_viewer=True),
         )
         self._renderer._tool_bar_add_button(
             name="movie",

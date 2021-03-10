@@ -259,6 +259,28 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
         spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.tool_bar.addWidget(spacer)
 
+    def _tool_bar_add_screenshot_button(self, name, desc, func):
+        def _screenshot():
+            img = func()
+
+            def _save_img(fname):
+                from PIL import Image
+                Image.fromarray(img).save(fname)
+            try:
+                from pyvista.plotting.qt_plotting import FileDialog
+            except ImportError:
+                from pyvistaqt.plotting import FileDialog
+            FileDialog(
+                self.plotter.app_window,
+                callback=_save_img,
+            )
+
+        self._tool_bar_add_button(
+            name=name,
+            desc=desc,
+            func=_screenshot,
+        )
+
 
 class _QtMenuBar(_AbstractMenuBar):
     def _menu_initialize(self, window=None):

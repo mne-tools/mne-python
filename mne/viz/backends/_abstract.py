@@ -468,6 +468,10 @@ class _AbstractToolBar(ABC):
     def _tool_bar_add_spacer(self):
         pass
 
+    @abstractmethod
+    def _tool_bar_add_screenshot_button(self, name, desc, func):
+        pass
+
 
 class _AbstractDock(ABC):
     @abstractmethod
