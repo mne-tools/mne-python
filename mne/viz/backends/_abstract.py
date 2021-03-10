@@ -572,6 +572,10 @@ class _AbstractWidget(ABC):
     def __init__(self, widget):
         self._widget = widget
 
+    @property
+    def widget(self):
+        return self._widget
+
     @abstractmethod
     def set_value(self, value):
         pass
