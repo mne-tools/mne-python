@@ -190,7 +190,7 @@ fig = evoked.plot(show=False)
 # add the custom plot to the report:
 report.add_figs_to_section(fig, captions='Left Auditory', section='evoked')
 
-# Add a custom section with an evoked slider:
+# add a custom section with an evoked slider:
 figs = list()
 times = evoked.times[::30]
 for t in times:
