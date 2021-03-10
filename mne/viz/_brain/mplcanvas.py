@@ -18,7 +18,7 @@ class MplCanvas(object):
         if brain.separate_canvas:
             parent = None
         else:
-            parent = brain.window
+            parent = brain._renderer._window
         # prefer constrained layout here but live with tight_layout otherwise
         context = nullcontext
         extra_events = ('resize',)

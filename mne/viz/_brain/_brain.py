@@ -475,12 +475,8 @@ class Brain(object):
                                        shape=shape,
                                        fig=figure)
 
+        self._renderer._window_initialize(self._clean)
         self.plotter = self._renderer.plotter
-        if self.notebook:
-            self.window = None
-        else:
-            self.window = self.plotter.app_window
-            self.window.signal_close.connect(self._clean)
 
         self._setup_canonical_rotation()
         for h in self._hemis:
@@ -1148,7 +1144,7 @@ class Brain(object):
         )
 
     def _configure_dock(self):
-        self._renderer._dock_initialize(window=self.window)
+        self._renderer._dock_initialize()
         self._configure_dock_playback_widget(name="Playback")
         self._configure_dock_orientation_widget(name="Orientation")
         self._configure_dock_colormap_widget(name="Color Limits")
@@ -1175,11 +1171,10 @@ class Brain(object):
 
     def _configure_mplcanvas(self):
         ratio = (1 - self.interactor_fraction) / self.interactor_fraction
+        dpi = self._renderer._window_get_dpi()
         if self.notebook:
-            dpi = 96
             w, h = self.plotter.window_size
         else:
-            dpi = self.window.windowHandle().screen().logicalDotsPerInch()
             w = self.interactor.geometry().width()
             h = self.interactor.geometry().height()
         h /= ratio
@@ -1311,7 +1306,7 @@ class Brain(object):
 
     def _configure_tool_bar(self):
         self._renderer._tool_bar_load_icons()
-        self._renderer._tool_bar_initialize(window=self.window)
+        self._renderer._tool_bar_initialize()
         self._renderer._tool_bar_add_button(
             name="screenshot",
             desc="Take a screenshot",
@@ -1404,7 +1399,7 @@ class Brain(object):
             self.plotter.add_key_event(key, partial(func, sign * _ARROW_MOVE))
 
     def _configure_menu(self):
-        self._renderer._menu_initialize(window=self.window)
+        self._renderer._menu_initialize()
         self._renderer._menu_add_submenu(
             name="help",
             desc="Help",
@@ -1417,7 +1412,7 @@ class Brain(object):
         )
 
     def _configure_status_bar(self):
-        self._renderer._status_bar_initialize(window=self.window)
+        self._renderer._status_bar_initialize()
         self.status_msg = self._renderer._status_bar_add_label(
             self.default_status_bar_msg, stretch=1)
         self.status_progress = self._renderer._status_bar_add_progress_bar()

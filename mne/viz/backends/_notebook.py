@@ -10,12 +10,13 @@ from ipywidgets import (Button, Dropdown, FloatSlider, FloatText, HBox,
 
 from ...fixes import nullcontext
 from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
-                        _AbstractStatusBar, _AbstractLayout, _AbstractWidget)
+                        _AbstractStatusBar, _AbstractLayout, _AbstractWidget,
+                        _AbstractWindow)
 from ._pyvista import _PyVistaRenderer, _close_all, _set_3d_view, _set_3d_title  # noqa: F401,E501, analysis:ignore
 
 
 class _IpyDock(_AbstractDock):
-    def _dock_initialize(self, window):
+    def _dock_initialize(self):
         self.dock_width = 300
         self.dock = self.dock_layout = VBox()
         self.dock.layout.width = f"{self.dock_width}px"
@@ -126,7 +127,7 @@ class _IpyToolBar(_AbstractToolBar):
         self.icons["visibility_on"] = "eye"
         self.icons["visibility_off"] = "eye"
 
-    def _tool_bar_initialize(self, window, name="default"):
+    def _tool_bar_initialize(self, name="default"):
         self.actions = dict()
         self.tool_bar = HBox()
         self._layout_initialize(None)
@@ -157,7 +158,7 @@ class _IpyToolBar(_AbstractToolBar):
 
 
 class _IpyMenuBar(_AbstractMenuBar):
-    def _menu_initialize(self, window):
+    def _menu_initialize(self):
         pass
 
     def _menu_add_submenu(self, name, desc):
@@ -168,7 +169,7 @@ class _IpyMenuBar(_AbstractMenuBar):
 
 
 class _IpyStatusBar(_AbstractStatusBar):
-    def _status_bar_initialize(self, window):
+    def _status_bar_initialize(self):
         pass
 
     def _status_bar_add_label(self, value, stretch=0):
@@ -204,8 +205,16 @@ class _IpyWidget(_AbstractWidget):
         return self._widget.value
 
 
+class _IpyWindow(_AbstractWindow):
+    def _window_initialize(self, func=None):
+        self._window = None
+
+    def _window_get_dpi(self):
+        return 96
+
+
 class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
-                _IpyStatusBar, _IpyLayout):
+                _IpyStatusBar, _IpyLayout, _IpyWindow):
     def __init__(self, *args, **kwargs):
         self.dock = None
         self.tool_bar = None
@@ -223,7 +232,7 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
 
     def _create_default_tool_bar(self):
         self._tool_bar_load_icons()
-        self._tool_bar_initialize(window=None)
+        self._tool_bar_initialize()
         self._tool_bar_add_button(
             name="screenshot",
             desc="Take a screenshot",

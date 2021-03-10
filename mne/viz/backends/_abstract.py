@@ -449,7 +449,7 @@ class _AbstractToolBar(ABC):
         pass
 
     @abstractmethod
-    def _tool_bar_initialize(self, window, name="default"):
+    def _tool_bar_initialize(self, name="default"):
         pass
 
     @abstractmethod
@@ -475,7 +475,7 @@ class _AbstractToolBar(ABC):
 
 class _AbstractDock(ABC):
     @abstractmethod
-    def _dock_initialize(self, window):
+    def _dock_initialize(self):
         pass
 
     @abstractmethod
@@ -532,7 +532,7 @@ class _AbstractDock(ABC):
 
 class _AbstractMenuBar(ABC):
     @abstractmethod
-    def _menu_initialize(self, window):
+    def _menu_initialize(self):
         pass
 
     @abstractmethod
@@ -546,7 +546,7 @@ class _AbstractMenuBar(ABC):
 
 class _AbstractStatusBar(ABC):
     @abstractmethod
-    def _status_bar_initialize(self, window):
+    def _status_bar_initialize(self):
         pass
 
     @abstractmethod
@@ -582,4 +582,14 @@ class _AbstractWidget(ABC):
 
     @abstractmethod
     def get_value(self):
+        pass
+
+
+class _AbstractWindow(ABC):
+    @abstractmethod
+    def _window_initialize(self, func=None):
+        pass
+
+    @abstractmethod
+    def _window_get_dpi(self):
         pass

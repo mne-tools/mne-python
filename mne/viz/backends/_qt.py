@@ -21,12 +21,13 @@ from ._pyvista import _PyVistaRenderer
 from ._pyvista import (_close_all, _close_3d_figure, _check_3d_figure,  # noqa: F401,E501 analysis:ignore
                        _set_3d_view, _set_3d_title, _take_3d_screenshot)  # noqa: F401,E501 analysis:ignore
 from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
-                        _AbstractStatusBar, _AbstractLayout, _AbstractWidget)
+                        _AbstractStatusBar, _AbstractLayout, _AbstractWidget,
+                        _AbstractWindow)
 from ._utils import _init_qt_resources
 
 
 class _QtDock(_AbstractDock):
-    def _dock_initialize(self, window):
+    def _dock_initialize(self):
         self.dock = QDockWidget()
         self.scroll = QScrollArea(self.dock)
         self.dock.setWidget(self.scroll)
@@ -35,7 +36,7 @@ class _QtDock(_AbstractDock):
         self.scroll.setWidgetResizable(True)
         self.dock.setAllowedAreas(Qt.LeftDockWidgetArea)
         self.dock.setFeatures(QDockWidget.NoDockWidgetFeatures)
-        window.addDockWidget(Qt.LeftDockWidgetArea, self.dock)
+        self._window.addDockWidget(Qt.LeftDockWidgetArea, self.dock)
         self.dock_layout = QVBoxLayout()
         widget.setLayout(self.dock_layout)
 
@@ -62,7 +63,7 @@ class _QtDock(_AbstractDock):
         if align:
             widget.setAlignment(Qt.AlignCenter)
         widget.setText(value)
-        layout.addWidget(widget)
+        self._layout_add_widget(layout, widget)
         return _QtWidget(widget)
 
     def _dock_add_button(self, name, callback, layout=None):
@@ -72,7 +73,7 @@ class _QtDock(_AbstractDock):
         widget = QToolButton()
         widget.clicked.connect(callback)
         widget.setText(name)
-        layout.addWidget(widget)
+        self._layout_add_widget(layout, widget)
         return _QtWidget(widget)
 
     def _dock_named_layout(self, name, layout, compact):
@@ -81,7 +82,7 @@ class _QtDock(_AbstractDock):
             hlayout = self._dock_add_layout(not compact)
             self._dock_add_label(
                 value=name, align=not compact, layout=hlayout)
-            layout.addLayout(hlayout)
+            self._layout_add_widget(layout, hlayout)
             layout = hlayout
         return layout
 
@@ -96,7 +97,7 @@ class _QtDock(_AbstractDock):
         widget.setMaximum(cast(rng[1]))
         widget.setValue(cast(value))
         widget.valueChanged.connect(callback)
-        layout.addWidget(widget)
+        self._layout_add_widget(layout, widget)
         return _QtWidget(widget)
 
     def _dock_add_spin_box(self, name, value, rng, callback,
@@ -113,7 +114,7 @@ class _QtDock(_AbstractDock):
         widget.setSingleStep(inc)
         widget.setValue(value)
         widget.valueChanged.connect(callback)
-        layout.addWidget(widget)
+        self._layout_add_widget(layout, widget)
         return _QtWidget(widget)
 
     def _dock_add_combo_box(self, name, value, rng,
@@ -124,7 +125,7 @@ class _QtDock(_AbstractDock):
         widget.setCurrentText(value)
         widget.currentTextChanged.connect(callback)
         widget.setSizeAdjustPolicy(QComboBox.AdjustToContents)
-        layout.addWidget(widget)
+        self._layout_add_widget(layout, widget)
         return _QtWidget(widget)
 
     def _dock_add_group_box(self, name, layout=None):
@@ -132,7 +133,7 @@ class _QtDock(_AbstractDock):
         hlayout = QVBoxLayout()
         widget = QGroupBox(name)
         widget.setLayout(hlayout)
-        layout.addWidget(widget)
+        self._layout_add_widget(layout, widget)
         return hlayout
 
 
@@ -225,9 +226,9 @@ class _QtToolBar(_AbstractToolBar):
         self.icons["visibility_on"] = QIcon(":/visibility_on.svg")
         self.icons["visibility_off"] = QIcon(":/visibility_off.svg")
 
-    def _tool_bar_initialize(self, window, name="default"):
+    def _tool_bar_initialize(self, name="default"):
         self.actions = dict()
-        self.tool_bar = window.addToolBar(name)
+        self.tool_bar = self._window.addToolBar(name)
 
     def _tool_bar_finalize(self):
         pass
@@ -250,12 +251,12 @@ class _QtToolBar(_AbstractToolBar):
 
 
 class _QtMenuBar(_AbstractMenuBar):
-    def _menu_initialize(self, window):
+    def _menu_initialize(self):
         self._menus = dict()
         self._menu_actions = dict()
         self.menu_bar = QMenuBar()
         self.menu_bar.setNativeMenuBar(False)
-        window.setMenuBar(self.menu_bar)
+        self._window.setMenuBar(self.menu_bar)
 
     def _menu_add_submenu(self, name, desc):
         self._menus[name] = self.menu_bar.addMenu(desc)
@@ -266,8 +267,8 @@ class _QtMenuBar(_AbstractMenuBar):
 
 
 class _QtStatusBar(_AbstractStatusBar):
-    def _status_bar_initialize(self, window):
-        self.status_bar = window.statusBar()
+    def _status_bar_initialize(self):
+        self.status_bar = self._window.statusBar()
 
     def _status_bar_add_label(self, value, stretch=0):
         widget = QLabel(value)
@@ -309,8 +310,18 @@ class _QtWidget(_AbstractWidget):
             return self._widget.text()
 
 
+class _QtWindow(_AbstractWindow):
+    def _window_initialize(self, func=None):
+        self._window = self.figure.plotter.app_window
+        if func is not None:
+            self._window.signal_close.connect(func)
+
+    def _window_get_dpi(self):
+        return self._window.windowHandle().screen().logicalDotsPerInch()
+
+
 class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
-                _QtStatusBar, _QtLayout):
+                _QtStatusBar, _QtLayout, _QtWindow):
     pass
 
 
