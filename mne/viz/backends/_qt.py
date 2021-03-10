@@ -26,8 +26,19 @@ from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
 from ._utils import _init_qt_resources
 
 
-class _QtDock(_AbstractDock):
-    def _dock_initialize(self):
+class _QtLayout(_AbstractLayout):
+    def _layout_initialize(self, max_width):
+        pass
+
+    def _layout_add_widget(self, layout, widget, max_width=None):
+        if isinstance(widget, QLayout):
+            layout.addLayout(widget)
+        else:
+            layout.addWidget(widget)
+
+
+class _QtDock(_AbstractDock, _QtLayout):
+    def _dock_initialize(self, window=None):
         self.dock = QDockWidget()
         self.scroll = QScrollArea(self.dock)
         self.dock.setWidget(self.scroll)
@@ -36,7 +47,8 @@ class _QtDock(_AbstractDock):
         self.scroll.setWidgetResizable(True)
         self.dock.setAllowedAreas(Qt.LeftDockWidgetArea)
         self.dock.setFeatures(QDockWidget.NoDockWidgetFeatures)
-        self._window.addDockWidget(Qt.LeftDockWidgetArea, self.dock)
+        window = self._window if window is None else window
+        window.addDockWidget(Qt.LeftDockWidgetArea, self.dock)
         self.dock_layout = QVBoxLayout()
         widget.setLayout(self.dock_layout)
 
@@ -210,7 +222,7 @@ class QFloatSlider(QSlider):
         super().mousePressEvent(event)
 
 
-class _QtToolBar(_AbstractToolBar):
+class _QtToolBar(_AbstractToolBar, _QtLayout):
     def _tool_bar_load_icons(self):
         _init_qt_resources()
         self.icons = dict()
@@ -226,12 +238,10 @@ class _QtToolBar(_AbstractToolBar):
         self.icons["visibility_on"] = QIcon(":/visibility_on.svg")
         self.icons["visibility_off"] = QIcon(":/visibility_off.svg")
 
-    def _tool_bar_initialize(self, name="default"):
+    def _tool_bar_initialize(self, name="default", window=None):
         self.actions = dict()
-        self.tool_bar = self._window.addToolBar(name)
-
-    def _tool_bar_finalize(self):
-        pass
+        window = self._window if window is None else window
+        self.tool_bar = window.addToolBar(name)
 
     def _tool_bar_add_button(self, name, desc, func, icon_name=None):
         icon_name = name if icon_name is None else icon_name
@@ -251,12 +261,13 @@ class _QtToolBar(_AbstractToolBar):
 
 
 class _QtMenuBar(_AbstractMenuBar):
-    def _menu_initialize(self):
+    def _menu_initialize(self, window=None):
         self._menus = dict()
         self._menu_actions = dict()
         self.menu_bar = QMenuBar()
         self.menu_bar.setNativeMenuBar(False)
-        self._window.setMenuBar(self.menu_bar)
+        window = self._window if window is None else window
+        window.setMenuBar(self.menu_bar)
 
     def _menu_add_submenu(self, name, desc):
         self._menus[name] = self.menu_bar.addMenu(desc)
@@ -267,8 +278,9 @@ class _QtMenuBar(_AbstractMenuBar):
 
 
 class _QtStatusBar(_AbstractStatusBar):
-    def _status_bar_initialize(self):
-        self.status_bar = self._window.statusBar()
+    def _status_bar_initialize(self, window=None):
+        window = self._window if window is None else window
+        self.status_bar = window.statusBar()
 
     def _status_bar_add_label(self, value, stretch=0):
         widget = QLabel(value)
@@ -281,15 +293,14 @@ class _QtStatusBar(_AbstractStatusBar):
         return widget
 
 
-class _QtLayout(_AbstractLayout):
-    def _layout_initialize(self, max_width):
-        pass
+class _QtWindow(_AbstractWindow):
+    def _window_initialize(self, func=None):
+        self._window = self.figure.plotter.app_window
+        if func is not None:
+            self._window.signal_close.connect(func)
 
-    def _layout_add_widget(self, layout, widget, max_width=None):
-        if isinstance(widget, QLayout):
-            layout.addLayout(widget)
-        else:
-            layout.addWidget(widget)
+    def _window_get_dpi(self):
+        return self._window.windowHandle().screen().logicalDotsPerInch()
 
 
 class _QtWidget(_AbstractWidget):
@@ -310,18 +321,8 @@ class _QtWidget(_AbstractWidget):
             return self._widget.text()
 
 
-class _QtWindow(_AbstractWindow):
-    def _window_initialize(self, func=None):
-        self._window = self.figure.plotter.app_window
-        if func is not None:
-            self._window.signal_close.connect(func)
-
-    def _window_get_dpi(self):
-        return self._window.windowHandle().screen().logicalDotsPerInch()
-
-
 class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
-                _QtStatusBar, _QtLayout, _QtWindow):
+                _QtStatusBar, _QtWindow):
     pass
 
 

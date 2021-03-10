@@ -1354,7 +1354,6 @@ class Brain(object):
             desc="Help",
             func=self.help,
         )
-        self._renderer._tool_bar_finalize()
         # Qt shortcuts
         if not self.notebook:
             self._renderer.actions["movie"].setShortcut("ctrl+shift+s")
