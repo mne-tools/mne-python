@@ -4,21 +4,43 @@
 #
 # License: Simplified BSD
 
+from contextlib import contextmanager
 from IPython.display import display
 from ipywidgets import (Button, Dropdown, FloatSlider, FloatText, HBox,
                         IntSlider, IntText, Text, VBox)
 
+from ..utils import _save_ndarray_img
 from ...fixes import nullcontext
 from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
-                        _AbstractStatusBar)
+                        _AbstractStatusBar, _AbstractLayout, _AbstractWidget,
+                        _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback)
 from ._pyvista import _PyVistaRenderer, _close_all, _set_3d_view, _set_3d_title  # noqa: F401,E501, analysis:ignore
 
 
-class _IpyDock(_AbstractDock):
-    def _dock_initialize(self, window):
+class _IpyLayout(_AbstractLayout):
+    def _layout_initialize(self, max_width):
+        self._layout_max_width = max_width
+
+    def _layout_add_widget(self, layout, widget):
+        widget.layout.margin = "2px 0px 2px 0px"
+        widget.layout.min_width = "0px"
+        children = list(layout.children)
+        children.append(widget)
+        layout.children = tuple(children)
+        # Fix columns
+        if self._layout_max_width is not None and isinstance(widget, HBox):
+            children = widget.children
+            width = int(self._layout_max_width / len(children))
+            for child in children:
+                child.layout.width = f"{width}px"
+
+
+class _IpyDock(_AbstractDock, _IpyLayout):
+    def _dock_initialize(self, window=None):
         self.dock_width = 300
         self.dock = self.dock_layout = VBox()
         self.dock.layout.width = f"{self.dock_width}px"
+        self._layout_initialize(self.dock_width)
 
     def _dock_finalize(self):
         pass
@@ -38,14 +60,14 @@ class _IpyDock(_AbstractDock):
     def _dock_add_label(self, value, align=False, layout=None):
         layout = self.dock_layout if layout is None else layout
         widget = Text(value=value, disabled=True)
-        _ipy_add_widget(layout, widget, self.dock_width)
-        return widget
+        self._layout_add_widget(layout, widget)
+        return _IpyWidget(widget)
 
     def _dock_add_button(self, name, callback, layout=None):
         widget = Button(description=name)
         widget.on_click(lambda x: callback())
-        _ipy_add_widget(layout, widget, self.dock_width)
-        return widget
+        self._layout_add_widget(layout, widget)
+        return _IpyWidget(widget)
 
     def _dock_named_layout(self, name, layout, compact):
         layout = self.dock_layout if layout is None else layout
@@ -53,7 +75,7 @@ class _IpyDock(_AbstractDock):
             hlayout = self._dock_add_layout(not compact)
             self._dock_add_label(
                 value=name, align=not compact, layout=hlayout)
-            _ipy_add_widget(layout, hlayout, self.dock_width)
+            self._layout_add_widget(layout, hlayout)
             layout = hlayout
         return layout
 
@@ -68,8 +90,8 @@ class _IpyDock(_AbstractDock):
             readout=False,
         )
         widget.observe(_generate_callback(callback), names='value')
-        _ipy_add_widget(layout, widget, self.dock_width)
-        return widget
+        self._layout_add_widget(layout, widget)
+        return _IpyWidget(widget)
 
     def _dock_add_spin_box(self, name, value, rng, callback,
                            compact=True, double=True, layout=None):
@@ -82,8 +104,8 @@ class _IpyDock(_AbstractDock):
             readout=False,
         )
         widget.observe(_generate_callback(callback), names='value')
-        _ipy_add_widget(layout, widget, self.dock_width)
-        return widget
+        self._layout_add_widget(layout, widget)
+        return _IpyWidget(widget)
 
     def _dock_add_combo_box(self, name, value, rng,
                             callback, compact=True, layout=None):
@@ -93,13 +115,13 @@ class _IpyDock(_AbstractDock):
             options=rng,
         )
         widget.observe(_generate_callback(callback), names='value')
-        _ipy_add_widget(layout, widget, self.dock_width)
-        return widget
+        self._layout_add_widget(layout, widget)
+        return _IpyWidget(widget)
 
     def _dock_add_group_box(self, name, layout=None):
         layout = self.dock_layout if layout is None else layout
         hlayout = VBox()
-        _ipy_add_widget(layout, hlayout, self.dock_width)
+        self._layout_add_widget(layout, hlayout)
         return hlayout
 
 
@@ -110,7 +132,7 @@ def _generate_callback(callback, to_float=False):
     return func
 
 
-class _IpyToolBar(_AbstractToolBar):
+class _IpyToolBar(_AbstractToolBar, _IpyLayout):
     def _tool_bar_load_icons(self):
         self.icons = dict()
         self.icons["help"] = None
@@ -125,21 +147,20 @@ class _IpyToolBar(_AbstractToolBar):
         self.icons["visibility_on"] = "eye"
         self.icons["visibility_off"] = "eye"
 
-    def _tool_bar_initialize(self, window, name="default"):
+    def _tool_bar_initialize(self, name="default", window=None):
         self.actions = dict()
         self.tool_bar = HBox()
+        self._layout_initialize(None)
 
-    def _tool_bar_finalize(self):
-        pass
-
-    def _tool_bar_add_button(self, name, desc, func, icon_name=None):
+    def _tool_bar_add_button(self, name, desc, func, icon_name=None,
+                             shortcut=None):
         icon_name = name if icon_name is None else icon_name
         icon = self.icons[icon_name]
         if icon is None:
             return
         widget = Button(tooltip=desc, icon=icon)
         widget.on_click(lambda x: func())
-        _ipy_add_widget(self.tool_bar, widget)
+        self._layout_add_widget(self.tool_bar, widget)
         self.actions[name] = widget
 
     def _tool_bar_update_button_icon(self, name, icon_name):
@@ -147,15 +168,34 @@ class _IpyToolBar(_AbstractToolBar):
 
     def _tool_bar_add_text(self, name, value, placeholder):
         widget = Text(value=value, placeholder=placeholder)
-        _ipy_add_widget(self.tool_bar, widget)
+        self._layout_add_widget(self.tool_bar, widget)
         self.actions[name] = widget
 
     def _tool_bar_add_spacer(self):
         pass
 
+    def _tool_bar_add_screenshot_button(self, name, desc, func):
+        def _screenshot():
+            fname = self.actions[f"{name}_field"].value
+            fname = self._get_screenshot_filename() \
+                if len(fname) == 0 else fname
+            img = func()
+            _save_ndarray_img(fname, img)
+
+        self._tool_bar_add_button(
+            name=name,
+            desc=desc,
+            func=_screenshot,
+        )
+        self._tool_bar_add_text(
+            name=f"{name}_field",
+            value=None,
+            placeholder="Type a file name",
+        )
+
 
 class _IpyMenuBar(_AbstractMenuBar):
-    def _menu_initialize(self, window):
+    def _menu_initialize(self, window=None):
         pass
 
     def _menu_add_submenu(self, name, desc):
@@ -166,7 +206,7 @@ class _IpyMenuBar(_AbstractMenuBar):
 
 
 class _IpyStatusBar(_AbstractStatusBar):
-    def _status_bar_initialize(self, window):
+    def _status_bar_initialize(self, window=None):
         pass
 
     def _status_bar_add_label(self, value, stretch=0):
@@ -176,31 +216,94 @@ class _IpyStatusBar(_AbstractStatusBar):
         pass
 
 
+class _IpyPlayback(_AbstractPlayback):
+    def _playback_initialize(self, func, timeout):
+        pass
+
+
+class _IpyMplCanvas(_AbstractMplCanvas):
+    def __init__(self, brain, width, height, dpi):
+        super().__init__(brain, width, height, dpi)
+        from matplotlib.backends.backend_nbagg import (FigureCanvasNbAgg,
+                                                       FigureManager)
+        self.canvas = FigureCanvasNbAgg(self.fig)
+        self.manager = FigureManager(self.canvas, 0)
+        self._connect()
+
+    def show(self):
+        """Show the canvas."""
+        self.manager.show()
+
+
+class _IpyWindow(_AbstractWindow):
+    def _window_initialize(self, func=None):
+        self._window = None
+        self._interactor = None
+        self._mplcanvas = None
+        self._show_traces = None
+        self._separate_canvas = None
+        self._splitter = None
+        self._interactor_fraction = None
+
+    def _window_get_dpi(self):
+        return 96
+
+    def _window_get_size(self):
+        return self.figure.plotter.window_size
+
+    def _window_get_mplcanvas(self, brain, interactor_fraction, show_traces,
+                              separate_canvas):
+        w, h = self._window_get_mplcanvas_size(interactor_fraction)
+        self._interactor_fraction = interactor_fraction
+        self._show_traces = show_traces
+        self._separate_canvas = separate_canvas
+        self._mplcanvas = _IpyMplCanvas(brain, w, h, self._window_get_dpi())
+        return self._mplcanvas
+
+    def _window_adjust_mplcanvas_layout(self):
+        pass
+
+    def _window_get_cursor(self):
+        pass
+
+    def _window_set_cursor(self, cursor):
+        pass
+
+    @contextmanager
+    def _window_ensure_minimum_sizes(self, sz):
+        yield
+
+    def _window_show(self, sz):
+        self.show()
+
+
+class _IpyWidget(_AbstractWidget):
+    def set_value(self, value):
+        self._widget.value = value
+
+    def get_value(self):
+        return self._widget.value
+
+
 class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
-                _IpyStatusBar):
+                _IpyStatusBar, _IpyWindow, _IpyPlayback):
     def __init__(self, *args, **kwargs):
         self.dock = None
         self.tool_bar = None
         kwargs["notebook"] = True
         super().__init__(*args, **kwargs)
 
-    def _screenshot(self):
-        fname = self.actions["screenshot_field"].value
-        fname = self._get_screenshot_filename() if len(fname) == 0 else fname
-        self.screenshot(filename=fname)
+    def _update(self):
+        if self.figure.display is not None:
+            self.figure.display.update_canvas()
 
     def _create_default_tool_bar(self):
         self._tool_bar_load_icons()
-        self._tool_bar_initialize(window=None)
-        self._tool_bar_add_button(
+        self._tool_bar_initialize()
+        self._tool_bar_add_screenshot_button(
             name="screenshot",
             desc="Take a screenshot",
-            func=self._screenshot,
-        )
-        self._tool_bar_add_text(
-            name="screenshot_field",
-            value=None,
-            placeholder="Type a file name",
+            func=self.screenshot,
         )
 
     def show(self):
@@ -220,20 +323,6 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
         display(main_widget)
         self.figure.display = viewer
         return self.scene()
-
-
-def _ipy_add_widget(layout, widget, max_width=None):
-    widget.layout.margin = "2px 0px 2px 0px"
-    widget.layout.min_width = "0px"
-    children = list(layout.children)
-    children.append(widget)
-    layout.children = tuple(children)
-    # Fix columns
-    if max_width is not None and isinstance(widget, HBox):
-        children = widget.children
-        width = int(max_width / len(children))
-        for child in children:
-            child.layout.width = f"{width}px"
 
 
 _testing_context = nullcontext

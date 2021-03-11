@@ -6,6 +6,7 @@
 # License: Simplified BSD
 
 from contextlib import contextmanager
+from functools import partial
 
 import pyvista
 
@@ -15,18 +16,31 @@ from PyQt5.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
                              QHBoxLayout, QLabel, QToolButton, QMenuBar,
                              QSlider, QSpinBox, QVBoxLayout, QWidget,
                              QSizePolicy, QScrollArea, QStyle, QProgressBar,
-                             QStyleOptionSlider)
+                             QStyleOptionSlider, QLayout, QSplitter)
 
 from ._pyvista import _PyVistaRenderer
 from ._pyvista import (_close_all, _close_3d_figure, _check_3d_figure,  # noqa: F401,E501 analysis:ignore
                        _set_3d_view, _set_3d_title, _take_3d_screenshot)  # noqa: F401,E501 analysis:ignore
 from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
-                        _AbstractStatusBar)
-from ._utils import _init_qt_resources
+                        _AbstractStatusBar, _AbstractLayout, _AbstractWidget,
+                        _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback)
+from ._utils import _init_qt_resources, _qt_disable_paint
+from ..utils import _save_ndarray_img
 
 
-class _QtDock(_AbstractDock):
-    def _dock_initialize(self, window):
+class _QtLayout(_AbstractLayout):
+    def _layout_initialize(self, max_width):
+        pass
+
+    def _layout_add_widget(self, layout, widget, max_width=None):
+        if isinstance(widget, QLayout):
+            layout.addLayout(widget)
+        else:
+            layout.addWidget(widget)
+
+
+class _QtDock(_AbstractDock, _QtLayout):
+    def _dock_initialize(self, window=None):
         self.dock = QDockWidget()
         self.scroll = QScrollArea(self.dock)
         self.dock.setWidget(self.scroll)
@@ -35,6 +49,7 @@ class _QtDock(_AbstractDock):
         self.scroll.setWidgetResizable(True)
         self.dock.setAllowedAreas(Qt.LeftDockWidgetArea)
         self.dock.setFeatures(QDockWidget.NoDockWidgetFeatures)
+        window = self._window if window is None else window
         window.addDockWidget(Qt.LeftDockWidgetArea, self.dock)
         self.dock_layout = QVBoxLayout()
         widget.setLayout(self.dock_layout)
@@ -62,8 +77,8 @@ class _QtDock(_AbstractDock):
         if align:
             widget.setAlignment(Qt.AlignCenter)
         widget.setText(value)
-        layout.addWidget(widget)
-        return widget
+        self._layout_add_widget(layout, widget)
+        return _QtWidget(widget)
 
     def _dock_add_button(self, name, callback, layout=None):
         layout = self.dock_layout if layout is None else layout
@@ -72,8 +87,8 @@ class _QtDock(_AbstractDock):
         widget = QToolButton()
         widget.clicked.connect(callback)
         widget.setText(name)
-        layout.addWidget(widget)
-        return widget
+        self._layout_add_widget(layout, widget)
+        return _QtWidget(widget)
 
     def _dock_named_layout(self, name, layout, compact):
         layout = self.dock_layout if layout is None else layout
@@ -81,7 +96,7 @@ class _QtDock(_AbstractDock):
             hlayout = self._dock_add_layout(not compact)
             self._dock_add_label(
                 value=name, align=not compact, layout=hlayout)
-            layout.addLayout(hlayout)
+            self._layout_add_widget(layout, hlayout)
             layout = hlayout
         return layout
 
@@ -96,8 +111,8 @@ class _QtDock(_AbstractDock):
         widget.setMaximum(cast(rng[1]))
         widget.setValue(cast(value))
         widget.valueChanged.connect(callback)
-        layout.addWidget(widget)
-        return widget
+        self._layout_add_widget(layout, widget)
+        return _QtWidget(widget)
 
     def _dock_add_spin_box(self, name, value, rng, callback,
                            compact=True, double=True, layout=None):
@@ -113,8 +128,8 @@ class _QtDock(_AbstractDock):
         widget.setSingleStep(inc)
         widget.setValue(value)
         widget.valueChanged.connect(callback)
-        layout.addWidget(widget)
-        return widget
+        self._layout_add_widget(layout, widget)
+        return _QtWidget(widget)
 
     def _dock_add_combo_box(self, name, value, rng,
                             callback, compact=True, layout=None):
@@ -124,15 +139,15 @@ class _QtDock(_AbstractDock):
         widget.setCurrentText(value)
         widget.currentTextChanged.connect(callback)
         widget.setSizeAdjustPolicy(QComboBox.AdjustToContents)
-        layout.addWidget(widget)
-        return widget
+        self._layout_add_widget(layout, widget)
+        return _QtWidget(widget)
 
     def _dock_add_group_box(self, name, layout=None):
         layout = self.dock_layout if layout is None else layout
         hlayout = QVBoxLayout()
         widget = QGroupBox(name)
         widget.setLayout(hlayout)
-        layout.addWidget(widget)
+        self._layout_add_widget(layout, widget)
         return hlayout
 
 
@@ -209,7 +224,7 @@ class QFloatSlider(QSlider):
         super().mousePressEvent(event)
 
 
-class _QtToolBar(_AbstractToolBar):
+class _QtToolBar(_AbstractToolBar, _QtLayout):
     def _tool_bar_load_icons(self):
         _init_qt_resources()
         self.icons = dict()
@@ -225,17 +240,18 @@ class _QtToolBar(_AbstractToolBar):
         self.icons["visibility_on"] = QIcon(":/visibility_on.svg")
         self.icons["visibility_off"] = QIcon(":/visibility_off.svg")
 
-    def _tool_bar_initialize(self, window, name="default"):
+    def _tool_bar_initialize(self, name="default", window=None):
         self.actions = dict()
+        window = self._window if window is None else window
         self.tool_bar = window.addToolBar(name)
 
-    def _tool_bar_finalize(self):
-        pass
-
-    def _tool_bar_add_button(self, name, desc, func, icon_name=None):
+    def _tool_bar_add_button(self, name, desc, func, icon_name=None,
+                             shortcut=None):
         icon_name = name if icon_name is None else icon_name
         icon = self.icons[icon_name]
         self.actions[name] = self.tool_bar.addAction(icon, desc, func)
+        if shortcut is not None:
+            self.actions[name].setShortcut(shortcut)
 
     def _tool_bar_update_button_icon(self, name, icon_name):
         self.actions[name].setIcon(self.icons[icon_name])
@@ -248,13 +264,32 @@ class _QtToolBar(_AbstractToolBar):
         spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.tool_bar.addWidget(spacer)
 
+    def _tool_bar_add_screenshot_button(self, name, desc, func):
+        def _screenshot():
+            img = func()
+            try:
+                from pyvista.plotting.qt_plotting import FileDialog
+            except ImportError:
+                from pyvistaqt.plotting import FileDialog
+            FileDialog(
+                self.plotter.app_window,
+                callback=partial(_save_ndarray_img, img=img),
+            )
+
+        self._tool_bar_add_button(
+            name=name,
+            desc=desc,
+            func=_screenshot,
+        )
+
 
 class _QtMenuBar(_AbstractMenuBar):
-    def _menu_initialize(self, window):
+    def _menu_initialize(self, window=None):
         self._menus = dict()
         self._menu_actions = dict()
         self.menu_bar = QMenuBar()
         self.menu_bar.setNativeMenuBar(False)
+        window = self._window if window is None else window
         window.setMenuBar(self.menu_bar)
 
     def _menu_add_submenu(self, name, desc):
@@ -266,7 +301,8 @@ class _QtMenuBar(_AbstractMenuBar):
 
 
 class _QtStatusBar(_AbstractStatusBar):
-    def _status_bar_initialize(self, window):
+    def _status_bar_initialize(self, window=None):
+        window = self._window if window is None else window
         self.status_bar = window.statusBar()
 
     def _status_bar_add_label(self, value, stretch=0):
@@ -280,8 +316,140 @@ class _QtStatusBar(_AbstractStatusBar):
         return widget
 
 
+class _QtPlayback(_AbstractPlayback):
+    def _playback_initialize(self, func, timeout):
+        self.figure.plotter.add_callback(func, timeout)
+
+
+class _QtMplCanvas(_AbstractMplCanvas):
+    def __init__(self, brain, width, height, dpi):
+        super().__init__(brain, width, height, dpi)
+        from PyQt5 import QtWidgets
+        from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+        self.canvas = FigureCanvasQTAgg(self.fig)
+        if brain.separate_canvas:
+            self.canvas.setParent(None)
+        else:
+            self.canvas.setParent(brain._renderer._window)
+        FigureCanvasQTAgg.setSizePolicy(
+            self.canvas,
+            QtWidgets.QSizePolicy.Expanding,
+            QtWidgets.QSizePolicy.Expanding
+        )
+        FigureCanvasQTAgg.updateGeometry(self.canvas)
+        self.manager = None
+        self._connect()
+
+    def show(self):
+        self.canvas.show()
+
+
+class _QtWindow(_AbstractWindow):
+    def _window_initialize(self, func=None):
+        self._window = self.figure.plotter.app_window
+        self._interactor = self.figure.plotter.interactor
+        self._mplcanvas = None
+        self._show_traces = None
+        self._separate_canvas = None
+        self._splitter = None
+        self._interactor_fraction = None
+        if func is not None:
+            self._window.signal_close.connect(func)
+
+    def _window_get_dpi(self):
+        return self._window.windowHandle().screen().logicalDotsPerInch()
+
+    def _window_get_size(self):
+        w = self._interactor.geometry().width()
+        h = self._interactor.geometry().height()
+        return (w, h)
+
+    def _window_get_mplcanvas(self, brain, interactor_fraction, show_traces,
+                              separate_canvas):
+        w, h = self._window_get_mplcanvas_size(interactor_fraction)
+        self._interactor_fraction = interactor_fraction
+        self._show_traces = show_traces
+        self._separate_canvas = separate_canvas
+        self._mplcanvas = _QtMplCanvas(brain, w, h, self._window_get_dpi())
+        return self._mplcanvas
+
+    def _window_adjust_mplcanvas_layout(self):
+        canvas = self._mplcanvas.canvas
+        vlayout = self._interactor.frame.layout()
+        vlayout.removeWidget(self._interactor)
+        splitter = QSplitter(
+            orientation=Qt.Vertical,
+            parent=self._interactor.frame
+        )
+        vlayout.addWidget(splitter)
+        splitter.addWidget(self._interactor)
+        splitter.addWidget(canvas)
+        self._splitter = splitter
+
+    def _window_get_cursor(self):
+        return self._interactor.cursor()
+
+    def _window_set_cursor(self, cursor):
+        self._interactor.setCursor(cursor)
+
+    @contextmanager
+    def _window_ensure_minimum_sizes(self, sz):
+        """Ensure that widgets respect the windows size."""
+        adjust_mpl = (self._show_traces and not self._separate_canvas)
+        if not adjust_mpl:
+            yield
+        else:
+            mpl_h = int(round((sz[1] * self._interactor_fraction) /
+                              (1 - self._interactor_fraction)))
+            self._mplcanvas.canvas.setMinimumSize(sz[0], mpl_h)
+            try:
+                yield
+            finally:
+                self._splitter.setSizes([sz[1], mpl_h])
+                # 1. Process events
+                self._process_events()
+                self._process_events()
+                # 2. Get the window size that accommodates the size
+                sz = self._window.size()
+                # 3. Call app_window.setBaseSize and resize (in pyvistaqt)
+                self.figure.plotter.window_size = (sz.width(), sz.height())
+                # 4. Undo the min size setting and process events
+                self._interactor.setMinimumSize(0, 0)
+                self._process_events()
+                self._process_events()
+                # 5. Resize the window (again!) to the correct size
+                #    (not sure why, but this is required on macOS at least)
+                self.figure.plotter.window_size = (sz.width(), sz.height())
+            self._process_events()
+            self._process_events()
+
+    def _window_show(self, sz):
+        with _qt_disable_paint(self._interactor):
+            with self._window_ensure_minimum_sizes(sz):
+                self.show()
+
+
+class _QtWidget(_AbstractWidget):
+    def set_value(self, value):
+        if hasattr(self._widget, "setValue"):
+            self._widget.setValue(value)
+        elif hasattr(self._widget, "setCurrentText"):
+            self._widget.setCurrentText(value)
+        else:
+            assert hasattr(self._widget, "setText")
+            self._widget.setText(value)
+
+    def get_value(self):
+        if hasattr(self._widget, "value"):
+            return self._widget.value()
+        elif hasattr(self._widget, "currentText"):
+            return self._widget.currentText()
+        elif hasattr(self._widget, "text"):
+            return self._widget.text()
+
+
 class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
-                _QtStatusBar):
+                _QtStatusBar, _QtWindow, _QtPlayback):
     pass
 
 

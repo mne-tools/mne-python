@@ -48,7 +48,6 @@ _FIGURES = dict()
 class _Figure(object):
     def __init__(self,
                  plotter=None,
-                 display=None,
                  show=False,
                  title='PyVista Scene',
                  size=(600, 600),
@@ -58,7 +57,7 @@ class _Figure(object):
                  off_screen=False,
                  notebook=False):
         self.plotter = plotter
-        self.display = display
+        self.display = None
         self.background_color = background_color
         self.smooth_shading = smooth_shading
         self.notebook = notebook
@@ -202,6 +201,10 @@ class _PyVistaRenderer(_AbstractRenderer):
     def _hide_axes(self):
         for renderer in self._all_renderers:
             renderer.hide_axes()
+
+    def _update(self):
+        for plotter in self._all_plotters:
+            plotter.update()
 
     def _get_screenshot_filename(self):
         now = datetime.now()
@@ -615,7 +618,7 @@ class _PyVistaRenderer(_AbstractRenderer):
             self.plotter.add_scalar_bar(**kwargs)
 
     def show(self):
-        self.figure.display = self.plotter.show()
+        self.plotter.show()
         if hasattr(self.plotter, "app_window"):
             with _qt_disable_paint(self.plotter):
                 with self._ensure_minimum_sizes():

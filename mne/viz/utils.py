@@ -2293,6 +2293,12 @@ def _ndarray_to_fig(img):
     return fig
 
 
+def _save_ndarray_img(fname, img):
+    """Save an image to disk."""
+    from PIL import Image
+    Image.fromarray(img).save(fname)
+
+
 def concatenate_images(images, axis=0, bgcolor='black', centered=True):
     """Concatenate a list of images.
 
