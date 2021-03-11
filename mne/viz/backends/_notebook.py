@@ -8,6 +8,7 @@ from IPython.display import display
 from ipywidgets import (Button, Dropdown, FloatSlider, FloatText, HBox,
                         IntSlider, IntText, Text, VBox)
 
+from ..utils import _save_ndarray_img
 from ...fixes import nullcontext
 from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractStatusBar, _AbstractLayout, _AbstractWidget,
@@ -174,12 +175,11 @@ class _IpyToolBar(_AbstractToolBar, _IpyLayout):
 
     def _tool_bar_add_screenshot_button(self, name, desc, func):
         def _screenshot():
-            from PIL import Image
             fname = self.actions[f"{name}_field"].value
             fname = self._get_screenshot_filename() \
                 if len(fname) == 0 else fname
             img = func()
-            Image.fromarray(img).save(fname)
+            _save_ndarray_img(fname, img)
 
         self._tool_bar_add_button(
             name=name,

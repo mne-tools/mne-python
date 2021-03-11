@@ -6,6 +6,7 @@
 # License: Simplified BSD
 
 from contextlib import contextmanager
+from functools import partial
 
 import pyvista
 
@@ -23,6 +24,7 @@ from ._pyvista import (_close_all, _close_3d_figure, _check_3d_figure,  # noqa: 
 from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractStatusBar, _AbstractLayout, _AbstractWidget,
                         _AbstractWindow)
+from ..utils import _save_ndarray_img
 from ._utils import _init_qt_resources
 
 
@@ -265,17 +267,13 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
     def _tool_bar_add_screenshot_button(self, name, desc, func):
         def _screenshot():
             img = func()
-
-            def _save_img(fname):
-                from PIL import Image
-                Image.fromarray(img).save(fname)
             try:
                 from pyvista.plotting.qt_plotting import FileDialog
             except ImportError:
                 from pyvistaqt.plotting import FileDialog
             FileDialog(
                 self.plotter.app_window,
-                callback=_save_img,
+                callback=partial(_save_ndarray_img, img=img),
             )
 
         self._tool_bar_add_button(
