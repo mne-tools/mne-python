@@ -479,13 +479,15 @@ slider_template = HTMLTemplate(u"""
                        max: {{maxvalue}},
                        step: {{step}},
                        value: {{startvalue}},
+                       animate: true,
                        create: function(event, ui) {
-                       $(".{{klass}}").hide();
-                       $("#{{klass}}-{{startvalue}}").show();},
-                       stop: function(event, ui) {
-                       var list_value = $("#{{slider_id}}").slider("value");
-                       $(".{{klass}}").hide();
-                       $("#{{klass}}-"+list_value).show();}
+                         $(".{{klass}}").hide();
+                         $("#{{klass}}-{{startvalue}}").show();
+                       },
+                       slide: function(event, ui) {
+                         $(".{{klass}}").hide();
+                         $("#{{klass}}-" + ui.value).show();
+                       }
                        })</script>
 """)
 

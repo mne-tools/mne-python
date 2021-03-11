@@ -45,7 +45,6 @@ _FIGURES = dict()
 class _Figure(object):
     def __init__(self,
                  plotter=None,
-                 display=None,
                  show=False,
                  title='PyVista Scene',
                  size=(600, 600),
@@ -55,7 +54,7 @@ class _Figure(object):
                  off_screen=False,
                  notebook=False):
         self.plotter = plotter
-        self.display = display
+        self.display = None
         self.background_color = background_color
         self.smooth_shading = smooth_shading
         self.notebook = notebook
@@ -78,7 +77,6 @@ class _Figure(object):
             self.store["toolbar"] = False
             self.store["nrows"] = shape[0]
             self.store["ncols"] = shape[1]
-
         self.viewer = None
         self._nrows, self._ncols = shape
         self._azimuth = self._elevation = None

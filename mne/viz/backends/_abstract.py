@@ -5,7 +5,10 @@
 #
 # License: Simplified BSD
 
+import warnings
 from abc import ABC, abstractmethod, abstractclassmethod
+from ..utils import tight_layout
+from ...fixes import nullcontext
 
 
 class _AbstractRenderer(ABC):
@@ -449,15 +452,12 @@ class _AbstractToolBar(ABC):
         pass
 
     @abstractmethod
-    def _tool_bar_initialize(self, name="default"):
+    def _tool_bar_initialize(self, name="default", window=None):
         pass
 
     @abstractmethod
-    def _tool_bar_finalize(self):
-        pass
-
-    @abstractmethod
-    def _tool_bar_add_button(self, name, desc, func, icon_name=None):
+    def _tool_bar_add_button(self, name, desc, func, icon_name=None,
+                             shortcut=None):
         pass
 
     @abstractmethod
@@ -472,10 +472,14 @@ class _AbstractToolBar(ABC):
     def _tool_bar_add_spacer(self):
         pass
 
+    @abstractmethod
+    def _tool_bar_add_screenshot_button(self, name, desc, func):
+        pass
+
 
 class _AbstractDock(ABC):
     @abstractmethod
-    def _dock_initialize(self):
+    def _dock_initialize(self, window=None):
         pass
 
     @abstractmethod
@@ -527,4 +531,208 @@ class _AbstractDock(ABC):
 
     @abstractmethod
     def _dock_add_group_box(self, name, layout=None):
+        pass
+
+
+class _AbstractMenuBar(ABC):
+    @abstractmethod
+    def _menu_initialize(self, window=None):
+        pass
+
+    @abstractmethod
+    def _menu_add_submenu(self, name, desc):
+        pass
+
+    @abstractmethod
+    def _menu_add_button(self, menu_name, name, desc, func):
+        pass
+
+
+class _AbstractStatusBar(ABC):
+    @abstractmethod
+    def _status_bar_initialize(self, window=None):
+        pass
+
+    @abstractmethod
+    def _status_bar_add_label(self, value, stretch=0):
+        pass
+
+    @abstractmethod
+    def _status_bar_add_progress_bar(self, stretch=0):
+        pass
+
+
+class _AbstractPlayback(ABC):
+    @abstractmethod
+    def _playback_initialize(self, func, timeout):
+        pass
+
+
+class _AbstractLayout(ABC):
+    @abstractmethod
+    def _layout_initialize(self, max_width):
+        pass
+
+    @abstractmethod
+    def _layout_add_widget(self, layout, widget):
+        pass
+
+
+class _AbstractWidget(ABC):
+    def __init__(self, widget):
+        self._widget = widget
+
+    @property
+    def widget(self):
+        return self._widget
+
+    @abstractmethod
+    def set_value(self, value):
+        pass
+
+    @abstractmethod
+    def get_value(self):
+        pass
+
+
+class _AbstractMplCanvas(ABC):
+    def __init__(self, brain, width, height, dpi):
+        """Initialize the MplCanvas."""
+        from matplotlib import rc_context
+        from matplotlib.figure import Figure
+        # prefer constrained layout here but live with tight_layout otherwise
+        context = nullcontext
+        self._extra_events = ('resize',)
+        try:
+            context = rc_context({'figure.constrained_layout.use': True})
+            self._extra_events = ()
+        except KeyError:
+            pass
+        with context:
+            self.fig = Figure(figsize=(width, height), dpi=dpi)
+        self.axes = self.fig.add_subplot(111)
+        self.axes.set(xlabel='Time (sec)', ylabel='Activation (AU)')
+        self.brain = brain
+        self.time_func = brain.callbacks["time"]
+
+    def _connect(self):
+        for event in ('button_press', 'motion_notify') + self._extra_events:
+            self.canvas.mpl_connect(
+                event + '_event', getattr(self, 'on_' + event))
+
+    def plot(self, x, y, label, **kwargs):
+        """Plot a curve."""
+        line, = self.axes.plot(
+            x, y, label=label, **kwargs)
+        self.update_plot()
+        return line
+
+    def plot_time_line(self, x, label, **kwargs):
+        """Plot the vertical line."""
+        line = self.axes.axvline(x, label=label, **kwargs)
+        self.update_plot()
+        return line
+
+    def update_plot(self):
+        """Update the plot."""
+        leg = self.axes.legend(
+            prop={'family': 'monospace', 'size': 'small'},
+            framealpha=0.5, handlelength=1.,
+            facecolor=self.brain._bg_color)
+        for text in leg.get_texts():
+            text.set_color(self.brain._fg_color)
+        with warnings.catch_warnings(record=True):
+            warnings.filterwarnings('ignore', 'constrained_layout')
+            self.canvas.draw()
+
+    def set_color(self, bg_color, fg_color):
+        """Set the widget colors."""
+        self.axes.set_facecolor(bg_color)
+        self.axes.xaxis.label.set_color(fg_color)
+        self.axes.yaxis.label.set_color(fg_color)
+        self.axes.spines['top'].set_color(fg_color)
+        self.axes.spines['bottom'].set_color(fg_color)
+        self.axes.spines['left'].set_color(fg_color)
+        self.axes.spines['right'].set_color(fg_color)
+        self.axes.tick_params(axis='x', colors=fg_color)
+        self.axes.tick_params(axis='y', colors=fg_color)
+        self.fig.patch.set_facecolor(bg_color)
+
+    @abstractmethod
+    def show(self):
+        """Show the canvas."""
+        pass
+
+    def close(self):
+        """Close the canvas."""
+        self.canvas.close()
+
+    def on_button_press(self, event):
+        """Handle button presses."""
+        # left click (and maybe drag) in progress in axes
+        if (event.inaxes != self.axes or
+                event.button != 1):
+            return
+        self.time_func(
+            event.xdata, update_widget=True, time_as_index=False)
+
+    def clear(self):
+        """Clear internal variables."""
+        self.close()
+        self.axes.clear()
+        self.fig.clear()
+        self.brain = None
+        self.canvas = None
+        self.manager = None
+
+    on_motion_notify = on_button_press  # for now they can be the same
+
+    def on_resize(self, event):
+        """Handle resize events."""
+        tight_layout(fig=self.axes.figure)
+
+
+class _AbstractWindow(ABC):
+    @abstractmethod
+    def _window_initialize(self, func=None):
+        pass
+
+    @abstractmethod
+    def _window_get_dpi(self):
+        pass
+
+    @abstractmethod
+    def _window_get_size(self):
+        pass
+
+    def _window_get_mplcanvas_size(self, fraction):
+        ratio = (1 - fraction) / fraction
+        dpi = self._window_get_dpi()
+        w, h = self._window_get_size()
+        h /= ratio
+        return (w / dpi, h / dpi)
+
+    @abstractmethod
+    def _window_get_mplcanvas(self, brain, interactor_fraction, show_traces,
+                              separate_canvas):
+        pass
+
+    @abstractmethod
+    def _window_adjust_mplcanvas_layout(self):
+        pass
+
+    @abstractmethod
+    def _window_get_cursor(self):
+        pass
+
+    @abstractmethod
+    def _window_set_cursor(self, cursor):
+        pass
+
+    @abstractmethod
+    def _window_ensure_minimum_sizes(self, sz):
+        pass
+
+    @abstractmethod
+    def _window_show(self, sz):
         pass

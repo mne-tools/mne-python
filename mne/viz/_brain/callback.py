@@ -6,38 +6,6 @@
 from ...utils import logger
 
 
-class Widget(object):
-    """Helper class to interface with widgets."""
-
-    def __init__(self, widget, notebook=False):
-        self.widget = widget
-        self.notebook = notebook
-
-    def set_value(self, value):
-        """Set the widget value."""
-        if self.notebook:
-            self.widget.value = value
-        else:
-            if hasattr(self.widget, "setValue"):
-                self.widget.setValue(value)
-            elif hasattr(self.widget, "setCurrentText"):
-                self.widget.setCurrentText(value)
-            elif hasattr(self.widget, "setText"):
-                self.widget.setText(value)
-
-    def get_value(self):
-        """Get the widget value."""
-        if self.notebook:
-            return self.widget.value
-        else:
-            if hasattr(self.widget, "value"):
-                return self.widget.value()
-            elif hasattr(self.widget, "currentText"):
-                return self.widget.currentText()
-            elif hasattr(self.widget, "text"):
-                return self.widget.text()
-
-
 class TimeCallBack(object):
     """Callback to update the time."""
 
