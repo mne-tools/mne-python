@@ -12,7 +12,7 @@ from ..utils import _save_ndarray_img
 from ...fixes import nullcontext
 from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractStatusBar, _AbstractLayout, _AbstractWidget,
-                        _AbstractWindow)
+                        _AbstractWindow, _AbstractMplCanvas)
 from ._pyvista import _PyVistaRenderer, _close_all, _set_3d_view, _set_3d_title  # noqa: F401,E501, analysis:ignore
 
 
@@ -215,16 +215,56 @@ class _IpyStatusBar(_AbstractStatusBar):
         pass
 
 
+class _IpyMplCanvas(_AbstractMplCanvas):
+    def __init__(self, brain, width, height, dpi):
+        from matplotlib import rc_context
+        from matplotlib.figure import Figure
+        # prefer constrained layout here but live with tight_layout otherwise
+        context = nullcontext
+        extra_events = ('resize',)
+        try:
+            context = rc_context({'figure.constrained_layout.use': True})
+            extra_events = ()
+        except KeyError:
+            pass
+        with context:
+            self.fig = Figure(figsize=(width, height), dpi=dpi)
+        from matplotlib.backends.backend_nbagg import (FigureCanvasNbAgg,
+                                                       FigureManager)
+        self.canvas = FigureCanvasNbAgg(self.fig)
+        self.manager = FigureManager(self.canvas, 0)
+        self.axes = self.fig.add_subplot(111)
+        self.axes.set(xlabel='Time (sec)', ylabel='Activation (AU)')
+        self.brain = brain
+        self.time_func = brain.callbacks["time"]
+        for event in ('button_press', 'motion_notify') + extra_events:
+            self.canvas.mpl_connect(
+                event + '_event', getattr(self, 'on_' + event))
+
+    def show(self):
+        """Show the canvas."""
+        self.manager.show()
+
+
 class _IpyWindow(_AbstractWindow):
     def _window_initialize(self, func=None):
         self._window = None
         self._interactor = None
+        self._mplcanvas = None
 
     def _window_get_dpi(self):
         return 96
 
     def _window_get_size(self):
         return self.figure.plotter.window_size
+
+    def _window_get_mplcanvas(self, brain, ratio):
+        w, h = self._window_get_mplcanvas_size(ratio)
+        self._mplcanvas = _IpyMplCanvas(brain, w, h, self._window_get_dpi())
+        return self._mplcanvas
+
+    def _window_adjust_mplcanvas_layout(self):
+        pass
 
     def _window_get_cursor(self):
         pass

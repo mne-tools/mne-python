@@ -24,7 +24,6 @@ from collections import OrderedDict
 from .colormap import calculate_lut
 from .surface import _Surface
 from .view import views_dicts, _lh_views_dict
-from .mplcanvas import MplCanvas
 from .callback import (ShowView, TimeCallBack, SmartCallBack,
                        UpdateLUT, UpdateColorbarScale)
 
@@ -657,18 +656,19 @@ class Brain(object):
         self._configure_dock()
         self._configure_menu()
         self._configure_status_bar()
+        # show everything at the end
+        self.toggle_interface()
         if self.notebook:
             self._renderer.show()
-            self.mpl_canvas.show()
-        self.toggle_interface()
-        if not self.notebook:
+        else:
             self._configure_playback()
-
-            # show everything at the end
             with _qt_disable_paint(self.plotter):
                 with self._ensure_minimum_sizes():
                     self.show()
-            self._renderer._update()
+        self._renderer._update()
+        # finally, show the MplCanvas
+        if self.show_traces:
+            self.mpl_canvas.show()
 
     @safe_event
     def _clean(self):
@@ -1167,35 +1167,20 @@ class Brain(object):
         self.plotter.add_callback(self._play, self.refresh_rate_ms)
 
     def _configure_mplcanvas(self):
-        ratio = (1 - self.interactor_fraction) / self.interactor_fraction
-        dpi = self._renderer._window_get_dpi()
-        w, h = self._renderer._window_get_size()
-        h /= ratio
         # Get the fractional components for the brain and mpl
-        self.mpl_canvas = MplCanvas(self, w / dpi, h / dpi, dpi,
-                                    self.notebook)
+        ratio = (1 - self.interactor_fraction) / self.interactor_fraction
+        self.mpl_canvas = self._renderer._window_get_mplcanvas(self, ratio)
         xlim = [np.min(self._data['time']),
                 np.max(self._data['time'])]
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=UserWarning)
             self.mpl_canvas.axes.set(xlim=xlim)
-        if not self.notebook and not self.separate_canvas:
-            from PyQt5.QtWidgets import QSplitter
-            from PyQt5.QtCore import Qt
-            canvas = self.mpl_canvas.canvas
-            vlayout = self.plotter.frame.layout()
-            vlayout.removeWidget(self.interactor)
-            self.splitter = splitter = QSplitter(
-                orientation=Qt.Vertical, parent=self.plotter.frame)
-            vlayout.addWidget(splitter)
-            splitter.addWidget(self.interactor)
-            splitter.addWidget(canvas)
+        if not self.separate_canvas:
+            self.splitter = self._renderer._window_adjust_mplcanvas_layout()
         self.mpl_canvas.set_color(
             bg_color=self._bg_color,
             fg_color=self._fg_color,
         )
-        if self.separate_canvas:
-            self.mpl_canvas.show()
 
     def _configure_vertex_time_course(self):
         if not self.show_traces:

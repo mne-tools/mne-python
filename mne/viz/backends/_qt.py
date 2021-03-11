@@ -16,16 +16,17 @@ from PyQt5.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
                              QHBoxLayout, QLabel, QToolButton, QMenuBar,
                              QSlider, QSpinBox, QVBoxLayout, QWidget,
                              QSizePolicy, QScrollArea, QStyle, QProgressBar,
-                             QStyleOptionSlider, QLayout)
+                             QStyleOptionSlider, QLayout, QSplitter)
 
 from ._pyvista import _PyVistaRenderer
 from ._pyvista import (_close_all, _close_3d_figure, _check_3d_figure,  # noqa: F401,E501 analysis:ignore
                        _set_3d_view, _set_3d_title, _take_3d_screenshot)  # noqa: F401,E501 analysis:ignore
 from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractStatusBar, _AbstractLayout, _AbstractWidget,
-                        _AbstractWindow)
-from ..utils import _save_ndarray_img
+                        _AbstractWindow, _AbstractMplCanvas)
 from ._utils import _init_qt_resources
+from ..utils import _save_ndarray_img
+from ...fixes import nullcontext
 
 
 class _QtLayout(_AbstractLayout):
@@ -316,10 +317,52 @@ class _QtStatusBar(_AbstractStatusBar):
         return widget
 
 
+class _QtMplCanvas(_AbstractMplCanvas):
+    def __init__(self, brain, width, height, dpi):
+        from matplotlib import rc_context
+        from matplotlib.figure import Figure
+        if brain.separate_canvas:
+            parent = None
+        else:
+            parent = brain._renderer._window
+        # prefer constrained layout here but live with tight_layout otherwise
+        context = nullcontext
+        extra_events = ('resize',)
+        try:
+            context = rc_context({'figure.constrained_layout.use': True})
+            extra_events = ()
+        except KeyError:
+            pass
+        with context:
+            self.fig = Figure(figsize=(width, height), dpi=dpi)
+        from PyQt5 import QtWidgets
+        from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+        self.canvas = FigureCanvasQTAgg(self.fig)
+        self.canvas.setParent(parent)
+        FigureCanvasQTAgg.setSizePolicy(
+            self.canvas,
+            QtWidgets.QSizePolicy.Expanding,
+            QtWidgets.QSizePolicy.Expanding
+        )
+        FigureCanvasQTAgg.updateGeometry(self.canvas)
+        self.manager = None
+        self.axes = self.fig.add_subplot(111)
+        self.axes.set(xlabel='Time (sec)', ylabel='Activation (AU)')
+        self.brain = brain
+        self.time_func = brain.callbacks["time"]
+        for event in ('button_press', 'motion_notify') + extra_events:
+            self.canvas.mpl_connect(
+                event + '_event', getattr(self, 'on_' + event))
+
+    def show(self):
+        self.canvas.show()
+
+
 class _QtWindow(_AbstractWindow):
     def _window_initialize(self, func=None):
         self._window = self.figure.plotter.app_window
         self._interactor = self.figure.plotter.interactor
+        self._mplcanvas = None
         if func is not None:
             self._window.signal_close.connect(func)
 
@@ -330,6 +373,24 @@ class _QtWindow(_AbstractWindow):
         w = self._interactor.geometry().width()
         h = self._interactor.geometry().height()
         return (w, h)
+
+    def _window_get_mplcanvas(self, brain, ratio):
+        w, h = self._window_get_mplcanvas_size(ratio)
+        self._mplcanvas = _QtMplCanvas(brain, w, h, self._window_get_dpi())
+        return self._mplcanvas
+
+    def _window_adjust_mplcanvas_layout(self):
+        canvas = self._mplcanvas.canvas
+        vlayout = self._interactor.frame.layout()
+        vlayout.removeWidget(self._interactor)
+        splitter = QSplitter(
+            orientation=Qt.Vertical,
+            parent=self._interactor.frame
+        )
+        vlayout.addWidget(splitter)
+        splitter.addWidget(self._interactor)
+        splitter.addWidget(canvas)
+        return splitter
 
     def _window_get_cursor(self):
         return self._interactor.cursor()
