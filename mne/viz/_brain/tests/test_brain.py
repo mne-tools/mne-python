@@ -104,12 +104,10 @@ class TstVTKPicker(object):
         return np.array(self.GetPickPosition()) - (0, 0, 100)
 
 
-def test_layered_mesh(renderer_interactive):
+def test_layered_mesh(renderer_interactive_pyvista):
     """Test management of scalars/colormap overlay."""
-    if renderer_interactive._get_3d_backend() != 'pyvista':
-        pytest.skip('TimeViewer tests only supported on PyVista')
     mesh = _LayeredMesh(
-        renderer=renderer_interactive._get_renderer(size=(300, 300)),
+        renderer=renderer_interactive_pyvista._get_renderer(size=(300, 300)),
         vertices=np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0], [1, 1, 0]]),
         triangles=np.array([[0, 1, 2], [1, 2, 3]]),
         normals=np.array([[0, 0, 1]] * 4),
@@ -136,10 +134,8 @@ def test_layered_mesh(renderer_interactive):
 
 
 @testing.requires_testing_data
-def test_brain_gc(renderer, brain_gc):
+def test_brain_gc(renderer_pyvista, brain_gc):
     """Test that a minimal version of Brain gets GC'ed."""
-    if renderer._get_3d_backend() != 'pyvista':
-        pytest.skip('TimeViewer tests only supported on PyVista')
     brain = Brain('fsaverage', 'both', 'inflated', subjects_dir=subjects_dir)
     brain.close()
 
@@ -157,10 +153,8 @@ def test_brain_routines(renderer, brain_gc):
 
 
 @testing.requires_testing_data
-def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
+def test_brain_init(renderer_pyvista, tmpdir, pixel_ratio, brain_gc):
     """Test initialization of the Brain instance."""
-    if renderer._get_3d_backend() != 'pyvista':
-        pytest.skip('TimeViewer tests only supported on PyVista')
     from mne.source_estimate import _BaseSourceEstimate
 
     class FakeSTC(_BaseSourceEstimate):
@@ -183,7 +177,7 @@ def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
         Brain(hemi=hemi, surf=surf, interaction=0, **kwargs)
     with pytest.raises(ValueError, match='interaction'):
         Brain(hemi=hemi, surf=surf, interaction='foo', **kwargs)
-    renderer.backend._close_all()
+    renderer_pyvista.backend._close_all()
 
     brain = Brain(hemi=hemi, surf=surf, size=size, title=title,
                   cortex=cortex, units='m',
@@ -332,8 +326,6 @@ def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
     assert path.isfile(fname)
     brain.show_view(view=dict(azimuth=180., elevation=90.))
     img = brain.screenshot(mode='rgb')
-    if renderer._get_3d_backend() == 'mayavi':
-        pixel_ratio = 1.  # no HiDPI when using the testing backend
     want_size = np.array([size[0] * pixel_ratio, size[1] * pixel_ratio, 3])
     assert_allclose(img.shape, want_size)
     brain.close()
@@ -343,10 +335,8 @@ def test_brain_init(renderer, tmpdir, pixel_ratio, brain_gc):
 @pytest.mark.skipif(os.getenv('CI_OS_NAME', '') == 'osx',
                     reason='Unreliable/segfault on macOS CI')
 @pytest.mark.parametrize('hemi', ('lh', 'rh'))
-def test_single_hemi(hemi, renderer_interactive, brain_gc):
+def test_single_hemi(hemi, renderer_interactive_pyvista, brain_gc):
     """Test single hemi support."""
-    if renderer_interactive._get_3d_backend() != 'pyvista':
-        pytest.skip('TimeViewer tests only supported on PyVista')
     stc = read_source_estimate(fname_stc)
     idx, order = (0, 1) if hemi == 'lh' else (1, -1)
     stc = SourceEstimate(
@@ -426,10 +416,8 @@ def tiny(tmpdir):
 
 
 @pytest.mark.filterwarnings('ignore:.*constrained_layout not applied.*:')
-def test_brain_screenshot(renderer_interactive, tmpdir, brain_gc):
+def test_brain_screenshot(renderer_interactive_pyvista, tmpdir, brain_gc):
     """Test time viewer screenshot."""
-    if renderer_interactive._get_3d_backend() != 'pyvista':
-        pytest.skip('TimeViewer tests only supported on PyVista')
     tiny_brain, ratio = tiny(tmpdir)
     img_nv = tiny_brain.screenshot(time_viewer=False)
     want = (_TINY_SIZE[1] * ratio, _TINY_SIZE[0] * ratio, 3)
@@ -453,10 +441,8 @@ def _assert_brain_range(brain, rng):
 
 @testing.requires_testing_data
 @pytest.mark.slowtest
-def test_brain_time_viewer(renderer_interactive, pixel_ratio, brain_gc):
+def test_brain_time_viewer(renderer_interactive_pyista, pixel_ratio, brain_gc):
     """Test time viewer primitives."""
-    if renderer_interactive._get_3d_backend() != 'pyvista':
-        pytest.skip('TimeViewer tests only supported on PyVista')
     with pytest.raises(ValueError, match="between 0 and 1"):
         _create_testing_brain(hemi='lh', show_traces=-1.0)
     with pytest.raises(ValueError, match="got unknown keys"):
@@ -547,12 +533,9 @@ def test_brain_time_viewer(renderer_interactive, pixel_ratio, brain_gc):
     pytest.param('mixed', marks=pytest.mark.slowtest),
 ])
 @pytest.mark.slowtest
-def test_brain_traces(renderer_interactive, hemi, src, tmpdir,
+def test_brain_traces(renderer_interactive_pyvista, hemi, src, tmpdir,
                       brain_gc):
     """Test brain traces."""
-    if renderer_interactive._get_3d_backend() != 'pyvista':
-        pytest.skip('Only PyVista supports traces')
-
     hemi_str = list()
     if src in ('surface', 'vector', 'mixed'):
         hemi_str.extend([hemi] if hemi in ('lh', 'rh') else ['lh', 'rh'])
@@ -742,10 +725,8 @@ something
 
 @testing.requires_testing_data
 @pytest.mark.slowtest
-def test_brain_linkviewer(renderer_interactive, brain_gc):
+def test_brain_linkviewer(renderer_interactive_pyvista, brain_gc):
     """Test _LinkViewer primitives."""
-    if renderer_interactive._get_3d_backend() != 'pyvista':
-        pytest.skip('Linkviewer only supported on PyVista')
     brain1 = _create_testing_brain(hemi='lh', show_traces=False)
     brain2 = _create_testing_brain(hemi='lh', show_traces='separate')
     brain1._times = brain1._times * 2
