@@ -4,6 +4,7 @@
 #
 # License: Simplified BSD
 
+from contextlib import contextmanager
 from IPython.display import display
 from ipywidgets import (Button, Dropdown, FloatSlider, FloatText, HBox,
                         IntSlider, IntText, Text, VBox)
@@ -256,6 +257,10 @@ class _IpyWindow(_AbstractWindow):
         self._window = None
         self._interactor = None
         self._mplcanvas = None
+        self._show_traces = None
+        self._separate_canvas = None
+        self._splitter = None
+        self._interactor_fraction = None
 
     def _window_get_dpi(self):
         return 96
@@ -263,8 +268,12 @@ class _IpyWindow(_AbstractWindow):
     def _window_get_size(self):
         return self.figure.plotter.window_size
 
-    def _window_get_mplcanvas(self, brain, ratio):
-        w, h = self._window_get_mplcanvas_size(ratio)
+    def _window_get_mplcanvas(self, brain, interactor_fraction, show_traces,
+                              separate_canvas):
+        w, h = self._window_get_mplcanvas_size(interactor_fraction)
+        self._interactor_fraction = interactor_fraction
+        self._show_traces = show_traces
+        self._separate_canvas = separate_canvas
         self._mplcanvas = _IpyMplCanvas(brain, w, h, self._window_get_dpi())
         return self._mplcanvas
 
@@ -276,6 +285,13 @@ class _IpyWindow(_AbstractWindow):
 
     def _window_set_cursor(self, cursor):
         pass
+
+    @contextmanager
+    def _window_ensure_minimum_sizes(self, sz):
+        yield
+
+    def _window_show(self, sz):
+        self.show()
 
 
 class _IpyWidget(_AbstractWidget):

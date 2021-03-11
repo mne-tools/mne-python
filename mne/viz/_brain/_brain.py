@@ -575,7 +575,6 @@ class Brain(object):
         'Left': Decrease camera azimuth angle
         'Right': Increase camera azimuth angle
         """
-        from ..backends._utils import _qt_disable_paint
         if self.time_viewer:
             return
         if not self._data:
@@ -656,12 +655,14 @@ class Brain(object):
         self._configure_playback()
         # show everything at the end
         self.toggle_interface()
-        if self.notebook:
-            self._renderer.show()
-        else:
-            with _qt_disable_paint(self.plotter):
-                with self._ensure_minimum_sizes():
-                    self.show()
+        self._renderer._window_show(self._size)
+
+        # sizes could change, update views
+        for hemi in ('lh', 'rh'):
+            for ri, ci, v in self._iter_views(hemi):
+                self.show_view(view=v, row=ri, col=ci)
+        self._renderer._process_events()
+
         self._renderer._update()
         # finally, show the MplCanvas
         if self.show_traces:
@@ -703,45 +704,6 @@ class Brain(object):
                     'actions', 'widgets', 'geo', '_data'):
             setattr(self, key, None)
 
-    @contextlib.contextmanager
-    def _ensure_minimum_sizes(self):
-        """Ensure that widgets respect the windows size."""
-        sz = self._size
-        adjust_mpl = (self.show_traces and
-                      not self.separate_canvas and
-                      not self.notebook)
-        if not adjust_mpl:
-            yield
-        else:
-            mpl_h = int(round((sz[1] * self.interactor_fraction) /
-                              (1 - self.interactor_fraction)))
-            self.mpl_canvas.canvas.setMinimumSize(sz[0], mpl_h)
-            try:
-                yield
-            finally:
-                self.splitter.setSizes([sz[1], mpl_h])
-                # 1. Process events
-                self._renderer._process_events()
-                self._renderer._process_events()
-                # 2. Get the window size that accommodates the size
-                sz = self.plotter.app_window.size()
-                # 3. Call app_window.setBaseSize and resize (in pyvistaqt)
-                self.plotter.window_size = (sz.width(), sz.height())
-                # 4. Undo the min size setting and process events
-                self.plotter.interactor.setMinimumSize(0, 0)
-                self._renderer._process_events()
-                self._renderer._process_events()
-                # 5. Resize the window (again!) to the correct size
-                #    (not sure why, but this is required on macOS at least)
-                self.plotter.window_size = (sz.width(), sz.height())
-            self._renderer._process_events()
-            self._renderer._process_events()
-            # sizes could change, update views
-            for hemi in ('lh', 'rh'):
-                for ri, ci, v in self._iter_views(hemi):
-                    self.show_view(view=v, row=ri, col=ci)
-            self._renderer._process_events()
-
     def toggle_interface(self, value=None):
         """Toggle the interface.
 
@@ -758,7 +720,7 @@ class Brain(object):
             self.visibility = value
 
         # update tool bar and dock
-        with self._ensure_minimum_sizes():
+        with self._renderer._window_ensure_minimum_sizes(self._size):
             if self.visibility:
                 self._renderer._dock_show()
                 self._renderer._tool_bar_update_button_icon(
@@ -1165,15 +1127,19 @@ class Brain(object):
 
     def _configure_mplcanvas(self):
         # Get the fractional components for the brain and mpl
-        ratio = (1 - self.interactor_fraction) / self.interactor_fraction
-        self.mpl_canvas = self._renderer._window_get_mplcanvas(self, ratio)
+        self.mpl_canvas = self._renderer._window_get_mplcanvas(
+            brain=self,
+            interactor_fraction=self.interactor_fraction,
+            show_traces=self.show_traces,
+            separate_canvas=self.separate_canvas
+        )
         xlim = [np.min(self._data['time']),
                 np.max(self._data['time'])]
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=UserWarning)
             self.mpl_canvas.axes.set(xlim=xlim)
         if not self.separate_canvas:
-            self.splitter = self._renderer._window_adjust_mplcanvas_layout()
+            self._renderer._window_adjust_mplcanvas_layout()
         self.mpl_canvas.set_color(
             bg_color=self._bg_color,
             fg_color=self._fg_color,

@@ -685,14 +685,16 @@ class _AbstractWindow(ABC):
     def _window_get_size(self):
         pass
 
-    def _window_get_mplcanvas_size(self, ratio):
+    def _window_get_mplcanvas_size(self, fraction):
+        ratio = (1 - fraction) / fraction
         dpi = self._window_get_dpi()
         w, h = self._window_get_size()
         h /= ratio
         return (w / dpi, h / dpi)
 
     @abstractmethod
-    def _window_get_mplcanvas(self, brain, ratio):
+    def _window_get_mplcanvas(self, brain, interactor_fraction, show_traces,
+                              separate_canvas):
         pass
 
     @abstractmethod
@@ -705,4 +707,12 @@ class _AbstractWindow(ABC):
 
     @abstractmethod
     def _window_set_cursor(self, cursor):
+        pass
+
+    @abstractmethod
+    def _window_ensure_minimum_sizes(self, sz):
+        pass
+
+    @abstractmethod
+    def _window_show(self, sz):
         pass

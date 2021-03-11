@@ -24,7 +24,7 @@ from ._pyvista import (_close_all, _close_3d_figure, _check_3d_figure,  # noqa: 
 from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractStatusBar, _AbstractLayout, _AbstractWidget,
                         _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback)
-from ._utils import _init_qt_resources
+from ._utils import _init_qt_resources, _qt_disable_paint
 from ..utils import _save_ndarray_img
 from ...fixes import nullcontext
 
@@ -368,6 +368,10 @@ class _QtWindow(_AbstractWindow):
         self._window = self.figure.plotter.app_window
         self._interactor = self.figure.plotter.interactor
         self._mplcanvas = None
+        self._show_traces = None
+        self._separate_canvas = None
+        self._splitter = None
+        self._interactor_fraction = None
         if func is not None:
             self._window.signal_close.connect(func)
 
@@ -379,8 +383,12 @@ class _QtWindow(_AbstractWindow):
         h = self._interactor.geometry().height()
         return (w, h)
 
-    def _window_get_mplcanvas(self, brain, ratio):
-        w, h = self._window_get_mplcanvas_size(ratio)
+    def _window_get_mplcanvas(self, brain, interactor_fraction, show_traces,
+                              separate_canvas):
+        w, h = self._window_get_mplcanvas_size(interactor_fraction)
+        self._interactor_fraction = interactor_fraction
+        self._show_traces = show_traces
+        self._separate_canvas = separate_canvas
         self._mplcanvas = _QtMplCanvas(brain, w, h, self._window_get_dpi())
         return self._mplcanvas
 
@@ -395,13 +403,49 @@ class _QtWindow(_AbstractWindow):
         vlayout.addWidget(splitter)
         splitter.addWidget(self._interactor)
         splitter.addWidget(canvas)
-        return splitter
+        self._splitter = splitter
 
     def _window_get_cursor(self):
         return self._interactor.cursor()
 
     def _window_set_cursor(self, cursor):
         self._interactor.setCursor(cursor)
+
+    @contextmanager
+    def _window_ensure_minimum_sizes(self, sz):
+        """Ensure that widgets respect the windows size."""
+        adjust_mpl = (self._show_traces and not self._separate_canvas)
+        if not adjust_mpl:
+            yield
+        else:
+            mpl_h = int(round((sz[1] * self._interactor_fraction) /
+                              (1 - self._interactor_fraction)))
+            self._mplcanvas.canvas.setMinimumSize(sz[0], mpl_h)
+            try:
+                yield
+            finally:
+                self._splitter.setSizes([sz[1], mpl_h])
+                # 1. Process events
+                self._process_events()
+                self._process_events()
+                # 2. Get the window size that accommodates the size
+                sz = self._window.size()
+                # 3. Call app_window.setBaseSize and resize (in pyvistaqt)
+                self.figure.plotter.window_size = (sz.width(), sz.height())
+                # 4. Undo the min size setting and process events
+                self._interactor.setMinimumSize(0, 0)
+                self._process_events()
+                self._process_events()
+                # 5. Resize the window (again!) to the correct size
+                #    (not sure why, but this is required on macOS at least)
+                self.figure.plotter.window_size = (sz.width(), sz.height())
+            self._process_events()
+            self._process_events()
+
+    def _window_show(self, sz):
+        with _qt_disable_paint(self._interactor):
+            with self._window_ensure_minimum_sizes(sz):
+                self.show()
 
 
 class _QtWidget(_AbstractWidget):
