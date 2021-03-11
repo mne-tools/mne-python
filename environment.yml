@@ -18,9 +18,6 @@ dependencies:
 - joblib
 - psutil
 - numexpr
-- traits
-- pyface!=7.3.0
-- traitsui
 - imageio
 - tqdm
 - spyder-kernels>=1.10.0
