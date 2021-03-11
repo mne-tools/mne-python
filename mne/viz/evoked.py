@@ -2163,7 +2163,17 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
     if isinstance(evokeds, (list, tuple)):
         evokeds_copy = evokeds.copy()
         evokeds = dict()
-        comments = [getattr(_evk, 'comment', None) for _evk in evokeds_copy]
+        comments = []
+        for _evk in evokeds_copy:
+            comment = getattr(_evk, 'comment', None)
+            if comment is not None:
+                # replace ASCII minus operators with Unicode minus characters
+                comment = comment.replace(' - ', ' − ')
+                # replace leading minus operator if present
+                if comment.startswith('-'):
+                    comment = f'−{comment[1:]}'
+            comments.append(comment)
+
         for idx, (comment, _evoked) in enumerate(zip(comments, evokeds_copy)):
             key = str(idx + 1)
             if comment:  # only update key if comment is non-empty

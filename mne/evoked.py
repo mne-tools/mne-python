@@ -925,18 +925,20 @@ def combine_evoked(all_evoked, weights):
     comment = ''
     for idx, (w, e) in enumerate(zip(weights, all_evoked)):
         if np.isclose(w, 1.):
-            if idx != 0:
+            if idx != 0:  # add no "+" to leading term
                 comment += '+ '
         elif np.isclose(w, -1.):
-            comment += '- '
+            comment += '-'
+            if idx != 0:  # add space before first term
+                comment += ' '
         elif idx == 0:
             comment += f'{w:0.3f} × '
         else:
             comment += f'{"+" if w >= 0 else "-"} {abs(w):0.3f} × '
 
-        if ' + ' in e.comment:
+        if ' + ' in e.comment:  # Evoked based on multiple conditions
             comment += f'({e.comment or "unknown"}) '
-        else:
+        else:  # Evoked based on a single condition
             comment += f'{e.comment or "unknown"} '
 
     evoked.comment = comment.strip()
