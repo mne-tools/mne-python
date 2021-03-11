@@ -318,7 +318,7 @@ class _QtStatusBar(_AbstractStatusBar):
 
 class _QtPlayback(_AbstractPlayback):
     def _playback_initialize(self, func, timeout):
-        self.figure.plotter.add_callback(func, timeout)
+        self.figure.viewer.add_callback(func, timeout)
 
 
 class _QtMplCanvas(_AbstractMplCanvas):
@@ -346,8 +346,8 @@ class _QtMplCanvas(_AbstractMplCanvas):
 
 class _QtWindow(_AbstractWindow):
     def _window_initialize(self, func=None):
-        self._window = self.figure.plotter.app_window
-        self._interactor = self.figure.plotter.interactor
+        self._window = self.figure.plotter._window
+        self._interactor = self.figure.viewer.interactor
         self._mplcanvas = None
         self._show_traces = None
         self._separate_canvas = None
