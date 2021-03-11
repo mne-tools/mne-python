@@ -1288,6 +1288,7 @@ class Brain(object):
             name="movie",
             desc="Save movie...",
             func=self._save_movie_noname,
+            shortcut="ctrl+shift+s",
         )
         self._renderer._tool_bar_add_button(
             name="visibility",
@@ -1299,6 +1300,7 @@ class Brain(object):
             name="play",
             desc="Play/Pause",
             func=self.toggle_playback,
+            shortcut=" ",
         )
         self._renderer._tool_bar_add_button(
             name="reset",
@@ -1320,12 +1322,8 @@ class Brain(object):
             name="help",
             desc="Help",
             func=self.help,
+            shortcut="?",
         )
-        # Qt shortcuts
-        if not self.notebook:
-            self._renderer.actions["movie"].setShortcut("ctrl+shift+s")
-            self._renderer.actions["play"].setShortcut(" ")
-            self._renderer.actions["help"].setShortcut("?")
 
     def _shift_time(self, op):
         self.callbacks["time"](

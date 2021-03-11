@@ -150,7 +150,8 @@ class _IpyToolBar(_AbstractToolBar, _IpyLayout):
         self.tool_bar = HBox()
         self._layout_initialize(None)
 
-    def _tool_bar_add_button(self, name, desc, func, icon_name=None):
+    def _tool_bar_add_button(self, name, desc, func, icon_name=None,
+                             shortcut=None):
         icon_name = name if icon_name is None else icon_name
         icon = self.icons[icon_name]
         if icon is None:

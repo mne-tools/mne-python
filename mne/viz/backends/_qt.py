@@ -243,10 +243,13 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
         window = self._window if window is None else window
         self.tool_bar = window.addToolBar(name)
 
-    def _tool_bar_add_button(self, name, desc, func, icon_name=None):
+    def _tool_bar_add_button(self, name, desc, func, icon_name=None,
+                             shortcut=None):
         icon_name = name if icon_name is None else icon_name
         icon = self.icons[icon_name]
         self.actions[name] = self.tool_bar.addAction(icon, desc, func)
+        if shortcut is not None:
+            self.actions[name].setShortcut(shortcut)
 
     def _tool_bar_update_button_icon(self, name, icon_name):
         self.actions[name].setIcon(self.icons[icon_name])

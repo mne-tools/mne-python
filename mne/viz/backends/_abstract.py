@@ -453,7 +453,8 @@ class _AbstractToolBar(ABC):
         pass
 
     @abstractmethod
-    def _tool_bar_add_button(self, name, desc, func, icon_name=None):
+    def _tool_bar_add_button(self, name, desc, func, icon_name=None,
+                             shortcut=None):
         pass
 
     @abstractmethod
