@@ -26,7 +26,6 @@ from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback)
 from ._utils import _init_qt_resources, _qt_disable_paint
 from ..utils import _save_ndarray_img
-from ...fixes import nullcontext
 
 
 class _QtLayout(_AbstractLayout):
@@ -324,26 +323,14 @@ class _QtPlayback(_AbstractPlayback):
 
 class _QtMplCanvas(_AbstractMplCanvas):
     def __init__(self, brain, width, height, dpi):
-        from matplotlib import rc_context
-        from matplotlib.figure import Figure
-        if brain.separate_canvas:
-            parent = None
-        else:
-            parent = brain._renderer._window
-        # prefer constrained layout here but live with tight_layout otherwise
-        context = nullcontext
-        extra_events = ('resize',)
-        try:
-            context = rc_context({'figure.constrained_layout.use': True})
-            extra_events = ()
-        except KeyError:
-            pass
-        with context:
-            self.fig = Figure(figsize=(width, height), dpi=dpi)
+        super().__init__(brain, width, height, dpi)
         from PyQt5 import QtWidgets
         from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
         self.canvas = FigureCanvasQTAgg(self.fig)
-        self.canvas.setParent(parent)
+        if brain.separate_canvas:
+            self.canvas.setParent(None)
+        else:
+            self.canvas.setParent(brain._renderer._window)
         FigureCanvasQTAgg.setSizePolicy(
             self.canvas,
             QtWidgets.QSizePolicy.Expanding,
@@ -351,13 +338,7 @@ class _QtMplCanvas(_AbstractMplCanvas):
         )
         FigureCanvasQTAgg.updateGeometry(self.canvas)
         self.manager = None
-        self.axes = self.fig.add_subplot(111)
-        self.axes.set(xlabel='Time (sec)', ylabel='Activation (AU)')
-        self.brain = brain
-        self.time_func = brain.callbacks["time"]
-        for event in ('button_press', 'motion_notify') + extra_events:
-            self.canvas.mpl_connect(
-                event + '_event', getattr(self, 'on_' + event))
+        self._connect()
 
     def show(self):
         self.canvas.show()

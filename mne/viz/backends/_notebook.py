@@ -223,29 +223,12 @@ class _IpyPlayback(_AbstractPlayback):
 
 class _IpyMplCanvas(_AbstractMplCanvas):
     def __init__(self, brain, width, height, dpi):
-        from matplotlib import rc_context
-        from matplotlib.figure import Figure
-        # prefer constrained layout here but live with tight_layout otherwise
-        context = nullcontext
-        extra_events = ('resize',)
-        try:
-            context = rc_context({'figure.constrained_layout.use': True})
-            extra_events = ()
-        except KeyError:
-            pass
-        with context:
-            self.fig = Figure(figsize=(width, height), dpi=dpi)
+        super().__init__(brain, width, height, dpi)
         from matplotlib.backends.backend_nbagg import (FigureCanvasNbAgg,
                                                        FigureManager)
         self.canvas = FigureCanvasNbAgg(self.fig)
         self.manager = FigureManager(self.canvas, 0)
-        self.axes = self.fig.add_subplot(111)
-        self.axes.set(xlabel='Time (sec)', ylabel='Activation (AU)')
-        self.brain = brain
-        self.time_func = brain.callbacks["time"]
-        for event in ('button_press', 'motion_notify') + extra_events:
-            self.canvas.mpl_connect(
-                event + '_event', getattr(self, 'on_' + event))
+        self._connect()
 
     def show(self):
         """Show the canvas."""

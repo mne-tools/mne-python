@@ -8,6 +8,7 @@
 import warnings
 from abc import ABC, abstractmethod, abstractclassmethod
 from ..utils import tight_layout
+from ...fixes import nullcontext
 
 
 class _AbstractRenderer(ABC):
@@ -595,10 +596,29 @@ class _AbstractWidget(ABC):
 
 
 class _AbstractMplCanvas(ABC):
-    @abstractmethod
     def __init__(self, brain, width, height, dpi):
         """Initialize the MplCanvas."""
-        pass
+        from matplotlib import rc_context
+        from matplotlib.figure import Figure
+        # prefer constrained layout here but live with tight_layout otherwise
+        context = nullcontext
+        self._extra_events = ('resize',)
+        try:
+            context = rc_context({'figure.constrained_layout.use': True})
+            self._extra_events = ()
+        except KeyError:
+            pass
+        with context:
+            self.fig = Figure(figsize=(width, height), dpi=dpi)
+        self.axes = self.fig.add_subplot(111)
+        self.axes.set(xlabel='Time (sec)', ylabel='Activation (AU)')
+        self.brain = brain
+        self.time_func = brain.callbacks["time"]
+
+    def _connect(self):
+        for event in ('button_press', 'motion_notify') + self._extra_events:
+            self.canvas.mpl_connect(
+                event + '_event', getattr(self, 'on_' + event))
 
     def plot(self, x, y, label, **kwargs):
         """Plot a curve."""
