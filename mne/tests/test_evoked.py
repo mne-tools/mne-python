@@ -586,8 +586,7 @@ def test_arithmetic():
     ev20.comment = None
     ev = combine_evoked([ev20, -ev30], weights=[1, -1])
     assert_equal(ev.comment.count('unknown'), 2)
-    assert ('-unknown' in ev.comment)
-    assert (' + ' in ev.comment)
+    assert ev.comment == 'unknown + unknown'
     ev20.comment = old_comment1
 
     with pytest.raises(ValueError, match="Invalid value for the 'weights'"):

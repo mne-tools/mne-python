@@ -517,7 +517,15 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """
         out = self.copy()
         out.data *= -1
-        out.comment = '-' + (out.comment or 'unknown')
+
+        if out.comment is not None and ' + ' in out.comment:
+            # Evoked based on multiple conditions
+            comment = f'- ({out.comment})'
+        else: 
+            # Evoked based on a single condition
+            comment = f'- {out.comment or "unknown"}'
+
+        out.comment = comment
         return out
 
     def get_peak(self, ch_type=None, tmin=None, tmax=None,
@@ -936,10 +944,14 @@ def combine_evoked(all_evoked, weights):
         else:
             comment += f'{"+" if w >= 0 else "-"} {abs(w):0.3f} × '
 
-        if ' + ' in e.comment:  # Evoked based on multiple conditions
-            comment += f'({e.comment or "unknown"}) '
-        else:  # Evoked based on a single condition
+        if e.comment is not None and ' + ' in e.comment:
+            # Evoked based on multiple conditions
+            comment += f'({e.comment}) '
+        else: 
+            # Evoked based on a single condition
             comment += f'{e.comment or "unknown"} '
+            # special-case: combine_evoked([e1, -e1], [1, -1])
+            comment = comment.replace(' - - ', ' + ')
 
     evoked.comment = comment.strip()
     return evoked
