@@ -1194,7 +1194,7 @@ class Brain(object):
             bg_color=self._bg_color,
             fg_color=self._fg_color,
         )
-        if not self.notebook:
+        if self.separate_canvas:
             self.mpl_canvas.show()
 
     def _configure_vertex_time_course(self):
