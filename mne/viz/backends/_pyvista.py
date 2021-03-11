@@ -288,23 +288,12 @@ class _PyVistaRenderer(_AbstractRenderer):
                     light.SetIntensity(0.0)
                 light.SetColor(1.0, 1.0, 1.0)
 
-    # XXX:WIP
     def set_interaction(self, interaction):
-        pass
-        # if not hasattr(self.plotter, "iren") or self.plotter.iren is None:
-        #     return
-        # if interaction == "rubber_band_2d":
-        #     for renderer in self._all_renderers:
-        #         renderer.enable_parallel_projection()
-        #     if hasattr(self.plotter, 'enable_rubber_band_2d_style'):
-        #         self.plotter.enable_rubber_band_2d_style()
-        #     else:
-        #         style = vtk.vtkInteractorStyleRubberBand2D()
-        #         self.plotter.interactor.SetInteractorStyle(style)
-        # else:
-        #     for renderer in self._all_renderers:
-        #         renderer.disable_parallel_projection()
-        #     getattr(self.plotter, f'enable_{interaction}_style')()
+        proj_func = "enable" if interaction == "rubber_band_2d" else "disable"
+        for renderer in self._all_renderers:
+            getattr(renderer, f'{proj_func}_parallel_projection')()
+        for plotter in self._all_plotters:
+            getattr(plotter, f'enable_{interaction}_style')()
 
     def polydata(self, mesh, color=None, opacity=1.0, normals=None,
                  backface_culling=False, scalars=None, colormap=None,

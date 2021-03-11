@@ -643,7 +643,6 @@ class Brain(object):
         del show_traces
 
         self._configure_time_label()
-        # XXX:WIP
         self._configure_scalar_bar()
         self._configure_shortcuts()
         self._configure_picking()
