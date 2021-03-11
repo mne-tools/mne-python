@@ -3051,7 +3051,7 @@ class Brain(object):
                     self.status_progress.hide()
 
                 dialog = FileDialog(
-                    self.plotter.app_window,
+                    self._renderer._window,
                     callback=partial(self._save_movie, **kwargs)
                 )
                 dialog.setDirectory(os.getcwd())
