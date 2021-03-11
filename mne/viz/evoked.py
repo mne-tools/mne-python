@@ -2180,7 +2180,7 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
     if isinstance(evokeds, (list, tuple)):
         evokeds_copy = evokeds.copy()
         evokeds = dict()
-        
+
         comments = [_ascii_minus_to_unicode(getattr(_evk, 'comment', None))
                     for _evk in evokeds_copy]
 

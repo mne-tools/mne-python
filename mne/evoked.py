@@ -521,7 +521,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         if out.comment is not None and ' + ' in out.comment:
             # Evoked based on multiple conditions
             comment = f'- ({out.comment})'
-        else: 
+        else:
             # Evoked based on a single condition
             comment = f'- {out.comment or "unknown"}'
 
@@ -947,7 +947,7 @@ def combine_evoked(all_evoked, weights):
         if e.comment is not None and ' + ' in e.comment:
             # Evoked based on multiple conditions
             comment += f'({e.comment}) '
-        else: 
+        else:
             # Evoked based on a single condition
             comment += f'{e.comment or "unknown"} '
             # special-case: combine_evoked([e1, -e1], [1, -1])
