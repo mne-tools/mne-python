@@ -1939,6 +1939,23 @@ def _title_helper_pce(title, picked_types, picks, ch_names, combine):
     return title
 
 
+def _ascii_minus_to_unicode(s):
+    """Replace ASCII-encoded "minus-hyphen" characters with Unicode minus.
+
+    Aux function for ``plot_compare_evokeds`` to prettify ``Evoked.comment``.
+    """
+    if s is None:
+        return None
+
+    # replace ASCII minus operators with Unicode minus characters
+    s = s.replace(' - ', ' − ')
+    # replace leading minus operator if present
+    if s.startswith('-'):
+        s = f'−{s[1:]}'
+
+    return s
+
+
 @fill_doc
 def plot_compare_evokeds(evokeds, picks=None, colors=None,
                          linestyles=None, styles=None, cmap=None,
@@ -2163,16 +2180,9 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
     if isinstance(evokeds, (list, tuple)):
         evokeds_copy = evokeds.copy()
         evokeds = dict()
-        comments = []
-        for _evk in evokeds_copy:
-            comment = getattr(_evk, 'comment', None)
-            if comment is not None:
-                # replace ASCII minus operators with Unicode minus characters
-                comment = comment.replace(' - ', ' − ')
-                # replace leading minus operator if present
-                if comment.startswith('-'):
-                    comment = f'−{comment[1:]}'
-            comments.append(comment)
+        
+        comments = [_ascii_minus_to_unicode(getattr(_evk, 'comment', None))
+                    for _evk in evokeds_copy]
 
         for idx, (comment, _evoked) in enumerate(zip(comments, evokeds_copy)):
             key = str(idx + 1)
