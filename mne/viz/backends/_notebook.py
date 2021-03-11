@@ -12,7 +12,7 @@ from ..utils import _save_ndarray_img
 from ...fixes import nullcontext
 from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractStatusBar, _AbstractLayout, _AbstractWidget,
-                        _AbstractWindow, _AbstractMplCanvas)
+                        _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback)
 from ._pyvista import _PyVistaRenderer, _close_all, _set_3d_view, _set_3d_title  # noqa: F401,E501, analysis:ignore
 
 
@@ -215,6 +215,11 @@ class _IpyStatusBar(_AbstractStatusBar):
         pass
 
 
+class _IpyPlayback(_AbstractPlayback):
+    def _playback_initialize(self, func, timeout):
+        pass
+
+
 class _IpyMplCanvas(_AbstractMplCanvas):
     def __init__(self, brain, width, height, dpi):
         from matplotlib import rc_context
@@ -282,7 +287,7 @@ class _IpyWidget(_AbstractWidget):
 
 
 class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
-                _IpyStatusBar, _IpyWindow):
+                _IpyStatusBar, _IpyWindow, _IpyPlayback):
     def __init__(self, *args, **kwargs):
         self.dock = None
         self.tool_bar = None

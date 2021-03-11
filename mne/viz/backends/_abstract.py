@@ -561,6 +561,12 @@ class _AbstractStatusBar(ABC):
         pass
 
 
+class _AbstractPlayback(ABC):
+    @abstractmethod
+    def _playback_initialize(self, func, timeout):
+        pass
+
+
 class _AbstractLayout(ABC):
     @abstractmethod
     def _layout_initialize(self, max_width):

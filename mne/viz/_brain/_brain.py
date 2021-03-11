@@ -653,12 +653,12 @@ class Brain(object):
         self._configure_dock()
         self._configure_menu()
         self._configure_status_bar()
+        self._configure_playback()
         # show everything at the end
         self.toggle_interface()
         if self.notebook:
             self._renderer.show()
         else:
-            self._configure_playback()
             with _qt_disable_paint(self.plotter):
                 with self._ensure_minimum_sizes():
                     self.show()
@@ -1161,7 +1161,7 @@ class Brain(object):
         self._renderer._dock_finalize()
 
     def _configure_playback(self):
-        self.plotter.add_callback(self._play, self.refresh_rate_ms)
+        self._renderer._playback_initialize(self._play, self.refresh_rate_ms)
 
     def _configure_mplcanvas(self):
         # Get the fractional components for the brain and mpl

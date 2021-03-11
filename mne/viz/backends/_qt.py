@@ -23,7 +23,7 @@ from ._pyvista import (_close_all, _close_3d_figure, _check_3d_figure,  # noqa: 
                        _set_3d_view, _set_3d_title, _take_3d_screenshot)  # noqa: F401,E501 analysis:ignore
 from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractStatusBar, _AbstractLayout, _AbstractWidget,
-                        _AbstractWindow, _AbstractMplCanvas)
+                        _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback)
 from ._utils import _init_qt_resources
 from ..utils import _save_ndarray_img
 from ...fixes import nullcontext
@@ -317,6 +317,11 @@ class _QtStatusBar(_AbstractStatusBar):
         return widget
 
 
+class _QtPlayback(_AbstractPlayback):
+    def _playback_initialize(self, func, timeout):
+        self.figure.plotter.add_callback(func, timeout)
+
+
 class _QtMplCanvas(_AbstractMplCanvas):
     def __init__(self, brain, width, height, dpi):
         from matplotlib import rc_context
@@ -419,7 +424,7 @@ class _QtWidget(_AbstractWidget):
 
 
 class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
-                _QtStatusBar, _QtWindow):
+                _QtStatusBar, _QtWindow, _QtPlayback):
     pass
 
 
