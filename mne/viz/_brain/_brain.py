@@ -369,7 +369,7 @@ class Brain(object):
                  views='auto', offset='auto', show_toolbar=False,
                  offscreen=False, interaction='trackball', units='mm',
                  view_layout='vertical', silhouette=False, show=True):
-        from ..backends.renderer import backend, _get_renderer, _get_3d_backend
+        from ..backends.renderer import backend, _get_renderer
         from .._3d import _get_cmap
         from matplotlib.colors import colorConverter
 
@@ -417,7 +417,6 @@ class Brain(object):
         subjects_dir = get_subjects_dir(subjects_dir)
 
         self.time_viewer = False
-        self.notebook = (_get_3d_backend() == "notebook")
         self._hemi = hemi
         self._units = units
         self._alpha = float(alpha)
