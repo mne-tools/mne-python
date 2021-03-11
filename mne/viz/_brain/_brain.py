@@ -616,9 +616,6 @@ class Brain(object):
         self.widgets = dict()
         self.keys = ('fmin', 'fmid', 'fmax')
 
-        # Direct access parameters:
-        self.interactor = self._renderer._interactor
-
         # Derived parameters:
         self.playback_speed = self.default_playback_speed_value
         _validate_type(show_traces, (bool, str, 'numeric'), 'show_traces')
