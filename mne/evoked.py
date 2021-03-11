@@ -921,8 +921,25 @@ def combine_evoked(all_evoked, weights):
     evoked.info['bads'] = bads
     evoked.data = sum(w * e.data for w, e in zip(weights, all_evoked))
     evoked.nave = new_nave
-    evoked.comment = ' + '.join(f'{w:0.3f} × {e.comment or "unknown"}'
-                                for w, e in zip(weights, all_evoked))
+
+    comment = ''
+    for idx, (w, e) in enumerate(zip(weights, all_evoked)):
+        if np.isclose(w, 1.):
+            if idx != 0:
+                comment += '+ '
+        elif np.isclose(w, -1.):
+            comment += '- '
+        elif idx == 0:
+            comment += f'{w:0.3f} × '
+        else:
+            comment += f'{"+" if w >= 0 else "-"} {abs(w):0.3f} × '
+
+        if ' + ' in e.comment:
+            comment += f'({e.comment or "unknown"}) '
+        else:
+            comment += f'{e.comment or "unknown"} '
+
+    evoked.comment = comment.strip()
     return evoked
 
 
