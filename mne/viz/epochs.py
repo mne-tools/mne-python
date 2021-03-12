@@ -571,8 +571,12 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown subj',
         plot. Default is zero (always plot).
     n_max_plot : int
         Maximum number of channels to show stats for.
-    subject : str
-        The subject name to use in the title of the plot.
+    subject : str | None
+        The subject name to use in the title of the plot. If ``None``, do not
+        display a subject name.
+
+        .. versionchanged:: 0.23
+           Added support for ``None``.
     color : tuple | str
         Color to use for the bars.
     width : float
@@ -599,7 +603,10 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown subj',
     counts = np.array(list(scores.values()))
     # init figure, handle easy case (no drops)
     fig, ax = plt.subplots()
-    ax.set_title('{}: {:.1f}%'.format(subject, percent))
+    title = f'{percent:.1f}% of all epochs rejected'
+    if subject is not None:
+        title = f'{subject}: {title}'
+    ax.set_title(title)
     if len(ch_names) == 0:
         ax.text(0.5, 0.5, 'No drops', ha='center', fontsize=14)
         return fig
