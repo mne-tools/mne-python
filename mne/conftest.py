@@ -499,6 +499,7 @@ def brain_gc(request):
         'renderer_interactive_pyvista',
         'renderer_interactive_pysurfer',
         'renderer',
+        'renderer_pyvista',
         'renderer_notebook',
     )
     assert set(request.fixturenames) & set(keys) != set()
