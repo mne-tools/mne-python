@@ -477,9 +477,9 @@ class ICA(ContainsMixin):
         inst : instance of Raw or Epochs
             The data to be decomposed.
 
-            .. note:: In case of `~mne.Epochs`, it is recommended to pass data
-                      that has **not** been baseline-corrected. A warning will
-                      be emitted otherwise.
+            .. note:: In case of `~mne.Epochs`, it is recommended high-pass
+                      filter, but **not** baseline correct the data for good
+                      ICA performance. A warning will be emitted otherwise.
 
             .. versionchanged:: 0.23
                Warn if `~mne.Epochs` were baseline-corrected.
@@ -528,6 +528,11 @@ class ICA(ContainsMixin):
             Returns the modified instance.
         """
         _validate_type(inst, (BaseRaw, BaseEpochs), 'inst', 'Raw or Epochs')
+
+        if np.isclose(inst.info['highpass'], 0.):
+            warn('The data has not been high-pass filtered. For good ICA '
+                 'performance, it should be high-pass filtered (e.g., with a '
+                 '1.0 Hz lower bound) before fitting ICA.')
 
         if isinstance(inst, BaseEpochs) and inst.baseline is not None:
             warn('The epochs you passed to ICA.fit() were baseline-corrected. '
@@ -1553,11 +1558,13 @@ class ICA(ContainsMixin):
             The data to be processed (i.e., cleaned). It will be modified
             inplace.
 
-            .. note:: In case of `~mne.Epochs` and `~mne.Evoked`, it is
-                      recommended to pass data that has **not** been
-                      baseline-corrected. A warning will be emitted otherwise
-                      in the case of `~mne.Evoked`. If you require baseline
-                      correction, do it **after** cleaning the data.
+            .. note:: Applying ICA may introduce a DC shift. If you pass
+                      baseline-corrected `~mne.Epochs` or `~mne.Evoked` data,
+                      the baseline period of the cleaned data may not be of
+                      zero mean anymore. If you require baseline-corrected
+                      data, apply baseline correction again after cleaning
+                      via ICA. A warning will be emitted to remind you of this
+                      fact if you pass baseline-corrected data.
 
             .. versionchanged:: 0.23
                Warn if instance was baseline-corrected.
@@ -1600,11 +1607,9 @@ class ICA(ContainsMixin):
         if isinstance(inst, (BaseEpochs, Evoked)):
             if getattr(inst, 'baseline', None) is not None:
                 warn('The data you passed to ICA.apply() was '
-                     'baseline-corrected. We suggest to only baseline correct '
-                     'AFTER ICA. If you believe you know what you are doing, '
-                     'please note that ICA can introduce DC shifts, '
-                     'therefore you may wish to consider baseline-correcting '
-                     'again.')
+                     'baseline-corrected. Please note that ICA can introduce '
+                     'DC shifts, therefore you may wish to consider '
+                     'baseline-correcting the cleaned data again.')
 
         logger.info(f'Applying ICA to {kind} instance')
         return meth(**kwargs)

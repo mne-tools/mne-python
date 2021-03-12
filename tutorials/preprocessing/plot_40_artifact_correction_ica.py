@@ -208,12 +208,10 @@ filt_raw.load_data().filter(l_freq=1., h_freq=None)
 #     sample by passing the ``decim`` parameter to ``ICA.fit()``.
 #
 #     .. note:: `~mne.Epochs` used for fitting ICA should not be
-#               baseline-corrected. Similarly, when using ICA to clean
-#               `~mne.Epochs` or `~mne.Evoked` data, these data should also not
-#               be baseline-corrected until **after** the cleaning step.
-#               Otherwise, unexpected DC offsets might be introduced.
-#               **We suggest to always only baseline correct your data after
-#               cleaning.**
+#               baseline-corrected. Because cleaning the data via ICA may
+#               introduce DC offsets, we suggest to baseline correct your data
+#               **after** cleaning (and not before), should you require
+#               baseline correction.
 #
 # Now we're ready to set up and fit the ICA. Since we know (from observing our
 # raw data) that the EOG and ECG artifacts are fairly strong, we would expect
