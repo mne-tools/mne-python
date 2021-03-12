@@ -937,7 +937,7 @@ def combine_evoked(all_evoked, weights):
                 comment += '+ '
         elif np.isclose(w, -1.):
             comment += '-'
-            if idx != 0:  # add space before first term
+            if idx != 0:  # don't add space before first term
                 comment += ' '
         elif idx == 0:
             comment += f'{w:0.3f} × '
@@ -950,7 +950,7 @@ def combine_evoked(all_evoked, weights):
         else:
             # Evoked based on a single condition
             comment += f'{e.comment or "unknown"} '
-            # special-case: combine_evoked([e1, -e1], [1, -1])
+            # special-case: combine_evoked([e1, -e2], [1, -1])
             comment = comment.replace(' - - ', ' + ')
 
     evoked.comment = comment.strip()
