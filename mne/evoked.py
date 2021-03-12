@@ -932,28 +932,24 @@ def combine_evoked(all_evoked, weights):
 
     comment = ''
     for idx, (w, e) in enumerate(zip(weights, all_evoked)):
-        if np.isclose(w, 1.):
-            if idx != 0:  # add no "+" to leading term
-                comment += '+ '
-        elif np.isclose(w, -1.):
-            comment += '-'
-            if idx != 0:  # don't add space before first term
-                comment += ' '
-        elif idx == 0:
-            comment += f'{w:0.3f} × '
+        # pick sign
+        sign = '' if w >= 0 else '-'
+        # format weight
+        weight = '' if np.isclose(abs(w), 1.) else f'{abs(w):0.3f}'
+        # format multiplier
+        multiplier = ' × ' if weight else ''
+        # format comment
+        if e.comment is not None and ' + ' in e.comment:  # multiple conditions
+            this_comment = f'({e.comment})'
         else:
-            comment += f'{"+" if w >= 0 else "-"} {abs(w):0.3f} × '
-
-        if e.comment is not None and ' + ' in e.comment:
-            # Evoked based on multiple conditions
-            comment += f'({e.comment}) '
+            this_comment = f'{e.comment or "unknown"}'
+        # assemble everything
+        if idx == 0:
+            comment += f'{sign}{weight}{multiplier}{this_comment}'
         else:
-            # Evoked based on a single condition
-            comment += f'{e.comment or "unknown"} '
-            # special-case: combine_evoked([e1, -e2], [1, -1])
-            comment = comment.replace(' - - ', ' + ')
-
-    evoked.comment = comment.strip()
+            comment += f' {sign or "+"} {weight}{multiplier}{this_comment}'
+    # special-case: combine_evoked([e1, -e2], [1, -1])
+    evoked.comment = comment.replace(' - - ', ' + ')
     return evoked
 
 
