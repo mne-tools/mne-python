@@ -441,7 +441,8 @@ def _assert_brain_range(brain, rng):
 
 @testing.requires_testing_data
 @pytest.mark.slowtest
-def test_brain_time_viewer(renderer_interactive_pyista, pixel_ratio, brain_gc):
+def test_brain_time_viewer(renderer_interactive_pyvista, pixel_ratio,
+                           brain_gc):
     """Test time viewer primitives."""
     with pytest.raises(ValueError, match="between 0 and 1"):
         _create_testing_brain(hemi='lh', show_traces=-1.0)
