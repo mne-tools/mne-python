@@ -177,6 +177,7 @@ def test_ica_noop(n_components, n_pca_components, tmpdir):
     info = create_info(10, 1000., 'eeg')
     raw = RawArray(data, info)
     raw.set_eeg_reference()
+    raw.info['highpass'] = 1.0  # fake high-pass filtering
     assert np.linalg.matrix_rank(raw.get_data()) == 9
     kwargs = dict(n_components=n_components, verbose=True)
     if isinstance(n_components, int) and \
@@ -1078,6 +1079,10 @@ def test_bad_channels(method, allow_ref_meg):
     raw = RawArray(data, info)
     data = rng.rand(100, len(chs), 50)
     epochs = EpochsArray(data, info)
+
+    # fake high-pass filtering
+    raw.info['highpass'] = 1.0
+    epochs.info['highpass'] = 1.0
 
     n_components = 0.9
     data_chs = list(_DATA_CH_TYPES_SPLIT + ('eog',))
