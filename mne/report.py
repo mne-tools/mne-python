@@ -2086,10 +2086,7 @@ class Report(object):
         """Render epochs."""
         global_id = self._get_id()
         epochs = read_epochs(epo_fname)
-        kwargs = dict(
-            subject=self.subject if self.subject is not None else self.subject,
-            show=False
-        )
+        kwargs = dict(subject=self.subject, show=False)
         img = _fig_to_img(epochs.plot_drop_log, image_format, **kwargs)
         caption = self._gen_caption(prefix='Epochs', fname=epo_fname,
                                     data_path=data_path)
