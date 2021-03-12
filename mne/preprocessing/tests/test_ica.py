@@ -84,7 +84,7 @@ def test_ica_full_data_recovery(method):
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')[:10]
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), preload=True)
+                    baseline=None, preload=True)
     evoked = epochs.average()
     n_channels = 5
     data = raw._data[:n_channels].copy()
@@ -423,7 +423,7 @@ def test_ica_core(method, n_components, noise_cov, n_pca_components):
     raw.del_proj()
     del picks
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax,
-                    baseline=(None, 0), preload=True)
+                    baseline=None, preload=True)
 
     # test essential core functionality
 
@@ -1122,7 +1122,7 @@ def test_eog_channel(method):
     picks = pick_types(raw.info, meg=True, stim=True, ecg=False,
                        eog=True, exclude='bads')
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), preload=True, proj=False)
+                    baseline=None, preload=True, proj=False)
     n_components = 0.9
     ica = ICA(n_components=n_components, method=method)
     # Test case for MEG and EOG data. Should have EOG channel
@@ -1187,7 +1187,8 @@ def test_ica_ctf():
     events = make_fixed_length_events(raw, 99999)
     for comp in [0, 1]:
         raw.apply_gradient_compensation(comp)
-        epochs = Epochs(raw, events, None, -0.2, 0.2, preload=True)
+        epochs = Epochs(raw, events=events, tmin=-0.2, tmax=0.2, baseline=None,
+                        preload=True)
         evoked = epochs.average()
 
         # test fit
@@ -1209,7 +1210,8 @@ def test_ica_ctf():
         ica.fit(raw)
     _assert_ica_attributes(ica)
     raw.apply_gradient_compensation(1)
-    epochs = Epochs(raw, events, None, -0.2, 0.2, preload=True)
+    epochs = Epochs(raw, events=events, tmin=-0.2, tmax=0.2, baseline=None,
+                    preload=True)
     evoked = epochs.average()
     for inst in [raw, epochs, evoked]:
         with pytest.raises(RuntimeError, match='Compensation grade of ICA'):
@@ -1312,7 +1314,8 @@ def test_ica_eeg(fname, grade):
     picks_all = []
     picks_all.extend(picks_meg)
     picks_all.extend(picks_eeg)
-    epochs = Epochs(raw, events, None, -0.1, 0.1, preload=True, proj=False)
+    epochs = Epochs(raw, events=events, tmin=-0.1, tmax=0.1, baseline=None,
+                    preload=True, proj=False)
     evoked = epochs.average()
 
     for picks in [picks_meg, picks_eeg, picks_all]:
@@ -1449,7 +1452,8 @@ def test_ica_ch_types(ch_type):
     raw = RawArray(data, info)
     events = make_fixed_length_events(raw, 99999, start=0, stop=0.3,
                                       duration=0.1)
-    epochs = Epochs(raw, events, None, -0.1, 0.1, preload=True, proj=False)
+    epochs = Epochs(raw, events=events, tmin=-0.1, tmax=0.1, baseline=None,
+                    preload=True, proj=False)
     evoked = epochs.average()
     # test fit
     method = 'infomax'
