@@ -4,8 +4,9 @@
 Plot a cortical parcellation
 ============================
 
-In this example, we download the HCP-MMP1.0 parcellation :footcite:`GlasserEtAl2016`
-and show it on ``fsaverage``. We will also download the customized 448-label aparc
+In this example, we download the HCP-MMP1.0 parcellation
+:footcite:`GlasserEtAl2016` and show it on ``fsaverage``.
+We will also download the customized 448-label aparc
 parcellation from :footcite:`KhanEtAl2018`.
 
 .. note:: The HCP-MMP dataset has license terms restricting its use.
