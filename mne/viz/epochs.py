@@ -574,6 +574,9 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown subj',
     subject : str | None
         The subject name to use in the title of the plot. If ``None``, do not
         display a subject name.
+
+        .. versionchanged:: 0.20
+           Added support for ``None``.
     color : tuple | str
         Color to use for the bars.
     width : float
