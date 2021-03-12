@@ -475,7 +475,14 @@ class ICA(ContainsMixin):
         Parameters
         ----------
         inst : instance of Raw or Epochs
-            Raw measurements to be decomposed.
+            The data to be decomposed.
+
+            .. note:: In case of `~mne.Epochs`, it is recommended to pass data
+                      that has **not** been baseline-corrected. A warning will
+                      be emitted otherwise.
+
+            .. versionchanged:: 0.23
+               Warn if `~mne.Epochs` were baseline-corrected.
         %(picks_good_data_noref)s
             This selection remains throughout the initialized ICA solution.
         start : int | float | None
@@ -521,6 +528,12 @@ class ICA(ContainsMixin):
             Returns the modified instance.
         """
         _validate_type(inst, (BaseRaw, BaseEpochs), 'inst', 'Raw or Epochs')
+
+        if isinstance(inst, BaseEpochs) and inst.baseline is not None:
+            warn('The epochs you passed to ICA.fit() were baseline-corrected. '
+                 'However, we suggest to fit ICA only on data that has NOT '
+                 'been baseline-corrected.')
+
         picks = _picks_to_idx(inst.info, picks, allow_empty=False,
                               with_ref_meg=self.allow_ref_meg)
         _check_for_unsupported_ica_channels(
@@ -1529,16 +1542,25 @@ class ICA(ContainsMixin):
               start=None, stop=None, verbose=None):
         """Remove selected components from the signal.
 
-        Given the unmixing matrix, transform data,
-        zero out components, and inverse transform the data.
+        Given the unmixing matrix, transform the data,
+        zero out all excluded components, and inverse-transform the data.
         This procedure will reconstruct M/EEG signals from which
         the dynamics described by the excluded components is subtracted.
-        The data is processed in place.
 
         Parameters
         ----------
         inst : instance of Raw, Epochs or Evoked
-            The data to be processed. The instance is modified inplace.
+            The data to be processed (i.e., cleaned). It will be modified
+            inplace.
+
+            .. note:: In case of `~mne.Epochs` and `~mne.Evoked`, it is
+                      recommended to pass data that has **not** been
+                      baseline-corrected. A warning will be emitted otherwise
+                      in the case of `~mne.Evoked`. If you require baseline
+                      correction, do it **after** cleaning the data.
+
+            .. versionchanged:: 0.23
+               Warn if instance was baseline-corrected.
         include : array_like of int
             The indices referring to columns in the ummixing matrix. The
             components to be kept.
@@ -1574,6 +1596,16 @@ class ICA(ContainsMixin):
             kwargs.update(evoked=inst)
         _check_compensation_grade(self.info, inst.info, 'ICA', kind,
                                   ch_names=self.ch_names)
+
+        if isinstance(inst, (BaseEpochs, Evoked)):
+            if getattr(inst, 'baseline', None) is not None:
+                warn('The data you passed to ICA.apply() was '
+                     'baseline-corrected. We suggest to only baseline correct '
+                     'AFTER ICA. If you believe you know what you are doing, '
+                     'please note that ICA can introduce DC shifts, '
+                     'therefore you may wish to consider baseline-correcting '
+                     'again.')
+
         logger.info(f'Applying ICA to {kind} instance')
         return meth(**kwargs)
 

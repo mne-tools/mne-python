@@ -64,12 +64,13 @@ raw.crop(tmax=60.)
 #
 #     If you want to perform ICA with *no* dimensionality reduction (other than
 #     the number of Independent Components (ICs) given in ``n_components``, and
-#     any subsequent exclusion of ICs you specify in ``ICA.exclude``), pass
-#     ``n_pca_components=None`` (this is the default value).
+#     any subsequent exclusion of ICs you specify in ``ICA.exclude``), simply
+#     pass ``n_components``.
 #
 #     However, if you *do* want to reduce dimensionality, consider this
-#     example: if you have 300 sensor channels and you set
-#     ``n_pca_components=None`` and ``n_components=50``, then the the first 50
+#     example: if you have 300 sensor channels and you set ``n_components=50``
+#     during instantiation and pass ``n_pca_components=None`` to
+#     `~mne.preprocessing.ICA.apply`, then the the first 50
 #     PCs are sent to the ICA algorithm (yielding 50 ICs), and during
 #     reconstruction `~mne.preprocessing.ICA.apply` will use the 50 ICs
 #     plus PCs number 51-300 (the full PCA residual). If instead you specify
@@ -79,9 +80,8 @@ raw.crop(tmax=60.)
 #
 #     **If you have previously been using EEGLAB**'s ``runica()`` and are
 #     looking for the equivalent of its ``'pca', n`` option to reduce
-#     dimensionality via PCA before the ICA step, set ``n_components=n``
-#     during initialization and pass ``n_pca_components=n`` to
-#     `~mne.preprocessing.ICA.apply`.
+#     dimensionality, set ``n_components=n`` during initialization and pass
+#     ``n_pca_components=n`` to `~mne.preprocessing.ICA.apply`.
 #
 # MNE-Python implements three different ICA algorithms: ``fastica`` (the
 # default), ``picard``, and ``infomax``. FastICA and Infomax are both in fairly
@@ -206,6 +206,14 @@ filt_raw.load_data().filter(l_freq=1., h_freq=None)
 #     discontinuous `~mne.Epochs` or `~mne.Evoked` objects (not
 #     just continuous `~mne.io.Raw` objects), or only use every Nth
 #     sample by passing the ``decim`` parameter to ``ICA.fit()``.
+#
+#     .. note:: `~mne.Epochs` used for fitting ICA should not be
+#               baseline-corrected. Similarly, when using ICA to clean
+#               `~mne.Epochs` or `~mne.Evoked` data, these data should also not
+#               be baseline-corrected until **after** the cleaning step.
+#               Otherwise, unexpected DC offsets might be introduced.
+#               **We suggest to always only baseline correct your data after
+#               cleaning.**
 #
 # Now we're ready to set up and fit the ICA. Since we know (from observing our
 # raw data) that the EOG and ECG artifacts are fairly strong, we would expect
