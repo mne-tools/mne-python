@@ -536,8 +536,8 @@ class ICA(ContainsMixin):
 
         if isinstance(inst, BaseEpochs) and inst.baseline is not None:
             warn('The epochs you passed to ICA.fit() were baseline-corrected. '
-                 'However, we suggest to fit ICA only on data that has NOT '
-                 'been baseline-corrected.')
+                 'However, we suggest to fit ICA only on data that has been '
+                 'high-pass filtered, but NOT baseline-corrected.')
 
         picks = _picks_to_idx(inst.info, picks, allow_empty=False,
                               with_ref_meg=self.allow_ref_meg)
