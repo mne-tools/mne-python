@@ -496,6 +496,7 @@ def brain_gc(request):
     """Ensure that brain can be properly garbage collected."""
     keys = (
         'renderer_interactive',
+        'renderer_interactive_pyvista',
         'renderer_interactive_pysurfer',
         'renderer',
         'renderer_notebook',
