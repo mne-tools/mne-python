@@ -165,6 +165,34 @@ def test_ica_simple(method):
     assert amari_distance < 0.1
 
 
+def test_warnings():
+    raw = read_raw_fif(raw_fname).crop(0, 5).load_data()
+    events = read_events(event_name)
+    epochs = Epochs(raw, events=events, baseline=None, preload=True)
+    ica = ICA(n_components=2, max_iter=1, method='infomax', random_state=0)
+
+    # not high-passed
+    epochs.info['highpass'] = 0.
+    with pytest.warns(RuntimeWarning, match='should be high-pass filtered'):
+        ica.fit(epochs)
+
+    # baselined
+    epochs.info['highpass'] = 1.
+    epochs.baseline = (epochs.tmin, 0)
+    with pytest.warns(RuntimeWarning, match='epochs.*were baseline-corrected'):
+        ica.fit(epochs)
+
+    # cleaning baseline-corrected data
+    epochs.info['highpass'] = 1.
+    epochs.baseline = None
+    ica.fit(epochs)
+
+    epochs.baseline = (epochs.tmin, 0)
+    with pytest.warns(RuntimeWarning, match='consider baseline-correcting.*'
+                                            'again'):
+        ica.apply(epochs)
+
+
 @requires_sklearn
 @pytest.mark.parametrize('n_components', (None, 0.9999, 8, 9, 10))
 @pytest.mark.parametrize('n_pca_components', [8, 9, 0.9999, 10])
