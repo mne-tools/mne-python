@@ -1052,6 +1052,22 @@ class Report(object):
         style = f'\n<style type="text/css">\n{css}\n</style>'
         self.include += style
 
+    def add_custom_js(self, js):
+        """Add custom JavaScript to the report.
+
+        Parameters
+        ----------
+        js : str
+            JavaScript code to add to the report. The content of this string
+            will be embedded between HTML ``<script>`` and ``</script>`` tags.
+
+        Notes
+        -----
+        .. versionadded:: 0.23
+        """
+        script = f'\n<script type="text/javascript">\n{js}\n</script>'
+        self.include += script
+
     def remove(self, caption, section=None):
         """Remove a figure from the report.
 
