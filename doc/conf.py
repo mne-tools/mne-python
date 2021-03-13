@@ -512,8 +512,6 @@ html_favicon = "_static/favicon.ico"
 html_static_path = ['_static']
 html_css_files = [
     'style.css',
-    'font-source-sans-pro.css',
-    'font-source-code-pro.css',
 ]
 
 # Add any extra paths that contain custom files (such as robots.txt or
