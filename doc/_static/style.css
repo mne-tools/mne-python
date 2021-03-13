@@ -2,9 +2,9 @@
 
     --pst-font-size-base: 16px;
     --pst-font-size-milli: 13px;
-    --pst-font-family-base: 'Source Sans Pro', sans-serif;
+    --pst-font-family-base: 'Source Sans Pro', var(--pst-font-family-base-system);
     --pst-font-family-heading: var(--pst-font-family-base);
-    --pst-font-family-monospace: 'Source Code Pro', monospace;
+    --pst-font-family-monospace: 'Source Code Pro', var(--pst-font-family-monospace-system);
 
 }
 
