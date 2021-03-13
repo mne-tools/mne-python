@@ -154,6 +154,18 @@ div.frontpage-gallery:hover .fadeout {
     transition: 200ms linear;
 }
 
+/* ****************************************************** navbar quick links */
+
+i.fa-github-square:before {
+    color: #000;
+}
+i.fa-twitter-square:before {
+    color: #55acee;
+}
+i.fa-discourse:before {
+    color: #231e20;
+}
+
 /* ************************************************* Previous / Next buttons */
 .prev-next-bottom a.left-prev:before {
     content:"❮\00A0"

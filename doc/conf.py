@@ -475,8 +475,18 @@ html_theme = 'pydata_sphinx_theme'
 # further.  For a list of options available for each theme, see the
 # documentation.
 html_theme_options = {
-    'github_url': 'https://github.com/mne-tools/mne-python',
-    'twitter_url': 'https://twitter.com/mne_python',
+    'icon_links': [
+        dict(name='GitHub',
+             url='https://github.com/mne-tools/mne-python',
+             icon='fab fa-github-square'),
+        dict(name='Twitter',
+             url='https://twitter.com/mne_python',
+             icon='fab fa-twitter-square'),
+        dict(name='Discourse',
+             url='https://mne.discourse.group/',
+             icon='fab fa-discourse')
+    ],
+    'icon_links_label': 'Quick Links',  # for screen reader
     'use_edit_page_button': False,
     'navigation_with_keys': False,
     'show_toc_level': 1,
