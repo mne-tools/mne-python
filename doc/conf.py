@@ -484,7 +484,10 @@ html_theme_options = {
              icon='fab fa-twitter-square'),
         dict(name='Discourse',
              url='https://mne.discourse.group/',
-             icon='fab fa-discourse')
+             icon='fab fa-discourse'),
+        dict(name='Discord',
+             url='https://discord.gg/rKfvxTuATa',
+             icon='fab fa-discord')
     ],
     'icon_links_label': 'Quick Links',  # for screen reader
     'use_edit_page_button': False,

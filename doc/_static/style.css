@@ -165,6 +165,9 @@ i.fa-twitter-square:before {
 i.fa-discourse:before {
     color: #231e20;
 }
+i.fa-discord:before {
+    color: #7289da;  /* 99aab5 is also in-brand for discord */
+}
 
 /* ************************************************* Previous / Next buttons */
 .prev-next-bottom a.left-prev:before {
