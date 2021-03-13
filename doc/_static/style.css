@@ -58,7 +58,15 @@ div[id^="examples-using-"] h2 {
 }
 
 /* ******************************************* in-text sidebar callout boxes */
-.sidebar {
+div.sidebar,
+aside.sidebar {
+    margin: 0 0 0.5em 1em;
+    padding: 7px;
+    width: 40%;
+    float: right;
+    clear: right;
+    overflow-x: auto;
+    /* above copied from div.sidebar in basic.css; below are our overrides */
     background-color: rgba(var(--pst-color-info), 0.1);
     border: 1px solid rgb(var(--pst-color-info));
     border-radius: 4px;
