@@ -95,6 +95,7 @@ def pytest_configure(config):
     ignore:.*tostring.*is deprecated.*:DeprecationWarning
     ignore:.*QDesktopWidget\.availableGeometry.*:DeprecationWarning
     ignore:Unable to enable faulthandler.*:UserWarning
+    ignore:Fetchers from the nilearn\.datasets.*:FutureWarning
     always:.*get_data.* is deprecated in favor of.*:DeprecationWarning
     always::ResourceWarning
     """  # noqa: E501

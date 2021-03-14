@@ -709,6 +709,7 @@ def reset_warnings(gallery_conf, fname):
                 r'Converting `np\.character` to a dtype is deprecated',  # vtk
                 r'sphinx\.util\.smartypants is deprecated',
                 'is a deprecated alias for the builtin',  # NumPy
+                r'Fetchers from the nilearn\.datasets',  # nilearn
                 ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)
