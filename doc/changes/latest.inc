@@ -67,7 +67,7 @@ Enhancements
 
 - `mne.Report.parse_folder` now processes supported non-FIFF files by default, too (:gh:`8744` by `Richard Höchenberger`_)
 
-- `mne.Report` has gained a new method `~mne.Report.add_custom_css` for adding user-defined styles (:gh:`8762` by `Richard Höchenberger`_)
+- `mne.Report` has gained the new methods `~mne.Report.add_custom_js` and `~mne.Report.add_custom_css` for adding user-defined JavaScript and styles (:gh:`8762`, :gh:`9037` by `Richard Höchenberger`_)
 
 - Add option to control appearance of opaque inside surface of the head to :ref:`mne coreg` (:gh:`8793` by `Eric Larson`_)
 
@@ -106,6 +106,8 @@ Enhancements
 - `~mne.Epochs` metadata can now be generated automatically from events using `mne.epochs.make_metadata` (:gh:`8834` by `Richard Höchenberger`_)
 
 - Interactions with sliders in `mne.Report` will now continuously update the linked content (it was updated only on mouse button release before) (:gh:`9023` by `Richard Höchenberger`_)
+
+- `mne.viz.plot_drop_log` and :meth:`mne.Epochs.plot_drop_log` now omit displaying the subject name in the title if ``subject=None`` is passed (:gh:`9015` by `Richard Höchenberger`_)
 
 Bugs
 ~~~~
