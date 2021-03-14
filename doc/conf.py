@@ -720,6 +720,8 @@ def reset_warnings(gallery_conf, fname):
         category=FutureWarning)
     warnings.filterwarnings(  # nilearn
         'ignore', message=r'The sklearn.* module is.*', category=FutureWarning)
+    warnings.filterwarnings(  # nilearn
+        'ignore', message=r'Fetchers from the nilea.*', category=FutureWarning)
     warnings.filterwarnings(  # deal with other modules having bad imports
         'ignore', message=".*ufunc size changed.*", category=RuntimeWarning)
     warnings.filterwarnings(  # realtime
