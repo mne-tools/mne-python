@@ -67,7 +67,7 @@ Enhancements
 
 - `mne.Report.parse_folder` now processes supported non-FIFF files by default, too (:gh:`8744` by `Richard Höchenberger`_)
 
-- `mne.Report` has gained a new method `~mne.Report.add_custom_css` for adding user-defined styles (:gh:`8762` by `Richard Höchenberger`_)
+- `mne.Report` has gained the new methods `~mne.Report.add_custom_js` and `~mne.Report.add_custom_css` for adding user-defined JavaScript and styles (:gh:`8762`, :gh:`9037` by `Richard Höchenberger`_)
 
 - Add option to control appearance of opaque inside surface of the head to :ref:`mne coreg` (:gh:`8793` by `Eric Larson`_)
 
