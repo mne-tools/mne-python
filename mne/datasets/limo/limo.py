@@ -49,8 +49,8 @@ def data_path(subject, path=None, force_update=False, update_path=None,
     """Get path to local copy of LIMO dataset URL.
 
     This is a low-level function useful for getting a local copy of the
-    remote LIMO dataset [1]_. The complete dataset is available at
-    datashare.is.ed.ac.uk/ [2]_.
+    remote LIMO dataset :footcite: `Rousselet2016`. The complete dataset is available at
+    datashare.is.ed.ac.uk/.
 
     Parameters
     ----------
@@ -86,12 +86,6 @@ def data_path(subject, path=None, force_update=False, update_path=None,
     and prompt the user to save the 'datasets' path to the mne-python config,
     if it isn't there already.
 
-    References
-    ----------
-    .. [1] Guillaume, Rousselet. (2016). LIMO EEG Dataset, [dataset].
-           University of Edinburgh, Centre for Clinical Brain Sciences.
-           https://doi.org/10.7488/ds/1556.
-    .. [2] https://datashare.is.ed.ac.uk/handle/10283/2189?show=full
     """  # noqa: E501
     # set destination path for download
     key = 'MNE_DATASETS_LIMO_PATH'
@@ -242,3 +236,9 @@ def load_data(subject, path=None, force_update=False, update_path=None,
     epochs.info['bads'] = missing_chans  # missing channels are marked as bad.
 
     return epochs
+
+###############################################################################
+# References
+# ----------
+#
+# .. footbibliography::
