@@ -70,7 +70,8 @@ events = events[:80]
 # In order to simulate source time courses, labels of desired active regions
 # need to be specified for each of the 4 simulation conditions.
 # Make a dictionary that maps conditions to activation strengths within
-# aparc.a2009s :footcite:`DestrieuxEtAl2010` labels. In the aparc.a2009s parcellation:
+# aparc.a2009s :footcite:`DestrieuxEtAl2010` labels. 
+# In the aparc.a2009s parcellation:
 #
 # - 'G_temp_sup-G_T_transv' is the label for primary auditory area
 # - 'S_calcarine' is the label for primary visual area
