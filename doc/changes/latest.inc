@@ -115,6 +115,8 @@ Enhancements
 
 Bugs
 ~~~~
+- Fix bug with restricting :func:`mne.io.base.save` saving options to .fif and .fif.gz extensions (:gh:`9062` by |Valerii Chirkov|_)
+
 - Fix bug with :func:`mne.io.read_raw_kit` where missing marker coils were not handled (:gh:`8989` **by new contributor** |Judy D Zhu|_)
 
 - Fix bug with `mne.connectivity.spectral_connectivity` where time axis in Epochs data object was dropped. (:gh:`8839` **by new contributor** |Anna Padee|_)
