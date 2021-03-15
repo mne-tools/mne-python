@@ -13,7 +13,7 @@ This tutorial explains how to perform a toy polysomnography analysis that
 answers the following question:
 
 .. important:: Given two subjects from the Sleep Physionet dataset
-               :footcite:`KempEtAl2000` :footcite:`GoldbergerEtAl2000`, namely
+               :footcite:`KempEtAl2000,GoldbergerEtAl2000`, namely
                *Alice* and *Bob*, how well can we predict the sleep stages of
                *Bob* from *Alice's* data?
 
@@ -55,8 +55,8 @@ from sklearn.preprocessing import FunctionTransformer
 #
 # MNE-Python provides us with
 # :func:`mne.datasets.sleep_physionet.age.fetch_data` to conveniently download
-# data from the Sleep Physionet dataset :footcite:`KempEtAl2000`
-# :footcite:`GoldbergerEtAl2000`.
+# data from the Sleep Physionet dataset
+:footcite:`KempEtAl2000,GoldbergerEtAl2000`.
 # Given a list of subjects and records, the fetcher downloads the data and
 # provides us for each subject, a pair of files:
 #
