@@ -705,14 +705,13 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                       Im(E[Sxy])
             C = ----------------------
                 sqrt(E[Sxx] * E[Syy])
-
-        'plv' : Phase-Locking Value (PLV) :footcite:`LachauxEtAl1999` 
-        given by::
-
+                
+        'plv' : Phase-Locking Value (PLV)
+        :footcite:`LachauxEtAl1999` given by::
             PLV = |E[Sxy/|Sxy|]|
 
-        'ciplv' : corrected imaginary PLV (icPLV) :footcite:`BruñaEtAl2018` 
-        given by::
+        'ciplv' : corrected imaginary PLV (icPLV)
+        :footcite:`BruñaEtAl2018` given by::
 
                              |E[Im(Sxy/|Sxy|)]|
             ciPLV = ------------------------------------
@@ -721,21 +720,23 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
         'ppc' : Pairwise Phase Consistency (PPC), an unbiased estimator
         of squared PLV :footcite:`VinckEtAl2010`.
 
-        'pli' : Phase Lag Index (PLI) :footcite:`StamEtAl2007`. 
-        given by::
+        'pli' : Phase Lag Index (PLI)
+        :footcite:`StamEtAl2007` given by::
 
             PLI = |E[sign(Im(Sxy))]|
 
-        'pli2_unbiased' : Unbiased estimator of squared PLI :footcite:`VinckEtAl2011`
+        'pli2_unbiased' : Unbiased estimator of squared PLI
+        :footcite:`VinckEtAl2011`
 
-        'wpli' : Weighted Phase Lag Index (WPLI) :footcite:`VinckEtAl2011` 
-        given by::
+        'wpli' : Weighted Phase Lag Index (WPLI)
+        :footcite:`VinckEtAl2011` given by::
 
                       |E[Im(Sxy)]|
             WPLI = ------------------
                       E[|Im(Sxy)|]
 
-        'wpli2_debiased' : Debiased estimator of squared WPLI :footcite:`VinckEtAl2011`
+        'wpli2_debiased' : Debiased estimator of squared WPLI
+        :footcite:`VinckEtAl2011`
 
     References
     ----------
