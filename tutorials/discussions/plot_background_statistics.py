@@ -41,9 +41,9 @@ print(__doc__)
 # some probability (e.g., p < 0.05). This probability is also called the
 # significance level :math:`\alpha`.
 # To think about what this means, let's follow the illustrative example from
-# :footcite:`RidgwayEtAl2012` and construct a toy dataset consisting of a 40 x 40 square with a
-# "signal" present in the center with white noise added and a Gaussian
-# smoothing kernel applied.
+# :footcite:`RidgwayEtAl2012` and construct a toy dataset consisting of a
+# 40 x 40 square with a "signal" present in the center with white noise added
+# and a Gaussian smoothing kernel applied.
 
 width = 40
 n_subjects = 10
@@ -168,7 +168,8 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # "Hat" variance adjustment
 # ~~~~~~~~~~~~~~~~~~~~~~~~~
 # The "hat" technique regularizes the variance values used in the t-test
-# calculation :footcite:`RidgwayEtAl2012` to compensate for implausibly small variances.
+# calculation :footcite:`RidgwayEtAl2012` to compensate for implausibly small
+# variances.
 ts.append(ttest_1samp_no_p(X, sigma=sigma))
 ps.append(stats.distributions.t.sf(np.abs(ts[-1]), len(X) - 1) * 2)
 titles.append(r'$\mathrm{t_{hat}}$')
@@ -482,7 +483,8 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # TFCE eliminates the free parameter initial ``threshold`` value that
 # determines which points are included in clustering by approximating
 # a continuous integration across possible threshold values with a standard
-# `Riemann sum <https://en.wikipedia.org/wiki/Riemann_sum>`__ :footcite:`SmithNichols2009`.
+# `Riemann sum <https://en.wikipedia.org/wiki/Riemann_sum>`__
+# :footcite:`SmithNichols2009`.
 # This requires giving a starting threshold ``start`` and a step
 # size ``step``, which in MNE is supplied as a dict.
 # The smaller the ``step`` and closer to 0 the ``start`` value,
