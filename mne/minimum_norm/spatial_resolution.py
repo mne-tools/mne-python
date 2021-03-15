@@ -65,19 +65,10 @@ def resolution_metrics(resmat, src, function='psf', metric='peak_err',
 
     Notes
     -----
-    For details, see [1]_ [2]_.
+    For details, see :footcite:`MolinsEtAl2008` :footcite:`HaukEtAl2019`.
 
     .. versionadded:: 0.20
-
-    References
-    ----------
-    .. [1] Molins A, Stufflebeam S M, Brown E N, Hämäläinen M S (2008).
-           Quantification of the benefit from integrating MEG and EEG data in
-           minimum l2-norm estimation. Neuroimage, 42(3):1069-77.
-    .. [2] Hauk O, Stenroos M, Treder M (2019). "Towards an Objective
-           Evaluation of EEG/MEG Source Estimation Methods: The Linear Tool
-           Kit", bioRxiv, doi: https://doi.org/10.1101/672956.
-    """
+    """    
     # Check if input options are valid
     metrics = ('peak_err', 'cog_err', 'sd_ext', 'maxrad_ext', 'peak_amp',
                'sum_amp')
@@ -332,3 +323,8 @@ def _rectify_resolution_matrix(resmat):
                     (shape[0], shape[1], resmat.shape[0], resmat.shape[1]))
 
     return resmat
+
+###############################################################################
+# References
+# ----------
+# .. footbibliography::
