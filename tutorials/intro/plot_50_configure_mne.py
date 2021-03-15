@@ -6,7 +6,8 @@ Configuring MNE-Python
 ======================
 
 This tutorial covers how to configure MNE-Python to suit your local system and
-your analysis preferences.
+your analysis preferences. It also lets you demo things on Discord, for the
+code sprint.
 
 We begin by importing the necessary Python modules:
 """
