@@ -6,3 +6,4 @@ sphinxcontrib-bibtex>=2.1.2
 memory_profiler
 neo
 seaborn
+mne-bids

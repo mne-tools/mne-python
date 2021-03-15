@@ -21,13 +21,17 @@ MNI space, or projection into a volume, see :ref:`tut_working_with_seeg`.
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Chris Holdgraf <choldgraf@gmail.com>
 #          Adam Li <adam2392@gmail.com>
+#          Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: BSD (3-clause)
 
-import pandas as pd
+import os.path as op
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+
+from mne_bids import BIDSPath, read_raw_bids
 
 import mne
 from mne.viz import plot_alignment, snapshot_brain_montage
@@ -35,66 +39,29 @@ from mne.viz import plot_alignment, snapshot_brain_montage
 print(__doc__)
 
 # paths to mne datasets - sample ECoG and FreeSurfer subject
-misc_path = mne.datasets.misc.data_path()
+bids_root = mne.datasets.clinical.data_path()
 sample_path = mne.datasets.sample.data_path()
-subject = 'sample'
-subjects_dir = sample_path + '/subjects'
+subjects_dir = op.join(sample_path, 'subjects')
+
 
 ###############################################################################
-# Let's load some ECoG electrode locations and names, and turn them into
-# a :class:`mne.channels.DigMontage` class. First, use pandas to read in the
-# ``.tsv`` file.
+# Let's load some ECoG electrode data with ``mne-bids``.
 
-# In this tutorial, the electrode coordinates are assumed to be in meters
-elec_df = pd.read_csv(misc_path + '/ecog/sample_ecog_electrodes.tsv',
-                      sep='\t', header=0, index_col=None)
-ch_names = elec_df['name'].tolist()
-ch_coords = elec_df[['x', 'y', 'z']].to_numpy(dtype=float)
-ch_pos = dict(zip(ch_names, ch_coords))
-# Ideally the nasion/LPA/RPA will also be present from the digitization, here
-# we use fiducials estimated from the subject's FreeSurfer MNI transformation:
-lpa, nasion, rpa = mne.coreg.get_mni_fiducials(
-    subject, subjects_dir=subjects_dir)
-lpa, nasion, rpa = lpa['r'], nasion['r'], rpa['r']
+# first define the bids path
+bids_path = BIDSPath(root=bids_root, subject='pt1', session='presurgery',
+                     task='ictal', acquisition='ecog', run='01',
+                     datatype='ieeg', extension='vhdr')
 
-###############################################################################
-# Now we make a :class:`mne.channels.DigMontage` stating that the ECoG
-# contacts are in the FreeSurfer surface RAS (i.e., MRI) coordinate system.
-
-montage = mne.channels.make_dig_montage(
-    ch_pos, coord_frame='mri', nasion=nasion, lpa=lpa, rpa=rpa)
-print('Created %s channel positions' % len(ch_names))
-
-###############################################################################
-# Now we get the :term:`trans` that transforms from our MRI coordinate system
-# to the head coordinate frame. This transform will be applied to the
-# data when applying the montage so that standard plotting functions like
-# :func:`mne.viz.plot_evoked_topomap` will be aligned properly.
-
-trans = mne.channels.compute_native_head_t(montage)
-print(trans)
-
-###############################################################################
-# Now that we have our montage, we can load in our corresponding
-# time-series data and set the montage to the raw data.
-
-# first we'll load in the sample dataset
-raw = mne.io.read_raw_edf(misc_path + '/ecog/sample_ecog.edf')
+# then we'll use it to load in the sample dataset
+raw = read_raw_bids(bids_path=bids_path, verbose=False)
 
 # drop bad channels
-raw.info['bads'].extend([ch for ch in raw.ch_names if ch not in ch_names])
+raw.info['bads'].extend([ch for ch in raw.ch_names if ch not in montage.ch_names])
 raw.load_data()
 raw.drop_channels(raw.info['bads'])
-raw.crop(0, 2)  # just process 2 sec of data for speed
-
-# attach montage
-raw.set_montage(montage)
-
-# set channel types to ECoG (instead of EEG)
-raw.set_channel_types({ch_name: 'ecog' for ch_name in raw.ch_names})
 
 ###############################################################################
-# We can then plot the locations of our electrodes on our subject's brain.
+# We can then plot the locations of our electrodes on the fsaverage brain.
 # We'll use :func:`~mne.viz.snapshot_brain_montage` to save the plot as image
 # data (along with xy positions of each electrode in the image), so that later
 # we can plot frequency band power on top of it.
@@ -102,7 +69,11 @@ raw.set_channel_types({ch_name: 'ecog' for ch_name in raw.ch_names})
 # .. note:: These are not real electrodes for this subject, so they
 #           do not align to the cortical surface perfectly.
 
-fig = plot_alignment(raw.info, subject=subject, subjects_dir=subjects_dir,
+
+trans = mne.channels.compute_native_head_t(raw.montage)
+print(trans)
+
+fig = plot_alignment(raw.info, subject='fsaverage', subjects_dir=subjects_dir,
                      surfaces=['pial'], trans=trans, coord_frame='mri')
 mne.viz.set_3d_view(fig, 200, 70, focalpoint=[0, -0.005, 0.03])
 
