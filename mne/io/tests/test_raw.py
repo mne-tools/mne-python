@@ -260,12 +260,12 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
     out_fname = op.join(tempdir, 'test_raw.fif')
     raw = concatenate_raws([raw])
     raw.save(out_fname, tmax=raw.times[-1], overwrite=True, buffer_size_sec=1)
-    
+
     # Test saving with not correct extention
     out_fname_h5 = op.join(tempdir, 'test_raw.h5')
     with pytest.raises(IOError, match='raw must end with .fif or .fif.gz'):
         raw.save(out_fname_h5)
-    
+
     raw3 = read_raw_fif(out_fname)
     assert_named_constants(raw3.info)
     assert set(raw.info.keys()) == set(raw3.info.keys())
