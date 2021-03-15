@@ -73,7 +73,7 @@ def oversampled_temporal_projection(raw, duration=10., picks=None,
 
     References
     ----------
-   .. footbibliography::
+    .. footbibliography::
     """
     logger.info('Processing MEG data using oversampled temporal projection')
     picks = _picks_to_idx(raw.info, picks, exclude=())
