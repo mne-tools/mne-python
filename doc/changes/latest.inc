@@ -35,8 +35,12 @@ Current (0.23.dev0)
 
 .. |Judy D Zhu| replace:: **Judy D Zhu**
 
+.. |Valerii Chirkov| replace:: **Valerii Chirkov**
+
 Enhancements
 ~~~~~~~~~~~~
+- Update citations in maxwell.py (:gh:`9043` **by new contributor** |Valerii Chirkov|_)
+
 - New Tutorial for analyzing frequency-tagging data (:gh:`8867` **by new contributor** |Dominik Welke|_ and `kalenkovich`_)
 
 - Add dbs as new channel type for deep brain stimulation (DBS) recordings (:gh:`8739` **by new contributor** |Richard Koehler|_)
