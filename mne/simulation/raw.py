@@ -166,7 +166,7 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
         solution filename (e.g., "sample-5120-5120-5120-bem-sol.fif").
         Can be None if ``forward`` is provided.
     %(head_pos)s
-        See for example [1]_.
+        See for example :footcite:`BentivoglioEtAl1997`.
     mindist : float
         Minimum distance between sources and the inner skull boundary
         to use during forward calculation.
@@ -237,9 +237,8 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
 
     References
     ----------
-    .. [1] Larson E, Taulu S (2017). "The Importance of Properly Compensating
-           for Head Movements During MEG Acquisition Across Different Age
-           Groups." Brain Topogr 30:172–181
+    .. footbibliography::
+    
     """  # noqa: E501
     _validate_type(info, Info, 'info')
     raw_verbose = verbose
@@ -369,7 +368,7 @@ def add_eog(raw, head_pos=None, interp='cos2', n_jobs=1, random_state=None,
     1. Random activation times are drawn from an inhomogeneous poisson
        process whose blink rate oscillates between 4.5 blinks/minute
        and 17 blinks/minute based on the low (reading) and high (resting)
-       blink rates from [1]_.
+       blink rates from :footcite:`BentivoglioEtAl1997`
     2. The activation kernel is a 250 ms Hanning window.
     3. Two activated dipoles are located in the z=0 plane (in head
        coordinates) at ±30 degrees away from the y axis (nasion).
@@ -382,8 +381,8 @@ def add_eog(raw, head_pos=None, interp='cos2', n_jobs=1, random_state=None,
 
     References
     ----------
-    .. [1] Bentivoglio et al. "Analysis of blink rate patterns in normal
-           subjects" Movement Disorders, 1997 Nov;12(6):1028-34.
+    .. footbibliography::
+    
     """
     return _add_exg(raw, 'blink', head_pos, interp, n_jobs, random_state)
 
