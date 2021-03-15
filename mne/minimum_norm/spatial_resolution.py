@@ -65,7 +65,7 @@ def resolution_metrics(resmat, src, function='psf', metric='peak_err',
 
     Notes
     -----
-    For details, see :footcite:`MolinsEtAl2008` :footcite:`HaukEtAl2019`.
+    For details, see :footcite:`MolinsEtAl2008,HaukEtAl2019`.
 
     .. versionadded:: 0.20
 
