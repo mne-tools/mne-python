@@ -5,15 +5,17 @@
 Sleep stage classification from polysomnography (PSG) data
 ==========================================================
 
-.. note:: This code is taken from the analysis code used in [3]_. If you reuse
-          this code please consider citing this work.
+.. note:: This code is taken from the analysis code used in
+          :footcite:`ChambonEtAl2018`. If you reuse this code please consider
+          citing this work.
 
 This tutorial explains how to perform a toy polysomnography analysis that
 answers the following question:
 
-.. important:: Given two subjects from the Sleep Physionet dataset [1]_ [2]_,
-               namely *Alice* and *Bob*, how well can we predict the sleep
-               stages of *Bob* from *Alice's* data?
+.. important:: Given two subjects from the Sleep Physionet dataset
+               :footcite:`KempEtAl2000,GoldbergerEtAl2000`, namely
+               *Alice* and *Bob*, how well can we predict the sleep stages of
+               *Bob* from *Alice's* data?
 
 This problem is tackled as supervised multiclass classification task. The aim
 is to predict the sleep stage from 5 possible stages for each chunk of 30
@@ -53,7 +55,8 @@ from sklearn.preprocessing import FunctionTransformer
 #
 # MNE-Python provides us with
 # :func:`mne.datasets.sleep_physionet.age.fetch_data` to conveniently download
-# data from the Sleep Physionet dataset [1]_ [2]_.
+# data from the Sleep Physionet dataset
+# :footcite:`KempEtAl2000,GoldbergerEtAl2000`.
 # Given a list of subjects and records, the fetcher downloads the data and
 # provides us for each subject, a pair of files:
 #
@@ -303,20 +306,4 @@ print(classification_report(y_test, y_pred, target_names=event_id.keys()))
 #
 # References
 # ----------
-#
-# .. [1] B Kemp, AH Zwinderman, B Tuk, HAC Kamphuisen, JJL Oberyé. Analysis of
-#        a sleep-dependent neuronal feedback loop: the slow-wave
-#        microcontinuity of the EEG. IEEE-BME 47(9):1185-1194 (2000).
-#
-# .. [2] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh,
-#        Mark RG, Mietus JE, Moody GB, Peng C-K, Stanley HE. (2000)
-#        PhysioBank, PhysioToolkit, and PhysioNet: Components of a New
-#        Research Resource for Complex Physiologic Signals.
-#        Circulation 101(23):e215-e220
-#
-# .. [3] Chambon, S., Galtier, M., Arnal, P., Wainrib, G. and Gramfort, A.
-#       (2018)A Deep Learning Architecture for Temporal Sleep Stage
-#       Classification Using Multivariate and Multimodal Time Series.
-#       IEEE Trans. on Neural Systems and Rehabilitation Engineering 26:
-#       (758-769).
-#
+# .. footbibliography::
