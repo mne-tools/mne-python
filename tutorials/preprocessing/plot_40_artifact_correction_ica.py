@@ -88,7 +88,8 @@ raw.crop(tmax=60.)
 # widespread use; Picard is a newer (2017) algorithm that is expected to
 # converge faster than FastICA and Infomax, and is more robust than other
 # algorithms in cases where the sources are not completely independent, which
-# typically happens with real EEG/MEG data. See :footcite:`AblinEtAl2018` for more information.
+# typically happens with real EEG/MEG data. See
+# :footcite:`AblinEtAl2018` for more information.
 #
 # The ICA interface in MNE-Python is similar to the interface in
 # `scikit-learn`_: some general parameters are specified when creating an
@@ -185,7 +186,8 @@ ecg_evoked.plot_joint()
 # higher values), making it harder for the algorithm to find an accurate
 # solution. A high-pass filter with 1 Hz cutoff frequency is recommended.
 # However, because filtering is a linear operation, the ICA solution found from
-# the filtered signal can be applied to the unfiltered signal (see :footcite:`WinklerEtAl2015` for
+# the filtered signal can be applied to the unfiltered signal (see
+# :footcite:`WinklerEtAl2015` for
 # more information), so we'll keep a copy of the unfiltered
 # `~mne.io.Raw` object around so we can apply the ICA solution to it
 # later.
@@ -374,7 +376,8 @@ ica.plot_sources(eog_evoked)
 # a virtual ECG channel, so if you have MEG channels it is usually not
 # necessary to pass a specific channel name.
 # `~mne.preprocessing.ICA.find_bads_ecg` also has two options for its
-# ``method`` parameter: ``'ctps'`` (cross-trial phase statistics :footcite:`DammersEtAl2008`) and
+# ``method`` parameter: ``'ctps'`` (cross-trial phase statistics
+# :footcite:`DammersEtAl2008`) and
 # ``'correlation'`` (Pearson correlation between data and ECG channel).
 
 ica.exclude = []
@@ -443,7 +446,8 @@ del raw, filt_raw, ica, new_ica
 # When dealing with multiple subjects, it is also possible to manually select
 # an IC for exclusion on one subject, and then use that component as a
 # *template* for selecting which ICs to exclude from other subjects' data,
-# using `mne.preprocessing.corrmap` :footcite:`CamposViolaEtAl2009`. The idea behind
+# using `mne.preprocessing.corrmap` :footcite:`CamposViolaEtAl2009`.
+# The idea behind
 # `~mne.preprocessing.corrmap` is that the artifact patterns are similar
 # enough across subjects that corresponding ICs can be identified by
 # correlating the ICs from each ICA solution with a common template, and
@@ -453,7 +457,8 @@ del raw, filt_raw, ica, new_ica
 # within it to use as a template.
 #
 # Since our sample dataset only contains data from one subject, we'll use a
-# different dataset with multiple subjects: the EEGBCI dataset :footcite:`SchalkEtAl2004,GoldbergerEtAl2000`. The
+# different dataset with multiple subjects: the EEGBCI dataset
+# :footcite:`SchalkEtAl2004,GoldbergerEtAl2000`. The
 # dataset has 109 subjects, we'll just download one run (a left/right hand
 # movement task) from each of the first 4 subjects:
 
