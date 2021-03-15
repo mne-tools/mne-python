@@ -111,7 +111,7 @@ def nbexec(_nbclient):
 
 def pytest_runtest_call(item):
     """Run notebook code written in Python."""
-    if 'nbexec' in item.fixturenames:
+    if 'nbexec' in getattr(item, 'fixturenames', ()):
         nbexec = item.funcargs['nbexec']
         code = inspect.getsource(getattr(item.module, item.name.split('[')[0]))
         code = code.splitlines()
