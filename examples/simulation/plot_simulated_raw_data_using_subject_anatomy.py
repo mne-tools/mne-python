@@ -70,7 +70,7 @@ events = events[:80]
 # In order to simulate source time courses, labels of desired active regions
 # need to be specified for each of the 4 simulation conditions.
 # Make a dictionary that maps conditions to activation strengths within
-# aparc.a2009s :footcite:`DestrieuxEtAl2010` labels. 
+# aparc.a2009s :footcite:`DestrieuxEtAl2010` labels.
 # In the aparc.a2009s parcellation:
 #
 # - 'G_temp_sup-G_T_transv' is the label for primary auditory area
@@ -231,7 +231,6 @@ stc_diff = stc_aud - stc_vis
 
 brain = stc_diff.plot(subjects_dir=subjects_dir, initial_time=0.1,
                       hemi='split', views=['lat', 'med'])
-                      
 
 ###############################################################################
 # References
