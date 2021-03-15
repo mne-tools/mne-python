@@ -166,7 +166,7 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
         solution filename (e.g., "sample-5120-5120-5120-bem-sol.fif").
         Can be None if ``forward`` is provided.
     %(head_pos)s
-        See for example :footcite:`BentivoglioEtAl1997`.
+        See for example :footcite:`LarsonTaulu2017`.
     mindist : float
         Minimum distance between sources and the inner skull boundary
         to use during forward calculation.
@@ -382,7 +382,7 @@ def add_eog(raw, head_pos=None, interp='cos2', n_jobs=1, random_state=None,
     References
     ----------
     .. footbibliography::
-    
+
     """
     return _add_exg(raw, 'blink', head_pos, interp, n_jobs, random_state)
 
