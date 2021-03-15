@@ -116,8 +116,9 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
     Some of this code was adapted and relicensed (with BSD form) with
     permission from Jussi Nurminen. These algorithms are based on work
-    from [1]_ and [2]_. It will likely use multiple CPU cores, see the
-    :ref:`FAQ <faq_cpu>` for more information.
+    from :footcite:`TauluKajola2005` and :footcite:`TauluSimola2006`. 
+    It will likely use multiple CPU cores, see the :ref:`FAQ <faq_cpu>` 
+    for more information.
 
     .. warning:: Maxwell filtering in MNE is not designed or certified
                  for clinical use.
@@ -166,7 +167,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
        | Extended external basis (eSSS)                                              | ✓   |           |
        +-----------------------------------------------------------------------------+-----+-----------+
 
-    Epoch-based movement compensation is described in [1]_.
+    Epoch-based movement compensation is described in :footcite:`TauluKajola2005`.
 
     Use of Maxwell filtering routines with non-Neuromag systems is currently
     **experimental**. Worse results for non-Neuromag systems are expected due
@@ -199,15 +200,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
     References
     ----------
-    .. [1] Taulu S. and Kajola M. "Presentation of electromagnetic
-           multichannel data: The signal space separation method,"
-           Journal of Applied Physics, vol. 97, pp. 124905 1-10, 2005.
-           https://doi.org/10.1063/1.1935742
-
-    .. [2] Taulu S. and Simola J. "Spatiotemporal signal space separation
-           method for rejecting nearby interference in MEG measurements,"
-           Physics in Medicine and Biology, vol. 51, pp. 1759-1768, 2006.
-           https://doi.org/10.1088/0031-9155/51/7/008
+    .. footbibliography::
     """  # noqa: E501
     logger.info('Maxwell filtering raw data')
     params = _prep_maxwell_filter(
@@ -745,7 +738,7 @@ def _do_tSSS(clean_data, orig_in_data, resid, st_correlation,
     else:
         np.asarray_chkfinite(resid)
         t_proj = _overlap_projector(orig_in_data, resid, st_correlation)
-    # Apply projector according to Eq. 12 in [2]_
+    # Apply projector according to Eq. 12 in TauluSimola2006
     msg = ('        Projecting %2d intersecting tSSS component%s '
            'for %s' % (t_proj.shape[1], _pl(t_proj.shape[1], ' '), t_str))
     if n_positions > 1:
@@ -1565,9 +1558,9 @@ def _orth_overwrite(A):
 def _overlap_projector(data_int, data_res, corr):
     """Calculate projector for removal of subspace intersection in tSSS."""
     # corr necessary to deal with noise when finding identical signal
-    # directions in the subspace. See the end of the Results section in [2]_
+    # directions in the subspace. See the end of the Results section in TauluSimola2006
 
-    # Note that the procedure here is an updated version of [2]_ (and used in
+    # Note that the procedure here is an updated version of TauluSimola2006 (and used in
     # MF's tSSS) that uses residuals instead of internal/external spaces
     # directly. This provides more degrees of freedom when analyzing for
     # intersections between internal and external spaces.
@@ -1600,7 +1593,7 @@ def _overlap_projector(data_int, data_res, corr):
     intersect_mask = (S_intersect >= corr)
     del S_intersect
 
-    # Compute projection operator as (I-LL_T) Eq. 12 in [2]_
+    # Compute projection operator as (I-LL_T) Eq. 12 in TauluSimola2006
     # V_principal should be shape (n_time_pts x n_retained_inds)
     Vh_intersect = Vh_intersect[intersect_mask].T
     V_principal = np.dot(Q_res, Vh_intersect)
@@ -1876,15 +1869,13 @@ def _compute_sphere_activation_in(degrees):
     Returns
     -------
     a_power : ndarray
-        The a_lm associated for the associated degrees (see [1]_).
+        The a_lm associated for the associated degrees (see :footcite:`KnuutilaEtAl1993`).
     rho_i : float
         The current density.
 
     References
     ----------
-    .. [1] A 122-channel whole-cortex SQUID system for measuring the brain’s
-       magnetic fields. Knuutila et al. IEEE Transactions on Magnetics,
-       Vol 29 No 6, Nov 1993.
+    .. footbibliography::
     """
     r_in = 0.080  # radius of the randomly-activated sphere
 
