@@ -738,7 +738,7 @@ def _do_tSSS(clean_data, orig_in_data, resid, st_correlation,
     else:
         np.asarray_chkfinite(resid)
         t_proj = _overlap_projector(orig_in_data, resid, st_correlation)
-    # Apply projector according to Eq. 12 in TauluSimola2006
+    # Apply projector according to Eq. 12 in :footcite:`TauluSimola2006`
     msg = ('        Projecting %2d intersecting tSSS component%s '
            'for %s' % (t_proj.shape[1], _pl(t_proj.shape[1], ' '), t_str))
     if n_positions > 1:
@@ -1559,12 +1559,13 @@ def _overlap_projector(data_int, data_res, corr):
     """Calculate projector for removal of subspace intersection in tSSS."""
     # corr necessary to deal with noise when finding identical signal
     # directions in the subspace. See the end of the Results section in
-    # TauluSimola2006
+    # :footcite:`TauluSimola2006`
 
-    # Note that the procedure here is an updated version of TauluSimola2006
-    # (and used in MF's tSSS) that uses residuals instead of internal/external
-    # spaces directly. This provides more degrees of freedom when analyzing
-    # for intersections between internal and external spaces.
+    # Note that the procedure here is an updated version of
+    # :footcite:`TauluSimola2006` (and used in MF's tSSS) that uses residuals
+    # instead of internal/external spaces directly. This provides more degrees
+    # of freedom when analyzing for intersections between internal and
+    # external spaces.
 
     # Normalize data, then compute orth to get temporal bases. Matrices
     # must have shape (n_samps x effective_rank) when passed into svd
@@ -1594,8 +1595,9 @@ def _overlap_projector(data_int, data_res, corr):
     intersect_mask = (S_intersect >= corr)
     del S_intersect
 
-    # Compute projection operator as (I-LL_T) Eq. 12 in TauluSimola2006
-    # V_principal should be shape (n_time_pts x n_retained_inds)
+    # Compute projection operator as (I-LL_T) Eq. 12 in
+    # :footcite:`TauluSimola2006` V_principal should be shape
+    # (n_time_pts x n_retained_inds)
     Vh_intersect = Vh_intersect[intersect_mask].T
     V_principal = np.dot(Q_res, Vh_intersect)
     return V_principal
