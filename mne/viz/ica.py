@@ -735,7 +735,7 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
     start : int
         X-axis start index. If None from the beginning.
     stop : int
-        X-axis stop index. If None to the end.
+        X-axis stop index. If None to 3.0 s.
     title : str
         The figure title.
     show : bool
