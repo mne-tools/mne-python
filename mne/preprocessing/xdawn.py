@@ -347,9 +347,9 @@ class Xdawn(_XdawnTransformer):
 
     Xdawn :footcite:`RivetEtAl2009` :footcite:`RivetEtAl2011` is a spatial
     filtering method designed to improve the signal to signal + noise
-    ratio (SSNR) of the ERP responses. Xdawn was originally designed for 
-    P300 evoked potential by enhancing the target response with respect 
-    to the non-target response. This implementation is a generalization 
+    ratio (SSNR) of the ERP responses. Xdawn was originally designed for
+    P300 evoked potential by enhancing the target response with respect
+    to the non-target response. This implementation is a generalization
     to any type of ERP.
 
     Parameters
