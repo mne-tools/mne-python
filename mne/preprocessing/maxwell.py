@@ -1870,7 +1870,7 @@ def _compute_sphere_activation_in(degrees):
     Returns
     -------
     a_power : ndarray
-        The a_lm associated for the associated degrees (see 
+        The a_lm associated for the associated degrees (see
         :footcite:`KnuutilaEtAl1993`).
     rho_i : float
         The current density.
