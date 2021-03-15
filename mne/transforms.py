@@ -996,7 +996,7 @@ class _SphericalSurfaceWarp(object):
 
     References
     ----------
-    ..footbibliography:: 
+    ..footbibliography::
     """
 
     def __repr__(self):
