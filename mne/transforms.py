@@ -980,7 +980,8 @@ class _SphericalSurfaceWarp(object):
     Notes
     -----
     This class can be used to warp data from a source subject to
-    a destination subject, as described in [1]_. The procedure is:
+    a destination subject, as described in :footcite:`DarvasEtAl2006`.
+    The procedure is:
 
         1. Perform a spherical harmonic approximation to the source and
            destination surfaces, which smooths them and allows arbitrary
