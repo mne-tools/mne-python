@@ -17,7 +17,7 @@ def data_path(url, path=None, force_update=False, update_path=None,
     """Get path to local copy of EEGMMI dataset URL.
 
     This is a low-level function useful for getting a local copy of a
-    remote EEGBCI dataset [1]_ which is available at PhysioNet [2]_.
+    remote EEGBCI dataset :footcite: 'SchalkEtAl2004' which is available at PhysioNet :footcite:'GoldbergerEtAl2000'.
 
     Parameters
     ----------
@@ -57,14 +57,7 @@ def data_path(url, path=None, force_update=False, update_path=None,
 
     References
     ----------
-    .. [1] Schalk, G., McFarland, D.J., Hinterberger, T., Birbaumer, N.,
-           Wolpaw, J.R. (2004) BCI2000: A General-Purpose Brain-Computer
-           Interface (BCI) System. IEEE TBME 51(6):1034-1043
-    .. [2] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh,
-           Mark RG, Mietus JE, Moody GB, Peng C-K, Stanley HE. (2000)
-           PhysioBank, PhysioToolkit, and PhysioNet: Components of a New
-           Research Resource for Complex Physiologic Signals.
-           Circulation 101(23):e215-e220
+    .. footbibliography::
     """  # noqa: E501
     key = 'MNE_DATASETS_EEGBCI_PATH'
     name = 'EEGBCI'
@@ -90,8 +83,8 @@ def load_data(subject, runs, path=None, force_update=False, update_path=None,
               base_url=EEGMI_URL, verbose=None):  # noqa: D301
     """Get paths to local copies of EEGBCI dataset files.
 
-    This will fetch data for the EEGBCI dataset [1]_, which is also
-    available at PhysioNet [2]_.
+    This will fetch data for the EEGBCI dataset :footcite:'SchalkEtAl2004', which is also
+    available at PhysioNet :footcite:'GoldbergerEtAl2000'.
 
     Parameters
     ----------
@@ -147,14 +140,7 @@ def load_data(subject, runs, path=None, force_update=False, update_path=None,
 
     References
     ----------
-    .. [1] Schalk, G., McFarland, D.J., Hinterberger, T., Birbaumer, N.,
-           Wolpaw, J.R. (2004) BCI2000: A General-Purpose Brain-Computer
-           Interface (BCI) System. IEEE TBME 51(6):1034-1043
-    .. [2] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh,
-           Mark RG, Mietus JE, Moody GB, Peng C-K, Stanley HE. (2000)
-           PhysioBank, PhysioToolkit, and PhysioNet: Components of a New
-           Research Resource for Complex Physiologic Signals.
-           Circulation 101(23):e215-e220
+    .. footbibliography::
     """  # noqa: E501
     if not hasattr(runs, '__iter__'):
         runs = [runs]
