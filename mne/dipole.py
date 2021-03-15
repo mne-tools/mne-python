@@ -268,6 +268,27 @@ class Dipole(object):
             show_all, ax, block, show, scale=scale, color=color, fig=fig,
             title=title)
 
+    def to_mni(self, subject, mri_head_t, subjects_dir=None,
+               verbose=None):
+        """Convert pos from head coordinate system to MNI ones.
+
+        Parameters
+        ----------
+        %(subject)s
+        mri_head_t : instance of Transform
+            MRI<->Head coordinate transformation.
+        %(subjects_dir)s
+        %(verbose)s
+
+        Returns
+        -------
+        coordinates : array, shape (n_pos, 3)
+            The MNI coordinates (in mm) of pos.
+        """
+        from .source_space import head_to_mni
+        return head_to_mni(self.pos, subject, mri_head_t,
+                           subjects_dir=subjects_dir, verbose=verbose)
+
     def plot_amplitudes(self, color='k', show=True):
         """Plot the dipole amplitudes as a function of time.
 
