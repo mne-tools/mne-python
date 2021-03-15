@@ -12,3 +12,4 @@ pydocstyle
 check-manifest
 twine
 wheel
+nbclient
