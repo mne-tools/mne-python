@@ -2,7 +2,7 @@
 """
 .. _tut-bad-channels:
 
-Interpolating bad channels
+Handling bad channels
 ==========================
 
 This tutorial covers manual marking of bad channels and reconstructing bad
