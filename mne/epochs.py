@@ -1183,7 +1183,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
     @verbose
     def drop_bad(self, reject='existing', flat='existing', verbose=None):
-        """Drop bad epochs without retaining the epochs data.
+        """Drop bad epochs.
 
         Should be used before slicing operations.
 

@@ -85,7 +85,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     Attributes
     ----------
     info : dict
-        Measurement info.
+        Measurement info. Hello!
     ch_names : list of str
         List of channels' names.
     nave : int
