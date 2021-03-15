@@ -996,9 +996,7 @@ class _SphericalSurfaceWarp(object):
 
     References
     ----------
-    .. [1] Darvas F, Ermer JJ, Mosher JC, Leahy RM (2006). "Generic head
-           models for atlas-based EEG source analysis."
-           Human Brain Mapping 27:129-143
+    ..footbibliography:: 
     """
 
     def __repr__(self):
