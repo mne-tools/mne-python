@@ -41,6 +41,7 @@ from mne.epochs import (
 from mne.utils import (requires_pandas, object_diff,
                        catch_logging, _FakeNoPandas,
                        assert_meg_snr, check_version, _dt_to_stamp)
+from mne.filter import filter_data
 
 data_path = testing.data_path(download=False)
 fname_raw_testing = op.join(data_path, 'MEG', 'sample',
@@ -3357,3 +3358,37 @@ def test_empty_constructor():
     event_id = 1
     tmin, tmax, baseline = -0.2, 0.5, None
     BaseEpochs(info, None, None, event_id, tmin, tmax, baseline)
+
+def fun(data_epochs):
+    """Auxilary function to test_apply function."""
+    matrix = np.random.rand(10, 10)
+    return matrix @ data_epochs
+
+def test_apply_function():
+    """Test epochs takes into account repeated events."""
+    
+    data = np.random.rand(2, 10, 1000)
+    events = np.array([[0, 0, 1], [INT32_MAX, 0, 2]])
+    info = mne.create_info(10, 1000., 'eeg')
+    epochs = mne.EpochsArray(data, info, events)
+    
+    data_epochs = epochs.get_data()
+    # check apply_function in all channels at the time
+    res = epochs.apply_function(fun, channel_wise=False)   
+    assert np.shape(res) == np.shape(data_epochs)
+    
+    # check apply_function channel-wise
+    # let's gonna filter each channel
+    filter_params = dict(sfreq=info['sfreq'], l_freq=10, h_freq=12,
+                         l_trans_bandwidth=4, h_trans_bandwidth=4)
+    res_ch = epochs.apply_function(filter_data, channel_wise=True,
+                                  **filter_params)
+    res_ch_data = res_ch._data
+    # checking if the filtering was correctly applied
+    psd_out, freqs = psd_array_welch(res_ch_data[0, 0, :], sfreq=info['sfreq'])
+    freqs_up = freqs[psd_out>1e-6]
+    psd_out, freqs = psd_array_welch(data[0, 0, :], sfreq=info['sfreq'])
+    freqs_up_raw = freqs[psd_out>1e-6]
+    assert len(freqs_up) < len(freqs_up_raw)
+
+    

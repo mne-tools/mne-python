@@ -41,7 +41,9 @@ from .evoked import EvokedArray, _check_decim
 from .baseline import rescale, _log_rescale
 from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin)
-from .filter import detrend, FilterMixin
+from .filter import detrend, FilterMixin, _check_fun
+from .parallel import parallel_func
+
 from .event import _read_events_fif, make_fixed_length_events
 from .fixes import _get_args, rng_uniform
 from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
@@ -1490,6 +1492,86 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             A view on epochs data.
         """
         return self._get_data(picks=picks, item=item)
+
+    @verbose
+    def apply_function(self, fun, picks=None, dtype=None, n_jobs=1,
+                       channel_wise=True, verbose=None, *args, **kwargs):
+        """Apply a function to a subset of channels.
+
+        The function "fun" is applied to the channels defined in "picks". The
+        data of the Epochs object is modified inplace. If the function returns
+        a different data type (e.g. numpy.complex) it must be specified using
+        the dtype parameter, which causes the data type used for representing
+        the raw data to change.
+        The Epochs object has to have the data loaded e.g. with
+        ``preload=True`` or ``self.load_data()``.
+
+        .. note:: If n_jobs > 1, more memory is required as
+                  ``len(picks) * n_times`` additional time points need to
+                  be temporaily stored in memory.
+        .. note:: If the data type changes (dtype != None), more memory is
+                  required since the original and the converted data needs
+                  to be stored in memory.
+
+        Parameters
+        ----------
+        fun : callable
+            A function to be applied to the channels. The first argument of
+            fun has to be a timeseries (numpy.ndarray). The function must
+            operate on an array of shape ``(n_times,)`` if
+            ``channel_wise=True`` and ``(len(picks), n_times)`` otherwise.
+            The function must return an ndarray shaped like its input.
+        %(picks_all_data_noref)s
+        dtype : numpy.dtype (default: None)
+            Data type to use for raw data after applying the function. If None
+            the data type is not modified.
+        n_jobs : int (default: 1)
+            Number of jobs to run in parallel. Ignored if ``channel_wise`` is
+            False.
+        channel_wise : bool (default: True)
+            Whether to apply the function to each channel individually. If
+            False, the function will be applied to all channels at once.
+            .. versionadded:: 0.18
+        %(verbose_meth)s
+        *args : list
+            Additional positional arguments to pass to fun (first pos. argument
+            of fun is the timeseries of a channel).
+        **kwargs : dict
+            Keyword arguments to pass to fun.
+
+        Returns
+        -------
+        self : instance of Raw
+            The epochs object with transformed data.
+        """
+        _check_preload(self, 'epochs.apply_function')
+        picks = _picks_to_idx(self.info, picks, exclude=(), with_ref_meg=False)
+
+        if not callable(fun):
+            raise ValueError('fun needs to be a function')
+
+        data_in = self._data
+        if dtype is not None and dtype != self._data.dtype:
+            self._data = self._data.astype(dtype)
+
+        if channel_wise:
+            if n_jobs == 1:
+                # modify data inplace to save memory
+                for idx in picks:
+                    self._data[:, idx, :] = _check_fun(fun, data_in[:, idx, :],
+                                                       *args, **kwargs)
+            else:
+                # use parallel function
+                parallel, p_fun, _ = parallel_func(_check_fun, n_jobs)
+                data_picks_new = parallel(p_fun(
+                    fun, data_in[:, p, :], *args, **kwargs) for p in picks)
+                for pp, p in enumerate(picks):
+                    self._data[:, p, :] = data_picks_new[pp]
+        else:
+            self._data = _check_fun(
+                fun, data_in, *args, **kwargs)
+
+        return self
 
     @property
     def times(self):
