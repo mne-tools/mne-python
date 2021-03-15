@@ -116,8 +116,8 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
     Some of this code was adapted and relicensed (with BSD form) with
     permission from Jussi Nurminen. These algorithms are based on work
-    from :footcite:`TauluKajola2005` and :footcite:`TauluSimola2006`. 
-    It will likely use multiple CPU cores, see the :ref:`FAQ <faq_cpu>` 
+    from :footcite:`TauluKajola2005` and :footcite:`TauluSimola2006`.
+    It will likely use multiple CPU cores, see the :ref:`FAQ <faq_cpu>`
     for more information.
 
     .. warning:: Maxwell filtering in MNE is not designed or certified
@@ -1558,12 +1558,13 @@ def _orth_overwrite(A):
 def _overlap_projector(data_int, data_res, corr):
     """Calculate projector for removal of subspace intersection in tSSS."""
     # corr necessary to deal with noise when finding identical signal
-    # directions in the subspace. See the end of the Results section in TauluSimola2006
+    # directions in the subspace. See the end of the Results section in
+    # TauluSimola2006
 
-    # Note that the procedure here is an updated version of TauluSimola2006 (and used in
-    # MF's tSSS) that uses residuals instead of internal/external spaces
-    # directly. This provides more degrees of freedom when analyzing for
-    # intersections between internal and external spaces.
+    # Note that the procedure here is an updated version of TauluSimola2006
+    # (and used in MF's tSSS) that uses residuals instead of internal/external
+    # spaces directly. This provides more degrees of freedom when analyzing
+    # for intersections between internal and external spaces.
 
     # Normalize data, then compute orth to get temporal bases. Matrices
     # must have shape (n_samps x effective_rank) when passed into svd
@@ -1869,7 +1870,8 @@ def _compute_sphere_activation_in(degrees):
     Returns
     -------
     a_power : ndarray
-        The a_lm associated for the associated degrees (see :footcite:`KnuutilaEtAl1993`).
+        The a_lm associated for the associated degrees (see 
+        :footcite:`KnuutilaEtAl1993`).
     rho_i : float
         The current density.
 
