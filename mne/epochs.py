@@ -1531,7 +1531,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         channel_wise : bool (default: True)
             Whether to apply the function to each channel individually. If
             False, the function will be applied to all channels at once.
-            .. versionadded:: 0.18
         %(verbose_meth)s
         *args : list
             Additional positional arguments to pass to fun (first pos. argument
