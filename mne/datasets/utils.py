@@ -289,7 +289,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         refmeg_noise='https://osf.io/drt6v/download?version=1',
         ssvep='https://osf.io/z8h6k/download?version=5',
         erp_core='https://osf.io/rzgba/download?version=1',
-        clincal='',
+        epilepsy='afasdfs',
     )
     # filename of the resulting downloaded archive (only needed if the URL
     # name does not match resulting filename)
@@ -363,7 +363,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         refmeg_noise='779fecd890d98b73a4832e717d7c7c45',
         ssvep='af866bbc0f921114ac9d683494fe87d6',
         erp_core='5866c0d6213bd7ac97f254c776f6c4b1',
-        epilepsy='',
+        epilepsy='dfdafads',
     )
     assert set(md5_hashes.keys()) == set(urls.keys())
     url = urls[name]
