@@ -56,7 +56,7 @@ from sklearn.preprocessing import FunctionTransformer
 # MNE-Python provides us with
 # :func:`mne.datasets.sleep_physionet.age.fetch_data` to conveniently download
 # data from the Sleep Physionet dataset
-:footcite:`KempEtAl2000,GoldbergerEtAl2000`.
+# :footcite:`KempEtAl2000,GoldbergerEtAl2000`.
 # Given a list of subjects and records, the fetcher downloads the data and
 # provides us for each subject, a pair of files:
 #
