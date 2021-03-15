@@ -579,7 +579,7 @@ print(template_eog_component)
 # .. _`regular expression`: https://www.regular-expressions.info/
 # .. _`qrs`: https://en.wikipedia.org/wiki/QRS_complex
 # .. _`this EEGLAB tutorial`: https://labeling.ucsd.edu/tutorial/labels
-#
+
 ###############################################################################
 # References
 # ----------
