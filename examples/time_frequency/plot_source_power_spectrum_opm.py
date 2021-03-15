@@ -21,7 +21,6 @@ The steps we use are:
 
 Preprocessing
 -------------
-
 """
 # sphinx_gallery_thumbnail_number = 13
 
