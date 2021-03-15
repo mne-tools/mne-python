@@ -16,6 +16,7 @@ import pytest
 from numpy.testing import (assert_array_equal, assert_array_almost_equal,
                            assert_allclose, assert_equal, assert_array_less)
 import numpy as np
+from numpy.fft import rfft, rfftfreq
 import matplotlib.pyplot as plt
 import scipy.signal
 
@@ -28,7 +29,6 @@ from mne.baseline import rescale
 from mne.datasets import testing
 from mne.chpi import read_head_pos, head_pos_to_trans_rot_t
 from mne.event import merge_events
-from mne.fixes import rfft, rfftfreq
 from mne.io import RawArray, read_raw_fif
 from mne.io.constants import FIFF
 from mne.io.proj import _has_eeg_average_ref_proj
@@ -37,7 +37,7 @@ from mne.preprocessing import maxwell_filter
 from mne.epochs import (
     bootstrap, equalize_epoch_counts, combine_event_ids, add_channels_epochs,
     EpochsArray, concatenate_epochs, BaseEpochs, average_movements,
-    _handle_event_repeated)
+    _handle_event_repeated, make_metadata)
 from mne.utils import (requires_pandas, object_diff,
                        catch_logging, _FakeNoPandas,
                        assert_meg_snr, check_version, _dt_to_stamp)
@@ -171,7 +171,7 @@ def test_handle_event_repeated():
 
 def _get_data(preload=False):
     """Get data."""
-    raw = read_raw_fif(raw_fname, preload=preload)
+    raw = read_raw_fif(raw_fname, preload=preload, verbose='warning')
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, eeg=True, stim=True,
                        ecg=True, eog=True, include=['STI 014'],
@@ -983,7 +983,8 @@ def test_epochs_io_preload(tmpdir, preload):
     epochs_no_bl.save(temp_fname_no_bl, overwrite=True)
     epochs_read = read_epochs(temp_fname)
     epochs_no_bl_read = read_epochs(temp_fname_no_bl)
-    pytest.raises(ValueError, epochs.apply_baseline, baseline=[1, 2, 3])
+    with pytest.raises(ValueError, match='invalid'):
+        epochs.apply_baseline(baseline=[1, 2, 3])
     epochs_with_bl = epochs_no_bl_read.copy().apply_baseline(baseline)
     assert (isinstance(epochs_with_bl, BaseEpochs))
     assert (epochs_with_bl.baseline == (epochs_no_bl_read.tmin, baseline[1]))
@@ -1384,8 +1385,11 @@ def test_evoked_standard_error(tmpdir):
             assert ave.first == ave2.first
 
 
-def test_reject_epochs():
+def test_reject_epochs(tmpdir):
     """Test of epochs rejection."""
+    tempdir = str(tmpdir)
+    temp_fname = op.join(tempdir, 'test-epo.fif')
+
     raw, events, picks = _get_data()
     events1 = events[events[:, 2] == event_id]
     epochs = Epochs(raw, events1, event_id, tmin, tmax,
@@ -1436,6 +1440,17 @@ def test_reject_epochs():
     assert epochs._is_good_epoch(np.zeros((1, 1))) == (False, ('TOO_SHORT',))
     data = epochs[0].get_data()[0]
     assert epochs._is_good_epoch(data) == (True, None)
+
+    # Check that reject_tmin and reject_tmax are being adjusted for small time
+    # inaccuracies due to sfreq
+    epochs = Epochs(raw=raw, events=events1, event_id=event_id,
+                    tmin=tmin, tmax=tmax, reject_tmin=tmin, reject_tmax=tmax)
+    assert epochs.tmin != tmin
+    assert epochs.tmax != tmax
+    assert np.isclose(epochs.tmin, epochs.reject_tmin)
+    assert np.isclose(epochs.tmax, epochs.reject_tmax)
+    epochs.save(temp_fname, overwrite=True)
+    read_epochs(temp_fname)
 
 
 def test_preload_epochs():
@@ -1525,8 +1540,11 @@ def test_comparision_with_c():
     assert_array_almost_equal(evoked.times, c_evoked.times, 12)
 
 
-def test_crop():
+def test_crop(tmpdir):
     """Test of crop of epochs."""
+    tempdir = str(tmpdir)
+    temp_fname = op.join(tempdir, 'test-epo.fif')
+
     raw, events, picks = _get_data()
     epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
                     preload=False, reject=reject, flat=flat)
@@ -1583,6 +1601,24 @@ def test_crop():
     with pytest.warns(RuntimeWarning, match='is set to'):
         pytest.raises(ValueError, epochs.crop, 1000, 2000)
         pytest.raises(ValueError, epochs.crop, 0.1, 0)
+
+    # Test that cropping adjusts reject_tmin and reject_tmax if need be.
+    epochs = Epochs(raw=raw, events=events[:5], event_id=event_id,
+                    tmin=tmin, tmax=tmax, reject_tmin=tmin, reject_tmax=tmax)
+    epochs.load_data()
+    epochs_cropped = epochs.copy().crop(0, None)
+    assert np.isclose(epochs_cropped.tmin, epochs_cropped.reject_tmin)
+
+    epochs_cropped = epochs.copy().crop(None, 0.1)
+    assert np.isclose(epochs_cropped.tmax, epochs_cropped.reject_tmax)
+    del epochs_cropped
+
+    # Cropping & I/O roundtrip
+    epochs.crop(0, 0.1)
+    epochs.save(temp_fname)
+    epochs_read = mne.read_epochs(temp_fname)
+    assert np.isclose(epochs_read.tmin, epochs_read.reject_tmin)
+    assert np.isclose(epochs_read.tmax, epochs_read.reject_tmax)
 
 
 def test_resample():
@@ -2854,6 +2890,80 @@ def assert_metadata_equal(got, exp):
         assert check.all().all()
 
 
+@pytest.mark.parametrize(
+    ('all_event_id', 'row_events', 'keep_first', 'keep_last'),
+    [({'a/1': 1, 'a/2': 2, 'b/1': 3, 'b/2': 4, 'c': 32},  # all events
+      None, None, None),
+     ({'a/1': 1, 'a/2': 2},  # subset of events
+      None, None, None),
+     (dict(), None, None, None),  # empty set of events
+     ({'a/1': 1, 'a/2': 2, 'b/1': 3, 'b/2': 4, 'c': 32},
+      ('a/1', 'a/2', 'b/1', 'b/2'), ('a', 'b'), 'c')]
+)
+@requires_pandas
+def test_make_metadata(all_event_id, row_events, keep_first,
+                       keep_last):
+    """Test that make_metadata works."""
+    raw, all_events, _ = _get_data()
+    tmin, tmax = -0.5, 1.5
+    sfreq = raw.info['sfreq']
+    kwargs = dict(events=all_events, event_id=all_event_id,
+                  row_events=row_events,
+                  keep_first=keep_first, keep_last=keep_last,
+                  tmin=tmin, tmax=tmax,
+                  sfreq=sfreq)
+
+    if not kwargs['event_id']:
+        with pytest.raises(ValueError, match='must contain at least one'):
+            make_metadata(**kwargs)
+        return
+
+    metadata, events, event_id = make_metadata(**kwargs)
+
+    assert len(metadata) == len(events)
+
+    if row_events:
+        assert set(metadata['event_name']) == set(row_events)
+    else:
+        assert set(metadata['event_name']) == set(event_id.keys())
+
+    # Check we have columns all events
+    keep_first = [] if keep_first is None else keep_first
+    keep_last = [] if keep_last is None else keep_last
+    event_names = sorted(set(event_id.keys()) | set(keep_first) |
+                         set(keep_last))
+
+    for event_name in event_names:
+        assert event_name in metadata.columns
+
+    # Check the time-locked event's metadata
+    for _, row in metadata.iterrows():
+        event_name = row['event_name']
+        assert np.isclose(row[event_name], 0)
+
+    # Check non-time-locked events' metadata
+    for row_idx, row in metadata.iterrows():
+        event_names = sorted(set(event_id.keys()) | set(keep_first) |
+                             set(keep_last) - set(row['event_name']))
+        for event_name in event_names:
+            if event_name in keep_first or event_name in keep_last:
+                assert isinstance(row[event_name], float)
+                if not ((event_name == 'a' and row_idx == 30) or
+                        (event_name == 'b' and row_idx == 14) or
+                        (event_name == 'c' and row_idx != 16)):
+                    assert not np.isnan(row[event_name])
+
+            if event_name in keep_first and event_name not in all_event_id:
+                assert (row[f'first_{event_name}'] is None or
+                        isinstance(row[f'first_{event_name}'], str))
+            elif event_name in keep_last and event_name not in all_event_id:
+                assert (row[f'last_{event_name}'] is None or
+                        isinstance(row[f'last_{event_name}'], str))
+
+    Epochs(raw, events=events, event_id=event_id, metadata=metadata,
+           verbose='warning')
+
+
 def test_events_list():
     """Test that events can be a list."""
     events = [[100, 0, 1], [200, 0, 1], [300, 0, 1]]
@@ -3239,3 +3349,11 @@ def test_epochs_baseline_after_cropping(tmpdir):
     assert_allclose(epochs_orig.baseline, epochs_cropped_read.baseline)
     assert 'baseline period was cropped' in str(epochs_cropped_read)
     assert_allclose(epochs_cropped.get_data(), epochs_cropped_read.get_data())
+
+
+def test_empty_constructor():
+    """Test empty constructor for RtEpochs."""
+    info = create_info(1, 1000., 'eeg')
+    event_id = 1
+    tmin, tmax, baseline = -0.2, 0.5, None
+    BaseEpochs(info, None, None, event_id, tmin, tmax, baseline)

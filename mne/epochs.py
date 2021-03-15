@@ -31,10 +31,9 @@ from .io.tree import dir_tree_find
 from .io.tag import read_tag, read_tag_info
 from .io.constants import FIFF
 from .io.fiff.raw import _get_fname_rep
-from .io.pick import (pick_types, channel_indices_by_type, channel_type,
+from .io.pick import (channel_indices_by_type, channel_type,
                       pick_channels, pick_info, _pick_data_channels,
-                      _pick_aux_channels, _DATA_CH_TYPES_SPLIT,
-                      _picks_to_idx)
+                      _DATA_CH_TYPES_SPLIT, _picks_to_idx)
 from .io.proj import setup_proj, ProjMixin, _proj_equal
 from .io.base import BaseRaw, TimeMixin
 from .bem import _check_origin
@@ -56,7 +55,7 @@ from .utils import (_check_fname, check_fname, logger, verbose,
                     _check_combine, ShiftTimeMixin, _build_data_frame,
                     _check_pandas_index_arguments, _convert_times,
                     _scale_dataframe_data, _check_time_format, object_size,
-                    _on_missing)
+                    _on_missing, _validate_type)
 from .utils.docs import fill_doc
 
 
@@ -473,25 +472,15 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             else:
                 raise ValueError('No desired events found.')
         else:
-            self.drop_log = list()
+            self.drop_log = tuple()
             self.selection = np.array([], int)
             self.metadata = metadata
             # do not set self.events here, let subclass do it
 
-        # check reject_tmin and reject_tmax
-        if (reject_tmin is not None) and (reject_tmin < tmin):
-            raise ValueError("reject_tmin needs to be None or >= tmin")
-        if (reject_tmax is not None) and (reject_tmax > tmax):
-            raise ValueError("reject_tmax needs to be None or <= tmax")
-        if (reject_tmin is not None) and (reject_tmax is not None):
-            if reject_tmin >= reject_tmax:
-                raise ValueError('reject_tmin needs to be < reject_tmax')
         if (detrend not in [None, 0, 1]) or isinstance(detrend, bool):
             raise ValueError('detrend must be None, 0, or 1')
-
-        self.reject_tmin = reject_tmin
-        self.reject_tmax = reject_tmax
         self.detrend = detrend
+
         self._raw = raw
         info._check_consistency()
         self.picks = _picks_to_idx(info, picks, none='all', exclude=(),
@@ -526,6 +515,33 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         self._raw_times = np.arange(start_idx,
                                     int(round(tmax * sfreq)) + 1) / sfreq
         self._set_times(self._raw_times)
+
+        # check reject_tmin and reject_tmax
+        if reject_tmin is not None:
+            if (np.isclose(reject_tmin, tmin)):
+                # adjust for potential small deviations due to sampling freq
+                reject_tmin = self.tmin
+            elif reject_tmin < tmin:
+                raise ValueError(f'reject_tmin needs to be None or >= tmin '
+                                 f'(got {reject_tmin})')
+
+        if reject_tmax is not None:
+            if (np.isclose(reject_tmax, tmax)):
+                # adjust for potential small deviations due to sampling freq
+                reject_tmax = self.tmax
+            elif reject_tmax > tmax:
+                raise ValueError(f'reject_tmax needs to be None or <= tmax '
+                                 f'(got {reject_tmax})')
+
+        if (reject_tmin is not None) and (reject_tmax is not None):
+            if reject_tmin >= reject_tmax:
+                raise ValueError(f'reject_tmin ({reject_tmin}) needs to be '
+                                 f' < reject_tmax ({reject_tmax})')
+
+        self.reject_tmin = reject_tmin
+        self.reject_tmax = reject_tmax
+
+        # decimation
         self._decim = 1
         self.decimate(decim)
 
@@ -572,10 +588,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
     def _check_consistency(self):
         """Check invariants of epochs object."""
-        assert len(self.selection) == len(self.events)
+        if hasattr(self, 'events'):
+            assert len(self.selection) == len(self.events)
+            assert len(self.drop_log) >= len(self.events)
         assert len(self.selection) == sum(
             (len(dl) == 0 for dl in self.drop_log))
-        assert len(self.drop_log) >= len(self.events)
         assert hasattr(self, '_times_readonly')
         assert not self.times.flags['WRITEABLE']
         assert isinstance(self.drop_log, tuple)
@@ -705,11 +722,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                 raise RuntimeError('You cannot remove baseline correction '
                                    'from preloaded data once it has been '
                                    'applied.')
-            picks = _pick_data_channels(self.info, exclude=[],
-                                        with_ref_meg=True)
-            picks_aux = _pick_aux_channels(self.info, exclude=[])
-            picks = np.sort(np.concatenate((picks, picks_aux)))
+            self._do_baseline = True
+            picks = self._detrend_picks
             rescale(self._data, self.times, baseline, copy=False, picks=picks)
+            self._do_baseline = False
         else:  # logging happens in "rescale" in "if" branch
             logger.info(_log_rescale(baseline))
             assert self._do_baseline is True
@@ -788,7 +804,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                 reject_imax = idxs[-1]
             self._reject_time = slice(reject_imin, reject_imax)
 
-    @verbose
+    @verbose  # verbose is used by mne-realtime
     def _is_good_epoch(self, data, verbose=None):
         """Determine if epoch is good."""
         if isinstance(data, str):
@@ -810,7 +826,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                             ignore_chs=self.info['bads'])
 
     @verbose
-    def _detrend_offset_decim(self, epoch, verbose=None):
+    def _detrend_offset_decim(self, epoch, picks, verbose=None):
         """Aux Function: detrend, baseline correct, offset, decim.
 
         Note: operates inplace
@@ -820,17 +836,16 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         # Detrend
         if self.detrend is not None:
-            picks = _pick_data_channels(self.info, exclude=[])
-            epoch[picks] = detrend(epoch[picks], self.detrend, axis=1)
+            # We explicitly detrend just data channels (not EMG, ECG, EOG which
+            # are processed by baseline correction)
+            use_picks = _pick_data_channels(self.info, exclude=())
+            epoch[use_picks] = detrend(epoch[use_picks], self.detrend, axis=1)
 
         # Baseline correct
         if self._do_baseline:
-            picks = pick_types(self.info, meg=True, eeg=True, stim=False,
-                               ref_meg=True, eog=True, ecg=True, seeg=True,
-                               emg=True, bio=True, ecog=True, fnirs=True,
-                               dbs=True, exclude=[])
-            epoch[picks] = rescale(epoch[picks], self._raw_times,
-                                   self.baseline, copy=False, verbose=False)
+            rescale(
+                epoch, self._raw_times, self.baseline, picks=picks, copy=False,
+                verbose=False)
 
         # Decimate if necessary (i.e., epoch not preloaded)
         epoch = epoch[:, self._decim_slice]
@@ -855,7 +870,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             If False copies of data and measurement info will be omitted
             to save time.
         """
-        self._current = 0
+        self.__iter__()
 
         while True:
             try:
@@ -1205,7 +1220,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                rej in (reject, flat)):
             raise ValueError('reject and flat, if strings, must be "existing"')
         self._reject_setup(reject, flat)
-        self._get_data(out=False)
+        self._get_data(out=False, verbose=verbose)
         return self
 
     def drop_log_stats(self, ignore=('IGNORED',)):
@@ -1228,7 +1243,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         return _drop_log_stats(self.drop_log, ignore)
 
     @copy_function_doc_to_method_doc(plot_drop_log)
-    def plot_drop_log(self, threshold=0, n_max_plot=20, subject='Unknown',
+    def plot_drop_log(self, threshold=0, n_max_plot=20, subject='Unknown subj',
                       color=(0.9, 0.9, 0.9), width=0.8, ignore=('IGNORED',),
                       show=True):
         if not self._bad_dropped:
@@ -1361,10 +1376,12 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                     return data[:, picks]
 
             # we need to load from disk, drop, and return data
+            detrend_picks = self._detrend_picks
             for ii, idx in enumerate(use_idx):
                 # faster to pre-allocate memory here
                 epoch_noproj = self._get_epoch_from_raw(idx)
-                epoch_noproj = self._detrend_offset_decim(epoch_noproj)
+                epoch_noproj = self._detrend_offset_decim(
+                    epoch_noproj, detrend_picks)
                 if self._do_delayed_proj:
                     epoch_out = epoch_noproj
                 else:
@@ -1380,6 +1397,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             n_out = 0
             drop_log = list(self.drop_log)
             assert n_events == len(self.selection)
+            if not self.preload:
+                detrend_picks = self._detrend_picks
             for idx, sel in enumerate(self.selection):
                 if self.preload:  # from memory
                     if self._do_delayed_proj:
@@ -1390,11 +1409,13 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                         epoch = self._data[idx]
                 else:  # from disk
                     epoch_noproj = self._get_epoch_from_raw(idx)
-                    epoch_noproj = self._detrend_offset_decim(epoch_noproj)
+                    epoch_noproj = self._detrend_offset_decim(
+                        epoch_noproj, detrend_picks)
                     epoch = self._project_epoch(epoch_noproj)
 
                 epoch_out = epoch_noproj if self._do_delayed_proj else epoch
-                is_good, bad_tuple = self._is_good_epoch(epoch)
+                is_good, bad_tuple = self._is_good_epoch(
+                    epoch, verbose=verbose)
                 if not is_good:
                     assert isinstance(bad_tuple, tuple)
                     assert all(isinstance(x, str) for x in bad_tuple)
@@ -1438,6 +1459,14 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                 return data[:, picks]
         else:
             return None
+
+    @property
+    def _detrend_picks(self):
+        if self._do_baseline:
+            return _pick_data_channels(
+                self.info, with_ref_meg=True, with_aux=True, exclude=())
+        else:
+            return []
 
     @fill_doc
     def get_data(self, picks=None, item=None):
@@ -1560,6 +1589,18 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         self._set_times(self.times[tmask])
         self._raw_times = self._raw_times[tmask]
         self._data = self._data[:, :, tmask]
+
+        # Adjust rejection period
+        if self.reject_tmin is not None and self.reject_tmin < self.tmin:
+            logger.info(
+                f'reject_tmin is not in epochs time interval. '
+                f'Setting reject_tmin to epochs.tmin ({self.tmin} sec)')
+            self.reject_tmin = self.tmin
+        if self.reject_tmax is not None and self.reject_tmax > self.tmax:
+            logger.info(
+                f'reject_tmax is not in epochs time interval. '
+                f'Setting reject_tmax to epochs.tmax ({self.tmax} sec)')
+            self.reject_tmax = self.tmax
         return self
 
     def copy(self):
@@ -1612,9 +1653,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             will slightly differ due to the reduction in precision.
 
             .. versionadded:: 0.17
-        overwrite : bool
-            If True, the destination file (if it exists) will be overwritten.
-            If False (default), an error will be raised if the file exists.
+        %(overwrite)s
             To overwrite original file (the same one that was loaded),
             data must be preloaded upon reading. This defaults to True in 0.18
             but will change to False in 0.19.
@@ -2023,6 +2062,303 @@ def _drop_log_stats(drop_log, ignore=('IGNORED',)):
     return perc
 
 
+def make_metadata(events, event_id, tmin, tmax, sfreq,
+                  row_events=None, keep_first=None, keep_last=None):
+    """Generate metadata from events for use with `mne.Epochs`.
+
+    This function mimics the epoching process (it constructs time windows
+    around time-locked "events of interest") and collates information about
+    any other events that occurred within those time windows. The information
+    is returned as a :class:`pandas.DataFrame` suitable for use as
+    `~mne.Epochs` metadata: one row per time-locked event, and columns
+    indicating presence/absence and latency of each ancillary event type.
+
+    The function will also return a new ``events`` array and ``event_id``
+    dictionary that correspond to the generated metadata.
+
+    Parameters
+    ----------
+    events : array, shape (m, 3)
+        The :term:`events array <events>`. By default, the returned metadata
+        :class:`~pandas.DataFrame` will have as many rows as the events array.
+        To create rows for only a subset of events, pass the ``row_events``
+        parameter.
+    event_id : dict
+        A mapping from event names (keys) to event IDs (values). The event
+        names will be incorporated as columns of the returned metadata
+        :class:`~pandas.DataFrame`.
+    tmin, tmax : float
+        Start and end of the time interval for metadata generation in seconds,
+        relative to the time-locked event of the respective time window.
+
+        .. note::
+           If you are planning to attach the generated metadata to
+           `~mne.Epochs` and intend to include only events that fall inside
+           your epochs time interval, pass the same ``tmin`` and ``tmax``
+           values here as you use for your epochs.
+
+    sfreq : float
+        The sampling frequency of the data from which the events array was
+        extracted.
+    row_events : list of str | str | None
+        Event types around which to create the time windows / for which to
+        create **rows** in the returned metadata :class:`pandas.DataFrame`. If
+        provided, the string(s) must be keys of ``event_id``. If ``None``
+        (default), rows are created for **all** event types present in
+        ``event_id``.
+    keep_first : str | list of str | None
+        Specify subsets of hierarchical event descriptors (HEDs) matching
+        events of which  the **first occurrence** within each
+        time window shall be stored in addition to the original events.
+
+        .. note::
+           There is currently no way to retain **all** occurrences of a
+           repeated event. The ``keep_first`` parameter can be used to specify
+           subsets of HEDs, effectively creating a new event type that is the
+           union of all events types described by the matching HED pattern.
+           Only the very first event of this set will be kept.
+
+        For example, you might have two response events types,
+        ``response/left`` and ``response/right``; and in trials with both
+        responses occurring, you want to keep only the first response. In this
+        case, you can pass ``keep_first='response'``. This will add two new
+        columns to the metadata: ``response``, indicating at what **time** the
+        event  occurred, relative to the time-locked event; and
+        ``first_response``, stating which **type** (``'left'`` or``'right'``)
+        of event occurred.
+        To match specific subsets of HEDs describing different sets of events,
+        pass a list of these subsets, e.g.
+        ``keep_first=['response', 'stimulus']``. If ``None`` (default), no
+        event aggregation will take place and no new columns will be created.
+
+        .. note::
+           By default, this function will always retain  the first instance
+           of any event in each time window. For example, if a time window
+           contains two ``'response'`` events, the generated ``response``
+           column will automatically refer to the first of the two events. In
+           this specific case, it is therefore **not** necessary to make use of
+           the ``keep_first`` parameter – unless you need to differentiate
+           between two types of responses, like in the example above.
+
+    keep_last : list of str | None
+        Same as ``keep_first``, but for keeping only the **last**  occurrence
+        of matching events. The column indicating the **type** of an event
+        ``myevent`` will be named ``last_myevent``.
+
+    Returns
+    -------
+    metadata : pandas.DataFrame
+        Metadata for each row event, with the following columns:
+
+        - ``event_name``, with strings indicating the name of the time-locked
+          event ("row event") for that specific time window
+
+        - one column per event type in ``event_id``, with the same name; floats
+          indicating the latency of the event in seconds, relative to the
+          time-locked event
+
+        - if applicable, additional columns named after the ``keep_first`` and
+          ``keep_last`` event types; floats indicating the latency  of the
+          event in seconds, relative to the time-locked event
+
+        - if applicable, additional columns ``first_{event_type}`` and
+          ``last_{event_type}`` for ``keep_first`` and ``keep_last`` event
+          types, respetively; the values will be strings indicating which event
+          types were matched by the provided HED patterns
+
+    events : array, shape (n, 3)
+        The events corresponding to the generated metadata, i.e. one
+        time-locked event per row.
+    event_id : dict
+        The event dictionary corresponding to the new events array. This will
+        be identical to the input dictionary unless ``row_events`` is supplied,
+        in which case it will only contain the events provided there.
+
+    Notes
+    -----
+    The time window used for metadata generation need not correspond to the
+    time window used to create the `~mne.Epochs`, to which the metadata will
+    be attached; it may well be much shorter or longer, or not overlap at all,
+    if desired. The can be useful, for example, to include events that ccurred
+    before or after an epoch, e.g. during the inter-trial interval.
+
+    .. versionadded:: 0.23
+    """
+    from .utils.mixin import _hid_match
+    pd = _check_pandas_installed()
+
+    _validate_type(event_id, types=(dict,), item_name='event_id')
+    _validate_type(row_events, types=(None, str, list, tuple),
+                   item_name='row_events')
+    _validate_type(keep_first, types=(None, str, list, tuple),
+                   item_name='keep_first')
+    _validate_type(keep_last, types=(None, str, list, tuple),
+                   item_name='keep_last')
+
+    if not event_id:
+        raise ValueError('event_id dictionary must contain at least one entry')
+
+    def _ensure_list(x):
+        if x is None:
+            return []
+        elif isinstance(x, str):
+            return [x]
+        else:
+            return list(x)
+
+    row_events = _ensure_list(row_events)
+    keep_first = _ensure_list(keep_first)
+    keep_last = _ensure_list(keep_last)
+
+    keep_first_and_last = set(keep_first) & set(keep_last)
+    if keep_first_and_last:
+        raise ValueError(f'The event names in keep_first and keep_last must '
+                         f'be mutually exclusive. Specified in both: '
+                         f'{", ".join(sorted(keep_first_and_last))}')
+    del keep_first_and_last
+
+    for param_name, values in dict(keep_first=keep_first,
+                                   keep_last=keep_last).items():
+        for first_last_event_name in values:
+            try:
+                _hid_match(event_id, [first_last_event_name])
+            except KeyError:
+                raise ValueError(
+                    f'Event "{first_last_event_name}", specified in '
+                    f'{param_name}, cannot be found in event_id dictionary')
+
+    event_name_diff = sorted(set(row_events) - set(event_id.keys()))
+    if event_name_diff:
+        raise ValueError(
+            f'Present in row_events, but missing from event_id: '
+            f'{", ".join(event_name_diff)}')
+    del event_name_diff
+
+    # First and last sample of each epoch, relative to the time-locked event
+    # This follows the approach taken in mne.Epochs
+    start_sample = int(round(tmin * sfreq))
+    stop_sample = int(round(tmax * sfreq)) + 1
+
+    # Make indexing easier
+    # We create the DataFrame before subsetting the events so we end up with
+    # indices corresponding to the original event indices. Not used for now,
+    # but might come in handy sometime later
+    events_df = pd.DataFrame(events, columns=('sample', 'prev_id', 'id'))
+    id_to_name_map = {v: k for k, v in event_id.items()}
+
+    # Only keep events that are of interest
+    events = events[np.in1d(events[:, 2], list(event_id.values()))]
+    events_df = events_df.loc[events_df['id'].isin(event_id.values()), :]
+
+    # Prepare & condition the metadata DataFrame
+
+    # Avoid column name duplications if the exact same event name appears in
+    # event_id.keys() and keep_first / keep_last simultaneously
+    keep_first_cols = [col for col in keep_first if col not in event_id]
+    keep_last_cols = [col for col in keep_last if col not in event_id]
+    first_cols = [f'first_{col}' for col in keep_first_cols]
+    last_cols = [f'last_{col}' for col in keep_last_cols]
+
+    columns = ['event_name',
+               *event_id.keys(),
+               *keep_first_cols,
+               *keep_last_cols,
+               *first_cols,
+               *last_cols]
+
+    data = np.empty((len(events_df), len(columns)))
+    metadata = pd.DataFrame(data=data, columns=columns, index=events_df.index)
+
+    # Event names
+    metadata.iloc[:, 0] = ''
+
+    # Event times
+    start_idx = 1
+    stop_idx = (start_idx + len(event_id.keys()) +
+                len(keep_first_cols + keep_last_cols))
+    metadata.iloc[:, start_idx:stop_idx] = np.nan
+
+    # keep_first and keep_last names
+    start_idx = stop_idx
+    metadata.iloc[:, start_idx:] = None
+
+    # We're all set, let's iterate over all eventns and fill in in the
+    # respective cells in the metadata. We will subset this to include only
+    # `row_events` later
+    for row_event in events_df.itertuples(name='RowEvent'):
+        row_idx = row_event.Index
+        metadata.loc[row_idx, 'event_name'] = \
+            id_to_name_map[row_event.id]
+
+        # Determine which events fall into the current epoch
+        window_start_sample = row_event.sample + start_sample
+        window_stop_sample = row_event.sample + stop_sample
+        events_in_window = events_df.loc[
+            (events_df['sample'] >= window_start_sample) &
+            (events_df['sample'] <= window_stop_sample), :]
+
+        assert not events_in_window.empty
+
+        # Store the metadata
+        for event in events_in_window.itertuples(name='Event'):
+            event_sample = event.sample - row_event.sample
+            event_time = event_sample / sfreq
+            event_time = 0 if np.isclose(event_time, 0) else event_time
+            event_name = id_to_name_map[event.id]
+
+            if not np.isnan(metadata.loc[row_idx, event_name]):
+                # Event already exists in current time window!
+                assert metadata.loc[row_idx, event_name] <= event_time
+
+                if event_name not in keep_last:
+                    continue
+
+            metadata.loc[row_idx, event_name] = event_time
+
+            # Handle keep_first and keep_last event aggregation
+            for event_group_name in keep_first + keep_last:
+                if event_name not in _hid_match(event_id, [event_group_name]):
+                    continue
+
+                if event_group_name in keep_first:
+                    first_last_col = f'first_{event_group_name}'
+                else:
+                    first_last_col = f'last_{event_group_name}'
+
+                old_time = metadata.loc[row_idx, event_group_name]
+                if not np.isnan(old_time):
+                    if ((event_group_name in keep_first and
+                         old_time <= event_time) or
+                        (event_group_name in keep_last and
+                         old_time >= event_time)):
+                        continue
+
+                if event_group_name not in event_id:
+                    # This is an HED. Strip redundant information from the
+                    # event name
+                    name = (event_name
+                            .replace(event_group_name, '')
+                            .replace('//', '/')
+                            .strip('/'))
+                    metadata.loc[row_idx, first_last_col] = name
+                    del name
+
+                metadata.loc[row_idx, event_group_name] = event_time
+
+    # Only keep rows of interest
+    if row_events:
+        event_id_timelocked = {name: val for name, val in event_id.items()
+                               if name in row_events}
+        events = events[np.in1d(events[:, 2],
+                                list(event_id_timelocked.values()))]
+        metadata = metadata.loc[
+            metadata['event_name'].isin(event_id_timelocked)]
+        assert len(events) == len(metadata)
+        event_id = event_id_timelocked
+
+    return metadata, events, event_id
+
+
 @fill_doc
 class Epochs(BaseEpochs):
     """Epochs extracted from a Raw instance.
@@ -2338,9 +2674,10 @@ class EpochsArray(BaseEpochs):
                                   list(self.event_id.values())).sum():
             raise ValueError('The events must only contain event numbers from '
                              'event_id')
-        for ii, e in enumerate(self._data):
+        detrend_picks = self._detrend_picks
+        for e in self._data:
             # This is safe without assignment b/c there is no decim
-            self._detrend_offset_decim(e)
+            self._detrend_offset_decim(e, detrend_picks)
         self.drop_bad()
 
 
@@ -2360,9 +2697,14 @@ def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):
     copy : bool
         Whether to return a new instance or modify in place.
 
+    Returns
+    -------
+    epochs : instance of Epochs
+        The modified epochs.
+
     Notes
     -----
-    This For example (if epochs.event_id was {'Left': 1, 'Right': 2}:
+    This For example (if epochs.event_id was ``{'Left': 1, 'Right': 2}``::
 
         combine_event_ids(epochs, ['Left', 'Right'], {'Directional': 12})
 
@@ -3147,7 +3489,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
                       origin='auto', weight_all=True, int_order=8, ext_order=3,
                       destination=None, ignore_ref=False, return_mapping=False,
                       mag_scale=100., verbose=None):
-    u"""Average data using Maxwell filtering, transforming using head positions.
+    """Average data using Maxwell filtering, transforming using head positions.
 
     Parameters
     ----------
@@ -3166,7 +3508,6 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
         receive uniform weight per epoch.
     %(maxwell_int)s
     %(maxwell_ext)s
-    %(maxwell_reg)s
     %(maxwell_dest)s
     %(maxwell_ref)s
     return_mapping : bool
@@ -3204,7 +3545,6 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
     .. [1] Taulu S. and Kajola M. "Presentation of electromagnetic
            multichannel data: The signal space separation method,"
            Journal of Applied Physics, vol. 97, pp. 124905 1-10, 2005.
-
     .. [2] Wehner DT, Hämäläinen MS, Mody M, Ahlfors SP. "Head movements
            of children in MEG: Quantification, effects on source
            estimation, and compensation. NeuroImage 40:541–550, 2008.

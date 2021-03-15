@@ -115,6 +115,12 @@ def test_io_egi_mff():
                            test_scaling=False,  # XXX probably some bug
                            )
     assert raw.info['sfreq'] == 1000.
+    assert len(raw.info['dig']) == 132  # 128 eeg + 1 ref + 3 cardinal points
+    assert raw.info['dig'][0]['ident'] == 1  # EEG channel E1
+    assert raw.info['dig'][128]['ident'] == 129  # Reference channel
+    ref_loc = raw.info['dig'][128]['r']
+    for i in pick_types(raw.info, eeg=True):
+        assert_equal(raw.info['chs'][i]['loc'][3:6], ref_loc)
 
     assert_equal('eeg' in raw, True)
     eeg_chan = [c for c in raw.ch_names if 'EEG' in c]
@@ -204,12 +210,12 @@ def test_io_egi_pns_mff(tmpdir):
     pns_chans = pick_types(raw.info, ecg=True, bio=True, emg=True)
     assert_equal(len(pns_chans), 7)
     names = [raw.ch_names[x] for x in pns_chans]
-    pns_names = ['Resp. Temperature'[:15],
+    pns_names = ['Resp. Temperature',
                  'Resp. Pressure',
                  'ECG',
                  'Body Position',
-                 'Resp. Effort Chest'[:15],
-                 'Resp. Effort Abdomen'[:15],
+                 'Resp. Effort Chest',
+                 'Resp. Effort Abdomen',
                  'EMG-Leg']
     _test_raw_reader(read_raw_egi, input_fname=egi_mff_pns_fname,
                      channel_naming='EEG %03d', verbose='error',
@@ -218,14 +224,13 @@ def test_io_egi_pns_mff(tmpdir):
                      )
     assert_equal(names, pns_names)
     mat_names = [
-        'Resp_Temperature'[:15],
+        'Resp_Temperature',
         'Resp_Pressure',
         'ECG',
         'Body_Position',
-        'Resp_Effort_Chest'[:15],
-        'Resp_Effort_Abdomen'[:15],
+        'Resp_Effort_Chest',
+        'Resp_Effort_Abdomen',
         'EMGLeg'
-
     ]
     egi_fname_mat = op.join(data_path(), 'EGI', 'test_egi_pns.mat')
     mc = sio.loadmat(egi_fname_mat)
@@ -359,6 +364,7 @@ def test_io_egi_evokeds_mff(idx, cond, tmax, signals, bads):
     assert evoked_cond.info['nchan'] == 259
     assert evoked_cond.info['sfreq'] == 250.0
     assert not evoked_cond.info['custom_ref_applied']
+    assert len(evoked_cond.info['dig']) == 0  # coordinates.xml missing
 
 
 @requires_version('mffpy', '0.5.7')

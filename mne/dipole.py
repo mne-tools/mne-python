@@ -7,11 +7,11 @@
 # License: Simplified BSD
 
 from copy import deepcopy
+import functools
 from functools import partial
 import re
 
 import numpy as np
-from scipy import linalg
 
 from .cov import read_cov, compute_whitener
 from .io.constants import FIFF
@@ -28,12 +28,12 @@ from .forward._compute_forward import (_compute_forwards_meeg,
 
 from .surface import (transform_surface_to, _compute_nearest,
                       _points_outside_surface)
-from .bem import _bem_find_surface, _surf_name
+from .bem import _bem_find_surface, _bem_surf_name
 from .source_space import _make_volume_source_space, SourceSpaces
 from .parallel import parallel_func
 from .utils import (logger, verbose, _time_mask, warn, _check_fname,
                     check_fname, _pl, fill_doc, _check_option, ShiftTimeMixin,
-                    _svd_lwork, _repeated_svd, ddot, dgemv, dgemm)
+                    _svd_lwork, _repeated_svd, _get_blas_funcs)
 
 
 @fill_doc
@@ -103,7 +103,10 @@ class Dipole(object):
         self.ori = np.array(ori)
         self.gof = np.array(gof)
         self.name = name
-        self.conf = deepcopy(conf) if conf is not None else dict()
+        self.conf = dict()
+        if conf is not None:
+            for key, value in conf.items():
+                self.conf[key] = np.array(value)
         self.khi2 = np.array(khi2) if khi2 is not None else None
         self.nfree = np.array(nfree) if nfree is not None else None
         self.verbose = verbose
@@ -114,17 +117,18 @@ class Dipole(object):
         s += ", tmax : %0.3f" % np.max(self.times)
         return "<Dipole | %s>" % s
 
-    def save(self, fname, overwrite=False):
+    @verbose
+    def save(self, fname, overwrite=False, *, verbose=None):
         """Save dipole in a .dip or .bdip file.
 
         Parameters
         ----------
         fname : str
             The name of the .dip or .bdip file.
-        overwrite : bool
-            If True, overwrite the file (if it exists).
+        %(overwrite)s
 
             .. versionadded:: 0.20
+        %(verbose_meth)s
 
         Notes
         -----
@@ -328,7 +332,6 @@ class Dipole(object):
 
             >>> len(dipoles)  # doctest: +SKIP
             10
-
         """
         return self.pos.shape[0]
 
@@ -635,7 +638,7 @@ _BDIP_ERROR_KEYS = ('depth', 'long', 'trans', 'qlong', 'qtrans')
 
 def _read_dipole_bdip(fname):
     name = None
-    nfree = 0
+    nfree = None
     with open(fname, 'rb') as fid:
         # Which dipole in a multi-dipole set
         times = list()
@@ -713,6 +716,7 @@ def _dipole_forwards(fwd_data, whitener, rr, n_jobs=1):
     B_orig = B.copy()
 
     # Apply projection and whiten (cov has projections already)
+    _, _, dgemm = _get_ddot_dgemv_dgemm()
     B = dgemm(1., B, whitener.T)
 
     # column normalization doesn't affect our fitting, so skip for now
@@ -729,7 +733,7 @@ def _make_guesses(surf, grid, exclude, mindist, n_jobs=1, verbose=None):
     """Make a guess space inside a sphere or BEM surface."""
     if 'rr' in surf:
         logger.info('Guess surface (%s) is in %s coordinates'
-                    % (_surf_name[surf['id']],
+                    % (_bem_surf_name[surf['id']],
                        _coord_frame_name(surf['coord_frame'])))
     else:
         logger.info('Making a spherical guess space with radius %7.1f mm...'
@@ -758,8 +762,14 @@ def _fit_eval(rd, B, B2, fwd_svd=None, fwd_data=None, whitener=None,
     return 1. - gof
 
 
+@functools.lru_cache(None)
+def _get_ddot_dgemv_dgemm():
+    return _get_blas_funcs(np.float64, ('dot', 'gemv', 'gemm'))
+
+
 def _dipole_gof(uu, sing, vv, B, B2):
     """Calculate the goodness of fit from the forward SVD."""
+    ddot, dgemv, _ = _get_ddot_dgemv_dgemm()
     ncomp = 3 if sing[2] / (sing[0] if sing[0] > 0 else 1.) > 0.2 else 2
     one = dgemv(1., vv[:ncomp], B)  # np.dot(vv[:ncomp], B)
     Bm2 = ddot(one, one)  # np.sum(one * one)
@@ -769,6 +779,7 @@ def _dipole_gof(uu, sing, vv, B, B2):
 
 def _fit_Q(fwd_data, whitener, B, B2, B_orig, rd, ori=None):
     """Fit the dipole moment once the location is known."""
+    from scipy import linalg
     if 'fwd' in fwd_data:
         # should be a single precomputed "guess" (i.e., fixed position)
         assert rd is None
@@ -933,6 +944,7 @@ def _fit_confidence(rd, Q, ori, whitener, fwd_data):
     #
     # And then the confidence interval is the diagonal of C, scaled by 1.96
     # (for 95% confidence).
+    from scipy import linalg
     direction = np.empty((3, 3))
     # The coordinate system has the x axis aligned with the dipole orientation,
     direction[0] = ori
@@ -1157,6 +1169,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     -----
     .. versionadded:: 0.9.0
     """
+    from scipy import linalg
     # This could eventually be adapted to work with other inputs, these
     # are what is needed:
 
@@ -1212,7 +1225,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
             kind = 'rad'
         else:  # MEG-only
             # Use the minimum distance to the MEG sensors as the radius then
-            R = np.dot(linalg.inv(info['dev_head_t']['trans']),
+            R = np.dot(np.linalg.inv(info['dev_head_t']['trans']),
                        np.hstack([r0, [1.]]))[:3]  # r0 -> device
             R = R - [info['chs'][pick]['loc'][:3]
                      for pick in pick_types(info, meg=True, exclude=[])]
@@ -1350,7 +1363,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     guess_fwd, guess_fwd_orig, guess_fwd_scales = _dipole_forwards(
         fwd_data, whitener, guess_src['rr'], n_jobs=fit_n_jobs)
     # decompose ahead of time
-    guess_fwd_svd = [linalg.svd(fwd, overwrite_a=False, full_matrices=False)
+    guess_fwd_svd = [linalg.svd(fwd, full_matrices=False)
                      for fwd in np.array_split(guess_fwd,
                                                len(guess_src['rr']))]
     guess_data = dict(fwd=guess_fwd, fwd_svd=guess_fwd_svd,

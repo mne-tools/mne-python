@@ -29,7 +29,7 @@ from mne.datasets import testing
 io_dir = op.join(op.dirname(__file__), '..', '..', 'io')
 base_dir = op.join(io_dir, 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
-eve_fname = op .join(base_dir, 'test-eve.fif')
+eve_fname = op.join(base_dir, 'test-eve.fif')
 fname_kit_157 = op.join(io_dir, 'kit', 'tests', 'data', 'test.sqd')
 
 
@@ -83,10 +83,6 @@ def test_rename_channels():
     # Test bad input
     pytest.raises(ValueError, rename_channels, info, 1.)
     pytest.raises(ValueError, rename_channels, info, 1.)
-    # Test name too long (channel names must be less than 15 characters)
-    A16 = 'A' * 16
-    mapping = {'MEG 2641': A16}
-    pytest.raises(ValueError, rename_channels, info, mapping)
 
     # Test successful changes
     # Test ch_name and ch_names are changed
@@ -107,6 +103,15 @@ def test_rename_channels():
     rename_channels(info2, mapping)
     assert_array_equal(['EEG060', 'EEG060'], info2['bads'])
 
+    # test that keys in Raw._orig_units will be renamed, too
+    raw = read_raw_fif(raw_fname).crop(0, 0.1)
+    old, new = 'EEG 060', 'New'
+    raw._orig_units = {old: 'V'}
+
+    raw.rename_channels({old: new})
+    assert old not in raw._orig_units
+    assert new in raw._orig_units
+
 
 def test_set_channel_types():
     """Test set_channel_types."""
@@ -123,7 +128,7 @@ def test_set_channel_types():
     # Test changing type if in proj
     mapping = {'EEG 057': 'dbs', 'EEG 058': 'ecog', 'EEG 059': 'ecg',
                'EEG 060': 'eog', 'EOG 061': 'seeg', 'MEG 2441': 'eeg',
-               'MEG 2443': 'eeg', 'MEG 2442': 'hbo'}
+               'MEG 2443': 'eeg', 'MEG 2442': 'hbo', 'EEG 001': 'resp'}
     raw2 = read_raw_fif(raw_fname)
     raw2.info['bads'] = ['EEG 059', 'EEG 060', 'EOG 061']
     with pytest.raises(RuntimeError, match='type .* in projector "PCA-v1"'):
@@ -160,6 +165,12 @@ def test_set_channel_types():
     assert info['chs'][idx]['kind'] == FIFF.FIFFV_FNIRS_CH
     assert info['chs'][idx]['unit'] == FIFF.FIFF_UNIT_MOL
     assert info['chs'][idx]['coil_type'] == FIFF.FIFFV_COIL_FNIRS_HBO
+
+    # resp channel type
+    idx = pick_channels(raw.ch_names, ['EEG 001'])[0]
+    assert info['chs'][idx]['kind'] == FIFF.FIFFV_RESP_CH
+    assert info['chs'][idx]['unit'] == FIFF.FIFF_UNIT_V
+    assert info['chs'][idx]['coil_type'] == FIFF.FIFFV_COIL_NONE
 
     # Test meaningful error when setting channel type with unknown unit
     raw.info['chs'][0]['unit'] = 0.
@@ -331,6 +342,18 @@ def test_find_ch_adjacency():
     neighb, ch_names = find_ch_adjacency(raw_kit.info, 'mag')
     assert neighb.data.size == 1329
     assert ch_names[0] == 'MEG 001'
+
+
+@testing.requires_testing_data
+def test_neuromag122_adjacency():
+    """Test computing the adjacency matrix of Neuromag122-Data."""
+    nm122_fname = op.join(testing.data_path(), 'misc',
+                          'neuromag122_test_file-raw.fif')
+    raw = read_raw_fif(nm122_fname, preload=True)
+    conn, ch_names = find_ch_adjacency(raw.info, 'grad')
+    assert conn.getnnz() == 1564
+    assert len(ch_names) == 122
+    assert conn.shape == (122, 122)
 
 
 def test_drop_channels():

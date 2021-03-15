@@ -13,10 +13,6 @@ detail, including how to load, query, subselect, export, and plot data from an
 creating an :class:`~mne.Epochs` object from (possibly simulated) data in a
 :class:`NumPy array <numpy.ndarray>`, see :ref:`tut_creating_data_structures`.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 As usual we'll start by importing the modules we need:
 """
 
@@ -184,16 +180,14 @@ epochs.plot(n_epochs=10)
 
 ###############################################################################
 # Notice that the individual epochs are sequentially numbered along the bottom
-# axis; the event ID associated with the epoch is marked on the top axis;
-# epochs are separated by vertical dashed lines; and a vertical solid green
-# line marks time=0 for each epoch (i.e., in this case, the stimulus onset
-# time for each trial). Epoch plots are interactive (similar to
-# :meth:`raw.plot() <mne.io.Raw.plot>`) and have many of the same interactive
-# controls as :class:`~mne.io.Raw` plots. Horizontal and vertical scrollbars
-# allow browsing through epochs or channels (respectively), and pressing
-# :kbd:`?` when the plot is focused will show a help screen with all the
-# available controls. See :ref:`tut-visualize-epochs` for more details (as well
-# as other ways of visualizing epoched data).
+# axis and are separated by vertical dashed lines.
+# Epoch plots are interactive (similar to :meth:`raw.plot()
+# <mne.io.Raw.plot>`) and have many of the same interactive controls as
+# :class:`~mne.io.Raw` plots. Horizontal and vertical scrollbars allow browsing
+# through epochs or channels (respectively), and pressing :kbd:`?` when the
+# plot is focused will show a help screen with all the available controls. See
+# :ref:`tut-visualize-epochs` for more details (as well as other ways of
+# visualizing epoched data).
 #
 #
 # .. _tut-section-subselect-epochs:

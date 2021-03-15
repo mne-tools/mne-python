@@ -9,7 +9,6 @@
 from copy import deepcopy
 
 import numpy as np
-from scipy import linalg
 
 from ..io.constants import FWD, FIFF
 from ..bem import _check_origin
@@ -106,6 +105,7 @@ def _compute_mapping_matrix(fmd, info):
 
 def _pinv_trunc(x, miss):
     """Compute pseudoinverse, truncating at most "miss" fraction of varexp."""
+    from scipy import linalg
     u, s, v = linalg.svd(x, full_matrices=False)
 
     # Eigenvalue truncation

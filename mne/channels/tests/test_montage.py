@@ -1199,6 +1199,35 @@ def test_set_montage_with_sub_super_set_of_ch_names():
     assert exc.match('on_missing')
 
 
+def test_set_montage_with_known_aliases():
+    """Test matching unrecognized channel locations to known aliases."""
+    # montage and info match
+    mock_montage_ch_names = ['POO7', 'POO8']
+    n_channels = len(mock_montage_ch_names)
+
+    montage = make_dig_montage(ch_pos=dict(
+        zip(
+            mock_montage_ch_names,
+            np.arange(n_channels * 3).reshape(n_channels, 3),
+        )),
+        coord_frame='head')
+
+    mock_info_ch_names = ['Cb1', 'Cb2']
+    info = create_info(ch_names=mock_info_ch_names, sfreq=1, ch_types='eeg')
+    info.set_montage(montage, match_alias=True)
+
+    # work with match_case
+    mock_info_ch_names = ['cb1', 'cb2']
+    info = create_info(ch_names=mock_info_ch_names, sfreq=1, ch_types='eeg')
+    info.set_montage(montage, match_case=False, match_alias=True)
+
+    # should warn user T1 instead of its alias T9
+    mock_info_ch_names = ['Cb1', 'T1']
+    info = create_info(ch_names=mock_info_ch_names, sfreq=1, ch_types='eeg')
+    with pytest.raises(ValueError, match='T1'):
+        info.set_montage(montage, match_case=False, match_alias=True)
+
+
 def test_heterogeneous_ch_type():
     """Test ch_names matching criteria with heterogeneous ch_type."""
     VALID_MONTAGE_NAMED_CHS = ('eeg', 'ecog', 'seeg', 'dbs')

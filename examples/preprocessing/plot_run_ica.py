@@ -58,5 +58,5 @@ ica.plot_components(ecg_inds)
 ica.plot_properties(epochs, picks=ecg_inds)
 
 ###############################################################################
-# Plot the estimated source of detected ECG related components
+# Plot the estimated source of detected ECG related components:
 ica.plot_sources(raw, picks=ecg_inds)

@@ -11,8 +11,6 @@ import os.path as op
 from types import GeneratorType
 
 import numpy as np
-from scipy import linalg, sparse
-from scipy.sparse import coo_matrix, block_diag as sparse_block_diag
 
 from .baseline import rescale
 from .cov import Covariance
@@ -649,7 +647,7 @@ class _BaseSourceEstimate(TimeMixin):
              foreground=None, initial_time=None, time_unit='s',
              backend='auto', spacing='oct6', title=None, show_traces='auto',
              src=None, volume_options=1., view_layout='vertical',
-             add_data_kwargs=None, verbose=None):
+             add_data_kwargs=None, brain_kwargs=None, verbose=None):
         brain = plot_source_estimates(
             self, subject, surface=surface, hemi=hemi, colormap=colormap,
             time_label=time_label, smoothing_steps=smoothing_steps,
@@ -660,7 +658,8 @@ class _BaseSourceEstimate(TimeMixin):
             initial_time=initial_time, time_unit=time_unit, backend=backend,
             spacing=spacing, title=title, show_traces=show_traces,
             src=src, volume_options=volume_options, view_layout=view_layout,
-            add_data_kwargs=add_data_kwargs, verbose=verbose)
+            add_data_kwargs=add_data_kwargs, brain_kwargs=brain_kwargs,
+            verbose=verbose)
         return brain
 
     @property
@@ -1637,6 +1636,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 
         This function should only be used with source estimates with units
         nanoAmperes (i.e., MNE-like solutions, *not* dSPM or sLORETA).
+        See also :footcite:`GoldenholzEtAl2009`.
 
         .. warning:: This function currently only works properly for fixed
                      orientation.
@@ -1673,11 +1673,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 
         References
         ----------
-        .. [1] Goldenholz, D. M., Ahlfors, S. P., Hämäläinen, M. S., Sharon,
-               D., Ishitobi, M., Vaina, L. M., & Stufflebeam, S. M. (2009).
-               Mapping the Signal-To-Noise-Ratios of Cortical Sources in
-               Magnetoencephalography and Electroencephalography.
-               Human Brain Mapping, 30(4), 1077–1086. doi:10.1002/hbm.20571
+        .. footbibliography::
         """
         from .forward import convert_forward_solution, Forward
         from .minimum_norm.inverse import _prepare_forward
@@ -1711,7 +1707,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         """Compute the center of mass of activity.
 
         This function computes the spatial center of mass on the surface
-        as well as the temporal center of mass as in [1]_.
+        as well as the temporal center of mass as in :footcite:`LarsonLee2013`.
 
         .. note:: All activity must occur in a single hemisphere, otherwise
                   an error is raised. The "mass" of each point in space for
@@ -1763,8 +1759,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 
         References
         ----------
-        .. [1] Larson and Lee, "The cortical dynamics underlying effective
-               switching of auditory spatial attention", NeuroImage 2012.
+        .. footbibliography::
         """
         if not isinstance(surf, str):
             raise TypeError('surf must be a string, got %s' % (type(surf),))
@@ -1918,7 +1913,7 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
              background='black', foreground=None, initial_time=None,
              time_unit='s', show_traces='auto', src=None, volume_options=1.,
              view_layout='vertical', add_data_kwargs=None,
-             verbose=None):  # noqa: D102
+             brain_kwargs=None, verbose=None):  # noqa: D102
         return plot_vector_source_estimates(
             self, subject=subject, hemi=hemi, colormap=colormap,
             time_label=time_label, smoothing_steps=smoothing_steps,
@@ -1931,7 +1926,7 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
             initial_time=initial_time, time_unit=time_unit,
             show_traces=show_traces, src=src, volume_options=volume_options,
             view_layout=view_layout, add_data_kwargs=add_data_kwargs,
-            verbose=verbose)
+            brain_kwargs=brain_kwargs, verbose=verbose)
 
 
 class _BaseVolSourceEstimate(_BaseSourceEstimate):
@@ -1949,7 +1944,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
                 foreground=None, initial_time=None, time_unit='s',
                 backend='auto', spacing='oct6', title=None, show_traces='auto',
                 src=None, volume_options=1., view_layout='vertical',
-                add_data_kwargs=None, verbose=None):
+                add_data_kwargs=None, brain_kwargs=None, verbose=None):
         return super().plot(
             subject=subject, surface=surface, hemi=hemi, colormap=colormap,
             time_label=time_label, smoothing_steps=smoothing_steps,
@@ -1961,7 +1956,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
             time_unit=time_unit, backend=backend, spacing=spacing, title=title,
             show_traces=show_traces, src=src, volume_options=volume_options,
             view_layout=view_layout, add_data_kwargs=add_data_kwargs,
-            verbose=verbose)
+            brain_kwargs=brain_kwargs, verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_volume_source_estimates)
     def plot(self, src, subject=None, subjects_dir=None, mode='stat_map',
@@ -2280,7 +2275,8 @@ class VolVectorSourceEstimate(_BaseVolSourceEstimate,
                 background='black', foreground=None, initial_time=None,
                 time_unit='s', show_traces='auto', src=None,
                 volume_options=1., view_layout='vertical',
-                add_data_kwargs=None, verbose=None):  # noqa: D102
+                add_data_kwargs=None, brain_kwargs=None,
+                verbose=None):  # noqa: D102
         return _BaseVectorSourceEstimate.plot(
             self, subject=subject, hemi=hemi, colormap=colormap,
             time_label=time_label, smoothing_steps=smoothing_steps,
@@ -2293,7 +2289,7 @@ class VolVectorSourceEstimate(_BaseVolSourceEstimate,
             initial_time=initial_time, time_unit=time_unit,
             show_traces=show_traces, src=src, volume_options=volume_options,
             view_layout=view_layout, add_data_kwargs=add_data_kwargs,
-            verbose=verbose)
+            brain_kwargs=brain_kwargs, verbose=verbose)
 
 
 @fill_doc
@@ -2641,6 +2637,7 @@ def spatio_temporal_tris_adjacency(tris, n_times, remap_vertices=False,
         vertices are time 1, the nodes from 2 to 2N are the vertices
         during time 2, etc.
     """
+    from scipy import sparse
     if remap_vertices:
         logger.info('Reassigning vertex indices.')
         tris = np.searchsorted(np.unique(tris), tris)
@@ -2677,6 +2674,7 @@ def spatio_temporal_dist_adjacency(src, n_times, dist, verbose=None):
         vertices are time 1, the nodes from 2 to 2N are the vertices
         during time 2, etc.
     """
+    from scipy.sparse import block_diag as sparse_block_diag
     if src[0]['dist'] is None:
         raise RuntimeError('src must have distances included, consider using '
                            'setup_source_space with add_dist=True')
@@ -2785,6 +2783,7 @@ def spatial_inter_hemi_adjacency(src, dist, verbose=None):
         existing intra-hemispheric adjacency matrix, e.g. computed
         using geodesic distances.
     """
+    from scipy import sparse
     from scipy.spatial.distance import cdist
     src = _ensure_src(src, kind='surface')
     adj = cdist(src[0]['rr'][src[0]['vertno']],
@@ -2799,6 +2798,7 @@ def spatial_inter_hemi_adjacency(src, dist, verbose=None):
 @verbose
 def _get_adjacency_from_edges(edges, n_times, verbose=None):
     """Given edges sparse matrix, create adjacency matrix."""
+    from scipy.sparse import coo_matrix
     n_vertices = edges.shape[0]
     logger.info("-- number of adjacent vertices : %d" % n_vertices)
     nnz = edges.col.size
@@ -2830,11 +2830,12 @@ def _get_ico_tris(grade, verbose=None, return_surf=False):
 
 
 def _pca_flip(flip, data):
+    from scipy import linalg
     U, s, V = linalg.svd(data, full_matrices=False)
     # determine sign-flip
     sign = np.sign(np.dot(U[:, 0], flip))
     # use average power in label for scaling
-    scale = linalg.norm(s) / np.sqrt(len(data))
+    scale = np.linalg.norm(s) / np.sqrt(len(data))
     return sign * scale * V[0]
 
 
@@ -2876,6 +2877,7 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
     # of vol src space.
     # If stc=None (i.e. no activation time courses provided) and mode='mean',
     # only computes vertex indices and label_flip will be list of None.
+    from scipy import sparse
     from .label import label_sign_flip, Label, BiHemiLabel
 
     # if source estimate provided in stc, get vertices from source space and
@@ -3067,6 +3069,7 @@ def _gen_extract_label_time_course(stcs, labels, src, *, mode='mean',
                                    allow_empty=False,
                                    mri_resolution=True, verbose=None):
     # loop through source estimates and extract time series
+    from scipy import sparse
     if src is None and mode in ['mean', 'max']:
         kind = 'surface'
     else:

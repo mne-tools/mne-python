@@ -12,10 +12,8 @@ import sys
 import warnings
 import webbrowser
 
-from .config import get_config
 from ..defaults import HEAD_SIZE_DEFAULT
-from ..externals.doccer import filldoc, unindent_dict
-from .check import _check_option
+from ..externals.doccer import indentcount_lines
 
 
 ##############################################################################
@@ -145,6 +143,19 @@ reject_by_annotation : bool
 """
 docdict['reject_by_annotation_raw'] = docdict['reject_by_annotation_all'] + """
     Has no effect if ``inst`` is not a :class:`mne.io.Raw` object.
+"""
+docdict['annot_ch_names'] = """
+ch_names : list | None
+    List of lists of channel names associated with the annotations.
+    Empty entries are assumed to be associated with no specific channel,
+    i.e., with all channels or with the time slice itself. None (default) is
+    the same as passing all empty lists. For example, this creates three
+    annotations, associating the first with the time interval itself, the
+    second with two channels, and the third with a single channel::
+
+        Annotations(onset=[0, 3, 10], duration=[1, 0.25, 0.5],
+                    description=['Start', 'BAD_flux', 'BAD_noise'],
+                    ch_names=[[], ['MEG0111', 'MEG2563'], ['MEG1443']])
 """
 
 # General plotting
@@ -874,7 +885,10 @@ extended_proj : list
 docdict['rank'] = """
 rank : None | 'info' | 'full' | dict
     This controls the rank computation that can be read from the
-    measurement info or estimated from the data.
+    measurement info or estimated from the data. When a noise covariance
+    is used for whitening, this should reflect the rank of that covariance,
+    otherwise amplification of noise components can occur in whitening (e.g.,
+    often during source localization).
 
     :data:`python:None`
         The rank will be estimated from the data after proper scaling of
@@ -946,9 +960,8 @@ docdict['depth'] = """
 depth : None | float | dict
     How to weight (or normalize) the forward using a depth prior.
     If float (default 0.8), it acts as the depth weighting exponent (``exp``)
-    to use, which must be between 0 and 1. None is equivalent to 0, meaning
-    no depth weighting is performed. It can also be a :class:`dict`
-    containing keyword arguments to pass to
+    to use None is equivalent to 0, meaning no depth weighting is performed.
+    It can also be a :class:`dict` containing keyword arguments to pass to
     :func:`mne.forward.compute_depth_prior` (see docstring for details and
     defaults). This is effectively ignored when ``method='eLORETA'``.
 
@@ -1002,6 +1015,15 @@ reduce_rank : bool
     .. versionchanged:: 0.20
         Support for reducing rank in all modes (previously only supported
         ``pick='max_power'`` with weight normalization).
+"""
+docdict['on_rank_mismatch'] = """
+on_rank_mismatch : str
+    If an explicit MEG value is passed, what to do when it does not match
+    an empirically computed rank (only used for covariances).
+    Can be 'raise' to raise an error, 'warn' (default) to emit a warning, or
+    'ignore' to ignore.
+
+    .. versionadded:: 0.23
 """
 docdict['weight_norm'] = """
 weight_norm : str | None
@@ -1367,6 +1389,16 @@ match_case : bool
 
     .. versionadded:: 0.20
 """
+docdict["match_alias"] = """
+match_alias : bool | dict
+    Whether to use a lookup table to match unrecognized channel location names
+    to their known aliases. If True, uses the mapping in
+    ``mne.io.constants.CHANNEL_LOC_ALIASES``. If a :class:`dict` is passed, it
+    will be used instead, and should map from non-standard channel names to
+    names in the specified ``montage``. Default is ``False``.
+
+    .. versionadded:: 0.23
+"""
 docdict['on_header_missing'] = """
 on_header_missing : str
     %s the FastSCAN header is missing.
@@ -1388,7 +1420,13 @@ on_missing : str
 
     .. versionadded:: 0.20.1
 """ % (_on_missing_base,)
-docdict['rename_channels_mapping'] = """
+docdict['on_missing_ch_names'] = """
+on_missing : str
+    %s entries in ch_names are not present in the raw instance.
+
+    .. versionadded:: 0.23.0
+""" % (_on_missing_base,)
+docdict['rename_channels_mapping_duplicates'] = """
 mapping : dict | callable
     A dictionary mapping the old channel to a new channel name
     e.g. {'EEG061' : 'EEG161'}. Can also be a callable function
@@ -1396,6 +1434,11 @@ mapping : dict | callable
 
     .. versionchanged:: 0.10.0
        Support for a callable function.
+allow_duplicates : bool
+    If True (default False), allow duplicates, which will automatically
+    be renamed with ``-N`` at the end.
+
+    .. versionadded:: 0.22.0
 """
 
 # Brain plotting
@@ -1532,6 +1575,11 @@ docdict['add_data_kwargs'] = """
 add_data_kwargs : dict | None
     Additional arguments to brain.add_data (e.g.,
     ``dict(time_label_size=10)``).
+"""
+docdict['brain_kwargs'] = """
+brain_kwargs : dict | None
+    Additional arguments to the :class:`mne.viz.Brain` constructor (e.g.,
+    ``dict(silhouette=True)``).
 """
 docdict['views'] = """
 views : str | list
@@ -1737,22 +1785,15 @@ docdict['clust_power_t'] = docdict['clust_power'].format('t')
 docdict['clust_power_f'] = docdict['clust_power'].format('F')
 docdict['clust_out'] = """
 out_type : 'mask' | 'indices'
-    Output format of clusters. If ``'mask'``, returns boolean arrays the same
-    shape as the input data, with ``True`` values indicating locations that are
-    part of a cluster. If ``'indices'``, returns a list of lists, where each
-    sublist contains the indices of locations that together form a cluster.
-    Note that for large datasets, ``'indices'`` may use far less memory than
-    ``'mask'``. Default is ``'indices'``.
-"""
-docdict['clust_out_none'] = """
-out_type : 'mask' | 'indices'
-    Output format of clusters. If ``'mask'``, returns boolean arrays the same
-    shape as the input data, with ``True`` values indicating locations that are
-    part of a cluster. If ``'indices'``, returns a list of lists, where each
-    sublist contains the indices of locations that together form a cluster.
-    Note that for large datasets, ``'indices'`` may use far less memory than
-    ``'mask'``. The default translates to ``'mask'`` in version 0.21 but will
-    change to ``'indices'`` in version 0.22.
+    Output format of clusters within a list.
+    If ``'mask'``, returns a list of boolean arrays,
+    each with the same shape as the input data (or slices if the shape is 1D
+    and adjacency is None), with ``True`` values indicating locations that are
+    part of a cluster. If ``'indices'``, returns a list of tuple of ndarray,
+    where each ndarray contains the indices of locations that together form the
+    given cluster along the given dimension. Note that for large datasets,
+    ``'indices'`` may use far less memory than ``'mask'``.
+    Default is ``'indices'``.
 """
 docdict['clust_disjoint'] = """
 check_disjoint : bool
@@ -2071,15 +2112,76 @@ docdict['compute_proj_ecg'] = f"""%(create_ecg_epochs)s {compute_proj_common}
 docdict['compute_proj_eog'] = f"""%(create_eog_epochs)s {compute_proj_common}
 """ % docdict
 
+# BEM
+docdict['on_defects'] = """
+on_defects : str
+    What to do if the surface is found to have topological defects. Can be
+    ``'raise'`` (default) to raise an error, or ``'warn'`` to emit a warning.
+    Note that a lot of computations in MNE-Python assume the surfaces to be
+    topologically correct, topological defects may still make other
+    computations (e.g., ``mne.make_bem_model`` and ``mne.make_bem_solution``)
+    fail irrespective of this parameter.
+"""
+
 # Other
 docdict['accept'] = """
 accept : bool
     If True (default False), accept the license terms of this dataset.
 """
+docdict['overwrite'] = """
+overwrite : bool
+    If True (default False), overwrite the destination file if it
+    exists.
+"""
 
-# Finalize
-docdict = unindent_dict(docdict)
-fill_doc = filldoc(docdict, unindent_params=False)
+docdict_indented = {}
+
+
+def fill_doc(f):
+    """Fill a docstring with docdict entries.
+
+    Parameters
+    ----------
+    f : callable
+        The function to fill the docstring of. Will be modified in place.
+
+    Returns
+    -------
+    f : callable
+        The function, potentially with an updated ``__doc__``.
+    """
+    docstring = f.__doc__
+    if not docstring:
+        return f
+    lines = docstring.splitlines()
+    # Find the minimum indent of the main docstring, after first line
+    if len(lines) < 2:
+        icount = 0
+    else:
+        icount = indentcount_lines(lines[1:])
+    # Insert this indent to dictionary docstrings
+    try:
+        indented = docdict_indented[icount]
+    except KeyError:
+        indent = ' ' * icount
+        docdict_indented[icount] = indented = {}
+        for name, dstr in docdict.items():
+            lines = dstr.splitlines()
+            try:
+                newlines = [lines[0]]
+                for line in lines[1:]:
+                    newlines.append(indent + line)
+                indented[name] = '\n'.join(newlines)
+            except IndexError:
+                indented[name] = dstr
+    try:
+        f.__doc__ = docstring % indented
+    except (TypeError, ValueError, KeyError) as exp:
+        funcname = f.__name__
+        funcname = docstring.split('\n')[0] if funcname is None else funcname
+        raise RuntimeError('Error documenting %s:\n%s'
+                           % (funcname, str(exp)))
+    return f
 
 
 ##############################################################################
@@ -2365,7 +2467,7 @@ def linkcode_resolve(domain, info):
         linespec = ""
 
     if 'dev' in mne.__version__:
-        kind = 'master'
+        kind = 'main'
     else:
         kind = 'maint/%s' % ('.'.join(mne.__version__.split('.')[:2]))
     return "http://github.com/mne-tools/mne-python/blob/%s/mne/%s%s" % (
@@ -2386,6 +2488,8 @@ def open_docs(kind=None, version=None):
         The default can be changed by setting the configuration value
         MNE_DOCS_VERSION.
     """
+    from .check import _check_option
+    from .config import get_config
     if kind is None:
         kind = get_config('MNE_DOCS_KIND', 'api')
     help_dict = dict(api='python_reference.html', tutorials='tutorials.html',
@@ -2508,5 +2612,5 @@ def deprecated_alias(dep_name, func, removed_in=None):
     # Inject a deprecated version into the namespace
     inspect.currentframe().f_back.f_globals[dep_name] = deprecated(
         f'{dep_name} has been deprecated in favor of {func.__name__} and will '
-        f'be removed in {removed_in}'
+        f'be removed in {removed_in}.'
     )(deepcopy(func))

@@ -9,10 +9,6 @@ This tutorial covers the basics of independent components analysis (ICA) and
 shows how ICA can be used for artifact repair; an extended example illustrates
 repair of ocular and heartbeat artifacts.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 We begin as always by importing the necessary Python modules and loading some
 :ref:`example data <sample-dataset>`. Because ICA can be computationally
 intense, we'll also crop the data to 60 seconds; and to save ourselves from

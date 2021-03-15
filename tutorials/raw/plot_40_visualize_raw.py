@@ -9,10 +9,6 @@ This tutorial shows how to plot continuous data as a time series, how to plot
 the spectral density of continuous data, and how to plot the sensor locations
 and projectors stored in `~mne.io.Raw` objects.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 As usual we'll start by importing the modules we need, loading some
 :ref:`example data <sample-dataset>`, and cropping the `~mne.io.Raw`
 object to just 60 seconds before loading it into RAM to save memory:

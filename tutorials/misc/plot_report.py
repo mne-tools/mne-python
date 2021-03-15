@@ -7,10 +7,6 @@ Getting started with ``mne.Report``
 This tutorial covers making interactive HTML summaries with
 :class:`mne.Report`.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 As usual we'll start by importing the modules we need and loading some
 :ref:`example data <sample-dataset>`:
 """
@@ -29,7 +25,8 @@ import mne
 # ============== ==============================================================
 # Data object    Filename convention (ends with)
 # ============== ==============================================================
-# raw            -raw.fif(.gz), -raw_sss.fif(.gz), -raw_tsss.fif(.gz), _meg.fif
+# raw            -raw.fif(.gz), -raw_sss.fif(.gz), -raw_tsss.fif(.gz),
+#                _meg.fif(.gz), _eeg.fif(.gz), _ieeg.fif(.gz)
 # events         -eve.fif(.gz)
 # epochs         -epo.fif(.gz)
 # evoked         -ave.fif(.gz)
@@ -175,33 +172,81 @@ report.save('report_cov.html', overwrite=True)
 # Adding custom plots to a report
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# The python interface has greater flexibility compared to the :ref:`command
+# The Python interface has greater flexibility compared to the :ref:`command
 # line interface <mne report>`. For example, custom plots can be added via
-# the :meth:`~mne.Report.add_figs_to_section` method, and sliders via the
+# the :meth:`~mne.Report.add_figs_to_section` method:
+
+report = mne.Report(verbose=True)
+
+fname_raw = os.path.join(path, 'MEG', 'sample', 'sample_audvis_raw.fif')
+raw = mne.io.read_raw_fif(fname_raw, verbose=False).crop(tmax=60)
+events = mne.find_events(raw, stim_channel='STI 014')
+event_id = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
+            'visual/right': 4, 'face': 5, 'buttonpress': 32}
+
+# create some epochs and ensure we drop a few, so we can then plot the drop log
+reject = dict(eeg=150e-6)
+epochs = mne.Epochs(raw=raw, events=events, event_id=event_id,
+                    tmin=-0.2, tmax=0.7, reject=reject, preload=True)
+fig_drop_log = epochs.plot_drop_log(subject='sample', show=False)
+
+# now also plot an evoked response
+evoked_aud_left = epochs['auditory/left'].average()
+fig_evoked = evoked_aud_left.plot(spatial_colors=True, show=False)
+
+# add the custom plots to the report:
+report.add_figs_to_section([fig_drop_log, fig_evoked],
+                           captions=['Dropped Epochs',
+                                     'Evoked: Left Auditory'],
+                           section='drop-and-evoked')
+report.save('report_custom.html', overwrite=True)
+
+###############################################################################
+# Adding a slider
+# ^^^^^^^^^^^^^^^
+#
+# Sliders provide an intuitive way for users to interactively browse a
+# predefined set of images. You can add sliders via
 # :meth:`~mne.Report.add_slider_to_section`:
 
-# generate a custom plot:
-fname_evoked = os.path.join(path, 'MEG', 'sample', 'sample_audvis-ave.fif')
-evoked = mne.read_evokeds(fname_evoked,
-                          condition='Left Auditory',
-                          baseline=(None, 0),
-                          verbose=True)
-fig = evoked.plot(show=False)
+report = mne.Report(verbose=True)
 
-# add the custom plot to the report:
-report.add_figs_to_section(fig, captions='Left Auditory', section='evoked')
-
-# Add a custom section with an evoked slider:
 figs = list()
-times = evoked.times[::30]
+times = evoked_aud_left.times[::30]
 for t in times:
-    figs.append(evoked.plot_topomap(t, vmin=-300, vmax=300, res=100,
-                                    show=False))
+    figs.append(evoked_aud_left.plot_topomap(t, vmin=-300, vmax=300, res=100,
+                show=False))
     plt.close(figs[-1])
 report.add_slider_to_section(figs, times, 'Evoked Response',
                              image_format='png')  # can also use 'svg'
 
-report.save('report_custom.html', overwrite=True)
+report.save('report_slider.html', overwrite=True)
+
+###############################################################################
+# Adding ``SourceEstimate`` (STC) plot to a report
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# Now we see how :class:`~mne.Report` handles :class:`~mne.SourceEstimate`
+# data. The following will produce a source time course (STC) plot with vertex
+# time courses. In this scenario, we also demonstrate how to use the
+# :meth:`mne.viz.Brain.screenshot` method to save the figs in a slider.
+
+report = mne.Report(verbose=True)
+fname_stc = os.path.join(path, 'MEG', 'sample', 'sample_audvis-meg')
+stc = mne.read_source_estimate(fname_stc, subject='sample')
+figs = list()
+kwargs = dict(subjects_dir=subjects_dir, initial_time=0.13,
+              clim=dict(kind='value', lims=[3, 6, 9]))
+for hemi in ('lh', 'rh'):
+    brain = stc.plot(hemi=hemi, **kwargs)
+    brain.toggle_interface(False)
+    figs.append(brain.screenshot(time_viewer=True))
+    brain.close()
+
+# add the stc plot to the report:
+report.add_slider_to_section(figs)
+
+report.save('report_stc.html', overwrite=True)
 
 ###############################################################################
 # Managing report sections
@@ -241,7 +286,7 @@ print(report_from_disk)
 # context manager:
 
 with mne.open_report('report.h5') as report:
-    report.add_figs_to_section(fig,
+    report.add_figs_to_section(fig_evoked,
                                captions='Left Auditory',
                                section='evoked',
                                replace=True)

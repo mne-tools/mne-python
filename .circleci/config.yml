@@ -28,11 +28,11 @@ jobs:
               echo "set -e" >> $BASH_ENV
               echo "export DISPLAY=:99" >> $BASH_ENV
               echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV
-              echo "export XDG_RUNTIME_DIR=/tmp/runtime-circleci"  >> $BASH_ENV
+              echo "export XDG_RUNTIME_DIR=/tmp/runtime-circleci" >> $BASH_ENV
+              echo "export MNE_FULL_DATE=true" >> $BASH_ENV
               source tools/get_minimal_commands.sh
-              echo "source ${PWD}/tools/get_minimal_commands.sh" >> $BASH_ENV
               echo "export MNE_3D_BACKEND=pyvista" >> $BASH_ENV
-              echo "export PATH=~/.local/bin/:${MNE_ROOT}/bin:$PATH" >> $BASH_ENV
+              echo "export PATH=~/.local/bin/:$PATH" >> $BASH_ENV
               echo "BASH_ENV:"
               cat $BASH_ENV
               mkdir -p ~/mne_data
@@ -72,8 +72,8 @@ jobs:
             name: Install fonts needed for diagrams
             command: |
               mkdir -p $HOME/.fonts
-              curl https://codeload.github.com/adobe-fonts/source-code-pro/tar.gz/2.030R-ro/1.050R-it | tar xz -C $HOME/.fonts
-              curl https://codeload.github.com/adobe-fonts/source-sans-pro/tar.gz/3.006R | tar xz -C $HOME/.fonts
+              curl https://codeload.github.com/adobe-fonts/source-code-pro/tar.gz/2.038R-ro/1.058R-it/1.018R-VAR | tar xz -C $HOME/.fonts
+              curl https://codeload.github.com/adobe-fonts/source-sans-pro/tar.gz/3.028R | tar xz -C $HOME/.fonts
               fc-cache -f
 
         # Load pip cache
@@ -84,16 +84,11 @@ jobs:
             keys:
               - user-install-bin-cache
 
+        # Hack in uninstalls of libraries as necessary if pip doesn't do the right thing in upgrading for us...
         - run:
             name: Get Python running
             command: |
-              python -m pip install --user --upgrade --progress-bar off pip setuptools
-              python -m pip install --user --upgrade --progress-bar off --pre sphinx
-              python -m pip install --user --upgrade --progress-bar off -r requirements.txt -r requirements_testing.txt -r requirements_doc.txt
-              python -m pip install --user --progress-bar off https://github.com/pyvista/pyvista/zipball/master
-              python -m pip install --user --progress-bar off https://github.com/pyvista/pyvistaqt/zipball/master
-              python -m pip uninstall -yq pysurfer mayavi
-              python -m pip install --user -e .
+              ./tools/circleci_dependencies.sh
 
         - save_cache:
             key: pip-cache
@@ -391,16 +386,16 @@ jobs:
             name: Deploy docs
             command: |
               set -e;
-              if [ "${CIRCLE_BRANCH}" == "master" ] || [ "${CIRCLE_BRANCH}" == "maint/0.22" ]; then
+              if [ "${CIRCLE_BRANCH}" == "main" ] || [ "${CIRCLE_BRANCH}" == "maint/0.22" ]; then
                 git config --global user.email "circle@mne.com";
                 git config --global user.name "Circle CI";
                 cd ~/mne-tools.github.io;
-                git checkout master
+                git checkout main
                 git remote -v
                 git fetch origin
-                git reset --hard origin/master
+                git reset --hard origin/main
                 git clean -xdf
-                if [ "${CIRCLE_BRANCH}" == "master" ]; then
+                if [ "${CIRCLE_BRANCH}" == "main" ]; then
                   echo "Deploying dev docs for ${CIRCLE_BRANCH}.";
                   rm -Rf dev;
                   cp -a /tmp/build/html dev;
@@ -413,7 +408,7 @@ jobs:
                   git add -A;
                   git commit -m "CircleCI update of stable docs (${CIRCLE_BUILD_NUM}).";
                 fi;
-                git push origin master;
+                git push origin main;
               else
                 echo "No deployment (build: ${CIRCLE_BRANCH}).";
               fi
@@ -469,7 +464,7 @@ workflows:
           filters:
             branches:
               only:
-                - master
+                - main
                 - maint/0.22
       # interactive_test
 
@@ -483,4 +478,4 @@ workflows:
           filters:
             branches:
               only:
-                - master
+                - main

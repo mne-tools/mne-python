@@ -9,10 +9,6 @@ This tutorial describes how to read experimental events from raw recordings,
 and how to convert between the two different representations of events within
 MNE-Python (Events arrays and Annotations objects).
 
-.. contents:: Page contents
-   :local:
-   :depth: 1
-
 In the :ref:`introductory tutorial <overview-tut-events-section>` we saw an
 example of reading experimental events from a :term:`"STIM" channel <stim
 channel>`; here we'll discuss :term:`events` and :term:`annotations` more

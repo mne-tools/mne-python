@@ -3,7 +3,7 @@
 # License: BSD (3-clause)
 
 import numpy as np
-from scipy.linalg import eigh
+
 from ..filter import filter_data
 from ..cov import _regularized_covariance
 from . import TransformerMixin, BaseEstimator
@@ -159,6 +159,7 @@ class SSD(BaseEstimator, TransformerMixin):
         self : instance of SSD
             Returns the modified instance.
         """
+        from scipy.linalg import eigh
         self._check_X(X)
         X_aux = X[..., self.picks_, :]
 

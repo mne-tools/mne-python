@@ -51,6 +51,7 @@ for ext in SUPPORTED_READ_RAW_EXTENSIONS:
     if ext not in ('.bdf', '.edf', '.set', '.vhdr'):  # EEG-only formats
         RAW_EXTENSIONS.append(f'meg{ext}')
     RAW_EXTENSIONS.append(f'eeg{ext}')
+    RAW_EXTENSIONS.append(f'ieeg{ext}')
 
 # Processed data will always be in (gzipped) FIFF format
 VALID_EXTENSIONS = ('sss.fif', 'sss.fif.gz',
@@ -72,7 +73,8 @@ SECTION_ORDER = ('raw', 'events', 'epochs', 'ssp', 'evoked', 'covariance',
 ###############################################################################
 # PLOTTING FUNCTIONS
 
-def _fig_to_img(fig, image_format='png', scale=None, **kwargs):
+def _fig_to_img(fig, image_format='png', scale=None, auto_close=True,
+                **kwargs):
     """Plot figure and create a binary image."""
     # fig can be ndarray, mpl Figure, Mayavi Figure, or callable that produces
     # a mpl Figure
@@ -81,7 +83,8 @@ def _fig_to_img(fig, image_format='png', scale=None, **kwargs):
     if isinstance(fig, np.ndarray):
         fig = _ndarray_to_fig(fig)
     elif callable(fig):
-        plt.close('all')
+        if auto_close:
+            plt.close('all')
         fig = fig(**kwargs)
     elif not isinstance(fig, Figure):
         from .viz.backends.renderer import backend, MNE_3D_BACKEND_TESTING
@@ -91,7 +94,8 @@ def _fig_to_img(fig, image_format='png', scale=None, **kwargs):
         else:  # Testing mode
             img = np.zeros((2, 2, 3))
 
-        backend._close_3d_figure(figure=fig)
+        if auto_close:
+            backend._close_3d_figure(figure=fig)
         fig = _ndarray_to_fig(img)
 
     output = BytesIO()
@@ -475,13 +479,15 @@ slider_template = HTMLTemplate(u"""
                        max: {{maxvalue}},
                        step: {{step}},
                        value: {{startvalue}},
+                       animate: true,
                        create: function(event, ui) {
-                       $(".{{klass}}").hide();
-                       $("#{{klass}}-{{startvalue}}").show();},
-                       stop: function(event, ui) {
-                       var list_value = $("#{{slider_id}}").slider("value");
-                       $(".{{klass}}").hide();
-                       $("#{{klass}}-"+list_value).show();}
+                         $(".{{klass}}").hide();
+                         $("#{{klass}}-{{startvalue}}").show();
+                       },
+                       slide: function(event, ui) {
+                         $(".{{klass}}").hide();
+                         $("#{{klass}}-" + ui.value).show();
+                       }
                        })</script>
 """)
 
@@ -989,7 +995,13 @@ class Report(object):
         return s
 
     def __len__(self):
-        """Return the number of items in report."""
+        """Return the number of files processed by the report.
+
+        Returns
+        -------
+        n_files : int
+            The number of files processed.
+        """
         return len(self.fnames)
 
     def _get_id(self):
@@ -1039,6 +1051,22 @@ class Report(object):
         """
         style = f'\n<style type="text/css">\n{css}\n</style>'
         self.include += style
+
+    def add_custom_js(self, js):
+        """Add custom JavaScript to the report.
+
+        Parameters
+        ----------
+        js : str
+            JavaScript code to add to the report. The content of this string
+            will be embedded between HTML ``<script>`` and ``</script>`` tags.
+
+        Notes
+        -----
+        .. versionadded:: 0.23
+        """
+        script = f'\n<script type="text/javascript">\n{js}\n</script>'
+        self.include += script
 
     def remove(self, caption, section=None):
         """Remove a figure from the report.
@@ -1128,7 +1156,7 @@ class Report(object):
 
     def add_figs_to_section(self, figs, captions, section='custom',
                             scale=None, image_format=None, comments=None,
-                            replace=False):
+                            replace=False, auto_close=True):
         """Append custom user-defined figures.
 
         Parameters
@@ -1158,6 +1186,9 @@ class Report(object):
         replace : bool
             If ``True``, figures already present that have the same caption
             will be replaced. Defaults to ``False``.
+        auto_close : bool
+            If True, the plots are closed during the generation of the report.
+            Defaults to True.
         """
         figs, captions, comments = self._validate_input(figs, captions,
                                                         section, comments)
@@ -1170,7 +1201,7 @@ class Report(object):
             div_klass = self._sectionvars[section]
             img_klass = self._sectionvars[section]
 
-            img = _fig_to_img(fig, image_format, scale)
+            img = _fig_to_img(fig, image_format, scale, auto_close)
             html = image_template.substitute(img=img, id=global_id,
                                              div_klass=div_klass,
                                              img_klass=img_klass,
@@ -1323,7 +1354,7 @@ class Report(object):
 
     def add_slider_to_section(self, figs, captions=None, section='custom',
                               title='Slider', scale=None, image_format=None,
-                              replace=False):
+                              replace=False, auto_close=True):
         """Render a slider of figs to the report.
 
         Parameters
@@ -1355,6 +1386,11 @@ class Report(object):
         replace : bool
             If ``True``, figures already present that have the same caption
             will be replaced. Defaults to ``False``.
+        auto_close : bool
+            If True, the plots are closed during the generation of the report.
+            Defaults to True.
+
+            .. versionadded:: 0.23
 
         Notes
         -----
@@ -1396,7 +1432,7 @@ class Report(object):
             raise TypeError('Captions must be None or an iterable of '
                             'float, int, str, Got %s' % type(captions))
         for ii, (fig, caption) in enumerate(zip(figs, captions)):
-            img = _fig_to_img(fig, image_format, scale)
+            img = _fig_to_img(fig, image_format, scale, auto_close)
             slice_id = '%s-%s-%s' % (name, global_id, sl[ii])
             first = True if ii == 0 else False
             slices.append(_build_html_image(img, slice_id, div_klass,
@@ -1649,7 +1685,9 @@ class Report(object):
                 setattr(self, param, state[param])
         return state
 
-    def save(self, fname=None, open_browser=True, overwrite=False):
+    @verbose
+    def save(self, fname=None, open_browser=True, overwrite=False, *,
+             verbose=None):
         """Save the report and optionally open it in browser.
 
         Parameters
@@ -1664,8 +1702,8 @@ class Report(object):
         open_browser : bool
             When saving to HTML, open the rendered HTML file browser after
             saving if True. Defaults to True.
-        overwrite : bool
-            If True, overwrite report if it already exists. Defaults to False.
+        %(overwrite)s
+        %(verbose_meth)s
 
         Returns
         -------

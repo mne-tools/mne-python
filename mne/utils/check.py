@@ -15,6 +15,7 @@ from pathlib import Path
 
 import numpy as np
 
+from ..fixes import _median_complex
 from ._logging import warn, logger
 
 
@@ -323,6 +324,7 @@ class _IntLike(object):
 
 
 int_like = _IntLike()
+path_like = (str, Path)
 
 
 class _Callable(object):
@@ -334,7 +336,7 @@ class _Callable(object):
 _multi = {
     'str': (str,),
     'numeric': (np.floating, float, int_like),
-    'path-like': (str, Path),
+    'path-like': path_like,
     'int-like': (int_like,),
     'callable': (_Callable(),),
 }
@@ -596,9 +598,9 @@ def _check_combine(mode, valid=('mean', 'median', 'std')):
     elif mode == "std":
         def fun(data):
             return np.std(data, axis=0)
-    elif mode == "median":
+    elif mode == "median" or mode == np.median:
         def fun(data):
-            return np.median(data, axis=0)
+            return _median_complex(data, axis=0)
     elif callable(mode):
         fun = mode
     else:
@@ -706,30 +708,18 @@ def _suggest(val, options, cutoff=0.66):
         return ' Did you mean one of %r?' % (options,)
 
 
-def _on_missing(on_missing, msg, name='on_missing'):
-    """Raise error or print warning with a message.
-
-    Parameters
-    ----------
-    on_missing : 'raise' | 'warn' | 'ignore'
-        Whether to raise an error, print a warning or ignore. Valid keys are
-        'raise' | 'warn' | 'ignore'. Default is 'raise'. If on_missing is
-        'warn' it will proceed but warn, if 'ignore' it will proceed silently.
-    msg : str
-        Message to print along with the error or the warning. Ignore if
-        on_missing is 'ignore'.
-
-    Raises
-    ------
-    ValueError
-        When on_missing is 'raise'.
-    """
+def _check_on_missing(on_missing, name='on_missing'):
     _validate_type(on_missing, str, name)
+    _check_option(name, on_missing, ['raise', 'warn', 'ignore'])
+
+
+def _on_missing(on_missing, msg, name='on_missing', error_klass=None):
+    _check_on_missing(on_missing, name)
+    error_klass = ValueError if error_klass is None else error_klass
     on_missing = 'raise' if on_missing == 'error' else on_missing
     on_missing = 'warn' if on_missing == 'warning' else on_missing
-    _check_option(name, on_missing, ['raise', 'warn', 'ignore'])
     if on_missing == 'raise':
-        raise ValueError(msg)
+        raise error_klass(msg)
     elif on_missing == 'warn':
         warn(msg)
     else:  # Ignore

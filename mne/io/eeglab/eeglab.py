@@ -61,9 +61,7 @@ def _check_load_mat(fname, uint16_codec):
         raise NotImplementedError(
             'Loading an ALLEEG array is not supported. Please contact'
             'mne-python developers for more information.')
-    if 'EEG' not in eeg:
-        raise ValueError('Could not find EEG array in the .set file.')
-    else:
+    if 'EEG' in eeg:  # fields are contained in EEG structure
         eeg = eeg['EEG']
     eeg = eeg.get('EEG', eeg)  # handle nested EEG structure
     eeg = Bunch(**eeg)
@@ -323,7 +321,7 @@ class RawEEGLAB(BaseRaw):
                             ' the .set file contains epochs.' % eeg.trials)
 
         last_samps = [eeg.pnts - 1]
-        info, eeg_montage, update_ch_names = _get_info(eeg, eog=eog)
+        info, eeg_montage, _ = _get_info(eeg, eog=eog)
 
         # read the data
         if isinstance(eeg.data, str):

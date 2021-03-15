@@ -36,7 +36,7 @@ from .io.reference import (set_eeg_reference, set_bipolar_reference,
                            add_reference_channels)
 from .io.what import what
 from .bem import (make_sphere_model, make_bem_model, make_bem_solution,
-                  read_bem_surfaces, write_bem_surfaces,
+                  read_bem_surfaces, write_bem_surfaces, write_head_bem,
                   read_bem_solution, write_bem_solution)
 from .cov import (read_cov, write_cov, Covariance, compute_raw_covariance,
                   compute_covariance, whiten_evoked, make_ad_hoc_cov)
@@ -89,9 +89,9 @@ from .transforms import (read_trans, write_trans,
                          transform_surface_to, Transform)
 from .proj import (read_proj, write_proj, compute_proj_epochs,
                    compute_proj_evoked, compute_proj_raw, sensitivity_map)
-from .selection import read_selection
 from .dipole import read_dipole, Dipole, DipoleFixed, fit_dipole
-from .channels import equalize_channels, rename_channels, find_layout
+from .channels import (equalize_channels, rename_channels, find_layout,
+                       read_vectorview_selection)
 from .report import Report, open_report
 
 from .io import read_epochs_fieldtrip, read_evoked_fieldtrip, read_evokeds_mff
@@ -121,6 +121,10 @@ from . import surface
 from . import time_frequency
 from . import viz
 from . import decoding
+
+# deprecations
+from .utils import deprecated_alias
+deprecated_alias('read_selection', read_vectorview_selection)
 
 # initialize logging
 set_log_level(None, False)

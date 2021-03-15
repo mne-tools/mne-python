@@ -231,6 +231,9 @@ def test_plot_ica_sources():
     _close_event(fig)
     assert len(plt.get_fignums()) == 0
     assert_array_equal(ica.exclude, [0])
+    # test when picks does not include ica.exclude.
+    fig = ica.plot_sources(raw, picks=[1])
+    assert len(plt.get_fignums()) == 1
     plt.close('all')
 
     # dtype can change int->np.int64 after load, test it explicitly

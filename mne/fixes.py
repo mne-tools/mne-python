@@ -12,21 +12,34 @@ at which the fix is no longer needed.
 #          Lars Buitinck <L.J.Buitinck@uva.nl>
 # License: BSD
 
-import inspect
 from distutils.version import LooseVersion
+import functools
+import inspect
 from math import log
 import os
 from pathlib import Path
 import warnings
 
 import numpy as np
-import scipy
-from scipy import linalg
-from scipy.linalg import LinAlgError
 
 
 ###############################################################################
 # Misc
+
+def _median_complex(data, axis):
+    """Compute marginal median on complex data safely.
+
+    XXX: Can be removed when numpy introduces a fix.
+    See: https://github.com/scipy/scipy/pull/12676/.
+    """
+    # np.median must be passed real arrays for the desired result
+    if np.iscomplexobj(data):
+        data = (np.median(np.real(data), axis=axis)
+                + 1j * np.median(np.imag(data), axis=axis))
+    else:
+        data = np.median(data, axis=axis)
+    return data
+
 
 # helpers to get function arguments
 def _get_args(function, varargs=False):
@@ -49,6 +62,7 @@ def _safe_svd(A, **kwargs):
     #     https://software.intel.com/en-us/forums/intel-distribution-for-python/topic/628049  # noqa: E501
     # For SciPy 0.18 and up, we can work around it by using
     # lapack_driver='gesvd' instead.
+    from scipy import linalg
     if kwargs.get('overwrite_a', False):
         raise ValueError('Cannot set overwrite_a=True with this function')
     try:
@@ -61,6 +75,11 @@ def _safe_svd(A, **kwargs):
             return linalg.svd(A, lapack_driver='gesvd', **kwargs)
         else:
             raise
+
+
+def _csc_matrix_cast(x):
+    from scipy.sparse import csc_matrix
+    return csc_matrix(x)
 
 
 ###############################################################################
@@ -144,10 +163,22 @@ def _read_geometry(filepath, read_metadata=False, read_stamp=False):
 ###############################################################################
 # Triaging FFT functions to get fast pocketfft (SciPy 1.4)
 
-try:
-    from scipy.fft import fft, ifft, fftfreq, rfft, irfft, rfftfreq, ifftshift
-except ImportError:
-    from numpy.fft import fft, ifft, fftfreq, rfft, irfft, rfftfreq, ifftshift
+@functools.lru_cache(None)
+def _import_fft(name):
+    single = False
+    if not isinstance(name, tuple):
+        name = (name,)
+        single = True
+    try:
+        from scipy.fft import rfft  # noqa analysis:ignore
+    except ImportError:
+        from numpy import fft  # noqa
+    else:
+        from scipy import fft  # noqa
+    out = [getattr(fft, n) for n in name]
+    if single:
+        out = out[0]
+    return out
 
 
 ###############################################################################
@@ -301,7 +332,7 @@ _DEFAULT_TAGS = {
 
 
 class BaseEstimator(object):
-    """Base class for all estimators in scikit-learn
+    """Base class for all estimators in scikit-learn.
 
     Notes
     -----
@@ -342,13 +373,13 @@ class BaseEstimator(object):
 
         Parameters
         ----------
-        deep : boolean, optional
+        deep : bool, optional
             If True, will return the parameters for this estimator and
             contained subobjects that are estimators.
 
         Returns
         -------
-        params : mapping of string to any
+        params : dict
             Parameter names mapped to their values.
         """
         out = dict()
@@ -376,13 +407,21 @@ class BaseEstimator(object):
 
     def set_params(self, **params):
         """Set the parameters of this estimator.
+
         The method works on simple estimators as well as on nested objects
         (such as pipelines). The latter have parameters of the form
         ``<component>__<parameter>`` so that it's possible to update each
         component of a nested object.
+
+        Parameters
+        ----------
+        **params : dict
+            Parameters.
+
         Returns
         -------
-        self
+        inst : instance
+            The object.
         """
         if not params:
             # Simple optimisation to gain speed (inspect is slow)
@@ -564,6 +603,7 @@ class EmpiricalCovariance(BaseEstimator):
             is computed.
 
         """
+        from scipy import linalg
         # covariance = check_array(covariance)
         # set covariance
         self.covariance_ = covariance
@@ -582,6 +622,7 @@ class EmpiricalCovariance(BaseEstimator):
             The precision matrix associated to the current covariance object.
 
         """
+        from scipy import linalg
         if self.store_precision:
             precision = self.precision_
         else:
@@ -589,23 +630,21 @@ class EmpiricalCovariance(BaseEstimator):
         return precision
 
     def fit(self, X, y=None):
-        """Fits the Maximum Likelihood Estimator covariance model
-        according to the given training data and parameters.
+        """Fit the Maximum Likelihood Estimator covariance model.
 
         Parameters
         ----------
         X : array-like, shape = [n_samples, n_features]
           Training data, where n_samples is the number of samples and
           n_features is the number of features.
-
-        y : not used, present for API consistence purpose.
+        y : ndarray | None
+            Not used, present for API consistency.
 
         Returns
         -------
         self : object
             Returns self.
-
-        """
+        """  # noqa: E501
         # X = check_array(X)
         if self.assume_centered:
             self.location_ = np.zeros(X.shape[1])
@@ -618,8 +657,9 @@ class EmpiricalCovariance(BaseEstimator):
         return self
 
     def score(self, X_test, y=None):
-        """Computes the log-likelihood of a Gaussian data set with
-        `self.covariance_` as an estimator of its covariance matrix.
+        """Compute the log-likelihood of a Gaussian dataset.
+
+        Uses ``self.covariance_`` as an estimator of its covariance matrix.
 
         Parameters
         ----------
@@ -628,15 +668,14 @@ class EmpiricalCovariance(BaseEstimator):
             the number of samples and n_features is the number of features.
             X_test is assumed to be drawn from the same distribution than
             the data used in fit (including centering).
-
-        y : not used, present for API consistence purpose.
+        y : ndarray | None
+            Not used, present for API consistency.
 
         Returns
         -------
         res : float
             The likelihood of the data set with `self.covariance_` as an
             estimator of its covariance matrix.
-
         """
         # compute empirical covariance of the test set
         test_cov = empirical_covariance(
@@ -649,23 +688,19 @@ class EmpiricalCovariance(BaseEstimator):
     def error_norm(self, comp_cov, norm='frobenius', scaling=True,
                    squared=True):
         """Computes the Mean Squared Error between two covariance estimators.
-        (In the sense of the Frobenius norm).
 
         Parameters
         ----------
         comp_cov : array-like, shape = [n_features, n_features]
             The covariance to compare with.
-
         norm : str
             The type of norm used to compute the error. Available error types:
             - 'frobenius' (default): sqrt(tr(A^t.A))
             - 'spectral': sqrt(max(eigenvalues(A^t.A))
             where A is the error ``(comp_cov - self.covariance_)``.
-
         scaling : bool
             If True (default), the squared error norm is divided by n_features.
             If False, the squared error norm is not rescaled.
-
         squared : bool
             Whether to compute the squared error norm or the error norm.
             If True (default), the squared error norm is returned.
@@ -675,8 +710,8 @@ class EmpiricalCovariance(BaseEstimator):
         -------
         The Mean Squared Error (in the sense of the Frobenius norm) between
         `self` and `comp_cov` covariance estimators.
-
         """
+        from scipy import linalg
         # compute the error
         error = comp_cov - self.covariance_
         # compute the error norm
@@ -753,6 +788,7 @@ def log_likelihood(emp_cov, precision):
 
 def _logdet(A):
     """Compute the log det of a positive semidefinite matrix."""
+    from scipy import linalg
     vals = linalg.eigvalsh(A)
     # avoid negative (numerical errors) or zero (semi-definite matrix) values
     tol = vals.max() * vals.size * np.finfo(np.float64).eps

@@ -12,7 +12,9 @@ import sys
 import logging
 import os.path as op
 import warnings
+from typing import Any, Callable, TypeVar
 
+from .docs import fill_doc
 from ..externals.decorator import FunctionMaker
 
 
@@ -48,7 +50,12 @@ _filter = _FrameFilter()
 logger.addFilter(_filter)
 
 
-def verbose(function):
+# Provide help for static type checkers:
+# https://mypy.readthedocs.io/en/stable/generics.html#declaring-decorators
+_FuncT = TypeVar('_FuncT', bound=Callable[..., Any])
+
+
+def verbose(function: _FuncT) -> _FuncT:
     """Verbose decorator to allow functions to override log-level.
 
     Parameters
@@ -79,6 +86,7 @@ def verbose(function):
     Examples
     --------
     You can use the ``verbose`` argument to set the verbose level on the fly::
+
         >>> import mne
         >>> cov = mne.compute_raw_covariance(raw, verbose='WARNING')  # doctest: +SKIP
         >>> cov = mne.compute_raw_covariance(raw, verbose='INFO')  # doctest: +SKIP
@@ -88,7 +96,6 @@ def verbose(function):
     """  # noqa: E501
     # See https://decorator.readthedocs.io/en/latest/tests.documentation.html
     # #dealing-with-third-party-decorators
-    from .docs import fill_doc
     try:
         fill_doc(function)
     except TypeError:  # nothing to add
@@ -353,9 +360,12 @@ def warn(message, category=RuntimeWarning, module='mne'):
             globals().get('__warningregistry__', {}))
     # To avoid a duplicate warning print, we only emit the logger.warning if
     # one of the handlers is a FileHandler. See gh-5592
+    # But it's also nice to be able to do:
+    # with mne.utils.use_log_level('warning', add_frames=3):
+    # so also check our add_frames attribute.
     if any(isinstance(h, logging.FileHandler) or getattr(h, '_mne_file_like',
                                                          False)
-           for h in logger.handlers):
+           for h in logger.handlers) or _filter.add_frames:
         logger.warning(message)
 
 

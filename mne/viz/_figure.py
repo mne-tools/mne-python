@@ -780,7 +780,7 @@ class MNEBrowseFigure(MNEFigure):
             # click in horizontal scrollbar
             elif event.inaxes == self.mne.ax_hscroll:
                 if self._check_update_hscroll_clicked(event):
-                    self._redraw()
+                    self._redraw(annotations=True)
             # click on proj button
             elif event.inaxes == self.mne.ax_proj:
                 self._toggle_proj_fig(event)
@@ -794,7 +794,11 @@ class MNEBrowseFigure(MNEFigure):
                     start = _sync_onset(inst, inst.annotations.onset)
                     end = start + inst.annotations.duration
                     ann_idx = np.where((xdata > start) & (xdata < end))[0]
-                    inst.annotations.delete(ann_idx)  # only first one deleted
+                    for idx in sorted(ann_idx)[::-1]:
+                        # only remove visible annotation spans
+                        descr = inst.annotations[idx]['description']
+                        if self.mne.visible_annotations[descr]:
+                            inst.annotations.delete(idx)
                 self._remove_annotation_hover_line()
                 self._draw_annotations()
                 self.canvas.draw_idle()
@@ -858,9 +862,12 @@ class MNEBrowseFigure(MNEFigure):
         fig.lasso.style_sensors(inds)
         plt_show(fig=fig)
 
-    def _create_ica_properties_fig(self, pick):
+    def _create_ica_properties_fig(self, idx):
         """Show ICA properties for the selected component."""
-        ch_name = self.mne.ch_names[pick]
+        ch_name = self.mne.ch_names[idx]
+        if ch_name not in self.mne.ica._ica_names:  # for EOG chans: do nothing
+            return
+        pick = self.mne.ica._ica_names.index(ch_name)
         fig = self._new_child_figure(figsize=(7, 6), fig_name=None,
                                      window_title=f'{ch_name} properties')
         fig, axes = _create_properties_layout(fig=fig)
@@ -1163,8 +1170,8 @@ class MNEBrowseFigure(MNEFigure):
 
     def _get_annotation_labels(self):
         """Get the unique labels in the raw object and added in the UI."""
-        labels = list(set(self.mne.inst.annotations.description))
-        return np.union1d(labels, self.mne.new_annotation_labels)
+        return sorted(set(self.mne.inst.annotations.description) |
+                      set(self.mne.new_annotation_labels))
 
     def _update_annotation_fig(self):
         """Draw or redraw the radio buttons and annotation labels."""
@@ -1294,18 +1301,14 @@ class MNEBrowseFigure(MNEFigure):
 
     def _setup_annotation_colors(self):
         """Set up colors for annotations; init some annotation vars."""
-        raw = self.mne.inst
         segment_colors = getattr(self.mne, 'annotation_segment_colors', dict())
-        # sort the segments by start time
-        ann_order = raw.annotations.onset.argsort(axis=0)
-        descriptions = raw.annotations.description[ann_order]
-        color_keys = np.union1d(descriptions, self.mne.new_annotation_labels)
+        labels = self._get_annotation_labels()
         colors, red = _get_color_list(annotations=True)
         color_cycle = cycle(colors)
         for key, color in segment_colors.items():
-            if color != red and key in color_keys:
+            if color != red and key in labels:
                 next(color_cycle)
-        for idx, key in enumerate(color_keys):
+        for idx, key in enumerate(labels):
             if key in segment_colors:
                 continue
             elif key.lower().startswith('bad') or \
@@ -1315,7 +1318,6 @@ class MNEBrowseFigure(MNEFigure):
                 segment_colors[key] = next(color_cycle)
         self.mne.annotation_segment_colors = segment_colors
         # init a couple other annotation-related variables
-        labels = self._get_annotation_labels()
         self.mne.visible_annotations = {label: True for label in labels}
         self.mne.show_hide_annotation_checkboxes = None
 
@@ -1917,7 +1919,9 @@ class MNEBrowseFigure(MNEFigure):
             starts = np.maximum(starts[mask], start) - start
             stops = np.minimum(stops[mask], stop) - start
             for _start, _stop in zip(starts, stops):
-                _picks = np.where(np.in1d(picks, self.mne.picks_data))
+                _picks = np.where(np.in1d(picks, self.mne.picks_data))[0]
+                if len(_picks) == 0:
+                    break
                 this_data = data[_picks, _start:_stop]
                 if isinstance(self.mne.filter_coefs, np.ndarray):  # FIR
                     this_data = _overlap_add_filter(

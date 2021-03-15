@@ -6,21 +6,24 @@ Explore event-related dynamics for specific frequency bands
 ===========================================================
 
 The objective is to show you how to explore spectrally localized
-effects. For this purpose we adapt the method described in [1]_ and use it on
-the somato dataset. The idea is to track the band-limited temporal evolution
-of spatial patterns by using the :term:`Global Field Power(GFP) <GFP>`.
+effects. For this purpose we adapt the method described in
+:footcite:`HariSalmelin1997` and use it on the somato dataset.
+The idea is to track the band-limited temporal evolution
+of spatial patterns by using the :term:`global field power` (GFP).
 
 We first bandpass filter the signals and then apply a Hilbert transform. To
 reveal oscillatory activity the evoked response is then subtracted from every
 single trial. Finally, we rectify the signals prior to averaging across trials
 by taking the magniude of the Hilbert.
-Then the :term:`GFP` is computed as described in [2]_, using the sum of the
+Then the :term:`GFP` is computed as described in
+:footcite:`EngemannGramfort2015`, using the sum of the
 squares but without normalization by the rank.
-Baselining is subsequently applied to make the :term:`GFPs <GFP>` comparable
+Baselining is subsequently applied to make the :term:`GFP` comparable
 between frequencies.
 The procedure is then repeated for each frequency band of interest and
-all :term:`GFPs <GFP>` are visualized. To estimate uncertainty, non-parametric
-confidence intervals are computed as described in [3]_ across channels.
+all :term:`GFPs<GFP>` are visualized. To estimate uncertainty, non-parametric
+confidence intervals are computed as described in :footcite:`EfronHastie2016`
+across channels.
 
 The advantage of this method over summarizing the Space x Time x Frequency
 output of a Morlet Wavelet in frequency bands is relative speed and, more
@@ -31,15 +34,8 @@ We will use this dataset: :ref:`somato-dataset`
 
 References
 ----------
+.. footbibliography::
 
-.. [1] Hari R. and Salmelin R. Human cortical oscillations: a neuromagnetic
-       view through the skull (1997). Trends in Neuroscience 20 (1),
-       pp. 44-49.
-.. [2] Engemann D. and Gramfort A. (2015) Automated model selection in
-       covariance estimation and spatial whitening of MEG and EEG signals,
-       vol. 108, 328-342, NeuroImage.
-.. [3] Efron B. and Hastie T. Computer Age Statistical Inference (2016).
-       Cambrdige University Press, Chapter 11.2.
 """  # noqa: E501
 # Authors: Denis A. Engemann <denis.engemann@gmail.com>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>

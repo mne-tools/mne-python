@@ -3,14 +3,19 @@
 #         Mathurin Massias <mathurin.massias@gmail.com>
 # License: Simplified BSD
 
+import functools
 from math import sqrt
 
 import numpy as np
-from scipy import linalg
 
 from .mxne_debiasing import compute_bias
-from ..utils import logger, verbose, sum_squared, warn, dgemm
+from ..utils import logger, verbose, sum_squared, warn, _get_blas_funcs
 from ..time_frequency._stft import stft_norm1, stft_norm2, stft, istft
+
+
+@functools.lru_cache(None)
+def _get_dgemm():
+    return _get_blas_funcs(np.float64, 'gemm')
 
 
 def groups_norm2(A, n_orient):
@@ -403,6 +408,7 @@ def _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
         alpha * (Lipschitz constants).
     """
     X_j_new = np.zeros_like(X[0:n_orient, :], order='C')
+    dgemm = _get_dgemm()
 
     for j, G_j_c in enumerate(list_G_j_c):
         idx = slice(j * n_orient, (j + 1) * n_orient)
@@ -534,11 +540,11 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
             lc = np.empty(n_positions)
             for j in range(n_positions):
                 G_tmp = G[:, (j * n_orient):((j + 1) * n_orient)]
-                lc[j] = linalg.norm(np.dot(G_tmp.T, G_tmp), ord=2)
+                lc[j] = np.linalg.norm(np.dot(G_tmp.T, G_tmp), ord=2)
     else:
         logger.info("Using proximal iterations")
         l21_solver = _mixed_norm_solver_prox
-        lc = 1.01 * linalg.norm(G, ord=2) ** 2
+        lc = 1.01 * np.linalg.norm(G, ord=2) ** 2
 
     if active_set_size is not None:
         E = list()
@@ -558,7 +564,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
             elif solver == 'cd':
                 lc_tmp = None
             else:
-                lc_tmp = 1.01 * linalg.norm(G[:, active_set], ord=2) ** 2
+                lc_tmp = 1.01 * np.linalg.norm(G[:, active_set], ord=2) ** 2
             X, as_, _ = l21_solver(M, G[:, active_set], alpha, lc_tmp,
                                    maxit=maxit, tol=tol, init=X_init,
                                    n_orient=n_orient, dgap_freq=dgap_freq)
@@ -707,8 +713,8 @@ def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
             # Reapply weights to have correct unit
             X *= weights[_active_set][:, np.newaxis]
             weights = gprime(X)
-            p_obj = 0.5 * linalg.norm(M - np.dot(G[:, active_set], X),
-                                      'fro') ** 2. + alpha * np.sum(g(X))
+            p_obj = 0.5 * np.linalg.norm(M - np.dot(G[:, active_set], X),
+                                         'fro') ** 2. + alpha * np.sum(g(X))
             E.append(p_obj)
 
             # Check convergence
@@ -718,7 +724,7 @@ def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
                 break
         else:
             active_set = np.zeros_like(active_set)
-            p_obj = 0.5 * linalg.norm(M) ** 2.
+            p_obj = 0.5 * np.linalg.norm(M) ** 2.
             E.append(p_obj)
             break
 
@@ -1186,7 +1192,7 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
                 R += np.dot(G_j, X_j)
                 X_j_new += X_j
 
-            rows_norm = linalg.norm(X_j_new, 'fro')
+            rows_norm = np.linalg.norm(X_j_new, 'fro')
             if rows_norm <= alpha_space_lc[jj]:
                 if was_active:
                     Z[jj] = 0.0
@@ -1439,7 +1445,7 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
         lc = np.empty(n_positions)
         for j in range(n_positions):
             G_tmp = G[:, (j * n_orient):((j + 1) * n_orient)]
-            lc[j] = linalg.norm(np.dot(G_tmp.T, G_tmp), ord=2)
+            lc[j] = np.linalg.norm(np.dot(G_tmp.T, G_tmp), ord=2)
 
     logger.info("Using block coordinate descent with active set approach")
     X, Z, active_set, E, gap = _tf_mixed_norm_solver_bcd_active_set(
@@ -1538,7 +1544,7 @@ def iterative_tf_mixed_norm_solver(M, G, alpha_space, alpha_time,
         lc = np.empty(n_positions)
         for j in range(n_positions):
             G_tmp = G[:, (j * n_orient):((j + 1) * n_orient)]
-            lc[j] = linalg.norm(np.dot(G_tmp.T, G_tmp), ord=2)
+            lc[j] = np.linalg.norm(np.dot(G_tmp.T, G_tmp), ord=2)
 
     # space and time penalties, and inverse of their derivatives:
     def g_space(Z):
@@ -1587,7 +1593,7 @@ def iterative_tf_mixed_norm_solver(M, G, alpha_space, alpha_time,
             l21_penalty = np.sum(g_space(Z.copy()))
             l1_penalty = phi.norm(g_time(Z.copy()), ord=1).sum()
 
-            p_obj = (0.5 * linalg.norm(M - np.dot(G[:, active_set], X),
+            p_obj = (0.5 * np.linalg.norm(M - np.dot(G[:, active_set], X),
                      'fro') ** 2. + alpha_space * l21_penalty +
                      alpha_time * l1_penalty)
             E.append(p_obj)
@@ -1602,7 +1608,7 @@ def iterative_tf_mixed_norm_solver(M, G, alpha_space, alpha_time,
                     print('Convergence reached after %d reweightings!' % k)
                     break
         else:
-            p_obj = 0.5 * linalg.norm(M) ** 2.
+            p_obj = 0.5 * np.linalg.norm(M) ** 2.
             E.append(p_obj)
             logger.info('Iteration %d: as_size=%d, E=%f' % (
                         k + 1, active_set.sum() / n_orient, p_obj))

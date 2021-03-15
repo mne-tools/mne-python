@@ -10,7 +10,7 @@ import numpy as np
 
 from .utils import check_indices
 from ..utils import _check_option
-from ..fixes import _get_args, rfftfreq
+from ..fixes import _get_args, _import_fft
 from ..parallel import parallel_func
 from ..source_estimate import _BaseSourceEstimate
 from ..epochs import BaseEpochs
@@ -18,7 +18,7 @@ from ..time_frequency.multitaper import (_mt_spectra, _compute_mt_params,
                                          _psd_from_mt, _csd_from_mt,
                                          _psd_from_mt_adaptive)
 from ..time_frequency.tfr import morlet, cwt
-from ..utils import logger, verbose, _time_mask, warn
+from ..utils import logger, verbose, _time_mask, warn, _arange_div
 
 ########################################################################
 # Various connectivity estimators
@@ -475,11 +475,15 @@ def _check_method(method):
     return True, None
 
 
-def _get_and_verify_data_sizes(data, n_signals=None, n_times=None, times=None):
+def _get_and_verify_data_sizes(data, sfreq, n_signals=None, n_times=None,
+                               times=None, warn_times=True):
     """Get and/or verify the data sizes and time scales."""
     if not isinstance(data, (list, tuple)):
         raise ValueError('data has to be a list or tuple')
     n_signals_tot = 0
+    # Sometimes data can be (ndarray, SourceEstimate) groups so in the case
+    # where ndarray comes first, don't use it for times
+    times_inferred = False
     for this_data in data:
         this_n_signals, this_n_times = this_data.shape
         if n_times is not None:
@@ -491,12 +495,19 @@ def _get_and_verify_data_sizes(data, n_signals=None, n_times=None, times=None):
         n_signals_tot += this_n_signals
 
         if hasattr(this_data, 'times'):
+            assert isinstance(this_data, _BaseSourceEstimate)
             this_times = this_data.times
-            if times is not None:
-                if np.any(times != this_times):
-                    warn('time scales of input time series do not match')
+            if times is not None and not times_inferred:
+                if warn_times and not np.allclose(times, this_times):
+                    with np.printoptions(threshold=4, linewidth=120):
+                        warn('time scales of input time series do not match:\n'
+                             f'{this_times}\n{times}')
+                    warn_times = False
             else:
                 times = this_times
+        elif times is None:
+            times_inferred = True
+            times = _arange_div(n_times, sfreq)
 
     if n_signals is not None:
         if n_signals != n_signals_tot:
@@ -504,7 +515,7 @@ def _get_and_verify_data_sizes(data, n_signals=None, n_times=None, times=None):
                              'each epoch')
     n_signals = n_signals_tot
 
-    return n_signals, n_times, times
+    return n_signals, n_times, times, warn_times
 
 
 # map names to estimator types
@@ -772,20 +783,23 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     if isinstance(data, BaseEpochs):
         times_in = data.times  # input times for Epochs input type
         sfreq = data.info['sfreq']
+    else:
+        times_in = None
 
     # loop over data; it could be a generator that returns
     # (n_signals x n_times) arrays or SourceEstimates
     epoch_idx = 0
     logger.info('Connectivity computation...')
+    warn_times = True
     for epoch_block in _get_n_epochs(data, n_jobs):
         if epoch_idx == 0:
             # initialize everything times and frequencies
             (n_cons, times, n_times, times_in, n_times_in, tmin_idx,
              tmax_idx, n_freqs, freq_mask, freqs, freqs_bands, freq_idx_bands,
-             n_signals, indices_use) = _prepare_connectivity(
-                epoch_block=epoch_block, tmin=tmin, tmax=tmax, fmin=fmin,
-                fmax=fmax, sfreq=sfreq, indices=indices, mode=mode,
-                fskip=fskip, n_bands=n_bands,
+             n_signals, indices_use, warn_times) = _prepare_connectivity(
+                epoch_block=epoch_block, times_in=times_in,
+                tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, sfreq=sfreq,
+                indices=indices, mode=mode, fskip=fskip, n_bands=n_bands,
                 cwt_freqs=cwt_freqs, faverage=faverage)
 
             # get the window function, wavelets, etc for different modes
@@ -823,8 +837,9 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
 
         # check dimensions and time scale
         for this_epoch in epoch_block:
-            _get_and_verify_data_sizes(this_epoch, n_signals, n_times_in,
-                                       times_in)
+            _, _, _, warn_times = _get_and_verify_data_sizes(
+                this_epoch, sfreq, n_signals, n_times_in, times_in,
+                warn_times=warn_times)
 
         call_params = dict(
             sig_idx=sig_idx, tmin_idx=tmin_idx,
@@ -930,21 +945,27 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     return con, freqs, times, n_epochs, n_tapers
 
 
-def _prepare_connectivity(epoch_block, tmin, tmax, fmin, fmax, sfreq, indices,
+def _prepare_connectivity(epoch_block, times_in, tmin, tmax,
+                          fmin, fmax, sfreq, indices,
                           mode, fskip, n_bands,
                           cwt_freqs, faverage):
     """Check and precompute dimensions of results data."""
+    rfftfreq = _import_fft('rfftfreq')
     first_epoch = epoch_block[0]
 
     # get the data size and time scale
-    n_signals, n_times_in, times_in = _get_and_verify_data_sizes(first_epoch)
-
-    if times_in is None:
-        # we are not using Epochs or SourceEstimate(s) as input
-        times_in = np.linspace(0.0, n_times_in / sfreq, n_times_in,
-                               endpoint=False)
+    n_signals, n_times_in, times_in, warn_times = _get_and_verify_data_sizes(
+        first_epoch, sfreq, times=times_in)
 
     n_times_in = len(times_in)
+
+    if tmin is not None and tmin < times_in[0]:
+        warn('start time tmin=%0.2f s outside of the time scope of the data '
+             '[%0.2f s, %0.2f s]' % (tmin, times_in[0], times_in[-1]))
+    if tmax is not None and tmax > times_in[-1]:
+        warn('stop time tmax=%0.2f s outside of the time scope of the data '
+             '[%0.2f s, %0.2f s]' % (tmax, times_in[0], times_in[-1]))
+
     mask = _time_mask(times_in, tmin, tmax, sfreq=sfreq)
     tmin_idx, tmax_idx = np.where(mask)[0][[0, -1]]
     tmax_idx += 1
@@ -1044,7 +1065,7 @@ def _prepare_connectivity(epoch_block, tmin, tmax, fmin, fmax, sfreq, indices,
 
     return (n_cons, times, n_times, times_in, n_times_in, tmin_idx,
             tmax_idx, n_freqs, freq_mask, freqs, freqs_bands, freq_idx_bands,
-            n_signals, indices_use)
+            n_signals, indices_use, warn_times)
 
 
 def _assemble_spectral_params(mode, n_times, mt_adaptive, mt_bandwidth, sfreq,

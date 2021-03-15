@@ -266,6 +266,10 @@
 
 .. _Robert Luke: https://github.com/rob-luke
 
+.. _Robert Seymour: https://neurofractal.github.io
+
+.. _Matt Sanderson: https://github.com/monkeyman192
+
 .. _Mohammad Daneshzand: https://github.com/mdaneshzand
 
 .. _Fahimeh Mamashli: https://github.com/fmamashli
@@ -349,3 +353,17 @@
 .. _Richard Koehler: https://github.com/richardkoehler
 
 .. _Tristan Stenner: https://github.com/tstenner/
+
+.. _Anna Padee: https://github.com/apadee/
+
+.. _Andres Rodriguez: https://github.com/infinitejest/
+
+.. _Zhi Zhang: https://github.com/tczhangzhi/
+
+.. _Enrico Varano: https://github.com/enricovara/
+
+.. _Dominik Welke: https://github.com/dominikwelke/
+
+.. _Judy D Zhu: https://github.com/JD-Zhu
+
+.. _Valerii Chirkov: https://github.com/vagechirkov

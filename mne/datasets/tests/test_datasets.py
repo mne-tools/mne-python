@@ -13,7 +13,7 @@ from mne.datasets._infant import base as infant_base
 from mne.datasets._fsaverage.base import _set_montage_coreg_path
 from mne.datasets.utils import _manifest_check_download
 
-from mne.utils import (requires_good_network, modified_env,
+from mne.utils import (requires_good_network,
                        get_subjects_dir, ArgvSetter, _pl, use_log_level,
                        catch_logging, hashfunc)
 
@@ -21,7 +21,7 @@ from mne.utils import (requires_good_network, modified_env,
 subjects_dir = op.join(testing.data_path(download=False), 'subjects')
 
 
-def test_datasets_basic(tmpdir):
+def test_datasets_basic(tmpdir, monkeypatch):
     """Test simple dataset functions."""
     # XXX 'hf_sef' and 'misc' do not conform to these standards
     for dname in ('sample', 'somato', 'spm_face', 'testing', 'opm',
@@ -45,13 +45,17 @@ def test_datasets_basic(tmpdir):
     tempdir = str(tmpdir)
     # don't let it read from the config file to get the directory,
     # force it to look for the default
-    with modified_env(**{'_MNE_FAKE_HOME_DIR': tempdir, 'SUBJECTS_DIR': None}):
-        assert (datasets.utils._get_path(None, 'foo', 'bar') ==
-                op.join(tempdir, 'mne_data'))
-        assert get_subjects_dir(None) is None
-        _set_montage_coreg_path()
-        sd = get_subjects_dir()
-        assert sd.endswith('MNE-fsaverage-data')
+    monkeypatch.setenv('_MNE_FAKE_HOME_DIR', tempdir)
+    monkeypatch.delenv('SUBJECTS_DIR', raising=False)
+    assert (datasets.utils._get_path(None, 'foo', 'bar') ==
+            op.join(tempdir, 'mne_data'))
+    assert get_subjects_dir(None) is None
+    _set_montage_coreg_path()
+    sd = get_subjects_dir()
+    assert sd.endswith('MNE-fsaverage-data')
+    monkeypatch.setenv('MNE_DATA', str(tmpdir.join('foo')))
+    with pytest.raises(FileNotFoundError, match='as specified by MNE_DAT'):
+        testing.data_path(download=False)
 
 
 @requires_good_network

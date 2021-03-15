@@ -7,7 +7,6 @@
 #
 # License: Simplified BSD
 
-from mne.minimum_norm.inverse import apply_inverse
 import os.path as op
 from pathlib import Path
 import sys
@@ -29,13 +28,14 @@ from mne.io import (read_raw_ctf, read_raw_bti, read_raw_kit, read_info,
 from mne.io._digitization import write_dig
 from mne.io.pick import pick_info
 from mne.io.constants import FIFF
+from mne.minimum_norm import apply_inverse
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      snapshot_brain_montage, plot_head_positions,
                      plot_alignment, plot_sensors_connectivity,
                      plot_brain_colorbar, link_brains, mne_analyze_colormap)
 from mne.viz._3d import _process_clim, _linearize_map, _get_map_ticks
 from mne.viz.utils import _fake_click
-from mne.utils import (requires_pysurfer, requires_nibabel, traits_test,
+from mne.utils import (requires_nibabel, traits_test,
                        catch_logging, run_subprocess, modified_env)
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
@@ -100,7 +100,6 @@ def test_plot_head_positions():
 
 
 @testing.requires_testing_data
-@requires_pysurfer
 @traits_test
 @pytest.mark.slowtest
 def test_plot_sparse_source_estimates(renderer_interactive, brain_gc):
@@ -123,9 +122,11 @@ def test_plot_sparse_source_estimates(renderer_interactive, brain_gc):
         stc, 'sample', colormap=colormap, background=(1, 1, 0),
         subjects_dir=subjects_dir, colorbar=True, clim='auto')
     brain.close()
-    pytest.raises(TypeError, plot_source_estimates, stc, 'sample',
-                  figure='foo', hemi='both', clim='auto',
-                  subjects_dir=subjects_dir)
+    del brain
+    with pytest.raises(TypeError, match='figure must be'):
+        plot_source_estimates(
+            stc, 'sample', figure='foo', hemi='both', clim='auto',
+            subjects_dir=subjects_dir)
 
     # now do sparse version
     vertices = sample_src[0]['vertno']
@@ -279,10 +280,15 @@ def test_plot_alignment(tmpdir, renderer):
                    src=src, dig=True, surfaces=['brain', 'inner_skull',
                                                 'outer_skull', 'outer_skin'])
     sphere = make_sphere_model('auto', None, evoked.info)  # one layer
+    # if you ask for a brain surface with a 1-layer sphere model it's an error
+    with pytest.raises(RuntimeError, match='Sphere model does not have'):
+        fig = plot_alignment(subject='sample', subjects_dir=subjects_dir,
+                             surfaces=['brain'], bem=sphere)
+    # but you can ask for a specific brain surface, and
     # no info is permitted
     fig = plot_alignment(trans=trans_fname, subject='sample', meg=False,
                          coord_frame='mri', subjects_dir=subjects_dir,
-                         surfaces=['brain'], bem=sphere, show_axes=True)
+                         surfaces=['white'], bem=sphere, show_axes=True)
     renderer.backend._close_all()
     if renderer._get_3d_backend() == 'mayavi':
         import mayavi  # noqa: F401 analysis:ignore
@@ -300,7 +306,7 @@ def test_plot_alignment(tmpdir, renderer):
         plot_alignment(info_cube, meg='sensors', surfaces=(), dig=True)
 
     # one layer bem with skull surfaces:
-    with pytest.raises(ValueError, match='sphere conductor model must have'):
+    with pytest.raises(RuntimeError, match='Sphere model does not.*boundary'):
         plot_alignment(info=info, trans=trans_fname,
                        subject='sample', subjects_dir=subjects_dir,
                        surfaces=['brain', 'head', 'inner_skull'], bem=sphere)
@@ -317,7 +323,7 @@ def test_plot_alignment(tmpdir, renderer):
         plot_alignment(info=info, trans=trans_fname,
                        subject='sample', subjects_dir=subjects_dir,
                        surfaces=['white', 'pial'])
-    with pytest.raises(TypeError, match='all entries in surfaces must be'):
+    with pytest.raises(TypeError, match='surfaces.*must be'):
         plot_alignment(info=info, trans=trans_fname,
                        subject='sample', subjects_dir=subjects_dir,
                        surfaces=[1])
@@ -371,7 +377,6 @@ def test_plot_alignment(tmpdir, renderer):
 
 @pytest.mark.slowtest  # can be slow on OSX
 @testing.requires_testing_data
-@requires_pysurfer
 @traits_test
 def test_process_clim_plot(renderer_interactive, brain_gc):
     """Test functionality for determining control points with stc.plot."""
@@ -393,10 +398,15 @@ def test_process_clim_plot(renderer_interactive, brain_gc):
     brain = stc.plot(clim=dict(pos_lims=(10, 50, 90)), **kwargs)
     assert brain.data['center'] == 0.
     brain.close()
-    stc.plot(colormap='hot', clim='auto', **kwargs)
-    stc.plot(colormap='mne', clim='auto', **kwargs)
-    stc.plot(clim=dict(kind='value', lims=(10, 50, 90)), figure=99, **kwargs)
-    pytest.raises(TypeError, stc.plot, clim='auto', figure=[0], **kwargs)
+    brain = stc.plot(colormap='hot', clim='auto', **kwargs)
+    brain.close()
+    brain = stc.plot(colormap='mne', clim='auto', **kwargs)
+    brain.close()
+    brain = stc.plot(clim=dict(kind='value', lims=(10, 50, 90)), figure=99,
+                     **kwargs)
+    brain.close()
+    with pytest.raises(TypeError, match='must be a'):
+        stc.plot(clim='auto', figure=[0], **kwargs)
 
     # Test for correct clim values
     with pytest.raises(ValueError, match='monotonically'):
@@ -418,7 +428,8 @@ def test_process_clim_plot(renderer_interactive, brain_gc):
     # Test handling of degenerate data: thresholded maps
     stc._data.fill(0.)
     with pytest.warns(RuntimeWarning, match='All data were zero'):
-        plot_source_estimates(stc, **kwargs)
+        brain = plot_source_estimates(stc, **kwargs)
+    brain.close()
 
 
 def _assert_mapdata_equal(a, b):
@@ -580,16 +591,15 @@ def test_snapshot_brain_montage(renderer):
 
 @pytest.mark.slowtest  # can be slow on OSX
 @testing.requires_testing_data
-@requires_pysurfer
-@traits_test
 @pytest.mark.parametrize('pick_ori', ('vector', None))
 @pytest.mark.parametrize('kind', ('surface', 'volume', 'mixed'))
 def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
                                pick_ori, kind, brain_gc):
     """Test plotting of scalar and vector source estimates."""
+    backend = renderer_interactive._get_3d_backend()
+    is_pyvista = backend != 'mayavi'
     invs, evoked = all_src_types_inv_evoked
     inv = invs[kind]
-    is_pyvista = renderer_interactive._get_3d_backend() == 'pyvista'
     with pytest.warns(None):  # PCA mag
         stc = apply_inverse(evoked, inv, pick_ori=pick_ori)
     stc.data[1] *= -1  # make it signed
@@ -603,7 +613,7 @@ def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
                   )
     if pick_ori != 'vector':
         kwargs['surface'] = 'white'
-        kwargs['backend'] = renderer_interactive._get_3d_backend()
+        kwargs['backend'] = backend
     # Mayavi can't handle non-surface
     if kind != 'surface' and not is_pyvista:
         with pytest.raises(RuntimeError, match='PyVista'):
@@ -656,6 +666,7 @@ def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
     else:
         brain = flat_meth(**these_kwargs)
         brain.close()
+        del brain
         these_kwargs.update(surface='inflated', views='flat')
         with pytest.raises(ValueError, match='surface="flat".*views="flat"'):
             flat_meth(**these_kwargs)
@@ -740,11 +751,10 @@ def test_brain_colorbar(orientation, diverging, lims):
 
 
 @pytest.mark.slowtest  # slow-ish on Travis OSX
-@requires_pysurfer
 @testing.requires_testing_data
 @traits_test
 def test_mixed_sources_plot_surface(renderer_interactive):
-    """Test plot_surface() for  mixed source space."""
+    """Test plot_surface() for mixed source space."""
     src = read_source_spaces(fwd_fname2)
     N = np.sum([s['nuse'] for s in src])  # number of sources
 
@@ -757,9 +767,11 @@ def test_mixed_sources_plot_surface(renderer_interactive):
 
     stc = MixedSourceEstimate(data, vertno, 0, 1)
 
-    stc.surface().plot(views='lat', hemi='split',
-                       subject='fsaverage', subjects_dir=subjects_dir,
-                       colorbar=False)
+    brain = stc.surface().plot(views='lat', hemi='split',
+                               subject='fsaverage', subjects_dir=subjects_dir,
+                               colorbar=False)
+    brain.close()
+    del brain
 
 
 @testing.requires_testing_data
@@ -785,7 +797,7 @@ def test_link_brains(renderer_interactive):
         subjects_dir=subjects_dir, colorbar=True,
         clim='auto'
     )
-    if renderer_interactive._get_3d_backend() != 'pyvista':
+    if renderer_interactive._get_3d_backend() == 'mayavi':
         with pytest.raises(NotImplementedError, match='backend is pyvista'):
             link_brains(brain)
     else:

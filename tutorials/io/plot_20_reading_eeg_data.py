@@ -9,11 +9,6 @@ Importing data from EEG devices
 MNE includes various functions and utilities for reading EEG
 data and electrode locations.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
-
 .. _import-bv:
 
 BrainVision (.vhdr, .vmrk, .eeg)

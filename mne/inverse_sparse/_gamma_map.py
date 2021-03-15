@@ -3,10 +3,8 @@
 # License: Simplified BSD
 
 import numpy as np
-from scipy import linalg
 
 from ..forward import is_fixed_orient
-
 from ..minimum_norm.inverse import _check_reference, _log_exp_var
 from ..utils import logger, verbose, warn
 from .mxne_inverse import (_check_ori, _make_sparse_stc, _prepare_gain,
@@ -47,6 +45,7 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
     active_set : array, shape=(n_active,)
         Indices of active sources.
     """
+    from scipy import linalg
     G = G.copy()
     M = M.copy()
 
@@ -59,10 +58,10 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
     n_sensors, n_times = M.shape
 
     # apply normalization so the numerical values are sane
-    M_normalize_constant = linalg.norm(np.dot(M, M.T), ord='fro')
+    M_normalize_constant = np.linalg.norm(np.dot(M, M.T), ord='fro')
     M /= np.sqrt(M_normalize_constant)
     alpha /= M_normalize_constant
-    G_normalize_constant = linalg.norm(G, ord=np.inf)
+    G_normalize_constant = np.linalg.norm(G, ord=np.inf)
     G /= G_normalize_constant
 
     if n_sources % group_size != 0:
@@ -97,7 +96,7 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
         CM = np.dot(G * gammas[np.newaxis, :], G.T)
         CM.flat[::n_sensors + 1] += alpha
         # Invert CM keeping symmetry
-        U, S, V = linalg.svd(CM, full_matrices=False)
+        U, S, _ = linalg.svd(CM, full_matrices=False)
         S = S[np.newaxis, :]
         del CM
         CMinv = np.dot(U / (S + eps), U.T)
