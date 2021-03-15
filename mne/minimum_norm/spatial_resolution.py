@@ -68,11 +68,11 @@ def resolution_metrics(resmat, src, function='psf', metric='peak_err',
     For details, see :footcite:`MolinsEtAl2008` :footcite:`HaukEtAl2019`.
 
     .. versionadded:: 0.20
-    
+
     References
     ----------
     .. footbibliography::
-    """    
+    """
     # Check if input options are valid
     metrics = ('peak_err', 'cog_err', 'sd_ext', 'maxrad_ext', 'peak_amp',
                'sum_amp')
@@ -327,8 +327,3 @@ def _rectify_resolution_matrix(resmat):
                     (shape[0], shape[1], resmat.shape[0], resmat.shape[1]))
 
     return resmat
-
-###############################################################################
-# References
-# ----------
-# .. footbibliography::
