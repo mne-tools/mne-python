@@ -16,12 +16,13 @@ from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin)
 from .channels.layout import _merge_ch_data, _pair_grad_sensors
 from .defaults import _EXTRAPOLATE_DEFAULT, _BORDER_DEFAULT
-from .filter import detrend, FilterMixin
+from .filter import detrend, FilterMixin, _check_fun
 from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
                     SizeMixin, copy_function_doc_to_method_doc, _validate_type,
                     fill_doc, _check_option, ShiftTimeMixin, _build_data_frame,
                     _check_pandas_installed, _check_pandas_index_arguments,
-                    _convert_times, _scale_dataframe_data, _check_time_format)
+                    _convert_times, _scale_dataframe_data, _check_time_format,
+                    _check_preload)
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
 from .viz.evoked import plot_evoked_white, plot_evoked_joint
@@ -39,6 +40,7 @@ from .io.write import (start_file, start_block, end_file, end_block,
                        write_int, write_string, write_float_matrix,
                        write_id, write_float, write_complex_float_matrix)
 from .io.base import TimeMixin, _check_maxshield
+from .parallel import parallel_func
 
 _aspect_dict = {
     'average': FIFF.FIFFV_ASPECT_AVERAGE,
@@ -1320,3 +1322,87 @@ def _get_peak(data, times, tmin=None, tmax=None, mode='abs'):
     max_loc, max_time = np.unravel_index(maxfun(masked_index), data.shape)
 
     return max_loc, max_time, data[max_loc, max_time]
+
+
+@verbose
+def apply_function(self, fun, picks=None, dtype=None, n_jobs=1,
+                   channel_wise=True, verbose=None, *args, **kwargs):
+    """Apply a function to a subset of channels.
+
+    The function "fun" is applied to the channels defined in "picks". The
+    data of the Evoked object is modified in place. If the function returns
+    a different data type (e.g. numpy.complex) it must be specified using
+    the dtype parameter, which causes the data type used for representing
+    the raw data to change.
+    The Evoked object has to have the data loaded e.g. with
+    ``preload=True`` or ``self.load_data()``.
+
+    .. note:: If n_jobs > 1, more memory is required as
+              ``len(picks) * n_times`` additional time points need to
+              be temporaily stored in memory.
+    .. note:: If the data type changes (dtype != None), more memory is
+              required since the original and the converted data needs
+              to be stored in memory.
+
+    Parameters
+    ----------
+    fun : callable
+        A function to be applied to the channels. The first argument of
+        fun has to be a timeseries (numpy.ndarray). The function must
+        operate on an array of shape ``(n_times,)`` if
+        ``channel_wise=True`` and ``(len(picks), n_times)`` otherwise.
+        The function must return an ndarray shaped like its input.
+    %(picks_all_data_noref)s
+    dtype : numpy.dtype (default: None)
+        Data type to use for raw data after applying the function. If None
+        the data type is not modified.
+    n_jobs : int (default: 1)
+        Number of jobs to run in parallel. Ignored if ``channel_wise`` is
+        False.
+    channel_wise : bool (default: True)
+        Whether to apply the function to each channel individually. If
+        False, the function will be applied to all channels at once.
+        .. versionadded:: 0.18
+    %(verbose_meth)s
+    *args : list
+        Additional positional arguments to pass to fun (first pos. argument
+        of fun is the timeseries of a channel).
+    **kwargs : dict
+        Keyword arguments to pass to fun.
+
+    Returns
+    -------
+    self : instance of Evoked
+        The evoked object with transformed data.
+    """
+    _check_preload(self, 'evoked.apply_function')
+    picks = _picks_to_idx(self.info, picks, exclude=(), with_ref_meg=False)
+
+    if not callable(fun):
+        raise ValueError('fun needs to be a function')
+
+    data_in = self._data
+    if dtype is not None and dtype != self._data.dtype:
+        self._data = self._data.astype(dtype)
+
+    # check the dimension of the incoming evoked data
+    _check_option('evoked.ndim', self._data.ndim, [2])
+
+    if channel_wise:
+        if n_jobs == 1:
+            # modify data inplace to save memory
+            for idx in picks:
+                self._data[idx, :] = _check_fun(fun, data_in[idx, :],
+                                                   *args, **kwargs)
+        else:
+            # use parallel function
+            parallel, p_fun, _ = parallel_func(_check_fun, n_jobs)
+            data_picks_new = parallel(p_fun(
+                fun, data_in[p, :], *args, **kwargs) for p in picks)
+            for pp, p in enumerate(picks):
+                self._data[p, :] = data_picks_new[pp]
+    else:
+        self._data = _check_fun(
+            fun, data_in, *args, **kwargs)
+
+    return self

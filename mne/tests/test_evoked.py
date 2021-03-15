@@ -8,6 +8,7 @@
 from copy import deepcopy
 import os.path as op
 import pickle
+import mne
 
 import numpy as np
 from scipy import fftpack
@@ -23,6 +24,7 @@ from mne.io import read_raw_fif
 from mne.io.constants import FIFF
 from mne.utils import (_TempDir, requires_pandas,
                        run_tests_if_main, grand_average)
+from mne.io.write import INT32_MAX
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 fname = op.join(base_dir, 'test-ave.fif')
@@ -759,3 +761,26 @@ def test_hilbert():
 
 
 run_tests_if_main()
+
+def fun(evoked_data):
+    """Auxilary function to test_apply function."""
+    matrix = np.random.rand(10, 10)
+    return matrix @ evoked_data
+
+def test_apply_function_evk():
+    """Check the apply_function method for evoked data."""
+    # create fake data to use for checking apply_function
+    data = np.random.rand(10, 1000)
+    events = np.array([[0, 0, 1], [INT32_MAX, 0, 2]])
+    info = mne.create_info(10, 1000., 'eeg')
+    epochs = mne.EpochsArray(data, info, events)
+    evoked = epochs.average(method='mean')
+
+    data_evoked = evoked.get_data()
+    # check apply_function in all channels at the time
+    res = evoked.apply_function(fun, channel_wise=False)
+    assert np.shape(res) == np.shape(data_evoked)
+
+
+
+
