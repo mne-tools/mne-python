@@ -10,30 +10,6 @@ field (or STRF). First, we create a linear filter that maps patterns in
 spectro-temporal space onto an output, representing neural activity. We fit
 a receptive field model that attempts to recover the original linear filter
 that was used to create this data.
-
-References
-----------
-Estimation of spectro-temporal and spatio-temporal receptive fields using
-modeling with continuous inputs is described in:
-
-.. [1] Theunissen, F. E. et al. Estimating spatio-temporal receptive
-       fields of auditory and visual neurons from their responses to
-       natural stimuli. Network 12, 289-316 (2001).
-
-.. [2] Willmore, B. & Smyth, D. Methods for first-order kernel
-       estimation: simple-cell receptive fields from responses to
-       natural scenes. Network 14, 553-77 (2003).
-
-.. [3] Crosse, M. J., Di Liberto, G. M., Bednar, A. & Lalor, E. C. (2016).
-       The Multivariate Temporal Response Function (mTRF) Toolbox:
-       A MATLAB Toolbox for Relating Neural Signals to Continuous Stimuli.
-       Frontiers in Human Neuroscience 10, 604.
-       doi:10.3389/fnhum.2016.00604
-
-.. [4] Holdgraf, C. R. et al. Rapid tuning shifts in human auditory cortex
-       enhance speech intelligibility. Nature Communications, 7, 13654 (2016).
-       doi:10.1038/ncomms13654
-
 """
 # Authors: Chris Holdgraf <choldgraf@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
@@ -57,7 +33,8 @@ rng = np.random.RandomState(1337)  # To make this example reproducible
 # Load audio data
 # ---------------
 #
-# We'll read in the audio data from [3]_ in order to simulate a response.
+# We'll read in the audio data from :footcite:`CrosseEtAl2016` in order to
+# simulate a response.
 #
 # In addition, we'll downsample the data along the time dimension in order to
 # speed up computation. Note that depending on the input values, this may
@@ -240,7 +217,7 @@ mne.viz.tight_layout()
 # score as well as the model coefficients for each value, in order to
 # visualize how coefficients change with different levels of regularization.
 # These issues as well as the STRF pipeline are described in detail
-# in [1]_, [2]_, and [4]_.
+# in :footcite:`TheunissenEtAl2001,WillmoreSmyth2003,HoldgrafEtAl2016`.
 
 # Plot model score for each ridge parameter
 fig = plt.figure(figsize=(10, 4))
@@ -282,7 +259,7 @@ mne.viz.tight_layout()
 #           & & &    & -1 & 1\end{matrix}\right]
 #
 # This imposes a smoothness constraint of nearby time samples and/or features.
-# Quoting [3]_:
+# Quoting :footcite:`CrosseEtAl2016` :
 #
 #    Tikhonov [identity] regularization (Equation 5) reduces overfitting by
 #    smoothing the TRF estimate in a way that is insensitive to
@@ -364,3 +341,8 @@ ax3.set_title('Best Laplacian STRF')
 plt.setp([iax.get_xticklabels() for iax in [ax1, ax2, ax3]], rotation=45)
 plt.autoscale(tight=True)
 mne.viz.tight_layout()
+
+###############################################################################
+# References
+# ==========
+# .. footbibliography::
