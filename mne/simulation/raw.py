@@ -238,7 +238,6 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
     References
     ----------
     .. footbibliography::
-    
     """  # noqa: E501
     _validate_type(info, Info, 'info')
     raw_verbose = verbose
@@ -368,7 +367,7 @@ def add_eog(raw, head_pos=None, interp='cos2', n_jobs=1, random_state=None,
     1. Random activation times are drawn from an inhomogeneous poisson
        process whose blink rate oscillates between 4.5 blinks/minute
        and 17 blinks/minute based on the low (reading) and high (resting)
-       blink rates from :footcite:`BentivoglioEtAl1997`
+       blink rates from :footcite:`BentivoglioEtAl1997`.
     2. The activation kernel is a 250 ms Hanning window.
     3. Two activated dipoles are located in the z=0 plane (in head
        coordinates) at ±30 degrees away from the y axis (nasion).
@@ -382,7 +381,6 @@ def add_eog(raw, head_pos=None, interp='cos2', n_jobs=1, random_state=None,
     References
     ----------
     .. footbibliography::
-
     """
     return _add_exg(raw, 'blink', head_pos, interp, n_jobs, random_state)
 
