@@ -4,9 +4,10 @@
 Plot a cortical parcellation
 ============================
 
-In this example, we download the HCP-MMP1.0 parcellation [1]_ and show it
-on ``fsaverage``.
-We will also download the customized 448-label aparc parcellation from [2]_
+In this example, we download the HCP-MMP1.0 parcellation
+:footcite:`GlasserEtAl2016` and show it on ``fsaverage``.
+We will also download the customized 448-label aparc
+parcellation from :footcite:`KhanEtAl2018`.
 
 .. note:: The HCP-MMP dataset has license terms restricting its use.
           Of particular relevance:
@@ -14,14 +15,6 @@ We will also download the customized 448-label aparc parcellation from [2]_
               "I will acknowledge the use of WU-Minn HCP data and data
               derived from WU-Minn HCP data when publicly presenting any
               results or algorithms that benefitted from their use."
-
-References
-----------
-.. [1] Glasser MF et al. (2016) A multi-modal parcellation of human
-       cerebral cortex. Nature 536:171-178.
-.. [2] Khan S et al. (2018) Maturation trajectories of cortical
-       resting-state networks depend on the mediating frequency band.
-       Neuroimage 174 57-68.
 
 """
 # Author: Eric Larson <larson.eric.d@gmail.com>
@@ -61,3 +54,8 @@ brain.add_annotation('HCPMMP1_combined')
 brain = Brain('fsaverage', 'lh', 'inflated', subjects_dir=subjects_dir,
               cortex='low_contrast', background='white', size=(800, 600))
 brain.add_annotation('aparc_sub')
+
+###############################################################################
+# References
+# ----------
+# .. footbibliography::
