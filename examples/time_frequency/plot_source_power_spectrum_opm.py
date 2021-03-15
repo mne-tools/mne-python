@@ -7,7 +7,7 @@ Compute source power spectral density (PSD) of VectorView and OPM data
 
 Here we compute the resting state from raw for data recorded using
 a Neuromag VectorView system and a custom OPM system.
-The pipeline is meant to mostly follow the Brainstorm [1]_
+The pipeline is meant to mostly follow the Brainstorm :footcite:`TadelEtAl2011`
 `OMEGA resting tutorial pipeline <bst_omega_>`_.
 The steps we use are:
 
@@ -228,7 +228,4 @@ fig_gamma, brain_gamma = plot_band('vv', 'gamma')
 ###############################################################################
 # References
 # ----------
-# .. [1] Tadel F, Baillet S, Mosher JC, Pantazis D, Leahy RM.
-#        Brainstorm: A User-Friendly Application for MEG/EEG Analysis.
-#        Computational Intelligence and Neuroscience, vol. 2011, Article ID
-#        879716, 13 pages, 2011. doi:10.1155/2011/879716
+# .. footbibliography::
