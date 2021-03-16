@@ -9,8 +9,8 @@ exploratory and confirmatory tests - e.g., targeted t-tests, cluster-based
 permutation approaches (here with Threshold-Free Cluster Enhancement);
 and how to visualise the results.
 
-The underlying data comes from [1]_; we contrast long vs. short words.
-TFCE is described in [2]_.
+The underlying data comes from :footcite:`DufauEtAl2015`; we contrast long vs.
+short words. TFCE is described in :footcite:`SmithNichols2009`.
 """
 
 import numpy as np
@@ -122,10 +122,5 @@ plt.show()
 
 ###############################################################################
 # References
-# ----------
-# .. [1] Dufau, S., Grainger, J., Midgley, KJ., Holcomb, PJ. A thousand
-#    words are worth a picture: Snapshots of printed-word processing in an
-#    event-related potential megastudy. Psychological Science, 2015
-# .. [2] Smith and Nichols 2009, "Threshold-free cluster enhancement:
-#    addressing problems of smoothing, threshold dependence, and
-#    localisation in cluster inference", NeuroImage 44 (2009) 83-98.
+# ==========
+# .. footbibliography::

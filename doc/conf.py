@@ -475,8 +475,21 @@ html_theme = 'pydata_sphinx_theme'
 # further.  For a list of options available for each theme, see the
 # documentation.
 html_theme_options = {
-    'github_url': 'https://github.com/mne-tools/mne-python',
-    'twitter_url': 'https://twitter.com/mne_python',
+    'icon_links': [
+        dict(name='GitHub',
+             url='https://github.com/mne-tools/mne-python',
+             icon='fab fa-github-square'),
+        dict(name='Twitter',
+             url='https://twitter.com/mne_python',
+             icon='fab fa-twitter-square'),
+        dict(name='Discourse',
+             url='https://mne.discourse.group/',
+             icon='fab fa-discourse'),
+        dict(name='Discord',
+             url='https://discord.gg/rKfvxTuATa',
+             icon='fab fa-discord')
+    ],
+    'icon_links_label': 'Quick Links',  # for screen reader
     'use_edit_page_button': False,
     'navigation_with_keys': False,
     'show_toc_level': 1,
@@ -499,8 +512,6 @@ html_favicon = "_static/favicon.ico"
 html_static_path = ['_static']
 html_css_files = [
     'style.css',
-    'font-source-sans-pro.css',
-    'font-source-code-pro.css',
 ]
 
 # Add any extra paths that contain custom files (such as robots.txt or
@@ -709,6 +720,8 @@ def reset_warnings(gallery_conf, fname):
         category=FutureWarning)
     warnings.filterwarnings(  # nilearn
         'ignore', message=r'The sklearn.* module is.*', category=FutureWarning)
+    warnings.filterwarnings(  # nilearn
+        'ignore', message=r'Fetchers from the nilea.*', category=FutureWarning)
     warnings.filterwarnings(  # deal with other modules having bad imports
         'ignore', message=".*ufunc size changed.*", category=RuntimeWarning)
     warnings.filterwarnings(  # realtime
