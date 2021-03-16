@@ -142,7 +142,7 @@ def test_dipole_fitting(tmpdir):
     assert isinstance(residual, Evoked)
 
     # Test conversion of dip.pos to MNI coordinates.
-    dip_mni_pos = dip.to_mni('sample', fwd['mri_head_t'],
+    dip_mni_pos = dip.to_mni('sample', fname_trans,
                              subjects_dir=subjects_dir)
     head_to_mni_dip_pos = head_to_mni(dip.pos, 'sample', fwd['mri_head_t'],
                                       subjects_dir=subjects_dir)
