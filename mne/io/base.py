@@ -902,6 +902,44 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         else:
             data, times = self[picks, start:stop]
 
+        # Convert into the specified unit
+        # TODO: handle fractions of units and powers
+
+        si_units = _handle_default("si_units")
+        unit_prefixes = dict(m=1e3, c=1e2, µ=1e6, u=1e6, n=1e9, p=1e12, f=1e15)
+        if units is None:
+            pass
+        elif isinstance(units, str):
+            # TODO: check if ch_types of only one unit and unit exists
+            # ch_types = self.get_channel_types(unique=True)
+
+            if units == 'm':
+                scaling = 1
+            elif units[0] in unit_prefixes.keys():
+                scaling = unit_prefixes[units[0]]
+            else:
+                scaling = 1
+            if scaling != 1:
+                data = data * scaling
+        elif isinstance(units, dict):
+            # TODO: check if ch_types exist, have a unit and units exist
+            # ch_types = self.get_channel_types(unique=True)
+            # print possible ch_types if error
+
+            for ch_type in units.keys():
+                if units[ch_type] == 'm':  # only ECG unit starts like prefix
+                    scaling = 1
+                elif units[ch_type][0] in unit_prefixes.keys():
+                    scaling = unit_prefixes[units[ch_type][0]]
+                else:
+                    scaling = 1
+                if scaling != 1:
+                    ch_indices = pick_types(self, **{ch_type: True})
+                    data[ch_indices] = data[ch_indices] * scaling
+        else:
+            raise TypeError('"units" must be None or of type str or dict, not '
+                            f'{type(units)}.')
+
         if return_times:
             return data, times
         return data
