@@ -39,8 +39,8 @@ from mne.viz import plot_alignment, snapshot_brain_montage
 
 print(__doc__)
 
-# paths to mne datasets - sample ECoG and FreeSurfer subject
-bids_root = mne.datasets.clinical.data_path()
+# paths to mne datasets - sample epilepsy ECoG and FreeSurfer subject
+bids_root = mne.datasets.epilepsy.data_path()
 sample_path = mne.datasets.sample.data_path()
 subjects_dir = op.join(sample_path, 'subjects')
 
@@ -59,23 +59,20 @@ raw = read_raw_bids(bids_path=bids_path, verbose=False)
 raw.load_data()
 raw.drop_channels(raw.info['bads'])
 
+# get the montage
+montage = raw.get_montage()
+
 ###############################################################################
 # We can then plot the locations of our electrodes on the fsaverage brain.
 # We'll use :func:`~mne.viz.snapshot_brain_montage` to save the plot as image
 # data (along with xy positions of each electrode in the image), so that later
 # we can plot frequency band power on top of it.
 
-<<<<<<< HEAD
-
-trans = mne.channels.compute_native_head_t(raw.montage)
+trans = mne.channels.compute_native_head_t(montage)
 print(trans)
 
 fig = plot_alignment(raw.info, subject='fsaverage', subjects_dir=subjects_dir,
-                     surfaces=['pial'], trans=trans, coord_frame='mri')
-=======
-fig = plot_alignment(raw.info, subject='fsaverage', subjects_dir=subjects_dir,
                      surfaces=['pial'])
->>>>>>> b73fb9fe51823868fb4e32b7b69bbe205849ce22
 mne.viz.set_3d_view(fig, 200, 70, focalpoint=[0, -0.005, 0.03])
 
 xy, im = snapshot_brain_montage(fig, raw.info)

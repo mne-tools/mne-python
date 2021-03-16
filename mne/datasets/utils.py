@@ -248,7 +248,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         'refmeg_noise': 'MNE_DATASETS_REFMEG_NOISE_PATH',
         'ssvep': 'MNE_DATASETS_SSVEP_PATH',
         'erp_core': 'MNE_DATASETS_ERP_CORE_PATH',
-        'epilepsy': 'MNE_DATASETS_EPILEPSY_PATH',
+        'epilepsy_ecog': 'MNE_DATASETS_epilepsy_ecog_PATH',
     }[name]
 
     path = _get_path(path, key, name)
@@ -289,7 +289,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         refmeg_noise='https://osf.io/drt6v/download?version=1',
         ssvep='https://osf.io/z8h6k/download?version=5',
         erp_core='https://osf.io/rzgba/download?version=1',
-        epilepsy='afasdfs',
+        epilepsy_ecog='https://osf.io/z4epq/download?revision=1',
     )
     # filename of the resulting downloaded archive (only needed if the URL
     # name does not match resulting filename)
@@ -311,7 +311,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         refmeg_noise='sample_reference_MEG_noise-raw.zip',
         ssvep='ssvep_example_data.zip',
         erp_core='MNE-ERP-CORE-data.tar.gz',
-        epilepsy='MNE-epilepsy.tar.gz',
+        epilepsy_ecog='MNE-epilepsy-ecog-data.tar.gz',
     )
     # original folder names that get extracted (only needed if the
     # archive does not extract the right folder name; e.g., usually GitHub)
@@ -336,7 +336,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         refmeg_noise='MNE-refmeg-noise-data',
         ssvep='ssvep-example-data',
         erp_core='MNE-ERP-CORE-data',
-        epilepsy='epilepsy-example-data'
+        epilepsy_ecog='MNE-epilepsy-ecog-data'
     )
     md5_hashes = dict(
         brainstorm=dict(
@@ -363,7 +363,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         refmeg_noise='779fecd890d98b73a4832e717d7c7c45',
         ssvep='af866bbc0f921114ac9d683494fe87d6',
         erp_core='5866c0d6213bd7ac97f254c776f6c4b1',
-        epilepsy='dfdafads',
+        epilepsy_ecog='ffb139174afa0f71ec98adbbb1729dea',
     )
     assert set(md5_hashes.keys()) == set(urls.keys())
     url = urls[name]
@@ -595,7 +595,7 @@ def has_dataset(name):
             'refmeg_noise': 'MNE-refmeg-noise-data',
             'ssvep': 'ssvep-example-data',
             'erp_core': 'MNE-ERP-CORE-data',
-            'epilepsy': 'epilepsy-example-data'
+            'epilepsy_ecog': 'epilepsy_ecog-example-data'
         }[name]
     dp = _data_path(download=False, name=name, check_version=False,
                     archive_name=archive_name)
@@ -618,7 +618,7 @@ def _download_all_example_data(verbose=True):
                    eegbci, multimodal, opm, hf_sef, mtrf, fieldtrip_cmc,
                    kiloword, phantom_4dbti, sleep_physionet, limo,
                    fnirs_motor, refmeg_noise, fetch_infant_template,
-                   fetch_fsaverage, ssvep, erp_core, epilepsy)
+                   fetch_fsaverage, ssvep, erp_core, epilepsy_ecog)
     sample_path = sample.data_path()
     testing.data_path()
     misc.data_path()
@@ -634,7 +634,7 @@ def _download_all_example_data(verbose=True):
     phantom_4dbti.data_path()
     refmeg_noise.data_path()
     ssvep.data_path()
-    epilepsy.data_path()
+    epilepsy_ecog.data_path()
     brainstorm.bst_raw.data_path(accept=True)
     brainstorm.bst_auditory.data_path(accept=True)
     brainstorm.bst_resting.data_path(accept=True)
