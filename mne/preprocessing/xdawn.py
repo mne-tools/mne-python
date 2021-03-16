@@ -345,7 +345,7 @@ class _XdawnTransformer(BaseEstimator, TransformerMixin):
 class Xdawn(_XdawnTransformer):
     """Implementation of the Xdawn Algorithm.
 
-    Xdawn :footcite:`RivetEtAl2009` :footcite:`RivetEtAl2011` is a spatial
+    Xdawn :footcite:`RivetEtAl2009,RivetEtAl2011` is a spatial
     filtering method designed to improve the signal to signal + noise
     ratio (SSNR) of the ERP responses. Xdawn was originally designed for
     P300 evoked potential by enhancing the target response with respect
