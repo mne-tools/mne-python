@@ -64,9 +64,6 @@ with warnings.catch_warnings(record=True):
 raw.load_data()
 raw.drop_channels(raw.info['bads'])
 
-# get the montage
-montage = raw.get_montage()
-
 ###############################################################################
 # We can then plot the locations of our electrodes on the fsaverage brain.
 # We'll use :func:`~mne.viz.snapshot_brain_montage` to save the plot as image
@@ -173,13 +170,15 @@ anim = animation.FuncAnimation(fig, animate, init_func=init,
 cmap = 'RdBu_r'
 
 # Apply a notch filter to remove 60 Hz line noise and harmonics
-raw_notched = raw.copy().notch_filter([60, 120])
+raw_notched = raw.copy().pick_types(
+    meg=False, ecog=True).notch_filter([60, 120])
 
 # Apply a gentle high pass filter to get rid of drift
 raw_notched.filter(l_freq=0.1, h_freq=None)
 
 # Downsample the data to make the animation more reasonable
-raw_notched.resample(50)  # Hz
+sfreq = 50  # Hz
+raw_notched.resample(sfreq)
 ts_data = raw_notched.get_data()
 
 # Find the annotated events
@@ -202,6 +201,9 @@ def init():
 def animate(i, activity, events):
     """Animate the plot."""
     paths.set_array(activity[:, i])
+    tsl2 = slice(i + start_sample - sfreq, i + start_sample + sfreq)
+    for j, tpath in enumerate(tpaths):
+        tpath.set_data(raw_notched.times[tsl], ts_data[j, tsl2])
     # If this sample contains an annotation (for a seizure-related behavior)
     # then change the title of the plot
     if i + start_sample in events[:, 0]:
@@ -216,8 +218,10 @@ def animate(i, activity, events):
 # create the figure and apply the animation of the
 # raw time series data
 fig, ax = plt.subplots(figsize=(5, 5))
+tax = fig.add_axes([0.15, 0.02, 0.6, 0.15])
 ax.imshow(im)
 ax.set_axis_off()
+tax.set_axis_off()
 # We want the mid-point (0 uV) to be white, so we will scale from -vmax to vmax
 # so that negative voltages are blue and positive voltages are red
 vmax = np.percentile(ts_data.flatten(), 90)
@@ -225,6 +229,8 @@ paths = ax.scatter(*xy_pts.T, c=np.zeros(len(xy_pts)), s=40,
                    cmap=cmap, vmin=-vmax, vmax=vmax)
 ax.set_xlim([0, im.shape[0]])
 ax.set_ylim([im.shape[1], 0])
+tsl = slice(start_sample - sfreq, start_sample + sfreq)
+tpaths = tax.plot(raw_notched.times[tsl], ts_data[:, tsl].T)
 fig.colorbar(paths, ax=ax)
 title = ax.set_title('iEEG voltage over time', size='large')
 
