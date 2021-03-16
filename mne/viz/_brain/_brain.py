@@ -1340,9 +1340,9 @@ class Brain(object):
         if self._mouse_no_mvt > 0:
             x, y = vtk_picker.GetEventPosition()
             # programmatically detect the picked renderer
-            self.picked_renderer = self._renderer.figure.plotter.iren.FindPokedRenderer(x, y)
+            self.picked_renderer = self._renderer.figure.viewer.iren.FindPokedRenderer(x, y)
             # trigger the pick
-            self._renderer.figure.plotter.picker.Pick(x, y, 0, self.picked_renderer)
+            self._renderer.figure.viewer.picker.Pick(x, y, 0, self.picked_renderer)
         self._mouse_no_mvt = 0
 
     def _on_pick(self, vtk_picker, event):
@@ -1538,7 +1538,7 @@ class Brain(object):
             self.color_cycle.restore(color)
         for sphere in spheres:
             # remove all actors
-            self._renderer.figure.plotter.remove_actor(sphere._actors, render=render)
+            self._renderer.figure.viewer.remove_actor(sphere._actors, render=render)
             sphere._actors = None
             self._spheres.pop(self._spheres.index(sphere))
         self.pick_table.pop(vertex_id)

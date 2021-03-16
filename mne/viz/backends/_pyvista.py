@@ -82,30 +82,30 @@ class _Figure(object):
         self._azimuth = self._elevation = None
 
     def build(self):
+        if self.plotter is not None:
+            return
         if self.notebook:
             plotter_class = Plotter
         else:
             plotter_class = MultiPlotter
 
-        if self.plotter is None:
-            if not self.notebook:
-                from PyQt5.QtWidgets import QApplication
-                app = QApplication.instance()
-                if app is None:
-                    app = QApplication(["MNE"])
-                self.store['app'] = app
-            plotter = plotter_class(**self.store)
-            plotter.background_color = self.background_color
-            self.plotter = plotter
-            if not self.notebook and hasattr(plotter_class, 'set_icon'):
-                _init_qt_resources()
-                _process_events(plotter)
-                self.plotter.set_icon(":/mne-icon.png")
+        if not self.notebook:
+            from PyQt5.QtWidgets import QApplication
+            app = QApplication.instance()
+            if app is None:
+                app = QApplication(["MNE"])
+            self.store['app'] = app
+        self.plotter = plotter_class(**self.store)
+        self.plotter.background_color = self.background_color
+        if not self.notebook and hasattr(plotter_class, 'set_icon'):
+            _init_qt_resources()
+            _process_events(self.plotter)
+            self.plotter.set_icon(":/mne-icon.png")
 
-            if self.notebook:
-                self.viewer = self.plotter
-            else:
-                self.viewer = self.plotter._plotter
+        if self.notebook:
+            self.viewer = self.plotter
+        else:
+            self.viewer = self.plotter._plotter
 
         _process_events(self.plotter)
         _process_events(self.plotter)
