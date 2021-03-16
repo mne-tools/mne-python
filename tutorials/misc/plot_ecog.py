@@ -40,7 +40,7 @@ from mne.viz import plot_alignment, snapshot_brain_montage
 print(__doc__)
 
 # paths to mne datasets - sample ECoG and FreeSurfer subject
-bids_root = mne.datasets.clinical.data_path()
+bids_root = mne.datasets.epilepsy.data_path()
 sample_path = mne.datasets.sample.data_path()
 subjects_dir = op.join(sample_path, 'subjects')
 
@@ -69,7 +69,7 @@ raw.drop_channels(raw.info['bads'])
 
 fig = plot_alignment(raw.info, subject='fsaverage', subjects_dir=subjects_dir,
                      surfaces=['pial'])
-mne.viz.set_3d_view(fig, 200, 70, focalpoint=[0, -0.005, 0.03])
+mne.viz.set_3d_view(fig, 160, -70, focalpoint=[0.067, -0.040, 0.018])
 
 xy, im = snapshot_brain_montage(fig, raw.info)
 
@@ -107,6 +107,8 @@ for ax, band_power, band in zip(axs,
     sc = ax.scatter(*xy_pts.T, c=band_power, s=200,
                     cmap=cmap, vmin=vmin, vmax=vmax)
     ax.set_title(f'{band} band power', size='x-large')
+    ax.set_xlim([0, im.shape[0]])
+    ax.set_ylim([im.shape[1], 0])
 fig.colorbar(sc, ax=axs)
 
 ###############################################################################
@@ -134,10 +136,13 @@ def animate(i, activity):
 fig, ax = plt.subplots(figsize=(5, 5))
 ax.imshow(im)
 ax.set_axis_off()
-paths = ax.scatter(*xy_pts.T, c=np.zeros(len(xy_pts)), s=200,
+vmin, vmax = np.percentile(gamma_power, [10, 90])
+paths = ax.scatter(*xy_pts.T, c=np.zeros(len(xy_pts)), s=100,
                    cmap=cmap, vmin=vmin, vmax=vmax)
+ax.set_xlim([0, im.shape[0]])
+ax.set_ylim([im.shape[1], 0])
 fig.colorbar(paths, ax=ax)
-ax.set_title('Gamma frequency over time (Hilbert transform)',
+ax.set_title('Gamma frequency over time\n(Hilbert transform)',
              size='large')
 
 # avoid edge artifacts and decimate, showing just a short chunk
@@ -153,16 +158,6 @@ anim = animation.FuncAnimation(fig, animate, init_func=init,
 # to seizure onset that are marked in the annotations. This will be done
 # very similarly to the high gamma visualization
 
-# For this plot we will use a different angle (from left side)
-fig = plot_alignment(raw.info, subject='fsaverage', subjects_dir=subjects_dir,
-                     surfaces=['pial'], trans=None, coord_frame='head')
-mne.viz.set_3d_view(fig, -360, 90)
-
-xy, im = snapshot_brain_montage(fig, raw.info)
-
-# Convert from a dictionary to array to plot
-xy_pts = np.vstack([xy[ch] for ch in raw.info['ch_names']])
-
 # colormap to view spectral power - RdBu_r works well for directional
 # data such as voltage time series, where positive and negative values
 # matter and there is a true 0 point.
@@ -170,18 +165,13 @@ cmap = 'RdBu_r'
 
 raw_notched = raw.copy().notch_filter([60, 120])
 ts_data = raw_notched.get_data()
-# Create a dictionary of seizure-related events from raw.annotations
-# These will be used to update the animation and show the most relevant
-# annotation
-events = dict()
-for t in np.arange(len(raw.annotations)):
-    samp_num = int(raw.annotations[t].onset[0]*raw.info['sfreq'])
-    events[samp_num] = raw.annotations[t].description[0]
 
-# This start sample is normally something you would determine empirically
-# but here is 1 second before the onset of the first seizure-related
-# annotation
-start_sample = int(74710 - 1*raw.info['sfreq'])
+# Get the events from the raw data file annotations
+events, event_id = mne.events_from_annotations(raw)
+
+# Let's use the third event, which is the start of the first siezure
+# (the first two events are pre-seizure behavioral events)
+start_sample = int(events[2, 0] - 1 * raw.info['sfreq'])
 
 
 # Create an initialization and animation function
@@ -198,10 +188,10 @@ def animate(i, activity, events):
     paths.set_array(activity[:, i])
     # If this sample contains an annotation (for a seizure-related behavior)
     # then change the title of the plot
-    if i+start_sample in events.keys():
+    if i + start_sample in events.keys():
         # Currently this doesn't replace the text, but writes over it.
         # This needs fixing
-        title.set_text(events[i+start_sample])
+        title.set_text(events[i + start_sample])
     return paths, title
 
 
@@ -213,8 +203,10 @@ ax.set_axis_off()
 # We want the mid-point (0 uV) to be white, so we will scale from -vmax to vmax
 # so that negative voltages are blue and positive voltages are red
 vmax = np.percentile(ts_data.flatten(), 90)
-paths = ax.scatter(*xy_pts.T, c=np.zeros(len(xy_pts)), s=20,
+paths = ax.scatter(*xy_pts.T, c=np.zeros(len(xy_pts)), s=40,
                    cmap=cmap, vmin=-vmax, vmax=vmax)
+ax.set_xlim([0, im.shape[0]])
+ax.set_ylim([im.shape[1], 0])
 fig.colorbar(paths, ax=ax)
 title = ax.set_title('iEEG voltage over time', size='large')
 
