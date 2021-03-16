@@ -75,6 +75,7 @@ class _Figure(object):
             self.store['auto_update'] = False
             self.store["menu_bar"] = False
             self.store["toolbar"] = False
+            self.store["margin"] = False
             self.store["nrows"] = shape[0]
             self.store["ncols"] = shape[1]
         self.viewer = None
@@ -96,7 +97,6 @@ class _Figure(object):
                 app = QApplication(["MNE"])
             self.store['app'] = app
         self.plotter = plotter_class(**self.store)
-        self.plotter.background_color = self.background_color
         if not self.notebook and hasattr(plotter_class, 'set_icon'):
             _init_qt_resources()
             _process_events(self.plotter)
@@ -188,6 +188,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                 self.figure.build()
             self._hide_axes()
             self._enable_aa()
+            self._set_background(self.figure.background_color)
         self.update_lighting()
 
     @property
@@ -210,6 +211,10 @@ class _PyVistaRenderer(_AbstractRenderer):
     def _hide_axes(self):
         for renderer in self._all_renderers:
             renderer.hide_axes()
+
+    def _set_background(self, color):
+        for renderer in self._all_renderers:
+            renderer.background_color = color
 
     def _update(self):
         for plotter in self._all_plotters:

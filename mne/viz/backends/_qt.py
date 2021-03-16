@@ -16,7 +16,7 @@ from PyQt5.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
                              QHBoxLayout, QLabel, QToolButton, QMenuBar,
                              QSlider, QSpinBox, QVBoxLayout, QWidget,
                              QSizePolicy, QScrollArea, QStyle, QProgressBar,
-                             QStyleOptionSlider, QLayout, QSplitter)
+                             QStyleOptionSlider, QLayout)
 
 from ._pyvista import _PyVistaRenderer
 from ._pyvista import (_close_all, _close_3d_figure, _check_3d_figure,  # noqa: F401,E501 analysis:ignore
@@ -375,16 +375,8 @@ class _QtWindow(_AbstractWindow):
 
     def _window_adjust_mplcanvas_layout(self):
         canvas = self._mplcanvas.canvas
-        vlayout = self._interactor.frame.layout()
-        vlayout.removeWidget(self._interactor)
-        splitter = QSplitter(
-            orientation=Qt.Vertical,
-            parent=self._interactor.frame
-        )
-        vlayout.addWidget(splitter)
-        splitter.addWidget(self._interactor)
-        splitter.addWidget(canvas)
-        self._splitter = splitter
+        layout = self._window.centralWidget().layout()
+        layout.addWidget(canvas, self.figure._nrows, 0, -1, -1)
 
     def _window_get_cursor(self):
         return self._interactor.cursor()
