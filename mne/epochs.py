@@ -2107,8 +2107,8 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
         (default), rows are created for **all** event types present in
         ``event_id``.
     keep_first : str | list of str | None
-        Specify subsets of hierarchical event descriptors (HEDs) matching
-        events of which  the **first occurrence** within each
+        Specify subsets of :term:`hierarchical event descriptors` (HEDs)
+        matching events of which  the **first occurrence** within each
         time window shall be stored in addition to the original events.
 
         .. note::
@@ -2124,7 +2124,7 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
         case, you can pass ``keep_first='response'``. This will add two new
         columns to the metadata: ``response``, indicating at what **time** the
         event  occurred, relative to the time-locked event; and
-        ``first_response``, stating which **type** (``'left'`` or``'right'``)
+        ``first_response``, stating which **type** (``'left'`` or ``'right'``)
         of event occurred.
         To match specific subsets of HEDs describing different sets of events,
         pass a list of these subsets, e.g.
