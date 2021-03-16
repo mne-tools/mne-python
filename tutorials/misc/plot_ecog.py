@@ -167,6 +167,7 @@ xy_pts = np.vstack([xy[ch] for ch in raw.info['ch_names']])
 # matter and there is a true 0 point.
 cmap = 'RdBu_r'
 
+raw_notched = raw.copy().notch_filter([60, 120])
 ts_data = raw_notched.get_data()
 # Create a dictionary of seizure-related events from raw.annotations
 # These will be used to update the animation and show the most relevant
