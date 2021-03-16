@@ -47,19 +47,15 @@ subjects_dir = op.join(sample_path, 'subjects')
 
 ###############################################################################
 # Let's load some ECoG electrode data with ``mne-bids``.
-
 # first define the bids path
 subject = 'pt1'
 bids_path = BIDSPath(root=bids_root, subject=subject, session='presurgery',
-                     task='ictal', acquisition='ecog', run='01',
-                     datatype='ieeg', extension='vhdr')
+                     task='ictal', datatype='ieeg', extension='vhdr')
 
 # then we'll use it to load in the sample dataset
 raw = read_raw_bids(bids_path=bids_path, verbose=False)
 
-# drop bad channels
-raw.info['bads'].extend([ch for ch in raw.ch_names
-                         if ch not in montage.ch_names])
+# load data and drop bad channels
 raw.load_data()
 raw.drop_channels(raw.info['bads'])
 
@@ -68,16 +64,18 @@ raw.drop_channels(raw.info['bads'])
 # We'll use :func:`~mne.viz.snapshot_brain_montage` to save the plot as image
 # data (along with xy positions of each electrode in the image), so that later
 # we can plot frequency band power on top of it.
-#
-# .. note:: These are not real electrodes for this subject, so they
-#           do not align to the cortical surface perfectly.
 
+<<<<<<< HEAD
 
 trans = mne.channels.compute_native_head_t(raw.montage)
 print(trans)
 
 fig = plot_alignment(raw.info, subject='fsaverage', subjects_dir=subjects_dir,
                      surfaces=['pial'], trans=trans, coord_frame='mri')
+=======
+fig = plot_alignment(raw.info, subject='fsaverage', subjects_dir=subjects_dir,
+                     surfaces=['pial'])
+>>>>>>> b73fb9fe51823868fb4e32b7b69bbe205849ce22
 mne.viz.set_3d_view(fig, 200, 70, focalpoint=[0, -0.005, 0.03])
 
 xy, im = snapshot_brain_montage(fig, raw.info)
