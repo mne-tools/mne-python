@@ -711,7 +711,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
             PLV = |E[Sxy/|Sxy|]|
 
         'ciplv' : corrected imaginary PLV (icPLV)
-        :footcite:`BruñaEtAl2018` given by::
+        :footcite:`BrunaEtAl2018` given by::
 
                              |E[Im(Sxy/|Sxy|)]|
             ciPLV = ------------------------------------
