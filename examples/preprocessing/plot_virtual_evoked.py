@@ -44,7 +44,7 @@ virt_evoked.plot_topomap(ch_type='mag', time_unit='s',
 # Now, we remap magnometers to gradiometers, and plot
 # the original and remapped topomaps of the gradiometers
 
-# go from grad + mag to grad and plot orignal grad
+# go from grad + mag to grad and plot original grad
 virt_evoked = evoked.as_type('grad')
 evoked.plot_topomap(ch_type='grad', title='grad (original)', time_unit='s')
 
