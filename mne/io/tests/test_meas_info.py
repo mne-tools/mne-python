@@ -533,6 +533,9 @@ def _test_anonymize_info(base_info):
     exp_info['subject_info']['last_name'] = default_str
     exp_info['subject_info']['id'] = default_subject_id
     exp_info['subject_info']['his_id'] = str(default_subject_id)
+    exp_info['subject_info']['sex'] = default_str
+    exp_info['subject_info']['hand'] = default_str
+
     # this bday is 3653 days different. the change in day is due to a
     # different number of leap days between 1987 and 1977 than between
     # 2010 and 2000.
@@ -557,6 +560,8 @@ def _test_anonymize_info(base_info):
     # exp 2 tests the keep_his option
     exp_info_2 = exp_info.copy()
     exp_info_2['subject_info']['his_id'] = 'foobar'
+    exp_info_2['subject_info']['sex'] = 0
+    exp_info_2['subject_info']['hand'] = 1
 
     # exp 3 tests is a supplied daysback
     delta_t_2 = timedelta(days=43)
