@@ -11,12 +11,15 @@ electrocorticography (ECoG) data.
 
 This example shows how to use:
 
-- ECoG data
-- channel locations in subject's MRI space
-- projection onto a surface
+- ECoG_ data from a study of epilepsy subject with a seizure
+- channel locations in FreeSurfer's ``fsaverage`` MRI space
+- projection onto a pial surface
 
 For a complementary example that involves sEEG data, channel locations in
 MNI space, or projection into a volume, see :ref:`tut_working_with_seeg`.
+
+.. _ECoG: https://openneuro.org/datasets/ds003029
+
 """
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Chris Holdgraf <choldgraf@gmail.com>
@@ -32,7 +35,8 @@ import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-
+import matplotlib
+matplotlib.use('Qt5Agg')
 from mne_bids import BIDSPath, read_raw_bids
 
 import mne
