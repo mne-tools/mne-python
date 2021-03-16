@@ -3667,7 +3667,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
 
 
 @verbose
-def make_fixed_length_epochs(raw, duration=1., preload=False,
+def make_fixed_length_epochs(raw, duration=1., overlap=0., preload=False,
                              reject_by_annotation=True, proj=True,
                              verbose=None):
     """Divide continuous raw data into equal-sized consecutive epochs.
@@ -3678,6 +3678,9 @@ def make_fixed_length_epochs(raw, duration=1., preload=False,
         Raw data to divide into segments.
     duration : float
         Duration of each epoch in seconds. Defaults to 1.
+    overlap : float
+        The overlap between epochs. Must be ``0 <= overlap < duration``.
+        Default is 0.
     %(preload)s
     %(reject_by_annotation_epochs)s
 
@@ -3696,7 +3699,8 @@ def make_fixed_length_epochs(raw, duration=1., preload=False,
     -----
     .. versionadded:: 0.20
     """
-    events = make_fixed_length_events(raw, 1, duration=duration)
+    events = make_fixed_length_events(raw, 1, duration=duration,
+                                      overlap=overlap)
     delta = 1. / raw.info['sfreq']
     return Epochs(raw, events, event_id=[1], tmin=0, tmax=duration - delta,
                   baseline=None, preload=preload,
