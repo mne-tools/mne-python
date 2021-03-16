@@ -276,7 +276,7 @@ class Dipole(object):
         Parameters
         ----------
         %(subject)s
-        %(trans)s
+        %(trans_not_none)s
         %(subjects_dir)s
         %(verbose)s
 
