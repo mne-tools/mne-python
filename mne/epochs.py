@@ -1498,11 +1498,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                        channel_wise=True, verbose=None, *args, **kwargs):
         """Apply a function to a subset of channels.
 
-        The function ``fun`` is applied to the channels defined in ``picks``. The
-        data of the Epochs object is modified in-place. If the function returns
-        a different data type (e.g. numpy.complex) it must be specified using
-        the dtype parameter, which causes the data type used for representing
-        the raw data to change.
+        The function ``fun`` is applied to the channels defined in ``picks``.
+        The data of the Epochs object is modified in-place. If the function
+        returns a different data type (e.g. numpy.complex) it must be specified
+        using the dtype parameter, which causes the data type used for
+        representing the raw data to change.
         The Epochs object has to have the data loaded e.g. with
         ``preload=True`` or ``self.load_data()``.
 
