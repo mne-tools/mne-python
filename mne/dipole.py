@@ -269,15 +269,16 @@ class Dipole(object):
             title=title)
 
     @verbose
-    def to_mni(self, subject, mri_head_t, subjects_dir=None,
+    def to_mni(self, subject, trans, subjects_dir=None,
                verbose=None):
         """Convert dipole location from head coordinate system to MNI coordinates.
 
         Parameters
         ----------
         %(subject)s
-        mri_head_t : instance of Transform
-            MRI<->Head coordinate transformation.
+        trans : str | None
+            The head<->MRI transform filename. Must be provided unless BEM
+            is a sphere model.
         %(subjects_dir)s
         %(verbose)s
 
@@ -287,7 +288,7 @@ class Dipole(object):
             The MNI coordinates (in mm) of pos.
         """
         from .source_space import head_to_mni
-        return head_to_mni(self.pos, subject, mri_head_t,
+        return head_to_mni(self.pos, subject, trans,
                            subjects_dir=subjects_dir, verbose=verbose)
 
     def plot_amplitudes(self, color='k', show=True):
