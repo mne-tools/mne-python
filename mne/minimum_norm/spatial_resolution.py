@@ -44,13 +44,14 @@ def resolution_metrics(resmat, src, function='psf', metric='peak_err',
 
         Spatial-extent-based metrics:
 
-        - ``'sd_ext'`` spatial deviation (e.g. [1,2]_).
-        - ``'maxrad_ext'`` maximum radius to 50%% of max amplitude.
+        - ``'sd_ext'`` Spatial deviation
+          (e.g. :footcite:`MolinsEtAl2008,HaukEtAl2019`).
+        - ``'maxrad_ext'`` Maximum radius to 50%% of max amplitude.
 
         Amplitude-based metrics:
 
-        - ``'peak_amp'`` Ratio between absolute maximum amplitudes of peaks per
-            location and maximum peak across locations.
+        - ``'peak_amp'`` Ratio between absolute maximum amplitudes of peaks
+          per location and maximum peak across locations.
         - ``'sum_amp'`` Ratio between sums of absolute amplitudes.
 
     threshold : float
