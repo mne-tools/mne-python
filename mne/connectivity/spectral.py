@@ -699,13 +699,13 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
             C = ---------------------
                 sqrt(E[Sxx] * E[Syy])
 
-        'imcoh' : Imaginary coherence :footcite:`NolteEtAl2004` 
+        'imcoh' : Imaginary coherence :footcite:`NolteEtAl2004`
         given by::
 
                       Im(E[Sxy])
             C = ----------------------
                 sqrt(E[Sxx] * E[Syy])
-                
+
         'plv' : Phase-Locking Value (PLV)
         :footcite:`LachauxEtAl1999` given by::
             PLV = |E[Sxy/|Sxy|]|
