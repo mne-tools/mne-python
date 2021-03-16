@@ -177,7 +177,7 @@ raw_notched = raw.copy().notch_filter([60, 120])
 raw_notched.filter(l_freq=0.1, h_freq=None)
 
 # Downsample the data to make the animation more reasonable
-raw_notched.resample(50)
+raw_notched.resample(50)  # Hz
 ts_data = raw_notched.get_data()
 
 # Find the annotated events
@@ -255,6 +255,7 @@ clim = dict(kind='value', lims=[vmin * 0.9, vmin, vmax])
 brain = stc.plot(surface='pial', hemi='both', initial_time=0.68,
                  colormap='viridis', clim=clim, views='parietal',
                  subjects_dir=subjects_dir, size=(500, 500))
+brain._renderer.set_camera(azimuth=-20, elevation=60)
 
 # You can save a movie like the one on our documentation website with:
 # brain.save_movie(time_dilation=50, interpolation='linear', framerate=10,
