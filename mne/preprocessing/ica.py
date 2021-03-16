@@ -195,8 +195,8 @@ class ICA(ContainsMixin):
         Additional parameters passed to the ICA estimator as specified by
         ``method``.
     max_iter : int
-        Maximum number of iterations during fit. Defaults to 1000 for 'fastica'
-        and to 500 for 'infomax' or 'picard'. The actual number of iterations
+        Maximum number of iterations during fit. Defaults to 1000 for ``'fastica'``
+        and to 500 for ``'infomax'`` or ``'picard'``. The actual number of iterations
         it took :meth:`ICA.fit` to complete will be stored in the ``n_iter_``
         attribute.
     allow_ref_meg : bool
