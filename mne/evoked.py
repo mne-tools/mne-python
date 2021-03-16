@@ -158,12 +158,12 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                        verbose=None, *args, **kwargs):
         """Apply a function to a subset of channels.
 
-        The function ``fun`` is applied to the channels defined in ``picks``. The
-        data of the Evoked object is modified in place. If the function returns
-        a different data type (e.g. numpy.complex) it must be specified using
-        the dtype parameter, which causes the data type used for representing
-        the raw data to change. Since evoked data is averaged over time, the
-        function defined by the user is always applied channel-wise.
+        The function ``fun`` is applied to the channels defined in ``picks``.
+        The data of the Evoked object is modified in place. If the function
+        returns a different data type (e.g. numpy.complex) it must be specified
+        using the dtype parameter, which causes the data type used for
+        representing the raw data to change. Since evoked data is averaged over
+        time, the function defined by the user is always applied channel-wise.
 
         The Evoked object has to have the data loaded e.g. with
         ``preload=True`` or ``self.load_data()``.
@@ -217,7 +217,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         if n_jobs == 1:
             # modify data inplace to save memory
             for idx in picks:
-                self._data[idx, :] = _check_fun(fun, data_in[idx, :],
+                d = np.asarray(data_in[idx, :])
+                self._data[idx, :] = _check_fun(fun, d,
                                                 *args, **kwargs)
         else:
             # use parallel function
@@ -228,7 +229,6 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                 self._data[p, :] = data_picks_new[pp]
 
         return self
-
 
     @verbose
     def apply_baseline(self, baseline=(None, 0), *, verbose=None):

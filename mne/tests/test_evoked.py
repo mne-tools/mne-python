@@ -765,8 +765,9 @@ run_tests_if_main()
 
 def fun(evoked_data):
     """Auxiliary function to test apply_function."""
-    matrix = np.random.rand(10, 10)
-    return matrix @ evoked_data
+    mult_array = np.random.rand(1000)
+    product = np.multiply(mult_array, evoked_data)
+    return np.asarray(product)
 
 
 def test_apply_function_evk():
@@ -780,4 +781,4 @@ def test_apply_function_evk():
     evoked_data = evoked.data
     # check apply_function channel-wise
     applied = evoked.apply_function(fun)
-    assert np.shape(applied) == np.shape(evoked_data)
+    assert np.shape(applied.data) == np.shape(evoked_data)
