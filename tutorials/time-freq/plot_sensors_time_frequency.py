@@ -139,8 +139,8 @@ print(psds_welch_unagg.shape)
 #
 # .. note::
 #       The ``decim`` parameter reduces the sampling rate of the time-frequency
-#       decomposition by the defined factor. This is usually done to reduce 
-#       memory usage. For more information refer to the documentation of 
+#       decomposition by the defined factor. This is usually done to reduce
+#       memory usage. For more information refer to the documentation of
 #       :func:`mne.time_frequency.tfr_morlet`
 #
 # define frequencies of interest (log-spaced)
