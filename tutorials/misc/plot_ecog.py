@@ -49,7 +49,8 @@ subjects_dir = op.join(sample_path, 'subjects')
 # Let's load some ECoG electrode data with ``mne-bids``.
 
 # first define the bids path
-bids_path = BIDSPath(root=bids_root, subject='pt1', session='presurgery',
+subject = 'pt1'
+bids_path = BIDSPath(root=bids_root, subject=subject, session='presurgery',
                      task='ictal', acquisition='ecog', run='01',
                      datatype='ieeg', extension='vhdr')
 
@@ -57,7 +58,8 @@ bids_path = BIDSPath(root=bids_root, subject='pt1', session='presurgery',
 raw = read_raw_bids(bids_path=bids_path, verbose=False)
 
 # drop bad channels
-raw.info['bads'].extend([ch for ch in raw.ch_names if ch not in montage.ch_names])
+raw.info['bads'].extend([ch for ch in raw.ch_names
+                         if ch not in montage.ch_names])
 raw.load_data()
 raw.drop_channels(raw.info['bads'])
 
@@ -182,20 +184,23 @@ ts_data = raw_notched.get_data()
 # annotation
 events = dict()
 for t in np.arange(len(raw.annotations)):
-    events[int(raw.annotations[t].onset[0]*raw.info['sfreq'])] = raw.annotations[t].description[0]
+    samp_num = int(raw.annotations[t].onset[0]*raw.info['sfreq'])
+    events[samp_num] = raw.annotations[t].description[0]
 
 # This start sample is normally something you would determine empirically
 # but here is 1 second before the onset of the first seizure-related
 # annotation
 start_sample = int(74710 - 1*raw.info['sfreq'])
 
+
 # Create an initialization and animation function
-# to pass to FuncAnimation. This time we will 
+# to pass to FuncAnimation. This time we will
 # also pass the plot title so that can be updated
 # with information from the annotations.
 def init():
     """Create an empty frame."""
     return paths, title
+
 
 def animate(i, activity, events):
     """Animate the plot."""
@@ -208,6 +213,7 @@ def animate(i, activity, events):
         title.set_text(events[i+start_sample])
     return paths, title
 
+
 # create the figure and apply the animation of the
 # raw time series data
 fig, ax = plt.subplots(figsize=(5, 5))
@@ -215,11 +221,11 @@ ax.imshow(im)
 ax.set_axis_off()
 # We want the mid-point (0 uV) to be white, so we will scale from -vmax to vmax
 # so that negative voltages are blue and positive voltages are red
-vmax = np.percentile(ts_data.flatten(), 90) 
+vmax = np.percentile(ts_data.flatten(), 90)
 paths = ax.scatter(*xy_pts.T, c=np.zeros(len(xy_pts)), s=20,
                    cmap=cmap, vmin=-vmax, vmax=vmax)
 fig.colorbar(paths, ax=ax)
-title = ax.set_title('iEEG voltage over time',size='large')
+title = ax.set_title('iEEG voltage over time', size='large')
 
 
 # this will be a much longer animation, but the seizure is also
@@ -227,10 +233,10 @@ title = ax.set_title('iEEG voltage over time',size='large')
 sl = slice(start_sample, ts_data.shape[1])
 show_power = ts_data[:, sl]
 anim = animation.FuncAnimation(fig, animate, init_func=init,
-                               fargs=(show_power,events),
+                               fargs=(show_power, events),
                                frames=show_power.shape[1],
                                interval=1, blit=True)
-     
+
 
 ###############################################################################
 # Alternatively, we can project the sensor data to the nearest locations on
