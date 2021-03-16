@@ -20,7 +20,6 @@ For the general methodology, see e.g. :footcite:`HaukEtAl2006`.
 References
 ----------
 .. footbibliography::
-.. footbibliography::
 """
 # Authors: Tal Linzen <linzen@nyu.edu>
 #          Denis A. Engemann <denis.engemann@gmail.com>
