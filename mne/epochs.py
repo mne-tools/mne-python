@@ -2107,9 +2107,10 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
         (default), rows are created for **all** event types present in
         ``event_id``.
     keep_first : str | list of str | None
-        Specify subsets of :term:`hierarchical event descriptors` (HEDs)
-        matching events of which  the **first occurrence** within each
-        time window shall be stored in addition to the original events.
+        Specify subsets of :term:`hierarchical event descriptors` (HEDs,
+        :footcite:`BigdelyShamloEtAl2013`) matching events of which the
+        **first occurrence** within each time window shall be stored in
+        addition to the original events.
 
         .. note::
            There is currently no way to retain **all** occurrences of a
@@ -2183,6 +2184,10 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
     before or after an epoch, e.g. during the inter-trial interval.
 
     .. versionadded:: 0.23
+
+     References
+    ----------
+    .. footbibliography::
     """
     from .utils.mixin import _hid_match
     pd = _check_pandas_installed()
