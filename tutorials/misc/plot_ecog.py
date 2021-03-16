@@ -30,7 +30,6 @@ MNI space, or projection into a volume, see :ref:`tut_working_with_seeg`.
 # License: BSD (3-clause)
 
 import os.path as op
-import warnings
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -55,13 +54,25 @@ bids_path = BIDSPath(root=bids_root, subject='pt1', session='presurgery',
                      task='ictal', datatype='ieeg', extension='vhdr')
 
 # then we'll use it to load in the sample dataset
-# XXX: RuntimeWarning: iEEG Coordinate frame is not accepted BIDS keyword.
-# The allowed keywords are: ['acpc', 'pixels', 'other']
-with warnings.catch_warnings(record=True):
-    raw = read_raw_bids(bids_path=bids_path, verbose=False)
+# Here we use a format (iEEG) that is only available in MNE-BIDS 0.7+, so it
+# will emit a warning on versions <= 0.6
+raw = read_raw_bids(bids_path=bids_path, verbose=False)
 
-# load data and drop bad channels
-raw.load_data()
+# To make the example run much faster, we will crop to 10 seconds before the
+# first relevant event:
+
+start = (mne.events_from_annotations(raw)[0][0, 0] -
+         raw.first_samp) / raw.info['sfreq'] - 10.
+raw.crop(start, None)
+
+# And then downsample. This is just to save time in this example, you should
+# not need to do this in general!
+raw.resample(200)  # Hz, will also load the data for us
+
+# Then we remove line frequency interference
+raw.notch_filter([60])
+
+# drop bad channels
 raw.drop_channels(raw.info['bads'])
 
 ###############################################################################
@@ -182,7 +193,7 @@ raw_notched.resample(sfreq)
 ts_data = raw_notched.get_data()
 
 # Find the annotated events
-events, event_id = mne.events_from_annotations(raw_notched)
+events, event_id = mne.events_from_annotations(raw)
 inv_event_id = {v: k for k, v in event_id.items()}
 
 # find the onset event, use the one second before as the animation start
@@ -224,7 +235,8 @@ ax.set_axis_off()
 tax.set_axis_off()
 # We want the mid-point (0 uV) to be white, so we will scale from -vmax to vmax
 # so that negative voltages are blue and positive voltages are red
-vmax = np.percentile(ts_data.flatten(), 90)
+ts_data = raw.get_data()
+vmax = np.percentile(ts_data, 90)
 paths = ax.scatter(*xy_pts.T, c=np.zeros(len(xy_pts)), s=40,
                    cmap=cmap, vmin=-vmax, vmax=vmax)
 ax.set_xlim([0, im.shape[0]])
@@ -248,7 +260,10 @@ anim = animation.FuncAnimation(fig, animate, init_func=init,
 # Alternatively, we can project the sensor data to the nearest locations on
 # the pial surface and visualize that:
 
-# sphinx_gallery_thumbnail_number = 4
+# sphinx_gallery_thumbnail_number = 5
+
+# decimate by a factor of 10 for speed here
+sl = slice(start_sample, ts_data.shape[1], 10)
 
 evoked = mne.EvokedArray(
     gamma_power_t[:, sl], raw.info, tmin=raw.times[sl][0])
@@ -259,10 +274,10 @@ stc = mne.stc_near_sensors(evoked, trans, 'fsaverage', src=src,
                            subjects_dir=subjects_dir)
 clim = dict(kind='value', lims=[vmin * 0.9, vmin, vmax])
 brain = stc.plot(surface='pial', hemi='both', initial_time=0.68,
-                 colormap='viridis', clim=clim, views='parietal',
+                 colormap='viridis', clim=clim, views='lat',
                  subjects_dir=subjects_dir, size=(500, 500))
-brain._renderer.set_camera(azimuth=-20, elevation=60)
+brain.show_view(azimuth=-20, elevation=60)
 
 # You can save a movie like the one on our documentation website with:
-# brain.save_movie(time_dilation=50, interpolation='linear', framerate=10,
+# brain.save_movie(time_dilation=5, interpolation='linear', framerate=10,
 #                  time_viewer=True)
