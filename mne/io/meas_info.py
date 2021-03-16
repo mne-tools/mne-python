@@ -284,6 +284,8 @@ class Info(dict, MontageMixin):
         Tilt angle of the gantry in degrees.
     lowpass : float
         Lowpass corner frequency in Hertz.
+        It is automatically set to half the sampling rate if there is
+        otherwise no low-pass applied to the data.
     meas_date : datetime
         The time (UTC) of the recording.
 
