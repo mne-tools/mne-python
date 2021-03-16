@@ -61,7 +61,8 @@ raw = read_raw_bids(bids_path=bids_path, verbose=False)
 # To make the example run much faster, we will crop to 10 seconds before the
 # first relevant event:
 
-start = (mne.events_from_annotations(raw)[0][0, 0] - raw.first_samp) / raw.info['sfreq'] - 10.
+start = (mne.events_from_annotations(raw)[0][0, 0] -
+         raw.first_samp) / raw.info['sfreq'] - 10.
 raw.crop(start, None)
 
 # And then downsample. This is just to save time in this example, you should
