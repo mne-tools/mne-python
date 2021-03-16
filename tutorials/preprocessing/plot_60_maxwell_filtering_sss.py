@@ -7,10 +7,6 @@ Signal-space separation (SSS) and Maxwell filtering
 This tutorial covers reducing environmental noise and compensating for head
 movement with SSS and Maxwell filtering.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 As usual we'll start by importing the modules we need, loading some
 :ref:`example data <sample-dataset>`, and cropping it to save on memory:
 """
@@ -294,7 +290,7 @@ raw_sss.pick(['meg']).plot(duration=2, butterfly=True)
 # ^^^^^^^^^^^^^^^^^^^^^
 #
 # If you have information about subject head position relative to the sensors
-# (i.e., continuous head position indicator coils, or :term:`cHPI <HPI>`), SSS
+# (i.e., continuous head position indicator coils, or :term:`cHPI`), SSS
 # can take that into account when projecting sensor data onto the internal
 # subspace. Head position data can be computed using
 # :func:`mne.chpi.compute_chpi_locs` and :func:`mne.chpi.compute_head_pos`,

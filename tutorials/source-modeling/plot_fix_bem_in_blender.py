@@ -19,6 +19,7 @@ Ezequiel Mikulan.
 
 # Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
 #          Ezequiel Mikulan <e.mikulan@gmail.com>
+#          Manorama Kadwani <manorama.kadwani@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -205,3 +206,68 @@ coords, faces = mne.read_surface(op.join(conv_dir, 'sample-head.obj'))
 ###############################################################################
 # That's it! You are ready to continue with your analysis pipeline (e.g.
 # running :func:`mne.make_bem_model`).
+#
+# What if you still get an error?
+# ---------------------------------
+#
+# When editing BEM surfaces/meshes in Blender, make sure to use
+# tools that do not change the number or order of vertices, or the geometry
+# of triangular faces. For example, avoid the extrusion tool, because it
+# duplicates the extruded vertices.
+#
+# Below are some examples of errors you might encounter when running the
+# `mne.make_bem_model` function, and the likely causes of those errors.
+#
+#
+# 1. Cannot decimate to requested ico grade
+#
+#    This error is caused by having too few or too many vertices. The full
+#    error is something like:
+#
+#    .. code-block:: console
+#
+#       RuntimeError: Cannot decimate to requested ico grade 4. The provided
+#       BEM surface has 20516 triangles, which cannot be isomorphic with a
+#       subdivided icosahedron. Consider manually decimating the surface to a
+#       suitable density and then use ico=None in make_bem_model.
+#
+# 2. Surface inner skull has topological defects
+#
+#    This error can occur when trying to match the original number of
+#    triangles by removing vertices. The full error looks like:
+#
+#    .. code-block:: console
+#
+#       RuntimeError: Surface inner skull has topological defects: 12 / 20484
+#       vertices have fewer than three neighboring triangles [733, 1014, 2068,
+#       7732, 8435, 8489, 10181, 11120, 11121, 11122, 11304, 11788]
+#
+# 3. Surface inner skull is not complete
+#
+#    This error (like the previous error) reflects a problem with the surface
+#    topology (i.e., the expected pattern of vertices/edges/faces is
+#    disrupted).
+#
+#    .. code-block:: console
+#
+#       RuntimeError: Surface inner skull is not complete (sum of solid
+#       angles yielded 0.999668, should be 1.)
+#
+# 4. Triangle ordering is wrong
+#
+#    This error reflects a mismatch between how the surface is represented in
+#    memory (the order of the vertex/face definitions) and what is expected by
+#    MNE-Python.  The full error is:
+#
+#    .. code-block:: console
+#
+#       RuntimeError: The source surface has a matching number of
+#       triangles but ordering is wrong
+#
+#
+# For any of these errors, it is usually easiest to start over with the
+# unedited BEM surface and try again, making sure to only *move* vertices and
+# faces without *adding* or *deleting* any. For example,
+# select a circle of vertices, then press :kbd:`G` to drag them to the desired
+# location. Smoothing a group of selected vertices in Blender (by
+# right-clicking and selecting "Smooth Vertices") can also be helpful.

@@ -1,29 +1,9 @@
-:orphan:
-
 .. _contributing:
 
-Contributing to MNE-Python
-==========================
-
-.. contents:: Page contents
-   :local:
-   :depth: 3
+Contributing guide
+==================
 
 .. highlight:: console
-
-.. NOTE: this first section (up until "overview of contribution process") is
-   basically a copy/paste of CONTRIBUTING.rst from the repository root, with
-   one sentence deleted to avoid self-referential linking. Changes made here
-   should be mirrored there, and vice-versa.
-
-MNE-Python is maintained by a community of scientists and research labs, and
-accepts contributions in the form of bug reports, fixes, feature additions, and
-documentation improvements (even just typo corrections). The best way to start
-contributing is by `opening an issue`_ on our GitHub page to discuss your ideas
-for changes or enhancements, or to tell us about behavior that you think might
-be a bug in MNE-Python. *For general troubleshooting of scripts that use
-MNE-Python*, you should instead post on the `MNE Forum`_. Users and
-contributors to MNE-Python are expected to follow our `code of conduct`_.
 
 This page has details on the preferred contribution workflow
 and how best to configure your system for a smooth experience contributing to
@@ -37,10 +17,6 @@ MNE-Python.
    pick one that looks interesting, and work through it while reading this
    guide!
 
-.. _`opening an issue`: https://github.com/mne-tools/mne-python/issues/new/choose
-.. _`MNE Forum`: https://mne.discourse.group
-
-.. _`code of conduct`: https://github.com/mne-tools/.github/blob/main/CODE_OF_CONDUCT.md
 .. _`GitHub issues marked "easy"`: https://github.com/mne-tools/mne-python/issues?q=is%3Aissue+is%3Aopen+label%3AEASY
 
 Overview of contribution process
@@ -71,8 +47,8 @@ The sections :ref:`basic-git` and :ref:`github-workflow` (below) describe this
 process in more detail.
 
 
-Setting up your local environment for MNE-Python development
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Setting up your local development environment
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Configuring git
 ~~~~~~~~~~~~~~~
@@ -138,8 +114,7 @@ into a terminal and you should see ::
 
 If you don't see this or something similar:
 
-.. sidebar::
-   If you get:
+.. sidebar:: If you get:
 
    *bash: conda: command not found*
 
@@ -184,8 +159,8 @@ of how that structure is set up is given here:
    :align: left
 
 
-Setting up the development environment
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Creating the virtual environment
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. sidebar:: Supported Python environments
 

@@ -103,8 +103,9 @@ noise_cov_baseline.plot(epochs.info, proj=True)
 # available. Unfortunately it is not easy to tell the effective number of
 # samples, hence, to choose the appropriate regularization.
 # In MNE-Python, regularization is done using advanced regularization methods
-# described in [1]_. For this the 'auto' option can be used. With this
-# option cross-validation will be used to learn the optimal regularization:
+# described in :footcite:`EngemannGramfort2015`. For this the 'auto' option
+# can be used. With this option cross-validation will be used to learn the
+# optimal regularization:
 
 noise_cov_reg = mne.compute_covariance(epochs, tmax=0., method='auto',
                                        rank=None)
@@ -136,7 +137,7 @@ evoked.plot_white(noise_cov_reg, time_unit='s')
 # under-regularization.
 #
 # Note that if data have been processed using signal space separation
-# (SSS) [2]_,
+# (SSS) :footcite:`TauluEtAl2005`,
 # gradiometers and magnetometers will be displayed jointly because both are
 # reconstructed from the same SSS basis vectors with the same numerical rank.
 # This also implies that both sensor types are not any longer statistically
@@ -158,7 +159,7 @@ evoked.plot_white(noise_covs, time_unit='s')
 
 ##############################################################################
 # This will plot the whitened evoked for the optimal estimator and display the
-# :term:`GFPs <GFP>` for all estimators as separate lines in the related panel.
+# :term:`GFP` for all estimators as separate lines in the related panel.
 
 
 ##############################################################################
@@ -180,9 +181,4 @@ evoked_meg.plot_white([noise_cov_baseline, noise_cov], time_unit='s')
 # References
 # ----------
 #
-# .. [1] Engemann D. and Gramfort A. (2015) Automated model selection in
-#     covariance estimation and spatial whitening of MEG and EEG signals,
-#     vol. 108, 328-342, NeuroImage.
-#
-# .. [2] Taulu, S., Simola, J., Kajola, M., 2005. Applications of the signal
-#    space separation method. IEEE Trans. Signal Proc. 53, 3359-3372.
+# .. footbibliography::

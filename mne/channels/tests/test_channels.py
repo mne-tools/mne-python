@@ -29,7 +29,7 @@ from mne.datasets import testing
 io_dir = op.join(op.dirname(__file__), '..', '..', 'io')
 base_dir = op.join(io_dir, 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
-eve_fname = op .join(base_dir, 'test-eve.fif')
+eve_fname = op.join(base_dir, 'test-eve.fif')
 fname_kit_157 = op.join(io_dir, 'kit', 'tests', 'data', 'test.sqd')
 
 
@@ -83,10 +83,6 @@ def test_rename_channels():
     # Test bad input
     pytest.raises(ValueError, rename_channels, info, 1.)
     pytest.raises(ValueError, rename_channels, info, 1.)
-    # Test name too long (channel names must be less than 15 characters)
-    A16 = 'A' * 16
-    mapping = {'MEG 2641': A16}
-    pytest.raises(ValueError, rename_channels, info, mapping)
 
     # Test successful changes
     # Test ch_name and ch_names are changed
@@ -346,6 +342,18 @@ def test_find_ch_adjacency():
     neighb, ch_names = find_ch_adjacency(raw_kit.info, 'mag')
     assert neighb.data.size == 1329
     assert ch_names[0] == 'MEG 001'
+
+
+@testing.requires_testing_data
+def test_neuromag122_adjacency():
+    """Test computing the adjacency matrix of Neuromag122-Data."""
+    nm122_fname = op.join(testing.data_path(), 'misc',
+                          'neuromag122_test_file-raw.fif')
+    raw = read_raw_fif(nm122_fname, preload=True)
+    conn, ch_names = find_ch_adjacency(raw.info, 'grad')
+    assert conn.getnnz() == 1564
+    assert len(ch_names) == 122
+    assert conn.shape == (122, 122)
 
 
 def test_drop_channels():

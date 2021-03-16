@@ -5,10 +5,6 @@
 Background on Independent Component Analysis (ICA)
 ==================================================
 
-.. contents:: Contents
-   :local:
-   :depth: 2
-
 Many M/EEG signals including biological artifacts reflect non-Gaussian
 processes. Therefore PCA-based artifact rejection will likely perform worse at
 separating the signal from noise sources.

@@ -3,6 +3,7 @@
 #
 # License: BSD (3-clause)
 
+from contextlib import contextmanager
 from distutils.version import LooseVersion
 import gc
 import os
@@ -94,6 +95,7 @@ def pytest_configure(config):
     ignore:.*tostring.*is deprecated.*:DeprecationWarning
     ignore:.*QDesktopWidget\.availableGeometry.*:DeprecationWarning
     ignore:Unable to enable faulthandler.*:UserWarning
+    ignore:Fetchers from the nilearn.*:FutureWarning
     always:.*get_data.* is deprecated in favor of.*:DeprecationWarning
     always::ResourceWarning
     """  # noqa: E501
@@ -265,26 +267,6 @@ def _bias_params(evoked, noise_cov, fwd):
     return evoked, fwd, noise_cov, data_cov, want
 
 
-@pytest.fixture(scope="module", params=[
-    "mayavi",
-    "pyvista",
-])
-def backend_name(request):
-    """Get the backend name."""
-    yield request.param
-
-
-@pytest.fixture
-def renderer(backend_name, garbage_collect):
-    """Yield the 3D backends."""
-    from mne.viz.backends.renderer import _use_test_3d_backend
-    _check_skip_backend(backend_name)
-    with _use_test_3d_backend(backend_name):
-        from mne.viz.backends import renderer
-        yield renderer
-        renderer.backend._close_all()
-
-
 @pytest.fixture
 def garbage_collect():
     """Garbage collect on exit."""
@@ -292,24 +274,57 @@ def garbage_collect():
     gc.collect()
 
 
-@pytest.fixture(scope="module", params=[
-    "pyvista",
-    "mayavi",
-])
-def backend_name_interactive(request):
-    """Get the backend name."""
-    yield request.param
-
-
-@pytest.fixture
-def renderer_interactive(backend_name_interactive):
+@pytest.fixture(params=["mayavi", "pyvista"])
+def renderer(request, garbage_collect):
     """Yield the 3D backends."""
-    from mne.viz.backends.renderer import _use_test_3d_backend
-    _check_skip_backend(backend_name_interactive)
-    with _use_test_3d_backend(backend_name_interactive, interactive=True):
-        from mne.viz.backends import renderer
+    with _use_backend(request.param, interactive=False) as renderer:
         yield renderer
-        renderer.backend._close_all()
+
+
+@pytest.fixture(params=["pyvista"])
+def renderer_pyvista(request, garbage_collect):
+    """Yield the PyVista backend."""
+    with _use_backend(request.param, interactive=False) as renderer:
+        yield renderer
+
+
+@pytest.fixture(params=["notebook"])
+def renderer_notebook(request):
+    """Yield the 3D notebook renderer."""
+    with _use_backend(request.param, interactive=False) as renderer:
+        yield renderer
+
+
+@pytest.fixture(scope="module", params=["pyvista"])
+def renderer_interactive_pyvista(request):
+    """Yield the interactive PyVista backend."""
+    with _use_backend(request.param, interactive=True) as renderer:
+        yield renderer
+
+
+@pytest.fixture(scope="module", params=["pyvista", "mayavi"])
+def renderer_interactive(request):
+    """Yield the interactive 3D backends."""
+    with _use_backend(request.param, interactive=True) as renderer:
+        if renderer._get_3d_backend() == 'mayavi':
+            with warnings.catch_warnings(record=True):
+                try:
+                    from surfer import Brain  # noqa: 401 analysis:ignore
+                except Exception:
+                    pytest.skip('Requires PySurfer')
+        yield renderer
+
+
+@contextmanager
+def _use_backend(backend_name, interactive):
+    from mne.viz.backends.renderer import _use_test_3d_backend
+    _check_skip_backend(backend_name)
+    with _use_test_3d_backend(backend_name, interactive=interactive):
+        from mne.viz.backends import renderer
+        try:
+            yield renderer
+        finally:
+            renderer.backend._close_all()
 
 
 def _check_skip_backend(name):
@@ -325,14 +340,6 @@ def _check_skip_backend(name):
             pytest.skip("Test skipped, requires imageio-ffmpeg")
     if not has_pyqt5():
         pytest.skip("Test skipped, requires PyQt5.")
-
-
-@pytest.fixture()
-def renderer_notebook():
-    """Verify that pytest_notebook is installed."""
-    from mne.viz.backends import renderer
-    with renderer._use_test_3d_backend('notebook'):
-        yield renderer
 
 
 @pytest.fixture(scope='session')
@@ -488,7 +495,14 @@ def download_is_error(monkeypatch):
 @pytest.fixture()
 def brain_gc(request):
     """Ensure that brain can be properly garbage collected."""
-    keys = ('renderer_interactive', 'renderer', 'renderer_notebook')
+    keys = (
+        'renderer_interactive',
+        'renderer_interactive_pyvista',
+        'renderer_interactive_pysurfer',
+        'renderer',
+        'renderer_pyvista',
+        'renderer_notebook',
+    )
     assert set(request.fixturenames) & set(keys) != set()
     for key in keys:
         if key in request.fixturenames:
@@ -503,10 +517,16 @@ def brain_gc(request):
         yield
         return
     from mne.viz import Brain
-    _assert_no_instances(Brain, 'before')
     ignore = set(id(o) for o in gc.get_objects())
     yield
     close_func()
+    # no need to warn if the test itself failed, pytest-harvest helps us here
+    try:
+        outcome = request.node.harvest_rep_call
+    except Exception:
+        outcome = 'failed'
+    if outcome != 'passed':
+        return
     _assert_no_instances(Brain, 'after')
     # We only check VTK for PyVista -- Mayavi/PySurfer is not as strict
     objs = gc.get_objects()

@@ -6,7 +6,7 @@
 #
 # License: BSD (3-clause)
 
-from collections import Counter
+from collections import Counter, OrderedDict
 import contextlib
 from copy import deepcopy
 import datetime
@@ -21,10 +21,11 @@ from .pick import (channel_type, pick_channels, pick_info,
 from .constants import FIFF, _coord_frame_named
 from .open import fiff_open
 from .tree import dir_tree_find
-from .tag import read_tag, find_tag, _ch_coord_dict
+from .tag import (read_tag, find_tag, _ch_coord_dict, _update_ch_info_named,
+                  _rename_list)
 from .proj import (_read_proj, _write_proj, _uniquify_projs, _normalize_proj,
                    Projection)
-from .ctf_comp import read_ctf_comp, write_ctf_comp
+from .ctf_comp import _read_ctf_comp, write_ctf_comp
 from .write import (start_file, end_file, start_block, end_block,
                     write_string, write_dig_points, write_float, write_int,
                     write_coord_trans, write_ch_info, write_name_list,
@@ -32,7 +33,8 @@ from .write import (start_file, end_file, start_block, end_block,
 from .proc_history import _read_proc_history, _write_proc_history
 from ..transforms import invert_transform, Transform, _coord_frame_name
 from ..utils import (logger, verbose, warn, object_diff, _validate_type,
-                     _stamp_to_dt, _dt_to_stamp, _pl, _is_numeric)
+                     _stamp_to_dt, _dt_to_stamp, _pl, _is_numeric,
+                     _check_option)
 from ._digitization import (_format_dig_points, _dig_kind_proper, DigPoint,
                             _dig_kind_rev, _dig_kind_ints, _read_dig_fif)
 from ._digitization import write_dig as _dig_write_dig
@@ -100,9 +102,11 @@ def _get_valid_units():
     return tuple(valid_units)
 
 
-def _unique_channel_names(ch_names):
+@verbose
+def _unique_channel_names(ch_names, max_length=None, verbose=None):
     """Ensure unique channel names."""
-    FIFF_CH_NAME_MAX_LENGTH = 15
+    if max_length is not None:
+        ch_names[:] = [name[:max_length] for name in ch_names]
     unique_ids = np.unique(ch_names, return_index=True)[1]
     if len(unique_ids) != len(ch_names):
         dups = {ch_names[x]
@@ -113,8 +117,11 @@ def _unique_channel_names(ch_names):
             overlaps = np.where(np.array(ch_names) == ch_stem)[0]
             # We need an extra character since we append '-'.
             # np.ceil(...) is the maximum number of appended digits.
-            n_keep = (FIFF_CH_NAME_MAX_LENGTH - 1 -
-                      int(np.ceil(np.log10(len(overlaps)))))
+            if max_length is not None:
+                n_keep = (
+                    max_length - 1 - int(np.ceil(np.log10(len(overlaps)))))
+            else:
+                n_keep = np.inf
             n_keep = min(len(ch_stem), n_keep)
             ch_stem = ch_stem[:n_keep]
             for idx, ch_idx in enumerate(overlaps):
@@ -544,13 +551,13 @@ class Info(dict, MontageMixin):
             _format_trans(res, 'coord_trans')
         if self.get('dig', None) is not None and len(self['dig']):
             if isinstance(self['dig'], dict):  # needs to be unpacked
-                self['dig'] = _dict_unpack(self['dig'], _dig_cast)
+                self['dig'] = _dict_unpack(self['dig'], _DIG_CAST)
             if not isinstance(self['dig'][0], DigPoint):
                 self['dig'] = _format_dig_points(self['dig'])
         if isinstance(self.get('chs', None), dict):
             self['chs']['ch_name'] = [str(x) for x in np.char.decode(
                 self['chs']['ch_name'], encoding='utf8')]
-            self['chs'] = _dict_unpack(self['chs'], _ch_cast)
+            self['chs'] = _dict_unpack(self['chs'], _CH_CAST)
         for pi, proj in enumerate(self.get('projs', [])):
             if not isinstance(proj, Projection):
                 self['projs'][pi] = Projection(proj)
@@ -755,9 +762,6 @@ class Info(dict, MontageMixin):
                     'Bad info: info["chs"][%d]["loc"] must be ndarray with '
                     '12 elements, got %r' % (ci, loc))
 
-        # make sure channel names are not too long
-        self._check_ch_name_length()
-
         # make sure channel names are unique
         self['ch_names'] = _unique_channel_names(self['ch_names'])
         for idx, ch_name in enumerate(self['ch_names']):
@@ -766,18 +770,6 @@ class Info(dict, MontageMixin):
         if 'filename' in self:
             warn('the "filename" key is misleading '
                  'and info should not have it')
-
-    def _check_ch_name_length(self):
-        """Check that channel names are sufficiently short."""
-        bad_names = list()
-        for ch in self['chs']:
-            if len(ch['ch_name']) > 15:
-                bad_names.append(ch['ch_name'])
-                ch['ch_name'] = ch['ch_name'][:15]
-        if len(bad_names) > 0:
-            warn('%d channel names are too long, have been truncated to 15 '
-                 'characters:\n%s' % (len(bad_names), bad_names))
-            self._update_redundant()
 
     def _update_redundant(self):
         """Update the redundant entries."""
@@ -935,7 +927,6 @@ def read_bad_channels(fid, node):
     ----------
     fid : file
         The file descriptor.
-
     node : dict
         The node of the FIF tree that contains info on the bad channels.
 
@@ -944,6 +935,11 @@ def read_bad_channels(fid, node):
     bads : list
         A list of bad channel's names.
     """
+    return _read_bad_channels(fid, node)
+
+
+def _read_bad_channels(fid, node, ch_names_mapping):
+    ch_names_mapping = {} if ch_names_mapping is None else ch_names_mapping
     nodes = dir_tree_find(node, FIFF.FIFFB_MNE_BAD_CHANNELS)
 
     bads = []
@@ -952,6 +948,7 @@ def read_bad_channels(fid, node):
             tag = find_tag(fid, node, FIFF.FIFF_MNE_CH_NAME_LIST)
             if tag is not None and tag.data is not None:
                 bads = tag.data.split(':')
+    bads[:] = _rename_list(bads, ch_names_mapping)
     return bads
 
 
@@ -1085,6 +1082,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
         elif kind == FIFF.FIFF_MNE_KIT_SYSTEM_ID:
             tag = read_tag(fid, pos)
             kit_system_id = int(tag.data)
+    ch_names_mapping = _read_extended_ch_info(chs, meas_info, fid)
 
     # Check that we have everything we need
     if nchan is None:
@@ -1138,13 +1136,16 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
                 acq_stim = tag.data
 
     #   Load the SSP data
-    projs = _read_proj(fid, meas_info)
+    projs = _read_proj(
+        fid, meas_info, ch_names_mapping=ch_names_mapping)
 
     #   Load the CTF compensation data
-    comps = read_ctf_comp(fid, meas_info, chs)
+    comps = _read_ctf_comp(
+        fid, meas_info, chs, ch_names_mapping=ch_names_mapping)
 
     #   Load the bad channel list
-    bads = read_bad_channels(fid, meas_info)
+    bads = _read_bad_channels(
+        fid, meas_info, ch_names_mapping=ch_names_mapping)
 
     #
     #   Put the data together
@@ -1434,6 +1435,48 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     return info, meas
 
 
+def _read_extended_ch_info(chs, parent, fid):
+    ch_infos = dir_tree_find(parent, FIFF.FIFFB_CH_INFO)
+    if len(ch_infos) == 0:
+        return
+    _check_option('length of channel infos', len(ch_infos), [len(chs)])
+    logger.info('    Reading extended channel information')
+
+    # Here we assume that ``remap`` is in the same order as the channels
+    # themselves, which is hopefully safe enough.
+    ch_names_mapping = dict()
+    for new, ch in zip(ch_infos, chs):
+        for k in range(new['nent']):
+            kind = new['directory'][k].kind
+            try:
+                key, cast = _CH_READ_MAP[kind]
+            except KeyError:
+                # This shouldn't happen if we're up to date with the FIFF
+                # spec
+                warn(f'Discarding extra channel information kind {kind}')
+                continue
+            assert key in ch
+            data = read_tag(fid, new['directory'][k].pos).data
+            if data is not None:
+                data = cast(data)
+                if key == 'ch_name':
+                    ch_names_mapping[ch[key]] = data
+                ch[key] = data
+        _update_ch_info_named(ch)
+    # we need to return ch_names_mapping so that we can also rename the
+    # bad channels
+    return ch_names_mapping
+
+
+def _rename_comps(comps, ch_names_mapping):
+    if not (comps and ch_names_mapping):
+        return
+    for comp in comps:
+        data = comp['data']
+        for key in ('row_names', 'col_names'):
+            data[key][:] = _rename_list(data[key], ch_names_mapping)
+
+
 def _ensure_meas_date_none_or_dt(meas_date):
     if meas_date is None or np.array_equal(meas_date, DATE_NONE):
         meas_date = None
@@ -1600,12 +1643,14 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
         write_coord_trans(fid, info['dev_ctf_t'])
 
     #   Projectors
-    _write_proj(fid, info['projs'])
+    ch_names_mapping = _make_ch_names_mapping(info['chs'])
+    _write_proj(fid, info['projs'], ch_names_mapping=ch_names_mapping)
 
     #   Bad channels
     if len(info['bads']) > 0:
+        bads = _rename_list(info['bads'], ch_names_mapping)
         start_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
-        write_name_list(fid, FIFF.FIFF_MNE_CH_NAME_LIST, info['bads'])
+        write_name_list(fid, FIFF.FIFF_MNE_CH_NAME_LIST, bads)
         end_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
 
     #   General
@@ -1639,14 +1684,7 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
         write_string(fid, FIFF.FIFF_XPLOTTER_LAYOUT, info['xplotter_layout'])
 
     #  Channel information
-    for k, c in enumerate(info['chs']):
-        #   Scan numbers may have been messed up
-        c = deepcopy(c)
-        c['scanno'] = k + 1
-        # for float/double, the "range" param is unnecessary
-        if reset_range is True:
-            c['range'] = 1.0
-        write_ch_info(fid, c)
+    _write_ch_infos(fid, info['chs'], reset_range, ch_names_mapping)
 
     # Subject information
     if info.get('subject_info') is not None:
@@ -1717,7 +1755,11 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
         del hs
 
     #   CTF compensation info
-    write_ctf_comp(fid, info['comps'])
+    comps = info['comps']
+    if ch_names_mapping:
+        comps = deepcopy(comps)
+        _rename_comps(comps, ch_names_mapping)
+    write_ctf_comp(fid, comps)
 
     #   KIT system ID
     if info.get('kit_system_id') is not None:
@@ -2311,11 +2353,27 @@ def _bad_chans_comp(info, ch_names):
     return False, missing_ch_names
 
 
-_dig_cast = {'kind': int, 'ident': int, 'r': lambda x: x, 'coord_frame': int}
-_ch_cast = {'scanno': int, 'logno': int, 'kind': int,
-            'range': float, 'cal': float, 'coil_type': int,
-            'loc': lambda x: x, 'unit': int, 'unit_mul': int,
-            'ch_name': lambda x: x, 'coord_frame': int}
+_DIG_CAST = dict(
+    kind=int, ident=int, r=lambda x: x, coord_frame=int)
+# key -> const, cast, write
+_CH_INFO_MAP = OrderedDict(
+    scanno=(FIFF.FIFF_CH_SCAN_NO, int, write_int),
+    logno=(FIFF.FIFF_CH_LOGICAL_NO, int, write_int),
+    kind=(FIFF.FIFF_CH_KIND, int, write_int),
+    range=(FIFF.FIFF_CH_RANGE, float, write_float),
+    cal=(FIFF.FIFF_CH_CAL, float, write_float),
+    coil_type=(FIFF.FIFF_CH_COIL_TYPE, int, write_int),
+    loc=(FIFF.FIFF_CH_LOC, lambda x: x, write_float),
+    unit=(FIFF.FIFF_CH_UNIT, int, write_int),
+    unit_mul=(FIFF.FIFF_CH_UNIT_MUL, int, write_int),
+    ch_name=(FIFF.FIFF_CH_DACQ_NAME, str, write_string),
+    coord_frame=(FIFF.FIFF_CH_COORD_FRAME, int, write_int),
+)
+# key -> cast
+_CH_CAST = OrderedDict((key, val[1]) for key, val in _CH_INFO_MAP.items())
+# const -> key, cast
+_CH_READ_MAP = OrderedDict((val[0], (key, val[1]))
+                           for key, val in _CH_INFO_MAP.items())
 
 
 @contextlib.contextmanager
@@ -2325,8 +2383,8 @@ def _writing_info_hdf5(info):
     orig_chs = info['chs']
     try:
         if orig_dig is not None and len(orig_dig) > 0:
-            info['dig'] = _dict_pack(info['dig'], _dig_cast)
-        info['chs'] = _dict_pack(info['chs'], _ch_cast)
+            info['dig'] = _dict_pack(info['dig'], _DIG_CAST)
+        info['chs'] = _dict_pack(info['chs'], _CH_CAST)
         info['chs']['ch_name'] = np.char.encode(
             info['chs']['ch_name'], encoding='utf8')
         yield
@@ -2346,3 +2404,38 @@ def _dict_unpack(obj, casts):
     n = len(obj[list(casts)[0]])
     return [{key: cast(obj[key][ii]) for key, cast in casts.items()}
             for ii in range(n)]
+
+
+def _make_ch_names_mapping(chs):
+    orig_ch_names = [c['ch_name'] for c in chs]
+    ch_names = orig_ch_names.copy()
+    _unique_channel_names(ch_names, max_length=15, verbose='error')
+    ch_names_mapping = dict()
+    if orig_ch_names != ch_names:
+        ch_names_mapping.update(zip(orig_ch_names, ch_names))
+    return ch_names_mapping
+
+
+def _write_ch_infos(fid, chs, reset_range, ch_names_mapping):
+    ch_names_mapping = dict() if ch_names_mapping is None else ch_names_mapping
+    for k, c in enumerate(chs):
+        #   Scan numbers may have been messed up
+        c = c.copy()
+        c['ch_name'] = ch_names_mapping.get(c['ch_name'], c['ch_name'])
+        assert len(c['ch_name']) <= 15
+        c['scanno'] = k + 1
+        # for float/double, the "range" param is unnecessary
+        if reset_range:
+            c['range'] = 1.0
+        write_ch_info(fid, c)
+    # only write new-style channel information if necessary
+    if len(ch_names_mapping):
+        logger.info(
+            '    Writing channel names to FIF truncated to 15 characters '
+            'with remapping')
+        for ch in chs:
+            start_block(fid, FIFF.FIFFB_CH_INFO)
+            assert set(ch) == set(_CH_INFO_MAP)
+            for (key, (const, _, write)) in _CH_INFO_MAP.items():
+                write(fid, const, ch[key])
+            end_block(fid, FIFF.FIFFB_CH_INFO)

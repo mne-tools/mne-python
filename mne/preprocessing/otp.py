@@ -54,7 +54,8 @@ def oversampled_temporal_projection(raw, duration=10., picks=None,
     slower than realtime for conventional M/EEG datasets. It uses a
     leave-one-out procedure with parallel temporal projection to remove
     individual sensor noise under the assumption that sampled fields
-    (e.g., MEG and EEG) are oversampled by the sensor array [1]_.
+    (e.g., MEG and EEG) are oversampled by the sensor array
+    :footcite:`LarsonTaulu2018`.
 
     OTP can improve sensor noise levels (especially under visual
     inspection) and repair some bad channels. This noise reduction is known
@@ -72,9 +73,7 @@ def oversampled_temporal_projection(raw, duration=10., picks=None,
 
     References
     ----------
-    .. [1] Larson E, Taulu S (2017). Reducing Sensor Noise in MEG and EEG
-           Recordings Using Oversampled Temporal Projection.
-           IEEE Transactions on Biomedical Engineering.
+    .. footbibliography::
     """
     logger.info('Processing MEG data using oversampled temporal projection')
     picks = _picks_to_idx(raw.info, picks, exclude=())

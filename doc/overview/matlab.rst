@@ -8,10 +8,6 @@
 MNE-MATLAB documentation
 ========================
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 .. note:: The MNE MATLAB Toolbox is compatible with Matlab versions 7.0 or later.
 
 Overview

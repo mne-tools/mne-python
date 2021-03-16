@@ -191,6 +191,26 @@ def test_add_custom_css(tmpdir):
     assert custom_css in html
 
 
+def test_add_custom_js(tmpdir):
+    """Test adding custom JavaScript to the report."""
+    tempdir = str(tmpdir)
+    fname = op.join(tempdir, 'report.html')
+    fig = plt.figure()  # Empty figure
+
+    report = Report()
+    report.add_figs_to_section(figs=fig, captions='Test section')
+    custom_js = ('function hello() {\n'
+                 '  alert("Hello, report!");\n'
+                 '}')
+    report.add_custom_js(js=custom_js)
+
+    assert custom_js in report.include
+    report.save(fname, open_browser=False)
+    with open(fname, 'rb') as fid:
+        html = fid.read().decode('utf-8')
+    assert custom_js in html
+
+
 @testing.requires_testing_data
 def test_render_non_fiff(tmpdir):
     """Test rendering non-FIFF files for mne report."""

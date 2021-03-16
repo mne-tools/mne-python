@@ -29,6 +29,7 @@ jobs:
               echo "export DISPLAY=:99" >> $BASH_ENV
               echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV
               echo "export XDG_RUNTIME_DIR=/tmp/runtime-circleci" >> $BASH_ENV
+              echo "export MNE_FULL_DATE=true" >> $BASH_ENV
               source tools/get_minimal_commands.sh
               echo "export MNE_3D_BACKEND=pyvista" >> $BASH_ENV
               echo "export PATH=~/.local/bin/:$PATH" >> $BASH_ENV
@@ -71,8 +72,8 @@ jobs:
             name: Install fonts needed for diagrams
             command: |
               mkdir -p $HOME/.fonts
-              curl https://codeload.github.com/adobe-fonts/source-code-pro/tar.gz/2.030R-ro/1.050R-it | tar xz -C $HOME/.fonts
-              curl https://codeload.github.com/adobe-fonts/source-sans-pro/tar.gz/3.006R | tar xz -C $HOME/.fonts
+              curl https://codeload.github.com/adobe-fonts/source-code-pro/tar.gz/2.038R-ro/1.058R-it/1.018R-VAR | tar xz -C $HOME/.fonts
+              curl https://codeload.github.com/adobe-fonts/source-sans-pro/tar.gz/3.028R | tar xz -C $HOME/.fonts
               fc-cache -f
 
         # Load pip cache
@@ -83,16 +84,11 @@ jobs:
             keys:
               - user-install-bin-cache
 
+        # Hack in uninstalls of libraries as necessary if pip doesn't do the right thing in upgrading for us...
         - run:
             name: Get Python running
             command: |
-              python -m pip install --user --upgrade --progress-bar off pip setuptools
-              python -m pip install --user --upgrade --progress-bar off --pre sphinx
-              python -m pip install --user --upgrade --progress-bar off -r requirements.txt -r requirements_testing.txt -r requirements_doc.txt
-              python -m pip install --user --progress-bar off https://github.com/pyvista/pyvista/zipball/master
-              python -m pip install --user --progress-bar off https://github.com/pyvista/pyvistaqt/zipball/master
-              python -m pip uninstall -yq pysurfer mayavi
-              python -m pip install --user -e .
+              ./tools/circleci_dependencies.sh
 
         - save_cache:
             key: pip-cache

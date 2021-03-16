@@ -479,7 +479,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                         this_gfp = D.std(axis=0, ddof=0)
                         label = 'GFP'
                     else:
-                        this_gfp = np.sqrt((D ** 2).mean(axis=0))
+                        this_gfp = np.linalg.norm(D, axis=0) / np.sqrt(len(D))
                         label = 'RMS'
 
                 gfp_color = 3 * (0.,) if spatial_colors is True else (0., 1.,
@@ -1036,9 +1036,10 @@ def plot_evoked_white(evoked, noise_cov, show=True, rank=None, time_unit='s',
     """Plot whitened evoked response.
 
     Plots the whitened evoked response and the whitened GFP as described in
-    [1]_. This function is especially useful for investigating noise
-    covariance properties to determine if data are properly whitened (e.g.,
-    achieving expected values in line with model assumptions, see Notes below).
+    :footcite:`EngemannGramfort2015`. This function is especially useful for
+    investigating noise covariance properties to determine if data are
+    properly whitened (e.g., achieving expected values in line with model
+    assumptions, see Notes below).
 
     Parameters
     ----------

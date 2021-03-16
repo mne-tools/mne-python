@@ -51,6 +51,7 @@ for ext in SUPPORTED_READ_RAW_EXTENSIONS:
     if ext not in ('.bdf', '.edf', '.set', '.vhdr'):  # EEG-only formats
         RAW_EXTENSIONS.append(f'meg{ext}')
     RAW_EXTENSIONS.append(f'eeg{ext}')
+    RAW_EXTENSIONS.append(f'ieeg{ext}')
 
 # Processed data will always be in (gzipped) FIFF format
 VALID_EXTENSIONS = ('sss.fif', 'sss.fif.gz',
@@ -478,13 +479,15 @@ slider_template = HTMLTemplate(u"""
                        max: {{maxvalue}},
                        step: {{step}},
                        value: {{startvalue}},
+                       animate: true,
                        create: function(event, ui) {
-                       $(".{{klass}}").hide();
-                       $("#{{klass}}-{{startvalue}}").show();},
-                       stop: function(event, ui) {
-                       var list_value = $("#{{slider_id}}").slider("value");
-                       $(".{{klass}}").hide();
-                       $("#{{klass}}-"+list_value).show();}
+                         $(".{{klass}}").hide();
+                         $("#{{klass}}-{{startvalue}}").show();
+                       },
+                       slide: function(event, ui) {
+                         $(".{{klass}}").hide();
+                         $("#{{klass}}-" + ui.value).show();
+                       }
                        })</script>
 """)
 
@@ -1048,6 +1051,22 @@ class Report(object):
         """
         style = f'\n<style type="text/css">\n{css}\n</style>'
         self.include += style
+
+    def add_custom_js(self, js):
+        """Add custom JavaScript to the report.
+
+        Parameters
+        ----------
+        js : str
+            JavaScript code to add to the report. The content of this string
+            will be embedded between HTML ``<script>`` and ``</script>`` tags.
+
+        Notes
+        -----
+        .. versionadded:: 0.23
+        """
+        script = f'\n<script type="text/javascript">\n{js}\n</script>'
+        self.include += script
 
     def remove(self, caption, section=None):
         """Remove a figure from the report.
@@ -1666,7 +1685,9 @@ class Report(object):
                 setattr(self, param, state[param])
         return state
 
-    def save(self, fname=None, open_browser=True, overwrite=False):
+    @verbose
+    def save(self, fname=None, open_browser=True, overwrite=False, *,
+             verbose=None):
         """Save the report and optionally open it in browser.
 
         Parameters
@@ -1681,8 +1702,8 @@ class Report(object):
         open_browser : bool
             When saving to HTML, open the rendered HTML file browser after
             saving if True. Defaults to True.
-        overwrite : bool
-            If True, overwrite report if it already exists. Defaults to False.
+        %(overwrite)s
+        %(verbose_meth)s
 
         Returns
         -------

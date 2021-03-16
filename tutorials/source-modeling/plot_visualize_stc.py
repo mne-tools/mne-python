@@ -5,10 +5,7 @@ Visualize source time courses (stcs)
 ====================================
 
 This tutorial focuses on visualization of
-:term:`stcs <source estimates (abbr. stc)>`.
-
-.. contents:: Table of Contents
-   :local:
+:term:`source estimates<STC>`.
 
 Surface Source Estimates
 ------------------------

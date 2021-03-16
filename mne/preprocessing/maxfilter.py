@@ -84,8 +84,7 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
         Path to Cross-talk compensation file.
     mx_args : str
         Additional command line arguments to pass to MaxFilter.
-    overwrite : bool
-        Overwrite output file if it already exists.
+    %(overwrite)s
     %(verbose)s
 
     Returns

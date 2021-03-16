@@ -23,9 +23,6 @@ data between different representations and spaces. See e.g.
 use FreeSurfer surface representations to allow functional data to morph
 between different subjects.
 
-.. contents::
-    :local:
-
 First steps
 ===========
 

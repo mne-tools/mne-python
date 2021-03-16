@@ -1036,8 +1036,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     subject : str
         Subject name.
     %(subjects_dir)s
-    overwrite : bool
-        Write over existing files.
+    %(overwrite)s
     volume : str
         Defaults to T1.
     atlas : bool
@@ -1558,8 +1557,7 @@ def write_bem_surfaces(fname, surfs, overwrite=False, verbose=None):
         Filename to write. Can end with ``.h5`` to write using HDF5.
     surfs : dict | list of dict
         The surfaces, or a single surface.
-    overwrite : bool
-        If True (default False), overwrite the file.
+    %(overwrite)s
     %(verbose)s
     """
     if isinstance(surfs, dict):
@@ -1592,8 +1590,7 @@ def write_head_bem(fname, rr, tris, on_defects='raise', overwrite=False,
         Triangulation (each line contains indices for three points which
         together form a face).
     %(on_defects)s
-    overwrite : bool
-        If True (default False), overwrite the file.
+    %(overwrite)s
     %(verbose)s
     """
     surf = _surfaces_to_bem([dict(rr=rr, tris=tris)],
@@ -1630,8 +1627,7 @@ def write_bem_solution(fname, bem, overwrite=False, verbose=None):
         The filename to use. Can end with ``.h5`` to write using HDF5.
     bem : instance of ConductorModel
         The BEM model with solution to save.
-    overwrite : bool
-        If True (default False), overwrite the file.
+    %(overwrite)s
     %(verbose)s
 
     See Also

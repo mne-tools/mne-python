@@ -4,18 +4,14 @@
 Working with Epoch metadata
 ===========================
 
-This tutorial shows how to add metadata to :class:`~mne.Epochs` objects, and
+This tutorial shows how to add metadata to `~mne.Epochs` objects, and
 how to use :ref:`Pandas query strings <pandas:indexing.query>` to select and
 plot epochs based on metadata properties.
-
-.. contents:: Page contents
-   :local:
-   :depth: 2
 
 For this tutorial we'll use a different dataset than usual: the
 :ref:`kiloword-dataset`, which contains EEG data averaged across 75 subjects
 who were performing a lexical decision (word/non-word) task. The data is in
-:class:`~mne.Epochs` format, with each epoch representing the response to a
+`~mne.Epochs` format, with each epoch representing the response to a
 different stimulus (word). As usual we'll start by importing the modules we
 need and loading the data:
 """
@@ -42,10 +38,10 @@ epochs = mne.read_epochs(kiloword_data_file)
 #    and the row labels are always integers corresponding to epoch numbers.
 #    Other capabilities of :class:`DataFrames <pandas.DataFrame>` such as
 #    :class:`hierarchical indexing <pandas.MultiIndex>` are possible while the
-#    :class:`~mne.Epochs` object is in memory, but will not survive saving and
-#    reloading the :class:`~mne.Epochs` object to/from disk.
+#    `~mne.Epochs` object is in memory, but will not survive saving and
+#    reloading the `~mne.Epochs` object to/from disk.
 #
-# The metadata attached to :class:`~mne.Epochs` objects is stored as a
+# The metadata attached to `~mne.Epochs` objects is stored as a
 # :class:`pandas.DataFrame` containing one row for each epoch. The columns of
 # this :class:`~pandas.DataFrame` can contain just about any information you
 # want to store about each epoch; in this case, the metadata encodes
@@ -96,9 +92,9 @@ epochs.metadata.head()
 # Selecting epochs using metadata queries
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# All :class:`~mne.Epochs` objects can be subselected by event name, index, or
+# All `~mne.Epochs` objects can be subselected by event name, index, or
 # :term:`slice` (see :ref:`tut-section-subselect-epochs`). But
-# :class:`~mne.Epochs` objects with metadata can also be queried using
+# `~mne.Epochs` objects with metadata can also be queried using
 # :ref:`Pandas query strings <pandas:indexing.query>` by passing the query
 # string just as you would normally pass an event name. For example:
 
@@ -162,7 +158,7 @@ epochs.plot_image(order=sort_order, picks='Pz')
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # You can add a metadata :class:`~pandas.DataFrame` to any
-# :class:`~mne.Epochs` object (or replace existing metadata) simply by
+# `~mne.Epochs` object (or replace existing metadata) simply by
 # assigning to the :attr:`~mne.Epochs.metadata` attribute:
 
 new_metadata = pd.DataFrame(data=['foo'] * len(epochs), columns=['bar'],
@@ -171,7 +167,7 @@ epochs.metadata = new_metadata
 epochs.metadata.head()
 
 ###############################################################################
-# You can remove metadata from an :class:`~mne.Epochs` object by setting its
+# You can remove metadata from an `~mne.Epochs` object by setting its
 # metadata to ``None``:
 
 epochs.metadata = None

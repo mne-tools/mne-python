@@ -103,7 +103,10 @@ class Dipole(object):
         self.ori = np.array(ori)
         self.gof = np.array(gof)
         self.name = name
-        self.conf = deepcopy(conf) if conf is not None else dict()
+        self.conf = dict()
+        if conf is not None:
+            for key, value in conf.items():
+                self.conf[key] = np.array(value)
         self.khi2 = np.array(khi2) if khi2 is not None else None
         self.nfree = np.array(nfree) if nfree is not None else None
         self.verbose = verbose
@@ -114,17 +117,18 @@ class Dipole(object):
         s += ", tmax : %0.3f" % np.max(self.times)
         return "<Dipole | %s>" % s
 
-    def save(self, fname, overwrite=False):
+    @verbose
+    def save(self, fname, overwrite=False, *, verbose=None):
         """Save dipole in a .dip or .bdip file.
 
         Parameters
         ----------
         fname : str
             The name of the .dip or .bdip file.
-        overwrite : bool
-            If True, overwrite the file (if it exists).
+        %(overwrite)s
 
             .. versionadded:: 0.20
+        %(verbose_meth)s
 
         Notes
         -----
@@ -634,7 +638,7 @@ _BDIP_ERROR_KEYS = ('depth', 'long', 'trans', 'qlong', 'qtrans')
 
 def _read_dipole_bdip(fname):
     name = None
-    nfree = 0
+    nfree = None
     with open(fname, 'rb') as fid:
         # Which dipole in a multi-dipole set
         times = list()

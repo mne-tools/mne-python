@@ -1,11 +1,13 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
+#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Andrew Dykstra <andrew.r.dykstra@gmail.com>
 #          Teon Brooks <teon.brooks@gmail.com>
 #          Daniel McCloy <dan.mccloy@gmail.com>
 #
 # License: BSD (3-clause)
+
 
 import os
 import os.path as op
@@ -19,14 +21,18 @@ import numpy as np
 from ..defaults import HEAD_SIZE_DEFAULT, _handle_default
 from ..transforms import _frame_to_str
 from ..utils import (verbose, logger, warn,
-                     _check_preload, _validate_type, fill_doc, _check_option)
+                     _check_preload, _validate_type, fill_doc, _check_option,
+                     _get_stim_channel, _check_fname)
 from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
-from ..io.meas_info import anonymize_info, Info, MontageMixin, create_info
+from ..io.meas_info import (anonymize_info, Info, MontageMixin, create_info,
+                            _rename_comps)
 from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
                        _check_excludes_includes, _contains_ch_type,
                        channel_indices_by_type, pick_channels, _picks_to_idx,
-                       _get_channel_types, get_channel_type_constants)
+                       _get_channel_types, get_channel_type_constants,
+                       _pick_data_channels)
+from ..io.tag import _rename_list
 from ..io.write import DATE_NONE
 from ..io._digitization import _get_data_as_dict_from_dig
 
@@ -467,13 +473,14 @@ class SetChannelsMixin(MontageMixin):
             warn(msg.format(", ".join(sorted(names)), *this_change))
         return self
 
-    @fill_doc
-    def rename_channels(self, mapping):
+    @verbose
+    def rename_channels(self, mapping, allow_duplicates=False, verbose=None):
         """Rename channels.
 
         Parameters
         ----------
-        %(rename_channels_mapping)s
+        %(rename_channels_mapping_duplicates)s
+        %(verbose_meth)s
 
         Returns
         -------
@@ -490,21 +497,20 @@ class SetChannelsMixin(MontageMixin):
         from ..io import BaseRaw
 
         ch_names_orig = list(self.info['ch_names'])
-        rename_channels(self.info, mapping)
+        rename_channels(self.info, mapping, allow_duplicates)
 
         # Update self._orig_units for Raw
-        if isinstance(self, BaseRaw) and self._orig_units is not None:
-            if isinstance(mapping, dict):
-                new_names = [(ch_names_orig.index(ch_name), new_name)
-                             for ch_name, new_name in mapping.items()]
-            elif callable(mapping):
-                new_names = [(ci, mapping(ch_name))
-                             for ci, ch_name in enumerate(ch_names_orig)]
-
-            for c_ind, new_name in new_names:
-                old_name = ch_names_orig[c_ind]
-                self._orig_units[new_name] = self._orig_units[old_name]
-                del self._orig_units[old_name]
+        if isinstance(self, BaseRaw):
+            # whatever mapping was provided, now we can just use a dict
+            mapping = dict(zip(ch_names_orig, self.info['ch_names']))
+            if self._orig_units is not None:
+                for old_name, new_name in mapping.items():
+                    if old_name != new_name:
+                        self._orig_units[new_name] = self._orig_units[old_name]
+                        del self._orig_units[old_name]
+            ch_names = self.annotations.ch_names
+            for ci, ch in enumerate(ch_names):
+                ch_names[ci] = tuple(mapping.get(name, name) for name in ch)
 
         return self
 
@@ -948,6 +954,9 @@ class UpdateChannelsMixin(object):
         else:
             assert isinstance(self, BaseRaw) and not self.preload
 
+        if isinstance(self, BaseRaw):
+            self.annotations._prune_ch_names(self.info, on_missing='ignore')
+
         self._pick_projs()
         return self
 
@@ -1146,17 +1155,16 @@ class InterpolationMixin(object):
         return self
 
 
-@fill_doc
-def rename_channels(info, mapping):
+@verbose
+def rename_channels(info, mapping, allow_duplicates=False, verbose=None):
     """Rename channels.
-
-    .. warning::  The channel names must have at most 15 characters
 
     Parameters
     ----------
     info : dict
         Measurement info to modify.
-    %(rename_channels_mapping)s
+    %(rename_channels_mapping_duplicates)s
+    %(verbose)s
     """
     _validate_type(info, Info, 'info')
     info._check_consistency()
@@ -1183,12 +1191,6 @@ def rename_channels(info, mapping):
     for new_name in new_names:
         _validate_type(new_name[1], 'str', 'New channel mappings')
 
-    bad_new_names = [name for _, name in new_names if len(name) > 15]
-    if len(bad_new_names):
-        raise ValueError('Channel names cannot be longer than 15 '
-                         'characters. These channel names are not '
-                         'valid : %s' % new_names)
-
     # do the remapping locally
     for c_ind, new_name in new_names:
         for bi, bad in enumerate(bads):
@@ -1197,13 +1199,21 @@ def rename_channels(info, mapping):
         ch_names[c_ind] = new_name
 
     # check that all the channel names are unique
-    if len(ch_names) != len(np.unique(ch_names)):
+    if len(ch_names) != len(np.unique(ch_names)) and not allow_duplicates:
         raise ValueError('New channel names are not unique, renaming failed')
 
     # do the remapping in info
     info['bads'] = bads
+    ch_names_mapping = dict()
     for ch, ch_name in zip(info['chs'], ch_names):
+        ch_names_mapping[ch['ch_name']] = ch_name
         ch['ch_name'] = ch_name
+    # .get b/c fwd info omits it
+    _rename_comps(info.get('comps', []), ch_names_mapping)
+    if 'projs' in info:  # fwd might omit it
+        for proj in info['projs']:
+            proj['data']['col_names'][:] = \
+                _rename_list(proj['data']['col_names'], ch_names_mapping)
     info._update_redundant()
     info._check_consistency()
 
@@ -1373,8 +1383,6 @@ def find_ch_adjacency(info, ch_type):
         conn_name = 'neuromag306mag'
     elif has_vv_grad and ch_type == 'grad':
         conn_name = 'neuromag306planar'
-    elif has_neuromag_122_grad:
-        conn_name = 'neuromag122'
     elif has_4D_mag:
         if 'MEG 248' in info['ch_names']:
             idx = info['ch_names'].index('MEG 248')
@@ -1429,8 +1437,12 @@ def _compute_ch_adjacency(info, ch_type):
     from scipy.spatial import Delaunay
     from .. import spatial_tris_adjacency
     from ..channels.layout import _find_topomap_coords, _pair_grad_sensors
-    combine_grads = (ch_type == 'grad' and FIFF.FIFFV_COIL_VV_PLANAR_T1 in
-                     np.unique([ch['coil_type'] for ch in info['chs']]))
+    combine_grads = (ch_type == 'grad'
+                     and any([coil_type in [ch['coil_type']
+                                            for ch in info['chs']]
+                              for coil_type in
+                              [FIFF.FIFFV_COIL_VV_PLANAR_T1,
+                               FIFF.FIFFV_COIL_NM_122]]))
 
     picks = dict(_picks_by_type(info, exclude=[]))[ch_type]
     ch_names = [info['ch_names'][pick] for pick in picks]
@@ -1762,3 +1774,163 @@ def combine_channels(inst, groups, method='mean', keep_stim=False,
                                     verbose=inst.verbose)
 
     return combined_inst
+
+
+# NeuroMag channel groupings
+_SELECTIONS = ['Vertex', 'Left-temporal', 'Right-temporal', 'Left-parietal',
+               'Right-parietal', 'Left-occipital', 'Right-occipital',
+               'Left-frontal', 'Right-frontal']
+_EEG_SELECTIONS = ['EEG 1-32', 'EEG 33-64', 'EEG 65-96', 'EEG 97-128']
+
+
+def _divide_to_regions(info, add_stim=True):
+    """Divide channels to regions by positions."""
+    from scipy.stats import zscore
+    picks = _pick_data_channels(info, exclude=[])
+    chs_in_lobe = len(picks) // 4
+    pos = np.array([ch['loc'][:3] for ch in info['chs']])
+    x, y, z = pos.T
+
+    frontal = picks[np.argsort(y[picks])[-chs_in_lobe:]]
+    picks = np.setdiff1d(picks, frontal)
+
+    occipital = picks[np.argsort(y[picks])[:chs_in_lobe]]
+    picks = np.setdiff1d(picks, occipital)
+
+    temporal = picks[np.argsort(z[picks])[:chs_in_lobe]]
+    picks = np.setdiff1d(picks, temporal)
+
+    lt, rt = _divide_side(temporal, x)
+    lf, rf = _divide_side(frontal, x)
+    lo, ro = _divide_side(occipital, x)
+    lp, rp = _divide_side(picks, x)  # Parietal lobe from the remaining picks.
+
+    # Because of the way the sides are divided, there may be outliers in the
+    # temporal lobes. Here we switch the sides for these outliers. For other
+    # lobes it is not a big problem because of the vicinity of the lobes.
+    with np.errstate(invalid='ignore'):  # invalid division, greater compare
+        zs = np.abs(zscore(x[rt]))
+        outliers = np.array(rt)[np.where(zs > 2.)[0]]
+    rt = list(np.setdiff1d(rt, outliers))
+
+    with np.errstate(invalid='ignore'):  # invalid division, greater compare
+        zs = np.abs(zscore(x[lt]))
+        outliers = np.append(outliers, (np.array(lt)[np.where(zs > 2.)[0]]))
+    lt = list(np.setdiff1d(lt, outliers))
+
+    l_mean = np.mean(x[lt])
+    r_mean = np.mean(x[rt])
+    for outlier in outliers:
+        if abs(l_mean - x[outlier]) < abs(r_mean - x[outlier]):
+            lt.append(outlier)
+        else:
+            rt.append(outlier)
+
+    if add_stim:
+        stim_ch = _get_stim_channel(None, info, raise_error=False)
+        if len(stim_ch) > 0:
+            for region in [lf, rf, lo, ro, lp, rp, lt, rt]:
+                region.append(info['ch_names'].index(stim_ch[0]))
+    return OrderedDict([('Left-frontal', lf), ('Right-frontal', rf),
+                        ('Left-parietal', lp), ('Right-parietal', rp),
+                        ('Left-occipital', lo), ('Right-occipital', ro),
+                        ('Left-temporal', lt), ('Right-temporal', rt)])
+
+
+def _divide_side(lobe, x):
+    """Make a separation between left and right lobe evenly."""
+    lobe = np.asarray(lobe)
+    median = np.median(x[lobe])
+
+    left = lobe[np.where(x[lobe] < median)[0]]
+    right = lobe[np.where(x[lobe] > median)[0]]
+    medians = np.where(x[lobe] == median)[0]
+
+    left = np.sort(np.concatenate([left, lobe[medians[1::2]]]))
+    right = np.sort(np.concatenate([right, lobe[medians[::2]]]))
+    return list(left), list(right)
+
+
+@verbose
+def read_vectorview_selection(name, fname=None, info=None, verbose=None):
+    """Read Neuromag Vector View channel selection from a file.
+
+    Parameters
+    ----------
+    name : str | list of str
+        Name of the selection. If a list, the selections are combined.
+        Supported selections are: ``'Vertex'``, ``'Left-temporal'``,
+        ``'Right-temporal'``, ``'Left-parietal'``, ``'Right-parietal'``,
+        ``'Left-occipital'``, ``'Right-occipital'``, ``'Left-frontal'`` and
+        ``'Right-frontal'``. Selections can also be matched and combined by
+        spcecifying common substrings. For example, ``name='temporal`` will
+        produce a combination of ``'Left-temporal'`` and ``'Right-temporal'``.
+    fname : str
+        Filename of the selection file (if ``None``, built-in selections are
+        used).
+    info : instance of Info
+        Measurement info file, which will be used to determine the spacing
+        of channel names to return, e.g. ``'MEG 0111'`` for old Neuromag
+        systems and ``'MEG0111'`` for new ones.
+    %(verbose)s
+
+    Returns
+    -------
+    sel : list of str
+        List with channel names in the selection.
+    """
+    # convert name to list of string
+    if not isinstance(name, (list, tuple)):
+        name = [name]
+    if isinstance(info, Info):
+        picks = pick_types(info, meg=True, exclude=())
+        if len(picks) > 0 and ' ' not in info['ch_names'][picks[0]]:
+            spacing = 'new'
+        else:
+            spacing = 'old'
+    elif info is not None:
+        raise TypeError('info must be an instance of Info or None, not %s'
+                        % (type(info),))
+    else:  # info is None
+        spacing = 'old'
+
+    # use built-in selections by default
+    if fname is None:
+        fname = op.join(op.dirname(__file__), '..', 'data', 'mne_analyze.sel')
+
+    fname = _check_fname(fname, must_exist=True, overwrite='read')
+
+    # use this to make sure we find at least one match for each name
+    name_found = {n: False for n in name}
+    with open(fname, 'r') as fid:
+        sel = []
+        for line in fid:
+            line = line.strip()
+            # skip blank lines and comments
+            if len(line) == 0 or line[0] == '#':
+                continue
+            # get the name of the selection in the file
+            pos = line.find(':')
+            if pos < 0:
+                logger.info('":" delimiter not found in selections file, '
+                            'skipping line')
+                continue
+            sel_name_file = line[:pos]
+            # search for substring match with name provided
+            for n in name:
+                if sel_name_file.find(n) >= 0:
+                    sel.extend(line[pos + 1:].split('|'))
+                    name_found[n] = True
+                    break
+
+    # make sure we found at least one match for each name
+    for n, found in name_found.items():
+        if not found:
+            raise ValueError('No match for selection name "%s" found' % n)
+
+    # make the selection a sorted list with unique elements
+    sel = list(set(sel))
+    sel.sort()
+    if spacing == 'new':  # "new" or "old" by now, "old" is default
+        sel = [s.replace('MEG ', 'MEG') for s in sel]
+    return sel

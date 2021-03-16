@@ -780,7 +780,7 @@ class MNEBrowseFigure(MNEFigure):
             # click in horizontal scrollbar
             elif event.inaxes == self.mne.ax_hscroll:
                 if self._check_update_hscroll_clicked(event):
-                    self._redraw()
+                    self._redraw(annotations=True)
             # click on proj button
             elif event.inaxes == self.mne.ax_proj:
                 self._toggle_proj_fig(event)
@@ -862,9 +862,12 @@ class MNEBrowseFigure(MNEFigure):
         fig.lasso.style_sensors(inds)
         plt_show(fig=fig)
 
-    def _create_ica_properties_fig(self, pick):
+    def _create_ica_properties_fig(self, idx):
         """Show ICA properties for the selected component."""
-        ch_name = self.mne.ch_names[pick]
+        ch_name = self.mne.ch_names[idx]
+        if ch_name not in self.mne.ica._ica_names:  # for EOG chans: do nothing
+            return
+        pick = self.mne.ica._ica_names.index(ch_name)
         fig = self._new_child_figure(figsize=(7, 6), fig_name=None,
                                      window_title=f'{ch_name} properties')
         fig, axes = _create_properties_layout(fig=fig)
@@ -1916,7 +1919,9 @@ class MNEBrowseFigure(MNEFigure):
             starts = np.maximum(starts[mask], start) - start
             stops = np.minimum(stops[mask], stop) - start
             for _start, _stop in zip(starts, stops):
-                _picks = np.where(np.in1d(picks, self.mne.picks_data))
+                _picks = np.where(np.in1d(picks, self.mne.picks_data))[0]
+                if len(_picks) == 0:
+                    break
                 this_data = data[_picks, _start:_stop]
                 if isinstance(self.mne.filter_coefs, np.ndarray):  # FIR
                     this_data = _overlap_add_filter(
