@@ -146,8 +146,7 @@ paths = ax.scatter(*xy_pts.T, c=np.zeros(len(xy_pts)), s=100,
 ax.set_xlim([0, im.shape[0]])
 ax.set_ylim([im.shape[1], 0])
 fig.colorbar(paths, ax=ax)
-ax.set_title('Gamma frequency over time\n(Hilbert transform)',
-             size='large')
+ax.set_title('Gamma frequency over time', size='large')
 
 # avoid edge artifacts and decimate, showing just a short chunk
 sl = slice(100, 150)
@@ -173,9 +172,9 @@ ts_data = raw_notched.get_data()
 # Find the annotated events
 events, event_id = mne.events_from_annotations(raw)
 
-# Let's use the third event, which is the start of the first siezure
-# (the first two events are pre-seizure behavioral events)
-start_sample = int(events[2, 0] - 1 * raw.info['sfreq'])
+# find the onset event, use the one second before as the animation start
+onset_events = events[events[:, 2] == event_id['onset']]
+start_sample = int(onset_events[0, 0] - 1 * raw.info['sfreq'])
 
 
 # Create an initialization and animation function
@@ -192,7 +191,7 @@ def animate(i, activity, events):
     paths.set_array(activity[:, i])
     # If this sample contains an annotation (for a seizure-related behavior)
     # then change the title of the plot
-    if i + start_sample in events.keys():
+    if i + start_sample in events[:, 0]:
         # Currently this doesn't replace the text, but writes over it.
         # This needs fixing
         title.set_text(events[i + start_sample])
