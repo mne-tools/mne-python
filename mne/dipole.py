@@ -268,6 +268,7 @@ class Dipole(object):
             show_all, ax, block, show, scale=scale, color=color, fig=fig,
             title=title)
 
+    @verbose
     def to_mni(self, subject, mri_head_t, subjects_dir=None,
                verbose=None):
         """Convert pos from head coordinate system to MNI ones.
