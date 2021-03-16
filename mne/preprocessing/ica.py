@@ -186,19 +186,23 @@ class ICA(ContainsMixin):
         As estimation can be non-deterministic it can be useful to fix the
         random state to have reproducible results.
     method : {'fastica', 'infomax', 'picard'}
-        The ICA method to use in the fit method. Use the fit_params argument to
-        set additional parameters. Specifically, if you want Extended Infomax,
-        set method='infomax' and fit_params=dict(extended=True) (this also
-        works for method='picard'). Defaults to 'fastica'. For reference, see
-        :footcite:`Hyvarinen1999,BellSejnowski1995,LeeEtAl1999,AblinEtAl2018`.
+        The ICA method to use in the fit method. Use the ``fit_params`` argument
+        to set additional parameters. Specifically, if you want Extended
+        Infomax, set ``method='infomax'`` and ``fit_params=dict(extended=True)``
+        (this also works for ``method='picard'``). Defaults to ``'fastica'``.
+        For reference, see :footcite:`Hyvarinen1999,BellSejnowski1995,LeeEtAl1999,AblinEtAl2018`.
     fit_params : dict | None
         Additional parameters passed to the ICA estimator as specified by
         ``method``.
-    max_iter : int
-        Maximum number of iterations during fit. Defaults to 1000 for ``'fastica'``
-        and to 500 for ``'infomax'`` or ``'picard'``. The actual number of iterations
-        it took :meth:`ICA.fit` to complete will be stored in the ``n_iter_``
-        attribute.
+    max_iter : int | 'auto'
+        Maximum number of iterations during fit. If ``'auto'`` (default), it
+        will set maximum iterations to ``1000`` for ``'fastica'``
+        and to ``500`` for ``'infomax'`` or ``'picard'``. The actual number of
+        iterations it took :meth:`ICA.fit` to complete will be stored in the
+        ``n_iter_`` attribute.
+
+        .. versionchanged:: 0.23
+           New ``'auto'`` parameter to replace old default value ``200``.
     allow_ref_meg : bool
         Allow ICA on MEG reference channels. Defaults to False.
 
@@ -361,7 +365,7 @@ class ICA(ContainsMixin):
     @verbose
     def __init__(self, n_components=None, *, noise_cov=None,
                  random_state=None, method='fastica', fit_params=None,
-                 max_iter=None, allow_ref_meg=False,
+                 max_iter='auto', allow_ref_meg=False,
                  verbose=None):  # noqa: D102
         _validate_type(method, str, 'method')
         _validate_type(n_components, (float, 'int-like', None))
@@ -410,7 +414,13 @@ class ICA(ContainsMixin):
             # extended=True is default in underlying function, but we want
             # default False here unless user specified True:
             fit_params.setdefault('extended', False)
-        if max_iter is None:
+        if max_iter == 'auto':
+            change_message = ('Version 0.23 introduced `auto` for maximum '
+                              'iterations, setting max_iter=1000 for '
+                              '`fastica` and max_iter=500 for `infomax` and '
+                              '`picard`. To use the old default of max_iter=200'
+                              ' set it explicitly.')
+            warn(change_message, Warning)
             if method == 'fastica':
                 max_iter = 1000
             elif method in ['infomax', 'picard']:

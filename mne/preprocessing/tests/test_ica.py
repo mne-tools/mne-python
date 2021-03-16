@@ -214,6 +214,7 @@ def test_ica_noop(n_components, n_pca_components, tmpdir):
     _assert_ica_attributes(ica)
 
 
+@requires_sklearn
 @pytest.mark.parametrize("method, max_iter_default", [("fastica", 1000),
                          ("infomax", 500), ("picard", 500)])
 def test_ica_max_iter_(method, max_iter_default):
@@ -221,8 +222,9 @@ def test_ica_max_iter_(method, max_iter_default):
     _skip_check_picard(method)
 
     # check that default max_iter comes out for no input
-    ica = ICA(n_components=3, method=method)
-    assert ica.max_iter == max_iter_default
+    with pytest.warns(Warning, match='Version 0.23 introduced `auto`'):
+        ica = ICA(n_components=3, method=method)
+        assert ica.max_iter == max_iter_default
     # check that user input comes out unchanged
     ica = ICA(n_components=3, method=method, max_iter=2000)
     assert ica.max_iter == 2000
