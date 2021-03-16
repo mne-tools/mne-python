@@ -195,9 +195,10 @@ class ICA(ContainsMixin):
         Additional parameters passed to the ICA estimator as specified by
         ``method``.
     max_iter : int
-        Maximum number of iterations during fit. Defaults to 200. The actual
-        number of iterations it took :meth:`ICA.fit` to complete will be stored
-        in the ``n_iter_`` attribute.
+        Maximum number of iterations during fit. Defaults to 1000 for 'fastica'
+        and to 500 for 'infomax' or 'picard'. The actual number of iterations
+        it took :meth:`ICA.fit` to complete will be stored in the ``n_iter_``
+        attribute.
     allow_ref_meg : bool
         Allow ICA on MEG reference channels. Defaults to False.
 
@@ -360,7 +361,7 @@ class ICA(ContainsMixin):
     @verbose
     def __init__(self, n_components=None, *, noise_cov=None,
                  random_state=None, method='fastica', fit_params=None,
-                 max_iter=200, allow_ref_meg=False,
+                 max_iter=None, allow_ref_meg=False,
                  verbose=None):  # noqa: D102
         _validate_type(method, str, 'method')
         _validate_type(n_components, (float, 'int-like', None))
@@ -409,6 +410,11 @@ class ICA(ContainsMixin):
             # extended=True is default in underlying function, but we want
             # default False here unless user specified True:
             fit_params.setdefault('extended', False)
+        if max_iter == None:
+            if method == 'fastica':
+                max_iter = 1000
+            elif method in ['infomax','picard']:
+                max_iter = 500    
         fit_params.setdefault('max_iter', max_iter)
         self.max_iter = max_iter
         self.fit_params = fit_params
