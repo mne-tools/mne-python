@@ -9,8 +9,8 @@ exploratory and confirmatory tests - e.g., targeted t-tests, cluster-based
 permutation approaches (here with Threshold-Free Cluster Enhancement);
 and how to visualise the results.
 
-The underlying data comes from :footcite:`DufauEtAl2015`; we contrast long vs. short words.
-TFCE is described in :footcite:`SmithNichols2009`.
+The underlying data comes from :footcite:`DufauEtAl2015`; we contrast long vs.
+short words. TFCE is described in :footcite:`SmithNichols2009`.
 """
 
 import numpy as np
@@ -123,5 +123,4 @@ plt.show()
 ###############################################################################
 # References
 # ----------
-# .. footbibliography::
 # .. footbibliography::

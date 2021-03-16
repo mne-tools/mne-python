@@ -10,6 +10,7 @@
 
 import os
 import os.path as path
+import sys
 
 import pytest
 import numpy as np
@@ -418,6 +419,9 @@ def tiny(tmpdir):
 @pytest.mark.filterwarnings('ignore:.*constrained_layout not applied.*:')
 def test_brain_screenshot(renderer_interactive_pyvista, tmpdir, brain_gc):
     """Test time viewer screenshot."""
+    # XXX disable for sprint because it's too unreliable
+    if sys.platform == 'darwin' and os.getenv('GITHUB_ACTIONS', '') == 'true':
+        pytest.skip('Test is unreliable on GitHub Actions macOS')
     tiny_brain, ratio = tiny(tmpdir)
     img_nv = tiny_brain.screenshot(time_viewer=False)
     want = (_TINY_SIZE[1] * ratio, _TINY_SIZE[0] * ratio, 3)
