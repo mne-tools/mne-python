@@ -660,6 +660,57 @@ class _PyVistaRenderer(_AbstractRenderer):
             for renderer in self._all_renderers:
                 renderer.enable_depth_peeling()
 
+    def _enable_ssao(self, dataset=None, idx=None):
+        lightsP = vtk.vtkLightsPass()
+        opaqueP = vtk.vtkOpaquePass()
+        translucentP = vtk.vtkTranslucentPass()
+        volumeP = vtk.vtkVolumetricPass()
+
+        collection = vtk.vtkRenderPassCollection()
+        collection.AddItem(lightsP)
+
+        # opaque passes
+        ssaoCamP = vtk.vtkCameraPass()
+        ssaoCamP.SetDelegatePass(opaqueP)
+
+        if dataset is None:
+            ssaoP = vtk.vtkSSAOPass()
+            ssaoP.SetRadius(30)
+            ssaoP.SetBias(0.1)
+            ssaoP.SetKernelSize(32)
+            ssaoP.SetBlur(True)
+        else:
+            bounds = np.asarray(dataset.GetBounds())
+            scene_size = np.linalg.norm(bounds[:3] - bounds[3:])
+            ssaoP = vtk.vtkSSAOPass()
+            ssaoP.SetRadius(0.1 * scene_size)  # comparison radius
+            ssaoP.SetBias(0.001 * scene_size)  # comparison bias
+            ssaoP.SetKernelSize(128)  # number of samples used
+            ssaoP.BlurOff()  # do not blur occlusion
+        ssaoP.SetDelegatePass(ssaoCamP)
+        collection.AddItem(ssaoP)
+
+        # translucent and volumic passes
+        ddpP = vtk.vtkDualDepthPeelingPass()
+        ddpP.SetTranslucentPass(translucentP)
+        ddpP.SetVolumetricPass(volumeP)
+        collection.AddItem(ddpP)
+
+        # finally overlays
+        overP = vtk.vtkOverlayPass()
+        collection.AddItem(overP)
+
+        sequence = vtk.vtkSequencePass()
+        sequence.SetPasses(collection)
+
+        camP = vtk.vtkCameraPass()
+        camP.SetDelegatePass(sequence)
+
+        if idx is None:
+            self.figure.viewer.renderer.SetPass(camP)
+        else:
+            self.figure.viewer.renderers[idx].SetPass(camP)
+
     def _enable_aa(self):
         """Enable it everywhere except Azure."""
         if not self.antialias:

@@ -286,10 +286,12 @@ class Brain(object):
         Can be 'm' or 'mm' (default).
     %(view_layout)s
     silhouette : dict | bool
-       As a dict, it contains the ``color``, ``linewidth``, ``alpha`` opacity
-       and ``decimate`` (level of decimation between 0 and 1 or None) of the
-       brain's silhouette to display. If True, the default values are used
-       and if False, no silhouette will be displayed. Defaults to False.
+        As a dict, it contains the ``color``, ``linewidth``, ``alpha`` opacity
+        and ``decimate`` (level of decimation between 0 and 1 or None) of the
+        brain's silhouette to display. If True, the default values are used
+        and if False, no silhouette will be displayed. Defaults to False.
+    ssao : bool
+        If True, enables screen-space ambient occlusion. Defaults to False.
     show : bool
         Display the window as soon as it is ready. Defaults to True.
 
@@ -368,7 +370,8 @@ class Brain(object):
                  foreground=None, figure=None, subjects_dir=None,
                  views='auto', offset='auto', show_toolbar=False,
                  offscreen=False, interaction='trackball', units='mm',
-                 view_layout='vertical', silhouette=False, show=True):
+                 view_layout='vertical', silhouette=False, ssao=False,
+                 show=True):
         from ..backends.renderer import backend, _get_renderer
         from .._3d import _get_cmap
         from matplotlib.colors import colorConverter
@@ -507,6 +510,9 @@ class Brain(object):
                 else:
                     actor = self._layered_meshes[h]._actor
                     self._renderer.figure.viewer.add_actor(actor)
+                if ssao:
+                    mesh = self._layered_meshes[h]
+                    self._renderer._enable_ssao(mesh._polydata)
                 if self.silhouette:
                     mesh = self._layered_meshes[h]
                     self._renderer._silhouette(
