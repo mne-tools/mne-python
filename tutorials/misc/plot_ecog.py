@@ -27,6 +27,7 @@ MNI space, or projection into a volume, see :ref:`tut_working_with_seeg`.
 # License: BSD (3-clause)
 
 import os.path as op
+import warnings
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -40,26 +41,29 @@ from mne.viz import plot_alignment, snapshot_brain_montage
 print(__doc__)
 
 # paths to mne datasets - sample ECoG and FreeSurfer subject
-bids_root = mne.datasets.epilepsy.data_path()
+bids_root = mne.datasets.epilepsy_ecog.data_path()
 sample_path = mne.datasets.sample.data_path()
 subjects_dir = op.join(sample_path, 'subjects')
 
 
 ###############################################################################
 # Let's load some ECoG electrode data with ``mne-bids``.
-
 # first define the bids path
-subject = 'pt1'
-bids_path = BIDSPath(root=bids_root, subject=subject, session='presurgery',
-                     task='ictal', acquisition='ecog', run='01',
-                     datatype='ieeg', extension='vhdr')
+bids_path = BIDSPath(root=bids_root, subject='pt1', session='presurgery',
+                     task='ictal', datatype='ieeg', extension='vhdr')
 
 # then we'll use it to load in the sample dataset
-raw = read_raw_bids(bids_path=bids_path, verbose=False)
+# XXX: RuntimeWarning: iEEG Coordinate frame is not accepted BIDS keyword.
+# The allowed keywords are: ['acpc', 'pixels', 'other']
+with warnings.catch_warnings(record=True):
+    raw = read_raw_bids(bids_path=bids_path, verbose=False)
 
 # load data and drop bad channels
 raw.load_data()
 raw.drop_channels(raw.info['bads'])
+
+# get the montage
+montage = raw.get_montage()
 
 ###############################################################################
 # We can then plot the locations of our electrodes on the fsaverage brain.
@@ -166,7 +170,7 @@ cmap = 'RdBu_r'
 raw_notched = raw.copy().notch_filter([60, 120])
 ts_data = raw_notched.get_data()
 
-# Get the events from the raw data file annotations
+# Find the annotated events
 events, event_id = mne.events_from_annotations(raw)
 
 # Let's use the third event, which is the start of the first siezure
@@ -192,6 +196,7 @@ def animate(i, activity, events):
         # Currently this doesn't replace the text, but writes over it.
         # This needs fixing
         title.set_text(events[i + start_sample])
+
     return paths, title
 
 
@@ -229,7 +234,11 @@ anim = animation.FuncAnimation(fig, animate, init_func=init,
 
 evoked = mne.EvokedArray(
     gamma_power_t[:, sl], raw.info, tmin=raw.times[sl][0])
-stc = mne.stc_near_sensors(evoked, trans, subject, subjects_dir=subjects_dir)
+src = mne.read_source_spaces(
+    op.join(subjects_dir, 'fsaverage', 'bem', 'fsaverage-ico-5-src.fif'))
+trans = None  # identity transform
+stc = mne.stc_near_sensors(evoked, trans, 'fsaverage', src=src,
+                           subjects_dir=subjects_dir)
 clim = dict(kind='value', lims=[vmin * 0.9, vmin, vmax])
 brain = stc.plot(surface='pial', hemi='both', initial_time=0.68,
                  colormap='viridis', clim=clim, views='parietal',
