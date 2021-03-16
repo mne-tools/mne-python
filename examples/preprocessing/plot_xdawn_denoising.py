@@ -7,7 +7,7 @@ XDAWN filters are trained from epochs, signal is projected in the sources
 space and then projected back in the sensor space using only the first two
 XDAWN components. The process is similar to an ICA, but is
 supervised in order to maximize the signal to signal + noise ratio of the
-evoked response.
+evoked response :footcite:`RivetEtAl2009, RivetEtAl2011`.
 
 .. warning:: As this denoising method exploits the known events to
              maximize SNR of the contrast between conditions it can lead
@@ -78,11 +78,4 @@ plot_epochs_image(epochs_denoised['vis_r'], picks=[230], vmin=-500, vmax=500)
 ###############################################################################
 # References
 # ----------
-# [1] Rivet, B., Souloumiac, A., Attina, V., & Gibert, G. (2009). xDAWN
-# algorithm to enhance evoked potentials: application to brain-computer
-# interface. Biomedical Engineering, IEEE Transactions on, 56(8), 2035-2043.
-#
-# [2] Rivet, B., Cecotti, H., Souloumiac, A., Maby, E., & Mattout, J. (2011,
-# August). Theoretical analysis of xDAWN algorithm: application to an
-# efficient sensor selection in a P300 BCI. In Signal Processing Conference,
-# 2011 19th European (pp. 1382-1386). IEEE.
+# .. footbibliography::
