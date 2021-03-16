@@ -3667,9 +3667,9 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
 
 
 @verbose
-def make_fixed_length_epochs(raw, duration=1., overlap=0., preload=False,
+def make_fixed_length_epochs(raw, duration=1., preload=False,
                              reject_by_annotation=True, proj=True,
-                             verbose=None):
+                             verbose=None, overlap=0.):
     """Divide continuous raw data into equal-sized consecutive epochs.
 
     Parameters
@@ -3681,6 +3681,7 @@ def make_fixed_length_epochs(raw, duration=1., overlap=0., preload=False,
     overlap : float
         The overlap between epochs. Must be ``0 <= overlap < duration``.
         Default is 0.
+        .. versionadded:: 0.23
     %(preload)s
     %(reject_by_annotation_epochs)s
 
