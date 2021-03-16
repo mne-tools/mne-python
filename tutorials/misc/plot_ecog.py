@@ -35,8 +35,6 @@ import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-import matplotlib
-matplotlib.use('Qt5Agg')
 from mne_bids import BIDSPath, read_raw_bids
 
 import mne
