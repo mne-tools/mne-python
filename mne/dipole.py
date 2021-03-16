@@ -286,7 +286,8 @@ class Dipole(object):
             The MNI coordinates (in mm) of pos.
         """
         from .source_space import head_to_mni
-        return head_to_mni(self.pos, subject, trans,
+        mri_head_t, trans = _get_trans(trans)
+        return head_to_mni(self.pos, subject, mri_head_t,
                            subjects_dir=subjects_dir, verbose=verbose)
 
     def plot_amplitudes(self, color='k', show=True):
