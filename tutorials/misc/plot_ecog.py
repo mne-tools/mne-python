@@ -163,11 +163,15 @@ anim = animation.FuncAnimation(fig, animate, init_func=init,
 ###############################################################################
 # Now let's animate the raw time series data and add events related
 # to seizure onset that are marked in the annotations. This will be done
-# very similarly to the high gamma visualization
+# very similarly to the high gamma visualization.
+#
+# As can be seen in the plot below, the seizure originates in the temporal
+# lobe and spreads to new electrodes when electrode label names come up in
+# the title. The seizure eventually becomes generalized and then subsides.
 
 # colormap to view spectral power - RdBu_r works well for directional
 # data such as voltage time series, where positive and negative values
-# matter and there is a true 0 point.
+# matter and there is a true 0 point
 cmap = 'RdBu_r'
 
 # Apply a notch filter to remove 60 Hz line noise and harmonics
@@ -189,9 +193,8 @@ onset_events = events[events[:, 2] == event_id['onset']]
 start_sample = int(onset_events[0, 0] - 1 * raw.info['sfreq'])
 
 
-# Create an initialization and animation function
-# to pass to FuncAnimation. This time we will
-# also pass the plot title so that can be updated
+# Create an initialization and animation function to pass to FuncAnimation.
+# This time we will also pass the plot title so that can be updated
 # with information from the annotations.
 def init():
     """Create an empty frame."""
@@ -228,8 +231,7 @@ fig.colorbar(paths, ax=ax)
 title = ax.set_title('iEEG voltage over time', size='large')
 
 
-# this will be a much longer animation, but the seizure is also
-# quite long..
+# this will be a much longer animation because the seizure is quite long
 sl = slice(start_sample, ts_data.shape[1])
 show_power = ts_data[:, sl]
 anim = animation.FuncAnimation(fig, animate, init_func=init,
