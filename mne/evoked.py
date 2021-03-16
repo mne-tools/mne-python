@@ -1326,7 +1326,7 @@ def _get_peak(data, times, tmin=None, tmax=None, mode='abs'):
 
 @verbose
 def apply_function(self, fun, picks=None, dtype=None, n_jobs=1,
-                 verbose=None, *args, **kwargs):
+                   verbose=None, *args, **kwargs):
     """Apply a function to a subset of channels.
 
     The function ``fun`` is applied to the channels defined in ``picks``. The
@@ -1389,7 +1389,7 @@ def apply_function(self, fun, picks=None, dtype=None, n_jobs=1,
         # modify data inplace to save memory
         for idx in picks:
             self._data[idx, :] = _check_fun(fun, data_in[idx, :],
-                                               *args, **kwargs)
+                                            *args, **kwargs)
     else:
         # use parallel function
         parallel, p_fun, _ = parallel_func(_check_fun, n_jobs)

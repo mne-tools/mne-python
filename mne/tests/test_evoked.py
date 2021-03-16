@@ -762,10 +762,12 @@ def test_hilbert():
 
 run_tests_if_main()
 
+
 def fun(evoked_data):
     """Auxiliary function to test apply_function."""
     matrix = np.random.rand(10, 10)
     return matrix @ evoked_data
+
 
 def test_apply_function_evk():
     """Check the apply_function method for evoked data."""
