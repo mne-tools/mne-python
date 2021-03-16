@@ -3678,11 +3678,7 @@ def make_fixed_length_epochs(raw, duration=1., preload=False,
         Raw data to divide into segments.
     duration : float
         Duration of each epoch in seconds. Defaults to 1.
-    overlap : float
-        The overlap between epochs. Must be ``0 <= overlap < duration``.
-        Default is 0.
 
-        .. versionadded:: 0.23
     %(preload)s
     %(reject_by_annotation_epochs)s
 
@@ -3690,6 +3686,11 @@ def make_fixed_length_epochs(raw, duration=1., preload=False,
     %(proj_epochs)s
 
         .. versionadded:: 0.22.0
+     overlap : float
+        The overlap between epochs. Must be ``0 <= overlap < duration``.
+        Default is 0.
+
+        .. versionadded:: 0.23.0
     %(verbose)s
 
     Returns
