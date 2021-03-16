@@ -276,15 +276,13 @@ class Dipole(object):
         Parameters
         ----------
         %(subject)s
-        trans : str | None
-            The head<->MRI transform filename. Must be provided unless BEM
-            is a sphere model.
+        %(trans)s
         %(subjects_dir)s
         %(verbose)s
 
         Returns
         -------
-        coordinates : array, shape (n_pos, 3)
+        pos_mni : array, shape (n_pos, 3)
             The MNI coordinates (in mm) of pos.
         """
         from .source_space import head_to_mni
