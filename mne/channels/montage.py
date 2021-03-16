@@ -37,6 +37,7 @@ from ..io.constants import FIFF, CHANNEL_LOC_ALIASES
 from ..utils import (warn, copy_function_doc_to_method_doc, _pl, verbose,
                      _check_option, _validate_type, _check_fname, _on_missing,
                      fill_doc)
+from ..coreg import get_mni_fiducials
 
 from ._dig_montage_utils import _read_dig_montage_egi
 from ._dig_montage_utils import _parse_brainvision_dig_montage
@@ -347,6 +348,12 @@ class DigMontage(object):
             hpi=montage_bunch.hpi,
         )
         return positions
+
+    def add_estimated_fiducials(self, subject, subjects_dir):
+        # LPA, nasion, RPA
+        fids_mri = get_mni_fiducials(subject, subjects_dir)
+
+
 
 
 VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
