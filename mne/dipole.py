@@ -271,7 +271,7 @@ class Dipole(object):
     @verbose
     def to_mni(self, subject, mri_head_t, subjects_dir=None,
                verbose=None):
-        """Convert pos from head coordinate system to MNI ones.
+        """Convert dipole location from head coordinate system to MNI coordinates.
 
         Parameters
         ----------
