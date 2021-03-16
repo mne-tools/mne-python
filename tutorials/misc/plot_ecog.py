@@ -22,6 +22,7 @@ MNI space, or projection into a volume, see :ref:`tut_working_with_seeg`.
 #          Chris Holdgraf <choldgraf@gmail.com>
 #          Adam Li <adam2392@gmail.com>
 #          Alex Rockhill <aprockhill@mailbox.org>
+#          Liberty Hamilton <libertyhamilton@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -145,6 +146,82 @@ anim = animation.FuncAnimation(fig, animate, init_func=init,
                                fargs=(show_power,),
                                frames=show_power.shape[1],
                                interval=100, blit=True)
+
+###############################################################################
+# Now let's animate the raw time series data and add events related
+# to seizure onset that are marked in the annotations. This will be done
+# very similarly to the high gamma visualization
+
+# For this plot we will use a different angle (from left side)
+fig = plot_alignment(raw.info, subject='fsaverage', subjects_dir=subjects_dir,
+                     surfaces=['pial'], trans=None, coord_frame='head')
+mne.viz.set_3d_view(fig, -360, 90)
+
+xy, im = snapshot_brain_montage(fig, raw.info)
+
+# Convert from a dictionary to array to plot
+xy_pts = np.vstack([xy[ch] for ch in raw.info['ch_names']])
+
+# colormap to view spectral power - RdBu_r works well for directional
+# data such as voltage time series, where positive and negative values
+# matter and there is a true 0 point.
+cmap = 'RdBu_r'
+
+ts_data = raw_notched.get_data()
+# Create a dictionary of seizure-related events from raw.annotations
+# These will be used to update the animation and show the most relevant
+# annotation
+events = dict()
+for t in np.arange(len(raw.annotations)):
+    events[int(raw.annotations[t].onset[0]*raw.info['sfreq'])] = raw.annotations[t].description[0]
+
+# This start sample is normally something you would determine empirically
+# but here is 1 second before the onset of the first seizure-related
+# annotation
+start_sample = int(74710 - 1*raw.info['sfreq'])
+
+# Create an initialization and animation function
+# to pass to FuncAnimation. This time we will 
+# also pass the plot title so that can be updated
+# with information from the annotations.
+def init():
+    """Create an empty frame."""
+    return paths, title
+
+def animate(i, activity, events):
+    """Animate the plot."""
+    paths.set_array(activity[:, i])
+    # If this sample contains an annotation (for a seizure-related behavior)
+    # then change the title of the plot
+    if i+start_sample in events.keys():
+        # Currently this doesn't replace the text, but writes over it.
+        # This needs fixing
+        title.set_text(events[i+start_sample])
+    return paths, title
+
+# create the figure and apply the animation of the
+# raw time series data
+fig, ax = plt.subplots(figsize=(5, 5))
+ax.imshow(im)
+ax.set_axis_off()
+# We want the mid-point (0 uV) to be white, so we will scale from -vmax to vmax
+# so that negative voltages are blue and positive voltages are red
+vmax = np.percentile(ts_data.flatten(), 90) 
+paths = ax.scatter(*xy_pts.T, c=np.zeros(len(xy_pts)), s=20,
+                   cmap=cmap, vmin=-vmax, vmax=vmax)
+fig.colorbar(paths, ax=ax)
+title = ax.set_title('iEEG voltage over time',size='large')
+
+
+# this will be a much longer animation, but the seizure is also
+# quite long..
+sl = slice(start_sample, ts_data.shape[1])
+show_power = ts_data[:, sl]
+anim = animation.FuncAnimation(fig, animate, init_func=init,
+                               fargs=(show_power,events),
+                               frames=show_power.shape[1],
+                               interval=1, blit=True)
+     
 
 ###############################################################################
 # Alternatively, we can project the sensor data to the nearest locations on
