@@ -20,13 +20,13 @@ def fetch_data(subjects, recording=(1, 2), path=None, force_update=False,
                update_path=None, base_url=BASE_URL, on_missing='raise',
                verbose=None):  # noqa: D301
     """Get paths to local copies of PhysioNet Polysomnography dataset files.
-
+    
     This will fetch data from the publicly available subjects from PhysioNet's
-    study of age effects on sleep in healthy subjects :footcite:`MourtazaevEtAl1995,GoldbergerEtAl2000`. This corresponds to a 
-    subset of  153 recordings from 37 males and 41 females that were 25-101 
-    years old at the time of the recordings. There are two night recordings 
-    per subject except for subjects 13, 36 and 52 which have one record 
-    missing each due to missing recording hardware.
+    study of age effects on sleep in healthy subjects :footcite:`MourtazaevEtAl1995,GoldbergerEtAl2000`. This
+    corresponds to a subset of 153 recordings from 37 males and 41 females that
+    were 25-101 years old at the time of the recordings. There are two night
+    recordings per subject except for subjects 13, 36 and 52 which have one
+    record missing each due to missing recording hardware.
 
     See more details in
     `physionet website <https://physionet.org/physiobank/database/sleep-edfx/sleep-cassette/>`_.
