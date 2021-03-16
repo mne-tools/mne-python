@@ -1326,14 +1326,16 @@ def _get_peak(data, times, tmin=None, tmax=None, mode='abs'):
 
 @verbose
 def apply_function(self, fun, picks=None, dtype=None, n_jobs=1,
-                   channel_wise=True, verbose=None, *args, **kwargs):
+                 verbose=None, *args, **kwargs):
     """Apply a function to a subset of channels.
 
     The function "fun" is applied to the channels defined in "picks". The
     data of the Evoked object is modified in place. If the function returns
     a different data type (e.g. numpy.complex) it must be specified using
     the dtype parameter, which causes the data type used for representing
-    the raw data to change.
+    the raw data to change. Since evoked data is averaged over time, the
+    function defined by the user is always applied channel-wise.
+
     The Evoked object has to have the data loaded e.g. with
     ``preload=True`` or ``self.load_data()``.
 
@@ -1359,10 +1361,6 @@ def apply_function(self, fun, picks=None, dtype=None, n_jobs=1,
     n_jobs : int (default: 1)
         Number of jobs to run in parallel. Ignored if ``channel_wise`` is
         False.
-    channel_wise : bool (default: True)
-        Whether to apply the function to each channel individually. If
-        False, the function will be applied to all channels at once.
-        .. versionadded:: 0.18
     %(verbose_meth)s
     *args : list
         Additional positional arguments to pass to fun (first pos. argument
@@ -1388,21 +1386,17 @@ def apply_function(self, fun, picks=None, dtype=None, n_jobs=1,
     # check the dimension of the incoming evoked data
     _check_option('evoked.ndim', self._data.ndim, [2])
 
-    if channel_wise:
-        if n_jobs == 1:
-            # modify data inplace to save memory
-            for idx in picks:
-                self._data[idx, :] = _check_fun(fun, data_in[idx, :],
-                                                   *args, **kwargs)
-        else:
-            # use parallel function
-            parallel, p_fun, _ = parallel_func(_check_fun, n_jobs)
-            data_picks_new = parallel(p_fun(
-                fun, data_in[p, :], *args, **kwargs) for p in picks)
-            for pp, p in enumerate(picks):
-                self._data[p, :] = data_picks_new[pp]
+    if n_jobs == 1:
+        # modify data inplace to save memory
+        for idx in picks:
+            self._data[idx, :] = _check_fun(fun, data_in[idx, :],
+                                               *args, **kwargs)
     else:
-        self._data = _check_fun(
-            fun, data_in, *args, **kwargs)
+        # use parallel function
+        parallel, p_fun, _ = parallel_func(_check_fun, n_jobs)
+        data_picks_new = parallel(p_fun(
+            fun, data_in[p, :], *args, **kwargs) for p in picks)
+        for pp, p in enumerate(picks):
+            self._data[p, :] = data_picks_new[pp]
 
     return self

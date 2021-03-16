@@ -763,24 +763,19 @@ def test_hilbert():
 run_tests_if_main()
 
 def fun(evoked_data):
-    """Auxilary function to test_apply function."""
+    """Auxiliary function to test_apply function."""
     matrix = np.random.rand(10, 10)
     return matrix @ evoked_data
 
 def test_apply_function_evk():
     """Check the apply_function method for evoked data."""
-    # create fake data to use for checking apply_function
+    # create fake evoked data to use for checking apply_function
     data = np.random.rand(10, 1000)
     events = np.array([[0, 0, 1], [INT32_MAX, 0, 2]])
     info = mne.create_info(10, 1000., 'eeg')
     epochs = mne.EpochsArray(data, info, events)
     evoked = epochs.average(method='mean')
-
-    data_evoked = evoked.get_data()
-    # check apply_function in all channels at the time
-    res = evoked.apply_function(fun, channel_wise=False)
-    assert np.shape(res) == np.shape(data_evoked)
-
-
-
-
+    evoked_data = evoked.get_data()
+    # check apply_function channel-wise
+    applied = evoked.apply_function(fun)
+    assert np.shape(applied) == np.shape(evoked_data)
