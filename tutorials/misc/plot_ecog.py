@@ -235,7 +235,7 @@ show_power = ts_data[:, sl]
 anim = animation.FuncAnimation(fig, animate, init_func=init,
                                fargs=(show_power, events),
                                frames=show_power.shape[1],
-                               interval=1, blit=True)
+                               interval=20, blit=True)
 
 
 ###############################################################################
