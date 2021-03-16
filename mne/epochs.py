@@ -1498,18 +1498,18 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                        channel_wise=True, verbose=None, *args, **kwargs):
         """Apply a function to a subset of channels.
 
-        The function "fun" is applied to the channels defined in "picks". The
-        data of the Epochs object is modified inplace. If the function returns
+        The function ``fun`` is applied to the channels defined in ``picks``. The
+        data of the Epochs object is modified in-place. If the function returns
         a different data type (e.g. numpy.complex) it must be specified using
         the dtype parameter, which causes the data type used for representing
         the raw data to change.
         The Epochs object has to have the data loaded e.g. with
         ``preload=True`` or ``self.load_data()``.
 
-        .. note:: If n_jobs > 1, more memory is required as
+        .. note:: If ``n_jobs`` > 1, more memory is required as
                   ``len(picks) * n_times`` additional time points need to
                   be temporaily stored in memory.
-        .. note:: If the data type changes (dtype != None), more memory is
+        .. note:: If the data type changes (``dtype != None``), more memory is
                   required since the original and the converted data needs
                   to be stored in memory.
 
@@ -1522,21 +1522,22 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             ``channel_wise=True`` and ``(len(picks), n_times)`` otherwise.
             The function must return an ndarray shaped like its input.
         %(picks_all_data_noref)s
-        dtype : numpy.dtype (default: None)
+        dtype : numpy.dtype
             Data type to use for raw data after applying the function. If None
-            the data type is not modified.
-        n_jobs : int (default: 1)
+            the data type is not modified. Defaults to ``None``.
+        n_jobs : int
             Number of jobs to run in parallel. Ignored if ``channel_wise`` is
-            False.
-        channel_wise : bool (default: True)
+            False. Defaults to 1.
+        channel_wise : bool
             Whether to apply the function to each channel individually. If
             False, the function will be applied to all channels at once.
+            Defaults to ``True``.
         %(verbose_meth)s
         *args : list
             Additional positional arguments to pass to fun (first pos. argument
             of fun is the timeseries of a channel).
         **kwargs : dict
-            Keyword arguments to pass to fun.
+            Additional keyword arguments to pass to fun.
 
         Returns
         -------
