@@ -146,7 +146,7 @@ def test_dipole_fitting(tmpdir):
                              subjects_dir=subjects_dir)
     head_to_mni_dip_pos = head_to_mni(dip.pos, 'sample', fwd['mri_head_t'],
                                       subjects_dir=subjects_dir)
-    assert_array_equal(dip_mni_pos, head_to_mni_dip_pos)
+    assert_allclose(dip_mni_pos, head_to_mni_dip_pos, rtol=1e-3, atol=0)
 
     # Sanity check: do our residuals have less power than orig data?
     data_rms = np.sqrt(np.sum(evoked.data ** 2, axis=0))
