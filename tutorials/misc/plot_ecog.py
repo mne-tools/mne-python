@@ -175,6 +175,7 @@ ts_data = raw_notched.get_data()
 
 # Find the annotated events
 events, event_id = mne.events_from_annotations(raw)
+inv_event_id = {v: k for k, v in event_id.items()}
 
 # find the onset event, use the one second before as the animation start
 onset_events = events[events[:, 2] == event_id['onset']]
@@ -198,8 +199,8 @@ def animate(i, activity, events):
     if i + start_sample in events[:, 0]:
         # Currently this doesn't replace the text, but writes over it.
         # This needs fixing
-        title.set_text(events[i + start_sample])
-
+        title.set_text(
+            inv_event_id[np.argwhere(events[:, 0] == i + start_sample)])
     return paths, title
 
 
