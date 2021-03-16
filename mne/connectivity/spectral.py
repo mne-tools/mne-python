@@ -705,7 +705,6 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                       Im(E[Sxy])
             C = ----------------------
                 sqrt(E[Sxx] * E[Syy])
-                
         'plv' : Phase-Locking Value (PLV)
         :footcite:`LachauxEtAl1999` given by::
             PLV = |E[Sxy/|Sxy|]|
