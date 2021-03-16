@@ -3362,7 +3362,7 @@ def test_empty_constructor():
 
 
 def fun(data_epochs):
-    """Auxilary function to test_apply function."""
+    """Auxiliary function to test_apply function."""
     matrix = np.random.rand(10, 10)
     return matrix @ data_epochs
 
@@ -3378,7 +3378,7 @@ def test_apply_function():
     out = epochs.apply_function(fun, channel_wise=False)
     assert np.shape(out) == np.shape(data_epochs)
     # check apply_function channel-wise
-    # let's gonna filter each channel
+    # let's going filter each channel
     filter_params = dict(sfreq=info['sfreq'], l_freq=10, h_freq=12,
                          l_trans_bandwidth=4, h_trans_bandwidth=4)
     out_ch = epochs.apply_function(filter_data, channel_wise=True,
