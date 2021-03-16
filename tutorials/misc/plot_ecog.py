@@ -11,9 +11,9 @@ electrocorticography (ECoG) data.
 
 This example shows how to use:
 
-- ECoG data
-- channel locations in subject's MRI space
-- projection onto a surface
+- ECoG data of an epilepsy subject with a seizure
+- channel locations in FreeSurfer's ``fsaverage`` MRI space
+- projection onto a pial surface
 
 For a complementary example that involves sEEG data, channel locations in
 MNI space, or projection into a volume, see :ref:`tut_working_with_seeg`.
@@ -32,7 +32,8 @@ import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-
+import matplotlib
+matplotlib.use('Qt5Agg')
 from mne_bids import BIDSPath, read_raw_bids
 
 import mne
@@ -173,7 +174,7 @@ ts_data = raw_notched.get_data()
 # Find the annotated events
 events, event_id = mne.events_from_annotations(raw)
 
-# Let's use the third event, which is the start of the first siezure
+# Let's use the third event, which is the start of the first seizure
 # (the first two events are pre-seizure behavioral events)
 start_sample = int(events[2, 0] - 1 * raw.info['sfreq'])
 
