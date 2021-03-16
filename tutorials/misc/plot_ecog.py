@@ -27,6 +27,8 @@ MNI space, or projection into a volume, see :ref:`tut_working_with_seeg`.
 # License: BSD (3-clause)
 
 import os.path as op
+import warnings
+from mne.surface import _triangle_neighbors
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -39,8 +41,8 @@ from mne.viz import plot_alignment, snapshot_brain_montage
 
 print(__doc__)
 
-# paths to mne datasets - sample epilepsy ECoG and FreeSurfer subject
-bids_root = mne.datasets.epilepsy.data_path()
+# paths to mne datasets - sample ECoG and FreeSurfer subject
+bids_root = mne.datasets.epilepsy_ecog.data_path()
 sample_path = mne.datasets.sample.data_path()
 subjects_dir = op.join(sample_path, 'subjects')
 
@@ -48,12 +50,14 @@ subjects_dir = op.join(sample_path, 'subjects')
 ###############################################################################
 # Let's load some ECoG electrode data with ``mne-bids``.
 # first define the bids path
-subject = 'pt1'
-bids_path = BIDSPath(root=bids_root, subject=subject, session='presurgery',
-                     task='ictal', datatype='ieeg', extension='vhdr')
+bids_path = BIDSPath(root=bids_root, subject='pt1', session='presurgery',
+                    task='ictal', datatype='ieeg', extension='vhdr')
 
 # then we'll use it to load in the sample dataset
-raw = read_raw_bids(bids_path=bids_path, verbose=False)
+# XXX: RuntimeWarning: iEEG Coordinate frame is not accepted BIDS keyword.
+# The allowed keywords are: ['acpc', 'pixels', 'other']
+with warnings.catch_warnings(record=True):
+    raw = read_raw_bids(bids_path=bids_path, verbose=False)
 
 # load data and drop bad channels
 raw.load_data()
@@ -68,12 +72,11 @@ montage = raw.get_montage()
 # data (along with xy positions of each electrode in the image), so that later
 # we can plot frequency band power on top of it.
 
-trans = mne.channels.compute_native_head_t(montage)
-print(trans)
-
-fig = plot_alignment(raw.info, subject='fsaverage', subjects_dir=subjects_dir,
-                     surfaces=['pial'])
-mne.viz.set_3d_view(fig, 200, 70, focalpoint=[0, -0.005, 0.03])
+subject = 'fsaverage'
+trans = None
+fig = plot_alignment(raw.info, subject=subject, subjects_dir=subjects_dir,
+                     surfaces=['pial'], trans=trans)
+mne.viz.set_3d_view(fig, 160, -70, focalpoint=[0.067, -0.04, 0.018])
 
 xy, im = snapshot_brain_montage(fig, raw.info)
 
@@ -174,13 +177,10 @@ cmap = 'RdBu_r'
 
 raw_notched = raw.copy().notch_filter([60, 120])
 ts_data = raw_notched.get_data()
-# Create a dictionary of seizure-related events from raw.annotations
-# These will be used to update the animation and show the most relevant
-# annotation
-events = dict()
-for t in np.arange(len(raw.annotations)):
-    samp_num = int(raw.annotations[t].onset[0]*raw.info['sfreq'])
-    events[samp_num] = raw.annotations[t].description[0]
+
+# Find the annotated events
+events, event_id = mne.events_from_annotations(raw)
+rev_id = {val: key for key, val in event_id.items()}
 
 # This start sample is normally something you would determine empirically
 # but here is 1 second before the onset of the first seizure-related
@@ -202,10 +202,12 @@ def animate(i, activity, events):
     paths.set_array(activity[:, i])
     # If this sample contains an annotation (for a seizure-related behavior)
     # then change the title of the plot
-    if i+start_sample in events.keys():
+    idx = np.where(events[:, 0] == i + start_sample)[0]
+    if len(idx):
+        idx = idx[0]
         # Currently this doesn't replace the text, but writes over it.
         # This needs fixing
-        title.set_text(events[i+start_sample])
+        title.set_text(rev_id[events[idx, 2]])
     return paths, title
 
 
@@ -241,7 +243,10 @@ anim = animation.FuncAnimation(fig, animate, init_func=init,
 
 evoked = mne.EvokedArray(
     gamma_power_t[:, sl], raw.info, tmin=raw.times[sl][0])
-stc = mne.stc_near_sensors(evoked, trans, subject, subjects_dir=subjects_dir)
+src = mne.read_source_spaces(
+    op.join(subjects_dir, subject, 'bem', f'{subject}-ico-5-src.fif'))
+stc = mne.stc_near_sensors(evoked, trans, subject, src=src,
+                           subjects_dir=subjects_dir)
 clim = dict(kind='value', lims=[vmin * 0.9, vmin, vmax])
 brain = stc.plot(surface='pial', hemi='both', initial_time=0.68,
                  colormap='viridis', clim=clim, views='parietal',

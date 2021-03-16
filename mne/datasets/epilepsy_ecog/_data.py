@@ -8,7 +8,7 @@ from ...utils import verbose
 from ..utils import (has_dataset, _data_path, _data_path_doc,
                      _get_version, _version_doc)
 
-has_epilepsy_data = partial(has_dataset, name='epilepsy')
+has_epilepsy_ecog_data = partial(has_dataset, name='epilepsy_ecog')
 
 
 @verbose
@@ -20,8 +20,8 @@ def data_path(
                       download=download)
 
 
-data_path.__doc__ = _data_path_doc.format(name='epilepsy_ecog',
-                                          conf='MNE_DATASETS_EPILEPSY_ECOG_PATH')
+data_path.__doc__ = _data_path_doc.format(
+    name='epilepsy_ecog', conf='MNE_DATASETS_EPILEPSY_ECOG_PATH')
 
 
 def get_version():  # noqa: D103

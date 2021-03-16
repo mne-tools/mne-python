@@ -248,7 +248,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         'refmeg_noise': 'MNE_DATASETS_REFMEG_NOISE_PATH',
         'ssvep': 'MNE_DATASETS_SSVEP_PATH',
         'erp_core': 'MNE_DATASETS_ERP_CORE_PATH',
-        'epilepsy_ecog': 'MNE_DATASETS_epilepsy_ecog_PATH',
+        'epilepsy_ecog': 'MNE_DATASETS_EPILEPSY_ECOG_PATH',
     }[name]
 
     path = _get_path(path, key, name)
@@ -336,7 +336,6 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         refmeg_noise='MNE-refmeg-noise-data',
         ssvep='ssvep-example-data',
         erp_core='MNE-ERP-CORE-data',
-        epilepsy_ecog='MNE-epilepsy-ecog-data'
     )
     md5_hashes = dict(
         brainstorm=dict(
@@ -595,7 +594,7 @@ def has_dataset(name):
             'refmeg_noise': 'MNE-refmeg-noise-data',
             'ssvep': 'ssvep-example-data',
             'erp_core': 'MNE-ERP-CORE-data',
-            'epilepsy_ecog': 'epilepsy_ecog-example-data'
+            'epilepsy_ecog': 'MNE-epilepsy-ecog-data'
         }[name]
     dp = _data_path(download=False, name=name, check_version=False,
                     archive_name=archive_name)
