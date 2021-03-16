@@ -772,12 +772,12 @@ def fun(evoked_data):
 def test_apply_function_evk():
     """Check the apply_function method for evoked data."""
     # create fake evoked data to use for checking apply_function
-    data = np.random.rand(10, 1000)
+    data = np.random.rand(2, 10, 1000)
     events = np.array([[0, 0, 1], [INT32_MAX, 0, 2]])
     info = mne.create_info(10, 1000., 'eeg')
     epochs = mne.EpochsArray(data, info, events)
     evoked = epochs.average(method='mean')
-    evoked_data = evoked.get_data()
+    evoked_data = evoked.data
     # check apply_function channel-wise
     applied = evoked.apply_function(fun)
     assert np.shape(applied) == np.shape(evoked_data)
