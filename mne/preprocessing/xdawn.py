@@ -397,7 +397,6 @@ class Xdawn(_XdawnTransformer):
     References
     ----------
     .. footbibliography::
-    .. footbibliography::
     """
 
     def __init__(self, n_components=2, signal_cov=None, correct_overlap='auto',
