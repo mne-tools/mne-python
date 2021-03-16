@@ -11,12 +11,15 @@ electrocorticography (ECoG) data.
 
 This example shows how to use:
 
-- ECoG data of an epilepsy subject with a seizure
+- ECoG_ data from a study of epilepsy subject with a seizure
 - channel locations in FreeSurfer's ``fsaverage`` MRI space
 - projection onto a pial surface
 
 For a complementary example that involves sEEG data, channel locations in
 MNI space, or projection into a volume, see :ref:`tut_working_with_seeg`.
+
+.. _ECoG: https://openneuro.org/datasets/ds003029
+
 """
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Chris Holdgraf <choldgraf@gmail.com>
