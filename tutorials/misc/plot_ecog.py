@@ -200,7 +200,7 @@ onset_events = events[events[:, 2] == event_id['onset']]
 inv_event_id = {v: k for k, v in event_id.items()}
 
 # Use one second before the seizure onset as the animation start
-start_sample = int(onset_events[0, 0])
+start_sample = int(onset_events[0, 0] + sfreq)
 
 
 # Create an initialization and animation function to pass to FuncAnimation.
@@ -265,8 +265,6 @@ anim = animation.FuncAnimation(fig, animate, init_func=init,
 # sphinx_gallery_thumbnail_number = 5
 
 evoked = mne.EvokedArray(gamma_power_t, raw.info, tmin=raw.times[0])
-# Show just a very short time period for the example
-evoked.resample(10).crop(tmin=1, tmax=2)
 
 src = mne.read_source_spaces(
     op.join(subjects_dir, 'fsaverage', 'bem', 'fsaverage-ico-5-src.fif'))
