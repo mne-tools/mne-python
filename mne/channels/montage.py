@@ -673,17 +673,13 @@ def _set_montage_fnirs(info, montage):
         source, detector = ch.split(' ')[0].split('_')
         source_pos = montage.dig[montage.ch_names.index(source) + 3]['r']
         detector_pos = montage.dig[montage.ch_names.index(detector) + 3]['r']
-        
+
         info['chs'][ch_idx]['loc'][3:6] = source_pos
         info['chs'][ch_idx]['loc'][6:9] = detector_pos
-
         midpoint = (source_pos + detector_pos) / 2
         info['chs'][ch_idx]['loc'][:3] = midpoint
 
     return info
-
-
-
 
 
 @fill_doc
@@ -862,8 +858,7 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
             ch['loc'] = np.full(12, np.nan)
 
     # if ch_type contains fnirs:
-    #     info = _set_montage_fnirs(data)
-    # info
+    #     info = _set_montage_fnirs(info, montage)
 
 
 def _read_isotrak_elp_points(fname):
