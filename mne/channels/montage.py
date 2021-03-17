@@ -371,7 +371,7 @@ class DigMontage(object):
         montage_bunch = _get_data_as_dict_from_dig(self.dig)
 
         # estimate LPA, nasion, RPA from FreeSurfer fsaverage
-        fids_mri = get_mni_fiducials(subject, subjects_dir)
+        fids_mri = get_mni_fiducials(subject, subjects_dir, verbose=verbose)
 
         # set the coordinate frame based on the coordinate frame
         # XXX: is this step right? It for example would set mri -> mni_tal
