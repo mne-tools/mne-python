@@ -44,11 +44,11 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
     inst : instance of mne.io.Raw, mne.Epochs, mne.Evoked
         The object to plot the sources from.
     %(picks_base)s all sources in the order as fitted.
-    start : int
-        X-axis start index. If None, from the beginning.
-    stop : int
-        X-axis stop index. If None, next 20 are shown, in case of evoked to the
-        end.
+    start : int | None
+        X-axis start index. If None (default), from the beginning.
+    stop : int | None
+        X-axis stop index. If None (default), next 20 are shown, in case of
+        evoked to the end.
     title : str | None
         The window title. If None a default is provided.
     show : bool
@@ -732,10 +732,10 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
         The components marked for exclusion. If None (default), ICA.exclude
         will be used.
     %(picks_base)s all channels that were included during fitting.
-    start : int
-        X-axis start index. If None from the beginning.
-    stop : int
-        X-axis stop index. If None to the end.
+    start : int | None
+        X-axis start index. If None (default) from the beginning.
+    stop : int | None
+        X-axis stop index. If None (default) to 3.0s.
     title : str
         The figure title.
     show : bool

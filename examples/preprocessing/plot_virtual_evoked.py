@@ -26,14 +26,30 @@ data_path = sample.data_path()
 fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
 evoked = mne.read_evokeds(fname, condition='Left Auditory', baseline=(None, 0))
 
-# go from grad + mag to mag
+###############################################################################
+# First, let's call remap gradiometers to magnometers, and plot
+# the original and remapped topomaps of the magnetometers.
+
+# go from grad + mag to mag and plot original mag
 virt_evoked = evoked.as_type('mag')
 evoked.plot_topomap(ch_type='mag', title='mag (original)', time_unit='s')
+
+###############################################################################
+
+# plot interpolated grad + mag
 virt_evoked.plot_topomap(ch_type='mag', time_unit='s',
                          title='mag (interpolated from mag + grad)')
 
-# go from grad + mag to grad
+###############################################################################
+# Now, we remap magnometers to gradiometers, and plot
+# the original and remapped topomaps of the gradiometers
+
+# go from grad + mag to grad and plot original grad
 virt_evoked = evoked.as_type('grad')
 evoked.plot_topomap(ch_type='grad', title='grad (original)', time_unit='s')
+
+###############################################################################
+
+# plot interpolated grad + mag
 virt_evoked.plot_topomap(ch_type='grad', time_unit='s',
                          title='grad (interpolated from mag + grad)')
