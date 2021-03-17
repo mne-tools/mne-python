@@ -1,4 +1,3 @@
-
 MNI Coordinates
 
 Brain Atlas	Coordinate System	Projection Method

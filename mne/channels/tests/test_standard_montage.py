@@ -76,23 +76,21 @@ def test_standard_superset():
 
 
 def test_artinis():
-    a = make_standard_montage("artinis-octomon")
-    assert a.ch_names == ['D1', 'D2', 'S1', 'S2']
-
     import mne
     import os
     from mne.channels.montage import _set_montage_fnirs
+
     fnirs_data_folder = mne.datasets.fnirs_motor.data_path()
     fnirs_cw_amplitude_dir = os.path.join(fnirs_data_folder, 'Participant-1')
-    d = mne.io.read_raw_nirx(fnirs_cw_amplitude_dir, verbose=True)
-    d.load_data()
-    d.plot_sensors()
+    raw = mne.io.read_raw_nirx(fnirs_cw_amplitude_dir, preload=True,
+                               verbose=True)
+    raw.plot_sensors()
 
-    d.pick(picks=["S1_D1 760", "S1_D1 850", "S1_D2 760", "S1_D2 850",
-                  "S2_D1 760", "S2_D1 850"])
+    raw.pick(picks=["S1_D1 760", "S1_D1 850",
+                    "S1_D2 760", "S1_D2 850",
+                    "S2_D1 760", "S2_D1 850"])
+    raw.plot_sensors()
 
-    d.plot_sensors()
-
-    d.info = _set_montage_fnirs(d.info, a)
-    d.plot_sensors()
-
+    montage = make_standard_montage("artinis-octamon")
+    raw.info = _set_montage_fnirs(raw.info, montage)
+    raw.plot_sensors()

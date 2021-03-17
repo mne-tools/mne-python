@@ -142,8 +142,10 @@ standard_montage_look_up_table = {
                                  basename='standard_prefixed.elc'),
     'standard_primed': partial(_mgh_or_standard,
                                basename='standard_primed.elc'),
-    'artinis-octomon': partial(_mgh_or_standard,
-                               basename='artinis-octomon.elc'),
+    'artinis-octamon': partial(_mgh_or_standard,
+                               basename='artinis-octamon.elc'),
+    'artinis-brite23': partial(_mgh_or_standard,
+                               basename='artinis-brite23.elc'),
 }
 
 

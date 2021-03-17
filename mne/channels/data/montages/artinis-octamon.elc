@@ -1,7 +1,7 @@
 # ASA optode file
 ReferenceLabel	avg
 UnitPosition	mm
-NumberPositions=	15
+NumberPositions=	13
 Positions
 0.96 83.56 -48.63
 80.25 -19.67 -43.88

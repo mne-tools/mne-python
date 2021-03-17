@@ -52,7 +52,7 @@ _BUILT_IN_MONTAGES = [
     'mgh60', 'mgh70',
     'standard_1005', 'standard_1020', 'standard_alphabetic',
     'standard_postfixed', 'standard_prefixed', 'standard_primed',
-    'artinis-octomon'
+    'artinis-octamon', 'artinis-brite23'
 ]
 
 
@@ -1316,6 +1316,10 @@ def make_standard_montage(kind, head_size=HEAD_SIZE_DEFAULT):
                           MGH (60+3 locations)
     mgh70                 The (newer) 70-channel BrainVision cap used at
                           MGH (70+3 locations)
+
+    artinis-octamon       Artinis OctaMon fNIRS (8 sources, 2 detectors)
+
+    artinis-brite23       Artinis Brite 23 fNIRS (11 sources, 7 detectors)
     ===================   =====================================================
 
     .. versionadded:: 0.19.0
