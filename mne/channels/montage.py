@@ -669,9 +669,19 @@ def _get_montage_in_head(montage):
 
 def _set_montage_fnirs(info, montage):
 
-    # for ch in info.channels:
+    for ch_idx, ch in enumerate(info['ch_names']):
+        source, detector = ch.split(' ')[0].split('_')
+        source_pos = montage.dig[montage.ch_names.index(source) + 3]['r']
+        detector_pos = montage.dig[montage.ch_names.index(detector) + 3]['r']
+        
+        info['chs'][ch_idx]['loc'][3:6] = source_pos
+        info['chs'][ch_idx]['loc'][6:9] = detector_pos
 
-    return 1
+        midpoint = (source_pos + detector_pos) / 2
+        info['chs'][ch_idx]['loc'][:3] = midpoint
+
+    return info
+
 
 
 
