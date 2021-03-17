@@ -46,6 +46,7 @@ import numpy as np
 from matplotlib.figure import Figure
 from .epochs import plot_epochs_image
 from .ica import _create_properties_layout
+from .topomap import _plot_ica_topomap
 from .utils import (plt_show, plot_sensors, _setup_plot_projector, _events_off,
                     _set_window_title, _merge_annotations, DraggableLine,
                     _get_color_list, logger, _validate_if_list_of_axes,
@@ -836,7 +837,10 @@ class MNEBrowseFigure(MNEFigure):
         if inst == 'raw':
             self._create_ch_location_fig(pick)
         elif inst == 'ica':
-            self._create_ica_properties_fig(pick)
+            if self.mne.ica_type == 'raw':
+                self._create_ica_topo_fig(pick)
+            else:
+                self._create_ica_properties_fig(pick)
         else:
             self._create_epoch_image_fig(pick)
 
@@ -872,6 +876,17 @@ class MNEBrowseFigure(MNEFigure):
                                      window_title=f'{ch_name} properties')
         fig, axes = _create_properties_layout(fig=fig)
         self.mne.ica.plot_properties(self.mne.ica_inst, picks=pick, axes=axes)
+
+    def _create_ica_topo_fig(self, idx):
+        """Show ICA topomap for the selected component."""
+        ch_name = self.mne.ch_names[idx]
+        if ch_name not in self.mne.ica._ica_names:  # for EOG chans: do nothing
+            return
+        pick = self.mne.ica._ica_names.index(ch_name)
+        fig = self._new_child_figure(figsize=(7, 6), fig_name=None,
+                                     window_title=f'{ch_name} topomap')
+        axes = fig.add_axes(fig.add_subplot(111), label='topomap')
+        _plot_ica_topomap(self.mne.ica, idx=pick, axes=axes)
 
     def _create_epoch_image_fig(self, pick):
         """Show epochs image for the selected channel."""
