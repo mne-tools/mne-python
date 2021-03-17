@@ -26,5 +26,4 @@ raw_erm.plot_psd(tmax=10., average=True, spatial_colors=False,
 ###############################################################################
 # References
 # ----------
-#
 # .. footbibliography::

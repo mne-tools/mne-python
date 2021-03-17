@@ -1541,7 +1541,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         Returns
         -------
-        self : instance of Raw
+        self : instance of Epochs
             The epochs object with transformed data.
         """
         _check_preload(self, 'epochs.apply_function')
