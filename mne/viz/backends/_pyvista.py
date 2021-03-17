@@ -189,6 +189,15 @@ class _PyVistaRenderer(_AbstractRenderer):
                 self.plotter.iren = None
 
         self.update_lighting()
+        self._load_default_style()
+
+    def _load_default_style(self):
+        try:
+            with open('data.txt', 'r') as f:
+                data = f.read()
+            self.figure.store["app"].setStyleSheet(data)
+        except FileNotFoundError:
+            pass
 
     @property
     def _all_plotters(self):
