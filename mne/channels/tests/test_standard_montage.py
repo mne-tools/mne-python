@@ -73,3 +73,25 @@ def test_standard_superset():
     for key, value in m_1020._get_ch_pos().items():
         if key not in ('O10', 'O9'):
             assert_allclose(c_1005[key], value, atol=1e-4, err_msg=key)
+
+
+def test_artinis():
+    a = make_standard_montage("artinis-octomon")
+    assert a.ch_names == ['D1', 'D2', 'S1', 'S2']
+
+    import mne
+    import os
+    fnirs_data_folder = mne.datasets.fnirs_motor.data_path()
+    fnirs_cw_amplitude_dir = os.path.join(fnirs_data_folder, 'Participant-1')
+    d = mne.io.read_raw_nirx(fnirs_cw_amplitude_dir, verbose=True)
+    d.load_data()
+    d.plot_sensors()
+
+    d.pick(picks=["S1_D1 760", "S1_D1 850", "S1_D2 760", "S1_D2 850",
+                  "S2_D1 760", "S2_D1 850", "S2_D2 760", "S2_D2 850"])
+    d.info["chs"][0]
+
+
+    import
+    d.set_montage(a)
+
