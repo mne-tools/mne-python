@@ -206,7 +206,7 @@ for title, _raw in zip(['Original', 'REST (∞)'], [raw, raw_rest]):
 # creates a new virtual channel named EEG 054-EEG 055.
 
 raw_bip_ref = mne.set_bipolar_reference(raw.copy(), anode=['EEG 054'],
-    cathode=['EEG 055'])
+                                        cathode=['EEG 055'])
 raw_bip_ref.plot()
 
 ###############################################################################
