@@ -2149,14 +2149,14 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         Channels are converted to columns in the DataFrame. By default,
         additional columns "time", "frequency", "epoch" (epoch number),
         and "condition" (epoch event description) are added, unless ``index``
-        is not ``None``(in which case the columns specified in ``index`` will
+        is not ``None`` (in which case the columns specified in ``index`` will
         be used to form the DataFrame's index instead).
 
         Parameters
         ----------
         %(picks_all)s
         %(df_index_epo)s
-            Valid string values are 'time', 'freq', and 'condition'.
+            Valid string values are ``'time'``, ``'freq'``, and ``'condition'``.
             Defaults to ``None``.
         %(df_scalings)s
         %(df_copy)s
