@@ -943,9 +943,7 @@ class Report(object):
 
     Attributes
     ----------
-    initial_id : int
-        Counter for unique ids.
-    html : list of str
+    html : list
         Contains items of html-page.
     fnames : list
         List of file names rendered.
@@ -978,7 +976,7 @@ class Report(object):
         self.projs = projs
         self.verbose = verbose
 
-        self.initial_id = 0
+        self._initial_id = 0
         self.html = []
         self.fnames = []  # List of file names rendered
         self.sections = []  # List of sections
@@ -1021,8 +1019,8 @@ class Report(object):
 
     def _get_id(self):
         """Get id of plot."""
-        self.initial_id += 1
-        return self.initial_id
+        self._initial_id += 1
+        return self._initial_id
 
     def _validate_input(self, items, captions, section, comments=None):
         """Validate input."""
@@ -1673,7 +1671,7 @@ class Report(object):
         """
         # Note: self._fname is not part of the state
         return (['baseline', 'cov_fname', 'fnames', 'html', 'include',
-                 'image_format', 'info_fname', 'initial_id', 'raw_psd',
+                 'image_format', 'info_fname', '_initial_id', 'raw_psd',
                  '_sectionlabels', 'sections', '_sectionvars', 'projs',
                  '_sort_sections', 'subjects_dir', 'subject', 'title',
                  'verbose'],
