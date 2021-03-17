@@ -12,7 +12,7 @@ from ..channels import equalize_channels
 from ..io.pick import pick_info, pick_channels
 from ..utils import (logger, verbose, warn, _check_one_ch_type,
                      _check_channels_spatial_filter, _check_rank,
-                     _check_option, _validate_type)
+                     _check_option, _validate_type, deprecated)
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz, _check_reference, _check_depth
 from ..rank import compute_rank
@@ -493,6 +493,9 @@ def apply_dics_csd(csd, filters, verbose=None):
             frequencies)
 
 
+@deprecated(
+    'tf_dics is deprecated and will be removed in 0.24, use LCMV with '
+    'covariances matrices computed on band-passed data or DICS instead.')
 @verbose
 def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
             subtract_evoked=False, mode='fourier', freq_bins=None,
