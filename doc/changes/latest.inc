@@ -37,6 +37,8 @@ Current (0.23.dev0)
 
 .. |Valerii Chirkov| replace:: **Valerii Chirkov**
 
+.. |Cora Kim| replace:: **Cora Kim**
+
 Enhancements
 ~~~~~~~~~~~~
 - Update citations in maxwell.py (:gh:`9043` **by new contributor** |Valerii Chirkov|_)
@@ -199,4 +201,6 @@ Bugs
 
 API changes
 ~~~~~~~~~~~
+- Introduced new ``'auto'`` settings for ``ICA.max_iter``. The old default ``max_iter=200`` will be removed in MNE-Python 0.24 (:gh:`9099` **by new contributor** |Cora Kim|_)
+
 - ``mne.read_selection`` has been deprecated in favor of `mne.read_vectorview_selection`. ``mne.read_selection`` will be removed in MNE-Python 0.24 (:gh:`8870` by `Richard Höchenberger`_)

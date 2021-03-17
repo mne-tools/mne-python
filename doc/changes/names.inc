@@ -367,3 +367,5 @@
 .. _Judy D Zhu: https://github.com/JD-Zhu
 
 .. _Valerii Chirkov: https://github.com/vagechirkov
+
+.. _Cora Kim: https://github.com/kimcoco
