@@ -1,5 +1,5 @@
 # Authors: Adam Li <adam2392@gmail.com>
-#          Alex Rockhill <insert>
+#          Alex Rockhill <aprockhill@mailbox.org>
 # License: BSD Style.
 
 from functools import partial

@@ -37,8 +37,6 @@ from mne_bids import BIDSPath, read_raw_bids
 import mne
 from mne.viz import plot_alignment, snapshot_brain_montage
 
-import matplotlib
-matplotlib.use('Qt5Agg')
 print(__doc__)
 
 # paths to mne datasets - sample ECoG and FreeSurfer subject
@@ -58,11 +56,14 @@ bids_path = BIDSPath(root=bids_root, subject='pt1', session='presurgery',
 # will emit a warning on versions <= 0.6
 raw = read_raw_bids(bids_path=bids_path, verbose=False)
 
-# To make the example run much faster, we will crop to 10 seconds before the
-# first relevant event:
+# Find the annotated events
+events, event_id = mne.events_from_annotations(raw)
 
-start = (mne.events_from_annotations(raw)[0][0, 0] -
-         raw.first_samp) / raw.info['sfreq'] - 10.
+# To make the example run much faster, we will crop to 10 seconds before the
+# seizure onset event
+
+onset_events = events[events[:, 2] == event_id['onset']]
+start = (onset_events[0, 0] - raw.first_samp) / raw.info['sfreq'] - 10.
 raw.crop(start, None)
 
 # And then downsample. This is just to save time in this example, you should
@@ -186,17 +187,16 @@ raw_notched = raw.copy().pick_types(meg=False, ecog=True)
 # Apply a gentle high pass filter to get rid of drift
 raw_notched.filter(l_freq=0.1, h_freq=None)
 
-# Downsample the data to make the animation more reasonable
+# Downsample again, to compute the animation faster
 sfreq = 50  # Hz
 raw_notched.resample(sfreq)
 ts_data = raw_notched.get_data()
 
-# Find the annotated events
-events, event_id = mne.events_from_annotations(raw)
+# invert the event_ids so that we can look up by id and get the name
+# to display on the plot
 inv_event_id = {v: k for k, v in event_id.items()}
 
-# find the onset event, use the one second before as the animation start
-onset_events = events[events[:, 2] == event_id['onset']]
+# Use one second before the seizure onset as the animation start
 start_sample = int(onset_events[0, 0] - 1 * raw.info['sfreq'])
 
 
