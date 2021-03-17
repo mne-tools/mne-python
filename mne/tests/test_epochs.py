@@ -3369,7 +3369,7 @@ def fun(data_epochs):
 def fun_ch(data_epochs):
     """Auxiliary function to test_apply_function channel wise."""
     sign = -1
-    return data_epochs*sign
+    return data_epochs * sign
 
 
 def test_apply_function():

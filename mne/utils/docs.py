@@ -132,12 +132,14 @@ group_by : str
 """
 
 docdict['arg_fun'] = """
-group_by : str
-        *args : list
-            Additional positional arguments to pass to fun (first pos. argument
-            of fun is the timeseries of a channel).
-        **kwargs : dict
-            Additional keyword arguments to pass to fun.
+*args : iterable
+    Additional positional arguments to pass to fun (first pos. argument of fun
+    is the timeseries of a channel).
+"""
+
+docdict['kwarg_fun'] = """
+**kwargs : dict
+    Additional keyword arguments to pass to fun.
 """
 
 

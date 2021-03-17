@@ -1510,8 +1510,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             The function must return an ndarray shaped like its input.
         %(picks_all_data_noref)s
         dtype : numpy.dtype
-            Data type to use for raw data after applying the function. If None
-            the data type is not modified. Defaults to ``None``.
+            Data type to use for epochs data after applying the function.
+            If None the data type is not modified. Defaults to ``None``.
         n_jobs : int
             Number of jobs to run in parallel. Ignored if ``channel_wise`` is
             False. Defaults to 1.
@@ -1521,6 +1521,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             Defaults to ``True``.
         %(verbose_meth)s
         %(arg_fun)s
+        %(kwarg_fun)s
 
         Returns
         -------
