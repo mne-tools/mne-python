@@ -64,6 +64,7 @@ doc/coverages
 doc/samples
 doc/*.dat
 doc/fil-result
+doc/optipng.exe
 cover
 *.html
 
