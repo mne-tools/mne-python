@@ -18,9 +18,6 @@ from an epilepsy patient during a seizure
 
 For a complementary example that involves sEEG data, channel locations in
 MNI space, or projection into a volume, see :ref:`tut_working_with_seeg`.
-
-.. _ECoG: https://openneuro.org/datasets/ds003029
-
 """
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Chris Holdgraf <choldgraf@gmail.com>
