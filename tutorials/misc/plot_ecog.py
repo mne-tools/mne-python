@@ -11,7 +11,8 @@ electrocorticography (ECoG) data.
 
 This example shows how to use:
 
-- ECoG_ data from a study of epilepsy subject with a seizure
+- ECoG data (`available here <https://openneuro.org/datasets/ds003029>`_)
+from an epilepsy patient during a seizure
 - channel locations in FreeSurfer's ``fsaverage`` MRI space
 - projection onto a pial surface
 
@@ -180,9 +181,8 @@ anim = animation.FuncAnimation(fig, animate, init_func=init,
 # matter and there is a true 0 point
 cmap = 'RdBu_r'
 
-# Apply a notch filter to remove 60 Hz line noise and harmonics
-raw_notched = raw.copy().pick_types(
-    meg=False, ecog=True).notch_filter([60, 120])
+# Get a copy of the filtered data earlier and only get the ecog channels
+raw_notched = raw.copy().pick_types(meg=False, ecog=True)
 
 # Apply a gentle high pass filter to get rid of drift
 raw_notched.filter(l_freq=0.1, h_freq=None)

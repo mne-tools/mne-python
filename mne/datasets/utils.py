@@ -364,7 +364,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         erp_core='5866c0d6213bd7ac97f254c776f6c4b1',
         epilepsy_ecog='ffb139174afa0f71ec98adbbb1729dea',
     )
-    assert set(md5_hashes.keys()) == set(urls.keys())
+    assert set(md5_hashes) == set(urls)
     url = urls[name]
     hash_ = md5_hashes[name]
     folder_orig = folder_origs.get(name, None)
