@@ -182,18 +182,18 @@ anim = animation.FuncAnimation(fig, animate, init_func=init,
 cmap = 'RdBu_r'
 
 # Get a copy of the filtered data earlier and only get the ecog channels
-raw_notched = raw.copy().pick_types(meg=False, ecog=True)
+raw_ecog = raw.copy().pick_types(meg=False, ecog=True)
 
-# Apply a gentle high pass filter to get rid of drift
-raw_notched.filter(l_freq=0.1, h_freq=None)
+# Apply a high pass filter to get rid of drift
+raw_ecog.filter(l_freq=1, h_freq=None)
 
 # Downsample again, to compute the animation faster
 sfreq = 50  # Hz
-raw_notched.resample(sfreq)
-ts_data = raw_notched.get_data()
+raw_ecog.resample(sfreq)
+ts_data = raw_ecog.get_data()
 
 # recompute events for new sampling frequency
-events, event_id = mne.events_from_annotations(raw_notched)
+events, event_id = mne.events_from_annotations(raw_ecog)
 onset_events = events[events[:, 2] == event_id['onset']]
 
 # invert the event_ids so that we can look up by id and get the name
@@ -201,7 +201,7 @@ onset_events = events[events[:, 2] == event_id['onset']]
 inv_event_id = {v: k for k, v in event_id.items()}
 
 # Use one second before the seizure onset as the animation start
-start_sample = int(onset_events[0, 0] - 1 * raw_notched.info['sfreq'])
+start_sample = int(onset_events[0, 0] - 1 * raw_ecog.info['sfreq'])
 
 
 # Create an initialization and animation function to pass to FuncAnimation.
@@ -239,7 +239,7 @@ tax.set_axis_off()
 
 # We want the mid-point (0 uV) to be white, so we will scale from -vmax to vmax
 # so that negative voltages are blue and positive voltages are red
-ts_data = raw_notched.get_data()
+ts_data = raw_ecog.get_data()
 vmax = np.percentile(ts_data, 90)
 paths = ax.scatter(*xy_pts.T, c=np.zeros(len(xy_pts)), s=100,
                    cmap=cmap, vmin=-vmax, vmax=vmax)
@@ -271,8 +271,8 @@ anim = animation.FuncAnimation(fig, animate, init_func=init,
 # for the example
 evoked = mne.EvokedArray(gamma_power_t, raw.info, tmin=raw.times[0])
 
-# resample to 20 Hz
-evoked.resample(20)
+# resample to 10 Hz
+evoked.resample(10)
 
 src = mne.read_source_spaces(
     op.join(subjects_dir, 'fsaverage', 'bem', 'fsaverage-ico-5-src.fif'))
