@@ -264,10 +264,8 @@ anim = animation.FuncAnimation(fig, animate, init_func=init,
 
 # sphinx_gallery_thumbnail_number = 5
 
-# Let's look at 1 second before seizure onset and 4 seconds after, you would
-# want to look at the whole time course, this just saves execution time
-# for the example
 evoked = mne.EvokedArray(gamma_power_t, raw.info, tmin=raw.times[0])
+evoked.resample(10)  # downsample to 10 Hz
 
 src = mne.read_source_spaces(
     op.join(subjects_dir, 'fsaverage', 'bem', 'fsaverage-ico-5-src.fif'))
