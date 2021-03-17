@@ -62,15 +62,15 @@ events, event_id = mne.events_from_annotations(raw)
 # To make the example run much faster, we will start 5 seconds before the
 # seizure onset event and use 15 seconds of seizure
 onset_events = events[events[:, 2] == event_id['onset']]
-start = (onset_events[0, 0] - raw.first_samp) / raw.info['sfreq'] - 5
-raw.crop(start, start + 15)
+start = (onset_events[0, 0] - raw.first_samp) / raw.info['sfreq']
+raw.crop(start - 1, start + 3)
 
 # And then downsample. This is just to save time in this example, you should
 # not need to do this in general!
 raw.resample(200)  # Hz, will also load the data for us
 
 # Then we remove line frequency interference
-raw.notch_filter([60])
+raw.notch_filter([60], trans_bandwidth=3)
 
 # drop bad channels
 raw.drop_channels(raw.info['bads'])
@@ -160,8 +160,7 @@ fig.colorbar(paths, ax=ax)
 ax.set_title('Gamma frequency over time', size='large')
 
 # avoid edge artifacts and decimate, showing just a short chunk
-sl = slice(100, 150)
-show_power = gamma_power_t[:, sl]
+show_power = gamma_power_t
 anim = animation.FuncAnimation(fig, animate, init_func=init,
                                fargs=(show_power,),
                                frames=show_power.shape[1],
@@ -185,7 +184,7 @@ cmap = 'RdBu_r'
 raw_ecog = raw.copy().pick_types(meg=False, ecog=True)
 
 # Apply a high pass filter to get rid of drift, decrease time range
-raw_ecog.filter(l_freq=1, h_freq=None).crop(tmin=3, tmax=7)
+raw_ecog.filter(l_freq=5, h_freq=None)
 
 # Downsample again, to compute the animation faster
 sfreq = 50  # Hz
@@ -259,7 +258,6 @@ anim = animation.FuncAnimation(fig, animate, init_func=init,
                                frames=show_power.shape[1],
                                interval=20, blit=True)
 
-
 ###############################################################################
 # Alternatively, we can project the sensor data to the nearest locations on
 # the pial surface and visualize that:
@@ -270,9 +268,6 @@ anim = animation.FuncAnimation(fig, animate, init_func=init,
 # want to look at the whole time course, this just saves execution time
 # for the example
 evoked = mne.EvokedArray(gamma_power_t, raw.info, tmin=raw.times[0])
-
-# resample to 10 Hz
-evoked.resample(10)
 
 src = mne.read_source_spaces(
     op.join(subjects_dir, 'fsaverage', 'bem', 'fsaverage-ico-5-src.fif'))
@@ -286,5 +281,6 @@ brain = stc.plot(surface='pial', hemi='both',
 brain.show_view(view=dict(azimuth=-20, elevation=60))
 
 # You can save a movie like the one on our documentation website with:
-# brain.save_movie(time_dilation=5, interpolation='linear', framerate=10,
+# brain.save_movie(time_dilation=1, interpolation='linear', framerate=10,
 #                  time_viewer=True)
+
