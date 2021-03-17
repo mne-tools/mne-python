@@ -89,10 +89,10 @@ def test_artinis():
     d.plot_sensors()
 
     d.pick(picks=["S1_D1 760", "S1_D1 850", "S1_D2 760", "S1_D2 850",
-                  "S2_D1 760", "S2_D1 850", "S2_D2 760", "S2_D2 850"])
-    d.info["chs"][0]
+                  "S2_D1 760", "S2_D1 850"])
 
+    d.plot_sensors()
 
-
-    _set_montage_fnirs(d, a)
+    d.info = _set_montage_fnirs(d.info, a)
+    d.plot_sensors()
 
