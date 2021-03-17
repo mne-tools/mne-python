@@ -903,43 +903,64 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             data, times = self[picks, start:stop]
 
         # Convert into the specified unit
-        # TODO: handle fractions of units and powers
-
+        # XXX: check test_defaults.py for unit split example
+        # TODO: check that units exist
+        # TODO: handle dict
+        ch_factors = np.ones(len(data))
         si_units = _handle_default("si_units")
         unit_prefixes = dict(m=1e3, c=1e2, µ=1e6, u=1e6, n=1e9, p=1e12, f=1e15)
+
         if units is None:
             pass
+
         elif isinstance(units, str):
-            # TODO: check if ch_types of only one unit and unit exists
-            # ch_types = self.get_channel_types(unique=True)
-
-            if units == 'm':
-                scaling = 1
-            elif units[0] in unit_prefixes.keys():
-                scaling = unit_prefixes[units[0]]
-            else:
-                scaling = 1
-            if scaling != 1:
-                data = data * scaling
-        elif isinstance(units, dict):
-            # TODO: check if ch_types exist, have a unit and units exist
-            # ch_types = self.get_channel_types(unique=True)
-            # print possible ch_types if error
-
-            for ch_type in units.keys():
-                if units[ch_type] == 'm':  # only ECG unit starts like prefix
+            ch_types = self.get_channel_types(unique=True)
+            ch_type_with_unit = list(set(ch_types) & set(si_units.keys()))
+            if ch_type_with_unit > 1:
+                raise ValueError('"units" cannot be str with more than one '
+                                 'channel type with a unit'
+                                 f'({ch_type_with_unit}).')
+            unit_list = units.split('/')
+            if len(unit_list) > 2:
+                raise ValueError(f'{units} is not a valid unit.')
+            for i, unit in enumerate(unit_list):
+                has_square = False
+                if unit[-1] == '²':
+                    has_square = True
+                if units == 'm':
                     scaling = 1
-                elif units[ch_type][0] in unit_prefixes.keys():
-                    scaling = unit_prefixes[units[ch_type][0]]
+                elif units[0] in unit_prefixes.keys():
+                    scaling = unit_prefixes[units[0]]
                 else:
                     scaling = 1
                 if scaling != 1:
-                    ch_indices = pick_types(self, **{ch_type: True})
-                    data[ch_indices] = data[ch_indices] * scaling
+                    if has_square:
+                        scaling *= scaling
+                    ch_indices = pick_types(self, **{ch_type_with_unit: True})
+
+                    if i == 2:
+                        ch_factors[ch_indices] = ch_factors[ch_indices]/scaling
+                    else:
+                        ch_factors[ch_indices] = ch_factors[ch_indices]*scaling
+
+        # elif isinstance(units, dict):
+        #     ch_types = self.get_channel_types(unique=True)
+        #     for ch_type in units.keys():
+        #         if units[ch_type] == 'm':  # only ECG unit starts like prefix
+        #             scaling = 1
+        #         elif units[ch_type][0] in unit_prefixes.keys():
+        #             scaling = unit_prefixes[units[ch_type][0]]
+        #         else:
+        #             scaling = 1
+        #         if scaling != 1:
+        #             ch_indices = pick_types(self, **{ch_type: True})
+        #             data[ch_indices] = data[ch_indices] * scaling
+
         else:
             raise TypeError('"units" must be None or of type str or dict, not '
                             f'{type(units)}.')
 
+        data = data * ch_factors
         if return_times:
             return data, times
         return data
