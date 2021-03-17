@@ -918,7 +918,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             ch_type_with_unit = list(set(ch_types) & set(si_units.keys()))
             if ch_type_with_unit > 1:
                 raise ValueError('"units" cannot be str with more than one '
-                                 'channel type with a unit'
+                                 'channel type with a unit '
                                  f'({ch_type_with_unit}).')
             unit_list = units.split('/')
             if len(unit_list) > 2:
