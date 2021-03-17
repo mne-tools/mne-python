@@ -363,6 +363,10 @@ class DigMontage(object):
         %(subjects_dir)s
         %(verbose)s
 
+        See Also
+        --------
+        plot_source_alignment
+
         Notes
         -----
         Since MNE uses the FIF data structure, it relies on the ``head``
@@ -371,10 +375,6 @@ class DigMontage(object):
         defined. One can use this function to estimate those fiducials
         and then use ``montage.get_native_head_t()`` to get the
         head <-> MRI transform.
-
-        See Also
-        --------
-        plot_source_alignment
         """
         from ..coreg import get_mni_fiducials
 
