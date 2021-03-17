@@ -897,19 +897,34 @@ def test_to_data_frame():
 
 
 @requires_pandas
-@pytest.mark.parametrize('index', ('time', ['condition', 'time', 'epoch'],
-                                   ['epoch', 'time'], ['time', 'epoch'], None))
+@pytest.mark.parametrize('index', ('time', ['condition', 'time', 'freq'],
+                                   ['freq', 'time'], ['time', 'freq'], None))
 def test_to_data_frame_index(index):
     """Test index creation in epochs Pandas exporter."""
-    raw, events, picks = _get_data()
-    epochs = Epochs(raw, events, {'a': 1, 'b': 2}, tmin, tmax, picks=picks)
-    df = epochs.to_data_frame(picks=[11, 12, 14], index=index)
+    # Create fake EpochsTFR data:
+    n_epos = 3
+    ch_names = ['EEG 001', 'EEG 002', 'EEG 003', 'EEG 004']
+    n_picks = len(ch_names)
+    ch_types = ['eeg'] * n_picks
+    n_freqs = 5
+    n_times = 6
+    data = np.random.rand(n_epos, n_picks, n_freqs, n_times)
+    times = np.arange(6)
+    freqs = np.arange(5)
+    events = np.zeros((n_epos, 3), dtype=int)
+    events[:, 0] = np.arange(n_epos)
+    events[:, 2] = np.arange(5, 8)
+    event_id = {k: v for v, k in zip(events[:, 2], ['ha', 'he', 'hu'])}
+    info = mne.create_info(ch_names, 1000., ch_types)
+    tfr = mne.time_frequency.EpochsTFR(info, data, times, freqs,
+                                       events=events, event_id=event_id)
+    df = tfr.to_data_frame(picks=[0, 2, 3], index=index)
     # test index order/hierarchy preservation
     if not isinstance(index, list):
         index = [index]
     assert (df.index.names == index)
     # test that non-indexed data were present as columns
-    non_index = list(set(['condition', 'time', 'epoch']) - set(index))
+    non_index = list(set(['condition', 'time', 'freq']) - set(index))
     if len(non_index):
         assert all(np.in1d(non_index, df.columns))
 
@@ -919,14 +934,26 @@ def test_to_data_frame_index(index):
 def test_to_data_frame_time_format(time_format):
     """Test time conversion in epochs Pandas exporter."""
     from pandas import Timedelta
-    raw, events, picks = _get_data()
-    epochs = Epochs(raw, events, {'a': 1, 'b': 2}, tmin, tmax, picks=picks)
+    n_epos = 3
+    ch_names = ['EEG 001', 'EEG 002', 'EEG 003', 'EEG 004']
+    n_picks = len(ch_names)
+    ch_types = ['eeg'] * n_picks
+    n_freqs = 5
+    n_times = 6
+    data = np.random.rand(n_epos, n_picks, n_freqs, n_times)
+    times = np.arange(6)
+    freqs = np.arange(5)
+    events = np.zeros((n_epos, 3), dtype=int)
+    events[:, 0] = np.arange(n_epos)
+    events[:, 2] = np.arange(5, 8)
+    event_id = {k: v for v, k in zip(events[:, 2], ['ha', 'he', 'hu'])}
+    info = mne.create_info(ch_names, 1000., ch_types)
+    tfr = mne.time_frequency.EpochsTFR(info, data, times, freqs,
+                                       events=events, event_id=event_id)
     # test time_format
-    df = epochs.to_data_frame(time_format=time_format)
+    df = tfr.to_data_frame(time_format=time_format)
     dtypes = {None: np.float64, 'ms': np.int64, 'timedelta': Timedelta}
     assert isinstance(df['time'].iloc[0], dtypes[time_format])
-
-
 
 
 run_tests_if_main()
