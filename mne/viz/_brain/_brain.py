@@ -1669,6 +1669,7 @@ class Brain(object):
             col2=text2,
             fig_help=self.help_canvas.fig,
             ax=self.help_canvas.axes,
+            show=False,
         )
 
     def help(self):
