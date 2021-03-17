@@ -42,8 +42,9 @@ from mne.io import (read_raw_brainvision, read_raw_egi, read_raw_fif,
                     read_fiducials, __file__ as _MNE_IO_FILE)
 
 from mne.io import RawArray
-from mne.datasets import testing
+from mne.datasets import testing, sample
 from mne.io.brainvision import __file__ as _BRAINVISON_FILE
+from mne.coreg import create_default_subject
 
 
 data_path = testing.data_path(download=False)
@@ -1456,6 +1457,31 @@ def test_plot_montage():
     montage = read_dig_captrak(bvct_dig_montage_fname)
     montage.plot()
     plt.close('all')
+
+
+@testing.requires_testing_data
+def test_montage_add_estimated_fiducials():
+    data_path = testing.data_path(download=True)
+
+    # get the fiducials from test file
+    subjects_dir = op.join(data_path, 'subjects')
+    subject = 'sample'
+    fid_fname = op.join(subjects_dir, subject, 'bem',
+                        'sample-fiducials.fif')
+    test_fids, test_coord_frame = read_fiducials(fid_fname)
+    test_fids = np.array([f['r'] for f in test_fids])
+
+    # create test montage and add estimated fiducials
+    test_ch_pos = {'A1': [0, 0, 0]}
+    montage = make_dig_montage(ch_pos=test_ch_pos, coord_frame='mni_tal')
+    montage.add_estimated_fiducials(subject=subject, subjects_dir=subjects_dir)
+
+    # check that these fiducials are close to the estimated fiducials
+    ch_pos = montage.get_positions()
+    fids_est = [ch_pos['lpa'], ch_pos['nasion'], ch_pos['rpa']]
+
+    dists = np.linalg.norm(test_fids - fids_est, axis=-1) * 1000.  # -> mm
+    assert (dists < 8).all(), dists
 
 
 run_tests_if_main()

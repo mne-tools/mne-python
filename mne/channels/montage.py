@@ -37,7 +37,6 @@ from ..io.constants import FIFF, CHANNEL_LOC_ALIASES
 from ..utils import (warn, copy_function_doc_to_method_doc, _pl, verbose,
                      _check_option, _validate_type, _check_fname, _on_missing,
                      fill_doc)
-from ..coreg import get_mni_fiducials
 
 from ._dig_montage_utils import _read_dig_montage_egi
 from ._dig_montage_utils import _parse_brainvision_dig_montage
@@ -332,7 +331,6 @@ class DigMontage(object):
         # get channel positions as dict
         ch_pos = self._get_ch_pos()
 
-        # _get_fid_coords(self.dig)
         # get coordframe and fiducial coordinates
         montage_bunch = _get_data_as_dict_from_dig(self.dig)
         coord_frame = _frame_to_str.get(montage_bunch.coord_frame)
@@ -350,10 +348,38 @@ class DigMontage(object):
         return positions
 
     def add_estimated_fiducials(self, subject, subjects_dir):
-        # LPA, nasion, RPA
+        """Estimate fiducials based on FreeSurfer ``fsaverage`` subject.
+
+        Parameters
+        ----------
+        %(subject)s
+        %(subjects_dir)s
+
+        Notes
+        -----
+        Since MNE uses the FIF data structure, it relies on the ``head``
+        coordinate frame. Any coordinate frame can be transformed
+        to ``head`` if the fiducials (i.e. LPA, RPA and Nasion) are
+        defined. One can use this function to estimate those fiducials
+        and then use ``montage.get_native_head_t()`` to get the
+        head <-> MRI transform.
+        """
+        from mne.coreg import get_mni_fiducials
+
+        # get coordframe and fiducial coordinates
+        montage_bunch = _get_data_as_dict_from_dig(self.dig)
+
+        # estimate LPA, nasion, RPA from FreeSurfer fsaverage
         fids_mri = get_mni_fiducials(subject, subjects_dir)
 
+        # set the coordinate frame based on the coordinate frame
+        # XXX: is this step right? It for example would set mri -> mni_tal
+        for fid in fids_mri:
+            fid['coord_frame'] = montage_bunch.coord_frame
+        _validate_type(item=fids_mri, types=list, item_name='dig')
 
+        # add those digpoints to montage
+        self.dig.extend(fids_mri)
 
 
 VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
