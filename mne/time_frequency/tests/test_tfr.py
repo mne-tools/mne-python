@@ -849,4 +849,84 @@ def test_getitem_epochsTFR():
     assert_array_equal(power.next(), power.data[ind + 1])
 
 
+@requires_pandas
+def test_to_data_frame():
+    """Test EpochsTFR Pandas exporter."""
+    # Create fake EpochsTFR data:
+    n_epos = 3
+    ch_names = ['EEG 001', 'EEG 002', 'EEG 003', 'EEG 004']
+    n_picks = len(ch_names)
+    ch_types = ['eeg'] * n_picks
+    n_freqs = 5
+    n_times = 6
+    data = np.random.rand(n_epos, n_picks, n_freqs, n_times)
+    times = np.arange(6)
+    freqs = np.arange(5)
+    events = np.zeros((n_epos, 3), dtype=int)
+    events[:, 0] = np.arange(n_epos)
+    events[:, 2] = np.arange(5, 8)
+    event_id = {k: v for v, k in zip(events[:, 2], ['ha', 'he', 'hu'])}
+    info = mne.create_info(ch_names, 1000., ch_types)
+    tfr = mne.time_frequency.EpochsTFR(info, data, times, freqs,
+                                       events=events, event_id=event_id)
+    # test index checking
+    with pytest.raises(ValueError, match='options. Valid index options are'):
+        tfr.to_data_frame(index=['foo', 'bar'])
+    with pytest.raises(ValueError, match='"qux" is not a valid option'):
+        tfr.to_data_frame(index='qux')
+    with pytest.raises(TypeError, match='index must be `None` or a string '):
+        tfr.to_data_frame(index=np.arange(400))
+    # test wide format
+    df_wide = tfr.to_data_frame()
+    assert all(np.in1d(tfr.ch_names, df_wide.columns))
+    assert all(np.in1d(['time', 'condition'], df_wide.columns))
+    # test long format
+    df_long = tfr.to_data_frame(long_format=True)
+    expected = ('condition', 'freq', 'time', 'channel', 'ch_type', 'value')
+    assert set(expected) == set(df_long.columns)
+    assert set(tfr.ch_names) == set(df_long['channel'])
+    assert(len(df_long) == tfr.data.size)
+    # test long format w/ index
+    df_long = tfr.to_data_frame(long_format=True, index=['freq'])
+    del df_wide, df_long
+    # test whether data is in correct shape
+    df = tfr.to_data_frame(index=['condition', 'freq', 'time'])
+    data = tfr.data
+    assert_array_equal(df.values[:, 0],
+                       data[:, 0, :, :].reshape(1, -1).squeeze())
+
+
+@requires_pandas
+@pytest.mark.parametrize('index', ('time', ['condition', 'time', 'epoch'],
+                                   ['epoch', 'time'], ['time', 'epoch'], None))
+def test_to_data_frame_index(index):
+    """Test index creation in epochs Pandas exporter."""
+    raw, events, picks = _get_data()
+    epochs = Epochs(raw, events, {'a': 1, 'b': 2}, tmin, tmax, picks=picks)
+    df = epochs.to_data_frame(picks=[11, 12, 14], index=index)
+    # test index order/hierarchy preservation
+    if not isinstance(index, list):
+        index = [index]
+    assert (df.index.names == index)
+    # test that non-indexed data were present as columns
+    non_index = list(set(['condition', 'time', 'epoch']) - set(index))
+    if len(non_index):
+        assert all(np.in1d(non_index, df.columns))
+
+
+@requires_pandas
+@pytest.mark.parametrize('time_format', (None, 'ms', 'timedelta'))
+def test_to_data_frame_time_format(time_format):
+    """Test time conversion in epochs Pandas exporter."""
+    from pandas import Timedelta
+    raw, events, picks = _get_data()
+    epochs = Epochs(raw, events, {'a': 1, 'b': 2}, tmin, tmax, picks=picks)
+    # test time_format
+    df = epochs.to_data_frame(time_format=time_format)
+    dtypes = {None: np.float64, 'ms': np.int64, 'timedelta': Timedelta}
+    assert isinstance(df['time'].iloc[0], dtypes[time_format])
+
+
+
+
 run_tests_if_main()
