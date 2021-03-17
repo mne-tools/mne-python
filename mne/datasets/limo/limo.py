@@ -49,8 +49,8 @@ def data_path(subject, path=None, force_update=False, update_path=None,
     """Get path to local copy of LIMO dataset URL.
 
     This is a low-level function useful for getting a local copy of the
-    remote LIMO dataset :footcite:`Rousselet2016`. The complete dataset is available at
-    datashare.is.ed.ac.uk/.
+    remote LIMO dataset :footcite:`Rousselet2016`. The complete dataset is
+    available at datashare.is.ed.ac.uk/.
 
     Parameters
     ----------
@@ -85,7 +85,7 @@ def data_path(subject, path=None, force_update=False, update_path=None,
     This would download the LIMO data file to the 'datasets' folder,
     and prompt the user to save the 'datasets' path to the mne-python config,
     if it isn't there already.
-    
+
     References
     ----------
     .. footbibliography::
