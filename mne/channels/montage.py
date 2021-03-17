@@ -322,6 +322,7 @@ class DigMontage(object):
                 {
                     'ch_pos': {'EEG061': [0, 0, 0]},
                     'nasion': [0, 0, 1],
+                    'coord_frame': 'mni_tal',
                     'lpa': [0, 1, 0],
                     'rpa': [1, 0, 0],
                     'hsp': None,
