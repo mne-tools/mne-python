@@ -113,22 +113,21 @@ group_by : str
 """
 
 # common to raw, epochs and evoked objects
-docdict['apply_function_summary'] = """
-group_by : str
-        The function ``fun`` is applied to the channels defined in ``picks``.
-        The data of the object is modified in-place. If the function
-        returns a different data type (e.g. numpy.complex) it must be specified
-        using the dtype parameter, which causes the data type used for
-        representing the raw data to change.
-        The object has to have the data loaded e.g. with
-        ``preload=True`` or ``self.load_data()``.
+docdict['apply_function_summary'] = """\
+The function ``fun`` is applied to the channels defined in ``picks``.
+The data of the object is modified in-place. If the function
+returns a different data type (e.g. numpy.complex) it must be specified
+using the dtype parameter, which causes the data type used for
+representing the raw data to change.
+The object has to have the data loaded e.g. with
+``preload=True`` or ``self.load_data()``.
 
-        .. note:: If ``n_jobs`` > 1, more memory is required as
-                  ``len(picks) * n_times`` additional time points need to
-                  be temporaily stored in memory.
-        .. note:: If the data type changes (``dtype != None``), more memory is
-                  required since the original and the converted data needs
-                  to be stored in memory.
+.. note:: If ``n_jobs`` > 1, more memory is required as
+          ``len(picks) * n_times`` additional time points need to
+          be temporarily stored in memory.
+.. note:: If the data type changes (``dtype != None``), more memory is
+          required since the original and the converted data needs
+          to be stored in memory.
 """
 
 docdict['arg_fun'] = """
