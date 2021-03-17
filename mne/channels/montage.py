@@ -348,7 +348,8 @@ class DigMontage(object):
         return positions
 
     @verbose
-    def add_estimated_fiducials(self, subject, subjects_dir, verbose=None):
+    def add_estimated_fiducials(self, subject, subjects_dir=None,
+                                verbose=None):
         """Estimate fiducials based on FreeSurfer ``fsaverage`` subject.
 
         This takes a montage with the ``mri`` coordinate frame,
@@ -362,6 +363,11 @@ class DigMontage(object):
         %(subject)s
         %(subjects_dir)s
         %(verbose)s
+
+        Returns
+        -------
+        inst : instance of DigMontage
+            The instance, modified in-place.
 
         See Also
         --------
@@ -389,11 +395,11 @@ class DigMontage(object):
                 f'frame is {montage_bunch.coord_frame}')
 
         # estimate LPA, nasion, RPA from FreeSurfer fsaverage
-        fids_mri = get_mni_fiducials(subject, subjects_dir, verbose=verbose)
-        _validate_type(item=fids_mri, types=list, item_name='dig')
+        fids_mri = list(get_mni_fiducials(subject, subjects_dir))
 
         # add those digpoints to front of montage
         self.dig = fids_mri + self.dig
+        return self
 
 
 VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
