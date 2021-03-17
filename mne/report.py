@@ -1659,7 +1659,7 @@ class Report(object):
         # Note: self._fname is not part of the state
         return (['baseline', 'cov_fname', 'fnames', 'html', 'include',
                  'image_format', 'info_fname', 'initial_id', 'raw_psd',
-                 '_sectionlabels', 'sections', '_sectionvars',
+                 '_sectionlabels', 'sections', '_sectionvars', 'projs',
                  '_sort_sections', 'subjects_dir', 'subject', 'title',
                  'verbose'],
                 ['data_path', 'lang', '_sort'])

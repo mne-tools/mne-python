@@ -37,9 +37,13 @@ Current (0.23.dev0)
 
 .. |Valerii Chirkov| replace:: **Valerii Chirkov**
 
+.. |Matteo Anelli| replace:: **Matteo Anelli**
+
 Enhancements
 ~~~~~~~~~~~~
 - Add different colors for each volume source space in :func:`mne.viz.plot_alignment` (:gh:`9043` **by new contributor** |Valerii Chirkov|_)
+
+- Add :meth:`mne.Dipole.to_mni` for more convenient  dipole.pos to MNI conversion (:gh:`9043` **by new contributor** |Valerii Chirkov|_)
 
 - Update citations in maxwell.py (:gh:`9043` **by new contributor** |Valerii Chirkov|_)
 
@@ -117,6 +121,10 @@ Enhancements
 
 Bugs
 ~~~~
+- Fix bug with :func:`mne.Epochs.plot_image` where the ``x_label`` was different depending on the evoked parameter (:gh:`9115` **by new contributor** |Matteo Anelli|_)
+
+- Fix bug with restricting :func:`mne.io.Raw.save` saving options to .fif and .fif.gz extensions (:gh:`9062` by |Valerii Chirkov|_)
+
 - Fix bug with :func:`mne.io.read_raw_kit` where missing marker coils were not handled (:gh:`8989` **by new contributor** |Judy D Zhu|_)
 
 - Fix bug with `mne.connectivity.spectral_connectivity` where time axis in Epochs data object was dropped. (:gh:`8839` **by new contributor** |Anna Padee|_)
@@ -199,6 +207,13 @@ Bugs
 
 - Fix :func:`mne.read_dipole` yielding :class:`mne.Dipole` objects that could not be indexed (:gh:`8963` by `Marijn van Vliet`_)
 
+- Fix bug when setting n_jobs > 1 in :func:`mne.Report.parse_folder` (:gh:`9109` by `Martin Schulz`_)
+
+- Fix bug with :func:`mne.Evoked.plot_image` where an incorrect clim parameter did not raise any error (:gh:`9115` **by new contributor** |Matteo Anelli|_)
+
 API changes
 ~~~~~~~~~~~
 - ``mne.read_selection`` has been deprecated in favor of `mne.read_vectorview_selection`. ``mne.read_selection`` will be removed in MNE-Python 0.24 (:gh:`8870` by `Richard Höchenberger`_)
+
+- ``mne.beamformer.tf_dics`` has been deprecated and will be removed in MNE-Python 0.24 (:gh:`9122` by `Britta Westner`_)
+
