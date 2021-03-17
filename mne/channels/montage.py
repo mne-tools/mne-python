@@ -371,6 +371,10 @@ class DigMontage(object):
         defined. One can use this function to estimate those fiducials
         and then use ``montage.get_native_head_t()`` to get the
         head <-> MRI transform.
+
+        See Also
+        --------
+        plot_source_alignment
         """
         from ..coreg import get_mni_fiducials
 
