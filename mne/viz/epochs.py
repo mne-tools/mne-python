@@ -358,7 +358,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                 top_tick = func(yticks)
                 ax.spines['left'].set_bounds(top_tick, args[0])
     plt_show(show)
-
+    
     # impose deterministic order of returned objects
     return_order = np.array(sorted(group_by))
     are_ch_types = np.in1d(return_order, _VALID_CHANNEL_TYPES)
@@ -540,7 +540,10 @@ def _plot_epochs_image(image, style_axes=True, epochs=None, picks=None,
         plot_compare_evokeds({'cond': list(epochs.iter_evoked(copy=False))},
                              picks=_picks, axes=ax['evoked'],
                              combine=pass_combine, **ts_args)
-        ax['evoked'].set_xlim(tmin, tmax)  # don't multiply by 1e3 here
+        ax['evoked'].set_xlim(tmin, tmax)
+        ax['evoked'].lines[0].set_clip_on(True)
+        ax['evoked'].collections[0].set_clip_on(True)
+        ax['evoked'].get_shared_x_axes().join(ax['evoked'], ax_im)
         ax_im.set_xticks([])
 
     # draw the colorbar
