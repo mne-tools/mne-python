@@ -1056,7 +1056,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
             # volume sources
             if ss['type'] == 'vol':
                 if ss['seg_name'] in colors.keys():
-                    color = colors[ss['seg_name']]
+                    color = colors[ss['seg_name']][:3]
+                    color = tuple(i / 256. for i in color)
                 else:
                     color = (1., 1., 0.)
 
