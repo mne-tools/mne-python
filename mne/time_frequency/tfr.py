@@ -1086,7 +1086,7 @@ class AverageTFR(_BaseTFR):
     def plot(self, picks=None, baseline=None, mode='mean', tmin=None,
              tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
              cmap='RdBu_r', dB=False, colorbar=True, show=True, title=None,
-             axes=None, layout=None, yscale='auto', mask=None,
+             axes=None, layout=None, yscale='auto', subplots=True, mask=None,
              mask_style=None, mask_cmap="Greys", mask_alpha=0.1, combine=None,
              exclude=[], verbose=None):
         """Plot TFRs as a two-dimensional image(s).
@@ -1105,7 +1105,7 @@ class AverageTFR(_BaseTFR):
         mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio'
             Perform baseline correction by
 
-            - subtracting the mean of baseline values ('mean')
+            - subtracting the mean of baseline values ('mean') (default)
             - dividing by the mean of baseline values ('ratio')
             - dividing by the mean of baseline values and taking the log
               ('logratio')
@@ -1119,22 +1119,22 @@ class AverageTFR(_BaseTFR):
 
         tmin : None | float
             The first time instant to display. If None the first time point
-            available is used.
+            available is used. Defaults to None.
         tmax : None | float
             The last time instant to display. If None the last time point
-            available is used.
+            available is used. Defaults to None.
         fmin : None | float
             The first frequency to display. If None the first frequency
-            available is used.
+            available is used. Defaults to None.
         fmax : None | float
             The last frequency to display. If None the last frequency
-            available is used.
+            available is used. Defaults to None.
         vmin : float | None
             The minimum value an the color scale. If vmin is None, the data
-            minimum value is used.
+            minimum value is used. Defaults to None.
         vmax : float | None
             The maximum value an the color scale. If vmax is None, the data
-            maximum value is used.
+            maximum value is used. Defaults to None.
         cmap : matplotlib colormap | 'interactive' | (colormap, bool)
             The colormap to use. If tuple, the first value indicates the
             colormap to use and the second value is a boolean defining
@@ -1151,11 +1151,11 @@ class AverageTFR(_BaseTFR):
 
         dB : bool
             If True, 10*log10 is applied to the data to get dB.
+            Defaults to False.
         colorbar : bool
-            If true, colorbar will be added to the plot. For user defined axes,
-            the colorbar cannot be drawn. Defaults to True.
+            If true, colorbar will be added to the plot. Defaults to True.
         show : bool
-            Call pyplot.show() at the end.
+            Call pyplot.show() at the end. Defaults to True.
         title : str | 'auto' | None
             String for title. Defaults to None (blank/no title). If 'auto',
             automatically create a title that lists up to 6 of the channels
@@ -1163,7 +1163,8 @@ class AverageTFR(_BaseTFR):
         axes : instance of Axes | list | None
             The axes to plot to. If list, the list must be a list of Axes of
             the same length as the number of channels. If instance of Axes,
-            there must be only one channel plotted.
+            there must be only one channel plotted. If combine is not None,
+            axes must either be an instance of Axes, or a list of length 1.
         layout : Layout | None
             Layout instance specifying sensor positions. Used for interactive
             plotting of topographies on rectangle selection. If possible, the
@@ -1174,6 +1175,7 @@ class AverageTFR(_BaseTFR):
             are log-spaced and only then sets the y axis to 'log'.
 
             .. versionadded:: 0.14.0
+        subplots
         mask : ndarray | None
             An array of booleans of the same shape as the data. Entries of the
             data that correspond to False in the mask are plotted
@@ -1221,7 +1223,7 @@ class AverageTFR(_BaseTFR):
                           vmin=vmin, vmax=vmax, cmap=cmap, dB=dB,
                           colorbar=colorbar, show=show, title=title,
                           axes=axes, layout=layout, yscale=yscale, mask=mask,
-                          mask_style=mask_style, mask_cmap=mask_cmap,
+                          subplots=subplots, mask_style=mask_style, mask_cmap=mask_cmap,
                           mask_alpha=mask_alpha, combine=combine,
                           exclude=exclude, verbose=verbose)
 
@@ -1231,7 +1233,7 @@ class AverageTFR(_BaseTFR):
               cmap='RdBu_r', dB=False, colorbar=True, show=True, title=None,
               axes=None, layout=None, yscale='auto', mask=None,
               mask_style=None, mask_cmap="Greys", mask_alpha=.25,
-              combine=None, exclude=None, copy=True,
+              combine=None, exclude=None, copy=True, subplots=True,
               source_plot_joint=False, topomap_args=dict(), ch_type=None,
               verbose=None):
         """Plot TFRs as a two-dimensional image(s).
@@ -1240,7 +1242,26 @@ class AverageTFR(_BaseTFR):
         """
         import matplotlib.pyplot as plt
         from ..viz.topo import _imshow_tfr
+        from IPython import embed as shell
+        def smart_subplot_dims(n):
+            """ Find a nice arrangement of n subplots in a grid
 
+            input n is integer
+            returns a tuple of rows/cols index
+            """
+
+            if (n**0.5) % 1 == 0:
+                return (int(n**0.5),int(n**0.5))
+            elif n <= 3:
+                return (1,n)
+            elif n <= 6:
+                return (2, 3)
+            elif n <= 16:
+                return (n//4, 4)
+            elif n <= 24:
+                return (4, n//4)
+            else:
+                return (int(n ** 0.5) + 1 , int(n ** 0.5) + 1)
         # channel selection
         # simply create a new tfr object(s) with the desired channel selection
         tfr = _preproc_tfr_instance(
@@ -1250,6 +1271,11 @@ class AverageTFR(_BaseTFR):
 
         data = tfr.data
         n_picks = len(tfr.ch_names) if combine is None else 1
+        if n_picks == 1:
+            subplots = False
+
+
+        # combine picks 
         if combine == 'mean':
             data = data.mean(axis=0, keepdims=True)
         elif combine == 'rms':
@@ -1257,27 +1283,45 @@ class AverageTFR(_BaseTFR):
         elif combine is not None:
             raise ValueError('combine must be None, mean or rms.')
 
+        # figure overhead
+        # make sure there are as many axes as there will be channels to plot 
         if isinstance(axes, list) or isinstance(axes, np.ndarray):
-            if len(axes) != n_picks:
+           figs = [ax.get_figure() for ax in axes]
+        elif isinstance(axes, plt.Axes):
+            axes = [axes]
+            figs = [ax.get_figure() for ax in axes]
+        elif axes is None:
+            if not subplots:
+                figs = [plt.figure() for i in range(n_picks)]
+                axes = [fig.add_subplot(111) for fig in figs]
+            else:
+                figs = [plt.figure()]
+                rows, cols = smart_subplot_dims(n_picks)
+                axes = [figs[0].add_subplot(rows,cols,idx) 
+                        for idx in range(1,n_picks+1)]
+
+        else:
+            raise ValueError('axes must be None, plt.Axes, or list '
+                             'of plt.Axes.')
+        if len(axes) != n_picks:
                 raise RuntimeError('There must be an axes for each picked '
                                    'channel.')
 
+        # set plot dimension
         tmin, tmax = tfr.times[[0, -1]]
         if vmax is None:
             vmax = np.abs(data).max()
         if vmin is None:
             vmin = -np.abs(data).max()
-        if isinstance(axes, plt.Axes):
-            axes = [axes]
 
         cmap = _setup_cmap(cmap)
-        for idx in range(len(data)):
-            if axes is None:
-                fig = plt.figure()
-                ax = fig.add_subplot(111)
+
+        for idx in range(n_picks):
+            if subplots:
+                fig = figs[0]
             else:
-                ax = axes[idx]
-                fig = ax.get_figure()
+                fig = figs[idx]
+            ax = axes[idx]
             onselect_callback = partial(
                 tfr._onselect, cmap=cmap, source_plot_joint=source_plot_joint,
                 topomap_args={k: v for k, v in topomap_args.items()
@@ -1290,21 +1334,28 @@ class AverageTFR(_BaseTFR):
                 mask_cmap=mask_cmap, mask_alpha=mask_alpha)
 
             if title is None:
-                if combine is None or len(tfr.info['ch_names']) == 1:
-                    title = tfr.info['ch_names'][0]
+                title = ''
+            elif title == 'auto':
+                if len(tfr.info['ch_names']) == 1:
+                   title = tfr.info['ch_names'][idx]
                 else:
-                    title = _set_title_multiple_electrodes(
-                        title, combine, tfr.info["ch_names"], all=True,
-                        ch_type=ch_type)
-
-            if title:
+                    # only makes sense if it is not None
+                    # so, raise exception, or produce a different title
+                    # than the doc suggests?
+                    if combine is None:
+                        title = ', '.join([ch for ch in tfr.info['ch_names']])
+                    else:
+                        title = _set_title_multiple_electrodes(
+                            None, combine, tfr.info["ch_names"], all=True,
+                            ch_type=ch_type)
+            if title: 
                 fig.suptitle(title)
 
-            plt_show(show)
-            # XXX This is inside the loop, guaranteeing a single iter!
-            # Also there is no None-contingent behavior here so the docstring
-            # was wrong (saying it would be collapsed)
-            return fig
+        plt_show(show)
+        # XXX This is inside the loop, guaranteeing a single iter!
+        # Also there is no None-contingent behavior here so the docstring
+        # was wrong (saying it would be collapsed)
+        return figs
 
     @verbose
     def plot_joint(self, timefreqs=None, picks=None, baseline=None,
