@@ -192,12 +192,9 @@ class _PyVistaRenderer(_AbstractRenderer):
         self._load_default_style()
 
     def _load_default_style(self):
-        try:
-            with open('data.txt', 'r') as f:
-                data = f.read()
-            self.figure.store["app"].setStyleSheet(data)
-        except FileNotFoundError:
-            pass
+        import qdarkstyle
+        self.figure.plotter.app_window.setStyleSheet(
+            qdarkstyle.load_stylesheet())
 
     @property
     def _all_plotters(self):
