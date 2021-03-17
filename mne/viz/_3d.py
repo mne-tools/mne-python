@@ -26,8 +26,7 @@ from ..io.pick import pick_types, _picks_to_idx
 from ..io.constants import FIFF
 from ..io.meas_info import read_fiducials, create_info
 from ..source_space import (_ensure_src, _create_surf_spacing, _check_spacing,
-                            _read_mri_info, SourceSpaces, read_freesurfer_lut,
-                            _get_lut, _get_lut_id)
+                            _read_mri_info, SourceSpaces, read_freesurfer_lut)
 
 from ..surface import (get_meg_helmet_surf, _read_mri_surface, _DistanceQuery,
                        transform_surface_to, _project_onto_surface,
@@ -1048,7 +1047,6 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
 
     if src is not None:
         atlas_ids, colors = read_freesurfer_lut()
-        lut = _get_lut()
         for ss in src:
             src_rr = ss['rr'][ss['inuse'].astype(bool)]
             src_nn = ss['nn'][ss['inuse'].astype(bool)]
@@ -1057,8 +1055,10 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                                                  mri_trans, head_trans)
             # volume sources
             if ss['type'] == 'vol':
-                lut_id = _get_lut_id(lut, ss['seg_name'])
-                color = colors[lut_id]
+                if ss['seg_name'] in colors.keys():
+                    color = colors[ss['seg_name']]
+                else:
+                    color = (1., 1., 0.)
 
             # surface and discrete sources
             else:
