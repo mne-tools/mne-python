@@ -1470,7 +1470,7 @@ def test_montage_add_estimated_fiducials():
 
     # create test montage and add estimated fiducials
     test_ch_pos = {'A1': [0, 0, 0]}
-    montage = make_dig_montage(ch_pos=test_ch_pos, coord_frame='mni_tal')
+    montage = make_dig_montage(ch_pos=test_ch_pos, coord_frame='mri')
     montage.add_estimated_fiducials(subject=subject, subjects_dir=subjects_dir)
 
     # check that these fiducials are close to the estimated fiducials
@@ -1479,6 +1479,14 @@ def test_montage_add_estimated_fiducials():
 
     dists = np.linalg.norm(test_fids - fids_est, axis=-1) * 1000.  # -> mm
     assert (dists < 8).all(), dists
+
+    # an error should be raised if the montage is not in `mri` coord_frame
+    # which is the FreeSurfer RAS
+    montage = make_dig_montage(ch_pos=test_ch_pos, coord_frame='mni_tal')
+    with pytest.raises(RuntimeError, match='Montage should be in mri '
+                                           'coordinate frame'):
+        montage.add_estimated_fiducials(subject=subject,
+                                        subjects_dir=subjects_dir)
 
 
 run_tests_if_main()

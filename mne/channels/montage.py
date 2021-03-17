@@ -371,17 +371,19 @@ class DigMontage(object):
         # get coordframe and fiducial coordinates
         montage_bunch = _get_data_as_dict_from_dig(self.dig)
 
+        # get the coordinate frame as a string and check that it's MRI
+        if montage_bunch.coord_frame != FIFF.FIFFV_COORD_MRI:
+            raise RuntimeError(
+                f'Montage should be in mri coordinate frame to call '
+                f'`add_estimated_fiducials`. The current coordinate '
+                f'frame is {montage_bunch.coord_frame}')
+
         # estimate LPA, nasion, RPA from FreeSurfer fsaverage
         fids_mri = get_mni_fiducials(subject, subjects_dir, verbose=verbose)
-
-        # set the coordinate frame based on the coordinate frame
-        # XXX: is this step right? It for example would set mri -> mni_tal
-        for fid in fids_mri:
-            fid['coord_frame'] = montage_bunch.coord_frame
         _validate_type(item=fids_mri, types=list, item_name='dig')
 
-        # add those digpoints to montage
-        self.dig.extend(fids_mri)
+        # add those digpoints to front of montage
+        self.dig = fids_mri + self.dig
 
 
 VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
