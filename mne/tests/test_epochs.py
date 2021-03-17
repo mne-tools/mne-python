@@ -41,8 +41,6 @@ from mne.epochs import (
 from mne.utils import (requires_pandas, object_diff,
                        catch_logging, _FakeNoPandas,
                        assert_meg_snr, check_version, _dt_to_stamp)
-from mne.filter import filter_data
-from mne.time_frequency import psd_array_welch
 
 data_path = testing.data_path(download=False)
 fname_raw_testing = op.join(data_path, 'MEG', 'sample',
@@ -3362,13 +3360,20 @@ def test_empty_constructor():
 
 
 def fun(data_epochs):
-    """Auxiliary function to test_apply function."""
-    matrix = np.random.rand(10, 10)
+    """Auxiliary function to test_apply_function."""
+    nc = np.size(data_epochs, 1)
+    matrix = np.random.rand(nc, nc)
     return matrix @ data_epochs
 
 
+def fun_ch(data_epochs):
+    """Auxiliary function to test_apply_function channel wise."""
+    sign = -1
+    return data_epochs*sign
+
+
 def test_apply_function():
-    """Test epochs takes into account repeated events."""
+    """Test apply function to epoch objects."""
     data = np.random.rand(2, 10, 1000)
     events = np.array([[0, 0, 1], [INT32_MAX, 0, 2]])
     info = mne.create_info(10, 1000., 'eeg')
@@ -3378,15 +3383,12 @@ def test_apply_function():
     out = epochs.apply_function(fun, channel_wise=False)
     assert np.shape(out) == np.shape(data_epochs)
     # check apply_function channel-wise
-    # let's filter each channel
-    filter_params = dict(sfreq=info['sfreq'], l_freq=10, h_freq=12,
-                         l_trans_bandwidth=4, h_trans_bandwidth=4)
-    out_ch = epochs.apply_function(filter_data, channel_wise=True,
-                                   **filter_params)
+    # change sing 3 first channels
+    picks = [0, 1, 2]
+    no_picks = np.arange(3, 10, 1)
+    out_ch = epochs.apply_function(fun_ch, picks=picks, channel_wise=True)
     out_ch_data = out_ch._data
-    # checking if the filtering was correctly applied
-    psd_out, freqs = psd_array_welch(out_ch_data[0, 0, :], sfreq=info['sfreq'])
-    freqs_up_out = freqs[psd_out > 1e-6]
-    psd_out_raw, freqs = psd_array_welch(data[0, 0, :], sfreq=info['sfreq'])
-    freqs_up_raw = freqs[psd_out_raw > 1e-6]
-    assert len(freqs_up_out) < len(freqs_up_raw)
+    # check whether those channels have been sign inverted
+    check_picks = (np.sign(out_ch_data[:, picks, :]) == -1).all()
+    check_nopicks = (np.sign(out_ch_data[:, no_picks, :]) == 1).all()
+    assert check_picks and check_nopicks
