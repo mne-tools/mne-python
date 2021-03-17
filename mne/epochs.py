@@ -3678,7 +3678,6 @@ def make_fixed_length_epochs(raw, duration=1., preload=False,
         Raw data to divide into segments.
     duration : float
         Duration of each epoch in seconds. Defaults to 1.
-
     %(preload)s
     %(reject_by_annotation_epochs)s
 
