@@ -51,7 +51,8 @@ _BUILT_IN_MONTAGES = [
     'easycap-M1', 'easycap-M10',
     'mgh60', 'mgh70',
     'standard_1005', 'standard_1020', 'standard_alphabetic',
-    'standard_postfixed', 'standard_prefixed', 'standard_primed'
+    'standard_postfixed', 'standard_prefixed', 'standard_primed',
+    'artinis-octomon'
 ]
 
 
@@ -666,6 +667,15 @@ def _get_montage_in_head(montage):
         return transform_to_head(montage.copy())
 
 
+def _set_montage_fnirs(info, montage):
+
+    # for ch in info.channels:
+
+    return 1
+
+
+
+
 @fill_doc
 def _set_montage(info, montage, match_case=True, match_alias=False,
                  on_missing='raise'):
@@ -840,6 +850,10 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
         info['dig'] = None
         for ch in info['chs']:
             ch['loc'] = np.full(12, np.nan)
+
+    # if ch_type contains fnirs:
+    #     info = _set_montage_fnirs(data)
+    # info
 
 
 def _read_isotrak_elp_points(fname):

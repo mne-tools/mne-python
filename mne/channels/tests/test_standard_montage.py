@@ -81,6 +81,7 @@ def test_artinis():
 
     import mne
     import os
+    from mne.channels.montage import _set_montage_fnirs
     fnirs_data_folder = mne.datasets.fnirs_motor.data_path()
     fnirs_cw_amplitude_dir = os.path.join(fnirs_data_folder, 'Participant-1')
     d = mne.io.read_raw_nirx(fnirs_cw_amplitude_dir, verbose=True)
@@ -92,6 +93,6 @@ def test_artinis():
     d.info["chs"][0]
 
 
-    import
-    d.set_montage(a)
+
+    _set_montage_fnirs(d, a)
 
