@@ -39,6 +39,8 @@ Current (0.23.dev0)
 
 Enhancements
 ~~~~~~~~~~~~
+- Add :meth:`mne.Dipole.to_mni` for more convenient  dipole.pos to MNI conversion (:gh:`9043` **by new contributor** |Valerii Chirkov|_)
+
 - Update citations in maxwell.py (:gh:`9043` **by new contributor** |Valerii Chirkov|_)
 
 - New Tutorial for analyzing frequency-tagging data (:gh:`8867` **by new contributor** |Dominik Welke|_ and `kalenkovich`_)
@@ -115,6 +117,8 @@ Enhancements
 
 Bugs
 ~~~~
+- Fix bug with restricting :func:`mne.io.Raw.save` saving options to .fif and .fif.gz extensions (:gh:`9062` by |Valerii Chirkov|_)
+
 - Fix bug with :func:`mne.io.read_raw_kit` where missing marker coils were not handled (:gh:`8989` **by new contributor** |Judy D Zhu|_)
 
 - Fix bug with `mne.connectivity.spectral_connectivity` where time axis in Epochs data object was dropped. (:gh:`8839` **by new contributor** |Anna Padee|_)

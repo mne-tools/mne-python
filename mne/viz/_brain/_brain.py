@@ -435,7 +435,6 @@ class Brain(object):
         self._layered_meshes = {}
         self._elevation_rng = [15, 165]  # range of motion of camera on theta
         self._lut_locked = None
-        self._scalar_bar = None
         # default values for silhouette
         self._silhouette = {
             'color': self._bg_color,
@@ -449,6 +448,7 @@ class Brain(object):
             self.silhouette = True
         else:
             self.silhouette = silhouette
+        self._scalar_bar = None
         # for now only one time label can be added
         # since it is the same for all figures
         self._time_label_added = False
@@ -694,15 +694,12 @@ class Brain(object):
             setattr(self._renderer.figure.plotter, key, None)
         # Qt LeaveEvent requires _Iren so we use _FakeIren instead of None
         # to resolve the ref to vtkGenericRenderWindowInteractor
-        self._renderer.figure.plotter._Iren = _FakeIren()
-        if getattr(self._renderer.figure.plotter, 'scalar_bar', None) is not None:
-            self._renderer.figure.plotter.scalar_bar = None
         if getattr(self._renderer.figure.plotter, 'picker', None) is not None:
             self._renderer.figure.plotter.picker = None
         # XXX end PyVista
         for key in ('plotter', 'window', 'dock', 'tool_bar', 'menu_bar',
                     'status_bar', 'interactor', 'mpl_canvas', 'time_actor',
-                    'picked_renderer', 'act_data_smooth',
+                    'picked_renderer', 'act_data_smooth', '_scalar_bar',
                     'actions', 'widgets', 'geo', '_data'):
             setattr(self, key, None)
 
