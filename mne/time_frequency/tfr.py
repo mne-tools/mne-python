@@ -2139,35 +2139,31 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
                           times=self.times.copy(), freqs=self.freqs.copy(),
                           nave=self.data.shape[0], method=self.method,
                           comment=self.comment)
-    """
-    TODO: Open questions:
-    - freqs as argument?
-    """
 
+    @fill_doc
     def to_data_frame(self, picks=None, index=None,
                       scalings=None, copy=True, long_format=False,
                       time_format='ms'):
         """Export data in tabular structure as a pandas DataFrame.
 
         Channels are converted to columns in the DataFrame. By default,
-        additional columns "time", TODO: frequency, "epoch" (epoch number), 
-        and "condition" (epoch event description) are added, unless ``index`` 
-        is not ``None``(in which case the columns specified in ``index`` will 
+        additional columns "time", "frequency", "epoch" (epoch number),
+        and "condition" (epoch event description) are added, unless ``index``
+        is not ``None``(in which case the columns specified in ``index`` will
         be used to form the DataFrame's index instead).
 
         Parameters
         ----------
         %(picks_all)s
-        %fre
         %(df_index_epo)s
-            Valid string values are 'time', 'freq', 'epoch', and 'condition'.
+            Valid string values are 'time', 'freq', and 'condition'.
             Defaults to ``None``.
         %(df_scalings)s
         %(df_copy)s
         %(df_longform_epo)s
         %(df_time_format)s
 
-            .. versionadded:: 0.20
+            .. versionadded::
 
         Returns
         -------
@@ -2176,21 +2172,18 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         # check pandas once here, instead of in each private utils function
         pd = _check_pandas_installed()  # noqa
         # arg checking
-        valid_index_args = ['time', 'freq', 'epoch', 'condition']
+        valid_index_args = ['time', 'freq', 'condition']
         valid_time_formats = ['ms', 'timedelta']
         index = _check_pandas_index_arguments(index, valid_index_args)
         time_format = _check_time_format(time_format, valid_time_formats)
         # get data
         picks = _picks_to_idx(self.info, picks, 'all', exclude=())
-        data = self.get_data()[:, picks, :, :]
+        data = self.data[:, picks, :, :]
         times = self.times
         n_epochs, n_picks, n_freqs, n_times = data.shape
-        # reahape to (epochs*freqs*times) x signals
+        # reshape to (epochs*freqs*times) x signals
         data = np.moveaxis(data, 1, -1)
-        data = data.reshape(n_epochs * n_freqs * n_times, -1)
-        if copy:
-            data = data.copy()
-        data = _scale_dataframe_data(self, data, picks, scalings)
+        data = data.reshape(n_epochs * n_freqs * n_times, n_picks)
         # prepare extra columns / multiindex
         mindex = list()
         times = np.tile(times, n_epochs * n_freqs)
@@ -2202,14 +2195,11 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         rev_event_id = {v: k for k, v in self.event_id.items()}
         conditions = [rev_event_id[k] for k in self.events[:, 2]]
         mindex.append(('condition', np.repeat(conditions, n_times * n_freqs)))
-        mindex.append(('epoch', np.repeat(self.selection, n_times * n_freqs)))
         assert all(len(mdx) == len(mindex[0]) for mdx in mindex)
         # build DataFrame
         df = _build_data_frame(self, data, picks, long_format, mindex, index,
-                               default_index=['condition', 'epoch', 'freq',
-                                              'time'])
+                               default_index=['condition', 'freq', 'time'])
         return df
-
 
 
 def combine_tfr(all_tfr, weights='nave'):
