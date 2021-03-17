@@ -44,7 +44,7 @@ def data_path(dataset='evoked', path=None, force_update=False,
         Local path to the directory where the HF-SEF data is stored.
 
     References
-    __________
+    ----------
     .. footbibliography::
     """
     key = 'MNE_DATASETS_HF_SEF_PATH'

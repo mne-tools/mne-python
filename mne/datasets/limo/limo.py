@@ -52,7 +52,6 @@ def data_path(subject, path=None, force_update=False, update_path=None,
     remote LIMO dataset :footcite:`Rousselet2016`. The complete dataset is available at
     datashare.is.ed.ac.uk/.
 
-
     Parameters
     ----------
     subject : int
@@ -88,7 +87,7 @@ def data_path(subject, path=None, force_update=False, update_path=None,
     if it isn't there already.
     
     References
-    __________
+    ----------
     .. footbibliography::
     """  # noqa: E501
     # set destination path for download
