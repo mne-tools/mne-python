@@ -618,7 +618,7 @@ def test_brain_traces(renderer_interactive_pyvista, hemi, src, tmpdir,
     assert brain.traces_mode == 'vertex'
     assert hasattr(brain, "picked_points")
     assert hasattr(brain, "_spheres")
-    assert brain.plotter.scalar_bar.GetNumberOfLabels() == 3
+    assert brain._scalar_bar.GetNumberOfLabels() == 3
 
     # add foci should work for volumes
     brain.add_foci([[0, 0, 0]], hemi='lh' if src == 'surface' else 'vol')
