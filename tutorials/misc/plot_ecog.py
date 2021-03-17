@@ -91,6 +91,7 @@ xy, im = snapshot_brain_montage(fig, raw.info)
 ###############################################################################
 # Next, we'll compute the signal power in the gamma (30-90 Hz) and alpha
 # (8-12 Hz) bands.
+
 gamma_power_t = raw.copy().filter(30, 90).apply_hilbert(
     envelope=True).get_data()
 alpha_power_t = raw.copy().filter(8, 12).apply_hilbert(
@@ -119,7 +120,7 @@ for ax, band_power, band in zip(axs,
                                 ['Gamma', 'Alpha']):
     ax.imshow(im)
     ax.set_axis_off()
-    sc = ax.scatter(*xy_pts.T, c=band_power, s=200,
+    sc = ax.scatter(*xy_pts.T, c=band_power, s=100,
                     cmap=cmap, vmin=vmin, vmax=vmax)
     ax.set_title(f'{band} band power', size='x-large')
     ax.set_xlim([0, im.shape[0]])
@@ -192,12 +193,16 @@ sfreq = 50  # Hz
 raw_notched.resample(sfreq)
 ts_data = raw_notched.get_data()
 
+# recompute events for new sampling frequency
+events, event_id = mne.events_from_annotations(raw_notched)
+onset_events = events[events[:, 2] == event_id['onset']]
+
 # invert the event_ids so that we can look up by id and get the name
 # to display on the plot
 inv_event_id = {v: k for k, v in event_id.items()}
 
 # Use one second before the seizure onset as the animation start
-start_sample = int(onset_events[0, 0] - 1 * raw.info['sfreq'])
+start_sample = int(onset_events[0, 0] - 1 * raw_notched.info['sfreq'])
 
 
 # Create an initialization and animation function to pass to FuncAnimation.
@@ -205,15 +210,15 @@ start_sample = int(onset_events[0, 0] - 1 * raw.info['sfreq'])
 # with information from the annotations.
 def init():
     """Create an empty frame."""
-    return paths, title
+    return paths, title, *tpaths
 
 
 def animate(i, activity, events):
     """Animate the plot."""
     paths.set_array(activity[:, i])
-    tsl2 = slice(i + start_sample - sfreq, i + start_sample + sfreq)
+    tsl = slice(i + start_sample - sfreq, i + start_sample + sfreq)
     for j, tpath in enumerate(tpaths):
-        tpath.set_data(raw_notched.times[tsl], ts_data[j, tsl2])
+        tpath.set_data(range(2 * sfreq), ts_data[j, tsl])
     # If this sample contains an annotation (for a seizure-related behavior)
     # then change the title of the plot
     if i + start_sample in events[:, 0]:
@@ -222,13 +227,13 @@ def animate(i, activity, events):
         event_idx = np.argwhere(events[:, 0] == (i + start_sample))[0][0]
         title.set_text(inv_event_id[events[event_idx, 2]])
         fig.canvas.draw()  # force redrawing
-    return paths, title
+    return paths, title, *tpaths
 
 
 # create the figure and apply the animation of the
 # raw time series data
 fig, ax = plt.subplots(figsize=(5, 5))
-tax = fig.add_axes([0.15, 0.02, 0.6, 0.15])
+tax = fig.add_axes([0.125, 0.02, 0.6, 0.15])
 ax.imshow(im)
 ax.set_axis_off()
 tax.set_axis_off()
@@ -237,12 +242,13 @@ tax.set_axis_off()
 # so that negative voltages are blue and positive voltages are red
 ts_data = raw_notched.get_data()
 vmax = np.percentile(ts_data, 90)
-paths = ax.scatter(*xy_pts.T, c=np.zeros(len(xy_pts)), s=40,
+paths = ax.scatter(*xy_pts.T, c=np.zeros(len(xy_pts)), s=100,
                    cmap=cmap, vmin=-vmax, vmax=vmax)
 ax.set_xlim([0, im.shape[0]])
 ax.set_ylim([im.shape[1], 0])
 tsl = slice(start_sample - sfreq, start_sample + sfreq)
-tpaths = tax.plot(raw_notched.times[tsl], ts_data[:, tsl].T)
+tpaths = tax.plot(np.zeros((ts_data.shape[0], 2 * sfreq)).T)
+tax.plot([sfreq, sfreq], [ts_data.min(), ts_data.max()], color='k')
 fig.colorbar(paths, ax=ax)
 title = ax.set_title('iEEG voltage over time', size='large')
 
@@ -276,7 +282,7 @@ clim = dict(kind='value', lims=[vmin * 0.9, vmin, vmax])
 brain = stc.plot(surface='pial', hemi='both', initial_time=0.68,
                  colormap='viridis', clim=clim, views='lat',
                  subjects_dir=subjects_dir, size=(500, 500))
-brain.show_view(azimuth=-20, elevation=60)
+brain.show_view(view=dict(azimuth=-20, elevation=60))
 
 # You can save a movie like the one on our documentation website with:
 # brain.save_movie(time_dilation=5, interpolation='linear', framerate=10,
