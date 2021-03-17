@@ -31,7 +31,6 @@ from mne.viz._brain.colormap import calculate_lut
 
 from matplotlib import cm, image
 from matplotlib.lines import Line2D
-import matplotlib.pyplot as plt
 
 data_path = testing.data_path(download=False)
 subject_id = 'sample'
@@ -506,11 +505,11 @@ def test_brain_time_viewer(renderer_interactive_pyvista, pixel_ratio,
     brain.apply_auto_scaling()
     brain.restore_user_scaling()
     brain.reset()
-    plt.close('all')
+
+    assert brain.help_canvas is not None
+    assert not brain.help_canvas.canvas.isVisible()
     brain.help()
-    assert len(plt.get_fignums()) == 1
-    plt.close('all')
-    assert len(plt.get_fignums()) == 0
+    assert brain.help_canvas.canvas.isVisible()
 
     # screenshot
     # Need to turn the interface back on otherwise the window is too wide
