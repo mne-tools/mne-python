@@ -1460,8 +1460,6 @@ def test_plot_montage():
 
 @testing.requires_testing_data
 def test_montage_add_estimated_fiducials():
-    data_path = testing.data_path(download=True)
-
     # get the fiducials from test file
     subjects_dir = op.join(data_path, 'subjects')
     subject = 'sample'
