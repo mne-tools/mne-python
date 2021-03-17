@@ -12,7 +12,7 @@ electrocorticography (ECoG) data.
 This example shows how to use:
 
 - ECoG data (`available here <https://openneuro.org/datasets/ds003029>`_)
-from an epilepsy patient during a seizure
+  from an epilepsy patient during a seizure
 - channel locations in FreeSurfer's ``fsaverage`` MRI space
 - projection onto a pial surface
 
@@ -63,7 +63,7 @@ events, event_id = mne.events_from_annotations(raw)
 # seizure onset event and use 15 seconds of seizure
 onset_events = events[events[:, 2] == event_id['onset']]
 start = (onset_events[0, 0] - raw.first_samp) / raw.info['sfreq']
-raw.crop(start - 1, start + 3)
+raw.crop(start - 1, start + 4)
 
 # And then downsample. This is just to save time in this example, you should
 # not need to do this in general!
@@ -89,12 +89,14 @@ xy, im = snapshot_brain_montage(fig, raw.info)
 
 ###############################################################################
 # Next, we'll compute the signal power in the gamma (30-90 Hz) and alpha
-# (8-12 Hz) bands.
+# (8-12 Hz) bands, downsampling the result to 5 Hz.
 
 gamma_power_t = raw.copy().filter(30, 90).apply_hilbert(
-    envelope=True).get_data()
+    envelope=True).resample(5)
+gamma_info = gamma_power_t.info
+gamma_power_t = gamma_power_t.get_data()
 alpha_power_t = raw.copy().filter(8, 12).apply_hilbert(
-    envelope=True).get_data()
+    envelope=True).resample(5).get_data()
 gamma_power = gamma_power_t.mean(axis=-1)
 alpha_power = alpha_power_t.mean(axis=-1)
 
@@ -164,7 +166,7 @@ show_power = gamma_power_t
 anim = animation.FuncAnimation(fig, animate, init_func=init,
                                fargs=(show_power,),
                                frames=show_power.shape[1],
-                               interval=100, blit=True)
+                               interval=200, blit=True)
 
 ###############################################################################
 # Now let's animate the raw time series data and add events related
@@ -181,18 +183,18 @@ anim = animation.FuncAnimation(fig, animate, init_func=init,
 cmap = 'RdBu_r'
 
 # Get a copy of the filtered data earlier and only get the ecog channels
-raw_ecog = raw.copy().pick_types(meg=False, ecog=True)
+raw.pick_types(ecog=True)
 
 # Apply a high pass filter to get rid of drift, decrease time range
-raw_ecog.filter(l_freq=5, h_freq=None)
+raw.filter(l_freq=2, h_freq=None)
 
 # Downsample again, to compute the animation faster
 sfreq = 50  # Hz
-raw_ecog.resample(sfreq)
-ts_data = raw_ecog.get_data()
+raw.resample(sfreq)
+ts_data = raw.get_data()
 
 # recompute events for new sampling frequency
-events, event_id = mne.events_from_annotations(raw_ecog)
+events, event_id = mne.events_from_annotations(raw)
 onset_events = events[events[:, 2] == event_id['onset']]
 
 # invert the event_ids so that we can look up by id and get the name
@@ -239,7 +241,6 @@ tax.set_axis_off()
 
 # We want the mid-point (0 uV) to be white, so we will scale from -vmax to vmax
 # so that negative voltages are blue and positive voltages are red
-ts_data = raw_ecog.get_data()
 vmax = np.percentile(ts_data, 90)
 paths = ax.scatter(*xy_pts.T, c=np.zeros(len(xy_pts)), s=100,
                    cmap=cmap, vmin=-vmax, vmax=vmax)
@@ -256,7 +257,7 @@ sl = slice(start_sample, ts_data.shape[1])
 show_power = ts_data[:, sl]
 anim = animation.FuncAnimation(fig, animate, init_func=init,
                                fargs=(show_power, events),
-                               frames=show_power.shape[1] - sfreq,
+                               frames=show_power.shape[1],
                                interval=20, blit=True)
 
 ###############################################################################
@@ -265,18 +266,17 @@ anim = animation.FuncAnimation(fig, animate, init_func=init,
 
 # sphinx_gallery_thumbnail_number = 5
 
-evoked = mne.EvokedArray(gamma_power_t, raw.info, tmin=raw.times[0])
-
+evoked = mne.EvokedArray(gamma_power_t, gamma_info)
 src = mne.read_source_spaces(
     op.join(subjects_dir, 'fsaverage', 'bem', 'fsaverage-ico-5-src.fif'))
 trans = None  # identity transform
 stc = mne.stc_near_sensors(evoked, trans, 'fsaverage', src=src,
-                           subjects_dir=subjects_dir)
+                           subjects_dir=subjects_dir, distance=0.02)
 clim = dict(kind='value', lims=[vmin * 0.9, vmin, vmax])
 brain = stc.plot(surface='pial', hemi='both',
                  colormap='viridis', clim=clim, views='lat',
                  subjects_dir=subjects_dir, size=(500, 500))
-brain.show_view(view=dict(azimuth=-20, elevation=60))
+brain.show_view(view=dict(azimuth=-20, elevation=60, distance=400))
 
 # You can save a movie like the one on our documentation website with:
 # brain.save_movie(time_dilation=1, interpolation='linear', framerate=5,
