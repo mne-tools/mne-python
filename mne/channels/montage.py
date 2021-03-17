@@ -347,7 +347,8 @@ class DigMontage(object):
         )
         return positions
 
-    def add_estimated_fiducials(self, subject, subjects_dir):
+    @verbose
+    def add_estimated_fiducials(self, subject, subjects_dir, verbose=None):
         """Estimate fiducials based on FreeSurfer ``fsaverage`` subject.
 
         Parameters
