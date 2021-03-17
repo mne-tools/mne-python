@@ -199,7 +199,7 @@ for title, _raw in zip(['Original', 'REST (∞)'], [raw, raw_rest]):
 # along the respective channel names for ``anode`` and ``cathode`` which
 # creates a new virtual channel that takes the difference between two
 # specified channels (Anode and Cathode) and drops the original channels by
-# default. The new virtual channel will be annoted with the channel info of
+# default. The new virtual channel will be annotated with the channel info of
 # the anode with locations set to (0,0,0) and coil types set to EEG_BIPOLAR by
 # default. Here we use a contralateral/transverse bipolar reference between
 # channels EEG 054 and EEG 055 as decribed in :footcite:`Yao2019` which
