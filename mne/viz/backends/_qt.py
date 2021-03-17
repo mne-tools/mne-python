@@ -417,8 +417,7 @@ class _QtWindow(_AbstractWindow):
 
     def _window_show(self, sz):
         with _qt_disable_paint(self._interactor):
-            with self._window_ensure_minimum_sizes(sz):
-                self.show()
+            self.show()
 
 
 class _QtWidget(_AbstractWidget):

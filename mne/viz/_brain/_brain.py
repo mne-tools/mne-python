@@ -435,6 +435,7 @@ class Brain(object):
         self._layered_meshes = {}
         self._elevation_rng = [15, 165]  # range of motion of camera on theta
         self._lut_locked = None
+        self._scalar_bar = None
         # default values for silhouette
         self._silhouette = {
             'color': self._bg_color,
@@ -448,9 +449,6 @@ class Brain(object):
             self.silhouette = True
         else:
             self.silhouette = silhouette
-        # for now only one color bar can be added
-        # since it is the same for all figures
-        self._colorbar_added = False
         # for now only one time label can be added
         # since it is the same for all figures
         self._time_label_added = False
@@ -724,15 +722,14 @@ class Brain(object):
             self.visibility = value
 
         # update tool bar and dock
-        with self._renderer._window_ensure_minimum_sizes(self._size):
-            if self.visibility:
-                self._renderer._dock_show()
-                self._renderer._tool_bar_update_button_icon(
-                    name="visibility", icon_name="visibility_on")
-            else:
-                self._renderer._dock_hide()
-                self._renderer._tool_bar_update_button_icon(
-                    name="visibility", icon_name="visibility_off")
+        if self.visibility:
+            self._renderer._dock_show()
+            self._renderer._tool_bar_update_button_icon(
+                name="visibility", icon_name="visibility_on")
+        else:
+            self._renderer._dock_hide()
+            self._renderer._tool_bar_update_button_icon(
+                name="visibility", icon_name="visibility_off")
 
         self._renderer._update()
 
@@ -829,12 +826,11 @@ class Brain(object):
             self.time_actor.GetTextProperty().BoldOn()
 
     def _configure_scalar_bar(self):
-        if self._colorbar_added:
-            scalar_bar = self._renderer.figure.viewer.scalar_bar
-            scalar_bar.SetOrientationToVertical()
-            scalar_bar.SetHeight(0.6)
-            scalar_bar.SetWidth(0.05)
-            scalar_bar.SetPosition(0.02, 0.2)
+        if self._scalar_bar is not None:
+            self._scalar_bar.SetOrientationToVertical()
+            self._scalar_bar.SetHeight(0.6)
+            self._scalar_bar.SetWidth(0.05)
+            self._scalar_bar.SetPosition(0.02, 0.2)
 
     def _configure_dock_time_widget(self, layout=None):
         len_time = len(self._data['time']) - 1
@@ -1952,12 +1948,11 @@ class Brain(object):
                 )
                 self._data['time_actor'] = time_actor
                 self._time_label_added = True
-            if colorbar and not self._colorbar_added and do:
+            if colorbar and self._scalar_bar is None and do:
                 kwargs = dict(source=actor, n_labels=8, color=self._fg_color,
                               bgcolor=self._brain_color[:3])
                 kwargs.update(colorbar_kwargs or {})
-                self._renderer.scalarbar(**kwargs)
-                self._colorbar_added = True
+                self._scalar_bar = self._renderer.scalarbar(**kwargs)
             self._renderer.set_camera(**views_dicts[hemi][v])
 
         # 4) update the scalar bar and opacity
@@ -2655,9 +2650,6 @@ class Brain(object):
         # update our values
         rng = self._cmap_range
         ctable = self._data['ctable']
-        # in testing, no plotter; if colorbar=False, no scalar_bar
-        scalar_bar = getattr(
-            getattr(self._renderer, 'plotter', None), 'scalar_bar', None)
         for hemi in ['lh', 'rh', 'vol']:
             hemi_data = self._data.get(hemi)
             if hemi_data is not None:
@@ -2668,9 +2660,8 @@ class Brain(object):
                                         opacity=alpha,
                                         rng=rng)
                     self._renderer._set_colormap_range(
-                        mesh._actor, ctable, scalar_bar, rng,
+                        mesh._actor, ctable, self._scalar_bar, rng,
                         self._brain_color)
-                    scalar_bar = None
 
                 grid_volume_pos = hemi_data.get('grid_volume_pos')
                 grid_volume_neg = hemi_data.get('grid_volume_neg')
@@ -2678,15 +2669,13 @@ class Brain(object):
                     if grid_volume is not None:
                         self._renderer._set_volume_range(
                             grid_volume, ctable, hemi_data['alpha'],
-                            scalar_bar, rng)
-                        scalar_bar = None
+                            self._scalar_bar, rng)
 
                 glyph_actor = hemi_data.get('glyph_actor')
                 if glyph_actor is not None:
                     for glyph_actor_ in glyph_actor:
                         self._renderer._set_colormap_range(
-                            glyph_actor_, ctable, scalar_bar, rng)
-                        scalar_bar = None
+                            glyph_actor_, ctable, self._scalar_bar, rng)
         if self.time_viewer:
             with self._no_lut_update(f'update_lut {args}'):
                 for key in ('fmin', 'fmid', 'fmax'):
