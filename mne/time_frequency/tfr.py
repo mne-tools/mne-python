@@ -2141,29 +2141,27 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
                           comment=self.comment)
 
     @fill_doc
-    def to_data_frame(self, picks=None, index=None,
-                      scalings=None, copy=True, long_format=False,
+    def to_data_frame(self, picks=None, index=None, long_format=False,
                       time_format='ms'):
         """Export data in tabular structure as a pandas DataFrame.
 
         Channels are converted to columns in the DataFrame. By default,
-        additional columns "time", "frequency", "epoch" (epoch number),
-        and "condition" (epoch event description) are added, unless ``index``
-        is not ``None`` (in which case the columns specified in ``index`` will
-        be used to form the DataFrame's index instead).
+        additional columns ``'time'``, ``'freq'``, and ``'condition'`` (epoch
+        event description) are added, unless ``index`` is not ``None`` (in
+        which case the columns specified in ``index`` will be used to form the
+        DataFrame's index instead).
 
         Parameters
         ----------
         %(picks_all)s
         %(df_index_epo)s
-            Valid string values are ``'time'``, ``'freq'``, and ``'condition'``.
+            Valid string values are ``'time'``, ``'freq'``, and
+            ``'condition'``.
             Defaults to ``None``.
-        %(df_scalings)s
-        %(df_copy)s
         %(df_longform_epo)s
         %(df_time_format)s
 
-            .. versionadded::
+            .. versionadded:: 0.23
 
         Returns
         -------
