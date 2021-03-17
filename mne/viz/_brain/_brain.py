@@ -27,7 +27,7 @@ from .view import views_dicts, _lh_views_dict
 from .callback import (ShowView, TimeCallBack, SmartCallBack,
                        UpdateLUT, UpdateColorbarScale)
 
-from ..utils import _show_help, _get_color_list, concatenate_images
+from ..utils import _show_help_fig, _get_color_list, concatenate_images
 from .._3d import _process_clim, _handle_time, _check_views
 
 from ...externals.decorator import decorator
@@ -602,6 +602,7 @@ class Brain(object):
         self.color_list.remove("#7f7f7f")
         self.color_cycle = _ReuseCycle(self.color_list)
         self.mpl_canvas = None
+        self.help_canvas = None
         self.rms = None
         self.picked_patches = {key: list() for key in all_keys}
         self.picked_points = {key: list() for key in all_keys}
@@ -650,6 +651,7 @@ class Brain(object):
         self._configure_menu()
         self._configure_status_bar()
         self._configure_playback()
+        self._configure_help()
         # show everything at the end
         self.toggle_interface()
         self._renderer._window_show(self._size)
@@ -1636,8 +1638,7 @@ class Brain(object):
             self.time_line.set_xdata(current_time)
             self.mpl_canvas.update_plot()
 
-    def help(self):
-        """Display the help window."""
+    def _configure_help(self):
         pairs = [
             ('?', 'Display help window'),
             ('i', 'Toggle interface'),
@@ -1655,12 +1656,19 @@ class Brain(object):
         text1, text2 = zip(*pairs)
         text1 = '\n'.join(text1)
         text2 = '\n'.join(text2)
-        _show_help(
+        self.help_canvas = self._renderer._window_get_simple_canvas(
+            width=5, height=2, dpi=80)
+        _show_help_fig(
             col1=text1,
             col2=text2,
-            width=5,
-            height=2,
+            fig_help=self.help_canvas.fig,
+            ax=self.help_canvas.axes,
+            show=False,
         )
+
+    def help(self):
+        """Display the help window."""
+        self.help_canvas.show()
 
     def _clear_callbacks(self):
         if not hasattr(self, 'callbacks'):
