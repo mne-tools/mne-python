@@ -118,6 +118,7 @@ stc = apply_inverse(left_auditory, inv, pick_ori=None)
 _, time_max = stc.get_peak(hemi='lh')
 brain_fixed = stc.plot(surface='white', subjects_dir=subjects_dir,
                        initial_time=time_max, time_unit='s', size=(600, 400))
+mne.viz.set_3d_view(figure=brain_fixed, focalpoint=(0., 0., 50))
 
 ###############################################################################
 # The direction of the estimated current is now restricted to two directions:
@@ -170,6 +171,7 @@ stc = apply_inverse(left_auditory, inv, pick_ori='vector')
 _, time_max = stc.magnitude().get_peak(hemi='lh')
 brain_mag = stc.plot(subjects_dir=subjects_dir, initial_time=time_max,
                      time_unit='s', size=(600, 400), overlay_alpha=0)
+mne.viz.set_3d_view(figure=brain_mag, focalpoint=(0., 0., 50))
 
 ###############################################################################
 # .. _plot_dipole_orientations_vLOC_orientations:
@@ -192,6 +194,7 @@ stc = apply_inverse(left_auditory, inv, pick_ori='vector')
 _, time_max = stc.magnitude().get_peak(hemi='lh')
 brain_loose = stc.plot(subjects_dir=subjects_dir, initial_time=time_max,
                        time_unit='s', size=(600, 400), overlay_alpha=0)
+mne.viz.set_3d_view(figure=brain_loose, focalpoint=(0., 0., 50))
 
 ###############################################################################
 # Discarding dipole orientation information
@@ -210,6 +213,7 @@ stc = apply_inverse(left_auditory, inv, pick_ori=None)
 _, time_max = stc.get_peak(hemi='lh')
 brain = stc.plot(surface='white', subjects_dir=subjects_dir,
                  initial_time=time_max, time_unit='s', size=(600, 400))
+mne.viz.set_3d_view(figure=brain, focalpoint=(0., 0., 50))
 
 ###############################################################################
 # References
