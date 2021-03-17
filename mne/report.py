@@ -941,6 +941,21 @@ class Report(object):
         .. versionadded:: 0.21
     %(verbose)s
 
+    Attributes
+    ----------
+    initial_id : int
+        Counter for unique ids.
+    html : list
+        Contains items of html-page.
+    fnames : list
+        List of file names rendered.
+    sections : list
+        List of sections.
+    lang : str
+        language setting for the HTML file.
+    include : OrderedDict
+        Dictionary containing elements included in head.
+
     Notes
     -----
     See :ref:`tut-report` for an introduction to using ``mne.Report``.
