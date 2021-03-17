@@ -46,6 +46,9 @@ subjects_dir = op.join(sample_path, 'subjects')
 
 
 ###############################################################################
+# Load in data and perform basic preprocessing
+# --------------------------------------------
+#
 # Let's load some ECoG electrode data with ``mne-bids``.
 # first define the bids path
 bids_path = BIDSPath(root=bids_root, subject='pt1', session='presurgery',
@@ -59,8 +62,8 @@ raw = read_raw_bids(bids_path=bids_path, verbose=False)
 # Find the annotated events
 events, event_id = mne.events_from_annotations(raw)
 
-# To make the example run much faster, we will start 5 seconds before the
-# seizure onset event and use 15 seconds of seizure
+# To make the example run much faster, we will start 1 seconds before the
+# seizure onset event and use 4 seconds of seizure
 onset_events = events[events[:, 2] == event_id['onset']]
 start = (onset_events[0, 0] - raw.first_samp) / raw.info['sfreq']
 raw.crop(start - 1, start + 4)
@@ -75,11 +78,18 @@ raw.notch_filter([60], trans_bandwidth=3)
 # drop bad channels
 raw.drop_channels(raw.info['bads'])
 
+# the coordinate frame of the montage
+print(raw.get_montage().get_positions()['coord_frame'])
+
 ###############################################################################
-# We can then plot the locations of our electrodes on the fsaverage brain.
-# We'll use :func:`~mne.viz.snapshot_brain_montage` to save the plot as image
-# data (along with xy positions of each electrode in the image), so that later
-# we can plot frequency band power on top of it.
+# Explore the electrodes on a template brain
+# ------------------------------------------
+#
+# Our electrodes are shown in ``mni_tal`` space, which corresponds to
+# the fsaverage brain. We can then plot the locations of our electrodes
+# on the fsaverage brain. We'll use :func:`~mne.viz.snapshot_brain_montage`
+# to save the plot as image data (along with xy positions of each electrode
+# in the image), so that later we can plot frequency band power on top of it.
 
 fig = plot_alignment(raw.info, subject='fsaverage', subjects_dir=subjects_dir,
                      surfaces=['pial'])
@@ -88,8 +98,11 @@ mne.viz.set_3d_view(fig, 160, -70, focalpoint=[0.067, -0.040, 0.018])
 xy, im = snapshot_brain_montage(fig, raw.info)
 
 ###############################################################################
+# Compute frequency features of the data
+# --------------------------------------
+#
 # Next, we'll compute the signal power in the gamma (30-90 Hz) and alpha
-# (8-12 Hz) bands, downsampling the result to 5 Hz.
+# (8-12 Hz) bands, downsampling the result to 5 Hz (to save time).
 
 gamma_power_t = raw.copy().filter(30, 90).apply_hilbert(
     envelope=True).resample(5)
@@ -97,10 +110,15 @@ gamma_info = gamma_power_t.info
 gamma_power_t = gamma_power_t.get_data()
 alpha_power_t = raw.copy().filter(8, 12).apply_hilbert(
     envelope=True).resample(5).get_data()
+
+# we compute the mean power over time
 gamma_power = gamma_power_t.mean(axis=-1)
 alpha_power = alpha_power_t.mean(axis=-1)
 
 ###############################################################################
+# Overlay the mean gamma and alpha band power on the brain
+# --------------------------------------------------------
+#
 # Now let's use matplotlib to overplot frequency band power onto the electrodes
 # which can be plotted on top of the brain from
 # :func:`~mne.viz.snapshot_brain_montage`.
@@ -129,6 +147,9 @@ for ax, band_power, band in zip(axs,
 fig.colorbar(sc, ax=axs)
 
 ###############################################################################
+# Visualize the time-evolution of the gamma power on the brain
+# ------------------------------------------------------------
+#
 # Say we want to visualize the evolution of the power in the gamma band,
 # instead of just plotting the average. We can use
 # `matplotlib.animation.FuncAnimation` to create an animation and apply this
@@ -169,6 +190,9 @@ anim = animation.FuncAnimation(fig, animate, init_func=init,
                                interval=200, blit=True)
 
 ###############################################################################
+# Visualize the gamma activity over time relative to seizure onset
+# ----------------------------------------------------------------
+#
 # Now let's animate the raw time series data and add events related
 # to seizure onset that are marked in the annotations. This will be done
 # very similarly to the high gamma visualization.
@@ -176,6 +200,10 @@ anim = animation.FuncAnimation(fig, animate, init_func=init,
 # As can be seen in the plot below, the seizure originates in the temporal
 # lobe and spreads to new electrodes when electrode label names come up in
 # the title. The seizure eventually becomes generalized and then subsides.
+# As mentioned earlier, we sub-sample and only show a small portion of
+# the seizure for demonstration purposes. Feel free to run this example
+# to visualize the spread of the seizure yourself, specifically in
+# channels annotated in the ``events`` array.
 
 # colormap to view spectral power - RdBu_r works well for directional
 # data such as voltage time series, where positive and negative values
