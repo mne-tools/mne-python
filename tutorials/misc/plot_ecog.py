@@ -265,7 +265,8 @@ anim = animation.FuncAnimation(fig, animate, init_func=init,
 # sphinx_gallery_thumbnail_number = 5
 
 evoked = mne.EvokedArray(gamma_power_t, raw.info, tmin=raw.times[0])
-evoked.resample(10)  # downsample to 10 Hz
+# Show just a very short time period for the example
+evoked.resample(10).crop(tmin=1, tmax=2)
 
 src = mne.read_source_spaces(
     op.join(subjects_dir, 'fsaverage', 'bem', 'fsaverage-ico-5-src.fif'))
