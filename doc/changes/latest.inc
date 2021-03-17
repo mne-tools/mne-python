@@ -39,6 +39,8 @@ Current (0.23.dev0)
 
 Enhancements
 ~~~~~~~~~~~~
+- Add different colors for each volume source space in :func:`mne.viz.plot_alignment` (:gh:`9043` **by new contributor** |Valerii Chirkov|_)
+
 - Update citations in maxwell.py (:gh:`9043` **by new contributor** |Valerii Chirkov|_)
 
 - New Tutorial for analyzing frequency-tagging data (:gh:`8867` **by new contributor** |Dominik Welke|_ and `kalenkovich`_)
