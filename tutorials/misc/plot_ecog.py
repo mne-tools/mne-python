@@ -200,7 +200,7 @@ onset_events = events[events[:, 2] == event_id['onset']]
 inv_event_id = {v: k for k, v in event_id.items()}
 
 # Use one second before the seizure onset as the animation start
-start_sample = int(onset_events[0, 0] - 1 * raw_ecog.info['sfreq'])
+start_sample = int(onset_events[0, 0])
 
 
 # Create an initialization and animation function to pass to FuncAnimation.
@@ -255,7 +255,7 @@ sl = slice(start_sample, ts_data.shape[1])
 show_power = ts_data[:, sl]
 anim = animation.FuncAnimation(fig, animate, init_func=init,
                                fargs=(show_power, events),
-                               frames=show_power.shape[1],
+                               frames=show_power.shape[1] - sfreq,
                                interval=20, blit=True)
 
 ###############################################################################
@@ -281,6 +281,5 @@ brain = stc.plot(surface='pial', hemi='both',
 brain.show_view(view=dict(azimuth=-20, elevation=60))
 
 # You can save a movie like the one on our documentation website with:
-# brain.save_movie(time_dilation=1, interpolation='linear', framerate=10,
+# brain.save_movie(time_dilation=1, interpolation='linear', framerate=5,
 #                  time_viewer=True)
-
