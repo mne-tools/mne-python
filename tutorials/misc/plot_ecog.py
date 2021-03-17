@@ -152,7 +152,7 @@ fig, ax = plt.subplots(figsize=(5, 5))
 ax.imshow(im)
 ax.set_axis_off()
 vmin, vmax = np.percentile(gamma_power, [10, 90])
-paths = ax.scatter(*xy_pts.T, c=np.zeros(len(xy_pts)), s=100,
+paths = ax.scatter(*xy_pts.T, c=np.zeros(len(xy_pts)), s=200,
                    cmap=cmap, vmin=vmin, vmax=vmax)
 ax.set_xlim([0, im.shape[0]])
 ax.set_ylim([im.shape[1], 0])
@@ -184,8 +184,8 @@ cmap = 'RdBu_r'
 # Get a copy of the filtered data earlier and only get the ecog channels
 raw_ecog = raw.copy().pick_types(meg=False, ecog=True)
 
-# Apply a high pass filter to get rid of drift
-raw_ecog.filter(l_freq=1, h_freq=None)
+# Apply a high pass filter to get rid of drift, decrease time range
+raw_ecog.filter(l_freq=1, h_freq=None).crop(tmin=3, tmax=7)
 
 # Downsample again, to compute the animation faster
 sfreq = 50  # Hz
