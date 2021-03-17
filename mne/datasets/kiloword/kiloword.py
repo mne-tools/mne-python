@@ -9,7 +9,7 @@ def data_path(path=None, force_update=False, update_path=True, download=True,
               verbose=None):
     """Get path to local copy of the kiloword dataset.
 
-    This is the dataset from [1]_.
+    This is the dataset from :footcite:`DufauEtAl2015`.
 
     Parameters
     ----------
@@ -41,9 +41,7 @@ def data_path(path=None, force_update=False, update_path=True, download=True,
 
     References
     ----------
-    .. [1] Dufau, S., Grainger, J., Midgley, KJ., Holcomb, PJ. A thousand
-       words are worth a picture: Snapshots of printed-word processing in an
-       event-related potential megastudy. Psychological science, 2015
+    .. footbibliography::
     """
     return _data_path(path=path, force_update=force_update,
                       update_path=update_path, name='kiloword',

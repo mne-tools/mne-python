@@ -13,7 +13,8 @@ from ..utils import _save_ndarray_img
 from ...fixes import nullcontext
 from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractStatusBar, _AbstractLayout, _AbstractWidget,
-                        _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback)
+                        _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback,
+                        _AbstractBrainMplCanvas, _AbstractMplInterface)
 from ._pyvista import _PyVistaRenderer, _close_all, _set_3d_view, _set_3d_title  # noqa: F401,E501, analysis:ignore
 
 
@@ -135,7 +136,7 @@ def _generate_callback(callback, to_float=False):
 class _IpyToolBar(_AbstractToolBar, _IpyLayout):
     def _tool_bar_load_icons(self):
         self.icons = dict()
-        self.icons["help"] = None
+        self.icons["help"] = "question"
         self.icons["play"] = None
         self.icons["pause"] = None
         self.icons["reset"] = "history"
@@ -221,18 +222,25 @@ class _IpyPlayback(_AbstractPlayback):
         pass
 
 
-class _IpyMplCanvas(_AbstractMplCanvas):
-    def __init__(self, brain, width, height, dpi):
-        super().__init__(brain, width, height, dpi)
+class _IpyMplInterface(_AbstractMplInterface):
+    def _mpl_initialize(self):
         from matplotlib.backends.backend_nbagg import (FigureCanvasNbAgg,
                                                        FigureManager)
         self.canvas = FigureCanvasNbAgg(self.fig)
         self.manager = FigureManager(self.canvas, 0)
-        self._connect()
 
-    def show(self):
-        """Show the canvas."""
-        self.manager.show()
+
+class _IpyMplCanvas(_AbstractMplCanvas, _IpyMplInterface):
+    def __init__(self, width, height, dpi):
+        super().__init__(width, height, dpi)
+        self._mpl_initialize()
+
+
+class _IpyBrainMplCanvas(_AbstractBrainMplCanvas, _IpyMplInterface):
+    def __init__(self, brain, width, height, dpi):
+        super().__init__(brain, width, height, dpi)
+        self._mpl_initialize()
+        self._connect()
 
 
 class _IpyWindow(_AbstractWindow):
@@ -251,13 +259,17 @@ class _IpyWindow(_AbstractWindow):
     def _window_get_size(self):
         return self.figure.plotter.window_size
 
+    def _window_get_simple_canvas(self, width, height, dpi):
+        return _IpyMplCanvas(width, height, dpi)
+
     def _window_get_mplcanvas(self, brain, interactor_fraction, show_traces,
                               separate_canvas):
         w, h = self._window_get_mplcanvas_size(interactor_fraction)
         self._interactor_fraction = interactor_fraction
         self._show_traces = show_traces
         self._separate_canvas = separate_canvas
-        self._mplcanvas = _IpyMplCanvas(brain, w, h, self._window_get_dpi())
+        self._mplcanvas = _IpyBrainMplCanvas(
+            brain, w, h, self._window_get_dpi())
         return self._mplcanvas
 
     def _window_adjust_mplcanvas_layout(self):

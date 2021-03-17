@@ -1423,7 +1423,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         endings = ('raw.fif', 'raw_sss.fif', 'raw_tsss.fif',
                    '_meg.fif', '_eeg.fif', '_ieeg.fif')
         endings += tuple([f'{e}.gz' for e in endings])
-        check_fname(fname, 'raw', endings)
+        endings_err = ('.fif', '.fif.gz')
+        check_fname(fname, 'raw', endings, endings_err=endings_err)
 
         split_size = _get_split_size(split_size)
         if not self.preload and fname in self._filenames:

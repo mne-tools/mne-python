@@ -1036,9 +1036,10 @@ def plot_evoked_white(evoked, noise_cov, show=True, rank=None, time_unit='s',
     """Plot whitened evoked response.
 
     Plots the whitened evoked response and the whitened GFP as described in
-    [1]_. This function is especially useful for investigating noise
-    covariance properties to determine if data are properly whitened (e.g.,
-    achieving expected values in line with model assumptions, see Notes below).
+    :footcite:`EngemannGramfort2015`. This function is especially useful for
+    investigating noise covariance properties to determine if data are
+    properly whitened (e.g., achieving expected values in line with model
+    assumptions, see Notes below).
 
     Parameters
     ----------
