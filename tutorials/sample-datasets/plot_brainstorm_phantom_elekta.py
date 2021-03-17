@@ -7,16 +7,13 @@ Brainstorm Elekta phantom dataset tutorial
 ==========================================
 
 Here we compute the evoked from raw for the Brainstorm Elekta phantom
-tutorial dataset. For comparison, see [1]_ and:
+tutorial dataset. For comparison, see :footcite:`TadelEtAl2011` and:
 
     https://neuroimage.usc.edu/brainstorm/Tutorials/PhantomElekta
 
 References
 ----------
-.. [1] Tadel F, Baillet S, Mosher JC, Pantazis D, Leahy RM.
-       Brainstorm: A User-Friendly Application for MEG/EEG Analysis.
-       Computational Intelligence and Neuroscience, vol. 2011, Article ID
-       879716, 13 pages, 2011. doi:10.1155/2011/879716
+.. footbibliography::
 """
 # sphinx_gallery_thumbnail_number = 9
 

@@ -5,12 +5,13 @@ Compute and visualize ERDS maps
 
 This example calculates and displays ERDS maps of event-related EEG data. ERDS
 (sometimes also written as ERD/ERS) is short for event-related
-desynchronization (ERD) and event-related synchronization (ERS) [1]_.
+desynchronization (ERD) and event-related synchronization (ERS)
+:footcite:`PfurtschellerLopesdaSilva1999`.
 Conceptually, ERD corresponds to a decrease in power in a specific frequency
 band relative to a baseline. Similarly, ERS corresponds to an increase in
 power. An ERDS map is a time/frequency representation of ERD/ERS over a range
-of frequencies [2]_. ERDS maps are also known as ERSP (event-related spectral
-perturbation) [3]_.
+of frequencies :footcite:`GraimannEtAl2002`. ERDS maps are also known as ERSP
+(event-related spectral perturbation) :footcite:`Makeig1993`.
 
 We use a public EEG BCI data set containing two different motor imagery tasks
 available at PhysioNet. The two tasks are imagined hand and feet movement. Our
@@ -26,15 +27,7 @@ significant ERDS values (corrected for multiple comparisons within channels).
 References
 ----------
 
-.. [1] G. Pfurtscheller, F. H. Lopes da Silva. Event-related EEG/MEG
-       synchronization and desynchronization: basic principles. Clinical
-       Neurophysiology 110(11), 1842-1857, 1999.
-.. [2] B. Graimann, J. E. Huggins, S. P. Levine, G. Pfurtscheller.
-       Visualization of significant ERD/ERS patterns in multichannel EEG and
-       ECoG data. Clinical Neurophysiology 113(1), 43-47, 2002.
-.. [3] S. Makeig. Auditory event-related dynamics of the EEG spectrum and
-       effects of exposure to tones. Electroencephalography and Clinical
-       Neurophysiology 86(4), 283-293, 1993.
+.. footbibliography::
 """
 # Authors: Clemens Brunner <clemens.brunner@gmail.com>
 #
