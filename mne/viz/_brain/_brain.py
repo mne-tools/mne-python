@@ -1644,7 +1644,6 @@ class Brain(object):
             self.mpl_canvas.update_plot()
 
     def _configure_help(self):
-        """Display the help window."""
         pairs = [
             ('?', 'Display help window'),
             ('i', 'Toggle interface'),
@@ -1673,6 +1672,7 @@ class Brain(object):
         )
 
     def help(self):
+        """Display the help window."""
         self.help_canvas.show()
 
     def _clear_callbacks(self):
