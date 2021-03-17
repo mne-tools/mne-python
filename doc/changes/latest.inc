@@ -113,6 +113,8 @@ Enhancements
 
 - `mne.viz.plot_drop_log` and :meth:`mne.Epochs.plot_drop_log` now omit displaying the subject name in the title if ``subject=None`` is passed (:gh:`9015` by `Richard Höchenberger`_)
 
+- Plot ECoG tutorial now uses a real epilepsy seizure dataset and visualizes the seizure onset (:gh:`9087` by `Eric Larson`_, `Adam Li`_, `Alex Rockhill`_ and `Liberty Hamilton`_)
+
 Bugs
 ~~~~
 - Fix bug with restricting :func:`mne.io.Raw.save` saving options to .fif and .fif.gz extensions (:gh:`9062` by |Valerii Chirkov|_)

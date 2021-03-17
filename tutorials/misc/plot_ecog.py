@@ -37,6 +37,8 @@ from mne_bids import BIDSPath, read_raw_bids
 import mne
 from mne.viz import plot_alignment, snapshot_brain_montage
 
+import matplotlib
+matplotlib.use('Qt5Agg')
 print(__doc__)
 
 # paths to mne datasets - sample ECoG and FreeSurfer subject
@@ -230,9 +232,10 @@ tax = fig.add_axes([0.15, 0.02, 0.6, 0.15])
 ax.imshow(im)
 ax.set_axis_off()
 tax.set_axis_off()
+
 # We want the mid-point (0 uV) to be white, so we will scale from -vmax to vmax
 # so that negative voltages are blue and positive voltages are red
-ts_data = raw.get_data()
+ts_data = raw_notched.get_data()
 vmax = np.percentile(ts_data, 90)
 paths = ax.scatter(*xy_pts.T, c=np.zeros(len(xy_pts)), s=40,
                    cmap=cmap, vmin=-vmax, vmax=vmax)
@@ -242,7 +245,6 @@ tsl = slice(start_sample - sfreq, start_sample + sfreq)
 tpaths = tax.plot(raw_notched.times[tsl], ts_data[:, tsl].T)
 fig.colorbar(paths, ax=ax)
 title = ax.set_title('iEEG voltage over time', size='large')
-
 
 # this will be a much longer animation because the seizure is quite long
 sl = slice(start_sample, ts_data.shape[1])
@@ -260,6 +262,7 @@ anim = animation.FuncAnimation(fig, animate, init_func=init,
 # sphinx_gallery_thumbnail_number = 5
 
 # decimate by a factor of 10 for speed here
+ts_data = raw.get_data()
 sl = slice(start_sample, ts_data.shape[1], 10)
 
 evoked = mne.EvokedArray(
