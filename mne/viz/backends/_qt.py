@@ -23,7 +23,8 @@ from ._pyvista import (_close_all, _close_3d_figure, _check_3d_figure,  # noqa: 
                        _set_3d_view, _set_3d_title, _take_3d_screenshot)  # noqa: F401,E501 analysis:ignore
 from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractStatusBar, _AbstractLayout, _AbstractWidget,
-                        _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback)
+                        _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback,
+                        _AbstractBrainMplCanvas, _AbstractMplInterface)
 from ._utils import _init_qt_resources, _qt_disable_paint
 from ..utils import _save_ndarray_img
 
@@ -321,27 +322,34 @@ class _QtPlayback(_AbstractPlayback):
         self.figure.plotter.add_callback(func, timeout)
 
 
-class _QtMplCanvas(_AbstractMplCanvas):
-    def __init__(self, brain, width, height, dpi):
-        super().__init__(brain, width, height, dpi)
+class _QtMplInterface(_AbstractMplInterface):
+    def _mpl_initialize(self):
         from PyQt5 import QtWidgets
         from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
         self.canvas = FigureCanvasQTAgg(self.fig)
-        if brain.separate_canvas:
-            self.canvas.setParent(None)
-        else:
-            self.canvas.setParent(brain._renderer._window)
         FigureCanvasQTAgg.setSizePolicy(
             self.canvas,
             QtWidgets.QSizePolicy.Expanding,
             QtWidgets.QSizePolicy.Expanding
         )
         FigureCanvasQTAgg.updateGeometry(self.canvas)
-        self.manager = None
-        self._connect()
 
-    def show(self):
-        self.canvas.show()
+
+class _QtMplCanvas(_AbstractMplCanvas, _QtMplInterface):
+    def __init__(self, width, height, dpi):
+        super().__init__(width, height, dpi)
+        self._mpl_initialize()
+
+
+class _QtBrainMplCanvas(_AbstractBrainMplCanvas, _QtMplInterface):
+    def __init__(self, brain, width, height, dpi):
+        super().__init__(brain, width, height, dpi)
+        self._mpl_initialize()
+        if brain.separate_canvas:
+            self.canvas.setParent(None)
+        else:
+            self.canvas.setParent(brain._renderer._window)
+        self._connect()
 
 
 class _QtWindow(_AbstractWindow):
@@ -364,13 +372,17 @@ class _QtWindow(_AbstractWindow):
         h = self._interactor.geometry().height()
         return (w, h)
 
+    def _window_get_simple_canvas(self, width, height, dpi):
+        return _QtMplCanvas(width, height, dpi)
+
     def _window_get_mplcanvas(self, brain, interactor_fraction, show_traces,
                               separate_canvas):
         w, h = self._window_get_mplcanvas_size(interactor_fraction)
         self._interactor_fraction = interactor_fraction
         self._show_traces = show_traces
         self._separate_canvas = separate_canvas
-        self._mplcanvas = _QtMplCanvas(brain, w, h, self._window_get_dpi())
+        self._mplcanvas = _QtBrainMplCanvas(
+            brain, w, h, self._window_get_dpi())
         return self._mplcanvas
 
     def _window_adjust_mplcanvas_layout(self):

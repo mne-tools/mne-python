@@ -158,43 +158,25 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                        verbose=None, *args, **kwargs):
         """Apply a function to a subset of channels.
 
-        The function ``fun`` is applied to the channels defined in ``picks``.
-        The data of the Evoked object is modified in place. If the function
-        returns a different data type (e.g. numpy.complex) it must be specified
-        using the dtype parameter, which causes the data type used for
-        representing the raw data to change. Since evoked data is averaged over
-        time, the function defined by the user is always applied channel-wise.
-
-        The Evoked object has to have the data loaded e.g. with
-        ``preload=True`` or ``self.load_data()``.
-
-        .. note:: If ``n_jobs`` > 1, more memory is required as
-                  ``len(picks) * n_times`` additional time points need to
-                  be temporaily stored in memory.
-        .. note:: If the data type changes (``dtype != None``), more memory is
-                  required since the original and the converted data needs
-                  to be stored in memory.
+        %(apply_function_summary)s
 
         Parameters
         ----------
         fun : callable
             A function to be applied to the channels. The first argument of
             fun has to be a timeseries (numpy.ndarray). The function must
-            operate on an array of shape ``(n_times,)`` if
-            ``channel_wise=True`` and ``(len(picks), n_times)`` otherwise.
-            The function must return an ndarray shaped like its input.
+            operate on an array of shape ``(n_times,)`` because it will
+            apply channel-wise. The function must return an ndarray shaped like
+            its input.
         %(picks_all_data_noref)s
         dtype : numpy.dtype
-            Data type to use for raw data after applying the function. If None
-            the data type is not modified. Defaults to ``None``.
+            Data type to use for evoked data after applying the function. If
+            ``None``, the data type is not modified. Defaults to ``None``.
         n_jobs : int
             Number of jobs to run in parallel. Defaults to 1.
         %(verbose_meth)s
-        *args : list
-            Additional positional arguments to pass to fun (first pos. argument
-            of fun is the timeseries of a channel).
-        **kwargs : dict
-            Additional keyword arguments to pass to fun.
+        %(arg_fun)s
+        %(kwarg_fun)s
 
         Returns
         -------
@@ -217,8 +199,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         if n_jobs == 1:
             # modify data inplace to save memory
             for idx in picks:
-                d = np.asarray(data_in[idx, :])
-                self._data[idx, :] = _check_fun(fun, d,
+                self._data[idx, :] = _check_fun(fun, data_in[idx, :],
                                                 *args, **kwargs)
         else:
             # use parallel function

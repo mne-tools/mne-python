@@ -8,7 +8,6 @@
 from copy import deepcopy
 import os.path as op
 import pickle
-import mne
 
 import numpy as np
 from scipy import fftpack
@@ -763,22 +762,21 @@ def test_hilbert():
 run_tests_if_main()
 
 
-def fun(evoked_data):
+def fun(evoked_data, mult_param=1):
     """Auxiliary function to test apply_function."""
-    mult_array = np.random.rand(1000)
-    product = np.multiply(mult_array, evoked_data)
-    return np.asarray(product)
+    return mult_param * evoked_data
 
 
 def test_apply_function_evk():
     """Check the apply_function method for evoked data."""
     # create fake evoked data to use for checking apply_function
-    data = np.random.rand(2, 10, 1000)
-    events = np.array([[0, 0, 1], [INT32_MAX, 0, 2]])
-    info = mne.create_info(10, 1000., 'eeg')
-    epochs = mne.EpochsArray(data, info, events)
-    evoked = epochs.average(method='mean')
-    evoked_data = evoked.data
+    data = np.random.rand(10, 1000)
+    info = create_info(10, 1000., 'eeg')
+    evoked = EvokedArray(data, info)
+    evoked_data = evoked.data.copy()
     # check apply_function channel-wise
-    applied = evoked.apply_function(fun)
+    mult_param = -1
+    applied = evoked.apply_function(fun, picks=None, dtype=None, n_jobs=1,
+                                    kwargs=dict(mult_param=mult_param))
     assert np.shape(applied.data) == np.shape(evoked_data)
+    assert np.equal(applied.data, evoked_data*mult_param).all()
