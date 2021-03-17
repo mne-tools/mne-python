@@ -607,15 +607,21 @@ class _PyVistaRenderer(_AbstractRenderer):
 
     def scalarbar(self, source, color="white", title=None, n_labels=4,
                   bgcolor=None, **extra_kwargs):
+        if isinstance(source, vtk.vtkMapper):
+            mapper = source
+        elif isinstance(source, vtk.vtkActor):
+            mapper = source.GetMapper()
+        else:
+            mapper = None
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             kwargs = dict(color=color, title=title, n_labels=n_labels,
                           use_opacity=False, n_colors=256, position_x=0.15,
                           position_y=0.05, width=0.7, shadow=False, bold=True,
                           label_font_size=22, font_family=self.font_family,
-                          background_color=bgcolor)
+                          background_color=bgcolor, mapper=mapper)
             kwargs.update(extra_kwargs)
-            self.plotter.add_scalar_bar(**kwargs)
+            return self.plotter.add_scalar_bar(**kwargs)
 
     def show(self):
         self.plotter.show()
