@@ -267,19 +267,20 @@ anim = animation.FuncAnimation(fig, animate, init_func=init,
 
 # sphinx_gallery_thumbnail_number = 5
 
-# decimate by a factor of 10 for speed here
-ts_data = raw.get_data()
-sl = slice(start_sample, ts_data.shape[1], 10)
+# Let's look at 1 second before seizure onset and 4 seconds after, you would
+# want to look at the whole time course, this just saves execution time
+# for the example
+evoked = mne.EvokedArray(gamma_power_t, raw.info, tmin=raw.times[0])
 
-evoked = mne.EvokedArray(
-    gamma_power_t[:, sl], raw.info, tmin=raw.times[sl][0])
+# resample to 20 Hz, crop to -1 to 4 seconds
+evoked.crop(tmin=9, tmax=14).resample(20)
 src = mne.read_source_spaces(
     op.join(subjects_dir, 'fsaverage', 'bem', 'fsaverage-ico-5-src.fif'))
 trans = None  # identity transform
 stc = mne.stc_near_sensors(evoked, trans, 'fsaverage', src=src,
                            subjects_dir=subjects_dir)
 clim = dict(kind='value', lims=[vmin * 0.9, vmin, vmax])
-brain = stc.plot(surface='pial', hemi='both', initial_time=0.68,
+brain = stc.plot(surface='pial', hemi='both',
                  colormap='viridis', clim=clim, views='lat',
                  subjects_dir=subjects_dir, size=(500, 500))
 brain.show_view(view=dict(azimuth=-20, elevation=60))
