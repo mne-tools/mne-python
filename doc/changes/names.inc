@@ -365,3 +365,7 @@
 .. _Dominik Welke: https://github.com/dominikwelke/
 
 .. _Judy D Zhu: https://github.com/JD-Zhu
+
+.. _Valerii Chirkov: https://github.com/vagechirkov
+
+.. _Matteo Anelli: https://github.com/matteoanelli

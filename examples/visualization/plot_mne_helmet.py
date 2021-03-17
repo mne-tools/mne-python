@@ -28,5 +28,5 @@ mne.viz.plot_alignment(
     coord_frame='mri')
 evoked.plot_field(maps, time=time, fig=fig, time_label=None, vmax=5e-13)
 mne.viz.set_3d_view(
-    fig, azimuth=40, elevation=87, focalpoint=(0., -0.01, 0.04), roll=-100,
-    distance=0.48)
+    fig, azimuth=40, elevation=87, focalpoint=(0., -0.01, 0.04), roll=-25,
+    distance=0.55)

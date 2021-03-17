@@ -27,7 +27,7 @@ from .view import views_dicts, _lh_views_dict
 from .callback import (ShowView, TimeCallBack, SmartCallBack,
                        UpdateLUT, UpdateColorbarScale)
 
-from ..utils import _show_help, _get_color_list, concatenate_images
+from ..utils import _show_help_fig, _get_color_list, concatenate_images
 from .._3d import _process_clim, _handle_time, _check_views
 
 from ...externals.decorator import decorator
@@ -445,9 +445,7 @@ class Brain(object):
             self.silhouette = True
         else:
             self.silhouette = silhouette
-        # for now only one color bar can be added
-        # since it is the same for all figures
-        self._colorbar_added = False
+        self._scalar_bar = None
         # for now only one time label can be added
         # since it is the same for all figures
         self._time_label_added = False
@@ -604,6 +602,7 @@ class Brain(object):
         self.color_list.remove("#7f7f7f")
         self.color_cycle = _ReuseCycle(self.color_list)
         self.mpl_canvas = None
+        self.help_canvas = None
         self.rms = None
         self.picked_patches = {key: list() for key in all_keys}
         self.picked_points = {key: list() for key in all_keys}
@@ -652,6 +651,7 @@ class Brain(object):
         self._configure_menu()
         self._configure_status_bar()
         self._configure_playback()
+        self._configure_help()
         # show everything at the end
         self.toggle_interface()
         self._renderer._window_show(self._size)
@@ -692,14 +692,12 @@ class Brain(object):
         # Qt LeaveEvent requires _Iren so we use _FakeIren instead of None
         # to resolve the ref to vtkGenericRenderWindowInteractor
         self.plotter._Iren = _FakeIren()
-        if getattr(self.plotter, 'scalar_bar', None) is not None:
-            self.plotter.scalar_bar = None
         if getattr(self.plotter, 'picker', None) is not None:
             self.plotter.picker = None
         # XXX end PyVista
         for key in ('plotter', 'window', 'dock', 'tool_bar', 'menu_bar',
                     'status_bar', 'interactor', 'mpl_canvas', 'time_actor',
-                    'picked_renderer', 'act_data_smooth',
+                    'picked_renderer', 'act_data_smooth', '_scalar_bar',
                     'actions', 'widgets', 'geo', '_data'):
             setattr(self, key, None)
 
@@ -824,12 +822,11 @@ class Brain(object):
             self.time_actor.GetTextProperty().BoldOn()
 
     def _configure_scalar_bar(self):
-        if self._colorbar_added:
-            scalar_bar = self.plotter.scalar_bar
-            scalar_bar.SetOrientationToVertical()
-            scalar_bar.SetHeight(0.6)
-            scalar_bar.SetWidth(0.05)
-            scalar_bar.SetPosition(0.02, 0.2)
+        if self._scalar_bar is not None:
+            self._scalar_bar.SetOrientationToVertical()
+            self._scalar_bar.SetHeight(0.6)
+            self._scalar_bar.SetWidth(0.05)
+            self._scalar_bar.SetPosition(0.02, 0.2)
 
     def _configure_dock_time_widget(self, layout=None):
         len_time = len(self._data['time']) - 1
@@ -1641,8 +1638,7 @@ class Brain(object):
             self.time_line.set_xdata(current_time)
             self.mpl_canvas.update_plot()
 
-    def help(self):
-        """Display the help window."""
+    def _configure_help(self):
         pairs = [
             ('?', 'Display help window'),
             ('i', 'Toggle interface'),
@@ -1660,12 +1656,19 @@ class Brain(object):
         text1, text2 = zip(*pairs)
         text1 = '\n'.join(text1)
         text2 = '\n'.join(text2)
-        _show_help(
+        self.help_canvas = self._renderer._window_get_simple_canvas(
+            width=5, height=2, dpi=80)
+        _show_help_fig(
             col1=text1,
             col2=text2,
-            width=5,
-            height=2,
+            fig_help=self.help_canvas.fig,
+            ax=self.help_canvas.axes,
+            show=False,
         )
+
+    def help(self):
+        """Display the help window."""
+        self.help_canvas.show()
 
     def _clear_callbacks(self):
         if not hasattr(self, 'callbacks'):
@@ -1947,12 +1950,11 @@ class Brain(object):
                 )
                 self._data['time_actor'] = time_actor
                 self._time_label_added = True
-            if colorbar and not self._colorbar_added and do:
+            if colorbar and self._scalar_bar is None and do:
                 kwargs = dict(source=actor, n_labels=8, color=self._fg_color,
                               bgcolor=self._brain_color[:3])
                 kwargs.update(colorbar_kwargs or {})
-                self._renderer.scalarbar(**kwargs)
-                self._colorbar_added = True
+                self._scalar_bar = self._renderer.scalarbar(**kwargs)
             self._renderer.set_camera(**views_dicts[hemi][v])
 
         # 4) update the scalar bar and opacity
@@ -2650,9 +2652,6 @@ class Brain(object):
         # update our values
         rng = self._cmap_range
         ctable = self._data['ctable']
-        # in testing, no plotter; if colorbar=False, no scalar_bar
-        scalar_bar = getattr(
-            getattr(self._renderer, 'plotter', None), 'scalar_bar', None)
         for hemi in ['lh', 'rh', 'vol']:
             hemi_data = self._data.get(hemi)
             if hemi_data is not None:
@@ -2663,9 +2662,8 @@ class Brain(object):
                                         opacity=alpha,
                                         rng=rng)
                     self._renderer._set_colormap_range(
-                        mesh._actor, ctable, scalar_bar, rng,
+                        mesh._actor, ctable, self._scalar_bar, rng,
                         self._brain_color)
-                    scalar_bar = None
 
                 grid_volume_pos = hemi_data.get('grid_volume_pos')
                 grid_volume_neg = hemi_data.get('grid_volume_neg')
@@ -2673,15 +2671,13 @@ class Brain(object):
                     if grid_volume is not None:
                         self._renderer._set_volume_range(
                             grid_volume, ctable, hemi_data['alpha'],
-                            scalar_bar, rng)
-                        scalar_bar = None
+                            self._scalar_bar, rng)
 
                 glyph_actor = hemi_data.get('glyph_actor')
                 if glyph_actor is not None:
                     for glyph_actor_ in glyph_actor:
                         self._renderer._set_colormap_range(
-                            glyph_actor_, ctable, scalar_bar, rng)
-                        scalar_bar = None
+                            glyph_actor_, ctable, self._scalar_bar, rng)
         if self.time_viewer:
             with self._no_lut_update(f'update_lut {args}'):
                 for key in ('fmin', 'fmid', 'fmax'):
