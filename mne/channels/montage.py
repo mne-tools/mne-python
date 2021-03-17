@@ -365,7 +365,7 @@ class DigMontage(object):
 
         See Also
         --------
-        plot_source_alignment
+        tut:plot_source_alignment
 
         Notes
         -----
