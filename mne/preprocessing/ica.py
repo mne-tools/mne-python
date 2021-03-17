@@ -195,14 +195,16 @@ class ICA(ContainsMixin):
         Additional parameters passed to the ICA estimator as specified by
         ``method``.
     max_iter : int | 'auto'
-        Maximum number of iterations during fit. If ``'auto'`` (default), it
+        Maximum number of iterations during fit. If ``'auto'``, it
         will set maximum iterations to ``1000`` for ``'fastica'``
         and to ``500`` for ``'infomax'`` or ``'picard'``. The actual number of
         iterations it took :meth:`ICA.fit` to complete will be stored in the
         ``n_iter_`` attribute.
 
         .. versionchanged:: 0.23
-           New ``'auto'`` parameter to replace old default value ``200``.
+            Version 0.23 introduced ``'auto'`` settings for maximum iterations
+             as specified above. With version 0.24 ``'auto'`` will be the new
+            default, replacing the current ``max_iter=200``.
     allow_ref_meg : bool
         Allow ICA on MEG reference channels. Defaults to False.
 
@@ -365,7 +367,7 @@ class ICA(ContainsMixin):
     @verbose
     def __init__(self, n_components=None, *, noise_cov=None,
                  random_state=None, method='fastica', fit_params=None,
-                 max_iter='auto', allow_ref_meg=False,
+                 max_iter=None, allow_ref_meg=False,
                  verbose=None):  # noqa: D102
         _validate_type(method, str, 'method')
         _validate_type(n_components, (float, 'int-like', None))
@@ -414,13 +416,15 @@ class ICA(ContainsMixin):
             # extended=True is default in underlying function, but we want
             # default False here unless user specified True:
             fit_params.setdefault('extended', False)
-        if max_iter == 'auto':
-            change_message = ('Version 0.23 introduced `auto` for maximum '
-                              'iterations, setting max_iter=1000 for '
-                              '`fastica` and max_iter=500 for `infomax` and '
-                              '`picard`. To use the old default of max_iter=200'
-                              ' set it explicitly.')
-            warn(change_message, Warning)
+        if max_iter is None:
+            depr_message = ('Version 0.23 introduced max_iter="auto", '
+                            'setting max_iter=1000 for `fastica` and '
+                            'max_iter=500 for `infomax` and `picard`. The '
+                            'current default of max_iter=200 will be changed '
+                            'to "auto" in version 0.24.')
+            warn(depr_message, DeprecationWarning)
+            max_iter = 200
+        elif max_iter == 'auto':
             if method == 'fastica':
                 max_iter = 1000
             elif method in ['infomax', 'picard']:
