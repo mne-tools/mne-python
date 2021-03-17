@@ -37,6 +37,8 @@ Current (0.23.dev0)
 
 .. |Valerii Chirkov| replace:: **Valerii Chirkov**
 
+.. |Matteo Anelli| replace:: **Matteo Anelli**
+
 Enhancements
 ~~~~~~~~~~~~
 - Update citations in maxwell.py (:gh:`9043` **by new contributor** |Valerii Chirkov|_)
