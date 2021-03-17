@@ -205,7 +205,8 @@ for title, _raw in zip(['Original', 'REST (∞)'], [raw, raw_rest]):
 # channels EEG 054 and EEG 055 as decribed in :footcite:`Yao2019` which
 # creates a new virtual channel named EEG 054-EEG 055.
 
-raw_bip_ref = mne.set_bipolar_reference(raw.copy(),anode=['EEG 054'],cathode=['EEG 055'])
+raw_bip_ref = mne.set_bipolar_reference(raw.copy(), anode=['EEG 054'],
+    cathode=['EEG 055'])
 raw_bip_ref.plot()
 
 ###############################################################################
