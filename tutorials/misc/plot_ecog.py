@@ -59,12 +59,11 @@ raw = read_raw_bids(bids_path=bids_path, verbose=False)
 # Find the annotated events
 events, event_id = mne.events_from_annotations(raw)
 
-# To make the example run much faster, we will crop to 10 seconds before the
-# seizure onset event
-
+# To make the example run much faster, we will start 5 seconds before the
+# seizure onset event and use 15 seconds of seizure
 onset_events = events[events[:, 2] == event_id['onset']]
-start = (onset_events[0, 0] - raw.first_samp) / raw.info['sfreq'] - 10.
-raw.crop(start, None)
+start = (onset_events[0, 0] - raw.first_samp) / raw.info['sfreq'] - 5
+raw.crop(start, start + 15)
 
 # And then downsample. This is just to save time in this example, you should
 # not need to do this in general!
@@ -272,8 +271,9 @@ anim = animation.FuncAnimation(fig, animate, init_func=init,
 # for the example
 evoked = mne.EvokedArray(gamma_power_t, raw.info, tmin=raw.times[0])
 
-# resample to 20 Hz, crop to -1 to 4 seconds
-evoked.crop(tmin=9, tmax=14).resample(20)
+# resample to 20 Hz
+evoked.resample(20)
+
 src = mne.read_source_spaces(
     op.join(subjects_dir, 'fsaverage', 'bem', 'fsaverage-ico-5-src.fif'))
 trans = None  # identity transform
