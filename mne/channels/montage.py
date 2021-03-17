@@ -351,6 +351,12 @@ class DigMontage(object):
     def add_estimated_fiducials(self, subject, subjects_dir, verbose=None):
         """Estimate fiducials based on FreeSurfer ``fsaverage`` subject.
 
+        This takes a montage with the ``mri`` coordinate frame,
+        corresponding to the FreeSurfer RAS (xyz in the volume) T1w
+        image of the specific subject. It will call
+        :func:`mne.coreg.get_mni_fiducials` to estimate LPA, RPA and
+        Nasion fiducial points.
+
         Parameters
         ----------
         %(subject)s
