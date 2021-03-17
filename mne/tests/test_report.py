@@ -627,7 +627,7 @@ def test_split_files(tmpdir, split_naming):
 
 
 def test_survive_pickle(tmpdir):
-    """Testing functionality of Report-Object after pickling"""
+    """Testing functionality of Report-Object after pickling."""
     tempdir = str(tmpdir)
     raw_fname_new = op.join(tempdir, 'temp_raw.fif')
     shutil.copyfile(raw_fname, raw_fname_new)
@@ -637,7 +637,7 @@ def test_survive_pickle(tmpdir):
     pickled_report = pickle.dumps(report)
     report = pickle.loads(pickled_report)
 
-    # Just test if no errors occur with
+    # Just test if no errors occur
     report.parse_folder(tempdir, render_bem=False)
     save_name = op.join(tempdir, 'report.html')
     report.save(fname=save_name, open_browser=False)
