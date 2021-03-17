@@ -355,6 +355,7 @@ class DigMontage(object):
         ----------
         %(subject)s
         %(subjects_dir)s
+        %(verbose)s
 
         Notes
         -----
