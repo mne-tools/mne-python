@@ -42,9 +42,8 @@ from mne.io import (read_raw_brainvision, read_raw_egi, read_raw_fif,
                     read_fiducials, __file__ as _MNE_IO_FILE)
 
 from mne.io import RawArray
-from mne.datasets import testing, sample
+from mne.datasets import testing
 from mne.io.brainvision import __file__ as _BRAINVISON_FILE
-from mne.coreg import create_default_subject
 
 
 data_path = testing.data_path(download=False)
