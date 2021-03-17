@@ -77,7 +77,7 @@ raw.pick(['EEG 0{:02}'.format(n) for n in range(41, 60)])
 # raw.set_eeg_reference(ref_channels=['M1', 'M2'])
 
 # use a Bipolar reference (contralateral)
-# raw.set_bipolar_reference(anode='[F3'],cathode=['F4'])
+# raw.set_bipolar_reference(anode='[F3'], cathode=['F4'])
 
 ###############################################################################
 # If a scalp electrode was used as reference but was not saved alongside the
