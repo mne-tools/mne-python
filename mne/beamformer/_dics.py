@@ -492,6 +492,7 @@ def apply_dics_csd(csd, filters, verbose=None):
                       subject=subject, warn_text=warn_text),
             frequencies)
 
+
 @deprecated(
     'tf_dics is deprecated and will be removed in 0.24, use LCMV with '
     'covariances matrices computed on band-passed data or DICS instead.')
