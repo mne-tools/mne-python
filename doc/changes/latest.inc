@@ -201,6 +201,8 @@ Bugs
 
 - Fix :func:`mne.read_dipole` yielding :class:`mne.Dipole` objects that could not be indexed (:gh:`8963` by `Marijn van Vliet`_)
 
+- Fix bug when setting n_jobs > 1 in :func:`mne.Report.parse_folder` (:gh:`9109` by `Martin Schulz`_)
+
 API changes
 ~~~~~~~~~~~
 - ``mne.read_selection`` has been deprecated in favor of `mne.read_vectorview_selection`. ``mne.read_selection`` will be removed in MNE-Python 0.24 (:gh:`8870` by `Richard Höchenberger`_)
