@@ -37,6 +37,8 @@ Current (0.23.dev0)
 
 .. |Valerii Chirkov| replace:: **Valerii Chirkov**
 
+.. |Matteo Anelli| replace:: **Matteo Anelli**
+
 Enhancements
 ~~~~~~~~~~~~
 - Add :meth:`mne.Dipole.to_mni` for more convenient  dipole.pos to MNI conversion (:gh:`9043` **by new contributor** |Valerii Chirkov|_)
@@ -117,6 +119,8 @@ Enhancements
 
 Bugs
 ~~~~
+- Fix bug with :func:`mne.Epochs.plot_image` where the ``x_label`` was different depending on the evoked parameter (:gh:`9115` **by new contributor** |Matteo Anelli|_)
+
 - Fix bug with restricting :func:`mne.io.Raw.save` saving options to .fif and .fif.gz extensions (:gh:`9062` by |Valerii Chirkov|_)
 
 - Fix bug with :func:`mne.io.read_raw_kit` where missing marker coils were not handled (:gh:`8989` **by new contributor** |Judy D Zhu|_)
