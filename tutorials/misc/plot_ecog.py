@@ -11,7 +11,7 @@ electrocorticography (ECoG) data.
 
 This example shows how to use:
 
-- ECoG_ data from a study of epilepsy subject with a seizure
+- ECoG_ data from an epilepsy patient during a seizure
 - channel locations in FreeSurfer's ``fsaverage`` MRI space
 - projection onto a pial surface
 
