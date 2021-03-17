@@ -25,6 +25,8 @@ Current (0.23.dev0)
 
 .. |Zhi Zhang| replace:: **Zhi Zhang**
 
+.. |Rotem Falach| replace:: **Rotem Falach**
+
 .. |Andres Rodriguez| replace:: **Andres Rodriguez**
 
 .. |Matt Sanderson| replace:: **Matt Sanderson**
