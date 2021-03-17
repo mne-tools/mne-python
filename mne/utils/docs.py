@@ -142,7 +142,6 @@ docdict['kwarg_fun'] = """
     Additional keyword arguments to pass to fun.
 """
 
-
 # Epochs
 docdict['proj_epochs'] = """
 proj : bool | 'delayed'
