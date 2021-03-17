@@ -366,7 +366,7 @@ class DigMontage(object):
         and then use ``montage.get_native_head_t()`` to get the
         head <-> MRI transform.
         """
-        from mne.coreg import get_mni_fiducials
+        from ..coreg import get_mni_fiducials
 
         # get coordframe and fiducial coordinates
         montage_bunch = _get_data_as_dict_from_dig(self.dig)
