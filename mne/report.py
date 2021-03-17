@@ -945,7 +945,7 @@ class Report(object):
     ----------
     initial_id : int
         Counter for unique ids.
-    html : list
+    html : list of str
         Contains items of html-page.
     fnames : list
         List of file names rendered.
