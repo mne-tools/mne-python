@@ -199,7 +199,8 @@ onset_events = events[events[:, 2] == event_id['onset']]
 # to display on the plot
 inv_event_id = {v: k for k, v in event_id.items()}
 
-# Use one second before the seizure onset as the animation start
+# Use one second after the seizure onset as the animation start,
+# right as the seizure is ramping up
 start_sample = int(onset_events[0, 0] + sfreq)
 
 
