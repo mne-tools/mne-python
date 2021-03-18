@@ -27,7 +27,7 @@ from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback,
                         _AbstractBrainMplCanvas, _AbstractMplInterface)
 from ._utils import _init_qt_resources, _qt_disable_paint
-from ..utils import _save_ndarray_img
+from ..utils import _save_ndarray_img, logger
 
 
 class _QtLayout(_AbstractLayout):
@@ -439,14 +439,29 @@ class _QtWindow(_AbstractWindow):
 
     def _window_set_theme(self, theme):
         if theme == 'auto':
-            import darkdetect
-            detected_theme = darkdetect.theme()
-            if detected_theme is not None:
-                theme = detected_theme.lower()
+            try:
+                import darkdetect
+            except ModuleNotFoundError:
+                logger.info('For automatic Dark-Mode-Detection '
+                            '"darkdetect" has to be installed! You can install '
+                            'it with `pip install qdarkdetect`')
+                theme = 'light'
+            else:
+                detected_theme = darkdetect.theme()
+                if detected_theme is not None:
+                    theme = detected_theme.lower()
+                else:
+                    theme = 'light'
 
         if theme == 'dark':
-            import qdarkstyle
-            stylesheet = qdarkstyle.load_stylesheet()
+            try:
+                import qdarkstyle
+            except ModuleNotFoundError:
+                logger.info('For Dark-Mode "qdarkstyle" has to be installed! '
+                            'You can install it with `pip install qdarkstyle`')
+                stylesheet = None
+            else:
+                stylesheet = qdarkstyle.load_stylesheet()
         elif isfile(theme):
             with open(theme, 'r') as file:
                 stylesheet = file.read()
