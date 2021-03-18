@@ -281,6 +281,9 @@ def test_plot_evoked_image():
         pytest.raises(ValueError, evoked.plot_image, group_by=group_by,
                       axes=axes)
 
+    with pytest.raises(ValueError, match='`clim` must be a dict.'):
+        evoked.plot_image(clim=[-4, 4])
+
 
 def test_plot_white():
     """Test plot_white."""

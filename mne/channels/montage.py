@@ -322,6 +322,7 @@ class DigMontage(object):
                 {
                     'ch_pos': {'EEG061': [0, 0, 0]},
                     'nasion': [0, 0, 1],
+                    'coord_frame': 'mni_tal',
                     'lpa': [0, 1, 0],
                     'rpa': [1, 0, 0],
                     'hsp': None,
@@ -331,7 +332,6 @@ class DigMontage(object):
         # get channel positions as dict
         ch_pos = self._get_ch_pos()
 
-        # _get_fid_coords(self.dig)
         # get coordframe and fiducial coordinates
         montage_bunch = _get_data_as_dict_from_dig(self.dig)
         coord_frame = _frame_to_str.get(montage_bunch.coord_frame)
@@ -347,6 +347,60 @@ class DigMontage(object):
             hpi=montage_bunch.hpi,
         )
         return positions
+
+    @verbose
+    def add_estimated_fiducials(self, subject, subjects_dir=None,
+                                verbose=None):
+        """Estimate fiducials based on FreeSurfer ``fsaverage`` subject.
+
+        This takes a montage with the ``mri`` coordinate frame,
+        corresponding to the FreeSurfer RAS (xyz in the volume) T1w
+        image of the specific subject. It will call
+        :func:`mne.coreg.get_mni_fiducials` to estimate LPA, RPA and
+        Nasion fiducial points.
+
+        Parameters
+        ----------
+        %(subject)s
+        %(subjects_dir)s
+        %(verbose)s
+
+        Returns
+        -------
+        inst : instance of DigMontage
+            The instance, modified in-place.
+
+        See Also
+        --------
+        :ref:`plot_source_alignment`
+
+        Notes
+        -----
+        Since MNE uses the FIF data structure, it relies on the ``head``
+        coordinate frame. Any coordinate frame can be transformed
+        to ``head`` if the fiducials (i.e. LPA, RPA and Nasion) are
+        defined. One can use this function to estimate those fiducials
+        and then use ``montage.get_native_head_t()`` to get the
+        head <-> MRI transform.
+        """
+        from ..coreg import get_mni_fiducials
+
+        # get coordframe and fiducial coordinates
+        montage_bunch = _get_data_as_dict_from_dig(self.dig)
+
+        # get the coordinate frame as a string and check that it's MRI
+        if montage_bunch.coord_frame != FIFF.FIFFV_COORD_MRI:
+            raise RuntimeError(
+                f'Montage should be in mri coordinate frame to call '
+                f'`add_estimated_fiducials`. The current coordinate '
+                f'frame is {montage_bunch.coord_frame}')
+
+        # estimate LPA, nasion, RPA from FreeSurfer fsaverage
+        fids_mri = list(get_mni_fiducials(subject, subjects_dir))
+
+        # add those digpoints to front of montage
+        self.dig = fids_mri + self.dig
+        return self
 
 
 VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
