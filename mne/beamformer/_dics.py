@@ -679,6 +679,10 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
         raise ValueError('When using multitaper mode and specifying '
                          'multitaper transform bandwidth, one value must be '
                          'provided per frequency bin')
+    if isinstance(cwt_n_cycles, (int, float)):
+        # create a list out of single values to match n_freq_bins
+        n_cyc = cwt_n_cycles
+        cwt_n_cycles = [n_cyc] * n_freq_bins
 
     # Multiplying by 1e3 to avoid numerical issues, e.g. 0.3 // 0.05 == 5
     n_time_steps = int(((tmax - tmin) * 1e3) // (tstep * 1e3))
@@ -703,6 +707,7 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
             freq_bin = frequencies[i_freq]
             fmin = np.min(freq_bin)
             fmax = np.max(freq_bin)
+            n_cycles = cwt_n_cycles[i_freq]
         else:
             fmin, fmax = freq_bins[i_freq]
             if n_ffts is None:
@@ -753,7 +758,7 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
                 elif mode == 'cwt_morlet':
                     csd = csd_morlet(
                         epochs, frequencies=freq_bin, tmin=win_tmin,
-                        tmax=win_tmax, n_cycles=cwt_n_cycles, decim=decim,
+                        tmax=win_tmax, n_cycles=n_cycles, decim=decim,
                         verbose=False)
                 else:
                     raise ValueError('Invalid mode, choose either '

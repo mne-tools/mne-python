@@ -676,6 +676,15 @@ def test_tf_dics(_load_forward):
                 win_lengths=win_lengths, freq_bins=freq_bins,
                 mode='multitaper', mt_bandwidths=[20])
 
+    # Test if 'cwt_morlet' mode works with both fixed cycle numbers and lists
+    # of cycle numbers
+    tf_dics(epochs, fwd_surf, None, tmin, tmax, tstep,
+            win_lengths, frequencies=frequencies, mode='cwt_morlet',
+            cwt_n_cycles=7)
+    tf_dics(epochs, fwd_surf, None, tmin, tmax, tstep,
+            win_lengths, frequencies=frequencies, mode='cwt_morlet',
+            cwt_n_cycles=[5., 7.])
+
     # Test if subtracting evoked responses yields NaN's, since we only have one
     # epoch. Suppress division warnings.
     assert len(epochs) == 1, len(epochs)
