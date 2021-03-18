@@ -369,3 +369,5 @@
 .. _Valerii Chirkov: https://github.com/vagechirkov
 
 .. _Matteo Anelli: https://github.com/matteoanelli
+
+.. _Cora Kim: https://github.com/kimcoco
