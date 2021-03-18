@@ -26,7 +26,7 @@ from ..utils import (logger, verbose, _time_mask, _freq_mask, check_fname,
                      _gen_events, SizeMixin, _is_numeric, _check_option,
                      _validate_type, _check_combine, _check_pandas_installed,
                      _check_pandas_index_arguments, _check_time_format,
-                     _scale_dataframe_data, _convert_times, _build_data_frame)
+                     _convert_times, _build_data_frame)
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..channels.layout import _merge_ch_data, _pair_grad_sensors
 from ..io.pick import (pick_info, _picks_to_idx, channel_type, _pick_inst,
