@@ -2225,6 +2225,9 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
     if show_sensors is None:
         show_sensors = (len(picks) == 1)
 
+    if not callable(combine):
+        _validate_type(combine, (None, str), 'combine',
+                       'None, str or callable')
     # cannot combine a single channel
     if (len(picks) < 2) and combine is not None:
         warn('Only {} channel in "picks"; cannot combine by method "{}".'
