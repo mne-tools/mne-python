@@ -112,18 +112,18 @@ subjects_dir = mne.datasets.sample.data_path() + '/subjects'
 
 fig = mne.viz.create_3d_figure(size=(800, 600), bgcolor='white')
 fig = mne.viz.plot_alignment(raw_intensity.info, show_axes=True,
+                             dig=True, mri_fiducials=True,
                              subject='fsaverage', coord_frame='mri',
-                             trans='fsaverage', surfaces=['brain'],
+                             trans='fsaverage', surfaces=['brain', 'head'],
                              fnirs=['channels', 'pairs',
                                     'sources', 'detectors'],
                              subjects_dir=subjects_dir, fig=fig)
+
 mne.viz.set_3d_view(figure=fig, azimuth=70, elevation=100, distance=0.4,
                     focalpoint=(0., -0.01, 0.02))
 
 
 
 ###############################################################################
-#
-# These locations look wrong to me. I think we might have a coorinate system
-# clash somewhere.
-
+# TODO Can compare trans to the internal fsaverage-trans.fif as a test
+trans = mne.channels.compute_native_head_t(montage)

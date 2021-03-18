@@ -729,6 +729,7 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
 
     if isinstance(montage, DigMontage):
         mnt_head = _get_montage_in_head(montage)
+        del montage
 
         def _backcompat_value(pos, ref_pos):
             if any(np.isnan(pos)):
@@ -871,7 +872,7 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
 
         fnirs_picks = _picks_to_idx(info, 'fnirs', allow_empty=True)
         if len(fnirs_picks) > 0:
-            info = _set_montage_fnirs(info, montage)
+            info = _set_montage_fnirs(info, mnt_head)
 
     else:  # None case
         # XXX info['dig'] modified in place

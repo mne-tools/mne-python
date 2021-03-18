@@ -71,7 +71,7 @@ def _biosemi(basename, head_size):
     return _read_theta_phi_in_degrees(fname, head_size, fid_names)
 
 
-def _mgh_or_standard(basename, head_size):
+def _mgh_or_standard(basename, head_size, coord_frame='unknown'):
     fid_names = ('Nz', 'LPA', 'RPA')
     fname = op.join(MONTAGE_PATH, basename)
 
@@ -101,7 +101,7 @@ def _mgh_or_standard(basename, head_size):
     lpa *= scale
     rpa *= scale
 
-    return make_dig_montage(ch_pos=ch_pos, coord_frame='unknown',
+    return make_dig_montage(ch_pos=ch_pos, coord_frame=coord_frame,
                             nasion=nasion, lpa=lpa, rpa=rpa)
 
 
@@ -142,9 +142,9 @@ standard_montage_look_up_table = {
                                  basename='standard_prefixed.elc'),
     'standard_primed': partial(_mgh_or_standard,
                                basename='standard_primed.elc'),
-    'artinis-octamon': partial(_mgh_or_standard,
+    'artinis-octamon': partial(_mgh_or_standard, coord_frame='mri',
                                basename='artinis-octamon.elc'),
-    'artinis-brite23': partial(_mgh_or_standard,
+    'artinis-brite23': partial(_mgh_or_standard, coord_frame='mri',
                                basename='artinis-brite23.elc'),
 }
 
