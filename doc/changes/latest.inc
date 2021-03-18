@@ -115,7 +115,7 @@ Enhancements
 
 - `mne.viz.plot_drop_log` and :meth:`mne.Epochs.plot_drop_log` now omit displaying the subject name in the title if ``subject=None`` is passed (:gh:`9015` by `Richard Höchenberger`_)
 
-- :func:`mne.io.meas_info.anonymize_info` now anonymizes also sex and hand fields when ``keep_his`` is ``False`` (:gh:`9103` by |Rotem Falach|_)`
+- :func:`mne.io.anonymize_info` now anonymizes also sex and hand fields when ``keep_his`` is ``False`` (:gh:`9103` by |Rotem Falach|_)`
 
 Bugs
 ~~~~
