@@ -443,8 +443,9 @@ class _QtWindow(_AbstractWindow):
                 import darkdetect
             except ModuleNotFoundError:
                 logger.info('For automatic Dark-Mode-Detection '
-                            '"darkdetect" has to be installed! You can install '
-                            'it with `pip install qdarkdetect`')
+                            '"darkdetect" has to be installed!'
+                            'You can install it with'
+                            ' `pip install qdarkdetect`')
                 theme = 'light'
             else:
                 detected_theme = darkdetect.theme()
