@@ -254,6 +254,11 @@ class Brain(object):
         Color of the foreground (will be used for colorbars and text).
         None (default) will use black or white depending on the value
         of ``background``.
+    theme : str | path-like
+        Can be "auto" (default), "light", or "dark" to use darkdetect
+        (required for auto mode) or qdarkstyle (required for dark mode)
+        to style the widgets. Automatic detection does not yet work on
+        Linux. Can also be a path-like to a custom style sheet.
     figure : list of Figure | None | int
         If None (default), a new window will be created with the appropriate
         views. For single view plots, the figure can be specified as int to
@@ -365,7 +370,7 @@ class Brain(object):
 
     def __init__(self, subject_id, hemi, surf, title=None,
                  cortex="classic", alpha=1.0, size=800, background="black",
-                 foreground=None, figure=None, subjects_dir=None,
+                 foreground=None, theme='auto', figure=None, subjects_dir=None,
                  views='auto', offset='auto', show_toolbar=False,
                  offscreen=False, interaction='trackball', units='mm',
                  view_layout='vertical', silhouette=False, show=True):
@@ -472,6 +477,7 @@ class Brain(object):
                                        fig=figure)
 
         self._renderer._window_initialize(self._clean)
+        self._renderer._window_set_theme(theme)
         self.plotter = self._renderer.plotter
 
         self._setup_canonical_rotation()

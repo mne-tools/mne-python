@@ -7,6 +7,7 @@
 
 from contextlib import contextmanager
 from functools import partial
+from os.path import isfile
 
 import pyvista
 
@@ -435,6 +436,24 @@ class _QtWindow(_AbstractWindow):
                 self.figure.plotter.window_size = (sz.width(), sz.height())
             self._process_events()
             self._process_events()
+
+    def _window_set_theme(self, theme):
+        if theme == 'auto':
+            import darkdetect
+            detected_theme = darkdetect.theme()
+            if detected_theme is not None:
+                theme = detected_theme.lower()
+
+        if theme == 'dark':
+            import qdarkstyle
+            stylesheet = qdarkstyle.load_stylesheet()
+        elif isfile(theme):
+            with open(theme, 'r') as file:
+                stylesheet = file.read()
+        else:
+            stylesheet = None
+
+        self._window.setStyleSheet(stylesheet)
 
     def _window_show(self, sz):
         with _qt_disable_paint(self._interactor):
