@@ -370,4 +370,6 @@
 
 .. _Matteo Anelli: https://github.com/matteoanelli
 
+.. _Cora Kim: https://github.com/kimcoco
+
 .. _Silvia Cotroneo: https://github.com/sfc-neuro

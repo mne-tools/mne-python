@@ -39,6 +39,8 @@ Current (0.23.dev0)
 
 .. |Matteo Anelli| replace:: **Matteo Anelli**
 
+.. |Cora Kim| replace:: **Cora Kim**
+
 .. |Silvia Cotroneo| replace:: **Silvia Cotroneo**
 
 Enhancements
@@ -215,6 +217,8 @@ Bugs
 
 API changes
 ~~~~~~~~~~~
+- Introduced new ``'auto'`` settings for ``ICA.max_iter``. The old default ``max_iter=200`` will be removed in MNE-Python 0.24 (:gh:`9099` **by new contributor** |Cora Kim|_)
+
 - ``mne.read_selection`` has been deprecated in favor of `mne.read_vectorview_selection`. ``mne.read_selection`` will be removed in MNE-Python 0.24 (:gh:`8870` by `Richard Höchenberger`_)
 
 - ``mne.beamformer.tf_dics`` has been deprecated and will be removed in MNE-Python 0.24 (:gh:`9122` by `Britta Westner`_)
