@@ -358,6 +358,8 @@
 
 .. _Andres Rodriguez: https://github.com/infinitejest/
 
+.. _Rotem Falach: https://github.com/Falach
+
 .. _Zhi Zhang: https://github.com/tczhangzhi/
 
 .. _Enrico Varano: https://github.com/enricovara/
