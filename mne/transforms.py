@@ -905,9 +905,7 @@ class _TPSWarp(object):
 
     References
     ----------
-    .. [1] Bookstein, F. L. "Principal Warps: Thin Plate Splines and the
-           Decomposition of Deformations." IEEE Trans. Pattern Anal. Mach.
-           Intell. 11, 567-585, 1989.
+    ..footbibliography::
     """
 
     def fit(self, source, destination, reg=1e-3):
@@ -980,7 +978,8 @@ class _SphericalSurfaceWarp(object):
     Notes
     -----
     This class can be used to warp data from a source subject to
-    a destination subject, as described in [1]_. The procedure is:
+    a destination subject, as described in :footcite:`DarvasEtAl2006`
+    The procedure is:
 
         1. Perform a spherical harmonic approximation to the source and
            destination surfaces, which smooths them and allows arbitrary
@@ -995,9 +994,7 @@ class _SphericalSurfaceWarp(object):
 
     References
     ----------
-    .. [1] Darvas F, Ermer JJ, Mosher JC, Leahy RM (2006). "Generic head
-           models for atlas-based EEG source analysis."
-           Human Brain Mapping 27:129-143
+    ..footbibliography::
     """
 
     def __repr__(self):
