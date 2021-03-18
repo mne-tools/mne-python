@@ -74,3 +74,56 @@ MNE stores the location of the channels, sources, and detectors.
              recommended.
 
 """  # noqa:E501
+
+
+
+
+###############################################################################
+# Fake some data
+# --------------
+#
+# Here we just create some fake data with the correct names for an
+# artinis octomon system
+
+import mne
+from mne.channels import make_standard_montage
+from mne.channels.tests.test_standard_montage import _simulate_artinis_octomon
+
+raw_intensity = _simulate_artinis_octomon()
+
+
+###############################################################################
+# Next we load the montage
+# -------------------------------------------
+#
+# And apply montage to data
+
+montage = make_standard_montage("artinis-octamon")
+raw_intensity.set_montage(montage)
+
+
+###############################################################################
+# View location of sensors over brain surface
+# -------------------------------------------
+#
+# Here we validate
+
+subjects_dir = mne.datasets.sample.data_path() + '/subjects'
+
+fig = mne.viz.create_3d_figure(size=(800, 600), bgcolor='white')
+fig = mne.viz.plot_alignment(raw_intensity.info, show_axes=True,
+                             subject='fsaverage', coord_frame='mri',
+                             trans='fsaverage', surfaces=['brain'],
+                             fnirs=['channels', 'pairs',
+                                    'sources', 'detectors'],
+                             subjects_dir=subjects_dir, fig=fig)
+mne.viz.set_3d_view(figure=fig, azimuth=70, elevation=100, distance=0.4,
+                    focalpoint=(0., -0.01, 0.02))
+
+
+
+###############################################################################
+#
+# These locations look wrong to me. I think we might have a coorinate system
+# clash somewhere.
+

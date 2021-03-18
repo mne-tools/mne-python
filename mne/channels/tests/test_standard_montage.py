@@ -75,22 +75,36 @@ def test_standard_superset():
             assert_allclose(c_1005[key], value, atol=1e-4, err_msg=key)
 
 
-def test_artinis():
-    import mne
-    import os
-    from mne.channels.montage import _set_montage_fnirs
-
-    fnirs_data_folder = mne.datasets.fnirs_motor.data_path()
-    fnirs_cw_amplitude_dir = os.path.join(fnirs_data_folder, 'Participant-1')
-    raw = mne.io.read_raw_nirx(fnirs_cw_amplitude_dir, preload=True,
-                               verbose=True)
-    raw.plot_sensors()
-
+def _simulate_artinis_octomon():
+    """
+    Simulate artinis octomon channel data from nirx data.
+    This is to test data that is imported with missing or incorrect montage
+    info. This data can then me used to test the set_montage function.
+    """
+    import os.path as op
+    from mne.datasets import fnirs_motor
+    from mne.io import read_raw_nirx
+    fnirs_data_folder = fnirs_motor.data_path()
+    fnirs_cw_amplitude_dir = op.join(fnirs_data_folder, 'Participant-1')
+    raw = read_raw_nirx(fnirs_cw_amplitude_dir, preload=True)
+    mapping = {'S1_D2 760': 'S3_D1 760', 'S1_D2 850': 'S3_D1 850',
+               'S1_D3 760': 'S4_D1 760', 'S1_D3 850': 'S4_D1 850',
+               'S1_D9 760': 'S5_D2 760', 'S1_D9 850': 'S5_D2 850',
+               'S2_D3 760': 'S6_D2 760', 'S2_D3 850': 'S6_D2 850',
+               'S2_D4 760': 'S7_D2 760', 'S2_D4 850': 'S7_D2 850',
+               'S2_D10 760': 'S8_D2 760', 'S2_D10 850': 'S8_D2 850'}
+    raw.rename_channels(mapping)
     raw.pick(picks=["S1_D1 760", "S1_D1 850",
-                    "S1_D2 760", "S1_D2 850",
-                    "S2_D1 760", "S2_D1 850"])
-    raw.plot_sensors()
+                    "S2_D1 760", "S2_D1 850",
+                    "S3_D1 760", "S3_D1 850",
+                    "S4_D1 760", "S4_D1 850",
+                    "S5_D2 760", "S5_D2 850",
+                    "S6_D2 760", "S6_D2 850",
+                    "S7_D2 760", "S7_D2 850",
+                    "S8_D2 760", "S8_D2 850"])
+    return raw
 
+def test_artinis():
+    raw = _simulate_artinis_octomon()
     montage = make_standard_montage("artinis-octamon")
-    raw.info = _set_montage_fnirs(raw.info, montage)
-    raw.plot_sensors()
+    raw.set_montage(montage)

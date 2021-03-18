@@ -32,7 +32,7 @@ from ..io._digitization import (_count_points_by_type,
                                 _get_data_as_dict_from_dig)
 from ..io.meas_info import create_info
 from ..io.open import fiff_open
-from ..io.pick import pick_types
+from ..io.pick import pick_types, _picks_to_idx
 from ..io.constants import FIFF, CHANNEL_LOC_ALIASES
 from ..utils import (warn, copy_function_doc_to_method_doc, _pl, verbose,
                      _check_option, _validate_type, _check_fname, _on_missing,
@@ -668,11 +668,22 @@ def _get_montage_in_head(montage):
 
 
 def _set_montage_fnirs(info, montage):
+    """
+    Sets the montage for fNIRS data. This needs to be different to electrodes
+    as each channel has three coordinates that need to be set. For each channel
+    there is a source optode location, a detector optode location,
+    and a channel midpoint that must be stored.
+    """
+    num_ficiduals = len(montage.dig) - len(montage.ch_names)
+    picks = _picks_to_idx(info, 'fnirs', exclude=[], allow_empty=True)
 
-    for ch_idx, ch in enumerate(info['ch_names']):
+    for ch_idx in picks:
+        ch = info['ch_names'][ch_idx]
         source, detector = ch.split(' ')[0].split('_')
-        source_pos = montage.dig[montage.ch_names.index(source) + 3]['r']
-        detector_pos = montage.dig[montage.ch_names.index(detector) + 3]['r']
+        source_pos = montage.dig[montage.ch_names.index(source)
+                                 + num_ficiduals]['r']
+        detector_pos = montage.dig[montage.ch_names.index(detector)
+                                   + num_ficiduals]['r']
 
         info['chs'][ch_idx]['loc'][3:6] = source_pos
         info['chs'][ch_idx]['loc'][6:9] = detector_pos
@@ -852,13 +863,14 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
         if mnt_head.dev_head_t is not None:
             info['dev_head_t'] = Transform('meg', 'head', mnt_head.dev_head_t)
 
+        fnirs_picks = _picks_to_idx(info, 'fnirs', allow_empty=True)
+        if len(fnirs_picks) > 0:
+            info = _set_montage_fnirs(info, montage)
+
     else:  # None case
         info['dig'] = None
         for ch in info['chs']:
             ch['loc'] = np.full(12, np.nan)
-
-    # if ch_type contains fnirs:
-    #     info = _set_montage_fnirs(info, montage)
 
 
 def _read_isotrak_elp_points(fname):
