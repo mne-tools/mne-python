@@ -219,7 +219,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         ts_args['show_sensors'] = False
     vlines = [0] if (epochs.times[0] < 0 < epochs.times[-1]) else []
     ts_defaults = dict(colors={'cond': 'k'}, title='', show=False,
-                       truncate_yaxis=False, truncate_xaxis=False,
+                       truncate_yaxis='auto', truncate_xaxis=False,
                        vlines=vlines, legend=False)
     ts_defaults.update(**ts_args)
     ts_args = ts_defaults.copy()
@@ -358,7 +358,6 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                 top_tick = func(yticks)
                 ax.spines['left'].set_bounds(top_tick, args[0])
     plt_show(show)
-    
     # impose deterministic order of returned objects
     return_order = np.array(sorted(group_by))
     are_ch_types = np.in1d(return_order, _VALID_CHANNEL_TYPES)
@@ -530,8 +529,7 @@ def _plot_epochs_image(image, style_axes=True, epochs=None, picks=None,
     if overlay_times is not None:
         ax_im.plot(overlay_times, 0.5 + np.arange(n_epochs), 'k',
                    linewidth=2)
-        ax_im.set_xlim(tmin, tmax)
-       
+        ax_im.set_xlim(tmin, tmax)      
     # draw the evoked
     if evoked:
         from . import plot_compare_evokeds
