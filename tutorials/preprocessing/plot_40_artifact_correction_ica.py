@@ -409,7 +409,11 @@ ica.plot_sources(ecg_evoked)
 # resolves out a little better:
 
 # refit the ICA with 30 components this time
+<<<<<<< HEAD
 new_ica = ICA(n_components=30, max_iter='auto', random_state=97)
+=======
+new_ica = ICA(n_components=30, random_state=97, max_iter="auto")
+>>>>>>> cf55f1c21 (remove empty lines and update the code to the recent 0.23 introduction of max_iter=auto)
 new_ica.fit(filt_raw)
 
 # find which ICs match the ECG pattern
@@ -489,7 +493,11 @@ for subj in range(4):
     raw.rename_channels(mapping)
     raw.set_montage('standard_1005')
     # fit ICA
+<<<<<<< HEAD
     ica = ICA(n_components=30, max_iter='auto', random_state=97)
+=======
+    ica = ICA(n_components=30, random_state=97, max_iter="auto")
+>>>>>>> cf55f1c21 (remove empty lines and update the code to the recent 0.23 introduction of max_iter=auto)
     ica.fit(raw)
     raws.append(raw)
     icas.append(ica)
@@ -619,7 +627,7 @@ epochs = mne.Epochs(filt_raw, events, event_id=None, tmin=-0.2, tmax=0.5,
 # Fit ICA model using the FastICA algorithm, detect and plot components
 # explaining ECG artifacts.
 
-ica = ICA(n_components=15, method='fastica').fit(epochs)
+ica = ICA(n_components=15, method='fastica', max_iter="auto").fit(epochs)
 
 ecg_epochs = create_ecg_epochs(filt_raw, tmin=-.5, tmax=.5)
 ecg_inds, scores = ica.find_bads_ecg(ecg_epochs, threshold='auto')
@@ -633,8 +641,6 @@ ica.plot_properties(epochs, picks=ecg_inds)
 ###############################################################################
 # Plot the estimated source of detected ECG related components:
 ica.plot_sources(filt_raw, picks=ecg_inds)
-
-
 
 ###############################################################################
 # References
