@@ -25,7 +25,7 @@ from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractStatusBar, _AbstractLayout, _AbstractWidget,
                         _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback,
                         _AbstractBrainMplCanvas, _AbstractMplInterface)
-from ._utils import _init_qt_resources, _qt_disable_paint
+from ._utils import _init_qt_resources
 from ..utils import _save_ndarray_img
 
 
@@ -428,8 +428,7 @@ class _QtWindow(_AbstractWindow):
             self._process_events()
 
     def _window_show(self, sz):
-        with _qt_disable_paint(self._interactor):
-            self.show()
+        self.show()
 
 
 class _QtWidget(_AbstractWidget):
