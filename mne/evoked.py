@@ -158,22 +158,14 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                        verbose=None, *args, **kwargs):
         """Apply a function to a subset of channels.
 
-        %(apply_function_summary)s
+        %(applyfun_summary_evoked)s
 
         Parameters
         ----------
-        fun : callable
-            A function to be applied to the channels. The first argument of
-            fun has to be a timeseries (numpy.ndarray). The function must
-            operate on an array of shape ``(n_times,)`` because it will
-            apply channel-wise. The function must return an ndarray shaped like
-            its input.
+        %(applyfun_fun_evoked)s
         %(picks_all_data_noref)s
-        dtype : numpy.dtype
-            Data type to use for evoked data after applying the function. If
-            ``None``, the data type is not modified. Defaults to ``None``.
-        n_jobs : int
-            Number of jobs to run in parallel. Defaults to 1.
+        %(applyfun_dtype)s
+        %(n_jobs)s
         %(verbose_meth)s
         %(arg_fun)s
         %(kwarg_fun)s
