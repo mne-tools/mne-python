@@ -41,8 +41,12 @@ Current (0.23.dev0)
 
 .. |Cora Kim| replace:: **Cora Kim**
 
+.. |Silvia Cotroneo| replace:: **Silvia Cotroneo**
+
 Enhancements
 ~~~~~~~~~~~~
+- Add ``overlap`` parameter to :func:`mne.epochs.make_fixed_length_epochs` to allow creating overlapping fixed length epochs (:gh:`9096` **by new contributor** |Silvia Cotroneo|_)
+
 - Add :meth:`mne.Dipole.to_mni` for more convenient  dipole.pos to MNI conversion (:gh:`9043` **by new contributor** |Valerii Chirkov|_)
 
 - Update citations in maxwell.py (:gh:`9043` **by new contributor** |Valerii Chirkov|_)
@@ -218,4 +222,3 @@ API changes
 - ``mne.read_selection`` has been deprecated in favor of `mne.read_vectorview_selection`. ``mne.read_selection`` will be removed in MNE-Python 0.24 (:gh:`8870` by `Richard Höchenberger`_)
 
 - ``mne.beamformer.tf_dics`` has been deprecated and will be removed in MNE-Python 0.24 (:gh:`9122` by `Britta Westner`_)
-
