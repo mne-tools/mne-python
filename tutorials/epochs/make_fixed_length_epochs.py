@@ -2,7 +2,7 @@
 .. _tut-make-fixed-length-epochs:
 
 Creating epochs of equal length
-========================
+===============================
 
 This tutorial shows how to create equal length epochs and briefly demonstrates
 an example of their use in connectivity analysis.
@@ -32,7 +32,7 @@ raw = mne.io.read_raw_fif(sample_data_raw_file)
 
 # Remove heart artifact for cleanliness of data
 
-ecg_proj, _ = compute_proj_ecg(raw, ch_name='MEG 0511')
+ecg_proj, _ = compute_proj_ecg(raw, ch_name='MEG 0511')  # No ECG chan
 ssp = raw.copy().apply_proj()
 
 ###############################################################################
@@ -41,10 +41,9 @@ ssp = raw.copy().apply_proj()
 # seconds, whether or not to preload data, whether or not to reject epochs that
 # overlap with raw data segments annotated as bad, whether or not to include
 # projectors, and finally whether or not to be verbose. Here, we choose a long
-# epoch duration (10 seconds). To conserve memory, we set preload to
-# False. We elect to reject segments of data marked as bad. In this case,
-# the MEG sample data set includes SSP projectors that help control room noise
-# in the data and will be left in for noise suppression.
+# epoch duration (30 seconds). To conserve memory, we set ``preload`` to
+# ``False``. We elect to reject segments of data marked as bad, and we keep the
+# ecg projectors we created to suppress heart artifacts.
 
 epochs = mne.make_fixed_length_epochs(ssp, duration=30, preload=False,
                                       reject_by_annotation=True, proj=True,
@@ -57,12 +56,12 @@ epochs = mne.make_fixed_length_epochs(ssp, duration=30, preload=False,
 # unsuitable for event-related analyses. Two quick visualizations will
 # illustrate why. First, we create a time series butterfly plot grouping
 # channels together by spatial region. Clear peaks of event-related activity
-# corresponding to stimuli onsets are seen in each 10-second epoch, but peak
+# corresponding to stimuli onsets are seen in each 30-second epoch, but peak
 # timing is jittered across fixed-length epochs.
 
 # Visualize the fixed length epochs
 
-timeseries_plot = epochs.plot(n_epochs=8, picks=picks, group_by='selection',
+timeseries_plot = epochs.plot(n_epochs=5, picks=picks, group_by='selection',
                               butterfly=True)
 
 ###############################################################################
@@ -70,11 +69,11 @@ timeseries_plot = epochs.plot(n_epochs=8, picks=picks, group_by='selection',
 # epochs. When the epochs are averaged, as seen at the bottom of the plot,
 # misalignment between onsets of event-related activity results in noise.
 
-event_related_plot = epochs.plot_image(picks=['MEG1142'])
+event_related_plot = epochs.plot_image(picks=['MEG 1142'])
 
 ###############################################################################
 # For information about creating epochs for event-related analyses, please see
-# PUT TUTORIAL REFERENCE HERE.
+# :ref:`tut-epochs-overview`.
 
 # Example Use Case for Fixed Length Epochs: Connectivity Analysis
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -83,10 +82,10 @@ event_related_plot = epochs.plot_image(picks=['MEG1142'])
 # classification analyses. Here we briefly illustrate their utility in a sensor
 # space connectivity analysis.
 #
-# The data from our epochs object has shape (n_epochs, n_sensors, n_times) and
-# is therefore an appropriate basis for using MNE-Python's envelope correlation
-# function to compute power-based connectivity in sensor space. The long
-# duration of our fixed length epochs, 30 seconds, will help us reduce edge
+# The data from our epochs object has shape ``(n_epochs, n_sensors, n_times)``
+# and is therefore an appropriate basis for using MNE-Python's envelope
+# correlation function to compute power-based connectivity in sensor space. The
+# long duration of our fixed length epochs, 30 seconds, helps us reduce edge
 # artifacts and achieve better frequency resolution when filtering must
 # be applied after epoching.
 
@@ -116,8 +115,9 @@ c_matrices = [first_30, last_30]
 titles = ['First 30 Seconds', 'Last 30 Seconds']
 
 fig, axes = plt.subplots(nrows=1, ncols=2,
-                         gridspec_kw=dict(width_ratios=[92, 100]), figsize=(8, 8))
-fig.suptitle('Connectivity Matrices from First 30 Seconds and Last 30 Seconds')
+                         gridspec_kw=dict(width_ratios=[92, 100]),
+                         figsize=(8, 8))
+fig.suptitle('Correlation Matrices from First 30 Seconds and Last 30 Seconds')
 for ci, c_matrix in enumerate(c_matrices):
     ax = axes[ci]
     low_lim, high_lim = np.percentile(c_matrix, [5, 95])
@@ -125,8 +125,9 @@ for ci, c_matrix in enumerate(c_matrices):
     ax.set_xlabel(titles[ci])
 plt.subplots_adjust(right=0.92)
 divider = make_axes_locatable(axes[1])
-cax = divider.append_axes("right", size="5%", pad=0.1)
-ticks = np.arange(0.05, 0.95, 0.1)
-plt.colorbar(mpbl, cax=cax, ax=axes, ticks=ticks,
-             label='Correlation Coefficient', )
+cax = divider.append_axes("right", size="5%", pad=0.2)
+ticks = np.arange(0.01, 0.95, 0.01)
+cbar = plt.colorbar(mpbl, cax=cax, ax=axes, ticks=ticks)
+cbar.ax.tick_params(labelsize=7)
+cbar.set_label('Correlation Coefficient', size=7)
 plt.tight_layout()
