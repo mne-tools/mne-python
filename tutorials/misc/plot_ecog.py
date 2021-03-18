@@ -64,8 +64,8 @@ events, event_id = mne.events_from_annotations(raw)
 
 # To make the example run much faster, we will start 1 seconds before the
 # seizure onset event and use 4 seconds of seizure
-onset_events = events[events[:, 2] == event_id['onset']]
-start = (onset_events[0, 0] - raw.first_samp) / raw.info['sfreq']
+onset_events = events[events[:, 2] == event_id['onset']] - raw.first_samp
+start = onset_events[0, 0] / raw.info['sfreq']
 raw.crop(start - 1, start + 4)
 
 # And then downsample. This is just to save time in this example, you should
