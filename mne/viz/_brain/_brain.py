@@ -254,11 +254,6 @@ class Brain(object):
         Color of the foreground (will be used for colorbars and text).
         None (default) will use black or white depending on the value
         of ``background``.
-    theme : str | path-like
-        Can be "auto" (default), "light", or "dark" to use darkdetect
-        (required for auto mode) or qdarkstyle (required for dark mode)
-        to style the widgets. Automatic detection does not yet work on
-        Linux. Can also be a path-like to a custom style sheet.
     figure : list of Figure | None | int
         If None (default), a new window will be created with the appropriate
         views. For single view plots, the figure can be specified as int to
@@ -295,6 +290,11 @@ class Brain(object):
        and ``decimate`` (level of decimation between 0 and 1 or None) of the
        brain's silhouette to display. If True, the default values are used
        and if False, no silhouette will be displayed. Defaults to False.
+    theme : str | path-like
+        Can be "auto" (default), "light", or "dark" to use darkdetect
+        (required for auto mode) or qdarkstyle (required for dark mode)
+        to style the widgets. Automatic detection does not yet work on
+        Linux. Can also be a path-like to a custom style sheet.
     show : bool
         Display the window as soon as it is ready. Defaults to True.
 
@@ -370,10 +370,11 @@ class Brain(object):
 
     def __init__(self, subject_id, hemi, surf, title=None,
                  cortex="classic", alpha=1.0, size=800, background="black",
-                 foreground=None, theme='auto', figure=None, subjects_dir=None,
+                 foreground=None, figure=None, subjects_dir=None,
                  views='auto', offset='auto', show_toolbar=False,
                  offscreen=False, interaction='trackball', units='mm',
-                 view_layout='vertical', silhouette=False, show=True):
+                 view_layout='vertical', silhouette=False, theme='auto',
+                 show=True):
         from ..backends.renderer import backend, _get_renderer
         from .._3d import _get_cmap
         from matplotlib.colors import colorConverter
