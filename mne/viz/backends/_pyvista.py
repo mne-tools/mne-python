@@ -32,9 +32,8 @@ from ...utils import copy_base_doc_to_subclass_doc, _check_option
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     import pyvista
-    from pyvista import Plotter, PolyData, Line, close_all, UnstructuredGrid
+    from pyvista import Plotter, PolyData, Line, UnstructuredGrid
     from pyvistaqt import MultiPlotter
-    from pyvista.plotting.plotting import _ALL_PLOTTERS
 VTK9 = LooseVersion(getattr(vtk, 'VTK_VERSION', '9.0')) >= LooseVersion('9.0')
 
 
@@ -263,6 +262,8 @@ class _PyVistaRenderer(_AbstractRenderer):
                 light.SetColor(1.0, 1.0, 1.0)
 
     def set_interaction(self, interaction):
+        if self.figure.viewer.iren is None:
+            return
         proj_func = "enable" if interaction == "rubber_band_2d" else "disable"
         for renderer in self._all_renderers:
             getattr(renderer, f'{proj_func}_parallel_projection')()
@@ -981,9 +982,8 @@ def _get_view_to_display_matrix(size):
 
 
 def _close_all():
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
-        close_all()
+    for f in _FIGURES.values():
+        f.plotter.close()
     _FIGURES.clear()
 
 
@@ -1077,9 +1077,6 @@ def _close_3d_figure(figure):
         # close the window
         figure.plotter.close()
         _process_events(figure.plotter)
-        # free memory and deregister from the scraper
-        figure.plotter.deep_clean()
-        del _ALL_PLOTTERS[figure.plotter._id_name]
         _process_events(figure.plotter)
 
 
