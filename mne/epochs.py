@@ -3686,8 +3686,8 @@ def make_fixed_length_epochs(raw, duration=1., preload=False,
 
         .. versionadded:: 0.22.0
     overlap : float
-        The overlap between epochs. Must be ``0 <= overlap < duration``.
-        Default is 0.
+        The overlap between epochs, in seconds. Must be
+        ``0 <= overlap < duration``. Default is 0, i.e., no overlap.
 
         .. versionadded:: 0.23.0
     %(verbose)s
