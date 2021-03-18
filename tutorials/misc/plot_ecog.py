@@ -225,7 +225,7 @@ inv_event_id = {v: k for k, v in event_id.items()}
 fig = plt.figure(figsize=(5, 5))
 ax = fig.add_axes([0.025, 0.2, 0.78, 0.78])
 tax = fig.add_axes([0.025, 0.02, 0.78, 0.15])
-cax = fig.add_axes([0.82, 0.2, 0.1, 0.78])
+cax = fig.add_axes([0.82, 0.2, 0.05, 0.78])
 ax.imshow(im)
 ax.set_axis_off()
 tax.set_axis_off()
