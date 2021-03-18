@@ -219,7 +219,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         ts_args['show_sensors'] = False
     vlines = [0] if (epochs.times[0] < 0 < epochs.times[-1]) else []
     ts_defaults = dict(colors={'cond': 'k'}, title='', show=False,
-                       truncate_yaxis='auto', truncate_xaxis=False,
+                       truncate_yaxis=False, truncate_xaxis=False,
                        vlines=vlines, legend=False)
     ts_defaults.update(**ts_args)
     ts_args = ts_defaults.copy()
@@ -531,7 +531,7 @@ def _plot_epochs_image(image, style_axes=True, epochs=None, picks=None,
         ax_im.plot(overlay_times, 0.5 + np.arange(n_epochs), 'k',
                    linewidth=2)
         ax_im.set_xlim(tmin, tmax)
-
+       
     # draw the evoked
     if evoked:
         from . import plot_compare_evokeds
@@ -544,8 +544,7 @@ def _plot_epochs_image(image, style_axes=True, epochs=None, picks=None,
         ax['evoked'].lines[0].set_clip_on(True)
         ax['evoked'].collections[0].set_clip_on(True)
         ax['evoked'].get_shared_x_axes().join(ax['evoked'], ax_im)
-        ax_im.set_xticks([])
-
+        
     # draw the colorbar
     if colorbar:
         from matplotlib.pyplot import colorbar as cbar
