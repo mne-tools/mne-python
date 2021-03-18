@@ -396,38 +396,8 @@ class _QtWindow(_AbstractWindow):
     def _window_set_cursor(self, cursor):
         self._interactor.setCursor(cursor)
 
-    @contextmanager
-    def _window_ensure_minimum_sizes(self, sz):
-        """Ensure that widgets respect the windows size."""
-        adjust_mpl = (self._show_traces and not self._separate_canvas)
-        if not adjust_mpl:
-            yield
-        else:
-            mpl_h = int(round((sz[1] * self._interactor_fraction) /
-                              (1 - self._interactor_fraction)))
-            self._mplcanvas.canvas.setMinimumSize(sz[0], mpl_h)
-            try:
-                yield
-            finally:
-                self._splitter.setSizes([sz[1], mpl_h])
-                # 1. Process events
-                self._process_events()
-                self._process_events()
-                # 2. Get the window size that accommodates the size
-                sz = self._window.size()
-                # 3. Call app_window.setBaseSize and resize (in pyvistaqt)
-                self.figure.plotter.window_size = (sz.width(), sz.height())
-                # 4. Undo the min size setting and process events
-                self._interactor.setMinimumSize(0, 0)
-                self._process_events()
-                self._process_events()
-                # 5. Resize the window (again!) to the correct size
-                #    (not sure why, but this is required on macOS at least)
-                self.figure.plotter.window_size = (sz.width(), sz.height())
-            self._process_events()
-            self._process_events()
-
     def _window_show(self, sz):
+        self.figure.plotter.resize_content(*sz)
         self.show()
 
 
