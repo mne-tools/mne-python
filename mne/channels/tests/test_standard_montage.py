@@ -75,11 +75,11 @@ def test_standard_superset():
             assert_allclose(c_1005[key], value, atol=1e-4, err_msg=key)
 
 
-def _simulate_artinis_octomon():
+def _simulate_artinis_octamon():
     """
-    Simulate artinis octomon channel data from nirx data.
+    Simulate artinis octamon channel data from nirx data.
     This is to test data that is imported with missing or incorrect montage
-    info. This data can then me used to test the set_montage function.
+    info. This data can then be used to test the set_montage function.
     """
     import os.path as op
     from mne.datasets import fnirs_motor
@@ -105,6 +105,6 @@ def _simulate_artinis_octomon():
     return raw
 
 def test_artinis():
-    raw = _simulate_artinis_octomon()
+    raw = _simulate_artinis_octamon()
     montage = make_standard_montage("artinis-octamon")
     raw.set_montage(montage)

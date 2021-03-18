@@ -83,13 +83,13 @@ MNE stores the location of the channels, sources, and detectors.
 # --------------
 #
 # Here we just create some fake data with the correct names for an
-# artinis octomon system
+# artinis octamon system
 
 import mne
 from mne.channels import make_standard_montage
-from mne.channels.tests.test_standard_montage import _simulate_artinis_octomon
+from mne.channels.tests.test_standard_montage import _simulate_artinis_octamon
 
-raw_intensity = _simulate_artinis_octomon()
+raw_intensity = _simulate_artinis_octamon()
 
 
 ###############################################################################
