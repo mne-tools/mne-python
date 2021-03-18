@@ -2014,6 +2014,16 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         associated events. If None, all events will be used and a dict is
         created with string integer names corresponding to the event id
         integers.
+    selection : iterable | None
+        Iterable of indices of selected epochs. If ``None``, will be
+        automatically generated, corresponding to all non-zero events.
+
+        .. versionadded:: 0.23
+    drop_log : tuple | None
+        Tuple of tuple of strings indicating which epochs have been marked to
+        be ignored.
+
+        .. versionadded:: 0.23
     metadata : instance of pandas.DataFrame | None
         A :class:`pandas.DataFrame` containing pertinent information for each
         trial. See :class:`mne.Epochs` for further details.
@@ -2039,6 +2049,26 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         Array containing sample information as event_id
     event_id : dict | None
         Names of conditions correspond to event_ids
+    selection : array
+        List of indices of selected events (not dropped or ignored etc.). For
+        example, if the original event array had 4 events and the second event
+        has been dropped, this attribute would be np.array([0, 2, 3]).
+    drop_log : tuple of tuple
+        A tuple of the same length as the event array used to initialize the
+        ``EpochsTFR`` object. If the i-th original event is still part of the
+        selection, drop_log[i] will be an empty tuple; otherwise it will be
+        a tuple of the reasons the event is not longer in the selection, e.g.:
+
+        - ``'IGNORED'``
+            If it isn't part of the current subset defined by the user
+        - ``'NO_DATA'`` or ``'TOO_SHORT'``
+            If epoch didn't contain enough data names of channels that
+            exceeded the amplitude threshold
+        - ``'EQUALIZED_COUNTS'``
+            See :meth:`~mne.Epochs.equalize_event_counts`
+        - ``'USER'``
+            For user-defined reasons (see :meth:`~mne.Epochs.drop`).
+
     metadata : pandas.DataFrame, shape (n_events, n_cols) | None
         DataFrame containing pertinent information for each trial
     Notes
@@ -2048,7 +2078,8 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
 
     @verbose
     def __init__(self, info, data, times, freqs, comment=None, method=None,
-                 events=None, event_id=None, metadata=None, verbose=None):
+                 events=None, event_id=None, selection=None,
+                 drop_log=None, metadata=None, verbose=None):
         # noqa: D102
         self.info = info
         if data.ndim != 4:
@@ -2066,12 +2097,25 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         if events is None:
             n_epochs = len(data)
             events = _gen_events(n_epochs)
+        if selection is None:
+            n_epochs = len(data)
+            selection = np.arange(n_epochs)
+        if drop_log is None:
+            drop_log = tuple(
+                () if k in selection else ('IGNORED',)
+                for k in range(max(len(events),
+                               max(selection) + 1)))
+        else:
+            drop_log = drop_log
+
         event_id = _check_event_id(event_id, events)
         self.data = data
         self.times = np.array(times, dtype=float)
         self.freqs = np.array(freqs, dtype=float)
         self.events = events
         self.event_id = event_id
+        self.selection = selection
+        self.drop_log = drop_log
         self.comment = comment
         self.method = method
         self.preload = True
