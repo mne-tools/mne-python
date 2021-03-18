@@ -23,8 +23,7 @@ import vtk
 
 from ._abstract import _AbstractRenderer
 from ._utils import (_get_colormap_from_array, _alpha_blend_background,
-                     ALLOWED_QUIVER_MODES, _init_qt_resources,
-                     _qt_disable_paint)
+                     ALLOWED_QUIVER_MODES, _init_qt_resources)
 from ...fixes import _get_args
 from ...transforms import apply_trans
 from ...utils import copy_base_doc_to_subclass_doc, _check_option
@@ -224,36 +223,6 @@ class _PyVistaRenderer(_AbstractRenderer):
         now = datetime.now()
         dt_string = now.strftime("_%Y-%m-%d_%H-%M-%S")
         return "MNE" + dt_string + ".png"
-
-    # XXX:WIP
-    # @contextmanager
-    # def _ensure_minimum_sizes(self):
-    #     sz = self.figure.store['window_size']
-    #     # plotter:            pyvista.plotting.qt_plotting.BackgroundPlotter
-    #     # plotter.interactor: vtk.qt.QVTKRenderWindowInteractor.QVTKRenderWindowInteractor -> QWidget  # noqa
-    #     # plotter.app_window: pyvista.plotting.qt_plotting.MainWindow -> QMainWindow  # noqa
-    #     # plotter.frame:      QFrame with QVBoxLayout with plotter.interactor as centralWidget  # noqa
-    #     # plotter.ren_win:    vtkXOpenGLRenderWindow
-    #     self.plotter.interactor.setMinimumSize(*sz)
-    #     try:
-    #         yield  # show
-    #     finally:
-    #         # 1. Process events
-    #         _process_events(self.plotter)
-    #         _process_events(self.plotter)
-    #         # 2. Get the window and interactor sizes that work
-    #         win_sz = self.plotter.app_window.size()
-    #         ren_sz = self.plotter.interactor.size()
-    #         # 3. Undo the min size setting and process events
-    #         self.plotter.interactor.setMinimumSize(0, 0)
-    #         _process_events(self.plotter)
-    #         _process_events(self.plotter)
-    #         # 4. Resize the window and interactor to the correct size
-    #         #    (not sure why, but this is required on macOS at least)
-    #         self.plotter.window_size = (win_sz.width(), win_sz.height())
-    #         self.plotter.interactor.resize(ren_sz.width(), ren_sz.height())
-    #         _process_events(self.plotter)
-    #         _process_events(self.plotter)
 
     def _index_to_loc(self, idx):
         row = idx // self.figure._ncols
@@ -604,7 +573,8 @@ class _PyVistaRenderer(_AbstractRenderer):
                 name=text,
                 shape_opacity=0,
             )
-            if 'always_visible' in _get_args(self.figure.viewer.add_point_labels):
+            if 'always_visible' in _get_args(
+                    self.figure.viewer.add_point_labels):
                 kwargs['always_visible'] = True
             self.figure.viewer.add_point_labels(**kwargs)
 
@@ -627,13 +597,7 @@ class _PyVistaRenderer(_AbstractRenderer):
             return self.figure.viewer.add_scalar_bar(**kwargs)
 
     def show(self):
-        self.figure.display = self.figure.plotter.show()
-        # XXX:WIP
-        # if hasattr(self.plotter, "app_window"):
-        #     with _qt_disable_paint(self.plotter):
-        #         with self._ensure_minimum_sizes():
-        #             self.plotter.app_window.show()
-        #     self.plotter.update()
+        self.figure.plotter.show()
         return self.scene()
 
     def close(self):
@@ -907,7 +871,8 @@ class _PyVistaRenderer(_AbstractRenderer):
         mesh = mesh.decimate(decimate) if decimate is not None else mesh
         silhouette_filter = vtk.vtkPolyDataSilhouette()
         silhouette_filter.SetInputData(mesh)
-        silhouette_filter.SetCamera(self.figure.viewer.renderer.GetActiveCamera())
+        silhouette_filter.SetCamera(
+            self.figure.viewer.renderer.GetActiveCamera())
         silhouette_filter.SetEnableFeatureAngle(0)
         silhouette_mapper = vtk.vtkPolyDataMapper()
         silhouette_mapper.SetInputConnection(
