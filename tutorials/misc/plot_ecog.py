@@ -70,9 +70,8 @@ onset_events = events[events[:, 2] == event_id['onset']]
 start = (onset_events[0, 0] - raw.first_samp) / raw.info['sfreq']
 raw.crop(start - 0.5, start + 3.5)
 
-# .. note:
-# And then downsample. This is just to save time in this example, you should
-# not need to do this in general!
+# .. note: And then downsample. This is just to save time in this
+#          example, you should not need to do this in general!
 raw.resample(200)  # Hz, will also load the data for us
 
 # Then we remove line frequency interference
