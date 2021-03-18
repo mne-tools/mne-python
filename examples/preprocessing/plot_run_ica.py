@@ -46,7 +46,8 @@ epochs = mne.Epochs(raw, events, event_id=None, tmin=-0.2, tmax=0.5,
 # Fit ICA model using the FastICA algorithm, detect and plot components
 # explaining ECG artifacts.
 
-ica = ICA(n_components=0.95, method='fastica').fit(epochs)
+ica = ICA(n_components=0.95, method='fastica', max_iter='auto')
+ica.fit(epochs)
 
 ecg_epochs = create_ecg_epochs(raw, tmin=-.5, tmax=.5)
 ecg_inds, scores = ica.find_bads_ecg(ecg_epochs, threshold='auto')
