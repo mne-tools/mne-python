@@ -1,5 +1,6 @@
+# -*- coding: utf-8 -*-
 """
-.. _tut-make-fixed-length-epochs:
+.. _tut-fixed-length-epochs:
 
 Creating epochs of equal length
 ===============================
@@ -73,7 +74,7 @@ event_related_plot = epochs.plot_image(picks=['MEG 1142'])
 
 ###############################################################################
 # For information about creating epochs for event-related analyses, please see
-# :ref:`tut-epochs-overview`.
+# :ref:`tut-epochs-class`.
 
 # Example Use Case for Fixed Length Epochs: Connectivity Analysis
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -90,7 +91,8 @@ event_related_plot = epochs.plot_image(picks=['MEG 1142'])
 # be applied after epoching.
 
 # Let's examine the alpha band. We allow default values for filter parameters
-# (for more information on filtering, please see PUT TUTORIAL REFERENCE HERE).
+# (for more information on filtering, please see
+# :ref:`tut-filter-resample`).
 
 alpha = epochs.copy().load_data().filter(l_freq=8, h_freq=12)
 
