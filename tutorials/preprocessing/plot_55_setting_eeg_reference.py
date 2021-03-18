@@ -76,7 +76,7 @@ raw.pick(['EEG 0{:02}'.format(n) for n in range(41, 60)])
 # use average of mastoid channels as reference
 # raw.set_eeg_reference(ref_channels=['M1', 'M2'])
 
-# use a Bipolar reference (contralateral)
+# use a bipolar reference (contralateral)
 # raw.set_bipolar_reference(anode='[F3'], cathode=['F4'])
 
 ###############################################################################
@@ -192,21 +192,21 @@ for title, _raw in zip(['Original', 'REST (∞)'], [raw, raw_rest]):
     fig.suptitle('{} reference'.format(title), size='xx-large', weight='bold')
 
 ###############################################################################
-# Using a Bipolar reference
+# Using a bipolar reference
 # ^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# To create a Bipolar reference, you can use :meth:`~mne.set_bipolar_reference`
+# To create a bipolar reference, you can use :meth:`~mne.set_bipolar_reference`
 # along with the respective channel names for ``anode`` and ``cathode`` which
 # creates a new virtual channel that takes the difference between two
 # specified channels (anode and cathode) and drops the original channels by
 # default. The new virtual channel will be annotated with the channel info of
-# the anode with locations set to (0, 0, 0) and coil types set to
+# the anode with locations set to ``(0, 0, 0)`` and coil types set to
 # ``EEG_BIPOLAR``by default. Here we use a contralateral/transverse bipolar
 # reference between channels ``EEG 054`` and ``EEG 055`` as described in
 # :footcite:`YaoEtAl2019` which creates a new virtual channel
 # named ``EEG 054-EEG 055``.
 
-raw_bip_ref = mne.set_bipolar_reference(raw.copy(), anode=['EEG 054'],
+raw_bip_ref = mne.set_bipolar_reference(raw, anode=['EEG 054'],
                                         cathode=['EEG 055'])
 raw_bip_ref.plot()
 
