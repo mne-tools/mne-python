@@ -663,7 +663,7 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
             drop_log = deepcopy(inst.drop_log)
         else:
             # if the input is of class Evoked
-            meta = evs = ev_id = None
+            meta = evs = ev_id = selection = drop_log = None
 
         out = EpochsTFR(info, power, times, freqs, method='%s-power' % method,
                         events=evs, event_id=ev_id, selection=selection,
