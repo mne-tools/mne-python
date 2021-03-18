@@ -25,6 +25,8 @@ Current (0.23.dev0)
 
 .. |Zhi Zhang| replace:: **Zhi Zhang**
 
+.. |Rotem Falach| replace:: **Rotem Falach**
+
 .. |Andres Rodriguez| replace:: **Andres Rodriguez**
 
 .. |Matt Sanderson| replace:: **Matt Sanderson**
@@ -47,7 +49,7 @@ Enhancements
 ~~~~~~~~~~~~
 - Add different colors for each volume source space in :func:`mne.viz.plot_alignment` (:gh:`9043` **by new contributor** |Valerii Chirkov|_)
 
-- Add ``overlap`` parameter to :func:`mne.epochs.make_fixed_length_epochs` to allow creating overlapping fixed length epochs (:gh:`9096` **by new contributor** |Silvia Cotroneo|_)
+- Add ``overlap`` parameter to :func:`mne.make_fixed_length_epochs` to allow creating overlapping fixed length epochs (:gh:`9096` **by new contributor** |Silvia Cotroneo|_)
 
 - Add :meth:`mne.Dipole.to_mni` for more convenient  dipole.pos to MNI conversion (:gh:`9043` **by new contributor** |Valerii Chirkov|_)
 
@@ -124,6 +126,8 @@ Enhancements
 - Interactions with sliders in `mne.Report` will now continuously update the linked content (it was updated only on mouse button release before) (:gh:`9023` by `Richard Höchenberger`_)
 
 - `mne.viz.plot_drop_log` and :meth:`mne.Epochs.plot_drop_log` now omit displaying the subject name in the title if ``subject=None`` is passed (:gh:`9015` by `Richard Höchenberger`_)
+
+- :func:`mne.io.anonymize_info` now anonymizes also sex and hand fields when ``keep_his`` is ``False`` (:gh:`9103` by |Rotem Falach|_)`
 
 Bugs
 ~~~~
