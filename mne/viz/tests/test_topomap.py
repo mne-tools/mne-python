@@ -579,7 +579,7 @@ def test_plot_topomap_nirs_overlap(fnirs_epochs):
 
 @requires_sklearn
 @pytest.mark.filterwarnings('ignore:.*max_iter.*will be changed.*:'
-                             'DeprecationWarning')
+                            'DeprecationWarning')
 def test_plot_topomap_nirs_ica(fnirs_epochs):
     """Test plotting nirs ica topomap."""
     from mne.preprocessing import ICA
