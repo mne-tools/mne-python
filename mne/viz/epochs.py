@@ -219,7 +219,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         ts_args['show_sensors'] = False
     vlines = [0] if (epochs.times[0] < 0 < epochs.times[-1]) else []
     ts_defaults = dict(colors={'cond': 'k'}, title='', show=False,
-                       truncate_yaxis='auto', truncate_xaxis=False,
+                       truncate_yaxis=False, truncate_xaxis=False,
                        vlines=vlines, legend=False)
     ts_defaults.update(**ts_args)
     ts_args = ts_defaults.copy()
@@ -349,14 +349,9 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
             ch_type = this_group_dict['ch_type']
             if not manual_ylims:
                 args = auto_ylims[ch_type]
-                func = max
                 if 'invert_y' in ts_args:
                     args = args[::-1]
-                    func = min
                 ax.set_ylim(*args)
-                yticks = np.array(ax.get_yticks())
-                top_tick = func(yticks)
-                ax.spines['left'].set_bounds(top_tick, args[0])
     plt_show(show)
     # impose deterministic order of returned objects
     return_order = np.array(sorted(group_by))
@@ -500,6 +495,8 @@ def _plot_epochs_image(image, style_axes=True, epochs=None, picks=None,
                        title=None, evoked=False, ts_args=None, combine=None,
                        combine_given=False, norm=False):
     """Plot epochs image. Helper function for plot_epochs_image."""
+    from matplotlib.ticker import AutoLocator
+
     if cmap is None:
         cmap = 'Reds' if norm else 'RdBu_r'
 
@@ -542,7 +539,11 @@ def _plot_epochs_image(image, style_axes=True, epochs=None, picks=None,
         ax['evoked'].lines[0].set_clip_on(True)
         ax['evoked'].collections[0].set_clip_on(True)
         ax['evoked'].get_shared_x_axes().join(ax['evoked'], ax_im)
-        
+        # fix the axes for proper updating during interactivity
+        loc = ax_im.xaxis.get_major_locator()
+        ax['evoked'].xaxis.set_major_locator(loc)
+        ax['evoked'].yaxis.set_major_locator(AutoLocator())
+
     # draw the colorbar
     if colorbar:
         from matplotlib.pyplot import colorbar as cbar
