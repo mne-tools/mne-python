@@ -1082,6 +1082,7 @@ class UpdateChannelsMixin(object):
         Parameters
         ----------
         %(ref_channels)s
+
         Returns
         -------
         inst : instance of Raw | Epochs | Evoked
