@@ -1075,14 +1075,13 @@ class UpdateChannelsMixin(object):
     def add_reference_channels(self, ref_channels):
         """ Add reference channels to data that consists of all zeros.
 
-        Adds reference channels to data that were not included during recording.
-        This is useful when you need to re-reference your data to different
-        channels. These added channels will consist of all zeros.
+        Adds reference channels to data that were not included during
+        recording. This is useful when you need to re-reference your data
+        to different channels. These added channels will consist of all zeros.
 
         Parameters
         ----------
         %(ref_channels)s
-
         Returns
         -------
         inst : instance of Raw | Epochs | Evoked
