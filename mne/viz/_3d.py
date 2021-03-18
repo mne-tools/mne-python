@@ -26,7 +26,7 @@ from ..io.pick import pick_types, _picks_to_idx
 from ..io.constants import FIFF
 from ..io.meas_info import read_fiducials, create_info
 from ..source_space import (_ensure_src, _create_surf_spacing, _check_spacing,
-                            _read_mri_info, SourceSpaces)
+                            _read_mri_info, SourceSpaces, read_freesurfer_lut)
 
 from ..surface import (get_meg_helmet_surf, _read_mri_surface, _DistanceQuery,
                        transform_surface_to, _project_onto_surface,
@@ -634,12 +634,6 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         if src_subject is not None and subject != src_subject:
             raise ValueError('subject ("%s") did not match the subject name '
                              ' in src ("%s")' % (subject, src_subject))
-        src_rr = np.concatenate([s['rr'][s['inuse'].astype(bool)]
-                                 for s in src])
-        src_nn = np.concatenate([s['nn'][s['inuse'].astype(bool)]
-                                 for s in src])
-    else:
-        src_rr = src_nn = np.empty((0, 3))
 
     if fwd is not None:
         _validate_type(fwd, [Forward])
@@ -846,9 +840,6 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         surfs[key] = transform_surface_to(surfs[key], coord_frame,
                                           [mri_trans, head_trans], copy=True)
 
-    if src is not None:
-        src_rr, src_nn = _update_coord_frame(src[0], src_rr, src_nn,
-                                             mri_trans, head_trans)
     if fwd is not None:
         fwd_rr, fwd_nn = _update_coord_frame(fwd, fwd_rr, fwd_nn,
                                              mri_trans, head_trans)
@@ -1053,14 +1044,36 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         surf = dict(rr=meg_rrs, tris=meg_tris)
         renderer.surface(surface=surf, color=color,
                          opacity=alpha, backface_culling=True)
-    if len(src_rr) > 0:
-        renderer.quiver3d(
-            x=src_rr[:, 0], y=src_rr[:, 1], z=src_rr[:, 2],
-            u=src_nn[:, 0], v=src_nn[:, 1], w=src_nn[:, 2],
-            color=(1., 1., 0.), mode='cylinder', scale=3e-3,
-            opacity=0.75, glyph_height=0.25,
-            glyph_center=(0., 0., 0.), glyph_resolution=20,
-            backface_culling=True)
+
+    if src is not None:
+        atlas_ids, colors = read_freesurfer_lut()
+        for ss in src:
+            src_rr = ss['rr'][ss['inuse'].astype(bool)]
+            src_nn = ss['nn'][ss['inuse'].astype(bool)]
+
+            src_rr, src_nn = _update_coord_frame(src[0], src_rr, src_nn,
+                                                 mri_trans, head_trans)
+            # volume sources
+            if ss['type'] == 'vol':
+                if ss['seg_name'] in colors.keys():
+                    color = colors[ss['seg_name']][:3]
+                    color = tuple(i / 256. for i in color)
+                else:
+                    color = (1., 1., 0.)
+
+            # surface and discrete sources
+            else:
+                color = (1., 1., 0.)
+
+            if len(src_rr) > 0:
+                renderer.quiver3d(
+                    x=src_rr[:, 0], y=src_rr[:, 1], z=src_rr[:, 2],
+                    u=src_nn[:, 0], v=src_nn[:, 1], w=src_nn[:, 2],
+                    color=color, mode='cylinder', scale=3e-3,
+                    opacity=0.75, glyph_height=0.25,
+                    glyph_center=(0., 0., 0.), glyph_resolution=20,
+                    backface_culling=True)
+
     if fwd is not None:
         red = (1.0, 0.0, 0.0)
         green = (0.0, 1.0, 0.0)
