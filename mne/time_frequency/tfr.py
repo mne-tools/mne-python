@@ -1304,15 +1304,12 @@ class AverageTFR(_BaseTFR):
                 mask_cmap=mask_cmap, mask_alpha=mask_alpha)
 
             if title == 'auto':
-                if len(tfr.info['ch_names']) == 1:
+                if len(tfr.info['ch_names']) == 1 or combine is None:
                     subtitle = tfr.info['ch_names'][idx]
                 else:
-                    if combine is None:
-                        subtitle = tfr.info['ch_names'][idx]
-                    else:
-                        subtitle = _set_title_multiple_electrodes(
-                            None, combine, tfr.info["ch_names"], all=True,
-                            ch_type=ch_type)
+                    subtitle = _set_title_multiple_electrodes(
+                        None, combine, tfr.info["ch_names"], all=True,
+                        ch_type=ch_type)
             else:
                 subtitle = title
             fig.suptitle(subtitle)
