@@ -104,6 +104,7 @@ def _simulate_artinis_octamon():
                     "S8_D2 760", "S8_D2 850"])
     return raw
 
+
 def test_artinis():
     raw = _simulate_artinis_octamon()
     montage = make_standard_montage("artinis-octamon")

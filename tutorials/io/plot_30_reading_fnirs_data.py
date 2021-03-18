@@ -109,6 +109,7 @@ raw_intensity.set_montage(montage)
 # Here we validate
 
 subjects_dir = mne.datasets.sample.data_path() + '/subjects'
+mne.datasets.fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)
 
 fig = mne.viz.create_3d_figure(size=(800, 600), bgcolor='white')
 fig = mne.viz.plot_alignment(raw_intensity.info, show_axes=True,
@@ -121,7 +122,6 @@ fig = mne.viz.plot_alignment(raw_intensity.info, show_axes=True,
 
 mne.viz.set_3d_view(figure=fig, azimuth=70, elevation=100, distance=0.4,
                     focalpoint=(0., -0.01, 0.02))
-
 
 
 ###############################################################################
