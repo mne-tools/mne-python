@@ -529,7 +529,7 @@ def _plot_epochs_image(image, style_axes=True, epochs=None, picks=None,
     if overlay_times is not None:
         ax_im.plot(overlay_times, 0.5 + np.arange(n_epochs), 'k',
                    linewidth=2)
-        ax_im.set_xlim(tmin, tmax)      
+        ax_im.set_xlim(tmin, tmax)
     # draw the evoked
     if evoked:
         from . import plot_compare_evokeds
