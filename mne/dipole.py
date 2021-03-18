@@ -29,7 +29,7 @@ from .forward._compute_forward import (_compute_forwards_meeg,
 from .surface import (transform_surface_to, _compute_nearest,
                       _points_outside_surface)
 from .bem import _bem_find_surface, _bem_surf_name
-from .source_space import _make_volume_source_space, SourceSpaces
+from .source_space import _make_volume_source_space, SourceSpaces, head_to_mni
 from .parallel import parallel_func
 from .utils import (logger, verbose, _time_mask, warn, _check_fname,
                     check_fname, _pl, fill_doc, _check_option, ShiftTimeMixin,
@@ -267,6 +267,27 @@ class Dipole(object):
             self, trans, subject, subjects_dir, mode, coord_frame, idx,
             show_all, ax, block, show, scale=scale, color=color, fig=fig,
             title=title)
+
+    @verbose
+    def to_mni(self, subject, trans, subjects_dir=None,
+               verbose=None):
+        """Convert dipole location from head coordinate system to MNI coordinates.
+
+        Parameters
+        ----------
+        %(subject)s
+        %(trans_not_none)s
+        %(subjects_dir)s
+        %(verbose)s
+
+        Returns
+        -------
+        pos_mni : array, shape (n_pos, 3)
+            The MNI coordinates (in mm) of pos.
+        """
+        mri_head_t, trans = _get_trans(trans)
+        return head_to_mni(self.pos, subject, mri_head_t,
+                           subjects_dir=subjects_dir, verbose=verbose)
 
     def plot_amplitudes(self, color='k', show=True):
         """Plot the dipole amplitudes as a function of time.

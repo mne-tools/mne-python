@@ -566,6 +566,7 @@ def test_apply_dics_timeseries(_load_forward, idx):
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
+@pytest.mark.filterwarnings('ignore:.*tf_dics is dep.*:DeprecationWarning')
 def test_tf_dics(_load_forward):
     """Test 5D time-frequency beamforming based on DICS."""
     fwd_free, fwd_surf, fwd_fixed, _ = _load_forward

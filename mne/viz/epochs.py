@@ -513,7 +513,7 @@ def _plot_epochs_image(image, style_axes=True, epochs=None, picks=None,
     # draw the image
     cmap = _setup_cmap(cmap, norm=norm)
     n_epochs = len(image)
-    extent = [1e3 * tmin, 1e3 * tmax, 0, n_epochs]
+    extent = [tmin, tmax, 0, n_epochs]
     im = ax_im.imshow(image, vmin=vmin, vmax=vmax, cmap=cmap[0], aspect='auto',
                       origin='lower', interpolation='nearest', extent=extent)
 
@@ -521,14 +521,16 @@ def _plot_epochs_image(image, style_axes=True, epochs=None, picks=None,
     if style_axes:
         ax_im.set_title(title)
         ax_im.set_ylabel('Epochs')
+        if not evoked:
+            ax_im.set_xlabel('Time (s)')
         ax_im.axis('auto')
         ax_im.axis('tight')
         ax_im.axvline(0, color='k', linewidth=1, linestyle='--')
 
     if overlay_times is not None:
-        ax_im.plot(1e3 * overlay_times, 0.5 + np.arange(n_epochs), 'k',
+        ax_im.plot(overlay_times, 0.5 + np.arange(n_epochs), 'k',
                    linewidth=2)
-        ax_im.set_xlim(1e3 * tmin, 1e3 * tmax)
+        ax_im.set_xlim(tmin, tmax)
 
     # draw the evoked
     if evoked:
