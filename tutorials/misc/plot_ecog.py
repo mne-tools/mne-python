@@ -64,9 +64,9 @@ events, event_id = mne.events_from_annotations(raw)
 
 # To make the example run much faster, we will start 1 seconds before the
 # seizure onset event and use 4 seconds of seizure
-onset_events = events[events[:, 2] == event_id['onset']] - raw.first_samp
-start = onset_events[0, 0] / raw.info['sfreq']
-raw.crop(start - 1, start + 4)
+onset_events = events[events[:, 2] == event_id['onset']]
+start = (onset_events[0, 0] - raw.first_samp) / raw.info['sfreq']
+raw.crop(start - 0.5, start + 3.5)
 
 # And then downsample. This is just to save time in this example, you should
 # not need to do this in general!
@@ -92,8 +92,9 @@ print(raw.get_montage().get_positions()['coord_frame'])
 # in the image), so that later we can plot frequency band power on top of it.
 
 fig = plot_alignment(raw.info, subject='fsaverage', subjects_dir=subjects_dir,
-                     surfaces=['pial'])
-mne.viz.set_3d_view(fig, 160, -70, focalpoint=[0.067, -0.040, 0.018])
+                     surfaces=['pial'], coord_frame='mri')
+az, el, focalpoint = 160, -70, [0.067, -0.040, 0.018]
+mne.viz.set_3d_view(fig, azimuth=az, elevation=el, focalpoint=focalpoint)
 
 xy, im = snapshot_brain_montage(fig, raw.info)
 
@@ -104,12 +105,13 @@ xy, im = snapshot_brain_montage(fig, raw.info)
 # Next, we'll compute the signal power in the gamma (30-90 Hz) and alpha
 # (8-12 Hz) bands, downsampling the result to 5 Hz (to save time).
 
+sfreq = 10
 gamma_power_t = raw.copy().filter(30, 90).apply_hilbert(
-    envelope=True).resample(5)
+    envelope=True).resample(sfreq)
 gamma_info = gamma_power_t.info
 gamma_power_t = gamma_power_t.get_data()
 alpha_power_t = raw.copy().filter(8, 12).apply_hilbert(
-    envelope=True).resample(5).get_data()
+    envelope=True).resample(sfreq).get_data()
 
 # we compute the mean power over time
 gamma_power = gamma_power_t.mean(axis=-1)
@@ -155,43 +157,36 @@ fig.colorbar(sc, ax=axs)
 # `matplotlib.animation.FuncAnimation` to create an animation and apply this
 # to the brain figure.
 
-
-# create an initialization and animation function
-# to pass to FuncAnimation
-def init():
-    """Create an empty frame."""
-    return paths,
-
-
-def animate(i, activity):
-    """Animate the plot."""
-    paths.set_array(activity[:, i])
-    return paths,
-
-
-# create the figure and apply the animation of the
-# gamma frequency band activity
+# create the figure and apply the animation of the gamma band activity
 fig, ax = plt.subplots(figsize=(5, 5))
 ax.imshow(im)
 ax.set_axis_off()
-vmin, vmax = np.percentile(gamma_power, [10, 90])
-paths = ax.scatter(*xy_pts.T, c=np.zeros(len(xy_pts)), s=200,
+vmin, vmax = np.percentile(gamma_power, [50, 99])
+paths = ax.scatter(*xy_pts.T, c=np.zeros(len(xy_pts)), s=50,
                    cmap=cmap, vmin=vmin, vmax=vmax)
 ax.set_xlim([0, im.shape[0]])
 ax.set_ylim([im.shape[1], 0])
 fig.colorbar(paths, ax=ax)
 ax.set_title('Gamma frequency over time', size='large')
+t_text = ax.text(0.5, 0, 't=0', animated=True, ha='center', va='bottom',
+                 transform=ax.transAxes)
+artists = [paths, t_text]
 
-# avoid edge artifacts and decimate, showing just a short chunk
-show_power = gamma_power_t
-anim = animation.FuncAnimation(fig, animate, init_func=init,
-                               fargs=(show_power,),
-                               frames=show_power.shape[1],
-                               interval=200, blit=True)
+
+def animate_gamma(i):
+    """Animate the plot."""
+    paths.set_array(gamma_power_t[:, i])
+    t_text.set_text(f't={raw.first_time + i / sfreq:0.3f} sec')
+    return artists
+
+
+anim = animation.FuncAnimation(fig, animate_gamma, init_func=lambda: artists,
+                               frames=gamma_power_t.shape[1], blit=True,
+                               interval=1000 / sfreq)
 
 ###############################################################################
-# Visualize the gamma activity over time relative to seizure onset
-# ----------------------------------------------------------------
+# Visualize the raw activity over time relative to seizure onset
+# --------------------------------------------------------------
 #
 # Now let's animate the raw time series data and add events related
 # to seizure onset that are marked in the annotations. This will be done
@@ -217,76 +212,69 @@ raw.pick_types(ecog=True)
 raw.filter(l_freq=2, h_freq=None)
 
 # Downsample again, to compute the animation faster
-sfreq = 50  # Hz
+sfreq = 40  # Hz
 raw.resample(sfreq)
-ts_data = raw.get_data()
+ts_data = raw.get_data() * 1e6  # ->μV
 
 # recompute events for new sampling frequency
 events, event_id = mne.events_from_annotations(raw)
-onset_events = events[events[:, 2] == event_id['onset']]
-
-# invert the event_ids so that we can look up by id and get the name
-# to display on the plot
 inv_event_id = {v: k for k, v in event_id.items()}
-
-# Use one second after the seizure onset as the animation start,
-# right as the seizure is ramping up
-start_sample = int(onset_events[0, 0] + sfreq)
-
-
-# Create an initialization and animation function to pass to FuncAnimation.
-# This time we will also pass the plot title so that can be updated
-# with information from the annotations.
-def init():
-    """Create an empty frame."""
-    return paths, title, *tpaths
-
-
-def animate(i, activity, events):
-    """Animate the plot."""
-    paths.set_array(activity[:, i])
-    tsl = slice(i + start_sample - sfreq, i + start_sample + sfreq)
-    for j, tpath in enumerate(tpaths):
-        tpath.set_data(range(2 * sfreq), ts_data[j, tsl])
-    # If this sample contains an annotation (for a seizure-related behavior)
-    # then change the title of the plot
-    if i + start_sample in events[:, 0]:
-        # Currently this doesn't replace the text, but writes over it.
-        # This needs fixing
-        event_idx = np.argwhere(events[:, 0] == (i + start_sample))[0][0]
-        title.set_text(inv_event_id[events[event_idx, 2]])
-        fig.canvas.draw()  # force redrawing
-    return paths, title, *tpaths
-
 
 # create the figure and apply the animation of the
 # raw time series data
-fig, ax = plt.subplots(figsize=(5, 5))
-tax = fig.add_axes([0.125, 0.02, 0.6, 0.15])
+fig = plt.figure(figsize=(5, 5))
+ax = fig.add_axes([0.025, 0.2, 0.78, 0.78])
+tax = fig.add_axes([0.025, 0.02, 0.78, 0.15])
+cax = fig.add_axes([0.82, 0.2, 0.1, 0.78])
 ax.imshow(im)
 ax.set_axis_off()
 tax.set_axis_off()
 
 # We want the mid-point (0 uV) to be white, so we will scale from -vmax to vmax
 # so that negative voltages are blue and positive voltages are red
-vmax = np.percentile(ts_data, 90)
+raw_vmax = np.percentile(np.abs(ts_data), 90)
 paths = ax.scatter(*xy_pts.T, c=np.zeros(len(xy_pts)), s=100,
-                   cmap=cmap, vmin=-vmax, vmax=vmax)
+                   cmap=cmap, vmin=-raw_vmax, vmax=raw_vmax)
 ax.set_xlim([0, im.shape[0]])
 ax.set_ylim([im.shape[1], 0])
-tsl = slice(start_sample - sfreq, start_sample + sfreq)
-tpaths = tax.plot(np.zeros((ts_data.shape[0], 2 * sfreq)).T)
-tax.plot([sfreq, sfreq], [ts_data.min(), ts_data.max()], color='k')
-fig.colorbar(paths, ax=ax)
-title = ax.set_title('iEEG voltage over time', size='large')
+half_width = sfreq // 2  # show one second of data, with time point centered
+tpaths = tax.plot(
+    np.zeros((ts_data.shape[0], 2 * half_width + 1)).T,
+    animated=True, lw=0.5, color='k', alpha=0.5)
+artists = [paths] + list(tpaths)
+artists.append(tax.axvline(half_width, color='k', animated=True))
+title = ax.text(0.5, 1, 'iEEG voltage over time', animated=True,
+                transform=ax.transAxes, ha='center', va='top')
+t_text = tax.text(0.5, 0, 't=0', animated=True, ha='left', va='bottom',
+                  transform=tax.transAxes)
+artists += [title, t_text]
+tax.set_ylim(np.percentile(np.abs(ts_data), [99.9]) * [-1, 1])
+fig.colorbar(paths, cax=cax, ax=ax, label='Activation (μV)')
+fig.tight_layout(h_pad=0.1, rect=[0.0, 0.0, 1.0, 0.95])
 
-# this will be a much longer animation because the seizure is quite long
-sl = slice(start_sample, ts_data.shape[1])
-show_power = ts_data[:, sl]
-anim = animation.FuncAnimation(fig, animate, init_func=init,
-                               fargs=(show_power, events),
-                               frames=show_power.shape[1],
-                               interval=20, blit=True)
+
+def animate_raw(i):
+    """Animate the plot."""
+    # i is the start
+    center = i + half_width
+    paths.set_array(ts_data[:, center])
+    tsl = slice(center - half_width, center + half_width + 1)
+    x = np.arange(2 * half_width + 1)
+    for j, tpath in enumerate(tpaths):
+        tpath.set_data(x, ts_data[j, tsl])
+    t_text.set_text(f't={raw.first_time + center / sfreq:0.2f} sec')
+    # If the middle sample contains an annotation (for a seizure-related
+    # behavior) then change the title of the plot for all following frames
+    event_idx = np.where(events[:, 0] - raw.first_samp == center)[0]
+    if len(event_idx):
+        title.set_text(inv_event_id[events[event_idx[0], 2]])
+    return artists
+
+
+anim = animation.FuncAnimation(
+    fig, animate_raw, init_func=lambda: artists,
+    frames=ts_data.shape[1] - 2 * half_width - 1, blit=True,
+    interval=1000 / sfreq)
 
 ###############################################################################
 # Alternatively, we can project the sensor data to the nearest locations on
@@ -299,13 +287,15 @@ src = mne.read_source_spaces(
     op.join(subjects_dir, 'fsaverage', 'bem', 'fsaverage-ico-5-src.fif'))
 trans = None  # identity transform
 stc = mne.stc_near_sensors(evoked, trans, 'fsaverage', src=src,
-                           subjects_dir=subjects_dir, distance=0.02)
+                           mode='nearest', subjects_dir=subjects_dir,
+                           distance=0.02)
 clim = dict(kind='value', lims=[vmin * 0.9, vmin, vmax])
-brain = stc.plot(surface='pial', hemi='both',
-                 colormap='viridis', clim=clim, views='lat',
-                 subjects_dir=subjects_dir, size=(500, 500))
-brain.show_view(view=dict(azimuth=-20, elevation=60, distance=400))
+brain = stc.plot(surface='pial', hemi='rh', alpha=0.9,
+                 colormap='viridis', clim=clim, views=['ven', 'lat'],
+                 subjects_dir=subjects_dir, size=(800, 400),
+                 smoothing_steps=5, add_data_kwargs=dict(alpha=1.0),
+                 view_layout='horizontal')
 
 # You can save a movie like the one on our documentation website with:
-# brain.save_movie(time_dilation=1, interpolation='linear', framerate=5,
+# brain.save_movie(time_dilation=1, interpolation='linear', framerate=10,
 #                  time_viewer=True)
