@@ -250,7 +250,6 @@ t_text = tax.text(0.5, 0, 't=0', animated=True, ha='left', va='bottom',
 artists += [title, t_text]
 tax.set_ylim(np.percentile(np.abs(ts_data), [99.9]) * [-1, 1])
 fig.colorbar(paths, cax=cax, ax=ax, label='Activation (μV)')
-fig.tight_layout(h_pad=0.1, rect=[0.0, 0.0, 1.0, 0.95])
 
 
 def animate_raw(i):
@@ -291,10 +290,10 @@ stc = mne.stc_near_sensors(evoked, trans, 'fsaverage', src=src,
                            distance=0.02)
 clim = dict(kind='value', lims=[vmin * 0.9, vmin, vmax])
 brain = stc.plot(surface='pial', hemi='rh', alpha=0.9,
-                 colormap='viridis', clim=clim, views=['ven', 'lat'],
-                 subjects_dir=subjects_dir, size=(800, 400),
+                 colormap='viridis', clim=clim, views=['lat', 'med'],
+                 subjects_dir=subjects_dir, size=(300, 600),
                  smoothing_steps=5, add_data_kwargs=dict(alpha=1.0),
-                 view_layout='horizontal')
+                 show_traces=0.25)
 
 # You can save a movie like the one on our documentation website with:
 # brain.save_movie(time_dilation=1, interpolation='linear', framerate=10,
