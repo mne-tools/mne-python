@@ -39,8 +39,12 @@ Current (0.23.dev0)
 
 .. |Matteo Anelli| replace:: **Matteo Anelli**
 
+.. |Silvia Cotroneo| replace:: **Silvia Cotroneo**
+
 Enhancements
 ~~~~~~~~~~~~
+- Add parameter ``overlap=0.`` to :func:`mne.epochs.make_fixed_length_epochs` to allow creating overlapping fixed length epochs (:gh:`9096` **by new contributor** |Silvia Cotroneo|_)
+
 - Add :meth:`mne.Dipole.to_mni` for more convenient  dipole.pos to MNI conversion (:gh:`9043` **by new contributor** |Valerii Chirkov|_)
 
 - Update citations in maxwell.py (:gh:`9043` **by new contributor** |Valerii Chirkov|_)
