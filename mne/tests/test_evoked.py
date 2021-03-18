@@ -23,7 +23,6 @@ from mne.io import read_raw_fif
 from mne.io.constants import FIFF
 from mne.utils import (_TempDir, requires_pandas,
                        run_tests_if_main, grand_average)
-from mne.io.write import INT32_MAX
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 fname = op.join(base_dir, 'test-ave.fif')
@@ -776,7 +775,8 @@ def test_apply_function_evk():
     evoked_data = evoked.data.copy()
     # check apply_function channel-wise
     mult_param = -1
+    kwargs = dict(mult_param=mult_param)
     applied = evoked.apply_function(fun, picks=None, dtype=None, n_jobs=1,
-                                    kwargs=dict(mult_param=mult_param))
+                                    **kwargs)
     assert np.shape(applied.data) == np.shape(evoked_data)
-    assert np.equal(applied.data, evoked_data*mult_param).all()
+    assert np.equal(applied.data, evoked_data * mult_param).all()
