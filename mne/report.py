@@ -941,6 +941,49 @@ class Report(object):
         .. versionadded:: 0.21
     %(verbose)s
 
+    Attributes
+    ----------
+    info_fname : None | str
+        Name of the file containing the info dictionary.
+    %(subjects_dir)s
+    subject : str | None
+        Subject name.
+    title : str
+        Title of the report.
+    cov_fname : None | str
+        Name of the file containing the noise covariance.
+    %(baseline_report)s
+        Defaults to ``None``, i.e. no baseline correction.
+    image_format : str
+        Default image format to use (default is 'png').
+        SVG uses vector graphics, so fidelity is higher but can increase
+        file size and browser image rendering time as well.
+
+        .. versionadded:: 0.15
+
+    raw_psd : bool | dict
+        If True, include PSD plots for raw files. Can be False (default) to
+        omit, True to plot, or a dict to pass as ``kwargs`` to
+        :meth:`mne.io.Raw.plot_psd`.
+
+        .. versionadded:: 0.17
+    projs : bool
+        Whether to include topographic plots of SSP projectors, if present in
+        the data. Defaults to ``False``.
+
+        .. versionadded:: 0.21
+    %(verbose)s
+    html : list of str
+        Contains items of html-page.
+    include : list of str
+        Dictionary containing elements included in head.
+    fnames : list of str
+        List of file names rendered.
+    sections : list of str
+        List of sections.
+    lang : str
+        language setting for the HTML file.
+
     Notes
     -----
     See :ref:`tut-report` for an introduction to using ``mne.Report``.
@@ -963,8 +1006,9 @@ class Report(object):
         self.projs = projs
         self.verbose = verbose
 
-        self.initial_id = 0
+        self._initial_id = 0
         self.html = []
+        self.include = []
         self.fnames = []  # List of file names rendered
         self.sections = []  # List of sections
         self.lang = 'en-us'  # language setting for the HTML file
@@ -1006,8 +1050,8 @@ class Report(object):
 
     def _get_id(self):
         """Get id of plot."""
-        self.initial_id += 1
-        return self.initial_id
+        self._initial_id += 1
+        return self._initial_id
 
     def _validate_input(self, items, captions, section, comments=None):
         """Validate input."""
@@ -1658,8 +1702,8 @@ class Report(object):
         """
         # Note: self._fname is not part of the state
         return (['baseline', 'cov_fname', 'fnames', 'html', 'include',
-                 'image_format', 'info_fname', 'initial_id', 'raw_psd',
-                 '_sectionlabels', 'sections', '_sectionvars',
+                 'image_format', 'info_fname', '_initial_id', 'raw_psd',
+                 '_sectionlabels', 'sections', '_sectionvars', 'projs',
                  '_sort_sections', 'subjects_dir', 'subject', 'title',
                  'verbose'],
                 ['data_path', 'lang', '_sort'])

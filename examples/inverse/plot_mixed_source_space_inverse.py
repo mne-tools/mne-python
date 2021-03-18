@@ -85,7 +85,7 @@ src.plot(subjects_dir=subjects_dir)
 #
 #    >>> write_source_spaces(fname_mixed_src, src, overwrite=True)
 #
-# We can also export source positions to nifti file and visualize it again:
+# We can also export source positions to NIfTI file and visualize it again:
 
 nii_fname = op.join(bem_dir, '%s-mixed-src.nii' % subject)
 src.export_volume(nii_fname, mri_resolution=True, overwrite=True)
@@ -149,7 +149,7 @@ brain = stc.surface().plot(initial_time=initial_time,
                            subjects_dir=subjects_dir)
 ###############################################################################
 # Plot the volume
-# ----------------
+# ---------------
 
 fig = stc.volume().plot(initial_time=initial_time, src=src,
                         subjects_dir=subjects_dir)

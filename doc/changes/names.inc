@@ -358,6 +358,8 @@
 
 .. _Andres Rodriguez: https://github.com/infinitejest/
 
+.. _Rotem Falach: https://github.com/Falach
+
 .. _Zhi Zhang: https://github.com/tczhangzhi/
 
 .. _Enrico Varano: https://github.com/enricovara/
@@ -367,3 +369,9 @@
 .. _Judy D Zhu: https://github.com/JD-Zhu
 
 .. _Valerii Chirkov: https://github.com/vagechirkov
+
+.. _Matteo Anelli: https://github.com/matteoanelli
+
+.. _Cora Kim: https://github.com/kimcoco
+
+.. _Silvia Cotroneo: https://github.com/sfc-neuro
