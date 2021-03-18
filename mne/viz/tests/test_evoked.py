@@ -386,7 +386,7 @@ def test_plot_compare_evokeds():
                          linestyles=['-', ':', '--'])
     plt.close('all')
     # test combine
-    match = 'combine must be an instance of None, str or callable,'
+    match = 'must be an instance of None, callable, or str'
     with pytest.raises(TypeError, match=match):
         plot_compare_evokeds(evoked, combine=["mean", "gfp"])
     plt.close('all')
