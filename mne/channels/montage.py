@@ -118,6 +118,12 @@ def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
     read_dig_egi
     read_dig_fif
     read_dig_polhemus_isotrak
+
+    Notes
+    -----
+    Valid ``coord_frame`` arguments are 'meg','mri','mri_voxel','head',
+    'mri_tal','ras', 'fs_tal','ctf_head','ctf_meg','unknown'. For custom
+    montages without fiducials this parameter has to be set to 'head'.
     """
     _validate_type(ch_pos, (dict, None), 'ch_pos')
     if ch_pos is None:
