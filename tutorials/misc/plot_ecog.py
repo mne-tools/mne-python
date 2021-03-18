@@ -291,7 +291,7 @@ stc = mne.stc_near_sensors(evoked, trans, 'fsaverage', src=src,
 clim = dict(kind='value', lims=[vmin * 0.9, vmin, vmax])
 brain = stc.plot(surface='pial', hemi='rh', alpha=0.9,
                  colormap='viridis', clim=clim, views=['lat', 'med'],
-                 subjects_dir=subjects_dir, size=(300, 600),
+                 subjects_dir=subjects_dir, size=(600, 800),
                  smoothing_steps=5, add_data_kwargs=dict(alpha=1.0))
 
 # You can save a movie like the one on our documentation website with:
