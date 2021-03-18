@@ -674,12 +674,7 @@ def _set_montage_fnirs(info, montage):
     there is a source optode location, a detector optode location,
     and a channel midpoint that must be stored.
     """
-    # TODO [x] info['chs'][_]['loc']
-    # TODO [ ] info['dig']
-    # TODO [ ] info['dev_head_t']
-    mnt_head = _get_montage_in_head(montage)
-
-
+    # Modify info['chs'][_]['loc'] in place
     num_ficiduals = len(montage.dig) - len(montage.ch_names)
     picks = _picks_to_idx(info, 'fnirs', exclude=[], allow_empty=True)
     for ch_idx in picks:
@@ -694,6 +689,9 @@ def _set_montage_fnirs(info, montage):
         info['chs'][ch_idx]['loc'][6:9] = detector_pos
         midpoint = (source_pos + detector_pos) / 2
         info['chs'][ch_idx]['loc'][:3] = midpoint
+
+    # Modify info['dig'] in place
+    info['dig'] = montage.dig
 
     return info
 
