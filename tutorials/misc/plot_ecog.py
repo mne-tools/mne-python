@@ -292,8 +292,7 @@ clim = dict(kind='value', lims=[vmin * 0.9, vmin, vmax])
 brain = stc.plot(surface='pial', hemi='rh', alpha=0.9,
                  colormap='viridis', clim=clim, views=['lat', 'med'],
                  subjects_dir=subjects_dir, size=(300, 600),
-                 smoothing_steps=5, add_data_kwargs=dict(alpha=1.0),
-                 show_traces=0.25)
+                 smoothing_steps=5, add_data_kwargs=dict(alpha=1.0))
 
 # You can save a movie like the one on our documentation website with:
 # brain.save_movie(time_dilation=1, interpolation='linear', framerate=10,
