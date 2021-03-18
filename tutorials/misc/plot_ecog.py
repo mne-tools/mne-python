@@ -49,7 +49,9 @@ subjects_dir = op.join(sample_path, 'subjects')
 # Load in data and perform basic preprocessing
 # --------------------------------------------
 #
-# Let's load some ECoG electrode data with ``mne-bids``.
+# Let's load some ECoG electrode data with `mne-bids
+# <https://mne.tools/mne-bids/>`_.
+
 # first define the bids path
 bids_path = BIDSPath(root=bids_root, subject='pt1', session='presurgery',
                      task='ictal', datatype='ieeg', extension='vhdr')
@@ -68,6 +70,7 @@ onset_events = events[events[:, 2] == event_id['onset']]
 start = (onset_events[0, 0] - raw.first_samp) / raw.info['sfreq']
 raw.crop(start - 0.5, start + 3.5)
 
+# .. note:
 # And then downsample. This is just to save time in this example, you should
 # not need to do this in general!
 raw.resample(200)  # Hz, will also load the data for us
@@ -103,7 +106,7 @@ xy, im = snapshot_brain_montage(fig, raw.info)
 # --------------------------------------
 #
 # Next, we'll compute the signal power in the gamma (30-90 Hz) and alpha
-# (8-12 Hz) bands, downsampling the result to 5 Hz (to save time).
+# (8-12 Hz) bands, downsampling the result to 10 Hz (to save time).
 
 sfreq = 10
 gamma_power_t = raw.copy().filter(30, 90).apply_hilbert(
@@ -146,7 +149,9 @@ for ax, band_power, band in zip(axs,
     ax.set_title(f'{band} band power', size='x-large')
     ax.set_xlim([0, im.shape[0]])
     ax.set_ylim([im.shape[1], 0])
-fig.colorbar(sc, ax=axs)
+
+    # show colorbar for each frequency band
+    plt.colorbar(im, ax=ax)
 
 ###############################################################################
 # Visualize the time-evolution of the gamma power on the brain
@@ -273,7 +278,7 @@ def animate_raw(i):
 anim = animation.FuncAnimation(
     fig, animate_raw, init_func=lambda: artists,
     frames=ts_data.shape[1] - 2 * half_width - 1, blit=True,
-    interval=1000 / sfreq)
+    interval=2000 / sfreq)
 
 ###############################################################################
 # Alternatively, we can project the sensor data to the nearest locations on
@@ -295,5 +300,5 @@ brain = stc.plot(surface='pial', hemi='rh',
                  smoothing_steps=5)
 
 # You can save a movie like the one on our documentation website with:
-# brain.save_movie(time_dilation=1, interpolation='linear', framerate=10,
+# brain.save_movie(time_dilation=1, interpolation='linear', framerate=5,
 #                  time_viewer=True)
