@@ -3254,6 +3254,18 @@ def test_make_fixed_length_epochs():
     assert len(epochs_annot) > 10
     assert len(epochs) > len(epochs_annot)
 
+    # overlaps
+    epochs = make_fixed_length_epochs(raw, duration=1)
+    assert len(epochs.events) > 10
+    epochs_ol = make_fixed_length_epochs(raw, duration=1, overlap=0.5)
+    assert len(epochs_ol.events) > 20
+    epochs_ol_2 = make_fixed_length_epochs(raw, duration=1, overlap=0.9)
+    assert len(epochs_ol_2.events) > 100
+    assert_array_equal(epochs_ol_2.events[:, 0],
+                       np.unique(epochs_ol_2.events[:, 0]))
+    with pytest.raises(ValueError, match='overlap must be'):
+        make_fixed_length_epochs(raw, duration=1, overlap=1.1)
+
 
 def test_epochs_huge_events(tmpdir):
     """Test epochs with event numbers that are too large."""
