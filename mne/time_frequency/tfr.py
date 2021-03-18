@@ -1157,14 +1157,17 @@ class AverageTFR(_BaseTFR):
         show : bool
             Call pyplot.show() at the end. Defaults to True.
         title : str | 'auto' | None
-            String for title. Defaults to None (blank/no title). If 'auto',
-            automatically create a title that lists up to 6 of the channels
-            used in the figure.
+            String for ``title``. Defaults to None (blank/no title). If
+            'auto', and ``combine`` is None, the title for each figure
+            will be the channel name. If 'auto' and ``combine`` is not None,
+            ``title`` states how many channels were combined into that figure
+            and the method that was used for ``combine``. If str, that String
+            will be the title for each figure.
         axes : instance of Axes | list | None
             The axes to plot to. If list, the list must be a list of Axes of
-            the same length as the number of channels. If instance of Axes,
-            there must be only one channel plotted. If combine is not None,
-            axes must either be an instance of Axes, or a list of length 1.
+            the same length as ``picks``. If instance of Axes, there must be
+            only one channel plotted. If ``combine`` is not None, ``axes``
+            must either be an instance of Axes, or a list of length 1.
         layout : Layout | None
             Layout instance specifying sensor positions. Used for interactive
             plotting of topographies on rectangle selection. If possible, the
@@ -1214,8 +1217,8 @@ class AverageTFR(_BaseTFR):
 
         Returns
         -------
-        fig : matplotlib.figure.Figure
-            The figure containing the topography.
+        figs : list of instances of matplotlib.figure.Figure
+            A list of figures containing the time-frequency power.
         """  # noqa: E501
         return self._plot(picks=picks, baseline=baseline, mode=mode,
                           tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax,
@@ -1511,7 +1514,7 @@ class AverageTFR(_BaseTFR):
             colorbar=False, show=False, title=title, axes=tf_ax,
             yscale=yscale, combine=combine, exclude=None, copy=False,
             source_plot_joint=True, topomap_args=topomap_args_pass,
-            ch_type=ch_type, **image_args)
+            ch_type=ch_type, **image_args)[0]
 
         # set and check time and freq limits ...
         # can only do this after the tfr plot because it may change these

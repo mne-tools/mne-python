@@ -507,7 +507,8 @@ def test_plot():
     tfr.plot_topo(picks=[1, 2])
     plt.close('all')
 
-    fig = tfr.plot(picks=[1], cmap='RdBu_r')  # interactive mode on by default
+    # interactive mode on by default
+    fig = tfr.plot(picks=[1], cmap='RdBu_r')[0]
     fig.canvas.key_press_event('up')
     fig.canvas.key_press_event(' ')
     fig.canvas.key_press_event('down')
@@ -548,7 +549,7 @@ def test_plot_joint():
 
     topomap_args = {'res': 8, 'contours': 0, 'sensors': False}
 
-    for combine in ('mean', 'rms', None):
+    for combine in ('mean', 'rms'):
         with catch_logging() as log:
             tfr.plot_joint(title='auto', colorbar=True,
                            combine=combine, topomap_args=topomap_args,
