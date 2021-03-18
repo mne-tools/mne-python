@@ -291,10 +291,9 @@ class Brain(object):
        brain's silhouette to display. If True, the default values are used
        and if False, no silhouette will be displayed. Defaults to False.
     theme : str | path-like
-        Can be "auto" (default), "light", or "dark" to use darkdetect
-        (required for auto mode) or qdarkstyle (required for dark mode)
-        to style the widgets. Automatic detection does not yet work on
-        Linux. Can also be a path-like to a custom style sheet.
+        Can be "auto" (default), "light", or "dark" or a path-like to a
+        custom stylesheet. For Dark-Mode and automatic Dark-Mode-Detection,
+        `qdarkstyle` respectively `darkdetect` is required.
     show : bool
         Display the window as soon as it is ready. Defaults to True.
 
