@@ -39,6 +39,8 @@ Current (0.23.dev0)
 
 .. |Matteo Anelli| replace:: **Matteo Anelli**
 
+.. |Maggie Clarke| replace:: **Maggie Clarke**
+
 Enhancements
 ~~~~~~~~~~~~
 - Add :meth:`mne.Dipole.to_mni` for more convenient  dipole.pos to MNI conversion (:gh:`9043` **by new contributor** |Valerii Chirkov|_)
