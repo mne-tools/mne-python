@@ -34,9 +34,7 @@ below which and above which to filter out data.
 | Import data         | | ``EEG = pop_fileio(fname);``                           | | :func:`raw = io.read_raw_fif(fname) <mne.io.read_raw_fif>`                                     |
 |                     | |                                                        | | :func:`raw = io.read_raw_edf(fname) <mne.io.read_raw_edf>`                                     |
 |                     | |                                                        | | :func:`raw = io.read_raw_eeglab(fname) <mne.io.read_raw_eeglab>` ``(set file)``                |
-|                     | |                                                        | |                                                                                                |
-+---------------------+----------------------------------------------------------+--------------------------------------------------------------------------------------------------+
-| Filter data         | | ``EEG = pop_eegfiltnew(EEG, l_freq, h_freq);``         | | :func:`raw.filter(l_freq, h_freq) <mne.io.Raw.filter>`                                         |
+|                     | |                                                        | |                                           
 +---------------------+----------------------------------------------------------+--------------------------------------------------------------------------------------------------+
 | Filter data         | | ``EEG = pop_eegfiltnew(EEG, l_freq, h_freq);``         | | :func:`raw.filter(l_freq, h_freq) <mne.io.Raw.filter>`                                         |
 |                     | |                                                        | |                                                                                                |
