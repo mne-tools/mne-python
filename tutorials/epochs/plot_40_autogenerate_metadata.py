@@ -148,7 +148,7 @@ metadata
 # To make this easier, we can ask `~mne.epochs.make_metadata` to generate an
 # entirely **new** column that refers to the first response observed during the
 # given time interval. This works by passing a subset of the
-# :term:`hierarchical event descriptors` (HEDs,
+# :term:`hierarchical event descriptors` (HEDs, inspired by
 # :footcite:`BigdelyShamloEtAl2013`) used to name events via the ``keep_first``
 # parameter. For example, in the case of the HEDs ``response/left`` and
 # ``response/right``, we could pass ``keep_first='response'`` to generate a new

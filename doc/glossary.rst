@@ -171,13 +171,12 @@ general neuroimaging concepts. If you think a term is missing, please consider
 
     HED
     hierarchical event descriptors
-        Hierarchical event descriptors (abbr. ``HED``) are tags that can be
-        used to describe many different types of EEG experiment events (for 
-        example, stimulus/circle/red/left and stimulus/square/blue/left).
-        These are organized hierarchically such that the first labels are fixed
-        and corresponding descriptors can be extended to describe any event
-        with any level of detail. HED tags make it easy to search through and
-        analyze variations of events of the same type.
+        Hierarchical event descriptors (abbr. ``HED``) are tags that use
+        keywords separated by '/' to describe different types of EEG
+        experimental events (for example, stimulus/circle/red/left and
+        stimulus/circle/blue/left). These tags can be used to group
+        experimental events and select event types for analysis.
+        
 
     HPI
     cHPI

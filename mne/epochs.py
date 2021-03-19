@@ -2108,8 +2108,8 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
         ``event_id``.
     keep_first : str | list of str | None
         Specify subsets of :term:`hierarchical event descriptors` (HEDs,
-        :footcite:`BigdelyShamloEtAl2013`) matching events of which the
-        **first occurrence** within each time window shall be stored in
+        inspired by :footcite:`BigdelyShamloEtAl2013`) matching events of which
+        the **first occurrence** within each time window shall be stored in
         addition to the original events.
 
         .. note::
