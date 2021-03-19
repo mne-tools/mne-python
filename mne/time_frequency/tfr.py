@@ -2110,7 +2110,12 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
                                max(selection) + 1)))
         else:
             drop_log = drop_log
-
+        # check consistency:
+        assert len(selection) == len(events)
+        assert len(drop_log) >= len(events)
+        assert len(selection) == sum(
+            (len(dl) == 0 for dl in drop_log))
+        # TODO Check for consistency with .metadata?
         event_id = _check_event_id(event_id, events)
         self.data = data
         self.times = np.array(times, dtype=float)
@@ -2440,6 +2445,8 @@ def _prepare_write_tfr(tfr, condition):
     elif hasattr(tfr, 'events'):  # if EpochsTFR
         attributes['events'] = tfr.events
         attributes['event_id'] = tfr.event_id
+        attributes['selection'] = tfr.selection
+        attributes['drop_log'] = tfr.drop_log
         attributes['metadata'] = _prepare_write_metadata(tfr.metadata)
     return condition, attributes
 
