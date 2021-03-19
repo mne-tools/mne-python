@@ -133,6 +133,8 @@ Enhancements
 
 - :func:`mne.io.anonymize_info` now anonymizes also sex and hand fields when ``keep_his`` is ``False`` (:gh:`9103` by |Rotem Falach|_)`
 
+- Migration from eeglab doc now displays the preprocessing functions in mne (:gh:'9158' by `Apoorva Karekal`_)
+
 Bugs
 ~~~~
 - Fix bug with :func:`mne.Epochs.plot_image` where the ``x_label`` was different depending on the evoked parameter (:gh:`9115` **by new contributor** |Matteo Anelli|_)
