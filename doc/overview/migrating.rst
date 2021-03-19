@@ -52,7 +52,7 @@ below which and above which to filter out data.
 |                     | |                                                        | |                                                                                                |
 | Plot ICA properties | | ``pop_compprop( EEG, comp_num, winhandle);``           | | :func:`ica.plot_properties(raw, picks)`                                                        |
 | Plot ICA components | | ``compheads()``                                        | | :func:`ica.plot_components(inst=raw_tmp, picks=range())`                                       |
-| Exlude components   | | ``pop_selectcomps()``                                  | | :func:`ica.exclude`                                                                            |
+| Exclude components  | | ``pop_selectcomps()``                                  | | :func:`ica.exclude`                                                                            |
 +---------------------+----------------------------------------------------------+--------------------------------------------------------------------------------------------------+
 | Epoch data          | | ``event_id = {'cond1', 'cond2'};``                     | | :func:`events = mne.find_events(raw) <mne.find_events>`                                        |
 |                     | | ``Epochs = pop_epochs(EEG, event_id, [tmin, tmax]);``  | | :class:`event_id = dict(cond1=32, cond2=64) <dict>`                                            |
