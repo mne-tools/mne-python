@@ -733,7 +733,7 @@ def _sph_to_cart(sph_pts):
 def _get_n_moments(order):
     """Compute the number of multipolar moments (spherical harmonics).
 
-    Equivalent to [1]_ Eq. 32.
+    Equivalent to :footcite:`DarvasEtAl2006` Eq. 32.
 
     .. note:: This count excludes ``degree=0`` (for ``order=0``).
 
@@ -901,8 +901,8 @@ class _TPSWarp(object):
 
     Notes
     -----
-    Based on the method by :footcite:`Bookstein1989` and,
-    adapted from code by `Wang Lin <wanglin193@hotmail.com>`_.
+    Based on the method by :footcite:`Bookstein1989` and
+    adapted from code by Wang Lin (wanglin193@hotmail.com>).
 
     References
     ----------
