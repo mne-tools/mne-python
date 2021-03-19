@@ -21,9 +21,9 @@ import numpy as np
 from .io import read_fiducials, write_fiducials, read_info
 from .io.constants import FIFF
 from .label import read_label, Label
-from .source_space import (add_source_space_distances, read_source_spaces,
+from .source_space import (add_source_space_distances, read_source_spaces,  # noqa: E501,F401
                            write_source_spaces, _read_mri_info,
-                           get_mni_fiducials)  # noqa
+                           get_mni_fiducials)
 from .surface import read_surface, write_surface, _normalize_vectors
 from .bem import read_bem_surfaces, write_bem_surfaces
 from .transforms import (rotation, rotation3d, scaling, translation, Transform,
