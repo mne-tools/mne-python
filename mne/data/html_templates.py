@@ -62,27 +62,3 @@ raw_template = Template(u"""
 </table>
 </li>
 """)
-
-
-def _repr_raw_html(self, global_id='', caption='', tmin=0, tmax=0):
-    n_eeg = len(pick_types(self, meg=False, eeg=True))
-    n_grad = len(pick_types(self, meg='grad'))
-    n_mag = len(pick_types(self, meg='mag'))
-    pick_eog = pick_types(self, meg=False, eog=True)
-    if len(pick_eog) > 0:
-        eog = ', '.join(np.array(self['ch_names'])[pick_eog])
-    else:
-        eog = 'Not available'
-    pick_ecg = pick_types(self, meg=False, ecg=True)
-    if len(pick_ecg) > 0:
-        ecg = ', '.join(np.array(self['ch_names'])[pick_ecg])
-    else:
-        ecg = 'Not available'
-    meas_date = self['meas_date']
-    if meas_date is not None:
-        meas_date = meas_date.strftime("%B %d, %Y") + ' GMT'
-
-    return raw_template.substitute(
-        div_klass='raw', id=global_id, caption=caption, info=self,
-        meas_date=meas_date, n_eeg=n_eeg, n_grad=n_grad, n_mag=n_mag,
-        eog=eog, ecg=ecg, tmin=tmin, tmax=tmax)
