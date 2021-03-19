@@ -471,16 +471,52 @@ def test_io():
     events[:, 0] = np.arange(n_events)
     events[:, 2] = np.ones(n_events)
     event_id = {'a/b': 1}
+    # fake selection
+    n_dropped_epochs = 3
+    selection = np.arange(n_events + n_dropped_epochs)[n_dropped_epochs:]
+    drop_log = tuple([('IGNORED',) for i in range(n_dropped_epochs)] +
+                     [() for i in range(n_events)])
 
     tfr = EpochsTFR(info, data=data, times=times, freqs=freqs,
                     comment='test', method='crazy-tfr', events=events,
-                    event_id=event_id, metadata=meta)
-    tfr.save(fname, True)
-    read_tfr = read_tfrs(fname)[0]
-    assert_array_equal(tfr.data, read_tfr.data)
-    assert_metadata_equal(tfr.metadata, read_tfr.metadata)
-    assert_array_equal(tfr.events, read_tfr.events)
-    assert tfr.event_id == read_tfr.event_id
+                    event_id=event_id, selection=selection, drop_log=drop_log,
+                    metadata=meta)
+    fname_save = fname
+    tfr.save(fname_save, True)
+    fname_write = op.join(tempdir, 'test3-tfr.h5')
+    write_tfrs(fname_write, tfr, overwrite=True)
+    for fname in [fname_save, fname_write]:
+        read_tfr = read_tfrs(fname)[0]
+        assert_array_equal(tfr.data, read_tfr.data)
+        assert_metadata_equal(tfr.metadata, read_tfr.metadata)
+        assert_array_equal(tfr.events, read_tfr.events)
+        assert tfr.event_id == read_tfr.event_id
+        assert_array_equal(tfr.selection, read_tfr.selection)
+        assert tfr.drop_log == read_tfr.drop_log
+    with pytest.raises(NotImplementedError, match='condition not supported'):
+        tfr = read_tfrs(fname, condition='a')
+
+
+def test_init_EpochsTFR():
+    # Create fake data:
+    data = np.zeros((3, 3, 3, 3))
+    times = np.array([.1, .2, .3])
+    freqs = np.array([.10, .20, .30])
+    info = mne.create_info(['MEG 001', 'MEG 002', 'MEG 003'], 1000.,
+                           ['mag', 'mag', 'mag'])
+    data_x = data[:, :, :, 0]
+    with pytest.raises(ValueError, match='data should be 4d. Got 3'):
+        tfr = EpochsTFR(info, data=data_x, times=times, freqs=freqs)
+    data_x = data[:, :-1, :, :]
+    with pytest.raises(ValueError, match="channels and data size don't"):
+        tfr = EpochsTFR(info, data=data_x, times=times, freqs=freqs)
+    times_x = times[:-1]
+    with pytest.raises(ValueError, match="times and data size don't match"):
+        tfr = EpochsTFR(info, data=data, times=times_x, freqs=freqs)
+    freqs_x = freqs[:-1]
+    with pytest.raises(ValueError, match="frequencies and data size don't"):
+        tfr = EpochsTFR(info, data=data, times=times_x, freqs=freqs_x)
+        del(tfr)
 
 
 def test_plot():
@@ -784,69 +820,76 @@ def test_getitem_epochsTFR():
     # Setup for reading the raw data and select a few trials
     raw = read_raw_fif(raw_fname)
     events = read_events(event_fname)
-    n_events = 10
+    # create fake data, test with and without dropping epochs
+    for n_drop_epochs in [0, 2]:
+        n_events = 12
+        # create fake metadata
+        rng = np.random.RandomState(42)
+        rt = rng.uniform(size=(n_events,))
+        trialtypes = np.array(['face', 'place'])
+        trial = trialtypes[(rng.uniform(size=(n_events,)) > .5).astype(int)]
+        meta = DataFrame(dict(RT=rt, Trial=trial))
+        event_id = dict(a=1, b=2, c=3, d=4)
+        epochs = Epochs(raw, events[:n_events], event_id=event_id,
+                        metadata=meta, decim=1)
+        epochs.drop(np.arange(n_drop_epochs))
+        n_events -= n_drop_epochs
 
-    # create fake metadata
-    rng = np.random.RandomState(42)
-    rt = rng.uniform(size=(n_events,))
-    trialtypes = np.array(['face', 'place'])
-    trial = trialtypes[(rng.uniform(size=(n_events,)) > .5).astype(int)]
-    meta = DataFrame(dict(RT=rt, Trial=trial))
-    event_id = dict(a=1, b=2, c=3, d=4)
-    epochs = Epochs(raw, events[:n_events], event_id=event_id, metadata=meta,
-                    decim=1)
+        freqs = np.arange(12., 17., 2.)  # define frequencies of interest
+        n_cycles = freqs / 2.  # 0.5 second time windows for all frequencies
 
-    freqs = np.arange(12., 17., 2.)  # define frequencies of interest
-    n_cycles = freqs / 2.  # 0.5 second time windows for all frequencies
+        # Choose time x (full) bandwidth product
+        time_bandwidth = 4.0
+        # With 0.5 s time windows, this gives 8 Hz smoothing
+        kwargs = dict(freqs=freqs, n_cycles=n_cycles, use_fft=True,
+                      time_bandwidth=time_bandwidth, return_itc=False,
+                      average=False, n_jobs=1)
+        power = tfr_multitaper(epochs, **kwargs)
 
-    # Choose time x (full) bandwidth product
-    time_bandwidth = 4.0  # With 0.5 s time windows, this gives 8 Hz smoothing
-    kwargs = dict(freqs=freqs, n_cycles=n_cycles, use_fft=True,
-                  time_bandwidth=time_bandwidth, return_itc=False,
-                  average=False, n_jobs=1)
-    power = tfr_multitaper(epochs, **kwargs)
+        # Check that power and epochs metadata is the same
+        assert_metadata_equal(epochs.metadata, power.metadata)
+        assert_metadata_equal(epochs[::2].metadata, power[::2].metadata)
+        assert_metadata_equal(epochs['RT < .5'].metadata,
+                              power['RT < .5'].metadata)
+        assert_array_equal(epochs.selection, power.selection)
+        assert epochs.drop_log == power.drop_log
+
+        # Check that get power is functioning
+        assert_array_equal(power[3:6].data, power.data[3:6])
+        assert_array_equal(power[3:6].events, power.events[3:6])
+        assert_array_equal(epochs.selection[3:6], power.selection[3:6])
+
+        indx_check = (power.metadata['Trial'] == 'face')
+        try:
+            indx_check = indx_check.to_numpy()
+        except Exception:
+            pass  # older Pandas
+        indx_check = indx_check.nonzero()
+        assert_array_equal(power['Trial == "face"'].events,
+                           power.events[indx_check])
+        assert_array_equal(power['Trial == "face"'].data,
+                           power.data[indx_check])
+
+        # Check that the wrong Key generates a Key Error for Metadata search
+        with pytest.raises(KeyError):
+            power['Trialz == "place"']
+
+        # Test length function
+        assert len(power) == n_events
+        assert len(power[3:6]) == 3
+
+        # Test iteration function
+        for ind, power_ep in enumerate(power):
+            assert_array_equal(power_ep, power.data[ind])
+            if ind == 5:
+                break
+
+        # Test that current state is maintained
+        assert_array_equal(power.next(), power.data[ind + 1])
 
     # Check decim affects sfreq
     power_decim = tfr_multitaper(epochs, decim=2, **kwargs)
     assert power.info['sfreq'] / 2. == power_decim.info['sfreq']
-
-    # Check that power and epochs metadata is the same
-    assert_metadata_equal(epochs.metadata, power.metadata)
-    assert_metadata_equal(epochs[::2].metadata, power[::2].metadata)
-    assert_metadata_equal(epochs['RT < .5'].metadata,
-                          power['RT < .5'].metadata)
-
-    # Check that get power is functioning
-    assert_array_equal(power[3:6].data, power.data[3:6])
-    assert_array_equal(power[3:6].events, power.events[3:6])
-
-    indx_check = (power.metadata['Trial'] == 'face')
-    try:
-        indx_check = indx_check.to_numpy()
-    except Exception:
-        pass  # older Pandas
-    indx_check = indx_check.nonzero()
-    assert_array_equal(power['Trial == "face"'].events,
-                       power.events[indx_check])
-    assert_array_equal(power['Trial == "face"'].data,
-                       power.data[indx_check])
-
-    # Check that the wrong Key generates a Key Error for Metadata search
-    with pytest.raises(KeyError):
-        power['Trialz == "place"']
-
-    # Test length function
-    assert len(power) == n_events
-    assert len(power[3:6]) == 3
-
-    # Test iteration function
-    for ind, power_ep in enumerate(power):
-        assert_array_equal(power_ep, power.data[ind])
-        if ind == 5:
-            break
-
-    # Test that current state is maintained
-    assert_array_equal(power.next(), power.data[ind + 1])
 
 
 @requires_pandas
