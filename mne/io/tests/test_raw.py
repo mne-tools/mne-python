@@ -610,7 +610,7 @@ def test_get_data_units():
     data_str_fraction = raw.get_data(picks=['grad'], units='fT/cm')
     assert data_str_fraction.shape == (204, 14400)
     assert_array_almost_equal(data_str_fraction[-3:, -1],
-                              last_grad * (1e15/1e2))
+                              last_grad * (1e15 / 1e2))
     # str: more than one channel type but one with unit
     data_str_simplestim = raw.get_data(picks=['eeg', 'stim'], units='V')
     assert data_str_simplestim.shape == (69, 14400)
@@ -626,7 +626,7 @@ def test_get_data_units():
     data_dict = raw.get_data(units=dict(grad='fT/cm', mag='fT', eeg='uV'))
     assert data_dict.shape == (376, 14400)
     assert_array_almost_equal(data_dict[0, -1],
-                              -3.857421923113974e-12 * (1e15/1e2))
+                              -3.857421923113974e-12 * (1e15 / 1e2))
     assert_array_almost_equal(data_dict[2, -1], -2.1478272253525944e-13 * 1e15)
     assert_array_almost_equal(data_dict[-2, -1], 7.665637356879529e-05 * 1e6)
     # dict: channel type not in instance
