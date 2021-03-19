@@ -409,11 +409,7 @@ ica.plot_sources(ecg_evoked)
 # resolves out a little better:
 
 # refit the ICA with 30 components this time
-<<<<<<< HEAD
 new_ica = ICA(n_components=30, max_iter='auto', random_state=97)
-=======
-new_ica = ICA(n_components=30, random_state=97, max_iter="auto")
->>>>>>> cf55f1c21 (remove empty lines and update the code to the recent 0.23 introduction of max_iter=auto)
 new_ica.fit(filt_raw)
 
 # find which ICs match the ECG pattern
@@ -493,11 +489,7 @@ for subj in range(4):
     raw.rename_channels(mapping)
     raw.set_montage('standard_1005')
     # fit ICA
-<<<<<<< HEAD
     ica = ICA(n_components=30, max_iter='auto', random_state=97)
-=======
-    ica = ICA(n_components=30, random_state=97, max_iter="auto")
->>>>>>> cf55f1c21 (remove empty lines and update the code to the recent 0.23 introduction of max_iter=auto)
     ica.fit(raw)
     raws.append(raw)
     icas.append(ica)
