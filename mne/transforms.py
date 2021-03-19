@@ -901,12 +901,12 @@ class _TPSWarp(object):
 
     Notes
     -----
-    Based on the method by :footcite:`Bookstein1989`
-    Adapted from code by `Wang Lin <wanglin193@hotmail.com>`_.
+    Based on the method by :footcite:`Bookstein1989` and,
+    adapted from code by `Wang Lin <wanglin193@hotmail.com>`_.
 
     References
     ----------
-    ..footbibliography::
+    .. footbibliography::
     """
 
     def fit(self, source, destination, reg=1e-3):
@@ -996,7 +996,7 @@ class _SphericalSurfaceWarp(object):
 
     References
     ----------
-    ..footbibliography::
+    .. footbibliography::
     """
 
     def __repr__(self):
