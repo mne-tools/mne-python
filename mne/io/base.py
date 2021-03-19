@@ -884,7 +884,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                 # Get the scaling factors
                 for i, unit in enumerate(unit_list):
                     has_square = False
-                    # TODO remove power
+                    # XXX power normally not used as csd cannot get_data()
                     if unit[-1] == '²':
                         has_square = True
                     if unit == 'm':  # only the ECG unit starts like a prefix
