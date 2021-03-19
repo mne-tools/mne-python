@@ -41,7 +41,9 @@ from .evoked import EvokedArray, _check_decim
 from .baseline import rescale, _log_rescale
 from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin)
-from .filter import detrend, FilterMixin
+from .filter import detrend, FilterMixin, _check_fun
+from .parallel import parallel_func
+
 from .event import _read_events_fif, make_fixed_length_events
 from .fixes import _get_args, rng_uniform
 from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
@@ -1490,6 +1492,58 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             A view on epochs data.
         """
         return self._get_data(picks=picks, item=item)
+
+    @verbose
+    def apply_function(self, fun, picks=None, dtype=None, n_jobs=1,
+                       channel_wise=True, verbose=None, *args, **kwargs):
+        """Apply a function to a subset of channels.
+
+        %(applyfun_summary_epochs)s
+
+        Parameters
+        ----------
+        %(applyfun_fun)s
+        %(picks_all_data_noref)s
+        %(applyfun_dtype)s
+        %(n_jobs)s
+        %(applyfun_chwise)s
+        %(verbose_meth)s
+        %(arg_fun)s
+        %(kwarg_fun)s
+
+        Returns
+        -------
+        self : instance of Epochs
+            The epochs object with transformed data.
+        """
+        _check_preload(self, 'epochs.apply_function')
+        picks = _picks_to_idx(self.info, picks, exclude=(), with_ref_meg=False)
+
+        if not callable(fun):
+            raise ValueError('fun needs to be a function')
+
+        data_in = self._data
+        if dtype is not None and dtype != self._data.dtype:
+            self._data = self._data.astype(dtype)
+
+        if channel_wise:
+            if n_jobs == 1:
+                # modify data inplace to save memory
+                for idx in picks:
+                    self._data[:, idx, :] = _check_fun(fun, data_in[:, idx, :],
+                                                       *args, **kwargs)
+            else:
+                # use parallel function
+                parallel, p_fun, _ = parallel_func(_check_fun, n_jobs)
+                data_picks_new = parallel(p_fun(
+                    fun, data_in[:, p, :], *args, **kwargs) for p in picks)
+                for pp, p in enumerate(picks):
+                    self._data[:, p, :] = data_picks_new[pp]
+        else:
+            self._data = _check_fun(
+                fun, data_in, *args, **kwargs)
+
+        return self
 
     @property
     def times(self):

@@ -45,8 +45,16 @@ Current (0.23.dev0)
 
 .. |Silvia Cotroneo| replace:: **Silvia Cotroneo**
 
+.. |Erica Peterson| replace:: **Erica Peterson**
+
+.. |Maggie Clarke| replace:: **Maggie Clarke**
+
 Enhancements
 ~~~~~~~~~~~~
+- Add ``apply_function`` method to epochs and evoked objects (:gh:`9088` **by new contributor** |Erica Peterson|_ and `Victoria Peterson`_)
+
+- New tutorial for function :func:`mne.make_fixed_length_epochs` (:gh:`9156` **by new contributor** |Erica Peterson|_)
+
 - Add different colors for each volume source space in :func:`mne.viz.plot_alignment` (:gh:`9043` **by new contributor** |Valerii Chirkov|_)
 
 - Add ``overlap`` parameter to :func:`mne.make_fixed_length_epochs` to allow creating overlapping fixed length epochs (:gh:`9096` **by new contributor** |Silvia Cotroneo|_)
@@ -138,6 +146,8 @@ Enhancements
 
 Bugs
 ~~~~
+- Fix bug with :func:`mne.Epochs.plot_image` allowing interactive zoom to work properly (:gh:`9152` by **by new contributor** |Maggie Clarke|_ and `Daniel McCloy`_)
+
 - Fix bug with :func:`mne.Epochs.plot_image` where the ``x_label`` was different depending on the evoked parameter (:gh:`9115` **by new contributor** |Matteo Anelli|_)
 
 - Fix bug with restricting :func:`mne.io.Raw.save` saving options to .fif and .fif.gz extensions (:gh:`9062` by |Valerii Chirkov|_)
