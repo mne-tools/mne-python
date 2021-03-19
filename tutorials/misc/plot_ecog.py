@@ -80,10 +80,10 @@ print(raw.get_montage().get_positions()['coord_frame'])
 # Find the annotated events
 events, event_id = mne.events_from_annotations(raw)
 
-# Make a 30 second epoch before and after the seizure onset
-epoch_length = 30  # seconds
+# Make a 25 second epoch that spans before and after the seizure onset
+epoch_length = 25  # seconds
 epochs = mne.Epochs(raw, events, event_id=event_id['onset'],
-                    tmin=10, tmax=10 + epoch_length, baseline=None)
+                    tmin=13, tmax=13 + epoch_length, baseline=None)
 
 # And then load data and downsample.
 # .. note: This is just to save execution time in this example, you should
@@ -200,15 +200,15 @@ fig, (ax, ax2) = plt.subplots(1, 2, figsize=(12, 6))
 ax.imshow(im)
 ax.set_axis_off()
 ax.set_xlim([100, im.shape[0]])
-ax.set_ylim([im.shape[1] - 300, 200])
+ax.set_ylim([im.shape[1] - 200, 0])
 ax2.imshow(im2)
 ax2.set_axis_off()
 ax2.set_xlim([375, im.shape[0] - 750])
-ax2.set_ylim([im.shape[1] - 400, 700])
+ax2.set_ylim([im.shape[1] - 400, 650])
 ax3 = ax2.inset_axes((0.7, 0.0, 0.3, 0.3))
 ax3.imshow(im2)
 ax3.plot([375, 375, im.shape[0] - 750, im.shape[0] - 750, 375],
-         [im.shape[1] - 400, 700, 700, im.shape[1] - 400, im.shape[1] - 400],
+         [im.shape[1] - 400, 650, 650, im.shape[1] - 400, im.shape[1] - 400],
          color='k')
 ax3.set_axis_off()
 
@@ -278,22 +278,22 @@ for i in range(epoch_length * sfreq):
 
 # normalize for plots
 power_data /= power_data.mean(axis=2)[:, :, np.newaxis]
-power_data *= 2000 / power_data.max()
+power_data *= 1000 / power_data.max()
 
 # create the figure to apply the power animation
 fig, (ax, ax2) = plt.subplots(1, 2, figsize=(12, 6))
 ax.imshow(im)
 ax.set_axis_off()
 ax.set_xlim([100, im.shape[0]])
-ax.set_ylim([im.shape[1] - 300, 200])
+ax.set_ylim([im.shape[1] - 200, 0])
 ax2.imshow(im2)
 ax2.set_axis_off()
 ax2.set_xlim([375, im.shape[0] - 750])
-ax2.set_ylim([im.shape[1] - 400, 700])
+ax2.set_ylim([im.shape[1] - 400, 650])
 ax3 = ax2.inset_axes((0.7, 0.0, 0.3, 0.3))
 ax3.imshow(im2)
 ax3.plot([375, 375, im.shape[0] - 750, im.shape[0] - 750, 375],
-         [im.shape[1] - 400, 700, 700, im.shape[1] - 400, im.shape[1] - 400],
+         [im.shape[1] - 400, 650, 650, im.shape[1] - 400, im.shape[1] - 400],
          color='k')
 ax3.set_axis_off()
 
