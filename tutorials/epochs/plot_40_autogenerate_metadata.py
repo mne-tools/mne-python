@@ -158,7 +158,7 @@ metadata
 # type (here: response side) was matched, a second column is added:
 # ``first_response``. The values in this column are the event types without the
 # string used for matching, as it is already encoded as the column name, i.e.
-# in our example, it we expect it to only contain ``'left'`` and ``'right'``.
+# in our example, we expect it to only contain ``'left'`` and ``'right'``.
 
 keep_first = 'response'
 metadata, events, event_id = mne.epochs.make_metadata(
@@ -433,5 +433,5 @@ fig
 
 ###############################################################################
 # References
-# ----------
+# ^^^^^^^^^^
 # .. footbibliography::
