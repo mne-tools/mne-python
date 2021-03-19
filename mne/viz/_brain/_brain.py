@@ -293,7 +293,8 @@ class Brain(object):
     theme : str | path-like
         Can be "auto" (default), "light", or "dark" or a path-like to a
         custom stylesheet. For Dark-Mode and automatic Dark-Mode-Detection,
-        :mod:`qdarkstyle` respectively :mod:`darkdetect` is required.
+        :mod:`qdarkstyle` respectively and `darkdetect
+        <https://github.com/albertosottile/darkdetect>`__ is required.
     show : bool
         Display the window as soon as it is ready. Defaults to True.
 

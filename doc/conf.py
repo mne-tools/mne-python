@@ -149,8 +149,7 @@ intersphinx_mapping = {
     'dipy': ('https://dipy.org/documentation/1.2.0.', None),
     'mne_realtime': ('https://mne.tools/mne-realtime', None),
     'picard': ('https://pierreablin.github.io/picard/', None),
-    'qdarkstyle': ('https://github.com/ColinDuquesnoy/QDarkStyleSheet', None),
-    'darkdetect': ('https://github.com/albertosottile/darkdetect', None)
+    'qdarkstyle': ('https://qdarkstylesheet.readthedocs.io/en/latest', None)
 }
 
 
