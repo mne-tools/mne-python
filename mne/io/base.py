@@ -52,6 +52,7 @@ from ..defaults import _handle_default
 from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo, _RAW_CLIP_DEF
 from ..event import find_events, concatenate_events
 from ..annotations import Annotations, _combine_annotations, _sync_onset
+from ..data.html_templates import raw_template
 
 
 class TimeMixin(object):
@@ -1675,6 +1676,13 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
              % (name, len(self.ch_names), self.n_times, self.times[-1],
                 size_str))
         return "<%s | %s>" % (self.__class__.__name__, s)
+
+    def _repr_html_(self, caption=None):
+        if not isinstance(caption, str):
+            caption = 'Raw'
+        return raw_template.substitute(
+            info_repr=self.info._repr_html_(caption=caption),
+            tmin=self.first_samp, tmax=self.last_samp)
 
     def add_events(self, events, stim_channel=None, replace=False):
         """Add events to stim channel.

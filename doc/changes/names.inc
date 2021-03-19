@@ -370,6 +370,8 @@
 
 .. _Valerii Chirkov: https://github.com/vagechirkov
 
+.. _Maggie Clarke: https://github.com/mdclarke
+
 .. _Matteo Anelli: https://github.com/matteoanelli
 
 .. _Cora Kim: https://github.com/kimcoco

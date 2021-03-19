@@ -20,6 +20,7 @@ import re
 import numpy as np
 
 from ..defaults import HEAD_SIZE_DEFAULT
+from ..source_space import get_mni_fiducials
 from ..viz import plot_montage
 from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
                           _topo_to_sph, _frame_to_str, Transform,
@@ -383,8 +384,6 @@ class DigMontage(object):
         and then use ``montage.get_native_head_t()`` to get the
         head <-> MRI transform.
         """
-        from ..coreg import get_mni_fiducials
-
         # get coordframe and fiducial coordinates
         montage_bunch = _get_data_as_dict_from_dig(self.dig)
 
