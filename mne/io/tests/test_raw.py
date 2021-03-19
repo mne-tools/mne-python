@@ -595,21 +595,26 @@ def test_get_data_units():
 
     # None
     data_none = raw.get_data()
+    assert data_none.shape == (376, 14400)
     assert_array_almost_equal(data_none[-3:, -1], last)
 
     # str: unit no conversion
     data_str_noconv = raw.get_data(picks=['eeg'], units='V')
+    assert data_str_noconv.shape == (60, 14400)
     assert_array_almost_equal(data_str_noconv[-3:, -1], last_eeg)
     # str: simple unit
     data_str_simple = raw.get_data(picks=['eeg'], units='uV')
+    assert data_str_simple.shape == (60, 14400)
     assert_array_almost_equal(data_str_simple[-3:, -1], last_eeg * 1e6)
     # str: fraction unit
     data_str_fraction = raw.get_data(picks=['grad'], units='fT/cm')
+    assert data_str_fraction.shape == (204, 14400)
     assert_array_almost_equal(data_str_fraction[-3:, -1],
                               last_grad * (1e15/1e2))
     # str: more than one channel type but one with unit
-    data_str_noconv = raw.get_data(picks=['eeg', 'stim'], units='V')
-    assert_array_almost_equal(data_str_noconv[-3:, -1], last_eeg)
+    data_str_simplestim = raw.get_data(picks=['eeg', 'stim'], units='V')
+    assert data_str_simplestim.shape == (69, 14400)
+    assert_array_almost_equal(data_str_simplestim[-3:, -1], last_eeg)
     # str: too many channels
     with pytest.raises(ValueError, match='more than one channel'):
         raw.get_data(units='uV')
@@ -619,12 +624,14 @@ def test_get_data_units():
 
     # dict: combination of simple and fraction units
     data_dict = raw.get_data(units=dict(grad='fT/cm', mag='fT', eeg='uV'))
+    assert data_dict.shape == (376, 14400)
     assert_array_almost_equal(data_dict[0, -1],
                               -3.857421923113974e-12 * (1e15/1e2))
     assert_array_almost_equal(data_dict[2, -1], -2.1478272253525944e-13 * 1e15)
     assert_array_almost_equal(data_dict[-2, -1], 7.665637356879529e-05 * 1e6)
     # dict: channel type not in instance
     data_dict_notin = raw.get_data(units=dict(hbo='uM'))
+    assert data_dict_notin.shape == (376, 14400)
     assert_array_almost_equal(data_dict_notin[-3:, -1], last)
     # dict: one invalid unit
     with pytest.raises(ValueError, match='is not a valid unit'):
@@ -633,5 +640,3 @@ def test_get_data_units():
     # not the good type
     with pytest.raises(TypeError, match='must be None, str or dict'):
         raw.get_data(units=['fT/cm', 'fT', 'uV'])
-
-    # TODO matrix shapes
