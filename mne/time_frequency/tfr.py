@@ -2411,7 +2411,8 @@ def write_tfrs(fname, tfr, overwrite=False, *, verbose=None):
     ----------
     fname : str
         The file name, which should end with ``-tfr.h5``.
-    tfr : AverageTFR instance, or list of AverageTFR instances
+    tfr : AverageTFR instance, list of AverageTFR instances, or EpochsTFR \
+        instance
         The TFR dataset, or list of TFR datasets, to save in one file.
         Note. If .comment is not None, a name will be generated on the fly,
         based on the order in which the TFR objects are passed.
@@ -2464,7 +2465,8 @@ def read_tfrs(fname, condition=None):
 
     Returns
     -------
-    tfrs : list of instances of AverageTFR | instance of AverageTFR
+    tfrs : list of instances of AverageTFR | instance of AverageTFR | \
+        instance of EpochsTFR
         Depending on ``condition`` either the TFR object or a list of multiple
         TFR objects.
 
