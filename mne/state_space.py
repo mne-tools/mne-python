@@ -4,7 +4,8 @@ from .event import make_fixed_length_events
 from .utils import (check_version)
 
 
-def lds_raw(raw, win_size=0.5, step_size=0, l2_penalty=None,
+def lds_raw(raw, win_size=0.5, step_size=0, start=None, end=None,
+            l2_penalty=None,
             normalize=False, solver='auto', random_state=None,
             sample_weight=None, return_times=False):
     """Compute sliding window linear dynamical system of Raw data.
@@ -60,6 +61,8 @@ def lds_raw(raw, win_size=0.5, step_size=0, l2_penalty=None,
         solver=solver,
         random_state=random_state,
     )
+
+    # if start is not None and stop is not None, then crop the raw?
 
     # generate epochs based on window size and step size
     events = make_fixed_length_events(raw, duration=win_size, overlap=step_size)
