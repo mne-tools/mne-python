@@ -277,7 +277,7 @@ for i in range(epoch_length * sfreq):
 
 
 # normalize for plots
-power_data /= power_data.mean(axis=2)
+power_data /= power_data.mean(axis=2)[:, :, np.newaxis]
 power_data *= 2000 / power_data.max()
 
 # create the figure to apply the power animation
