@@ -200,7 +200,7 @@ fig, (ax, ax2) = plt.subplots(1, 2, figsize=(12, 6))
 ax.imshow(im)
 ax.set_axis_off()
 ax.set_xlim([100, im.shape[0]])
-ax.set_ylim([im.shape[1] - 200, 0])
+ax.set_ylim([im.shape[1] - 200, 200])
 ax2.imshow(im2)
 ax2.set_axis_off()
 ax2.set_xlim([375, im.shape[0] - 750])
@@ -258,7 +258,11 @@ anim = animation.FuncAnimation(fig, animate_lines, init_func=lambda: artists,
 #
 # Say we want to visualize the evolution of the power, instead of just
 # plotting the average. We can use also animation this and apply it
-# to the brain figure.
+# to the brain figure. This allows us to visualize the higher frequency
+# components that were not as easily visible on in the downsampled time
+# plot. The seizure changes the power spectrum towards having greater power in
+# the gamma band; at higher frequencies. In this plot, darker purples are
+# lower frequencies and lighter yellows are higher frequencies.
 
 
 def update_power_series(f_path, x, y, f_data):
@@ -278,14 +282,14 @@ for i in range(epoch_length * sfreq):
 
 # normalize for plots
 power_data /= power_data.mean(axis=2)[:, :, np.newaxis]
-power_data *= 1000 / power_data.max()
+power_data *= 200 / power_data.max()
 
 # create the figure to apply the power animation
 fig, (ax, ax2) = plt.subplots(1, 2, figsize=(12, 6))
 ax.imshow(im)
 ax.set_axis_off()
 ax.set_xlim([100, im.shape[0]])
-ax.set_ylim([im.shape[1] - 200, 0])
+ax.set_ylim([im.shape[1] - 200, 200])
 ax2.imshow(im2)
 ax2.set_axis_off()
 ax2.set_xlim([375, im.shape[0] - 750])
