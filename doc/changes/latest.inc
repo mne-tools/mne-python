@@ -119,6 +119,8 @@ Enhancements
 
 Bugs
 ~~~~
+- Fix bug with :func:`mne.Epochs.plot_image` allowing interactive zoom to work properly (:gh:`9152` by **by new contributor** |Maggie Clarke|_ and `Daniel McCloy`_)
+
 - Fix bug with :func:`mne.Epochs.plot_image` where the ``x_label`` was different depending on the evoked parameter (:gh:`9115` **by new contributor** |Matteo Anelli|_)
 
 - Fix bug with restricting :func:`mne.io.Raw.save` saving options to .fif and .fif.gz extensions (:gh:`9062` by |Valerii Chirkov|_)
