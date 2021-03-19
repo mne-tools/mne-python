@@ -51,7 +51,7 @@ Enhancements
 ~~~~~~~~~~~~
 - Add ``apply_function`` method to epochs and evoked objects (:gh:`9088` **by new contributor** |Erica Peterson|_ and 'Victoria Peterson'_)
 
-- New tutorial for function :func:`mne.create_fixed_length_epochs` (:gh:`9156` **by new contributor** |Erica Peterson|_)
+- New tutorial for function :func:`mne.make_fixed_length_epochs` (:gh:`9156` **by new contributor** |Erica Peterson|_)
 
 - Add different colors for each volume source space in :func:`mne.viz.plot_alignment` (:gh:`9043` **by new contributor** |Valerii Chirkov|_)
 
