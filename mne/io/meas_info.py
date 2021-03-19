@@ -17,7 +17,7 @@ from textwrap import shorten
 import numpy as np
 
 from .pick import (channel_type, pick_channels, pick_info,
-                   get_channel_type_constants)
+                   get_channel_type_constants, pick_types)
 from .constants import FIFF, _coord_frame_named
 from .open import fiff_open
 from .tree import dir_tree_find
@@ -39,6 +39,7 @@ from ._digitization import (_format_dig_points, _dig_kind_proper, DigPoint,
                             _dig_kind_rev, _dig_kind_ints, _read_dig_fif)
 from ._digitization import write_dig as _dig_write_dig
 from .compensator import get_current_comp
+from ..data.html_templates import raw_template
 
 b = bytes  # alias
 
@@ -807,6 +808,29 @@ class Info(dict, MontageMixin):
     @property
     def ch_names(self):
         return self['ch_names']
+
+    def _repr_html(self, global_id='', caption='', tmin=0, tmax=0):
+        n_eeg = len(pick_types(self, meg=False, eeg=True))
+        n_grad = len(pick_types(self, meg='grad'))
+        n_mag = len(pick_types(self, meg='mag'))
+        pick_eog = pick_types(self, meg=False, eog=True)
+        if len(pick_eog) > 0:
+            eog = ', '.join(np.array(self['ch_names'])[pick_eog])
+        else:
+            eog = 'Not available'
+        pick_ecg = pick_types(self, meg=False, ecg=True)
+        if len(pick_ecg) > 0:
+            ecg = ', '.join(np.array(self['ch_names'])[pick_ecg])
+        else:
+            ecg = 'Not available'
+        meas_date = self['meas_date']
+        if meas_date is not None:
+            meas_date = meas_date.strftime("%B %d, %Y") + ' GMT'
+
+        return raw_template.substitute(
+            div_klass='raw', id=global_id, caption=caption, info=self,
+            meas_date=meas_date, n_eeg=n_eeg, n_grad=n_grad, n_mag=n_mag,
+            eog=eog, ecg=ecg, tmin=tmin, tmax=tmax)
 
 
 def _simplify_info(info):
