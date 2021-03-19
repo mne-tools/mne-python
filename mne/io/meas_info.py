@@ -39,7 +39,7 @@ from ._digitization import (_format_dig_points, _dig_kind_proper, DigPoint,
                             _dig_kind_rev, _dig_kind_ints, _read_dig_fif)
 from ._digitization import write_dig as _dig_write_dig
 from .compensator import get_current_comp
-from ..data.html_templates import raw_template
+from ..data.html_templates import info_template
 
 b = bytes  # alias
 
@@ -827,10 +827,9 @@ class Info(dict, MontageMixin):
         if meas_date is not None:
             meas_date = meas_date.strftime("%B %d, %Y") + ' GMT'
 
-        return raw_template.substitute(
-            div_klass='raw', id=global_id, caption=caption, info=self,
-            meas_date=meas_date, n_eeg=n_eeg, n_grad=n_grad, n_mag=n_mag,
-            eog=eog, ecg=ecg, tmin=tmin, tmax=tmax)
+        return info_template.substitute(
+            info=self, meas_date=meas_date, n_eeg=n_eeg, n_grad=n_grad,
+            n_mag=n_mag, eog=eog, ecg=ecg)
 
 
 def _simplify_info(info):
