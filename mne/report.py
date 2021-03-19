@@ -1899,8 +1899,9 @@ class Report(object):
         extra = '(MaxShield on)' if raw.info.get('maxshield', False) else ''
         caption = self._gen_caption(prefix='Raw', suffix=extra,
                                     fname=raw_fname, data_path=data_path)
-        html = raw.info._repr_html(global_id=global_id, caption=caption,
-                                   tmin=raw.first_samp, tmax=raw.last_samp)
+        html = """<li class="raw" id="%s">""" % (global_id)
+        html += raw._repr_html_(caption=caption)
+        html += "</li>"
 
         raw_psd = {} if self.raw_psd is True else self.raw_psd
         if isinstance(raw_psd, dict):
