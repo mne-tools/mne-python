@@ -45,6 +45,8 @@ Current (0.23.dev0)
 
 .. |Silvia Cotroneo| replace:: **Silvia Cotroneo**
 
+.. |Ram Pari| replace:: **Ram Pari**
+
 Enhancements
 ~~~~~~~~~~~~
 - Add different colors for each volume source space in :func:`mne.viz.plot_alignment` (:gh:`9043` **by new contributor** |Valerii Chirkov|_)
@@ -135,6 +137,8 @@ Enhancements
 
 Bugs
 ~~~~
+- Fix bug with :func:`mne.viz.plot_evoked_topo` where ``ylim`` was only being applied to the first channel in the dataset (:gh:`9162` **by new contributor** |Ram Pari|_ )
+
 - Fix bug with :func:`mne.Epochs.plot_image` where the ``x_label`` was different depending on the evoked parameter (:gh:`9115` **by new contributor** |Matteo Anelli|_)
 
 - Fix bug with restricting :func:`mne.io.Raw.save` saving options to .fif and .fif.gz extensions (:gh:`9062` by |Valerii Chirkov|_)
