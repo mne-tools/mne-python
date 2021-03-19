@@ -230,7 +230,7 @@ def _plot_topo(info, times, show_func, click_func=None, layout=None,
                                     fig_facecolor=fig_facecolor,
                                     unified=unified, img=img, axes=axes)
 
-    # Coverting the ylim to a list to avoid zip object exhaustion
+    # Converting the ylim to a list to avoid zip object exhaustion
     ylim_list = list(ylim)
     for ax, ch_idx in my_topo_plot:
         if layout.kind == 'Vectorview-all' and ylim is not None:
