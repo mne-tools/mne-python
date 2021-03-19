@@ -113,7 +113,7 @@ class Layout(object):
         .. versionadded:: 0.12.0
         """
         from ..viz.topomap import plot_layout
-        return plot_layout(self, picks=picks, show=show)
+        return plot_layout(self, picks=picks, show_axes=show_axes, show=show)
 
 
 def _read_lout(fname):
