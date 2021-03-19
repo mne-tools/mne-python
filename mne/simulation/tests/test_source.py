@@ -14,8 +14,7 @@ from mne.datasets import testing
 from mne import (read_label, read_forward_solution, pick_types_forward,
                  convert_forward_solution)
 from mne.label import Label
-from mne.simulation.source import simulate_stc, simulate_sparse_stc
-from mne.simulation.source import SourceSimulator
+from mne.simulation import simulate_stc, simulate_sparse_stc, SourceSimulator
 from mne.utils import run_tests_if_main, check_version
 
 

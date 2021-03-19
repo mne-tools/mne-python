@@ -141,7 +141,7 @@ Enhancements
 
 - :func:`mne.io.anonymize_info` now anonymizes also sex and hand fields when ``keep_his`` is ``False`` (:gh:`9103` by |Rotem Falach|_)`
 
-- Add first_samp support for raw simulations with `mne.simulation.raw.simulate_raw` and `mne.simulation.source.SourceSimulator` (:gh:`9166` by `Steven Bierer`_)
+- Add first_samp support for raw simulations with `mne.simulation.simulate_raw` and `mne.simulation.SourceSimulator` (:gh:`9166` by `Steven Bierer`_)
 
 
 Bugs

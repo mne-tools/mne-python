@@ -355,7 +355,7 @@ class SourceSimulator(object):
     @property
     def duration(self):
         """Duration of the simulation in same units as tstep.
-        It's interpreted as one tstep beyond the last sample."""
+        """
         if self._duration is not None:
             return self._duration
         return self.n_times * self._tstep
