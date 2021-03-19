@@ -851,7 +851,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         ch_factors = np.ones((len(picks), len(self)))
 
         si_units = _handle_default('si_units')
-        str_chs = _handle_default('str_ch_picks')
         si_units_splitted = {key: si_units[key].split('/') for key in si_units}
         prefixes = {'': 1e0, 'd': 1e1, 'c': 1e2, 'm': 1e3, 'µ': 1e6, 'u': 1e6,
                     'n': 1e9, 'p': 1e12, 'f': 1e15}
@@ -859,7 +858,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         if isinstance(units, str):
             # Check that there is only one channel type
-            ch_types = self.get_channel_types(unique=True)
+            ch_types = self.get_channel_types(picks=picks, unique=True)
             unit_ch_type = list(set(ch_types) & set(si_units.keys()))
             if len(unit_ch_type) > 1:
                 raise ValueError('"units" cannot be str if there is more than '
@@ -873,9 +872,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             for ch_type, ch_unit in units.items():
                 # Check that the provided unit exists for the ch_type
                 unit_list = ch_unit.split('/')
-                if len(unit_list) > 2:
-                    raise ValueError(f'{ch_unit} is not a valid unit.')
                 si_unit_list = si_units_splitted[ch_type]
+                if len(unit_list) != len(si_unit_list):
+                    raise ValueError(f'{ch_unit} is not a valid unit.')
                 for i, unit in enumerate(unit_list):
                     valid = [prefix + si_unit_list[i]
                              for prefix in prefix_list]
@@ -885,6 +884,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                 # Get the scaling factors
                 for i, unit in enumerate(unit_list):
                     has_square = False
+                    # TODO remove power
                     if unit[-1] == '²':
                         has_square = True
                     if unit == 'm':  # only the ECG unit starts like a prefix
@@ -896,20 +896,15 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                     if scaling != 1:
                         if has_square:
                             scaling *= scaling
-                        try:
-                            indices = pick_types(self.info, **{ch_type: True})
-                        except TypeError:
-                            for ch in str_chs:
-                                try:
-                                    indices = pick_types(
-                                        self.info, **{ch: ch_type})
-                                    break
-                                except ValueError:
-                                    continue
-                        if i == 2:
+                        ch_types = self.get_channel_types(picks=picks)
+                        indices = [i_ch for i_ch, ch in enumerate(ch_types)
+                                   if ch == ch_type]
+                        if i == 0:
+                            ch_factors[indices] = ch_factors[indices] * scaling
+                        elif i == 1:
                             ch_factors[indices] = ch_factors[indices] / scaling
                         else:
-                            ch_factors[indices] = ch_factors[indices] * scaling
+                            raise ValueError(f'{ch_unit} is not a valid unit.')
         else:
             raise TypeError('"units" must be None, str or dict, not '
                             f'{type(units)}.')
@@ -923,8 +918,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                 (picks, slice(start, stop)), return_times=return_times)
             if return_times:
                 data, times = getitem
-                return data*ch_factors, times
-            return getitem*ch_factors
+                return data * ch_factors, times
+            return getitem * ch_factors
         _check_option('reject_by_annotation', reject_by_annotation.lower(),
                       ['omit', 'nan'])
         onsets, ends = _annotations_starts_stops(self, ['BAD'])
@@ -934,8 +929,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         if len(onsets) == 0:
             data, times = self[picks, start:stop]
             if return_times:
-                return data*ch_factors, times
-            return data*ch_factors
+                return data * ch_factors, times
+            return data * ch_factors
         n_samples = stop - start  # total number of samples
         used = np.ones(n_samples, bool)
         for onset, end in zip(onsets, ends):
@@ -975,8 +970,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             data, times = self[picks, start:stop]
 
         if return_times:
-            return data*ch_factors, times
-        return data*ch_factors
+            return data * ch_factors, times
+        return data * ch_factors
 
     @verbose
     def apply_function(self, fun, picks=None, dtype=None, n_jobs=1,
