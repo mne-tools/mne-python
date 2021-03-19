@@ -28,31 +28,34 @@ below which and above which to filter out data.
 | Processing step     | EEGLAB function                                          | MNE-Python                                                                                       |
 +=====================+==========================================================+==================================================================================================+
 | Get started         | | ``addpath(...);``                                      | | :mod:`import mne <mne>`                                                                        |
-|                     | | ``eeglab;``                                            | | :mod:`from mne import io<mne.io>` :class:`~mne.Epochs`                                         |
+|                     | | ``eeglab;``                                            | | :mod:`from mne import io, <mne.io>` :class:`~mne.Epochs`                                       |
 |                     | |                                                        | | :mod:`from mne.preprocessing <mne.preprocessing>` :class:`import ICA <mne.preprocessing.ICA>`  |
 +---------------------+----------------------------------------------------------+--------------------------------------------------------------------------------------------------+
 | Import data         | | ``EEG = pop_fileio(fname);``                           | | :func:`raw = io.read_raw_fif(fname) <mne.io.read_raw_fif>`                                     |
 |                     | |                                                        | | :func:`raw = io.read_raw_edf(fname) <mne.io.read_raw_edf>`                                     |
 |                     | |                                                        | | :func:`raw = io.read_raw_eeglab(fname) <mne.io.read_raw_eeglab>` ``(set file)``                |
 |                     | |                                                        | |                                                                                                |
-+---------------------+----------------------------------------------------------+--------------------------------------------------------------------------------------------------+                                                                                                                             
++---------------------+----------------------------------------------------------+--------------------------------------------------------------------------------------------------+
 | Filter data         | | ``EEG = pop_eegfiltnew(EEG, l_freq, h_freq);``         | | :func:`raw.filter(l_freq, h_freq) <mne.io.Raw.filter>`                                         |
 +---------------------+----------------------------------------------------------+--------------------------------------------------------------------------------------------------+
 | Filter data         | | ``EEG = pop_eegfiltnew(EEG, l_freq, h_freq);``         | | :func:`raw.filter(l_freq, h_freq) <mne.io.Raw.filter>`                                         |
 |                     | |                                                        | |                                                                                                |
-| Common Average      | | ``EEG= pop_averef;``                                   | | :func:`raw.set_eeg_reference("average")`                                                       | 
++---------------------+----------------------------------------------------------+--------------------------------------------------------------------------------------------------+
+| Common Average      | | ``EEG= pop_averef;``                                   | | :func:`raw.set_eeg_reference("average") <mne.io.Raw.set_eeg_reference>`                        |
 | referencing         | |                                                        | |                                                                                                |
 +---------------------+----------------------------------------------------------+--------------------------------------------------------------------------------------------------+
-| Remove channels     | | ``pop_select.m``                                       | | :func:`raw.drop_channels()`
-|                     | |                                                        | | 
+| Remove channels     | | ``pop_select.m``                                       | | :func:`raw.drop_channels() <mne.io.Raw.drop_channels>`                                         |
+|                     | |                                                        | |                                                                                                |
 +---------------------+----------------------------------------------------------+--------------------------------------------------------------------------------------------------+
 | Run ICA             | | ``EEG = pop_runica(EEG, 'pca', n);``                   | | :func:`ica.fit(raw) <mne.preprocessing.ICA.fit>`                                               |
-|                     | |                                                        | |                                                                                                |   
-|                     | | ``EEG = pop_binica(EEG, 'pca', n);``                   | | :func:`raw = mne.preprocessing.infomax()`                                                      |
 |                     | |                                                        | |                                                                                                |
-| Plot ICA properties | | ``pop_compprop( EEG, comp_num, winhandle);``           | | :func:`ica.plot_properties(raw, picks)`                                                        |
-| Plot ICA components | | ``compheads()``                                        | | :func:`ica.plot_components(inst=raw_tmp, picks=range())`                                       |
-| Exclude components  | | ``pop_selectcomps()``                                  | | :func:`ica.exclude`                                                                            |
+|                     | | ``EEG = pop_binica(EEG, 'pca', n);``                   | | :func:`mne.preprocessing.infomax`                                                              |
++---------------------+----------------------------------------------------------+--------------------------------------------------------------------------------------------------+
+| Plot ICA properties | | ``pop_compprop( EEG, comp_num, winhandle);``           | | :func:`ica.plot_properties(raw, picks) <mne.preprocessing.ICA.plot_properties>`                |
++---------------------+----------------------------------------------------------+--------------------------------------------------------------------------------------------------+
+| Plot ICA components | | ``compheads()``                                        | | :func:`ica.plot_components(raw, picks) <mne.preprocessing.ICA.plot_components>`                |
++---------------------+----------------------------------------------------------+--------------------------------------------------------------------------------------------------+
+| Exclude components  | | ``pop_selectcomps()``                                  | | ``ica.exclude = list_of_components_to_exclude``                                                |
 +---------------------+----------------------------------------------------------+--------------------------------------------------------------------------------------------------+
 | Epoch data          | | ``event_id = {'cond1', 'cond2'};``                     | | :func:`events = mne.find_events(raw) <mne.find_events>`                                        |
 |                     | | ``Epochs = pop_epochs(EEG, event_id, [tmin, tmax]);``  | | :class:`event_id = dict(cond1=32, cond2=64) <dict>`                                            |
