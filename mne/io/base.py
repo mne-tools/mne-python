@@ -850,10 +850,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         # Convert into the specified unit
         ch_factors = np.ones((len(picks), len(self)))
 
-        si_units = _handle_default("si_units")
+        si_units = _handle_default('si_units')
+        str_chs = _handle_default('str_ch_picks')
         si_units_splitted = {key: si_units[key].split('/') for key in si_units}
-        prefixes = {'': 1, 'm': 1e3, 'c': 1e2, 'µ': 1e6, 'u': 1e6, 'n': 1e9,
-                    'p': 1e12, 'f': 1e15}
+        prefixes = {'': 1e0, 'd': 1e1, 'c': 1e2, 'm': 1e3, 'µ': 1e6, 'u': 1e6,
+                    'n': 1e9, 'p': 1e12, 'f': 1e15}
         prefix_list = list(prefixes.keys())
 
         if isinstance(units, str):
@@ -895,7 +896,16 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                     if scaling != 1:
                         if has_square:
                             scaling *= scaling
-                        indices = pick_types(self.info, **{ch_type: True})
+                        try:
+                            indices = pick_types(self.info, **{ch_type: True})
+                        except TypeError:
+                            for ch in str_chs:
+                                try:
+                                    indices = pick_types(
+                                        self.info, **{ch: ch_type})
+                                    break
+                                except ValueError:
+                                    continue
                         if i == 2:
                             ch_factors[indices] = ch_factors[indices] / scaling
                         else:

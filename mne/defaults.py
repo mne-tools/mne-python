@@ -98,6 +98,9 @@ DEFAULTS = dict(
     volume_options=dict(
         alpha=None, resolution=1., surface_alpha=None, blending='mip',
         silhouette_alpha=None, silhouette_linewidth=2.),
+    # Channels that accept str when kwarg in pick_types()
+    # XXX must be checked if a new channel type is added
+    str_ch_picks=('meg', 'ref_meg', 'fnirs')
 )
 
 
