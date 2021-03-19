@@ -618,7 +618,7 @@ filt_raw.filter(1, 30, fir_design='firwin')
 
 # peak-to-peak amplitude rejection parameters
 reject = dict(grad=4000e-13, mag=4e-12)
-# longer + more epochs for more artifact exposure
+# create longer and more epochs for more artifact exposure
 events = mne.find_events(filt_raw, stim_channel='STI 014')
 epochs = mne.Epochs(filt_raw, events, event_id=None, tmin=-0.2, tmax=0.5,
                     reject=reject)
