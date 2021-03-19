@@ -125,5 +125,8 @@ mne.viz.set_3d_view(figure=fig, azimuth=70, elevation=100, distance=0.4,
 
 
 ###############################################################################
-# TODO Can compare trans to the internal fsaverage-trans.fif as a test
+# TODO Can compare trans to the internal fsaverage-trans.fif as a test:
 trans = mne.channels.compute_native_head_t(montage)
+
+# TODO Also works just with:
+raw_intensity.set_montage('artinis-octamon')
