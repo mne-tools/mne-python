@@ -627,15 +627,14 @@ ecg_inds, scores = ica.find_bads_ecg(ecg_epochs, threshold='auto')
 ica.plot_components(ecg_inds)
 
 ###############################################################################
-# Plot properties of ECG components:
+# Plot the properties of the ECG components:
 ica.plot_properties(epochs, picks=ecg_inds)
 
 ###############################################################################
-# Plot the estimated source of detected ECG related components:
+# Plot the estimated sources of detected ECG related components:
 ica.plot_sources(filt_raw, picks=ecg_inds)
 
 ###############################################################################
 # References
 # ^^^^^^^^^^
-#
 # .. footbibliography::
