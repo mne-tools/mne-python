@@ -809,7 +809,9 @@ class Info(dict, MontageMixin):
     def ch_names(self):
         return self['ch_names']
 
-    def _repr_html_(self, global_id='', caption='', tmin=0, tmax=0):
+    def _repr_html_(self, caption=None):
+        if not isinstance(caption, str):
+            caption = 'Info'
         n_eeg = len(pick_types(self, meg=False, eeg=True))
         n_grad = len(pick_types(self, meg='grad'))
         n_mag = len(pick_types(self, meg='mag'))
@@ -828,8 +830,8 @@ class Info(dict, MontageMixin):
             meas_date = meas_date.strftime("%B %d, %Y") + ' GMT'
 
         return info_template.substitute(
-            info=self, meas_date=meas_date, n_eeg=n_eeg, n_grad=n_grad,
-            n_mag=n_mag, eog=eog, ecg=ecg)
+            caption=caption, info=self, meas_date=meas_date, n_eeg=n_eeg,
+            n_grad=n_grad, n_mag=n_mag, eog=eog, ecg=ecg)
 
 
 def _simplify_info(info):
