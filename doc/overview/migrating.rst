@@ -14,7 +14,7 @@ reader :func:`mne.io.read_raw_edf` and a ``set`` file reader. To read in
 to read in ``set`` files containing ``epochs`` data, use
 :func:`mne.read_epochs_eeglab`.
 
-This table summarizes equivalent EEGLAB and MNE-Python code for some of the
+This table summarizes the equivalent EEGLAB and MNE-Python code for some of the
 most common analysis tasks. For the sake of clarity, the table below assumes
 the following variables exist: the file name ``fname``, time interval of the
 epochs ``tmin`` and ``tmax``, and the experimental conditions ``cond1`` and
