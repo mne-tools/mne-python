@@ -7,8 +7,9 @@ Brainstorm auditory tutorial dataset
 ====================================
 
 Here we compute the evoked from raw for the auditory Brainstorm
-tutorial dataset. For comparison, see [1]_ and the associated
-`brainstorm site <https://neuroimage.usc.edu/brainstorm/Tutorials/Auditory>`_.
+tutorial dataset. For comparison, see :footcite:`TadelEtAl2011` and the
+associated `brainstorm site
+<https://neuroimage.usc.edu/brainstorm/Tutorials/Auditory>`_.
 
 Experiment:
 
@@ -23,10 +24,7 @@ The specifications of this dataset were discussed initially on the
 
 References
 ----------
-.. [1] Tadel F, Baillet S, Mosher JC, Pantazis D, Leahy RM.
-       Brainstorm: A User-Friendly Application for MEG/EEG Analysis.
-       Computational Intelligence and Neuroscience, vol. 2011, Article ID
-       879716, 13 pages, 2011. doi:10.1155/2011/879716
+.. footbibliography::
 """
 
 # Authors: Mainak Jas <mainak.jas@telecom-paristech.fr>
