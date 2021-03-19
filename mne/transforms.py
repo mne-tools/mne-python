@@ -901,6 +901,7 @@ class _TPSWarp(object):
 
     Notes
     -----
+    Based on the method by :footcite:`Bookstein1989`
     Adapted from code by `Wang Lin <wanglin193@hotmail.com>`_.
 
     References
@@ -978,7 +979,8 @@ class _SphericalSurfaceWarp(object):
     Notes
     -----
     This class can be used to warp data from a source subject to
-    a destination subject, as described in :footcite:`DarvasEtAl2006`
+    a destination subject, as described in :footcite:`DarvasEtAl2006`.
+    
     The procedure is:
 
         1. Perform a spherical harmonic approximation to the source and
