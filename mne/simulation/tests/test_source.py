@@ -363,10 +363,10 @@ def test_source_simulator(_get_fwd_labels):
         half_ss.add_data(mylabels[i], wfs[i], events[i])
     half_stc = half_ss.get_stc()
     assert_array_almost_equal(stc.data[:, :3], half_stc.data)
-    
+
     part_stc = ss.get_stc(start_sample=1, stop_sample=4)
     assert part_stc.shape == (24, 4)
-    assert part_stc.times[0] == tstep  #SMB: is this right??
+    assert part_stc.times[0] == tstep
 
     # Check validity of other arguments.
     with pytest.raises(ValueError, match='start_sample must be'):
@@ -380,7 +380,7 @@ def test_source_simulator(_get_fwd_labels):
                        'should match'):
         ss.add_data(mylabels[0], wfs[:2], events)
     with pytest.raises(ValueError, match='duration must be None or'):
-        ss = SourceSimulator(src, tstep, tstep/2)
+        ss = SourceSimulator(src, tstep, tstep / 2)
 
     # Verify first_samp functionality.
     ss = SourceSimulator(src, tstep)

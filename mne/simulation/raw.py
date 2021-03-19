@@ -112,7 +112,7 @@ def _check_head_pos(head_pos, info, first_samp, times=None):
                                'sec), found %s/%s bad values (is this a split '
                                'file?)' % (times[-1], bad.sum(), len(bad)))
     # If it starts close to zero, make it zero (else unique(offset) fails)
-    if len(ts) > 0 and ts[0] < 0.5/info['sfreq']:
+    if len(ts) > 0 and ts[0] < (0.5 / info['sfreq']):
         ts[0] = 0.
     # If it doesn't start at zero, insert one at t=0
     elif len(ts) == 0 or ts[0] > 0:

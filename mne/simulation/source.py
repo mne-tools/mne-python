@@ -368,7 +368,7 @@ class SourceSimulator(object):
         ls = np.max(self._last_samples) if len(self._last_samples) > 0 \
             else self.first_samp
         return ls - self.first_samp + 1  # will be at least 1
-    
+
     @property
     def first_samp(self):
         return self._first_sample
@@ -486,7 +486,7 @@ class SourceSimulator(object):
         """
         if len(self._labels) == 0:
             raise ValueError('No simulation parameters were found. Please use '
-                             'function add_data to add simulation parameters.')        
+                             'function add_data to add simulation parameters.')
         if start_sample is None:
             start_sample = self.first_samp
         if stop_sample is None:
@@ -512,12 +512,12 @@ class SourceSimulator(object):
             wf_stop = self._last_samples[ind[i]]
 
             # Recover the indices of the event that should be in the chunk
-            waveform_ind = np.in1d(np.arange(wf_start, wf_stop+1),
-                                   np.arange(start_sample, stop_sample+1))
+            waveform_ind = np.in1d(np.arange(wf_start, wf_stop + 1),
+                                   np.arange(start_sample, stop_sample + 1))
 
             # Recover the indices that correspond to the overlap
-            stc_ind = np.in1d(np.arange(start_sample, stop_sample+1),
-                              np.arange(wf_start, wf_stop+1))
+            stc_ind = np.in1d(np.arange(start_sample, stop_sample + 1),
+                              np.arange(wf_start, wf_stop + 1))
 
             # add the resulting waveform chunk to the corresponding label
             stc_data[ind[i]][stc_ind] += waveform[waveform_ind]
@@ -537,7 +537,7 @@ class SourceSimulator(object):
         last_sample = self.last_samp
         for start_sample in range(self.first_samp, last_sample + 1,
                                   self._chk_duration):
-            stop_sample = min(start_sample + self._chk_duration -1,
+            stop_sample = min(start_sample + self._chk_duration - 1,
                               last_sample)
             yield (self.get_stc(start_sample, stop_sample),
                    self.get_stim_channel(start_sample, stop_sample))

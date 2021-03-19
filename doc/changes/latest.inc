@@ -127,11 +127,15 @@ Enhancements
 
 - `mne.viz.plot_drop_log` and :meth:`mne.Epochs.plot_drop_log` now omit displaying the subject name in the title if ``subject=None`` is passed (:gh:`9015` by `Richard Höchenberger`_)
 
+<<<<<<< Updated upstream
 - Improve documentation of Report-Class (:gh:`9113` by `Martin Schulz`_)
 
 - Add :func:`mne.channels.DigMontage.add_estimated_fiducials` which will add LPA, RPA and Nasion fiducial points to the ``DigMontage`` object in ``mri`` coordinate frame (:gh:`9118` by `Adam Li`_)
 
 - :func:`mne.io.anonymize_info` now anonymizes also sex and hand fields when ``keep_his`` is ``False`` (:gh:`9103` by |Rotem Falach|_)`
+=======
+- Add first_samp support for raw simulations with `mne.simulation.raw.simulate_raw` and `mne.simulation.source.SourceSimulator` (:gh:`9166` by `Steven Bierer`_)
+>>>>>>> Stashed changes
 
 Bugs
 ~~~~
