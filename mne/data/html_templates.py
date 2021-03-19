@@ -1,8 +1,7 @@
 from ..externals.tempita import Template
 
 
-raw_template = Template(u"""
-<li class="{{div_klass}}" id="{{id}}">
+info_template = Template(u"""
 <h4>{{caption}}</h4>
 <table class="table table-hover">
     <tr>
@@ -44,10 +43,6 @@ raw_template = Template(u"""
         <th>ECG channels</th>
         <td>{{ecg}}</td>
     <tr>
-        <th>Measurement time range</th>
-        <td>{{u'%0.2f' % tmin}} to {{u'%0.2f' % tmax}} sec.</td>
-    </tr>
-    <tr>
         <th>Sampling frequency</th>
         <td>{{u'%0.2f' % info['sfreq']}} Hz</td>
     </tr>
@@ -60,5 +55,13 @@ raw_template = Template(u"""
         <td>{{u'%0.2f' % info['lowpass']}} Hz</td>
     </tr>
 </table>
-</li>
+""")
+
+raw_template = Template(u"""
+{{info_repr[:-9]}}
+    <tr>
+        <th>Measurement time range</th>
+        <td>{{u'%0.2f' % tmin}} to {{u'%0.2f' % tmax}} sec.</td>
+    </tr>
+</table>
 """)
