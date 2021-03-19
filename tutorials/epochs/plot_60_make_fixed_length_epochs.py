@@ -32,7 +32,6 @@ sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
 raw = mne.io.read_raw_fif(sample_data_raw_file)
 
 # Remove heart artifact for cleanliness of data
-
 ecg_proj, _ = compute_proj_ecg(raw, ch_name='MEG 0511')  # No ECG chan
 ssp = raw.copy().apply_proj()
 
@@ -61,7 +60,6 @@ epochs = mne.make_fixed_length_epochs(ssp, duration=30, preload=False,
 # timing is jittered across fixed-length epochs.
 
 # Visualize the fixed length epochs
-
 timeseries_plot = epochs.plot(n_epochs=5, picks=picks, group_by='selection',
                               butterfly=True)
 
@@ -75,7 +73,7 @@ event_related_plot = epochs.plot_image(picks=['MEG 1142'])
 ###############################################################################
 # For information about creating epochs for event-related analyses, please see
 # :ref:`tut-epochs-class`.
-
+#
 # Example Use Case for Fixed Length Epochs: Connectivity Analysis
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # Fixed lengths epochs are suitable for many types of analysis, including
@@ -89,7 +87,7 @@ event_related_plot = epochs.plot_image(picks=['MEG 1142'])
 # long duration of our fixed length epochs, 30 seconds, helps us reduce edge
 # artifacts and achieve better frequency resolution when filtering must
 # be applied after epoching.
-
+#
 # Let's examine the alpha band. We allow default values for filter parameters
 # (for more information on filtering, please see
 # :ref:`tut-filter-resample`).
@@ -97,7 +95,6 @@ event_related_plot = epochs.plot_image(picks=['MEG 1142'])
 alpha = epochs.copy().load_data().filter(l_freq=8, h_freq=12)
 
 # Compute envelope correlations in sensor space
-
 epoch_data = epochs.get_data(picks=['mag', 'grad'])
 corr_matrix = mne.connectivity.envelope_correlation(epoch_data, combine=None,
                                                     orthogonalize='pairwise',
