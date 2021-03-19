@@ -253,12 +253,12 @@ anim = animation.FuncAnimation(fig, animate_lines, init_func=lambda: artists,
                                interval=1000 / sfreq)
 
 ###############################################################################
-# Visualize the spectral power on the brain
-# -----------------------------------------
+# Visualize the spectral power evolution of seizure activity on the brain
+# -----------------------------------------------------------------------
 #
 # Say we want to visualize the evolution of the power, instead of just
-# plotting the average. We can use also animation this and apply it
-# to the brain figure.
+# plotting the average. We can also animate this and apply it
+# to the brain figure and over the time course of the seizure.
 
 
 def update_power_series(f_path, x, y, f_data):
