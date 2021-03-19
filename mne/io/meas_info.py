@@ -809,7 +809,7 @@ class Info(dict, MontageMixin):
     def ch_names(self):
         return self['ch_names']
 
-    def _repr_html(self, global_id='', caption='', tmin=0, tmax=0):
+    def _repr_html_(self, global_id='', caption='', tmin=0, tmax=0):
         n_eeg = len(pick_types(self, meg=False, eeg=True))
         n_grad = len(pick_types(self, meg='grad'))
         n_mag = len(pick_types(self, meg='mag'))
