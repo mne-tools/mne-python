@@ -7,7 +7,6 @@
 
 from contextlib import contextmanager
 from functools import partial
-from os.path import isfile
 
 import pyvista
 
@@ -463,7 +462,7 @@ class _QtWindow(_AbstractWindow):
                 stylesheet = None
             else:
                 stylesheet = qdarkstyle.load_stylesheet()
-        elif isfile(theme):
+        elif theme != 'light':
             with open(theme, 'r') as file:
                 stylesheet = file.read()
         else:
