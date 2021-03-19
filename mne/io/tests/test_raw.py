@@ -582,3 +582,19 @@ def test_describe_df():
                               -9.643554807784935e-13,
                               1.928710961556987e-12,
                               4.146728567347522e-11]))
+
+
+def test_get_data_units():
+    """Test the "units" argument of get_data method."""
+    fname = Path(__file__).parent / "data" / "test_raw.fif"
+    raw = read_raw_fif(fname)
+    # None
+    # str: simple unit OK
+    # str: fraction unit OK
+    # str: power unit OK
+    # str: invalid unit ValueError
+    # dict: combination of simple and fraction units OK
+    # dict: channel type not in instance OK
+    # dict: one invalid unit ValueError
+    # list: TypeError
+    pass
