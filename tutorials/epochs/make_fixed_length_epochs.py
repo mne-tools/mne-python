@@ -17,11 +17,11 @@ the signal.
 """
 
 import os
-import mne
-import matplotlib.pyplot as plt
-from mne.preprocessing import compute_proj_ecg
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
+import mne
+from mne.preprocessing import compute_proj_ecg
+import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 picks = ['mag', 'grad']
 
