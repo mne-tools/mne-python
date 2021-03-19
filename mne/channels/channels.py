@@ -1072,6 +1072,7 @@ class UpdateChannelsMixin(object):
             assert all(len(r) == self.info['nchan'] for r in self._read_picks)
         return self
 
+    @fill_doc
     def add_reference_channels(self, ref_channels):
         """ Add reference channels to data that consists of all zeros.
 
