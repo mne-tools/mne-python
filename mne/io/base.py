@@ -54,6 +54,7 @@ from ..event import find_events, concatenate_events
 from ..annotations import Annotations, _combine_annotations, _sync_onset
 from ..data.html_templates import raw_template
 
+
 class TimeMixin(object):
     """Class to add sfreq and time_as_index capabilities to certain classes."""
 
