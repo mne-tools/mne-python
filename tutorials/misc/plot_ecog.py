@@ -191,6 +191,12 @@ epoch_data *= 200 / epoch_data.max()
 xy_pts = np.vstack([xy[ch] for ch in raw.info['ch_names']])
 xy_pts2 = np.vstack([xy2[ch] for ch in raw.info['ch_names']])
 
+box = (0, im.shape[0], 0, im.shape[1])
+pos = np.concatenate([xy_pts / im.shape[0],
+                      0.1 * np.ones(xy_pts.shape)], axis=1)
+layout = mne.channels.Layout(box, pos, epochs.ch_names,
+                             np.arange(xy_pts.shape[1]), 'ieeg-view')
+
 # Make a group to plot the temporal lobe contacts
 group = np.where(np.logical_and(xy_pts[:, 1] > 800, xy_pts[:, 0] > 1000))[0]
 color_line = np.linspace(0, 1, xy_pts.shape[0])
