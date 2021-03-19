@@ -16,7 +16,8 @@ def data_path(dataset='evoked', path=None, force_update=False,
               update_path=True, verbose=None):
     u"""Get path to local copy of the high frequency SEF dataset.
 
-    Gets a local copy of the high frequency SEF MEG dataset [1]_.
+    Gets a local copy of the high frequency SEF MEG dataset
+    :footcite:`NurminenEtAl2017`.
 
     Parameters
     ----------
@@ -44,8 +45,7 @@ def data_path(dataset='evoked', path=None, force_update=False,
 
     References
     ----------
-    .. [1] Nurminen, J., Paananen, H., Mäkelä, J. (2017): High frequency
-           somatosensory MEG dataset. https://doi.org/10.5281/zenodo.889234
+    .. footbibliography::
     """
     key = 'MNE_DATASETS_HF_SEF_PATH'
     name = 'HF_SEF'
