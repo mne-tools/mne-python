@@ -225,7 +225,7 @@ filt_raw.load_data().filter(l_freq=1., h_freq=None)
 # we'll also specify a `random seed`_ so that we get identical results each
 # time this tutorial is built by our web servers.
 
-ica = ICA(n_components=15, random_state=97)
+ica = ICA(n_components=15, max_iter='auto', random_state=97)
 ica.fit(filt_raw)
 
 ###############################################################################
@@ -409,7 +409,7 @@ ica.plot_sources(ecg_evoked)
 # resolves out a little better:
 
 # refit the ICA with 30 components this time
-new_ica = ICA(n_components=30, random_state=97)
+new_ica = ICA(n_components=30, max_iter='auto', random_state=97)
 new_ica.fit(filt_raw)
 
 # find which ICs match the ECG pattern
@@ -489,7 +489,7 @@ for subj in range(4):
     raw.rename_channels(mapping)
     raw.set_montage('standard_1005')
     # fit ICA
-    ica = ICA(n_components=30, random_state=97)
+    ica = ICA(n_components=30, max_iter='auto', random_state=97)
     ica.fit(raw)
     raws.append(raw)
     icas.append(ica)
