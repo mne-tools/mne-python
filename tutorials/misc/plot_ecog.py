@@ -253,8 +253,8 @@ anim = animation.FuncAnimation(fig, animate_lines, init_func=lambda: artists,
                                interval=1000 / sfreq)
 
 ###############################################################################
-# Visualize the spectral power on the brain
-# -----------------------------------------
+# Visualize the spectral power evolution of seizure activity on the brain
+# -----------------------------------------------------------------------
 #
 # Say we want to visualize the evolution of the power, instead of just
 # plotting the average. We can use also animation this and apply it
