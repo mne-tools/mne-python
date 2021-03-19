@@ -380,8 +380,8 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
     channels will be dropped.
 
     Multiple anodes and cathodes can be specified, in which case multiple
-    virtual channels will be created. The 1st anode will be subtracted from the
-    1st cathode, the 2nd anode from the 2nd cathode, etc.
+    virtual channels will be created. The 1st cathode will be subtracted
+    from the 1st anode, the 2nd cathode from the 2nd anode, etc.
 
     By default, the virtual channels will be annotated with channel info of
     the anodes, their locations set to (0, 0, 0) and coil types set to
@@ -469,13 +469,14 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
 
     # Merge specified and anode channel information dictionaries
     new_chs = []
-    for ci, (an, ch) in enumerate(zip(anode, ch_info)):
+    for ci, (an, ca, ch) in enumerate(zip(anode, cathode, ch_info)):
         _check_ch_keys(ch, ci, name='ch_info', check_min=False)
         an_idx = inst.ch_names.index(an)
+        ca_idx = inst.ch_names.index(ca)
         this_chs = deepcopy(inst.info['chs'][an_idx])
 
-        # Set channel location and coil type
-        this_chs['loc'] = np.zeros(12)
+        # Set channel location to cathode location and coil type
+        this_chs['loc'] = inst.info['chs'][ca_idx]['loc'].copy()
         this_chs['coil_type'] = FIFF.FIFFV_COIL_EEG_BIPOLAR
 
         this_chs.update(ch)
