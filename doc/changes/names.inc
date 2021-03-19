@@ -377,3 +377,5 @@
 .. _Cora Kim: https://github.com/kimcoco
 
 .. _Silvia Cotroneo: https://github.com/sfc-neuro
+
+.. _Erica Peterson: https://github.com/nordme
