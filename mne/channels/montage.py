@@ -727,11 +727,13 @@ def _get_montage_in_head(montage):
 
 
 def _set_montage_fnirs(info, montage):
-    """
-    Sets the montage for fNIRS data. This needs to be different to electrodes
-    as each channel has three coordinates that need to be set. For each channel
-    there is a source optode location, a detector optode location,
-    and a channel midpoint that must be stored.
+    """Set the montage for fNIRS data.
+
+    This needs to be different to electrodes as each channel has three
+    coordinates that need to be set. For each channel there is a source optode
+    location, a detector optode location, and a channel midpoint that must be
+    stored. This function modifies info['chs'][#]['loc'] and info['dig'] in
+    place.
     """
     # Modify info['chs'][#]['loc'] in place
     num_ficiduals = len(montage.dig) - len(montage.ch_names)

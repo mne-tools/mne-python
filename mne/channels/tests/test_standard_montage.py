@@ -81,8 +81,8 @@ def test_standard_superset():
 
 
 def _simulate_artinis_octamon():
-    """
-    Simulate artinis octamon channel data from numpy data.
+    """Simulate artinis OctaMon channel data from numpy data.
+
     This is to test data that is imported with missing or incorrect montage
     info. This data can then be used to test the set_montage function.
     """
@@ -102,7 +102,8 @@ def _simulate_artinis_octamon():
     return raw
 
 
-def test_artinis():
+def test_set_montage_artinis():
+    """Test that OctaMon and Brite 23 montages are set properly."""
     raw = _simulate_artinis_octamon()
     old_info = raw.info.copy()
     montage_octamon = make_standard_montage("artinis-octamon")
