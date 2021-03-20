@@ -145,8 +145,7 @@ Enhancements
 
 - :func:`mne.io.anonymize_info` now anonymizes also sex and hand fields when ``keep_his`` is ``False`` (:gh:`9103` by |Rotem Falach|_)
 
-
-- Add ``units`` parameter to :func:`mne.io.get_data` to return data in the desired unit (:gh:`9136` by `Johann Benerradi`_ and `Stefan Appelhoff`_)
+- Add ``units`` parameter to :meth:`mne.io.Raw.get_data` to return data in the desired unit (:gh:`9136` by `Johann Benerradi`_ and `Stefan Appelhoff`_)
 
 Bugs
 ~~~~
