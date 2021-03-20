@@ -19,6 +19,9 @@ from ..io.pick import (pick_info, _pick_data_channels, _picks_by_type,
 from ..cov import _check_scalings_user
 
 
+SCALE_CST = 1e10  # used to pre-scale M/EEG data and avoid tiny numbers
+
+
 class _ConstantScaler():
     """Scale channel types using constant values."""
 
@@ -144,10 +147,13 @@ class Scaler(TransformerMixin, BaseEstimator):
         self : instance of Scaler
             The modified instance.
         """
+        from sklearn.preprocessing import StandardScaler
         _validate_type(epochs_data, np.ndarray, 'epochs_data')
         if epochs_data.ndim == 2:
             epochs_data = epochs_data[..., np.newaxis]
         assert epochs_data.ndim == 3, epochs_data.shape
+        if isinstance(self._scaler, StandardScaler) and self.with_std:
+            epochs_data = epochs_data * SCALE_CST  # avoid tiny numbers
         _sklearn_reshape_apply(self._scaler.fit, False, epochs_data, y=y)
         return self
 
@@ -169,12 +175,15 @@ class Scaler(TransformerMixin, BaseEstimator):
         This function makes a copy of the data before the operations and the
         memory usage may be large with big data.
         """
+        from sklearn.preprocessing import StandardScaler
         _validate_type(epochs_data, np.ndarray, 'epochs_data')
         if epochs_data.ndim == 2:  # can happen with SlidingEstimator
             if self.info is not None:
                 assert len(self.info['ch_names']) == epochs_data.shape[1]
             epochs_data = epochs_data[..., np.newaxis]
         assert epochs_data.ndim == 3, epochs_data.shape
+        if isinstance(self._scaler, StandardScaler) and self.with_std:
+            epochs_data = epochs_data * SCALE_CST  # avoid tiny numbers
         return _sklearn_reshape_apply(self._scaler.transform, True,
                                       epochs_data)
 
@@ -202,6 +211,9 @@ class Scaler(TransformerMixin, BaseEstimator):
         This function makes a copy of the data before the operations and the
         memory usage may be large with big data.
         """
+        from sklearn.preprocessing import StandardScaler
+        if isinstance(self._scaler, StandardScaler) and self.with_std:
+            epochs_data = epochs_data * SCALE_CST  # avoid tiny numbers
         return self.fit(epochs_data, y).transform(epochs_data)
 
     def inverse_transform(self, epochs_data):
@@ -222,9 +234,13 @@ class Scaler(TransformerMixin, BaseEstimator):
         This function makes a copy of the data before the operations and the
         memory usage may be large with big data.
         """
+        from sklearn.preprocessing import StandardScaler
         assert epochs_data.ndim == 3, epochs_data.shape
-        return _sklearn_reshape_apply(self._scaler.inverse_transform, True,
-                                      epochs_data)
+        out = _sklearn_reshape_apply(self._scaler.inverse_transform, True,
+                                     epochs_data)
+        if isinstance(self._scaler, StandardScaler) and self.with_std:
+            out /= SCALE_CST
+        return out
 
 
 class Vectorizer(TransformerMixin):

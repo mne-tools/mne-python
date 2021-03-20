@@ -50,10 +50,6 @@ def test_scaler(info, method):
             with pytest.raises(ImportError, match='No module'):
                 Scaler(info, method)
             return
-        if check_version('sklearn', '1.0'):
-            # 1.0.dev0 is a problem pending
-            # https://github.com/scikit-learn/scikit-learn/issues/19726
-            pytest.skip('Bug on sklear main as of 2021/03/19')
 
     if info:
         info = epochs.info
@@ -79,7 +75,7 @@ def test_scaler(info, method):
                     epochs_data, rtol=1e-12, atol=1e-20, err_msg=method)
 
     X2 = scaler.fit(epochs_data, y).transform(epochs_data)
-    assert_array_equal(X, X2)
+    assert_allclose(X, X2)
 
     # inverse_transform
     Xi = scaler.inverse_transform(X)
