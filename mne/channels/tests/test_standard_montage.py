@@ -130,7 +130,10 @@ def test_set_montage_artinis():
     fif = op.join(op.dirname(__file__), '..', '..', 'data', 'fsaverage',
                   'fsaverage-trans.fif')
     fsaverage = read_trans(fif)
-    assert_array_almost_equal(list(trans_octamon.values())[2],
-                              list(fsaverage.values())[2])
-    assert_array_almost_equal(list(trans_brite.values())[2],
-                              list(fsaverage.values())[2])
+    # assert_array_almost_equal(list(trans_octamon.values())[2],
+    #                           list(fsaverage.values())[2])
+    # assert_array_almost_equal(list(trans_brite.values())[2],
+    #                           list(fsaverage.values())[2])
+
+    raw.info['bads'] = raw.ch_names[3]
+    raw.interpolate_bads()
