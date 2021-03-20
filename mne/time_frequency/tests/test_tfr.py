@@ -498,6 +498,7 @@ def test_io():
 
 
 def test_init_EpochsTFR():
+    """Test __init__ for EpochsTFR"""
     # Create fake data:
     data = np.zeros((3, 3, 3, 3))
     times = np.array([.1, .2, .3])
