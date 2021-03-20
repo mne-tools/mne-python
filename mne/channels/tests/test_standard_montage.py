@@ -7,13 +7,17 @@
 import pytest
 
 import numpy as np
+import os.path as op
 
 from numpy.testing import (assert_allclose, assert_array_almost_equal,
                            assert_raises)
 
+from mne import create_info, read_trans
 from mne.channels import make_standard_montage
+from mne.io import RawArray
 from mne.io._digitization import _get_dig_eeg, _get_fid_coords
 from mne.channels.montage import get_builtin_montages, HEAD_SIZE_DEFAULT
+from mne.channels import compute_native_head_t
 from mne.io.constants import FIFF
 
 
@@ -78,39 +82,31 @@ def test_standard_superset():
 
 def _simulate_artinis_octamon():
     """
-    Simulate artinis octamon channel data from nirx data.
+    Simulate artinis octamon channel data from numpy data.
     This is to test data that is imported with missing or incorrect montage
     info. This data can then be used to test the set_montage function.
     """
-    import os.path as op
-    from mne.datasets import fnirs_motor
-    from mne.io import read_raw_nirx
-    fnirs_data_folder = fnirs_motor.data_path()
-    fnirs_cw_amplitude_dir = op.join(fnirs_data_folder, 'Participant-1')
-    raw = read_raw_nirx(fnirs_cw_amplitude_dir, preload=True)
-    mapping = {'S1_D2 760': 'S3_D1 760', 'S1_D2 850': 'S3_D1 850',
-               'S1_D3 760': 'S4_D1 760', 'S1_D3 850': 'S4_D1 850',
-               'S1_D9 760': 'S5_D2 760', 'S1_D9 850': 'S5_D2 850',
-               'S2_D3 760': 'S6_D2 760', 'S2_D3 850': 'S6_D2 850',
-               'S2_D4 760': 'S7_D2 760', 'S2_D4 850': 'S7_D2 850',
-               'S2_D10 760': 'S8_D2 760', 'S2_D10 850': 'S8_D2 850'}
-    raw.rename_channels(mapping)
-    raw.pick(picks=["S1_D1 760", "S1_D1 850",
-                    "S2_D1 760", "S2_D1 850",
-                    "S3_D1 760", "S3_D1 850",
-                    "S4_D1 760", "S4_D1 850",
-                    "S5_D2 760", "S5_D2 850",
-                    "S6_D2 760", "S6_D2 850",
-                    "S7_D2 760", "S7_D2 850",
-                    "S8_D2 760", "S8_D2 850"])
+    data = np.random.normal(size=(16, 100))
+    ch_names = ['D1_S1 hbo', 'D1_S1 hbr', 'D1_S2 hbo', 'D1_S2 hbr',
+                'D1_S3 hbo', 'D1_S3 hbr', 'D1_S4 hbo', 'D1_S4 hbr',
+                'D2_S5 hbo', 'D2_S5 hbr', 'D2_S6 hbo', 'D2_S6 hbr',
+                'D2_S7 hbo', 'D2_S7 hbr', 'D2_S8 hbo', 'D2_S8 hbr']
+    ch_types = ['hbo', 'hbr', 'hbo', 'hbr',
+                'hbo', 'hbr', 'hbo', 'hbr',
+                'hbo', 'hbr', 'hbo', 'hbr',
+                'hbo', 'hbr', 'hbo', 'hbr']
+    sfreq = 10.  # Hz
+    info = create_info(ch_names=ch_names, ch_types=ch_types, sfreq=sfreq)
+    raw = RawArray(data, info, verbose=True)
+
     return raw
 
 
 def test_artinis():
     raw = _simulate_artinis_octamon()
     old_info = raw.info.copy()
-    montage = make_standard_montage("artinis-octamon")
-    raw.set_montage(montage)
+    montage_octamon = make_standard_montage("artinis-octamon")
+    raw.set_montage(montage_octamon)
     # First check that the montage was actually modified
     assert_raises(AssertionError, assert_array_almost_equal,
                   old_info["chs"][0]["loc"][:9],
@@ -126,3 +122,14 @@ def test_artinis():
     # The 10th element encodes the wavelength, so it will differ.
     assert_array_almost_equal(raw.info["chs"][0]["loc"][:9],
                               raw.info["chs"][1]["loc"][:9])
+    # Compare OctaMon and Brite23 to fsaverage
+    trans_octamon = compute_native_head_t(montage_octamon)
+    montage_brite = make_standard_montage("artinis-brite23")
+    trans_brite = compute_native_head_t(montage_brite)
+    fif = op.join(op.dirname(__file__), '..', '..', 'data', 'fsaverage',
+                  'fsaverage-trans.fif')
+    fsaverage = read_trans(fif)
+    assert_array_almost_equal(list(trans_octamon.values())[2],
+                              list(fsaverage.values())[2])
+    assert_array_almost_equal(list(trans_brite.values())[2],
+                              list(fsaverage.values())[2])

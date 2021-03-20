@@ -60,31 +60,29 @@ unparsed ``.txt`` files, which affects how the data in the file is organised.
 MNE will read either file type and extract the raw DC, AC, and Phase data.
 If triggers are sent using the ``digaux`` port of the recording hardware, MNE
 will also read the ``digaux`` data and create annotations for any triggers.
+
+Loading legacy data in csv or tsv format
+========================================
+
+Many legacy fNIRS measurements are stored in csv and tsv formats.
+These formats are not officially supported in MNE as there is no
+standardisation of the file format -
+the naming and ordering of channels, the type and scaling of data, and
+specification of sensor positions varies between each vendor.
+Instead, we suggest that data is converted to the format approved by the
+Society for functional Near-Infrared Spectroscopy called
+`SNIRF <https://github.com/fNIRS/snirf>`_,
+they provide a number of tools to convert your legacy
+data to the SNIRF format.
+However, due to the prevalence of these legacy files we provide
+a template example of how you may read data in t/csv formats.
 """  # noqa:E501
-
-# sphinx_gallery_thumbnail_number = 2
-
-###############################################################################
-# Loading legacy data in csv or tsv format
-# ========================================
-#
-# Many legacy fNIRS measurements are stored in csv and tsv formats.
-# These formats are not officially supported in MNE as there is no
-# standardisation of the file format -
-# the naming and ordering of channels, the type and scaling of data, and
-# specification of sensor positions varies between each vendor.
-# Instead, we suggest that data is converted to the format approved by the
-# Society for functional near-infrared spectroscopy called
-# `SNIRF <https://github.com/fNIRS/snirf>`_,
-# they provide a number of tools to convert your legacy
-# data to the SNIRF format.
-# However, due to the prevalence of these legacy files we provide
-# a template example of how you may read data in t/csv formats.
 
 import numpy as np
 import pandas as pd
 import mne
 
+# sphinx_gallery_thumbnail_number = 2
 
 ###############################################################################
 # First, we generate an example csv file which will then be loaded in to MNE.
@@ -106,11 +104,11 @@ data = pd.read_csv('fnirs.csv')
 # `S#_D# type` or `S#_D# wavelength`, where # is replaced
 # by the appropriate source and detector number, type is
 # either hbo or hbr, and wavelength is specified in nm.
+
 ch_names = ['D1_S1 hbo', 'D1_S1 hbr', 'D1_S2 hbo', 'D1_S2 hbr',
             'D1_S3 hbo', 'D1_S3 hbr', 'D1_S4 hbo', 'D1_S4 hbr',
             'D2_S5 hbo', 'D2_S5 hbr', 'D2_S6 hbo', 'D2_S6 hbr',
             'D2_S7 hbo', 'D2_S7 hbr', 'D2_S8 hbo', 'D2_S8 hbr']
-
 ch_types = ['hbo', 'hbr', 'hbo', 'hbr',
             'hbo', 'hbr', 'hbo', 'hbr',
             'hbo', 'hbr', 'hbo', 'hbr',
@@ -150,14 +148,12 @@ raw = mne.io.RawArray(data, info, verbose=True)
 # :ref:`ex-eeg-scalp`.
 #
 # Below is an example of how to load the optode positions for an Artinis
-# Octomon device. However, many fNIRS researchers use custom optode montages,
+# OctaMon device. However, many fNIRS researchers use custom optode montages,
 # in this case you can generate your own .elc file (see `example file
 # <https://github.com/mne-tools/mne-python/blob/main/mne/channels/data
 # /montages/standard_1020.elc>`_) and load that instead.
 
 raw.set_montage('artinis-octamon')
-# To load a custom montage use:
-# raw.set_montage('/path/to/custom/montage.elc')
 
 # View the position of optodes in 2D to confirm the positions are correct.
 raw.plot_sensors()
@@ -165,13 +161,13 @@ raw.plot_sensors()
 
 ###############################################################################
 # To validate the positions were loaded correctly it is also possible
-# to view the location of the sources (red), detectors (black),
+# to view the location of the sources (black), detectors (red),
 # and channel (white lines and orange dots) locations in a 3D representation.
 # The ficiduals are marked in blue, green and red.
 # See :ref:`plot_source_alignment` for more details.
 
 subjects_dir = mne.datasets.sample.data_path() + '/subjects'
-mne.datasets.fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)
+mne.datasets.fetch_fsaverage(subjects_dir=subjects_dir)
 
 fig = mne.viz.create_3d_figure(size=(800, 600), bgcolor='white')
 fig = mne.viz.plot_alignment(raw.info, show_axes=True,
