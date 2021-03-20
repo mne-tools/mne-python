@@ -2185,7 +2185,7 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
 
     .. versionadded:: 0.23
 
-     References
+    References
     ----------
     .. footbibliography::
     """
