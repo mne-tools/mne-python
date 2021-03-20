@@ -374,7 +374,7 @@ def test_add_reference_channels():
     epochs.load_data()
     epochs_original_shape = epochs._data.shape[1]
     evoked = epochs.average()
-    evoked_original_channels_number = len(evoked.ch_names)
+    n_evoked_original_channels = len(evoked.ch_names)
 
     # Raw object
     raw.add_reference_channels(['REF 123'])
