@@ -8,7 +8,8 @@ import pytest
 
 import numpy as np
 
-from numpy.testing import assert_allclose, assert_array_almost_equal
+from numpy.testing import (assert_allclose, assert_array_almost_equal,
+                           assert_raises)
 
 from mne.channels import make_standard_montage
 from mne.io._digitization import _get_dig_eeg, _get_fid_coords
@@ -107,8 +108,13 @@ def _simulate_artinis_octamon():
 
 def test_artinis():
     raw = _simulate_artinis_octamon()
+    old_info = raw.info.copy()
     montage = make_standard_montage("artinis-octamon")
     raw.set_montage(montage)
+    # First check that the montage was actually modified
+    assert_raises(AssertionError, assert_array_almost_equal,
+                  old_info["chs"][0]["loc"][:9],
+                  raw.info["chs"][0]["loc"][:9])
     # Check a known location
     assert_array_almost_equal(raw.info["chs"][0]["loc"][:3],
                               [0.0616, 0.075398, 0.07347])
