@@ -89,7 +89,7 @@ import mne
 # This is only required for this example, this step would be skipped
 # if you have actual data you wish to load.
 # We simulate 16 channels with 100 samples of data and save this to a file
-# called `fnirs.csv`.
+# called "`fnirs.csv`".
 
 pd.DataFrame(np.random.normal(size=(16, 100))).to_csv("fnirs.csv")
 
@@ -118,7 +118,7 @@ sfreq = 10.  # Hz
 
 ###############################################################################
 # Finally, the data can be converted in to a MNE data structure.
-# The metadata above is used to create an :class:`~mne.info` structure,
+# The metadata above is used to create an Info structure,
 # and this is combined with the data to create
 # an MNE :class:`~mne.io.Raw` object, for more details on how continuous
 # data is stored in MNE see :ref:`tut-raw-class`.
@@ -142,7 +142,7 @@ raw = mne.io.RawArray(data, info, verbose=True)
 # MNE provides methods to load standard sensor configurations (montages) from
 # some vendors, which is demonstrated below.
 # However, many fNIRS researchers use custom optode montages, in this case
-# you can generate your own `.elc` file
+# you can generate your own "`.elc`" file
 # (see [example file](https://github.com/mne-tools/mne-python/blob/main/mne/channels/data/montages/standard_1020.elc))
 # and load that instead.
 # Below is an example of how to load the optode positions for a Artinis Octomon
