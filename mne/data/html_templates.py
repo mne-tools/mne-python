@@ -61,11 +61,11 @@ raw_template = Template("""
 {{info_repr[:-9]}}
     <tr>
         <th>Filenames</th>
-        <td>{{' , '.join(filenames)}}</td>
+        <td>{{', '.join(filenames)}}</td>
     </tr>
     <tr>
         <th>Measurement time range</th>
-        <td>{{tmin}} to {{tmax}} (hours:minutes:seconds)</td>
+        <td>{{tmin}} to {{tmax}} (HH:MM:SS</td>
     </tr>
 </table>
 """)
