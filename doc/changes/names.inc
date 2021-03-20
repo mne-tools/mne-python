@@ -370,8 +370,14 @@
 
 .. _Valerii Chirkov: https://github.com/vagechirkov
 
+.. _Maggie Clarke: https://github.com/mdclarke
+
+.. _Apoorva Karekal: https://github.com/apoorva6262
+
 .. _Matteo Anelli: https://github.com/matteoanelli
 
 .. _Cora Kim: https://github.com/kimcoco
 
 .. _Silvia Cotroneo: https://github.com/sfc-neuro
+
+.. _Erica Peterson: https://github.com/nordme

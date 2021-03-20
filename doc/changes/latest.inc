@@ -41,12 +41,22 @@ Current (0.23.dev0)
 
 .. |Matteo Anelli| replace:: **Matteo Anelli**
 
+.. |Apoorva Karekal| replace:: **Apoorva Karekal**
+
 .. |Cora Kim| replace:: **Cora Kim**
 
 .. |Silvia Cotroneo| replace:: **Silvia Cotroneo**
 
+.. |Erica Peterson| replace:: **Erica Peterson**
+
+.. |Maggie Clarke| replace:: **Maggie Clarke**
+
 Enhancements
 ~~~~~~~~~~~~
+- Add ``apply_function`` method to epochs and evoked objects (:gh:`9088` **by new contributor** |Erica Peterson|_ and `Victoria Peterson`_)
+
+- New tutorial for function :func:`mne.make_fixed_length_epochs` (:gh:`9156` **by new contributor** |Erica Peterson|_)
+
 - Add different colors for each volume source space in :func:`mne.viz.plot_alignment` (:gh:`9043` **by new contributor** |Valerii Chirkov|_)
 
 - Add ``overlap`` parameter to :func:`mne.make_fixed_length_epochs` to allow creating overlapping fixed length epochs (:gh:`9096` **by new contributor** |Silvia Cotroneo|_)
@@ -58,6 +68,8 @@ Enhancements
 - New Tutorial for analyzing frequency-tagging data (:gh:`8867` **by new contributor** |Dominik Welke|_ and `kalenkovich`_)
 
 - Add dbs as new channel type for deep brain stimulation (DBS) recordings (:gh:`8739` **by new contributor** |Richard Koehler|_)
+
+- Add some preprocessing functions to the EEGLAB migration guide (:gh:`9169` **by new contributor** |Apoorva Karekal|_)
 
 - Add :func:`mne.chpi.extract_chpi_locs_kit` to read cHPI coil locations from KIT/Yokogawa data (:gh:`` **by new contributor** |Matt Sanderson|_, `Robert Seymour`_, and `Eric Larson`_)
 
@@ -131,10 +143,13 @@ Enhancements
 
 - Add :func:`mne.channels.DigMontage.add_estimated_fiducials` which will add LPA, RPA and Nasion fiducial points to the ``DigMontage`` object in ``mri`` coordinate frame (:gh:`9118` by `Adam Li`_)
 
-- :func:`mne.io.anonymize_info` now anonymizes also sex and hand fields when ``keep_his`` is ``False`` (:gh:`9103` by |Rotem Falach|_)`
+- :func:`mne.io.anonymize_info` now anonymizes also sex and hand fields when ``keep_his`` is ``False`` (:gh:`9103` by |Rotem Falach|_)
+
 
 Bugs
 ~~~~
+- Fix bug with :func:`mne.Epochs.plot_image` allowing interactive zoom to work properly (:gh:`9152` by **by new contributor** |Maggie Clarke|_ and `Daniel McCloy`_)
+
 - Fix bug with :func:`mne.Epochs.plot_image` where the ``x_label`` was different depending on the evoked parameter (:gh:`9115` **by new contributor** |Matteo Anelli|_)
 
 - Fix bug with restricting :func:`mne.io.Raw.save` saving options to .fif and .fif.gz extensions (:gh:`9062` by |Valerii Chirkov|_)

@@ -908,8 +908,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
 
     if indices is None:
         # return all-to-all connectivity matrices
-        logger.info('    assembling connectivity matrix '
-                    '(filling the upper triangular region of the matrix)')
+        logger.info('    assembling connectivity matrix')
         con_flat = con
         con = list()
         for this_con_flat in con_flat:

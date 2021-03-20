@@ -20,6 +20,7 @@ import re
 import numpy as np
 
 from ..defaults import HEAD_SIZE_DEFAULT
+from ..source_space import get_mni_fiducials
 from ..viz import plot_montage
 from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
                           _topo_to_sph, _frame_to_str, Transform,
@@ -119,6 +120,12 @@ def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
     read_dig_egi
     read_dig_fif
     read_dig_polhemus_isotrak
+
+    Notes
+    -----
+    Valid ``coord_frame`` arguments are 'meg', 'mri', 'mri_voxel', 'head',
+    'mri_tal', 'ras', 'fs_tal', 'ctf_head', 'ctf_meg', 'unknown'. For custom
+    montages without fiducials this parameter has to be set to 'head'.
     """
     _validate_type(ch_pos, (dict, None), 'ch_pos')
     if ch_pos is None:
@@ -384,8 +391,6 @@ class DigMontage(object):
         and then use ``montage.get_native_head_t()`` to get the
         head <-> MRI transform.
         """
-        from ..coreg import get_mni_fiducials
-
         # get coordframe and fiducial coordinates
         montage_bunch = _get_data_as_dict_from_dig(self.dig)
 
