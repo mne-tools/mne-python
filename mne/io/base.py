@@ -850,7 +850,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         picks = _picks_to_idx(self.info, picks, 'all', exclude=())
 
         # Convert into the specified unit
-        ch_factors = np.ones((len(picks), len(self)))
+        ch_factors = np.ones(len(picks))
 
         si_units = _handle_default('si_units')
         si_units_splitted = {key: si_units[key].split('/') for key in si_units}
@@ -920,8 +920,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                 (picks, slice(start, stop)), return_times=return_times)
             if return_times:
                 data, times = getitem
-                return data * ch_factors, times
-            return getitem * ch_factors
+                return data * ch_factors[:, None], times
+            return getitem * ch_factors[:, None]
         _check_option('reject_by_annotation', reject_by_annotation.lower(),
                       ['omit', 'nan'])
         onsets, ends = _annotations_starts_stops(self, ['BAD'])
@@ -931,8 +931,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         if len(onsets) == 0:
             data, times = self[picks, start:stop]
             if return_times:
-                return data * ch_factors, times
-            return data * ch_factors
+                return data * ch_factors[:, None], times
+            return data * ch_factors[:, None]
         n_samples = stop - start  # total number of samples
         used = np.ones(n_samples, bool)
         for onset, end in zip(onsets, ends):
@@ -972,8 +972,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             data, times = self[picks, start:stop]
 
         if return_times:
-            return data * ch_factors, times
-        return data * ch_factors
+            return data * ch_factors[:, None], times
+        return data * ch_factors[:, None]
 
     @verbose
     def apply_function(self, fun, picks=None, dtype=None, n_jobs=1,
