@@ -811,7 +811,7 @@ class Info(dict, MontageMixin):
 
     def _repr_html_(self, caption=None):
         if not isinstance(caption, str):
-            caption = 'Info'
+            caption = ''
         n_eeg = len(pick_types(self, meg=False, eeg=True))
         n_grad = len(pick_types(self, meg='grad'))
         n_mag = len(pick_types(self, meg='mag'))
