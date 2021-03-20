@@ -1654,10 +1654,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         basenames = [os.path.basename(f) for f in self._filenames]
         m, s = divmod(self.first_time, 60)
         h, m = divmod(m, 60)
-        tmin = '{:d}:{:02d}:{:02d}'.format(int(h), int(m), int(s))
+        tmin = f'{int(h)}:{int(m):02d}:{int(s):02d}'
         m, s = divmod(self._last_time, 60)
         h, m = divmod(m, 60)
-        tmax = '{:d}:{:02d}:{:02d}'.format(int(h), int(m), int(s))
+        tmax = f'{int(h)}:{int(m):02d}:{int(s):02d}'
         return raw_template.substitute(
             info_repr=self.info._repr_html_(caption=caption),
             filenames=basenames, tmin=tmin,
