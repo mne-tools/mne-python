@@ -17,6 +17,7 @@ NIRx (directory)
 NIRx recordings can be read in using :func:`mne.io.read_raw_nirx`.
 The NIRx device stores data directly to a directory with multiple file types,
 MNE extracts the appropriate information from each file.
+MNE only supports NIRx files recorded with NIRStar version 15.0 and above.
 
 
 .. _import-snirf:
@@ -74,8 +75,9 @@ will also read the ``digaux`` data and create annotations for any triggers.
 # specification of sensor positions varies between each vendor.
 # Instead, we suggest that data is converted to the format approved by the
 # Society for functional near-infrared spectroscopy called
-# `SNIRF <https://github.com/fNIRS/snirf>`_
-# to translate your data to the SNIRF format.
+# `SNIRF <https://github.com/fNIRS/snirf>`_,
+# they provide a number of tools to convert your legacy
+# data to the SNIRF format.
 # However, due to the prevalence of these legacy files we provide
 # a template example of how you may read data in t/csv formats.
 
@@ -146,7 +148,7 @@ raw = mne.io.RawArray(data, info, verbose=True)
 # and how to store and view this information in MNE are:
 # :ref:`tut-sensor-locations`, :ref:`plot_source_alignment`, and
 # :ref:`ex-eeg-scalp`.
-
+#
 # Below is an example of how to load the optode positions for an Artinis
 # Octomon device. However, many fNIRS researchers use custom optode montages,
 # in this case you can generate your own .elc file (see `example file
@@ -162,9 +164,9 @@ raw.plot_sensors()
 
 
 ###############################################################################
-# It is also possible to view the location of the sources (red),
-# detectors (black), and channel (white lines and orange dots) locations
-# in a 3D representation to validate the positions were loaded correctly.
+# To validate the positions were loaded correctly it is also possible
+# to view the location of the sources (red), detectors (black),
+# and channel (white lines and orange dots) locations in a 3D representation.
 # The ficiduals are marked in blue, green and red.
 # See :ref:`plot_source_alignment` for more details.
 
