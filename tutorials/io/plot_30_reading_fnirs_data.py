@@ -59,9 +59,9 @@ unparsed ``.txt`` files, which affects how the data in the file is organised.
 MNE will read either file type and extract the raw DC, AC, and Phase data.
 If triggers are sent using the ``digaux`` port of the recording hardware, MNE
 will also read the ``digaux`` data and create annotations for any triggers.
-
-
 """  # noqa:E501
+
+# sphinx_gallery_thumbnail_number = 2
 
 ###############################################################################
 # Loading legacy data in csv or tsv format
@@ -74,8 +74,8 @@ will also read the ``digaux`` data and create annotations for any triggers.
 # specification of sensor positions varies between each vendor.
 # Instead, we suggest that data is converted to the format approved by the
 # Society for functional near-infrared spectroscopy called
-# [SNIRF](https://github.com/fNIRS/snirf), the society provides converters
-# to translate your data to SNIRF.
+# `SNIRF <https://github.com/fNIRS/snirf>`_
+# to translate your data to the SNIRF format.
 # However, due to the prevalence of these legacy files we provide
 # a template example of how you may read data in t/csv formats.
 
@@ -85,9 +85,8 @@ import mne
 
 
 ###############################################################################
-# First, we generate an example csv file.
-# This is only required for this example, this step would be skipped
-# if you have actual data you wish to load.
+# First, we generate an example csv file which will then be loaded in to MNE.
+# This step would be skipped if you have actual data you wish to load.
 # We simulate 16 channels with 100 samples of data and save this to a file
 # called fnirs.csv.
 
@@ -102,8 +101,9 @@ pd.DataFrame(np.random.normal(size=(16, 100))).to_csv("fnirs.csv")
 data = pd.read_csv('fnirs.csv')
 
 # In MNE the naming of channels MUST follow this structure of
-# `S#_D# type` or `S#_D# wavelength`, where # is replaced by the appropriate
-# source and detector number.
+# `S#_D# type` or `S#_D# wavelength`, where # is replaced
+# by the appropriate source and detector number, type is
+# either hbo or hbr, and wavelength is specified in nm.
 ch_names = ['D1_S1 hbo', 'D1_S1 hbr', 'D1_S2 hbo', 'D1_S2 hbr',
             'D1_S3 hbo', 'D1_S3 hbr', 'D1_S4 hbo', 'D1_S4 hbr',
             'D2_S5 hbo', 'D2_S5 hbr', 'D2_S6 hbo', 'D2_S6 hbr',
@@ -117,10 +117,11 @@ sfreq = 10.  # Hz
 
 
 ###############################################################################
-# Finally, the data can be converted in to a MNE data structure.
-# The metadata above is used to create an Info structure,
+# Finally, the data can be converted in to an MNE data structure.
+# The metadata above is used to create an :class:`mne.Info` data structure,
 # and this is combined with the data to create
-# an MNE :class:`~mne.io.Raw` object, for more details on how continuous
+# an MNE :class:`~mne.io.Raw` object. For more details on the info structure
+# see :ref:`tut-info-class`, and for additional details on how continuous
 # data is stored in MNE see :ref:`tut-raw-class`.
 # For a more extensive description of how to create MNE data structures from
 # raw array data see :ref:`tut_creating_data_structures`.
@@ -135,18 +136,22 @@ raw = mne.io.RawArray(data, info, verbose=True)
 #
 # Having information about optode locations may assist in your analysis.
 # Beyond the general benefits this provides
-# such as creating regions of interest,
+# (e.g. creating regions of interest, etc),
 # this is particularly important for fNIRS as information about the
 # distance between optodes is required to convert the optical density data
 # in to an estimate of the haemoglobin concentrations.
 # MNE provides methods to load standard sensor configurations (montages) from
-# some vendors, which is demonstrated below.
-# However, many fNIRS researchers use custom optode montages, in this case
-# you can generate your own .elc file
-# (see [example file](https://github.com/mne-tools/mne-python/blob/main/mne/channels/data/montages/standard_1020.elc))
-# and load that instead.
-# Below is an example of how to load the optode positions for a Artinis Octomon
-# device.
+# some vendors, and this is demonstrated below.
+# Some handy tutorials for understanding sensor locations, coordinate systems,
+# and how to store and view this information in MNE are:
+# :ref:`tut-sensor-locations`, :ref:`plot_source_alignment`, and
+# :ref:`ex-eeg-scalp`.
+
+# Below is an example of how to load the optode positions for an Artinis
+# Octomon device. However, many fNIRS researchers use custom optode montages,
+# in this case you can generate your own .elc file (see `example file
+# <https://github.com/mne-tools/mne-python/blob/main/mne/channels/data
+# /montages/standard_1020.elc>`_) and load that instead.
 
 raw.set_montage('artinis-octamon')
 # To load a custom montage use:
@@ -160,6 +165,8 @@ raw.plot_sensors()
 # It is also possible to view the location of the sources (red),
 # detectors (black), and channel (white lines and orange dots) locations
 # in a 3D representation to validate the positions were loaded correctly.
+# The ficiduals are marked in blue, green and red.
+# See :ref:`plot_source_alignment` for more details.
 
 subjects_dir = mne.datasets.sample.data_path() + '/subjects'
 mne.datasets.fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)
@@ -180,7 +187,7 @@ mne.viz.set_3d_view(figure=fig, azimuth=90, elevation=90, distance=0.4,
 # Storing of optode locations
 # ===========================
 #
-# NIRS devices consist of light sources and light detectors.
+# fNIRS devices consist of light sources and light detectors.
 # A channel is formed by source-detector pairs.
 # MNE stores the location of the channels, sources, and detectors.
 #
