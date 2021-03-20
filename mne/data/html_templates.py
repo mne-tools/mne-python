@@ -2,7 +2,6 @@ from ..externals.tempita import Template
 
 
 info_template = Template("""
-<h4>{{caption}}</h4>
 <table class="table table-hover">
     <tr>
         <th>Measurement date</th>
