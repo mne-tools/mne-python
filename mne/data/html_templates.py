@@ -60,6 +60,10 @@ info_template = Template("""
 raw_template = Template("""
 {{info_repr[:-9]}}
     <tr>
+        <th>Filenames</th>
+        <td>{{filenames}}</td>
+    </tr>
+    <tr>
         <th>Measurement time range</th>
         <td>{{u'%0.2f' % tmin}} to {{u'%0.2f' % tmax}} sec.</td>
     </tr>

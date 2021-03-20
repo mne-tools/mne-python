@@ -1653,7 +1653,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             caption = 'Raw'
         return raw_template.substitute(
             info_repr=self.info._repr_html_(caption=caption),
-            tmin=self.first_samp, tmax=self.last_samp)
+            filenames=self._filenames, tmin=self.first_samp,
+            tmax=self.last_samp)
 
     def add_events(self, events, stim_channel=None, replace=False):
         """Add events to stim channel.
