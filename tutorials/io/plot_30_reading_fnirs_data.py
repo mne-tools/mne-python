@@ -180,7 +180,7 @@ mne.viz.set_3d_view(figure=fig, azimuth=90, elevation=90, distance=0.4,
 # Storing of optode locations
 # ===========================
 #
-# NIRs devices consist of light sources and light detectors.
+# NIRS devices consist of light sources and light detectors.
 # A channel is formed by source-detector pairs.
 # MNE stores the location of the channels, sources, and detectors.
 #
