@@ -65,7 +65,7 @@ raw_template = Template("""
     </tr>
     <tr>
         <th>Measurement time range</th>
-        <td>{{u'%0.2f' % tmin}} to {{u'%0.2f' % tmax}} sec.</td>
+        <td>{{tmin}} to {{tmax}} (hours:minutes:seconds)</td>
     </tr>
 </table>
 """)
