@@ -231,7 +231,11 @@ def _plot_topo(info, times, show_func, click_func=None, layout=None,
                                     unified=unified, img=img, axes=axes)
 
     # Temporarily converting the ylim to a list to avoid zip object exhaustion
-    ylim_list = [list(t) for t in zip(*ylim)]
+    if ylim is not None:
+        ylim_list = [list(t) for t in zip(*ylim)]
+    else:
+        ylim_list = ylim
+
     for ax, ch_idx in my_topo_plot:
         if layout.kind == 'Vectorview-all' and ylim_list is not None:
             this_type = {'mag': 0, 'grad': 1}[channel_type(info, ch_idx)]
