@@ -8,7 +8,7 @@ import pytest
 
 import numpy as np
 
-from numpy.testing import assert_allclose
+from numpy.testing import assert_allclose, assert_array_almost_equal
 
 from mne.channels import make_standard_montage
 from mne.io._digitization import _get_dig_eeg, _get_fid_coords
@@ -109,3 +109,14 @@ def test_artinis():
     raw = _simulate_artinis_octamon()
     montage = make_standard_montage("artinis-octamon")
     raw.set_montage(montage)
+    # Check a known location
+    assert_array_almost_equal(raw.info["chs"][0]["loc"][:3],
+                              [0.0616, 0.075398, 0.07347])
+    assert_array_almost_equal(raw.info["chs"][8]["loc"][:3],
+                              [-0.033875,  0.101276,  0.077291])
+    assert_array_almost_equal(raw.info["chs"][12]["loc"][:3],
+                              [-0.062749,  0.080417,  0.074884])
+    # fNIRS has two identical channel locations for each measurement
+    # The 10th element encodes the wavelength, so it will differ.
+    assert_array_almost_equal(raw.info["chs"][0]["loc"][:9],
+                              raw.info["chs"][1]["loc"][:9])
