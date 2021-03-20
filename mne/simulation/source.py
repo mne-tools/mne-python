@@ -342,6 +342,7 @@ class SourceSimulator(object):
     def __init__(self, src, tstep=1e-3, duration=None, first_samp=0):
         if duration is not None and duration < tstep:
             raise ValueError('duration must be None or >= tstep.')
+        self.first_samp = first_samp
         self._src = src
         self._tstep = tstep
         self._labels = []
@@ -349,13 +350,11 @@ class SourceSimulator(object):
         self._events = np.empty((0, 3), dtype=int)
         self._duration = duration  # if not None, sets # samples
         self._last_samples = []
-        self._first_sample = first_samp
         self._chk_duration = 1000
 
     @property
     def duration(self):
-        """Duration of the simulation in same units as tstep.
-        """
+        """Duration of the simulation in same units as tstep."""
         if self._duration is not None:
             return self._duration
         return self.n_times * self._tstep
@@ -367,11 +366,7 @@ class SourceSimulator(object):
             return int(self._duration / self._tstep)
         ls = np.max(self._last_samples) if len(self._last_samples) > 0 \
             else self.first_samp
-        return ls - self.first_samp + 1  # will be at least 1
-
-    @property
-    def first_samp(self):
-        return self._first_sample
+        return ls - self.first_samp + 1  # >= 1
 
     @property
     def last_samp(self):

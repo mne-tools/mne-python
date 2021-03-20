@@ -327,7 +327,7 @@ def test_degenerate(raw_data):
 @pytest.mark.slowtest
 def test_simulate_raw_bem(raw_data):
     """Test simulation of raw data with BEM."""
-    raw, src, stc, trans, sphere = raw_data
+    raw, src_ss, stc, trans, sphere = raw_data
     src = setup_source_space('sample', 'oct1', subjects_dir=subjects_dir)
     for s in src:
         s['nuse'] = 3
@@ -368,6 +368,31 @@ def test_simulate_raw_bem(raw_data):
         diffs = np.sqrt(np.sum((locs - fits) ** 2, axis=-1)) * 1000
         med_diff = np.median(diffs)
         assert med_diff < tol, '%s: %s' % (bem, med_diff)
+    # also test event timings with SourceSim
+    first_samp = raw.first_samp
+    events = find_events(raw, initial_event=True, verbose=False)
+    evt_times = events[:, 0]
+    assert len(events) == 3
+    labels_sim = [[], [], []]  # random l+r hemisphere points
+    labels_sim[0] = Label([src_ss[0]['vertno'][1]], hemi='lh')
+    labels_sim[1] = Label([src_ss[0]['vertno'][4]], hemi='lh')
+    labels_sim[2] = Label([src_ss[1]['vertno'][2]], hemi='rh')
+    wf_sim = np.array([2, 1, 0])
+    for this_fs in (0, first_samp):
+        ss = SourceSimulator(src_ss, 1. / raw.info['sfreq'],
+                             first_samp=this_fs)
+        for i in range(3):
+            ss.add_data(labels_sim[i], wf_sim, events[np.newaxis, i])
+        assert ss.n_times == evt_times[-1] + len(wf_sim) - this_fs
+    raw_sim = simulate_raw(raw.info, ss, src=src_ss, bem=bem_fname,
+                           first_samp=first_samp)
+    data = raw_sim.get_data()
+    amp0 = data[:, evt_times - first_samp].max()
+    amp1 = data[:, evt_times + 1 - first_samp].max()
+    amp2 = data[:, evt_times + 2 - first_samp].max()
+    assert_allclose(amp0 / amp1, wf_sim[0] / wf_sim[1], rtol=1e-5)
+    assert amp2 == 0
+    assert raw_sim.n_times == ss.n_times
 
 
 def test_simulate_round_trip(raw_data):
@@ -428,55 +453,6 @@ def test_simulate_round_trip(raw_data):
     fwd['info']['dev_head_t']['trans'][0, 0] = 1.
     with pytest.raises(ValueError, match='dev_head_t.*does not match'):
         simulate_raw(raw.info, stc, None, None, None, forward=fwd)
-
-
-@pytest.mark.slowtest
-@testing.requires_testing_data
-def test_sourcesim_events(raw_data):
-    """Test of SourceSimulator usage with testing data."""
-    raw, src, stc, trans, sphere = raw_data
-    first_samp = raw.first_samp
-    events = find_events(raw, initial_event=True, verbose=False)
-    evt_times = events[:, 0]
-    assert len(events) == 3
-    # Make simulator objects
-    labels_sim = [[], [], []]  # random l+r hemisphere points
-    labels_sim[0] = Label([src[0]['vertno'][1]], hemi='lh')
-    labels_sim[1] = Label([src[0]['vertno'][4]], hemi='lh')
-    labels_sim[2] = Label([src[1]['vertno'][2]], hemi='rh')
-    wf_sim = np.array([2, 1, 0])
-    tstep = 1. / raw.info['sfreq']
-    ss_0 = SourceSimulator(src, tstep, first_samp=0)
-    for i in range(3):
-        ss_0.add_data(labels_sim[i], wf_sim, events[np.newaxis, i])
-    ss_fs = SourceSimulator(src, tstep, first_samp=first_samp)
-    for i in range(3):
-        ss_fs.add_data(labels_sim[i], wf_sim, events[np.newaxis, i])
-    assert ss_0.n_times == evt_times[-1] + len(wf_sim)
-    assert ss_fs.n_times == evt_times[-1] + len(wf_sim) - first_samp
-    # Create simulations and test event timings
-    raw_sim = simulate_raw(raw.info, ss_0, src=src, bem=bem_fname,
-                           first_samp=first_samp)
-    assert raw_sim.n_times == ss_0.n_times
-    assert raw.first_samp != ss_0.first_samp
-    data = raw_sim.get_data()
-    amp0 = data[:, evt_times].max()
-    amp1 = data[:, evt_times + 1].max()
-    amp2 = data[:, evt_times + 2].max()
-    assert_allclose(amp0 / amp1, wf_sim[0] / wf_sim[1], rtol=1e-5)
-    assert amp2 == 0
-    # With SourceSim first_samp, active raw_sim samples should be shifted
-    raw_sim = simulate_raw(raw.info, ss_fs, src=src, bem=bem_fname,
-                           first_samp=first_samp)
-    assert raw_sim.n_times == ss_fs.n_times
-    assert raw.first_samp == ss_fs.first_samp
-    data = raw_sim.get_data()
-    off_times = evt_times - first_samp
-    amp0 = data[:, off_times].max()
-    amp1 = data[:, off_times + 1].max()
-    amp2 = data[:, off_times + 2].max()
-    assert_allclose(amp0 / amp1, wf_sim[0] / wf_sim[1], rtol=1e-5)
-    assert amp2 == 0
 
 
 @pytest.mark.slowtest
