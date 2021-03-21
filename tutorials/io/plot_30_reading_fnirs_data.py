@@ -61,8 +61,19 @@ MNE will read either file type and extract the raw DC, AC, and Phase data.
 If triggers are sent using the ``digaux`` port of the recording hardware, MNE
 will also read the ``digaux`` data and create annotations for any triggers.
 
+
 Loading legacy data in csv or tsv format
 ========================================
+
+.. warning:: This method is not supported. You should convert your data
+             to the `SNIRF <https://github.com/fNIRS/snirf>`_
+             format using the tools provided by the Society
+             for functional Near-Infrared Spectroscopy, and then load it
+             using :func:`mne.io.read_raw_snirf`.
+
+             This method will only work for data that has already been
+             converted to oxyhaemoglobin and deoxyhaemoglobin. It will not work
+             with raw intensity data or optical density data.
 
 Many legacy fNIRS measurements are stored in csv and tsv formats.
 These formats are not officially supported in MNE as there is no
@@ -94,6 +105,10 @@ pd.DataFrame(np.random.normal(size=(16, 100))).to_csv("fnirs.csv")
 
 
 ###############################################################################
+#
+# .. warning:: You must ensure that the channel naming structure follows
+#              the MNE format of `S#_D# type`. This is further described below.
+#
 # Next, we will load the example csv file.
 # The metadata must be specified manually as the csv file does not contain
 # information about channel names, types, sample rate etc.
@@ -101,9 +116,9 @@ pd.DataFrame(np.random.normal(size=(16, 100))).to_csv("fnirs.csv")
 data = pd.read_csv('fnirs.csv')
 
 # In MNE the naming of channels MUST follow this structure of
-# `S#_D# type` or `S#_D# wavelength`, where # is replaced
-# by the appropriate source and detector number, type is
-# either hbo or hbr, and wavelength is specified in nm.
+# `S#_D# type` where # is replaced
+# by the appropriate source and detector number and type is
+# either hbo or hbr.
 
 ch_names = ['S1_D1 hbo', 'S1_D1 hbr', 'S2_D1 hbo', 'S2_D1 hbr',
             'S3_D1 hbo', 'S3_D1 hbr', 'S4_D1 hbo', 'S4_D1 hbr',
