@@ -107,7 +107,7 @@ pd.DataFrame(np.random.normal(size=(16, 100))).to_csv("fnirs.csv")
 ###############################################################################
 #
 # .. warning:: You must ensure that the channel naming structure follows
-#              the MNE format of `S#_D# type`. This is further described below.
+#              the MNE format of S#_D# type. This is further described below.
 #
 # Next, we will load the example csv file.
 # The metadata must be specified manually as the csv file does not contain
