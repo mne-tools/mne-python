@@ -367,7 +367,7 @@ def test_drop_channels():
 
 
 def test_add_reference_channels():
-    """ Test if there is a new reference channel that consist of all zeros"""
+    """Test if there is a new reference channel that consist of all zeros."""
     raw = read_raw_fif(raw_fname, preload=True)
     n_raw_original_channels = len(raw.ch_names)
     epochs = Epochs(raw, read_events(eve_fname))
