@@ -378,7 +378,7 @@ def test_add_reference_channels():
 
     # Raw object
     raw.add_reference_channels(['REF 123'])
-    assert len(raw.ch_names) == raw_original_channels_number + 1
+    assert len(raw.ch_names) == n_raw_original_channels + 1
     assert np.all(raw.get_data()[-1] == 0)
 
     # Epochs object
@@ -387,7 +387,7 @@ def test_add_reference_channels():
 
     # Evoked object
     evoked.add_reference_channels(['REF 123'])
-    assert len(evoked.ch_names) == evoked_original_channels_number + 1
+    assert len(evoked.ch_names) == n_evoked_original_channels + 1
     assert np.all(evoked._data[-1] == 0)
 
 
