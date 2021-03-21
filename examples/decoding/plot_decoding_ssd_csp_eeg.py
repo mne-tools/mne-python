@@ -5,9 +5,9 @@
 Improving motor imagery decoding from EEG using Spatio Spectra Decomposition
 ===========================================================================
 
-Improving the decoding of motor imagery applied to EEG data decomposed using
-SSD before CSP. A classifier is then applied to features extracted on
-SSD+CSP-filtered signals.
+Improving the decoding of Motor Imagery from EEG data when SSD is applied
+before the traditional CSP. A classifier is then trained using the extracted 
+features from the SSD+CSP-filtered signals.
 
 :footcite:`NikulinEtAl2011`.
 """

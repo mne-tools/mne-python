@@ -247,10 +247,11 @@ print('CSP: %0.1f%%' % (100 * scores.mean(),))
 # while simultaneously minimizing it at the neighboring, surrounding frequency
 # bins.
 #
-# SSD is an unsupervised spatial filtering approach that can be used a pre-
-# processing approach for data dimentionality reducting while the 1/f noise in
-# the neural data is reduced :footcite:`HaufeEtAl2014b`. The MNE-Python
-# implementation allows to implement SSD in both continuous and epoched data.
+# SSD is an unsupervised spatial filtering approach that can be used as a
+# pre-processing approach for data dimentionality reduction while the 1/f noise
+# in the neural data is reduced :footcite:`HaufeEtAl2014b`. The MNE-Python
+# implementation allows for implementing SSD in both continuous and epoched
+# data.
 #
 # .. topic:: Examples
 #
