@@ -242,7 +242,7 @@ print('CSP: %0.1f%%' % (100 * scores.mean(),))
 #
 # Spatio-Spectral Decomposition (SSD)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# Spatio-Spectral Decomposition (:class:`mne.decoding.ssd`)
+# Spatio-Spectral Decomposition (:class:`mne.decoding.SSD`)
 # :footcite:`NikulinEtAl2011` maximizes the signal power at a peak frequency
 # while simultaneously minimizing it at the neighboring, surrounding frequency
 # bins.
