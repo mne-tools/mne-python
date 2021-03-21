@@ -107,7 +107,16 @@ pd.DataFrame(np.random.normal(size=(16, 100))).to_csv("fnirs.csv")
 ###############################################################################
 #
 # .. warning:: You must ensure that the channel naming structure follows
-#              the MNE format of S#_D# type. This is further described below.
+#              the MNE format of S#_D# type.
+#              The channels must be ordered in pairs haemoglobin pairs,
+#              such that for a single channel all the types are in subsequent
+#              indices. The type order must be hbo then hbr.
+#              The data below is already in the correct order and may be
+#              used as a template for how data must be stored.
+#              If the order that your data is stored is different to the
+#              mandatory formatting, then you must first read the data with
+#              channel naming according to the data structure, then reorder
+#              the channels to match the required format.
 #
 # Next, we will load the example csv file.
 # The metadata must be specified manually as the csv file does not contain
