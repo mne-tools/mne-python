@@ -738,9 +738,13 @@ def _set_montage_fnirs(info, montage):
     # Modify info['chs'][#]['loc'] in place
     num_ficiduals = len(montage.dig) - len(montage.ch_names)
     picks = _picks_to_idx(info, 'fnirs', exclude=[], allow_empty=True)
+    info._check_nirs_ch_names()
     for ch_idx in picks:
-        ch = info['ch_names'][ch_idx]
-        detector, source = sorted(ch.split(' ')[0].split('_'))
+        ch = info['chs'][ch_idx]['ch_name']
+        name, suffix = ch.split(' ')
+        if suffix not in ['hbo', 'hbr']:
+            info['chs'][ch_idx]['loc'][9] = int(suffix)
+        source, detector = name.split('_')
         source_pos = montage.dig[montage.ch_names.index(source)
                                  + num_ficiduals]['r']
         detector_pos = montage.dig[montage.ch_names.index(detector)
@@ -931,6 +935,7 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
             # XXX info['dev_head_t'] modified in place
             info['dev_head_t'] = Transform('meg', 'head', mnt_head.dev_head_t)
 
+        # Handle fNIRS with source, detector and channel
         fnirs_picks = _picks_to_idx(info, 'fnirs', allow_empty=True)
         if len(fnirs_picks) > 0:
             info = _set_montage_fnirs(info, mnt_head)
