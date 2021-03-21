@@ -740,7 +740,7 @@ def _set_montage_fnirs(info, montage):
     picks = _picks_to_idx(info, 'fnirs', exclude=[], allow_empty=True)
     for ch_idx in picks:
         ch = info['ch_names'][ch_idx]
-        source, detector = ch.split(' ')[0].split('_')
+        detector, source = sorted(ch.split(' ')[0].split('_'))
         source_pos = montage.dig[montage.ch_names.index(source)
                                  + num_ficiduals]['r']
         detector_pos = montage.dig[montage.ch_names.index(detector)

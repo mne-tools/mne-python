@@ -105,10 +105,10 @@ data = pd.read_csv('fnirs.csv')
 # by the appropriate source and detector number, type is
 # either hbo or hbr, and wavelength is specified in nm.
 
-ch_names = ['D1_S1 hbo', 'D1_S1 hbr', 'D1_S2 hbo', 'D1_S2 hbr',
-            'D1_S3 hbo', 'D1_S3 hbr', 'D1_S4 hbo', 'D1_S4 hbr',
-            'D2_S5 hbo', 'D2_S5 hbr', 'D2_S6 hbo', 'D2_S6 hbr',
-            'D2_S7 hbo', 'D2_S7 hbr', 'D2_S8 hbo', 'D2_S8 hbr']
+ch_names = ['S1_D1 hbo', 'S1_D1 hbr', 'S2_D1 hbo', 'S2_D1 hbr',
+            'S3_D1 hbo', 'S3_D1 hbr', 'S4_D1 hbo', 'S4_D1 hbr',
+            'S5_D2 hbo', 'S5_D2 hbr', 'S6_D2 hbo', 'S6_D2 hbr',
+            'S7_D2 hbo', 'S7_D2 hbr', 'S8_D2 hbo', 'S8_D2 hbr']
 ch_types = ['hbo', 'hbr', 'hbo', 'hbr',
             'hbo', 'hbr', 'hbo', 'hbr',
             'hbo', 'hbr', 'hbo', 'hbr',
@@ -161,7 +161,7 @@ raw.plot_sensors()
 
 ###############################################################################
 # To validate the positions were loaded correctly it is also possible
-# to view the location of the sources (black), detectors (red),
+# to view the location of the sources (red), detectors (black),
 # and channel (white lines and orange dots) locations in a 3D representation.
 # The ficiduals are marked in blue, green and red.
 # See :ref:`plot_source_alignment` for more details.

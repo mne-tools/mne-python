@@ -87,10 +87,10 @@ def _simulate_artinis_octamon():
     info. This data can then be used to test the set_montage function.
     """
     data = np.random.normal(size=(16, 100))
-    ch_names = ['D1_S1 hbo', 'D1_S1 hbr', 'D1_S2 hbo', 'D1_S2 hbr',
-                'D1_S3 hbo', 'D1_S3 hbr', 'D1_S4 hbo', 'D1_S4 hbr',
-                'D2_S5 hbo', 'D2_S5 hbr', 'D2_S6 hbo', 'D2_S6 hbr',
-                'D2_S7 hbo', 'D2_S7 hbr', 'D2_S8 hbo', 'D2_S8 hbr']
+    ch_names = ['S1_D1 hbo', 'S1_D1 hbr', 'S2_D1 hbo', 'S2_D1 hbr',
+                'S3_D1 hbo', 'S3_D1 hbr', 'S4_D1 hbo', 'S4_D1 hbr',
+                'S5_D2 hbo', 'S5_D2 hbr', 'S6_D2 hbo', 'S6_D2 hbr',
+                'S7_D2 hbo', 'S7_D2 hbr', 'S8_D2 hbo', 'S8_D2 hbr']
     ch_types = ['hbo', 'hbr', 'hbo', 'hbr',
                 'hbo', 'hbr', 'hbo', 'hbr',
                 'hbo', 'hbr', 'hbo', 'hbr',
@@ -130,10 +130,7 @@ def test_set_montage_artinis():
     fif = op.join(op.dirname(__file__), '..', '..', 'data', 'fsaverage',
                   'fsaverage-trans.fif')
     fsaverage = read_trans(fif)
-    # assert_array_almost_equal(list(trans_octamon.values())[2],
-    #                           list(fsaverage.values())[2])
-    # assert_array_almost_equal(list(trans_brite.values())[2],
-    #                           list(fsaverage.values())[2])
-
-    raw.info['bads'] = raw.ch_names[3]
-    raw.interpolate_bads()
+    assert_array_almost_equal(list(trans_octamon.values())[2],
+                              list(fsaverage.values())[2])
+    assert_array_almost_equal(list(trans_brite.values())[2],
+                              list(fsaverage.values())[2])
