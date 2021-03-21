@@ -1649,11 +1649,13 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         return "<%s | %s>" % (self.__class__.__name__, s)
 
     def _repr_html_(self, caption=None):
-        if not isinstance(caption, str):
-            caption = 'Raw'
+        basenames = [os.path.basename(f) for f in self._filenames]
+        m, s = divmod(self._last_time - self.first_time, 60)
+        h, m = divmod(m, 60)
+        duration = f'{int(h):02d}:{int(m):02d}:{int(s):02d}'
         return raw_template.substitute(
             info_repr=self.info._repr_html_(caption=caption),
-            tmin=self.first_samp, tmax=self.last_samp)
+            filenames=basenames, duration=duration)
 
     def add_events(self, events, stim_channel=None, replace=False):
         """Add events to stim channel.
