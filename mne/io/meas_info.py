@@ -829,7 +829,7 @@ class Info(dict, MontageMixin):
             ecg = 'Not available'
         meas_date = self['meas_date']
         if meas_date is not None:
-            meas_date = meas_date.strftime("%B %d, %Y  %H:%M:%S %Z")
+            meas_date = meas_date.strftime("%B %d, %Y  %H:%M:%S") + ' GMT'
 
         html += info_template.substitute(
             caption=caption, info=self, meas_date=meas_date, n_eeg=n_eeg,
