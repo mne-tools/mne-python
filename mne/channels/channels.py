@@ -1074,7 +1074,7 @@ class UpdateChannelsMixin(object):
 
     @fill_doc
     def add_reference_channels(self, ref_channels):
-        """ Add reference channels to data that consists of all zeros.
+        """Add reference channels to data that consists of all zeros.
 
         Adds reference channels to data that were not included during
         recording. This is useful when you need to re-reference your data
