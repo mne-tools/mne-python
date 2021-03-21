@@ -15,6 +15,13 @@ info_template = Template("""
         <td>{{info['experimenter']}}</td>
         {{else}}<td>Unknown</td>{{endif}}
     </tr>
+        <th>Participant</th>
+        {{if info['subject_info'] is not None}}
+            {{if 'his_id' in info['subject_info'].keys()}}
+            <td>{{info['subject_info']['his_id']}}</td>
+            {{endif}}
+        {{else}}<td>Unknown</td>{{endif}}
+    </tr>
     <tr>
         <th>Digitized points</th>
         {{if info['dig'] is not None}}
@@ -63,8 +70,8 @@ raw_template = Template("""
         <td>{{', '.join(filenames)}}</td>
     </tr>
     <tr>
-        <th>Measurement time range</th>
-        <td>{{tmin}} – {{tmax}} (H:MM:SS)</td>
+        <th>Duration</th>
+        <td>{{duration}} (HH:MM:SS)</td>
     </tr>
 </table>
 """)
