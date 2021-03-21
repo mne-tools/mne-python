@@ -240,6 +240,24 @@ print('CSP: %0.1f%%' % (100 * scores.mean(),))
 #
 #     * :ref:`sphx_glr_auto_examples_decoding_plot_ems_filtering.py`
 #
+# Spatio-Spectral Decomposition (SSD)
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Spatio-Spectral Decomposition (:class:`mne.decoding.ssd`)
+# :footcite:`NikulinEtAl2011` maximizes the signal power at a peak frequency
+# while simultaneously minimizing it at the neighboring, surrounding frequency
+# bins.
+#
+# SSD is an unsupervised spatial filtering approach that can be used a pre-
+# processing approach for data dimentionality reducting while the 1/f noise in
+# the neural data is reduced :footcite:`HaufeEtAl2014b`. The MNE-Python
+# implementation allows to implement SSD in both continuous and epoched data.
+#
+# .. topic:: Examples
+#
+#     * :ref:`sphx_glr_auto_examples_decoding_plot_ssd_spatial_filters.py`
+#
+#     * :ref:`sphx_glr_auto_examples_decoding_plot_decoding_ssd_csp_eeg.py`
+#
 # Patterns vs. filters
 # ^^^^^^^^^^^^^^^^^^^^
 #
