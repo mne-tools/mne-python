@@ -2205,6 +2205,7 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
                                          tzinfo=datetime.timezone.utc)
     default_str = "mne_anonymize"
     default_subject_id = 0
+    default_sex = 0
     default_desc = ("Anonymized using a time shift"
                     " to preserve age at acquisition")
 
@@ -2251,14 +2252,15 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
         if subject_info.get('id') is not None:
             subject_info['id'] = default_subject_id
         if keep_his:
-            logger.info('Not fully anonymizing info - keeping \'his_id\'')
+            logger.info('Not fully anonymizing info - keeping '
+                        'his_id, sex, and hand info')
         else:
             if subject_info.get('his_id') is not None:
                 subject_info['his_id'] = str(default_subject_id)
             if subject_info.get('sex') is not None:
-                subject_info['sex'] = default_str
+                subject_info['sex'] = default_sex
             if subject_info.get('hand') is not None:
-                subject_info['hand'] = default_str
+                del subject_info['hand']  # there's no "unknown" setting
 
         for key in ('last_name', 'first_name', 'middle_name'):
             if subject_info.get(key) is not None:
