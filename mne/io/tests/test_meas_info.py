@@ -23,7 +23,7 @@ from mne.event import make_fixed_length_events
 from mne.datasets import testing
 from mne.io import (read_fiducials, write_fiducials, _coil_trans_to_loc,
                     _loc_to_coil_trans, read_raw_fif, read_info, write_info,
-                    meas_info, Projection)
+                    meas_info, Projection, BaseRaw)
 from mne.io.constants import FIFF
 from mne.io.write import _generate_meas_id, DATE_NONE
 from mne.io.meas_info import (Info, create_info, _merge_info,
@@ -540,6 +540,9 @@ def _test_anonymize_info(base_info):
     exp_info['subject_info']['last_name'] = default_str
     exp_info['subject_info']['id'] = default_subject_id
     exp_info['subject_info']['his_id'] = str(default_subject_id)
+    exp_info['subject_info']['sex'] = 0
+    del exp_info['subject_info']['hand']  # there's no "unknown" setting
+
     # this bday is 3653 days different. the change in day is due to a
     # different number of leap days between 1987 and 1977 than between
     # 2010 and 2000.
@@ -564,6 +567,8 @@ def _test_anonymize_info(base_info):
     # exp 2 tests the keep_his option
     exp_info_2 = exp_info.copy()
     exp_info_2['subject_info']['his_id'] = 'foobar'
+    exp_info_2['subject_info']['sex'] = 0
+    exp_info_2['subject_info']['hand'] = 1
 
     # exp 3 tests is a supplied daysback
     delta_t_2 = timedelta(days=43)
@@ -651,12 +656,37 @@ def test_anonymize(tmpdir):
     assert raw.first_samp == first_samp
     assert_allclose(raw.annotations.onset, expected_onset)
 
-    # Test instance method
+    # test mne.anonymize_info()
     events = read_events(event_name)
     epochs = Epochs(raw, events[:1], 2, 0., 0.1, baseline=None)
-
     _test_anonymize_info(raw.info.copy())
     _test_anonymize_info(epochs.info.copy())
+
+    # test instance methods & I/O roundtrip
+    for inst, keep_his in zip((raw, epochs), (True, False)):
+        inst = inst.copy()
+
+        subject_info = dict(his_id='Volunteer', sex=2, hand=1)
+        inst.info['subject_info'] = subject_info
+        inst.anonymize(keep_his=keep_his)
+
+        si = inst.info['subject_info']
+        if keep_his:
+            assert si == subject_info
+        else:
+            assert si['his_id'] == '0'
+            assert si['sex'] == 0
+            assert 'hand' not in si
+
+        # write to disk & read back
+        inst_type = 'raw' if isinstance(inst, BaseRaw) else 'epo'
+        fname = 'tmp_raw.fif' if inst_type == 'raw' else 'tmp_epo.fif'
+        out_path = tmpdir.join(fname)
+        inst.save(out_path, overwrite=True)
+        if inst_type == 'raw':
+            read_raw_fif(out_path)
+        else:
+            read_epochs(out_path)
 
     # test that annotations are correctly zeroed
     raw.anonymize()

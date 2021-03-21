@@ -89,6 +89,7 @@ extensions = [
     'mne_substitutions',
     'sphinx_bootstrap_divs',
     'sphinxcontrib.bibtex',
+    'sphinx_copybutton',
 ]
 
 # Add any paths that contain templates here, relative to this directory.

@@ -136,7 +136,13 @@ print(psds_welch_unagg.shape)
 # To this we'll use the function :func:`mne.time_frequency.tfr_morlet`
 # but you can also use :func:`mne.time_frequency.tfr_multitaper`
 # or :func:`mne.time_frequency.tfr_stockwell`.
-
+#
+# .. note::
+#       The ``decim`` parameter reduces the sampling rate of the time-frequency
+#       decomposition by the defined factor. This is usually done to reduce
+#       memory usage. For more information refer to the documentation of
+#       :func:`mne.time_frequency.tfr_morlet`.
+#
 # define frequencies of interest (log-spaced)
 freqs = np.logspace(*np.log10([6, 35]), num=8)
 n_cycles = freqs / 2.  # different number of cycle per frequency

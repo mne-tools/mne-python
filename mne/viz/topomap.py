@@ -1985,7 +1985,7 @@ def plot_psds_topomap(
 
 
 @fill_doc
-def plot_layout(layout, picks=None, show=True):
+def plot_layout(layout, picks=None, show_axes=False, show=True):
     """Plot the sensor positions.
 
     Parameters
@@ -1993,6 +1993,8 @@ def plot_layout(layout, picks=None, show=True):
     layout : None | Layout
         Layout instance specifying sensor positions.
     %(picks_nostr)s
+    show_axes : bool
+            Show layout axes if True. Defaults to False.
     show : bool
         Show figure if True. Defaults to True.
 
@@ -2011,15 +2013,18 @@ def plot_layout(layout, picks=None, show=True):
     fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None,
                         hspace=None)
     ax.set(xticks=[], yticks=[], aspect='equal')
-    pos = np.array([(p[0] + p[2] / 2., p[1] + p[3] / 2.) for p in layout.pos])
     outlines = dict(border=([0, 1, 1, 0, 0], [0, 0, 1, 1, 0]))
     _draw_outlines(ax, outlines)
     picks = _picks_to_idx(len(layout.names), picks)
-    pos = pos[picks]
+    pos = layout.pos[picks]
     names = np.array(layout.names)[picks]
-    for ii, (this_pos, ch_id) in enumerate(zip(pos, names)):
-        ax.annotate(ch_id, xy=this_pos[:2], horizontalalignment='center',
+    for ii, (p, ch_id) in enumerate(zip(pos, names)):
+        center_pos = np.array((p[0] + p[2] / 2., p[1] + p[3] / 2.))
+        ax.annotate(ch_id, xy=center_pos, horizontalalignment='center',
                     verticalalignment='center', size='x-small')
+        if show_axes:
+            x1, x2, y1, y2 = p[0], p[0] + p[2], p[1], p[1] + p[3]
+            ax.plot([x1, x1, x2, x2, x1], [y1, y2, y2, y1, y1], color='k')
     ax.axis('off')
     tight_layout(fig=fig, pad=0, w_pad=0, h_pad=0)
     plt_show(show)

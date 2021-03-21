@@ -219,7 +219,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         ts_args['show_sensors'] = False
     vlines = [0] if (epochs.times[0] < 0 < epochs.times[-1]) else []
     ts_defaults = dict(colors={'cond': 'k'}, title='', show=False,
-                       truncate_yaxis='auto', truncate_xaxis=False,
+                       truncate_yaxis=False, truncate_xaxis=False,
                        vlines=vlines, legend=False)
     ts_defaults.update(**ts_args)
     ts_args = ts_defaults.copy()
@@ -349,16 +349,10 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
             ch_type = this_group_dict['ch_type']
             if not manual_ylims:
                 args = auto_ylims[ch_type]
-                func = max
                 if 'invert_y' in ts_args:
                     args = args[::-1]
-                    func = min
                 ax.set_ylim(*args)
-                yticks = np.array(ax.get_yticks())
-                top_tick = func(yticks)
-                ax.spines['left'].set_bounds(top_tick, args[0])
     plt_show(show)
-
     # impose deterministic order of returned objects
     return_order = np.array(sorted(group_by))
     are_ch_types = np.in1d(return_order, _VALID_CHANNEL_TYPES)
@@ -501,6 +495,8 @@ def _plot_epochs_image(image, style_axes=True, epochs=None, picks=None,
                        title=None, evoked=False, ts_args=None, combine=None,
                        combine_given=False, norm=False):
     """Plot epochs image. Helper function for plot_epochs_image."""
+    from matplotlib.ticker import AutoLocator
+
     if cmap is None:
         cmap = 'Reds' if norm else 'RdBu_r'
 
@@ -513,7 +509,7 @@ def _plot_epochs_image(image, style_axes=True, epochs=None, picks=None,
     # draw the image
     cmap = _setup_cmap(cmap, norm=norm)
     n_epochs = len(image)
-    extent = [1e3 * tmin, 1e3 * tmax, 0, n_epochs]
+    extent = [tmin, tmax, 0, n_epochs]
     im = ax_im.imshow(image, vmin=vmin, vmax=vmax, cmap=cmap[0], aspect='auto',
                       origin='lower', interpolation='nearest', extent=extent)
 
@@ -521,15 +517,16 @@ def _plot_epochs_image(image, style_axes=True, epochs=None, picks=None,
     if style_axes:
         ax_im.set_title(title)
         ax_im.set_ylabel('Epochs')
+        if not evoked:
+            ax_im.set_xlabel('Time (s)')
         ax_im.axis('auto')
         ax_im.axis('tight')
         ax_im.axvline(0, color='k', linewidth=1, linestyle='--')
 
     if overlay_times is not None:
-        ax_im.plot(1e3 * overlay_times, 0.5 + np.arange(n_epochs), 'k',
+        ax_im.plot(overlay_times, 0.5 + np.arange(n_epochs), 'k',
                    linewidth=2)
-        ax_im.set_xlim(1e3 * tmin, 1e3 * tmax)
-
+        ax_im.set_xlim(tmin, tmax)
     # draw the evoked
     if evoked:
         from . import plot_compare_evokeds
@@ -538,8 +535,14 @@ def _plot_epochs_image(image, style_axes=True, epochs=None, picks=None,
         plot_compare_evokeds({'cond': list(epochs.iter_evoked(copy=False))},
                              picks=_picks, axes=ax['evoked'],
                              combine=pass_combine, **ts_args)
-        ax['evoked'].set_xlim(tmin, tmax)  # don't multiply by 1e3 here
-        ax_im.set_xticks([])
+        ax['evoked'].set_xlim(tmin, tmax)
+        ax['evoked'].lines[0].set_clip_on(True)
+        ax['evoked'].collections[0].set_clip_on(True)
+        ax['evoked'].get_shared_x_axes().join(ax['evoked'], ax_im)
+        # fix the axes for proper updating during interactivity
+        loc = ax_im.xaxis.get_major_locator()
+        ax['evoked'].xaxis.set_major_locator(loc)
+        ax['evoked'].yaxis.set_major_locator(AutoLocator())
 
     # draw the colorbar
     if colorbar:

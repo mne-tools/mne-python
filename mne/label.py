@@ -738,7 +738,7 @@ class Label(object):
         """Compute the center of mass of the label.
 
         This function computes the spatial center of mass on the surface
-        as in [1]_.
+        as in :footcite:`LarsonLee2013`.
 
         Parameters
         ----------
@@ -775,8 +775,7 @@ class Label(object):
 
         References
         ----------
-        .. [1] Larson and Lee, "The cortical dynamics underlying effective
-               switching of auditory spatial attention", NeuroImage 2012.
+        .. footbibliography::
         """
         if not isinstance(surf, str):
             raise TypeError('surf must be a string, got %s' % (type(surf),))
