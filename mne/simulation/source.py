@@ -329,7 +329,8 @@ class SourceSimulator(object):
         If None, it is computed using existing events and waveform lengths.
     first_samp : int
         First sample from which the simulation takes place, as an integer.
-        Comparable to the first_samp property of raw objects. Default is 0.
+        Comparable to the ``first_samp`` property of `~mne.io.Raw` objects.
+        Default is 0.
 
     Attributes
     ----------
@@ -426,7 +427,7 @@ class SourceSimulator(object):
         Parameters
         ----------
         start_sample : int
-            First sample in chunk. Default is the .first_samp value.
+            First sample in chunk. Default is the value of the ``first_samp`` attribute.
         stop_sample : int | None
             The final sample of the returned stc. If None, then all samples
             from start_sample onward are returned.
@@ -469,10 +470,10 @@ class SourceSimulator(object):
         Parameters
         ----------
         start_sample : int
-            First sample in chunk. Default is the .first_samp value.
+            First sample in chunk. Default is the value of the ``first_samp`` attribute.
         stop_sample : int | None
-            The final sample of the returned stc. If None, then all samples
-            past start_sample are returned.
+            The final sample of the returned STC. If ``None``, then all samples
+            past ``start_sample`` are returned.
 
         Returns
         -------

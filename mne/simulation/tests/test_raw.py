@@ -368,7 +368,7 @@ def test_simulate_raw_bem(raw_data):
         diffs = np.sqrt(np.sum((locs - fits) ** 2, axis=-1)) * 1000
         med_diff = np.median(diffs)
         assert med_diff < tol, '%s: %s' % (bem, med_diff)
-    # also test event timings with SourceSim
+    # also test event timings with SourceSimulator
     first_samp = raw.first_samp
     events = find_events(raw, initial_event=True, verbose=False)
     evt_times = events[:, 0]

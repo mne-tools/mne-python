@@ -153,8 +153,8 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
         See Notes for details.
 
         .. versionchanged:: 0.18
-           Support for tuple, iterable of tuple or SourceEstimate,
-           or SourceSimulator.
+           Support for tuple, iterable of tuple or `~mne.SourceEstimate`,
+           or `~mne.simulation.SourceSimulator`.
     trans : dict | str | None
         Either a transformation filename (usually made using mne_analyze)
         or an info dict (usually opened using read_trans()).
