@@ -147,8 +147,6 @@ Enhancements
 
 - :func:`mne.io.anonymize_info` now anonymizes also sex and hand fields when ``keep_his`` is ``False`` (:gh:`9103`, :gh:`9175` by |Rotem Falach|_ and `Richard Höchenberger`_)
 
-- Improved string representation of `~mne.Epochs` containing multiple event types; improved (and more mathematically correct) :attr:`Evoked.comment <mne.Evoked.comment>` in the `mne.combine_evoked` output; and better (and often more concise) legend labels in the figures created via `~mne.viz.plot_compare_evokeds` (:gh:`9027` by `Richard Höchenberger`_)
-
 Bugs
 ~~~~
 - Fix bug with :func:`mne.viz.plot_evoked_topo` where ``ylim`` was only being applied to the first channel in the dataset (:gh:`9162` **by new contributor** |Ram Pari|_ )
@@ -247,6 +245,7 @@ Bugs
 
 - Fix bug with :func:`mne.io.Raw.pick` where incorrect fnirs types were returned (:gh:`9178` by `Robert Luke`_)
 
+- Improved string representation of `~mne.Epochs` containing multiple event types; improved (and more mathematically correct) :attr:`Evoked.comment <mne.Evoked.comment>` in the `mne.combine_evoked` output; and better (and often more concise) legend labels in the figures created via `~mne.viz.plot_compare_evokeds` (:gh:`9027` by `Richard Höchenberger`_)
 
 API changes
 ~~~~~~~~~~~
