@@ -181,6 +181,11 @@ eeg_indices = mne.pick_types(info, meg=False, eeg=True)
 print(mne.pick_info(info, eeg_indices)['nchan'])
 
 ###############################################################################
+# We can also get a nice HTML representation in IPython like:
+
+info
+
+###############################################################################
 # By default, :func:`~mne.pick_info` will make a copy of the original
 # :class:`~mne.Info` object before modifying it; if you want to modify it
 # in-place, include the parameter ``copy=False``.

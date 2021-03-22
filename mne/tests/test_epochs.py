@@ -3254,6 +3254,18 @@ def test_make_fixed_length_epochs():
     assert len(epochs_annot) > 10
     assert len(epochs) > len(epochs_annot)
 
+    # overlaps
+    epochs = make_fixed_length_epochs(raw, duration=1)
+    assert len(epochs.events) > 10
+    epochs_ol = make_fixed_length_epochs(raw, duration=1, overlap=0.5)
+    assert len(epochs_ol.events) > 20
+    epochs_ol_2 = make_fixed_length_epochs(raw, duration=1, overlap=0.9)
+    assert len(epochs_ol_2.events) > 100
+    assert_array_equal(epochs_ol_2.events[:, 0],
+                       np.unique(epochs_ol_2.events[:, 0]))
+    with pytest.raises(ValueError, match='overlap must be'):
+        make_fixed_length_epochs(raw, duration=1, overlap=1.1)
+
 
 def test_epochs_huge_events(tmpdir):
     """Test epochs with event numbers that are too large."""
@@ -3357,3 +3369,38 @@ def test_empty_constructor():
     event_id = 1
     tmin, tmax, baseline = -0.2, 0.5, None
     BaseEpochs(info, None, None, event_id, tmin, tmax, baseline)
+
+
+def fun(data_epochs):
+    """Auxiliary function to test_apply_function."""
+    nc = np.size(data_epochs, 1)
+    matrix = np.random.rand(nc, nc)
+    return matrix @ data_epochs
+
+
+def fun_ch(data_epochs):
+    """Auxiliary function to test_apply_function channel wise."""
+    sign = -1
+    return data_epochs * sign
+
+
+def test_apply_function():
+    """Test apply function to epoch objects."""
+    data = np.random.rand(2, 10, 1000)
+    events = np.array([[0, 0, 1], [INT32_MAX, 0, 2]])
+    info = mne.create_info(10, 1000., 'eeg')
+    epochs = mne.EpochsArray(data, info, events)
+    data_epochs = epochs.get_data()
+    # check apply_function in all channels at the time
+    out = epochs.apply_function(fun, channel_wise=False)
+    assert np.shape(out) == np.shape(data_epochs)
+    # check apply_function channel-wise
+    # change sing 3 first channels
+    picks = [0, 1, 2]
+    no_picks = np.arange(3, 10, 1)
+    out_ch = epochs.apply_function(fun_ch, picks=picks, channel_wise=True)
+    out_ch_data = out_ch._data
+    # check whether those channels have been sign inverted
+    check_picks = (np.sign(out_ch_data[:, picks, :]) == -1).all()
+    check_nopicks = (np.sign(out_ch_data[:, no_picks, :]) == 1).all()
+    assert check_picks and check_nopicks

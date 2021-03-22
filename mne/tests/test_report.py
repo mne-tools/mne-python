@@ -7,6 +7,7 @@
 import base64
 import copy
 import glob
+import pickle
 from io import BytesIO
 import os
 import os.path as op
@@ -189,6 +190,26 @@ def test_add_custom_css(tmpdir):
     with open(fname, 'rb') as fid:
         html = fid.read().decode('utf-8')
     assert custom_css in html
+
+
+def test_add_custom_js(tmpdir):
+    """Test adding custom JavaScript to the report."""
+    tempdir = str(tmpdir)
+    fname = op.join(tempdir, 'report.html')
+    fig = plt.figure()  # Empty figure
+
+    report = Report()
+    report.add_figs_to_section(figs=fig, captions='Test section')
+    custom_js = ('function hello() {\n'
+                 '  alert("Hello, report!");\n'
+                 '}')
+    report.add_custom_js(js=custom_js)
+
+    assert custom_js in report.include
+    report.save(fname, open_browser=False)
+    with open(fname, 'rb') as fid:
+        html = fid.read().decode('utf-8')
+    assert custom_js in html
 
 
 @testing.requires_testing_data
@@ -603,6 +624,23 @@ def test_split_files(tmpdir, split_naming):
     report = Report()
     report.parse_folder(tmpdir, render_bem=False)
     assert len(report.fnames) == 1
+
+
+def test_survive_pickle(tmpdir):
+    """Testing functionality of Report-Object after pickling."""
+    tempdir = str(tmpdir)
+    raw_fname_new = op.join(tempdir, 'temp_raw.fif')
+    shutil.copyfile(raw_fname, raw_fname_new)
+
+    # Pickle report object to simulate multiprocessing with joblib
+    report = Report(info_fname=raw_fname_new)
+    pickled_report = pickle.dumps(report)
+    report = pickle.loads(pickled_report)
+
+    # Just test if no errors occur
+    report.parse_folder(tempdir, render_bem=False)
+    save_name = op.join(tempdir, 'report.html')
+    report.save(fname=save_name, open_browser=False)
 
 
 run_tests_if_main()

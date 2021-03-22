@@ -10,7 +10,7 @@ Two images are produced, one with a good channel and one with a channel
 that does not show any evoked field.
 
 It is also demonstrated how to reorder the epochs using a 1D spectral
-embedding as described in [1]_.
+embedding as described in :footcite:`GramfortEtAl2010`.
 """
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
@@ -75,7 +75,4 @@ mne.viz.plot_epochs_image(epochs, [good_pick, bad_pick], sigma=.5,
 ###############################################################################
 # References
 # ----------
-# .. [1] Graph-based variability estimation in single-trial event-related
-#        neural responses. A. Gramfort, R. Keriven, M. Clerc, 2010,
-#        Biomedical Engineering, IEEE Trans. on, vol. 57 (5), 1051-1061
-#        https://ieeexplore.ieee.org/document/5406156
+# .. footbibliography::

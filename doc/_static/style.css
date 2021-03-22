@@ -1,10 +1,10 @@
 :root {
 
-    --font-size-base: 16px;
-    --font-size-milli: 13px;
-    --font-family-base: 'Source Sans Pro', sans-serif;
-    --font-family-heading: var(--font-family-base);
-    --font-family-monospace: 'Source Code Pro', monospace;
+    --pst-font-size-base: 16px;
+    --pst-font-size-milli: 13px;
+    --pst-font-family-base: 'Source Sans Pro', var(--pst-font-family-base-system);
+    --pst-font-family-heading: var(--pst-font-family-base);
+    --pst-font-family-monospace: 'Source Code Pro', var(--pst-font-family-monospace-system);
 
 }
 
@@ -16,12 +16,12 @@ a.sphx-glr-backref-instance:hover {
 }
 /* backreference links: make non-MNE func/meth calls resemble regular code */
 a[class^="sphx-glr-backref-module"] {
-    color: rgb(var(--color-text-base));
+    color: rgb(var(--pst-color-text-base));
 }
 /* backreference links: make MNE calls bold and colorful */
 a[class^="sphx-glr-backref-module-mne"] {
     font-weight: 600;
-    color: rgb(var(--color-link));
+    color: rgb(var(--pst-color-link));
 }
 /* suppress redundant note at top of every tutorial and signature at the end */
 div.sphx-glr-download-link-note,
@@ -34,8 +34,8 @@ p.sphx-glr-signature {
 /* script/notebook download buttons */
 .sphx-glr-download a.download {
     background-image: none;
-    background-color: rgba(var(--color-info), 0.1);
-    border-color: rgb(var(--color-info));
+    background-color: rgba(var(--pst-color-info), 0.1);
+    border-color: rgb(var(--pst-color-info));
 }
 /* Report embedding */
 iframe.sg_report {
@@ -58,9 +58,17 @@ div[id^="examples-using-"] h2 {
 }
 
 /* ******************************************* in-text sidebar callout boxes */
-div.sidebar {
-    background-color: rgba(var(--color-info), 0.1);
-    border: 1px solid rgb(var(--color-info));
+div.sidebar,
+aside.sidebar {
+    margin: 0 0 0.5em 1em;
+    padding: 7px;
+    width: 40%;
+    float: right;
+    clear: right;
+    overflow-x: auto;
+    /* above copied from div.sidebar in basic.css; below are our overrides */
+    background-color: rgba(var(--pst-color-info), 0.1);
+    border: 1px solid rgb(var(--pst-color-info));
     border-radius: 4px;
 }
 
@@ -132,7 +140,7 @@ div.frontpage-gallery {
 }
 div.frontpage-gallery a {
     text-decoration: none;
-    color: rgb(var(--color-text-base));
+    color: rgb(var(--pst-color-text-base));
 }
 div.frontpage-gallery img.card-img {
     transform: scale(1.8);
@@ -152,6 +160,21 @@ div.frontpage-gallery .fadeout {
 div.frontpage-gallery:hover .fadeout {
     opacity: 0.0;
     transition: 200ms linear;
+}
+
+/* ****************************************************** navbar quick links */
+
+i.fa-github-square:before {
+    color: #000;
+}
+i.fa-twitter-square:before {
+    color: #55acee;
+}
+i.fa-discourse:before {
+    color: #231e20;
+}
+i.fa-discord:before {
+    color: #7289da;  /* 99aab5 is also in-brand for discord */
 }
 
 /* ************************************************* Previous / Next buttons */
