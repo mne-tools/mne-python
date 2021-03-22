@@ -30,9 +30,8 @@ MNI space, or projection into a volume, see :ref:`tut_working_with_seeg`.
 import os.path as op
 
 import numpy as np
-import matplotlib
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
+from matplotlib.cm import get_cmap
 from mne_bids import BIDSPath, read_raw_bids
 
 import mne
@@ -91,16 +90,19 @@ epochs = mne.Epochs(raw, events, event_id=event_id['onset'],
 epochs.load_data()
 epochs.resample(200)  # Hz, will also load the data for us
 
+# Finally, make evoked from the one epoch
+evoked = epochs.average()
+
 
 ###############################################################################
 # Explore the electrodes on a template brain
 # ------------------------------------------
 #
-# Our electrodes are shown in ``mni_tal`` space, which corresponds to
-# the fsaverage brain. We can then plot the locations of our electrodes
-# on the fsaverage brain. We'll use :func:`~mne.viz.snapshot_brain_montage`
-# to save the plot as image data (along with xy positions of each electrode
-# in the image), so that later we can plot frequency band power on top of it.
+# Our electrodes are shown after being morphed to fsaverage brain so we'll use
+# this fsaverage brain to plot the locations of our electrodes. We'll use
+# :func:`~mne.viz.snapshot_brain_montage` to save the plot as image data
+# (along with xy positions of each electrode in the image), so that later
+# we can plot frequency band power on top of it.
 
 fig = plot_alignment(raw.info, subject='fsaverage', subjects_dir=subjects_dir,
                      surfaces=['pial'], coord_frame='mri')
@@ -109,14 +111,6 @@ mne.viz.set_3d_view(fig, azimuth=az, elevation=el, focalpoint=focalpoint)
 
 xy, im = snapshot_brain_montage(fig, raw.info)
 
-# look at second view
-fig = plot_alignment(raw.info, subject='fsaverage', subjects_dir=subjects_dir,
-                     surfaces=['pial'], coord_frame='mri')
-az, el, focalpoint = -120, -140, [0.027, 0.017, -0.033]
-mne.viz.set_3d_view(fig, azimuth=az, elevation=el, focalpoint=focalpoint)
-
-xy2, im2 = snapshot_brain_montage(fig, raw.info)
-
 ###############################################################################
 # Compute frequency features of the data
 # --------------------------------------
@@ -124,9 +118,43 @@ xy2, im2 = snapshot_brain_montage(fig, raw.info)
 # Next, we'll compute the signal power in the gamma (30-90 Hz) and alpha
 # (8-12 Hz) bands, downsampling the result to 10 Hz (to save time).
 
-freqs = np.linspace(5, 95, 10)
-power = mne.time_frequency.tfr_multitaper(epochs, freqs, n_cycles=freqs / 2,
-                                          return_itc=False)
+sfreq = 10
+gamma_power_t = evoked.copy().filter(30, 90).apply_hilbert(
+    envelope=True).resample(sfreq)
+gamma_info = gamma_power_t.info
+
+###############################################################################
+# Visualize the time-evolution of the gamma power on the brain
+# ------------------------------------------------------------
+#
+# Say we want to visualize the evolution of the power in the gamma band,
+# instead of just plotting the average. We can use
+# `matplotlib.animation.FuncAnimation` to create an animation and apply this
+# to the brain figure.
+
+# convert from a dictionary to array to plot
+xy_pts = np.vstack([xy[ch] for ch in raw.info['ch_names']])
+
+# get a colormap to color nearby points similar colors
+cmap = get_cmap('viridis')
+
+# create the figure of the brain with the electrode positions
+fig, ax = plt.subplots(figsize=(5, 5))
+ax.imshow(im)
+ax.set_axis_off()
+
+# normalize gamma power for plotting
+gamma_power = 200 * gamma_power_t.data / gamma_power_t.data.max()
+# add the time course overlayed on the positions
+x_line = np.linspace(-50, 50, gamma_power_t.data.shape[1])
+for i, pos in enumerate(xy_pts):
+    x, y = pos
+    color = cmap(i / xy_pts.shape[0])
+    ax.plot(x_line + x, gamma_power[i] + y, linewidth=0.5, color=color)
+ax.set_xlim([0, im.shape[0]])
+ax.set_ylim([im.shape[1] - 300, 0])
+ax.set_title('Gamma power over time', size='large')
+
 
 ###############################################################################
 # We can project gamma power from the sensor data to the nearest locations on
@@ -134,220 +162,18 @@ power = mne.time_frequency.tfr_multitaper(epochs, freqs, n_cycles=freqs / 2,
 
 # sphinx_gallery_thumbnail_number = 5
 
-sfreq = 10
-gamma_power_t = np.median(power.data[:, power.freqs >= 30], axis=1)
-evoked = mne.EvokedArray(gamma_power_t, epochs.info)
-
-# downsample for animation
-evoked.resample(sfreq)
 src = mne.read_source_spaces(
     op.join(subjects_dir, 'fsaverage', 'bem', 'fsaverage-ico-5-src.fif'))
 trans = None  # identity transform
 stc = mne.stc_near_sensors(evoked, trans, 'fsaverage', src=src,
                            mode='nearest', subjects_dir=subjects_dir,
                            distance=0.02)
-vmin, vmax = np.percentile(gamma_power_t, [10, 90])
-clim = dict(kind='value', lims=[vmin * 0.9, vmin, vmax])
+vmin, vmid, vmax = np.percentile(gamma_power_t.data, [10, 50, 90])
+clim = dict(kind='value', lims=[vmin, vmid, vmax])
 brain = stc.plot(surface='pial', hemi='rh', colormap='viridis',
                  clim=clim, views=['lat', 'med'], subjects_dir=subjects_dir,
-                 size=(600, 800), smoothing_steps=5)
+                 size=(600, 800), smoothing_steps=5, time_viewer=False)
 
 # You can save a movie like the one on our documentation website with:
-# brain.save_movie(time_dilation=1, interpolation='linear', framerate=5,
+# brain.save_movie(time_dilation=1, interpolation='linear', framerate=1,
 #                  time_viewer=True)
-
-###############################################################################
-# Visualize the time-evolution of seizure activity on the brain
-# -------------------------------------------------------------
-#
-# Say we want to visualize the evolution of seizure in time. We can use
-# `matplotlib.animation.FuncAnimation` to create an animation and apply this
-# to the brain figure.
-#
-# As can be seen in the plot below, the seizure originates in the temporal
-# lobe and spreads to new electrodes when electrode label names come up in
-# the title. The seizure eventually becomes generalized and then subsides.
-# As mentioned earlier, we sub-sample and only show a small portion of
-# the seizure for demonstration purposes. Feel free to run this example
-# to visualize the spread of the seizure yourself, specifically in
-# channels annotated in the ``events`` array.
-
-
-def update_time_series(t_path, x, y, t_data):
-    """Update the line plots for the animation."""
-    t_path.set_data(x + np.linspace(-50, 50, t_data.size),
-                    y + t_data - t_data.mean())
-
-
-# colormap to associate electrode positions
-cmap = 'viridis'
-cmap_call = matplotlib.cm.get_cmap(cmap)
-
-# get epochs data, normalize for plots
-epoch_data = epochs.copy().resample(sfreq).get_data()[0]
-epoch_data *= 200 / epoch_data.max()
-
-# Convert from a dictionary to array to plot
-xy_pts = np.vstack([xy[ch] for ch in raw.info['ch_names']])
-xy_pts2 = np.vstack([xy2[ch] for ch in raw.info['ch_names']])
-
-box = (0, im.shape[0], 0, im.shape[1])
-pos = np.concatenate([xy_pts / im.shape[0],
-                      0.1 * np.ones(xy_pts.shape)], axis=1)
-layout = mne.channels.Layout(box, pos, epochs.ch_names,
-                             np.arange(xy_pts.shape[1]), 'ieeg-view')
-
-# Make a group to plot the temporal lobe contacts
-group = np.where(np.logical_and(xy_pts[:, 1] > 800, xy_pts[:, 0] > 1000))[0]
-color_line = np.linspace(0, 1, xy_pts.shape[0])
-
-# create the figure to apply the animation
-fig, (ax, ax2) = plt.subplots(1, 2, figsize=(12, 6))
-ax.imshow(im)
-ax.set_axis_off()
-ax.set_xlim([100, im.shape[0]])
-ax.set_ylim([im.shape[1] - 200, 100])
-ax2.imshow(im2)
-ax2.set_axis_off()
-ax2.set_xlim([375, im.shape[0] - 750])
-ax2.set_ylim([im.shape[1] - 400, 650])
-ax3 = ax2.inset_axes((0.7, 0.0, 0.3, 0.3))
-ax3.imshow(im2)
-ax3.plot([375, 375, im.shape[0] - 750, im.shape[0] - 750, 375],
-         [im.shape[1] - 400, 650, 650, im.shape[1] - 400, im.shape[1] - 400],
-         color='k')
-ax3.set_axis_off()
-
-ax.set_title('Seizure time course', size='large')
-t_text = ax2.text(0.5, 0, 't=0', animated=True, ha='center', va='bottom',
-                  transform=ax2.transAxes)
-fig.tight_layout()
-
-t_paths = list()
-for i in range(xy_pts.shape[0]):
-    x, y = xy_pts[i]
-    color = cmap_call(color_line[i])
-    t_paths.append(ax.plot(x + np.linspace(-50, 50, sfreq),
-                           np.nan * np.zeros((sfreq)), color=color)[0])
-
-
-t_paths2 = list()
-for i in group:
-    x, y = xy_pts2[i]
-    color = cmap_call(color_line[i])
-    t_paths2.append(ax2.plot(x + np.linspace(-50, 50, sfreq),
-                             np.nan * np.zeros((sfreq)), color=color)[0])
-
-
-artists = [*t_paths, *t_paths2, t_text]
-
-
-def animate_lines(i):
-    """Animate the plot."""
-    for idx, t_path in zip(range(xy_pts.shape[0]), t_paths):
-        x, y = xy_pts[idx]
-        update_time_series(t_path, x, y, epoch_data[idx, i: i + sfreq])
-    for idx, t_path in zip(group, t_paths2):
-        x, y = xy_pts2[idx]
-        update_time_series(t_path, x, y, epoch_data[idx, i: i + sfreq])
-    t_text.set_text(f't={raw.first_time + i / sfreq:0.3f} sec')
-    return artists
-
-
-anim = animation.FuncAnimation(fig, animate_lines, init_func=lambda: artists,
-                               frames=epoch_data.shape[1] - sfreq, blit=True,
-                               interval=1000 / sfreq)
-
-###############################################################################
-# Visualize the spectral power evolution of seizure activity on the brain
-# -----------------------------------------------------------------------
-#
-# Say we want to visualize the evolution of the power, instead of just
-# plotting the average. We can use also animation this and apply it
-# to the brain figure. This allows us to visualize the higher frequency
-# components that were not as easily visible on in the downsampled time
-# plot. The seizure changes the power spectrum towards having greater power in
-# the gamma band; at higher frequencies. In this plot, darker purples are
-# lower frequencies and lighter yellows are higher frequencies.
-
-
-def update_power_series(f_path, x, y, f_data):
-    """Update the bar plots for the animation."""
-    for line, p, offset in zip(f_path, f_data, offsets):
-        line.set_data([x + offset, x + offset], [y - p, y + p])
-
-
-# get power data, resample
-power_data = np.zeros((len(power.ch_names), power.freqs.size,
-                       epoch_length * sfreq))
-n_points = int(power.data.shape[2] / (epoch_length * sfreq))
-for i in range(epoch_length * sfreq):
-    power_data[:, :, i] = \
-        power.data[:, :, i * n_points:(i + 1) * n_points].mean(axis=2)
-
-
-# normalize for plots
-power_data /= power_data.mean(axis=2)[:, :, np.newaxis]
-power_data *= 200 / power_data.max()
-
-# create the figure to apply the power animation
-fig, (ax, ax2) = plt.subplots(1, 2, figsize=(12, 6))
-ax.imshow(im)
-ax.set_axis_off()
-ax.set_xlim([100, im.shape[0]])
-ax.set_ylim([im.shape[1] - 200, 100])
-ax2.imshow(im2)
-ax2.set_axis_off()
-ax2.set_xlim([375, im.shape[0] - 750])
-ax2.set_ylim([im.shape[1] - 400, 650])
-ax3 = ax2.inset_axes((0.7, 0.0, 0.3, 0.3))
-ax3.imshow(im2)
-ax3.plot([375, 375, im.shape[0] - 750, im.shape[0] - 750, 375],
-         [im.shape[1] - 400, 650, 650, im.shape[1] - 400, im.shape[1] - 400],
-         color='k')
-ax3.set_axis_off()
-
-ax.set_title('Seizure time-frequency course (5-95 Hz)', size='large')
-t_text = ax2.text(0.5, 0, 't=0', animated=True, ha='center', va='bottom',
-                  transform=ax2.transAxes)
-fig.tight_layout()
-
-offsets = np.linspace(-50, 50, power.freqs.size)
-colors = color = cmap_call(np.linspace(0, 1, power.freqs.size))
-f_paths = list()
-for i in range(xy_pts.shape[0]):
-    x, y = xy_pts[i]
-    f_paths.append([ax.plot([x + offset, x + offset], [np.nan, np.nan],
-                            color=color, linewidth=3)[0]
-                    for color, offset in zip(colors, offsets)])
-
-
-f_paths2 = list()
-for i in group:
-    x, y = xy_pts2[i]
-    f_paths2.append([ax2.plot([x + offset, x + offset], [np.nan, np.nan],
-                              color=color, linewidth=3)[0]
-                     for color, offset in zip(colors, offsets)])
-
-
-artists = [*[line for f_path in f_paths for line in f_path],
-           *[line for f_path in f_paths2 for line in f_path], t_text]
-
-
-def animate_bars(i):
-    """Animate the plot."""
-    for idx, f_path in zip(range(xy_pts.shape[0]), f_paths):
-        x, y = xy_pts[idx]
-        f_data = power_data[idx, :, i]
-        update_power_series(f_path, x, y, f_data)
-    for idx, f_path in zip(group, f_paths2):
-        x, y = xy_pts2[idx]
-        f_data = power_data[idx, :, i]
-        update_power_series(f_path, x, y, f_data)
-    t_text.set_text(f't={raw.first_time + i / sfreq:0.3f} sec')
-    return artists
-
-
-anim = animation.FuncAnimation(fig, animate_bars, init_func=lambda: artists,
-                               frames=power_data.shape[2], blit=True,
-                               interval=1000 / sfreq)
