@@ -152,7 +152,7 @@ for i, pos in enumerate(xy_pts):
     color = cmap(i / xy_pts.shape[0])
     ax.plot(x_line + x, gamma_power[i] + y, linewidth=0.5, color=color)
 ax.set_xlim([0, im.shape[0]])
-ax.set_ylim([im.shape[1] - 300, 0])
+ax.set_ylim([im.shape[1], 0])
 ax.set_title('Gamma power over time', size='large')
 
 
