@@ -11,7 +11,7 @@ from functools import partial
 import pyvista
 
 from PyQt5.QtCore import Qt, pyqtSignal, QLocale
-from PyQt5.QtGui import QIcon
+from PyQt5.QtGui import QIcon, QImage, QPixmap
 from PyQt5.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
                              QHBoxLayout, QLabel, QToolButton, QMenuBar,
                              QSlider, QSpinBox, QVBoxLayout, QWidget,
@@ -283,6 +283,17 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
             func=_screenshot,
         )
 
+    def _tool_bar_set_theme(self, theme):
+        if theme == 'auto':
+            theme = _detect_theme()
+
+        if theme == 'dark':
+            for icon_key in self.icons:
+                icon = self.icons[icon_key]
+                image = icon.pixmap(80).toImage()
+                image.invertPixels(mode=QImage.InvertRgba)
+                self.icons[icon_key] = QIcon(QPixmap.fromImage(image))
+
 
 class _QtMenuBar(_AbstractMenuBar):
     def _menu_initialize(self, window=None):
@@ -438,20 +449,7 @@ class _QtWindow(_AbstractWindow):
 
     def _window_set_theme(self, theme):
         if theme == 'auto':
-            try:
-                import darkdetect
-            except ModuleNotFoundError:
-                logger.info('For automatic Dark-Mode-Detection '
-                            '"darkdetect" has to be installed!'
-                            'You can install it with'
-                            ' `pip install qdarkdetect`')
-                theme = 'light'
-            else:
-                detected_theme = darkdetect.theme()
-                if detected_theme is not None:
-                    theme = detected_theme.lower()
-                else:
-                    theme = 'light'
+            theme = _detect_theme()
 
         if theme == 'dark':
             try:
@@ -499,6 +497,24 @@ class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
                 _QtStatusBar, _QtWindow, _QtPlayback):
     pass
 
+
+def _detect_theme():
+    try:
+        import darkdetect
+    except ModuleNotFoundError:
+        logger.info('For automatic Dark-Mode-Detection '
+                    '"darkdetect" has to be installed!'
+                    'You can install it with'
+                    ' `pip install qdarkdetect`')
+        theme = 'light'
+    else:
+        detected_theme = darkdetect.theme()
+        if detected_theme is not None:
+            theme = detected_theme.lower()
+        else:
+            theme = 'light'
+
+    return theme
 
 @contextmanager
 def _testing_context(interactive):

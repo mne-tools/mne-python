@@ -422,6 +422,8 @@ class Brain(object):
         self._size = size if len(size) == 2 else size * 2  # 1-tuple to 2-tuple
         subjects_dir = get_subjects_dir(subjects_dir)
 
+        self.theme = theme
+
         self.time_viewer = False
         self._hemi = hemi
         self._units = units
@@ -1229,6 +1231,7 @@ class Brain(object):
 
     def _configure_tool_bar(self):
         self._renderer._tool_bar_load_icons()
+        self._renderer._tool_bar_set_theme(self.theme)
         self._renderer._tool_bar_initialize()
         self._renderer._tool_bar_add_screenshot_button(
             name="screenshot",
