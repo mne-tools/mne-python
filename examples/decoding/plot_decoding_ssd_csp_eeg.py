@@ -1,12 +1,12 @@
 """
-.. _ex-decoding-csp-eeg:
+.. _ex-decoding-ssd-csp-eeg:
 
-===========================================================================
+============================================================================
 Improving motor imagery decoding from EEG using Spatio Spectra Decomposition
-===========================================================================
+============================================================================
 
 Improving the decoding of Motor Imagery from EEG data when SSD is applied
-before the traditional CSP. A classifier is then trained using the extracted 
+before the traditional CSP. A classifier is then trained using the extracted
 features from the SSD+CSP-filtered signals.
 
 :footcite:`NikulinEtAl2011`.
@@ -52,7 +52,8 @@ raw.rename_channels(lambda x: x.strip('.'))
 # for the sake of comparison, we save the raw object before filteing
 raw_ssd = raw.copy()
 ##############################################################################
-# filter data
+# Data filtering.
+
 # we are going to filter data in the alpha band
 freq_signal = [8, 12]
 # apply band-pass filter
@@ -100,9 +101,9 @@ raw_ssd.filter(freq_ssd[0], freq_ssd[1], fir_design='firwin',
 # SSD can be applied either BEFORE or AFTER data epoching, each approach has
 # it owns advantages and disadvantages. Here both approaches are going to be
 # implemented.
-
+###############################################################################
 # SSD outside the pipeline
-# ^^^^^^^^^^^^^^^^^^^^^^^
+# ^^^^^^^^^^^^^^^^^^^^^^^^
 
 # copy raw data
 raw_ssd_transformed = raw_ssd.copy()
@@ -218,7 +219,7 @@ ax.legend()
 # Just for the sake of this example, we are going to train CSP using all
 # available data. But, remember data should always be split into separate sets
 # to ensure the generalization capability of the model.
-
+##############################################################################
 # CSP
 # ^^^
 csp = CSP(n_components=4, log=True, norm_trace=False, reg='oas', rank='full')
@@ -227,6 +228,7 @@ csp.fit(epochs_data, labels)
 pattern_epochs = EvokedArray(data=csp.patterns_[:4].T,
                              info=raw_ssd.info)
 pattern_epochs.plot_topomap(units=dict(mag='A.U.'), time_format='')
+##############################################################################
 # SSD + CSP
 # ^^^^^^^^^
 
