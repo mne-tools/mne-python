@@ -65,6 +65,7 @@ def _channel_frequencies(raw):
         freqs[ii] = raw.info['chs'][ii]['loc'][9]
     return freqs
 
+
 def _channel_chromophore(raw):
     """Return the chromophore of each channel."""
     # Only valid for fNIRS data after conversion to haemoglobin
@@ -91,8 +92,8 @@ def _check_channels_ordered(raw, freqs):
     all_freqs = [raw.info["chs"][ii]["loc"][9] for ii in picks]
     if np.any(np.isnan(all_freqs)):
         raise ValueError(
-            'NIRS channels is missing wavelength information in the info["chs"]'
-            f'structure. The encoded wavelengths are {all_freqs}.')
+            'NIRS channels is missing wavelength information in the'
+            f'info["chs"] structure. The encoded wavelengths are {all_freqs}.')
 
     for ii in picks[::2]:
         ch1_name_info = re.match(r'S(\d+)_D(\d+) (\d+)',

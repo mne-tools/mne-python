@@ -68,9 +68,35 @@ NIRs devices consist of light sources and light detectors.
 A channel is formed by source-detector pairs.
 MNE stores the location of the channels, sources, and detectors.
 
-
-.. warning:: Information about device light wavelength is stored in
-             channel names. Manual modification of channel names is not
-             recommended.
+.. warning:: Manual modification of channel names and info fields is not
+             recommended. fNIRS data is encoded in MNE using a combination
+             of the channel name and the info structure. Additionally, there
+             is an expected order of channels that must be maintained. Any
+             change to the expected structure will cause an error.
+             
+             Channels names must follow the structure
+             ``S#_D# value``
+             where S# is the source number (e.g. S12 for source 12),
+             D# is the detector number (e.g. D4 for detector 4),
+             and the value is either the light wavelength if the data type is
+             raw intensity or optical density, or the chromophore type if the
+             data is hbo or hbr. For example ``S1_D2 760`` is valid as is
+             ``S11_D1 850`` and ``S1_D2 hbo`` and ``S1_D2 hbr``. However,
+             these examples are not valid ``D1_S2 hbo``, ``S1_D2_760``.
+             
+             Channels with the same source-detector pairing must be stored
+             in consecutive order. For example
+             ``["S11_D2 hbo", "S11_D2 hbr", "S1_D2 hbo", "S11_D2 hbr"]``
+             is acceptable, but 
+             ``["S11_D2 hbo", "S1_D2 hbo", "S11_D2 hbr", "S11_D2 hbr"]``
+             is not. Further, the order of type must be maintained for all
+             fNIRS channels so the following is not valid
+             ``["S11_D2 hbo", "S11_D2 hbr", "S1_D2 hbr", "S11_D2 hbo"]``.
+             
+             For raw amplitude measurements and for optical density data
+             the wavelength information must be stored in
+             ``info["chs"][ii]["loc"][9]``
+             and it must match the channel name. For example the channel
+             ``S11_D2 760`` must have the value 760 stored in the loc[9] field.
 
 """  # noqa:E501
