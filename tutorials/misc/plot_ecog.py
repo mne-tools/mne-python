@@ -111,6 +111,14 @@ mne.viz.set_3d_view(fig, azimuth=az, elevation=el, focalpoint=focalpoint)
 
 xy, im = snapshot_brain_montage(fig, raw.info)
 
+# look at second view
+fig = plot_alignment(raw.info, subject='fsaverage', subjects_dir=subjects_dir,
+                     surfaces=['pial'], coord_frame='mri')
+az, el, focalpoint = -120, -140, [0.027, 0.017, -0.033]
+mne.viz.set_3d_view(fig, azimuth=az, elevation=el, focalpoint=focalpoint)
+
+xy2, im2 = snapshot_brain_montage(fig, raw.info)
+
 ###############################################################################
 # Compute frequency features of the data
 # --------------------------------------
@@ -134,17 +142,23 @@ gamma_info = gamma_power_t.info
 
 # convert from a dictionary to array to plot
 xy_pts = np.vstack([xy[ch] for ch in raw.info['ch_names']])
+xy_pts2 = np.vstack([xy2[ch] for ch in raw.info['ch_names']])
+
+# define a group for the temporal lobe electrodes
+group = np.where(np.logical_and(xy_pts[:, 1] > 800, xy_pts[:, 0] > 1000))[0]
 
 # get a colormap to color nearby points similar colors
 cmap = get_cmap('viridis')
 
 # create the figure of the brain with the electrode positions
-fig, ax = plt.subplots(figsize=(5, 5))
+fig, (ax, ax2) = plt.subplots(1, 2, figsize=(12, 6))
 ax.imshow(im)
 ax.set_axis_off()
+ax2.imshow(im2)
+ax2.set_axis_off()
 
 # normalize gamma power for plotting
-gamma_power = -200 * gamma_power_t.data / gamma_power_t.data.max()
+gamma_power = -100 * gamma_power_t.data / gamma_power_t.data.max()
 # add the time course overlaid on the positions
 x_line = np.linspace(-50, 50, gamma_power_t.data.shape[1])
 for i, pos in enumerate(xy_pts):
@@ -154,6 +168,22 @@ for i, pos in enumerate(xy_pts):
 ax.set_xlim([0, im.shape[0]])
 ax.set_ylim([im.shape[1], 0])
 ax.set_title('Gamma power over time', size='large')
+
+# add second view
+for i in group:
+    x, y = xy_pts2[i]
+    color = cmap(i / xy_pts.shape[0])
+    ax2.plot(x_line + x, gamma_power[i] + y, linewidth=0.5, color=color)
+ax2.set_xlim([375, im2.shape[0] - 750])
+ax2.set_ylim([im2.shape[1] - 400, 650])
+
+# add inset
+ax3 = ax2.inset_axes((0.7, 0.0, 0.3, 0.3))
+ax3.imshow(im2)
+ax3.plot([375, 375, im.shape[0] - 750, im.shape[0] - 750, 375],
+         [im.shape[1] - 400, 650, 650, im.shape[1] - 400, im.shape[1] - 400],
+         color='k')
+ax3.set_axis_off()
 
 
 ###############################################################################
