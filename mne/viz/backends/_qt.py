@@ -16,7 +16,7 @@ from PyQt5.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
                              QHBoxLayout, QLabel, QToolButton, QMenuBar,
                              QSlider, QSpinBox, QVBoxLayout, QWidget,
                              QSizePolicy, QScrollArea, QStyle, QProgressBar,
-                             QStyleOptionSlider, QLayout, QSplitter)
+                             QStyleOptionSlider, QLayout)
 
 from ._pyvista import _PyVistaRenderer
 from ._pyvista import (_close_all, _close_3d_figure, _check_3d_figure,  # noqa: F401,E501 analysis:ignore
@@ -42,18 +42,10 @@ class _QtLayout(_AbstractLayout):
 
 class _QtDock(_AbstractDock, _QtLayout):
     def _dock_initialize(self, window=None):
-        self.dock = QDockWidget()
-        self.scroll = QScrollArea(self.dock)
-        self.dock.setWidget(self.scroll)
-        widget = QWidget(self.scroll)
-        self.scroll.setWidget(widget)
-        self.scroll.setWidgetResizable(True)
-        self.dock.setAllowedAreas(Qt.LeftDockWidgetArea)
-        self.dock.setFeatures(QDockWidget.NoDockWidgetFeatures)
         window = self._window if window is None else window
-        window.addDockWidget(Qt.LeftDockWidgetArea, self.dock)
-        self.dock_layout = QVBoxLayout()
-        widget.setLayout(self.dock_layout)
+        self.dock, self.dock_layout = _create_dock_widget(
+            self._window, "Controls", Qt.LeftDockWidgetArea)
+        window.setCorner(Qt.BottomLeftCorner, Qt.LeftDockWidgetArea)
 
     def _dock_finalize(self):
         self.dock.setMinimumSize(self.dock.sizeHint().width(), 0)
@@ -387,16 +379,9 @@ class _QtWindow(_AbstractWindow):
 
     def _window_adjust_mplcanvas_layout(self):
         canvas = self._mplcanvas.canvas
-        vlayout = self._interactor.frame.layout()
-        vlayout.removeWidget(self._interactor)
-        splitter = QSplitter(
-            orientation=Qt.Vertical,
-            parent=self._interactor.frame
-        )
-        vlayout.addWidget(splitter)
-        splitter.addWidget(self._interactor)
-        splitter.addWidget(canvas)
-        self._splitter = splitter
+        dock, dock_layout = _create_dock_widget(
+            self._window, "Traces", Qt.BottomDockWidgetArea)
+        dock_layout.addWidget(canvas)
 
     def _window_get_cursor(self):
         return self._interactor.cursor()
@@ -417,7 +402,6 @@ class _QtWindow(_AbstractWindow):
             try:
                 yield
             finally:
-                self._splitter.setSizes([sz[1], mpl_h])
                 # 1. Process events
                 self._process_events()
                 self._process_events()
@@ -463,6 +447,21 @@ class _QtWidget(_AbstractWidget):
 class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
                 _QtStatusBar, _QtWindow, _QtPlayback):
     pass
+
+
+def _create_dock_widget(window, name, area):
+    dock = QDockWidget()
+    scroll = QScrollArea(dock)
+    dock.setWidget(scroll)
+    widget = QWidget(scroll)
+    scroll.setWidget(widget)
+    scroll.setWidgetResizable(True)
+    dock.setAllowedAreas(area)
+    dock.setTitleBarWidget(QLabel(name))
+    window.addDockWidget(area, dock)
+    dock_layout = QVBoxLayout()
+    widget.setLayout(dock_layout)
+    return dock, dock_layout
 
 
 @contextmanager
