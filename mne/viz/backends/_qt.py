@@ -385,7 +385,7 @@ class _QtWindow(_AbstractWindow):
     def _window_adjust_mplcanvas_layout(self):
         canvas = self._mplcanvas.canvas
         dock, dock_layout = _create_dock_widget(
-            self._window, "Traces", Qt.BottomDockWidgetArea)
+            self._window, "Traces", Qt.BottomDockWidgetArea, False)
         dock_layout.addWidget(canvas)
 
     def _window_get_cursor(self):
@@ -454,7 +454,7 @@ class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
         return self.scene()
 
 
-def _create_dock_widget(window, name, area):
+def _create_dock_widget(window, name, area, margin=True):
     dock = QDockWidget()
     scroll = QScrollArea(dock)
     dock.setWidget(scroll)
@@ -465,6 +465,8 @@ def _create_dock_widget(window, name, area):
     dock.setTitleBarWidget(QLabel(name))
     window.addDockWidget(area, dock)
     dock_layout = QVBoxLayout()
+    if not margin:
+        dock_layout.setContentsMargins(0, 0, 0, 0)
     widget.setLayout(dock_layout)
     return dock, dock_layout
 
