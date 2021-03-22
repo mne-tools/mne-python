@@ -10,7 +10,7 @@ from functools import partial
 
 import pyvista
 
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal, QLocale
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
                              QHBoxLayout, QLabel, QToolButton, QMenuBar,
@@ -361,6 +361,7 @@ class _QtWindow(_AbstractWindow):
         self._separate_canvas = None
         self._splitter = None
         self._interactor_fraction = None
+        self._window.setLocale(QLocale(QLocale.Language.English))
         if func is not None:
             self._window.signal_close.connect(func)
 
