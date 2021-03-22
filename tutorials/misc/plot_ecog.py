@@ -144,7 +144,7 @@ ax.imshow(im)
 ax.set_axis_off()
 
 # normalize gamma power for plotting
-gamma_power = 200 * gamma_power_t.data / gamma_power_t.data.max()
+gamma_power = -200 * gamma_power_t.data / gamma_power_t.data.max()
 # add the time course overlaid on the positions
 x_line = np.linspace(-50, 50, gamma_power_t.data.shape[1])
 for i, pos in enumerate(xy_pts):
@@ -162,17 +162,25 @@ ax.set_title('Gamma power over time', size='large')
 
 # sphinx_gallery_thumbnail_number = 5
 
+xyz_pts = np.array([dig['r'] for dig in evoked.info['dig']])
+
 src = mne.read_source_spaces(
     op.join(subjects_dir, 'fsaverage', 'bem', 'fsaverage-ico-5-src.fif'))
 trans = None  # identity transform
-stc = mne.stc_near_sensors(evoked, trans, 'fsaverage', src=src,
+stc = mne.stc_near_sensors(gamma_power_t, trans, 'fsaverage', src=src,
                            mode='nearest', subjects_dir=subjects_dir,
                            distance=0.02)
-vmin, vmid, vmax = np.percentile(gamma_power_t.data, [75, 90, 100])
+vmin, vmid, vmax = np.percentile(gamma_power_t.data, [10, 25, 90])
 clim = dict(kind='value', lims=[vmin, vmid, vmax])
 brain = stc.plot(surface='pial', hemi='rh', colormap='inferno', colorbar=False,
                  clim=clim, views=['lat', 'med'], subjects_dir=subjects_dir,
                  size=(400, 400), smoothing_steps=20, time_viewer=False)
+
+# plot electrode locations
+for xyz in xyz_pts:
+    for subplot in (0, 1):
+        brain.plotter.subplot(subplot, 0)
+        brain._renderer.sphere(xyz * 1e3, color='white', scale=2)
 
 # You can save a movie like the one on our documentation website with:
 # brain.save_movie(time_dilation=1, interpolation='linear', framerate=12,
