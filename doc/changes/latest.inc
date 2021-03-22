@@ -55,6 +55,8 @@ Current (0.23.dev0)
 
 Enhancements
 ~~~~~~~~~~~~
+- Speed up :func:`mne.viz.plot_ica_properties` by refactoring (:gh:`9174` **by new contributor** |Valerii Chirkov|_)
+
 - Add ``apply_function`` method to epochs and evoked objects (:gh:`9088` **by new contributor** |Erica Peterson|_ and `Victoria Peterson`_)
 
 - New tutorial for function :func:`mne.make_fixed_length_epochs` (:gh:`9156` **by new contributor** |Erica Peterson|_)
@@ -146,6 +148,8 @@ Enhancements
 - Add :func:`mne.channels.DigMontage.add_estimated_fiducials` which will add LPA, RPA and Nasion fiducial points to the ``DigMontage`` object in ``mri`` coordinate frame (:gh:`9118` by `Adam Li`_)
 
 - :func:`mne.io.anonymize_info` now anonymizes also sex and hand fields when ``keep_his`` is ``False`` (:gh:`9103`, :gh:`9175` by |Rotem Falach|_ and `Richard Höchenberger`_)
+
+- Add parameter ``theme`` to :class:`mne.viz.Brain` for optional Dark-Mode (:gh:`9149` by `Martin Schulz`_, `Guillaume Favelier`_)
 
 Bugs
 ~~~~
