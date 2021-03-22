@@ -19,6 +19,7 @@ from mne.preprocessing.nirs import (optical_density, beer_lambert_law,
 from mne.io.pick import _picks_to_idx
 
 from mne.datasets import testing
+from mne.io.constants import FIFF
 
 fname_nirx_15_0 = op.join(data_path(download=False),
                           'NIRx', 'nirscout', 'nirx_15_0_recording')
@@ -30,10 +31,14 @@ fname_nirx_15_2_short = op.join(data_path(download=False),
 
 
 def test_fnirs_picks():
-    """Test picking of fnirs types after different conversions"""
+    """Test picking of fnirs types after different conversions."""
     raw = read_raw_nirx(fname_nirx_15_0)
     picks = _picks_to_idx(raw.info, 'fnirs_cw_amplitude')
     assert len(picks) == len(raw.ch_names)
+    raw_subset = raw.copy().pick(picks=picks)
+    for ch in raw_subset.info["chs"]:
+        assert ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_CW_AMPLITUDE
+
     picks = _picks_to_idx(raw.info, ['fnirs_cw_amplitude', 'fnirs_od'])
     assert len(picks) == len(raw.ch_names)
     picks = _picks_to_idx(raw.info, ['fnirs_cw_amplitude', 'fnirs_od', 'hbr'])
@@ -47,6 +52,10 @@ def test_fnirs_picks():
     raw = optical_density(raw)
     picks = _picks_to_idx(raw.info, 'fnirs_od')
     assert len(picks) == len(raw.ch_names)
+    raw_subset = raw.copy().pick(picks=picks)
+    for ch in raw_subset.info["chs"]:
+        assert ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_OD
+
     picks = _picks_to_idx(raw.info, ['fnirs_cw_amplitude', 'fnirs_od'])
     assert len(picks) == len(raw.ch_names)
     picks = _picks_to_idx(raw.info, ['fnirs_cw_amplitude', 'fnirs_od', 'hbr'])
@@ -60,8 +69,16 @@ def test_fnirs_picks():
     raw = beer_lambert_law(raw)
     picks = _picks_to_idx(raw.info, 'hbo')
     assert len(picks) == len(raw.ch_names) / 2
+    raw_subset = raw.copy().pick(picks=picks)
+    for ch in raw_subset.info["chs"]:
+        assert ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_HBO
+
     picks = _picks_to_idx(raw.info, ['hbr'])
     assert len(picks) == len(raw.ch_names) / 2
+    raw_subset = raw.copy().pick(picks=picks)
+    for ch in raw_subset.info["chs"]:
+        assert ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_HBR
+
     picks = _picks_to_idx(raw.info, ['hbo', 'hbr'])
     assert len(picks) == len(raw.ch_names)
     picks = _picks_to_idx(raw.info, ['hbo', 'fnirs_od', 'hbr'])
@@ -134,7 +151,7 @@ def test_fnirs_spread_bads(fname):
 @pytest.mark.parametrize('fname', ([fname_nirx_15_2_short, fname_nirx_15_2,
                                     fname_nirx_15_0]))
 def test_fnirs_channel_naming_and_order_readers(fname):
-    """Ensure fNIRS channel checking on standard readers"""
+    """Ensure fNIRS channel checking on standard readers."""
     # fNIRS data requires specific channel naming and ordering.
 
     # All standard readers should pass tests
