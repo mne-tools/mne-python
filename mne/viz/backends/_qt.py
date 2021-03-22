@@ -351,7 +351,6 @@ class _QtWindow(_AbstractWindow):
         self._mplcanvas = None
         self._show_traces = None
         self._separate_canvas = None
-        self._splitter = None
         self._interactor_fraction = None
         self._window.setLocale(QLocale(QLocale.Language.English))
         if func is not None:
