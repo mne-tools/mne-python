@@ -174,7 +174,7 @@ vmin, vmid, vmax = np.percentile(gamma_power_t.data, [10, 25, 90])
 clim = dict(kind='value', lims=[vmin, vmid, vmax])
 brain = stc.plot(surface='pial', hemi='rh', colormap='inferno', colorbar=False,
                  clim=clim, views=['lat', 'med'], subjects_dir=subjects_dir,
-                 size=(400, 400), smoothing_steps=20, time_viewer=False)
+                 size=(300, 300), smoothing_steps=20, time_viewer=False)
 
 # plot electrode locations
 for xyz in xyz_pts:
