@@ -35,7 +35,7 @@ def test_fnirs_picks():
     raw = read_raw_nirx(fname_nirx_15_0)
     picks = _picks_to_idx(raw.info, 'fnirs_cw_amplitude')
     assert len(picks) == len(raw.ch_names)
-    raw_subset = raw.copy().pick(picks=picks)
+    raw_subset = raw.copy().pick(picks='fnirs_cw_amplitude')
     for ch in raw_subset.info["chs"]:
         assert ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_CW_AMPLITUDE
 
@@ -52,7 +52,7 @@ def test_fnirs_picks():
     raw = optical_density(raw)
     picks = _picks_to_idx(raw.info, 'fnirs_od')
     assert len(picks) == len(raw.ch_names)
-    raw_subset = raw.copy().pick(picks=picks)
+    raw_subset = raw.copy().pick(picks='fnirs_od')
     for ch in raw_subset.info["chs"]:
         assert ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_OD
 
@@ -69,13 +69,13 @@ def test_fnirs_picks():
     raw = beer_lambert_law(raw)
     picks = _picks_to_idx(raw.info, 'hbo')
     assert len(picks) == len(raw.ch_names) / 2
-    raw_subset = raw.copy().pick(picks=picks)
+    raw_subset = raw.copy().pick(picks='hbo')
     for ch in raw_subset.info["chs"]:
         assert ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_HBO
 
     picks = _picks_to_idx(raw.info, ['hbr'])
     assert len(picks) == len(raw.ch_names) / 2
-    raw_subset = raw.copy().pick(picks=picks)
+    raw_subset = raw.copy().pick(picks=['hbr'])
     for ch in raw_subset.info["chs"]:
         assert ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_HBR
 

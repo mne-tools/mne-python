@@ -244,6 +244,9 @@ Bugs
 
 - Fix bug with :func:`mne.Evoked.plot_image` where an incorrect clim parameter did not raise any error (:gh:`9115` **by new contributor** |Matteo Anelli|_)
 
+- Fix bug with :func:`mne.io.Raw.pick` where incorrect fnirs types were returned (:gh:`9178` by `Robert Luke`_)
+
+
 API changes
 ~~~~~~~~~~~
 - Introduced new ``'auto'`` settings for ``ICA.max_iter``. The old default ``max_iter=200`` will be removed in MNE-Python 0.24 (:gh:`9099` **by new contributor** |Cora Kim|_)
