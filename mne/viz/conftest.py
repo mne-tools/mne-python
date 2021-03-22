@@ -101,25 +101,33 @@ def nbexec(_nbclient):
 
     def execute(code, reset=False):
         _nbclient.reset_execution_trackers()
+        cell = Bunch(cell_type='code', metadata={}, source=dedent(code))
         with _nbclient.setup_kernel():
             assert _nbclient.kc is not None
-            cell = Bunch(cell_type='code', metadata={}, source=dedent(code))
             _nbclient.execute_cell(cell, 0, execution_count=0)
             _nbclient.set_widgets_metadata()
+        return cell
 
     yield execute
+
+
+def nbexec_auto(_nbclient, nbexec):
+    """Execute Python code in a notebook."""
+    yield nbexec
 
 
 def pytest_runtest_call(item):
     """Run notebook code written in Python."""
     if 'nbexec' in getattr(item, 'fixturenames', ()):
         nbexec = item.funcargs['nbexec']
-        code = inspect.getsource(getattr(item.module, item.name.split('[')[0]))
-        code = code.splitlines()
-        ci = 0
-        for ci, c in enumerate(code):
-            if c.startswith('    '):  # actual content
-                break
-        code = '\n'.join(code[ci:])
+        name = item.name.split('[')[0]
+        module = item.module.__name__  # XXX module name is wrong below
+        code = f"""\
+import mne.viz._brain.tests.{module} as module
+assert module.__file__ is not None
+import ipytest
+ipytest.config(raise_on_error=True, rewrite_asserts=True, run_in_thread=True)
+print(ipytest.run("-k", "{name}", module=module, return_exit_code=True))
+"""
         item.runtest = lambda: nbexec(code)
     return
