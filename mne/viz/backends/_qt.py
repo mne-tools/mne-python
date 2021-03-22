@@ -501,20 +501,9 @@ class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
 def _detect_theme():
     try:
         import darkdetect
-    except ModuleNotFoundError:
-        logger.info('For automatic Dark-Mode-Detection '
-                    '"darkdetect" has to be installed!'
-                    'You can install it with'
-                    ' `pip install qdarkdetect`')
-        theme = 'light'
-    else:
-        detected_theme = darkdetect.theme()
-        if detected_theme is not None:
-            theme = detected_theme.lower()
-        else:
-            theme = 'light'
-
-    return theme
+        return darkdetect.theme().lower()
+    except Exception:
+        return 'light'
 
 
 @contextmanager
