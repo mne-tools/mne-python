@@ -905,12 +905,13 @@ def test_to_data_frame():
     n_times = 6
     data = np.random.rand(n_epos, n_picks, n_freqs, n_times)
     times = np.arange(6)
+    srate = 1000.
     freqs = np.arange(5)
     events = np.zeros((n_epos, 3), dtype=int)
     events[:, 0] = np.arange(n_epos)
-    events[:, 2] = np.arange(5, 8)
+    events[:, 2] = np.arange(5, 5 + n_epos)
     event_id = {k: v for v, k in zip(events[:, 2], ['ha', 'he', 'hu'])}
-    info = mne.create_info(ch_names, 1000., ch_types)
+    info = mne.create_info(ch_names, srate, ch_types)
     tfr = mne.time_frequency.EpochsTFR(info, data, times, freqs,
                                        events=events, event_id=event_id)
     # test index checking
@@ -923,10 +924,12 @@ def test_to_data_frame():
     # test wide format
     df_wide = tfr.to_data_frame()
     assert all(np.in1d(tfr.ch_names, df_wide.columns))
-    assert all(np.in1d(['time', 'condition'], df_wide.columns))
+    assert all(np.in1d(['time', 'condition', 'freq', 'epoch'],
+                       df_wide.columns))
     # test long format
     df_long = tfr.to_data_frame(long_format=True)
-    expected = ('condition', 'freq', 'time', 'channel', 'ch_type', 'value')
+    expected = ('condition', 'epoch', 'freq', 'time', 'channel', 'ch_type',
+                'value')
     assert set(expected) == set(df_long.columns)
     assert set(tfr.ch_names) == set(df_long['channel'])
     assert(len(df_long) == tfr.data.size)
@@ -934,10 +937,43 @@ def test_to_data_frame():
     df_long = tfr.to_data_frame(long_format=True, index=['freq'])
     del df_wide, df_long
     # test whether data is in correct shape
-    df = tfr.to_data_frame(index=['condition', 'freq', 'time'])
+    df = tfr.to_data_frame(index=['condition', 'epoch', 'freq', 'time'])
     data = tfr.data
     assert_array_equal(df.values[:, 0],
                        data[:, 0, :, :].reshape(1, -1).squeeze())
+    # compare arbitrary observation:
+    assert df.loc[('he', slice(None), freqs[1], times[2] * srate),
+                  ch_names[3]].iloc[0] == data[1, 3, 1, 2]
+
+    # Check also for AverageTFR:
+    tfr = tfr.average()
+    with pytest.raises(ValueError, match='options. Valid index options are'):
+        tfr.to_data_frame(index=['epoch', 'condition'])
+    with pytest.raises(ValueError, match='"epoch" is not a valid option'):
+        tfr.to_data_frame(index='epoch')
+    with pytest.raises(TypeError, match='index must be `None` or a string '):
+        tfr.to_data_frame(index=np.arange(400))
+    # test wide format
+    df_wide = tfr.to_data_frame()
+    assert all(np.in1d(tfr.ch_names, df_wide.columns))
+    assert all(np.in1d(['time', 'freq'], df_wide.columns))
+    # test long format
+    df_long = tfr.to_data_frame(long_format=True)
+    expected = ('freq', 'time', 'channel', 'ch_type', 'value')
+    assert set(expected) == set(df_long.columns)
+    assert set(tfr.ch_names) == set(df_long['channel'])
+    assert(len(df_long) == tfr.data.size)
+    # test long format w/ index
+    df_long = tfr.to_data_frame(long_format=True, index=['freq'])
+    del df_wide, df_long
+    # test whether data is in correct shape
+    df = tfr.to_data_frame(index=['freq', 'time'])
+    data = tfr.data
+    assert_array_equal(df.values[:, 0],
+                       data[0, :, :].reshape(1, -1).squeeze())
+    # compare arbitrary observation:
+    assert df.loc[(freqs[1], times[2] * srate), ch_names[3]] == \
+           data[3, 1, 2]
 
 
 @requires_pandas
@@ -968,7 +1004,7 @@ def test_to_data_frame_index(index):
         index = [index]
     assert (df.index.names == index)
     # test that non-indexed data were present as columns
-    non_index = list(set(['condition', 'time', 'freq']) - set(index))
+    non_index = list(set(['condition', 'time', 'freq', 'epoch']) - set(index))
     if len(non_index):
         assert all(np.in1d(non_index, df.columns))
 
