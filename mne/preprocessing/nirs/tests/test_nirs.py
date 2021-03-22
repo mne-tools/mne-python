@@ -167,3 +167,7 @@ def test_fnirs_channel_naming_and_order_readers(fname):
     assert_array_equal(freqs, [760, 850])
     picks = _check_channels_ordered(raw, freqs)
     assert len(picks) == len(raw.ch_names)  # as all fNIRS only data
+
+    raw = beer_lambert_law(raw)
+    freqs = np.unique(_channel_frequencies(raw))
+    assert len(freqs) == 0
