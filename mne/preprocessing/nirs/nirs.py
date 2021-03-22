@@ -57,18 +57,32 @@ def short_channels(info, threshold=0.01):
 
 def _channel_frequencies(raw):
     """Return the light frequency for each channel."""
-    picks = _picks_to_idx(raw.info, 'fnirs', exclude=[], allow_empty=True)
+    # Only valid for fNIRS data before conversion to haemoglobin
+    picks = _picks_to_idx(raw.info, ['fnirs_cw_amplitude', 'fnirs_od'],
+                          exclude=[], allow_empty=True)
     freqs = np.empty(picks.size, int)
     for ii in picks:
         freqs[ii] = raw.info['chs'][ii]['loc'][9]
     return freqs
 
 
+def _channel_chromophore(raw):
+    """Return the chromophore of each channel."""
+    # Only valid for fNIRS data after conversion to haemoglobin
+    picks = _picks_to_idx(raw.info, ['hbo', 'hbr'],
+                          exclude=[], allow_empty=True)
+    chroma = []
+    for ii in picks:
+        chroma.append(raw.ch_names[ii].split(" ")[1])
+    return chroma
+
+
 def _check_channels_ordered(raw, freqs):
     """Check channels followed expected fNIRS format."""
     # Every second channel should be same SD pair
     # and have the specified light frequencies.
-    picks = _picks_to_idx(raw.info, 'fnirs', exclude=[], allow_empty=True)
+    picks = _picks_to_idx(raw.info, ['fnirs_cw_amplitude', 'fnirs_od'],
+                          exclude=[], allow_empty=True)
     if len(picks) % 2 != 0:
         raise ValueError(
             'NIRS channels not ordered correctly. An even number of NIRS '
