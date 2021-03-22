@@ -519,13 +519,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         out.data *= -1
 
         if out.comment is not None and ' + ' in out.comment:
-            # Evoked based on multiple conditions
-            comment = f'- ({out.comment})'
-        else:
-            # Evoked based on a single condition
-            comment = f'- {out.comment or "unknown"}'
-
-        out.comment = comment
+            out.comment = f'({out.comment})'  # multiple conditions in evoked
+        out.comment = f'- {out.comment or "unknown"}'
         return out
 
     def get_peak(self, ch_type=None, tmin=None, tmax=None,
