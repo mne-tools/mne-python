@@ -172,7 +172,7 @@ vmin, vmid, vmax = np.percentile(gamma_power_t.data, [75, 90, 100])
 clim = dict(kind='value', lims=[vmin, vmid, vmax])
 brain = stc.plot(surface='pial', hemi='rh', colormap='inferno', colorbar=False,
                  clim=clim, views=['lat', 'med'], subjects_dir=subjects_dir,
-                 size=(400, 400), smoothing_steps=5, time_viewer=False)
+                 size=(400, 400), smoothing_steps=20, time_viewer=False)
 
 # You can save a movie like the one on our documentation website with:
 # brain.save_movie(time_dilation=1, interpolation='linear', framerate=12,
