@@ -145,7 +145,7 @@ ax.set_axis_off()
 
 # normalize gamma power for plotting
 gamma_power = 200 * gamma_power_t.data / gamma_power_t.data.max()
-# add the time course overlayed on the positions
+# add the time course overlaid on the positions
 x_line = np.linspace(-50, 50, gamma_power_t.data.shape[1])
 for i, pos in enumerate(xy_pts):
     x, y = pos
