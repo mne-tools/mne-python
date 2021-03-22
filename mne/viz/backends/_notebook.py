@@ -285,6 +285,9 @@ class _IpyWindow(_AbstractWindow):
     def _window_ensure_minimum_sizes(self, sz):
         yield
 
+    def _window_set_theme(self, theme):
+        pass
+
     def _window_show(self, sz):
         self.show()
 
