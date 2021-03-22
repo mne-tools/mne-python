@@ -516,6 +516,7 @@ def _detect_theme():
 
     return theme
 
+
 @contextmanager
 def _testing_context(interactive):
     from . import renderer
