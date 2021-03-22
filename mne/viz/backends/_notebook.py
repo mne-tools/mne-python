@@ -282,10 +282,10 @@ class _IpyWindow(_AbstractWindow):
         pass
 
     @contextmanager
-    def _window_ensure_minimum_sizes(self, sz):
+    def _window_ensure_minimum_sizes(self):
         yield
 
-    def _window_show(self, sz):
+    def _window_show(self):
         self.show()
 
 

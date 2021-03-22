@@ -369,12 +369,17 @@ class _QtWindow(_AbstractWindow):
 
     def _window_get_mplcanvas(self, brain, interactor_fraction, show_traces,
                               separate_canvas):
+        sz = self.figure.store['window_size']
         w, h = self._window_get_mplcanvas_size(interactor_fraction)
         self._interactor_fraction = interactor_fraction
         self._show_traces = show_traces
         self._separate_canvas = separate_canvas
         self._mplcanvas = _QtBrainMplCanvas(
             brain, w, h, self._window_get_dpi())
+        if self._show_traces and not self._separate_canvas:
+            mpl_h = int(round((sz[1] * self._interactor_fraction) /
+                              (1 - self._interactor_fraction)))
+            self._mplcanvas.canvas.setMinimumSize(sz[0], mpl_h)
         return self._mplcanvas
 
     def _window_adjust_mplcanvas_layout(self):
@@ -390,38 +395,32 @@ class _QtWindow(_AbstractWindow):
         self._interactor.setCursor(cursor)
 
     @contextmanager
-    def _window_ensure_minimum_sizes(self, sz):
+    def _window_ensure_minimum_sizes(self):
         """Ensure that widgets respect the windows size."""
-        adjust_mpl = (self._show_traces and not self._separate_canvas)
-        if not adjust_mpl:
+        sz = self.figure.store['window_size']
+        try:
             yield
-        else:
-            mpl_h = int(round((sz[1] * self._interactor_fraction) /
-                              (1 - self._interactor_fraction)))
-            self._mplcanvas.canvas.setMinimumSize(sz[0], mpl_h)
-            try:
-                yield
-            finally:
-                # 1. Process events
-                self._process_events()
-                self._process_events()
-                # 2. Get the window size that accommodates the size
-                sz = self._window.size()
-                # 3. Call app_window.setBaseSize and resize (in pyvistaqt)
-                self.figure.plotter.window_size = (sz.width(), sz.height())
-                # 4. Undo the min size setting and process events
-                self._interactor.setMinimumSize(0, 0)
-                self._process_events()
-                self._process_events()
-                # 5. Resize the window (again!) to the correct size
-                #    (not sure why, but this is required on macOS at least)
-                self.figure.plotter.window_size = (sz.width(), sz.height())
+        finally:
+            # 1. Process events
             self._process_events()
             self._process_events()
+            # 2. Get the window size that accommodates the size
+            sz = self._window.size()
+            # 3. Call app_window.setBaseSize and resize (in pyvistaqt)
+            self.figure.plotter.window_size = (sz.width(), sz.height())
+            # 4. Undo the min size setting and process events
+            self._interactor.setMinimumSize(0, 0)
+            self._process_events()
+            self._process_events()
+            # 5. Resize the window (again!) to the correct size
+            #    (not sure why, but this is required on macOS at least)
+            self.figure.plotter.window_size = (sz.width(), sz.height())
+        self._process_events()
+        self._process_events()
 
-    def _window_show(self, sz):
+    def _window_show(self):
         with _qt_disable_paint(self._interactor):
-            with self._window_ensure_minimum_sizes(sz):
+            with self._window_ensure_minimum_sizes():
                 self.show()
 
 
