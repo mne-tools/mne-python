@@ -53,6 +53,8 @@ Current (0.23.dev0)
 
 Enhancements
 ~~~~~~~~~~~~
+- Speed up :func:`mne.viz.ica.plot_ica_properties` by refactoring (:gh:`9174` **by new contributor** |Valerii Chirkov|_)
+
 - Add ``apply_function`` method to epochs and evoked objects (:gh:`9088` **by new contributor** |Erica Peterson|_ and `Victoria Peterson`_)
 
 - New tutorial for function :func:`mne.make_fixed_length_epochs` (:gh:`9156` **by new contributor** |Erica Peterson|_)
