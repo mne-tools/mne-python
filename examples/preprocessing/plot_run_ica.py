@@ -27,6 +27,11 @@ print(__doc__)
 # - 1-30 Hz band-pass filter
 # - epoching -0.2 to 0.5 seconds with respect to events
 # - rejection based on peak-to-peak amplitude
+#
+# Note that we don't baseline correct the epochs here – we'll do this after
+# cleaning with ICA is completed. Baseline correction before ICA is not
+# recommended by the MNE-Python developers, as it doesn't guarantee optimal
+# results.
 
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
@@ -40,7 +45,7 @@ reject = dict(grad=4000e-13, mag=4e-12)
 # longer + more epochs for more artifact exposure
 events = mne.find_events(raw, stim_channel='STI 014')
 epochs = mne.Epochs(raw, events, event_id=None, tmin=-0.2, tmax=0.5,
-                    reject=reject)
+                    reject=reject, baseline=None)
 
 ###############################################################################
 # Fit ICA model using the FastICA algorithm, detect and plot components
