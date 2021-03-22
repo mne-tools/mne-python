@@ -151,11 +151,9 @@ group = np.where(np.logical_and(xy_pts[:, 1] > 800, xy_pts[:, 0] > 1000))[0]
 cmap = get_cmap('viridis')
 
 # create the figure of the brain with the electrode positions
-fig, (ax, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+fig, ax = plt.subplots(figsize=(5, 5))
 ax.imshow(im)
 ax.set_axis_off()
-ax2.imshow(im2)
-ax2.set_axis_off()
 
 # normalize gamma power for plotting
 gamma_power = -100 * gamma_power_t.data / gamma_power_t.data.max()
@@ -170,20 +168,23 @@ ax.set_ylim([im.shape[1], 0])
 ax.set_title('Gamma power over time', size='large')
 
 # add second view
+fig, ax = plt.subplots(figsize=(5, 5))
+ax.imshow(im2)
+ax.set_axis_off()
 for i in group:
     x, y = xy_pts2[i]
     color = cmap(i / xy_pts.shape[0])
-    ax2.plot(x_line + x, gamma_power[i] + y, linewidth=0.5, color=color)
-ax2.set_xlim([375, im2.shape[0] - 750])
-ax2.set_ylim([im2.shape[1] - 400, 650])
+    ax.plot(x_line + x, gamma_power[i] + y, linewidth=0.5, color=color)
+ax.set_xlim([375, im2.shape[0] - 750])
+ax.set_ylim([im2.shape[1] - 400, 650])
 
 # add inset
-ax3 = ax2.inset_axes((0.7, 0.0, 0.3, 0.3))
-ax3.imshow(im2)
-ax3.plot([375, 375, im.shape[0] - 750, im.shape[0] - 750, 375],
+ax2 = ax.inset_axes((0.7, 0.0, 0.3, 0.3))
+ax2.imshow(im2)
+ax2.plot([375, 375, im.shape[0] - 750, im.shape[0] - 750, 375],
          [im.shape[1] - 400, 650, 650, im.shape[1] - 400, im.shape[1] - 400],
          color='k')
-ax3.set_axis_off()
+ax2.set_axis_off()
 
 
 ###############################################################################
