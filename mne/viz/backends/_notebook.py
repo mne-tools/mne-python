@@ -285,9 +285,6 @@ class _IpyWindow(_AbstractWindow):
     def _window_ensure_minimum_sizes(self):
         yield
 
-    def _window_show(self):
-        self.show()
-
 
 class _IpyWidget(_AbstractWidget):
     def set_value(self, value):

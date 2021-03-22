@@ -759,7 +759,3 @@ class _AbstractWindow(ABC):
     @abstractmethod
     def _window_ensure_minimum_sizes(self):
         pass
-
-    @abstractmethod
-    def _window_show(self):
-        pass

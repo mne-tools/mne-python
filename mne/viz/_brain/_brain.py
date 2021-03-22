@@ -654,7 +654,7 @@ class Brain(object):
         self._configure_help()
         # show everything at the end
         self.toggle_interface()
-        self._renderer._window_show()
+        self._renderer.show()
 
         # sizes could change, update views
         for hemi in ('lh', 'rh'):

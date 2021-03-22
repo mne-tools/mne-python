@@ -396,32 +396,32 @@ class _QtWindow(_AbstractWindow):
 
     @contextmanager
     def _window_ensure_minimum_sizes(self):
-        """Ensure that widgets respect the windows size."""
         sz = self.figure.store['window_size']
+        # plotter:            pyvista.plotting.qt_plotting.BackgroundPlotter
+        # plotter.interactor: vtk.qt.QVTKRenderWindowInteractor.QVTKRenderWindowInteractor -> QWidget  # noqa
+        # plotter.app_window: pyvista.plotting.qt_plotting.MainWindow -> QMainWindow  # noqa
+        # plotter.frame:      QFrame with QVBoxLayout with plotter.interactor as centralWidget  # noqa
+        # plotter.ren_win:    vtkXOpenGLRenderWindow
+        self.plotter.interactor.setMinimumSize(*sz)
         try:
-            yield
+            yield  # show
         finally:
             # 1. Process events
             self._process_events()
             self._process_events()
-            # 2. Get the window size that accommodates the size
-            sz = self._window.size()
-            # 3. Call app_window.setBaseSize and resize (in pyvistaqt)
-            self.figure.plotter.window_size = (sz.width(), sz.height())
-            # 4. Undo the min size setting and process events
-            self._interactor.setMinimumSize(0, 0)
+            # 2. Get the window and interactor sizes that work
+            win_sz = self.plotter.app_window.size()
+            ren_sz = self.plotter.interactor.size()
+            # 3. Undo the min size setting and process events
+            self.plotter.interactor.setMinimumSize(0, 0)
             self._process_events()
             self._process_events()
-            # 5. Resize the window (again!) to the correct size
+            # 4. Resize the window and interactor to the correct size
             #    (not sure why, but this is required on macOS at least)
-            self.figure.plotter.window_size = (sz.width(), sz.height())
-        self._process_events()
-        self._process_events()
-
-    def _window_show(self):
-        with _qt_disable_paint(self._interactor):
-            with self._window_ensure_minimum_sizes():
-                self.show()
+            self.plotter.window_size = (win_sz.width(), win_sz.height())
+            self.plotter.interactor.resize(ren_sz.width(), ren_sz.height())
+            self._process_events()
+            self._process_events()
 
 
 class _QtWidget(_AbstractWidget):
@@ -445,7 +445,13 @@ class _QtWidget(_AbstractWidget):
 
 class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
                 _QtStatusBar, _QtWindow, _QtPlayback):
-    pass
+    def show(self):
+        super().show()
+        with _qt_disable_paint(self.plotter):
+            with self._window_ensure_minimum_sizes():
+                self.plotter.app_window.show()
+        self.plotter.update()
+        return self.scene()
 
 
 def _create_dock_widget(window, name, area):
