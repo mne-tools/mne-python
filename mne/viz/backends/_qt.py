@@ -291,7 +291,7 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
             for icon_key in self.icons:
                 icon = self.icons[icon_key]
                 image = icon.pixmap(80).toImage()
-                image.invertPixels(mode=QImage.InvertRgba)
+                image.invertPixels(mode=QImage.InvertRgb)
                 self.icons[icon_key] = QIcon(QPixmap.fromImage(image))
 
 
