@@ -1953,7 +1953,7 @@ def _ascii_minus_to_unicode(s):
     Aux function for ``plot_compare_evokeds`` to prettify ``Evoked.comment``.
     """
     if s is None:
-        return None
+        return
 
     # replace ASCII minus operators with Unicode minus characters
     s = s.replace(' - ', ' − ')
