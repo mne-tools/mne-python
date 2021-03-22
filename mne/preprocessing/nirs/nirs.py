@@ -66,17 +66,6 @@ def _channel_frequencies(raw):
     return freqs
 
 
-def _channel_chromophore(raw):
-    """Return the chromophore of each channel."""
-    # Only valid for fNIRS data after conversion to haemoglobin
-    picks = _picks_to_idx(raw.info, ['hbo', 'hbr'],
-                          exclude=[], allow_empty=True)
-    chroma = []
-    for ii in picks:
-        chroma.append(raw.ch_names[ii].split(" ")[1])
-    return chroma
-
-
 def _check_channels_ordered(raw, freqs):
     """Check channels followed expected fNIRS format."""
     # Every second channel should be same SD pair

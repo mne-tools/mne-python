@@ -15,7 +15,7 @@ from mne.io import read_raw_nirx
 from mne.preprocessing.nirs import (optical_density, beer_lambert_law,
                                     _fnirs_check_bads, _fnirs_spread_bads,
                                     _check_channels_ordered,
-                                    _channel_frequencies, _channel_chromophore)
+                                    _channel_frequencies)
 from mne.io.pick import _picks_to_idx
 
 from mne.datasets import testing
@@ -167,8 +167,3 @@ def test_fnirs_channel_naming_and_order_readers(fname):
     assert_array_equal(freqs, [760, 850])
     picks = _check_channels_ordered(raw, freqs)
     assert len(picks) == len(raw.ch_names)  # as all fNIRS only data
-
-    # Check on haemoglobin data
-    raw = beer_lambert_law(raw)
-    freqs = np.unique(_channel_chromophore(raw))
-    assert_array_equal(freqs, ["hbo", "hbr"])
