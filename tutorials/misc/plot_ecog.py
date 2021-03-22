@@ -115,8 +115,8 @@ xy, im = snapshot_brain_montage(fig, raw.info)
 # Compute frequency features of the data
 # --------------------------------------
 #
-# Next, we'll compute the signal power in the gamma (30-90 Hz) and alpha
-# (8-12 Hz) bands, downsampling the result to 10 Hz (to save time).
+# Next, we'll compute the signal power in the gamma (30-90 Hz) band,
+# downsampling the result to 10 Hz (to save time).
 
 sfreq = 10
 gamma_power_t = evoked.copy().filter(30, 90).apply_hilbert(
@@ -168,12 +168,12 @@ trans = None  # identity transform
 stc = mne.stc_near_sensors(evoked, trans, 'fsaverage', src=src,
                            mode='nearest', subjects_dir=subjects_dir,
                            distance=0.02)
-vmin, vmid, vmax = np.percentile(gamma_power_t.data, [10, 50, 90])
+vmin, vmid, vmax = np.percentile(gamma_power_t.data, [10, 25, 90])
 clim = dict(kind='value', lims=[vmin, vmid, vmax])
-brain = stc.plot(surface='pial', hemi='rh', colormap='viridis',
+brain = stc.plot(surface='pial', hemi='rh', colormap='inferno', colorbar=False,
                  clim=clim, views=['lat', 'med'], subjects_dir=subjects_dir,
                  size=(600, 800), smoothing_steps=5, time_viewer=False)
 
 # You can save a movie like the one on our documentation website with:
-# brain.save_movie(time_dilation=1, interpolation='linear', framerate=1,
+# brain.save_movie(time_dilation=1, interpolation='linear', framerate=24,
 #                  time_viewer=True)
