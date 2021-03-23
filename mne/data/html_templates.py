@@ -75,3 +75,24 @@ raw_template = Template("""
     </tr>
 </table>
 """)
+
+epochs_template = Template("""
+<table class="table table-hover">
+    <tr>
+        <th>N events</th>
+        <td>{{'%s events' % len(epochs.events)}}</td>
+    </tr>
+    <tr>
+        <th>Time range</th>
+        <td>{{'%g: %g sec' % (epochs.tmin, epochs.tmax)}}</td>
+    </tr>
+    <tr>
+        <th>Baseline</th>
+        <td>{{baseline}}</td>
+    </tr>
+    <tr>
+        <th>Events</th>
+        <td>{{events}}</td>
+    </tr>
+</table>
+""")

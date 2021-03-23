@@ -59,6 +59,7 @@ from .utils import (_check_fname, check_fname, logger, verbose,
                     _scale_dataframe_data, _check_time_format, object_size,
                     _on_missing, _validate_type)
 from .utils.docs import fill_doc
+from .data.html_templates import epochs_template
 
 
 def _pack_reject_params(epochs):
@@ -1598,6 +1599,25 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         class_name = self.__class__.__name__
         class_name = 'Epochs' if class_name == 'BaseEpochs' else class_name
         return '<%s | %s>' % (class_name, s)
+
+    def _repr_html_(self):
+        if self.baseline is None:
+            baseline = 'off'
+        else:
+            baseline = tuple(['None' if b is None else ('%g' % b)
+                              for b in self.baseline])
+            baseline = '%s: %s sec' % baseline
+            if self.baseline != _check_baseline(
+                    self.baseline, times=self.times, sfreq=self.info['sfreq'],
+                    on_baseline_outside_data='adjust'):
+                baseline = ' (baseline period was cropped after baseline\
+                    correction)'
+        events = ''
+        for k, v in sorted(self.event_id.items()):
+            events += k
+            events += ': %i<br>' % sum(self.events[:, 2] == v)
+        return epochs_template.substitute(epochs=self, baseline=baseline,
+                                          events=events)
 
     @verbose
     def crop(self, tmin=None, tmax=None, include_tmax=True, verbose=None):
