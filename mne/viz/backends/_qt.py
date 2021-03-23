@@ -369,23 +369,18 @@ class _QtWindow(_AbstractWindow):
 
     def _window_get_mplcanvas(self, brain, interactor_fraction, show_traces,
                               separate_canvas):
-        sz = self.figure.store['window_size']
         w, h = self._window_get_mplcanvas_size(interactor_fraction)
         self._interactor_fraction = interactor_fraction
         self._show_traces = show_traces
         self._separate_canvas = separate_canvas
         self._mplcanvas = _QtBrainMplCanvas(
             brain, w, h, self._window_get_dpi())
-        if self._show_traces and not self._separate_canvas:
-            mpl_h = int(round((sz[1] * self._interactor_fraction) /
-                              (1 - self._interactor_fraction)))
-            self._mplcanvas.canvas.setMinimumSize(sz[0], mpl_h)
         return self._mplcanvas
 
     def _window_adjust_mplcanvas_layout(self):
         canvas = self._mplcanvas.canvas
         dock, dock_layout = _create_dock_widget(
-            self._window, "Traces", Qt.BottomDockWidgetArea, False)
+            self._window, "Traces", Qt.BottomDockWidgetArea)
         dock_layout.addWidget(canvas)
 
     def _window_get_cursor(self):
@@ -397,12 +392,17 @@ class _QtWindow(_AbstractWindow):
     @contextmanager
     def _window_ensure_minimum_sizes(self):
         sz = self.figure.store['window_size']
+        adjust_mplcanvas = (self._show_traces and not self._separate_canvas)
         # plotter:            pyvista.plotting.qt_plotting.BackgroundPlotter
         # plotter.interactor: vtk.qt.QVTKRenderWindowInteractor.QVTKRenderWindowInteractor -> QWidget  # noqa
         # plotter.app_window: pyvista.plotting.qt_plotting.MainWindow -> QMainWindow  # noqa
         # plotter.frame:      QFrame with QVBoxLayout with plotter.interactor as centralWidget  # noqa
         # plotter.ren_win:    vtkXOpenGLRenderWindow
         self.plotter.interactor.setMinimumSize(*sz)
+        if adjust_mplcanvas:
+            mpl_h = int(round((sz[1] * self._interactor_fraction) /
+                              (1 - self._interactor_fraction)))
+            self._mplcanvas.canvas.setMinimumSize(sz[0], mpl_h)
         try:
             yield  # show
         finally:
@@ -414,6 +414,8 @@ class _QtWindow(_AbstractWindow):
             ren_sz = self.plotter.interactor.size()
             # 3. Undo the min size setting and process events
             self.plotter.interactor.setMinimumSize(0, 0)
+            if adjust_mplcanvas:
+                self._mplcanvas.canvas.setMinimumSize(0, 0)
             self._process_events()
             self._process_events()
             # 4. Resize the window and interactor to the correct size
@@ -454,7 +456,7 @@ class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
         return self.scene()
 
 
-def _create_dock_widget(window, name, area, margin=True):
+def _create_dock_widget(window, name, area):
     dock = QDockWidget()
     scroll = QScrollArea(dock)
     dock.setWidget(scroll)
@@ -465,8 +467,6 @@ def _create_dock_widget(window, name, area, margin=True):
     dock.setTitleBarWidget(QLabel(name))
     window.addDockWidget(area, dock)
     dock_layout = QVBoxLayout()
-    if not margin:
-        dock_layout.setContentsMargins(0, 0, 0, 0)
     widget.setLayout(dock_layout)
     return dock, dock_layout
 
