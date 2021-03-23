@@ -476,6 +476,10 @@ class _AbstractToolBar(ABC):
     def _tool_bar_add_screenshot_button(self, name, desc, func):
         pass
 
+    @abstractmethod
+    def _tool_bar_set_theme(self, theme):
+        pass
+
 
 class _AbstractDock(ABC):
     @abstractmethod
@@ -758,4 +762,8 @@ class _AbstractWindow(ABC):
 
     @abstractmethod
     def _window_ensure_minimum_sizes(self):
+        pass
+
+    @abstractmethod
+    def _window_set_theme(self, theme):
         pass

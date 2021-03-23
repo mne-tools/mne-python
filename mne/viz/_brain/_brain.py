@@ -290,6 +290,11 @@ class Brain(object):
        and ``decimate`` (level of decimation between 0 and 1 or None) of the
        brain's silhouette to display. If True, the default values are used
        and if False, no silhouette will be displayed. Defaults to False.
+    theme : str | path-like
+        Can be "auto" (default), "light", or "dark" or a path-like to a
+        custom stylesheet. For Dark-Mode and automatic Dark-Mode-Detection,
+        :mod:`qdarkstyle` respectively and `darkdetect
+        <https://github.com/albertosottile/darkdetect>`__ is required.
     show : bool
         Display the window as soon as it is ready. Defaults to True.
 
@@ -368,7 +373,8 @@ class Brain(object):
                  foreground=None, figure=None, subjects_dir=None,
                  views='auto', offset='auto', show_toolbar=False,
                  offscreen=False, interaction='trackball', units='mm',
-                 view_layout='vertical', silhouette=False, show=True):
+                 view_layout='vertical', silhouette=False, theme='auto',
+                 show=True):
         from ..backends.renderer import backend, _get_renderer
         from .._3d import _get_cmap
         from matplotlib.colors import colorConverter
@@ -415,6 +421,8 @@ class Brain(object):
                              'sequence of ints.')
         size = size if len(size) == 2 else size * 2  # 1-tuple to 2-tuple
         subjects_dir = get_subjects_dir(subjects_dir)
+
+        self.theme = theme
 
         self.time_viewer = False
         self._hemi = hemi
@@ -472,6 +480,7 @@ class Brain(object):
                                        fig=figure)
 
         self._renderer._window_initialize(self._clean)
+        self._renderer._window_set_theme(theme)
         self.plotter = self._renderer.plotter
 
         self._setup_canonical_rotation()
@@ -1222,6 +1231,7 @@ class Brain(object):
 
     def _configure_tool_bar(self):
         self._renderer._tool_bar_load_icons()
+        self._renderer._tool_bar_set_theme(self.theme)
         self._renderer._tool_bar_initialize()
         self._renderer._tool_bar_add_screenshot_button(
             name="screenshot",

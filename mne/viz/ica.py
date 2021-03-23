@@ -370,14 +370,20 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
 
     if isinstance(inst, BaseRaw):
         # when auto, delegate reject to the ica
+        from ..epochs import make_fixed_length_epochs
         if reject == 'auto':
             reject = getattr(ica, 'reject_', None)
-        else:
-            pass
-
         if reject is None:
-            inst_rejected = inst
             drop_inds = None
+            dropped_indices = []
+            # break up continuous signal into segments
+            epochs_src = make_fixed_length_epochs(
+                ica.get_sources(inst),
+                duration=2,
+                preload=True,
+                reject_by_annotation=reject_by_annotation,
+                proj=False,
+                verbose=False)
         else:
             data = inst.get_data()
             data, drop_inds = _reject_data_segments(data, ica.reject_,
@@ -385,44 +391,27 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
                                                     info=inst.info,
                                                     tstep=2.0)
             inst_rejected = RawArray(data, inst.info)
-
-        # break up continuous signal into segments
-        from ..epochs import make_fixed_length_epochs
-        inst_rejected = make_fixed_length_epochs(
-            inst_rejected,
-            duration=2,
-            preload=True,
-            reject_by_annotation=reject_by_annotation,
-            proj=False,
-            verbose=False)
-        inst = make_fixed_length_epochs(
-            inst,
-            duration=2,
-            preload=True,
-            reject_by_annotation=reject_by_annotation,
-            proj=False,
-            verbose=False)
+            # break up continuous signal into segments
+            epochs_src = make_fixed_length_epochs(
+                ica.get_sources(inst_rejected),
+                duration=2,
+                preload=True,
+                reject_by_annotation=reject_by_annotation,
+                proj=False,
+                verbose=False)
+            # getting dropped epochs indexes
+            dropped_indices = [(d[0] // len(epochs_src.times)) + 1
+                               for d in drop_inds]
         kind = "Segment"
     else:
         drop_inds = None
-        inst_rejected = inst
+        epochs_src = ica.get_sources(inst)
+        dropped_indices = []
         kind = "Epochs"
 
-    epochs_src = ica.get_sources(inst_rejected)
     data = epochs_src.get_data()
-
     ica_data = np.swapaxes(data[:, picks, :], 0, 1)
-
-    # getting dropped epochs indexes
-    if drop_inds is not None:
-        dropped_indices = [(d[0] // len(inst.times)) + 1
-                           for d in drop_inds]
-    else:
-        dropped_indices = []
-
-    # getting ica sources from inst
-    dropped_src = ica.get_sources(inst).get_data()
-    dropped_src = np.swapaxes(dropped_src[:, picks, :], 0, 1)
+    dropped_src = ica_data
 
     # spectrum
     Nyquist = inst.info['sfreq'] / 2.

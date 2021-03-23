@@ -194,6 +194,9 @@ class _IpyToolBar(_AbstractToolBar, _IpyLayout):
             placeholder="Type a file name",
         )
 
+    def _tool_bar_set_theme(self, theme):
+        pass
+
 
 class _IpyMenuBar(_AbstractMenuBar):
     def _menu_initialize(self, window=None):
@@ -283,6 +286,9 @@ class _IpyWindow(_AbstractWindow):
     @contextmanager
     def _window_ensure_minimum_sizes(self):
         yield
+
+    def _window_set_theme(self, theme):
+        pass
 
 
 class _IpyWidget(_AbstractWidget):

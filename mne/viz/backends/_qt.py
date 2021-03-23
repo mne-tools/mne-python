@@ -11,7 +11,7 @@ from functools import partial
 import pyvista
 
 from PyQt5.QtCore import Qt, pyqtSignal, QLocale
-from PyQt5.QtGui import QIcon
+from PyQt5.QtGui import QIcon, QImage, QPixmap
 from PyQt5.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
                              QHBoxLayout, QLabel, QToolButton, QMenuBar,
                              QSlider, QSpinBox, QVBoxLayout, QWidget,
@@ -26,7 +26,7 @@ from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback,
                         _AbstractBrainMplCanvas, _AbstractMplInterface)
 from ._utils import _init_qt_resources, _qt_disable_paint
-from ..utils import _save_ndarray_img
+from ..utils import _save_ndarray_img, logger
 
 
 class _QtLayout(_AbstractLayout):
@@ -275,6 +275,17 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
             func=_screenshot,
         )
 
+    def _tool_bar_set_theme(self, theme):
+        if theme == 'auto':
+            theme = _detect_theme()
+
+        if theme == 'dark':
+            for icon_key in self.icons:
+                icon = self.icons[icon_key]
+                image = icon.pixmap(80).toImage()
+                image.invertPixels(mode=QImage.InvertRgb)
+                self.icons[icon_key] = QIcon(QPixmap.fromImage(image))
+
 
 class _QtMenuBar(_AbstractMenuBar):
     def _menu_initialize(self, window=None):
@@ -425,6 +436,27 @@ class _QtWindow(_AbstractWindow):
             self._process_events()
             self._process_events()
 
+    def _window_set_theme(self, theme):
+        if theme == 'auto':
+            theme = _detect_theme()
+
+        if theme == 'dark':
+            try:
+                import qdarkstyle
+            except ModuleNotFoundError:
+                logger.info('For Dark-Mode "qdarkstyle" has to be installed! '
+                            'You can install it with `pip install qdarkstyle`')
+                stylesheet = None
+            else:
+                stylesheet = qdarkstyle.load_stylesheet()
+        elif theme != 'light':
+            with open(theme, 'r') as file:
+                stylesheet = file.read()
+        else:
+            stylesheet = None
+
+        self._window.setStyleSheet(stylesheet)
+
 
 class _QtWidget(_AbstractWidget):
     def set_value(self, value):
@@ -469,6 +501,14 @@ def _create_dock_widget(window, name, area):
     dock_layout = QVBoxLayout()
     widget.setLayout(dock_layout)
     return dock, dock_layout
+
+
+def _detect_theme():
+    try:
+        import darkdetect
+        return darkdetect.theme().lower()
+    except Exception:
+        return 'light'
 
 
 @contextmanager
