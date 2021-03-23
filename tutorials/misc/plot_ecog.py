@@ -172,26 +172,21 @@ for i, pos in enumerate(xy_pts):
 
 # add second view
 fig, ax = plt.subplots(figsize=(5, 5))
-ax.imshow(im2[650:im2.shape[1] - 400, 375:im2.shape[0] - 750])
+x0, x1, y0, y1 = (0.25, 0.55, 0.4, 0.75)  # inset bounds
+ax.imshow(im2)
+ax.set_xlim(np.array([x0, x1]) * im2.shape[0])
+ax.set_ylim(np.array([y0, y1]) * im2.shape[1])
 ax.set_axis_off()
 for i in group:
     x, y = xy_pts2[i]
     color = cmap(i / xy_pts.shape[0])
-    ax.plot(x_line - 375 + x, gamma_power[i] - 650 + y,
-            linewidth=0.5, color=color)
-
+    ax.plot(x_line + x, gamma_power[i] + y, linewidth=0.5, color=color)
 
 # add inset
 ax2 = ax.inset_axes((0.7, 0.0, 0.3, 0.3))
-
-# add bounding box
-im3 = im2.copy()
-im3[650:im2.shape[1] - 400, 365:385] = 0
-im3[650:im2.shape[1] - 400, im2.shape[0] - 760:im2.shape[0] - 740] = 0
-im3[640:660, 375:im2.shape[0] - 750] = 0
-im3[im2.shape[1] - 410: im2.shape[1] - 390, 375:im2.shape[0] - 750] = 0
-
-ax2.imshow(im3)
+ax2.imshow(im2)
+ax2.plot(np.array([x0, x0, x1, x1, x0]) * im2.shape[0],
+         np.array([y0, y1, y1, y0, y0]) * im2.shape[1], color='k')
 ax2.set_axis_off()
 
 
