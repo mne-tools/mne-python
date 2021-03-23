@@ -247,7 +247,7 @@ def test_fnirs_channel_naming_and_order_custom_raw():
     with pytest.raises(ValueError, match='name and NIRS frequency do not'):
         _check_channels_ordered(raw, [920, 850])
 
-    # Catch if someone doesnt set the info field
+    # Catch if someone doesn't set the info field
     ch_names = ['S1_D1 760', 'S1_D1 850', 'S2_D1 760', 'S2_D1 850',
                 'S3_D1 760', 'S3_D1 850']
     ch_types = np.repeat("fnirs_cw_amplitude", 6)

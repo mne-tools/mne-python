@@ -74,7 +74,7 @@ MNE stores the location of the channels, sources, and detectors.
              is an expected order of channels that must be maintained. Any
              change to the expected structure will cause an error.
 
-             Channels names must follow the structure
+             Channel names must follow the structure
              ``S#_D# value``
              where S# is the source number (e.g. S12 for source 12),
              D# is the detector number (e.g. D4 for detector 4),
@@ -86,17 +86,19 @@ MNE stores the location of the channels, sources, and detectors.
 
              Channels with the same source-detector pairing must be stored
              in consecutive order. For example
-             ``["S11_D2 hbo", "S11_D2 hbr", "S1_D2 hbo", "S11_D2 hbr"]``
+             ``["S11_D2 hbo", "S11_D2 hbr", "S1_D2 hbo", "S1_D2 hbr"]``
              is acceptable, but
-             ``["S11_D2 hbo", "S1_D2 hbo", "S11_D2 hbr", "S11_D2 hbr"]``
+             ``["S11_D2 hbo", "S1_D2 hbo", "S11_D2 hbr", "S1_D2 hbr"]``
              is not. Further, the order of type must be maintained for all
              fNIRS channels so the following is not valid
-             ``["S11_D2 hbo", "S11_D2 hbr", "S1_D2 hbr", "S11_D2 hbo"]``.
+             ``["S11_D2 hbo", "S11_D2 hbr", "S1_D2 hbr", "S1_D2 hbo"]``.
 
              For raw amplitude measurements and for optical density data
              the wavelength information must be stored in
              ``info["chs"][ii]["loc"][9]``
              and it must match the channel name. For example the channel
              ``S11_D2 760`` must have the value 760 stored in the loc[9] field.
+             There is no such requirement for hbo and hbr data as they have
+             a dedicated channel type.
 
 """  # noqa:E501
