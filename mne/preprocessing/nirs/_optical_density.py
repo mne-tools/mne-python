@@ -10,6 +10,7 @@ from ...io import BaseRaw
 from ...io.constants import FIFF
 from ...utils import _validate_type, warn
 from ...io.pick import _picks_to_idx
+from ..nirs import _channel_frequencies, _check_channels_ordered
 
 
 def optical_density(raw):
@@ -27,6 +28,8 @@ def optical_density(raw):
     """
     raw = raw.copy().load_data()
     _validate_type(raw, BaseRaw, 'raw')
+    _check_channels_ordered(raw, np.unique(_channel_frequencies(raw)))
+
     picks = _picks_to_idx(raw.info, 'fnirs_cw_amplitude')
     data_means = np.mean(raw.get_data(), axis=1)
 

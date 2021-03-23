@@ -699,60 +699,47 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
             C = ---------------------
                 sqrt(E[Sxx] * E[Syy])
 
-        'imcoh' : Imaginary coherence [1]_ given by::
+        'imcoh' : Imaginary coherence :footcite:`NolteEtAl2004` given by::
 
                       Im(E[Sxy])
             C = ----------------------
                 sqrt(E[Sxx] * E[Syy])
 
-        'plv' : Phase-Locking Value (PLV) [2]_ given by::
+        'plv' : Phase-Locking Value (PLV) :footcite:`LachauxEtAl1999` given
+        by::
 
             PLV = |E[Sxy/|Sxy|]|
 
-        'ciplv' : corrected imaginary PLV (icPLV) [3]_ given by::
+        'ciplv' : corrected imaginary PLV (icPLV)
+        :footcite:`BrunaEtAl2018` given by::
 
                              |E[Im(Sxy/|Sxy|)]|
             ciPLV = ------------------------------------
                      sqrt(1 - |E[real(Sxy/|Sxy|)]| ** 2)
 
         'ppc' : Pairwise Phase Consistency (PPC), an unbiased estimator
-        of squared PLV [4]_.
+        of squared PLV :footcite:`VinckEtAl2010`.
 
-        'pli' : Phase Lag Index (PLI) [5]_ given by::
+        'pli' : Phase Lag Index (PLI) :footcite:`StamEtAl2007` given by::
 
             PLI = |E[sign(Im(Sxy))]|
 
-        'pli2_unbiased' : Unbiased estimator of squared PLI [6]_.
+        'pli2_unbiased' : Unbiased estimator of squared PLI
+        :footcite:`VinckEtAl2011`.
 
-        'wpli' : Weighted Phase Lag Index (WPLI) [6]_ given by::
+        'wpli' : Weighted Phase Lag Index (WPLI) :footcite:`VinckEtAl2011`
+        given by::
 
                       |E[Im(Sxy)]|
             WPLI = ------------------
                       E[|Im(Sxy)|]
 
-        'wpli2_debiased' : Debiased estimator of squared WPLI [6]_.
+        'wpli2_debiased' : Debiased estimator of squared WPLI
+        :footcite:`VinckEtAl2011`.
 
     References
     ----------
-    .. [1] Nolte et al. "Identifying true brain interaction from EEG data using
-           the imaginary part of coherency" Clinical neurophysiology, vol. 115,
-           no. 10, pp. 2292-2307, Oct. 2004.
-    .. [2] Lachaux et al. "Measuring phase synchrony in brain signals" Human
-           brain mapping, vol. 8, no. 4, pp. 194-208, Jan. 1999.
-    .. [3] Bruña et al. "Phase locking value revisited: teaching new tricks to
-           an old dog" Journal of Neural Engineering, vol. 15, no. 5, pp.
-           056011 , Jul. 2018.
-    .. [4] Vinck et al. "The pairwise phase consistency: a bias-free measure of
-           rhythmic neuronal synchronization" NeuroImage, vol. 51, no. 1,
-           pp. 112-122, May 2010.
-    .. [5] Stam et al. "Phase lag index: assessment of functional connectivity
-           from multi channel EEG and MEG with diminished bias from common
-           sources" Human brain mapping, vol. 28, no. 11, pp. 1178-1193,
-           Nov. 2007.
-    .. [6] Vinck et al. "An improved index of phase-synchronization for
-           electro-physiological data in the presence of volume-conduction,
-           noise and sample-size bias" NeuroImage, vol. 55, no. 4,
-           pp. 1548-1565, Apr. 2011.
+    .. footbibliography::
     """
     if n_jobs != 1:
         parallel, my_epoch_spectral_connectivity, _ = \
@@ -921,8 +908,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
 
     if indices is None:
         # return all-to-all connectivity matrices
-        logger.info('    assembling connectivity matrix '
-                    '(filling the upper triangular region of the matrix)')
+        logger.info('    assembling connectivity matrix')
         con_flat = con
         con = list()
         for this_con_flat in con_flat:

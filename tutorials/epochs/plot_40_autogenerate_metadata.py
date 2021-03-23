@@ -147,18 +147,18 @@ metadata
 # ``response/right``. We would like to map those to "correct" and "incorrect".
 # To make this easier, we can ask `~mne.epochs.make_metadata` to generate an
 # entirely **new** column that refers to the first response observed during the
-# given time interval. This works by passing a subset of the hierarchical
-# event descriptions (HEDs) used to name events via the ``keep_first``
+# given time interval. This works by passing a subset of the
+# :term:`hierarchical event descriptors` (HEDs, inspired by
+# :footcite:`BigdelyShamloEtAl2013`) used to name events via the ``keep_first``
 # parameter. For example, in the case of the HEDs ``response/left`` and
 # ``response/right``, we could pass ``keep_first='response'`` to generate a new
-# column, ``response``, containing the latency of the respective event.
-# This value pertains only the first (or, in this specific example: the only)
+# column, ``response``, containing the latency of the respective event. This
+# value pertains only the first (or, in this specific example: the only)
 # response, regardless of side (left or right). To indicate **which** event
 # type (here: response side) was matched, a second column is added:
-# ``first_recponse``. The values in this column are the event types sans
-# the string used for matching, as it is already encoded as the column name,
-# i.e. in our example, it we expect it to only contain ``'left'`` and
-# ``'right'``.
+# ``first_response``. The values in this column are the event types without the
+# string used for matching, as it is already encoded as the column name, i.e.
+# in our example, we expect it to only contain ``'left'`` and ``'right'``.
 
 keep_first = 'response'
 metadata, events, event_id = mne.epochs.make_metadata(
@@ -430,3 +430,8 @@ ax.set_title('Channel: FCz')
 fig.suptitle('ERN (Difference Wave)', fontweight='bold')
 
 fig
+
+###############################################################################
+# References
+# ^^^^^^^^^^
+# .. footbibliography::

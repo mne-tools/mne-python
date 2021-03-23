@@ -586,8 +586,7 @@ def test_arithmetic():
     ev20.comment = None
     ev = combine_evoked([ev20, -ev30], weights=[1, -1])
     assert_equal(ev.comment.count('unknown'), 2)
-    assert ('-unknown' in ev.comment)
-    assert (' + ' in ev.comment)
+    assert ev.comment == 'unknown + unknown'
     ev20.comment = old_comment1
 
     with pytest.raises(ValueError, match="Invalid value for the 'weights'"):
@@ -759,3 +758,24 @@ def test_hilbert():
 
 
 run_tests_if_main()
+
+
+def fun(evoked_data, mult_param=1):
+    """Auxiliary function to test apply_function."""
+    return mult_param * evoked_data
+
+
+def test_apply_function_evk():
+    """Check the apply_function method for evoked data."""
+    # create fake evoked data to use for checking apply_function
+    data = np.random.rand(10, 1000)
+    info = create_info(10, 1000., 'eeg')
+    evoked = EvokedArray(data, info)
+    evoked_data = evoked.data.copy()
+    # check apply_function channel-wise
+    mult_param = -1
+    kwargs = dict(mult_param=mult_param)
+    applied = evoked.apply_function(fun, picks=None, dtype=None, n_jobs=1,
+                                    **kwargs)
+    assert np.shape(applied.data) == np.shape(evoked_data)
+    assert np.equal(applied.data, evoked_data * mult_param).all()

@@ -165,7 +165,7 @@ def test_plot_evoked_field(renderer):
 @pytest.mark.slowtest  # can be slow on OSX
 @testing.requires_testing_data
 @traits_test
-def test_plot_alignment(tmpdir, renderer):
+def test_plot_alignment(tmpdir, renderer, mixed_fwd_cov_evoked):
     """Test plotting of -trans.fif files and MEG sensor layouts."""
     # generate fiducials file for testing
     tempdir = str(tmpdir)
@@ -209,6 +209,13 @@ def test_plot_alignment(tmpdir, renderer):
                   src=sample_src)
     sample_src.plot(subjects_dir=subjects_dir, head=True, skull=True,
                     brain='white')
+    # mixed source space
+    mixed_src = mixed_fwd_cov_evoked[0]['src']
+    assert mixed_src.kind == 'mixed'
+    plot_alignment(info, meg=['helmet', 'sensors'], dig=True,
+                   coord_frame='head', trans=Path(trans_fname),
+                   subject='sample', mri_fiducials=fiducials_path,
+                   subjects_dir=subjects_dir, src=mixed_src)
     renderer.backend._close_all()
     # no-head version
     renderer.backend._close_all()

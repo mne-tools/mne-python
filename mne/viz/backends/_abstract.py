@@ -761,5 +761,9 @@ class _AbstractWindow(ABC):
         pass
 
     @abstractmethod
+    def _window_set_theme(self, theme):
+        pass
+
+    @abstractmethod
     def _window_show(self, sz):
         pass

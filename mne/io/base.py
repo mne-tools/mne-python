@@ -52,6 +52,7 @@ from ..defaults import _handle_default
 from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo, _RAW_CLIP_DEF
 from ..event import find_events, concatenate_events
 from ..annotations import Annotations, _combine_annotations, _sync_onset
+from ..data.html_templates import raw_template
 
 
 class TimeMixin(object):
@@ -895,49 +896,20 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                        channel_wise=True, verbose=None, *args, **kwargs):
         """Apply a function to a subset of channels.
 
-        The function "fun" is applied to the channels defined in "picks". The
-        data of the Raw object is modified inplace. If the function returns
-        a different data type (e.g. numpy.complex) it must be specified using
-        the dtype parameter, which causes the data type used for representing
-        the raw data to change.
-
-        The Raw object has to have the data loaded e.g. with ``preload=True``
-        or ``self.load_data()``.
-
-        .. note:: If n_jobs > 1, more memory is required as
-                  ``len(picks) * n_times`` additional time points need to
-                  be temporaily stored in memory.
-
-        .. note:: If the data type changes (dtype != None), more memory is
-                  required since the original and the converted data needs
-                  to be stored in memory.
+        %(applyfun_summary_raw)s
 
         Parameters
         ----------
-        fun : callable
-            A function to be applied to the channels. The first argument of
-            fun has to be a timeseries (numpy.ndarray). The function must
-            operate on an array of shape ``(n_times,)`` if
-            ``channel_wise=True`` and ``(len(picks), n_times)`` otherwise.
-            The function must return an ndarray shaped like its input.
+        %(applyfun_fun)s
         %(picks_all_data_noref)s
-        dtype : numpy.dtype (default: None)
-            Data type to use for raw data after applying the function. If None
-            the data type is not modified.
-        n_jobs : int (default: 1)
-            Number of jobs to run in parallel. Ignored if ``channel_wise`` is
-            False.
-        channel_wise : bool (default: True)
-            Whether to apply the function to each channel individually. If
-            False, the function will be applied to all channels at once.
+        %(applyfun_dtype)s
+        %(n_jobs)s
+        %(applyfun_chwise)s
 
             .. versionadded:: 0.18
         %(verbose_meth)s
-        *args : list
-            Additional positional arguments to pass to fun (first pos. argument
-            of fun is the timeseries of a channel).
-        **kwargs : dict
-            Keyword arguments to pass to fun.
+        %(arg_fun)s
+        %(kwarg_fun)s
 
         Returns
         -------
@@ -1675,6 +1647,15 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
              % (name, len(self.ch_names), self.n_times, self.times[-1],
                 size_str))
         return "<%s | %s>" % (self.__class__.__name__, s)
+
+    def _repr_html_(self, caption=None):
+        basenames = [os.path.basename(f) for f in self._filenames]
+        m, s = divmod(self._last_time - self.first_time, 60)
+        h, m = divmod(m, 60)
+        duration = f'{int(h):02d}:{int(m):02d}:{int(s):02d}'
+        return raw_template.substitute(
+            info_repr=self.info._repr_html_(caption=caption),
+            filenames=basenames, duration=duration)
 
     def add_events(self, events, stim_channel=None, replace=False):
         """Add events to stim channel.
