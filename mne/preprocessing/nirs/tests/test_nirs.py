@@ -176,7 +176,7 @@ def test_fnirs_channel_naming_and_order_readers(fname):
     raw_names_reversed = raw.copy().ch_names
     raw_names_reversed.reverse()
     raw_reversed = raw.copy().pick_channels(raw_names_reversed, ordered=True)
-    with pytest.raises(ValueError, match='not ordered correctly'):
+    with pytest.raises(ValueError, match='not ordered .* frequencies'):
         _check_channels_ordered(raw_reversed, freqs)
     # So if we flip the second argument it should pass again
     _check_channels_ordered(raw_reversed, [850, 760])
@@ -197,6 +197,10 @@ def test_fnirs_channel_naming_and_order_readers(fname):
     assert len(_channel_chromophore(raw)) == len(raw.ch_names)
     chroma = np.unique(_channel_chromophore(raw))
     assert_array_equal(chroma, ["hbo", "hbr"])
+    picks = _check_channels_ordered(raw, chroma)
+    assert len(picks) == len(raw.ch_names)
+    with pytest.raises(ValueError, match='not ordered .* chromophore'):
+        _check_channels_ordered(raw, ["hbx", "hbr"])
 
 
 def test_fnirs_channel_naming_and_order_custom_raw():
@@ -306,3 +310,54 @@ def test_fnirs_channel_naming_and_order_custom_optical_density():
     # and this is how you would fix the ordering, then it should pass
     raw.pick(picks=[0, 3, 1, 4, 2, 5])
     _check_channels_ordered(raw, [760, 850])
+
+
+def test_fnirs_channel_naming_and_order_custom_chroma():
+    """Ensure fNIRS channel checking on manually created data."""
+    data = np.random.normal(size=(6, 10))
+
+    # Start with a correctly named raw intensity dataset
+    # These are the steps required to build an fNIRS Raw object from scratch
+    ch_names = ['S1_D1 hbo', 'S1_D1 hbr', 'S2_D1 hbo', 'S2_D1 hbr',
+                'S3_D1 hbo', 'S3_D1 hbr']
+    ch_types = np.tile(["hbo", "hbr"], 3)
+    info = create_info(ch_names=ch_names, ch_types=ch_types, sfreq=1.0)
+    raw = RawArray(data, info, verbose=True)
+
+    chroma = np.unique(_channel_chromophore(raw))
+    picks = _check_channels_ordered(raw, chroma)
+    assert len(picks) == len(raw.ch_names)
+    assert len(picks) == 6
+
+    # Test block creation fails
+    ch_names = ['S1_D1 hbo', 'S2_D1 hbo', 'S3_D1 hbo',
+                'S1_D1 hbr', 'S2_D1 hbr', 'S3_D1 hbr']
+    ch_types = np.repeat(["hbo", "hbr"], 3)
+    info = create_info(ch_names=ch_names, ch_types=ch_types, sfreq=1.0)
+    raw = RawArray(data, info, verbose=True)
+    with pytest.raises(ValueError, match='not ordered .* chromophore'):
+        _check_channels_ordered(raw, ["hbo", "hbr"])
+    # Reordering should fix
+    raw.pick(picks=[0, 3, 1, 4, 2, 5])
+    _check_channels_ordered(raw, ["hbo", "hbr"])
+    # Wrong names should fail
+    with pytest.raises(ValueError, match='not ordered .* chromophore'):
+        _check_channels_ordered(raw, ["hbb", "hbr"])
+
+    # Test weird naming
+    ch_names = ['S1_D1 hbb', 'S1_D1 hbr', 'S2_D1 hbb', 'S2_D1 hbr',
+                'S3_D1 hbb', 'S3_D1 hbr']
+    ch_types = np.tile(["hbo", "hbr"], 3)
+    info = create_info(ch_names=ch_names, ch_types=ch_types, sfreq=1.0)
+    raw = RawArray(data, info, verbose=True)
+    with pytest.raises(ValueError, match='naming conventions'):
+        _check_channels_ordered(raw, ["hbb", "hbr"])
+
+    # Check more weird naming
+    ch_names = ['S1_DX hbo', 'S1_DX hbr', 'S2_D1 hbo', 'S2_D1 hbr',
+                'S3_D1 hbo', 'S3_D1 hbr']
+    ch_types = np.tile(["hbo", "hbr"], 3)
+    info = create_info(ch_names=ch_names, ch_types=ch_types, sfreq=1.0)
+    raw = RawArray(data, info, verbose=True)
+    with pytest.raises(ValueError, match='can not be parsed'):
+        _check_channels_ordered(raw, ["hbo", "hbr"])
