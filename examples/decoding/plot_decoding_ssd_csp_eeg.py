@@ -76,7 +76,7 @@ epochs_data = epochs_cropped.get_data()
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 # define pipelines with monte-carlo simulations
-cv = ShuffleSplit(10, test_size=0.2, random_state=42)
+cv = ShuffleSplit(5, test_size=0.2, random_state=42)
 # pipeline methods
 lda = LinearDiscriminantAnalysis()
 csp = CSP(n_components=4, reg=None, log=True, norm_trace=False)
@@ -118,7 +118,8 @@ filt_params_noise = dict(l_freq=freq_noise[0], h_freq=freq_noise[1],
 # the impact in data dimensionality reduction before applying CSP.
 # The minimum n_components is 4, since 4 CSP components were selected
 # the maximum is the number of channels, here 64.
-n_components = np.arange(4, 65, 2)
+steps = 4
+n_components = np.arange(4, 65, steps)
 scores_ssd_csp = np.zeros((len(n_components,)))
 std_ssd_csp = np.zeros((len(n_components,)))
 for n, n_comp in enumerate(n_components):
@@ -153,7 +154,7 @@ ax.axhline(scores_csp, linestyle='-', color='k', label='CSP')
 ax.set_xlabel('number of components SSD')
 ax.set_ylabel('classification accuracy')
 ax.set_xticks(np.arange(0, len(n_components), 2))
-ax.set_xticklabels(np.arange(4, 65, 4))
+ax.set_xticklabels(np.arange(4, 65, steps*2))
 ax.set_title('Impact of SSD before epoching')
 
 ax.legend()
@@ -199,7 +200,7 @@ ax.axhline(scores_csp, linestyle='-', color='k', label='CSP')
 ax.set_xlabel('number of components SSD')
 ax.set_ylabel('classification accuracy')
 ax.set_xticks(np.arange(0, len(n_components), 2))
-ax.set_xticklabels(np.arange(4, 65, 4))
+ax.set_xticklabels(np.arange(4, 65, steps*2))
 ax.set_title('Impact of SSD after epoching')
 ax.legend()
 # As before, there is a huge impact in decoding performance with respect to
