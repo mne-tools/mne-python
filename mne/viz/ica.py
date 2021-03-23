@@ -319,12 +319,14 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     -----
     .. versionadded:: 0.13
     """
-    _fast_plot_ica_properties(ica, inst, picks=picks, axes=axes, dB=dB,
-                              plot_std=plot_std, topomap_args=topomap_args,
-                              image_args=image_args, psd_args=psd_args,
-                              figsize=figsize, show=show, reject=reject,
-                              reject_by_annotation=reject_by_annotation,
-                              verbose=verbose, precomputed_data=None)
+    return _fast_plot_ica_properties(ica, inst, picks=picks, axes=axes, dB=dB,
+                                     plot_std=plot_std,
+                                     topomap_args=topomap_args,
+                                     image_args=image_args, psd_args=psd_args,
+                                     figsize=figsize, show=show,
+                                     reject=reject,
+                                     reject_by_annotation=reject_by_annotation,
+                                     verbose=verbose, precomputed_data=None)
 
 
 def _fast_plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
