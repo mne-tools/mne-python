@@ -613,14 +613,14 @@ def _read_edf_header(fname, exclude):
         for i, unit in enumerate(units):
             if i in exclude:
                 continue
-            if unit == 'uV':
-                edf_info['units'].append(1e-6)
-            if unit == 'V':
+            elif unit == 'V':
                 edf_info['units'].append(1)
             elif unit == 'mV':
                 edf_info['units'].append(1e-3)
+            elif unit == 'uV':
+                edf_info['units'].append(1e-6)
             else:
-                warn('Unit not recognized, treated as Volts(V)')
+                warn(f'Unit "{unit}" not recognized, no scale used')
                 edf_info['units'].append(1)
         edf_info['units'] = np.array(edf_info['units'], float)
 
