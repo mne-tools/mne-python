@@ -139,6 +139,11 @@ gamma_info = gamma_power_t.info
 # instead of just plotting the average. We can use
 # `matplotlib.animation.FuncAnimation` to create an animation and apply this
 # to the brain figure.
+#
+# As shown in the plot, the epileptiform activity starts in the temporal lobe,
+# progressing posteriorly. The seizure becomes generalized eventually, after
+# this example short time section. This dataset is available using
+# :func:`mne.datasets.epilepsy_ecog.data_path` for you to examine.
 
 # convert from a dictionary to array to plot
 xy_pts = np.vstack([xy[ch] for ch in raw.info['ch_names']])
@@ -152,6 +157,7 @@ cmap = get_cmap('viridis')
 
 # create the figure of the brain with the electrode positions
 fig, ax = plt.subplots(figsize=(5, 5))
+ax.set_title('Gamma power over time', size='large')
 ax.imshow(im)
 ax.set_axis_off()
 
@@ -163,27 +169,29 @@ for i, pos in enumerate(xy_pts):
     x, y = pos
     color = cmap(i / xy_pts.shape[0])
     ax.plot(x_line + x, gamma_power[i] + y, linewidth=0.5, color=color)
-ax.set_xlim([0, im.shape[0]])
-ax.set_ylim([im.shape[1], 0])
-ax.set_title('Gamma power over time', size='large')
 
 # add second view
 fig, ax = plt.subplots(figsize=(5, 5))
-ax.imshow(im2)
+ax.imshow(im2[650:im2.shape[1] - 400, 375:im2.shape[0] - 750])
 ax.set_axis_off()
 for i in group:
     x, y = xy_pts2[i]
     color = cmap(i / xy_pts.shape[0])
-    ax.plot(x_line + x, gamma_power[i] + y, linewidth=0.5, color=color)
-ax.set_xlim([375, im2.shape[0] - 750])
-ax.set_ylim([im2.shape[1] - 400, 650])
+    ax.plot(x_line - 375 + x, gamma_power[i] - 650 + y,
+            linewidth=0.5, color=color)
+
 
 # add inset
 ax2 = ax.inset_axes((0.7, 0.0, 0.3, 0.3))
-ax2.imshow(im2)
-ax2.plot([375, 375, im.shape[0] - 750, im.shape[0] - 750, 375],
-         [im.shape[1] - 400, 650, 650, im.shape[1] - 400, im.shape[1] - 400],
-         color='k')
+
+# add bounding box
+im3 = im2.copy()
+im3[650:im2.shape[1] - 400, 365:385] = 0
+im3[650:im2.shape[1] - 400, im2.shape[0] - 760:im2.shape[0] - 740] = 0
+im3[640:660, 375:im2.shape[0] - 750] = 0
+im3[im2.shape[1] - 410: im2.shape[1] - 390, 375:im2.shape[0] - 750] = 0
+
+ax2.imshow(im3)
 ax2.set_axis_off()
 
 
