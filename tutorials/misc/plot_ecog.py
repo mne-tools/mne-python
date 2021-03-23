@@ -134,10 +134,6 @@ gamma_info = gamma_power_t.info
 
 # convert from a dictionary to array to plot
 xy_pts = np.vstack([xy[ch] for ch in raw.info['ch_names']])
-xy_pts2 = np.vstack([xy2[ch] for ch in raw.info['ch_names']])
-
-# define a group for the temporal lobe electrodes
-group = np.where(np.logical_and(xy_pts[:, 1] > 800, xy_pts[:, 0] > 1000))[0]
 
 # get a colormap to color nearby points similar colors
 cmap = get_cmap('viridis')
