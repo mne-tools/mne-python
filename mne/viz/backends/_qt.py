@@ -356,16 +356,14 @@ class _QtBrainMplCanvas(_AbstractBrainMplCanvas, _QtMplInterface):
 
 
 class _QtWindow(_AbstractWindow):
-    def _window_initialize(self, func=None):
-        self._window = self.figure.plotter.app_window
+    def _window_initialize(self):
+        super()._window_initialize()
         self._interactor = self.figure.plotter.interactor
-        self._mplcanvas = None
-        self._show_traces = None
-        self._separate_canvas = None
-        self._interactor_fraction = None
+        self._window = self.figure.plotter.app_window
         self._window.setLocale(QLocale(QLocale.Language.English))
-        if func is not None:
-            self._window.signal_close.connect(func)
+
+    def _window_close_connect(self, func):
+        self._window.signal_close.connect(func)
 
     def _window_get_dpi(self):
         return self._window.windowHandle().screen().logicalDotsPerInch()
@@ -403,14 +401,14 @@ class _QtWindow(_AbstractWindow):
     @contextmanager
     def _window_ensure_minimum_sizes(self):
         sz = self.figure.store['window_size']
-        adjust_mplcanvas = (self._show_traces and not self._separate_canvas)
+        adjust_mpl = (self._show_traces and not self._separate_canvas)
         # plotter:            pyvista.plotting.qt_plotting.BackgroundPlotter
         # plotter.interactor: vtk.qt.QVTKRenderWindowInteractor.QVTKRenderWindowInteractor -> QWidget  # noqa
         # plotter.app_window: pyvista.plotting.qt_plotting.MainWindow -> QMainWindow  # noqa
         # plotter.frame:      QFrame with QVBoxLayout with plotter.interactor as centralWidget  # noqa
         # plotter.ren_win:    vtkXOpenGLRenderWindow
-        self.plotter.interactor.setMinimumSize(*sz)
-        if adjust_mplcanvas:
+        self._interactor.setMinimumSize(*sz)
+        if adjust_mpl:
             mpl_h = int(round((sz[1] * self._interactor_fraction) /
                               (1 - self._interactor_fraction)))
             self._mplcanvas.canvas.setMinimumSize(sz[0], mpl_h)
@@ -421,18 +419,18 @@ class _QtWindow(_AbstractWindow):
             self._process_events()
             self._process_events()
             # 2. Get the window and interactor sizes that work
-            win_sz = self.plotter.app_window.size()
-            ren_sz = self.plotter.interactor.size()
+            win_sz = self._window.size()
+            ren_sz = self._interactor.size()
             # 3. Undo the min size setting and process events
-            self.plotter.interactor.setMinimumSize(0, 0)
-            if adjust_mplcanvas:
+            self._interactor.setMinimumSize(0, 0)
+            if adjust_mpl:
                 self._mplcanvas.canvas.setMinimumSize(0, 0)
             self._process_events()
             self._process_events()
             # 4. Resize the window and interactor to the correct size
             #    (not sure why, but this is required on macOS at least)
-            self.plotter.window_size = (win_sz.width(), win_sz.height())
-            self.plotter.interactor.resize(ren_sz.width(), ren_sz.height())
+            self._interactor.window_size = (win_sz.width(), win_sz.height())
+            self._interactor.resize(ren_sz.width(), ren_sz.height())
             self._process_events()
             self._process_events()
 
@@ -479,13 +477,16 @@ class _QtWidget(_AbstractWidget):
 
 class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
                 _QtStatusBar, _QtWindow, _QtPlayback):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._window_initialize()
+
     def show(self):
         super().show()
         with _qt_disable_paint(self.plotter):
             with self._window_ensure_minimum_sizes():
                 self.plotter.app_window.show()
         self.plotter.update()
-        return self.scene()
 
 
 def _create_dock_widget(window, name, area):

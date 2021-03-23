@@ -478,8 +478,7 @@ class Brain(object):
                                        bgcolor=background,
                                        shape=shape,
                                        fig=figure)
-
-        self._renderer._window_initialize(self._clean)
+        self._renderer._window_close_connect(self._clean)
         self._renderer._window_set_theme(theme)
         self.plotter = self._renderer.plotter
 
