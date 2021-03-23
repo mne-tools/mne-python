@@ -200,11 +200,6 @@ class ICA(ContainsMixin):
         and to ``500`` for ``'infomax'`` or ``'picard'``. The actual number of
         iterations it took :meth:`ICA.fit` to complete will be stored in the
         ``n_iter_`` attribute.
-
-        .. versionchanged:: 0.23
-            Version 0.23 introduced ``'auto'`` settings for maximum iterations
-             as specified above. With version 0.24 ``'auto'`` will be the new
-            default, replacing the current ``max_iter=200``.
     allow_ref_meg : bool
         Allow ICA on MEG reference channels. Defaults to False.
 
@@ -263,6 +258,19 @@ class ICA(ContainsMixin):
 
     Notes
     -----
+    .. versionchanged:: 0.23
+        Version 0.23 introduced the ``max_iter='auto'`` settings for maximum
+        iterations. With version 0.24 ``'auto'`` will be the new
+        default, replacing the current ``max_iter=200``.
+
+    .. versionchanged:: 0.23
+        Warn if `~mne.Epochs` were baseline-corrected.
+
+    .. note:: If you intend to clean fit ICA on `~mne.Epochs`, it is
+              recommended to high-pass filter, but **not** baseline correct the
+              data for good ICA performance. A warning will be emitted
+              otherwise.
+
     A trailing ``_`` in an attribute name signifies that the attribute was
     added to the object during fitting, consistent with standard scikit-learn
     practice.
@@ -476,13 +484,6 @@ class ICA(ContainsMixin):
         ----------
         inst : instance of Raw or Epochs
             The data to be decomposed.
-
-            .. note:: In case of `~mne.Epochs`, it is recommended high-pass
-                      filter, but **not** baseline correct the data for good
-                      ICA performance. A warning will be emitted otherwise.
-
-            .. versionchanged:: 0.23
-               Warn if `~mne.Epochs` were baseline-corrected.
         %(picks_good_data_noref)s
             This selection remains throughout the initialized ICA solution.
         start : int | float | None
