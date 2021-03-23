@@ -314,7 +314,7 @@ def test_fnirs_channel_naming_and_order_custom_optical_density():
 
 def test_fnirs_channel_naming_and_order_custom_chroma():
     """Ensure fNIRS channel checking on manually created data."""
-    data = np.random.normal(size=(6, 10))
+    data = np.random.RandomState(0).randn(6, 10)
 
     # Start with a correctly named raw intensity dataset
     # These are the steps required to build an fNIRS Raw object from scratch
