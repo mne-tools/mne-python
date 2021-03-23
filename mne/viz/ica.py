@@ -445,7 +445,7 @@ def _fast_plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
 
 def _prepare_data_ica_properties(inst, ica, reject_by_annotation=True,
                                  reject='auto'):
-    """Prepare Epochs sources to plot ICA properties
+    """Prepare Epochs sources to plot ICA properties.
 
     Parameters
     ----------
