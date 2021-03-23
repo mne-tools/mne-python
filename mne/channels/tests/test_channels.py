@@ -366,6 +366,31 @@ def test_drop_channels():
     pytest.raises(ValueError, raw.drop_channels, 5)  # must be list or str
 
 
+def test_add_reference_channels():
+    """Test if there is a new reference channel that consist of all zeros."""
+    raw = read_raw_fif(raw_fname, preload=True)
+    n_raw_original_channels = len(raw.ch_names)
+    epochs = Epochs(raw, read_events(eve_fname))
+    epochs.load_data()
+    epochs_original_shape = epochs._data.shape[1]
+    evoked = epochs.average()
+    n_evoked_original_channels = len(evoked.ch_names)
+
+    # Raw object
+    raw.add_reference_channels(['REF 123'])
+    assert len(raw.ch_names) == n_raw_original_channels + 1
+    assert np.all(raw.get_data()[-1] == 0)
+
+    # Epochs object
+    epochs.add_reference_channels(['REF 123'])
+    assert epochs._data.shape[1] == epochs_original_shape + 1
+
+    # Evoked object
+    evoked.add_reference_channels(['REF 123'])
+    assert len(evoked.ch_names) == n_evoked_original_channels + 1
+    assert np.all(evoked._data[-1] == 0)
+
+
 def test_equalize_channels():
     """Test equalizing channels and their ordering."""
     # This function only tests the generic functionality of equalize_channels.

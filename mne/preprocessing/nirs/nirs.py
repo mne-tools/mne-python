@@ -57,23 +57,44 @@ def short_channels(info, threshold=0.01):
 
 def _channel_frequencies(raw):
     """Return the light frequency for each channel."""
-    picks = _picks_to_idx(raw.info, 'fnirs', exclude=[], allow_empty=True)
+    # Only valid for fNIRS data before conversion to haemoglobin
+    picks = _picks_to_idx(raw.info, ['fnirs_cw_amplitude', 'fnirs_od'],
+                          exclude=[], allow_empty=True)
     freqs = np.empty(picks.size, int)
     for ii in picks:
         freqs[ii] = raw.info['chs'][ii]['loc'][9]
     return freqs
 
 
+def _channel_chromophore(raw):
+    """Return the chromophore of each channel."""
+    # Only valid for fNIRS data after conversion to haemoglobin
+    picks = _picks_to_idx(raw.info, ['hbo', 'hbr'],
+                          exclude=[], allow_empty=True)
+    chroma = []
+    for ii in picks:
+        chroma.append(raw.ch_names[ii].split(" ")[1])
+    return chroma
+
+
 def _check_channels_ordered(raw, freqs):
-    """Check channels followed expected fNIRS format."""
+    """Check channels follow expected fNIRS format."""
     # Every second channel should be same SD pair
     # and have the specified light frequencies.
-    picks = _picks_to_idx(raw.info, 'fnirs', exclude=[], allow_empty=True)
+    picks = _picks_to_idx(raw.info, ['fnirs_cw_amplitude', 'fnirs_od'],
+                          exclude=[], allow_empty=True)
     if len(picks) % 2 != 0:
         raise ValueError(
             'NIRS channels not ordered correctly. An even number of NIRS '
             'channels is required. %d channels were provided: %r'
             % (len(raw.ch_names), raw.ch_names))
+
+    all_freqs = [raw.info["chs"][ii]["loc"][9] for ii in picks]
+    if np.any(np.isnan(all_freqs)):
+        raise ValueError(
+            'NIRS channels is missing wavelength information in the'
+            f'info["chs"] structure. The encoded wavelengths are {all_freqs}.')
+
     for ii in picks[::2]:
         ch1_name_info = re.match(r'S(\d+)_D(\d+) (\d+)',
                                  raw.info['chs'][ii]['ch_name'])
@@ -98,7 +119,8 @@ def _check_channels_ordered(raw, freqs):
            (int(ch2_name_info.groups()[2]) != freqs[1]):
             raise ValueError(
                 'NIRS channels not ordered correctly. Channels must be ordered'
-                ' as source detector pairs with frequencies: %d & %d'
+                ' as source detector pairs with alternating'
+                ' frequencies: %d & %d'
                 % (freqs[0], freqs[1]))
 
     return picks

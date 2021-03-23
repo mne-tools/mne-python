@@ -25,7 +25,7 @@ from tvtk.pyface.tvtk_scene import TVTKScene
 
 from ._abstract import _AbstractRenderer
 from ._utils import _check_color, _alpha_blend_background, ALLOWED_QUIVER_MODES
-from ..utils import _ndarray_to_fig
+from ..utils import _save_ndarray_img
 from ...surface import _normalize_vectors
 from ...utils import (_import_mlab, _validate_type, SilenceStdout,
                       copy_base_doc_to_subclass_doc, _check_option)
@@ -483,7 +483,7 @@ def _check_3d_figure(figure):
 
 
 def _save_figure(img, filename):
-    _ndarray_to_fig(img).savefig(filename)
+    _save_ndarray_img(filename, img)
 
 
 def _close_3d_figure(figure):

@@ -16,12 +16,13 @@ from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin)
 from .channels.layout import _merge_ch_data, _pair_grad_sensors
 from .defaults import _EXTRAPOLATE_DEFAULT, _BORDER_DEFAULT
-from .filter import detrend, FilterMixin
+from .filter import detrend, FilterMixin, _check_fun
 from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
                     SizeMixin, copy_function_doc_to_method_doc, _validate_type,
                     fill_doc, _check_option, ShiftTimeMixin, _build_data_frame,
                     _check_pandas_installed, _check_pandas_index_arguments,
-                    _convert_times, _scale_dataframe_data, _check_time_format)
+                    _convert_times, _scale_dataframe_data, _check_time_format,
+                    _check_preload)
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
 from .viz.evoked import plot_evoked_white, plot_evoked_joint
@@ -39,6 +40,7 @@ from .io.write import (start_file, start_block, end_file, end_block,
                        write_int, write_string, write_float_matrix,
                        write_id, write_float, write_complex_float_matrix)
 from .io.base import TimeMixin, _check_maxshield
+from .parallel import parallel_func
 
 _aspect_dict = {
     'average': FIFF.FIFFV_ASPECT_AVERAGE,
@@ -150,6 +152,56 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     def data(self, data):
         """Set the data matrix."""
         self._data = data
+
+    @verbose
+    def apply_function(self, fun, picks=None, dtype=None, n_jobs=1,
+                       verbose=None, *args, **kwargs):
+        """Apply a function to a subset of channels.
+
+        %(applyfun_summary_evoked)s
+
+        Parameters
+        ----------
+        %(applyfun_fun_evoked)s
+        %(picks_all_data_noref)s
+        %(applyfun_dtype)s
+        %(n_jobs)s
+        %(verbose_meth)s
+        %(arg_fun)s
+        %(kwarg_fun)s
+
+        Returns
+        -------
+        self : instance of Evoked
+            The evoked object with transformed data.
+        """
+        _check_preload(self, 'evoked.apply_function')
+        picks = _picks_to_idx(self.info, picks, exclude=(), with_ref_meg=False)
+
+        if not callable(fun):
+            raise ValueError('fun needs to be a function')
+
+        data_in = self._data
+        if dtype is not None and dtype != self._data.dtype:
+            self._data = self._data.astype(dtype)
+
+        # check the dimension of the incoming evoked data
+        _check_option('evoked.ndim', self._data.ndim, [2])
+
+        if n_jobs == 1:
+            # modify data inplace to save memory
+            for idx in picks:
+                self._data[idx, :] = _check_fun(fun, data_in[idx, :],
+                                                *args, **kwargs)
+        else:
+            # use parallel function
+            parallel, p_fun, _ = parallel_func(_check_fun, n_jobs)
+            data_picks_new = parallel(p_fun(
+                fun, data_in[p, :], *args, **kwargs) for p in picks)
+            for pp, p in enumerate(picks):
+                self._data[p, :] = data_picks_new[pp]
+
+        return self
 
     @verbose
     def apply_baseline(self, baseline=(None, 0), *, verbose=None):
@@ -517,7 +569,10 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """
         out = self.copy()
         out.data *= -1
-        out.comment = '-' + (out.comment or 'unknown')
+
+        if out.comment is not None and ' + ' in out.comment:
+            out.comment = f'({out.comment})'  # multiple conditions in evoked
+        out.comment = f'- {out.comment or "unknown"}'
         return out
 
     def get_peak(self, ch_type=None, tmin=None, tmax=None,
@@ -921,8 +976,27 @@ def combine_evoked(all_evoked, weights):
     evoked.info['bads'] = bads
     evoked.data = sum(w * e.data for w, e in zip(weights, all_evoked))
     evoked.nave = new_nave
-    evoked.comment = ' + '.join(f'{w:0.3f} × {e.comment or "unknown"}'
-                                for w, e in zip(weights, all_evoked))
+
+    comment = ''
+    for idx, (w, e) in enumerate(zip(weights, all_evoked)):
+        # pick sign
+        sign = '' if w >= 0 else '-'
+        # format weight
+        weight = '' if np.isclose(abs(w), 1.) else f'{abs(w):0.3f}'
+        # format multiplier
+        multiplier = ' × ' if weight else ''
+        # format comment
+        if e.comment is not None and ' + ' in e.comment:  # multiple conditions
+            this_comment = f'({e.comment})'
+        else:
+            this_comment = f'{e.comment or "unknown"}'
+        # assemble everything
+        if idx == 0:
+            comment += f'{sign}{weight}{multiplier}{this_comment}'
+        else:
+            comment += f' {sign or "+"} {weight}{multiplier}{this_comment}'
+    # special-case: combine_evoked([e1, -e2], [1, -1])
+    evoked.comment = comment.replace(' - - ', ' + ')
     return evoked
 
 

@@ -273,6 +273,13 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
     titles = _handle_default('titles', titles)
     units = _handle_default('units', units)
 
+    if plot_type == "image":
+        if ylim is not None and not isinstance(ylim, dict):
+            # The user called Evoked.plot_image() or plot_evoked_image(), the
+            # clim parameters of those functions end up to be the ylim here.
+            raise ValueError("`clim` must be a dict. "
+                             "E.g. clim = dict(eeg=[-20, 20])")
+
     picks = _picks_to_idx(info, picks, none='all', exclude=())
     if len(picks) != len(set(picks)):
         raise ValueError("`picks` are not unique. Please remove duplicates.")
@@ -1036,9 +1043,10 @@ def plot_evoked_white(evoked, noise_cov, show=True, rank=None, time_unit='s',
     """Plot whitened evoked response.
 
     Plots the whitened evoked response and the whitened GFP as described in
-    [1]_. This function is especially useful for investigating noise
-    covariance properties to determine if data are properly whitened (e.g.,
-    achieving expected values in line with model assumptions, see Notes below).
+    :footcite:`EngemannGramfort2015`. This function is especially useful for
+    investigating noise covariance properties to determine if data are
+    properly whitened (e.g., achieving expected values in line with model
+    assumptions, see Notes below).
 
     Parameters
     ----------
@@ -1939,6 +1947,23 @@ def _title_helper_pce(title, picked_types, picks, ch_names, combine):
     return title
 
 
+def _ascii_minus_to_unicode(s):
+    """Replace ASCII-encoded "minus-hyphen" characters with Unicode minus.
+
+    Aux function for ``plot_compare_evokeds`` to prettify ``Evoked.comment``.
+    """
+    if s is None:
+        return
+
+    # replace ASCII minus operators with Unicode minus characters
+    s = s.replace(' - ', ' − ')
+    # replace leading minus operator if present
+    if s.startswith('-'):
+        s = f'−{s[1:]}'
+
+    return s
+
+
 @fill_doc
 def plot_compare_evokeds(evokeds, picks=None, colors=None,
                          linestyles=None, styles=None, cmap=None,
@@ -2163,7 +2188,10 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
     if isinstance(evokeds, (list, tuple)):
         evokeds_copy = evokeds.copy()
         evokeds = dict()
-        comments = [getattr(_evk, 'comment', None) for _evk in evokeds_copy]
+
+        comments = [_ascii_minus_to_unicode(getattr(_evk, 'comment', None))
+                    for _evk in evokeds_copy]
+
         for idx, (comment, _evoked) in enumerate(zip(comments, evokeds_copy)):
             key = str(idx + 1)
             if comment:  # only update key if comment is non-empty

@@ -48,7 +48,6 @@ _FIGURES = dict()
 class _Figure(object):
     def __init__(self,
                  plotter=None,
-                 display=None,
                  show=False,
                  title='PyVista Scene',
                  size=(600, 600),
@@ -58,34 +57,34 @@ class _Figure(object):
                  off_screen=False,
                  notebook=False):
         self.plotter = plotter
-        self.display = display
+        self.display = None
         self.background_color = background_color
         self.smooth_shading = smooth_shading
         self.notebook = notebook
 
         self.store = dict()
-        self.store['show'] = show
-        self.store['title'] = title
         self.store['window_size'] = size
         self.store['shape'] = shape
         self.store['off_screen'] = off_screen
         self.store['border'] = False
-        self.store['auto_update'] = False
         # multi_samples > 1 is broken on macOS + Intel Iris + volume rendering
         self.store['multi_samples'] = 1 if sys.platform == 'darwin' else 4
 
-        self._nrows, self._ncols = self.store["shape"]
+        if not self.notebook:
+            self.store['show'] = show
+            self.store['title'] = title
+            self.store['auto_update'] = False
+            self.store['menu_bar'] = False
+            self.store['toolbar'] = False
+
+        self._nrows, self._ncols = self.store['shape']
         self._azimuth = self._elevation = None
 
     def build(self):
         if self.notebook:
             plotter_class = Plotter
-            self.store.pop('show', None)
-            self.store.pop('title', None)
-            self.store.pop('auto_update', None)
         else:
             plotter_class = BackgroundPlotter
-            self.store["toolbar"] = False
 
         if self.plotter is None:
             if not self.notebook:
@@ -202,6 +201,10 @@ class _PyVistaRenderer(_AbstractRenderer):
     def _hide_axes(self):
         for renderer in self._all_renderers:
             renderer.hide_axes()
+
+    def _update(self):
+        for plotter in self._all_plotters:
+            plotter.update()
 
     def _get_screenshot_filename(self):
         now = datetime.now()
@@ -604,18 +607,24 @@ class _PyVistaRenderer(_AbstractRenderer):
 
     def scalarbar(self, source, color="white", title=None, n_labels=4,
                   bgcolor=None, **extra_kwargs):
+        if isinstance(source, vtk.vtkMapper):
+            mapper = source
+        elif isinstance(source, vtk.vtkActor):
+            mapper = source.GetMapper()
+        else:
+            mapper = None
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             kwargs = dict(color=color, title=title, n_labels=n_labels,
                           use_opacity=False, n_colors=256, position_x=0.15,
                           position_y=0.05, width=0.7, shadow=False, bold=True,
                           label_font_size=22, font_family=self.font_family,
-                          background_color=bgcolor)
+                          background_color=bgcolor, mapper=mapper)
             kwargs.update(extra_kwargs)
-            self.plotter.add_scalar_bar(**kwargs)
+            return self.plotter.add_scalar_bar(**kwargs)
 
     def show(self):
-        self.figure.display = self.plotter.show()
+        self.plotter.show()
         if hasattr(self.plotter, "app_window"):
             with _qt_disable_paint(self.plotter):
                 with self._ensure_minimum_sizes():

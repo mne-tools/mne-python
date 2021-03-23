@@ -1,8 +1,9 @@
 sphinx
 https://github.com/numpy/numpydoc/archive/main.zip
-https://github.com/pydata/pydata-sphinx-theme/zipball/93b5115834435c995138da4be9ad7bbcfbca8127
+pydata-sphinx-theme==0.5.0
 sphinx-gallery
 sphinxcontrib-bibtex>=2.1.2
 memory_profiler
 neo
 seaborn
+sphinx_copybutton

@@ -324,20 +324,20 @@ def _triage_fnirs_pick(ch, fnirs, warned):
     """Triage an fNIRS pick type."""
     if fnirs is True:
         return True
-    elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_HBO and fnirs == 'hbo':
+    elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_HBO and 'hbo' in fnirs:
         return True
-    elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_HBR and fnirs == 'hbr':
+    elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_HBR and 'hbr' in fnirs:
         return True
     elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_CW_AMPLITUDE and \
-            fnirs == 'fnirs_cw_amplitude':
+            'fnirs_cw_amplitude' in fnirs:
         return True
     elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_FD_AC_AMPLITUDE and \
-            fnirs == 'fnirs_fd_ac_amplitude':
+            'fnirs_fd_ac_amplitude' in fnirs:
         return True
     elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_FD_PHASE and \
-            fnirs == 'fnirs_fd_phase':
+            'fnirs_fd_phase' in fnirs:
         return True
-    elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_OD and fnirs == 'fnirs_od':
+    elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_OD and 'fnirs_od' in fnirs:
         return True
     return False
 
@@ -1141,8 +1141,10 @@ def _picks_str_to_idx(info, picks, exclude, with_ref_meg, return_kind,
                 extra_picks |= set(pick_types(
                     info, meg=use_meg, ref_meg=False, exclude=exclude))
         if len(fnirs) > 0 and not kwargs.get('fnirs', False):
-            # if it has two entries, it's both, otherwise it's just one
-            kwargs['fnirs'] = True if len(fnirs) == 2 else list(fnirs)[0]
+            if len(fnirs) == 1:
+                kwargs['fnirs'] = list(fnirs)[0]
+            else:
+                kwargs['fnirs'] = list(fnirs)
         picks_type = pick_types(info, exclude=exclude, **kwargs)
         if len(extra_picks) > 0:
             picks_type = sorted(set(picks_type) | set(extra_picks))

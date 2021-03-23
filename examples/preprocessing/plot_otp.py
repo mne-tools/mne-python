@@ -3,8 +3,8 @@
 Plot sensor denoising using oversampled temporal projection
 ===========================================================
 
-This demonstrates denoising using the OTP algorithm [1]_ on data with
-with sensor artifacts (flux jumps) and random noise.
+This demonstrates denoising using the OTP algorithm :footcite:`LarsonTaulu2018`
+on data with with sensor artifacts (flux jumps) and random noise.
 """
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
@@ -79,6 +79,4 @@ print('OTP bias: %0.1fmm (worst: %0.1fmm)'
 ###############################################################################
 # References
 # ----------
-# .. [1] Larson E, Taulu S (2017). Reducing Sensor Noise in MEG and EEG
-#        Recordings Using Oversampled Temporal Projection.
-#        IEEE Transactions on Biomedical Engineering.
+# .. footbibliography::

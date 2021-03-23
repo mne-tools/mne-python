@@ -1636,6 +1636,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 
         This function should only be used with source estimates with units
         nanoAmperes (i.e., MNE-like solutions, *not* dSPM or sLORETA).
+        See also :footcite:`GoldenholzEtAl2009`.
 
         .. warning:: This function currently only works properly for fixed
                      orientation.
@@ -1672,11 +1673,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 
         References
         ----------
-        .. [1] Goldenholz, D. M., Ahlfors, S. P., Hämäläinen, M. S., Sharon,
-               D., Ishitobi, M., Vaina, L. M., & Stufflebeam, S. M. (2009).
-               Mapping the Signal-To-Noise-Ratios of Cortical Sources in
-               Magnetoencephalography and Electroencephalography.
-               Human Brain Mapping, 30(4), 1077–1086. doi:10.1002/hbm.20571
+        .. footbibliography::
         """
         from .forward import convert_forward_solution, Forward
         from .minimum_norm.inverse import _prepare_forward
@@ -1710,7 +1707,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         """Compute the center of mass of activity.
 
         This function computes the spatial center of mass on the surface
-        as well as the temporal center of mass as in [1]_.
+        as well as the temporal center of mass as in :footcite:`LarsonLee2013`.
 
         .. note:: All activity must occur in a single hemisphere, otherwise
                   an error is raised. The "mass" of each point in space for
@@ -1762,8 +1759,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 
         References
         ----------
-        .. [1] Larson and Lee, "The cortical dynamics underlying effective
-               switching of auditory spatial attention", NeuroImage 2012.
+        .. footbibliography::
         """
         if not isinstance(surf, str):
             raise TypeError('surf must be a string, got %s' % (type(surf),))
@@ -3230,8 +3226,9 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
         Distance (m) defining the activation "ball" of the sensor.
     mode : str
         Can be "sum" to do a linear sum of weights, "nearest" to
-        use only the weight of the nearest sensor, or "zero" to use a
-        zero-order hold. See Notes.
+        use only the weight of the nearest sensor, or "single" to
+        do a distance-weight of the nearest sensor. Default is "sum".
+        See Notes.
     project : bool
         If True, project the electrodes to the nearest ``'pial`` surface
         vertex before computing distances. Only used when doing a
@@ -3268,10 +3265,10 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
         1 and a sensor at ``distance`` meters away (or larger) gets weight 0.
         If ``distance`` is less than the distance between any two electrodes,
         this will be the same as ``'nearest'``.
-    - ``'weighted'``
+    - ``'single'``
         Same as ``'sum'`` except that only the nearest electrode is used,
         rather than summing across electrodes within the ``distance`` radius.
-        As as ``'nearest'`` for vertices with distance zero to the projected
+        As ``'nearest'`` for vertices with distance zero to the projected
         sensor.
     - ``'nearest'``
         The value is given by the value of the nearest sensor, up to a
