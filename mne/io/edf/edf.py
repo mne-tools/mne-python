@@ -616,11 +616,11 @@ def _read_edf_header(fname, exclude):
             if unit == 'uV':
                 edf_info['units'].append(1e-6)
             if unit == 'V':
-                warn('Unit given in file is Volts(V), please check file and/or adjust processing if necessary')
                 edf_info['units'].append(1)
             elif unit == 'mV':
                 edf_info['units'].append(1e-3)
             else:
+                warn('Unit not recognized, treated as Volts(V)')
                 edf_info['units'].append(1)
         edf_info['units'] = np.array(edf_info['units'], float)
 
