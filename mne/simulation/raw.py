@@ -144,7 +144,7 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
 
         .. versionchanged:: 0.18
            Support for :class:`mne.Info`.
-    stc : iterable | SourceEstimate
+    stc : iterable | SourceEstimate | SourceSimulator
         The source estimates to use to simulate data. Each must have the same
         sample rate as the raw data, and the vertices of all stcs in the
         iterable must match. Each entry in the iterable can also be a tuple of
