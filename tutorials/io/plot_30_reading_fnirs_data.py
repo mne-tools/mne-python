@@ -68,6 +68,7 @@ NIRs devices consist of light sources and light detectors.
 A channel is formed by source-detector pairs.
 MNE stores the location of the channels, sources, and detectors.
 
+
 .. warning:: Information about device light wavelength is stored in
              channel names. Manual modification of channel names is not
              recommended.
