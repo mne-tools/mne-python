@@ -85,7 +85,7 @@ def _check_channels_ordered(raw, pair_vals):
     # All wavelength based fNIRS data.
     picks_wave = _picks_to_idx(raw.info, ['fnirs_cw_amplitude', 'fnirs_od'],
                                exclude=[], allow_empty=True)
-    # All chromaphore fNIRS data
+    # All chromophore fNIRS data
     picks_chroma = _picks_to_idx(raw.info, ['hbo', 'hbr'],
                                  exclude=[], allow_empty=True)
     # All continuous wave fNIRS data
