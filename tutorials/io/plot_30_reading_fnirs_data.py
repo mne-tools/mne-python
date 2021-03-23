@@ -97,7 +97,7 @@ MNE stores the location of the channels, sources, and detectors.
              the wavelength information must be stored in
              ``info["chs"][ii]["loc"][9]``
              and it must match the channel name. For example the channel
-             ``S11_D2 760`` must have the value 760 stored in the loc[9] field.
+             ``S11_D2 760`` must have the value 760 stored in the ``loc[9]`` field.
              There is no such requirement for hbo and hbr data as they have
              a dedicated channel type.
 
