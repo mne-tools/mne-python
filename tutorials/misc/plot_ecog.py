@@ -111,14 +111,6 @@ mne.viz.set_3d_view(fig, azimuth=az, elevation=el, focalpoint=focalpoint)
 
 xy, im = snapshot_brain_montage(fig, raw.info)
 
-# look at second view
-fig = plot_alignment(raw.info, subject='fsaverage', subjects_dir=subjects_dir,
-                     surfaces=['pial'], coord_frame='mri')
-az, el, focalpoint = -120, -140, [0.027, 0.017, -0.033]
-mne.viz.set_3d_view(fig, azimuth=az, elevation=el, focalpoint=focalpoint)
-
-xy2, im2 = snapshot_brain_montage(fig, raw.info)
-
 ###############################################################################
 # Compute frequency features of the data
 # --------------------------------------
