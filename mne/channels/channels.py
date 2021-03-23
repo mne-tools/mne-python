@@ -1072,6 +1072,27 @@ class UpdateChannelsMixin(object):
             assert all(len(r) == self.info['nchan'] for r in self._read_picks)
         return self
 
+    @fill_doc
+    def add_reference_channels(self, ref_channels):
+        """Add reference channels to data that consists of all zeros.
+
+        Adds reference channels to data that were not included during
+        recording. This is useful when you need to re-reference your data
+        to different channels. These added channels will consist of all zeros.
+
+        Parameters
+        ----------
+        %(ref_channels)s
+
+        Returns
+        -------
+        inst : instance of Raw | Epochs | Evoked
+               The modified instance.
+        """
+        from ..io.reference import add_reference_channels
+
+        return add_reference_channels(self, ref_channels, copy=False)
+
 
 class InterpolationMixin(object):
     """Mixin class for Raw, Evoked, Epochs."""

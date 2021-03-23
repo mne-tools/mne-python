@@ -1019,7 +1019,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         return self._compute_aggregate(picks, "std")
 
     def _compute_aggregate(self, picks, mode='mean'):
-        """Compute the mean or std over epochs and return Evoked."""
+        """Compute the mean, median, or std over epochs and return Evoked."""
         # if instance contains ICA channels they won't be included unless picks
         # is specified
         if picks is None:
@@ -1088,7 +1088,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             count = Counter(self.events[:, 2])
             comments = list()
             for key, value in self.event_id.items():
-                comments.append('%.2f * %s' % (
+                comments.append('%.2f × %s' % (
                     float(count[value]) / len(self.events), key))
             comment = ' + '.join(comments)
         return comment

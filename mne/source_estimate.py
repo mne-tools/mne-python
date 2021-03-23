@@ -3298,7 +3298,8 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     # remove nan channels
     nan_inds = np.where(np.isnan(pos).any(axis=1))[0]
     nan_chs = [evoked.ch_names[idx] for idx in nan_inds]
-    evoked.drop_channels(nan_chs)
+    if len(nan_chs):
+        evoked.drop_channels(nan_chs)
     pos = [pos[idx] for idx in range(len(pos)) if idx not in nan_inds]
 
     # coord_frame transformation from native mne "head" to MRI coord_frame
