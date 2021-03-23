@@ -139,11 +139,6 @@ gamma_info = gamma_power_t.info
 # instead of just plotting the average. We can use
 # `matplotlib.animation.FuncAnimation` to create an animation and apply this
 # to the brain figure.
-#
-# As shown in the plot, the epileptiform activity starts in the temporal lobe,
-# progressing posteriorly. The seizure becomes generalized eventually, after
-# this example short time section. This dataset is available using
-# :func:`mne.datasets.epilepsy_ecog.data_path` for you to examine.
 
 # convert from a dictionary to array to plot
 xy_pts = np.vstack([xy[ch] for ch in raw.info['ch_names']])
@@ -164,18 +159,22 @@ ax.set_axis_off()
 # normalize gamma power for plotting
 gamma_power = -100 * gamma_power_t.data / gamma_power_t.data.max()
 # add the time course overlaid on the positions
-x_line = np.linspace(-50, 50, gamma_power_t.data.shape[1])
+x_line = np.linspace(-0.025 * im.shape[0], 0.025 * im.shape[0],
+                     gamma_power_t.data.shape[1])
 for i, pos in enumerate(xy_pts):
     x, y = pos
     color = cmap(i / xy_pts.shape[0])
     ax.plot(x_line + x, gamma_power[i] + y, linewidth=0.5, color=color)
 
-# add second view
+###############################################################################
+# Add a second view on the time-evolution of the gamma power on the brain
+# -----------------------------------------------------------------------
+
 fig, ax = plt.subplots(figsize=(5, 5))
 x0, x1, y0, y1 = (0.25, 0.55, 0.4, 0.75)  # inset bounds
 ax.imshow(im2)
 ax.set_xlim(np.array([x0, x1]) * im2.shape[0])
-ax.set_ylim(np.array([y0, y1]) * im2.shape[1])
+ax.set_ylim(np.array([y1, y0]) * im2.shape[1])
 ax.set_axis_off()
 for i in group:
     x, y = xy_pts2[i]
@@ -193,6 +192,11 @@ ax2.set_axis_off()
 ###############################################################################
 # We can project gamma power from the sensor data to the nearest locations on
 # the pial surface and visualize that:
+#
+# As shown in the plot, the epileptiform activity starts in the temporal lobe,
+# progressing posteriorly. The seizure becomes generalized eventually, after
+# this example short time section. This dataset is available using
+# :func:`mne.datasets.epilepsy_ecog.data_path` for you to examine.
 
 # sphinx_gallery_thumbnail_number = 5
 
