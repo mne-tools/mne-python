@@ -167,29 +167,6 @@ for i, pos in enumerate(xy_pts):
     ax.plot(x_line + x, gamma_power[i] + y, linewidth=0.5, color=color)
 
 ###############################################################################
-# Add a second view on the time-evolution of the gamma power on the brain
-# -----------------------------------------------------------------------
-
-fig, ax = plt.subplots(figsize=(5, 5))
-x0, x1, y0, y1 = (0.25, 0.55, 0.4, 0.75)  # inset bounds
-ax.imshow(im2)
-ax.set_xlim(np.array([x0, x1]) * im2.shape[0])
-ax.set_ylim(np.array([y1, y0]) * im2.shape[1])
-ax.set_axis_off()
-for i in group:
-    x, y = xy_pts2[i]
-    color = cmap(i / xy_pts.shape[0])
-    ax.plot(x_line + x, gamma_power[i] + y, linewidth=0.5, color=color)
-
-# add inset
-ax2 = ax.inset_axes((0.7, 0.0, 0.3, 0.3))
-ax2.imshow(im2)
-ax2.plot(np.array([x0, x0, x1, x1, x0]) * im2.shape[0],
-         np.array([y0, y1, y1, y0, y0]) * im2.shape[1], color='k')
-ax2.set_axis_off()
-
-
-###############################################################################
 # We can project gamma power from the sensor data to the nearest locations on
 # the pial surface and visualize that:
 #
