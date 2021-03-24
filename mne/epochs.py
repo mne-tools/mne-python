@@ -1604,18 +1604,22 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         if self.baseline is None:
             baseline = 'off'
         else:
-            baseline = tuple(['None' if b is None else ('%g' % b)
+            baseline = tuple(['None' if b is None else ('%.3f' % b)
                               for b in self.baseline])
-            baseline = '%.3f: %.3f sec' % baseline
-            if self.baseline != _check_baseline(
-                    self.baseline, times=self.times, sfreq=self.info['sfreq'],
-                    on_baseline_outside_data='adjust'):
-                baseline = ' (baseline period was cropped after baseline\
-                    correction)'
-        events = ''
-        for k, v in sorted(self.event_id.items()):
-            events += k
-            events += ': %i<br>' % sum(self.events[:, 2] == v)
+            baseline = '%s: %s sec' % baseline
+
+        if isinstance(self.event_id, dict):
+            events = ''
+            for k, v in sorted(self.event_id.items()):
+                events += '%s: %i<br>' % (k, sum(self.events[:, 2] == v))
+        elif isinstance(self.event_id, list):
+            events = ''
+            for k in self.event_id:
+                events += '%s: %i<br>' % (k, sum(self.events[:, 2] == k))
+        elif isinstance(self.event_id, int):
+            events = '%i: %i' % (self.event_id, len(self.events[:, 2]))
+        else:
+            events = None
         return epochs_template.substitute(epochs=self, baseline=baseline,
                                           events=events)
 

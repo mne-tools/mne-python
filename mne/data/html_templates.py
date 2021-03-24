@@ -83,16 +83,20 @@ epochs_template = Template("""
         <td>{{'%s events' % len(epochs.events)}}</td>
     </tr>
     <tr>
+        <th>Events</th>
+        {{if events is not None}}
+        <td>{{events}}</td>
+        {{else}}
+        <td>Not available</td>
+        {{endif}}
+    </tr>
+    <tr>
         <th>Time range</th>
-        <td>{{'%g: %g sec' % (epochs.tmin, epochs.tmax)}}</td>
+        <td>{{'%.3f: %.3f sec' % (epochs.tmin, epochs.tmax)}}</td>
     </tr>
     <tr>
         <th>Baseline</th>
         <td>{{baseline}}</td>
-    </tr>
-    <tr>
-        <th>Events</th>
-        <td>{{events}}</td>
     </tr>
 </table>
 """)
