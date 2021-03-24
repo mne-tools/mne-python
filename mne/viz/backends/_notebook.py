@@ -194,6 +194,9 @@ class _IpyToolBar(_AbstractToolBar, _IpyLayout):
     def _tool_bar_add_movie_button(self, name, desc, func):
         pass
 
+    def _tool_bar_set_theme(self, theme):
+        pass
+
 
 class _IpyMenuBar(_AbstractMenuBar):
     def _menu_initialize(self, window=None):
@@ -244,14 +247,8 @@ class _IpyBrainMplCanvas(_AbstractBrainMplCanvas, _IpyMplInterface):
 
 
 class _IpyWindow(_AbstractWindow):
-    def _window_initialize(self, func=None):
-        self._window = None
-        self._interactor = None
-        self._mplcanvas = None
-        self._show_traces = None
-        self._separate_canvas = None
-        self._splitter = None
-        self._interactor_fraction = None
+    def _window_close_connect(self, func):
+        pass
 
     def _window_get_dpi(self):
         return 96
@@ -282,14 +279,11 @@ class _IpyWindow(_AbstractWindow):
         pass
 
     @contextmanager
-    def _window_ensure_minimum_sizes(self, sz):
+    def _window_ensure_minimum_sizes(self):
         yield
 
     def _window_set_theme(self, theme):
         pass
-
-    def _window_show(self, sz):
-        self.show()
 
 
 class _IpyWidget(_AbstractWidget):
