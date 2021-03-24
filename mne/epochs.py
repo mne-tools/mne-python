@@ -1813,6 +1813,68 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             this_epochs.event_id = self.event_id
             _save_split(this_epochs, fname, part_idx, n_parts, fmt)
 
+    def save_set(self, fname):
+        """Export raw to EEGLAB .set file."""
+
+        from numpy.core.records import fromarrays
+        from scipy.io import savemat
+
+        # remove extra epoc and STI channels
+        self.drop_channels(['epoc'] + [sti for sti in self.ch_names if sti.startswith("STI")])
+
+        data = self.get_data() * 1e6  # convert to microvolts
+        data = np.moveaxis(data, 0, 2)
+        fs = self.info["sfreq"]
+        times = self.times
+
+        trials = len(self.events)
+
+        ch_names = self.ch_names
+
+        from .io.utils import get_eeglab_full_cords
+
+        full_coords = get_eeglab_full_cords(self)
+
+        chanlocs = fromarrays([ch_names, *full_coords.T, np.repeat('', len(ch_names))],
+                              names=["labels", "X", "Y", "Z", "sph_theta", "sph_phi", "sph_radius", "theta", "radius",
+                                     "sph_theta_besa", "sph_phi_besa", "type"])
+
+        event_type_d = dict((v,k) for k,v in self.event_id.items())
+
+        ev_types = [event_type_d[ev[2]] for ev in self.events]
+        ev_lat = [int(n/fs*100) for n in self.events[:,0]]
+        ev_dur = np.zeros((trials,), dtype=np.int64) # should all be 0 except boundaries, which we don't have
+        ev_epoch = np.arange(1, trials + 1) # indices of epochs each event belongs to
+
+        events = fromarrays([ev_types, ev_lat, ev_dur, ev_epoch], names=["type", "latency", "duration", "epoch"])
+
+        ep_event = [np.array(n) for n in ev_epoch] # same as the indices for event epoch, except need to use array
+        ep_lat = [np.array(n) for n in ev_lat]
+        ep_types = [np.array(n) for n in ev_types]
+
+        epochs = fromarrays([ep_event, ep_lat, ep_types], names=["event", "eventlatency", "eventtype"])
+
+        eeg_d = dict(EEG=dict(data=data,
+                          setname=fname,
+                          nbchan=data.shape[0],
+                          pnts=float(data.shape[1]),
+                          trials=trials,
+                          srate=fs,
+                          xmin=times[0],
+                          xmax=times[-1],
+                          chanlocs=chanlocs,
+                          event=events,
+                          epoch=epochs,
+                          icawinv=[],
+                          icasphere=[],
+                          icaweights=[]))
+        savemat(fname, eeg_d,
+                appendmat=False)
+
+    def import_eeg_chan_location_from_csv(self, fname, delimiter=',', include_ch_names=True):
+        from .io.utils import import_eeg_chan_location_from_csv
+        import_eeg_chan_location_from_csv(self, fname, delimiter, include_ch_names)
+
     def equalize_event_counts(self, event_ids, method='mintime'):
         """Equalize the number of trials in each condition.
 

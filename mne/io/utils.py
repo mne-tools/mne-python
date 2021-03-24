@@ -312,3 +312,128 @@ def _construct_bids_filename(base, ext, part_idx):
     if dirname:
         use_fname = op.join(dirname, use_fname)
     return use_fname
+
+def cart_to_eeglab_full_coords_xyz(x, y, z):
+    """Convert Cartesian coordinates to EEGLAB full coordinates.
+    Also see https://github.com/sccn/eeglab/blob/develop/functions/sigprocfunc/convertlocs.m
+
+    Parameters
+    ----------
+    x, y, z : ndarray, shape (n_points, )
+        Arrays of x, y, and z coordinates
+
+    Returns
+    -------
+    sph_pts : ndarray, shape (n_points, 7)
+        Array containing points in spherical coordinates (sph_theta, sph_phi, sph_radius, theta, radius, sph_theta_besa, sph_phi_besa)
+    """
+
+    assert len(x) == len(y) == len(z)
+    out = np.empty((len(x), 7))
+
+    # see https://github.com/sccn/eeglab/blob/develop/functions/sigprocfunc/topo2sph.m
+    def topo2sph(theta, radius):
+        c = np.empty((len(theta),))
+        h = np.empty((len(theta),))
+        for i, (t, r) in enumerate(zip(theta, radius)):
+            if t >= 0:
+                h[i] = 90 - t
+            else:
+                h[i] = -(90 + t)
+            if t != 0:
+                c[i] = np.sign(t) * 180 * r
+            else:
+                c[i] = 180 * r
+        return c, h
+
+    # cart to sph, see https://www.mathworks.com/help/matlab/ref/cart2sph.html
+    th = np.arctan2(y,x)
+    phi = np.arctan2(z, np.sqrt(np.square(x) + np.square(y)))
+    sph_r = np.sqrt(np.square(x) + np.square(y) + np.square(z))
+
+    # other stuff needed by EEGLAB, see https://github.com/sccn/eeglab/blob/develop/functions/sigprocfunc/convertlocs.m
+    sph_theta = 90 - th / np.pi * 180
+    sph_phi = phi / np.pi * 180
+    sph_radius = sph_r
+    theta = -sph_theta
+    radius = 0.5 - sph_phi / 180
+    sph_theta_besa, sph_phi_besa = topo2sph(theta, radius)
+
+    # ordered based on EEGLAB order
+    out[:,0] = sph_theta
+    out[:,1] = sph_phi
+    out[:,2] = sph_radius
+    out[:,3] = theta
+    out[:,4] = radius
+    out[:,5] = sph_theta_besa
+    out[:,6] = sph_phi_besa
+
+    out = np.nan_to_num(out)
+    return out
+
+def cart_to_eeglab_full_coords(cart):
+    """Convert Cartesian coordinates to EEGLAB full coordinates.
+    Also see https://github.com/sccn/eeglab/blob/develop/functions/sigprocfunc/convertlocs.m
+
+    Parameters
+    ----------
+    cart : ndarray, shape (n_points, 3)
+        Array containing points in Cartesian coordinates (x, y, z)
+
+    Returns
+    -------
+    sph_pts : ndarray, shape (n_points, 7)
+        Array containing points in spherical coordinates (sph_theta, sph_phi, sph_radius, theta, radius, sph_theta_besa, sph_phi_besa)
+    """
+
+    # based on transforms.py's _cart_to_sph()
+    assert cart.ndim == 2 and cart.shape[1] == 3
+    cart = np.atleast_2d(cart)
+    x, y, z = cart.T
+    return cart_to_eeglab_full_coords_xyz(x, y, z)
+
+# get full coord from mne inst (Raw, Epochs, or anything that has chs channel XYZ data)
+def get_eeglab_full_cords(inst):
+    chs = inst.info["chs"]
+    cart_coords = np.array([d['loc'][:3] for d in chs])
+    other_coords = cart_to_eeglab_full_coords(cart_coords)
+    full_coords = np.append(cart_coords, other_coords, 1) # hstack
+    return full_coords
+
+def import_eeg_chan_location_from_csv(inst, fname, delimiter=',', include_ch_names=True):
+    import csv
+    f = open(fname, "r")
+    f.readline()
+    ch_names = [] if include_ch_names else None
+    coords = []
+    for row in csv.reader(f, delimiter=delimiter):
+        if include_ch_names:
+            ch_name, x, y, z, *_ = row
+            ch_names.append(ch_name)
+        else:
+            x, y, z, *_ = row
+        coords.append((float(x), float(y), float(z)))
+    f.close()
+
+    # if include_names and ch_names != self.ch_names:
+    #     raise ValueError("New channel names doesn't match current channel names")
+    # if not include_names and len(coords) != self.info['nchan']:
+    #     raise ValueError(f"Channel location data length doesn't match with existing channel count: {len(coords)} != {self.info['nchan']}")
+
+    chs = inst.info['chs']
+    if not include_ch_names:
+        for ch, coord in zip(chs, coords):
+            ch['loc'][:3] = coord
+    else:
+        for ch in chs:
+            try:
+                coord = coords[ch_names.index(ch['ch_name'])]
+            except ValueError: # ch_name not in channel list, default to 0
+                coord = (0,0,0)
+            ch['loc'][:3] = coord
+
+def import_chs_from_file(inst, fname):
+    import mne
+    temp_raw = mne.io.read_raw(fname)
+    inst.info['chs'] = temp_raw.info['chs']
+    del temp_raw

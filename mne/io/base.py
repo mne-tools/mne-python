@@ -1394,6 +1394,59 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                    start, stop, buffer_size, projector, drop_small_buffer,
                    split_size, split_naming, 0, None, overwrite)
 
+    def save_set(self, fname):
+        """Export raw to EEGLAB .set file."""
+
+        from numpy.core.records import fromarrays
+        from scipy.io import savemat
+
+        self.drop_channels(['epoc'] + [sti for sti in self.ch_names if sti.startswith("STI")])
+
+        data = self.get_data() * 1e6  # convert to microvolts
+        fs = self.info["sfreq"]
+        times = self.times
+
+        ch_names = self.info["ch_names"]
+        # chanlocs = fromarrays([ch_names], names=["labels"])
+
+        from .utils import get_eeglab_full_cords
+
+        # convert xyz to full eeglab coordinates
+        full_coords = get_eeglab_full_cords(self)
+
+        chanlocs = fromarrays([ch_names, *full_coords.T, np.repeat('', len(ch_names))],
+                              names=["labels", "X", "Y", "Z", "sph_theta", "sph_phi", "sph_radius", "theta", "radius",
+                                     "sph_theta_besa", "sph_phi_besa", "type"])
+
+        events = fromarrays([self.annotations.description,
+                            self.annotations.onset * fs + 1,
+                            self.annotations.duration * fs],
+                            names=["type", "latency", "duration"])
+        eeg_d = dict(EEG=dict(data=data,
+                          setname=fname,
+                          nbchan=data.shape[0],
+                          pnts=data.shape[1],
+                          trials=1,
+                          srate=fs,
+                          xmin=times[0],
+                          xmax=times[-1],
+                          chanlocs=chanlocs,
+                          event=events,
+                          icawinv=[],
+                          icasphere=[],
+                          icaweights=[]))
+
+        savemat(fname, eeg_d,
+                appendmat=False)
+
+    def import_eeg_chan_location_from_csv(self, fname, delimiter=',', include_ch_names=True):
+        from .utils import import_eeg_chan_location_from_csv
+        import_eeg_chan_location_from_csv(self, fname, delimiter, include_ch_names)
+
+    def import_chs_from_file(self, fname):
+        from .utils import import_chs_from_file
+        import_chs_from_file(self, fname)
+
     def _tmin_tmax_to_start_stop(self, tmin, tmax):
         start = int(np.floor(tmin * self.info['sfreq']))
 
