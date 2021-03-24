@@ -191,9 +191,6 @@ class _IpyToolBar(_AbstractToolBar, _IpyLayout):
             func=callback,
         )
 
-    def _tool_bar_add_movie_button(self, name, desc, func):
-        pass
-
     def _tool_bar_set_theme(self, theme):
         pass
 
