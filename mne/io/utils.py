@@ -313,6 +313,7 @@ def _construct_bids_filename(base, ext, part_idx):
         use_fname = op.join(dirname, use_fname)
     return use_fname
 
+
 def cart_to_eeglab_full_coords_xyz(x, y, z):
     """Convert Cartesian coordinates to EEGLAB full coordinates.
     Also see https://github.com/sccn/eeglab/blob/develop/functions/sigprocfunc/convertlocs.m
@@ -347,7 +348,7 @@ def cart_to_eeglab_full_coords_xyz(x, y, z):
         return c, h
 
     # cart to sph, see https://www.mathworks.com/help/matlab/ref/cart2sph.html
-    th = np.arctan2(y,x)
+    th = np.arctan2(y, x)
     phi = np.arctan2(z, np.sqrt(np.square(x) + np.square(y)))
     sph_r = np.sqrt(np.square(x) + np.square(y) + np.square(z))
 
@@ -360,16 +361,17 @@ def cart_to_eeglab_full_coords_xyz(x, y, z):
     sph_theta_besa, sph_phi_besa = topo2sph(theta, radius)
 
     # ordered based on EEGLAB order
-    out[:,0] = sph_theta
-    out[:,1] = sph_phi
-    out[:,2] = sph_radius
-    out[:,3] = theta
-    out[:,4] = radius
-    out[:,5] = sph_theta_besa
-    out[:,6] = sph_phi_besa
+    out[:, 0] = sph_theta
+    out[:, 1] = sph_phi
+    out[:, 2] = sph_radius
+    out[:, 3] = theta
+    out[:, 4] = radius
+    out[:, 5] = sph_theta_besa
+    out[:, 6] = sph_phi_besa
 
     out = np.nan_to_num(out)
     return out
+
 
 def cart_to_eeglab_full_coords(cart):
     """Convert Cartesian coordinates to EEGLAB full coordinates.
@@ -392,13 +394,15 @@ def cart_to_eeglab_full_coords(cart):
     x, y, z = cart.T
     return cart_to_eeglab_full_coords_xyz(x, y, z)
 
+
 # get full coord from mne inst (Raw, Epochs, or anything that has chs channel XYZ data)
 def get_eeglab_full_cords(inst):
     chs = inst.info["chs"]
     cart_coords = np.array([d['loc'][:3] for d in chs])
     other_coords = cart_to_eeglab_full_coords(cart_coords)
-    full_coords = np.append(cart_coords, other_coords, 1) # hstack
+    full_coords = np.append(cart_coords, other_coords, 1)  # hstack
     return full_coords
+
 
 def import_eeg_chan_location_from_csv(inst, fname, delimiter=',', include_ch_names=True):
     import csv
@@ -415,10 +419,11 @@ def import_eeg_chan_location_from_csv(inst, fname, delimiter=',', include_ch_nam
         coords.append((float(x), float(y), float(z)))
     f.close()
 
-    # if include_names and ch_names != self.ch_names:
+    # if include_ch_names and ch_names != inst.ch_names:
     #     raise ValueError("New channel names doesn't match current channel names")
-    # if not include_names and len(coords) != self.info['nchan']:
-    #     raise ValueError(f"Channel location data length doesn't match with existing channel count: {len(coords)} != {self.info['nchan']}")
+    # if not include_ch_names and len(coords) != inst.info['nchan']:
+    #     raise ValueError(f"Channel location data length doesn't match with existing channel count: "
+    #                      f"{len(coords)} != {inst.info['nchan']}")
 
     chs = inst.info['chs']
     if not include_ch_names:
@@ -428,9 +433,10 @@ def import_eeg_chan_location_from_csv(inst, fname, delimiter=',', include_ch_nam
         for ch in chs:
             try:
                 coord = coords[ch_names.index(ch['ch_name'])]
-            except ValueError: # ch_name not in channel list, default to 0
-                coord = (0,0,0)
+            except ValueError:  # ch_name not in channel list, default to 0
+                coord = (0, 0, 0)
             ch['loc'][:3] = coord
+
 
 def import_chs_from_file(inst, fname):
     import mne

@@ -230,7 +230,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             # this was artificially added by the IO procedure, so remove it
             ch_names = list(info['ch_names'])
             if ('STI 014' in ch_names) and not \
-               (self.filenames[0].endswith('.fif')):
+                (self.filenames[0].endswith('.fif')):
                 ch_names.remove('STI 014')
 
             # Each channel in the data must have a corresponding channel in
@@ -1419,22 +1419,22 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                                      "sph_theta_besa", "sph_phi_besa", "type"])
 
         events = fromarrays([self.annotations.description,
-                            self.annotations.onset * fs + 1,
-                            self.annotations.duration * fs],
+                             self.annotations.onset * fs + 1,
+                             self.annotations.duration * fs],
                             names=["type", "latency", "duration"])
         eeg_d = dict(EEG=dict(data=data,
-                          setname=fname,
-                          nbchan=data.shape[0],
-                          pnts=data.shape[1],
-                          trials=1,
-                          srate=fs,
-                          xmin=times[0],
-                          xmax=times[-1],
-                          chanlocs=chanlocs,
-                          event=events,
-                          icawinv=[],
-                          icasphere=[],
-                          icaweights=[]))
+                              setname=fname,
+                              nbchan=data.shape[0],
+                              pnts=data.shape[1],
+                              trials=1,
+                              srate=fs,
+                              xmin=times[0],
+                              xmax=times[-1],
+                              chanlocs=chanlocs,
+                              event=events,
+                              icawinv=[],
+                              icasphere=[],
+                              icaweights=[]))
 
         savemat(fname, eeg_d,
                 appendmat=False)

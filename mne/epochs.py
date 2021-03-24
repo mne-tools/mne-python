@@ -1839,35 +1839,35 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                               names=["labels", "X", "Y", "Z", "sph_theta", "sph_phi", "sph_radius", "theta", "radius",
                                      "sph_theta_besa", "sph_phi_besa", "type"])
 
-        event_type_d = dict((v,k) for k,v in self.event_id.items())
+        event_type_d = dict((v, k) for k, v in self.event_id.items())
 
         ev_types = [event_type_d[ev[2]] for ev in self.events]
-        ev_lat = [int(n/fs*100) for n in self.events[:,0]]
-        ev_dur = np.zeros((trials,), dtype=np.int64) # should all be 0 except boundaries, which we don't have
-        ev_epoch = np.arange(1, trials + 1) # indices of epochs each event belongs to
+        ev_lat = [int(n / fs * 100) for n in self.events[:, 0]]
+        ev_dur = np.zeros((trials,), dtype=np.int64)  # should all be 0 except boundaries, which we don't have
+        ev_epoch = np.arange(1, trials + 1)  # indices of epochs each event belongs to
 
         events = fromarrays([ev_types, ev_lat, ev_dur, ev_epoch], names=["type", "latency", "duration", "epoch"])
 
-        ep_event = [np.array(n) for n in ev_epoch] # same as the indices for event epoch, except need to use array
+        ep_event = [np.array(n) for n in ev_epoch]  # same as the indices for event epoch, except need to use array
         ep_lat = [np.array(n) for n in ev_lat]
         ep_types = [np.array(n) for n in ev_types]
 
         epochs = fromarrays([ep_event, ep_lat, ep_types], names=["event", "eventlatency", "eventtype"])
 
         eeg_d = dict(EEG=dict(data=data,
-                          setname=fname,
-                          nbchan=data.shape[0],
-                          pnts=float(data.shape[1]),
-                          trials=trials,
-                          srate=fs,
-                          xmin=times[0],
-                          xmax=times[-1],
-                          chanlocs=chanlocs,
-                          event=events,
-                          epoch=epochs,
-                          icawinv=[],
-                          icasphere=[],
-                          icaweights=[]))
+                              setname=fname,
+                              nbchan=data.shape[0],
+                              pnts=float(data.shape[1]),
+                              trials=trials,
+                              srate=fs,
+                              xmin=times[0],
+                              xmax=times[-1],
+                              chanlocs=chanlocs,
+                              event=events,
+                              epoch=epochs,
+                              icawinv=[],
+                              icasphere=[],
+                              icaweights=[]))
         savemat(fname, eeg_d,
                 appendmat=False)
 
