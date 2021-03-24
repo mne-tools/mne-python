@@ -501,6 +501,9 @@ def _create_dock_widget(window, name, area):
     window.addDockWidget(area, dock)
     dock_layout = QVBoxLayout()
     widget.setLayout(dock_layout)
+    # Fix resize grip size
+    # https://stackoverflow.com/a/65050468/2175965
+    dock.setStyleSheet("QDockWidget { margin: 4px; }")
     return dock, dock_layout
 
 
