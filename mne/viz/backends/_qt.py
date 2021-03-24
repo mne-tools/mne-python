@@ -44,9 +44,8 @@ class _QtDock(_AbstractDock, _QtLayout):
     def _dock_initialize(self, window=None):
         window = self._window if window is None else window
         self.dock, self.dock_layout = _create_dock_widget(
-            self._window, "Controls", Qt.AllDockWidgetAreas,
-            Qt.LeftDockWidgetArea)
-        # window.setCorner(Qt.BottomLeftCorner, Qt.LeftDockWidgetArea)
+            self._window, "Controls", Qt.LeftDockWidgetArea)
+        window.setCorner(Qt.BottomLeftCorner, Qt.LeftDockWidgetArea)
 
     def _dock_finalize(self):
         self.dock.setMinimumSize(self.dock.sizeHint().width(), 0)
@@ -363,16 +362,6 @@ class _QtWindow(_AbstractWindow):
         self._window = self.figure.plotter.app_window
         self._window.setLocale(QLocale(QLocale.Language.English))
 
-        name = "Plot"
-        window = self._window
-        window.setCentralWidget(QLabel(""))
-        window.centralWidget().hide()
-        dock = QDockWidget()
-        dock.setWidget(self._interactor)
-        dock.setAllowedAreas(Qt.AllDockWidgetAreas)
-        dock.setTitleBarWidget(QLabel(name))
-        window.addDockWidget(Qt.TopDockWidgetArea, dock)
-
     def _window_close_connect(self, func):
         self._window.signal_close.connect(func)
 
@@ -400,8 +389,7 @@ class _QtWindow(_AbstractWindow):
     def _window_adjust_mplcanvas_layout(self):
         canvas = self._mplcanvas.canvas
         dock, dock_layout = _create_dock_widget(
-            self._window, "Traces", Qt.AllDockWidgetAreas,
-            Qt.BottomDockWidgetArea)
+            self._window, "Traces", Qt.BottomDockWidgetArea)
         dock_layout.addWidget(canvas)
 
     def _window_get_cursor(self):
@@ -501,16 +489,16 @@ class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
         self.plotter.update()
 
 
-def _create_dock_widget(window, name, allowed_area, default_area):
+def _create_dock_widget(window, name, area):
     dock = QDockWidget()
     scroll = QScrollArea(dock)
     dock.setWidget(scroll)
     widget = QWidget(scroll)
     scroll.setWidget(widget)
     scroll.setWidgetResizable(True)
-    dock.setAllowedAreas(allowed_area)
+    dock.setAllowedAreas(area)
     dock.setTitleBarWidget(QLabel(name))
-    window.addDockWidget(default_area, dock)
+    window.addDockWidget(area, dock)
     dock_layout = QVBoxLayout()
     widget.setLayout(dock_layout)
     return dock, dock_layout
