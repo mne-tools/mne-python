@@ -587,16 +587,15 @@ print(template_eog_component)
 
 
 ###############################################################################
-# Example: Compute ICA components on epochs
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Compute ICA components on epochs
 #
 # ICA is now fit to epoched MEG data instead of the raw data.
 # We assume that the non-stationary EOG artifacts have already been removed.
 # The sources matching the ECG are automatically found and displayed.
 #
 # .. note::
-#     This example does quite a bit of processing, so even on a
-#     fast machine it can take about a minute to complete.
+#     This example is computationally intensive, so it might take a few minutes
+#     to complete.
 #
 # Read and preprocess the data. Preprocessing consists of:
 #
