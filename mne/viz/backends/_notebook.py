@@ -141,7 +141,7 @@ class _IpyToolBar(_AbstractToolBar, _IpyLayout):
         self.icons["reset"] = "history"
         self.icons["scale"] = "magic"
         self.icons["clear"] = "trash"
-        self.icons["movie"] = None
+        self.icons["movie"] = "video-camera"
         self.icons["restore"] = "replay"
         self.icons["screenshot"] = "camera"
         self.icons["visibility_on"] = "eye"
