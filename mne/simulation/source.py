@@ -365,8 +365,9 @@ class SourceSimulator(object):
         """Number of time samples in the simulation."""
         if self._duration is not None:
             return int(self._duration / self._tstep)
-        ls = np.max(self._last_samples) if len(self._last_samples) > 0 \
-            else self.first_samp
+        ls = self.first_samp
+        if len(self._last_samples) > 0:
+            ls = np.max(self._last_samples)
         return ls - self.first_samp + 1  # >= 1
 
     @property
@@ -470,7 +471,7 @@ class SourceSimulator(object):
 
         Parameters
         ----------
-        start_sample : int
+        start_sample : int | None
             First sample in chunk. Default is the value of the ``first_samp``
             attribute.
         stop_sample : int | None
