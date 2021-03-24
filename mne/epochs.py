@@ -1606,7 +1606,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         else:
             baseline = tuple(['None' if b is None else ('%g' % b)
                               for b in self.baseline])
-            baseline = '%s: %s sec' % baseline
+            baseline = '%.3f: %.3f sec' % baseline
             if self.baseline != _check_baseline(
                     self.baseline, times=self.times, sfreq=self.info['sfreq'],
                     on_baseline_outside_data='adjust'):
