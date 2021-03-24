@@ -12,7 +12,6 @@ Actual implementation of _Renderer and _Projection classes.
 # License: Simplified BSD
 
 from contextlib import contextmanager
-from datetime import datetime
 from distutils.version import LooseVersion
 import os
 import sys
@@ -204,11 +203,6 @@ class _PyVistaRenderer(_AbstractRenderer):
     def _update(self):
         for plotter in self._all_plotters:
             plotter.update()
-
-    def _get_default_filename(self, ext=".png"):
-        now = datetime.now()
-        dt_string = now.strftime("_%Y-%m-%d_%H-%M-%S")
-        return "MNE" + dt_string + ext
 
     def _index_to_loc(self, idx):
         _ncols = self.figure._ncols

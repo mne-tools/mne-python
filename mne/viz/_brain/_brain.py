@@ -27,7 +27,8 @@ from .view import views_dicts, _lh_views_dict
 from .callback import (ShowView, TimeCallBack, SmartCallBack,
                        UpdateLUT, UpdateColorbarScale)
 
-from ..utils import _show_help_fig, _get_color_list, concatenate_images
+from ..utils import (_show_help_fig, _get_color_list, concatenate_images,
+                     _generate_default_filename)
 from .._3d import _process_clim, _handle_time, _check_views
 
 from ...externals.decorator import decorator
@@ -1233,13 +1234,13 @@ class Brain(object):
             name="screenshot",
             desc="Take a screenshot",
             func=self.save_image,
-            default_name=self._renderer._get_default_filename(".png"),
+            default_name=_generate_default_filename(".png"),
         )
         self._renderer._tool_bar_add_file_button(
             name="movie",
             desc="Save movie...",
             func=self.save_movie,
-            default_name=self._renderer._get_default_filename(".mp4"),
+            default_name=_generate_default_filename(".mp4"),
             shortcut="ctrl+shift+s",
         )
         self._renderer._tool_bar_add_button(

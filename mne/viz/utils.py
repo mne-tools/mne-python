@@ -23,6 +23,7 @@ import numpy as np
 from copy import deepcopy
 from distutils.version import LooseVersion
 import warnings
+from datetime import datetime
 
 from ..defaults import _handle_default
 from ..fixes import _get_status
@@ -2345,3 +2346,9 @@ def concatenate_images(images, axis=0, bgcolor='black', centered=True):
         ret[dec[0]:dec[0] + shape[0], dec[1]:dec[1] + shape[1], :] = image
         ptr += shape * sec
     return ret
+
+
+def _generate_default_filename(ext=".png"):
+    now = datetime.now()
+    dt_string = now.strftime("_%Y-%m-%d_%H-%M-%S")
+    return "MNE" + dt_string + ext
