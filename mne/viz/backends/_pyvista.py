@@ -206,10 +206,10 @@ class _PyVistaRenderer(_AbstractRenderer):
         for plotter in self._all_plotters:
             plotter.update()
 
-    def _get_screenshot_filename(self):
+    def _get_default_filename(self, ext=".png"):
         now = datetime.now()
         dt_string = now.strftime("_%Y-%m-%d_%H-%M-%S")
-        return "MNE" + dt_string + ".png"
+        return "MNE" + dt_string + ext
 
     @contextmanager
     def _ensure_minimum_sizes(self):

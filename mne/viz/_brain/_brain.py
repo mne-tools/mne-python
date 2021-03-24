@@ -1226,22 +1226,21 @@ class Brain(object):
             self._on_pick
         )
 
-    def _save_movie_noname(self):
-        return self.save_movie(None)
-
     def _configure_tool_bar(self):
         self._renderer._tool_bar_load_icons()
         self._renderer._tool_bar_set_theme(self.theme)
         self._renderer._tool_bar_initialize()
-        self._renderer._tool_bar_add_screenshot_button(
+        self._renderer._tool_bar_add_file_button(
             name="screenshot",
             desc="Take a screenshot",
-            func=partial(self.screenshot, time_viewer=True),
+            func=self.save_image,
+            default_name=self._renderer._get_default_filename(".png"),
         )
-        self._renderer._tool_bar_add_button(
+        self._renderer._tool_bar_add_file_button(
             name="movie",
             desc="Save movie...",
-            func=self._save_movie_noname,
+            func=self.save_movie,
+            default_name=self._renderer._get_default_filename(".mp4"),
             shortcut="ctrl+shift+s",
         )
         self._renderer._tool_bar_add_button(
@@ -2581,7 +2580,9 @@ class Brain(object):
         mode : str
             Either 'rgb' or 'rgba' for values to return.
         """
-        self._renderer.screenshot(mode=mode, filename=filename)
+        from ..utils import _save_ndarray_img
+        _save_ndarray_img(
+            filename, self.screenshot(mode=mode, time_viewer=True))
 
     @fill_doc
     def screenshot(self, mode='rgb', time_viewer=False):
@@ -3042,12 +3043,11 @@ class Brain(object):
             The opened dialog is returned for testing purpose only.
         """
         if self.time_viewer:
-            try:
-                from pyvista.plotting.qt_plotting import FileDialog
-            except ImportError:
-                from pyvistaqt.plotting import FileDialog
-
             if filename is None:
+                try:
+                    from pyvista.plotting.qt_plotting import FileDialog
+                except ImportError:
+                    from pyvistaqt.plotting import FileDialog
                 self.status_msg.setText("Choose movie path ...")
                 self.status_msg.show()
                 self.status_progress.setValue(0)

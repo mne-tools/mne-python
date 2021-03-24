@@ -6,9 +6,12 @@
 # License: Simplified BSD
 
 from contextlib import contextmanager
-from functools import partial
 
 import pyvista
+try:
+    from pyvista.plotting.qt_plotting import FileDialog
+except ImportError:
+    from pyvistaqt.plotting import FileDialog
 
 from PyQt5.QtCore import Qt, pyqtSignal, QLocale
 from PyQt5.QtGui import QIcon, QImage, QPixmap
@@ -26,7 +29,7 @@ from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback,
                         _AbstractBrainMplCanvas, _AbstractMplInterface)
 from ._utils import _init_qt_resources, _qt_disable_paint
-from ..utils import _save_ndarray_img, logger
+from ..utils import logger
 
 
 class _QtLayout(_AbstractLayout):
@@ -265,22 +268,19 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
         spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.tool_bar.addWidget(spacer)
 
-    def _tool_bar_add_screenshot_button(self, name, desc, func):
-        def _screenshot():
-            img = func()
-            try:
-                from pyvista.plotting.qt_plotting import FileDialog
-            except ImportError:
-                from pyvistaqt.plotting import FileDialog
-            FileDialog(
+    def _tool_bar_add_file_button(self, name, desc, func, default_name,
+                                  shortcut=None):
+        def callback():
+            return FileDialog(
                 self.plotter.app_window,
-                callback=partial(_save_ndarray_img, img=img),
+                callback=func,
             )
 
         self._tool_bar_add_button(
             name=name,
             desc=desc,
-            func=_screenshot,
+            func=callback,
+            shortcut=shortcut,
         )
 
     def _tool_bar_set_theme(self, theme):
