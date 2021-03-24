@@ -45,6 +45,10 @@ iframe.sg_report {
     display: block;
     border-style: solid;
 }
+/* gallery thumbnail size */
+.sphx-glr-thumbcontainer {
+    min-width: 160px;
+}
 
 /* ******************************** make HTML'd pandas dataframes scrollable */
 output_html {
