@@ -36,7 +36,8 @@ class Layout(object):
     box : tuple of length 4
         The box dimension (x_min, x_max, y_min, y_max).
     pos : array, shape=(n_channels, 4)
-        The positions of the channels in 2d (x, y, width, height).
+        The unit-normalized positions of the channels in 2d
+        (x, y, width, height).
     names : list
         The channel names.
     ids : list
@@ -91,12 +92,14 @@ class Layout(object):
                                                      ', '.join(self.names[:3]))
 
     @fill_doc
-    def plot(self, picks=None, show=True):
+    def plot(self, picks=None, show_axes=False, show=True):
         """Plot the sensor positions.
 
         Parameters
         ----------
         %(picks_nostr)s
+        show_axes : bool
+            Show layout axes if True. Defaults to False.
         show : bool
             Show figure if True. Defaults to True.
 
@@ -110,7 +113,7 @@ class Layout(object):
         .. versionadded:: 0.12.0
         """
         from ..viz.topomap import plot_layout
-        return plot_layout(self, picks=picks, show=show)
+        return plot_layout(self, picks=picks, show_axes=show_axes, show=show)
 
 
 def _read_lout(fname):

@@ -599,7 +599,6 @@ class _PyVistaRenderer(_AbstractRenderer):
 
     def show(self):
         self.figure.plotter.show()
-        return self.scene()
 
     def close(self):
         _close_3d_figure(figure=self.figure)

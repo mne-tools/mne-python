@@ -41,7 +41,9 @@ from .evoked import EvokedArray, _check_decim
 from .baseline import rescale, _log_rescale
 from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin)
-from .filter import detrend, FilterMixin
+from .filter import detrend, FilterMixin, _check_fun
+from .parallel import parallel_func
+
 from .event import _read_events_fif, make_fixed_length_events
 from .fixes import _get_args, rng_uniform
 from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
@@ -1017,7 +1019,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         return self._compute_aggregate(picks, "std")
 
     def _compute_aggregate(self, picks, mode='mean'):
-        """Compute the mean or std over epochs and return Evoked."""
+        """Compute the mean, median, or std over epochs and return Evoked."""
         # if instance contains ICA channels they won't be included unless picks
         # is specified
         if picks is None:
@@ -1086,7 +1088,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             count = Counter(self.events[:, 2])
             comments = list()
             for key, value in self.event_id.items():
-                comments.append('%.2f * %s' % (
+                comments.append('%.2f × %s' % (
                     float(count[value]) / len(self.events), key))
             comment = ' + '.join(comments)
         return comment
@@ -1490,6 +1492,58 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             A view on epochs data.
         """
         return self._get_data(picks=picks, item=item)
+
+    @verbose
+    def apply_function(self, fun, picks=None, dtype=None, n_jobs=1,
+                       channel_wise=True, verbose=None, *args, **kwargs):
+        """Apply a function to a subset of channels.
+
+        %(applyfun_summary_epochs)s
+
+        Parameters
+        ----------
+        %(applyfun_fun)s
+        %(picks_all_data_noref)s
+        %(applyfun_dtype)s
+        %(n_jobs)s
+        %(applyfun_chwise)s
+        %(verbose_meth)s
+        %(arg_fun)s
+        %(kwarg_fun)s
+
+        Returns
+        -------
+        self : instance of Epochs
+            The epochs object with transformed data.
+        """
+        _check_preload(self, 'epochs.apply_function')
+        picks = _picks_to_idx(self.info, picks, exclude=(), with_ref_meg=False)
+
+        if not callable(fun):
+            raise ValueError('fun needs to be a function')
+
+        data_in = self._data
+        if dtype is not None and dtype != self._data.dtype:
+            self._data = self._data.astype(dtype)
+
+        if channel_wise:
+            if n_jobs == 1:
+                # modify data inplace to save memory
+                for idx in picks:
+                    self._data[:, idx, :] = _check_fun(fun, data_in[:, idx, :],
+                                                       *args, **kwargs)
+            else:
+                # use parallel function
+                parallel, p_fun, _ = parallel_func(_check_fun, n_jobs)
+                data_picks_new = parallel(p_fun(
+                    fun, data_in[:, p, :], *args, **kwargs) for p in picks)
+                for pp, p in enumerate(picks):
+                    self._data[:, p, :] = data_picks_new[pp]
+        else:
+            self._data = _check_fun(
+                fun, data_in, *args, **kwargs)
+
+        return self
 
     @property
     def times(self):
@@ -2107,9 +2161,10 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
         (default), rows are created for **all** event types present in
         ``event_id``.
     keep_first : str | list of str | None
-        Specify subsets of hierarchical event descriptors (HEDs) matching
-        events of which  the **first occurrence** within each
-        time window shall be stored in addition to the original events.
+        Specify subsets of :term:`hierarchical event descriptors` (HEDs,
+        inspired by :footcite:`BigdelyShamloEtAl2013`) matching events of which
+        the **first occurrence** within each time window shall be stored in
+        addition to the original events.
 
         .. note::
            There is currently no way to retain **all** occurrences of a
@@ -2124,7 +2179,7 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
         case, you can pass ``keep_first='response'``. This will add two new
         columns to the metadata: ``response``, indicating at what **time** the
         event  occurred, relative to the time-locked event; and
-        ``first_response``, stating which **type** (``'left'`` or``'right'``)
+        ``first_response``, stating which **type** (``'left'`` or ``'right'``)
         of event occurred.
         To match specific subsets of HEDs describing different sets of events,
         pass a list of these subsets, e.g.
@@ -2183,6 +2238,10 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
     before or after an epoch, e.g. during the inter-trial interval.
 
     .. versionadded:: 0.23
+
+    References
+    ----------
+    .. footbibliography::
     """
     from .utils.mixin import _hid_match
     pd = _check_pandas_installed()
@@ -3668,7 +3727,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
 
 @verbose
 def make_fixed_length_epochs(raw, duration=1., preload=False,
-                             reject_by_annotation=True, proj=True,
+                             reject_by_annotation=True, proj=True, overlap=0.,
                              verbose=None):
     """Divide continuous raw data into equal-sized consecutive epochs.
 
@@ -3685,6 +3744,11 @@ def make_fixed_length_epochs(raw, duration=1., preload=False,
     %(proj_epochs)s
 
         .. versionadded:: 0.22.0
+    overlap : float
+        The overlap between epochs, in seconds. Must be
+        ``0 <= overlap < duration``. Default is 0, i.e., no overlap.
+
+        .. versionadded:: 0.23.0
     %(verbose)s
 
     Returns
@@ -3696,7 +3760,8 @@ def make_fixed_length_epochs(raw, duration=1., preload=False,
     -----
     .. versionadded:: 0.20
     """
-    events = make_fixed_length_events(raw, 1, duration=duration)
+    events = make_fixed_length_events(raw, 1, duration=duration,
+                                      overlap=overlap)
     delta = 1. / raw.info['sfreq']
     return Epochs(raw, events, event_id=[1], tmin=0, tmax=duration - delta,
                   baseline=None, preload=preload,

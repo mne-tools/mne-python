@@ -3226,8 +3226,9 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
         Distance (m) defining the activation "ball" of the sensor.
     mode : str
         Can be "sum" to do a linear sum of weights, "nearest" to
-        use only the weight of the nearest sensor, or "zero" to use a
-        zero-order hold. See Notes.
+        use only the weight of the nearest sensor, or "single" to
+        do a distance-weight of the nearest sensor. Default is "sum".
+        See Notes.
     project : bool
         If True, project the electrodes to the nearest ``'pial`` surface
         vertex before computing distances. Only used when doing a
@@ -3264,10 +3265,10 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
         1 and a sensor at ``distance`` meters away (or larger) gets weight 0.
         If ``distance`` is less than the distance between any two electrodes,
         this will be the same as ``'nearest'``.
-    - ``'weighted'``
+    - ``'single'``
         Same as ``'sum'`` except that only the nearest electrode is used,
         rather than summing across electrodes within the ``distance`` radius.
-        As as ``'nearest'`` for vertices with distance zero to the projected
+        As ``'nearest'`` for vertices with distance zero to the projected
         sensor.
     - ``'nearest'``
         The value is given by the value of the nearest sensor, up to a
@@ -3297,7 +3298,8 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     # remove nan channels
     nan_inds = np.where(np.isnan(pos).any(axis=1))[0]
     nan_chs = [evoked.ch_names[idx] for idx in nan_inds]
-    evoked.drop_channels(nan_chs)
+    if len(nan_chs):
+        evoked.drop_channels(nan_chs)
     pos = [pos[idx] for idx in range(len(pos)) if idx not in nan_inds]
 
     # coord_frame transformation from native mne "head" to MRI coord_frame

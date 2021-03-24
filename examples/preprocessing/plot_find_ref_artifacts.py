@@ -70,7 +70,8 @@ ica_kwargs = dict(
     fit_params=dict(tol=1e-4),  # use a high tol here for speed
 )
 all_picks = mne.pick_types(raw_tog.info, meg=True, ref_meg=True)
-ica_tog = ICA(n_components=60, allow_ref_meg=True, **ica_kwargs)
+ica_tog = ICA(n_components=60, max_iter='auto', allow_ref_meg=True,
+              **ica_kwargs)
 ica_tog.fit(raw_tog, picks=all_picks)
 # low threshold (2.0) here because of cropped data, entire recording can use
 # a higher threshold (2.5)
@@ -97,7 +98,8 @@ raw_sep = raw.copy()
 
 # Do ICA only on the reference channels.
 ref_picks = mne.pick_types(raw_sep.info, meg=False, ref_meg=True)
-ica_ref = ICA(n_components=2, allow_ref_meg=True, **ica_kwargs)
+ica_ref = ICA(n_components=2, max_iter='auto', allow_ref_meg=True,
+              **ica_kwargs)
 ica_ref.fit(raw_sep, picks=ref_picks)
 
 # Do ICA on both reference and standard channels. Here, we can just reuse

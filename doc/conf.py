@@ -149,6 +149,7 @@ intersphinx_mapping = {
     'dipy': ('https://dipy.org/documentation/1.2.0.', None),
     'mne_realtime': ('https://mne.tools/mne-realtime', None),
     'picard': ('https://pierreablin.github.io/picard/', None),
+    'qdarkstyle': ('https://qdarkstylesheet.readthedocs.io/en/latest', None)
 }
 
 
@@ -684,6 +685,9 @@ def reset_warnings(gallery_conf, fname):
     warnings.filterwarnings('always', '.*cannot make axes width small.*')
     warnings.filterwarnings('always', '.*Axes that are not compatible.*')
     warnings.filterwarnings('always', '.*FastICA did not converge.*')
+    # ECoG BIDS spec violations:
+    warnings.filterwarnings('always', '.*Fiducial point nasion not found.*')
+    warnings.filterwarnings('always', '.*DigMontage is only a subset of.*')
     warnings.filterwarnings(  # xhemi morph (should probably update sample)
         'always', '.*does not exist, creating it and saving it.*')
     warnings.filterwarnings('default', module='sphinx')  # internal warnings
