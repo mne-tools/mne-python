@@ -872,13 +872,13 @@ class MNEBrowseFigure(MNEFigure):
         fig = self._new_child_figure(figsize=(7, 6), fig_name=None,
                                      window_title=f'{ch_name} properties')
         fig, axes = _create_properties_layout(fig=fig)
-        if not hasattr(self, 'data_ica_properties'):
+        if not hasattr(self.mne, 'data_ica_properties'):
             # Precompute epoch sources only once
-            self.data_ica_properties = _prepare_data_ica_properties(
+            self.mne.data_ica_properties = _prepare_data_ica_properties(
                 self.mne.ica_inst, self.mne.ica)
         _fast_plot_ica_properties(
             self.mne.ica, self.mne.ica_inst, picks=pick, axes=axes,
-            precomputed_data=self.data_ica_properties)
+            precomputed_data=self.mne.data_ica_properties)
 
     def _create_epoch_image_fig(self, pick):
         """Show epochs image for the selected channel."""
