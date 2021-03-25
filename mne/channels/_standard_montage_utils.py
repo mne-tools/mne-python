@@ -334,3 +334,46 @@ def _read_brainvision(fname, head_size):
         pos *= head_size / np.median(np.linalg.norm(pos, axis=1))
 
     return make_dig_montage(ch_pos=_check_dupes_odict(ch_names, pos))
+
+
+def _read_csv(fname, delimiter=','):
+    """Import eeg channel locations from CSV files into MNE instance.
+
+    CSV files should have columns x, y, and z, each row represents one channel.
+    Optionally the first column can contain the channel names.
+
+    Parameters
+    ----------
+    fname : str
+        Name of the csv file to read channel locations from
+    delimiter : str
+        Delimiter used by the CSV file
+    include_ch_names : bool
+        Whether the CSV file include channel names as the first column
+    """
+    include_ch_names = True
+    import csv
+    f = open(fname, "r")
+    f.readline()
+    ch_names = []
+    coords = []
+    for row in csv.reader(f, delimiter=delimiter):
+        if include_ch_names:
+            ch_name, x, y, z, *_ = row
+            ch_names.append(ch_name)
+        else:
+            x, y, z, *_ = row
+        coords.append((float(x), float(y), float(z)))
+    f.close()
+
+    # chs = inst.info['chs']
+    # if not include_ch_names:
+    #     for ch, coord in zip(chs, coords):
+    #         ch['loc'][:3] = coord
+    # else:
+    #     for ch in chs:
+    #         try:
+    #             coord = coords[ch_names.index(ch['ch_name'])]
+    #         except ValueError:  # ch_name not in channel list, default to 0
+    #             coord = (0, 0, 0)
+    #         ch['loc'][:3] = coord
