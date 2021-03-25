@@ -1395,18 +1395,34 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                    split_size, split_naming, 0, None, overwrite)
 
     def save_set(self, fname):
-        """Export raw to EEGLAB .set file."""
+        """Export Raw to EEGLAB's .set format.
+
+        Parameters
+        ----------
+        fname : str
+            name of the export file
+
+        Notes
+        -----
+        Channel locations are expanded to the full EEGLAB format
+        For more details see .utils.cart_to_eeglab_full_coords
+        """
 
         from numpy.core.records import fromarrays
         from scipy.io import savemat
 
-        self.drop_channels(['epoc'] + [sti for sti in self.ch_names if sti.startswith("STI")])
+        ch_names = self.ch_names
+
+        # remove extra epoc and STI channels
+        chs_drop = ['epoc']
+        if 'STI 014' in ch_names and not (self.filenames[0].endswith('.fif')):
+            chs_drop.append('STI 014')
+        self.drop_channels(chs_drop)
 
         data = self.get_data() * 1e6  # convert to microvolts
         fs = self.info["sfreq"]
         times = self.times
 
-        ch_names = self.info["ch_names"]
         # chanlocs = fromarrays([ch_names], names=["labels"])
 
         from .utils import get_eeglab_full_cords
@@ -1414,9 +1430,12 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         # convert xyz to full eeglab coordinates
         full_coords = get_eeglab_full_cords(self)
 
-        chanlocs = fromarrays([ch_names, *full_coords.T, np.repeat('', len(ch_names))],
-                              names=["labels", "X", "Y", "Z", "sph_theta", "sph_phi", "sph_radius", "theta", "radius",
-                                     "sph_theta_besa", "sph_phi_besa", "type"])
+        # convert to record arrays for MATLAB format
+        chanlocs = fromarrays(
+            [ch_names, *full_coords.T, np.repeat('', len(ch_names))],
+            names=["labels", "X", "Y", "Z", "sph_theta", "sph_phi",
+                   "sph_radius", "theta", "radius",
+                   "sph_theta_besa", "sph_phi_besa", "type"])
 
         events = fromarrays([self.annotations.description,
                              self.annotations.onset * fs + 1,
@@ -1439,13 +1458,26 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         savemat(fname, eeg_d,
                 appendmat=False)
 
-    def import_eeg_chan_location_from_csv(self, fname, delimiter=',', include_ch_names=True):
-        from .utils import import_eeg_chan_location_from_csv
-        import_eeg_chan_location_from_csv(self, fname, delimiter, include_ch_names)
+    def import_eeg_chan_location_from_csv(self, fname, delimiter=',',
+                                          include_ch_names=True):
+        """Import eeg channel locations from CSV files into MNE instance.
 
-    def import_chs_from_file(self, fname):
-        from .utils import import_chs_from_file
-        import_chs_from_file(self, fname)
+        CSV files should have columns x, y, and z,
+        each row represents one channel.
+        Optionally the first column can contain the channel names.
+
+        Parameters
+        ----------
+        fname : str
+            Name of the csv file to read channel locations from
+        delimiter : str
+            Delimiter used by the CSV file
+        include_ch_names : bool
+            Whether the CSV file include channel names as the first column
+        """
+        from .utils import import_eeg_chan_location_from_csv
+        import_eeg_chan_location_from_csv(self, fname, delimiter,
+                                          include_ch_names)
 
     def _tmin_tmax_to_start_stop(self, tmin, tmax):
         start = int(np.floor(tmin * self.info['sfreq']))
