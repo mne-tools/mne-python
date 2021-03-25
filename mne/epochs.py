@@ -59,6 +59,7 @@ from .utils import (_check_fname, check_fname, logger, verbose,
                     _scale_dataframe_data, _check_time_format, object_size,
                     _on_missing, _validate_type)
 from .utils.docs import fill_doc
+from .data.html_templates import epochs_template
 
 
 def _pack_reject_params(epochs):
@@ -1598,6 +1599,31 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         class_name = self.__class__.__name__
         class_name = 'Epochs' if class_name == 'BaseEpochs' else class_name
         return '<%s | %s>' % (class_name, s)
+
+    def _repr_html_(self):
+        if self.baseline is None:
+            baseline = 'off'
+        else:
+            baseline = tuple([f'{b:.3f}' for b in self.baseline])
+            baseline = f'{baseline[0]} – {baseline[1]} sec'
+
+        if isinstance(self.event_id, dict):
+            events = ''
+            for k, v in sorted(self.event_id.items()):
+                n_events = sum(self.events[:, 2] == v)
+                events += f'{k}: {n_events}<br>'
+        elif isinstance(self.event_id, list):
+            events = ''
+            for k in self.event_id:
+                n_events = sum(self.events[:, 2] == k)
+                events += f'{k}: {n_events}<br>'
+        elif isinstance(self.event_id, int):
+            n_events = len(self.events[:, 2])
+            events = f'{self.event_id}: {n_events}<br>'
+        else:
+            events = None
+        return epochs_template.substitute(epochs=self, baseline=baseline,
+                                          events=events)
 
     @verbose
     def crop(self, tmin=None, tmax=None, include_tmax=True, verbose=None):

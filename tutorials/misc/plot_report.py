@@ -113,7 +113,7 @@ report.save('report_mri_bem.html', overwrite=True)
 
 ###############################################################################
 # Now let's look at how :class:`~mne.Report` handles :class:`~mne.Evoked` data
-# (we'll skip the MRIs to save computation time). The following code will
+# (we will skip the MRIs to save computation time). The following code will
 # produce butterfly plots, topomaps, and comparisons of the global field
 # power (GFP) for different experimental conditions.
 

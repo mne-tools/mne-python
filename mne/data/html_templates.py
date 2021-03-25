@@ -75,3 +75,28 @@ raw_template = Template("""
     </tr>
 </table>
 """)
+
+epochs_template = Template("""
+<table class="table table-hover">
+    <tr>
+        <th>Number of events</th>
+        <td>{{len(epochs.events)}}</td>
+    </tr>
+    <tr>
+        <th>Events</th>
+        {{if events is not None}}
+        <td>{{events}}</td>
+        {{else}}
+        <td>Not available</td>
+        {{endif}}
+    </tr>
+    <tr>
+        <th>Time range</th>
+        <td>{{f'{epochs.tmin:.3f} – {epochs.tmax:.3f} sec'}}</td>
+    </tr>
+    <tr>
+        <th>Baseline</th>
+        <td>{{baseline}}</td>
+    </tr>
+</table>
+""")
