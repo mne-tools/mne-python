@@ -92,7 +92,7 @@ epochs_template = Template("""
     </tr>
     <tr>
         <th>Time range</th>
-        <td>{{f'{epochs.tmin:.3f} – {epochs.tmax:.3f} sec',}}</td>
+        <td>{{f'{epochs.tmin:.3f} – {epochs.tmax:.3f} sec'}}</td>
     </tr>
     <tr>
         <th>Baseline</th>
