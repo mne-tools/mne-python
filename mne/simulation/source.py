@@ -459,7 +459,7 @@ class SourceSimulator(object):
             self._events[:, 0] < stop_sample))[0]
 
         if len(stim_ind) > 0:
-            relative_ind = self._events[stim_ind, 0].astype(int) - start_sample
+            relative_ind = self._events[stim_ind, 0] - start_sample
             stim_data[relative_ind] = self._events[stim_ind, 2]
 
         return stim_data
