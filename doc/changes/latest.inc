@@ -19,6 +19,8 @@ Current (0.23.dev0)
 
 .. |New Contributor| replace:: **New Contributor**
 
+.. |Sumalyo Datta| replace:: **Sumalyo Datta**
+
 .. |Anna Padee| replace:: **Anna Padee**
 
 .. |Richard Koehler| replace:: **Richard Koehler**
@@ -157,6 +159,8 @@ Enhancements
 
 Bugs
 ~~~~
+- Fix bug with :func:`mne.io.read_raw_edf` where new symbols for interpreting data in microvolt was added (:gh:`9187` **by new contributor** |Sumalyo Datta|_ )
+
 - Fix bug with :func:`mne.viz.plot_compare_evokeds` did not check type of combine. (:gh:`9151` **by new contributor** |Matteo Anelli|_)
                                         
 - Fix bug with :func:`mne.viz.plot_evoked_topo` where ``ylim`` was only being applied to the first channel in the dataset (:gh:`9162` **by new contributor** |Ram Pari|_ )
