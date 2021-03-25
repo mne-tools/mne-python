@@ -360,6 +360,8 @@ def test_source_simulator(_get_fwd_labels):
     half_ss = SourceSimulator(src, tstep, duration=0.5)
     for i in range(3):
         half_ss.add_data(mylabels[i], wfs[i], events[i])
+    with pytest.raises(TypeError, match='array of integers'):
+        half_ss.add_data(mylabels[0], wfs[0], events[0].astype(float))
     half_stc = half_ss.get_stc()
     assert_array_almost_equal(stc.data[:, :3], half_stc.data)
 

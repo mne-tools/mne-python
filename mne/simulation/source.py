@@ -13,7 +13,8 @@ import numpy as np
 from ..source_estimate import SourceEstimate, VolSourceEstimate
 from ..source_space import _ensure_src
 from ..fixes import rng_uniform
-from ..utils import check_random_state, warn, _check_option, fill_doc
+from ..utils import (check_random_state, warn, _check_option, fill_doc,
+                     _ensure_int, _ensure_events)
 from ..label import Label
 from ..surface import _compute_nearest
 
@@ -343,7 +344,7 @@ class SourceSimulator(object):
     def __init__(self, src, tstep=1e-3, duration=None, first_samp=0):
         if duration is not None and duration < tstep:
             raise ValueError('duration must be None or >= tstep.')
-        self.first_samp = first_samp
+        self.first_samp = _ensure_int(first_samp, 'first_samp')
         self._src = src
         self._tstep = tstep
         self._labels = []
@@ -409,10 +410,12 @@ class SourceSimulator(object):
             raise ValueError('Number of waveforms and events should match or '
                              'there should be a single waveform (%d != %d).' %
                              (len(waveform), len(events)))
+        events = _ensure_events(events).astype(np.int64)
         # Update the last sample possible based on events + waveforms
         self._labels.extend([label] * len(events))
         self._waveforms.extend(waveform)
-        self._events = np.vstack([self._events, events])
+        self._events = np.concatenate([self._events, events])
+        assert self._events.dtype == np.int64
         # First sample per waveform is the first column of events
         # Last is computed below
         self._last_samples = np.array([self._events[i, 0] + len(w) - 1
@@ -448,7 +451,7 @@ class SourceSimulator(object):
         n_samples = stop_sample - start_sample + 1
 
         # Initialize the stim data array
-        stim_data = np.zeros(n_samples, dtype=int)
+        stim_data = np.zeros(n_samples, dtype=np.int64)
 
         # Select only events in the time chunk
         stim_ind = np.where(np.logical_and(
@@ -456,7 +459,7 @@ class SourceSimulator(object):
             self._events[:, 0] < stop_sample))[0]
 
         if len(stim_ind) > 0:
-            relative_ind = self._events[stim_ind, 0].astype(int) - start_sample
+            relative_ind = self._events[stim_ind, 0] - start_sample
             stim_data[relative_ind] = self._events[stim_ind, 2]
 
         return stim_data

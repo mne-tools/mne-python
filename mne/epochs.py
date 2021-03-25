@@ -16,7 +16,6 @@ from copy import deepcopy
 import json
 import operator
 import os.path as op
-import warnings
 
 import numpy as np
 
@@ -57,7 +56,7 @@ from .utils import (_check_fname, check_fname, logger, verbose,
                     _check_combine, ShiftTimeMixin, _build_data_frame,
                     _check_pandas_index_arguments, _convert_times,
                     _scale_dataframe_data, _check_time_format, object_size,
-                    _on_missing, _validate_type)
+                    _on_missing, _validate_type, _ensure_events)
 from .utils.docs import fill_doc
 from .data.html_templates import epochs_template
 
@@ -398,16 +397,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         self.verbose = verbose
 
         if events is not None:  # RtEpochs can have events=None
-            events_type = type(events)
-            with warnings.catch_warnings(record=True):
-                warnings.simplefilter('ignore')  # deprecation for object array
-                events = np.asarray(events)
-            if not np.issubdtype(events.dtype, np.integer):
-                raise TypeError('events should be a NumPy array of integers, '
-                                f'got {events_type}')
-            if events.ndim != 2 or events.shape[1] != 3:
-                raise ValueError(
-                    f'events must be of shape (N, 3), got {events.shape}')
+            events = _ensure_events(events)
             events_max = events.max()
             if events_max > INT32_MAX:
                 raise ValueError(
