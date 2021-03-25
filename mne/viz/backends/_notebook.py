@@ -7,7 +7,7 @@
 from contextlib import contextmanager
 from IPython.display import display
 from ipywidgets import (Button, Dropdown, FloatSlider, FloatText, HBox,
-                        IntSlider, IntText, Text, VBox)
+                        IntSlider, IntText, Text, VBox, IntProgress)
 
 from ..utils import _generate_default_filename
 from ...fixes import nullcontext
@@ -218,7 +218,9 @@ class _IpyStatusBar(_AbstractStatusBar, _IpyLayout):
         return _IpyWidget(widget)
 
     def _status_bar_add_progress_bar(self, stretch=0):
-        pass
+        widget = IntProgress()
+        self._layout_add_widget(self._status_bar_layout, widget)
+        return _IpyWidget(widget)
 
     def _status_bar_update(self):
         pass
@@ -299,6 +301,10 @@ class _IpyWidget(_AbstractWidget):
 
     def get_value(self):
         return self._widget.value
+
+    def set_range(self, rng):
+        self._widget.min = rng[0]
+        self._widget.max = rng[1]
 
     def show(self):
         self._widget.layout.visibility = "visible"

@@ -2989,6 +2989,50 @@ class Brain(object):
             kwargs['bitrate'] = bitrate
         imageio.mimwrite(filename, images, **kwargs)
 
+    def _save_movie_tv(self, filename, time_dilation=4., tmin=None, tmax=None,
+                       framerate=24, interpolation=None, codec=None,
+                       bitrate=None, callback=None, time_viewer=False,
+                       **kwargs):
+        def frame_callback(frame, n_frames):
+            if frame == n_frames:
+                # On the ImageIO step
+                self.status_msg.set_value(
+                    "Saving with ImageIO: %s"
+                    % filename
+                )
+                self.status_msg.show()
+                self.status_progress.hide()
+                self._renderer._status_bar_update()
+            else:
+                self.status_msg.set_value(
+                    "Rendering images (frame %d / %d) ..."
+                    % (frame + 1, n_frames)
+                )
+                self.status_msg.show()
+                self.status_progress.show()
+                self.status_progress.set_range([0, n_frames - 1])
+                self.status_progress.set_value(frame)
+                self.status_progress.update()
+            self.status_msg.update()
+            self._renderer._status_bar_update()
+
+        # set cursor to busy
+        default_cursor = self._renderer._window_get_cursor()
+        self._renderer._window_set_cursor(
+            self._renderer._window_new_cursor("WaitCursor"))
+
+        try:
+            self._save_movie(
+                filename=filename,
+                time_dilation=(1. / self.playback_speed),
+                callback=frame_callback,
+                **kwargs
+            )
+        except (Exception, KeyboardInterrupt):
+            warn('Movie saving aborted:\n' + traceback.format_exc())
+        finally:
+            self._renderer._window_set_cursor(default_cursor)
+
     @fill_doc
     def save_movie(self, filename, time_dilation=4., tmin=None, tmax=None,
                    framerate=24, interpolation=None, codec=None,
@@ -3042,73 +3086,10 @@ class Brain(object):
         dialog : object
             The opened dialog is returned for testing purpose only.
         """
-        if self.time_viewer:
-            if filename is None:
-                try:
-                    from pyvista.plotting.qt_plotting import FileDialog
-                except ImportError:
-                    from pyvistaqt.plotting import FileDialog
-                self.status_msg.set_value("Choose movie path ...")
-                self.status_msg.show()
-                self.status_progress.set_value(0)
-
-                def _post_setup(unused):
-                    del unused
-                    self.status_msg.hide()
-                    self.status_progress.hide()
-
-                dialog = FileDialog(
-                    self.plotter.app_window,
-                    callback=partial(self._save_movie, **kwargs)
-                )
-                dialog.setDirectory(os.getcwd())
-                dialog.finished.connect(_post_setup)
-                return dialog
-            else:
-                def frame_callback(frame, n_frames):
-                    if frame == n_frames:
-                        # On the ImageIO step
-                        self.status_msg.set_value(
-                            "Saving with ImageIO: %s"
-                            % filename
-                        )
-                        self.status_msg.show()
-                        self.status_progress.hide()
-                        self._renderer._status_bar_update()
-                    else:
-                        self.status_msg.set_value(
-                            "Rendering images (frame %d / %d) ..."
-                            % (frame + 1, n_frames)
-                        )
-                        self.status_msg.show()
-                        self.status_progress.show()
-                        self.status_progress.forward(
-                            "setRange", 0, n_frames - 1)
-                        self.status_progress.set_value(frame)
-                        self.status_progress.update()
-                    self.status_msg.update()
-                    self._renderer._status_bar_update()
-
-                # set cursor to busy
-                default_cursor = self._renderer._window_get_cursor()
-                self._renderer._window_set_cursor(
-                    self._renderer._window_new_cursor("WaitCursor"))
-
-                try:
-                    self._save_movie(
-                        filename=filename,
-                        time_dilation=(1. / self.playback_speed),
-                        callback=frame_callback,
-                        **kwargs
-                    )
-                except (Exception, KeyboardInterrupt):
-                    warn('Movie saving aborted:\n' + traceback.format_exc())
-                finally:
-                    self._renderer._window_set_cursor(default_cursor)
-        else:
-            self._save_movie(filename, time_dilation, tmin, tmax,
-                             framerate, interpolation, codec,
-                             bitrate, callback, time_viewer, **kwargs)
+        func = self._save_movie_tv if self.time_viewer else self._save_movie
+        func(filename, time_dilation, tmin, tmax,
+             framerate, interpolation, codec,
+             bitrate, callback, time_viewer, **kwargs)
 
     def _make_movie_frames(self, time_dilation, tmin, tmax, framerate,
                            interpolation, callback, time_viewer):

@@ -482,6 +482,9 @@ class _QtWidget(_AbstractWidget):
         elif hasattr(self._widget, "text"):
             return self._widget.text()
 
+    def set_range(self, rng):
+        self._widget.setRange(rng[0], rng[1])
+
     def show(self):
         self._widget.show()
 

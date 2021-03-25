@@ -604,6 +604,10 @@ class _AbstractWidget(ABC):
         pass
 
     @abstractmethod
+    def set_range(self, rng):
+        pass
+
+    @abstractmethod
     def show(self):
         pass
 
@@ -614,10 +618,6 @@ class _AbstractWidget(ABC):
     @abstractmethod
     def update(self, repaint=True):
         pass
-
-    def forward(self, name, *args, **kwargs):
-        if hasattr(self._widget, name):
-            getattr(self._widget, name)(*args, **kwargs)
 
 
 class _AbstractMplInterface(ABC):
