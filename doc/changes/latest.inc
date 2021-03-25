@@ -55,7 +55,7 @@ Current (0.23.dev0)
 
 Enhancements
 ~~~~~~~~~~~~
-- Add :meth:`mne.io.base.BaseRaw._repr_html_` to make HTML based representation of the Epochs object in IPython Notebook (:gh:`9174` by |Valerii Chirkov|_)
+- Add HTML representation for `~mne.Epochs` in Jupyter Notebooks (:gh:`9174` by |Valerii Chirkov|_)
 
 - Speed up :func:`mne.viz.plot_ica_properties` by refactoring (:gh:`9174` **by new contributor** |Valerii Chirkov|_)
 
