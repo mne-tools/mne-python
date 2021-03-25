@@ -356,16 +356,16 @@ def _read_csv(fname, delimiter=','):
     f = open(fname, "r")
     f.readline()
     ch_names = []
-    coords = []
+    pos = []
     for row in csv.reader(f, delimiter=delimiter):
         if include_ch_names:
             ch_name, x, y, z, *_ = row
             ch_names.append(ch_name)
         else:
             x, y, z, *_ = row
-        coords.append((float(x), float(y), float(z)))
+        pos.append((float(x), float(y), float(z)))
     f.close()
-
+    return make_dig_montage(ch_pos=_check_dupes_odict(ch_names, pos))
     # chs = inst.info['chs']
     # if not include_ch_names:
     #     for ch, coord in zip(chs, coords):

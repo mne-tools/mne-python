@@ -361,7 +361,13 @@ def _validate_type(item, types=None, item_name=None, type_name=None):
         The thing to be checked.
     types : type | str | tuple of types | tuple of str
          The types to be checked against.
-         If str, must be one of {'int', 'str', 'numeric', 'info', 'path-like'}.
+         If str, must be one of {'int', 'str', 'numeric', 'info', 'path-like',
+         'callable'}.
+    item_name : str | None
+        Name of the item to show inside the error message.
+    type_name : str | None
+        Possible types to show inside the error message that the checked item
+        can be.
     """
     if types == "int":
         _ensure_int(item, name=item_name)
@@ -387,8 +393,9 @@ def _validate_type(item, types=None, item_name=None, type_name=None):
             else:
                 type_name[-1] = 'or ' + type_name[-1]
                 type_name = ', '.join(type_name)
-        raise TypeError('%s must be an instance of %s, got %s instead'
-                        % (item_name, type_name, type(item),))
+        _item_name = 'Item' if item_name is None else item_name
+        raise TypeError(f"{_item_name} must be an instance of {type_name}, "
+                        f"got {type(item)} instead")
 
 
 def _check_path_like(item):
