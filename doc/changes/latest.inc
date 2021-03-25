@@ -153,6 +153,8 @@ Enhancements
 
 - Add parameter ``theme`` to :class:`mne.viz.Brain` for optional Dark-Mode (:gh:`9149` by `Martin Schulz`_, `Guillaume Favelier`_)
 
+- Add first_samp support for raw simulations with `mne.simulation.simulate_raw` and `mne.simulation.SourceSimulator` (:gh:`9166` by `Steven Bierer`_)
+
 Bugs
 ~~~~
 - Fix bug with :func:`mne.viz.plot_compare_evokeds` did not check type of combine. (:gh:`9151` **by new contributor** |Matteo Anelli|_)
