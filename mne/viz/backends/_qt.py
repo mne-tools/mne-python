@@ -14,7 +14,7 @@ except ImportError:
     from pyvistaqt.plotting import FileDialog
 
 from PyQt5.QtCore import Qt, pyqtSignal, QLocale
-from PyQt5.QtGui import QIcon, QImage, QPixmap
+from PyQt5.QtGui import QIcon, QImage, QPixmap, QCursor
 from PyQt5.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
                              QHBoxLayout, QLabel, QToolButton, QMenuBar,
                              QSlider, QSpinBox, QVBoxLayout, QWidget,
@@ -402,6 +402,9 @@ class _QtWindow(_AbstractWindow):
 
     def _window_set_cursor(self, cursor):
         self._interactor.setCursor(cursor)
+
+    def _window_new_cursor(self, name):
+        return QCursor(getattr(Qt, name))
 
     @contextmanager
     def _window_ensure_minimum_sizes(self):

@@ -790,6 +790,10 @@ class _AbstractWindow(ABC):
         pass
 
     @abstractmethod
+    def _window_new_cursor(self, name):
+        pass
+
+    @abstractmethod
     def _window_ensure_minimum_sizes(self):
         pass
 

@@ -3065,9 +3065,6 @@ class Brain(object):
                 dialog.finished.connect(_post_setup)
                 return dialog
             else:
-                from PyQt5.QtCore import Qt
-                from PyQt5.QtGui import QCursor
-
                 def frame_callback(frame, n_frames):
                     if frame == n_frames:
                         # On the ImageIO step
@@ -3094,7 +3091,8 @@ class Brain(object):
 
                 # set cursor to busy
                 default_cursor = self._renderer._window_get_cursor()
-                self._renderer._window_set_cursor(QCursor(Qt.WaitCursor))
+                self._renderer._window_set_cursor(
+                    self._renderer._window_new_cursor("WaitCursor"))
 
                 try:
                     self._save_movie(

@@ -282,6 +282,9 @@ class _IpyWindow(_AbstractWindow):
     def _window_set_cursor(self, cursor):
         pass
 
+    def _window_new_cursor(self, name):
+        pass
+
     @contextmanager
     def _window_ensure_minimum_sizes(self):
         yield
