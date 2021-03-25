@@ -1452,4 +1452,4 @@ def _get_annotations_gdf(edf_info, sfreq):
         desc = events[2]
 
     return onset, duration, desc
-    
+
