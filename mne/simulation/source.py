@@ -410,11 +410,12 @@ class SourceSimulator(object):
             raise ValueError('Number of waveforms and events should match or '
                              'there should be a single waveform (%d != %d).' %
                              (len(waveform), len(events)))
-        events = _ensure_events(events)
+        events = _ensure_events(events).astype(np.int64)
         # Update the last sample possible based on events + waveforms
         self._labels.extend([label] * len(events))
         self._waveforms.extend(waveform)
-        self._events = np.concatenate([self._events, events], dtype=np.int64)
+        self._events = np.concatenate([self._events, events])
+        assert self._events.dtype == np.int64
         # First sample per waveform is the first column of events
         # Last is computed below
         self._last_samples = np.array([self._events[i, 0] + len(w) - 1
