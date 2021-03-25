@@ -566,6 +566,10 @@ class _AbstractStatusBar(ABC):
     def _status_bar_add_progress_bar(self, stretch=0):
         pass
 
+    @abstractmethod
+    def _status_bar_update(self):
+        pass
+
 
 class _AbstractPlayback(ABC):
     @abstractmethod
@@ -579,7 +583,7 @@ class _AbstractLayout(ABC):
         pass
 
     @abstractmethod
-    def _layout_add_widget(self, layout, widget):
+    def _layout_add_widget(self, layout, widget, stretch=0):
         pass
 
 
@@ -598,6 +602,22 @@ class _AbstractWidget(ABC):
     @abstractmethod
     def get_value(self):
         pass
+
+    @abstractmethod
+    def show(self):
+        pass
+
+    @abstractmethod
+    def hide(self):
+        pass
+
+    @abstractmethod
+    def update(self, repaint=True):
+        pass
+
+    def forward(self, name, *args, **kwargs):
+        if hasattr(self._widget, name):
+            getattr(self._widget, name)(*args, **kwargs)
 
 
 class _AbstractMplInterface(ABC):

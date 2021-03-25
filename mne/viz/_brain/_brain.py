@@ -705,7 +705,7 @@ class Brain(object):
             self.plotter.picker = None
         # XXX end PyVista
         for key in ('plotter', 'window', 'dock', 'tool_bar', 'menu_bar',
-                    'status_bar', 'interactor', 'mpl_canvas', 'time_actor',
+                    'interactor', 'mpl_canvas', 'time_actor',
                     'picked_renderer', 'act_data_smooth', '_scalar_bar',
                     'actions', 'widgets', 'geo', '_data'):
             setattr(self, key, None)
@@ -3048,9 +3048,9 @@ class Brain(object):
                     from pyvista.plotting.qt_plotting import FileDialog
                 except ImportError:
                     from pyvistaqt.plotting import FileDialog
-                self.status_msg.setText("Choose movie path ...")
+                self.status_msg.set_value("Choose movie path ...")
                 self.status_msg.show()
-                self.status_progress.setValue(0)
+                self.status_progress.set_value(0)
 
                 def _post_setup(unused):
                     del unused
@@ -3071,27 +3071,26 @@ class Brain(object):
                 def frame_callback(frame, n_frames):
                     if frame == n_frames:
                         # On the ImageIO step
-                        self.status_msg.setText(
+                        self.status_msg.set_value(
                             "Saving with ImageIO: %s"
                             % filename
                         )
                         self.status_msg.show()
                         self.status_progress.hide()
-                        self.status_bar.layout().update()
+                        self._renderer._status_bar_update()
                     else:
-                        self.status_msg.setText(
+                        self.status_msg.set_value(
                             "Rendering images (frame %d / %d) ..."
                             % (frame + 1, n_frames)
                         )
                         self.status_msg.show()
                         self.status_progress.show()
-                        self.status_progress.setRange(0, n_frames - 1)
-                        self.status_progress.setValue(frame)
+                        self.status_progress.forward(
+                            "setRange", 0, n_frames - 1)
+                        self.status_progress.set_value(frame)
                         self.status_progress.update()
-                        self.status_progress.repaint()
                     self.status_msg.update()
-                    self.status_msg.parent().update()
-                    self.status_msg.repaint()
+                    self._renderer._status_bar_update()
 
                 # set cursor to busy
                 default_cursor = self._renderer._window_get_cursor()

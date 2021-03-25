@@ -9,6 +9,7 @@ from IPython.display import display
 from ipywidgets import (Button, Dropdown, FloatSlider, FloatText, HBox,
                         IntSlider, IntText, Text, VBox)
 
+from ..utils import _generate_default_filename
 from ...fixes import nullcontext
 from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractStatusBar, _AbstractLayout, _AbstractWidget,
@@ -21,7 +22,7 @@ class _IpyLayout(_AbstractLayout):
     def _layout_initialize(self, max_width):
         self._layout_max_width = max_width
 
-    def _layout_add_widget(self, layout, widget):
+    def _layout_add_widget(self, layout, widget, stretch=0):
         widget.layout.margin = "2px 0px 2px 0px"
         widget.layout.min_width = "0px"
         children = list(layout.children)
@@ -37,19 +38,19 @@ class _IpyLayout(_AbstractLayout):
 
 class _IpyDock(_AbstractDock, _IpyLayout):
     def _dock_initialize(self, window=None):
-        self.dock_width = 300
-        self.dock = self.dock_layout = VBox()
-        self.dock.layout.width = f"{self.dock_width}px"
-        self._layout_initialize(self.dock_width)
+        self._dock_width = 300
+        self._dock = self._dock_layout = VBox()
+        self._dock.layout.width = f"{self._dock_width}px"
+        self._layout_initialize(self._dock_width)
 
     def _dock_finalize(self):
         pass
 
     def _dock_show(self):
-        self.dock_layout.layout.visibility = "visible"
+        self._dock_layout.layout.visibility = "visible"
 
     def _dock_hide(self):
-        self.dock_layout.layout.visibility = "hidden"
+        self._dock_layout.layout.visibility = "hidden"
 
     def _dock_add_stretch(self, layout):
         pass
@@ -58,7 +59,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         return VBox() if vertical else HBox()
 
     def _dock_add_label(self, value, align=False, layout=None):
-        layout = self.dock_layout if layout is None else layout
+        layout = self._dock_layout if layout is None else layout
         widget = Text(value=value, disabled=True)
         self._layout_add_widget(layout, widget)
         return _IpyWidget(widget)
@@ -70,7 +71,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         return _IpyWidget(widget)
 
     def _dock_named_layout(self, name, layout, compact):
-        layout = self.dock_layout if layout is None else layout
+        layout = self._dock_layout if layout is None else layout
         if name is not None:
             hlayout = self._dock_add_layout(not compact)
             self._dock_add_label(
@@ -119,7 +120,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         return _IpyWidget(widget)
 
     def _dock_add_group_box(self, name, layout=None):
-        layout = self.dock_layout if layout is None else layout
+        layout = self._dock_layout if layout is None else layout
         hlayout = VBox()
         self._layout_add_widget(layout, hlayout)
         return hlayout
@@ -149,7 +150,7 @@ class _IpyToolBar(_AbstractToolBar, _IpyLayout):
 
     def _tool_bar_initialize(self, name="default", window=None):
         self.actions = dict()
-        self.tool_bar = HBox()
+        self._tool_bar = self._tool_bar_layout = HBox()
         self._layout_initialize(None)
 
     def _tool_bar_add_button(self, name, desc, func, icon_name=None,
@@ -160,7 +161,7 @@ class _IpyToolBar(_AbstractToolBar, _IpyLayout):
             return
         widget = Button(tooltip=desc, icon=icon)
         widget.on_click(lambda x: func())
-        self._layout_add_widget(self.tool_bar, widget)
+        self._layout_add_widget(self._tool_bar_layout, widget)
         self.actions[name] = widget
 
     def _tool_bar_update_button_icon(self, name, icon_name):
@@ -168,7 +169,7 @@ class _IpyToolBar(_AbstractToolBar, _IpyLayout):
 
     def _tool_bar_add_text(self, name, value, placeholder):
         widget = Text(value=value, placeholder=placeholder)
-        self._layout_add_widget(self.tool_bar, widget)
+        self._layout_add_widget(self._tool_bar_layout, widget)
         self.actions[name] = widget
 
     def _tool_bar_add_spacer(self):
@@ -206,14 +207,20 @@ class _IpyMenuBar(_AbstractMenuBar):
         pass
 
 
-class _IpyStatusBar(_AbstractStatusBar):
+class _IpyStatusBar(_AbstractStatusBar, _IpyLayout):
     def _status_bar_initialize(self, window=None):
-        pass
+        self._status_bar = self._status_bar_layout = HBox()
+        self._layout_initialize(None)
 
     def _status_bar_add_label(self, value, stretch=0):
-        pass
+        widget = Text(value=value, disabled=True)
+        self._layout_add_widget(self._status_bar_layout, widget)
+        return _IpyWidget(widget)
 
     def _status_bar_add_progress_bar(self, stretch=0):
+        pass
+
+    def _status_bar_update(self):
         pass
 
 
@@ -290,12 +297,22 @@ class _IpyWidget(_AbstractWidget):
     def get_value(self):
         return self._widget.value
 
+    def show(self):
+        self._widget.layout.visibility = "visible"
+
+    def hide(self):
+        self._widget.layout.visibility = "hidden"
+
+    def update(self, repaint=True):
+        pass
+
 
 class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
                 _IpyStatusBar, _IpyWindow, _IpyPlayback):
     def __init__(self, *args, **kwargs):
-        self.dock = None
-        self.tool_bar = None
+        self._dock = None
+        self._tool_bar = None
+        self._status_bar = None
         kwargs["notebook"] = True
         super().__init__(*args, **kwargs)
 
@@ -306,28 +323,32 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
     def _create_default_tool_bar(self):
         self._tool_bar_load_icons()
         self._tool_bar_initialize()
-        self._tool_bar_add_screenshot_button(
+        self._tool_bar_add_file_button(
             name="screenshot",
             desc="Take a screenshot",
             func=self.screenshot,
+            default_name=_generate_default_filename(".png"),
         )
 
     def show(self):
         # default tool bar
-        if self.tool_bar is None:
+        if self._tool_bar is None:
             self._create_default_tool_bar()
-        display(self.tool_bar)
+        display(self._tool_bar)
         # viewer
         viewer = self.plotter.show(
             use_ipyvtk=True, return_viewer=True)
         viewer.layout.width = None  # unlock the fixed layout
         # main widget
-        if self.dock is None:
+        if self._dock is None:
             main_widget = viewer
         else:
-            main_widget = HBox([self.dock, viewer])
+            main_widget = HBox([self._dock, viewer])
         display(main_widget)
         self.figure.display = viewer
+        # status bar
+        if self._status_bar is not None:
+            display(self._status_bar)
         return self.scene()
 
 

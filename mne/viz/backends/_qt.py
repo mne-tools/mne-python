@@ -36,7 +36,7 @@ class _QtLayout(_AbstractLayout):
     def _layout_initialize(self, max_width):
         pass
 
-    def _layout_add_widget(self, layout, widget, max_width=None):
+    def _layout_add_widget(self, layout, widget, stretch=0):
         if isinstance(widget, QLayout):
             layout.addLayout(widget)
         else:
@@ -46,19 +46,19 @@ class _QtLayout(_AbstractLayout):
 class _QtDock(_AbstractDock, _QtLayout):
     def _dock_initialize(self, window=None):
         window = self._window if window is None else window
-        self.dock, self.dock_layout = _create_dock_widget(
+        self._dock, self._dock_layout = _create_dock_widget(
             self._window, "Controls", Qt.LeftDockWidgetArea)
         window.setCorner(Qt.BottomLeftCorner, Qt.LeftDockWidgetArea)
 
     def _dock_finalize(self):
-        self.dock.setMinimumSize(self.dock.sizeHint().width(), 0)
-        self._dock_add_stretch(self.dock_layout)
+        self._dock.setMinimumSize(self._dock.sizeHint().width(), 0)
+        self._dock_add_stretch(self._dock_layout)
 
     def _dock_show(self):
-        self.dock.show()
+        self._dock.show()
 
     def _dock_hide(self):
-        self.dock.hide()
+        self._dock.hide()
 
     def _dock_add_stretch(self, layout):
         layout.addStretch()
@@ -68,7 +68,7 @@ class _QtDock(_AbstractDock, _QtLayout):
         return layout
 
     def _dock_add_label(self, value, align=False, layout=None):
-        layout = self.dock_layout if layout is None else layout
+        layout = self._dock_layout if layout is None else layout
         widget = QLabel()
         if align:
             widget.setAlignment(Qt.AlignCenter)
@@ -77,7 +77,7 @@ class _QtDock(_AbstractDock, _QtLayout):
         return _QtWidget(widget)
 
     def _dock_add_button(self, name, callback, layout=None):
-        layout = self.dock_layout if layout is None else layout
+        layout = self._dock_layout if layout is None else layout
         # If we want one with text instead of an icon, we should use
         # QPushButton(name)
         widget = QToolButton()
@@ -87,7 +87,7 @@ class _QtDock(_AbstractDock, _QtLayout):
         return _QtWidget(widget)
 
     def _dock_named_layout(self, name, layout, compact):
-        layout = self.dock_layout if layout is None else layout
+        layout = self._dock_layout if layout is None else layout
         if name is not None:
             hlayout = self._dock_add_layout(not compact)
             self._dock_add_label(
@@ -139,7 +139,7 @@ class _QtDock(_AbstractDock, _QtLayout):
         return _QtWidget(widget)
 
     def _dock_add_group_box(self, name, layout=None):
-        layout = self.dock_layout if layout is None else layout
+        layout = self._dock_layout if layout is None else layout
         hlayout = QVBoxLayout()
         widget = QGroupBox(name)
         widget.setLayout(hlayout)
@@ -239,13 +239,14 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
     def _tool_bar_initialize(self, name="default", window=None):
         self.actions = dict()
         window = self._window if window is None else window
-        self.tool_bar = window.addToolBar(name)
+        self._tool_bar = window.addToolBar(name)
+        self._tool_bar_layout = self._tool_bar.layout()
 
     def _tool_bar_add_button(self, name, desc, func, icon_name=None,
                              shortcut=None):
         icon_name = name if icon_name is None else icon_name
         icon = self.icons[icon_name]
-        self.actions[name] = self.tool_bar.addAction(icon, desc, func)
+        self.actions[name] = self._tool_bar.addAction(icon, desc, func)
         if shortcut is not None:
             self.actions[name].setShortcut(shortcut)
 
@@ -258,7 +259,7 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
     def _tool_bar_add_spacer(self):
         spacer = QWidget()
         spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        self.tool_bar.addWidget(spacer)
+        self._tool_bar.addWidget(spacer)
 
     def _tool_bar_add_file_button(self, name, desc, func, default_name,
                                   shortcut=None):
@@ -291,33 +292,37 @@ class _QtMenuBar(_AbstractMenuBar):
     def _menu_initialize(self, window=None):
         self._menus = dict()
         self._menu_actions = dict()
-        self.menu_bar = QMenuBar()
-        self.menu_bar.setNativeMenuBar(False)
+        self._menu_bar = QMenuBar()
+        self._menu_bar.setNativeMenuBar(False)
         window = self._window if window is None else window
-        window.setMenuBar(self.menu_bar)
+        window.setMenuBar(self._menu_bar)
 
     def _menu_add_submenu(self, name, desc):
-        self._menus[name] = self.menu_bar.addMenu(desc)
+        self._menus[name] = self._menu_bar.addMenu(desc)
 
     def _menu_add_button(self, menu_name, name, desc, func):
         menu = self._menus[menu_name]
         self._menu_actions[name] = menu.addAction(desc, func)
 
 
-class _QtStatusBar(_AbstractStatusBar):
+class _QtStatusBar(_AbstractStatusBar, _QtLayout):
     def _status_bar_initialize(self, window=None):
         window = self._window if window is None else window
-        self.status_bar = window.statusBar()
+        self._status_bar = window.statusBar()
+        self._status_bar_layout = self._status_bar.layout()
 
     def _status_bar_add_label(self, value, stretch=0):
         widget = QLabel(value)
-        self.status_bar.layout().addWidget(widget, stretch)
-        return widget
+        self._layout_add_widget(self._status_bar_layout, widget, stretch)
+        return _QtWidget(widget)
 
     def _status_bar_add_progress_bar(self, stretch=0):
         widget = QProgressBar()
-        self.status_bar.layout().addWidget(widget, stretch)
-        return widget
+        self._layout_add_widget(self._status_bar_layout, widget, stretch)
+        return _QtWidget(widget)
+
+    def _status_bar_update(self):
+        self._status_bar.layout().update()
 
 
 class _QtPlayback(_AbstractPlayback):
@@ -473,6 +478,17 @@ class _QtWidget(_AbstractWidget):
             return self._widget.currentText()
         elif hasattr(self._widget, "text"):
             return self._widget.text()
+
+    def show(self):
+        self._widget.show()
+
+    def hide(self):
+        self._widget.hide()
+
+    def update(self, repaint=True):
+        self._widget.update()
+        if repaint:
+            self._widget.repaint()
 
 
 class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
