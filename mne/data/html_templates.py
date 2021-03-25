@@ -79,8 +79,8 @@ raw_template = Template("""
 epochs_template = Template("""
 <table class="table table-hover">
     <tr>
-        <th>N events</th>
-        <td>{{'%s events' % len(epochs.events)}}</td>
+        <th>Number of events</th>
+        <td>{{len(epochs.events)}}</td>
     </tr>
     <tr>
         <th>Events</th>
