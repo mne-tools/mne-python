@@ -1411,11 +1411,13 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         from numpy.core.records import fromarrays
         from scipy.io import savemat
 
-        ch_names = self.ch_names
+        # load data first
+        self.load_data()
 
         # remove extra epoc and STI channels
-        chs_drop = ['epoc']
-        if 'STI 014' in ch_names and not (self.filenames[0].endswith('.fif')):
+        chs_drop = [ch for ch in ['epoc'] if ch in self.ch_names]
+        if 'STI 014' in self.ch_names and \
+                not (self.filenames[0].endswith('.fif')):
             chs_drop.append('STI 014')
         self.drop_channels(chs_drop)
 
@@ -1425,10 +1427,12 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         # chanlocs = fromarrays([ch_names], names=["labels"])
 
-        from .utils import get_eeglab_full_cords
+        from .utils import _get_eeglab_full_cords
 
         # convert xyz to full eeglab coordinates
-        full_coords = get_eeglab_full_cords(self)
+        full_coords = _get_eeglab_full_cords(self)
+
+        ch_names = self.ch_names
 
         # convert to record arrays for MATLAB format
         chanlocs = fromarrays(
@@ -1458,26 +1462,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         savemat(fname, eeg_d,
                 appendmat=False)
 
-    def import_eeg_chan_location_from_csv(self, fname, delimiter=',',
-                                          include_ch_names=True):
-        """Import eeg channel locations from CSV files into MNE instance.
-
-        CSV files should have columns x, y, and z,
-        each row represents one channel.
-        Optionally the first column can contain the channel names.
-
-        Parameters
-        ----------
-        fname : str
-            Name of the csv file to read channel locations from
-        delimiter : str
-            Delimiter used by the CSV file
-        include_ch_names : bool
-            Whether the CSV file include channel names as the first column
-        """
-        from .utils import import_eeg_chan_location_from_csv
-        import_eeg_chan_location_from_csv(self, fname, delimiter,
-                                          include_ch_names)
 
     def _tmin_tmax_to_start_stop(self, tmin, tmax):
         start = int(np.floor(tmin * self.info['sfreq']))

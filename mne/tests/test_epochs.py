@@ -29,7 +29,7 @@ from mne.baseline import rescale
 from mne.datasets import testing
 from mne.chpi import read_head_pos, head_pos_to_trans_rot_t
 from mne.event import merge_events
-from mne.io import RawArray, read_raw_fif
+from mne.io import RawArray, read_raw_fif, read_epochs_eeglab
 from mne.io.constants import FIFF
 from mne.io.proj import _has_eeg_average_ref_proj
 from mne.io.write import write_int, INT32_MAX, _get_split_size
@@ -3034,6 +3034,21 @@ def test_save_complex_data(tmpdir, preload, is_complex, fmt, rtol):
     if fmt == 'single' and not preload and not is_complex:
         rtol = 2e-4
     assert_allclose(data_read, data, rtol=rtol)
+
+
+@pytest.mark.parametrize('preload', (True, False))
+def test_save_set(tmpdir, preload):
+    raw, events = _get_data()[:2]
+    raw.load_data()
+    epochs = Epochs(raw, events, preload=preload)
+    temp_fname = op.join(str(tmpdir), 'test.set')
+    epochs.save_set(temp_fname)
+    epochs_read = read_epochs_eeglab(temp_fname)
+    assert epochs.ch_names == epochs_read.ch_names
+    assert_array_equal(epochs.events[:,0], epochs_read.events[:,0]) # latency
+    assert epochs.event_id.keys() == epochs_read.event_id.keys() # just keys
+    assert_allclose(epochs.times, epochs_read.times)
+    assert_allclose(epochs.get_data(), epochs_read.get_data())
 
 
 def test_no_epochs(tmpdir):

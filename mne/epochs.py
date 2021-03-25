@@ -1829,12 +1829,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         from numpy.core.records import fromarrays
         from scipy.io import savemat
 
-        ch_names = self.ch_names
+        # load data first
+        self.load_data()
 
         # remove extra epoc and STI channels
-        chs_drop = ['epoc']
-        if 'STI 014' in ch_names and not (self.filenames[0].endswith('.fif')):
-            chs_drop.append('STI 014')
+        chs_drop = [ch for ch in ['epoc', 'STI 014'] if ch in self.ch_names]
         self.drop_channels(chs_drop)
 
         data = self.get_data() * 1e6  # convert to microvolts
@@ -1844,8 +1843,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         trials = len(self.events)  # epoch count in EEGLAB
 
         # get full EEGLAB coordinates to export
-        from .io.utils import get_eeglab_full_cords
-        full_coords = get_eeglab_full_cords(self)
+        from .io.utils import _get_eeglab_full_cords
+        full_coords = _get_eeglab_full_cords(self)
+
+        ch_names = self.ch_names
 
         # convert to record arrays for MATLAB format
         chanlocs = fromarrays(
@@ -1858,8 +1859,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         event_type_d = dict((v, k) for k, v in self.event_id.items())
         ev_types = [event_type_d[ev[2]] for ev in self.events]
 
-        # EEGLAB latency, in seconds
-        ev_lat = [int(n / fs * 100) for n in self.events[:, 0]]
+        # EEGLAB latency, in units of data sample points
+        # ev_lat = [int(n) for n in self.events[:, 0]]
+        ev_lat = self.events[:,0]
 
         # event durations should all be 0 except boundaries which we don't have
         ev_dur = np.zeros((trials,), dtype=np.int64)
@@ -1896,26 +1898,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         savemat(fname, eeg_d,
                 appendmat=False)
 
-    def import_eeg_chan_location_from_csv(self, fname, delimiter=',',
-                                          include_ch_names=True):
-        """Import eeg channel locations from CSV files into MNE instance.
-
-        CSV files should have columns x, y, and z,
-        each row represents one channel.
-        Optionally the first column can contain the channel names.
-
-        Parameters
-        ----------
-        fname : str
-            Name of the csv file to read channel locations from
-        delimiter : str
-            Delimiter used by the CSV file
-        include_ch_names : bool
-            Whether the CSV file include channel names as the first column
-        """
-        from .io.utils import import_eeg_chan_location_from_csv
-        import_eeg_chan_location_from_csv(self, fname, delimiter,
-                                          include_ch_names)
 
     def equalize_event_counts(self, event_ids, method='mintime'):
         """Equalize the number of trials in each condition.

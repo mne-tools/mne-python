@@ -314,15 +314,19 @@ def _construct_bids_filename(base, ext, part_idx):
     return use_fname
 
 
-def cart_to_eeglab_full_coords_xyz(x, y, z):
+def _cart_to_eeglab_full_coords_xyz(x, y, z):
     """Convert Cartesian coordinates to EEGLAB full coordinates.
 
     Also see https://github.com/sccn/eeglab/blob/develop/functions/sigprocfunc/convertlocs.m
 
     Parameters
     ----------
-    x, y, z : ndarray, shape (n_points, )
-        Arrays of x, y, and z coordinates
+    x : ndarray, shape (n_points, )
+        Array of x coordinates
+    y : ndarray, shape (n_points, )
+        Array of y coordinates
+    z : ndarray, shape (n_points, )
+        Array of z coordinates
 
     Returns
     -------
@@ -335,7 +339,7 @@ def cart_to_eeglab_full_coords_xyz(x, y, z):
     assert len(x) == len(y) == len(z)
     out = np.empty((len(x), 7))
 
-    # see https://github.com/sccn/eeglab/blob/develop/functions/sigprocfunc/topo2sph.m
+    # https://github.com/sccn/eeglab/blob/develop/functions/sigprocfunc/topo2sph.m
     def topo2sph(theta, radius):
         c = np.empty((len(theta),))
         h = np.empty((len(theta),))
@@ -376,7 +380,7 @@ def cart_to_eeglab_full_coords_xyz(x, y, z):
     return out
 
 
-def cart_to_eeglab_full_coords(cart):
+def _cart_to_eeglab_full_coords(cart):
     """Convert Cartesian coordinates to EEGLAB full coordinates.
 
     Also see https://github.com/sccn/eeglab/blob/develop/functions/sigprocfunc/convertlocs.m
@@ -398,10 +402,10 @@ def cart_to_eeglab_full_coords(cart):
     assert cart.ndim == 2 and cart.shape[1] == 3
     cart = np.atleast_2d(cart)
     x, y, z = cart.T
-    return cart_to_eeglab_full_coords_xyz(x, y, z)
+    return _cart_to_eeglab_full_coords_xyz(x, y, z)
 
 
-def get_eeglab_full_cords(inst):
+def _get_eeglab_full_cords(inst):
     """Get full EEGLAB coords from MNE instance (Raw or Epochs)
 
     Parameters
@@ -417,51 +421,6 @@ def get_eeglab_full_cords(inst):
     """
     chs = inst.info["chs"]
     cart_coords = np.array([d['loc'][:3] for d in chs])
-    other_coords = cart_to_eeglab_full_coords(cart_coords)
+    other_coords = _cart_to_eeglab_full_coords(cart_coords)
     full_coords = np.append(cart_coords, other_coords, 1)  # hstack
     return full_coords
-
-
-def import_eeg_chan_location_from_csv(inst, fname, delimiter=',',
-                                      include_ch_names=True):
-    """Import eeg channel locations from CSV files into MNE instance.
-
-    CSV files should have columns x, y, and z, each row represents one channel.
-    Optionally the first column can contain the channel names.
-
-    Parameters
-    ----------
-    inst : Epochs or Raw
-        Instance of epochs or raw to save locations to
-    fname : str
-        Name of the csv file to read channel locations from
-    delimiter : str
-        Delimiter used by the CSV file
-    include_ch_names : bool
-        Whether the CSV file include channel names as the first column
-    """
-    import csv
-    f = open(fname, "r")
-    f.readline()
-    ch_names = [] if include_ch_names else None
-    coords = []
-    for row in csv.reader(f, delimiter=delimiter):
-        if include_ch_names:
-            ch_name, x, y, z, *_ = row
-            ch_names.append(ch_name)
-        else:
-            x, y, z, *_ = row
-        coords.append((float(x), float(y), float(z)))
-    f.close()
-
-    chs = inst.info['chs']
-    if not include_ch_names:
-        for ch, coord in zip(chs, coords):
-            ch['loc'][:3] = coord
-    else:
-        for ch in chs:
-            try:
-                coord = coords[ch_names.index(ch['ch_name'])]
-            except ValueError:  # ch_name not in channel list, default to 0
-                coord = (0, 0, 0)
-            ch['loc'][:3] = coord
