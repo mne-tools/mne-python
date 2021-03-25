@@ -1606,7 +1606,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         else:
             baseline = tuple(['None' if b is None else ('%.3f' % b)
                               for b in self.baseline])
-            baseline = '%s: %s sec' % baseline
+            baseline = f'{baseline[0]} – {baseline[1]} sec'
 
         if isinstance(self.event_id, dict):
             events = ''
