@@ -588,6 +588,7 @@ print(template_eog_component)
 
 ###############################################################################
 # Compute ICA components on epochs
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
 # ICA is now fit to epoched MEG data instead of the raw data.
 # We assume that the non-stationary EOG artifacts have already been removed.
