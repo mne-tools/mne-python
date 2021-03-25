@@ -472,8 +472,8 @@ class SourceSimulator(object):
         Parameters
         ----------
         start_sample : int | None
-            First sample in chunk. Default is the value of the ``first_samp``
-            attribute.
+            First sample in chunk. If ``None`` the value of the ``first_samp``
+            attribute is used. Defaults to ``None``.
         stop_sample : int | None
             The final sample of the returned STC. If ``None``, then all samples
             past ``start_sample`` are returned.

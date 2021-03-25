@@ -385,7 +385,7 @@ def test_source_simulator(_get_fwd_labels):
     ss = SourceSimulator(src, tstep)
     offset = 50
     for i in range(3):  # events are offset, but first_samp = 0
-        events[i][:, 0] += offset
+        events[i, 0] += offset
         ss.add_data(mylabels[i], wfs[i], events[i])
     offset_stc = ss.get_stc()
     assert ss.n_times == 56
