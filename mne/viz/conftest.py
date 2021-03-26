@@ -121,5 +121,9 @@ def pytest_runtest_call(item):
             if c.startswith('    '):  # actual content
                 break
         code = '\n'.join(code[ci:])
-        item.runtest = lambda: nbexec(code)
+
+        def run(nbexec=nbexec, code=code):
+            nbexec(code)
+
+        item.runtest = run
     return
