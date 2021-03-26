@@ -16,7 +16,7 @@ def test_click_ch_name():
     """Test fake clicks"""
     import matplotlib
     import matplotlib.pyplot as plt
-    matplotlib.use('Qt5Agg')
+    matplotlib.use('Agg')
     plt.close('all')
     raw = read_raw_fif(raw_fname)
     raw_fig = raw.plot(block=False, show=False, verbose='warning')
