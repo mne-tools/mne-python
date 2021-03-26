@@ -273,14 +273,14 @@ def garbage_collect():
     gc.collect()
 
 
-@pytest.fixture(params=["mayavi", "pyvista", "notebook"])
+@pytest.fixture(params=["mayavi", "pyvista"])
 def renderer(request, garbage_collect):
     """Yield the 3D backends."""
     with _use_backend(request.param, interactive=False) as renderer:
         yield renderer
 
 
-@pytest.fixture(params=["pyvista", "notebook"])
+@pytest.fixture(params=["pyvista"])
 def renderer_pyvista(request, garbage_collect):
     """Yield the PyVista backend."""
     with _use_backend(request.param, interactive=False) as renderer:
@@ -294,14 +294,14 @@ def renderer_notebook(request):
         yield renderer
 
 
-@pytest.fixture(scope="module", params=["notebook"])
+@pytest.fixture(scope="module", params=["pyvista"])
 def renderer_interactive_pyvista(request):
     """Yield the interactive PyVista backend."""
     with _use_backend(request.param, interactive=True) as renderer:
         yield renderer
 
 
-@pytest.fixture(scope="module", params=["pyvista", "mayavi", "notebook"])
+@pytest.fixture(scope="module", params=["pyvista", "mayavi"])
 def renderer_interactive(request):
     """Yield the interactive 3D backends."""
     with _use_backend(request.param, interactive=True) as renderer:
@@ -329,24 +329,15 @@ def _use_backend(backend_name, interactive):
 def _check_skip_backend(name):
     from mne.viz.backends.tests._utils import (has_mayavi, has_pyvista,
                                                has_pyqt5, has_imageio_ffmpeg)
-    try:
-        get_ipython  # noqa
-    except Exception:
-        in_ipy = False
-    else:
-        in_ipy = True
     if name == 'mayavi':
         if not has_mayavi():
             pytest.skip("Test skipped, requires mayavi.")
-    elif name in ('pyvista', 'notebook'):
+    elif name == 'pyvista':
         if not has_pyvista():
             pytest.skip("Test skipped, requires pyvista.")
         if not has_imageio_ffmpeg():
             pytest.skip("Test skipped, requires imageio-ffmpeg")
-    if name != 'notebook':
-        if in_ipy:
-            pytest.skip('In a notebook')
-    elif not has_pyqt5():
+    if not has_pyqt5():
         pytest.skip("Test skipped, requires PyQt5.")
 
 
