@@ -437,7 +437,7 @@ new_ica.plot_sources(ecg_evoked)
 # before accepting them.
 
 # clean up memory before moving on
-del raw, filt_raw, ica, new_ica
+del raw, ica, new_ica
 
 ###############################################################################
 # Selecting ICA components using template matching
@@ -585,7 +585,56 @@ print(template_eog_component)
 # .. _`qrs`: https://en.wikipedia.org/wiki/QRS_complex
 # .. _`this EEGLAB tutorial`: https://labeling.ucsd.edu/tutorial/labels
 
+
+###############################################################################
+# Compute ICA components on epochs
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#
+# ICA is now fit to epoched MEG data instead of the raw data.
+# We assume that the non-stationary EOG artifacts have already been removed.
+# The sources matching the ECG are automatically found and displayed.
+#
+# .. note::
+#     This example is computationally intensive, so it might take a few minutes
+#     to complete.
+#
+# Read and preprocess the data. Preprocessing consists of:
+#
+# - MEG channel selection
+# - 1-30 Hz band-pass filter
+# - epoching -0.2 to 0.5 seconds with respect to events
+# - rejection based on peak-to-peak amplitude
+
+filt_raw.pick_types(meg=True, eeg=False, exclude='bads', stim=True).load_data()
+filt_raw.filter(1, 30, fir_design='firwin')
+
+# peak-to-peak amplitude rejection parameters
+reject = dict(grad=4000e-13, mag=4e-12)
+# create longer and more epochs for more artifact exposure
+events = mne.find_events(filt_raw, stim_channel='STI 014')
+epochs = mne.Epochs(filt_raw, events, event_id=None, tmin=-0.2, tmax=0.5,
+                    reject=reject)
+
+###############################################################################
+# Fit ICA model using the FastICA algorithm, detect and plot components
+# explaining ECG artifacts.
+
+ica = ICA(n_components=15, method='fastica', max_iter="auto").fit(epochs)
+
+ecg_epochs = create_ecg_epochs(filt_raw, tmin=-.5, tmax=.5)
+ecg_inds, scores = ica.find_bads_ecg(ecg_epochs, threshold='auto')
+
+ica.plot_components(ecg_inds)
+
+###############################################################################
+# Plot the properties of the ECG components:
+ica.plot_properties(epochs, picks=ecg_inds)
+
+###############################################################################
+# Plot the estimated sources of detected ECG related components:
+ica.plot_sources(filt_raw, picks=ecg_inds)
+
 ###############################################################################
 # References
-# ----------
+# ^^^^^^^^^^
 # .. footbibliography::
