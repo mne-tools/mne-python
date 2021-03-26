@@ -320,7 +320,7 @@ class _QtStatusBar(_AbstractStatusBar, _QtLayout):
         return _QtWidget(widget)
 
     def _status_bar_update(self):
-        self._status_bar.layout().update()
+        self._status_bar_layout.update()
 
 
 class _QtPlayback(_AbstractPlayback):
