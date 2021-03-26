@@ -9,7 +9,6 @@ from IPython.display import display
 from ipywidgets import (Button, Dropdown, FloatSlider, FloatText, HBox,
                         IntSlider, IntText, Text, VBox, IntProgress)
 
-from ..utils import _generate_default_filename
 from ...fixes import nullcontext
 from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractStatusBar, _AbstractLayout, _AbstractWidget,
@@ -334,7 +333,6 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
             name="screenshot",
             desc="Take a screenshot",
             func=self.screenshot,
-            default_name=_generate_default_filename(".png"),
         )
 
     def show(self):

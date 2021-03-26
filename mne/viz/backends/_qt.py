@@ -40,7 +40,7 @@ class _QtLayout(_AbstractLayout):
         if isinstance(widget, QLayout):
             layout.addLayout(widget)
         else:
-            layout.addWidget(widget)
+            layout.addWidget(widget, stretch)
 
 
 class _QtDock(_AbstractDock, _QtLayout):
@@ -97,8 +97,7 @@ class _QtDock(_AbstractDock, _QtLayout):
         return layout
 
     def _dock_add_slider(self, name, value, rng, callback,
-                         compact=True, double=False, layout=None,
-                         stretch=0):
+                         compact=True, double=False, layout=None):
         layout = self._dock_named_layout(name, layout, compact)
         slider_class = QFloatSlider if double else QSlider
         cast = float if double else int
