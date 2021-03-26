@@ -4,7 +4,25 @@ import numpy as np
 import pytest
 
 from mne.datasets import testing
+from mne.utils._testing import _click_ch_name
 from mne.utils import (_TempDir, _url_to_local_path, buggy_mkl_svd)
+from mne.io import read_raw_fif
+
+base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
+raw_fname = op.join(base_dir, 'test_raw.fif')
+
+
+def test_click_ch_name():
+    """Test fake clicks"""
+    import matplotlib
+    import matplotlib.pyplot as plt
+    matplotlib.use('Agg')
+    plt.close('all')
+    raw = read_raw_fif(raw_fname)
+    raw_fig = raw.plot(block=False, show=False, verbose='warning')
+    _click_ch_name(raw_fig, ch_index=0, button=1)
+    raw_fig.canvas.key_press_event(raw_fig.mne.close_key)
+    assert raw.info['bads'] == ['MEG 0113']
 
 
 def test_buggy_mkl():
