@@ -13,7 +13,7 @@ raw_fname = op.join(base_dir, 'test_raw.fif')
 
 
 def test_click_ch_name():
-    """Test fake clicks"""
+    """Test fake clicks."""
     import matplotlib
     import matplotlib.pyplot as plt
     matplotlib.use('Agg')
