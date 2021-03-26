@@ -473,8 +473,7 @@ class _AbstractToolBar(ABC):
         pass
 
     @abstractmethod
-    def _tool_bar_add_file_button(self, name, desc, func, default_name,
-                                  shortcut=None):
+    def _tool_bar_add_file_button(self, name, desc, func, shortcut=None):
         pass
 
     @abstractmethod

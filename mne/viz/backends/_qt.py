@@ -261,8 +261,7 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
         spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self._tool_bar.addWidget(spacer)
 
-    def _tool_bar_add_file_button(self, name, desc, func, default_name,
-                                  shortcut=None):
+    def _tool_bar_add_file_button(self, name, desc, func, shortcut=None):
         def callback():
             return FileDialog(
                 self.plotter.app_window,

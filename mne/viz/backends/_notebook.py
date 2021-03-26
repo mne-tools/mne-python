@@ -175,12 +175,10 @@ class _IpyToolBar(_AbstractToolBar, _IpyLayout):
     def _tool_bar_add_spacer(self):
         pass
 
-    def _tool_bar_add_file_button(self, name, desc, func, default_name,
-                                  shortcut=None):
+    def _tool_bar_add_file_button(self, name, desc, func, shortcut=None):
         def callback():
             fname = self.actions[f"{name}_field"].value
-            fname = default_name if len(fname) == 0 else fname
-            func(fname)
+            func(None if len(fname) == 0 else fname)
         self._tool_bar_add_text(
             name=f"{name}_field",
             value=None,

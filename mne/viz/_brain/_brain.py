@@ -1234,13 +1234,11 @@ class Brain(object):
             name="screenshot",
             desc="Take a screenshot",
             func=self.save_image,
-            default_name=_generate_default_filename(".png"),
         )
         self._renderer._tool_bar_add_file_button(
             name="movie",
             desc="Save movie...",
             func=self.save_movie,
-            default_name=_generate_default_filename(".mp4"),
             shortcut="ctrl+shift+s",
         )
         self._renderer._tool_bar_add_button(
@@ -2570,7 +2568,7 @@ class Brain(object):
                 self._renderer.set_camera(**views_dicts[h][v],
                                           reset_camera=False)
 
-    def save_image(self, filename, mode='rgb'):
+    def save_image(self, filename=None, mode='rgb'):
         """Save view from all panels to disk.
 
         Parameters
@@ -2580,6 +2578,8 @@ class Brain(object):
         mode : str
             Either 'rgb' or 'rgba' for values to return.
         """
+        default_name = _generate_default_filename(".png")
+        filename = default_name if filename is None else filename
         from ..utils import _save_ndarray_img
         _save_ndarray_img(
             filename, self.screenshot(mode=mode, time_viewer=True))
@@ -3034,7 +3034,7 @@ class Brain(object):
             self._renderer._window_set_cursor(default_cursor)
 
     @fill_doc
-    def save_movie(self, filename, time_dilation=4., tmin=None, tmax=None,
+    def save_movie(self, filename=None, time_dilation=4., tmin=None, tmax=None,
                    framerate=24, interpolation=None, codec=None,
                    bitrate=None, callback=None, time_viewer=False, **kwargs):
         """Save a movie (for data with a time axis).
@@ -3086,6 +3086,8 @@ class Brain(object):
         dialog : object
             The opened dialog is returned for testing purpose only.
         """
+        default_name = _generate_default_filename(".mp4")
+        filename = default_name if filename is None else filename
         func = self._save_movie_tv if self.time_viewer else self._save_movie
         func(filename, time_dilation, tmin, tmax,
              framerate, interpolation, codec,
