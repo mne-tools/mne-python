@@ -49,7 +49,7 @@ raw.set_montage(montage)
 
 # strip channel names of "." characters
 raw.rename_channels(lambda x: x.strip('.'))
-# for the sake of comparison, we save the raw object before filteing
+# for the sake of comparison, we save the raw object before filtering
 raw_ssd = raw.copy()
 ##############################################################################
 # Data filtering.
@@ -86,10 +86,10 @@ scores_csp = cross_val_score(pipe_csp, epochs_data, labels, cv=cv,
                              n_jobs=1).mean()
 ###############################################################################
 # SSD enhances SNR, thus what is considered 'noise' should be defined
-# Typically the 2 Hz sourronunding frequencies are taken
+# Typically bands of 2 Hz surrounding the frequencies of interest are taken
 freq_noise = [6, 14]
-# when applying SSD, data should be broader band filtered
-# a broader band of the freq_signal is defined
+# when applying SSD, data should be filtered in a broader band than for CSP,
+# thus, a broader bandwidth is defined for freq_signal
 freq_ssd = [5, 15]
 # as before, filter data
 raw_ssd.filter(freq_ssd[0], freq_ssd[1], fir_design='firwin',
@@ -116,7 +116,7 @@ filt_params_noise = dict(l_freq=freq_noise[0], h_freq=freq_noise[1],
 # Since we are working with a high electrode counting dataset (64 channels),
 # it is interesting to see the impact of the number of component in SSD, i.e.,
 # the impact in data dimensionality reduction before applying CSP.
-# The minimum n_components is 4, since 4 CSP components were selected
+# The minimum n_components is 4, since 4 CSP components were selected, and
 # the maximum is the number of channels, here 64.
 steps = 4
 n_components = np.arange(4, 65, steps)
@@ -124,8 +124,8 @@ scores_ssd_csp = np.zeros((len(n_components,)))
 std_ssd_csp = np.zeros((len(n_components,)))
 for n, n_comp in enumerate(n_components):
     print('RUNNING n_components_' + str(n_comp))
-    # set to true return_filtered so as the transformed signal will be filtered
-    # at the desired frequency band.
+    # set return_filtered to True, so the transformed signal will be filtered in
+    # the desired frequency band.
     ssd = SSD(raw_ssd.info, filt_params_signal, filt_params_noise,
               sort_by_spectral_ratio=True, return_filtered=True,
               n_components=n_comp)
@@ -173,8 +173,9 @@ epochs_ssd_cropped = epochs_ssd.copy().crop(tmin=1., tmax=2.)
 labels = epochs_ssd.events[:, -1] - 2
 epochs_ssd_data = epochs_ssd_cropped.get_data()
 
-# Since SSD will be applied in epoched data, it is very likely that the
-# optimal number of SSD components be different from the value found before.
+# Since SSD will be applied on epoched data, it is very likely that the
+# optimal number of SSD components will be different from the value found 
+# before.
 scores_ssd_csp_e = np.zeros((len(n_components,)))
 std_ssd_csp_e = np.zeros((len(n_components,)))
 for n, n_comp in enumerate(n_components):
@@ -247,9 +248,9 @@ pattern_epochs = EvokedArray(data=csp.patterns_[:4].T,
                              info=raw_ssd.info)
 pattern_epochs.plot_topomap(units=dict(mag='A.U.'), time_format='')
 
-# As it can be seen from the topographycal plots, the CSP patternes learned
-# after SSD was applied, enhances the left vs. right event related
-# (de)/synchronization patterns.
+# As it can be seen from the topographical plots, the CSP patterns that were
+# learned after SSD was applied enhance the left vs. right event related
+# (de-)synchronization patterns.
 ##############################################################################
 # References
 # ----------
