@@ -830,7 +830,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             channels will be unchanged. Finally, if a dict is provided, keys
             must be channel types, and values must be units to scale the data
             of that channel type to. For example
-            ``dict(grad='fT/cV', mag='fT')`` will scale the corresponding types
+            ``dict(grad='fT/cm', mag='fT')`` will scale the corresponding types
             accordingly but all other channel types will remain in their
             channel type specific default unit.
         %(verbose_meth)s
@@ -850,14 +850,15 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         picks = _picks_to_idx(self.info, picks, 'all', exclude=())
 
         # Convert into the specified unit
+        _validate_type(units, types=(None, str, dict), item_name="units")
         ch_factors = np.ones(len(picks))
 
         si_units = _handle_default('si_units')
         si_units_splitted = {key: si_units[key].split('/') for key in si_units}
-        prefixes = {'': 1e0, 'd': 1e1, 'c': 1e2, 'm': 1e3, 'µ': 1e6, 'u': 1e6,
-                    'n': 1e9, 'p': 1e12, 'f': 1e15}
+        prefixes = _handle_default('prefixes')
         prefix_list = list(prefixes.keys())
 
+        # Convert to dict if str units
         if isinstance(units, str):
             # Check that there is only one channel type
             ch_types = self.get_channel_types(picks=picks, unique=True)
@@ -868,9 +869,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                                  f'{unit_ch_type}.')
             units = {unit_ch_type[0]: units}  # make the str argument a dict
 
-        if units is None:
-            pass
-        elif isinstance(units, dict):
+        # Loop over the dict to get channel factors
+        if isinstance(units, dict):
             for ch_type, ch_unit in units.items():
                 # Check that the provided unit exists for the ch_type
                 unit_list = ch_unit.split('/')
@@ -907,9 +907,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                             ch_factors[indices] = ch_factors[indices] / scaling
                         else:
                             raise ValueError(f'{ch_unit} is not a valid unit.')
-        else:
-            raise TypeError('"units" must be None, str or dict, not '
-                            f'{type(units)}.')
 
         # convert to ints
         picks = np.atleast_1d(np.arange(self.info['nchan'])[picks])
@@ -920,8 +917,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                 (picks, slice(start, stop)), return_times=return_times)
             if return_times:
                 data, times = getitem
-                return data * ch_factors[:, None], times
-            return getitem * ch_factors[:, None]
+                return data * ch_factors[:, np.newaxis], times
+            return getitem * ch_factors[:, np.newaxis]
         _check_option('reject_by_annotation', reject_by_annotation.lower(),
                       ['omit', 'nan'])
         onsets, ends = _annotations_starts_stops(self, ['BAD'])
@@ -931,8 +928,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         if len(onsets) == 0:
             data, times = self[picks, start:stop]
             if return_times:
-                return data * ch_factors[:, None], times
-            return data * ch_factors[:, None]
+                return data * ch_factors[:, np.newaxis], times
+            return data * ch_factors[:, np.newaxis]
         n_samples = stop - start  # total number of samples
         used = np.ones(n_samples, bool)
         for onset, end in zip(onsets, ends):
@@ -972,8 +969,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             data, times = self[picks, start:stop]
 
         if return_times:
-            return data * ch_factors[:, None], times
-        return data * ch_factors[:, None]
+            return data * ch_factors[:, np.newaxis], times
+        return data * ch_factors[:, np.newaxis]
 
     @verbose
     def apply_function(self, fun, picks=None, dtype=None, n_jobs=1,

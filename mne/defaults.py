@@ -97,7 +97,9 @@ DEFAULTS = dict(
     interpolation_method=dict(eeg='spline', meg='MNE', fnirs='nearest'),
     volume_options=dict(
         alpha=None, resolution=1., surface_alpha=None, blending='mip',
-        silhouette_alpha=None, silhouette_linewidth=2.)
+        silhouette_alpha=None, silhouette_linewidth=2.),
+    prefixes={'': 1e0, 'd': 1e1, 'c': 1e2, 'm': 1e3, 'µ': 1e6, 'u': 1e6,
+              'n': 1e9, 'p': 1e12, 'f': 1e15}
 )
 
 

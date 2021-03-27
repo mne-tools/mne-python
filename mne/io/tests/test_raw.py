@@ -638,5 +638,5 @@ def test_get_data_units():
         raw.get_data(units=dict(grad='fT/cV', mag='fT', eeg='uV'))
 
     # not the good type
-    with pytest.raises(TypeError, match='must be None, str or dict'):
+    with pytest.raises(TypeError, match='instance of None, str, or dict'):
         raw.get_data(units=['fT/cm', 'fT', 'uV'])
