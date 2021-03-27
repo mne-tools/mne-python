@@ -3038,6 +3038,7 @@ def test_save_complex_data(tmpdir, preload, is_complex, fmt, rtol):
 
 @pytest.mark.parametrize('preload', (True, False))
 def test_save_set(tmpdir, preload):
+    """Test saving an Epochs instance to EEGLAB's set format"""
     raw, events = _get_data()[:2]
     raw.load_data()
     epochs = Epochs(raw, events, preload=preload)

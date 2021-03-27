@@ -585,6 +585,7 @@ def test_describe_df():
 
 
 def test_save_set():
+    """Test saving a Raw instance to EEGLAB's set format"""
     fname = Path(__file__).parent / "data" / "test_raw.fif"
     raw = read_raw_fif(fname)
     raw.load_data()
