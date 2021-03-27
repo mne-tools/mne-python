@@ -852,12 +852,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         # Convert into the specified unit
         _validate_type(units, types=(None, str, dict), item_name="units")
         ch_factors = np.ones(len(picks))
-
         si_units = _handle_default('si_units')
-        si_units_splitted = {key: si_units[key].split('/') for key in si_units}
-        prefixes = _handle_default('prefixes')
-        prefix_list = list(prefixes.keys())
-
         # Convert to dict if str units
         if isinstance(units, str):
             # Check that there is only one channel type
@@ -868,45 +863,16 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                                  'one channel type with a unit '
                                  f'{unit_ch_type}.')
             units = {unit_ch_type[0]: units}  # make the str argument a dict
-
         # Loop over the dict to get channel factors
         if isinstance(units, dict):
             for ch_type, ch_unit in units.items():
-                # Check that the provided unit exists for the ch_type
-                unit_list = ch_unit.split('/')
-                si_unit_list = si_units_splitted[ch_type]
-                if len(unit_list) != len(si_unit_list):
-                    raise ValueError(f'{ch_unit} is not a valid unit.')
-                for i, unit in enumerate(unit_list):
-                    valid = [prefix + si_unit_list[i]
-                             for prefix in prefix_list]
-                    if unit not in valid:
-                        raise ValueError(f'{ch_unit} is not a valid unit.')
-
                 # Get the scaling factors
-                for i, unit in enumerate(unit_list):
-                    has_square = False
-                    # XXX power normally not used as csd cannot get_data()
-                    if unit[-1] == '²':
-                        has_square = True
-                    if unit == 'm':  # only the ECG unit starts like a prefix
-                        scaling = 1
-                    elif unit[0] in prefixes.keys():
-                        scaling = prefixes[unit[0]]
-                    else:
-                        scaling = 1
-                    if scaling != 1:
-                        if has_square:
-                            scaling *= scaling
-                        ch_types = self.get_channel_types(picks=picks)
-                        indices = [i_ch for i_ch, ch in enumerate(ch_types)
-                                   if ch == ch_type]
-                        if i == 0:
-                            ch_factors[indices] = ch_factors[indices] * scaling
-                        elif i == 1:
-                            ch_factors[indices] = ch_factors[indices] / scaling
-                        else:
-                            raise ValueError(f'{ch_unit} is not a valid unit.')
+                scaling = _get_scaling(ch_type, ch_unit)
+                if scaling != 1:
+                    ch_types = self.get_channel_types(picks=picks)
+                    indices = [i_ch for i_ch, ch in enumerate(ch_types)
+                               if ch == ch_type]
+                    ch_factors[indices] = ch_factors[indices] * scaling
 
         # convert to ints
         picks = np.atleast_1d(np.arange(self.info['nchan'])[picks])
@@ -1958,6 +1924,61 @@ def _convert_slice(sel):
         return slice(sel[0], sel[-1] + 1)
     else:
         return sel
+
+
+def _get_scaling(ch_type, target_unit):
+    """Return the scaling factor based on the channel type and a target unit.
+
+    Parameters
+    ----------
+    ch_type: str
+        The channel type.
+    target_unit: str
+        The target unit for the provided channel type.
+
+    Returns
+    -------
+    scaling: int
+        The scaling factor to convert from the si_unit (used by default for MNE
+        objects) to the target unit.
+    """
+    scaling = 1
+    si_units = _handle_default('si_units')
+    si_units_splitted = {key: si_units[key].split('/') for key in si_units}
+    prefixes = _handle_default('prefixes')
+    prefix_list = list(prefixes.keys())
+
+    # Check that the provided unit exists for the ch_type
+    unit_list = target_unit.split('/')
+    si_unit_list = si_units_splitted[ch_type]
+    if len(unit_list) != len(si_unit_list):
+        raise ValueError(f'{target_unit} is not a valid unit.')
+    for i, unit in enumerate(unit_list):
+        valid = [prefix + si_unit_list[i]
+                 for prefix in prefix_list]
+        if unit not in valid:
+            raise ValueError(f'{target_unit} is not a valid unit.')
+
+    # Get the scaling factors
+    for i, unit in enumerate(unit_list):
+        has_square = False
+        # XXX power normally not used as csd cannot get_data()
+        if unit[-1] == '²':
+            has_square = True
+        if unit == 'm':  # only the ECG unit starts like a prefix
+            factor = 1
+        elif unit[0] in prefixes.keys():
+            factor = prefixes[unit[0]]
+        else:
+            factor = 1
+        if factor != 1:
+            if has_square:
+                factor *= factor
+            if i == 0:
+                scaling = scaling * factor
+            elif i == 1:
+                scaling = scaling / factor
+    return scaling
 
 
 class _ReadSegmentFileProtector(object):
