@@ -1933,14 +1933,14 @@ def _get_scaling(ch_type, target_unit):
 
     Parameters
     ----------
-    ch_type: str
+    ch_type : str
         The channel type.
-    target_unit: str
+    target_unit : str
         The target unit for the provided channel type.
 
     Returns
     -------
-    scaling: int
+    scaling : float
         The scaling factor to convert from the si_unit (used by default for MNE
         objects) to the target unit.
     """
