@@ -360,7 +360,7 @@ def _cart_to_eeglab_full_coords_xyz(x, y, z):
     sph_r = np.sqrt(np.square(x) + np.square(y) + np.square(z))
 
     # other stuff needed by EEGLAB
-    sph_theta = 90 - th / np.pi * 180
+    sph_theta = th / np.pi * 180
     sph_phi = phi / np.pi * 180
     sph_radius = sph_r
     theta = -sph_theta
@@ -421,6 +421,9 @@ def _get_eeglab_full_cords(inst):
     """
     chs = inst.info["chs"]
     cart_coords = np.array([d['loc'][:3] for d in chs])
+    # (-y x z) to (x y z)
+    cart_coords[:, 0] = -cart_coords[:, 0]  # -y to y
+    cart_coords[:, [0, 1]] = cart_coords[:, [1, 0]]  # swap x (1) and y (0)
     other_coords = _cart_to_eeglab_full_coords(cart_coords)
     full_coords = np.append(cart_coords, other_coords, 1)  # hstack
     return full_coords

@@ -3045,8 +3045,14 @@ def test_save_set(tmpdir, preload):
     epochs.save_set(temp_fname)
     epochs_read = read_epochs_eeglab(temp_fname)
     assert epochs.ch_names == epochs_read.ch_names
-    assert_array_equal(epochs.events[:,0], epochs_read.events[:,0]) # latency
-    assert epochs.event_id.keys() == epochs_read.event_id.keys() # just keys
+    cart_coords = np.array([d['loc'][:3]
+                           for d in epochs.info['chs']])  # just xyz
+    cart_coords_read = np.array([d['loc'][:3]
+                                for d in epochs_read.info['chs']])
+    assert_allclose(cart_coords, cart_coords_read)
+    assert_array_equal(epochs.events[:, 0],
+                       epochs_read.events[:, 0])  # latency
+    assert epochs.event_id.keys() == epochs_read.event_id.keys()  # just keys
     assert_allclose(epochs.times, epochs_read.times)
     assert_allclose(epochs.get_data(), epochs_read.get_data())
 

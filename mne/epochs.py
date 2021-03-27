@@ -1819,7 +1819,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         Parameters
         ----------
         fname : str
-            name of the export file
+            Name of the export file.
 
         Notes
         -----
@@ -1861,7 +1861,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         # EEGLAB latency, in units of data sample points
         # ev_lat = [int(n) for n in self.events[:, 0]]
-        ev_lat = self.events[:,0]
+        ev_lat = self.events[:, 0]
 
         # event durations should all be 0 except boundaries which we don't have
         ev_dur = np.zeros((trials,), dtype=np.int64)
@@ -1897,7 +1897,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                               icaweights=[]))
         savemat(fname, eeg_d,
                 appendmat=False)
-
 
     def equalize_event_counts(self, event_ids, method='mintime'):
         """Equalize the number of trials in each condition.
