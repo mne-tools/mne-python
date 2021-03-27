@@ -91,13 +91,12 @@ ul.quicklinks a:hover {
     text-decoration: none;
 }
 ul.funders li {
-    line-height: initial;
-    margin-left: 24px;
-    text-indent: -24px;
-    padding-bottom: 6px;
+    margin-left: 36px;
+    text-indent: -36px;
+    padding-bottom: 9px;
 }
 ul.funders li img {
-    width: 18px;
+    width: 24px;
 }
 /* these two also affect collapsible divs */
 h5.card-header {
