@@ -105,8 +105,10 @@ class MNEFigure(Figure):
     def _keypress(self, event):
         """Handle keypress events."""
         if event.key == self.mne.close_key:
-            from matplotlib.pyplot import close
+            from matplotlib.pyplot import close, rcParams
             close(self)
+            if rcParams['backend'].lower() == 'agg':
+                self._close(event)
         elif event.key == 'f11':  # full screen
             self.canvas.manager.full_screen_toggle()
 
