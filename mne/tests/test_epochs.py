@@ -846,8 +846,10 @@ def test_read_epochs_bad_events():
     epochs = Epochs(raw, np.array([[raw.first_samp, 0, event_id]]),
                     event_id, tmin, tmax, picks=picks)
     assert (repr(epochs))  # test repr
+    assert (epochs._repr_html_())  # test _repr_html_
     epochs.drop_bad()
     assert (repr(epochs))
+    assert (epochs._repr_html_())
     with pytest.warns(RuntimeWarning, match='empty'):
         evoked = epochs.average()
 
@@ -2971,6 +2973,8 @@ def test_events_list():
                                         mne.create_info(10, 1000.)),
                         events=events)
     assert_array_equal(epochs.events, np.array(events))
+    assert (repr(epochs))  # test repr
+    assert (epochs._repr_html_())  # test _repr_html_
 
 
 def test_save_overwrite(tmpdir):

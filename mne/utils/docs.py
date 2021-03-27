@@ -2189,6 +2189,13 @@ overwrite : bool
     exists.
 """
 
+docdict['ref_channels'] = """
+ref_channels : str | list of str
+    Name of the electrode(s) which served as the reference in the
+    recording. If a name is provided, a corresponding channel is added
+    and its data is set to 0. This is useful for later re-referencing.
+"""
+
 docdict_indented = {}
 
 

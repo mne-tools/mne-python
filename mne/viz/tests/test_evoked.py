@@ -385,6 +385,11 @@ def test_plot_compare_evokeds():
     plot_compare_evokeds(evoked_dict, cmap=('cmap title', 'inferno'),
                          linestyles=['-', ':', '--'])
     plt.close('all')
+    # test combine
+    match = 'combine must be an instance of None, callable, or str'
+    with pytest.raises(TypeError, match=match):
+        plot_compare_evokeds(evoked, combine=["mean", "gfp"])
+    plt.close('all')
     # test warnings
     with pytest.warns(RuntimeWarning, match='in "picks"; cannot combine'):
         plot_compare_evokeds(evoked, picks=[0], combine='median')

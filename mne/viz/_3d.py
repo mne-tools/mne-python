@@ -1475,7 +1475,12 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
 
     time_label, times = _handle_time(time_label, time_unit, stc.times)
     fig = plt.figure(figsize=(6, 6)) if figure is None else figure
-    ax = Axes3D(fig)
+    try:
+        ax = Axes3D(fig, auto_add_to_figure=False)
+    except Exception:  # old mpl
+        ax = Axes3D(fig)
+    else:
+        fig.add_axes(ax)
     hemi_idx = 0 if hemi == 'lh' else 1
     surf = op.join(subjects_dir, subject, 'surf', '%s.%s' % (hemi, surface))
     if spacing == 'all':
@@ -1548,7 +1553,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
         cax.tick_params(labelsize=16)
         cb.patch.set_facecolor('0.5')
         cax.set(xlim=(scale_pts[0], scale_pts[2]))
-    plt.show()
+    plt_show(True)
     return fig
 
 

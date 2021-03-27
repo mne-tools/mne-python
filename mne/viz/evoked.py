@@ -1947,6 +1947,23 @@ def _title_helper_pce(title, picked_types, picks, ch_names, combine):
     return title
 
 
+def _ascii_minus_to_unicode(s):
+    """Replace ASCII-encoded "minus-hyphen" characters with Unicode minus.
+
+    Aux function for ``plot_compare_evokeds`` to prettify ``Evoked.comment``.
+    """
+    if s is None:
+        return
+
+    # replace ASCII minus operators with Unicode minus characters
+    s = s.replace(' - ', ' − ')
+    # replace leading minus operator if present
+    if s.startswith('-'):
+        s = f'−{s[1:]}'
+
+    return s
+
+
 @fill_doc
 def plot_compare_evokeds(evokeds, picks=None, colors=None,
                          linestyles=None, styles=None, cmap=None,
@@ -2171,7 +2188,10 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
     if isinstance(evokeds, (list, tuple)):
         evokeds_copy = evokeds.copy()
         evokeds = dict()
-        comments = [getattr(_evk, 'comment', None) for _evk in evokeds_copy]
+
+        comments = [_ascii_minus_to_unicode(getattr(_evk, 'comment', None))
+                    for _evk in evokeds_copy]
+
         for idx, (comment, _evoked) in enumerate(zip(comments, evokeds_copy)):
             key = str(idx + 1)
             if comment:  # only update key if comment is non-empty
@@ -2225,6 +2245,7 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
     if show_sensors is None:
         show_sensors = (len(picks) == 1)
 
+    _validate_type(combine, types=(None, 'callable', str), item_name='combine')
     # cannot combine a single channel
     if (len(picks) < 2) and combine is not None:
         warn('Only {} channel in "picks"; cannot combine by method "{}".'

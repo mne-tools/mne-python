@@ -19,6 +19,8 @@ Current (0.23.dev0)
 
 .. |New Contributor| replace:: **New Contributor**
 
+.. |Sumalyo Datta| replace:: **Sumalyo Datta**
+
 .. |Anna Padee| replace:: **Anna Padee**
 
 .. |Richard Koehler| replace:: **Richard Koehler**
@@ -47,12 +49,18 @@ Current (0.23.dev0)
 
 .. |Silvia Cotroneo| replace:: **Silvia Cotroneo**
 
+.. |Ram Pari| replace:: **Ram Pari**
+
 .. |Erica Peterson| replace:: **Erica Peterson**
 
 .. |Maggie Clarke| replace:: **Maggie Clarke**
 
 Enhancements
 ~~~~~~~~~~~~
+- Add HTML representation for `~mne.Epochs` in Jupyter Notebooks (:gh:`9174` by |Valerii Chirkov|_)
+
+- Speed up :func:`mne.viz.plot_ica_properties` by refactoring (:gh:`9174` **by new contributor** |Valerii Chirkov|_)
+
 - Add ``apply_function`` method to epochs and evoked objects (:gh:`9088` **by new contributor** |Erica Peterson|_ and `Victoria Peterson`_)
 
 - New tutorial for function :func:`mne.make_fixed_length_epochs` (:gh:`9156` **by new contributor** |Erica Peterson|_)
@@ -139,16 +147,28 @@ Enhancements
 
 - `mne.viz.plot_drop_log` and :meth:`mne.Epochs.plot_drop_log` now omit displaying the subject name in the title if ``subject=None`` is passed (:gh:`9015` by `Richard Höchenberger`_)
 
+- Plot ECoG tutorial now uses a real epilepsy seizure dataset and visualizes the seizure onset (:gh:`9087` by `Eric Larson`_, `Adam Li`_, `Alex Rockhill`_ and `Liberty Hamilton`_)
+
 - Improve documentation of Report-Class (:gh:`9113` by `Martin Schulz`_)
 
 - Add :func:`mne.channels.DigMontage.add_estimated_fiducials` which will add LPA, RPA and Nasion fiducial points to the ``DigMontage`` object in ``mri`` coordinate frame (:gh:`9118` by `Adam Li`_)
 
-- :func:`mne.io.anonymize_info` now anonymizes also sex and hand fields when ``keep_his`` is ``False`` (:gh:`9103` by |Rotem Falach|_)
+- :func:`mne.io.anonymize_info` now anonymizes also sex and hand fields when ``keep_his`` is ``False`` (:gh:`9103`, :gh:`9175` by |Rotem Falach|_ and `Richard Höchenberger`_)
+
+- Add parameter ``theme`` to :class:`mne.viz.Brain` for optional Dark-Mode (:gh:`9149` by `Martin Schulz`_, `Guillaume Favelier`_)
+
+- Add first_samp support for raw simulations with `mne.simulation.simulate_raw` and `mne.simulation.SourceSimulator` (:gh:`9166` by `Steven Bierer`_)
 
 - Add ``units`` parameter to :meth:`mne.io.Raw.get_data` to return data in the desired unit (:gh:`9136` by `Johann Benerradi`_ and `Stefan Appelhoff`_)
 
 Bugs
 ~~~~
+- Fix bug with :func:`mne.io.read_raw_edf` where µV was not correctly recognized (:gh:`9187` **by new contributor** |Sumalyo Datta|_)
+
+- Fix bug with :func:`mne.viz.plot_compare_evokeds` did not check type of combine. (:gh:`9151` **by new contributor** |Matteo Anelli|_)
+                                        
+- Fix bug with :func:`mne.viz.plot_evoked_topo` where ``ylim`` was only being applied to the first channel in the dataset (:gh:`9162` **by new contributor** |Ram Pari|_ )
+
 - Fix bug with :func:`mne.Epochs.plot_image` allowing interactive zoom to work properly (:gh:`9152` by **by new contributor** |Maggie Clarke|_ and `Daniel McCloy`_)
 
 - Fix bug with :func:`mne.Epochs.plot_image` where the ``x_label`` was different depending on the evoked parameter (:gh:`9115` **by new contributor** |Matteo Anelli|_)
@@ -240,6 +260,10 @@ Bugs
 - Fix bug when setting n_jobs > 1 in :func:`mne.Report.parse_folder` (:gh:`9109` by `Martin Schulz`_)
 
 - Fix bug with :func:`mne.Evoked.plot_image` where an incorrect clim parameter did not raise any error (:gh:`9115` **by new contributor** |Matteo Anelli|_)
+
+- Fix bug with :func:`mne.io.Raw.pick` where incorrect fnirs types were returned (:gh:`9178` by `Robert Luke`_)
+
+- Improved string representation of `~mne.Epochs` containing multiple event types; improved (and more mathematically correct) ``evoked.comment`` in the `mne.combine_evoked` output; and better (and often more concise) legend labels in the figures created via `~mne.viz.plot_compare_evokeds` (:gh:`9027` by `Richard Höchenberger`_)
 
 API changes
 ~~~~~~~~~~~
