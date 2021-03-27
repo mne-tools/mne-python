@@ -724,7 +724,10 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         nirs_types = {'hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_od'}
         is_nirs = len(set.intersection(types_used, nirs_types)) > 0
         if is_meg:
-            types_used = list(types_used)[::-1]  # -> restore kwarg order
+            types_used = list(types_used)
+            # Fix issue where ylimits get swapped
+            if types_used[0] == 'grad':
+                types_used = list(types_used)[::-1]
             picks = [pick_types(info, meg=kk, ref_meg=False, exclude=[])
                      for kk in types_used]
         elif is_nirs:
