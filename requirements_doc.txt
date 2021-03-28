@@ -7,4 +7,4 @@ memory_profiler
 neo
 seaborn
 sphinx_copybutton
-https://github.com/mne-tools/mne-bids/archive/master.zip
+https://github.com/mne-tools/mne-bids/archive/main.zip

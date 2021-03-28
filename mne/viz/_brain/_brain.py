@@ -419,7 +419,7 @@ class Brain(object):
         if len(size) not in (1, 2):
             raise ValueError('"size" parameter must be an int or length-2 '
                              'sequence of ints.')
-        self._size = size if len(size) == 2 else size * 2  # 1-tuple to 2-tuple
+        size = size if len(size) == 2 else size * 2  # 1-tuple to 2-tuple
         subjects_dir = get_subjects_dir(subjects_dir)
 
         self.theme = theme
@@ -474,12 +474,11 @@ class Brain(object):
             offset = (surf == 'inflated')
         offset = None if (not offset or hemi != 'both') else 0.0
 
-        self._renderer = _get_renderer(name=self._title, size=self._size,
+        self._renderer = _get_renderer(name=self._title, size=size,
                                        bgcolor=background,
                                        shape=shape,
                                        fig=figure)
-
-        self._renderer._window_initialize(self._clean)
+        self._renderer._window_close_connect(self._clean)
         self._renderer._window_set_theme(theme)
         self.plotter = self._renderer.plotter
 
@@ -663,7 +662,7 @@ class Brain(object):
         self._configure_help()
         # show everything at the end
         self.toggle_interface()
-        self._renderer._window_show(self._size)
+        self._renderer.show()
 
         # sizes could change, update views
         for hemi in ('lh', 'rh'):
@@ -726,7 +725,7 @@ class Brain(object):
             self.visibility = value
 
         # update tool bar and dock
-        with self._renderer._window_ensure_minimum_sizes(self._size):
+        with self._renderer._window_ensure_minimum_sizes():
             if self.visibility:
                 self._renderer._dock_show()
                 self._renderer._tool_bar_update_button_icon(
