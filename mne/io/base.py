@@ -821,15 +821,15 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             Specify the unit(s) that the data should be returned in. If
             ``None`` (default), the data is returned in the
             channel-type-specific default units, which are SI units (see
-            :ref:`units` and :term:`data channels`). If a string, must be an SI
-            unit that will be used to scale the data from all channels of the
-            type associated with that unit. This only works if the data
-            contains one channel type that has a unit (unitless channel types
-            are left unchanged). For example if there are only EEG and STIM
-            channels, ``units='uV'`` will scale EEG channels to micro-Volts
-            while STIM channels will be unchanged. Finally, if a dictionary is
-            provided, keys must be channel types, and values must be units to
-            scale the data of that channel type to. For example
+            :ref:`units` and :term:`data channels`). If a string, must be a
+            sub-multiple of SI units that will be used to scale the data from
+            all channels of the type associated with that unit. This only works
+            if the data contains one channel type that has a unit (unitless
+            channel types are left unchanged). For example if there are only
+            EEG and STIM channels, ``units='uV'`` will scale EEG channels to
+            micro-Volts while STIM channels will be unchanged. Finally, if a
+            dictionary is provided, keys must be channel types, and values must
+            be units to scale the data of that channel type to. For example
             ``dict(grad='fT/cm', mag='fT')`` will scale the corresponding types
             accordingly, but all other channel types will remain in their
             channel-type-specific default unit.
@@ -1965,15 +1965,15 @@ def _get_scaling(ch_type, target_unit):
     si_unit_list = si_units_splitted[ch_type]
     if len(unit_list) != len(si_unit_list):
         raise ValueError(
-            f'{target_unit} is not a valid unit for {ch_type}, use a multiple '
-            f'of {si_units[ch_type]} instead.')
+            f'{target_unit} is not a valid unit for {ch_type}, use a '
+            f'sub-multiple of {si_units[ch_type]} instead.')
     for i, unit in enumerate(unit_list):
         valid = [prefix + si_unit_list[i]
                  for prefix in prefix_list]
         if unit not in valid:
             raise ValueError(
                 f'{target_unit} is not a valid unit for {ch_type}, use a '
-                f'multiple of {si_units[ch_type]} instead.')
+                f'sub-multiple of {si_units[ch_type]} instead.')
 
     # Get the scaling factors
     for i, unit in enumerate(unit_list):
