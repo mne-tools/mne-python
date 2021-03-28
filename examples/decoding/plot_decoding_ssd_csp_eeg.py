@@ -213,7 +213,7 @@ ax.legend()
 # performance. Given that in this scenario SSD is applied after epoching,
 # the edge effects of filtering epoched data might explain both: why accuracy
 # improvement is lower than before and why more :attr:n_components are
-# needed to achive the maximum performance.
+# needed to achieve the maximum performance.
 ##############################################################################
 # Neurophysiological interpretation of the solution
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
