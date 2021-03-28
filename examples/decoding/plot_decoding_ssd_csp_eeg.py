@@ -5,9 +5,14 @@
 Improving motor imagery decoding from EEG using Spatio Spectra Decomposition
 ============================================================================
 
-Improving the decoding of Motor Imagery from EEG data when SSD is applied
-before the traditional CSP. A classifier is then trained using the extracted
-features from the SSD+CSP-filtered signals.
+The Spatio Spectra Decomposition (SSD) is a supervised spatial filtering
+algorithm capable of extracting components primarily related to the signal of
+interest. It can be used as a pre-processing step for the analysis of neuronal
+activity. In this example SSD will be used in the context of Motor Imagery
+decoding from EEG data. It will be applied before extracting features with
+the Common Spatial Patterns (CSP) method. A classifier will then be trained
+using the extracted features from the SSD + CSP-filtered signals. The impact in
+performance of using SSD before CSP will be shown here.
 
 :footcite:`NikulinEtAl2011`.
 """
@@ -36,7 +41,7 @@ from mne.decoding import SSD
 
 # avoid classification of evoked responses by using epochs that start 1s after
 # cue onset.
-tmin, tmax = -1., 4.
+tmin, tmax = 1., 2.
 event_id = dict(left=2, right=3)  # Motor imagery: left vs right hand
 subject = 2
 runs = [4, 8, 12]
@@ -65,18 +70,17 @@ events, _ = events_from_annotations(raw, event_id=dict(T1=2, T2=3))
 picks = pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False,
                    exclude='bads')
 
-# Extract epochs between 1 and 2s
+# Extract epochs
 epochs = Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
                 baseline=None, preload=True)
-epochs_cropped = epochs.copy().crop(tmin=1., tmax=2.)
 labels = epochs.events[:, -1] - 2
-epochs_data = epochs_cropped.get_data()
+epochs_data = epochs.get_data()
 ###############################################################################
-# Traditional CSP+LDA pipeline
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Traditional CSP + LDA pipeline
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 # define pipelines with monte-carlo simulations
-cv = ShuffleSplit(5, test_size=0.2, random_state=42)
+cv = ShuffleSplit(10, test_size=0.2, random_state=42)
 # pipeline methods
 lda = LinearDiscriminantAnalysis()
 csp = CSP(n_components=4, reg=None, log=True, norm_trace=False)
@@ -85,18 +89,18 @@ pipe_csp = Pipeline([('CSP', csp), ('LDA', lda)])
 scores_csp = cross_val_score(pipe_csp, epochs_data, labels, cv=cv,
                              n_jobs=1).mean()
 ###############################################################################
-# SSD enhances SNR, thus what is considered 'noise' should be defined
-# Typically bands of 2 Hz surrounding the frequencies of interest are taken
+# SSD enhances signal-to-noise ratio, thus what is considered 'noise' should be
+# defined. Typically bands of 2 Hz surrounding the frequencies of interest are
+# taken.
 freq_noise = [6, 14]
 # when applying SSD, data should be filtered in a broader band than for CSP,
-# thus, a broader bandwidth is defined for freq_signal
+# thus, a broader bandwidth is defined for filtering the new signal.
 freq_ssd = [5, 15]
-# as before, filter data
 raw_ssd.filter(freq_ssd[0], freq_ssd[1], fir_design='firwin',
                skip_by_annotation='edge')
 ###############################################################################
 # SSD + CSP + LDA pipeline
-# ^^^^^^^^^^^^^^^^^^^^^^^^^
+# ^^^^^^^^^^^^^^^^^^^^^^^^
 
 # SSD can be applied either BEFORE or AFTER data epoching, each approach has
 # it owns advantages and disadvantages. Here both approaches are going to be
@@ -113,31 +117,30 @@ filt_params_signal = dict(l_freq=freq_signal[0], h_freq=freq_signal[1],
 filt_params_noise = dict(l_freq=freq_noise[0], h_freq=freq_noise[1],
                          l_trans_bandwidth=4, h_trans_bandwidth=4)
 
-# Since we are working with a high electrode counting dataset (64 channels),
-# it is interesting to see the impact of the number of component in SSD, i.e.,
-# the impact in data dimensionality reduction before applying CSP.
-# The minimum n_components is 4, since 4 CSP components were selected, and
-# the maximum is the number of channels, here 64.
+# Since we are working with a dataset with 64 channels, it is interesting to
+# see the impact in data dimensionality reduction by means of SSD before
+# applying CSP. Thus, SSD will be applied at different numbers of component
+# (:attr:n_components). The minimum value is 4, since 4 CSP components were
+# selected, and the maximum is the number of channels, here 64.
 steps = 4
 n_components = np.arange(4, 65, steps)
 scores_ssd_csp = np.zeros((len(n_components,)))
 std_ssd_csp = np.zeros((len(n_components,)))
 for n, n_comp in enumerate(n_components):
     print('RUNNING n_components_' + str(n_comp))
-    # set return_filtered to True, so the transformed signal will be filtered in
-    # the desired frequency band.
+    # set return_filtered to True, so the transformed signal will be filtered
+    # in the desired frequency band.
     ssd = SSD(raw_ssd.info, filt_params_signal, filt_params_noise,
               sort_by_spectral_ratio=True, return_filtered=True,
               n_components=n_comp)
     # fit and transform
     raw_ssd_transformed._data = ssd.fit_transform(raw_ssd.get_data())
-    # Now extract epochs between 1 and 2s from the transformed signals
+    # Now extract epochs from the transformed signals
     epochs_ssd = Epochs(raw_ssd_transformed, events, event_id, tmin, tmax,
                         proj=True, picks=np.arange(0, n_comp, 1),
                         baseline=None, preload=True)
-    epochs_ssd_cropped = epochs_ssd.copy().crop(tmin=1., tmax=2.)
     labels = epochs_ssd.events[:, -1] - 2
-    epochs_ssd_data = epochs_ssd_cropped.get_data()
+    epochs_ssd_data = epochs_ssd.get_data()
     scores_ssd_csp[n] = cross_val_score(pipe_csp, epochs_ssd_data, labels,
                                         cv=cv, n_jobs=1).mean()
     std_ssd_csp[n] = cross_val_score(pipe_csp, epochs_ssd_data, labels, cv=cv,
@@ -155,26 +158,26 @@ ax.set_xlabel('number of components SSD')
 ax.set_ylabel('classification accuracy')
 ax.set_xticks(np.arange(0, len(n_components), 2))
 ax.set_xticklabels(np.arange(4, 65, steps * 2))
+ax.set_ylim(0.3, 1.1)
 ax.set_title('Impact of SSD before epoching')
-
 ax.legend()
 # The results show how SSD can be used to improve decoding performance.
-# It is clear that there is a maximum achieved accuracy value, and then
-# the performance of the decoding model decreases as the n_components increases
+# The maximum value is nearly already achieved with the initial 4 components.
+# Adding more SSD components slightly increase the classification performance,
+# leading to its minimum value when the number of components is equal to 64.
 ###############################################################################
 # SSD within the pipeline
 # ^^^^^^^^^^^^^^^^^^^^^^^
 
-# In this context, data should be first epoched before calling pipeline.
+# In this context, data should first be epoched before calling pipeline.
 epochs_ssd = Epochs(raw_ssd, events, event_id, tmin, tmax,
                     proj=True, picks=np.arange(0, n_comp, 1),
                     baseline=None, preload=True)
-epochs_ssd_cropped = epochs_ssd.copy().crop(tmin=1., tmax=2.)
 labels = epochs_ssd.events[:, -1] - 2
-epochs_ssd_data = epochs_ssd_cropped.get_data()
+epochs_ssd_data = epochs_ssd.get_data()
 
 # Since SSD will be applied on epoched data, it is very likely that the
-# optimal number of SSD components will be different from the value found 
+# optimal number of SSD components will be different from the value found
 # before.
 scores_ssd_csp_e = np.zeros((len(n_components,)))
 std_ssd_csp_e = np.zeros((len(n_components,)))
@@ -202,12 +205,15 @@ ax.set_xlabel('number of components SSD')
 ax.set_ylabel('classification accuracy')
 ax.set_xticks(np.arange(0, len(n_components), 2))
 ax.set_xticklabels(np.arange(4, 65, steps * 2))
+ax.set_ylim(0.3, 1.1)
 ax.set_title('Impact of SSD after epoching')
 ax.legend()
-# As before, there is a huge impact in decoding performance with respect to
-# the number of components used in SSD.
-# Given that in this scenario SSD is applied after epoching, the edge effects
-# of filtering epoched data might explain why improvements values are lower.
+# As before, we can see that SSD helps towards improving classification
+# accuracy. But, in this scenario more SSD components are needed to gain
+# performance. Given that in this scenario SSD is applied after epoching,
+# the edge effects of filtering epoched data might explain both: why accuracy
+# improvement is lower than before and why more :attr:n_components are
+# needed to achive the maximum performance.
 ##############################################################################
 # Neurophysiological interpretation of the solution
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -215,10 +221,11 @@ ax.legend()
 # SSD can not only improve classification performance of the decoding pipeline,
 # as we showed, but it can also help towards a better interpretation of the
 # solution.
+
 # Here we are going to investigate the topographical plots of the CSP spatial
 # patterns with and without applying SSD before.
 
-# Just for the sake of this example, we are going to train CSP using all
+# Just for the sake of this example, we are going to train the models using all
 # available data. But, remember data should always be split into separate sets
 # to ensure the generalization capability of the model.
 ##############################################################################
@@ -249,7 +256,7 @@ pattern_epochs = EvokedArray(data=csp.patterns_[:4].T,
 pattern_epochs.plot_topomap(units=dict(mag='A.U.'), time_format='')
 
 # As it can be seen from the topographical plots, the CSP patterns that were
-# learned after SSD was applied enhance the left vs. right event related
+# learned after SSD was applied better enhance the left vs. right event related
 # (de-)synchronization patterns.
 ##############################################################################
 # References
