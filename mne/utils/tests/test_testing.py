@@ -21,7 +21,9 @@ def test_click_ch_name():
     raw = read_raw_fif(raw_fname)
     raw_fig = raw.plot(block=False, show=False, verbose='warning')
     _click_ch_name(raw_fig, ch_index=0, button=1)
-    raw_fig.canvas.key_press_event(raw_fig.mne.close_key)
+    # close events don't fire with non-interactive backends,
+    # we have to call the event directly
+    raw_fig.close(event=None)
     assert raw.info['bads'] == ['MEG 0113']
 
 
