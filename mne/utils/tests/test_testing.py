@@ -23,7 +23,7 @@ def test_click_ch_name():
     _click_ch_name(raw_fig, ch_index=0, button=1)
     # close events don't fire with non-interactive backends,
     # we have to call the event directly
-    raw_fig.close(event=None)
+    raw_fig._close(event=None)
     assert raw.info['bads'] == ['MEG 0113']
 
 
