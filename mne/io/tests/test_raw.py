@@ -589,6 +589,12 @@ def test_get_data_units():
     """Test the "units" argument of get_data method."""
     # Test the unit conversion function
     assert _get_scaling('eeg', 'uV') == 1e6
+    assert _get_scaling('eeg', 'dV') == 1e1
+    assert _get_scaling('eeg', 'pV') == 1e12
+    assert _get_scaling('mag', 'fT') == 1e15
+    assert _get_scaling('grad', 'T/m') == 1
+    assert _get_scaling('grad', 'T/mm') == 1e-3
+    assert _get_scaling('grad', 'fT/m') == 1e15
     assert _get_scaling('grad', 'fT/cm') == 1e13
     assert _get_scaling('csd', 'uV/cm²') == 1e2
 
