@@ -1558,18 +1558,7 @@ class ICA(ContainsMixin):
         ----------
         inst : instance of Raw, Epochs or Evoked
             The data to be processed (i.e., cleaned). It will be modified
-            inplace.
-
-            .. note:: Applying ICA may introduce a DC shift. If you pass
-                      baseline-corrected `~mne.Epochs` or `~mne.Evoked` data,
-                      the baseline period of the cleaned data may not be of
-                      zero mean anymore. If you require baseline-corrected
-                      data, apply baseline correction again after cleaning
-                      via ICA. A warning will be emitted to remind you of this
-                      fact if you pass baseline-corrected data.
-
-            .. versionchanged:: 0.23
-               Warn if instance was baseline-corrected.
+            in-place.
         include : array_like of int
             The indices referring to columns in the ummixing matrix. The
             components to be kept.
@@ -1589,6 +1578,19 @@ class ICA(ContainsMixin):
         -------
         out : instance of Raw, Epochs or Evoked
             The processed data.
+
+        Notes
+        -----
+        .. note:: Applying ICA may introduce a DC shift. If you pass
+                  baseline-corrected `~mne.Epochs` or `~mne.Evoked` data,
+                  the baseline period of the cleaned data may not be of
+                  zero mean anymore. If you require baseline-corrected
+                  data, apply baseline correction again after cleaning
+                  via ICA. A warning will be emitted to remind you of this
+                  fact if you pass baseline-corrected data.
+
+        .. versionchanged:: 0.23
+            Warn if instance was baseline-corrected.
         """
         _validate_type(inst, (BaseRaw, BaseEpochs, Evoked), 'inst',
                        'Raw, Epochs, or Evoked')
