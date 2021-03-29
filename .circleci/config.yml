@@ -344,8 +344,8 @@ jobs:
             command: |
                set -e;
                python -m pip install --user --progress-bar off numpy scipy matplotlib pillow
-               python -m pip install --user --progress-bar off -r requirements_doc.txt
                python -m pip install --user -e .
+               python -m pip install --user --progress-bar off -r requirements_doc.txt
         - run:
             name: make linkcheck
             command: |
