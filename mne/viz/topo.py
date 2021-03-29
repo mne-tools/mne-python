@@ -713,7 +713,8 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
 
     if not merge_channels:
         # XXX. at the moment we are committed to 1- / 2-sensor-types layouts
-        chs_in_layout = set(layout.names) & set(ch_names)
+        chs_in_layout = [ch_name for ch_name in ch_names
+                        if ch_name in layout.names]
         types_used = {channel_type(info, ch_names.index(ch))
                       for ch in chs_in_layout}
         # remove possible reference meg channels
