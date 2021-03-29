@@ -96,6 +96,7 @@ def pytest_configure(config):
     ignore:.*QDesktopWidget\.availableGeometry.*:DeprecationWarning
     ignore:Unable to enable faulthandler.*:UserWarning
     ignore:Fetchers from the nilearn.*:FutureWarning
+    ignore:SelectableGroups dict interface is deprecated\. Use select\.:DeprecationWarning
     always:.*get_data.* is deprecated in favor of.*:DeprecationWarning
     always::ResourceWarning
     """  # noqa: E501
