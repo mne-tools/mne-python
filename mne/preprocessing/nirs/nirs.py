@@ -91,6 +91,11 @@ def _check_channels_ordered(raw, pair_vals):
     # All continuous wave fNIRS data
     picks_cw = np.hstack([picks_chroma, picks_wave])
 
+    if (len(picks_wave) > 0) & (len(picks_chroma) > 0):
+        raise ValueError(
+            'MNE does not support a combination of amplitude, optical '
+            'density, and haemoglobin data in the same raw structure.')
+
     if len(picks_cw) % 2 != 0:
         raise ValueError(
             'NIRS channels not ordered correctly. An even number of NIRS '
