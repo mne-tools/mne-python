@@ -93,8 +93,8 @@ def _check_channels_ordered(raw, pair_vals):
 
     if (len(picks_wave) > 0) & (len(picks_chroma) > 0):
         raise ValueError(
-            'MNE does not support a combination of raw, optical density'
-            ', and haemoglobin data in the same raw structure.')
+            'MNE does not support a combination of amplitude, optical '
+            'density, and haemoglobin data in the same raw structure.')
 
     if len(picks_cw) % 2 != 0:
         raise ValueError(
