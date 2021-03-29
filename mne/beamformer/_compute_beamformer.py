@@ -142,7 +142,7 @@ def _sym_inv_sm(x, reduce_rank, inversion, sk):
 
 def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
                         reduce_rank, rank, inversion, nn, orient_std,
-                        whitener):
+                        whitener, real_ori):
     """Compute a spatial beamformer filter (LCMV or DICS).
 
     For more detailed information on the parameters, see the docstrings of
@@ -174,6 +174,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         The std of the orientation prior used in weighting the lead fields.
     whitener : ndarray, shape (n_channels, n_channels)
         The whitener.
+    real_ori : make tests happy for now
 
     Returns
     -------
@@ -273,7 +274,11 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         assert ori_pick.shape == (n_sources, n_orient, n_orient)
 
         # pick eigenvector that corresponds to maximum eigenvalue:
-        eig_vals, eig_vecs = np.linalg.eig(ori_pick.real)  # not Hermitian!
+        if real_ori is True:
+            eig_vals, eig_vecs = np.linalg.eig(ori_pick.real)  # not Hermitian!
+        else:
+            eig_vals, eig_vecs = np.linalg.eig(ori_pick)  # not Hermitian!
+
         # sort eigenvectors by eigenvalues for picking:
         order = np.argsort(np.abs(eig_vals), axis=-1)
         # eig_vals = np.take_along_axis(eig_vals, order, axis=-1)
