@@ -538,7 +538,6 @@ def modified_env(**d):
 def _click_ch_name(fig, ch_index=0, button=1):
     """Click on a channel name in a raw/epochs/ICA browse-style plot."""
     from ..viz.utils import _fake_click
-    from matplotlib.patches import Circle
     fig.canvas.draw()
     text = fig.mne.ax_main.get_yticklabels()[ch_index]
     bbox = text.get_window_extent()
