@@ -648,6 +648,9 @@ def test_get_data_units():
     # dict: one invalid unit
     with pytest.raises(ValueError, match='is not a valid unit'):
         raw.get_data(units=dict(grad='fT/cV', mag='fT', eeg='uV'))
+    # dict: one invalid channel type
+    with pytest.raises(KeyError, match='is not a channel type'):
+        raw.get_data(units=dict(bad_type='fT/cV', mag='fT', eeg='uV'))
 
     # not the good type
     with pytest.raises(TypeError, match='instance of None, str, or dict'):

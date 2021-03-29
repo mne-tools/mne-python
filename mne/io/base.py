@@ -1954,7 +1954,7 @@ def _get_scaling(ch_type, target_unit):
         The scaling factor to convert from the si_unit (used by default for MNE
         objects) to the target unit.
     """
-    scaling = 1
+    scaling = 1.
     si_units = _handle_default('si_units')
     si_units_splitted = {key: si_units[key].split('/') for key in si_units}
     prefixes = _handle_default('prefixes')
@@ -1962,6 +1962,10 @@ def _get_scaling(ch_type, target_unit):
 
     # Check that the provided unit exists for the ch_type
     unit_list = target_unit.split('/')
+    if ch_type not in si_units.keys():
+        raise KeyError(
+            f'{ch_type} is not a channel type that can be scaled '
+            'from units.')
     si_unit_list = si_units_splitted[ch_type]
     if len(unit_list) != len(si_unit_list):
         raise ValueError(
@@ -1981,12 +1985,12 @@ def _get_scaling(ch_type, target_unit):
         # XXX power normally not used as csd cannot get_data()
         if unit[-1] == '²':
             has_square = True
-        if unit == 'm':  # only the ECG unit starts like a prefix
-            factor = 1
+        if unit == 'm' or unit == 'm²':
+            factor = 1.
         elif unit[0] in prefixes.keys():
             factor = prefixes[unit[0]]
         else:
-            factor = 1
+            factor = 1.
         if factor != 1:
             if has_square:
                 factor *= factor
