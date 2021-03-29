@@ -41,7 +41,7 @@ from mne.decoding import SSD
 
 # avoid classification of evoked responses by using epochs that start 1s after
 # cue onset.
-tmin, tmax = 1., 2.
+tmin, tmax = 0.5, 2.5
 event_id = dict(left=2, right=3)  # Motor imagery: left vs right hand
 subject = 2
 runs = [4, 8, 12]
@@ -92,10 +92,10 @@ scores_csp = cross_val_score(pipe_csp, epochs_data, labels, cv=cv,
 # SSD enhances signal-to-noise ratio, thus what is considered 'noise' should be
 # defined. Typically bands of 2 Hz surrounding the frequencies of interest are
 # taken.
-freq_noise = [6, 14]
+freq_noise = freq_signal[0] - 2, freq_signal[1] + 2
 # when applying SSD, data should be filtered in a broader band than for CSP,
 # thus, a broader bandwidth is defined for filtering the new signal.
-freq_ssd = [5, 15]
+freq_ssd = freq_signal[0] - 3, freq_signal[1] + 3
 raw_ssd.filter(freq_ssd[0], freq_ssd[1], fir_design='firwin',
                skip_by_annotation='edge')
 ###############################################################################
@@ -158,7 +158,7 @@ ax.set_xlabel('number of components SSD')
 ax.set_ylabel('classification accuracy')
 ax.set_xticks(np.arange(0, len(n_components), 2))
 ax.set_xticklabels(np.arange(4, 65, steps * 2))
-ax.set_ylim(0.3, 1.1)
+ax.set_ylim(0.6, 1.1)
 ax.set_title('Impact of SSD before epoching')
 ax.legend()
 # The results show how SSD can be used to improve decoding performance.
@@ -205,7 +205,7 @@ ax.set_xlabel('number of components SSD')
 ax.set_ylabel('classification accuracy')
 ax.set_xticks(np.arange(0, len(n_components), 2))
 ax.set_xticklabels(np.arange(4, 65, steps * 2))
-ax.set_ylim(0.3, 1.1)
+ax.set_ylim(0.6, 1.1)
 ax.set_title('Impact of SSD after epoching')
 ax.legend()
 # As before, we can see that SSD helps towards improving classification
@@ -244,7 +244,7 @@ pattern_epochs.plot_topomap(units=dict(mag='A.U.'), time_format='')
 ixd_max = np.argmax(scores_ssd_csp_e)
 n_comp_max = n_components[ixd_max]
 ssd = SSD(raw_ssd.info, filt_params_signal, filt_params_noise,
-          sort_by_spectral_ratio=True, return_filtered=True,
+          sort_by_spectral_ratio=False, return_filtered=True,
           n_components=n_comp_max)
 
 ssd.fit(epochs_data)
