@@ -723,6 +723,12 @@ def test_evoked_baseline(tmpdir):
     # Here we create a data_set with constant data.
     evoked = EvokedArray(np.ones_like(evoked.data), evoked.info,
                          evoked.times[0])
+    assert evoked.baseline is None
+
+    evoked_baselined = EvokedArray(np.ones_like(evoked.data), evoked.info,
+                                   evoked.times[0], baseline=(None, 0))
+    assert_allclose(evoked_baselined.baseline, (evoked_baselined.tmin, 0))
+    del evoked_baselined
 
     # Mean baseline correction is applied, since the data is equal to its mean
     # the resulting data should be a matrix of zeroes.
@@ -737,6 +743,10 @@ def test_evoked_baseline(tmpdir):
     evoked.apply_baseline(baseline)
     assert_allclose(evoked.baseline, (evoked.tmin, 0))
 
+    # By default for our test file, no baseline should be set upon reading
+    evoked = read_evokeds(fname, condition=0)
+    assert evoked.baseline is None
+
     # Test that the .baseline attribute is set when we call read_evokeds()
     # with a `baseline` parameter.
     baseline = (-0.2, -0.1)
@@ -747,11 +757,12 @@ def test_evoked_baseline(tmpdir):
     evoked = read_evokeds(fname, condition=0)
     baseline = (-0.2, -0.1)
     evoked.apply_baseline(baseline)
+    assert_allclose(evoked.baseline, baseline)
 
     tmp_fname = tmpdir / 'test-ave.fif'
     evoked.save(tmp_fname)
-    evoked = read_evokeds(tmp_fname, condition=0)
-    assert_allclose(evoked.baseline, baseline)
+    evoked_read = read_evokeds(tmp_fname, condition=0)
+    assert_allclose(evoked_read.baseline, evoked.baseline)
 
     # We shouldn't be able to remove a baseline correction after it has been
     # applied.
