@@ -100,11 +100,6 @@ ul.funders li img {
     max-height: 24px;
     object-fit: contain;
 }
-ul.institutions li img {
-    width: 40px;
-    max-height: 24px;
-    object-fit: contain;
-}
 
 /* these two also affect collapsible divs */
 h5.card-header {
