@@ -161,6 +161,8 @@ Enhancements
 
 - `~mne.Evoked` gained a ``baseline`` attribute that is automatically assembled based on the baseline of the averaged `~mne.Epochs` (:gh:`9210` by `Richard Höchenberger`_)
 
+- Add ``units`` parameter to :meth:`mne.io.Raw.get_data` to return data in the desired unit (:gh:`9136` by `Johann Benerradi`_ and `Stefan Appelhoff`_)
+
 Bugs
 ~~~~
 - Fix bug with :func:`mne.io.read_raw_edf` where µV was not correctly recognized (:gh:`9187` **by new contributor** |Sumalyo Datta|_)
