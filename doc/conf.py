@@ -798,7 +798,6 @@ icons = {
     'fw-newspaper': 's',
     'fw-question-circle': 's',
     'fw-quote-left': 's',
-    'fw-money-bill-alt': 's',
 }
 
 prolog = ''
