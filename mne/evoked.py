@@ -11,7 +11,7 @@
 from copy import deepcopy
 import numpy as np
 
-from .baseline import rescale
+from .baseline import rescale, _log_rescale, _check_baseline
 from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin)
 from .channels.layout import _merge_ch_data, _pair_grad_sensors
@@ -111,11 +111,14 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Time vector in seconds. Goes from ``tmin`` to ``tmax``. Time interval
         between consecutive time samples is equal to the inverse of the
         sampling frequency.
+    baseline : None | tuple of length 2
+         This attribute reflects whether the data has been baseline-corrected
+         (it will be a ``tuple`` then) or not (it will be ``None``).
     %(verbose)s
 
     Notes
     -----
-    Evoked objects contain a single condition only.
+    Evoked objects can only contain the average of a single set of conditions.
     """
 
     @verbose
@@ -125,7 +128,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         _validate_type(proj, bool, "'proj'")
         # Read the requested data
         self.info, self.nave, self._aspect_kind, self.comment, self.times, \
-            self.data = _read_evoked(fname, condition, kind, allow_maxshield)
+            self.data, self.baseline = _read_evoked(fname, condition, kind,
+                                                    allow_maxshield)
         self._update_first_last()
         self.verbose = verbose
         self.preload = True
@@ -225,7 +229,19 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         .. versionadded:: 0.13.0
         """
-        self.data = rescale(self.data, self.times, baseline, copy=False)
+        baseline = _check_baseline(baseline, times=self.times,
+                                   sfreq=self.info['sfreq'])
+        if self.baseline is not None and baseline is None:
+            raise ValueError('The data has already been baseline-corrected. '
+                             'Cannot remove existing basline correction.')
+        elif baseline is None:
+            # Do not rescale
+            logger.info(_log_rescale(None))
+        else:
+            # Actually baseline correct the data. Logging happens in rescale().
+            self.data = rescale(self.data, self.times, baseline, copy=False)
+            self.baseline = baseline
+
         return self
 
     def save(self, fname):
@@ -234,19 +250,32 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Parameters
         ----------
         fname : str
-            The name of the file, which should end with -ave.fif or
-            -ave.fif.gz.
+            The name of the file, which should end with ``-ave.fif(.gz)`` or
+            ``_ave.fif(.gz)``.
 
         Notes
         -----
         To write multiple conditions into a single file, use
-        :func:`mne.write_evokeds`.
+        `mne.write_evokeds`.
+
+        .. versionchanged:: 0.23
+            Information on baseline correction will be stored with the data,
+            and will be restored when reading again via `mne.read_evokeds`.
         """
         write_evokeds(fname, self)
 
     def __repr__(self):  # noqa: D105
         s = "'%s' (%s, N=%s)" % (self.comment, self.kind, self.nave)
-        s += ", [%0.5g, %0.5g] sec" % (self.times[0], self.times[-1])
+        s += ", %0.5g – %0.5g sec" % (self.times[0], self.times[-1])
+        s += ', baseline '
+        if self.baseline is None:
+            s += 'off'
+        else:
+            s += f'{self.baseline[0]:g} – {self.baseline[1]:g} sec'
+            if self.baseline != _check_baseline(
+                    self.baseline, times=self.times, sfreq=self.info['sfreq'],
+                    on_baseline_outside_data='adjust'):
+                s += ' (baseline period was cropped after baseline correction)'
         s += ", %s ch" % self.data.shape[0]
         s += ", ~%s" % (sizeof_fmt(self._size),)
         return "<Evoked | %s>" % s
@@ -294,11 +323,26 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         -----
         %(notes_tmax_included_by_default)s
         """
+        if tmin is None:
+            tmin = self.tmin
+        elif tmin < self.tmin:
+            warn(f'tmin is not in Evoked time interval. tmin is set to '
+                 f'evoked.tmin ({self.tmin:g} sec)')
+            tmin = self.tmin
+
+        if tmax is None:
+            tmax = self.tmax
+        elif tmax > self.tmax:
+            warn(f'tmax is not in Evoked time interval. tmax is set to '
+                 f'evoked.tmax ({self.tmax:g} sec)')
+            tmax = self.tmax
+
         mask = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'],
                           include_tmax=include_tmax)
         self.times = self.times[mask]
         self._update_first_last()
         self.data = self.data[:, mask]
+
         return self
 
     @verbose
@@ -781,6 +825,10 @@ class EvokedArray(Evoked):
         Number of averaged epochs. Defaults to 1.
     kind : str
         Type of data, either average or standard_error. Defaults to 'average'.
+    %(baseline_evoked)s
+        Defaults to ``None``, i.e. no baseline correction.
+
+        .. versionadded:: 0.23
     %(verbose)s
 
     See Also
@@ -800,7 +848,7 @@ class EvokedArray(Evoked):
 
     @verbose
     def __init__(self, data, info, tmin=0., comment='', nave=1, kind='average',
-                 verbose=None):  # noqa: D102
+                 baseline=None, verbose=None):  # noqa: D102
         dtype = np.complex128 if np.iscomplexobj(data) else np.float64
         data = np.asanyarray(data, dtype=dtype)
 
@@ -832,6 +880,10 @@ class EvokedArray(Evoked):
             raise ValueError('unknown kind "%s", should be "average" or '
                              '"standard_error"' % (self.kind,))
         self._aspect_kind = _aspect_dict[self.kind]
+
+        self.baseline = baseline
+        if self.baseline is not None:  # omit log msg if not baselining
+            self.apply_baseline(self.baseline, verbose=self.verbose)
 
 
 def _get_entries(fid, evoked_node, allow_maxshield=False):
@@ -1014,7 +1066,18 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
         can contain multiple datasets. If None, all datasets are returned as a
         list.
     %(baseline_evoked)s
-        Defaults to ``None``, i.e. no baseline correction.
+        If ``None`` (default), do not apply baseline correction.
+
+        .. note:: Note that if the read  `~mne.Evoked` objects have already
+                  been baseline-corrected, the data retrieved from disk will
+                  **always** be baseline-corrected (in fact, only the
+                  baseline-corrected version of the data will be saved, so
+                  there is no way to undo this procedure). Only **after** the
+                  data has been loaded, a custom (additional) baseline
+                  correction **may** be optionally applied by passing a tuple
+                  here. Passing ``None`` will **not** remove an existing
+                  baseline correction, but merely omit the optional, additional
+                  baseline correction.
     kind : str
         Either 'average' or 'standard_error', the type of data to read.
     proj : bool
@@ -1030,12 +1093,20 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
     Returns
     -------
     evoked : Evoked or list of Evoked
-        The evoked dataset(s); one Evoked if condition is int or str,
-        or list of Evoked if condition is None or list.
+        The evoked dataset(s); one `~mne.Evoked` if ``condition`` is an
+        integer or string; or a list of `~mne.Evoked` if ``condition`` is
+        ``None`` or a list.
 
     See Also
     --------
     write_evokeds
+
+    Notes
+    -----
+    .. versionchanged:: 0.23
+        If the read `~mne.Evoked` objects had been baseline-corrected before
+        saving, this will be reflected in their ``baseline`` attribute after
+        reading.
     """
     check_fname(fname, 'evoked', ('-ave.fif', '-ave.fif.gz',
                                   '_ave.fif', '_ave.fif.gz'))
@@ -1048,10 +1119,21 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
         condition = [condition]
         return_list = False
 
-    out = [Evoked(fname, c, kind=kind, proj=proj,
-                  allow_maxshield=allow_maxshield,
-                  verbose=verbose).apply_baseline(baseline)
-           for c in condition]
+    out = []
+    for c in condition:
+        evoked = Evoked(fname, c, kind=kind, proj=proj,
+                        allow_maxshield=allow_maxshield,
+                        verbose=verbose)
+        if baseline is None and evoked.baseline is None:
+            logger.info(_log_rescale(None))
+        elif baseline is None and evoked.baseline is not None:
+            # Don't touch an existing baseline
+            bmin, bmax = evoked.baseline
+            logger.info(f'Loaded Evoked data is baseline-corrected '
+                        f'(baseline: [{bmin:g}, {bmax:g}] sec)')
+        else:
+            evoked.apply_baseline(baseline)
+        out.append(evoked)
 
     return out if return_list else out[0]
 
@@ -1113,6 +1195,7 @@ def _read_evoked(fname, condition=None, kind='average', allow_maxshield=False):
         nchan = 0
         sfreq = -1
         chs = []
+        baseline = bmin = bmax = None
         comment = last = first = first_time = nsamp = None
         for k in range(my_evoked['nent']):
             my_kind = my_evoked['directory'][k].kind
@@ -1141,9 +1224,20 @@ def _read_evoked(fname, condition=None, kind='average', allow_maxshield=False):
             elif my_kind == FIFF.FIFF_NO_SAMPLES:
                 tag = read_tag(fid, pos)
                 nsamp = int(tag.data)
+            elif my_kind == FIFF.FIFF_MNE_BASELINE_MIN:
+                tag = read_tag(fid, pos)
+                bmin = float(tag.data)
+            elif my_kind == FIFF.FIFF_MNE_BASELINE_MAX:
+                tag = read_tag(fid, pos)
+                bmax = float(tag.data)
 
         if comment is None:
             comment = 'No comment'
+
+        if bmin is not None or bmax is not None:
+            # None's should've been replaced with floats
+            assert bmin is not None and bmax is not None
+            baseline = (bmin, bmax)
 
         #   Local channel information?
         if nchan > 0:
@@ -1228,7 +1322,7 @@ def _read_evoked(fname, condition=None, kind='average', allow_maxshield=False):
                      for k in range(info['nchan'])])
     data *= cals[:, np.newaxis]
 
-    return info, nave, aspect_kind, comment, times, data
+    return info, nave, aspect_kind, comment, times, data, baseline
 
 
 def write_evokeds(fname, evoked):
@@ -1246,6 +1340,13 @@ def write_evokeds(fname, evoked):
     See Also
     --------
     read_evokeds
+
+    Notes
+    -----
+    .. versionchanged:: 0.23
+        Information on baseline correction will be stored with each individual
+        `~mne.Evoked` object, and will be restored when reading the data again
+        via `mne.read_evokeds`.
     """
     _write_evokeds(fname, evoked)
 
@@ -1253,6 +1354,8 @@ def write_evokeds(fname, evoked):
 def _write_evokeds(fname, evoked, check=True):
     """Write evoked data."""
     from .epochs import _compare_epochs_infos
+    from .dipole import DipoleFixed  # avoid circular import
+
     if check:
         check_fname(fname, 'evoked', ('-ave.fif', '-ave.fif.gz',
                                       '_ave.fif', '_ave.fif.gz'))
@@ -1289,7 +1392,13 @@ def _write_evokeds(fname, evoked, check=True):
             write_int(fid, FIFF.FIFF_FIRST_SAMPLE, e.first)
             write_int(fid, FIFF.FIFF_LAST_SAMPLE, e.last)
 
-            # The epoch itself
+            # Baseline
+            if not isinstance(e, DipoleFixed) and e.baseline is not None:
+                bmin, bmax = e.baseline
+                write_float(fid, FIFF.FIFF_MNE_BASELINE_MIN, bmin)
+                write_float(fid, FIFF.FIFF_MNE_BASELINE_MAX, bmax)
+
+            # The evoked data itself
             if e.info.get('maxshield'):
                 aspect = FIFF.FIFFB_IAS_ASPECT
             else:

@@ -37,7 +37,7 @@ from .io.proj import setup_proj, ProjMixin, _proj_equal
 from .io.base import BaseRaw, TimeMixin
 from .bem import _check_origin
 from .evoked import EvokedArray, _check_decim
-from .baseline import rescale, _log_rescale
+from .baseline import rescale, _log_rescale, _check_baseline
 from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin)
 from .filter import detrend, FilterMixin, _check_fun
@@ -1066,8 +1066,12 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                                 comment):
         """Create an evoked object from epoch data."""
         info = deepcopy(info)
+        # don't apply baseline correction; we'll set evoked.baseline manually
         evoked = EvokedArray(data, info, tmin=self.times[0], comment=comment,
-                             nave=n_events, kind=kind, verbose=self.verbose)
+                             nave=n_events, kind=kind, baseline=None,
+                             verbose=self.verbose)
+        evoked.baseline = self.baseline
+
         # XXX: above constructor doesn't recreate the times object precisely
         evoked.times = self.times.copy()
 
@@ -1550,8 +1554,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         if self.baseline is None:
             s += 'off'
         else:
-            s += '[%s, %s] sec' % tuple(['None' if b is None else ('%g' % b)
-                                        for b in self.baseline])
+            s += f'{self.baseline[0]:g} – {self.baseline[1]:g} sec'
             if self.baseline != _check_baseline(
                     self.baseline, times=self.times, sfreq=self.info['sfreq'],
                     on_baseline_outside_data='adjust'):
@@ -2008,82 +2011,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         """
         from .forward import _as_meg_type_inst
         return _as_meg_type_inst(self, ch_type=ch_type, mode=mode)
-
-
-def _check_baseline(baseline, times, sfreq, on_baseline_outside_data='raise'):
-    """Check if the baseline is valid, and adjust it if requested.
-
-    ``None`` values inside the baseline parameter will be replaced with
-    ``times[0]`` and ``times[-1]``.
-
-    Parameters
-    ----------
-    baseline : tuple
-        Beginning and end of the baseline period, in seconds.
-    times : array
-        The time points.
-    sfreq : float
-        The sampling rate.
-    on_baseline_outside_data : 'raise' | 'info' | 'adjust'
-        What do do if the baseline period exceeds the data.
-        If ``'raise'``, raise an exception (default).
-        If ``'info'``, log an info message.
-        If ``'adjust'``, adjust the baseline such that it's within the data
-        range again.
-
-    Returns
-    -------
-    (baseline_tmin, baseline_tmax) | None
-        The baseline with ``None`` values replaced with times, and with
-        adjusted times if ``on_baseline_outside_data='adjust'``; or ``None``
-        if the ``baseline`` parameter is ``None``.
-
-    """
-    if baseline is None:
-        return None
-
-    if not isinstance(baseline, tuple) or len(baseline) != 2:
-        raise ValueError('`baseline=%s` is an invalid argument, must be '
-                         'a tuple of length 2 or None' % str(baseline))
-
-    tmin, tmax = times[0], times[-1]
-    tstep = 1. / float(sfreq)
-
-    # check default value of baseline and `tmin=0`
-    if baseline == (None, 0) and tmin == 0:
-        raise ValueError('Baseline interval is only one sample. Use '
-                         '`baseline=(0, 0)` if this is desired.')
-
-    baseline_tmin, baseline_tmax = baseline
-
-    if baseline_tmin is None:
-        baseline_tmin = tmin
-    baseline_tmin = float(baseline_tmin)
-
-    if baseline_tmax is None:
-        baseline_tmax = tmax
-    baseline_tmax = float(baseline_tmax)
-
-    if baseline_tmin > baseline_tmax:
-        raise ValueError(
-            "Baseline min (%s) must be less than baseline max (%s)"
-            % (baseline_tmin, baseline_tmax))
-
-    if (baseline_tmin < tmin - tstep) or (baseline_tmax > tmax + tstep):
-        msg = (f"Baseline interval [{baseline_tmin}, {baseline_tmax}] sec "
-               f"is outside of epochs data [{tmin}, {tmax}] sec. Epochs were "
-               f"probably cropped.")
-        if on_baseline_outside_data == 'raise':
-            raise ValueError(msg)
-        elif on_baseline_outside_data == 'info':
-            logger.info(msg)
-        elif on_baseline_outside_data == 'adjust':
-            if baseline_tmin < tmin - tstep:
-                baseline_tmin = tmin
-            if baseline_tmax > tmax + tstep:
-                baseline_tmax = tmax
-
-    return baseline_tmin, baseline_tmax
 
 
 def _drop_log_stats(drop_log, ignore=('IGNORED',)):
