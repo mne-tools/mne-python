@@ -114,7 +114,7 @@ evoked_template = Template("""
     <tr>
         <th>Data shape</th>
         <td>{{f'{evoked.data.shape[0]} channels'}},
-        {{f'{evoked.data.shape[1]} times'}}</td>
+        {{f'{evoked.data.shape[1]} time points'}}</td>
     </tr>
     <tr>
         <th>Good channels</th>
