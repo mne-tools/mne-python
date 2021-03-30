@@ -526,6 +526,9 @@ def reset_warnings(gallery_conf, fname):
     warnings.filterwarnings(  # deal with bootstrap-theme bug
         'ignore', message=".*modify script_files in the theme.*",
         category=Warning)
+    warnings.filterwarnings(  # nilearn
+        'ignore', message=".*module will be updated in version.*",
+        category=Warning)
     warnings.filterwarnings(  # matplotlib
         'ignore', message=".*deprecated in Matplotlib.*",
         category=Warning)
