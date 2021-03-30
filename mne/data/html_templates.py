@@ -108,7 +108,7 @@ evoked_template = Template("""
         <td>{{evoked.comment}}</td>
     </tr>
     <tr>
-        <th>The data kind</th>
+        <th>Data kind</th>
         <td>{{evoked.kind}}</td>
     </tr>
     <tr>
