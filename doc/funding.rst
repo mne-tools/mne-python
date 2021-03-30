@@ -1,7 +1,7 @@
 :orphan:
 
-Direct financial support
-========================
+Funding and other support
+=========================
 
 Development of MNE-Python has been supported by:
 
@@ -20,14 +20,12 @@ Development of MNE-Python has been supported by:
 
 Additionally, many universities or research institutions have supported their employees’ contributions to MNE-Python as part of normal work duties. These institutions are:
 
-.. rst-class:: list-unstyled institutions
-
 - `Massachusetts General Hospital <https://www.massgeneral.org/>`_
 - `Athinoula A. Martinos Center for Biomedical Imaging <https://martinos.org/>`_
 - `Harvard Medical School <https://hms.harvard.edu/>`_
 - `Massachusetts Institute of Technology <https://web.mit.edu/>`_
 - `New York University <https://www.nyu.edu/>`_
-- `Commissariat à l´énergie atomique et aux énergies alternatives <http://www.cea.fr/>`_
+- `Commissariat à l’énergie atomique et aux énergies alternatives <http://www.cea.fr/>`_
 - `Aalto-yliopiston perustieteiden korkeakoulu <https://sci.aalto.fi/>`_
 - `Télécom ParisTech <https://www.telecom-paris.fr/>`_
 - `University of Washington <https://www.washington.edu/>`_
