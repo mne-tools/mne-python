@@ -539,10 +539,12 @@ def _click_ch_name(fig, ch_index=0, button=1):
     """Click on a channel name in a raw/epochs/ICA browse-style plot."""
     from ..viz.utils import _fake_click
     fig.canvas.draw()
-    x, y = fig.mne.ax_main.get_yticklabels()[ch_index].get_position()
-    xrange = np.diff(fig.mne.ax_main.get_xlim())[0]
-    _fake_click(fig, fig.mne.ax_main, (x - xrange / 50, y),
-                xform='data', button=button)
+    text = fig.mne.ax_main.get_yticklabels()[ch_index]
+    bbox = text.get_window_extent()
+    x = bbox.intervalx.mean()
+    y = bbox.intervaly.mean()
+    _fake_click(fig, fig.mne.ax_main, (x, y), xform='pix',
+                button=button)
 
 
 def _close_event(fig):
