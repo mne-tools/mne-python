@@ -45,6 +45,19 @@ evoked = epochs['auditory/left'].average()
 del raw  # reduce memory usage
 
 ###############################################################################
+# You may have noticed that MNE informed us that "baseline correction" has been
+# applied. This happened automatically by during creation of the
+# `~mne.Epochs` object, but may also be initiated (or disabled!) manually:
+# We will discuss this in more detail later.
+#
+# The information about the baseline period of `~mne.Epochs` is transferred to
+# derived `~mne.Evoked` objects to maintain provenance as you process your
+# data:
+
+print(f'Epochs baseline: {epochs.baseline}')
+print(f'Evoked baseline: {evoked.baseline}')
+
+###############################################################################
 # Basic visualization of ``Evoked`` objects
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -215,7 +228,14 @@ evokeds_list[0].plot(picks='eeg')
 # :func:`mne.read_evokeds`, or by applying baseline correction after loading,
 # as shown here:
 
+# Original baseline (none set).
+print(f'Baseline after loading: {evokeds_list[0].baseline}')
+
+# Apply a custom baseline correction.
 evokeds_list[0].apply_baseline((None, 0))
+print(f'Baseline after calling apply_baseline(): {evokeds_list[0].baseline}')
+
+# Visualize the evoked response.
 evokeds_list[0].plot(picks='eeg')
 
 ###############################################################################
