@@ -100,3 +100,32 @@ epochs_template = Template("""
     </tr>
 </table>
 """)
+
+evoked_template = Template("""
+<table class="table table-hover">
+    <tr>
+        <th>Name</th>
+        <td>{{evoked.comment}}</td>
+    </tr>
+    <tr>
+        <th>The data kind</th>
+        <td>{{evoked.kind}}</td>
+    </tr>
+    <tr>
+        <th>The data shape</th>
+        <td>{{f'{evoked.data.shape[0]} ch, {evoked.data.shape[1]} times'}}</td>
+    </tr>
+    <tr>
+        <th>Number of averaged epochs</th>
+        <td>{{evoked.nave}}</td>
+    </tr>
+    <tr>
+        <th>Time range</th>
+        <td>{{f'{evoked.times[0]:.3f} – {evoked.times[-1]:.3f} sec'}}</td>
+    </tr>
+    <tr>
+        <th>Baseline</th>
+        <td>{{baseline}}</td>
+    </tr>
+</table>
+""")

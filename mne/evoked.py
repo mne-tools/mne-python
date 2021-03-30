@@ -41,6 +41,7 @@ from .io.write import (start_file, start_block, end_file, end_block,
                        write_id, write_float, write_complex_float_matrix)
 from .io.base import TimeMixin, _check_maxshield
 from .parallel import parallel_func
+from .data.html_templates import evoked_template
 
 _aspect_dict = {
     'average': FIFF.FIFFV_ASPECT_AVERAGE,
@@ -279,6 +280,14 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         s += ", %s ch" % self.data.shape[0]
         s += ", ~%s" % (sizeof_fmt(self._size),)
         return "<Evoked | %s>" % s
+
+    def _repr_html_(self):
+        if self.baseline is None:
+            baseline = 'off'
+        else:
+            baseline = tuple([f'{b:.3f}' for b in self.baseline])
+            baseline = f'{baseline[0]} – {baseline[1]} sec'
+        return evoked_template.substitute(evoked=self, baseline=baseline)
 
     @property
     def ch_names(self):
