@@ -2012,6 +2012,7 @@ class Report(object):
                 img=img, id=global_id, div_klass='evoked',
                 img_klass='evoked', caption=caption, show=True,
                 image_format=image_format))
+            html.append(ev._repr_html_())
             has_types = []
             if len(pick_types(ev.info, meg=False, eeg=True)) > 0:
                 has_types.append('eeg')
