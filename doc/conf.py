@@ -538,7 +538,7 @@ html_copy_source = False
 # If true, "Created using Sphinx" is shown in the HTML footer. Default is True.
 html_show_sphinx = False
 
-# accomodate different logo shapes (width values in rem)
+# accommodate different logo shapes (width values in rem)
 xs = '2'
 sm = '2.5'
 md = '3'
