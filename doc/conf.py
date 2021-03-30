@@ -519,6 +519,7 @@ def reset_warnings(gallery_conf, fname):
                 'scipy.* is deprecated and will be removed in',  # dipy
                 r'Converting `np\.character` to a dtype is deprecated',  # vtk
                 r'sphinx\.util\.smartypants is deprecated',
+                'adding itself to the figure',
                 'is a deprecated alias for the builtin',  # NumPy
                 ):
         warnings.filterwarnings(  # deal with other modules having bad imports
