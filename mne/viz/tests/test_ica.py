@@ -248,7 +248,7 @@ def test_plot_ica_sources():
     fig = ica.plot_sources(long_raw)
     assert len(plt.get_fignums()) == 1
     fig.canvas.draw()
-    _fake_click(fig, fig.mne.ax_main, (-0.1, 0), xform='data', button=3)
+    _click_ch_name(fig, ch_index=0, button=3)
     assert len(fig.mne.child_figs) == 1
     assert len(plt.get_fignums()) == 2
     # close child fig directly (workaround for mpl issue #18609)
