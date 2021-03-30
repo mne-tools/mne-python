@@ -96,8 +96,16 @@ ul.funders li {
     padding-bottom: 9px;
 }
 ul.funders li img {
-    width: 24px;
+    width: 30px;
+    max-height: 24px;
+    object-fit: contain;
 }
+ul.institutions li img {
+    width: 40px;
+    max-height: 24px;
+    object-fit: contain;
+}
+
 /* these two also affect collapsible divs */
 h5.card-header {
     margin-top: 0px;
@@ -122,11 +130,6 @@ h5.card-header::before {
 }
 
 /* ********************************************* institution logos in footer */
-img.institution {
-    vertical-align: middle;
-    max-height: 42px;
-    max-width: 52px;
-}
 /* prevent footer from getting pushed offscreen */
 .bd-sidebar {
     height: unset;
