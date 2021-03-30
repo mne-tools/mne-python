@@ -287,7 +287,12 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         else:
             baseline = tuple([f'{b:.3f}' for b in self.baseline])
             baseline = f'{baseline[0]} – {baseline[1]} sec'
-        return evoked_template.substitute(evoked=self, baseline=baseline)
+        n_eeg = len(pick_types(self.info, meg=False, eeg=True))
+        n_grad = len(pick_types(self.info, meg='grad'))
+        n_mag = len(pick_types(self.info, meg='mag'))
+        return evoked_template.substitute(evoked=self, baseline=baseline,
+                                          n_eeg=n_eeg, n_grad=n_grad,
+                                          n_mag=n_mag)
 
     @property
     def ch_names(self):

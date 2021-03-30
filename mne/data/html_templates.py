@@ -104,7 +104,7 @@ epochs_template = Template("""
 evoked_template = Template("""
 <table class="table table-hover">
     <tr>
-        <th>Name</th>
+        <th>Content</th>
         <td>{{evoked.comment}}</td>
     </tr>
     <tr>
@@ -113,7 +113,13 @@ evoked_template = Template("""
     </tr>
     <tr>
         <th>The data shape</th>
-        <td>{{f'{evoked.data.shape[0]} ch, {evoked.data.shape[1]} times'}}</td>
+        <td>{{f'{evoked.data.shape[0]} channels'}},
+        {{f'{evoked.data.shape[1]} times'}}</td>
+    </tr>
+    <tr>
+        <th>Good channels</th>
+        <td>{{n_mag}} magnetometer, {{n_grad}} gradiometer,
+            and {{n_eeg}} EEG channels</td>
     </tr>
     <tr>
         <th>Number of averaged epochs</th>
