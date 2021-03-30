@@ -112,7 +112,7 @@ evoked_template = Template("""
         <td>{{evoked.kind}}</td>
     </tr>
     <tr>
-        <th>The data shape</th>
+        <th>Data shape</th>
         <td>{{f'{evoked.data.shape[0]} channels'}},
         {{f'{evoked.data.shape[1]} times'}}</td>
     </tr>
