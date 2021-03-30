@@ -124,15 +124,6 @@ h5.card-header::before {
     margin-left: 15px;  /* match other items in the hamburger menu */
 }
 
-/* ********************************************* institution logos in footer */
-/* prevent footer from getting pushed offscreen */
-.bd-sidebar {
-    height: unset;
-}
-.bd-toc {
-    height: unset;
-}
-
 /* ***************************************************** front page carousel */
 div.frontpage-gallery {
     overflow: hidden;
