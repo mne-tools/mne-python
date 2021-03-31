@@ -5,12 +5,13 @@
 #
 # License: BSD (3-clause)
 
-from os import path as op
-from pathlib import Path
-import math
-import re
 from contextlib import redirect_stdout
 from io import StringIO
+import math
+import os
+from os import path as op
+from pathlib import Path
+import re
 
 import pytest
 import numpy as np
@@ -350,6 +351,38 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
             write_hdf5(fname_h5, raw.info)
         new_info = Info(read_hdf5(fname_h5))
         assert object_diff(new_info, raw.info) == ''
+
+    # Make sure that changing directory does not break anything
+    if test_preloading:
+        these_kwargs = kwargs.copy()
+        key = None
+        for key in ('fname',
+                    'input_fname',  # artemis123
+                    'vhdr_fname',  # BV
+                    'pdf_fname',  # BTi
+                    'directory',  # CTF
+                    'filename',  # nedf
+                    ):
+            try:
+                fname = kwargs[key]
+            except KeyError:
+                key = None
+            else:
+                break
+        # len(kwargs) == 0 for the fake arange reader
+        if len(kwargs):
+            assert key is not None, sorted(kwargs.keys())
+            dirname = op.dirname(fname)
+            these_kwargs[key] = op.basename(fname)
+            these_kwargs['preload'] = False
+            orig_dir = os.getcwd()
+            try:
+                os.chdir(dirname)
+                raw_chdir = reader(**these_kwargs)
+            finally:
+                os.chdir(orig_dir)
+            raw_chdir.load_data()
+
     return raw
 
 
