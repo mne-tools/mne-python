@@ -16,7 +16,8 @@ from ..constants import FIFF
 from ..meas_info import create_info, _format_dig_points
 from ...annotations import Annotations
 from ...transforms import apply_trans, _get_trans
-from ...utils import logger, verbose, fill_doc, warn
+from ...utils import (logger, verbose, fill_doc, warn, _check_fname,
+                      _validate_type)
 
 
 @fill_doc
@@ -69,12 +70,12 @@ class RawNIRX(BaseRaw):
         from ...externals.pymatreader import read_mat
         from ...coreg import get_mni_fiducials  # avoid circular import prob
         logger.info('Loading %s' % fname)
-
+        _validate_type(fname, 'path-like', 'fname')
+        fname = str(fname)
         if fname.endswith('.hdr'):
             fname = op.dirname(op.abspath(fname))
 
-        if not op.isdir(fname):
-            raise FileNotFoundError('The path you specified does not exist.')
+        fname = _check_fname(fname, 'read', True, 'fname', need_dir=True)
 
         # Check if required files exist and store names for later use
         files = dict()

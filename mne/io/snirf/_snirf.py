@@ -10,7 +10,7 @@ from ..base import BaseRaw
 from ..meas_info import create_info
 from ..utils import _mult_cal_one
 from ...annotations import Annotations
-from ...utils import logger, verbose, fill_doc, warn
+from ...utils import logger, verbose, fill_doc, warn, _check_fname
 from ...utils.check import _require_version
 from ..constants import FIFF
 from .._digitization import _make_dig_points
@@ -69,6 +69,7 @@ class RawSNIRF(BaseRaw):
         from ...externals.pymatreader.utils import _import_h5py
         h5py = _import_h5py()
 
+        fname = _check_fname(fname, 'read', True, 'fname')
         logger.info('Loading %s' % fname)
 
         with h5py.File(fname, 'r') as dat:
