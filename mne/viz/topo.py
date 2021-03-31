@@ -767,7 +767,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         else:
             ylim_ = [np.array(yl) for yl in ylim_]
             # Transposing to avoid Zipping confusion
-            if is_meg:
+            if is_meg or is_nirs:
                 ylim_ = list(map(list, zip(*ylim_)))
     else:
         raise TypeError('ylim must be None or a dict. Got %s.' % type(ylim))
