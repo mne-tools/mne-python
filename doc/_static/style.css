@@ -8,6 +8,11 @@
 
 }
 
+/* ************************************************************ Sphinx fixes */
+dl.field-list {
+    grid-template-columns: auto 1fr;
+}
+
 /* ********************************************************** Sphinx-gallery */
 
 /* backreference links: restore hover decoration that SG removes */
