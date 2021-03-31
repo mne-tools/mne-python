@@ -338,17 +338,20 @@ def _read_brainvision(fname, head_size):
     return make_dig_montage(ch_pos=_check_dupes_odict(ch_names, pos))
 
 
-def _read_csv(fname):
-    """Import EEG channel locations from CSV files.
+def _read_xyz(fname):
+    """Import EEG channel locations from CSV, TSV, or XYZ files.
 
-    CSV files should have columns 4 columns containing
+    CSV and TSV files should have columns 4 columns containing
     ch_name, x, y, and z. Each row represents one channel.
-    The first column can contain the channel names.
+    XYZ files should have 5 columns containing
+    count, x, y, z, and ch_name. Each row represents one channel
+    CSV files should be separated by commas, TSV and XYZ files should be
+    separated by tabs.
 
     Parameters
     ----------
     fname : str
-        Name of the csv file to read channel locations from
+        Name of the file to read channel locations from.
 
     Returns
     -------
@@ -357,10 +360,17 @@ def _read_csv(fname):
     """
     ch_names = []
     pos = []
+    file_format = op.splitext(fname)[1].lower()
     with open(fname, "r") as f:
         f.readline()  # skip header
-        for row in csv.reader(f, delimiter=','):
-            ch_name, x, y, z, *_ = row
+        delimiter = "," if file_format == ".csv" else "\t"
+        for row in csv.reader(f, delimiter=delimiter):
+            if file_format == ".xyz":
+                _, x, y, z, ch_name, *_ = row
+                ch_name = ch_name.strip() # deals with variable tab size
+            else:
+                ch_name, x, y, z, *_ = row
             ch_names.append(ch_name)
-            pos.append((float(x), float(y), float(z)))
-    return make_dig_montage(ch_pos=_check_dupes_odict(ch_names, np.array(pos)))
+            pos.append((x, y, z))
+    d = _check_dupes_odict(ch_names, np.array(pos, dtype=float))
+    return make_dig_montage(ch_pos=d)
