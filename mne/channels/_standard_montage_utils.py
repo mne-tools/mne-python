@@ -368,7 +368,7 @@ def _read_xyz(fname):
         for row in csv.reader(f, delimiter=delimiter):
             if file_format == ".xyz":
                 _, x, y, z, ch_name, *_ = row
-                ch_name = ch_name.strip() # deals with variable tab size
+                ch_name = ch_name.strip()  # deals with variable tab size
             else:
                 ch_name, x, y, z, *_ = row
             ch_names.append(ch_name)
