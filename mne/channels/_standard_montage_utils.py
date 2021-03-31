@@ -3,6 +3,8 @@
 #
 # License: BSD (3-clause)
 from collections import OrderedDict
+import csv
+
 import os.path as op
 import numpy as np
 
@@ -336,44 +338,29 @@ def _read_brainvision(fname, head_size):
     return make_dig_montage(ch_pos=_check_dupes_odict(ch_names, pos))
 
 
-def _read_csv(fname, delimiter=','):
-    """Import eeg channel locations from CSV files into MNE instance.
+def _read_csv(fname):
+    """Import EEG channel locations from CSV files.
 
-    CSV files should have columns x, y, and z, each row represents one channel.
-    Optionally the first column can contain the channel names.
+    CSV files should have columns 4 columns containing
+    ch_name, x, y, and z. Each row represents one channel.
+    The first column can contain the channel names.
 
     Parameters
     ----------
     fname : str
         Name of the csv file to read channel locations from
-    delimiter : str
-        Delimiter used by the CSV file
-    include_ch_names : bool
-        Whether the CSV file include channel names as the first column
+
+    Returns
+    -------
+    montage : instance of DigMontage
+        The montage.
     """
-    include_ch_names = True
-    import csv
-    f = open(fname, "r")
-    f.readline()
     ch_names = []
     pos = []
-    for row in csv.reader(f, delimiter=delimiter):
-        if include_ch_names:
+    with open(fname, "r") as f:
+        f.readline()  # skip header
+        for row in csv.reader(f, delimiter=','):
             ch_name, x, y, z, *_ = row
             ch_names.append(ch_name)
-        else:
-            x, y, z, *_ = row
-        pos.append((float(x), float(y), float(z)))
-    f.close()
+            pos.append((float(x), float(y), float(z)))
     return make_dig_montage(ch_pos=_check_dupes_odict(ch_names, np.array(pos)))
-    # chs = inst.info['chs']
-    # if not include_ch_names:
-    #     for ch, coord in zip(chs, coords):
-    #         ch['loc'][:3] = coord
-    # else:
-    #     for ch in chs:
-    #         try:
-    #             coord = coords[ch_names.index(ch['ch_name'])]
-    #         except ValueError:  # ch_name not in channel list, default to 0
-    #             coord = (0, 0, 0)
-    #         ch['loc'][:3] = coord
