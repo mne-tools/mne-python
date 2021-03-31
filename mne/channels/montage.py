@@ -1200,7 +1200,7 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
         montage = _read_brainvision(fname, head_size)
 
     elif ext in SUPPORTED_FILE_EXT['xyz']:
-        montage = _read_csv(fname, head_size)
+        montage = _read_csv(fname)
 
     if coord_frame is not None:
         coord_frame = _coord_frame_const(coord_frame)

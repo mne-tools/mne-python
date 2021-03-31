@@ -365,7 +365,7 @@ def _read_csv(fname, delimiter=','):
             x, y, z, *_ = row
         pos.append((float(x), float(y), float(z)))
     f.close()
-    return make_dig_montage(ch_pos=_check_dupes_odict(ch_names, pos))
+    return make_dig_montage(ch_pos=_check_dupes_odict(ch_names, np.array(pos)))
     # chs = inst.info['chs']
     # if not include_ch_names:
     #     for ch, coord in zip(chs, coords):
