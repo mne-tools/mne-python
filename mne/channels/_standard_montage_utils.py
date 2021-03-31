@@ -362,7 +362,8 @@ def _read_xyz(fname):
     pos = []
     file_format = op.splitext(fname)[1].lower()
     with open(fname, "r") as f:
-        f.readline()  # skip header
+        if file_format != ".xyz":
+            f.readline()  # skip header
         delimiter = "," if file_format == ".csv" else "\t"
         for row in csv.reader(f, delimiter=delimiter):
             if file_format == ".xyz":
