@@ -725,7 +725,10 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
             picks = [pick_types(info, meg=kk, ref_meg=False, exclude=[])
                      for kk in types_used]
         elif is_nirs:
-            types_used = list(types_used)[::-1]  # -> restore kwarg order
+            types_used = list(types_used)
+            # Fix issue where ylimits get swapped
+            if types_used[0] == 'hbr':
+                types_used = list(types_used)[::-1]
             picks = [pick_types(info, fnirs=kk, ref_meg=False, exclude=[])
                      for kk in types_used]
         else:
