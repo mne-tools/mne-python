@@ -61,7 +61,7 @@ Current (0.23.dev0)
 
 Enhancements
 ~~~~~~~~~~~~
-- Add CSV, TSV, and XYZ support to :func:`mne.channels.custom_montage` (:gh:`9203` **by new contributor** |Jack Zhang|_)
+- Add CSV, TSV, and XYZ support to :func:`mne.channels.read_custom_montage` (:gh:`9203` **by new contributor** |Jack Zhang|_)
 
 - Add HTML representation for `~mne.Epochs` in Jupyter Notebooks (:gh:`9174` by |Valerii Chirkov|_)
 
