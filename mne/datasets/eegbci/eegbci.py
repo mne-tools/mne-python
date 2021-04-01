@@ -182,5 +182,7 @@ def standardize(raw):
             std_name = std_name[:-1] + 'z'
         if std_name.startswith('FP'):
             std_name = 'Fp' + std_name[2:]
+        if std_name.endswith('H'):
+            std_name = std_name[:-1] + 'h'
         rename[name] = std_name
     raw.rename_channels(rename)
