@@ -1810,7 +1810,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             this_epochs.event_id = self.event_id
             _save_split(this_epochs, fname, part_idx, n_parts, fmt)
 
-    def save_set(self, fname):
+    def export_set(self, fname):
         """Export Epochs to EEGLAB's .set format.
 
         Parameters
@@ -1823,77 +1823,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         Channel locations are expanded to the full EEGLAB format
         For more details see .io.utils.cart_to_eeglab_full_coords
         """
-        from numpy.core.records import fromarrays
-        from scipy.io import savemat
-
-        # load data first
-        self.load_data()
-
-        # remove extra epoc and STI channels
-        chs_drop = [ch for ch in ['epoc', 'STI 014'] if ch in self.ch_names]
-        self.drop_channels(chs_drop)
-
-        data = self.get_data() * 1e6  # convert to microvolts
-        data = np.moveaxis(data, 0, 2)  # convert to EEGLAB 3D format
-        fs = self.info["sfreq"]
-        times = self.times
-        trials = len(self.events)  # epoch count in EEGLAB
-
-        # get full EEGLAB coordinates to export
-        from .io.utils import _get_eeglab_full_cords
-        full_coords = _get_eeglab_full_cords(self)
-
-        ch_names = self.ch_names
-
-        # convert to record arrays for MATLAB format
-        chanlocs = fromarrays(
-            [ch_names, *full_coords.T, np.repeat('', len(ch_names))],
-            names=["labels", "X", "Y", "Z", "sph_theta", "sph_phi",
-                   "sph_radius", "theta", "radius",
-                   "sph_theta_besa", "sph_phi_besa", "type"])
-
-        # reverse order of event type dict to look up events faster
-        event_type_d = dict((v, k) for k, v in self.event_id.items())
-        ev_types = [event_type_d[ev[2]] for ev in self.events]
-
-        # EEGLAB latency, in units of data sample points
-        # ev_lat = [int(n) for n in self.events[:, 0]]
-        ev_lat = self.events[:, 0]
-
-        # event durations should all be 0 except boundaries which we don't have
-        ev_dur = np.zeros((trials,), dtype=np.int64)
-
-        # indices of epochs each event belongs to
-        ev_epoch = np.arange(1, trials + 1)
-
-        # EEGLAB events format, also used for distinguishing epochs/trials
-        events = fromarrays([ev_types, ev_lat, ev_dur, ev_epoch],
-                            names=["type", "latency", "duration", "epoch"])
-
-        # same as the indices for event epoch, except need to use array
-        ep_event = [np.array(n) for n in ev_epoch]
-        ep_lat = [np.array(n) for n in ev_lat]
-        ep_types = [np.array(n) for n in ev_types]
-
-        epochs = fromarrays([ep_event, ep_lat, ep_types],
-                            names=["event", "eventlatency", "eventtype"])
-
-        eeg_d = dict(EEG=dict(data=data,
-                              setname=fname,
-                              nbchan=data.shape[0],
-                              pnts=float(data.shape[1]),
-                              trials=trials,
-                              srate=fs,
-                              xmin=times[0],
-                              xmax=times[-1],
-                              chanlocs=chanlocs,
-                              event=events,
-                              epoch=epochs,
-                              icawinv=[],
-                              icasphere=[],
-                              icaweights=[]))
-        savemat(fname, eeg_d,
-                appendmat=False)
+        from pyeeglab import epochs
+        epochs.export_set(self, fname)
 
     def equalize_event_counts(self, event_ids, method='mintime'):
         """Equalize the number of trials in each condition.

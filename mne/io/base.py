@@ -1451,7 +1451,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                    start, stop, buffer_size, projector, drop_small_buffer,
                    split_size, split_naming, 0, None, overwrite)
 
-    def save_set(self, fname):
+    def export_set(self, fname):
         """Export Raw to EEGLAB's .set format.
 
         Parameters
@@ -1462,62 +1462,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Notes
         -----
         Channel locations are expanded to the full EEGLAB format
-        For more details see .utils.cart_to_eeglab_full_coords
+        For more details see pyeeglab.utils._cart_to_eeglab_full_coords
         """
-
-        from numpy.core.records import fromarrays
-        from scipy.io import savemat
-
-        # load data first
-        self.load_data()
-
-        # remove extra epoc and STI channels
-        chs_drop = [ch for ch in ['epoc'] if ch in self.ch_names]
-        if 'STI 014' in self.ch_names and \
-                not (self.filenames[0].endswith('.fif')):
-            chs_drop.append('STI 014')
-        self.drop_channels(chs_drop)
-
-        data = self.get_data() * 1e6  # convert to microvolts
-        fs = self.info["sfreq"]
-        times = self.times
-
-        # chanlocs = fromarrays([ch_names], names=["labels"])
-
-        from .utils import _get_eeglab_full_cords
-
-        # convert xyz to full eeglab coordinates
-        full_coords = _get_eeglab_full_cords(self)
-
-        ch_names = self.ch_names
-
-        # convert to record arrays for MATLAB format
-        chanlocs = fromarrays(
-            [ch_names, *full_coords.T, np.repeat('', len(ch_names))],
-            names=["labels", "X", "Y", "Z", "sph_theta", "sph_phi",
-                   "sph_radius", "theta", "radius",
-                   "sph_theta_besa", "sph_phi_besa", "type"])
-
-        events = fromarrays([self.annotations.description,
-                             self.annotations.onset * fs + 1,
-                             self.annotations.duration * fs],
-                            names=["type", "latency", "duration"])
-        eeg_d = dict(EEG=dict(data=data,
-                              setname=fname,
-                              nbchan=data.shape[0],
-                              pnts=data.shape[1],
-                              trials=1,
-                              srate=fs,
-                              xmin=times[0],
-                              xmax=times[-1],
-                              chanlocs=chanlocs,
-                              event=events,
-                              icawinv=[],
-                              icasphere=[],
-                              icaweights=[]))
-
-        savemat(fname, eeg_d,
-                appendmat=False)
+        from pyeeglab import raw
+        raw.export_set(self, fname)
 
     def _tmin_tmax_to_start_stop(self, tmin, tmax):
         start = int(np.floor(tmin * self.info['sfreq']))

@@ -3046,13 +3046,13 @@ def test_save_complex_data(tmpdir, preload, is_complex, fmt, rtol):
 
 
 @pytest.mark.parametrize('preload', (True, False))
-def test_save_set(tmpdir, preload):
+def test_export_set(tmpdir, preload):
     """Test saving an Epochs instance to EEGLAB's set format"""
     raw, events = _get_data()[:2]
     raw.load_data()
     epochs = Epochs(raw, events, preload=preload)
     temp_fname = op.join(str(tmpdir), 'test.set')
-    epochs.save_set(temp_fname)
+    epochs.export_set(temp_fname)
     epochs_read = read_epochs_eeglab(temp_fname)
     assert epochs.ch_names == epochs_read.ch_names
     cart_coords = np.array([d['loc'][:3]

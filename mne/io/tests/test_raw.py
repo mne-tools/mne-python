@@ -690,14 +690,14 @@ def test_get_data_units():
         raw.get_data(units=['fT/cm', 'fT', 'uV'])
 
 
-def test_save_set():
+def test_export_set():
     """Test saving a Raw instance to EEGLAB's set format"""
     fname = Path(__file__).parent / "data" / "test_raw.fif"
     raw = read_raw_fif(fname)
     raw.load_data()
     tmpdir = _TempDir()
     temp_fname = op.join(str(tmpdir), 'test.set')
-    raw.save_set(temp_fname)
+    raw.export_set(temp_fname)
     from ..eeglab.eeglab import read_raw_eeglab
     raw_read = read_raw_eeglab(temp_fname, preload=True)
     assert raw.ch_names == raw_read.ch_names
