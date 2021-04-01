@@ -13,6 +13,11 @@ DEFAULTS = dict(
                dipole='k', gof='k', bio='k', ecog='k', hbo='#AA3377', hbr='b',
                fnirs_cw_amplitude='k', fnirs_fd_ac_amplitude='k',
                fnirs_fd_phase='k', fnirs_od='k', csd='k'),
+    si_units=dict(mag='T', grad='T/m', eeg='V', eog='V', ecg='V', emg='V',
+                  misc='AU', seeg='V', dbs='V', dipole='Am', gof='GOF',
+                  bio='V', ecog='V', hbo='M', hbr='M', ref_meg='T',
+                  fnirs_cw_amplitude='V', fnirs_fd_ac_amplitude='V',
+                  fnirs_fd_phase='rad', fnirs_od='V', csd='V/m²'),
     units=dict(mag='fT', grad='fT/cm', eeg='µV', eog='µV', ecg='µV', emg='µV',
                misc='AU', seeg='mV', dbs='µV', dipole='nAm', gof='GOF',
                bio='µV', ecog='µV', hbo='µM', hbr='µM', ref_meg='fT',
@@ -93,6 +98,8 @@ DEFAULTS = dict(
     volume_options=dict(
         alpha=None, resolution=1., surface_alpha=None, blending='mip',
         silhouette_alpha=None, silhouette_linewidth=2.),
+    prefixes={'': 1e0, 'd': 1e1, 'c': 1e2, 'm': 1e3, 'µ': 1e6, 'u': 1e6,
+              'n': 1e9, 'p': 1e12, 'f': 1e15}
 )
 
 

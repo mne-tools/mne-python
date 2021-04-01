@@ -10,8 +10,9 @@ from distutils.version import LooseVersion
 import operator
 import os
 import os.path as op
-import sys
 from pathlib import Path
+import sys
+import warnings
 
 import numpy as np
 
@@ -150,21 +151,32 @@ def _check_event_id(event_id, events):
 
 
 def _check_fname(fname, overwrite=False, must_exist=False, name='File',
-                 allow_dir=False):
+                 need_dir=False):
     """Check for file existence."""
-    _validate_type(fname, 'path-like', 'fname')
-    if op.isfile(fname) or (allow_dir and op.isdir(fname)):
+    _validate_type(fname, 'path-like', name)
+    if op.exists(fname):
         if not overwrite:
             raise FileExistsError('Destination file exists. Please use option '
                                   '"overwrite=True" to force overwriting.')
         elif overwrite != 'read':
             logger.info('Overwriting existing file.')
-        if must_exist and not os.access(fname, os.R_OK):
-            raise PermissionError(
-                '%s does not have read permissions: %s' % (name, fname))
+        if must_exist:
+            if need_dir:
+                if not op.isdir(fname):
+                    raise IOError(
+                        f'Need a directory for {name} but found a file '
+                        f'at {fname}')
+            else:
+                if not op.isfile(fname):
+                    raise IOError(
+                        f'Need a file for {name} but found a directory '
+                        f'at {fname}')
+            if not os.access(fname, os.R_OK):
+                raise PermissionError(
+                    f'{name} does not have read permissions: {fname}')
     elif must_exist:
-        raise FileNotFoundError('%s "%s" does not exist' % (name, fname))
-    return str(fname)
+        raise FileNotFoundError(f'{name} does not exist: {fname}')
+    return str(op.abspath(fname))
 
 
 def _check_subject(class_subject, input_subject, raise_error=True,
@@ -742,3 +754,17 @@ def _safe_input(msg, *, alt=None, use=None):
         raise RuntimeError(
             f'Could not use input() to get a response to:\n{msg}\n'
             f'You can {alt} to avoid this error.')
+
+
+def _ensure_events(events):
+    events_type = type(events)
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('ignore')  # deprecation for object array
+        events = np.asarray(events)
+    if not np.issubdtype(events.dtype, np.integer):
+        raise TypeError('events should be a NumPy array of integers, '
+                        f'got {events_type}')
+    if events.ndim != 2 or events.shape[1] != 3:
+        raise ValueError(
+            f'events must be of shape (N, 3), got {events.shape}')
+    return events

@@ -17,7 +17,13 @@
 Current (0.23.dev0)
 -------------------
 
+.. |New Contributor| replace:: **New Contributor**
+
 .. |Jack Zhang| replace:: **Jack Zhang**
+
+.. |New Contributor| replace:: **New Contributor**
+
+.. |Sumalyo Datta| replace:: **Sumalyo Datta**
 
 .. |Anna Padee| replace:: **Anna Padee**
 
@@ -56,6 +62,8 @@ Current (0.23.dev0)
 Enhancements
 ~~~~~~~~~~~~
 - Add CSV, TSV, and XYZ support to :func:`mne.channels.custom_montage` (:gh:`9203` **by new contributor** |Jack Zhang|_)
+
+- Add HTML representation for `~mne.Epochs` in Jupyter Notebooks (:gh:`9174` by |Valerii Chirkov|_)
 
 - Speed up :func:`mne.viz.plot_ica_properties` by refactoring (:gh:`9174` **by new contributor** |Valerii Chirkov|_)
 
@@ -155,8 +163,16 @@ Enhancements
 
 - Add parameter ``theme`` to :class:`mne.viz.Brain` for optional Dark-Mode (:gh:`9149` by `Martin Schulz`_, `Guillaume Favelier`_)
 
+- Add first_samp support for raw simulations with `mne.simulation.simulate_raw` and `mne.simulation.SourceSimulator` (:gh:`9166` by `Steven Bierer`_)
+
+- `~mne.Evoked` gained a ``baseline`` attribute that is automatically assembled based on the baseline of the averaged `~mne.Epochs` (:gh:`9210` by `Richard Höchenberger`_)
+
+- Add ``units`` parameter to :meth:`mne.io.Raw.get_data` to return data in the desired unit (:gh:`9136` by `Johann Benerradi`_ and `Stefan Appelhoff`_)
+
 Bugs
 ~~~~
+- Fix bug with :func:`mne.io.read_raw_edf` where µV was not correctly recognized (:gh:`9187` **by new contributor** |Sumalyo Datta|_)
+
 - Fix bug with :func:`mne.viz.plot_compare_evokeds` did not check type of combine. (:gh:`9151` **by new contributor** |Matteo Anelli|_)
                                         
 - Fix bug with :func:`mne.viz.plot_evoked_topo` where ``ylim`` was only being applied to the first channel in the dataset (:gh:`9162` **by new contributor** |Ram Pari|_ )
@@ -264,3 +280,5 @@ API changes
 - ``mne.read_selection`` has been deprecated in favor of `mne.read_vectorview_selection`. ``mne.read_selection`` will be removed in MNE-Python 0.24 (:gh:`8870` by `Richard Höchenberger`_)
 
 - ``mne.beamformer.tf_dics`` has been deprecated and will be removed in MNE-Python 0.24 (:gh:`9122` by `Britta Westner`_)
+
+- Fitting `~mne.preprocessing.ICA` on baseline-corrected `~mne.Epochs`, and / or applying it on baseline-corrected `~mne.Epochs` or `~mne.Evoked` data will now display a warning. Users are advised to only baseline correct their data after cleaning is completed (:gh:`9033` by `Richard Höchenberger`_)
