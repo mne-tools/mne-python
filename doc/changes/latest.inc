@@ -21,8 +21,6 @@ Current (0.23.dev0)
 
 .. |Jack Zhang| replace:: **Jack Zhang**
 
-.. |New Contributor| replace:: **New Contributor**
-
 .. |Sumalyo Datta| replace:: **Sumalyo Datta**
 
 .. |Anna Padee| replace:: **Anna Padee**
