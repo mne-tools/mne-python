@@ -950,7 +950,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     @verbose
     def apply_function(self, fun, picks=None, dtype=None, n_jobs=1,
-                       channel_wise=True, verbose=None, *args, **kwargs):
+                       channel_wise=True, verbose=None, **kwargs):
         """Apply a function to a subset of channels.
 
         %(applyfun_summary_raw)s
@@ -965,7 +965,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
             .. versionadded:: 0.18
         %(verbose_meth)s
-        %(arg_fun)s
         %(kwarg_fun)s
 
         Returns
@@ -988,17 +987,17 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                 # modify data inplace to save memory
                 for idx in picks:
                     self._data[idx, :] = _check_fun(fun, data_in[idx, :],
-                                                    *args, **kwargs)
+                                                    **kwargs)
             else:
                 # use parallel function
                 parallel, p_fun, _ = parallel_func(_check_fun, n_jobs)
                 data_picks_new = parallel(
-                    p_fun(fun, data_in[p], *args, **kwargs) for p in picks)
+                    p_fun(fun, data_in[p], **kwargs) for p in picks)
                 for pp, p in enumerate(picks):
                     self._data[p, :] = data_picks_new[pp]
         else:
             self._data[picks, :] = _check_fun(
-                fun, data_in[picks, :], *args, **kwargs)
+                fun, data_in[picks, :], **kwargs)
 
         return self
 

@@ -158,11 +158,6 @@ channel_wise : bool
     Whether to apply the function to each channel individually. If ``False``,
     the function will be applied to all channels at once. Default ``True``.
 """
-docdict['arg_fun'] = """
-*args : iterable
-    Additional positional arguments to pass to ``fun`` (first postional
-    argument of ``fun`` is the channel data).
-"""
 docdict['kwarg_fun'] = """
 **kwargs : dict
     Additional keyword arguments to pass to ``fun``.
