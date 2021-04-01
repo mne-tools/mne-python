@@ -680,7 +680,7 @@ def test_time_as_index_and_crop():
     assert_allclose(evoked.times[[0, -1]], [tmin, tmax], atol=atol)
     assert_array_equal(evoked.time_as_index([-.1, .1], use_rounding=True),
                        [0, len(evoked.times) - 1])
-    evoked.crop(tmin, tmax, include_tmax=False)
+    evoked.crop(evoked.tmin, evoked.tmax, include_tmax=False)
     assert_allclose(evoked.times[[0, -1]], [tmin, tmax - delta], atol=atol)
 
 
@@ -716,19 +716,61 @@ def test_add_channels():
     pytest.raises(TypeError, evoked_meg.add_channels, evoked_badsf)
 
 
-def test_evoked_baseline():
+def test_evoked_baseline(tmpdir):
     """Test evoked baseline."""
     evoked = read_evokeds(fname, condition=0, baseline=None)
 
     # Here we create a data_set with constant data.
     evoked = EvokedArray(np.ones_like(evoked.data), evoked.info,
                          evoked.times[0])
+    assert evoked.baseline is None
+
+    evoked_baselined = EvokedArray(np.ones_like(evoked.data), evoked.info,
+                                   evoked.times[0], baseline=(None, 0))
+    assert_allclose(evoked_baselined.baseline, (evoked_baselined.tmin, 0))
+    del evoked_baselined
 
     # Mean baseline correction is applied, since the data is equal to its mean
     # the resulting data should be a matrix of zeroes.
-    evoked.apply_baseline((None, None))
-
+    baseline = (None, None)
+    evoked.apply_baseline(baseline)
+    assert_allclose(evoked.baseline, (evoked.tmin, evoked.tmax))
     assert_allclose(evoked.data, np.zeros_like(evoked.data))
+
+    # Test that the .baseline attribute changes if we apply a different
+    # baseline now.
+    baseline = (None, 0)
+    evoked.apply_baseline(baseline)
+    assert_allclose(evoked.baseline, (evoked.tmin, 0))
+
+    # By default for our test file, no baseline should be set upon reading
+    evoked = read_evokeds(fname, condition=0)
+    assert evoked.baseline is None
+
+    # Test that the .baseline attribute is set when we call read_evokeds()
+    # with a `baseline` parameter.
+    baseline = (-0.2, -0.1)
+    evoked = read_evokeds(fname, condition=0, baseline=baseline)
+    assert_allclose(evoked.baseline, baseline)
+
+    # Test that the .baseline attribute survives an I/O roundtrip.
+    evoked = read_evokeds(fname, condition=0)
+    baseline = (-0.2, -0.1)
+    evoked.apply_baseline(baseline)
+    assert_allclose(evoked.baseline, baseline)
+
+    tmp_fname = tmpdir / 'test-ave.fif'
+    evoked.save(tmp_fname)
+    evoked_read = read_evokeds(tmp_fname, condition=0)
+    assert_allclose(evoked_read.baseline, evoked.baseline)
+
+    # We shouldn't be able to remove a baseline correction after it has been
+    # applied.
+    evoked = read_evokeds(fname, condition=0)
+    baseline = (-0.2, -0.1)
+    evoked.apply_baseline(baseline)
+    with pytest.raises(ValueError, match='already been baseline-corrected'):
+        evoked.apply_baseline(None)
 
 
 def test_hilbert():

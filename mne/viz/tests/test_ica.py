@@ -119,6 +119,7 @@ def test_plot_ica_properties():
     """Test plotting of ICA properties."""
     raw = _get_raw(preload=True).crop(0, 5)
     raw.add_proj([], remove_existing=True)
+    raw.info['highpass'] = 1.0  # fake high-pass filtering
     events = make_fixed_length_events(raw)
     picks = _get_picks(raw)[:6]
     pick_names = [raw.ch_names[k] for k in picks]
@@ -248,7 +249,7 @@ def test_plot_ica_sources():
     fig = ica.plot_sources(long_raw)
     assert len(plt.get_fignums()) == 1
     fig.canvas.draw()
-    _fake_click(fig, fig.mne.ax_main, (-0.1, 0), xform='data', button=3)
+    _click_ch_name(fig, ch_index=0, button=3)
     assert len(fig.mne.child_figs) == 1
     assert len(plt.get_fignums()) == 2
     # close child fig directly (workaround for mpl issue #18609)
@@ -304,6 +305,7 @@ def test_plot_ica_sources():
 def test_plot_ica_overlay():
     """Test plotting of ICA cleaning."""
     raw = _get_raw(preload=True)
+    raw.info['highpass'] = 1.0  # fake high-pass filtering
     picks = _get_picks(raw)
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2, random_state=0)
     # can't use info.normalize_proj here because of how and when ICA and Epochs
@@ -325,6 +327,7 @@ def test_plot_ica_overlay():
     # smoke test for CTF
     raw = read_raw_fif(raw_ctf_fname)
     raw.apply_gradient_compensation(3)
+    raw.info['highpass'] = 1.0  # fake high-pass filtering
     picks = pick_types(raw.info, meg=True, ref_meg=False)
     ica = ICA(n_components=2, )
     ica.fit(raw, picks=picks)

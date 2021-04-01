@@ -6,13 +6,12 @@
 # License: BSD (3-clause)
 
 import os
-import os.path as op
 
 import numpy as np
 
 from .._digitization import _format_dig_points
 from ...utils import (verbose, logger, _clean_names, fill_doc, _check_option,
-                      _validate_type)
+                      _check_fname)
 
 from ..base import BaseRaw
 from ..utils import _mult_cal_one, _blk_read_lims
@@ -91,13 +90,11 @@ class RawCTF(BaseRaw):
     def __init__(self, directory, system_clock='truncate', preload=False,
                  verbose=None, clean_names=False):  # noqa: D102
         # adapted from mne_ctf2fiff.c
-        _validate_type(directory, 'path-like', 'directory')
-        directory = str(directory)
+        directory = _check_fname(directory, 'read', True, 'directory',
+                                 need_dir=True)
         if not directory.endswith('.ds'):
             raise TypeError('directory must be a directory ending with ".ds", '
                             f'got {directory}')
-        if not op.isdir(directory):
-            raise ValueError('directory does not exist: "%s"' % directory)
         _check_option('system_clock', system_clock, ['ignore', 'truncate'])
         logger.info('ds directory : %s' % directory)
         res4 = _read_res4(directory)  # Read the magical res4 file

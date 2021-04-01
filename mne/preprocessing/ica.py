@@ -200,11 +200,6 @@ class ICA(ContainsMixin):
         and to ``500`` for ``'infomax'`` or ``'picard'``. The actual number of
         iterations it took :meth:`ICA.fit` to complete will be stored in the
         ``n_iter_`` attribute.
-
-        .. versionchanged:: 0.23
-            Version 0.23 introduced ``'auto'`` settings for maximum iterations
-             as specified above. With version 0.24 ``'auto'`` will be the new
-            default, replacing the current ``max_iter=200``.
     allow_ref_meg : bool
         Allow ICA on MEG reference channels. Defaults to False.
 
@@ -263,6 +258,19 @@ class ICA(ContainsMixin):
 
     Notes
     -----
+    .. versionchanged:: 0.23
+        Version 0.23 introduced the ``max_iter='auto'`` settings for maximum
+        iterations. With version 0.24 ``'auto'`` will be the new
+        default, replacing the current ``max_iter=200``.
+
+    .. versionchanged:: 0.23
+        Warn if `~mne.Epochs` were baseline-corrected.
+
+    .. note:: If you intend to clean fit ICA on `~mne.Epochs`, it is
+              recommended to high-pass filter, but **not** baseline correct the
+              data for good ICA performance. A warning will be emitted
+              otherwise.
+
     A trailing ``_`` in an attribute name signifies that the attribute was
     added to the object during fitting, consistent with standard scikit-learn
     practice.
@@ -475,7 +483,7 @@ class ICA(ContainsMixin):
         Parameters
         ----------
         inst : instance of Raw or Epochs
-            Raw measurements to be decomposed.
+            The data to be decomposed.
         %(picks_good_data_noref)s
             This selection remains throughout the initialized ICA solution.
         start : int | float | None
@@ -521,6 +529,17 @@ class ICA(ContainsMixin):
             Returns the modified instance.
         """
         _validate_type(inst, (BaseRaw, BaseEpochs), 'inst', 'Raw or Epochs')
+
+        if np.isclose(inst.info['highpass'], 0.):
+            warn('The data has not been high-pass filtered. For good ICA '
+                 'performance, it should be high-pass filtered (e.g., with a '
+                 '1.0 Hz lower bound) before fitting ICA.')
+
+        if isinstance(inst, BaseEpochs) and inst.baseline is not None:
+            warn('The epochs you passed to ICA.fit() were baseline-corrected. '
+                 'However, we suggest to fit ICA only on data that has been '
+                 'high-pass filtered, but NOT baseline-corrected.')
+
         picks = _picks_to_idx(inst.info, picks, allow_empty=False,
                               with_ref_meg=self.allow_ref_meg)
         _check_for_unsupported_ica_channels(
@@ -1530,16 +1549,16 @@ class ICA(ContainsMixin):
               start=None, stop=None, verbose=None):
         """Remove selected components from the signal.
 
-        Given the unmixing matrix, transform data,
-        zero out components, and inverse transform the data.
+        Given the unmixing matrix, transform the data,
+        zero out all excluded components, and inverse-transform the data.
         This procedure will reconstruct M/EEG signals from which
         the dynamics described by the excluded components is subtracted.
-        The data is processed in place.
 
         Parameters
         ----------
         inst : instance of Raw, Epochs or Evoked
-            The data to be processed. The instance is modified inplace.
+            The data to be processed (i.e., cleaned). It will be modified
+            in-place.
         include : array_like of int
             The indices referring to columns in the ummixing matrix. The
             components to be kept.
@@ -1559,6 +1578,19 @@ class ICA(ContainsMixin):
         -------
         out : instance of Raw, Epochs or Evoked
             The processed data.
+
+        Notes
+        -----
+        .. note:: Applying ICA may introduce a DC shift. If you pass
+                  baseline-corrected `~mne.Epochs` or `~mne.Evoked` data,
+                  the baseline period of the cleaned data may not be of
+                  zero mean anymore. If you require baseline-corrected
+                  data, apply baseline correction again after cleaning
+                  via ICA. A warning will be emitted to remind you of this
+                  fact if you pass baseline-corrected data.
+
+        .. versionchanged:: 0.23
+            Warn if instance was baseline-corrected.
         """
         _validate_type(inst, (BaseRaw, BaseEpochs, Evoked), 'inst',
                        'Raw, Epochs, or Evoked')
@@ -1575,6 +1607,14 @@ class ICA(ContainsMixin):
             kwargs.update(evoked=inst)
         _check_compensation_grade(self.info, inst.info, 'ICA', kind,
                                   ch_names=self.ch_names)
+
+        if isinstance(inst, (BaseEpochs, Evoked)):
+            if getattr(inst, 'baseline', None) is not None:
+                warn('The data you passed to ICA.apply() was '
+                     'baseline-corrected. Please note that ICA can introduce '
+                     'DC shifts, therefore you may wish to consider '
+                     'baseline-correcting the cleaned data again.')
+
         logger.info(f'Applying ICA to {kind} instance')
         return meth(**kwargs)
 

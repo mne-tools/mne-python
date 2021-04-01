@@ -585,6 +585,12 @@ def test_plot_topomap_nirs_ica(fnirs_epochs):
     from mne.preprocessing import ICA
     fnirs_epochs = fnirs_epochs.load_data().pick(picks='hbo')
     fnirs_epochs = fnirs_epochs.pick(picks=range(30))
+
+    # fake high-pass filtering and hide the fact that the epochs were
+    # baseline corrected
+    fnirs_epochs.info['highpass'] = 1.0
+    fnirs_epochs.baseline = None
+
     ica = ICA().fit(fnirs_epochs)
     fig = ica.plot_components()
     assert len(fig[0].axes) == 20

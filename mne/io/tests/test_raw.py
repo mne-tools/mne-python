@@ -5,12 +5,13 @@
 #
 # License: BSD (3-clause)
 
-from os import path as op
-from pathlib import Path
-import math
-import re
 from contextlib import redirect_stdout
 from io import StringIO
+import math
+import os
+from os import path as op
+from pathlib import Path
+import re
 
 import pytest
 import numpy as np
@@ -21,6 +22,7 @@ from mne import concatenate_raws, create_info, Annotations, pick_types
 from mne.datasets import testing
 from mne.externals.h5io import read_hdf5, write_hdf5
 from mne.io import read_raw_fif, RawArray, BaseRaw, Info, _writing_info_hdf5
+from mne.io.base import _get_scaling
 from mne.utils import (_TempDir, catch_logging, _raw_annot, _stamp_to_dt,
                        object_diff, check_version, requires_pandas)
 from mne.io.meas_info import _get_valid_units
@@ -349,6 +351,38 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
             write_hdf5(fname_h5, raw.info)
         new_info = Info(read_hdf5(fname_h5))
         assert object_diff(new_info, raw.info) == ''
+
+    # Make sure that changing directory does not break anything
+    if test_preloading:
+        these_kwargs = kwargs.copy()
+        key = None
+        for key in ('fname',
+                    'input_fname',  # artemis123
+                    'vhdr_fname',  # BV
+                    'pdf_fname',  # BTi
+                    'directory',  # CTF
+                    'filename',  # nedf
+                    ):
+            try:
+                fname = kwargs[key]
+            except KeyError:
+                key = None
+            else:
+                break
+        # len(kwargs) == 0 for the fake arange reader
+        if len(kwargs):
+            assert key is not None, sorted(kwargs.keys())
+            dirname = op.dirname(fname)
+            these_kwargs[key] = op.basename(fname)
+            these_kwargs['preload'] = False
+            orig_dir = os.getcwd()
+            try:
+                os.chdir(dirname)
+                raw_chdir = reader(**these_kwargs)
+            finally:
+                os.chdir(orig_dir)
+            raw_chdir.load_data()
+
     return raw
 
 
@@ -582,6 +616,78 @@ def test_describe_df():
                               -9.643554807784935e-13,
                               1.928710961556987e-12,
                               4.146728567347522e-11]))
+
+
+def test_get_data_units():
+    """Test the "units" argument of get_data method."""
+    # Test the unit conversion function
+    assert _get_scaling('eeg', 'uV') == 1e6
+    assert _get_scaling('eeg', 'dV') == 1e1
+    assert _get_scaling('eeg', 'pV') == 1e12
+    assert _get_scaling('mag', 'fT') == 1e15
+    assert _get_scaling('grad', 'T/m') == 1
+    assert _get_scaling('grad', 'T/mm') == 1e-3
+    assert _get_scaling('grad', 'fT/m') == 1e15
+    assert _get_scaling('grad', 'fT/cm') == 1e13
+    assert _get_scaling('csd', 'uV/cm²') == 1e2
+
+    fname = Path(__file__).parent / "data" / "test_raw.fif"
+    raw = read_raw_fif(fname)
+
+    last = np.array([4.63803098e-05, 7.66563736e-05, 2.71933595e-04])
+    last_eeg = np.array([7.12207023e-05, 4.63803098e-05, 7.66563736e-05])
+    last_grad = np.array([-3.85742192e-12,  9.64355481e-13, -1.06079103e-11])
+
+    # None
+    data_none = raw.get_data()
+    assert data_none.shape == (376, 14400)
+    assert_array_almost_equal(data_none[-3:, -1], last)
+
+    # str: unit no conversion
+    data_str_noconv = raw.get_data(picks=['eeg'], units='V')
+    assert data_str_noconv.shape == (60, 14400)
+    assert_array_almost_equal(data_str_noconv[-3:, -1], last_eeg)
+    # str: simple unit
+    data_str_simple = raw.get_data(picks=['eeg'], units='uV')
+    assert data_str_simple.shape == (60, 14400)
+    assert_array_almost_equal(data_str_simple[-3:, -1], last_eeg * 1e6)
+    # str: fraction unit
+    data_str_fraction = raw.get_data(picks=['grad'], units='fT/cm')
+    assert data_str_fraction.shape == (204, 14400)
+    assert_array_almost_equal(data_str_fraction[-3:, -1],
+                              last_grad * (1e15 / 1e2))
+    # str: more than one channel type but one with unit
+    data_str_simplestim = raw.get_data(picks=['eeg', 'stim'], units='V')
+    assert data_str_simplestim.shape == (69, 14400)
+    assert_array_almost_equal(data_str_simplestim[-3:, -1], last_eeg)
+    # str: too many channels
+    with pytest.raises(ValueError, match='more than one channel'):
+        raw.get_data(units='uV')
+    # str: invalid unit
+    with pytest.raises(ValueError, match='is not a valid unit'):
+        raw.get_data(picks=['eeg'], units='fV/cm')
+
+    # dict: combination of simple and fraction units
+    data_dict = raw.get_data(units=dict(grad='fT/cm', mag='fT', eeg='uV'))
+    assert data_dict.shape == (376, 14400)
+    assert_array_almost_equal(data_dict[0, -1],
+                              -3.857421923113974e-12 * (1e15 / 1e2))
+    assert_array_almost_equal(data_dict[2, -1], -2.1478272253525944e-13 * 1e15)
+    assert_array_almost_equal(data_dict[-2, -1], 7.665637356879529e-05 * 1e6)
+    # dict: channel type not in instance
+    data_dict_notin = raw.get_data(units=dict(hbo='uM'))
+    assert data_dict_notin.shape == (376, 14400)
+    assert_array_almost_equal(data_dict_notin[-3:, -1], last)
+    # dict: one invalid unit
+    with pytest.raises(ValueError, match='is not a valid unit'):
+        raw.get_data(units=dict(grad='fT/cV', mag='fT', eeg='uV'))
+    # dict: one invalid channel type
+    with pytest.raises(KeyError, match='is not a channel type'):
+        raw.get_data(units=dict(bad_type='fT/cV', mag='fT', eeg='uV'))
+
+    # not the good type
+    with pytest.raises(TypeError, match='instance of None, str, or dict'):
+        raw.get_data(units=['fT/cm', 'fT', 'uV'])
 
 
 def test_save_set():

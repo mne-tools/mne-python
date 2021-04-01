@@ -29,9 +29,11 @@ sample_data_evk_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                     'sample_audvis-ave.fif')
 evokeds_list = mne.read_evokeds(sample_data_evk_file, baseline=(None, 0),
                                 proj=True, verbose=False)
-# show the condition names
+
+# Show the condition names, and reassure ourselves that baseline correction has
+# been applied.
 for e in evokeds_list:
-    print(e.comment)
+    print(f'Condition: {e.comment}, baseline: {e.baseline}')
 
 ###############################################################################
 # To make our life easier, let's convert that list of `~mne.Evoked`
