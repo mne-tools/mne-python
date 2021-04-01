@@ -1823,8 +1823,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         Channel locations are expanded to the full EEGLAB format
         For more details see .io.utils.cart_to_eeglab_full_coords
         """
-        from pyeeglab import epochs
-        epochs.export_set(self, fname)
+        from eeglabio.epochs import export_set
+        export_set(self, fname)
 
     def equalize_event_counts(self, event_ids, method='mintime'):
         """Equalize the number of trials in each condition.

@@ -1464,8 +1464,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Channel locations are expanded to the full EEGLAB format
         For more details see pyeeglab.utils._cart_to_eeglab_full_coords
         """
-        from pyeeglab import raw
-        raw.export_set(self, fname)
+        from eeglabio.raw import export_set
+        export_set(self, fname)
 
     def _tmin_tmax_to_start_stop(self, tmin, tmax):
         start = int(np.floor(tmin * self.info['sfreq']))
