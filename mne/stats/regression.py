@@ -47,7 +47,8 @@ def linear_regression(inst, design_matrix, names=None):
             - ``beta`` : regression coefficients
             - ``stderr`` : standard error of regression coefficients
             - ``t_val`` : t statistics (``beta`` / ``stderr``)
-            - ``p_val`` : two-sided p-value of t statistic under the t distribution
+            - ``p_val`` : two-sided p-value of t statistic under the t
+              distribution
             - ``mlog10_p_val`` : -log₁₀-transformed p-value.
 
         The tuple members are numpy arrays. The shape of each numpy array is
