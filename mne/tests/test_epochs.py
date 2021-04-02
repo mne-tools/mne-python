@@ -3396,7 +3396,7 @@ def test_apply_function():
 
     want = data_epochs[:, ::-1]
     got = epochs.apply_function(fun, channel_wise=False).get_data()
-    assert np.array_equal(want, got)
+    assert_array_equal(want, got)
 
     # apply_function channel-wise (to first 3 channels) by replacing with mean
     picks = np.arange(3)
@@ -3408,4 +3408,4 @@ def test_apply_function():
     out = epochs.apply_function(fun, picks=picks, channel_wise=True)
     expected = epochs.get_data(picks).mean(axis=-1, keepdims=True)
     assert np.all(out.get_data(picks) == expected)
-    assert np.array_equal(out.get_data(non_picks), epochs.get_data(non_picks))
+    assert_array_equal(out.get_data(non_picks), epochs.get_data(non_picks))
