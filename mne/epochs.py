@@ -11,6 +11,7 @@
 #
 # License: BSD (3-clause)
 
+from functools import partial
 from collections import Counter
 from copy import deepcopy
 import json
@@ -1479,7 +1480,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         %(picks_all_data_noref)s
         %(applyfun_dtype)s
         %(n_jobs)s
-        %(applyfun_chwise)s
+        %(applyfun_chwise_epo)s
         %(verbose_meth)s
         %(kwarg_fun)s
 
@@ -1500,10 +1501,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         if channel_wise:
             if n_jobs == 1:
+                _fun = partial(_check_fun, fun, **kwargs)
                 # modify data inplace to save memory
                 for idx in picks:
-                    self._data[:, idx, :] = _check_fun(fun, data_in[:, idx, :],
-                                                       **kwargs)
+                    self._data[:, idx, :] = np.apply_along_axis(
+                        _fun, -1, data_in[:, idx, :])
             else:
                 # use parallel function
                 parallel, p_fun, _ = parallel_func(_check_fun, n_jobs)
