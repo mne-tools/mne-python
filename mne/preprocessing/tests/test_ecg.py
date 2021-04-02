@@ -1,5 +1,6 @@
 import os.path as op
 import pytest
+import numpy as np
 
 from mne.io import read_raw_fif
 from mne import pick_types
@@ -84,3 +85,13 @@ def test_find_ecg():
     assert len(ecg_epochs.events) == n_events
     assert 'ECG-SYN' not in raw.ch_names
     assert 'ECG-SYN' not in ecg_epochs.ch_names
+
+    # Test behavior if no peaks can be found -> achieve this by providing
+    # all-zero'd data
+    raw._data[ecg_idx] = 0.
+    ecg_events, _, average_pulse, ecg = find_ecg_events(
+        raw, ch_name=raw.ch_names[ecg_idx], return_ecg=True
+    )
+    assert ecg_events.size == 0
+    assert average_pulse == 0
+    assert np.allclose(ecg, np.zeros_like(ecg))
