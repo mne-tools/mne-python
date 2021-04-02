@@ -3391,7 +3391,7 @@ def test_apply_function():
 
     # apply_function to all channels at once
     def fun(data):
-        """This should reverse channel order without changing values."""
+        """Reverse channel order without changing values."""
         return np.eye(data.shape[1])[::-1] @ data
 
     want = data_epochs[:, ::-1]
