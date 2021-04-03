@@ -8,7 +8,7 @@ import os.path as op
 from ..base import BaseRaw
 from ..utils import _read_segments_file, _file_size
 from ..meas_info import create_info
-from ...utils import logger, verbose, warn, fill_doc
+from ...utils import logger, verbose, warn, fill_doc, _check_fname
 
 
 @fill_doc
@@ -52,6 +52,7 @@ class RawEximia(BaseRaw):
 
     @verbose
     def __init__(self, fname, preload=False, verbose=None):
+        fname = _check_fname(fname, 'read', True, 'fname')
         data_name = op.basename(fname)
         logger.info('Loading %s' % data_name)
         # Create vhdr and vmrk files so that we can use mne_brain_vision2fiff

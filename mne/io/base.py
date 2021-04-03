@@ -799,7 +799,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     @verbose
     def get_data(self, picks=None, start=0, stop=None,
-                 reject_by_annotation=None, return_times=False, verbose=None):
+                 reject_by_annotation=None, return_times=False, units=None,
+                 verbose=None):
         """Get data in the given range.
 
         Parameters
@@ -816,6 +817,22 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             'bad' are omitted. If 'NaN', the bad samples are filled with NaNs.
         return_times : bool
             Whether to return times as well. Defaults to False.
+        units : str | dict | None
+            Specify the unit(s) that the data should be returned in. If
+            ``None`` (default), the data is returned in the
+            channel-type-specific default units, which are SI units (see
+            :ref:`units` and :term:`data channels`). If a string, must be a
+            sub-multiple of SI units that will be used to scale the data from
+            all channels of the type associated with that unit. This only works
+            if the data contains one channel type that has a unit (unitless
+            channel types are left unchanged). For example if there are only
+            EEG and STIM channels, ``units='uV'`` will scale EEG channels to
+            micro-Volts while STIM channels will be unchanged. Finally, if a
+            dictionary is provided, keys must be channel types, and values must
+            be units to scale the data of that channel type to. For example
+            ``dict(grad='fT/cm', mag='fT')`` will scale the corresponding types
+            accordingly, but all other channel types will remain in their
+            channel-type-specific default unit.
         %(verbose_meth)s
 
         Returns
@@ -831,13 +848,49 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         .. versionadded:: 0.14.0
         """
         picks = _picks_to_idx(self.info, picks, 'all', exclude=())
+
+        # Convert into the specified unit
+        _validate_type(units, types=(None, str, dict), item_name="units")
+        needs_conversion = False
+        ch_factors = np.ones(len(picks))
+        si_units = _handle_default('si_units')
+        # Convert to dict if str units
+        if isinstance(units, str):
+            # Check that there is only one channel type
+            ch_types = self.get_channel_types(picks=picks, unique=True)
+            unit_ch_type = list(set(ch_types) & set(si_units.keys()))
+            if len(unit_ch_type) > 1:
+                raise ValueError('"units" cannot be str if there is more than '
+                                 'one channel type with a unit '
+                                 f'{unit_ch_type}.')
+            units = {unit_ch_type[0]: units}  # make the str argument a dict
+        # Loop over the dict to get channel factors
+        if isinstance(units, dict):
+            for ch_type, ch_unit in units.items():
+                # Get the scaling factors
+                scaling = _get_scaling(ch_type, ch_unit)
+                if scaling != 1:
+                    needs_conversion = True
+                    ch_types = self.get_channel_types(picks=picks)
+                    indices = [i_ch for i_ch, ch in enumerate(ch_types)
+                               if ch == ch_type]
+                    ch_factors[indices] *= scaling
+
         # convert to ints
         picks = np.atleast_1d(np.arange(self.info['nchan'])[picks])
         start = 0 if start is None else start
         stop = min(self.n_times if stop is None else stop, self.n_times)
         if len(self.annotations) == 0 or reject_by_annotation is None:
-            return self._getitem(
+            getitem = self._getitem(
                 (picks, slice(start, stop)), return_times=return_times)
+            if return_times:
+                data, times = getitem
+                if needs_conversion:
+                    data *= ch_factors[:, np.newaxis]
+                return data, times
+            if needs_conversion:
+                getitem *= ch_factors[:, np.newaxis]
+            return getitem
         _check_option('reject_by_annotation', reject_by_annotation.lower(),
                       ['omit', 'nan'])
         onsets, ends = _annotations_starts_stops(self, ['BAD'])
@@ -846,6 +899,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         ends = np.minimum(ends[keep], stop)
         if len(onsets) == 0:
             data, times = self[picks, start:stop]
+            if needs_conversion:
+                data *= ch_factors[:, np.newaxis]
             if return_times:
                 return data, times
             return data
@@ -887,6 +942,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         else:
             data, times = self[picks, start:stop]
 
+        if needs_conversion:
+            data *= ch_factors[:, np.newaxis]
         if return_times:
             return data, times
         return data
@@ -1337,7 +1394,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         or all forms of SSS). It is recommended not to concatenate and
         then save raw files for this reason.
         """
-        fname = op.realpath(fname)
+        fname = op.abspath(fname)
         endings = ('raw.fif', 'raw_sss.fif', 'raw_tsss.fif',
                    '_meg.fif', '_eeg.fif', '_ieeg.fif')
         endings += tuple([f'{e}.gz' for e in endings])
@@ -1879,6 +1936,69 @@ def _convert_slice(sel):
         return slice(sel[0], sel[-1] + 1)
     else:
         return sel
+
+
+def _get_scaling(ch_type, target_unit):
+    """Return the scaling factor based on the channel type and a target unit.
+
+    Parameters
+    ----------
+    ch_type : str
+        The channel type.
+    target_unit : str
+        The target unit for the provided channel type.
+
+    Returns
+    -------
+    scaling : float
+        The scaling factor to convert from the si_unit (used by default for MNE
+        objects) to the target unit.
+    """
+    scaling = 1.
+    si_units = _handle_default('si_units')
+    si_units_splitted = {key: si_units[key].split('/') for key in si_units}
+    prefixes = _handle_default('prefixes')
+    prefix_list = list(prefixes.keys())
+
+    # Check that the provided unit exists for the ch_type
+    unit_list = target_unit.split('/')
+    if ch_type not in si_units.keys():
+        raise KeyError(
+            f'{ch_type} is not a channel type that can be scaled '
+            'from units.')
+    si_unit_list = si_units_splitted[ch_type]
+    if len(unit_list) != len(si_unit_list):
+        raise ValueError(
+            f'{target_unit} is not a valid unit for {ch_type}, use a '
+            f'sub-multiple of {si_units[ch_type]} instead.')
+    for i, unit in enumerate(unit_list):
+        valid = [prefix + si_unit_list[i]
+                 for prefix in prefix_list]
+        if unit not in valid:
+            raise ValueError(
+                f'{target_unit} is not a valid unit for {ch_type}, use a '
+                f'sub-multiple of {si_units[ch_type]} instead.')
+
+    # Get the scaling factors
+    for i, unit in enumerate(unit_list):
+        has_square = False
+        # XXX power normally not used as csd cannot get_data()
+        if unit[-1] == '²':
+            has_square = True
+        if unit == 'm' or unit == 'm²':
+            factor = 1.
+        elif unit[0] in prefixes.keys():
+            factor = prefixes[unit[0]]
+        else:
+            factor = 1.
+        if factor != 1:
+            if has_square:
+                factor *= factor
+            if i == 0:
+                scaling = scaling * factor
+            elif i == 1:
+                scaling = scaling / factor
+    return scaling
 
 
 class _ReadSegmentFileProtector(object):

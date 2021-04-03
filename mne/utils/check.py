@@ -151,21 +151,32 @@ def _check_event_id(event_id, events):
 
 
 def _check_fname(fname, overwrite=False, must_exist=False, name='File',
-                 allow_dir=False):
+                 need_dir=False):
     """Check for file existence."""
-    _validate_type(fname, 'path-like', 'fname')
-    if op.isfile(fname) or (allow_dir and op.isdir(fname)):
+    _validate_type(fname, 'path-like', name)
+    if op.exists(fname):
         if not overwrite:
             raise FileExistsError('Destination file exists. Please use option '
                                   '"overwrite=True" to force overwriting.')
         elif overwrite != 'read':
             logger.info('Overwriting existing file.')
-        if must_exist and not os.access(fname, os.R_OK):
-            raise PermissionError(
-                '%s does not have read permissions: %s' % (name, fname))
+        if must_exist:
+            if need_dir:
+                if not op.isdir(fname):
+                    raise IOError(
+                        f'Need a directory for {name} but found a file '
+                        f'at {fname}')
+            else:
+                if not op.isfile(fname):
+                    raise IOError(
+                        f'Need a file for {name} but found a directory '
+                        f'at {fname}')
+            if not os.access(fname, os.R_OK):
+                raise PermissionError(
+                    f'{name} does not have read permissions: {fname}')
     elif must_exist:
-        raise FileNotFoundError('%s "%s" does not exist' % (name, fname))
-    return str(fname)
+        raise FileNotFoundError(f'{name} does not exist: {fname}')
+    return str(op.abspath(fname))
 
 
 def _check_subject(class_subject, input_subject, raise_error=True,

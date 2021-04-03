@@ -8,7 +8,7 @@ from pathlib import Path
 
 import numpy as np
 
-from ...utils import fill_doc, logger, verbose, warn
+from ...utils import fill_doc, logger, verbose, warn, _check_fname
 from ..base import BaseRaw
 from ..meas_info import create_info
 from ...annotations import Annotations
@@ -308,6 +308,7 @@ class RawNihon(BaseRaw):
 
     @verbose
     def __init__(self, fname, preload=False, verbose=None):
+        fname = _check_fname(fname, 'read', True, 'fname')
         fname = _ensure_path(fname)
         data_name = fname.name
         logger.info('Loading %s' % data_name)
