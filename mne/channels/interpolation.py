@@ -138,7 +138,7 @@ def _interpolate_bads_eeg(inst, origin, exclude, verbose=None):
         origin fit.
     exclude : list | tuple
         The channels to exclude from interpolation. If excluded a bad
-        channel will stay bads.
+        channel will stay bad.
     """
     bads_idx = np.zeros(len(inst.ch_names), dtype=bool)
     goods_idx = np.zeros(len(inst.ch_names), dtype=bool)
@@ -209,7 +209,7 @@ def _interpolate_bads_meeg(inst, mode='accurate', origin=(0., 0., 0.04),
         Should always be False; only exists for testing purpose.
     exclude : list | tuple
         The channels to exclude from interpolation. If excluded a bad
-        channel will stay bads. By default all bad MEG/EEG channels
+        channel will stay bad. By default all bad MEG/EEG channels
         will be interpolated.
     """
     bools = dict(meg=meg, eeg=eeg)
@@ -255,7 +255,7 @@ def _interpolate_bads_nirs(inst, method='nearest', exclude=(), verbose=None):
         each bad channel with the nearest non bad channel.
     exclude : list | tuple
         The channels to exclude from interpolation. If excluded a bad
-        channel will stay bads. By default all bad nirs channels
+        channel will stay bad. By default all bad nirs channels
         will be interpolated.
     %(verbose)s
     """
