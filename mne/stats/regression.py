@@ -35,8 +35,8 @@ def linear_regression(inst, design_matrix, names=None):
         Optional parameter to name the regressors (i.e., the columns in the
         design matrix). If provided, the length must correspond to the number
         of columns present in design matrix (including the intercept, if
-        present). Otherwise the default names are ``'x0'``, ``'x1'``,
-        ``'x2', …, 'xn'`` for ``n`` regressors.
+        present). Otherwise, the default names are ``'x0'``, ``'x1'``,
+        ``'x2', …, 'x(n-1)'`` for ``n`` regressors.
 
     Returns
     -------
