@@ -40,7 +40,6 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
 ###############################################################################
 # Compute regularized noise covariance
 # ------------------------------------
-#
 # For more details see :ref:`tut_compute_covariance`.
 
 noise_cov = mne.compute_covariance(
