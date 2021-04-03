@@ -167,7 +167,7 @@ Enhancements
 
 - Add ``units`` parameter to :meth:`mne.io.Raw.get_data` to return data in the desired unit (:gh:`9136` by `Johann Benerradi`_ and `Stefan Appelhoff`_)
 
-- Add :func:`mne.preprocessing.interpolate_mark_bads` to interpolate bad channels in a list of `~mne.Evoked`, `~mne.Epochs` or `~mne.io.Raw` having different sets of bad channels (:gh:`XXX` by `Alex Gramfort`_)
+- Add :func:`mne.preprocessing.interpolate_mark_bads` to interpolate bad channels in a list of `~mne.Evoked`, `~mne.Epochs` or `~mne.io.Raw` having different sets of bad channels (:gh:`9241` by `Alex Gramfort`_)
 
 
 Bugs
