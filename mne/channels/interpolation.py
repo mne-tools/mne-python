@@ -124,22 +124,6 @@ def _do_interp_dots(inst, interpolation, goods_idx, bads_idx):
 
 @verbose
 def _interpolate_bads_eeg(inst, origin, exclude, verbose=None):
-    """Interpolate bad EEG channels.
-
-    Operates in place.
-
-    Parameters
-    ----------
-    inst : mne.io.Raw, mne.Epochs or mne.Evoked
-        The data to interpolate. Must be preloaded.
-    origin : array-like, shape (3,) | str
-        Origin of the sphere in the head coordinate frame and in meters.
-        Can be ``'auto'`` (default), which means a head-digitization-based
-        origin fit.
-    exclude : list | tuple
-        The channels to exclude from interpolation. If excluded a bad
-        channel will stay bad.
-    """
     bads_idx = np.zeros(len(inst.ch_names), dtype=bool)
     goods_idx = np.zeros(len(inst.ch_names), dtype=bool)
 
@@ -186,32 +170,6 @@ def _interpolate_bads_meg(inst, mode='accurate', origin=(0., 0., 0.04),
 def _interpolate_bads_meeg(inst, mode='accurate', origin=(0., 0., 0.04),
                            meg=True, eeg=True, ref_meg=False,
                            exclude=(), verbose=None):
-    """Interpolate bad channels from data in good channels.
-
-    Parameters
-    ----------
-    inst : mne.io.Raw, mne.Epochs or mne.Evoked
-        The data to interpolate. Must be preloaded.
-    mode : str
-        Either `'accurate'` or `'fast'`, determines the quality of the
-        Legendre polynomial expansion used for interpolation. `'fast'` should
-        be sufficient for most applications.
-    origin : array-like, shape (3,) | str
-        Origin of the sphere in the head coordinate frame and in meters.
-        Can be ``'auto'``, which means a head-digitization-based origin
-        fit. Default is ``(0., 0., 0.04)``.
-    %(verbose)s
-    meg : bool
-        If True, interpolate bad MEG channels.
-    eeg : bool
-        If True, interpolate bad EEG channels.
-    ref_meg : bool
-        Should always be False; only exists for testing purpose.
-    exclude : list | tuple
-        The channels to exclude from interpolation. If excluded a bad
-        channel will stay bad. By default all bad MEG/EEG channels
-        will be interpolated.
-    """
     bools = dict(meg=meg, eeg=eeg)
     info = _simplify_info(inst.info)
     for ch_type, do in bools.items():
@@ -244,21 +202,6 @@ def _interpolate_bads_meeg(inst, mode='accurate', origin=(0., 0., 0.04),
 
 @verbose
 def _interpolate_bads_nirs(inst, method='nearest', exclude=(), verbose=None):
-    """Interpolate bad nirs channels. Simply replaces by closest non bad.
-
-    Parameters
-    ----------
-    inst : mne.io.Raw, mne.Epochs or mne.Evoked
-        The data to interpolate. Must be preloaded.
-    method : str
-        Only the method 'nearest' is currently available. This method replaces
-        each bad channel with the nearest non bad channel.
-    exclude : list | tuple
-        The channels to exclude from interpolation. If excluded a bad
-        channel will stay bad. By default all bad nirs channels
-        will be interpolated.
-    %(verbose)s
-    """
     from scipy.spatial.distance import pdist, squareform
     from mne.preprocessing.nirs import _channel_frequencies,\
         _check_channels_ordered

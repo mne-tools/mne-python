@@ -1,4 +1,4 @@
-"""Tools for interpolation data."""
+"""Tools for data interpolation."""
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 
@@ -8,8 +8,8 @@ import numpy as np
 from ..epochs import BaseEpochs
 
 
-def interpolate_mark_bads(insts, good_fraction=0., copy=True):
-    """Interpolate or mark bads consistently for a list of data.
+def interpolate_mark_bads(insts, good_fraction=1., copy=True):
+    """Interpolate or mark bads consistently for a list of instances.
 
     Once called on a list of instances, the instances can be concatenated
     as they will have the same list of bad channels.
@@ -20,13 +20,12 @@ def interpolate_mark_bads(insts, good_fraction=0., copy=True):
         The list of instances (Evoked, Epochs or Raw) to consider
         for interpolation. Each instance should have marked channels.
     good_fraction : float
-        A float between 0 and 1 that specifies the fraction of time
-        a channel should be good to be eventually interpolated for
-        certain instances. For example if 0.5, a channel which is
-        good more than half of the time will be interpolated in the
-        instances where it's marked as bad. If 1 then channels
-        will never be interpolated and if 0 all bad channels will be
-        interpolated.
+        A float between 0 and 1 (default) that specifies the fraction of time
+        a channel should be good to be eventually interpolated for certain
+        instances. For example if 0.5, a channel which is good at least half
+        of the time will be interpolated in the instances where it is marked
+        as bad. If 1 then channels will never be interpolated and if 0 all bad
+        channels will be systematically interpolated.
     copy : bool
         If True then the returned instances will be copies.
 

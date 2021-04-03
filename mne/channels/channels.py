@@ -1137,7 +1137,7 @@ class InterpolationMixin(object):
             .. versionadded:: 0.21
         exclude : list | tuple
             The channels to exclude from interpolation. If excluded a bad
-            channel will stay bads.
+            channel will stay in bads.
         %(verbose_meth)s
 
         Returns

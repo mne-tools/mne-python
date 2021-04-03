@@ -31,6 +31,7 @@ def _load_data():
 @pytest.mark.parametrize('good_fraction', [0., 0.5, 1.])
 @pytest.mark.parametrize('inst_type', ['raw', 'epochs', 'evoked'])
 def test_interpolate_mark_bads(good_fraction, inst_type):
+    """Test interpolate_mark_bads function."""
     raw, epochs, evoked = _load_data()
 
     if inst_type == 'raw':
