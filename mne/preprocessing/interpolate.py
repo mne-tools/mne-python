@@ -32,7 +32,7 @@ def interpolate_mark_bads(insts, good_fraction=1., copy=True):
     Returns
     -------
     insts_bads : list
-        The instances will consistent list of bad channels after
+        The instances will have the same list of bad channels after
         potential interpolation.
     """
     all_bads = list(
