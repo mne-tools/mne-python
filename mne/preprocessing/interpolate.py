@@ -35,6 +35,10 @@ def equalize_bads(insts, interp_thresh=1., copy=True):
         The instances will have the same list of bad channels after
         potential interpolation.
     """
+    if not 0 <= interp_thresh <= 1:
+        raise ValueError('interp_thresh must be between 0 and 1, got %s'
+                         % (interp_thresh,))
+
     all_bads = list(
         set(chain.from_iterable([inst.info['bads'] for inst in insts]))
     )

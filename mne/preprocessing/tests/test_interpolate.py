@@ -41,6 +41,9 @@ def test_equalize_bads(interp_thresh, inst_type):
     else:
         insts = [evoked.copy().crop(0, 0.1), raw.copy().crop(0, 0.2)]
 
+    with pytest.raises(ValueError, match='between 0'):
+        equalize_bads(insts, interp_thresh=2.)
+
     bads = insts[0].copy().pick('eeg').ch_names[:3]
     insts[0].info['bads'] = bads[:2]
     insts[1].info['bads'] = bads[1:]
