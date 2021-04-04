@@ -8,7 +8,7 @@ import numpy as np
 from ..epochs import BaseEpochs
 
 
-def interpolate_mark_bads(insts, good_fraction=1., copy=True):
+def equalize_bads(insts, interp_thresh=1., copy=True):
     """Interpolate or mark bads consistently for a list of instances.
 
     Once called on a list of instances, the instances can be concatenated
@@ -19,7 +19,7 @@ def interpolate_mark_bads(insts, good_fraction=1., copy=True):
     insts : list
         The list of instances (Evoked, Epochs or Raw) to consider
         for interpolation. Each instance should have marked channels.
-    good_fraction : float
+    interp_thresh : float
         A float between 0 and 1 (default) that specifies the fraction of time
         a channel should be good to be eventually interpolated for certain
         instances. For example if 0.5, a channel which is good at least half
@@ -51,7 +51,7 @@ def interpolate_mark_bads(insts, good_fraction=1., copy=True):
         ) / np.sum(durations))
 
     bads_keep = [ch for k, ch in enumerate(all_bads)
-                 if good_times[k] < good_fraction]
+                 if good_times[k] < interp_thresh]
     if copy:
         insts = [inst.copy() for inst in insts]
 

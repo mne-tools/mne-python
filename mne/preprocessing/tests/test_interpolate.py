@@ -2,7 +2,7 @@ import os.path as op
 
 import pytest
 
-from mne.preprocessing.interpolate import interpolate_mark_bads
+from mne.preprocessing.interpolate import equalize_bads
 from mne import io, pick_types, read_events, Epochs
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -28,10 +28,10 @@ def _load_data():
     return raw.load_data(), epochs.load_data(), evoked
 
 
-@pytest.mark.parametrize('good_fraction', [0., 0.5, 1.])
+@pytest.mark.parametrize('interp_thresh', [0., 0.5, 1.])
 @pytest.mark.parametrize('inst_type', ['raw', 'epochs', 'evoked'])
-def test_interpolate_mark_bads(good_fraction, inst_type):
-    """Test interpolate_mark_bads function."""
+def test_equalize_bads(interp_thresh, inst_type):
+    """Test equalize_bads function."""
     raw, epochs, evoked = _load_data()
 
     if inst_type == 'raw':
@@ -45,12 +45,12 @@ def test_interpolate_mark_bads(good_fraction, inst_type):
     insts[0].info['bads'] = bads[:2]
     insts[1].info['bads'] = bads[1:]
 
-    insts_ok = interpolate_mark_bads(insts, good_fraction=good_fraction)
-    if good_fraction == 0:
+    insts_ok = equalize_bads(insts, interp_thresh=interp_thresh)
+    if interp_thresh == 0:
         bads_ok = []
-    elif good_fraction == 1:
+    elif interp_thresh == 1:
         bads_ok = bads
-    else:  # good_fraction == 0.5
+    else:  # interp_thresh == 0.5
         bads_ok = bads[1:]
 
     for inst in insts_ok:
