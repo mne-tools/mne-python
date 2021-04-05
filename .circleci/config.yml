@@ -66,14 +66,6 @@ jobs:
               fi
 
         - run:
-            name: Install 3D rendering libraries \ PyQt5 dependencies \ graphviz \ optipng (for optimized images)
-            command: |
-              sudo apt-get install libosmesa6 libglx-mesa0 libopengl0 libglx0 libdbus-1-3 \
-                  libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xfixes0 libxcb-xinerama0 \
-                  graphviz \
-                  optipng
-
-        - run:
             name: Spin up Xvfb
             command: |
               /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
@@ -210,8 +202,7 @@ jobs:
         - run:
             name: make html
             command: |
-              cd doc;
-              PATTERN=$(cat ../pattern.txt) make $(cat ../build.txt);
+              PATTERN=$(cat ../pattern.txt) make -C doc $(cat ../build.txt);
         - run:
             name: Show profiling output
             when: always
@@ -360,6 +351,12 @@ jobs:
               - source-cache
         - checkout
         - run:
+            name: Set BASH_ENV
+            command: |
+              set -e
+              echo "set -e" >> $BASH_ENV
+              echo "export PATH=~/.local/bin/:$PATH" >> $BASH_ENV
+        - run:
             name: Check-skip
             command: |
               export COMMIT_MESSAGE=$(git log --format=oneline -n 1);
@@ -368,24 +365,14 @@ jobs:
                 circleci-agent step halt;
               fi
         - run:
-            name: pip install dependencies
-            command: |
-               set -e;
-               python -m pip install --user --progress-bar off numpy scipy matplotlib pillow
-               python -m pip install --user -e .
-               python -m pip install --user --progress-bar off -r requirements_doc.txt -r requirements_testing.txt
-        - run:
             name: make linkcheck
             command: |
-              set -e
-              cd doc
-              PATH=~/.local/bin:$PATH make linkcheck
+              make -C doc linkcheck
         - run:
             name: make linkcheck-grep
             when: always
             command: |
-              cd doc
-              make linkcheck-grep
+              make -C doc linkcheck-grep
         - store_artifacts:
             path: doc/_build/linkcheck
             destination: linkcheck
@@ -470,6 +457,7 @@ jobs:
             command: |
               set -e
               echo "set -e" >> $BASH_ENV
+              mkdir -p ~/mne_data
         - run:
             name: Check-skip
             command: |
@@ -478,37 +466,24 @@ jobs:
                 echo "Skip detected, exiting job ${CIRCLE_JOB}."
                 circleci-agent step halt;
               fi
+        - restore_cache:
+            keys:
+              - pip-cache
         - run:
             name: Get Python running
             command: |
-              python -m pip install --progress-bar off --upgrade "pip!=20.3.0" setuptools wheel
-              python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" python-dateutil pytz joblib threadpoolctl
-              python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" -i "https://pypi.anaconda.org/scipy-wheels-nightly/simple" --extra-index-url https://www.riverbankcomputing.com/pypi/simple numpy scipy pandas scikit-learn PyQt5
-              python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" h5py pillow matplotlib
-              python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" numba llvmlite
-              wget -q https://osf.io/kej3v/download -O vtk-9.0.20201117-cp39-cp39-linux_x86_64.whl
-              python -m pip install --progress-bar off vtk-9.0.20201117-cp39-cp39-linux_x86_64.whl
-              python -m pip install --progress-bar off https://github.com/pyvista/pyvista/zipball/master
-              python -m pip install --progress-bar off https://github.com/pyvista/pyvistaqt/zipball/master
-              python -m pip install --progress-bar off --upgrade -r requirements_testing.txt
-              python -m pip install nitime
-              python -m pip install --user -e .
-
-        # Look at what we have and fail early if there is some library conflict
+              ./tools/circleci_dependencies.sh
         - run:
             name: Check installation
             command: |
-              which python
-              python -c "import numpy; numpy.show_config()"
-              python -c "from numpy._pytesttester import _show_numpy_info; _show_numpy_info()"
-
-        # Figure out if we should run a full, pattern, or noplot version
+              mne sys_info
+        - restore_cache:
+            keys:
+              - data-cache-testing
         - run:
             name: Get data
             command: |
               python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
-
-        # Run doctest (if it's full or front) before building the docs
         - run:
             name: pytest
             command: |
