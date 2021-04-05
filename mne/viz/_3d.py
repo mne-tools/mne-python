@@ -2943,7 +2943,8 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
 
 
 @fill_doc
-def plot_sensors_connectivity(info, con, picks=None):
+def plot_sensors_connectivity(info, con, picks=None,
+                              cbar_label='connectivity'):
     """Visualize the sensor connectivity in 3D.
 
     Parameters
@@ -2954,6 +2955,8 @@ def plot_sensors_connectivity(info, con, picks=None):
         The computed connectivity measure(s).
     %(picks_good_data)s
         Indices of selected channels.
+    cbar_label : str
+        Label for the colorbar.
 
     Returns
     -------
@@ -3007,7 +3010,7 @@ def plot_sensors_connectivity(info, con, picks=None):
                              vmin=vmin, vmax=vmax,
                              reverse_lut=True)
 
-    renderer.scalarbar(source=tube, title='Phase Lag Index (PLI)')
+    renderer.scalarbar(source=tube, title=cbar_label)
 
     # Add the sensor names for the connections shown
     nodes_shown = list(set([n[0] for n in con_nodes] +

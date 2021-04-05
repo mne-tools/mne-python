@@ -717,14 +717,14 @@ def test_plot_sensors_connectivity(renderer):
     n_channels = len(picks)
     con = np.random.RandomState(42).randn(n_channels, n_channels)
     info = raw.info
-    with pytest.raises(TypeError):
-        plot_sensors_connectivity(info='foo', con=con,
-                                  picks=picks)
-    with pytest.raises(ValueError):
-        plot_sensors_connectivity(info=info, con=con[::2, ::2],
-                                  picks=picks)
+    with pytest.raises(TypeError, match='must be an instance of Info'):
+        plot_sensors_connectivity(info='foo', con=con, picks=picks)
+    with pytest.raises(ValueError, match='does not correspond to the size'):
+        plot_sensors_connectivity(info=info, con=con[::2, ::2], picks=picks)
 
-    plot_sensors_connectivity(info=info, con=con, picks=picks)
+    fig = plot_sensors_connectivity(info=info, con=con, picks=picks)
+    if hasattr(fig, 'plotter'):
+        assert fig.plotter.scalar_bar.GetTitle() == 'connectivity'
 
 
 @pytest.mark.parametrize('orientation', ('horizontal', 'vertical'))
