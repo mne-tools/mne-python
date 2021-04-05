@@ -97,6 +97,7 @@ def pytest_configure(config):
     ignore:Unable to enable faulthandler.*:UserWarning
     ignore:Fetchers from the nilearn.*:FutureWarning
     ignore:SelectableGroups dict interface is deprecated\. Use select\.:DeprecationWarning
+    ignore:Call to deprecated class vtk.*:DeprecationWarning
     always:.*get_data.* is deprecated in favor of.*:DeprecationWarning
     always::ResourceWarning
     """  # noqa: E501

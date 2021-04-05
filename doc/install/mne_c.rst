@@ -161,8 +161,8 @@ effect or you need a faster graphics adapter.
 Troubleshooting MNE-C installation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If MNE-C can't find ``libxp.so.6``, download libxp6 from debian_ or `pkgs.org`_
-and install with ``dpkg`` or similar:
+If MNE-C can't find ``libxp.so.6``, download libxp6 from debian_ or similar and
+install it:
 
 .. code-block:: console
 
@@ -190,4 +190,3 @@ If you encounter other errors installing MNE-C, please post a message to the
 .. _XCode developer tools: https://developer.apple.com/xcode/
 .. _xquartz: https://www.xquartz.org/
 .. _debian: https://packages.debian.org/jessie/amd64/libxp6/download
-.. _pkgs.org: https://pkgs.org/download/libxp6

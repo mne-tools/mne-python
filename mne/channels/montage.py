@@ -1113,7 +1113,8 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
         '.loc' or '.locs' or '.eloc' (for EEGLAB files),
         '.sfp' (BESA/EGI files), '.csd',
         '.elc', '.txt', '.csd', '.elp' (BESA spherical),
-        '.bvef' (BrainVision files).
+        '.bvef' (BrainVision files),
+        '.csv', '.tsv', '.xyz' (XYZ coordinates).
     head_size : float | None
         The size of the head (radius, in [m]). If ``None``, returns the values
         read from the montage file with no modification. Defaults to 0.095m.
@@ -1147,7 +1148,7 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
     """
     from ._standard_montage_utils import (
         _read_theta_phi_in_degrees, _read_sfp, _read_csd, _read_elc,
-        _read_elp_besa, _read_brainvision
+        _read_elp_besa, _read_brainvision, _read_xyz
     )
     SUPPORTED_FILE_EXT = {
         'eeglab': ('.loc', '.locs', '.eloc', ),
@@ -1157,6 +1158,7 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
         'generic (Theta-phi in degrees)': ('.txt', ),
         'standard BESA spherical': ('.elp', ),  # XXX: not same as polhemus elp
         'brainvision': ('.bvef', ),
+        'xyz': ('.csv', '.tsv', '.xyz'),
     }
 
     _, ext = op.splitext(fname)
@@ -1196,6 +1198,9 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
 
     elif ext in SUPPORTED_FILE_EXT['brainvision']:
         montage = _read_brainvision(fname, head_size)
+
+    elif ext in SUPPORTED_FILE_EXT['xyz']:
+        montage = _read_xyz(fname)
 
     if coord_frame is not None:
         coord_frame = _coord_frame_const(coord_frame)

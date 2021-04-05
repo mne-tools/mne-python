@@ -19,7 +19,7 @@ from ..meas_info import _empty_info, create_info
 from ..proj import setup_proj
 from ..utils import _create_chs, _mult_cal_one
 from ...annotations import Annotations
-from ...utils import verbose, logger, warn, _check_option
+from ...utils import verbose, logger, warn, _check_option, _check_fname
 from ...evoked import EvokedArray
 
 
@@ -398,6 +398,8 @@ class RawMff(BaseRaw):
                  include=None, exclude=None, preload=False,
                  channel_naming='E%d', verbose=None):
         """Init the RawMff class."""
+        input_fname = _check_fname(input_fname, 'read', True, 'input_fname',
+                                   need_dir=True)
         logger.info('Reading EGI MFF Header from %s...' % input_fname)
         egi_info = _read_header(input_fname)
         if eog is None:

@@ -19,6 +19,8 @@ Current (0.23.dev0)
 
 .. |New Contributor| replace:: **New Contributor**
 
+.. |Jack Zhang| replace:: **Jack Zhang**
+
 .. |Sumalyo Datta| replace:: **Sumalyo Datta**
 
 .. |Anna Padee| replace:: **Anna Padee**
@@ -57,7 +59,9 @@ Current (0.23.dev0)
 
 Enhancements
 ~~~~~~~~~~~~
-- Add HTML representation for `~mne.Epochs` and `~mne.Evoked` in Jupyter Notebooks (:gh:`9174` by |Valerii Chirkov|_)
+- Add HTML representation for `~mne.Epochs` and `~mne.Evoked` in Jupyter Notebooks (:gh:`9220` by |Valerii Chirkov|_)
+
+- Add CSV, TSV, and XYZ support to :func:`mne.channels.read_custom_montage` (:gh:`9203` **by new contributor** |Jack Zhang|_)
 
 - Speed up :func:`mne.viz.plot_ica_properties` by refactoring (:gh:`9174` **by new contributor** |Valerii Chirkov|_)
 
@@ -160,6 +164,11 @@ Enhancements
 - Add first_samp support for raw simulations with `mne.simulation.simulate_raw` and `mne.simulation.SourceSimulator` (:gh:`9166` by `Steven Bierer`_)
 
 - `~mne.Evoked` gained a ``baseline`` attribute that is automatically assembled based on the baseline of the averaged `~mne.Epochs` (:gh:`9210` by `Richard Höchenberger`_)
+
+- Add ``units`` parameter to :meth:`mne.io.Raw.get_data` to return data in the desired unit (:gh:`9136` by `Johann Benerradi`_ and `Stefan Appelhoff`_)
+
+- Add :func:`mne.preprocessing.equalize_bads` to interpolate bad channels in a list of `~mne.Evoked`, `~mne.Epochs` or `~mne.io.Raw` having different sets of bad channels (:gh:`9241` by `Alex Gramfort`_)
+
 
 Bugs
 ~~~~
@@ -264,6 +273,8 @@ Bugs
 - Fix bug with :func:`mne.io.Raw.pick` where incorrect fnirs types were returned (:gh:`9178` by `Robert Luke`_)
 
 - Improved string representation of `~mne.Epochs` containing multiple event types; improved (and more mathematically correct) ``evoked.comment`` in the `mne.combine_evoked` output; and better (and often more concise) legend labels in the figures created via `~mne.viz.plot_compare_evokeds` (:gh:`9027` by `Richard Höchenberger`_)
+
+- :func:`mne.preprocessing.find_ecg_events` now correctly handles situation where no ECG activity could be detected, and correctly returns an empty array of ECG events (:gh:`9236` by `Richard Höchenberger`_)
 
 API changes
 ~~~~~~~~~~~

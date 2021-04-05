@@ -21,8 +21,7 @@ from mne import (equalize_channels, pick_types, read_evokeds, write_evokeds,
 from mne.evoked import _get_peak, Evoked, EvokedArray
 from mne.io import read_raw_fif
 from mne.io.constants import FIFF
-from mne.utils import (_TempDir, requires_pandas,
-                       run_tests_if_main, grand_average)
+from mne.utils import _TempDir, requires_pandas, grand_average
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 fname = op.join(base_dir, 'test-ave.fif')
@@ -800,14 +799,6 @@ def test_hilbert():
     assert_allclose(evoked_hilb_env.data, np.abs(evoked_hilb.data))
 
 
-run_tests_if_main()
-
-
-def fun(evoked_data, mult_param=1):
-    """Auxiliary function to test apply_function."""
-    return mult_param * evoked_data
-
-
 def test_apply_function_evk():
     """Check the apply_function method for evoked data."""
     # create fake evoked data to use for checking apply_function
@@ -816,9 +807,11 @@ def test_apply_function_evk():
     evoked = EvokedArray(data, info)
     evoked_data = evoked.data.copy()
     # check apply_function channel-wise
-    mult_param = -1
-    kwargs = dict(mult_param=mult_param)
-    applied = evoked.apply_function(fun, picks=None, dtype=None, n_jobs=1,
-                                    **kwargs)
+
+    def fun(data, multiplier):
+        return data * multiplier
+
+    mult = -1
+    applied = evoked.apply_function(fun, n_jobs=1, multiplier=mult)
     assert np.shape(applied.data) == np.shape(evoked_data)
-    assert np.equal(applied.data, evoked_data * mult_param).all()
+    assert np.equal(applied.data, evoked_data * mult).all()

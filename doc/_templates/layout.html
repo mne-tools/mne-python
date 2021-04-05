@@ -38,24 +38,41 @@
         {% endfor %}
       </div>
     </div>
-  {% endif %}
-</div>
-{% endblock %}
-
-<!-- footer -->
-{%- block footer %}
-<footer class="footer mt-5 mt-md-0">
-  <div class="container institutions">
-    <div class="d-flex flex-wrap flex-row justify-content-center">
-      {% for inst in institutions -%}
-        <div class="m-2">
-          <a href="{{ inst.url }}">
-            <img class="institution" src="{{ pathto('_static/institution_logos/' + inst.img, 1) }}" title="{{ inst.name }}" alt="{{ inst.name }}"/>
+    <!-- funders -->
+    <div class="container">
+      <p class="h4 text-center font-weight-light mt-4 mt-lg-5">Funders</p>
+    </div>
+    <div class="d-flex flex-wrap flex-row justify-content-center align-items-center">
+      {% for item in funders -%}
+        <div class="card my-1 mx-2 border-light" style="{{ 'width: ' + item.size + 'rem;' }}">
+          <a href="{{ pathto('funding.html', 1) }}">
+            <img class="card-img" src="{{ pathto('_static/funding/' + item.img, 1) }}" title="{{ item.title }}" alt="{{ item.title }}">
           </a>
         </div>
       {% endfor %}
     </div>
-  </div>
+    <!-- institutions -->
+    <p class="h4 text-center font-weight-light mt-4 mt-lg-5">Supporting institutions</p>
+    <div class="container">
+      <div class="d-flex flex-wrap flex-row justify-content-center align-items-center">
+        {% for inst in institutions -%}
+          <div class="card my-1 mx-2 border-light" style="{{ 'width: ' + inst.size + 'rem;' }}">
+            <a href="{{ inst.url }}">
+              <img class="card-img" src="{{ pathto('_static/institution_logos/' + inst.img, 1) }}" title="{{ inst.name }}" alt="{{ inst.name }}"/>
+            </a>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+  {% endif %}
+</div>
+{% endblock %}
+
+
+<!-- footer -->
+{%- block footer %}
+<footer class="footer mt-5 mt-md-0">
   <p class="text-center text-muted small">&copy; Copyright {{ copyright }}</p>
 </footer>
   <script src="https://mne.tools/versionwarning.js"></script>
