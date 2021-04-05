@@ -32,8 +32,8 @@ def equalize_bads(insts, interp_thresh=1., copy=True):
     Returns
     -------
     insts_bads : list
-        The instances will have the same list of bad channels after
-        potential interpolation.
+        The list of instances, with the same channel(s) marked as bad in all of
+        them, possibly with some formerly bad channels interpolated.
     """
     if not 0 <= interp_thresh <= 1:
         raise ValueError('interp_thresh must be between 0 and 1, got %s'
