@@ -144,9 +144,6 @@ intersphinx_mapping = {
     'patsy': ('https://patsy.readthedocs.io/en/latest', None),
     'pyvista': ('https://docs.pyvista.org', None),
     'imageio': ('https://imageio.readthedocs.io/en/latest', None),
-    # We need to stick with _public someplaces with 1.4.0:
-    # https://github.com/dipy/dipy/issues/2290
-    'dipy': ('https://dipy.org/documentation/1.4.0.', None),
     'mne_realtime': ('https://mne.tools/mne-realtime', None),
     'picard': ('https://pierreablin.github.io/picard/', None),
     'qdarkstyle': ('https://qdarkstylesheet.readthedocs.io/en/latest', None)
@@ -182,9 +179,6 @@ numpydoc_xref_aliases = {
     'Nifti1Image': 'nibabel.nifti1.Nifti1Image',
     'Nifti2Image': 'nibabel.nifti2.Nifti2Image',
     'SpatialImage': 'nibabel.spatialimages.SpatialImage',
-    # dipy
-    'dipy.align.AffineMap': 'dipy.align._public.AffineMap',
-    'dipy.align.DiffeomorphicMap': 'dipy.align._public.DiffeomorphicMap',
     # MNE
     'Label': 'mne.Label', 'Forward': 'mne.Forward', 'Evoked': 'mne.Evoked',
     'Info': 'mne.Info', 'SourceSpaces': 'mne.SourceSpaces',
@@ -250,6 +244,10 @@ numpydoc_xref_ignore = {
     # unlinkable
     'mayavi.mlab.pipeline.surface',
     'CoregFrame', 'Kit2FiffFrame', 'FiducialsFrame',
+    # dipy has resolution problems, wait for them to be solved, e.g.
+    # https://github.com/dipy/dipy/issues/2290
+    'dipy.align.AffineMap',
+    'dipy.align.DiffeomorphicMap',
 }
 numpydoc_validate = True
 numpydoc_validation_checks = {'all'} | set(error_ignores)
@@ -418,6 +416,9 @@ linkcheck_request_headers = dict(user_agent='Mozilla/5.0 (X11; Linux x86_64) App
 linkcheck_ignore = [  # will be compiled to regex
     r'https://datashare.is.ed.ac.uk/handle/10283/2189\?show=full',  # noqa Max retries exceeded with url: /handle/10283/2189?show=full (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1123)')))
     'https://doi.org/10.1088/0031-9155/32/1/004',  # noqa Read timed out. (read timeout=15)
+    'https://doi.org/10.1088/0031-9155/40/3/001',  # noqa Read timed out. (read timeout=15)
+    'https://doi.org/10.1088/0031-9155/51/7/008',  # noqa Read timed out. (read timeout=15)
+    'https://doi.org/10.1088/0031-9155/57/7/1937'  # noqa Read timed out. (read timeout=15)
     'https://doi.org/10.1093/sleep/18.7.557',  # noqa 403 Client Error: Forbidden for url: https://academic.oup.com/sleep/article-lookup/doi/10.1093/sleep/18.7.557
     'https://doi.org/10.1162/089976699300016719',  # noqa 403 Client Error: Forbidden for url: https://direct.mit.edu/neco/article/11/2/417-441/6242
     'https://doi.org/10.1162/jocn.1993.5.2.162',  # noqa 403 Client Error: Forbidden for url: https://direct.mit.edu/jocn/article/5/2/162-176/3095

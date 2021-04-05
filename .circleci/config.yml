@@ -469,6 +469,7 @@ jobs:
             command: |
               set -e
               echo "set -e" >> $BASH_ENV
+              echo "export OPENBLAS_NUM_THREADS=1" >> $BASH_ENV
               mkdir -p ~/mne_data
         - run:
             name: Check-skip
@@ -501,7 +502,7 @@ jobs:
         - run:
             name: pytest
             command: |
-              pytest -m "not ultraslowtest" mne -xv
+              pytest -m "not slowtest" mne -xv
 
 workflows:
   default:
