@@ -454,8 +454,9 @@ class EpochsEEGLAB(BaseEpochs):
                              'None or not None')
 
         if eeg.trials <= 1:
-            raise TypeError("Can't read epochs from a raw file "
-                            "(trials less than 2)")
+            raise ValueError("The file does not seem to contain epochs "
+                             "(trials less than 2). "
+                             "You should try using read_raw_eeglab function.")
 
         if events is None and eeg.trials > 1:
             # first extract the events and construct an event_id dict

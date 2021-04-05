@@ -435,7 +435,5 @@ def test_io_set_raw_2021():
 @testing.requires_testing_data
 def test_read_single_epoch():
     """Test reading a single epoch/trial (raw) set file as Epochs"""
-    with pytest.raises(TypeError) as einfo:
+    with pytest.raises(ValueError, match='trials less than 2'):
         read_epochs_eeglab(raw_fname_mat)
-    assert einfo.value.args[0] == "Can't read epochs from a raw file " \
-                                  "(trials less than 2)"
