@@ -74,9 +74,6 @@ jobs:
         - run:
             <<: *xvfb
 
-        # https://github.com/ContinuumIO/anaconda-issues/issues/9190#issuecomment-386508136
-        # https://github.com/golemfactory/golem/issues/1019
-
         - run:
             name: Install fonts needed for diagrams
             command: |
