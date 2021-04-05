@@ -369,6 +369,22 @@ jobs:
                 circleci-agent step halt;
               fi
         - run:
+            <<: *xvfb
+        - restore_cache:
+            keys:
+              - pip-cache
+        - restore_cache:
+            keys:
+              - user-install-bin-cache
+        - run:
+            name: Get Python running
+            command: |
+              ./tools/circleci_dependencies.sh
+        - run:
+            name: Check installation
+            command: |
+              mne sys_info
+        - run:
             name: make linkcheck
             command: |
               make -C doc linkcheck
@@ -475,6 +491,9 @@ jobs:
         - restore_cache:
             keys:
               - pip-cache
+        - restore_cache:
+            keys:
+              - user-install-bin-cache
         - run:
             name: Get Python running
             command: |
