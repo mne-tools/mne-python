@@ -6,6 +6,12 @@
 #   issues using "Rerun with SSH")
 
 version: 2.1
+
+_xvfb: &xvfb
+  name: Start Xvfb virtual framebuffer
+  command: |
+    /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1280x1024x24 -ac +extension GLX +render -noreset -nolisten tcp -nolisten unix
+
 jobs:
     build_docs:
       docker:
@@ -66,9 +72,7 @@ jobs:
               fi
 
         - run:
-            name: Spin up Xvfb
-            command: |
-              /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
+            <<: *xvfb
 
         # https://github.com/ContinuumIO/anaconda-issues/issues/9190#issuecomment-386508136
         # https://github.com/golemfactory/golem/issues/1019
@@ -466,6 +470,8 @@ jobs:
                 echo "Skip detected, exiting job ${CIRCLE_JOB}."
                 circleci-agent step halt;
               fi
+        - run:
+            <<: *xvfb
         - restore_cache:
             keys:
               - pip-cache
