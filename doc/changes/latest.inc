@@ -272,6 +272,8 @@ Bugs
 
 - Fix bug with :func:`mne.io.Raw.pick` where incorrect fnirs types were returned (:gh:`9178` by `Robert Luke`_)
 
+- Fix bug when passing both axes and picks to `mne.viz.plot_compare_evokeds` (:gh:`9252` by `Daniel McCloy`_)
+
 - Improved string representation of `~mne.Epochs` containing multiple event types; improved (and more mathematically correct) ``evoked.comment`` in the `mne.combine_evoked` output; and better (and often more concise) legend labels in the figures created via `~mne.viz.plot_compare_evokeds` (:gh:`9027` by `Richard Höchenberger`_)
 
 - :func:`mne.preprocessing.find_ecg_events` now correctly handles situation where no ECG activity could be detected, and correctly returns an empty array of ECG events (:gh:`9236` by `Richard Höchenberger`_)
