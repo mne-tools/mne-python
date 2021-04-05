@@ -418,9 +418,8 @@ linkcheck_ignore = [  # will be compiled to regex
     'https://doi.org/10.1088/0031-9155/32/1/004',  # noqa Read timed out. (read timeout=15)
     'https://doi.org/10.1088/0031-9155/40/3/001',  # noqa Read timed out. (read timeout=15)
     'https://doi.org/10.1088/0031-9155/51/7/008',  # noqa Read timed out. (read timeout=15)
-    'https://doi.org/10.1088/0031-9155/57/7/1937'  # noqa Read timed out. (read timeout=15)
+    'https://doi.org/10.1088/0031-9155/57/7/1937',  # noqa Read timed out. (read timeout=15)
     'https://doi.org/10.1093/sleep/18.7.557',  # noqa 403 Client Error: Forbidden for url: https://academic.oup.com/sleep/article-lookup/doi/10.1093/sleep/18.7.557
-    'https://academic.oup.com/sleep/article-lookup/doi/10.1093/sleep/18.7.557',
     'https://doi.org/10.1162/089976699300016719',  # noqa 403 Client Error: Forbidden for url: https://direct.mit.edu/neco/article/11/2/417-441/6242
     'https://doi.org/10.1162/jocn.1993.5.2.162',  # noqa 403 Client Error: Forbidden for url: https://direct.mit.edu/jocn/article/5/2/162-176/3095
     'https://doi.org/10.1162/neco.1995.7.6.1129',  # noqa 403 Client Error: Forbidden for url: https://direct.mit.edu/neco/article/7/6/1129-1159/5909
