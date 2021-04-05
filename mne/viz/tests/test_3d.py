@@ -723,8 +723,15 @@ def test_plot_sensors_connectivity(renderer):
         plot_sensors_connectivity(info=info, con=con[::2, ::2], picks=picks)
 
     fig = plot_sensors_connectivity(info=info, con=con, picks=picks)
-    if hasattr(fig, 'plotter'):
-        assert fig.plotter.scalar_bar.GetTitle() == 'connectivity'
+    if renderer._get_3d_backend() == 'pyvista':
+        title = fig.plotter.scalar_bar.GetTitle()
+    else:
+        assert renderer._get_3d_backend() == 'mayavi'
+        # the last thing we add is the Tube, so we need to go
+        # vtkDataSource->Stripper->Tube->ModuleManager
+        mod_man = fig.children[-1].children[0].children[0].children[0]
+        title = mod_man.scalar_lut_manager.scalar_bar.title
+    assert title == 'Connectivity'
 
 
 @pytest.mark.parametrize('orientation', ('horizontal', 'vertical'))
