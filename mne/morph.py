@@ -339,11 +339,11 @@ class SourceMorph(object):
         The volume MRI shape.
     affine : ndarray
         The volume MRI affine.
-    pre_affine : instance of dipy.align.imaffine.AffineMap
-        The :class:`dipy.align.imaffine.AffineMap` transformation that is
+    pre_affine : instance of dipy.align.AffineMap
+        The :class:`dipy.align.AffineMap` transformation that is
         applied before the before ``sdr_morph``.
-    sdr_morph : instance of dipy.align.imwarp.DiffeomorphicMap
-        The :class:`dipy.align.imwarp.DiffeomorphicMap` that applies the
+    sdr_morph : instance of dipy.align.DiffeomorphicMap
+        The :class:`dipy.align.DiffeomorphicMap` that applies the
         the symmetric diffeomorphic registration (SDR) morph.
     src_data : dict
         Additional source data necessary to perform morphing.

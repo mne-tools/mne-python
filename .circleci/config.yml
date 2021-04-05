@@ -2,8 +2,8 @@
 # - [circle front] will build the front page and perform test-doc
 # - [circle full] will build everything
 # - [circle linkcheck] will run our linkcheck
-# - [circle interactive] will run our test suite (useful for debugging issues
-#   using "Rerun with SSH")
+# - [circle interactive_test] will run our test suite (useful for debugging
+#   issues using "Rerun with SSH")
 
 version: 2.1
 jobs:
