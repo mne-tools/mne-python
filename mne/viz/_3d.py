@@ -2972,7 +2972,7 @@ def plot_sensors_connectivity(info, con, picks=None,
     picks = _picks_to_idx(info, picks)
     if len(picks) != len(con):
         raise ValueError('The number of channels picked (%s) does not '
-                         'correspond the size of the connectivity data '
+                         'correspond to the size of the connectivity data '
                          '(%s)' % (len(picks), len(con)))
 
     # Plot the sensor locations
