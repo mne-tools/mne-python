@@ -10,6 +10,7 @@ version: 2.1
 _xvfb: &xvfb
   name: Start Xvfb virtual framebuffer
   command: |
+    sudo apt install xvfb
     /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1280x1024x24 -ac +extension GLX +render -noreset -nolisten tcp -nolisten unix
 
 jobs:
