@@ -434,12 +434,8 @@ def test_io_set_raw_2021():
 
 @testing.requires_testing_data
 def test_read_single_epoch():
-    """Test reading a single epoch/trial set file as Epochs"""
-    raw = read_raw_eeglab(raw_fname_mat, preload=True)
-    epochs = read_epochs_eeglab(raw_fname_mat)
-    assert hasattr(epochs, "events") and isinstance(epochs.events, np.ndarray)
-    assert epochs.events.shape == (1, 3)
-    assert epochs.event_id == {'1': 1}
-    assert epochs._data.shape == (1, *raw._data.shape)
-    assert_allclose(raw._data, epochs._data[0])
-    print(raw.info)
+    """Test reading a single epoch/trial (raw) set file as Epochs"""
+    with pytest.raises(TypeError) as einfo:
+        read_epochs_eeglab(raw_fname_mat)
+    assert einfo.value.args[0] == "Can't read epochs from a raw file " \
+                                  "(trials less than 2)"
