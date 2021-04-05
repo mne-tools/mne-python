@@ -453,7 +453,7 @@ class EpochsEEGLAB(BaseEpochs):
             raise ValueError('Both `events` and `event_id` must be '
                              'None or not None')
 
-        if events is None:
+        if events is None and eeg.trials > 1:
             # first extract the events and construct an event_id dict
             event_name, event_latencies, unique_ev = list(), list(), list()
             ev_idx = 0
@@ -488,24 +488,16 @@ class EpochsEEGLAB(BaseEpochs):
                      ' of the first event will be retained.')
 
             # now fill up the event array
-            if len(epochs) > 1:
-                events = np.zeros((len(epochs), 3), dtype=int)
-                for idx in range(0, len(epochs)):
-                    if idx == 0:
-                        prev_stim = 0
-                    elif (idx > 0 and
-                          event_latencies[idx] -
-                          event_latencies[idx - 1] == 1):
-                        prev_stim = event_id[event_name[idx - 1]]
-                    events[idx, 0] = event_latencies[idx]
-                    events[idx, 1] = prev_stim
-                    events[idx, 2] = event_id[event_name[idx]]
-            else:
-                # create placeholder event_id and events here to support
-                # single-epoch files
-                events = np.zeros((1, 3), dtype=int)
-                events[0, 2] = 1
-                event_id = {'1': 1}
+            events = np.zeros((eeg.trials, 3), dtype=int)
+            for idx in range(0, eeg.trials):
+                if idx == 0:
+                    prev_stim = 0
+                elif (idx > 0 and
+                        event_latencies[idx] - event_latencies[idx - 1] == 1):
+                    prev_stim = event_id[event_name[idx - 1]]
+                events[idx, 0] = event_latencies[idx]
+                events[idx, 1] = prev_stim
+                events[idx, 2] = event_id[event_name[idx]]
         elif isinstance(events, str):
             events = read_events(events)
 
