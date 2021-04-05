@@ -1,5 +1,10 @@
-# Tagging a commit with [circle front] will build the front page and perform test-doc.
-# Tagging a commit with [circle full] will build everything.
+# Tagging a commit with:
+# - [circle front] will build the front page and perform test-doc
+# - [circle full] will build everything
+# - [circle linkcheck] will run our linkcheck
+# - [circle interactive] will run our test suite (useful for debugging issues
+#   using "Rerun with SSH")
+
 version: 2
 jobs:
     build_docs:
@@ -21,6 +26,14 @@ jobs:
             key: source-cache
             paths:
               - ".git"
+        - run:
+            name: Check-skip
+            command: |
+              export COMMIT_MESSAGE=$(git log --format=oneline -n 1);
+              if [[ "$COMMIT_MESSAGE" == *"[skip circle]"* ]] || [[ "$COMMIT_MESSAGE" == *"[circle skip]"* ]]; then
+                echo "Skip detected, exiting job ${CIRCLE_JOB}."
+                circleci-agent step halt;
+              fi
         - run:
             name: Set BASH_ENV
             command: |
@@ -336,16 +349,28 @@ jobs:
     linkcheck:
       # there are a few files excluded from this for expediency, see Makefile
       docker:
-        - image: circleci/python:3.6-jessie
+        - image: circleci/python:3.9.2-buster
+      parameters:
+        scheduled:
+          type: string
+          default: "false"
       steps:
         - checkout
+        - run:
+            name: Check-skip
+            command: |
+              export COMMIT_MESSAGE=$(git log --format=oneline -n 1);
+              if [[ "$COMMIT_MESSAGE" != *"[circle linkcheck]"* ]] && [ "<< parameters.scheduled >>" != "true" ]; then
+                echo "Skip detected, exiting job ${CIRCLE_JOB}."
+                circleci-agent step halt;
+              fi
         - run:
             name: pip install dependencies
             command: |
                set -e;
                python -m pip install --user --progress-bar off numpy scipy matplotlib pillow
                python -m pip install --user -e .
-               python -m pip install --user --progress-bar off -r requirements_doc.txt
+               python -m pip install --user --progress-bar off -r requirements_doc.txt -r requirements_testing.txt
         - run:
             name: make linkcheck
             command: |
@@ -373,9 +398,25 @@ jobs:
             keys:
               - website-cache
         - run:
-            name: Fetch docs
+            name: Set BASH_ENV
             command: |
               set -e
+              echo "set -e" >> $BASH_ENV
+        # Don't try to deploy if nothing is there or not on the right branch
+        - run:
+            name: Check docs
+            command: |
+              if [ "${CIRCLE_BRANCH}" == "main" ] || [ "${CIRCLE_BRANCH}" == "maint/0.22" ]; then
+                echo "No deployment (build: ${CIRCLE_BRANCH}).";
+                circleci-agent step halt;
+              fi;
+              if [ ! -f /tmp/build/html/index.html ] && [ ! -f /tmp/build/html_stable/index.html ]; then
+                echo "No files found to upload (build: ${CIRCLE_BRANCH}).";
+                circleci-agent step halt;
+              fi;
+        - run:
+            name: Fetch docs
+            command: |
               mkdir -p ~/.ssh
               echo -e "Host *\nStrictHostKeyChecking no" > ~/.ssh/config
               chmod og= ~/.ssh/config
@@ -385,33 +426,28 @@ jobs:
         - run:
             name: Deploy docs
             command: |
-              set -e;
-              if [ "${CIRCLE_BRANCH}" == "main" ] || [ "${CIRCLE_BRANCH}" == "maint/0.22" ]; then
-                git config --global user.email "circle@mne.com";
-                git config --global user.name "Circle CI";
-                cd ~/mne-tools.github.io;
-                git checkout main
-                git remote -v
-                git fetch origin
-                git reset --hard origin/main
-                git clean -xdf
-                if [ "${CIRCLE_BRANCH}" == "main" ]; then
-                  echo "Deploying dev docs for ${CIRCLE_BRANCH}.";
-                  rm -Rf dev;
-                  cp -a /tmp/build/html dev;
-                  git add -A;
-                  git commit -m "CircleCI update of dev docs (${CIRCLE_BUILD_NUM}).";
-                else
-                  echo "Deploying stable docs for ${CIRCLE_BRANCH}.";
-                  rm -Rf stable;
-                  cp -a /tmp/build/html_stable stable;
-                  git add -A;
-                  git commit -m "CircleCI update of stable docs (${CIRCLE_BUILD_NUM}).";
-                fi;
-                git push origin main;
+              git config --global user.email "circle@mne.com";
+              git config --global user.name "Circle CI";
+              cd ~/mne-tools.github.io;
+              git checkout main
+              git remote -v
+              git fetch origin
+              git reset --hard origin/main
+              git clean -xdf
+              if [ "${CIRCLE_BRANCH}" == "main" ]; then
+                echo "Deploying dev docs for ${CIRCLE_BRANCH}.";
+                rm -Rf dev;
+                cp -a /tmp/build/html dev;
+                git add -A;
+                git commit -m "CircleCI update of dev docs (${CIRCLE_BUILD_NUM}).";
               else
-                echo "No deployment (build: ${CIRCLE_BRANCH}).";
-              fi
+                echo "Deploying stable docs for ${CIRCLE_BRANCH}.";
+                rm -Rf stable;
+                cp -a /tmp/build/html_stable stable;
+                git add -A;
+                git commit -m "CircleCI update of stable docs (${CIRCLE_BUILD_NUM}).";
+              fi;
+              git push origin main;
         - save_cache:
             key: website-cache
             paths:
@@ -420,16 +456,36 @@ jobs:
 
     interactive_test:
       docker:
-        - image: circleci/python:3.8.5-buster
+        - image: circleci/python:3.9.2-buster
       steps:
         - checkout
         - run:
+            name: Set BASH_ENV
+            command: |
+              set -e
+              echo "set -e" >> $BASH_ENV
+        - run:
+            name: Check-skip
+            command: |
+              export COMMIT_MESSAGE=$(git log --format=oneline -n 1);
+              if [[ "$COMMIT_MESSAGE" != *"[circle interactive_test]"* ]]; then
+                echo "Skip detected, exiting job ${CIRCLE_JOB}."
+                circleci-agent step halt;
+              fi
+        - run:
             name: Get Python running
             command: |
-              python -m pip install --user --upgrade --progress-bar off pip setuptools
-              python -m pip install -i "https://pypi.anaconda.org/scipy-wheels-nightly/simple" --pre numpy
-              python -m pip install -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" scipy pandas scikit-learn matplotlib h5py Pillow
-              python -m pip install -r requirements_testing.txt
+              python -m pip install --progress-bar off --upgrade "pip!=20.3.0" setuptools wheel
+              python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" python-dateutil pytz joblib threadpoolctl
+              python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" -i "https://pypi.anaconda.org/scipy-wheels-nightly/simple" --extra-index-url https://www.riverbankcomputing.com/pypi/simple numpy scipy pandas scikit-learn PyQt5
+              python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" h5py pillow matplotlib
+              python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" numba llvmlite
+              wget -q https://osf.io/kej3v/download -O vtk-9.0.20201117-cp39-cp39-linux_x86_64.whl
+              python -m pip install --progress-bar off vtk-9.0.20201117-cp39-cp39-linux_x86_64.whl
+              python -m pip install --progress-bar off https://github.com/pyvista/pyvista/zipball/master
+              python -m pip install --progress-bar off https://github.com/pyvista/pyvistaqt/zipball/master
+              python -m pip install --progress-bar off --upgrade -r requirements_testing.txt
+              python -m pip install nitime
               python -m pip install --user -e .
 
         # Look at what we have and fail early if there is some library conflict
@@ -458,6 +514,8 @@ workflows:
   default:
     jobs:
       - build_docs
+      - linkcheck
+      - interactive_test
       - deploy:
           requires:
             - build_docs
@@ -466,11 +524,11 @@ workflows:
               only:
                 - main
                 - maint/0.22
-      # interactive_test
 
   weekly:
     jobs:
-      - linkcheck
+      - linkcheck:
+          scheduled: "true"
     triggers:
       - schedule:
           # "At 00:00 on Sunday" should be often enough
