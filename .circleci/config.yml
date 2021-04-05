@@ -366,8 +366,6 @@ jobs:
                 echo "Skip detected, exiting job ${CIRCLE_JOB}."
                 circleci-agent step halt;
               fi
-        - run:
-            <<: *xvfb
         - restore_cache:
             keys:
               - pip-cache
