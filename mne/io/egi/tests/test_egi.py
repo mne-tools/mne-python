@@ -13,11 +13,11 @@ from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 import pytest
 from scipy import io as sio
 
-
 from mne import find_events, pick_types
 from mne.io import read_raw_egi, read_evokeds_mff
-from mne.io.tests.test_raw import _test_raw_reader
+from mne.io.constants import FIFF
 from mne.io.egi.egi import _combine_triggers
+from mne.io.tests.test_raw import _test_raw_reader
 from mne.utils import run_tests_if_main, requires_version, object_diff
 from mne.datasets.testing import data_path, requires_testing_data
 
@@ -384,4 +384,29 @@ def test_read_evokeds_mff_bad_input():
     assert str(exc_info.value) == message
 
 
-run_tests_if_main()
+@requires_testing_data
+def test_egi_coord_frame():
+    """Test that EGI coordinate frame is changed to head."""
+    info = read_raw_egi(egi_mff_fname).info
+    want_idents = (
+        FIFF.FIFFV_POINT_LPA,
+        FIFF.FIFFV_POINT_NASION,
+        FIFF.FIFFV_POINT_RPA,
+    )
+    for ii, want in enumerate(want_idents):
+        d = info['dig'][ii]
+        assert d['kind'] == FIFF.FIFFV_POINT_CARDINAL
+        assert d['ident'] == want
+        loc = d['r']
+        if ii == 0:
+            assert 0.05 < -loc[0] < 0.1, 'LPA'
+            assert_allclose(loc[1:], 0, atol=1e-7, err_msg='LPA')
+        elif ii == 1:
+            assert 0.05 < loc[1] < 0.11, 'Nasion'
+            assert_allclose(loc[::2], 0, atol=1e-7, err_msg='Nasion')
+        else:
+            assert ii == 2
+            assert 0.05 < loc[0] < 0.1, 'RPA'
+            assert_allclose(loc[1:], 0, atol=1e-7, err_msg='RPA')
+    for d in info['dig'][3:]:
+        assert d['kind'] == FIFF.FIFFV_POINT_EEG
