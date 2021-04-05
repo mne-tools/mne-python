@@ -351,16 +351,19 @@ jobs:
       docker:
         - image: circleci/python:3.9.2-buster
       parameters:
-        scheduled:
+        was_scheduled:
           type: string
           default: "false"
       steps:
+        - restore_cache:
+            keys:
+              - source-cache
         - checkout
         - run:
             name: Check-skip
             command: |
               export COMMIT_MESSAGE=$(git log --format=oneline -n 1);
-              if [[ "$COMMIT_MESSAGE" != *"[circle linkcheck]"* ]] && [ "<< parameters.scheduled >>" != "true" ]; then
+              if [[ "$COMMIT_MESSAGE" != *"[circle linkcheck]"* ]] && [ "<< parameters.was_scheduled >>" != "true" ]; then
                 echo "Skip detected, exiting job ${CIRCLE_JOB}."
                 circleci-agent step halt;
               fi
@@ -458,6 +461,9 @@ jobs:
       docker:
         - image: circleci/python:3.9.2-buster
       steps:
+        - restore_cache:
+            keys:
+              - source-cache
         - checkout
         - run:
             name: Set BASH_ENV
@@ -528,7 +534,7 @@ workflows:
   weekly:
     jobs:
       - linkcheck:
-          scheduled: "true"
+          was_scheduled: "true"
     triggers:
       - schedule:
           # "At 00:00 on Sunday" should be often enough
