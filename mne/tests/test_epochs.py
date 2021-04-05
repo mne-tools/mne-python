@@ -3428,6 +3428,6 @@ def test_add_channels_picks():
                         decim=1)
 
     epochs_final = epochs.copy()
-    epochs_bis = epochs.copy().rename_channels(lambda ch : ch + '_bis')
+    epochs_bis = epochs.copy().rename_channels(lambda ch: ch + '_bis')
     epochs_final.add_channels([epochs_bis], force_update_info=True)
     epochs_final.drop_channels(epochs.ch_names)
