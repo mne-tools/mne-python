@@ -2944,7 +2944,7 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
 
 @fill_doc
 def plot_sensors_connectivity(info, con, picks=None,
-                              cbar_label='connectivity'):
+                              cbar_label='Connectivity'):
     """Visualize the sensor connectivity in 3D.
 
     Parameters
