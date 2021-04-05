@@ -4,8 +4,8 @@
 Auto-generating ``Epochs`` metadata
 ===================================
 
-This tutorial shows how to auto-generate metadata for `~mne.Epochs`, based on
-events via `mne.epochs.make_metadata`.
+This tutorial shows how to auto-generate metadata for `~mne.Epochs`, based
+on events via `mne.epochs.make_metadata`.
 
 We are going to use data from the :ref:`erp-core-dataset` (derived from
 :footcite:`Kappenman2021`). This is EEG data from a single participant
