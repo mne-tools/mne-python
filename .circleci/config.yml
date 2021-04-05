@@ -5,7 +5,7 @@
 # - [circle interactive] will run our test suite (useful for debugging issues
 #   using "Rerun with SSH")
 
-version: 2
+version: 2.1
 jobs:
     build_docs:
       docker:
@@ -349,9 +349,6 @@ jobs:
     linkcheck:
       # there are a few files excluded from this for expediency, see Makefile
       parameters:
-        scheduled:
-          type: string
-          default: "false"
       docker:
         - image: circleci/python:3.9.2-buster
       steps:
@@ -363,8 +360,8 @@ jobs:
             name: Check-skip
             command: |
               export COMMIT_MESSAGE=$(git log --format=oneline -n 1);
-              if [[ "$COMMIT_MESSAGE" != *"[circle linkcheck]"* ]] && [ "<< parameters.scheduled >>" != "true" ]; then
-                echo "Skip detected, exiting job ${CIRCLE_JOB}."
+              if [[ "$COMMIT_MESSAGE" != *"[circle linkcheck]"* ]] && [ "$CIRCLE_WORKFLOW_ID" != "weekly" ]; then
+                echo "Skip detected, exiting job ${CIRCLE_JOB} with commit message '$COMMIT_MESSAGE' and CIRCLE_WORKFLOW_ID=$CIRCLE_WORKFLOW_ID."
                 circleci-agent step halt;
               fi
         - run:
@@ -515,8 +512,6 @@ jobs:
               pytest -m "not ultraslowtest" mne -xv
 
 workflows:
-  version: 2.1
-
   default:
     jobs:
       - build_docs
@@ -533,8 +528,7 @@ workflows:
 
   weekly:
     jobs:
-      - linkcheck:
-          scheduled: "true"
+      - linkcheck
     triggers:
       - schedule:
           # "At 00:00 on Sunday" should be often enough
