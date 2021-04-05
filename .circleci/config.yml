@@ -349,6 +349,9 @@ jobs:
     linkcheck:
       # there are a few files excluded from this for expediency, see Makefile
       parameters:
+        scheduled:
+          type: string
+          default: "false"
       docker:
         - image: circleci/python:3.9.2-buster
       steps:
@@ -360,8 +363,8 @@ jobs:
             name: Check-skip
             command: |
               export COMMIT_MESSAGE=$(git log --format=oneline -n 1);
-              if [[ "$COMMIT_MESSAGE" != *"[circle linkcheck]"* ]] && [ "$CIRCLE_WORKFLOW_ID" != "weekly" ]; then
-                echo "Skip detected, exiting job ${CIRCLE_JOB} with commit message '$COMMIT_MESSAGE' and CIRCLE_WORKFLOW_ID=$CIRCLE_WORKFLOW_ID."
+              if [[ "$COMMIT_MESSAGE" != *"[circle linkcheck]"* ]] && [ "<< parameters.scheduled >>" != "true" ]; then
+                echo "Skip detected, exiting job ${CIRCLE_JOB}."
                 circleci-agent step halt;
               fi
         - run:
@@ -528,7 +531,8 @@ workflows:
 
   weekly:
     jobs:
-      - linkcheck
+      - linkcheck:
+          scheduled: "true"
     triggers:
       - schedule:
           # "At 00:00 on Sunday" should be often enough
