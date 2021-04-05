@@ -144,9 +144,9 @@ intersphinx_mapping = {
     'patsy': ('https://patsy.readthedocs.io/en/latest', None),
     'pyvista': ('https://docs.pyvista.org', None),
     'imageio': ('https://imageio.readthedocs.io/en/latest', None),
-    # We need to stick with 1.4.0 for now:
+    # We need to stick with _public someplaces with 1.4.0:
     # https://github.com/dipy/dipy/issues/2290
-    'dipy': ('https://dipy.org/documentation/1.2.0.', None),
+    'dipy': ('https://dipy.org/documentation/1.4.0.', None),
     'mne_realtime': ('https://mne.tools/mne-realtime', None),
     'picard': ('https://pierreablin.github.io/picard/', None),
     'qdarkstyle': ('https://qdarkstylesheet.readthedocs.io/en/latest', None)
@@ -183,7 +183,7 @@ numpydoc_xref_aliases = {
     'Nifti2Image': 'nibabel.nifti2.Nifti2Image',
     'SpatialImage': 'nibabel.spatialimages.SpatialImage',
     # dipy
-    'dipy.align.Affinemap': 'dipy.align._public.AffineMap',
+    'dipy.align.AffineMap': 'dipy.align._public.AffineMap',
     'dipy.align.DiffeomorphicMap': 'dipy.align._public.DiffeomorphicMap',
     # MNE
     'Label': 'mne.Label', 'Forward': 'mne.Forward', 'Evoked': 'mne.Evoked',
@@ -456,6 +456,7 @@ nitpick_ignore = [
     ("py:class", "a shallow copy of D"),
     ("py:class", "(k, v), remove and return some (key, value) pair as a"),
     ("py:class", "_FuncT"),  # type hint used in @verbose decorator
+    ("py:class", "mne.utils._logging._FuncT"),
 ]
 for key in ('AcqParserFIF', 'BiHemiLabel', 'Dipole', 'DipoleFixed', 'Label',
             'MixedSourceEstimate', 'MixedVectorSourceEstimate', 'Report',

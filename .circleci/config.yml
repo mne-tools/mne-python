@@ -10,7 +10,7 @@ version: 2.1
 _xvfb: &xvfb
   name: Start Xvfb virtual framebuffer
   command: |
-    sudo apt install xvfb
+    echo "export DISPLAY=:99" >> $BASH_ENV
     /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1280x1024x24 -ac +extension GLX +render -noreset -nolisten tcp -nolisten unix
 
 jobs:
@@ -46,7 +46,6 @@ jobs:
             command: |
               set -e
               echo "set -e" >> $BASH_ENV
-              echo "export DISPLAY=:99" >> $BASH_ENV
               echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV
               echo "export XDG_RUNTIME_DIR=/tmp/runtime-circleci" >> $BASH_ENV
               echo "export MNE_FULL_DATE=true" >> $BASH_ENV
