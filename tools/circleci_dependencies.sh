@@ -23,7 +23,7 @@ if [[ "$CIRCLE_JOB" == "interactive_test" ]]; then
 	python -m pip install --progress-bar off --upgrade -r requirements_testing.txt
 	python -m pip install nitime
 	python -m pip install --user -e .
-elif [[ "$CIRCLE_JOB" == "linkcheck" ]]; then
+elif [[ "$CIRCLE_JOB" == "linkcheck"* ]]; then
 	echo "Installing minimal linkcheck dependencies"
 	python -m pip install --user --progress-bar off numpy scipy matplotlib pillow pytest
 	python -m pip install --user -e .

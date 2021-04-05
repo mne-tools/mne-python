@@ -373,9 +373,6 @@ jobs:
         - restore_cache:
             keys:
               - pip-cache
-        - restore_cache:
-            keys:
-              - user-install-bin-cache
         - run:
             name: Get Python running
             command: |
@@ -491,9 +488,6 @@ jobs:
         - restore_cache:
             keys:
               - pip-cache
-        - restore_cache:
-            keys:
-              - user-install-bin-cache
         - run:
             name: Get Python running
             command: |
