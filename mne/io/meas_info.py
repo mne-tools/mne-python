@@ -729,7 +729,7 @@ class Info(dict, MontageMixin):
                     self['meas_date'].tzinfo is None or
                     self['meas_date'].tzinfo is not datetime.timezone.utc):
                 raise RuntimeError('%sinfo["meas_date"] must be a datetime '
-                                   'object in UTC or None, got "%r"'
+                                   'object in UTC or None, got %r'
                                    % (prepend_error, repr(self['meas_date']),))
 
         chs = [ch['ch_name'] for ch in self['chs']]
