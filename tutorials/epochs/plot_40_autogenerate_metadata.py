@@ -70,9 +70,9 @@ all_events, all_event_id = mne.events_from_annotations(raw)
 # or it might include events that occurred well outside a given epoch.
 #
 # Let us look at a concrete example. In the Flankers task of the ERP CORE
-# dataset, participants were required to respond to visual stimuli by
-# pressing a button. We're interested in looking at the visual evoked responses
-# (ERPs) of trials with correct responses. Assume that based on literature
+# dataset, participants were required to respond to visual stimuli by pressing
+# a button. We're interested in looking at the visual evoked responses (ERPs)
+# of trials with correct responses. Assume that based on literature
 # studies, we decide that responses later than 1500 ms after stimulus onset are
 # to be considered invalid, because they don't capture the neuronal processes
 # of interest here. We can approach this  in the following way with the help of
@@ -362,7 +362,7 @@ epochs = mne.Epochs(raw=raw, tmin=epochs_tmin, tmax=epochs_tmax,
 epochs.metadata.loc[epochs.metadata['last_stimulus'].isna(), :]
 
 ###############################################################################
-# Bummer! ☹️ It seems the very first two responses were recorded before the
+# Bummer! It seems the very first two responses were recorded before the
 # first stimulus appeared: the values in the ``stimulus`` column are ``None``.
 # There is a very simple way to select only those epochs that **do** have a
 # stimulus (i.e., are not ``None``):

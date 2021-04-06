@@ -57,7 +57,8 @@ iframe.sg_report {
 }
 
 /* ******************************** make HTML'd pandas dataframes scrollable */
-output_html {
+table.dataframe {
+    display: block;
     overflow: auto;
 }
 
