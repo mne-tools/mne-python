@@ -2479,8 +2479,7 @@ def read_tfrs(fname, condition=None):
 
     Returns
     -------
-    tfrs : list of instances of AverageTFR | instance of AverageTFR | \
-        instance of EpochsTFR
+    tfr : AverageTFR | list of AverageTFR | EpochsTFR
         Depending on ``condition`` either the TFR object or a list of multiple
         TFR objects.
 
