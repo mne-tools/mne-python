@@ -1489,7 +1489,11 @@ class Brain(object):
         del mesh
 
         # from the picked renderer to the subplot coords
-        rindex = self._renderer._all_renderers.index(self.picked_renderer)
+        try:
+            lst = self._renderer._all_renderers._renderers
+        except AttributeError:
+            lst = self._renderer._all_renderers
+        rindex = lst.index(self.picked_renderer)
         row, col = self._renderer._index_to_loc(rindex)
 
         actors = list()

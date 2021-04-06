@@ -360,7 +360,7 @@ class Dipole(object):
 def _read_dipole_fixed(fname):
     """Read a fixed dipole FIF file."""
     logger.info('Reading %s ...' % fname)
-    info, nave, aspect_kind, comment, times, data = _read_evoked(fname)
+    info, nave, aspect_kind, comment, times, data, _ = _read_evoked(fname)
     return DipoleFixed(info, data, times, nave, aspect_kind, comment=comment)
 
 

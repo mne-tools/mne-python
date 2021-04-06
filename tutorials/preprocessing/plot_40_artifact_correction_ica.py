@@ -64,12 +64,13 @@ raw.crop(tmax=60.)
 #
 #     If you want to perform ICA with *no* dimensionality reduction (other than
 #     the number of Independent Components (ICs) given in ``n_components``, and
-#     any subsequent exclusion of ICs you specify in ``ICA.exclude``), pass
-#     ``n_pca_components=None`` (this is the default value).
+#     any subsequent exclusion of ICs you specify in ``ICA.exclude``), simply
+#     pass ``n_components``.
 #
 #     However, if you *do* want to reduce dimensionality, consider this
-#     example: if you have 300 sensor channels and you set
-#     ``n_pca_components=None`` and ``n_components=50``, then the the first 50
+#     example: if you have 300 sensor channels and you set ``n_components=50``
+#     during instantiation and pass ``n_pca_components=None`` to
+#     `~mne.preprocessing.ICA.apply`, then the the first 50
 #     PCs are sent to the ICA algorithm (yielding 50 ICs), and during
 #     reconstruction `~mne.preprocessing.ICA.apply` will use the 50 ICs
 #     plus PCs number 51-300 (the full PCA residual). If instead you specify
@@ -79,9 +80,8 @@ raw.crop(tmax=60.)
 #
 #     **If you have previously been using EEGLAB**'s ``runica()`` and are
 #     looking for the equivalent of its ``'pca', n`` option to reduce
-#     dimensionality via PCA before the ICA step, set ``n_components=n``
-#     during initialization and pass ``n_pca_components=n`` to
-#     `~mne.preprocessing.ICA.apply`.
+#     dimensionality, set ``n_components=n`` during initialization and pass
+#     ``n_pca_components=n`` to `~mne.preprocessing.ICA.apply`.
 #
 # MNE-Python implements three different ICA algorithms: ``fastica`` (the
 # default), ``picard``, and ``infomax``. FastICA and Infomax are both in fairly
@@ -206,6 +206,12 @@ filt_raw.load_data().filter(l_freq=1., h_freq=None)
 #     discontinuous `~mne.Epochs` or `~mne.Evoked` objects (not
 #     just continuous `~mne.io.Raw` objects), or only use every Nth
 #     sample by passing the ``decim`` parameter to ``ICA.fit()``.
+#
+#     .. note:: `~mne.Epochs` used for fitting ICA should not be
+#               baseline-corrected. Because cleaning the data via ICA may
+#               introduce DC offsets, we suggest to baseline correct your data
+#               **after** cleaning (and not before), should you require
+#               baseline correction.
 #
 # Now we're ready to set up and fit the ICA. Since we know (from observing our
 # raw data) that the EOG and ECG artifacts are fairly strong, we would expect
@@ -488,9 +494,11 @@ for subj in range(4):
     # remove trailing `.` from channel names so we can set montage
     raw.rename_channels(mapping)
     raw.set_montage('standard_1005')
+    # high-pass filter
+    raw_filt = raw.copy().load_data().filter(l_freq=1., h_freq=None)
     # fit ICA
     ica = ICA(n_components=30, max_iter='auto', random_state=97)
-    ica.fit(raw)
+    ica.fit(raw_filt)
     raws.append(raw)
     icas.append(ica)
 
@@ -587,7 +595,7 @@ print(template_eog_component)
 
 
 ###############################################################################
-# Compute ICA components on epochs
+# Compute ICA components on Epochs
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
 # ICA is now fit to epoched MEG data instead of the raw data.
@@ -604,6 +612,11 @@ print(template_eog_component)
 # - 1-30 Hz band-pass filter
 # - epoching -0.2 to 0.5 seconds with respect to events
 # - rejection based on peak-to-peak amplitude
+#
+# Note that we don't baseline correct the epochs here – we'll do this after
+# cleaning with ICA is completed. Baseline correction before ICA is not
+# recommended by the MNE-Python developers, as it doesn't guarantee optimal
+# results.
 
 filt_raw.pick_types(meg=True, eeg=False, exclude='bads', stim=True).load_data()
 filt_raw.filter(1, 30, fir_design='firwin')
@@ -612,8 +625,9 @@ filt_raw.filter(1, 30, fir_design='firwin')
 reject = dict(grad=4000e-13, mag=4e-12)
 # create longer and more epochs for more artifact exposure
 events = mne.find_events(filt_raw, stim_channel='STI 014')
+# don't baseline correct epochs
 epochs = mne.Epochs(filt_raw, events, event_id=None, tmin=-0.2, tmax=0.5,
-                    reject=reject)
+                    reject=reject, baseline=None)
 
 ###############################################################################
 # Fit ICA model using the FastICA algorithm, detect and plot components

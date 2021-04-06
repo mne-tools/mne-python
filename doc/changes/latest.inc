@@ -19,6 +19,8 @@ Current (0.23.dev0)
 
 .. |New Contributor| replace:: **New Contributor**
 
+.. |Jack Zhang| replace:: **Jack Zhang**
+
 .. |Sumalyo Datta| replace:: **Sumalyo Datta**
 
 .. |Anna Padee| replace:: **Anna Padee**
@@ -57,6 +59,8 @@ Current (0.23.dev0)
 
 Enhancements
 ~~~~~~~~~~~~
+- Add CSV, TSV, and XYZ support to :func:`mne.channels.read_custom_montage` (:gh:`9203` **by new contributor** |Jack Zhang|_)
+
 - Add HTML representation for `~mne.Epochs` in Jupyter Notebooks (:gh:`9174` by |Valerii Chirkov|_)
 
 - Speed up :func:`mne.viz.plot_ica_properties` by refactoring (:gh:`9174` **by new contributor** |Valerii Chirkov|_)
@@ -159,12 +163,19 @@ Enhancements
 
 - Add first_samp support for raw simulations with `mne.simulation.simulate_raw` and `mne.simulation.SourceSimulator` (:gh:`9166` by `Steven Bierer`_)
 
+- `~mne.Evoked` gained a ``baseline`` attribute that is automatically assembled based on the baseline of the averaged `~mne.Epochs` (:gh:`9210` by `Richard Höchenberger`_)
+
+- Add ``units`` parameter to :meth:`mne.io.Raw.get_data` to return data in the desired unit (:gh:`9136` by `Johann Benerradi`_ and `Stefan Appelhoff`_)
+
+- Add :func:`mne.preprocessing.equalize_bads` to interpolate bad channels in a list of `~mne.Evoked`, `~mne.Epochs` or `~mne.io.Raw` having different sets of bad channels (:gh:`9241` by `Alex Gramfort`_)
+
+
 Bugs
 ~~~~
 - Fix bug with :func:`mne.io.read_raw_edf` where µV was not correctly recognized (:gh:`9187` **by new contributor** |Sumalyo Datta|_)
 
 - Fix bug with :func:`mne.viz.plot_compare_evokeds` did not check type of combine. (:gh:`9151` **by new contributor** |Matteo Anelli|_)
-                                        
+
 - Fix bug with :func:`mne.viz.plot_evoked_topo` where ``ylim`` was only being applied to the first channel in the dataset (:gh:`9162` **by new contributor** |Ram Pari|_ )
 
 - Fix bug with :func:`mne.Epochs.plot_image` allowing interactive zoom to work properly (:gh:`9152` by **by new contributor** |Maggie Clarke|_ and `Daniel McCloy`_)
@@ -261,12 +272,20 @@ Bugs
 
 - Fix bug with :func:`mne.io.Raw.pick` where incorrect fnirs types were returned (:gh:`9178` by `Robert Luke`_)
 
+- Fix bug when passing both axes and picks to `mne.viz.plot_compare_evokeds` (:gh:`9252` by `Daniel McCloy`_)
+
 - Improved string representation of `~mne.Epochs` containing multiple event types; improved (and more mathematically correct) ``evoked.comment`` in the `mne.combine_evoked` output; and better (and often more concise) legend labels in the figures created via `~mne.viz.plot_compare_evokeds` (:gh:`9027` by `Richard Höchenberger`_)
+
+- :func:`mne.preprocessing.find_ecg_events` now correctly handles situation where no ECG activity could be detected, and correctly returns an empty array of ECG events (:gh:`9236` by `Richard Höchenberger`_)
 
 API changes
 ~~~~~~~~~~~
 - Introduced new ``'auto'`` settings for ``ICA.max_iter``. The old default ``max_iter=200`` will be removed in MNE-Python 0.24 (:gh:`9099` **by new contributor** |Cora Kim|_)
 
+- `mne.viz.plot_sensors_connectivity` now allows setting the colorbar label via the ``cbar_label`` parameter (:gh:`9248` by `Daniel McCloy`_)
+
 - ``mne.read_selection`` has been deprecated in favor of `mne.read_vectorview_selection`. ``mne.read_selection`` will be removed in MNE-Python 0.24 (:gh:`8870` by `Richard Höchenberger`_)
 
 - ``mne.beamformer.tf_dics`` has been deprecated and will be removed in MNE-Python 0.24 (:gh:`9122` by `Britta Westner`_)
+
+- Fitting `~mne.preprocessing.ICA` on baseline-corrected `~mne.Epochs`, and / or applying it on baseline-corrected `~mne.Epochs` or `~mne.Evoked` data will now display a warning. Users are advised to only baseline correct their data after cleaning is completed (:gh:`9033` by `Richard Höchenberger`_)

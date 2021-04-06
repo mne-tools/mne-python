@@ -782,7 +782,7 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
     _validate_type(fname, 'path-like', 'fname')
     fname = _check_fname(
         fname, overwrite='read', must_exist=True,
-        allow_dir=str(fname).endswith('.ds'),  # allow_dir for CTF
+        need_dir=str(fname).endswith('.ds'),  # for CTF
         name='fname')
     name = op.basename(fname)
     if name.endswith(('fif', 'fif.gz')):

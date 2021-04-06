@@ -123,20 +123,11 @@ def _do_interp_dots(inst, interpolation, goods_idx, bads_idx):
 
 
 @verbose
-def _interpolate_bads_eeg(inst, origin, verbose=None):
-    """Interpolate bad EEG channels.
-
-    Operates in place.
-
-    Parameters
-    ----------
-    inst : mne.io.Raw, mne.Epochs or mne.Evoked
-        The data to interpolate. Must be preloaded.
-    """
+def _interpolate_bads_eeg(inst, origin, exclude, verbose=None):
     bads_idx = np.zeros(len(inst.ch_names), dtype=bool)
     goods_idx = np.zeros(len(inst.ch_names), dtype=bool)
 
-    picks = pick_types(inst.info, meg=False, eeg=True, exclude=[])
+    picks = pick_types(inst.info, meg=False, eeg=True, exclude=exclude)
     inst.info._check_consistency()
     bads_idx[picks] = [inst.ch_names[ch] in inst.info['bads'] for ch in picks]
 
@@ -177,29 +168,8 @@ def _interpolate_bads_meg(inst, mode='accurate', origin=(0., 0., 0.04),
 
 @verbose
 def _interpolate_bads_meeg(inst, mode='accurate', origin=(0., 0., 0.04),
-                           meg=True, eeg=True, ref_meg=False, verbose=None):
-    """Interpolate bad channels from data in good channels.
-
-    Parameters
-    ----------
-    inst : mne.io.Raw, mne.Epochs or mne.Evoked
-        The data to interpolate. Must be preloaded.
-    mode : str
-        Either `'accurate'` or `'fast'`, determines the quality of the
-        Legendre polynomial expansion used for interpolation. `'fast'` should
-        be sufficient for most applications.
-    origin : array-like, shape (3,) | str
-        Origin of the sphere in the head coordinate frame and in meters.
-        Can be ``'auto'``, which means a head-digitization-based origin
-        fit. Default is ``(0., 0., 0.04)``.
-    %(verbose)s
-    ref_meg : bool
-        Should always be False; only exists for testing purpose.
-    meg : bool
-        If True, interpolate bad MEG channels.
-    eeg : bool
-        If True, interpolate bad EEG channels.
-    """
+                           meg=True, eeg=True, ref_meg=False,
+                           exclude=(), verbose=None):
     bools = dict(meg=meg, eeg=eeg)
     info = _simplify_info(inst.info)
     for ch_type, do in bools.items():
@@ -207,7 +177,7 @@ def _interpolate_bads_meeg(inst, mode='accurate', origin=(0., 0., 0.04),
             continue
         kw = dict(meg=False, eeg=False)
         kw[ch_type] = True
-        picks_type = pick_types(info, ref_meg=ref_meg, exclude=[], **kw)
+        picks_type = pick_types(info, ref_meg=ref_meg, exclude=exclude, **kw)
         picks_good = pick_types(info, ref_meg=ref_meg, exclude='bads', **kw)
         use_ch_names = [inst.info['ch_names'][p] for p in picks_type]
         bads_type = [ch for ch in inst.info['bads'] if ch in use_ch_names]
@@ -231,18 +201,7 @@ def _interpolate_bads_meeg(inst, mode='accurate', origin=(0., 0., 0.04),
 
 
 @verbose
-def _interpolate_bads_nirs(inst, method='nearest', verbose=None):
-    """Interpolate bad nirs channels. Simply replaces by closest non bad.
-
-    Parameters
-    ----------
-    inst : mne.io.Raw, mne.Epochs or mne.Evoked
-        The data to interpolate. Must be preloaded.
-    method : str
-        Only the method 'nearest' is currently available. This method replaces
-        each bad channel with the nearest non bad channel.
-    %(verbose)s
-    """
+def _interpolate_bads_nirs(inst, method='nearest', exclude=(), verbose=None):
     from scipy.spatial.distance import pdist, squareform
     from mne.preprocessing.nirs import _channel_frequencies,\
         _check_channels_ordered
@@ -254,6 +213,7 @@ def _interpolate_bads_nirs(inst, method='nearest', verbose=None):
         return
 
     nirs_ch_names = [inst.info['ch_names'][p] for p in picks_nirs]
+    nirs_ch_names = [ch for ch in nirs_ch_names if ch not in exclude]
     bads_nirs = [ch for ch in inst.info['bads'] if ch in nirs_ch_names]
     if len(bads_nirs) == 0:
         return
@@ -280,6 +240,6 @@ def _interpolate_bads_nirs(inst, method='nearest', verbose=None):
             closest_idx = np.argmin(dists_to_bad) + (bad % 2)
             inst._data[bad] = inst._data[closest_idx]
 
-        inst.info['bads'] = []
+        inst.info['bads'] = [ch for ch in inst.info['bads'] if ch in exclude]
 
     return inst

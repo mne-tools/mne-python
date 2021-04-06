@@ -144,9 +144,6 @@ intersphinx_mapping = {
     'patsy': ('https://patsy.readthedocs.io/en/latest', None),
     'pyvista': ('https://docs.pyvista.org', None),
     'imageio': ('https://imageio.readthedocs.io/en/latest', None),
-    # We need to stick with 1.2.0 for now:
-    # https://github.com/dipy/dipy/issues/2290
-    'dipy': ('https://dipy.org/documentation/1.2.0.', None),
     'mne_realtime': ('https://mne.tools/mne-realtime', None),
     'picard': ('https://pierreablin.github.io/picard/', None),
     'qdarkstyle': ('https://qdarkstylesheet.readthedocs.io/en/latest', None)
@@ -247,6 +244,10 @@ numpydoc_xref_ignore = {
     # unlinkable
     'mayavi.mlab.pipeline.surface',
     'CoregFrame', 'Kit2FiffFrame', 'FiducialsFrame',
+    # dipy has resolution problems, wait for them to be solved, e.g.
+    # https://github.com/dipy/dipy/issues/2290
+    'dipy.align.AffineMap',
+    'dipy.align.DiffeomorphicMap',
 }
 numpydoc_validate = True
 numpydoc_validation_checks = {'all'} | set(error_ignores)
@@ -411,15 +412,29 @@ def append_attr_meth_examples(app, what, name, obj, options, lines):
 
 # -- Other extension configuration -------------------------------------------
 
-linkcheck_ignore = [
-    'https://doi.org/10.1088/0031-9155/57/7/1937',  # noqa 403 Client Error: Forbidden for url: http://iopscience.iop.org/article/10.1088/0031-9155/57/7/1937/meta
-    'https://doi.org/10.1088/0031-9155/51/7/008',  # noqa 403 Client Error: Forbidden for url: https://iopscience.iop.org/article/10.1088/0031-9155/51/7/008
-    'https://sccn.ucsd.edu/wiki/.*',  # noqa HTTPSConnectionPool(host='sccn.ucsd.edu', port=443): Max retries exceeded with url: /wiki/Firfilt_FAQ (Caused by SSLError(SSLError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed (_ssl.c:847)'),))
-    'https://docs.python.org/dev/howto/logging.html',  # noqa ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+linkcheck_request_headers = dict(user_agent='Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36')  # noqa: E501
+linkcheck_ignore = [  # will be compiled to regex
+    r'https://datashare.is.ed.ac.uk/handle/10283/2189\?show=full',  # noqa Max retries exceeded with url: /handle/10283/2189?show=full (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1123)')))
+    'https://doi.org/10.1088/0031-9155/32/1/004',  # noqa Read timed out. (read timeout=15)
+    'https://doi.org/10.1088/0031-9155/40/3/001',  # noqa Read timed out. (read timeout=15)
+    'https://doi.org/10.1088/0031-9155/51/7/008',  # noqa Read timed out. (read timeout=15)
+    'https://doi.org/10.1088/0031-9155/57/7/1937',  # noqa Read timed out. (read timeout=15)
+    'https://doi.org/10.1088/0967-3334/22/4/305',  # noqa Read timed out. (read timeout=15)
+    'https://doi.org/10.1088/1741-2552/aacfe4',  # noqa Read timed out. (read timeout=15)
+    'https://doi.org/10.1093/sleep/18.7.557',  # noqa 403 Client Error: Forbidden for url: https://academic.oup.com/sleep/article-lookup/doi/10.1093/sleep/18.7.557
+    'https://doi.org/10.1162/089976699300016719',  # noqa 403 Client Error: Forbidden for url: https://direct.mit.edu/neco/article/11/2/417-441/6242
+    'https://doi.org/10.1162/jocn.1993.5.2.162',  # noqa 403 Client Error: Forbidden for url: https://direct.mit.edu/jocn/article/5/2/162-176/3095
+    'https://doi.org/10.1162/neco.1995.7.6.1129',  # noqa 403 Client Error: Forbidden for url: https://direct.mit.edu/neco/article/7/6/1129-1159/5909
+    'https://doi.org/10.1162/jocn_a_00405',  # noqa 403 Client Error: Forbidden for url: https://direct.mit.edu/jocn/article/25/9/1477-1492/27980
+    'https://doi.org/10.1167/15.6.4',  # noqa 403 Client Error: Forbidden for url: https://jov.arvojournals.org/article.aspx?doi=10.1167/15.6.4
+    'https://doi.org/10.7488/ds/1556',  # noqa Max retries exceeded with url: /handle/10283/2189 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1122)')))
+    'https://imaging.mrc-cbu.cam.ac.uk/imaging/MniTalairach',  # noqa Max retries exceeded with url: /imaging/MniTalairach (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1122)')))
+    'https://www.nyu.edu/',  # noqa Max retries exceeded with url: / (Caused by SSLError(SSLError(1, '[SSL: DH_KEY_TOO_SMALL] dh key too small (_ssl.c:1122)')))
     'https://docs.python.org/3/library/.*',  # noqa ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
     'https://hal.archives-ouvertes.fr/hal-01848442/',  # noqa Sometimes: 503 Server Error: Service Unavailable for url: https://hal.archives-ouvertes.fr/hal-01848442/
 ]
 linkcheck_anchors = False  # saves a bit of time
+linkcheck_timeout = 15  # some can be quite slow
 
 # autodoc / autosummary
 autosummary_generate = True
@@ -444,6 +459,7 @@ nitpick_ignore = [
     ("py:class", "a shallow copy of D"),
     ("py:class", "(k, v), remove and return some (key, value) pair as a"),
     ("py:class", "_FuncT"),  # type hint used in @verbose decorator
+    ("py:class", "mne.utils._logging._FuncT"),
 ]
 for key in ('AcqParserFIF', 'BiHemiLabel', 'Dipole', 'DipoleFixed', 'Label',
             'MixedSourceEstimate', 'MixedVectorSourceEstimate', 'Report',
@@ -538,6 +554,12 @@ html_copy_source = False
 # If true, "Created using Sphinx" is shown in the HTML footer. Default is True.
 html_show_sphinx = False
 
+# accommodate different logo shapes (width values in rem)
+xs = '2'
+sm = '2.5'
+md = '3'
+lg = '4.5'
+xl = '5'
 # variables to pass to HTML templating engine
 html_context = {
     'build_dev_html': bool(int(os.environ.get('BUILD_DEV_HTML', False))),
@@ -556,61 +578,93 @@ html_context = {
         '0.12': 'v0.12',
         '0.11': 'v0.11',
     },
+    'funders': [
+        dict(img='nih.png', size='3', title='National Institutes of Health'),
+        dict(img='nsf.png', size='3.5',
+             title='US National Science Foundation'),
+        dict(img='erc.svg', size='3.5', title='European Research Council'),
+        dict(img='doe.svg', size='3', title='US Department of Energy'),
+        dict(img='anr.svg', size='4.5',
+             title='Agence Nationale de la Recherche'),
+        dict(img='cds.png', size='2.25',
+             title='Paris-Saclay Center for Data Science'),
+        dict(img='google.svg', size='2.25', title='Google'),
+        dict(img='amazon.svg', size='2.5', title='Amazon'),
+        dict(img='czi.svg', size='2.5', title='Chan Zuckerberg Initiative'),
+    ],
     'institutions': [
         dict(name='Massachusetts General Hospital',
              img='MGH.svg',
-             url='https://www.massgeneral.org/'),
+             url='https://www.massgeneral.org/',
+             size=sm),
         dict(name='Athinoula A. Martinos Center for Biomedical Imaging',
              img='Martinos.png',
-             url='https://martinos.org/'),
+             url='https://martinos.org/',
+             size=md),
         dict(name='Harvard Medical School',
              img='Harvard.png',
-             url='https://hms.harvard.edu/'),
+             url='https://hms.harvard.edu/',
+             size=sm),
         dict(name='Massachusetts Institute of Technology',
              img='MIT.svg',
-             url='https://web.mit.edu/'),
+             url='https://web.mit.edu/',
+             size=md),
         dict(name='New York University',
              img='NYU.png',
-             url='https://www.nyu.edu/'),
+             url='https://www.nyu.edu/',
+             size=xs),
         dict(name='Commissariat à l´énergie atomique et aux énergies alternatives',  # noqa E501
              img='CEA.png',
-             url='http://www.cea.fr/'),
+             url='http://www.cea.fr/',
+             size=md),
         dict(name='Aalto-yliopiston perustieteiden korkeakoulu',
              img='Aalto.svg',
-             url='https://sci.aalto.fi/'),
+             url='https://sci.aalto.fi/',
+             size=md),
         dict(name='Télécom ParisTech',
              img='Telecom_Paris_Tech.png',
-             url='https://www.telecom-paris.fr/'),
+             url='https://www.telecom-paris.fr/',
+             size=md),
         dict(name='University of Washington',
              img='Washington.png',
-             url='https://www.washington.edu/'),
+             url='https://www.washington.edu/',
+             size=md),
         dict(name='Institut du Cerveau et de la Moelle épinière',
              img='ICM.jpg',
-             url='https://icm-institute.org/'),
+             url='https://icm-institute.org/',
+             size=md),
         dict(name='Boston University',
              img='BU.svg',
-             url='https://www.bu.edu/'),
+             url='https://www.bu.edu/',
+             size=lg),
         dict(name='Institut national de la santé et de la recherche médicale',
              img='Inserm.svg',
-             url='https://www.inserm.fr/'),
+             url='https://www.inserm.fr/',
+             size=xl),
         dict(name='Forschungszentrum Jülich',
              img='Julich.svg',
-             url='https://www.fz-juelich.de/'),
+             url='https://www.fz-juelich.de/',
+             size=xl),
         dict(name='Technische Universität Ilmenau',
              img='Ilmenau.gif',
-             url='https://www.tu-ilmenau.de/'),
+             url='https://www.tu-ilmenau.de/',
+             size=xl),
         dict(name='Berkeley Institute for Data Science',
              img='BIDS.png',
-             url='https://bids.berkeley.edu/'),
+             url='https://bids.berkeley.edu/',
+             size=lg),
         dict(name='Institut national de recherche en informatique et en automatique',  # noqa E501
              img='inria.png',
-             url='https://www.inria.fr/'),
+             url='https://www.inria.fr/',
+             size=xl),
         dict(name='Aarhus Universitet',
              img='Aarhus.png',
-             url='https://www.au.dk/'),
+             url='https://www.au.dk/',
+             size=xl),
         dict(name='Karl-Franzens-Universität Graz',
              img='Graz.jpg',
-             url='https://www.uni-graz.at/'),
+             url='https://www.uni-graz.at/',
+             size=md),
     ],
     'carousel': [
         dict(title='Source Estimation',

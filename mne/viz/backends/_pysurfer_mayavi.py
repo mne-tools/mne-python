@@ -305,6 +305,7 @@ class _Renderer(_AbstractRenderer):
             vals = _alpha_blend_background(ctable, bgcolor)
             cbar_lut.table.from_array(vals)
             cmap.scalar_bar.lookup_table = cbar_lut
+        return bar
 
     def show(self):
         if self.fig is not None:
