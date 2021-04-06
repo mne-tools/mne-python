@@ -2275,6 +2275,7 @@ def _browse_figure(inst, **kwargs):
     # initialize zen mode (can't do in __init__ due to get_position() calls)
     fig.canvas.draw()
     fig._update_zen_mode_offsets()
+    fig._resize(None)  # needed for MPL >=3.4
     # if scrollbars are supposed to start hidden, set to True and then toggle
     if not fig.mne.scrollbars_visible:
         fig.mne.scrollbars_visible = True
