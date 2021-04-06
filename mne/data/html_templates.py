@@ -1,7 +1,42 @@
 from ..externals.tempita import Template
 
 
-info_template = Template("""
+html_style = """
+<style>
+input {
+  height: 0;
+  width: 0;
+  visibility: hidden;
+}
+
+label {
+  cursor: pointer;
+}
+
+.checkmark + label:before {
+  display: inline-block;
+  content: '►';
+  font-size: 11px;
+  width: 15px;
+  text-align: left;
+  }
+
+.checkmark:checked  + label:before {
+  content: '▼';
+}
+
+.additional_info {
+  border-collapse: collapse;
+  display: none;
+}
+
+.checkmark:checked  + label ~ .additional_info {
+  display: table-row;
+}
+</style>
+"""
+
+info_template = Template(html_style + """
 <table class="table table-hover">
     <tr>
         <th>Measurement date</th>
@@ -22,6 +57,10 @@ info_template = Template("""
             {{endif}}
         {{else}}<td>Unknown</td>{{endif}}
     </tr>
+    </table>
+    <input type='checkbox' id='checkbox1' class='checkmark'/>
+    <label for='checkbox1'> Additional information: </label>
+    <table class='additional_info'>
     <tr>
         <th>Digitized points</th>
         {{if info['dig'] is not None}}
@@ -63,7 +102,7 @@ info_template = Template("""
 </table>
 """)
 
-raw_template = Template("""
+raw_template = Template(html_style + """
 {{info_repr[:-9]}}
     <tr>
         <th>Filenames</th>
@@ -76,7 +115,7 @@ raw_template = Template("""
 </table>
 """)
 
-epochs_template = Template("""
+epochs_template = Template(html_style + """
 <table class="table table-hover">
     <tr>
         <th>Number of events</th>
