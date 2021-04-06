@@ -28,7 +28,7 @@ from .callback import (ShowView, TimeCallBack, SmartCallBack,
                        UpdateLUT, UpdateColorbarScale)
 
 from ..utils import (_show_help_fig, _get_color_list, concatenate_images,
-                     _generate_default_filename)
+                     _generate_default_filename, _save_ndarray_img)
 from .._3d import _process_clim, _handle_time, _check_views
 
 from ...externals.decorator import decorator
@@ -2582,9 +2582,8 @@ class Brain(object):
         mode : str
             Either 'rgb' or 'rgba' for values to return.
         """
-        default_name = _generate_default_filename(".png")
-        filename = default_name if filename is None else filename
-        from ..utils import _save_ndarray_img
+        if filename is None:
+            filename = _generate_default_filename(".png")
         _save_ndarray_img(
             filename, self.screenshot(mode=mode, time_viewer=True))
 
