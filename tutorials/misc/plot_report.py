@@ -56,7 +56,7 @@ import mne
 #    will open the HTML in a new tab in the browser. To disable this, use the
 #    ``open_browser=False`` parameter of :meth:`~mne.Report.save`.
 #
-# For our first example, we'll generate a barebones report for all the
+# For our first example, we will generate a barebones report for all the
 # :file:`.fif` files containing raw data in the sample dataset, by passing the
 # pattern ``*raw.fif`` to :meth:`~mne.Report.parse_folder`. We'll omit the
 # ``subject`` and ``subjects_dir`` parameters from the :class:`~mne.Report`
