@@ -1051,7 +1051,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         # arg checking
         valid_index_args = ['time', 'freq']
         if isinstance(self, EpochsTFR):
-            valid_index_args.append(['epoch', 'condition'])
+            valid_index_args.extend(['epoch', 'condition'])
         valid_time_formats = ['ms', 'timedelta']
         index = _check_pandas_index_arguments(index, valid_index_args)
         time_format = _check_time_format(time_format, valid_time_formats)
@@ -2178,10 +2178,10 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
             n_epochs = len(data)
             selection = np.arange(n_epochs)
         if drop_log is None:
+            n_epochs_prerejection = max(len(events), max(selection) + 1)
             drop_log = tuple(
                 () if k in selection else ('IGNORED',)
-                for k in range(max(len(events),
-                               max(selection) + 1)))
+                for k in range(n_epochs_prerejection))
         else:
             drop_log = drop_log
         # check consistency:
@@ -2189,7 +2189,6 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         assert len(drop_log) >= len(events)
         assert len(selection) == sum(
             (len(dl) == 0 for dl in drop_log))
-        # TODO Check for consistency with .metadata?
         event_id = _check_event_id(event_id, events)
         self.data = data
         self.times = np.array(times, dtype=float)
