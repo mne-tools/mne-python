@@ -1049,10 +1049,9 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         # check pandas once here, instead of in each private utils function
         pd = _check_pandas_installed()  # noqa
         # arg checking
+        valid_index_args = ['time', 'freq']
         if isinstance(self, EpochsTFR):
-            valid_index_args = ['time', 'freq', 'epoch', 'condition']
-        else:
-            valid_index_args = ['time', 'freq']
+            valid_index_args.append(['epoch', 'condition'])
         valid_time_formats = ['ms', 'timedelta']
         index = _check_pandas_index_arguments(index, valid_index_args)
         time_format = _check_time_format(time_format, valid_time_formats)
