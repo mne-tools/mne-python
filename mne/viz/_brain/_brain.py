@@ -3089,8 +3089,8 @@ class Brain(object):
         dialog : object
             The opened dialog is returned for testing purpose only.
         """
-        default_name = _generate_default_filename(".mp4")
-        filename = default_name if filename is None else filename
+        if filename is None:
+            filename = _generate_default_filename(".mp4")
         func = self._save_movie_tv if self.time_viewer else self._save_movie
         func(filename, time_dilation, tmin, tmax,
              framerate, interpolation, codec,
