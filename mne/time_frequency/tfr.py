@@ -1062,8 +1062,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         if isinstance(self, EpochsTFR):
             data = self.data[:, picks, :, :]
         else:
-            data = self.data[picks, :, :]
-            data = np.expand_dims(data, axis=0)
+            data = self.data[np.newaxis, picks]  # add singleton "epochs" axis
         n_epochs, n_picks, n_freqs, n_times = data.shape
         # reshape to (epochs*freqs*times) x signals
         data = np.moveaxis(data, 1, -1)
