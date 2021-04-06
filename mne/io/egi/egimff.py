@@ -255,7 +255,7 @@ def _read_locs(filepath, chs, egi_info):
     from ...channels.montage import make_dig_montage
     fname = op.join(filepath, 'coordinates.xml')
     if not op.exists(fname):
-        return chs, []
+        return chs, None
     reference_names = ('VREF', 'Vertex Reference')
     dig_ident_map = {
         'Left periauricular point': 'lpa',
@@ -281,13 +281,12 @@ def _read_locs(filepath, chs, egi_info):
         else:
             if name in reference_names:
                 ch_pos['EEG000'] = loc
+            # add location to channel entry
+            id_ = np.flatnonzero(numbers == nr)
+            if len(id_) == 0:
+                hsp.append(loc)
             else:
-                # add location to channel entry
-                id_ = np.flatnonzero(numbers == nr)
-                if len(id_) == 0:
-                    hsp.append(loc)
-                else:
-                    ch_pos[chs[id_[0]]['ch_name']] = loc
+                ch_pos[chs[id_[0]]['ch_name']] = loc
     mon = make_dig_montage(ch_pos=ch_pos, hsp=hsp, **nlr)
     return chs, mon
 
@@ -430,7 +429,8 @@ class RawMff(BaseRaw):
                 if isinstance(v, list):
                     for k in v:
                         if k not in event_codes:
-                            raise ValueError('Could find event named "%s"' % k)
+                            raise ValueError(
+                                f'Could not find event named {repr(k)}')
                 elif v is not None:
                     raise ValueError('`%s` must be None or of type list' % kk)
             logger.info('    Synthesizing trigger channel "STI 014" ...')
@@ -489,7 +489,8 @@ class RawMff(BaseRaw):
         chs = _add_pns_channel_info(chs, egi_info, ch_names)
         info['chs'] = chs
         info._update_redundant()
-        info.set_montage(mon, on_missing='ignore')
+        if mon is not None:
+            info.set_montage(mon, on_missing='ignore')
         file_bin = op.join(input_fname, egi_info['eeg_fname'])
         egi_info['egi_events'] = egi_events
 
@@ -854,7 +855,8 @@ def _read_evoked_mff(fname, condition, channel_naming='E%d', verbose=None):
     # Update PNS channel info
     chs = _add_pns_channel_info(chs, egi_info, ch_names)
     info['chs'] = chs
-    info.set_montage(mon, on_missing='ignore')
+    if mon is not None:
+        info.set_montage(mon, on_missing='ignore')
 
     # Add bad channels to info
     info['description'] = category
