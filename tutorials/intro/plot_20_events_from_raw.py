@@ -11,7 +11,7 @@ MNE-Python (Events arrays and Annotations objects).
 
 In the :ref:`introductory tutorial <overview-tut-events-section>` we saw an
 example of reading experimental events from a :term:`"STIM" channel <stim
-channel>`; here we'll discuss :term:`events` and :term:`annotations` more
+channel>`; here we will discuss :term:`events` and :term:`annotations` more
 broadly, give more detailed information about reading from STIM channels, and
 give an example of reading events that are in a marker file or included in
 the data file as an embedded array. The tutorials :ref:`tut-event-arrays` and
