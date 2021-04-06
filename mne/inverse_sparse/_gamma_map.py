@@ -73,7 +73,7 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
 
     gammas_full_old = gammas.copy()
 
-    if update_mode == 2:
+    if update_mode == 2 or update_mode == 3:
         denom_fun = np.sqrt
     else:
         # do nothing
@@ -108,6 +108,10 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
             numer = gammas ** 2 * np.mean((A * A.conj()).real, axis=1)
             denom = gammas * np.sum(G * CMinvG, axis=0)
         elif update_mode == 2:
+            # modified MacKay fixed point update (11) in [1]
+            numer = gammas * np.sqrt(np.mean((A * A.conj()).real, axis=1))
+            denom = np.sum(G * CMinvG, axis=0)  # sqrt is applied below
+        elif update_mode == 3:
             # modified MacKay fixed point update (11) in [1]
             numer = gammas * np.sqrt(np.mean((A * A.conj()).real, axis=1))
             denom = np.sum(G * CMinvG, axis=0)  # sqrt is applied below
