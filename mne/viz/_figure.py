@@ -630,7 +630,8 @@ class MNEBrowseFigure(MNEFigure):
         else:
             last_time = self.mne.inst.times[-1]
         # scroll up/down
-        if key in ('down', 'up'):
+        if key in ('down', 'up', 'shift+down', 'shift+up'):
+            key = key.split('+')[-1]
             direction = -1 if key == 'up' else 1
             # butterfly case
             if self.mne.butterfly:
@@ -729,6 +730,8 @@ class MNEBrowseFigure(MNEFigure):
             self._toggle_epoch_histogram()
         elif key == 'j' and len(self.mne.projs):  # SSP window
             self._toggle_proj_fig()
+        elif key == 'J' and len(self.mne.projs):
+            self._toggle_proj_checkbox(event, toggle_all=True)
         elif key == 'p':  # toggle draggable annotations
             self._toggle_draggable_annotations(event)
             if self.mne.fig_annotation is not None:
@@ -1037,6 +1040,7 @@ class MNEBrowseFigure(MNEFigure):
             ('a', 'Toggle annotation mode' if is_raw else None),
             ('h', 'Toggle peak-to-peak histogram' if is_epo else None),
             ('j', 'Toggle SSP projector window' if has_proj else None),
+            ('shift+j', 'Toggle all SSPs'),
             ('p', 'Toggle draggable annotations' if is_raw else None),
             ('s', 'Toggle scalebars' if not is_ica else None),
             ('z', 'Toggle scrollbars'),
@@ -1581,6 +1585,10 @@ class MNEBrowseFigure(MNEFigure):
         fig = self._new_child_figure(figsize=(width, height),
                                      fig_name='fig_proj',
                                      window_title='SSP projection vectors')
+        # pass through some proj fig keypresses to the parent
+        fig.canvas.mpl_connect(
+            'key_press_event',
+            lambda ev: self._keypress(ev) if ev.key in 'jJ' else None)
         # make axes
         offset = (1 / 6 / height)
         position = (0, offset, 1, 0.8 - offset)
@@ -1630,16 +1638,17 @@ class MNEBrowseFigure(MNEFigure):
         new_state = (np.full_like(on, not all(on)) if toggle_all else
                      np.array(fig.mne.proj_checkboxes.get_status()))
         # update Xs when toggling all
-        if toggle_all:
+        if fig is not None:
+            if toggle_all:
+                with _events_off(fig.mne.proj_checkboxes):
+                    for ix in np.where(on != new_state)[0]:
+                        fig.mne.proj_checkboxes.set_active(ix)
+            # don't allow disabling already-applied projs
             with _events_off(fig.mne.proj_checkboxes):
-                for ix in np.where(on != new_state)[0]:
-                    fig.mne.proj_checkboxes.set_active(ix)
-        # don't allow disabling already-applied projs
-        with _events_off(fig.mne.proj_checkboxes):
-            for ix in np.where(applied)[0]:
-                if not new_state[ix]:
-                    fig.mne.proj_checkboxes.set_active(ix)
-            new_state[applied] = True
+                for ix in np.where(applied)[0]:
+                    if not new_state[ix]:
+                        fig.mne.proj_checkboxes.set_active(ix)
+        new_state[applied] = True
         # update the data if necessary
         if not np.array_equal(on, new_state):
             self.mne.projs_on = new_state
