@@ -11,6 +11,7 @@
 #
 # License: BSD (3-clause)
 
+from functools import partial
 from collections import Counter
 from copy import deepcopy
 import json
@@ -1468,7 +1469,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
     @verbose
     def apply_function(self, fun, picks=None, dtype=None, n_jobs=1,
-                       channel_wise=True, verbose=None, *args, **kwargs):
+                       channel_wise=True, verbose=None, **kwargs):
         """Apply a function to a subset of channels.
 
         %(applyfun_summary_epochs)s
@@ -1479,9 +1480,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         %(picks_all_data_noref)s
         %(applyfun_dtype)s
         %(n_jobs)s
-        %(applyfun_chwise)s
+        %(applyfun_chwise_epo)s
         %(verbose_meth)s
-        %(arg_fun)s
         %(kwarg_fun)s
 
         Returns
@@ -1501,20 +1501,20 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         if channel_wise:
             if n_jobs == 1:
+                _fun = partial(_check_fun, fun, **kwargs)
                 # modify data inplace to save memory
                 for idx in picks:
-                    self._data[:, idx, :] = _check_fun(fun, data_in[:, idx, :],
-                                                       *args, **kwargs)
+                    self._data[:, idx, :] = np.apply_along_axis(
+                        _fun, -1, data_in[:, idx, :])
             else:
                 # use parallel function
                 parallel, p_fun, _ = parallel_func(_check_fun, n_jobs)
                 data_picks_new = parallel(p_fun(
-                    fun, data_in[:, p, :], *args, **kwargs) for p in picks)
+                    fun, data_in[:, p, :], **kwargs) for p in picks)
                 for pp, p in enumerate(picks):
                     self._data[:, p, :] = data_picks_new[pp]
         else:
-            self._data = _check_fun(
-                fun, data_in, *args, **kwargs)
+            self._data = _check_fun(fun, data_in, **kwargs)
 
         return self
 
