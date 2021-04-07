@@ -275,8 +275,8 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
 
         # pick eigenvector that corresponds to maximum eigenvalue:
         if real_ori == 'svd':
-            u, s, v = np.linal.svd(ori_pick)
-            max_power_ori = u[:, 0]
+            u, s, v = np.linalg.svd(ori_pick.real)
+            max_power_ori = u[:, :, 0]
         else:
             if real_ori is True:
                 eig_vals, eig_vecs = np.linalg.eig(ori_pick.real)
