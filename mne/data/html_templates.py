@@ -1,55 +1,31 @@
+import uuid
 from ..externals.tempita import Template
+# style, section_ids=section_ids, sections=sections,
 
+info_template = Template("""
+{{style}}
 
-html_style = """
-<style>
-input {
-  height: 0;
-  width: 0;
-  visibility: hidden;
-}
-
-label {
-  cursor: pointer;
-}
-
-.checkmark + label:before {
-  display: inline-block;
-  content: '►';
-  font-size: 11px;
-  width: 15px;
-  text-align: left;
-  }
-
-.checkmark:checked  + label:before {
-  content: '▼';
-}
-
-.additional_info {
-  border-collapse: collapse;
-  display: none;
-}
-
-.checkmark:checked  + label ~ .additional_info {
-  display: table-row;
-}
-</style>
-"""
-
-info_template = Template(html_style + """
 <table class="table table-hover">
+
     <tr>
+        <th style="text-align: left;">
+        <label for={{section_ids[0]}}> {{sections[0]}} </label>
+        </th>
+    </tr>
+
+    <tr class="{{section_ids[0]}}">
         <th>Measurement date</th>
         {{if meas_date is not None}}
         <td>{{meas_date}}</td>
         {{else}}<td>Unknown</td>{{endif}}
     </tr>
-    <tr>
+    <tr class="{{section_ids[0]}}">
         <th>Experimenter</th>
         {{if info['experimenter'] is not None}}
         <td>{{info['experimenter']}}</td>
         {{else}}<td>Unknown</td>{{endif}}
     </tr>
+    <tr  class="{{section_ids[0]}}">
         <th>Participant</th>
         {{if info['subject_info'] is not None}}
             {{if 'his_id' in info['subject_info'].keys()}}
@@ -57,11 +33,14 @@ info_template = Template(html_style + """
             {{endif}}
         {{else}}<td>Unknown</td>{{endif}}
     </tr>
-    </table>
-    <input type='checkbox' id='checkbox1' class='checkmark'/>
-    <label for='checkbox1'> Additional information: </label>
-    <table class='additional_info'>
+
     <tr>
+        <th style="text-align: left;">
+        <label for={{section_ids[1]}}> {{sections[1]}} </label>
+        </th>
+    </tr>
+
+    <tr  class="{{section_ids[1]}}">
         <th>Digitized points</th>
         {{if info['dig'] is not None}}
         <td>{{len(info['dig'])}} points</td>
@@ -69,53 +48,59 @@ info_template = Template(html_style + """
         <td>Not available</td>
         {{endif}}
     </tr>
-    <tr>
+    <tr  class="{{section_ids[1]}}">
         <th>Good channels</th>
         <td>{{n_mag}} magnetometer, {{n_grad}} gradiometer,
             and {{n_eeg}} EEG channels</td>
     </tr>
-    <tr>
+    <tr  class="{{section_ids[1]}}">
         <th>Bad channels</th>
         {{if info['bads'] is not None}}
         <td>{{', '.join(info['bads'])}}</td>
         {{else}}<td>None</td>{{endif}}
     </tr>
-    <tr>
+    <tr  class="{{section_ids[1]}}">
         <th>EOG channels</th>
         <td>{{eog}}</td>
     </tr>
-    <tr>
+    <tr  class="{{section_ids[1]}}">
         <th>ECG channels</th>
         <td>{{ecg}}</td>
+    </tr>
+
     <tr>
+        <th style="text-align: left;">
+        <label for={{section_ids[2]}}> {{sections[2]}} </label>
+        </th>
+    </tr>
+    <tr  class="{{section_ids[2]}}">
         <th>Sampling frequency</th>
         <td>{{u'%0.2f' % info['sfreq']}} Hz</td>
     </tr>
-    <tr>
+    <tr  class="{{section_ids[2]}}">
         <th>Highpass</th>
         <td>{{u'%0.2f' % info['highpass']}} Hz</td>
     </tr>
-     <tr>
+    <tr  class="{{section_ids[2]}}">
         <th>Lowpass</th>
         <td>{{u'%0.2f' % info['lowpass']}} Hz</td>
     </tr>
-</table>
-""")
-
-raw_template = Template(html_style + """
-{{info_repr[:-9]}}
-    <tr>
+    {{if filenames is not None}}
+    <tr  class="{{section_ids[2]}}">
         <th>Filenames</th>
         <td>{{', '.join(filenames)}}</td>
     </tr>
-    <tr>
+    {{endif}}
+    {{if duration is not None}}
+    <tr  class="{{section_ids[2]}}">
         <th>Duration</th>
         <td>{{duration}} (HH:MM:SS)</td>
     </tr>
+    {{endif}}
 </table>
 """)
 
-epochs_template = Template(html_style + """
+epochs_template = Template("""
 <table class="table table-hover">
     <tr>
         <th>Number of events</th>
@@ -139,3 +124,44 @@ epochs_template = Template(html_style + """
     </tr>
 </table>
 """)
+
+
+def _section_style(section_id):
+    html = f"""#{section_id} ~ table [for="{section_id}"]::before {{
+                   display: inline-block;
+                   content: "►";
+                   font-size: 11px;
+                   width: 15px;
+                   text-align: left;
+                   }}
+
+               #{section_id}:checked ~ table [for="{section_id}"]::before {{
+                   content: "▼";
+                   }}
+
+               #{section_id} ~ table tr.{section_id} {{
+                   visibility: collapse;
+                   }}
+
+               #{section_id}:checked ~ table tr.{section_id} {{
+                   visibility: visible;
+                   }}
+            """
+    return html
+
+
+def collapsible_sections_reprt_html(sections):
+    style = "<style>  label { cursor: pointer; }"
+    ids_ = []
+    for section in sections:
+        section_id = f"section_{str(uuid.uuid4())}"
+        style += _section_style(section_id)
+        ids_.append(section_id)
+    style += "</style>"
+
+    for i in ids_:
+        style += f"""
+        <input type="checkbox" id="{i}" hidden aria-hidden="true"/>
+        """
+
+    return style, ids_

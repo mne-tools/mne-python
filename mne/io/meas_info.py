@@ -39,7 +39,8 @@ from ._digitization import (_format_dig_points, _dig_kind_proper, DigPoint,
                             _dig_kind_rev, _dig_kind_ints, _read_dig_fif)
 from ._digitization import write_dig as _dig_write_dig
 from .compensator import get_current_comp
-from ..data.html_templates import info_template
+from ..data.html_templates import (info_template,
+                                   collapsible_sections_reprt_html)
 
 b = bytes  # alias
 
@@ -809,7 +810,8 @@ class Info(dict, MontageMixin):
     def ch_names(self):
         return self['ch_names']
 
-    def _repr_html_(self, caption=None):
+    def _repr_html_(self, caption=None, filenames=None,
+                    duration=None):
         if isinstance(caption, str):
             html = f'<h4>{caption}</h4>'
         else:
@@ -831,9 +833,13 @@ class Info(dict, MontageMixin):
         if meas_date is not None:
             meas_date = meas_date.strftime("%B %d, %Y  %H:%M:%S") + ' GMT'
 
+        sections = ['General', 'Channels', 'Data']
+        style, section_ids = collapsible_sections_reprt_html(sections)
         html += info_template.substitute(
+            style=style, section_ids=section_ids, sections=sections,
             caption=caption, info=self, meas_date=meas_date, n_eeg=n_eeg,
-            n_grad=n_grad, n_mag=n_mag, eog=eog, ecg=ecg)
+            n_grad=n_grad, n_mag=n_mag, eog=eog, ecg=ecg, filenames=filenames,
+            duration=duration)
         return html
 
 
