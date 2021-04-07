@@ -1379,11 +1379,11 @@ class MNEBrowseFigure(MNEFigure):
 
     def _clear_annotations(self):
         """Clear all annotations from the figure."""
-        for annot in self.mne.annotations[::-1]:
-            self.mne.ax_main.collections.remove(annot)
+        for annot in list(self.mne.annotations):
+            annot.remove()
             self.mne.annotations.remove(annot)
-        for annot in self.mne.hscroll_annotations[::-1]:
-            self.mne.ax_hscroll.collections.remove(annot)
+        for annot in list(self.mne.hscroll_annotations):
+            annot.remove()
             self.mne.hscroll_annotations.remove(annot)
         for text in list(self.mne.annotation_texts):
             text.remove()
