@@ -1922,6 +1922,13 @@ def test_epoch_eq():
                    .equalize_event_counts(list(epochs.event_id.keys())))
     assert_array_equal(epochs_1.events, epochs_2.events)
 
+    # test invalid values of event_ids
+    with pytest.raises(TypeError, match='received a string'):
+        epochs.equalize_event_counts('hello!')
+
+    with pytest.raises(TypeError, match='list-like or None'):
+        epochs.equalize_event_counts(1.5)
+
 
 def test_access_by_name(tmpdir):
     """Test accessing epochs by event name and on_missing for rare events."""

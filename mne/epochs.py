@@ -1882,8 +1882,13 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             Default to equalizing all events in the passed instance if no
             event names were specified explicitly.
         """
-        _validate_type(event_ids, types=(list, dict, None),
-                       item_name='event_ids')
+        from collections.abc import Iterable
+        _validate_type(event_ids, types=(Iterable, None),
+                       item_name='event_ids', type_name='list-like or None')
+        if isinstance(event_ids, str):
+            raise TypeError(f'event_ids must be list-like or None, but '
+                            f'received a string: {event_ids}')
+
         if event_ids is None:
             event_ids = list(self.event_id.keys())
         elif not event_ids:
