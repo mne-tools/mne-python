@@ -1385,8 +1385,8 @@ class MNEBrowseFigure(MNEFigure):
         for annot in self.mne.hscroll_annotations[::-1]:
             self.mne.ax_hscroll.collections.remove(annot)
             self.mne.hscroll_annotations.remove(annot)
-        for text in self.mne.annotation_texts[::-1]:
-            self.mne.ax_main.texts.remove(text)
+        for text in list(self.mne.annotation_texts):
+            text.remove()
             self.mne.annotation_texts.remove(text)
 
     def _draw_annotations(self):
@@ -1795,9 +1795,9 @@ class MNEBrowseFigure(MNEFigure):
     def _hide_scalebars(self):
         """Remove channel scale bars."""
         for bar in self.mne.scalebars.values():
-            self.mne.ax_main.lines.remove(bar)
+            bar.remove()
         for text in self.mne.scalebar_texts.values():
-            self.mne.ax_main.texts.remove(text)
+            text.remove()
         self.mne.scalebars = dict()
         self.mne.scalebar_texts = dict()
 
@@ -2029,7 +2029,7 @@ class MNEBrowseFigure(MNEFigure):
         # remove extra traces if needed
         extra_traces = self.mne.traces[n_picks:]
         for trace in extra_traces:
-            self.mne.ax_main.lines.remove(trace)
+            trace.remove()
         self.mne.traces = self.mne.traces[:n_picks]
 
         # check for bad epochs
@@ -2041,8 +2041,7 @@ class MNEBrowseFigure(MNEFigure):
             visible_bad_epochs = epoch_nums[
                 np.in1d(epoch_nums, self.mne.bad_epochs).nonzero()]
             while len(self.mne.epoch_traces):
-                _trace = self.mne.epoch_traces.pop(-1)
-                self.mne.ax_main.lines.remove(_trace)
+                self.mne.epoch_traces.pop(-1).remove()
             # handle custom epoch colors (for autoreject integration)
             if self.mne.epoch_colors is None:
                 # shape: n_traces × RGBA → n_traces × n_epochs × RGBA
@@ -2168,8 +2167,7 @@ class MNEBrowseFigure(MNEFigure):
             self.mne.event_lines = event_lines
             # create event labels
             while len(self.mne.event_texts):
-                text = self.mne.event_texts.pop()
-                self.mne.ax_main.texts.remove(text)
+                self.mne.event_texts.pop().remove()
             for _t, _n, _c in zip(this_event_times, this_event_nums, colors):
                 label = self.mne.event_id_rev.get(_n, _n)
                 this_text = self.mne.ax_main.annotate(
