@@ -277,6 +277,10 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         if real_ori == 'svd':
             u, s, v = np.linalg.svd(ori_pick.real)
             max_power_ori = u[:, :, 0]
+        elif real_ori == 'svd_complex':
+            u, s, v = np.linalg.svd(np.concatenate([ori_pick.real,
+                                                    ori_pick.imag], axis=-1))
+            max_power_ori = u[:, :, 0]
         else:
             if real_ori is True:
                 eig_vals, eig_vecs = np.linalg.eig(ori_pick.real)
