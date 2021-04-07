@@ -2,7 +2,6 @@ from ..externals.tempita import Template
 
 
 info_template = Template("""
-<h4>{{caption}}</h4>
 <table class="table table-hover">
     <tr>
         <th>Measurement date</th>
@@ -14,6 +13,13 @@ info_template = Template("""
         <th>Experimenter</th>
         {{if info['experimenter'] is not None}}
         <td>{{info['experimenter']}}</td>
+        {{else}}<td>Unknown</td>{{endif}}
+    </tr>
+        <th>Participant</th>
+        {{if info['subject_info'] is not None}}
+            {{if 'his_id' in info['subject_info'].keys()}}
+            <td>{{info['subject_info']['his_id']}}</td>
+            {{endif}}
         {{else}}<td>Unknown</td>{{endif}}
     </tr>
     <tr>
@@ -60,8 +66,37 @@ info_template = Template("""
 raw_template = Template("""
 {{info_repr[:-9]}}
     <tr>
-        <th>Measurement time range</th>
-        <td>{{u'%0.2f' % tmin}} to {{u'%0.2f' % tmax}} sec.</td>
+        <th>Filenames</th>
+        <td>{{', '.join(filenames)}}</td>
+    </tr>
+    <tr>
+        <th>Duration</th>
+        <td>{{duration}} (HH:MM:SS)</td>
+    </tr>
+</table>
+""")
+
+epochs_template = Template("""
+<table class="table table-hover">
+    <tr>
+        <th>Number of events</th>
+        <td>{{len(epochs.events)}}</td>
+    </tr>
+    <tr>
+        <th>Events</th>
+        {{if events is not None}}
+        <td>{{events}}</td>
+        {{else}}
+        <td>Not available</td>
+        {{endif}}
+    </tr>
+    <tr>
+        <th>Time range</th>
+        <td>{{f'{epochs.tmin:.3f} – {epochs.tmax:.3f} sec'}}</td>
+    </tr>
+    <tr>
+        <th>Baseline</th>
+        <td>{{baseline}}</td>
     </tr>
 </table>
 """)

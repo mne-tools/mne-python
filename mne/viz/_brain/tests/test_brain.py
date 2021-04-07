@@ -378,7 +378,7 @@ def test_brain_save_movie(tmpdir, renderer, brain_gc):
     brain.close()
 
 
-_TINY_SIZE = (300, 250)
+_TINY_SIZE = (350, 300)
 
 
 def tiny(tmpdir):

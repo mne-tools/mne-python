@@ -23,6 +23,7 @@ jobs:
           commit-filter-separator: ';'
 
   job:
+    timeout-minutes: 90
     needs: check_skip
     if: ${{ needs.check_skip.outputs.skip == 'false' }}
     name: 'py3.8'

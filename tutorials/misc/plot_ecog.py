@@ -11,9 +11,10 @@ electrocorticography (ECoG) data.
 
 This example shows how to use:
 
-- ECoG data
-- channel locations in subject's MRI space
-- projection onto a surface
+- ECoG data (`available here <https://openneuro.org/datasets/ds003029>`_)
+  from an epilepsy patient during a seizure
+- channel locations in FreeSurfer's ``fsaverage`` MRI space
+- projection onto a pial surface
 
 For a complementary example that involves sEEG data, channel locations in
 MNI space, or projection into a volume, see :ref:`tut_working_with_seeg`.
@@ -21,13 +22,17 @@ MNI space, or projection into a volume, see :ref:`tut_working_with_seeg`.
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Chris Holdgraf <choldgraf@gmail.com>
 #          Adam Li <adam2392@gmail.com>
+#          Alex Rockhill <aprockhill@mailbox.org>
+#          Liberty Hamilton <libertyhamilton@gmail.com>
 #
 # License: BSD (3-clause)
 
-import pandas as pd
+import os.path as op
+
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
+from matplotlib.cm import get_cmap
+from mne_bids import BIDSPath, read_raw_bids
 
 import mne
 from mne.viz import plot_alignment, snapshot_brain_montage
@@ -35,168 +40,151 @@ from mne.viz import plot_alignment, snapshot_brain_montage
 print(__doc__)
 
 # paths to mne datasets - sample ECoG and FreeSurfer subject
-misc_path = mne.datasets.misc.data_path()
+bids_root = mne.datasets.epilepsy_ecog.data_path()
 sample_path = mne.datasets.sample.data_path()
-subject = 'sample'
-subjects_dir = sample_path + '/subjects'
+subjects_dir = op.join(sample_path, 'subjects')
+
 
 ###############################################################################
-# Let's load some ECoG electrode locations and names, and turn them into
-# a :class:`mne.channels.DigMontage` class. First, use pandas to read in the
-# ``.tsv`` file.
+# Load in data and perform basic preprocessing
+# --------------------------------------------
+#
+# Let's load some ECoG electrode data with `mne-bids
+# <https://mne.tools/mne-bids/>`_.
 
-# In this tutorial, the electrode coordinates are assumed to be in meters
-elec_df = pd.read_csv(misc_path + '/ecog/sample_ecog_electrodes.tsv',
-                      sep='\t', header=0, index_col=None)
-ch_names = elec_df['name'].tolist()
-ch_coords = elec_df[['x', 'y', 'z']].to_numpy(dtype=float)
-ch_pos = dict(zip(ch_names, ch_coords))
-# Ideally the nasion/LPA/RPA will also be present from the digitization, here
-# we use fiducials estimated from the subject's FreeSurfer MNI transformation:
-lpa, nasion, rpa = mne.coreg.get_mni_fiducials(
-    subject, subjects_dir=subjects_dir)
-lpa, nasion, rpa = lpa['r'], nasion['r'], rpa['r']
+# first define the bids path
+bids_path = BIDSPath(root=bids_root, subject='pt1', session='presurgery',
+                     task='ictal', datatype='ieeg', extension='vhdr')
 
-###############################################################################
-# Now we make a :class:`mne.channels.DigMontage` stating that the ECoG
-# contacts are in the FreeSurfer surface RAS (i.e., MRI) coordinate system.
+# then we'll use it to load in the sample dataset
+# Here we use a format (iEEG) that is only available in MNE-BIDS 0.7+, so it
+# will emit a warning on versions <= 0.6
+raw = read_raw_bids(bids_path=bids_path, verbose=False)
 
-montage = mne.channels.make_dig_montage(
-    ch_pos, coord_frame='mri', nasion=nasion, lpa=lpa, rpa=rpa)
-print('Created %s channel positions' % len(ch_names))
+# Pick only the ECoG channels, removing the EKG channels
+raw.pick_types(ecog=True)
 
-###############################################################################
-# Now we get the :term:`trans` that transforms from our MRI coordinate system
-# to the head coordinate frame. This transform will be applied to the
-# data when applying the montage so that standard plotting functions like
-# :func:`mne.viz.plot_evoked_topomap` will be aligned properly.
+# Load the data
+raw.load_data()
 
-trans = mne.channels.compute_native_head_t(montage)
-print(trans)
-
-###############################################################################
-# Now that we have our montage, we can load in our corresponding
-# time-series data and set the montage to the raw data.
-
-# first we'll load in the sample dataset
-raw = mne.io.read_raw_edf(misc_path + '/ecog/sample_ecog.edf')
+# Then we remove line frequency interference
+raw.notch_filter([60], trans_bandwidth=3)
 
 # drop bad channels
-raw.info['bads'].extend([ch for ch in raw.ch_names if ch not in ch_names])
-raw.load_data()
 raw.drop_channels(raw.info['bads'])
-raw.crop(0, 2)  # just process 2 sec of data for speed
 
-# attach montage
-raw.set_montage(montage)
+# the coordinate frame of the montage
+print(raw.get_montage().get_positions()['coord_frame'])
 
-# set channel types to ECoG (instead of EEG)
-raw.set_channel_types({ch_name: 'ecog' for ch_name in raw.ch_names})
+# Find the annotated events
+events, event_id = mne.events_from_annotations(raw)
+
+# Make a 25 second epoch that spans before and after the seizure onset
+epoch_length = 25  # seconds
+epochs = mne.Epochs(raw, events, event_id=event_id['onset'],
+                    tmin=13, tmax=13 + epoch_length, baseline=None)
+
+# And then load data and downsample.
+# .. note: This is just to save execution time in this example, you should
+#          not need to do this in general!
+epochs.load_data()
+epochs.resample(200)  # Hz, will also load the data for us
+
+# Finally, make evoked from the one epoch
+evoked = epochs.average()
+
 
 ###############################################################################
-# We can then plot the locations of our electrodes on our subject's brain.
-# We'll use :func:`~mne.viz.snapshot_brain_montage` to save the plot as image
-# data (along with xy positions of each electrode in the image), so that later
-# we can plot frequency band power on top of it.
+# Explore the electrodes on a template brain
+# ------------------------------------------
 #
-# .. note:: These are not real electrodes for this subject, so they
-#           do not align to the cortical surface perfectly.
+# Our electrodes are shown after being morphed to fsaverage brain so we'll use
+# this fsaverage brain to plot the locations of our electrodes. We'll use
+# :func:`~mne.viz.snapshot_brain_montage` to save the plot as image data
+# (along with xy positions of each electrode in the image), so that later
+# we can plot frequency band power on top of it.
 
-fig = plot_alignment(raw.info, subject=subject, subjects_dir=subjects_dir,
-                     surfaces=['pial'], trans=trans, coord_frame='mri')
-mne.viz.set_3d_view(fig, 200, 70, focalpoint=[0, -0.005, 0.03])
+fig = plot_alignment(raw.info, subject='fsaverage', subjects_dir=subjects_dir,
+                     surfaces=['pial'], coord_frame='mri')
+az, el, focalpoint = 160, -70, [0.067, -0.040, 0.018]
+mne.viz.set_3d_view(fig, azimuth=az, elevation=el, focalpoint=focalpoint)
 
-xy, im = snapshot_brain_montage(fig, montage)
-
-###############################################################################
-# Next, we'll compute the signal power in the gamma (30-90 Hz) and alpha
-# (8-12 Hz) bands.
-gamma_power_t = raw.copy().filter(30, 90).apply_hilbert(
-    envelope=True).get_data()
-alpha_power_t = raw.copy().filter(8, 12).apply_hilbert(
-    envelope=True).get_data()
-gamma_power = gamma_power_t.mean(axis=-1)
-alpha_power = alpha_power_t.mean(axis=-1)
+xy, im = snapshot_brain_montage(fig, raw.info)
 
 ###############################################################################
-# Now let's use matplotlib to overplot frequency band power onto the electrodes
-# which can be plotted on top of the brain from
-# :func:`~mne.viz.snapshot_brain_montage`.
+# Compute frequency features of the data
+# --------------------------------------
+#
+# Next, we'll compute the signal power in the gamma (30-90 Hz) band,
+# downsampling the result to 10 Hz (to save time).
 
-# Convert from a dictionary to array to plot
-xy_pts = np.vstack([xy[ch] for ch in raw.info['ch_names']])
-
-# colormap to view spectral power
-cmap = 'viridis'
-
-# Create a 1x2 figure showing the average power in gamma and alpha bands.
-fig, axs = plt.subplots(1, 2, figsize=(20, 10))
-# choose a colormap range wide enough for both frequency bands
-_gamma_alpha_power = np.concatenate((gamma_power, alpha_power)).flatten()
-vmin, vmax = np.percentile(_gamma_alpha_power, [10, 90])
-for ax, band_power, band in zip(axs,
-                                [gamma_power, alpha_power],
-                                ['Gamma', 'Alpha']):
-    ax.imshow(im)
-    ax.set_axis_off()
-    sc = ax.scatter(*xy_pts.T, c=band_power, s=200,
-                    cmap=cmap, vmin=vmin, vmax=vmax)
-    ax.set_title(f'{band} band power', size='x-large')
-fig.colorbar(sc, ax=axs)
+sfreq = 10
+gamma_power_t = evoked.copy().filter(30, 90).apply_hilbert(
+    envelope=True).resample(sfreq)
+gamma_info = gamma_power_t.info
 
 ###############################################################################
+# Visualize the time-evolution of the gamma power on the brain
+# ------------------------------------------------------------
+#
 # Say we want to visualize the evolution of the power in the gamma band,
 # instead of just plotting the average. We can use
 # `matplotlib.animation.FuncAnimation` to create an animation and apply this
 # to the brain figure.
 
+# convert from a dictionary to array to plot
+xy_pts = np.vstack([xy[ch] for ch in raw.info['ch_names']])
 
-# create an initialization and animation function
-# to pass to FuncAnimation
-def init():
-    """Create an empty frame."""
-    return paths,
+# get a colormap to color nearby points similar colors
+cmap = get_cmap('viridis')
 
-
-def animate(i, activity):
-    """Animate the plot."""
-    paths.set_array(activity[:, i])
-    return paths,
-
-
-# create the figure and apply the animation of the
-# gamma frequency band activity
+# create the figure of the brain with the electrode positions
 fig, ax = plt.subplots(figsize=(5, 5))
+ax.set_title('Gamma power over time', size='large')
 ax.imshow(im)
 ax.set_axis_off()
-paths = ax.scatter(*xy_pts.T, c=np.zeros(len(xy_pts)), s=200,
-                   cmap=cmap, vmin=vmin, vmax=vmax)
-fig.colorbar(paths, ax=ax)
-ax.set_title('Gamma frequency over time (Hilbert transform)',
-             size='large')
 
-# avoid edge artifacts and decimate, showing just a short chunk
-sl = slice(100, 150)
-show_power = gamma_power_t[:, sl]
-anim = animation.FuncAnimation(fig, animate, init_func=init,
-                               fargs=(show_power,),
-                               frames=show_power.shape[1],
-                               interval=100, blit=True)
+# normalize gamma power for plotting
+gamma_power = -100 * gamma_power_t.data / gamma_power_t.data.max()
+# add the time course overlaid on the positions
+x_line = np.linspace(-0.025 * im.shape[0], 0.025 * im.shape[0],
+                     gamma_power_t.data.shape[1])
+for i, pos in enumerate(xy_pts):
+    x, y = pos
+    color = cmap(i / xy_pts.shape[0])
+    ax.plot(x_line + x, gamma_power[i] + y, linewidth=0.5, color=color)
 
 ###############################################################################
-# Alternatively, we can project the sensor data to the nearest locations on
+# We can project gamma power from the sensor data to the nearest locations on
 # the pial surface and visualize that:
+#
+# As shown in the plot, the epileptiform activity starts in the temporal lobe,
+# progressing posteriorly. The seizure becomes generalized eventually, after
+# this example short time section. This dataset is available using
+# :func:`mne.datasets.epilepsy_ecog.data_path` for you to examine.
 
-# sphinx_gallery_thumbnail_number = 4
+# sphinx_gallery_thumbnail_number = 5
 
-evoked = mne.EvokedArray(
-    gamma_power_t[:, sl], raw.info, tmin=raw.times[sl][0])
-stc = mne.stc_near_sensors(evoked, trans, subject, subjects_dir=subjects_dir)
-clim = dict(kind='value', lims=[vmin * 0.9, vmin, vmax])
-brain = stc.plot(surface='pial', hemi='both', initial_time=0.68,
-                 colormap='viridis', clim=clim, views='parietal',
-                 subjects_dir=subjects_dir, size=(500, 500))
+xyz_pts = np.array([dig['r'] for dig in evoked.info['dig']])
+
+src = mne.read_source_spaces(
+    op.join(subjects_dir, 'fsaverage', 'bem', 'fsaverage-ico-5-src.fif'))
+trans = None  # identity transform
+stc = mne.stc_near_sensors(gamma_power_t, trans, 'fsaverage', src=src,
+                           mode='nearest', subjects_dir=subjects_dir,
+                           distance=0.02)
+vmin, vmid, vmax = np.percentile(gamma_power_t.data, [10, 25, 90])
+clim = dict(kind='value', lims=[vmin, vmid, vmax])
+brain = stc.plot(surface='pial', hemi='rh', colormap='inferno', colorbar=False,
+                 clim=clim, views=['lat', 'med'], subjects_dir=subjects_dir,
+                 size=(250, 250), smoothing_steps=20, time_viewer=False)
+
+# plot electrode locations
+for xyz in xyz_pts:
+    for subplot in (0, 1):
+        brain.plotter.subplot(subplot, 0)
+        brain._renderer.sphere(xyz * 1e3, color='white', scale=2)
 
 # You can save a movie like the one on our documentation website with:
-# brain.save_movie(time_dilation=50, interpolation='linear', framerate=10,
+# brain.save_movie(time_dilation=1, interpolation='linear', framerate=12,
 #                  time_viewer=True)

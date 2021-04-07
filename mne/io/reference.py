@@ -16,7 +16,7 @@ from .base import BaseRaw
 from ..evoked import Evoked
 from ..epochs import BaseEpochs
 from ..utils import (logger, warn, verbose, _validate_type, _check_preload,
-                     _check_option)
+                     _check_option, fill_doc)
 from ..defaults import DEFAULTS
 
 
@@ -139,6 +139,7 @@ def _apply_reference(inst, ref_from, ref_to=None, forward=None,
     return inst, ref_data
 
 
+@fill_doc
 def add_reference_channels(inst, ref_channels, copy=True):
     """Add reference channels to data that consists of all zeros.
 
@@ -150,10 +151,7 @@ def add_reference_channels(inst, ref_channels, copy=True):
     ----------
     inst : instance of Raw | Epochs | Evoked
         Instance of Raw or Epochs with EEG channels and reference channel(s).
-    ref_channels : str | list of str
-        Name of the electrode(s) which served as the reference in the
-        recording. If a name is provided, a corresponding channel is added
-        and its data is set to 0. This is useful for later re-referencing.
+    %(ref_channels)s
     copy : bool
         Specifies whether the data will be copied (True) or modified in-place
         (False). Defaults to True.

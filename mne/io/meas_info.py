@@ -732,7 +732,7 @@ class Info(dict, MontageMixin):
                     self['meas_date'].tzinfo is None or
                     self['meas_date'].tzinfo is not datetime.timezone.utc):
                 raise RuntimeError('%sinfo["meas_date"] must be a datetime '
-                                   'object in UTC or None, got "%r"'
+                                   'object in UTC or None, got %r'
                                    % (prepend_error, repr(self['meas_date']),))
 
         chs = [ch['ch_name'] for ch in self['chs']]
@@ -836,8 +836,10 @@ class Info(dict, MontageMixin):
         return self['ch_names']
 
     def _repr_html_(self, caption=None):
-        if not isinstance(caption, str):
-            caption = 'Info'
+        if isinstance(caption, str):
+            html = f'<h4>{caption}</h4>'
+        else:
+            html = ''
         n_eeg = len(pick_types(self, meg=False, eeg=True))
         n_grad = len(pick_types(self, meg='grad'))
         n_mag = len(pick_types(self, meg='mag'))
@@ -853,11 +855,12 @@ class Info(dict, MontageMixin):
             ecg = 'Not available'
         meas_date = self['meas_date']
         if meas_date is not None:
-            meas_date = meas_date.strftime("%B %d, %Y") + ' GMT'
+            meas_date = meas_date.strftime("%B %d, %Y  %H:%M:%S") + ' GMT'
 
-        return info_template.substitute(
+        html += info_template.substitute(
             caption=caption, info=self, meas_date=meas_date, n_eeg=n_eeg,
             n_grad=n_grad, n_mag=n_mag, eog=eog, ecg=ecg)
+        return html
 
 
 def _simplify_info(info):
@@ -2231,6 +2234,7 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
                                          tzinfo=datetime.timezone.utc)
     default_str = "mne_anonymize"
     default_subject_id = 0
+    default_sex = 0
     default_desc = ("Anonymized using a time shift"
                     " to preserve age at acquisition")
 
@@ -2277,14 +2281,15 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
         if subject_info.get('id') is not None:
             subject_info['id'] = default_subject_id
         if keep_his:
-            logger.info('Not fully anonymizing info - keeping \'his_id\'')
+            logger.info('Not fully anonymizing info - keeping '
+                        'his_id, sex, and hand info')
         else:
             if subject_info.get('his_id') is not None:
                 subject_info['his_id'] = str(default_subject_id)
             if subject_info.get('sex') is not None:
-                subject_info['sex'] = default_str
+                subject_info['sex'] = default_sex
             if subject_info.get('hand') is not None:
-                subject_info['hand'] = default_str
+                del subject_info['hand']  # there's no "unknown" setting
 
         for key in ('last_name', 'first_name', 'middle_name'):
             if subject_info.get(key) is not None:

@@ -2072,6 +2072,7 @@ class Report(object):
         html = image_template.substitute(
             img=img, id=global_id, div_klass='epochs', img_klass='epochs',
             caption=caption, show=show, image_format=image_format)
+        html += epochs._repr_html_()
         return html
 
     def _render_cov(self, cov_fname, info_fname, image_format, data_path,

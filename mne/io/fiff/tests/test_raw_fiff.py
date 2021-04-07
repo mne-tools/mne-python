@@ -11,6 +11,7 @@ import os
 import os.path as op
 import pathlib
 import pickle
+import shutil
 import sys
 
 import numpy as np
@@ -28,7 +29,7 @@ from mne import (concatenate_events, find_events, equalize_channels,
                  compute_proj_raw, pick_types, pick_channels, create_info,
                  pick_info)
 from mne.utils import (requires_pandas, assert_object_equal, _dt_to_stamp,
-                       requires_mne, run_subprocess, run_tests_if_main,
+                       requires_mne, run_subprocess,
                        assert_and_remove_boundary_annot)
 from mne.annotations import Annotations
 
@@ -1361,12 +1362,16 @@ def test_add_channels():
 @testing.requires_testing_data
 def test_save(tmpdir):
     """Test saving raw."""
-    raw = read_raw_fif(fif_fname, preload=False)
+    temp_fname = tmpdir.join('test_raw.fif')
+    shutil.copyfile(fif_fname, temp_fname)
+    raw = read_raw_fif(temp_fname, preload=False)
     # can't write over file being read
-    pytest.raises(ValueError, raw.save, fif_fname)
-    raw = read_raw_fif(fif_fname, preload=True)
+    with pytest.raises(ValueError, match='to the same file'):
+        raw.save(temp_fname)
+    raw.load_data()
     # can't overwrite file without overwrite=True
-    pytest.raises(IOError, raw.save, fif_fname)
+    with pytest.raises(IOError, match='file exists'):
+        raw.save(fif_fname)
 
     # test abspath support and annotations
     orig_time = _dt_to_stamp(raw.info['meas_date'])[0] + raw._first_time
@@ -1720,4 +1725,22 @@ def test_bad_acq(fname):
             assert tag == ent
 
 
-run_tests_if_main()
+@pytest.mark.skipif(sys.platform not in ('darwin', 'linux'),
+                    reason='Needs proper symlinking')
+def test_split_symlink(tmpdir):
+    """Test split files with symlinks."""
+    # regression test for gh-9221
+    first = str(tmpdir.mkdir('first').join('test_raw.fif'))
+    raw = read_raw_fif(fif_fname).pick('meg').load_data()
+    raw.save(first, buffer_size_sec=1, split_size='10MB', verbose=True)
+    second = first[:-4] + '-1.fif'
+    assert op.isfile(second)
+    assert not op.isfile(first[:-4] + '-2.fif')
+    new_first = tmpdir.mkdir('a').join('test_raw.fif')
+    new_second = tmpdir.mkdir('b').join('test_raw-1.fif')
+    shutil.move(first, new_first)
+    shutil.move(second, new_second)
+    os.symlink(new_first, first)
+    os.symlink(new_second, second)
+    raw_new = read_raw_fif(first)
+    assert_allclose(raw_new.get_data(), raw.get_data())

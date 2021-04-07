@@ -1072,13 +1072,35 @@ class UpdateChannelsMixin(object):
             assert all(len(r) == self.info['nchan'] for r in self._read_picks)
         return self
 
+    @fill_doc
+    def add_reference_channels(self, ref_channels):
+        """Add reference channels to data that consists of all zeros.
+
+        Adds reference channels to data that were not included during
+        recording. This is useful when you need to re-reference your data
+        to different channels. These added channels will consist of all zeros.
+
+        Parameters
+        ----------
+        %(ref_channels)s
+
+        Returns
+        -------
+        inst : instance of Raw | Epochs | Evoked
+               The modified instance.
+        """
+        from ..io.reference import add_reference_channels
+
+        return add_reference_channels(self, ref_channels, copy=False)
+
 
 class InterpolationMixin(object):
     """Mixin class for Raw, Evoked, Epochs."""
 
     @verbose
     def interpolate_bads(self, reset_bads=True, mode='accurate',
-                         origin='auto', method=None, verbose=None):
+                         origin='auto', method=None, exclude=(),
+                         verbose=None):
         """Interpolate bad MEG and EEG channels.
 
         Operates in place.
@@ -1113,6 +1135,9 @@ class InterpolationMixin(object):
                 method=dict(meg="MNE", eeg="spline", fnirs="nearest")
 
             .. versionadded:: 0.21
+        exclude : list | tuple
+            The channels to exclude from interpolation. If excluded a bad
+            channel will stay in bads.
         %(verbose_meth)s
 
         Returns
@@ -1142,15 +1167,17 @@ class InterpolationMixin(object):
         logger.info('Interpolating bad channels')
         origin = _check_origin(origin, self.info)
         if method['eeg'] == 'spline':
-            _interpolate_bads_eeg(self, origin=origin)
+            _interpolate_bads_eeg(self, origin=origin, exclude=exclude)
             eeg_mne = False
         else:
             eeg_mne = True
-        _interpolate_bads_meeg(self, mode=mode, origin=origin, eeg=eeg_mne)
-        _interpolate_bads_nirs(self)
+        _interpolate_bads_meeg(self, mode=mode, origin=origin, eeg=eeg_mne,
+                               exclude=exclude)
+        _interpolate_bads_nirs(self, exclude=exclude)
 
         if reset_bads is True:
-            self.info['bads'] = []
+            self.info['bads'] = \
+                [ch for ch in self.info['bads'] if ch in exclude]
 
         return self
 

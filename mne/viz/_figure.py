@@ -45,7 +45,8 @@ from collections import OrderedDict
 import numpy as np
 from matplotlib.figure import Figure
 from .epochs import plot_epochs_image
-from .ica import _create_properties_layout
+from .ica import (_create_properties_layout, _fast_plot_ica_properties,
+                  _prepare_data_ica_properties)
 from .utils import (plt_show, plot_sensors, _setup_plot_projector, _events_off,
                     _set_window_title, _merge_annotations, DraggableLine,
                     _get_color_list, logger, _validate_if_list_of_axes,
@@ -871,7 +872,13 @@ class MNEBrowseFigure(MNEFigure):
         fig = self._new_child_figure(figsize=(7, 6), fig_name=None,
                                      window_title=f'{ch_name} properties')
         fig, axes = _create_properties_layout(fig=fig)
-        self.mne.ica.plot_properties(self.mne.ica_inst, picks=pick, axes=axes)
+        if not hasattr(self.mne, 'data_ica_properties'):
+            # Precompute epoch sources only once
+            self.mne.data_ica_properties = _prepare_data_ica_properties(
+                self.mne.ica_inst, self.mne.ica)
+        _fast_plot_ica_properties(
+            self.mne.ica, self.mne.ica_inst, picks=pick, axes=axes,
+            precomputed_data=self.mne.data_ica_properties)
 
     def _create_epoch_image_fig(self, pick):
         """Show epochs image for the selected channel."""
@@ -2268,6 +2275,7 @@ def _browse_figure(inst, **kwargs):
     # initialize zen mode (can't do in __init__ due to get_position() calls)
     fig.canvas.draw()
     fig._update_zen_mode_offsets()
+    fig._resize(None)  # needed for MPL >=3.4
     # if scrollbars are supposed to start hidden, set to True and then toggle
     if not fig.mne.scrollbars_visible:
         fig.mne.scrollbars_visible = True
