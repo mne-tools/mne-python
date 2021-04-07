@@ -169,7 +169,7 @@ Enhancements
 
 - Add :func:`mne.preprocessing.equalize_bads` to interpolate bad channels in a list of `~mne.Evoked`, `~mne.Epochs` or `~mne.io.Raw` having different sets of bad channels (:gh:`9241` by `Alex Gramfort`_)
 
-- :meth:`mne.Epochs.equalize_event_counts` can now be called without providing a list of event names, and will euqlize the counts of **all** event types present in the `~mne.Epochs` (:gh:`9261` by `Richard Höchenberger`_)
+- :meth:`mne.Epochs.equalize_event_counts` can now be called without providing a list of event names, and will equalize the counts of **all** event types present in the `~mne.Epochs` (:gh:`9261` by `Richard Höchenberger`_)
 
 Bugs
 ~~~~

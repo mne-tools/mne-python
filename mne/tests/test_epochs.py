@@ -1918,8 +1918,7 @@ def test_epoch_eq():
     epochs = Epochs(raw, events, {'a': 1, 'b': 2, 'c': 3, 'd': 4},
                     tmin, tmax, picks=picks, reject=reject)
     epochs_1, _ = epochs.copy().equalize_event_counts()
-    epochs_2, _ = (epochs.copy()
-                   .equalize_event_counts(list(epochs.event_id.keys())))
+    epochs_2, _ = epochs.copy().equalize_event_counts(list(epochs.event_id))
     assert_array_equal(epochs_1.events, epochs_2.events)
 
     # test invalid values of event_ids

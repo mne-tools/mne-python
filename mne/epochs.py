@@ -1890,7 +1890,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                             f'received a string: {event_ids}')
 
         if event_ids is None:
-            event_ids = list(self.event_id.keys())
+            event_ids = list(self.event_id)
         elif not event_ids:
             raise ValueError('event_ids must have at least one element')
 
