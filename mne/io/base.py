@@ -53,6 +53,7 @@ from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo, _RAW_CLIP_DEF
 from ..event import find_events, concatenate_events
 from ..annotations import Annotations, _combine_annotations, _sync_onset
 
+
 class TimeMixin(object):
     """Class to add sfreq and time_as_index capabilities to certain classes."""
 
