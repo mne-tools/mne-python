@@ -61,7 +61,8 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
 
         .. versionadded:: 0.21
     %(verbose)s
-    real_ori : make tests happy for now
+    real_ori : 'svd' | bool
+        make tests happy for now
 
     Returns
     -------

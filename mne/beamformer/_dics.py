@@ -80,7 +80,8 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
         .. versionchanged:: 0.21
            Default changed to ``'matrix'``.
     %(verbose)s
-    real_ori : make tests happy for now
+    real_ori : 'svd' | bool
+        make tests happy for now
 
     Returns
     -------
