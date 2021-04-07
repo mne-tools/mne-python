@@ -719,7 +719,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         is_nirs = len(set.intersection(types_used, nirs_types)) > 0
         if is_meg:
             types_used = list(types_used)
-            # Fix issue where ylimits get swapped
+            # XXX: Fix issue where ylimits get swapped
             if types_used[0] == 'grad':
                 types_used = list(types_used)[::-1]
             picks = [pick_types(info, meg=kk, ref_meg=False, exclude=[])
