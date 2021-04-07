@@ -1810,7 +1810,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             this_epochs.event_id = self.event_id
             _save_split(this_epochs, fname, part_idx, n_parts, fmt)
 
-    def equalize_event_counts(self, event_ids, method='mintime'):
+    def equalize_event_counts(self, event_ids=None, method='mintime'):
         """Equalize the number of trials in each condition.
 
         It tries to make the remaining epochs occurring as close as possible in
@@ -1819,52 +1819,76 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         during a recording, they could be compensated for (to some extent) in
         the equalization process. This method thus seeks to reduce any of
         those effects by minimizing the differences in the times of the events
-        in the two sets of epochs. For example, if one had event times
-        [1, 2, 3, 4, 120, 121] and the other one had [3.5, 4.5, 120.5, 121.5],
-        it would remove events at times [1, 2] in the first epochs and not
-        [120, 121].
+        within a `~mne.Epochs` instance. For example, if one event type
+        occurred at time points ``[1, 2, 3, 4, 120, 121]`` and the another one
+        at ``[3.5, 4.5, 120.5, 121.5]``, this method would remove the events at
+        times ``[1, 2]`` for the first event type – and not the events at times
+        ``[120, 121]``.
 
         Parameters
         ----------
-        event_ids : list
-            The event types to equalize. Each entry in the list can either be
-            a str (single event) or a list of str. In the case where one of
-            the entries is a list of str, event_ids in that list will be
-            grouped together before equalizing trial counts across conditions.
-            In the case where partial matching is used (using '/' in
-            ``event_ids``), ``event_ids`` will be matched according to the
-            provided tags, that is, processing works as if the event_ids
+        event_ids : None | list | dict
+            The event types to equalize.
+
+            If ``None`` (default), equalize the counts of **all** event types
+            present in the `~mne.Epochs` instance.
+
+            If a list, each element can either be a string (event name) or a
+            list of strings. In the case where one of the entries is a list of
+            strings, event types in that list will be grouped together before
+            equalizing trial counts across conditions.
+
+            If a dictionary, the keys are considered as the event names whose
+            counts to equalize, i.e., passing ``dict(A=1, B=2)`` will have the
+            same effect as passing ``['A', 'B']``. This is useful if you intend
+            to pass an ``event_id`` dictionary that was used when creating
+            `~mne.Epochs`.
+
+            In the case where partial matching is used (using ``/`` in
+            the event names), the event types will be matched according to the
+            provided tags, that is, processing works as if the ``event_ids``
             matched by the provided tags had been supplied instead.
-            The event_ids must identify nonoverlapping subsets of the epochs.
+            The ``event_ids`` must identify non-overlapping subsets of the
+            epochs.
         method : str
-            If 'truncate', events will be truncated from the end of each event
-            list. If 'mintime', timing differences between each event list
-            will be minimized.
+            If ``'truncate'``, events will be truncated from the end of each
+            type of events. If ``'mintime'``, timing differences between each
+            event type will be minimized.
 
         Returns
         -------
         epochs : instance of Epochs
-            The modified Epochs instance.
+            The modified instance. It is modified in-place.
         indices : array of int
             Indices from the original events list that were dropped.
 
         Notes
         -----
-        For example (if epochs.event_id was {'Left': 1, 'Right': 2,
-        'Nonspatial':3}:
+        For example (if ``epochs.event_id`` was ``{'Left': 1, 'Right': 2,
+        'Nonspatial':3}``:
 
             epochs.equalize_event_counts([['Left', 'Right'], 'Nonspatial'])
 
-        would equalize the number of trials in the 'Nonspatial' condition with
-        the total number of trials in the 'Left' and 'Right' conditions.
+        would equalize the number of trials in the ``'Nonspatial'`` condition
+        with the total number of trials in the ``'Left'`` and ``'Right'``
+        conditions combined.
 
-        If multiple indices are provided (e.g. 'Left' and 'Right' in the
-        example above), it is not guaranteed that after equalization, the
-        conditions will contribute evenly. E.g., it is possible to end up
-        with 70 'Nonspatial' trials, 69 'Left' and 1 'Right'.
+        If multiple indices are provided (e.g. ``'Left'`` and ``'Right'`` in
+        the example above), it is not guaranteed that after equalization the
+        conditions will contribute equally. E.g., it is possible to end up
+        with 70 ``'Nonspatial'`` epochs, 69 ``'Left'`` and 1 ``'Right'``.
+
+        .. versionchanged:: 0.23
+            Default to equalizing all events in the passed instance if no
+            event names were specified explicitly.
         """
-        if len(event_ids) == 0:
+        _validate_type(event_ids, types=(list, dict, None),
+                       item_name='event_ids')
+        if event_ids is None:
+            event_ids = list(self.event_id.keys())
+        elif not event_ids:
             raise ValueError('event_ids must have at least one element')
+
         if not self._bad_dropped:
             self.drop_bad()
         # figure out how to equalize
