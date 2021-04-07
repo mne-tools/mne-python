@@ -2,11 +2,14 @@
 """
 .. _tut-fixed-length-epochs:
 
-Creating epochs of equal length
-===============================
+Divide continuous data into consecutive epochs
+==============================================
 
-This tutorial shows how to create equal length epochs and briefly demonstrates
-an example of their use in connectivity analysis.
+This tutorial shows how to segment continuous data into a set of consecutive
+epochs of equal length. The epochs will not be created based on experimental
+events; instead, the continuous data will be "chunked" into consecutive epochs.
+We will also briefly demonstrate how to use these epochs in connectivity
+analysis.
 
 First, we import necessary modules and read in a sample raw data set.
 This data set contains brain activity that is event-related, i.e.,
