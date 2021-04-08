@@ -1,5 +1,7 @@
 import os.path as op
 
+import pytest
+
 from mne import Annotations
 from mne.io import read_raw_fif
 from mne.preprocessing.eog import find_eog_events
@@ -10,7 +12,11 @@ event_fname = op.join(data_path, 'test-eve.fif')
 proj_fname = op.join(data_path, 'test-proj.fif')
 
 
-def test_find_eog():
+@pytest.mark.parametrize('ch_name', (None,
+                                     'EOG 061',
+                                     'EEG 060,EOG 061',
+                                     ['EEG 060', 'EOG 061']))
+def test_find_eog(ch_name):
     """Test find EOG peaks."""
     raw = read_raw_fif(raw_fname)
     raw.set_annotations(Annotations([14, 21], [1, 1], 'BAD_blink'))

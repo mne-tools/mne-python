@@ -175,6 +175,8 @@ Enhancements
 
 - :meth:`mne.Epochs.equalize_event_counts` can now be called without providing a list of event names, and will equalize the counts of **all** event types present in the `~mne.Epochs` (:gh:`9261` by `Richard Höchenberger`_)
 
+- :func:`mne.preprocessing.find_eog_events` and :func:`mne.preprocessing.create_eog_epochs` now accept a list of channel names, allowing you to specify multiple EOG channels at once (:gh:`9269` by `Richard Höchenberger`_)
+
 Bugs
 ~~~~
 - Fix bug with :func:`mne.io.read_raw_edf` where µV was not correctly recognized (:gh:`9187` **by new contributor** |Sumalyo Datta|_)
