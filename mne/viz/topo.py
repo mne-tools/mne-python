@@ -717,9 +717,9 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         types_used = list(filter(lambda x: x != 'ref_meg', types_used))
         # one check for all vendors
         meg_types = ['mag', 'grad']
-        is_meg = len(list(filter(lambda x: x in meg_types,types_used))) > 0
+        is_meg = len(list(filter(lambda x: x in meg_types, types_used))) > 0
         nirs_types = ['hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_od']
-        is_nirs = len(list(filter(lambda x: x in nirs_types,types_used))) > 0
+        is_nirs = len(list(filter(lambda x: x in nirs_types, types_used))) > 0
         if is_meg:
             # Fix issue where ylimits get swapped
             if types_used[0] == 'grad':
