@@ -99,6 +99,8 @@ Enhancements
 
 - Add digitizer information to :func:`mne.io.read_raw_egi` (:gh:`8789` by `Christian Brodbeck`_)
 
+- Add support for reading some incomplete raw FIF files in :func:`mne.io.read_raw_fif` (:gh:`9268` by `Eric Larson`_)
+
 - Allow reading digitization from files other than ``*.fif`` in the coregistration GUI (:gh:`8790` by `Christian Brodbeck`_)
 
 - Speed up :func:`mne.inverse_sparse.tf_mixed_norm` using STFT/ISTFT linearity (:gh:`8697` by `Eric Larson`_)
