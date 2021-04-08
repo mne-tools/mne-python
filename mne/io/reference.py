@@ -98,16 +98,18 @@ def _check_before_reference(inst, ref_from, ref_to, ch_type):
 
     # If the reference touches EEG/ECoG/sEEG/DBS electrodes, note in the
     # info that a non-CAR has been applied.
-    ref_to = pick_channels(inst.ch_names, ref_to, ordered=True)
-    if len(np.intersect1d(ref_to, eeg_idx)) > 0:
+    ref_to_channels = pick_channels(inst.ch_names, ref_to, ordered=True)
+    if len(np.intersect1d(ref_to_channels, eeg_idx)) > 0:
         inst.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
+
+    return ref_to
 
 
 def _apply_reference(inst, ref_from, ref_to=None, forward=None,
                      ch_type='auto'):
     """Apply a custom EEG referencing scheme."""
     from scipy import linalg
-    _check_before_reference(inst, ref_from, ref_to, ch_type)
+    ref_to = _check_before_reference(inst, ref_from, ref_to, ch_type)
 
     # Compute reference
     if len(ref_from) > 0:
@@ -494,8 +496,8 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
     if copy:
         inst = inst.copy()
 
-    _check_before_reference(inst, ref_from=cathode, ref_to=anode,
-                            ch_type='auto')
+    anode = _check_before_reference(inst, ref_from=cathode,
+                                    ref_to=anode, ch_type='auto')
 
     # Create bipolar reference channels by multiplying the data (channels x
     # time) with a matrix n_virtual_channels x channels
