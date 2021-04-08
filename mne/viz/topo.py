@@ -720,11 +720,11 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         is_nirs = len([x for x in types_used if x in
                       ['hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_od']]) > 0
         if is_meg:
-            types_used = list(types_used)[::-1] # -> restore kwarg order
+            types_used = list(types_used)[::-1]  # -> restore kwarg order
             picks = [pick_types(info, meg=kk, ref_meg=False, exclude=[])
                      for kk in types_used]
         elif is_nirs:
-            types_used = list(types_used)[::-1] # -> restore kwarg order
+            types_used = list(types_used)[::-1]  # -> restore kwarg order
             picks = [pick_types(info, fnirs=kk, ref_meg=False, exclude=[])
                      for kk in types_used]
         else:
