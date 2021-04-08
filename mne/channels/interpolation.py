@@ -123,7 +123,9 @@ def _do_interp_dots(inst, interpolation, goods_idx, bads_idx):
 
 
 @verbose
-def _interpolate_bads_eeg(inst, origin, exclude, verbose=None):
+def _interpolate_bads_eeg(inst, origin, exclude=None, verbose=None):
+    if exclude is None:
+        exclude = list()
     bads_idx = np.zeros(len(inst.ch_names), dtype=bool)
     goods_idx = np.zeros(len(inst.ch_names), dtype=bool)
 
