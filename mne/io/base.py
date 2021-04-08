@@ -1464,7 +1464,29 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         For more details see pyeeglab.utils._cart_to_eeglab_full_coords
         """
         from eeglabio.raw import export_set
-        export_set(self, fname)
+        # load data first
+        self.load_data()
+
+        # remove extra epoc and STI channels
+        chs_drop = [ch for ch in ['epoc'] if ch in self.ch_names]
+        if 'STI 014' in self.ch_names and \
+                not (self.filenames[0].endswith('.fif')):
+            chs_drop.append('STI 014')
+        self.drop_channels(chs_drop)
+
+        chs = self.info["chs"]
+        cart_coords = np.array([d['loc'][:3] for d in chs])
+        if cart_coords.any(): # has coordinates
+            # (-y x z) to (x y z)
+            cart_coords[:, 0] = -cart_coords[:, 0]  # -y to y
+            cart_coords[:, [0, 1]] = cart_coords[:, [1, 0]]  # swap x (1) and y (0)
+        else:
+            cart_coords = None
+
+        annotations = [self.annotations.description, self.annotations.onset,
+                       self.annotations.duration]
+        export_set(fname, self.get_data(), self.info['sfreq'],
+                   self.ch_names, cart_coords, annotations)
 
     def _tmin_tmax_to_start_stop(self, tmin, tmax):
         start = int(np.floor(tmin * self.info['sfreq']))

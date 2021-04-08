@@ -1824,7 +1824,26 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         For more details see .io.utils.cart_to_eeglab_full_coords
         """
         from eeglabio.epochs import export_set
-        export_set(self, fname)
+        # load data first
+        self.load_data()
+
+        # remove extra epoc and STI channels
+        chs_drop = [ch for ch in ['epoc', 'STI 014'] if ch in self.ch_names]
+        self.drop_channels(chs_drop)
+
+        chs = self.info["chs"]
+        cart_coords = np.array([d['loc'][:3] for d in chs])
+        if cart_coords.any():  # has coordinates
+            # (-y x z) to (x y z)
+            cart_coords[:, 0] = -cart_coords[:, 0]  # -y to y
+            cart_coords[:, [0, 1]] = cart_coords[:,
+                                     [1, 0]]  # swap x (1) and y (0)
+        else:
+            cart_coords = None
+
+        export_set(fname, self.get_data(), self.info['sfreq'], self.events,
+                   self.tmin, self.tmax, self.ch_names, self.event_id,
+                   cart_coords)
 
     def equalize_event_counts(self, event_ids, method='mintime'):
         """Equalize the number of trials in each condition.
