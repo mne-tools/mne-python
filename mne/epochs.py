@@ -1836,15 +1836,14 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         if cart_coords.any():  # has coordinates
             # (-y x z) to (x y z)
             cart_coords[:, 0] = -cart_coords[:, 0]  # -y to y
-            cart_coords[:, [0, 1]] = cart_coords[:,
-                                     [1, 0]]  # swap x (1) and y (0)
+            # swap x (1) and y (0)
+            cart_coords[:, [0, 1]] = cart_coords[:, [1, 0]]
         else:
             cart_coords = None
 
         export_set(fname, self.get_data(), self.info['sfreq'], self.events,
                    self.tmin, self.tmax, self.ch_names, self.event_id,
                    cart_coords)
-
 
     def equalize_event_counts(self, event_ids=None, method='mintime'):
         """Equalize the number of trials in each condition.

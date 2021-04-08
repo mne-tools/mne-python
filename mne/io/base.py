@@ -1476,10 +1476,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         chs = self.info["chs"]
         cart_coords = np.array([d['loc'][:3] for d in chs])
-        if cart_coords.any(): # has coordinates
+        if cart_coords.any():  # has coordinates
             # (-y x z) to (x y z)
             cart_coords[:, 0] = -cart_coords[:, 0]  # -y to y
-            cart_coords[:, [0, 1]] = cart_coords[:, [1, 0]]  # swap x (1) and y (0)
+            # swap x (1) and y (0)
+            cart_coords[:, [0, 1]] = cart_coords[:, [1, 0]]
         else:
             cart_coords = None
 
