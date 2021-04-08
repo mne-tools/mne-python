@@ -476,23 +476,6 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
         raise ValueError('Number of channel info dictionaries must equal the '
                          'number of anodes/cathodes.')
 
-    # Merge specified and anode channel information dictionaries
-    new_chs = []
-    for ci, (an, ca, name, ch) \
-            in enumerate(zip(anode, cathode, ch_name, ch_info)):
-        _check_ch_keys(ch, ci, name='ch_info', check_min=False)
-        an_idx = inst.ch_names.index(an)
-        ca_idx = inst.ch_names.index(ca)
-        this_chs = deepcopy(inst.info['chs'][an_idx])
-        this_chs['ch_name'] = name
-
-        # Set channel location to cathode location and coil type
-        this_chs['loc'] = inst.info['chs'][ca_idx]['loc'].copy()
-        this_chs['coil_type'] = FIFF.FIFFV_COIL_EEG_BIPOLAR
-
-        this_chs.update(ch)
-        new_chs.append(this_chs)
-
     if copy:
         inst = inst.copy()
 
@@ -507,20 +490,40 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
         multiplier[idx, inst.ch_names.index(a)] = 1
         multiplier[idx, inst.ch_names.index(c)] = -1
 
+    # Create new instances (create each from single channel to allow same
+    # channel in anode multiple times)
+    ref_inst = None
+    for ch_idx, (an, ca, name, info) in enumerate(zip(anode, cathode,
+                                                      ch_name, ch_info)):
+        _check_ch_keys(info, ch_idx, name='ch_info', check_min=False)
+        ca_idx = inst.ch_names.index(ca)
+
+        # Merge specified and anode channel information dictionaries
+        add_inst = inst.copy().pick(an)
+        add_inst.rename_channels({an: name})
+        # Use location of cathode
+        add_inst.info['chs'][0]['loc'] = inst.info['chs'][ca_idx][
+            'loc'].copy()
+        add_inst.info['chs'][0]['coil_type'] = FIFF.FIFFV_COIL_EEG_BIPOLAR
+        add_inst.info['chs'][0].update(info)
+
+        if ref_inst is not None:
+            ref_inst.add_channels([add_inst], force_update_info=True)
+        else:
+            ref_inst = add_inst
+
     if isinstance(inst, BaseEpochs):
-        ref_data = [multiplier.dot(ep) for ep in inst._data]
-        inst._data = np.append(inst._data, ref_data, axis=1)
+        ref_inst._data = np.asarray([multiplier.dot(ep) for ep in inst._data])
     else:
-        ref_data = multiplier.dot(inst._data)
-        inst._data = np.append(inst._data, ref_data, axis=0)
+        ref_inst._data = multiplier.dot(inst._data)
 
-    inst.info['chs'] += new_chs
-    inst.info._update_redundant()
+    inst.add_channels([ref_inst], force_update_info=True)
+
     added_channels = '\n'.join([name for name in ch_name])
-    logger.info(f'The following bipolar channels were added:\n{added_channels}')
+    logger.info(f'Added the following bipolar channels:\n{added_channels}')
 
-    if getattr(inst, 'picks', None) is not None:
-        del inst.picks  # picks cannot be tracked anymore
+    for attr_name in ['picks', '_projector']:
+        setattr(inst, attr_name, None)
 
     # Drop remaining channels.
     if drop_refs:
