@@ -68,8 +68,8 @@ def sliding_window(data, window, step=1, padded=False, axis=-1, copy=True):
 
 def fit_eeg_distribution(X, min_clean_fraction=0.25, max_dropout_fraction=0.1,
                          fit_quantiles=[0.022, 0.6],
-                         step_sizes=[0.0220, 0.6000],
-                         shape_range=np.linspace(1.7, 3.5, 13)):
+                         step_sizes=[0.01, 0.01],
+                         shape_range=np.arange(1.7, 3.5, 0.15)):
     """Estimate the mean and SD of clean EEG from contaminated data.
     This function estimates the mean and standard deviation of clean EEG from a
     sample of amplitude values (that have preferably been computed over short
@@ -519,16 +519,13 @@ def block_covariance(data, window=128, overlap=0.5, padding=True,
     n_ch, n_times = data.shape
     U = np.zeros([len(np.arange(0, n_times-1, window)), n_ch**2])
     data = data.T
-    print(window)
     for k in range(0, window):
         idx_range = np.minimum(n_times-1, np.arange(k, n_times + k - 2, window))
         #idx_range = n_times-1 if n_times-1 < np.max(idx_range) else idx_range
         U = U + np.reshape(data[idx_range].reshape([-1, 1, n_ch]) * data[idx_range].reshape(-1, n_ch, 1), U.shape)
-        print(U[:3, :3])
 
     #"""
     cov = U
-    print("U after sample covariance matrices generation: ", cov[:3, :3]) #np.array(cov).reshape((-1, n_chans * n_chans))[:3, :3])
 
     return np.array(cov)
 
