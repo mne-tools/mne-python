@@ -47,11 +47,9 @@ def _copy_channel(inst, ch_name, new_ch_name):
     return inst
 
 
-def _apply_reference(inst, ref_from, ref_to=None, forward=None,
-                     ch_type='auto'):
-    """Apply a custom EEG referencing scheme."""
+def _check_before_reference(inst, ref_from, ref_to, ch_type):
+    """Prepare instance for referencing"""
     # Check to see that data is preloaded
-    from scipy import linalg
     _check_preload(inst, "Applying a reference")
 
     ch_type = _get_ch_type(inst, ch_type)
@@ -98,6 +96,19 @@ def _apply_reference(inst, ref_from, ref_to=None, forward=None,
     inst._projector, _ = \
         setup_proj(inst.info, add_eeg_ref=False, activate=False)
 
+    # If the reference touches EEG/ECoG/sEEG/DBS electrodes, note in the
+    # info that a non-CAR has been applied.
+    ref_to = pick_channels(inst.ch_names, ref_to, ordered=True)
+    if len(np.intersect1d(ref_to, eeg_idx)) > 0:
+        inst.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
+
+
+def _apply_reference(inst, ref_from, ref_to=None, forward=None,
+                     ch_type='auto'):
+    """Apply a custom EEG referencing scheme."""
+    from scipy import linalg
+    _check_before_reference(inst, ref_from, ref_to, ch_type)
+
     # Compute reference
     if len(ref_from) > 0:
         # this is guaranteed below, but we should avoid the crazy pick_channels
@@ -113,10 +124,6 @@ def _apply_reference(inst, ref_from, ref_to=None, forward=None,
         data[..., ref_to, :] -= ref_data
         ref_data = ref_data[..., 0, :]
 
-        # If the reference touches EEG/ECoG/sEEG/DBS electrodes, note in the
-        # info that a non-CAR has been applied.
-        if len(np.intersect1d(ref_to, eeg_idx)) > 0:
-            inst.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
         # REST
         if forward is not None:
             # use ch_sel and the given forward
@@ -444,7 +451,7 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
                          'of cathodes (got %d).' % (len(anode), len(cathode)))
 
     if ch_name is None:
-        ch_name = ['%s-%s' % ac for ac in zip(anode, cathode)]
+        ch_name = [f'{a}-{c}' for (a, c) in zip(anode, cathode)]
     elif not isinstance(ch_name, list):
         ch_name = [ch_name]
     if len(ch_name) != len(anode):
@@ -469,11 +476,13 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
 
     # Merge specified and anode channel information dictionaries
     new_chs = []
-    for ci, (an, ca, ch) in enumerate(zip(anode, cathode, ch_info)):
+    for ci, (an, ca, name, ch) \
+            in enumerate(zip(anode, cathode, ch_name, ch_info)):
         _check_ch_keys(ch, ci, name='ch_info', check_min=False)
         an_idx = inst.ch_names.index(an)
         ca_idx = inst.ch_names.index(ca)
         this_chs = deepcopy(inst.info['chs'][an_idx])
+        this_chs['ch_name'] = name
 
         # Set channel location to cathode location and coil type
         this_chs['loc'] = inst.info['chs'][ca_idx]['loc'].copy()
@@ -485,19 +494,28 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
     if copy:
         inst = inst.copy()
 
-    for i, (an, ca, name, chs) in enumerate(
-            zip(anode, cathode, ch_name, new_chs)):
-        if an in anode[i + 1:] or an in cathode[i + 1:] or not drop_refs:
-            # Make a copy of the channel if it's still needed later
-            # otherwise it's modified inplace
-            _copy_channel(inst, an, 'TMP')
-            an = 'TMP'
-        _apply_reference(inst, [ca], [an])  # ensures preloaded
-        an_idx = inst.ch_names.index(an)
-        inst.info['chs'][an_idx] = chs
-        inst.info['chs'][an_idx]['ch_name'] = name
-        logger.info('Bipolar channel added as "%s".' % name)
-        inst.info._update_redundant()
+    _check_before_reference(inst, ref_from=cathode, ref_to=anode,
+                            ch_type='auto')
+
+    # Create bipolar reference channels by multiplying the data (channels x
+    # time) with a matrix n_virtual_channels x channels
+    # and add them to the instance
+    multiplier = np.zeros((len(anode), len(inst.ch_names)))
+    for idx, (a, c) in enumerate(zip(anode, cathode)):
+        multiplier[idx, inst.ch_names.index(a)] = 1
+        multiplier[idx, inst.ch_names.index(c)] = -1
+
+    if isinstance(inst, BaseEpochs):
+        ref_data = [multiplier.dot(ep) for ep in inst._data]
+        inst._data = np.append(inst._data, ref_data, axis=1)
+    else:
+        ref_data = multiplier.dot(inst._data)
+        inst._data = np.append(inst._data, ref_data, axis=0)
+
+    inst.info['chs'] += new_chs
+    inst.info._update_redundant()
+    added_channels = '\n'.join([name for name in ch_name])
+    logger.info(f'The following bipolar channels were added:\n{added_channels}')
 
     if getattr(inst, 'picks', None) is not None:
         del inst.picks  # picks cannot be tracked anymore
