@@ -131,7 +131,7 @@ def _find_eog_events(eog, event_id, l_freq, h_freq, sampling_rate, first_samp,
 
 
 def _get_eog_channel_index(ch_name, inst):
-    """Get EOG channel indeces."""
+    """Get EOG channel indices."""
 
     # Ensure we have a list of channel names
     if isinstance(ch_name, str):
