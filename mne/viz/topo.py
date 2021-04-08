@@ -714,12 +714,12 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         # Using dict conversion to remove duplicates
         types_used = list(dict.fromkeys(types_used))
         # remove possible reference meg channels
-        types_used = list(filter(lambda x: x != 'ref_meg', types_used))
+        types_used = [types_used for types_used in types_used
+                      if types_used != 'ref_meg']
         # one check for all vendors
-        meg_types = ['mag', 'grad']
-        is_meg = len(list(filter(lambda x: x in meg_types, types_used))) > 0
-        nirs_types = ['hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_od']
-        is_nirs = len(list(filter(lambda x: x in nirs_types, types_used))) > 0
+        is_meg = len([x for x in types_used if x in ['mag', 'grad']]) > 0
+        is_nirs = len([x for x in types_used if x in
+                      ['hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_od']]) > 0
         if is_meg:
             # Fix issue where ylimits get swapped
             types_used = list(types_used)[::-1]
