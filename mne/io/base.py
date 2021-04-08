@@ -1483,7 +1483,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             drop_chs = {'epoc'}
             if not (self.filenames[0].endswith('.fif')):
                 drop_chs.add('STI 014')
-            drop_chs = set(drop_chs)
             pick_chs = [ch for ch in self.ch_names if ch not in drop_chs]
 
             chs = self.info["chs"]
