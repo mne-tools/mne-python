@@ -311,6 +311,16 @@ def test_fnirs_channel_naming_and_order_custom_optical_density():
     raw.pick(picks=[0, 3, 1, 4, 2, 5])
     _check_channels_ordered(raw, [760, 850])
 
+    # Check that if you mix types you get an error
+    ch_names = ['S1_D1 hbo', 'S1_D1 hbr', 'S2_D1 hbo', 'S2_D1 hbr',
+                'S3_D1 hbo', 'S3_D1 hbr']
+    ch_types = np.tile(["hbo", "hbr"], 3)
+    info = create_info(ch_names=ch_names, ch_types=ch_types, sfreq=1.0)
+    raw2 = RawArray(data, info, verbose=True)
+    raw.add_channels([raw2])
+    with pytest.raises(ValueError, match='does not support a combination'):
+        _check_channels_ordered(raw, [760, 850])
+
 
 def test_fnirs_channel_naming_and_order_custom_chroma():
     """Ensure fNIRS channel checking on manually created data."""

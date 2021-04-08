@@ -717,14 +717,21 @@ def test_plot_sensors_connectivity(renderer):
     n_channels = len(picks)
     con = np.random.RandomState(42).randn(n_channels, n_channels)
     info = raw.info
-    with pytest.raises(TypeError):
-        plot_sensors_connectivity(info='foo', con=con,
-                                  picks=picks)
-    with pytest.raises(ValueError):
-        plot_sensors_connectivity(info=info, con=con[::2, ::2],
-                                  picks=picks)
+    with pytest.raises(TypeError, match='must be an instance of Info'):
+        plot_sensors_connectivity(info='foo', con=con, picks=picks)
+    with pytest.raises(ValueError, match='does not correspond to the size'):
+        plot_sensors_connectivity(info=info, con=con[::2, ::2], picks=picks)
 
-    plot_sensors_connectivity(info=info, con=con, picks=picks)
+    fig = plot_sensors_connectivity(info=info, con=con, picks=picks)
+    if renderer._get_3d_backend() == 'pyvista':
+        title = fig.plotter.scalar_bar.GetTitle()
+    else:
+        assert renderer._get_3d_backend() == 'mayavi'
+        # the last thing we add is the Tube, so we need to go
+        # vtkDataSource->Stripper->Tube->ModuleManager
+        mod_man = fig.children[-1].children[0].children[0].children[0]
+        title = mod_man.scalar_lut_manager.scalar_bar.title
+    assert title == 'Connectivity'
 
 
 @pytest.mark.parametrize('orientation', ('horizontal', 'vertical'))

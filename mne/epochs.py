@@ -11,6 +11,7 @@
 #
 # License: BSD (3-clause)
 
+from functools import partial
 from collections import Counter
 from copy import deepcopy
 import json
@@ -37,7 +38,7 @@ from .io.proj import setup_proj, ProjMixin, _proj_equal
 from .io.base import BaseRaw, TimeMixin
 from .bem import _check_origin
 from .evoked import EvokedArray, _check_decim
-from .baseline import rescale, _log_rescale
+from .baseline import rescale, _log_rescale, _check_baseline
 from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin)
 from .filter import detrend, FilterMixin, _check_fun
@@ -317,50 +318,34 @@ def _handle_event_repeated(events, event_id, event_repeated, selection,
 class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                  SetChannelsMixin, InterpolationMixin, FilterMixin,
                  TimeMixin, SizeMixin, GetEpochsMixin):
-    """Abstract base class for Epochs-type classes.
+    """Abstract base class for `~mne.Epochs`-type classes.
 
-    This class provides basic functionality and should never be instantiated
-    directly. See Epochs below for an explanation of the parameters.
+    .. warning:: This class provides basic functionality and should never be
+                 instantiated directly.
 
     Parameters
     ----------
     info : dict
-        A copy of the info dict from the raw object.
+        A copy of the `~mne.Info` dictionary from the raw object.
     data : ndarray | None
         If ``None``, data will be read from the Raw object. If ndarray, must be
         of shape (n_epochs, n_channels, n_times).
-    events : array of int, shape (n_events, 3)
-        See `Epochs` docstring.
-    event_id : int | list of int | dict | None
-        See `Epochs` docstring.
-    tmin : float
-        See `Epochs` docstring.
-    tmax : float
-        See `Epochs` docstring.
-    baseline : None | tuple of length 2
-        See `Epochs` docstring.
-    raw : Raw object
-        An instance of Raw.
-    %(picks_header)s
-        See `Epochs` docstring.
+    %(epochs_events_event_id)s
+    %(epochs_tmin_tmax)s
+    %(baseline_epochs)s
+        Defaults to ``(None, 0)``, i.e. beginning of the the data until
+        time point zero.
+    %(epochs_raw)s
+    %(picks_all)s
     %(reject_epochs)s
     %(flat)s
-    decim : int
-        See `Epochs` docstring.
-    reject_tmin : scalar | None
-        See `Epochs` docstring.
-    reject_tmax : scalar | None
-        See `Epochs` docstring.
-    detrend : int | None
-        See `Epochs` docstring.
-    proj : bool | 'delayed'
-        See `Epochs` docstring.
-    on_missing : str
-        See `Epochs` docstring.
+    %(decim)s
+    %(epochs_reject_tmin_tmax)s
+    %(epochs_detrend)s
+    %(proj_epochs)s
+    %(epochs_on_missing)s
     preload_at_end : bool
-        Load all epochs from disk when creating the object
-        or wait before accessing each epoch (more memory
-        efficient but can be slower).
+        %(epochs_preload)s
     selection : iterable | None
         Iterable of indices of selected epochs. If ``None``, will be
         automatically generated, corresponding to all non-zero events.
@@ -369,14 +354,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         be ignored.
     filename : str | None
         The filename (if the epochs are read from disk).
-    metadata : instance of pandas.DataFrame | None
-        See :class:`mne.Epochs` docstring.
-
-        .. versionadded:: 0.16
-    event_repeated : str
-        See :class:`mne.Epochs` docstring.
-
-        .. versionadded:: 0.19
+    %(epochs_metadata)s
+    %(epochs_event_repeated)s
     %(verbose)s
 
     Notes
@@ -1088,8 +1067,12 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                                 comment):
         """Create an evoked object from epoch data."""
         info = deepcopy(info)
+        # don't apply baseline correction; we'll set evoked.baseline manually
         evoked = EvokedArray(data, info, tmin=self.times[0], comment=comment,
-                             nave=n_events, kind=kind, verbose=self.verbose)
+                             nave=n_events, kind=kind, baseline=None,
+                             verbose=self.verbose)
+        evoked.baseline = self.baseline
+
         # XXX: above constructor doesn't recreate the times object precisely
         evoked.times = self.times.copy()
 
@@ -1486,7 +1469,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
     @verbose
     def apply_function(self, fun, picks=None, dtype=None, n_jobs=1,
-                       channel_wise=True, verbose=None, *args, **kwargs):
+                       channel_wise=True, verbose=None, **kwargs):
         """Apply a function to a subset of channels.
 
         %(applyfun_summary_epochs)s
@@ -1497,9 +1480,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         %(picks_all_data_noref)s
         %(applyfun_dtype)s
         %(n_jobs)s
-        %(applyfun_chwise)s
+        %(applyfun_chwise_epo)s
         %(verbose_meth)s
-        %(arg_fun)s
         %(kwarg_fun)s
 
         Returns
@@ -1519,20 +1501,20 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         if channel_wise:
             if n_jobs == 1:
+                _fun = partial(_check_fun, fun, **kwargs)
                 # modify data inplace to save memory
                 for idx in picks:
-                    self._data[:, idx, :] = _check_fun(fun, data_in[:, idx, :],
-                                                       *args, **kwargs)
+                    self._data[:, idx, :] = np.apply_along_axis(
+                        _fun, -1, data_in[:, idx, :])
             else:
                 # use parallel function
                 parallel, p_fun, _ = parallel_func(_check_fun, n_jobs)
                 data_picks_new = parallel(p_fun(
-                    fun, data_in[:, p, :], *args, **kwargs) for p in picks)
+                    fun, data_in[:, p, :], **kwargs) for p in picks)
                 for pp, p in enumerate(picks):
                     self._data[:, p, :] = data_picks_new[pp]
         else:
-            self._data = _check_fun(
-                fun, data_in, *args, **kwargs)
+            self._data = _check_fun(fun, data_in, **kwargs)
 
         return self
 
@@ -1572,8 +1554,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         if self.baseline is None:
             s += 'off'
         else:
-            s += '[%s, %s] sec' % tuple(['None' if b is None else ('%g' % b)
-                                        for b in self.baseline])
+            s += f'{self.baseline[0]:g} – {self.baseline[1]:g} sec'
             if self.baseline != _check_baseline(
                     self.baseline, times=self.times, sfreq=self.info['sfreq'],
                     on_baseline_outside_data='adjust'):
@@ -1829,7 +1810,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             this_epochs.event_id = self.event_id
             _save_split(this_epochs, fname, part_idx, n_parts, fmt)
 
-    def equalize_event_counts(self, event_ids, method='mintime'):
+    def equalize_event_counts(self, event_ids=None, method='mintime'):
         """Equalize the number of trials in each condition.
 
         It tries to make the remaining epochs occurring as close as possible in
@@ -1838,52 +1819,81 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         during a recording, they could be compensated for (to some extent) in
         the equalization process. This method thus seeks to reduce any of
         those effects by minimizing the differences in the times of the events
-        in the two sets of epochs. For example, if one had event times
-        [1, 2, 3, 4, 120, 121] and the other one had [3.5, 4.5, 120.5, 121.5],
-        it would remove events at times [1, 2] in the first epochs and not
-        [120, 121].
+        within a `~mne.Epochs` instance. For example, if one event type
+        occurred at time points ``[1, 2, 3, 4, 120, 121]`` and the another one
+        at ``[3.5, 4.5, 120.5, 121.5]``, this method would remove the events at
+        times ``[1, 2]`` for the first event type – and not the events at times
+        ``[120, 121]``.
 
         Parameters
         ----------
-        event_ids : list
-            The event types to equalize. Each entry in the list can either be
-            a str (single event) or a list of str. In the case where one of
-            the entries is a list of str, event_ids in that list will be
-            grouped together before equalizing trial counts across conditions.
-            In the case where partial matching is used (using '/' in
-            ``event_ids``), ``event_ids`` will be matched according to the
-            provided tags, that is, processing works as if the event_ids
+        event_ids : None | list | dict
+            The event types to equalize.
+
+            If ``None`` (default), equalize the counts of **all** event types
+            present in the `~mne.Epochs` instance.
+
+            If a list, each element can either be a string (event name) or a
+            list of strings. In the case where one of the entries is a list of
+            strings, event types in that list will be grouped together before
+            equalizing trial counts across conditions.
+
+            If a dictionary, the keys are considered as the event names whose
+            counts to equalize, i.e., passing ``dict(A=1, B=2)`` will have the
+            same effect as passing ``['A', 'B']``. This is useful if you intend
+            to pass an ``event_id`` dictionary that was used when creating
+            `~mne.Epochs`.
+
+            In the case where partial matching is used (using ``/`` in
+            the event names), the event types will be matched according to the
+            provided tags, that is, processing works as if the ``event_ids``
             matched by the provided tags had been supplied instead.
-            The event_ids must identify nonoverlapping subsets of the epochs.
+            The ``event_ids`` must identify non-overlapping subsets of the
+            epochs.
         method : str
-            If 'truncate', events will be truncated from the end of each event
-            list. If 'mintime', timing differences between each event list
-            will be minimized.
+            If ``'truncate'``, events will be truncated from the end of each
+            type of events. If ``'mintime'``, timing differences between each
+            event type will be minimized.
 
         Returns
         -------
         epochs : instance of Epochs
-            The modified Epochs instance.
+            The modified instance. It is modified in-place.
         indices : array of int
             Indices from the original events list that were dropped.
 
         Notes
         -----
-        For example (if epochs.event_id was {'Left': 1, 'Right': 2,
-        'Nonspatial':3}:
+        For example (if ``epochs.event_id`` was ``{'Left': 1, 'Right': 2,
+        'Nonspatial':3}``:
 
             epochs.equalize_event_counts([['Left', 'Right'], 'Nonspatial'])
 
-        would equalize the number of trials in the 'Nonspatial' condition with
-        the total number of trials in the 'Left' and 'Right' conditions.
+        would equalize the number of trials in the ``'Nonspatial'`` condition
+        with the total number of trials in the ``'Left'`` and ``'Right'``
+        conditions combined.
 
-        If multiple indices are provided (e.g. 'Left' and 'Right' in the
-        example above), it is not guaranteed that after equalization, the
-        conditions will contribute evenly. E.g., it is possible to end up
-        with 70 'Nonspatial' trials, 69 'Left' and 1 'Right'.
+        If multiple indices are provided (e.g. ``'Left'`` and ``'Right'`` in
+        the example above), it is not guaranteed that after equalization the
+        conditions will contribute equally. E.g., it is possible to end up
+        with 70 ``'Nonspatial'`` epochs, 69 ``'Left'`` and 1 ``'Right'``.
+
+        .. versionchanged:: 0.23
+            Default to equalizing all events in the passed instance if no
+            event names were specified explicitly.
         """
-        if len(event_ids) == 0:
+        from collections.abc import Iterable
+        _validate_type(event_ids, types=(Iterable, None),
+                       item_name='event_ids', type_name='list-like or None')
+        if isinstance(event_ids, str):
+            raise TypeError(f'event_ids must be list-like or None, but '
+                            f'received a string: {event_ids}')
+
+        if event_ids is None:
+            event_ids = list(self.event_id)
+        elif not event_ids:
             raise ValueError('event_ids must have at least one element')
+
         if not self._bad_dropped:
             self.drop_bad()
         # figure out how to equalize
@@ -2030,82 +2040,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         """
         from .forward import _as_meg_type_inst
         return _as_meg_type_inst(self, ch_type=ch_type, mode=mode)
-
-
-def _check_baseline(baseline, times, sfreq, on_baseline_outside_data='raise'):
-    """Check if the baseline is valid, and adjust it if requested.
-
-    ``None`` values inside the baseline parameter will be replaced with
-    ``times[0]`` and ``times[-1]``.
-
-    Parameters
-    ----------
-    baseline : tuple
-        Beginning and end of the baseline period, in seconds.
-    times : array
-        The time points.
-    sfreq : float
-        The sampling rate.
-    on_baseline_outside_data : 'raise' | 'info' | 'adjust'
-        What do do if the baseline period exceeds the data.
-        If ``'raise'``, raise an exception (default).
-        If ``'info'``, log an info message.
-        If ``'adjust'``, adjust the baseline such that it's within the data
-        range again.
-
-    Returns
-    -------
-    (baseline_tmin, baseline_tmax) | None
-        The baseline with ``None`` values replaced with times, and with
-        adjusted times if ``on_baseline_outside_data='adjust'``; or ``None``
-        if the ``baseline`` parameter is ``None``.
-
-    """
-    if baseline is None:
-        return None
-
-    if not isinstance(baseline, tuple) or len(baseline) != 2:
-        raise ValueError('`baseline=%s` is an invalid argument, must be '
-                         'a tuple of length 2 or None' % str(baseline))
-
-    tmin, tmax = times[0], times[-1]
-    tstep = 1. / float(sfreq)
-
-    # check default value of baseline and `tmin=0`
-    if baseline == (None, 0) and tmin == 0:
-        raise ValueError('Baseline interval is only one sample. Use '
-                         '`baseline=(0, 0)` if this is desired.')
-
-    baseline_tmin, baseline_tmax = baseline
-
-    if baseline_tmin is None:
-        baseline_tmin = tmin
-    baseline_tmin = float(baseline_tmin)
-
-    if baseline_tmax is None:
-        baseline_tmax = tmax
-    baseline_tmax = float(baseline_tmax)
-
-    if baseline_tmin > baseline_tmax:
-        raise ValueError(
-            "Baseline min (%s) must be less than baseline max (%s)"
-            % (baseline_tmin, baseline_tmax))
-
-    if (baseline_tmin < tmin - tstep) or (baseline_tmax > tmax + tstep):
-        msg = (f"Baseline interval [{baseline_tmin}, {baseline_tmax}] sec "
-               f"is outside of epochs data [{tmin}, {tmax}] sec. Epochs were "
-               f"probably cropped.")
-        if on_baseline_outside_data == 'raise':
-            raise ValueError(msg)
-        elif on_baseline_outside_data == 'info':
-            logger.info(msg)
-        elif on_baseline_outside_data == 'adjust':
-            if baseline_tmin < tmin - tstep:
-                baseline_tmin = tmin
-            if baseline_tmax > tmax + tstep:
-                baseline_tmax = tmax
-
-    return baseline_tmin, baseline_tmax
 
 
 def _drop_log_stats(drop_log, ignore=('IGNORED',)):
@@ -2440,76 +2374,25 @@ class Epochs(BaseEpochs):
 
     Parameters
     ----------
-    raw : Raw object
-        An instance of Raw.
-    events : array of int, shape (n_events, 3)
-        The events typically returned by the read_events function.
-        If some events don't match the events of interest as specified
-        by event_id, they will be marked as 'IGNORED' in the drop log.
-    event_id : int | list of int | dict | None
-        The id of the event to consider. If dict,
-        the keys can later be used to access associated events. Example:
-        dict(auditory=1, visual=3). If int, a dict will be created with
-        the id as string. If a list, all events with the IDs specified
-        in the list are used. If None, all events will be used with
-        and a dict is created with string integer names corresponding
-        to the event id integers.
-    tmin : float
-        Start time before event. If nothing is provided, defaults to -0.2.
-    tmax : float
-        End time after event. If nothing is provided, defaults to 0.5.
+    %(epochs_raw)s
+    %(epochs_events_event_id)s
+    %(epochs_tmin_tmax)s
     %(baseline_epochs)s
         Defaults to ``(None, 0)``, i.e. beginning of the the data until
         time point zero.
     %(picks_all)s
     preload : bool
-        Load all epochs from disk when creating the object
-        or wait before accessing each epoch (more memory
-        efficient but can be slower).
+        %(epochs_preload)s
     %(reject_epochs)s
     %(flat)s
     %(proj_epochs)s
     %(decim)s
-    reject_tmin : scalar | None
-        Start of the time window used to reject epochs (with the default None,
-        the window will start with tmin).
-    reject_tmax : scalar | None
-        End of the time window used to reject epochs (with the default None,
-        the window will end with tmax).
-    detrend : int | None
-        If 0 or 1, the data channels (MEG and EEG) will be detrended when
-        loaded. 0 is a constant (DC) detrend, 1 is a linear detrend. None
-        is no detrending. Note that detrending is performed before baseline
-        correction. If no DC offset is preferred (zeroth order detrending),
-        either turn off baseline correction, as this may introduce a DC
-        shift, or set baseline correction to use the entire time interval
-        (will yield equivalent results but be slower).
-    on_missing : str
-        What to do if one or several event ids are not found in the recording.
-        Valid keys are 'raise' | 'warn' | 'ignore'
-        Default is 'raise'. If on_missing is 'warn' it will proceed but
-        warn, if 'ignore' it will proceed silently. Note.
-        If none of the event ids are found in the data, an error will be
-        automatically generated irrespective of this parameter.
+    %(epochs_reject_tmin_tmax)s
+    %(epochs_detrend)s
+    %(epochs_on_missing)s
     %(reject_by_annotation_epochs)s
-    metadata : instance of pandas.DataFrame | None
-        A :class:`pandas.DataFrame` specifying metadata about each epoch.
-        If given, ``len(metadata)`` must equal ``len(events)``. The DataFrame
-        may only contain values of type (str | int | float | bool).
-        If metadata is given, then pandas-style queries may be used to select
-        subsets of data, see :meth:`mne.Epochs.__getitem__`.
-        When a subset of the epochs is created in this (or any other
-        supported) manner, the metadata object is subsetted accordingly, and
-        the row indices will be modified to match ``epochs.selection``.
-
-        .. versionadded:: 0.16
-    event_repeated : str
-        How to handle duplicates in ``events[:, 0]``. Can be ``'error'``
-        (default), to raise an error, 'drop' to only retain the row occurring
-        first in the ``events``, or ``'merge'`` to combine the coinciding
-        events (=duplicates) into a new event (see Notes for details).
-
-        .. versionadded:: 0.19
+    %(epochs_metadata)s
+    %(epochs_event_repeated)s
     %(verbose)s
 
     Attributes
