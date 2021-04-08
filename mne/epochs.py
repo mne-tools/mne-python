@@ -51,7 +51,8 @@ from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
 from .utils import (_check_fname, check_fname, logger, verbose,
                     _time_mask, check_random_state, warn, _pl,
                     sizeof_fmt, SizeMixin, copy_function_doc_to_method_doc,
-                    _check_pandas_installed, _check_preload, GetEpochsMixin,
+                    _check_pandas_installed, _check_eeglabio_installed,
+                    _check_preload, GetEpochsMixin,
                     _prepare_read_metadata, _prepare_write_metadata,
                     _check_event_id, _gen_events, _check_option,
                     _check_combine, ShiftTimeMixin, _build_data_frame,
@@ -1811,7 +1812,15 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             _save_split(this_epochs, fname, part_idx, n_parts, fmt)
 
     def export(self, fname, fmt="auto"):
-        """Export Epochs to EEGLAB's .set format.
+        """Export Epochs to external formats.
+
+        Supported formats: EEGLAB (set)
+
+        .. warning:: Since we are exporting to external formats, there's no
+        guarantee that all the info will be preserved in the external format.
+        To save in native MNE format (fif) without info loss, use save()
+        instead
+
 
         Parameters
         ----------
@@ -1823,8 +1832,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         Notes
         -----
-        Channel locations are expanded to the full EEGLAB format
-        For more details see eeglabio.utils.cart_to_eeglab
+        For EEGLAB format, channel locations are expanded to full EEGLAB
+        format. For more details see ``eeglabio.utils.cart_to_eeglab``.
         """
         if fmt == "auto":
             fmt = op.splitext(fname)[1]
@@ -1834,7 +1843,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                 raise ValueError("Couldn't infer format from filename "
                                  "(no extension found)")
 
+        fmt = fmt.lower()
+
         if fmt == "set":
+            _check_eeglabio_installed()
             from eeglabio.epochs import export_set
             # load data first
             self.load_data()
@@ -1857,6 +1869,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             export_set(fname, self.get_data(picks=pick_chs),
                        self.info['sfreq'], self.events, self.tmin, self.tmax,
                        pick_chs, self.event_id, cart_coords)
+        elif fmt == "edf":
+            raise NotImplementedError("Export to EDF format not implemented.")
         else:
             raise ValueError("Format not supported (%s)" % fmt)
 

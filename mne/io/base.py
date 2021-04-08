@@ -47,7 +47,8 @@ from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      copy_function_doc_to_method_doc, _validate_type,
                      _check_preload, _get_argvalues, _check_option,
                      _build_data_frame, _convert_times, _scale_dataframe_data,
-                     _check_time_format, _arange_div)
+                     _check_time_format, _arange_div,
+                     _check_eeglabio_installed)
 from ..defaults import _handle_default
 from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo, _RAW_CLIP_DEF
 from ..event import find_events, concatenate_events
@@ -1451,7 +1452,14 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                    split_size, split_naming, 0, None, overwrite)
 
     def export(self, fname, fmt="auto"):
-        """Export Raw to EEGLAB's .set format.
+        """Export Raw to external formats.
+
+        Supported formats: EEGLAB (set)
+
+        .. warning:: Since we are exporting to external formats, there's no
+        guarantee that all the info will be preserved in the external format.
+        To save in native MNE format (fif) without info loss, use save()
+        instead
 
         Parameters
         ----------
@@ -1463,8 +1471,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Notes
         -----
-        Channel locations are expanded to the full EEGLAB format
-        For more details see eeglabio.utils.cart_to_eeglab
+        For EEGLAB format, channel locations are expanded to full EEGLAB
+        format. For more details see ``eeglabio.utils.cart_to_eeglab``.
         """
         if fmt == "auto":
             fmt = op.splitext(fname)[1]
@@ -1474,7 +1482,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                 raise ValueError("Couldn't infer format from filename "
                                  "(no extension found)")
 
+        fmt = fmt.lower()
+
         if fmt == "set":
+            _check_eeglabio_installed()
             from eeglabio.raw import export_set
             # load data first
             self.load_data()

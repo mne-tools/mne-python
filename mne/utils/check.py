@@ -273,6 +273,19 @@ def _check_pandas_installed(strict=True):
             return False
 
 
+def _check_eeglabio_installed(strict=True):
+    """Aux function."""
+    try:
+        import eeglabio
+        return eeglabio
+    except ImportError:
+        if strict is True:
+            raise RuntimeError('For this functionality to work, the eeglabio '
+                               'library is required.')
+        else:
+            return False
+
+
 def _check_pandas_index_arguments(index, valid):
     """Check pandas index arguments."""
     if index is None:
