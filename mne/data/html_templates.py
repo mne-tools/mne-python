@@ -8,7 +8,7 @@ info_template = Template("""
 <table class="table table-hover">
 
     <tr>
-        <th style="text-align: left;">
+        <th colspan="2" style="text-align: left;">
         <label for={{section_ids[0]}}> {{sections[0]}} </label>
         </th>
     </tr>
@@ -35,7 +35,7 @@ info_template = Template("""
     </tr>
 
     <tr>
-        <th style="text-align: left;">
+        <th colspan="2" style="text-align: left;">
         <label for={{section_ids[1]}}> {{sections[1]}} </label>
         </th>
     </tr>
@@ -69,7 +69,7 @@ info_template = Template("""
     </tr>
 
     <tr>
-        <th style="text-align: left;">
+        <th colspan="2" style="text-align: left;">
         <label for={{section_ids[2]}}> {{sections[2]}} </label>
         </th>
     </tr>
