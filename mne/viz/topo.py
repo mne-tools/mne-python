@@ -708,24 +708,25 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         # XXX. at the moment we are committed to 1- / 2-sensor-types layouts
         chs_in_layout = [ch_name for ch_name in ch_names
                          if ch_name in layout.names]
-        types_used = {channel_type(info, ch_names.index(ch))
-                      for ch in chs_in_layout}
+        # Using List comprehension to order elements and prevent randomness
+        types_used = [channel_type(info, ch_names.index(ch))
+                      for ch in chs_in_layout]
+        # Using dict conversion to remove duplicates
+        types_used = list(dict.fromkeys(types_used))
         # remove possible reference meg channels
-        types_used = set.difference(types_used, set('ref_meg'))
+        types_used = list(filter(lambda x: x != 'ref_meg', types_used))
         # one check for all vendors
-        meg_types = {'mag', 'grad'}
-        is_meg = len(set.intersection(types_used, meg_types)) > 0
-        nirs_types = {'hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_od'}
-        is_nirs = len(set.intersection(types_used, nirs_types)) > 0
+        meg_types = ['mag', 'grad']
+        is_meg = len(list(filter(lambda x: x in meg_types,types_used))) > 0
+        nirs_types = ['hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_od']
+        is_nirs = len(list(filter(lambda x: x in nirs_types,types_used))) > 0
         if is_meg:
-            types_used = list(types_used)
             # Fix issue where ylimits get swapped
             if types_used[0] == 'grad':
                 types_used = list(types_used)[::-1]
             picks = [pick_types(info, meg=kk, ref_meg=False, exclude=[])
                      for kk in types_used]
         elif is_nirs:
-            types_used = list(types_used)
             # Fix issue where ylimits get swapped
             if types_used[0] == 'hbr':
                 types_used = list(types_used)[::-1]
