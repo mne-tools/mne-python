@@ -1914,6 +1914,20 @@ def test_epoch_eq():
     assert_equal(len(epochs['a/x']), 0)
     assert_equal(len(epochs['a/y']), 0)
 
+    # test default behavior (event_ids=None)
+    epochs = Epochs(raw, events, {'a': 1, 'b': 2, 'c': 3, 'd': 4},
+                    tmin, tmax, picks=picks, reject=reject)
+    epochs_1, _ = epochs.copy().equalize_event_counts()
+    epochs_2, _ = epochs.copy().equalize_event_counts(list(epochs.event_id))
+    assert_array_equal(epochs_1.events, epochs_2.events)
+
+    # test invalid values of event_ids
+    with pytest.raises(TypeError, match='received a string'):
+        epochs.equalize_event_counts('hello!')
+
+    with pytest.raises(TypeError, match='list-like or None'):
+        epochs.equalize_event_counts(1.5)
+
 
 def test_access_by_name(tmpdir):
     """Test accessing epochs by event name and on_missing for rare events."""
