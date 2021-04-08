@@ -1840,7 +1840,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             self.load_data()
 
             # remove extra epoc and STI channels
-            drop_chs = {'epoc', 'STI 014'}
+            drop_chs = ['epoc', 'STI 014']
             pick_chs = [ch for ch in self.ch_names if ch not in drop_chs]
 
             chs = self.info["chs"]
