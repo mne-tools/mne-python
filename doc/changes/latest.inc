@@ -113,6 +113,10 @@ Enhancements
 
 - Add option to control appearance of opaque inside surface of the head to :ref:`mne coreg` (:gh:`8793` by `Eric Larson`_)
 
+- Add option to disable projection using ``--projoff`` in :ref:`mne browse_raw` (:gh:`9262` by `Eric Larson`_)
+
+- Add keypress to toggle projection using ``shift+j`` in :meth:`mne.io.Raw.plot` and :ref:`mne browse_raw` (:gh:`9262` by `Eric Larson`_)
+
 - Add support for non-FIF files in :ref:`mne browse_raw` using :func:`mne.io.read_raw` (:gh:`8806` by `Eric Larson`_)
 
 - Add :func:`mne.io.read_raw_nedf` for reading StarStim / enobio NEDF files (:gh:`8734` by `Tristan Stenner`_)
