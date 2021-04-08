@@ -3066,7 +3066,7 @@ def test_export_set(tmpdir, preload):
     raw.load_data()
     epochs = Epochs(raw, events, preload=preload)
     temp_fname = op.join(str(tmpdir), 'test.set')
-    epochs.export_set(temp_fname)
+    epochs.export(temp_fname)
     epochs_read = read_epochs_eeglab(temp_fname)
     assert epochs.ch_names == epochs_read.ch_names
     cart_coords = np.array([d['loc'][:3]

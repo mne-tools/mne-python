@@ -1810,40 +1810,55 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             this_epochs.event_id = self.event_id
             _save_split(this_epochs, fname, part_idx, n_parts, fmt)
 
-    def export_set(self, fname):
+    def export(self, fname, fmt="auto"):
         """Export Epochs to EEGLAB's .set format.
 
         Parameters
         ----------
         fname : str
             Name of the export file.
+        fmt : str
+            Format of the export. Defaults to auto, which will infer
+            format from fname's extension
 
         Notes
         -----
         Channel locations are expanded to the full EEGLAB format
-        For more details see .io.utils.cart_to_eeglab_full_coords
+        For more details see eeglabio.utils.cart_to_eeglab
         """
-        from eeglabio.epochs import export_set
-        # load data first
-        self.load_data()
+        if fmt == "auto":
+            fmt = op.splitext(fname)[1]
+            if fmt:
+                fmt = fmt[1:]
+            else:
+                raise ValueError("Couldn't infer format from filename "
+                                 "(no extension found)")
 
-        # remove extra epoc and STI channels
-        chs_drop = [ch for ch in ['epoc', 'STI 014'] if ch in self.ch_names]
-        self.drop_channels(chs_drop)
+        if fmt == "set":
+            from eeglabio.epochs import export_set
+            # load data first
+            self.load_data()
 
-        chs = self.info["chs"]
-        cart_coords = np.array([d['loc'][:3] for d in chs])
-        if cart_coords.any():  # has coordinates
-            # (-y x z) to (x y z)
-            cart_coords[:, 0] = -cart_coords[:, 0]  # -y to y
-            # swap x (1) and y (0)
-            cart_coords[:, [0, 1]] = cart_coords[:, [1, 0]]
+            # remove extra epoc and STI channels
+            chs_drop = \
+                [ch for ch in ['epoc', 'STI 014'] if ch in self.ch_names]
+            self.drop_channels(chs_drop)
+
+            chs = self.info["chs"]
+            cart_coords = np.array([d['loc'][:3] for d in chs])
+            if cart_coords.any():  # has coordinates
+                # (-y x z) to (x y z)
+                cart_coords[:, 0] = -cart_coords[:, 0]  # -y to y
+                # swap x (1) and y (0)
+                cart_coords[:, [0, 1]] = cart_coords[:, [1, 0]]
+            else:
+                cart_coords = None
+
+            export_set(fname, self.get_data(), self.info['sfreq'], self.events,
+                       self.tmin, self.tmax, self.ch_names, self.event_id,
+                       cart_coords)
         else:
-            cart_coords = None
-
-        export_set(fname, self.get_data(), self.info['sfreq'], self.events,
-                   self.tmin, self.tmax, self.ch_names, self.event_id,
-                   cart_coords)
+            raise ValueError("Format not supported (%s)" % fmt)
 
     def equalize_event_counts(self, event_ids=None, method='mintime'):
         """Equalize the number of trials in each condition.

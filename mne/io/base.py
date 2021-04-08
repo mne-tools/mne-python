@@ -1450,44 +1450,59 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                    start, stop, buffer_size, projector, drop_small_buffer,
                    split_size, split_naming, 0, None, overwrite)
 
-    def export_set(self, fname):
+    def export(self, fname, fmt="auto"):
         """Export Raw to EEGLAB's .set format.
 
         Parameters
         ----------
         fname : str
             Name of the export file.
+        fmt : str
+            Format of the export. Defaults to auto, which will infer
+            format from fname's extension
 
         Notes
         -----
         Channel locations are expanded to the full EEGLAB format
-        For more details see pyeeglab.utils._cart_to_eeglab_full_coords
+        For more details see eeglabio.utils.cart_to_eeglab
         """
-        from eeglabio.raw import export_set
-        # load data first
-        self.load_data()
+        if fmt == "auto":
+            fmt = op.splitext(fname)[1]
+            if fmt:
+                fmt = fmt[1:]
+            else:
+                raise ValueError("Couldn't infer format from filename "
+                                 "(no extension found)")
 
-        # remove extra epoc and STI channels
-        chs_drop = [ch for ch in ['epoc'] if ch in self.ch_names]
-        if 'STI 014' in self.ch_names and \
-                not (self.filenames[0].endswith('.fif')):
-            chs_drop.append('STI 014')
-        self.drop_channels(chs_drop)
+        if fmt == "set":
+            from eeglabio.raw import export_set
+            # load data first
+            self.load_data()
 
-        chs = self.info["chs"]
-        cart_coords = np.array([d['loc'][:3] for d in chs])
-        if cart_coords.any():  # has coordinates
-            # (-y x z) to (x y z)
-            cart_coords[:, 0] = -cart_coords[:, 0]  # -y to y
-            # swap x (1) and y (0)
-            cart_coords[:, [0, 1]] = cart_coords[:, [1, 0]]
+            # remove extra epoc and STI channels
+            chs_drop = [ch for ch in ['epoc'] if ch in self.ch_names]
+            if 'STI 014' in self.ch_names and \
+                    not (self.filenames[0].endswith('.fif')):
+                chs_drop.append('STI 014')
+            self.drop_channels(chs_drop)
+
+            chs = self.info["chs"]
+            cart_coords = np.array([d['loc'][:3] for d in chs])
+            if cart_coords.any():  # has coordinates
+                # (-y x z) to (x y z)
+                cart_coords[:, 0] = -cart_coords[:, 0]  # -y to y
+                # swap x (1) and y (0)
+                cart_coords[:, [0, 1]] = cart_coords[:, [1, 0]]
+            else:
+                cart_coords = None
+
+            annotations = [self.annotations.description,
+                           self.annotations.onset,
+                           self.annotations.duration]
+            export_set(fname, self.get_data(), self.info['sfreq'],
+                       self.ch_names, cart_coords, annotations)
         else:
-            cart_coords = None
-
-        annotations = [self.annotations.description, self.annotations.onset,
-                       self.annotations.duration]
-        export_set(fname, self.get_data(), self.info['sfreq'],
-                   self.ch_names, cart_coords, annotations)
+            raise ValueError("Format not supported (%s)" % fmt)
 
     def _tmin_tmax_to_start_stop(self, tmin, tmax):
         start = int(np.floor(tmin * self.info['sfreq']))

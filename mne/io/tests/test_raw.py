@@ -697,7 +697,7 @@ def test_export_set():
     raw.load_data()
     tmpdir = _TempDir()
     temp_fname = op.join(str(tmpdir), 'test.set')
-    raw.export_set(temp_fname)
+    raw.export(temp_fname)
     from ..eeglab.eeglab import read_raw_eeglab
     raw_read = read_raw_eeglab(temp_fname, preload=True)
     assert raw.ch_names == raw_read.ch_names
