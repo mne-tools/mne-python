@@ -722,14 +722,12 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         is_nirs = len(list(filter(lambda x: x in nirs_types, types_used))) > 0
         if is_meg:
             # Fix issue where ylimits get swapped
-            if types_used[0] == 'grad':
-                types_used = list(types_used)[::-1]
+            types_used = list(types_used)[::-1]
             picks = [pick_types(info, meg=kk, ref_meg=False, exclude=[])
                      for kk in types_used]
         elif is_nirs:
             # Fix issue where ylimits get swapped
-            if types_used[0] == 'hbr':
-                types_used = list(types_used)[::-1]
+            types_used = list(types_used)[::-1]
             picks = [pick_types(info, fnirs=kk, ref_meg=False, exclude=[])
                      for kk in types_used]
         else:
