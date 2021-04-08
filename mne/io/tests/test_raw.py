@@ -698,6 +698,8 @@ def test_export_set():
     tmpdir = _TempDir()
     temp_fname = op.join(str(tmpdir), 'test.set')
     raw.export(temp_fname)
+    raw.drop_channels([ch for ch in ['epoc']
+                       if ch in raw.ch_names])
     from ..eeglab.eeglab import read_raw_eeglab
     raw_read = read_raw_eeglab(temp_fname, preload=True)
     assert raw.ch_names == raw_read.ch_names

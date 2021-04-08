@@ -1840,12 +1840,12 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             self.load_data()
 
             # remove extra epoc and STI channels
-            chs_drop = \
-                [ch for ch in ['epoc', 'STI 014'] if ch in self.ch_names]
-            self.drop_channels(chs_drop)
+            drop_chs = {'epoc', 'STI 014'}
+            pick_chs = [ch for ch in self.ch_names if ch not in drop_chs]
 
             chs = self.info["chs"]
-            cart_coords = np.array([d['loc'][:3] for d in chs])
+            cart_coords = np.array([d['loc'][:3] for d in chs
+                                    if d['ch_name'] not in drop_chs])
             if cart_coords.any():  # has coordinates
                 # (-y x z) to (x y z)
                 cart_coords[:, 0] = -cart_coords[:, 0]  # -y to y
@@ -1854,9 +1854,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             else:
                 cart_coords = None
 
-            export_set(fname, self.get_data(), self.info['sfreq'], self.events,
-                       self.tmin, self.tmax, self.ch_names, self.event_id,
-                       cart_coords)
+            export_set(fname, self.get_data(picks=pick_chs),
+                       self.info['sfreq'], self.events, self.tmin, self.tmax,
+                       pick_chs, self.event_id, cart_coords)
         else:
             raise ValueError("Format not supported (%s)" % fmt)
 

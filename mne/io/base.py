@@ -1480,14 +1480,15 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             self.load_data()
 
             # remove extra epoc and STI channels
-            chs_drop = [ch for ch in ['epoc'] if ch in self.ch_names]
-            if 'STI 014' in self.ch_names and \
-                    not (self.filenames[0].endswith('.fif')):
-                chs_drop.append('STI 014')
-            self.drop_channels(chs_drop)
+            drop_chs = {'epoc'}
+            if not (self.filenames[0].endswith('.fif')):
+                drop_chs.add('STI 014')
+            drop_chs = set(drop_chs)
+            pick_chs = [ch for ch in self.ch_names if ch not in drop_chs]
 
             chs = self.info["chs"]
-            cart_coords = np.array([d['loc'][:3] for d in chs])
+            cart_coords = np.array([d['loc'][:3] for d in chs
+                                    if d['ch_name'] not in drop_chs])
             if cart_coords.any():  # has coordinates
                 # (-y x z) to (x y z)
                 cart_coords[:, 0] = -cart_coords[:, 0]  # -y to y
@@ -1499,8 +1500,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             annotations = [self.annotations.description,
                            self.annotations.onset,
                            self.annotations.duration]
-            export_set(fname, self.get_data(), self.info['sfreq'],
-                       self.ch_names, cart_coords, annotations)
+            export_set(fname, self.get_data(picks=pick_chs),
+                       self.info['sfreq'],
+                       pick_chs, cart_coords, annotations)
         else:
             raise ValueError("Format not supported (%s)" % fmt)
 
