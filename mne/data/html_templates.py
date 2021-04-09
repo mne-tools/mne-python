@@ -1,6 +1,5 @@
 import uuid
 from ..externals.tempita import Template
-# style, section_ids=section_ids, sections=sections,
 
 info_template = Template("""
 {{style}}
@@ -127,7 +126,7 @@ epochs_template = Template("""
 
 
 def _section_style(section_id):
-    """Set CSS style for all collapsible section."""
+    """Set CSS style for collapsible section's label."""
     html = f"""#{section_id} ~ table [for="{section_id}"]::before {{
                    display: inline-block;
                    content: "►";
@@ -152,7 +151,7 @@ def _section_style(section_id):
 
 
 def _collapsible_sections_reprt_html(sections):
-    """Set style and unique ID for each collapsible section."""
+    """Set style and unique ID for all collapsible sections."""
     style = "<style>  label { cursor: pointer; }"
     ids_ = []
     for section in sections:
