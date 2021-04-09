@@ -57,8 +57,14 @@ Current (0.23.dev0)
 
 .. |Maggie Clarke| replace:: **Maggie Clarke**
 
+.. |Felix Klotzsche| replace:: **Felix Klotzsche**
+
 Enhancements
 ~~~~~~~~~~~~
+- Add :meth:`mne.time_frequency.EpochsTFR.to_data_frame` and :meth:`mne.time_frequency.AverageTFR.to_data_frame` methods (:gh:`9124` **by new contributor** |Felix Klotzsche|_)
+
+- Add ``selection`` and ``drop_log`` to :class:`mne.time_frequency.EpochsTFR` (:gh:`9124` **by new contributor** |Felix Klotzsche|_)
+
 - Add CSV, TSV, and XYZ support to :func:`mne.channels.read_custom_montage` (:gh:`9203` **by new contributor** |Jack Zhang|_)
 
 - Add HTML representation for `~mne.Epochs` in Jupyter Notebooks (:gh:`9174` by |Valerii Chirkov|_)
