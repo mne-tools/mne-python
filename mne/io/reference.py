@@ -4,7 +4,6 @@
 #
 # License: BSD (3-clause)
 
-from copy import deepcopy
 import numpy as np
 
 from .constants import FIFF
@@ -511,10 +510,7 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
     ref_inst = ref_instances[0].add_channels(ref_instances[1:],
                                              force_update_info=True)
 
-    if isinstance(inst, BaseEpochs):
-        ref_inst._data = np.asarray([multiplier.dot(ep) for ep in inst._data])
-    else:
-        ref_inst._data = multiplier.dot(inst._data)
+    ref_inst._data = multiplier @ inst._data
 
     inst.add_channels([ref_inst], force_update_info=True)
 
