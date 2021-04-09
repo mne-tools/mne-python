@@ -34,6 +34,9 @@ def run():
     parser.add_option("--proj", dest="proj_in",
                       help="Projector file", metavar="FILE",
                       default='')
+    parser.add_option("--projoff", dest="proj_off",
+                      help="Disable all projectors",
+                      default=False, action="store_true")
     parser.add_option("--eve", dest="eve_in",
                       help="Events file", metavar="FILE",
                       default='')
@@ -87,6 +90,7 @@ def run():
     preload = options.preload
     show_options = options.show_options
     proj_in = options.proj_in
+    proj_off = options.proj_off
     eve_in = options.eve_in
     maxshield = options.maxshield
     highpass = options.highpass
@@ -131,7 +135,7 @@ def run():
     raw.plot(duration=duration, start=start, n_channels=n_channels,
              group_by=group_by, show_options=show_options, events=events,
              highpass=highpass, lowpass=lowpass, filtorder=filtorder,
-             clipping=clipping, verbose=verbose)
+             clipping=clipping, proj=not proj_off, verbose=verbose)
     plt.show(block=True)
 
 
