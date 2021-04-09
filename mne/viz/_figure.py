@@ -713,8 +713,6 @@ class MNEBrowseFigure(MNEFigure):
                 if self.mne.t_start + self.mne.duration > last_time:
                     self.mne.t_start = last_time - self.mne.duration
                 self._update_hscroll()
-                if key == 'end' and self.mne.vline_visible:  # prevent flicker
-                    self._show_vline(None)
                 self._redraw(annotations=True)
         elif key == '?':  # help window
             self._toggle_help_fig(event)
@@ -2132,6 +2130,9 @@ class MNEBrowseFigure(MNEFigure):
         """Redraw (convenience method for frequently grouped actions)."""
         if update_data:
             self._update_data()
+        if self.mne.vline_visible and self.mne.is_epochs:
+            # prevent flickering
+            _ = self._update_epoch_vlines(None)
         self._draw_traces()
         if annotations and not self.mne.is_epochs:
             self._draw_annotations()
@@ -2139,7 +2140,7 @@ class MNEBrowseFigure(MNEFigure):
         self.canvas.flush_events()
         self.mne.bg = self.canvas.copy_from_bbox(self.bbox)
         if self.mne.vline_visible:
-            self._blit_vline(True)
+            self._show_vline(None)
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # EVENT LINES AND MARKER LINES
@@ -2178,24 +2179,30 @@ class MNEBrowseFigure(MNEFigure):
                     textcoords='offset points', fontsize=8)
                 self.mne.event_texts.append(this_text)
 
+    def _update_epoch_vlines(self, xdata):
+        """Recalculate where vline should be (after scrolling, etc)."""
+        # special case: changed view duration w/ "home" or "end" key
+        # (no click event, hence no xdata)
+        if xdata is None:
+            xdata = np.array(self.mne.vline.get_segments())[0, 0, 0]
+        # compute the (continuous) times for the lines on each epoch
+        epoch_dur = np.diff(self.mne.boundary_times[:2])[0]
+        rel_time = xdata % epoch_dur
+        abs_time = self.mne.times[0]
+        xs = np.arange(self.mne.n_epochs) * epoch_dur + abs_time + rel_time
+        segs = np.array(self.mne.vline.get_segments())
+        # handle changed view duration (n_segments != n_epochs)
+        if segs.shape[0] != len(xs):
+            segs = np.tile([[0.], [1.]], (len(xs), 1, 2))  # y values
+        # populate the new x values
+        segs[..., 0] = np.tile(xs[:, None], 2)
+        self.mne.vline.set_segments(segs)
+        return rel_time
+
     def _show_vline(self, xdata):
         """Show the vertical line."""
         if self.mne.is_epochs:
-            # special case: changed view duration w/ "home" or "end" key
-            # (no click event, hence no xdata)
-            if xdata is None:
-                xdata = np.array(self.mne.vline.get_segments())[0, 0, 0]
-            # compute the (continuous) times for the lines on each epoch
-            epoch_dur = np.diff(self.mne.boundary_times[:2])[0]
-            rel_time = xdata % epoch_dur
-            abs_time = self.mne.times[0]
-            xs = np.arange(self.mne.n_epochs) * epoch_dur + abs_time + rel_time
-            segs = np.array(self.mne.vline.get_segments())
-            # handle changed view duration (n_segments != n_epochs)
-            if segs.shape[0] != len(xs):
-                segs = np.tile([[0.], [1.]], (len(xs), 1, 2))  # y values
-            segs[..., 0] = np.tile(xs[:, None], 2)
-            self.mne.vline.set_segments(segs)
+            rel_time = self._update_epoch_vlines(xdata)
             xdata = rel_time + self.mne.inst.times[0]  # for the text
         else:
             self.mne.vline.set_xdata(xdata)
