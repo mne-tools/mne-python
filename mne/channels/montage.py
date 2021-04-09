@@ -741,10 +741,7 @@ def _set_montage_fnirs(info, montage):
     info._check_nirs_ch_names()
     for ch_idx in picks:
         ch = info['chs'][ch_idx]['ch_name']
-        name, suffix = ch.split(' ')
-        if suffix not in ['hbo', 'hbr']:
-            info['chs'][ch_idx]['loc'][9] = int(suffix)
-        source, detector = name.split('_')
+        source, detector = ch.split(' ')[0].split('_')
         source_pos = montage.dig[montage.ch_names.index(source)
                                  + num_ficiduals]['r']
         detector_pos = montage.dig[montage.ch_names.index(detector)
