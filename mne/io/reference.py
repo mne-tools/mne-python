@@ -492,7 +492,7 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
 
     # Create new instances (create each from single channel to allow same
     # channel in anode multiple times)
-    ref_inst = None
+    ref_instances = list()
     for ch_idx, (an, ca, name, info) in enumerate(zip(anode, cathode,
                                                       ch_name, ch_info)):
         _check_ch_keys(info, ch_idx, name='ch_info', check_min=False)
@@ -506,11 +506,10 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
             'loc'].copy()
         add_inst.info['chs'][0]['coil_type'] = FIFF.FIFFV_COIL_EEG_BIPOLAR
         add_inst.info['chs'][0].update(info)
+        ref_instances.append(add_inst)
 
-        if ref_inst is not None:
-            ref_inst.add_channels([add_inst], force_update_info=True)
-        else:
-            ref_inst = add_inst
+    ref_inst = ref_instances[0].add_channels(ref_instances[1:],
+                                             force_update_info=True)
 
     if isinstance(inst, BaseEpochs):
         ref_inst._data = np.asarray([multiplier.dot(ep) for ep in inst._data])
