@@ -99,6 +99,9 @@ else
             if [[ $(cat $FNAME | grep -x ".*datasets.*ssvep.*" | wc -l) -gt 0 ]]; then
                 python -c "import mne; print(mne.datasets.ssvep.data_path(update_path=True))";
             fi;
+            if [[ $(cat $FNAME | grep -x ".*datasets.*epilepsy_ecog.*" | wc -l) -gt 0 ]]; then
+                python -c "import mne; print(mne.datasets.epilepsy_ecog.data_path(update_path=True))";
+            fi;
             if [[ $(cat $FNAME | grep -x ".*datasets.*erp_core.*" | wc -l) -gt 0 ]]; then
                 python -c "import mne; print(mne.datasets.erp_core.data_path(update_path=True))";
             fi;

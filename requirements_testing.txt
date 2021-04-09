@@ -2,6 +2,7 @@ pytest!=4.6.0
 pytest-cov
 pytest-timeout
 pytest-harvest
+ipytest
 flake8
 flake8-array-spacing
 sphinx-gallery
@@ -11,3 +12,4 @@ pydocstyle
 check-manifest
 twine
 wheel
+nbclient

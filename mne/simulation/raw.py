@@ -33,6 +33,7 @@ from ..surface import _CheckInside
 from ..utils import (logger, verbose, check_random_state, _pl, _validate_type,
                      _check_preload)
 from ..parallel import check_n_jobs
+from .source import SourceSimulator
 
 
 def _check_cov(info, cov):
@@ -110,8 +111,11 @@ def _check_head_pos(head_pos, info, first_samp, times=None):
             raise RuntimeError('All position times must be <= t_end (%0.1f '
                                'sec), found %s/%s bad values (is this a split '
                                'file?)' % (times[-1], bad.sum(), len(bad)))
+    # If it starts close to zero, make it zero (else unique(offset) fails)
+    if len(ts) > 0 and ts[0] < (0.5 / info['sfreq']):
+        ts[0] = 0.
     # If it doesn't start at zero, insert one at t=0
-    if len(ts) == 0 or ts[0] > 0:
+    elif len(ts) == 0 or ts[0] > 0:
         ts = np.r_[[0.], ts]
         dev_head_ts.insert(0, info['dev_head_t']['trans'])
     dev_head_ts = [{'trans': d, 'to': info['dev_head_t']['to'],
@@ -140,7 +144,7 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
 
         .. versionchanged:: 0.18
            Support for :class:`mne.Info`.
-    stc : iterable | SourceEstimate
+    stc : iterable | SourceEstimate | SourceSimulator
         The source estimates to use to simulate data. Each must have the same
         sample rate as the raw data, and the vertices of all stcs in the
         iterable must match. Each entry in the iterable can also be a tuple of
@@ -149,7 +153,8 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
         See Notes for details.
 
         .. versionchanged:: 0.18
-           Support for tuple, and iterable of tuple or SourceEstimate.
+           Support for tuple, iterable of tuple or `~mne.SourceEstimate`,
+           or `~mne.simulation.SourceSimulator`.
     trans : dict | str | None
         Either a transformation filename (usually made using mne_analyze)
         or an info dict (usually opened using read_trans()).
@@ -271,8 +276,10 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
     logger.info('Setting up raw simulation: %s position%s, "%s" interpolation'
                 % (len(dev_head_ts), _pl(dev_head_ts), interp))
 
+    if isinstance(stc, SourceSimulator) and stc.first_samp != first_samp:
+        logger.info('SourceSimulator first_samp does not match argument.')
+
     stc_enum, stc_counted, verts = _check_stc_iterable(stc, info)
-    # del stc
     if forward is not None:
         forward = restrict_forward_to_stc(forward, verts)
         src = forward['src']

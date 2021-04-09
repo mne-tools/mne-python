@@ -2245,12 +2245,14 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
     if show_sensors is None:
         show_sensors = (len(picks) == 1)
 
+    _validate_type(combine, types=(None, 'callable', str), item_name='combine')
     # cannot combine a single channel
     if (len(picks) < 2) and combine is not None:
         warn('Only {} channel in "picks"; cannot combine by method "{}".'
              .format(len(picks), combine))
     # `combine` defaults to GFP unless picked a single channel or axes='topo'
-    if combine is None and len(picks) > 1 and axes != 'topo':
+    do_topo = isinstance(axes, str) and axes == 'topo'
+    if combine is None and len(picks) > 1 and not do_topo:
         combine = 'gfp'
     # convert `combine` into callable (if None or str)
     combine_func = _make_combine_callable(combine)
@@ -2260,7 +2262,6 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
                               ch_names=ch_names, combine=combine)
 
     # setup axes
-    do_topo = (axes == 'topo')
     if do_topo:
         show_sensors = False
         if len(picks) > 70:

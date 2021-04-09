@@ -12,7 +12,6 @@ Actual implementation of _Renderer and _Projection classes.
 # License: Simplified BSD
 
 from contextlib import contextmanager
-from datetime import datetime
 from distutils.version import LooseVersion
 import os
 import sys
@@ -23,8 +22,7 @@ import vtk
 
 from ._abstract import _AbstractRenderer
 from ._utils import (_get_colormap_from_array, _alpha_blend_background,
-                     ALLOWED_QUIVER_MODES, _init_qt_resources,
-                     _qt_disable_paint)
+                     ALLOWED_QUIVER_MODES, _init_qt_resources)
 from ...fixes import _get_args
 from ...transforms import apply_trans
 from ...utils import copy_base_doc_to_subclass_doc, _check_option
@@ -205,40 +203,6 @@ class _PyVistaRenderer(_AbstractRenderer):
     def _update(self):
         for plotter in self._all_plotters:
             plotter.update()
-
-    def _get_screenshot_filename(self):
-        now = datetime.now()
-        dt_string = now.strftime("_%Y-%m-%d_%H-%M-%S")
-        return "MNE" + dt_string + ".png"
-
-    @contextmanager
-    def _ensure_minimum_sizes(self):
-        sz = self.figure.store['window_size']
-        # plotter:            pyvista.plotting.qt_plotting.BackgroundPlotter
-        # plotter.interactor: vtk.qt.QVTKRenderWindowInteractor.QVTKRenderWindowInteractor -> QWidget  # noqa
-        # plotter.app_window: pyvista.plotting.qt_plotting.MainWindow -> QMainWindow  # noqa
-        # plotter.frame:      QFrame with QVBoxLayout with plotter.interactor as centralWidget  # noqa
-        # plotter.ren_win:    vtkXOpenGLRenderWindow
-        self.plotter.interactor.setMinimumSize(*sz)
-        try:
-            yield  # show
-        finally:
-            # 1. Process events
-            _process_events(self.plotter)
-            _process_events(self.plotter)
-            # 2. Get the window and interactor sizes that work
-            win_sz = self.plotter.app_window.size()
-            ren_sz = self.plotter.interactor.size()
-            # 3. Undo the min size setting and process events
-            self.plotter.interactor.setMinimumSize(0, 0)
-            _process_events(self.plotter)
-            _process_events(self.plotter)
-            # 4. Resize the window and interactor to the correct size
-            #    (not sure why, but this is required on macOS at least)
-            self.plotter.window_size = (win_sz.width(), win_sz.height())
-            self.plotter.interactor.resize(ren_sz.width(), ren_sz.height())
-            _process_events(self.plotter)
-            _process_events(self.plotter)
 
     def _index_to_loc(self, idx):
         _ncols = self.figure._ncols
@@ -625,12 +589,6 @@ class _PyVistaRenderer(_AbstractRenderer):
 
     def show(self):
         self.plotter.show()
-        if hasattr(self.plotter, "app_window"):
-            with _qt_disable_paint(self.plotter):
-                with self._ensure_minimum_sizes():
-                    self.plotter.app_window.show()
-            self.plotter.update()
-        return self.scene()
 
     def close(self):
         _close_3d_figure(figure=self.figure)
