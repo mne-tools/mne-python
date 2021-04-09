@@ -127,6 +127,7 @@ epochs_template = Template("""
 
 
 def _section_style(section_id):
+    """Set CSS style for all collapsible section."""
     html = f"""#{section_id} ~ table [for="{section_id}"]::before {{
                    display: inline-block;
                    content: "►";
@@ -150,7 +151,8 @@ def _section_style(section_id):
     return html
 
 
-def collapsible_sections_reprt_html(sections):
+def _collapsible_sections_reprt_html(sections):
+    """Set style and unique ID for each collapsible section."""
     style = "<style>  label { cursor: pointer; }"
     ids_ = []
     for section in sections:

@@ -40,7 +40,7 @@ from ._digitization import (_format_dig_points, _dig_kind_proper, DigPoint,
 from ._digitization import write_dig as _dig_write_dig
 from .compensator import get_current_comp
 from ..data.html_templates import (info_template,
-                                   collapsible_sections_reprt_html)
+                                   _collapsible_sections_reprt_html)
 
 b = bytes  # alias
 
@@ -834,7 +834,7 @@ class Info(dict, MontageMixin):
             meas_date = meas_date.strftime("%B %d, %Y  %H:%M:%S") + ' GMT'
 
         sections = ['General', 'Channels', 'Data']
-        style, section_ids = collapsible_sections_reprt_html(sections)
+        style, section_ids = _collapsible_sections_reprt_html(sections)
         html += info_template.substitute(
             style=style, section_ids=section_ids, sections=sections,
             caption=caption, info=self, meas_date=meas_date, n_eeg=n_eeg,
