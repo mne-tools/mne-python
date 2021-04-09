@@ -128,7 +128,7 @@ df.head()
 # This allows us to use additional plotting functions like
 # :func:`seaborn.lineplot` to easily plot confidence bands:
 
-freq_bands = {'delta': (0.5, 4), 
+freq_bands = {'delta': (0.5, 4),
               'theta': (5, 7),
               'alpha': (8, 14),
               'beta': (15, 35)}
