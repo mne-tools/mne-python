@@ -718,7 +718,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         # one check for all vendors
         is_meg = len([x for x in types_used if x in ['mag', 'grad']]) > 0
         is_nirs = len([x for x in types_used if x in
-                      ['hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_od']]) > 0
+                      ('hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_od')]) > 0
         if is_meg:
             types_used = list(types_used)[::-1]  # -> restore kwarg order
             picks = [pick_types(info, meg=kk, ref_meg=False, exclude=[])
