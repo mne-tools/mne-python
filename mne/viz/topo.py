@@ -675,6 +675,10 @@ def _plot_evoked_topo(evoked, exclude=None, layout=None, layout_scale=0.945,
         evoked = [whiten_evoked(e, noise_cov) for e in evoked]
     else:
         evoked = [e.copy() for e in evoked]
+
+    if exclude is None:
+        exclude = ['bads']
+
     info = evoked[0].info
     ch_names = evoked[0].ch_names
     scalings = _handle_default('scalings', scalings)
@@ -682,7 +686,7 @@ def _plot_evoked_topo(evoked, exclude=None, layout=None, layout_scale=0.945,
         raise ValueError('All evoked.picks must be the same')
     ch_names = _clean_names(ch_names)
     if merge_channels:
-        picks = _pair_grad_sensors(info, topomap_coords=False)
+        picks = _pair_grad_sensors(info, topomap_coords=False, exclude=exclude)
         chs = list()
         for pick in picks[::2]:
             ch = info['chs'][pick]
@@ -724,15 +728,15 @@ def _plot_evoked_topo(evoked, exclude=None, layout=None, layout_scale=0.945,
                       ('hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_od')]) > 0
         if is_meg:
             types_used = list(types_used)[::-1]  # -> restore kwarg order
-            picks = [pick_types(info, meg=kk, ref_meg=False, exclude=[])
+            picks = [pick_types(info, meg=kk, ref_meg=False, exclude=exclude)
                      for kk in types_used]
         elif is_nirs:
             types_used = list(types_used)[::-1]  # -> restore kwarg order
-            picks = [pick_types(info, fnirs=kk, ref_meg=False, exclude=[])
+            picks = [pick_types(info, fnirs=kk, ref_meg=False, exclude=exclude)
                      for kk in types_used]
         else:
             types_used_kwargs = {t: True for t in types_used}
-            picks = [pick_types(info, meg=False, exclude=[],
+            picks = [pick_types(info, meg=False, exclude=exclude,
                                 **types_used_kwargs)]
         assert isinstance(picks, list) and len(types_used) == len(picks)
 
