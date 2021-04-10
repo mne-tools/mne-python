@@ -6,7 +6,7 @@ import numpy as np
 from scipy import linalg, signal
 from scipy.stats import median_abs_deviation
 
-from .asr_utils import (sliding_window, geometric_median, fit_eeg_distribution, yulewalk,
+from .asr_utils import (geometric_median, fit_eeg_distribution, yulewalk,
                         yulewalk_filter, block_covariance, nonlinear_eigenspace)
 
 try:
@@ -102,37 +102,40 @@ class ASR():
        https://doi.org/10.3389/fnhum.2019.00141
 
     """
-
-    def __init__(self, sfreq=250, cutoff=5, blocksize=100, win_len=0.5,
+    def __init__(self, sfreq=1000, cutoff=5, blocksize=100, win_len=0.5,
                  win_overlap=0.66, max_dropout_fraction=0.1,
-                 min_clean_fraction=0.25, **kwargs):
+                 min_clean_fraction=0.25, ab=None, max_bad_chans=0.1, **kwargs):
 
+        self.sfreq = sfreq
         self.cutoff = cutoff
         self.blocksize = blocksize
         self.win_len = win_len
         self.win_overlap = win_overlap
         self.max_dropout_fraction = max_dropout_fraction
         self.min_clean_fraction = min_clean_fraction
-        self.max_bad_chans = 0.3
-        self.memory = int(2 * sfreq)  # smoothing window for covariances
-        self.sample_weight = np.geomspace(0.05, 1, num=self.memory + 1)
-        self.sfreq = sfreq
+        self.max_bad_chans = max_bad_chans
+        self.method = "euclid" # FIXME: riemann is not yet available
+        self.estimator = "scm" # FIXME: should we keep this?
+
+        if ab == None:
+            yw_f = np.array([0, 2, 3, 13, 16, 40,
+                          np.minimum(80.0, (self.sfreq / 2.0) - 1.0),
+                          self.sfreq / 2.0]) * 2.0 / self.sfreq
+            yw_m = np.array([3, 0.75, 0.33, 0.33, 1, 1, 3, 3])
+            self.B, self.A = yulewalk(8, yw_f, yw_m)
+        else:
+            self.A, self.B = ab
 
         self.reset()
 
     def reset(self):
-        """Reset filter."""
-        # Initialise yulewalk-filter coefficients with sensible defaults
-        F = np.array([0, 2, 3, 13, 16, 40,
-                      np.minimum(80.0, (self.sfreq / 2.0) - 1.0),
-                      self.sfreq / 2.0]) * 2.0 / self.sfreq
-        M = np.array([3, 0.75, 0.33, 0.33, 1, 1, 3, 3])
-        B, A = yulewalk(8, F, M)
-        self.ab_ = (A, B)
-        self.cov_ = []
-        self.zi_ = None
-        self.state_ = {}
-        self._counter = []
+        """Reset state variables."""
+        self.M = None
+        self.T = None
+        self.R = None
+        self.carry = None
+        self.Zi = None
+        self.cov = None
         self._fitted = False
 
     def fit(self, X, y=None, **kwargs):
@@ -176,9 +179,8 @@ class ASR():
             min_clean_fraction=self.min_clean_fraction,
             max_dropout_fraction=self.max_dropout_fraction)
 
-
         # Perform calibration
-        M, T = asr_calibrate(
+        self.M, self.T = asr_calibrate(
             clean,
             sfreq=self.sfreq,
             cutoff=self.cutoff,
@@ -190,12 +192,11 @@ class ASR():
             method=self.method,
             estimator=self.estimator)
 
-        self.state_ = dict(M=M, T=T, R=None)
         self._fitted = True
 
         return clean, sample_mask
 
-    def transform(self, X, y=None, **kwargs):
+    def transform(self, X, y=None, lookahead=0.25, stepsize=32, maxdims=0.66, return_states=False, **kwargs):
         """Apply Artifact Subspace Reconstruction.
 
         Parameters
@@ -209,53 +210,8 @@ class ASR():
             Filtered data.
 
         """
-        if X.ndim == 3:
-            if X.shape[0] == 1:  # single epoch case
-                out = self.transform(X[0])
-                return out[None, ...]
-            else:
-                outs = [self.transform(x) for x in X]
-                return np.stack(outs, axis=0)
-        else:
-            # Yulewalk-filtered data
-            X_filt, self.zi_ = yulewalk_filter(
-                X, sfreq=self.sfreq, ab=self.ab_, zi=self.zi_)
-
-        if not self._fitted:
-            logging.warning('ASR is not fitted ! Returning unfiltered data.')
-            return X
-
-        if self.estimator == 'scm':
-            cov = 1 / X.shape[-1] * X_filt @ X_filt.T
-        else:
-            cov = pyriemann.estimation.covariances(X_filt[None, ...],
-                                                   self.estimator)[0]
-
-        self._counter.append(X_filt.shape[-1])
-        self.cov_.append(cov)
-
-        # Regulate the number of covariance matrices that are stored
-        while np.sum(self._counter) > self.memory:
-            if len(self.cov_) > 1:
-                self.cov_.pop(0)
-                self._counter.pop(0)
-            else:
-                self._counter = [self.memory, ]
-                break
-
-        # Exponential covariance weights – the most recent covariance has a
-        # weight of 1, while the oldest one in memory has a weight of 5%
-        weights = [1, ]
-        for c in np.cumsum(self._counter[1:]):
-            weights = [self.sample_weight[-c]] + weights
-
-        # Clean data, using covariances weighted by sample_weight
-        out, self.state_ = asr_process(X, X_filt, self.state_,
-                                       cov=np.stack(self.cov_),
-                                       method=self.method,
-                                       sample_weight=weights)
-
-        return out
+        return asr_process(X, self.sfreq, self.M, self.T, self.win_len, lookahead, stepsize, maxdims,
+                           (self.A, self.B), self.R, self.Zi, self.cov, self.carry, return_states)
 
 
 def asr_calibrate(X, sfreq, cutoff=5, blocksize=100, win_len=0.5,
@@ -346,13 +302,12 @@ def asr_calibrate(X, sfreq, cutoff=5, blocksize=100, win_len=0.5,
     if method == 'euclid':
         Uavg = geometric_median(U.reshape((-1, nc * nc))/blocksize)
         Uavg = Uavg.reshape((nc, nc))
-    else:  # method == 'riemann'
+    else:  # method == 'riemann'  # FIXME: the pyriemann method is not yet tested as pyriemann doesn't work with current sklearn
         Uavg = pyriemann.utils.mean_covariance(U, metric='riemann')
 
     # get the mixing matrix M
     M = linalg.sqrtm(np.real(Uavg))
-    #D, Vtmp = linalg.eigh(M)
-    D, Vtmp = nonlinear_eigenspace(M, nc) if method == "riemann" else linalg.eigh(M)
+    D, Vtmp = nonlinear_eigenspace(M, nc) if method == "riemann" else linalg.eigh(M) # FIXME: the pyriemann method is not yet tested as pyriemann doesn't work with current sklearn
     V = -Vtmp[:, np.argsort(D)]
 
     # get the threshold matrix T
@@ -375,85 +330,7 @@ def asr_calibrate(X, sfreq, cutoff=5, blocksize=100, win_len=0.5,
     return M, T
 
 
-def asr_processs(data, srate, state, windowlen, lookahead, stepsize, maxdims):
-
-    if maxdims < 1:
-        maxdims = np.round(len(data)*maxdims)
-
-    C, S = data.shape
-
-    N = np.round(windowlen*srate).astype(int)
-    P = np.round(lookahead*srate).astype(int)
-
-    T,M,A,B = state.T, state.M, state.A, state.B
-
-    if state.carry == None:
-        state.carry = np.tile(2*data[:,0], (P, 1)).T - data[:, np.mod(np.arange(P,0,-1),S)]
-    data = np.concatenate([state.carry, data], axis=-1)
-    # matlab does replace infs (/nans?) witzh 0 here
-
-    #splits = np.ceil(C*C*S*8*8 + C*C*8*s/stepsize + C*S*8*2 + S*8*5)
-    splits=3  # TODO: use this for parallelization
-
-    for i in range(splits):
-
-        i_range = np.arange(i*S//splits, np.min([(i+1)*S//splits, S]), dtype=int)
-        X, state.iir = yulewalk_filter(data[:, i_range + P], srate, zi=state.iir, ab=(A, B), axis=-1)
-
-        Xcov, state.cov = moving_average(N, np.reshape(np.multiply(np.reshape(X, (1, C, -1)), np.reshape(X, (C, 1, -1))), (C*C, -1)), state.cov)
-
-        update_at = np.minimum(np.arange(stepsize, Xcov.shape[-1]+stepsize-2, stepsize), Xcov.shape[-1])-1
-
-        if state.last_R is None:
-            update_at = np.concatenate([[0], update_at])
-            state.last_R = np.eye(C)
-
-        Xcov = np.reshape(Xcov[:, update_at], (C, C, -1))
-
-        last_n = 0
-        for j in range(len(update_at)-1):
-            D, V = np.linalg.eigh(Xcov[:, :, j]) # TODO: revert
-            #V = np.multiply(np.arange(C)+1, np.arange(C)[:, np.newaxis]+1)
-            #D = np.arange(C, 0, -1) * 5000000000000
-
-            keep = np.logical_or(D < np.sum((T@V)**2, axis=0), np.arange(C)+1 < (C-maxdims))
-
-            trivial = np.all(keep)
-            if not trivial:
-                from scipy.sparse.linalg import lsqr
-                #print(np.multiply(keep[:, np.newaxis], V.T @ M)[:, -1])
-                #print(M[:3, :3], M[-3:, -3:], V[:3, :3], V[-3:, -3:])
-                #R = np.real(M @ np.linalg.pinv(np.multiply(keep[:, np.newaxis], V.T @ M)) @ V.T) # TODO: CHANGE BACK
-                R = np.real(M @ np.linalg.pinv(np.multiply(keep[:, np.newaxis], V.T @ M)) @ V.T)
-                #R = np.real(M @ (np.multiply(keep[:, np.newaxis], V.T @ M)).T @ V.T)
-                print("R AFTER INIT ITer: {0} {1}".format(i, j), R[:3, :3], R.shape)
-            else:
-                R = np.eye(C)
-
-            # TODO: i think there's one iteration missing compared to matlab
-            n = update_at[j] + 1
-            if (not trivial) or (not state.last_trivial):
-                print(n)
-                subrange = i_range[np.arange(last_n, n)]
-
-                blend = (1 - np.cos(np.pi * np.arange(1, n-last_n+1)/(n-last_n)))/2
-
-
-                data[:, subrange] = np.multiply(blend, R@data[:, subrange]) + np.multiply(1-blend, state.last_R@data[:, subrange])
-                print("SUBRANGE: ", subrange)
-                print("data ITer: {0} {1}".format(i, j), data[:3, subrange], data[:, subrange].shape)
-            last_n, state.last_R, state.last_trivial = n, R, trivial
-
-            #if j > 20:
-            #    raise ValueError
-
-    state.carry = np.concatenate([state.carry, data[:, -P:]])
-    state.carry = state.carry[:, -P:]
-
-    return data[:, :-P], state
-
-
-def asr_process(data, sfreq, M, T, windowlen=0.5, lookahead=0.25, stepsize=32, maxdims=0.66, A=None, B=None, R=None, Zi=None, cov=None, carry=None, return_states=False):
+def asr_process(data, sfreq, M, T, windowlen=0.5, lookahead=0.25, stepsize=32, maxdims=0.66, ab=None, R=None, Zi=None, cov=None, carry=None, return_states=False):
     """Apply Artifact Subspace Reconstruction method.
 
     This function is used to clean multi-channel signal using the ASR method.
@@ -494,8 +371,17 @@ def asr_process(data, sfreq, M, T, windowlen=0.5, lookahead=0.25, stepsize=32, m
     if maxdims < 1:
         maxdims = np.round(len(data)*maxdims)
 
+    if ab == None:
+        yw_f = np.array([0, 2, 3, 13, 16, 40,
+                          np.minimum(80.0, (sfreq / 2.0) - 1.0),
+                          sfreq / 2.0]) * 2.0 / sfreq
+        yw_m = np.array([3, 0.75, 0.33, 0.33, 1, 1, 3, 3])
+        B, A = yulewalk(8, yw_f, yw_m)
+    else:
+        A, B = ab
+
     if Zi is None:
-        Zi = yulewalk_filter(data, ab=(A, B), sfreq=sfreq, zi=np.ones([len(data), 8]))
+        _, Zi = yulewalk_filter(data, ab=(A, B), sfreq=sfreq, zi=np.ones([len(data), 8]))
 
     C, S = data.shape
 
@@ -559,7 +445,6 @@ def asr_process(data, sfreq, M, T, windowlen=0.5, lookahead=0.25, stepsize=32, m
         return data[:, :-P]
 
 
-
 def moving_average(N, X, Zi):
     if Zi is None:
         Zi = np.zeros([len(X), N])
@@ -578,11 +463,11 @@ def moving_average(N, X, Zi):
                      Y[:, -N+1:]], axis=-1)
     return X, Zf
 
-
-
+# FIXME: clean windows seems to introduce some bugs that lead to an error when doing asr.fit(data), depending on the scale of the data. data * 1e6 works, but data not.
+# TODO: clean windows was not yet tested for MATLAB equivalence
 def clean_windows(X, sfreq, max_bad_chans=0.2, zthresholds=[-3.5, 5],
-                  win_len=.5, win_overlap=0.66, min_clean_fraction=0.25,
-                  max_dropout_fraction=0.1, show=False):
+                  win_len=1, win_overlap=0.66, min_clean_fraction=0.25,
+                  max_dropout_fraction=0.1):
     """Remove periods with abnormally high-power content from continuous data.
 
     This function cuts segments from the data which contain high-power
@@ -658,27 +543,28 @@ def clean_windows(X, sfreq, max_bad_chans=0.2, zthresholds=[-3.5, 5],
     """
     assert 0 < max_bad_chans < 1, "max_bad_chans must be a fraction !"
 
+    [nc, ns] = X.shape
+
     truncate_quant = [0.0220, 0.6000]
     step_sizes = [0.01, 0.01]
-    shape_range = np.linspace(1.7, 3.5, 13)
-    max_bad_chans = np.round(X.shape[0] * max_bad_chans)
+    shape_range = np.arange(1.7, 3.5, 0.15)
+    max_bad_chans = np.round(nc * max_bad_chans)
 
-    [nc, ns] = X.shape
     N = int(win_len * sfreq)
-    offsets = np.int_(np.arange(0, ns - N, np.round(N * (1 - win_overlap))))
+    offsets = np.round(np.arange(0, ns - N, (N * (1 - win_overlap)))).astype(int)
     logging.debug('[ASR] Determining channel-wise rejection thresholds')
 
     wz = np.zeros((nc, len(offsets)))
-    for ichan in range(nc):
+    window = np.arange(N-1)
+    for ichan in range(nc-1, 0, -1):
         x = X[ichan, :] ** 2
-        Y = []
-        for o in offsets:
-            Y.append(np.sqrt(np.sum(x[o:o + N]) / N))
+        x = np.sqrt(np.sum(x[np.add(offsets, window[:, np.newaxis])], axis=0)/N)
+        print("X in round " + str(ichan), x[:3], x[-3:])
 
         mu, sig, alpha, beta = fit_eeg_distribution(
-            Y, min_clean_fraction, max_dropout_fraction, truncate_quant,
+            x, min_clean_fraction, max_dropout_fraction, truncate_quant,
             step_sizes, shape_range)
-        wz[ichan] = (Y - mu) / sig
+        wz[ichan] = (x - mu) / sig
 
     # sort z scores into quantiles
     wz[np.isnan(wz)] = np.inf  # Nan to inf
@@ -686,9 +572,11 @@ def clean_windows(X, sfreq, max_bad_chans=0.2, zthresholds=[-3.5, 5],
 
     # determine which windows to remove
     if np.max(zthresholds) > 0:
-        mask1 = swz[-(np.int(max_bad_chans) + 1), :] > np.max(zthresholds)
+        mask1 = swz[-(np.int(max_bad_chans - 1)), :] > np.max(zthresholds)
     if np.min(zthresholds) < 0:
         mask2 = (swz[1 + np.int(max_bad_chans - 1), :] < np.min(zthresholds))
+
+
 
     bad_by_mad = median_abs_deviation(wz, scale=1, axis=0) < .1
     bad_by_std = np.std(wz, axis=0) < .1
@@ -696,6 +584,9 @@ def clean_windows(X, sfreq, max_bad_chans=0.2, zthresholds=[-3.5, 5],
 
     remove_mask = np.logical_or.reduce((mask1, mask2, mask3))
     removed_wins = np.where(remove_mask)
+
+    removed_samples = np.tile(offsets[removed_wins].T, (1, len(window))) + np.tile(removed_wins, (len(removed_wins), 1))
+    print("MASK SHAPES: ", removed_wins[0].shape, removed_wins[0])
 
     sample_maskidx = []
     for i in range(len(removed_wins[0])):
@@ -716,29 +607,8 @@ def clean_windows(X, sfreq, max_bad_chans=0.2, zthresholds=[-3.5, 5],
     if sample_mask2remove.size:
         sample_mask[0, sample_mask2remove] = False
 
-    if show:
-        import matplotlib.pyplot as plt
-        f, ax = plt.subplots(nc, sharex=True, figsize=(8, 5))
-        times = np.arange(ns) / float(sfreq)
-        for i in range(nc):
-            ax[i].fill_between(times, 0, 1, where=sample_mask.flat,
-                               transform=ax[i].get_xaxis_transform(),
-                               facecolor='none', hatch='...', edgecolor='k',
-                               label='selected window')
-            ax[i].plot(times, X[i], lw=.5, label='EEG')
-            ax[i].set_ylim([-50, 50])
-            # ax[i].set_ylabel(raw.ch_names[i])
-            ax[i].set_yticks([])
-        ax[i].set_xlabel('Time (s)')
-        ax[i].set_ylabel(f'ch{i}')
-        ax[0].legend(fontsize='small', bbox_to_anchor=(1.04, 1),
-                     borderaxespad=0)
-        plt.subplots_adjust(hspace=0, right=0.75)
-        plt.suptitle('Clean windows')
-        plt.show()
-
+    print("SAMPLE MASKS: ", np.sum(sample_mask))
     return clean, sample_mask
-
 
 
 def qr_pinv(A):

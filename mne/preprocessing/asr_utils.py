@@ -7,65 +7,6 @@ from scipy.spatial.distance import cdist, euclidean
 from scipy.special import gamma, gammaincinv
 
 
-def sliding_window(data, window, step=1, padded=False, axis=-1, copy=True):
-    """Calculate a sliding window over a signal.
-    Parameters
-    ----------
-    data : array
-        The array to be slided over.
-    window : int
-        The sliding window size.
-    step : int
-        The sliding window stepsize (default=1).
-    axis : int
-        The axis to slide over (defaults=-1).
-    copy : bool
-        Return strided array as copy to avoid sideffects when manipulating the
-        output array.
-    Returns
-    -------
-    data :  array, shape=(..., n_windows, window_size)
-        A matrix whose last dimension corresponds to the window size, and the
-        second-to-last dimension corresponds to the number of slices.
-    Notes
-    -----
-    - Be wary of setting `copy` to `False` as undesired sideffects with the
-      output values may occur.
-    Examples
-    --------
-    >>> a = numpy.array([1, 2, 3, 4, 5])
-    >>> sliding_window(a, size=3)
-    array([[1, 2, 3],
-           [2, 3, 4],
-           [3, 4, 5]])
-    >>> sliding_window(a, size=3, stepsize=2)
-    array([[1, 2, 3],
-           [3, 4, 5]])
-    """
-    if axis >= data.ndim:
-        raise ValueError("Axis value out of range")
-    if step < 1:
-        raise ValueError("Stepsize may not be zero or negative")
-    if window > data.shape[axis]:
-        print("Sliding window size exceeds size of selected axis")
-        return data[..., None]
-
-    shape = list(data.shape)
-    shape[axis] = np.floor(
-        data.shape[axis] / step - window / step + 1).astype(int)
-    shape.append(window)
-
-    strides = list(data.strides)
-    strides[axis] *= step
-    strides.append(data.strides[axis])
-    strided = np.lib.stride_tricks.as_strided(data, shape=shape, strides=strides)
-
-    if copy:
-        return strided.copy()
-    else:
-        return strided
-
-
 def fit_eeg_distribution(X, min_clean_fraction=0.25, max_dropout_fraction=0.1,
                          fit_quantiles=[0.022, 0.6],
                          step_sizes=[0.01, 0.01],
