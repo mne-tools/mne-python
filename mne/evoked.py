@@ -410,9 +410,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             sphere=sphere)
 
     @copy_function_doc_to_method_doc(plot_evoked_topo)
-    def plot_topo(self, layout=None, layout_scale=0.945, color=None,
-                  border='none', ylim=None, scalings=None, title=None,
-                  proj=False, vline=[0.0], fig_background=None,
+    def plot_topo(self, layout=None, exclude=None, layout_scale=0.945,
+                  color=None, border='none', ylim=None, scalings=None,
+                  title=None, proj=False, vline=[0.0], fig_background=None,
                   merge_grads=False, legend=True, axes=None,
                   background_color='w', noise_cov=None, show=True):
         """
@@ -421,9 +421,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         .. versionadded:: 0.10.0
         """
         return plot_evoked_topo(
-            self, layout=layout, layout_scale=layout_scale, color=color,
-            border=border, ylim=ylim, scalings=scalings, title=title,
-            proj=proj, vline=vline, fig_background=fig_background,
+            self, ,exclude=exclude, layout=layout, layout_scale=layout_scale,
+            color=color, border=border, ylim=ylim, scalings=scalings,
+            title=title, proj=proj, vline=vline, fig_background=fig_background,
             merge_grads=merge_grads, legend=legend, axes=axes,
             background_color=background_color, noise_cov=noise_cov, show=show)
 

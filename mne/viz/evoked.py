@@ -770,9 +770,9 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         time_unit=time_unit, sphere=sphere)
 
 
-def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
-                     border='none', ylim=None, scalings=None, title=None,
-                     proj=False, vline=[0.0], fig_background=None,
+def plot_evoked_topo(evoked, exclude=None, layout=None, layout_scale=0.945,
+                     color=None, border='none', ylim=None, scalings=None,
+                     title=None, proj=False, vline=[0.0], fig_background=None,
                      merge_grads=False, legend=True, axes=None,
                      background_color='w', noise_cov=None, show=True):
     """Plot 2D topography of evoked responses.
@@ -784,6 +784,9 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     ----------
     evoked : list of Evoked | Evoked
         The evoked response to plot.
+    exclude : list of str | 'bads'
+        Channels names to exclude from being shown. If 'bads', the
+        bad channels are excluded.
     layout : instance of Layout | None
         Layout instance specifying sensor positions (does not need to
         be specified for Neuromag data). If possible, the correct layout is
@@ -870,7 +873,7 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
             color = _get_color_list()
         color = color * ((len(evoked) % len(color)) + 1)
         color = color[:len(evoked)]
-    return _plot_evoked_topo(evoked=evoked, layout=layout,
+    return _plot_evoked_topo(evoked=evoked, exclude=exclude, layout=layout,
                              layout_scale=layout_scale, color=color,
                              border=border, ylim=ylim, scalings=scalings,
                              title=title, proj=proj, vline=vline,
