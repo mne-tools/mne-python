@@ -421,7 +421,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         .. versionadded:: 0.10.0
         """
         return plot_evoked_topo(
-            self, ,exclude=exclude, layout=layout, layout_scale=layout_scale,
+            self, exclude=exclude, layout=layout, layout_scale=layout_scale,
             color=color, border=border, ylim=ylim, scalings=scalings,
             title=title, proj=proj, vline=vline, fig_background=fig_background,
             merge_grads=merge_grads, legend=legend, axes=axes,
