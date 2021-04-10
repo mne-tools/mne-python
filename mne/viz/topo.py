@@ -563,12 +563,13 @@ def _erfimage_imshow_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
                                 interpolation='nearest'))
 
 
-def _plot_evoked_topo(evoked, exclude=None, layout=None, layout_scale=0.945,
+def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945,
                       color=None, border='none', ylim=None, scalings=None,
                       title=None, proj=False, vline=(0.,), hline=(0.,),
                       fig_facecolor='k', fig_background=None,
                       axis_facecolor='k', font_color='w', merge_channels=False,
-                      legend=True, axes=None, show=True, noise_cov=None):
+                      legend=True, axes=None, exclude=None, show=True,
+                      noise_cov=None):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -578,9 +579,6 @@ def _plot_evoked_topo(evoked, exclude=None, layout=None, layout_scale=0.945,
     ----------
     evoked : list of Evoked | Evoked
         The evoked response to plot.
-    exclude : list of str | 'bads'
-        Channels names to exclude from being shown. If 'bads', the
-        bad channels are excluded.
     layout : instance of Layout | None
         Layout instance specifying sensor positions (does not need to
         be specified for Neuromag data). If possible, the correct layout is
@@ -635,6 +633,9 @@ def _plot_evoked_topo(evoked, exclude=None, layout=None, layout_scale=0.945,
         See matplotlib documentation for more details.
     axes : instance of matplotlib Axes | None
         Axes to plot into. If None, axes will be created.
+    exclude : list of str | 'bads'
+        Channels names to exclude from being shown. If 'bads', the
+        bad channels are excluded.
     show : bool
         Show figure if True.
     noise_cov : instance of Covariance | str | None
@@ -693,7 +694,6 @@ def _plot_evoked_topo(evoked, exclude=None, layout=None, layout_scale=0.945,
             ch['ch_name'] = ch['ch_name'][:-1] + 'X'
             chs.append(ch)
         info['chs'] = chs
-        info['bads'] = list()  # bads dropped on pair_grad_sensors
         info._update_redundant()
         info._check_consistency()
         new_picks = list()
