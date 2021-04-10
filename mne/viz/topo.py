@@ -633,15 +633,15 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945,
         See matplotlib documentation for more details.
     axes : instance of matplotlib Axes | None
         Axes to plot into. If None, axes will be created.
+    noise_cov : instance of Covariance | str | None
+        Noise covariance used to whiten the data while plotting.
+        Whitened data channels names are shown in italic.
+        Can be a string to load a covariance from disk.
     exclude : list of str | 'bads'
         Channels names to exclude from being shown. If 'bads', the
         bad channels are excluded.
     show : bool
         Show figure if True.
-    noise_cov : instance of Covariance | str | None
-        Noise covariance used to whiten the data while plotting.
-        Whitened data channels names are shown in italic.
-        Can be a string to load a covariance from disk.
 
         .. versionadded:: 0.16.0
 

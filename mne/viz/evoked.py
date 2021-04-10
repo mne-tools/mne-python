@@ -831,9 +831,6 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945,
         See matplotlib documentation for more details.
     axes : instance of matplotlib Axes | None
         Axes to plot into. If None, axes will be created.
-    exclude : list of str | 'bads'
-        Channels names to exclude from being shown. If 'bads', the
-        bad channels are excluded.
     background_color : color
         Background color. Typically 'k' (black) or 'w' (white; default).
 
@@ -844,6 +841,9 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945,
         Can be a string to load a covariance from disk.
 
         .. versionadded:: 0.16.0
+    exclude : list of str | 'bads'
+        Channels names to exclude from being shown. If 'bads', the
+        bad channels are excluded.
     show : bool
         Show figure if True.
 
