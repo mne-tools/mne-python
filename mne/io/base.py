@@ -950,7 +950,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     @verbose
     def apply_function(self, fun, picks=None, dtype=None, n_jobs=1,
-                       channel_wise=True, verbose=None, *args, **kwargs):
+                       channel_wise=True, verbose=None, **kwargs):
         """Apply a function to a subset of channels.
 
         %(applyfun_summary_raw)s
@@ -965,7 +965,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
             .. versionadded:: 0.18
         %(verbose_meth)s
-        %(arg_fun)s
         %(kwarg_fun)s
 
         Returns
@@ -988,17 +987,17 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                 # modify data inplace to save memory
                 for idx in picks:
                     self._data[idx, :] = _check_fun(fun, data_in[idx, :],
-                                                    *args, **kwargs)
+                                                    **kwargs)
             else:
                 # use parallel function
                 parallel, p_fun, _ = parallel_func(_check_fun, n_jobs)
                 data_picks_new = parallel(
-                    p_fun(fun, data_in[p], *args, **kwargs) for p in picks)
+                    p_fun(fun, data_in[p], **kwargs) for p in picks)
                 for pp, p in enumerate(picks):
                     self._data[p, :] = data_picks_new[pp]
         else:
             self._data[picks, :] = _check_fun(
-                fun, data_in[picks, :], *args, **kwargs)
+                fun, data_in[picks, :], **kwargs)
 
         return self
 
@@ -2354,13 +2353,13 @@ def _check_raw_compatibility(raw):
     """Ensure all instances of Raw have compatible parameters."""
     for ri in range(1, len(raw)):
         if not isinstance(raw[ri], type(raw[0])):
-            raise ValueError('raw[%d] type must match' % ri)
-        if not raw[ri].info['nchan'] == raw[0].info['nchan']:
-            raise ValueError('raw[%d][\'info\'][\'nchan\'] must match' % ri)
-        if not raw[ri].info['bads'] == raw[0].info['bads']:
-            raise ValueError('raw[%d][\'info\'][\'bads\'] must match' % ri)
-        if not raw[ri].info['sfreq'] == raw[0].info['sfreq']:
-            raise ValueError('raw[%d][\'info\'][\'sfreq\'] must match' % ri)
+            raise ValueError(f'raw[{ri}] type must match')
+        for key in ('nchan', 'bads', 'sfreq'):
+            a, b = raw[ri].info[key], raw[0].info[key]
+            if a != b:
+                raise ValueError(
+                    f'raw[{ri}].info[{key}] must match:\n'
+                    f'{repr(a)} != {repr(b)}')
         if not set(raw[ri].info['ch_names']) == set(raw[0].info['ch_names']):
             raise ValueError('raw[%d][\'info\'][\'ch_names\'] must match' % ri)
         if not all(raw[ri]._cals == raw[0]._cals):

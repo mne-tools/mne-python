@@ -99,6 +99,8 @@ Enhancements
 
 - Add digitizer information to :func:`mne.io.read_raw_egi` (:gh:`8789` by `Christian Brodbeck`_)
 
+- Add support for reading some incomplete raw FIF files in :func:`mne.io.read_raw_fif` (:gh:`9268` by `Eric Larson`_)
+
 - Allow reading digitization from files other than ``*.fif`` in the coregistration GUI (:gh:`8790` by `Christian Brodbeck`_)
 
 - Speed up :func:`mne.inverse_sparse.tf_mixed_norm` using STFT/ISTFT linearity (:gh:`8697` by `Eric Larson`_)
@@ -112,6 +114,10 @@ Enhancements
 - `mne.Report` has gained the new methods `~mne.Report.add_custom_js` and `~mne.Report.add_custom_css` for adding user-defined JavaScript and styles (:gh:`8762`, :gh:`9037` by `Richard Höchenberger`_)
 
 - Add option to control appearance of opaque inside surface of the head to :ref:`mne coreg` (:gh:`8793` by `Eric Larson`_)
+
+- Add option to disable projection using ``--projoff`` in :ref:`mne browse_raw` (:gh:`9262` by `Eric Larson`_)
+
+- Add keypress to toggle projection using ``shift+j`` in :meth:`mne.io.Raw.plot` and :ref:`mne browse_raw` (:gh:`9262` by `Eric Larson`_)
 
 - Add support for non-FIF files in :ref:`mne browse_raw` using :func:`mne.io.read_raw` (:gh:`8806` by `Eric Larson`_)
 
@@ -167,12 +173,16 @@ Enhancements
 
 - Add ``units`` parameter to :meth:`mne.io.Raw.get_data` to return data in the desired unit (:gh:`9136` by `Johann Benerradi`_ and `Stefan Appelhoff`_)
 
+- Add :func:`mne.preprocessing.equalize_bads` to interpolate bad channels in a list of `~mne.Evoked`, `~mne.Epochs` or `~mne.io.Raw` having different sets of bad channels (:gh:`9241` by `Alex Gramfort`_)
+
+- :meth:`mne.Epochs.equalize_event_counts` can now be called without providing a list of event names, and will equalize the counts of **all** event types present in the `~mne.Epochs` (:gh:`9261` by `Richard Höchenberger`_)
+
 Bugs
 ~~~~
 - Fix bug with :func:`mne.io.read_raw_edf` where µV was not correctly recognized (:gh:`9187` **by new contributor** |Sumalyo Datta|_)
 
 - Fix bug with :func:`mne.viz.plot_compare_evokeds` did not check type of combine. (:gh:`9151` **by new contributor** |Matteo Anelli|_)
-                                        
+
 - Fix bug with :func:`mne.viz.plot_evoked_topo` where ``ylim`` was only being applied to the first channel in the dataset (:gh:`9162` **by new contributor** |Ram Pari|_ )
 
 - Fix bug with :func:`mne.Epochs.plot_image` allowing interactive zoom to work properly (:gh:`9152` by **by new contributor** |Maggie Clarke|_ and `Daniel McCloy`_)
@@ -269,6 +279,8 @@ Bugs
 
 - Fix bug with :func:`mne.io.Raw.pick` where incorrect fnirs types were returned (:gh:`9178` by `Robert Luke`_)
 
+- Fix bug when passing both axes and picks to `mne.viz.plot_compare_evokeds` (:gh:`9252` by `Daniel McCloy`_)
+
 - Improved string representation of `~mne.Epochs` containing multiple event types; improved (and more mathematically correct) ``evoked.comment`` in the `mne.combine_evoked` output; and better (and often more concise) legend labels in the figures created via `~mne.viz.plot_compare_evokeds` (:gh:`9027` by `Richard Höchenberger`_)
 
 - :func:`mne.preprocessing.find_ecg_events` now correctly handles situation where no ECG activity could be detected, and correctly returns an empty array of ECG events (:gh:`9236` by `Richard Höchenberger`_)
@@ -276,6 +288,8 @@ Bugs
 API changes
 ~~~~~~~~~~~
 - Introduced new ``'auto'`` settings for ``ICA.max_iter``. The old default ``max_iter=200`` will be removed in MNE-Python 0.24 (:gh:`9099` **by new contributor** |Cora Kim|_)
+
+- `mne.viz.plot_sensors_connectivity` now allows setting the colorbar label via the ``cbar_label`` parameter (:gh:`9248` by `Daniel McCloy`_)
 
 - ``mne.read_selection`` has been deprecated in favor of `mne.read_vectorview_selection`. ``mne.read_selection`` will be removed in MNE-Python 0.24 (:gh:`8870` by `Richard Höchenberger`_)
 

@@ -306,6 +306,10 @@ def test_plot_raw_ssp_interaction(raw):
     _fake_click(ssp_fig, ssp_fig.mne.proj_all.ax, [0.5, 0.5])
     _fake_click(ssp_fig, ssp_fig.mne.proj_all.ax, [0.5, 0.5], kind='release')
     assert _proj_status(ax) == [True, False, False]
+    fig.canvas.key_press_event('J')
+    assert _proj_status(ax) == [True, True, True]
+    fig.canvas.key_press_event('J')
+    assert _proj_status(ax) == [True, False, False]
     # turn all on
     _fake_click(ssp_fig, ssp_fig.mne.proj_all.ax, [0.5, 0.5])  # all on
     _fake_click(ssp_fig, ssp_fig.mne.proj_all.ax, [0.5, 0.5], kind='release')

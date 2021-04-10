@@ -1,20 +1,8 @@
 {%- extends "pydata_sphinx_theme/layout.html" %}
 
-{% block fonts %}
-    <!-- add `style` or `link` tags with your CSS `@font-face` declarations here -->
-    <!-- ... and a `style` tag with setting `font-family` in `body` and `.header-style` -->
-    <!-- ... and optionally preload the `woff2` for snappier page loads -->
-    <!-- or add a `style` tag with a font fallback chain with good cross-platform coverage -->
-    <style>
-        body,.header-style {font-family: 'Source Sans Pro', sans-serif;}
-        code,kbd,pre,samp {font-family: 'Source Code Pro', monospace;}
-    </style>
-{% endblock %}
-
 {% block extrahead %}
     <link rel="canonical" href="https://mne.tools/stable/index.html" />
     <script type="text/javascript" src="{{ pathto('_static/copybutton.js', 1) }}"></script>
-    <script type="text/javascript" src="{{ pathto('_static/scrollfix.js', 1) }}"></script>
 {{ super() }}
 {% endblock %}
 

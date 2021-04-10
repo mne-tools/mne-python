@@ -144,9 +144,6 @@ intersphinx_mapping = {
     'patsy': ('https://patsy.readthedocs.io/en/latest', None),
     'pyvista': ('https://docs.pyvista.org', None),
     'imageio': ('https://imageio.readthedocs.io/en/latest', None),
-    # We need to stick with 1.2.0 for now:
-    # https://github.com/dipy/dipy/issues/2290
-    'dipy': ('https://dipy.org/documentation/1.2.0.', None),
     'mne_realtime': ('https://mne.tools/mne-realtime', None),
     'picard': ('https://pierreablin.github.io/picard/', None),
     'qdarkstyle': ('https://qdarkstylesheet.readthedocs.io/en/latest', None)
@@ -247,6 +244,10 @@ numpydoc_xref_ignore = {
     # unlinkable
     'mayavi.mlab.pipeline.surface',
     'CoregFrame', 'Kit2FiffFrame', 'FiducialsFrame',
+    # dipy has resolution problems, wait for them to be solved, e.g.
+    # https://github.com/dipy/dipy/issues/2290
+    'dipy.align.AffineMap',
+    'dipy.align.DiffeomorphicMap',
 }
 numpydoc_validate = True
 numpydoc_validation_checks = {'all'} | set(error_ignores)
@@ -411,15 +412,29 @@ def append_attr_meth_examples(app, what, name, obj, options, lines):
 
 # -- Other extension configuration -------------------------------------------
 
-linkcheck_ignore = [
-    'https://doi.org/10.1088/0031-9155/57/7/1937',  # noqa 403 Client Error: Forbidden for url: http://iopscience.iop.org/article/10.1088/0031-9155/57/7/1937/meta
-    'https://doi.org/10.1088/0031-9155/51/7/008',  # noqa 403 Client Error: Forbidden for url: https://iopscience.iop.org/article/10.1088/0031-9155/51/7/008
-    'https://sccn.ucsd.edu/wiki/.*',  # noqa HTTPSConnectionPool(host='sccn.ucsd.edu', port=443): Max retries exceeded with url: /wiki/Firfilt_FAQ (Caused by SSLError(SSLError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed (_ssl.c:847)'),))
-    'https://docs.python.org/dev/howto/logging.html',  # noqa ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+linkcheck_request_headers = dict(user_agent='Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36')  # noqa: E501
+linkcheck_ignore = [  # will be compiled to regex
+    r'https://datashare.is.ed.ac.uk/handle/10283/2189\?show=full',  # noqa Max retries exceeded with url: /handle/10283/2189?show=full (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1123)')))
+    'https://doi.org/10.1088/0031-9155/32/1/004',  # noqa Read timed out. (read timeout=15)
+    'https://doi.org/10.1088/0031-9155/40/3/001',  # noqa Read timed out. (read timeout=15)
+    'https://doi.org/10.1088/0031-9155/51/7/008',  # noqa Read timed out. (read timeout=15)
+    'https://doi.org/10.1088/0031-9155/57/7/1937',  # noqa Read timed out. (read timeout=15)
+    'https://doi.org/10.1088/0967-3334/22/4/305',  # noqa Read timed out. (read timeout=15)
+    'https://doi.org/10.1088/1741-2552/aacfe4',  # noqa Read timed out. (read timeout=15)
+    'https://doi.org/10.1093/sleep/18.7.557',  # noqa 403 Client Error: Forbidden for url: https://academic.oup.com/sleep/article-lookup/doi/10.1093/sleep/18.7.557
+    'https://doi.org/10.1162/089976699300016719',  # noqa 403 Client Error: Forbidden for url: https://direct.mit.edu/neco/article/11/2/417-441/6242
+    'https://doi.org/10.1162/jocn.1993.5.2.162',  # noqa 403 Client Error: Forbidden for url: https://direct.mit.edu/jocn/article/5/2/162-176/3095
+    'https://doi.org/10.1162/neco.1995.7.6.1129',  # noqa 403 Client Error: Forbidden for url: https://direct.mit.edu/neco/article/7/6/1129-1159/5909
+    'https://doi.org/10.1162/jocn_a_00405',  # noqa 403 Client Error: Forbidden for url: https://direct.mit.edu/jocn/article/25/9/1477-1492/27980
+    'https://doi.org/10.1167/15.6.4',  # noqa 403 Client Error: Forbidden for url: https://jov.arvojournals.org/article.aspx?doi=10.1167/15.6.4
+    'https://doi.org/10.7488/ds/1556',  # noqa Max retries exceeded with url: /handle/10283/2189 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1122)')))
+    'https://imaging.mrc-cbu.cam.ac.uk/imaging/MniTalairach',  # noqa Max retries exceeded with url: /imaging/MniTalairach (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1122)')))
+    'https://www.nyu.edu/',  # noqa Max retries exceeded with url: / (Caused by SSLError(SSLError(1, '[SSL: DH_KEY_TOO_SMALL] dh key too small (_ssl.c:1122)')))
     'https://docs.python.org/3/library/.*',  # noqa ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
     'https://hal.archives-ouvertes.fr/hal-01848442/',  # noqa Sometimes: 503 Server Error: Service Unavailable for url: https://hal.archives-ouvertes.fr/hal-01848442/
 ]
 linkcheck_anchors = False  # saves a bit of time
+linkcheck_timeout = 15  # some can be quite slow
 
 # autodoc / autosummary
 autosummary_generate = True
@@ -444,6 +459,7 @@ nitpick_ignore = [
     ("py:class", "a shallow copy of D"),
     ("py:class", "(k, v), remove and return some (key, value) pair as a"),
     ("py:class", "_FuncT"),  # type hint used in @verbose decorator
+    ("py:class", "mne.utils._logging._FuncT"),
 ]
 for key in ('AcqParserFIF', 'BiHemiLabel', 'Dipole', 'DipoleFixed', 'Label',
             'MixedSourceEstimate', 'MixedVectorSourceEstimate', 'Report',
