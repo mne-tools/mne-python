@@ -100,7 +100,15 @@ def test_compute_proj_eog(average, short_raw):
             raw, n_mag=2, n_grad=2, n_eeg=2, average=average, bads=[],
             avg_ref=True, no_proj=False, l_freq=None, h_freq=None,
             tmax=dur_use)
-    assert projs is None
+    assert projs == []
+
+    raw._data[raw.ch_names.index('EOG 061'), :] = 1.
+    with pytest.warns(RuntimeWarning, match='filter.*longer than the signal'):
+        from mne.preprocessing import find_eog_events
+        raw.pick_channels(['EOG 061'])
+        e = find_eog_events(raw, ch_name='EOG 061')
+        projs, events = compute_proj_eog(raw=raw, tmax=dur_use,
+                                         ch_name='EOG 061')
 
 
 @pytest.mark.slowtest  # can be slow on OSX
