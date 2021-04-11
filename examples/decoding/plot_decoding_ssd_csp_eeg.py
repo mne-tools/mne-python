@@ -5,11 +5,11 @@
 Improving motor imagery decoding from EEG using Spatio Spectra Decomposition
 ============================================================================
 
-The Spatio Spectra Decomposition (SSD) is a supervised spatial filtering
-algorithm capable of extracting components primarily related to the signal of
-interest. It can be used as a pre-processing step for the analysis of neuronal
-activity. In this example SSD will be used in the context of Motor Imagery
-decoding from EEG data. It will be applied before extracting features with
+The Spatio Spectra Decomposition (SSD) is a unsupervised spatial filtering
+algorithm that can be used as a pre-processing approach for data dimensionality
+reduction while the 1/f noise in the neural data is reduced :footcite:`HaufeEtAl2014b`.
+It is useful extract to capture induced activity during motor imagery.
+activity. SSD will be applied before extracting features with
 the Common Spatial Patterns (CSP) method. A classifier will then be trained
 using the extracted features from the SSD + CSP-filtered signals. The impact in
 performance of using SSD before CSP will be shown here.
@@ -34,6 +34,7 @@ from mne.channels import make_standard_montage
 from mne.io import concatenate_raws, read_raw_edf
 from mne.datasets import eegbci
 from mne.decoding import CSP
+
 from mne.decoding import SSD
 ###############################################################################
 # Set parameters and read data
@@ -42,8 +43,8 @@ from mne.decoding import SSD
 tmin, tmax = 0.5, 2.5
 event_id = dict(left=2, right=3)  # Motor imagery: left vs right hand
 runs = [4, 8, 12]
-Subjects_set = [2, 7, 31, 34, 42, 56, 60, 62, 85, 100]
-NSubject = len(Subjects_set)
+subjects = [2, 7, 31, 34, 42, 56, 60, 62, 85, 100]
+n_subjects = len(subjects)
 scores_csp = np.zeros((NSubject, 1))
 std_csp = np.zeros((NSubject, 1))
 # Data filtering.
@@ -66,8 +67,7 @@ n_components = np.arange(4, 65, steps)
 scores_ssd_csp_e = np.zeros((NSubject, len(n_components)))
 std_ssd_csp_e = np.zeros((NSubject, len(n_components)))
 
-for s in range(NSubject):
-    subject = Subjects_set[s]
+for s_idx, subject in enumerate(subjects):
     raw_fnames = eegbci.load_data(subject, runs)
     raw = concatenate_raws([read_raw_edf(f, preload=True) for f in raw_fnames])
     eegbci.standardize(raw)  # set channel names
@@ -104,9 +104,8 @@ for s in range(NSubject):
     # pipeline
     scores_csp[s] = cross_val_score(pipe_csp, epochs_data, labels, cv=cv,
                                     n_jobs=1).mean()
-    std_csp[s] = cross_val_score(pipe_csp, epochs_data, labels, cv=cv,
+    std_csp[s_idx] = cross_val_score(pipe_csp, epochs_data, labels, cv=cv,
                                  n_jobs=1).std()
-###############################################################################
     # SSD + CSP + LDA pipeline
     # ^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -163,6 +162,7 @@ ax.legend()
 # for improving discriminative power in the alpha-band. On average, the best
 # performance was achieved between 6 and 12 components, value that lies
 # between the range found by the authors in :footcite:`HaufeEtAl2014b`.
+
 ##############################################################################
 # Neurophysiological interpretation of the solution
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
