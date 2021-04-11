@@ -774,7 +774,7 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945,
                      color=None, border='none', ylim=None, scalings=None,
                      title=None, proj=False, vline=[0.0], fig_background=None,
                      merge_grads=False, legend=True, axes=None,
-                     background_color='w', noise_cov=None, exclude=None,
+                     background_color='w', noise_cov=None, exclude=('bads'),
                      show=True):
     """Plot 2D topography of evoked responses.
 
