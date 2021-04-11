@@ -690,6 +690,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945,
             ch['ch_name'] = ch['ch_name'][:-1] + 'X'
             chs.append(ch)
         info['chs'] = chs
+        info['bads'] = list() # Bads handled by pair_grad_sensors
         info._update_redundant()
         info._check_consistency()
         new_picks = list()
@@ -705,7 +706,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945,
         y_label = 'RMS amplitude (%s)' % unit
 
     if layout is None:
-        layout = find_layout(info)
+        layout = find_layout(info, exclude=exclude)
 
     if not merge_channels:
         # XXX. at the moment we are committed to 1- / 2-sensor-types layouts
