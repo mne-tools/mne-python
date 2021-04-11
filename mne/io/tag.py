@@ -457,6 +457,8 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
     if pos is not None:
         fid.seek(pos, 0)
     tag = _read_tag_header(fid)
+    if tag is None:
+        return tag
     if tag.size > 0:
         matrix_coding = _is_matrix & tag.type
         if matrix_coding != 0:

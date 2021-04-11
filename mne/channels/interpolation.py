@@ -123,7 +123,9 @@ def _do_interp_dots(inst, interpolation, goods_idx, bads_idx):
 
 
 @verbose
-def _interpolate_bads_eeg(inst, origin, exclude, verbose=None):
+def _interpolate_bads_eeg(inst, origin, exclude=None, verbose=None):
+    if exclude is None:
+        exclude = list()
     bads_idx = np.zeros(len(inst.ch_names), dtype=bool)
     goods_idx = np.zeros(len(inst.ch_names), dtype=bool)
 
@@ -208,7 +210,7 @@ def _interpolate_bads_nirs(inst, method='nearest', exclude=(), verbose=None):
 
     # Returns pick of all nirs and ensures channels are correctly ordered
     freqs = np.unique(_channel_frequencies(inst))
-    picks_nirs = _check_channels_ordered(inst, freqs)
+    picks_nirs = _check_channels_ordered(inst.info, freqs)
     if len(picks_nirs) == 0:
         return
 
