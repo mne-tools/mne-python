@@ -157,9 +157,9 @@ def test_fnirs_channel_naming_and_order_readers(fname):
 
     # All standard readers should pass tests
     raw = read_raw_nirx(fname)
-    freqs = np.unique(_channel_frequencies(raw))
+    freqs = np.unique(_channel_frequencies(raw.info))
     assert_array_equal(freqs, [760, 850])
-    chroma = np.unique(_channel_chromophore(raw))
+    chroma = np.unique(_channel_chromophore(raw.info))
     assert len(chroma) == 0
 
     picks = _check_channels_ordered(raw.info, freqs)
@@ -183,19 +183,19 @@ def test_fnirs_channel_naming_and_order_readers(fname):
 
     # Check on OD data
     raw = optical_density(raw)
-    freqs = np.unique(_channel_frequencies(raw))
+    freqs = np.unique(_channel_frequencies(raw.info))
     assert_array_equal(freqs, [760, 850])
-    chroma = np.unique(_channel_chromophore(raw))
+    chroma = np.unique(_channel_chromophore(raw.info))
     assert len(chroma) == 0
     picks = _check_channels_ordered(raw.info, freqs)
     assert len(picks) == len(raw.ch_names)  # as all fNIRS only data
 
     # Check on haemoglobin data
     raw = beer_lambert_law(raw)
-    freqs = np.unique(_channel_frequencies(raw))
+    freqs = np.unique(_channel_frequencies(raw.info))
     assert len(freqs) == 0
-    assert len(_channel_chromophore(raw)) == len(raw.ch_names)
-    chroma = np.unique(_channel_chromophore(raw))
+    assert len(_channel_chromophore(raw.info)) == len(raw.ch_names)
+    chroma = np.unique(_channel_chromophore(raw.info))
     assert_array_equal(chroma, ["hbo", "hbr"])
     picks = _check_channels_ordered(raw.info, chroma)
     assert len(picks) == len(raw.ch_names)
@@ -218,7 +218,7 @@ def test_fnirs_channel_naming_and_order_custom_raw():
     for idx, f in enumerate(freqs):
         raw.info["chs"][idx]["loc"][9] = f
 
-    freqs = np.unique(_channel_frequencies(raw))
+    freqs = np.unique(_channel_frequencies(raw.info))
     picks = _check_channels_ordered(raw.info, freqs)
     assert len(picks) == len(raw.ch_names)
     assert len(picks) == 6
@@ -291,7 +291,7 @@ def test_fnirs_channel_naming_and_order_custom_optical_density():
     for idx, f in enumerate(freqs):
         raw.info["chs"][idx]["loc"][9] = f
 
-    freqs = np.unique(_channel_frequencies(raw))
+    freqs = np.unique(_channel_frequencies(raw.info))
     picks = _check_channels_ordered(raw.info, freqs)
     assert len(picks) == len(raw.ch_names)
     assert len(picks) == 6
@@ -334,7 +334,7 @@ def test_fnirs_channel_naming_and_order_custom_chroma():
     info = create_info(ch_names=ch_names, ch_types=ch_types, sfreq=1.0)
     raw = RawArray(data, info, verbose=True)
 
-    chroma = np.unique(_channel_chromophore(raw))
+    chroma = np.unique(_channel_chromophore(raw.info))
     picks = _check_channels_ordered(raw.info, chroma)
     assert len(picks) == len(raw.ch_names)
     assert len(picks) == 6

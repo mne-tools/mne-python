@@ -55,25 +55,24 @@ def short_channels(info, threshold=0.01):
     return source_detector_distances(info) < threshold
 
 
-def _channel_frequencies(raw):
+def _channel_frequencies(info):
     """Return the light frequency for each channel."""
     # Only valid for fNIRS data before conversion to haemoglobin
-    picks = _picks_to_idx(raw.info, ['fnirs_cw_amplitude', 'fnirs_od'],
+    picks = _picks_to_idx(info, ['fnirs_cw_amplitude', 'fnirs_od'],
                           exclude=[], allow_empty=True)
     freqs = np.empty(picks.size, int)
     for ii in picks:
-        freqs[ii] = raw.info['chs'][ii]['loc'][9]
+        freqs[ii] = info['chs'][ii]['loc'][9]
     return freqs
 
 
-def _channel_chromophore(raw):
+def _channel_chromophore(info):
     """Return the chromophore of each channel."""
     # Only valid for fNIRS data after conversion to haemoglobin
-    picks = _picks_to_idx(raw.info, ['hbo', 'hbr'],
-                          exclude=[], allow_empty=True)
+    picks = _picks_to_idx(info, ['hbo', 'hbr'], exclude=[], allow_empty=True)
     chroma = []
     for ii in picks:
-        chroma.append(raw.ch_names[ii].split(" ")[1])
+        chroma.append(info['ch_names'][ii].split(" ")[1])
     return chroma
 
 
