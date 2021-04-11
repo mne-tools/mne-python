@@ -35,7 +35,7 @@ def beer_lambert_law(raw, ppf=0.1):
     _validate_type(raw, BaseRaw, 'raw')
 
     freqs = np.unique(_channel_frequencies(raw))
-    picks = _check_channels_ordered(raw, freqs)
+    picks = _check_channels_ordered(raw.info, freqs)
     abs_coef = _load_absorption(freqs)
     distances = source_detector_distances(raw.info)
 
@@ -57,7 +57,7 @@ def beer_lambert_law(raw, ppf=0.1):
 
     # Validate the format of data after transformation is valid
     chroma = np.unique(_channel_chromophore(raw))
-    _check_channels_ordered(raw, chroma)
+    _check_channels_ordered(raw.info, chroma)
     return raw
 
 

@@ -162,7 +162,7 @@ def test_fnirs_channel_naming_and_order_readers(fname):
     chroma = np.unique(_channel_chromophore(raw))
     assert len(chroma) == 0
 
-    picks = _check_channels_ordered(raw, freqs)
+    picks = _check_channels_ordered(raw.info, freqs)
     assert len(picks) == len(raw.ch_names)  # as all fNIRS only data
 
     # Check that dropped channels are detected
@@ -170,16 +170,16 @@ def test_fnirs_channel_naming_and_order_readers(fname):
     # removing one should throw an error.
     raw_dropped = raw.copy().drop_channels(raw.ch_names[4])
     with pytest.raises(ValueError, match='not ordered correctly'):
-        _check_channels_ordered(raw_dropped, freqs)
+        _check_channels_ordered(raw_dropped.info, freqs)
 
     # The ordering must match the passed in argument
     raw_names_reversed = raw.copy().ch_names
     raw_names_reversed.reverse()
     raw_reversed = raw.copy().pick_channels(raw_names_reversed, ordered=True)
     with pytest.raises(ValueError, match='not ordered .* frequencies'):
-        _check_channels_ordered(raw_reversed, freqs)
+        _check_channels_ordered(raw_reversed.info, freqs)
     # So if we flip the second argument it should pass again
-    _check_channels_ordered(raw_reversed, [850, 760])
+    _check_channels_ordered(raw_reversed.info, [850, 760])
 
     # Check on OD data
     raw = optical_density(raw)
@@ -187,7 +187,7 @@ def test_fnirs_channel_naming_and_order_readers(fname):
     assert_array_equal(freqs, [760, 850])
     chroma = np.unique(_channel_chromophore(raw))
     assert len(chroma) == 0
-    picks = _check_channels_ordered(raw, freqs)
+    picks = _check_channels_ordered(raw.info, freqs)
     assert len(picks) == len(raw.ch_names)  # as all fNIRS only data
 
     # Check on haemoglobin data
@@ -197,10 +197,10 @@ def test_fnirs_channel_naming_and_order_readers(fname):
     assert len(_channel_chromophore(raw)) == len(raw.ch_names)
     chroma = np.unique(_channel_chromophore(raw))
     assert_array_equal(chroma, ["hbo", "hbr"])
-    picks = _check_channels_ordered(raw, chroma)
+    picks = _check_channels_ordered(raw.info, chroma)
     assert len(picks) == len(raw.ch_names)
     with pytest.raises(ValueError, match='not ordered .* chromophore'):
-        _check_channels_ordered(raw, ["hbx", "hbr"])
+        _check_channels_ordered(raw.info, ["hbx", "hbr"])
 
 
 def test_fnirs_channel_naming_and_order_custom_raw():
@@ -219,7 +219,7 @@ def test_fnirs_channel_naming_and_order_custom_raw():
         raw.info["chs"][idx]["loc"][9] = f
 
     freqs = np.unique(_channel_frequencies(raw))
-    picks = _check_channels_ordered(raw, freqs)
+    picks = _check_channels_ordered(raw.info, freqs)
     assert len(picks) == len(raw.ch_names)
     assert len(picks) == 6
 
@@ -233,7 +233,7 @@ def test_fnirs_channel_naming_and_order_custom_raw():
     for idx, f in enumerate(freqs):
         raw.info["chs"][idx]["loc"][9] = f
 
-    picks = _check_channels_ordered(raw, [920, 850])
+    picks = _check_channels_ordered(raw.info, [920, 850])
     assert len(picks) == len(raw.ch_names)
     assert len(picks) == 6
 
@@ -249,7 +249,7 @@ def test_fnirs_channel_naming_and_order_custom_raw():
     for idx, f in enumerate(freqs):
         raw.info["chs"][idx]["loc"][9] = f
     with pytest.raises(ValueError, match='name and NIRS frequency do not'):
-        _check_channels_ordered(raw, [920, 850])
+        _check_channels_ordered(raw.info, [920, 850])
 
     # Catch if someone doesn't set the info field
     ch_names = ['S1_D1 760', 'S1_D1 850', 'S2_D1 760', 'S2_D1 850',
@@ -258,7 +258,7 @@ def test_fnirs_channel_naming_and_order_custom_raw():
     info = create_info(ch_names=ch_names, ch_types=ch_types, sfreq=1.0)
     raw = RawArray(data, info, verbose=True)
     with pytest.raises(ValueError, match='missing wavelength information'):
-        _check_channels_ordered(raw, [920, 850])
+        _check_channels_ordered(raw.info, [920, 850])
 
     # I have seen data encoded not in alternating frequency, but blocked.
     ch_names = ['S1_D1 760', 'S2_D1 760', 'S3_D1 760',
@@ -270,10 +270,10 @@ def test_fnirs_channel_naming_and_order_custom_raw():
     for idx, f in enumerate(freqs):
         raw.info["chs"][idx]["loc"][9] = f
     with pytest.raises(ValueError, match='channels not ordered correctly'):
-        _check_channels_ordered(raw, [760, 850])
+        _check_channels_ordered(raw.info, [760, 850])
     # and this is how you would fix the ordering, then it should pass
     raw.pick(picks=[0, 3, 1, 4, 2, 5])
-    _check_channels_ordered(raw, [760, 850])
+    _check_channels_ordered(raw.info, [760, 850])
 
 
 def test_fnirs_channel_naming_and_order_custom_optical_density():
@@ -292,7 +292,7 @@ def test_fnirs_channel_naming_and_order_custom_optical_density():
         raw.info["chs"][idx]["loc"][9] = f
 
     freqs = np.unique(_channel_frequencies(raw))
-    picks = _check_channels_ordered(raw, freqs)
+    picks = _check_channels_ordered(raw.info, freqs)
     assert len(picks) == len(raw.ch_names)
     assert len(picks) == 6
 
@@ -306,10 +306,10 @@ def test_fnirs_channel_naming_and_order_custom_optical_density():
     for idx, f in enumerate(freqs):
         raw.info["chs"][idx]["loc"][9] = f
     with pytest.raises(ValueError, match='channels not ordered correctly'):
-        _check_channels_ordered(raw, [760, 850])
+        _check_channels_ordered(raw.info, [760, 850])
     # and this is how you would fix the ordering, then it should pass
     raw.pick(picks=[0, 3, 1, 4, 2, 5])
-    _check_channels_ordered(raw, [760, 850])
+    _check_channels_ordered(raw.info, [760, 850])
 
     # Check that if you mix types you get an error
     ch_names = ['S1_D1 hbo', 'S1_D1 hbr', 'S2_D1 hbo', 'S2_D1 hbr',
@@ -319,7 +319,7 @@ def test_fnirs_channel_naming_and_order_custom_optical_density():
     raw2 = RawArray(data, info, verbose=True)
     raw.add_channels([raw2])
     with pytest.raises(ValueError, match='does not support a combination'):
-        _check_channels_ordered(raw, [760, 850])
+        _check_channels_ordered(raw.info, [760, 850])
 
 
 def test_fnirs_channel_naming_and_order_custom_chroma():
@@ -335,7 +335,7 @@ def test_fnirs_channel_naming_and_order_custom_chroma():
     raw = RawArray(data, info, verbose=True)
 
     chroma = np.unique(_channel_chromophore(raw))
-    picks = _check_channels_ordered(raw, chroma)
+    picks = _check_channels_ordered(raw.info, chroma)
     assert len(picks) == len(raw.ch_names)
     assert len(picks) == 6
 
@@ -346,13 +346,13 @@ def test_fnirs_channel_naming_and_order_custom_chroma():
     info = create_info(ch_names=ch_names, ch_types=ch_types, sfreq=1.0)
     raw = RawArray(data, info, verbose=True)
     with pytest.raises(ValueError, match='not ordered .* chromophore'):
-        _check_channels_ordered(raw, ["hbo", "hbr"])
+        _check_channels_ordered(raw.info, ["hbo", "hbr"])
     # Reordering should fix
     raw.pick(picks=[0, 3, 1, 4, 2, 5])
-    _check_channels_ordered(raw, ["hbo", "hbr"])
+    _check_channels_ordered(raw.info, ["hbo", "hbr"])
     # Wrong names should fail
     with pytest.raises(ValueError, match='not ordered .* chromophore'):
-        _check_channels_ordered(raw, ["hbb", "hbr"])
+        _check_channels_ordered(raw.info, ["hbb", "hbr"])
 
     # Test weird naming
     ch_names = ['S1_D1 hbb', 'S1_D1 hbr', 'S2_D1 hbb', 'S2_D1 hbr',
@@ -361,7 +361,7 @@ def test_fnirs_channel_naming_and_order_custom_chroma():
     info = create_info(ch_names=ch_names, ch_types=ch_types, sfreq=1.0)
     raw = RawArray(data, info, verbose=True)
     with pytest.raises(ValueError, match='naming conventions'):
-        _check_channels_ordered(raw, ["hbb", "hbr"])
+        _check_channels_ordered(raw.info, ["hbb", "hbr"])
 
     # Check more weird naming
     ch_names = ['S1_DX hbo', 'S1_DX hbr', 'S2_D1 hbo', 'S2_D1 hbr',
@@ -370,4 +370,4 @@ def test_fnirs_channel_naming_and_order_custom_chroma():
     info = create_info(ch_names=ch_names, ch_types=ch_types, sfreq=1.0)
     raw = RawArray(data, info, verbose=True)
     with pytest.raises(ValueError, match='can not be parsed'):
-        _check_channels_ordered(raw, ["hbo", "hbr"])
+        _check_channels_ordered(raw.info, ["hbo", "hbr"])

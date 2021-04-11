@@ -210,7 +210,7 @@ def _interpolate_bads_nirs(inst, method='nearest', exclude=(), verbose=None):
 
     # Returns pick of all nirs and ensures channels are correctly ordered
     freqs = np.unique(_channel_frequencies(inst))
-    picks_nirs = _check_channels_ordered(inst, freqs)
+    picks_nirs = _check_channels_ordered(inst.info, freqs)
     if len(picks_nirs) == 0:
         return
 
