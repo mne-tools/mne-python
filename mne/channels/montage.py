@@ -735,10 +735,17 @@ def _set_montage_fnirs(info, montage):
     stored. This function modifies info['chs'][#]['loc'] and info['dig'] in
     place.
     """
+    from ..preprocessing.nirs import (_channel_frequencies,
+                                      _channel_chromophore,
+                                      _check_channels_ordered)
     # Modify info['chs'][#]['loc'] in place
     num_ficiduals = len(montage.dig) - len(montage.ch_names)
     picks = _picks_to_idx(info, 'fnirs', exclude=[], allow_empty=True)
-    info._check_nirs_ch_names()
+    freqs = np.unique(_channel_frequencies(info))
+    if freqs.size > 0:
+        _check_channels_ordered(info, freqs)
+    else:
+        _check_channels_ordered(info, np.unique(_channel_chromophore(info)))
     for ch_idx in picks:
         ch = info['chs'][ch_idx]['ch_name']
         source, detector = ch.split(' ')[0].split('_')

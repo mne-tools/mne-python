@@ -14,13 +14,10 @@ from io import BytesIO
 import operator
 from textwrap import shorten
 
-import re as re
-
 import numpy as np
 
 from .pick import (channel_type, pick_channels, pick_info,
-                   get_channel_type_constants, pick_types,
-                   _picks_to_idx, _get_channel_types)
+                   get_channel_type_constants, pick_types)
 from .constants import FIFF, _coord_frame_named
 from .open import fiff_open
 from .tree import dir_tree_find
@@ -776,29 +773,6 @@ class Info(dict, MontageMixin):
         if 'filename' in self:
             warn('the "filename" key is misleading '
                  'and info should not have it')
-
-    def _check_nirs_ch_names(self):
-        picks = _picks_to_idx(self, 'fnirs', exclude=[], allow_empty=True)
-        ch_types = _get_channel_types(self, picks=picks)
-        for idx in picks:
-            ch_name = self['chs'][idx]['ch_name']
-            if ch_name != self['ch_names'][idx]:
-                raise RuntimeError(
-                    'Bad info: info["chs"][%d]["ch_name"] not matching '
-                    'info["ch_names"][%d]' % (idx, idx))
-            name, suffix = ch_name.split(' ')
-            if suffix != ch_types[idx]:
-                try:
-                    int(suffix)
-                except ValueError:
-                    raise RuntimeError(
-                        'Bad info: info["chs"][%d]["ch_name"] has an invalid '
-                        'suffix %s' % (idx, suffix))
-            s, d = name.split('_')
-            if not re.match('^S[0-9]+$', s) or not re.match('^D[0-9]+$', d):
-                raise RuntimeError(
-                    'Bad info: info["chs"][%d]["ch_name"] has an invalid '
-                    'name %s, should follow the S#_D# format' % (idx, name))
 
     def _update_redundant(self):
         """Update the redundant entries."""
