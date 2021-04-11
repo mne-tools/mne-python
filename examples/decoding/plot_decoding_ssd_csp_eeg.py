@@ -5,7 +5,7 @@
 Improving motor imagery decoding from EEG using Spatio Spectra Decomposition
 ============================================================================
 
-The Spatio Spectra Decomposition (SSD) is a unsupervised spatial filtering
+The Spatio Spectra Decomposition (SSD) is an unsupervised spatial filtering
 algorithm that can be used as a pre-processing approach for data dimensionality
 reduction while the 1/f noise in the neural data is reduced
 :footcite:`HaufeEtAl2014b`.
