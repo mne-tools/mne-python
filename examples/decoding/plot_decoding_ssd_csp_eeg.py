@@ -7,12 +7,14 @@ Improving motor imagery decoding from EEG using Spatio Spectra Decomposition
 
 The Spatio Spectra Decomposition (SSD) is a unsupervised spatial filtering
 algorithm that can be used as a pre-processing approach for data dimensionality
-reduction while the 1/f noise in the neural data is reduced :footcite:`HaufeEtAl2014b`.
-It is useful extract to capture induced activity during motor imagery.
-activity. SSD will be applied before extracting features with
+reduction while the 1/f noise in the neural data is reduced
+:footcite:`HaufeEtAl2014b`.
+It is useful to capture induced activity during motor imagery.
+
+In this example, SSD will be applied before extracting features with
 the Common Spatial Patterns (CSP) method. A classifier will then be trained
 using the extracted features from the SSD + CSP-filtered signals. The impact in
-performance of using SSD before CSP will be shown here.
+performance of using SSD before CSP will be shown.
 
 :footcite:`NikulinEtAl2011`.
 """
@@ -45,8 +47,8 @@ event_id = dict(left=2, right=3)  # Motor imagery: left vs right hand
 runs = [4, 8, 12]
 subjects = [2, 7, 31, 34, 42, 56, 60, 62, 85, 100]
 n_subjects = len(subjects)
-scores_csp = np.zeros((NSubject, 1))
-std_csp = np.zeros((NSubject, 1))
+scores_csp = np.zeros((n_subjects, 1))
+std_csp = np.zeros((n_subjects, 1))
 # Data filtering.
 # we are going to filter data in the alpha band
 freq_signal = [8, 12]
@@ -64,8 +66,8 @@ freq_ssd = freq_signal[0] - 3, freq_signal[1] + 3
 # the maximum is the number of channels, here 64.
 steps = 4
 n_components = np.arange(4, 65, steps)
-scores_ssd_csp_e = np.zeros((NSubject, len(n_components)))
-std_ssd_csp_e = np.zeros((NSubject, len(n_components)))
+scores_ssd_csp_e = np.zeros((n_subjects, len(n_components)))
+std_ssd_csp_e = np.zeros((n_subjects, len(n_components)))
 
 for s_idx, subject in enumerate(subjects):
     raw_fnames = eegbci.load_data(subject, runs)
@@ -102,10 +104,10 @@ for s_idx, subject in enumerate(subjects):
     pipe_csp = Pipeline([('CSP', csp), ('LDA', lda)])
     # this is the accuracy we would like to improve by adding SSD into the
     # pipeline
-    scores_csp[s] = cross_val_score(pipe_csp, epochs_data, labels, cv=cv,
-                                    n_jobs=1).mean()
+    scores_csp[s_idx] = cross_val_score(pipe_csp, epochs_data, labels, cv=cv,
+                                        n_jobs=1).mean()
     std_csp[s_idx] = cross_val_score(pipe_csp, epochs_data, labels, cv=cv,
-                                 n_jobs=1).std()
+                                     n_jobs=1).std()
     # SSD + CSP + LDA pipeline
     # ^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -123,21 +125,21 @@ for s_idx, subject in enumerate(subjects):
                         baseline=None, preload=True)
     epochs_ssd_data = epochs_ssd.get_data()
 
-    for n, n_comp in enumerate(n_components):
+    for n_idx, n_comp in enumerate(n_components):
         print('RUNNING n_components_' + str(n_comp))
         ssd = SSD(raw_ssd.info, filt_params_signal, filt_params_noise,
                   sort_by_spectral_ratio=False, return_filtered=True,
                   n_components=n_comp)
         # a new pipeline with SSD is defined
         pipe_ssd_csp = Pipeline([('SSD', ssd), ('CSP', csp), ('LDA', lda)])
-        scores_ssd_csp_e[s, n] = cross_val_score(pipe_ssd_csp,
-                                                 epochs_ssd_data,
-                                                 labels, cv=cv,
-                                                 n_jobs=1).mean()
-        std_ssd_csp_e[s, n] = cross_val_score(pipe_ssd_csp,
-                                              epochs_ssd_data,
-                                              labels,
-                                              cv=cv, n_jobs=1).std()
+        scores_ssd_csp_e[s_idx, n_idx] = cross_val_score(pipe_ssd_csp,
+                                                         epochs_ssd_data,
+                                                         labels, cv=cv,
+                                                         n_jobs=1).mean()
+        std_ssd_csp_e[s_idx, n_idx] = cross_val_score(pipe_ssd_csp,
+                                                      epochs_ssd_data,
+                                                      labels,
+                                                      cv=cv, n_jobs=1).std()
 ###############################################################################
 # Let's visualize the results
 mean_ssd_csp = scores_ssd_csp_e.mean(axis=0)
@@ -177,8 +179,8 @@ ax.legend()
 # Just for the sake of this example, we are going to train the models using all
 # available data. But, remember data should always be split into separate sets
 # to ensure the generalization capability of the model.
-s = 1
-subject = Subjects_set[s]
+
+subject = n_subjects[1]
 raw_fnames = eegbci.load_data(subject, runs)
 raw = concatenate_raws([read_raw_edf(f, preload=True) for f in raw_fnames])
 eegbci.standardize(raw)  # set channel names
@@ -186,7 +188,7 @@ montage = make_standard_montage('standard_1005')
 raw.set_montage(montage)
 # strip channel names of "." characters
 raw.rename_channels(lambda x: x.strip('.'))
-# for the sake of comparison, we save the raw object before filtering
+# e save the raw object before filtering
 raw_ssd = raw.copy()
 
 # apply band-pass filter
@@ -229,8 +231,9 @@ pattern_epochs = EvokedArray(data=csp.patterns_[:4].T,
 pattern_epochs.plot_topomap(units=dict(mag='A.U.'), time_format='')
 
 # As it can be seen from the topographical plots, the CSP patterns that were
-# learned after SSD better enhance the occipital region from the left and right
-# side. This could be expected since we based our analysis in the alpha band.
+# learned after SSD was applied better enhance the occipital region from the
+# left and right side. This could be expected since we based our analysis in
+# the alpha band.
 ##############################################################################
 # References
 # ----------
