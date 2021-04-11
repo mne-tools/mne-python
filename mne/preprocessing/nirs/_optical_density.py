@@ -28,7 +28,7 @@ def optical_density(raw):
     """
     raw = raw.copy().load_data()
     _validate_type(raw, BaseRaw, 'raw')
-    _check_channels_ordered(raw, np.unique(_channel_frequencies(raw)))
+    _check_channels_ordered(raw.info, np.unique(_channel_frequencies(raw)))
 
     picks = _picks_to_idx(raw.info, 'fnirs_cw_amplitude')
     data_means = np.mean(raw.get_data(), axis=1)
