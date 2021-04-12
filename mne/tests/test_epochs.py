@@ -2498,8 +2498,8 @@ def test_add_channels_epochs():
     n_meg, n_eeg = len(picks_meg), len(picks_eeg)
     n_tot = n_meg + n_eeg
     assert new_proj.shape == (n_tot,) * 2
-    assert_allclose(new_proj[:n_meg, :n_meg], meg2_proj)
-    assert_allclose(new_proj[n_meg:, n_meg:], np.eye(n_eeg))
+    assert_allclose(new_proj[:n_meg, :n_meg], meg2_proj, atol=1e-12)
+    assert_allclose(new_proj[n_meg:, n_meg:], np.eye(n_eeg), atol=1e-12)
 
 
 def test_array_epochs(tmpdir):
