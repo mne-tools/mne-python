@@ -757,7 +757,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         ymaxes = np.array([max((e.data[t]).max() for e in evoked)
                            for t in picks])
         ymins = np.array([min((e.data[t]).min() for e in evoked)
-                           for t in picks])
+                          for t in picks])
 
         ylim_ = (ymins, ymaxes)
     elif isinstance(ylim, dict):
