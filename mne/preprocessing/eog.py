@@ -136,7 +136,7 @@ def _get_eog_channel_index(ch_name, inst):
     if isinstance(ch_name, str):
         if ',' in ch_name:
             warn(f'You supplied multiple EOG channel names, separated by a '
-                 f'comma: {ch_name}. We will stop supporting this in version '
+                 f'comma: {repr(ch_name)}. We will stop supporting this in version '
                  f'0.24. Please pass a list of channels instead: '
                  f'{ch_name.split(",")}', DeprecationWarning)
             ch_name = ch_name.split(',')
