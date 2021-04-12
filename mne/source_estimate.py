@@ -2896,12 +2896,12 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
     bad_labels = list()
     for li, label in enumerate(labels):
         subject = label['subject'] if use_sparse else label.subject
-        # stc can be None
+        # stc and src can each be None
         _check_subject(
             subject, getattr(stc, 'subject', None), raise_error=False,
             first_kind='label.subject', second_kind='stc.subject')
         _check_subject(
-            subject, src._subject, raise_error=False,
+            subject, getattr(src, '_subject', None), raise_error=False,
             first_kind='label.subject', second_kind='source space subject')
         if use_sparse:
             assert isinstance(label, dict)
