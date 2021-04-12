@@ -515,7 +515,7 @@ class _BaseSourceEstimate(TimeMixin):
         self._kernel_removed = False
         self._times = None
         self._update_times()
-        self.subject = _check_subject(None, subject, False)
+        self.subject = _check_subject(None, subject, raise_error=False)
 
     def __repr__(self):  # noqa: D105
         s = "%d vertices" % (sum(len(v) for v in self.vertices),)
@@ -2861,6 +2861,9 @@ def _temporary_vertices(src, vertices):
 
 def _check_stc_src(stc, src):
     if stc is not None and src is not None:
+        _check_subject(
+            src._subject, stc.subject, raise_error=False,
+            first_kind='source space subject', second_kind='stc.subject')
         for s, v, hemi in zip(src, stc.vertices, ('left', 'right')):
             n_missing = (~np.in1d(v, s['vertno'])).sum()
             if n_missing:
@@ -2892,6 +2895,13 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
 
     bad_labels = list()
     for li, label in enumerate(labels):
+        subject = label['subject'] if use_sparse else label.subject
+        _check_subject(
+            subject, stc.subject, raise_error=False,
+            first_kind='label.subject', second_kind='stc.subject')
+        _check_subject(
+            subject, src._subject, raise_error=False,
+            first_kind='label.subject', second_kind='source space subject')
         if use_sparse:
             assert isinstance(label, dict)
             vertidx = label['csr']
@@ -2976,6 +2986,7 @@ def _volume_labels(src, labels, mri_resolution):
     # given volumetric source space when used with extract_label_time_course
     from .label import Label
     assert src.kind == 'volume'
+    subject = src._subject
     extra = ' when using a volume source space'
     _import_nibabel('use volume atlas labels')
     _validate_type(labels, ('path-like', list, tuple), 'labels' + extra)
@@ -3036,7 +3047,7 @@ def _volume_labels(src, labels, mri_resolution):
         for k, v in labels.items():
             mask = atlas_data == v
             csr = interp[mask]
-            out_labels.append(dict(csr=csr, name=k))
+            out_labels.append(dict(csr=csr, name=k, subject=subject))
             nnz += csr.shape[0] > 0
     else:
         # Use nearest values
@@ -3045,7 +3056,7 @@ def _volume_labels(src, labels, mri_resolution):
         del src
         src_values = _get_atlas_values(vol_info, rr[vertno])
         vertices = [vertno[src_values == val] for val in labels.values()]
-        out_labels = [Label(v, hemi='lh', name=val)
+        out_labels = [Label(v, hemi='lh', name=val, subject=subject)
                       for v, val in zip(vertices, labels.keys())]
         nnz = sum(len(v) != 0 for v in vertices)
     logger.info('%d/%d atlas regions had at least one vertex '
@@ -3308,7 +3319,7 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     # convert head positions -> coord_frame MRI
     pos = apply_trans(trans, pos)
 
-    subject = _check_subject(None, subject, False)
+    subject = _check_subject(None, subject, raise_error=False)
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     if src is None:  # fake a full surface one
         rrs = [read_surface(op.join(subjects_dir, subject,
