@@ -179,6 +179,8 @@ Enhancements
 
 Bugs
 ~~~~
+- Fix bug with :func:`mne.viz.plot_evoked_topo` where set ylim parameters gets swapped across channel types. (:gh:`9207` by |Ram Pari|_)
+
 - Fix bug with :func:`mne.io.read_raw_edf` where µV was not correctly recognized (:gh:`9187` **by new contributor** |Sumalyo Datta|_)
 
 - Fix bug with :func:`mne.viz.plot_compare_evokeds` did not check type of combine. (:gh:`9151` **by new contributor** |Matteo Anelli|_)
@@ -286,6 +288,8 @@ Bugs
 - :func:`mne.preprocessing.find_ecg_events` now correctly handles situation where no ECG activity could be detected, and correctly returns an empty array of ECG events (:gh:`9236` by `Richard Höchenberger`_)
 
 - Fix bug with ``picks`` attribute for `~mne.Epochs` after calling :meth:`mne.Epochs.add_channels` (:gh:`9246` by `Alex Gramfort`_)
+
+- `mne.preprocessing.compute_proj_eog` and `mne.preprocessing.compute_proj_ecg` now return empty lists if no EOG or ECG events, respectively, could be found. Previously, we'd return ``None`` in these situations, which does not match the documented behavior of returning a list of projectors (:gh:`9277` by `Richard Höchenberger`_)
 
 API changes
 ~~~~~~~~~~~

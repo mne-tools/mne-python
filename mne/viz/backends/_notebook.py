@@ -341,8 +341,12 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
             self._create_default_tool_bar()
         display(self._tool_bar)
         # viewer
-        viewer = self.plotter.show(
-            use_ipyvtk=True, return_viewer=True)
+        try:
+            viewer = self.plotter.show(
+                use_ipyvtk=True, return_viewer=True)
+        except RuntimeError:
+            viewer = self.plotter.show(
+                backend="ipyvtk_simple", return_viewer=True)
         viewer.layout.width = None  # unlock the fixed layout
         # main widget
         if self._dock is None:

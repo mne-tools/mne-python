@@ -63,8 +63,12 @@ def test_compute_proj_ecg(short_raw, average):
         projs, events, drop_log = compute_proj_ecg(
             raw, n_mag=2, n_grad=2, n_eeg=2, ch_name='MEG 1531', bads=[],
             average=average, avg_ref=True, no_proj=True, l_freq=None,
-            h_freq=None, tmax=dur_use, return_drop_log=True)
-    assert projs is None
+            h_freq=None, tmax=dur_use, return_drop_log=True,
+            # XXX can be removed once
+            # XXX https://github.com/mne-tools/mne-python/issues/9273
+            # XXX has been resolved:
+            qrs_threshold=1e-15)
+    assert projs == []
     assert len(events) == len(drop_log)
 
 
@@ -100,7 +104,12 @@ def test_compute_proj_eog(average, short_raw):
             raw, n_mag=2, n_grad=2, n_eeg=2, average=average, bads=[],
             avg_ref=True, no_proj=False, l_freq=None, h_freq=None,
             tmax=dur_use)
-    assert projs is None
+    assert projs == []
+
+    raw._data[raw.ch_names.index('EOG 061'), :] = 1.
+    with pytest.warns(RuntimeWarning, match='filter.*longer than the signal'):
+        projs, events = compute_proj_eog(raw=raw, tmax=dur_use,
+                                         ch_name='EOG 061')
 
 
 @pytest.mark.slowtest  # can be slow on OSX
