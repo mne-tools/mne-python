@@ -162,10 +162,8 @@ def _get_eog_channel_index(ch_name, inst):
 
     # ensure the specified channels are present in the data
     if ch_name is not None:
-        not_found = []
-        for ch_name in ch_names:
-            if ch_name not in inst.ch_names:
-                not_found.append(ch_name)
+        not_found = [ch_name for ch_name in ch_names
+                     if ch_name not in inst.ch_names]
         if not_found:
             raise ValueError(f'The specified EOG {_pl(not_found)} cannot be '
                              f'found: {", ".join(not_found)}')
