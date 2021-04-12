@@ -6,7 +6,6 @@
 import os.path as op
 import inspect
 
-from mne.utils import run_tests_if_main
 from mne.io import read_raw_nicolet
 from mne.io.tests.test_raw import _test_raw_reader
 
@@ -25,9 +24,4 @@ def test_data():
 
     with pytest.raises(ValueError,
                        match='File name should end with .data not ".head".'):
-        _test_raw_reader(read_raw_nicolet, input_fname=fname_head,
-                         ch_type='eeg', ecg='auto', eog='auto', emg='auto',
-                         misc=['PHO'])
-
-
-run_tests_if_main()
+        read_raw_nicolet(fname_head, 'eeg')
