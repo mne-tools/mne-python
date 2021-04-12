@@ -511,6 +511,7 @@ html_theme_options = {
     'use_edit_page_button': False,
     'navigation_with_keys': False,
     'show_toc_level': 1,
+    'navbar_end': ['navbar-icon-links.html', 'version-switcher.html'],
     'google_analytics_id': 'UA-37225609-1',
 }
 

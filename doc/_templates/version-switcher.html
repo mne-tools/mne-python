@@ -1,20 +1,13 @@
-{%- extends "pydata_sphinx_theme/docs-navbar.html" %}
-
-{%- block icon_links -%}
-<!-- begin version dropdown -->
 <ul class="navbar-nav">
     <li class="mr-2 dropdown">
         <button type="button" class="btn btn-{% if (build_dev_html|tobool) %}danger{% else %}primary{% endif %} btn-sm navbar-btn dropdown-toggle" id="dLabelMore" data-toggle="dropdown">
             v{{ release }}
             <span class="caret"></span>
         </button>
-        <ul class="dropdown-menu" aria-labelledby="dLabelMore">
+        <div class="dropdown-menu list-group-flush py-0" aria-labelledby="dLabelMore">
             {%- for ver, txt in versions_dropdown.items() %}
-            <li><a href="https://mne-tools.github.io/{{ ver }}/index.html">{{ txt }}</a></li>
+            <a class="list-group-item list-group-item-action py-1" href="https://mne-tools.github.io/{{ ver }}/index.html">{{ txt }}</a>
             {%- endfor %}
-        </ul>
+        </div>
     </li>
 </ul>
-<!-- end version dropdown -->
-{%- include "icon-links.html" with context -%}
-{%- endblock %}
