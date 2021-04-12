@@ -2485,6 +2485,22 @@ def test_add_channels_epochs():
     pytest.raises(NotImplementedError, add_channels_epochs,
                   [epochs_meg2, epochs_eeg])
 
+    # use delayed projection, add channel, ensure projectors match
+    epochs_meg2 = make_epochs(picks=picks_meg, proj='delayed')
+    assert len(epochs_meg2.info['projs']) == 3
+    meg2_proj = epochs_meg2._projector
+    assert meg2_proj is not None
+    epochs_eeg = make_epochs(picks=picks_eeg, proj='delayed')
+    epochs_meg2.add_channels([epochs_eeg])
+    del epochs_eeg
+    assert len(epochs_meg2.info['projs']) == 3
+    new_proj = epochs_meg2._projector
+    n_meg, n_eeg = len(picks_meg), len(picks_eeg)
+    n_tot = n_meg + n_eeg
+    assert new_proj.shape == (n_tot,) * 2
+    assert_allclose(new_proj[:n_meg, :n_meg], meg2_proj)
+    assert_allclose(new_proj[n_meg:, n_meg:], np.eye(n_eeg))
+
 
 def test_array_epochs(tmpdir):
     """Test creating epochs from array."""
