@@ -38,6 +38,7 @@ def test_notebook_alignment(renderer_notebook, brain_gc, nbexec):
 def test_notebook_interactive(renderer_notebook, brain_gc, nbexec):
     """Test interactive modes."""
     import os
+    import tempfile
     from contextlib import contextmanager
     from numpy.testing import assert_allclose
     from ipywidgets import Button
@@ -72,6 +73,11 @@ def test_notebook_interactive(renderer_notebook, brain_gc, nbexec):
         assert brain._renderer.figure.notebook
         assert brain._renderer.figure.display is not None
         brain._renderer._update()
+        tmp_path = tempfile.mkdtemp()
+        movie_path = os.path.join(tmp_path, 'test.gif')
+        screenshot_path = os.path.join(tmp_path, 'test.png')
+        brain._renderer.actions['movie_field'].value = movie_path
+        brain._renderer.actions['screenshot_field'].value = screenshot_path
         total_number_of_buttons = sum(
             '_field' not in k for k in brain._renderer.actions.keys())
         number_of_buttons = 0
@@ -80,6 +86,8 @@ def test_notebook_interactive(renderer_notebook, brain_gc, nbexec):
                 action.click()
                 number_of_buttons += 1
         assert number_of_buttons == total_number_of_buttons
+        assert os.path.isfile(movie_path)
+        assert os.path.isfile(screenshot_path)
         img_nv = brain.screenshot()
         assert img_nv.shape == (300, 300, 3), img_nv.shape
         img_v = brain.screenshot(time_viewer=True)
