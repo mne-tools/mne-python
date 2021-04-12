@@ -843,7 +843,7 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945,
         .. versionadded:: 0.16.0
     exclude : list of str | 'bads'
         Channels names to exclude from the plot. If 'bads', the
-        bad channels are excluded.
+        bad channels are excluded. If None, exclude is set to 'bads'.
     show : bool
         Show figure if True.
 
