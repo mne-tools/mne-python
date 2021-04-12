@@ -1796,7 +1796,8 @@ def test_scale_morph_labels(kind, scale, monkeypatch, tmpdir):
 @testing.requires_testing_data
 @pytest.mark.parametrize('kind', [
     'surface',
-    pytest.param('volume', marks=pytest.mark.slowtest),
+    pytest.param('volume', marks=[pytest.mark.slowtest,
+                                  requires_version('nibabel')]),
 ])
 def test_label_extraction_subject(kind):
     """Test that label extraction subject is treated properly."""
