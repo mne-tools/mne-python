@@ -165,8 +165,8 @@ def _get_eog_channel_index(ch_name, inst):
         not_found = [ch_name for ch_name in ch_names
                      if ch_name not in inst.ch_names]
         if not_found:
-            raise ValueError(f'The specified EOG {_pl(not_found)} cannot be '
-                             f'found: {", ".join(not_found)}')
+            raise ValueError(f'The specified EOG channel{_pl(not_found)} '
+                             f'cannot be found: {", ".join(not_found)}')
 
         eog_inds = pick_channels(inst.ch_names, include=ch_names)
 
