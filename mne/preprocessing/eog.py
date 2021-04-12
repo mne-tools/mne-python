@@ -8,7 +8,7 @@ import numpy as np
 
 from ._peak_finder import peak_finder
 from .. import pick_types, pick_channels
-from ..utils import logger, verbose, _pl
+from ..utils import logger, verbose, _pl, warn
 from ..filter import filter_data
 from ..epochs import Epochs
 
@@ -134,7 +134,12 @@ def _get_eog_channel_index(ch_name, inst):
     """Get EOG channel indices."""
     # Ensure we have a list of channel names
     if isinstance(ch_name, str):
-        if ',' in ch_name:  # backward-compat
+        if ',' in ch_name:
+            warn(DeprecationWarning,
+                 f'You supplied multiple EOG channel names, separated by a '
+                 f'comma: {ch_name}. We will stop supporting this in version '
+                 f'0.24. Please pass a list of channels instead: '
+                 f'{ch_name.split(",")}')
             ch_name = ch_name.split(',')
         else:
             ch_name = [ch_name]
