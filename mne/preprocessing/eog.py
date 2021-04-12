@@ -139,7 +139,7 @@ def _get_eog_channel_index(ch_name, inst):
                               eog=True, ecg=False, emg=False, ref_meg=False,
                               exclude='bads')
         if not eog_inds:
-            warn('No EOG channel find. Trying with EEG 061 and EEG 062. '
+            warn('No EOG channel found. Trying with EEG 061 and EEG 062. '
                  'This functionality will be removed in version 0.24',
                  DeprecationWarning)
             eog_inds = pick_channels(inst.ch_names,
