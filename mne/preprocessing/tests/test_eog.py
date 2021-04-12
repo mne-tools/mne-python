@@ -12,19 +12,11 @@ event_fname = op.join(data_path, 'test-eve.fif')
 proj_fname = op.join(data_path, 'test-proj.fif')
 
 
-@pytest.mark.parametrize('ch_name', (None,
-                                     'EOG 061',
-                                     'EEG 060,EOG 061',
-                                     ['EEG 060', 'EOG 061']))
-def test_find_eog(ch_name):
+def test_find_eog():
     """Test find EOG peaks."""
+    ch_name = 'EOG 061'
     raw = read_raw_fif(raw_fname)
     raw.set_annotations(Annotations([14, 21], [1, 1], 'BAD_blink'))
-
-    if ch_name is not None and ',' in ch_name:
-        with pytest.warns(DeprecationWarning, match='pass a list of channels'):
-            events = find_eog_events(raw, ch_name=ch_name)
-            return
 
     events = find_eog_events(raw, ch_name=ch_name)
     assert len(events) == 4
@@ -36,3 +28,14 @@ def test_find_eog(ch_name):
     # threshold option
     events_thr = find_eog_events(raw, thresh=100e-6, ch_name=ch_name)
     assert len(events_thr) == 5
+
+    # test different ways to specify the EOG channel(s)
+    with pytest.warns(DeprecationWarning, match='pass a list of channels'):
+        events = find_eog_events(raw, ch_name='EEG 060,EOG 061')
+    assert len(events) == 4
+
+    events = find_eog_events(raw, ch_name=None)
+    assert len(events) == 4
+
+    events = find_eog_events(raw, ch_name=['EEG 060', 'EOG 061'])
+    assert len(events) == 4

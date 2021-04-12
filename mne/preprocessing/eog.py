@@ -8,7 +8,7 @@ import numpy as np
 
 from ._peak_finder import peak_finder
 from .. import pick_types, pick_channels
-from ..utils import logger, verbose, _pl, warn
+from ..utils import logger, verbose, _pl, warn, _validate_type
 from ..filter import filter_data
 from ..epochs import Epochs
 
@@ -132,43 +132,47 @@ def _find_eog_events(eog, event_id, l_freq, h_freq, sampling_rate, first_samp,
 
 def _get_eog_channel_index(ch_name, inst):
     """Get EOG channel indices."""
-    # Ensure we have a list of channel names
-    if isinstance(ch_name, str):
-        if ',' in ch_name:
-            warn(f'You supplied multiple EOG channel names, separated by a '
-                 f'comma: {repr(ch_name)}. We will stop supporting this in version '
-                 f'0.24. Please pass a list of channels instead: '
-                 f'{ch_name.split(",")}', DeprecationWarning)
-            ch_name = ch_name.split(',')
-        else:
-            ch_name = [ch_name]
-    elif ch_name is not None:
-        ch_name = list(ch_name)
+    _validate_type(ch_name, types=(None, str, list), item_name='ch_name')
 
-    if isinstance(ch_name, list):
-        eog_inds = pick_channels(inst.ch_names, include=ch_name)
-
-        if len(eog_inds) == 0:
-            raise ValueError('%s not in channel list' % ch_name)
-        else:
-            logger.info(f'Using: {" and ".join(ch_name)} '
-                        f'as EOG channel{_pl(eog_inds)}')
-
-    elif ch_name is None:
+    if ch_name is None:
         eog_inds = pick_types(inst.info, meg=False, eeg=False, stim=False,
                               eog=True, ecg=False, emg=False, ref_meg=False,
                               exclude='bads')
-
-        if len(eog_inds) == 0:
-            logger.info('No EOG channels found')
-            logger.info('Trying with EEG 061 and EEG 062')
+        if not eog_inds:
+            warn('No EOG channel find. Trying with EEG 061 and EEG 062. '
+                 'This functionality will be removed in version 0.24',
+                 DeprecationWarning)
             eog_inds = pick_channels(inst.ch_names,
                                      include=['EEG 061', 'EEG 062'])
-            if len(eog_inds) != 2:
-                raise RuntimeError('EEG 61 or EEG 62 channel not found !!')
+            if not eog_inds:
+                raise ValueError('Could not find any EOG channels.')
 
-    else:
-        raise ValueError('Could not find EOG channel.')
+        ch_names = [inst.ch_names[i] for i in eog_inds]
+    elif isinstance(ch_name, str):
+        if ',' in ch_name:
+            warn(f'You supplied multiple EOG channel names, separated by a '
+                 f'comma: {repr(ch_name)}. We will stop supporting this in '
+                 f'version 0.24. Please pass a list of channels instead: '
+                 f'{ch_name.split(",")}', DeprecationWarning)
+            ch_names = ch_name.split(',')
+        else:
+            ch_names = [ch_name]
+    else:  # it's a list
+        ch_names = ch_name.copy()
+
+    # ensure the specified channels are present in the data
+    if ch_name is not None:
+        not_found = []
+        for ch_name in ch_names:
+            if ch_name not in inst.ch_names:
+                not_found.append(ch_name)
+        if not_found:
+            raise ValueError(f'The specified EOG {_pl(not_found)} cannot be '
+                             f'found: {", ".join(not_found)}')
+
+        eog_inds = pick_channels(inst.ch_names, include=ch_names)
+
+    logger.info(f'Using EOG channel{_pl(ch_names)}: {", ".join(ch_names)}')
     return eog_inds
 
 
