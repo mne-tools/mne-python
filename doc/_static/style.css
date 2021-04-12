@@ -134,7 +134,6 @@ h5.card-header::before {
 div.frontpage-gallery {
     overflow: hidden;
     height: 200px;
-    max-width: 400px;
     justify-content: center;
 }
 div.frontpage-gallery a {
