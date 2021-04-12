@@ -33,6 +33,7 @@ else  # standard doc build
 	echo "Installing doc build dependencies"
 	python -m pip uninstall -y pydata-sphinx-theme
 	python -m pip install --upgrade --progress-bar off -r requirements.txt -r requirements_testing.txt -r requirements_doc.txt
+	python -m pip install --progress-bar off https://github.com/pyvista/pyvista/zipball/cb59a9ddfd97f5724f733bc226b41fb9ad4c9c5f
 	python -m pip install --progress-bar off https://github.com/pyvista/pyvistaqt/zipball/master
 	python -m pip uninstall -yq pysurfer mayavi
 	python -m pip install -e .
