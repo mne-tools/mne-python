@@ -2223,12 +2223,12 @@ docdict['create_eog_epochs'] = """This function will:
 """
 docdict['eog_ch_name'] = """
 ch_name : str | list of str | None
-    The name of the channel(s) to use for EOG peak detection. If a **string,**
+    The name of the channel(s) to use for EOG peak detection. If a string,
     can be an arbitrary channel. This doesn't have to be a channel of
     ``eog`` type; it could, for example, also be an ordinary EEG channel
     that was placed close to the eyes, like ``Fp1`` or ``Fp2``.
 
-    Multiple channel names can be passed as a **list of strings.**
+    Multiple channel names can be passed as a list of strings.
 
     If ``None`` (default), use the channel(s) in ``raw`` with type ``eog``.
 """
