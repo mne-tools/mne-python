@@ -6,8 +6,8 @@ r"""
 Importing data from EEG devices
 ===============================
 
-MNE includes various functions and utilities for reading EEG
-data and electrode locations.
+MNE includes various functions and utilities for reading EEG data and electrode
+locations.
 
 .. _import-bv:
 
@@ -16,33 +16,33 @@ BrainVision (.vhdr, .vmrk, .eeg)
 
 The BrainVision file format consists of three separate files:
 
-1. A text header file (``.vhdr``) containing meta data
+1. A text header file (``.vhdr``) containing meta data.
 2. A text marker file (``.vmrk``) containing information about events in the
-   data
-3. A binary data file (``.eeg``) containing the voltage values of the EEG
+   data.
+3. A binary data file (``.eeg``) containing the voltage values of the EEG.
 
-Both text files are based on the
-`Microsoft Windows INI format <https://en.wikipedia.org/wiki/INI_file>`_
-consisting of:
+Both text files are based on the `INI format <https://en.wikipedia.org/wiki/INI_file>`_
+consisting of
 
-* sections marked as ``[square brackets]``
-* comments marked as ``; comment``
-* key-value pairs marked as ``key=value``
+* sections marked as ``[square brackets]``,
+* comments marked as ``; comment``,
+* and key-value pairs marked as ``key=value``.
 
-A documentation for core BrainVision file format is provided by Brain Products.
-You can view the specification hosted on the
-`Brain Products website <https://www.brainproducts.com/productdetails.php?id=21&tab=5>`_
+Brain Products provides documentation for their core BrainVision file format.
+The format specification is hosted on the
+`Brain Products website <https://www.brainproducts.com/productdetails.php?id=21&tab=5>`_.
 
-BrainVision EEG files can be read in using :func:`mne.io.read_raw_brainvision`
-with the ``.vhdr`` header file as an input.
+BrainVision EEG files can be read using :func:`mne.io.read_raw_brainvision`,
+passing the ``.vhdr`` header file as the argument.
 
 .. warning:: Renaming BrainVision files can be problematic due to their
-             multifile structure. See this
+             multi-file structure. See this
              `example <https://mne.tools/mne-bids/stable/auto_examples/rename_brainvision_files.html#sphx-glr-auto-examples-rename-brainvision-files-py>`_
-             for an instruction.
+             for instructions.
 
 .. note:: For *writing* BrainVision files, you can use the Python package
           `pybv <https://pypi.org/project/pybv/>`_.
+
 
 .. _import-edf:
 
@@ -51,15 +51,17 @@ European data format (.edf)
 
 EDF and EDF+ files can be read using :func:`mne.io.read_raw_edf`.
 
-`EDF (European Data Format) <http://www.edfplus.info/specs/edf.html>`_ and
+`EDF <http://www.edfplus.info/specs/edf.html>`_ and
 `EDF+ <http://www.edfplus.info/specs/edfplus.html>`_ are 16-bit formats.
 
-The EDF+ files may contain an annotation channel which can be used to store
-trigger information. These annotations are available in ``raw.annotations``.
+EDF+ files may contain annotation channels which can be used to store trigger
+and event information. These annotations are available in ``raw.annotations``.
 
-Saving EDF files is not supported natively yet. `This gist
-<https://gist.github.com/skjerns/bc660ef59dca0dbd53f00ed38c42f6be>`__
-can be used to save any mne.io.Raw into EDF/EDF+/BDF/BDF+.
+Writing EDF files is not supported natively yet. `This gist
+<https://gist.github.com/skjerns/bc660ef59dca0dbd53f00ed38c42f6be>`__ or
+`MNELAB <https://github.com/cbrnr/mnelab>`_ (both of which use
+`pyedflib <https://github.com/holgern/pyedflib>`_ under the hood) can be used
+to export any :class:`mne.io.Raw` object to EDF/EDF+/BDF/BDF+.
 
 
 .. _import-biosemi:
@@ -72,18 +74,18 @@ variant of the EDF format used by EEG systems manufactured by BioSemi. It can
 be imported with :func:`mne.io.read_raw_bdf`.
 
 BioSemi amplifiers do not perform "common mode noise rejection" automatically.
-The signals in the EEG file are the voltages between each electrode and CMS
+The signals in the EEG file are the voltages between each electrode and the CMS
 active electrode, which still contain some CM noise (50 Hz, ADC reference
-noise, etc., see `the BioSemi FAQ <https://www.biosemi.com/faq/cms&drl.htm>`__
-for further detail).
-Thus, it is advisable to choose a reference (e.g., a single channel like Cz,
-average of linked mastoids, average of all electrodes, etc.) on import of
+noise, etc.). The `BioSemi FAQ <https://www.biosemi.com/faq/cms&drl.htm>`__
+provides more details on this topic.
+Therefore, it is advisable to choose a reference (e.g., a single channel like Cz,
+average of linked mastoids, average of all electrodes, etc.) after importing
 BioSemi data to avoid losing signal information. The data can be re-referenced
 later after cleaning if desired.
 
-.. warning:: The data samples in a BDF file are represented in a 3-byte
+.. warning:: Data samples in a BDF file are represented in a 3-byte
              (24-bit) format. Since 3-byte raw data buffers are not presently
-             supported in the fif format these data will be changed to 4-byte
+             supported in the FIF format, these data will be changed to 4-byte
              integers in the conversion.
 
 
@@ -92,7 +94,7 @@ later after cleaning if desired.
 General data format (.gdf)
 ==========================
 
-GDF files can be read in using :func:`mne.io.read_raw_gdf`.
+GDF files can be read using :func:`mne.io.read_raw_gdf`.
 
 `GDF (General Data Format) <https://arxiv.org/abs/cs/0608052>`_ is a flexible
 format for biomedical signals that overcomes some of the limitations of the
@@ -100,26 +102,26 @@ EDF format. The original specification (GDF v1) includes a binary header
 and uses an event table. An updated specification (GDF v2) was released in
 2011 and adds fields for additional subject-specific information (gender,
 age, etc.) and allows storing several physical units and other properties.
-Both specifications are supported in MNE.
+Both specifications are supported by MNE.
 
 
 .. _import-cnt:
 
-Neuroscan CNT data format (.cnt)
-================================
+Neuroscan CNT (.cnt)
+====================
 
-CNT files can be read in using :func:`mne.io.read_raw_cnt`.
-The channel locations can be read from a montage or the file header. If read
+CNT files can be read using :func:`mne.io.read_raw_cnt`.
+Channel locations can be read from a montage or the file header. If read
 from the header, the data channels (channels that are not assigned to EOG, ECG,
-EMG or misc) are fit to a sphere and assigned a z-value accordingly. If a
+EMG or MISC) are fit to a sphere and assigned a z-value accordingly. If a
 non-data channel does not fit to the sphere, it is assigned a z-value of 0.
 
 .. warning::
     Reading channel locations from the file header may be dangerous, as the
-    x_coord and y_coord in ELECTLOC section of the header do not necessarily
-    translate to absolute locations. Furthermore, EEG-electrode locations that
+    x_coord and y_coord in the ELECTLOC section of the header do not necessarily
+    translate to absolute locations. Furthermore, EEG electrode locations that
     do not fit to a sphere will distort the layout when computing the z-values.
-    If you are not sure about the channel locations in the header, use of a
+    If you are not sure about the channel locations in the header, using a
     montage is encouraged.
 
 
@@ -128,16 +130,17 @@ non-data channel does not fit to the sphere, it is assigned a z-value of 0.
 EGI simple binary (.egi)
 ========================
 
-EGI simple binary files can be read in using :func:`mne.io.read_raw_egi`.
-The EGI raw files are simple binary files with a header and can be exported
-from using the EGI Netstation acquisition software.
+EGI simple binary files can be read using :func:`mne.io.read_raw_egi`.
+EGI raw files are simple binary files with a header and can be exported by the
+EGI Netstation acquisition software.
 
 
 .. _import-mff:
 
 EGI MFF (.mff)
 ==============
-These files can also be read with :func:`mne.io.read_raw_egi`.
+
+EGI MFF files can be read with :func:`mne.io.read_raw_egi`.
 
 
 .. _import-set:
@@ -145,14 +148,15 @@ These files can also be read with :func:`mne.io.read_raw_egi`.
 EEGLAB set files (.set)
 =======================
 
-EEGLAB .set files can be read in using :func:`mne.io.read_raw_eeglab`
-and :func:`mne.read_epochs_eeglab`.
+EEGLAB .set files can be read using :func:`mne.io.read_raw_eeglab` and
+:func:`mne.read_epochs_eeglab`.
 
 
 .. _import-nicolet:
 
 Nicolet (.data)
 ===============
+
 These files can be read with :func:`mne.io.read_raw_nicolet`.
 
 
@@ -161,8 +165,8 @@ These files can be read with :func:`mne.io.read_raw_nicolet`.
 eXimia EEG data (.nxe)
 ======================
 
-EEG data from the Nexstim eXimia system can be read in using the
-:func:`mne.io.read_raw_eximia` function.
+EEG data from the Nexstim eXimia system can be read with
+:func:`mne.io.read_raw_eximia`.
 
 
 .. _import-persyst:
@@ -170,15 +174,15 @@ EEG data from the Nexstim eXimia system can be read in using the
 Persyst EEG data (.lay, .dat)
 =============================
 
-EEG data from the Persyst system can be read in using the
-:func:`mne.io.read_raw_persyst` function.
+EEG data from the Persyst system can be read with
+:func:`mne.io.read_raw_persyst`.
 
-Note that not all the subject metadata may be properly read in
-due to the fact that Persyst changes its specification
-sometimes from version to version. Please submit an issue, or
-pull request if you encounter a problem.
+Note that not all subject metadata may be properly imported because Persyst
+sometimes changes its specification from version to version. Please let us know
+if you encounter a problem.
 
-Nihon Kohden EEG data (.EEG, .21E, .PNT, .LOG)
+
+Nihon Kohden EEG data (.eeg, .21e, .pnt, .log)
 ==============================================
 
 EEG data from the Nihon Kohden (NK) system can be read using the
@@ -186,20 +190,48 @@ EEG data from the Nihon Kohden (NK) system can be read using the
 
 Files with the following extensions will be read:
 
-- The ``.EEG`` file contains the actual raw EEG data.
-- The ``.PNT`` file contains the metadata related to the recording, such
-  as the measurement date.
-- The ``.LOG`` file contains annotations for the recording.
-- The ``.21E`` file contains the channel and electrode
-  recording system information.
+- The ``.eeg`` file contains the actual raw EEG data.
+- The ``.pnt`` file contains metadata related to the recording such as the
+  measurement date.
+- The ``.log`` file contains annotations for the recording.
+- The ``.21e`` file contains channel and electrode information.
 
-Reading ``.11D``, ``.CMT``, ``.CN2``, and ``.EDF`` files is currently not
+Reading ``.11d``, ``.cmt``, ``.cn2``, and ``.edf`` files is currently not
 supported.
 
-Note that not all the subject metadata may be properly read in
-due to the fact that NK changes the specification
-sometimes from version to version. Please submit an issue, or
-pull request if you encounter a problem.
+Note that not all subject metadata may be properly read because NK changes the
+specification sometimes from version to version. Please let us know if you
+encounter a problem.
+
+
+XDF data (.xdf, .xdfz)
+======================
+
+MNE-Python does not support loading
+`XDF <https://github.com/sccn/xdf/wiki/Specifications>`_ files out of the box,
+mainly because XDF is an extremely flexible file format which supports signals
+from various modalities recorded with different sampling rates. However, it is
+relatively straightforward to import only a specific stream (such as EEG
+signals) using the `pyxdf <https://github.com/xdf-modules/pyxdf`_ package. The
+following code snippet demonstrates the basic mechanisms how this could work:
+
+.. code-block:: python
+
+   import pyxdf
+   
+   streams, header = pyxdf.load_xdf(filename)
+   data = streams[0]["time_series"].T
+   n_chans = int(streams[0]["info"]["channel_count"][0])
+   sfreq = float(streams[0]["info"]["nominal_srate"][0])
+   info = mne.create_info(n_chans, sfreq, "eeg")
+   raw = mne.io.RawArray(data, info)
+
+A more sophisticated version, which supports selection of specific streams as
+well as converting marker streams into annotations, is available in
+`MNELAB <https://github.com/cbrnr/mnelab>`_. If you want to use this
+functionality in a script, MNELAB records its history (View - History), which
+contains all commands required to load an XDF file after successfully loading
+that file with the graphical user interface.
 
 
 Setting EEG references
@@ -211,15 +243,16 @@ The preferred method for applying an EEG reference in MNE is
 the data are assumed to already be properly referenced. See
 :ref:`tut-set-eeg-ref` for more information.
 
+
 Reading electrode locations and head shapes for EEG recordings
 ==============================================================
 
-Some EEG formats (EGI, EDF/EDF+, BDF) neither contain electrode location
-information nor head shape digitization information. Therefore, this
-information has to be provided separately. For that purpose all raw instances
-have a :meth:`mne.io.Raw.set_montage` method to set electrode locations.
+Some EEG formats (EGI, EDF/EDF+, BDF) contain neither electrode locations nor
+head shape digitization information. Therefore, this information has to be
+provided separately. For that purpose, all raw instances have a
+:meth:`mne.io.Raw.set_montage` method to set electrode locations.
 
-When using the locations of the fiducial points the digitization data
-are converted to the MEG head coordinate system employed in the
-MNE software, see :ref:`coordinate_systems`.
+When using locations of fiducial points, the digitization data are converted to
+the MEG head coordinate system employed in the MNE software, see
+:ref:`coordinate_systems`.
 """  # noqa:E501
