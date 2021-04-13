@@ -219,7 +219,7 @@ following code snippet demonstrates the basic mechanisms how this could work:
 
    import pyxdf
 
-   streams, header = pyxdf.load_xdf(filename)
+   streams, header = pyxdf.load_xdf(filename)  # replace with actual file name
    data = streams[0]["time_series"].T
    n_chans = int(streams[0]["info"]["channel_count"][0])
    sfreq = float(streams[0]["info"]["nominal_srate"][0])
