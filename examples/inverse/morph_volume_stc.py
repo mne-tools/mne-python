@@ -48,8 +48,7 @@ fetch_fsaverage(subjects_dir)  # ensure fsaverage src exists
 fname_src_fsaverage = subjects_dir + '/fsaverage/bem/fsaverage-vol-5-src.fif'
 
 ###############################################################################
-# Compute example data. For reference see
-# :ref:`sphx_glr_auto_examples_inverse_plot_compute_mne_inverse_volume.py`
+# Compute example data. For reference see :ref:`ex-inverse-volume`.
 #
 # Load data:
 evoked = mne.read_evokeds(fname_evoked, condition=0, baseline=(None, 0))

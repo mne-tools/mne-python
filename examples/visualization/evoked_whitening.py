@@ -1,4 +1,6 @@
 """
+.. _ex-evoked-whitening:
+
 =============================================
 Whitening evoked data with a noise covariance
 =============================================

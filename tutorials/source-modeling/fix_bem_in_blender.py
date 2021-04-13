@@ -1,4 +1,6 @@
 """
+.. _tut-fix-meshes:
+
 Editing BEM surfaces in Blender
 ===============================
 

@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+.. _ex-linear-patterns:
+
 ===============================================================
 Linear classifier on sensor data with plot patterns and filters
 ===============================================================

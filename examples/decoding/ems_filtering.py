@@ -1,4 +1,6 @@
 """
+.. _ex-ems-filtering:
+
 ==============================================
 Compute effect-matched-spatial filtering (EMS)
 ==============================================

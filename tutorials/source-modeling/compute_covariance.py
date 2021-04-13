@@ -147,9 +147,8 @@ evoked.plot_white(noise_cov_reg, time_unit='s')
 # introductory materials can be found `here <https://goo.gl/ElWrxe>`_.
 #
 # For expert use cases or debugging the alternative estimators can also be
-# compared (see
-# :ref:`sphx_glr_auto_examples_visualization_plot_evoked_whitening.py`) and
-# :ref:`sphx_glr_auto_examples_inverse_plot_covariance_whitening_dspm.py`):
+# compared (see :ref:`ex-evoked-whitening`) and
+# :ref:`ex-covariance-whitening-dspm`):
 
 noise_covs = mne.compute_covariance(
     epochs, tmax=0., method=('empirical', 'shrunk'), return_estimators=True,

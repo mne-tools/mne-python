@@ -8,6 +8,7 @@
 
 import gc
 import os
+import re
 import sys
 import time
 import warnings
@@ -15,6 +16,7 @@ from datetime import datetime, timezone
 from distutils.version import LooseVersion
 
 import matplotlib
+import sphinx
 import sphinx_gallery
 from sphinx_gallery.sorting import FileNameSortKey, ExplicitOrder
 from numpydoc import docscrape
@@ -387,7 +389,10 @@ sphinx_gallery_conf = {
     'junit': os.path.join('..', 'test-results', 'sphinx-gallery', 'junit.xml'),
     'matplotlib_animations': True,
     'compress_images': ('images', 'thumbnails'),
+    'filename_pattern': '^((?!sgskip).)*$',
 }
+# Files were renamed from plot_* with:
+# find . -type f -name 'plot_*.py' -exec sh -c 'x="{}"; xn=`basename "${x}"`; git mv "$x" `dirname "${x}"`/${xn:5}' \;  # noqa
 
 
 def append_attr_meth_examples(app, what, name, obj, options, lines):
@@ -830,7 +835,158 @@ for icon, cls in icons.items():
 '''
 
 
-# -- Connect sphinx-gallery to the main Sphinx app ---------------------------
+# Static list created 2021/04/13 based on what we needed to redirect,
+# since we don't need to add redirects for examples added after this date.
+needed_plot_redirects = {
+    # tutorials
+    '10_epochs_overview.py', '10_evoked_overview.py', '10_overview.py',
+    '10_preprocessing_overview.py', '10_raw_overview.py',
+    '10_reading_meg_data.py', '15_handling_bad_channels.py',
+    '20_event_arrays.py', '20_events_from_raw.py', '20_reading_eeg_data.py',
+    '20_rejecting_bad_data.py', '20_visualize_epochs.py',
+    '20_visualize_evoked.py', '30_annotate_raw.py', '30_epochs_metadata.py',
+    '30_filtering_resampling.py', '30_info.py', '30_reading_fnirs_data.py',
+    '35_artifact_correction_regression.py', '40_artifact_correction_ica.py',
+    '40_autogenerate_metadata.py', '40_sensor_locations.py',
+    '40_visualize_raw.py', '45_projectors_background.py',
+    '50_artifact_correction_ssp.py', '50_configure_mne.py',
+    '50_epochs_to_data_frame.py', '55_setting_eeg_reference.py',
+    '59_head_positions.py', '60_make_fixed_length_epochs.py',
+    '60_maxwell_filtering_sss.py', '70_fnirs_processing.py',
+    'background_filtering.py', 'background_freesurfer.py',
+    'background_freesurfer_mne.py', 'background_ica.py',
+    'background_statistics.py', 'beamformer_lcmv.py',
+    'brainstorm_auditory.py', 'brainstorm_phantom_ctf.py',
+    'brainstorm_phantom_elekta.py', 'compute_covariance.py',
+    'creating_data_structures.py', 'dics.py', 'dipole_fit.py',
+    'dipole_orientations.py', 'ecog.py', 'eeg_erp.py', 'eeg_mri_coords.py',
+    'eeg_no_mri.py', 'fix_bem_in_blender.py', 'forward.py',
+    'mne_dspm_source_localization.py', 'mne_solutions.py',
+    'modifying_data_inplace.py', 'object_source_estimate.py',
+    'phantom_4DBTi.py', 'point_spread.py', 'receptive_field.py', 'report.py',
+    'seeg.py', 'sensors_decoding.py', 'sensors_time_frequency.py', 'sleep.py',
+    'source_alignment.py', 'ssvep.py',
+    'stats_cluster_1samp_test_time_frequency.py', 'stats_cluster_erp.py',
+    'stats_cluster_spatio_temporal.py',
+    'stats_cluster_spatio_temporal_2samp.py',
+    'stats_cluster_spatio_temporal_repeated_measures_anova.py',
+    'stats_cluster_time_frequency.py',
+    'stats_cluster_time_frequency_repeated_measures_anova.py',
+    'stats_spatio_temporal_cluster_sensors.py', 'visualize_stc.py',
+    'whitened.py',
+    # examples
+    '3d_to_2d.py', 'brainstorm_data.py', 'channel_epochs_image.py',
+    'cluster_stats_evoked.py', 'compute_csd.py',
+    'compute_mne_inverse_epochs_in_label.py',
+    'compute_mne_inverse_raw_in_label.py', 'compute_mne_inverse_volume.py',
+    'compute_source_psd_epochs.py', 'covariance_whitening_dspm.py',
+    'custom_inverse_solver.py', 'cwt_sensor_connectivity.py',
+    'decoding_csp_eeg.py', 'decoding_csp_timefreq.py',
+    'decoding_spatio_temporal_source.py', 'decoding_spoc_CMC.py',
+    'decoding_time_generalization_conditions.py',
+    'decoding_unsupervised_spatial_filter.py', 'decoding_xdawn_eeg.py',
+    'define_target_events.py', 'dics_source_power.py', 'eeg_csd.py',
+    'eeg_on_scalp.py', 'eeglab_head_sphere.py', 'elekta_epochs.py',
+    'ems_filtering.py', 'eog_artifact_histogram.py', 'evoked_arrowmap.py',
+    'evoked_ers_source_power.py', 'evoked_topomap.py', 'evoked_whitening.py',
+    'fdr_stats_evoked.py', 'find_ref_artifacts.py',
+    'fnirs_artifact_removal.py', 'forward_sensitivity_maps.py',
+    'gamma_map_inverse.py', 'hf_sef_data.py', 'ica_comparison.py',
+    'interpolate_bad_channels.py', 'label_activation_from_stc.py',
+    'label_from_stc.py', 'label_source_activations.py',
+    'left_cerebellum_volume_source.py', 'limo_data.py',
+    'linear_model_patterns.py', 'linear_regression_raw.py',
+    'meg_sensors.py', 'mixed_norm_inverse.py',
+    'mixed_source_space_connectivity.py', 'mixed_source_space_inverse.py',
+    'mne_cov_power.py', 'mne_helmet.py', 'mne_inverse_coherence_epochs.py',
+    'mne_inverse_connectivity_spectrum.py',
+    'mne_inverse_envelope_correlation.py',
+    'mne_inverse_envelope_correlation_volume.py',
+    'mne_inverse_label_connectivity.py', 'mne_inverse_psi_visual.py',
+    'morph_surface_stc.py', 'morph_volume_stc.py', 'movement_compensation.py',
+    'movement_detection.py', 'multidict_reweighted_tfmxne.py',
+    'muscle_detection.py', 'opm_data.py', 'otp.py', 'parcellation.py',
+    'psf_ctf_label_leakage.py', 'psf_ctf_vertices.py',
+    'psf_ctf_vertices_lcmv.py', 'publication_figure.py', 'rap_music.py',
+    'read_inverse.py', 'read_neo_format.py', 'read_noise_covariance_matrix.py',
+    'read_stc.py', 'receptive_field_mtrf.py', 'resolution_metrics.py',
+    'resolution_metrics_eegmeg.py', 'roi_erpimage_by_rt.py',
+    'sensor_connectivity.py', 'sensor_noise_level.py',
+    'sensor_permutation_test.py', 'sensor_regression.py',
+    'shift_evoked.py', 'simulate_evoked_data.py', 'simulate_raw_data.py',
+    'simulated_raw_data_using_subject_anatomy.py', 'snr_estimate.py',
+    'source_label_time_frequency.py', 'source_power_spectrum.py',
+    'source_power_spectrum_opm.py', 'source_simulator.py',
+    'source_space_morphing.py', 'source_space_snr.py',
+    'source_space_time_frequency.py', 'ssd_spatial_filters.py',
+    'ssp_projs_sensitivity_map.py', 'temporal_whitening.py',
+    'time_frequency_erds.py', 'time_frequency_global_field_power.py',
+    'time_frequency_mixed_norm_inverse.py', 'time_frequency_simulated.py',
+    'topo_compare_conditions.py', 'topo_customized.py',
+    'vector_mne_solution.py', 'virtual_evoked.py', 'xdawn_denoising.py',
+    'xhemi.py',
+}
+custom_redirects = {
+    # Custom redirects (one HTML path to another, relative to outdir)
+    # can be added here as fr->to key->value mappings
+}
+
+
+def make_redirects(app, exception):
+    """Make HTML redirects."""
+    # https://www.sphinx-doc.org/en/master/extdev/appapi.html
+    # Adapted from sphinxcontrib/redirects (BSD 2-clause)
+    if not isinstance(app.builder, sphinx.builders.html.StandaloneHTMLBuilder):
+        return
+    logger = sphinx.util.logging.getLogger('mne')
+    TEMPLATE = """
+<!DOCTYPE HTML>
+<html lang="en-US">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="refresh" content="1; url={to}">
+        <script type="text/javascript">
+            window.location.href = "{to}"
+        </script>
+        <title>Page Redirection</title>
+    </head>
+    <body>
+        If you are not redirected automatically, follow this <a href='{to}'>link</a>.
+    </body>
+</html>"""  # noqa: E501
+    sphinx_gallery_conf = app.config['sphinx_gallery_conf']
+    for src_dir, out_dir in zip(sphinx_gallery_conf['examples_dirs'],
+                                sphinx_gallery_conf['gallery_dirs']):
+        root = os.path.abspath(os.path.join(app.srcdir, src_dir))
+        fnames = [os.path.join(os.path.relpath(dirpath, root), fname)
+                  for dirpath, _, fnames in os.walk(root)
+                  for fname in fnames
+                  if fname in needed_plot_redirects and
+                  fname not in custom_redirects.values()]
+        # plot_ redirects
+        for fname in fnames:
+            dirname = os.path.join(app.outdir, out_dir, os.path.dirname(fname))
+            to_fname = os.path.splitext(os.path.basename(fname))[0] + '.html'
+            fr_fname = f'plot_{to_fname}'
+            to_path = os.path.join(dirname, to_fname)
+            fr_path = os.path.join(dirname, fr_fname)
+            assert os.path.isfile(to_path), (fname, to_path)
+            with open(fr_path, 'w') as fid:
+                fid.write(TEMPLATE.format(to=to_fname))
+        logger.info(
+            f'Added {len(fnames):3d} HTML plot_ redirects for {out_dir}')
+    for fr, to in custom_redirects.items():
+        to_path = os.path.join(app.outdir, to)
+        assert os.path.isfile(to_path), to
+        assert to_path.endswith('html'), to_path
+        fr_path = os.path.join(app.outdir, fr)
+        assert not os.path.isfile(fr_path), fr_path
+        assert fr_path.endswith('html'), fr_path
+        with open(fr_path, 'w') as fid:
+            fid.write(TEMPLATE.format(to=to))
+
+
+# -- Connect our handlers to the main Sphinx app ---------------------------
 
 def setup(app):
     """Set up the Sphinx app."""
@@ -838,4 +994,5 @@ def setup(app):
     if report_scraper is not None:
         report_scraper.app = app
         app.config.rst_prolog = prolog
-        app.connect('build-finished', report_scraper.copyfiles)
+        app.connect('builder-inited', report_scraper.copyfiles)
+    app.connect('build-finished', make_redirects)

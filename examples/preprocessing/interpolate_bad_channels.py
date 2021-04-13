@@ -1,4 +1,6 @@
 """
+.. _ex-interpolate-bad-channels:
+
 =============================================
 Interpolate bad channels for MEG/EEG channels
 =============================================

@@ -181,8 +181,8 @@ print('Spatio-temporal: %0.1f%%' % (100 * score,))
 #
 # .. topic:: Examples
 #
-#     * :ref:`sphx_glr_auto_examples_decoding_plot_decoding_csp_eeg.py`
-#     * :ref:`sphx_glr_auto_examples_decoding_plot_decoding_csp_timefreq.py`
+#     * :ref:`ex-decoding-csp-eeg`
+#     * :ref:`ex-decoding-csp-eeg-timefreq`
 #
 # .. note::
 #
@@ -213,7 +213,7 @@ print('CSP: %0.1f%%' % (100 * scores.mean(),))
 #
 # .. topic:: Examples
 #
-#     * :ref:`sphx_glr_auto_examples_decoding_plot_decoding_spoc_CMC.py`
+#     * :ref:`ex-spoc-cmc`
 #
 # xDAWN
 # ^^^^^
@@ -226,8 +226,8 @@ print('CSP: %0.1f%%' % (100 * scores.mean(),))
 #
 # .. topic:: Examples
 #
-#     * :ref:`sphx_glr_auto_examples_preprocessing_plot_xdawn_denoising.py`
-#     * :ref:`sphx_glr_auto_examples_decoding_plot_decoding_xdawn_eeg.py`
+#     * :ref:`ex-xdawn-denoising`
+#     * :ref:`ex-xdawn-decoding`
 #
 # Effect-matched spatial filtering
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -238,7 +238,7 @@ print('CSP: %0.1f%%' % (100 * scores.mean(),))
 #
 # .. topic:: Examples
 #
-#     * :ref:`sphx_glr_auto_examples_decoding_plot_ems_filtering.py`
+#     * :ref:`ex-ems-filtering`
 #
 # Patterns vs. filters
 # ^^^^^^^^^^^^^^^^^^^^
@@ -252,8 +252,7 @@ print('CSP: %0.1f%%' % (100 * scores.mean(),))
 #    :label: patterns
 #
 # The columns of the matrix :math:`(W^{-1})^T` are called spatial patterns.
-# This is also called the mixing matrix. The example
-# :ref:`sphx_glr_auto_examples_decoding_plot_linear_model_patterns.py`
+# This is also called the mixing matrix. The example :ref:`ex-linear-patterns`
 # discusses the difference between patterns and filters.
 #
 # These can be plotted with:
