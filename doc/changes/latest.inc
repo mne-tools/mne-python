@@ -235,6 +235,8 @@ Bugs
 
 - Fix bug with :func:`mne.chpi.compute_chpi_locs` where all cHPI coils being off would lead to an empty array of the wrong dimensionality (:gh:`8956` by `Eric Larson`_)
 
+- Fix bug with :func:`mne.extract_label_time_course` where labels, STCs, and the source space were not checked for compatible ``subject`` attributes (:gh:`9284` by `Eric Larson`_)
+
 - Fix compatibility bugs with :mod:`mne_realtime` (:gh:`8845` by `Eric Larson`_)
 
 - Fix bug with `mne.viz.Brain` where non-inflated surfaces had an X-offset imposed by default (:gh:`8794` by `Eric Larson`_)
