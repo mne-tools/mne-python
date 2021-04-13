@@ -247,7 +247,7 @@ the data are assumed to already be properly referenced. See
 Reading electrode locations and head shapes for EEG recordings
 ==============================================================
 
-Some EEG formats (EGI, EDF/EDF+, BDF) contain neither electrode locations nor
+Some EEG formats (e.g., EGI, EDF/EDF+, BDF) contain neither electrode locations nor
 head shape digitization information. Therefore, this information has to be
 provided separately. For that purpose, all raw instances have a
 :meth:`mne.io.Raw.set_montage` method to set electrode locations.
