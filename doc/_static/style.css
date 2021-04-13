@@ -133,7 +133,7 @@ h5.card-header::before {
 /* ***************************************************** front page carousel */
 div.frontpage-gallery {
     overflow: hidden;
-    height: 200px;
+    height: 180px;
     justify-content: center;
 }
 div.frontpage-gallery a {
