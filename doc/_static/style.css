@@ -125,9 +125,11 @@ h5.card-header::before {
 }
 
 /* ******************************************************** version dropdown */
+.dropdown {
+    padding: 0 .5rem;  /* match other items in the hamburger menu */
+}
 .dropdown-toggle {
     font-weight: 600;
-    margin-left: 15px;  /* match other items in the hamburger menu */
 }
 
 /* ***************************************************** front page carousel */
