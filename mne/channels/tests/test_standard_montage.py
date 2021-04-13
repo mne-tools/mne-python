@@ -101,7 +101,7 @@ def _simulate_artinis_octamon():
     info = create_info(ch_names=ch_names, ch_types=ch_types, sfreq=sfreq)
     for i, ch_name in enumerate(ch_names):
         info['chs'][i]['loc'][9] = int(ch_name.split(' ')[1])
-    raw = RawArray(data, info, verbose=True)
+    raw = RawArray(data, info)
 
     return raw
 
@@ -127,7 +127,7 @@ def _simulate_artinis_brite23():
         ch_types.append('hbr')
     sfreq = 10.  # Hz
     info = create_info(ch_names=ch_names, ch_types=ch_types, sfreq=sfreq)
-    raw = RawArray(data, info, verbose=True)
+    raw = RawArray(data, info)
 
     return raw
 
@@ -202,3 +202,36 @@ def test_set_montage_artinis():
     # except the 10th which is the wavelength if not hbo and hbr type)
     assert_array_almost_equal(raw.info['chs'][0]['loc'][:9],
                               raw.info['chs'][1]['loc'][:9])
+
+    # Test channel variations
+    raw_old = _simulate_artinis_brite23()
+    # Raw missing some channels that are in the montage: pass
+    raw = raw_old.copy()
+    raw.pick(['S1_D1 hbo', 'S1_D1 hbr'])
+    raw.set_montage('artinis-brite23')
+
+    # Unconventional channel pair: pass
+    raw = raw_old.copy()
+    info_new = create_info(['S11_D1 hbo', 'S11_D1 hbr'], raw.info['sfreq'],
+                           ['hbo', 'hbr'])
+    new = RawArray(np.random.normal(size=(2, len(raw))), info_new)
+    raw.add_channels([new], force_update_info=True)
+    raw.set_montage('artinis-brite23')
+
+    # Source not in montage: fail
+    raw = raw_old.copy()
+    info_new = create_info(['S12_D7 hbo', 'S12_D7 hbr'], raw.info['sfreq'],
+                           ['hbo', 'hbr'])
+    new = RawArray(np.random.normal(size=(2, len(raw))), info_new)
+    raw.add_channels([new], force_update_info=True)
+    with pytest.raises(ValueError, match='is not in list'):
+        raw.set_montage('artinis-brite23')
+
+    # Detector not in montage: fail
+    raw = raw_old.copy()
+    info_new = create_info(['S11_D8 hbo', 'S11_D8 hbr'], raw.info['sfreq'],
+                           ['hbo', 'hbr'])
+    new = RawArray(np.random.normal(size=(2, len(raw))), info_new)
+    raw.add_channels([new], force_update_info=True)
+    with pytest.raises(ValueError, match='is not in list'):
+        raw.set_montage('artinis-brite23')
