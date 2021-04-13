@@ -218,7 +218,7 @@ following code snippet demonstrates the basic mechanisms how this could work:
 .. code-block:: python
 
    import pyxdf
-   
+
    streams, header = pyxdf.load_xdf(filename)
    data = streams[0]["time_series"].T
    n_chans = int(streams[0]["info"]["channel_count"][0])
