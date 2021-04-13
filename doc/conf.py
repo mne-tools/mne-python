@@ -512,6 +512,7 @@ html_theme_options = {
     'navigation_with_keys': False,
     'show_toc_level': 1,
     'navbar_end': ['navbar-icon-links.html', 'version-switcher.html'],
+    'footer_items': ['copyright'],
     'google_analytics_id': 'UA-37225609-1',
 }
 
