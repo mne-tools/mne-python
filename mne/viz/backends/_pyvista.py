@@ -668,18 +668,13 @@ class _PyVistaRenderer(_AbstractRenderer):
                                  on_button_press,
                                  on_button_release,
                                  on_pick):
-        self.plotter.iren.AddObserver(
-            vtk.vtkCommand.RenderEvent,
-            on_mouse_move
-        )
-        self.plotter.iren.AddObserver(
-            vtk.vtkCommand.LeftButtonPressEvent,
-            on_button_press
-        )
-        self.plotter.iren.AddObserver(
-            vtk.vtkCommand.EndInteractionEvent,
-            on_button_release
-        )
+        try:
+            add_obs = self.plotter.iren.AddObserver
+        except AttributeError:
+            add_obs = self.plotter.iren.add_observer
+        add_obs(vtk.vtkCommand.RenderEvent, on_mouse_move)
+        add_obs(vtk.vtkCommand.LeftButtonPressEvent, on_button_press)
+        add_obs(vtk.vtkCommand.EndInteractionEvent, on_button_release)
         self.plotter.picker = vtk.vtkCellPicker()
         self.plotter.picker.AddObserver(
             vtk.vtkCommand.EndPickEvent,
