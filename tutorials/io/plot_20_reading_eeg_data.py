@@ -176,7 +176,7 @@ Persyst EEG data (.lay, .dat)
 EEG data from the Persyst system can be read with
 :func:`mne.io.read_raw_persyst`.
 
-Note that not all subject metadata may be properly imported because Persyst
+Note that subject metadata may not be properly imported because Persyst
 sometimes changes its specification from version to version. Please let us know
 if you encounter a problem.
 
