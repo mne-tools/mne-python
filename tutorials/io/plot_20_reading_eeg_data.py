@@ -209,8 +209,10 @@ XDF data (.xdf, .xdfz)
 
 MNE-Python does not support loading
 `XDF <https://github.com/sccn/xdf/wiki/Specifications>`_ files out of the box,
-mainly because XDF is an extremely flexible file format which supports signals
-from various modalities recorded with different sampling rates. However, it is
+because the inherent flexibility of the XDF format makes it difficult to provide a 
+one-size-fits-all function.
+For example, XDF supports signals from various modalities recorded with different
+sampling rates. However, it is
 relatively straightforward to import only a specific stream (such as EEG
 signals) using the `pyxdf <https://github.com/xdf-modules/pyxdf`_ package. The
 following code snippet demonstrates the basic mechanisms how this could work:
