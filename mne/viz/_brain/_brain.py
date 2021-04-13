@@ -686,7 +686,6 @@ class Brain(object):
             self._layered_meshes[hemi]._clean()
         self._clear_callbacks()
         self._clear_widgets()
-        self.plotter._key_press_event_callbacks.clear()
         if getattr(self, 'mpl_canvas', None) is not None:
             self.mpl_canvas.clear()
         if getattr(self, 'act_data_smooth', None) is not None:
@@ -1297,7 +1296,7 @@ class Brain(object):
 
     def _configure_shortcuts(self):
         # First, we remove the default bindings:
-        self.plotter._key_press_event_callbacks.clear()
+        self._clear_callbacks()
         # Then, we add our own:
         self.plotter.add_key_event("i", self.toggle_interface)
         self.plotter.add_key_event("s", self.apply_auto_scaling)
@@ -1690,6 +1689,12 @@ class Brain(object):
                             'widget', 'widgets'):
                     setattr(callback, key, None)
         self.callbacks.clear()
+        # Remove the default key binding
+        if getattr(self, "iren", None) is not None:
+            try:
+                self.plotter._key_press_event_callbacks.clear()
+            except AttributeError:
+                self.plotter.iren.clear_key_event_callbacks()
 
     def _clear_widgets(self):
         if not hasattr(self, 'widgets'):
