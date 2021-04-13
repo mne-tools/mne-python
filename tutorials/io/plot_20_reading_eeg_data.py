@@ -145,11 +145,11 @@ EGI MFF files can be read with :func:`mne.io.read_raw_egi`.
 
 .. _import-set:
 
-EEGLAB set files (.set)
-=======================
+EEGLAB files (.set, .fdt)
+=========================
 
-EEGLAB .set files can be read using :func:`mne.io.read_raw_eeglab` and
-:func:`mne.read_epochs_eeglab`.
+EEGLAB .set files (which sometimes come with a separate .fdt file) can be read
+using :func:`mne.io.read_raw_eeglab` and :func:`mne.read_epochs_eeglab`.
 
 
 .. _import-nicolet:
@@ -209,10 +209,9 @@ XDF data (.xdf, .xdfz)
 
 MNE-Python does not support loading
 `XDF <https://github.com/sccn/xdf/wiki/Specifications>`_ files out of the box,
-because the inherent flexibility of the XDF format makes it difficult to provide a 
-one-size-fits-all function.
-For example, XDF supports signals from various modalities recorded with different
-sampling rates. However, it is
+because the inherent flexibility of the XDF format makes it difficult to
+provide a one-size-fits-all function. For example, XDF supports signals from
+various modalities recorded with different sampling rates. However, it is
 relatively straightforward to import only a specific stream (such as EEG
 signals) using the `pyxdf <https://github.com/xdf-modules/pyxdf`_ package. The
 following code snippet demonstrates the basic mechanisms how this could work:
@@ -249,8 +248,8 @@ the data are assumed to already be properly referenced. See
 Reading electrode locations and head shapes for EEG recordings
 ==============================================================
 
-Some EEG formats (e.g., EGI, EDF/EDF+, BDF) contain neither electrode locations nor
-head shape digitization information. Therefore, this information has to be
+Some EEG formats (e.g., EGI, EDF/EDF+, BDF) contain neither electrode locations
+nor head shape digitization information. Therefore, this information has to be
 provided separately. For that purpose, all raw instances have a
 :meth:`mne.io.Raw.set_montage` method to set electrode locations.
 
