@@ -49,10 +49,9 @@ passing the ``.vhdr`` header file as the argument.
 European data format (.edf)
 ===========================
 
-EDF and EDF+ files can be read using :func:`mne.io.read_raw_edf`.
-
 `EDF <http://www.edfplus.info/specs/edf.html>`_ and
-`EDF+ <http://www.edfplus.info/specs/edfplus.html>`_ are 16-bit formats.
+`EDF+ <http://www.edfplus.info/specs/edfplus.html>`_ files can be read using
+:func:`mne.io.read_raw_edf`. Both variants are 16-bit formats.
 
 EDF+ files may contain annotation channels which can be used to store trigger
 and event information. These annotations are available in ``raw.annotations``.
