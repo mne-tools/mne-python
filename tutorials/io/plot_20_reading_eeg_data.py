@@ -212,7 +212,7 @@ because the inherent flexibility of the XDF format makes it difficult to
 provide a one-size-fits-all function. For example, XDF supports signals from
 various modalities recorded with different sampling rates. However, it is
 relatively straightforward to import only a specific stream (such as EEG
-signals) using the `pyxdf <https://github.com/xdf-modules/pyxdf`_ package. The
+signals) using the `pyxdf <https://github.com/xdf-modules/pyxdf>`_ package. The
 following code snippet demonstrates the basic mechanisms how this could work:
 
 .. code-block:: python
