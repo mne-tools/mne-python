@@ -269,23 +269,25 @@ Bugs
 
 - The RMS trace shown in the time viewer of `~mne.SourceEstimate` plots is now correctly labeled as ``RMS`` (was ``GFP`` before) (:gh:`8965` by `Richard Höchenberger`_)
 
-- Fix bug with :func:`mne.SourceEstimate.plot` and related functions where the scalars were not interactively updated properly (:gh:`8985` by `Eric Larson`_)
+- Fix bug with :meth:`mne.SourceEstimate.plot` and related functions where the scalars were not interactively updated properly (:gh:`8985` by `Eric Larson`_)
 
 - Fix bug with mne.channels.find_ch_adjacency() returning wrong adjacency for Neuromag122-Data (:gh:`8891` by `Martin Schulz`_)
 
 - Fix :func:`mne.read_dipole` yielding :class:`mne.Dipole` objects that could not be indexed (:gh:`8963` by `Marijn van Vliet`_)
 
-- Fix bug when setting n_jobs > 1 in :func:`mne.Report.parse_folder` (:gh:`9109` by `Martin Schulz`_)
+- Fix bug when setting n_jobs > 1 in :meth:`mne.Report.parse_folder` (:gh:`9109` by `Martin Schulz`_)
 
-- Fix bug with :func:`mne.Evoked.plot_image` where an incorrect clim parameter did not raise any error (:gh:`9115` **by new contributor** |Matteo Anelli|_)
+- Fix bug with :meth:`mne.Evoked.plot_image` where an incorrect clim parameter did not raise any error (:gh:`9115` **by new contributor** |Matteo Anelli|_)
 
-- Fix bug with :func:`mne.io.Raw.pick` where incorrect fnirs types were returned (:gh:`9178` by `Robert Luke`_)
+- Fix bug with ``mne.io.Raw.pick`` where incorrect fnirs types were returned (:gh:`9178` by `Robert Luke`_)
 
 - Fix bug when passing both axes and picks to `mne.viz.plot_compare_evokeds` (:gh:`9252` by `Daniel McCloy`_)
 
 - Improved string representation of `~mne.Epochs` containing multiple event types; improved (and more mathematically correct) ``evoked.comment`` in the `mne.combine_evoked` output; and better (and often more concise) legend labels in the figures created via `~mne.viz.plot_compare_evokeds` (:gh:`9027` by `Richard Höchenberger`_)
 
 - :func:`mne.preprocessing.find_ecg_events` now correctly handles situation where no ECG activity could be detected, and correctly returns an empty array of ECG events (:gh:`9236` by `Richard Höchenberger`_)
+
+- Fix bug with ``picks`` attribute for `~mne.Epochs` after calling :meth:`mne.Epochs.add_channels` (:gh:`9246` by `Alex Gramfort`_)
 
 - `mne.preprocessing.compute_proj_eog` and `mne.preprocessing.compute_proj_ecg` now return empty lists if no EOG or ECG events, respectively, could be found. Previously, we'd return ``None`` in these situations, which does not match the documented behavior of returning a list of projectors (:gh:`9277` by `Richard Höchenberger`_)
 
