@@ -7,19 +7,18 @@
 import pytest
 
 import numpy as np
-import os.path as op
 
 from numpy.testing import (assert_allclose, assert_array_almost_equal,
                            assert_raises)
 
-from mne import create_info, read_trans
-from mne.channels import make_standard_montage
+from mne import create_info
+from mne.channels import make_standard_montage, compute_native_head_t
+from mne.channels.montage import get_builtin_montages, HEAD_SIZE_DEFAULT
 from mne.io import RawArray
 from mne.io._digitization import _get_dig_eeg, _get_fid_coords
-from mne.channels.montage import get_builtin_montages, HEAD_SIZE_DEFAULT
-from mne.channels import compute_native_head_t
 from mne.io.constants import FIFF
 from mne.preprocessing.nirs import optical_density, beer_lambert_law
+from mne.transforms import _get_trans, _angle_between_quats, rot_to_quat
 
 
 @pytest.mark.parametrize('kind', get_builtin_montages())
@@ -132,22 +131,30 @@ def _simulate_artinis_brite23():
     return raw
 
 
-def test_set_montage_artinis():
-    """Test that OctaMon and Brite 23 montages are set properly."""
+@pytest.mark.parametrize('kind', ('octamon', 'brite23'))
+def test_set_montage_artinis_fsaverage(kind):
+    """Test that artinis montages match fsaverage's head<->MRI transform."""
     # Compare OctaMon and Brite23 to fsaverage
-    montage_octamon = make_standard_montage('artinis-octamon')
-    trans_octamon = compute_native_head_t(montage_octamon)
-    montage_brite23 = make_standard_montage('artinis-brite23')
-    trans_brite = compute_native_head_t(montage_brite23)
-    fif = op.join(op.dirname(__file__), '..', '..', 'data', 'fsaverage',
-                  'fsaverage-trans.fif')
-    fsaverage = read_trans(fif)
-    assert_array_almost_equal(list(trans_octamon.values())[2],
-                              list(fsaverage.values())[2])
-    assert_array_almost_equal(list(trans_brite.values())[2],
-                              list(fsaverage.values())[2])
+    trans_fs, _ = _get_trans('fsaverage')
+    montage = make_standard_montage(f'artinis-{kind}')
+    trans = compute_native_head_t(montage)
+    assert trans['to'] == trans_fs['to']
+    assert trans['from'] == trans_fs['from']
+    translation = 1000 * np.linalg.norm(trans['trans'][:3, 3] -
+                                        trans_fs['trans'][:3, 3])
+    # TODO: This is actually quite big...
+    assert 15 < translation < 18  # mm
+    rotation = np.rad2deg(
+        _angle_between_quats(rot_to_quat(trans['trans'][:3, :3]),
+                             rot_to_quat(trans_fs['trans'][:3, :3])))
+    assert 3 < rotation < 7  # degrees
 
+
+def test_set_montage_artinis_basic():
+    """Test that OctaMon and Brite 23 montages are set properly."""
     # Test OctaMon montage
+    montage_octamon = make_standard_montage('artinis-octamon')
+    montage_brite23 = make_standard_montage('artinis-brite23')
     raw = _simulate_artinis_octamon()
     raw_od = optical_density(raw)
     old_info = raw.info.copy()
