@@ -1822,14 +1822,13 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             format. To save in native MNE format (fif) without info loss,
             use :func:`save` instead.
 
-
         Parameters
         ----------
         fname : str
             Name of the export file.
         fmt : str
             Format of the export. Defaults to auto, which will infer
-            format from fname's extension
+            format from fname's extension.
 
         Notes
         -----

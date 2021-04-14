@@ -1468,7 +1468,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             Name of the export file.
         fmt : str
             Format of the export. Defaults to auto, which will infer
-            format from fname's extension
+            format from fname's extension.
 
         Notes
         -----
