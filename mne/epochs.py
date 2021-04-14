@@ -1814,7 +1814,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
     def export(self, fname, fmt="auto"):
         """Export Epochs to external formats.
 
-        Supported formats: EEGLAB (set)
+        Supported formats: EEGLAB (set, uses :mod:`eeglabio`)
 
         .. warning::
             Since we are exporting to external formats, there's no
