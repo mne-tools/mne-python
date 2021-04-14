@@ -1472,7 +1472,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Notes
         -----
         For EEGLAB format, channel locations are expanded to full EEGLAB
-        format. For more details see ``eeglabio.utils.cart_to_eeglab``.
+        format. For more details see :func:`eeglabio.utils.cart_to_eeglab`.
         """
         if fmt == "auto":
             fmt = op.splitext(fname)[1]

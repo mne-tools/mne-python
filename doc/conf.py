@@ -146,7 +146,8 @@ intersphinx_mapping = {
     'imageio': ('https://imageio.readthedocs.io/en/latest', None),
     'mne_realtime': ('https://mne.tools/mne-realtime', None),
     'picard': ('https://pierreablin.github.io/picard/', None),
-    'qdarkstyle': ('https://qdarkstylesheet.readthedocs.io/en/latest', None)
+    'qdarkstyle': ('https://qdarkstylesheet.readthedocs.io/en/latest', None),
+    'eeglabio': ('https://eeglabio.readthedocs.io/en/latest', None)
 }
 
 
