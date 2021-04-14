@@ -693,7 +693,7 @@ def test_get_data_units():
 
 
 def test_export_set():
-    """Test saving a Raw instance to EEGLAB's set format"""
+    """Test saving a Raw instance to EEGLAB's set format."""
     fname = Path(__file__).parent / "data" / "test_raw.fif"
     raw = read_raw_fif(fname)
     raw.load_data()
