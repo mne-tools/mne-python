@@ -1816,10 +1816,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         Supported formats: EEGLAB (set)
 
-        .. warning:: Since we are exporting to external formats, there's no
-        guarantee that all the info will be preserved in the external format.
-        To save in native MNE format (fif) without info loss, use save()
-        instead
+        .. warning::
+            Since we are exporting to external formats, there's no
+            guarantee that all the info will be preserved in the external
+            format. To save in native MNE format (fif) without info loss,
+            use :func:`save` instead.
 
 
         Parameters
