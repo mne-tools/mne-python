@@ -23,6 +23,7 @@ from mne.datasets import testing
 from mne.filter import filter_data
 from mne.io.constants import FIFF
 from mne.io import RawArray, concatenate_raws, read_raw_fif, base
+from mne.io.open import read_tag, read_tag_info
 from mne.io.tag import _read_tag_header
 from mne.io.tests.test_raw import _test_concat, _test_raw_reader
 from mne import (concatenate_events, find_events, equalize_channels,
@@ -1744,3 +1745,24 @@ def test_split_symlink(tmpdir):
     os.symlink(new_second, second)
     raw_new = read_raw_fif(first)
     assert_allclose(raw_new.get_data(), raw.get_data())
+
+
+@testing.requires_testing_data
+def test_corrupted(tmpdir):
+    """Test that a corrupted file can still be read."""
+    # Must be a file written by Neuromag, not us, since we don't write the dir
+    # at the end, so use the skip one (straight from acq).
+    raw = read_raw_fif(skip_fname)
+    with open(skip_fname, 'rb') as fid:
+        tag = read_tag_info(fid)
+        tag = read_tag(fid)
+        dirpos = int(tag.data)
+        assert dirpos == 12641532
+        fid.seek(0)
+        data = fid.read(dirpos)
+    bad_fname = tmpdir.join('test_raw.fif')
+    with open(bad_fname, 'wb') as fid:
+        fid.write(data)
+    with pytest.warns(RuntimeWarning, match='.*tag directory.*corrupt.*'):
+        raw_bad = read_raw_fif(bad_fname)
+    assert_allclose(raw.get_data(), raw_bad.get_data())

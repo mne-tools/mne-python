@@ -94,8 +94,8 @@ label_colors = [label.color for label in labels]
 # Average the source estimates within each label using sign-flips to reduce
 # signal cancellations, also here we return a generator
 src = inverse_operator['src']
-label_ts = mne.extract_label_time_course(stcs, labels, src, mode='mean_flip',
-                                         return_generator=True)
+label_ts = mne.extract_label_time_course(
+    stcs, labels, src, mode='mean_flip', return_generator=True)
 
 fmin = 8.
 fmax = 13.

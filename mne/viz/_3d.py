@@ -1755,7 +1755,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     _validate_type(stc, _BaseSourceEstimate, 'stc', 'source estimate')
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
-    subject = _check_subject(stc.subject, subject, True)
+    subject = _check_subject(stc.subject, subject)
     _check_option('backend', backend,
                   ['auto', 'matplotlib', 'mayavi', 'pyvista'])
     plot_mpl = backend == 'matplotlib'
@@ -1797,7 +1797,7 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
     vec = stc._data_ndim == 3
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
-    subject = _check_subject(stc.subject, subject, True)
+    subject = _check_subject(stc.subject, subject)
 
     backend = _get_3d_backend()
     del _get_3d_backend
@@ -2012,7 +2012,7 @@ def _load_subject_mri(mri, stc, subject, subjects_dir, name):
     from nibabel.spatialimages import SpatialImage
     _validate_type(mri, ('path-like', SpatialImage), name)
     if isinstance(mri, str):
-        subject = _check_subject(stc.subject, subject, True)
+        subject = _check_subject(stc.subject, subject)
         mri = nib.load(_check_mri(mri, subject, subjects_dir))
     return mri
 
@@ -2132,7 +2132,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     del src
     _print_coord_trans(Transform('mri_voxel', 'ras', img.affine),
                        prefix='Image affine ', units='mm', level='debug')
-    subject = _check_subject(src_subject, subject, True, kind=kind)
+    subject = _check_subject(src_subject, subject, first_kind=kind)
     stc_ijk = np.array(
         np.unravel_index(stc.vertices[0], img.shape[:3], order='F')).T
     assert stc_ijk.shape == (len(stc.vertices[0]), 3)
@@ -2263,7 +2263,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         params['fig'].canvas.draw()
 
     if mode == 'glass_brain':
-        subject = _check_subject(stc.subject, subject, True)
+        subject = _check_subject(stc.subject, subject)
         ras_mni_t = read_ras_mni_t(subject, subjects_dir)
         if not np.allclose(ras_mni_t['trans'], np.eye(4)):
             _print_coord_trans(

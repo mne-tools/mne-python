@@ -4,8 +4,8 @@ Compute envelope correlations in volume source space
 ====================================================
 
 Compute envelope correlations of orthogonalized activity
-:footcite:`HippEtAl2012,KhanEtAl2018` in source
-space using resting state CTF data in a volume source space.
+:footcite:`HippEtAl2012,KhanEtAl2018` in source space using resting state
+CTF data in a volume source space.
 """
 
 # Authors: Eric Larson <larson.eric.d@gmail.com>

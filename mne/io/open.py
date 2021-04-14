@@ -13,7 +13,7 @@ import numpy as np
 from .tag import read_tag_info, read_tag, Tag, _call_dict_names
 from .tree import make_dir_tree, dir_tree_find
 from .constants import FIFF
-from ..utils import logger, verbose, _file_like
+from ..utils import logger, verbose, _file_like, warn
 
 
 class _NoCloseRead(object):
@@ -158,10 +158,16 @@ def _fiff_open(fname, fid, preload):
     logger.debug('    Creating tag directory for %s...' % fname)
 
     dirpos = int(tag.data)
+    read_slow = True
     if dirpos > 0:
-        tag = read_tag(fid, dirpos)
-        directory = tag.data
-    else:
+        dir_tag = read_tag(fid, dirpos)
+        if dir_tag is None:
+            warn(f'FIF tag directory missing at the end of the file, possibly '
+                 f'corrupted file: {fname}')
+        else:
+            directory = dir_tag.data
+            read_slow = False
+    if read_slow:
         fid.seek(0, 0)
         directory = list()
         while tag.next >= 0:
