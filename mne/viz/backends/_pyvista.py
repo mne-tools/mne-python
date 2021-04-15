@@ -719,28 +719,10 @@ class _PyVistaRenderer(_AbstractRenderer):
         _process_events(self.figure.plotter)
 
     def _update_picking_callback(self,
-                                 on_mouse_move,
-                                 on_button_press,
-                                 on_button_release,
                                  on_pick):
-        self.figure.viewer.iren.AddObserver(
-            vtk.vtkCommand.RenderEvent,
-            on_mouse_move
-        )
-        self.figure.viewer.iren.AddObserver(
-            vtk.vtkCommand.LeftButtonPressEvent,
-            on_button_press
-        )
-        self.figure.viewer.iren.AddObserver(
-            vtk.vtkCommand.EndInteractionEvent,
-            on_button_release
-        )
-        self.figure.viewer.picker = vtk.vtkCellPicker()
-        self.figure.viewer.picker.AddObserver(
-            vtk.vtkCommand.EndPickEvent,
-            on_pick
-        )
-        self.figure.viewer.picker.SetVolumeOpacityIsovalue(0.)
+        self.picking_helpers = list()
+        for plotter in self._all_plotters:
+            self.picking_helpers.append(PickingHelper(plotter, on_pick))
 
     def _set_mesh_scalars(self, mesh, scalars, name):
         # Catch:  FutureWarning: Conversion of the second argument of
@@ -1147,6 +1129,47 @@ def _glyph(dataset, scale_mode='scalar', orient=True, scalars=True, factor=1.0,
     alg.SetClamping(clamping)
     alg.Update()
     return alg
+
+
+class PickingHelper:
+    def __init__(self, plotter, pick_func):
+        self._mouse_no_mvt = 0
+        self.plotter = plotter
+        self.plotter.iren.AddObserver(
+            vtk.vtkCommand.RenderEvent,
+            self.on_mouse_move
+        )
+        self.plotter.iren.AddObserver(
+            vtk.vtkCommand.LeftButtonPressEvent,
+            self.on_button_press
+        )
+        self.plotter.iren.AddObserver(
+            vtk.vtkCommand.EndInteractionEvent,
+            self.on_button_release
+        )
+        self.plotter.picker = vtk.vtkCellPicker()
+        self.plotter.picker.AddObserver(
+            vtk.vtkCommand.EndPickEvent,
+            pick_func,
+        )
+        self.plotter.picker.SetVolumeOpacityIsovalue(0.)
+
+    def on_mouse_move(self, vtk_picker, event):
+        if self._mouse_no_mvt:
+            self._mouse_no_mvt -= 1
+
+    def on_button_press(self, vtk_picker, event):
+        self._mouse_no_mvt = 2
+
+    def on_button_release(self, vtk_picker, event):
+        if self._mouse_no_mvt > 0:
+            x, y = vtk_picker.GetEventPosition()
+            # programmatically detect the picked renderer
+            self.picked_renderer = \
+                self.plotter.iren.FindPokedRenderer(x, y)
+            self.plotter.picker.Pick(
+                x, y, 0, self.picked_renderer)
+        self._mouse_no_mvt = 0
 
 
 def _require_minimum_version(version_required):

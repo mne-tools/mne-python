@@ -1222,9 +1222,6 @@ class Brain(object):
                 self.act_data_smooth[hemi] = (act_data, smooth_mat)
 
         self._renderer._update_picking_callback(
-            self._on_mouse_move,
-            self._on_button_press,
-            self._on_button_release,
             self._on_pick
         )
 
@@ -1335,22 +1332,6 @@ class Brain(object):
         self.status_progress = self._renderer._status_bar_add_progress_bar()
         if self.status_progress is not None:
             self.status_progress.hide()
-
-    def _on_mouse_move(self, vtk_picker, event):
-        if self._mouse_no_mvt:
-            self._mouse_no_mvt -= 1
-
-    def _on_button_press(self, vtk_picker, event):
-        self._mouse_no_mvt = 2
-
-    def _on_button_release(self, vtk_picker, event):
-        if self._mouse_no_mvt > 0:
-            x, y = vtk_picker.GetEventPosition()
-            # programmatically detect the picked renderer
-            self.picked_renderer = self._renderer.figure.viewer.iren.FindPokedRenderer(x, y)
-            # trigger the pick
-            self._renderer.figure.viewer.picker.Pick(x, y, 0, self.picked_renderer)
-        self._mouse_no_mvt = 0
 
     def _on_pick(self, vtk_picker, event):
         if not self.show_traces:
@@ -1528,6 +1509,7 @@ class Brain(object):
         self.picked_points[hemi].append(vertex_id)
         self._spheres.extend(spheres)
         self.pick_table[vertex_id] = spheres
+        self._renderer._update()
         return sphere
 
     def _remove_vertex_glyph(self, mesh, render=True):
@@ -1549,7 +1531,8 @@ class Brain(object):
             self.color_cycle.restore(color)
         for sphere in spheres:
             # remove all actors
-            self._renderer.figure.viewer.remove_actor(sphere._actors, render=render)
+            for renderer in self._renderer._all_renderers:
+                renderer.remove_actor(sphere._actors, render=render)
             sphere._actors = None
             self._spheres.pop(self._spheres.index(sphere))
         self.pick_table.pop(vertex_id)
