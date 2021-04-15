@@ -54,9 +54,6 @@ class ASR():
         ASR [2]_.
     memory : float
         Memory size (s), regulates the number of covariance matrices to store.
-    estimator : str in {'scm', 'lwf', 'oas', 'mcd'}
-        Covariance estimator (default: 'scm' which computes the sample
-        covariance). Use 'lwf' if you need regularization (requires pyriemann).
 
     Attributes
     ----------
@@ -103,8 +100,7 @@ class ASR():
         self.max_dropout_fraction = max_dropout_fraction
         self.min_clean_fraction = min_clean_fraction
         self.max_bad_chans = max_bad_chans
-        self.method = "euclid" # FIXME: riemann is not yet available
-        self.estimator = "scm" # FIXME: should we keep this?
+        self.method = "euclid" # NOTE: riemann is not yet available
 
         # set default yule-walker filter
         if ab == None:
@@ -180,8 +176,7 @@ class ASR():
             win_overlap=self.win_overlap,
             max_dropout_fraction=self.max_dropout_fraction,
             min_clean_fraction=self.min_clean_fraction,
-            method=self.method,
-            estimator=self.estimator)
+            method=self.method)
 
         self._fitted = True
 
@@ -210,7 +205,7 @@ class ASR():
 
 def asr_calibrate(X, sfreq, cutoff=5, blocksize=100, win_len=0.5,
                   win_overlap=0.66, max_dropout_fraction=0.1,
-                  min_clean_fraction=0.25, method='euclid', estimator='scm'):
+                  min_clean_fraction=0.25, method='euclid'):
     """Calibration function for the Artifact Subspace Reconstruction method.
 
     The input to this data is a multi-channel time series of calibration data.
@@ -282,14 +277,14 @@ def asr_calibrate(X, sfreq, cutoff=5, blocksize=100, win_len=0.5,
         Threshold matrix.
 
     """
-    logging.debug('[ASR] Calibrating...')
     if method == "riemann":
         warnings.warn("Riemannian ASR is not yet supported. Switching back to"
                       " Euclidean ASR.")
         method == "euclid"
 
-    [nc, ns] = X.shape
+    logging.debug('[ASR] Calibrating...')
 
+    [nc, ns] = X.shape
 
     X, _zf = yulewalk_filter(X, sfreq)
 
@@ -335,7 +330,7 @@ def asr_calibrate(X, sfreq, cutoff=5, blocksize=100, win_len=0.5,
 
 def asr_process(data, sfreq, M, T, windowlen=0.5, lookahead=0.25, stepsize=32,
                 maxdims=0.66, ab=None, R=None, Zi=None, cov=None, carry=None,
-                return_states=False):
+                return_states=False, method="euclid"):
     """Apply Artifact Subspace Reconstruction method.
 
     This function is used to clean multi-channel signal using the ASR method.
@@ -345,22 +340,58 @@ def asr_process(data, sfreq, M, T, windowlen=0.5, lookahead=0.25, stepsize=32,
     ----------
     data : array, shape=([n_trials, ]n_channels, n_samples)
         Raw data.
+    sfreq : float
+        The sampling rate of the data.
     M : array, shape=(n_channels, n_channels)
         Mixing matrix.
     T : array, shape=(n_channels, n_channels)
         Threshold matrix.
+    windowlen : float
+        Window length that is used to check the data for artifact content.
+        This is ideally as long as the expected time scale of the artifacts
+        but short enough to allow for several 1000 windows to compute
+        statistics over (default=0.5).
+    lookahead:
+        Amount of look-ahead that the algorithm should use. Since the
+        processing is causal, the output signal will be delayed by this
+        amount. This value is in seconds and should be between 0 (no
+        lookahead) and WindowLength/2 (optimal lookahead). The recommended
+        value is WindowLength/2. Default: 0.25
+    stepsize:
+        The steps in which the algorithm will be updated. The larger this is,
+        the faster the algorithm will be. The value must not be larger than
+        WindowLength * SamplingRate. The minimum value is 1 (update for every
+        sample) while a good value would be sfreq//3. Note that an update
+        is always performed also on the first and last sample of the data
+        chunk. Default: 32
     max_dims : float, int
         Maximum dimensionality of artifacts to remove. This parameter
         denotes the maximum number of dimensions which can be removed from
         each segment. If larger than 1, `int(max_dims)` will denote the
         maximum number of dimensions removed from the data. If smaller than 1,
         `max_dims` describes a fraction of total dimensions. Defaults to 0.66.
-    T : array, shape=(n_channels, n_channels)
-        Previous reconstruction matrix.
+    ab : 2-tuple | None
+        Coefficients of an IIR filter that is used to shape the spectrum of
+        the signal when calculating artifact statistics. The output signal
+        does not go through this filter. This is an optional way to tune the
+        sensitivity of the algorithm to each frequency component of the
+        signal. The default filter is less sensitive at alpha and beta
+        frequencies and more sensitive at delta (blinks) and gamma (muscle)
+        frequencies. Defaults to None.
+    R : array, shape=(n_channels, n_channels)
+        Previous reconstruction matrix. Defaults to None.
+    Zi : array
+        Previous filter conditions. Defaults to None.
     cov : array, shape=([n_trials, ]n_channels, n_channels) | None
         Covariance. If None (default), then it is computed from ``X_filt``. If
         a 3D array is provided, the average covariance is computed from all
-        the elements in it.
+        the elements in it. Defaults to None.
+    carry :
+        Initial portion of the data that will be added to the current data. If
+        None, data will be interpolated. Defaults to None.
+    return_states : bool
+        If True, returns a dict including the updated states {"M":M, "T":T,
+        "R":R, "Zi":Zi, "cov":cov, "carry":carry}. Defaults to False.
 
 
     Returns
@@ -372,6 +403,10 @@ def asr_process(data, sfreq, M, T, windowlen=0.5, lookahead=0.25, stepsize=32,
         "carry":carry}.
 
     """
+    if method == "riemann":
+        warnings.warn("Riemannian ASR is not yet supported. Switching back to"
+                      " Euclidean ASR.")
+        method == "euclid"
 
     if maxdims < 1:
         maxdims = np.round(len(data)*maxdims)
@@ -412,10 +447,10 @@ def asr_process(data, sfreq, M, T, windowlen=0.5, lookahead=0.25, stepsize=32,
                                 zi=Zi, ab=(A, B), axis=-1)
 
         Xcov, cov = \
-            moving_average(N,
-                           np.reshape(np.multiply(np.reshape(X, (1, C, -1)),
-                                                  np.reshape(X, (C, 1, -1))),
-                                      (C*C, -1)), cov)
+            ma_filter(N,
+                      np.reshape(np.multiply(np.reshape(X, (1, C, -1)),
+                                             np.reshape(X, (C, 1, -1))),
+                                 (C*C, -1)), cov)
 
         update_at = np.arange(stepsize, Xcov.shape[-1]+stepsize-2, stepsize)
         update_at = np.minimum(update_at, Xcov.shape[-1])-1
@@ -463,7 +498,25 @@ def asr_process(data, sfreq, M, T, windowlen=0.5, lookahead=0.25, stepsize=32,
         return data[:, :-P]
 
 
-def moving_average(N, X, Zi):
+def ma_filter(N, X, Zi):
+    """Run a moving average filter over the data.
+
+        Parameters
+    ----------
+    N : int
+        Length of the filter.
+    X : array, shape=(n_channels, n_samples)
+        The raw data.
+    Zi : array
+        The initial filter conditions.
+
+    Returns
+    -------
+    X : array
+        The filtered data.
+    Zf : array
+        The new fiter conditions.
+    """
     if Zi is None:
         Zi = np.zeros([len(X), N])
 
@@ -524,32 +577,14 @@ def clean_windows(X, sfreq, max_bad_chans=0.2, zthresholds=[-3.5, 5],
         Window overlap fraction. The fraction of two successive windows that
         overlaps. Higher overlap ensures that fewer artifact portions are
         going to be missed, but is slower (default=0.66).
-    max_dropout_fraction : float
-        Maximum fraction that can have dropouts. This is the maximum fraction
-        of time windows that may have arbitrarily low amplitude (e.g., due to
-        the sensors being unplugged) (default=0.1).
     min_clean_fraction : float
         Minimum fraction that needs to be clean. This is the minimum fraction
         of time windows that need to contain essentially uncontaminated EEG.
         (default=0.25)
-
-    The following are expert-level parameters that you should not tune unless
-    you fully understand how the method works.
-
-    truncate_quant :
-        Truncated Gaussian quantile. Quantile range [upper,lower] of the
-        truncated Gaussian distribution that shall be fit to the EEG contents.
-        (default=[0.022, 0.6])
-    step_sizes :
-        Grid search stepping. Step size of the grid search, in quantiles;
-        separately for [lower,upper] edge of the truncated Gaussian. The lower
-        edge has finer stepping because the clean data density is assumed to
-        be lower there, so small changes in quantile amount to large changes
-        in data space (default=[0.01 0.01]).
-    shape_range :
-        Shape parameter range. Search range for the shape parameter of the
-        generalized Gaussian distribution used to fit clean EEG (default:
-        1.7:0.15:3.5).
+    max_dropout_fraction : float
+        Maximum fraction that can have dropouts. This is the maximum fraction
+        of time windows that may have arbitrarily low amplitude (e.g., due to
+        the sensors being unplugged) (default=0.1).
 
     Returns
     -------
