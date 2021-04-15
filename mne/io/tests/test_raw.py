@@ -24,7 +24,8 @@ from mne.externals.h5io import read_hdf5, write_hdf5
 from mne.io import read_raw_fif, RawArray, BaseRaw, Info, _writing_info_hdf5
 from mne.io.base import _get_scaling
 from mne.utils import (_TempDir, catch_logging, _raw_annot, _stamp_to_dt,
-                       object_diff, check_version, requires_pandas)
+                       object_diff, check_version, requires_pandas,
+                       _check_eeglabio_installed)
 from mne.io.meas_info import _get_valid_units
 from mne.io._digitization import DigPoint
 from mne.io.proj import Projection
@@ -694,6 +695,8 @@ def test_get_data_units():
 
 def test_export_set():
     """Test saving a Raw instance to EEGLAB's set format."""
+    if not _check_eeglabio_installed(strict=False):
+        return
     fname = Path(__file__).parent / "data" / "test_raw.fif"
     raw = read_raw_fif(fname)
     raw.load_data()

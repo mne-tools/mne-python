@@ -40,7 +40,8 @@ from mne.epochs import (
     _handle_event_repeated, make_metadata)
 from mne.utils import (requires_pandas, object_diff,
                        catch_logging, _FakeNoPandas,
-                       assert_meg_snr, check_version, _dt_to_stamp)
+                       assert_meg_snr, check_version, _dt_to_stamp,
+                       _check_eeglabio_installed)
 
 data_path = testing.data_path(download=False)
 fname_raw_testing = op.join(data_path, 'MEG', 'sample',
@@ -3078,6 +3079,8 @@ def test_save_complex_data(tmpdir, preload, is_complex, fmt, rtol):
 @pytest.mark.parametrize('preload', (True, False))
 def test_export_set(tmpdir, preload):
     """Test saving an Epochs instance to EEGLAB's set format."""
+    if not _check_eeglabio_installed(strict=False):
+        return
     raw, events = _get_data()[:2]
     raw.load_data()
     epochs = Epochs(raw, events, preload=preload)
