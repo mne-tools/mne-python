@@ -118,7 +118,8 @@ def prox_l1(Y, alpha, n_orient):
 
     Please note that this function computes a soft-thresholding if
     n_orient == 1 and a block soft-thresholding (L2 over orientation and
-    L1 over position (space + time)) if n_orient == 3. See also [1]_.
+    L1 over position (space + time)) if n_orient == 3. See also
+    :footcite:`GramfortEtAl2013b`.
 
     Parameters
     ----------
@@ -138,11 +139,7 @@ def prox_l1(Y, alpha, n_orient):
 
     References
     ----------
-    .. [1] A. Gramfort, D. Strohmeier, J. Haueisen, M. Hämäläinen, M. Kowalski
-       "Time-Frequency Mixed-Norm Estimates: Sparse M/EEG imaging with
-       non-stationary source activations",
-       Neuroimage, Volume 70, pp. 410-422, 15 April 2013.
-       DOI: 10.1016/j.neuroimage.2012.12.051
+    .. footbibliography::
 
     Examples
     --------
@@ -179,6 +176,8 @@ def prox_l1(Y, alpha, n_orient):
 def dgap_l21(M, G, X, active_set, alpha, n_orient):
     """Duality gap for the mixed norm inverse problem.
 
+    See :footcite:`GramfortEtAl2012`.
+
     Parameters
     ----------
     M : array, shape (n_sensors, n_times)
@@ -207,10 +206,7 @@ def dgap_l21(M, G, X, active_set, alpha, n_orient):
 
     References
     ----------
-    .. [1] A. Gramfort, M. Kowalski, M. Hämäläinen,
-       "Mixed-norm estimates for the M/EEG inverse problem using accelerated
-       gradient methods", Physics in Medicine and Biology, 2012.
-       https://doi.org/10.1088/0031-9155/57/7/1937
+    .. footbibilography::
     """
     GX = np.dot(G[:, active_set], X)
     R = M - GX
@@ -445,6 +441,8 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
                       solver='auto', return_gap=False, dgap_freq=10):
     """Solve L1/L2 mixed-norm inverse problem with active set strategy.
 
+    See references :footcite:`GramfortEtAl2012,StrohmeierEtAl2016`.
+
     Parameters
     ----------
     M : array, shape (n_sensors, n_times)
@@ -486,15 +484,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
 
     References
     ----------
-    .. [1] A. Gramfort, M. Kowalski, M. Hämäläinen,
-       "Mixed-norm estimates for the M/EEG inverse problem using accelerated
-       gradient methods", Physics in Medicine and Biology, 2012.
-       https://doi.org/10.1088/0031-9155/57/7/1937
-
-    .. [2] D. Strohmeier, Y. Bekhti, J. Haueisen, A. Gramfort,
-       "The Iterative Reweighted Mixed-Norm Estimate for Spatio-Temporal
-       MEG/EEG Source Reconstruction", IEEE Transactions of Medical Imaging,
-       Volume 35 (10), pp. 2218-2228, 15 April 2013.
+    .. footbibliography::
     """
     n_dipoles = G.shape[1]
     n_positions = n_dipoles // n_orient
@@ -627,6 +617,8 @@ def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
                                 solver='auto'):
     """Solve L0.5/L2 mixed-norm inverse problem with active set strategy.
 
+    See reference :footcite:`StrohmeierEtAl2016`.
+
     Parameters
     ----------
     M : array, shape (n_sensors, n_times)
@@ -666,10 +658,7 @@ def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
 
     References
     ----------
-    .. [1] D. Strohmeier, Y. Bekhti, J. Haueisen, A. Gramfort,
-       "The Iterative Reweighted Mixed-Norm Estimate for Spatio-Temporal
-       MEG/EEG Source Reconstruction", IEEE Transactions of Medical Imaging,
-       Volume 35 (10), pp. 2218-2228, 2016.
+    .. footbibliography::
     """
     def g(w):
         return np.sqrt(np.sqrt(groups_norm2(w.copy(), n_orient)))
@@ -893,7 +882,8 @@ def norm_epsilon(Y, l1_ratio, phi, w_space=1., w_time=None):
     Warning: it takes into account the fact that Y only contains coefficients
     corresponding to the positive frequencies (see `stft_norm2()`): some
     entries will be counted twice. It is also assumed that all entries of both
-    Y and w_time are non-negative.
+    Y and w_time are non-negative. See
+    :footcite:`NdiayeEtAl2016,BurdakovMerkulov2001`.
 
     Parameters
     ----------
@@ -918,13 +908,7 @@ def norm_epsilon(Y, l1_ratio, phi, w_space=1., w_time=None):
 
     References
     ----------
-    .. [1] E. Ndiaye, O. Fercoq, A. Gramfort, J. Salmon,
-       "GAP Safe Screening Rules for Sparse-Group Lasso", Advances in Neural
-       Information Processing Systems (NIPS), 2016.
-
-    .. [2] O. Burdakov, B. Merkulov,
-       "On a new norm for data fitting and optimization problems",
-       LiTH-MAT, 2001.
+    .. footbibliography::
     """
     # since the solution is invariant to flipped signs in Y, all entries
     # of Y are assumed positive
@@ -1059,6 +1043,8 @@ def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT,
                n_orient, highest_d_obj, w_space=None, w_time=None):
     """Duality gap for the time-frequency mixed norm inverse problem.
 
+    See :footcite:`GramfortEtAl2012,NdiayeEtAl2016`
+
     Parameters
     ----------
     M : array, shape (n_sensors, n_times)
@@ -1100,14 +1086,7 @@ def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT,
 
     References
     ----------
-    .. [1] A. Gramfort, M. Kowalski, M. Hämäläinen,
-       "Mixed-norm estimates for the M/EEG inverse problem using accelerated
-       gradient methods", Physics in Medicine and Biology, 2012.
-       https://doi.org/10.1088/0031-9155/57/7/1937
-
-    .. [2] E. Ndiaye, O. Fercoq, A. Gramfort, J. Salmon,
-       "GAP Safe Screening Rules for Sparse-Group Lasso", Advances in Neural
-       Information Processing Systems (NIPS), 2016.
+    .. footbibliography::
     """
     X = phiT(Z)
     GX = np.dot(G[:, active_set], X)
@@ -1352,6 +1331,8 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
                          dgap_freq=10, verbose=None):
     """Solve TF L21+L1 inverse solver with BCD and active set approach.
 
+    See :footcite:`GramfortEtAl2013b,GramfortEtAl2011,BekhtiEtAl2016`.
+
     Parameters
     ----------
     M : array, shape (n_sensors, n_times)
@@ -1403,24 +1384,7 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
 
     References
     ----------
-    .. [1] A. Gramfort, D. Strohmeier, J. Haueisen, M. Hämäläinen, M. Kowalski
-       "Time-Frequency Mixed-Norm Estimates: Sparse M/EEG imaging with
-       non-stationary source activations",
-       Neuroimage, Volume 70, pp. 410-422, 15 April 2013.
-       DOI: 10.1016/j.neuroimage.2012.12.051
-
-    .. [2] A. Gramfort, D. Strohmeier, J. Haueisen, M. Hämäläinen, M. Kowalski
-       "Functional Brain Imaging with M/EEG Using Structured Sparsity in
-       Time-Frequency Dictionaries",
-       Proceedings Information Processing in Medical Imaging
-       Lecture Notes in Computer Science, Volume 6801/2011, pp. 600-611, 2011.
-       DOI: 10.1007/978-3-642-22092-0_49
-
-    .. [3] Y. Bekhti, D. Strohmeier, M. Jas, R. Badeau, A. Gramfort.
-       "M/EEG source localization with multiscale time-frequency dictionaries",
-       6th International Workshop on Pattern Recognition in Neuroimaging
-       (PRNI), 2016.
-       DOI: 10.1109/PRNI.2016.7552337
+    .. footbibliography::
     """
     n_sensors, n_times = M.shape
     n_sensors, n_sources = G.shape

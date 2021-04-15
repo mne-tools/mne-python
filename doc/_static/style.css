@@ -8,6 +8,11 @@
 
 }
 
+/* ************************************************************ Sphinx fixes */
+dl.field-list {
+    grid-template-columns: auto 1fr;
+}
+
 /* ********************************************************** Sphinx-gallery */
 
 /* backreference links: restore hover decoration that SG removes */
@@ -45,9 +50,15 @@ iframe.sg_report {
     display: block;
     border-style: solid;
 }
+/* gallery thumbnail size */
+.sphx-glr-thumbcontainer {
+    min-width: 160px;
+    height: 250px;
+}
 
 /* ******************************** make HTML'd pandas dataframes scrollable */
-output_html {
+table.dataframe {
+    display: block;
     overflow: auto;
 }
 
@@ -78,7 +89,7 @@ img.logo {
     width: 100%;
 }
 
-/* ************************************** homepage quick links & funders box */
+/* ************************************* homepage quick links & funders list */
 ul.quicklinks {
     font-weight: 600;
 }
@@ -86,14 +97,16 @@ ul.quicklinks a:hover {
     text-decoration: none;
 }
 ul.funders li {
-    line-height: initial;
-    margin-left: 24px;
-    text-indent: -24px;
-    padding-bottom: 6px;
+    margin-left: 36px;
+    text-indent: -36px;
+    padding-bottom: 9px;
 }
 ul.funders li img {
-    width: 18px;
+    width: 30px;
+    max-height: 24px;
+    object-fit: contain;
 }
+
 /* these two also affect collapsible divs */
 h5.card-header {
     margin-top: 0px;
@@ -115,20 +128,6 @@ h5.card-header::before {
 .dropdown-toggle {
     font-weight: 600;
     margin-left: 15px;  /* match other items in the hamburger menu */
-}
-
-/* ********************************************* institution logos in footer */
-img.institution {
-    vertical-align: middle;
-    max-height: 42px;
-    max-width: 52px;
-}
-/* prevent footer from getting pushed offscreen */
-.bd-sidebar {
-    height: unset;
-}
-.bd-toc {
-    height: unset;
 }
 
 /* ***************************************************** front page carousel */

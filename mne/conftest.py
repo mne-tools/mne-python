@@ -96,6 +96,8 @@ def pytest_configure(config):
     ignore:.*QDesktopWidget\.availableGeometry.*:DeprecationWarning
     ignore:Unable to enable faulthandler.*:UserWarning
     ignore:Fetchers from the nilearn.*:FutureWarning
+    ignore:SelectableGroups dict interface is deprecated\. Use select\.:DeprecationWarning
+    ignore:Call to deprecated class vtk.*:DeprecationWarning
     always:.*get_data.* is deprecated in favor of.*:DeprecationWarning
     always::ResourceWarning
     """  # noqa: E501
@@ -330,15 +332,17 @@ def _use_backend(backend_name, interactive):
 def _check_skip_backend(name):
     from mne.viz.backends.tests._utils import (has_mayavi, has_pyvista,
                                                has_pyqt5, has_imageio_ffmpeg)
+    check_pyvista = name in ('pyvista', 'notebook')
+    check_pyqt5 = name in ('mayavi', 'pyvista')
     if name == 'mayavi':
         if not has_mayavi():
             pytest.skip("Test skipped, requires mayavi.")
     elif name == 'pyvista':
-        if not has_pyvista():
-            pytest.skip("Test skipped, requires pyvista.")
         if not has_imageio_ffmpeg():
             pytest.skip("Test skipped, requires imageio-ffmpeg")
-    if not has_pyqt5():
+    if check_pyvista and not has_pyvista():
+        pytest.skip("Test skipped, requires pyvista.")
+    if check_pyqt5 and not has_pyqt5():
         pytest.skip("Test skipped, requires PyQt5.")
 
 

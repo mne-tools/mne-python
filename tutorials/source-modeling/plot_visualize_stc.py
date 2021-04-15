@@ -4,8 +4,7 @@
 Visualize source time courses (stcs)
 ====================================
 
-This tutorial focuses on visualization of
-:term:`source estimates<STC>`.
+This tutorial focuses on visualization of :term:`source estimates<STC>`.
 
 Surface Source Estimates
 ------------------------
@@ -31,11 +30,11 @@ fname_evoked = data_path + '/MEG/sample/sample_audvis-ave.fif'
 fname_stc = os.path.join(sample_dir, 'sample_audvis-meg')
 
 ###############################################################################
-# Then, we read the stc from file
+# Then, we read the stc from file.
 stc = mne.read_source_estimate(fname_stc, subject='sample')
 
 ###############################################################################
-# This is a :class:`SourceEstimate <mne.SourceEstimate>` object
+# This is a :class:`SourceEstimate <mne.SourceEstimate>` object.
 print(stc)
 
 ###############################################################################
@@ -51,7 +50,7 @@ brain = stc.plot(subjects_dir=subjects_dir, initial_time=initial_time,
                  clim=dict(kind='value', lims=[3, 6, 9]))
 
 ###############################################################################
-# You can also morph it to fsaverage and visualize it using a flatmap
+# You can also morph it to fsaverage and visualize it using a flatmap.
 
 # sphinx_gallery_thumbnail_number = 3
 stc_fs = mne.compute_source_morph(stc, 'sample', 'fsaverage', subjects_dir,

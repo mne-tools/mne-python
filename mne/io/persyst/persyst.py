@@ -13,7 +13,7 @@ from ..constants import FIFF
 from ..meas_info import create_info
 from ..utils import _mult_cal_one
 from ...annotations import Annotations
-from ...utils import logger, verbose, fill_doc, warn
+from ...utils import logger, verbose, fill_doc, warn, _check_fname
 
 
 @fill_doc
@@ -65,6 +65,7 @@ class RawPersyst(BaseRaw):
 
     @verbose
     def __init__(self, fname, preload=False, verbose=None):
+        fname = _check_fname(fname, 'read', True, 'fname')
         logger.info('Loading %s' % fname)
 
         # make sure filename is the Lay file

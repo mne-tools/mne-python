@@ -473,7 +473,7 @@ class _AbstractToolBar(ABC):
         pass
 
     @abstractmethod
-    def _tool_bar_add_screenshot_button(self, name, desc, func):
+    def _tool_bar_add_file_button(self, name, desc, func, shortcut=None):
         pass
 
     @abstractmethod
@@ -565,6 +565,10 @@ class _AbstractStatusBar(ABC):
     def _status_bar_add_progress_bar(self, stretch=0):
         pass
 
+    @abstractmethod
+    def _status_bar_update(self):
+        pass
+
 
 class _AbstractPlayback(ABC):
     @abstractmethod
@@ -578,7 +582,7 @@ class _AbstractLayout(ABC):
         pass
 
     @abstractmethod
-    def _layout_add_widget(self, layout, widget):
+    def _layout_add_widget(self, layout, widget, stretch=0):
         pass
 
 
@@ -596,6 +600,22 @@ class _AbstractWidget(ABC):
 
     @abstractmethod
     def get_value(self):
+        pass
+
+    @abstractmethod
+    def set_range(self, rng):
+        pass
+
+    @abstractmethod
+    def show(self):
+        pass
+
+    @abstractmethod
+    def hide(self):
+        pass
+
+    @abstractmethod
+    def update(self, repaint=True):
         pass
 
 
@@ -766,6 +786,10 @@ class _AbstractWindow(ABC):
 
     @abstractmethod
     def _window_set_cursor(self, cursor):
+        pass
+
+    @abstractmethod
+    def _window_new_cursor(self, name):
         pass
 
     @abstractmethod

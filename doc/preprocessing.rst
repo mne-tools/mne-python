@@ -86,6 +86,7 @@ Projections:
    ica_find_ecg_events
    ica_find_eog_events
    infomax
+   equalize_bads
    maxwell_filter
    oversampled_temporal_projection
    peak_finder

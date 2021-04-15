@@ -383,3 +383,7 @@
 .. _Ram Pari: https://github.com/ramkpari
 
 .. _Erica Peterson: https://github.com/nordme
+
+.. _Sumalyo Datta: https://github.com/Sumalyo
+
+.. _Jack Zhang: https://github.com/jackz314

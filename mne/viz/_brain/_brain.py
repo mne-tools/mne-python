@@ -27,7 +27,8 @@ from .view import views_dicts, _lh_views_dict
 from .callback import (ShowView, TimeCallBack, SmartCallBack,
                        UpdateLUT, UpdateColorbarScale)
 
-from ..utils import _show_help_fig, _get_color_list, concatenate_images
+from ..utils import (_show_help_fig, _get_color_list, concatenate_images,
+                     _generate_default_filename, _save_ndarray_img)
 from .._3d import _process_clim, _handle_time, _check_views
 
 from ...externals.decorator import decorator
@@ -689,7 +690,6 @@ class Brain(object):
             self._layered_meshes[hemi]._clean()
         self._clear_callbacks()
         self._clear_widgets()
-        self._renderer.figure.viewer._key_press_event_callbacks.clear()
         if getattr(self, 'mpl_canvas', None) is not None:
             self.mpl_canvas.clear()
         if getattr(self, 'act_data_smooth', None) is not None:
@@ -707,7 +707,7 @@ class Brain(object):
             self._renderer.figure.plotter.picker = None
         # XXX end PyVista
         for key in ('plotter', 'window', 'dock', 'tool_bar', 'menu_bar',
-                    'status_bar', 'interactor', 'mpl_canvas', 'time_actor',
+                    'interactor', 'mpl_canvas', 'time_actor',
                     'picked_renderer', 'act_data_smooth', '_scalar_bar',
                     'actions', 'widgets', 'geo', '_data'):
             setattr(self, key, None)
@@ -1228,22 +1228,19 @@ class Brain(object):
             self._on_pick
         )
 
-    def _save_movie_noname(self):
-        return self.save_movie(None)
-
     def _configure_tool_bar(self):
         self._renderer._tool_bar_load_icons()
         self._renderer._tool_bar_set_theme(self.theme)
         self._renderer._tool_bar_initialize()
-        self._renderer._tool_bar_add_screenshot_button(
+        self._renderer._tool_bar_add_file_button(
             name="screenshot",
             desc="Take a screenshot",
-            func=partial(self.screenshot, time_viewer=True),
+            func=self.save_image,
         )
-        self._renderer._tool_bar_add_button(
+        self._renderer._tool_bar_add_file_button(
             name="movie",
             desc="Save movie...",
-            func=self._save_movie_noname,
+            func=self.save_movie,
             shortcut="ctrl+shift+s",
         )
         self._renderer._tool_bar_add_button(
@@ -1302,7 +1299,7 @@ class Brain(object):
 
     def _configure_shortcuts(self):
         # First, we remove the default bindings:
-        self._renderer.figure.viewer._key_press_event_callbacks.clear()
+        self._clear_callbacks()
         # Then, we add our own:
         self._renderer.figure.viewer.add_key_event("i", self.toggle_interface)
         self._renderer.figure.viewer.add_key_event("s", self.apply_auto_scaling)
@@ -1494,7 +1491,11 @@ class Brain(object):
         del mesh
 
         # from the picked renderer to the subplot coords
-        rindex = self._renderer._all_renderers.index(self.picked_renderer)
+        try:
+            lst = self._renderer._all_renderers._renderers
+        except AttributeError:
+            lst = self._renderer._all_renderers
+        rindex = lst.index(self.picked_renderer)
         row, col = self._renderer._index_to_loc(rindex)
 
         actors = list()
@@ -1691,6 +1692,12 @@ class Brain(object):
                             'widget', 'widgets'):
                     setattr(callback, key, None)
         self.callbacks.clear()
+        # Remove the default key binding
+        if getattr(self, "iren", None) is not None:
+            try:
+                self._renderer.viewer._key_press_event_callbacks.clear()
+            except AttributeError:
+                self._renderer.viewer.iren.clear_key_event_callbacks()
 
     def _clear_widgets(self):
         if not hasattr(self, 'widgets'):
@@ -2573,7 +2580,7 @@ class Brain(object):
                 self._renderer.set_camera(**views_dicts[h][v],
                                           reset_camera=False)
 
-    def save_image(self, filename, mode='rgb'):
+    def save_image(self, filename=None, mode='rgb'):
         """Save view from all panels to disk.
 
         Parameters
@@ -2583,7 +2590,10 @@ class Brain(object):
         mode : str
             Either 'rgb' or 'rgba' for values to return.
         """
-        self._renderer.screenshot(mode=mode, filename=filename)
+        if filename is None:
+            filename = _generate_default_filename(".png")
+        _save_ndarray_img(
+            filename, self.screenshot(mode=mode, time_viewer=True))
 
     @fill_doc
     def screenshot(self, mode='rgb', time_viewer=False):
@@ -2990,8 +3000,52 @@ class Brain(object):
             kwargs['bitrate'] = bitrate
         imageio.mimwrite(filename, images, **kwargs)
 
+    def _save_movie_tv(self, filename, time_dilation=4., tmin=None, tmax=None,
+                       framerate=24, interpolation=None, codec=None,
+                       bitrate=None, callback=None, time_viewer=False,
+                       **kwargs):
+        def frame_callback(frame, n_frames):
+            if frame == n_frames:
+                # On the ImageIO step
+                self.status_msg.set_value(
+                    "Saving with ImageIO: %s"
+                    % filename
+                )
+                self.status_msg.show()
+                self.status_progress.hide()
+                self._renderer._status_bar_update()
+            else:
+                self.status_msg.set_value(
+                    "Rendering images (frame %d / %d) ..."
+                    % (frame + 1, n_frames)
+                )
+                self.status_msg.show()
+                self.status_progress.show()
+                self.status_progress.set_range([0, n_frames - 1])
+                self.status_progress.set_value(frame)
+                self.status_progress.update()
+            self.status_msg.update()
+            self._renderer._status_bar_update()
+
+        # set cursor to busy
+        default_cursor = self._renderer._window_get_cursor()
+        self._renderer._window_set_cursor(
+            self._renderer._window_new_cursor("WaitCursor"))
+
+        try:
+            self._save_movie(
+                filename=filename,
+                time_dilation=(1. / self.playback_speed),
+                callback=frame_callback,
+                **kwargs
+            )
+        except (Exception, KeyboardInterrupt):
+            warn('Movie saving aborted:\n' + traceback.format_exc())
+        finally:
+            self._renderer._window_set_cursor(default_cursor)
+
     @fill_doc
-    def save_movie(self, filename, time_dilation=4., tmin=None, tmax=None,
+    def save_movie(self, filename=None, time_dilation=4., tmin=None, tmax=None,
                    framerate=24, interpolation=None, codec=None,
                    bitrate=None, callback=None, time_viewer=False, **kwargs):
         """Save a movie (for data with a time axis).
@@ -3043,77 +3097,12 @@ class Brain(object):
         dialog : object
             The opened dialog is returned for testing purpose only.
         """
-        if self.time_viewer:
-            try:
-                from pyvista.plotting.qt_plotting import FileDialog
-            except ImportError:
-                from pyvistaqt.plotting import FileDialog
-
-            if filename is None:
-                self.status_msg.setText("Choose movie path ...")
-                self.status_msg.show()
-                self.status_progress.setValue(0)
-
-                def _post_setup(unused):
-                    del unused
-                    self.status_msg.hide()
-                    self.status_progress.hide()
-
-                dialog = FileDialog(
-                    self._renderer._window,
-                    callback=partial(self._save_movie, **kwargs)
-                )
-                dialog.setDirectory(os.getcwd())
-                dialog.finished.connect(_post_setup)
-                return dialog
-            else:
-                from PyQt5.QtCore import Qt
-                from PyQt5.QtGui import QCursor
-
-                def frame_callback(frame, n_frames):
-                    if frame == n_frames:
-                        # On the ImageIO step
-                        self.status_msg.setText(
-                            "Saving with ImageIO: %s"
-                            % filename
-                        )
-                        self.status_msg.show()
-                        self.status_progress.hide()
-                        self.status_bar.layout().update()
-                    else:
-                        self.status_msg.setText(
-                            "Rendering images (frame %d / %d) ..."
-                            % (frame + 1, n_frames)
-                        )
-                        self.status_msg.show()
-                        self.status_progress.show()
-                        self.status_progress.setRange(0, n_frames - 1)
-                        self.status_progress.setValue(frame)
-                        self.status_progress.update()
-                        self.status_progress.repaint()
-                    self.status_msg.update()
-                    self.status_msg.parent().update()
-                    self.status_msg.repaint()
-
-                # set cursor to busy
-                default_cursor = self._renderer._window_get_cursor()
-                self._renderer._window_set_cursor(QCursor(Qt.WaitCursor))
-
-                try:
-                    self._save_movie(
-                        filename=filename,
-                        time_dilation=(1. / self.playback_speed),
-                        callback=frame_callback,
-                        **kwargs
-                    )
-                except (Exception, KeyboardInterrupt):
-                    warn('Movie saving aborted:\n' + traceback.format_exc())
-                finally:
-                    self._renderer._window_set_cursor(default_cursor)
-        else:
-            self._save_movie(filename, time_dilation, tmin, tmax,
-                             framerate, interpolation, codec,
-                             bitrate, callback, time_viewer, **kwargs)
+        if filename is None:
+            filename = _generate_default_filename(".mp4")
+        func = self._save_movie_tv if self.time_viewer else self._save_movie
+        func(filename, time_dilation, tmin, tmax,
+             framerate, interpolation, codec,
+             bitrate, callback, time_viewer, **kwargs)
 
     def _make_movie_frames(self, time_dilation, tmin, tmax, framerate,
                            interpolation, callback, time_viewer):

@@ -23,7 +23,7 @@ dependencies:
 - spyder-kernels>=1.10.0
 - imageio-ffmpeg>=0.4.1
 - vtk>=9.0.1
-- pyvista>=0.24
+- pyvista>=0.24,<=0.29
 - pyvistaqt>=0.2.0
 - mayavi
 - PySurfer
@@ -34,3 +34,6 @@ dependencies:
 - pyqt!=5.15.3
 - mne
 - mffpy>=0.5.7
+- ipywidgets
+- pip:
+  - ipyvtk-simple

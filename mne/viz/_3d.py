@@ -1475,7 +1475,12 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
 
     time_label, times = _handle_time(time_label, time_unit, stc.times)
     fig = plt.figure(figsize=(6, 6)) if figure is None else figure
-    ax = Axes3D(fig)
+    try:
+        ax = Axes3D(fig, auto_add_to_figure=False)
+    except Exception:  # old mpl
+        ax = Axes3D(fig)
+    else:
+        fig.add_axes(ax)
     hemi_idx = 0 if hemi == 'lh' else 1
     surf = op.join(subjects_dir, subject, 'surf', '%s.%s' % (hemi, surface))
     if spacing == 'all':
@@ -1548,7 +1553,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
         cax.tick_params(labelsize=16)
         cb.patch.set_facecolor('0.5')
         cax.set(xlim=(scale_pts[0], scale_pts[2]))
-    plt.show()
+    plt_show(True)
     return fig
 
 
@@ -1750,7 +1755,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     _validate_type(stc, _BaseSourceEstimate, 'stc', 'source estimate')
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
-    subject = _check_subject(stc.subject, subject, True)
+    subject = _check_subject(stc.subject, subject)
     _check_option('backend', backend,
                   ['auto', 'matplotlib', 'mayavi', 'pyvista'])
     plot_mpl = backend == 'matplotlib'
@@ -1792,7 +1797,7 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
     vec = stc._data_ndim == 3
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
-    subject = _check_subject(stc.subject, subject, True)
+    subject = _check_subject(stc.subject, subject)
 
     backend = _get_3d_backend()
     del _get_3d_backend
@@ -2007,7 +2012,7 @@ def _load_subject_mri(mri, stc, subject, subjects_dir, name):
     from nibabel.spatialimages import SpatialImage
     _validate_type(mri, ('path-like', SpatialImage), name)
     if isinstance(mri, str):
-        subject = _check_subject(stc.subject, subject, True)
+        subject = _check_subject(stc.subject, subject)
         mri = nib.load(_check_mri(mri, subject, subjects_dir))
     return mri
 
@@ -2127,7 +2132,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     del src
     _print_coord_trans(Transform('mri_voxel', 'ras', img.affine),
                        prefix='Image affine ', units='mm', level='debug')
-    subject = _check_subject(src_subject, subject, True, kind=kind)
+    subject = _check_subject(src_subject, subject, first_kind=kind)
     stc_ijk = np.array(
         np.unravel_index(stc.vertices[0], img.shape[:3], order='F')).T
     assert stc_ijk.shape == (len(stc.vertices[0]), 3)
@@ -2258,7 +2263,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         params['fig'].canvas.draw()
 
     if mode == 'glass_brain':
-        subject = _check_subject(stc.subject, subject, True)
+        subject = _check_subject(stc.subject, subject)
         ras_mni_t = read_ras_mni_t(subject, subjects_dir)
         if not np.allclose(ras_mni_t['trans'], np.eye(4)):
             _print_coord_trans(
@@ -2938,7 +2943,8 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
 
 
 @fill_doc
-def plot_sensors_connectivity(info, con, picks=None):
+def plot_sensors_connectivity(info, con, picks=None,
+                              cbar_label='Connectivity'):
     """Visualize the sensor connectivity in 3D.
 
     Parameters
@@ -2949,6 +2955,8 @@ def plot_sensors_connectivity(info, con, picks=None):
         The computed connectivity measure(s).
     %(picks_good_data)s
         Indices of selected channels.
+    cbar_label : str
+        Label for the colorbar.
 
     Returns
     -------
@@ -2964,7 +2972,7 @@ def plot_sensors_connectivity(info, con, picks=None):
     picks = _picks_to_idx(info, picks)
     if len(picks) != len(con):
         raise ValueError('The number of channels picked (%s) does not '
-                         'correspond the size of the connectivity data '
+                         'correspond to the size of the connectivity data '
                          '(%s)' % (len(picks), len(con)))
 
     # Plot the sensor locations
@@ -3002,7 +3010,7 @@ def plot_sensors_connectivity(info, con, picks=None):
                              vmin=vmin, vmax=vmax,
                              reverse_lut=True)
 
-    renderer.scalarbar(source=tube, title='Phase Lag Index (PLI)')
+    renderer.scalarbar(source=tube, title=cbar_label)
 
     # Add the sensor names for the connections shown
     nodes_shown = list(set([n[0] for n in con_nodes] +
