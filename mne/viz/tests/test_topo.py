@@ -183,7 +183,8 @@ def test_plot_topo():
 
     # Test exclude parameter
     fig = picked_evoked.plot_topo(exclude=['MEG 0112'])
-    assert len(fig.axes[0].collections) == 5
+    ch_count = len(picked_evoked.info['ch_names'])
+    assert len(fig.axes[0].collections) - 1 == (ch_count * 2) - 2
 
     # test plot_topo
     evoked.plot_topo()  # should auto-find layout
