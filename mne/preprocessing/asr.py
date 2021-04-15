@@ -444,8 +444,8 @@ def asr_process(data, sfreq, M, T, windowlen=0.5, lookahead=0.25, stepsize=32,
             if (not trivial) or (not last_trivial):
 
                 subrange = i_range[np.arange(last_n, n)]
-                blend_X = np.pi * np.arange(n - last_n + 1) / (n - last_n)
-                blend = (1 - np.cos(blend_X)) / 2
+                blend_x = np.pi * np.arange(1, n - last_n + 1) / (n - last_n)
+                blend = (1 - np.cos(blend_x)) / 2
 
                 tmp_data = data[:, subrange]
                 data[:, subrange] = np.multiply(blend, R @ tmp_data) + \
@@ -568,7 +568,7 @@ def clean_windows(X, sfreq, max_bad_chans=0.2, zthresholds=[-3.5, 5],
 
     [nc, ns] = X.shape
     N = int(win_len * sfreq)
-    offsets = np.rint(np.arange(0, ns - N, (N * (1 - win_overlap))))
+    offsets = np.int_(np.round(np.arange(0, ns - N, (N * (1 - win_overlap)))))
     logging.debug('[ASR] Determining channel-wise rejection thresholds')
 
     wz = np.zeros((nc, len(offsets)))
@@ -615,16 +615,3 @@ def clean_windows(X, sfreq, max_bad_chans=0.2, zthresholds=[-3.5, 5],
         sample_mask = np.ones((1, ns), dtype=bool)
 
     return clean, sample_mask
-
-
-
-def qr_pinv(A):
-    """Create the pseudoinverse using QR solver"""
-    from scipy.linalg import qr, inv
-    Q, R = qr(A)
-    rank = np.linalg.matrix_rank(A)
-    R_inv = inv(R[:rank, :rank])
-    R_inv_O = np.zeros_like(A.T, dtype=float)
-    R_inv_O[:rank, :rank] = R_inv
-
-    return R_inv_O @ Q.T
