@@ -582,6 +582,7 @@ def test_test_raw_reader():
     _test_raw_reader(_read_raw_arange, test_scaling=False, test_rank='less')
 
 
+@pytest.mark.slowtest
 def test_describe_print():
     """Test print output of describe method."""
     fname = Path(__file__).parent / "data" / "test_raw.fif"
@@ -600,6 +601,7 @@ def test_describe_print():
 
 
 @requires_pandas
+@pytest.mark.slowtest
 def test_describe_df():
     """Test returned data frame of describe method."""
     fname = Path(__file__).parent / "data" / "test_raw.fif"

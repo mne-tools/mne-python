@@ -106,8 +106,8 @@ labels_parc = mne.read_labels_from_annot(subject, parc=parc,
                                          subjects_dir=subjects_dir)
 
 # Average the source estimates within each label of the cortical parcellation
-# and each sub structures contained in the src space
-# If mode = 'mean_flip' this option is used only for the cortical label
+# and each sub-structure contained in the source space.
+# When mode = 'mean_flip', this option is used only for the cortical labels.
 src = inverse_operator['src']
 label_ts = mne.extract_label_time_course(
     stcs, labels_parc, src, mode='mean_flip', allow_empty=True,

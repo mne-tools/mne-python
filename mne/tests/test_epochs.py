@@ -1780,6 +1780,27 @@ def test_iter_evoked():
         assert_array_equal(x, y)
 
 
+@pytest.mark.parametrize('preload', (True, False))
+def test_iter_epochs(preload):
+    """Test iteration over epochs."""
+    raw, events, picks = _get_data()
+    epochs = Epochs(
+        raw, events[:5], event_id, tmin, tmax, picks=picks, preload=preload)
+    assert not hasattr(epochs, '_current_detrend_picks')
+    epochs_data = epochs.get_data()
+    data = list()
+    for _ in range(10):
+        try:
+            data.append(next(epochs))
+        except StopIteration:
+            break
+        else:
+            assert hasattr(epochs, '_current_detrend_picks')
+    assert not hasattr(epochs, '_current_detrend_picks')
+    data = np.array(data)
+    assert_allclose(data, epochs_data, atol=1e-20)
+
+
 def test_subtract_evoked():
     """Test subtraction of Evoked from Epochs."""
     raw, events, picks = _get_data()
@@ -2484,6 +2505,22 @@ def test_add_channels_epochs():
     epochs_meg2.event_id['b'] = 2
     pytest.raises(NotImplementedError, add_channels_epochs,
                   [epochs_meg2, epochs_eeg])
+
+    # use delayed projection, add channel, ensure projectors match
+    epochs_meg2 = make_epochs(picks=picks_meg, proj='delayed')
+    assert len(epochs_meg2.info['projs']) == 3
+    meg2_proj = epochs_meg2._projector
+    assert meg2_proj is not None
+    epochs_eeg = make_epochs(picks=picks_eeg, proj='delayed')
+    epochs_meg2.add_channels([epochs_eeg])
+    del epochs_eeg
+    assert len(epochs_meg2.info['projs']) == 3
+    new_proj = epochs_meg2._projector
+    n_meg, n_eeg = len(picks_meg), len(picks_eeg)
+    n_tot = n_meg + n_eeg
+    assert new_proj.shape == (n_tot,) * 2
+    assert_allclose(new_proj[:n_meg, :n_meg], meg2_proj, atol=1e-12)
+    assert_allclose(new_proj[n_meg:, n_meg:], np.eye(n_eeg), atol=1e-12)
 
 
 def test_array_epochs(tmpdir):
@@ -3423,3 +3460,21 @@ def test_apply_function():
     expected = epochs.get_data(picks).mean(axis=-1, keepdims=True)
     assert np.all(out.get_data(picks) == expected)
     assert_array_equal(out.get_data(non_picks), epochs.get_data(non_picks))
+
+
+@testing.requires_testing_data
+def test_add_channels_picks():
+    """Check that add_channels properly deals with picks."""
+    raw = mne.io.read_raw_fif(raw_fname, verbose=False)
+    raw.pick([2, 3, 310])  # take some MEG and EEG
+    raw.info.normalize_proj()
+
+    events = mne.make_fixed_length_events(raw, id=3000, start=0)
+    epochs = mne.Epochs(raw, events, event_id=3000, tmin=0, tmax=1,
+                        proj=True, baseline=None, reject=None, preload=True,
+                        decim=1)
+
+    epochs_final = epochs.copy()
+    epochs_bis = epochs.copy().rename_channels(lambda ch: ch + '_bis')
+    epochs_final.add_channels([epochs_bis], force_update_info=True)
+    epochs_final.drop_channels(epochs.ch_names)
