@@ -120,10 +120,8 @@ stages:
       displayName: 'Get test data'
     - script: pytest -m "ultraslowtest" --tb=short --cov=mne -vv mne
       displayName: 'Run ultraslow tests'
-    - script: codecov --root $BUILD_REPOSITORY_LOCALPATH -t $CODECOV_TOKEN
+    - script: codecov --root $BUILD_REPOSITORY_LOCALPATH
       displayName: 'Codecov'
-      env:
-        CODECOV_TOKEN: $(CODECOV_TOKEN)
       condition: succeededOrFailed()
     - task: PublishTestResults@2
       inputs:
@@ -163,10 +161,8 @@ stages:
       displayName: 'Get test data'
     - script: pytest --tb=short --cov=mne -vv mne/viz
       displayName: 'Run viz tests'
-    - script: codecov --root $BUILD_REPOSITORY_LOCALPATH -t $CODECOV_TOKEN
+    - script: codecov --root $BUILD_REPOSITORY_LOCALPATH
       displayName: 'Codecov'
-      env:
-        CODECOV_TOKEN: $(CODECOV_TOKEN)
       condition: succeededOrFailed()
     - task: PublishTestResults@2
       inputs:
@@ -253,10 +249,8 @@ stages:
       displayName: 'Get test data'
     - script: pytest -m "not slowtest" --tb=short --cov=mne -vv mne
       displayName: 'Run tests'
-    - script: codecov --root %BUILD_REPOSITORY_LOCALPATH% -t %CODECOV_TOKEN%
+    - script: codecov --root %BUILD_REPOSITORY_LOCALPATH%
       displayName: 'Codecov'
-      env:
-        CODECOV_TOKEN: $(CODECOV_TOKEN)
       condition: succeededOrFailed()
     - task: PublishTestResults@2
       inputs:
