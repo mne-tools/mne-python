@@ -401,6 +401,7 @@ def test_localization_bias_free(bias_params_free, method, lower, upper,
     _assert_free_ori_match(ori, max_idx, lower_ori, upper_ori)
 
 
+@pytest.mark.slowtest
 def test_apply_inverse_sphere(evoked):
     """Test applying an inverse with a sphere model (rank-deficient)."""
     evoked.pick_channels(evoked.ch_names[:306:8])

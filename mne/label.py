@@ -232,7 +232,7 @@ class Label(object):
         self.hemi = hemi
         self.comment = comment
         self.verbose = verbose
-        self.subject = _check_subject(None, subject, False)
+        self.subject = _check_subject(None, subject, raise_error=False)
         self.color = color
         self.name = name
         self.filename = filename
@@ -2249,7 +2249,7 @@ def labels_to_stc(labels, values, tmin=0, tstep=1, subject=None, src=None,
     else:
         kind = src.kind
         subject = _check_subject(
-            src._subject, subject, kind='source space subject',
+            src._subject, subject, first_kind='source space subject',
             raise_error=False)
         _check_option('source space kind', kind, ('surface', 'volume'))
         if kind == 'volume':

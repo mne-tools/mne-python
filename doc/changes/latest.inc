@@ -61,6 +61,8 @@ Enhancements
 ~~~~~~~~~~~~
 - :func:`mne.viz.plot_evoked_topo` now uses a Minimum/Maximum of peaks for each channel type to calculate ylim when input param is None (:gh:`9285` by |Ram Pari|_)
 
+- Add exclude parameter to :func:`mne.viz.plot_evoked_topo` (:gh:`9278` by |Ram Pari|_)
+
 - Add CSV, TSV, and XYZ support to :func:`mne.channels.read_custom_montage` (:gh:`9203` **by new contributor** |Jack Zhang|_)
 
 - Add HTML representation for `~mne.Epochs` in Jupyter Notebooks (:gh:`9174` by |Valerii Chirkov|_)
@@ -236,6 +238,8 @@ Bugs
 - Fix bug with ``replace`` argument of :meth:`mne.Report.add_bem_to_section` and :meth:`mne.Report.add_slider_to_section` (:gh:`8723` by `Eric Larson`_)
 
 - Fix bug with :func:`mne.chpi.compute_chpi_locs` where all cHPI coils being off would lead to an empty array of the wrong dimensionality (:gh:`8956` by `Eric Larson`_)
+
+- Fix bug with :func:`mne.extract_label_time_course` where labels, STCs, and the source space were not checked for compatible ``subject`` attributes (:gh:`9284` by `Eric Larson`_)
 
 - Fix compatibility bugs with :mod:`mne_realtime` (:gh:`8845` by `Eric Larson`_)
 

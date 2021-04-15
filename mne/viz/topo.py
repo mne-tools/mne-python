@@ -563,11 +563,12 @@ def _erfimage_imshow_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
                                 interpolation='nearest'))
 
 
-def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
-                      border='none', ylim=None, scalings=None, title=None,
-                      proj=False, vline=(0.,), hline=(0.,), fig_facecolor='k',
-                      fig_background=None, axis_facecolor='k', font_color='w',
-                      merge_channels=False, legend=True, axes=None, show=True,
+def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945,
+                      color=None, border='none', ylim=None, scalings=None,
+                      title=None, proj=False, vline=(0.,), hline=(0.,),
+                      fig_facecolor='k', fig_background=None,
+                      axis_facecolor='k', font_color='w', merge_channels=False,
+                      legend=True, axes=None, exclude='bads', show=True,
                       noise_cov=None):
     """Plot 2D topography of evoked responses.
 
@@ -632,12 +633,15 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         See matplotlib documentation for more details.
     axes : instance of matplotlib Axes | None
         Axes to plot into. If None, axes will be created.
-    show : bool
-        Show figure if True.
     noise_cov : instance of Covariance | str | None
         Noise covariance used to whiten the data while plotting.
         Whitened data channels names are shown in italic.
         Can be a string to load a covariance from disk.
+    exclude : list of str | 'bads'
+        Channels names to exclude from being shown. If 'bads', the
+        bad channels are excluded. By default, exclude is set to 'bads'.
+    show : bool
+        Show figure if True.
 
         .. versionadded:: 0.16.0
 
@@ -679,14 +683,14 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         raise ValueError('All evoked.picks must be the same')
     ch_names = _clean_names(ch_names)
     if merge_channels:
-        picks = _pair_grad_sensors(info, topomap_coords=False)
+        picks = _pair_grad_sensors(info, topomap_coords=False, exclude=exclude)
         chs = list()
         for pick in picks[::2]:
             ch = info['chs'][pick]
             ch['ch_name'] = ch['ch_name'][:-1] + 'X'
             chs.append(ch)
         info['chs'] = chs
-        info['bads'] = list()  # bads dropped on pair_grad_sensors
+        info['bads'] = list()   # Bads handled by pair_grad_sensors
         info._update_redundant()
         info._check_consistency()
         new_picks = list()
@@ -702,7 +706,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         y_label = 'RMS amplitude (%s)' % unit
 
     if layout is None:
-        layout = find_layout(info)
+        layout = find_layout(info, exclude=exclude)
 
     if not merge_channels:
         # XXX. at the moment we are committed to 1- / 2-sensor-types layouts
@@ -721,15 +725,15 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                       ('hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_od')]) > 0
         if is_meg:
             types_used = list(types_used)[::-1]  # -> restore kwarg order
-            picks = [pick_types(info, meg=kk, ref_meg=False, exclude=[])
+            picks = [pick_types(info, meg=kk, ref_meg=False, exclude=exclude)
                      for kk in types_used]
         elif is_nirs:
             types_used = list(types_used)[::-1]  # -> restore kwarg order
-            picks = [pick_types(info, fnirs=kk, ref_meg=False, exclude=[])
+            picks = [pick_types(info, fnirs=kk, ref_meg=False, exclude=exclude)
                      for kk in types_used]
         else:
             types_used_kwargs = {t: True for t in types_used}
-            picks = [pick_types(info, meg=False, exclude=[],
+            picks = [pick_types(info, meg=False, exclude=exclude,
                                 **types_used_kwargs)]
         assert isinstance(picks, list) and len(types_used) == len(picks)
 

@@ -1780,6 +1780,27 @@ def test_iter_evoked():
         assert_array_equal(x, y)
 
 
+@pytest.mark.parametrize('preload', (True, False))
+def test_iter_epochs(preload):
+    """Test iteration over epochs."""
+    raw, events, picks = _get_data()
+    epochs = Epochs(
+        raw, events[:5], event_id, tmin, tmax, picks=picks, preload=preload)
+    assert not hasattr(epochs, '_current_detrend_picks')
+    epochs_data = epochs.get_data()
+    data = list()
+    for _ in range(10):
+        try:
+            data.append(next(epochs))
+        except StopIteration:
+            break
+        else:
+            assert hasattr(epochs, '_current_detrend_picks')
+    assert not hasattr(epochs, '_current_detrend_picks')
+    data = np.array(data)
+    assert_allclose(data, epochs_data, atol=1e-20)
+
+
 def test_subtract_evoked():
     """Test subtraction of Evoked from Epochs."""
     raw, events, picks = _get_data()
