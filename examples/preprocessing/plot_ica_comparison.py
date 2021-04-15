@@ -42,7 +42,7 @@ raw.filter(1, 30, fir_design='firwin')
 
 def run_ica(method, fit_params=None):
     ica = ICA(n_components=20, method=method, fit_params=fit_params,
-              random_state=0)
+              max_iter='auto', random_state=0)
     t0 = time()
     ica.fit(raw, picks=picks, reject=reject)
     fit_time = time() - t0

@@ -339,12 +339,11 @@ class SourceMorph(object):
         The volume MRI shape.
     affine : ndarray
         The volume MRI affine.
-    pre_affine : instance of dipy.align.imaffine.AffineMap
-        The :class:`dipy.align.imaffine.AffineMap` transformation that is
-        applied before the before ``sdr_morph``.
-    sdr_morph : instance of dipy.align.imwarp.DiffeomorphicMap
-        The :class:`dipy.align.imwarp.DiffeomorphicMap` that applies the
-        the symmetric diffeomorphic registration (SDR) morph.
+    pre_affine : instance of dipy.align.AffineMap
+        The transformation that is applied before the before ``sdr_morph``.
+    sdr_morph : instance of dipy.align.DiffeomorphicMap
+        The class that applies the the symmetric diffeomorphic registration
+        (SDR) morph.
     src_data : dict
         Additional source data necessary to perform morphing.
     vol_morph_mat : scipy.sparse.csr_matrix | None
@@ -646,8 +645,7 @@ class SourceMorph(object):
         fname : str
             The stem of the file name. '-morph.h5' will be added if fname does
             not end with '.h5'.
-        overwrite : bool
-            If True, overwrite existing file.
+        %(overwrite)s
         %(verbose_meth)s
         """
         fname = _check_fname(fname, overwrite=overwrite, must_exist=False)

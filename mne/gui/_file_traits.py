@@ -262,7 +262,7 @@ class DigSource(HasPrivateTraits):
     """
 
     file = FileOrDir(exists=True,
-                     filter=[';'.join([f'*{ext}' for ext in supported])])
+                     filter=[' '.join([f'*{ext}' for ext in supported])])
 
     inst_fname = Property(Str, depends_on='file')
     inst_dir = Property(depends_on='file')

@@ -232,7 +232,7 @@ class Label(object):
         self.hemi = hemi
         self.comment = comment
         self.verbose = verbose
-        self.subject = _check_subject(None, subject, False)
+        self.subject = _check_subject(None, subject, raise_error=False)
         self.color = color
         self.name = name
         self.filename = filename
@@ -738,7 +738,7 @@ class Label(object):
         """Compute the center of mass of the label.
 
         This function computes the spatial center of mass on the surface
-        as in [1]_.
+        as in :footcite:`LarsonLee2013`.
 
         Parameters
         ----------
@@ -775,8 +775,7 @@ class Label(object):
 
         References
         ----------
-        .. [1] Larson and Lee, "The cortical dynamics underlying effective
-               switching of auditory spatial attention", NeuroImage 2012.
+        .. footbibliography::
         """
         if not isinstance(surf, str):
             raise TypeError('surf must be a string, got %s' % (type(surf),))
@@ -2250,7 +2249,7 @@ def labels_to_stc(labels, values, tmin=0, tstep=1, subject=None, src=None,
     else:
         kind = src.kind
         subject = _check_subject(
-            src._subject, subject, kind='source space subject',
+            src._subject, subject, first_kind='source space subject',
             raise_error=False)
         _check_option('source space kind', kind, ('surface', 'volume'))
         if kind == 'volume':

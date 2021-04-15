@@ -707,8 +707,7 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
         or -fwd.fif.gz.
     fwd : Forward
         Forward solution.
-    overwrite : bool
-        If True, overwrite destination file (if it exists).
+    %(overwrite)s
     %(verbose)s
 
     See Also
@@ -1738,12 +1737,9 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
         If True, compute the gradient of the field with respect to the
         dipole coordinates as well (Default: False).
     mricoord : bool
-        If True, calculate in MRI coordinates (Default: False).
-    overwrite : bool
-        If True, the destination file (if it exists) will be overwritten.
-        If False (default), an error will be raised if the file exists.
-    subjects_dir : None | str
-        Override the SUBJECTS_DIR environment variable.
+        If True, calculate in MRI coordinates (Default: False)
+    %(overwrite)s
+    %(subjects_dir)s
     %(verbose)s
 
     See Also

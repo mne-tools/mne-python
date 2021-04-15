@@ -60,7 +60,7 @@ source_time_series = np.sin(2. * np.pi * 18. * np.arange(100) * tstep) * 10e-9
 # of the event, the second is not used, and the third is the event id. Here the
 # events occur every 200 samples.
 n_events = 50
-events = np.zeros((n_events, 3))
+events = np.zeros((n_events, 3), int)
 events[:, 0] = 100 + 200 * np.arange(n_events)  # Events sample.
 events[:, 2] = 1  # All events have the sample id.
 

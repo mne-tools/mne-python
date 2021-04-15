@@ -515,7 +515,7 @@ class _BaseSourceEstimate(TimeMixin):
         self._kernel_removed = False
         self._times = None
         self._update_times()
-        self.subject = _check_subject(None, subject, False)
+        self.subject = _check_subject(None, subject, raise_error=False)
 
     def __repr__(self):  # noqa: D105
         s = "%d vertices" % (sum(len(v) for v in self.vertices),)
@@ -1636,6 +1636,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 
         This function should only be used with source estimates with units
         nanoAmperes (i.e., MNE-like solutions, *not* dSPM or sLORETA).
+        See also :footcite:`GoldenholzEtAl2009`.
 
         .. warning:: This function currently only works properly for fixed
                      orientation.
@@ -1672,11 +1673,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 
         References
         ----------
-        .. [1] Goldenholz, D. M., Ahlfors, S. P., Hämäläinen, M. S., Sharon,
-               D., Ishitobi, M., Vaina, L. M., & Stufflebeam, S. M. (2009).
-               Mapping the Signal-To-Noise-Ratios of Cortical Sources in
-               Magnetoencephalography and Electroencephalography.
-               Human Brain Mapping, 30(4), 1077–1086. doi:10.1002/hbm.20571
+        .. footbibliography::
         """
         from .forward import convert_forward_solution, Forward
         from .minimum_norm.inverse import _prepare_forward
@@ -1710,7 +1707,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         """Compute the center of mass of activity.
 
         This function computes the spatial center of mass on the surface
-        as well as the temporal center of mass as in [1]_.
+        as well as the temporal center of mass as in :footcite:`LarsonLee2013`.
 
         .. note:: All activity must occur in a single hemisphere, otherwise
                   an error is raised. The "mass" of each point in space for
@@ -1762,8 +1759,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 
         References
         ----------
-        .. [1] Larson and Lee, "The cortical dynamics underlying effective
-               switching of auditory spatial attention", NeuroImage 2012.
+        .. footbibliography::
         """
         if not isinstance(surf, str):
             raise TypeError('surf must be a string, got %s' % (type(surf),))
@@ -2865,6 +2861,9 @@ def _temporary_vertices(src, vertices):
 
 def _check_stc_src(stc, src):
     if stc is not None and src is not None:
+        _check_subject(
+            src._subject, stc.subject, raise_error=False,
+            first_kind='source space subject', second_kind='stc.subject')
         for s, v, hemi in zip(src, stc.vertices, ('left', 'right')):
             n_missing = (~np.in1d(v, s['vertno'])).sum()
             if n_missing:
@@ -2896,6 +2895,14 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
 
     bad_labels = list()
     for li, label in enumerate(labels):
+        subject = label['subject'] if use_sparse else label.subject
+        # stc and src can each be None
+        _check_subject(
+            subject, getattr(stc, 'subject', None), raise_error=False,
+            first_kind='label.subject', second_kind='stc.subject')
+        _check_subject(
+            subject, getattr(src, '_subject', None), raise_error=False,
+            first_kind='label.subject', second_kind='source space subject')
         if use_sparse:
             assert isinstance(label, dict)
             vertidx = label['csr']
@@ -2980,6 +2987,7 @@ def _volume_labels(src, labels, mri_resolution):
     # given volumetric source space when used with extract_label_time_course
     from .label import Label
     assert src.kind == 'volume'
+    subject = src._subject
     extra = ' when using a volume source space'
     _import_nibabel('use volume atlas labels')
     _validate_type(labels, ('path-like', list, tuple), 'labels' + extra)
@@ -3040,7 +3048,7 @@ def _volume_labels(src, labels, mri_resolution):
         for k, v in labels.items():
             mask = atlas_data == v
             csr = interp[mask]
-            out_labels.append(dict(csr=csr, name=k))
+            out_labels.append(dict(csr=csr, name=k, subject=subject))
             nnz += csr.shape[0] > 0
     else:
         # Use nearest values
@@ -3049,7 +3057,7 @@ def _volume_labels(src, labels, mri_resolution):
         del src
         src_values = _get_atlas_values(vol_info, rr[vertno])
         vertices = [vertno[src_values == val] for val in labels.values()]
-        out_labels = [Label(v, hemi='lh', name=val)
+        out_labels = [Label(v, hemi='lh', name=val, subject=subject)
                       for v, val in zip(vertices, labels.keys())]
         nnz = sum(len(v) != 0 for v in vertices)
     logger.info('%d/%d atlas regions had at least one vertex '
@@ -3230,8 +3238,9 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
         Distance (m) defining the activation "ball" of the sensor.
     mode : str
         Can be "sum" to do a linear sum of weights, "nearest" to
-        use only the weight of the nearest sensor, or "zero" to use a
-        zero-order hold. See Notes.
+        use only the weight of the nearest sensor, or "single" to
+        do a distance-weight of the nearest sensor. Default is "sum".
+        See Notes.
     project : bool
         If True, project the electrodes to the nearest ``'pial`` surface
         vertex before computing distances. Only used when doing a
@@ -3268,10 +3277,10 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
         1 and a sensor at ``distance`` meters away (or larger) gets weight 0.
         If ``distance`` is less than the distance between any two electrodes,
         this will be the same as ``'nearest'``.
-    - ``'weighted'``
+    - ``'single'``
         Same as ``'sum'`` except that only the nearest electrode is used,
         rather than summing across electrodes within the ``distance`` radius.
-        As as ``'nearest'`` for vertices with distance zero to the projected
+        As ``'nearest'`` for vertices with distance zero to the projected
         sensor.
     - ``'nearest'``
         The value is given by the value of the nearest sensor, up to a
@@ -3301,7 +3310,8 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     # remove nan channels
     nan_inds = np.where(np.isnan(pos).any(axis=1))[0]
     nan_chs = [evoked.ch_names[idx] for idx in nan_inds]
-    evoked.drop_channels(nan_chs)
+    if len(nan_chs):
+        evoked.drop_channels(nan_chs)
     pos = [pos[idx] for idx in range(len(pos)) if idx not in nan_inds]
 
     # coord_frame transformation from native mne "head" to MRI coord_frame
@@ -3310,7 +3320,7 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     # convert head positions -> coord_frame MRI
     pos = apply_trans(trans, pos)
 
-    subject = _check_subject(None, subject, False)
+    subject = _check_subject(None, subject, raise_error=False)
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     if src is None:  # fake a full surface one
         rrs = [read_surface(op.join(subjects_dir, subject,

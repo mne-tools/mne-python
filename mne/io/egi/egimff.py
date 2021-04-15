@@ -1,5 +1,6 @@
 """EGI NetStation Load Function."""
 
+from collections import OrderedDict
 import datetime
 import math
 import os.path as op
@@ -12,14 +13,13 @@ import numpy as np
 from .events import _read_events, _combine_triggers
 from .general import (_get_signalfname, _get_ep_info, _extract, _get_blocks,
                       _get_gains, _block_r)
-from .._digitization import DigPoint
 from ..base import BaseRaw
 from ..constants import FIFF
-from ..meas_info import _empty_info, create_info
+from ..meas_info import _empty_info, create_info, _ensure_meas_date_none_or_dt
 from ..proj import setup_proj
 from ..utils import _create_chs, _mult_cal_one
 from ...annotations import Annotations
-from ...utils import verbose, logger, warn, _check_option
+from ...utils import verbose, logger, warn, _check_option, _check_fname
 from ...evoked import EvokedArray
 
 
@@ -252,28 +252,22 @@ def _get_eeg_calibration_info(filepath, egi_info):
 
 def _read_locs(filepath, chs, egi_info):
     """Read channel locations."""
+    from ...channels.montage import make_dig_montage
     fname = op.join(filepath, 'coordinates.xml')
     if not op.exists(fname):
-        return chs, []
+        return chs, None
     reference_names = ('VREF', 'Vertex Reference')
-    dig_kind_map = {
-        '': FIFF.FIFFV_POINT_EEG,
-        'VREF': FIFF.FIFFV_POINT_EEG,
-        'Vertex Reference': FIFF.FIFFV_POINT_EEG,
-        'Left periauricular point': FIFF.FIFFV_POINT_CARDINAL,
-        'Right periauricular point': FIFF.FIFFV_POINT_CARDINAL,
-        'Nasion': FIFF.FIFFV_POINT_CARDINAL,
-    }
     dig_ident_map = {
-        'Left periauricular point': FIFF.FIFFV_POINT_LPA,
-        'Right periauricular point': FIFF.FIFFV_POINT_RPA,
-        'Nasion': FIFF.FIFFV_POINT_NASION,
+        'Left periauricular point': 'lpa',
+        'Right periauricular point': 'rpa',
+        'Nasion': 'nasion',
     }
     numbers = np.array(egi_info['numbers'])
     coordinates = parse(fname)
     sensors = coordinates.getElementsByTagName('sensor')
-    dig_points = []
-    dig_reference = None
+    ch_pos = OrderedDict()
+    hsp = list()
+    nlr = dict()
     for sensor in sensors:
         name_element = sensor.getElementsByTagName('name')[0].firstChild
         name = '' if name_element is None else name_element.data
@@ -282,27 +276,19 @@ def _read_locs(filepath, chs, egi_info):
                   for coord in 'xyz']
         loc = np.array(coords) / 100  # cm -> m
         # create dig entry
-        kind = dig_kind_map[name]
-        if kind == FIFF.FIFFV_POINT_CARDINAL:
-            ident = dig_ident_map[name]
+        if name in dig_ident_map:
+            nlr[dig_ident_map[name]] = loc
         else:
-            ident = int(nr)
-        dig_point = DigPoint(kind=kind, ident=ident, r=loc,
-                             coord_frame=FIFF.FIFFV_COORD_HEAD)
-        dig_points.append(dig_point)
-        if name in reference_names:
-            dig_reference = dig_point
-        # add location to channel entry
-        id = np.flatnonzero(numbers == nr)
-        if len(id) == 0:
-            continue
-        chs[id[0]]['loc'][:3] = loc
-    # Insert reference location into channel location
-    if dig_reference is not None:
-        for ch in chs:
-            if ch['kind'] == FIFF.FIFFV_EEG_CH:
-                ch['loc'][3:6] = dig_reference['r']
-    return chs, dig_points
+            if name in reference_names:
+                ch_pos['EEG000'] = loc
+            # add location to channel entry
+            id_ = np.flatnonzero(numbers == nr)
+            if len(id_) == 0:
+                hsp.append(loc)
+            else:
+                ch_pos[chs[id_[0]]['ch_name']] = loc
+    mon = make_dig_montage(ch_pos=ch_pos, hsp=hsp, **nlr)
+    return chs, mon
 
 
 def _add_pns_channel_info(chs, egi_info, ch_names):
@@ -398,6 +384,8 @@ class RawMff(BaseRaw):
                  include=None, exclude=None, preload=False,
                  channel_naming='E%d', verbose=None):
         """Init the RawMff class."""
+        input_fname = _check_fname(input_fname, 'read', True, 'input_fname',
+                                   need_dir=True)
         logger.info('Reading EGI MFF Header from %s...' % input_fname)
         egi_info = _read_header(input_fname)
         if eog is None:
@@ -441,7 +429,8 @@ class RawMff(BaseRaw):
                 if isinstance(v, list):
                     for k in v:
                         if k not in event_codes:
-                            raise ValueError('Could find event named "%s"' % k)
+                            raise ValueError(
+                                f'Could not find event named {repr(k)}')
                 elif v is not None:
                     raise ValueError('`%s` must be None or of type list' % kk)
             logger.info('    Synthesizing trigger channel "STI 014" ...')
@@ -466,7 +455,7 @@ class RawMff(BaseRaw):
             egi_info['year'], egi_info['month'], egi_info['day'],
             egi_info['hour'], egi_info['minute'], egi_info['second'])
         my_timestamp = time.mktime(my_time.timetuple())
-        info['meas_date'] = (my_timestamp, 0)
+        info['meas_date'] = _ensure_meas_date_none_or_dt((my_timestamp, 0))
 
         # First: EEG
         ch_names = [channel_naming % (i + 1) for i in
@@ -488,7 +477,7 @@ class RawMff(BaseRaw):
         ch_coil = FIFF.FIFFV_COIL_EEG
         ch_kind = FIFF.FIFFV_EEG_CH
         chs = _create_chs(ch_names, cals, ch_coil, ch_kind, eog, (), (), misc)
-        chs, dig = _read_locs(input_fname, chs, egi_info)
+        chs, mon = _read_locs(input_fname, chs, egi_info)
         sti_ch_idx = [i for i, name in enumerate(ch_names) if
                       name.startswith('STI') or name in event_codes]
         for idx in sti_ch_idx:
@@ -498,10 +487,10 @@ class RawMff(BaseRaw):
                              'coil_type': FIFF.FIFFV_COIL_NONE,
                              'unit': FIFF.FIFF_UNIT_NONE})
         chs = _add_pns_channel_info(chs, egi_info, ch_names)
-
         info['chs'] = chs
-        info['dig'] = dig
         info._update_redundant()
+        if mon is not None:
+            info.set_montage(mon, on_missing='ignore')
         file_bin = op.join(input_fname, egi_info['eeg_fname'])
         egi_info['egi_events'] = egi_events
 
@@ -862,11 +851,12 @@ def _read_evoked_mff(fname, condition, channel_naming='E%d', verbose=None):
     ch_coil = FIFF.FIFFV_COIL_EEG
     ch_kind = FIFF.FIFFV_EEG_CH
     chs = _create_chs(ch_names, cals, ch_coil, ch_kind, (), (), (), ())
-    chs, dig = _read_locs(fname, chs, egi_info)
+    chs, mon = _read_locs(fname, chs, egi_info)
     # Update PNS channel info
     chs = _add_pns_channel_info(chs, egi_info, ch_names)
     info['chs'] = chs
-    info['dig'] = dig
+    if mon is not None:
+        info.set_montage(mon, on_missing='ignore')
 
     # Add bad channels to info
     info['description'] = category

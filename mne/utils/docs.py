@@ -112,6 +112,58 @@ group_by : str
     modes are ignored when ``order`` is not ``None``. Defaults to ``'type'``.
 """
 
+# raw/epochs/evoked apply_function method
+# apply_function method summary
+applyfun_summary = """\
+The function ``fun`` is applied to the channels defined in ``picks``.
+The {} object's data is modified in-place. If the function returns a different
+data type (e.g. :py:obj:`numpy.complex128`) it must be specified
+using the ``dtype`` parameter, which causes the data type of **all** the data
+to change (even if the function is only applied to channels in ``picks``).{}
+
+.. note:: If ``n_jobs`` > 1, more memory is required as
+          ``len(picks) * n_times`` additional time points need to
+          be temporarily stored in memory.
+.. note:: If the data type changes (``dtype != None``), more memory is
+          required since the original and the converted data needs
+          to be stored in memory.
+"""
+applyfun_preload = (' The object has to have the data loaded e.g. with '
+                    '``preload=True`` or ``self.load_data()``.')
+docdict['applyfun_summary_raw'] = \
+    applyfun_summary.format('raw', applyfun_preload)
+docdict['applyfun_summary_epochs'] = \
+    applyfun_summary.format('epochs', applyfun_preload)
+docdict['applyfun_summary_evoked'] = \
+    applyfun_summary.format('evoked', '')
+# apply_function params: fun
+applyfun_fun = """
+fun : callable
+    A function to be applied to the channels. The first argument of
+    fun has to be a timeseries (:class:`numpy.ndarray`). The function must
+    operate on an array of shape ``(n_times,)`` {}.
+    The function must return an :class:`~numpy.ndarray` shaped like its input.
+"""
+docdict['applyfun_fun'] = applyfun_fun.format(
+    ' if ``channel_wise=True`` and ``(len(picks), n_times)`` otherwise')
+docdict['applyfun_fun_evoked'] = applyfun_fun.format(
+    ' because it will apply channel-wise')
+docdict['applyfun_dtype'] = """
+dtype : numpy.dtype
+    Data type to use after applying the function. If None
+    (default) the data type is not modified.
+"""
+chwise = """
+channel_wise : bool
+    Whether to apply the function to each channel {}individually. If ``False``,
+    the function will be applied to all {}channels at once. Default ``True``.
+"""
+docdict['applyfun_chwise'] = chwise.format('', '')
+docdict['applyfun_chwise_epo'] = chwise.format('in each epoch ', 'epochs and ')
+docdict['kwarg_fun'] = """
+**kwargs : dict
+    Additional keyword arguments to pass to ``fun``.
+"""
 
 # Epochs
 docdict['proj_epochs'] = """
@@ -143,6 +195,19 @@ reject_by_annotation : bool
 """
 docdict['reject_by_annotation_raw'] = docdict['reject_by_annotation_all'] + """
     Has no effect if ``inst`` is not a :class:`mne.io.Raw` object.
+"""
+docdict['annot_ch_names'] = """
+ch_names : list | None
+    List of lists of channel names associated with the annotations.
+    Empty entries are assumed to be associated with no specific channel,
+    i.e., with all channels or with the time slice itself. None (default) is
+    the same as passing all empty lists. For example, this creates three
+    annotations, associating the first with the time interval itself, the
+    second with two channels, and the third with a single channel::
+
+        Annotations(onset=[0, 3, 10], duration=[1, 0.25, 0.5],
+                    description=['Start', 'BAD_flux', 'BAD_noise'],
+                    ch_names=[[], ['MEG0111', 'MEG2563'], ['MEG1443']])
 """
 
 # General plotting
@@ -1367,8 +1432,9 @@ docdict["montage"] = """
 montage : None | str | DigMontage
     A montage containing channel positions. If str or DigMontage is
     specified, the channel info will be updated with the channel
-    positions. Default is None. See also the documentation of
-    :class:`mne.channels.DigMontage` for more information.
+    positions. Default is None. For valid :class:`str` values see documentation
+    of :func:`mne.channels.make_standard_montage`. See also the documentation
+    of :class:`mne.channels.DigMontage` for more information.
 """
 docdict["match_case"] = """
 match_case : bool
@@ -1406,6 +1472,12 @@ on_missing : str
     %s channels have missing coordinates.
 
     .. versionadded:: 0.20.1
+""" % (_on_missing_base,)
+docdict['on_missing_ch_names'] = """
+on_missing : str
+    %s entries in ch_names are not present in the raw instance.
+
+    .. versionadded:: 0.23.0
 """ % (_on_missing_base,)
 docdict['rename_channels_mapping_duplicates'] = """
 mapping : dict | callable
@@ -1972,6 +2044,81 @@ docdict['baseline_report'] = """%(rescale_baseline)s
 """ % docdict
 
 # Epochs
+docdict['epochs_tmin_tmax'] = """
+tmin, tmax : float
+    Start and end time of the epochs in seconds, relative to the time-locked
+    event. Defaults to -0.2 and 0.5, respectively.
+"""
+docdict['epochs_reject_tmin_tmax'] = """
+reject_tmin, reject_tmax : float | None
+    Start and end of the time window used to reject epochs. The default
+    ``None`` corresponds to the first and last time points of the epochs,
+    respectively.
+"""
+docdict['epochs_events_event_id'] = """
+events : array of int, shape (n_events, 3)
+    The events typically returned by the read_events function.
+    If some events don't match the events of interest as specified
+    by event_id, they will be marked as 'IGNORED' in the drop log.
+event_id : int | list of int | dict | None
+    The id of the event to consider. If dict,
+    the keys can later be used to access associated events. Example:
+    dict(auditory=1, visual=3). If int, a dict will be created with
+    the id as string. If a list, all events with the IDs specified
+    in the list are used. If None, all events will be used with
+    and a dict is created with string integer names corresponding
+    to the event id integers.
+"""
+docdict['epochs_preload'] = """
+    Load all epochs from disk when creating the object
+    or wait before accessing each epoch (more memory
+    efficient but can be slower).
+"""
+docdict['epochs_detrend'] = """
+detrend : int | None
+    If 0 or 1, the data channels (MEG and EEG) will be detrended when
+    loaded. 0 is a constant (DC) detrend, 1 is a linear detrend. None
+    is no detrending. Note that detrending is performed before baseline
+    correction. If no DC offset is preferred (zeroth order detrending),
+    either turn off baseline correction, as this may introduce a DC
+    shift, or set baseline correction to use the entire time interval
+    (will yield equivalent results but be slower).
+"""
+docdict['epochs_metadata'] = """
+metadata : instance of pandas.DataFrame | None
+    A :class:`pandas.DataFrame` specifying metadata about each epoch.
+    If given, ``len(metadata)`` must equal ``len(events)``. The DataFrame
+    may only contain values of type (str | int | float | bool).
+    If metadata is given, then pandas-style queries may be used to select
+    subsets of data, see :meth:`mne.Epochs.__getitem__`.
+    When a subset of the epochs is created in this (or any other
+    supported) manner, the metadata object is subsetted accordingly, and
+    the row indices will be modified to match ``epochs.selection``.
+
+    .. versionadded:: 0.16
+"""
+docdict['epochs_event_repeated'] = """
+event_repeated : str
+    How to handle duplicates in ``events[:, 0]``. Can be ``'error'``
+    (default), to raise an error, 'drop' to only retain the row occurring
+    first in the ``events``, or ``'merge'`` to combine the coinciding
+    events (=duplicates) into a new event (see Notes for details).
+
+    .. versionadded:: 0.19
+"""
+docdict['epochs_raw'] = """
+raw : Raw object
+    An instance of `~mne.io.Raw`.
+"""
+docdict['epochs_on_missing'] = """
+on_missing : str
+    What to do if one or several event ids are not found in the recording.
+    Valid keys are 'raise' | 'warn' | 'ignore'
+    Default is 'raise'. If on_missing is 'warn' it will proceed but
+    warn, if 'ignore' it will proceed silently. Note.
+    If none of the event ids are found in the data, an error will be
+    automatically generated irrespective of this parameter.
+"""
 reject_common = """
     Reject epochs based on peak-to-peak signal amplitude (PTP), i.e. the
     absolute difference between the lowest and the highest signal value. In
@@ -2075,6 +2222,17 @@ docdict['create_eog_epochs'] = """This function will:
 
 #. Create `~mne.Epochs` around the eyeblinks.
 """
+docdict['eog_ch_name'] = """
+ch_name : str | list of str | None
+    The name of the channel(s) to use for EOG peak detection. If a string,
+    can be an arbitrary channel. This doesn't have to be a channel of
+    ``eog`` type; it could, for example, also be an ordinary EEG channel
+    that was placed close to the eyes, like ``Fp1`` or ``Fp2``.
+
+    Multiple channel names can be passed as a list of strings.
+
+    If ``None`` (default), use the channel(s) in ``raw`` with type ``eog``.
+"""
 
 # SSP
 docdict['compute_ssp'] = """This function aims to find those SSP vectors that
@@ -2108,6 +2266,18 @@ on_defects : str
 docdict['accept'] = """
 accept : bool
     If True (default False), accept the license terms of this dataset.
+"""
+docdict['overwrite'] = """
+overwrite : bool
+    If True (default False), overwrite the destination file if it
+    exists.
+"""
+
+docdict['ref_channels'] = """
+ref_channels : str | list of str
+    Name of the electrode(s) which served as the reference in the
+    recording. If a name is provided, a corresponding channel is added
+    and its data is set to 0. This is useful for later re-referencing.
 """
 
 docdict_indented = {}

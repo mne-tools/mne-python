@@ -17,7 +17,7 @@ from textwrap import shorten
 import numpy as np
 
 from .pick import (channel_type, pick_channels, pick_info,
-                   get_channel_type_constants)
+                   get_channel_type_constants, pick_types)
 from .constants import FIFF, _coord_frame_named
 from .open import fiff_open
 from .tree import dir_tree_find
@@ -39,6 +39,7 @@ from ._digitization import (_format_dig_points, _dig_kind_proper, DigPoint,
                             _dig_kind_rev, _dig_kind_ints, _read_dig_fif)
 from ._digitization import write_dig as _dig_write_dig
 from .compensator import get_current_comp
+from ..data.html_templates import info_template
 
 b = bytes  # alias
 
@@ -284,6 +285,8 @@ class Info(dict, MontageMixin):
         Tilt angle of the gantry in degrees.
     lowpass : float
         Lowpass corner frequency in Hertz.
+        It is automatically set to half the sampling rate if there is
+        otherwise no low-pass applied to the data.
     meas_date : datetime
         The time (UTC) of the recording.
 
@@ -726,7 +729,7 @@ class Info(dict, MontageMixin):
                     self['meas_date'].tzinfo is None or
                     self['meas_date'].tzinfo is not datetime.timezone.utc):
                 raise RuntimeError('%sinfo["meas_date"] must be a datetime '
-                                   'object in UTC or None, got "%r"'
+                                   'object in UTC or None, got %r'
                                    % (prepend_error, repr(self['meas_date']),))
 
         chs = [ch['ch_name'] for ch in self['chs']]
@@ -805,6 +808,33 @@ class Info(dict, MontageMixin):
     @property
     def ch_names(self):
         return self['ch_names']
+
+    def _repr_html_(self, caption=None):
+        if isinstance(caption, str):
+            html = f'<h4>{caption}</h4>'
+        else:
+            html = ''
+        n_eeg = len(pick_types(self, meg=False, eeg=True))
+        n_grad = len(pick_types(self, meg='grad'))
+        n_mag = len(pick_types(self, meg='mag'))
+        pick_eog = pick_types(self, meg=False, eog=True)
+        if len(pick_eog) > 0:
+            eog = ', '.join(np.array(self['ch_names'])[pick_eog])
+        else:
+            eog = 'Not available'
+        pick_ecg = pick_types(self, meg=False, ecg=True)
+        if len(pick_ecg) > 0:
+            ecg = ', '.join(np.array(self['ch_names'])[pick_ecg])
+        else:
+            ecg = 'Not available'
+        meas_date = self['meas_date']
+        if meas_date is not None:
+            meas_date = meas_date.strftime("%B %d, %Y  %H:%M:%S") + ' GMT'
+
+        html += info_template.substitute(
+            caption=caption, info=self, meas_date=meas_date, n_eeg=n_eeg,
+            n_grad=n_grad, n_mag=n_mag, eog=eog, ecg=ecg)
+        return html
 
 
 def _simplify_info(info):
@@ -2178,6 +2208,7 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
                                          tzinfo=datetime.timezone.utc)
     default_str = "mne_anonymize"
     default_subject_id = 0
+    default_sex = 0
     default_desc = ("Anonymized using a time shift"
                     " to preserve age at acquisition")
 
@@ -2224,9 +2255,15 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
         if subject_info.get('id') is not None:
             subject_info['id'] = default_subject_id
         if keep_his:
-            logger.info('Not fully anonymizing info - keeping \'his_id\'')
-        elif subject_info.get('his_id') is not None:
-            subject_info['his_id'] = str(default_subject_id)
+            logger.info('Not fully anonymizing info - keeping '
+                        'his_id, sex, and hand info')
+        else:
+            if subject_info.get('his_id') is not None:
+                subject_info['his_id'] = str(default_subject_id)
+            if subject_info.get('sex') is not None:
+                subject_info['sex'] = default_sex
+            if subject_info.get('hand') is not None:
+                del subject_info['hand']  # there's no "unknown" setting
 
         for key in ('last_name', 'first_name', 'middle_name'):
             if subject_info.get(key) is not None:

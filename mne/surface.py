@@ -1039,8 +1039,9 @@ def _decimate_surface_spacing(surf, spacing):
     return surf
 
 
+@verbose
 def write_surface(fname, coords, faces, create_stamp='', volume_info=None,
-                  file_format='auto', overwrite=False):
+                  file_format='auto', overwrite=False, *, verbose=None):
     """Write a triangular Freesurfer surface mesh.
 
     Accepts the same data format as is returned by read_surface().
@@ -1079,8 +1080,8 @@ def write_surface(fname, coords, faces, create_stamp='', volume_info=None,
         file name. Defaults to 'auto'.
 
         .. versionadded:: 0.21.0
-    overwrite : bool
-        If True, overwrite the file if it exists.
+    %(overwrite)s
+    %(verbose)s
 
     See Also
     --------

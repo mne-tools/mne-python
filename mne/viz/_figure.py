@@ -45,7 +45,8 @@ from collections import OrderedDict
 import numpy as np
 from matplotlib.figure import Figure
 from .epochs import plot_epochs_image
-from .ica import _create_properties_layout
+from .ica import (_create_properties_layout, _fast_plot_ica_properties,
+                  _prepare_data_ica_properties)
 from .utils import (plt_show, plot_sensors, _setup_plot_projector, _events_off,
                     _set_window_title, _merge_annotations, DraggableLine,
                     _get_color_list, logger, _validate_if_list_of_axes,
@@ -629,7 +630,8 @@ class MNEBrowseFigure(MNEFigure):
         else:
             last_time = self.mne.inst.times[-1]
         # scroll up/down
-        if key in ('down', 'up'):
+        if key in ('down', 'up', 'shift+down', 'shift+up'):
+            key = key.split('+')[-1]
             direction = -1 if key == 'up' else 1
             # butterfly case
             if self.mne.butterfly:
@@ -728,6 +730,8 @@ class MNEBrowseFigure(MNEFigure):
             self._toggle_epoch_histogram()
         elif key == 'j' and len(self.mne.projs):  # SSP window
             self._toggle_proj_fig()
+        elif key == 'J' and len(self.mne.projs):
+            self._toggle_proj_checkbox(event, toggle_all=True)
         elif key == 'p':  # toggle draggable annotations
             self._toggle_draggable_annotations(event)
             if self.mne.fig_annotation is not None:
@@ -862,13 +866,22 @@ class MNEBrowseFigure(MNEFigure):
         fig.lasso.style_sensors(inds)
         plt_show(fig=fig)
 
-    def _create_ica_properties_fig(self, pick):
+    def _create_ica_properties_fig(self, idx):
         """Show ICA properties for the selected component."""
-        ch_name = self.mne.ch_names[pick]
+        ch_name = self.mne.ch_names[idx]
+        if ch_name not in self.mne.ica._ica_names:  # for EOG chans: do nothing
+            return
+        pick = self.mne.ica._ica_names.index(ch_name)
         fig = self._new_child_figure(figsize=(7, 6), fig_name=None,
                                      window_title=f'{ch_name} properties')
         fig, axes = _create_properties_layout(fig=fig)
-        self.mne.ica.plot_properties(self.mne.ica_inst, picks=pick, axes=axes)
+        if not hasattr(self.mne, 'data_ica_properties'):
+            # Precompute epoch sources only once
+            self.mne.data_ica_properties = _prepare_data_ica_properties(
+                self.mne.ica_inst, self.mne.ica)
+        _fast_plot_ica_properties(
+            self.mne.ica, self.mne.ica_inst, picks=pick, axes=axes,
+            precomputed_data=self.mne.data_ica_properties)
 
     def _create_epoch_image_fig(self, pick):
         """Show epochs image for the selected channel."""
@@ -1027,6 +1040,7 @@ class MNEBrowseFigure(MNEFigure):
             ('a', 'Toggle annotation mode' if is_raw else None),
             ('h', 'Toggle peak-to-peak histogram' if is_epo else None),
             ('j', 'Toggle SSP projector window' if has_proj else None),
+            ('shift+j', 'Toggle all SSPs'),
             ('p', 'Toggle draggable annotations' if is_raw else None),
             ('s', 'Toggle scalebars' if not is_ica else None),
             ('z', 'Toggle scrollbars'),
@@ -1369,14 +1383,14 @@ class MNEBrowseFigure(MNEFigure):
 
     def _clear_annotations(self):
         """Clear all annotations from the figure."""
-        for annot in self.mne.annotations[::-1]:
-            self.mne.ax_main.collections.remove(annot)
+        for annot in list(self.mne.annotations):
+            annot.remove()
             self.mne.annotations.remove(annot)
-        for annot in self.mne.hscroll_annotations[::-1]:
-            self.mne.ax_hscroll.collections.remove(annot)
+        for annot in list(self.mne.hscroll_annotations):
+            annot.remove()
             self.mne.hscroll_annotations.remove(annot)
-        for text in self.mne.annotation_texts[::-1]:
-            self.mne.ax_main.texts.remove(text)
+        for text in list(self.mne.annotation_texts):
+            text.remove()
             self.mne.annotation_texts.remove(text)
 
     def _draw_annotations(self):
@@ -1571,6 +1585,10 @@ class MNEBrowseFigure(MNEFigure):
         fig = self._new_child_figure(figsize=(width, height),
                                      fig_name='fig_proj',
                                      window_title='SSP projection vectors')
+        # pass through some proj fig keypresses to the parent
+        fig.canvas.mpl_connect(
+            'key_press_event',
+            lambda ev: self._keypress(ev) if ev.key in 'jJ' else None)
         # make axes
         offset = (1 / 6 / height)
         position = (0, offset, 1, 0.8 - offset)
@@ -1620,16 +1638,17 @@ class MNEBrowseFigure(MNEFigure):
         new_state = (np.full_like(on, not all(on)) if toggle_all else
                      np.array(fig.mne.proj_checkboxes.get_status()))
         # update Xs when toggling all
-        if toggle_all:
+        if fig is not None:
+            if toggle_all:
+                with _events_off(fig.mne.proj_checkboxes):
+                    for ix in np.where(on != new_state)[0]:
+                        fig.mne.proj_checkboxes.set_active(ix)
+            # don't allow disabling already-applied projs
             with _events_off(fig.mne.proj_checkboxes):
-                for ix in np.where(on != new_state)[0]:
-                    fig.mne.proj_checkboxes.set_active(ix)
-        # don't allow disabling already-applied projs
-        with _events_off(fig.mne.proj_checkboxes):
-            for ix in np.where(applied)[0]:
-                if not new_state[ix]:
-                    fig.mne.proj_checkboxes.set_active(ix)
-            new_state[applied] = True
+                for ix in np.where(applied)[0]:
+                    if not new_state[ix]:
+                        fig.mne.proj_checkboxes.set_active(ix)
+        new_state[applied] = True
         # update the data if necessary
         if not np.array_equal(on, new_state):
             self.mne.projs_on = new_state
@@ -1785,9 +1804,9 @@ class MNEBrowseFigure(MNEFigure):
     def _hide_scalebars(self):
         """Remove channel scale bars."""
         for bar in self.mne.scalebars.values():
-            self.mne.ax_main.lines.remove(bar)
+            bar.remove()
         for text in self.mne.scalebar_texts.values():
-            self.mne.ax_main.texts.remove(text)
+            text.remove()
         self.mne.scalebars = dict()
         self.mne.scalebar_texts = dict()
 
@@ -1916,7 +1935,9 @@ class MNEBrowseFigure(MNEFigure):
             starts = np.maximum(starts[mask], start) - start
             stops = np.minimum(stops[mask], stop) - start
             for _start, _stop in zip(starts, stops):
-                _picks = np.where(np.in1d(picks, self.mne.picks_data))
+                _picks = np.where(np.in1d(picks, self.mne.picks_data))[0]
+                if len(_picks) == 0:
+                    break
                 this_data = data[_picks, _start:_stop]
                 if isinstance(self.mne.filter_coefs, np.ndarray):  # FIR
                     this_data = _overlap_add_filter(
@@ -2017,7 +2038,7 @@ class MNEBrowseFigure(MNEFigure):
         # remove extra traces if needed
         extra_traces = self.mne.traces[n_picks:]
         for trace in extra_traces:
-            self.mne.ax_main.lines.remove(trace)
+            trace.remove()
         self.mne.traces = self.mne.traces[:n_picks]
 
         # check for bad epochs
@@ -2029,8 +2050,7 @@ class MNEBrowseFigure(MNEFigure):
             visible_bad_epochs = epoch_nums[
                 np.in1d(epoch_nums, self.mne.bad_epochs).nonzero()]
             while len(self.mne.epoch_traces):
-                _trace = self.mne.epoch_traces.pop(-1)
-                self.mne.ax_main.lines.remove(_trace)
+                self.mne.epoch_traces.pop(-1).remove()
             # handle custom epoch colors (for autoreject integration)
             if self.mne.epoch_colors is None:
                 # shape: n_traces × RGBA → n_traces × n_epochs × RGBA
@@ -2156,8 +2176,7 @@ class MNEBrowseFigure(MNEFigure):
             self.mne.event_lines = event_lines
             # create event labels
             while len(self.mne.event_texts):
-                text = self.mne.event_texts.pop()
-                self.mne.ax_main.texts.remove(text)
+                self.mne.event_texts.pop().remove()
             for _t, _n, _c in zip(this_event_times, this_event_nums, colors):
                 label = self.mne.event_id_rev.get(_n, _n)
                 this_text = self.mne.ax_main.annotate(
@@ -2263,6 +2282,7 @@ def _browse_figure(inst, **kwargs):
     # initialize zen mode (can't do in __init__ due to get_position() calls)
     fig.canvas.draw()
     fig._update_zen_mode_offsets()
+    fig._resize(None)  # needed for MPL >=3.4
     # if scrollbars are supposed to start hidden, set to True and then toggle
     if not fig.mne.scrollbars_visible:
         fig.mne.scrollbars_visible = True

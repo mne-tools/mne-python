@@ -1,8 +1,10 @@
 sphinx
-https://github.com/numpy/numpydoc/archive/master.zip
-git+git://github.com/pydata/pydata-sphinx-theme.git@270bf6c60de2c9f16aa32c3eeb6de39f0ee0e734
+https://github.com/numpy/numpydoc/archive/main.zip
+pydata-sphinx-theme==0.5.0
 sphinx-gallery
 sphinxcontrib-bibtex>=2.1.2
 memory_profiler
 neo
 seaborn
+sphinx_copybutton
+https://github.com/mne-tools/mne-bids/archive/main.zip

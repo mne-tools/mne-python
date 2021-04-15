@@ -15,7 +15,7 @@ import os.path as op
 import numpy as np
 
 from .io.constants import FIFF
-from .io.meas_info import create_info, Info
+from .io.meas_info import create_info, Info, read_fiducials
 from .io.tree import dir_tree_find
 from .io.tag import find_tag, read_tag
 from .io.open import fiff_open
@@ -321,16 +321,16 @@ class SourceSpaces(list):
             ss.append(deepcopy(s, memodict))
         return SourceSpaces(ss, info)
 
-    def save(self, fname, overwrite=False):
+    @verbose
+    def save(self, fname, overwrite=False, *, verbose=None):
         """Save the source spaces to a fif file.
 
         Parameters
         ----------
         fname : str
             File to write.
-        overwrite : bool
-            If True, the destination file (if it exists) will be overwritten.
-            If False (default), an error will be raised if the file exists.
+        %(overwrite)s
+        %(verbose_meth)s
         """
         write_source_spaces(fname, self, overwrite)
 
@@ -373,8 +373,7 @@ class SourceSpaces(list):
         use_lut : bool
             If True, assigns a numeric value to each source space that
             corresponds to a color on the freesurfer lookup table.
-        overwrite : bool
-            If True, overwrite the file if it exists.
+        %(overwrite)s
 
             .. versionadded:: 0.19
         %(verbose_meth)s
@@ -1063,9 +1062,7 @@ def write_source_spaces(fname, src, overwrite=False, verbose=None):
         -src.fif.gz.
     src : SourceSpaces
         The source spaces (as returned by read_source_spaces).
-    overwrite : bool
-        If True, the destination file (if it exists) will be overwritten.
-        If False (default), an error will be raised if the file exists.
+    %(overwrite)s
     %(verbose)s
 
     See Also
@@ -3263,3 +3260,51 @@ def compute_distance_to_sensors(src, info, picks=None, trans=None,
     depths = cdist(src_pos, sensor_pos)
 
     return depths
+
+
+@verbose
+def get_mni_fiducials(subject, subjects_dir=None, verbose=None):
+    """Estimate fiducials for a subject.
+
+    Parameters
+    ----------
+    %(subject)s
+    %(subjects_dir)s
+    %(verbose)s
+
+    Returns
+    -------
+    fids_mri : list
+        List of estimated fiducials (each point in a dict), in the order
+        LPA, nasion, RPA.
+
+    Notes
+    -----
+    This takes the ``fsaverage-fiducials.fif`` file included with MNE—which
+    contain the LPA, nasion, and RPA for the ``fsaverage`` subject—and
+    transforms them to the given FreeSurfer subject's MRI space.
+    The MRI of ``fsaverage`` is already in MNI Talairach space, so applying
+    the inverse of the given subject's MNI Talairach affine transformation
+    (``$SUBJECTS_DIR/$SUBJECT/mri/transforms/talairach.xfm``) is used
+    to estimate the subject's fiducial locations.
+
+    For more details about the coordinate systems and transformations involved,
+    see https://surfer.nmr.mgh.harvard.edu/fswiki/CoordinateSystems and
+    :ref:`plot_source_alignment`.
+    """
+    # Eventually we might want to allow using the MNI Talairach with-skull
+    # transformation rather than the standard brain-based MNI Talaranch
+    # transformation, and/or project the points onto the head surface
+    # (if available).
+    fname_fids_fs = os.path.join(os.path.dirname(__file__), 'data',
+                                 'fsaverage', 'fsaverage-fiducials.fif')
+
+    # Read fsaverage fiducials file and subject Talairach.
+    fids, coord_frame = read_fiducials(fname_fids_fs)
+    assert coord_frame == FIFF.FIFFV_COORD_MRI
+    if subject == 'fsaverage':
+        return fids  # special short-circuit for fsaverage
+    mni_mri_t = invert_transform(read_talxfm(subject, subjects_dir))
+    for f in fids:
+        f['r'] = apply_trans(mni_mri_t, f['r'])
+    return fids

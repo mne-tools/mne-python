@@ -2,10 +2,10 @@
 #
 # License: Simplified BSD
 
-import numpy as np
 import os.path as op
 import itertools
 
+import numpy as np
 from numpy.testing import assert_allclose
 import pytest
 import matplotlib
@@ -306,6 +306,10 @@ def test_plot_raw_ssp_interaction(raw):
     _fake_click(ssp_fig, ssp_fig.mne.proj_all.ax, [0.5, 0.5])
     _fake_click(ssp_fig, ssp_fig.mne.proj_all.ax, [0.5, 0.5], kind='release')
     assert _proj_status(ax) == [True, False, False]
+    fig.canvas.key_press_event('J')
+    assert _proj_status(ax) == [True, True, True]
+    fig.canvas.key_press_event('J')
+    assert _proj_status(ax) == [True, False, False]
     # turn all on
     _fake_click(ssp_fig, ssp_fig.mne.proj_all.ax, [0.5, 0.5])  # all on
     _fake_click(ssp_fig, ssp_fig.mne.proj_all.ax, [0.5, 0.5], kind='release')
@@ -569,7 +573,8 @@ def test_plot_raw_filtered(filtorder, raw):
     raw.plot(lowpass=40, clipping='transparent', filtorder=filtorder)
     raw.plot(highpass=1, clipping='clamp', filtorder=filtorder)
     raw.plot(lowpass=40, butterfly=True, filtorder=filtorder)
-    plt.close('all')
+    # shouldn't break if all shown are non-data
+    RawArray(np.zeros((1, 100)), create_info(1, 20., 'stim')).plot(lowpass=5)
 
 
 def test_plot_raw_psd(raw):

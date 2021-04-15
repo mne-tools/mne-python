@@ -20,6 +20,7 @@ import re
 import numpy as np
 
 from ..defaults import HEAD_SIZE_DEFAULT
+from ..source_space import get_mni_fiducials
 from ..viz import plot_montage
 from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
                           _topo_to_sph, _frame_to_str, Transform,
@@ -118,6 +119,12 @@ def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
     read_dig_egi
     read_dig_fif
     read_dig_polhemus_isotrak
+
+    Notes
+    -----
+    Valid ``coord_frame`` arguments are 'meg', 'mri', 'mri_voxel', 'head',
+    'mri_tal', 'ras', 'fs_tal', 'ctf_head', 'ctf_meg', 'unknown'. For custom
+    montages without fiducials this parameter has to be set to 'head'.
     """
     _validate_type(ch_pos, (dict, None), 'ch_pos')
     if ch_pos is None:
@@ -322,6 +329,7 @@ class DigMontage(object):
                 {
                     'ch_pos': {'EEG061': [0, 0, 0]},
                     'nasion': [0, 0, 1],
+                    'coord_frame': 'mni_tal',
                     'lpa': [0, 1, 0],
                     'rpa': [1, 0, 0],
                     'hsp': None,
@@ -331,7 +339,6 @@ class DigMontage(object):
         # get channel positions as dict
         ch_pos = self._get_ch_pos()
 
-        # _get_fid_coords(self.dig)
         # get coordframe and fiducial coordinates
         montage_bunch = _get_data_as_dict_from_dig(self.dig)
         coord_frame = _frame_to_str.get(montage_bunch.coord_frame)
@@ -347,6 +354,58 @@ class DigMontage(object):
             hpi=montage_bunch.hpi,
         )
         return positions
+
+    @verbose
+    def add_estimated_fiducials(self, subject, subjects_dir=None,
+                                verbose=None):
+        """Estimate fiducials based on FreeSurfer ``fsaverage`` subject.
+
+        This takes a montage with the ``mri`` coordinate frame,
+        corresponding to the FreeSurfer RAS (xyz in the volume) T1w
+        image of the specific subject. It will call
+        :func:`mne.coreg.get_mni_fiducials` to estimate LPA, RPA and
+        Nasion fiducial points.
+
+        Parameters
+        ----------
+        %(subject)s
+        %(subjects_dir)s
+        %(verbose)s
+
+        Returns
+        -------
+        inst : instance of DigMontage
+            The instance, modified in-place.
+
+        See Also
+        --------
+        :ref:`plot_source_alignment`
+
+        Notes
+        -----
+        Since MNE uses the FIF data structure, it relies on the ``head``
+        coordinate frame. Any coordinate frame can be transformed
+        to ``head`` if the fiducials (i.e. LPA, RPA and Nasion) are
+        defined. One can use this function to estimate those fiducials
+        and then use ``montage.get_native_head_t()`` to get the
+        head <-> MRI transform.
+        """
+        # get coordframe and fiducial coordinates
+        montage_bunch = _get_data_as_dict_from_dig(self.dig)
+
+        # get the coordinate frame as a string and check that it's MRI
+        if montage_bunch.coord_frame != FIFF.FIFFV_COORD_MRI:
+            raise RuntimeError(
+                f'Montage should be in mri coordinate frame to call '
+                f'`add_estimated_fiducials`. The current coordinate '
+                f'frame is {montage_bunch.coord_frame}')
+
+        # estimate LPA, nasion, RPA from FreeSurfer fsaverage
+        fids_mri = list(get_mni_fiducials(subject, subjects_dir))
+
+        # add those digpoints to front of montage
+        self.dig = fids_mri + self.dig
+        return self
 
 
 VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
@@ -1054,7 +1113,8 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
         '.loc' or '.locs' or '.eloc' (for EEGLAB files),
         '.sfp' (BESA/EGI files), '.csd',
         '.elc', '.txt', '.csd', '.elp' (BESA spherical),
-        '.bvef' (BrainVision files).
+        '.bvef' (BrainVision files),
+        '.csv', '.tsv', '.xyz' (XYZ coordinates).
     head_size : float | None
         The size of the head (radius, in [m]). If ``None``, returns the values
         read from the montage file with no modification. Defaults to 0.095m.
@@ -1088,7 +1148,7 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
     """
     from ._standard_montage_utils import (
         _read_theta_phi_in_degrees, _read_sfp, _read_csd, _read_elc,
-        _read_elp_besa, _read_brainvision
+        _read_elp_besa, _read_brainvision, _read_xyz
     )
     SUPPORTED_FILE_EXT = {
         'eeglab': ('.loc', '.locs', '.eloc', ),
@@ -1098,6 +1158,7 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
         'generic (Theta-phi in degrees)': ('.txt', ),
         'standard BESA spherical': ('.elp', ),  # XXX: not same as polhemus elp
         'brainvision': ('.bvef', ),
+        'xyz': ('.csv', '.tsv', '.xyz'),
     }
 
     _, ext = op.splitext(fname)
@@ -1137,6 +1198,9 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
 
     elif ext in SUPPORTED_FILE_EXT['brainvision']:
         montage = _read_brainvision(fname, head_size)
+
+    elif ext in SUPPORTED_FILE_EXT['xyz']:
+        montage = _read_xyz(fname)
 
     if coord_frame is not None:
         coord_frame = _coord_frame_const(coord_frame)

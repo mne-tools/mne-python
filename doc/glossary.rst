@@ -169,6 +169,14 @@ general neuroimaging concepts. If you think a term is missing, please consider
         it is a one-dimensional time series capturing the spatial variability
         of the signal across sensor locations.
 
+    HED
+    hierarchical event descriptors
+        Hierarchical event descriptors (abbr. ``HED``) are tags that use
+        keywords separated by '/' to describe different types of
+        experimental events (for example, stimulus/circle/red/left and
+        stimulus/circle/blue/left). These tags can be used to group
+        experimental events and select event types for analysis.
+
     HPI
     cHPI
     head position indicator

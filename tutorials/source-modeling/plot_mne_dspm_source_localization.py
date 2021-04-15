@@ -8,6 +8,8 @@ The aim of this tutorial is to teach you how to compute and apply a linear
 minimum-norm inverse method on evoked/raw/epochs data.
 """
 
+import os.path as op
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -19,7 +21,8 @@ from mne.minimum_norm import make_inverse_operator, apply_inverse
 # Process MEG data
 
 data_path = sample.data_path()
-raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
+raw_fname = op.join(data_path, 'MEG', 'sample',
+                    'sample_audvis_filt-0-40_raw.fif')
 
 raw = mne.io.read_raw_fif(raw_fname)  # already has an average reference
 events = mne.find_events(raw, stim_channel='STI 014')
@@ -37,7 +40,6 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
 ###############################################################################
 # Compute regularized noise covariance
 # ------------------------------------
-#
 # For more details see :ref:`tut_compute_covariance`.
 
 noise_cov = mne.compute_covariance(

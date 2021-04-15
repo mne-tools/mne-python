@@ -25,7 +25,7 @@ from ...annotations import Annotations, _read_annotations_fif
 
 from ...event import AcqParserFIF
 from ...utils import (check_fname, logger, verbose, warn, fill_doc, _file_like,
-                      _on_missing)
+                      _on_missing, _check_fname)
 
 
 @fill_doc
@@ -75,13 +75,13 @@ class Raw(BaseRaw):
     def __init__(self, fname, allow_maxshield=False, preload=False,
                  on_split_missing='raise', verbose=None):  # noqa: D102
         raws = []
-        do_check_fname = not _file_like(fname)
+        do_check_ext = not _file_like(fname)
         next_fname = fname
         while next_fname is not None:
             raw, next_fname, buffer_size_sec = \
                 self._read_raw_file(next_fname, allow_maxshield,
-                                    preload, do_check_fname)
-            do_check_fname = False
+                                    preload, do_check_ext)
+            do_check_ext = False
             raws.append(raw)
             if next_fname is not None:
                 if not op.exists(next_fname):
@@ -132,19 +132,19 @@ class Raw(BaseRaw):
 
     @verbose
     def _read_raw_file(self, fname, allow_maxshield, preload,
-                       do_check_fname=True, verbose=None):
+                       do_check_ext=True, verbose=None):
         """Read in header information from a raw file."""
         logger.info('Opening raw data file %s...' % fname)
 
         #   Read in the whole file if preload is on and .fif.gz (saves time)
         if not _file_like(fname):
-            if do_check_fname:
+            if do_check_ext:
                 endings = ('raw.fif', 'raw_sss.fif', 'raw_tsss.fif',
                            '_meg.fif', '_eeg.fif', '_ieeg.fif')
                 endings += tuple([f'{e}.gz' for e in endings])
                 check_fname(fname, 'raw', endings)
             # filename
-            fname = op.realpath(fname)
+            fname = _check_fname(fname, 'read', True, 'fname')
             ext = os.path.splitext(fname)[1].lower()
             whole_file = preload if '.gz' in ext else False
             del ext

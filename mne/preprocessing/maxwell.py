@@ -24,7 +24,7 @@ from ..transforms import (_str_to_frame, _get_trans, Transform, apply_trans,
 from ..forward import _concatenate_coils, _prep_meg_channels, _create_meg_coils
 from ..surface import _normalize_vectors
 from ..io.constants import FIFF, FWD
-from ..io.meas_info import _simplify_info
+from ..io.meas_info import _simplify_info, Info
 from ..io.proc_history import _read_ctc
 from ..io.write import _generate_meas_id, DATE_NONE
 from ..io import (_loc_to_coil_trans, _coil_trans_to_loc, BaseRaw, RawArray,
@@ -116,8 +116,9 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
     Some of this code was adapted and relicensed (with BSD form) with
     permission from Jussi Nurminen. These algorithms are based on work
-    from [1]_ and [2]_. It will likely use multiple CPU cores, see the
-    :ref:`FAQ <faq_cpu>` for more information.
+    from :footcite:`TauluKajola2005` and :footcite:`TauluSimola2006`.
+    It will likely use multiple CPU cores, see the :ref:`FAQ <faq_cpu>`
+    for more information.
 
     .. warning:: Maxwell filtering in MNE is not designed or certified
                  for clinical use.
@@ -166,7 +167,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
        | Extended external basis (eSSS)                                              | ✓   |           |
        +-----------------------------------------------------------------------------+-----+-----------+
 
-    Epoch-based movement compensation is described in [1]_.
+    Epoch-based movement compensation is described in :footcite:`TauluKajola2005`.
 
     Use of Maxwell filtering routines with non-Neuromag systems is currently
     **experimental**. Worse results for non-Neuromag systems are expected due
@@ -199,15 +200,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
     References
     ----------
-    .. [1] Taulu S. and Kajola M. "Presentation of electromagnetic
-           multichannel data: The signal space separation method,"
-           Journal of Applied Physics, vol. 97, pp. 124905 1-10, 2005.
-           https://doi.org/10.1063/1.1935742
-
-    .. [2] Taulu S. and Simola J. "Spatiotemporal signal space separation
-           method for rejecting nearby interference in MEG measurements,"
-           Physics in Medicine and Biology, vol. 51, pp. 1759-1768, 2006.
-           https://doi.org/10.1088/0031-9155/51/7/008
+    .. footbibliography::
     """  # noqa: E501
     logger.info('Maxwell filtering raw data')
     params = _prep_maxwell_filter(
@@ -478,6 +471,8 @@ def _run_maxwell_filter(
     logger.info(
         '    Processing %s data chunk%s' % (len(starts), _pl(starts)))
     for ii, (start, stop) in enumerate(zip(starts, stops)):
+        if start == stop:
+            continue  # Skip zero-length annotations
         tsss_valid = (stop - start) >= st_duration
         rel_times = raw_sss.times[start:stop]
         t_str = '%8.3f - %8.3f sec' % tuple(rel_times[[0, -1]])
@@ -743,7 +738,7 @@ def _do_tSSS(clean_data, orig_in_data, resid, st_correlation,
     else:
         np.asarray_chkfinite(resid)
         t_proj = _overlap_projector(orig_in_data, resid, st_correlation)
-    # Apply projector according to Eq. 12 in [2]_
+    # Apply projector according to Eq. 12 in :footcite:`TauluSimola2006`
     msg = ('        Projecting %2d intersecting tSSS component%s '
            'for %s' % (t_proj.shape[1], _pl(t_proj.shape[1], ' '), t_str))
     if n_positions > 1:
@@ -1563,12 +1558,14 @@ def _orth_overwrite(A):
 def _overlap_projector(data_int, data_res, corr):
     """Calculate projector for removal of subspace intersection in tSSS."""
     # corr necessary to deal with noise when finding identical signal
-    # directions in the subspace. See the end of the Results section in [2]_
+    # directions in the subspace. See the end of the Results section in
+    # :footcite:`TauluSimola2006`
 
-    # Note that the procedure here is an updated version of [2]_ (and used in
-    # MF's tSSS) that uses residuals instead of internal/external spaces
-    # directly. This provides more degrees of freedom when analyzing for
-    # intersections between internal and external spaces.
+    # Note that the procedure here is an updated version of
+    # :footcite:`TauluSimola2006` (and used in MF's tSSS) that uses residuals
+    # instead of internal/external spaces directly. This provides more degrees
+    # of freedom when analyzing for intersections between internal and
+    # external spaces.
 
     # Normalize data, then compute orth to get temporal bases. Matrices
     # must have shape (n_samps x effective_rank) when passed into svd
@@ -1598,8 +1595,9 @@ def _overlap_projector(data_int, data_res, corr):
     intersect_mask = (S_intersect >= corr)
     del S_intersect
 
-    # Compute projection operator as (I-LL_T) Eq. 12 in [2]_
-    # V_principal should be shape (n_time_pts x n_retained_inds)
+    # Compute projection operator as (I-LL_T) Eq. 12 in
+    # :footcite:`TauluSimola2006` V_principal should be shape
+    # (n_time_pts x n_retained_inds)
     Vh_intersect = Vh_intersect[intersect_mask].T
     V_principal = np.dot(Q_res, Vh_intersect)
     return V_principal
@@ -1874,15 +1872,14 @@ def _compute_sphere_activation_in(degrees):
     Returns
     -------
     a_power : ndarray
-        The a_lm associated for the associated degrees (see [1]_).
+        The a_lm associated for the associated degrees (see
+        :footcite:`KnuutilaEtAl1993`).
     rho_i : float
         The current density.
 
     References
     ----------
-    .. [1] A 122-channel whole-cortex SQUID system for measuring the brain’s
-       magnetic fields. Knuutila et al. IEEE Transactions on Magnetics,
-       Vol 29 No 6, Nov 1993.
+    .. footbibliography::
     """
     r_in = 0.080  # radius of the randomly-activated sphere
 
@@ -2272,3 +2269,70 @@ def _read_cross_talk(cross_talk, ch_names):
         # I have no idea why, but MF transposes this for storage..
         sss_ctc['decoupler'] = sss_ctc['decoupler'].T.tocsc()
     return ctc, sss_ctc
+
+
+@verbose
+def compute_maxwell_basis(info, origin='auto', int_order=8, ext_order=3,
+                          calibration=None, coord_frame='head',
+                          regularize='in', ignore_ref=True,
+                          bad_condition='error', mag_scale=100.,
+                          extended_proj=(), verbose=None):
+    r"""Compute the SSS basis for a given measurement info structure.
+
+    Parameters
+    ----------
+    info : instance of Info
+        The measurement info.
+    %(maxwell_origin)s
+    %(maxwell_int)s
+    %(maxwell_ext)s
+    %(maxwell_cal)s
+    %(maxwell_coord)s
+    %(maxwell_reg)s
+    %(maxwell_ref)s
+    %(maxwell_cond)s
+    %(maxwell_mag)s
+    %(maxwell_extended)s
+    %(verbose)s
+
+    Returns
+    -------
+    S : ndarray, shape (n_meg, n_moments)
+        The basis that can be used to reconstruct the data.
+    pS : ndarray, shape (n_moments, n_good_meg)
+        The (stabilized) pseudoinverse of the S array.
+    reg_moments : ndarray, shape (n_moments,)
+        The moments that were kept after regularization.
+    n_use_in : int
+        The number of kept moments that were in the internal space.
+
+    Notes
+    -----
+    This outputs variants of :math:`\mathbf{S}` and :math:`\mathbf{S^\dagger}`
+    from equations 27 and 37 of :footcite:`TauluKajola2005` with the coil scale
+    for magnetometers already factored in so that the resulting denoising
+    transform of the data to obtain :math:`\hat{\phi}_{in}` from equation
+    38 would be::
+
+        phi_in = S[:, :n_use_in] @ pS[:n_use_in] @ data_meg_good
+
+    .. versionadded:: 0.23
+
+    References
+    ----------
+    .. footbibliography::
+    """
+    from ..io import RawArray
+    _validate_type(info, Info, 'info')
+    raw = RawArray(np.zeros((len(info['ch_names']), 1)), info.copy(),
+                   verbose=False)
+    logger.info('Computing Maxwell basis')
+    params = _prep_maxwell_filter(
+        raw=raw, origin=origin, int_order=int_order, ext_order=ext_order,
+        calibration=calibration, coord_frame=coord_frame, destination=None,
+        regularize=regularize, ignore_ref=ignore_ref,
+        bad_condition=bad_condition, mag_scale=mag_scale,
+        extended_proj=extended_proj)
+    _, S_decomp_full, pS_decomp, reg_moments, n_use_in = \
+        params['_get_this_decomp_trans'](info['dev_head_t'], t=0.)
+    return S_decomp_full, pS_decomp, reg_moments, n_use_in

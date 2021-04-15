@@ -10,7 +10,6 @@
 import os.path as op
 from pathlib import Path
 import sys
-import warnings
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
@@ -105,7 +104,6 @@ def test_plot_head_positions():
 @pytest.mark.slowtest
 def test_plot_sparse_source_estimates(renderer_interactive, brain_gc):
     """Test plotting of (sparse) source estimates."""
-    _check_skip_pysurfer(renderer_interactive)
     sample_src = read_source_spaces(src_fname)
 
     # dense version
@@ -167,7 +165,7 @@ def test_plot_evoked_field(renderer):
 @pytest.mark.slowtest  # can be slow on OSX
 @testing.requires_testing_data
 @traits_test
-def test_plot_alignment(tmpdir, renderer):
+def test_plot_alignment(tmpdir, renderer, mixed_fwd_cov_evoked):
     """Test plotting of -trans.fif files and MEG sensor layouts."""
     # generate fiducials file for testing
     tempdir = str(tmpdir)
@@ -211,6 +209,13 @@ def test_plot_alignment(tmpdir, renderer):
                   src=sample_src)
     sample_src.plot(subjects_dir=subjects_dir, head=True, skull=True,
                     brain='white')
+    # mixed source space
+    mixed_src = mixed_fwd_cov_evoked[0]['src']
+    assert mixed_src.kind == 'mixed'
+    plot_alignment(info, meg=['helmet', 'sensors'], dig=True,
+                   coord_frame='head', trans=Path(trans_fname),
+                   subject='sample', mri_fiducials=fiducials_path,
+                   subjects_dir=subjects_dir, src=mixed_src)
     renderer.backend._close_all()
     # no-head version
     renderer.backend._close_all()
@@ -382,7 +387,6 @@ def test_plot_alignment(tmpdir, renderer):
 @traits_test
 def test_process_clim_plot(renderer_interactive, brain_gc):
     """Test functionality for determining control points with stc.plot."""
-    _check_skip_pysurfer(renderer_interactive)
     sample_src = read_source_spaces(src_fname)
     kwargs = dict(subjects_dir=subjects_dir, smoothing_steps=1,
                   time_viewer=False, show_traces=False)
@@ -512,19 +516,18 @@ def test_stc_mpl():
     stc_data = np.ones((n_verts * n_time))
     stc_data.shape = (n_verts, n_time)
     stc = SourceEstimate(stc_data, vertices, 1, 1, 'sample')
-    with pytest.warns(RuntimeWarning, match='not included'):
-        stc.plot(subjects_dir=subjects_dir, time_unit='s', views='ven',
-                 hemi='rh', smoothing_steps=2, subject='sample',
-                 backend='matplotlib', spacing='oct1', initial_time=0.001,
-                 colormap='Reds')
-        fig = stc.plot(subjects_dir=subjects_dir, time_unit='ms', views='dor',
-                       hemi='lh', smoothing_steps=2, subject='sample',
-                       backend='matplotlib', spacing='ico2', time_viewer=True,
-                       colormap='mne')
-        time_viewer = fig.time_viewer
-        _fake_click(time_viewer, time_viewer.axes[0], (0.5, 0.5))  # change t
-        time_viewer.canvas.key_press_event('ctrl+right')
-        time_viewer.canvas.key_press_event('left')
+    stc.plot(subjects_dir=subjects_dir, time_unit='s', views='ven',
+             hemi='rh', smoothing_steps=7, subject='sample',
+             backend='matplotlib', spacing='oct1', initial_time=0.001,
+             colormap='Reds')
+    fig = stc.plot(subjects_dir=subjects_dir, time_unit='ms', views='dor',
+                   hemi='lh', smoothing_steps=7, subject='sample',
+                   backend='matplotlib', spacing='ico2', time_viewer=True,
+                   colormap='mne')
+    time_viewer = fig.time_viewer
+    _fake_click(time_viewer, time_viewer.axes[0], (0.5, 0.5))  # change t
+    time_viewer.canvas.key_press_event('ctrl+right')
+    time_viewer.canvas.key_press_event('left')
     pytest.raises(ValueError, stc.plot, subjects_dir=subjects_dir,
                   hemi='both', subject='sample', backend='matplotlib')
     pytest.raises(ValueError, stc.plot, subjects_dir=subjects_dir,
@@ -592,17 +595,6 @@ def test_snapshot_brain_montage(renderer):
     pytest.raises(ValueError, snapshot_brain_montage, None, info)
 
 
-def _check_skip_pysurfer(renderer):
-    is_pyvista = renderer._get_3d_backend() == 'pyvista'
-    if not is_pyvista:
-        with warnings.catch_warnings(record=True):
-            try:
-                from surfer import Brain  # noqa: 401 analysis:ignore
-            except Exception:
-                pytest.skip('Requires PySurfer')
-    return is_pyvista
-
-
 @pytest.mark.slowtest  # can be slow on OSX
 @testing.requires_testing_data
 @pytest.mark.parametrize('pick_ori', ('vector', None))
@@ -610,7 +602,8 @@ def _check_skip_pysurfer(renderer):
 def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
                                pick_ori, kind, brain_gc):
     """Test plotting of scalar and vector source estimates."""
-    is_pyvista = _check_skip_pysurfer(renderer_interactive)
+    backend = renderer_interactive._get_3d_backend()
+    is_pyvista = backend != 'mayavi'
     invs, evoked = all_src_types_inv_evoked
     inv = invs[kind]
     with pytest.warns(None):  # PCA mag
@@ -626,7 +619,7 @@ def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
                   )
     if pick_ori != 'vector':
         kwargs['surface'] = 'white'
-        kwargs['backend'] = renderer_interactive._get_3d_backend()
+        kwargs['backend'] = backend
     # Mayavi can't handle non-surface
     if kind != 'surface' and not is_pyvista:
         with pytest.raises(RuntimeError, match='PyVista'):
@@ -724,14 +717,21 @@ def test_plot_sensors_connectivity(renderer):
     n_channels = len(picks)
     con = np.random.RandomState(42).randn(n_channels, n_channels)
     info = raw.info
-    with pytest.raises(TypeError):
-        plot_sensors_connectivity(info='foo', con=con,
-                                  picks=picks)
-    with pytest.raises(ValueError):
-        plot_sensors_connectivity(info=info, con=con[::2, ::2],
-                                  picks=picks)
+    with pytest.raises(TypeError, match='must be an instance of Info'):
+        plot_sensors_connectivity(info='foo', con=con, picks=picks)
+    with pytest.raises(ValueError, match='does not correspond to the size'):
+        plot_sensors_connectivity(info=info, con=con[::2, ::2], picks=picks)
 
-    plot_sensors_connectivity(info=info, con=con, picks=picks)
+    fig = plot_sensors_connectivity(info=info, con=con, picks=picks)
+    if renderer._get_3d_backend() == 'pyvista':
+        title = fig.plotter.scalar_bar.GetTitle()
+    else:
+        assert renderer._get_3d_backend() == 'mayavi'
+        # the last thing we add is the Tube, so we need to go
+        # vtkDataSource->Stripper->Tube->ModuleManager
+        mod_man = fig.children[-1].children[0].children[0].children[0]
+        title = mod_man.scalar_lut_manager.scalar_bar.title
+    assert title == 'Connectivity'
 
 
 @pytest.mark.parametrize('orientation', ('horizontal', 'vertical'))
@@ -768,7 +768,6 @@ def test_brain_colorbar(orientation, diverging, lims):
 @traits_test
 def test_mixed_sources_plot_surface(renderer_interactive):
     """Test plot_surface() for mixed source space."""
-    _check_skip_pysurfer(renderer_interactive)
     src = read_source_spaces(fwd_fname2)
     N = np.sum([s['nuse'] for s in src])  # number of sources
 
@@ -811,7 +810,7 @@ def test_link_brains(renderer_interactive):
         subjects_dir=subjects_dir, colorbar=True,
         clim='auto'
     )
-    if renderer_interactive._get_3d_backend() != 'pyvista':
+    if renderer_interactive._get_3d_backend() == 'mayavi':
         with pytest.raises(NotImplementedError, match='backend is pyvista'):
             link_brains(brain)
     else:

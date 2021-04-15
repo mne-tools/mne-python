@@ -14,7 +14,7 @@ reader :func:`mne.io.read_raw_edf` and a ``set`` file reader. To read in
 to read in ``set`` files containing ``epochs`` data, use
 :func:`mne.read_epochs_eeglab`.
 
-This table summarizes equivalent EEGLAB and MNE-Python code for some of the
+This table summarizes the equivalent EEGLAB and MNE-Python code for some of the
 most common analysis tasks. For the sake of clarity, the table below assumes
 the following variables exist: the file name ``fname``, time interval of the
 epochs ``tmin`` and ``tmax``, and the experimental conditions ``cond1`` and
@@ -29,33 +29,47 @@ below which and above which to filter out data.
 +=====================+==========================================================+==================================================================================================+
 | Get started         | | ``addpath(...);``                                      | | :mod:`import mne <mne>`                                                                        |
 |                     | | ``eeglab;``                                            | | :mod:`from mne import io, <mne.io>` :class:`~mne.Epochs`                                       |
-|                     |                                                          | | :mod:`from mne.preprocessing <mne.preprocessing>` :class:`import ICA <mne.preprocessing.ICA>`  |
+|                     | |                                                        | | :mod:`from mne.preprocessing <mne.preprocessing>` :class:`import ICA <mne.preprocessing.ICA>`  |
 +---------------------+----------------------------------------------------------+--------------------------------------------------------------------------------------------------+
-| Import data         | ``EEG = pop_fileio(fname);``                             | | :func:`raw = io.read_raw_fif(fname) <mne.io.read_raw_fif>`                                     |
-|                     |                                                          | | :func:`raw = io.read_raw_edf(fname) <mne.io.read_raw_edf>`                                     |
-|                     |                                                          | | :func:`raw = io.read_raw_eeglab(fname) <mne.io.read_raw_eeglab>`                               |
+| Import data         | | ``EEG = pop_fileio(fname);``                           | | :func:`raw = io.read_raw_fif(fname) <mne.io.read_raw_fif>`                                     |
+|                     | |                                                        | | :func:`raw = io.read_raw_edf(fname) <mne.io.read_raw_edf>`                                     |
+|                     | |                                                        | | :func:`raw = io.read_raw_eeglab(fname) <mne.io.read_raw_eeglab>` ``(set file)``                |
+|                     | |                                                        | |                                                                                                |
 +---------------------+----------------------------------------------------------+--------------------------------------------------------------------------------------------------+
-| Filter data         | ``EEG = pop_eegfiltnew(EEG, l_freq, h_freq);``           | :func:`raw.filter(l_freq, h_freq) <mne.io.Raw.filter>`                                           |
+| Filter data         | | ``EEG = pop_eegfiltnew(EEG, l_freq, h_freq);``         | | :func:`raw.filter(l_freq, h_freq) <mne.io.Raw.filter>`                                         |
 +---------------------+----------------------------------------------------------+--------------------------------------------------------------------------------------------------+
-| Run ICA             | ``EEG = pop_runica(EEG, 'pca', n);``                     | | :class:`ica = ICA(max_pca_components=n) <mne.preprocessing.ICA>`                               |
-|                     |                                                          | | :func:`ica.fit(raw) <mne.preprocessing.ICA.fit>`                                               |
+| Common Average      | | ``EEG= pop_averef;``                                   | | :func:`raw.set_eeg_reference("average") <mne.io.Raw.set_eeg_reference>`                        |
+| referencing         | |                                                        | |                                                                                                |
++---------------------+----------------------------------------------------------+--------------------------------------------------------------------------------------------------+
+| Remove channels     | | ``pop_select.m``                                       | | :func:`raw.drop_channels() <mne.io.Raw.drop_channels>`                                         |
+|                     | |                                                        | |                                                                                                |
++---------------------+----------------------------------------------------------+--------------------------------------------------------------------------------------------------+
+| Run ICA             | | ``EEG = pop_runica(EEG, 'pca', n);``                   | | :func:`ica.fit(raw) <mne.preprocessing.ICA.fit>`                                               |
+|                     | |                                                        | |                                                                                                |
+|                     | | ``EEG = pop_binica(EEG, 'pca', n);``                   | | :func:`mne.preprocessing.infomax`                                                              |
++---------------------+----------------------------------------------------------+--------------------------------------------------------------------------------------------------+
+| Plot ICA properties | | ``pop_compprop( EEG, comp_num, winhandle);``           | | :func:`ica.plot_properties(raw, picks) <mne.preprocessing.ICA.plot_properties>`                |
++---------------------+----------------------------------------------------------+--------------------------------------------------------------------------------------------------+
+| Plot ICA components | | ``compheads()``                                        | | :func:`ica.plot_components(raw, picks) <mne.preprocessing.ICA.plot_components>`                |
++---------------------+----------------------------------------------------------+--------------------------------------------------------------------------------------------------+
+| Exclude components  | | ``pop_selectcomps()``                                  | | ``ica.exclude = list_of_components_to_exclude``                                                |
 +---------------------+----------------------------------------------------------+--------------------------------------------------------------------------------------------------+
 | Epoch data          | | ``event_id = {'cond1', 'cond2'};``                     | | :func:`events = mne.find_events(raw) <mne.find_events>`                                        |
-|                     | | ``Epochs = pop_epochs(EEG, event_id, [tmin, tmax]);``  | | :py:class:`event_id = dict(cond1=32, cond2=64) <dict>`                                         |
-|                     |                                                          | | :class:`epochs = Epochs(raw, events, event_id, tmin, tmax) <mne.Epochs>`                       |
+|                     | | ``Epochs = pop_epochs(EEG, event_id, [tmin, tmax]);``  | | :class:`event_id = dict(cond1=32, cond2=64) <dict>`                                            |
+|                     | |                                                        | | :class:`epochs = Epochs(raw, events, event_id, tmin, tmax) <mne.Epochs>`                       |
 +---------------------+----------------------------------------------------------+--------------------------------------------------------------------------------------------------+
-| Selecting epochs    | ``Epochs = pop_epochs(EEG_epochs, {cond2});``            | :class:`epochs[cond2] <mne.Epochs>`                                                              |
+| Selecting epochs    | | ``Epochs = pop_epochs(EEG_epochs, {cond2});``          | | :class:`epochs[cond2] <mne.Epochs>`                                                            |
 +---------------------+----------------------------------------------------------+--------------------------------------------------------------------------------------------------+
-| ERP butterfly plot  | ``pop_timtopo(EEG_epochs, ...);``                        | | :meth:`evoked = epochs[cond2].average() <mne.Epochs.average>`                                  |
-|                     |                                                          | | :func:`evoked.plot() <mne.Evoked.plot>`                                                        |
-|                     |                                                          | | :func:`evoked.plot_joint() <mne.Evoked.plot_joint>`                                            |
+| ERP butterfly plot  | | ``pop_timtopo(EEG_epochs, ...);``                      | | :meth:`evoked = epochs[cond2].average() <mne.Epochs.average>`                                  |
+|                     | |                                                        | | :func:`evoked.plot() <mne.Evoked.plot>`                                                        |
+|                     | |                                                        | | :func:`evoked.plot_joint() <mne.Evoked.plot_joint>`                                            |
 +---------------------+----------------------------------------------------------+--------------------------------------------------------------------------------------------------+
-| Contrast ERPs       | ``pop_compareerps(EEG_epochs1, EEG_epochs2);``           | | :func:`mne.combine_evoked([evoked1, -evoked2], weights='equal').plot() <mne.combine_evoked>`   |
-|                     |                                                          | | :func:`mne.viz.plot_compare_evokeds([evoked1, evoked2]) <mne.viz.plot_compare_evokeds>`        |
+| Contrast ERPs       | | ``pop_compareerps(EEG_epochs1, EEG_epochs2);``         | | :func:`mne.combine_evoked([evoked1, -evoked2], weights='equal').plot() <mne.combine_evoked>`   |
+|                     | |                                                        | | :func:`mne.viz.plot_compare_evokeds([evoked1, evoked2]) <mne.viz.plot_compare_evokeds>`        |
 +---------------------+----------------------------------------------------------+--------------------------------------------------------------------------------------------------+
-| Save data           | ``EEG = pop_saveset(EEG, fname);``                       | | :func:`raw.save(fname) <mne.io.Raw.save>`                                                      |
-|                     |                                                          | | :func:`epochs.save(fname) <mne.Epochs.save>`                                                   |
-|                     |                                                          | | :func:`evoked.save(fname) <mne.Evoked.save>`                                                   |
+| Save data           | | ``EEG = pop_saveset(EEG, fname);``                     | | :func:`raw.save(fname) <mne.io.Raw.save>`                                                      |
+|                     | |                                                        | | :func:`epochs.save(fname) <mne.Epochs.save>`                                                   |
+|                     | |                                                        | | :func:`evoked.save(fname) <mne.Evoked.save>`                                                   |
 +---------------------+----------------------------------------------------------+--------------------------------------------------------------------------------------------------+
 
 Potential pitfalls

@@ -64,12 +64,13 @@ raw.crop(tmax=60.)
 #
 #     If you want to perform ICA with *no* dimensionality reduction (other than
 #     the number of Independent Components (ICs) given in ``n_components``, and
-#     any subsequent exclusion of ICs you specify in ``ICA.exclude``), pass
-#     ``n_pca_components=None`` (this is the default value).
+#     any subsequent exclusion of ICs you specify in ``ICA.exclude``), simply
+#     pass ``n_components``.
 #
 #     However, if you *do* want to reduce dimensionality, consider this
-#     example: if you have 300 sensor channels and you set
-#     ``n_pca_components=None`` and ``n_components=50``, then the the first 50
+#     example: if you have 300 sensor channels and you set ``n_components=50``
+#     during instantiation and pass ``n_pca_components=None`` to
+#     `~mne.preprocessing.ICA.apply`, then the the first 50
 #     PCs are sent to the ICA algorithm (yielding 50 ICs), and during
 #     reconstruction `~mne.preprocessing.ICA.apply` will use the 50 ICs
 #     plus PCs number 51-300 (the full PCA residual). If instead you specify
@@ -79,16 +80,16 @@ raw.crop(tmax=60.)
 #
 #     **If you have previously been using EEGLAB**'s ``runica()`` and are
 #     looking for the equivalent of its ``'pca', n`` option to reduce
-#     dimensionality via PCA before the ICA step, set ``n_components=n``
-#     during initialization and pass ``n_pca_components=n`` to
-#     `~mne.preprocessing.ICA.apply`.
+#     dimensionality, set ``n_components=n`` during initialization and pass
+#     ``n_pca_components=n`` to `~mne.preprocessing.ICA.apply`.
 #
 # MNE-Python implements three different ICA algorithms: ``fastica`` (the
 # default), ``picard``, and ``infomax``. FastICA and Infomax are both in fairly
 # widespread use; Picard is a newer (2017) algorithm that is expected to
 # converge faster than FastICA and Infomax, and is more robust than other
 # algorithms in cases where the sources are not completely independent, which
-# typically happens with real EEG/MEG data. See [1]_ for more information.
+# typically happens with real EEG/MEG data. See
+# :footcite:`AblinEtAl2018` for more information.
 #
 # The ICA interface in MNE-Python is similar to the interface in
 # `scikit-learn`_: some general parameters are specified when creating an
@@ -185,7 +186,8 @@ ecg_evoked.plot_joint()
 # higher values), making it harder for the algorithm to find an accurate
 # solution. A high-pass filter with 1 Hz cutoff frequency is recommended.
 # However, because filtering is a linear operation, the ICA solution found from
-# the filtered signal can be applied to the unfiltered signal (see [2]_ for
+# the filtered signal can be applied to the unfiltered signal (see
+# :footcite:`WinklerEtAl2015` for
 # more information), so we'll keep a copy of the unfiltered
 # `~mne.io.Raw` object around so we can apply the ICA solution to it
 # later.
@@ -205,6 +207,12 @@ filt_raw.load_data().filter(l_freq=1., h_freq=None)
 #     just continuous `~mne.io.Raw` objects), or only use every Nth
 #     sample by passing the ``decim`` parameter to ``ICA.fit()``.
 #
+#     .. note:: `~mne.Epochs` used for fitting ICA should not be
+#               baseline-corrected. Because cleaning the data via ICA may
+#               introduce DC offsets, we suggest to baseline correct your data
+#               **after** cleaning (and not before), should you require
+#               baseline correction.
+#
 # Now we're ready to set up and fit the ICA. Since we know (from observing our
 # raw data) that the EOG and ECG artifacts are fairly strong, we would expect
 # those artifacts to be captured in the first few dimensions of the PCA
@@ -223,7 +231,7 @@ filt_raw.load_data().filter(l_freq=1., h_freq=None)
 # we'll also specify a `random seed`_ so that we get identical results each
 # time this tutorial is built by our web servers.
 
-ica = ICA(n_components=15, random_state=97)
+ica = ICA(n_components=15, max_iter='auto', random_state=97)
 ica.fit(filt_raw)
 
 ###############################################################################
@@ -374,7 +382,8 @@ ica.plot_sources(eog_evoked)
 # a virtual ECG channel, so if you have MEG channels it is usually not
 # necessary to pass a specific channel name.
 # `~mne.preprocessing.ICA.find_bads_ecg` also has two options for its
-# ``method`` parameter: ``'ctps'`` (cross-trial phase statistics [3]_) and
+# ``method`` parameter: ``'ctps'`` (cross-trial phase statistics
+# :footcite:`DammersEtAl2008`) and
 # ``'correlation'`` (Pearson correlation between data and ECG channel).
 
 ica.exclude = []
@@ -406,7 +415,7 @@ ica.plot_sources(ecg_evoked)
 # resolves out a little better:
 
 # refit the ICA with 30 components this time
-new_ica = ICA(n_components=30, random_state=97)
+new_ica = ICA(n_components=30, max_iter='auto', random_state=97)
 new_ica.fit(filt_raw)
 
 # find which ICs match the ECG pattern
@@ -434,7 +443,7 @@ new_ica.plot_sources(ecg_evoked)
 # before accepting them.
 
 # clean up memory before moving on
-del raw, filt_raw, ica, new_ica
+del raw, ica, new_ica
 
 ###############################################################################
 # Selecting ICA components using template matching
@@ -443,7 +452,8 @@ del raw, filt_raw, ica, new_ica
 # When dealing with multiple subjects, it is also possible to manually select
 # an IC for exclusion on one subject, and then use that component as a
 # *template* for selecting which ICs to exclude from other subjects' data,
-# using `mne.preprocessing.corrmap` [4]_. The idea behind
+# using `mne.preprocessing.corrmap` :footcite:`CamposViolaEtAl2009`.
+# The idea behind
 # `~mne.preprocessing.corrmap` is that the artifact patterns are similar
 # enough across subjects that corresponding ICs can be identified by
 # correlating the ICs from each ICA solution with a common template, and
@@ -453,7 +463,8 @@ del raw, filt_raw, ica, new_ica
 # within it to use as a template.
 #
 # Since our sample dataset only contains data from one subject, we'll use a
-# different dataset with multiple subjects: the EEGBCI dataset [5]_ [6]_. The
+# different dataset with multiple subjects: the EEGBCI dataset
+# :footcite:`SchalkEtAl2004,GoldbergerEtAl2000`. The
 # dataset has 109 subjects, we'll just download one run (a left/right hand
 # movement task) from each of the first 4 subjects:
 
@@ -483,9 +494,11 @@ for subj in range(4):
     # remove trailing `.` from channel names so we can set montage
     raw.rename_channels(mapping)
     raw.set_montage('standard_1005')
+    # high-pass filter
+    raw_filt = raw.copy().load_data().filter(l_freq=1., h_freq=None)
     # fit ICA
-    ica = ICA(n_components=30, random_state=97)
-    ica.fit(raw)
+    ica = ICA(n_components=30, max_iter='auto', random_state=97)
+    ica.fit(raw_filt)
     raws.append(raw)
     icas.append(ica)
 
@@ -568,43 +581,6 @@ print(template_eog_component)
 # `~mne.preprocessing.ICA` object containing the template does not need
 # to be in the list of ICAs provided to `~mne.preprocessing.corrmap`.
 #
-#
-# References
-# ^^^^^^^^^^
-#
-# .. [1] Ablin P, Cardoso J, Gramfort A (2018). Faster Independent Component
-#        Analysis by Preconditioning With Hessian Approximations. *IEEE
-#        Transactions on Signal Processing* 66:4040–4049.
-#        https://doi.org/10.1109/TSP.2018.2844203
-#
-# .. [2] Winkler I, Debener S, Müller K-R, Tangermann M (2015). On the
-#        influence of high-pass filtering on ICA-based artifact reduction in
-#        EEG-ERP. Proceedings of EMBC-2015, 4101–4105.
-#        https://doi.org/10.1109/EMBC.2015.7319296
-#
-# .. [3] Dammers J, Schiek M, Boers F, Silex C, Zvyagintsev M, Pietrzyk U,
-#        Mathiak K (2008). Integration of amplitude and phase statistics for
-#        complete artifact removal in independent components of neuromagnetic
-#        recordings. *IEEE Transactions on Biomedical Engineering*
-#        55(10):2353–2362. https://doi.org/10.1109/TBME.2008.926677
-#
-# .. [4] Viola FC, Thorne J, Edmonds B, Schneider T, Eichele T, Debener S
-#        (2009). Semi-automatic identification of independent components
-#        representing EEG artifact. *Clinical Neurophysiology* 120(5):868–877.
-#        https://doi.org/10.1016/j.clinph.2009.01.015
-#
-# .. [5] Schalk G, McFarland DJ, Hinterberger T, Birbaumer N, Wolpaw JR (2004).
-#        BCI2000: A General-Purpose Brain-Computer Interface (BCI) System.
-#        *IEEE Transactions on Biomedical Engineering* 51(6):1034-1043.
-#        https://doi.org/10.1109/TBME.2004.827072
-#
-# .. [6] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh, Mark RG,
-#        Mietus JE, Moody GB, Peng C-K, Stanley HE (2000). PhysioBank,
-#        PhysioToolkit, and PhysioNet: Components of a New Research Resource
-#        for Complex Physiologic Signals. *Circulation* 101(23):e215-e220.
-#        https://doi.org/10.1161/01.CIR.101.23.e215
-#
-#
 # .. LINKS
 #
 # .. _`blind source separation`:
@@ -616,3 +592,63 @@ print(template_eog_component)
 # .. _`regular expression`: https://www.regular-expressions.info/
 # .. _`qrs`: https://en.wikipedia.org/wiki/QRS_complex
 # .. _`this EEGLAB tutorial`: https://labeling.ucsd.edu/tutorial/labels
+
+
+###############################################################################
+# Compute ICA components on Epochs
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#
+# ICA is now fit to epoched MEG data instead of the raw data.
+# We assume that the non-stationary EOG artifacts have already been removed.
+# The sources matching the ECG are automatically found and displayed.
+#
+# .. note::
+#     This example is computationally intensive, so it might take a few minutes
+#     to complete.
+#
+# Read and preprocess the data. Preprocessing consists of:
+#
+# - MEG channel selection
+# - 1-30 Hz band-pass filter
+# - epoching -0.2 to 0.5 seconds with respect to events
+# - rejection based on peak-to-peak amplitude
+#
+# Note that we don't baseline correct the epochs here – we'll do this after
+# cleaning with ICA is completed. Baseline correction before ICA is not
+# recommended by the MNE-Python developers, as it doesn't guarantee optimal
+# results.
+
+filt_raw.pick_types(meg=True, eeg=False, exclude='bads', stim=True).load_data()
+filt_raw.filter(1, 30, fir_design='firwin')
+
+# peak-to-peak amplitude rejection parameters
+reject = dict(grad=4000e-13, mag=4e-12)
+# create longer and more epochs for more artifact exposure
+events = mne.find_events(filt_raw, stim_channel='STI 014')
+# don't baseline correct epochs
+epochs = mne.Epochs(filt_raw, events, event_id=None, tmin=-0.2, tmax=0.5,
+                    reject=reject, baseline=None)
+
+###############################################################################
+# Fit ICA model using the FastICA algorithm, detect and plot components
+# explaining ECG artifacts.
+
+ica = ICA(n_components=15, method='fastica', max_iter="auto").fit(epochs)
+
+ecg_epochs = create_ecg_epochs(filt_raw, tmin=-.5, tmax=.5)
+ecg_inds, scores = ica.find_bads_ecg(ecg_epochs, threshold='auto')
+
+ica.plot_components(ecg_inds)
+
+###############################################################################
+# Plot the properties of the ECG components:
+ica.plot_properties(epochs, picks=ecg_inds)
+
+###############################################################################
+# Plot the estimated sources of detected ECG related components:
+ica.plot_sources(filt_raw, picks=ecg_inds)
+
+###############################################################################
+# References
+# ^^^^^^^^^^
+# .. footbibliography::

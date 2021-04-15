@@ -53,3 +53,4 @@ Events
    average_movements
    combine_event_ids
    equalize_epoch_counts
+   make_metadata

@@ -409,6 +409,49 @@ discriminate.
       and demonstrates how to fit a single trial linear regression using the
       information contained in the metadata of the individual datasets.
 
+.. _erp-core-dataset:
+
+ERP CORE Dataset
+^^^^^^^^^^^^^^^^
+:func:`mne.datasets.erp_core.data_path`
+
+The original `ERP CORE dataset`_ :footcite:`Kappenman2021` contains data from
+40 participants who completed 6 EEG experiments, carefully crafted to evoke
+7 well-known event-related potential (ERP) components.
+
+Currently, the MNE-Python ERP CORE dataset only provides data from one
+participant (subject ``001``) of the Flankers paradigm, which elicits the
+lateralized readiness potential (LRP) and error-related negativity (ERN). The
+data provided is **not** the original data from the ERP CORE dataset, but
+rather a slightly modified version, designed to demonstrate the Epochs metadata
+functionality. For example, we already set the references and montage
+correctly, and stored events as Annotations. Data is provided in ``FIFF``
+format.
+
+.. topic:: Examples
+
+    * :ref:`tut-autogenerate-metadata`: Learn how to auto-generate
+      `~mne.Epochs` metadata, and visualize the error-related negativity (ERN)
+      ERP component.
+
+.. _ssvep-dataset:
+
+SSVEP
+=====
+:func:`mne.datasets.ssvep.data_path`
+
+This is a simple example dataset with frequency tagged visual stimulation:
+N=2 participants observed checkerboards patterns inverting with a constant
+frequency of either 12.0 Hz of 15.0 Hz. 10 trials of 20.0 s length each.
+32 channels wet EEG was recorded.
+
+Data format: BrainVision .eeg/.vhdr/.vmrk files organized according to BIDS
+standard.
+
+.. topic:: Examples
+
+    * :ref:`tut-ssvep`
+
 References
 ==========
 
@@ -421,3 +464,4 @@ References
 .. _resting state dataset tutorial: https://neuroimage.usc.edu/brainstorm/DatasetResting
 .. _median nerve dataset tutorial: https://neuroimage.usc.edu/brainstorm/DatasetMedianNerveCtf
 .. _SPM faces dataset: https://www.fil.ion.ucl.ac.uk/spm/data/mmfaces/
+.. _ERP-CORE dataset: https://erpinfo.org/erp-core

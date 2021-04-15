@@ -34,6 +34,7 @@ from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
                        _pick_data_channels)
 from ..io.tag import _rename_list
 from ..io.write import DATE_NONE
+from ..io.proj import setup_proj
 from ..io._digitization import _get_data_as_dict_from_dig
 
 
@@ -500,18 +501,17 @@ class SetChannelsMixin(MontageMixin):
         rename_channels(self.info, mapping, allow_duplicates)
 
         # Update self._orig_units for Raw
-        if isinstance(self, BaseRaw) and self._orig_units is not None:
-            if isinstance(mapping, dict):
-                new_names = [(ch_names_orig.index(ch_name), new_name)
-                             for ch_name, new_name in mapping.items()]
-            elif callable(mapping):
-                new_names = [(ci, mapping(ch_name))
-                             for ci, ch_name in enumerate(ch_names_orig)]
-
-            for c_ind, new_name in new_names:
-                old_name = ch_names_orig[c_ind]
-                self._orig_units[new_name] = self._orig_units[old_name]
-                del self._orig_units[old_name]
+        if isinstance(self, BaseRaw):
+            # whatever mapping was provided, now we can just use a dict
+            mapping = dict(zip(ch_names_orig, self.info['ch_names']))
+            if self._orig_units is not None:
+                for old_name, new_name in mapping.items():
+                    if old_name != new_name:
+                        self._orig_units[new_name] = self._orig_units[old_name]
+                        del self._orig_units[old_name]
+            ch_names = self.annotations.ch_names
+            for ci, ch in enumerate(ch_names):
+                ch_names[ci] = tuple(mapping.get(name, name) for name in ch)
 
         return self
 
@@ -955,6 +955,9 @@ class UpdateChannelsMixin(object):
         else:
             assert isinstance(self, BaseRaw) and not self.preload
 
+        if isinstance(self, BaseRaw):
+            self.annotations._prune_ch_names(self.info, on_missing='ignore')
+
         self._pick_projs()
         return self
 
@@ -1068,7 +1071,35 @@ class UpdateChannelsMixin(object):
             self._read_picks = [
                 np.concatenate([r, extra_idx]) for r in self._read_picks]
             assert all(len(r) == self.info['nchan'] for r in self._read_picks)
+        elif isinstance(self, BaseEpochs):
+            self.picks = np.arange(self._data.shape[1])
+            if hasattr(self, '_projector'):
+                activate = False if self._do_delayed_proj else self.proj
+                self._projector, self.info = setup_proj(self.info, False,
+                                                        activate=activate)
+
         return self
+
+    @fill_doc
+    def add_reference_channels(self, ref_channels):
+        """Add reference channels to data that consists of all zeros.
+
+        Adds reference channels to data that were not included during
+        recording. This is useful when you need to re-reference your data
+        to different channels. These added channels will consist of all zeros.
+
+        Parameters
+        ----------
+        %(ref_channels)s
+
+        Returns
+        -------
+        inst : instance of Raw | Epochs | Evoked
+               The modified instance.
+        """
+        from ..io.reference import add_reference_channels
+
+        return add_reference_channels(self, ref_channels, copy=False)
 
 
 class InterpolationMixin(object):
@@ -1076,7 +1107,8 @@ class InterpolationMixin(object):
 
     @verbose
     def interpolate_bads(self, reset_bads=True, mode='accurate',
-                         origin='auto', method=None, verbose=None):
+                         origin='auto', method=None, exclude=(),
+                         verbose=None):
         """Interpolate bad MEG and EEG channels.
 
         Operates in place.
@@ -1111,6 +1143,9 @@ class InterpolationMixin(object):
                 method=dict(meg="MNE", eeg="spline", fnirs="nearest")
 
             .. versionadded:: 0.21
+        exclude : list | tuple
+            The channels to exclude from interpolation. If excluded a bad
+            channel will stay in bads.
         %(verbose_meth)s
 
         Returns
@@ -1140,15 +1175,17 @@ class InterpolationMixin(object):
         logger.info('Interpolating bad channels')
         origin = _check_origin(origin, self.info)
         if method['eeg'] == 'spline':
-            _interpolate_bads_eeg(self, origin=origin)
+            _interpolate_bads_eeg(self, origin=origin, exclude=exclude)
             eeg_mne = False
         else:
             eeg_mne = True
-        _interpolate_bads_meeg(self, mode=mode, origin=origin, eeg=eeg_mne)
-        _interpolate_bads_nirs(self)
+        _interpolate_bads_meeg(self, mode=mode, origin=origin, eeg=eeg_mne,
+                               exclude=exclude)
+        _interpolate_bads_nirs(self, exclude=exclude)
 
         if reset_bads is True:
-            self.info['bads'] = []
+            self.info['bads'] = \
+                [ch for ch in self.info['bads'] if ch in exclude]
 
         return self
 
@@ -1381,8 +1418,6 @@ def find_ch_adjacency(info, ch_type):
         conn_name = 'neuromag306mag'
     elif has_vv_grad and ch_type == 'grad':
         conn_name = 'neuromag306planar'
-    elif has_neuromag_122_grad:
-        conn_name = 'neuromag122'
     elif has_4D_mag:
         if 'MEG 248' in info['ch_names']:
             idx = info['ch_names'].index('MEG 248')
@@ -1437,8 +1472,12 @@ def _compute_ch_adjacency(info, ch_type):
     from scipy.spatial import Delaunay
     from .. import spatial_tris_adjacency
     from ..channels.layout import _find_topomap_coords, _pair_grad_sensors
-    combine_grads = (ch_type == 'grad' and FIFF.FIFFV_COIL_VV_PLANAR_T1 in
-                     np.unique([ch['coil_type'] for ch in info['chs']]))
+    combine_grads = (ch_type == 'grad'
+                     and any([coil_type in [ch['coil_type']
+                                            for ch in info['chs']]
+                              for coil_type in
+                              [FIFF.FIFFV_COIL_VV_PLANAR_T1,
+                               FIFF.FIFFV_COIL_NM_122]]))
 
     picks = dict(_picks_by_type(info, exclude=[]))[ch_type]
     ch_names = [info['ch_names'][pick] for pick in picks]

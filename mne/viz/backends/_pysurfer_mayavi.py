@@ -23,9 +23,9 @@ from mayavi.core.scene import Scene
 from mayavi.core.ui.mayavi_scene import MayaviScene
 from tvtk.pyface.tvtk_scene import TVTKScene
 
-from .base_renderer import _BaseRenderer
+from ._abstract import _AbstractRenderer
 from ._utils import _check_color, _alpha_blend_background, ALLOWED_QUIVER_MODES
-from ..utils import _ndarray_to_fig
+from ..utils import _save_ndarray_img
 from ...surface import _normalize_vectors
 from ...utils import (_import_mlab, _validate_type, SilenceStdout,
                       copy_base_doc_to_subclass_doc, _check_option)
@@ -54,7 +54,7 @@ class _Projection(object):
 
 
 @copy_base_doc_to_subclass_doc
-class _Renderer(_BaseRenderer):
+class _Renderer(_AbstractRenderer):
     """Class managing rendering scene.
 
     Attributes
@@ -305,6 +305,7 @@ class _Renderer(_BaseRenderer):
             vals = _alpha_blend_background(ctable, bgcolor)
             cbar_lut.table.from_array(vals)
             cmap.scalar_bar.lookup_table = cbar_lut
+        return bar
 
     def show(self):
         if self.fig is not None:
@@ -483,7 +484,7 @@ def _check_3d_figure(figure):
 
 
 def _save_figure(img, filename):
-    _ndarray_to_fig(img).savefig(filename)
+    _save_ndarray_img(filename, img)
 
 
 def _close_3d_figure(figure):

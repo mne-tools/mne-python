@@ -1322,7 +1322,7 @@ def test_source_estime_project(real):
     stc_max, directions = stc.project('pca')
     flips = np.sign(np.sum(directions * want_nn, axis=1, keepdims=True))
     directions *= flips
-    assert_allclose(directions, want_nn, atol=1e-6)
+    assert_allclose(directions, want_nn, atol=2e-6)
 
 
 @testing.requires_testing_data
@@ -1791,3 +1791,54 @@ def test_scale_morph_labels(kind, scale, monkeypatch, tmpdir):
     else:
         corr = np.corrcoef(label_tc.ravel(), label_tc_to.ravel())[0, 1]
         assert 0.93 < corr < 0.96, scale
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('kind', [
+    'surface',
+    pytest.param('volume', marks=[pytest.mark.slowtest,
+                                  requires_version('nibabel')]),
+])
+def test_label_extraction_subject(kind):
+    """Test that label extraction subject is treated properly."""
+    if kind == 'surface':
+        inv = read_inverse_operator(fname_inv)
+        labels = read_labels_from_annot(
+            'sample', subjects_dir=subjects_dir)
+        labels_fs = read_labels_from_annot(
+            'fsaverage', subjects_dir=subjects_dir)
+        labels_fs = [label for label in labels_fs
+                     if not label.name.startswith('unknown')]
+        assert all(label.subject == 'sample' for label in labels)
+        assert all(label.subject == 'fsaverage' for label in labels_fs)
+        assert len(labels) == len(labels_fs) == 68
+        n_labels = 68
+    else:
+        assert kind == 'volume'
+        inv = read_inverse_operator(fname_inv_vol)
+        inv['src'][0]['subject_his_id'] = 'sample'  # modernize
+        labels = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
+        labels_fs = op.join(subjects_dir, 'fsaverage', 'mri', 'aseg.mgz')
+        n_labels = 46
+    src = inv['src']
+    assert src.kind == kind
+    assert src._subject == 'sample'
+    ave = read_evokeds(fname_evoked)[0].apply_baseline((None, 0)).crop(0, 0.01)
+    assert len(ave.times) == 4
+    stc = apply_inverse(ave, inv)
+    assert stc.subject == 'sample'
+    ltc = extract_label_time_course(stc, labels, src)
+    stc.subject = 'fsaverage'
+    with pytest.raises(ValueError, match=r'source spac.*not match.* stc\.sub'):
+        extract_label_time_course(stc, labels, src)
+    stc.subject = 'sample'
+    assert ltc.shape == (n_labels, 4)
+    if kind == 'volume':
+        with pytest.raises(RuntimeError, match='atlas.*not match.*source spa'):
+            extract_label_time_course(stc, labels_fs, src)
+    else:
+        with pytest.raises(ValueError, match=r'label\.sub.*not match.* stc\.'):
+            extract_label_time_course(stc, labels_fs, src)
+        stc.subject = None
+        with pytest.raises(ValueError, match=r'label\.sub.*not match.* sourc'):
+            extract_label_time_course(stc, labels_fs, src)
