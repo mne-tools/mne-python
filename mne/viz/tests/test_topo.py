@@ -181,6 +181,10 @@ def test_plot_topo():
     evoked.pick_types(meg=True).plot_topo(noise_cov=cov)
     plt.close('all')
 
+    # Test exclude parameter
+    fig = picked_evoked.plot_topo(exclude=['MEG 0112'])
+    assert len(fig.axes[0].collections) == 5
+
     # test plot_topo
     evoked.plot_topo()  # should auto-find layout
     _line_plot_onselect(0, 200, ['mag', 'grad'], evoked.info, evoked.data,
