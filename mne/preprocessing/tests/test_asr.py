@@ -1,7 +1,6 @@
-# Authors: Dirk Gütlin <dirk.guetlin@gmail.com>
+# Authors:  Dirk Gütlin <dirk.guetlin@gmail.com>
 #
 # License: BSD (3-clause)
-
 import os.path as op
 
 import numpy as np

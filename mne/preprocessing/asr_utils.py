@@ -1,4 +1,7 @@
-"""Covariance calculation."""
+# Authors:  Nicolas Barascud
+#           Dirk Gütlin <dirk.guetlin@gmail.com>
+#
+# License: BSD (3-clause)
 import numpy as np
 from scipy import signal
 from scipy.linalg import toeplitz
@@ -302,6 +305,44 @@ def yulewalk_filter(X, sfreq, zi=None, ab=None, axis=-1):
         out, zf = signal.lfilter(B, A, X, zi=zi, axis=axis)
 
     return out, zf
+
+
+def ma_filter(N, X, Zi):
+    """Run a moving average filter over the data.
+
+        Parameters
+    ----------
+    N : int
+        Length of the filter.
+    X : array, shape=(n_channels, n_samples)
+        The raw data.
+    Zi : array
+        The initial filter conditions.
+
+    Returns
+    -------
+    X : array
+        The filtered data.
+    Zf : array
+        The new fiter conditions.
+    """
+    if Zi is None:
+        Zi = np.zeros([len(X), N])
+
+    Y = np.concatenate([Zi, X], axis=1)
+    M = Y.shape[-1]
+    I = np.stack([np.arange(M-1-(N-1)),
+                  np.arange(N, M)]).astype(int)
+    S = (np.stack([-np.ones(M-N),
+                   np.ones(M-N)])/N)
+    X = np.cumsum(np.multiply(Y[:, np.reshape(I.T, -1)],
+                              np.reshape(S.T, [-1])), axis=-1)
+
+    X = X[:, 1::2]
+
+    Zf = np.concatenate([-(X[:,-1] * N - Y[:, -N])[:, np.newaxis],
+                         Y[:, -N+1:]], axis=-1)
+    return X, Zf
 
 
 def geometric_median(X, tol=1e-5, max_iter=500):

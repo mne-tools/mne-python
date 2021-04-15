@@ -1,4 +1,7 @@
-"""Artifact Subspace Reconstruction."""
+# Authors:  Dirk Gütlin <dirk.guetlin@gmail.com>
+#           Nicolas Barascud
+#
+# License: BSD (3-clause)
 import logging
 import warnings
 
@@ -6,12 +9,12 @@ import numpy as np
 from scipy import linalg
 
 from .asr_utils import (geometric_median, fit_eeg_distribution, yulewalk,
-                        yulewalk_filter, block_covariance)
+                        yulewalk_filter, ma_filter, block_covariance)
 
 class ASR():
     """Artifact Subspace Reconstruction.
 
-    Artifact subspace reconstruction (ASR) is an automatic, online,
+    Artifact subspace reconstruction (ASR) is an automated, online,
     component-based artifact removal method for removing transient or
     large-amplitude artifacts in multi-channel EEG recordings [1]_.
 
@@ -19,10 +22,6 @@ class ASR():
     ----------
     sfreq : float
         Sampling rate of the data, in Hz.
-
-    The following are optional parameters (the key parameter of the method is
-    the ``cutoff``):
-
     cutoff: float
         Standard deviation cutoff for rejection. X portions whose variance
         is larger than this threshold relative to the calibration data are
@@ -33,12 +32,12 @@ class ASR():
         Block size for calculating the robust data covariance and thresholds,
         in samples; allows to reduce the memory and time requirements of the
         robust estimators by this factor (down to Channels x Channels x Samples
-        x 16 / Blocksize bytes) (default=10).
+        x 16 / Blocksize bytes) (default=100).
     win_len : float
         Window length (s) that is used to check the data for artifact content.
         This is ideally as long as the expected time scale of the artifacts but
         not shorter than half a cycle of the high-pass filter that was used
-        (default=1).
+        (default=0.5).
     win_overlap : float
         Window overlap fraction. The fraction of two successive windows that
         overlaps. Higher overlap ensures that fewer artifact portions are going
@@ -49,34 +48,55 @@ class ASR():
     min_clean_fraction : float
         Minimum fraction of windows that need to be clean, used for threshold
         estimation (default=0.25).
+    ab : 2-tuple | None
+        Coefficients (A, B) of an IIR filter that is used to shape the
+        spectrum of the signal when calculating artifact statistics. The
+        output signal does not go through this filter. This is an optional way
+        to tune the sensitivity of the algorithm to each frequency component
+        of the signal. The default filter is less sensitive at alpha and beta
+        frequencies and more sensitive at delta (blinks) and gamma (muscle)
+        frequencies. Defaults to None.
+    max_bad_chans : float
+        The maximum number or fraction of bad channels that a retained window
+        may still contain (more than this and it is removed). Reasonable range
+        is 0.05 (very clean output) to 0.3 (very lax cleaning of only coarse
+        artifacts) (default=0.2).
     method : {'riemann', 'euclid'}
         Method to use. If riemann, use the riemannian-modified version of
-        ASR [2]_.
-    memory : float
-        Memory size (s), regulates the number of covariance matrices to store.
+        ASR [2]_. Currently, only euclidean ASR is supported. Defaults to
+        "euclid".
 
     Attributes
     ----------
-    ``state_`` : dict
-        Initial state of the ASR filter.
-    ``zi_``: array, shape=(n_channels, filter_order)
+    sfreq: array, shape=(n_channels, filter_order)
         Filter initial conditions.
-    ``ab_``: 2-tuple
+    cutoff: float
+        Standard deviation cutoff for rejection.
+    blocksize : int
+        Block size for calculating the robust data covariance and thresholds.
+    win_len : float
+        Window length (s) that is used to check the data for artifact content.
+    win_overlap : float
+        Window overlap fraction.
+    max_dropout_fraction : float
+        Maximum fraction of windows that can be subject to signal dropouts.
+    min_clean_fraction : float
+        Minimum fraction of windows.
+    max_bad_chans : float
+        The maximum fraction of bad channels.
+    method : {'riemann', 'euclid'}
+        Method to use.
+    A, B: arrays
         Coefficients of an IIR filter that is used to shape the spectrum of the
         signal when calculating artifact statistics. The output signal does not
         go through this filter. This is an optional way to tune the sensitivity
         of the algorithm to each frequency component of the signal. The default
         filter is less sensitive at alpha and beta frequencies and more
         sensitive at delta (blinks) and gamma (muscle) frequencies.
-    ``cov_`` : array, shape=(channels, channels)
-        Previous covariance matrix.
-    ``state_`` : dict
-        Previous ASR parameters (as derived by :func:`asr_calibrate`) for
-        successive calls to :meth:`transform`. Required fields are:
-
-        - ``M`` : Mixing matrix
-        - ``T`` : Threshold matrix
-        - ``R`` : Reconstruction matrix (array | None)
+    M : array, shape=(channels, channels)
+        The mixing matrix to fit ASR data.
+    T : array, shape=(channels, channels)
+        The mixing matrix to fit ASR data.
 
     References
     ----------
@@ -90,7 +110,8 @@ class ASR():
     """
     def __init__(self, sfreq=1000, cutoff=5, blocksize=100, win_len=0.5,
                  win_overlap=0.66, max_dropout_fraction=0.1,
-                 min_clean_fraction=0.25, ab=None, max_bad_chans=0.1):
+                 min_clean_fraction=0.25, ab=None, max_bad_chans=0.1,
+                 method="euclid"):
 
         self.sfreq = sfreq
         self.cutoff = cutoff
@@ -118,13 +139,16 @@ class ASR():
         """Reset state variables."""
         self.M = None
         self.T = None
+
+        # TODO: The following parameters are effectively not used. Still,
+        #  they can be set manually via asr.transform(return_states=True)
         self.R = None
         self.carry = None
         self.Zi = None
         self.cov = None
         self._fitted = False
 
-    def fit(self, X, y=None):
+    def fit(self, X, y=None, return_clean_window=False):
         """Calibration for the Artifact Subspace Reconstruction method.
 
         The input to this data is a multi-channel time series of calibration
@@ -151,6 +175,23 @@ class ASR():
             example at 0.5Hz or 1Hz using a Butterworth IIR filter), and be
             reasonably clean not less than 30 seconds (this method is
             typically used with 1 minute or more).
+        y : None
+            Redundant argument. Included for scikit-learn compatibility.
+            Changing this argument have no effect.
+        return_clean_window : Bool
+            If True, the method will return the variables `clean` (the cropped
+             dataset which was used to fit the ASR) and `sample_mask` (a
+             logical mask of which samples were included/excluded from fitting
+             the ASR). Defaults to False.
+
+        Returns
+        -------
+        clean : array, shape=(n_channels, n_samples)
+            The cropped version of the dataset which was used to calibrate
+            the ASR. This array is a result of the `clean_windows` function
+            and no ASR was applied to it.
+        sample_mask : boolean array, shape=(1, n_samples)
+            Logical mask of the samples which were used to train the ASR.
 
         """
         if X.ndim == 3:
@@ -180,7 +221,8 @@ class ASR():
 
         self._fitted = True
 
-        return clean, sample_mask
+        if return_clean_window:
+            return clean, sample_mask
 
     def transform(self, X, y=None, lookahead=0.25, stepsize=32, maxdims=0.66,
                   return_states=False):
@@ -190,10 +232,35 @@ class ASR():
         ----------
         X : array, shape=([n_trials, ]n_channels, n_samples)
             Raw data.
+        y : None
+            Redundant argument. Included for scikit-learn compatibility.
+            Changing this argument have no effect.
+        lookahead:
+            Amount of look-ahead that the algorithm should use. Since the
+            processing is causal, the output signal will be delayed by this
+            amount. This value is in seconds and should be between 0 (no
+            lookahead) and WindowLength/2 (optimal lookahead). The recommended
+            value is WindowLength/2. Default: 0.25
+        stepsize:
+            The steps in which the algorithm will be updated. The larger this is,
+            the faster the algorithm will be. The value must not be larger than
+            WindowLength * SamplingRate. The minimum value is 1 (update for every
+            sample) while a good value would be sfreq//3. Note that an update
+            is always performed also on the first and last sample of the data
+            chunk. Default: 32
+        max_dims : float, int
+            Maximum dimensionality of artifacts to remove. This parameter
+            denotes the maximum number of dimensions which can be removed from
+            each segment. If larger than 1, `int(max_dims)` will denote the
+            maximum number of dimensions removed from the data. If smaller than 1,
+            `max_dims` describes a fraction of total dimensions. Defaults to 0.66.
+        return_states : bool
+            If True, returns a dict including the updated states {"M":M, "T":T,
+            "R":R, "Zi":Zi, "cov":cov, "carry":carry}. Defaults to False.
 
         Returns
         -------
-        out : array, shape=([n_trials, ]n_channels, n_samples)
+        out : array, shape=(n_channels, n_samples)
             Filtered data.
 
         """
@@ -236,10 +303,6 @@ def asr_calibrate(X, sfreq, cutoff=5, blocksize=100, win_len=0.5,
         or more).
     sfreq : float
         Sampling rate of the data, in Hz.
-
-    The following are optional parameters (the key parameter of the method is
-    the ``cutoff``):
-
     cutoff: float
         Standard deviation cutoff for rejection. X portions whose variance
         is larger than this threshold relative to the calibration data are
@@ -267,7 +330,8 @@ def asr_calibrate(X, sfreq, cutoff=5, blocksize=100, win_len=0.5,
         Minimum fraction of windows that need to be clean, used for threshold
         estimation (default=0.25).
     method : {'euclid', 'riemann'}
-        Metric to compute the covariance matrix average.
+        Metric to compute the covariance matrix average. For now, only
+        euclidean ASR is supported.
 
     Returns
     -------
@@ -343,9 +407,9 @@ def asr_process(data, sfreq, M, T, windowlen=0.5, lookahead=0.25, stepsize=32,
     sfreq : float
         The sampling rate of the data.
     M : array, shape=(n_channels, n_channels)
-        Mixing matrix.
+        The Mixing matrix (as fitted with asr_calibrate).
     T : array, shape=(n_channels, n_channels)
-        Threshold matrix.
+        The Threshold matrix (as fitted with asr_calibrate).
     windowlen : float
         Window length that is used to check the data for artifact content.
         This is ideally as long as the expected time scale of the artifacts
@@ -371,11 +435,11 @@ def asr_process(data, sfreq, M, T, windowlen=0.5, lookahead=0.25, stepsize=32,
         maximum number of dimensions removed from the data. If smaller than 1,
         `max_dims` describes a fraction of total dimensions. Defaults to 0.66.
     ab : 2-tuple | None
-        Coefficients of an IIR filter that is used to shape the spectrum of
-        the signal when calculating artifact statistics. The output signal
-        does not go through this filter. This is an optional way to tune the
-        sensitivity of the algorithm to each frequency component of the
-        signal. The default filter is less sensitive at alpha and beta
+        Coefficients (A, B) of an IIR filter that is used to shape the
+        spectrum of the signal when calculating artifact statistics. The
+        output signal does not go through this filter. This is an optional way
+        to tune the sensitivity of the algorithm to each frequency component
+        of the signal. The default filter is less sensitive at alpha and beta
         frequencies and more sensitive at delta (blinks) and gamma (muscle)
         frequencies. Defaults to None.
     R : array, shape=(n_channels, n_channels)
@@ -383,20 +447,23 @@ def asr_process(data, sfreq, M, T, windowlen=0.5, lookahead=0.25, stepsize=32,
     Zi : array
         Previous filter conditions. Defaults to None.
     cov : array, shape=([n_trials, ]n_channels, n_channels) | None
-        Covariance. If None (default), then it is computed from ``X_filt``. If
-        a 3D array is provided, the average covariance is computed from all
-        the elements in it. Defaults to None.
+        Covariance. If None (default), then it is computed from ``X_filt``.
+        If a 3D array is provided, the average covariance is computed from
+        all the elements in it. Defaults to None.
     carry :
-        Initial portion of the data that will be added to the current data. If
-        None, data will be interpolated. Defaults to None.
+        Initial portion of the data that will be added to the current data.
+        If None, data will be interpolated. Defaults to None.
     return_states : bool
         If True, returns a dict including the updated states {"M":M, "T":T,
         "R":R, "Zi":Zi, "cov":cov, "carry":carry}. Defaults to False.
+    method : {'euclid', 'riemann'}
+        Metric to compute the covariance matrix average. For now, only
+        euclidean ASR is supported.
 
 
     Returns
     -------
-    clean : array, shape=([n_trials, ]n_channels, n_samples)
+    clean : array, shape=(n_channels, n_samples)
         Clean data.
     state : dict
         Output ASR parameters {"M":M, "T":T, "R":R, "Zi":Zi, "cov":cov,
@@ -496,44 +563,6 @@ def asr_process(data, sfreq, M, T, windowlen=0.5, lookahead=0.25, stepsize=32,
                               "cov":cov, "carry":carry}
     else:
         return data[:, :-P]
-
-
-def ma_filter(N, X, Zi):
-    """Run a moving average filter over the data.
-
-        Parameters
-    ----------
-    N : int
-        Length of the filter.
-    X : array, shape=(n_channels, n_samples)
-        The raw data.
-    Zi : array
-        The initial filter conditions.
-
-    Returns
-    -------
-    X : array
-        The filtered data.
-    Zf : array
-        The new fiter conditions.
-    """
-    if Zi is None:
-        Zi = np.zeros([len(X), N])
-
-    Y = np.concatenate([Zi, X], axis=1)
-    M = Y.shape[-1]
-    I = np.stack([np.arange(M-1-(N-1)),
-                  np.arange(N, M)]).astype(int)
-    S = (np.stack([-np.ones(M-N),
-                   np.ones(M-N)])/N)
-    X = np.cumsum(np.multiply(Y[:, np.reshape(I.T, -1)],
-                              np.reshape(S.T, [-1])), axis=-1)
-
-    X = X[:, 1::2]
-
-    Zf = np.concatenate([-(X[:,-1] * N - Y[:, -N])[:, np.newaxis],
-                         Y[:, -N+1:]], axis=-1)
-    return X, Zf
 
 
 def clean_windows(X, sfreq, max_bad_chans=0.2, zthresholds=[-3.5, 5],
