@@ -1432,8 +1432,9 @@ docdict["montage"] = """
 montage : None | str | DigMontage
     A montage containing channel positions. If str or DigMontage is
     specified, the channel info will be updated with the channel
-    positions. Default is None. See also the documentation of
-    :class:`mne.channels.DigMontage` for more information.
+    positions. Default is None. For valid :class:`str` values see documentation
+    of :func:`mne.channels.make_standard_montage`. See also the documentation
+    of :class:`mne.channels.DigMontage` for more information.
 """
 docdict["match_case"] = """
 match_case : bool
