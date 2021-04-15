@@ -7,9 +7,11 @@ import warnings
 
 import numpy as np
 from scipy import linalg
+from numpy.linalg import pinv
 
 from .asr_utils import (geometric_median, fit_eeg_distribution, yulewalk,
                         yulewalk_filter, ma_filter, block_covariance)
+
 
 class ASR():
     """Artifact Subspace Reconstruction.
@@ -108,6 +110,7 @@ class ASR():
        https://doi.org/10.3389/fnhum.2019.00141
 
     """
+
     def __init__(self, sfreq=1000, cutoff=5, blocksize=100, win_len=0.5,
                  win_overlap=0.66, max_dropout_fraction=0.1,
                  min_clean_fraction=0.25, ab=None, max_bad_chans=0.1,
@@ -122,14 +125,14 @@ class ASR():
         self.max_dropout_fraction = max_dropout_fraction
         self.min_clean_fraction = min_clean_fraction
         self.max_bad_chans = max_bad_chans
-        self.method = "euclid" # NOTE: riemann is not yet available
+        self.method = "euclid"  # NOTE: riemann is not yet available
         self._fitted = False
 
         # set default yule-walker filter
-        if ab == None:
+        if ab is None:
             yw_f = np.array([0, 2, 3, 13, 16, 40,
-                          np.minimum(80.0, (self.sfreq / 2.0) - 1.0),
-                          self.sfreq / 2.0]) * 2.0 / self.sfreq
+                             np.minimum(80.0, (self.sfreq / 2.0) - 1.0),
+                             self.sfreq / 2.0]) * 2.0 / self.sfreq
             yw_m = np.array([3, 0.75, 0.33, 0.33, 1, 1, 3, 3])
             self.B, self.A = yulewalk(8, yw_f, yw_m)
         else:
@@ -196,7 +199,6 @@ class ASR():
             Logical mask of the samples which were used to train the ASR.
 
         """
-
         # Find artifact-free windows first
         clean, sample_mask = clean_windows(
             X,
@@ -217,7 +219,7 @@ class ASR():
             win_overlap=self.win_overlap,
             max_dropout_fraction=self.max_dropout_fraction,
             min_clean_fraction=self.min_clean_fraction,
-            ab = (self.A, self.B),
+            ab=(self.A, self.B),
             method=self.method)
 
         self._fitted = True
@@ -244,21 +246,23 @@ class ASR():
             lookahead) and WindowLength/2 (optimal lookahead). The recommended
             value is WindowLength/2. Default: 0.25
         stepsize:
-            The steps in which the algorithm will be updated. The larger this is,
-            the faster the algorithm will be. The value must not be larger than
-            WindowLength * SamplingRate. The minimum value is 1 (update for every
-            sample) while a good value would be sfreq//3. Note that an update
-            is always performed also on the first and last sample of the data
-            chunk. Default: 32
+            The steps in which the algorithm will be updated. The larger this
+            is, the faster the algorithm will be. The value must not be larger
+            than WindowLength * SamplingRate. The minimum value is 1 (update
+            for every sample) while a good value would be sfreq//3. Note that
+            an update is always performed also on the first and last sample of
+            the data chunk. Default: 32
         max_dims : float, int
             Maximum dimensionality of artifacts to remove. This parameter
             denotes the maximum number of dimensions which can be removed from
             each segment. If larger than 1, `int(max_dims)` will denote the
-            maximum number of dimensions removed from the data. If smaller than 1,
-            `max_dims` describes a fraction of total dimensions. Defaults to 0.66.
+            maximum number of dimensions removed from the data. If smaller
+            than 1, `max_dims` describes a fraction of total dimensions.
+            Defaults to 0.66.
         return_states : bool
-            If True, returns a dict including the updated states {"M":M, "T":T,
-            "R":R, "Zi":Zi, "cov":cov, "carry":carry}. Defaults to False.
+            If True, returns a dict including the updated states {"M":M,
+            "T":T, "R":R, "Zi":Zi, "cov":cov, "carry":carry}. Defaults to
+            False.
 
         Returns
         -------
@@ -481,7 +485,7 @@ def asr_process(data, sfreq, M, T, windowlen=0.5, lookahead=0.25, stepsize=32,
 
     # calculate the the actual max dims based on the fraction parameter
     if maxdims < 1:
-        maxdims = np.round(len(data)*maxdims)
+        maxdims = np.round(len(data) * maxdims)
 
     # set initial filter conditions of none was passed
     if Zi is None:
@@ -492,17 +496,17 @@ def asr_process(data, sfreq, M, T, windowlen=0.5, lookahead=0.25, stepsize=32,
     C, S = data.shape
 
     # set the number of windows
-    N = np.round(windowlen*sfreq).astype(int)
-    P = np.round(lookahead*sfreq).astype(int)
+    N = np.round(windowlen * sfreq).astype(int)
+    P = np.round(lookahead * sfreq).astype(int)
 
     # interpolate a portion of the data if no buffer was given
-    if carry == None:
-        carry = np.tile(2 * data[:,0],
-                        (P, 1)).T - data[:, np.mod(np.arange(P,0,-1),S)]
+    if carry is None:
+        carry = np.tile(2 * data[:, 0],
+                        (P, 1)).T - data[:, np.mod(np.arange(P, 0, -1), S)]
     data = np.concatenate([carry, data], axis=-1)
 
-    #splits = np.ceil(C*C*S*8*8 + C*C*8*s/stepsize + C*S*8*2 + S*8*5)...
-    splits=3  # TODO: use this for parallelization MAKE IT A PARAM FIRST
+    # splits = np.ceil(C*C*S*8*8 + C*C*8*s/stepsize + C*S*8*2 + S*8*5)...
+    splits = 3  # TODO: use this for parallelization MAKE IT A PARAM FIRST
 
     # loop over smaller segments of the data (for memory purposes)
     last_trivial = False
@@ -510,7 +514,8 @@ def asr_process(data, sfreq, M, T, windowlen=0.5, lookahead=0.25, stepsize=32,
     for i in range(splits):
 
         # set the current range
-        i_range = np.arange(i*S//splits,  np.min([(i+1)*S//splits, S]),
+        i_range = np.arange(i * S // splits,
+                            np.min([(i + 1) * S // splits, S]),
                             dtype=int)
 
         # filter the current window with yule-walker
@@ -522,11 +527,13 @@ def asr_process(data, sfreq, M, T, windowlen=0.5, lookahead=0.25, stepsize=32,
             ma_filter(N,
                       np.reshape(np.multiply(np.reshape(X, (1, C, -1)),
                                              np.reshape(X, (C, 1, -1))),
-                                 (C*C, -1)), cov)
+                                 (C * C, -1)), cov)
 
         # set indices at which we update the signal
-        update_at = np.arange(stepsize, Xcov.shape[-1]+stepsize-2, stepsize)
-        update_at = np.minimum(update_at, Xcov.shape[-1])-1
+        update_at = np.arange(stepsize,
+                              Xcov.shape[-1] + stepsize - 2,
+                              stepsize)
+        update_at = np.minimum(update_at, Xcov.shape[-1]) - 1
 
         # set the previous reconstruction matrix if none was assigned
         if last_R is None:
@@ -537,21 +544,21 @@ def asr_process(data, sfreq, M, T, windowlen=0.5, lookahead=0.25, stepsize=32,
 
         # loop through the updating intervals
         last_n = 0
-        for j in range(len(update_at)-1):
+        for j in range(len(update_at) - 1):
 
             # get the eigenvectors/values.For method 'riemann', this should
             # be replaced with PGA/ nonlinear eigenvalues
             D, V = np.linalg.eigh(Xcov[:, :, j])
 
             # determine which components to keep
-            keep = np.logical_or(D < np.sum((T@V)**2, axis=0),
-                                 np.arange(C)+1 < (C-maxdims))
+            keep = np.logical_or(D < np.sum((T @ V)**2, axis=0),
+                                 np.arange(C) + 1 < (C - maxdims))
             trivial = np.all(keep)
 
             # set the reconstruction matrix (ie. reconstructing artifact
             # components using the mixing matrix)
             if not trivial:
-                inv = np.linalg.pinv(np.multiply(keep[:,np.newaxis], V.T @ M))
+                inv = pinv(np.multiply(keep[:, np.newaxis], V.T @ M))
                 R = np.real(M @ inv @ V.T)
             else:
                 R = np.eye(C)
@@ -569,7 +576,7 @@ def asr_process(data, sfreq, M, T, windowlen=0.5, lookahead=0.25, stepsize=32,
                 # use cosine blending to replace data with reconstructed data
                 tmp_data = data[:, subrange]
                 data[:, subrange] = np.multiply(blend, R @ tmp_data) + \
-                                    np.multiply(1 - blend, last_R @ tmp_data)
+                                    np.multiply(1 - blend, last_R @ tmp_data) # noqa
 
             # set the parameters for the next iteration
             last_n, last_R, last_trivial = n, R, trivial
@@ -579,8 +586,8 @@ def asr_process(data, sfreq, M, T, windowlen=0.5, lookahead=0.25, stepsize=32,
     carry = carry[:, -P:]
 
     if return_states:
-        return data[:, :-P], {"M":M, "T":T, "R":R, "Zi":Zi,
-                              "cov":cov, "carry":carry}
+        return data[:, :-P], {"M": M, "T": T, "R": R, "Zi": Zi,
+                              "cov": cov, "carry": carry}
     else:
         return data[:, :-P]
 
@@ -656,7 +663,6 @@ def clean_windows(X, sfreq, max_bad_chans=0.2, zthresholds=[-3.5, 5],
     N = int(win_len * sfreq)
     offsets = np.int_(np.round(np.arange(0, ns - N, (N * (1 - win_overlap)))))
     logging.debug('[ASR] Determining channel-wise rejection thresholds')
-
 
     wz = np.zeros((nc, len(offsets)))
     for ichan in range(nc):

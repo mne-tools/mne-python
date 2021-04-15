@@ -13,6 +13,7 @@ def fit_eeg_distribution(X, min_clean_fraction=0.25, max_dropout_fraction=0.1,
                          fit_quantiles=[0.022, 0.6], step_sizes=[0.01, 0.01],
                          shape_range=np.arange(1.7, 3.5, 0.15)):
     """Estimate the mean and SD of clean EEG from contaminated data.
+
     This function estimates the mean and standard deviation of clean EEG from
     a sample of amplitude values (that have preferably been computed over
     short windows) that may include a large fraction of contaminated samples.
@@ -33,6 +34,7 @@ def fit_eeg_distribution(X, min_clean_fraction=0.25, max_dropout_fraction=0.1,
     `max_dropout_fraction`, `fit_quantiles`, and `shape_range`. The fit is
     performed by a grid search that always finds a close-to-optimal solution
     if the above assumptions are fulfilled.
+
     Parameters
     ----------
     X : array, shape=(n_channels, n_samples)
@@ -56,6 +58,7 @@ def fit_eeg_distribution(X, min_clean_fraction=0.25, max_dropout_fraction=0.1,
         data quantiles) (default=[0.01, 0.01]).
     beta : array
         Range that the clean EEG distribution's shape parameter beta may take.
+
     Returns
     -------
     mu : array
@@ -68,6 +71,7 @@ def fit_eeg_distribution(X, min_clean_fraction=0.25, max_dropout_fraction=0.1,
     beta : float
         Estimated shape parameter of the generalized Gaussian clean EEG
         distribution.
+
     """
     # sort data so we can access quantiles directly
     X = np.sort(X)
@@ -157,6 +161,7 @@ def fit_eeg_distribution(X, min_clean_fraction=0.25, max_dropout_fraction=0.1,
 
 def yulewalk(order, F, M):
     """Recursive filter design using a least-squares method.
+
     [B,A] = YULEWALK(N,F,M) finds the N-th order recursive filter
     coefficients B and A such that the filter:
     B(z)   b(1) + b(2)z^-1 + .... + b(n)z^-(n-1)
@@ -176,6 +181,7 @@ def yulewalk(order, F, M):
     response of the filter. Finally, the numerator polynomial is obtained by a
     least squares fit to this impulse response. For a more detailed
     explanation of the algorithm see [1]_.
+
     Parameters
     ----------
     order : int
@@ -188,11 +194,13 @@ def yulewalk(order, F, M):
     M : array
         Magnitude breakpoints for the filter such that PLOT(F,M) would show a
         plot of the desired frequency response.
+
     References
     ----------
     .. [1] B. Friedlander and B. Porat, "The Modified Yule-Walker Method of
            ARMA Spectral Estimation," IEEE Transactions on Aerospace
            Electronic Systems, Vol. AES-20, No. 2, pp. 158-173, March 1984.
+
     Examples
     --------
     Design an 8th-order lowpass filter and overplot the desired
@@ -200,6 +208,7 @@ def yulewalk(order, F, M):
     >>> f = [0, .6, .6, 1]         # Frequency breakpoints
     >>> m = [1, 1, 0, 0]           # Magnitude breakpoints
     >>> [b, a] = yulewalk(8, f, m) # Filter design using least-squares method
+
     """
     F = np.asarray(F)
     M = np.asarray(M)
@@ -263,6 +272,7 @@ def yulewalk(order, F, M):
 
 def yulewalk_filter(X, sfreq, zi=None, ab=None, axis=-1):
     """Yulewalk filter.
+
     Parameters
     ----------
     X : array, shape = (n_channels, n_samples)
@@ -281,6 +291,7 @@ def yulewalk_filter(X, sfreq, zi=None, ab=None, axis=-1):
         frequencies.
     axis : int
         Axis to filter on (default=-1, corresponding to samples).
+
     Returns
     -------
     out : array
@@ -310,7 +321,7 @@ def yulewalk_filter(X, sfreq, zi=None, ab=None, axis=-1):
 def ma_filter(N, X, Zi):
     """Run a moving average filter over the data.
 
-        Parameters
+    Parameters
     ----------
     N : int
         Length of the filter.
@@ -331,24 +342,26 @@ def ma_filter(N, X, Zi):
 
     Y = np.concatenate([Zi, X], axis=1)
     M = Y.shape[-1]
-    I = np.stack([np.arange(M-1-(N-1)),
-                  np.arange(N, M)]).astype(int)
-    S = (np.stack([-np.ones(M-N),
-                   np.ones(M-N)])/N)
-    X = np.cumsum(np.multiply(Y[:, np.reshape(I.T, -1)],
+    I_ = np.stack([np.arange(M - N),
+                   np.arange(N, M)]).astype(int)
+    S = (np.stack([-np.ones(M - N),
+                   np.ones(M - N)]) / N)
+    X = np.cumsum(np.multiply(Y[:, np.reshape(I_.T, -1)],
                               np.reshape(S.T, [-1])), axis=-1)
 
     X = X[:, 1::2]
 
-    Zf = np.concatenate([-(X[:,-1] * N - Y[:, -N])[:, np.newaxis],
-                         Y[:, -N+1:]], axis=-1)
+    Zf = np.concatenate([-(X[:, -1] * N - Y[:, -N])[:, np.newaxis],
+                         Y[:, -N + 1:]], axis=-1)
     return X, Zf
 
 
 def geometric_median(X, tol=1e-5, max_iter=500):
     """Geometric median.
+
     This code is adapted from [2]_ using the Vardi and Zhang algorithm
     described in [1]_.
+
     Parameters
     ----------
     X : array, shape=(n_observations, n_variables)
@@ -357,16 +370,19 @@ def geometric_median(X, tol=1e-5, max_iter=500):
         Tolerance (default=1.e-5)
     max_iter : int
         Max number of iterations (default=500):
+
     Returns
     -------
     y1 : array, shape=(n_variables,)
         Geometric median over X.
+
     References
     ----------
     .. [1] Vardi, Y., & Zhang, C. H. (2000). The multivariate L1-median and
        associated data depth. Proceedings of the National Academy of Sciences,
        97(4), 1423-1426. https://doi.org/10.1073/pnas.97.4.1423
     .. [2] https://stackoverflow.com/questions/30299267/
+
     """
     y = np.mean(X, 0)  # initial value
 
@@ -403,10 +419,22 @@ def geometric_median(X, tol=1e-5, max_iter=500):
 
 def polystab(a):
     """Polynomial stabilization.
+
     POLYSTAB(A), where A is a vector of polynomial coefficients,
     stabilizes the polynomial with respect to the unit circle;
     roots whose magnitudes are greater than one are reflected
     inside the unit circle.
+
+    Parameters
+    ----------
+    a : array
+        The vector of polynomial coefficients.
+
+    Returns
+    -------
+    b : array
+        The stabilized polynomial.
+
     Examples
     --------
     Convert a linear-phase filter into a minimum-phase filter with the same
@@ -415,6 +443,7 @@ def polystab(a):
     >>> flag_linphase = islinphase(h)   # Determines if filter is linear phase
     >>> hmin = polystab(h) * norm(h)/norm(polystab(h));
     >>> flag_minphase = isminphase(hmin)# Determines if filter is min phase
+
     """
     v = np.roots(a)
     i = np.where(v != 0)
@@ -431,9 +460,7 @@ def polystab(a):
 
 
 def numf(h, a, nb):
-    """Find numerator B given impulse-response h of B/A and denominator A.
-    NB is the numerator order.  This function is used by YULEWALK.
-    """
+    """Get numerator B given impulse-response h of B/A and denominator A."""
     nh = np.max(h.size)
     xn = np.concatenate((1, np.zeros((1, nh - 1))), axis=None)
     impr = signal.lfilter(np.array([1.0]), a, xn)
@@ -446,11 +473,7 @@ def numf(h, a, nb):
 
 
 def denf(R, na):
-    """Compute denominator from covariances.
-    A = DENF(R,NA) computes order NA denominator A from covariances
-    R(0)...R(nr) using the Modified Yule-Walker method. This function is used
-    by YULEWALK.
-    """
+    """Compute order NA denominator A from covariances R(0)...R(nr)."""
     nr = np.max(np.size(R))
     Rm = toeplitz(R[na:nr - 1], R[na:0:-1])
     Rhs = - R[na + 1:nr]
@@ -461,22 +484,24 @@ def denf(R, na):
 
 def block_covariance(data, window=128):
     """Compute blockwise covariance.
+
     Parameters
     ----------
     data : array, shape=(n_chans, n_samples)
         Input data (must be 2D)
     window : int
         Window size.
+
     Returns
     -------
     cov : array, shape=(n_blocks, n_chans, n_chans)
         Block covariance.
     """
     n_ch, n_times = data.shape
-    U = np.zeros([len(np.arange(0, n_times-1, window)), n_ch**2])
+    U = np.zeros([len(np.arange(0, n_times - 1, window)), n_ch**2])
     data = data.T
     for k in range(0, window):
-        idx_range = np.minimum(n_times-1,
+        idx_range = np.minimum(n_times - 1,
                                np.arange(k, n_times + k - 2, window))
         U = U + np.reshape(data[idx_range].reshape([-1, 1, n_ch]) *
                            data[idx_range].reshape(-1, n_ch, 1), U.shape)

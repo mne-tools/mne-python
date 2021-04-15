@@ -16,6 +16,7 @@ data_path = op.join(testing.data_path(download=False), 'EEGLAB')
 eeg_fname = op.join(data_path, 'test_raw.set')
 valid_data_path = "./data/matlab_asr_data.mat"
 
+
 def test_asr():
     """Test whether ASR correlates sufficiently with original version."""
     valid_data = loadmat(valid_data_path)["data"][0][0][0]
@@ -32,5 +33,6 @@ def test_asr():
     # check if the data is highly equal to the MATLAB data
     corrs = [np.corrcoef(i, j)[0, 1] for (i, j) in zip(cleaned, valid_data)]
     assert np.mean(corrs) > 0.94
+
 
 run_tests_if_main()
