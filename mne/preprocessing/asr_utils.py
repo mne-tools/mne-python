@@ -1,6 +1,5 @@
 """Covariance calculation."""
 import numpy as np
-from scipy import linalg
 from scipy import signal
 from scipy.linalg import toeplitz
 from scipy.spatial.distance import cdist, euclidean
@@ -8,29 +7,28 @@ from scipy.special import gamma, gammaincinv
 
 
 def fit_eeg_distribution(X, min_clean_fraction=0.25, max_dropout_fraction=0.1,
-                         fit_quantiles=[0.022, 0.6],
-                         step_sizes=[0.01, 0.01],
+                         fit_quantiles=[0.022, 0.6], step_sizes=[0.01, 0.01],
                          shape_range=np.arange(1.7, 3.5, 0.15)):
     """Estimate the mean and SD of clean EEG from contaminated data.
-    This function estimates the mean and standard deviation of clean EEG from a
-    sample of amplitude values (that have preferably been computed over short
-    windows) that may include a large fraction of contaminated samples. The
-    clean EEG is assumed to represent a generalized Gaussian component in a
-    mixture with near-arbitrary artifact components. By default, at least 25%
-    (``min_clean_fraction``) of the data must be clean EEG, and the rest can be
-    contaminated. No more than 10% (``max_dropout_fraction``) of the data is
-    allowed to come from contaminations that cause lower-than-EEG amplitudes
-    (e.g., sensor unplugged). There are no restrictions on artifacts causing
-    larger-than-EEG amplitudes, i.e., virtually anything is handled (with the
-    exception of a very unlikely type of distribution that combines with the
-    clean EEG samples into a larger symmetric generalized Gaussian peak and
-    thereby "fools" the estimator). The default parameters should work for a
-    wide range of applications but may be adapted to accommodate special
-    circumstances.
+    This function estimates the mean and standard deviation of clean EEG from
+    a sample of amplitude values (that have preferably been computed over
+    short windows) that may include a large fraction of contaminated samples.
+    The clean EEG is assumed to represent a generalized Gaussian component in
+    a mixture with near-arbitrary artifact components. By default, at least
+    25% (`min_clean_fraction`) of the data must be clean EEG, and the rest
+    can be contaminated. No more than 10% (`max_dropout_fraction`) of the
+    data is allowed to come from contaminations that cause lower-than-EEG
+    amplitudes (e.g., sensor unplugged). There are no restrictions on
+    artifacts causing larger-than-EEG amplitudes, i.e., virtually anything is
+    handled (with the exception of a very unlikely type of distribution that
+    combines with the clean EEG samples into a larger symmetric generalized
+    Gaussian peak and thereby "fools" the estimator). The default parameters
+    should work for a wide range of applications but may be adapted to
+    accommodate special circumstances.
     The method works by fitting a truncated generalized Gaussian whose
-    parameters are constrained by ``min_clean_fraction``,
-    ``max_dropout_fraction``, ``fit_quantiles``, and ``shape_range``. The fit
-    is performed by a grid search that always finds a close-to-optimal solution
+    parameters are constrained by `min_clean_fraction`,
+    `max_dropout_fraction`, `fit_quantiles`, and `shape_range`. The fit is
+    performed by a grid search that always finds a close-to-optimal solution
     if the above assumptions are fulfilled.
     Parameters
     ----------
@@ -50,9 +48,9 @@ def fit_eeg_distribution(X, min_clean_fraction=0.25, max_dropout_fraction=0.1,
         0.6]).
     step_sizes : 2-tuple
         Step size of the grid search; the first value is the stepping of the
-        lower bound (which essentially steps over any dropout samples), and the
-        second value is the stepping over possible scales (i.e., clean-data
-        quantiles) (default=[0.01, 0.01]).
+        lower bound (which essentially steps over any dropout samples), and
+        the second value is the stepping over possible scales (i.e., clean-
+        data quantiles) (default=[0.01, 0.01]).
     beta : array
         Range that the clean EEG distribution's shape parameter beta may take.
     Returns
@@ -104,7 +102,6 @@ def fit_eeg_distribution(X, min_clean_fraction=0.25, max_dropout_fraction=0.1,
     # subtract baseline value for each interval
     X1 = newX[0, :]
     newX = newX - X1
-    opt_val = np.inf
 
     opt_val = np.inf
     opt_lu = np.inf
@@ -174,8 +171,8 @@ def yulewalk(order, F, M):
     corresponding to the numerator and denominator polynomials is evaluated.
     Then a spectral factorization technique is used to obtain the impulse
     response of the filter. Finally, the numerator polynomial is obtained by a
-    least squares fit to this impulse response. For a more detailed explanation
-    of the algorithm see [1]_.
+    least squares fit to this impulse response. For a more detailed
+    explanation of the algorithm see [1]_.
     Parameters
     ----------
     order : int
@@ -191,15 +188,15 @@ def yulewalk(order, F, M):
     References
     ----------
     .. [1] B. Friedlander and B. Porat, "The Modified Yule-Walker Method of
-           ARMA Spectral Estimation," IEEE Transactions on Aerospace Electronic
-           Systems, Vol. AES-20, No. 2, pp. 158-173, March 1984.
+           ARMA Spectral Estimation," IEEE Transactions on Aerospace
+           Electronic Systems, Vol. AES-20, No. 2, pp. 158-173, March 1984.
     Examples
     --------
     Design an 8th-order lowpass filter and overplot the desired
     frequency response with the actual frequency response:
     >>> f = [0, .6, .6, 1]         # Frequency breakpoints
     >>> m = [1, 1, 0, 0]           # Magnitude breakpoints
-    >>> [b, a] = yulewalk(8, f, m) # Filter design using a least-squares method
+    >>> [b, a] = yulewalk(8, f, m) # Filter design using least-squares method
     """
     F = np.asarray(F)
     M = np.asarray(M)
@@ -254,7 +251,7 @@ def yulewalk(order, F, M):
     _, Ss = 2 * np.real(signal.freqz(Qh, A, worN=n, whole=True))
 
     hh = np.fft.ifft(
-        np.exp(np.fft.fft(Rwindow * np.fft.ifft(np.log(Ss, dtype=np.complex))))
+        np.exp(np.fft.fft(Rwindow * np.fft.ifft(np.log(Ss, dtype=np.complex))))  # noqa
     )
     B = np.real(numf(hh[0:nr], A, nb))
 
@@ -272,12 +269,13 @@ def yulewalk_filter(X, sfreq, zi=None, ab=None, axis=-1):
     zi : array, shape=(n_channels, filter_order)
         Initial conditions.
     a, b : 2-tuple | None
-        Coefficients of an IIR filter that is used to shape the spectrum of the
-        signal when calculating artifact statistics. The output signal does not
-        go through this filter. This is an optional way to tune the sensitivity
-        of the algorithm to each frequency component of the signal. The default
-        filter is less sensitive at alpha and beta frequencies and more
-        sensitive at delta (blinks) and gamma (muscle) frequencies.
+        Coefficients of an IIR filter that is used to shape the spectrum of
+        the signal when calculating artifact statistics. The output signal
+        does not go through this filter. This is an optional way to tune the
+        sensitivity of the algorithm to each frequency component of the
+        signal. The default filter is less sensitive at alpha and beta
+        frequencies and more sensitive at delta (blinks) and gamma (muscle)
+        frequencies.
     axis : int
         Axis to filter on (default=-1, corresponding to samples).
     Returns
@@ -287,7 +285,7 @@ def yulewalk_filter(X, sfreq, zi=None, ab=None, axis=-1):
     zf :  array, shape=(n_channels, filter_order)
         Output filter state.
     """
-    [C, S] = X.shape
+    # Set default IIR filter coefficients
     if ab is None:
         F = np.array([0, 2, 3, 13, 16, 40, np.minimum(
             80.0, (sfreq / 2.0) - 1.0), sfreq / 2.0]) * 2.0 / sfreq
@@ -375,7 +373,7 @@ def polystab(a):
     >>> h = fir1(25,0.4);               # Window-based FIR filter design
     >>> flag_linphase = islinphase(h)   # Determines if filter is linear phase
     >>> hmin = polystab(h) * norm(h)/norm(polystab(h));
-    >>> flag_minphase = isminphase(hmin)# Determines if filter is minimum phase
+    >>> flag_minphase = isminphase(hmin)# Determines if filter is min phase
     """
     v = np.roots(a)
     i = np.where(v != 0)
@@ -420,11 +418,7 @@ def denf(R, na):
     return A
 
 
-
-########################## general util functions
-
-def block_covariance(data, window=128, overlap=0.5, padding=True,
-                     estimator='cov'):
+def block_covariance(data, window=128):
     """Compute blockwise covariance.
     Parameters
     ----------
@@ -432,157 +426,18 @@ def block_covariance(data, window=128, overlap=0.5, padding=True,
         Input data (must be 2D)
     window : int
         Window size.
-    overlap : float
-        Overlap between successive windows.
     Returns
     -------
     cov : array, shape=(n_blocks, n_chans, n_chans)
         Block covariance.
     """
-    from pyriemann.utils.covariance import _check_est
-
-    """
-    assert 0 <= overlap < 1, "overlap must be < 1"
-    est = _check_est(estimator)
-    cov = []
-    n_chans, n_samples = data.shape
-    if padding:  # pad data with zeros
-        pad = np.zeros((n_chans, int(window / 2)))
-        data = np.concatenate((pad, data, pad), axis=1)
-
-    jump = int(window * overlap)
-    ix = 0
-    while (ix + window < n_samples):
-        cov.append(est(data[:, ix:ix + window]))
-        ix = ix + jump
-    """
-    #window = 256
     n_ch, n_times = data.shape
     U = np.zeros([len(np.arange(0, n_times-1, window)), n_ch**2])
     data = data.T
     for k in range(0, window):
-        idx_range = np.minimum(n_times-1, np.arange(k, n_times + k - 2, window))
-        #idx_range = n_times-1 if n_times-1 < np.max(idx_range) else idx_range
-        U = U + np.reshape(data[idx_range].reshape([-1, 1, n_ch]) * data[idx_range].reshape(-1, n_ch, 1), U.shape)
+        idx_range = np.minimum(n_times-1,
+                               np.arange(k, n_times + k - 2, window))
+        U = U + np.reshape(data[idx_range].reshape([-1, 1, n_ch]) *
+                           data[idx_range].reshape(-1, n_ch, 1), U.shape)
 
-    #"""
-    cov = U
-
-    return np.array(cov)
-
-# TODO: try to remove: mrdivide, mldivide, nonlinear_eigenspace
-
-def mrdivide(A, B):
-    r"""Matrix right-division (A/B).
-    Solves the linear system XB = A for X. We can write equivalently:
-    1) XB = A
-    2) (XB).T = A.T
-    3) B.T X.T = A.T
-    Therefore A/B amounts to solving B.T X.T = A.T for X.T:
-    >> mldivide(B.T, A.T).T
-    References
-    ----------
-    https://docs.scipy.org/doc/numpy/user/numpy-for-matlab-users.html
-    """
-    return mldivide(B.T, A.T).T
-
-
-def mldivide(A, B):
-    r"""Matrix left-division (A\B).
-    Solves the AX = B for X. In other words, X minimizes norm(A*X - B), the
-    length of the vector AX - B:
-    - linalg.solve(A, B) if A is square
-    - linalg.lstsq(A, B) otherwise
-    References
-    ----------
-    https://docs.scipy.org/doc/numpy/user/numpy-for-matlab-users.html
-    """
-    try:
-        # Note: we must use overwrite_a=False in order to be able to
-        # use the fall-back solution below in case a LinAlgError is raised
-        return linalg.solve(A, B, sym_pos=True, overwrite_a=False)
-    except linalg.LinAlgError:
-        # Singular matrix in solving dual problem. Using least-squares
-        # solution instead.
-        return linalg.lstsq(A, B, lapack_driver='gelsy')[0]
-    except linalg.LinAlgError:
-        print('Solution not stable. Model not updated!')
-        return None
-
-
-def nonlinear_eigenspace(L, k, alpha=1):
-    """Nonlinear eigenvalue problem: total energy minimization.
-    This example is motivated in [1]_ and was adapted from the manopt toolbox
-    in Matlab.
-    TODO : check this
-    TODO: check equivalence with matlab
-    Parameters
-    ----------
-    L : array, shape=(n_channels, n_channels)
-        Discrete Laplacian operator: the covariance matrix.
-    alpha : float
-        Given constant for optimization problem.
-    k : int
-        Determines how many eigenvalues are returned.
-    Returns
-    -------
-    Xsol : array, shape=(n_channels, n_channels)
-        Eigenvectors.
-    S0 : array
-        Eigenvalues.
-    References
-    ----------
-    .. [1] "A Riemannian Newton Algorithm for Nonlinear Eigenvalue Problems",
-       Zhi Zhao, Zheng-Jian Bai, and Xiao-Qing Jin, SIAM Journal on Matrix
-       Analysis and Applications, 36(2), 752-774, 2015.
-    """
-    from pymanopt import Problem
-    from pymanopt.manifolds import Grassmann
-    from pymanopt.solvers import TrustRegions
-
-    n = L.shape[0]
-    assert L.shape[1] == n, 'L must be square.'
-
-    # Grassmann manifold description
-    manifold = Grassmann(n, k)
-    #manifold._dimension = 1  # hack # TODO: not sure why we should need this hack
-
-    # Cost function evaluation
-    def cost(X):
-        rhoX = np.sum(X ** 2, 1, keepdims=True)  # diag(X*X')
-        val = 0.5 * np.trace(X.T @ (L * X)) + (alpha / 4) * (rhoX.T @ mldivide(L, rhoX))
-        return val
-
-    # Euclidean gradient evaluation
-    def egrad(X):
-        rhoX = np.sum(X ** 2, 1, keepdims=True)  # diag(X*X')
-        g = L @ X + alpha * np.diagflat(mldivide(L, rhoX)) @ X
-        return g
-
-    # Euclidean Hessian evaluation
-    # Note: Manopt automatically converts it to the Riemannian counterpart.
-    def ehess(X, U):
-        rhoX = np.sum(X ** 2, 1, keepdims=True)  # np.diag(X * X')
-        rhoXdot = 2 * np.sum(X.dot(U), 1)
-        h = L @ U + alpha * np.diagflat(mldivide(L, rhoXdot)) @ X + \
-            alpha * np.diagflat(mldivide(L, rhoX)) @ U
-        return h
-
-    # Initialization as suggested in above referenced paper.
-    # randomly generate starting point for svd
-    x = np.random.randn(n, k)
-    [U, S, V] = linalg.svd(x, full_matrices=False)
-    x = U.dot(V.T)
-    S0, U0 = linalg.eig(
-        L + alpha * np.diagflat(mldivide(L, np.sum(x**2, 1)))
-    )
-
-    # Call manoptsolve to automatically call an appropriate solver.
-    # Note: it calls the trust regions solver as we have all the required
-    # ingredients, namely, gradient and Hessian, information.
-    problem = Problem(manifold=manifold, cost=cost, egrad=egrad, ehess=ehess,
-                      verbosity=0)
-
-    Xsol = TrustRegions().solve(problem, U0)
-
-    return S0, Xsol
+    return np.array(U)
