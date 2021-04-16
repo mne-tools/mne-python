@@ -1813,7 +1813,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             this_epochs.event_id = self.event_id
             _save_split(this_epochs, fname, part_idx, n_parts, fmt)
 
-    def export(self, fname, fmt='auto'):
+    @verbose
+    def export(self, fname, fmt='auto', verbose=None):
         """Export Epochs to external formats.
 
         Supported formats: EEGLAB (set, uses :mod:`eeglabio`)
@@ -1821,8 +1822,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         %(export_warning)s
 
         %(export_params_base)s
-        Valid options are ``'auto'`` for auto inferred and
-        ``'set'`` for EEGLAB.
+            Valid options are ``'auto'`` for auto inferred and
+            ``'set'`` for EEGLAB.
+        %(verbose)s
 
         Notes
         -----

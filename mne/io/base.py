@@ -1453,7 +1453,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                    start, stop, buffer_size, projector, drop_small_buffer,
                    split_size, split_naming, 0, None, overwrite)
 
-    def export(self, fname, fmt='auto'):
+    @verbose
+    def export(self, fname, fmt='auto', verbose=None):
         """Export Raw to external formats.
 
         Supported formats: EEGLAB (set)
@@ -1461,8 +1462,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         %(export_warning)s
 
         %(export_params_base)s
-        Valid options are ``'auto'`` for auto inferred and
-        ``'set'`` for EEGLAB.
+            Valid options are ``'auto'`` for auto inferred and
+            ``'set'`` for EEGLAB.
+        %(verbose)s
 
         Notes
         -----
