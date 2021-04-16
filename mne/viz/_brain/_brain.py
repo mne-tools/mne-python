@@ -1298,19 +1298,20 @@ class Brain(object):
         # First, we remove the default bindings:
         self._clear_callbacks()
         # Then, we add our own:
-        self._renderer.figure.viewer.add_key_event("i", self.toggle_interface)
-        self._renderer.figure.viewer.add_key_event("s", self.apply_auto_scaling)
-        self._renderer.figure.viewer.add_key_event("r", self.restore_user_scaling)
-        self._renderer.figure.viewer.add_key_event("c", self.clear_glyphs)
-        self._renderer.figure.viewer.add_key_event("n", partial(self._shift_time,
-                                   op=lambda x, y: x + y))
-        self._renderer.figure.viewer.add_key_event("b", partial(self._shift_time,
-                                   op=lambda x, y: x - y))
+        viewer = self._renderer.figure.viewer
+        viewer.add_key_event("i", self.toggle_interface)
+        viewer.add_key_event("s", self.apply_auto_scaling)
+        viewer.add_key_event("r", self.restore_user_scaling)
+        viewer.add_key_event("c", self.clear_glyphs)
+        viewer.add_key_event("n", partial(self._shift_time,
+                             op=lambda x, y: x + y))
+        viewer.add_key_event("b", partial(self._shift_time,
+                             op=lambda x, y: x - y))
         for key, func, sign in (("Left", self._rotate_azimuth, 1),
                                 ("Right", self._rotate_azimuth, -1),
                                 ("Up", self._rotate_elevation, 1),
                                 ("Down", self._rotate_elevation, -1)):
-            self._renderer.figure.viewer.add_key_event(key, partial(func, sign * _ARROW_MOVE))
+            viewer.add_key_event(key, partial(func, sign * _ARROW_MOVE))
 
     def _configure_menu(self):
         self._renderer._menu_initialize()
