@@ -725,8 +725,10 @@ def test_plot_sensors_connectivity(renderer):
     fig = plot_sensors_connectivity(info=info, con=con, picks=picks)
     if renderer._get_3d_backend() == 'pyvista':
         try:
+            # pyvista<0.30.0
             title = fig.plotter.scalar_bar.GetTitle()
         except AttributeError:
+            # pyvista>=0.30.0
             title = list(fig.plotter.scalar_bars.values())[0].GetTitle()
     else:
         assert renderer._get_3d_backend() == 'mayavi'
