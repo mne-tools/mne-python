@@ -784,3 +784,22 @@ def _ensure_events(events):
         raise ValueError(
             f'events must be of shape (N, 3), got {events.shape}')
     return events
+
+
+def _check_export_fmt(fmt, fname, supported_formats):
+    """get export format from filename if auto, raises error if no file
+    extension found, then checks format against supported formats, raises error
+    if not supported."""
+    fmt = fmt.lower()
+    if fmt == "auto":
+        fmt = op.splitext(fname)[1]
+        if fmt:
+            fmt = fmt[1:].lower()
+        else:
+            raise ValueError(f"Couldn't infer format from filename {fname}"
+                             " (no extension found)")
+
+    if fmt not in supported_formats:
+        raise ValueError(f"Format '{fmt}' is not supported. "
+                         f"Supported formats are {supported_formats[1:-1]}.")
+    return fmt

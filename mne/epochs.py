@@ -20,6 +20,8 @@ import os.path as op
 
 import numpy as np
 
+from .io.utils import _get_cart_ch_coords_from_inst
+from .utils.check import _check_export_fmt
 from .io.write import (start_file, start_block, end_file, end_block,
                        write_int, write_float, write_float_matrix,
                        write_double_matrix, write_complex_float_matrix,
@@ -1811,43 +1813,27 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             this_epochs.event_id = self.event_id
             _save_split(this_epochs, fname, part_idx, n_parts, fmt)
 
-    def export(self, fname, fmt="auto"):
+    def export(self, fname, fmt='auto'):
         """Export Epochs to external formats.
 
         Supported formats: EEGLAB (set, uses :mod:`eeglabio`)
 
-        .. warning::
-            Since we are exporting to external formats, there's no
-            guarantee that all the info will be preserved in the external
-            format. To save in native MNE format (fif) without info loss,
-            use :func:`save` instead.
+        %(export_warning)s
 
-        Parameters
-        ----------
-        fname : str
-            Name of the export file.
-        fmt : str
-            Format of the export. Defaults to auto, which will infer
-            format from fname's extension.
+        %(export_params_base)s
+        Valid options are ``'auto'`` for auto inferred and
+        ``'set'`` for EEGLAB.
 
         Notes
         -----
-        For EEGLAB format, channel locations are expanded to full EEGLAB
-        format. For more details see :func:`eeglabio.utils.cart_to_eeglab`.
+        %(export_eeglab_note)s
         """
-        if fmt == "auto":
-            fmt = op.splitext(fname)[1]
-            if fmt:
-                fmt = fmt[1:]
-            else:
-                raise ValueError("Couldn't infer format from filename "
-                                 "(no extension found)")
+        supported_export_formats = ['set']
+        fmt = _check_export_fmt(fmt, fname, supported_export_formats)
 
-        fmt = fmt.lower()
-
-        if fmt == "set":
+        if fmt == 'set':
             _check_eeglabio_installed()
-            from eeglabio.epochs import export_set
+            import eeglabio.epochs
             # load data first
             self.load_data()
 
@@ -1855,24 +1841,15 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             drop_chs = ['epoc', 'STI 014']
             pick_chs = [ch for ch in self.ch_names if ch not in drop_chs]
 
-            chs = self.info["chs"]
-            cart_coords = np.array([d['loc'][:3] for d in chs
-                                    if d['ch_name'] not in drop_chs])
-            if cart_coords.any():  # has coordinates
-                # (-y x z) to (x y z)
-                cart_coords[:, 0] = -cart_coords[:, 0]  # -y to y
-                # swap x (1) and y (0)
-                cart_coords[:, [0, 1]] = cart_coords[:, [1, 0]]
-            else:
-                cart_coords = None
+            cart_coords = _get_cart_ch_coords_from_inst(self.info['chs'],
+                                                        drop_chs)
 
-            export_set(fname, self.get_data(picks=pick_chs),
-                       self.info['sfreq'], self.events, self.tmin, self.tmax,
-                       pick_chs, self.event_id, cart_coords)
-        elif fmt == "edf":
-            raise NotImplementedError("Export to EDF format not implemented.")
-        else:
-            raise ValueError("Format not supported (%s)" % fmt)
+            eeglabio.epochs.export_set(fname, self.get_data(picks=pick_chs),
+                                       self.info['sfreq'], self.events,
+                                       self.tmin, self.tmax, pick_chs,
+                                       self.event_id, cart_coords)
+        elif fmt == 'edf':
+            raise NotImplementedError('Export to EDF format not implemented.')
 
     def equalize_event_counts(self, event_ids=None, method='mintime'):
         """Equalize the number of trials in each condition.

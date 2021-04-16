@@ -20,7 +20,9 @@ from collections import defaultdict
 import numpy as np
 
 from .constants import FIFF
-from .utils import _construct_bids_filename, _check_orig_units
+from .utils import _construct_bids_filename, _check_orig_units, \
+    _get_cart_ch_coords_from_inst
+from ..utils.check import _check_export_fmt
 from .pick import (pick_types, pick_channels, pick_info, _picks_to_idx,
                    channel_type)
 from .meas_info import write_meas_info
@@ -1451,43 +1453,27 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                    start, stop, buffer_size, projector, drop_small_buffer,
                    split_size, split_naming, 0, None, overwrite)
 
-    def export(self, fname, fmt="auto"):
+    def export(self, fname, fmt='auto'):
         """Export Raw to external formats.
 
         Supported formats: EEGLAB (set)
 
-        .. warning::
-            Since we are exporting to external formats, there's no
-            guarantee that all the info will be preserved in the external
-            format. To save in native MNE format (fif) without info loss,
-            use :func:`save` instead.
+        %(export_warning)s
 
-        Parameters
-        ----------
-        fname : str
-            Name of the export file.
-        fmt : str
-            Format of the export. Defaults to auto, which will infer
-            format from fname's extension.
+        %(export_params_base)s
+        Valid options are ``'auto'`` for auto inferred and
+        ``'set'`` for EEGLAB.
 
         Notes
         -----
-        For EEGLAB format, channel locations are expanded to full EEGLAB
-        format. For more details see :func:`eeglabio.utils.cart_to_eeglab`.
+        %(export_eeglab_note)s
         """
-        if fmt == "auto":
-            fmt = op.splitext(fname)[1]
-            if fmt:
-                fmt = fmt[1:]
-            else:
-                raise ValueError("Couldn't infer format from filename "
-                                 "(no extension found)")
+        supported_export_formats = ['set']
+        fmt = _check_export_fmt(fmt, fname, supported_export_formats)
 
-        fmt = fmt.lower()
-
-        if fmt == "set":
+        if fmt == 'set':
             _check_eeglabio_installed()
-            from eeglabio.raw import export_set
+            import eeglabio.raw
             # load data first
             self.load_data()
 
@@ -1497,25 +1483,17 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                 drop_chs.append('STI 014')
             pick_chs = [ch for ch in self.ch_names if ch not in drop_chs]
 
-            chs = self.info["chs"]
-            cart_coords = np.array([d['loc'][:3] for d in chs
-                                    if d['ch_name'] not in drop_chs])
-            if cart_coords.any():  # has coordinates
-                # (-y x z) to (x y z)
-                cart_coords[:, 0] = -cart_coords[:, 0]  # -y to y
-                # swap x (1) and y (0)
-                cart_coords[:, [0, 1]] = cart_coords[:, [1, 0]]
-            else:
-                cart_coords = None
+            cart_coords = _get_cart_ch_coords_from_inst(self.info['chs'],
+                                                        drop_chs)
 
             annotations = [self.annotations.description,
                            self.annotations.onset,
                            self.annotations.duration]
-            export_set(fname, self.get_data(picks=pick_chs),
-                       self.info['sfreq'],
-                       pick_chs, cart_coords, annotations)
-        else:
-            raise ValueError("Format not supported (%s)" % fmt)
+            eeglabio.raw.export_set(fname, self.get_data(picks=pick_chs),
+                                    self.info['sfreq'], pick_chs, cart_coords,
+                                    annotations)
+        elif fmt == 'edf':
+            raise NotImplementedError('Export to EDF format not implemented.')
 
     def _tmin_tmax_to_start_stop(self, tmin, tmax):
         start = int(np.floor(tmin * self.info['sfreq']))
