@@ -65,28 +65,20 @@ will also read the ``digaux`` data and create annotations for any triggers.
 Loading legacy data in csv or tsv format
 ========================================
 
-.. warning:: This method is not supported. You should convert your data
-             to the `SNIRF <https://github.com/fNIRS/snirf>`_
-             format using the tools provided by the Society
-             for functional Near-Infrared Spectroscopy, and then load it
-             using :func:`mne.io.read_raw_snirf`.
+.. warning:: This method is not supported and users are discoraged to use it.
+             You should convert your data to the
+             `SNIRF <https://github.com/fNIRS/snirf>`_ format using the tools
+             provided by the Society for functional Near-Infrared Spectroscopy,
+             and then load it using :func:`mne.io.read_raw_snirf`.
 
-             This method will only work for data that has already been
-             converted to oxyhaemoglobin and deoxyhaemoglobin. It will not work
-             with raw intensity data or optical density data.
-
-Many legacy fNIRS measurements are stored in csv and tsv formats.
-These formats are not officially supported in MNE as there is no
-standardisation of the file format -
-the naming and ordering of channels, the type and scaling of data, and
-specification of sensor positions varies between each vendor.
-Instead, we suggest that data is converted to the format approved by the
-Society for functional Near-Infrared Spectroscopy called
-`SNIRF <https://github.com/fNIRS/snirf>`_,
-they provide a number of tools to convert your legacy
-data to the SNIRF format.
-However, due to the prevalence of these legacy files we provide
-a template example of how you may read data in t/csv formats.
+fNIRS measurements often have a non-standardised format that is not supported
+by MNE and cannot be converted easily into SNIRF. However if it is possible to
+store this data in a legacy csv or tsv format, we show here a way to load it
+even though it is not officially supported by MNE due to the lack of
+standardisation of the file format (the naming and ordering of channels, the
+type and scaling of data, and specification of sensor positions varies between
+each vendor). You will likely have to adapt this depending on the system from
+which your CSV originated.
 """  # noqa:E501
 
 import numpy as np
@@ -106,11 +98,9 @@ pd.DataFrame(np.random.normal(size=(16, 100))).to_csv("fnirs.csv")
 
 ###############################################################################
 #
-# .. warning:: You must ensure that the channel naming structure follows
-#              the MNE format of S#_D# type.
-#              The channels must be ordered in pairs haemoglobin pairs,
-#              such that for a single channel all the types are in subsequent
-#              indices. The type order must be hbo then hbr.
+# .. warning:: The channels must be ordered in haemoglobin pairs, such that for
+#              a single channel all the types are in subsequent indices. The
+#              type order must be 'hbo' then 'hbr'.
 #              The data below is already in the correct order and may be
 #              used as a template for how data must be stored.
 #              If the order that your data is stored is different to the
@@ -124,10 +114,9 @@ pd.DataFrame(np.random.normal(size=(16, 100))).to_csv("fnirs.csv")
 
 data = pd.read_csv('fnirs.csv')
 
-# In MNE the naming of channels MUST follow this structure of
-# `S#_D# type` where # is replaced
-# by the appropriate source and detector number and type is
-# either hbo or hbr.
+# In MNE the naming of channels MUST follow this structure of `S#_D# type`
+# where # is replaced by the appropriate source and detector numbers and type
+# is either hbo or hbr.
 
 ch_names = ['S1_D1 hbo', 'S1_D1 hbr', 'S2_D1 hbo', 'S2_D1 hbr',
             'S3_D1 hbo', 'S3_D1 hbr', 'S4_D1 hbo', 'S4_D1 hbr',
@@ -137,16 +126,16 @@ ch_types = ['hbo', 'hbr', 'hbo', 'hbr',
             'hbo', 'hbr', 'hbo', 'hbr',
             'hbo', 'hbr', 'hbo', 'hbr',
             'hbo', 'hbr', 'hbo', 'hbr']
-sfreq = 10.  # Hz
+sfreq = 10.  # in Hz
 
 
 ###############################################################################
 # Finally, the data can be converted in to an MNE data structure.
 # The metadata above is used to create an :class:`mne.Info` data structure,
-# and this is combined with the data to create
-# an MNE :class:`~mne.io.Raw` object. For more details on the info structure
-# see :ref:`tut-info-class`, and for additional details on how continuous
-# data is stored in MNE see :ref:`tut-raw-class`.
+# and this is combined with the data to create an MNE :class:`~mne.io.Raw`
+# object. For more details on the info structure see :ref:`tut-info-class`, and
+# for additional details on how continuous data is stored in MNE see
+# :ref:`tut-raw-class`.
 # For a more extensive description of how to create MNE data structures from
 # raw array data see :ref:`tut_creating_data_structures`.
 
@@ -159,11 +148,10 @@ raw = mne.io.RawArray(data, info, verbose=True)
 # ---------------------------------------------------
 #
 # Having information about optode locations may assist in your analysis.
-# Beyond the general benefits this provides
-# (e.g. creating regions of interest, etc),
-# this is particularly important for fNIRS as information about the
-# distance between optodes is required to convert the optical density data
-# in to an estimate of the haemoglobin concentrations.
+# Beyond the general benefits this provides (e.g. creating regions of interest,
+# etc), this is may be particularly important for fNIRS as information about
+# the optode locations is required to convert the optical density data in to an
+# estimate of the haemoglobin concentrations.
 # MNE provides methods to load standard sensor configurations (montages) from
 # some vendors, and this is demonstrated below.
 # Some handy tutorials for understanding sensor locations, coordinate systems,
@@ -172,36 +160,33 @@ raw = mne.io.RawArray(data, info, verbose=True)
 # :ref:`ex-eeg-scalp`.
 #
 # Below is an example of how to load the optode positions for an Artinis
-# OctaMon device. However, many fNIRS researchers use custom optode montages,
-# in this case you can generate your own .elc file (see `example file
-# <https://github.com/mne-tools/mne-python/blob/main/mne/channels/data
-# /montages/standard_1020.elc>`_) and load that instead.
+# OctaMon device.
 
-raw.set_montage('artinis-octamon')
+montage = mne.channels.make_standard_montage('artinis-octamon')
+raw.set_montage(montage)
 
 # View the position of optodes in 2D to confirm the positions are correct.
 raw.plot_sensors()
 
 
 ###############################################################################
-# To validate the positions were loaded correctly it is also possible
-# to view the location of the sources (red), detectors (black),
-# and channel (white lines and orange dots) locations in a 3D representation.
+# To validate the positions were loaded correctly it is also possible to view
+# the location of the sources (red), detectors (black), and channels (white
+# lines and orange dots) in a 3D representation.
 # The ficiduals are marked in blue, green and red.
 # See :ref:`plot_source_alignment` for more details.
 
 subjects_dir = mne.datasets.sample.data_path() + '/subjects'
 mne.datasets.fetch_fsaverage(subjects_dir=subjects_dir)
 
+trans = mne.channels.compute_native_head_t(montage)
+
 fig = mne.viz.create_3d_figure(size=(800, 600), bgcolor='white')
-fig = mne.viz.plot_alignment(raw.info, show_axes=True,
-                             subject='fsaverage', coord_frame='mri',
-                             trans='fsaverage', surfaces=['brain', 'head'],
-                             fnirs=['channels', 'pairs',
-                                    'sources', 'detectors'],
-                             dig=True, mri_fiducials=True,
-                             subjects_dir=subjects_dir, fig=fig)
-mne.viz.set_3d_view(figure=fig, azimuth=90, elevation=90, distance=0.4,
+fig = mne.viz.plot_alignment(
+    raw.info, trans=trans, subject='fsaverage', subjects_dir=subjects_dir,
+    surfaces=['brain', 'head'], coord_frame='mri', dig=True, show_axes=True,
+    fnirs=['channels', 'pairs', 'sources', 'detectors'], fig=fig)
+mne.viz.set_3d_view(figure=fig, azimuth=90, elevation=90, distance=0.5,
                     focalpoint=(0., -0.01, 0.02))
 
 
