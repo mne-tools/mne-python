@@ -770,11 +770,12 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         time_unit=time_unit, sphere=sphere)
 
 
-def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
-                     border='none', ylim=None, scalings=None, title=None,
-                     proj=False, vline=[0.0], fig_background=None,
+def plot_evoked_topo(evoked, layout=None, layout_scale=0.945,
+                     color=None, border='none', ylim=None, scalings=None,
+                     title=None, proj=False, vline=[0.0], fig_background=None,
                      merge_grads=False, legend=True, axes=None,
-                     background_color='w', noise_cov=None, show=True):
+                     background_color='w', noise_cov=None, exclude='bads',
+                     show=True):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -840,6 +841,9 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         Can be a string to load a covariance from disk.
 
         .. versionadded:: 0.16.0
+    exclude : list of str | 'bads'
+        Channels names to exclude from the plot. If 'bads', the
+        bad channels are excluded. By default, exclude is set to 'bads'.
     show : bool
         Show figure if True.
 
@@ -879,8 +883,8 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                              axis_facecolor=axis_facecolor,
                              font_color=font_color,
                              merge_channels=merge_grads,
-                             legend=legend, axes=axes, show=show,
-                             noise_cov=noise_cov)
+                             legend=legend, axes=axes, exclude=exclude,
+                             show=show, noise_cov=noise_cov)
 
 
 @fill_doc
