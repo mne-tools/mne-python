@@ -3096,7 +3096,8 @@ def test_save_complex_data(tmpdir, preload, is_complex, fmt, rtol):
         rtol = 2e-4
     assert_allclose(data_read, data, rtol=rtol)
 
-
+@pytest.mark.skipif(not _check_eeglabio_installed(strict=False),
+                    reason='eeglabio not installed')
 @pytest.mark.parametrize('preload', (True, False))
 def test_export_set(tmpdir, preload):
     """Test saving an Epochs instance to EEGLAB's set format."""

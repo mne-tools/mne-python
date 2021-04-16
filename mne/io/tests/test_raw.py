@@ -693,10 +693,10 @@ def test_get_data_units():
         raw.get_data(units=['fT/cm', 'fT', 'uV'])
 
 
+@pytest.mark.skipif(not _check_eeglabio_installed(strict=False),
+                    reason='eeglabio not installed')
 def test_export_set():
     """Test saving a Raw instance to EEGLAB's set format."""
-    if not _check_eeglabio_installed(strict=False):
-        return
     fname = Path(__file__).parent / "data" / "test_raw.fif"
     raw = read_raw_fif(fname)
     raw.load_data()
