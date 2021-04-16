@@ -181,6 +181,8 @@ Enhancements
 
 - :func:`mne.preprocessing.find_eog_events` and :func:`mne.preprocessing.create_eog_epochs` now accept a list of channel names, allowing you to specify multiple EOG channels at once (:gh:`9269` by `Richard Höchenberger`_)
 
+- Add support for setting montages on fNIRS data, with built in standard montages for Artinis OctaMon and Artinis Brite23 devices (:gh:`9141` by `Johann Benerradi`_ and `Robert Luke`_)
+
 Bugs
 ~~~~
 - Fix bug with :func:`mne.viz.plot_evoked_topo` where set ylim parameters gets swapped across channel types. (:gh:`9207` by |Ram Pari|_)

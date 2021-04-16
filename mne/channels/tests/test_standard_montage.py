@@ -106,7 +106,7 @@ def _simulate_artinis_octamon():
 
 
 def _simulate_artinis_brite23():
-    """Simulate artinis Brite 23 channel data from numpy data.
+    """Simulate artinis Brite23 channel data from numpy data.
 
     This is to test data that is imported with missing or incorrect montage
     info. This data can then be used to test the set_montage function.
@@ -151,7 +151,7 @@ def test_set_montage_artinis_fsaverage(kind):
 
 
 def test_set_montage_artinis_basic():
-    """Test that OctaMon and Brite 23 montages are set properly."""
+    """Test that OctaMon and Brite23 montages are set properly."""
     # Test OctaMon montage
     montage_octamon = make_standard_montage('artinis-octamon')
     montage_brite23 = make_standard_montage('artinis-brite23')
@@ -190,7 +190,7 @@ def test_set_montage_artinis_basic():
     assert_array_almost_equal(raw_hb.info['chs'][0]['loc'][:9],
                               raw_hb.info['chs'][1]['loc'][:9])
 
-    # Test Brite 23 montage
+    # Test Brite23 montage
     raw = _simulate_artinis_brite23()
     old_info = raw.info.copy()
     raw.set_montage(montage_brite23)

@@ -1415,7 +1415,7 @@ def make_standard_montage(kind, head_size=HEAD_SIZE_DEFAULT):
 
     artinis-octamon       Artinis OctaMon fNIRS (8 sources, 2 detectors)
 
-    artinis-brite23       Artinis Brite 23 fNIRS (11 sources, 7 detectors)
+    artinis-brite23       Artinis Brite23 fNIRS (11 sources, 7 detectors)
     ===================   =====================================================
 
     .. versionadded:: 0.19.0
