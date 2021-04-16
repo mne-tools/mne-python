@@ -34,6 +34,7 @@ from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
                        _pick_data_channels)
 from ..io.tag import _rename_list
 from ..io.write import DATE_NONE
+from ..io.proj import setup_proj
 from ..io._digitization import _get_data_as_dict_from_dig
 
 
@@ -1070,6 +1071,13 @@ class UpdateChannelsMixin(object):
             self._read_picks = [
                 np.concatenate([r, extra_idx]) for r in self._read_picks]
             assert all(len(r) == self.info['nchan'] for r in self._read_picks)
+        elif isinstance(self, BaseEpochs):
+            self.picks = np.arange(self._data.shape[1])
+            if hasattr(self, '_projector'):
+                activate = False if self._do_delayed_proj else self.proj
+                self._projector, self.info = setup_proj(self.info, False,
+                                                        activate=activate)
+
         return self
 
     @fill_doc
