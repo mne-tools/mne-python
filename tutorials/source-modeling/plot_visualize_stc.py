@@ -30,7 +30,7 @@ fname_evoked = data_path + '/MEG/sample/sample_audvis-ave.fif'
 fname_stc = os.path.join(sample_dir, 'sample_audvis-meg')
 
 ###############################################################################
-# Then, we read the stc from file.
+# Then, we read the stc from file:
 stc = mne.read_source_estimate(fname_stc, subject='sample')
 
 ###############################################################################
