@@ -316,7 +316,11 @@ def _construct_bids_filename(base, ext, part_idx):
 
 def _get_cart_ch_coords_from_inst(chs, drop_chs=None):
     """Extract cart channel locations in x, y, z format from a chs instance.
-    Returns None if no valid coordinates are found (all zeros)"""
+
+    Returns
+    -------
+    None if no valid coordinates are found (all zeros)
+    """
     if drop_chs is None:
         drop_chs = []
     cart_coords = np.array([d['loc'][:3] for d in chs

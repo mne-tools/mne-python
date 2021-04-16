@@ -787,9 +787,11 @@ def _ensure_events(events):
 
 
 def _check_export_fmt(fmt, fname, supported_formats):
-    """get export format from filename if auto, raises error if no file
-    extension found, then checks format against supported formats, raises error
-    if not supported."""
+    """Get export format from filename if auto.
+
+    Raises error if no file extension found, then checks format against
+    supported formats, raises error if format is not supported.
+    """
     fmt = fmt.lower()
     if fmt == "auto":
         fmt = op.splitext(fname)[1]

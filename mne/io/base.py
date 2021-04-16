@@ -1457,10 +1457,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     def export(self, fname, fmt='auto', verbose=None):
         """Export Raw to external formats.
 
-        Supported formats: EEGLAB (set)
-
+        Supported formats: EEGLAB (set, uses :mod:`eeglabio`)
         %(export_warning)s
-
         %(export_params_base)s
             Valid options are ``'auto'`` for auto inferred and
             ``'set'`` for EEGLAB.
