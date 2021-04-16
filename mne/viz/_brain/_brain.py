@@ -1692,7 +1692,7 @@ class Brain(object):
         # Remove the default key binding
         if getattr(self, "iren", None) is not None:
             try:
-                # pyvista<=0.30.0
+                # pyvista<0.30.0
                 self.plotter._key_press_event_callbacks.clear()
             except AttributeError:
                 # pyvista>=0.30.0

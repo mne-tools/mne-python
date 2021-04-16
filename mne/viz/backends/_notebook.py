@@ -342,7 +342,7 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
         display(self._tool_bar)
         # viewer
         try:
-            # pyvista<=0.30.0
+            # pyvista<0.30.0
             viewer = self.plotter.show(
                 use_ipyvtk=True, return_viewer=True)
         except RuntimeError:

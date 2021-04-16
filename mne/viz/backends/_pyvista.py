@@ -669,7 +669,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                                  on_button_release,
                                  on_pick):
         try:
-            # pyvista<=0.30.0
+            # pyvista<0.30.0
             add_obs = self.plotter.iren.AddObserver
         except AttributeError:
             # pyvista>=0.30.0
