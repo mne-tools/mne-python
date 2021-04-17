@@ -86,12 +86,21 @@ def test_find_ecg():
     assert 'ECG-SYN' not in raw.ch_names
     assert 'ECG-SYN' not in ecg_epochs.ch_names
 
-    # Test behavior if no peaks can be found -> achieve this by providing
-    # all-zero'd data
-    raw._data[ecg_idx] = 0.
+    # test behavior if no peaks can be found -> achieve this by setting a high
+    # threshold
     ecg_events, _, average_pulse, ecg = find_ecg_events(
-        raw, ch_name=raw.ch_names[ecg_idx], return_ecg=True
+        raw, ch_name=raw.ch_names[ecg_idx], return_ecg=True, qrs_threshold=1e5
     )
+    assert ecg_events.size == 0
+    assert average_pulse == 0
+    assert np.allclose(ecg, np.zeros_like(ecg))
+
+    # test behavior for an entirely flat channel
+    raw._data[ecg_idx] = 0.
+    with pytest.warns(RuntimeWarning, match='first 3 seconds.*flat'):
+        ecg_events, _, average_pulse, ecg = find_ecg_events(
+            raw, ch_name=raw.ch_names[ecg_idx], return_ecg=True
+        )
     assert ecg_events.size == 0
     assert average_pulse == 0
     assert np.allclose(ecg, np.zeros_like(ecg))

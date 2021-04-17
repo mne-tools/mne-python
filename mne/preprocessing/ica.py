@@ -1246,7 +1246,7 @@ class ICA(ContainsMixin):
             The name of the channel to use for ECG peak detection.
             The argument is mandatory if the dataset contains no ECG
             channels.
-        threshold : float | str
+        threshold : float | 'auto'
             The value above which a feature is classified as outlier. If 'auto'
             and method is 'ctps', automatically compute the threshold. If
             'auto' and method is 'correlation', defaults to 3.0. The default

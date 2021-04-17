@@ -50,11 +50,19 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
     s = x0.size
 
     if x0.ndim >= 2 or s == 0:
-        raise ValueError('The input data must be a non empty 1D vector')
+        raise ValueError('The input data must be a non-empty 1D vector')
 
+    eps = 1e2 * np.finfo(x0.dtype).eps
     if thresh is None:
         thresh = (np.max(x0) - np.min(x0)) / 4
+        if thresh < eps:
+            thresh = eps
         logger.debug('Peak finder automatic threshold: %0.2g' % (thresh,))
+    elif thresh < eps:
+        raise ValueError(
+            f'The selected threshold value is too small for peak detection '
+            f'due to inevitable floating-point imprecisions.\nPlease pick a '
+            f'value >= {eps:g} (You passed thresh={thresh})')
 
     assert extrema in [-1, 1]
 
@@ -160,10 +168,6 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
             peak_mags = []
             peak_inds = []
 
-    # Change sign of data if was finding minima
-    if extrema < 0:
-        peak_mags *= -1.0
-
     # ensure output type array
     if not isinstance(peak_inds, np.ndarray):
         peak_inds = np.atleast_1d(peak_inds).astype('int64')
@@ -171,8 +175,11 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
     if not isinstance(peak_mags, np.ndarray):
         peak_mags = np.atleast_1d(peak_mags).astype('float64')
 
-    # Plot if no output desired
-    if len(peak_inds) == 0:
+    # Change sign of data if was finding minima
+    if extrema < 0 and peak_mags.size > 0:
+        peak_mags *= -1.0
+
+    if peak_inds.size == 0:
         logger.info('No significant peaks found')
     else:
         logger.info('Found %d significant peak%s'

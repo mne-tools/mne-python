@@ -297,6 +297,8 @@ Bugs
 
 - Fix bug where ``backend='notebook'`` could not be used in :meth:`mne.SourceEstimate.plot` (:gh:`9305` by `Jean-Remi King`_)
 
+- `mne.preprocessing.find_eog_events`, `mne.preprocessing.find_ecg_events`, `mne.preprocessing.create_eog_epochs`, and `mne.preprocessing.create_ecg_epochs` now have better handling for situations where the signal is flat or the provided threshold value is too small due to floating point imprecisions (:gh:`xxx` by `Richard Höchenberger`_)
+
 - `mne.preprocessing.compute_proj_eog` and `mne.preprocessing.compute_proj_ecg` now return empty lists if no EOG or ECG events, respectively, could be found. Previously, we'd return ``None`` in these situations, which does not match the documented behavior of returning a list of projectors (:gh:`9277` by `Richard Höchenberger`_)
 
 API changes

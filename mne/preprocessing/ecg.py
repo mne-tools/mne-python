@@ -31,7 +31,7 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
         Sampling rate
     ecg : array
         ECG signal
-    thresh_value : float | str
+    thresh_value : float | 'auto'
         qrs detection threshold. Can also be "auto" for automatic
         selection of threshold.
     levels : float
@@ -65,18 +65,32 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
 
     n_points = len(ecg_abs)
 
+    # get peak amplitudes in the 1st, 2nd, and 3rd second of the recording
     maxpt = np.empty(3)
     maxpt[0] = np.max(ecg_abs[:init])
     maxpt[1] = np.max(ecg_abs[init:init * 2])
     maxpt[2] = np.max(ecg_abs[init * 2:init * 3])
 
     init_max = np.mean(maxpt)
+    eps = 1e2 * np.finfo(ecg_abs.dtype).eps
+
+    if init_max < eps:
+        warn('The first 3 seconds of your ECG data appear to be flat. Please '
+             'inspect your data to ensure this is intentional.')
+        init_max = eps
 
     if thresh_value == 'auto':
         thresh_runs = np.arange(0.3, 1.1, 0.05)
     elif isinstance(thresh_value, str):
         raise ValueError('threshold value must be "auto" or a float')
     else:
+        if init_max * thresh_value < eps:
+            raise ValueError(
+                f'The selected threshold value is too small for peak '
+                f'detection with the provided data, due to inevitable '
+                f'floating-point imprecisions.\n'
+                f'Please pick a value >= {eps/init_max:g} '
+                f'(You passed thresh={thresh_value})')
         thresh_runs = [thresh_value]
 
     # Try a few thresholds (or just one)
@@ -100,7 +114,7 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
             else:
                 ii += 1
 
-        if len(rms) == 0:
+        if not rms:
             rms.append(0.0)
             time.append(0.0)
         time = np.array(time)
@@ -151,7 +165,7 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
     %(ecg_ch_name)s
     %(ecg_tstart)s
     %(ecg_filter_freqs)s
-    qrs_threshold : float | str
+    qrs_threshold : float | 'auto'
         Between 0 and 1. qrs detection threshold. Can also be "auto" to
         automatically choose the threshold that generates a reasonable
         number of heartbeats (40-160 beats / min).

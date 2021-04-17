@@ -1,5 +1,6 @@
 import os.path as op
 
+import numpy as np
 import pytest
 
 from mne import Annotations
@@ -39,3 +40,14 @@ def test_find_eog():
 
     events = find_eog_events(raw, ch_name=['EEG 060', 'EOG 061'])
     assert len(events) == 4
+
+    # test too low threshold
+    eps = np.finfo(raw.get_data().dtype).eps
+    with pytest.raises(ValueError, match='threshold value is too small'):
+        find_eog_events(raw, ch_name=None, thresh=eps)
+
+    # test with an entirely flat signal
+    eog = raw.copy().pick_types(meg=False, eog=True).load_data()
+    eog._data[:] = 0.
+    events = find_eog_events(eog, ch_name=None)
+    assert events.size == 0
