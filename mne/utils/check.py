@@ -786,22 +786,26 @@ def _ensure_events(events):
     return events
 
 
-def _check_export_fmt(fmt, fname, supported_formats):
-    """Get export format from filename if auto.
+def _infer_check_export_fmt(fmt, fname, supported_formats):
+    """Infer export format from filename extension if auto.
 
-    Raises error if no file extension found, then checks format against
-    supported formats, raises error if format is not supported.
+    Raises error if auto and no file extension found,
+    then checks format against supported formats, raises error if format is not
+    supported.
     """
     fmt = fmt.lower()
     if fmt == "auto":
         fmt = op.splitext(fname)[1]
         if fmt:
             fmt = fmt[1:].lower()
+            # find fmt in supported formats dict's tuples
+            fmt = next((k for k, v in supported_formats.items() if fmt in v),
+                       fmt)  # default to original fmt for raising error later
         else:
             raise ValueError(f"Couldn't infer format from filename {fname}"
                              " (no extension found)")
 
     if fmt not in supported_formats:
         raise ValueError(f"Format '{fmt}' is not supported. "
-                         f"Supported formats are {supported_formats[1:-1]}.")
+                         f"Supported formats are {supported_formats}.")
     return fmt

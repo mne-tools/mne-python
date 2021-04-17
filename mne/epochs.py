@@ -21,7 +21,7 @@ import os.path as op
 import numpy as np
 
 from .io.utils import _get_cart_ch_coords_from_inst
-from .utils.check import _check_export_fmt
+from .utils.check import _infer_check_export_fmt
 from .io.write import (start_file, start_block, end_file, end_block,
                        write_int, write_float, write_float_matrix,
                        write_double_matrix, write_complex_float_matrix,
@@ -1820,18 +1820,22 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         Supported formats: EEGLAB (set, uses :mod:`eeglabio`)
         %(export_warning)s
         %(export_params_base)s
-            Valid options are ``'auto'`` for auto inferred and
-            ``'set'`` for EEGLAB.
+        fmt : 'auto' | 'eeglab'
+        %(export_params_fmt)s
         %(verbose)s
 
         Notes
         -----
         %(export_eeglab_note)s
         """
-        supported_export_formats = ['set']
-        fmt = _check_export_fmt(fmt, fname, supported_export_formats)
+        supported_export_formats = {
+            'eeglab': ('set',),
+            'edf': ('edf',),
+            'brainvision': ('eeg', 'vmrk', 'vhdr',)
+        }
+        fmt = _infer_check_export_fmt(fmt, fname, supported_export_formats)
 
-        if fmt == 'set':
+        if fmt == 'eeglab':
             _check_eeglabio_installed()
             import eeglabio.epochs
             # load data first
@@ -1850,6 +1854,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                                        self.event_id, cart_coords)
         elif fmt == 'edf':
             raise NotImplementedError('Export to EDF format not implemented.')
+        elif fmt == 'brainvision':
+            raise NotImplementedError('Export to BrainVision not implemented.')
 
     def equalize_event_counts(self, event_ids=None, method='mintime'):
         """Equalize the number of trials in each condition.

@@ -22,7 +22,7 @@ import numpy as np
 from .constants import FIFF
 from .utils import _construct_bids_filename, _check_orig_units, \
     _get_cart_ch_coords_from_inst
-from ..utils.check import _check_export_fmt
+from ..utils.check import _infer_check_export_fmt
 from .pick import (pick_types, pick_channels, pick_info, _picks_to_idx,
                    channel_type)
 from .meas_info import write_meas_info
@@ -1460,18 +1460,22 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Supported formats: EEGLAB (set, uses :mod:`eeglabio`)
         %(export_warning)s
         %(export_params_base)s
-            Valid options are ``'auto'`` for auto inferred and
-            ``'set'`` for EEGLAB.
+        fmt : 'auto' | 'eeglab'
+        %(export_params_fmt)s
         %(verbose)s
 
         Notes
         -----
         %(export_eeglab_note)s
         """
-        supported_export_formats = ['set']
-        fmt = _check_export_fmt(fmt, fname, supported_export_formats)
+        supported_export_formats = {  # format : extensions
+            'eeglab': ('set',),
+            'edf': ('edf',),
+            'brainvision': ('eeg', 'vmrk', 'vhdr',)
+        }
+        fmt = _infer_check_export_fmt(fmt, fname, supported_export_formats)
 
-        if fmt == 'set':
+        if fmt == 'eeglab':
             _check_eeglabio_installed()
             import eeglabio.raw
             # load data first
@@ -1494,6 +1498,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                                     annotations)
         elif fmt == 'edf':
             raise NotImplementedError('Export to EDF format not implemented.')
+        elif fmt == 'brainvision':
+            raise NotImplementedError('Export to BrainVision not implemented.')
 
     def _tmin_tmax_to_start_stop(self, tmin, tmax):
         start = int(np.floor(tmin * self.info['sfreq']))
