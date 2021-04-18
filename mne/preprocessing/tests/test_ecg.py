@@ -93,7 +93,6 @@ def test_find_ecg():
     )
     assert ecg_events.size == 0
     assert average_pulse == 0
-    assert np.allclose(ecg, np.zeros_like(ecg))
 
     # test behavior for an entirely flat channel
     raw._data[ecg_idx] = 0.
