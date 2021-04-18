@@ -52,7 +52,11 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
     if x0.ndim >= 2 or s == 0:
         raise ValueError('The input data must be a non-empty 1D vector')
 
-    eps = 1e2 * np.finfo(x0.dtype).eps
+    try:
+        eps = 1e2 * np.finfo(x0.dtype).eps
+    except ValueError:  # int dtypes are exact
+        eps = 0.
+
     if thresh is None:
         thresh = (np.max(x0) - np.min(x0)) / 4
         if thresh < eps:
