@@ -817,9 +817,12 @@ def _infer_check_export_fmt(fmt, fname, supported_formats):
                              " (no extension found)")
 
     if fmt not in supported_formats:
-        supported_str = ', '\
-            .join(f'{k} ({", ".join(["*." + ext for ext in v])})'
-                  for k, v in supported_formats.items())
+        supported = []
+        for format, extensions in supported_formats.items():
+            ext_str = ', '.join(f'*.{ext}' for ext in extensions)
+            supported.append(f'{format} ({ext_str})')
+
+        supported_str = ', '.join(supported)
         raise ValueError(f"Format '{fmt}' is not supported. "
                          f"Supported formats are {supported_str}.")
     return fmt
