@@ -57,6 +57,9 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
     except ValueError:  # int dtypes are exact
         eps = 0.
 
+    if thresh is not None:
+        assert thresh >= 0.
+
     if thresh is None:
         thresh = (np.max(x0) - np.min(x0)) / 4
         if thresh < eps:
