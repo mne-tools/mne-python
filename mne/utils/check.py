@@ -789,9 +789,20 @@ def _ensure_events(events):
 def _infer_check_export_fmt(fmt, fname, supported_formats):
     """Infer export format from filename extension if auto.
 
-    Raises error if auto and no file extension found,
+    Raises error if fmt is auto and no file extension found,
     then checks format against supported formats, raises error if format is not
     supported.
+
+    Parameters
+    ----------
+    fmt : str
+        Format of the export, will only infer the format from filename if fmt
+        is auto.
+    fname : str
+        Name of the target export file, only used when fmt is auto.
+    supported_formats : dict of str : tuple/list
+        Dictionary containing supported formats (as keys) and each format's
+        corresponding file extensions in a tuple/list (e.g. 'eeglab': ('set',))
     """
     fmt = fmt.lower()
     if fmt == "auto":
