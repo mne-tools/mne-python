@@ -994,7 +994,7 @@ def make_redirects(app, exception):
     if not isinstance(app.builder, sphinx.builders.html.StandaloneHTMLBuilder):
         return
     logger = sphinx.util.logging.getLogger('mne')
-    TEMPLATE = """
+    TEMPLATE = """\
 <!DOCTYPE HTML>
 <html lang="en-US">
     <head>
@@ -1029,16 +1029,32 @@ def make_redirects(app, exception):
             with open(fr_path, 'w') as fid:
                 fid.write(TEMPLATE.format(to=to_fname))
         logger.info(
-            f'Added {len(fnames):3d} HTML plot_ redirects for {out_dir}')
+            f'Added {len(fnames):3d} HTML plot_* redirects for {out_dir}')
+    # custom redirects
     for fr, to in custom_redirects.items():
         to_path = os.path.join(app.outdir, to)
         assert os.path.isfile(to_path), to
         assert to_path.endswith('html'), to_path
         fr_path = os.path.join(app.outdir, fr)
-        assert not os.path.isfile(fr_path), fr_path
         assert fr_path.endswith('html'), fr_path
+        # allow overwrite if existing file is just a redirect
+        if os.path.isfile(fr_path):
+            with open(fr_path, 'r') as fid:
+                for _ in range(9):
+                    next(fid)
+                line = fid.readline()
+                assert 'Page Redirection' in line, line
+        # handle folders that no longer exist
+        if fr_path.split(os.path.sep)[-2] in (
+                'misc', 'discussions', 'source-modeling', 'sample-datasets'):
+            os.makedirs(os.path.dirname(fr_path), exist_ok=True)
+        # handle links to sibling folders
+        path_parts = to.split(os.path.sep)
+        path_parts = ['..'] + path_parts[(path_parts.index(tu) + 1):]
         with open(fr_path, 'w') as fid:
-            fid.write(TEMPLATE.format(to=to))
+            fid.write(TEMPLATE.format(to=os.path.join(*path_parts)))
+    logger.info(
+        f'Added {len(custom_redirects):3d} HTML custom redirects')
 
 
 # -- Connect our handlers to the main Sphinx app ---------------------------
