@@ -2872,7 +2872,7 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
             u, v, w = ori.T
             renderer.quiver3d(x, y, z, u, v, w, scale=3 * scale,
                               color=color, mode='arrow')
-
+        renderer.show()
         fig = renderer.scene()
     else:
         raise ValueError('Mode must be "cone", "arrow" or orthoview", '

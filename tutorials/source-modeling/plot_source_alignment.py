@@ -95,7 +95,7 @@ t1_mgh = nib.MGHImage(t1w.dataobj, t1w.affine)
 # Note that all three coordinate systems are **RAS** coordinate frames and
 # hence are also `right-handed`_ coordinate systems. Finally, note that the
 # ``coord_frame`` parameter sets which coordinate frame the camera
-# should initially be aligned with. Let's take a look:
+# should initially be aligned with. Let's have a look:
 
 fig = mne.viz.plot_alignment(raw.info, trans=trans, subject='sample',
                              subjects_dir=subjects_dir, surfaces='head-dense',
