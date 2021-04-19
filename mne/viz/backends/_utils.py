@@ -79,3 +79,13 @@ def run_once(fun, *args, **kwargs):
 def _init_qt_resources():
     from ...icons import resources
     resources.qInitResources()
+
+
+@contextmanager
+def _qt_disable_paint(widget):
+    paintEvent = widget.paintEvent
+    widget.paintEvent = lambda *args, **kwargs: None
+    try:
+        yield
+    finally:
+        widget.paintEvent = paintEvent
