@@ -801,6 +801,7 @@ def reset_warnings(gallery_conf, fname):
         category=DeprecationWarning
     )
 
+
 reset_warnings(None, None)
 
 
