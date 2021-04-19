@@ -854,27 +854,6 @@ needed_plot_redirects = {
     '50_epochs_to_data_frame.py', '55_setting_eeg_reference.py',
     '59_head_positions.py', '60_make_fixed_length_epochs.py',
     '60_maxwell_filtering_sss.py', '70_fnirs_processing.py',
-    'background_filtering.py', 'background_freesurfer.py',
-    'background_freesurfer_mne.py', 'background_ica.py',
-    'background_statistics.py', 'beamformer_lcmv.py',
-    'brainstorm_auditory.py', 'brainstorm_phantom_ctf.py',
-    'brainstorm_phantom_elekta.py', 'compute_covariance.py',
-    'creating_data_structures.py', 'dics.py', 'dipole_fit.py',
-    'dipole_orientations.py', 'ecog.py', 'eeg_erp.py', 'eeg_mri_coords.py',
-    'eeg_no_mri.py', 'fix_bem_in_blender.py', 'forward.py',
-    'mne_dspm_source_localization.py', 'mne_solutions.py',
-    'modifying_data_inplace.py', 'object_source_estimate.py',
-    'phantom_4DBTi.py', 'point_spread.py', 'receptive_field.py', 'report.py',
-    'seeg.py', 'sensors_decoding.py', 'sensors_time_frequency.py', 'sleep.py',
-    'source_alignment.py', 'ssvep.py',
-    'stats_cluster_1samp_test_time_frequency.py', 'stats_cluster_erp.py',
-    'stats_cluster_spatio_temporal.py',
-    'stats_cluster_spatio_temporal_2samp.py',
-    'stats_cluster_spatio_temporal_repeated_measures_anova.py',
-    'stats_cluster_time_frequency.py',
-    'stats_cluster_time_frequency_repeated_measures_anova.py',
-    'stats_spatio_temporal_cluster_sensors.py', 'visualize_stc.py',
-    'whitened.py',
     # examples
     '3d_to_2d.py', 'brainstorm_data.py', 'channel_epochs_image.py',
     'cluster_stats_evoked.py', 'compute_csd.py',
@@ -1016,8 +995,7 @@ def make_redirects(app, exception):
         fnames = [os.path.join(os.path.relpath(dirpath, root), fname)
                   for dirpath, _, fnames in os.walk(root)
                   for fname in fnames
-                  if fname in needed_plot_redirects and
-                  fname not in custom_redirects.values()]
+                  if fname in needed_plot_redirects]
         # plot_ redirects
         for fname in fnames:
             dirname = os.path.join(app.outdir, out_dir, os.path.dirname(fname))
