@@ -18,7 +18,7 @@ Development of MNE-Python has been supported by:
 - |czi| **Chan Zuckerberg Initiative:** `EOSS2 <https://chanzuckerberg.com/eoss/proposals/improving-usability-of-core-neuroscience-analysis-tools-with-mne-python>`_
 
 
-Additionally, many universities or research institutions have supported their employees’ contributions to MNE-Python as part of normal work duties. These institutions are:
+Additionally, many universities or research institutions have supported their employees’ contributions to MNE-Python as part of normal work duties. These institutions include:
 
 - `Massachusetts General Hospital <https://www.massgeneral.org/>`_
 - `Athinoula A. Martinos Center for Biomedical Imaging <https://martinos.org/>`_
