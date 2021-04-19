@@ -36,7 +36,7 @@ print(__doc__)
 subjects_dir = mne.datasets.sample.data_path() + '/subjects'
 path_data = mne.datasets.misc.data_path() + '/ecog/sample_ecog.mat'
 
-# We've already clicked and exported
+# We've already clicked and exported:
 layout_path = op.join(op.dirname(mne.__file__), 'data', 'image')
 layout_name = 'custom_layout.lout'
 
