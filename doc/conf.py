@@ -791,7 +791,15 @@ def reset_warnings(gallery_conf, fname):
         'ignore', message="can't resolve package from", category=ImportWarning)
     warnings.filterwarnings(
         'ignore', message='.*mne-realtime.*', category=DeprecationWarning)
+    warnings.filterwarnings(
+        'ignore', message='.*mne-realtime.*', category=DeprecationWarning)
 
+    # https://github.com/mne-tools/mne-python/pull/9311#issuecomment-822042591
+    warnings.filterwarnings(
+        'ignore', module=r'sphinx\.jinja2glue',
+        message=".*the old name will be removed.*",
+        category=DeprecationWarning
+    )
 
 reset_warnings(None, None)
 
