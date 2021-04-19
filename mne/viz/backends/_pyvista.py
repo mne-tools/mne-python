@@ -661,7 +661,8 @@ class _PyVistaRenderer(_AbstractRenderer):
         return actor
 
     def _process_events(self):
-        _process_events(self.plotter)
+        for plotter in self._all_plotters:
+            _process_events(plotter)
 
     def _update_picking_callback(self,
                                  on_mouse_move,
