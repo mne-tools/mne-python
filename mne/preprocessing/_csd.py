@@ -81,11 +81,6 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
     inst_csd : instance of Raw, Epochs or Evoked
         The transformed data. Output type will match input type.
 
-    Notes
-    -----
-    This function applies an average reference to the data if copy is False.
-    Do not transform CSD data to source space.
-
     .. versionadded:: 0.20
 
     References
@@ -100,7 +95,6 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
 
     _validate_type(copy, (bool), 'copy')
     inst = inst.copy() if copy else inst
-    inst.set_eeg_reference(ref_channels='average')
 
     picks = pick_types(inst.info, meg=False, eeg=True, exclude=[])
 
