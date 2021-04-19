@@ -18,7 +18,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import mne
-from mne.datasets import sample
+from mne.datasets import sample, fetch_hcp_mmp_parcellation
 from mne.minimum_norm import apply_inverse, read_inverse_operator
 from mne import read_evokeds
 
@@ -28,6 +28,7 @@ subjects_dir = os.path.join(data_path, 'subjects')
 
 fname_evoked = data_path + '/MEG/sample/sample_audvis-ave.fif'
 fname_stc = os.path.join(sample_dir, 'sample_audvis-meg')
+fetch_hcp_mmp_parcellation(subjects_dir)
 
 ###############################################################################
 # Then, we read the stc from file.
@@ -57,10 +58,15 @@ stc_fs = mne.compute_source_morph(stc, 'sample', 'fsaverage', subjects_dir,
                                   smooth=5, verbose='error').apply(stc)
 brain = stc_fs.plot(subjects_dir=subjects_dir, initial_time=initial_time,
                     clim=dict(kind='value', lims=[3, 6, 9]),
-                    surface='flat', hemi='split', size=(1000, 500),
+                    surface='flat', hemi='both', size=(1000, 500),
                     smoothing_steps=5, time_viewer=False,
                     add_data_kwargs=dict(
                         colorbar_kwargs=dict(label_font_size=10)))
+
+# to help orient us, let's add a parcellation (red=auditory, green=motor,
+# blue=visual)
+brain.add_annotation('HCPMMP1_combined', borders=2, subjects_dir=subjects_dir)
+
 # You can save a movie like the one on our documentation website with:
 # brain.save_movie(time_dilation=20, tmin=0.05, tmax=0.16,
 #                  interpolation='linear', framerate=10)

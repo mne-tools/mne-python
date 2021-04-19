@@ -472,8 +472,9 @@ class Brain(object):
         _validate_type(offset, (str, bool), 'offset')
         if isinstance(offset, str):
             _check_option('offset', offset, ('auto',), extra='when str')
-            offset = (surf == 'inflated')
+            offset = (surf in ('inflated', 'flat'))
         offset = None if (not offset or hemi != 'both') else 0.0
+        logger.debug(f'Hemi offset: {offset}')
 
         self._renderer = _get_renderer(name=self._title, size=size,
                                        bgcolor=background,

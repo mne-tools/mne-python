@@ -231,6 +231,8 @@ Bugs
 
 - Fix bug with :func:`mne.viz.plot_alignment` where plotting a sphere model could ignore the ``brain`` argument (:gh:`8857` by `Eric Larson`_)
 
+- Fix bug with :func:`mne.SourceEstimate.plot` where flatmaps were not positioned properly when using ``hemi='both'`` (:gh:`9315` by `Eric Larson`_)
+
 - Fix bug with :meth:`mne.Annotations.save` where files could be overwritten accidentally, it can now be controlled via the ``overwrite`` argument (:gh:`8896` by `Eric Larson`_)
 
 - Fix bug with ``replace`` argument of :meth:`mne.Report.add_bem_to_section` and :meth:`mne.Report.add_slider_to_section` (:gh:`8723` by `Eric Larson`_)
