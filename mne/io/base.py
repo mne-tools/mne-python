@@ -2353,13 +2353,13 @@ def _check_raw_compatibility(raw):
     """Ensure all instances of Raw have compatible parameters."""
     for ri in range(1, len(raw)):
         if not isinstance(raw[ri], type(raw[0])):
-            raise ValueError('raw[%d] type must match' % ri)
-        if not raw[ri].info['nchan'] == raw[0].info['nchan']:
-            raise ValueError('raw[%d][\'info\'][\'nchan\'] must match' % ri)
-        if not raw[ri].info['bads'] == raw[0].info['bads']:
-            raise ValueError('raw[%d][\'info\'][\'bads\'] must match' % ri)
-        if not raw[ri].info['sfreq'] == raw[0].info['sfreq']:
-            raise ValueError('raw[%d][\'info\'][\'sfreq\'] must match' % ri)
+            raise ValueError(f'raw[{ri}] type must match')
+        for key in ('nchan', 'bads', 'sfreq'):
+            a, b = raw[ri].info[key], raw[0].info[key]
+            if a != b:
+                raise ValueError(
+                    f'raw[{ri}].info[{key}] must match:\n'
+                    f'{repr(a)} != {repr(b)}')
         if not set(raw[ri].info['ch_names']) == set(raw[0].info['ch_names']):
             raise ValueError('raw[%d][\'info\'][\'ch_names\'] must match' % ri)
         if not all(raw[ri]._cals == raw[0]._cals):

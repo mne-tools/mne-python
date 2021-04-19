@@ -661,25 +661,23 @@ class _PyVistaRenderer(_AbstractRenderer):
         return actor
 
     def _process_events(self):
-        _process_events(self.plotter)
+        for plotter in self._all_plotters:
+            _process_events(plotter)
 
     def _update_picking_callback(self,
                                  on_mouse_move,
                                  on_button_press,
                                  on_button_release,
                                  on_pick):
-        self.plotter.iren.AddObserver(
-            vtk.vtkCommand.RenderEvent,
-            on_mouse_move
-        )
-        self.plotter.iren.AddObserver(
-            vtk.vtkCommand.LeftButtonPressEvent,
-            on_button_press
-        )
-        self.plotter.iren.AddObserver(
-            vtk.vtkCommand.EndInteractionEvent,
-            on_button_release
-        )
+        try:
+            # pyvista<0.30.0
+            add_obs = self.plotter.iren.AddObserver
+        except AttributeError:
+            # pyvista>=0.30.0
+            add_obs = self.plotter.iren.add_observer
+        add_obs(vtk.vtkCommand.RenderEvent, on_mouse_move)
+        add_obs(vtk.vtkCommand.LeftButtonPressEvent, on_button_press)
+        add_obs(vtk.vtkCommand.EndInteractionEvent, on_button_release)
         self.plotter.picker = vtk.vtkCellPicker()
         self.plotter.picker.AddObserver(
             vtk.vtkCommand.EndPickEvent,

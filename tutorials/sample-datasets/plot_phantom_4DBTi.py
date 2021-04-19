@@ -64,7 +64,7 @@ errors = 1e3 * np.linalg.norm(actual_pos - pos, axis=1)
 print("errors (mm) : %s" % errors)
 
 ###############################################################################
-# Plot the dipoles in 3D
+# Plot the dipoles in 3D:
 actual_amp = np.ones(len(dip))  # misc amp to create Dipole instance
 actual_gof = np.ones(len(dip))  # misc GOF to create Dipole instance
 dip = mne.Dipole(dip.times, pos, actual_amp, ori, actual_gof)

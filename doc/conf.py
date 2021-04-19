@@ -431,7 +431,7 @@ linkcheck_ignore = [  # will be compiled to regex
     'https://imaging.mrc-cbu.cam.ac.uk/imaging/MniTalairach',  # noqa Max retries exceeded with url: /imaging/MniTalairach (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1122)')))
     'https://www.nyu.edu/',  # noqa Max retries exceeded with url: / (Caused by SSLError(SSLError(1, '[SSL: DH_KEY_TOO_SMALL] dh key too small (_ssl.c:1122)')))
     'https://docs.python.org/3/library/.*',  # noqa ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
-    'https://hal.archives-ouvertes.fr/hal-01848442/',  # noqa Sometimes: 503 Server Error: Service Unavailable for url: https://hal.archives-ouvertes.fr/hal-01848442/
+    'https://hal.archives-ouvertes.fr/hal-01848442.*',  # noqa Sometimes: 503 Server Error: Service Unavailable for url: https://hal.archives-ouvertes.fr/hal-01848442/
 ]
 linkcheck_anchors = False  # saves a bit of time
 linkcheck_timeout = 15  # some can be quite slow
@@ -511,6 +511,8 @@ html_theme_options = {
     'use_edit_page_button': False,
     'navigation_with_keys': False,
     'show_toc_level': 1,
+    'navbar_end': ['version-switcher', 'navbar-icon-links'],
+    'footer_items': ['copyright'],
     'google_analytics_id': 'UA-37225609-1',
 }
 
@@ -622,7 +624,7 @@ html_context = {
              url='https://sci.aalto.fi/',
              size=md),
         dict(name='Télécom ParisTech',
-             img='Telecom_Paris_Tech.png',
+             img='Telecom_Paris_Tech.svg',
              url='https://www.telecom-paris.fr/',
              size=md),
         dict(name='University of Washington',
@@ -666,19 +668,20 @@ html_context = {
              url='https://www.uni-graz.at/',
              size=md),
     ],
+    # \u00AD is an optional hyphen (not rendered unless needed)
     'carousel': [
         dict(title='Source Estimation',
-             text='Distributed, sparse, mixed-norm, beamformers, dipole fitting, and more.',  # noqa E501
+             text='Distributed, sparse, mixed-norm, beam\u00ADformers, dipole fitting, and more.',  # noqa E501
              url='auto_tutorials/source-modeling/plot_mne_dspm_source_localization.html',  # noqa E501
              img='sphx_glr_plot_mne_dspm_source_localization_008.gif',
              alt='dSPM'),
         dict(title='Machine Learning',
-             text='Advanced decoding models including time generalization.',
+             text='Advanced decoding models including time general\u00ADiza\u00ADtion.',  # noqa E501
              url='auto_tutorials/machine-learning/plot_sensors_decoding.html',
              img='sphx_glr_plot_sensors_decoding_006.png',
              alt='Decoding'),
         dict(title='Encoding Models',
-             text='Receptive field estimation with optional smoothness priors.',  # noqa E501
+             text='Receptive field estima\u00ADtion with optional smooth\u00ADness priors.',  # noqa E501
              url='auto_tutorials/machine-learning/plot_receptive_field.html',
              img='sphx_glr_plot_receptive_field_001.png',
              alt='STRF'),
@@ -688,7 +691,7 @@ html_context = {
              img='sphx_glr_plot_stats_cluster_spatio_temporal_001.png',
              alt='Clusters'),
         dict(title='Connectivity',
-             text='All-to-all spectral and effective connectivity measures.',
+             text='All-to-all spectral and effective connec\u00ADtivity measures.',  # noqa E501
              url='auto_examples/connectivity/plot_mne_inverse_label_connectivity.html',  # noqa E501
              img='sphx_glr_plot_mne_inverse_label_connectivity_001.png',
              alt='Connectivity'),
