@@ -52,8 +52,7 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
     if x0.ndim >= 2 or s == 0:
         raise ValueError('The input data must be a non-empty 1D vector')
 
-    # cast to float, but only if we must
-    if not isinstance(x0, (np.single, np.double, np.longdouble)):
+    if x0.dtype.kind in 'uib':  # integer dtype
         x0 = x0.astype(float)
 
     eps = 1e2 * np.finfo(x0.dtype).eps
