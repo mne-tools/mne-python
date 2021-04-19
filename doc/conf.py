@@ -834,6 +834,7 @@ for icon, cls in icons.items():
     <i class="fa{cls} fa-{icon[3:] if fw else icon}{fw}"></i>
 '''
 
+# -- website redirects --------------------------------------------------------
 
 # Static list created 2021/04/13 based on what we needed to redirect,
 # since we don't need to add redirects for examples added after this date.
@@ -926,9 +927,63 @@ needed_plot_redirects = {
     'vector_mne_solution.py', 'virtual_evoked.py', 'xdawn_denoising.py',
     'xhemi.py',
 }
+tu = 'auto_tutorials'
+di = 'discussions'
+sm = 'source-modeling'
+fw = 'forward'
+nv = 'inverse'
+sn = 'stats-sensor-space'
+sr = 'stats-source-space'
+sd = 'sample-datasets'
+ml = 'machine-learning'
+tf = 'time-freq'
+si = 'simulation'
 custom_redirects = {
     # Custom redirects (one HTML path to another, relative to outdir)
     # can be added here as fr->to key->value mappings
+    f'{tu}/evoked/plot_eeg_erp.html': f'{tu}/evoked/30_eeg_erp.html',
+    f'{tu}/evoked/plot_whitened.html': f'{tu}/evoked/40_whitened.html',
+    f'{tu}/misc/plot_modifying_data_inplace.html': f'{tu}/intro/15_inplace.html',  # noqa E501
+    f'{tu}/misc/plot_report.html': f'{tu}/intro/70_report.html',
+    f'{tu}/misc/plot_seeg.html': f'{tu}/clinical/20_seeg.html',
+    f'{tu}/misc/plot_ecog.html': f'{tu}/clinical/30_ecog.html',
+    f'{tu}/{ml}/plot_receptive_field.html': f'{tu}/{ml}/30_strf.html',
+    f'{tu}/{ml}/plot_sensors_decoding.html': f'{tu}/{ml}/50_decoding.html',
+    f'{tu}/{sm}/plot_background_freesurfer.html': f'{tu}/{fw}/10_background_freesurfer.html',  # noqa E501
+    f'{tu}/{sm}/plot_source_alignment.html': f'{tu}/{fw}/20_source_alignment.html',  # noqa E501
+    f'{tu}/{sm}/plot_forward.html': f'{tu}/{fw}/30_forward.html',
+    f'{tu}/{sm}/plot_eeg_no_mri.html': f'{tu}/{fw}/35_eeg_no_mri.html',
+    f'{tu}/{sm}/plot_background_freesurfer_mne.html': f'{tu}/{fw}/50_background_freesurfer_mne.html',  # noqa E501
+    f'{tu}/{sm}/plot_fix_bem_in_blender.html': f'{tu}/{fw}/80_fix_bem_in_blender.html',  # noqa E501
+    f'{tu}/{sm}/plot_compute_covariance.html': f'{tu}/{fw}/90_compute_covariance.html',  # noqa E501
+    f'{tu}/{sm}/plot_object_source_estimate.html': f'{tu}/{nv}/10_stc_class.html',  # noqa E501
+    f'{tu}/{sm}/plot_dipole_fit.html': f'{tu}/{nv}/20_dipole_fit.html',
+    f'{tu}/{sm}/plot_mne_dspm_source_localization.html': f'{tu}/{nv}/30_mne_dspm_loreta.html',  # noqa E501
+    f'{tu}/{sm}/plot_dipole_orientations.html': f'{tu}/{nv}/35_dipole_orientations.html',  # noqa E501
+    f'{tu}/{sm}/plot_mne_solutions.html': f'{tu}/{nv}/40_mne_fixed_free.html',
+    f'{tu}/{sm}/plot_beamformer_lcmv.html': f'{tu}/{nv}/50_beamformer_lcmv.html',  # noqa E501
+    f'{tu}/{sm}/plot_visualize_stc.html': f'{tu}/{nv}/60_visualize_stc.html',
+    f'{tu}/{sm}/plot_eeg_mri_coords.html': f'{tu}/{nv}/70_eeg_mri_coords.html',
+    f'{tu}/{sd}/plot_brainstorm_phantom_elekta.html': f'{tu}/{nv}/80_brainstorm_phantom_elekta.html',  # noqa E501
+    f'{tu}/{sd}/plot_brainstorm_phantom_ctf.html': f'{tu}/{nv}/85_brainstorm_phantom_ctf.html',  # noqa E501
+    f'{tu}/{sd}/plot_phantom_4DBTi.html': f'{tu}/{nv}/90_phantom_4DBTi.html',
+    f'{tu}/{sd}/plot_brainstorm_auditory.html': f'{tu}/io/60_ctf_bst_auditory.html',  # noqa E501
+    f'{tu}/{sd}/plot_sleep.html': f'{tu}/clinical/60_sleep.html',
+    f'{tu}/{di}/plot_background_filtering.html': f'{tu}/preprocessing/25_background_filtering.html',  # noqa E501
+    f'{tu}/{di}/plot_background_statistics.html': f'{tu}/{sn}/10_background_stats.html',  # noqa E501
+    f'{tu}/{sn}/plot_stats_cluster_erp.html': f'{tu}/{sn}/20_erp_stats.html',
+    f'{tu}/{sn}/plot_stats_cluster_1samp_test_time_frequency.html': f'{tu}/{sn}/40_cluster_1samp_time_freq.html',  # noqa E501
+    f'{tu}/{sn}/plot_stats_cluster_time_frequency.html': f'{tu}/{sn}/50_cluster_between_time_freq.html',  # noqa E501
+    f'{tu}/{sn}/plot_stats_spatio_temporal_cluster_sensors.html': f'{tu}/{sn}/75_cluster_ftest_spatiotemporal.html',  # noqa E501
+    f'{tu}/{sr}/plot_stats_cluster_spatio_temporal.html': f'{tu}/{sr}/20_cluster_1samp_spatiotemporal.html',  # noqa E501
+    f'{tu}/{sr}/plot_stats_cluster_spatio_temporal_2samp.html': f'{tu}/{sr}/30_cluster_ftest_spatiotemporal.html',  # noqa E501
+    f'{tu}/{sr}/plot_stats_cluster_spatio_temporal_repeated_measures_anova.html': f'{tu}/{sr}/60_cluster_rmANOVA_spatiotemporal.html',  # noqa E501
+    f'{tu}/{sr}/plot_stats_cluster_time_frequency_repeated_measures_anova.html': f'{tu}/{sr}/70_cluster_rmANOVA_time_freq.html',  # noqa E501
+    f'{tu}/{tf}/plot_sensors_time_frequency.html': f'{tu}/{tf}/20_sensors_time_frequency.html',  # noqa E501
+    f'{tu}/{tf}/plot_ssvep.html': f'{tu}/{tf}/50_ssvep.html',
+    f'{tu}/{si}/plot_creating_data_structures.html': f'{tu}/{si}/10_array_objs.html',  # noqa E501
+    f'{tu}/{si}/plot_point_spread.html': f'{tu}/{si}/70_point_spread.html',
+    f'{tu}/{si}/plot_dics.html': f'{tu}/{si}/80_dics.html',
 }
 
 
