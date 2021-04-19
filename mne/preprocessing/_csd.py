@@ -81,6 +81,8 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
     inst_csd : instance of Raw, Epochs or Evoked
         The transformed data. Output type will match input type.
 
+    Notes
+    -----
     .. versionadded:: 0.20
 
     References
