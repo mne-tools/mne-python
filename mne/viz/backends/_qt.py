@@ -28,7 +28,7 @@ from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractStatusBar, _AbstractLayout, _AbstractWidget,
                         _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback,
                         _AbstractBrainMplCanvas, _AbstractMplInterface)
-from ._utils import _init_qt_resources, _qt_disable_paint
+from ._utils import _init_qt_resources
 from ..utils import logger
 
 
@@ -503,9 +503,8 @@ class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
 
     def show(self):
         super().show()
-        with _qt_disable_paint(self.plotter):
-            with self._window_ensure_minimum_sizes():
-                self.plotter.app_window.show()
+        with self._window_ensure_minimum_sizes():
+            self.plotter.app_window.show()
         self.plotter.update()
 
 
