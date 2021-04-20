@@ -22,7 +22,7 @@ from mne.simulation import simulate_sparse_stc, simulate_evoked
 print(__doc__)
 
 ###############################################################################
-# Load real data as templates
+# Load real data as templates:
 data_path = sample.data_path()
 
 raw = mne.io.read_raw_fif(data_path + '/MEG/sample/sample_audvis_raw.fif')
