@@ -136,7 +136,7 @@
 
 .. _Erkka Heinila: https://github.com/Teekuningas
 
-.. _Andrea Brovelli: http://www.int.univ-amu.fr/_BROVELLI-Andrea_?lang=en
+.. _Andrea Brovelli: http://andrea-brovelli.net
 
 .. _Richard Höchenberger: https://github.com/hoechenberger
 
