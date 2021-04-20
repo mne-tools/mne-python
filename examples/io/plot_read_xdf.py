@@ -25,7 +25,7 @@ from mne.datasets import misc
 fname = op.join(
     misc.data_path(), 'xdf',
     'sub-P001_ses-S004_task-Default_run-001_eeg_a2.xdf')
-streams, header = pyxdf.load_xdf(fname)  # replace with actual file name
+streams, header = pyxdf.load_xdf(fname)
 data = streams[0]["time_series"].T
 assert data.shape[0] == 5  # four raw EEG plus one stim channel
 data[:4:2] -= data[1:4:2]  # subtract (rereference) to get two bipolar EEG
