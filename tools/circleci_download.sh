@@ -17,9 +17,9 @@ else
     fi;
     echo FNAMES="$FNAMES";
     for FNAME in $FNAMES; do
-        if [[ `expr match $FNAME "\(tutorials\|examples\)/((?!sgskip).)*\.py"` ]] ; then
+        if [[ $(echo "$FNAME" | grep -P '^(tutorials|examples)(/.*)?/((?!sgskip).)*\.py$') ]] ; then
             echo "Checking example $FNAME ...";
-            PATTERN=`basename $FNAME`"\\|"$PATTERN;
+            PATTERN=$(basename $FNAME)"\\|"$PATTERN;
             if [[ $(cat $FNAME | grep -x ".*datasets.*sample.*" | wc -l) -gt 0 ]]; then
                 python -c "import mne; print(mne.datasets.sample.data_path(update_path=True))";
             fi;
