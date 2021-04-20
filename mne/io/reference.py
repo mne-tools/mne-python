@@ -48,7 +48,7 @@ def _copy_channel(inst, ch_name, new_ch_name):
 
 
 def _check_before_reference(inst, ref_from, ref_to, ch_type):
-    """Prepare instance for referencing"""
+    """Prepare instance for referencing."""
     # Check to see that data is preloaded
     _check_preload(inst, "Applying a reference")
 
@@ -440,7 +440,6 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
 
     .. versionadded:: 0.9.0
     """
-    from copy import deepcopy
     from ..io import RawArray
     from ..epochs import EpochsArray
     from ..evoked import EvokedArray
@@ -498,16 +497,13 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
                                ch_types=inst.get_channel_types(picks=anode))
 
     # Update "chs" in Reference-Info
-    for ch_idx, (an, ca, info) in enumerate(zip(anode, cathode, ch_info)):
+    for ch_idx, (an, info) in enumerate(zip(anode, ch_info)):
         _check_ch_keys(info, ch_idx, name='ch_info', check_min=False)
         an_idx = inst.ch_names.index(an)
-        ca_idx = inst.ch_names.index(ca)
         # Copy everything from anode (except ch_name)
         an_chs = {k: v for k, v in inst.info['chs'][an_idx].items()
                   if k != 'ch_name'}
         ref_info['chs'][ch_idx].update(an_chs)
-        # Replace location with location from cathode
-        ref_info['chs'][ch_idx]['loc'] = inst.info['chs'][ca_idx]['loc'].copy()
         # Set coil-type to bipolar
         ref_info['chs'][ch_idx]['coil_type'] = FIFF.FIFFV_COIL_EEG_BIPOLAR
         # Update with info from ch_info-parameter
