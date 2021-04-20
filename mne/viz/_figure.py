@@ -2135,6 +2135,9 @@ class MNEBrowseFigure(MNEFigure):
         """Redraw (convenience method for frequently grouped actions)."""
         if update_data:
             self._update_data()
+        if self.mne.vline_visible and self.mne.is_epochs:
+            # prevent flickering
+            _ = self._recompute_epochs_vlines(None)
         self._draw_traces()
         if annotations and not self.mne.is_epochs:
             self._draw_annotations()
