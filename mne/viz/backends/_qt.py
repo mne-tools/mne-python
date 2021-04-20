@@ -507,6 +507,8 @@ class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
             with self._window_ensure_minimum_sizes():
                 self.plotter.app_window.show()
         self._update()
+        for plotter in self._all_plotters:
+            plotter._render()
         self._process_events()
 
 
