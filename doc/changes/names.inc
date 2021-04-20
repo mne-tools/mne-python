@@ -1,10 +1,10 @@
 .. _Alex Gramfort: http://alexandre.gramfort.net
 
-.. _Martin Luessi: https://www.martinos.org/user/8245
+.. _Martin Luessi: https://github.com/mluessi
 
 .. _Yaroslav Halchenko: http://www.onerussian.com/
 
-.. _Daniel Strohmeier: http://www.tu-ilmenau.de/bmti/fachgebiete/biomedizinische-technik/dipl-ing-daniel-strohmeier/
+.. _Daniel Strohmeier: https://github.com/joewalter
 
 .. _Eric Larson: http://larsoner.com
 
@@ -38,7 +38,7 @@
 
 .. _Qunxi Dong: https://github.com/dongqunxi
 
-.. _Martin Billinger: https://github.com/kazemakase
+.. _Martin Billinger: https://github.com/mbillingr
 
 .. _Federico Raimondo: https://github.com/fraimondo
 
@@ -68,7 +68,7 @@
 
 .. _Yousra Bekhti: https://www.linkedin.com/pub/yousra-bekhti/56/886/421
 
-.. _Mark Wronkiewicz: http://ilabs.washington.edu/graduate-students/bio/i-labs-mark-wronkiewicz
+.. _Mark Wronkiewicz: https://ml.jpl.nasa.gov/people/wronkiewicz/wronkiewicz.html
 
 .. _Sébastien Marti: http://www.researchgate.net/profile/Sebastien_Marti
 
@@ -88,15 +88,15 @@
 
 .. _Jukka Nenonen: https://www.linkedin.com/pub/jukka-nenonen/28/b5a/684
 
-.. _Jussi Nurminen: https://scholar.google.fi/citations?user=R6CQz5wAAAAJ&hl=en
+.. _Jussi Nurminen: https://github.com/jjnurminen
 
-.. _Clemens Brunner: https://github.com/cle1109
+.. _Clemens Brunner: https://github.com/cbrnr
 
 .. _Asish Panda: https://github.com/kaichogami
 
-.. _Natalie Klein: http://www.stat.cmu.edu/people/students/neklein
+.. _Natalie Klein: http://natklein.weebly.com
 
-.. _Jon Houck: https://scholar.google.com/citations?user=DNoS05IAAAAJ&hl=en
+.. _Jon Houck: https://www.mrn.org/people/jon-m.-houck/principal-investigators
 
 .. _Pablo-Arias: https://github.com/Pablo-Arias
 
@@ -122,7 +122,7 @@
 
 .. _Antti Rantala: https://github.com/Odingod
 
-.. _Keith Doelling: http://science.keithdoelling.com
+.. _Keith Doelling: https://github.com/kdoelling1919
 
 .. _Paul Pasler: https://github.com/ppasler
 
@@ -130,7 +130,7 @@
 
 .. _Annalisa Pascarella: http://www.iac.rm.cnr.it/~pasca/
 
-.. _Luke Bloy: https://scholar.google.com/citations?hl=en&user=Ad_slYcAAAAJ&view_op=list_works&sortby=pubdate
+.. _Luke Bloy: https://imaging.research.chop.edu/people/dr-luke-bloy
 
 .. _Leonardo Barbosa: https://github.com/noreun
 
@@ -188,7 +188,7 @@
 
 .. _Thomas Hartmann: https://github.com/thht
 
-.. _Steven Gutstein: http://robust.cs.utep.edu/~gutstein
+.. _Steven Gutstein: http://vll.cs.utep.edu/team.html
 
 .. _Peter Molfese: https://github.com/pmolfese
 
@@ -232,9 +232,9 @@
 
 .. _Guillaume Favelier: https://github.com/GuillaumeFavelier
 
-.. _Katarina Slama: https://katarinaslama.github.io
+.. _Katarina Slama: https://github.com/katarinaslama
 
-.. _Bruno Nicenboim: http://nicenboim.org
+.. _Bruno Nicenboim: https://bnicenboim.github.io
 
 .. _Ivana Kojcic: https://github.com/ikojcic
 
@@ -288,7 +288,7 @@
 
 .. _Chun-Hui Li: https://github.com/iamsc
 
-.. _Christian O'Reilly: https://scholar.google.ca/citations?user=NllRAkwAAAAJ&hl=en
+.. _Christian O'Reilly: https://github.com/christian-oreilly
 
 .. _Yu-Han Luo: https://github.com/yh-luo
 
