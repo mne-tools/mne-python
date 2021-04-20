@@ -34,7 +34,7 @@ data[:2] *= (1e-6 / 50 / 2)  # uV -> V and preamp gain
 sfreq = float(streams[0]["info"]["nominal_srate"][0])
 info = mne.create_info(3, sfreq, ["eeg", "eeg", "stim"])
 raw = mne.io.RawArray(data, info)
-raw.plot(scalings=dict(eeg=100e-6), duration=1, start=12)
+raw.plot(scalings=dict(eeg=100e-6), duration=1, start=14)
 
 ###############################################################################
 # References
