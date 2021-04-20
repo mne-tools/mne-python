@@ -6,7 +6,6 @@
 
 import numpy as np
 
-import mne
 from .constants import FIFF
 from .meas_info import _check_ch_keys
 from .proj import _has_eeg_average_ref_proj, make_eeg_average_ref_proj
@@ -392,8 +391,8 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
     virtual channels will be created. The 1st cathode will be subtracted
     from the 1st anode, the 2nd cathode from the 2nd anode, etc.
 
-    By default, the virtual channels will be annotated with channel info and
-    location of the anodes and coil types set to EEG_BIPOLAR.
+    By default, the virtual channels will be annotated with channel-info and
+    -location of the anodes and coil types will be set to EEG_BIPOLAR.
 
     Parameters
     ----------
@@ -440,6 +439,7 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
 
     .. versionadded:: 0.9.0
     """
+    from .meas_info import create_info
     from ..io import RawArray
     from ..epochs import EpochsArray
     from ..evoked import EvokedArray
@@ -485,37 +485,36 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
     anode = _check_before_reference(inst, ref_from=cathode,
                                     ref_to=anode, ch_type='auto')
 
-    # Create bipolar reference channels by multiplying the data (channels x
-    # time) with a matrix n_virtual_channels x channels
-    # and add them to the instance
+    # Create bipolar reference channels by multiplying the data
+    # (channels x time) with a matrix (n_virtual_channels x channels)
+    # and add them to the instance.
     multiplier = np.zeros((len(anode), len(inst.ch_names)))
     for idx, (a, c) in enumerate(zip(anode, cathode)):
         multiplier[idx, inst.ch_names.index(a)] = 1
         multiplier[idx, inst.ch_names.index(c)] = -1
 
-    ref_info = mne.create_info(ch_names=ch_name, sfreq=inst.info['sfreq'],
-                               ch_types=inst.get_channel_types(picks=anode))
+    ref_info = create_info(ch_names=ch_name, sfreq=inst.info['sfreq'],
+                           ch_types=inst.get_channel_types(picks=anode))
 
-    # Update "chs" in Reference-Info
+    # Update "chs" in Reference-Info.
     for ch_idx, (an, info) in enumerate(zip(anode, ch_info)):
         _check_ch_keys(info, ch_idx, name='ch_info', check_min=False)
         an_idx = inst.ch_names.index(an)
-        # Copy everything from anode (except ch_name)
+        # Copy everything from anode (except ch_name).
         an_chs = {k: v for k, v in inst.info['chs'][an_idx].items()
                   if k != 'ch_name'}
         ref_info['chs'][ch_idx].update(an_chs)
-        # Set coil-type to bipolar
+        # Set coil-type to bipolar.
         ref_info['chs'][ch_idx]['coil_type'] = FIFF.FIFFV_COIL_EEG_BIPOLAR
-        # Update with info from ch_info-parameter
+        # Update with info from ch_info-parameter.
         ref_info['chs'][ch_idx].update(info)
 
-    # Set other info-keys which are similar to original instance to avoid
-    # them being set to None (different values) when infos are merged later in
-    # "add_channels"
+    # Set other info-keys from original instance.
     pick_info = {k: v for k, v in inst.info.items() if k not in
                  ['chs', 'ch_names', 'bads', 'nchan', 'sfreq']}
     ref_info.update(pick_info)
 
+    # Rereferencing of data.
     ref_data = multiplier @ inst._data
 
     if isinstance(inst, BaseRaw):
@@ -530,6 +529,7 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
                                comment=inst.comment, nave=inst.nave,
                                kind='average')
 
+    # Add referenced instance to original instance.
     inst.add_channels([ref_inst], force_update_info=True)
 
     added_channels = ', '.join([name for name in ch_name])
