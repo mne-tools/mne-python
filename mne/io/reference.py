@@ -6,6 +6,7 @@
 
 import numpy as np
 
+import mne
 from .constants import FIFF
 from .meas_info import _check_ch_keys
 from .proj import _has_eeg_average_ref_proj, make_eeg_average_ref_proj
@@ -385,15 +386,14 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
 
     A bipolar reference takes the difference between two channels (the anode
     minus the cathode) and adds it as a new virtual channel. The original
-    channels will be dropped.
+    channels will be dropped by default.
 
     Multiple anodes and cathodes can be specified, in which case multiple
     virtual channels will be created. The 1st cathode will be subtracted
     from the 1st anode, the 2nd cathode from the 2nd anode, etc.
 
-    By default, the virtual channels will be annotated with channel info of
-    the anodes, their locations set to (0, 0, 0) and coil types set to
-    EEG_BIPOLAR.
+    By default, the virtual channels will be annotated with channel info and
+    location of the anodes and coil types set to EEG_BIPOLAR.
 
     Parameters
     ----------
@@ -440,6 +440,11 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
 
     .. versionadded:: 0.9.0
     """
+    from copy import deepcopy
+    from ..io import RawArray
+    from ..epochs import EpochsArray
+    from ..evoked import EvokedArray
+
     _check_can_reref(inst)
     if not isinstance(anode, list):
         anode = [anode]
@@ -489,32 +494,49 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
         multiplier[idx, inst.ch_names.index(a)] = 1
         multiplier[idx, inst.ch_names.index(c)] = -1
 
-    # Create new instances (create each from single channel to allow same
-    # channel in anode multiple times)
-    ref_instances = list()
-    for ch_idx, (an, ca, name, info) in enumerate(zip(anode, cathode,
-                                                      ch_name, ch_info)):
+    ref_info = mne.create_info(ch_names=ch_name, sfreq=inst.info['sfreq'],
+                               ch_types=inst.get_channel_types(picks=anode))
+
+    # Update "chs" in Reference-Info
+    for ch_idx, (an, ca, info) in enumerate(zip(anode, cathode, ch_info)):
         _check_ch_keys(info, ch_idx, name='ch_info', check_min=False)
+        an_idx = inst.ch_names.index(an)
         ca_idx = inst.ch_names.index(ca)
+        # Copy everything from anode (except ch_name)
+        an_chs = {k: v for k, v in inst.info['chs'][an_idx].items()
+                  if k != 'ch_name'}
+        ref_info['chs'][ch_idx].update(an_chs)
+        # Replace location with location from cathode
+        ref_info['chs'][ch_idx]['loc'] = inst.info['chs'][ca_idx]['loc'].copy()
+        # Set coil-type to bipolar
+        ref_info['chs'][ch_idx]['coil_type'] = FIFF.FIFFV_COIL_EEG_BIPOLAR
+        # Update with info from ch_info-parameter
+        ref_info['chs'][ch_idx].update(info)
 
-        # Merge specified and anode channel information dictionaries
-        add_inst = inst.copy().pick(an)
-        add_inst.rename_channels({an: name})
-        # Use location of cathode
-        add_inst.info['chs'][0]['loc'] = inst.info['chs'][ca_idx][
-            'loc'].copy()
-        add_inst.info['chs'][0]['coil_type'] = FIFF.FIFFV_COIL_EEG_BIPOLAR
-        add_inst.info['chs'][0].update(info)
-        ref_instances.append(add_inst)
+    # Set other info-keys which are similar to original instance to avoid
+    # them being set to None (different values) when infos are merged later in
+    # "add_channels"
+    pick_info = {k: v for k, v in inst.info.items() if k not in
+                 ['chs', 'ch_names', 'bads', 'nchan', 'sfreq']}
+    ref_info.update(pick_info)
 
-    ref_inst = ref_instances[0].add_channels(ref_instances[1:],
-                                             force_update_info=True)
+    ref_data = multiplier @ inst._data
 
-    ref_inst._data = multiplier @ inst._data
+    if isinstance(inst, BaseRaw):
+        ref_inst = RawArray(ref_data, ref_info, first_samp=inst.first_samp,
+                            copy=None)
+    elif isinstance(inst, BaseEpochs):
+        ref_inst = EpochsArray(ref_data, ref_info, events=inst.events,
+                               tmin=inst.tmin, event_id=inst.event_id,
+                               metadata=inst.metadata)
+    else:
+        ref_inst = EvokedArray(ref_data, ref_info, tmin=inst.tmin,
+                               comment=inst.comment, nave=inst.nave,
+                               kind='average')
 
     inst.add_channels([ref_inst], force_update_info=True)
 
-    added_channels = '\n'.join([name for name in ch_name])
+    added_channels = ', '.join([name for name in ch_name])
     logger.info(f'Added the following bipolar channels:\n{added_channels}')
 
     for attr_name in ['picks', '_projector']:
