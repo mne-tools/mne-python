@@ -1,4 +1,6 @@
 """
+.. _ex-xdawn-denoising:
+
 ===============
 XDAWN Denoising
 ===============

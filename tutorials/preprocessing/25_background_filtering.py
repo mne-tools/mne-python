@@ -14,8 +14,15 @@ Parks & Burrus (1987) :footcite:`ParksBurrus1987`
 and Ifeachor & Jervis (2002) :footcite:`IfeachorJervis2002`,
 and for filtering in an M/EEG context we recommend reading
 Widmann *et al.* (2015) :footcite:`WidmannEtAl2015`.
-To see how to use the default filters in MNE-Python on actual data, see
-the :ref:`tut-filter-resample` tutorial.
+
+.. note::
+
+   This tutorial goes pretty deep into the mathematics of filtering and the
+   design decisions that go into choosing a filter. If you just want to know
+   how to apply the default filters in MNE-Python to your data, skip this
+   tutorial and read :ref:`tut-filter-resample` instead (but someday, you
+   should come back and read this one too 🙂).
+
 
 Problem statement
 =================

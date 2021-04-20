@@ -1,4 +1,6 @@
 """
+.. _ex-eeg-on-scalp:
+
 =================================
 Plotting EEG sensors on the scalp
 =================================

@@ -253,8 +253,7 @@ print("Leadfield size : %d sensors x %d dipoles" % leadfield.shape)
 # Exercise
 # --------
 #
-# By looking at
-# :ref:`sphx_glr_auto_examples_forward_plot_forward_sensitivity_maps.py`
+# By looking at :ref:`ex-sensitivity-maps`
 # plot the sensitivity maps for EEG and compare it with the MEG, can you
 # justify the claims that:
 #

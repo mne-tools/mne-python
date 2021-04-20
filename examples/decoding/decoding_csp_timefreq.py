@@ -1,4 +1,6 @@
 """
+.. _ex-decoding-csp-eeg-timefreq:
+
 ====================================================================
 Decoding in time-frequency space using Common Spatial Patterns (CSP)
 ====================================================================

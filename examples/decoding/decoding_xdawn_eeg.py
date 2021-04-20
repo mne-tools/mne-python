@@ -1,4 +1,6 @@
 """
+.. _ex-xdawn-decoding:
+
 ============================
 XDAWN Decoding From EEG data
 ============================
