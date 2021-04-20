@@ -212,19 +212,8 @@ because the inherent flexibility of the XDF format makes it difficult to
 provide a one-size-fits-all function. For example, XDF supports signals from
 various modalities recorded with different sampling rates. However, it is
 relatively straightforward to import only a specific stream (such as EEG
-signals) using the `pyxdf <https://github.com/xdf-modules/pyxdf>`_ package. The
-following code snippet demonstrates the basic mechanisms how this could work:
-
-.. code-block:: python
-
-   import pyxdf
-
-   streams, header = pyxdf.load_xdf(filename)  # replace with actual file name
-   data = streams[0]["time_series"].T
-   n_chans = int(streams[0]["info"]["channel_count"][0])
-   sfreq = float(streams[0]["info"]["nominal_srate"][0])
-   info = mne.create_info(n_chans, sfreq, "eeg")
-   raw = mne.io.RawArray(data, info)
+signals) using the `pyxdf <https://github.com/xdf-modules/pyxdf>`_ package.
+See :ref:`ex-read-xdf` for a simple example.
 
 A more sophisticated version, which supports selection of specific streams as
 well as converting marker streams into annotations, is available in
