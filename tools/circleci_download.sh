@@ -12,12 +12,12 @@ else
     echo "Doing a partial build";
     FNAMES=$(git diff --name-only $(git merge-base $CIRCLE_BRANCH upstream/main) $CIRCLE_BRANCH);
     if [[ $(cat gitlog.txt) == *"[circle front]"* ]]; then
-        FNAMES="tutorials/source-modeling/plot_mne_dspm_source_localization.py tutorials/machine-learning/plot_receptive_field.py examples/connectivity/plot_mne_inverse_label_connectivity.py tutorials/machine-learning/plot_sensors_decoding.py tutorials/stats-source-space/plot_stats_cluster_spatio_temporal.py tutorials/evoked/plot_20_visualize_evoked.py "${FNAMES};
+        FNAMES="tutorials/inverse/30_mne_dspm_loreta.py tutorials/machine-learning/30_strf.py examples/connectivity/mne_inverse_label_connectivity.py tutorials/machine-learning/50_decoding.py tutorials/stats-source-space/20_cluster_1samp_spatiotemporal.py tutorials/evoked/20_visualize_evoked.py "${FNAMES};
         python -c "import mne; print(mne.datasets.testing.data_path(update_path=True))";
     fi;
     echo FNAMES="$FNAMES";
     for FNAME in $FNAMES; do
-        if [[ `expr match $FNAME "\(tutorials\|examples\)/.*plot_.*\.py"` ]] ; then
+        if [[ `expr match $FNAME "\(tutorials\|examples\)/((?!sgskip).)*\.py"` ]] ; then
             echo "Checking example $FNAME ...";
             PATTERN=`basename $FNAME`"\\|"$PATTERN;
             if [[ $(cat $FNAME | grep -x ".*datasets.*sample.*" | wc -l) -gt 0 ]]; then
