@@ -370,12 +370,8 @@ def test_set_bipolar_reference(inst_type):
     # Check channel information
     bp_info = reref.info['chs'][reref.ch_names.index('bipolar')]
     an_info = inst.info['chs'][inst.ch_names.index('EEG 001')]
-    ca_info = inst.info['chs'][inst.ch_names.index('EEG 002')]
     for key in bp_info:
-        if key == 'loc':
-            assert_array_equal(bp_info[key], ca_info[key],
-                               err_msg=f'Key={key}')
-        elif key == 'coil_type':
+        if key == 'coil_type':
             assert_equal(bp_info[key], FIFF.FIFFV_COIL_EEG_BIPOLAR,
                          err_msg=f'Key={key}')
         elif key == 'kind':
