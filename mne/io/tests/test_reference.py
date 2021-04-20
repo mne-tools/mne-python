@@ -373,13 +373,17 @@ def test_set_bipolar_reference(inst_type):
     ca_info = inst.info['chs'][inst.ch_names.index('EEG 002')]
     for key in bp_info:
         if key == 'loc':
-            assert_array_equal(bp_info[key], ca_info[key])
+            assert_array_equal(bp_info[key], ca_info[key],
+                               err_msg=f'Key={key}')
         elif key == 'coil_type':
-            assert_equal(bp_info[key], FIFF.FIFFV_COIL_EEG_BIPOLAR)
+            assert_equal(bp_info[key], FIFF.FIFFV_COIL_EEG_BIPOLAR,
+                         err_msg=f'Key={key}')
         elif key == 'kind':
-            assert_equal(bp_info[key], FIFF.FIFFV_EOG_CH)
+            assert_equal(bp_info[key], FIFF.FIFFV_EOG_CH,
+                         err_msg=f'Key={key}')
         elif key != 'ch_name':
-            assert_equal(bp_info[key], an_info[key])
+            assert_equal(bp_info[key], an_info[key],
+                         err_msg=f'Key={key}')
 
     # Minimalist call
     reref = set_bipolar_reference(inst, 'EEG 001', 'EEG 002')
