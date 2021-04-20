@@ -268,7 +268,7 @@ renderer.show()
 # images. Here's what that would look like (we'll use the nasion landmark as a
 # representative example):
 
-# Get the nasion
+# Get the nasion:
 nasion = [p for p in raw.info['dig'] if
           p['kind'] == FIFF.FIFFV_POINT_CARDINAL and
           p['ident'] == FIFF.FIFFV_POINT_NASION][0]
