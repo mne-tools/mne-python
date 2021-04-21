@@ -45,8 +45,8 @@ raw.crop(tmax=60).load_data()
 # you can even pass lists or arrays to the `~mne.Annotations`
 # constructor to annotate multiple spans at once:
 
-my_annot = mne.Annotations(onset=[3, 5, 7],
-                           duration=[1, 0.5, 0.25],
+my_annot = mne.Annotations(onset=[3, 5, 7],  # in seconds
+                           duration=[1, 0.5, 0.25],  # in seconds, too
                            description=['AAA', 'BBB', 'CCC'])
 print(my_annot)
 
