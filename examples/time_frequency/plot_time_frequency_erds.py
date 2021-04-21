@@ -115,10 +115,9 @@ for event in event_ids:
     fig.show()
 
 ##############################################################################
-# Similar as for :class:`~mne.Epochs` objects, we can also export data from
-# :class:`~mne.time_frequency.EpochsTFR` and
-# `~mne.time_frequency.AverageTFR` objects to a
-# :class:`Pandas DataFrame <pandas.DataFrame>`:
+# Similar to `~mne.Epochs` objects, we can also export data from
+# `~mne.time_frequency.EpochsTFR` and `~mne.time_frequency.AverageTFR` objects
+# to a :class:`Pandas DataFrame <pandas.DataFrame>`:
 
 df = tfr.to_data_frame()
 df.time = df.time / 1000  # time to s
