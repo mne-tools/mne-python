@@ -181,7 +181,7 @@ Enhancements
 
 - :func:`mne.preprocessing.find_eog_events` and :func:`mne.preprocessing.create_eog_epochs` now accept a list of channel names, allowing you to specify multiple EOG channels at once (:gh:`9269` by `Richard Höchenberger`_)
 
-- Increase performance of :func:`mne.set_bipolar_reference` (:gh:`9270` by `Martin Schulz`_)
+- Improve performance of :func:`mne.set_bipolar_reference` (:gh:`9270` by `Martin Schulz`_)
 
 Bugs
 ~~~~
