@@ -119,8 +119,7 @@ for event in event_ids:
 # `~mne.time_frequency.EpochsTFR` and `~mne.time_frequency.AverageTFR` objects
 # to a :class:`Pandas DataFrame <pandas.DataFrame>`:
 
-df = tfr.to_data_frame()
-df.time = df.time / 1000  # time to s
+df = tfr.to_data_frame(time_format=None)
 df.head()
 
 ##############################################################################
