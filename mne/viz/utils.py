@@ -996,7 +996,8 @@ def _onpick_sensor(event, fig, ax, pos, ch_names, show_names):
     if len(this_pos) == 3:
         ax.text(this_pos[0], this_pos[1], this_pos[2], ch_name)
     else:
-        ax.text(this_pos[0], this_pos[1], ch_name)
+        ax.text(this_pos[0] + 0.01, this_pos[1], ch_name, va='center_baseline',
+                backgroundcolor='whitesmoke')
     fig.canvas.draw()
 
 
