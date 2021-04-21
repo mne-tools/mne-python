@@ -2257,10 +2257,13 @@ class _ReportScraper(object):
                     fid.write(_FA_FILE_CODE)
                 # copy HTML file
                 html_fname = op.basename(report.fname)
-                out_fname = op.join(
+                out_dir = op.join(
                     self.app.builder.outdir,
                     op.relpath(op.dirname(block_vars['target_file']),
-                               self.app.builder.srcdir), html_fname)
+                               self.app.builder.srcdir))
+                os.makedirs(out_dir, exist_ok=True)
+                out_fname = op.join(out_dir, html_fname)
+                assert op.isfile(report.fname)
                 self.files[report.fname] = out_fname
                 # embed links/iframe
                 data = _SCRAPER_TEXT.format(html_fname)
