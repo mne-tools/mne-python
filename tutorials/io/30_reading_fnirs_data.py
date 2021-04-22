@@ -117,8 +117,8 @@ data = pd.read_csv('fnirs.csv')
 # contain information about channel names, types, sample rate etc.
 #
 # .. warning:: In MNE the naming of channels MUST follow the structure of
-#              `S#_D# type` where # is replaced by the appropriate source and
-#              detector numbers and type is either `hbo`, `hbr` or the
+#              ``S#_D# type`` where # is replaced by the appropriate source and
+#              detector numbers and type is either ``hbo``, ``hbr`` or the
 #              wavelength.
 
 ch_names = ['S1_D1 hbo', 'S1_D1 hbr', 'S2_D1 hbo', 'S2_D1 hbr',
