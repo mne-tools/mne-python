@@ -1412,10 +1412,10 @@ class MNEBrowseFigure(MNEFigure):
                     annot = ax.fill_betweenx(ylim, *visible_segment, **kwargs)
                     self.mne.annotations.append(annot)
                     xy = (visible_segment.mean(), ylim[1])
-                    text = ax.annotate(descr, xy, xytext=(0, 9),
-                                       textcoords='offset points', ha='center',
-                                       va='baseline', color=segment_color)
-                    self.mne.annotation_texts.append(text)
+                    # text = ax.annotate(descr, xy, xytext=(0, 9),
+                    #                    textcoords='offset points', ha='center',
+                    #                    va='baseline', color=segment_color)
+                    # self.mne.annotation_texts.append(text)
 
     def _update_annotation_segments(self):
         """Update the array of annotation start/end times."""
