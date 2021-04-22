@@ -62,7 +62,7 @@ If triggers are sent using the ``digaux`` port of the recording hardware, MNE
 will also read the ``digaux`` data and create annotations for any triggers.
 
 
-Loading legacy data in csv or tsv format
+Loading legacy data in CSV or TSV format
 ========================================
 
 .. warning:: This method is not supported and users are discoraged to use it.
@@ -71,14 +71,13 @@ Loading legacy data in csv or tsv format
              provided by the Society for functional Near-Infrared Spectroscopy,
              and then load it using :func:`mne.io.read_raw_snirf`.
 
-fNIRS measurements often have a non-standardised format that is not supported
-by MNE and cannot be converted easily into SNIRF. However if it is possible to
-store this data in a legacy csv or tsv format, we show here a way to load it
-even though it is not officially supported by MNE due to the lack of
-standardisation of the file format (the naming and ordering of channels, the
-type and scaling of data, and specification of sensor positions varies between
-each vendor). You will likely have to adapt this depending on the system from
-which your CSV originated.
+fNIRS measurements can have a non-standardised format that is not supported by
+MNE and cannot be converted easily into SNIRF. This legacy data is often in CSV
+or TSV format, we show here a way to load it even though it is not officially
+supported by MNE due to the lack of standardisation of the file format (the
+naming and ordering of channels, the type and scaling of data, and
+specification of sensor positions varies between each vendor). You will likely
+have to adapt this depending on the system from which your CSV originated.
 """  # noqa:E501
 
 import numpy as np
@@ -88,7 +87,7 @@ import mne
 # sphinx_gallery_thumbnail_number = 2
 
 ###############################################################################
-# First, we generate an example csv file which will then be loaded in to MNE.
+# First, we generate an example CSV file which will then be loaded in to MNE.
 # This step would be skipped if you have actual data you wish to load.
 # We simulate 16 channels with 100 samples of data and save this to a file
 # called fnirs.csv.
@@ -108,15 +107,19 @@ pd.DataFrame(np.random.normal(size=(16, 100))).to_csv("fnirs.csv")
 #              channel naming according to the data structure, then reorder
 #              the channels to match the required format.
 #
-# Next, we will load the example csv file.
-# The metadata must be specified manually as the csv file does not contain
-# information about channel names, types, sample rate etc.
+# Next, we will load the example CSV file.
 
 data = pd.read_csv('fnirs.csv')
 
-# In MNE the naming of channels MUST follow this structure of `S#_D# type`
-# where # is replaced by the appropriate source and detector numbers and type
-# is either hbo or hbr.
+
+###############################################################################
+# Then, the metadata must be specified manually as the CSV file does not
+# contain information about channel names, types, sample rate etc.
+#
+# .. warning:: In MNE the naming of channels MUST follow the structure of
+#              `S#_D# type` where # is replaced by the appropriate source and
+#              detector numbers and type is either `hbo`, `hbr` or the
+#              wavelength.
 
 ch_names = ['S1_D1 hbo', 'S1_D1 hbr', 'S2_D1 hbo', 'S2_D1 hbr',
             'S3_D1 hbo', 'S3_D1 hbr', 'S4_D1 hbo', 'S4_D1 hbr',

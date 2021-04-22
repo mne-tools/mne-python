@@ -738,14 +738,16 @@ def _set_montage_fnirs(info, montage):
     from ..preprocessing.nirs import (_channel_frequencies,
                                       _channel_chromophore,
                                       _check_channels_ordered)
-    # Modify info['chs'][#]['loc'] in place
-    num_ficiduals = len(montage.dig) - len(montage.ch_names)
+    # Validate that the fNIRS info is correctly formatted
     freqs = np.unique(_channel_frequencies(info))
     if freqs.size > 0:
         picks = _check_channels_ordered(info, freqs)
     else:
         picks = _check_channels_ordered(info,
                                         np.unique(_channel_chromophore(info)))
+
+    # Modify info['chs'][#]['loc'] in place
+    num_ficiduals = len(montage.dig) - len(montage.ch_names)
     for ch_idx in picks:
         ch = info['chs'][ch_idx]['ch_name']
         source, detector = ch.split(' ')[0].split('_')
