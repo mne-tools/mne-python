@@ -1,7 +1,8 @@
+# requirements for building docs
 sphinx
 https://github.com/numpy/numpydoc/archive/main.zip
 pydata-sphinx-theme==0.6.1
-sphinx-gallery
+https://github.com/sphinx-gallery/sphinx-gallery/archive/master.zip
 sphinxcontrib-bibtex>=2.1.2
 memory_profiler
 neo
