@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 from distutils.version import LooseVersion
 
 import matplotlib
+import sphinx
 import sphinx_gallery
 from sphinx_gallery.sorting import FileNameSortKey, ExplicitOrder
 from numpydoc import docscrape
@@ -87,6 +88,7 @@ extensions = [
     'gen_commands',
     'gh_substitutions',
     'mne_substitutions',
+    'gen_names',
     'sphinx_bootstrap_divs',
     'sphinxcontrib.bibtex',
     'sphinx_copybutton',
@@ -362,13 +364,14 @@ sphinx_gallery_conf = {
                                        '../tutorials/epochs/',
                                        '../tutorials/evoked/',
                                        '../tutorials/time-freq/',
-                                       '../tutorials/source-modeling/',
+                                       '../tutorials/forward/',
+                                       '../tutorials/inverse/',
                                        '../tutorials/stats-sensor-space/',
                                        '../tutorials/stats-source-space/',
                                        '../tutorials/machine-learning/',
+                                       '../tutorials/clinical/',
                                        '../tutorials/simulation/',
                                        '../tutorials/sample-datasets/',
-                                       '../tutorials/discussions/',
                                        '../tutorials/misc/']),
     'gallery_dirs': gallery_dirs,
     'default_thumb_file': os.path.join('_static', 'mne_helmet.png'),
@@ -387,7 +390,10 @@ sphinx_gallery_conf = {
     'junit': os.path.join('..', 'test-results', 'sphinx-gallery', 'junit.xml'),
     'matplotlib_animations': True,
     'compress_images': ('images', 'thumbnails'),
+    'filename_pattern': '^((?!sgskip).)*$',
 }
+# Files were renamed from plot_* with:
+# find . -type f -name 'plot_*.py' -exec sh -c 'x="{}"; xn=`basename "${x}"`; git mv "$x" `dirname "${x}"`/${xn:5}' \;  # noqa
 
 
 def append_attr_meth_examples(app, what, name, obj, options, lines):
@@ -415,6 +421,7 @@ def append_attr_meth_examples(app, what, name, obj, options, lines):
 linkcheck_request_headers = dict(user_agent='Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36')  # noqa: E501
 linkcheck_ignore = [  # will be compiled to regex
     r'https://datashare.is.ed.ac.uk/handle/10283/2189\?show=full',  # noqa Max retries exceeded with url: /handle/10283/2189?show=full (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1123)')))
+    'https://doi.org/10.1002/mds.870120629',  # Read timed out.
     'https://doi.org/10.1088/0031-9155/32/1/004',  # noqa Read timed out. (read timeout=15)
     'https://doi.org/10.1088/0031-9155/40/3/001',  # noqa Read timed out. (read timeout=15)
     'https://doi.org/10.1088/0031-9155/51/7/008',  # noqa Read timed out. (read timeout=15)
@@ -511,6 +518,8 @@ html_theme_options = {
     'use_edit_page_button': False,
     'navigation_with_keys': False,
     'show_toc_level': 1,
+    'navbar_end': ['version-switcher', 'navbar-icon-links'],
+    'footer_items': ['copyright'],
     'google_analytics_id': 'UA-37225609-1',
 }
 
@@ -622,7 +631,7 @@ html_context = {
              url='https://sci.aalto.fi/',
              size=md),
         dict(name='Télécom ParisTech',
-             img='Telecom_Paris_Tech.png',
+             img='Telecom_Paris_Tech.svg',
              url='https://www.telecom-paris.fr/',
              size=md),
         dict(name='University of Washington',
@@ -666,36 +675,37 @@ html_context = {
              url='https://www.uni-graz.at/',
              size=md),
     ],
+    # \u00AD is an optional hyphen (not rendered unless needed)
     'carousel': [
         dict(title='Source Estimation',
-             text='Distributed, sparse, mixed-norm, beamformers, dipole fitting, and more.',  # noqa E501
-             url='auto_tutorials/source-modeling/plot_mne_dspm_source_localization.html',  # noqa E501
-             img='sphx_glr_plot_mne_dspm_source_localization_008.gif',
+             text='Distributed, sparse, mixed-norm, beam\u00ADformers, dipole fitting, and more.',  # noqa E501
+             url='auto_tutorials/inverse/30_mne_dspm_loreta.html',
+             img='sphx_glr_30_mne_dspm_loreta_008.gif',
              alt='dSPM'),
         dict(title='Machine Learning',
-             text='Advanced decoding models including time generalization.',
-             url='auto_tutorials/machine-learning/plot_sensors_decoding.html',
-             img='sphx_glr_plot_sensors_decoding_006.png',
+             text='Advanced decoding models including time general\u00ADiza\u00ADtion.',  # noqa E501
+             url='auto_tutorials/machine-learning/50_decoding.html',
+             img='sphx_glr_50_decoding_006.png',
              alt='Decoding'),
         dict(title='Encoding Models',
-             text='Receptive field estimation with optional smoothness priors.',  # noqa E501
-             url='auto_tutorials/machine-learning/plot_receptive_field.html',
-             img='sphx_glr_plot_receptive_field_001.png',
+             text='Receptive field estima\u00ADtion with optional smooth\u00ADness priors.',  # noqa E501
+             url='auto_tutorials/machine-learning/30_strf.html',
+             img='sphx_glr_30_strf_001.png',
              alt='STRF'),
         dict(title='Statistics',
              text='Parametric and non-parametric, permutation tests and clustering.',  # noqa E501
-             url='auto_tutorials/stats-source-space/plot_stats_cluster_spatio_temporal.html',  # noqa E501
-             img='sphx_glr_plot_stats_cluster_spatio_temporal_001.png',
+             url='auto_tutorials/stats-source-space/20_cluster_1samp_spatiotemporal.html',  # noqa E501
+             img='sphx_glr_20_cluster_1samp_spatiotemporal_001.png',
              alt='Clusters'),
         dict(title='Connectivity',
-             text='All-to-all spectral and effective connectivity measures.',
-             url='auto_examples/connectivity/plot_mne_inverse_label_connectivity.html',  # noqa E501
-             img='sphx_glr_plot_mne_inverse_label_connectivity_001.png',
+             text='All-to-all spectral and effective connec\u00ADtivity measures.',  # noqa E501
+             url='auto_examples/connectivity/mne_inverse_label_connectivity.html',  # noqa E501
+             img='sphx_glr_mne_inverse_label_connectivity_001.png',
              alt='Connectivity'),
         dict(title='Data Visualization',
              text='Explore your data from multiple perspectives.',
-             url='auto_tutorials/evoked/plot_20_visualize_evoked.html',
-             img='sphx_glr_plot_20_visualize_evoked_007.png',
+             url='auto_tutorials/evoked/20_visualize_evoked.py',
+             img='sphx_glr_20_visualize_evoked_007.png',
              alt='Visualization'),
     ]
 }
@@ -768,6 +778,7 @@ def reset_warnings(gallery_conf, fname):
                 r'Converting `np\.character` to a dtype is deprecated',  # vtk
                 r'sphinx\.util\.smartypants is deprecated',
                 'is a deprecated alias for the builtin',  # NumPy
+                'the old name will be removed',  # Jinja, via sphinx
                 ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)
@@ -825,8 +836,208 @@ for icon, cls in icons.items():
     <i class="fa{cls} fa-{icon[3:] if fw else icon}{fw}"></i>
 '''
 
+# -- website redirects --------------------------------------------------------
 
-# -- Connect sphinx-gallery to the main Sphinx app ---------------------------
+# Static list created 2021/04/13 based on what we needed to redirect,
+# since we don't need to add redirects for examples added after this date.
+needed_plot_redirects = {
+    # tutorials
+    '10_epochs_overview.py', '10_evoked_overview.py', '10_overview.py',
+    '10_preprocessing_overview.py', '10_raw_overview.py',
+    '10_reading_meg_data.py', '15_handling_bad_channels.py',
+    '20_event_arrays.py', '20_events_from_raw.py', '20_reading_eeg_data.py',
+    '20_rejecting_bad_data.py', '20_visualize_epochs.py',
+    '20_visualize_evoked.py', '30_annotate_raw.py', '30_epochs_metadata.py',
+    '30_filtering_resampling.py', '30_info.py', '30_reading_fnirs_data.py',
+    '35_artifact_correction_regression.py', '40_artifact_correction_ica.py',
+    '40_autogenerate_metadata.py', '40_sensor_locations.py',
+    '40_visualize_raw.py', '45_projectors_background.py',
+    '50_artifact_correction_ssp.py', '50_configure_mne.py',
+    '50_epochs_to_data_frame.py', '55_setting_eeg_reference.py',
+    '59_head_positions.py', '60_make_fixed_length_epochs.py',
+    '60_maxwell_filtering_sss.py', '70_fnirs_processing.py',
+    # examples
+    '3d_to_2d.py', 'brainstorm_data.py', 'channel_epochs_image.py',
+    'cluster_stats_evoked.py', 'compute_csd.py',
+    'compute_mne_inverse_epochs_in_label.py',
+    'compute_mne_inverse_raw_in_label.py', 'compute_mne_inverse_volume.py',
+    'compute_source_psd_epochs.py', 'covariance_whitening_dspm.py',
+    'custom_inverse_solver.py', 'cwt_sensor_connectivity.py',
+    'decoding_csp_eeg.py', 'decoding_csp_timefreq.py',
+    'decoding_spatio_temporal_source.py', 'decoding_spoc_CMC.py',
+    'decoding_time_generalization_conditions.py',
+    'decoding_unsupervised_spatial_filter.py', 'decoding_xdawn_eeg.py',
+    'define_target_events.py', 'dics_source_power.py', 'eeg_csd.py',
+    'eeg_on_scalp.py', 'eeglab_head_sphere.py', 'elekta_epochs.py',
+    'ems_filtering.py', 'eog_artifact_histogram.py', 'evoked_arrowmap.py',
+    'evoked_ers_source_power.py', 'evoked_topomap.py', 'evoked_whitening.py',
+    'fdr_stats_evoked.py', 'find_ref_artifacts.py',
+    'fnirs_artifact_removal.py', 'forward_sensitivity_maps.py',
+    'gamma_map_inverse.py', 'hf_sef_data.py', 'ica_comparison.py',
+    'interpolate_bad_channels.py', 'label_activation_from_stc.py',
+    'label_from_stc.py', 'label_source_activations.py',
+    'left_cerebellum_volume_source.py', 'limo_data.py',
+    'linear_model_patterns.py', 'linear_regression_raw.py',
+    'meg_sensors.py', 'mixed_norm_inverse.py',
+    'mixed_source_space_connectivity.py', 'mixed_source_space_inverse.py',
+    'mne_cov_power.py', 'mne_helmet.py', 'mne_inverse_coherence_epochs.py',
+    'mne_inverse_connectivity_spectrum.py',
+    'mne_inverse_envelope_correlation.py',
+    'mne_inverse_envelope_correlation_volume.py',
+    'mne_inverse_label_connectivity.py', 'mne_inverse_psi_visual.py',
+    'morph_surface_stc.py', 'morph_volume_stc.py', 'movement_compensation.py',
+    'movement_detection.py', 'multidict_reweighted_tfmxne.py',
+    'muscle_detection.py', 'opm_data.py', 'otp.py', 'parcellation.py',
+    'psf_ctf_label_leakage.py', 'psf_ctf_vertices.py',
+    'psf_ctf_vertices_lcmv.py', 'publication_figure.py', 'rap_music.py',
+    'read_inverse.py', 'read_neo_format.py', 'read_noise_covariance_matrix.py',
+    'read_stc.py', 'receptive_field_mtrf.py', 'resolution_metrics.py',
+    'resolution_metrics_eegmeg.py', 'roi_erpimage_by_rt.py',
+    'sensor_connectivity.py', 'sensor_noise_level.py',
+    'sensor_permutation_test.py', 'sensor_regression.py',
+    'shift_evoked.py', 'simulate_evoked_data.py', 'simulate_raw_data.py',
+    'simulated_raw_data_using_subject_anatomy.py', 'snr_estimate.py',
+    'source_label_time_frequency.py', 'source_power_spectrum.py',
+    'source_power_spectrum_opm.py', 'source_simulator.py',
+    'source_space_morphing.py', 'source_space_snr.py',
+    'source_space_time_frequency.py', 'ssd_spatial_filters.py',
+    'ssp_projs_sensitivity_map.py', 'temporal_whitening.py',
+    'time_frequency_erds.py', 'time_frequency_global_field_power.py',
+    'time_frequency_mixed_norm_inverse.py', 'time_frequency_simulated.py',
+    'topo_compare_conditions.py', 'topo_customized.py',
+    'vector_mne_solution.py', 'virtual_evoked.py', 'xdawn_denoising.py',
+    'xhemi.py',
+}
+tu = 'auto_tutorials'
+di = 'discussions'
+sm = 'source-modeling'
+fw = 'forward'
+nv = 'inverse'
+sn = 'stats-sensor-space'
+sr = 'stats-source-space'
+sd = 'sample-datasets'
+ml = 'machine-learning'
+tf = 'time-freq'
+si = 'simulation'
+custom_redirects = {
+    # Custom redirects (one HTML path to another, relative to outdir)
+    # can be added here as fr->to key->value mappings
+    f'{tu}/evoked/plot_eeg_erp.html': f'{tu}/evoked/30_eeg_erp.html',
+    f'{tu}/evoked/plot_whitened.html': f'{tu}/evoked/40_whitened.html',
+    f'{tu}/misc/plot_modifying_data_inplace.html': f'{tu}/intro/15_inplace.html',  # noqa E501
+    f'{tu}/misc/plot_report.html': f'{tu}/intro/70_report.html',
+    f'{tu}/misc/plot_seeg.html': f'{tu}/clinical/20_seeg.html',
+    f'{tu}/misc/plot_ecog.html': f'{tu}/clinical/30_ecog.html',
+    f'{tu}/{ml}/plot_receptive_field.html': f'{tu}/{ml}/30_strf.html',
+    f'{tu}/{ml}/plot_sensors_decoding.html': f'{tu}/{ml}/50_decoding.html',
+    f'{tu}/{sm}/plot_background_freesurfer.html': f'{tu}/{fw}/10_background_freesurfer.html',  # noqa E501
+    f'{tu}/{sm}/plot_source_alignment.html': f'{tu}/{fw}/20_source_alignment.html',  # noqa E501
+    f'{tu}/{sm}/plot_forward.html': f'{tu}/{fw}/30_forward.html',
+    f'{tu}/{sm}/plot_eeg_no_mri.html': f'{tu}/{fw}/35_eeg_no_mri.html',
+    f'{tu}/{sm}/plot_background_freesurfer_mne.html': f'{tu}/{fw}/50_background_freesurfer_mne.html',  # noqa E501
+    f'{tu}/{sm}/plot_fix_bem_in_blender.html': f'{tu}/{fw}/80_fix_bem_in_blender.html',  # noqa E501
+    f'{tu}/{sm}/plot_compute_covariance.html': f'{tu}/{fw}/90_compute_covariance.html',  # noqa E501
+    f'{tu}/{sm}/plot_object_source_estimate.html': f'{tu}/{nv}/10_stc_class.html',  # noqa E501
+    f'{tu}/{sm}/plot_dipole_fit.html': f'{tu}/{nv}/20_dipole_fit.html',
+    f'{tu}/{sm}/plot_mne_dspm_source_localization.html': f'{tu}/{nv}/30_mne_dspm_loreta.html',  # noqa E501
+    f'{tu}/{sm}/plot_dipole_orientations.html': f'{tu}/{nv}/35_dipole_orientations.html',  # noqa E501
+    f'{tu}/{sm}/plot_mne_solutions.html': f'{tu}/{nv}/40_mne_fixed_free.html',
+    f'{tu}/{sm}/plot_beamformer_lcmv.html': f'{tu}/{nv}/50_beamformer_lcmv.html',  # noqa E501
+    f'{tu}/{sm}/plot_visualize_stc.html': f'{tu}/{nv}/60_visualize_stc.html',
+    f'{tu}/{sm}/plot_eeg_mri_coords.html': f'{tu}/{nv}/70_eeg_mri_coords.html',
+    f'{tu}/{sd}/plot_brainstorm_phantom_elekta.html': f'{tu}/{nv}/80_brainstorm_phantom_elekta.html',  # noqa E501
+    f'{tu}/{sd}/plot_brainstorm_phantom_ctf.html': f'{tu}/{nv}/85_brainstorm_phantom_ctf.html',  # noqa E501
+    f'{tu}/{sd}/plot_phantom_4DBTi.html': f'{tu}/{nv}/90_phantom_4DBTi.html',
+    f'{tu}/{sd}/plot_brainstorm_auditory.html': f'{tu}/io/60_ctf_bst_auditory.html',  # noqa E501
+    f'{tu}/{sd}/plot_sleep.html': f'{tu}/clinical/60_sleep.html',
+    f'{tu}/{di}/plot_background_filtering.html': f'{tu}/preprocessing/25_background_filtering.html',  # noqa E501
+    f'{tu}/{di}/plot_background_statistics.html': f'{tu}/{sn}/10_background_stats.html',  # noqa E501
+    f'{tu}/{sn}/plot_stats_cluster_erp.html': f'{tu}/{sn}/20_erp_stats.html',
+    f'{tu}/{sn}/plot_stats_cluster_1samp_test_time_frequency.html': f'{tu}/{sn}/40_cluster_1samp_time_freq.html',  # noqa E501
+    f'{tu}/{sn}/plot_stats_cluster_time_frequency.html': f'{tu}/{sn}/50_cluster_between_time_freq.html',  # noqa E501
+    f'{tu}/{sn}/plot_stats_spatio_temporal_cluster_sensors.html': f'{tu}/{sn}/75_cluster_ftest_spatiotemporal.html',  # noqa E501
+    f'{tu}/{sr}/plot_stats_cluster_spatio_temporal.html': f'{tu}/{sr}/20_cluster_1samp_spatiotemporal.html',  # noqa E501
+    f'{tu}/{sr}/plot_stats_cluster_spatio_temporal_2samp.html': f'{tu}/{sr}/30_cluster_ftest_spatiotemporal.html',  # noqa E501
+    f'{tu}/{sr}/plot_stats_cluster_spatio_temporal_repeated_measures_anova.html': f'{tu}/{sr}/60_cluster_rmANOVA_spatiotemporal.html',  # noqa E501
+    f'{tu}/{sr}/plot_stats_cluster_time_frequency_repeated_measures_anova.html': f'{tu}/{sr}/70_cluster_rmANOVA_time_freq.html',  # noqa E501
+    f'{tu}/{tf}/plot_sensors_time_frequency.html': f'{tu}/{tf}/20_sensors_time_frequency.html',  # noqa E501
+    f'{tu}/{tf}/plot_ssvep.html': f'{tu}/{tf}/50_ssvep.html',
+    f'{tu}/{si}/plot_creating_data_structures.html': f'{tu}/{si}/10_array_objs.html',  # noqa E501
+    f'{tu}/{si}/plot_point_spread.html': f'{tu}/{si}/70_point_spread.html',
+    f'{tu}/{si}/plot_dics.html': f'{tu}/{si}/80_dics.html',
+}
+
+
+def make_redirects(app, exception):
+    """Make HTML redirects."""
+    # https://www.sphinx-doc.org/en/master/extdev/appapi.html
+    # Adapted from sphinxcontrib/redirects (BSD 2-clause)
+    if not isinstance(app.builder, sphinx.builders.html.StandaloneHTMLBuilder):
+        return
+    logger = sphinx.util.logging.getLogger('mne')
+    TEMPLATE = """\
+<!DOCTYPE HTML>
+<html lang="en-US">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="refresh" content="1; url={to}">
+        <script type="text/javascript">
+            window.location.href = "{to}"
+        </script>
+        <title>Page Redirection</title>
+    </head>
+    <body>
+        If you are not redirected automatically, follow this <a href='{to}'>link</a>.
+    </body>
+</html>"""  # noqa: E501
+    sphinx_gallery_conf = app.config['sphinx_gallery_conf']
+    for src_dir, out_dir in zip(sphinx_gallery_conf['examples_dirs'],
+                                sphinx_gallery_conf['gallery_dirs']):
+        root = os.path.abspath(os.path.join(app.srcdir, src_dir))
+        fnames = [os.path.join(os.path.relpath(dirpath, root), fname)
+                  for dirpath, _, fnames in os.walk(root)
+                  for fname in fnames
+                  if fname in needed_plot_redirects]
+        # plot_ redirects
+        for fname in fnames:
+            dirname = os.path.join(app.outdir, out_dir, os.path.dirname(fname))
+            to_fname = os.path.splitext(os.path.basename(fname))[0] + '.html'
+            fr_fname = f'plot_{to_fname}'
+            to_path = os.path.join(dirname, to_fname)
+            fr_path = os.path.join(dirname, fr_fname)
+            assert os.path.isfile(to_path), (fname, to_path)
+            with open(fr_path, 'w') as fid:
+                fid.write(TEMPLATE.format(to=to_fname))
+        logger.info(
+            f'Added {len(fnames):3d} HTML plot_* redirects for {out_dir}')
+    # custom redirects
+    for fr, to in custom_redirects.items():
+        to_path = os.path.join(app.outdir, to)
+        assert os.path.isfile(to_path), to
+        assert to_path.endswith('html'), to_path
+        fr_path = os.path.join(app.outdir, fr)
+        assert fr_path.endswith('html'), fr_path
+        # allow overwrite if existing file is just a redirect
+        if os.path.isfile(fr_path):
+            with open(fr_path, 'r') as fid:
+                for _ in range(9):
+                    next(fid)
+                line = fid.readline()
+                assert 'Page Redirection' in line, line
+        # handle folders that no longer exist
+        if fr_path.split(os.path.sep)[-2] in (
+                'misc', 'discussions', 'source-modeling', 'sample-datasets'):
+            os.makedirs(os.path.dirname(fr_path), exist_ok=True)
+        # handle links to sibling folders
+        path_parts = to.split(os.path.sep)
+        path_parts = ['..'] + path_parts[(path_parts.index(tu) + 1):]
+        with open(fr_path, 'w') as fid:
+            fid.write(TEMPLATE.format(to=os.path.join(*path_parts)))
+    logger.info(
+        f'Added {len(custom_redirects):3d} HTML custom redirects')
+
+
+# -- Connect our handlers to the main Sphinx app ---------------------------
 
 def setup(app):
     """Set up the Sphinx app."""
@@ -834,4 +1045,5 @@ def setup(app):
     if report_scraper is not None:
         report_scraper.app = app
         app.config.rst_prolog = prolog
-        app.connect('build-finished', report_scraper.copyfiles)
+        app.connect('builder-inited', report_scraper.copyfiles)
+    app.connect('build-finished', make_redirects)

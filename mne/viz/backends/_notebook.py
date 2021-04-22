@@ -342,11 +342,13 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
         display(self._tool_bar)
         # viewer
         try:
+            # pyvista<0.30.0
             viewer = self.plotter.show(
                 use_ipyvtk=True, return_viewer=True)
         except RuntimeError:
+            # pyvista>=0.30.0
             viewer = self.plotter.show(
-                backend="ipyvtk_simple", return_viewer=True)
+                jupyter_backend="ipyvtk_simple", return_viewer=True)
         viewer.layout.width = None  # unlock the fixed layout
         # main widget
         if self._dock is None:

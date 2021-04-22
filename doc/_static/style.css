@@ -125,16 +125,17 @@ h5.card-header::before {
 }
 
 /* ******************************************************** version dropdown */
+.dropdown {
+    padding: 0 .5rem;  /* match other items in the hamburger menu */
+}
 .dropdown-toggle {
     font-weight: 600;
-    margin-left: 15px;  /* match other items in the hamburger menu */
 }
 
 /* ***************************************************** front page carousel */
 div.frontpage-gallery {
     overflow: hidden;
-    height: 200px;
-    max-width: 400px;
+    height: 180px;
     justify-content: center;
 }
 div.frontpage-gallery a {
@@ -143,12 +144,12 @@ div.frontpage-gallery a {
 }
 div.frontpage-gallery img.card-img {
     transform: scale(1.8);
-    transform-origin: 50% 30%;
+    transform-origin: 40% 20%;
     opacity: 0.2;
     transition: 400ms ease-out;
 }
 div.frontpage-gallery:hover img.card-img {
-    transform: scale(1.1);
+    transform: scale(1.2);
     opacity: 1.0;
     transition: 400ms ease-out;
 }

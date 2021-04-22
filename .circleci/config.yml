@@ -408,10 +408,6 @@ jobs:
         - run:
             name: Check docs
             command: |
-              if [ "${CIRCLE_BRANCH}" == "main" ] || [ "${CIRCLE_BRANCH}" == "maint/0.22" ]; then
-                echo "No deployment (build: ${CIRCLE_BRANCH}).";
-                circleci-agent step halt;
-              fi;
               if [ ! -f /tmp/build/html/index.html ] && [ ! -f /tmp/build/html_stable/index.html ]; then
                 echo "No files found to upload (build: ${CIRCLE_BRANCH}).";
                 circleci-agent step halt;
