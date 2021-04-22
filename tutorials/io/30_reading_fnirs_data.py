@@ -160,7 +160,7 @@ raw = mne.io.RawArray(data, info, verbose=True)
 # Some handy tutorials for understanding sensor locations, coordinate systems,
 # and how to store and view this information in MNE are:
 # :ref:`tut-sensor-locations`, :ref:`plot_source_alignment`, and
-# :ref:`ex-eeg-scalp`.
+# :ref:`ex-eeg-on-scalp`.
 #
 # Below is an example of how to load the optode positions for an Artinis
 # OctaMon device.
