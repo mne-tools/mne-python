@@ -21,10 +21,6 @@ Experiment:
 The specifications of this dataset were discussed initially on the
 `FieldTrip bug tracker
 <http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=2300>`__.
-
-References
-----------
-.. footbibliography::
 """
 
 # Authors: Mainak Jas <mainak.jas@telecom-paristech.fr>
@@ -47,9 +43,9 @@ print(__doc__)
 
 ###############################################################################
 # To reduce memory consumption and running time, some of the steps are
-# precomputed. To run everything from scratch change this to False. With
-# ``use_precomputed = False`` running time of this script can be several
-# minutes even on a fast computer.
+# precomputed. To run everything from scratch change ``use_precomputed`` to
+# ``False``. With ``use_precomputed = False`` running time of this script can
+# be several minutes even on a fast computer.
 use_precomputed = True
 
 ###############################################################################
@@ -61,26 +57,22 @@ data_path = bst_auditory.data_path()
 subject = 'bst_auditory'
 subjects_dir = op.join(data_path, 'subjects')
 
-raw_fname1 = op.join(data_path, 'MEG', 'bst_auditory',
-                     'S01_AEF_20131218_01.ds')
-raw_fname2 = op.join(data_path, 'MEG', 'bst_auditory',
-                     'S01_AEF_20131218_02.ds')
-erm_fname = op.join(data_path, 'MEG', 'bst_auditory',
-                    'S01_Noise_20131218_01.ds')
+raw_fname1 = op.join(data_path, 'MEG', subject, 'S01_AEF_20131218_01.ds')
+raw_fname2 = op.join(data_path, 'MEG', subject, 'S01_AEF_20131218_02.ds')
+erm_fname = op.join(data_path, 'MEG', subject, 'S01_Noise_20131218_01.ds')
 
 ###############################################################################
 # In the memory saving mode we use ``preload=False`` and use the memory
 # efficient IO which loads the data on demand. However, filtering and some
-# other functions require the data to be preloaded in the memory.
+# other functions require the data to be preloaded into memory.
 raw = read_raw_ctf(raw_fname1)
 n_times_run1 = raw.n_times
 mne.io.concatenate_raws([raw, read_raw_ctf(raw_fname2)])
 raw_erm = read_raw_ctf(erm_fname)
 
 ###############################################################################
-# Data channel array consisted of 274 MEG axial gradiometers, 26 MEG reference
-# sensors and 2 EEG electrodes (Cz and Pz).
-# In addition:
+# The data array consists of 274 MEG axial gradiometers, 26 MEG reference
+# sensors and 2 EEG electrodes (Cz and Pz). In addition:
 #
 #   - 1 stim channel for marking presentation times for the stimuli
 #   - 1 audio channel for the sent signal
@@ -259,6 +251,8 @@ for evoked in (evoked_std, evoked_dev):
 # is visible in deviant condition only (decision making in preparation of the
 # button press). You can view the topographies from a certain time span by
 # painting an area with clicking and holding the left mouse button.
+
+# sphinx_gallery_thumbnail_number=2
 evoked_std.plot(window_title='Standard', gfp=True, time_unit='s')
 evoked_dev.plot(window_title='Deviant', gfp=True, time_unit='s')
 
@@ -267,6 +261,9 @@ evoked_dev.plot(window_title='Deviant', gfp=True, time_unit='s')
 # Show activations as topography figures.
 times = np.arange(0.05, 0.301, 0.025)
 evoked_std.plot_topomap(times=times, title='Standard', time_unit='s')
+
+###############################################################################
+
 evoked_dev.plot_topomap(times=times, title='Deviant', time_unit='s')
 
 ###############################################################################
@@ -342,3 +339,8 @@ stc_difference = apply_inverse(evoked_difference, inv, lambda2, 'dSPM')
 brain = stc_difference.plot(subjects_dir=subjects_dir, subject=subject,
                             surface='inflated', time_viewer=False, hemi='lh',
                             initial_time=0.15, time_unit='s')
+
+###############################################################################
+# References
+# ----------
+# .. footbibliography::
