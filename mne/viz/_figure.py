@@ -2307,7 +2307,7 @@ def _line_figure(inst, axes=None, picks=None, **kwargs):
         fig = axes[0].get_figure()
     else:
         figsize = kwargs.pop('figsize', (10, 2.5 * n_axes + 1))
-        fig = _figure(inst=inst, toolbar=False, FigureClass=MNELineFigure,
+        fig = _figure(inst=inst, toolbar=True, FigureClass=MNELineFigure,
                       figsize=figsize, n_axes=n_axes, **kwargs)
         fig.mne.fig_size_px = fig._get_size_px()  # can't do in __init__
         axes = fig.mne.ax_list
