@@ -34,6 +34,7 @@ def test_notebook_alignment(renderer_notebook, brain_gc, nbexec):
     assert fig.display is not None
 
 
+@pytest.mark.slowtest  # ~3 min on GitHub macOS
 @testing.requires_testing_data
 def test_notebook_interactive(renderer_notebook, brain_gc, nbexec):
     """Test interactive modes."""

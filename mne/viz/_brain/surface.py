@@ -113,6 +113,10 @@ class _Surface(object):
             _check_fname(fname, overwrite='read', must_exist=True,
                          name='flatmap surface file')
             coords, faces, orig_faces = _read_patch(fname)
+            # rotate 90 degrees to get to a more standard orientation
+            # where X determines the distance between the hemis
+            coords = coords[:, [1, 0, 2]]
+            coords[:, 1] *= -1
         else:
             coords, faces = read_surface(
                 path.join(self.data_path, 'surf',

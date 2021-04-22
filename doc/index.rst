@@ -18,7 +18,7 @@ MNE-Python Homepage
    :align: center
 
 
-.. rst-class:: h4 text-center font-weight-light mb-4
+.. rst-class:: h4 text-center font-weight-light my-4
 
    Open-source Python package for exploring, visualizing, and analyzing
    human neurophysiological data: MEG, EEG, sEEG, ECoG, NIRS, and more.
