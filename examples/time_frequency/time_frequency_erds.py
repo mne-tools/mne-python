@@ -159,7 +159,7 @@ plt.show()
 ##############################################################################
 # Having the data in form of a DataFrame also facilitates subsetting,
 # grouping, and other transforms.
-# Here, we use seaborn to plot average ERDS in the motor-imagery interval
+# Here, we use seaborn to plot the average ERDS in the motor-imagery interval
 # as a function of frequency band and imagery condition:
 
 df_mean = (df.query('time > 1')
