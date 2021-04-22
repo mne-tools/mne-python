@@ -19,7 +19,6 @@ loading some :ref:`example data <sample-dataset>`:
 import os
 import mne
 
-###############################################################################
 sample_data_folder = mne.datasets.sample.data_path()
 sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                     'sample_audvis_raw.fif')
@@ -33,8 +32,9 @@ raw.crop(tmax=10.)  # raw.crop() always happens in-place
 # -----------------
 #
 # Most MNE-Python data objects have built-in methods for filtering, including
-# high-, low-, and band-pass filters (`~mne.io.Raw.filter`),
-# `~mne.io.Raw.notch_filter`, Hilbert transforms (`~mne.io.Raw.apply_hilbert`),
+# high-, low-, and band-pass filters (`~mne.io.Raw.filter`), band-stop filters
+# (`~mne.io.Raw.notch_filter`),
+# Hilbert transforms (`~mne.io.Raw.apply_hilbert`),
 # and even arbitrary or user-defined functions (`~mne.io.Raw.apply_function`).
 # These typically **always** modify data in-place, so if we want to preserve
 # the unprocessed data for comparison, we must first make a copy of it. For
@@ -67,13 +67,14 @@ print(f'after picking, it has {original_raw.info["nchan"]} channels.')
 # The ``copy`` parameter
 # ----------------------
 #
-# Above we saw an example of using the ``.copy()`` method so that we can
-# compare data before and after processing. Unlike the signal processing and
-# channel picking *methods* above, MNE-Python *functions* often have a ``copy``
-# *parameter* that determines whether the operation happens in-place or on a
-# copy of the data. For example, here we're plotting ``raw`` *after* the
-# rereferencing has been done, but ``raw`` is unaffected because we specified
-# ``copy=True``:
+# Above we saw an example of using the `~mne.io.Raw.copy` method to facilitate
+# comparing data before and after processing. This is not needed when using
+# certain MNE-Python *functions*, because they have a *function parameter*
+# where you can specify ``copy=True`` (return a modified copy of the data) or
+# ``copy=False`` (operate in-place). For example, `mne.set_eeg_reference` is
+# one such function; notice that here we plot ``original_raw`` *after* the
+# rereferencing has been done, but ``original_raw`` is unaffected because
+# we specified ``copy=True``:
 
 # sphinx_gallery_thumbnail_number=2
 rereferenced_raw, ref_data = mne.set_eeg_reference(original_raw, ['EEG 003'],
@@ -82,7 +83,7 @@ original_raw.plot()
 rereferenced_raw.plot()
 
 ###############################################################################
-# Another example is the picking *function* `mne.pick_info`, which operates on
+# Another example is the picking function `mne.pick_info`, which operates on
 # `mne.Info` dictionaries rather than on data objects. See
 # :ref:`tut-info-class` for details.
 #
@@ -91,9 +92,10 @@ rereferenced_raw.plot()
 # -------
 #
 # Generally speaking, you should expect that *methods of data objects* will
-# operate in-place, and *functions that take a data object as an argument* will
-# operate on a copy of the data (unless the function has a ``copy=False``
-# option). During the exploratory phase of your analysis, where you might want
+# operate in-place, and *functions that take a data object as a parameter* will
+# operate on a copy of the data (unless the function has a ``copy`` parameter
+# and it defaults to ``False`` or you specify ``copy=False``).
+# During the exploratory phase of your analysis, where you might want
 # to try out the effects of different data cleaning approaches, you should get
 # used to patterns like ``raw.copy().filter(...).plot()`` or
 # ``raw.copy().apply_proj().plot_psd()`` if you want to avoid having to re-load
