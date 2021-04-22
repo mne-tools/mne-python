@@ -1080,9 +1080,5 @@ def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
         fig._update_annotation_segments()
         fig._draw_annotations()
 
-    # for blitting
-    fig.canvas.flush_events()
-    fig.mne.bg = fig.canvas.copy_from_bbox(fig.bbox)
-
     plt_show(show, block=block)
     return fig
