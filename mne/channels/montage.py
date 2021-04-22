@@ -905,7 +905,7 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
 
         for name, use in zip(info_names, info_names_use):
             _loc_view = info['chs'][info['ch_names'].index(name)]['loc']
-            # XXX info['chs'][#]['loc'] modified in place
+            # Next line modifies info['chs'][#]['loc'] in place
             _loc_view[:6] = _backcompat_value(ch_pos_use[use], eeg_ref_pos)
 
         del ch_pos_use
@@ -934,11 +934,11 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
             # in the old dig
             if ref_dig_point in old_dig:
                 digpoints.append(ref_dig_point)
-        # XXX info['dig'] modified in place
+        # Next line modifies info['dig'] in place
         info['dig'] = _format_dig_points(digpoints, enforce_order=True)
 
         if mnt_head.dev_head_t is not None:
-            # XXX info['dev_head_t'] modified in place
+            # Next line modifies info['dev_head_t'] in place
             info['dev_head_t'] = Transform('meg', 'head', mnt_head.dev_head_t)
 
         # Handle fNIRS with source, detector and channel
@@ -947,10 +947,10 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
             info = _set_montage_fnirs(info, mnt_head)
 
     else:  # None case
-        # XXX info['dig'] modified in place
+        # Next line modifies info['dig'] in place
         info['dig'] = None
         for ch in info['chs']:
-            # XXX info['chs'][#]['loc'] modified in place
+            # Next line modifies info['chs'][#]['loc'] in place
             ch['loc'] = np.full(12, np.nan)
 
 
