@@ -80,7 +80,7 @@ tfr.apply_baseline(baseline, mode="percent")
 for event in event_ids:
     # select desired epochs for visualization
     tfr_ev = tfr[event]
-    fig, axes = plt.subplots(1, 4,
+    fig, axes = plt.subplots(1, 4, figsize=(12, 4),
                              gridspec_kw={"width_ratios": [10, 10, 10, 1]})
     for ch, ax in enumerate(axes[:-1]):  # for each channel
         # positive clusters
@@ -162,23 +162,25 @@ plt.show()
 # Here, we use seaborn to plot average ERDS in the motor-imagery interval
 # as a function of frequency band and imagery condition:
 
-dat = (df.query('time > 1')
-         .groupby(['condition', 'epoch', 'band', 'channel'])[['value']]
-         .mean()
-         .reset_index())
+df_mean = (df.query('time > 1')
+             .groupby(['condition', 'epoch', 'band', 'channel'])[['value']]
+             .mean()
+             .reset_index())
 
-g = sns.FacetGrid(dat, col='condition', col_order=['hands', 'feet'],
+g = sns.FacetGrid(df_mean, col='condition', col_order=['hands', 'feet'],
                   margin_titles=True)
 g = (g.map(sns.violinplot, 'channel', 'value', 'band', n_boot=10,
            palette='deep', order=['C3', 'Cz', 'C4'],
            hue_order=['delta', 'theta', 'alpha', 'beta'])
-      .add_legend(ncol=4, loc=3, bbox_to_anchor=(0.1, 0, 0.9, 0)))
-for ax in g.axes.ravel():
-    ax.axhline(0, color='black', linestyle='dashed', linewidth=0.5,
-               alpha=0.5)
+      .add_legend(ncol=4, loc=3, bbox_to_anchor=(0.1, 0.1, 0.9, 0.1)))
+
+g.map(plt.axhline, y=0, color='black', linestyle='dashed', linewidth=0.5,
+      alpha=0.5)
 g.set_axis_labels("", "ERDS (%)")
 g.set_titles(col_template="{col_name}", row_template="{row_name}")
-g.fig.subplots_adjust(left=0.08, right=0.98)
+g.fig.tight_layout()
+g.fig.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.3)
+
 plt.show()
 
 ##############################################################################
