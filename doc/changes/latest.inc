@@ -59,13 +59,17 @@ Current (0.23.dev0)
 
 Enhancements
 ~~~~~~~~~~~~
-- :func:`mne.viz.plot_evoked_topo` now uses a Minimum/Maximum of peaks for each channel type to calculate ylim when input param is None (:gh:`9285` by |Ram Pari|_)
+- Add support for exporting to EEGLAB's set format with :mod:`eeglabio` in :meth:`mne.io.Raw.export` and :meth:`mne.Epochs.export`. (:gh:`9192` **by new contributor** |Jack Zhang|_)
 
-- Add exclude parameter to :func:`mne.viz.plot_evoked_topo` (:gh:`9278` by |Ram Pari|_)
+- Add methods for exporting to external formats with :meth:`mne.io.Raw.export` and :meth:`mne.Epochs.export` (:gh:`9192` **by new contributor** |Jack Zhang|_)
+
+- :func:`mne.viz.plot_evoked_topo` now uses a Minimum/Maximum of peaks for each channel type to calculate ylim when input param is None (:gh:`9285` **by new contributor** |Ram Pari|_)
+
+- Add exclude parameter to :func:`mne.viz.plot_evoked_topo` (:gh:`9278` **by new contributor** |Ram Pari|_)
 
 - Add CSV, TSV, and XYZ support to :func:`mne.channels.read_custom_montage` (:gh:`9203` **by new contributor** |Jack Zhang|_)
 
-- Add HTML representation for `~mne.Epochs` in Jupyter Notebooks (:gh:`9174` by |Valerii Chirkov|_)
+- Add HTML representation for `~mne.Epochs` in Jupyter Notebooks (:gh:`9174` **by new contributor** |Valerii Chirkov|_)
 
 - Speed up :func:`mne.viz.plot_ica_properties` by refactoring (:gh:`9174` **by new contributor** |Valerii Chirkov|_)
 
@@ -183,6 +187,10 @@ Enhancements
 
 - :func:`mne.preprocessing.find_eog_events` and :func:`mne.preprocessing.create_eog_epochs` now accept a list of channel names, allowing you to specify multiple EOG channels at once (:gh:`9269` by `Richard Höchenberger`_)
 
+- Improve performance of :func:`mne.set_bipolar_reference` (:gh:`9270` by `Martin Schulz`_)
+
+- Add support for setting montages on fNIRS data, with built in standard montages for Artinis OctaMon and Artinis Brite23 devices (:gh:`9141` by `Johann Benerradi`_, `Robert Luke`_ and `Eric Larson`_)
+
 Bugs
 ~~~~
 - Fix bug with :func:`mne.viz.plot_evoked_topo` where set ylim parameters gets swapped across channel types. (:gh:`9207` by |Ram Pari|_)
@@ -233,6 +241,8 @@ Bugs
 
 - Fix bug with :func:`mne.viz.plot_alignment` where plotting a sphere model could ignore the ``brain`` argument (:gh:`8857` by `Eric Larson`_)
 
+- Fix bug with :func:`mne.SourceEstimate.plot` where flatmaps were not positioned properly when using ``hemi='both'`` (:gh:`9315` by `Eric Larson`_)
+
 - Fix bug with :meth:`mne.Annotations.save` where files could be overwritten accidentally, it can now be controlled via the ``overwrite`` argument (:gh:`8896` by `Eric Larson`_)
 
 - Fix bug with ``replace`` argument of :meth:`mne.Report.add_bem_to_section` and :meth:`mne.Report.add_slider_to_section` (:gh:`8723` by `Eric Larson`_)
@@ -240,6 +250,8 @@ Bugs
 - Fix bug with :func:`mne.chpi.compute_chpi_locs` where all cHPI coils being off would lead to an empty array of the wrong dimensionality (:gh:`8956` by `Eric Larson`_)
 
 - Fix bug with :func:`mne.extract_label_time_course` where labels, STCs, and the source space were not checked for compatible ``subject`` attributes (:gh:`9284` by `Eric Larson`_)
+
+- Fix bug with :func:`mne.grow_labels` where ``overlap=False`` could run forever or raise an error (:gh:`9317` by `Eric Larson`_)
 
 - Fix compatibility bugs with :mod:`mne_realtime` (:gh:`8845` by `Eric Larson`_)
 
@@ -296,6 +308,8 @@ Bugs
 - :func:`mne.preprocessing.find_ecg_events` now correctly handles situation where no ECG activity could be detected, and correctly returns an empty array of ECG events (:gh:`9236` by `Richard Höchenberger`_)
 
 - Fix bug with ``picks`` attribute for `~mne.Epochs` after calling :meth:`mne.Epochs.add_channels` (:gh:`9246` by `Alex Gramfort`_)
+
+- Fix bug where ``backend='notebook'`` could not be used in :meth:`mne.SourceEstimate.plot` (:gh:`9305` by `Jean-Remi King`_)
 
 - `mne.preprocessing.compute_proj_eog` and `mne.preprocessing.compute_proj_ecg` now return empty lists if no EOG or ECG events, respectively, could be found. Previously, we'd return ``None`` in these situations, which does not match the documented behavior of returning a list of projectors (:gh:`9277` by `Richard Höchenberger`_)
 

@@ -107,7 +107,12 @@ def _simulate_data(fwd, idx):  # Somewhere on the frontal lobe by default
     return epochs, evoked, csd, source_vertno, label, vertices, source_ind
 
 
-idx_param = pytest.mark.parametrize('idx', [0, 100, 200, 233])
+idx_param = pytest.mark.parametrize('idx', [
+    0,
+    pytest.param(100, marks=pytest.mark.slowtest),
+    200,
+    pytest.param(233, marks=pytest.mark.slowtest),
+])
 
 
 def _rand_csd(rng, info):
@@ -139,7 +144,10 @@ def _make_rand_csd(info, csd):
 @testing.requires_testing_data
 @requires_h5py
 @idx_param
-@pytest.mark.parametrize('whiten', (False, True))
+@pytest.mark.parametrize('whiten', [
+    pytest.param(False, marks=pytest.mark.slowtest),
+    True,
+])
 def test_make_dics(tmpdir, _load_forward, idx, whiten):
     """Test making DICS beamformer filters."""
     # We only test proper handling of parameters here. Testing the results is
@@ -707,6 +715,7 @@ def _cov_as_csd(cov, info):
 
 # Just test free ori here (assume fixed is same as LCMV if these are)
 # Changes here should be synced with test_lcmv.py
+@pytest.mark.slowtest
 @pytest.mark.parametrize(
     'reg, pick_ori, weight_norm, use_cov, depth, lower, upper, real_filter', [
         (0.05, None, 'unit-noise-gain-invariant', False, None, 26, 28, False),

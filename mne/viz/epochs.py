@@ -892,10 +892,6 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     fig._update_data()
     fig._draw_traces()
 
-    # for blitting
-    fig.canvas.flush_events()
-    fig.mne.bg = fig.canvas.copy_from_bbox(fig.bbox)
-
     plt_show(show, block=block)
     return fig
 

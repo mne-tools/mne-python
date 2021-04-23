@@ -31,8 +31,10 @@ vhdr_partially_disabled_hw_filter_path = op.join(data_dir,
                                                  'test_partially_disabled'
                                                  '_hw_filter.vhdr')
 
-vhdr_old_path = op.join(data_dir,
-                        'test_old_layout_latin1_software_filter.vhdr')
+vhdr_old_path = op.join(
+    data_dir, 'test_old_layout_latin1_software_filter.vhdr')
+vhdr_old_longname_path = op.join(
+    data_dir, 'test_old_layout_latin1_software_filter_longname.vhdr')
 
 vhdr_v2_path = op.join(data_dir, 'testv2.vhdr')
 
@@ -453,6 +455,15 @@ def test_brainvision_data_software_filters_latin1_global_units():
     with pytest.warns(RuntimeWarning, match='software filter'):
         raw = _test_raw_reader(
             read_raw_brainvision, vhdr_fname=vhdr_old_path,
+            eog=("VEOGo", "VEOGu", "HEOGli", "HEOGre"), misc=("A2",))
+
+    assert_equal(raw.info['highpass'], 1. / (2 * np.pi * 0.9))
+    assert_equal(raw.info['lowpass'], 50.)
+
+    # test sensor name with spaces (#9299)
+    with pytest.warns(RuntimeWarning, match='software filter'):
+        raw = _test_raw_reader(
+            read_raw_brainvision, vhdr_fname=vhdr_old_longname_path,
             eog=("VEOGo", "VEOGu", "HEOGli", "HEOGre"), misc=("A2",))
 
     assert_equal(raw.info['highpass'], 1. / (2 * np.pi * 0.9))

@@ -1757,7 +1757,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                                     raise_error=True)
     subject = _check_subject(stc.subject, subject)
     _check_option('backend', backend,
-                  ['auto', 'matplotlib', 'mayavi', 'pyvista'])
+                  ['auto', 'matplotlib', 'mayavi', 'pyvista', 'notebook'])
     plot_mpl = backend == 'matplotlib'
     if not plot_mpl:
         if backend == 'auto':
@@ -2448,7 +2448,7 @@ def _check_views(surf, views, hemi, stc=None, backend=None):
             _validate_type(stc, SourceEstimate, 'stc',
                            'SourceEstimate when a flatmap is used')
         if backend is not None:
-            if backend != 'pyvista':
+            if backend not in ('pyvista', 'notebook'):
                 raise RuntimeError('The PyVista 3D backend must be used to '
                                    'plot a flatmap')
     if (views == ['flat']) ^ (surf == 'flat'):  # exactly only one of the two
@@ -2872,7 +2872,7 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
             u, v, w = ori.T
             renderer.quiver3d(x, y, z, u, v, w, scale=3 * scale,
                               color=color, mode='arrow')
-
+        renderer.show()
         fig = renderer.scene()
     else:
         raise ValueError('Mode must be "cone", "arrow" or orthoview", '

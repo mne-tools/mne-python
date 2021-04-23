@@ -107,7 +107,7 @@ stages:
     - bash: |
         set -e
         python -m pip install --upgrade pip setuptools
-        python -m pip install --upgrade numpy scipy vtk -r requirements.txt -r requirements_testing.txt codecov
+        python -m pip install --upgrade numpy scipy vtk -r requirements.txt -r requirements_testing.txt -r requirements_testing_extra.txt codecov
       displayName: 'Install dependencies with pip'
     - bash: source tools/get_testing_version.sh
       displayName: 'Get testing version'
@@ -146,7 +146,7 @@ stages:
         conda env update --file server_environment.yml
         pip uninstall -yq mne
         pip install -ve .
-        pip install pytest pytest-cov pytest-timeout pytest-sugar pytest-xdist flake8 codecov
+        pip install -r requirements_testing.txt -r requirements_testing_extra.txt codecov
         echo "##vso[task.setvariable variable=PATH]${PATH}"
         echo "##vso[task.setvariable variable=LD_LIBRARY_PATH]${LD_LIBRARY_PATH}"
       displayName: 'Install dependencies'
@@ -233,7 +233,7 @@ stages:
         conda update -n base -c defaults conda
         conda env update --name base --file environment.yml
         pip uninstall -yq mne
-        pip install -r requirements_testing.txt codecov
+        pip install -r requirements_testing.txt -r requirements_testing_extra.txt codecov
       condition: eq(variables['TEST_MODE'], 'conda')
       displayName: 'Install dependencies with conda'
     - script: python setup.py develop

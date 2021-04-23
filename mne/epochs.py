@@ -20,6 +20,7 @@ import os.path as op
 
 import numpy as np
 
+from .io.utils import _get_als_coords_from_chs
 from .io.write import (start_file, start_block, end_file, end_block,
                        write_int, write_float, write_float_matrix,
                        write_double_matrix, write_complex_float_matrix,
@@ -51,13 +52,15 @@ from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
 from .utils import (_check_fname, check_fname, logger, verbose,
                     _time_mask, check_random_state, warn, _pl,
                     sizeof_fmt, SizeMixin, copy_function_doc_to_method_doc,
-                    _check_pandas_installed, _check_preload, GetEpochsMixin,
+                    _check_pandas_installed, _check_eeglabio_installed,
+                    _check_preload, GetEpochsMixin,
                     _prepare_read_metadata, _prepare_write_metadata,
                     _check_event_id, _gen_events, _check_option,
                     _check_combine, ShiftTimeMixin, _build_data_frame,
                     _check_pandas_index_arguments, _convert_times,
                     _scale_dataframe_data, _check_time_format, object_size,
-                    _on_missing, _validate_type, _ensure_events)
+                    _on_missing, _validate_type, _ensure_events,
+                    _infer_check_export_fmt)
 from .utils.docs import fill_doc
 from .data.html_templates import epochs_template
 
@@ -1809,6 +1812,53 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             # avoid missing event_ids in splits
             this_epochs.event_id = self.event_id
             _save_split(this_epochs, fname, part_idx, n_parts, fmt)
+
+    @verbose
+    def export(self, fname, fmt='auto', verbose=None):
+        """Export Epochs to external formats.
+
+        Supported formats: EEGLAB (set, uses :mod:`eeglabio`)
+        %(export_warning)s
+
+        Parameters
+        ----------
+        %(export_params_fname)s
+        fmt : 'auto' | 'eeglab'
+        %(export_params_fmt)s
+        %(verbose)s
+
+        Notes
+        -----
+        %(export_eeglab_note)s
+        """
+        supported_export_formats = {
+            'eeglab': ('set',),
+            'edf': ('edf',),
+            'brainvision': ('eeg', 'vmrk', 'vhdr',)
+        }
+        fmt = _infer_check_export_fmt(fmt, fname, supported_export_formats)
+
+        if fmt == 'eeglab':
+            _check_eeglabio_installed()
+            import eeglabio.epochs
+            # load data first
+            self.load_data()
+
+            # remove extra epoc and STI channels
+            drop_chs = ['epoc', 'STI 014']
+            pick_chs = [ch for ch in self.ch_names if ch not in drop_chs]
+
+            cart_coords = _get_als_coords_from_chs(self.info['chs'],
+                                                   drop_chs)
+
+            eeglabio.epochs.export_set(fname, self.get_data(picks=pick_chs),
+                                       self.info['sfreq'], self.events,
+                                       self.tmin, self.tmax, pick_chs,
+                                       self.event_id, cart_coords)
+        elif fmt == 'edf':
+            raise NotImplementedError('Export to EDF format not implemented.')
+        elif fmt == 'brainvision':
+            raise NotImplementedError('Export to BrainVision not implemented.')
 
     def equalize_event_counts(self, event_ids=None, method='mintime'):
         """Equalize the number of trials in each condition.
