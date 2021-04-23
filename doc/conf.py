@@ -1021,7 +1021,7 @@ def make_redirects(app, exception):
         # allow overwrite if existing file is just a redirect
         if os.path.isfile(fr_path):
             with open(fr_path, 'r') as fid:
-                for _ in range(9):
+                for _ in range(8):
                     next(fid)
                 line = fid.readline()
                 assert 'Page Redirection' in line, line
