@@ -135,7 +135,7 @@ np.unique(events[:, -1])
 ###############################################################################
 # The :ref:`tut-event-arrays` tutorial discusses event arrays in more detail.
 # Integer event codes are mapped to more descriptive text using a Python
-# :class:`dictionary <dict>` usally called ``event_id``. This mapping is
+# :class:`dictionary <dict>` usually called ``event_id``. This mapping is
 # determined by your experiment code (i.e., it reflects which event codes you
 # chose to use to represent different experimental events or conditions). For
 # the :ref:`sample-dataset` data has the following mapping:
@@ -292,7 +292,7 @@ roi_evoked.plot()
 # If we wanted to compare our auditory and visual stimuli, a useful function is
 # `mne.viz.plot_compare_evokeds`. By default this will combine all channels in
 # each evoked object using global field power (or RMS for MEG channels); here
-# insetad we specify to combine by averaging, and restrict it to a subset of
+# instead we specify to combine by averaging, and restrict it to a subset of
 # channels by passing ``picks``:
 
 evokeds = dict(auditory=l_aud, visual=l_vis)
