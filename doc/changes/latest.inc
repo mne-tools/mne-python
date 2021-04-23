@@ -183,6 +183,8 @@ Enhancements
 
 - Improve performance of :func:`mne.set_bipolar_reference` (:gh:`9270` by `Martin Schulz`_)
 
+- Add support for setting montages on fNIRS data, with built in standard montages for Artinis OctaMon and Artinis Brite23 devices (:gh:`9141` by `Johann Benerradi`_, `Robert Luke`_ and `Eric Larson`_)
+
 Bugs
 ~~~~
 - Fix bug with :func:`mne.viz.plot_evoked_topo` where set ylim parameters gets swapped across channel types. (:gh:`9207` by |Ram Pari|_)
