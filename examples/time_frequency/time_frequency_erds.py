@@ -113,7 +113,10 @@ for event in event_ids:
 ###############################################################################
 # Similar to `~mne.Epochs` objects, we can also export data from
 # `~mne.time_frequency.EpochsTFR` and `~mne.time_frequency.AverageTFR` objects
-# to a :class:`Pandas DataFrame <pandas.DataFrame>`:
+# to a :class:`Pandas DataFrame <pandas.DataFrame>`. By default, the `time`
+# column of the exported data frame is in milliseconds. Here, to be consistent
+# with the time-frequency plots, we want to keep it in seconds, which we can
+# achieve by setting `time_format=None`:
 
 df = tfr.to_data_frame(time_format=None)
 df.head()
