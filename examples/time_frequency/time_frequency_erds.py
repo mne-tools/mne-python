@@ -151,8 +151,8 @@ g.map(plt.axvline, x=0, **axline_kw)
 g.set(ylim=(None, 1.5))
 g.set_axis_labels("Time (s)", "ERDS (%)")
 g.set_titles(col_template="{col_name}", row_template="{row_name}")
-g.add_legend()
-g.fig.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.1)
+g.add_legend(ncol=2, loc='lower center')
+g.fig.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.08)
 
 ##############################################################################
 # Having the data in form of a DataFrame also facilitates subsetting,
