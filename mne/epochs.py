@@ -20,7 +20,7 @@ import os.path as op
 
 import numpy as np
 
-from .io.utils import _get_xyz_coords_from_chs
+from .io.utils import _get_als_coords_from_chs
 from .io.write import (start_file, start_block, end_file, end_block,
                        write_int, write_float, write_float_matrix,
                        write_double_matrix, write_complex_float_matrix,
@@ -1848,7 +1848,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             drop_chs = ['epoc', 'STI 014']
             pick_chs = [ch for ch in self.ch_names if ch not in drop_chs]
 
-            cart_coords = _get_xyz_coords_from_chs(self.info['chs'],
+            cart_coords = _get_als_coords_from_chs(self.info['chs'],
                                                    drop_chs)
 
             eeglabio.epochs.export_set(fname, self.get_data(picks=pick_chs),

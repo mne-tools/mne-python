@@ -314,8 +314,8 @@ def _construct_bids_filename(base, ext, part_idx):
     return use_fname
 
 
-def _get_xyz_coords_from_chs(chs, drop_chs=None):
-    """Extract channel locations in x, y, z format from a chs instance.
+def _get_als_coords_from_chs(chs, drop_chs=None):
+    """Extract channel locations in ALS format (x, y, z) from a chs instance.
 
     Returns
     -------
