@@ -1463,7 +1463,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Parameters
         ----------
         %(export_params_fname)s
-        fmt : 'auto' | 'eeglab'
         %(export_params_fmt)s
         %(verbose)s
 
@@ -1488,17 +1487,19 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             drop_chs = ['epoc']
             if not (self.filenames[0].endswith('.fif')):
                 drop_chs.append('STI 014')
-            pick_chs = [ch for ch in self.ch_names if ch not in drop_chs]
 
+            ch_names = [ch for ch in self.ch_names if ch not in drop_chs]
             cart_coords = _get_als_coords_from_chs(self.info['chs'],
                                                    drop_chs)
 
             annotations = [self.annotations.description,
                            self.annotations.onset,
                            self.annotations.duration]
-            eeglabio.raw.export_set(fname, self.get_data(picks=pick_chs),
-                                    self.info['sfreq'], pick_chs, cart_coords,
-                                    annotations)
+            eeglabio.raw.export_set(fname, data=self.get_data(picks=ch_names),
+                                    sfreq=self.info['sfreq'],
+                                    ch_names=ch_names,
+                                    ch_locs=cart_coords,
+                                    annotations=annotations)
         elif fmt == 'edf':
             raise NotImplementedError('Export to EDF format not implemented.')
         elif fmt == 'brainvision':

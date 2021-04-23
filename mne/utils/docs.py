@@ -2274,6 +2274,7 @@ fname : str
     Name of the output file.
 """
 docdict['export_params_fmt'] = """
+fmt : 'auto' | 'eeglab'
     Format of the export. Defaults to ``'auto'``, which will infer the format
     from the filename extension. See supported formats above for more
     information.

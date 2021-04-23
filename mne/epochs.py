@@ -1823,7 +1823,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         Parameters
         ----------
         %(export_params_fname)s
-        fmt : 'auto' | 'eeglab'
         %(export_params_fmt)s
         %(verbose)s
 
@@ -1846,15 +1845,18 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
             # remove extra epoc and STI channels
             drop_chs = ['epoc', 'STI 014']
-            pick_chs = [ch for ch in self.ch_names if ch not in drop_chs]
-
+            ch_names = [ch for ch in self.ch_names if ch not in drop_chs]
             cart_coords = _get_als_coords_from_chs(self.info['chs'],
                                                    drop_chs)
 
-            eeglabio.epochs.export_set(fname, self.get_data(picks=pick_chs),
-                                       self.info['sfreq'], self.events,
-                                       self.tmin, self.tmax, pick_chs,
-                                       self.event_id, cart_coords)
+            eeglabio.epochs.export_set(fname,
+                                       data=self.get_data(picks=ch_names),
+                                       sfreq=self.info['sfreq'],
+                                       events=self.events,
+                                       tmin=self.tmin, tmax=self.tmax,
+                                       ch_names=ch_names,
+                                       event_id=self.event_id,
+                                       ch_locs=cart_coords)
         elif fmt == 'edf':
             raise NotImplementedError('Export to EDF format not implemented.')
         elif fmt == 'brainvision':
