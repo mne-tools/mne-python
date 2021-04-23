@@ -549,8 +549,8 @@ def test_lcmv_ctf_comp():
 @pytest.mark.parametrize('proj, weight_norm', [
     (True, 'unit-noise-gain'),
     (False, 'unit-noise-gain'),
-    (True, None),
-    (True, 'nai'),
+    pytest.param(True, None, marks=pytest.mark.slowtest),
+    pytest.param(True, 'nai', marks=pytest.mark.slowtest),
 ])
 def test_lcmv_reg_proj(proj, weight_norm):
     """Test LCMV with and without proj."""
@@ -762,10 +762,10 @@ def test_orientation_max_power(bias_params_fixed, bias_params_free,
 
 
 @pytest.mark.parametrize('weight_norm, pick_ori', [
-    ('nai', 'max-power'),
+    pytest.param('nai', 'max-power', marks=pytest.mark.slowtest),
     ('unit-noise-gain', 'vector'),
     ('unit-noise-gain', 'max-power'),
-    ('unit-noise-gain', None),
+    pytest.param('unit-noise-gain', None, marks=pytest.mark.slowtest),
 ])
 def test_depth_does_not_matter(bias_params_free, weight_norm, pick_ori):
     """Test that depth weighting does not matter for normalized filters."""

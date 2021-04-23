@@ -74,6 +74,8 @@ names and types, applied filters, projectors, etc. See :ref:`tut-info-class`
 for more info.
 
 
+.. _sect-meth-chain:
+
 In-place operation
 ^^^^^^^^^^^^^^^^^^
 

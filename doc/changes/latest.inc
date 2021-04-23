@@ -181,6 +181,8 @@ Enhancements
 
 - :func:`mne.preprocessing.find_eog_events` and :func:`mne.preprocessing.create_eog_epochs` now accept a list of channel names, allowing you to specify multiple EOG channels at once (:gh:`9269` by `Richard Höchenberger`_)
 
+- Improve performance of :func:`mne.set_bipolar_reference` (:gh:`9270` by `Martin Schulz`_)
+
 Bugs
 ~~~~
 - Fix bug with :func:`mne.viz.plot_evoked_topo` where set ylim parameters gets swapped across channel types. (:gh:`9207` by |Ram Pari|_)
@@ -231,6 +233,8 @@ Bugs
 
 - Fix bug with :func:`mne.viz.plot_alignment` where plotting a sphere model could ignore the ``brain`` argument (:gh:`8857` by `Eric Larson`_)
 
+- Fix bug with :func:`mne.SourceEstimate.plot` where flatmaps were not positioned properly when using ``hemi='both'`` (:gh:`9315` by `Eric Larson`_)
+
 - Fix bug with :meth:`mne.Annotations.save` where files could be overwritten accidentally, it can now be controlled via the ``overwrite`` argument (:gh:`8896` by `Eric Larson`_)
 
 - Fix bug with ``replace`` argument of :meth:`mne.Report.add_bem_to_section` and :meth:`mne.Report.add_slider_to_section` (:gh:`8723` by `Eric Larson`_)
@@ -238,6 +242,8 @@ Bugs
 - Fix bug with :func:`mne.chpi.compute_chpi_locs` where all cHPI coils being off would lead to an empty array of the wrong dimensionality (:gh:`8956` by `Eric Larson`_)
 
 - Fix bug with :func:`mne.extract_label_time_course` where labels, STCs, and the source space were not checked for compatible ``subject`` attributes (:gh:`9284` by `Eric Larson`_)
+
+- Fix bug with :func:`mne.grow_labels` where ``overlap=False`` could run forever or raise an error (:gh:`9317` by `Eric Larson`_)
 
 - Fix compatibility bugs with :mod:`mne_realtime` (:gh:`8845` by `Eric Larson`_)
 

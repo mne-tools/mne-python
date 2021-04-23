@@ -20,5 +20,5 @@ else # pip --pre 3.9 (missing dipy in pre)
 fi
 pip install --progress-bar off --upgrade -r requirements_testing.txt
 if [ "${DEPS}" != "minimal" ]; then
-	pip install nitime
+	pip install --progress-bar off --upgrade -r requirements_testing_extra.txt
 fi
