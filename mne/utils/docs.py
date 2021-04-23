@@ -2269,9 +2269,7 @@ docdict['export_warning'] = """
     the info will be preserved in the external format. To save in native MNE
     format (``.fif``) without information loss, use :func:`save` instead.
 """
-docdict['export_params_base'] = """
-Parameters
-----------
+docdict['export_params_fname'] = """
 fname : str
     Name of the output file.
 """

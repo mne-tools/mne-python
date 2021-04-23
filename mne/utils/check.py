@@ -804,6 +804,7 @@ def _infer_check_export_fmt(fmt, fname, supported_formats):
         Dictionary containing supported formats (as keys) and each format's
         corresponding file extensions in a tuple/list (e.g. 'eeglab': ('set',))
     """
+    _validate_type(fmt, str, 'fmt')
     fmt = fmt.lower()
     if fmt == "auto":
         fmt = op.splitext(fname)[1]

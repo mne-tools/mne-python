@@ -21,7 +21,7 @@ import numpy as np
 
 from .constants import FIFF
 from .utils import _construct_bids_filename, _check_orig_units, \
-    _get_cart_ch_coords_from_inst
+    _get_xyz_coords_from_chs
 from ..utils.check import _infer_check_export_fmt
 from .pick import (pick_types, pick_channels, pick_info, _picks_to_idx,
                    channel_type)
@@ -1459,7 +1459,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Supported formats: EEGLAB (set, uses :mod:`eeglabio`)
         %(export_warning)s
-        %(export_params_base)s
+
+        Parameters
+        ----------
+        %(export_params_fname)s
         fmt : 'auto' | 'eeglab'
         %(export_params_fmt)s
         %(verbose)s
@@ -1487,8 +1490,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                 drop_chs.append('STI 014')
             pick_chs = [ch for ch in self.ch_names if ch not in drop_chs]
 
-            cart_coords = _get_cart_ch_coords_from_inst(self.info['chs'],
-                                                        drop_chs)
+            cart_coords = _get_xyz_coords_from_chs(self.info['chs'],
+                                                   drop_chs)
 
             annotations = [self.annotations.description,
                            self.annotations.onset,

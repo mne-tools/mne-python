@@ -20,8 +20,7 @@ import os.path as op
 
 import numpy as np
 
-from .io.utils import _get_cart_ch_coords_from_inst
-from .utils.check import _infer_check_export_fmt
+from .io.utils import _get_xyz_coords_from_chs
 from .io.write import (start_file, start_block, end_file, end_block,
                        write_int, write_float, write_float_matrix,
                        write_double_matrix, write_complex_float_matrix,
@@ -60,7 +59,8 @@ from .utils import (_check_fname, check_fname, logger, verbose,
                     _check_combine, ShiftTimeMixin, _build_data_frame,
                     _check_pandas_index_arguments, _convert_times,
                     _scale_dataframe_data, _check_time_format, object_size,
-                    _on_missing, _validate_type, _ensure_events)
+                    _on_missing, _validate_type, _ensure_events,
+                    _infer_check_export_fmt)
 from .utils.docs import fill_doc
 from .data.html_templates import epochs_template
 
@@ -1819,7 +1819,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         Supported formats: EEGLAB (set, uses :mod:`eeglabio`)
         %(export_warning)s
-        %(export_params_base)s
+
+        Parameters
+        ----------
+        %(export_params_fname)s
         fmt : 'auto' | 'eeglab'
         %(export_params_fmt)s
         %(verbose)s
@@ -1845,8 +1848,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             drop_chs = ['epoc', 'STI 014']
             pick_chs = [ch for ch in self.ch_names if ch not in drop_chs]
 
-            cart_coords = _get_cart_ch_coords_from_inst(self.info['chs'],
-                                                        drop_chs)
+            cart_coords = _get_xyz_coords_from_chs(self.info['chs'],
+                                                   drop_chs)
 
             eeglabio.epochs.export_set(fname, self.get_data(picks=pick_chs),
                                        self.info['sfreq'], self.events,
