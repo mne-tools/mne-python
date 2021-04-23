@@ -129,22 +129,15 @@ df = tfr.to_data_frame(time_format=None, long_format=True)
 df['channel'].cat.reorder_categories(['C3', 'Cz', 'C4'], ordered=True,
                                      inplace=True)
 
-freq_bands = {'delta': (0.5, 4),
-              'theta': (5, 7),
-              'alpha': (8, 14),
-              'beta': (15, 35)}
+freq_bounds = {'_': 0,
+               'delta': 3,
+               'theta': 7,
+               'alpha': 13,
+               'beta': 35,
+               'gamma': 140}
 
-
-def map_bands(freq):
-    for band, (low_lim, high_lim) in freq_bands.items():
-        if low_lim <= freq <= high_lim:
-            return band
-
-
-df['band'] = pd.Categorical(
-    df['freq'].map(map_bands),
-    categories=['beta', 'alpha', 'theta', 'delta'],
-    ordered=True)
+df['band'] = pd.cut(df['freq'], list(freq_bounds.values()),
+                    labels=list(freq_bounds.keys())[1:])
 
 g = sns.FacetGrid(df, row='band', col='channel', margin_titles=True)
 g.map(sns.lineplot, 'time', 'value', 'condition', n_boot=10)
