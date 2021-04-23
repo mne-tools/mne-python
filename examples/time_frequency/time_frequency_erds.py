@@ -25,7 +25,7 @@ publications. Finally, we perform cluster-based permutation tests to estimate
 significant ERDS values (corrected for multiple comparisons within channels).
 """
 # Authors: Clemens Brunner <clemens.brunner@gmail.com>
-# Felix Klotzsche <klotzsche@cbs.mpg.de>
+#          Felix Klotzsche <klotzsche@cbs.mpg.de>
 #
 # License: BSD (3-clause)
 
