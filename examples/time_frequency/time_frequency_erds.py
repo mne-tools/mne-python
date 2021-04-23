@@ -120,7 +120,7 @@ df.head()
 
 ##############################################################################
 # This allows us to use additional plotting functions like
-# :func:`seaborn.lineplot` to easily plot confidence bands:
+# :func:`seaborn.lineplot` to plot confidence bands:
 
 df = tfr.to_data_frame(time_format=None, long_format=True)
 df['channel'].cat.reorder_categories(['C3', 'Cz', 'C4'], ordered=True,
