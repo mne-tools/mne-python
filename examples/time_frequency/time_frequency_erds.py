@@ -155,7 +155,7 @@ g.add_legend(ncol=2, loc='lower center')
 g.fig.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.08)
 
 ##############################################################################
-# Having the data in form of a DataFrame also facilitates subsetting,
+# Having the data as a DataFrame also facilitates subsetting,
 # grouping, and other transforms.
 # Here, we use seaborn to plot the average ERDS in the motor-imagery interval
 # as a function of frequency band and imagery condition:
