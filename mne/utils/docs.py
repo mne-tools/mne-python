@@ -2262,6 +2262,27 @@ on_defects : str
     fail irrespective of this parameter.
 """
 
+# Export
+docdict['export_warning'] = """
+.. warning::
+    Since we are exporting to external formats, there's no guarantee that all
+    the info will be preserved in the external format. To save in native MNE
+    format (``.fif``) without information loss, use :func:`save` instead.
+"""
+docdict['export_params_fname'] = """
+fname : str
+    Name of the output file.
+"""
+docdict['export_params_fmt'] = """
+    Format of the export. Defaults to ``'auto'``, which will infer the format
+    from the filename extension. See supported formats above for more
+    information.
+"""
+docdict['export_eeglab_note'] = """
+For EEGLAB exports, channel locations are expanded to full EEGLAB format.
+For more details see :func:`eeglabio.utils.cart_to_eeglab`.
+"""
+
 # Other
 docdict['accept'] = """
 accept : bool

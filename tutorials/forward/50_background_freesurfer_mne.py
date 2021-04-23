@@ -292,7 +292,6 @@ imshow_mri(data, t1, nasion_dig_vox, dict(MRI=nasion_dig_mri),
 # (``tris``) with shape ``(n_tris, 3)`` defining which vertices in ``rr`` form
 # each triangular facet of the mesh.
 
-
 fname = os.path.join(subjects_dir, subject, 'surf', 'rh.white')
 rr_mm, tris = mne.read_surface(fname)
 print(f'rr_mm.shape == {rr_mm.shape}')
