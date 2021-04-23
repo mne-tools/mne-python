@@ -145,16 +145,14 @@ df['band'] = pd.Categorical(
 
 g = sns.FacetGrid(df, row='band', col='channel', margin_titles=True)
 g.map(sns.lineplot, 'time', 'value', 'condition', n_boot=10)
-g.map(plt.axhline, y=0, color='black', linestyle='dashed', linewidth=0.5,
-      alpha=0.5)
-g.map(plt.axvline, x=0, color='black', linestyle='dashed', linewidth=0.5,
-      alpha=0.5)
+axline_kw = dict(color='black', linestyle='dashed', linewidth=0.5, alpha=0.5)
+g.map(plt.axhline, y=0, **axline_kw)
+g.map(plt.axvline, x=0, **axline_kw)
 g.set(ylim=(None, 1.5))
 g.set_axis_labels("Time (s)", "ERDS (%)")
 g.set_titles(col_template="{col_name}", row_template="{row_name}")
 g.add_legend()
-
-plt.show()
+g.fig.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.1)
 
 ##############################################################################
 # Having the data in form of a DataFrame also facilitates subsetting,
@@ -172,16 +170,12 @@ g = sns.FacetGrid(df_mean, col='condition', col_order=['hands', 'feet'],
 g = (g.map(sns.violinplot, 'channel', 'value', 'band', n_boot=10,
            palette='deep', order=['C3', 'Cz', 'C4'],
            hue_order=['delta', 'theta', 'alpha', 'beta'])
-      .add_legend(ncol=4, loc=3, bbox_to_anchor=(0.1, 0.1, 0.9, 0.1)))
+      .add_legend(ncol=4, loc='lower center'))
 
-g.map(plt.axhline, y=0, color='black', linestyle='dashed', linewidth=0.5,
-      alpha=0.5)
+g.map(plt.axhline, **axline_kw)
 g.set_axis_labels("", "ERDS (%)")
 g.set_titles(col_template="{col_name}", row_template="{row_name}")
-g.fig.tight_layout()
 g.fig.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.3)
-
-plt.show()
 
 ##############################################################################
 # References
