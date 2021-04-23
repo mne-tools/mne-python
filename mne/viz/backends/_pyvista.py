@@ -594,7 +594,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         _close_3d_figure(figure=self.figure)
 
     def set_camera(self, azimuth=None, elevation=None, distance=None,
-                   focalpoint=None, roll=None, reset_camera=True,
+                   focalpoint='auto', roll=None, reset_camera=True,
                    rigid=None):
         _set_3d_view(self.figure, azimuth=azimuth, elevation=elevation,
                      distance=distance, focalpoint=focalpoint, roll=roll,
@@ -931,14 +931,26 @@ def _get_camera_direction(focalpoint, position):
     return r, theta, phi
 
 
-def _set_3d_view(figure, azimuth, elevation, focalpoint, distance, roll=None,
-                 reset_camera=True, rigid=None):
+def _set_3d_view(figure, azimuth=None, elevation=None, focalpoint='auto',
+                 distance=None, roll=None, reset_camera=True, rigid=None):
     rigid = np.eye(4) if rigid is None else rigid
     position = np.array(figure.plotter.camera_position[0])
+    bounds = np.array(figure.plotter.renderer.ComputeVisiblePropBounds())
     if reset_camera:
         figure.plotter.reset_camera()
-    if focalpoint is None:
+
+    # focalpoint: if 'auto', we use the center of mass of the visible
+    # bounds, if None, we use the existing camera focal point otherwise
+    # we use the values given by the user
+    if isinstance(focalpoint, str):
+        _check_option('focalpoint', focalpoint, ('auto',),
+                      extra='when a string')
+        focalpoint = (bounds[1::2] + bounds[::2]) * 0.5
+    elif focalpoint is None:
         focalpoint = np.array(figure.plotter.camera_position[1])
+    else:
+        focalpoint = np.asarray(focalpoint)
+
     # work in the transformed space
     position = apply_trans(rigid, position)
     focalpoint = apply_trans(rigid, focalpoint)
@@ -950,15 +962,8 @@ def _set_3d_view(figure, azimuth, elevation, focalpoint, distance, roll=None,
         theta = _deg2rad(elevation)
 
     # set the distance
-    renderer = figure.plotter.renderer
-    bounds = np.array(renderer.ComputeVisiblePropBounds())
     if distance is None:
         distance = max(bounds[1::2] - bounds[::2]) * 2.0
-
-    if focalpoint is not None:
-        focalpoint = np.asarray(focalpoint)
-    else:
-        focalpoint = (bounds[1::2] + bounds[::2]) * 0.5
 
     # Now calculate the view_up vector of the camera.  If the view up is
     # close to the 'z' axis, the view plane normal is parallel to the

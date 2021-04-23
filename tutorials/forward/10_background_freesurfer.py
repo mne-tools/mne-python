@@ -120,7 +120,7 @@ brain.add_annotation('aparc.a2009s', borders=False)
 # Use with MNE-Python
 # ===================
 #
-# For source localization analyses to work properly, it is important that the
+# For source localization analysis to work properly, it is important that the
 # FreeSurfer reconstruction has completed beforehand. Furthermore, when using
 # related functions, such as :func:`mne.setup_source_space`, ``SUBJECTS_DIR``
 # has to be defined either globally by setting :func:`mne.set_config` or for

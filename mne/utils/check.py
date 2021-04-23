@@ -276,6 +276,19 @@ def _check_pandas_installed(strict=True):
             return False
 
 
+def _check_eeglabio_installed(strict=True):
+    """Aux function."""
+    try:
+        import eeglabio
+        return eeglabio
+    except ImportError:
+        if strict is True:
+            raise RuntimeError('For this functionality to work, the eeglabio '
+                               'library is required.')
+        else:
+            return False
+
+
 def _check_pandas_index_arguments(index, valid):
     """Check pandas index arguments."""
     if index is None:
@@ -771,3 +784,46 @@ def _ensure_events(events):
         raise ValueError(
             f'events must be of shape (N, 3), got {events.shape}')
     return events
+
+
+def _infer_check_export_fmt(fmt, fname, supported_formats):
+    """Infer export format from filename extension if auto.
+
+    Raises error if fmt is auto and no file extension found,
+    then checks format against supported formats, raises error if format is not
+    supported.
+
+    Parameters
+    ----------
+    fmt : str
+        Format of the export, will only infer the format from filename if fmt
+        is auto.
+    fname : str
+        Name of the target export file, only used when fmt is auto.
+    supported_formats : dict of str : tuple/list
+        Dictionary containing supported formats (as keys) and each format's
+        corresponding file extensions in a tuple/list (e.g. 'eeglab': ('set',))
+    """
+    _validate_type(fmt, str, 'fmt')
+    fmt = fmt.lower()
+    if fmt == "auto":
+        fmt = op.splitext(fname)[1]
+        if fmt:
+            fmt = fmt[1:].lower()
+            # find fmt in supported formats dict's tuples
+            fmt = next((k for k, v in supported_formats.items() if fmt in v),
+                       fmt)  # default to original fmt for raising error later
+        else:
+            raise ValueError(f"Couldn't infer format from filename {fname}"
+                             " (no extension found)")
+
+    if fmt not in supported_formats:
+        supported = []
+        for format, extensions in supported_formats.items():
+            ext_str = ', '.join(f'*.{ext}' for ext in extensions)
+            supported.append(f'{format} ({ext_str})')
+
+        supported_str = ', '.join(supported)
+        raise ValueError(f"Format '{fmt}' is not supported. "
+                         f"Supported formats are {supported_str}.")
+    return fmt
