@@ -30,6 +30,7 @@ from mne.io.meas_info import _get_valid_units
 from mne.io._digitization import DigPoint
 from mne.io.proj import Projection
 from mne.io.utils import _mult_cal_one
+from mne.io import read_raw_eeglab
 
 
 def assert_named_constants(info):
@@ -695,7 +696,7 @@ def test_get_data_units():
 
 @pytest.mark.skipif(not _check_eeglabio_installed(strict=False),
                     reason='eeglabio not installed')
-def test_export_set():
+def test_export_eeglab():
     """Test saving a Raw instance to EEGLAB's set format."""
     fname = Path(__file__).parent / "data" / "test_raw.fif"
     raw = read_raw_fif(fname)
@@ -705,7 +706,6 @@ def test_export_set():
     raw.export(temp_fname)
     raw.drop_channels([ch for ch in ['epoc']
                        if ch in raw.ch_names])
-    from ..eeglab.eeglab import read_raw_eeglab
     raw_read = read_raw_eeglab(temp_fname, preload=True)
     assert raw.ch_names == raw_read.ch_names
     cart_coords = np.array([d['loc'][:3] for d in raw.info['chs']])  # just xyz

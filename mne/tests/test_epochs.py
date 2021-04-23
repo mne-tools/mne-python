@@ -3100,7 +3100,7 @@ def test_save_complex_data(tmpdir, preload, is_complex, fmt, rtol):
 @pytest.mark.skipif(not _check_eeglabio_installed(strict=False),
                     reason='eeglabio not installed')
 @pytest.mark.parametrize('preload', (True, False))
-def test_export_set(tmpdir, preload):
+def test_export_eeglab(tmpdir, preload):
     """Test saving an Epochs instance to EEGLAB's set format."""
     raw, events = _get_data()[:2]
     raw.load_data()
