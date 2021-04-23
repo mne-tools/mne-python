@@ -9,6 +9,13 @@ Importing data from fNIRS devices
 MNE includes various functions and utilities for reading NIRS
 data and optode locations.
 
+fNIRS devices consist of light sources and light detectors. A channel is formed
+by source-detector pairs. MNE stores the location of the channels, sources, and
+detectors.
+
+.. warning:: Information about device light wavelength is stored in channel
+             names. Manual modification of channel names is not recommended.
+
 .. _import-nirx:
 
 NIRx (directory)
@@ -164,6 +171,10 @@ raw = mne.io.RawArray(data, info, verbose=True)
 #
 # Below is an example of how to load the optode positions for an Artinis
 # OctaMon device.
+#
+# .. note:: It is also possible to create a custom montage from a file for
+#           fNIRS with :func:`mne.channels.read_custom_montage` by setting
+#           ``coord_frame`` to ``'mri'``.
 
 montage = mne.channels.make_standard_montage('artinis-octamon')
 raw.set_montage(montage)
@@ -191,17 +202,3 @@ fig = mne.viz.plot_alignment(
     fnirs=['channels', 'pairs', 'sources', 'detectors'], fig=fig)
 mne.viz.set_3d_view(figure=fig, azimuth=90, elevation=90, distance=0.5,
                     focalpoint=(0., -0.01, 0.02))
-
-
-###############################################################################
-# Storing of optode locations
-# ===========================
-#
-# fNIRS devices consist of light sources and light detectors.
-# A channel is formed by source-detector pairs.
-# MNE stores the location of the channels, sources, and detectors.
-#
-#
-# .. warning:: Information about device light wavelength is stored in
-#              channel names. Manual modification of channel names is not
-#              recommended.
