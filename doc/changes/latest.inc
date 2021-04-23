@@ -59,6 +59,10 @@ Current (0.23.dev0)
 
 Enhancements
 ~~~~~~~~~~~~
+- Add support for exporting to EEGLAB's set format with :mod:`eeglabio` in :meth:`mne.io.Raw.export` and :meth:`mne.Epochs.export`. (:gh:`9192` **by new contributor** |Jack Zhang|_)
+
+- Add methods for exporting to external formats with :meth:`mne.io.Raw.export` and :meth:`mne.Epochs.export` (:gh:`9192` **by new contributor** |Jack Zhang|_)
+
 - Add exclude parameter to :func:`mne.viz.plot_evoked_topo` (:gh:`9278` by |Ram Pari|_)
 
 - Add CSV, TSV, and XYZ support to :func:`mne.channels.read_custom_montage` (:gh:`9203` **by new contributor** |Jack Zhang|_)
