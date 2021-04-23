@@ -42,7 +42,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=dict(grad=4000e-13, eog=150e-6))
 
 # Compute connectivity for band containing the evoked response.
-# We exclude the baseline period:
+# We exclude the baseline period
 fmin, fmax = 4., 9.
 sfreq = raw.info['sfreq']  # the sampling frequency
 tmin = 0.0  # exclude the baseline period
