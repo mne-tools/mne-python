@@ -40,7 +40,7 @@ nirx_nirsport2_103 = op.join(data_path(download=False),
                                     nirx_nirsport2_103,
                                     sfnirs_homer_103_153]))
 def test_basic_reading_and_min_process(fname):
-    """Test reading SNIRF files and minimum typical processing"""
+    """Test reading SNIRF files and minimum typical processing."""
     raw = read_raw_snirf(fname, preload=True)
     # SNIRF data can contain several types, so only apply appropriate functions
     if 'fnirs_cw_amplitude' in raw:
