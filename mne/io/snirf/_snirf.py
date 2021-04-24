@@ -23,6 +23,10 @@ def read_raw_snirf(fname, preload=False, verbose=None):
 
     .. note:: This reader supports the .snirf file type only,
               not the .jnirs version.
+              Files with either 3D or 2D locations can be read.
+              However, we strongly recommend using 3D positions.
+              If 2D positions are used the behaviour of MNE functions
+              can not be guaranteed.
 
     Parameters
     ----------
