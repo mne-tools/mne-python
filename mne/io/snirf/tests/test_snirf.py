@@ -170,7 +170,8 @@ def test_snirf_nirsport2():
     assert_almost_equal(raw.info['sfreq'], 7.6, decimal=1)
 
     # Test channel naming
-    assert raw.info['ch_names'][:4] == ['S1_D1 760', 'S1_D1 850', 'S1_D3 760', 'S1_D3 850']
+    assert raw.info['ch_names'][:4] == ['S1_D1 760', 'S1_D1 850',
+                                        'S1_D3 760', 'S1_D3 850']
     assert raw.info['ch_names'][24:26] == ['S6_D4 760', 'S6_D4 850']
 
     # Test frequency encoding
