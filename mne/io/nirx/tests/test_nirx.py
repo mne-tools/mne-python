@@ -7,6 +7,7 @@ import os.path as op
 import shutil
 import os
 import datetime as dt
+import numpy as np
 
 import pytest
 from numpy.testing import assert_allclose, assert_array_equal
@@ -32,15 +33,12 @@ fname_nirx_15_3_short = op.join(data_path(download=False),
                                 'NIRx', 'nirscout', 'nirx_15_3_recording')
 
 
-nirsport1_wo_sat = op.join(data_path(download=False),
-                           'NIRx', 'nirsport_v1',
+nirsport1_wo_sat = op.join(data_path(download=False), 'NIRx', 'nirsport_v1',
                            'nirx_15_3_recording_wo_saturation')
-nirsport1_w_sat = op.join(data_path(download=False),
-                           'NIRx', 'nirsport_v1',
-                           'nirx_15_3_recording_w_occasional_saturation')
-nirsport1_w_fullsat = op.join(data_path(download=False),
-                           'NIRx', 'nirsport_v1',
-                           'nirx_15_3_recording_w_full_saturation')
+nirsport1_w_sat = op.join(data_path(download=False), 'NIRx', 'nirsport_v1',
+                          'nirx_15_3_recording_w_occasional_saturation')
+nirsport1_w_fullsat = op.join(data_path(download=False), 'NIRx', 'nirsport_v1',
+                              'nirx_15_3_recording_w_full_saturation')
 
 
 @requires_testing_data
@@ -52,6 +50,9 @@ def test_nirsport_v1_wo_sat():
     # Test data import
     assert raw._data.shape == (26, 164)
     assert raw.info['sfreq'] == 10.416667
+
+    # By default real data is returned
+    assert np.sum(np.isnan(raw._data)) == 0
 
 
 @pytest.mark.filterwarnings('ignore:.*contains saturated data.*:')
@@ -65,6 +66,14 @@ def test_nirsport_v1_w_sat():
     assert raw._data.shape == (26, 176)
     assert raw.info['sfreq'] == 10.416667
 
+    # By default real data is returned
+    assert np.sum(np.isnan(raw._data)) == 0
+
+    raw = read_raw_nirx(nirsport1_w_sat, preload=True, saturated='nan')
+    assert np.isnan(raw._data).any() == False
+    # I am confused, why doesnt the test above have nans
+    # By my understanding the data should contain NaNs
+
 
 @pytest.mark.filterwarnings('ignore:.*contains saturated data.*:')
 @pytest.mark.filterwarnings('ignore:.*Extraction of measurement.*:')
@@ -76,6 +85,14 @@ def test_nirsport_v1_w_bad_sat():
     # Test data import
     assert raw._data.shape == (26, 168)
     assert raw.info['sfreq'] == 10.416667
+
+    # By default real data is returned
+    assert np.sum(np.isnan(raw._data)) == 0
+
+    raw = read_raw_nirx(nirsport1_w_fullsat, preload=True, saturated='nan')
+    assert np.isnan(raw._data).any() == False
+    # I am confused, why doesnt the test above have nans
+    # By my understanding the data should contain NaNs
 
 
 @requires_testing_data
