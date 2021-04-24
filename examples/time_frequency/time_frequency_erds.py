@@ -126,18 +126,25 @@ df.head()
 # :func:`seaborn.lineplot` to plot confidence bands:
 
 df = tfr.to_data_frame(time_format=None, long_format=True)
-df['channel'].cat.reorder_categories(['C3', 'Cz', 'C4'], ordered=True,
-                                     inplace=True)
 
+# Map to frequency bands:
 freq_bounds = {'_': 0,
                'delta': 3,
                'theta': 7,
                'alpha': 13,
                'beta': 35,
                'gamma': 140}
-
 df['band'] = pd.cut(df['freq'], list(freq_bounds.values()),
-                    labels=list(freq_bounds.keys())[1:])
+                    labels=list(freq_bounds)[1:])
+
+# Filter to retain only relevant frequency bands:
+freq_bands_of_interest = ['delta', 'theta', 'alpha', 'beta']
+df = df[df.band.isin(freq_bands_of_interest)]
+df['band'] = df['band'].cat.remove_unused_categories()
+
+# Order channels for plotting:
+df['channel'].cat.reorder_categories(['C3', 'Cz', 'C4'], ordered=True,
+                                     inplace=True)
 
 g = sns.FacetGrid(df, row='band', col='channel', margin_titles=True)
 g.map(sns.lineplot, 'time', 'value', 'condition', n_boot=10)
@@ -165,7 +172,7 @@ g = sns.FacetGrid(df_mean, col='condition', col_order=['hands', 'feet'],
                   margin_titles=True)
 g = (g.map(sns.violinplot, 'channel', 'value', 'band', n_boot=10,
            palette='deep', order=['C3', 'Cz', 'C4'],
-           hue_order=['delta', 'theta', 'alpha', 'beta'],
+           hue_order=freq_bands_of_interest,
            linewidth=0.5)
       .add_legend(ncol=4, loc='lower center'))
 
