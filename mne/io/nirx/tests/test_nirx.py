@@ -80,13 +80,13 @@ def test_nirx_nosatflags_v1_warn(tmpdir):
                     str(tmpdir) + "/data" +
                                   "/NIRS-2019-08-23_001.nosatflags_wl1")
     fname = str(tmpdir) + "/data" + "/NIRS-2019-08-23_001.hdr"
-    with pytest.raises(RuntimeWarning, match='specified to use the standard'):
+    with pytest.raises(RuntimeWarning, match='be replaced by NaNs'):
         read_raw_nirx(fname, saturated='nan', preload=True)
-    with pytest.raises(RuntimeWarning, match='specified to annotate your'):
+    with pytest.raises(RuntimeWarning, match='annotated with \'nan\' flags'):
         read_raw_nirx(fname, saturated='annotate', preload=True)
-    with pytest.raises(RuntimeWarning, match='You chose to ignore them'):
+    with pytest.raises(RuntimeWarning, match='contains saturated data'):
         read_raw_nirx(fname, saturated='ignore', preload=True)
-    with pytest.raises(RuntimeWarning, match='Falling back to default'):
+    with pytest.raises(KeyError, match='specified for saturated must'):
         read_raw_nirx(fname, saturated='foobar', preload=True)
 
 

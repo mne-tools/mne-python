@@ -29,9 +29,13 @@ def read_raw_nirx(fname, saturated='ignore', preload=False, verbose=None):
     fname : str
         Path to the NIRX data folder or header file.
     saturated : str
-        (Only relevant for NIRSport1 devices). If 'ignore' (default),
-        use *.nosatflags_wlX instead of standard *.wlX files. If 'nan',
-        use standard *.wlX files. Irrelevant if there is no *.nosatflags file.
+        Replace saturated segments of data with NaNs.
+        If 'ignore' (default) the measured data is returned, even if it
+        contains measurements while the amplifier was saturated.
+        If 'nan' the returned data will contain NaNs during time segments
+        when the amplifier was saturated.
+        This argument will only be used if there is no *.nosatflags file
+        (only if a NIRSport device is used and saturation occurred).
     %(preload)s
     %(verbose)s
 
@@ -48,15 +52,14 @@ def read_raw_nirx(fname, saturated='ignore', preload=False, verbose=None):
     -----
     This function has only been tested with NIRScout and NIRSport1 devices.
 
-        - Re: saturated flag
-    The NIRSport probes can saturate during the experiment. Starting from
-    NIRStar 14.2, those saturated values are replaced by NaN in the
-    standard *.wlX files. The measured values are stored in another file
-    called *.nosatflags_wlX, which is a copy of the corresponding *.wlX
-    file where the saturated data didn't get replaced. Since NaN values can
-    cause unexpected behaviour with mathematical functions, you can chose
-    to use the original, non-modified data by setting the ``saturated`` flag to
-    'ignore' (default) or set it to 'nan' to use NaN values.
+    The NIRSport device can detect if the amplifier is saturated.
+    Starting from NIRStar 14.2, those saturated values are replaced by NaNs
+    in the standard *.wlX files.
+    The raw unmodified measured values are stored in another file
+    called *.nosatflags_wlX. As NaN values can cause unexpected behaviour with
+    mathematical functions the default behaviour is to return the
+    saturated data. However, you may request the data with saturated
+    segments replaced with NaN by setting the saturated argument to nan.
     """
     return RawNIRX(fname, saturated, preload, verbose)
 
@@ -74,9 +77,13 @@ class RawNIRX(BaseRaw):
     fname : str
         Path to the NIRX data folder or header file.
     saturated : str
-        (Only relevant for NIRSport1 devices). If 'ignore' (default),
-        use *.nosatflags_wlX instead of standard *.wlX files. If 'nan',
-        use standard *.wlX files. Irrelevant if there is no *.nosatflags file.
+        Replace saturated segments of data with NaNs.
+        If 'ignore' (default) the measured data is returned, even if it
+        contains measurements while the amplifier was saturated.
+        If 'nan' the returned data will contain NaNs during time segments
+        when the amplifier was saturated.
+        This argument will only be used if there is no *.nosatflags file
+        (only if a NIRSport device is used and saturation occurred).
 
     %(preload)s
     %(verbose)s
@@ -89,16 +96,14 @@ class RawNIRX(BaseRaw):
     -----
     This function has only been tested with NIRScout and NIRSport1 devices.
 
-        - Re: saturated flag
-    The NIRSport probes can saturate during the experiment. Starting from
-    NIRStar 14.2, those saturated values are replaced by NaN in the
-    standard *.wlX files. The measured values are stored in another file
-    called *.nosatflags_wlX, which is a copy of the corresponding *.wlX
-    file where the saturated data didn't get replaced. Since NaN values can
-    cause unexpected behaviour with mathematical functions, you can chose
-    to use the original, non-modified data by setting the ``saturated`` flag of
-    the read_raw_nirx() method to 'ignore' (default) or set it to 'nan' to
-    use NaN values.
+    The NIRSport device can detect if the amplifier is saturated.
+    Starting from NIRStar 14.2, those saturated values are replaced by NaNs
+    in the standard *.wlX files.
+    The raw unmodified measured values are stored in another file
+    called *.nosatflags_wlX. As NaN values can cause unexpected behaviour with
+    mathematical functions the default behaviour is to return the
+    saturated data. However, you may request the data with saturated
+    segments replaced with NaN by setting the saturated argument to nan.
     """
 
     @verbose
@@ -125,29 +130,23 @@ class RawNIRX(BaseRaw):
                     and len(glob.glob('%s/*%s' %
                                       (fname, 'nosatflags_' + key))) == 1:
                     if saturated == 'nan':
-                        warn('You provided saturated data and specified '
-                             'to use the standard *.wlX files.')
+                        warn('The measurement contains saturated data. '
+                             'Saturated values will be replaced by NaNs.')
                         files[key] = files[key][1]
                     elif saturated == 'annotate':
-                        warn('You provided saturated data and specified '
-                             'to annotate your data with a \'nan\' flag.')
+                        warn('The measurement contains saturated data. '
+                             'Saturated values will be annotated '
+                             'with \'nan\' flags.')
                         files[key] = files[key][1]
                     else:
                         if saturated == 'ignore':
-                            warn('The data you provided contains NaN entries '
-                                 'which were put by NIRStar in the *.wlX '
-                                 'files. You chose to ignore them and use the '
-                                 '*.nosatflags_wlX files instead. You can '
-                                 'change this behaviour by setting '
-                                 '``saturated`` to "nan" when calling '
-                                 'read_raw_nirx()')
+                            warn('The measurement contains saturated data.')
                         else:
-                            warn('The value specified for ``saturated`` is '
-                                 'not recognized. Falling back to default '
-                                 'behaviour and using *.nosatflags_wlX files. '
-                                 'You can change this behaviour by setting '
-                                 '``saturated`` to "nan" when calling '
-                                 'read_raw_nirx()')
+                            raise KeyError("The value specified for saturated "
+                                           "must be one of ignore, nan, or "
+                                           "annotate. "
+                                           f"{saturated} was provided")
+
                         files[key] = glob.glob('%s/*%s' %
                                                (fname, 'nosatflags_' + key))[0]
                 else:
