@@ -116,7 +116,7 @@ for event in event_ids:
 # to a :class:`Pandas DataFrame <pandas.DataFrame>`. By default, the `time`
 # column of the exported data frame is in milliseconds. Here, to be consistent
 # with the time-frequency plots, we want to keep it in seconds, which we can
-# achieve by setting `time_format=None`:
+# achieve by setting ``time_format=None``:
 
 df = tfr.to_data_frame(time_format=None)
 df.head()
