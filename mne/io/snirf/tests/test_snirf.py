@@ -158,7 +158,6 @@ def test_snirf_nonstandard(tmpdir):
         f.create_dataset("nirs/metaDataTags/MNE_coordFrame", data=[1])
 
 
-
 @requires_testing_data
 @requires_h5py
 def test_snirf_nirsport2():
