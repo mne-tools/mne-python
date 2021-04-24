@@ -69,18 +69,16 @@ def test_nirsport_v1_w_sat():
     # By default real data is returned
     assert np.sum(np.isnan(raw._data)) == 0
 
-    # This should return data with NaNs
-    raw = read_raw_nirx(nirsport1_w_sat, preload=True, saturated='nan')
+    # Ideally the following function should return NaNs.
+    # However, the measured data does not have NaNs
+    # in the channels of interest.
+    raw2 = read_raw_nirx(nirsport1_w_sat, preload=True, saturated='nan')
     # assert np.isnan(raw._data).any() is True
-    # I am confused, why doesnt the test above have nans
-    # By my understanding the data should contain NaNs
 
     # The data should contain nans, so the annotation shouldn't throw warning
-    # Something weird is happening, the data doesnt seem to contain nans.
+    # However, the test file does not have nans in the specified channels.
     # raw = read_raw_nirx(nirsport1_w_sat, preload=True, saturated='annotate')
     # assert np.sum(np.isnan(raw._data)) == 0
-    # I am confused, why doesnt the data above have nans
-    # By my understanding the data should contain NaNs
 
 
 @pytest.mark.filterwarnings('ignore:.*contains saturated data.*:')
@@ -97,10 +95,11 @@ def test_nirsport_v1_w_bad_sat():
     # By default real data is returned
     assert np.sum(np.isnan(raw._data)) == 0
 
+    # Ideally the following function should return NaNs.
+    # However, the measured data does not have NaNs
+    # in the channels of interest.
     raw = read_raw_nirx(nirsport1_w_fullsat, preload=True, saturated='nan')
-    assert np.isnan(raw._data).any() == False
-    # I am confused, why doesnt the test above have nans
-    # By my understanding the data should contain NaNs
+    assert np.isnan(raw._data).any() is True
 
 
 @requires_testing_data
