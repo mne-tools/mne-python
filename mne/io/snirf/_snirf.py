@@ -38,7 +38,7 @@ def read_raw_snirf(fname, preload=False, verbose=None):
     Returns
     -------
     raw : instance of RawSNIRF
-        A Raw object containing SNIRF data.
+        A Raw object containing fNIRS data.
 
     See Also
     --------
