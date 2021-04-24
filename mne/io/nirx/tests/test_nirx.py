@@ -32,6 +32,52 @@ fname_nirx_15_3_short = op.join(data_path(download=False),
                                 'NIRx', 'nirscout', 'nirx_15_3_recording')
 
 
+nirsport1_wo_sat = op.join(data_path(download=False),
+                           'NIRx', 'nirsport_v1',
+                           'nirx_15_3_recording_wo_saturation')
+nirsport1_w_sat = op.join(data_path(download=False),
+                           'NIRx', 'nirsport_v1',
+                           'nirx_15_3_recording_w_occasional_saturation')
+nirsport1_w_fullsat = op.join(data_path(download=False),
+                           'NIRx', 'nirsport_v1',
+                           'nirx_15_3_recording_w_full_saturation')
+
+
+@requires_testing_data
+@pytest.mark.filterwarnings('ignore:.*Extraction of measurement.*:')
+def test_nirsport_v1_wo_sat():
+    """Test reading NIRX files using path to header file."""
+    raw = read_raw_nirx(nirsport1_wo_sat, preload=True)
+
+    # Test data import
+    assert raw._data.shape == (26, 164)
+    assert raw.info['sfreq'] == 10.416667
+
+
+@pytest.mark.filterwarnings('ignore:.*contains saturated data.*:')
+@pytest.mark.filterwarnings('ignore:.*Extraction of measurement.*:')
+@requires_testing_data
+def test_nirsport_v1_w_sat():
+    """Test reading NIRX files using path to header file."""
+    raw = read_raw_nirx(nirsport1_w_sat, preload=True)
+
+    # Test data import
+    assert raw._data.shape == (26, 176)
+    assert raw.info['sfreq'] == 10.416667
+
+
+@pytest.mark.filterwarnings('ignore:.*contains saturated data.*:')
+@pytest.mark.filterwarnings('ignore:.*Extraction of measurement.*:')
+@requires_testing_data
+def test_nirsport_v1_w_bad_sat():
+    """Test reading NIRX files using path to header file."""
+    raw = read_raw_nirx(nirsport1_w_fullsat, preload=True)
+
+    # Test data import
+    assert raw._data.shape == (26, 168)
+    assert raw.info['sfreq'] == 10.416667
+
+
 @requires_testing_data
 def test_nirx_hdr_load():
     """Test reading NIRX files using path to header file."""

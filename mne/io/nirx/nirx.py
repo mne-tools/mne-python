@@ -30,11 +30,11 @@ def read_raw_nirx(fname, saturated='ignore', preload=False, verbose=None):
         Path to the NIRX data folder or header file.
     saturated : str
         Replace saturated segments of data with NaNs.
-        If 'ignore' (default) the measured data is returned, even if it
+        If ignore (default) the measured data is returned, even if it
         contains measurements while the amplifier was saturated.
-        If 'nan' the returned data will contain NaNs during time segments
+        If nan the returned data will contain NaNs during time segments
         when the amplifier was saturated.
-        This argument will only be used if there is no *.nosatflags file
+        This argument will only be used if there is no .nosatflags file
         (only if a NIRSport device is used and saturation occurred).
     %(preload)s
     %(verbose)s
@@ -54,9 +54,9 @@ def read_raw_nirx(fname, saturated='ignore', preload=False, verbose=None):
 
     The NIRSport device can detect if the amplifier is saturated.
     Starting from NIRStar 14.2, those saturated values are replaced by NaNs
-    in the standard *.wlX files.
+    in the standard .wlX files.
     The raw unmodified measured values are stored in another file
-    called *.nosatflags_wlX. As NaN values can cause unexpected behaviour with
+    called .nosatflags_wlX. As NaN values can cause unexpected behaviour with
     mathematical functions the default behaviour is to return the
     saturated data. However, you may request the data with saturated
     segments replaced with NaN by setting the saturated argument to nan.
@@ -78,11 +78,11 @@ class RawNIRX(BaseRaw):
         Path to the NIRX data folder or header file.
     saturated : str
         Replace saturated segments of data with NaNs.
-        If 'ignore' (default) the measured data is returned, even if it
+        If ignore (default) the measured data is returned, even if it
         contains measurements while the amplifier was saturated.
-        If 'nan' the returned data will contain NaNs during time segments
+        If nan the returned data will contain NaNs during time segments
         when the amplifier was saturated.
-        This argument will only be used if there is no *.nosatflags file
+        This argument will only be used if there is no .nosatflags file
         (only if a NIRSport device is used and saturation occurred).
 
     %(preload)s
@@ -98,9 +98,9 @@ class RawNIRX(BaseRaw):
 
     The NIRSport device can detect if the amplifier is saturated.
     Starting from NIRStar 14.2, those saturated values are replaced by NaNs
-    in the standard *.wlX files.
+    in the standard .wlX files.
     The raw unmodified measured values are stored in another file
-    called *.nosatflags_wlX. As NaN values can cause unexpected behaviour with
+    called .nosatflags_wlX. As NaN values can cause unexpected behaviour with
     mathematical functions the default behaviour is to return the
     saturated data. However, you may request the data with saturated
     segments replaced with NaN by setting the saturated argument to nan.
