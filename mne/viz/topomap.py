@@ -98,6 +98,12 @@ def _prepare_topomap_plot(inst, ch_type, sphere=None):
         elif ch_type == 'csd':
             picks = pick_types(info, meg=False, csd=True, ref_meg=False,
                                exclude='bads')
+        elif ch_type == 'dbs':
+            picks = pick_types(info, meg=False, dbs=True, ref_meg=False,
+                               exclude='bads')
+        elif ch_type == 'seeg':
+            picks = pick_types(info, meg=False, seeg=True, ref_meg=False,
+                               exclude='bads')
         else:
             picks = pick_types(info, meg=ch_type, ref_meg=False,
                                exclude='bads')
@@ -349,11 +355,10 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
     n_projs = len(projs)
     if axes is None:
         fig, axes, ncols, nrows = _prepare_trellis(
-            n_projs, ncols='auto', nrows='auto')
+            n_projs, ncols='auto', nrows='auto', sharex=True, sharey=True)
     elif isinstance(axes, plt.Axes):
         axes = [axes]
-    if len(axes) != n_projs:
-        raise RuntimeError('There must be an axes for each picked projector.')
+    _validate_if_list_of_axes(axes, n_projs)
 
     # handle vmin/vmax
     vlims = [None for _ in range(len(datas))]
@@ -568,9 +573,10 @@ def _get_extra_points(pos, extrapolate, origin, radii):
     else:
         assert extrapolate == 'head'
         # return points on the head circle
-        angle = np.arcsin(distance / 2 / np.mean(radii))
-        points_l = np.arange(0, 2 * np.pi, angle)
-        use_radii = radii * 1.1
+        angle = np.arcsin(distance / np.mean(radii))
+        n_pnts = max(12, int(np.round(2 * np.pi / angle)))
+        points_l = np.linspace(0, 2 * np.pi, n_pnts, endpoint=False)
+        use_radii = radii * 1.1 + distance
         points_x = np.cos(points_l) * use_radii[0] + x
         points_y = np.sin(points_l) * use_radii[1] + y
         new_pos = np.stack([points_x, points_y], axis=1)
@@ -767,6 +773,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
 
 
 def _setup_interp(pos, res, extrapolate, sphere, outlines, border):
+    logger.debug(f'Interpolation mode {extrapolate} to {border}')
     xlim = np.inf, -np.inf,
     ylim = np.inf, -np.inf,
     mask_ = np.c_[outlines['mask_pos']]
@@ -790,6 +797,30 @@ def _setup_interp(pos, res, extrapolate, sphere, outlines, border):
     interp = _GridData(pos, extrapolate, clip_origin, clip_radius, border)
     extent = (xmin, xmax, ymin, ymax)
     return extent, Xi, Yi, interp
+
+
+def _get_patch(outlines, extrapolate, interp, ax):
+    from matplotlib import patches
+    clip_radius = outlines['clip_radius']
+    clip_origin = outlines.get('clip_origin', (0., 0.))
+    _use_default_outlines = any(k.startswith('head') for k in outlines)
+    patch_ = None
+    if 'patch' in outlines:
+        patch_ = outlines['patch']
+        patch_ = patch_() if callable(patch_) else patch_
+        patch_.set_clip_on(False)
+        ax.add_patch(patch_)
+        ax.set_transform(ax.transAxes)
+        ax.set_clip_path(patch_)
+    if _use_default_outlines:
+        if extrapolate == 'local':
+            patch_ = patches.Polygon(
+                interp.mask_pts, clip_on=True, transform=ax.transData)
+        else:
+            patch_ = patches.Ellipse(
+                clip_origin, 2 * clip_radius[0], 2 * clip_radius[1],
+                clip_on=True, transform=ax.transData)
+    return patch_
 
 
 def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
@@ -825,16 +856,13 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
             # deal with grad pairs
             picks = _pair_grad_sensors(pos, topomap_coords=False)
             pos = _find_topomap_coords(pos, picks=picks[::2], sphere=sphere)
-            data, _ = _merge_ch_data(data, ch_type, [])
+            data, _ = _merge_ch_data(data[picks], ch_type, [])
             data = data.reshape(-1)
         else:
             picks = list(range(data.shape[0]))
             pos = _find_topomap_coords(pos, picks=picks, sphere=sphere)
 
-    _check_option('extrapolate', extrapolate, ('box', 'local', 'head', 'auto'))
-    if extrapolate == 'auto':
-        extrapolate = 'local' if ch_type in _MEG_CH_TYPES_SPLIT else 'head'
-
+    extrapolate = _check_extrapolate(extrapolate, ch_type)
     if data.ndim > 1:
         raise ValueError("Data needs to be array of shape (n_sensors,); got "
                          "shape %s." % str(data.shape))
@@ -875,35 +903,16 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     ax = axes if axes else plt.gca()
     _prepare_topomap(pos, ax)
 
-    _use_default_outlines = any(k.startswith('head') for k in outlines)
     mask_params = _handle_default('mask_params', mask_params)
 
     # find mask limits
-    clip_radius = outlines['clip_radius']
-    clip_origin = outlines.get('clip_origin', (0., 0.))
     extent, Xi, Yi, interp = _setup_interp(
         pos, res, extrapolate, sphere, outlines, border)
     interp.set_values(data)
     Zi = interp.set_locations(Xi, Yi)()
 
     # plot outline
-    patch_ = None
-    if 'patch' in outlines:
-        patch_ = outlines['patch']
-        patch_ = patch_() if callable(patch_) else patch_
-        patch_.set_clip_on(False)
-        ax.add_patch(patch_)
-        ax.set_transform(ax.transAxes)
-        ax.set_clip_path(patch_)
-    if _use_default_outlines:
-        from matplotlib import patches
-        if extrapolate == 'local':
-            patch_ = patches.Polygon(
-                interp.mask_pts, clip_on=True, transform=ax.transData)
-        else:
-            patch_ = patches.Ellipse(
-                clip_origin, 2 * clip_radius[0], 2 * clip_radius[1],
-                clip_on=True, transform=ax.transData)
+    patch_ = _get_patch(outlines, extrapolate, interp, ax)
 
     # plot interpolated map
     im = ax.imshow(Zi, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
@@ -1010,7 +1019,7 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64,
         data.ravel(), pos, vmin=vmin_, vmax=vmax_, res=res, axes=axes,
         cmap=cmap, outlines=outlines, contours=contours, sensors=sensors,
         image_interp=image_interp, show=show, extrapolate=extrapolate,
-        sphere=sphere, border=border)[0]
+        sphere=sphere, border=border, ch_type=ch_type)[0]
     if colorbar:
         cbar, cax = _add_colorbar(axes, im, cmap, pad=.05, title="AU",
                                   format='%3.2f')
@@ -1019,7 +1028,7 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64,
     _hide_frame(axes)
 
 
-@fill_doc
+@verbose
 def plot_ica_components(ica, picks=None, ch_type=None, res=64,
                         vmin=None, vmax=None, cmap='RdBu_r',
                         sensors=True, colorbar=False, title=None,
@@ -1027,7 +1036,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
                         image_interp='bilinear',
                         inst=None, plot_std=True, topomap_args=None,
                         image_args=None, psd_args=None, reject='auto',
-                        sphere=None):
+                        sphere=None, *, verbose=None):
     """Project mixing matrix on interpolated sensor topography.
 
     Parameters
@@ -1109,6 +1118,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         which applies the rejection parameters used when fitting
         the ICA object.
     %(topomap_sphere_auto)s
+    %(verbose)s
 
     Returns
     -------
@@ -1142,18 +1152,13 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         figs = []
         for k in range(0, n_components, p):
             picks = range(k, min(k + p, n_components))
-            fig = plot_ica_components(ica, picks=picks, ch_type=ch_type,
-                                      res=res, vmax=vmax,
-                                      cmap=cmap, sensors=sensors,
-                                      colorbar=colorbar, title=title,
-                                      show=show, outlines=outlines,
-                                      contours=contours,
-                                      image_interp=image_interp, inst=inst,
-                                      plot_std=plot_std,
-                                      topomap_args=topomap_args,
-                                      image_args=image_args,
-                                      psd_args=psd_args, reject=reject,
-                                      sphere=sphere)
+            fig = plot_ica_components(
+                ica, picks=picks, ch_type=ch_type, res=res, vmax=vmax,
+                cmap=cmap, sensors=sensors, colorbar=colorbar, title=title,
+                show=show, outlines=outlines, contours=contours,
+                image_interp=image_interp, inst=inst, plot_std=plot_std,
+                topomap_args=topomap_args, image_args=image_args,
+                psd_args=psd_args, reject=reject, sphere=sphere)
             figs.append(fig)
         return figs
     else:
@@ -1164,7 +1169,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
     data = np.dot(ica.mixing_matrix_[:, picks].T,
                   ica.pca_components_[:ica.n_components_])
 
-    data_picks, pos, merge_channels, names, _, sphere, clip_origin = \
+    data_picks, pos, merge_channels, names, ch_type, sphere, clip_origin = \
         _prepare_topomap_plot(ica, ch_type, sphere=sphere)
     outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
 
@@ -1187,7 +1192,8 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         im = plot_topomap(
             data_.flatten(), pos, vmin=vmin_, vmax=vmax_, res=res, axes=ax,
             cmap=cmap[0], outlines=outlines, contours=contours,
-            image_interp=image_interp, show=False, sensors=sensors)[0]
+            image_interp=image_interp, show=False, sensors=sensors,
+            ch_type=ch_type, **topomap_args)[0]
         im.axes.set_label(ica._ica_names[ii])
         if colorbar:
             cbar, cax = _add_colorbar(ax, im, cmap, title="AU",
@@ -1979,7 +1985,7 @@ def plot_psds_topomap(
 
 
 @fill_doc
-def plot_layout(layout, picks=None, show=True):
+def plot_layout(layout, picks=None, show_axes=False, show=True):
     """Plot the sensor positions.
 
     Parameters
@@ -1987,6 +1993,8 @@ def plot_layout(layout, picks=None, show=True):
     layout : None | Layout
         Layout instance specifying sensor positions.
     %(picks_nostr)s
+    show_axes : bool
+            Show layout axes if True. Defaults to False.
     show : bool
         Show figure if True. Defaults to True.
 
@@ -2005,15 +2013,18 @@ def plot_layout(layout, picks=None, show=True):
     fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None,
                         hspace=None)
     ax.set(xticks=[], yticks=[], aspect='equal')
-    pos = np.array([(p[0] + p[2] / 2., p[1] + p[3] / 2.) for p in layout.pos])
     outlines = dict(border=([0, 1, 1, 0, 0], [0, 0, 1, 1, 0]))
     _draw_outlines(ax, outlines)
     picks = _picks_to_idx(len(layout.names), picks)
-    pos = pos[picks]
+    pos = layout.pos[picks]
     names = np.array(layout.names)[picks]
-    for ii, (this_pos, ch_id) in enumerate(zip(pos, names)):
-        ax.annotate(ch_id, xy=this_pos[:2], horizontalalignment='center',
+    for ii, (p, ch_id) in enumerate(zip(pos, names)):
+        center_pos = np.array((p[0] + p[2] / 2., p[1] + p[3] / 2.))
+        ax.annotate(ch_id, xy=center_pos, horizontalalignment='center',
                     verticalalignment='center', size='x-small')
+        if show_axes:
+            x1, x2, y1, y2 = p[0], p[0] + p[2], p[1], p[1] + p[3]
+            ax.plot([x1, x1, x2, x2, x1], [y1, y2, y2, y1, y1], color='k')
     ax.axis('off')
     tight_layout(fig=fig, pad=0, w_pad=0, h_pad=0)
     plt_show(show)
@@ -2109,9 +2120,17 @@ def _hide_frame(ax):
     ax.set_frame_on(False)
 
 
-def _init_anim(ax, ax_line, ax_cbar, params, merge_channels, sphere):
+def _check_extrapolate(extrapolate, ch_type):
+    _check_option('extrapolate', extrapolate, ('box', 'local', 'head', 'auto'))
+    if extrapolate == 'auto':
+        extrapolate = 'local' if ch_type in _MEG_CH_TYPES_SPLIT else 'head'
+    return extrapolate
+
+
+@verbose
+def _init_anim(ax, ax_line, ax_cbar, params, merge_channels, sphere, ch_type,
+               extrapolate, verbose):
     """Initialize animated topomap."""
-    from matplotlib import pyplot as plt, patches
     logger.info('Initializing animation...')
     data = params['data']
     items = list()
@@ -2137,7 +2156,10 @@ def _init_anim(ax, ax_line, ax_cbar, params, merge_channels, sphere):
 
     _hide_frame(ax)
     extent, Xi, Yi, interp = _setup_interp(
-        params['pos'], 64, 'box', sphere, outlines, 0)
+        params['pos'], 64, extrapolate, sphere, outlines, 0)
+
+    patch_ = _get_patch(outlines, extrapolate, interp, ax)
+
     params['Zis'] = list()
     for frame in params['frames']:
         params['Zis'].append(interp.set_values(data[:, frame])(Xi, Yi))
@@ -2152,14 +2174,9 @@ def _init_anim(ax, ax_line, ax_cbar, params, merge_channels, sphere):
                    aspect='equal', extent=extent,
                    interpolation='bilinear')
     ax.autoscale(enable=True, tight=True)
-    plt.colorbar(im, cax=ax_cbar)
+    ax.figure.colorbar(im, cax=ax_cbar)
     cont = ax.contour(Xi, Yi, Zi, levels=cont_lims, colors='k', linewidths=1)
 
-    patch_ = patches.Ellipse((0, 0),
-                             2 * outlines['clip_radius'][0],
-                             2 * outlines['clip_radius'][1],
-                             clip_on=True,
-                             transform=ax.transData)
     im.set_clip_path(patch_)
     text = ax.text(0.55, 0.95, '', transform=ax.transAxes, va='center',
                    ha='right')
@@ -2249,7 +2266,7 @@ def _key_press(event, params):
 
 
 def _topomap_animation(evoked, ch_type, times, frame_rate, butterfly, blit,
-                       show, time_unit, sphere):
+                       show, time_unit, sphere, extrapolate, *, verbose=None):
     """Make animation of evoked data as topomap timeseries.
 
     See mne.evoked.Evoked.animate_topomap.
@@ -2273,7 +2290,6 @@ def _topomap_animation(evoked, ch_type, times, frame_rate, butterfly, blit,
         raise ValueError('All times must be inside the evoked time series.')
     frames = [np.abs(evoked.times - time).argmin() for time in times]
 
-    blit = False if plt.get_backend() == 'MacOSX' else blit
     picks, pos, merge_channels, _, ch_type, sphere, clip_origin = \
         _prepare_topomap_plot(evoked, ch_type, sphere=sphere)
     data = evoked.data[picks, :]
@@ -2292,6 +2308,7 @@ def _topomap_animation(evoked, ch_type, times, frame_rate, butterfly, blit,
         frames = np.linspace(0, len(evoked.times) - 1, frames).astype(int)
     ax_cbar = plt.subplot2grid(shape, (0, colspan), rowspan=rowspan)
     ax_cbar.set_title(_handle_default('units')[ch_type], fontsize=10)
+    extrapolate = _check_extrapolate(extrapolate, ch_type)
 
     params = dict(data=data, pos=pos, all_times=evoked.times, frame=0,
                   frames=frames, butterfly=butterfly, blit=blit,
@@ -2299,7 +2316,8 @@ def _topomap_animation(evoked, ch_type, times, frame_rate, butterfly, blit,
                   clip_origin=clip_origin)
     init_func = partial(_init_anim, ax=ax, ax_cbar=ax_cbar, ax_line=ax_line,
                         params=params, merge_channels=merge_channels,
-                        sphere=sphere)
+                        sphere=sphere, ch_type=ch_type,
+                        extrapolate=extrapolate, verbose=verbose)
     animate_func = partial(_animate, ax=ax, ax_line=ax_line, params=params)
     pause_func = partial(_pause_anim, params=params)
     fig.canvas.mpl_connect('button_press_event', pause_func)

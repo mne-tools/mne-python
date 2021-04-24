@@ -14,7 +14,7 @@ from mne import (read_events, Epochs, read_cov, pick_types, Annotations,
                  make_fixed_length_events)
 from mne.io import read_raw_fif
 from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
-from mne.utils import (run_tests_if_main, requires_sklearn, _click_ch_name,
+from mne.utils import (requires_sklearn, _click_ch_name, catch_logging,
                        _close_event)
 from mne.viz.ica import _create_properties_layout, plot_ica_properties
 from mne.viz.utils import _fake_click
@@ -54,6 +54,8 @@ def _get_epochs():
 
 
 @requires_sklearn
+@pytest.mark.filterwarnings('ignore:.*max_iter.*will be changed.*:'
+                            'DeprecationWarning')
 def test_plot_ica_components():
     """Test plotting of ICA solutions."""
     res = 8
@@ -70,7 +72,12 @@ def test_plot_ica_components():
     plt.close('all')
 
     # test interactive mode (passing 'inst' arg)
-    ica.plot_components([0, 1], image_interp='bilinear', inst=raw, res=16)
+    with catch_logging() as log:
+        ica.plot_components([0, 1], image_interp='bilinear', inst=raw, res=16,
+                            verbose='debug', ch_type='grad')
+    log = log.getvalue()
+    assert 'grad data' in log
+    assert 'Interpolation mode local to mean' in log
     fig = plt.gcf()
 
     # test title click
@@ -112,6 +119,7 @@ def test_plot_ica_properties():
     """Test plotting of ICA properties."""
     raw = _get_raw(preload=True).crop(0, 5)
     raw.add_proj([], remove_existing=True)
+    raw.info['highpass'] = 1.0  # fake high-pass filtering
     events = make_fixed_length_events(raw)
     picks = _get_picks(raw)[:6]
     pick_names = [raw.ch_names[k] for k in picks]
@@ -133,7 +141,11 @@ def test_plot_ica_properties():
         _create_properties_layout(figsize=(2, 2), fig=fig)
 
     topoargs = dict(topomap_args={'res': 4, 'contours': 0, "sensors": False})
-    ica.plot_properties(raw, picks=0, **topoargs)
+    with catch_logging() as log:
+        ica.plot_properties(raw, picks=0, verbose='debug', **topoargs)
+    log = log.getvalue()
+    assert raw.ch_names[0] == 'MEG 0113'
+    assert 'Interpolation mode local to mean' in log, log
     ica.plot_properties(epochs, picks=1, dB=False, plot_std=1.5, **topoargs)
     ica.plot_properties(epochs, picks=1, image_args={'sigma': 1.5},
                         topomap_args={'res': 4, 'colorbar': True},
@@ -198,6 +210,8 @@ def test_plot_ica_properties():
 
 
 @requires_sklearn
+@pytest.mark.filterwarnings('ignore:.*max_iter.*will be changed.*:'
+                            'DeprecationWarning')
 def test_plot_ica_sources():
     """Test plotting of ICA panel."""
     raw = read_raw_fif(raw_fname).crop(0, 1).load_data()
@@ -222,6 +236,9 @@ def test_plot_ica_sources():
     _close_event(fig)
     assert len(plt.get_fignums()) == 0
     assert_array_equal(ica.exclude, [0])
+    # test when picks does not include ica.exclude.
+    fig = ica.plot_sources(raw, picks=[1])
+    assert len(plt.get_fignums()) == 1
     plt.close('all')
 
     # dtype can change int->np.int64 after load, test it explicitly
@@ -232,7 +249,7 @@ def test_plot_ica_sources():
     fig = ica.plot_sources(long_raw)
     assert len(plt.get_fignums()) == 1
     fig.canvas.draw()
-    _fake_click(fig, fig.mne.ax_main, (-0.1, 0), xform='data', button=3)
+    _click_ch_name(fig, ch_index=0, button=3)
     assert len(fig.mne.child_figs) == 1
     assert len(plt.get_fignums()) == 2
     # close child fig directly (workaround for mpl issue #18609)
@@ -283,9 +300,12 @@ def test_plot_ica_sources():
 
 @pytest.mark.slowtest
 @requires_sklearn
+@pytest.mark.filterwarnings('ignore:.*max_iter.*will be changed.*:'
+                            'DeprecationWarning')
 def test_plot_ica_overlay():
     """Test plotting of ICA cleaning."""
     raw = _get_raw(preload=True)
+    raw.info['highpass'] = 1.0  # fake high-pass filtering
     picks = _get_picks(raw)
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2, random_state=0)
     # can't use info.normalize_proj here because of how and when ICA and Epochs
@@ -307,6 +327,7 @@ def test_plot_ica_overlay():
     # smoke test for CTF
     raw = read_raw_fif(raw_ctf_fname)
     raw.apply_gradient_compensation(3)
+    raw.info['highpass'] = 1.0  # fake high-pass filtering
     picks = pick_types(raw.info, meg=True, ref_meg=False)
     ica = ICA(n_components=2, )
     ica.fit(raw, picks=picks)
@@ -323,6 +344,8 @@ def _get_geometry(fig):
 
 
 @requires_sklearn
+@pytest.mark.filterwarnings('ignore:.*max_iter.*will be changed.*:'
+                            'DeprecationWarning')
 def test_plot_ica_scores():
     """Test plotting of ICA scores."""
     raw = _get_raw()
@@ -365,6 +388,8 @@ def test_plot_ica_scores():
 
 
 @requires_sklearn
+@pytest.mark.filterwarnings('ignore:.*max_iter.*will be changed.*:'
+                            'DeprecationWarning')
 def test_plot_instance_components():
     """Test plotting of components as instances of raw and epochs."""
     raw = _get_raw()
@@ -396,6 +421,3 @@ def test_plot_instance_components():
     _fake_click(fig, ax, [line.get_xdata()[0], line.get_ydata()[0]], 'data')
     _fake_click(fig, ax, [-0.1, 0.9])  # click on y-label
     fig.canvas.key_press_event('escape')
-
-
-run_tests_if_main()

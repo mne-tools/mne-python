@@ -212,8 +212,7 @@ def test_read_ctf(tmpdir):
             assert_allclose(raw_read[pick_ch, sl_time][0],
                             raw_c[pick_ch, sl_time][0])
         # all data / preload
-        with pytest.warns(None):  # sometimes MISC
-            raw = read_raw_ctf(fname, preload=True)
+        raw.load_data()
         assert_allclose(raw[:][0], raw_c[:][0], atol=1e-15)
         # test bad segment annotations
         if 'testdata_ctf_short.ds' in fname:
@@ -221,12 +220,14 @@ def test_read_ctf(tmpdir):
             assert_allclose(raw.annotations.onset, [2.15])
             assert_allclose(raw.annotations.duration, [0.0225])
 
-    pytest.raises(TypeError, read_raw_ctf, 1)
-    pytest.raises(ValueError, read_raw_ctf, ctf_fname_continuous + 'foo.ds')
+    with pytest.raises(TypeError, match='path-like'):
+        read_raw_ctf(1)
+    with pytest.raises(FileNotFoundError, match='does not exist'):
+        read_raw_ctf(ctf_fname_continuous + 'foo.ds')
     # test ignoring of system clock
     read_raw_ctf(op.join(ctf_dir, ctf_fname_continuous), 'ignore')
-    pytest.raises(ValueError, read_raw_ctf,
-                  op.join(ctf_dir, ctf_fname_continuous), 'foo')
+    with pytest.raises(ValueError, match='system_clock'):
+        read_raw_ctf(op.join(ctf_dir, ctf_fname_continuous), 'foo')
 
 
 @testing.requires_testing_data

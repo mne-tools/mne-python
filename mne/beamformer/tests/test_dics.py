@@ -18,7 +18,7 @@ from mne.beamformer import (make_dics, apply_dics, apply_dics_epochs,
 from mne.beamformer._compute_beamformer import _prepare_beamformer_input
 from mne.beamformer._dics import _prepare_noise_csd
 from mne.time_frequency import csd_morlet
-from mne.utils import run_tests_if_main, object_diff, requires_h5py
+from mne.utils import object_diff, requires_h5py, catch_logging
 from mne.proj import compute_proj_evoked, make_projector
 from mne.surface import _compute_nearest
 from mne.beamformer.tests.test_lcmv import _assert_weight_norm
@@ -93,7 +93,7 @@ def _simulate_data(fwd, idx):  # Somewhere on the frontal lobe by default
     evoked = epochs.average()
 
     # Compute the cross-spectral density matrix
-    csd = csd_morlet(epochs, frequencies=[10, 20], n_cycles=[5, 10], decim=10)
+    csd = csd_morlet(epochs, frequencies=[10, 20], n_cycles=[5, 10], decim=5)
 
     labels = mne.read_labels_from_annot(
         'sample', hemi='lh', subjects_dir=subjects_dir)
@@ -107,14 +107,47 @@ def _simulate_data(fwd, idx):  # Somewhere on the frontal lobe by default
     return epochs, evoked, csd, source_vertno, label, vertices, source_ind
 
 
-idx_param = pytest.mark.parametrize('idx', [0, 100, 200, 233])
+idx_param = pytest.mark.parametrize('idx', [
+    0,
+    pytest.param(100, marks=pytest.mark.slowtest),
+    200,
+    pytest.param(233, marks=pytest.mark.slowtest),
+])
+
+
+def _rand_csd(rng, info):
+    scales = mne.make_ad_hoc_cov(info).data
+    n = scales.size
+    # Some random complex correlation structure (with channel scalings)
+    data = rng.randn(n, n) + 1j * rng.randn(n, n)
+    data = data @ data.conj().T
+    data *= scales
+    data *= scales[:, np.newaxis]
+    data.flat[::n + 1] = scales
+    return data
+
+
+def _make_rand_csd(info, csd):
+    rng = np.random.RandomState(0)
+    data = _rand_csd(rng, info)
+    # now we need to have the same null space as the data csd
+    s, u = np.linalg.eigh(csd.get_data(csd.frequencies[0]))
+    mask = np.abs(s) >= s[-1] * 1e-7
+    rank = mask.sum()
+    assert rank == len(data) == len(info['ch_names'])
+    noise_csd = CrossSpectralDensity(
+        _sym_mat_to_vector(data), info['ch_names'], 0., csd.n_fft)
+    return noise_csd, rank
 
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
 @requires_h5py
 @idx_param
-@pytest.mark.parametrize('whiten', (False, True))
+@pytest.mark.parametrize('whiten', [
+    pytest.param(False, marks=pytest.mark.slowtest),
+    True,
+])
 def test_make_dics(tmpdir, _load_forward, idx, whiten):
     """Test making DICS beamformer filters."""
     # We only test proper handling of parameters here. Testing the results is
@@ -126,17 +159,8 @@ def test_make_dics(tmpdir, _load_forward, idx, whiten):
     with pytest.raises(ValueError, match='several sensor types'):
         make_dics(epochs.info, fwd_surf, csd, label=label, pick_ori=None)
     if whiten:
-        rng = np.random.RandomState(0)
-        scales = mne.make_ad_hoc_cov(epochs.info).data
-        n = scales.size
-        # Some random complex correlation structure (with channel scalings)
-        data = rng.randn(n, n) + 1j * rng.randn(n, n)
-        data = data @ data.conj().T
-        data *= scales
-        data *= scales[:, np.newaxis]
-        data.flat[::n + 1] = scales
-        noise_csd = CrossSpectralDensity(
-            _sym_mat_to_vector(data), epochs.ch_names, 0., csd.n_fft)
+        noise_csd, rank = _make_rand_csd(epochs.info, csd)
+        assert rank == len(epochs.info['ch_names']) == 62
     else:
         noise_csd = None
         epochs.pick_types(meg='grad')
@@ -550,12 +574,13 @@ def test_apply_dics_timeseries(_load_forward, idx):
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-@idx_param
-def test_tf_dics(_load_forward, idx):
+@pytest.mark.filterwarnings('ignore:.*tf_dics is dep.*:DeprecationWarning')
+def test_tf_dics(_load_forward):
     """Test 5D time-frequency beamforming based on DICS."""
     fwd_free, fwd_surf, fwd_fixed, _ = _load_forward
+    # idx isn't really used so let's just simulate one
     epochs, _, _, source_vertno, label, vertices, source_ind = \
-        _simulate_data(fwd_fixed, idx)
+        _simulate_data(fwd_fixed, idx=0)
     reg = 1  # Lots of regularization for our toy dataset
 
     tmin = 0
@@ -659,6 +684,15 @@ def test_tf_dics(_load_forward, idx):
                 win_lengths=win_lengths, freq_bins=freq_bins,
                 mode='multitaper', mt_bandwidths=[20])
 
+    # Test if 'cwt_morlet' mode works with both fixed cycle numbers and lists
+    # of cycle numbers
+    tf_dics(epochs, fwd_surf, None, tmin, tmax, tstep,
+            win_lengths, frequencies=frequencies, mode='cwt_morlet',
+            cwt_n_cycles=7)
+    tf_dics(epochs, fwd_surf, None, tmin, tmax, tstep,
+            win_lengths, frequencies=frequencies, mode='cwt_morlet',
+            cwt_n_cycles=[5., 7.])
+
     # Test if subtracting evoked responses yields NaN's, since we only have one
     # epoch. Suppress division warnings.
     assert len(epochs) == 1, len(epochs)
@@ -669,4 +703,106 @@ def test_tf_dics(_load_forward, idx):
     assert np.all(np.isnan(stcs[0].data))
 
 
-run_tests_if_main()
+def _cov_as_csd(cov, info):
+    rng = np.random.RandomState(0)
+    assert cov['data'].ndim == 2
+    assert len(cov['data']) == len(cov['names'])
+    # we need to make this have at least some complex structure
+    data = cov['data'] + 1e-1 * _rand_csd(rng, info)
+    assert data.dtype == np.complex128
+    return CrossSpectralDensity(_sym_mat_to_vector(data), cov['names'], 0., 16)
+
+
+# Just test free ori here (assume fixed is same as LCMV if these are)
+# Changes here should be synced with test_lcmv.py
+@pytest.mark.slowtest
+@pytest.mark.parametrize(
+    'reg, pick_ori, weight_norm, use_cov, depth, lower, upper, real_filter', [
+        (0.05, None, 'unit-noise-gain-invariant', False, None, 26, 28, False),
+        (0.05, None, 'unit-noise-gain-invariant', True, None, 40, 42, False),
+        (0.05, None, 'unit-noise-gain-invariant', True, None, 40, 42, True),
+        (0.05, None, 'unit-noise-gain', False, None, 13, 14, False),
+        (0.05, None, 'unit-noise-gain', True, None, 35, 37, False),
+        (0.05, None, 'nai', True, None, 35, 37, False),
+        (0.05, None, None, True, None, 12, 14, False),
+        (0.05, None, None, True, 0.8, 39, 43, False),
+        (0.05, 'max-power', 'unit-noise-gain-invariant', False, None, 17, 20,
+         False),
+        (0.05, 'max-power', 'unit-noise-gain', False, None, 17, 20, False),
+        (0.05, 'max-power', 'unit-noise-gain', False, None, 17, 20, True),
+        (0.05, 'max-power', 'nai', True, None, 21, 24, False),
+        (0.05, 'max-power', None, True, None, 7, 10, False),
+        (0.05, 'max-power', None, True, 0.8, 15, 18, False),
+        # skip most no-reg tests, assume others are equal to LCMV if these are
+        (0.00, None, None, True, None, 21, 32, False),
+        (0.00, 'max-power', None, True, None, 13, 19, False),
+    ])
+def test_localization_bias_free(bias_params_free, reg, pick_ori, weight_norm,
+                                use_cov, depth, lower, upper, real_filter):
+    """Test localization bias for free-orientation DICS."""
+    evoked, fwd, noise_cov, data_cov, want = bias_params_free
+    noise_csd = _cov_as_csd(noise_cov, evoked.info)
+    data_csd = _cov_as_csd(data_cov, evoked.info)
+    del noise_cov, data_cov
+    if not use_cov:
+        evoked.pick_types(meg='grad')
+        noise_csd = None
+    loc = apply_dics(evoked, make_dics(
+        evoked.info, fwd, data_csd, reg, noise_csd, pick_ori=pick_ori,
+        weight_norm=weight_norm, depth=depth, real_filter=real_filter)).data
+    loc = np.linalg.norm(loc, axis=1) if pick_ori == 'vector' else np.abs(loc)
+    # Compute the percentage of sources for which there is no loc bias:
+    perc = (want == np.argmax(loc, axis=0)).mean() * 100
+    assert lower <= perc <= upper
+
+
+@testing.requires_testing_data
+@idx_param
+@pytest.mark.parametrize('whiten', (False, True))
+def test_make_dics_rank(_load_forward, idx, whiten):
+    """Test making DICS beamformer filters with rank param."""
+    _, fwd_surf, fwd_fixed, _ = _load_forward
+    epochs, _, csd, _, label, _, _ = _simulate_data(fwd_fixed, idx)
+    if whiten:
+        noise_csd, want_rank = _make_rand_csd(epochs.info, csd)
+        kind = 'mag + grad'
+    else:
+        noise_csd = None
+        epochs.pick_types(meg='grad')
+        want_rank = len(epochs.ch_names)
+        assert want_rank == 41
+        kind = 'grad'
+
+    with catch_logging() as log:
+        filters = make_dics(
+            epochs.info, fwd_surf, csd, label=label, noise_csd=noise_csd,
+            verbose=True)
+    log = log.getvalue()
+    assert f'Estimated rank ({kind}): {want_rank}' in log, log
+    stc, _ = apply_dics_csd(csd, filters)
+    other_rank = want_rank - 1  # shouldn't make a huge difference
+    use_rank = dict(meg=other_rank)
+    if not whiten:
+        # XXX it's a bug that our rank functions don't treat "meg"
+        # properly here...
+        use_rank['grad'] = use_rank.pop('meg')
+    with catch_logging() as log:
+        filters_2 = make_dics(
+            epochs.info, fwd_surf, csd, label=label, noise_csd=noise_csd,
+            rank=use_rank, verbose=True)
+    log = log.getvalue()
+    assert f'Computing rank from covariance with rank={use_rank}' in log, log
+    stc_2, _ = apply_dics_csd(csd, filters_2)
+    corr = np.corrcoef(stc_2.data.ravel(), stc.data.ravel())[0, 1]
+    assert 0.8 < corr < 0.99999
+
+    # degenerate conditions
+    if whiten:
+        # make rank deficient
+        data = noise_csd.get_data(0.)
+        data[0] = data[:0] = 0
+        noise_csd._data[:, 0] = _sym_mat_to_vector(data)
+        with pytest.raises(ValueError, match='meg data rank.*the noise rank'):
+            filters = make_dics(
+                epochs.info, fwd_surf, csd, label=label, noise_csd=noise_csd,
+                verbose=True)

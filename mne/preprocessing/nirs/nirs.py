@@ -6,7 +6,6 @@
 
 import re
 import numpy as np
-from scipy import linalg
 
 from ...io.pick import _picks_to_idx
 from ...utils import fill_doc
@@ -28,7 +27,7 @@ def source_detector_distances(info, picks=None):
         Array containing distances in meters.
         Of shape equal to number of channels, or shape of picks if supplied.
     """
-    dist = [linalg.norm(ch['loc'][3:6] - ch['loc'][6:9])
+    dist = [np.linalg.norm(ch['loc'][3:6] - ch['loc'][6:9])
             for ch in info['chs']]
     picks = _picks_to_idx(info, picks, exclude=[])
     return np.array(dist, float)[picks]
@@ -56,53 +55,121 @@ def short_channels(info, threshold=0.01):
     return source_detector_distances(info) < threshold
 
 
-def _channel_frequencies(raw):
+def _channel_frequencies(info):
     """Return the light frequency for each channel."""
-    picks = _picks_to_idx(raw.info, 'fnirs', exclude=[], allow_empty=True)
+    # Only valid for fNIRS data before conversion to haemoglobin
+    picks = _picks_to_idx(info, ['fnirs_cw_amplitude', 'fnirs_od'],
+                          exclude=[], allow_empty=True)
     freqs = np.empty(picks.size, int)
     for ii in picks:
-        freqs[ii] = raw.info['chs'][ii]['loc'][9]
+        freqs[ii] = info['chs'][ii]['loc'][9]
     return freqs
 
 
-def _check_channels_ordered(raw, freqs):
-    """Check channels followed expected fNIRS format."""
+def _channel_chromophore(info):
+    """Return the chromophore of each channel."""
+    # Only valid for fNIRS data after conversion to haemoglobin
+    picks = _picks_to_idx(info, ['hbo', 'hbr'], exclude=[], allow_empty=True)
+    chroma = []
+    for ii in picks:
+        chroma.append(info['ch_names'][ii].split(" ")[1])
+    return chroma
+
+
+def _check_channels_ordered(info, pair_vals):
+    """Check channels follow expected fNIRS format."""
     # Every second channel should be same SD pair
     # and have the specified light frequencies.
-    picks = _picks_to_idx(raw.info, 'fnirs', exclude=[], allow_empty=True)
-    if len(picks) % 2 != 0:
+
+    # All wavelength based fNIRS data.
+    picks_wave = _picks_to_idx(info, ['fnirs_cw_amplitude', 'fnirs_od'],
+                               exclude=[], allow_empty=True)
+    # All chromophore fNIRS data
+    picks_chroma = _picks_to_idx(info, ['hbo', 'hbr'],
+                                 exclude=[], allow_empty=True)
+    # All continuous wave fNIRS data
+    picks_cw = np.hstack([picks_chroma, picks_wave])
+
+    if (len(picks_wave) > 0) & (len(picks_chroma) > 0):
+        raise ValueError(
+            'MNE does not support a combination of amplitude, optical '
+            'density, and haemoglobin data in the same raw structure.')
+
+    if len(picks_cw) % 2 != 0:
         raise ValueError(
             'NIRS channels not ordered correctly. An even number of NIRS '
-            'channels is required. %d channels were provided: %r'
-            % (len(raw.ch_names), raw.ch_names))
-    for ii in picks[::2]:
-        ch1_name_info = re.match(r'S(\d+)_D(\d+) (\d+)',
-                                 raw.info['chs'][ii]['ch_name'])
-        ch2_name_info = re.match(r'S(\d+)_D(\d+) (\d+)',
-                                 raw.info['chs'][ii + 1]['ch_name'])
+            f'channels is required. {len(info.ch_names)} channels were'
+            f'provided: {info.ch_names}')
 
-        if raw.info['chs'][ii]['loc'][9] != \
-                float(ch1_name_info.groups()[2]) or \
-                raw.info['chs'][ii + 1]['loc'][9] != \
-                float(ch2_name_info.groups()[2]):
-            raise ValueError(
-                'NIRS channels not ordered correctly. Channel name and NIRS'
-                ' frequency do not match: %s -> %s & %s -> %s'
-                % (raw.info['chs'][ii]['ch_name'],
-                   raw.info['chs'][ii]['loc'][9],
-                   raw.info['chs'][ii + 1]['ch_name'],
-                   raw.info['chs'][ii + 1]['loc'][9]))
+    # Ensure wavelength info exists for waveform data
+    all_freqs = [info["chs"][ii]["loc"][9] for ii in picks_wave]
+    if np.any(np.isnan(all_freqs)):
+        raise ValueError(
+            'NIRS channels is missing wavelength information in the'
+            f'info["chs"] structure. The encoded wavelengths are {all_freqs}.')
+
+    for ii in picks_cw[::2]:
+        ch1_name_info = re.match(r'S(\d+)_D(\d+) (\d+)',
+                                 info['chs'][ii]['ch_name'])
+        ch2_name_info = re.match(r'S(\d+)_D(\d+) (\d+)',
+                                 info['chs'][ii + 1]['ch_name'])
+
+        if bool(ch2_name_info) & bool(ch1_name_info):
+
+            if info['chs'][ii]['loc'][9] != \
+                    float(ch1_name_info.groups()[2]) or \
+                    info['chs'][ii + 1]['loc'][9] != \
+                    float(ch2_name_info.groups()[2]):
+                raise ValueError(
+                    'NIRS channels not ordered correctly. '
+                    'Channel name and NIRS'
+                    ' frequency do not match: %s -> %s & %s -> %s'
+                    % (info['chs'][ii]['ch_name'],
+                       info['chs'][ii]['loc'][9],
+                       info['chs'][ii + 1]['ch_name'],
+                       info['chs'][ii + 1]['loc'][9]))
+
+            first_value = int(ch1_name_info.groups()[2])
+            second_value = int(ch2_name_info.groups()[2])
+            error_word = "frequencies"
+
+        else:
+            ch1_name_info = re.match(r'S(\d+)_D(\d+) (\w+)',
+                                     info['chs'][ii]['ch_name'])
+            ch2_name_info = re.match(r'S(\d+)_D(\d+) (\w+)',
+                                     info['chs'][ii + 1]['ch_name'])
+
+            if bool(ch2_name_info) & bool(ch1_name_info):
+
+                first_value = ch1_name_info.groups()[2]
+                second_value = ch2_name_info.groups()[2]
+                error_word = "chromophore"
+
+                if (first_value not in ["hbo", "hbr"] or
+                        second_value not in ["hbo", "hbr"]):
+                    raise ValueError(
+                        "NIRS channels have specified naming conventions."
+                        "Chromophore data must be labeled either hbo or hbr."
+                        "Failing channels are "
+                        f"{info['chs'][ii]['ch_name']}, "
+                        f"{info['chs'][ii + 1]['ch_name']}")
+
+            else:
+                raise ValueError(
+                    'NIRS channels have specified naming conventions.'
+                    'The provided channel names can not be parsed.'
+                    f'Channels are {info.ch_names}')
 
         if (ch1_name_info.groups()[0] != ch2_name_info.groups()[0]) or \
            (ch1_name_info.groups()[1] != ch2_name_info.groups()[1]) or \
-           (int(ch1_name_info.groups()[2]) != freqs[0]) or \
-           (int(ch2_name_info.groups()[2]) != freqs[1]):
+           (first_value != pair_vals[0]) or \
+           (second_value != pair_vals[1]):
             raise ValueError(
                 'NIRS channels not ordered correctly. Channels must be ordered'
-                ' as source detector pairs with frequencies: %d & %d'
-                % (freqs[0], freqs[1]))
+                ' as source detector pairs with alternating'
+                f' {error_word}: {pair_vals[0]} & {pair_vals[1]}')
 
-    return picks
+    return picks_cw
 
 
 def _fnirs_check_bads(raw):

@@ -13,7 +13,7 @@ from ..utils import verbose, _check_combine, _check_option
 
 @verbose
 def envelope_correlation(data, combine='mean', orthogonalize="pairwise",
-                         verbose=None):
+                         log=False, absolute=True, verbose=None):
     """Compute the envelope correlation.
 
     Parameters
@@ -40,6 +40,18 @@ def envelope_correlation(data, combine='mean', orthogonalize="pairwise",
         absolute values.
 
         .. versionadded:: 0.19
+    log : bool
+        If True (default False), square and take the log before orthonalizing
+        envelopes or computing correlations.
+
+        .. versionadded:: 0.22
+    absolute : bool
+        If True (default), then take the absolute value of correlation
+        coefficients before making each epoch's correlation matrix
+        symmetric (and thus before combining matrices across epochs).
+        Only used when ``orthogonalize=True``.
+
+        .. versionadded:: 0.22
     %(verbose)s
 
     Returns
@@ -52,16 +64,15 @@ def envelope_correlation(data, combine='mean', orthogonalize="pairwise",
     Notes
     -----
     This function computes the power envelope correlation between
-    orthogonalized signals [1]_ [2]_.
+    orthogonalized signals :footcite:`HippEtAl2012,KhanEtAl2018`.
+
+    .. versionchanged:: 0.22
+      Computations fixed for ``orthogonalize=True`` and diagonal entries are
+      set explicitly to zero.
 
     References
     ----------
-    .. [1] Hipp JF, Hawellek DJ, Corbetta M, Siegel M, Engel AK (2012)
-           Large-scale cortical correlation structure of spontaneous
-           oscillatory activity. Nature Neuroscience 15:884–890
-    .. [2] Khan S et al. (2018). Maturation trajectories of cortical
-           resting-state networks depend on the mediating frequency band.
-           Neuroimage 174:57–68
+    .. footbibliography::
     """
     _check_option('orthogonalize', orthogonalize, (False, 'pairwise'))
     from scipy.signal import hilbert
@@ -99,6 +110,9 @@ def envelope_correlation(data, combine='mean', orthogonalize="pairwise",
         data_mag = np.abs(epoch_data)
         data_conj_scaled = epoch_data.conj()
         data_conj_scaled /= data_mag
+        if log:
+            data_mag *= data_mag
+            np.log(data_mag, out=data_mag)
         # subtract means
         data_mag_nomean = data_mag - np.mean(data_mag, axis=-1, keepdims=True)
         # compute variances using linalg.norm (square, sum, sqrt) since mean=0
@@ -107,21 +121,29 @@ def envelope_correlation(data, combine='mean', orthogonalize="pairwise",
         corr = np.empty((n_nodes, n_nodes))
         for li, label_data in enumerate(epoch_data):
             if orthogonalize is False:  # the new code
-                label_data_orth = data_mag
-                label_data_orth_std = data_mag_std
+                label_data_orth = data_mag[li]
+                label_data_orth_std = data_mag_std[li]
             else:
                 label_data_orth = (label_data * data_conj_scaled).imag
+                np.abs(label_data_orth, out=label_data_orth)
+                # protect against invalid value -- this will be zero
+                # after (log and) mean subtraction
+                label_data_orth[li] = 1.
+                if log:
+                    label_data_orth *= label_data_orth
+                    np.log(label_data_orth, out=label_data_orth)
                 label_data_orth -= np.mean(label_data_orth, axis=-1,
                                            keepdims=True)
                 label_data_orth_std = np.linalg.norm(label_data_orth, axis=-1)
                 label_data_orth_std[label_data_orth_std == 0] = 1
             # correlation is dot product divided by variances
-            corr[li] = np.dot(label_data_orth, data_mag_nomean[li])
-            corr[li] /= data_mag_std[li]
+            corr[li] = np.sum(label_data_orth * data_mag_nomean, axis=1)
+            corr[li] /= data_mag_std
             corr[li] /= label_data_orth_std
         if orthogonalize is not False:
             # Make it symmetric (it isn't at this point)
-            corr = np.abs(corr)
+            if absolute:
+                corr = np.abs(corr)
             corr = (corr.T + corr) / 2.
         corrs.append(corr)
         del corr

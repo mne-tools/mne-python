@@ -73,6 +73,7 @@ known_config_types = (
     'MNE_COREG_GUESS_MRI_SUBJECT',
     'MNE_COREG_HEAD_HIGH_RES',
     'MNE_COREG_HEAD_OPACITY',
+    'MNE_COREG_HEAD_INSIDE',
     'MNE_COREG_INTERACTION',
     'MNE_COREG_MARK_INSIDE',
     'MNE_COREG_PREPARE_BEM',
@@ -89,6 +90,7 @@ known_config_types = (
     'MNE_DATA',
     'MNE_DATASETS_BRAINSTORM_PATH',
     'MNE_DATASETS_EEGBCI_PATH',
+    'MNE_DATASETS_EPILEPSY_ECOG_PATH',
     'MNE_DATASETS_HF_SEF_PATH',
     'MNE_DATASETS_MEGSIM_PATH',
     'MNE_DATASETS_MISC_PATH',
@@ -107,6 +109,9 @@ known_config_types = (
     'MNE_DATASETS_PHANTOM_4DBTI_PATH',
     'MNE_DATASETS_LIMO_PATH',
     'MNE_DATASETS_REFMEG_NOISE_PATH',
+    'MNE_DATASETS_SSVEP_PATH',
+    'MNE_DATASETS_ERP_CORE_PATH',
+    'MNE_DATASETS_EPILEPSY_ECOG_PATH',
     'MNE_FORCE_SERIAL',
     'MNE_KIT2FIFF_STIM_CHANNELS',
     'MNE_KIT2FIFF_STIM_CHANNEL_CODING',
@@ -478,9 +483,10 @@ def sys_info(fid=None, show_paths=False):
         sklearn:       0.23.1
         numba:         0.50.1
         nibabel:       3.1.1
+        nilearn:       0.7.0
+        dipy:          1.1.1
         cupy:          Not found
         pandas:        1.0.5
-        dipy:          1.1.1
         mayavi:        Not found
         pyvista:       0.25.3 {pyvistaqt=0.1.1, OpenGL 3.3 (Core Profile) Mesa 18.3.6 via llvmpipe (LLVM 7.0, 256 bits)}
         vtk:           9.0.1
@@ -521,7 +527,7 @@ def sys_info(fid=None, show_paths=False):
     libs = _get_numpy_libs()
     has_3d = False
     for mod_name in ('mne', 'numpy', 'scipy', 'matplotlib', '', 'sklearn',
-                     'numba', 'nibabel', 'cupy', 'pandas', 'dipy',
+                     'numba', 'nibabel', 'nilearn', 'dipy', 'cupy', 'pandas',
                      'mayavi', 'pyvista', 'vtk', 'PyQt5'):
         if mod_name == '':
             out += '\n'
@@ -562,7 +568,12 @@ def sys_info(fid=None, show_paths=False):
             elif mod_name in ('mayavi', 'vtk'):
                 has_3d = True
             if mod_name == 'vtk':
-                version = getattr(mod, 'VTK_VERSION', 'VTK_VERSION missing')
+                version = mod.vtkVersion()
+                # 9.0 dev has VersionFull but 9.0 doesn't
+                for attr in ('GetVTKVersionFull', 'GetVTKVersion'):
+                    if hasattr(version, attr):
+                        version = getattr(version, attr)()
+                        break
             elif mod_name == 'PyQt5':
                 version = _check_pyqt5_version()
             else:

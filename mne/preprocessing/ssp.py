@@ -69,8 +69,8 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
 
     # Check to make sure we actually got at least one usable event
     if events.shape[0] < 1:
-        warn('No %s events found, returning None for projs' % mode)
-        return (None, events) + (([],) if return_drop_log else ())
+        warn(f'No {mode} events found')
+        return ([], events) + (([],) if return_drop_log else ())
 
     logger.info('Computing projector')
     my_info = cp.deepcopy(raw.info)
@@ -120,8 +120,8 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
 
     drop_log = epochs.drop_log
     if epochs.events.shape[0] < 1:
-        warn('No good epochs found, returning None for projs')
-        return (None, events) + ((drop_log,) if return_drop_log else ())
+        warn('No good epochs found')
+        return ([], events) + ((drop_log,) if return_drop_log else ())
 
     if average:
         evoked = epochs.average()
@@ -150,9 +150,11 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
                      tstart=0., qrs_threshold='auto', filter_method='fir',
                      iir_params=None, copy=True, return_drop_log=False,
                      meg='separate', verbose=None):
-    """Compute SSP/PCA projections for ECG artifacts.
+    """Compute SSP (signal-space projection) vectors for ECG artifacts.
 
-    .. note:: raw data will be loaded if it is not already.
+    %(compute_proj_ecg)s
+
+    .. note:: Raw data will be loaded if it hasn't been preloaded already.
 
     Parameters
     ----------
@@ -263,9 +265,11 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
                      eog_h_freq=10, tstart=0., filter_method='fir',
                      iir_params=None, ch_name=None, copy=True,
                      return_drop_log=False, meg='separate', verbose=None):
-    """Compute SSP/PCA projections for EOG artifacts.
+    """Compute SSP (signal-space projection) vectors for EOG artifacts.
 
-    .. note:: raw data must be preloaded.
+    %(compute_proj_eog)s
+
+    .. note:: Raw data must be preloaded.
 
     Parameters
     ----------

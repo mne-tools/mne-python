@@ -7,13 +7,12 @@
 import os.path as op
 
 import numpy as np
-from scipy import linalg
 
 from ...io import BaseRaw
 from ...io.constants import FIFF
 from ...utils import _validate_type
 from ..nirs import source_detector_distances, _channel_frequencies,\
-    _check_channels_ordered
+    _check_channels_ordered, _channel_chromophore
 
 
 def beer_lambert_law(raw, ppf=0.1):
@@ -31,11 +30,12 @@ def beer_lambert_law(raw, ppf=0.1):
     raw : instance of Raw
         The modified raw instance.
     """
+    from scipy import linalg
     raw = raw.copy().load_data()
     _validate_type(raw, BaseRaw, 'raw')
 
-    freqs = np.unique(_channel_frequencies(raw))
-    picks = _check_channels_ordered(raw, freqs)
+    freqs = np.unique(_channel_frequencies(raw.info))
+    picks = _check_channels_ordered(raw.info, freqs)
     abs_coef = _load_absorption(freqs)
     distances = source_detector_distances(raw.info)
 
@@ -44,7 +44,7 @@ def beer_lambert_law(raw, ppf=0.1):
         EL = abs_coef * distances[ii] * ppf
         iEL = linalg.pinv(EL)
 
-        raw._data[[ii, ii + 1]] = (raw._data[[ii, ii + 1]].T @ iEL.T).T * 1e-3
+        raw._data[[ii, ii + 1]] = iEL @ raw._data[[ii, ii + 1]] * 1e-3
 
         # Update channel information
         coil_dict = dict(hbo=FIFF.FIFFV_COIL_FNIRS_HBO,
@@ -55,6 +55,9 @@ def beer_lambert_law(raw, ppf=0.1):
             raw.rename_channels({
                 ch['ch_name']: '%s %s' % (ch['ch_name'][:-4], kind)})
 
+    # Validate the format of data after transformation is valid
+    chroma = np.unique(_channel_chromophore(raw.info))
+    _check_channels_ordered(raw.info, chroma)
     return raw
 
 

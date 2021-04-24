@@ -2,10 +2,10 @@
 #
 # License: Simplified BSD
 
-import numpy as np
 import os.path as op
 import itertools
 
+import numpy as np
 from numpy.testing import assert_allclose
 import pytest
 import matplotlib
@@ -14,8 +14,7 @@ import matplotlib.pyplot as plt
 from mne import read_events, pick_types, Annotations, create_info
 from mne.datasets import testing
 from mne.io import read_raw_fif, read_raw_ctf, RawArray
-from mne.utils import (run_tests_if_main, _dt_to_stamp, _click_ch_name,
-                       _close_event)
+from mne.utils import _dt_to_stamp, _click_ch_name, _close_event
 from mne.viz.utils import _fake_click
 from mne.annotations import _sync_onset
 from mne.viz import plot_raw, plot_sensors
@@ -307,6 +306,10 @@ def test_plot_raw_ssp_interaction(raw):
     _fake_click(ssp_fig, ssp_fig.mne.proj_all.ax, [0.5, 0.5])
     _fake_click(ssp_fig, ssp_fig.mne.proj_all.ax, [0.5, 0.5], kind='release')
     assert _proj_status(ax) == [True, False, False]
+    fig.canvas.key_press_event('J')
+    assert _proj_status(ax) == [True, True, True]
+    fig.canvas.key_press_event('J')
+    assert _proj_status(ax) == [True, False, False]
     # turn all on
     _fake_click(ssp_fig, ssp_fig.mne.proj_all.ax, [0.5, 0.5])  # all on
     _fake_click(ssp_fig, ssp_fig.mne.proj_all.ax, [0.5, 0.5], kind='release')
@@ -526,7 +529,34 @@ def test_plot_annotations(raw):
     with pytest.warns(RuntimeWarning, match='expanding outside'):
         raw.set_annotations(annot)
     _annotation_helper(raw)
-    plt.close('all')
+    # test annotation visibility toggle
+    fig = raw.plot()
+    assert len(fig.mne.annotations) == 1
+    assert len(fig.mne.annotation_texts) == 1
+    fig.canvas.key_press_event('a')  # start annotation mode
+    checkboxes = fig.mne.show_hide_annotation_checkboxes
+    checkboxes.set_active(0)
+    assert len(fig.mne.annotations) == 0
+    assert len(fig.mne.annotation_texts) == 0
+    checkboxes.set_active(0)
+    assert len(fig.mne.annotations) == 1
+    assert len(fig.mne.annotation_texts) == 1
+
+
+@pytest.mark.parametrize('hide_which', ([], [0], [1], [0, 1]))
+def test_remove_annotations(raw, hide_which):
+    """Test that right-click doesn't remove hidden annotation spans."""
+    ann = Annotations(onset=[2, 1], duration=[1, 3],
+                      description=['foo', 'bar'])
+    raw.set_annotations(ann)
+    assert len(raw.annotations) == 2
+    fig = raw.plot()
+    fig.canvas.key_press_event('a')  # start annotation mode
+    checkboxes = fig.mne.show_hide_annotation_checkboxes
+    for which in hide_which:
+        checkboxes.set_active(which)
+    _fake_click(fig, fig.mne.ax_main, (2.5, 0.1), xform='data', button=3)
+    assert len(raw.annotations) == len(hide_which)
 
 
 @pytest.mark.parametrize('filtorder', (0, 2))  # FIR, IIR
@@ -543,7 +573,8 @@ def test_plot_raw_filtered(filtorder, raw):
     raw.plot(lowpass=40, clipping='transparent', filtorder=filtorder)
     raw.plot(highpass=1, clipping='clamp', filtorder=filtorder)
     raw.plot(lowpass=40, butterfly=True, filtorder=filtorder)
-    plt.close('all')
+    # shouldn't break if all shown are non-data
+    RawArray(np.zeros((1, 100)), create_info(1, 20., 'stim')).plot(lowpass=5)
 
 
 def test_plot_raw_psd(raw):
@@ -695,4 +726,7 @@ def test_plot_sensors(raw):
         raw.plot_sensors()
 
 
-run_tests_if_main()
+def test_scalings_int():
+    """Test that auto scalings access samples using integers."""
+    raw = RawArray(np.zeros((1, 500)), create_info(1, 1000., 'eeg'))
+    raw.plot(scalings='auto')

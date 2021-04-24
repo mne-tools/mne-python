@@ -26,7 +26,7 @@ from mne.utils import requires_pandas
 from mne.io import read_raw_edf, read_raw_bdf, read_raw_fif, edf, read_raw_gdf
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.edf.edf import (_get_edf_default_event_id, _read_annotations_edf,
-                            _read_ch, _parse_prefilter_string, _edf_str_int,
+                            _read_ch, _parse_prefilter_string, _edf_str,
                             _read_edf_header, _read_header)
 from mne.io.pick import channel_indices_by_type, get_channel_type_constants
 from mne.annotations import events_from_annotations, read_annotations
@@ -208,12 +208,15 @@ def test_parse_annotation(tmpdir):
                                  samp=(len(annot) - 1) // 2,
                                  dtype_byte='This_parameter_is_not_used')
 
+    want_onset, want_duration, want_description = zip(
+        *[[180., 0., 'Lights off'], [180., 0., 'Close door'],
+          [180., 0., 'Lights off'], [180., 0., 'Close door'],
+          [3.14, 4.2, 'nothing'], [1800.2, 25.5, 'Apnea']])
     for tal_channel in [tal_channel_A, tal_channel_B]:
         onset, duration, description = _read_annotations_edf([tal_channel])
-        assert_equal(np.column_stack((onset, duration, description)),
-                     [[180., 0., 'Lights off'], [180., 0., 'Close door'],
-                      [180., 0., 'Lights off'], [180., 0., 'Close door'],
-                      [3.14, 4.2, 'nothing'], [1800.2, 25.5, 'Apnea']])
+        assert_allclose(onset, want_onset)
+        assert_allclose(duration, want_duration)
+        assert description == want_description
 
 
 def test_find_events_backward_compatibility():
@@ -404,8 +407,9 @@ def test_bdf_multiple_annotation_channels():
 @testing.requires_testing_data
 def test_edf_lowpass_zero():
     """Test if a lowpass filter of 0Hz is mapped to the Nyquist frequency."""
-    with pytest.warns(RuntimeWarning, match='too long.*truncated'):
-        raw = read_raw_edf(edf_stim_resamp_path)
+    raw = read_raw_edf(edf_stim_resamp_path)
+    assert raw.ch_names[100] == 'EEG LDAMT_01-REF'
+    assert len(raw.ch_names[100]) > 15
     assert_allclose(raw.info["lowpass"], raw.info["sfreq"] / 2)
 
 
@@ -460,7 +464,7 @@ def test_invalid_date(tmpdir):
 
 def test_empty_chars():
     """Test blank char support."""
-    assert _edf_str_int(b'1819\x00 ') == 1819
+    assert int(_edf_str(b'1819\x00 ')) == 1819
 
 
 def _hp_lp_rev(*args, **kwargs):

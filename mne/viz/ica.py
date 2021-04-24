@@ -22,7 +22,7 @@ from ..defaults import _handle_default
 from ..io.meas_info import create_info
 from ..io.pick import pick_types, _picks_to_idx
 from ..time_frequency.psd import psd_multitaper
-from ..utils import _reject_data_segments
+from ..utils import _reject_data_segments, verbose
 
 
 @fill_doc
@@ -44,11 +44,11 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
     inst : instance of mne.io.Raw, mne.Epochs, mne.Evoked
         The object to plot the sources from.
     %(picks_base)s all sources in the order as fitted.
-    start : int
-        X-axis start index. If None, from the beginning.
-    stop : int
-        X-axis stop index. If None, next 20 are shown, in case of evoked to the
-        end.
+    start : int | None
+        X-axis start index. If None (default), from the beginning.
+    stop : int | None
+        X-axis stop index. If None (default), next 20 are shown, in case of
+        evoked to the end.
     title : str | None
         The window title. If None a default is provided.
     show : bool
@@ -250,11 +250,11 @@ def _get_psd_label_and_std(this_psd, dB, ica, num_std):
     return psd_ylabel, psds_mean, spectrum_std
 
 
-@fill_doc
+@verbose
 def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
                         plot_std=True, topomap_args=None, image_args=None,
                         psd_args=None, figsize=None, show=True, reject='auto',
-                        reject_by_annotation=True):
+                        reject_by_annotation=True, *, verbose=None):
     """Display component properties.
 
     Properties include the topography, epochs image, ERP/ERF, power
@@ -308,6 +308,7 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     %(reject_by_annotation_raw)s
 
         .. versionadded:: 0.21.0
+    %(verbose)s
 
     Returns
     -------
@@ -318,14 +319,26 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     -----
     .. versionadded:: 0.13
     """
-    from ..io.base import BaseRaw
-    from ..epochs import BaseEpochs
+    return _fast_plot_ica_properties(ica, inst, picks=picks, axes=axes, dB=dB,
+                                     plot_std=plot_std,
+                                     topomap_args=topomap_args,
+                                     image_args=image_args, psd_args=psd_args,
+                                     figsize=figsize, show=show,
+                                     reject=reject,
+                                     reject_by_annotation=reject_by_annotation,
+                                     verbose=verbose, precomputed_data=None)
+
+
+def _fast_plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
+                              plot_std=True, topomap_args=None,
+                              image_args=None, psd_args=None, figsize=None,
+                              show=True, reject='auto', precomputed_data=None,
+                              reject_by_annotation=True, *, verbose=None):
+    """Display component properties."""
     from ..preprocessing import ICA
-    from ..io import RawArray
 
     # input checks and defaults
     # -------------------------
-    _validate_type(inst, (BaseRaw, BaseEpochs), "inst", "Raw or Epochs")
     _validate_type(ica, ICA, "ica", "ICA")
     _validate_type(plot_std, (bool, 'numeric'), 'plot_std')
     if isinstance(plot_std, bool):
@@ -366,62 +379,13 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
 
     # calculations
     # ------------
-
-    if isinstance(inst, BaseRaw):
-        # when auto, delegate reject to the ica
-        if reject == 'auto':
-            reject = getattr(ica, 'reject_', None)
-        else:
-            pass
-
-        if reject is None:
-            inst_rejected = inst
-            drop_inds = None
-        else:
-            data = inst.get_data()
-            data, drop_inds = _reject_data_segments(data, ica.reject_,
-                                                    flat=None, decim=None,
-                                                    info=inst.info,
-                                                    tstep=2.0)
-            inst_rejected = RawArray(data, inst.info)
-
-        # break up continuous signal into segments
-        from ..epochs import make_fixed_length_epochs
-        inst_rejected = make_fixed_length_epochs(
-            inst_rejected,
-            duration=2,
-            preload=True,
-            reject_by_annotation=reject_by_annotation,
-            proj=False,
-            verbose=False)
-        inst = make_fixed_length_epochs(
-            inst,
-            duration=2,
-            preload=True,
-            reject_by_annotation=reject_by_annotation,
-            proj=False,
-            verbose=False)
-        kind = "Segment"
+    if isinstance(precomputed_data, tuple):
+        kind, dropped_indices, epochs_src, data = precomputed_data
     else:
-        drop_inds = None
-        inst_rejected = inst
-        kind = "Epochs"
-
-    epochs_src = ica.get_sources(inst_rejected)
-    data = epochs_src.get_data()
-
+        kind, dropped_indices, epochs_src, data = _prepare_data_ica_properties(
+            inst, ica, reject_by_annotation, reject)
     ica_data = np.swapaxes(data[:, picks, :], 0, 1)
-
-    # getting dropped epochs indexes
-    if drop_inds is not None:
-        dropped_indices = [(d[0] // len(inst.times)) + 1
-                           for d in drop_inds]
-    else:
-        dropped_indices = []
-
-    # getting ica sources from inst
-    dropped_src = ica.get_sources(inst).get_data()
-    dropped_src = np.swapaxes(dropped_src[:, picks, :], 0, 1)
+    dropped_src = ica_data
 
     # spectrum
     Nyquist = inst.info['sfreq'] / 2.
@@ -477,6 +441,80 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
 
     plt_show(show)
     return all_fig
+
+
+def _prepare_data_ica_properties(inst, ica, reject_by_annotation=True,
+                                 reject='auto'):
+    """Prepare Epochs sources to plot ICA properties.
+
+    Parameters
+    ----------
+    ica : instance of mne.preprocessing.ICA
+        The ICA solution.
+    inst : instance of Epochs or Raw
+        The data to use in plotting properties.
+    reject_by_annotation : bool, optional
+        [description], by default True
+    reject : str, optional
+        [description], by default 'auto'
+
+    Returns
+    -------
+    kind : str
+        "Segment" for BaseRaw and "Epochs" for BaseEpochs
+    dropped_indices : list
+        Dropped epochs indexes.
+    epochs_src : instance of Epochs
+        Segmented data of ICA sources.
+    data : array of shape (n_epochs, n_ica_sources, n_times)
+        A view on epochs ICA sources data.
+    """
+    from ..io.base import BaseRaw
+    from ..io import RawArray
+    from ..epochs import BaseEpochs
+
+    _validate_type(inst, (BaseRaw, BaseEpochs), "inst", "Raw or Epochs")
+    if isinstance(inst, BaseRaw):
+        # when auto, delegate reject to the ica
+        from ..epochs import make_fixed_length_epochs
+        if reject == 'auto':
+            reject = getattr(ica, 'reject_', None)
+        if reject is None:
+            drop_inds = None
+            dropped_indices = []
+            # break up continuous signal into segments
+            epochs_src = make_fixed_length_epochs(
+                ica.get_sources(inst),
+                duration=2,
+                preload=True,
+                reject_by_annotation=reject_by_annotation,
+                proj=False,
+                verbose=False)
+        else:
+            data = inst.get_data()
+            data, drop_inds = _reject_data_segments(data, ica.reject_,
+                                                    flat=None, decim=None,
+                                                    info=inst.info,
+                                                    tstep=2.0)
+            inst_rejected = RawArray(data, inst.info)
+            # break up continuous signal into segments
+            epochs_src = make_fixed_length_epochs(
+                ica.get_sources(inst_rejected),
+                duration=2,
+                preload=True,
+                reject_by_annotation=reject_by_annotation,
+                proj=False,
+                verbose=False)
+            # getting dropped epochs indexes
+            dropped_indices = [(d[0] // len(epochs_src.times)) + 1
+                               for d in drop_inds]
+        kind = "Segment"
+    else:
+        drop_inds = None
+        epochs_src = ica.get_sources(inst)
+        dropped_indices = []
+        kind = "Epochs"
+    return kind, dropped_indices, epochs_src, epochs_src.get_data()
 
 
 def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica,
@@ -731,10 +769,10 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
         The components marked for exclusion. If None (default), ICA.exclude
         will be used.
     %(picks_base)s all channels that were included during fitting.
-    start : int
-        X-axis start index. If None from the beginning.
-    stop : int
-        X-axis stop index. If None to the end.
+    start : int | None
+        X-axis start index. If None (default) from the beginning.
+    stop : int | None
+        X-axis stop index. If None (default) to 3.0s.
     title : str
         The figure title.
     show : bool
@@ -940,11 +978,12 @@ def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
         (picks, ica.n_components_ + np.arange(len(extra_picks))))
     ch_order = np.arange(len(picks))
     n_channels = min([20, len(picks)])
+    ch_names_picked = [ch_names[x] for x in picks]
 
     # create info
-    info = create_info([ch_names[x] for x in picks], sfreq, ch_types=ch_types)
+    info = create_info(ch_names_picked, sfreq, ch_types=ch_types)
     info['meas_date'] = inst.info['meas_date']
-    info['bads'] = [ch_names[x] for x in exclude]
+    info['bads'] = [ch_names[x] for x in exclude if x in picks]
     if is_raw:
         inst_array = RawArray(data, info, inst.first_samp)
         inst_array.set_annotations(inst.annotations)
@@ -983,7 +1022,7 @@ def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
                   ica_inst=inst,
                   info=info,
                   # channels and channel order
-                  ch_names=np.array(ch_names),
+                  ch_names=np.array(ch_names_picked),
                   ch_types=np.array(ch_types),
                   ch_order=ch_order,
                   picks=picks,
@@ -1040,10 +1079,6 @@ def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
         fig._setup_annotation_colors()
         fig._update_annotation_segments()
         fig._draw_annotations()
-
-    # for blitting
-    fig.canvas.flush_events()
-    fig.mne.bg = fig.canvas.copy_from_bbox(fig.bbox)
 
     plt_show(show, block=block)
     return fig

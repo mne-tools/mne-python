@@ -9,7 +9,6 @@
 from copy import deepcopy
 
 import numpy as np
-from scipy import linalg
 
 from ..cov import Covariance, make_ad_hoc_cov
 from ..forward.forward import is_fixed_orient, _restrict_forward_to_src_sel
@@ -94,7 +93,7 @@ def _prepare_beamformer_input(info, forward, label=None, pick_ori=None,
         orient_std = np.ones(gain.shape[1])
 
     # Get the projector
-    proj, ncomp, _ = make_projector(
+    proj, _, _ = make_projector(
         info_picked['projs'], info_picked['ch_names'])
     return (is_free_ori, info_picked, proj, vertno, gain, whitener, nn,
             orient_std)
@@ -142,7 +141,8 @@ def _sym_inv_sm(x, reduce_rank, inversion, sk):
 
 
 def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
-                        reduce_rank, rank, inversion, nn, orient_std):
+                        reduce_rank, rank, inversion, nn, orient_std,
+                        whitener):
     """Compute a spatial beamformer filter (LCMV or DICS).
 
     For more detailed information on the parameters, see the docstrings of
@@ -172,6 +172,8 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         The source normals.
     orient_std : ndarray, shape (n_dipoles,)
         The std of the orientation prior used in weighting the lead fields.
+    whitener : ndarray, shape (n_channels, n_channels)
+        The whitener.
 
     Returns
     -------
@@ -181,6 +183,13 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     _check_option('weight_norm', weight_norm,
                   ['unit-noise-gain-invariant', 'unit-noise-gain',
                    'nai', None])
+
+    # Whiten the data covariance
+    Cm = whitener @ Cm @ whitener.T.conj()
+    # Restore to properly Hermitian as large whitening coefs can have bad
+    # rounding error
+    Cm[:] = (Cm + Cm.T.conj()) / 2.
+
     assert Cm.shape == (G.shape[0],) * 2
     s, _ = np.linalg.eigh(Cm)
     if not (s >= -s.max() * 1e-7).all():
@@ -367,7 +376,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
                         'matrix or using regularization.')
                 noise = loading_factor
             else:
-                noise, _ = linalg.eigh(Cm)
+                noise, _ = np.linalg.eigh(Cm)
                 noise = noise[-rank]
                 noise = max(noise, loading_factor)
             W /= np.sqrt(noise)
@@ -450,8 +459,7 @@ class Beamformer(dict):
         fname : str
             The filename to use to write the HDF5 data.
             Should end in ``'-lcmv.h5'`` or ``'-dics.h5'``.
-        overwrite : bool
-            If True, overwrite the file (if it exists).
+        %(overwrite)s
         %(verbose)s
         """
         ending = '-%s.h5' % (self['kind'].lower(),)
@@ -499,3 +507,15 @@ def read_beamformer(fname):
                   for arg in ('data', 'names', 'bads', 'projs', 'nfree', 'eig',
                               'eigvec', 'method', 'loglik')])
     return Beamformer(beamformer)
+
+
+def _proj_whiten_data(M, proj, filters):
+    if filters.get('is_ssp', True):
+        # check whether data and filter projs match
+        _check_proj_match(proj, filters)
+        if filters['whitener'] is None:
+            M = np.dot(filters['proj'], M)
+
+    if filters['whitener'] is not None:
+        M = np.dot(filters['whitener'], M)
+    return M

@@ -28,11 +28,15 @@ def test_long_names():
     info = create_info(['a' * 15 + 'b', 'a' * 16], 1000., verbose='error')
     data = np.empty((2, 1000))
     raw = RawArray(data, info)
+    assert raw.ch_names == ['a' * 15 + 'b', 'a' * 16]
+    # and a way to get the old behavior
+    raw.rename_channels({k: k[:13] for k in raw.ch_names},
+                        allow_duplicates=True, verbose='error')
     assert raw.ch_names == ['a' * 13 + '-0', 'a' * 13 + '-1']
     info = create_info(['a' * 16] * 11, 1000., verbose='error')
     data = np.empty((11, 1000))
     raw = RawArray(data, info)
-    assert raw.ch_names == ['a' * 12 + '-%s' % ii for ii in range(11)]
+    assert raw.ch_names == ['a' * 16 + '-%s' % ii for ii in range(11)]
 
 
 def test_array_copy():
@@ -83,8 +87,9 @@ def test_array_raw():
     types = list()
     for ci in range(101):
         types.extend(('grad', 'grad', 'mag'))
-    types.extend(['ecog', 'seeg', 'hbo'])  # really 3 meg channels
+    types.extend(['ecog', 'seeg', 'hbo'])  # really 4 meg channels
     types.extend(['stim'] * 9)
+    types.extend(['dbs'])  # really eeg channel
     types.extend(['eeg'] * 60)
     picks = np.concatenate([pick_types(raw.info, meg=True)[::20],
                             pick_types(raw.info, meg=False, stim=True),
@@ -139,7 +144,8 @@ def test_array_raw():
 
     # plotting
     raw2.plot()
-    raw2.plot_psd(tmax=2., average=True, n_fft=1024, spatial_colors=False)
+    raw2.plot_psd(tmax=2., average=True, n_fft=1024,
+                  spatial_colors=False)
     plt.close('all')
 
     # epoching

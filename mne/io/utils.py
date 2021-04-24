@@ -77,8 +77,7 @@ def _find_channels(ch_names, ch_type='EOG'):
 def _mult_cal_one(data_view, one, idx, cals, mult):
     """Take a chunk of raw data, multiply by mult or cals, and store."""
     one = np.asarray(one, dtype=data_view.dtype)
-    assert data_view.shape[1] == one.shape[1], \
-        (data_view.shape[1], one.shape[1])
+    assert data_view.shape[1] == one.shape[1], (data_view.shape[1], one.shape[1])  # noqa: E501
     if mult is not None:
         mult.ndim == one.ndim == 2
         data_view[:] = mult @ one[idx]
@@ -313,3 +312,24 @@ def _construct_bids_filename(base, ext, part_idx):
     if dirname:
         use_fname = op.join(dirname, use_fname)
     return use_fname
+
+
+def _get_als_coords_from_chs(chs, drop_chs=None):
+    """Extract channel locations in ALS format (x, y, z) from a chs instance.
+
+    Returns
+    -------
+    None if no valid coordinates are found (all zeros)
+    """
+    if drop_chs is None:
+        drop_chs = []
+    cart_coords = np.array([d['loc'][:3] for d in chs
+                            if d['ch_name'] not in drop_chs])
+    if cart_coords.any():  # has coordinates
+        # (-y x z) to (x y z)
+        cart_coords[:, 0] = -cart_coords[:, 0]  # -y to y
+        # swap x (1) and y (0)
+        cart_coords[:, [0, 1]] = cart_coords[:, [1, 0]]
+    else:
+        cart_coords = None
+    return cart_coords

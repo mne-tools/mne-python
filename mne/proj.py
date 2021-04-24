@@ -3,7 +3,6 @@
 # License: BSD (3-clause)
 
 import numpy as np
-from scipy import linalg
 
 from .epochs import Epochs
 from .utils import check_fname, logger, verbose, _check_option
@@ -76,6 +75,7 @@ def write_proj(fname, projs):
 @verbose
 def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix,
                   meg='separate', verbose=None):
+    from scipy import linalg
     grad_ind = pick_types(info, meg='grad', ref_meg=False, exclude='bads')
     mag_ind = pick_types(info, meg='mag', ref_meg=False, exclude='bads')
     eeg_ind = pick_types(info, meg=False, eeg=True, ref_meg=False,
@@ -120,8 +120,7 @@ def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix,
             continue
         data_ind = data[ind][:, ind]
         # data is the covariance matrix: U * S**2 * Ut
-        U, Sexp2, _ = linalg.svd(data_ind, full_matrices=False,
-                                 overwrite_a=True)
+        U, Sexp2, _ = linalg.svd(data_ind, full_matrices=False)
         U = U[:, :n]
         exp_var = Sexp2 / Sexp2.sum()
         exp_var = exp_var[:n]
@@ -140,7 +139,9 @@ def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix,
 @verbose
 def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
                         desc_prefix=None, meg='separate', verbose=None):
-    """Compute SSP (spatial space projection) vectors on Epochs.
+    """Compute SSP (signal-space projection) vectors on epoched data.
+
+    %(compute_ssp)s
 
     Parameters
     ----------
@@ -207,7 +208,9 @@ def _compute_cov_epochs(epochs, n_jobs):
 @verbose
 def compute_proj_evoked(evoked, n_grad=2, n_mag=2, n_eeg=2, desc_prefix=None,
                         meg='separate', verbose=None):
-    """Compute SSP (spatial space projection) vectors on Evoked.
+    """Compute SSP (signal-space projection) vectors on evoked data.
+
+    %(compute_ssp)s
 
     Parameters
     ----------
@@ -253,7 +256,9 @@ def compute_proj_evoked(evoked, n_grad=2, n_mag=2, n_eeg=2, desc_prefix=None,
 def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
                      n_eeg=0, reject=None, flat=None, n_jobs=1, meg='separate',
                      verbose=None):
-    """Compute SSP (spatial space projection) vectors on Raw.
+    """Compute SSP (signal-space projection) vectors on continuous data.
+
+    %(compute_ssp)s
 
     Parameters
     ----------
@@ -361,6 +366,7 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
         The sensitivity map as a SourceEstimate or VolSourceEstimate instance
         for visualization.
     """
+    from scipy import linalg
     # check strings
     _check_option('ch_type', ch_type, ['eeg', 'grad', 'mag'])
     _check_option('mode', mode, ['free', 'fixed', 'ratio', 'radiality',
