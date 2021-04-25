@@ -28,11 +28,12 @@ from .source_space import _mri_orientation
 from .utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
                     fill_doc, _check_option, _validate_type, _safe_input)
 from .viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
-                  plot_compare_evokeds)
+                  plot_compare_evokeds, set_3d_view)
 from .viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
 from .viz.utils import _ndarray_to_fig, _figure_agg
 from .forward import read_forward_solution
 from .epochs import read_epochs
+from . import dig_mri_distances
 from .minimum_norm import read_inverse_operator
 from .parallel import parallel_func, check_n_jobs
 
@@ -160,25 +161,46 @@ def _figs_to_mrislices(sl, n_jobs, **kwargs):
 def _iterate_trans_views(function, **kwargs):
     """Auxiliary function to iterate over views in trans fig."""
     import matplotlib.pyplot as plt
-    from .viz.backends.renderer import backend, MNE_3D_BACKEND_TESTING
+    from .viz.backends.renderer import MNE_3D_BACKEND_TESTING
+    from .viz._brain.view import views_dicts
 
     fig = function(**kwargs)
-    backend._check_3d_figure(fig)
 
-    views = [(90, 90), (0, 90), (0, -90)]
-    fig2, axes = plt.subplots(1, len(views))
-    for view, ax in zip(views, axes):
-        backend._set_3d_view(fig, azimuth=view[0], elevation=view[1],
-                             focalpoint=None, distance=None)
+    views = ['frontal', 'lateral', 'medial']
+    views += ['axial', 'rostral', 'coronal']
+
+    images = []
+    for view in views:
         if not MNE_3D_BACKEND_TESTING:
+            from .viz.backends.renderer import backend
+            set_3d_view(fig, **views_dicts['both'][view])
+            backend._check_3d_figure(fig)
             im = backend._take_3d_screenshot(figure=fig)
         else:  # Testing mode
             im = np.zeros((2, 2, 3))
-        ax.imshow(im)
-        ax.axis('off')
+        images.append(im)
 
-    backend._close_all()
+    images = np.concatenate(
+        [np.concatenate(images[:3], axis=1),
+         np.concatenate(images[3:], axis=1)],
+        axis=0)
+
+    dists = dig_mri_distances(info=kwargs['info'],
+                              trans=kwargs['trans'],
+                              subject=kwargs['subject'],
+                              subjects_dir=kwargs['subjects_dir'])
+
+    fig2, ax = plt.subplots()
+    ax.imshow(images)
+    ax.set_title(f'Average distance from {len(dists)} digitized points to '
+                 f'head: {1e3 * np.mean(dists):.2f} mm')
+    ax.axis('off')
+
+    if not MNE_3D_BACKEND_TESTING:
+        backend._close_all()
+
     img = _fig_to_img(fig2, image_format='png')
+    plt.close(fig2)
     return img
 
 ###############################################################################
@@ -2124,9 +2146,12 @@ class Report(object):
                       data_path):
         """Render trans (only PNG)."""
         kwargs = dict(info=info, trans=trans, subject=subject,
-                      subjects_dir=subjects_dir)
+                      subjects_dir=subjects_dir, dig=True,
+                      meg=['helmet', 'sensors'],
+                      coord_frame='mri')
         try:
-            img = _iterate_trans_views(function=plot_alignment, **kwargs)
+            img = _iterate_trans_views(function=plot_alignment,
+                                       surfaces=['head-dense'], **kwargs)
         except IOError:
             img = _iterate_trans_views(function=plot_alignment,
                                        surfaces=['head'], **kwargs)
