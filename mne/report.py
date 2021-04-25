@@ -196,7 +196,9 @@ def _iterate_trans_views(function, **kwargs):
                  f'head: {1e3 * np.mean(dists):.2f} mm')
     ax.axis('off')
 
-    backend._close_all()
+    if not MNE_3D_BACKEND_TESTING:
+        backend._close_all()
+
     img = _fig_to_img(fig2, image_format='png')
     plt.close(fig2)
     return img

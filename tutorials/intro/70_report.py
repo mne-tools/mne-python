@@ -234,7 +234,7 @@ report.save('report_slider.html', overwrite=True)
 # Adding coregistration plot to a report
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# Now we see how :class:`~mne.Report`can plot coregistration results. This is
+# Now we see how :class:`~mne.Report` can plot coregistration results. This is
 # very useful to check the quality of the :term:`trans` coregistration file
 # that allows to align anatomy and MEG sensors.
 
