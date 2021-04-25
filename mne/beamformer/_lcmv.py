@@ -24,7 +24,8 @@ from ._compute_beamformer import (
 def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
               pick_ori=None, rank='info',
               weight_norm='unit-noise-gain-invariant',
-              reduce_rank=False, depth=None, inversion='matrix', verbose=None):
+              reduce_rank=False, depth=None, inversion='matrix', verbose=None,
+              real_ori=True):
     """Compute LCMV spatial filter.
 
     Parameters
@@ -60,6 +61,8 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
 
         .. versionadded:: 0.21
     %(verbose)s
+    real_ori : 'svd' | 'svd_complex' | bool
+        How to compute the optimal orientation.
 
     Returns
     -------
@@ -176,7 +179,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     W, max_power_ori = _compute_beamformer(
         G, Cm, reg, n_orient, weight_norm, pick_ori, reduce_rank, rank_int,
         inversion=inversion, nn=nn, orient_std=orient_std,
-        whitener=whitener)
+        whitener=whitener, real_ori=real_ori)
 
     # get src type to store with filters for _make_stc
     src_type = _get_src_type(forward['src'], vertno)

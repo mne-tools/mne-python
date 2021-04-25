@@ -28,7 +28,7 @@ from ._compute_beamformer import (_prepare_beamformer_input,
 def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
               pick_ori=None, rank=None, weight_norm=None,
               reduce_rank=False, depth=1., real_filter=False,
-              inversion='matrix', verbose=None):
+              inversion='matrix', verbose=None, real_ori=True):
     """Compute a Dynamic Imaging of Coherent Sources (DICS) spatial filter.
 
     This is a beamformer filter that can be used to estimate the source power
@@ -80,6 +80,8 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
         .. versionchanged:: 0.21
            Default changed to ``'matrix'``.
     %(verbose)s
+    real_ori : 'svd' | 'svd_complex'| bool
+        How to compute the optimal orientation.
 
     Returns
     -------
@@ -223,7 +225,7 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
         W, max_power_ori = _compute_beamformer(
             G, Cm, reg, n_orient, weight_norm, pick_ori, reduce_rank,
             rank=csd_int_rank[i], inversion=inversion, nn=nn,
-            orient_std=orient_std, whitener=whitener)
+            orient_std=orient_std, whitener=whitener, real_ori=real_ori)
         Ws.append(W)
         max_oris.append(max_power_ori)
 
