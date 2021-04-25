@@ -596,8 +596,8 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945,
         ylim for plots (after scaling has been applied). The value
         determines the upper and lower subplot limits. e.g.
         ylim = dict(eeg=[-20, 20]). Valid keys are eeg, mag, grad. If None,
-        the ylim parameter for each channel is determined by the minimum and
-        maximum peak.
+        the ylim parameter for each channel type is determined by the minimum
+        and maximum peak.
     scalings : dict | None
         The scalings of the channel types to be applied for plotting. If None,`
         defaults to ``dict(eeg=1e6, grad=1e13, mag=1e15)``.
