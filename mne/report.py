@@ -161,19 +161,20 @@ def _figs_to_mrislices(sl, n_jobs, **kwargs):
 def _iterate_trans_views(function, **kwargs):
     """Auxiliary function to iterate over views in trans fig."""
     import matplotlib.pyplot as plt
-    from .viz.backends.renderer import backend, MNE_3D_BACKEND_TESTING
+    from .viz.backends.renderer import MNE_3D_BACKEND_TESTING
     from .viz._brain.view import views_dicts
 
     fig = function(**kwargs)
-    backend._check_3d_figure(fig)
 
     views = ['frontal', 'lateral', 'medial']
     views += ['axial', 'rostral', 'coronal']
 
     images = []
     for view in views:
-        set_3d_view(fig, **views_dicts['both'][view])
         if not MNE_3D_BACKEND_TESTING:
+            from .viz.backends.renderer import backend
+            set_3d_view(fig, **views_dicts['both'][view])
+            backend._check_3d_figure(fig)
             im = backend._take_3d_screenshot(figure=fig)
         else:  # Testing mode
             im = np.zeros((2, 2, 3))
