@@ -252,7 +252,7 @@ l_aud.plot(gfp='only')
 # As stated above, the GFP is the population standard deviation of the signal
 # across channels. To compute it manually, we can leverage the fact that
 # `evoked.data <mne.Evoked.data>` is a :class:`NumPy array <numpy.ndarray>`,
-# and verify by plotting it using :obj:`matplotlib` commands:
+# and verify by plotting it using matplotlib commands:
 
 gfp = l_aud.data.std(axis=0, ddof=0)
 
