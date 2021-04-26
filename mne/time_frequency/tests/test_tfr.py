@@ -484,6 +484,7 @@ def test_io():
 
 
 def test_plot():
+
     """Test TFR plotting."""
     data = np.zeros((3, 2, 3))
     times = np.array([.1, .2, .3])
@@ -492,17 +493,48 @@ def test_plot():
                            ['mag', 'mag', 'mag'])
     tfr = AverageTFR(info, data=data, times=times, freqs=freqs,
                      nave=20, comment='test', method='crazy-tfr')
-    tfr.plot([1, 2], title='title', colorbar=False,
-             mask=np.ones(tfr.data.shape[1:], bool))
-    plt.close('all')
-    ax = plt.subplot2grid((2, 2), (0, 0))
-    ax2 = plt.subplot2grid((2, 2), (1, 1))
-    ax3 = plt.subplot2grid((2, 2), (0, 1))
-    tfr.plot(picks=[0, 1, 2], axes=[ax, ax2, ax3])
+
+    # test title=auto, combine=None, and correct length of figure list
+    picks = [1, 2]
+    figs = tfr.plot(picks, title='auto', colorbar=False,
+                    mask=np.ones(tfr.data.shape[1:], bool))
+    assert len(figs) == len(picks)
+    assert 'MEG' in figs[0].get_figure().texts[0].get_text()
     plt.close('all')
 
-    tfr.plot([1, 2], title='title', colorbar=False, exclude='bads')
+    # test combine and title keyword
+    figs = tfr.plot(picks, title='title', colorbar=False, combine='rms',
+                    mask=np.ones(tfr.data.shape[1:], bool))
+    assert len(figs) == 1
+    assert figs[0].get_figure().texts[0].get_text() == 'title'
+    figs = tfr.plot(picks, title='auto', colorbar=False, combine='mean',
+                    mask=np.ones(tfr.data.shape[1:], bool))
+    assert len(figs) == 1
+    assert figs[0].get_figure().texts[0].get_text() == 'Mean of 2 sensors'
+    with pytest.raises(ValueError, match='combine must be None'):
+        tfr.plot(picks, colorbar=False, combine='something',
+                 mask=np.ones(tfr.data.shape[1:], bool))
     plt.close('all')
+
+    # test axes argument - first with list of axes
+    ax = plt.subplot2grid((2, 2), (0, 0))
+    ax2 = plt.subplot2grid((2, 2), (0, 1))
+    ax3 = plt.subplot2grid((2, 2), (1, 0))
+    figs = tfr.plot(picks=[0, 1, 2], axes=[ax, ax2, ax3])
+    assert len(figs) == len([ax, ax2, ax3])
+    # and as a single axes
+    figs = tfr.plot(picks=[0], axes=ax)
+    assert len(figs) == 1
+    plt.close('all')
+    # and invalid inputs
+    with pytest.raises(ValueError, match='axes must be None'):
+        tfr.plot(picks, colorbar=False, axes={},
+                 mask=np.ones(tfr.data.shape[1:], bool))
+
+    # different number of axes and picks should throw a RuntimeError
+    with pytest.raises(RuntimeError, match='There must be an axes'):
+        tfr.plot(picks=[0], colorbar=False, axes=[ax, ax2],
+                 mask=np.ones(tfr.data.shape[1:], bool))
 
     tfr.plot_topo(picks=[1, 2])
     plt.close('all')
