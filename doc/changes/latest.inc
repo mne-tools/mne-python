@@ -61,11 +61,13 @@ Enhancements
 ~~~~~~~~~~~~
 - Add support for exporting to EEGLAB's set format with :mod:`eeglabio` with new methods :meth:`mne.io.Raw.export` and :meth:`mne.Epochs.export`. (:gh:`9192` **by new contributor** |Jack Zhang|_)
 
-- Add exclude parameter to :func:`mne.viz.plot_evoked_topo` (:gh:`9278` by |Ram Pari|_)
+- :func:`mne.viz.plot_evoked_topo` now uses a Minimum/Maximum of peaks for each channel type to calculate ylim when input param is None (:gh:`9285` **by new contributor** |Ram Pari|_)
+
+- Add exclude parameter to :func:`mne.viz.plot_evoked_topo` (:gh:`9278` **by new contributor** |Ram Pari|_)
 
 - Add CSV, TSV, and XYZ support to :func:`mne.channels.read_custom_montage` (:gh:`9203` **by new contributor** |Jack Zhang|_)
 
-- Add HTML representation for `~mne.Epochs` in Jupyter Notebooks (:gh:`9174` by |Valerii Chirkov|_)
+- Add HTML representation for `~mne.Epochs` in Jupyter Notebooks (:gh:`9174` **by new contributor** |Valerii Chirkov|_)
 
 - Speed up :func:`mne.viz.plot_ica_properties` by refactoring (:gh:`9174` **by new contributor** |Valerii Chirkov|_)
 
