@@ -627,6 +627,7 @@ def test_split_files(tmpdir, split_naming):
     assert len(report.fnames) == 1
 
 
+@testing.requires_testing_data
 def test_survive_pickle(tmpdir):
     """Testing functionality of Report-Object after pickling."""
     tempdir = str(tmpdir)
