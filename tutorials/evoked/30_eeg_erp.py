@@ -120,10 +120,22 @@ for proj in (False, True):
 # The referencing scheme can be changed with the function
 # `mne.set_eeg_reference` (which by default operates on a *copy* of the data)
 # or the `raw.set_eeg_reference() <mne.io.Raw.set_eeg_reference>` method (which
-# always modifies the data in-place). The :ref:`tut-set-eeg-ref` tutorial shows
+# always modifies the data in-place). The tutorial :ref:`tut-set-eeg-ref` shows
 # several examples of this.
 #
 #
+# Filtering
+# ^^^^^^^^^
+#
+# MNE-Python has extensive support for different ways of filtering data. For a
+# general discussion of filter characteristics and MNE-Python defaults, see
+# :ref:`disc-filtering`. For practical examples of how to apply filters to your
+# data, see :ref:`tut-filter-resample`. Here, we'll apply a simple high-pass
+# filter for illustration:
+
+raw.filter(l_freq=0.1, h_freq=None)
+
+###############################################################################
 # Evoked responses: epoching and averaging
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
