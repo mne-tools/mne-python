@@ -484,7 +484,6 @@ def test_io():
 
 
 def test_plot():
-
     """Test TFR plotting."""
     data = np.zeros((3, 2, 3))
     times = np.array([.1, .2, .3])
@@ -499,18 +498,19 @@ def test_plot():
     figs = tfr.plot(picks, title='auto', colorbar=False,
                     mask=np.ones(tfr.data.shape[1:], bool))
     assert len(figs) == len(picks)
-    assert 'MEG' in figs[0].get_figure().texts[0].get_text()
+    assert 'MEG' in figs[0].texts[0].get_text()
     plt.close('all')
 
     # test combine and title keyword
     figs = tfr.plot(picks, title='title', colorbar=False, combine='rms',
                     mask=np.ones(tfr.data.shape[1:], bool))
     assert len(figs) == 1
-    assert figs[0].get_figure().texts[0].get_text() == 'title'
+    assert figs[0].texts[0].get_text() == 'title'
     figs = tfr.plot(picks, title='auto', colorbar=False, combine='mean',
                     mask=np.ones(tfr.data.shape[1:], bool))
     assert len(figs) == 1
-    assert figs[0].get_figure().texts[0].get_text() == 'Mean of 2 sensors'
+    assert figs[0].texts[0].get_text() == 'Mean of 2 sensors'
+
     with pytest.raises(ValueError, match='combine must be None'):
         tfr.plot(picks, colorbar=False, combine='something',
                  mask=np.ones(tfr.data.shape[1:], bool))
