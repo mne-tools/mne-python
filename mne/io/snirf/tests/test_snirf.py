@@ -16,7 +16,7 @@ from mne.preprocessing.nirs import (optical_density, beer_lambert_law,
 
 # SfNIRS files
 sfnirs_homer_103_wShort = op.join(data_path(download=False),
-                                  'snirf', 'SfNIRS', 'snirf_homer3', '1.0.3',
+                                  'SNIRF', 'SfNIRS', 'snirf_homer3', '1.0.3',
                                   'snirf_1_3_nirx_15_2_'
                                   'recording_w_short.snirf')
 sfnirs_homer_103_wShort_original = op.join(data_path(download=False),
@@ -24,12 +24,12 @@ sfnirs_homer_103_wShort_original = op.join(data_path(download=False),
                                            'nirx_15_2_recording_w_short')
 
 sfnirs_homer_103_153 = op.join(data_path(download=False),
-                               'snirf', 'SfNIRS', 'snirf_homer3', '1.0.3',
+                               'SNIRF', 'SfNIRS', 'snirf_homer3', '1.0.3',
                                'nirx_15_3_recording.snirf')
 
 # NIRx files
 nirx_nirsport2_103 = op.join(data_path(download=False),
-                             'snirf', 'NIRx', 'NIRSport2', '1.0.3',
+                             'SNIRF', 'NIRx', 'NIRSport2', '1.0.3',
                              '2021-04-23_005.snirf')
 
 
