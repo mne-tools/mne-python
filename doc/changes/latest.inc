@@ -119,6 +119,8 @@ Enhancements
 
 Bugs
 ~~~~
+- Fix bug with :func:`mne.time_frequency.tfr` where plot misbehaved. Plot now always returns a list of figures instead of a single figure handle (:gh:`8013` by |Eduard Ort|_)
+
 - Fix bug with :func:`mne.Epochs.plot_image` where the ``x_label`` was different depending on the evoked parameter (:gh:`9115` **by new contributor** |Matteo Anelli|_)
 
 - Fix bug with restricting :func:`mne.io.Raw.save` saving options to .fif and .fif.gz extensions (:gh:`9062` by |Valerii Chirkov|_)
