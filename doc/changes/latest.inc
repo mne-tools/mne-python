@@ -200,6 +200,8 @@ Enhancements
 
 Bugs
 ~~~~
+- Fix bug with :func:`mne.time_frequency.tfr` where plot misbehaved. Plot now always returns a list of figures instead of a single figure handle (:gh:`8013` by |Eduard Ort|_)
+
 - Fix bug with :func:`mne.viz.plot_evoked_topo` where set ylim parameters gets swapped across channel types. (:gh:`9207` by |Ram Pari|_)
 
 - Fix bug with :func:`mne.io.read_raw_edf` where µV was not correctly recognized (:gh:`9187` **by new contributor** |Sumalyo Datta|_)
