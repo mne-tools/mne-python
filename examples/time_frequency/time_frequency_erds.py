@@ -23,18 +23,16 @@ We compute maps containing frequencies ranging from 2 to 35Hz. We map ERD to
 red color and ERS to blue color, which is the convention in many ERDS
 publications. Finally, we perform cluster-based permutation tests to estimate
 significant ERDS values (corrected for multiple comparisons within channels).
-
-References
-----------
-
-.. footbibliography::
 """
 # Authors: Clemens Brunner <clemens.brunner@gmail.com>
+#          Felix Klotzsche <klotzsche@cbs.mpg.de>
 #
 # License: BSD (3-clause)
 
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
 import mne
 from mne.datasets import eegbci
 from mne.io import concatenate_raws, read_raw_edf
@@ -111,3 +109,79 @@ for event in event_ids:
     fig.colorbar(axes[0].images[-1], cax=axes[-1])
     fig.suptitle("ERDS ({})".format(event))
     fig.show()
+
+###############################################################################
+# Similar to `~mne.Epochs` objects, we can also export data from
+# `~mne.time_frequency.EpochsTFR` and `~mne.time_frequency.AverageTFR` objects
+# to a :class:`Pandas DataFrame <pandas.DataFrame>`. By default, the `time`
+# column of the exported data frame is in milliseconds. Here, to be consistent
+# with the time-frequency plots, we want to keep it in seconds, which we can
+# achieve by setting ``time_format=None``:
+
+df = tfr.to_data_frame(time_format=None)
+df.head()
+
+###############################################################################
+# This allows us to use additional plotting functions like
+# :func:`seaborn.lineplot` to plot confidence bands:
+
+df = tfr.to_data_frame(time_format=None, long_format=True)
+
+# Map to frequency bands:
+freq_bounds = {'_': 0,
+               'delta': 3,
+               'theta': 7,
+               'alpha': 13,
+               'beta': 35,
+               'gamma': 140}
+df['band'] = pd.cut(df['freq'], list(freq_bounds.values()),
+                    labels=list(freq_bounds)[1:])
+
+# Filter to retain only relevant frequency bands:
+freq_bands_of_interest = ['delta', 'theta', 'alpha', 'beta']
+df = df[df.band.isin(freq_bands_of_interest)]
+df['band'] = df['band'].cat.remove_unused_categories()
+
+# Order channels for plotting:
+df['channel'].cat.reorder_categories(['C3', 'Cz', 'C4'], ordered=True,
+                                     inplace=True)
+
+g = sns.FacetGrid(df, row='band', col='channel', margin_titles=True)
+g.map(sns.lineplot, 'time', 'value', 'condition', n_boot=10)
+axline_kw = dict(color='black', linestyle='dashed', linewidth=0.5, alpha=0.5)
+g.map(plt.axhline, y=0, **axline_kw)
+g.map(plt.axvline, x=0, **axline_kw)
+g.set(ylim=(None, 1.5))
+g.set_axis_labels("Time (s)", "ERDS (%)")
+g.set_titles(col_template="{col_name}", row_template="{row_name}")
+g.add_legend(ncol=2, loc='lower center')
+g.fig.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.08)
+
+###############################################################################
+# Having the data as a DataFrame also facilitates subsetting,
+# grouping, and other transforms.
+# Here, we use seaborn to plot the average ERDS in the motor imagery interval
+# as a function of frequency band and imagery condition:
+
+df_mean = (df.query('time > 1')
+             .groupby(['condition', 'epoch', 'band', 'channel'])[['value']]
+             .mean()
+             .reset_index())
+
+g = sns.FacetGrid(df_mean, col='condition', col_order=['hands', 'feet'],
+                  margin_titles=True)
+g = (g.map(sns.violinplot, 'channel', 'value', 'band', n_boot=10,
+           palette='deep', order=['C3', 'Cz', 'C4'],
+           hue_order=freq_bands_of_interest,
+           linewidth=0.5)
+      .add_legend(ncol=4, loc='lower center'))
+
+g.map(plt.axhline, **axline_kw)
+g.set_axis_labels("", "ERDS (%)")
+g.set_titles(col_template="{col_name}", row_template="{row_name}")
+g.fig.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.3)
+
+###############################################################################
+# References
+# ==========
+# .. footbibliography::
