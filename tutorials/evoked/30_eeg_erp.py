@@ -367,7 +367,7 @@ epochs['auditory'].average()
 ###############################################################################
 # see :ref:`tut-section-subselect-epochs` for details.
 #
-# The :ref:`tut-epochs-class` and :ref:`tut-evoked-class` tutorials have many
+# The tutorials :ref:`tut-epochs-class` and :ref:`tut-evoked-class` have many
 # more details about working with the `~mne.Epochs` and `~mne.Evoked` classes.
 #
 # .. _ten_twenty: https://en.wikipedia.org/wiki/10%E2%80%9320_system_(EEG)
