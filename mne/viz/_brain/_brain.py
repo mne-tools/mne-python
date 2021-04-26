@@ -2611,9 +2611,11 @@ class Brain(object):
             Image pixel values.
         """
         img = self._renderer.screenshot(mode)
+        logger.debug(f'Got screenshot of size {img.shape}')
         if time_viewer and self.time_viewer and \
                 self.show_traces and \
                 not self.separate_canvas:
+            from matplotlib.image import imread
             canvas = self.mpl_canvas.fig.canvas
             canvas.draw_idle()
             fig = self.mpl_canvas.fig
@@ -2624,13 +2626,22 @@ class Brain(object):
                 # (e.g., macOS w/Qt 5.14+ and VTK9) then things won't work,
                 # so let's just calculate the DPI we need to get
                 # the correct size output based on the widths being equal
-                dpi = img.shape[1] / fig.get_size_inches()[0]
-                fig.savefig(output, dpi=dpi, format='raw',
+                size_in = fig.get_size_inches()
+                dpi = fig.get_dpi()
+                want_size = tuple(x * dpi for x in size_in)
+                n_pix = want_size[0] * want_size[1]
+                logger.debug(
+                    f'Saving figure of size {size_in} @ {dpi} DPI '
+                    f'({want_size} = {n_pix} pixels)')
+                # Sometimes there can be off-by-one errors here (e.g.,
+                # if in mpl int() rather than int(round()) is used to
+                # compute the number of pixels) so rather than use "raw"
+                # format and try to reshape ourselves, just write to PNG
+                # and read it, which has the dimensions encoded for us.
+                fig.savefig(output, dpi=dpi, format='png',
                             facecolor=self._bg_color, edgecolor='none')
                 output.seek(0)
-                trace_img = np.reshape(
-                    np.frombuffer(output.getvalue(), dtype=np.uint8),
-                    newshape=(-1, img.shape[1], 4))[:, :, :3]
+                trace_img = imread(output, format='png')[:, :, :3]
             img = concatenate_images(
                 [img, trace_img], bgcolor=self._brain_color[:3])
         return img
