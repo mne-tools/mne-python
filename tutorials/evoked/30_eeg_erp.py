@@ -12,7 +12,9 @@ links to other tutorials where more detailed information is given.
 As usual we'll start by importing the modules we need and loading some example
 data. Instead of parsing the events from the raw data's :term:`stim channel`
 (like we do in :ref:`this tutorial <tut-events-vs-annotations>`), we'll load
-the events from an external events file:
+the events from an external events file. Finally, to speed up computations so
+our documentation server can handle them, we'll crop the raw data from ~4.5
+minutes down to 90 seconds.
 """
 
 import os
@@ -24,6 +26,7 @@ sample_data_folder = mne.datasets.sample.data_path()
 sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                     'sample_audvis_filt-0-40_raw.fif')
 raw = mne.io.read_raw_fif(sample_data_raw_file, preload=False)
+raw.crop(tmax=90)  # in seconds; happens in-place
 
 sample_data_events_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                        'sample_audvis_filt-0-40_raw-eve.fif')
