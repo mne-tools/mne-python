@@ -1403,9 +1403,9 @@ class MNEBrowseFigure(MNEFigure):
                           zorder=self.mne.zorder['ann'])
             if self.mne.visible_annotations[descr]:
                 # draw all segments on ax_hscroll                
-                annot = self.mne.ax_hscroll.fill_betweenx((0, 1), start, end,
-                                                          **kwargs)
-                self.mne.hscroll_annotations.append(annot)
+                # annot = self.mne.ax_hscroll.fill_betweenx((0, 1), start, end,
+                #                                           **kwargs)
+                # self.mne.hscroll_annotations.append(annot)
                 # draw only visible segments on ax_main
                 visible_segment = np.clip([start, end], times[0], times[-1])
                 if np.diff(visible_segment) > 0:
