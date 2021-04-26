@@ -66,7 +66,7 @@ raw.info
 
 channel_renaming_dict = {name: name.replace(' 0', '').lower()
                          for name in raw.ch_names}
-_ = raw.rename_channels(channel_renaming_dict)
+_ = raw.rename_channels(channel_renaming_dict)  # happens in-place
 
 ###############################################################################
 # Channel locations
