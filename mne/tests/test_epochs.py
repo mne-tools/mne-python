@@ -29,7 +29,7 @@ from mne.baseline import rescale
 from mne.datasets import testing
 from mne.chpi import read_head_pos, head_pos_to_trans_rot_t
 from mne.event import merge_events
-from mne.io import RawArray, read_raw_fif
+from mne.io import RawArray, read_raw_fif, read_epochs_eeglab
 from mne.io.constants import FIFF
 from mne.io.proj import _has_eeg_average_ref_proj
 from mne.io.write import write_int, INT32_MAX, _get_split_size
@@ -40,7 +40,8 @@ from mne.epochs import (
     _handle_event_repeated, make_metadata)
 from mne.utils import (requires_pandas, object_diff,
                        catch_logging, _FakeNoPandas,
-                       assert_meg_snr, check_version, _dt_to_stamp)
+                       assert_meg_snr, check_version, _dt_to_stamp,
+                       _check_eeglabio_installed)
 
 data_path = testing.data_path(download=False)
 fname_raw_testing = op.join(data_path, 'MEG', 'sample',
@@ -846,8 +847,10 @@ def test_read_epochs_bad_events():
     epochs = Epochs(raw, np.array([[raw.first_samp, 0, event_id]]),
                     event_id, tmin, tmax, picks=picks)
     assert (repr(epochs))  # test repr
+    assert (epochs._repr_html_())  # test _repr_html_
     epochs.drop_bad()
     assert (repr(epochs))
+    assert (epochs._repr_html_())
     with pytest.warns(RuntimeWarning, match='empty'):
         evoked = epochs.average()
 
@@ -1321,21 +1324,26 @@ def test_evoked_io_from_epochs(tmpdir):
                     atol=1 / evoked.info['sfreq'])
 
     # now let's do one with negative time
+    baseline = (0.1, 0.2)
     epochs = Epochs(raw, events[:4], event_id, 0.1, tmax,
-                    picks=picks, baseline=(0.1, 0.2), decim=5)
+                    picks=picks, baseline=baseline, decim=5)
     evoked = epochs.average()
+    assert_allclose(evoked.baseline, baseline)
     evoked.save(fname_temp)
     evoked2 = read_evokeds(fname_temp)[0]
     assert_allclose(evoked.data, evoked2.data, rtol=1e-4, atol=1e-20)
     assert_allclose(evoked.times, evoked2.times, rtol=1e-4, atol=1e-20)
+    assert_allclose(evoked.baseline, baseline)
 
     # should be equivalent to a cropped original
+    baseline = (0.1, 0.2)
     epochs = Epochs(raw, events[:4], event_id, -0.2, tmax,
-                    picks=picks, baseline=(0.1, 0.2), decim=5)
+                    picks=picks, baseline=baseline, decim=5)
     evoked = epochs.average()
     evoked.crop(0.099, None)
     assert_allclose(evoked.data, evoked2.data, rtol=1e-4, atol=1e-20)
     assert_allclose(evoked.times, evoked2.times, rtol=1e-4, atol=1e-20)
+    assert_allclose(evoked.baseline, baseline)
 
     # should work when one channel type is changed to a non-data ch
     picks = pick_types(raw.info, meg=True, eeg=True)
@@ -1773,6 +1781,27 @@ def test_iter_evoked():
         assert_array_equal(x, y)
 
 
+@pytest.mark.parametrize('preload', (True, False))
+def test_iter_epochs(preload):
+    """Test iteration over epochs."""
+    raw, events, picks = _get_data()
+    epochs = Epochs(
+        raw, events[:5], event_id, tmin, tmax, picks=picks, preload=preload)
+    assert not hasattr(epochs, '_current_detrend_picks')
+    epochs_data = epochs.get_data()
+    data = list()
+    for _ in range(10):
+        try:
+            data.append(next(epochs))
+        except StopIteration:
+            break
+        else:
+            assert hasattr(epochs, '_current_detrend_picks')
+    assert not hasattr(epochs, '_current_detrend_picks')
+    data = np.array(data)
+    assert_allclose(data, epochs_data, atol=1e-20)
+
+
 def test_subtract_evoked():
     """Test subtraction of Evoked from Epochs."""
     raw, events, picks = _get_data()
@@ -1906,6 +1935,20 @@ def test_epoch_eq():
     epochs.equalize_event_counts(['a/x', 'a/y'])
     assert_equal(len(epochs['a/x']), 0)
     assert_equal(len(epochs['a/y']), 0)
+
+    # test default behavior (event_ids=None)
+    epochs = Epochs(raw, events, {'a': 1, 'b': 2, 'c': 3, 'd': 4},
+                    tmin, tmax, picks=picks, reject=reject)
+    epochs_1, _ = epochs.copy().equalize_event_counts()
+    epochs_2, _ = epochs.copy().equalize_event_counts(list(epochs.event_id))
+    assert_array_equal(epochs_1.events, epochs_2.events)
+
+    # test invalid values of event_ids
+    with pytest.raises(TypeError, match='received a string'):
+        epochs.equalize_event_counts('hello!')
+
+    with pytest.raises(TypeError, match='list-like or None'):
+        epochs.equalize_event_counts(1.5)
 
 
 def test_access_by_name(tmpdir):
@@ -2464,6 +2507,22 @@ def test_add_channels_epochs():
     pytest.raises(NotImplementedError, add_channels_epochs,
                   [epochs_meg2, epochs_eeg])
 
+    # use delayed projection, add channel, ensure projectors match
+    epochs_meg2 = make_epochs(picks=picks_meg, proj='delayed')
+    assert len(epochs_meg2.info['projs']) == 3
+    meg2_proj = epochs_meg2._projector
+    assert meg2_proj is not None
+    epochs_eeg = make_epochs(picks=picks_eeg, proj='delayed')
+    epochs_meg2.add_channels([epochs_eeg])
+    del epochs_eeg
+    assert len(epochs_meg2.info['projs']) == 3
+    new_proj = epochs_meg2._projector
+    n_meg, n_eeg = len(picks_meg), len(picks_eeg)
+    n_tot = n_meg + n_eeg
+    assert new_proj.shape == (n_tot,) * 2
+    assert_allclose(new_proj[:n_meg, :n_meg], meg2_proj, atol=1e-12)
+    assert_allclose(new_proj[n_meg:, n_meg:], np.eye(n_eeg), atol=1e-12)
+
 
 def test_array_epochs(tmpdir):
     """Test creating epochs from array."""
@@ -2971,6 +3030,8 @@ def test_events_list():
                                         mne.create_info(10, 1000.)),
                         events=events)
     assert_array_equal(epochs.events, np.array(events))
+    assert (repr(epochs))  # test repr
+    assert (epochs._repr_html_())  # test _repr_html_
 
 
 def test_save_overwrite(tmpdir):
@@ -3034,6 +3095,32 @@ def test_save_complex_data(tmpdir, preload, is_complex, fmt, rtol):
     if fmt == 'single' and not preload and not is_complex:
         rtol = 2e-4
     assert_allclose(data_read, data, rtol=rtol)
+
+
+@pytest.mark.skipif(not _check_eeglabio_installed(strict=False),
+                    reason='eeglabio not installed')
+@pytest.mark.parametrize('preload', (True, False))
+def test_export_eeglab(tmpdir, preload):
+    """Test saving an Epochs instance to EEGLAB's set format."""
+    raw, events = _get_data()[:2]
+    raw.load_data()
+    epochs = Epochs(raw, events, preload=preload)
+    temp_fname = op.join(str(tmpdir), 'test.set')
+    epochs.export(temp_fname)
+    epochs.drop_channels([ch for ch in ['epoc', 'STI 014']
+                          if ch in epochs.ch_names])
+    epochs_read = read_epochs_eeglab(temp_fname)
+    assert epochs.ch_names == epochs_read.ch_names
+    cart_coords = np.array([d['loc'][:3]
+                           for d in epochs.info['chs']])  # just xyz
+    cart_coords_read = np.array([d['loc'][:3]
+                                for d in epochs_read.info['chs']])
+    assert_allclose(cart_coords, cart_coords_read)
+    assert_array_equal(epochs.events[:, 0],
+                       epochs_read.events[:, 0])  # latency
+    assert epochs.event_id.keys() == epochs_read.event_id.keys()  # just keys
+    assert_allclose(epochs.times, epochs_read.times)
+    assert_allclose(epochs.get_data(), epochs_read.get_data())
 
 
 def test_no_epochs(tmpdir):
@@ -3254,6 +3341,18 @@ def test_make_fixed_length_epochs():
     assert len(epochs_annot) > 10
     assert len(epochs) > len(epochs_annot)
 
+    # overlaps
+    epochs = make_fixed_length_epochs(raw, duration=1)
+    assert len(epochs.events) > 10
+    epochs_ol = make_fixed_length_epochs(raw, duration=1, overlap=0.5)
+    assert len(epochs_ol.events) > 20
+    epochs_ol_2 = make_fixed_length_epochs(raw, duration=1, overlap=0.9)
+    assert len(epochs_ol_2.events) > 100
+    assert_array_equal(epochs_ol_2.events[:, 0],
+                       np.unique(epochs_ol_2.events[:, 0]))
+    with pytest.raises(ValueError, match='overlap must be'):
+        make_fixed_length_epochs(raw, duration=1, overlap=1.1)
+
 
 def test_epochs_huge_events(tmpdir):
     """Test epochs with event numbers that are too large."""
@@ -3357,3 +3456,52 @@ def test_empty_constructor():
     event_id = 1
     tmin, tmax, baseline = -0.2, 0.5, None
     BaseEpochs(info, None, None, event_id, tmin, tmax, baseline)
+
+
+def test_apply_function():
+    """Test apply function to epoch objects."""
+    n_channels = 10
+    data = np.arange(2 * n_channels * 1000).reshape(2, n_channels, 1000)
+    events = np.array([[0, 0, 1], [INT32_MAX, 0, 2]])
+    info = mne.create_info(n_channels, 1000., 'eeg')
+    epochs = mne.EpochsArray(data, info, events)
+    data_epochs = epochs.get_data()
+
+    # apply_function to all channels at once
+    def fun(data):
+        """Reverse channel order without changing values."""
+        return np.eye(data.shape[1])[::-1] @ data
+
+    want = data_epochs[:, ::-1]
+    got = epochs.apply_function(fun, channel_wise=False).get_data()
+    assert_array_equal(want, got)
+
+    # apply_function channel-wise (to first 3 channels) by replacing with mean
+    picks = np.arange(3)
+    non_picks = np.arange(3, n_channels)
+
+    def fun(data):
+        return np.full_like(data, data.mean())
+
+    out = epochs.apply_function(fun, picks=picks, channel_wise=True)
+    expected = epochs.get_data(picks).mean(axis=-1, keepdims=True)
+    assert np.all(out.get_data(picks) == expected)
+    assert_array_equal(out.get_data(non_picks), epochs.get_data(non_picks))
+
+
+@testing.requires_testing_data
+def test_add_channels_picks():
+    """Check that add_channels properly deals with picks."""
+    raw = mne.io.read_raw_fif(raw_fname, verbose=False)
+    raw.pick([2, 3, 310])  # take some MEG and EEG
+    raw.info.normalize_proj()
+
+    events = mne.make_fixed_length_events(raw, id=3000, start=0)
+    epochs = mne.Epochs(raw, events, event_id=3000, tmin=0, tmax=1,
+                        proj=True, baseline=None, reject=None, preload=True,
+                        decim=1)
+
+    epochs_final = epochs.copy()
+    epochs_bis = epochs.copy().rename_channels(lambda ch: ch + '_bis')
+    epochs_final.add_channels([epochs_bis], force_update_info=True)
+    epochs_final.drop_channels(epochs.ch_names)

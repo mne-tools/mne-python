@@ -312,3 +312,24 @@ def _construct_bids_filename(base, ext, part_idx):
     if dirname:
         use_fname = op.join(dirname, use_fname)
     return use_fname
+
+
+def _get_als_coords_from_chs(chs, drop_chs=None):
+    """Extract channel locations in ALS format (x, y, z) from a chs instance.
+
+    Returns
+    -------
+    None if no valid coordinates are found (all zeros)
+    """
+    if drop_chs is None:
+        drop_chs = []
+    cart_coords = np.array([d['loc'][:3] for d in chs
+                            if d['ch_name'] not in drop_chs])
+    if cart_coords.any():  # has coordinates
+        # (-y x z) to (x y z)
+        cart_coords[:, 0] = -cart_coords[:, 0]  # -y to y
+        # swap x (1) and y (0)
+        cart_coords[:, [0, 1]] = cart_coords[:, [1, 0]]
+    else:
+        cart_coords = None
+    return cart_coords

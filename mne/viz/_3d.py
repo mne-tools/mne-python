@@ -26,7 +26,7 @@ from ..io.pick import pick_types, _picks_to_idx
 from ..io.constants import FIFF
 from ..io.meas_info import read_fiducials, create_info
 from ..source_space import (_ensure_src, _create_surf_spacing, _check_spacing,
-                            _read_mri_info, SourceSpaces)
+                            _read_mri_info, SourceSpaces, read_freesurfer_lut)
 
 from ..surface import (get_meg_helmet_surf, _read_mri_surface, _DistanceQuery,
                        transform_surface_to, _project_onto_surface,
@@ -634,12 +634,6 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         if src_subject is not None and subject != src_subject:
             raise ValueError('subject ("%s") did not match the subject name '
                              ' in src ("%s")' % (subject, src_subject))
-        src_rr = np.concatenate([s['rr'][s['inuse'].astype(bool)]
-                                 for s in src])
-        src_nn = np.concatenate([s['nn'][s['inuse'].astype(bool)]
-                                 for s in src])
-    else:
-        src_rr = src_nn = np.empty((0, 3))
 
     if fwd is not None:
         _validate_type(fwd, [Forward])
@@ -846,9 +840,6 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         surfs[key] = transform_surface_to(surfs[key], coord_frame,
                                           [mri_trans, head_trans], copy=True)
 
-    if src is not None:
-        src_rr, src_nn = _update_coord_frame(src[0], src_rr, src_nn,
-                                             mri_trans, head_trans)
     if fwd is not None:
         fwd_rr, fwd_nn = _update_coord_frame(fwd, fwd_rr, fwd_nn,
                                              mri_trans, head_trans)
@@ -1053,14 +1044,36 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         surf = dict(rr=meg_rrs, tris=meg_tris)
         renderer.surface(surface=surf, color=color,
                          opacity=alpha, backface_culling=True)
-    if len(src_rr) > 0:
-        renderer.quiver3d(
-            x=src_rr[:, 0], y=src_rr[:, 1], z=src_rr[:, 2],
-            u=src_nn[:, 0], v=src_nn[:, 1], w=src_nn[:, 2],
-            color=(1., 1., 0.), mode='cylinder', scale=3e-3,
-            opacity=0.75, glyph_height=0.25,
-            glyph_center=(0., 0., 0.), glyph_resolution=20,
-            backface_culling=True)
+
+    if src is not None:
+        atlas_ids, colors = read_freesurfer_lut()
+        for ss in src:
+            src_rr = ss['rr'][ss['inuse'].astype(bool)]
+            src_nn = ss['nn'][ss['inuse'].astype(bool)]
+
+            src_rr, src_nn = _update_coord_frame(src[0], src_rr, src_nn,
+                                                 mri_trans, head_trans)
+            # volume sources
+            if ss['type'] == 'vol':
+                if ss['seg_name'] in colors.keys():
+                    color = colors[ss['seg_name']][:3]
+                    color = tuple(i / 256. for i in color)
+                else:
+                    color = (1., 1., 0.)
+
+            # surface and discrete sources
+            else:
+                color = (1., 1., 0.)
+
+            if len(src_rr) > 0:
+                renderer.quiver3d(
+                    x=src_rr[:, 0], y=src_rr[:, 1], z=src_rr[:, 2],
+                    u=src_nn[:, 0], v=src_nn[:, 1], w=src_nn[:, 2],
+                    color=color, mode='cylinder', scale=3e-3,
+                    opacity=0.75, glyph_height=0.25,
+                    glyph_center=(0., 0., 0.), glyph_resolution=20,
+                    backface_culling=True)
+
     if fwd is not None:
         red = (1.0, 0.0, 0.0)
         green = (0.0, 1.0, 0.0)
@@ -1462,7 +1475,12 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
 
     time_label, times = _handle_time(time_label, time_unit, stc.times)
     fig = plt.figure(figsize=(6, 6)) if figure is None else figure
-    ax = Axes3D(fig)
+    try:
+        ax = Axes3D(fig, auto_add_to_figure=False)
+    except Exception:  # old mpl
+        ax = Axes3D(fig)
+    else:
+        fig.add_axes(ax)
     hemi_idx = 0 if hemi == 'lh' else 1
     surf = op.join(subjects_dir, subject, 'surf', '%s.%s' % (hemi, surface))
     if spacing == 'all':
@@ -1535,7 +1553,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
         cax.tick_params(labelsize=16)
         cb.patch.set_facecolor('0.5')
         cax.set(xlim=(scale_pts[0], scale_pts[2]))
-    plt.show()
+    plt_show(True)
     return fig
 
 
@@ -1737,9 +1755,9 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     _validate_type(stc, _BaseSourceEstimate, 'stc', 'source estimate')
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
-    subject = _check_subject(stc.subject, subject, True)
+    subject = _check_subject(stc.subject, subject)
     _check_option('backend', backend,
-                  ['auto', 'matplotlib', 'mayavi', 'pyvista'])
+                  ['auto', 'matplotlib', 'mayavi', 'pyvista', 'notebook'])
     plot_mpl = backend == 'matplotlib'
     if not plot_mpl:
         if backend == 'auto':
@@ -1779,7 +1797,7 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
     vec = stc._data_ndim == 3
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
-    subject = _check_subject(stc.subject, subject, True)
+    subject = _check_subject(stc.subject, subject)
 
     backend = _get_3d_backend()
     del _get_3d_backend
@@ -1994,7 +2012,7 @@ def _load_subject_mri(mri, stc, subject, subjects_dir, name):
     from nibabel.spatialimages import SpatialImage
     _validate_type(mri, ('path-like', SpatialImage), name)
     if isinstance(mri, str):
-        subject = _check_subject(stc.subject, subject, True)
+        subject = _check_subject(stc.subject, subject)
         mri = nib.load(_check_mri(mri, subject, subjects_dir))
     return mri
 
@@ -2114,7 +2132,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     del src
     _print_coord_trans(Transform('mri_voxel', 'ras', img.affine),
                        prefix='Image affine ', units='mm', level='debug')
-    subject = _check_subject(src_subject, subject, True, kind=kind)
+    subject = _check_subject(src_subject, subject, first_kind=kind)
     stc_ijk = np.array(
         np.unravel_index(stc.vertices[0], img.shape[:3], order='F')).T
     assert stc_ijk.shape == (len(stc.vertices[0]), 3)
@@ -2245,7 +2263,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         params['fig'].canvas.draw()
 
     if mode == 'glass_brain':
-        subject = _check_subject(stc.subject, subject, True)
+        subject = _check_subject(stc.subject, subject)
         ras_mni_t = read_ras_mni_t(subject, subjects_dir)
         if not np.allclose(ras_mni_t['trans'], np.eye(4)):
             _print_coord_trans(
@@ -2430,7 +2448,7 @@ def _check_views(surf, views, hemi, stc=None, backend=None):
             _validate_type(stc, SourceEstimate, 'stc',
                            'SourceEstimate when a flatmap is used')
         if backend is not None:
-            if backend != 'pyvista':
+            if backend not in ('pyvista', 'notebook'):
                 raise RuntimeError('The PyVista 3D backend must be used to '
                                    'plot a flatmap')
     if (views == ['flat']) ^ (surf == 'flat'):  # exactly only one of the two
@@ -2854,7 +2872,7 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
             u, v, w = ori.T
             renderer.quiver3d(x, y, z, u, v, w, scale=3 * scale,
                               color=color, mode='arrow')
-
+        renderer.show()
         fig = renderer.scene()
     else:
         raise ValueError('Mode must be "cone", "arrow" or orthoview", '
@@ -2925,7 +2943,8 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
 
 
 @fill_doc
-def plot_sensors_connectivity(info, con, picks=None):
+def plot_sensors_connectivity(info, con, picks=None,
+                              cbar_label='Connectivity'):
     """Visualize the sensor connectivity in 3D.
 
     Parameters
@@ -2936,6 +2955,8 @@ def plot_sensors_connectivity(info, con, picks=None):
         The computed connectivity measure(s).
     %(picks_good_data)s
         Indices of selected channels.
+    cbar_label : str
+        Label for the colorbar.
 
     Returns
     -------
@@ -2951,7 +2972,7 @@ def plot_sensors_connectivity(info, con, picks=None):
     picks = _picks_to_idx(info, picks)
     if len(picks) != len(con):
         raise ValueError('The number of channels picked (%s) does not '
-                         'correspond the size of the connectivity data '
+                         'correspond to the size of the connectivity data '
                          '(%s)' % (len(picks), len(con)))
 
     # Plot the sensor locations
@@ -2989,7 +3010,7 @@ def plot_sensors_connectivity(info, con, picks=None):
                              vmin=vmin, vmax=vmax,
                              reverse_lut=True)
 
-    renderer.scalarbar(source=tube, title='Phase Lag Index (PLI)')
+    renderer.scalarbar(source=tube, title=cbar_label)
 
     # Add the sensor names for the connections shown
     nodes_shown = list(set([n[0] for n in con_nodes] +

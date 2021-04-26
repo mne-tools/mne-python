@@ -28,11 +28,12 @@ from .source_space import _mri_orientation
 from .utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
                     fill_doc, _check_option, _validate_type, _safe_input)
 from .viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
-                  plot_compare_evokeds)
+                  plot_compare_evokeds, set_3d_view)
 from .viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
 from .viz.utils import _ndarray_to_fig, _figure_agg
 from .forward import read_forward_solution
 from .epochs import read_epochs
+from . import dig_mri_distances
 from .minimum_norm import read_inverse_operator
 from .parallel import parallel_func, check_n_jobs
 
@@ -160,25 +161,46 @@ def _figs_to_mrislices(sl, n_jobs, **kwargs):
 def _iterate_trans_views(function, **kwargs):
     """Auxiliary function to iterate over views in trans fig."""
     import matplotlib.pyplot as plt
-    from .viz.backends.renderer import backend, MNE_3D_BACKEND_TESTING
+    from .viz.backends.renderer import MNE_3D_BACKEND_TESTING
+    from .viz._brain.view import views_dicts
 
     fig = function(**kwargs)
-    backend._check_3d_figure(fig)
 
-    views = [(90, 90), (0, 90), (0, -90)]
-    fig2, axes = plt.subplots(1, len(views))
-    for view, ax in zip(views, axes):
-        backend._set_3d_view(fig, azimuth=view[0], elevation=view[1],
-                             focalpoint=None, distance=None)
+    views = ['frontal', 'lateral', 'medial']
+    views += ['axial', 'rostral', 'coronal']
+
+    images = []
+    for view in views:
         if not MNE_3D_BACKEND_TESTING:
+            from .viz.backends.renderer import backend
+            set_3d_view(fig, **views_dicts['both'][view])
+            backend._check_3d_figure(fig)
             im = backend._take_3d_screenshot(figure=fig)
         else:  # Testing mode
             im = np.zeros((2, 2, 3))
-        ax.imshow(im)
-        ax.axis('off')
+        images.append(im)
 
-    backend._close_all()
+    images = np.concatenate(
+        [np.concatenate(images[:3], axis=1),
+         np.concatenate(images[3:], axis=1)],
+        axis=0)
+
+    dists = dig_mri_distances(info=kwargs['info'],
+                              trans=kwargs['trans'],
+                              subject=kwargs['subject'],
+                              subjects_dir=kwargs['subjects_dir'])
+
+    fig2, ax = plt.subplots()
+    ax.imshow(images)
+    ax.set_title(f'Average distance from {len(dists)} digitized points to '
+                 f'head: {1e3 * np.mean(dists):.2f} mm')
+    ax.axis('off')
+
+    if not MNE_3D_BACKEND_TESTING:
+        backend._close_all()
+
     img = _fig_to_img(fig2, image_format='png')
+    plt.close(fig2)
     return img
 
 ###############################################################################
@@ -813,69 +835,6 @@ repr_template = Template(u"""
 <hr></li>
 """)
 
-raw_template = Template(u"""
-<li class="{{div_klass}}" id="{{id}}">
-<h4>{{caption}}</h4>
-<table class="table table-hover">
-    <tr>
-        <th>Measurement date</th>
-        {{if meas_date is not None}}
-        <td>{{meas_date}}</td>
-        {{else}}<td>Unknown</td>{{endif}}
-    </tr>
-    <tr>
-        <th>Experimenter</th>
-        {{if info['experimenter'] is not None}}
-        <td>{{info['experimenter']}}</td>
-        {{else}}<td>Unknown</td>{{endif}}
-    </tr>
-    <tr>
-        <th>Digitized points</th>
-        {{if info['dig'] is not None}}
-        <td>{{len(info['dig'])}} points</td>
-        {{else}}
-        <td>Not available</td>
-        {{endif}}
-    </tr>
-    <tr>
-        <th>Good channels</th>
-        <td>{{n_mag}} magnetometer, {{n_grad}} gradiometer,
-            and {{n_eeg}} EEG channels</td>
-    </tr>
-    <tr>
-        <th>Bad channels</th>
-        {{if info['bads'] is not None}}
-        <td>{{', '.join(info['bads'])}}</td>
-        {{else}}<td>None</td>{{endif}}
-    </tr>
-    <tr>
-        <th>EOG channels</th>
-        <td>{{eog}}</td>
-    </tr>
-    <tr>
-        <th>ECG channels</th>
-        <td>{{ecg}}</td>
-    <tr>
-        <th>Measurement time range</th>
-        <td>{{u'%0.2f' % tmin}} to {{u'%0.2f' % tmax}} sec.</td>
-    </tr>
-    <tr>
-        <th>Sampling frequency</th>
-        <td>{{u'%0.2f' % info['sfreq']}} Hz</td>
-    </tr>
-    <tr>
-        <th>Highpass</th>
-        <td>{{u'%0.2f' % info['highpass']}} Hz</td>
-    </tr>
-     <tr>
-        <th>Lowpass</th>
-        <td>{{u'%0.2f' % info['lowpass']}} Hz</td>
-    </tr>
-</table>
-</li>
-""")
-
-
 toc_list = Template(u"""
 <li class="{{div_klass}}">
     {{if id}}
@@ -941,6 +900,49 @@ class Report(object):
         .. versionadded:: 0.21
     %(verbose)s
 
+    Attributes
+    ----------
+    info_fname : None | str
+        Name of the file containing the info dictionary.
+    %(subjects_dir)s
+    subject : str | None
+        Subject name.
+    title : str
+        Title of the report.
+    cov_fname : None | str
+        Name of the file containing the noise covariance.
+    %(baseline_report)s
+        Defaults to ``None``, i.e. no baseline correction.
+    image_format : str
+        Default image format to use (default is 'png').
+        SVG uses vector graphics, so fidelity is higher but can increase
+        file size and browser image rendering time as well.
+
+        .. versionadded:: 0.15
+
+    raw_psd : bool | dict
+        If True, include PSD plots for raw files. Can be False (default) to
+        omit, True to plot, or a dict to pass as ``kwargs`` to
+        :meth:`mne.io.Raw.plot_psd`.
+
+        .. versionadded:: 0.17
+    projs : bool
+        Whether to include topographic plots of SSP projectors, if present in
+        the data. Defaults to ``False``.
+
+        .. versionadded:: 0.21
+    %(verbose)s
+    html : list of str
+        Contains items of html-page.
+    include : list of str
+        Dictionary containing elements included in head.
+    fnames : list of str
+        List of file names rendered.
+    sections : list of str
+        List of sections.
+    lang : str
+        language setting for the HTML file.
+
     Notes
     -----
     See :ref:`tut-report` for an introduction to using ``mne.Report``.
@@ -963,8 +965,9 @@ class Report(object):
         self.projs = projs
         self.verbose = verbose
 
-        self.initial_id = 0
+        self._initial_id = 0
         self.html = []
+        self.include = []
         self.fnames = []  # List of file names rendered
         self.sections = []  # List of sections
         self.lang = 'en-us'  # language setting for the HTML file
@@ -1006,8 +1009,8 @@ class Report(object):
 
     def _get_id(self):
         """Get id of plot."""
-        self.initial_id += 1
-        return self.initial_id
+        self._initial_id += 1
+        return self._initial_id
 
     def _validate_input(self, items, captions, section, comments=None):
         """Validate input."""
@@ -1658,7 +1661,7 @@ class Report(object):
         """
         # Note: self._fname is not part of the state
         return (['baseline', 'cov_fname', 'fnames', 'html', 'include',
-                 'image_format', 'info_fname', 'initial_id', 'raw_psd',
+                 'image_format', 'info_fname', '_initial_id', 'raw_psd',
                  '_sectionlabels', 'sections', '_sectionvars', 'projs',
                  '_sort_sections', 'subjects_dir', 'subject', 'title',
                  'verbose'],
@@ -1915,31 +1918,12 @@ class Report(object):
         if raw_fname.endswith(('.fif', '.fif.gz')):
             kwargs['allow_maxshield'] = True
         raw = read_raw(**kwargs)
-
         extra = '(MaxShield on)' if raw.info.get('maxshield', False) else ''
         caption = self._gen_caption(prefix='Raw', suffix=extra,
                                     fname=raw_fname, data_path=data_path)
-        n_eeg = len(pick_types(raw.info, meg=False, eeg=True))
-        n_grad = len(pick_types(raw.info, meg='grad'))
-        n_mag = len(pick_types(raw.info, meg='mag'))
-        pick_eog = pick_types(raw.info, meg=False, eog=True)
-        if len(pick_eog) > 0:
-            eog = ', '.join(np.array(raw.info['ch_names'])[pick_eog])
-        else:
-            eog = 'Not available'
-        pick_ecg = pick_types(raw.info, meg=False, ecg=True)
-        if len(pick_ecg) > 0:
-            ecg = ', '.join(np.array(raw.info['ch_names'])[pick_ecg])
-        else:
-            ecg = 'Not available'
-        meas_date = raw.info['meas_date']
-        if meas_date is not None:
-            meas_date = meas_date.strftime("%B %d, %Y") + ' GMT'
-
-        html = raw_template.substitute(
-            div_klass='raw', id=global_id, caption=caption, info=raw.info,
-            meas_date=meas_date, n_eeg=n_eeg, n_grad=n_grad, n_mag=n_mag,
-            eog=eog, ecg=ecg, tmin=raw._first_time, tmax=raw._last_time)
+        html = """<li class="raw" id="%s">""" % (global_id)
+        html += raw._repr_html_(caption=caption)
+        html += "</li>"
 
         raw_psd = {} if self.raw_psd is True else self.raw_psd
         if isinstance(raw_psd, dict):
@@ -2110,6 +2094,7 @@ class Report(object):
         html = image_template.substitute(
             img=img, id=global_id, div_klass='epochs', img_klass='epochs',
             caption=caption, show=show, image_format=image_format)
+        html += epochs._repr_html_()
         return html
 
     def _render_cov(self, cov_fname, info_fname, image_format, data_path,
@@ -2161,9 +2146,12 @@ class Report(object):
                       data_path):
         """Render trans (only PNG)."""
         kwargs = dict(info=info, trans=trans, subject=subject,
-                      subjects_dir=subjects_dir)
+                      subjects_dir=subjects_dir, dig=True,
+                      meg=['helmet', 'sensors'],
+                      coord_frame='mri')
         try:
-            img = _iterate_trans_views(function=plot_alignment, **kwargs)
+            img = _iterate_trans_views(function=plot_alignment,
+                                       surfaces=['head-dense'], **kwargs)
         except IOError:
             img = _iterate_trans_views(function=plot_alignment,
                                        surfaces=['head'], **kwargs)
@@ -2294,10 +2282,13 @@ class _ReportScraper(object):
                     fid.write(_FA_FILE_CODE)
                 # copy HTML file
                 html_fname = op.basename(report.fname)
-                out_fname = op.join(
+                out_dir = op.join(
                     self.app.builder.outdir,
                     op.relpath(op.dirname(block_vars['target_file']),
-                               self.app.builder.srcdir), html_fname)
+                               self.app.builder.srcdir))
+                os.makedirs(out_dir, exist_ok=True)
+                out_fname = op.join(out_dir, html_fname)
+                assert op.isfile(report.fname)
                 self.files[report.fname] = out_fname
                 # embed links/iframe
                 data = _SCRAPER_TEXT.format(html_fname)

@@ -91,9 +91,11 @@ def test_render_report(renderer, tmpdir):
     raw.set_eeg_reference(projection=True)
     epochs = Epochs(raw, read_events(event_fname), 1, -0.2, 0.2)
     epochs.save(epochs_fname, overwrite=True)
-    # This can take forever (stall Travis), so let's make it fast
+    # This can take forever, so let's make it fast
     # Also, make sure crop range is wide enough to avoid rendering bug
-    evoked = epochs.average().crop(0.1, 0.2)
+    evoked = epochs.average()
+    with pytest.warns(RuntimeWarning, match='tmax is not in Evoked'):
+        evoked.crop(0.1, 0.2)
     evoked.save(evoked_fname)
 
     report = Report(info_fname=raw_fname_new, subjects_dir=subjects_dir,
@@ -603,7 +605,6 @@ def test_scraper(tmpdir):
     rst = scraper(block, block_vars, gallery_conf)
     out_html = op.join(app.builder.outdir, 'auto_examples', 'my_html.html')
     assert not op.isfile(out_html)
-    os.makedirs(op.join(app.builder.outdir, 'auto_examples'))
     scraper.copyfiles()
     assert op.isfile(out_html)
     assert rst.count('"') == 6
@@ -626,6 +627,7 @@ def test_split_files(tmpdir, split_naming):
     assert len(report.fnames) == 1
 
 
+@testing.requires_testing_data
 def test_survive_pickle(tmpdir):
     """Testing functionality of Report-Object after pickling."""
     tempdir = str(tmpdir)

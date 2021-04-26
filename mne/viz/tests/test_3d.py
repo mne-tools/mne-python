@@ -165,7 +165,7 @@ def test_plot_evoked_field(renderer):
 @pytest.mark.slowtest  # can be slow on OSX
 @testing.requires_testing_data
 @traits_test
-def test_plot_alignment(tmpdir, renderer):
+def test_plot_alignment(tmpdir, renderer, mixed_fwd_cov_evoked):
     """Test plotting of -trans.fif files and MEG sensor layouts."""
     # generate fiducials file for testing
     tempdir = str(tmpdir)
@@ -209,6 +209,13 @@ def test_plot_alignment(tmpdir, renderer):
                   src=sample_src)
     sample_src.plot(subjects_dir=subjects_dir, head=True, skull=True,
                     brain='white')
+    # mixed source space
+    mixed_src = mixed_fwd_cov_evoked[0]['src']
+    assert mixed_src.kind == 'mixed'
+    plot_alignment(info, meg=['helmet', 'sensors'], dig=True,
+                   coord_frame='head', trans=Path(trans_fname),
+                   subject='sample', mri_fiducials=fiducials_path,
+                   subjects_dir=subjects_dir, src=mixed_src)
     renderer.backend._close_all()
     # no-head version
     renderer.backend._close_all()
@@ -509,19 +516,18 @@ def test_stc_mpl():
     stc_data = np.ones((n_verts * n_time))
     stc_data.shape = (n_verts, n_time)
     stc = SourceEstimate(stc_data, vertices, 1, 1, 'sample')
-    with pytest.warns(RuntimeWarning, match='not included'):
-        stc.plot(subjects_dir=subjects_dir, time_unit='s', views='ven',
-                 hemi='rh', smoothing_steps=2, subject='sample',
-                 backend='matplotlib', spacing='oct1', initial_time=0.001,
-                 colormap='Reds')
-        fig = stc.plot(subjects_dir=subjects_dir, time_unit='ms', views='dor',
-                       hemi='lh', smoothing_steps=2, subject='sample',
-                       backend='matplotlib', spacing='ico2', time_viewer=True,
-                       colormap='mne')
-        time_viewer = fig.time_viewer
-        _fake_click(time_viewer, time_viewer.axes[0], (0.5, 0.5))  # change t
-        time_viewer.canvas.key_press_event('ctrl+right')
-        time_viewer.canvas.key_press_event('left')
+    stc.plot(subjects_dir=subjects_dir, time_unit='s', views='ven',
+             hemi='rh', smoothing_steps=7, subject='sample',
+             backend='matplotlib', spacing='oct1', initial_time=0.001,
+             colormap='Reds')
+    fig = stc.plot(subjects_dir=subjects_dir, time_unit='ms', views='dor',
+                   hemi='lh', smoothing_steps=7, subject='sample',
+                   backend='matplotlib', spacing='ico2', time_viewer=True,
+                   colormap='mne')
+    time_viewer = fig.time_viewer
+    _fake_click(time_viewer, time_viewer.axes[0], (0.5, 0.5))  # change t
+    time_viewer.canvas.key_press_event('ctrl+right')
+    time_viewer.canvas.key_press_event('left')
     pytest.raises(ValueError, stc.plot, subjects_dir=subjects_dir,
                   hemi='both', subject='sample', backend='matplotlib')
     pytest.raises(ValueError, stc.plot, subjects_dir=subjects_dir,
@@ -647,10 +653,14 @@ def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
 
     # flatmaps (mostly a lot of error checking)
     these_kwargs = kwargs.copy()
-    these_kwargs.update(surface='flat', views='auto')
+    these_kwargs.update(surface='flat', views='auto', hemi='both',
+                        verbose='debug')
     if kind == 'surface' and pick_ori != 'vector' and is_pyvista:
-        with pytest.raises(FileNotFoundError, match='flatmap'):
-            meth(**these_kwargs)  # sample does not have them
+        with catch_logging() as log:
+            with pytest.raises(FileNotFoundError, match='flatmap'):
+                meth(**these_kwargs)  # sample does not have them
+        log = log.getvalue()
+        assert 'offset: 0' in log
     fs_stc = stc.copy()
     fs_stc.subject = 'fsaverage'  # this is wrong, but don't have to care
     flat_meth = getattr(fs_stc, meth_key)
@@ -711,14 +721,26 @@ def test_plot_sensors_connectivity(renderer):
     n_channels = len(picks)
     con = np.random.RandomState(42).randn(n_channels, n_channels)
     info = raw.info
-    with pytest.raises(TypeError):
-        plot_sensors_connectivity(info='foo', con=con,
-                                  picks=picks)
-    with pytest.raises(ValueError):
-        plot_sensors_connectivity(info=info, con=con[::2, ::2],
-                                  picks=picks)
+    with pytest.raises(TypeError, match='must be an instance of Info'):
+        plot_sensors_connectivity(info='foo', con=con, picks=picks)
+    with pytest.raises(ValueError, match='does not correspond to the size'):
+        plot_sensors_connectivity(info=info, con=con[::2, ::2], picks=picks)
 
-    plot_sensors_connectivity(info=info, con=con, picks=picks)
+    fig = plot_sensors_connectivity(info=info, con=con, picks=picks)
+    if renderer._get_3d_backend() == 'pyvista':
+        try:
+            # pyvista<0.30.0
+            title = fig.plotter.scalar_bar.GetTitle()
+        except AttributeError:
+            # pyvista>=0.30.0
+            title = list(fig.plotter.scalar_bars.values())[0].GetTitle()
+    else:
+        assert renderer._get_3d_backend() == 'mayavi'
+        # the last thing we add is the Tube, so we need to go
+        # vtkDataSource->Stripper->Tube->ModuleManager
+        mod_man = fig.children[-1].children[0].children[0].children[0]
+        title = mod_man.scalar_lut_manager.scalar_bar.title
+    assert title == 'Connectivity'
 
 
 @pytest.mark.parametrize('orientation', ('horizontal', 'vertical'))

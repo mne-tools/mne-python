@@ -273,6 +273,13 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
     titles = _handle_default('titles', titles)
     units = _handle_default('units', units)
 
+    if plot_type == "image":
+        if ylim is not None and not isinstance(ylim, dict):
+            # The user called Evoked.plot_image() or plot_evoked_image(), the
+            # clim parameters of those functions end up to be the ylim here.
+            raise ValueError("`clim` must be a dict. "
+                             "E.g. clim = dict(eeg=[-20, 20])")
+
     picks = _picks_to_idx(info, picks, none='all', exclude=())
     if len(picks) != len(set(picks)):
         raise ValueError("`picks` are not unique. Please remove duplicates.")
@@ -763,11 +770,12 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         time_unit=time_unit, sphere=sphere)
 
 
-def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
-                     border='none', ylim=None, scalings=None, title=None,
-                     proj=False, vline=[0.0], fig_background=None,
+def plot_evoked_topo(evoked, layout=None, layout_scale=0.945,
+                     color=None, border='none', ylim=None, scalings=None,
+                     title=None, proj=False, vline=[0.0], fig_background=None,
                      merge_grads=False, legend=True, axes=None,
-                     background_color='w', noise_cov=None, show=True):
+                     background_color='w', noise_cov=None, exclude='bads',
+                     show=True):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -794,8 +802,8 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         Y limits for plots (after scaling has been applied). The value
         determines the upper and lower subplot limits. e.g.
         ylim = dict(eeg=[-20, 20]). Valid keys are eeg, mag, grad, misc.
-        If None, the ylim parameter for each channel is determined by
-        the maximum absolute peak.
+        If None, the ylim parameter for each channel type is determined by
+        the minimum and maximum peak.
     scalings : dict | None
         The scalings of the channel types to be applied for plotting. If None,`
         defaults to ``dict(eeg=1e6, grad=1e13, mag=1e15)``.
@@ -833,6 +841,9 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         Can be a string to load a covariance from disk.
 
         .. versionadded:: 0.16.0
+    exclude : list of str | 'bads'
+        Channels names to exclude from the plot. If 'bads', the
+        bad channels are excluded. By default, exclude is set to 'bads'.
     show : bool
         Show figure if True.
 
@@ -872,8 +883,8 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                              axis_facecolor=axis_facecolor,
                              font_color=font_color,
                              merge_channels=merge_grads,
-                             legend=legend, axes=axes, show=show,
-                             noise_cov=noise_cov)
+                             legend=legend, axes=axes, exclude=exclude,
+                             show=show, noise_cov=noise_cov)
 
 
 @fill_doc
@@ -1940,6 +1951,23 @@ def _title_helper_pce(title, picked_types, picks, ch_names, combine):
     return title
 
 
+def _ascii_minus_to_unicode(s):
+    """Replace ASCII-encoded "minus-hyphen" characters with Unicode minus.
+
+    Aux function for ``plot_compare_evokeds`` to prettify ``Evoked.comment``.
+    """
+    if s is None:
+        return
+
+    # replace ASCII minus operators with Unicode minus characters
+    s = s.replace(' - ', ' − ')
+    # replace leading minus operator if present
+    if s.startswith('-'):
+        s = f'−{s[1:]}'
+
+    return s
+
+
 @fill_doc
 def plot_compare_evokeds(evokeds, picks=None, colors=None,
                          linestyles=None, styles=None, cmap=None,
@@ -2164,7 +2192,10 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
     if isinstance(evokeds, (list, tuple)):
         evokeds_copy = evokeds.copy()
         evokeds = dict()
-        comments = [getattr(_evk, 'comment', None) for _evk in evokeds_copy]
+
+        comments = [_ascii_minus_to_unicode(getattr(_evk, 'comment', None))
+                    for _evk in evokeds_copy]
+
         for idx, (comment, _evoked) in enumerate(zip(comments, evokeds_copy)):
             key = str(idx + 1)
             if comment:  # only update key if comment is non-empty
@@ -2218,12 +2249,14 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
     if show_sensors is None:
         show_sensors = (len(picks) == 1)
 
+    _validate_type(combine, types=(None, 'callable', str), item_name='combine')
     # cannot combine a single channel
     if (len(picks) < 2) and combine is not None:
         warn('Only {} channel in "picks"; cannot combine by method "{}".'
              .format(len(picks), combine))
     # `combine` defaults to GFP unless picked a single channel or axes='topo'
-    if combine is None and len(picks) > 1 and axes != 'topo':
+    do_topo = isinstance(axes, str) and axes == 'topo'
+    if combine is None and len(picks) > 1 and not do_topo:
         combine = 'gfp'
     # convert `combine` into callable (if None or str)
     combine_func = _make_combine_callable(combine)
@@ -2233,7 +2266,6 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
                               ch_names=ch_names, combine=combine)
 
     # setup axes
-    do_topo = (axes == 'topo')
     if do_topo:
         show_sensors = False
         if len(picks) > 70:

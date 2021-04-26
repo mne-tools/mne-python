@@ -317,14 +317,31 @@ def test_brain_init(renderer_pyvista, tmpdir, pixel_ratio, brain_gc):
     for a, b, p, color in zip(annots, borders, alphas, colors):
         brain.add_annotation(a, b, p, color=color)
 
-    brain.show_view(dict(focalpoint=(1e-5, 1e-5, 1e-5)), roll=1, distance=500)
+    view_args = dict(view=dict(focalpoint=(1e-5, 1e-5, 1e-5)),
+                     roll=1, distance=500)
+    cam = brain._renderer.figure.plotter.camera
+    previous_roll = cam.GetRoll()
+    brain.show_view(**view_args)
+    assert np.allclose(cam.GetFocalPoint(), view_args["view"]["focalpoint"])
+    assert np.allclose(cam.GetDistance(), view_args["distance"])
+    assert np.allclose(cam.GetRoll(), previous_roll + view_args["roll"])
+    del view_args
 
     # image and screenshot
     fname = path.join(str(tmpdir), 'test.png')
     assert not path.isfile(fname)
     brain.save_image(fname)
     assert path.isfile(fname)
-    brain.show_view(view=dict(azimuth=180., elevation=90.))
+    fp = np.array(
+        brain._renderer.figure.plotter.renderer.ComputeVisiblePropBounds())
+    fp = (fp[1::2] + fp[::2]) * 0.5
+    view_args = dict(azimuth=180., elevation=90., focalpoint='auto')
+    brain.show_view(view=view_args)
+    assert np.allclose(brain._renderer.figure._azimuth, view_args["azimuth"])
+    assert np.allclose(
+        brain._renderer.figure._elevation, view_args["elevation"])
+    assert np.allclose(cam.GetFocalPoint(), fp)
+    del view_args
     img = brain.screenshot(mode='rgb')
     want_size = np.array([size[0] * pixel_ratio, size[1] * pixel_ratio, 3])
     assert_allclose(img.shape, want_size)
@@ -378,7 +395,7 @@ def test_brain_save_movie(tmpdir, renderer, brain_gc):
     brain.close()
 
 
-_TINY_SIZE = (300, 250)
+_TINY_SIZE = (350, 300)
 
 
 def tiny(tmpdir):

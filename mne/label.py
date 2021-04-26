@@ -232,7 +232,7 @@ class Label(object):
         self.hemi = hemi
         self.comment = comment
         self.verbose = verbose
-        self.subject = _check_subject(None, subject, False)
+        self.subject = _check_subject(None, subject, raise_error=False)
         self.color = color
         self.name = name
         self.filename = filename
@@ -1573,8 +1573,7 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
     # make sure the inputs are arrays
     if np.isscalar(seeds):
         seeds = [seeds]
-    # these can have different sizes so need to use object array
-    seeds = np.asarray([np.atleast_1d(seed) for seed in seeds], dtype='O')
+    seeds = [np.atleast_1d(seed) for seed in seeds]
     extents = np.atleast_1d(extents)
     hemis = np.atleast_1d(hemis)
     n_seeds = len(seeds)
@@ -1636,7 +1635,7 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
     if overlap:
         # create the patches
         parallel, my_grow_labels, _ = parallel_func(_grow_labels, n_jobs)
-        seeds = np.array_split(seeds, n_jobs)
+        seeds = np.array_split(np.array(seeds, dtype='O'), n_jobs)
         extents = np.array_split(extents, n_jobs)
         hemis = np.array_split(hemis, n_jobs)
         names = np.array_split(names, n_jobs)
@@ -1668,7 +1667,7 @@ def _grow_nonoverlapping_labels(subject, seeds_, extents_, hemis, vertices_,
     labels = []
     for hemi in set(hemis):
         hemi_index = (hemis == hemi)
-        seeds = seeds_[hemi_index]
+        seeds = [seed for seed, h in zip(seeds_, hemis) if h == hemi]
         extents = extents_[hemi_index]
         names = names_[hemi_index]
         graph = graphs[hemi]  # distance graph
@@ -1698,6 +1697,10 @@ def _grow_nonoverlapping_labels(subject, seeds_, extents_, hemis, vertices_,
             # add neighbors within allowable distance
             row = graph[vert_from, :]
             for vert_to, dist in zip(row.indices, row.data):
+                # Prevent adding a point that has already been used
+                # (prevents infinite loop)
+                if (vert_to == seeds[label]).any():
+                    continue
                 new_dist = old_dist + dist
 
                 # abort if outside of extent
@@ -2249,7 +2252,7 @@ def labels_to_stc(labels, values, tmin=0, tstep=1, subject=None, src=None,
     else:
         kind = src.kind
         subject = _check_subject(
-            src._subject, subject, kind='source space subject',
+            src._subject, subject, first_kind='source space subject',
             raise_error=False)
         _check_option('source space kind', kind, ('surface', 'volume'))
         if kind == 'volume':

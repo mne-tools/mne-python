@@ -26,6 +26,8 @@ from mne.datasets import testing
 from mne.simulation import (simulate_sparse_stc, simulate_raw, add_eog,
                             add_ecg, add_chpi, add_noise)
 from mne.source_space import _compare_source_spaces
+from mne.simulation.source import SourceSimulator
+from mne.label import Label
 from mne.surface import _get_ico_surface
 from mne.io import read_raw_fif, RawArray
 from mne.io.constants import FIFF
@@ -325,7 +327,7 @@ def test_degenerate(raw_data):
 @pytest.mark.slowtest
 def test_simulate_raw_bem(raw_data):
     """Test simulation of raw data with BEM."""
-    raw, src, stc, trans, sphere = raw_data
+    raw, src_ss, stc, trans, sphere = raw_data
     src = setup_source_space('sample', 'oct1', subjects_dir=subjects_dir)
     for s in src:
         s['nuse'] = 3
@@ -366,6 +368,31 @@ def test_simulate_raw_bem(raw_data):
         diffs = np.sqrt(np.sum((locs - fits) ** 2, axis=-1)) * 1000
         med_diff = np.median(diffs)
         assert med_diff < tol, '%s: %s' % (bem, med_diff)
+    # also test event timings with SourceSimulator
+    first_samp = raw.first_samp
+    events = find_events(raw, initial_event=True, verbose=False)
+    evt_times = events[:, 0]
+    assert len(events) == 3
+    labels_sim = [[], [], []]  # random l+r hemisphere points
+    labels_sim[0] = Label([src_ss[0]['vertno'][1]], hemi='lh')
+    labels_sim[1] = Label([src_ss[0]['vertno'][4]], hemi='lh')
+    labels_sim[2] = Label([src_ss[1]['vertno'][2]], hemi='rh')
+    wf_sim = np.array([2, 1, 0])
+    for this_fs in (0, first_samp):
+        ss = SourceSimulator(src_ss, 1. / raw.info['sfreq'],
+                             first_samp=this_fs)
+        for i in range(3):
+            ss.add_data(labels_sim[i], wf_sim, events[np.newaxis, i])
+        assert ss.n_times == evt_times[-1] + len(wf_sim) - this_fs
+    raw_sim = simulate_raw(raw.info, ss, src=src_ss, bem=bem_fname,
+                           first_samp=first_samp)
+    data = raw_sim.get_data()
+    amp0 = data[:, evt_times - first_samp].max()
+    amp1 = data[:, evt_times + 1 - first_samp].max()
+    amp2 = data[:, evt_times + 2 - first_samp].max()
+    assert_allclose(amp0 / amp1, wf_sim[0] / wf_sim[1], rtol=1e-5)
+    assert amp2 == 0
+    assert raw_sim.n_times == ss.n_times
 
 
 def test_simulate_round_trip(raw_data):

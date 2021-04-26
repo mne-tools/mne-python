@@ -48,7 +48,7 @@ else
 	export DYLD_LIBRARY_PATH=${MNE_ROOT}/lib:$DYLD_LIBRARY_PATH
 	if [ "${GITHUB_ACTIONS}" == "true" ]; then
 		echo "DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}" >> "$GITHUB_ENV";
-		wget https://dl.bintray.com/xquartz/downloads/XQuartz-2.7.11.dmg
+		wget https://github.com/XQuartz/XQuartz/releases/download/XQuartz-2.7.11/XQuartz-2.7.11.dmg
 		sudo hdiutil attach XQuartz-2.7.11.dmg
 		sudo installer -package /Volumes/XQuartz-2.7.11/XQuartz.pkg -target /
 		sudo ln -s /opt/X11 /usr/X11

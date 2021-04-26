@@ -12,7 +12,6 @@ Actual implementation of _Renderer and _Projection classes.
 # License: Simplified BSD
 
 from contextlib import contextmanager
-from datetime import datetime
 from distutils.version import LooseVersion
 import os
 import sys
@@ -23,8 +22,7 @@ import vtk
 
 from ._abstract import _AbstractRenderer
 from ._utils import (_get_colormap_from_array, _alpha_blend_background,
-                     ALLOWED_QUIVER_MODES, _init_qt_resources,
-                     _qt_disable_paint)
+                     ALLOWED_QUIVER_MODES, _init_qt_resources)
 from ...fixes import _get_args
 from ...transforms import apply_trans
 from ...utils import copy_base_doc_to_subclass_doc, _check_option
@@ -205,40 +203,6 @@ class _PyVistaRenderer(_AbstractRenderer):
     def _update(self):
         for plotter in self._all_plotters:
             plotter.update()
-
-    def _get_screenshot_filename(self):
-        now = datetime.now()
-        dt_string = now.strftime("_%Y-%m-%d_%H-%M-%S")
-        return "MNE" + dt_string + ".png"
-
-    @contextmanager
-    def _ensure_minimum_sizes(self):
-        sz = self.figure.store['window_size']
-        # plotter:            pyvista.plotting.qt_plotting.BackgroundPlotter
-        # plotter.interactor: vtk.qt.QVTKRenderWindowInteractor.QVTKRenderWindowInteractor -> QWidget  # noqa
-        # plotter.app_window: pyvista.plotting.qt_plotting.MainWindow -> QMainWindow  # noqa
-        # plotter.frame:      QFrame with QVBoxLayout with plotter.interactor as centralWidget  # noqa
-        # plotter.ren_win:    vtkXOpenGLRenderWindow
-        self.plotter.interactor.setMinimumSize(*sz)
-        try:
-            yield  # show
-        finally:
-            # 1. Process events
-            _process_events(self.plotter)
-            _process_events(self.plotter)
-            # 2. Get the window and interactor sizes that work
-            win_sz = self.plotter.app_window.size()
-            ren_sz = self.plotter.interactor.size()
-            # 3. Undo the min size setting and process events
-            self.plotter.interactor.setMinimumSize(0, 0)
-            _process_events(self.plotter)
-            _process_events(self.plotter)
-            # 4. Resize the window and interactor to the correct size
-            #    (not sure why, but this is required on macOS at least)
-            self.plotter.window_size = (win_sz.width(), win_sz.height())
-            self.plotter.interactor.resize(ren_sz.width(), ren_sz.height())
-            _process_events(self.plotter)
-            _process_events(self.plotter)
 
     def _index_to_loc(self, idx):
         _ncols = self.figure._ncols
@@ -625,18 +589,12 @@ class _PyVistaRenderer(_AbstractRenderer):
 
     def show(self):
         self.plotter.show()
-        if hasattr(self.plotter, "app_window"):
-            with _qt_disable_paint(self.plotter):
-                with self._ensure_minimum_sizes():
-                    self.plotter.app_window.show()
-            self.plotter.update()
-        return self.scene()
 
     def close(self):
         _close_3d_figure(figure=self.figure)
 
     def set_camera(self, azimuth=None, elevation=None, distance=None,
-                   focalpoint=None, roll=None, reset_camera=True,
+                   focalpoint='auto', roll=None, reset_camera=True,
                    rigid=None):
         _set_3d_view(self.figure, azimuth=azimuth, elevation=elevation,
                      distance=distance, focalpoint=focalpoint, roll=roll,
@@ -703,25 +661,23 @@ class _PyVistaRenderer(_AbstractRenderer):
         return actor
 
     def _process_events(self):
-        _process_events(self.plotter)
+        for plotter in self._all_plotters:
+            _process_events(plotter)
 
     def _update_picking_callback(self,
                                  on_mouse_move,
                                  on_button_press,
                                  on_button_release,
                                  on_pick):
-        self.plotter.iren.AddObserver(
-            vtk.vtkCommand.RenderEvent,
-            on_mouse_move
-        )
-        self.plotter.iren.AddObserver(
-            vtk.vtkCommand.LeftButtonPressEvent,
-            on_button_press
-        )
-        self.plotter.iren.AddObserver(
-            vtk.vtkCommand.EndInteractionEvent,
-            on_button_release
-        )
+        try:
+            # pyvista<0.30.0
+            add_obs = self.plotter.iren.AddObserver
+        except AttributeError:
+            # pyvista>=0.30.0
+            add_obs = self.plotter.iren.add_observer
+        add_obs(vtk.vtkCommand.RenderEvent, on_mouse_move)
+        add_obs(vtk.vtkCommand.LeftButtonPressEvent, on_button_press)
+        add_obs(vtk.vtkCommand.EndInteractionEvent, on_button_release)
         self.plotter.picker = vtk.vtkCellPicker()
         self.plotter.picker.AddObserver(
             vtk.vtkCommand.EndPickEvent,
@@ -975,14 +931,26 @@ def _get_camera_direction(focalpoint, position):
     return r, theta, phi
 
 
-def _set_3d_view(figure, azimuth, elevation, focalpoint, distance, roll=None,
-                 reset_camera=True, rigid=None):
+def _set_3d_view(figure, azimuth=None, elevation=None, focalpoint='auto',
+                 distance=None, roll=None, reset_camera=True, rigid=None):
     rigid = np.eye(4) if rigid is None else rigid
     position = np.array(figure.plotter.camera_position[0])
+    bounds = np.array(figure.plotter.renderer.ComputeVisiblePropBounds())
     if reset_camera:
         figure.plotter.reset_camera()
-    if focalpoint is None:
+
+    # focalpoint: if 'auto', we use the center of mass of the visible
+    # bounds, if None, we use the existing camera focal point otherwise
+    # we use the values given by the user
+    if isinstance(focalpoint, str):
+        _check_option('focalpoint', focalpoint, ('auto',),
+                      extra='when a string')
+        focalpoint = (bounds[1::2] + bounds[::2]) * 0.5
+    elif focalpoint is None:
         focalpoint = np.array(figure.plotter.camera_position[1])
+    else:
+        focalpoint = np.asarray(focalpoint)
+
     # work in the transformed space
     position = apply_trans(rigid, position)
     focalpoint = apply_trans(rigid, focalpoint)
@@ -994,15 +962,8 @@ def _set_3d_view(figure, azimuth, elevation, focalpoint, distance, roll=None,
         theta = _deg2rad(elevation)
 
     # set the distance
-    renderer = figure.plotter.renderer
-    bounds = np.array(renderer.ComputeVisiblePropBounds())
     if distance is None:
         distance = max(bounds[1::2] - bounds[::2]) * 2.0
-
-    if focalpoint is not None:
-        focalpoint = np.asarray(focalpoint)
-    else:
-        focalpoint = (bounds[1::2] + bounds[::2]) * 0.5
 
     # Now calculate the view_up vector of the camera.  If the view up is
     # close to the 'z' axis, the view plane normal is parallel to the

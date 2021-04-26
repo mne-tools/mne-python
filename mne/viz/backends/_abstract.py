@@ -473,7 +473,11 @@ class _AbstractToolBar(ABC):
         pass
 
     @abstractmethod
-    def _tool_bar_add_screenshot_button(self, name, desc, func):
+    def _tool_bar_add_file_button(self, name, desc, func, shortcut=None):
+        pass
+
+    @abstractmethod
+    def _tool_bar_set_theme(self, theme):
         pass
 
 
@@ -561,6 +565,10 @@ class _AbstractStatusBar(ABC):
     def _status_bar_add_progress_bar(self, stretch=0):
         pass
 
+    @abstractmethod
+    def _status_bar_update(self):
+        pass
+
 
 class _AbstractPlayback(ABC):
     @abstractmethod
@@ -574,7 +582,7 @@ class _AbstractLayout(ABC):
         pass
 
     @abstractmethod
-    def _layout_add_widget(self, layout, widget):
+    def _layout_add_widget(self, layout, widget, stretch=0):
         pass
 
 
@@ -592,6 +600,22 @@ class _AbstractWidget(ABC):
 
     @abstractmethod
     def get_value(self):
+        pass
+
+    @abstractmethod
+    def set_range(self, rng):
+        pass
+
+    @abstractmethod
+    def show(self):
+        pass
+
+    @abstractmethod
+    def hide(self):
+        pass
+
+    @abstractmethod
+    def update(self, repaint=True):
         pass
 
 
@@ -716,8 +740,16 @@ class _AbstractBrainMplCanvas(_AbstractMplCanvas):
 
 
 class _AbstractWindow(ABC):
+    def _window_initialize(self):
+        self._window = None
+        self._interactor = None
+        self._mplcanvas = None
+        self._show_traces = None
+        self._separate_canvas = None
+        self._interactor_fraction = None
+
     @abstractmethod
-    def _window_initialize(self, func=None):
+    def _window_close_connect(self, func):
         pass
 
     @abstractmethod
@@ -757,9 +789,13 @@ class _AbstractWindow(ABC):
         pass
 
     @abstractmethod
-    def _window_ensure_minimum_sizes(self, sz):
+    def _window_new_cursor(self, name):
         pass
 
     @abstractmethod
-    def _window_show(self, sz):
+    def _window_ensure_minimum_sizes(self):
+        pass
+
+    @abstractmethod
+    def _window_set_theme(self, theme):
         pass

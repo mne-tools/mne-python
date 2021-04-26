@@ -24,7 +24,9 @@ from ..utils import (logger, verbose, _time_mask, _freq_mask, check_fname,
                      sizeof_fmt, GetEpochsMixin, _prepare_read_metadata,
                      fill_doc, _prepare_write_metadata, _check_event_id,
                      _gen_events, SizeMixin, _is_numeric, _check_option,
-                     _validate_type, _check_combine)
+                     _validate_type, _check_combine, _check_pandas_installed,
+                     _check_pandas_index_arguments, _check_time_format,
+                     _convert_times, _build_data_frame)
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..channels.layout import _merge_ch_data, _pair_grad_sensors
 from ..io.pick import (pick_info, _picks_to_idx, channel_type, _pick_inst,
@@ -657,12 +659,15 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
             meta = deepcopy(inst._metadata)
             evs = deepcopy(inst.events)
             ev_id = deepcopy(inst.event_id)
+            selection = deepcopy(inst.selection)
+            drop_log = deepcopy(inst.drop_log)
         else:
             # if the input is of class Evoked
-            meta = evs = ev_id = None
+            meta = evs = ev_id = selection = drop_log = None
 
         out = EpochsTFR(info, power, times, freqs, method='%s-power' % method,
-                        events=evs, event_id=ev_id, metadata=meta)
+                        events=evs, event_id=ev_id, selection=selection,
+                        drop_log=drop_log, metadata=meta)
 
     return out
 
@@ -1011,6 +1016,80 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         read_tfrs, write_tfrs
         """
         write_tfrs(fname, self, overwrite=overwrite)
+
+    @fill_doc
+    def to_data_frame(self, picks=None, index=None, long_format=False,
+                      time_format='ms'):
+        """Export data in tabular structure as a pandas DataFrame.
+
+        Channels are converted to columns in the DataFrame. By default,
+        additional columns ``'time'``, ``'freq'``, ``'epoch'``, and
+        ``'condition'`` (epoch event description) are added, unless ``index``
+        is not ``None`` (in which case the columns specified in ``index`` will
+        be used to form the DataFrame's index instead). ``'epoch'``, and
+        ``'condition'`` are not supported for ``AverageTFR``.
+
+        Parameters
+        ----------
+        %(picks_all)s
+        %(df_index_epo)s
+            Valid string values are ``'time'``, ``'freq'``, ``'epoch'``, and
+            ``'condition'`` for ``EpochsTFR`` and ``'time'`` and ``'freq'``
+            for ``AverageTFR``.
+            Defaults to ``None``.
+        %(df_longform_epo)s
+        %(df_time_format)s
+
+            .. versionadded:: 0.23
+
+        Returns
+        -------
+        %(df_return)s
+        """
+        # check pandas once here, instead of in each private utils function
+        pd = _check_pandas_installed()  # noqa
+        # arg checking
+        valid_index_args = ['time', 'freq']
+        if isinstance(self, EpochsTFR):
+            valid_index_args.extend(['epoch', 'condition'])
+        valid_time_formats = ['ms', 'timedelta']
+        index = _check_pandas_index_arguments(index, valid_index_args)
+        time_format = _check_time_format(time_format, valid_time_formats)
+        # get data
+        times = self.times
+        picks = _picks_to_idx(self.info, picks, 'all', exclude=())
+        if isinstance(self, EpochsTFR):
+            data = self.data[:, picks, :, :]
+        else:
+            data = self.data[np.newaxis, picks]  # add singleton "epochs" axis
+        n_epochs, n_picks, n_freqs, n_times = data.shape
+        # reshape to (epochs*freqs*times) x signals
+        data = np.moveaxis(data, 1, -1)
+        data = data.reshape(n_epochs * n_freqs * n_times, n_picks)
+        # prepare extra columns / multiindex
+        mindex = list()
+        times = np.tile(times, n_epochs * n_freqs)
+        times = _convert_times(self, times, time_format)
+        mindex.append(('time', times))
+        freqs = self.freqs
+        freqs = np.tile(np.repeat(freqs, n_times), n_epochs)
+        mindex.append(('freq', freqs))
+        if isinstance(self, EpochsTFR):
+            mindex.append(('epoch', np.repeat(self.selection,
+                                              n_times * n_freqs)))
+            rev_event_id = {v: k for k, v in self.event_id.items()}
+            conditions = [rev_event_id[k] for k in self.events[:, 2]]
+            mindex.append(('condition', np.repeat(conditions,
+                                                  n_times * n_freqs)))
+        assert all(len(mdx) == len(mindex[0]) for mdx in mindex)
+        # build DataFrame
+        if isinstance(self, EpochsTFR):
+            default_index = ['condition', 'epoch', 'freq', 'time']
+        else:
+            default_index = ['freq', 'time']
+        df = _build_data_frame(self, data, picks, long_format, mindex, index,
+                               default_index=default_index)
+        return df
 
 
 @fill_doc
@@ -2023,6 +2102,16 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         associated events. If None, all events will be used and a dict is
         created with string integer names corresponding to the event id
         integers.
+    selection : iterable | None
+        Iterable of indices of selected epochs. If ``None``, will be
+        automatically generated, corresponding to all non-zero events.
+
+        .. versionadded:: 0.23
+    drop_log : tuple | None
+        Tuple of tuple of strings indicating which epochs have been marked to
+        be ignored.
+
+        .. versionadded:: 0.23
     metadata : instance of pandas.DataFrame | None
         A :class:`pandas.DataFrame` containing pertinent information for each
         trial. See :class:`mne.Epochs` for further details.
@@ -2048,6 +2137,26 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         Array containing sample information as event_id
     event_id : dict | None
         Names of conditions correspond to event_ids
+    selection : array
+        List of indices of selected events (not dropped or ignored etc.). For
+        example, if the original event array had 4 events and the second event
+        has been dropped, this attribute would be np.array([0, 2, 3]).
+    drop_log : tuple of tuple
+        A tuple of the same length as the event array used to initialize the
+        ``EpochsTFR`` object. If the i-th original event is still part of the
+        selection, drop_log[i] will be an empty tuple; otherwise it will be
+        a tuple of the reasons the event is not longer in the selection, e.g.:
+
+        - ``'IGNORED'``
+            If it isn't part of the current subset defined by the user
+        - ``'NO_DATA'`` or ``'TOO_SHORT'``
+            If epoch didn't contain enough data names of channels that
+            exceeded the amplitude threshold
+        - ``'EQUALIZED_COUNTS'``
+            See :meth:`~mne.Epochs.equalize_event_counts`
+        - ``'USER'``
+            For user-defined reasons (see :meth:`~mne.Epochs.drop`).
+
     metadata : pandas.DataFrame, shape (n_events, n_cols) | None
         DataFrame containing pertinent information for each trial
     Notes
@@ -2057,7 +2166,8 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
 
     @verbose
     def __init__(self, info, data, times, freqs, comment=None, method=None,
-                 events=None, event_id=None, metadata=None, verbose=None):
+                 events=None, event_id=None, selection=None,
+                 drop_log=None, metadata=None, verbose=None):
         # noqa: D102
         self.info = info
         if data.ndim != 4:
@@ -2075,12 +2185,29 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         if events is None:
             n_epochs = len(data)
             events = _gen_events(n_epochs)
+        if selection is None:
+            n_epochs = len(data)
+            selection = np.arange(n_epochs)
+        if drop_log is None:
+            n_epochs_prerejection = max(len(events), max(selection) + 1)
+            drop_log = tuple(
+                () if k in selection else ('IGNORED',)
+                for k in range(n_epochs_prerejection))
+        else:
+            drop_log = drop_log
+        # check consistency:
+        assert len(selection) == len(events)
+        assert len(drop_log) >= len(events)
+        assert len(selection) == sum(
+            (len(dl) == 0 for dl in drop_log))
         event_id = _check_event_id(event_id, events)
         self.data = data
         self.times = np.array(times, dtype=float)
         self.freqs = np.array(freqs, dtype=float)
         self.events = events
         self.event_id = event_id
+        self.selection = selection
+        self.drop_log = drop_log
         self.comment = comment
         self.method = method
         self.preload = True
@@ -2309,7 +2436,7 @@ def write_tfrs(fname, tfr, overwrite=False, *, verbose=None):
     ----------
     fname : str
         The file name, which should end with ``-tfr.h5``.
-    tfr : AverageTFR instance, or list of AverageTFR instances
+    tfr : AverageTFR | list of AverageTFR | EpochsTFR
         The TFR dataset, or list of TFR datasets, to save in one file.
         Note. If .comment is not None, a name will be generated on the fly,
         based on the order in which the TFR objects are passed.
@@ -2343,6 +2470,8 @@ def _prepare_write_tfr(tfr, condition):
     elif hasattr(tfr, 'events'):  # if EpochsTFR
         attributes['events'] = tfr.events
         attributes['event_id'] = tfr.event_id
+        attributes['selection'] = tfr.selection
+        attributes['drop_log'] = tfr.drop_log
         attributes['metadata'] = _prepare_write_metadata(tfr.metadata)
     return condition, attributes
 
@@ -2360,7 +2489,7 @@ def read_tfrs(fname, condition=None):
 
     Returns
     -------
-    tfrs : list of instances of AverageTFR | instance of AverageTFR
+    tfr : AverageTFR | list of AverageTFR | EpochsTFR
         Depending on ``condition`` either the TFR object or a list of multiple
         TFR objects.
 

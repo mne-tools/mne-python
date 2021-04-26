@@ -23,6 +23,7 @@ skip_files = (
     # the line endings and coding schemes used there
     'test_old_layout_latin1_software_filter.vhdr',
     'test_old_layout_latin1_software_filter.vmrk',
+    'test_old_layout_latin1_software_filter_longname.vhdr',
     'searchindex.dat',
 )
 

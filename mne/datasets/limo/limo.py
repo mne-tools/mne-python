@@ -48,9 +48,9 @@ def data_path(subject, path=None, force_update=False, update_path=None,
               verbose=None):
     """Get path to local copy of LIMO dataset URL.
 
-    This is a low-level function useful for getting a local copy of the remote
-    LIMO dataset :footcite: `Rousselet2016`. The complete dataset is available
-    at datashare.is.ed.ac.uk/.
+    This is a low-level function useful for getting a local copy of the
+    remote LIMO dataset :footcite:`Rousselet2016`. The complete dataset is
+    available at datashare.is.ed.ac.uk/.
 
     Parameters
     ----------

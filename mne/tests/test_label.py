@@ -845,6 +845,10 @@ def test_grow_labels():
     l1 = l11 + l12
     assert_array_equal(l1.vertices, l0.vertices)
 
+    # non-overlapping (gh-8848)
+    for overlap in (False, True):
+        grow_labels('fsaverage', [0], 1, 1, subjects_dir, overlap=overlap)
+
 
 @testing.requires_testing_data
 def test_random_parcellation():
