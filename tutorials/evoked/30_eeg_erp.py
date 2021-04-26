@@ -26,12 +26,14 @@ sample_data_folder = mne.datasets.sample.data_path()
 sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                     'sample_audvis_filt-0-40_raw.fif')
 raw = mne.io.read_raw_fif(sample_data_raw_file, preload=False)
-raw.crop(tmax=90)  # in seconds; happens in-place
 
 sample_data_events_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                        'sample_audvis_filt-0-40_raw-eve.fif')
 events = mne.read_events(sample_data_events_file)
 
+raw.crop(tmax=90)  # in seconds; happens in-place
+# discard events >90 seconds (not strictly necessary: avoids some warnings)
+events = events[events[:, 0] <= raw.last_samp]
 
 ###############################################################################
 # The file that we loaded has already been partially processed: 3D sensor
