@@ -335,3 +335,5 @@ API changes
 - Fitting `~mne.preprocessing.ICA` on baseline-corrected `~mne.Epochs`, and / or applying it on baseline-corrected `~mne.Epochs` or `~mne.Evoked` data will now display a warning. Users are advised to only baseline correct their data after cleaning is completed (:gh:`9033` by `Richard Höchenberger`_)
 
 - Supplying multiple channel names to `mne.preprocessing.find_eog_events` or `mne.preprocessing.compute_proj_eog` as a string of comma-separated channel names has been deprecated; please pass a list of channel names instead. Support for comma-separated strings will be removed in MNE-Python 0.24 (:gh:`9269` by `Richard Höchenberger`_)
+
+- The default in :func:`mne.beamformer.make_dics` of ``real_filter=False`` will change to ``real_filter=True`` in 0.24 (:gh:`9340` by `Britta Westner`_)

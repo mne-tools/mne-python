@@ -27,7 +27,7 @@ from ._compute_beamformer import (_prepare_beamformer_input,
 @verbose
 def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
               pick_ori=None, rank=None, weight_norm=None,
-              reduce_rank=False, depth=1., real_filter=False,
+              reduce_rank=False, depth=1., real_filter=None,
               inversion='matrix', verbose=None):
     """Compute a Dynamic Imaging of Coherent Sources (DICS) spatial filter.
 
@@ -74,7 +74,11 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
     %(depth)s
     real_filter : bool
         If ``True``, take only the real part of the cross-spectral-density
-        matrices to compute real filters. Defaults to ``False``.
+        matrices to compute real filters.
+
+        .. versionchanged:: 0.23
+            Version 0.23 deprecated ``False`` as default for ``real_filter``.
+            With version 0.24, ``True`` will be the new default.
     %(bf_inversion)s
 
         .. versionchanged:: 0.21
@@ -172,6 +176,14 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
     # remove bads so that equalize_channels only keeps all good
     info = pick_info(info, pick_channels(info['ch_names'], [], info['bads']))
     info, forward, csd = equalize_channels([info, forward, csd])
+
+    if real_filter is None:
+        depr_message = ('The current default of real_filter=False is '
+                        'deprecated and will be changed to real_filter=True '
+                        'in version 0.24. Set real_filter explicitly to '
+                        'avoid this warning.')
+        warn(depr_message, DeprecationWarning)
+        real_filter = False
 
     csd, noise_csd = _prepare_noise_csd(csd, noise_csd, real_filter)
 
