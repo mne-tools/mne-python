@@ -2642,8 +2642,10 @@ class Brain(object):
                             facecolor=self._bg_color, edgecolor='none')
                 output.seek(0)
                 trace_img = imread(output, format='png')[:, :, :3]
-            img = concatenate_images(
-                [img, trace_img], bgcolor=self._brain_color[:3])
+                trace_img = np.clip(
+                    np.round(trace_img * 255), 0, 255).astype(np.uint8)
+            bgcolor = np.array(self._brain_color[:3]) / 255
+            img = concatenate_images([img, trace_img], bgcolor=bgcolor)
         return img
 
     @contextlib.contextmanager
