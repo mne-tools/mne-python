@@ -1131,6 +1131,8 @@ class Brain(object):
         self._renderer._playback_initialize(
             func=self._play,
             timeout=self.refresh_rate_ms,
+            value=self._data['time_idx'],
+            rng=[0, len(self._data['time']) - 1],
             time_widget=self.widgets["time"],
             play_widget=self.widgets["play"],
         )
@@ -1256,8 +1258,6 @@ class Brain(object):
             name="play",
             desc="Play/Pause",
             func=self.toggle_playback,
-            value=self._data['time_idx'],
-            rng=[0, len(self._data['time']) - 1],
             shortcut=" ",
         )
         self._renderer._tool_bar_add_button(

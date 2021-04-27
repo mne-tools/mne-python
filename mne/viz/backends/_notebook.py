@@ -191,14 +191,8 @@ class _IpyToolBar(_AbstractToolBar, _IpyLayout):
             func=callback,
         )
 
-    def _tool_bar_add_play_button(self, name, desc, func, value, rng,
-                                  shortcut=None):
-        widget = Play(
-            value=value,
-            min=rng[0],
-            max=rng[1],
-            interval=500,
-        )
+    def _tool_bar_add_play_button(self, name, desc, func, shortcut=None):
+        widget = Play(interval=500)
         self._layout_add_widget(self._tool_bar_layout, widget)
         self.actions[name] = widget
         return _IpyWidget(widget)
@@ -238,9 +232,12 @@ class _IpyStatusBar(_AbstractStatusBar, _IpyLayout):
 
 
 class _IpyPlayback(_AbstractPlayback):
-    def _playback_initialize(self, func, timeout, time_widget,
-                             play_widget):
+    def _playback_initialize(self, func, timeout, value, rng,
+                             time_widget, play_widget):
         play = play_widget._widget
+        play.min = rng[0]
+        play.max = rng[1]
+        play.value = value
         slider = time_widget._widget
         jsdlink((play, 'value'), (slider, 'value'))
         jsdlink((slider, 'value'), (play, 'value'))

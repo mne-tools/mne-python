@@ -477,8 +477,7 @@ class _AbstractToolBar(ABC):
         pass
 
     @abstractmethod
-    def _tool_bar_add_play_button(self, name, desc, func, value, rng,
-                                  shortcut=None):
+    def _tool_bar_add_play_button(self, name, desc, func, shortcut=None):
         pass
 
     @abstractmethod
@@ -577,8 +576,8 @@ class _AbstractStatusBar(ABC):
 
 class _AbstractPlayback(ABC):
     @abstractmethod
-    def _playback_initialize(self, func, timeout, time_widget,
-                             play_widget):
+    def _playback_initialize(self, func, timeout, value, rng,
+                             time_widget, play_widget):
         pass
 
 

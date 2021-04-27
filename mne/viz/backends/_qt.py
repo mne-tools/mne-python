@@ -274,14 +274,8 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
             shortcut=shortcut,
         )
 
-    def _tool_bar_add_play_button(self, name, desc, func, value, rng,
-                                  shortcut=None):
-        self._tool_bar_add_button(
-            name=name,
-            desc=desc,
-            func=func,
-            shortcut=shortcut,
-        )
+    def _tool_bar_add_play_button(self, name, desc, func, shortcut=None):
+        self._tool_bar_add_button(name, desc, func, None, shortcut)
 
     def _tool_bar_set_theme(self, theme):
         if theme == 'auto':
@@ -333,8 +327,8 @@ class _QtStatusBar(_AbstractStatusBar, _QtLayout):
 
 
 class _QtPlayback(_AbstractPlayback):
-    def _playback_initialize(self, func, timeout, time_widget,
-                             play_widget):
+    def _playback_initialize(self, func, timeout, value, rng,
+                             time_widget, play_widget):
         self.figure.plotter.add_callback(func, timeout)
 
 
