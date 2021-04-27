@@ -134,6 +134,8 @@ raw_avg_ref = raw.copy().set_eeg_reference(ref_channels='average')
 raw_avg_ref.plot()
 
 ###############################################################################
+# .. _section-avg-ref-proj:
+#
 # Creating the average reference as a projector
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
