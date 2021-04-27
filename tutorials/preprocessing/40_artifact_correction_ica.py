@@ -139,7 +139,8 @@ raw.crop(tmax=60.)
 #
 # .. raw:: html
 #
-#    <a href="../../_images/graphviz-7483cb1cf41f06e2a4ef451b17f073dbe584ba30.png">
+#    <a href=
+#     "../../_images/graphviz-7483cb1cf41f06e2a4ef451b17f073dbe584ba30.png">
 #
 # .. graphviz:: ../../_static/diagrams/ica.dot
 #    :alt: Diagram of ICA procedure in MNE-Python
