@@ -4,7 +4,6 @@
 # License: Simplified BSD
 
 import numpy as np
-from scipy import linalg
 
 from ..source_estimate import SourceEstimate, _BaseSourceEstimate, _make_stc
 from ..minimum_norm.inverse import (combine_xyz, _prepare_forward,
@@ -293,8 +292,8 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
                verbose=None):
     """Mixed-norm estimate (MxNE) and iterative reweighted MxNE (irMxNE).
 
-    Compute L1/L2 mixed-norm solution [1]_ or L0.5/L2 [2]_ mixed-norm
-    solution on evoked data.
+    Compute L1/L2 mixed-norm solution :footcite:`GramfortEtAl2012` or L0.5/L2
+    :footcite:`StrohmeierEtAl2016` mixed-norm solution on evoked data.
 
     Parameters
     ----------
@@ -362,16 +361,9 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
 
     References
     ----------
-    .. [1] A. Gramfort, M. Kowalski, M. Hämäläinen,
-       "Mixed-norm estimates for the M/EEG inverse problem using accelerated
-       gradient methods", Physics in Medicine and Biology, 2012.
-       https://doi.org/10.1088/0031-9155/57/7/1937
-
-    .. [2] D. Strohmeier, Y. Bekhti, J. Haueisen, A. Gramfort,
-       "The Iterative Reweighted Mixed-Norm Estimate for Spatio-Temporal
-       MEG/EEG Source Reconstruction", IEEE Transactions of Medical Imaging,
-       Volume 35 (10), pp. 2218-2228, 2016.
+    .. footbibliography::
     """
+    from scipy import linalg
     if not (0. <= alpha < 100.):
         raise ValueError('alpha must be in [0, 100). '
                          'Got alpha = %s' % alpha)
@@ -520,7 +512,7 @@ def tf_mixed_norm(evoked, forward, noise_cov,
 
     Compute L1/L2 + L1 mixed-norm solution on time-frequency
     dictionary. Works with evoked data
-    :footcite:`GramfortEtAl2013,GramfortEtAl2011`.
+    :footcite:`GramfortEtAl2013b,GramfortEtAl2011`.
 
     Parameters
     ----------

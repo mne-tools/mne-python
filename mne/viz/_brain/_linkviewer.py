@@ -26,30 +26,31 @@ class _LinkViewer(object):
 
         if time:
             # link time sliders
-            self.link_sliders(
+            self.link_widgets(
                 name="time",
                 callback=self.set_time_point,
-                event_type="always"
+                signal_type="valueChanged",
             )
 
             # link playback speed sliders
-            self.link_sliders(
+            self.link_widgets(
                 name="playback_speed",
                 callback=self.set_playback_speed,
-                event_type="always"
+                signal_type="valueChanged",
             )
 
             # link toggle to start/pause playback
-            for brain in self.brains:
-                brain.actions["play"].triggered.disconnect()
-                brain.actions["play"].triggered.connect(
-                    self.toggle_playback)
+            self.link_widgets(
+                name="play",
+                callback=self.toggle_playback,
+                signal_type="triggered",
+                actions=True,
+            )
 
             # link time course canvas
             def _time_func(*args, **kwargs):
                 for brain in self.brains:
                     brain.callbacks["time"](*args, **kwargs)
-
             for brain in self.brains:
                 if brain.show_traces:
                     brain.mpl_canvas.time_func = _time_func
@@ -95,13 +96,12 @@ class _LinkViewer(object):
                 brain.callbacks["fmin"](fmin)
                 brain.callbacks["fmid"](fmid)
                 brain.callbacks["fmax"](fmax)
-
-            for slider_name in ('fmin', 'fmid', 'fmax'):
-                func = getattr(self, "set_" + slider_name)
-                self.link_sliders(
-                    name=slider_name,
+            for name in ('fmin', 'fmid', 'fmax'):
+                func = getattr(self, "set_" + name)
+                self.link_widgets(
+                    name=name,
                     callback=func,
-                    event_type="always"
+                    signal_type="valueChanged"
                 )
 
     def set_fmin(self, value):
@@ -125,22 +125,22 @@ class _LinkViewer(object):
             brain.callbacks["playback_speed"](value, update_widget=True)
 
     def toggle_playback(self):
-        value = self.leader.callbacks["time"].slider_rep.GetValue()
+        value = self.leader.callbacks["time"].widget.get_value()
         # synchronize starting points before playback
         self.set_time_point(value)
         for brain in self.brains:
             brain.toggle_playback()
 
-    def link_sliders(self, name, callback, event_type):
-        from ..backends._pyvista import _update_slider_callback
+    def link_widgets(self, name, callback, signal_type, actions=False):
         for brain in self.brains:
-            slider = brain.sliders[name]
-            if slider is not None:
-                _update_slider_callback(
-                    slider=slider,
-                    callback=callback,
-                    event_type=event_type
-                )
+            if actions:
+                widget = brain._renderer.actions[name]
+            else:
+                widget = brain.widgets[name].widget
+            if widget is not None:
+                signal = getattr(widget, signal_type)
+                signal.disconnect()
+                signal.connect(callback)
 
     def link_cameras(self):
         from ..backends._pyvista import _add_camera_callback

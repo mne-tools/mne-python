@@ -8,7 +8,7 @@ import pytest
 from scipy.signal import resample as sp_resample, butter, freqz, sosfreqz
 
 from mne import create_info
-from mne.fixes import fft, fftfreq
+from numpy.fft import fft, fftfreq
 from mne.io import RawArray, read_raw_fif
 from mne.io.pick import _DATA_CH_TYPES_SPLIT
 from mne.filter import (filter_data, resample, _resample_stim_channels,

@@ -181,6 +181,13 @@ def test_plot_topo():
     evoked.pick_types(meg=True).plot_topo(noise_cov=cov)
     plt.close('all')
 
+    # Test exclude parameter
+    exclude = ['MEG 0112']
+    fig = picked_evoked.plot_topo(exclude=exclude)
+    n_axes_expected = len(picked_evoked.info['ch_names']) - len(exclude)
+    n_axes_found = len(fig.axes[0].lines)
+    assert n_axes_found == n_axes_expected
+
     # test plot_topo
     evoked.plot_topo()  # should auto-find layout
     _line_plot_onselect(0, 200, ['mag', 'grad'], evoked.info, evoked.data,
@@ -276,7 +283,7 @@ def test_plot_tfr_topo():
     freqs = np.logspace(*np.log10([3, 10]), num=3)
     tfr = AverageTFR(epochs.info, data, epochs.times, freqs, nave)
     fig = tfr.plot([4], baseline=(None, 0), mode='mean', vmax=14., show=False)
-    assert fig.axes[0].get_yaxis().get_scale() == 'log'
+    assert fig[0].axes[0].get_yaxis().get_scale() == 'log'
 
     # one timesample
     tfr = AverageTFR(epochs.info, data[:, :, [0]], epochs.times[[1]],

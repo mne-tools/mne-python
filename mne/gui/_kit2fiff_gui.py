@@ -8,10 +8,9 @@ from collections import Counter
 import os
 import queue
 import sys
+from threading import Thread
 
 import numpy as np
-from scipy.linalg import inv
-from threading import Thread
 
 from mayavi.core.ui.mayavi_scene import MayaviScene
 from mayavi.tools.mlab_scene_model import MlabSceneModel
@@ -204,7 +203,7 @@ class Kit2FiffModel(HasPrivateTraits):
 
     @cached_property
     def _get_head_dev_trans(self):
-        return inv(self.dev_head_trans)
+        return np.linalg.inv(self.dev_head_trans)
 
     @cached_property
     def _get_hsp(self):

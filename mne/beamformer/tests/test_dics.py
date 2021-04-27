@@ -107,7 +107,12 @@ def _simulate_data(fwd, idx):  # Somewhere on the frontal lobe by default
     return epochs, evoked, csd, source_vertno, label, vertices, source_ind
 
 
-idx_param = pytest.mark.parametrize('idx', [0, 100, 200, 233])
+idx_param = pytest.mark.parametrize('idx', [
+    0,
+    pytest.param(100, marks=pytest.mark.slowtest),
+    200,
+    pytest.param(233, marks=pytest.mark.slowtest),
+])
 
 
 def _rand_csd(rng, info):
@@ -135,11 +140,16 @@ def _make_rand_csd(info, csd):
     return noise_csd, rank
 
 
+@pytest.mark.filterwarnings('ignore:.*real_filter.*will be changed.*:'
+                            'DeprecationWarning')
 @pytest.mark.slowtest
 @testing.requires_testing_data
 @requires_h5py
 @idx_param
-@pytest.mark.parametrize('whiten', (False, True))
+@pytest.mark.parametrize('whiten', [
+    pytest.param(False, marks=pytest.mark.slowtest),
+    True,
+])
 def test_make_dics(tmpdir, _load_forward, idx, whiten):
     """Test making DICS beamformer filters."""
     # We only test proper handling of parameters here. Testing the results is
@@ -326,6 +336,8 @@ def _fwd_dist(power, fwd, vertices, source_ind, tidx=1):
     return np.linalg.norm(rr_got - rr_want)
 
 
+@pytest.mark.filterwarnings('ignore:.*real_filter.*will be changed.*:'
+                            'DeprecationWarning')
 @idx_param
 @pytest.mark.parametrize('inversion, weight_norm', [
     ('single', None),
@@ -358,6 +370,8 @@ def test_apply_dics_csd(_load_forward, idx, inversion, weight_norm):
         assert power.data[source_ind, 1] > power.data[source_ind, 0]
 
 
+@pytest.mark.filterwarnings('ignore:.*real_filter.*will be changed.*:'
+                            'DeprecationWarning')
 @pytest.mark.parametrize('pick_ori', [None, 'normal', 'max-power'])
 @pytest.mark.parametrize('inversion', ['single', 'matrix'])
 @idx_param
@@ -409,6 +423,8 @@ def _nearest_vol_ind(fwd_vol, fwd, vertices, source_ind):
         fwd['src'][0]['rr'][vertices][source_ind][np.newaxis])[0]
 
 
+@pytest.mark.filterwarnings('ignore:.*real_filter.*will be changed.*:'
+                            'DeprecationWarning')
 @idx_param
 def test_real(_load_forward, idx):
     """Test using a real-valued filter."""
@@ -459,6 +475,8 @@ def test_real(_load_forward, idx):
         apply_dics_csd(csd, filters_vol)
 
 
+@pytest.mark.filterwarnings('ignore:.*real_filter.*will be changed.*:'
+                            'DeprecationWarning')
 @pytest.mark.filterwarnings("ignore:The use of several sensor types with the"
                             ":RuntimeWarning")
 @idx_param
@@ -566,6 +584,9 @@ def test_apply_dics_timeseries(_load_forward, idx):
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
+@pytest.mark.filterwarnings('ignore:.*tf_dics is dep.*:DeprecationWarning')
+@pytest.mark.filterwarnings('ignore:.*real_filter.*will be changed.*:'
+                            'DeprecationWarning')
 def test_tf_dics(_load_forward):
     """Test 5D time-frequency beamforming based on DICS."""
     fwd_free, fwd_surf, fwd_fixed, _ = _load_forward
@@ -675,6 +696,15 @@ def test_tf_dics(_load_forward):
                 win_lengths=win_lengths, freq_bins=freq_bins,
                 mode='multitaper', mt_bandwidths=[20])
 
+    # Test if 'cwt_morlet' mode works with both fixed cycle numbers and lists
+    # of cycle numbers
+    tf_dics(epochs, fwd_surf, None, tmin, tmax, tstep,
+            win_lengths, frequencies=frequencies, mode='cwt_morlet',
+            cwt_n_cycles=7)
+    tf_dics(epochs, fwd_surf, None, tmin, tmax, tstep,
+            win_lengths, frequencies=frequencies, mode='cwt_morlet',
+            cwt_n_cycles=[5., 7.])
+
     # Test if subtracting evoked responses yields NaN's, since we only have one
     # epoch. Suppress division warnings.
     assert len(epochs) == 1, len(epochs)
@@ -697,6 +727,7 @@ def _cov_as_csd(cov, info):
 
 # Just test free ori here (assume fixed is same as LCMV if these are)
 # Changes here should be synced with test_lcmv.py
+@pytest.mark.slowtest
 @pytest.mark.parametrize(
     'reg, pick_ori, weight_norm, use_cov, depth, lower, upper, real_filter', [
         (0.05, None, 'unit-noise-gain-invariant', False, None, 26, 28, False),
@@ -737,6 +768,8 @@ def test_localization_bias_free(bias_params_free, reg, pick_ori, weight_norm,
     assert lower <= perc <= upper
 
 
+@pytest.mark.filterwarnings('ignore:.*real_filter.*will be changed.*:'
+                            'DeprecationWarning')
 @testing.requires_testing_data
 @idx_param
 @pytest.mark.parametrize('whiten', (False, True))

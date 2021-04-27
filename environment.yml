@@ -18,9 +18,6 @@ dependencies:
 - joblib
 - psutil
 - numexpr
-- traits
-- pyface
-- traitsui
 - imageio
 - tqdm
 - spyder-kernels>=1.10.0
@@ -34,6 +31,9 @@ dependencies:
 - nibabel
 - nilearn
 - python-picard
-- pyqt
+- pyqt!=5.15.3
 - mne
 - mffpy>=0.5.7
+- ipywidgets
+- pip:
+  - ipyvtk-simple

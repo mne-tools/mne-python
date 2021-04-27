@@ -3,10 +3,6 @@
 The minimum-norm current estimates
 ==================================
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 .. NOTE: part of this file is included in doc/overview/implementation.rst.
    Changes here are reflected there. If you want to link to this content, link
    to :ref:`ch_mne` to link to that section of the implementation.rst page.
@@ -606,8 +602,3 @@ Generalizing, for any combination of sums and differences, where :math:`w_i =
 .. math::    1 / L_{eff} = \sum_{i = 1}^n {1/{L_i}}
 
 .. target for :end-before: inverse-end-content
-
-References
-~~~~~~~~~~
-
-.. footbibliography::

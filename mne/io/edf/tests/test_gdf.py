@@ -3,6 +3,7 @@
 #
 # License: BSD (3-clause)
 
+from datetime import datetime, timezone, timedelta
 import os.path as op
 import shutil
 
@@ -62,7 +63,14 @@ def test_gdf2_birthday(tmpdir):
     """Test reading raw GDF 2.x files."""
     new_fname = str(tmpdir.join('temp.gdf'))
     shutil.copyfile(gdf2_path + '.gdf', new_fname)
-    d = int(3.1e15)  # chosen by trial and error to give a reasonable age
+    # go back 44.5 years so the subject should show up as 44
+    offset_edf = (  # to their ref
+        datetime.now(tz=timezone.utc) -
+        datetime(1, 1, 1, tzinfo=timezone.utc)
+    )
+    offset_44_yr = offset_edf - timedelta(days=int(365 * 44.5))  # 44.5 yr ago
+    offset_44_yr_days = offset_44_yr.total_seconds() / (24 * 60 * 60)  # days
+    d = (int(offset_44_yr_days) + 367) * 2 ** 32  # with their conversion
     with open(new_fname, 'r+b') as fid:
         fid.seek(176, 0)
         assert np.fromfile(fid, np.uint64, 1)[0] == 0

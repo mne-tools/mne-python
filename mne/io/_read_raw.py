@@ -27,23 +27,26 @@ def _read_unsupported(fname, **kwargs):
 
 
 # supported read file formats
-supported = {".edf": read_raw_edf,
-             ".bdf": read_raw_bdf,
-             ".gdf": read_raw_gdf,
-             ".vhdr": read_raw_brainvision,
-             ".fif": read_raw_fif,
-             ".fif.gz": read_raw_fif,
-             ".set": read_raw_eeglab,
-             ".cnt": read_raw_cnt,
-             ".mff": read_raw_egi,
-             ".nxe": read_raw_eximia,
-             ".hdr": read_raw_nirx,
-             ".mat": read_raw_fieldtrip,
-             ".bin": read_raw_artemis123,
-             ".data": read_raw_nicolet,
-             ".sqd": read_raw_kit,
-             ".ds": read_raw_ctf,
-             ".txt": read_raw_boxy}
+supported = {
+    ".edf": read_raw_edf,
+    ".bdf": read_raw_bdf,
+    ".gdf": read_raw_gdf,
+    ".vhdr": read_raw_brainvision,
+    ".fif": read_raw_fif,
+    ".fif.gz": read_raw_fif,
+    ".set": read_raw_eeglab,
+    ".cnt": read_raw_cnt,
+    ".mff": read_raw_egi,
+    ".nxe": read_raw_eximia,
+    ".hdr": read_raw_nirx,
+    ".mat": read_raw_fieldtrip,
+    ".bin": read_raw_artemis123,
+    ".data": read_raw_nicolet,
+    ".sqd": read_raw_kit,
+    ".con": read_raw_kit,
+    ".ds": read_raw_ctf,
+    ".txt": read_raw_boxy,
+}
 
 # known but unsupported file formats
 suggested = {".vmrk": partial(_read_unsupported, suggest=".vhdr"),

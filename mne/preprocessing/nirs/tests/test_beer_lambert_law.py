@@ -70,7 +70,7 @@ def test_beer_lambert_unordered_errors():
 
     # Test that an error is thrown if inconsistent frequencies used in data
     raw_od.info['chs'][2]['loc'][9] = 770.0
-    with pytest.raises(ValueError, match='pairs with frequencies'):
+    with pytest.raises(ValueError, match='with alternating frequencies'):
         beer_lambert_law(raw_od)
 
 

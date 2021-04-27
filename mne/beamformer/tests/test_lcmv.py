@@ -12,7 +12,7 @@ import mne
 from mne.transforms import apply_trans, invert_transform
 from mne import (convert_forward_solution, read_forward_solution, compute_rank,
                  VolVectorSourceEstimate, VolSourceEstimate, EvokedArray,
-                 pick_channels_cov)
+                 pick_channels_cov, read_vectorview_selection)
 from mne.beamformer import (make_lcmv, apply_lcmv, apply_lcmv_epochs,
                             apply_lcmv_raw, Beamformer,
                             read_beamformer, apply_lcmv_cov, make_dics)
@@ -70,7 +70,7 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
     # Setup for reading the raw data
     raw.info['bads'] = ['MEG 2443', 'EEG 053']  # 2 bad channels
     # Set up pick list: MEG - bad channels
-    left_temporal_channels = mne.read_selection('Left-temporal')
+    left_temporal_channels = read_vectorview_selection('Left-temporal')
     picks = mne.pick_types(raw.info, meg=True,
                            selection=left_temporal_channels)
     picks = picks[::2]  # decimate for speed
@@ -549,8 +549,8 @@ def test_lcmv_ctf_comp():
 @pytest.mark.parametrize('proj, weight_norm', [
     (True, 'unit-noise-gain'),
     (False, 'unit-noise-gain'),
-    (True, None),
-    (True, 'nai'),
+    pytest.param(True, None, marks=pytest.mark.slowtest),
+    pytest.param(True, 'nai', marks=pytest.mark.slowtest),
 ])
 def test_lcmv_reg_proj(proj, weight_norm):
     """Test LCMV with and without proj."""
@@ -762,10 +762,10 @@ def test_orientation_max_power(bias_params_fixed, bias_params_free,
 
 
 @pytest.mark.parametrize('weight_norm, pick_ori', [
-    ('nai', 'max-power'),
+    pytest.param('nai', 'max-power', marks=pytest.mark.slowtest),
     ('unit-noise-gain', 'vector'),
     ('unit-noise-gain', 'max-power'),
-    ('unit-noise-gain', None),
+    pytest.param('unit-noise-gain', None, marks=pytest.mark.slowtest),
 ])
 def test_depth_does_not_matter(bias_params_free, weight_norm, pick_ori):
     """Test that depth weighting does not matter for normalized filters."""

@@ -19,7 +19,6 @@ import warnings
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
-from scipy import linalg
 
 from ._logging import warn, ClosingStringIO
 from .numerics import object_diff
@@ -449,6 +448,7 @@ def assert_meg_snr(actual, desired, min_tol, med_tol=500., chpi_med_tol=500.,
 
 def assert_snr(actual, desired, tol):
     """Assert actual and desired arrays are within some SNR tolerance."""
+    from scipy import linalg
     with np.errstate(divide='ignore'):  # allow infinite
         snr = (linalg.norm(desired, ord='fro') /
                linalg.norm(desired - actual, ord='fro'))
@@ -539,10 +539,12 @@ def _click_ch_name(fig, ch_index=0, button=1):
     """Click on a channel name in a raw/epochs/ICA browse-style plot."""
     from ..viz.utils import _fake_click
     fig.canvas.draw()
-    x, y = fig.mne.ax_main.get_yticklabels()[ch_index].get_position()
-    xrange = np.diff(fig.mne.ax_main.get_xlim())[0]
-    _fake_click(fig, fig.mne.ax_main, (x - xrange / 50, y),
-                xform='data', button=button)
+    text = fig.mne.ax_main.get_yticklabels()[ch_index]
+    bbox = text.get_window_extent()
+    x = bbox.intervalx.mean()
+    y = bbox.intervaly.mean()
+    _fake_click(fig, fig.mne.ax_main, (x, y), xform='pix',
+                button=button)
 
 
 def _close_event(fig):

@@ -1,9 +1,12 @@
+# requirements for building docs
 sphinx
-numpydoc
-sphinx_fontawesome
-https://github.com/larsoner/sphinx-bootstrap-theme/archive/language_data.zip
-sphinx-gallery
-sphinxcontrib-bibtex==2.0.0
+https://github.com/numpy/numpydoc/archive/main.zip
+pydata-sphinx-theme==0.6.1
+https://github.com/sphinx-gallery/sphinx-gallery/archive/master.zip
+sphinxcontrib-bibtex>=2.1.2
 memory_profiler
 neo
 seaborn
+sphinx_copybutton
+https://github.com/mne-tools/mne-bids/archive/main.zip
+pyxdf

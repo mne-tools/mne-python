@@ -220,12 +220,14 @@ def test_read_ctf(tmpdir):
             assert_allclose(raw.annotations.onset, [2.15])
             assert_allclose(raw.annotations.duration, [0.0225])
 
-    pytest.raises(TypeError, read_raw_ctf, 1)
-    pytest.raises(ValueError, read_raw_ctf, ctf_fname_continuous + 'foo.ds')
+    with pytest.raises(TypeError, match='path-like'):
+        read_raw_ctf(1)
+    with pytest.raises(FileNotFoundError, match='does not exist'):
+        read_raw_ctf(ctf_fname_continuous + 'foo.ds')
     # test ignoring of system clock
     read_raw_ctf(op.join(ctf_dir, ctf_fname_continuous), 'ignore')
-    pytest.raises(ValueError, read_raw_ctf,
-                  op.join(ctf_dir, ctf_fname_continuous), 'foo')
+    with pytest.raises(ValueError, match='system_clock'):
+        read_raw_ctf(op.join(ctf_dir, ctf_fname_continuous), 'foo')
 
 
 @testing.requires_testing_data

@@ -1186,7 +1186,7 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
             chan_info['unit'] = FIFF.FIFF_UNIT_V
 
         elif chan_4d == 'RESPONSE':
-            chan_info['kind'] = FIFF.FIFFV_RESP_CH
+            chan_info['kind'] = FIFF.FIFFV_STIM_CH
         elif chan_4d == 'TRIGGER':
             chan_info['kind'] = FIFF.FIFFV_STIM_CH
         elif chan_4d.startswith('EOG'):

@@ -6,7 +6,6 @@
 # License: BSD (3-clause)
 
 import numpy as np
-from scipy import linalg
 
 from ..forward import is_fixed_orient, convert_forward_solution
 from ..io.pick import pick_channels_evoked, pick_info, pick_channels_forward
@@ -47,6 +46,7 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
         selected active dipoles and their estimated orientation.
         Computed only if return_explained_data is True.
     """
+    from scipy import linalg
     info = pick_info(info, picks)
     del picks
     # things are much simpler if we avoid surface orientation
@@ -184,6 +184,7 @@ def _make_dipoles(times, poss, oris, sol, gof):
 
 def _compute_subcorr(G, phi_sig):
     """Compute the subspace correlation."""
+    from scipy import linalg
     Ug, Sg, Vg = linalg.svd(G, full_matrices=False)
     # Now we look at the actual rank of the forward fields
     # in G and handle the fact that it might be rank defficient
@@ -197,11 +198,12 @@ def _compute_subcorr(G, phi_sig):
     tmp = np.dot(Ug.T.conjugate(), phi_sig)
     Uc, Sc, _ = linalg.svd(tmp, full_matrices=False)
     X = np.dot(Vg.T / Sg[None, :], Uc[:, 0])  # subcorr
-    return Sc[0], X / linalg.norm(X)
+    return Sc[0], X / np.linalg.norm(X)
 
 
 def _compute_proj(A):
     """Compute the orthogonal projection operation for a manifold vector A."""
+    from scipy import linalg
     U, _, _ = linalg.svd(A, full_matrices=False)
     return np.identity(A.shape[0]) - np.dot(U, U.T.conjugate())
 

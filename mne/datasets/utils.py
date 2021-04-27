@@ -178,6 +178,11 @@ def _get_path(path, key, name):
     # 3. get_config('MNE_DATA')
     path = get_config(key, get_config('MNE_DATA'))
     if path is not None:
+        if not op.exists(path):
+            msg = (f"Download location {path} as specified by MNE_DATA does "
+                   f"not exist. Either create this directory manually and try "
+                   f"again, or set MNE_DATA to an existing directory.")
+            raise FileNotFoundError(msg)
         return path
     # 4. ~/mne_data (but use a fake home during testing so we don't
     #    unnecessarily create ~/mne_data)
@@ -241,12 +246,15 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         'phantom_4dbti': 'MNE_DATASETS_PHANTOM_4DBTI_PATH',
         'limo': 'MNE_DATASETS_LIMO_PATH',
         'refmeg_noise': 'MNE_DATASETS_REFMEG_NOISE_PATH',
+        'ssvep': 'MNE_DATASETS_SSVEP_PATH',
+        'erp_core': 'MNE_DATASETS_ERP_CORE_PATH',
+        'epilepsy_ecog': 'MNE_DATASETS_EPILEPSY_ECOG_PATH',
     }[name]
 
     path = _get_path(path, key, name)
     # To update the testing or misc dataset, push commits, then make a new
     # release on GitHub. Then update the "releases" variable:
-    releases = dict(testing='0.113', misc='0.8')
+    releases = dict(testing='0.118', misc='0.9')
     # And also update the "md5_hashes['testing']" variable below.
     # To update any other dataset, update the data archive itself (upload
     # an updated version) and update the md5 hash.
@@ -279,6 +287,9 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         fieldtrip_cmc='https://osf.io/j9b6s/download?version=1',
         phantom_4dbti='https://osf.io/v2brw/download?version=2',
         refmeg_noise='https://osf.io/drt6v/download?version=1',
+        ssvep='https://osf.io/z8h6k/download?version=5',
+        erp_core='https://osf.io/rzgba/download?version=1',
+        epilepsy_ecog='https://osf.io/z4epq/download?revision=1',
     )
     # filename of the resulting downloaded archive (only needed if the URL
     # name does not match resulting filename)
@@ -297,13 +308,17 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         visual_92_categories=['MNE-visual_92_categories-data-part1.tar.gz',
                               'MNE-visual_92_categories-data-part2.tar.gz'],
         phantom_4dbti='MNE-phantom-4DBTi.zip',
-        refmeg_noise='sample_reference_MEG_noise-raw.zip'
+        refmeg_noise='sample_reference_MEG_noise-raw.zip',
+        ssvep='ssvep_example_data.zip',
+        erp_core='MNE-ERP-CORE-data.tar.gz',
+        epilepsy_ecog='MNE-epilepsy-ecog-data.tar.gz',
     )
     # original folder names that get extracted (only needed if the
     # archive does not extract the right folder name; e.g., usually GitHub)
     folder_origs = dict(  # not listed means None (no need to move)
         misc='mne-misc-data-%s' % releases['misc'],
         testing='mne-testing-data-%s' % releases['testing'],
+        ssvep='ssvep-example-data'
     )
     # finally, where we want them to extract to (only needed if the folder name
     # is not the same as the last bit of the archive name without the file
@@ -318,7 +333,9 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         visual_92_categories='MNE-visual_92_categories-data',
         fieldtrip_cmc='MNE-fieldtrip_cmc-data',
         phantom_4dbti='MNE-phantom-4DBTi',
-        refmeg_noise='MNE-refmeg-noise-data'
+        refmeg_noise='MNE-refmeg-noise-data',
+        ssvep='ssvep-example-data',
+        erp_core='MNE-ERP-CORE-data',
     )
     md5_hashes = dict(
         brainstorm=dict(
@@ -328,11 +345,11 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
             bst_raw='fa2efaaec3f3d462b319bc24898f440c',
             bst_resting='70fc7bf9c3b97c4f2eab6260ee4a0430'),
         fake='3194e9f7b46039bb050a74f3e1ae9908',
-        misc='0f88194266121dd9409be94184231f25',
+        misc='f832ce9c4c27e83396cc977b293b0aa9',
         sample='12b75d1cb7df9dfb4ad73ed82f61094f',
         somato='32fd2f6c8c7eb0784a1de6435273c48b',
         spm='9f43f67150e3b694b523a21eb929ea75',
-        testing='ce114ad6d5e3dbed06119386e6b1ce0c',
+        testing='0ca196c6dc4966570e14151cdf7ad4a5',
         multimodal='26ec847ae9ab80f58f204d09e2c08367',
         fnirs_motor='c4935d19ddab35422a69f3326a01fef8',
         opm='370ad1dcfd5c47e029e692c85358a374',
@@ -342,9 +359,12 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         mtrf='273a390ebbc48da2c3184b01a82e4636',
         fieldtrip_cmc='6f9fd6520f9a66e20994423808d2528c',
         phantom_4dbti='938a601440f3ffa780d20a17bae039ff',
-        refmeg_noise='779fecd890d98b73a4832e717d7c7c45'
+        refmeg_noise='779fecd890d98b73a4832e717d7c7c45',
+        ssvep='af866bbc0f921114ac9d683494fe87d6',
+        erp_core='5866c0d6213bd7ac97f254c776f6c4b1',
+        epilepsy_ecog='ffb139174afa0f71ec98adbbb1729dea',
     )
-    assert set(md5_hashes.keys()) == set(urls.keys())
+    assert set(md5_hashes) == set(urls)
     url = urls[name]
     hash_ = md5_hashes[name]
     folder_orig = folder_origs.get(name, None)
@@ -571,7 +591,10 @@ def has_dataset(name):
             'kiloword': 'MNE-kiloword-data',
             'phantom_4dbti': 'MNE-phantom-4DBTi',
             'mtrf': 'mTRF_1.5',
-            'refmeg_noise': 'MNE-refmeg-noise-data'
+            'refmeg_noise': 'MNE-refmeg-noise-data',
+            'ssvep': 'ssvep-example-data',
+            'erp_core': 'MNE-ERP-CORE-data',
+            'epilepsy_ecog': 'MNE-epilepsy-ecog-data'
         }[name]
     dp = _data_path(download=False, name=name, check_version=False,
                     archive_name=archive_name)
@@ -594,7 +617,7 @@ def _download_all_example_data(verbose=True):
                    eegbci, multimodal, opm, hf_sef, mtrf, fieldtrip_cmc,
                    kiloword, phantom_4dbti, sleep_physionet, limo,
                    fnirs_motor, refmeg_noise, fetch_infant_template,
-                   fetch_fsaverage)
+                   fetch_fsaverage, ssvep, erp_core, epilepsy_ecog)
     sample_path = sample.data_path()
     testing.data_path()
     misc.data_path()
@@ -609,6 +632,8 @@ def _download_all_example_data(verbose=True):
     kiloword.data_path()
     phantom_4dbti.data_path()
     refmeg_noise.data_path()
+    ssvep.data_path()
+    epilepsy_ecog.data_path()
     brainstorm.bst_raw.data_path(accept=True)
     brainstorm.bst_auditory.data_path(accept=True)
     brainstorm.bst_resting.data_path(accept=True)
@@ -626,6 +651,8 @@ def _download_all_example_data(verbose=True):
     fetch_hcp_mmp_parcellation(
         subjects_dir=sample_path + '/subjects', accept=True)
     limo.load_data(subject=1, update_path=True)
+
+    erp_core.data_path()
 
 
 @verbose

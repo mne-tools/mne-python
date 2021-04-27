@@ -3,6 +3,7 @@
 #
 # License: BSD (3-clause)
 
+from contextlib import contextmanager
 from distutils.version import LooseVersion
 import gc
 import os
@@ -12,23 +13,14 @@ import shutil
 import sys
 import warnings
 import pytest
-# For some unknown reason, on Travis-xenial there are segfaults caused on
-# the line pytest -> pdb.Pdb.__init__ -> "import readline". Forcing an
-# import here seems to prevent them (!?). This suggests a potential problem
-# with some other library stepping on memory where it shouldn't. It only
-# seems to happen on the Linux runs that install Mayavi. Anectodally,
-# @larsoner has had problems a couple of years ago where a mayavi import
-# seemed to corrupt SciPy linalg function results (!), likely due to the
-# associated VTK import, so this could be another manifestation of that.
-try:
-    import readline  # noqa
-except Exception:
-    pass
 
 import numpy as np
+
 import mne
 from mne.datasets import testing
-from mne.utils import _pl, _assert_no_instances
+from mne.fixes import has_numba
+from mne.stats import cluster_level
+from mne.utils import _pl, _assert_no_instances, numerics
 
 test_path = testing.data_path(download=False)
 s_path = op.join(test_path, 'MEG', 'sample')
@@ -103,6 +95,9 @@ def pytest_configure(config):
     ignore:.*tostring.*is deprecated.*:DeprecationWarning
     ignore:.*QDesktopWidget\.availableGeometry.*:DeprecationWarning
     ignore:Unable to enable faulthandler.*:UserWarning
+    ignore:Fetchers from the nilearn.*:FutureWarning
+    ignore:SelectableGroups dict interface is deprecated\. Use select\.:DeprecationWarning
+    ignore:Call to deprecated class vtk.*:DeprecationWarning
     always:.*get_data.* is deprecated in favor of.*:DeprecationWarning
     always::ResourceWarning
     """  # noqa: E501
@@ -274,26 +269,6 @@ def _bias_params(evoked, noise_cov, fwd):
     return evoked, fwd, noise_cov, data_cov, want
 
 
-@pytest.fixture(scope="module", params=[
-    "mayavi",
-    "pyvista",
-])
-def backend_name(request):
-    """Get the backend name."""
-    yield request.param
-
-
-@pytest.fixture
-def renderer(backend_name, garbage_collect):
-    """Yield the 3D backends."""
-    from mne.viz.backends.renderer import _use_test_3d_backend
-    _check_skip_backend(backend_name)
-    with _use_test_3d_backend(backend_name):
-        from mne.viz.backends import renderer
-        yield renderer
-        renderer.backend._close_all()
-
-
 @pytest.fixture
 def garbage_collect():
     """Garbage collect on exit."""
@@ -301,47 +276,74 @@ def garbage_collect():
     gc.collect()
 
 
-@pytest.fixture(scope="module", params=[
-    "pyvista",
-    "mayavi",
-])
-def backend_name_interactive(request):
-    """Get the backend name."""
-    yield request.param
-
-
-@pytest.fixture
-def renderer_interactive(backend_name_interactive):
+@pytest.fixture(params=["mayavi", "pyvista"])
+def renderer(request, garbage_collect):
     """Yield the 3D backends."""
-    from mne.viz.backends.renderer import _use_test_3d_backend
-    _check_skip_backend(backend_name_interactive)
-    with _use_test_3d_backend(backend_name_interactive, interactive=True):
-        from mne.viz.backends import renderer
+    with _use_backend(request.param, interactive=False) as renderer:
         yield renderer
-        renderer.backend._close_all()
+
+
+@pytest.fixture(params=["pyvista"])
+def renderer_pyvista(request, garbage_collect):
+    """Yield the PyVista backend."""
+    with _use_backend(request.param, interactive=False) as renderer:
+        yield renderer
+
+
+@pytest.fixture(params=["notebook"])
+def renderer_notebook(request):
+    """Yield the 3D notebook renderer."""
+    with _use_backend(request.param, interactive=False) as renderer:
+        yield renderer
+
+
+@pytest.fixture(scope="module", params=["pyvista"])
+def renderer_interactive_pyvista(request):
+    """Yield the interactive PyVista backend."""
+    with _use_backend(request.param, interactive=True) as renderer:
+        yield renderer
+
+
+@pytest.fixture(scope="module", params=["pyvista", "mayavi"])
+def renderer_interactive(request):
+    """Yield the interactive 3D backends."""
+    with _use_backend(request.param, interactive=True) as renderer:
+        if renderer._get_3d_backend() == 'mayavi':
+            with warnings.catch_warnings(record=True):
+                try:
+                    from surfer import Brain  # noqa: 401 analysis:ignore
+                except Exception:
+                    pytest.skip('Requires PySurfer')
+        yield renderer
+
+
+@contextmanager
+def _use_backend(backend_name, interactive):
+    from mne.viz.backends.renderer import _use_test_3d_backend
+    _check_skip_backend(backend_name)
+    with _use_test_3d_backend(backend_name, interactive=interactive):
+        from mne.viz.backends import renderer
+        try:
+            yield renderer
+        finally:
+            renderer.backend._close_all()
 
 
 def _check_skip_backend(name):
     from mne.viz.backends.tests._utils import (has_mayavi, has_pyvista,
                                                has_pyqt5, has_imageio_ffmpeg)
+    check_pyvista = name in ('pyvista', 'notebook')
+    check_pyqt5 = name in ('mayavi', 'pyvista')
     if name == 'mayavi':
         if not has_mayavi():
             pytest.skip("Test skipped, requires mayavi.")
     elif name == 'pyvista':
-        if not has_pyvista():
-            pytest.skip("Test skipped, requires pyvista.")
         if not has_imageio_ffmpeg():
             pytest.skip("Test skipped, requires imageio-ffmpeg")
-    if not has_pyqt5():
+    if check_pyvista and not has_pyvista():
+        pytest.skip("Test skipped, requires pyvista.")
+    if check_pyqt5 and not has_pyqt5():
         pytest.skip("Test skipped, requires PyQt5.")
-
-
-@pytest.fixture()
-def renderer_notebook():
-    """Verify that pytest_notebook is installed."""
-    from mne.viz.backends import renderer
-    with renderer._use_test_3d_backend('notebook'):
-        yield renderer
 
 
 @pytest.fixture(scope='session')
@@ -497,7 +499,14 @@ def download_is_error(monkeypatch):
 @pytest.fixture()
 def brain_gc(request):
     """Ensure that brain can be properly garbage collected."""
-    keys = ('renderer_interactive', 'renderer', 'renderer_notebook')
+    keys = (
+        'renderer_interactive',
+        'renderer_interactive_pyvista',
+        'renderer_interactive_pysurfer',
+        'renderer',
+        'renderer_pyvista',
+        'renderer_notebook',
+    )
     assert set(request.fixturenames) & set(keys) != set()
     for key in keys:
         if key in request.fixturenames:
@@ -512,10 +521,16 @@ def brain_gc(request):
         yield
         return
     from mne.viz import Brain
-    _assert_no_instances(Brain, 'before')
     ignore = set(id(o) for o in gc.get_objects())
     yield
     close_func()
+    # no need to warn if the test itself failed, pytest-harvest helps us here
+    try:
+        outcome = request.node.harvest_rep_call
+    except Exception:
+        outcome = 'failed'
+    if outcome != 'passed':
+        return
     _assert_no_instances(Brain, 'after')
     # We only check VTK for PyVista -- Mayavi/PySurfer is not as strict
     objs = gc.get_objects()
@@ -571,3 +586,21 @@ def pytest_sessionfinish(session, exitstatus):
         timings = [timing.rjust(rjust) for timing in timings]
         for name, timing in zip(names, timings):
             writer.line(f'{timing.ljust(15)}{name}')
+
+
+@pytest.fixture(scope="function", params=('Numba', 'NumPy'))
+def numba_conditional(monkeypatch, request):
+    """Test both code paths on machines that have Numba."""
+    assert request.param in ('Numba', 'NumPy')
+    if request.param == 'NumPy' and has_numba:
+        monkeypatch.setattr(
+            cluster_level, '_get_buddies', cluster_level._get_buddies_fallback)
+        monkeypatch.setattr(
+            cluster_level, '_get_selves', cluster_level._get_selves_fallback)
+        monkeypatch.setattr(
+            cluster_level, '_where_first', cluster_level._where_first_fallback)
+        monkeypatch.setattr(
+            numerics, '_arange_div', numerics._arange_div_fallback)
+    if request.param == 'Numba' and not has_numba:
+        pytest.skip('Numba not installed')
+    yield request.param
