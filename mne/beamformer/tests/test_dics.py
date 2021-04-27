@@ -581,6 +581,16 @@ def test_apply_dics_timeseries(_load_forward, idx):
         apply_dics_epochs(epochs, filters_vol)
 
 
+def _cov_as_csd(cov, info):
+    rng = np.random.RandomState(0)
+    assert cov['data'].ndim == 2
+    assert len(cov['data']) == len(cov['names'])
+    # we need to make this have at least some complex structure
+    data = cov['data'] + 1e-1 * _rand_csd(rng, info)
+    assert data.dtype == np.complex128
+    return CrossSpectralDensity(_sym_mat_to_vector(data), cov['names'], 0., 16)
+
+
 # Just test free ori here (assume fixed is same as LCMV if these are)
 # Changes here should be synced with test_lcmv.py
 @pytest.mark.slowtest

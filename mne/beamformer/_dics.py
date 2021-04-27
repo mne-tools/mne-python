@@ -10,14 +10,13 @@ import numpy as np
 
 from ..channels import equalize_channels
 from ..io.pick import pick_info, pick_channels
-from ..utils import (logger, verbose, warn, _check_one_ch_type,
+from ..utils import (logger, verbose, _check_one_ch_type,
                      _check_channels_spatial_filter, _check_rank,
-                     _check_option, _validate_type, deprecated)
+                     _check_option, _validate_type)
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz, _check_reference, _check_depth
 from ..rank import compute_rank
 from ..source_estimate import _make_stc, _get_src_type
-from ..time_frequency import csd_fourier, csd_multitaper, csd_morlet
 from ._compute_beamformer import (_prepare_beamformer_input,
                                   _compute_beamformer, _check_src_type,
                                   Beamformer, _compute_power,
@@ -27,7 +26,7 @@ from ._compute_beamformer import (_prepare_beamformer_input,
 @verbose
 def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
               pick_ori=None, rank=None, weight_norm=None,
-              reduce_rank=False, depth=1., real_filter=None,
+              reduce_rank=False, depth=1., real_filter=True,
               inversion='matrix', verbose=None):
     """Compute a Dynamic Imaging of Coherent Sources (DICS) spatial filter.
 
@@ -78,7 +77,7 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
 
         .. versionchanged:: 0.23
             Version 0.23 deprecated ``False`` as default for ``real_filter``.
-            With version 0.24, ``True`` will be the new default.
+            With version 0.24, ``True`` is the new default.
     %(bf_inversion)s
 
         .. versionchanged:: 0.21
@@ -176,14 +175,6 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
     # remove bads so that equalize_channels only keeps all good
     info = pick_info(info, pick_channels(info['ch_names'], [], info['bads']))
     info, forward, csd = equalize_channels([info, forward, csd])
-
-    if real_filter is None:
-        depr_message = ('The current default of real_filter=False is '
-                        'deprecated and will be changed to real_filter=True '
-                        'in version 0.24. Set real_filter explicitly to '
-                        'avoid this warning.')
-        warn(depr_message, DeprecationWarning)
-        real_filter = False
 
     csd, noise_csd = _prepare_noise_csd(csd, noise_csd, real_filter)
 
