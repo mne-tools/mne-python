@@ -122,10 +122,6 @@ from . import time_frequency
 from . import viz
 from . import decoding
 
-# deprecations
-from .utils import deprecated_alias
-deprecated_alias('read_selection', read_vectorview_selection)
-
 # initialize logging
 set_log_level(None, False)
 set_log_file()
