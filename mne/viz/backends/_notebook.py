@@ -200,7 +200,6 @@ class _IpyToolBar(_AbstractToolBar, _IpyLayout):
             interval=500,
         )
         self._layout_add_widget(self._tool_bar_layout, widget)
-        self.actions[name] = widget
         return _IpyWidget(widget)
 
     def _tool_bar_set_theme(self, theme):
