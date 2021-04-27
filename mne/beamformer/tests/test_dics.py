@@ -139,8 +139,6 @@ def _make_rand_csd(info, csd):
     return noise_csd, rank
 
 
-@pytest.mark.filterwarnings('ignore:.*real_filter.*will be changed.*:'
-                            'DeprecationWarning')
 @pytest.mark.slowtest
 @testing.requires_testing_data
 @requires_h5py
@@ -212,7 +210,7 @@ def test_make_dics(tmpdir, _load_forward, idx, whiten):
     weight_norm = 'unit-noise-gain'
     inversion = 'single'
     filters = make_dics(epochs.info, fwd_surf, csd, label=label, pick_ori=None,
-                        weight_norm=weight_norm, depth=None,
+                        weight_norm=weight_norm, depth=None, real_filter=False,
                         noise_csd=noise_csd, inversion=inversion)
     assert filters['weights'].shape == (n_freq, n_verts * n_orient, n_channels)
     assert np.iscomplexobj(filters['weights'])
@@ -335,8 +333,6 @@ def _fwd_dist(power, fwd, vertices, source_ind, tidx=1):
     return np.linalg.norm(rr_got - rr_want)
 
 
-@pytest.mark.filterwarnings('ignore:.*real_filter.*will be changed.*:'
-                            'DeprecationWarning')
 @idx_param
 @pytest.mark.parametrize('inversion, weight_norm', [
     ('single', None),
@@ -369,8 +365,6 @@ def test_apply_dics_csd(_load_forward, idx, inversion, weight_norm):
         assert power.data[source_ind, 1] > power.data[source_ind, 0]
 
 
-@pytest.mark.filterwarnings('ignore:.*real_filter.*will be changed.*:'
-                            'DeprecationWarning')
 @pytest.mark.parametrize('pick_ori', [None, 'normal', 'max-power'])
 @pytest.mark.parametrize('inversion', ['single', 'matrix'])
 @idx_param
@@ -422,8 +416,6 @@ def _nearest_vol_ind(fwd_vol, fwd, vertices, source_ind):
         fwd['src'][0]['rr'][vertices][source_ind][np.newaxis])[0]
 
 
-@pytest.mark.filterwarnings('ignore:.*real_filter.*will be changed.*:'
-                            'DeprecationWarning')
 @idx_param
 def test_real(_load_forward, idx):
     """Test using a real-valued filter."""
@@ -474,8 +466,6 @@ def test_real(_load_forward, idx):
         apply_dics_csd(csd, filters_vol)
 
 
-@pytest.mark.filterwarnings('ignore:.*real_filter.*will be changed.*:'
-                            'DeprecationWarning')
 @pytest.mark.filterwarnings("ignore:The use of several sensor types with the"
                             ":RuntimeWarning")
 @idx_param
@@ -634,8 +624,6 @@ def test_localization_bias_free(bias_params_free, reg, pick_ori, weight_norm,
     assert lower <= perc <= upper
 
 
-@pytest.mark.filterwarnings('ignore:.*real_filter.*will be changed.*:'
-                            'DeprecationWarning')
 @testing.requires_testing_data
 @idx_param
 @pytest.mark.parametrize('whiten', (False, True))

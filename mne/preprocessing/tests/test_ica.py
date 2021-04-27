@@ -72,8 +72,6 @@ def _skip_check_picard(method):
 
 @requires_sklearn
 @pytest.mark.parametrize("method", ["fastica", "picard"])
-@pytest.mark.filterwarnings('ignore:.*max_iter.*will be changed.*:'
-                            'DeprecationWarning')
 def test_ica_full_data_recovery(method):
     """Test recovery of full data when no source is rejected."""
     # Most basic recovery
@@ -137,8 +135,6 @@ def test_ica_full_data_recovery(method):
 
 
 @pytest.mark.parametrize("method", ["fastica", "picard"])
-@pytest.mark.filterwarnings('ignore:.*max_iter.*will be changed.*:'
-                            'DeprecationWarning')
 def test_ica_simple(method):
     """Test that ICA recovers the unmixing matrix in a simple case."""
     if method == "fastica":
@@ -198,8 +194,6 @@ def test_warnings():
 @pytest.mark.parametrize('n_components', (None, 0.9999, 8, 9, 10))
 @pytest.mark.parametrize('n_pca_components', [8, 9, 0.9999, 10])
 @pytest.mark.filterwarnings('ignore:FastICA did not converge.*:UserWarning')
-@pytest.mark.filterwarnings('ignore:.*max_iter.*will be changed.*:'
-                            'DeprecationWarning')
 def test_ica_noop(n_components, n_pca_components, tmpdir):
     """Test that our ICA is stable even with a bad max_pca_components."""
     data = np.random.RandomState(0).randn(10, 1000)
@@ -270,8 +264,6 @@ def test_ica_max_iter_(method, max_iter_default):
 
 @requires_sklearn
 @pytest.mark.parametrize("method", ["infomax", "fastica", "picard"])
-@pytest.mark.filterwarnings('ignore:.*max_iter.*will be changed.*:'
-                            'DeprecationWarning')
 def test_ica_n_iter_(method, tmpdir):
     """Test that ICA.n_iter_ is set after fitting."""
     _skip_check_picard(method)
@@ -432,8 +424,6 @@ def test_ica_reset(method):
 @pytest.mark.parametrize('n_components', (2, 0.6))
 @pytest.mark.parametrize('noise_cov', (False, True))
 @pytest.mark.parametrize('n_pca_components', [20])
-@pytest.mark.filterwarnings('ignore:.*max_iter.*will be changed.*:'
-                            'DeprecationWarning')
 def test_ica_core(method, n_components, noise_cov, n_pca_components):
     """Test ICA on raw and epochs."""
     _skip_check_picard(method)
@@ -588,8 +578,6 @@ def short_raw_epochs():
 @requires_sklearn
 @pytest.mark.slowtest
 @pytest.mark.parametrize("method", ["picard", "fastica"])
-@pytest.mark.filterwarnings('ignore:.*max_iter.*will be changed.*:'
-                            'DeprecationWarning')
 def test_ica_additional(method, tmpdir, short_raw_epochs):
     """Test additional ICA functionality."""
     _skip_check_picard(method)
@@ -943,8 +931,6 @@ def test_ica_additional(method, tmpdir, short_raw_epochs):
     ('picard', test_cov_name),
     ('fastica', None),
 ])
-@pytest.mark.filterwarnings('ignore:.*max_iter.*will be changed.*:'
-                            'DeprecationWarning')
 def test_ica_cov(method, cov, tmpdir, short_raw_epochs):
     """Test ICA with cov."""
     _skip_check_picard(method)
@@ -991,8 +977,6 @@ def test_ica_cov(method, cov, tmpdir, short_raw_epochs):
 @pytest.mark.parametrize("method", ("fastica", "picard", "infomax"))
 @pytest.mark.parametrize("idx", (None, -1, slice(2), [0, 1]))
 @pytest.mark.parametrize("ch_name", (None, 'MEG 1531'))
-@pytest.mark.filterwarnings('ignore:.*max_iter.*will be changed.*:'
-                            'DeprecationWarning')
 def test_detect_artifacts_replacement_of_run_ica(method, idx, ch_name):
     """Test replacement workflow for run_ica() function."""
     _skip_check_picard(method)
@@ -1006,8 +990,6 @@ def test_detect_artifacts_replacement_of_run_ica(method, idx, ch_name):
 
 @requires_sklearn
 @pytest.mark.parametrize("method", ["fastica", "picard"])
-@pytest.mark.filterwarnings('ignore:.*max_iter.*will be changed.*:'
-                            'DeprecationWarning')
 def test_ica_reject_buffer(method):
     """Test ICA data raw buffer rejection."""
     _skip_check_picard(method)
@@ -1028,8 +1010,6 @@ def test_ica_reject_buffer(method):
 
 @requires_sklearn
 @pytest.mark.parametrize("method", ["fastica", "picard"])
-@pytest.mark.filterwarnings('ignore:.*max_iter.*will be changed.*:'
-                            'DeprecationWarning')
 def test_ica_twice(method):
     """Test running ICA twice."""
     _skip_check_picard(method)
@@ -1055,8 +1035,6 @@ def test_ica_twice(method):
 
 @requires_sklearn
 @pytest.mark.parametrize("method", ["fastica", "picard", "infomax"])
-@pytest.mark.filterwarnings('ignore:.*max_iter.*will be changed.*:'
-                            'DeprecationWarning')
 def test_fit_params(method, tmpdir):
     """Test fit_params for ICA."""
     _skip_check_picard(method)
@@ -1095,8 +1073,6 @@ def test_fit_params(method, tmpdir):
 @requires_sklearn
 @pytest.mark.parametrize("method", ["fastica", "picard"])
 @pytest.mark.parametrize("allow_ref_meg", [True, False])
-@pytest.mark.filterwarnings('ignore:.*max_iter.*will be changed.*:'
-                            'DeprecationWarning')
 def test_bad_channels(method, allow_ref_meg):
     """Test exception when unsupported channels are used."""
     _skip_check_picard(method)
@@ -1145,8 +1121,6 @@ def test_bad_channels(method, allow_ref_meg):
 
 @requires_sklearn
 @pytest.mark.parametrize("method", ["fastica", "picard"])
-@pytest.mark.filterwarnings('ignore:.*max_iter.*will be changed.*:'
-                            'DeprecationWarning')
 def test_eog_channel(method):
     """Test that EOG channel is included when performing ICA."""
     _skip_check_picard(method)
@@ -1179,8 +1153,6 @@ def test_eog_channel(method):
 
 @requires_sklearn
 @pytest.mark.parametrize("method", ["fastica", "picard"])
-@pytest.mark.filterwarnings('ignore:.*max_iter.*will be changed.*:'
-                            'DeprecationWarning')
 def test_n_components_none(method, tmpdir):
     """Test n_components=None."""
     _skip_check_picard(method)
@@ -1368,8 +1340,6 @@ def test_ica_eeg(fname, grade):
 
 
 @testing.requires_testing_data
-@pytest.mark.filterwarnings('ignore:.*max_iter.*will be changed.*:'
-                            'DeprecationWarning')
 def test_read_ica_eeglab():
     """Test read_ica_eeglab function."""
     fname = op.join(test_base_dir, "EEGLAB", "test_raw.set")
@@ -1402,8 +1372,6 @@ def test_read_ica_eeglab():
 
 
 @testing.requires_testing_data
-@pytest.mark.filterwarnings('ignore:.*max_iter.*will be changed.*:'
-                            'DeprecationWarning')
 def test_read_ica_eeglab_mismatch(tmpdir):
     """Test read_ica_eeglab function when there is a mismatch."""
     fname_orig = op.join(test_base_dir, "EEGLAB", "test_raw.set")
