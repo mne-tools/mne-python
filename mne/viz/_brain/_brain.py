@@ -1128,7 +1128,12 @@ class Brain(object):
         self._renderer._dock_finalize()
 
     def _configure_playback(self):
-        self._renderer._playback_initialize(self._play, self.refresh_rate_ms)
+        self._renderer._playback_initialize(
+            func=self._play,
+            timeout=self.refresh_rate_ms,
+            time_widget=self.widgets["time"],
+            play_widget=self.widgets["play"],
+        )
 
     def _configure_mplcanvas(self):
         # Get the fractional components for the brain and mpl
@@ -1243,14 +1248,16 @@ class Brain(object):
         )
         self._renderer._tool_bar_add_button(
             name="visibility",
-            desc="Toggle Visibility",
+            desc="Toggle Controls",
             func=self.toggle_interface,
             icon_name="visibility_on"
         )
-        self._renderer._tool_bar_add_button(
+        self.widgets["play"] = self._renderer._tool_bar_add_play_button(
             name="play",
             desc="Play/Pause",
             func=self.toggle_playback,
+            value=self._data['time_idx'],
+            rng=[0, len(self._data['time']) - 1],
             shortcut=" ",
         )
         self._renderer._tool_bar_add_button(
