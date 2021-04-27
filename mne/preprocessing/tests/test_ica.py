@@ -256,17 +256,16 @@ def test_ica_noop(n_components, n_pca_components, tmpdir):
 def test_ica_max_iter_(method, max_iter_default):
     """Test that ICA.max_iter is set to the right defaults."""
     _skip_check_picard(method)
-
-    # check that deprecated default max_iter=200 comes out for no input
-    with pytest.warns(DeprecationWarning, match='max_iter.*will be changed'):
-        ica = ICA(n_components=3, method=method)
-        assert ica.max_iter == 200
     # check that new defaults come out for 'auto'
     ica = ICA(n_components=3, method=method, max_iter='auto')
     assert ica.max_iter == max_iter_default
     # check that user input comes out unchanged
     ica = ICA(n_components=3, method=method, max_iter=2000)
     assert ica.max_iter == 2000
+    with pytest.raises(ValueError, match='Invalid'):
+        ICA(max_iter='foo')
+    with pytest.raises(TypeError, match='must be an instance'):
+        ICA(max_iter=1.)
 
 
 @requires_sklearn
