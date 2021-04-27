@@ -12,10 +12,10 @@
    like this (where xxxx is the pull request number):
    - description of enhancement/bugfix/API change (:gh:`xxxx` **by new contributor** |Firstname Lastname|_)
 
-.. _current:
+.. _changes_0_23_0:
 
-Current (0.23.dev0)
--------------------
+Version 0.23.0
+--------------
 
 .. |New Contributor| replace:: **New Contributor**
 
@@ -175,7 +175,7 @@ Enhancements
 
 - Add :func:`mne.channels.DigMontage.add_estimated_fiducials` which will add LPA, RPA and Nasion fiducial points to the ``DigMontage`` object in ``mri`` coordinate frame (:gh:`9118` by `Adam Li`_)
 
-- :func:`mne.io.anonymize_info` now anonymizes also sex and hand fields when ``keep_his`` is ``False`` (:gh:`9103`, :gh:`9175` by |Rotem Falach|_ and `Richard Höchenberger`_)
+- :func:`mne.io.anonymize_info` now anonymizes also sex and hand fields when ``keep_his`` is ``False`` (:gh:`9103`, :gh:`9175` **by new contributor** |Rotem Falach|_ and `Richard Höchenberger`_)
 
 - Add parameter ``theme`` to :class:`mne.viz.Brain` for optional Dark-Mode (:gh:`9149` by `Martin Schulz`_, `Guillaume Favelier`_)
 
@@ -200,9 +200,9 @@ Enhancements
 
 Bugs
 ~~~~
-- Fix bug with :func:`mne.time_frequency.tfr` where plot misbehaved. Plot now always returns a list of figures instead of a single figure handle (:gh:`8013` by |Eduard Ort|_)
+- Fix bug with :func:`mne.time_frequency.tfr` where plot misbehaved. Plot now always returns a list of figures instead of a single figure handle (:gh:`8013` **by new contributor** |Eduard Ort|_)
 
-- Fix bug with :func:`mne.viz.plot_evoked_topo` where set ylim parameters gets swapped across channel types. (:gh:`9207` by |Ram Pari|_)
+- Fix bug with :func:`mne.viz.plot_evoked_topo` where set ylim parameters gets swapped across channel types. (:gh:`9207` **by new contributor** |Ram Pari|_)
 
 - Fix bug with :func:`mne.io.read_raw_edf` where µV was not correctly recognized (:gh:`9187` **by new contributor** |Sumalyo Datta|_)
 
@@ -214,7 +214,7 @@ Bugs
 
 - Fix bug with :func:`mne.Epochs.plot_image` where the ``x_label`` was different depending on the evoked parameter (:gh:`9115` **by new contributor** |Matteo Anelli|_)
 
-- Fix bug with restricting :func:`mne.io.Raw.save` saving options to .fif and .fif.gz extensions (:gh:`9062` by |Valerii Chirkov|_)
+- Fix bug with restricting :func:`mne.io.Raw.save` saving options to .fif and .fif.gz extensions (:gh:`9062` **by new contributor** |Valerii Chirkov|_)
 
 - Fix bug with :func:`mne.io.read_raw_kit` where missing marker coils were not handled (:gh:`8989` **by new contributor** |Judy D Zhu|_)
 
@@ -337,3 +337,68 @@ API changes
 - Supplying multiple channel names to `mne.preprocessing.find_eog_events` or `mne.preprocessing.compute_proj_eog` as a string of comma-separated channel names has been deprecated; please pass a list of channel names instead. Support for comma-separated strings will be removed in MNE-Python 0.24 (:gh:`9269` by `Richard Höchenberger`_)
 
 - The default in :func:`mne.beamformer.make_dics` of ``real_filter=False`` will change to ``real_filter=True`` in 0.24 (:gh:`9340` by `Britta Westner`_)
+
+Authors
+~~~~~~~
+
+People who contributed to this release in alphabetical order
+(people with a + are first time contributors):
+
+* Adam Li
+* Alex Rockhill
+* Alexandre Gramfort
+* Ana Radanovic
+* Andres Rodriguez+
+* Anna Padee+
+* Apoorva Karekal+
+* Britta Westner
+* Catalina Magalvan
+* Christian Brodbeck
+* Christian Mista
+* Christian O'Reilly
+* Christina Zhao
+* Christopher J. Bailey
+* Clemens Brunner
+* Cora Kim+
+* Daniel McCloy
+* Denis A. Engemann
+* Dominik Welke+
+* Eduard Ort
+* Enrico Varano+
+* Eric Larson
+* Erica Peterson+
+* Evgenii Kalenkovich
+* Felix Klotzsche+
+* Giorgio Marinato
+* Guillaume Favelier
+* Jack Zhang+
+* Jean-Remi King
+* Johann Benerradi
+* Joris Van den Bossche
+* Judy D Zhu+
+* Liberty Hamilton
+* Luke Bloy
+* Maggie Clarke+
+* Mainak Jas
+* Manorama Kadwani
+* Marijn van Vliet
+* Martin Schulz
+* Matt Sanderson+
+* Matteo Anelli+
+* Nicolas Gensollen
+* Ram Pari+
+* Richard Höchenberger
+* Richard Koehler+
+* Robert Luke
+* Rotem Falach+
+* Sebastien Treguer
+* Silvia Cotroneo+
+* Stefan Appelhoff
+* Steven Bierer
+* Sumalyo Datta+
+* Timon Merk
+* Tristan Stenner
+* Valerii Chirkov+
+* Victoria Peterson
+* Yu-Han Luo
+* Zhi Zhang+
