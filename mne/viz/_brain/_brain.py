@@ -645,7 +645,6 @@ class Brain(object):
         self._configure_scalar_bar()
         self._configure_shortcuts()
         self._configure_picking()
-        self._configure_playback()
         self._configure_tool_bar()
         if self.notebook:
             self._renderer._set_tool_bar(state=False)
@@ -653,6 +652,7 @@ class Brain(object):
         self._configure_trace_mode()
         self.toggle_interface()
         if not self.notebook:
+            self._configure_playback()
             self._configure_menu()
             self._configure_status_bar()
 
@@ -839,7 +839,6 @@ class Brain(object):
             The speed of the playback.
         """
         self.playback_speed = speed
-        self._update()
 
     @safe_event
     def _play(self):
@@ -1065,23 +1064,7 @@ class Brain(object):
         self._set_slider_style()
 
     def _configure_playback(self):
-        if self.notebook:
-            from ipywidgets import Play
-
-            def set_time_point(data):
-                self.callbacks["time"](
-                    value=data['new'] * self.playback_speed,
-                    update_widget=True,
-                )
-
-            self.actions["play"] = Play(
-                continuous_update=False,
-                interval=self.refresh_rate_ms,
-            )
-            self.actions["play"].observe(set_time_point, 'value')
-            self._update()
-        else:
-            self.plotter.add_callback(self._play, self.refresh_rate_ms)
+        self.plotter.add_callback(self._play, self.refresh_rate_ms)
 
     def _configure_mplcanvas(self):
         ratio = (1 - self.interactor_fraction) / self.interactor_fraction
@@ -1353,7 +1336,7 @@ class Brain(object):
         )
         self._add_button(
             name="visibility",
-            desc="Toggle Controls",
+            desc="Toggle Visibility",
             func=self.toggle_interface,
             icon_name="eye",
             qt_icon_name="visibility_on",
@@ -3355,15 +3338,6 @@ class Brain(object):
         if renderer.get_3d_backend() in ['pyvista', 'notebook']:
             if self.notebook and self._renderer.figure.display is not None:
                 self._renderer.figure.display.update_canvas()
-
-                # synchronize the playback current value
-                if self.actions.get("play") is not None:
-                    max_time = len(self._data['time']) - 1
-                    time_idx = self._data["time_idx"]
-                    inv_speed = 1. / self.playback_speed
-                    self.actions["play"].min = 0
-                    self.actions["play"].max = max_time * inv_speed
-                    self.actions["play"].value = time_idx * inv_speed
             else:
                 self._renderer.plotter.update()
 
