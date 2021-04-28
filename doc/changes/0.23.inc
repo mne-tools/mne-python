@@ -17,8 +17,6 @@
 Version 0.23.0
 --------------
 
-.. |New Contributor| replace:: **New Contributor**
-
 .. |Jack Zhang| replace:: **Jack Zhang**
 
 .. |Sumalyo Datta| replace:: **Sumalyo Datta**
