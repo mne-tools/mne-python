@@ -13,7 +13,7 @@ import glob
 import numpy as np
 from copy import deepcopy
 
-from .fixes import einsum, jit, mean
+from .fixes import jit, mean
 from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tag import read_tag
@@ -782,7 +782,7 @@ def _sph_to_cart_partials(az, pol, g_rad, g_az, g_pol):
     trans = np.array([[c_as * s_ps, -s_as, c_as * c_ps],
                       [s_as * s_ps, c_as, c_ps * s_as],
                       [c_ps, np.zeros_like(c_as), -s_ps]])
-    cart_grads = einsum('ijk,kj->ki', trans, sph_grads)
+    cart_grads = np.einsum('ijk,kj->ki', trans, sph_grads)
     return cart_grads
 
 

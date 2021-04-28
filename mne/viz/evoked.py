@@ -17,6 +17,7 @@ from numbers import Integral
 
 import numpy as np
 
+from ..fixes import _is_last_row
 from ..io.pick import (channel_type,
                        _VALID_CHANNEL_TYPES, channel_indices_by_type,
                        _DATA_CH_TYPES_SPLIT, _pick_inst, _get_channel_types,
@@ -373,13 +374,6 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
     fig.canvas.draw()  # for axes plots update axes.
     plt_show(show)
     return fig
-
-
-def _is_last_row(ax):
-    try:
-        return ax.get_subplotspec().is_last_row()
-    except AttributeError:  # XXX old mpl
-        return ax.is_last_row()
 
 
 def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,

@@ -3,6 +3,7 @@
 #
 # License: BSD (3-clause)
 
+from contextlib import nullcontext
 from itertools import product
 import os
 import os.path as op
@@ -21,7 +22,6 @@ from mne import (Epochs, read_events, pick_types, create_info, EpochsArray,
                  EvokedArray, Annotations, pick_channels_regexp,
                  make_ad_hoc_cov)
 from mne.cov import read_cov
-from mne.fixes import nullcontext
 from mne.preprocessing import (ICA as _ICA, ica_find_ecg_events,
                                ica_find_eog_events, read_ica)
 from mne.preprocessing.ica import (get_score_funcs, corrmap, _sort_components,
@@ -30,7 +30,7 @@ from mne.io import read_raw_fif, Info, RawArray, read_raw_ctf, read_raw_eeglab
 from mne.io.pick import _DATA_CH_TYPES_SPLIT, get_channel_type_constants
 from mne.io.eeglab.eeglab import _check_load_mat
 from mne.rank import _compute_rank_int
-from mne.utils import catch_logging, requires_sklearn, run_tests_if_main
+from mne.utils import catch_logging, requires_sklearn
 from mne.datasets import testing
 from mne.event import make_fixed_length_events
 
@@ -429,7 +429,7 @@ def test_ica_core(method, n_components, noise_cov, n_pca_components):
     _skip_check_picard(method)
     raw = read_raw_fif(raw_fname).crop(0, stop).load_data()
 
-    # XXX. The None cases helped revealing bugs but are time consuming.
+    # The None cases help reveal bugs but are time consuming.
     if noise_cov:
         noise_cov = read_cov(test_cov_name)
         noise_cov['projs'] = []  # avoid warnings
@@ -1467,6 +1467,3 @@ def test_ica_ch_types(ch_type):
     for inst in [raw, epochs, evoked]:
         ica.apply(inst)
         ica.get_sources(inst)
-
-
-run_tests_if_main()

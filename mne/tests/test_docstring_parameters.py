@@ -9,7 +9,7 @@ from unittest import SkipTest
 import pytest
 
 import mne
-from mne.utils import run_tests_if_main, requires_numpydoc, _pl
+from mne.utils import requires_numpydoc, _pl
 
 public_modules = [
     # the list of modules users need to access for all functionality
@@ -318,6 +318,3 @@ def test_documented():
         raise AssertionError('\n\nFound new public members missing from '
                              'doc/python_reference.rst:\n\n* ' +
                              '\n* '.join(sorted(set(missing))))
-
-
-run_tests_if_main()

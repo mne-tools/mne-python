@@ -49,7 +49,6 @@ from ..utils import (_check_fname, get_subjects_dir, has_mne_c, warn,
                      _validate_type, _check_compensation_grade, _check_option,
                      _check_stc_units, _stamp_to_dt, _on_missing)
 from ..label import Label
-from ..fixes import einsum
 
 
 class Forward(dict):
@@ -1218,7 +1217,7 @@ def compute_depth_prior(forward, info, exp=0.8, limit=10.0,
         #     x = np.dot(Gk.T, Gk)
         #     d[k] = linalg.svdvals(x)[0]
         G.shape = (G.shape[0], -1, 3)
-        d = np.linalg.norm(einsum('svj,svk->vjk', G, G),  # vector dot products
+        d = np.linalg.norm(np.einsum('svj,svk->vjk', G, G),  # vector dot prods
                            ord=2, axis=(1, 2))  # ord=2 spectral (largest s.v.)
         G.shape = (G.shape[0], -1)
 

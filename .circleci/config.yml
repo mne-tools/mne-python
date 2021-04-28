@@ -392,7 +392,7 @@ jobs:
 
     deploy:
       docker:
-        - image: circleci/python:3.6-jessie
+        - image: circleci/python:3.8.5-buster
       steps:
         - attach_workspace:
             at: /tmp/build

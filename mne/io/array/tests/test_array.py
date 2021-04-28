@@ -16,7 +16,6 @@ from mne.io.array import RawArray
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.meas_info import create_info
 from mne.io.pick import get_channel_type_constants
-from mne.utils import run_tests_if_main
 from mne.channels import make_dig_montage
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'tests', 'data')
@@ -180,6 +179,3 @@ def test_array_raw():
     raw.set_montage(montage)
     raw.plot_psd(average=False)  # looking for nonexistent layout
     raw.plot_psd_topo()
-
-
-run_tests_if_main()
