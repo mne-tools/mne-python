@@ -7,17 +7,18 @@ import numpy as np
 import warnings
 
 from ..annotations import Annotations
-from ..utils import _mask_to_onsets_offsets
+from ..utils import _mask_to_onsets_offsets, verbose
 
 
 @verbose
-def annotate_nan(raw, *, verbose=None):
+def annotate_nan(raw, verbose=None):
     """Detect segments with NaN and return a new Annotations instance.
 
     Parameters
     ----------
     raw : instance of Raw
         Data to find segments with NaN values.
+    %(verbose)s
 
     Returns
     -------
