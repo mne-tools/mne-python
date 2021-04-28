@@ -10,7 +10,8 @@ from ..annotations import Annotations
 from ..utils import _mask_to_onsets_offsets
 
 
-def annotate_nan(raw):
+@verbose
+def annotate_nan(raw, *, verbose=None):
     """Detect segments with NaN and return a new Annotations instance.
 
     Parameters

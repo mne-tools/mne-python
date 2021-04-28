@@ -30,11 +30,11 @@ def read_raw_nirx(fname, saturated='ignore', preload=False, verbose=None):
         Path to the NIRX data folder or header file.
     saturated : str
         Replace saturated segments of data with NaNs.
-        If ignore (default) the measured data is returned, even if it
+        If "ignore" (default) the measured data is returned, even if it
         contains measurements while the amplifier was saturated.
-        If nan the returned data will contain NaNs during time segments
+        If "nan" the returned data will contain NaNs during time segments
         when the amplifier was saturated.
-        If annotate the returned data will contain annotations specifying
+        If "annotate" the returned data will contain annotations specifying
         sections the saturate segments.
         This argument will only be used if there is no .nosatflags file
         (only if a NIRSport device is used and saturation occurred).
