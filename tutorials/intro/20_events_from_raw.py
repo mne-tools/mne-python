@@ -216,10 +216,9 @@ print(events_from_annot[:5])
 # ``event_id`` parameter of :func:`~mne.events_from_annotations`; this
 # :class:`dict` will be returned unmodified as the ``event_dict``.
 #
-# .. TODO add this when the other tutorial is nailed down:
-#    Note that this ``event_dict`` can be used when creating
-#    :class:`~mne.Epochs` from :class:`~mne.io.Raw` objects, as demonstrated
-#    in :doc:`epoching_tutorial_whatever_its_name_is`.
+# Note that this ``event_dict`` can be used when creating `~mne.Epochs` from
+# `~mne.io.Raw` objects, as demonstrated in the tutorial
+# :ref:`tut-epoch-class`.
 
 custom_mapping = {'rt': 77, 'square': 42}
 (events_from_annot,
