@@ -217,7 +217,7 @@ print(events_from_annot[:5])
 #
 # Note that this ``event_dict`` can be used when creating `~mne.Epochs` from
 # `~mne.io.Raw` objects, as demonstrated in the tutorial
-# :ref:`tut-epoch-class`.
+# :ref:`tut-epochs-class`.
 
 custom_mapping = {'rt': 77, 'square': 42}
 (events_from_annot,
