@@ -10,7 +10,7 @@ import scipy.io as sio
 from mne.io import read_raw_fif
 from mne import pick_types
 from mne.preprocessing.infomax_ import infomax
-from mne.utils import random_permutation, run_tests_if_main
+from mne.utils import random_permutation
 from mne.datasets import testing
 
 base_dir = op.join(op.dirname(__file__), 'data')
@@ -175,6 +175,3 @@ def test_mne_python_vs_eeglab():
                                                unmixing_eeglab))
 
             assert_almost_equal(maximum_difference, 1e-12, decimal=10)
-
-
-run_tests_if_main()

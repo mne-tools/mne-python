@@ -37,8 +37,7 @@ from .misc import (run_subprocess, _pl, _clean_names, pformat, _file_like,
                    running_subprocess, _DefaultEventParser,
                    _assert_no_instances)
 from .progressbar import ProgressBar
-from ._testing import (run_tests_if_main, run_command_if_main,
-                       requires_sklearn,
+from ._testing import (run_command_if_main, requires_sklearn,
                        requires_version, requires_nibabel, requires_mayavi,
                        requires_good_network, requires_mne, requires_pandas,
                        requires_h5py, traits_test, requires_pysurfer,
@@ -49,8 +48,7 @@ from ._testing import (run_tests_if_main, run_command_if_main,
                        requires_neuromag2ft, requires_pylsl, assert_object_equal,
                        assert_and_remove_boundary_annot, _raw_annot,
                        assert_dig_allclose, assert_meg_snr, assert_snr,
-                       assert_stcs_equal, modified_env, _click_ch_name,
-                       _close_event)
+                       assert_stcs_equal, modified_env, _click_ch_name)
 from .numerics import (hashfunc, _compute_row_norms,
                        _reg_pinv, random_permutation, _reject_data_segments,
                        compute_corr, _get_inst_data, array_split_idx,

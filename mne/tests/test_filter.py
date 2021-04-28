@@ -17,8 +17,7 @@ from mne.filter import (filter_data, resample, _resample_stim_channels,
                         estimate_ringing_samples, create_filter,
                         _length_factors)
 
-from mne.utils import (sum_squared, run_tests_if_main,
-                       catch_logging, requires_mne, run_subprocess)
+from mne.utils import sum_squared, catch_logging, requires_mne, run_subprocess
 
 
 def test_filter_array():
@@ -760,6 +759,3 @@ def test_filter_picks():
                 raw.filter(picks=picks, **kwargs)
                 want = want[1:]
                 assert_allclose(raw.get_data(), want)
-
-
-run_tests_if_main()

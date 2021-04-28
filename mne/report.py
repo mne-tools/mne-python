@@ -121,7 +121,7 @@ def _scale_mpl_figure(fig, scale):
     0.5 : current font - 4pt
     2.0 : current font + 4pt
 
-    XXX it's unclear why this works, but good to go for most cases
+    This is a heuristic but it seems to work for most cases.
     """
     scale = float(scale)
     fig.set_size_inches(fig.get_size_inches() * scale)
@@ -1824,7 +1824,7 @@ class Report(object):
                         text = os.path.basename(fname)
                         if fname.endswith('(whitened)'):
                             fname = fname[:-11]
-                        # XXX: remove redundant read_evokeds
+                        # This is a redundant read but should have minor cost
                         evokeds = read_evokeds(fname, verbose=False)
 
                         html_toc += toc_list.substitute(

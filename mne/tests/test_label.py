@@ -21,8 +21,7 @@ from mne import (read_label, stc_to_label, read_source_estimate,
                  labels_to_stc)
 from mne.label import (Label, _blend_colors, label_sign_flip, _load_vert_pos,
                        select_sources)
-from mne.utils import (_TempDir, requires_sklearn, get_subjects_dir,
-                       run_tests_if_main, check_version)
+from mne.utils import requires_sklearn, get_subjects_dir, check_version
 from mne.label import _n_colors, _read_annot, _read_annot_cands
 from mne.source_space import SourceSpaces
 from mne.source_estimate import mesh_edges
@@ -306,9 +305,9 @@ def test_label_io_and_time_course_estimates():
 
 
 @testing.requires_testing_data
-def test_label_io():
+def test_label_io(tmpdir):
     """Test IO of label files."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     label = read_label(label_fname)
 
     # label attributes
@@ -341,10 +340,10 @@ def _assert_labels_equal(labels_a, labels_b, ignore_pos=False):
 
 
 @testing.requires_testing_data
-def test_annot_io():
+def test_annot_io(tmpdir):
     """Test I/O from and to *.annot files."""
     # copy necessary files from fsaverage to tempdir
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     subject = 'fsaverage'
     label_src = os.path.join(subjects_dir, 'fsaverage', 'label')
     surf_src = os.path.join(subjects_dir, 'fsaverage', 'surf')
@@ -517,9 +516,9 @@ def test_read_labels_from_annot_annot2labels():
 
 
 @testing.requires_testing_data
-def test_write_labels_to_annot():
+def test_write_labels_to_annot(tmpdir):
     """Test writing FreeSurfer parcellation from labels."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
 
     labels = read_labels_from_annot('sample', subjects_dir=subjects_dir)
 
@@ -968,9 +967,6 @@ def test_label_center_of_mass():
                   surf=1)
     pytest.raises(IOError, label.center_of_mass, subjects_dir=subjects_dir,
                   surf='foo')
-
-
-run_tests_if_main()
 
 
 @testing.requires_testing_data

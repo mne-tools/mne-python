@@ -198,23 +198,19 @@ def _write_w(filename, vertices, data):
     """
     assert (len(vertices) == len(data))
 
-    fid = open(filename, 'wb')
+    with open(filename, 'wb') as fid:
+        # write 2 zero bytes
+        fid.write(np.zeros((2), dtype=np.uint8).tobytes())
 
-    # write 2 zero bytes
-    fid.write(np.zeros((2), dtype=np.uint8).tobytes())
+        # write number of vertices/sources (3 byte integer)
+        vertices_n = len(vertices)
+        _write_3(fid, vertices_n)
 
-    # write number of vertices/sources (3 byte integer)
-    vertices_n = len(vertices)
-    _write_3(fid, vertices_n)
-
-    # write the vertices and data
-    for i in range(vertices_n):
-        _write_3(fid, vertices[i])
-        # XXX: without float() endianness is wrong, not sure why
-        fid.write(np.array(float(data[i]), dtype='>f4').tobytes())
-
-    # close the file
-    fid.close()
+        # write the vertices and data
+        for i in range(vertices_n):
+            _write_3(fid, vertices[i])
+            # XXX: without float() endianness is wrong, not sure why
+            fid.write(np.array(float(data[i]), dtype='>f4').tobytes())
 
 
 def read_source_estimate(fname, subject=None):
