@@ -103,8 +103,8 @@ For full functionality, some functions require:
 - CuPy >= 4.0 (for NVIDIA CUDA acceleration)
 - DIPY >= 0.10.1
 - Imageio >= 2.6.1
-- PyVista >= 0.24
-- pyvistaqt >= 0.2.0
+- PyVista >= 0.30
+- pyvistaqt >= 0.4.0
 - mffpy >= 0.5.7
 
 Contributing to MNE-Python
