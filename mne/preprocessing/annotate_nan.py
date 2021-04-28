@@ -36,7 +36,7 @@ def annotate_nan(raw):
         durations = (stops - starts) * sampling_duration
     else:
         warnings.warn("The dataset you provided does not contain 'NaN' "
-                      "values. No annotation were made.")
+                      "values. No annotations were made.")
         return
 
     if annot is None:
