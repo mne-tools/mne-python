@@ -33,18 +33,21 @@ fname_nirx_15_3_short = op.join(data_path(download=False),
                                 'NIRx', 'nirscout', 'nirx_15_3_recording')
 
 
+# This file has no saturated sections
 nirsport1_wo_sat = op.join(data_path(download=False), 'NIRx', 'nirsport_v1',
                            'nirx_15_3_recording_wo_saturation')
+# This file has saturation, but not on the optode pairing in montage
 nirsport1_w_sat = op.join(data_path(download=False), 'NIRx', 'nirsport_v1',
                           'nirx_15_3_recording_w_occasional_saturation')
+# This file has saturation in channels of interest
 nirsport1_w_fullsat = op.join(data_path(download=False), 'NIRx', 'nirsport_v1',
-                              'nirx_15_3_recording_w_full_saturation')
+                              'ECST')
 
 
 @requires_testing_data
 @pytest.mark.filterwarnings('ignore:.*Extraction of measurement.*:')
 def test_nirsport_v1_wo_sat():
-    """Test reading NIRX files using path to header file."""
+    """Test NIRSport1 file with no saturation."""
     raw = read_raw_nirx(nirsport1_wo_sat, preload=True)
 
     # Test data import
@@ -54,32 +57,36 @@ def test_nirsport_v1_wo_sat():
     # By default real data is returned
     assert np.sum(np.isnan(raw._data)) == 0
 
+    raw = read_raw_nirx(nirsport1_wo_sat, preload=True, saturated='nan')
+    assert raw._data.shape == (26, 164)
+    assert np.sum(np.isnan(raw._data)) == 0
+
+    with pytest.raises(RuntimeWarning, match='does not contain'):
+        raw = read_raw_nirx(nirsport1_wo_sat, saturated='annotate')
+        assert raw._data.shape == (26, 164)
+        assert np.sum(np.isnan(raw._data)) == 0
+
 
 @pytest.mark.filterwarnings('ignore:.*contains saturated data.*:')
 @pytest.mark.filterwarnings('ignore:.*Extraction of measurement.*:')
 @requires_testing_data
 def test_nirsport_v1_w_sat():
-    """Test reading NIRX files using path to header file."""
+    """Test NIRSport1 file with NaNs but not in channel of interest."""
     raw = read_raw_nirx(nirsport1_w_sat, preload=True)
 
     # Test data import
     assert raw._data.shape == (26, 176)
     assert raw.info['sfreq'] == 10.416667
-
-    # By default real data is returned
     assert np.sum(np.isnan(raw._data)) == 0
 
-    # Ideally the following function should return NaNs.
-    # However, the measured data does not have NaNs
-    # in the channels of interest.
     raw = read_raw_nirx(nirsport1_w_sat, preload=True, saturated='nan')
     assert raw._data.shape == (26, 176)
-    # assert np.isnan(raw._data).any() is True
+    assert np.sum(np.isnan(raw._data)) == 0
 
-    # The data should contain nans, so the annotation shouldn't throw warning
-    # However, the test file does not have nans in the specified channels.
-    # raw = read_raw_nirx(nirsport1_w_sat, preload=True, saturated='annotate')
-    # assert np.sum(np.isnan(raw._data)) == 0
+    with pytest.raises(RuntimeWarning, match='does not contain'):
+        raw = read_raw_nirx(nirsport1_w_sat, saturated='annotate')
+        assert raw._data.shape == (26, 176)
+        assert np.sum(np.isnan(raw._data)) == 0
 
 
 @pytest.mark.filterwarnings('ignore:.*contains saturated data.*:')
@@ -90,18 +97,21 @@ def test_nirsport_v1_w_bad_sat():
     raw = read_raw_nirx(nirsport1_w_fullsat, preload=True)
 
     # Test data import
-    assert raw._data.shape == (26, 168)
-    assert raw.info['sfreq'] == 10.416667
+    assert raw._data.shape == (56, 2339)
+    assert raw.info['sfreq'] == 7.8125
 
     # By default real data is returned
     assert np.sum(np.isnan(raw._data)) == 0
 
-    # Ideally the following function should return NaNs.
-    # However, the measured data does not have NaNs
-    # in the channels of interest.
     raw = read_raw_nirx(nirsport1_w_fullsat, preload=True, saturated='nan')
-    assert raw._data.shape == (26, 168)
-    # assert np.isnan(raw._data).any() is True
+    assert raw._data.shape == (56, 2339)
+    assert np.sum(np.isnan(raw._data)) > 1
+    assert 'bad_NAN' not in raw.annotations.description
+
+    raw = read_raw_nirx(nirsport1_w_fullsat, saturated='annotate')
+    assert raw.load_data()._data.shape == (56, 2339)
+    assert np.sum(np.isnan(raw._data)) > 1
+    assert 'bad_NAN' in raw.annotations.description
 
 
 @requires_testing_data
