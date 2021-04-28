@@ -14,7 +14,7 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
 import pytest
 
 import datetime
-from mne.utils import run_tests_if_main, _stamp_to_dt, object_diff
+from mne.utils import _stamp_to_dt, object_diff
 from mne import pick_types, read_annotations, concatenate_raws
 from mne.io.constants import FIFF
 from mne.io import read_raw_fif, read_raw_brainvision
@@ -772,6 +772,3 @@ def test_parse_impedance():
         raw = read_raw_brainvision(vhdr_mixed_lowpass_path,
                                    eog=['HEOG', 'VEOG'], misc=['ECG'])
     assert object_diff(expected_impedances, raw.impedances) == ''
-
-
-run_tests_if_main()

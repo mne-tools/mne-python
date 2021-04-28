@@ -21,7 +21,6 @@ from mne.channels.channels import (_ch_neighbor_adjacency,
 from mne.io import (read_info, read_raw_fif, read_raw_ctf, read_raw_bti,
                     read_raw_eeglab, read_raw_kit, RawArray)
 from mne.io.constants import FIFF
-from mne.utils import _TempDir, run_tests_if_main
 from mne import (pick_types, pick_channels, EpochsArray, EvokedArray,
                  make_ad_hoc_cov, create_info, read_events, Epochs)
 from mne.datasets import testing
@@ -178,9 +177,9 @@ def test_set_channel_types():
     pytest.raises(ValueError, raw.set_channel_types, ch_types)
 
 
-def test_read_ch_adjacency():
+def test_read_ch_adjacency(tmpdir):
     """Test reading channel adjacency templates."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     a = partial(np.array, dtype='<U7')
     # no pep8
     nbh = np.array([[(['MEG0111'], [[a(['MEG0131'])]]),
@@ -500,6 +499,3 @@ def test_combine_channels():
         combine_channels(raw, warn2)
         combine_channels(raw_ch_bad, warn3, drop_bad=True)
     assert len(record) == 3
-
-
-run_tests_if_main()

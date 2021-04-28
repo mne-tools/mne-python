@@ -18,8 +18,7 @@ from mne.coreg import (fit_matched_points, create_default_subject, scale_mri,
                        coregister_fiducials, get_mni_fiducials)
 from mne.io import read_fiducials
 from mne.io.constants import FIFF
-from mne.utils import (run_tests_if_main, requires_nibabel, modified_env,
-                       check_version)
+from mne.utils import requires_nibabel, modified_env, check_version
 from mne.source_space import write_source_spaces
 
 data_path = testing.data_path(download=False)
@@ -279,6 +278,3 @@ def test_get_mni_fiducials():
     fids_est = np.array([f['r'] for f in fids_est])
     dists = np.linalg.norm(fids - fids_est, axis=-1) * 1000.  # -> mm
     assert (dists < 8).all(), dists
-
-
-run_tests_if_main()

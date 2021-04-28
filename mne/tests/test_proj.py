@@ -20,7 +20,6 @@ from mne.preprocessing import maxwell_filter
 from mne.proj import (read_proj, write_proj, make_eeg_average_ref_proj,
                       _has_eeg_average_ref_proj)
 from mne.rank import _compute_rank_int
-from mne.utils import run_tests_if_main
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -403,6 +402,3 @@ def test_sss_proj():
         else:
             mag_names = ch_names[2::3]
             assert this_raw.info['projs'][3]['data']['col_names'] == mag_names
-
-
-run_tests_if_main()

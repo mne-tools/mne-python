@@ -1,17 +1,5 @@
 #!/bin/bash -ef
 
-# Remove numpydoc tests on older Python (builtin docstrings not as good)
-if [ "${PYTHON_VERSION}" == "3.6" ]; then
-	pip uninstall -yq numpydoc;
-fi;
-
-# Test run_tests_if_main
-if [ "${DEPS}" == "minimal" ]; then
-	pip uninstall -yq mne;
-	pip install -e .;
-	python mne/tests/test_evoked.py;
-fi;
-
 USE_DIRS="mne/"
 if [ "${CI_OS_NAME}" != "osx" ]; then
   CONDITION="not ultraslowtest"

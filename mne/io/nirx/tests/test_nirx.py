@@ -16,7 +16,6 @@ from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_nirx
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.transforms import apply_trans, _get_trans
-from mne.utils import run_tests_if_main
 from mne.preprocessing.nirs import source_detector_distances,\
     short_channels
 from mne.io.constants import FIFF
@@ -374,6 +373,3 @@ def test_nirx_standard(fname, boundary_decimal):
     """Test standard operations."""
     _test_raw_reader(read_raw_nirx, fname=fname,
                      boundary_decimal=boundary_decimal)  # low fs
-
-
-run_tests_if_main()

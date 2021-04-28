@@ -320,8 +320,7 @@ def test_cov_estimation_on_raw_reg():
     raw = RawArray(raw._data[:, ::10].copy(), raw.info)  # decimate for speed
     cov_mne = read_cov(erm_cov_fname)
     with pytest.warns(RuntimeWarning, match='Too few samples'):
-        # XXX don't use "shrunk" here, for some reason it makes Travis 2.7
-        # hang... "diagonal_fixed" is much faster. Use long epochs for speed.
+        # "diagonal_fixed" is much faster. Use long epochs for speed.
         cov = compute_raw_covariance(raw, tstep=5., method='diagonal_fixed')
     assert_snr(cov.data, cov_mne.data, 5)
 

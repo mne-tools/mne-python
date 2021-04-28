@@ -18,7 +18,7 @@ from mne.io.pick import (channel_indices_by_type, channel_type,
                          _DATA_CH_TYPES_SPLIT)
 from mne.io.constants import FIFF
 from mne.datasets import testing
-from mne.utils import run_tests_if_main, catch_logging, assert_object_equal
+from mne.utils import catch_logging, assert_object_equal
 
 data_path = testing.data_path(download=False)
 fname_meeg = op.join(data_path, 'MEG', 'sample',
@@ -616,6 +616,3 @@ def test_get_channel_types_equiv(meg, eeg, ordered):
     types = np.array(raw.get_channel_types(picks=picks))
     types_iter = np.array([channel_type(raw.info, idx) for idx in picks])
     assert_array_equal(types, types_iter)
-
-
-run_tests_if_main()

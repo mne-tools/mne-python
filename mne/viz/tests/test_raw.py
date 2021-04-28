@@ -13,8 +13,9 @@ import matplotlib.pyplot as plt
 
 from mne import read_events, pick_types, Annotations, create_info
 from mne.datasets import testing
+from mne.fixes import _close_event
 from mne.io import read_raw_fif, read_raw_ctf, RawArray
-from mne.utils import _dt_to_stamp, _click_ch_name, _close_event
+from mne.utils import _dt_to_stamp, _click_ch_name
 from mne.viz.utils import _fake_click
 from mne.annotations import _sync_onset
 from mne.viz import plot_raw, plot_sensors

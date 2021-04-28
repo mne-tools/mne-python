@@ -23,8 +23,7 @@ from mne import Epochs, read_events, read_evokeds, report as report_mod
 from mne.io import read_raw_fif
 from mne.datasets import testing
 from mne.report import Report, open_report, _ReportScraper
-from mne.utils import (requires_nibabel, Bunch,
-                       run_tests_if_main, requires_h5py)
+from mne.utils import requires_nibabel, Bunch, requires_h5py
 from mne.viz import plot_alignment
 from mne.io.write import DATE_NONE
 
@@ -643,6 +642,3 @@ def test_survive_pickle(tmpdir):
     report.parse_folder(tempdir, render_bem=False)
     save_name = op.join(tempdir, 'report.html')
     report.save(fname=save_name, open_browser=False)
-
-
-run_tests_if_main()
