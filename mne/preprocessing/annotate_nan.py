@@ -4,9 +4,6 @@
 
 import numpy as np
 
-import warnings
-
-from ..annotations import Annotations
 from ..utils import _mask_to_onsets_offsets, verbose, warn
 
 
