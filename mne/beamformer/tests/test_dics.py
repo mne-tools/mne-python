@@ -140,6 +140,8 @@ def _make_rand_csd(info, csd):
     return noise_csd, rank
 
 
+@pytest.mark.filterwarnings('ignore:.*real_filter.*will be changed.*:'
+                            'DeprecationWarning')
 @pytest.mark.slowtest
 @testing.requires_testing_data
 @requires_h5py
@@ -334,6 +336,8 @@ def _fwd_dist(power, fwd, vertices, source_ind, tidx=1):
     return np.linalg.norm(rr_got - rr_want)
 
 
+@pytest.mark.filterwarnings('ignore:.*real_filter.*will be changed.*:'
+                            'DeprecationWarning')
 @idx_param
 @pytest.mark.parametrize('inversion, weight_norm', [
     ('single', None),
@@ -366,6 +370,8 @@ def test_apply_dics_csd(_load_forward, idx, inversion, weight_norm):
         assert power.data[source_ind, 1] > power.data[source_ind, 0]
 
 
+@pytest.mark.filterwarnings('ignore:.*real_filter.*will be changed.*:'
+                            'DeprecationWarning')
 @pytest.mark.parametrize('pick_ori', [None, 'normal', 'max-power'])
 @pytest.mark.parametrize('inversion', ['single', 'matrix'])
 @idx_param
@@ -417,6 +423,8 @@ def _nearest_vol_ind(fwd_vol, fwd, vertices, source_ind):
         fwd['src'][0]['rr'][vertices][source_ind][np.newaxis])[0]
 
 
+@pytest.mark.filterwarnings('ignore:.*real_filter.*will be changed.*:'
+                            'DeprecationWarning')
 @idx_param
 def test_real(_load_forward, idx):
     """Test using a real-valued filter."""
@@ -467,6 +475,8 @@ def test_real(_load_forward, idx):
         apply_dics_csd(csd, filters_vol)
 
 
+@pytest.mark.filterwarnings('ignore:.*real_filter.*will be changed.*:'
+                            'DeprecationWarning')
 @pytest.mark.filterwarnings("ignore:The use of several sensor types with the"
                             ":RuntimeWarning")
 @idx_param
@@ -575,6 +585,8 @@ def test_apply_dics_timeseries(_load_forward, idx):
 @pytest.mark.slowtest
 @testing.requires_testing_data
 @pytest.mark.filterwarnings('ignore:.*tf_dics is dep.*:DeprecationWarning')
+@pytest.mark.filterwarnings('ignore:.*real_filter.*will be changed.*:'
+                            'DeprecationWarning')
 def test_tf_dics(_load_forward):
     """Test 5D time-frequency beamforming based on DICS."""
     fwd_free, fwd_surf, fwd_fixed, _ = _load_forward
@@ -756,6 +768,8 @@ def test_localization_bias_free(bias_params_free, reg, pick_ori, weight_norm,
     assert lower <= perc <= upper
 
 
+@pytest.mark.filterwarnings('ignore:.*real_filter.*will be changed.*:'
+                            'DeprecationWarning')
 @testing.requires_testing_data
 @idx_param
 @pytest.mark.parametrize('whiten', (False, True))

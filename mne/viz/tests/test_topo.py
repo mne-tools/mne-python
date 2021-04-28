@@ -283,7 +283,7 @@ def test_plot_tfr_topo():
     freqs = np.logspace(*np.log10([3, 10]), num=3)
     tfr = AverageTFR(epochs.info, data, epochs.times, freqs, nave)
     fig = tfr.plot([4], baseline=(None, 0), mode='mean', vmax=14., show=False)
-    assert fig.axes[0].get_yaxis().get_scale() == 'log'
+    assert fig[0].axes[0].get_yaxis().get_scale() == 'log'
 
     # one timesample
     tfr = AverageTFR(epochs.info, data[:, :, [0]], epochs.times[[1]],

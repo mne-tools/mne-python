@@ -231,6 +231,20 @@ report.add_slider_to_section(figs, times, 'Evoked Response',
 report.save('report_slider.html', overwrite=True)
 
 ###############################################################################
+# Adding coregistration plot to a report
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# Now we see how :class:`~mne.Report` can plot coregistration results. This is
+# very useful to check the quality of the :term:`trans` coregistration file
+# that allows to align anatomy and MEG sensors.
+
+report = mne.Report(info_fname=info_fname, subject='sample',
+                    subjects_dir=subjects_dir, verbose=True)
+pattern = "sample_audvis_raw-trans.fif"
+report.parse_folder(path, pattern=pattern, render_bem=False)
+report.save('report_coreg.html', overwrite=True)
+
+###############################################################################
 # Adding ``SourceEstimate`` (STC) plot to a report
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #

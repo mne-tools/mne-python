@@ -148,7 +148,8 @@ intersphinx_mapping = {
     'imageio': ('https://imageio.readthedocs.io/en/latest', None),
     'mne_realtime': ('https://mne.tools/mne-realtime', None),
     'picard': ('https://pierreablin.github.io/picard/', None),
-    'qdarkstyle': ('https://qdarkstylesheet.readthedocs.io/en/latest', None)
+    'qdarkstyle': ('https://qdarkstylesheet.readthedocs.io/en/latest', None),
+    'eeglabio': ('https://eeglabio.readthedocs.io/en/latest', None)
 }
 
 
@@ -573,8 +574,9 @@ xl = '5'
 html_context = {
     'build_dev_html': bool(int(os.environ.get('BUILD_DEV_HTML', False))),
     'versions_dropdown': {
-        'dev': 'v0.23 (devel)',
-        'stable': 'v0.22 (stable)',
+        'dev': 'v0.24 (devel)',
+        'stable': 'v0.23 (stable)',
+        '0.22': 'v0.22',
         '0.21': 'v0.21',
         '0.20': 'v0.20',
         '0.19': 'v0.19',
@@ -1020,7 +1022,7 @@ def make_redirects(app, exception):
         # allow overwrite if existing file is just a redirect
         if os.path.isfile(fr_path):
             with open(fr_path, 'r') as fid:
-                for _ in range(9):
+                for _ in range(8):
                     next(fid)
                 line = fid.readline()
                 assert 'Page Redirection' in line, line

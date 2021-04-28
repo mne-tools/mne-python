@@ -33,7 +33,7 @@ from ..io._digitization import (_count_points_by_type,
                                 _get_data_as_dict_from_dig)
 from ..io.meas_info import create_info
 from ..io.open import fiff_open
-from ..io.pick import pick_types
+from ..io.pick import pick_types, _picks_to_idx
 from ..io.constants import FIFF, CHANNEL_LOC_ALIASES
 from ..utils import (warn, copy_function_doc_to_method_doc, _pl, verbose,
                      _check_option, _validate_type, _check_fname, _on_missing,
@@ -52,7 +52,8 @@ _BUILT_IN_MONTAGES = [
     'easycap-M1', 'easycap-M10',
     'mgh60', 'mgh70',
     'standard_1005', 'standard_1020', 'standard_alphabetic',
-    'standard_postfixed', 'standard_prefixed', 'standard_primed'
+    'standard_postfixed', 'standard_prefixed', 'standard_primed',
+    'artinis-octamon', 'artinis-brite23'
 ]
 
 
@@ -725,6 +726,40 @@ def _get_montage_in_head(montage):
         return transform_to_head(montage.copy())
 
 
+def _set_montage_fnirs(info, montage):
+    """Set the montage for fNIRS data.
+
+    This needs to be different to electrodes as each channel has three
+    coordinates that need to be set. For each channel there is a source optode
+    location, a detector optode location, and a channel midpoint that must be
+    stored. This function modifies info['chs'][#]['loc'] and info['dig'] in
+    place.
+    """
+    from ..preprocessing.nirs import _validate_nirs_info
+    # Validate that the fNIRS info is correctly formatted
+    picks = _validate_nirs_info(info)
+
+    # Modify info['chs'][#]['loc'] in place
+    num_ficiduals = len(montage.dig) - len(montage.ch_names)
+    for ch_idx in picks:
+        ch = info['chs'][ch_idx]['ch_name']
+        source, detector = ch.split(' ')[0].split('_')
+        source_pos = montage.dig[montage.ch_names.index(source)
+                                 + num_ficiduals]['r']
+        detector_pos = montage.dig[montage.ch_names.index(detector)
+                                   + num_ficiduals]['r']
+
+        info['chs'][ch_idx]['loc'][3:6] = source_pos
+        info['chs'][ch_idx]['loc'][6:9] = detector_pos
+        midpoint = (source_pos + detector_pos) / 2
+        info['chs'][ch_idx]['loc'][:3] = midpoint
+
+    # Modify info['dig'] in place
+    info['dig'] = montage.dig
+
+    return info
+
+
 @fill_doc
 def _set_montage(info, montage, match_case=True, match_alias=False,
                  on_missing='raise'):
@@ -758,6 +793,7 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
 
     if isinstance(montage, DigMontage):
         mnt_head = _get_montage_in_head(montage)
+        del montage
 
         def _backcompat_value(pos, ref_pos):
             if any(np.isnan(pos)):
@@ -862,6 +898,7 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
 
         for name, use in zip(info_names, info_names_use):
             _loc_view = info['chs'][info['ch_names'].index(name)]['loc']
+            # Next line modifies info['chs'][#]['loc'] in place
             _loc_view[:6] = _backcompat_value(ch_pos_use[use], eeg_ref_pos)
 
         del ch_pos_use
@@ -890,14 +927,23 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
             # in the old dig
             if ref_dig_point in old_dig:
                 digpoints.append(ref_dig_point)
+        # Next line modifies info['dig'] in place
         info['dig'] = _format_dig_points(digpoints, enforce_order=True)
 
         if mnt_head.dev_head_t is not None:
+            # Next line modifies info['dev_head_t'] in place
             info['dev_head_t'] = Transform('meg', 'head', mnt_head.dev_head_t)
 
+        # Handle fNIRS with source, detector and channel
+        fnirs_picks = _picks_to_idx(info, 'fnirs', allow_empty=True)
+        if len(fnirs_picks) > 0:
+            info = _set_montage_fnirs(info, mnt_head)
+
     else:  # None case
+        # Next line modifies info['dig'] in place
         info['dig'] = None
         for ch in info['chs']:
+            # Next line modifies info['chs'][#]['loc'] in place
             ch['loc'] = np.full(12, np.nan)
 
 
@@ -1361,6 +1407,10 @@ def make_standard_montage(kind, head_size=HEAD_SIZE_DEFAULT):
                           MGH (60+3 locations)
     mgh70                 The (newer) 70-channel BrainVision cap used at
                           MGH (70+3 locations)
+
+    artinis-octamon       Artinis OctaMon fNIRS (8 sources, 2 detectors)
+
+    artinis-brite23       Artinis Brite23 fNIRS (11 sources, 7 detectors)
     ===================   =====================================================
 
     .. versionadded:: 0.19.0

@@ -596,8 +596,8 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945,
         ylim for plots (after scaling has been applied). The value
         determines the upper and lower subplot limits. e.g.
         ylim = dict(eeg=[-20, 20]). Valid keys are eeg, mag, grad. If None,
-        the ylim parameter for each channel is determined by the maximum
-        absolute peak.
+        the ylim parameter for each channel type is determined by the minimum
+        and maximum peak.
     scalings : dict | None
         The scalings of the channel types to be applied for plotting. If None,`
         defaults to ``dict(eeg=1e6, grad=1e13, mag=1e15)``.
@@ -757,10 +757,13 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945,
             y_label.append('Amplitude (%s)' % unit)
 
     if ylim is None:
-        # find maxima over all evoked data for each channel pick
-        ymaxes = np.array([max(np.abs(e.data[t]).max() for e in evoked)
+        # find minima and maxima over all evoked data for each channel pick
+        ymaxes = np.array([max((e.data[t]).max() for e in evoked)
                            for t in picks])
-        ylim_ = (-ymaxes, ymaxes)
+        ymins = np.array([min((e.data[t]).min() for e in evoked)
+                          for t in picks])
+
+        ylim_ = (ymins, ymaxes)
     elif isinstance(ylim, dict):
         ylim_ = _handle_default('ylim', ylim)
         ylim_ = [ylim_[kk] for kk in types_used]

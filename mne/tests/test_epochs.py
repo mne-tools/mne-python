@@ -29,7 +29,7 @@ from mne.baseline import rescale
 from mne.datasets import testing
 from mne.chpi import read_head_pos, head_pos_to_trans_rot_t
 from mne.event import merge_events
-from mne.io import RawArray, read_raw_fif
+from mne.io import RawArray, read_raw_fif, read_epochs_eeglab
 from mne.io.constants import FIFF
 from mne.io.proj import _has_eeg_average_ref_proj
 from mne.io.write import write_int, INT32_MAX, _get_split_size
@@ -40,7 +40,8 @@ from mne.epochs import (
     _handle_event_repeated, make_metadata)
 from mne.utils import (requires_pandas, object_diff,
                        catch_logging, _FakeNoPandas,
-                       assert_meg_snr, check_version, _dt_to_stamp)
+                       assert_meg_snr, check_version, _dt_to_stamp,
+                       _check_eeglabio_installed)
 
 data_path = testing.data_path(download=False)
 fname_raw_testing = op.join(data_path, 'MEG', 'sample',
@@ -3094,6 +3095,32 @@ def test_save_complex_data(tmpdir, preload, is_complex, fmt, rtol):
     if fmt == 'single' and not preload and not is_complex:
         rtol = 2e-4
     assert_allclose(data_read, data, rtol=rtol)
+
+
+@pytest.mark.skipif(not _check_eeglabio_installed(strict=False),
+                    reason='eeglabio not installed')
+@pytest.mark.parametrize('preload', (True, False))
+def test_export_eeglab(tmpdir, preload):
+    """Test saving an Epochs instance to EEGLAB's set format."""
+    raw, events = _get_data()[:2]
+    raw.load_data()
+    epochs = Epochs(raw, events, preload=preload)
+    temp_fname = op.join(str(tmpdir), 'test.set')
+    epochs.export(temp_fname)
+    epochs.drop_channels([ch for ch in ['epoc', 'STI 014']
+                          if ch in epochs.ch_names])
+    epochs_read = read_epochs_eeglab(temp_fname)
+    assert epochs.ch_names == epochs_read.ch_names
+    cart_coords = np.array([d['loc'][:3]
+                           for d in epochs.info['chs']])  # just xyz
+    cart_coords_read = np.array([d['loc'][:3]
+                                for d in epochs_read.info['chs']])
+    assert_allclose(cart_coords, cart_coords_read)
+    assert_array_equal(epochs.events[:, 0],
+                       epochs_read.events[:, 0])  # latency
+    assert epochs.event_id.keys() == epochs_read.event_id.keys()  # just keys
+    assert_allclose(epochs.times, epochs_read.times)
+    assert_allclose(epochs.get_data(), epochs_read.get_data())
 
 
 def test_no_epochs(tmpdir):
