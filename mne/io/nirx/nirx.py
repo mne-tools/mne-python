@@ -133,15 +133,27 @@ class RawNIRX(BaseRaw):
                 if (key == 'wl1' or key == 'wl2') \
                     and len(glob.glob('%s/*%s' %
                                       (fname, 'nosatflags_' + key))) == 1:
+
+                    # Here two files have been found, one that is called
+                    # no sat flags. The nosatflag file has no NaNs in it.
+                    # The wlX file has NaNs in it.
+                    # First we determine which of the files has the saturation
+                    # flags in it.
+                    satidx = np.where(['nosatflags' not in op.basename(k)
+                                       for k in files[key]])[0][0]
+
                     if saturated == 'nan':
+                        # In this case data is returned with NaNs in it.
                         warn('The measurement contains saturated data. '
                              'Saturated values will be replaced by NaNs.')
-                        files[key] = files[key][1]
+                        files[key] = files[key][satidx]
                     elif saturated == 'annotate':
+                        # In this case data is returned with NaNs in it and
+                        # annotations will be made with `bad_NAN`
                         warn('The measurement contains saturated data. '
                              'Saturated values will be annotated '
                              'with \'nan\' flags.')
-                        files[key] = files[key][1]
+                        files[key] = files[key][satidx]
                     else:
                         if saturated == 'ignore':
                             warn('The measurement contains saturated data.')

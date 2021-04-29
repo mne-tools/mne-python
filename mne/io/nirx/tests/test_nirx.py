@@ -38,10 +38,10 @@ nirsport1_wo_sat = op.join(data_path(download=False), 'NIRx', 'nirsport_v1',
                            'nirx_15_3_recording_wo_saturation')
 # This file has saturation, but not on the optode pairing in montage
 nirsport1_w_sat = op.join(data_path(download=False), 'NIRx', 'nirsport_v1',
-                          'nirx_15_3_recording_w_occasional_saturation')
+                          'nirx_15_3_recording_w_saturation_not_on_montage_channels')
 # This file has saturation in channels of interest
 nirsport1_w_fullsat = op.join(data_path(download=False), 'NIRx', 'nirsport_v1',
-                              'ECST')
+                              'nirx_15_3_recording_w_saturation_on_montage_channels')
 
 
 @requires_testing_data
@@ -96,20 +96,18 @@ def test_nirsport_v1_w_bad_sat():
     """Test reading NIRX files using path to header file."""
     raw = read_raw_nirx(nirsport1_w_fullsat, preload=True)
 
-    # Test data import
-    assert raw._data.shape == (56, 2339)
-    assert raw.info['sfreq'] == 7.8125
-
     # By default real data is returned
     assert np.sum(np.isnan(raw._data)) == 0
+    assert raw._data.shape == (26, 168)
 
     raw = read_raw_nirx(nirsport1_w_fullsat, preload=True, saturated='nan')
-    assert raw._data.shape == (56, 2339)
     assert np.sum(np.isnan(raw._data)) > 1
+    assert raw._data.shape == (26, 168)
     assert 'bad_NAN' not in raw.annotations.description
 
     raw = read_raw_nirx(nirsport1_w_fullsat, saturated='annotate')
-    assert raw.load_data()._data.shape == (56, 2339)
+    raw.load_data()
+    assert raw._data.shape == (26, 168)
     assert np.sum(np.isnan(raw._data)) > 1
     assert 'bad_NAN' in raw.annotations.description
 
