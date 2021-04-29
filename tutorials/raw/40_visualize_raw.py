@@ -84,8 +84,6 @@ raw.plot()
 #     (un)marked channels to/from the `~mne.Info` object's ``bads``
 #     field (A.K.A. ``raw.info['bads']``).
 #
-# .. TODO: discuss annotation snapping in the below bullets
-#
 # - It allows interactive :term:`annotation <annotations>` of the raw data.
 #
 #   - This allows you to mark time spans that should be excluded from future
