@@ -138,5 +138,7 @@ brain.add_annotation('aparc.a2009s', borders=False)
 #
 # .. footbibliography::
 #
-# .. _`FreeSurfer installation guide`: https://surfer.nmr.mgh.harvard.edu/fswiki/DownloadAndInstall  # noqa E501
-# .. _`recommended reconstruction workflow`: https://surfer.nmr.mgh.harvard.edu/fswiki/RecommendedReconstruction
+# .. _`FreeSurfer installation guide`:
+#    https://surfer.nmr.mgh.harvard.edu/fswiki/DownloadAndInstall
+# .. _`recommended reconstruction workflow`:
+#    https://surfer.nmr.mgh.harvard.edu/fswiki/RecommendedReconstruction
