@@ -38,10 +38,12 @@ nirsport1_wo_sat = op.join(data_path(download=False), 'NIRx', 'nirsport_v1',
                            'nirx_15_3_recording_wo_saturation')
 # This file has saturation, but not on the optode pairing in montage
 nirsport1_w_sat = op.join(data_path(download=False), 'NIRx', 'nirsport_v1',
-                          'nirx_15_3_recording_w_saturation_not_on_montage_channels')
+                          'nirx_15_3_recording_w_saturation_'
+                          'not_on_montage_channels')
 # This file has saturation in channels of interest
 nirsport1_w_fullsat = op.join(data_path(download=False), 'NIRx', 'nirsport_v1',
-                              'nirx_15_3_recording_w_saturation_on_montage_channels')
+                              'nirx_15_3_recording_w_'
+                              'saturation_on_montage_channels')
 
 
 @requires_testing_data
