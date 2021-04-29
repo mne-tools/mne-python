@@ -10,12 +10,13 @@ import copy
 import numpy as np
 
 from .fixes import _get_img_fdata
+from .morph_map import read_morph_map
 from .parallel import parallel_func
 from .source_estimate import (
     _BaseSurfaceSourceEstimate, _BaseVolSourceEstimate, _BaseSourceEstimate,
     _get_ico_tris)
 from .source_space import SourceSpaces, _ensure_src, _grid_interp
-from .surface import read_morph_map, mesh_edges, read_surface, _compute_nearest
+from .surface import mesh_edges, read_surface, _compute_nearest
 from .transforms import _angle_between_quats, rot_to_quat
 from .utils import (logger, verbose, check_version, get_subjects_dir,
                     warn as warn_, fill_doc, _check_option, _validate_type,
@@ -663,7 +664,8 @@ _slicers = list()
 
 
 def _debug_img(data, affine, title, shape=None):
-    # XXX uncomment these lines for debugging help with volume morph
+    # Uncomment these lines for debugging help with volume morph:
+    #
     # import nibabel as nib
     # if sparse.issparse(data):
     #     data = data.toarray()

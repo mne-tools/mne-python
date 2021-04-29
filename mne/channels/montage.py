@@ -149,8 +149,6 @@ class DigMontage(object):
 
     Parameters
     ----------
-    dev_head_t : array, shape (4, 4)
-        A Device-to-Head transformation matrix.
     dig : list of dict
         The object containing all the dig points.
     ch_names : list of str
@@ -171,10 +169,7 @@ class DigMontage(object):
     .. versionadded:: 0.9.0
     """
 
-    def __init__(self, dev_head_t=None, dig=None, ch_names=None):
-        # XXX: dev_head_t now is np.array, we should add dev_head_transform
-        #      (being instance of Transformation) and move the parameter to the
-        #      end of the call.
+    def __init__(self, *, dig=None, ch_names=None):
         dig = list() if dig is None else dig
         _validate_type(item=dig, types=list, item_name='dig')
         ch_names = list() if ch_names is None else ch_names
@@ -185,7 +180,6 @@ class DigMontage(object):
                 ' of channel names provided (%d)' % (n_eeg, len(ch_names))
             )
 
-        self.dev_head_t = dev_head_t
         self.dig = dig
         self.ch_names = ch_names
 
@@ -679,12 +673,6 @@ def read_dig_egi(fname):
         _scaling=1.,
         _all_data_kwargs_are_none=True
     )
-
-    # XXX: to change to the new naming in v.0.20 (all this block should go)
-    data.pop('point_names')
-    data['hpi'] = data.pop('elp')
-    data['ch_pos'] = data.pop('dig_ch_pos')
-
     return make_dig_montage(**data)
 
 
@@ -735,16 +723,9 @@ def _set_montage_fnirs(info, montage):
     stored. This function modifies info['chs'][#]['loc'] and info['dig'] in
     place.
     """
-    from ..preprocessing.nirs import (_channel_frequencies,
-                                      _channel_chromophore,
-                                      _check_channels_ordered)
+    from ..preprocessing.nirs import _validate_nirs_info
     # Validate that the fNIRS info is correctly formatted
-    freqs = np.unique(_channel_frequencies(info))
-    if freqs.size > 0:
-        picks = _check_channels_ordered(info, freqs)
-    else:
-        picks = _check_channels_ordered(info,
-                                        np.unique(_channel_chromophore(info)))
+    picks = _validate_nirs_info(info)
 
     # Modify info['chs'][#]['loc'] in place
     num_ficiduals = len(montage.dig) - len(montage.ch_names)
@@ -936,10 +917,6 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
                 digpoints.append(ref_dig_point)
         # Next line modifies info['dig'] in place
         info['dig'] = _format_dig_points(digpoints, enforce_order=True)
-
-        if mnt_head.dev_head_t is not None:
-            # Next line modifies info['dev_head_t'] in place
-            info['dev_head_t'] = Transform('meg', 'head', mnt_head.dev_head_t)
 
         # Handle fNIRS with source, detector and channel
         fnirs_picks = _picks_to_idx(info, 'fnirs', allow_empty=True)
@@ -1209,7 +1186,7 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
         'matlab': ('.csd', ),
         'asa electrode': ('.elc', ),
         'generic (Theta-phi in degrees)': ('.txt', ),
-        'standard BESA spherical': ('.elp', ),  # XXX: not same as polhemus elp
+        'standard BESA spherical': ('.elp', ),  # NB: not same as polhemus elp
         'brainvision': ('.bvef', ),
         'xyz': ('.csv', '.tsv', '.xyz'),
     }

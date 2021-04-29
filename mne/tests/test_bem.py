@@ -20,7 +20,7 @@ from mne.preprocessing.maxfilter import fit_sphere_to_headshape
 from mne.io.constants import FIFF
 from mne.transforms import translation
 from mne.datasets import testing
-from mne.utils import (run_tests_if_main, catch_logging, requires_h5py)
+from mne.utils import catch_logging, requires_h5py
 from mne.bem import (_ico_downsample, _get_ico_map, _order_surfaces,
                      _assert_complete_surface, _assert_inside,
                      _check_surface_size, _bem_find_surface)
@@ -413,6 +413,3 @@ def test_io_head_bem(tmpdir):
     assert head['id'] == head_defect['id'] == FIFF.FIFFV_BEM_SURF_ID_HEAD
     assert np.allclose(head['rr'], head_defect['rr'])
     assert np.allclose(head['tris'], head_defect['tris'])
-
-
-run_tests_if_main()

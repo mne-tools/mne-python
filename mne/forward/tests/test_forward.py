@@ -13,8 +13,7 @@ from mne import (read_forward_solution, apply_forward, apply_forward_raw,
                  read_evokeds, VectorSourceEstimate)
 from mne.io import read_info
 from mne.label import read_label
-from mne.utils import (requires_mne, run_subprocess,
-                       run_tests_if_main)
+from mne.utils import requires_mne, run_subprocess
 from mne.forward import (restrict_forward_to_stc, restrict_forward_to_label,
                          Forward, is_fixed_orient, compute_orient_prior,
                          compute_depth_prior)
@@ -446,6 +445,3 @@ def test_equalize_channels():
     fwd1, fwd2 = equalize_channels([fwd1, fwd2])
     assert fwd1.ch_names == ['EEG 001', 'EEG 002']
     assert fwd2.ch_names == ['EEG 001', 'EEG 002']
-
-
-run_tests_if_main()

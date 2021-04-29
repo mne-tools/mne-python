@@ -8,7 +8,6 @@ from itertools import compress
 from mne import io, pick_types, pick_channels, read_events, Epochs
 from mne.channels.interpolation import _make_interpolation_matrix
 from mne.datasets import testing
-from mne.utils import run_tests_if_main
 from mne.preprocessing.nirs import optical_density, scalp_coupling_index
 from mne.datasets.testing import data_path
 from mne.io import read_raw_nirx
@@ -304,6 +303,3 @@ def test_interpolation_nirs():
     raw_od.interpolate_bads()
     assert raw_od.info['bads'] == []
     assert bad_0_std_pre_interp > np.std(raw_od._data[bad_0])
-
-
-run_tests_if_main()

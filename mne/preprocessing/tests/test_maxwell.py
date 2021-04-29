@@ -247,8 +247,7 @@ def test_other_systems():
     raw_sss_auto = maxwell_filter(raw_kit, origin=(0., 0., 0.04),
                                   ignore_ref=True, mag_scale='auto')
     assert_allclose(raw_sss._data, raw_sss_auto._data)
-    # XXX this KIT origin fit is terrible! Eventually we should get a
-    # corrected HSP file with proper coverage
+    # The KIT origin fit is terrible
     with pytest.warns(RuntimeWarning, match='more than 20 mm'):
         with catch_logging() as log:
             pytest.raises(RuntimeError, maxwell_filter, raw_kit,

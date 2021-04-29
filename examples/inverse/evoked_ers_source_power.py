@@ -88,7 +88,7 @@ def _gen_dics(active_win, baseline_win, epochs):
     csd_ers = csd_morlet(epochs, freqs, tmin=active_win[0], tmax=active_win[1],
                          decim=20)
     filters = make_dics(epochs.info, fwd, csd.mean(), pick_ori='max-power',
-                        reduce_rank=True)
+                        reduce_rank=True, real_filter=True)
     stc_base, freqs = apply_dics_csd(csd_baseline.mean(), filters)
     stc_act, freqs = apply_dics_csd(csd_ers.mean(), filters)
     stc_act /= stc_base

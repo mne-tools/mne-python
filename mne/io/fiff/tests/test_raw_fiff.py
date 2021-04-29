@@ -1726,6 +1726,7 @@ def test_bad_acq(fname):
             assert tag == ent
 
 
+@testing.requires_testing_data
 @pytest.mark.skipif(sys.platform not in ('darwin', 'linux'),
                     reason='Needs proper symlinking')
 def test_split_symlink(tmpdir):

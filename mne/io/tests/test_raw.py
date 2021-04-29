@@ -696,12 +696,11 @@ def test_get_data_units():
 
 @pytest.mark.skipif(not _check_eeglabio_installed(strict=False),
                     reason='eeglabio not installed')
-def test_export_eeglab():
+def test_export_eeglab(tmpdir):
     """Test saving a Raw instance to EEGLAB's set format."""
     fname = Path(__file__).parent / "data" / "test_raw.fif"
     raw = read_raw_fif(fname)
     raw.load_data()
-    tmpdir = _TempDir()
     temp_fname = op.join(str(tmpdir), 'test.set')
     raw.export(temp_fname)
     raw.drop_channels([ch for ch in ['epoc']

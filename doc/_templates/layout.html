@@ -5,19 +5,6 @@
     {{ super() }}
 {% endblock %}
 
-<!-- TODO: remove block when upstream fix in place (>0.6.1) -->
-{% block docs_toc %}
-<div class="d-none d-xl-block col-xl-2 bd-toc">
-  {% if meta is defined and not (meta is not none and 'notoc' in meta) %}
-    {% for toc_item in theme_page_sidebar_items %}
-    <div class="toc-item">
-      {% include toc_item %}
-    </div>
-    {% endfor %}
-  {% endif %}
-</div>
-{% endblock %}
-
 {% block docs_body %}
 <div>
   {% block body %} {% endblock %}

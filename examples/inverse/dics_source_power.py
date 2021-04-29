@@ -78,7 +78,7 @@ csd_ers = csd_ers.mean()
 # timecourse.
 fwd = mne.read_forward_solution(fname_fwd)
 filters = make_dics(info, fwd, csd, noise_csd=csd_baseline,
-                    pick_ori='max-power', reduce_rank=True)
+                    pick_ori='max-power', reduce_rank=True, real_filter=True)
 del fwd
 
 ###############################################################################

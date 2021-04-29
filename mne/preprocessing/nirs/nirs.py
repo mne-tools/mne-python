@@ -172,6 +172,17 @@ def _check_channels_ordered(info, pair_vals):
     return picks_cw
 
 
+def _validate_nirs_info(info):
+    """Apply all checks to fNIRS info. Works on all continuous wave types."""
+    freqs = np.unique(_channel_frequencies(info))
+    if freqs.size > 0:
+        picks = _check_channels_ordered(info, freqs)
+    else:
+        picks = _check_channels_ordered(info,
+                                        np.unique(_channel_chromophore(info)))
+    return picks
+
+
 def _fnirs_check_bads(raw):
     """Check consistent labeling of bads across fnirs optodes."""
     # For an optode pair, if one component (light frequency or chroma) is

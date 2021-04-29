@@ -387,3 +387,5 @@
 .. _Sumalyo Datta: https://github.com/Sumalyo
 
 .. _Jack Zhang: https://github.com/jackz314
+
+.. _Felix Klotzsche: https://github.com/eioe

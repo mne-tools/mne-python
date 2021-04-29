@@ -19,7 +19,6 @@ from mne import (read_events, Epochs, pick_channels_evoked, read_cov,
 from mne.channels import read_layout
 from mne.io import read_raw_fif
 from mne.time_frequency.tfr import AverageTFR
-from mne.utils import run_tests_if_main
 
 from mne.viz import (plot_topo_image_epochs, _get_presser,
                      mne_analyze_colormap, plot_evoked_topo)
@@ -283,7 +282,7 @@ def test_plot_tfr_topo():
     freqs = np.logspace(*np.log10([3, 10]), num=3)
     tfr = AverageTFR(epochs.info, data, epochs.times, freqs, nave)
     fig = tfr.plot([4], baseline=(None, 0), mode='mean', vmax=14., show=False)
-    assert fig.axes[0].get_yaxis().get_scale() == 'log'
+    assert fig[0].axes[0].get_yaxis().get_scale() == 'log'
 
     # one timesample
     tfr = AverageTFR(epochs.info, data[:, :, [0]], epochs.times[[1]],
@@ -311,6 +310,3 @@ def test_plot_tfr_topo():
                       None, tfr=data[:, :3, :], freq=these_freqs, x_label=None,
                       y_label=None, colorbar=False, cmap=('RdBu_r', True),
                       yscale='log')
-
-
-run_tests_if_main()

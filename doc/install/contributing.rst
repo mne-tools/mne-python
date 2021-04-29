@@ -957,13 +957,13 @@ down the road. Here are the guidelines:
     - ``[skip circle]`` Skip `CircleCI`_, which tests successful building of
       our documentation.
 
-    - ``[skip github]`` Skip our `GitHub Actions`_, which test installation
+    - ``[skip actions]`` Skip our `GitHub Actions`_, which test installation
       and execution on Linux and macOS systems.
 
     - ``[skip azp]`` Skip `azure`_ which tests installation and execution on
       Windows systems.
 
-    - ``[ci skip]`` is an alias for ``[skip github][skip azp][skip circle]``.
+    - ``[ci skip]`` is an alias for ``[skip actions][skip azp][skip circle]``.
       Notice that ``[skip ci]`` is not a valid tag.
 
     - ``[circle full]`` triggers a "full" documentation build, i.e., all code

@@ -1076,7 +1076,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                              verbose=self.verbose)
         evoked.baseline = self.baseline
 
-        # XXX: above constructor doesn't recreate the times object precisely
+        # the above constructor doesn't recreate the times object precisely
+        # due to numerical precision issues
         evoked.times = self.times.copy()
 
         # pick channels
