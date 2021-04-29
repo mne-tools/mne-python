@@ -95,7 +95,7 @@ def test_nirsport_v1_w_sat():
 @pytest.mark.filterwarnings('ignore:.*Extraction of measurement.*:')
 @requires_testing_data
 def test_nirsport_v1_w_bad_sat():
-    """Test reading NIRX files using path to header file."""
+    """Test NIRSport1 file with NaNs."""
     raw = read_raw_nirx(nirsport1_w_fullsat, preload=True)
 
     # By default real data is returned
