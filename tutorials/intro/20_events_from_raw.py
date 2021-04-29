@@ -107,7 +107,7 @@ raw.copy().pick_types(meg=False, stim=True).plot(start=3, duration=6)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # If your data has events recorded on a STIM channel, you can convert them into
-# an events array using `mne.find_events`. The sample number of the onset
+# an events array using `~mne.find_events`. The sample number of the onset
 # (or offset) of each pulse is recorded as the event time, the pulse magnitudes
 # are converted into integers, and these pairs of sample numbers plus integer
 # codes are stored in :class:`NumPy arrays <numpy.ndarray>` (usually called
@@ -126,7 +126,7 @@ print(events[:5])  # show the first 5
 #     code was on the immediately preceding sample. In practice, that value is
 #     almost always ``0``, but it can be used to detect the *endpoint* of an
 #     event whose duration is longer than one sample. See the documentation of
-#     `mne.find_events` for more details.
+#     `~mne.find_events` for more details.
 #
 # If you don't provide the name of a STIM channel, `~mne.find_events`
 # will first look for MNE-Python :ref:`config variables <tut-configure-mne>`
@@ -142,7 +142,7 @@ print(events[:5])  # show the first 5
 # events to the onset or offset of the STIM channel pulses, setting the minimum
 # pulse duration, and handling of consecutive pulses (with no return to zero
 # between them). For example, you can effectively encode event duration by
-# passing ``output='step'`` to `mne.find_events`; see the documentation
+# passing ``output='step'`` to `~mne.find_events`; see the documentation
 # of `~mne.find_events` for details. More information on working with
 # events arrays (including how to plot, combine, load, and save event arrays)
 # can be found in the tutorial :ref:`tut-event-arrays`.
@@ -285,7 +285,7 @@ print(np.round((rem_events[:, 0] - raw.first_samp) / raw.info['sfreq'], 3))
 
 ###############################################################################
 # Other examples of resting-state analysis can be found in the online
-# documentation for `mne.make_fixed_length_events`, such as
+# documentation for `~mne.make_fixed_length_events`, such as
 # :ref:`ex-envelope-correlation`.
 #
 # .. LINKS
