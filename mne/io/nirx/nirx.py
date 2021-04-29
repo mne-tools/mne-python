@@ -35,7 +35,7 @@ def read_raw_nirx(fname, saturated='ignore', preload=False, verbose=None):
         If "nan" the returned data will contain NaNs during time segments
         when the amplifier was saturated.
         If "annotate" the returned data will contain annotations specifying
-        sections the saturate segments.
+        sections the saturate segments and the data will contain NaNs.
         This argument will only be used if there is no .nosatflags file
         (only if a NIRSport device is used and saturation occurred).
     %(preload)s
@@ -85,7 +85,7 @@ class RawNIRX(BaseRaw):
         If nan the returned data will contain NaNs during time segments
         when the amplifier was saturated.
         If annotate the returned data will contain annotations specifying
-        sections the saturate segments.
+        sections the saturate segments and the data will contain NaNs.
         This argument will only be used if there is no .nosatflags file
         (only if a NIRSport device is used and saturation occurred).
 
