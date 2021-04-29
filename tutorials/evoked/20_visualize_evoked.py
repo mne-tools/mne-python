@@ -163,7 +163,7 @@ for combine in ('mean', 'median', 'gfp', custom_func):
 # for "aud" and "vis" conditions, and linestyles for "left" and "right"
 # conditions, and the traces and legend are styled accordingly.
 
-# sphinx_gallery_thumbnail_number = 14
+# sphinx_gallery_thumbnail_number = 13
 mne.viz.plot_compare_evokeds(evks, picks='MEG 1811', colors=dict(aud=0, vis=1),
                              linestyles=dict(left='solid', right='dashed'))
 
