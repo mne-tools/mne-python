@@ -195,16 +195,20 @@ _ = epochs.drop_bad(reject=reject_criteria)
 epochs.plot_drop_log()
 
 # %%
-# Another way in which epochs can be automatically dropped is if the
-# `~mne.io.Raw` object they're extracted from contains :term:`annotations` that
-# begin with either ``bad`` or ``edge`` ("edge" annotations are automatically
+# Another way in which epochs can be automatically dropped is if the event
+# around which the epoch is formed is too close to the start or end of the
+# `~mne.io.Raw` object (e.g., if the epoch's ``tmax`` would be past the end of
+# the file; this is the cause of the "TOO_SHORT" entry in the
+# `~mne.Epochs.plot_drop_log` plot above). Epochs may also be automatically
+# dropped if the `~mne.io.Raw` object contains :term:`annotations` that begin
+# with either ``bad`` or ``edge`` ("edge" annotations are automatically
 # inserted when concatenating two separate `~mne.io.Raw` objects together). See
 # :ref:`tut-reject-data-spans` for more information about annotation-based
 # epoch rejection.
 #
 # Now that we've dropped the bad epochs, let's look at our evoked responses for
 # some conditions we care about. Here the `~mne.Epochs.average` method will
-# create and `~mne.Evoked` object, which we can then plot. Notice that we\
+# create an `~mne.Evoked` object, which we can then plot. Notice that we
 # select which condition we want to average using the square-bracket indexing
 # (like a :class:`dictionary <dict>`); that returns a smaller epochs object
 # containing just the epochs from that condition, to which we then apply the
