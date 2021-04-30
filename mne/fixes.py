@@ -29,7 +29,7 @@ import numpy as np
 def _median_complex(data, axis):
     """Compute marginal median on complex data safely.
 
-    XXX: Can be removed when numpy introduces a fix.
+    Can be removed when numpy introduces a fix.
     See: https://github.com/scipy/scipy/pull/12676/.
     """
     # np.median must be passed real arrays for the desired result
@@ -147,7 +147,7 @@ def _read_geometry(filepath, read_metadata=False, read_stamp=False):
         else:
             raise ValueError("File does not appear to be a Freesurfer surface")
 
-    coords = coords.astype(np.float64)  # XXX: due to mayavi bug on mac 32bits
+    coords = coords.astype(np.float64)
 
     ret = (coords, faces)
     if read_metadata:
@@ -892,9 +892,9 @@ def svd(a, hermitian=False):
         sgn = np.sign(s)
         s = np.abs(s)
         sidx = np.argsort(s)[..., ::-1]
-        sgn = take_along_axis(sgn, sidx, axis=-1)
-        s = take_along_axis(s, sidx, axis=-1)
-        u = take_along_axis(u, sidx[..., None, :], axis=-1)
+        sgn = np.take_along_axis(sgn, sidx, axis=-1)
+        s = np.take_along_axis(s, sidx, axis=-1)
+        u = np.take_along_axis(u, sidx[..., None, :], axis=-1)
         # singular values are unsigned, move the sign into v
         vt = (u * sgn[..., np.newaxis, :]).swapaxes(-2, -1).conj()
         np.abs(s, out=s)
@@ -902,58 +902,6 @@ def svd(a, hermitian=False):
     else:
         return np.linalg.svd(a)
 
-
-###############################################################################
-# NumPy einsum backward compat (allow "optimize" arg and fix 1.14.0 bug)
-# XXX eventually we should hand-tune our `einsum` calls given our array sizes!
-
-def einsum(*args, **kwargs):
-    if 'optimize' not in kwargs:
-        kwargs['optimize'] = False
-    return np.einsum(*args, **kwargs)
-
-
-try:
-    from numpy import take_along_axis
-except ImportError:  # NumPy < 1.15
-    def take_along_axis(arr, indices, axis):
-        # normalize inputs
-        if axis is None:
-            arr = arr.flat
-            arr_shape = (len(arr),)  # flatiter has no .shape
-            axis = 0
-        else:
-            # there is a NumPy function for this, but rather than copy our
-            # internal uses should be correct, so just normalize quickly
-            if axis < 0:
-                axis += arr.ndim
-            assert 0 <= axis < arr.ndim
-            arr_shape = arr.shape
-
-        # use the fancy index
-        return arr[_make_along_axis_idx(arr_shape, indices, axis)]
-
-    def _make_along_axis_idx(arr_shape, indices, axis):
-        # compute dimensions to iterate over
-        if not np.issubdtype(indices.dtype, np.integer):
-            raise IndexError('`indices` must be an integer array')
-        if len(arr_shape) != indices.ndim:
-            raise ValueError(
-                "`indices` and `arr` must have the same number of dimensions")
-        shape_ones = (1,) * indices.ndim
-        dest_dims = list(range(axis)) + [None] + list(range(axis+1, indices.ndim))
-
-        # build a fancy index, consisting of orthogonal aranges, with the
-        # requested index inserted at the right location
-        fancy_index = []
-        for dim, n in zip(dest_dims, arr_shape):
-            if dim is None:
-                fancy_index.append(indices)
-            else:
-                ind_shape = shape_ones[:dim] + (-1,) + shape_ones[dim+1:]
-                fancy_index.append(np.arange(n).reshape(ind_shape))
-
-        return tuple(fancy_index)
 
 ###############################################################################
 # From nilearn
@@ -1002,17 +950,6 @@ def _crop_colorbar(cbar, cbar_vmin, cbar_vmax):
         cbar.outline.set_xy(outline)
 
     cbar.set_ticks(new_tick_locs, update_ticks=True)
-
-
-###############################################################################
-# Matplotlib
-
-def _get_status(checks):
-    """Deal with old MPL to get check box statuses."""
-    try:
-        return list(checks.get_status())
-    except AttributeError:
-        return [x[0].get_visible() for x in checks.lines]
 
 
 ###############################################################################
@@ -1072,13 +1009,20 @@ else:
 
 
 ###############################################################################
-# Added in Python 3.7 (remove when we drop support for 3.6)
+# workaround: plt.close() doesn't spawn close_event on Agg backend
+# (check MPL github issue #18609; scheduled to be fixed by MPL 3.4)
 
-try:
-    from contextlib import nullcontext
-except ImportError:
-    from contextlib import contextmanager
+def _close_event(fig):
+    """Force calling of the MPL figure close event."""
+    try:
+        fig.canvas.close_event()
+    except ValueError:  # old mpl with Qt
+        pass  # pragma: no cover
 
-    @contextmanager
-    def nullcontext(enter_result=None):
-        yield enter_result
+
+def _is_last_row(ax):
+    try:
+        return ax.get_subplotspec().is_last_row()  # 3.4+
+    except AttributeError:
+        return ax.is_last_row()
+    return ax.get_subplotspec().is_last_row()

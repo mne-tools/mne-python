@@ -43,7 +43,7 @@ limitations and challenges with it. We should work to use some other backend
    separate functions, but we should be able to combine them in a single plot
    as well.
 
-One such issue for tracking TODO lists for surface plotting is :gh:`7162`.
+One such issue for tracking to-do lists for surface plotting is :gh:`7162`.
 
 
 2D visualization

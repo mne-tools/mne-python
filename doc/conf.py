@@ -155,7 +155,7 @@ intersphinx_mapping = {
 
 # NumPyDoc configuration -----------------------------------------------------
 
-# XXX This hack defines what extra methods numpydoc will document
+# Define what extra methods numpydoc will document
 docscrape.ClassDoc.extra_public_methods = mne.utils._doc_special_members
 numpydoc_class_members_toctree = False
 numpydoc_attributes_as_param_list = True
@@ -385,7 +385,7 @@ sphinx_gallery_conf = {
     'reset_modules': ('matplotlib', Resetter()),  # called w/each script
     'image_scrapers': scrapers,
     'show_memory': not sys.platform.startswith('win'),
-    'line_numbers': False,  # XXX currently (0.3.dev0) messes with style
+    'line_numbers': False,  # messes with style
     'within_subsection_order': FileNameSortKey,
     'capture_repr': ('_repr_html_',),
     'junit': os.path.join('..', 'test-results', 'sphinx-gallery', 'junit.xml'),
@@ -574,8 +574,9 @@ xl = '5'
 html_context = {
     'build_dev_html': bool(int(os.environ.get('BUILD_DEV_HTML', False))),
     'versions_dropdown': {
-        'dev': 'v0.23 (devel)',
-        'stable': 'v0.22 (stable)',
+        'dev': 'v0.24 (devel)',
+        'stable': 'v0.23 (stable)',
+        '0.22': 'v0.22',
         '0.21': 'v0.21',
         '0.20': 'v0.20',
         '0.19': 'v0.19',

@@ -8,7 +8,7 @@ import shutil
 import pytest
 
 from mne.datasets.testing import data_path, requires_testing_data
-from mne.utils import run_tests_if_main, requires_h5py
+from mne.utils import requires_h5py
 from mne.io import read_raw_snirf, read_raw_nirx
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.preprocessing.nirs import (optical_density, beer_lambert_law,
@@ -186,6 +186,3 @@ def test_snirf_standard():
     """Test standard operations."""
     _test_raw_reader(read_raw_snirf, fname=sfnirs_homer_103_wShort,
                      boundary_decimal=0)  # low fs
-
-
-run_tests_if_main()

@@ -19,7 +19,7 @@ from mne.inverse_sparse.mxne_inverse import make_stc_from_dipoles, _split_gof
 from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.minimum_norm.tests.test_inverse import \
     assert_var_exp_log, assert_stc_res
-from mne.utils import assert_stcs_equal, run_tests_if_main, catch_logging
+from mne.utils import assert_stcs_equal, catch_logging
 from mne.dipole import Dipole
 from mne.source_estimate import VolSourceEstimate
 
@@ -334,6 +334,3 @@ def test_split_gof_meg(forward, idx, weights):
     want = 100 * want / want.sum()
     assert_allclose(gof_split, want, atol=1e-3, rtol=1e-2)
     assert_allclose(gof_split.sum(), 100, rtol=1e-5)
-
-
-run_tests_if_main()

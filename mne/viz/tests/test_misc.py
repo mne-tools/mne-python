@@ -23,7 +23,7 @@ from mne.viz import (plot_bem, plot_events, plot_source_spectrogram,
                      plot_snr_estimate, plot_filter, plot_csd)
 from mne.viz.misc import _handle_event_colors
 from mne.viz.utils import _get_color_list
-from mne.utils import requires_nibabel, run_tests_if_main
+from mne.utils import requires_nibabel
 from mne.time_frequency import CrossSpectralDensity
 
 data_path = testing.data_path(download=False)
@@ -251,6 +251,3 @@ def test_plot_csd():
     plot_csd(csd, mode='csd')  # Plot cross-spectral density
     plot_csd(csd, mode='coh')  # Plot coherence
     plt.close('all')
-
-
-run_tests_if_main()

@@ -194,7 +194,6 @@ def _check_ch_keys(ch, ci, name='info["chs"]', check_min=True):
                 f'key{_pl(bad)} missing for {name}[{ci}]: {bad}',)
 
 
-# XXX Eventually this should be de-duplicated with the MNE-MATLAB stuff...
 class Info(dict, MontageMixin):
     """Measurement information.
 

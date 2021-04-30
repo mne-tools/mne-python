@@ -5,10 +5,11 @@
 #
 # License: Simplified BSD
 
-import warnings
 from abc import ABC, abstractmethod, abstractclassmethod
+from contextlib import nullcontext
+import warnings
+
 from ..utils import tight_layout
-from ...fixes import nullcontext
 
 
 class _AbstractRenderer(ABC):

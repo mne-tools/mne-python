@@ -23,8 +23,7 @@ from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
                  read_trans)
 from mne.fixes import _get_img_fdata
 from mne.utils import (requires_nibabel, run_subprocess,
-                       modified_env, requires_mne, run_tests_if_main,
-                       check_version)
+                       modified_env, requires_mne, check_version)
 from mne.surface import _accumulate_normals, _triangle_neighbors
 from mne.source_space import _get_mgz_header
 from mne.source_estimate import _get_src_type
@@ -998,8 +997,6 @@ def test_morphed_source_space_return():
     pytest.raises(RuntimeError, stc_morph.to_original_src,
                   src, subjects_dir=subjects_dir)
 
-
-run_tests_if_main()
 
 # The following code was used to generate small-src.fif.gz.
 # Unfortunately the C code bombs when trying to add source space distances,
