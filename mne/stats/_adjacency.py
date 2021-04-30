@@ -28,6 +28,18 @@ def combine_adjacency(*structure):
     -------
     adjacency : scipy.sparse.coo_matrix, shape (n_features, n_features)
         The adjacency matrix.
+
+    Notes
+    -----
+    For 4-dimensional data with shape ``(n_obs, n_times, n_freqs, n_chans)``,
+    you can specify **no** connectivity along a particular dimension by passing
+    a matrix of zeros. For example:
+
+    >>> _time = n_times  # regular lattice connectivity
+    >>> _freq = np.zeros((n_freqs, n_freqs))  # no adjacency between freq. bins
+    >>> _chan = scipy.sparse.diags([1., 1.], offsets=(-1, 1),
+                                   shape=(n_chans, n_chans))  # just for examp.
+    >>> combine_adjacency(_time, _freq, _chan)
     """
     from scipy import sparse
     structure = list(structure)
