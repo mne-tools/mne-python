@@ -37,8 +37,8 @@ def combine_adjacency(*structure):
 
     >>> _time = n_times  # regular lattice adjacency
     >>> _freq = np.zeros((n_freqs, n_freqs))  # no adjacency between freq. bins
-    >>> _chan = scipy.sparse.diags([1., 1.], offsets=(-1, 1),
-                                   shape=(n_chans, n_chans))  # just for examp.
+    >>> _chan = scipy.sparse.diags(
+            [1., 1.], offsets=(-1, 1), shape=(n_chans, n_chans))  # for example
     >>> combine_adjacency(_time, _freq, _chan)
     """
     from scipy import sparse
