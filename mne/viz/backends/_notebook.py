@@ -8,7 +8,8 @@ from contextlib import contextmanager, nullcontext
 
 from IPython.display import display
 from ipywidgets import (Button, Dropdown, FloatSlider, FloatText, HBox,
-                        IntSlider, IntText, Text, VBox, IntProgress, Play)
+                        IntSlider, IntText, Text, VBox, IntProgress, Play,
+                        jsdlink)
 
 from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractStatusBar, _AbstractLayout, _AbstractWidget,
@@ -191,7 +192,7 @@ class _IpyToolBar(_AbstractToolBar, _IpyLayout):
         )
 
     def _tool_bar_add_play_button(self, name, desc, func, shortcut=None):
-        widget = Play(interval=50)
+        widget = Play(interval=500)
         self._layout_add_widget(self._tool_bar_layout, widget)
         self.actions[name] = widget
         return _IpyWidget(widget)
@@ -232,18 +233,14 @@ class _IpyStatusBar(_AbstractStatusBar, _IpyLayout):
 
 class _IpyPlayback(_AbstractPlayback):
     def _playback_initialize(self, func, timeout, value, rng,
-                             play_widget, time_func):
-        precision = 10000
-
-        def _callback(data):
-            time_func(data["new"] / precision, update_widget=True)
-
+                             time_widget, play_widget):
         play = play_widget._widget
-        play.min = int(rng[0] * precision)
-        play.max = int(rng[1] * precision)
-        play.value = int(value * precision)
-        play.step = 100
-        play.observe(_callback, 'value')
+        play.min = rng[0]
+        play.max = rng[1]
+        play.value = value
+        slider = time_widget._widget
+        jsdlink((play, 'value'), (slider, 'value'))
+        jsdlink((slider, 'value'), (play, 'value'))
 
 
 class _IpyMplInterface(_AbstractMplInterface):

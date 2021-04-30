@@ -328,7 +328,7 @@ class _QtStatusBar(_AbstractStatusBar, _QtLayout):
 
 class _QtPlayback(_AbstractPlayback):
     def _playback_initialize(self, func, timeout, value, rng,
-                             play_widget, time_func):
+                             time_widget, play_widget):
         self.figure.plotter.add_callback(func, timeout)
 
 

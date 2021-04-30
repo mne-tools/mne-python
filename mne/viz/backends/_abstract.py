@@ -578,7 +578,7 @@ class _AbstractStatusBar(ABC):
 class _AbstractPlayback(ABC):
     @abstractmethod
     def _playback_initialize(self, func, timeout, value, rng,
-                             play_widget, time_func):
+                             time_widget, play_widget):
         pass
 
 
