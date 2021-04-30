@@ -259,6 +259,7 @@ beginning of your script, session, or notebook::
     >>> import os
     >>> os.environ['ETS_TOOLKIT'] = 'qt4'
     >>> os.environ['QT_API'] = 'pyqt5'
+    >>> os.environ['MNE_3D_OPTION_ANTIALIAS'] = false
 
 This will tell mayavi to use Qt backend with PyQt bindings, instead of the
 default PySide. For more information, see
