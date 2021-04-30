@@ -262,7 +262,7 @@ beginning of your script, session, or notebook::
 
 And for macOS users, it might be helpful to also add the following::
 
-    >>> os.environ['MNE_3D_OPTION_ANTIALIAS'] = false
+    >>> os.environ['MNE_3D_OPTION_ANTIALIAS'] = 'false'
 
 This will tell mayavi to use Qt backend with PyQt bindings, instead of the
 default PySide. For more information, see
