@@ -32,10 +32,10 @@ def combine_adjacency(*structure):
     Notes
     -----
     For 4-dimensional data with shape ``(n_obs, n_times, n_freqs, n_chans)``,
-    you can specify **no** connectivity along a particular dimension by passing
+    you can specify **no** connections along a particular dimension by passing
     a matrix of zeros. For example:
 
-    >>> _time = n_times  # regular lattice connectivity
+    >>> _time = n_times  # regular lattice adjacency
     >>> _freq = np.zeros((n_freqs, n_freqs))  # no adjacency between freq. bins
     >>> _chan = scipy.sparse.diags([1., 1.], offsets=(-1, 1),
                                    shape=(n_chans, n_chans))  # just for examp.
