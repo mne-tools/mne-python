@@ -35,11 +35,17 @@ def combine_adjacency(*structure):
     you can specify **no** connections along a particular dimension by passing
     a matrix of zeros. For example:
 
-    >>> _time = n_times  # regular lattice adjacency
-    >>> _freq = np.zeros((n_freqs, n_freqs))  # no adjacency between freq. bins
-    >>> _chan = scipy.sparse.diags(
-            [1., 1.], offsets=(-1, 1), shape=(n_chans, n_chans))  # for example
-    >>> combine_adjacency(_time, _freq, _chan)
+    >>> import numpy as np
+    >>> from scipy.sparse import diags
+    >>> from mne.stats import combine_adjacency
+    >>> n_times, n_freqs, n_chans = (50, 7, 16)
+    >>> chan_adj = diags([1., 1.], offsets=(-1, 1), shape=(n_chans, n_chans))
+    >>> combine_adjacency(
+    ...     n_times,  # regular lattice adjacency for times
+    ...     np.zeros((n_freqs, n_freqs)),  # no adjacency between freq. bins
+    ...     chan_adj)  # custom matrix, or use mne.channels.find_ch_adjacency
+    <5600x5600 sparse matrix of type '<class 'numpy.float64'>'
+            with 27076 stored elements in COOrdinate format>
     """
     from scipy import sparse
     structure = list(structure)
