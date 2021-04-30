@@ -1352,7 +1352,14 @@ class Brain(object):
         if self._mouse_no_mvt > 0:
             x, y = vtk_picker.GetEventPosition()
             # programmatically detect the picked renderer
-            self.picked_renderer = self.plotter.iren.FindPokedRenderer(x, y)
+            try:
+                # pyvista<0.30.0
+                self.picked_renderer = \
+                    self.plotter.iren.FindPokedRenderer(x, y)
+            except AttributeError:
+                # pyvista>=0.30.0
+                self.picked_renderer = \
+                    self.plotter.iren.interactor.FindPokedRenderer(x, y)
             # trigger the pick
             self.plotter.picker.Pick(x, y, 0, self.picked_renderer)
         self._mouse_no_mvt = 0
