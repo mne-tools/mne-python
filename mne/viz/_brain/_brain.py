@@ -1133,8 +1133,8 @@ class Brain(object):
             timeout=self.refresh_rate_ms,
             value=self._data['time_idx'],
             rng=[0, len(self._data['time']) - 1],
-            time_widget=self.widgets["time"],
             play_widget=self.widgets["play"],
+            time_func=self.callbacks["time"],
         )
 
     def _configure_mplcanvas(self):
