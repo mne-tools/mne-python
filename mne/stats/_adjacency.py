@@ -47,15 +47,11 @@ def combine_adjacency(*structure):
         name = f'structure[{di}]'
         _validate_type(dim, ('int-like', np.ndarray, sparse.spmatrix), name)
         if isinstance(dim, int_like):
-            dim = int(dim)
-            # Don't add the diagonal, because we explicitly remove it later:
-            # dim = sparse.eye(dim, format='coo')
-            # dim += sparse.eye(dim.shape[0], k=1, format='coo')
-            # dim += sparse.eye(dim.shape[0], k=-1, format='coo')
-            ii, jj = np.arange(0, dim - 1), np.arange(1, dim)
-            edges = np.vstack([np.hstack([ii, jj]), np.hstack([jj, ii])])
-            dim = sparse.coo_matrix(
-                (np.ones(edges.shape[1]), edges), (dim, dim), float)
+            # Don't add the diagonal, because we explicitly remove it later
+            dim = sparse.diags([1, 1],
+                               offsets=(-1, 1),
+                               shape=(int(dim), int(dim)),
+                               dtype=float).tocoo()
         else:
             _check_option(f'{name}.ndim', dim.ndim, [2])
             if dim.shape[0] != dim.shape[1]:
