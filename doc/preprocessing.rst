@@ -162,7 +162,7 @@ EEG referencing:
    extract_chpi_locs_ctf
    extract_chpi_locs_kit
    filter_chpi
-   get_hpi_info
+   get_chpi_info
    head_pos_to_trans_rot_t
    read_head_pos
    write_head_pos
