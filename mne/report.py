@@ -2052,8 +2052,7 @@ class Report(object):
                     caption=caption, show=True, image_format=image_format))
 
         # Plot GFP comparison.
-        figs = plot_compare_evokeds(evokeds=evokeds, ci=None,
-                                    show_sensors=True, **kwargs)
+        figs = plot_compare_evokeds(evokeds=evokeds, ci=None, **kwargs)
         for fig in figs:
             img = _fig_to_img(fig, image_format)
             caption = self._gen_caption(prefix='Evoked',
