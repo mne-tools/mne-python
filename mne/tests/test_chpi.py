@@ -33,7 +33,6 @@ ctf_fname = op.join(base_dir, 'test_ctf_raw.fif')
 hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 hp_fname = op.join(base_dir, 'test_chpi_raw_hp.txt')
 raw_fname = op.join(base_dir, 'test_raw.fif')
-event_fname = op.join(base_dir, 'test-eve.fif')
 
 data_path = testing.data_path(download=False)
 sample_fname = op.join(
