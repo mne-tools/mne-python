@@ -10,7 +10,7 @@ from scipy.interpolate import interp1d
 from scipy.spatial.distance import cdist
 import pytest
 
-from mne import pick_types, pick_info, read_events, make_fixed_length_epochs
+from mne import pick_types, pick_info, make_fixed_length_epochs
 from mne.forward._compute_forward import _MAG_FACTOR
 from mne.io import (read_raw_fif, read_raw_artemis123, read_raw_ctf, read_info,
                     RawArray, read_raw_kit)
