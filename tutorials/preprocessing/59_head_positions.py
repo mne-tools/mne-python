@@ -1,4 +1,3 @@
-#%%
 """
 .. _tut-head-pos:
 
@@ -46,7 +45,6 @@ raw.plot_psd()
 chpi_freqs, ch_idx, chpi_codes = mne.chpi.get_chpi_info(raw)
 print(f'cHPI coil frequencies extracted from raw: {chpi_freqs} Hz')
 
-# %%
 ###############################################################################
 # Estimating continuous head position
 # -----------------------------------
