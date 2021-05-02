@@ -816,6 +816,7 @@ class Info(dict, MontageMixin):
         n_eeg = len(pick_types(self, meg=False, eeg=True))
         n_grad = len(pick_types(self, meg='grad'))
         n_mag = len(pick_types(self, meg='mag'))
+        n_fnirs = len(pick_types(self, meg=False, eeg=False, fnirs=True))
         pick_eog = pick_types(self, meg=False, eog=True)
         if len(pick_eog) > 0:
             eog = ', '.join(np.array(self['ch_names'])[pick_eog])
@@ -832,7 +833,7 @@ class Info(dict, MontageMixin):
 
         html += info_template.substitute(
             caption=caption, info=self, meas_date=meas_date, n_eeg=n_eeg,
-            n_grad=n_grad, n_mag=n_mag, eog=eog, ecg=ecg)
+            n_grad=n_grad, n_mag=n_mag, n_fnirs=n_fnirs, eog=eog, ecg=ecg)
         return html
 
 
