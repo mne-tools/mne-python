@@ -308,6 +308,7 @@ def get_chpi_info(inst, on_missing='ignore', verbose=None):
         What to do if no HPI information can be found. If ``'ignore'``
         (default), all return values will be empty arrays or ``None``. If
         ``'raise'``, an exception will be raised.
+    %(verbose)s
 
     Returns
     -------
