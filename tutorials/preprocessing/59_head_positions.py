@@ -23,7 +23,7 @@ harmonics).
 
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Richard Höchenberger <richard.hoechenberger@gmail.com>
-# 
+#
 # License: BSD (3-clause)
 
 from os import path as op
