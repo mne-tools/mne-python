@@ -10,7 +10,7 @@ from scipy.interpolate import interp1d
 from scipy.spatial.distance import cdist
 import pytest
 
-from mne import pick_types, pick_info
+from mne import pick_types, pick_info, read_events, make_fixed_length_epochs
 from mne.forward._compute_forward import _MAG_FACTOR
 from mne.io import (read_raw_fif, read_raw_artemis123, read_raw_ctf, read_info,
                     RawArray, read_raw_kit)
@@ -33,6 +33,7 @@ ctf_fname = op.join(base_dir, 'test_ctf_raw.fif')
 hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 hp_fname = op.join(base_dir, 'test_chpi_raw_hp.txt')
 raw_fname = op.join(base_dir, 'test_raw.fif')
+event_fname = op.join(base_dir, 'test-eve.fif')
 
 data_path = testing.data_path(download=False)
 sample_fname = op.join(
@@ -127,6 +128,18 @@ def test_hpi_info(tmpdir):
         raw.save(temp_name, overwrite=True)
         info = read_info(temp_name)
         assert len(info['hpi_subsystem']) == len(raw.info['hpi_subsystem'])
+
+    # test getting info from different data types
+    info = read_info(chpi_fif_fname)
+    with pytest.warns(RuntimeWarning, match='Active Shielding'):
+        raw = read_raw_fif(chpi_fif_fname, preload=False, allow_maxshield=True)
+    epochs =  make_fixed_length_epochs(raw=raw, preload=True)
+    evoked = epochs.average()
+
+    get_chpi_info(info)
+    get_chpi_info(raw)
+    get_chpi_info(epochs)
+    get_chpi_info(evoked)
 
 
 def _assert_quats(actual, desired, dist_tol=0.003, angle_tol=5., err_rtol=0.5,
