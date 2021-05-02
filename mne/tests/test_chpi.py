@@ -20,7 +20,7 @@ from mne.chpi import (compute_chpi_amplitudes, compute_chpi_locs,
                       _chpi_locs_to_times_dig, _compute_good_distances,
                       extract_chpi_locs_ctf, head_pos_to_trans_rot_t,
                       read_head_pos, write_head_pos, filter_chpi,
-                      _get_hpi_info, _get_hpi_initial_fit,
+                      get_chpi_info, _get_hpi_initial_fit,
                       extract_chpi_locs_kit)
 from mne.datasets import testing
 from mne.simulation import add_chpi
@@ -64,7 +64,7 @@ def test_chpi_adjust():
     raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes')
     with catch_logging() as log:
         _get_hpi_initial_fit(raw.info, adjust=True, verbose='debug')
-        _get_hpi_info(raw.info, verbose='debug')
+        get_chpi_info(raw.info, on_missing='raise', verbose='debug')
     # Ran MaxFilter (with -list, -v, -movecomp, etc.), and got:
     msg = ['HPIFIT: 5 coils digitized in order 5 1 4 3 2',
            'HPIFIT: 3 coils accepted: 1 2 4',
@@ -92,7 +92,7 @@ def test_chpi_adjust():
         'Note: HPI coil 5 isotrak is adjusted by 3.2 mm!'] + msg[-2:]
     with catch_logging() as log:
         _get_hpi_initial_fit(raw.info, adjust=True, verbose='debug')
-        _get_hpi_info(raw.info, verbose='debug')
+        get_chpi_info(raw.info, on_missing='raise', verbose='debug')
     log = log.getvalue().splitlines()
     assert set(log) == set(msg), '\n' + '\n'.join(set(msg) - set(log))
 

@@ -23,7 +23,7 @@ Enhancements
 ~~~~~~~~~~~~
 .. - Add something cool (:gh:`9192` **by new contributor** |New Contributor|_)
 
-- Nothing yet
+- New function :func:`mne.chpi.get_hpi_info` to retrieve basic information about the cHPI system used when recording MEG data (this functionality was hidden in a private function before) (:gh:`9369` by `Richard Höchenberger`_)
 
 
 Bugs

@@ -295,14 +295,50 @@ def extract_chpi_locs_kit(raw, stim_channel='MISC 064', *, verbose=None):
 
 # ############################################################################
 # Estimate positions from data
+
 @verbose
-def _get_hpi_info(info, allow_empty=False, verbose=None):
-    """Get HPI information from raw."""
+def get_chpi_info(inst, on_missing='ignore', verbose=None):
+    """Retrieve cHPI information from the data.
+
+    Parameters
+    ----------
+    inst : instance of Info | Raw | Epochs | Evoked
+        The object from which to extract the HPI information.
+    on_missing : 'ignore' | 'raise'
+        What to do if no HPI information can be found. If ``'ignore'``
+        (default), all return values will be empty arrays or ``None``. If
+        ``'raise'``, an exception will be raised.
+
+    Returns
+    -------
+    hpi_freqs : array, shape (n_coils,)
+        The frequency used for each individual cHPI coil.
+    hpi_pick : int | None
+        The index of the ``STIM`` channel containing information about when
+        which cHPI coils were switched on.
+    hpi_on : array, shape (n_coils,)
+        The values coding for the "on" state of each individual cHPI coil.
+
+    Notes
+    -----
+    .. versionadded:: 0.24
+    """
+    from .io import BaseRaw
+    from . import BaseEpochs
+    from .evoked import Evoked
+
+    _validate_type(item=inst, item_name='inst',
+                   types=(Info, BaseRaw, BaseEpochs, Evoked))
+    _check_option(parameter='on_missing', value=on_missing,
+                  allowed_values=['ignore', 'raise'])
+
+    info = inst if isinstance(inst, Info) else inst.info
+
     if len(info['hpi_meas']) == 0 or \
             ('coil_freq' not in info['hpi_meas'][0]['hpi_coils'][0]):
-        if allow_empty:
+        if on_missing == 'ignore':
             return np.empty(0), None, np.empty(0)
-        raise RuntimeError('Appropriate cHPI information not found in'
+        raise RuntimeError('Appropriate cHPI information not found in '
                            'info["hpi_meas"] and info["hpi_subsystem"], '
                            'cannot process cHPI')
     hpi_coils = sorted(info['hpi_meas'][-1]['hpi_coils'],
@@ -525,7 +561,9 @@ def _setup_hpi_amplitude_fitting(info, t_window, remove_aliased=False,
                                  ext_order=1, allow_empty=False, verbose=None):
     """Generate HPI structure for HPI localization."""
     # grab basic info.
-    hpi_freqs, hpi_pick, hpi_ons = _get_hpi_info(info, allow_empty=allow_empty)
+    on_missing = 'raise' if not allow_empty else 'ignore'
+    hpi_freqs, hpi_pick, hpi_ons = get_chpi_info(info, on_missing=on_missing)
+
     _validate_type(t_window, (str, 'numeric'), 't_window')
     if info['line_freq'] is not None:
         line_freqs = np.arange(info['line_freq'], info['sfreq'] / 3.,

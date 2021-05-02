@@ -1,3 +1,4 @@
+#%%
 """
 .. _tut-head-pos:
 
@@ -11,6 +12,11 @@ extracted from the recording and used to estimate head position as a function
 of time. Here we show an example of how to do this, and how to visualize
 the result.
 
+Authors: Eric Larson <larson.eric.d@gmail.com>
+         Richard Höchenberger <richard.hoechenberger@gmail.com>
+
+License: BSD (3-clause)
+
 HPI frequencies
 ---------------
 
@@ -20,9 +26,6 @@ their head during the recording. Its power spectral density shows five peaks
 frequencies, plus other peaks related to power line interference (60 Hz and
 harmonics).
 """
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-#
-# License: BSD (3-clause)
 
 from os import path as op
 
@@ -35,6 +38,15 @@ fname_raw = op.join(data_path, 'test_move_anon_raw.fif')
 raw = mne.io.read_raw_fif(fname_raw, allow_maxshield='yes').load_data()
 raw.plot_psd()
 
+###############################################################################
+# We can use `mne.chpi.get_get_chpi_info` to retrieve the coil frequencies,
+# the index of the channel indicating when which coil was switched on, and the
+# respective "event codes" associated with each coil's activity.
+
+chpi_freqs, ch_idx, chpi_codes = mne.chpi.get_chpi_info(raw)
+print(f'cHPI coil frequencies extracted from raw: {chpi_freqs} Hz')
+
+# %%
 ###############################################################################
 # Estimating continuous head position
 # -----------------------------------

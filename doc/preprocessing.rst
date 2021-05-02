@@ -156,6 +156,7 @@ EEG referencing:
 .. autosummary::
    :toctree: generated/
 
+   get_hpi_info
    compute_chpi_amplitudes
    compute_chpi_locs
    compute_head_pos
