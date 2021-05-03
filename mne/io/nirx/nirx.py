@@ -17,27 +17,18 @@ from ..meas_info import create_info, _format_dig_points
 from ...annotations import Annotations
 from ...transforms import apply_trans, _get_trans
 from ...utils import (logger, verbose, fill_doc, warn, _check_fname,
-                      _validate_type)
+                      _validate_type, _check_option, _mask_to_onsets_offsets)
 
 
 @fill_doc
-def read_raw_nirx(fname, saturated='ignore', preload=False, verbose=None):
+def read_raw_nirx(fname, saturated='annotate', preload=False, verbose=None):
     """Reader for a NIRX fNIRS recording.
 
     Parameters
     ----------
     fname : str
         Path to the NIRX data folder or header file.
-    saturated : str
-        Replace saturated segments of data with NaNs.
-        If "ignore" (default) the measured data is returned, even if it
-        contains measurements while the amplifier was saturated.
-        If "nan" the returned data will contain NaNs during time segments
-        when the amplifier was saturated.
-        If "annotate" the returned data will contain annotations specifying
-        sections the saturate segments and the data will contain NaNs.
-        This argument will only be used if there is no .nosatflags file
-        (only if a NIRSport device is used and saturation occurred).
+    %(saturated)s
     %(preload)s
     %(verbose)s
 
@@ -52,16 +43,7 @@ def read_raw_nirx(fname, saturated='ignore', preload=False, verbose=None):
 
     Notes
     -----
-    This function has only been tested with NIRScout and NIRSport1 devices.
-
-    The NIRSport device can detect if the amplifier is saturated.
-    Starting from NIRStar 14.2, those saturated values are replaced by NaNs
-    in the standard .wlX files.
-    The raw unmodified measured values are stored in another file
-    called .nosatflags_wlX. As NaN values can cause unexpected behaviour with
-    mathematical functions the default behaviour is to return the
-    saturated data. However, you may request the data with saturated
-    segments replaced with NaN by setting the saturated argument to nan.
+    %(nirx_notes)s
     """
     return RawNIRX(fname, saturated, preload, verbose)
 
@@ -78,17 +60,7 @@ class RawNIRX(BaseRaw):
     ----------
     fname : str
         Path to the NIRX data folder or header file.
-    saturated : str
-        Replace saturated segments of data with NaNs.
-        If ignore (default) the measured data is returned, even if it
-        contains measurements while the amplifier was saturated.
-        If nan the returned data will contain NaNs during time segments
-        when the amplifier was saturated.
-        If annotate the returned data will contain annotations specifying
-        sections the saturate segments and the data will contain NaNs.
-        This argument will only be used if there is no .nosatflags file
-        (only if a NIRSport device is used and saturation occurred).
-
+    %(saturated)s
     %(preload)s
     %(verbose)s
 
@@ -98,25 +70,17 @@ class RawNIRX(BaseRaw):
 
     Notes
     -----
-    This function has only been tested with NIRScout and NIRSport1 devices.
-
-    The NIRSport device can detect if the amplifier is saturated.
-    Starting from NIRStar 14.2, those saturated values are replaced by NaNs
-    in the standard .wlX files.
-    The raw unmodified measured values are stored in another file
-    called .nosatflags_wlX. As NaN values can cause unexpected behaviour with
-    mathematical functions the default behaviour is to return the
-    saturated data. However, you may request the data with saturated
-    segments replaced with NaN by setting the saturated argument to nan.
+    %(nirx_notes)s
     """
 
     @verbose
     def __init__(self, fname, saturated, preload=False, verbose=None):
         from ...externals.pymatreader import read_mat
         from ...coreg import get_mni_fiducials  # avoid circular import prob
-        from ...preprocessing import annotate_nan  # avoid circular import prob
         logger.info('Loading %s' % fname)
         _validate_type(fname, 'path-like', 'fname')
+        _validate_type(saturated, str, 'saturated')
+        _check_option('saturated', saturated, ('annotate', 'nan', 'ignore'))
         fname = str(fname)
         if fname.endswith('.hdr'):
             fname = op.dirname(op.abspath(fname))
@@ -127,49 +91,34 @@ class RawNIRX(BaseRaw):
         files = dict()
         keys = ('hdr', 'inf', 'set', 'tpl', 'wl1', 'wl2',
                 'config.txt', 'probeInfo.mat')
+        nan_mask = dict()
         for key in keys:
             files[key] = glob.glob('%s/*%s' % (fname, key))
+            fidx = 0
             if len(files[key]) != 1:
-                if (key == 'wl1' or key == 'wl2') \
-                    and len(glob.glob('%s/*%s' %
-                                      (fname, 'nosatflags_' + key))) == 1:
-
-                    # Here two files have been found, one that is called
-                    # no sat flags. The nosatflag file has no NaNs in it.
-                    # The wlX file has NaNs in it.
-                    # First we determine which of the files has the saturation
-                    # flags in it.
-                    satidx = np.where(['nosatflags' not in op.basename(k)
-                                       for k in files[key]])[0][0]
-
-                    if saturated == 'nan':
-                        # In this case data is returned with NaNs in it.
-                        warn('The measurement contains saturated data. '
-                             'Saturated values will be replaced by NaNs.')
-                        files[key] = files[key][satidx]
-                    elif saturated == 'annotate':
-                        # In this case data is returned with NaNs in it and
-                        # annotations will be made with `bad_NAN`
-                        warn('The measurement contains saturated data. '
-                             'Saturated values will be annotated '
-                             'with \'nan\' flags.')
-                        files[key] = files[key][satidx]
-                    else:
-                        if saturated == 'ignore':
-                            warn('The measurement contains saturated data.')
-                        else:
-                            raise KeyError("The value specified for saturated "
-                                           "must be one of ignore, nan, or "
-                                           "annotate. "
-                                           f"{saturated} was provided")
-
-                        files[key] = glob.glob('%s/*%s' %
-                                               (fname, 'nosatflags_' + key))[0]
+                if key not in ('wl1', 'wl2'):
+                    raise RuntimeError(
+                        f'Need one {key} file, got {len(files[key])}')
+                noidx = np.where(['nosatflags_' in op.basename(x)
+                                  for x in files[key]])[0]
+                if len(noidx) != 1 or len(files[key]) != 2:
+                    raise RuntimeError(
+                        f'Need one nosatflags and one standard {key} file, '
+                        f'got {len(files[key])}')
+                # Here two files have been found, one that is called
+                # no sat flags. The nosatflag file has no NaNs in it.
+                noidx = noidx[0]
+                if saturated == 'ignore':
+                    # Ignore NaN and return values
+                    fidx = noidx
+                elif saturated == 'nan':
+                    # Return NaN
+                    fidx = 0 if noidx == 1 else 1
                 else:
-                    raise RuntimeError('Expect one %s file, got %d' %
-                                       (key, len(files[key]),))
-            else:
-                files[key] = files[key][0]
+                    assert saturated == 'annotate'  # guaranteed above
+                    fidx = noidx
+                    nan_mask[key] = files[key][0 if noidx == 1 else 1]
+            files[key] = files[key][fidx]
         if len(glob.glob('%s/*%s' % (fname, 'dat'))) != 1:
             warn("A single dat file was expected in the specified path, but "
                  "got %d. This may indicate that the file structure has been "
@@ -177,10 +126,8 @@ class RawNIRX(BaseRaw):
                  (len(glob.glob('%s/*%s' % (fname, 'dat')))))
 
         # Read number of rows/samples of wavelength data
-        last_sample = -1
         with _open(files['wl1']) as fid:
-            for line in fid:
-                last_sample += 1
+            last_sample = fid.read().count('\n') - 1
 
         # Read header file
         # The header file isn't compliant with the configparser. So all the
@@ -383,31 +330,49 @@ class RawNIRX(BaseRaw):
             'sd_index': req_ind,
             'files': files,
             'bounds': bounds,
+            'nan_mask': nan_mask,
         }
+        # Get our saturated mask
+        annot_mask = None
+        for key in ('wl1', 'wl2'):
+            if nan_mask.get(key, None) is None:
+                continue
+            nan_mask[key] = np.isnan(_read_csv_rows_cols(
+                nan_mask[key], 0, last_sample + 1, req_ind, {0: 0, 1: None}).T)
+            if saturated == 'annotate':
+                if annot_mask is None:
+                    annot_mask = nan_mask[key]
+                else:
+                    annot_mask |= nan_mask[key]
+                nan_mask[key] = None  # shouldn't need again
 
         super(RawNIRX, self).__init__(
             info, preload, filenames=[fname], last_samps=[last_sample],
             raw_extras=[raw_extras], verbose=verbose)
 
+        # make onset/duration/description
+        onset, duration, description = list(), list(), list()
+        if annot_mask is not None:
+            on, dur = _mask_to_onsets_offsets(annot_mask.any(0))
+            on = on / info['sfreq']
+            dur = dur / info['sfreq']
+            dur -= on
+            onset.extend(on)
+            duration.extend(dur)
+            description.extend(['BAD_NAN'] * len(on))
+
         # Read triggers from event file
         if op.isfile(files['hdr'][:-3] + 'evt'):
             with _open(files['hdr'][:-3] + 'evt') as fid:
                 t = [re.findall(r'(\d+)', line) for line in fid]
-            onset = np.zeros(len(t), float)
-            duration = np.zeros(len(t), float)
-            description = [''] * len(t)
-            for t_idx in range(len(t)):
-                binary_value = ''.join(t[t_idx][1:])[::-1]
-                trigger_frame = float(t[t_idx][0])
-                onset[t_idx] = (trigger_frame) * (1.0 / samplingrate)
-                duration[t_idx] = 1.0  # No duration info stored in files
-                description[t_idx] = int(binary_value, 2) * 1.
-            annot = Annotations(onset, duration, description)
-            self.set_annotations(annot)
-
-        if saturated == "annotate":
-            annot = annotate_nan(self)
-            self.set_annotations(annot)
+            for t_ in t:
+                binary_value = ''.join(t_[1:])[::-1]
+                trigger_frame = float(t_[0])
+                onset.append(trigger_frame / samplingrate)
+                duration.append(1.)  # No duration info stored in files
+                description.append(float(int(binary_value, 2)))
+        annot = Annotations(onset, duration, description)
+        self.set_annotations(annot)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file.
@@ -415,15 +380,18 @@ class RawNIRX(BaseRaw):
         The NIRX machine records raw data as two different wavelengths.
         The returned data interleaves the wavelengths.
         """
-        sdindex = self._raw_extras[fi]['sd_index']
+        sd_index = self._raw_extras[fi]['sd_index']
 
-        wls = [
-            _read_csv_rows_cols(
+        wls = list()
+        for key in ('wl1', 'wl2'):
+            d = _read_csv_rows_cols(
                 self._raw_extras[fi]['files'][key],
-                start, stop, sdindex,
+                start, stop, sd_index,
                 self._raw_extras[fi]['bounds'][key]).T
-            for key in ('wl1', 'wl2')
-        ]
+            nan_mask = self._raw_extras[fi]['nan_mask'].get(key, None)
+            if nan_mask is not None:
+                d[nan_mask[:, start:stop]] = np.nan
+            wls.append(d)
 
         # TODO: Make this more efficient by only indexing above what we need.
         # For now let's just construct the full data matrix and index.
@@ -438,7 +406,10 @@ class RawNIRX(BaseRaw):
 def _read_csv_rows_cols(fname, start, stop, cols, bounds):
     with open(fname, 'rb') as fid:
         fid.seek(bounds[start])
-        data = fid.read(bounds[stop] - bounds[start]).decode('latin-1')
+        args = list()
+        if bounds[1] is not None:
+            args.append(bounds[stop] - bounds[start])
+        data = fid.read(*args).decode('latin-1')
         x = np.fromstring(data, float, sep=' ')
     x.shape = (stop - start, -1)
     x = x[:, cols]

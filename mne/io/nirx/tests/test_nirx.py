@@ -16,6 +16,7 @@ from mne import pick_types
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_nirx
 from mne.io.tests.test_raw import _test_raw_reader
+from mne.preprocessing import annotate_nan
 from mne.transforms import apply_trans, _get_trans
 from mne.preprocessing.nirs import source_detector_distances,\
     short_channels
@@ -93,24 +94,31 @@ def test_nirsport_v1_w_sat():
 @pytest.mark.filterwarnings('ignore:.*contains saturated data.*:')
 @pytest.mark.filterwarnings('ignore:.*Extraction of measurement.*:')
 @requires_testing_data
-def test_nirsport_v1_w_bad_sat():
+@pytest.mark.parametrize('preload', (True, False))
+def test_nirsport_v1_w_bad_sat(preload):
     """Test NIRSport1 file with NaNs."""
-    raw = read_raw_nirx(nirsport1_w_fullsat, preload=True)
-
-    # By default real data is returned
-    assert np.sum(np.isnan(raw._data)) == 0
-    assert raw._data.shape == (26, 168)
-
-    raw = read_raw_nirx(nirsport1_w_fullsat, preload=True, saturated='nan')
-    assert np.sum(np.isnan(raw._data)) > 1
-    assert raw._data.shape == (26, 168)
-    assert 'bad_NAN' not in raw.annotations.description
-
-    raw = read_raw_nirx(nirsport1_w_fullsat, saturated='annotate')
-    raw.load_data()
-    assert raw._data.shape == (26, 168)
-    assert np.sum(np.isnan(raw._data)) > 1
-    assert 'bad_NAN' in raw.annotations.description
+    fname = nirsport1_w_fullsat
+    raw = read_raw_nirx(fname, preload=preload)
+    data = raw.get_data()
+    assert not np.isnan(data).any()
+    assert len(raw.annotations) == 5
+    # annotated version and ignore should have same data but different annot
+    raw_ignore = read_raw_nirx(fname, saturated='ignore', preload=preload)
+    assert_allclose(raw_ignore.get_data(), data)
+    assert len(raw_ignore.annotations) == 2
+    assert not any('NAN' in d for d in raw_ignore.annotations.description)
+    # nan version should not have same data, but we can give it the same annot
+    raw_nan = read_raw_nirx(fname, saturated='nan', preload=preload)
+    data_nan = raw_nan.get_data()
+    assert np.isnan(data_nan).any()  # XXX should be a better accounting
+    assert not np.allclose(raw_nan.get_data(), data)
+    raw_nan_annot = raw_ignore.copy()
+    raw_nan_annot.set_annotations(annotate_nan(raw_nan))
+    use_mask = np.where(raw.annotations.description == 'BAD_NAN')
+    for key in ('onset', 'duration'):
+        a = getattr(raw_nan_annot.annotations, key)
+        b = getattr(raw.annotations, key)[use_mask]
+        assert_allclose(a, b)
 
 
 @requires_testing_data
@@ -151,24 +159,6 @@ def test_nirx_dat_warn(tmpdir):
     fname = str(tmpdir) + "/data" + "/NIRS-2019-08-23_001.hdr"
     with pytest.raises(RuntimeWarning, match='A single dat'):
         read_raw_nirx(fname, preload=True)
-
-
-@requires_testing_data
-def test_nirx_nosatflags_v1_warn(tmpdir):
-    """Test reading NIRSportv1 files with saturated data."""
-    shutil.copytree(fname_nirx_15_2_short, str(tmpdir) + "/data/")
-    shutil.copyfile(str(tmpdir) + "/data" + "/NIRS-2019-08-23_001.wl1",
-                    str(tmpdir) + "/data" +
-                                  "/NIRS-2019-08-23_001.nosatflags_wl1")
-    fname = str(tmpdir) + "/data" + "/NIRS-2019-08-23_001.hdr"
-    with pytest.raises(RuntimeWarning, match='be replaced by NaNs'):
-        read_raw_nirx(fname, saturated='nan', preload=True)
-    with pytest.raises(RuntimeWarning, match='annotated with \'nan\' flags'):
-        read_raw_nirx(fname, saturated='annotate', preload=True)
-    with pytest.raises(RuntimeWarning, match='contains saturated data'):
-        read_raw_nirx(fname, saturated='ignore', preload=True)
-    with pytest.raises(KeyError, match='specified for saturated must'):
-        read_raw_nirx(fname, saturated='foobar', preload=True)
 
 
 @requires_testing_data
