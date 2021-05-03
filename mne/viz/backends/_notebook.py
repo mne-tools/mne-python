@@ -5,7 +5,9 @@
 # License: Simplified BSD
 
 from contextlib import contextmanager, nullcontext
+from distutils.version import LooseVersion
 
+import pyvista
 from IPython.display import display
 from ipywidgets import (Button, Dropdown, FloatSlider, FloatText, HBox,
                         IntSlider, IntText, Text, VBox, IntProgress, Play,
@@ -356,12 +358,10 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
             self._create_default_tool_bar()
         display(self._tool_bar)
         # viewer
-        try:
-            # pyvista<0.30.0
+        if LooseVersion(pyvista.__version__) < LooseVersion('0.30'):
             viewer = self.plotter.show(
                 use_ipyvtk=True, return_viewer=True)
-        except RuntimeError:
-            # pyvista>=0.30.0
+        else:  # pyvista>=0.30.0
             viewer = self.plotter.show(
                 jupyter_backend="ipyvtklink", return_viewer=True)
         viewer.layout.width = None  # unlock the fixed layout
