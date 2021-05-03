@@ -17,6 +17,7 @@ from numbers import Integral
 
 import numpy as np
 
+from ..fixes import _is_last_row
 from ..io.pick import (channel_type,
                        _VALID_CHANNEL_TYPES, channel_indices_by_type,
                        _DATA_CH_TYPES_SPLIT, _pick_inst, _get_channel_types,
@@ -373,13 +374,6 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
     fig.canvas.draw()  # for axes plots update axes.
     plt_show(show)
     return fig
-
-
-def _is_last_row(ax):
-    try:
-        return ax.get_subplotspec().is_last_row()
-    except AttributeError:  # XXX old mpl
-        return ax.is_last_row()
 
 
 def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
@@ -770,11 +764,12 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         time_unit=time_unit, sphere=sphere)
 
 
-def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
-                     border='none', ylim=None, scalings=None, title=None,
-                     proj=False, vline=[0.0], fig_background=None,
+def plot_evoked_topo(evoked, layout=None, layout_scale=0.945,
+                     color=None, border='none', ylim=None, scalings=None,
+                     title=None, proj=False, vline=[0.0], fig_background=None,
                      merge_grads=False, legend=True, axes=None,
-                     background_color='w', noise_cov=None, show=True):
+                     background_color='w', noise_cov=None, exclude='bads',
+                     show=True):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -801,8 +796,8 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         Y limits for plots (after scaling has been applied). The value
         determines the upper and lower subplot limits. e.g.
         ylim = dict(eeg=[-20, 20]). Valid keys are eeg, mag, grad, misc.
-        If None, the ylim parameter for each channel is determined by
-        the maximum absolute peak.
+        If None, the ylim parameter for each channel type is determined by
+        the minimum and maximum peak.
     scalings : dict | None
         The scalings of the channel types to be applied for plotting. If None,`
         defaults to ``dict(eeg=1e6, grad=1e13, mag=1e15)``.
@@ -840,6 +835,9 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         Can be a string to load a covariance from disk.
 
         .. versionadded:: 0.16.0
+    exclude : list of str | 'bads'
+        Channels names to exclude from the plot. If 'bads', the
+        bad channels are excluded. By default, exclude is set to 'bads'.
     show : bool
         Show figure if True.
 
@@ -879,8 +877,8 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                              axis_facecolor=axis_facecolor,
                              font_color=font_color,
                              merge_channels=merge_grads,
-                             legend=legend, axes=axes, show=show,
-                             noise_cov=noise_cov)
+                             legend=legend, axes=axes, exclude=exclude,
+                             show=show, noise_cov=noise_cov)
 
 
 @fill_doc

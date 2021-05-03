@@ -478,8 +478,7 @@ class MNEBrowseFigure(MNEFigure):
                             self.mne.n_times / self.mne.info['sfreq'])
         # VLINE
         vline_color = (0., 0.75, 0.)
-        vline_kwargs = dict(visible=False, animated=True,
-                            zorder=self.mne.zorder['vline'])
+        vline_kwargs = dict(visible=False, zorder=self.mne.zorder['vline'])
         if self.mne.is_epochs:
             x = np.arange(self.mne.n_epochs)
             vline = ax_main.vlines(
@@ -569,10 +568,7 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.zen_w *= old_width / new_width
         self.mne.zen_h *= old_height / new_height
         self.mne.fig_size_px = (new_width, new_height)
-        # for blitting
         self.canvas.draw_idle()
-        self.canvas.flush_events()
-        self.mne.bg = self.canvas.copy_from_bbox(self.bbox)
 
     def _hover(self, event):
         """Handle motion event when annotating."""
@@ -774,6 +770,7 @@ class MNEBrowseFigure(MNEFigure):
                                 self._toggle_bad_channel(idx)
                             return
                 self._show_vline(event.xdata)  # butterfly / not on data trace
+                self._redraw(update_data=False, annotations=False)
                 return
             # click in vertical scrollbar
             elif event.inaxes == self.mne.ax_vscroll:
@@ -806,8 +803,8 @@ class MNEBrowseFigure(MNEFigure):
                 self._remove_annotation_hover_line()
                 self._draw_annotations()
                 self.canvas.draw_idle()
-            elif event.inaxes == ax_main:  # hide green line
-                self._blit_vline(False)
+            elif event.inaxes == ax_main:
+                self._toggle_vline(False)
 
     def _pick(self, event):
         """Handle matplotlib pick events."""
@@ -1212,8 +1209,7 @@ class MNEBrowseFigure(MNEFigure):
             circle.set_transform(ax.transData)
             center = ax.transData.inverted().transform(
                 ax.transAxes.transform((0.1, 0)))
-            # XXX older MPL doesn't have circle.set_center
-            circle.center = (center[0], circle.center[1])
+            circle.set_center((center[0], circle.center[1]))
             circle.set_edgecolor(
                 self.mne.annotation_segment_colors[label.get_text()])
             circle.set_linewidth(4)
@@ -1872,8 +1868,6 @@ class MNEBrowseFigure(MNEFigure):
         self._update_picks()
         self._update_trace_offsets()
         self._redraw(annotations=True)
-        if self.mne.vline_visible:
-            self._blit_vline(True)
         if self.mne.fig_selection is not None:
             self.mne.fig_selection._style_radio_buttons_butterfly()
 
@@ -2140,14 +2134,13 @@ class MNEBrowseFigure(MNEFigure):
         """Redraw (convenience method for frequently grouped actions)."""
         if update_data:
             self._update_data()
+        if self.mne.vline_visible and self.mne.is_epochs:
+            # prevent flickering
+            _ = self._recompute_epochs_vlines(None)
         self._draw_traces()
         if annotations and not self.mne.is_epochs:
             self._draw_annotations()
         self.canvas.draw_idle()
-        self.canvas.flush_events()
-        self.mne.bg = self.canvas.copy_from_bbox(self.bbox)
-        if self.mne.vline_visible:
-            self._blit_vline(True)
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # EVENT LINES AND MARKER LINES
@@ -2185,41 +2178,45 @@ class MNEBrowseFigure(MNEFigure):
                     textcoords='offset points', fontsize=8)
                 self.mne.event_texts.append(this_text)
 
+    def _recompute_epochs_vlines(self, xdata):
+        """Recompute vline x-coords for epochs plots (after scrolling, etc)."""
+        # special case: changed view duration w/ "home" or "end" key
+        # (no click event, hence no xdata)
+        if xdata is None:
+            xdata = np.array(self.mne.vline.get_segments())[0, 0, 0]
+        # compute the (continuous) times for the lines on each epoch
+        epoch_dur = np.diff(self.mne.boundary_times[:2])[0]
+        rel_time = xdata % epoch_dur
+        abs_time = self.mne.times[0]
+        xs = np.arange(self.mne.n_epochs) * epoch_dur + abs_time + rel_time
+        segs = np.array(self.mne.vline.get_segments())
+        # recreate segs from scratch in case view duration changed
+        # (i.e., handle case when n_segments != n_epochs)
+        segs = np.tile([[0.], [1.]], (len(xs), 1, 2))  # y values
+        segs[..., 0] = np.tile(xs[:, None], 2)         # x values
+        self.mne.vline.set_segments(segs)
+        return rel_time
+
     def _show_vline(self, xdata):
-        """Show the vertical line."""
+        """Show the vertical line(s)."""
         if self.mne.is_epochs:
             # special case: changed view duration w/ "home" or "end" key
             # (no click event, hence no xdata)
-            if xdata is None:
-                xdata = np.array(self.mne.vline.get_segments())[0, 0, 0]
-            # compute the (continuous) times for the lines on each epoch
-            epoch_dur = np.diff(self.mne.boundary_times[:2])[0]
-            rel_time = xdata % epoch_dur
-            abs_time = self.mne.times[0]
-            xs = np.arange(self.mne.n_epochs) * epoch_dur + abs_time + rel_time
-            segs = np.array(self.mne.vline.get_segments())
-            # handle changed view duration (n_segments != n_epochs)
-            if segs.shape[0] != len(xs):
-                segs = np.tile([[0.], [1.]], (len(xs), 1, 2))  # y values
-            segs[..., 0] = np.tile(xs[:, None], 2)
-            self.mne.vline.set_segments(segs)
+            rel_time = self._recompute_epochs_vlines(xdata)
             xdata = rel_time + self.mne.inst.times[0]  # for the text
         else:
             self.mne.vline.set_xdata(xdata)
             self.mne.vline_hscroll.set_xdata(xdata)
-        self.mne.vline_text.set_text(f'{xdata:0.2f}  ')
-        self._blit_vline(True)
+        self.mne.vline_text.set_text(f'{xdata:0.2f} s ')
+        self._toggle_vline(True)
 
-    def _blit_vline(self, visible):
-        """Restore or hide the vline after data change."""
-        self.canvas.restore_region(self.mne.bg)
+    def _toggle_vline(self, visible):
+        """Show or hide the vertical line(s)."""
         for artist in (self.mne.vline, self.mne.vline_hscroll,
                        self.mne.vline_text):
             if artist is not None:
                 artist.set_visible(visible)
                 self.draw_artist(artist)
-        self.canvas.blit()
-        self.canvas.flush_events()
         self.mne.vline_visible = visible
 
 
@@ -2309,7 +2306,7 @@ def _line_figure(inst, axes=None, picks=None, **kwargs):
         fig = axes[0].get_figure()
     else:
         figsize = kwargs.pop('figsize', (10, 2.5 * n_axes + 1))
-        fig = _figure(inst=inst, toolbar=False, FigureClass=MNELineFigure,
+        fig = _figure(inst=inst, toolbar=True, FigureClass=MNELineFigure,
                       figsize=figsize, n_axes=n_axes, **kwargs)
         fig.mne.fig_size_px = fig._get_size_px()  # can't do in __init__
         axes = fig.mne.ax_list

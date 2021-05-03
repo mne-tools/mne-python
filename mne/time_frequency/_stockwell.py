@@ -6,7 +6,6 @@
 from copy import deepcopy
 
 import numpy as np
-# XXX explore cuda optimization at some point.
 
 from ..fixes import _import_fft
 from ..io.pick import _pick_data_channels, pick_info

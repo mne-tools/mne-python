@@ -4,12 +4,12 @@
 #
 # License: Simplified BSD
 
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
+
 from IPython.display import display
 from ipywidgets import (Button, Dropdown, FloatSlider, FloatText, HBox,
                         IntSlider, IntText, Text, VBox, IntProgress)
 
-from ...fixes import nullcontext
 from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractStatusBar, _AbstractLayout, _AbstractWidget,
                         _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback,
@@ -342,11 +342,13 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
         display(self._tool_bar)
         # viewer
         try:
+            # pyvista<0.30.0
             viewer = self.plotter.show(
                 use_ipyvtk=True, return_viewer=True)
         except RuntimeError:
+            # pyvista>=0.30.0
             viewer = self.plotter.show(
-                backend="ipyvtk_simple", return_viewer=True)
+                jupyter_backend="ipyvtk_simple", return_viewer=True)
         viewer.layout.width = None  # unlock the fixed layout
         # main widget
         if self._dock is None:

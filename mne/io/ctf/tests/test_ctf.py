@@ -21,8 +21,7 @@ from mne.io.compensator import get_current_comp
 from mne.io.ctf.constants import CTF
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.tests.test_annotations import _assert_annotations_equal
-from mne.utils import (run_tests_if_main, _clean_names, catch_logging,
-                       _stamp_to_dt)
+from mne.utils import _clean_names, catch_logging, _stamp_to_dt
 from mne.datasets import testing, spm_face, brainstorm
 from mne.io.constants import FIFF
 
@@ -425,6 +424,3 @@ def test_read_ctf_mag_bad_comp(tmpdir, monkeypatch):
     monkeypatch.setattr(mne.io.ctf.ctf, '_read_res4', _bad_res4_grad_comp)
     with pytest.raises(RuntimeError, match='inconsistent compensation grade'):
         read_raw_ctf(path)
-
-
-run_tests_if_main()

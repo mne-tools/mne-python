@@ -653,10 +653,14 @@ def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
 
     # flatmaps (mostly a lot of error checking)
     these_kwargs = kwargs.copy()
-    these_kwargs.update(surface='flat', views='auto')
+    these_kwargs.update(surface='flat', views='auto', hemi='both',
+                        verbose='debug')
     if kind == 'surface' and pick_ori != 'vector' and is_pyvista:
-        with pytest.raises(FileNotFoundError, match='flatmap'):
-            meth(**these_kwargs)  # sample does not have them
+        with catch_logging() as log:
+            with pytest.raises(FileNotFoundError, match='flatmap'):
+                meth(**these_kwargs)  # sample does not have them
+        log = log.getvalue()
+        assert 'offset: 0' in log
     fs_stc = stc.copy()
     fs_stc.subject = 'fsaverage'  # this is wrong, but don't have to care
     flat_meth = getattr(fs_stc, meth_key)
@@ -724,7 +728,12 @@ def test_plot_sensors_connectivity(renderer):
 
     fig = plot_sensors_connectivity(info=info, con=con, picks=picks)
     if renderer._get_3d_backend() == 'pyvista':
-        title = fig.plotter.scalar_bar.GetTitle()
+        try:
+            # pyvista<0.30.0
+            title = fig.plotter.scalar_bar.GetTitle()
+        except AttributeError:
+            # pyvista>=0.30.0
+            title = list(fig.plotter.scalar_bars.values())[0].GetTitle()
     else:
         assert renderer._get_3d_backend() == 'mayavi'
         # the last thing we add is the Tube, so we need to go

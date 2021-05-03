@@ -4,6 +4,7 @@
 #
 # License: BSD (3-clause)
 
+from contextlib import nullcontext
 import itertools
 import os.path as op
 import numpy as np
@@ -18,13 +19,12 @@ from mne import (pick_channels, pick_types, Epochs, read_events,
                  pick_channels_forward, read_evokeds,
                  find_events)
 from mne.epochs import BaseEpochs
-from mne.fixes import nullcontext
 from mne.io import RawArray, read_raw_fif
 from mne.io.constants import FIFF
 from mne.io.proj import _has_eeg_average_ref_proj, Projection
 from mne.io.reference import _apply_reference
 from mne.datasets import testing
-from mne.utils import run_tests_if_main, catch_logging
+from mne.utils import catch_logging
 
 base_dir = op.join(op.dirname(__file__), 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -369,16 +369,14 @@ def test_set_bipolar_reference(inst_type):
 
     # Check channel information
     bp_info = reref.info['chs'][reref.ch_names.index('bipolar')]
-    an_info = reref.info['chs'][inst.ch_names.index('EEG 001')]
+    an_info = inst.info['chs'][inst.ch_names.index('EEG 001')]
     for key in bp_info:
-        if key == 'loc':
-            assert_array_equal(bp_info[key], 0)
-        elif key == 'coil_type':
-            assert_equal(bp_info[key], FIFF.FIFFV_COIL_EEG_BIPOLAR)
+        if key == 'coil_type':
+            assert bp_info[key] == FIFF.FIFFV_COIL_EEG_BIPOLAR, key
         elif key == 'kind':
-            assert_equal(bp_info[key], FIFF.FIFFV_EOG_CH)
-        else:
-            assert_equal(bp_info[key], an_info[key])
+            assert bp_info[key] == FIFF.FIFFV_EOG_CH, key
+        elif key != 'ch_name':
+            assert_equal(bp_info[key], an_info[key], err_msg=key)
 
     # Minimalist call
     reref = set_bipolar_reference(inst, 'EEG 001', 'EEG 002')
@@ -672,6 +670,3 @@ def test_bipolar_combinations():
         raw, ['CH2', 'CH1'], ['CH1', 'CH2'], copy=True)
     _check_bipolar(raw_test, 'CH2', 'CH1')
     _check_bipolar(raw_test, 'CH1', 'CH2')
-
-
-run_tests_if_main()

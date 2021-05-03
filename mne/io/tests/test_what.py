@@ -11,7 +11,7 @@ from mne import what, create_info
 from mne.datasets import testing
 from mne.io import RawArray
 from mne.preprocessing import ICA
-from mne.utils import run_tests_if_main, requires_sklearn
+from mne.utils import requires_sklearn
 
 data_path = testing.data_path(download=False)
 
@@ -50,6 +50,3 @@ def test_what(tmpdir, verbose_debug):
         assert this == want_dict[kind]
     fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave_xfit.dip')
     assert what(fname) == 'unknown'
-
-
-run_tests_if_main()

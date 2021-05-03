@@ -474,8 +474,9 @@ class Brain(object):
         _validate_type(offset, (str, bool), 'offset')
         if isinstance(offset, str):
             _check_option('offset', offset, ('auto',), extra='when str')
-            offset = (surf == 'inflated')
+            offset = (surf in ('inflated', 'flat'))
         offset = None if (not offset or hemi != 'both') else 0.0
+        logger.debug(f'Hemi offset: {offset}')
 
         self._renderer = _get_renderer(name=self._title, size=size,
                                        bgcolor=background,
@@ -1228,7 +1229,7 @@ class Brain(object):
     def _configure_tool_bar(self):
         self._renderer._tool_bar_load_icons()
         self._renderer._tool_bar_set_theme(self.theme)
-        self._renderer._tool_bar_initialize()
+        self._renderer._tool_bar_initialize(name="Toolbar")
         self._renderer._tool_bar_add_file_button(
             name="screenshot",
             desc="Take a screenshot",
@@ -1679,8 +1680,10 @@ class Brain(object):
         # Remove the default key binding
         if getattr(self, "iren", None) is not None:
             try:
+                # pyvista<0.30.0
                 self._renderer.viewer._key_press_event_callbacks.clear()
             except AttributeError:
+                # pyvista>=0.30.0
                 self._renderer.viewer.iren.clear_key_event_callbacks()
 
     def _clear_widgets(self):
@@ -2595,9 +2598,11 @@ class Brain(object):
             Image pixel values.
         """
         img = self._renderer.screenshot(mode)
+        logger.debug(f'Got screenshot of size {img.shape}')
         if time_viewer and self.time_viewer and \
                 self.show_traces and \
                 not self.separate_canvas:
+            from matplotlib.image import imread
             canvas = self.mpl_canvas.fig.canvas
             canvas.draw_idle()
             fig = self.mpl_canvas.fig
@@ -2608,15 +2613,26 @@ class Brain(object):
                 # (e.g., macOS w/Qt 5.14+ and VTK9) then things won't work,
                 # so let's just calculate the DPI we need to get
                 # the correct size output based on the widths being equal
-                dpi = img.shape[1] / fig.get_size_inches()[0]
-                fig.savefig(output, dpi=dpi, format='raw',
+                size_in = fig.get_size_inches()
+                dpi = fig.get_dpi()
+                want_size = tuple(x * dpi for x in size_in)
+                n_pix = want_size[0] * want_size[1]
+                logger.debug(
+                    f'Saving figure of size {size_in} @ {dpi} DPI '
+                    f'({want_size} = {n_pix} pixels)')
+                # Sometimes there can be off-by-one errors here (e.g.,
+                # if in mpl int() rather than int(round()) is used to
+                # compute the number of pixels) so rather than use "raw"
+                # format and try to reshape ourselves, just write to PNG
+                # and read it, which has the dimensions encoded for us.
+                fig.savefig(output, dpi=dpi, format='png',
                             facecolor=self._bg_color, edgecolor='none')
                 output.seek(0)
-                trace_img = np.reshape(
-                    np.frombuffer(output.getvalue(), dtype=np.uint8),
-                    newshape=(-1, img.shape[1], 4))[:, :, :3]
-            img = concatenate_images(
-                [img, trace_img], bgcolor=self._brain_color[:3])
+                trace_img = imread(output, format='png')[:, :, :3]
+                trace_img = np.clip(
+                    np.round(trace_img * 255), 0, 255).astype(np.uint8)
+            bgcolor = np.array(self._brain_color[:3]) / 255
+            img = concatenate_images([img, trace_img], bgcolor=bgcolor)
         return img
 
     @contextlib.contextmanager

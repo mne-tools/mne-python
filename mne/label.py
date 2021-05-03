@@ -13,14 +13,14 @@ import re
 
 import numpy as np
 
+from .morph_map import read_morph_map
 from .parallel import parallel_func, check_n_jobs
 from .source_estimate import (SourceEstimate, VolSourceEstimate,
                               _center_of_mass, extract_label_time_course,
                               spatial_src_adjacency)
 from .source_space import add_source_space_distances, SourceSpaces
 from .stats.cluster_level import _find_clusters, _get_components
-from .surface import (read_surface, fast_cross_3d, mesh_edges, mesh_dist,
-                      read_morph_map)
+from .surface import read_surface, fast_cross_3d, mesh_edges, mesh_dist
 from .utils import (get_subjects_dir, _check_subject, logger, verbose, warn,
                     check_random_state, _validate_type, fill_doc,
                     _check_option, check_version)
@@ -1573,8 +1573,7 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
     # make sure the inputs are arrays
     if np.isscalar(seeds):
         seeds = [seeds]
-    # these can have different sizes so need to use object array
-    seeds = np.asarray([np.atleast_1d(seed) for seed in seeds], dtype='O')
+    seeds = [np.atleast_1d(seed) for seed in seeds]
     extents = np.atleast_1d(extents)
     hemis = np.atleast_1d(hemis)
     n_seeds = len(seeds)
@@ -1636,7 +1635,7 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
     if overlap:
         # create the patches
         parallel, my_grow_labels, _ = parallel_func(_grow_labels, n_jobs)
-        seeds = np.array_split(seeds, n_jobs)
+        seeds = np.array_split(np.array(seeds, dtype='O'), n_jobs)
         extents = np.array_split(extents, n_jobs)
         hemis = np.array_split(hemis, n_jobs)
         names = np.array_split(names, n_jobs)
@@ -1668,7 +1667,7 @@ def _grow_nonoverlapping_labels(subject, seeds_, extents_, hemis, vertices_,
     labels = []
     for hemi in set(hemis):
         hemi_index = (hemis == hemi)
-        seeds = seeds_[hemi_index]
+        seeds = [seed for seed, h in zip(seeds_, hemis) if h == hemi]
         extents = extents_[hemi_index]
         names = names_[hemi_index]
         graph = graphs[hemi]  # distance graph
@@ -1698,6 +1697,10 @@ def _grow_nonoverlapping_labels(subject, seeds_, extents_, hemis, vertices_,
             # add neighbors within allowable distance
             row = graph[vert_from, :]
             for vert_to, dist in zip(row.indices, row.data):
+                # Prevent adding a point that has already been used
+                # (prevents infinite loop)
+                if (vert_to == seeds[label]).any():
+                    continue
                 new_dist = old_dist + dist
 
                 # abort if outside of extent

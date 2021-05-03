@@ -2,6 +2,7 @@
 #
 # License: BSD (3-clause)
 
+from contextlib import nullcontext
 from copy import deepcopy
 import os
 import os.path as op
@@ -33,12 +34,12 @@ from mne import (stats, SourceEstimate, VectorSourceEstimate,
                  write_source_spaces)
 from mne.datasets import testing
 from mne.externals.h5io import write_hdf5
-from mne.fixes import _get_img_fdata, nullcontext
+from mne.fixes import _get_img_fdata
 from mne.io import read_info
 from mne.io.constants import FIFF
+from mne.morph_map import _make_morph_map_hemi
 from mne.source_estimate import grade_to_tris, _get_vol_mask
 from mne.source_space import _get_src_nn
-from mne.surface import _make_morph_map_hemi
 from mne.transforms import apply_trans, invert_transform, transform_surface_to
 from mne.minimum_norm import (read_inverse_operator, apply_inverse,
                               apply_inverse_epochs, make_inverse_operator)
@@ -1679,7 +1680,7 @@ def test_scale_morph_labels(kind, scale, monkeypatch, tmpdir):
             op.join(from_dir, 'bem', 'sample-vol20-src.fif'), src_from)
     scale_mri(subject_from, subject_to, scale, subjects_dir=tempdir,
               annot=True, skip_fiducials=True, verbose=True,
-              overwrite=True)  # XXX
+              overwrite=True)
     if kind == 'surface':
         src_to = read_source_spaces(
             op.join(tempdir, subject_to, 'bem',
@@ -1687,7 +1688,7 @@ def test_scale_morph_labels(kind, scale, monkeypatch, tmpdir):
         labels_to = read_labels_from_annot(
             subject_to, subjects_dir=tempdir)
         # Save time since we know these subjects are identical
-        monkeypatch.setattr(mne.surface, '_make_morph_map_hemi',
+        monkeypatch.setattr(mne.morph_map, '_make_morph_map_hemi',
                             _make_morph_map_hemi_same)
     else:
         src_to = read_source_spaces(

@@ -254,7 +254,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     path = _get_path(path, key, name)
     # To update the testing or misc dataset, push commits, then make a new
     # release on GitHub. Then update the "releases" variable:
-    releases = dict(testing='0.117', misc='0.8')
+    releases = dict(testing='0.118', misc='0.9')
     # And also update the "md5_hashes['testing']" variable below.
     # To update any other dataset, update the data archive itself (upload
     # an updated version) and update the md5 hash.
@@ -345,11 +345,11 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
             bst_raw='fa2efaaec3f3d462b319bc24898f440c',
             bst_resting='70fc7bf9c3b97c4f2eab6260ee4a0430'),
         fake='3194e9f7b46039bb050a74f3e1ae9908',
-        misc='0f88194266121dd9409be94184231f25',
+        misc='f832ce9c4c27e83396cc977b293b0aa9',
         sample='12b75d1cb7df9dfb4ad73ed82f61094f',
         somato='32fd2f6c8c7eb0784a1de6435273c48b',
         spm='9f43f67150e3b694b523a21eb929ea75',
-        testing='d8df35b2e625e213769e97e719de205c',
+        testing='0ca196c6dc4966570e14151cdf7ad4a5',
         multimodal='26ec847ae9ab80f58f204d09e2c08367',
         fnirs_motor='c4935d19ddab35422a69f3326a01fef8',
         opm='370ad1dcfd5c47e029e692c85358a374',

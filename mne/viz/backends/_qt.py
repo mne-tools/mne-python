@@ -391,7 +391,7 @@ class _QtWindow(_AbstractWindow):
 
     def _window_adjust_mplcanvas_layout(self):
         canvas = self._mplcanvas.canvas
-        dock, dock_layout = _create_dock_widget(
+        self._mpl_dock, dock_layout = _create_dock_widget(
             self._window, "Traces", Qt.BottomDockWidgetArea)
         dock_layout.addWidget(canvas)
 
@@ -414,10 +414,14 @@ class _QtWindow(_AbstractWindow):
         # plotter.frame:      QFrame with QVBoxLayout with plotter.interactor as centralWidget  # noqa
         # plotter.ren_win:    vtkXOpenGLRenderWindow
         self._interactor.setMinimumSize(*sz)
+        # Lines like this are useful for debugging these issues:
+        # print('*' * 80)
+        # print(0, self._interactor.app_window.size().height(), self._interactor.size().height(), self._mpl_dock.widget().height(), self._mplcanvas.canvas.size().height())  # noqa
         if adjust_mpl:
             mpl_h = int(round((sz[1] * self._interactor_fraction) /
                               (1 - self._interactor_fraction)))
             self._mplcanvas.canvas.setMinimumSize(sz[0], mpl_h)
+            self._mpl_dock.widget().setMinimumSize(sz[0], mpl_h)
         try:
             yield  # show
         finally:
@@ -431,11 +435,17 @@ class _QtWindow(_AbstractWindow):
             self._interactor.setMinimumSize(0, 0)
             if adjust_mpl:
                 self._mplcanvas.canvas.setMinimumSize(0, 0)
+                self._mpl_dock.widget().setMinimumSize(0, 0)
             self._process_events()
             self._process_events()
-            # 4. Resize the window and interactor to the correct size
+            # 4. Compute the extra height required for dock decorations and add
+            win_h = win_sz.height()
+            if adjust_mpl:
+                win_h += max(
+                    self._mpl_dock.widget().size().height() - mpl_h, 0)
+            # 5. Resize the window and interactor to the correct size
             #    (not sure why, but this is required on macOS at least)
-            self._interactor.window_size = (win_sz.width(), win_sz.height())
+            self._interactor.window_size = (win_sz.width(), win_h)
             self._interactor.resize(ren_sz.width(), ren_sz.height())
             self._process_events()
             self._process_events()
@@ -507,12 +517,18 @@ class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
             with self._window_ensure_minimum_sizes():
                 self._window.show()
         self._update()
+        for plotter in self._all_plotters:
+            plotter._render()
+        self._process_events()
 
 
 def _create_dock_widget(window, name, area):
-    dock = QDockWidget()
+    # create dock widget
+    dock = QDockWidget(name)
+    # add scroll area
     scroll = QScrollArea(dock)
     dock.setWidget(scroll)
+    # give the scroll area a child widget
     widget = QWidget(scroll)
     scroll.setWidget(widget)
     scroll.setWidgetResizable(True)

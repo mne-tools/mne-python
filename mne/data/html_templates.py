@@ -33,7 +33,7 @@ info_template = Template("""
     <tr>
         <th>Good channels</th>
         <td>{{n_mag}} magnetometer, {{n_grad}} gradiometer,
-            and {{n_eeg}} EEG channels</td>
+            {{n_eeg}} EEG channels, and {{n_fnirs}} fNIRS channels.</td>
     </tr>
     <tr>
         <th>Bad channels</th>

@@ -386,7 +386,6 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     return W, max_power_ori
 
 
-# TODO: Eventually we can @jit() this to make it faster
 def _compute_power(Cm, W, n_orient):
     """Use beamformer filters to compute source power.
 
@@ -404,10 +403,9 @@ def _compute_power(Cm, W, n_orient):
     """
     n_sources = W.shape[0] // n_orient
 
-    source_power = np.zeros(n_sources)
-    for k in range(n_sources):
-        Wk = W[n_orient * k: n_orient * k + n_orient]
-        source_power[k] = np.trace(Wk @ Cm @ Wk.conj().T).real
+    Wk = W.reshape(n_sources, n_orient, W.shape[1])
+    source_power = np.trace((Wk @ Cm @ Wk.conj().transpose(0, 2, 1)).real,
+                            axis1=1, axis2=2)
 
     return source_power
 

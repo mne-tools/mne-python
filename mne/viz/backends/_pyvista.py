@@ -72,6 +72,7 @@ class _Figure(object):
             self.store['auto_update'] = False
             self.store["menu_bar"] = False
             self.store["toolbar"] = False
+            self.store["update_app_icon"] = False
             self.store["margin"] = False
             self.store["nrows"] = shape[0]
             self.store["ncols"] = shape[1]
@@ -598,7 +599,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         _close_3d_figure(figure=self.figure)
 
     def set_camera(self, azimuth=None, elevation=None, distance=None,
-                   focalpoint=None, roll=None, reset_camera=True,
+                   focalpoint='auto', roll=None, reset_camera=True,
                    rigid=None):
         _set_3d_view(self.figure, azimuth=azimuth, elevation=elevation,
                      distance=distance, focalpoint=focalpoint, roll=roll,
@@ -716,7 +717,8 @@ class _PyVistaRenderer(_AbstractRenderer):
         return actor
 
     def _process_events(self):
-        _process_events(self.figure.plotter)
+        for plotter in self._all_plotters:
+            _process_events(plotter)
 
     def _update_picking_callback(self,
                                  on_pick):
@@ -970,15 +972,27 @@ def _get_camera_direction(focalpoint, position):
     return r, theta, phi
 
 
-def _set_3d_view(figure, azimuth, elevation, focalpoint, distance, roll=None,
-                 reset_camera=True, rigid=None):
+def _set_3d_view(figure, azimuth=None, elevation=None, focalpoint='auto',
+                 distance=None, roll=None, reset_camera=True, rigid=None):
     viewer = figure.viewer
     rigid = np.eye(4) if rigid is None else rigid
     position = np.array(viewer.camera_position[0])
+    bounds = np.array(viewer.renderer.ComputeVisiblePropBounds())
     if reset_camera:
         viewer.reset_camera()
-    if focalpoint is None:
+
+    # focalpoint: if 'auto', we use the center of mass of the visible
+    # bounds, if None, we use the existing camera focal point otherwise
+    # we use the values given by the user
+    if isinstance(focalpoint, str):
+        _check_option('focalpoint', focalpoint, ('auto',),
+                      extra='when a string')
+        focalpoint = (bounds[1::2] + bounds[::2]) * 0.5
+    elif focalpoint is None:
         focalpoint = np.array(viewer.camera_position[1])
+    else:
+        focalpoint = np.asarray(focalpoint)
+
     # work in the transformed space
     position = apply_trans(rigid, position)
     focalpoint = apply_trans(rigid, focalpoint)
@@ -990,15 +1004,8 @@ def _set_3d_view(figure, azimuth, elevation, focalpoint, distance, roll=None,
         theta = _deg2rad(elevation)
 
     # set the distance
-    renderer = viewer.renderer
-    bounds = np.array(renderer.ComputeVisiblePropBounds())
     if distance is None:
         distance = max(bounds[1::2] - bounds[::2]) * 2.0
-
-    if focalpoint is not None:
-        focalpoint = np.asarray(focalpoint)
-    else:
-        focalpoint = (bounds[1::2] + bounds[::2]) * 0.5
 
     # Now calculate the view_up vector of the camera.  If the view up is
     # close to the 'z' axis, the view plane normal is parallel to the
@@ -1135,22 +1142,20 @@ class PickingHelper:
     def __init__(self, plotter, pick_func):
         self._mouse_no_mvt = 0
         self.plotter = plotter
-        self.plotter.iren.AddObserver(
-            vtk.vtkCommand.RenderEvent,
-            self.on_mouse_move
-        )
-        self.plotter.iren.AddObserver(
-            vtk.vtkCommand.LeftButtonPressEvent,
-            self.on_button_press
-        )
-        self.plotter.iren.AddObserver(
-            vtk.vtkCommand.EndInteractionEvent,
-            self.on_button_release
-        )
+        try:
+            # pyvista<0.30.0
+            add_obs = self.plotter.iren.AddObserver
+        except AttributeError:
+            # pyvista>=0.30.0
+            add_obs = self.plotter.iren.add_observer
+        add_obs(vtk.vtkCommand.RenderEvent, self.on_mouse_move)
+        add_obs(vtk.vtkCommand.LeftButtonPressEvent, self.on_button_press)
+        add_obs(vtk.vtkCommand.EndInteractionEvent, self.on_button_release)
+
         self.plotter.picker = vtk.vtkCellPicker()
         self.plotter.picker.AddObserver(
             vtk.vtkCommand.EndPickEvent,
-            pick_func,
+            pick_func
         )
         self.plotter.picker.SetVolumeOpacityIsovalue(0.)
 

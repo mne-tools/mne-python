@@ -32,7 +32,6 @@ File I/O
    read_morph_map
    read_proj
    read_reject_parameters
-   read_selection
    read_source_estimate
    read_source_spaces
    read_surface
