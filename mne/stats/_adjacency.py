@@ -32,8 +32,8 @@ def combine_adjacency(*structure):
     Notes
     -----
     For 4-dimensional data with shape ``(n_obs, n_times, n_freqs, n_chans)``,
-    you can specify **no** connections along a particular dimension by passing
-    a matrix of zeros. For example:
+    you can specify **no** connections among elements in a particular
+    dimension by passing a matrix of zeros. For example:
 
     >>> import numpy as np
     >>> from scipy.sparse import diags
@@ -43,7 +43,8 @@ def combine_adjacency(*structure):
     >>> combine_adjacency(
     ...     n_times,  # regular lattice adjacency for times
     ...     np.zeros((n_freqs, n_freqs)),  # no adjacency between freq. bins
-    ...     chan_adj)  # custom matrix, or use mne.channels.find_ch_adjacency
+    ...     chan_adj,  # custom matrix, or use mne.channels.find_ch_adjacency
+    ...     )  # doctest: +NORMALIZE_WHITESPACE
     <5600x5600 sparse matrix of type '<class 'numpy.float64'>'
             with 27076 stored elements in COOrdinate format>
     """
