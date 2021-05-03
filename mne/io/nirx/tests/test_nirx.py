@@ -57,16 +57,17 @@ def test_nirsport_v1_wo_sat():
     assert raw.info['sfreq'] == 10.416667
 
     # By default real data is returned
-    assert np.sum(np.isnan(raw._data)) == 0
+    assert np.sum(np.isnan(raw.get_data())) == 0
 
     raw = read_raw_nirx(nirsport1_wo_sat, preload=True, saturated='nan')
-    assert raw._data.shape == (26, 164)
-    assert np.sum(np.isnan(raw._data)) == 0
+    data = raw.get_data()
+    assert data.shape == (26, 164)
+    assert np.sum(np.isnan(data)) == 0
 
-    with pytest.raises(RuntimeWarning, match='does not contain'):
-        raw = read_raw_nirx(nirsport1_wo_sat, saturated='annotate')
-        assert raw._data.shape == (26, 164)
-        assert np.sum(np.isnan(raw._data)) == 0
+    raw = read_raw_nirx(nirsport1_wo_sat, saturated='annotate')
+    data = raw.get_data()
+    assert data.shape == (26, 164)
+    assert np.sum(np.isnan(data)) == 0
 
 
 @pytest.mark.filterwarnings('ignore:.*contains saturated data.*:')
@@ -74,21 +75,23 @@ def test_nirsport_v1_wo_sat():
 @requires_testing_data
 def test_nirsport_v1_w_sat():
     """Test NIRSport1 file with NaNs but not in channel of interest."""
-    raw = read_raw_nirx(nirsport1_w_sat, preload=True)
+    raw = read_raw_nirx(nirsport1_w_sat)
 
     # Test data import
-    assert raw._data.shape == (26, 176)
+    data = raw.get_data()
+    assert data.shape == (26, 176)
     assert raw.info['sfreq'] == 10.416667
-    assert np.sum(np.isnan(raw._data)) == 0
+    assert np.sum(np.isnan(data)) == 0
 
-    raw = read_raw_nirx(nirsport1_w_sat, preload=True, saturated='nan')
-    assert raw._data.shape == (26, 176)
-    assert np.sum(np.isnan(raw._data)) == 0
+    raw = read_raw_nirx(nirsport1_w_sat, saturated='nan')
+    data = raw.get_data()
+    assert data.shape == (26, 176)
+    assert np.sum(np.isnan(data)) == 0
 
-    with pytest.raises(RuntimeWarning, match='does not contain'):
-        raw = read_raw_nirx(nirsport1_w_sat, saturated='annotate')
-        assert raw._data.shape == (26, 176)
-        assert np.sum(np.isnan(raw._data)) == 0
+    raw = read_raw_nirx(nirsport1_w_sat, saturated='annotate')
+    data = raw.get_data()
+    assert data.shape == (26, 176)
+    assert np.sum(np.isnan(data)) == 0
 
 
 @pytest.mark.filterwarnings('ignore:.*contains saturated data.*:')
