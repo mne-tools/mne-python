@@ -275,11 +275,11 @@ def test_calculate_chpi_positions_vv():
     _assert_quats(py_quats, mf_quats, dist_tol=0.001, angle_tol=0.7)
     # degenerate conditions
     raw_no_chpi = read_raw_fif(sample_fname)
-    with pytest.raises(RuntimeError, match='cHPI information not found'):
+    with pytest.raises(ValueError, match='No appropriate cHPI information'):
         _calculate_chpi_positions(raw_no_chpi)
     raw_bad = raw.copy()
     del raw_bad.info['hpi_meas'][0]['hpi_coils'][0]['coil_freq']
-    with pytest.raises(RuntimeError, match='cHPI information not found'):
+    with pytest.raises(ValueError, match='No appropriate cHPI information'):
         _calculate_chpi_positions(raw_bad)
     raw_bad = raw.copy()
     for d in raw_bad.info['dig']:
@@ -606,7 +606,7 @@ def test_chpi_subtraction_filter_chpi():
     with pytest.raises(RuntimeError, match='line_freq.*consider setting it'):
         filter_chpi(raw, t_window=0.2)
     raw.info['line_freq'] = 60.
-    with pytest.raises(RuntimeError, match='cHPI information not found'):
+    with pytest.raises(ValueError, match='No appropriate cHPI information'):
         filter_chpi(raw, t_window=0.2)
     # but this is allowed
     with catch_logging() as log:
