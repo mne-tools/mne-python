@@ -4,6 +4,7 @@
 
 import numpy as np
 
+from ..annotations import Annotations
 from ..utils import verbose
 from .artifact_detection import _annotations_from_mask
 
@@ -21,9 +22,14 @@ def annotate_nan(raw, *, verbose=None):
     Returns
     -------
     annot : instance of Annotations
-        Updated annotations for raw data.
+        New channel-specific annotations for the data.
     """
     data, times = raw.get_data(return_times=True)
-    nans = np.any(np.isnan(data), axis=0)
-    annot = _annotations_from_mask(times, nans, 'BAD_NAN')
+    onsets, durations, ch_names = list(), list(), list()
+    for row, ch_name in zip(data, raw.ch_names):
+        annot = _annotations_from_mask(times, np.isnan(row), 'BAD_NAN')
+        onsets.extend(annot.onset)
+        durations.extend(annot.duration)
+        ch_names.extend([[ch_name]] * len(annot))
+    annot = Annotations(onsets, durations, 'BAD_NAN', ch_names=ch_names)
     return annot

@@ -334,16 +334,19 @@ class RawNIRX(BaseRaw):
         }
         # Get our saturated mask
         annot_mask = None
-        for key in ('wl1', 'wl2'):
+        for ki, key in enumerate(('wl1', 'wl2')):
             if nan_mask.get(key, None) is None:
                 continue
-            nan_mask[key] = np.isnan(_read_csv_rows_cols(
+            mask = np.isnan(_read_csv_rows_cols(
                 nan_mask[key], 0, last_sample + 1, req_ind, {0: 0, 1: None}).T)
-            if saturated == 'annotate':
+            if saturated == 'nan':
+                nan_mask[key] = mask
+            else:
+                assert saturated == 'annotate'
                 if annot_mask is None:
-                    annot_mask = nan_mask[key]
-                else:
-                    annot_mask |= nan_mask[key]
+                    annot_mask = np.zeros(
+                        (len(info['ch_names']), last_sample + 1), bool)
+                annot_mask[ki::2] = mask
                 nan_mask[key] = None  # shouldn't need again
 
         super(RawNIRX, self).__init__(
@@ -351,15 +354,18 @@ class RawNIRX(BaseRaw):
             raw_extras=[raw_extras], verbose=verbose)
 
         # make onset/duration/description
-        onset, duration, description = list(), list(), list()
+        onset, duration, description, ch_names = list(), list(), list(), list()
         if annot_mask is not None:
-            on, dur = _mask_to_onsets_offsets(annot_mask.any(0))
-            on = on / info['sfreq']
-            dur = dur / info['sfreq']
-            dur -= on
-            onset.extend(on)
-            duration.extend(dur)
-            description.extend(['BAD_NAN'] * len(on))
+            assert annot_mask.shape[0] == len(info['ch_names'])
+            for mask, ch_name in zip(annot_mask, info['ch_names']):
+                on, dur = _mask_to_onsets_offsets(mask)
+                on = on / info['sfreq']
+                dur = dur / info['sfreq']
+                dur -= on
+                onset.extend(on)
+                duration.extend(dur)
+                description.extend(['BAD_SATURATED'] * len(on))
+                ch_names.extend([[ch_name]] * len(on))
 
         # Read triggers from event file
         if op.isfile(files['hdr'][:-3] + 'evt'):
@@ -371,7 +377,8 @@ class RawNIRX(BaseRaw):
                 onset.append(trigger_frame / samplingrate)
                 duration.append(1.)  # No duration info stored in files
                 description.append(float(int(binary_value, 2)))
-        annot = Annotations(onset, duration, description)
+                ch_names.append(list())
+        annot = Annotations(onset, duration, description, ch_names=ch_names)
         self.set_annotations(annot)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
