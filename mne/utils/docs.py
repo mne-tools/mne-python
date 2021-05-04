@@ -722,7 +722,7 @@ on_missing : 'raise' | 'warn' | 'ignore'
     {_on_missing_base} no cHPI information can be found. If ``'ignore'`` or
     ``'warn'``, all return values will be empty arrays or ``None``. If
     ``'raise'``, an exception will be raised.
-""" 
+"""
 
 # EEG reference: set_eeg_reference
 docdict['set_eeg_reference_ref_channels'] = """

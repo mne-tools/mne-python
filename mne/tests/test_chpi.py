@@ -11,7 +11,7 @@ from scipy.interpolate import interp1d
 from scipy.spatial.distance import cdist
 import pytest
 
-from mne import pick_types, pick_info, make_fixed_length_epochs
+from mne import pick_types, pick_info
 from mne.forward._compute_forward import _MAG_FACTOR
 from mne.io import (read_raw_fif, read_raw_artemis123, read_raw_ctf, read_info,
                     RawArray, read_raw_kit)
@@ -152,7 +152,7 @@ def test_hpi_info(tmpdir):
                                                          on_missing='ignore')
     assert_array_equal([], hpi_freqs)
     assert stim_ch_idx is None
-    assert_array_equal([], hpi_on_codes) 
+    assert_array_equal([], hpi_on_codes)
 
 
 def _assert_quats(actual, desired, dist_tol=0.003, angle_tol=5., err_rtol=0.5,
