@@ -11,14 +11,13 @@ from mne.chpi import read_head_pos
 from mne.datasets import testing
 from mne.io import read_raw_fif
 from mne.preprocessing import (annotate_movement, compute_average_dev_head_t,
-                               annotate_muscle_zscore)
-from mne import Annotations
+                               annotate_muscle_zscore, annotate_breaks)
+from mne import Annotations, events_from_annotations
 
 data_path = testing.data_path(download=False)
 sss_path = op.join(data_path, 'SSS')
-pre = op.join(sss_path, 'test_move_anon_')
-raw_fname = pre + 'raw.fif'
-pos_fname = op.join(data_path, 'SSS', 'test_move_anon_raw.pos')
+pos_fname = op.join(sss_path, 'test_move_anon_raw.pos')
+raw_fname = op.join(sss_path, 'test_move_anon_raw.fif')
 
 
 @testing.requires_testing_data
@@ -80,3 +79,139 @@ def test_muscle_annotation_without_meeg_data():
     raw.pick_types(meg=False, stim=True)
     with pytest.raises(ValueError, match="No M/EEG channel types found"):
         annot_muscle, scores = annotate_muscle_zscore(raw, threshold=10)
+
+
+@testing.requires_testing_data
+def test_annotate_breaks():
+    """xxx"""
+    raw = read_raw_fif(raw_fname, allow_maxshield='yes')
+    annots = Annotations(onset=[12, 15, 16, 20, 21],
+                         duration=[1, 1, 1, 2, 0.5],
+                         description=['test'],
+                         orig_time=raw.info['meas_date'])
+
+    raw.set_annotations(annots)
+
+    min_duration = 0.5
+    start_after_offset = 0.1
+    stop_before_onset = 0.1
+
+    expected_onsets = np.array(
+        [
+            raw.first_time,
+            13 + start_after_offset,
+            17 + start_after_offset,
+            22 + start_after_offset
+        ]
+    )
+
+    expected_durations = np.array(
+        [
+            12 - raw.first_time - stop_before_onset,
+            15 - 13 - start_after_offset - stop_before_onset,
+            20 - 17 - start_after_offset - stop_before_onset,
+            raw._last_time - 22 - start_after_offset
+        ]
+    )
+
+    break_annots = annotate_breaks(
+        raw=raw,
+        min_duration=min_duration,
+        start_after_offset=start_after_offset,
+        stop_before_onset=stop_before_onset
+    )
+
+    assert_allclose(break_annots.onset, expected_onsets)
+    assert_allclose(break_annots.duration, expected_durations)
+    assert all(description == 'BAD_break'
+               for description in break_annots.description)
+
+    # `ignore` parameter should be respected
+    raw.annotations.description[0] = 'BAD_'
+    break_annots = annotate_breaks(
+        raw=raw,
+        min_duration=min_duration,
+        start_after_offset=start_after_offset,
+        stop_before_onset=stop_before_onset
+    )
+
+    assert_allclose(break_annots.onset,
+                    expected_onsets[[True, False, True, True]])
+    assert_allclose(
+        break_annots.duration,
+        [15 - raw.first_time - stop_before_onset] +
+            list(expected_durations[2:])
+    )
+
+    # Restore annotation description
+    raw.annotations.description[0] = 'test'
+
+    # Test with events
+    events, _ = events_from_annotations(raw=raw)
+    raw.set_annotations(None)
+
+    expected_onsets = np.array(
+        [
+            raw.first_time,
+            12 + start_after_offset,
+            15 + start_after_offset,
+            16 + start_after_offset,
+            20 + start_after_offset,
+            21 + start_after_offset
+        ]
+    )
+
+    expected_durations = np.array(
+        [
+            12 - raw.first_time - stop_before_onset,
+            15 - 12 - start_after_offset - stop_before_onset,
+            16 - 15 - start_after_offset - stop_before_onset,
+            20 - 16 - start_after_offset - stop_before_onset,
+            21 - 20 - start_after_offset - stop_before_onset,
+            raw._last_time - 21 - start_after_offset
+        ]
+    )
+
+    break_annots = annotate_breaks(
+        raw=raw,
+        events=events,
+        min_duration=min_duration,
+        start_after_offset=start_after_offset,
+        stop_before_onset=stop_before_onset
+    )
+
+    assert_allclose(break_annots.onset, expected_onsets)
+    assert_allclose(break_annots.duration, expected_durations)
+
+    # Not finding any break periods
+    break_annots = annotate_breaks(
+        raw=raw,
+        events=events,
+        min_duration=1000,
+    )
+
+    assert len(break_annots) == 0
+
+    # Implausible parameters (would produce break annot of duration < 0)
+    with pytest.raises(ValueError, match='must be greater than 0'):
+        annotate_breaks(
+            raw=raw,
+            min_duration=5,
+            start_after_offset=5,
+            stop_before_onset=5
+        )
+
+    # Empty events array
+    with pytest.raises(ValueError, match='events array must not be empty'):
+        annotate_breaks(raw=raw, events=np.array([]))
+
+    # Invalid `ignore` value
+    with pytest.raises(TypeError, match='must be an instance of str'):
+        annotate_breaks(raw=raw, ignore=('foo', 1))
+
+    # No annotations to work with
+    raw.set_annotations(None)
+    with pytest.raises(ValueError, match='Could not find.*annotations'):
+        annotate_breaks(raw=raw)
+
+

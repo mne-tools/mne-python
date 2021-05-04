@@ -4,12 +4,13 @@
 
 
 import numpy as np
-from ..annotations import (Annotations, _annotations_starts_stops)
+from ..annotations import (Annotations, _annotations_starts_stops,
+                           annotations_from_events)
 from ..transforms import (quat_to_rot, _average_quats, _angle_between_quats,
                           apply_trans, _quat_to_affine)
 from ..filter import filter_data
 from .. import Transform
-from ..utils import (_mask_to_onsets_offsets, logger, verbose)
+from ..utils import _mask_to_onsets_offsets, logger, verbose, _validate_type
 
 
 @verbose
@@ -333,3 +334,190 @@ def _annotations_from_mask(times, art_mask, art_name):
             durations.append(times[l_idx[-1]] - times[l_idx[0]])
         desc.append(art_name)
     return Annotations(onsets, durations, desc)
+
+
+@verbose
+def annotate_breaks(raw=None, events=None, *,
+                    min_duration=10, start_after_offset=3.5,
+                    stop_before_onset=3.5,
+                    ignore=('bad', 'edge'),
+                    verbose=None
+):
+    """Create `~mne.Annotations` for breaks in an ongoing recording.
+
+    Parameters
+    ----------
+    raw : instance of Raw
+        The continuous data to analyze.
+    events : array, shape (n_events, 3)
+        An events array. If ``None`` (default), operate based solely on the
+        annotations present in ``raw``. If an array, ignore any annotations
+        in the raw data, and only operate based on these events.
+    min_duration : float
+        The minimum time span in seconds between the offset of one and the
+        onset of the subsequent annotation (if ``events`` is ``None``) or
+        between two consecutive events (if ``events`` is an array) that must be
+        reached for this period to be considered a "break". Defaults to 10
+        seconds.
+    start_after_offset, stop_before_onset : float
+        Specifies how far the "break" annotation extends towards the beginning
+        and end of the time period between the two annotations or events
+        spanning a break period. This can be used to ensure e.g. that the break
+        annotation doesn't start and end immediately with a stimulation event.
+        If, for example, your data contains a break of 30 seconds between two
+        stimuli, and ``start_after_offset`` is set to ``5`` and
+        ``stop_before_onset`` is set to ``3``, the break annotation will start
+        5 seconds after the first stimulus, and end 3 seconds before the second
+        stimulus, yielding an annotated break of ``30 - 5 - 3 = 22`` seconds.
+        Both default to 3.5 seconds.
+
+        .. note:: The beginning and the end of the recording will be annotated
+                  as breaks, too, if the period from recording start until the
+                  first annotation or event (or from last annotation or event
+                  until recording end) is at least ``min_duration`` seconds
+                  long.
+
+    ignore : iterable of str | None
+        Annotation descriptions starting with these strings will be ignored by
+        the break-finding algorithm. The string comparison is case-insensitive,
+        i.e., ``('bad',)`` and ``('BAD',)`` are equivalent. By default, all
+        annotation descriptions starting with "bad" and annotations
+        indicating "edges" (e.g. produced by data concatenation) will be
+        ignored. If ``events`` is passed, this parameter has no effect.
+    %(verbose)s
+
+    Returns
+    -------
+    break_annotations : mne.Annotations
+        The break annotations, each with the description ``'BAD_break'``. If
+        no breaks could be found given the provided function parameters, an
+        empty `~mne.Annotations` object will be returned.
+
+    Notes
+    -----
+
+    .. versionadded:: 0.24
+    """
+    from mne.io import BaseRaw
+    _validate_type(item=raw, item_name='raw', types=BaseRaw, type_name='Raw')
+    _validate_type(item=events, item_name='events', types=(None, np.ndarray))
+
+    if min_duration - start_after_offset - stop_before_onset <= 0:
+        raise ValueError(
+            f'The result of '
+            f'min_duration - start_after_offset - stop_before_onset must be '
+            f'greater than 0, but it is: '
+            f'{min_duration - start_after_offset - stop_before_onset}'
+        )
+
+    if events is not None and events.size == 0:
+        raise ValueError('The events array must not be empty.')
+
+    if events is not None or ignore is None:
+        ignore = tuple()
+    else:
+        ignore = tuple(ignore)
+
+    for item in ignore:
+        _validate_type(item=item, types='str',
+                       item_name='All elements of "ignore"')
+
+    if events is None:
+        annotations = raw.annotations.copy()
+        if ignore:
+            logger.info(f'Ignoring annotations with descriptions starting '
+                        f'with: {", ".join(ignore)}')
+    else:
+        annotations = annotations_from_events(
+            events=events,
+            sfreq=raw.info['sfreq'],
+            orig_time=raw.info['meas_date']
+        )
+
+    if not annotations:
+        raise ValueError('Could not find (or generate) any annotations in '
+                         'your data.')
+
+    # Only keep annotations of interest and extract annotated time periods
+    # Ignore case
+    ignore = tuple(i.lower() for i in ignore)
+    keep_mask = [True] * len(annotations)
+    for idx, description in enumerate(annotations.description):
+        description = description.lower()
+        if any(description.startswith(i) for i in ignore):
+            keep_mask[idx] = False
+    
+    annotated_intervals = [
+        [onset, onset + duration] for onset, duration in
+        zip(annotations.onset[keep_mask], annotations.duration[keep_mask])
+    ]
+
+    # Merge overlapping annotation intervals
+    # Pre-load `merged_intervals` with the first interval to simplify
+    # processing
+    merged_intervals = [annotated_intervals[0]]
+    for interval in annotated_intervals:
+        merged_interval_stop = merged_intervals[-1][1]
+        interval_start, interval_stop = interval
+
+        if interval_stop < merged_interval_stop:
+            # Current interval ends sooner than the merged one; skip it
+            continue
+        elif (interval_start <= merged_interval_stop and
+                interval_stop >= merged_interval_stop):
+            # Expand duration of the merged interval
+            merged_intervals[-1][1] = interval_stop
+        else:
+            # No overlap between the current interval and the existing merged
+            # time period; proceed to the next interval
+            merged_intervals.append(interval)
+
+    merged_intervals = np.array(merged_intervals)
+
+    # Now extract the actual break periods
+    break_onsets = []
+    break_durations = []
+
+    # Handle the time period up until the first annotation
+    if (raw.first_time < merged_intervals[0][0] and
+            merged_intervals[0][0] - raw.first_time >= min_duration):
+        onset = raw.first_time  # don't subtract start_after_offset here
+        offset = merged_intervals[0][0] - stop_before_onset
+        duration = offset - onset
+        break_onsets.append(onset)
+        break_durations.append(duration)
+
+    # Handle the time period between first and last annotation
+    for idx, _ in enumerate(merged_intervals[1:, :], start=1):
+        this_start = merged_intervals[idx, 0]
+        previous_stop = merged_intervals[idx - 1, 1]
+        if this_start - previous_stop < min_duration:
+            continue
+
+        onset = previous_stop + start_after_offset
+        offset = this_start - stop_before_onset
+        duration = offset - onset
+        break_onsets.append(onset)
+        break_durations.append(duration)
+
+    # Handle the time period after the last annotation
+    if (raw._last_time > merged_intervals[-1][1] and
+            raw._last_time - merged_intervals[-1][1] >= min_duration):
+        onset = merged_intervals[-1][1] + start_after_offset
+        offset = raw._last_time  # don't subtract stop_before_onset here
+        duration = offset - onset
+        break_onsets.append(onset)
+        break_durations.append(duration)
+
+    # Finally, create the break annotations
+    break_annotations = Annotations(
+        onset=break_onsets,
+        duration=break_durations,
+        description=['BAD_break'],
+        orig_time=raw.info['meas_date']
+    )
+
+    logger.info(f'Detected {len(break_annotations)} break periods of >= '
+                f'{min_duration} sec duration.')
+
+    return break_annotations
