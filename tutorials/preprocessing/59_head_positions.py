@@ -42,7 +42,7 @@ raw.plot_psd()
 # the index of the channel indicating when which coil was switched on, and the
 # respective "event codes" associated with each coil's activity.
 
-chpi_freqs, ch_idx, chpi_codes = mne.chpi.get_chpi_info(raw)
+chpi_freqs, ch_idx, chpi_codes = mne.chpi.get_chpi_info(info=raw.info)
 print(f'cHPI coil frequencies extracted from raw: {chpi_freqs} Hz')
 
 ###############################################################################
