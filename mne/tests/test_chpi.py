@@ -128,17 +128,13 @@ def test_hpi_info(tmpdir):
         info = read_info(temp_name)
         assert len(info['hpi_subsystem']) == len(raw.info['hpi_subsystem'])
 
-    # test getting info from different data types
+    # test get_chpi_info()
     info = read_info(chpi_fif_fname)
-    with pytest.warns(RuntimeWarning, match='Active Shielding'):
-        raw = read_raw_fif(chpi_fif_fname, preload=False, allow_maxshield=True)
-    epochs =  make_fixed_length_epochs(raw=raw, preload=True)
-    evoked = epochs.average()
+    hpi_freqs, stim_ch_idx, hpi_on_codes = get_chpi_info(info)
 
-    get_chpi_info(info)
-    get_chpi_info(raw)
-    get_chpi_info(epochs)
-    get_chpi_info(evoked)
+    assert_allclose(hpi_freqs,  np.array([ 83., 143., 203., 263., 323.]))
+    assert stim_ch_idx == 378
+    assert_allclose(hpi_on_codes, np.array([ 256,  512, 1024, 2048, 4096]))
 
 
 def _assert_quats(actual, desired, dist_tol=0.003, angle_tol=5., err_rtol=0.5,

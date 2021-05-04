@@ -297,15 +297,15 @@ def extract_chpi_locs_kit(raw, stim_channel='MISC 064', *, verbose=None):
 # Estimate positions from data
 
 @verbose
-def get_chpi_info(inst, on_missing='ignore', verbose=None):
+def get_chpi_info(info, on_missing='ignore', verbose=None):
     """Retrieve cHPI information from the data.
 
     Parameters
     ----------
-    inst : instance of Info | Raw | Epochs | Evoked
-        The object from which to extract the HPI information.
+    info : instance of Info
+        The `~mne.Info` object from which to extract the cHPI information.
     on_missing : 'ignore' | 'raise'
-        What to do if no HPI information can be found. If ``'ignore'``
+        What to do if no cHPI information can be found. If ``'ignore'``
         (default), all return values will be empty arrays or ``None``. If
         ``'raise'``, an exception will be raised.
     %(verbose)s
@@ -324,16 +324,9 @@ def get_chpi_info(inst, on_missing='ignore', verbose=None):
     -----
     .. versionadded:: 0.24
     """
-    from .io import BaseRaw
-    from . import BaseEpochs
-    from .evoked import Evoked
-
-    _validate_type(item=inst, item_name='inst',
-                   types=(Info, BaseRaw, BaseEpochs, Evoked))
+    _validate_type(item=info, item_name='info', types=Info)
     _check_option(parameter='on_missing', value=on_missing,
                   allowed_values=['ignore', 'raise'])
-
-    info = inst if isinstance(inst, Info) else inst.info
 
     if len(info['hpi_meas']) == 0 or \
             ('coil_freq' not in info['hpi_meas'][0]['hpi_coils'][0]):
