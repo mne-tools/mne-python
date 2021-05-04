@@ -45,7 +45,8 @@ from .transforms import (apply_trans, invert_transform, _angle_between_quats,
                          quat_to_rot, rot_to_quat, _fit_matched_points,
                          _quat_to_affine, als_ras_trans)
 from .utils import (verbose, logger, use_log_level, _check_fname, warn,
-                    _validate_type, ProgressBar, _check_option, _pl)
+                    _validate_type, ProgressBar, _check_option, _pl,
+                    _on_missing)
 
 # Eventually we should add:
 #   hpicons
@@ -297,17 +298,14 @@ def extract_chpi_locs_kit(raw, stim_channel='MISC 064', *, verbose=None):
 # Estimate positions from data
 
 @verbose
-def get_chpi_info(info, on_missing='ignore', verbose=None):
+def get_chpi_info(info, on_missing='raise', verbose=None):
     """Retrieve cHPI information from the data.
 
     Parameters
     ----------
     info : instance of Info
         The `~mne.Info` object from which to extract the cHPI information.
-    on_missing : 'ignore' | 'raise'
-        What to do if no cHPI information can be found. If ``'ignore'``
-        (default), all return values will be empty arrays or ``None``. If
-        ``'raise'``, an exception will be raised.
+    %(chpi_on_missing)s
     %(verbose)s
 
     Returns
@@ -326,15 +324,15 @@ def get_chpi_info(info, on_missing='ignore', verbose=None):
     """
     _validate_type(item=info, item_name='info', types=Info)
     _check_option(parameter='on_missing', value=on_missing,
-                  allowed_values=['ignore', 'raise'])
+                  allowed_values=['ignore', 'raise', 'warn'])
 
     if len(info['hpi_meas']) == 0 or \
             ('coil_freq' not in info['hpi_meas'][0]['hpi_coils'][0]):
-        if on_missing == 'ignore':
-            return np.empty(0), None, np.empty(0)
-        raise RuntimeError('Appropriate cHPI information not found in '
-                           'info["hpi_meas"] and info["hpi_subsystem"], '
-                           'cannot process cHPI')
+        _on_missing(on_missing,
+                    msg='No appropriate cHPI information found in '
+                        'info["hpi_meas"] and info["hpi_subsystem"]')
+        return np.empty(0), None, np.empty(0)
+
     hpi_coils = sorted(info['hpi_meas'][-1]['hpi_coils'],
                        key=lambda x: x['number'])  # ascending (info) order
 

@@ -5,7 +5,8 @@
 import os.path as op
 
 import numpy as np
-from numpy.testing import assert_allclose, assert_array_less
+from numpy.testing import (assert_allclose, assert_array_less,
+                           assert_array_equal)
 from scipy.interpolate import interp1d
 from scipy.spatial.distance import cdist
 import pytest
@@ -135,6 +136,23 @@ def test_hpi_info(tmpdir):
     assert_allclose(hpi_freqs,  np.array([ 83., 143., 203., 263., 323.]))
     assert stim_ch_idx == 378
     assert_allclose(hpi_on_codes, np.array([ 256,  512, 1024, 2048, 4096]))
+
+    # test get_chpi_info() if no proper cHPI info is available
+    info['hpi_subsystem'] = None
+    info['hpi_meas'] = []
+    info['hpi_results'] = []
+
+    with pytest.raises(ValueError, match='No appropriate cHPI information'):
+        get_chpi_info(info)
+
+    with pytest.warns(RuntimeWarning, match='No appropriate cHPI information'):
+        get_chpi_info(info, on_missing='warn')
+
+    hpi_freqs, stim_ch_idx, hpi_on_codes = get_chpi_info(info,
+                                                         on_missing='ignore')
+    assert_array_equal([], hpi_freqs)
+    assert stim_ch_idx is None
+    assert_array_equal([], hpi_on_codes) 
 
 
 def _assert_quats(actual, desired, dist_tol=0.003, angle_tol=5., err_rtol=0.5,
