@@ -41,8 +41,8 @@ The Project is not a legal entity, nor does it currently have any formal
 relationships with legal entities.
 
 
-Governance
-==========
+Governance model
+================
 
 This section describes the governance and leadership model of The
 Project.
