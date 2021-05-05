@@ -15,8 +15,7 @@ Development of MNE-Python has been supported by:
 - |cds| **Paris-Saclay Center for Data Science:** `PARIS-SACLAY <http://www.datascience-paris-saclay.fr>`_
 - |goo| **Google:** Summer of code (×6)
 - |ama| **Amazon:** AWS Research Grants
-- |czi| **Chan Zuckerberg Initiative:** `EOSS2 <https://chanzuckerberg.com/eoss/proposals/improving-usability-of-core-neuroscience-analysis-tools-with-mne-python>`_
-
+- |czi| **Chan Zuckerberg Initiative:** `EOSS2`_
 
 Additionally, many universities or research institutions have supported their employees’ contributions to MNE-Python as part of normal work duties. These institutions include:
 
@@ -48,3 +47,5 @@ Additionally, many universities or research institutions have supported their em
 .. |goo| image:: _static/funding/google.svg
 .. |ama| image:: _static/funding/amazon.svg
 .. |czi| image:: _static/funding/czi.svg
+
+.. include:: links.inc

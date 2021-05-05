@@ -26,3 +26,4 @@ contributors to MNE-Python are expected to follow our `code of conduct`_.
    ../install/contributing
    ../whats_new
    roadmap
+   governance

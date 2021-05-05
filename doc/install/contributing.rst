@@ -3,6 +3,7 @@
 Contributing guide
 ==================
 
+.. include:: ../links.inc
 .. highlight:: console
 
 This page has details on the preferred contribution workflow
@@ -18,6 +19,8 @@ MNE-Python.
    guide!
 
 .. _`GitHub issues marked "easy"`: https://github.com/mne-tools/mne-python/issues?q=is%3Aissue+is%3Aopen+label%3AEASY
+
+.. note:: All contributors are expected to follow the `code of conduct`_.
 
 Overview of contribution process
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1025,13 +1028,11 @@ it can serve as a useful example of what to expect from the PR review process.
 
 .. git book
 
-.. _pro git book: https://git-scm.com/book/
 .. _stage: https://git-scm.com/book/en/v2/Git-Tools-Interactive-Staging
 .. _configuring git: https://www.git-scm.com/book/en/v2/Customizing-Git-Git-Configuration
 
 .. sphinx
 
-.. _sphinx: http://www.sphinx-doc.org
 .. _sphinx-gallery: https://sphinx-gallery.github.io
 .. _reStructuredText: http://sphinx-doc.org/rest.html
 .. _intersphinx: http://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html
@@ -1041,7 +1042,6 @@ it can serve as a useful example of what to expect from the PR review process.
 
 .. _NumPy docstring style guidelines: https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt
 .. _PEP 8: https://www.python.org/dev/peps/pep-0008/
-.. _pep8: https://pypi.org/project/pep8
 .. _pyflakes: https://pypi.org/project/pyflakes
 .. _Flake8: http://flake8.pycqa.org/
 

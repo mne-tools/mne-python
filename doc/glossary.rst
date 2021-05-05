@@ -333,6 +333,11 @@ general neuroimaging concepts. If you think a term is missing, please consider
         prefixed with ``STI`` to distinguish them from other channel types. See
         :ref:`stim-channel-defined` for more details.
 
+    tfr
+        Time-frequency representation. This is often a spectrogram (STFT) or
+        scaleogram (wavelet), showing the frequency content as a function of
+        time.
+
     trans
         A coordinate frame affine transformation, usually between the Neuromag head
         coordinate frame and the MRI Surface RAS coordinate frame used by Freesurfer.
