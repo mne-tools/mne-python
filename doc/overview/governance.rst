@@ -86,7 +86,7 @@ any other Council member at their discretion.
 
 The BDFL can appoint their successor, but it is expected that the Steering
 Council would be consulted on this decision. If the BDFL is unable to appoint a
-successor, the Steering Council will make this decision - preferably by
+successor, the Steering Council will make this decision — preferably by
 consensus, but if needed, by a majority vote.
 
 Note that the BDFL can step down at any time, and acting in good faith, will
@@ -207,15 +207,15 @@ If it becomes necessary for the Steering Council to produce a formal
 decision, then they will use a form of the `Apache Foundation voting
 process <https://www.apache.org/foundation/voting.html>`_. This is a
 formalized version of consensus, in which +1 votes indicate agreement,
--1 votes are vetoes (and must be accompanied with a rationale, as
-above), and one can also vote fractionally (e.g. -0.5, +0.5) if one
+-1 votes are vetoes (and must be accompanied with a rationale),
+and one can also vote fractionally (e.g. -0.5, +0.5) if one
 wishes to express an opinion without registering a full veto. These
 numeric votes are also often used informally as a way of getting a
 general sense of people's feelings on some issue, and should not
 normally be taken as formal votes. A formal vote only occurs if
 explicitly declared, and if this does occur, then the vote should be held
 open for long enough to give all interested Council Members a chance to
-respond -- at least one week.
+respond — at least one week.
 
 In practice, we anticipate that for most Steering Council decisions
 (e.g., voting in new members) a more informal process will suffice.
