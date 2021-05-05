@@ -27,7 +27,7 @@ Steering Council
 * Guillaume Favelier
 * Luke Bloy
 * Marijn van Vliet
-* Mikolaj Magnuski
+* Mikołaj Magnuski
 * Richard Höchenberger
 * Robert Luke
 * Stefan Appelhoff
