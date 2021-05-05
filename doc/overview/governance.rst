@@ -145,7 +145,7 @@ to, code, code review, infrastructure work, Discourse participation,
 community help/building, education and outreach, design work, etc. We are
 deliberately not setting arbitrary quantitative metrics (like “100 commits in
 this repo”) to avoid encouraging behavior that plays to the metrics rather than
-the project’s overall well-being. We want to encourage a diverse array of
+The Project’s overall well-being. We want to encourage a diverse array of
 backgrounds, viewpoints, and talents in our team, which is why we explicitly do
 not define code as the sole metric on which council membership will be
 evaluated.
