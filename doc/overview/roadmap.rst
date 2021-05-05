@@ -127,7 +127,7 @@ datasets, see `MNE-BIDS-Pipeline`_. Two key goals are:
 
 1. Incorporating functionality from the
    `mnefun <https://labsn.github.io/mnefun/overview.html>`__ pipeline,
-   which has been used extensively for pediatric data analysis at `ILABS`_.
+   which has been used extensively for pediatric data analysis at `I-LABS`_.
    Multiple processing steps (e.g., eSSS), sanity checks (e.g., cHPI quality),
    and reporting (e.g., SSP joint plots, SNR plots) should be ported over.
 2. Adding support for cloud computing. Currently, cloud computing with M/EEG
@@ -214,4 +214,4 @@ we created docker images suitable for cloud computing via `MNE-Docker`_.
 These will be :ref:`integrated with MNE-BIDS-Pipeline <bids-integration>`
 to provide seamless cloud computing support of large datasets.
 
-.. _ILABS: http://ilabs.washington.edu/
+.. _I-LABS: http://ilabs.washington.edu/
