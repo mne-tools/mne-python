@@ -286,7 +286,7 @@ Institutional Partner benefits are:
 -  invitation of the Council Members to MNE-Python Developer Meetings
 
 A list of current Institutional Partners is maintained at the page
-:ref:`governance-people`.
+:ref:`supporting-institutions`.
 
 
 Document history

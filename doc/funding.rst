@@ -1,5 +1,7 @@
 :orphan:
 
+.. _funding:
+
 Funding and other support
 =========================
 
@@ -16,6 +18,12 @@ Development of MNE-Python has been supported by:
 - |goo| **Google:** Summer of code (×6)
 - |ama| **Amazon:** AWS Research Grants
 - |czi| **Chan Zuckerberg Initiative:** `EOSS2`_
+
+
+.. _supporting-institutions:
+
+Institutional partners
+----------------------
 
 Additionally, many universities or research institutions have supported their employees’ contributions to MNE-Python as part of normal work duties. These institutions include:
 
