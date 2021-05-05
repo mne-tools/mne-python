@@ -300,8 +300,8 @@ Acknowledgements
 
 Substantial portions of this document were adapted from the
 `SciPy project's governance document
-<https://github.com/scipy/scipy/blob/master/doc/source/governance/governance.rst>`_
-document, which in turn was adapted from
+<https://github.com/scipy/scipy/blob/master/doc/source/governance/governance.rst>`_,
+which in turn was adapted from
 `Jupyter/IPython project's governance document
 <https://github.com/jupyter/governance/blob/master/governance.md>`_ and
 `NumPy's governance document
