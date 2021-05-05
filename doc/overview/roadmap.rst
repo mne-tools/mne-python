@@ -115,7 +115,7 @@ In progress
 
 Diversity, Equity, and Inclusion
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-MNE-Python is commited to recruiting and retaining a diverse pool of
+MNE-Python is committed to recruiting and retaining a diverse pool of
 contributors, see :gh:`8221`.
 
 .. _bids-integration:
