@@ -63,25 +63,27 @@ mri_pos = mne.head_to_mri(dip.pos, mri_head_t=trans,
 best_dip_id = dip.gof.argmax()
 best_dip_mri_pos = mri_pos[best_dip_id]
 
-# Load parcelization:
+# Load parcellation:
 atlas_fname = op.join(subjects_dir, subject, 'mri', 'aparc.a2009s+aseg.mgz')
-parcelation_img = nibabel.load(atlas_fname)
+parcellation_img = nibabel.load(atlas_fname)
 
 # Load freesurface atlas LUT
 lut_inv_dict = read_freesurfer_lut()[0]
 label_lut = {v: k for k, v in lut_inv_dict.items()}
 
 # Find voxel for dipole position
-mri_vox_t = np.linalg.inv(parcelation_img.header.get_vox2ras_tkr())
-vox_dip_pos = mne.transforms.apply_trans(mri_vox_t, best_dip_mri_pos).astype(int)
+mri_vox_t = np.linalg.inv(parcellation_img.header.get_vox2ras_tkr())
+vox_dip_pos_f = mne.transforms.apply_trans(mri_vox_t,best_dip_mri_pos)
+vox_dip_pos = vox_dip_pos_f.astype(int)
 
 # Get voxel value and label from LUT
-vol_values = parcelation_img.get_fdata()[tuple(vox_dip_pos.T)]
+vol_values = parcellation_img.get_fdata()[tuple(vox_dip_pos.T)]
 label = label_lut.get(vol_values, 'Unknown')
 
-# Draw the dipole position on the MRI scan and write the anatomical label from parcelization
+# Draw dipole position on MRI scan and add anatomical label from parcellation
 t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
-fig_T1 = plot_anat(t1_fname, cut_coords=mri_pos[0], title='Dipole loc. anatomical label: {}'.format(label))
+fig_T1 = plot_anat(t1_fname, cut_coords=mri_pos[0],
+                   title=f'Dipole location: {label}')
 
 template = load_mni152_template()
 fig_template = plot_anat(template, cut_coords=mni_pos[0],
