@@ -196,17 +196,17 @@ def _fnirs_check_bads(info):
             raise RuntimeError('NIRS bad labelling is not consistent')
 
 
-def _fnirs_spread_bads(raw):
+def _fnirs_spread_bads(info):
     """Spread bad labeling across fnirs channels."""
-    # For an optode if any component (light frequency or chroma) is marked
+    # For an optode pair if any component (light frequency or chroma) is marked
     # as bad, then they all should be. This function will find any pairs marked
     # as bad and spread the bad marking to all components of the optode pair.
-    picks = _picks_to_idx(raw.info, 'fnirs', exclude=[])
+    picks = _picks_to_idx(info, 'fnirs', exclude=[])
     new_bads = list()
     for ii in picks[::2]:
-        bad_opto = set(raw.info['bads']).intersection(raw.ch_names[ii:ii + 2])
+        bad_opto = set(info['bads']).intersection(info.ch_names[ii:ii + 2])
         if len(bad_opto) > 0:
-            new_bads.extend(raw.ch_names[ii:ii + 2])
-    raw.info['bads'] = new_bads
+            new_bads.extend(info.ch_names[ii:ii + 2])
+    info['bads'] = new_bads
 
-    return raw
+    return info

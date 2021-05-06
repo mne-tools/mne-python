@@ -135,20 +135,20 @@ def test_fnirs_spread_bads(fname):
     # Test spreading upwards in frequency and on raw data
     raw = read_raw_nirx(fname)
     raw.info['bads'] = ['S1_D1 760']
-    raw = _fnirs_spread_bads(raw)
-    assert raw.info['bads'] == ['S1_D1 760', 'S1_D1 850']
+    info = _fnirs_spread_bads(raw.info)
+    assert info['bads'] == ['S1_D1 760', 'S1_D1 850']
 
     # Test spreading downwards in frequency and on od data
     raw = optical_density(raw)
     raw.info['bads'] = raw.ch_names[5:6]
-    raw = _fnirs_spread_bads(raw)
-    assert raw.info['bads'] == raw.ch_names[4:6]
+    info = _fnirs_spread_bads(raw.info)
+    assert info['bads'] == raw.ch_names[4:6]
 
     # Test spreading multiple bads and on chroma data
     raw = beer_lambert_law(raw)
     raw.info['bads'] = [raw.ch_names[x] for x in [1, 8]]
-    raw = _fnirs_spread_bads(raw)
-    assert raw.info['bads'] == [raw.ch_names[x] for x in [0, 1, 8, 9]]
+    info = _fnirs_spread_bads(raw.info)
+    assert info['bads'] == [info.ch_names[x] for x in [0, 1, 8, 9]]
 
 
 @testing.requires_testing_data
