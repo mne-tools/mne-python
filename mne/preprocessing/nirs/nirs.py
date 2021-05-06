@@ -189,7 +189,7 @@ def _fnirs_check_bads(info):
     # For an optode pair, if one component (light frequency or chroma) is
     # marked as bad then they all should be. This function checks that all
     # optodes are marked bad consistently.
-    picks = _picks_to_idx(info, 'fnirs', exclude=[])
+    picks = _picks_to_idx(info, 'fnirs', exclude=[], allow_empty=True)
     for ii in picks[::2]:
         bad_opto = set(info['bads']).intersection(info.ch_names[ii:ii + 2])
         if len(bad_opto) == 1:
@@ -201,7 +201,7 @@ def _fnirs_spread_bads(info):
     # For an optode pair if any component (light frequency or chroma) is marked
     # as bad, then they all should be. This function will find any pairs marked
     # as bad and spread the bad marking to all components of the optode pair.
-    picks = _picks_to_idx(info, 'fnirs', exclude=[])
+    picks = _picks_to_idx(info, 'fnirs', exclude=[], allow_empty=True)
     new_bads = list()
     for ii in picks[::2]:
         bad_opto = set(info['bads']).intersection(info.ch_names[ii:ii + 2])
