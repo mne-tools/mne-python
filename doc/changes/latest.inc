@@ -19,11 +19,15 @@ Current (0.24.dev0)
 
 .. |New Contributor| replace:: **New Contributor**
 
+.. |David Julien| replace:: **David Julien**
+
+.. |Romain Derollepot| replace:: **Romain Derollepot**
+
 Enhancements
 ~~~~~~~~~~~~
 .. - Add something cool (:gh:`9192` **by new contributor** |New Contributor|_)
 
-- Nothing yet
+- Add support for NIRSport devices to `mne.io.read_raw_nirx` (:gh:`9348` **by new contributor** |David Julien|_, **new contributor** |Romain Derollepot|_, `Robert Luke`_, and `Eric Larson`_)
 
 
 Bugs
