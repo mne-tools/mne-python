@@ -23,9 +23,11 @@ Steering Council
 * Britta Westner
 * Clemens Brunner
 * Dan McCloy
+* Denis Engemann
 * Eric Larson
 * Guillaume Favelier
 * Luke Bloy
+* Mainak Jas
 * Marijn van Vliet
 * Mikołaj Magnuski
 * Richard Höchenberger
