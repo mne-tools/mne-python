@@ -15,12 +15,11 @@ for-profit or non-profit entities.
 The Project
 ===========
 
-The MNE-Python Project (The Project) is an open source software project.
-The goal of The Project is to develop open source software for scientific
-computing in Python, and, in particular, the ``mne`` package. The Software
-developed by The Project is released under the BSD (or similar) open source
-license, developed openly and hosted on public GitHub repositories under
-the ``mne-tools`` GitHub organization.
+The MNE-Python Project (The Project) is an open source software project. The
+goal of The Project is to develop open source software for analysis of
+neuroscience data in Python. The Project is released under the BSD (or similar)
+open source license, developed openly and is hosted publicly under the
+``mne-tools`` GitHub organization.
 
 The Project is developed by a team of distributed developers, called
 Contributors. Contributors are individuals who have contributed code,
@@ -60,7 +59,7 @@ recognized by their receiving “commit rights” to the Project GitHub
 repositories. In general, all Project decisions are made through consensus among
 the Core Developers with input from the Community.
 
-While this approach has served us well, as the Project grows, we see a need for
+While this approach has served us well, as the Project grows we see a need for
 a more formal governance model. The MNE-Python Core Developers expressed a
 preference for a leadership model which includes a BDFL (Benevolent Dictator
 for Life). Therefore, moving forward The Project leadership will consist of a
@@ -102,7 +101,7 @@ and sustained over at least one year. The overall role of the Council is to
 ensure, through working with the BDFL and taking input from the Community, the
 long-term well-being of the project, both technically and as a community.
 
-During the everyday project activities, Council Members participate in all
+During the everyday project activities, Council Members participate in
 discussions, code review, and other project activities as peers with all other
 Contributors and the Community. In these everyday activities, Council Members
 do not have any special power or privilege through their membership on the
@@ -125,7 +124,7 @@ In particular, the Council may:
     those Services for the benefit of the Project and Community.
 -   Make decisions when regular community discussion does not produce consensus
     on an issue in a reasonable time frame.
--  Update policy documents, such as this one.
+-   Update policy documents, such as this one.
 
 Council membership
 ~~~~~~~~~~~~~~~~~~
@@ -278,7 +277,7 @@ relationship.
 
 Institutional Partner benefits are:
 
--  acknowledgement on the MNE-Python website and in talks
+-  optional acknowledgement on the MNE-Python website and in talks
 -  ability to acknowledge their own funding sources on the MNE-Python
    website and in talks
 -  ability to influence the project through the participation of their
