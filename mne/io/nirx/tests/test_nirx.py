@@ -104,7 +104,7 @@ def test_nirsport_v1_w_bad_sat(preload):
     raw = read_raw_nirx(fname, preload=preload)
     data = raw.get_data()
     assert not np.isnan(data).any()
-    assert len(raw.annotations) == 8
+    assert len(raw.annotations) == 5
     # annotated version and ignore should have same data but different annot
     raw_ignore = read_raw_nirx(fname, saturated='ignore', preload=preload)
     assert_allclose(raw_ignore.get_data(), data)
@@ -113,14 +113,14 @@ def test_nirsport_v1_w_bad_sat(preload):
     # nan version should not have same data, but we can give it the same annot
     raw_nan = read_raw_nirx(fname, saturated='nan', preload=preload)
     data_nan = raw_nan.get_data()
-    assert np.isnan(data_nan).any()  # XXX should be a better accounting
+    assert np.isnan(data_nan).any()
     assert not np.allclose(raw_nan.get_data(), data)
     raw_nan_annot = raw_ignore.copy()
     raw_nan_annot.set_annotations(annotate_nan(raw_nan))
     use_mask = np.where(raw.annotations.description == 'BAD_SATURATED')
     for key in ('onset', 'duration'):
-        a = getattr(raw_nan_annot.annotations, key)
-        b = getattr(raw.annotations, key)[use_mask]
+        a = getattr(raw_nan_annot.annotations, key)[::2]  # one ch in each
+        b = getattr(raw.annotations, key)[use_mask]  # two chs in each
         assert_allclose(a, b)
 
 

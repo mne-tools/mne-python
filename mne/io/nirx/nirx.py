@@ -345,8 +345,8 @@ class RawNIRX(BaseRaw):
                 assert saturated == 'annotate'
                 if annot_mask is None:
                     annot_mask = np.zeros(
-                        (len(info['ch_names']), last_sample + 1), bool)
-                annot_mask[ki::2] = mask
+                        (len(info['ch_names']) // 2, last_sample + 1), bool)
+                annot_mask |= mask
                 nan_mask[key] = None  # shouldn't need again
 
         super(RawNIRX, self).__init__(
@@ -356,8 +356,7 @@ class RawNIRX(BaseRaw):
         # make onset/duration/description
         onset, duration, description, ch_names = list(), list(), list(), list()
         if annot_mask is not None:
-            assert annot_mask.shape[0] == len(info['ch_names'])
-            for mask, ch_name in zip(annot_mask, info['ch_names']):
+            for ci, mask in enumerate(annot_mask):
                 on, dur = _mask_to_onsets_offsets(mask)
                 on = on / info['sfreq']
                 dur = dur / info['sfreq']
@@ -365,7 +364,7 @@ class RawNIRX(BaseRaw):
                 onset.extend(on)
                 duration.extend(dur)
                 description.extend(['BAD_SATURATED'] * len(on))
-                ch_names.extend([[ch_name]] * len(on))
+                ch_names.extend([self.ch_names[2 * ci:2 * ci + 2]] * len(on))
 
         # Read triggers from event file
         if op.isfile(files['hdr'][:-3] + 'evt'):
