@@ -16,13 +16,13 @@ broadly, give more detailed information about reading from STIM channels, and
 give an example of reading events that are in a marker file or included in
 the data file as an embedded array. The tutorials :ref:`tut-event-arrays` and
 :ref:`tut-annotate-raw` discuss how to plot, combine, load, save, and
-export :term:`events` and :class:`~mne.Annotations` (respectively), and the
-latter tutorial also covers interactive annotation of :class:`~mne.io.Raw`
+export :term:`events` and `~mne.Annotations` (respectively), and the
+latter tutorial also covers interactive annotation of `~mne.io.Raw`
 objects.
 
 We'll begin by loading the Python modules we need, and loading the same
 :ref:`example data <sample-dataset>` we used in the :ref:`introductory tutorial
-<tut-overview>`, but to save memory we'll crop the :class:`~mne.io.Raw` object
+<tut-overview>`, but to save memory we'll crop the `~mne.io.Raw` object
 to just 60 seconds before loading it into RAM:
 """
 
@@ -40,26 +40,25 @@ raw.crop(tmax=60).load_data()
 # The Events and Annotations data structures
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# Generally speaking, both the Events and :class:`~mne.Annotations` data
+# Generally speaking, both the Events and `~mne.Annotations` data
 # structures serve the same purpose: they provide a mapping between times
 # during an EEG/MEG recording and a description of what happened at those
 # times. In other words, they associate a *when* with a *what*. The main
 # differences are:
 #
 # 1. **Units**: the Events data structure represents the *when* in terms of
-#    samples, whereas the :class:`~mne.Annotations` data structure represents
+#    samples, whereas the `~mne.Annotations` data structure represents
 #    the *when* in seconds.
 # 2. **Limits on the description**: the Events data structure represents the
-#    *what* as an integer "Event ID" code, whereas the
-#    :class:`~mne.Annotations` data structure represents the *what* as a
-#    string.
+#    *what* as an integer "Event ID" code, whereas the `~mne.Annotations` data
+#    structure represents the *what* as a string.
 # 3. **How duration is encoded**: Events in an Event array do not have a
 #    duration (though it is possible to represent duration with pairs of
 #    onset/offset events within an Events array), whereas each element of an
-#    :class:`~mne.Annotations` object necessarily includes a duration (though
+#    `~mne.Annotations` object necessarily includes a duration (though
 #    the duration can be zero if an instantaneous event is desired).
 # 4. **Internal representation**: Events are stored as an ordinary
-#    :class:`NumPy array <numpy.ndarray>`, whereas :class:`~mne.Annotations` is
+#    :class:`NumPy array <numpy.ndarray>`, whereas `~mne.Annotations` is
 #    a :class:`list`-like class defined in MNE-Python.
 #
 #
@@ -108,12 +107,12 @@ raw.copy().pick_types(meg=False, stim=True).plot(start=3, duration=6)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # If your data has events recorded on a STIM channel, you can convert them into
-# an events array using :func:`mne.find_events`. The sample number of the onset
+# an events array using `~mne.find_events`. The sample number of the onset
 # (or offset) of each pulse is recorded as the event time, the pulse magnitudes
 # are converted into integers, and these pairs of sample numbers plus integer
 # codes are stored in :class:`NumPy arrays <numpy.ndarray>` (usually called
 # "the events array" or just "the events"). In its simplest form, the function
-# requires only the :class:`~mne.io.Raw` object, and the name of the channel(s)
+# requires only the `~mne.io.Raw` object, and the name of the channel(s)
 # from which to read events:
 
 events = mne.find_events(raw, stim_channel='STI 014')
@@ -127,9 +126,9 @@ print(events[:5])  # show the first 5
 #     code was on the immediately preceding sample. In practice, that value is
 #     almost always ``0``, but it can be used to detect the *endpoint* of an
 #     event whose duration is longer than one sample. See the documentation of
-#     :func:`mne.find_events` for more details.
+#     `~mne.find_events` for more details.
 #
-# If you don't provide the name of a STIM channel, :func:`~mne.find_events`
+# If you don't provide the name of a STIM channel, `~mne.find_events`
 # will first look for MNE-Python :ref:`config variables <tut-configure-mne>`
 # for variables ``MNE_STIM_CHANNEL``, ``MNE_STIM_CHANNEL_1``, etc. If those are
 # not found, channels ``STI 014`` and ``STI101`` are tried, followed by the
@@ -139,12 +138,12 @@ print(events[:5])  # show the first 5
 # useful, but for researchers whose data is all from a single system it can be
 # a time-saver to configure that variable once and then forget about it.
 #
-# :func:`~mne.find_events` has several options, including options for aligning
+# `~mne.find_events` has several options, including options for aligning
 # events to the onset or offset of the STIM channel pulses, setting the minimum
 # pulse duration, and handling of consecutive pulses (with no return to zero
 # between them). For example, you can effectively encode event duration by
-# passing ``output='step'`` to :func:`mne.find_events`; see the documentation
-# of :func:`~mne.find_events` for details. More information on working with
+# passing ``output='step'`` to `~mne.find_events`; see the documentation
+# of `~mne.find_events` for details. More information on working with
 # events arrays (including how to plot, combine, load, and save event arrays)
 # can be found in the tutorial :ref:`tut-event-arrays`.
 #
@@ -156,8 +155,8 @@ print(events[:5])  # show the first 5
 # data array rather than as pulses on one or more STIM channels. For example,
 # the EEGLAB format stores events as a collection of arrays in the :file:`.set`
 # file. When reading those files, MNE-Python will automatically convert the
-# stored events into an :class:`~mne.Annotations` object and store it as the
-# :attr:`~mne.io.Raw.annotations` attribute of the :class:`~mne.io.Raw` object:
+# stored events into an `~mne.Annotations` object and store it as the
+# :attr:`~mne.io.Raw.annotations` attribute of the `~mne.io.Raw` object:
 
 testing_data_folder = mne.datasets.testing.data_path()
 eeglab_raw_file = os.path.join(testing_data_folder, 'EEGLAB', 'test_raw.set')
@@ -165,7 +164,7 @@ eeglab_raw = mne.io.read_raw_eeglab(eeglab_raw_file)
 print(eeglab_raw.annotations)
 
 ###############################################################################
-# The core data within an :class:`~mne.Annotations` object is accessible
+# The core data within an `~mne.Annotations` object is accessible
 # through three of its attributes: ``onset``, ``duration``, and
 # ``description``. Here we can see that there were 154 events stored in the
 # EEGLAB file, they all had a duration of zero seconds, there were two
@@ -178,9 +177,9 @@ print(set(eeglab_raw.annotations.description))
 print(eeglab_raw.annotations.onset[0])
 
 ###############################################################################
-# More information on working with :class:`~mne.Annotations` objects, including
-# how to add annotations to :class:`~mne.io.Raw` objects interactively, and how
-# to plot, concatenate, load, save, and export :class:`~mne.Annotations`
+# More information on working with `~mne.Annotations` objects, including
+# how to add annotations to `~mne.io.Raw` objects interactively, and how
+# to plot, concatenate, load, save, and export `~mne.Annotations`
 # objects can be found in the tutorial :ref:`tut-annotate-raw`.
 #
 #
@@ -188,20 +187,20 @@ print(eeglab_raw.annotations.onset[0])
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # Once your experimental events are read into MNE-Python (as either an Events
-# array or an :class:`~mne.Annotations` object), you can easily convert between
+# array or an `~mne.Annotations` object), you can easily convert between
 # the two formats as needed. You might do this because, e.g., an Events array
 # is needed for epoching continuous data, or because you want to take advantage
 # of the "annotation-aware" capability of some functions, which automatically
 # omit spans of data if they overlap with certain annotations.
 #
-# To convert an :class:`~mne.Annotations` object to an Events array, use the
-# function :func:`mne.events_from_annotations` on the :class:`~mne.io.Raw` file
+# To convert an `~mne.Annotations` object to an Events array, use the
+# function `mne.events_from_annotations` on the `~mne.io.Raw` file
 # containing the annotations. This function will assign an integer Event ID to
 # each unique element of ``raw.annotations.description``, and will return the
 # mapping of descriptions to integer Event IDs along with the derived Event
 # array. By default, one event will be created at the onset of each annotation;
 # this can be modified via the ``chunk_duration`` parameter of
-# :func:`~mne.events_from_annotations` to create equally spaced events within
+# `~mne.events_from_annotations` to create equally spaced events within
 # each annotation span (see :ref:`chunk-duration`, below, or see
 # :ref:`fixed-length-events` for direct creation of an Events array of
 # equally-spaced events).
@@ -213,13 +212,12 @@ print(events_from_annot[:5])
 ###############################################################################
 # If you want to control which integers are mapped to each unique description
 # value, you can pass a :class:`dict` specifying the mapping as the
-# ``event_id`` parameter of :func:`~mne.events_from_annotations`; this
+# ``event_id`` parameter of `~mne.events_from_annotations`; this
 # :class:`dict` will be returned unmodified as the ``event_dict``.
 #
-# .. TODO add this when the other tutorial is nailed down:
-#    Note that this ``event_dict`` can be used when creating
-#    :class:`~mne.Epochs` from :class:`~mne.io.Raw` objects, as demonstrated
-#    in :doc:`epoching_tutorial_whatever_its_name_is`.
+# Note that this ``event_dict`` can be used when creating `~mne.Epochs` from
+# `~mne.io.Raw` objects, as demonstrated in the tutorial
+# :ref:`tut-epochs-class`.
 
 custom_mapping = {'rt': 77, 'square': 42}
 (events_from_annot,
@@ -229,11 +227,11 @@ print(events_from_annot[:5])
 
 ###############################################################################
 # To make the opposite conversion (from an Events array to an
-# :class:`~mne.Annotations` object), you can create a mapping from integer
+# `~mne.Annotations` object), you can create a mapping from integer
 # Event ID to string descriptions, use `~mne.annotations_from_events`
-# to construct the :class:`~mne.Annotations` object, and call the
-# :meth:`~mne.io.Raw.set_annotations` method to add the annotations to the
-# :class:`~mne.io.Raw` object.
+# to construct the `~mne.Annotations` object, and call the
+# `~mne.io.Raw.set_annotations` method to add the annotations to the
+# `~mne.io.Raw` object.
 #
 # Because the :ref:`sample data <sample-dataset>` was recorded on a Neuromag
 # system (where sample numbering starts when the acquisition system is
@@ -261,9 +259,9 @@ raw.plot(start=5, duration=5)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # As mentioned above, you can generate equally-spaced events from an
-# :class:`~mne.Annotations` object using the ``chunk_duration`` parameter of
-# :func:`~mne.events_from_annotations`. For example, suppose we have an
-# annotation in our :class:`~mne.io.Raw` object indicating when the subject was
+# `~mne.Annotations` object using the ``chunk_duration`` parameter of
+# `~mne.events_from_annotations`. For example, suppose we have an
+# annotation in our `~mne.io.Raw` object indicating when the subject was
 # in REM sleep, and we want to perform a resting-state analysis on those spans
 # of data. We can create an Events array with a series of equally-spaced events
 # within each "REM" span, and then use those events to generate (potentially
@@ -287,7 +285,7 @@ print(np.round((rem_events[:, 0] - raw.first_samp) / raw.info['sfreq'], 3))
 
 ###############################################################################
 # Other examples of resting-state analysis can be found in the online
-# documentation for :func:`mne.make_fixed_length_events`, such as
+# documentation for `~mne.make_fixed_length_events`, such as
 # :ref:`ex-envelope-correlation`.
 #
 # .. LINKS

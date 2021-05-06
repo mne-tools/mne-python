@@ -16,7 +16,7 @@ from ..io.pick import (pick_types, pick_info, pick_channels,
 from ..cov import make_ad_hoc_cov, read_cov, Covariance
 from ..bem import fit_sphere_to_headshape, make_sphere_model, read_bem_solution
 from ..io import RawArray, BaseRaw, Info
-from ..chpi import (read_head_pos, head_pos_to_trans_rot_t, _get_hpi_info,
+from ..chpi import (read_head_pos, head_pos_to_trans_rot_t, get_chpi_info,
                     _get_hpi_initial_fit)
 from ..io.constants import FIFF
 from ..forward import (_magnetic_dipole_field_vec, _merge_meg_eeg_fwds,
@@ -563,7 +563,7 @@ def add_chpi(raw, head_pos=None, interp='cos2', n_jobs=1, verbose=None):
     if len(meg_picks) == 0:
         raise RuntimeError('Cannot add cHPI if no MEG picks are present')
     dev_head_ts, offsets = _check_head_pos(head_pos, info, first_samp, times)
-    hpi_freqs, hpi_pick, hpi_ons = _get_hpi_info(info)
+    hpi_freqs, hpi_pick, hpi_ons = get_chpi_info(info, on_missing='raise')
     hpi_rrs = _get_hpi_initial_fit(info, verbose='error')
     hpi_nns = hpi_rrs / np.sqrt(np.sum(hpi_rrs * hpi_rrs,
                                        axis=1))[:, np.newaxis]

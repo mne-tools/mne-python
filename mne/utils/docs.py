@@ -747,6 +747,12 @@ chpi_locs : dict
     The time-varying cHPI coils locations, with entries
     "times", "rrs", "moments", and "gofs".
 """
+docdict['chpi_on_missing'] = f"""
+on_missing : 'raise' | 'warn' | 'ignore'
+    {_on_missing_base} no cHPI information can be found. If ``'ignore'`` or
+    ``'warn'``, all return values will be empty arrays or ``None``. If
+    ``'raise'``, an exception will be raised.
+"""
 
 # EEG reference: set_eeg_reference
 docdict['set_eeg_reference_ref_channels'] = """
@@ -1812,7 +1818,7 @@ docdict['clust_stat'] = """
 stat_fun : callable | None
     Function called to calculate the test statistic. Must accept 1D-array as
     input and return a 1D array. If ``None`` (the default), uses
-    :func:`mne.stats.{}`.
+    `mne.stats.{}`.
 """
 docdict['clust_stat_f'] = docdict['clust_stat'].format('f_oneway')
 docdict['clust_stat_t'] = docdict['clust_stat'].format('ttest_1samp_no_p')
@@ -1833,10 +1839,11 @@ mem = (' If spatial adjacency is uniform in time, it is recommended to use '
        'a square matrix with dimension ``{x}.shape[-1]`` (n_vertices) to save '
        'memory and computation, and to use ``max_step`` to define the extent '
        'of temporal adjacency to consider when clustering.')
+comb = ' The function `mne.stats.combine_adjacency` may be useful for 4D data.'
 st = dict(sp='spatial', lastdim='', parone='(n_vertices)',
           partwo='(n_times * n_vertices)', memory=mem)
 tf = dict(sp='', lastdim=' (or the last two dimensions if ``{x}`` is 2D)',
-          parone='', partwo='', memory='')
+          parone='(for 3D data)', partwo='(for 4D data)', memory=comb)
 nogroups = dict(eachgrp='', x='X')
 groups = dict(eachgrp='each group ', x='X[k]')
 docdict['clust_adj_st1'] = docdict['clust_adj'].format(**st).format(**nogroups)

@@ -20,7 +20,7 @@ from mne import (read_source_spaces, pick_types, read_trans, read_cov,
                  make_bem_solution)
 from mne.bem import _surfaces_to_bem
 from mne.chpi import (read_head_pos, compute_chpi_amplitudes,
-                      compute_chpi_locs, compute_head_pos, _get_hpi_info)
+                      compute_chpi_locs, compute_head_pos, get_chpi_info)
 from mne.tests.test_chpi import _assert_quats
 from mne.datasets import testing
 from mne.simulation import (simulate_sparse_stc, simulate_raw, add_eog,
@@ -477,7 +477,7 @@ def test_simulate_raw_chpi():
     # need to trim extra samples off this one
     raw_chpi = add_chpi(raw_sim.copy(), head_pos=pos_fname, interp='zero')
     # test cHPI indication
-    hpi_freqs, hpi_pick, hpi_ons = _get_hpi_info(raw.info)
+    hpi_freqs, hpi_pick, hpi_ons = get_chpi_info(raw.info, on_missing='raise')
     assert_allclose(raw_sim[hpi_pick][0], 0.)
     assert_allclose(raw_chpi[hpi_pick][0], hpi_ons.sum())
     # test that the cHPI signals make some reasonable values

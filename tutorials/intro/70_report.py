@@ -30,20 +30,22 @@ import mne
 # .. cssclass:: table-bordered
 # .. rst-class:: midvalign
 #
-# ============== ==============================================================
-# Data object    Filename convention (ends with)
-# ============== ==============================================================
-# raw            -raw.fif(.gz), -raw_sss.fif(.gz), -raw_tsss.fif(.gz),
-#                _meg.fif(.gz), _eeg.fif(.gz), _ieeg.fif(.gz)
-# events         -eve.fif(.gz)
-# epochs         -epo.fif(.gz)
-# evoked         -ave.fif(.gz)
-# covariance     -cov.fif(.gz)
-# SSP projectors -proj.fif(.gz)
-# trans          -trans.fif(.gz)
-# forward        -fwd.fif(.gz)
-# inverse        -inv.fif(.gz)
-# ============== ==============================================================
+# =================================== =========================================
+# Data object                         Filename convention (ends with)
+# =================================== =========================================
+# `~mne.io.Raw`                       ``-raw.fif(.gz)``, ``-raw_sss.fif(.gz)``,
+#                                     ``-raw_tsss.fif(.gz)``,
+#                                     ``_meg.fif(.gz)``, ``_eeg.fif(.gz)``,
+#                                     ``_ieeg.fif(.gz)``
+# events                              ``-eve.fif(.gz)``
+# `~mne.Epochs`                       ``-epo.fif(.gz)``
+# `~mne.Evoked`                       ``-ave.fif(.gz)``
+# `~mne.Covariance`                   ``-cov.fif(.gz)``
+# `~mne.Projection`                   ``-proj.fif(.gz)``
+# `~mne.transforms.Transform`         ``-trans.fif(.gz)``
+# `~mne.Forward`                      ``-fwd.fif(.gz)``
+# `~mne.minimum_norm.InverseOperator` ``-inv.fif(.gz)``
+# =================================== =========================================
 #
 # Alternatively, the dash ``-`` in the filename may be replaced with an
 # underscore ``_``.
