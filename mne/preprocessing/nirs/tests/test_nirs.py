@@ -100,29 +100,31 @@ def test_fnirs_check_bads(fname):
     """Test checking of bad markings."""
     # No bad channels, so these should all pass
     raw = read_raw_nirx(fname)
-    _fnirs_check_bads(raw)
+    _fnirs_check_bads(raw.info)
     raw = optical_density(raw)
-    _fnirs_check_bads(raw)
+    _fnirs_check_bads(raw.info)
     raw = beer_lambert_law(raw)
-    _fnirs_check_bads(raw)
+    _fnirs_check_bads(raw.info)
 
     # Mark pairs of bad channels, so these should all pass
     raw = read_raw_nirx(fname)
     raw.info['bads'] = raw.ch_names[0:2]
-    _fnirs_check_bads(raw)
+    _fnirs_check_bads(raw.info)
     raw = optical_density(raw)
-    _fnirs_check_bads(raw)
+    _fnirs_check_bads(raw.info)
     raw = beer_lambert_law(raw)
-    _fnirs_check_bads(raw)
+    _fnirs_check_bads(raw.info)
 
     # Mark single channel as bad, so these should all fail
     raw = read_raw_nirx(fname)
     raw.info['bads'] = raw.ch_names[0:1]
-    pytest.raises(RuntimeError, _fnirs_check_bads, raw)
-    raw = optical_density(raw)
-    pytest.raises(RuntimeError, _fnirs_check_bads, raw)
-    raw = beer_lambert_law(raw)
-    pytest.raises(RuntimeError, _fnirs_check_bads, raw)
+    pytest.raises(RuntimeError, _fnirs_check_bads, raw.info)
+    with pytest.raises(RuntimeError, match='bad labelling'):
+        raw = optical_density(raw)
+    pytest.raises(RuntimeError, _fnirs_check_bads, raw.info)
+    with pytest.raises(RuntimeError, match='bad labelling'):
+        raw = beer_lambert_law(raw)
+    pytest.raises(RuntimeError, _fnirs_check_bads, raw.info)
 
 
 @testing.requires_testing_data

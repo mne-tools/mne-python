@@ -169,6 +169,7 @@ def _check_channels_ordered(info, pair_vals):
                 ' as source detector pairs with alternating'
                 f' {error_word}: {pair_vals[0]} & {pair_vals[1]}')
 
+    _fnirs_check_bads(info)
     return picks_cw
 
 
@@ -183,14 +184,14 @@ def _validate_nirs_info(info):
     return picks
 
 
-def _fnirs_check_bads(raw):
+def _fnirs_check_bads(info):
     """Check consistent labeling of bads across fnirs optodes."""
     # For an optode pair, if one component (light frequency or chroma) is
     # marked as bad then they all should be. This function checks that all
     # optodes are marked bad consistently.
-    picks = _picks_to_idx(raw.info, 'fnirs', exclude=[])
+    picks = _picks_to_idx(info, 'fnirs', exclude=[])
     for ii in picks[::2]:
-        bad_opto = set(raw.info['bads']).intersection(raw.ch_names[ii:ii + 2])
+        bad_opto = set(info['bads']).intersection(info.ch_names[ii:ii + 2])
         if len(bad_opto) == 1:
             raise RuntimeError('NIRS bad labelling is not consistent')
 
