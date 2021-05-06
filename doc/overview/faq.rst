@@ -6,9 +6,6 @@
 Frequently Asked Questions (FAQ)
 ================================
 
-.. contents:: Page contents
-   :local:
-
 .. highlight:: python
 
 General MNE-Python issues
@@ -308,7 +305,7 @@ does not contain a systematic signal (time-locked to the event of interest),
 the whitened baseline signal should be follow a multivariate Gaussian
 distribution, i.e., whitened baseline signals should be between -1.96 and 1.96
 at a given time sample. Based on the same reasoning, the expected value for the
-:term:`Global Field Power (GFP) <GFP>` is 1 (calculation of the :term:`GFP`
+:term:`global field power` (GFP) is 1 (calculation of the :term:`GFP`
 should take into account the true degrees of freedom, e.g. ``ddof=3`` with 2
 active SSP vectors)::
 
@@ -340,7 +337,7 @@ compared::
     >>> evoked.plot_white(covs) # doctest: +SKIP
 
 This will plot the whitened evoked for the optimal estimator and display the
-:term:`GFPs <GFP>` for all estimators as separate lines in the related panel.
+:term:`GFP` for all estimators as separate lines in the related panel.
 
 
 .. _faq_watershed_bem_meshes:
@@ -376,8 +373,7 @@ order of difficulty):
    :ref:`mne watershed_bem`.
 2. Changing the ``--atlas`` and ``--gcaatlas`` options of
    :ref:`mne watershed_bem`.
-3. Manually editing the meshes (see :ref:`this tutorial
-   <sphx_glr_auto_tutorials_source-modeling_plot_fix_bem_in_blender.py>`).
+3. Manually editing the meshes (see :ref:`this tutorial <tut-fix-meshes>`).
 4. Manually running mri_watershed_ with various FreeSurfer flags (e.g.,
    ``-less`` to fix the output).
 5. Going farther back in your Freesurfer pipeline to fix the problem.

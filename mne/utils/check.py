@@ -10,11 +10,13 @@ from distutils.version import LooseVersion
 import operator
 import os
 import os.path as op
-import sys
 from pathlib import Path
+import sys
+import warnings
 
 import numpy as np
 
+from ..fixes import _median_complex
 from ._logging import warn, logger
 
 
@@ -149,38 +151,52 @@ def _check_event_id(event_id, events):
 
 
 def _check_fname(fname, overwrite=False, must_exist=False, name='File',
-                 allow_dir=False):
+                 need_dir=False):
     """Check for file existence."""
-    _validate_type(fname, 'path-like', 'fname')
-    if op.isfile(fname) or (allow_dir and op.isdir(fname)):
+    _validate_type(fname, 'path-like', name)
+    if op.exists(fname):
         if not overwrite:
             raise FileExistsError('Destination file exists. Please use option '
                                   '"overwrite=True" to force overwriting.')
         elif overwrite != 'read':
             logger.info('Overwriting existing file.')
-        if must_exist and not os.access(fname, os.R_OK):
-            raise PermissionError(
-                '%s does not have read permissions: %s' % (name, fname))
+        if must_exist:
+            if need_dir:
+                if not op.isdir(fname):
+                    raise IOError(
+                        f'Need a directory for {name} but found a file '
+                        f'at {fname}')
+            else:
+                if not op.isfile(fname):
+                    raise IOError(
+                        f'Need a file for {name} but found a directory '
+                        f'at {fname}')
+            if not os.access(fname, os.R_OK):
+                raise PermissionError(
+                    f'{name} does not have read permissions: {fname}')
     elif must_exist:
-        raise FileNotFoundError('%s "%s" does not exist' % (name, fname))
-    return str(fname)
+        raise FileNotFoundError(f'{name} does not exist: {fname}')
+    return str(op.abspath(fname))
 
 
-def _check_subject(class_subject, input_subject, raise_error=True,
-                   kind='class subject attribute'):
+def _check_subject(first, second, *, raise_error=True,
+                   first_kind='class subject attribute',
+                   second_kind='input subject'):
     """Get subject name from class."""
-    if input_subject is not None:
-        _validate_type(input_subject, 'str', "subject input")
-        if class_subject is not None and input_subject != class_subject:
-            raise ValueError('%s (%r) did not match input subject (%r)'
-                             % (kind, class_subject, input_subject))
-        return input_subject
-    elif class_subject is not None:
-        _validate_type(class_subject, 'str',
-                       "Either subject input or %s" % (kind,))
-        return class_subject
+    if second is not None:
+        _validate_type(second, 'str', "subject input")
+        if first is not None and first != second:
+            raise ValueError(
+                f'{first_kind} ({repr(first)}) did not match '
+                f'{second_kind} ({second})')
+        return second
+    elif first is not None:
+        _validate_type(
+            first, 'str', f"Either {second_kind} subject or {first_kind}")
+        return first
     elif raise_error is True:
-        raise ValueError('Neither subject input nor %s was a string' % (kind,))
+        raise ValueError(f'Neither {second_kind} subject nor {first_kind} '
+                         'was a string')
     return None
 
 
@@ -260,6 +276,19 @@ def _check_pandas_installed(strict=True):
             return False
 
 
+def _check_eeglabio_installed(strict=True):
+    """Aux function."""
+    try:
+        import eeglabio
+        return eeglabio
+    except ImportError:
+        if strict is True:
+            raise RuntimeError('For this functionality to work, the eeglabio '
+                               'library is required.')
+        else:
+            return False
+
+
 def _check_pandas_index_arguments(index, valid):
     """Check pandas index arguments."""
     if index is None:
@@ -323,6 +352,7 @@ class _IntLike(object):
 
 
 int_like = _IntLike()
+path_like = (str, Path)
 
 
 class _Callable(object):
@@ -334,7 +364,7 @@ class _Callable(object):
 _multi = {
     'str': (str,),
     'numeric': (np.floating, float, int_like),
-    'path-like': (str, Path),
+    'path-like': path_like,
     'int-like': (int_like,),
     'callable': (_Callable(),),
 }
@@ -359,7 +389,13 @@ def _validate_type(item, types=None, item_name=None, type_name=None):
         The thing to be checked.
     types : type | str | tuple of types | tuple of str
          The types to be checked against.
-         If str, must be one of {'int', 'str', 'numeric', 'info', 'path-like'}.
+         If str, must be one of {'int', 'str', 'numeric', 'info', 'path-like',
+         'callable'}.
+    item_name : str | None
+        Name of the item to show inside the error message.
+    type_name : str | None
+        Possible types to show inside the error message that the checked item
+        can be.
     """
     if types == "int":
         _ensure_int(item, name=item_name)
@@ -385,8 +421,9 @@ def _validate_type(item, types=None, item_name=None, type_name=None):
             else:
                 type_name[-1] = 'or ' + type_name[-1]
                 type_name = ', '.join(type_name)
-        raise TypeError('%s must be an instance of %s, got %s instead'
-                        % (item_name, type_name, type(item),))
+        _item_name = 'Item' if item_name is None else item_name
+        raise TypeError(f"{_item_name} must be an instance of {type_name}, "
+                        f"got {type(item)} instead")
 
 
 def _check_path_like(item):
@@ -596,9 +633,9 @@ def _check_combine(mode, valid=('mean', 'median', 'std')):
     elif mode == "std":
         def fun(data):
             return np.std(data, axis=0)
-    elif mode == "median":
+    elif mode == "median" or mode == np.median:
         def fun(data):
-            return np.median(data, axis=0)
+            return _median_complex(data, axis=0)
     elif callable(mode):
         fun = mode
     else:
@@ -706,30 +743,18 @@ def _suggest(val, options, cutoff=0.66):
         return ' Did you mean one of %r?' % (options,)
 
 
-def _on_missing(on_missing, msg, name='on_missing'):
-    """Raise error or print warning with a message.
-
-    Parameters
-    ----------
-    on_missing : 'raise' | 'warn' | 'ignore'
-        Whether to raise an error, print a warning or ignore. Valid keys are
-        'raise' | 'warn' | 'ignore'. Default is 'raise'. If on_missing is
-        'warn' it will proceed but warn, if 'ignore' it will proceed silently.
-    msg : str
-        Message to print along with the error or the warning. Ignore if
-        on_missing is 'ignore'.
-
-    Raises
-    ------
-    ValueError
-        When on_missing is 'raise'.
-    """
+def _check_on_missing(on_missing, name='on_missing'):
     _validate_type(on_missing, str, name)
+    _check_option(name, on_missing, ['raise', 'warn', 'ignore'])
+
+
+def _on_missing(on_missing, msg, name='on_missing', error_klass=None):
+    _check_on_missing(on_missing, name)
+    error_klass = ValueError if error_klass is None else error_klass
     on_missing = 'raise' if on_missing == 'error' else on_missing
     on_missing = 'warn' if on_missing == 'warning' else on_missing
-    _check_option(name, on_missing, ['raise', 'warn', 'ignore'])
     if on_missing == 'raise':
-        raise ValueError(msg)
+        raise error_klass(msg)
     elif on_missing == 'warn':
         warn(msg)
     else:  # Ignore
@@ -745,3 +770,60 @@ def _safe_input(msg, *, alt=None, use=None):
         raise RuntimeError(
             f'Could not use input() to get a response to:\n{msg}\n'
             f'You can {alt} to avoid this error.')
+
+
+def _ensure_events(events):
+    events_type = type(events)
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('ignore')  # deprecation for object array
+        events = np.asarray(events)
+    if not np.issubdtype(events.dtype, np.integer):
+        raise TypeError('events should be a NumPy array of integers, '
+                        f'got {events_type}')
+    if events.ndim != 2 or events.shape[1] != 3:
+        raise ValueError(
+            f'events must be of shape (N, 3), got {events.shape}')
+    return events
+
+
+def _infer_check_export_fmt(fmt, fname, supported_formats):
+    """Infer export format from filename extension if auto.
+
+    Raises error if fmt is auto and no file extension found,
+    then checks format against supported formats, raises error if format is not
+    supported.
+
+    Parameters
+    ----------
+    fmt : str
+        Format of the export, will only infer the format from filename if fmt
+        is auto.
+    fname : str
+        Name of the target export file, only used when fmt is auto.
+    supported_formats : dict of str : tuple/list
+        Dictionary containing supported formats (as keys) and each format's
+        corresponding file extensions in a tuple/list (e.g. 'eeglab': ('set',))
+    """
+    _validate_type(fmt, str, 'fmt')
+    fmt = fmt.lower()
+    if fmt == "auto":
+        fmt = op.splitext(fname)[1]
+        if fmt:
+            fmt = fmt[1:].lower()
+            # find fmt in supported formats dict's tuples
+            fmt = next((k for k, v in supported_formats.items() if fmt in v),
+                       fmt)  # default to original fmt for raising error later
+        else:
+            raise ValueError(f"Couldn't infer format from filename {fname}"
+                             " (no extension found)")
+
+    if fmt not in supported_formats:
+        supported = []
+        for format, extensions in supported_formats.items():
+            ext_str = ', '.join(f'*.{ext}' for ext in extensions)
+            supported.append(f'{format} ({ext_str})')
+
+        supported_str = ', '.join(supported)
+        raise ValueError(f"Format '{fmt}' is not supported. "
+                         f"Supported formats are {supported_str}.")
+    return fmt

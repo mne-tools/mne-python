@@ -10,7 +10,7 @@ from ..base import BaseRaw
 from ..meas_info import create_info
 from ..utils import _mult_cal_one
 from ...annotations import Annotations
-from ...utils import logger, verbose, fill_doc, warn
+from ...utils import logger, verbose, fill_doc, warn, _check_fname
 from ...utils.check import _require_version
 from ..constants import FIFF
 from .._digitization import _make_dig_points
@@ -23,6 +23,10 @@ def read_raw_snirf(fname, preload=False, verbose=None):
 
     .. note:: This reader supports the .snirf file type only,
               not the .jnirs version.
+              Files with either 3D or 2D locations can be read.
+              However, we strongly recommend using 3D positions.
+              If 2D positions are used the behaviour of MNE functions
+              can not be guaranteed.
 
     Parameters
     ----------
@@ -34,7 +38,7 @@ def read_raw_snirf(fname, preload=False, verbose=None):
     Returns
     -------
     raw : instance of RawSNIRF
-        A Raw object containing SNIRF data.
+        A Raw object containing fNIRS data.
 
     See Also
     --------
@@ -67,8 +71,11 @@ class RawSNIRF(BaseRaw):
     def __init__(self, fname, preload=False, verbose=None):
         _require_version('h5py', 'read raw SNIRF data')
         from ...externals.pymatreader.utils import _import_h5py
+        # Must be here due to circular import error
+        from ...preprocessing.nirs import _validate_nirs_info
         h5py = _import_h5py()
 
+        fname = _check_fname(fname, 'read', True, 'fname')
         logger.info('Loading %s' % fname)
 
         with h5py.File(fname, 'r') as dat:
@@ -106,18 +113,6 @@ class RawSNIRF(BaseRaw):
             if sampling_rate == 0:
                 warn("Unable to extract sample rate from SNIRF file.")
 
-            sources = np.array(dat.get('nirs/probe/sourceLabels'))
-            detectors = np.array(dat.get('nirs/probe/detectorLabels'))
-            sources = [s.decode('UTF-8') for s in sources]
-            detectors = [d.decode('UTF-8') for d in detectors]
-
-            # Extract source and detector locations
-            detPos3D = np.array(dat.get('nirs/probe/detectorPos3D'))
-            srcPos3D = np.array(dat.get('nirs/probe/sourcePos3D'))
-
-            assert len(sources) == srcPos3D.shape[0]
-            assert len(detectors) == detPos3D.shape[0]
-
             # Extract wavelengths
             fnirs_wavelengths = np.array(dat.get('nirs/probe/wavelengths'))
             fnirs_wavelengths = [int(w) for w in fnirs_wavelengths]
@@ -133,6 +128,63 @@ class RawSNIRF(BaseRaw):
             channels_idx = np.array(['measurementList' in n for n in channels])
             channels = channels[channels_idx]
             channels = sorted(channels, key=natural_keys)
+
+            # Source and detector labels are optional fields.
+            # Use S1, S2, S3, etc if not specified.
+            if 'sourceLabels' in dat['nirs/probe']:
+                sources = np.array(dat.get('nirs/probe/sourceLabels'))
+                sources = [s.decode('UTF-8') for s in sources]
+            else:
+                sources = np.unique([dat.get('nirs/data1/' + c +
+                                             '/sourceIndex')[0]
+                                     for c in channels])
+                sources = [f"S{s}" for s in sources]
+
+            if 'detectorLabels' in dat['nirs/probe']:
+                detectors = np.array(dat.get('nirs/probe/detectorLabels'))
+                detectors = [d.decode('UTF-8') for d in detectors]
+
+            else:
+                detectors = np.unique([dat.get('nirs/data1/' + c +
+                                               '/detectorIndex')[0]
+                                       for c in channels])
+                detectors = [f"D{d}" for d in detectors]
+
+            # Extract source and detector locations
+            # 3D positions are optional in SNIRF,
+            # but highly recommended in MNE.
+            if ('detectorPos3D' in dat['nirs/probe']) &\
+                    ('sourcePos3D' in dat['nirs/probe']):
+                # If 3D positions are available they are used even if 2D exists
+                detPos3D = np.array(dat.get('nirs/probe/detectorPos3D'))
+                srcPos3D = np.array(dat.get('nirs/probe/sourcePos3D'))
+            elif ('detectorPos2D' in dat['nirs/probe']) &\
+                    ('sourcePos2D' in dat['nirs/probe']):
+                warn('The data only contains 2D location information for the '
+                     'optode positions. '
+                     'It is highly recommended that data is used '
+                     'which contains 3D location information for the '
+                     'optode positions. With only 2D locations it can not be '
+                     'guaranteed that MNE functions will behave correctly '
+                     'and produce accurate results. If it is not possible to '
+                     'include 3D positions in your data, please consider '
+                     'using the set_montage() function.')
+
+                detPos2D = np.array(dat.get('nirs/probe/detectorPos2D'))
+                srcPos2D = np.array(dat.get('nirs/probe/sourcePos2D'))
+                # Set the third dimension to zero. See gh#9308
+                detPos3D = np.append(detPos2D,
+                                     np.zeros((detPos2D.shape[0], 1)), axis=1)
+                srcPos3D = np.append(srcPos2D,
+                                     np.zeros((srcPos2D.shape[0], 1)), axis=1)
+
+            else:
+                raise RuntimeError('No optode location information is '
+                                   'provided. MNE requires at least 2D '
+                                   'location information')
+
+            assert len(sources) == srcPos3D.shape[0]
+            assert len(detectors) == detPos3D.shape[0]
 
             chnames = []
             for chan in channels:
@@ -264,7 +316,8 @@ class RawSNIRF(BaseRaw):
             annot = Annotations([], [], [])
             for key in dat['nirs']:
                 if 'stim' in key:
-                    data = np.array(dat.get('/nirs/' + key + '/data'))
+                    data = np.atleast_2d(np.array(
+                        dat.get('/nirs/' + key + '/data')))
                     if data.size > 0:
                         annot.append(data[:, 0], 1.0, key[4:])
             self.set_annotations(annot)
@@ -276,6 +329,9 @@ class RawSNIRF(BaseRaw):
                 chans.append(idx)
                 chans.append(idx + num_chans // 2)
             self.pick(picks=chans)
+
+        # Validate that the fNIRS info is correctly formatted
+        _validate_nirs_info(self.info)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file."""

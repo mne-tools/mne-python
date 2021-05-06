@@ -59,7 +59,7 @@ def test_fiducials_source():
 @testing.requires_testing_data
 @requires_mayavi
 @traits_test
-def test_inst_source(tmpdir):
+def test_digitization_source(tmpdir):
     """Test DigSource."""
     from mne.gui._file_traits import DigSource
     tempdir = str(tmpdir)
@@ -70,6 +70,7 @@ def test_inst_source(tmpdir):
     inst.file = inst_path
     assert inst.inst_dir == op.dirname(inst_path)
 
+    # FIFF
     lpa = array([[-7.13766068e-02, 0.00000000e+00, 5.12227416e-09]])
     nasion = array([[3.72529030e-09, 1.02605611e-01, 4.19095159e-09]])
     rpa = array([[7.52676800e-02, 0.00000000e+00, 5.58793545e-09]])
@@ -77,13 +78,30 @@ def test_inst_source(tmpdir):
     assert_allclose(inst.nasion, nasion)
     assert_allclose(inst.rpa, rpa)
 
-    montage = read_dig_fif(inst_path)  # test reading DigMontage
+    # DigMontage
+    montage = read_dig_fif(inst_path)
     montage_path = op.join(tempdir, 'temp_montage.fif')
     montage.save(montage_path)
     inst.file = montage_path
     assert_allclose(inst.lpa, lpa)
     assert_allclose(inst.nasion, nasion)
     assert_allclose(inst.rpa, rpa)
+
+    # EGI MFF
+    inst.file = op.join(data_path, 'EGI', 'test_egi.mff')
+    assert len(inst.points) == 0
+    assert len(inst.eeg_points) == 130
+    assert_allclose(inst.lpa * 1000, [[-67.1, 0, 0]], atol=0.1)
+    assert_allclose(inst.nasion * 1000, [[0.0, 103.6, 0]], atol=0.1)
+    assert_allclose(inst.rpa * 1000, [[67.1, 0, 0]], atol=0.1)
+
+    # CTF
+    inst.file = op.join(data_path, 'CTF', 'testdata_ctf.ds')
+    assert len(inst.points) == 0
+    assert len(inst.eeg_points) == 8
+    assert_allclose(inst.lpa * 1000, [[-74.3, 0.0, 0.0]], atol=0.1)
+    assert_allclose(inst.nasion * 1000, [[0.0, 117.7, 0.0]], atol=0.1)
+    assert_allclose(inst.rpa * 1000, [[84.9, -0.0, 0.0]], atol=0.1)
 
 
 @testing.requires_testing_data

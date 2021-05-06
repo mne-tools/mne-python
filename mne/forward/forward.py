@@ -12,7 +12,6 @@ from copy import deepcopy
 import re
 
 import numpy as np
-from scipy import sparse
 
 import shutil
 import os
@@ -26,11 +25,13 @@ from ..io.tree import dir_tree_find
 from ..io.tag import find_tag, read_tag
 from ..io.matrix import (_read_named_matrix, _transpose_named_matrix,
                          write_named_matrix)
-from ..io.meas_info import read_bad_channels, write_info
+from ..io.meas_info import (_read_bad_channels, write_info, _write_ch_infos,
+                            _read_extended_ch_info, _make_ch_names_mapping,
+                            _rename_list)
 from ..io.pick import (pick_channels_forward, pick_info, pick_channels,
                        pick_types)
 from ..io.write import (write_int, start_block, end_block,
-                        write_coord_trans, write_ch_info, write_name_list,
+                        write_coord_trans, write_name_list,
                         write_string, start_file, end_file, write_id)
 from ..io.base import BaseRaw
 from ..evoked import Evoked, EvokedArray
@@ -168,6 +169,7 @@ def _block_diag(A, n):
     bd : sparse matrix
         The block diagonal matrix
     """
+    from scipy import sparse
     if sparse.issparse(A):  # then make block sparse
         raise NotImplementedError('sparse reversal not implemented yet')
     ma, na = A.shape
@@ -286,14 +288,14 @@ def _read_forward_meas_info(tree, fid):
     info['meas_id'] = tag.data if tag is not None else None
 
     # Add channel information
-    chs = list()
+    info['chs'] = chs = list()
     for k in range(parent_meg['nent']):
         kind = parent_meg['directory'][k].kind
         pos = parent_meg['directory'][k].pos
         if kind == FIFF.FIFF_CH_INFO:
             tag = read_tag(fid, pos)
             chs.append(tag.data)
-    info['chs'] = chs
+    ch_names_mapping = _read_extended_ch_info(chs, parent_meg, fid)
     info._update_redundant()
 
     #   Get the MRI <-> head coordinate transformation
@@ -322,7 +324,8 @@ def _read_forward_meas_info(tree, fid):
     else:
         raise ValueError('MEG/head coordinate transformation not found')
 
-    info['bads'] = read_bad_channels(fid, parent_meg)
+    info['bads'] = _read_bad_channels(
+        fid, parent_meg, ch_names_mapping=ch_names_mapping)
     # clean up our bad list, old versions could have non-existent bads
     info['bads'] = [bad for bad in info['bads'] if bad in info['ch_names']]
 
@@ -583,6 +586,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
     fwd : Forward
         The modified forward solution.
     """
+    from scipy import sparse
     fwd = fwd.copy() if copy else fwd
 
     if force_fixed is True:
@@ -703,8 +707,7 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
         or -fwd.fif.gz.
     fwd : Forward
         Forward solution.
-    overwrite : bool
-        If True, overwrite destination file (if it exists).
+    %(overwrite)s
     %(verbose)s
 
     See Also
@@ -917,18 +920,17 @@ def write_forward_meas_info(fid, info):
         raise ValueError('Head<-->sensor transform not found')
     write_coord_trans(fid, meg_head_t)
 
+    ch_names_mapping = dict()
     if 'chs' in info:
         #  Channel information
+        ch_names_mapping = _make_ch_names_mapping(info['chs'])
         write_int(fid, FIFF.FIFF_NCHAN, len(info['chs']))
-        for k, c in enumerate(info['chs']):
-            #   Scan numbers may have been messed up
-            c = deepcopy(c)
-            c['scanno'] = k + 1
-            write_ch_info(fid, c)
+        _write_ch_infos(fid, info['chs'], False, ch_names_mapping)
     if 'bads' in info and len(info['bads']) > 0:
         #   Bad channels
+        bads = _rename_list(info['bads'], ch_names_mapping)
         start_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
-        write_name_list(fid, FIFF.FIFF_MNE_CH_NAME_LIST, info['bads'])
+        write_name_list(fid, FIFF.FIFF_MNE_CH_NAME_LIST, bads)
         end_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
 
     end_block(fid, FIFF.FIFFB_MNE_PARENT_MEAS_FILE)
@@ -1491,7 +1493,6 @@ def apply_forward_raw(fwd, stc, info, start=None, stop=None,
     raw._first_samps = np.array([int(np.round(times[0] * sfreq))])
     raw._last_samps = np.array([raw.first_samp + raw._data.shape[1] - 1])
     raw._projector = None
-    raw._update_times()
     return raw
 
 
@@ -1736,12 +1737,9 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
         If True, compute the gradient of the field with respect to the
         dipole coordinates as well (Default: False).
     mricoord : bool
-        If True, calculate in MRI coordinates (Default: False).
-    overwrite : bool
-        If True, the destination file (if it exists) will be overwritten.
-        If False (default), an error will be raised if the file exists.
-    subjects_dir : None | str
-        Override the SUBJECTS_DIR environment variable.
+        If True, calculate in MRI coordinates (Default: False)
+    %(overwrite)s
+    %(subjects_dir)s
     %(verbose)s
 
     See Also

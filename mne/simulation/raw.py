@@ -33,6 +33,7 @@ from ..surface import _CheckInside
 from ..utils import (logger, verbose, check_random_state, _pl, _validate_type,
                      _check_preload)
 from ..parallel import check_n_jobs
+from .source import SourceSimulator
 
 
 def _check_cov(info, cov):
@@ -110,8 +111,11 @@ def _check_head_pos(head_pos, info, first_samp, times=None):
             raise RuntimeError('All position times must be <= t_end (%0.1f '
                                'sec), found %s/%s bad values (is this a split '
                                'file?)' % (times[-1], bad.sum(), len(bad)))
+    # If it starts close to zero, make it zero (else unique(offset) fails)
+    if len(ts) > 0 and ts[0] < (0.5 / info['sfreq']):
+        ts[0] = 0.
     # If it doesn't start at zero, insert one at t=0
-    if len(ts) == 0 or ts[0] > 0:
+    elif len(ts) == 0 or ts[0] > 0:
         ts = np.r_[[0.], ts]
         dev_head_ts.insert(0, info['dev_head_t']['trans'])
     dev_head_ts = [{'trans': d, 'to': info['dev_head_t']['to'],
@@ -140,7 +144,7 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
 
         .. versionchanged:: 0.18
            Support for :class:`mne.Info`.
-    stc : iterable | SourceEstimate
+    stc : iterable | SourceEstimate | SourceSimulator
         The source estimates to use to simulate data. Each must have the same
         sample rate as the raw data, and the vertices of all stcs in the
         iterable must match. Each entry in the iterable can also be a tuple of
@@ -149,7 +153,8 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
         See Notes for details.
 
         .. versionchanged:: 0.18
-           Support for tuple, and iterable of tuple or SourceEstimate.
+           Support for tuple, iterable of tuple or `~mne.SourceEstimate`,
+           or `~mne.simulation.SourceSimulator`.
     trans : dict | str | None
         Either a transformation filename (usually made using mne_analyze)
         or an info dict (usually opened using read_trans()).
@@ -166,7 +171,7 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
         solution filename (e.g., "sample-5120-5120-5120-bem-sol.fif").
         Can be None if ``forward`` is provided.
     %(head_pos)s
-        See for example [1]_.
+        See for example :footcite:`LarsonTaulu2017`.
     mindist : float
         Minimum distance between sources and the inner skull boundary
         to use during forward calculation.
@@ -237,9 +242,7 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
 
     References
     ----------
-    .. [1] Larson E, Taulu S (2017). "The Importance of Properly Compensating
-           for Head Movements During MEG Acquisition Across Different Age
-           Groups." Brain Topogr 30:172–181
+    .. footbibliography::
     """  # noqa: E501
     _validate_type(info, Info, 'info')
     raw_verbose = verbose
@@ -273,8 +276,10 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
     logger.info('Setting up raw simulation: %s position%s, "%s" interpolation'
                 % (len(dev_head_ts), _pl(dev_head_ts), interp))
 
+    if isinstance(stc, SourceSimulator) and stc.first_samp != first_samp:
+        logger.info('SourceSimulator first_samp does not match argument.')
+
     stc_enum, stc_counted, verts = _check_stc_iterable(stc, info)
-    # del stc
     if forward is not None:
         forward = restrict_forward_to_stc(forward, verts)
         src = forward['src']
@@ -369,7 +374,7 @@ def add_eog(raw, head_pos=None, interp='cos2', n_jobs=1, random_state=None,
     1. Random activation times are drawn from an inhomogeneous poisson
        process whose blink rate oscillates between 4.5 blinks/minute
        and 17 blinks/minute based on the low (reading) and high (resting)
-       blink rates from [1]_.
+       blink rates from :footcite:`BentivoglioEtAl1997`.
     2. The activation kernel is a 250 ms Hanning window.
     3. Two activated dipoles are located in the z=0 plane (in head
        coordinates) at ±30 degrees away from the y axis (nasion).
@@ -382,8 +387,7 @@ def add_eog(raw, head_pos=None, interp='cos2', n_jobs=1, random_state=None,
 
     References
     ----------
-    .. [1] Bentivoglio et al. "Analysis of blink rate patterns in normal
-           subjects" Movement Disorders, 1997 Nov;12(6):1028-34.
+    .. footbibliography::
     """
     return _add_exg(raw, 'blink', head_pos, interp, n_jobs, random_state)
 

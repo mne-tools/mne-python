@@ -20,6 +20,7 @@ import re
 import numpy as np
 
 from ..defaults import HEAD_SIZE_DEFAULT
+from ..source_space import get_mni_fiducials
 from ..viz import plot_montage
 from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
                           _topo_to_sph, _frame_to_str, Transform,
@@ -32,8 +33,8 @@ from ..io._digitization import (_count_points_by_type,
                                 _get_data_as_dict_from_dig)
 from ..io.meas_info import create_info
 from ..io.open import fiff_open
-from ..io.pick import pick_types
-from ..io.constants import FIFF
+from ..io.pick import pick_types, _picks_to_idx
+from ..io.constants import FIFF, CHANNEL_LOC_ALIASES
 from ..utils import (warn, copy_function_doc_to_method_doc, _pl, verbose,
                      _check_option, _validate_type, _check_fname, _on_missing,
                      fill_doc)
@@ -51,7 +52,8 @@ _BUILT_IN_MONTAGES = [
     'easycap-M1', 'easycap-M10',
     'mgh60', 'mgh70',
     'standard_1005', 'standard_1020', 'standard_alphabetic',
-    'standard_postfixed', 'standard_prefixed', 'standard_primed'
+    'standard_postfixed', 'standard_prefixed', 'standard_primed',
+    'artinis-octamon', 'artinis-brite23'
 ]
 
 
@@ -118,6 +120,12 @@ def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
     read_dig_egi
     read_dig_fif
     read_dig_polhemus_isotrak
+
+    Notes
+    -----
+    Valid ``coord_frame`` arguments are 'meg', 'mri', 'mri_voxel', 'head',
+    'mri_tal', 'ras', 'fs_tal', 'ctf_head', 'ctf_meg', 'unknown'. For custom
+    montages without fiducials this parameter has to be set to 'head'.
     """
     _validate_type(ch_pos, (dict, None), 'ch_pos')
     if ch_pos is None:
@@ -195,12 +203,12 @@ class DigMontage(object):
                             sphere=sphere)
 
     @fill_doc
-    def rename_channels(self, mapping):
+    def rename_channels(self, mapping, allow_duplicates=False):
         """Rename the channels.
 
         Parameters
         ----------
-        %(rename_channels_mapping)s
+        %(rename_channels_mapping_duplicates)s
 
         Returns
         -------
@@ -209,7 +217,7 @@ class DigMontage(object):
         """
         from .channels import rename_channels
         temp_info = create_info(list(self._get_ch_pos()), 1000., 'eeg')
-        rename_channels(temp_info, mapping)
+        rename_channels(temp_info, mapping, allow_duplicates)
         self.ch_names = temp_info['ch_names']
 
     def save(self, fname):
@@ -322,6 +330,7 @@ class DigMontage(object):
                 {
                     'ch_pos': {'EEG061': [0, 0, 0]},
                     'nasion': [0, 0, 1],
+                    'coord_frame': 'mni_tal',
                     'lpa': [0, 1, 0],
                     'rpa': [1, 0, 0],
                     'hsp': None,
@@ -331,7 +340,6 @@ class DigMontage(object):
         # get channel positions as dict
         ch_pos = self._get_ch_pos()
 
-        # _get_fid_coords(self.dig)
         # get coordframe and fiducial coordinates
         montage_bunch = _get_data_as_dict_from_dig(self.dig)
         coord_frame = _frame_to_str.get(montage_bunch.coord_frame)
@@ -347,6 +355,58 @@ class DigMontage(object):
             hpi=montage_bunch.hpi,
         )
         return positions
+
+    @verbose
+    def add_estimated_fiducials(self, subject, subjects_dir=None,
+                                verbose=None):
+        """Estimate fiducials based on FreeSurfer ``fsaverage`` subject.
+
+        This takes a montage with the ``mri`` coordinate frame,
+        corresponding to the FreeSurfer RAS (xyz in the volume) T1w
+        image of the specific subject. It will call
+        :func:`mne.coreg.get_mni_fiducials` to estimate LPA, RPA and
+        Nasion fiducial points.
+
+        Parameters
+        ----------
+        %(subject)s
+        %(subjects_dir)s
+        %(verbose)s
+
+        Returns
+        -------
+        inst : instance of DigMontage
+            The instance, modified in-place.
+
+        See Also
+        --------
+        :ref:`plot_source_alignment`
+
+        Notes
+        -----
+        Since MNE uses the FIF data structure, it relies on the ``head``
+        coordinate frame. Any coordinate frame can be transformed
+        to ``head`` if the fiducials (i.e. LPA, RPA and Nasion) are
+        defined. One can use this function to estimate those fiducials
+        and then use ``montage.get_native_head_t()`` to get the
+        head <-> MRI transform.
+        """
+        # get coordframe and fiducial coordinates
+        montage_bunch = _get_data_as_dict_from_dig(self.dig)
+
+        # get the coordinate frame as a string and check that it's MRI
+        if montage_bunch.coord_frame != FIFF.FIFFV_COORD_MRI:
+            raise RuntimeError(
+                f'Montage should be in mri coordinate frame to call '
+                f'`add_estimated_fiducials`. The current coordinate '
+                f'frame is {montage_bunch.coord_frame}')
+
+        # estimate LPA, nasion, RPA from FreeSurfer fsaverage
+        fids_mri = list(get_mni_fiducials(subject, subjects_dir))
+
+        # add those digpoints to front of montage
+        self.dig = fids_mri + self.dig
+        return self
 
 
 VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
@@ -666,8 +726,43 @@ def _get_montage_in_head(montage):
         return transform_to_head(montage.copy())
 
 
+def _set_montage_fnirs(info, montage):
+    """Set the montage for fNIRS data.
+
+    This needs to be different to electrodes as each channel has three
+    coordinates that need to be set. For each channel there is a source optode
+    location, a detector optode location, and a channel midpoint that must be
+    stored. This function modifies info['chs'][#]['loc'] and info['dig'] in
+    place.
+    """
+    from ..preprocessing.nirs import _validate_nirs_info
+    # Validate that the fNIRS info is correctly formatted
+    picks = _validate_nirs_info(info)
+
+    # Modify info['chs'][#]['loc'] in place
+    num_ficiduals = len(montage.dig) - len(montage.ch_names)
+    for ch_idx in picks:
+        ch = info['chs'][ch_idx]['ch_name']
+        source, detector = ch.split(' ')[0].split('_')
+        source_pos = montage.dig[montage.ch_names.index(source)
+                                 + num_ficiduals]['r']
+        detector_pos = montage.dig[montage.ch_names.index(detector)
+                                   + num_ficiduals]['r']
+
+        info['chs'][ch_idx]['loc'][3:6] = source_pos
+        info['chs'][ch_idx]['loc'][6:9] = detector_pos
+        midpoint = (source_pos + detector_pos) / 2
+        info['chs'][ch_idx]['loc'][:3] = midpoint
+
+    # Modify info['dig'] in place
+    info['dig'] = montage.dig
+
+    return info
+
+
 @fill_doc
-def _set_montage(info, montage, match_case=True, on_missing='raise'):
+def _set_montage(info, montage, match_case=True, match_alias=False,
+                 on_missing='raise'):
     """Apply montage to data.
 
     With a DigMontage, this function will replace the digitizer info with
@@ -682,6 +777,7 @@ def _set_montage(info, montage, match_case=True, on_missing='raise'):
         The measurement info to update.
     %(montage)s
     %(match_case)s
+    %(match_alias)s
     %(on_missing_montage)s
 
     Notes
@@ -697,6 +793,7 @@ def _set_montage(info, montage, match_case=True, on_missing='raise'):
 
     if isinstance(montage, DigMontage):
         mnt_head = _get_montage_in_head(montage)
+        del montage
 
         def _backcompat_value(pos, ref_pos):
             if any(np.isnan(pos)):
@@ -707,16 +804,16 @@ def _set_montage(info, montage, match_case=True, on_missing='raise'):
         # get the channels in the montage in head
         ch_pos = mnt_head._get_ch_pos()
 
-        # only get the eeg, seeg, ecog channels
+        # only get the eeg, seeg, dbs, ecog channels
         _pick_chs = partial(
-            pick_types, exclude=[], eeg=True, seeg=True, ecog=True, meg=False,
-        )
+            pick_types, exclude=[], eeg=True, seeg=True, dbs=True, ecog=True,
+            meg=False)
 
         # get the reference position from the loc[3:6]
         chs = info['chs']
         ref_pos = [chs[ii]['loc'][3:6] for ii in _pick_chs(info)]
 
-        # keep reference location from EEG/ECoG/SEEG channels if they
+        # keep reference location from EEG/ECoG/SEEG/DBS channels if they
         # already exist and are all the same.
         custom_eeg_ref_dig = False
         # Note: ref position is an empty list for fieldtrip data
@@ -758,6 +855,27 @@ def _set_montage(info, montage, match_case=True, on_missing='raise'):
                 raise ValueError('Cannot use match_case=False as %s channel '
                                  'name(s) require case sensitivity' % n_dup)
 
+        # use lookup table to match unrecognized channel names to known aliases
+        if match_alias:
+            alias_dict = (match_alias if isinstance(match_alias, dict) else
+                          CHANNEL_LOC_ALIASES)
+            if not match_case:
+                alias_dict = {
+                    ch_name.lower(): ch_alias.lower()
+                    for ch_name, ch_alias in alias_dict.items()
+                }
+
+            # excluded ch_alias not in info, to prevent unnecessary mapping and
+            # warning messages based on aliases.
+            alias_dict = {
+                ch_name: ch_alias
+                for ch_name, ch_alias in alias_dict.items()
+                if ch_alias in ch_pos_use
+            }
+            info_names_use = [
+                alias_dict.get(ch_name, ch_name) for ch_name in info_names_use
+            ]
+
         # warn user if there is not a full overlap of montage with info_chs
         not_in_montage = [name for name, use in zip(info_names, info_names_use)
                           if use not in ch_pos_use]
@@ -780,6 +898,7 @@ def _set_montage(info, montage, match_case=True, on_missing='raise'):
 
         for name, use in zip(info_names, info_names_use):
             _loc_view = info['chs'][info['ch_names'].index(name)]['loc']
+            # Next line modifies info['chs'][#]['loc'] in place
             _loc_view[:6] = _backcompat_value(ch_pos_use[use], eeg_ref_pos)
 
         del ch_pos_use
@@ -808,14 +927,23 @@ def _set_montage(info, montage, match_case=True, on_missing='raise'):
             # in the old dig
             if ref_dig_point in old_dig:
                 digpoints.append(ref_dig_point)
+        # Next line modifies info['dig'] in place
         info['dig'] = _format_dig_points(digpoints, enforce_order=True)
 
         if mnt_head.dev_head_t is not None:
+            # Next line modifies info['dev_head_t'] in place
             info['dev_head_t'] = Transform('meg', 'head', mnt_head.dev_head_t)
 
+        # Handle fNIRS with source, detector and channel
+        fnirs_picks = _picks_to_idx(info, 'fnirs', allow_empty=True)
+        if len(fnirs_picks) > 0:
+            info = _set_montage_fnirs(info, mnt_head)
+
     else:  # None case
+        # Next line modifies info['dig'] in place
         info['dig'] = None
         for ch in info['chs']:
+            # Next line modifies info['chs'][#]['loc'] in place
             ch['loc'] = np.full(12, np.nan)
 
 
@@ -1031,7 +1159,8 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
         '.loc' or '.locs' or '.eloc' (for EEGLAB files),
         '.sfp' (BESA/EGI files), '.csd',
         '.elc', '.txt', '.csd', '.elp' (BESA spherical),
-        '.bvef' (BrainVision files).
+        '.bvef' (BrainVision files),
+        '.csv', '.tsv', '.xyz' (XYZ coordinates).
     head_size : float | None
         The size of the head (radius, in [m]). If ``None``, returns the values
         read from the montage file with no modification. Defaults to 0.095m.
@@ -1065,7 +1194,7 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
     """
     from ._standard_montage_utils import (
         _read_theta_phi_in_degrees, _read_sfp, _read_csd, _read_elc,
-        _read_elp_besa, _read_brainvision
+        _read_elp_besa, _read_brainvision, _read_xyz
     )
     SUPPORTED_FILE_EXT = {
         'eeglab': ('.loc', '.locs', '.eloc', ),
@@ -1075,6 +1204,7 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
         'generic (Theta-phi in degrees)': ('.txt', ),
         'standard BESA spherical': ('.elp', ),  # XXX: not same as polhemus elp
         'brainvision': ('.bvef', ),
+        'xyz': ('.csv', '.tsv', '.xyz'),
     }
 
     _, ext = op.splitext(fname)
@@ -1114,6 +1244,9 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
 
     elif ext in SUPPORTED_FILE_EXT['brainvision']:
         montage = _read_brainvision(fname, head_size)
+
+    elif ext in SUPPORTED_FILE_EXT['xyz']:
+        montage = _read_xyz(fname)
 
     if coord_frame is not None:
         coord_frame = _coord_frame_const(coord_frame)
@@ -1274,6 +1407,10 @@ def make_standard_montage(kind, head_size=HEAD_SIZE_DEFAULT):
                           MGH (60+3 locations)
     mgh70                 The (newer) 70-channel BrainVision cap used at
                           MGH (70+3 locations)
+
+    artinis-octamon       Artinis OctaMon fNIRS (8 sources, 2 detectors)
+
+    artinis-brite23       Artinis Brite23 fNIRS (11 sources, 7 detectors)
     ===================   =====================================================
 
     .. versionadded:: 0.19.0

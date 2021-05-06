@@ -406,7 +406,7 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
                         'coord_frame': coord_frame})
     if extra_points is not None:
         extra_points = np.asarray(extra_points)
-        if extra_points.shape[1] != 3:
+        if len(extra_points) and extra_points.shape[1] != 3:
             raise ValueError('Points should have the shape (n_points, 3) '
                              'instead of %s' % (extra_points.shape,))
         for idx, point in enumerate(extra_points):

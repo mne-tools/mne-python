@@ -5,7 +5,6 @@
 # License: Simplified BSD
 
 import numpy as np
-from scipy import sparse
 
 from ..utils import _validate_type, _check_option
 from ..utils.check import int_like
@@ -30,6 +29,7 @@ def combine_adjacency(*structure):
     adjacency : scipy.sparse.coo_matrix, shape (n_features, n_features)
         The adjacency matrix.
     """
+    from scipy import sparse
     structure = list(structure)
     for di, dim in enumerate(structure):
         name = f'structure[{di}]'

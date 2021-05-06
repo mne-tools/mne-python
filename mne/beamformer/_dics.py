@@ -12,7 +12,7 @@ from ..channels import equalize_channels
 from ..io.pick import pick_info, pick_channels
 from ..utils import (logger, verbose, warn, _check_one_ch_type,
                      _check_channels_spatial_filter, _check_rank,
-                     _check_option, _validate_type)
+                     _check_option, _validate_type, deprecated)
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz, _check_reference, _check_depth
 from ..rank import compute_rank
@@ -27,7 +27,7 @@ from ._compute_beamformer import (_prepare_beamformer_input,
 @verbose
 def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
               pick_ori=None, rank=None, weight_norm=None,
-              reduce_rank=False, depth=1., real_filter=False,
+              reduce_rank=False, depth=1., real_filter=None,
               inversion='matrix', verbose=None):
     """Compute a Dynamic Imaging of Coherent Sources (DICS) spatial filter.
 
@@ -74,7 +74,11 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
     %(depth)s
     real_filter : bool
         If ``True``, take only the real part of the cross-spectral-density
-        matrices to compute real filters. Defaults to ``False``.
+        matrices to compute real filters.
+
+        .. versionchanged:: 0.23
+            Version 0.23 deprecated ``False`` as default for ``real_filter``.
+            With version 0.24, ``True`` will be the new default.
     %(bf_inversion)s
 
         .. versionchanged:: 0.21
@@ -172,6 +176,14 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
     # remove bads so that equalize_channels only keeps all good
     info = pick_info(info, pick_channels(info['ch_names'], [], info['bads']))
     info, forward, csd = equalize_channels([info, forward, csd])
+
+    if real_filter is None:
+        depr_message = ('The current default of real_filter=False is '
+                        'deprecated and will be changed to real_filter=True '
+                        'in version 0.24. Set real_filter explicitly to '
+                        'avoid this warning.')
+        warn(depr_message, DeprecationWarning)
+        real_filter = False
 
     csd, noise_csd = _prepare_noise_csd(csd, noise_csd, real_filter)
 
@@ -493,6 +505,9 @@ def apply_dics_csd(csd, filters, verbose=None):
             frequencies)
 
 
+@deprecated(
+    'tf_dics is deprecated and will be removed in 0.24, use LCMV with '
+    'covariances matrices computed on band-passed data or DICS instead.')
 @verbose
 def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
             subtract_evoked=False, mode='fourier', freq_bins=None,
@@ -676,6 +691,10 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
         raise ValueError('When using multitaper mode and specifying '
                          'multitaper transform bandwidth, one value must be '
                          'provided per frequency bin')
+    if isinstance(cwt_n_cycles, (int, float)):
+        # create a list out of single values to match n_freq_bins
+        n_cyc = cwt_n_cycles
+        cwt_n_cycles = [n_cyc] * n_freq_bins
 
     # Multiplying by 1e3 to avoid numerical issues, e.g. 0.3 // 0.05 == 5
     n_time_steps = int(((tmax - tmin) * 1e3) // (tstep * 1e3))
@@ -700,6 +719,7 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
             freq_bin = frequencies[i_freq]
             fmin = np.min(freq_bin)
             fmax = np.max(freq_bin)
+            n_cycles = cwt_n_cycles[i_freq]
         else:
             fmin, fmax = freq_bins[i_freq]
             if n_ffts is None:
@@ -750,7 +770,7 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
                 elif mode == 'cwt_morlet':
                     csd = csd_morlet(
                         epochs, frequencies=freq_bin, tmin=win_tmin,
-                        tmax=win_tmax, n_cycles=cwt_n_cycles, decim=decim,
+                        tmax=win_tmax, n_cycles=n_cycles, decim=decim,
                         verbose=False)
                 else:
                     raise ValueError('Invalid mode, choose either '

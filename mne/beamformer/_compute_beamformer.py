@@ -9,7 +9,6 @@
 from copy import deepcopy
 
 import numpy as np
-from scipy import linalg
 
 from ..cov import Covariance, make_ad_hoc_cov
 from ..forward.forward import is_fixed_orient, _restrict_forward_to_src_sel
@@ -377,7 +376,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
                         'matrix or using regularization.')
                 noise = loading_factor
             else:
-                noise, _ = linalg.eigh(Cm)
+                noise, _ = np.linalg.eigh(Cm)
                 noise = noise[-rank]
                 noise = max(noise, loading_factor)
             W /= np.sqrt(noise)
@@ -460,8 +459,7 @@ class Beamformer(dict):
         fname : str
             The filename to use to write the HDF5 data.
             Should end in ``'-lcmv.h5'`` or ``'-dics.h5'``.
-        overwrite : bool
-            If True, overwrite the file (if it exists).
+        %(overwrite)s
         %(verbose)s
         """
         ending = '-%s.h5' % (self['kind'].lower(),)

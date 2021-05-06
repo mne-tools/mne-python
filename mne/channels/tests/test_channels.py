@@ -29,7 +29,7 @@ from mne.datasets import testing
 io_dir = op.join(op.dirname(__file__), '..', '..', 'io')
 base_dir = op.join(io_dir, 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
-eve_fname = op .join(base_dir, 'test-eve.fif')
+eve_fname = op.join(base_dir, 'test-eve.fif')
 fname_kit_157 = op.join(io_dir, 'kit', 'tests', 'data', 'test.sqd')
 
 
@@ -83,10 +83,6 @@ def test_rename_channels():
     # Test bad input
     pytest.raises(ValueError, rename_channels, info, 1.)
     pytest.raises(ValueError, rename_channels, info, 1.)
-    # Test name too long (channel names must be less than 15 characters)
-    A16 = 'A' * 16
-    mapping = {'MEG 2641': A16}
-    pytest.raises(ValueError, rename_channels, info, mapping)
 
     # Test successful changes
     # Test ch_name and ch_names are changed
@@ -107,6 +103,15 @@ def test_rename_channels():
     rename_channels(info2, mapping)
     assert_array_equal(['EEG060', 'EEG060'], info2['bads'])
 
+    # test that keys in Raw._orig_units will be renamed, too
+    raw = read_raw_fif(raw_fname).crop(0, 0.1)
+    old, new = 'EEG 060', 'New'
+    raw._orig_units = {old: 'V'}
+
+    raw.rename_channels({old: new})
+    assert old not in raw._orig_units
+    assert new in raw._orig_units
+
 
 def test_set_channel_types():
     """Test set_channel_types."""
@@ -121,9 +126,9 @@ def test_set_channel_types():
     with pytest.raises(ValueError, match='cannot change to this channel type'):
         raw.set_channel_types(mapping)
     # Test changing type if in proj
-    mapping = {'EEG 058': 'ecog', 'EEG 059': 'ecg', 'EEG 060': 'eog',
-               'EOG 061': 'seeg', 'MEG 2441': 'eeg', 'MEG 2443': 'eeg',
-               'MEG 2442': 'hbo'}
+    mapping = {'EEG 057': 'dbs', 'EEG 058': 'ecog', 'EEG 059': 'ecg',
+               'EEG 060': 'eog', 'EOG 061': 'seeg', 'MEG 2441': 'eeg',
+               'MEG 2443': 'eeg', 'MEG 2442': 'hbo', 'EEG 001': 'resp'}
     raw2 = read_raw_fif(raw_fname)
     raw2.info['bads'] = ['EEG 059', 'EEG 060', 'EOG 061']
     with pytest.raises(RuntimeError, match='type .* in projector "PCA-v1"'):
@@ -132,6 +137,10 @@ def test_set_channel_types():
     with pytest.warns(RuntimeWarning, match='unit for channel.* has changed'):
         raw2 = raw2.set_channel_types(mapping)
     info = raw2.info
+    assert info['chs'][371]['ch_name'] == 'EEG 057'
+    assert info['chs'][371]['kind'] == FIFF.FIFFV_DBS_CH
+    assert info['chs'][371]['unit'] == FIFF.FIFF_UNIT_V
+    assert info['chs'][371]['coil_type'] == FIFF.FIFFV_COIL_EEG
     assert info['chs'][372]['ch_name'] == 'EEG 058'
     assert info['chs'][372]['kind'] == FIFF.FIFFV_ECOG_CH
     assert info['chs'][372]['unit'] == FIFF.FIFF_UNIT_V
@@ -156,6 +165,12 @@ def test_set_channel_types():
     assert info['chs'][idx]['kind'] == FIFF.FIFFV_FNIRS_CH
     assert info['chs'][idx]['unit'] == FIFF.FIFF_UNIT_MOL
     assert info['chs'][idx]['coil_type'] == FIFF.FIFFV_COIL_FNIRS_HBO
+
+    # resp channel type
+    idx = pick_channels(raw.ch_names, ['EEG 001'])[0]
+    assert info['chs'][idx]['kind'] == FIFF.FIFFV_RESP_CH
+    assert info['chs'][idx]['unit'] == FIFF.FIFF_UNIT_V
+    assert info['chs'][idx]['coil_type'] == FIFF.FIFFV_COIL_NONE
 
     # Test meaningful error when setting channel type with unknown unit
     raw.info['chs'][0]['unit'] = 0.
@@ -329,6 +344,18 @@ def test_find_ch_adjacency():
     assert ch_names[0] == 'MEG 001'
 
 
+@testing.requires_testing_data
+def test_neuromag122_adjacency():
+    """Test computing the adjacency matrix of Neuromag122-Data."""
+    nm122_fname = op.join(testing.data_path(), 'misc',
+                          'neuromag122_test_file-raw.fif')
+    raw = read_raw_fif(nm122_fname, preload=True)
+    conn, ch_names = find_ch_adjacency(raw.info, 'grad')
+    assert conn.getnnz() == 1564
+    assert len(ch_names) == 122
+    assert conn.shape == (122, 122)
+
+
 def test_drop_channels():
     """Test if dropping channels works with various arguments."""
     raw = read_raw_fif(raw_fname, preload=True).crop(0, 0.1)
@@ -337,6 +364,31 @@ def test_drop_channels():
     raw.drop_channels({"MEG 0132", "MEG 0133"})  # set argument
     pytest.raises(ValueError, raw.drop_channels, ["MEG 0111", 5])
     pytest.raises(ValueError, raw.drop_channels, 5)  # must be list or str
+
+
+def test_add_reference_channels():
+    """Test if there is a new reference channel that consist of all zeros."""
+    raw = read_raw_fif(raw_fname, preload=True)
+    n_raw_original_channels = len(raw.ch_names)
+    epochs = Epochs(raw, read_events(eve_fname))
+    epochs.load_data()
+    epochs_original_shape = epochs._data.shape[1]
+    evoked = epochs.average()
+    n_evoked_original_channels = len(evoked.ch_names)
+
+    # Raw object
+    raw.add_reference_channels(['REF 123'])
+    assert len(raw.ch_names) == n_raw_original_channels + 1
+    assert np.all(raw.get_data()[-1] == 0)
+
+    # Epochs object
+    epochs.add_reference_channels(['REF 123'])
+    assert epochs._data.shape[1] == epochs_original_shape + 1
+
+    # Evoked object
+    evoked.add_reference_channels(['REF 123'])
+    assert len(evoked.ch_names) == n_evoked_original_channels + 1
+    assert np.all(evoked._data[-1] == 0)
 
 
 def test_equalize_channels():
