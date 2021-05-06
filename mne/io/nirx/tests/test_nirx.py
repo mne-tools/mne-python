@@ -70,7 +70,6 @@ def test_nirsport_v1_wo_sat():
     assert np.sum(np.isnan(data)) == 0
 
 
-@pytest.mark.filterwarnings('ignore:.*contains saturated data.*:')
 @pytest.mark.filterwarnings('ignore:.*Extraction of measurement.*:')
 @requires_testing_data
 def test_nirsport_v1_w_sat():
@@ -94,7 +93,6 @@ def test_nirsport_v1_w_sat():
     assert np.sum(np.isnan(data)) == 0
 
 
-@pytest.mark.filterwarnings('ignore:.*contains saturated data.*:')
 @pytest.mark.filterwarnings('ignore:.*Extraction of measurement.*:')
 @requires_testing_data
 @pytest.mark.parametrize('preload', (True, False))
