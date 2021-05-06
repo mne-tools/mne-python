@@ -113,18 +113,17 @@ in terms of project direction, to potentially less experienced contributors.
 The Steering Council and its Members play a special role in certain situations.
 In particular, the Council may:
 
--   Make decisions about the overall scope, vision, and direction of the
-    project.
--   Make decisions about strategic collaborations with other organizations or
-    individuals.
--   Make decisions about specific technical issues, features, bugs, and pull
-    requests. They are the primary mechanism of guiding the code review process
-    and merging pull requests.
--   Make decisions about the Services that are run by The Project and manage
-    those Services for the benefit of the Project and Community.
--   Make decisions when regular community discussion does not produce consensus
-    on an issue in a reasonable time frame.
--   Update policy documents, such as this one.
+- Make decisions about the overall scope, vision, and direction of the project.
+- Make decisions about strategic collaborations with other organizations or
+  individuals.
+- Make decisions about specific technical issues, features, bugs, and pull
+  requests. They are the primary mechanism of guiding the code review process
+  and merging pull requests.
+- Make decisions about the Services that are run by The Project and manage
+  those Services for the benefit of the Project and Community.
+- Make decisions when regular community discussion does not produce consensus
+  on an issue in a reasonable time frame.
+- Update policy documents, such as this one.
 
 Council membership
 ~~~~~~~~~~~~~~~~~~
@@ -176,10 +175,10 @@ range of companies, universities, and non-profit organizations. Because of this,
 it is possible that Members will have a conflict of interest. Such conflicts of
 interest include, but are not limited to:
 
--   Financial interest, such as investments, employment or contracting work,
-    outside of The Project that may influence their work on The Project.
--   Access to proprietary information of their employer that could potentially
-    leak into their work with the Project.
+- Financial interest, such as investments, employment or contracting work,
+  outside of The Project that may influence their work on The Project.
+- Access to proprietary information of their employer that could potentially
+  leak into their work with the Project.
 
 All members of the Council, BDFL included, shall disclose to the rest of the
 Council any conflict of interest they may have. Members with a conflict of
@@ -277,12 +276,12 @@ relationship.
 
 Institutional Partner benefits are:
 
--  optional acknowledgement on the MNE-Python website and in talks
--  ability to acknowledge their own funding sources on the MNE-Python
-   website and in talks
--  ability to influence the project through the participation of their
-   Council Member
--  invitation of the Council Members to MNE-Python Developer Meetings
+- optional acknowledgement on the MNE-Python website and in talks
+- ability to acknowledge their own funding sources on the MNE-Python
+  website and in talks
+- ability to influence the project through the participation of their
+  Council Member
+- invitation of the Council Members to MNE-Python Developer Meetings
 
 A list of current Institutional Partners is maintained at the page
 :ref:`supporting-institutions`.
