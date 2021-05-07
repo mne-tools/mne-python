@@ -30,7 +30,8 @@ FILE_EXTENSIONS = {
         "info": ".dap",
         "data": ".dat",
         "labels": ".rs3",
-        "events": ".cef",
+        "events_cef": ".cef",
+        "events_ceo": ".ceo",
         "hpi": ".hpi",
     },
     "Curry 8": {

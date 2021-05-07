@@ -392,7 +392,8 @@ def _get_read_annotations_mock_info(name_part, mock_dir):
     original['info'] = original['base'] + FILE_EXTENSIONS[version]["info"]
 
     modified['base'] = str(mock_dir.join('curry'))
-    modified['event'] = modified['base'] + FILE_EXTENSIONS[version]["events"]
+    modified['event'] = (modified['base'] +
+                         FILE_EXTENSIONS[version]["events_cef"])
     modified['info'] = modified['base'] + FILE_EXTENSIONS[version]["info"]
 
     return original, modified
