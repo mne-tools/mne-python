@@ -680,6 +680,10 @@ def test_time_as_index_and_crop():
     assert_array_equal(evoked.time_as_index([-.1, .1], use_rounding=True),
                        [0, len(evoked.times) - 1])
     evoked.crop(evoked.tmin, evoked.tmax, include_tmax=False)
+    n_times = len(evoked.times)
+    with pytest.warns(RuntimeWarning, match='tmax is set to'):
+        evoked.crop(tmin, tmax, include_tmax=False)
+    assert len(evoked.times) == n_times
     assert_allclose(evoked.times[[0, -1]], [tmin, tmax - delta], atol=atol)
 
 
