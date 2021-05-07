@@ -588,6 +588,8 @@ def test_plot_raw_psd(raw):
     picks = pick_types(raw.info, meg='mag', eeg=False)[:4]
     raw.plot_psd(tmax=None, picks=picks, area_mode='range', average=False,
                  spatial_colors=True)
+    raw.plot_psd(tmax=None, picks=picks, exclude='bads', area_mode='range',
+                 average=False, spatial_colors=True)
     raw.plot_psd(tmax=20., color='yellow', dB=False, line_alpha=0.4,
                  n_overlap=0.1, average=False)
     plt.close('all')
@@ -663,6 +665,9 @@ def test_plot_raw_psd(raw):
                           verbose='error')
     fig = raw.plot_psd()
     assert len(fig.axes) == 10
+    # test excludeing one channel
+    fig = raw.plot_psd(exclude=['MEG 0113'])
+    assert len(fig.axes) == 9
     plt.close('all')
 
     # gh-7631

@@ -349,6 +349,8 @@ def test_plot_psd_epochs(epochs):
     epochs.plot_psd(average=True, spatial_colors=False)
     epochs.plot_psd(average=False, spatial_colors=True)
     epochs.plot_psd(average=False, spatial_colors=False)
+    epochs.plot_psd(average=True, exclude='bads')
+
     # test plot_psd_topomap errors
     with pytest.raises(RuntimeError, match='No frequencies in band'):
         epochs.plot_psd_topomap(bands=[(0, 0.01, 'foo')])

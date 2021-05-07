@@ -367,11 +367,11 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 @verbose
 def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
                  n_fft=None, n_overlap=0, reject_by_annotation=True,
-                 picks=None, ax=None, color='black', xscale='linear',
-                 area_mode='std', area_alpha=0.33, dB=True, estimate='auto',
-                 show=True, n_jobs=1, average=False, line_alpha=None,
-                 spatial_colors=True, sphere=None, window='hamming',
-                 verbose=None):
+                 picks=None, exclude='bads', ax=None, color='black',
+                 xscale='linear', area_mode='std', area_alpha=0.33, dB=True,
+                 estimate='auto', show=True, n_jobs=1, average=False,
+                 line_alpha=None, spatial_colors=True, sphere=None,
+                 window='hamming', verbose=None):
     """%(plot_psd_doc)s.
 
     Parameters
@@ -397,6 +397,9 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
         is 0 (no overlap).
     %(reject_by_annotation_raw)s
     %(plot_psd_picks_good_data)s
+    exclude : list of str | 'bads'
+        Channels names to exclude from being shown. If 'bads', the
+        bad channels are excluded.
     ax : instance of Axes | None
         Axes to plot into. If None, axes will be created.
     %(plot_psd_color)s
@@ -430,8 +433,8 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
         n_fft = min(np.diff(raw.time_as_index([tmin, tmax]))[0] + 1, 2048)
     # generate figure
     fig = _psd_figure(
-        inst=raw, proj=proj, picks=picks, axes=ax, tmin=tmin, tmax=tmax,
-        fmin=fmin, fmax=fmax, sphere=sphere, xscale=xscale, dB=dB,
+        inst=raw, proj=proj, picks=picks, exclude=exclude, axes=ax, tmin=tmin,
+        tmax=tmax, fmin=fmin, fmax=fmax, sphere=sphere, xscale=xscale, dB=dB,
         average=average, estimate=estimate, area_mode=area_mode,
         line_alpha=line_alpha, area_alpha=area_alpha, color=color,
         spatial_colors=spatial_colors, n_jobs=n_jobs, n_fft=n_fft,

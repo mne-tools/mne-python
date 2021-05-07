@@ -2313,8 +2313,8 @@ def _line_figure(inst, axes=None, picks=None, **kwargs):
     return fig, axes
 
 
-def _psd_figure(inst, proj, picks, axes, area_mode, tmin, tmax, fmin, fmax,
-                n_jobs, color, area_alpha, dB, estimate, average,
+def _psd_figure(inst, proj, picks, exclude, axes, area_mode, tmin, tmax, fmin,
+                fmax, n_jobs, color, area_alpha, dB, estimate, average,
                 spatial_colors, xscale, line_alpha, sphere, window, **kwargs):
     """Instantiate a new power spectral density figure."""
     from .. import BaseEpochs
@@ -2351,6 +2351,21 @@ def _psd_figure(inst, proj, picks, axes, area_mode, tmin, tmax, fmin, fmax,
     titles_list = list()
     scalings_list = list()
     psd_list = list()
+    # exclude channels
+    bad_ch_idx = [inst.info['ch_names'].index(ch) for ch in inst.info['bads']
+                  if ch in inst.info['ch_names']]
+    if len(exclude) > 0:
+        if isinstance(exclude, str) and exclude == 'bads':
+            exclude = bad_ch_idx
+        elif (isinstance(exclude, list) and
+              all(isinstance(ch, str) for ch in exclude)):
+            exclude = [inst.info['ch_names'].index(ch) for ch in exclude]
+        else:
+            raise ValueError(
+                'exclude has to be a list of channel names or "bads"')
+
+        picks = np.array([pick for pick in picks if pick not in exclude])
+
     # initialize figure
     fig, axes = _line_figure(inst, axes, picks, **kwargs)
     # split picks, units, etc, for each subplot

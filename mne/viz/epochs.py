@@ -899,11 +899,11 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
 @verbose
 def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
                     proj=False, bandwidth=None, adaptive=False, low_bias=True,
-                    normalization='length', picks=None, ax=None, color='black',
-                    xscale='linear', area_mode='std', area_alpha=0.33,
-                    dB=True, estimate='auto', show=True, n_jobs=1,
-                    average=False, line_alpha=None, spatial_colors=True,
-                    sphere=None, verbose=None):
+                    normalization='length', picks=None, exclude='bads',
+                    ax=None, color='black', xscale='linear', area_mode='std',
+                    area_alpha=0.33, dB=True, estimate='auto', show=True,
+                    n_jobs=1, average=False, line_alpha=None,
+                    spatial_colors=True, sphere=None, verbose=None):
     """%(plot_psd_doc)s.
 
     Parameters
@@ -934,6 +934,9 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
         be normalized by the sampling rate as well as the length of
         the signal (as in nitime).
     %(plot_psd_picks_good_data)s
+    exclude : list of str | 'bads'
+        Channels names to exclude from being shown. If 'bads', the
+        bad channels are excluded.
     ax : instance of Axes | None
         Axes to plot into. If None, axes will be created.
     %(plot_psd_color)s
@@ -961,12 +964,12 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     # epochs always use multitaper, not Welch, so no need to allow "window"
     # param above
     fig = _psd_figure(
-        inst=epochs, proj=proj, picks=picks, axes=ax, tmin=tmin, tmax=tmax,
-        fmin=fmin, fmax=fmax, sphere=sphere, xscale=xscale, dB=dB,
-        average=average, estimate=estimate, area_mode=area_mode,
-        line_alpha=line_alpha, area_alpha=area_alpha, color=color,
-        spatial_colors=spatial_colors, n_jobs=n_jobs, bandwidth=bandwidth,
-        adaptive=adaptive, low_bias=low_bias, normalization=normalization,
-        window='hamming')
+        inst=epochs, proj=proj, picks=picks, exclude=exclude, axes=ax,
+        tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, sphere=sphere,
+        xscale=xscale, dB=dB, average=average, estimate=estimate,
+        area_mode=area_mode, line_alpha=line_alpha, area_alpha=area_alpha,
+        color=color, spatial_colors=spatial_colors, n_jobs=n_jobs,
+        bandwidth=bandwidth, adaptive=adaptive, low_bias=low_bias,
+        normalization=normalization, window='hamming')
     plt_show(show)
     return fig
