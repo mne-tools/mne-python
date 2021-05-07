@@ -30,8 +30,7 @@ FILE_EXTENSIONS = {
         "info": ".dap",
         "data": ".dat",
         "labels": ".rs3",
-        "events_cef": ".cef",
-        "events_ceo": ".ceo",
+        "events": ".cef",
         "hpi": ".hpi",
     },
     "Curry 8": {
@@ -74,7 +73,8 @@ def _get_curry_file_structure(fname, required=()):
     for key in ('info', 'data', 'labels', 'events_cef', 'events_ceo', 'hpi'):
         fname = fname_base + FILE_EXTENSIONS[version][key]
         if op.isfile(fname):
-            my_curry[key] = fname
+            _key = 'events' if key.startswith('events') else key
+            my_curry[_key] = fname
 
     missing = [field for field in required if field not in my_curry]
     if missing:
@@ -410,8 +410,8 @@ def _read_events_curry(fname):
     events : ndarray, shape (n_events, 3)
         The array of events.
     """
-    check_fname(fname, 'curry event', ('.cef', '.cdt.cef', '.ceo', 'cdt.ceo'),
-                endings_err=('.cef', '.cdt.cef', 'ceo', 'cdt.ceo'))
+    check_fname(fname, 'curry event', ('.cef', '.cdt.cef', '.cdt.ceo'),
+                endings_err=('.cef', '.cdt.cef', '.cdt.ceo'))
 
     events_dict = _read_curry_lines(fname, ["NUMBER_LIST"])
     # The first 3 column seem to contain the event information
