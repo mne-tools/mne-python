@@ -246,9 +246,12 @@ def _read_nihon_annotations(fname, orig_time):
             fid.seek(t_blk_address + 0x12)
             n_logs = np.fromfile(fid, np.uint8, 1)[0]
             fid.seek(t_blk_address + 0x14)
-            t_logs = np.fromfile(fid, '|S45', n_logs).astype('U45')
-
+            t_logs = np.fromfile(fid, '|S45', n_logs)
             for t_log in t_logs:
+                try:
+                    t_log = t_log.astype('U45')
+                except Exception:
+                    t_log = t_log.decode('latin1')
                 t_desc = t_log[:20].strip('\x00')
                 t_onset = datetime.strptime(t_log[20:26], '%H%M%S')
                 t_onset = (t_onset.hour * 3600 + t_onset.minute * 60 +
