@@ -3,6 +3,9 @@ import subprocess
 from datetime import date
 from mne import __version__ as release_version
 
+# NOTE: ../codemeta.json should not be continuously updated. Run this script
+#       only at release time.
+
 # add to these as necessary
 compound_surnames = (
     'García Alanis',
