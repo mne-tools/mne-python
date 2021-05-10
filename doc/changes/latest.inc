@@ -35,7 +35,7 @@ Enhancements
 Bugs
 ~~~~
 - Fix bug with :meth:`mne.Epochs.crop` and :meth:`mne.Evoked.crop` when ``include_tmax=False``, where the last sample was always cut off, even when ``tmax > epo.times[-1]`` (:gh:`9378` **by new contributor** `Jan Sosulski`_)
-
+- Fix bug with `mne.io.read_raw_curry` when Curry 8 generate event file end with '.cdt.ceo', the function cannot read it (:gh:`9381` **by new contributor** |Xiaokai Xia|_)
 
 API changes
 ~~~~~~~~~~~
