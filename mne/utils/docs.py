@@ -58,6 +58,36 @@ on_split_missing : str
 
     .. versionadded:: 0.22
 """ % (_on_missing_base,)
+docdict['saturated'] = """\
+saturated : str
+    Replace saturated segments of data with NaNs, can be:
+
+    ``"ignore"``
+        The measured data is returned, even if it contains measurements
+        while the amplifier was saturated.
+    ``"nan"``
+        The returned data will contain NaNs during time segments
+        when the amplifier was saturated.
+    ``"annotate"`` (default)
+        The returned data will contain annotations specifying
+        sections the saturate segments.
+
+    This argument will only be used if there is no .nosatflags file
+    (only if a NIRSport device is used and saturation occurred).
+
+    .. versionadded:: 0.24
+"""
+docdict['nirx_notes'] = """\
+This function has only been tested with NIRScout and NIRSport1 devices.
+
+The NIRSport device can detect if the amplifier is saturated.
+Starting from NIRStar 14.2, those saturated values are replaced by NaNs
+in the standard .wlX files.
+The raw unmodified measured values are stored in another file
+called .nosatflags_wlX. As NaN values can cause unexpected behaviour with
+mathematical functions the default behaviour is to return the
+saturated data.
+"""
 
 # Cropping
 docdict['include_tmax'] = """
