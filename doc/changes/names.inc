@@ -391,3 +391,7 @@
 .. _Felix Klotzsche: https://github.com/eioe
 
 .. _Jan Sosulski: https://jan-sosulski.de
+
+.. _David Julien: https://github.com/Swy7ch
+
+.. _Romain Derollepot: https://github.com/rderollepot
