@@ -2,6 +2,8 @@
 
 .. _governance-people:
 
+.. include:: ../changes/names.inc
+
 Current steering council and institutional partners
 ===================================================
 
@@ -14,20 +16,20 @@ Alexandre Gramfort is the Benevolent Dictator for Life (BDFL)
 Steering Council
 ----------------
 
-* Alexandre Gramfort
-* Britta Westner
-* Clemens Brunner
-* Dan McCloy
-* Denis Engemann
-* Eric Larson
-* Guillaume Favelier
-* Luke Bloy
-* Mainak Jas
-* Marijn van Vliet
-* Mikołaj Magnuski
-* Richard Höchenberger
-* Robert Luke
-* Stefan Appelhoff
+* `Alex Gramfort`_
+* `Britta Westner`_
+* `Clemens Brunner`_
+* `Daniel McCloy`_
+* `Denis Engemann`_
+* `Eric Larson`_
+* `Guillaume Favelier`_
+* `Luke Bloy`_
+* `Mainak Jas`_
+* `Marijn van Vliet`_
+* `Mikołaj Magnuski`_
+* `Richard Höchenberger`_
+* `Robert Luke`_
+* `Stefan Appelhoff`_
 
 Institutional Partners
 ----------------------
