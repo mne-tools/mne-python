@@ -10,11 +10,9 @@ import pytest
 from numpy.testing import assert_array_equal
 import numpy as np
 
-import mne
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_persyst
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.utils import run_tests_if_main
 
 fname_lay = op.join(
     data_path(download=False), 'Persyst',
@@ -78,10 +76,10 @@ def test_persyst_raw():
 
 
 @requires_testing_data
-def test_persyst_dates():
+def test_persyst_dates(tmpdir):
     """Test different Persyst date formats for meas date."""
     # now test what if you change contents of the lay file
-    out_dir = mne.utils._TempDir()
+    out_dir = str(tmpdir)
     new_fname_lay = op.join(out_dir, op.basename(fname_lay))
     new_fname_dat = op.join(out_dir, op.basename(fname_dat))
     shutil.copy(fname_dat, new_fname_dat)
@@ -212,9 +210,9 @@ def test_persyst_annotations(tmpdir):
 
 
 @requires_testing_data
-def test_persyst_errors():
+def test_persyst_errors(tmpdir):
     """Test reading Persyst files when passed in wrong file path."""
-    out_dir = mne.utils._TempDir()
+    out_dir = str(tmpdir)
     new_fname_lay = op.join(out_dir, op.basename(fname_lay))
     new_fname_dat = op.join(out_dir, op.basename(fname_dat))
     shutil.copy(fname_dat, new_fname_dat)
@@ -260,6 +258,3 @@ def test_persyst_errors():
                       match='Cannot read in the measurement date'):
         raw = read_raw_persyst(new_fname_lay)
         assert raw.info['meas_date'] is None
-
-
-run_tests_if_main()

@@ -74,6 +74,7 @@ class _Figure(object):
             self.store['auto_update'] = False
             self.store['menu_bar'] = False
             self.store['toolbar'] = False
+            self.store['update_app_icon'] = False
 
         self._nrows, self._ncols = self.store['shape']
         self._azimuth = self._elevation = None

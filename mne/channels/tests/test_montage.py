@@ -3,6 +3,7 @@
 #
 # License: BSD (3-clause)
 
+from contextlib import nullcontext
 from itertools import chain
 import os
 import os.path as op
@@ -18,7 +19,6 @@ from numpy.testing import (assert_array_equal,
 import matplotlib.pyplot as plt
 
 from mne import __file__ as _mne_file, create_info, read_evokeds, pick_types
-from mne.fixes import nullcontext
 from mne.utils._testing import assert_object_equal
 from mne.channels import (get_builtin_montages, DigMontage, read_dig_dat,
                           read_dig_egi, read_dig_captrak, read_dig_fif,
@@ -28,7 +28,7 @@ from mne.channels import (get_builtin_montages, DigMontage, read_dig_dat,
                           read_polhemus_fastscan,
                           read_dig_hpts)
 from mne.channels.montage import transform_to_head, _check_get_coord_frame
-from mne.utils import run_tests_if_main, assert_dig_allclose
+from mne.utils import assert_dig_allclose
 from mne.bem import _fit_sphere
 from mne.io.constants import FIFF
 from mne.io._digitization import (_format_dig_points,
@@ -286,7 +286,7 @@ def test_documented():
 
     pytest.param(
         partial(read_custom_montage, head_size=None),
-        ('346\n'  # XXX: this should actually race an error 346 != 4
+        ('346\n'  # XXX: this should actually raise an error 346 != 4
          'FID\t      LPA\t -120.03\t      0\t      85\n'
          'FID\t      RPA\t  120.03\t      0\t      85\n'
          'FID\t      Nz\t   114.03\t     90\t      85\n'
@@ -548,11 +548,11 @@ def test_read_dig_montage_using_polhemus_fastscan():
     assert repr(montage) == (
         '<DigMontage | '
         '500 extras (headshape), 5 HPIs, 3 fiducials, 10 channels>'
-    )  # XXX: is this wrong? extra is not in headspace, is it?
+    )
 
     assert set([d['coord_frame'] for d in montage.dig]) == {
         FIFF.FIFFV_COORD_UNKNOWN
-    }  # XXX: so far we build everything in 'unknown'
+    }
 
     EXPECTED_FID_IN_POLHEMUS = {
         'nasion': [0.001393, 0.0131613, -0.0046967],
@@ -1050,10 +1050,11 @@ def test_set_montage_mgh(rename):
         assert [raw.ch_names[pick] for pick in eeg_picks] == mon.ch_names
         raw.set_montage(mon)
     else:
-        atol = 3e-3  # XXX old defs here apparently (maybe not realistic)?
+        atol = 3e-3  # different subsets of channel locations
         assert rename == 'custom'
         assert len(_MGH60) == 60
         mon = make_standard_montage('standard_1020')
+        assert len(mon._get_ch_pos()) == 94
 
         def renamer(x):
             try:
@@ -1541,6 +1542,3 @@ def test_montage_add_estimated_fiducials():
                                            'coordinate frame'):
         montage.add_estimated_fiducials(subject=subject,
                                         subjects_dir=subjects_dir)
-
-
-run_tests_if_main()

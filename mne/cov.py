@@ -1104,10 +1104,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
                 del sc
 
             elif method_ == 'shrunk':
-                try:
-                    from sklearn.model_selection import GridSearchCV
-                except Exception:  # support sklearn < 0.18
-                    from sklearn.grid_search import GridSearchCV
+                from sklearn.model_selection import GridSearchCV
                 from sklearn.covariance import ShrunkCovariance
                 shrinkage = mp.pop('shrinkage')
                 tuned_parameters = [{'shrinkage': shrinkage}]
@@ -1183,11 +1180,7 @@ def _gaussian_loglik_scorer(est, X, y=None):
 
 def _cross_val(data, est, cv, n_jobs):
     """Compute cross validation."""
-    try:
-        from sklearn.model_selection import cross_val_score
-    except ImportError:
-        # XXX support sklearn < 0.18
-        from sklearn.cross_validation import cross_val_score
+    from sklearn.model_selection import cross_val_score
     return np.mean(cross_val_score(est, data, cv=cv, n_jobs=n_jobs,
                                    scoring=_gaussian_loglik_scorer))
 

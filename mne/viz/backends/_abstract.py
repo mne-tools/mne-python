@@ -5,10 +5,11 @@
 #
 # License: Simplified BSD
 
-import warnings
 from abc import ABC, abstractmethod, abstractclassmethod
+from contextlib import nullcontext
+import warnings
+
 from ..utils import tight_layout
-from ...fixes import nullcontext
 
 
 class _AbstractRenderer(ABC):
@@ -477,6 +478,10 @@ class _AbstractToolBar(ABC):
         pass
 
     @abstractmethod
+    def _tool_bar_add_play_button(self, name, desc, func, shortcut=None):
+        pass
+
+    @abstractmethod
     def _tool_bar_set_theme(self, theme):
         pass
 
@@ -572,7 +577,8 @@ class _AbstractStatusBar(ABC):
 
 class _AbstractPlayback(ABC):
     @abstractmethod
-    def _playback_initialize(self, func, timeout):
+    def _playback_initialize(self, func, timeout, value, rng,
+                             time_widget, play_widget):
         pass
 
 

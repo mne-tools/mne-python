@@ -15,8 +15,7 @@ from mne import (read_forward_solution, write_forward_solution,
                  setup_volume_source_space, read_source_spaces, create_info,
                  make_sphere_model, pick_types_forward, pick_info, pick_types,
                  read_evokeds, read_cov, read_dipole)
-from mne.utils import (requires_mne, requires_nibabel,
-                       run_tests_if_main, run_subprocess)
+from mne.utils import requires_mne, requires_nibabel, run_subprocess
 from mne.forward._make_forward import _create_meg_coils, make_forward_dipole
 from mne.forward._compute_forward import _magnetic_dipole_field_vec
 from mne.forward import Forward, _do_forward_solution
@@ -467,6 +466,3 @@ def test_make_forward_no_meg(tmpdir):
     write_forward_solution(fname, fwd)
     fwd_read = read_forward_solution(fname)
     assert_allclose(fwd['sol']['data'], fwd_read['sol']['data'])
-
-
-run_tests_if_main()

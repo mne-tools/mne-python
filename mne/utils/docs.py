@@ -58,6 +58,36 @@ on_split_missing : str
 
     .. versionadded:: 0.22
 """ % (_on_missing_base,)
+docdict['saturated'] = """\
+saturated : str
+    Replace saturated segments of data with NaNs, can be:
+
+    ``"ignore"``
+        The measured data is returned, even if it contains measurements
+        while the amplifier was saturated.
+    ``"nan"``
+        The returned data will contain NaNs during time segments
+        when the amplifier was saturated.
+    ``"annotate"`` (default)
+        The returned data will contain annotations specifying
+        sections the saturate segments.
+
+    This argument will only be used if there is no .nosatflags file
+    (only if a NIRSport device is used and saturation occurred).
+
+    .. versionadded:: 0.24
+"""
+docdict['nirx_notes'] = """\
+This function has only been tested with NIRScout and NIRSport1 devices.
+
+The NIRSport device can detect if the amplifier is saturated.
+Starting from NIRStar 14.2, those saturated values are replaced by NaNs
+in the standard .wlX files.
+The raw unmodified measured values are stored in another file
+called .nosatflags_wlX. As NaN values can cause unexpected behaviour with
+mathematical functions the default behaviour is to return the
+saturated data.
+"""
 
 # Cropping
 docdict['include_tmax'] = """
@@ -716,6 +746,12 @@ docdict['chpi_locs'] = """
 chpi_locs : dict
     The time-varying cHPI coils locations, with entries
     "times", "rrs", "moments", and "gofs".
+"""
+docdict['chpi_on_missing'] = f"""
+on_missing : 'raise' | 'warn' | 'ignore'
+    {_on_missing_base} no cHPI information can be found. If ``'ignore'`` or
+    ``'warn'``, all return values will be empty arrays or ``None``. If
+    ``'raise'``, an exception will be raised.
 """
 
 # EEG reference: set_eeg_reference
@@ -1782,7 +1818,7 @@ docdict['clust_stat'] = """
 stat_fun : callable | None
     Function called to calculate the test statistic. Must accept 1D-array as
     input and return a 1D array. If ``None`` (the default), uses
-    :func:`mne.stats.{}`.
+    `mne.stats.{}`.
 """
 docdict['clust_stat_f'] = docdict['clust_stat'].format('f_oneway')
 docdict['clust_stat_t'] = docdict['clust_stat'].format('ttest_1samp_no_p')
@@ -1803,10 +1839,11 @@ mem = (' If spatial adjacency is uniform in time, it is recommended to use '
        'a square matrix with dimension ``{x}.shape[-1]`` (n_vertices) to save '
        'memory and computation, and to use ``max_step`` to define the extent '
        'of temporal adjacency to consider when clustering.')
+comb = ' The function `mne.stats.combine_adjacency` may be useful for 4D data.'
 st = dict(sp='spatial', lastdim='', parone='(n_vertices)',
           partwo='(n_times * n_vertices)', memory=mem)
 tf = dict(sp='', lastdim=' (or the last two dimensions if ``{x}`` is 2D)',
-          parone='', partwo='', memory='')
+          parone='(for 3D data)', partwo='(for 4D data)', memory=comb)
 nogroups = dict(eachgrp='', x='X')
 groups = dict(eachgrp='each group ', x='X[k]')
 docdict['clust_adj_st1'] = docdict['clust_adj'].format(**st).format(**nogroups)

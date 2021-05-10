@@ -1209,8 +1209,7 @@ class MNEBrowseFigure(MNEFigure):
             circle.set_transform(ax.transData)
             center = ax.transData.inverted().transform(
                 ax.transAxes.transform((0.1, 0)))
-            # XXX older MPL doesn't have circle.set_center
-            circle.center = (center[0], circle.center[1])
+            circle.set_center((center[0], circle.center[1]))
             circle.set_edgecolor(
                 self.mne.annotation_segment_colors[label.get_text()])
             circle.set_linewidth(4)

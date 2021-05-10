@@ -62,8 +62,8 @@ def windows_like_datetime(monkeypatch):
 def test_basics():
     """Test annotation class."""
     raw = read_raw_fif(fif_fname)
-    assert raw.annotations is not None  # XXX to be fixed in #5416
-    assert len(raw.annotations.onset) == 0  # XXX to be fixed in #5416
+    assert raw.annotations is not None
+    assert len(raw.annotations.onset) == 0
     pytest.raises(IOError, read_annotations, fif_fname)
     onset = np.array(range(10))
     duration = np.ones(10)
@@ -247,8 +247,8 @@ def test_crop(tmpdir):
     raw.set_annotations(None)
     raw.save(fname, overwrite=True)
     raw_read = read_raw_fif(fname)
-    assert raw_read.annotations is not None  # XXX to be fixed in #5416
-    assert len(raw_read.annotations.onset) == 0  # XXX to be fixed in #5416
+    assert raw_read.annotations is not None
+    assert len(raw_read.annotations.onset) == 0
 
 
 @first_samps
@@ -689,9 +689,9 @@ def test_events_from_annot_onset_alingment():
     """Test events and annotations onset are the same."""
     raw = _raw_annot(meas_date=1, orig_time=1.5)
     #       sec  0        1        2        3
-    #       raw  .        |--------XXXXXXXXX
-    #     annot  .             |---XX
-    # raw.annot  .        |--------XX
+    #       raw  .        |--------xxxxxxxxx
+    #     annot  .             |---xx
+    # raw.annot  .        |--------xx
     #   latency  .        0        1        2
     #            .                 0        0
 

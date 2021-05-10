@@ -11,8 +11,8 @@ import mne
 from mne import (Epochs, read_events, pick_types, create_info, EpochsArray,
                  Info, Transform)
 from mne.io import read_raw_fif
-from mne.utils import (_TempDir, run_tests_if_main, requires_h5py,
-                       requires_pandas, grand_average, catch_logging)
+from mne.utils import (requires_h5py, requires_pandas, grand_average,
+                       catch_logging)
 from mne.time_frequency.tfr import (morlet, tfr_morlet, _make_dpss,
                                     tfr_multitaper, AverageTFR, read_tfrs,
                                     write_tfrs, combine_tfr, cwt, _compute_tfr,
@@ -406,10 +406,10 @@ def test_crop():
 
 @requires_h5py
 @requires_pandas
-def test_io():
+def test_io(tmpdir):
     """Test TFR IO capacities."""
     from pandas import DataFrame
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     fname = op.join(tempdir, 'test-tfr.h5')
     data = np.zeros((3, 2, 3))
     times = np.array([.1, .2, .3])
@@ -1067,6 +1067,3 @@ def test_to_data_frame_time_format(time_format):
     df = tfr.to_data_frame(time_format=time_format)
     dtypes = {None: np.float64, 'ms': np.int64, 'timedelta': Timedelta}
     assert isinstance(df['time'].iloc[0], dtypes[time_format])
-
-
-run_tests_if_main()

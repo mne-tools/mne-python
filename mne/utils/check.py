@@ -352,7 +352,7 @@ class _IntLike(object):
 
 
 int_like = _IntLike()
-path_like = (str, Path)
+path_like = (str, Path, os.PathLike)
 
 
 class _Callable(object):
@@ -368,16 +368,6 @@ _multi = {
     'int-like': (int_like,),
     'callable': (_Callable(),),
 }
-try:
-    _multi['path-like'] += (os.PathLike,)
-except AttributeError:  # only on 3.6+
-    try:
-        # At least make PyTest work
-        from py._path.common import PathBase
-    except Exception:  # no py.path
-        pass
-    else:
-        _multi['path-like'] += (PathBase,)
 
 
 def _validate_type(item, types=None, item_name=None, type_name=None):

@@ -17,12 +17,12 @@ import pytest
 from scipy import io
 
 from mne import write_events, read_epochs_eeglab
+from mne.channels import read_custom_montage
 from mne.io import read_raw_eeglab
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets import testing
 from mne.utils import check_version
 from mne.annotations import events_from_annotations, read_annotations
-from mne.io.eeglab.tests._utils import _read_eeglab_montage
 
 base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
 
@@ -56,7 +56,7 @@ needs_h5 = pytest.mark.skipif(not check_version('h5py'), reason='Needs h5py')
 ], ids=op.basename)
 def test_io_set_raw(fname):
     """Test importing EEGLAB .set files."""
-    montage = _read_eeglab_montage(montage_path)
+    montage = read_custom_montage(montage_path)
     montage.ch_names = [
         'EEG {0:03d}'.format(ii) for ii in range(len(montage.ch_names))
     ]

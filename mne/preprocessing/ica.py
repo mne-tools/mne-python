@@ -375,7 +375,7 @@ class ICA(ContainsMixin):
     @verbose
     def __init__(self, n_components=None, *, noise_cov=None,
                  random_state=None, method='fastica', fit_params=None,
-                 max_iter=None, allow_ref_meg=False,
+                 max_iter='auto', allow_ref_meg=False,
                  verbose=None):  # noqa: D102
         _validate_type(method, str, 'method')
         _validate_type(n_components, (float, 'int-like', None))
@@ -424,15 +424,9 @@ class ICA(ContainsMixin):
             # extended=True is default in underlying function, but we want
             # default False here unless user specified True:
             fit_params.setdefault('extended', False)
-        if max_iter is None:
-            depr_message = ('Version 0.23 introduced max_iter="auto", '
-                            'setting max_iter=1000 for `fastica` and '
-                            'max_iter=500 for `infomax` and `picard`. The '
-                            'current default of max_iter=200 will be changed '
-                            'to "auto" in version 0.24.')
-            warn(depr_message, DeprecationWarning)
-            max_iter = 200
-        elif max_iter == 'auto':
+        _validate_type(max_iter, (str, 'int-like'), 'max_iter')
+        if isinstance(max_iter, str):
+            _check_option('max_iter', max_iter, ('auto',), 'when str')
             if method == 'fastica':
                 max_iter = 1000
             elif method in ['infomax', 'picard']:

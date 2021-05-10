@@ -12,10 +12,10 @@ import matplotlib.pyplot as plt
 
 from mne import (read_events, Epochs, read_cov, pick_types, Annotations,
                  make_fixed_length_events)
+from mne.fixes import _close_event
 from mne.io import read_raw_fif
 from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
-from mne.utils import (requires_sklearn, _click_ch_name, catch_logging,
-                       _close_event)
+from mne.utils import requires_sklearn, _click_ch_name, catch_logging
 from mne.viz.ica import _create_properties_layout, plot_ica_properties
 from mne.viz.utils import _fake_click
 
@@ -54,8 +54,6 @@ def _get_epochs():
 
 
 @requires_sklearn
-@pytest.mark.filterwarnings('ignore:.*max_iter.*will be changed.*:'
-                            'DeprecationWarning')
 def test_plot_ica_components():
     """Test plotting of ICA solutions."""
     res = 8
@@ -210,8 +208,6 @@ def test_plot_ica_properties():
 
 
 @requires_sklearn
-@pytest.mark.filterwarnings('ignore:.*max_iter.*will be changed.*:'
-                            'DeprecationWarning')
 def test_plot_ica_sources():
     """Test plotting of ICA panel."""
     raw = read_raw_fif(raw_fname).crop(0, 1).load_data()
@@ -300,8 +296,6 @@ def test_plot_ica_sources():
 
 @pytest.mark.slowtest
 @requires_sklearn
-@pytest.mark.filterwarnings('ignore:.*max_iter.*will be changed.*:'
-                            'DeprecationWarning')
 def test_plot_ica_overlay():
     """Test plotting of ICA cleaning."""
     raw = _get_raw(preload=True)
@@ -344,8 +338,6 @@ def _get_geometry(fig):
 
 
 @requires_sklearn
-@pytest.mark.filterwarnings('ignore:.*max_iter.*will be changed.*:'
-                            'DeprecationWarning')
 def test_plot_ica_scores():
     """Test plotting of ICA scores."""
     raw = _get_raw()
@@ -388,8 +380,6 @@ def test_plot_ica_scores():
 
 
 @requires_sklearn
-@pytest.mark.filterwarnings('ignore:.*max_iter.*will be changed.*:'
-                            'DeprecationWarning')
 def test_plot_instance_components():
     """Test plotting of components as instances of raw and epochs."""
     raw = _get_raw()

@@ -81,7 +81,9 @@ def test_notebook_interactive(renderer_notebook, brain_gc, nbexec):
         brain._renderer.actions['screenshot_field'].value = screenshot_path
         total_number_of_buttons = sum(
             '_field' not in k for k in brain._renderer.actions.keys())
-        number_of_buttons = 0
+        assert 'play' in brain._renderer.actions
+        # play is not a button widget, it does not have a click() method
+        number_of_buttons = 1
         for action in brain._renderer.actions.values():
             if isinstance(action, Button):
                 action.click()

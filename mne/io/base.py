@@ -10,6 +10,7 @@
 #
 # License: BSD (3-clause)
 
+from contextlib import nullcontext
 from copy import deepcopy
 from datetime import timedelta
 import os
@@ -40,7 +41,6 @@ from ..annotations import (_annotations_starts_stops, _write_annotations,
                            _handle_meas_date)
 from ..filter import (FilterMixin, notch_filter, resample, _resamp_ratio_len,
                       _resample_stim_channels, _check_fun)
-from ..fixes import nullcontext
 from ..parallel import parallel_func
 from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      _check_pandas_index_arguments, fill_doc, copy_doc,
@@ -2323,7 +2323,6 @@ def _start_writing_raw(name, info, sel, data_type,
     fid = start_file(name)
     start_block(fid, FIFF.FIFFB_MEAS)
     write_id(fid, FIFF.FIFF_BLOCK_ID)
-    # XXX do we need this?
     if info['meas_id'] is not None:
         write_id(fid, FIFF.FIFF_PARENT_BLOCK_ID, info['meas_id'])
 

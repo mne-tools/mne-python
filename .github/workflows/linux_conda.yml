@@ -8,25 +8,9 @@ on:
       - '*'
 
 jobs:
-  check_skip:
-    runs-on: ubuntu-20.04
-    outputs:
-      skip: ${{ steps.result_step.outputs.ci-skip }}
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-      - id: result_step
-        uses: mstachniuk/ci-skip@master
-        with:
-          commit-filter: '[skip ci];[ci skip];[skip github]'
-          commit-filter-separator: ';'
-
   # Linux
   job:
     timeout-minutes: 90
-    needs: check_skip
-    if: ${{ needs.check_skip.outputs.skip == 'false' }}
     name: 'py3.8'
     runs-on: ubuntu-20.04
     defaults:

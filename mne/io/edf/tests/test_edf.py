@@ -8,6 +8,7 @@
 #
 # License: BSD (3-clause)
 
+from contextlib import nullcontext
 from functools import partial
 import os.path as op
 import inspect
@@ -21,7 +22,6 @@ import pytest
 
 from mne import pick_types, Annotations
 from mne.datasets import testing
-from mne.fixes import nullcontext
 from mne.utils import requires_pandas
 from mne.io import read_raw_edf, read_raw_bdf, read_raw_fif, edf, read_raw_gdf
 from mne.io.tests.test_raw import _test_raw_reader

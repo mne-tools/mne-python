@@ -22,7 +22,7 @@ from mne.io.constants import FIFF
 from mne.io.edf import read_raw_bdf
 from mne.io.bti import read_raw_bti
 from mne.io.curry import read_raw_curry
-from mne.utils import check_version, run_tests_if_main, catch_logging
+from mne.utils import check_version, catch_logging
 from mne.annotations import read_annotations
 from mne.io.curry.curry import (_get_curry_version, _get_curry_file_structure,
                                 _read_events_curry, FILE_EXTENSIONS)
@@ -477,6 +477,3 @@ def test_meas_date(fname, expected_meas_date):
     # If the information is not valid, raw.info['meas_date'] should be None
     raw = read_raw_curry(fname, preload=False)
     assert raw.info['meas_date'] == expected_meas_date
-
-
-run_tests_if_main()

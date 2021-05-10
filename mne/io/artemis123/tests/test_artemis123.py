@@ -9,7 +9,6 @@ import numpy as np
 from numpy.testing import assert_allclose, assert_equal
 import pytest
 
-from mne.utils import run_tests_if_main, _TempDir
 from mne.io import read_raw_artemis123
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets import testing
@@ -98,10 +97,10 @@ def test_data():
     assert_equal(raw.info['sfreq'], 1000.0)
 
 
-def test_utils():
+def test_utils(tmpdir):
     """Test artemis123 utils."""
     # make a tempfile
-    tmp_dir = _TempDir()
+    tmp_dir = str(tmpdir)
     tmp_fname = op.join(tmp_dir, 'test_gen_mne_locs.csv')
     _generate_mne_locs_file(tmp_fname)
     installed_locs = _load_mne_locs()
@@ -109,6 +108,3 @@ def test_utils():
     assert_equal(set(installed_locs.keys()), set(generated_locs.keys()))
     for key in installed_locs.keys():
         assert_allclose(installed_locs[key], generated_locs[key], atol=1e-7)
-
-
-run_tests_if_main()

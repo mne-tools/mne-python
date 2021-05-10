@@ -59,6 +59,7 @@ To install the latest stable version of MNE-Python, you can use pip_ in a termin
 - MNE-Python 0.17 was the last release to support Python 2.7
 - MNE-Python 0.18 requires Python 3.5 or higher
 - MNE-Python 0.21 requires Python 3.6 or higher
+- MNE-Python 0.24 requires Python 3.7 or higher
 
 For more complete instructions and more advanced installation methods (e.g. for
 the latest development version), see the `installation guide`_.
@@ -88,20 +89,20 @@ Dependencies
 
 The minimum required dependencies to run MNE-Python are:
 
-- Python >= 3.6
-- NumPy >= 1.15.4
-- SciPy >= 1.1.0
+- Python >= 3.7
+- NumPy >= 1.16.0
+- SciPy >= 1.2.0
 
 For full functionality, some functions require:
 
-- Matplotlib >= 3.0.3
-- Scikit-learn >= 0.20.2
-- Numba >= 0.40
-- NiBabel >= 2.1.0
-- Pandas >= 0.23.4
+- Matplotlib >= 3.1.0
+- Scikit-learn >= 0.21.0
+- Numba >= 0.44.0
+- NiBabel >= 2.5.0
+- Pandas >= 0.24.0
 - Picard >= 0.3
-- CuPy >= 4.0 (for NVIDIA CUDA acceleration)
-- DIPY >= 0.10.1
+- CuPy >= 6.0.0 (for NVIDIA CUDA acceleration)
+- DIPY >= 1.0.0
 - Imageio >= 2.6.1
 - PyVista >= 0.30
 - pyvistaqt >= 0.4.0

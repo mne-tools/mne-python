@@ -19,11 +19,17 @@ Current (0.24.dev0)
 
 .. |New Contributor| replace:: **New Contributor**
 
+.. |David Julien| replace:: **David Julien**
+
+.. |Romain Derollepot| replace:: **Romain Derollepot**
+
 Enhancements
 ~~~~~~~~~~~~
 .. - Add something cool (:gh:`9192` **by new contributor** |New Contributor|_)
 
-- Nothing yet
+- New function :func:`mne.chpi.get_chpi_info` to retrieve basic information about the cHPI system used when recording MEG data (:gh:`9369` by `Richard Höchenberger`_)
+
+- Add support for NIRSport devices to `mne.io.read_raw_nirx` (:gh:`9348` **by new contributor** |David Julien|_, **new contributor** |Romain Derollepot|_, `Robert Luke`_, and `Eric Larson`_)
 
 
 Bugs

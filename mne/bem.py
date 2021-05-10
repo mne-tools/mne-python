@@ -34,7 +34,6 @@ from .utils import (verbose, logger, run_subprocess, get_subjects_dir, warn,
                     _pl, _validate_type, _TempDir, _check_freesurfer_home,
                     _check_fname, has_nibabel, _check_option, path_like,
                     _on_missing)
-from .fixes import einsum
 from .externals.h5io import write_hdf5, read_hdf5
 
 
@@ -104,9 +103,9 @@ def _lin_pot_coeff(fros, tri_rr, tri_nn, tri_area):
     l2 = np.linalg.norm(v2, axis=1)
     l3 = np.linalg.norm(v3, axis=1)
     ss = l1 * l2 * l3
-    ss += einsum('ij,ij,i->i', v1, v2, l3)
-    ss += einsum('ij,ij,i->i', v1, v3, l2)
-    ss += einsum('ij,ij,i->i', v2, v3, l1)
+    ss += np.einsum('ij,ij,i->i', v1, v2, l3)
+    ss += np.einsum('ij,ij,i->i', v1, v3, l2)
+    ss += np.einsum('ij,ij,i->i', v2, v3, l1)
     solids = np.arctan2(triples, ss)
 
     # We *could* subselect the good points from v1, v2, v3, triples, solids,
@@ -1350,7 +1349,7 @@ def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
     if tag is None:
         raise ValueError('Vertex data not found')
 
-    res['rr'] = tag.data.astype(np.float64)  # XXX : double because of mayavi
+    res['rr'] = tag.data.astype(np.float64)
     if res['rr'].shape[0] != res['np']:
         raise ValueError('Vertex information is incorrect')
 
@@ -1360,7 +1359,7 @@ def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
     if tag is None:
         res['nn'] = None
     else:
-        res['nn'] = tag.data.copy()
+        res['nn'] = tag.data.astype(np.float64)
         if res['nn'].shape[0] != res['np']:
             raise ValueError('Vertex normal information is incorrect')
 
