@@ -133,9 +133,9 @@ def test_hpi_info(tmpdir):
     info = read_info(chpi_fif_fname)
     hpi_freqs, stim_ch_idx, hpi_on_codes = get_chpi_info(info)
 
-    assert_allclose(hpi_freqs,  np.array([ 83., 143., 203., 263., 323.]))
+    assert_allclose(hpi_freqs, np.array([83., 143., 203., 263., 323.]))
     assert stim_ch_idx == 378
-    assert_allclose(hpi_on_codes, np.array([ 256,  512, 1024, 2048, 4096]))
+    assert_allclose(hpi_on_codes, np.array([256, 512, 1024, 2048, 4096]))
 
     # test get_chpi_info() if no proper cHPI info is available
     info['hpi_subsystem'] = None
