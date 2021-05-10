@@ -1706,12 +1706,7 @@ class Brain(object):
         self.callbacks.clear()
         # Remove the default key binding
         if getattr(self, "iren", None) is not None:
-            try:
-                # pyvista<0.30.0
-                self.plotter._key_press_event_callbacks.clear()
-            except AttributeError:
-                # pyvista>=0.30.0
-                self.plotter.iren.clear_key_event_callbacks()
+            self.plotter.iren.clear_key_event_callbacks()
 
     def _clear_widgets(self):
         if not hasattr(self, 'widgets'):

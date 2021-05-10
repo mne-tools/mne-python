@@ -13,7 +13,7 @@ Installing Python
 ^^^^^^^^^^^^^^^^^
 
 MNE-Python runs within Python, and depends on several other Python packages.
-Starting with version 0.21, MNE-Python only supports Python version 3.6 or
+Starting with version 0.24, MNE-Python only supports Python version 3.7 or
 higher. We strongly
 recommend the `Anaconda`_ distribution of Python, which comes with more than
 250 scientific packages pre-bundled, and includes the ``conda`` command line
@@ -37,8 +37,8 @@ you should see outputs similar to the following (assuming you installed
 conda to ``/home/user/anaconda3``)::
 
     $ conda --version && python --version
-    conda 4.6.2
-    Python 3.6.7 :: Anaconda, Inc.
+    conda 4.9.2
+    Python 3.7.7 :: Anaconda, Inc.
     $ which python
     /home/user/anaconda3/bin/python
     $ which pip
