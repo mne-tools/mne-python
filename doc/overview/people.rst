@@ -34,7 +34,8 @@ Steering Council
 Institutional Partners
 ----------------------
 
-:ref:`supporting-institutions` are listed on our :ref:`funding` page.
+.. include:: ../_includes/institutional-partners.rst
+   :start-after: institutional-partners-begin-content
 
 
 Document history
