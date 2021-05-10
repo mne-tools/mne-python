@@ -252,7 +252,7 @@ def _read_nihon_annotations(fname, orig_time):
                 for enc in encodings:
                     try:
                         t_log = t_log.decode(enc)
-                    except Exception:
+                    except UnicodeDecodeError:
                         pass
                     else:
                         break
