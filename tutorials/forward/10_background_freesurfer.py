@@ -1,132 +1,144 @@
 # -*- coding: utf-8 -*-
-r"""
+"""
 .. _tut-freesurfer-reconstruction:
 
 =============================
 FreeSurfer MRI reconstruction
 =============================
 
-FreeSurfer is an open source analysis toolbox for MRI data. It contains several
-command line tools and graphical user interfaces. FreeSurfer can be obtained
-from https://surfer.nmr.mgh.harvard.edu/
+This tutorial covers how to use FreeSurfer alongside MNE-Python, to handle the
+structural MRI data that we use to build subject-specific anatomical models of
+the scalp, inner/outer skull, and cortical surface.
 
-In MNE, FreeSurfer is used to provide structural information of various
-kinds, for :ref:`source estimation <tut-inverse-methods>`. Thereby a
-subject specific structural MRI will be used to obtain various structural
-representations like spherical or inflated brain surfaces. Furthermore features
-like curvature as well as various labels for areas of interest (such as V1) are
-computed.
+FreeSurfer is an open source analysis toolbox for MRI data, available from
+https://surfer.nmr.mgh.harvard.edu/. FreeSurfer provides graphical interfaces
+for visualizing MRI data, several anatomical parcellations useful for creating
+region-of-interest (ROI) labels, template brains such as ``fsaverage``, and
+several command-line tools for tasks like finding tissue boundaries or morphing
+brains to align analogous anatomical regions across subjects.
 
-Thus FreeSurfer provides an easy way to shift anatomically related
-data between different representations and spaces. See e.g.
-:ref:`ch_morph` for information about how to
-use FreeSurfer surface representations to allow functional data to morph
-between different subjects.
+These FreeSurfer capabilities are necessary for MNE-Python to compute the
+:term:`forward model <forward>` and set up the corresponding `source space
+<mne.SourceSpaces>` (a grid of dipoles located on the cortical surface or
+within the brain volume).
+
 
 First steps
 ===========
 
-After downloading and installing, the environment needs to be set up correctly.
-This can be done by setting the FreeSurfer's root directory correctly and
-sourcing the setup file::
+After downloading and installing FreeSurfer, there are a few steps to set up
+the environment. First is to define an environment variable ``FREESURFER_HOME``
+and then run the FreeSurfer setup script:
+
+.. code-block:: console
 
     $ export FREESURFER_HOME=/path/to/FreeSurfer
     $ source $FREESURFER_HOME/SetUpFreeSurfer.sh
 
 .. note::
-    The FreeSurfer home directory might vary depending on your operating
-    system. See the `FreeSurfer installation guide
-    <https://surfer.nmr.mgh.harvard.edu/fswiki/DownloadAndInstall>`_ for more.
+    The FreeSurfer home directory will vary depending on your operating
+    system and choices you made during installation. See the `FreeSurfer
+    installation guide`_ for more info.
 
-Another important step is to define the subject directory correctly.
-``SUBJECTS_DIR`` must be defined such, that it contains the individual
-subject's reconstructions in separate sub-folders. Those sub-folders will be
-created upon the reconstruction of the anatomical data. Nevertheless the parent
-directory has to be set beforehand::
 
-    $ export SUBJECTS_DIR=~/subjects
+Another important step is to tell FreeSurfer where to put the anatomical
+reconstructions of your research subjects. This is done with an environment
+variable called ``SUBJECTS_DIR``, which will contain the individual subjects'
+reconstructions in separate sub-folders.
 
-Again see the `FreeSurfer installation guide
-<https://surfer.nmr.mgh.harvard.edu/fswiki/DownloadAndInstall>`_ for more.
+.. code-block:: console
 
-Once setup correctly, FreeSurfer will create a new subject folder in
-``$SUBJECTS_DIR``.
+    $ export SUBJECTS_DIR=/path/to/your/subjects_dir
+
+Again see the `FreeSurfer installation guide`_ for more info.
+
 
 Anatomical reconstruction
 =========================
 
-MNE-Python works together with FreeSurfer in order to compute the forward model
-and setting up the corresponding :class:`source space <mne.SourceSpaces>`. See
-:ref:`setting_up_source_space` for more information. Usually a full FreeSurfer
-reconstruction is obtained by prompting the following command to a bash
-console (e.g. Linux or MacOS Terminal)::
+The first processing stage is the creation of various surface reconstructions.
+Usually a full FreeSurfer reconstruction is obtained by the following commands:
+
+.. code-block:: console
 
     $ my_subject=sample
     $ my_NIfTI=/path/to/NIfTI.nii.gz
     $ recon-all -i $my_NIfTI -s $my_subject -all
 
-where :code:`i` stands for "input" and :code:`s` for "subject". Executing
-this, will create the folder "~/subjects/sample", where all
-results are stored.
+where ``i`` stands for "input" and ``s`` for "subject". Executing this will
+create the folder :file:`$SUBJECTS_DIR/sample` and populate it
+with several subfolders (``bem``, ``label``, ``mri``, etc). See also the
+FreeSurfer wiki's `recommended reconstruction workflow`_ for more detailed
+explanation.
 
-.. note::
-    This compution takes often several hours. Please be patient.
+.. warning::
+    Anatomical reconstruction can take several hours, even on a fast computer.
 
-Within a single subject all the files MNE-Python uses (and some more) are
-grouped into meaningful sub-folders (such that "surf" contains surface
-representations, "mri" volumetric files, etc.).
+FreeSurfer performs a hemispheric separation so most resulting files have
+separate left and right hemisphere versions, indicated by the prefix
+``lh`` or ``rh``. This hemispheric separation is preserved by MNE-Python (e.g.,
+`mne.SourceEstimate` objects store spatial locations (vertices) for the two
+hemispheres separately; cf. :ref:`tut-source-estimate-class`).
 
-FreeSurfer performs a hemispheric separation and most results are present
-in a left and right hemisphere version. This is often indicated by the
-prefix ``lh`` or ``rh`` to refer to the aforementioned. For that reason
-data representations such as :class:`mne.SourceEstimate` carry two sets of
-spatial locations (vertices) for both hemispheres separately. See also
-:ref:`tut-source-estimate-class`.
+Below we show an example of the results of a FreeSurfer reconstruction for the
+left hemisphere of the :ref:`sample-dataset` dataset subject, including an
+overlay of an anatomical parcellation (in this case, the parcellation from
+:footcite:`DestrieuxEtAl2010`).
 """
 
+import os
 import mne
-subjects_dir = mne.datasets.sample.data_path() + '/subjects'
+
+sample_data_folder = mne.datasets.sample.data_path()
+subjects_dir = os.path.join(sample_data_folder, 'subjects')
 Brain = mne.viz.get_brain_class()
 brain = Brain('sample', hemi='lh', surf='pial',
               subjects_dir=subjects_dir, size=(800, 600))
 brain.add_annotation('aparc.a2009s', borders=False)
 
 ###############################################################################
-# 'fsaverage'
-# ===========
-#
-# During installation, FreeSurfer copies a "default" subject, called
-# ``'fsaverage'`` to ``$FREESURFER_HOME/subjects/fsaverage``. It contains all
-# data types that a subject reconstruction would yield and is required by
-# MNE-Python.
-#
-# See https://surfer.nmr.mgh.harvard.edu/fswiki/FsAverage for an overview, and
-# https://surfer.nmr.mgh.harvard.edu/fswiki/Buckner40Notes for details about
-# the included subjects. A copy of 'fsaverage' can be found in the
-# :ref:`sample-dataset` dataset and is also distributed as a :ref:`standalone
-# dataset <fsaverage>`.
-#
-# When using ``'fsaverage'`` as value for the definition
-# of a subject when calling a function, the corresponding data will be read
-# (e.g., ``subject='fsaverage'``) from '~/subjects/fsaverage'. This becomes
-# especially handy, when attempting statistical analyses on group level, based
-# on individual's brain space data. In that case ``'fsaverage'`` will by
-# default act as reference space for
-# :ref:`source estimate transformations <ch_morph>`.
-#
-# For example, to reproduce a typical header image used by FreeSurfer, we can
-# plot the ``aparc`` parcellation:
-#
 # Use with MNE-Python
 # ===================
 #
 # For source localization analysis to work properly, it is important that the
-# FreeSurfer reconstruction has completed beforehand. Furthermore, when using
-# related functions, such as :func:`mne.setup_source_space`, ``SUBJECTS_DIR``
-# has to be defined either globally by setting :func:`mne.set_config` or for
-# each function separately, by passing the respective keyword argument
-# ``subjects_dir='~/subjects'``.
+# FreeSurfer reconstruction has completed beforehand. Furthermore, for many
+# MNE-Python functions related to inverse imaging (such as
+# `mne.setup_source_space`), ``SUBJECTS_DIR`` has to be defined globally (as an
+# environment variable or through a call to `mne.set_config`), or specified
+# separately in each function call by passing the keyword argument
+# ``subjects_dir='/path/to/your/subjects_dir'``.
 #
-# See also :ref:`setting_up_source_space` to get an idea of how this works for
-# one particular function, and :ref:`tut-freesurfer-mne` for how the two are
-# integrated.
+# See :ref:`setting_up_source_space` to get an idea of how this works for one
+# particular function, and :ref:`tut-freesurfer-mne` for more details on how
+# MNE-Python and FreeSurfer are integrated.
+#
+#
+# 'fsaverage'
+# ===========
+#
+# During installation, FreeSurfer copies a subject called ``'fsaverage'`` to
+# ``$FREESURFER_HOME/subjects/fsaverage``. ``fsaverage`` is a template brain
+# based on a combination of 40 MRI scans of real brains. The ``fsaverage``
+# subject folder contains all the files that a normal subject reconstruction
+# would yield. See https://surfer.nmr.mgh.harvard.edu/fswiki/FsAverage for an
+# overview, and https://surfer.nmr.mgh.harvard.edu/fswiki/Buckner40Notes for
+# details about the subjects used to create ``fsaverage``. A copy of
+# ``fsaverage`` is also provided as part of the :ref:`sample-dataset` dataset
+# and is also distributed as a :ref:`standalone dataset <fsaverage>`.
+#
+# One of the most common uses of ``fsaverage`` is as a destination space for
+# cortical morphing / :ref:`source estimate transformations <ch_morph>`. In
+# other words, it is common to morph each individual subject's estimated brain
+# activity onto the ``fsaverage`` brain, so that group-level statistical
+# comparisons can be made.
+#
+#
+# References
+# ==========
+#
+# .. footbibliography::
+#
+# .. _`FreeSurfer installation guide`:
+#    https://surfer.nmr.mgh.harvard.edu/fswiki/DownloadAndInstall
+# .. _`recommended reconstruction workflow`:
+#    https://surfer.nmr.mgh.harvard.edu/fswiki/RecommendedReconstruction

@@ -16,8 +16,9 @@ import matplotlib.pyplot as plt
 from mne import (read_events, Epochs, pick_types, read_cov, create_info,
                  EpochsArray)
 from mne.channels import read_layout
+from mne.fixes import _close_event
 from mne.io import read_raw_fif, read_raw_ctf
-from mne.utils import run_tests_if_main, _click_ch_name, _close_event
+from mne.utils import _click_ch_name
 from mne.viz import plot_drop_log
 from mne.viz.utils import _fake_click
 from mne.datasets import testing
@@ -419,6 +420,3 @@ def test_plot_psd_epochs_ctf():
             epochs.plot_psd(dB=dB)
     epochs.drop_channels(['EEG060'])
     epochs.plot_psd(spatial_colors=False, average=False)
-
-
-run_tests_if_main()

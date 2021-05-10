@@ -5,7 +5,8 @@
 import os.path as op
 
 import numpy as np
-from numpy.testing import assert_allclose, assert_array_less
+from numpy.testing import (assert_allclose, assert_array_less,
+                           assert_array_equal)
 from scipy.interpolate import interp1d
 from scipy.spatial.distance import cdist
 import pytest
@@ -20,7 +21,7 @@ from mne.chpi import (compute_chpi_amplitudes, compute_chpi_locs,
                       _chpi_locs_to_times_dig, _compute_good_distances,
                       extract_chpi_locs_ctf, head_pos_to_trans_rot_t,
                       read_head_pos, write_head_pos, filter_chpi,
-                      _get_hpi_info, _get_hpi_initial_fit,
+                      get_chpi_info, _get_hpi_initial_fit,
                       extract_chpi_locs_kit)
 from mne.datasets import testing
 from mne.simulation import add_chpi
@@ -64,7 +65,7 @@ def test_chpi_adjust():
     raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes')
     with catch_logging() as log:
         _get_hpi_initial_fit(raw.info, adjust=True, verbose='debug')
-        _get_hpi_info(raw.info, verbose='debug')
+        get_chpi_info(raw.info, on_missing='raise', verbose='debug')
     # Ran MaxFilter (with -list, -v, -movecomp, etc.), and got:
     msg = ['HPIFIT: 5 coils digitized in order 5 1 4 3 2',
            'HPIFIT: 3 coils accepted: 1 2 4',
@@ -92,7 +93,7 @@ def test_chpi_adjust():
         'Note: HPI coil 5 isotrak is adjusted by 3.2 mm!'] + msg[-2:]
     with catch_logging() as log:
         _get_hpi_initial_fit(raw.info, adjust=True, verbose='debug')
-        _get_hpi_info(raw.info, verbose='debug')
+        get_chpi_info(raw.info, on_missing='raise', verbose='debug')
     log = log.getvalue().splitlines()
     assert set(log) == set(msg), '\n' + '\n'.join(set(msg) - set(log))
 
@@ -127,6 +128,31 @@ def test_hpi_info(tmpdir):
         raw.save(temp_name, overwrite=True)
         info = read_info(temp_name)
         assert len(info['hpi_subsystem']) == len(raw.info['hpi_subsystem'])
+
+    # test get_chpi_info()
+    info = read_info(chpi_fif_fname)
+    hpi_freqs, stim_ch_idx, hpi_on_codes = get_chpi_info(info)
+
+    assert_allclose(hpi_freqs,  np.array([ 83., 143., 203., 263., 323.]))
+    assert stim_ch_idx == 378
+    assert_allclose(hpi_on_codes, np.array([ 256,  512, 1024, 2048, 4096]))
+
+    # test get_chpi_info() if no proper cHPI info is available
+    info['hpi_subsystem'] = None
+    info['hpi_meas'] = []
+    info['hpi_results'] = []
+
+    with pytest.raises(ValueError, match='No appropriate cHPI information'):
+        get_chpi_info(info)
+
+    with pytest.warns(RuntimeWarning, match='No appropriate cHPI information'):
+        get_chpi_info(info, on_missing='warn')
+
+    hpi_freqs, stim_ch_idx, hpi_on_codes = get_chpi_info(info,
+                                                         on_missing='ignore')
+    assert_array_equal([], hpi_freqs)
+    assert stim_ch_idx is None
+    assert_array_equal([], hpi_on_codes)
 
 
 def _assert_quats(actual, desired, dist_tol=0.003, angle_tol=5., err_rtol=0.5,
@@ -249,11 +275,11 @@ def test_calculate_chpi_positions_vv():
     _assert_quats(py_quats, mf_quats, dist_tol=0.001, angle_tol=0.7)
     # degenerate conditions
     raw_no_chpi = read_raw_fif(sample_fname)
-    with pytest.raises(RuntimeError, match='cHPI information not found'):
+    with pytest.raises(ValueError, match='No appropriate cHPI information'):
         _calculate_chpi_positions(raw_no_chpi)
     raw_bad = raw.copy()
     del raw_bad.info['hpi_meas'][0]['hpi_coils'][0]['coil_freq']
-    with pytest.raises(RuntimeError, match='cHPI information not found'):
+    with pytest.raises(ValueError, match='No appropriate cHPI information'):
         _calculate_chpi_positions(raw_bad)
     raw_bad = raw.copy()
     for d in raw_bad.info['dig']:
@@ -580,7 +606,7 @@ def test_chpi_subtraction_filter_chpi():
     with pytest.raises(RuntimeError, match='line_freq.*consider setting it'):
         filter_chpi(raw, t_window=0.2)
     raw.info['line_freq'] = 60.
-    with pytest.raises(RuntimeError, match='cHPI information not found'):
+    with pytest.raises(ValueError, match='No appropriate cHPI information'):
         filter_chpi(raw, t_window=0.2)
     # but this is allowed
     with catch_logging() as log:

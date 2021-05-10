@@ -127,11 +127,9 @@ event_dict = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
 # of ``event_dict`` contain multiple trial descriptors separated by ``/``
 # characters: requesting ``'auditory'`` trials will select all epochs with
 # Event IDs 1 and 2; requesting ``'left'`` trials will select all epochs with
-# Event IDs 1 and 3. An example of this is shown in a later tutorial.
-#
-# .. TODO replace above sentence when the relevant tut is ready:
-#    An example of this is shown later, in the :ref:`epoch-pooling` section of
-#    the :ref:`epochs-intro-tutorial` tutorial.
+# Event IDs 1 and 3. An example of this is shown later, in the
+# :ref:`tut-section-subselect-epochs` section of the tutorial
+# :ref:`tut-epochs-class`.
 #
 #
 # Plotting events

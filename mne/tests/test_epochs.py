@@ -1621,6 +1621,14 @@ def test_crop(tmpdir):
     assert np.isclose(epochs_cropped.tmax, epochs_cropped.reject_tmax)
     del epochs_cropped
 
+    # Test that repeated cropping is idempotent
+    epoch_crop = epochs.copy()
+    epoch_crop.crop(None, 0.4, include_tmax=False)
+    n_times = len(epoch_crop.times)
+    with pytest.warns(RuntimeWarning, match='tmax is set to'):
+        epoch_crop.crop(None, 0.4, include_tmax=False)
+        assert len(epoch_crop.times) == n_times
+
     # Cropping & I/O roundtrip
     epochs.crop(0, 0.1)
     epochs.save(temp_fname)

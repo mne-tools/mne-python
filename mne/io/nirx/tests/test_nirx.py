@@ -7,6 +7,7 @@ import os.path as op
 import shutil
 import os
 import datetime as dt
+import numpy as np
 
 import pytest
 from numpy.testing import assert_allclose, assert_array_equal
@@ -15,8 +16,8 @@ from mne import pick_types
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_nirx
 from mne.io.tests.test_raw import _test_raw_reader
+from mne.preprocessing import annotate_nan
 from mne.transforms import apply_trans, _get_trans
-from mne.utils import run_tests_if_main
 from mne.preprocessing.nirs import source_detector_distances,\
     short_channels
 from mne.io.constants import FIFF
@@ -30,6 +31,95 @@ fname_nirx_15_2_short = op.join(data_path(download=False),
                                 'nirx_15_2_recording_w_short')
 fname_nirx_15_3_short = op.join(data_path(download=False),
                                 'NIRx', 'nirscout', 'nirx_15_3_recording')
+
+
+# This file has no saturated sections
+nirsport1_wo_sat = op.join(data_path(download=False), 'NIRx', 'nirsport_v1',
+                           'nirx_15_3_recording_wo_saturation')
+# This file has saturation, but not on the optode pairing in montage
+nirsport1_w_sat = op.join(data_path(download=False), 'NIRx', 'nirsport_v1',
+                          'nirx_15_3_recording_w_saturation_'
+                          'not_on_montage_channels')
+# This file has saturation in channels of interest
+nirsport1_w_fullsat = op.join(data_path(download=False), 'NIRx', 'nirsport_v1',
+                              'nirx_15_3_recording_w_'
+                              'saturation_on_montage_channels')
+
+
+@requires_testing_data
+@pytest.mark.filterwarnings('ignore:.*Extraction of measurement.*:')
+def test_nirsport_v1_wo_sat():
+    """Test NIRSport1 file with no saturation."""
+    raw = read_raw_nirx(nirsport1_wo_sat, preload=True)
+
+    # Test data import
+    assert raw._data.shape == (26, 164)
+    assert raw.info['sfreq'] == 10.416667
+
+    # By default real data is returned
+    assert np.sum(np.isnan(raw.get_data())) == 0
+
+    raw = read_raw_nirx(nirsport1_wo_sat, preload=True, saturated='nan')
+    data = raw.get_data()
+    assert data.shape == (26, 164)
+    assert np.sum(np.isnan(data)) == 0
+
+    raw = read_raw_nirx(nirsport1_wo_sat, saturated='annotate')
+    data = raw.get_data()
+    assert data.shape == (26, 164)
+    assert np.sum(np.isnan(data)) == 0
+
+
+@pytest.mark.filterwarnings('ignore:.*Extraction of measurement.*:')
+@requires_testing_data
+def test_nirsport_v1_w_sat():
+    """Test NIRSport1 file with NaNs but not in channel of interest."""
+    raw = read_raw_nirx(nirsport1_w_sat)
+
+    # Test data import
+    data = raw.get_data()
+    assert data.shape == (26, 176)
+    assert raw.info['sfreq'] == 10.416667
+    assert np.sum(np.isnan(data)) == 0
+
+    raw = read_raw_nirx(nirsport1_w_sat, saturated='nan')
+    data = raw.get_data()
+    assert data.shape == (26, 176)
+    assert np.sum(np.isnan(data)) == 0
+
+    raw = read_raw_nirx(nirsport1_w_sat, saturated='annotate')
+    data = raw.get_data()
+    assert data.shape == (26, 176)
+    assert np.sum(np.isnan(data)) == 0
+
+
+@pytest.mark.filterwarnings('ignore:.*Extraction of measurement.*:')
+@requires_testing_data
+@pytest.mark.parametrize('preload', (True, False))
+def test_nirsport_v1_w_bad_sat(preload):
+    """Test NIRSport1 file with NaNs."""
+    fname = nirsport1_w_fullsat
+    raw = read_raw_nirx(fname, preload=preload)
+    data = raw.get_data()
+    assert not np.isnan(data).any()
+    assert len(raw.annotations) == 5
+    # annotated version and ignore should have same data but different annot
+    raw_ignore = read_raw_nirx(fname, saturated='ignore', preload=preload)
+    assert_allclose(raw_ignore.get_data(), data)
+    assert len(raw_ignore.annotations) == 2
+    assert not any('NAN' in d for d in raw_ignore.annotations.description)
+    # nan version should not have same data, but we can give it the same annot
+    raw_nan = read_raw_nirx(fname, saturated='nan', preload=preload)
+    data_nan = raw_nan.get_data()
+    assert np.isnan(data_nan).any()
+    assert not np.allclose(raw_nan.get_data(), data)
+    raw_nan_annot = raw_ignore.copy()
+    raw_nan_annot.set_annotations(annotate_nan(raw_nan))
+    use_mask = np.where(raw.annotations.description == 'BAD_SATURATED')
+    for key in ('onset', 'duration'):
+        a = getattr(raw_nan_annot.annotations, key)[::2]  # one ch in each
+        b = getattr(raw.annotations, key)[use_mask]  # two chs in each
+        assert_allclose(a, b)
 
 
 @requires_testing_data
@@ -374,6 +464,3 @@ def test_nirx_standard(fname, boundary_decimal):
     """Test standard operations."""
     _test_raw_reader(read_raw_nirx, fname=fname,
                      boundary_decimal=boundary_decimal)  # low fs
-
-
-run_tests_if_main()

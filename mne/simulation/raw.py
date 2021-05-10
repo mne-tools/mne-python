@@ -16,10 +16,9 @@ from ..io.pick import (pick_types, pick_info, pick_channels,
 from ..cov import make_ad_hoc_cov, read_cov, Covariance
 from ..bem import fit_sphere_to_headshape, make_sphere_model, read_bem_solution
 from ..io import RawArray, BaseRaw, Info
-from ..chpi import (read_head_pos, head_pos_to_trans_rot_t, _get_hpi_info,
+from ..chpi import (read_head_pos, head_pos_to_trans_rot_t, get_chpi_info,
                     _get_hpi_initial_fit)
 from ..io.constants import FIFF
-from ..fixes import einsum
 from ..forward import (_magnetic_dipole_field_vec, _merge_meg_eeg_fwds,
                        _stc_src_sel, convert_forward_solution,
                        _prepare_for_forward, _transform_orig_meg_coils,
@@ -319,7 +318,7 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
             None if n == 0 else verts)
         if event_ch is not None:
             this_data[event_ch, :] = stim_data[:n_doing]
-        this_data[meeg_picks] = einsum('svt,vt->st', fwd, stc_data)
+        this_data[meeg_picks] = np.einsum('svt,vt->st', fwd, stc_data)
         try:
             stc_counted = next(stc_enum)
         except StopIteration:
@@ -528,7 +527,7 @@ def _add_exg(raw, kind, head_pos, interp, n_jobs, random_state):
     proc_lims = np.concatenate([np.arange(0, len(used), 10000), [len(used)]])
     for start, stop in zip(proc_lims[:-1], proc_lims[1:]):
         fwd, _ = interper.feed(stop - start)
-        data[picks, start:stop] += einsum(
+        data[picks, start:stop] += np.einsum(
             'svt,vt->st', fwd, exg_data[:, start:stop])
         assert not used[start:stop].any()
         used[start:stop] = True
@@ -564,7 +563,7 @@ def add_chpi(raw, head_pos=None, interp='cos2', n_jobs=1, verbose=None):
     if len(meg_picks) == 0:
         raise RuntimeError('Cannot add cHPI if no MEG picks are present')
     dev_head_ts, offsets = _check_head_pos(head_pos, info, first_samp, times)
-    hpi_freqs, hpi_pick, hpi_ons = _get_hpi_info(info)
+    hpi_freqs, hpi_pick, hpi_ons = get_chpi_info(info, on_missing='raise')
     hpi_rrs = _get_hpi_initial_fit(info, verbose='error')
     hpi_nns = hpi_rrs / np.sqrt(np.sum(hpi_rrs * hpi_rrs,
                                        axis=1))[:, np.newaxis]
@@ -584,7 +583,7 @@ def add_chpi(raw, head_pos=None, interp='cos2', n_jobs=1, verbose=None):
     lims = np.concatenate([offsets, [len(raw.times)]])
     for start, stop in zip(lims[:-1], lims[1:]):
         fwd, = interper.feed(stop - start)
-        data[meg_picks, start:stop] += einsum(
+        data[meg_picks, start:stop] += np.einsum(
             'svt,vt->st', fwd, sinusoids[:, start:stop])
         assert not used[start:stop].any()
         used[start:stop] = True

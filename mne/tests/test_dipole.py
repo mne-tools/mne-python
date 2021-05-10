@@ -16,7 +16,7 @@ from mne import (read_dipole, read_forward_solution,
 from mne.dipole import get_phantom_dipoles, _BDIP_ERROR_KEYS
 from mne.simulation import simulate_evoked
 from mne.datasets import testing
-from mne.utils import run_tests_if_main, requires_mne, run_subprocess
+from mne.utils import requires_mne, run_subprocess
 from mne.proj import make_eeg_average_ref_proj
 
 from mne.io import read_raw_fif, read_raw_ctf
@@ -491,6 +491,3 @@ def test_bdip(fname_dip_, fname_bdip_, tmpdir):
         # Test whether indexing works
         this_bdip0 = this_bdip[0]
         _check_dipole(this_bdip0, 1)
-
-
-run_tests_if_main()

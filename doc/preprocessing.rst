@@ -71,6 +71,7 @@ Projections:
    annotate_flat
    annotate_movement
    annotate_muscle_zscore
+   annotate_nan
    compute_average_dev_head_t
    compute_current_source_density
    compute_fine_calibration
@@ -162,6 +163,7 @@ EEG referencing:
    extract_chpi_locs_ctf
    extract_chpi_locs_kit
    filter_chpi
+   get_chpi_info
    head_pos_to_trans_rot_t
    read_head_pos
    write_head_pos

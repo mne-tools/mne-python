@@ -17,8 +17,6 @@
 Version 0.23.0
 --------------
 
-.. |New Contributor| replace:: **New Contributor**
-
 .. |Jack Zhang| replace:: **Jack Zhang**
 
 .. |Sumalyo Datta| replace:: **Sumalyo Datta**
@@ -151,7 +149,7 @@ Enhancements
 
 - Add :func:`mne.write_head_bem` to support writing head surface files (:gh:`8841` by `Yu-Han Luo`_)
 
-- The signal of ``resp`` (respiratory) channels is now assumed to be in the unit Volt  (:gh:`8858` by `Richard Höchenberger`_)
+- The signal of ``resp`` (respiratory) channels is now assumed to be in the unit Volt (:gh:`8858` by `Richard Höchenberger`_)
 
 - Static type checkers like Pylance (comes with VS Code) now display the parameters of many more functions correctly, largely improving overall usability for VS Code users (:gh:`8862` by `Richard Höchenberger`_)
 

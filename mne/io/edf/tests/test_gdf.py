@@ -16,7 +16,6 @@ import scipy.io as sio
 from mne.datasets import testing
 from mne.io import read_raw_gdf
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.utils import run_tests_if_main
 from mne import pick_types, find_events, events_from_annotations
 
 data_path = testing.data_path(download=False)
@@ -133,6 +132,3 @@ def test_gdf_exclude_channels():
     raw = read_raw_gdf(gdf2_path + '.gdf', exclude=('Fp1', 'O1'))
     assert 'Fp1' not in raw.ch_names
     assert 'O1' not in raw.ch_names
-
-
-run_tests_if_main()

@@ -25,6 +25,8 @@ dependencies:
 - vtk>=9.0.1
 - pyvista>=0.24
 - pyvistaqt>=0.2.0
+- qdarkstyle
+- darkdetect
 - mayavi
 - PySurfer
 - dipy
