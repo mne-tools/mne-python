@@ -34,7 +34,7 @@ Enhancements
 
 Bugs
 ~~~~
-- Nothing yet
+- Fix bug with :meth:`mne.Epochs.crop` and :meth:`mne.Evoked.crop` when ``include_tmax=False``, where the last sample was always cut off, even when ``tmax > epo.times[-1]`` (:gh:`9378` **by new contributor** `Jan Sosulski`_)
 
 
 API changes
