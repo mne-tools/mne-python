@@ -24,7 +24,6 @@ dependencies:
 - imageio-ffmpeg>=0.4.1
 - vtk>=9.0.1
 - pyvista>=0.30
-- https://github.com/pyvista/pyvistaqt/zipball/8eb40405b31ef815527a2620bc395cb9c5548377
 - qdarkstyle
 - darkdetect
 - mayavi
@@ -39,3 +38,4 @@ dependencies:
 - ipywidgets
 - pip:
   - ipyvtklink
+  - https://api.github.com/repos/pyvista/pyvistaqt/zipball/8eb40405b31ef815527a2620bc395cb9c5548377
