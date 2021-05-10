@@ -21,7 +21,7 @@ from mne import (equalize_channels, pick_types, read_evokeds, write_evokeds,
 from mne.evoked import _get_peak, Evoked, EvokedArray
 from mne.io import read_raw_fif
 from mne.io.constants import FIFF
-from mne.utils import _TempDir, requires_pandas, grand_average
+from mne.utils import requires_pandas, grand_average
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 fname = op.join(base_dir, 'test-ave.fif')
@@ -240,9 +240,9 @@ def test_io_evoked(tmpdir):
     assert (all(ave.info['maxshield'] is True for ave in aves))
 
 
-def test_shift_time_evoked():
+def test_shift_time_evoked(tmpdir):
     """Test for shifting of time scale."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     # Shift backward
     ave = read_evokeds(fname, 0).shift_time(-0.1, relative=True)
     write_evokeds(op.join(tempdir, 'evoked-ave.fif'), ave)
@@ -307,9 +307,9 @@ def test_tmin_tmax():
     assert evoked.times[-1] == evoked.tmax
 
 
-def test_evoked_resample():
+def test_evoked_resample(tmpdir):
     """Test resampling evoked data."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     # upsample, write it out, read it in
     ave = read_evokeds(fname, 0)
     orig_lp = ave.info['lowpass']
@@ -621,9 +621,9 @@ def test_arithmetic():
     assert evoked1.ch_names == evoked3.ch_names
 
 
-def test_array_epochs():
+def test_array_epochs(tmpdir):
     """Test creating evoked from array."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
 
     # creating
     rng = np.random.RandomState(42)
@@ -680,6 +680,10 @@ def test_time_as_index_and_crop():
     assert_array_equal(evoked.time_as_index([-.1, .1], use_rounding=True),
                        [0, len(evoked.times) - 1])
     evoked.crop(evoked.tmin, evoked.tmax, include_tmax=False)
+    n_times = len(evoked.times)
+    with pytest.warns(RuntimeWarning, match='tmax is set to'):
+        evoked.crop(tmin, tmax, include_tmax=False)
+    assert len(evoked.times) == n_times
     assert_allclose(evoked.times[[0, -1]], [tmin, tmax - delta], atol=atol)
 
 

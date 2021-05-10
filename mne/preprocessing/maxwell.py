@@ -32,7 +32,7 @@ from ..io import (_loc_to_coil_trans, _coil_trans_to_loc, BaseRaw, RawArray,
 from ..io.pick import pick_types, pick_info
 from ..utils import (verbose, logger, _clean_names, warn, _time_mask, _pl,
                      _check_option, _ensure_int, _validate_type, use_log_level)
-from ..fixes import _safe_svd, einsum, bincount
+from ..fixes import _safe_svd, bincount
 from ..channels.channels import _get_T1T2_mag_inds, fix_mag_coil_types
 
 
@@ -1162,11 +1162,11 @@ def _sss_basis_basic(exp, coils, mag_scale=100., method='standard'):
                         orders_pos_neg.append(-order)
                     for gr, oo in zip(grads_pos_neg, orders_pos_neg):
                         # Gradients dotted w/integration point weighted normals
-                        gr = einsum('ij,ij->i', gr, cosmags)
+                        gr = np.einsum('ij,ij->i', gr, cosmags)
                         vals = np.bincount(bins, gr, len(coils))
                         spc[:, _deg_ord_idx(degree, oo)] = -vals
                 else:
-                    grads = einsum('ij,ij->i', grads, ezs)
+                    grads = np.einsum('ij,ij->i', grads, ezs)
                     v = (np.bincount(bins, grads.real, len(coils)) +
                          1j * np.bincount(bins, grads.imag, len(coils)))
                     spc[:, _deg_ord_idx(degree, order)] = -v

@@ -4,12 +4,15 @@
 #
 # License: Simplified BSD
 
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
+from distutils.version import LooseVersion
+
+import pyvista
 from IPython.display import display
 from ipywidgets import (Button, Dropdown, FloatSlider, FloatText, HBox,
-                        IntSlider, IntText, Text, VBox, IntProgress)
+                        IntSlider, IntText, Text, VBox, IntProgress, Play,
+                        jsdlink)
 
-from ...fixes import nullcontext
 from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractStatusBar, _AbstractLayout, _AbstractWidget,
                         _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback,
@@ -23,7 +26,8 @@ class _IpyLayout(_AbstractLayout):
 
     def _layout_add_widget(self, layout, widget, stretch=0):
         widget.layout.margin = "2px 0px 2px 0px"
-        widget.layout.min_width = "0px"
+        if not isinstance(widget, Play):
+            widget.layout.min_width = "0px"
         children = list(layout.children)
         children.append(widget)
         layout.children = tuple(children)
@@ -189,6 +193,12 @@ class _IpyToolBar(_AbstractToolBar, _IpyLayout):
             func=callback,
         )
 
+    def _tool_bar_add_play_button(self, name, desc, func, shortcut=None):
+        widget = Play(interval=500)
+        self._layout_add_widget(self._tool_bar_layout, widget)
+        self.actions[name] = widget
+        return _IpyWidget(widget)
+
     def _tool_bar_set_theme(self, theme):
         pass
 
@@ -224,8 +234,15 @@ class _IpyStatusBar(_AbstractStatusBar, _IpyLayout):
 
 
 class _IpyPlayback(_AbstractPlayback):
-    def _playback_initialize(self, func, timeout):
-        pass
+    def _playback_initialize(self, func, timeout, value, rng,
+                             time_widget, play_widget):
+        play = play_widget._widget
+        play.min = rng[0]
+        play.max = rng[1]
+        play.value = value
+        slider = time_widget._widget
+        jsdlink((play, 'value'), (slider, 'value'))
+        jsdlink((slider, 'value'), (play, 'value'))
 
 
 class _IpyMplInterface(_AbstractMplInterface):
@@ -341,14 +358,12 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
             self._create_default_tool_bar()
         display(self._tool_bar)
         # viewer
-        try:
-            # pyvista<0.30.0
+        if LooseVersion(pyvista.__version__) < LooseVersion('0.30'):
             viewer = self.plotter.show(
                 use_ipyvtk=True, return_viewer=True)
-        except RuntimeError:
-            # pyvista>=0.30.0
+        else:  # pyvista>=0.30.0
             viewer = self.plotter.show(
-                jupyter_backend="ipyvtk_simple", return_viewer=True)
+                jupyter_backend="ipyvtklink", return_viewer=True)
         viewer.layout.width = None  # unlock the fixed layout
         # main widget
         if self._dock is None:

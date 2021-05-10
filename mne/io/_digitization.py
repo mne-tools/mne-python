@@ -252,11 +252,9 @@ def _get_data_as_dict_from_dig(dig):
         elif d['kind'] == FIFF.FIFFV_POINT_HPI:
             hpi.append(d['r'])
             elp.append(d['r'])
-            # XXX: point_names.append('HPI%03d' % d['ident'])
         elif d['kind'] == FIFF.FIFFV_POINT_EXTRA:
             hsp.append(d['r'])
         elif d['kind'] == FIFF.FIFFV_POINT_EEG:
-            # XXX: dig_ch_pos['EEG%03d' % d['ident']] = d['r']
             if d['ident'] != 0:  # ref channel
                 dig_ch_pos_location.append(d['r'])
 

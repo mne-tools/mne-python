@@ -412,7 +412,7 @@ def test_merge_info():
     info_0['bads'] = ['MEG 2443', 'EEG 053']
     assert len(info_0['chs']) == 376
     assert len(info_0['dig']) == 146
-    info_1 = create_info(["STI XXX"], info_0['sfreq'], ['stim'])
+    info_1 = create_info(["STI YYY"], info_0['sfreq'], ['stim'])
     assert info_1['bads'] == []
     info_out = _merge_info([info_0, info_1], force_update_to_first=True)
     assert len(info_out['chs']) == 377

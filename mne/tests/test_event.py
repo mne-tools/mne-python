@@ -16,7 +16,6 @@ from mne import (read_events, write_events, make_fixed_length_events,
                  read_evokeds, Epochs, create_info, compute_raw_covariance,
                  Annotations)
 from mne.io import read_raw_fif, RawArray
-from mne.utils import run_tests_if_main
 from mne.event import (define_target_events, merge_events, AcqParserFIF,
                        shift_time_events)
 from mne.datasets import testing
@@ -591,6 +590,3 @@ def test_shift_time_events():
     EXPECTED = [0, 2, 3]
     new_events = shift_time_events(events, ids=[1, 2], tshift=1, sfreq=1)
     assert all(new_events[:, 0] == EXPECTED)
-
-
-run_tests_if_main()
