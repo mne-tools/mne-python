@@ -52,7 +52,8 @@ from .utils import (plt_show, plot_sensors, _setup_plot_projector, _events_off,
                     _get_color_list, logger, _validate_if_list_of_axes,
                     _plot_psd)
 from ..defaults import _handle_default
-from ..utils import set_config, _check_option, _check_sphere, Bunch
+from ..utils import (set_config, _check_option, _check_sphere, _validate_type,
+                     Bunch)
 from ..annotations import _sync_onset
 from ..time_frequency import psd_welch, psd_multitaper
 from ..io.pick import (pick_types, _picks_to_idx, channel_indices_by_type,
