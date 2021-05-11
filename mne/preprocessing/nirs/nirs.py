@@ -109,9 +109,9 @@ def _check_channels_ordered(info, pair_vals):
             f'info["chs"] structure. The encoded wavelengths are {all_freqs}.')
 
     for ii in picks_cw[::2]:
-        ch1_name_info = re.match(r'S(\d+)_D(\d+) (\d+)',
+        ch1_name_info = re.match(r'S(\d+)_D(\d+) (\d+\.?\d*)',
                                  info['chs'][ii]['ch_name'])
-        ch2_name_info = re.match(r'S(\d+)_D(\d+) (\d+)',
+        ch2_name_info = re.match(r'S(\d+)_D(\d+) (\d+\.?\d*)',
                                  info['chs'][ii + 1]['ch_name'])
 
         if bool(ch2_name_info) & bool(ch1_name_info):
@@ -129,8 +129,8 @@ def _check_channels_ordered(info, pair_vals):
                        info['chs'][ii + 1]['ch_name'],
                        info['chs'][ii + 1]['loc'][9]))
 
-            first_value = int(ch1_name_info.groups()[2])
-            second_value = int(ch2_name_info.groups()[2])
+            first_value = float(ch1_name_info.groups()[2])
+            second_value = float(ch2_name_info.groups()[2])
             error_word = "frequencies"
 
         else:

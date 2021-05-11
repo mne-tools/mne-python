@@ -408,14 +408,17 @@ class RawNIRX(BaseRaw):
         return data
 
 
-def _read_csv_rows_cols(fname, start, stop, cols, bounds):
+def _read_csv_rows_cols(fname, start, stop, cols, bounds,
+                        sep=' ', replace=None):
     with open(fname, 'rb') as fid:
         fid.seek(bounds[start])
         args = list()
         if bounds[1] is not None:
             args.append(bounds[stop] - bounds[start])
         data = fid.read(*args).decode('latin-1')
-        x = np.fromstring(data, float, sep=' ')
+        if replace is not None:
+            data = replace(data)
+        x = np.fromstring(data, float, sep=sep)
     x.shape = (stop - start, -1)
     x = x[:, cols]
     return x
