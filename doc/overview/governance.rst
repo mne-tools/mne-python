@@ -54,8 +54,8 @@ The foundations of Project governance are:
 
 
 Traditionally, Project leadership was provided by a subset of Contributors,
-called Core Developers, whose active and consistent contributions have been
-recognized by their receiving “commit rights” to the Project GitHub
+informally called Core Developers, whose active and consistent contributions
+were rewarded by granting them “commit rights” to the Project GitHub
 repositories. In general, all Project decisions are made through consensus among
 the Core Developers with input from the Community.
 
