@@ -2352,19 +2352,18 @@ def _psd_figure(inst, proj, picks, exclude, axes, area_mode, tmin, tmax, fmin,
     scalings_list = list()
     psd_list = list()
     # exclude channels
-    bad_ch_idx = [inst.info['ch_names'].index(ch) for ch in inst.info['bads']
-                  if ch in inst.info['ch_names']]
+    inst.info._check_consistency()
+    _validate_type(exclude, (list, tuple, str), 'exclude')
+    if isinstance(exclude, str):
+        _check_option('exclude', exclude, 'bads', extra='when str')
+        exclude = inst.info['bads']
+    for ei, ex in enumerate(exclude):
+        if not isinstance(ex, str) or ex not in inst.info['ch_names']:
+            raise ValueError(f'exclude[{ei}] ({repr(ex)}) '
+                             'not found in info["ch_names"]')
     if len(exclude) > 0:
-        if isinstance(exclude, str) and exclude == 'bads':
-            exclude = bad_ch_idx
-        elif (isinstance(exclude, list) and
-              all(isinstance(ch, str) for ch in exclude)):
-            exclude = [inst.info['ch_names'].index(ch) for ch in exclude]
-        else:
-            raise ValueError(
-                'exclude has to be a list of channel names or "bads"')
-
-        picks = np.array([pick for pick in picks if pick not in exclude])
+        picks = np.array([pick for pick in picks if
+                          inst.info['ch_names'][pick] not in exclude], int)
 
     # initialize figure
     fig, axes = _line_figure(inst, axes, picks, **kwargs)
