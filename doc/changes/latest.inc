@@ -42,6 +42,8 @@ Bugs
 
 - Fix bug with `mne.io.read_raw_curry` to allow reading Curry 8 event files with '.cdt.ceo' extension (:gh:`9381` by **new contributor** |Xiaokai Xia|_ and `Daniel McCloy`_)
 
+- Fix bug with :func:`mne.io.read_raw_nihon` where latin-1 annotations could not be read (:gh:`9384` by `Alex Gramfort`_)
+
 API changes
 ~~~~~~~~~~~
 - Nothing yet
