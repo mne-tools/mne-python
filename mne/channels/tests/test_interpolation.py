@@ -298,8 +298,8 @@ def test_interpolation_nirs():
                       name in raw_od.ch_names])[0][0]
     bad_0_std_pre_interp = np.std(raw_od._data[bad_0])
     bads_init = list(raw_od.info['bads'])
-    raw_od.interpolate_bads(exclude=bads_init[:1])
-    assert raw_od.info['bads'] == bads_init[:1]
+    raw_od.interpolate_bads(exclude=bads_init[:2])
+    assert raw_od.info['bads'] == bads_init[:2]
     raw_od.interpolate_bads()
     assert raw_od.info['bads'] == []
     assert bad_0_std_pre_interp > np.std(raw_od._data[bad_0])
