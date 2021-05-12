@@ -105,7 +105,7 @@ For full functionality, some functions require:
 - DIPY >= 1.0.0
 - Imageio >= 2.6.1
 - PyVista >= 0.30
-- pyvistaqt >= 0.4.0
+- pyvistaqt >= 0.4
 - mffpy >= 0.5.7
 
 Contributing to MNE-Python
