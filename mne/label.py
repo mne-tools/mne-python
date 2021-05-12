@@ -20,8 +20,8 @@ from .parallel import parallel_func, check_n_jobs
 from .source_estimate import (SourceEstimate, VolSourceEstimate,
                               _center_of_mass, extract_label_time_course,
                               spatial_src_adjacency)
-from .source_space import add_source_space_distances, SourceSpaces, \
-    read_freesurfer_lut
+from .source_space import (add_source_space_distances, SourceSpaces,
+                           read_freesurfer_lut)
 from .stats.cluster_level import _find_clusters, _get_components
 from .surface import read_surface, fast_cross_3d, mesh_edges, mesh_dist
 from .utils import (get_subjects_dir, _check_subject, logger, verbose, warn,
@@ -2678,13 +2678,13 @@ def find_label_in_annot(pos, subject='fsaverage', annot='aparc.a2005s+aseg',
 
     Parameters
     ----------
-    pos : instance of np.array
+    pos : ndarray, shape (3,)
         Vector of x,y,z coordinates in MRI space.
     subject : str
         MRI subject name.
     annot : str
-        MRI parcellation file name.
-    subjects_dir : str
+        MRI parcellation file name. Do not include the ``.mgz`` suffix.
+    subjects_dir : path-like
         Path to MRI subjects directory.
 
     Returns
