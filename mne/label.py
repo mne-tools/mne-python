@@ -14,7 +14,7 @@ import re
 
 import numpy as np
 
-import mne
+from mne.transforms import apply_trans
 from .morph_map import read_morph_map
 from .parallel import parallel_func, check_n_jobs
 from .source_estimate import (SourceEstimate, VolSourceEstimate,
@@ -2678,14 +2678,19 @@ def find_label_in_annot(pos, subject='fsaverage', annot='aparc.a2005s+aseg',
 
     Parameters
     ----------
-    pos : vector of x,y,z coordinates in MRI space
-    subject : MRI subject name
-    annot : parcellation file name
-    subjects_dir : path to MRI subjects directory
+    pos : instance of np.array
+        Vector of x,y,z coordinates in MRI space.
+    subject : str
+        MRI subject name.
+    annot : str
+        MRI parcellation file name.
+    subjects_dir : str
+        Path to MRI subjects directory.
 
     Returns
     -------
-    label : string - parcellation label
+    label : str
+        Anatomical region name from atlas.
 
 
     .. versionadded:: 0.24
@@ -2702,8 +2707,8 @@ def find_label_in_annot(pos, subject='fsaverage', annot='aparc.a2005s+aseg',
 
     # Find voxel for dipole position
     mri_vox_t = np.linalg.inv(parcellation_img.header.get_vox2ras_tkr())
-    vox_dip_pos_f = mne.transforms.apply_trans(mri_vox_t, pos)
-    vox_dip_pos = vox_dip_pos_f.astype(int)
+    vox_dip_pos_f = apply_trans(mri_vox_t, pos)
+    vox_dip_pos = np.rint(vox_dip_pos_f).astype(int)
 
     # Get voxel value and label from LUT
     vol_values = parcellation_img.get_fdata()[tuple(vox_dip_pos.T)]

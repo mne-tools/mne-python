@@ -13,7 +13,6 @@ from numpy.testing import (assert_array_equal, assert_array_almost_equal,
                            assert_equal)
 import pytest
 
-import mne
 from mne.datasets import testing
 from mne import (read_label, stc_to_label, read_source_estimate,
                  read_source_spaces, grow_labels, read_labels_from_annot,
@@ -1026,7 +1025,7 @@ def test_find_label_in_annot():
     pos = np.array([-62.15634172, -10.62938523, -1.16026239])
     target_label = 'Left-Cerebral-Cortex'
 
-    subjects_dir_test = os.path.join(mne.datasets.testing.data_path(),
+    subjects_dir_test = os.path.join(testing.data_path(),
                                      'subjects')
 
     label = find_label_in_annot(pos, subject='fsaverage',
