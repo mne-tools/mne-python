@@ -18,6 +18,7 @@ import mne
 from mne import read_freesurfer_lut
 from mne.forward import make_forward_dipole
 from mne.evoked import combine_evoked
+from mne.label import find_label_in_annot
 from mne.simulation import simulate_evoked
 
 import nibabel
@@ -62,23 +63,9 @@ mri_pos = mne.head_to_mri(dip.pos, mri_head_t=trans,
 # In the meantime let's find an anatomical label for the best fitted dipole
 best_dip_id = dip.gof.argmax()
 best_dip_mri_pos = mri_pos[best_dip_id]
-
-# Load parcellation:
-atlas_fname = op.join(subjects_dir, subject, 'mri', 'aparc.a2009s+aseg.mgz')
-parcellation_img = nibabel.load(atlas_fname)
-
-# Load freesurface atlas LUT
-lut_inv_dict = read_freesurfer_lut()[0]
-label_lut = {v: k for k, v in lut_inv_dict.items()}
-
-# Find voxel for dipole position
-mri_vox_t = np.linalg.inv(parcellation_img.header.get_vox2ras_tkr())
-vox_dip_pos_f = mne.transforms.apply_trans(mri_vox_t,best_dip_mri_pos)
-vox_dip_pos = vox_dip_pos_f.astype(int)
-
-# Get voxel value and label from LUT
-vol_values = parcellation_img.get_fdata()[tuple(vox_dip_pos.T)]
-label = label_lut.get(vol_values, 'Unknown')
+label = find_label_in_annot(best_dip_mri_pos, subject=subject,
+                            subjects_dir=subjects_dir,
+                            annot='aparc.a2009s+aseg')
 
 # Draw dipole position on MRI scan and add anatomical label from parcellation
 t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
