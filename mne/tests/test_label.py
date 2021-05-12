@@ -22,8 +22,8 @@ from mne import (read_label, stc_to_label, read_source_estimate,
                  labels_to_stc)
 from mne.label import (Label, _blend_colors, label_sign_flip, _load_vert_pos,
                        select_sources, find_label_in_annot)
-from mne.utils import requires_sklearn, get_subjects_dir, check_version, \
-    requires_nibabel
+from mne.utils import (requires_sklearn, get_subjects_dir, check_version,
+                       requires_nibabel)
 from mne.label import _n_colors, _read_annot, _read_annot_cands
 from mne.source_space import SourceSpaces
 from mne.source_estimate import mesh_edges
@@ -1022,7 +1022,7 @@ def test_select_sources():
 @testing.requires_testing_data
 @requires_nibabel()
 def test_find_label_in_annot():
-    """Test searching for atlass name for given MRI position."""
+    """Test searching for atlas name for given MRI position."""
     pos = np.array([-62.15634172, -10.62938523, -1.16026239])
     target_label = 'Left-Cerebral-Cortex'
 
