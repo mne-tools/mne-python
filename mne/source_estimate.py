@@ -3233,10 +3233,14 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     distance : float
         Distance (m) defining the activation "ball" of the sensor.
     mode : str
-        Can be "sum" to do a linear sum of weights, "nearest" to
+        Can be "sum" to do a linear sum of weights, "weighted" to make this
+        a weighted sum, "nearest" to
         use only the weight of the nearest sensor, or "single" to
         do a distance-weight of the nearest sensor. Default is "sum".
         See Notes.
+
+        .. versionchanged:: 0.24
+           Added "weighted" option.
     project : bool
         If True, project the electrodes to the nearest ``'pial`` surface
         vertex before computing distances. Only used when doing a
@@ -3281,6 +3285,9 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     - ``'nearest'``
         The value is given by the value of the nearest sensor, up to a
         ``distance`` (beyond which it is zero).
+    - ``'weighted'``
+        The value is given by the same as ``sum`` but the total weight for
+        each vertex is 1. (i.e., it's a weighted sum based on proximity).
 
     If creating a Volume STC, ``src`` must be passed in, and this
     function will project sEEG and DBS sensors to nearby surrounding vertices.
@@ -3294,7 +3301,7 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     _validate_type(evoked, Evoked, 'evoked')
     _validate_type(mode, str, 'mode')
     _validate_type(src, (None, SourceSpaces), 'src')
-    _check_option('mode', mode, ('sum', 'single', 'nearest'))
+    _check_option('mode', mode, ('sum', 'single', 'nearest', 'weighted'))
 
     # create a copy of Evoked using ecog, seeg and dbs
     evoked = evoked.copy().pick_types(ecog=True, seeg=True, dbs=True, fnirs='hbo')
@@ -3371,6 +3378,10 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
         vals = w[range_, idx] if mode == 'single' else 1.
         w.fill(0)
         w[range_, idx] = vals
+    elif mode == 'weighted':
+        norms = w.sum(-1, keepdims=True)
+        norms[norms == 0] = 1.
+        w /= norms
     missing = np.where(~np.any(w, axis=0))[0]
     if len(missing):
         warn(f'Channel{_pl(missing)} missing in STC: '
