@@ -57,7 +57,7 @@ def _nbclient():
         from jupyter_client import AsyncKernelManager
         from nbclient import NotebookClient
         from ipywidgets import Button  # noqa
-        import ipyvtk_simple  # noqa
+        import ipyvtklink  # noqa
     except Exception as exc:
         return pytest.skip(f'Skipping Notebook test: {exc}')
     km = AsyncKernelManager(config=None)

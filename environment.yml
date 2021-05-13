@@ -23,8 +23,8 @@ dependencies:
 - spyder-kernels>=1.10.0
 - imageio-ffmpeg>=0.4.1
 - vtk>=9.0.1
-- pyvista>=0.24
-- pyvistaqt>=0.2.0
+- pyvista>=0.30
+- pyvistaqt>=0.4
 - qdarkstyle
 - darkdetect
 - mayavi
@@ -38,4 +38,4 @@ dependencies:
 - mffpy>=0.5.7
 - ipywidgets
 - pip:
-  - ipyvtk-simple
+  - ipyvtklink

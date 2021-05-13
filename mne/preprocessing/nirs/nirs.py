@@ -169,6 +169,7 @@ def _check_channels_ordered(info, pair_vals):
                 ' as source detector pairs with alternating'
                 f' {error_word}: {pair_vals[0]} & {pair_vals[1]}')
 
+    _fnirs_check_bads(info)
     return picks_cw
 
 
@@ -183,29 +184,29 @@ def _validate_nirs_info(info):
     return picks
 
 
-def _fnirs_check_bads(raw):
+def _fnirs_check_bads(info):
     """Check consistent labeling of bads across fnirs optodes."""
     # For an optode pair, if one component (light frequency or chroma) is
     # marked as bad then they all should be. This function checks that all
     # optodes are marked bad consistently.
-    picks = _picks_to_idx(raw.info, 'fnirs', exclude=[])
+    picks = _picks_to_idx(info, 'fnirs', exclude=[], allow_empty=True)
     for ii in picks[::2]:
-        bad_opto = set(raw.info['bads']).intersection(raw.ch_names[ii:ii + 2])
+        bad_opto = set(info['bads']).intersection(info.ch_names[ii:ii + 2])
         if len(bad_opto) == 1:
             raise RuntimeError('NIRS bad labelling is not consistent')
 
 
-def _fnirs_spread_bads(raw):
+def _fnirs_spread_bads(info):
     """Spread bad labeling across fnirs channels."""
-    # For an optode if any component (light frequency or chroma) is marked
+    # For an optode pair if any component (light frequency or chroma) is marked
     # as bad, then they all should be. This function will find any pairs marked
     # as bad and spread the bad marking to all components of the optode pair.
-    picks = _picks_to_idx(raw.info, 'fnirs', exclude=[])
+    picks = _picks_to_idx(info, 'fnirs', exclude=[], allow_empty=True)
     new_bads = list()
     for ii in picks[::2]:
-        bad_opto = set(raw.info['bads']).intersection(raw.ch_names[ii:ii + 2])
+        bad_opto = set(info['bads']).intersection(info.ch_names[ii:ii + 2])
         if len(bad_opto) > 0:
-            new_bads.extend(raw.ch_names[ii:ii + 2])
-    raw.info['bads'] = new_bads
+            new_bads.extend(info.ch_names[ii:ii + 2])
+    info['bads'] = new_bads
 
-    return raw
+    return info

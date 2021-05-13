@@ -334,6 +334,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             warn(f'tmax is not in Evoked time interval. tmax is set to '
                  f'evoked.tmax ({self.tmax:g} sec)')
             tmax = self.tmax
+            include_tmax = True
 
         mask = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'],
                           include_tmax=include_tmax)

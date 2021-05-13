@@ -100,29 +100,31 @@ def test_fnirs_check_bads(fname):
     """Test checking of bad markings."""
     # No bad channels, so these should all pass
     raw = read_raw_nirx(fname)
-    _fnirs_check_bads(raw)
+    _fnirs_check_bads(raw.info)
     raw = optical_density(raw)
-    _fnirs_check_bads(raw)
+    _fnirs_check_bads(raw.info)
     raw = beer_lambert_law(raw)
-    _fnirs_check_bads(raw)
+    _fnirs_check_bads(raw.info)
 
     # Mark pairs of bad channels, so these should all pass
     raw = read_raw_nirx(fname)
     raw.info['bads'] = raw.ch_names[0:2]
-    _fnirs_check_bads(raw)
+    _fnirs_check_bads(raw.info)
     raw = optical_density(raw)
-    _fnirs_check_bads(raw)
+    _fnirs_check_bads(raw.info)
     raw = beer_lambert_law(raw)
-    _fnirs_check_bads(raw)
+    _fnirs_check_bads(raw.info)
 
     # Mark single channel as bad, so these should all fail
     raw = read_raw_nirx(fname)
     raw.info['bads'] = raw.ch_names[0:1]
-    pytest.raises(RuntimeError, _fnirs_check_bads, raw)
-    raw = optical_density(raw)
-    pytest.raises(RuntimeError, _fnirs_check_bads, raw)
-    raw = beer_lambert_law(raw)
-    pytest.raises(RuntimeError, _fnirs_check_bads, raw)
+    pytest.raises(RuntimeError, _fnirs_check_bads, raw.info)
+    with pytest.raises(RuntimeError, match='bad labelling'):
+        raw = optical_density(raw)
+    pytest.raises(RuntimeError, _fnirs_check_bads, raw.info)
+    with pytest.raises(RuntimeError, match='bad labelling'):
+        raw = beer_lambert_law(raw)
+    pytest.raises(RuntimeError, _fnirs_check_bads, raw.info)
 
 
 @testing.requires_testing_data
@@ -133,20 +135,20 @@ def test_fnirs_spread_bads(fname):
     # Test spreading upwards in frequency and on raw data
     raw = read_raw_nirx(fname)
     raw.info['bads'] = ['S1_D1 760']
-    raw = _fnirs_spread_bads(raw)
-    assert raw.info['bads'] == ['S1_D1 760', 'S1_D1 850']
+    info = _fnirs_spread_bads(raw.info)
+    assert info['bads'] == ['S1_D1 760', 'S1_D1 850']
 
     # Test spreading downwards in frequency and on od data
     raw = optical_density(raw)
     raw.info['bads'] = raw.ch_names[5:6]
-    raw = _fnirs_spread_bads(raw)
-    assert raw.info['bads'] == raw.ch_names[4:6]
+    info = _fnirs_spread_bads(raw.info)
+    assert info['bads'] == raw.ch_names[4:6]
 
     # Test spreading multiple bads and on chroma data
     raw = beer_lambert_law(raw)
     raw.info['bads'] = [raw.ch_names[x] for x in [1, 8]]
-    raw = _fnirs_spread_bads(raw)
-    assert raw.info['bads'] == [raw.ch_names[x] for x in [0, 1, 8, 9]]
+    info = _fnirs_spread_bads(raw.info)
+    assert info['bads'] == [info.ch_names[x] for x in [0, 1, 8, 9]]
 
 
 @testing.requires_testing_data

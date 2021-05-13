@@ -27,9 +27,9 @@ nilearn
 xlrd
 imageio>=2.6.1
 imageio-ffmpeg>=0.4.1
-pyvista>=0.24
-pyvistaqt>=0.2.0
+pyvista>=0.30
+pyvistaqt>=0.4
 tqdm
 mffpy>=0.5.7
 ipywidgets
-ipyvtk-simple
+ipyvtklink

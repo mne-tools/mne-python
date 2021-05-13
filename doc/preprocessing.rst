@@ -71,6 +71,7 @@ Projections:
    annotate_flat
    annotate_movement
    annotate_muscle_zscore
+   annotate_nan
    compute_average_dev_head_t
    compute_current_source_density
    compute_fine_calibration
