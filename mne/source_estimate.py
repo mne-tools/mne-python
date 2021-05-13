@@ -3297,7 +3297,7 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     _check_option('mode', mode, ('sum', 'single', 'nearest'))
 
     # create a copy of Evoked using ecog, seeg and dbs
-    evoked = evoked.copy().pick_types(ecog=True, seeg=True, dbs=True)
+    evoked = evoked.copy().pick_types(ecog=True, seeg=True, dbs=True, fnirs='hbo')
 
     # get channel positions that will be used to pinpoint where
     # in the Source space we will use the evoked data

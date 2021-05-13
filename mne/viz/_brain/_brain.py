@@ -1907,7 +1907,7 @@ class Brain(object):
         if smoothing_steps is None:
             smoothing_steps = 7
         elif smoothing_steps == 'nearest':
-            smoothing_steps = 0
+            smoothing_steps = -1
         elif isinstance(smoothing_steps, int):
             if smoothing_steps < 0:
                 raise ValueError('Expected value of `smoothing_steps` is'
@@ -2749,7 +2749,7 @@ class Brain(object):
                         'len(data) < nvtx (%s < %s): the vertices '
                         'parameter must not be None'
                         % (len(hemi_data), self.geo[hemi].x.shape[0]))
-                morph_n_steps = 'nearest' if n_steps == 0 else n_steps
+                morph_n_steps = 'nearest' if n_steps == -1 else n_steps
                 maps = sparse.eye(len(self.geo[hemi].coords), format='csr')
                 with use_log_level(False):
                     smooth_mat = _hemi_morph(

@@ -1272,9 +1272,15 @@ def _surf_upsampling_mat(idx_from, e, smooth, warn=True):
     _validate_type(smooth, ('int-like', str, None), 'smoothing steps')
     if smooth is not None:  # number of steps
         smooth = _ensure_int(smooth, 'smoothing steps')
-        if smooth < 1:
+        if smooth == 0:
+            return sparse.csc_matrix(
+                (np.ones(len(idx_from)),  # data, indices, indptr
+                 idx_from,
+                 np.arange(len(idx_from) + 1)),
+                shape=(e.shape[0], len(idx_from))).tocsr()
+        elif smooth < 0:
             raise ValueError(
-                'The number of smoothing operations has to be at least 1, got '
+                'The number of smoothing operations has to be at least 0, got '
                 f'{smooth}')
         smooth = smooth - 1
     # idx will gradually expand from idx_from -> np.arange(n_tot)
