@@ -21,7 +21,7 @@ from .source_estimate import (SourceEstimate, VolSourceEstimate,
                               _center_of_mass, extract_label_time_course,
                               spatial_src_adjacency)
 from .source_space import (add_source_space_distances, SourceSpaces,
-                           read_freesurfer_lut)
+                           read_freesurfer_lut, _import_nibabel)
 from .stats.cluster_level import _find_clusters, _get_components
 from .surface import read_surface, fast_cross_3d, mesh_edges, mesh_dist
 from .utils import (get_subjects_dir, _check_subject, logger, verbose, warn,
@@ -2671,8 +2671,8 @@ def select_sources(subject, label, location='center', extent=0.,
     return new_label
 
 
-def find_label_in_annot(pos, subject='fsaverage', annot='aparc.a2005s+aseg',
-                        subjects_dir=None):
+def find_pos_in_annot(pos, subject='fsaverage', annot='aparc+aseg',
+                      subjects_dir=None):
     """
     Find name in atlas for given MRI coordinates.
 
@@ -2683,7 +2683,7 @@ def find_label_in_annot(pos, subject='fsaverage', annot='aparc.a2005s+aseg',
     subject : str
         MRI subject name.
     annot : str
-        MRI parcellation file name. Do not include the ``.mgz`` suffix.
+        MRI volumetric atlas file name. Do not include the ``.mgz`` suffix.
     subjects_dir : path-like
         Path to MRI subjects directory.
 
@@ -2696,7 +2696,12 @@ def find_label_in_annot(pos, subject='fsaverage', annot='aparc.a2005s+aseg',
     -----
     .. versionadded:: 0.24
     """
-    import nibabel
+    pos = np.asarray(pos, float)
+    if pos.shape != (3,):
+        raise ValueError(
+            'pos must be an array of shape (3,), ' f'got {pos.shape}')
+
+    nibabel = _import_nibabel('read MRI parcellations')
     if subjects_dir is None:
         subjects_dir = get_subjects_dir(None)
     atlas_fname = os.path.join(subjects_dir, subject, 'mri', annot + '.mgz')

@@ -20,7 +20,7 @@ from mne import (read_label, stc_to_label, read_source_estimate,
                  read_surface, random_parcellation, morph_labels,
                  labels_to_stc)
 from mne.label import (Label, _blend_colors, label_sign_flip, _load_vert_pos,
-                       select_sources, find_label_in_annot)
+                       select_sources, find_pos_in_annot)
 from mne.utils import (requires_sklearn, get_subjects_dir, check_version,
                        requires_nibabel)
 from mne.label import _n_colors, _read_annot, _read_annot_cands
@@ -1020,7 +1020,7 @@ def test_select_sources():
 
 @testing.requires_testing_data
 @requires_nibabel()
-def test_find_label_in_annot():
+def test_find_pos_in_annot():
     """Test searching for atlas name for given MRI position."""
     pos = np.array([-62.15634172, -10.62938523, -1.16026239])
     target_label = 'Left-Cerebral-Cortex'
@@ -1028,8 +1028,8 @@ def test_find_label_in_annot():
     subjects_dir_test = os.path.join(testing.data_path(),
                                      'subjects')
 
-    label = find_label_in_annot(pos, subject='fsaverage',
-                                annot="aseg",
-                                subjects_dir=subjects_dir_test,
-                                )
+    label = find_pos_in_annot(pos, subject='fsaverage',
+                              annot="aseg",
+                              subjects_dir=subjects_dir_test,
+                              )
     assert label == target_label
