@@ -2672,7 +2672,7 @@ def select_sources(subject, label, location='center', extent=0.,
 
 
 def find_label_in_annot(pos, subject='fsaverage', annot='aparc.a2005s+aseg',
-                         subjects_dir=None):
+                        subjects_dir=None):
     """
     Find name in atlas for given MRI coordinates.
 

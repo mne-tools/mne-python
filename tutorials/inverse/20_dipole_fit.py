@@ -15,13 +15,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import mne
-from mne import read_freesurfer_lut
 from mne.forward import make_forward_dipole
 from mne.evoked import combine_evoked
 from mne.label import find_label_in_annot
 from mne.simulation import simulate_evoked
 
-import nibabel
 from nilearn.plotting import plot_anat
 from nilearn.datasets import load_mni152_template
 
