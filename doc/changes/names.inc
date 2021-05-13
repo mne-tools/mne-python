@@ -389,3 +389,5 @@
 .. _Jack Zhang: https://github.com/jackz314
 
 .. _Felix Klotzsche: https://github.com/eioe
+
+.. _Marian Dovgialo: https://github.com/mdovgialo

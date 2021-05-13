@@ -25,6 +25,7 @@ Enhancements
 
 - New function :func:`mne.chpi.get_chpi_info` to retrieve basic information about the cHPI system used when recording MEG data (:gh:`9369` by `Richard Höchenberger`_)
 
+- New function :func:`mne.label.find_label_in_annot` to get atlas label for MRI coordinates.  (:gh:`9376` by `Marian Dovgialo`_)
 
 Bugs
 ~~~~
