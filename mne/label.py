@@ -2692,7 +2692,8 @@ def find_label_in_annot(pos, subject='fsaverage', annot='aparc.a2005s+aseg',
     label : str
         Anatomical region name from atlas.
 
-
+    Notes
+    -----
     .. versionadded:: 0.24
     """
     import nibabel

@@ -35,7 +35,7 @@ Enhancements
 
 - Add support for NIRSport devices to `mne.io.read_raw_nirx` (:gh:`9348` **by new contributor** |David Julien|_, **new contributor** |Romain Derollepot|_, `Robert Luke`_, and `Eric Larson`_)
 
-  - New function :func:`mne.label.find_label_in_annot` to get atlas label for MRI coordinates.  (:gh:`9376` by `Marian Dovgialo`_)
+- New function :func:`mne.label.find_label_in_annot` to get atlas label for MRI coordinates.  (:gh:`9376` by `Marian Dovgialo`_)
 
 Bugs
 ~~~~
