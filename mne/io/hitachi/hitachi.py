@@ -2,6 +2,7 @@
 #
 # License: BSD (3-clause)
 
+from collections import Counter
 import datetime as dt
 import re
 
@@ -64,6 +65,16 @@ class RawHitachi(BaseRaw):
 
     Notes
     -----
+    Hitachi does not encode their channel positions, so you will need to
+    create a suitable mapping using :func:`mne.channels.make_standard_montage`
+    or :func:`mne.channels.make_dig_montage` like:
+
+    >>> mon = mne.channels.make_standard_montage('standard_1020')
+    >>> need = 'S1 D1 S2 D2 S3 D3 S4 D4 S5 D5 S6 D6 S7 D7 S8'.split()
+    >>> have = 'F7 F5 FC5 F3 FC3 FT7 T7 C5 C3 TP7 CP5 CP3 P7 P5 P3'.split()
+    >>> mon.rename_channels(dict(zip(have, need)))
+    >>> raw.set_montage(mon)  # doctest: +SKIP
+
     .. versionadded:: 0.24
     """
 
@@ -166,16 +177,31 @@ class RawHitachi(BaseRaw):
         ch_types = ['fnirs_cw_amplitude' if ch_name.startswith('CH')
                     else 'stim'
                     for ch_name in ch_names]
-        locs = dict()
-        for ch_name in ch_names:
-            if not ch_name.startswith('CH'):
-                continue
-            # XXX need to fill in source and detector locations somehow
-            locs[ch_name] = loc = np.zeros(12)
-            f = ch_wavelengths[ch_name]
-            # XXX should this really be changed to the main one?
-            f = fnirs_wavelengths[np.argmin(abs(f - fnirs_wavelengths))]
-            loc[9] = f
+        # get locations
+        n_nirs = Counter(ch_types).get('fnirs_cw_amplitude', 0)
+        if n_nirs != 44:
+            raise RuntimeError('Only Hitachi 3x5 with 44 total channels '
+                               f'supported, got {n_nirs}')
+        pairs = (
+            (0, 0), (1, 0), (1, 1), (2, 1), (0, 2),
+            (3, 0), (1, 3), (4, 1), (2, 4), (3, 2),
+            (3, 3), (4, 3), (4, 4), (5, 2), (3, 5),
+            (6, 3), (4, 6), (7, 4), (5, 5), (6, 5),
+            (6, 6), (7, 6))
+        assert len(pairs) == n_nirs // 2
+        locs = np.zeros((len(ch_names), 12))
+        idxs = np.where(np.array(ch_types, 'U') == 'fnirs_cw_amplitude')[0]
+        for ii, idx in enumerate(idxs):
+            ch_name = ch_names[idx]
+            # Use the actual/accurate wavelength in loc
+            acc_freq = ch_wavelengths[ch_name]
+            locs[idx][9] = acc_freq
+            # Rename channel based on standard naming scheme, using the
+            # nominal wavelength
+            sidx, didx = pairs[ii // 2]
+            nom_freq = fnirs_wavelengths[np.argmin(np.abs(
+                acc_freq - fnirs_wavelengths))]
+            ch_names[idx] = f'S{sidx + 1}_D{didx + 1} {nom_freq}'
 
         # figure out bounds
         bounds = raw_extra['bounds'] = bounds[li + 2:]
@@ -195,22 +221,8 @@ class RawHitachi(BaseRaw):
         info = create_info(ch_names, sfreq, ch_types=ch_types)
         info.update(info_extra)
         info['meas_date'] = meas_date
-        renames = dict()
-        for ci, ch in enumerate(info['chs']):
-            if ch['ch_name'] not in locs:
-                continue
-            base = ch['ch_name'].split('(')[0]
-            renames[base] = renames.get(base, list()) + [ci]
-            ch['loc'][:] = locs[ch['ch_name']]
-        # Rename according to our fNIRS standard
-        count = 0
-        for _, idxs in renames.items():
-            assert len(idxs) == 2
-            count += 1
-            for idx in idxs:
-                ch = info['chs'][idx]
-                ch['ch_name'] = f'S{count}_D{count} {ch["loc"][9]}'
-        info._update_redundant()
+        for li, loc in enumerate(locs):
+            info['chs'][li]['loc'][:] = loc
 
         super().__init__(
             info, preload, filenames=[fname], last_samps=[last_samp],

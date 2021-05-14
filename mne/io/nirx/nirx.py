@@ -15,6 +15,7 @@ from ..utils import _mult_cal_one
 from ..constants import FIFF
 from ..meas_info import create_info, _format_dig_points
 from ...annotations import Annotations
+from ...source_space import get_mni_fiducials
 from ...transforms import apply_trans, _get_trans
 from ...utils import (logger, verbose, fill_doc, warn, _check_fname,
                       _validate_type, _check_option, _mask_to_onsets_offsets)
@@ -76,7 +77,6 @@ class RawNIRX(BaseRaw):
     @verbose
     def __init__(self, fname, saturated, preload=False, verbose=None):
         from ...externals.pymatreader import read_mat
-        from ...coreg import get_mni_fiducials  # avoid circular import prob
         logger.info('Loading %s' % fname)
         _validate_type(fname, 'path-like', 'fname')
         _validate_type(saturated, str, 'saturated')

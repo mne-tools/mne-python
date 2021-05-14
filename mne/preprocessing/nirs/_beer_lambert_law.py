@@ -34,7 +34,7 @@ def beer_lambert_law(raw, ppf=0.1):
     raw = raw.copy().load_data()
     _validate_type(raw, BaseRaw, 'raw')
 
-    freqs = np.unique(_channel_frequencies(raw.info))
+    freqs = np.unique(_channel_frequencies(raw.info, nominal=True))
     picks = _check_channels_ordered(raw.info, freqs)
     abs_coef = _load_absorption(freqs)
     distances = source_detector_distances(raw.info)
