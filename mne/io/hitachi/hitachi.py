@@ -92,6 +92,7 @@ class RawHitachi(BaseRaw):
         line = lines[0].rstrip(',')
         _check_bad(line != 'Header', 'no header found')
         li = 0
+        mode = None
         for li, line in enumerate(lines[1:], 1):
             _check_bad(len(line) == 0, 'no data found')
             parts = line.rstrip(',').split(',')
@@ -118,6 +119,8 @@ class RawHitachi(BaseRaw):
                     subject_info['last_name'] = ' '.join(name[1:])
             elif kind == 'Age':
                 age = int(parts[0].rstrip('y'))
+            elif kind == 'Mode':
+                mode = parts[0]
             elif kind in ('HPF[Hz]', 'LPF[Hz]'):
                 try:
                     freq = float(parts[0])
@@ -169,16 +172,28 @@ class RawHitachi(BaseRaw):
                     for ch_name in ch_names]
         # get locations
         n_nirs = Counter(ch_types).get('fnirs_cw_amplitude', 0)
-        if n_nirs != 44:
-            raise RuntimeError('Only Hitachi 3x5 with 44 total channels '
-                               f'supported, got {n_nirs}')
-        pairs = (
-            (0, 0), (1, 0), (1, 1), (2, 1), (0, 2),
-            (3, 0), (1, 3), (4, 1), (2, 4), (3, 2),
-            (3, 3), (4, 3), (4, 4), (5, 2), (3, 5),
-            (6, 3), (4, 6), (7, 4), (5, 5), (6, 5),
-            (6, 6), (7, 6))
-        assert len(pairs) == n_nirs // 2
+        pairs = {
+            '3x3': ((0, 0), (1, 0), (0, 1), (2, 0), (1, 2),
+                    (2, 1), (2, 2), (3, 1), (2, 3), (4, 2),
+                    (3, 3), (4, 3), (5, 4), (6, 4), (5, 5),
+                    (7, 4), (6, 6), (7, 5), (7, 6), (8, 5),
+                    (7, 7), (9, 6), (8, 7), (9, 7)),
+            '3x5': ((0, 0), (1, 0), (1, 1), (2, 1), (0, 2),
+                    (3, 0), (1, 3), (4, 1), (2, 4), (3, 2),
+                    (3, 3), (4, 3), (4, 4), (5, 2), (3, 5),
+                    (6, 3), (4, 6), (7, 4), (5, 5), (6, 5),
+                    (6, 6), (7, 6)),
+            '4x4': ((0, 0), (1, 0), (1, 1), (0, 2), (2, 0),
+                    (1, 3), (3, 1), (2, 2), (2, 3), (3, 3),
+                    (4, 2), (2, 4), (5, 3), (3, 5), (4, 4),
+                    (5, 4), (5, 5), (4, 6), (6, 4), (5, 7),
+                    (7, 5), (6, 6), (6, 7), (7, 7)),
+        }
+        if mode not in pairs:
+            raise RuntimeError(f'Unknown recording mode {mode}, must be one '
+                               f'of {sorted(pairs)}')
+        pairs = pairs[mode]
+        assert n_nirs == len(pairs) * 2
         locs = np.zeros((len(ch_names), 12))
         idxs = np.where(np.array(ch_types, 'U') == 'fnirs_cw_amplitude')[0]
         for ii, idx in enumerate(idxs):
