@@ -306,7 +306,7 @@ class RawNIRX(BaseRaw):
                 info['chs'][ch_idx3]['loc'][3:6] = src_locs[src, :]
                 info['chs'][ch_idx3]['loc'][6:9] = det_locs[det, :]
                 info['chs'][ch_idx3]['loc'][:3] = midpoint
-                info['chs'][ch_idx3]['loc'][9] = fnirs_wavelengths[0]
+                info['chs'][ch_idx3]['loc'][9] = fnirs_wavelengths[ii]
                 info['chs'][ch_idx3]['coord_frame'] = FIFF.FIFFV_COORD_HEAD
 
         # Extract the start/stop numbers for samples in the CSV. In theory the
