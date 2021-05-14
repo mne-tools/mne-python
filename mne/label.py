@@ -6,15 +6,13 @@
 
 from collections import defaultdict
 from colorsys import hsv_to_rgb, rgb_to_hsv
+import copy as cp
 import os
 import os.path as op
-import copy as cp
-
 import re
 
 import numpy as np
 
-from mne.transforms import apply_trans
 from .morph_map import read_morph_map
 from .parallel import parallel_func, check_n_jobs
 from .source_estimate import (SourceEstimate, VolSourceEstimate,
@@ -24,6 +22,7 @@ from .source_space import (add_source_space_distances, SourceSpaces,
                            read_freesurfer_lut, _import_nibabel)
 from .stats.cluster_level import _find_clusters, _get_components
 from .surface import read_surface, fast_cross_3d, mesh_edges, mesh_dist
+from .transforms import apply_trans
 from .utils import (get_subjects_dir, _check_subject, logger, verbose, warn,
                     check_random_state, _validate_type, fill_doc,
                     _check_option, check_version)
