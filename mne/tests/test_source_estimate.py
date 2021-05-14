@@ -79,6 +79,7 @@ fname_vsrc = op.join(data_path, 'MEG', 'sample',
                      'sample_audvis_trunc-meg-vol-7-fwd.fif')
 fname_inv_vol = op.join(data_path, 'MEG', 'sample',
                         'sample_audvis_trunc-meg-vol-7-meg-inv.fif')
+fname_nirx = op.join(data_path, 'NIRx', 'nirscout', 'nirx_15_0_recording')
 rng = np.random.RandomState(0)
 
 
@@ -1551,7 +1552,7 @@ def test_stc_near_sensors(tmpdir):
     # here we use a distance is smaller than the inter-sensor distance
     kwargs = dict(subject='sample', trans=trans, subjects_dir=this_dir,
                   verbose=True, distance=0.005)
-    with pytest.raises(ValueError, match='No channels'):
+    with pytest.raises(ValueError, match='No appropriate channels'):
         stc_near_sensors(evoked, **kwargs)
     evoked.set_channel_types({ch_name: 'ecog' for ch_name in evoked.ch_names})
     with catch_logging() as log:
@@ -1614,6 +1615,34 @@ def test_stc_near_sensors(tmpdir):
     assert isinstance(stc_vol, VolSourceEstimate)
     log = log.getvalue()
     assert '4157 volume vertices' in log
+
+
+@testing.requires_testing_data
+def test_stc_near_sensors_picks():
+    """Test using picks with stc_near_sensors."""
+    info = mne.io.read_raw_nirx(fname_nirx).info
+    evoked = mne.EvokedArray(np.ones((len(info['ch_names']), 1)), info)
+    src = mne.read_source_spaces(fname_src_fs)
+    kwargs = dict(
+        evoked=evoked, subject='fsaverage', trans='fsaverage',
+        subjects_dir=subjects_dir, src=src, project=True)
+    with pytest.raises(ValueError, match='No appropriate channels'):
+        stc_near_sensors(**kwargs)
+    picks = np.arange(len(info['ch_names']))
+    data = stc_near_sensors(picks=picks, **kwargs).data
+    assert len(data) == 20484
+    assert (data >= 0).all()
+    data = data[data > 0]
+    n_pts = len(data)
+    assert 500 < n_pts < 600
+    lo, hi = np.percentile(data, (5, 95))
+    assert 0.01 < lo < 0.1
+    assert 1.3 < hi < 1.7  # > 1
+    data = stc_near_sensors(picks=picks, mode='weighted', **kwargs).data
+    assert (data >= 0).all()
+    data = data[data > 0]
+    assert len(data) == n_pts
+    assert_array_equal(data, 1.)  # values preserved
 
 
 def _make_morph_map_hemi_same(subject_from, subject_to, subjects_dir,

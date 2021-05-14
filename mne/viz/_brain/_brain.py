@@ -588,7 +588,7 @@ class Brain(object):
             raise ValueError("No data to visualize. See ``add_data``.")
         self.time_viewer = time_viewer
         self.orientation = list(_lh_views_dict.keys())
-        self.default_smoothing_range = [0, 15]
+        self.default_smoothing_range = [-1, 15]
 
         # Default configuration
         self.playback = False
