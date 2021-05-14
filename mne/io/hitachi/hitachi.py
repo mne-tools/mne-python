@@ -189,9 +189,7 @@ class RawHitachi(BaseRaw):
                     (5, 4), (5, 5), (4, 6), (6, 4), (5, 7),
                     (7, 5), (6, 6), (6, 7), (7, 7)),
         }
-        if mode not in pairs:
-            raise RuntimeError(f'Unknown recording mode {mode}, must be one '
-                               f'of {sorted(pairs)}')
+        _check_option('Hitachi mode', mode, sorted(pairs))
         pairs = pairs[mode]
         assert n_nirs == len(pairs) * 2
         locs = np.zeros((len(ch_names), 12))
