@@ -88,6 +88,19 @@ called .nosatflags_wlX. As NaN values can cause unexpected behaviour with
 mathematical functions the default behaviour is to return the
 saturated data.
 """
+docdict['hitachi_notes'] = """\
+Hitachi does not encode their channel positions, so you will need to
+create a suitable mapping using :func:`mne.channels.make_standard_montage`
+or :func:`mne.channels.make_dig_montage` like:
+
+>>> mon = mne.channels.make_standard_montage('standard_1020')
+>>> need = 'S1 D1 S2 D2 S3 D3 S4 D4 S5 D5 S6 D6 S7 D7 S8'.split()
+>>> have = 'F7 F5 FC5 F3 FC3 FT7 T7 C5 C3 TP7 CP5 CP3 P7 P5 P3'.split()
+>>> mon.rename_channels(dict(zip(have, need)))
+>>> raw.set_montage(mon)  # doctest: +SKIP
+
+.. versionadded:: 0.24
+"""
 
 # Cropping
 docdict['include_tmax'] = """

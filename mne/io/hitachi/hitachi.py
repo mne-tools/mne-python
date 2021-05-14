@@ -18,7 +18,7 @@ from ...utils import logger, verbose, fill_doc, warn, _check_fname
 
 @fill_doc
 def read_raw_hitachi(fname, preload=False, verbose=None):
-    """Reader for a NIRX fNIRS recording.
+    """Reader for a Hitachi fNIRS recording.
 
     Parameters
     ----------
@@ -38,7 +38,7 @@ def read_raw_hitachi(fname, preload=False, verbose=None):
 
     Notes
     -----
-    .. versionadded:: 0.24
+    %(hitachi_notes)s
     """
     return RawHitachi(fname, preload, verbose=verbose)
 
@@ -65,17 +65,7 @@ class RawHitachi(BaseRaw):
 
     Notes
     -----
-    Hitachi does not encode their channel positions, so you will need to
-    create a suitable mapping using :func:`mne.channels.make_standard_montage`
-    or :func:`mne.channels.make_dig_montage` like:
-
-    >>> mon = mne.channels.make_standard_montage('standard_1020')
-    >>> need = 'S1 D1 S2 D2 S3 D3 S4 D4 S5 D5 S6 D6 S7 D7 S8'.split()
-    >>> have = 'F7 F5 FC5 F3 FC3 FT7 T7 C5 C3 TP7 CP5 CP3 P7 P5 P3'.split()
-    >>> mon.rename_channels(dict(zip(have, need)))
-    >>> raw.set_montage(mon)  # doctest: +SKIP
-
-    .. versionadded:: 0.24
+    %(hitachi_notes)s
     """
 
     @verbose
