@@ -397,3 +397,5 @@
 .. _Romain Derollepot: https://github.com/rderollepot
 
 .. _Xiaokai Xia: https://github.com/dddd1007
+
+.. _Marian Dovgialo: https://github.com/mdovgialo
