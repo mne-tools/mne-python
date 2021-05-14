@@ -13,7 +13,8 @@ from ..constants import FIFF
 from ..meas_info import create_info
 from ..nirx.nirx import _read_csv_rows_cols
 from ..utils import _mult_cal_one
-from ...utils import logger, verbose, fill_doc, warn, _check_fname
+from ...utils import (logger, verbose, fill_doc, warn, _check_fname,
+                      _check_option)
 
 
 @fill_doc
