@@ -671,7 +671,7 @@ def test_morph_stc_dense():
             spacing=6, subjects_dir=subjects_dir)
     del stc_to1
 
-    with pytest.raises(ValueError, match='smooth.* has to be at least 1'):
+    with pytest.raises(ValueError, match='smooth.* has to be at least 0'):
         compute_source_morph(
             stc_from, subject_from, subject_to, spacing=5, smooth=-1,
             subjects_dir=subjects_dir)

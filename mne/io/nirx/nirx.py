@@ -297,18 +297,17 @@ class RawNIRX(BaseRaw):
         for ch_idx2 in range(requested_channels.shape[0]):
             # Find source and store location
             src = int(requested_channels[ch_idx2, 0]) - 1
-            info['chs'][ch_idx2 * 2]['loc'][3:6] = src_locs[src, :]
-            info['chs'][ch_idx2 * 2 + 1]['loc'][3:6] = src_locs[src, :]
             # Find detector and store location
             det = int(requested_channels[ch_idx2, 1]) - 1
-            info['chs'][ch_idx2 * 2]['loc'][6:9] = det_locs[det, :]
-            info['chs'][ch_idx2 * 2 + 1]['loc'][6:9] = det_locs[det, :]
             # Store channel location as midpoint between source and detector.
             midpoint = (src_locs[src, :] + det_locs[det, :]) / 2
-            info['chs'][ch_idx2 * 2]['loc'][:3] = midpoint
-            info['chs'][ch_idx2 * 2 + 1]['loc'][:3] = midpoint
-            info['chs'][ch_idx2 * 2]['loc'][9] = fnirs_wavelengths[0]
-            info['chs'][ch_idx2 * 2 + 1]['loc'][9] = fnirs_wavelengths[1]
+            for ii in range(2):
+                ch_idx3 = ch_idx2 * 2 + ii
+                info['chs'][ch_idx3]['loc'][3:6] = src_locs[src, :]
+                info['chs'][ch_idx3]['loc'][6:9] = det_locs[det, :]
+                info['chs'][ch_idx3]['loc'][:3] = midpoint
+                info['chs'][ch_idx3]['loc'][9] = fnirs_wavelengths[ii]
+                info['chs'][ch_idx3]['coord_frame'] = FIFF.FIFFV_COORD_HEAD
 
         # Extract the start/stop numbers for samples in the CSV. In theory the
         # sample bounds should just be 10 * the number of channels, but some
