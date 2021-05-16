@@ -14,6 +14,7 @@ Actual implementation of _Renderer and _Projection classes.
 from contextlib import contextmanager
 from distutils.version import LooseVersion
 import os
+import platform
 import sys
 import warnings
 
@@ -98,7 +99,8 @@ class _Figure(object):
             if not self.notebook and hasattr(plotter_class, 'set_icon'):
                 _init_qt_resources()
                 _process_events(plotter)
-                plotter.set_icon(":/mne-icon.png")
+                kind = 'bigsur-' if platform.mac_ver()[0] >= '10.16' else ''
+                plotter.set_icon(f":/mne-{kind}icon.png")
         _process_events(self.plotter)
         _process_events(self.plotter)
         return self.plotter
