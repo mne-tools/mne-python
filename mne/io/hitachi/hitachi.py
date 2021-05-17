@@ -95,7 +95,9 @@ class RawHitachi(BaseRaw):
         li = 0
         mode = None
         for li, line in enumerate(lines[1:], 1):
-            _check_bad(len(line) == 0, 'no data found')
+            # Newer format has some blank lines
+            if len(line) == 0:
+                continue
             parts = line.rstrip(',').split(',')
             if len(parts) == 0:  # some header lines are blank
                 continue
@@ -114,10 +116,11 @@ class RawHitachi(BaseRaw):
             elif kind == 'ID':
                 subject_info['his_id'] = parts[0]
             elif kind == 'Name':
-                name = parts[0].split(' ')
-                if len(name):
-                    subject_info['first_name'] = name[0]
-                    subject_info['last_name'] = ' '.join(name[1:])
+                if len(parts):
+                    name = parts[0].split(' ')
+                    if len(name):
+                        subject_info['first_name'] = name[0]
+                        subject_info['last_name'] = ' '.join(name[1:])
             elif kind == 'Age':
                 age = int(parts[0].rstrip('y'))
             elif kind == 'Mode':
@@ -138,8 +141,16 @@ class RawHitachi(BaseRaw):
                     if len(H) == 1:
                         H = f'0{H}'
                     mdyHM = ' '.join([mdy, ':'.join([H, M])])
-                    meas_date = dt.datetime.strptime(mdyHM, '%m/%d/%y %H:%M')
-                except Exception:
+                    for fmt in ('%m/%d/%y %H:%M', '%Y/%m/%d %H:%M'):
+                        try:
+                            meas_date = dt.datetime.strptime(mdyHM, fmt)
+                        except Exception:
+                            pass
+                        else:
+                            break
+                    else:
+                        raise RuntimeError  # unknown format
+                except Exception as exc:
                     warn('Extraction of measurement date failed. '
                          'Please report this as a github issue. '
                          'The date is being set to January 1st, 2000, '
@@ -154,9 +165,9 @@ class RawHitachi(BaseRaw):
             elif kind == 'Wave[nm]':
                 fnirs_wavelengths[:] = [int(part) for part in parts]
             elif kind == 'Wave Length':
-                regex = re.compile(r'^(.*)\(([0-9\.]+)\)$')
+                ch_regex = re.compile(r'^(.*)\(([0-9\.]+)\)$')
                 for ent in parts:
-                    _, v = regex.match(ent).groups()
+                    _, v = ch_regex.match(ent).groups()
                     ch_wavelengths[ent] = float(v)
             elif kind == 'Data':
                 break
@@ -172,23 +183,30 @@ class RawHitachi(BaseRaw):
                     else 'stim'
                     for ch_name in ch_names]
         # get locations
-        n_nirs = Counter(ch_types).get('fnirs_cw_amplitude', 0)
+        nirs_names = [ch_name for ch_name, ch_type in zip(ch_names, ch_types)
+                      if ch_type == 'fnirs_cw_amplitude']
+        n_nirs = len(nirs_names)
+        assert n_nirs % 2 == 0
         pairs = {
-            '3x3': ((0, 0), (1, 0), (0, 1), (2, 0), (1, 2),
-                    (2, 1), (2, 2), (3, 1), (2, 3), (4, 2),
-                    (3, 3), (4, 3), (5, 4), (6, 4), (5, 5),
-                    (7, 4), (6, 6), (7, 5), (7, 6), (8, 5),
-                    (7, 7), (9, 6), (8, 7), (9, 7)),
-            '3x5': ((0, 0), (1, 0), (1, 1), (2, 1), (0, 2),
-                    (3, 0), (1, 3), (4, 1), (2, 4), (3, 2),
-                    (3, 3), (4, 3), (4, 4), (5, 2), (3, 5),
-                    (6, 3), (4, 6), (7, 4), (5, 5), (6, 5),
-                    (6, 6), (7, 6)),
-            '4x4': ((0, 0), (1, 0), (1, 1), (0, 2), (2, 0),
-                    (1, 3), (3, 1), (2, 2), (2, 3), (3, 3),
-                    (4, 2), (2, 4), (5, 3), (3, 5), (4, 4),
-                    (5, 4), (5, 5), (4, 6), (6, 4), (5, 7),
-                    (7, 5), (6, 6), (6, 7), (7, 7)),
+            '3x3': (
+                (0, 0), (1, 0), (0, 1), (2, 0), (1, 2),
+                (2, 1), (2, 2), (3, 1), (2, 3), (4, 2),
+                (3, 3), (4, 3), (5, 4), (6, 4), (5, 5),
+                (7, 4), (6, 6), (7, 5), (7, 6), (8, 5),
+                (7, 7), (9, 6), (8, 7), (9, 7)),
+            '3x5': (
+                (0, 0), (1, 0), (1, 1), (2, 1), (0, 2),
+                (3, 0), (1, 3), (4, 1), (2, 4), (3, 2),
+                (3, 3), (4, 3), (4, 4), (5, 2), (3, 5),
+                (6, 3), (4, 6), (7, 4), (5, 5), (6, 5),
+                (6, 6), (7, 6)),
+            '3x11': tuple((ii, ii) for ii in range(52)),  # XXX WRONG
+            '4x4': (
+                (0, 0), (1, 0), (1, 1), (0, 2), (2, 0),
+                (1, 3), (3, 1), (2, 2), (2, 3), (3, 3),
+                (4, 2), (2, 4), (5, 3), (3, 5), (4, 4),
+                (5, 4), (5, 5), (4, 6), (6, 4), (5, 7),
+                (7, 5), (6, 6), (6, 7), (7, 7)),
         }
         _check_option('Hitachi mode', mode, sorted(pairs))
         pairs = pairs[mode]
