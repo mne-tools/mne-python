@@ -23,6 +23,8 @@ Enhancements
 ~~~~~~~~~~~~
 .. - Add something cool (:gh:`9192` **by new contributor** |New Contributor|_)
 
+- Add the "exclude" keyword to the psd_plot in :func:`mne.time_frequency.psd.py` (:gh:`9379` by `Eduard ort`_)
+
 - New function :func:`mne.chpi.get_chpi_info` to retrieve basic information about the cHPI system used when recording MEG data (:gh:`9369` by `Richard Höchenberger`_)
 
 
