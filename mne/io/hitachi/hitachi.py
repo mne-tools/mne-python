@@ -2,7 +2,6 @@
 #
 # License: BSD (3-clause)
 
-from collections import Counter
 import datetime as dt
 import re
 
@@ -150,7 +149,7 @@ class RawHitachi(BaseRaw):
                             break
                     else:
                         raise RuntimeError  # unknown format
-                except Exception as exc:
+                except Exception:
                     warn('Extraction of measurement date failed. '
                          'Please report this as a github issue. '
                          'The date is being set to January 1st, 2000, '
@@ -187,29 +186,16 @@ class RawHitachi(BaseRaw):
                       if ch_type == 'fnirs_cw_amplitude']
         n_nirs = len(nirs_names)
         assert n_nirs % 2 == 0
-        pairs = {
-            '3x3': (
-                (0, 0), (1, 0), (0, 1), (2, 0), (1, 2),
-                (2, 1), (2, 2), (3, 1), (2, 3), (4, 2),
-                (3, 3), (4, 3), (5, 4), (6, 4), (5, 5),
-                (7, 4), (6, 6), (7, 5), (7, 6), (8, 5),
-                (7, 7), (9, 6), (8, 7), (9, 7)),
-            '3x5': (
-                (0, 0), (1, 0), (1, 1), (2, 1), (0, 2),
-                (3, 0), (1, 3), (4, 1), (2, 4), (3, 2),
-                (3, 3), (4, 3), (4, 4), (5, 2), (3, 5),
-                (6, 3), (4, 6), (7, 4), (5, 5), (6, 5),
-                (6, 6), (7, 6)),
-            '3x11': tuple((ii, ii) for ii in range(52)),  # XXX WRONG
-            '4x4': (
-                (0, 0), (1, 0), (1, 1), (0, 2), (2, 0),
-                (1, 3), (3, 1), (2, 2), (2, 3), (3, 3),
-                (4, 2), (2, 4), (5, 3), (3, 5), (4, 4),
-                (5, 4), (5, 5), (4, 6), (6, 4), (5, 7),
-                (7, 5), (6, 6), (6, 7), (7, 7)),
+        names = {
+            '3x3': 'ETG-100',
+            '3x5': 'ETG-7000',
+            '4x4': 'ETG-7000',
+            '3x11': 'ETG-4000',
         }
-        _check_option('Hitachi mode', mode, sorted(pairs))
-        pairs = pairs[mode]
+        _check_option('Hitachi mode', mode, sorted(names))
+        n_row, n_col = [int(x) for x in mode.split('x')]
+        logger.info(f'Constructing pairing matrix for {names[mode]} ({mode})')
+        pairs = _compute_pairs(n_row, n_col, n=1 + (mode == '3x3'))
         assert n_nirs == len(pairs) * 2
         locs = np.zeros((len(ch_names), 12))
         idxs = np.where(np.array(ch_types, 'U') == 'fnirs_cw_amplitude')[0]
@@ -259,3 +245,34 @@ class RawHitachi(BaseRaw):
             replace=lambda x: x.replace('\r', ',').replace(':', '')).T
         _mult_cal_one(data, this_data, idx, cals, mult)
         return data
+
+
+def _compute_pairs(n_rows, n_cols, n=1):
+    n_tot = n_rows * n_cols
+    sd_idx = (np.arange(n_tot) // 2).reshape(n_rows, n_cols)
+    d_bool = np.empty((n_rows, n_cols), bool)
+    for ri in range(n_rows):
+        d_bool[ri] = np.arange(ri, ri + n_cols) % 2
+    pairs = list()
+    for ri in range(n_rows):
+        # First iterate over connections within the row
+        for ci in range(n_cols - 1):
+            pair = (sd_idx[ri, ci], sd_idx[ri, ci + 1])
+            if d_bool[ri, ci]:  # reverse
+                pair = pair[::-1]
+            pairs.append(pair)
+        # Next iterate over row-row connections, if applicable
+        if ri >= n_rows - 1:
+            continue
+        for ci in range(n_cols):
+            pair = (sd_idx[ri, ci], sd_idx[ri + 1, ci])
+            if d_bool[ri, ci]:
+                pair = pair[::-1]
+            pairs.append(pair)
+    if n > 1:
+        assert n == 2  # only one supported for now
+        pairs = np.array(pairs, int)
+        second = pairs + pairs.max(axis=0) + 1
+        pairs = np.r_[pairs, second]
+        pairs = tuple(tuple(row) for row in pairs)
+    return tuple(pairs)
