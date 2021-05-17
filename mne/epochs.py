@@ -1171,6 +1171,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                      from disk. To avoid reading epochs from disk multiple
                      times, use :meth:`mne.Epochs.load_data()`.
 
+        .. note:: To constrain the time period used for estimation of signal
+                  quality, set ``epochs.reject_tmin`` and
+                  ``epochs.reject_tmax``, respectively.
+
         Parameters
         ----------
         %(reject_drop_bad)s

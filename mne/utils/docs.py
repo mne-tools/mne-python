@@ -2088,9 +2088,13 @@ tmin, tmax : float
 """
 docdict['epochs_reject_tmin_tmax'] = """
 reject_tmin, reject_tmax : float | None
-    Start and end of the time window used to reject epochs. The default
-    ``None`` corresponds to the first and last time points of the epochs,
-    respectively.
+    Start and end of the time window used to reject epochs based on
+    peak-to-peak (PTP) amplitudes as specified via ``reject`` and ``flat``.
+    The default ``None`` corresponds to the first and last time points of the
+    epochs, respectively.
+
+    .. note:: This parameter controls the time period used in conjunction with
+              both, ``reject`` and ``flat``.
 """
 docdict['epochs_events_event_id'] = """
 events : array of int, shape (n_events, 3)
@@ -2157,11 +2161,11 @@ on_missing : str
     automatically generated irrespective of this parameter.
 """
 reject_common = """
-    Reject epochs based on peak-to-peak signal amplitude (PTP), i.e. the
-    absolute difference between the lowest and the highest signal value. In
-    each individual epoch, the PTP is calculated for every channel. If the
-    PTP of any one channel exceeds the rejection threshold, the respective
-    epoch will be dropped.
+    Reject epochs based on **maximum** peak-to-peak signal amplitude (PTP),
+    i.e. the absolute difference between the lowest and the highest signal
+    value. In each individual epoch, the PTP is calculated for every channel.
+    If the PTP of any one channel exceeds the rejection threshold, the
+    respective epoch will be dropped.
 
     The dictionary keys correspond to the different channel types; valid
     keys are: ``'grad'``, ``'mag'``, ``'eeg'``, ``'eog'``, and ``'ecg'``.
@@ -2182,6 +2186,9 @@ reject_common = """
 docdict['reject_epochs'] = f"""
 reject : dict | None
 {reject_common}
+    .. note:: To constrain the time period used for estimation of signal
+              quality, pass the ``reject_tmin`` and ``reject_tmax`` parameters.
+
     If ``reject`` is ``None`` (default), no rejection is performed.
 """
 docdict['reject_drop_bad'] = f"""
@@ -2191,15 +2198,17 @@ reject : dict | str | None
     (default), then the rejection parameters set at instantiation are used.
 """
 flat_common = """
-    Rejection parameters based on flatness of signal.
+    Reject epochs based on **minimum** peak-to-peak signal amplitude (PTP).
     Valid **keys** are ``'grad'``, ``'mag'``, ``'eeg'``, ``'eog'``, ``'ecg'``.
-    The **values** are floats that set the minimum acceptable peak-to-peak
-    amplitude (PTP). If the PTP is smaller than this threshold, the epoch will
-    be dropped. If ``None`` then no rejection is performed based on flatness
-    of the signal."""
+    The **values** are floats that set the minimum acceptable PTP. If the PTP
+    is smaller than this threshold, the epoch will be dropped. If ``None``
+    then no rejection is performed based on flatness of the signal."""
 docdict['flat'] = f"""
 flat : dict | None
 {flat_common}
+
+    .. note:: To constrain the time period used for estimation of signal
+              quality, pass the ``reject_tmin`` and ``reject_tmax`` parameters.
 """
 docdict['flat_drop_bad'] = f"""
 flat : dict | str | None
