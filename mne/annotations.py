@@ -433,7 +433,7 @@ class Annotations(object):
 
     @verbose
     def save(self, fname, *, overwrite=False, verbose=None):
-        """Save annotations to FIF, CSV or TXT.
+        """Save annotations to FIF, CSV, TSV or TXT.
 
         Typically annotations get saved in the FIF file for raw data
         (e.g., as ``raw.annotations``), but this offers the possibility
@@ -451,12 +451,14 @@ class Annotations(object):
         """
         check_fname(fname, 'annotations', ('-annot.fif', '-annot.fif.gz',
                                            '_annot.fif', '_annot.fif.gz',
-                                           '.txt', '.csv'))
+                                           '.txt', '.csv', '.tsv'))
         fname = _check_fname(fname, overwrite=overwrite)
         if fname.endswith(".txt"):
             _write_annotations_txt(fname, self)
         elif fname.endswith(".csv"):
             _write_annotations_csv(fname, self)
+        elif fname.endswith(".tsv"):
+            _write_annotations_csv(fname, self, sep='\t')
         else:
             with start_file(fname) as fid:
                 _write_annotations(fid, self)
@@ -706,12 +708,12 @@ def _write_annotations(fid, annotations):
     end_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS)
 
 
-def _write_annotations_csv(fname, annot):
+def _write_annotations_csv(fname, annot, sep=','):
     annot = annot.to_data_frame()
     if 'ch_names' in annot:
         annot['ch_names'] = [
             _prep_name_list(ch, 'write') for ch in annot['ch_names']]
-    annot.to_csv(fname)
+    annot.to_csv(fname, sep=sep)
 
 
 def _write_annotations_txt(fname, annot):
@@ -803,6 +805,9 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
     elif name.endswith('csv'):
         annotations = _read_annotations_csv(fname)
 
+    elif name.endswith('tsv'):
+        annotations = _read_annotations_csv(fname, sep='\t')
+
     elif name.endswith('cnt'):
         annotations = _read_annotations_cnt(fname)
 
@@ -834,7 +839,7 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
     return annotations
 
 
-def _read_annotations_csv(fname):
+def _read_annotations_csv(fname, sep=','):
     """Read annotations from csv.
 
     Parameters
@@ -848,7 +853,7 @@ def _read_annotations_csv(fname):
         The annotations.
     """
     pd = _check_pandas_installed(strict=True)
-    df = pd.read_csv(fname, keep_default_na=False)
+    df = pd.read_csv(fname, keep_default_na=False, sep=sep)
     orig_time = df['onset'].values[0]
     try:
         float(orig_time)

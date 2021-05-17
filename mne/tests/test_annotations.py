@@ -808,6 +808,10 @@ def dummy_annotation_file(tmpdir_factory, ch_names, fmt):
         content = ("onset,duration,description\n"
                    "2002-12-03 19:01:11.720100,1.0,AA\n"
                    "2002-12-03 19:01:20.720100,2.425,BB")
+    elif fmt == 'tsv':
+        content = ("onset\tduration\tdescription\n"
+                   "2002-12-03 19:01:11.720100\t1.0\tAA\n"
+                   "2002-12-03 19:01:20.720100\t2.425\tBB")
     elif fmt == 'txt':
         content = ("# MNE-Annotations\n"
                    "# orig_time : 2002-12-03 19:01:11.720100\n"
@@ -823,6 +827,12 @@ def dummy_annotation_file(tmpdir_factory, ch_names, fmt):
         if isinstance(content, Annotations):
             # this is a bit of a hack but it works
             content.ch_names[:] = ((), ('MEG0111', 'MEG2563'))
+        elif fmt == 'tsv':
+            content = content.splitlines()
+            content[-3] += '\tch_names'
+            content[-2] += '\t'
+            content[-1] += '\tMEG0111:MEG2563'
+            content = '\n'.join(content)
         else:
             content = content.splitlines()
             content[-3] += ',ch_names'
@@ -841,6 +851,7 @@ def dummy_annotation_file(tmpdir_factory, ch_names, fmt):
 @pytest.mark.parametrize('ch_names', (False, True))
 @pytest.mark.parametrize('fmt', [
     pytest.param('csv', marks=needs_pandas),
+    pytest.param('tsv', marks=needs_pandas),
     'txt',
     'fif'
 ])
