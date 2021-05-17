@@ -570,6 +570,7 @@ sm = '2.5'
 md = '3'
 lg = '4.5'
 xl = '5'
+xxl = '6'
 # variables to pass to HTML templating engine
 html_context = {
     'build_dev_html': bool(int(os.environ.get('BUILD_DEV_HTML', False))),
@@ -659,7 +660,7 @@ html_context = {
         dict(name='Technische Universität Ilmenau',
              img='Ilmenau.gif',
              url='https://www.tu-ilmenau.de/',
-             size=xl),
+             size=xxl),
         dict(name='Berkeley Institute for Data Science',
              img='BIDS.png',
              url='https://bids.berkeley.edu/',
@@ -676,6 +677,22 @@ html_context = {
              img='Graz.jpg',
              url='https://www.uni-graz.at/',
              size=md),
+        dict(name='SWPS Uniwersytet Humanistycznospołeczny',
+             img='SWPS.svg',
+             url='https://www.swps.pl/',
+             size=xl),
+        dict(name='Max-Planck-Institut für Bildungsforschung',
+             img='MPIB.svg',
+             url='https://www.mpib-berlin.mpg.de/',
+             size=xxl),
+        dict(name='Macquarie University',
+             img='Macquarie.png',
+             url='https://www.mq.edu.au/',
+             size=lg),
+        dict(name='Children’s Hospital of Philadelphia Research Institute',
+             img='CHOP.svg',
+             url='https://imaging.research.chop.edu/',
+             size=xxl),
     ],
     # \u00AD is an optional hyphen (not rendered unless needed)
     'carousel': [

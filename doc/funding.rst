@@ -1,5 +1,7 @@
 :orphan:
 
+.. _funding:
+
 Funding and other support
 =========================
 
@@ -15,29 +17,21 @@ Development of MNE-Python has been supported by:
 - |cds| **Paris-Saclay Center for Data Science:** `PARIS-SACLAY <http://www.datascience-paris-saclay.fr>`_
 - |goo| **Google:** Summer of code (×6)
 - |ama| **Amazon:** AWS Research Grants
-- |czi| **Chan Zuckerberg Initiative:** `EOSS2 <https://chanzuckerberg.com/eoss/proposals/improving-usability-of-core-neuroscience-analysis-tools-with-mne-python>`_
+- |czi| **Chan Zuckerberg Initiative:** `EOSS2`_
 
 
-Additionally, many universities or research institutions have supported their employees’ contributions to MNE-Python as part of normal work duties. These institutions include:
+.. _supporting-institutions:
 
-- `Massachusetts General Hospital <https://www.massgeneral.org/>`_
-- `Athinoula A. Martinos Center for Biomedical Imaging <https://martinos.org/>`_
-- `Harvard Medical School <https://hms.harvard.edu/>`_
-- `Massachusetts Institute of Technology <https://web.mit.edu/>`_
-- `New York University <https://www.nyu.edu/>`_
-- `Commissariat à l’énergie atomique et aux énergies alternatives <http://www.cea.fr/>`_
-- `Aalto-yliopiston perustieteiden korkeakoulu <https://sci.aalto.fi/>`_
-- `Télécom ParisTech <https://www.telecom-paris.fr/>`_
-- `University of Washington <https://www.washington.edu/>`_
-- `Institut du Cerveau et de la Moelle épinière <https://icm-institute.org/>`_
-- `Boston University <https://www.bu.edu/>`_
-- `Institut national de la santé et de la recherche médicale <https://www.inserm.fr/>`_
-- `Forschungszentrum Jülich <https://www.fz-juelich.de/>`_
-- `Technische Universität Ilmenau <https://www.tu-ilmenau.de/>`_
-- `Berkeley Institute for Data Science <https://bids.berkeley.edu/>`_
-- `Institut national de recherche en informatique et en automatique <https://www.inria.fr/>`_
-- `Aarhus Universitet <https://www.au.dk/>`_
-- `Karl-Franzens-Universität Graz <https://www.uni-graz.at/>`_
+Institutional partners
+----------------------
+
+Additionally, many universities or research institutions have supported their
+employees’ contributions to MNE-Python as part of normal work duties. These
+institutions include:
+
+.. include:: _includes/institutional-partners.rst
+   :start-after: institutional-partners-begin-content
+
 
 .. |nih| image:: _static/funding/nih.png
 .. |nsf| image:: _static/funding/nsf.png
@@ -48,3 +42,5 @@ Additionally, many universities or research institutions have supported their em
 .. |goo| image:: _static/funding/google.svg
 .. |ama| image:: _static/funding/amazon.svg
 .. |czi| image:: _static/funding/czi.svg
+
+.. include:: links.inc
