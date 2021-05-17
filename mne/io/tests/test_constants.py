@@ -20,7 +20,7 @@ from mne.utils import _fetch_file, requires_good_network
 
 # https://github.com/mne-tools/fiff-constants/commits/master
 REPO = 'mne-tools'
-COMMIT = '5bd84d224de502bee66f70b7867b8f45b45264c1'
+COMMIT = 'aae5960007ee8a67dfc07535ea37d421d37dfe1b'
 
 # These are oddities that we won't address:
 iod_dups = (355, 359)  # these are in both MEGIN and MNE files
@@ -337,4 +337,4 @@ def test_dict_completion(dict_, match, extras):
     for e in extras:
         got.add(e)
     want = set(dict_)
-    assert got == want
+    assert got == want, match
