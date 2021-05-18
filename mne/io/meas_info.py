@@ -832,8 +832,10 @@ class Info(dict, MontageMixin):
             meas_date = meas_date.strftime("%B %d, %Y  %H:%M:%S") + ' GMT'
         projs = self['projs']
         if projs:
-            projs = ', '.join(p['desc'] + ': o%s' %
-                    {0: 'ff', 1: 'n'}[p['active']] for p in projs)
+            projs = ', '.join(
+                p['desc'] + ': o%s' % {0: 'ff', 1: 'n'}[p['active']]
+                for p in projs
+            )
 
         html += info_template.substitute(
             caption=caption, info=self, meas_date=meas_date, n_eeg=n_eeg,
