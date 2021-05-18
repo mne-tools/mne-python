@@ -22,7 +22,7 @@ from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
                     fill_doc, _check_option, ShiftTimeMixin, _build_data_frame,
                     _check_pandas_installed, _check_pandas_index_arguments,
                     _convert_times, _scale_dataframe_data, _check_time_format,
-                    _check_preload)
+                    _check_preload, _infer_check_export_fmt)
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
 from .viz.evoked import plot_evoked_white, plot_evoked_joint
@@ -1434,6 +1434,77 @@ def _write_evokeds(fname, evoked, check=True):
         end_block(fid, FIFF.FIFFB_PROCESSED_DATA)
         end_block(fid, FIFF.FIFFB_MEAS)
         end_file(fid)
+
+
+@fill_doc
+def export_evokeds(fname, evoked, fmt='auto', device=None, history=None):
+    """Export evoked dataset to external formats.
+
+    Supported formats: MFF (mff, uses module mffpy)
+
+    .. warning::
+        Since we are exporting to external formats, there's no guarantee that
+        all the info will be preserved in the external format. To save in
+        native MNE format (``.fif``) without information loss, use
+        :func:`mne.write_evokeds` instead.
+
+    Parameters
+    ----------
+    %(export_params_fname)s
+    evoked : Evoked instance, or list of Evoked instances
+        The evoked dataset, or list of evoked datasets, to export to one file.
+        Note that the measurement info from the first evoked instance is used,
+        so be sure that information matches.
+    fmt : 'auto' | 'mff'
+        Format of the export. Defaults to ``'auto'``, which will infer the
+        format from the filename extension. See supported formats above for
+        more information.
+    device : None (default) | str
+        If exporting to MFF format, specify the device on which EEG was
+        recorded (e.g. 'HydroCel GSN 256 1.0'). This is necessary for
+        determining the sensor layout and coordinates specs.
+    history : None (default) | list of history entries
+        If exporting to MFF format, provide the content to be written to
+        history.xml. Must adhere to the format described in
+        mffpy.xml_files.History.content. If None, no history.xml will be
+        written.
+
+    See Also
+    --------
+    write_evokeds
+
+    Notes
+    -----
+    .. versionadded:: 0.24
+
+    MFF exports
+        Only EEG channels are written to the output file.
+        If no measurement date is specified, the current date/time is used.
+    """
+    supported_export_formats = {
+        'mff': ('mff',),
+        'eeglab': ('set',),
+        'edf': ('edf',),
+        'brainvision': ('eeg', 'vmrk', 'vhdr',)
+    }
+    fmt = _infer_check_export_fmt(fmt, fname, supported_export_formats)
+
+    if not isinstance(evoked, list):
+        evoked = [evoked]
+
+    if fmt == 'mff':
+        if device is None:
+            raise ValueError('Export to MFF requires a device specification.')
+        from .io.egi.egimff import export_evokeds_to_mff
+        export_evokeds_to_mff(fname, evoked, device, history)
+    elif fmt == 'eeglab':
+        raise NotImplementedError('Export to EEGLAB not implemented.')
+    elif fmt == 'edf':
+        raise NotImplementedError('Export to EDF not implemented.')
+    elif fmt == 'brainvision':
+        raise NotImplementedError('Export to BrainVision not implemented.')
+
+    print(f'Exporting evoked dataset to {fname}...')
 
 
 def _get_peak(data, times, tmin=None, tmax=None, mode='abs'):
