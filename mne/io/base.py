@@ -1760,7 +1760,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         return "<%s | %s>" % (self.__class__.__name__, s)
 
     def _repr_html_(self, caption=None):
-        basenames = [os.path.basename(f) for f in self._filenames if f is not None]
+        basenames = [
+            os.path.basename(f) for f in self._filenames if f is not None
+        ]
         m, s = divmod(self._last_time - self.first_time, 60)
         h, m = divmod(m, 60)
         duration = f'{int(h):02d}:{int(m):02d}:{int(s):02d}'
