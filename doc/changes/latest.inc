@@ -49,6 +49,8 @@ Bugs
 
 - Fix bug with :func:`mne.io.read_raw_nihon` where latin-1 annotations could not be read (:gh:`9384` by `Alex Gramfort`_)
 
+- Fix bug when printing a :class:`mne.io.RawArray` in the notebook (:gh:`9404` by `Alex Gramfort`_)
+
 API changes
 ~~~~~~~~~~~
 - Nothing yet
