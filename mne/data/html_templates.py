@@ -65,10 +65,12 @@ info_template = Template("""
 
 raw_template = Template("""
 {{info_repr[:-9]}}
+    {{if filenames}}
     <tr>
         <th>Filenames</th>
         <td>{{', '.join(filenames)}}</td>
     </tr>
+    {{endif}}
     <tr>
         <th>Duration</th>
         <td>{{duration}} (HH:MM:SS)</td>
