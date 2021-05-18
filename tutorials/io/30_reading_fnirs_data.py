@@ -68,6 +68,12 @@ MNE will read either file type and extract the raw DC, AC, and Phase data.
 If triggers are sent using the ``digaux`` port of the recording hardware, MNE
 will also read the ``digaux`` data and create annotations for any triggers.
 
+Hitachi (.csv)
+==============
+
+Hitachi fNIRS recordings can be read using :func:`mne.io.read_raw_hitachi`.
+No electrode information is stored so you'll need to set the montage manually,
+see the Notes section of :func:`mne.io.read_raw_hitachi`.
 
 Loading legacy data in CSV or TSV format
 ========================================

@@ -11,6 +11,11 @@ from ...io.pick import _picks_to_idx
 from ...utils import fill_doc
 
 
+# Standardized fNIRS channel name regexs
+_S_D_F_RE = re.compile(r'S(\d+)_D(\d+) (\d+\.?\d*)')
+_S_D_H_RE = re.compile(r'S(\d+)_D(\d+) (\w+)')
+
+
 @fill_doc
 def source_detector_distances(info, picks=None):
     r"""Determine the distance between NIRS source and detectors.
@@ -55,14 +60,18 @@ def short_channels(info, threshold=0.01):
     return source_detector_distances(info) < threshold
 
 
-def _channel_frequencies(info):
+def _channel_frequencies(info, nominal=False):
     """Return the light frequency for each channel."""
     # Only valid for fNIRS data before conversion to haemoglobin
     picks = _picks_to_idx(info, ['fnirs_cw_amplitude', 'fnirs_od'],
                           exclude=[], allow_empty=True)
     freqs = np.empty(picks.size, int)
     for ii in picks:
-        freqs[ii] = info['chs'][ii]['loc'][9]
+        if nominal:
+            freq = float(_S_D_F_RE.match(info['ch_names'][ii]).groups()[2])
+        else:
+            freq = info['chs'][ii]['loc'][9]
+        freqs[ii] = freq
     return freqs
 
 
@@ -109,35 +118,18 @@ def _check_channels_ordered(info, pair_vals):
             f'info["chs"] structure. The encoded wavelengths are {all_freqs}.')
 
     for ii in picks_cw[::2]:
-        ch1_name_info = re.match(r'S(\d+)_D(\d+) (\d+)',
-                                 info['chs'][ii]['ch_name'])
-        ch2_name_info = re.match(r'S(\d+)_D(\d+) (\d+)',
-                                 info['chs'][ii + 1]['ch_name'])
+        ch1_name_info = _S_D_F_RE.match(info['chs'][ii]['ch_name'])
+        ch2_name_info = _S_D_F_RE.match(info['chs'][ii + 1]['ch_name'])
 
         if bool(ch2_name_info) & bool(ch1_name_info):
 
-            if info['chs'][ii]['loc'][9] != \
-                    float(ch1_name_info.groups()[2]) or \
-                    info['chs'][ii + 1]['loc'][9] != \
-                    float(ch2_name_info.groups()[2]):
-                raise ValueError(
-                    'NIRS channels not ordered correctly. '
-                    'Channel name and NIRS'
-                    ' frequency do not match: %s -> %s & %s -> %s'
-                    % (info['chs'][ii]['ch_name'],
-                       info['chs'][ii]['loc'][9],
-                       info['chs'][ii + 1]['ch_name'],
-                       info['chs'][ii + 1]['loc'][9]))
-
-            first_value = int(ch1_name_info.groups()[2])
-            second_value = int(ch2_name_info.groups()[2])
+            first_value = float(ch1_name_info.groups()[2])
+            second_value = float(ch2_name_info.groups()[2])
             error_word = "frequencies"
 
         else:
-            ch1_name_info = re.match(r'S(\d+)_D(\d+) (\w+)',
-                                     info['chs'][ii]['ch_name'])
-            ch2_name_info = re.match(r'S(\d+)_D(\d+) (\w+)',
-                                     info['chs'][ii + 1]['ch_name'])
+            ch1_name_info = _S_D_H_RE.match(info['chs'][ii]['ch_name'])
+            ch2_name_info = _S_D_H_RE.match(info['chs'][ii + 1]['ch_name'])
 
             if bool(ch2_name_info) & bool(ch1_name_info):
 
@@ -175,7 +167,7 @@ def _check_channels_ordered(info, pair_vals):
 
 def _validate_nirs_info(info):
     """Apply all checks to fNIRS info. Works on all continuous wave types."""
-    freqs = np.unique(_channel_frequencies(info))
+    freqs = np.unique(_channel_frequencies(info, nominal=True))
     if freqs.size > 0:
         picks = _check_channels_ordered(info, freqs)
     else:

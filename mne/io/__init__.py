@@ -48,6 +48,7 @@ from .nicolet import read_raw_nicolet
 from .artemis123 import read_raw_artemis123
 from .eeglab import read_raw_eeglab, read_epochs_eeglab
 from .eximia import read_raw_eximia
+from .hitachi import read_raw_hitachi
 from .nirx import read_raw_nirx
 from .boxy import read_raw_boxy
 from .snirf import read_raw_snirf

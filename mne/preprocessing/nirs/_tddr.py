@@ -43,8 +43,8 @@ def temporal_derivative_distribution_repair(raw, *, verbose=None):
     """
     raw = raw.copy().load_data()
     _validate_type(raw, BaseRaw, 'raw')
-    _check_channels_ordered(raw.info,
-                            np.unique(_channel_frequencies(raw.info)))
+    _check_channels_ordered(
+        raw.info, np.unique(_channel_frequencies(raw.info, nominal=True)))
 
     if not len(pick_types(raw.info, fnirs='fnirs_od')):
         raise RuntimeError('TDDR should be run on optical density data.')

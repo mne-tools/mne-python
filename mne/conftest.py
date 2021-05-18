@@ -133,6 +133,12 @@ def close_all():
     plt.close('all')
 
 
+@pytest.fixture(autouse=True)
+def add_mne(doctest_namespace):
+    """Add mne to the namespace."""
+    doctest_namespace["mne"] = mne
+
+
 @pytest.fixture(scope='function')
 def verbose_debug():
     """Run a test with debug verbosity."""

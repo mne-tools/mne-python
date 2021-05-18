@@ -251,7 +251,7 @@ def test_fnirs_channel_naming_and_order_custom_raw():
     freqs = np.tile([920, 850], 3)
     for idx, f in enumerate(freqs):
         raw.info["chs"][idx]["loc"][9] = f
-    with pytest.raises(ValueError, match='name and NIRS frequency do not'):
+    with pytest.raises(ValueError, match='not ordered'):
         _check_channels_ordered(raw.info, [920, 850])
 
     # Catch if someone doesn't set the info field
