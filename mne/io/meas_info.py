@@ -832,7 +832,7 @@ class Info(dict, MontageMixin):
             meas_date = meas_date.strftime("%B %d, %Y  %H:%M:%S") + ' GMT'
         projs = self['projs']
         if projs:
-            projs = ', '.join(
+            projs = '<br/>'.join(
                 p['desc'] + ': o%s' % {0: 'ff', 1: 'n'}[p['active']]
                 for p in projs
             )
