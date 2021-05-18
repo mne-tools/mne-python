@@ -556,9 +556,11 @@ def test_repr():
     """Test repr of Raw."""
     sfreq = 256
     info = create_info(3, sfreq)
-    r = repr(RawArray(np.zeros((3, 10 * sfreq)), info))
+    raw = RawArray(np.zeros((3, 10 * sfreq)), info)
+    r = repr(raw)
     assert re.search('<RawArray | 3 x 2560 (10.0 s), ~.* kB, data loaded>',
                      r) is not None, r
+    assert raw._repr_html_()
 
 
 # A class that sets channel data to np.arange, for testing _test_raw_reader
