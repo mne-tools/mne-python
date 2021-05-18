@@ -355,7 +355,7 @@ stc = mne.minimum_norm.apply_inverse(vis_evoked, inv_operator,
 
 # path to subjects' MRI files
 subjects_dir = os.path.join(sample_data_folder, 'subjects')
-# plot
+# plot the STC
 stc.plot(initial_time=0.1, hemi='split', views=['lat', 'med'],
          subjects_dir=subjects_dir)
 
