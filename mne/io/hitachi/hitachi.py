@@ -81,15 +81,16 @@ class RawHitachi(BaseRaw):
         meas_date = age = ch_names = sfreq = None
         with open(fname, 'rb') as fid:
             lines = fid.read()
-        lines = lines.decode('latin-1').rstrip('\r')
+        lines = lines.decode('latin-1').rstrip('\r\n')
         oldlen = len(lines)
         assert len(lines) == oldlen
         bounds = [0]
-        bounds.extend(a.end() for a in re.finditer('\r', lines))
+        end = '\n' if '\n' in lines else '\r'
+        bounds.extend(a.end() for a in re.finditer(end, lines))
         bounds.append(len(lines))
-        lines = lines.split('\r')
+        lines = lines.split(end)
         assert len(bounds) == len(lines) + 1
-        line = lines[0].rstrip(',')
+        line = lines[0].rstrip(',\r\n')
         _check_bad(line != 'Header', 'no header found')
         li = 0
         mode = None
@@ -97,7 +98,7 @@ class RawHitachi(BaseRaw):
             # Newer format has some blank lines
             if len(line) == 0:
                 continue
-            parts = line.rstrip(',').split(',')
+            parts = line.rstrip(',\r\n').split(',')
             if len(parts) == 0:  # some header lines are blank
                 continue
             kind, parts = parts[0], parts[1:]
@@ -172,7 +173,7 @@ class RawHitachi(BaseRaw):
                 break
         fnirs_wavelengths = np.array(fnirs_wavelengths, int)
         assert len(fnirs_wavelengths) == 2
-        ch_names = lines[li + 1].rstrip().rstrip(',').split(',')
+        ch_names = lines[li + 1].rstrip(',\r\n').split(',')
         # cull to correct ones
         raw_extra['keep_mask'] = ~np.in1d(ch_names, ['Probe1', 'Time'])
         # set types
@@ -242,7 +243,8 @@ class RawHitachi(BaseRaw):
             self._raw_extras[fi]['fname'],
             start, stop, self._raw_extras[fi]['keep_mask'],
             self._raw_extras[fi]['bounds'], sep=',',
-            replace=lambda x: x.replace('\r', ',').replace(':', '')).T
+            replace=lambda x:
+                x.replace('\r', ',').replace('\n', ',').replace(':', '')).T
         _mult_cal_one(data, this_data, idx, cals, mult)
         return data
 
