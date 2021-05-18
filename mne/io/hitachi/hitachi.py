@@ -244,7 +244,10 @@ class RawHitachi(BaseRaw):
             start, stop, self._raw_extras[fi]['keep_mask'],
             self._raw_extras[fi]['bounds'], sep=',',
             replace=lambda x:
-                x.replace('\r', ',').replace('\n', ',').replace(':', '')).T
+                x.replace('\r', '\n')
+                .replace('\n\n', '\n')
+                .replace('\n', ',')
+                .replace(':', '')).T
         _mult_cal_one(data, this_data, idx, cals, mult)
         return data
 

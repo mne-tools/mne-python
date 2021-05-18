@@ -179,16 +179,22 @@ Probe1,CH1(703.6),CH1(829.0),CH2(703.9),CH2(829.3),CH3(703.9),CH3(829.3),CH4(703
 
 
 @pytest.mark.parametrize('preload', (True, False))
-@pytest.mark.parametrize('version, n_ch, n_times, lowpass, sex, date', [
-    ('1.18', 48, 60, 0.1, 2, (2004, 5, 17, 5, 14, 0, 0)),
-    ('1.25', 108, 10, 5., 1, (2020, 2, 2, 11, 20, 0, 0)),
+@pytest.mark.parametrize('version, n_ch, n_times, lowpass, sex, date, end', [
+    ('1.18', 48, 60, 0.1, 2, (2004, 5, 17, 5, 14, 0, 0), None),
+    ('1.25', 108, 10, 5., 1, (2020, 2, 2, 11, 20, 0, 0), b'\r'),
+    ('1.25', 108, 10, 5., 1, (2020, 2, 2, 11, 20, 0, 0), b'\n'),
+    ('1.25', 108, 10, 5., 1, (2020, 2, 2, 11, 20, 0, 0), b'\r\n'),
 ])
 def test_hitachi_basic(preload, version, n_ch, n_times, lowpass, sex, date,
-                       tmpdir):
+                       end, tmpdir):
     """Test NIRSport1 file with no saturation."""
     fname = str(tmpdir.join('test.csv'))
+    contents = CONTENTS[version]
+    if end is not None:
+        contents = contents.replace(b'\r', b'\n').replace(b'\n\n', b'\n')
+        contents = contents.replace(b'\n', end)
     with open(fname, 'wb') as fid:
-        fid.write(CONTENTS[version].replace(b'\n', b'\r'))
+        fid.write(CONTENTS[version])
     raw = read_raw_hitachi(fname, preload=preload)
     data = raw.get_data()
     assert data.shape == (n_ch, n_times)
