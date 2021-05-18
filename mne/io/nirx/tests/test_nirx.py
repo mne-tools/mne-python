@@ -14,7 +14,7 @@ from numpy.testing import assert_allclose, assert_array_equal
 
 from mne import pick_types
 from mne.datasets.testing import data_path, requires_testing_data
-from mne.io import read_raw_nirx
+from mne.io import read_raw_nirx, read_raw_snirf
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.preprocessing import annotate_nan
 from mne.transforms import apply_trans, _get_trans
@@ -44,6 +44,97 @@ nirsport1_w_sat = op.join(data_path(download=False), 'NIRx', 'nirsport_v1',
 nirsport1_w_fullsat = op.join(data_path(download=False), 'NIRx', 'nirsport_v1',
                               'nirx_15_3_recording_w_'
                               'saturation_on_montage_channels')
+
+# NIRSport2 device using Aurora software and matching snirf file
+nirsport2 = op.join(data_path(download=False), 'NIRx', 'nirsport_v2',
+                    'aurora_recording _w_short_and_acc')
+nirsport2_snirf = op.join(data_path(download=False), 'SNIRF', 'NIRx',
+                          'NIRSport2', '1.0.3', '2021-05-05_001.snirf')
+
+
+@requires_testing_data
+@pytest.mark.filterwarnings('ignore:.*Extraction of measurement.*:')
+def test_nirsport_v2_matches_snirf():
+    """Test NIRSport2 raw files return same data as snirf."""
+    raw = read_raw_nirx(nirsport2, preload=True)
+    raw_snirf = read_raw_snirf(nirsport2_snirf, preload=True)
+
+    assert_allclose(raw._data, raw_snirf._data)
+
+    # Check the timing of annotations match (naming is different)
+    assert_allclose(raw.annotations.onset, raw_snirf.annotations.onset)
+
+    assert_array_equal(raw.ch_names, raw_snirf.ch_names)
+
+    # This test fails as snirf encodes name incorrectly.
+    # assert raw.info["subject_info"]["first_name"] ==
+    # raw_snirf.info["subject_info"]["first_name"]
+
+
+@requires_testing_data
+@pytest.mark.filterwarnings('ignore:.*Extraction of measurement.*:')
+def test_nirsport_v2():
+    """Test NIRSport1 file with no saturation."""
+    raw = read_raw_nirx(nirsport2, preload=True)
+    assert raw._data.shape == (40, 128)
+
+    # Test distance between optodes matches values from
+    # nirsite https://github.com/mne-tools/mne-testing-data/pull/86
+    # figure 3
+    allowed_distance_error = 0.005
+    distances = source_detector_distances(raw.info)
+    assert_allclose(distances[::2][:14],
+                    [0.0304, 0.0411, 0.008, 0.0400, 0.008, 0.0310, 0.0411,
+                     0.008, 0.0299, 0.008, 0.0370, 0.008, 0.0404, 0.008],
+                    atol=allowed_distance_error)
+
+    # Test location of detectors
+    # The locations of detectors can be seen in the first
+    # figure on this page...
+    # https://github.com/mne-tools/mne-testing-data/pull/86
+    allowed_dist_error = 0.0002
+    locs = [ch['loc'][6:9] for ch in raw.info['chs']]
+    head_mri_t, _ = _get_trans('fsaverage', 'head', 'mri')
+    mni_locs = apply_trans(head_mri_t, locs)
+
+    assert raw.info['ch_names'][0][3:5] == 'D1'
+    assert_allclose(
+        mni_locs[0], [-0.0841, -0.0464, -0.0129], atol=allowed_dist_error)
+
+    assert raw.info['ch_names'][2][3:5] == 'D6'
+    assert_allclose(
+        mni_locs[2], [-0.0841, -0.0138, 0.0248], atol=allowed_dist_error)
+
+    assert raw.info['ch_names'][34][3:5] == 'D5'
+    assert_allclose(
+        mni_locs[34], [0.0845, -0.0451, -0.0123], atol=allowed_dist_error)
+
+    # Test location of sensors
+    # The locations of sensors can be seen in the second
+    # figure on this page...
+    # https://github.com/mne-tools/mne-testing-data/pull/86
+    locs = [ch['loc'][3:6] for ch in raw.info['chs']]
+    head_mri_t, _ = _get_trans('fsaverage', 'head', 'mri')
+    mni_locs = apply_trans(head_mri_t, locs)
+
+    assert raw.info['ch_names'][0][:2] == 'S1'
+    assert_allclose(
+        mni_locs[0], [-0.0848, -0.0162, -0.0163], atol=allowed_dist_error)
+
+    assert raw.info['ch_names'][9][:2] == 'S2'
+    assert_allclose(
+        mni_locs[9], [-0.0, -0.1195, 0.0142], atol=allowed_dist_error)
+
+    assert raw.info['ch_names'][34][:2] == 'S8'
+    assert_allclose(
+        mni_locs[34], [0.0828, -0.046, 0.0285], atol=allowed_dist_error)
+
+    assert len(raw.annotations) == 3
+    assert raw.annotations.description[0] == '1.0'
+    assert raw.annotations.description[2] == '6.0'
+    # Lose tolerance as I am eyeballing the time differences on screen
+    assert_allclose(
+        np.diff(raw.annotations.onset), [2.3, 3.1], atol=0.1)
 
 
 @requires_testing_data
