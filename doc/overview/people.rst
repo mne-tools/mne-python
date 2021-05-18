@@ -41,4 +41,4 @@ Institutional Partners
 Document history
 ----------------
 
-https://github.com/mne-tools/mne/commits/main/doc/overview/people.rst
+https://github.com/mne-tools/mne-python/commits/main/doc/overview/people.rst
