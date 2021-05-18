@@ -41,7 +41,7 @@ Enhancements
 
 - Add support for ``picks`` in :func:`mne.stc_near_sensors` (:gh:`9396` by `Eric Larson`_)
 
-- Add projections when printing a :class:`mne.io.Info` in the notebook (:gh:`9403` by `Alex Gramfort`_)
+- Add projections when printing a :class:`mne.Info` in the notebook (:gh:`9403` by `Alex Gramfort`_)
 
 Bugs
 ~~~~
