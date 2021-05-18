@@ -44,6 +44,7 @@ File I/O
    write_cov
    write_events
    write_evokeds
+   export_evokeds
    write_forward_solution
    write_label
    write_proj
