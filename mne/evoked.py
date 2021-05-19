@@ -1460,14 +1460,14 @@ def export_evokeds(fname, evoked, fmt='auto', device=None, history=None):
         format from the filename extension. See supported formats above for
         more information.
     device : None (default) | str
-        If exporting to MFF format, specify the device on which EEG was
-        recorded (e.g. 'HydroCel GSN 256 1.0'). This is necessary for
-        determining the sensor layout and coordinates specs.
-    history : None (default) | list of history entries
-        If exporting to MFF format, provide the content to be written to
-        history.xml. Must adhere to the format described in
-        mffpy.xml_files.History.content. If None, no history.xml will be
-        written.
+        If exporting to MFF format, it is required to specify the device on
+        which EEG was recorded (e.g. 'HydroCel GSN 256 1.0'). This is necessary
+        for determining the sensor layout and coordinates specs.
+    history : None (default) | list of dict
+        If exporting to MFF format, it is optional to provide a list of history
+        entries (dictionaries) to be written to history.xml. This must adhere
+        to the format described in mffpy.xml_files.History.content. If None, no
+        history.xml will be written.
 
     See Also
     --------

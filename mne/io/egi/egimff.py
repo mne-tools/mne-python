@@ -929,10 +929,11 @@ def export_evokeds_to_mff(fname, evoked, device, history):
         that information matches.
     device : str
         The device on which EEG was recorded (e.g. 'HydroCel GSN 256 1.0').
-    history : None | list of history entries
-        Content to be written to history.xml. Must adhere to the format
-        described in mffpy.xml_files.History.content. If None, no history.xml
-        will be written.
+    history : None | list of dict
+        Optional list of history entries (dictionaries) to be written to
+        history.xml. This must adhere to the format described in
+        mffpy.xml_files.History.content. If None, no history.xml will be
+        written.
 
     Notes
     -----
