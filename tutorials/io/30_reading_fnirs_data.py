@@ -30,11 +30,15 @@ the data as the appropriate type.
 
 .. _import-snirf:
 
+*****************
+Standardized data
+*****************
+
 SNIRF (.snirf)
-================================
+==============
 
 The Shared Near Infrared Spectroscopy Format
-(`SNIRF <https://github.com/fNIRS/snirf/blob/master/snirf_specification.md>`_) 
+(`SNIRF <https://github.com/fNIRS/snirf/blob/master/snirf_specification.md>`__)
 is designed by the fNIRS community in an effort to facilitate
 sharing and analysis of fNIRS data. And is the official format of the
 Society for functional near-infrared spectroscopy (SfNIRS).
@@ -55,7 +59,7 @@ Continuous Wave Devices
 .. _import-nirx:
 
 NIRx (directory or hdr)
-================================
+=======================
 
 NIRx produce continuous wave fNIRS devices.
 NIRx recordings can be read in using :func:`mne.io.read_raw_nirx`.
