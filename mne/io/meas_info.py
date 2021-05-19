@@ -830,10 +830,17 @@ class Info(dict, MontageMixin):
         meas_date = self['meas_date']
         if meas_date is not None:
             meas_date = meas_date.strftime("%B %d, %Y  %H:%M:%S") + ' GMT'
+        projs = self['projs']
+        if projs:
+            projs = '<br/>'.join(
+                p['desc'] + ': o%s' % {0: 'ff', 1: 'n'}[p['active']]
+                for p in projs
+            )
 
         html += info_template.substitute(
             caption=caption, info=self, meas_date=meas_date, n_eeg=n_eeg,
-            n_grad=n_grad, n_mag=n_mag, n_fnirs=n_fnirs, eog=eog, ecg=ecg)
+            n_grad=n_grad, n_mag=n_mag, n_fnirs=n_fnirs, eog=eog, ecg=ecg,
+            projs=projs)
         return html
 
 
