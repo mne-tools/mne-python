@@ -6,25 +6,26 @@ r"""
 Importing data from fNIRS devices
 =================================
 
-MNE includes various functions and utilities for reading NIRS
-data and optode locations.
+MNE includes various functions and utilities for reading fNIRS
+data and optode locations. Regardless of the manufacturer and file format,
+MNE stores both the measurement data and metadata in a consistent manner.
 
-fNIRS devices consist of light sources and light detectors. A channel is formed
-by source-detector pairs. MNE stores the location of the channels, sources, and
+fNIRS devices consist of light sources and light detectors, 
+often also termed emitter/transmitter and receiver respectively.
+A channel is formed by source-detector pairs, and MNE represents the
+channel location as the midpoint between source and detector.
+MNE stores the location of the channels, sources, and
 detectors.
+There are a variety of fNIRS data types which can be represented in MNE.
+For continuous wave fNIRS data this includes amplitude, optical density, 
+oxyhaemoglobin, and deoxyhemoglobin.
+And for frequency domain fNIRS this additionally includes
+AC amplitude and phase.
+Different vendors save the data as different data types, and MNE will load
+the data as the appropriate type.
 
-.. warning:: Information about device light wavelength is stored in channel
-             names. Manual modification of channel names is not recommended.
-
-.. _import-nirx:
-
-NIRx (directory)
-================================
-
-NIRx recordings can be read in using :func:`mne.io.read_raw_nirx`.
-The NIRx device stores data directly to a directory with multiple file types,
-MNE extracts the appropriate information from each file.
-MNE only supports NIRx files recorded with NIRStar version 15.0 and above.
+.. warning:: MNE expects a specific formatting of channel names.
+             Manual modification of channel names is not recommended.
 
 
 .. _import-snirf:
@@ -32,6 +33,12 @@ MNE only supports NIRx files recorded with NIRStar version 15.0 and above.
 SNIRF (.snirf)
 ================================
 
+The Shared Near Infrared Spectroscopy Format
+(`SNIRF <https://github.com/fNIRS/snirf/blob/master/snirf_specification.md>`_) 
+is designed by the fNIRS community in an effort to facilitate
+sharing and analysis of fNIRS data. And is the official format of the
+Society for functional near-infrared spectroscopy (SfNIRS).
+SNIRF is the preferred format for reading data in to MNE.
 Data stored in the SNIRF format can be read in
 using :func:`mne.io.read_raw_snirf`.
 
@@ -39,6 +46,38 @@ using :func:`mne.io.read_raw_snirf`.
              recordings. MNE currently only supports continuous wave data
              stored in the .snirf format.
 
+
+***********************
+Continuous Wave Devices
+***********************
+
+
+.. _import-nirx:
+
+NIRx (directory or hdr)
+================================
+
+NIRx produce continuous wave fNIRS devices.
+NIRx recordings can be read in using :func:`mne.io.read_raw_nirx`.
+The NIRx device stores data directly to a directory with multiple file types,
+MNE extracts the appropriate information from each file.
+MNE only supports NIRx files recorded with NIRStar version 15.0 and above.
+
+
+.. _import-hitachi:
+
+Hitachi (.csv)
+==============
+
+Hitachi produce continuous wave fNIRS devices.
+Hitachi fNIRS recordings can be read using :func:`mne.io.read_raw_hitachi`.
+No optode information is stored so you'll need to set the montage manually,
+see the Notes section of :func:`mne.io.read_raw_hitachi`.
+
+
+************************
+Frequency Domain Devices
+************************
 
 .. _import-boxy:
 
@@ -68,12 +107,10 @@ MNE will read either file type and extract the raw DC, AC, and Phase data.
 If triggers are sent using the ``digaux`` port of the recording hardware, MNE
 will also read the ``digaux`` data and create annotations for any triggers.
 
-Hitachi (.csv)
-==============
 
-Hitachi fNIRS recordings can be read using :func:`mne.io.read_raw_hitachi`.
-No electrode information is stored so you'll need to set the montage manually,
-see the Notes section of :func:`mne.io.read_raw_hitachi`.
+******************
+Custom Data Import
+******************
 
 Loading legacy data in CSV or TSV format
 ========================================
