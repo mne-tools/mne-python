@@ -1492,6 +1492,8 @@ def export_evokeds(fname, evoked, fmt='auto', device=None, history=None):
     if not isinstance(evoked, list):
         evoked = [evoked]
 
+    logger.info(f'Exporting evoked dataset to {fname}...')
+
     if fmt == 'mff':
         if device is None:
             raise ValueError('Export to MFF requires a device specification.')
@@ -1503,8 +1505,6 @@ def export_evokeds(fname, evoked, fmt='auto', device=None, history=None):
         raise NotImplementedError('Export to EDF not implemented.')
     elif fmt == 'brainvision':
         raise NotImplementedError('Export to BrainVision not implemented.')
-
-    print(f'Exporting evoked dataset to {fname}...')
 
 
 def _get_peak(data, times, tmin=None, tmax=None, mode='abs'):
