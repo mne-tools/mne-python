@@ -9,7 +9,6 @@ import time
 from xml.dom.minidom import parse
 
 import numpy as np
-import pytz
 
 from .events import _read_events, _combine_triggers
 from .general import (_get_signalfname, _get_ep_info, _extract, _get_blocks,
@@ -950,6 +949,7 @@ def export_evokeds_to_mff(fname, evoked, device, history):
 
     # Initialize writer
     mffpy = _import_mffpy('Export evokeds to MFF.')
+    import pytz
     writer = mffpy.Writer(fname)
     record_time = info['meas_date'] or \
         pytz.utc.localize(datetime.datetime.utcnow())
