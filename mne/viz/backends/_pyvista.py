@@ -26,7 +26,7 @@ from ._utils import (_get_colormap_from_array, _alpha_blend_background,
                      ALLOWED_QUIVER_MODES, _init_qt_resources)
 from ...fixes import _get_args
 from ...transforms import apply_trans
-from ...utils import copy_base_doc_to_subclass_doc, _check_option, logger
+from ...utils import copy_base_doc_to_subclass_doc, _check_option
 
 
 with warnings.catch_warnings():
@@ -152,7 +152,6 @@ class _PyVistaRenderer(_AbstractRenderer):
         figure = _Figure(show=show, title=name, size=size, shape=shape,
                          background_color=bgcolor, notebook=notebook,
                          smooth_shading=smooth_shading)
-        self._to_update = True
         self.font_family = "arial"
         self.tube_n_sides = 20
         antialias = _get_3d_option('antialias')
@@ -205,10 +204,8 @@ class _PyVistaRenderer(_AbstractRenderer):
             renderer.hide_axes()
 
     def _update(self):
-        if self._to_update:
-            logger.debug('Update renderer')
-            for plotter in self._all_plotters:
-                plotter.update()
+        for plotter in self._all_plotters:
+            plotter.update()
 
     def _index_to_loc(self, idx):
         _ncols = self.figure._ncols
@@ -648,15 +645,6 @@ class _PyVistaRenderer(_AbstractRenderer):
     def remove_mesh(self, mesh_data):
         actor, _ = mesh_data
         self.plotter.remove_actor(actor)
-
-    @contextmanager
-    def _disabled_update(self):
-        to_update = self._to_update
-        self._to_update = False
-        try:
-            yield
-        finally:
-            self._to_update = to_update
 
     @contextmanager
     def _disabled_interaction(self):

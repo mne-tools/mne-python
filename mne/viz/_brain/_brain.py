@@ -529,18 +529,15 @@ class Brain(object):
 
         self.interaction = interaction
         self._closed = False
-
+        if show:
+            self.show()
         # update the views once the geometry is all set
-        with self._renderer._disabled_update():
-            for h in self._hemis:
-                for ri, ci, v in self._iter_views(h):
-                    self.show_view(v, row=ri, col=ci, hemi=h)
+        for h in self._hemis:
+            for ri, ci, v in self._iter_views(h):
+                self.show_view(v, row=ri, col=ci, hemi=h)
 
         if surf == 'flat':
             self._renderer.set_interaction("rubber_band_2d")
-
-        if show:
-            self._renderer.show()
 
     def _setup_canonical_rotation(self):
         from ...coreg import fit_matched_points, _trans_from_params
@@ -655,25 +652,27 @@ class Brain(object):
             self.separate_canvas = False
         del show_traces
 
-        with self._renderer._disabled_update():
-            self._configure_time_label()
-            self._configure_scalar_bar()
-            self._configure_shortcuts()
-            self._configure_picking()
-            self._configure_tool_bar()
-            self._configure_dock()
-            self._configure_menu()
-            self._configure_status_bar()
-            self._configure_playback()
-            self._configure_help()
-            # sizes could change, update views
-            for hemi in ('lh', 'rh'):
-                for ri, ci, v in self._iter_views(hemi):
-                    self.show_view(view=v, row=ri, col=ci)
-            self._renderer._process_events()
+        self._configure_time_label()
+        self._configure_scalar_bar()
+        self._configure_shortcuts()
+        self._configure_picking()
+        self._configure_tool_bar()
+        self._configure_dock()
+        self._configure_menu()
+        self._configure_status_bar()
+        self._configure_playback()
+        self._configure_help()
         # show everything at the end
+        self.toggle_interface()
         self._renderer.show()
 
+        # sizes could change, update views
+        for hemi in ('lh', 'rh'):
+            for ri, ci, v in self._iter_views(hemi):
+                self.show_view(view=v, row=ri, col=ci)
+        self._renderer._process_events()
+
+        self._renderer._update()
         # finally, show the MplCanvas
         if self.show_traces:
             self.mpl_canvas.show()
