@@ -74,7 +74,7 @@ def test_nirsport_v2_matches_snirf():
 @requires_testing_data
 @pytest.mark.filterwarnings('ignore:.*Extraction of measurement.*:')
 def test_nirsport_v2():
-    """Test NIRSport1 file with no saturation."""
+    """Test NIRSport2 file."""
     raw = read_raw_nirx(nirsport2, preload=True)
     assert raw._data.shape == (40, 128)
 
