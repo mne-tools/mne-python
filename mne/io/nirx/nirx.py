@@ -102,11 +102,12 @@ class RawNIRX(BaseRaw):
             # NIRScout devices and NIRSport1 devices
             keys = ('hdr', 'inf', 'set', 'tpl', 'wl1', 'wl2',
                     'config.txt', 'probeInfo.mat')
-            if len(glob.glob('%s/*%s' % (fname, 'dat'))) != 1:
+            n_dat = len(glob.glob(f'{fname}/{dat}'))
+            if n_dat != 1:
                 warn("A single dat file was expected in the specified path, "
-                     "but got %d. This may indicate that the file structure "
-                     "has been modified since the measurement was saved." %
-                     (len(glob.glob('%s/*%s' % (fname, 'dat')))))
+                     f"but got {n_dat}. This may indicate that the file "
+                     "structure has been modified since the measurement "
+                     "was saved.")
 
         # Check if required files exist and store names for later use
         files = dict()
@@ -410,29 +411,20 @@ class RawNIRX(BaseRaw):
                 ch_names.extend([self.ch_names[2 * ci:2 * ci + 2]] * len(on))
 
         # Read triggers from event file
-        if is_aurora:
-            if op.isfile(files['tri']):
-                with _open(files['tri']) as fid:
-                    t = [re.findall(r'(\d+)', line) for line in fid]
-                for t_ in t:
+        if op.isfile(files['tri']):
+            with _open(files['tri']) as fid:
+                t = [re.findall(r'(\d+)', line) for line in fid]
+            for t_ in t:
+                if is_aurora:
                     trigger_frame = float(t_[7])
-                    trigger_value = float(t_[8])
-                    onset.append(trigger_frame / samplingrate)
-                    duration.append(1.)  # No duration info stored in files
-                    description.append(trigger_value)
-                    ch_names.append(list())
-
-        else:
-            if op.isfile(files['hdr'][:-3] + 'evt'):
-                with _open(files['hdr'][:-3] + 'evt') as fid:
-                    t = [re.findall(r'(\d+)', line) for line in fid]
-                for t_ in t:
-                    binary_value = ''.join(t_[1:])[::-1]
+                    desc = float(t_[8])
+                else:
+                    desc = ''.join(t_[1:])[::-1]
                     trigger_frame = float(t_[0])
-                    onset.append(trigger_frame / samplingrate)
-                    duration.append(1.)  # No duration info stored in files
-                    description.append(float(int(binary_value, 2)))
-                    ch_names.append(list())
+                onset.append(trigger_frame / samplingrate)
+                duration.append(1.)  # No duration info stored in files
+                description.append(desc)
+                ch_names.append(list())
         annot = Annotations(onset, duration, description, ch_names=ch_names)
         self.set_annotations(annot)
 
