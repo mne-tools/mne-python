@@ -2220,6 +2220,7 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.vline_visible = visible
         self.canvas.draw_idle()
 
+
 class MNELineFigure(MNEFigure):
     """Interactive figure for non-scrolling line plots."""
 
