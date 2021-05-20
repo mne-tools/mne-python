@@ -277,10 +277,10 @@ def test_export_evokeds_to_mff(tmpdir, fmt):
         # Compare data
         assert_allclose(ave_exported.data, ave.data)
         # Compare properties
-        assert_equal(ave_exported.nave, ave.nave)
-        assert_equal(ave_exported.kind, ave.kind)
-        assert_equal(ave_exported.comment, ave.comment)
-        assert_equal(ave_exported.times, ave.times)
+        assert ave_exported.nave == ave.nave
+        assert ave_exported.kind == ave.kind
+        assert ave_exported.comment == ave.comment
+        assert_allclose(ave_exported.times, ave.times)
 
 
 def test_export_to_mff_no_device():
