@@ -287,21 +287,16 @@ def test_export_evokeds_to_mff(tmpdir, fmt):
 def test_export_to_mff_no_device():
     """Test no device specification throws ValueError."""
     evoked = read_evokeds(fname)
-    with pytest.raises(ValueError) as exc_info:
+    with pytest.raises(ValueError, match='Export to MFF requires a device'):
         export_evokeds('output.mff', evoked)
-    message = 'Export to MFF requires a device specification.'
-    assert str(exc_info.value) == message
 
 
 @requires_version('mffpy', '0.5.7')
 def test_export_to_mff_incompatible_sfreq():
     """Test non-whole number sampling frequency throws ValueError."""
     evoked = read_evokeds(fname)
-    with pytest.raises(ValueError) as exc_info:
+    with pytest.raises(ValueError, match=f'sfreq: {evoked[0].info["sfreq"]}'):
         export_evokeds('output.mff', evoked, mff_device='HydroCel GSN 256 1.0')
-    message = 'Sampling frequency must be a whole number. ' \
-              f'sfreq: {evoked[0].info["sfreq"]}'
-    assert str(exc_info.value) == message
 
 
 @pytest.mark.parametrize('fmt,ext', [
@@ -312,9 +307,8 @@ def test_export_to_mff_incompatible_sfreq():
 def test_export_evokeds_unsupported_format(fmt, ext):
     """Test exporting evoked dataset to non-supported formats."""
     evoked = read_evokeds(fname)
-    with pytest.raises(NotImplementedError) as exc_info:
+    with pytest.raises(NotImplementedError, match=f'Export to {fmt} not imp'):
         export_evokeds(f'output.{ext}', evoked)
-    assert str(exc_info.value) == f'Export to {fmt} not implemented.'
 
 
 def test_shift_time_evoked(tmpdir):
