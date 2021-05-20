@@ -2200,10 +2200,9 @@ class MNEBrowseFigure(MNEFigure):
     def _show_vline(self, xdata):
         """Show the vertical line(s)."""
         if self.mne.is_epochs:
-            # special case: changed view duration w/ "home" or "end" key
-            # (no click event, hence no xdata)
+            # convert xdata to be epoch-relative (for the text)
             rel_time = self._recompute_epochs_vlines(xdata)
-            xdata = rel_time + self.mne.inst.times[0]  # for the text
+            xdata = rel_time + self.mne.inst.times[0]
         else:
             self.mne.vline.set_xdata(xdata)
             self.mne.vline_hscroll.set_xdata(xdata)
