@@ -710,8 +710,6 @@ class MNEBrowseFigure(MNEFigure):
                 if self.mne.t_start + self.mne.duration > last_time:
                     self.mne.t_start = last_time - self.mne.duration
                 self._update_hscroll()
-                if key == 'end' and self.mne.vline_visible:  # prevent flicker
-                    self._toggle_vline(True)
                 self._redraw(annotations=True)
         elif key == '?':  # help window
             self._toggle_help_fig(event)
