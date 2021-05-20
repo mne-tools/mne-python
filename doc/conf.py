@@ -706,7 +706,7 @@ html_context = {
              alt='Connectivity'),
         dict(title='Data Visualization',
              text='Explore your data from multiple perspectives.',
-             url='auto_tutorials/evoked/20_visualize_evoked.py',
+             url='auto_tutorials/evoked/20_visualize_evoked.html',
              img='sphx_glr_20_visualize_evoked_007.png',
              alt='Visualization'),
     ]
