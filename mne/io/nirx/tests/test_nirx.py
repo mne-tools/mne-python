@@ -52,6 +52,7 @@ nirsport2_snirf = op.join(data_path(download=False), 'SNIRF', 'NIRx',
                           'NIRSport2', '1.0.3', '2021-05-05_001.snirf')
 
 
+@requires_h5py
 @requires_testing_data
 @pytest.mark.filterwarnings('ignore:.*Extraction of measurement.*:')
 def test_nirsport_v2_matches_snirf():
