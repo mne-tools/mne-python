@@ -24,8 +24,10 @@ AC amplitude and phase.
 Different vendors save the data as different data types, and MNE will load
 the data as the appropriate type.
 
-.. warning:: MNE expects a specific formatting of channel names.
-             Manual modification of channel names is not recommended.
+.. warning:: MNE stores metadata internally with a specific structure,
+             and internal functions expect specific naming conventions.
+             Manual modification of channel names and metadata
+             is not recommended.
 
 
 .. _import-snirf:
