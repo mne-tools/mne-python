@@ -115,7 +115,8 @@ def test_layered_mesh(renderer_interactive_pyvista):
     assert not mesh._is_mapped
     mesh.map()
     assert mesh._is_mapped
-    assert mesh._cache is None
+    assert mesh._current_colors is None
+    assert mesh._cached_colors is None
     mesh.update()
     assert len(mesh._overlays) == 0
     mesh.add_overlay(
@@ -123,13 +124,27 @@ def test_layered_mesh(renderer_interactive_pyvista):
         colormap=np.array([(1, 1, 1, 1), (0, 0, 0, 0)]),
         rng=[0, 1],
         opacity=None,
-        name='test',
+        name='test1',
     )
-    assert mesh._cache is not None
+    assert mesh._current_colors is not None
+    assert mesh._cached_colors is None
     assert len(mesh._overlays) == 1
-    assert 'test' in mesh._overlays
-    mesh.remove_overlay('test')
-    assert len(mesh._overlays) == 0
+    assert 'test1' in mesh._overlays
+    mesh.add_overlay(
+        scalars=np.array([1, 0, 0, 1]),
+        colormap=np.array([(1, 1, 1, 1), (0, 0, 0, 0)]),
+        rng=[0, 1],
+        opacity=None,
+        name='test2',
+    )
+    assert mesh._current_colors is not None
+    assert mesh._cached_colors is not None
+    assert len(mesh._overlays) == 2
+    assert 'test2' in mesh._overlays
+    mesh.remove_overlay('test2')
+    assert 'test2' not in mesh._overlays
+    mesh.update()
+    assert len(mesh._overlays) == 1
     mesh._clean()
 
 

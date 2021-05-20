@@ -105,7 +105,8 @@ class _LayeredMesh(object):
         self._actor = None
         self._is_mapped = False
 
-        self._cache = None
+        self._current_colors = None
+        self._cached_colors = None
         self._overlays = OrderedDict()
 
         self._default_scalars = np.ones(vertices.shape)
@@ -142,14 +143,15 @@ class _LayeredMesh(object):
         return np.clip(C, 0, 1, out=C)
 
     def _compose_overlays(self):
-        B = None
+        B = cache = None
         for overlay in self._overlays.values():
             A = overlay.to_colors()
             if B is None:
                 B = A
             else:
-                B = self._compute_over(B, A)
-        return B
+                cache = B
+                B = self._compute_over(cache, A)
+        return B, cache
 
     def add_overlay(self, scalars, colormap, rng, opacity, name):
         overlay = _Overlay(
@@ -161,36 +163,45 @@ class _LayeredMesh(object):
         )
         self._overlays[name] = overlay
         colors = overlay.to_colors()
-
-        # save colors in cache
-        if self._cache is None:
-            self._cache = colors
+        if self._current_colors is None:
+            self._current_colors = colors
         else:
-            self._cache = self._compute_over(self._cache, colors)
+            # save previous colors to cache
+            self._cached_colors = self._current_colors
+            self._current_colors = self._compute_over(
+                self._cached_colors, colors)
 
-        # update the texture
-        self._update()
+        # apply the texture
+        self._apply()
 
     def remove_overlay(self, names):
+        to_update = False
         if not isinstance(names, list):
             names = [names]
         for name in names:
             if name in self._overlays:
                 del self._overlays[name]
-        self.update()
+                to_update = True
+        if to_update:
+            self.update()
 
-    def _update(self):
-        if self._cache is None or self._renderer is None:
+    def _apply(self):
+        if self._current_colors is None or self._renderer is None:
             return
         self._renderer._set_mesh_scalars(
             mesh=self._polydata,
-            scalars=self._cache,
+            scalars=self._current_colors,
             name=self._default_scalars_name,
         )
 
-    def update(self):
-        self._cache = self._compose_overlays()
-        self._update()
+    def update(self, colors=None):
+        if colors is not None and self._cached_colors is not None:
+            self._current_colors = self._compute_over(
+                self._cached_colors, colors)
+        else:
+            self._current_colors, self._cached_colors = \
+                self._compose_overlays()
+        self._apply()
 
     def _clean(self):
         mapper = self._actor.GetMapper()
@@ -213,7 +224,11 @@ class _LayeredMesh(object):
             overlay._opacity = opacity
         if rng is not None:
             overlay._rng = rng
-        self.update()
+        # partial update: use cache if possible
+        if name == list(self._overlays.keys())[-1]:
+            self.update(colors=overlay.to_colors())
+        else:  # full update
+            self.update()
 
 
 @fill_doc
