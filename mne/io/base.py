@@ -1458,7 +1458,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """Export Raw to external formats.
 
         Supported formats: EEGLAB (set, uses :mod:`eeglabio`)
-        %(export_warning)s
+        %(export_warning)s :meth:`save` instead.
 
         Parameters
         ----------

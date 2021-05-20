@@ -1442,12 +1442,7 @@ def export_evokeds(fname, evoked, fmt='auto', *, mff_device=None,
     """Export evoked dataset to external formats.
 
     Supported formats: MFF (mff, uses module mffpy)
-
-    .. warning::
-        Since we are exporting to external formats, there's no guarantee that
-        all the info will be preserved in the external format. To save in
-        native MNE format (``.fif``) without information loss, use
-        :func:`mne.write_evokeds` instead.
+    %(export_warning)s :func:`mne.write_evokeds` instead.
 
     Parameters
     ----------
