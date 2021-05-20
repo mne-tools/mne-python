@@ -270,9 +270,8 @@ def test_export_evokeds_to_mff(tmpdir, fmt):
     # Drop non-EEG channels
     evoked = [ave.drop_channels(['ECG', 'EMG']) for ave in evoked]
     evoked_exported = read_evokeds_mff(export_fname)
-    for i in range(len(evoked_exported)):
-        ave_exported = evoked_exported[i]
-        ave = evoked[i]
+    assert len(evoked) == len(evoked_exported)
+    for ave, ave_exported in zip(evoked, evoked_exported):
         # Compare infos
         assert object_diff(ave_exported.info, ave.info) == ''
         # Compare data
