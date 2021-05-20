@@ -2218,6 +2218,7 @@ class MNEBrowseFigure(MNEFigure):
                 artist.set_visible(visible)
                 self.draw_artist(artist)
         self.mne.vline_visible = visible
+        self.canvas.draw_idle()
 
 
 class MNELineFigure(MNEFigure):
