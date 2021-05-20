@@ -10,14 +10,14 @@ MNE includes various functions and utilities for reading fNIRS
 data and optode locations. Regardless of the manufacturer and file format,
 MNE stores both the measurement data and metadata in a consistent manner.
 
-fNIRS devices consist of light sources and light detectors, 
+fNIRS devices consist of light sources and light detectors,
 often also termed emitter/transmitter and receiver respectively.
 A channel is formed by source-detector pairs, and MNE represents the
 channel location as the midpoint between source and detector.
 MNE stores the location of the channels, sources, and
 detectors.
 There are a variety of fNIRS data types which can be represented in MNE.
-For continuous wave fNIRS data this includes amplitude, optical density, 
+For continuous wave fNIRS data this includes amplitude, optical density,
 oxyhaemoglobin, and deoxyhemoglobin.
 And for frequency domain fNIRS this additionally includes
 AC amplitude and phase.
@@ -46,9 +46,9 @@ SNIRF is the preferred format for reading data in to MNE.
 Data stored in the SNIRF format can be read in
 using :func:`mne.io.read_raw_snirf`.
 
-.. warning:: The SNIRF format has provisions for many different types of NIRS
-             recordings. MNE currently only supports continuous wave data
-             stored in the .snirf format.
+.. note:: The SNIRF format has provisions for many different types of fNIRS
+          recordings. MNE currently only supports reading continuous wave data
+          stored in the .snirf format.
 
 
 ***********************
@@ -66,6 +66,7 @@ NIRx recordings can be read in using :func:`mne.io.read_raw_nirx`.
 The NIRx device stores data directly to a directory with multiple file types,
 MNE extracts the appropriate information from each file.
 MNE only supports NIRx files recorded with NIRStar version 15.0 and above.
+MNE supports reading data from NIRScout and NIRSport 1 devices.
 
 
 .. _import-hitachi:
