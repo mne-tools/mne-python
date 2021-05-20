@@ -266,7 +266,7 @@ def test_export_evokeds_to_mff(tmpdir, fmt):
         }
     ]
     export_evokeds(export_fname, evoked, fmt=fmt,
-                   device='HydroCel GSN 256 1.0', history=history)
+                   mff_device='HydroCel GSN 256 1.0', mff_history=history)
     # Drop non-EEG channels
     evoked = [ave.drop_channels(['ECG', 'EMG']) for ave in evoked]
     evoked_exported = read_evokeds_mff(export_fname)
@@ -298,7 +298,7 @@ def test_export_to_mff_incompatible_sfreq():
     """Test non-whole number sampling frequency throws ValueError."""
     evoked = read_evokeds(fname)
     with pytest.raises(ValueError) as exc_info:
-        export_evokeds('output.mff', evoked, device='HydroCel GSN 256 1.0')
+        export_evokeds('output.mff', evoked, mff_device='HydroCel GSN 256 1.0')
     message = 'Sampling frequency must be a whole number. ' \
               f'sfreq: {evoked[0].info["sfreq"]}'
     assert str(exc_info.value) == message

@@ -1437,7 +1437,8 @@ def _write_evokeds(fname, evoked, check=True):
 
 
 @fill_doc
-def export_evokeds(fname, evoked, fmt='auto', device=None, history=None):
+def export_evokeds(fname, evoked, fmt='auto', *, mff_device=None,
+                   mff_history=None):
     """Export evoked dataset to external formats.
 
     Supported formats: MFF (mff, uses module mffpy)
@@ -1459,11 +1460,11 @@ def export_evokeds(fname, evoked, fmt='auto', device=None, history=None):
         Format of the export. Defaults to ``'auto'``, which will infer the
         format from the filename extension. See supported formats above for
         more information.
-    device : None (default) | str
+    mff_device : None (default) | str
         If exporting to MFF format, it is required to specify the device on
         which EEG was recorded (e.g. 'HydroCel GSN 256 1.0'). This is necessary
         for determining the sensor layout and coordinates specs.
-    history : None (default) | list of dict
+    mff_history : None (default) | list of dict
         If exporting to MFF format, it is optional to provide a list of history
         entries (dictionaries) to be written to history.xml. This must adhere
         to the format described in mffpy.xml_files.History.content. If None, no
@@ -1495,10 +1496,10 @@ def export_evokeds(fname, evoked, fmt='auto', device=None, history=None):
     logger.info(f'Exporting evoked dataset to {fname}...')
 
     if fmt == 'mff':
-        if device is None:
+        if mff_device is None:
             raise ValueError('Export to MFF requires a device specification.')
         from .io.egi.egimff import export_evokeds_to_mff
-        export_evokeds_to_mff(fname, evoked, device, history)
+        export_evokeds_to_mff(fname, evoked, mff_device, mff_history)
     elif fmt == 'eeglab':
         raise NotImplementedError('Export to EEGLAB not implemented.')
     elif fmt == 'edf':
