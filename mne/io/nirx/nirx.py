@@ -159,7 +159,7 @@ class RawNIRX(BaseRaw):
         if is_aurora:
             # We may need to ease this requirement back
             if hdr['GeneralInfo']['Version'] not in ['2021.4.0-34-ge9fdbbc8']:
-                warn("MNE has not been tested with Aurora version"
+                warn("MNE has not been tested with Aurora version "
                      f"{hdr['GeneralInfo']['Version']}")
         else:
             if hdr['GeneralInfo']['NIRStar'] not in ['"15.0"', '"15.2"',
