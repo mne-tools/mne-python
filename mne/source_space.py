@@ -2251,6 +2251,8 @@ def _vol_vertex(width, height, jj, kk, pp):
 
 def _get_mgz_header(fname):
     """Adapted from nibabel to quickly extract header info."""
+    fname = _check_fname(fname, overwrite='read', must_exist=True,
+                         name='MRI image')
     if not fname.endswith('.mgz'):
         raise IOError('Filename must end with .mgz')
     header_dtd = [('version', '>i4'), ('dims', '>i4', (4,)),
