@@ -33,7 +33,7 @@ from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
                       _CheckInside)
 from .utils import (get_subjects_dir, check_fname, logger, verbose, fill_doc,
                     _ensure_int, check_version, _get_call_line, warn,
-                    _check_fname, _check_path_like, has_nibabel, _check_sphere,
+                    _check_fname, _check_path_like, _check_sphere,
                     _validate_type, _check_option, _is_numeric, _pl, _suggest,
                     object_size, sizeof_fmt)
 from .parallel import parallel_func, check_n_jobs
