@@ -777,8 +777,12 @@ def read_evokeds_mff(fname, condition=None, channel_naming='E%d',
         raise ValueError('fname must be an MFF file with extension ".mff".')
     # Confirm the input MFF is averaged
     mff = mffpy.Reader(fname)
-    if mff.flavor != 'averaged':
-        raise ValueError(f'{fname} is a {mff.flavor} MFF file. '
+    try:
+        flavor = mff.mff_flavor
+    except AttributeError:  # < 6.3
+        flavor = mff.flavor
+    if flavor not in ('averaged', 'segmented'):  # old, new names
+        raise ValueError(f'{fname} is a {flavor} MFF file. '
                          'fname must be the path to an averaged MFF file.')
     # Check for categories.xml file
     if 'categories.xml' not in mff.directory.listdir():
