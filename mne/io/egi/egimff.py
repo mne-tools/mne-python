@@ -941,7 +941,6 @@ def export_evokeds_to_mff(fname, evoked, history=None):
     .. versionadded:: 0.24
 
     Only EEG channels are written to the output file.
-    If no measurement date is specified, the current date/time is used.
     ``info['device_info']['type']`` must be a valid MFF recording device
     (e.g. 'HydroCel GSN 256 1.0'). This field is automatically populated when
     using MFF read functions.
@@ -956,9 +955,8 @@ def export_evokeds_to_mff(fname, evoked, history=None):
     mffpy = _import_mffpy('Export evokeds to MFF.')
     import pytz
     writer = mffpy.Writer(fname)
-    record_time = info['meas_date'] or \
-        pytz.utc.localize(datetime.datetime.utcnow())
-    writer.addxml('fileInfo', recordTime=record_time)
+    current_time = pytz.utc.localize(datetime.datetime.utcnow())
+    writer.addxml('fileInfo', recordTime=current_time)
     try:
         device = info['device_info']['type']
     except (TypeError, KeyError):
