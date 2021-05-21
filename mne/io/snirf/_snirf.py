@@ -14,7 +14,7 @@ from ...utils import logger, verbose, fill_doc, warn, _check_fname
 from ...utils.check import _require_version
 from ..constants import FIFF
 from .._digitization import _make_dig_points
-from ...transforms import _frame_to_str, apply_trans, _get_trans
+from ...transforms import _frame_to_str
 from ..nirx.nirx import _convert_fnirs_to_head
 
 
