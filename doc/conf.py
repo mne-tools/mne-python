@@ -781,6 +781,7 @@ def reset_warnings(gallery_conf, fname):
                 r'sphinx\.util\.smartypants is deprecated',
                 'is a deprecated alias for the builtin',  # NumPy
                 'the old name will be removed',  # Jinja, via sphinx
+                'rcParams is deprecated',  # PyVista
                 ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)
