@@ -2762,7 +2762,6 @@ class Brain(object):
         n_steps : int
             Number of smoothing steps.
         """
-        from scipy import sparse
         from ...morph import _hemi_morph
         for hemi in ['lh', 'rh']:
             hemi_data = self._data.get(hemi)
@@ -2776,12 +2775,11 @@ class Brain(object):
                         'parameter must not be None'
                         % (len(hemi_data), self.geo[hemi].x.shape[0]))
                 morph_n_steps = 'nearest' if n_steps == -1 else n_steps
-                maps = sparse.eye(len(self.geo[hemi].coords), format='csr')
                 with use_log_level(False):
                     smooth_mat = _hemi_morph(
                         self.geo[hemi].orig_faces,
                         np.arange(len(self.geo[hemi].coords)),
-                        vertices, morph_n_steps, maps, warn=False)
+                        vertices, morph_n_steps, maps=None, warn=False)
                 self._data[hemi]['smooth_mat'] = smooth_mat
         self.set_time_point(self._data['time_idx'])
         self._data['smoothing_steps'] = n_steps

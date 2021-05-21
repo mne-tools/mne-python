@@ -1142,7 +1142,7 @@ def _hemi_morph(tris, vertices_to, vertices_from, smooth, maps, warn):
     e = mesh_edges(tris)
     e.data[e.data == 2] = 1
     n_vertices = e.shape[0]
-    e = e + sparse.eye(n_vertices)
+    e += sparse.eye(n_vertices, format='csr')
     if isinstance(smooth, str):
         _check_option('smooth', smooth, ('nearest',),
                       extra=' when used as a string.')

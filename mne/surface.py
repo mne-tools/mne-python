@@ -10,7 +10,7 @@
 
 from copy import deepcopy
 from distutils.version import LooseVersion
-from functools import partial
+from functools import partial, lru_cache
 from glob import glob
 from os import path as op
 from struct import pack
@@ -28,7 +28,7 @@ from .transforms import (transform_surface_to, _pol_to_cart, _cart_to_sph,
                          _get_trans, apply_trans, Transform)
 from .utils import (logger, verbose, get_subjects_dir, warn, _check_fname,
                     _check_option, _ensure_int, _TempDir, run_subprocess,
-                    _check_freesurfer_home)
+                    _check_freesurfer_home, _hashable_ndarray)
 
 
 ###############################################################################
@@ -1451,6 +1451,12 @@ def mesh_edges(tris):
     edges : sparse matrix
         The adjacency matrix.
     """
+    tris = _hashable_ndarray(tris)
+    return _mesh_edges(tris=tris)
+
+
+@lru_cache(maxsize=10)
+def _mesh_edges(tris=None):
     from scipy.sparse import coo_matrix
     if np.max(tris) > len(np.unique(tris)):
         raise ValueError(
