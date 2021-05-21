@@ -918,7 +918,7 @@ def _read_evoked_mff(fname, condition, channel_naming='E%d', verbose=None):
 
 
 @fill_doc
-def export_evokeds_to_mff(fname, evoked, device, history):
+def export_evokeds_to_mff(fname, evoked, history=None):
     """Export evoked dataset to MFF.
 
     Use :func:`mne.export_evokeds` instead.
@@ -930,9 +930,7 @@ def export_evokeds_to_mff(fname, evoked, device, history):
         List of evoked datasets to export to one file. Note that the
         measurement info from the first evoked instance is used, so be sure
         that information matches.
-    device : str
-        The device on which EEG was recorded (e.g. 'HydroCel GSN 256 1.0').
-    history : None | list of dict
+    history : None (default) | list of dict
         Optional list of history entries (dictionaries) to be written to
         history.xml. This must adhere to the format described in
         mffpy.xml_files.History.content. If None, no history.xml will be
@@ -944,6 +942,9 @@ def export_evokeds_to_mff(fname, evoked, device, history):
 
     Only EEG channels are written to the output file.
     If no measurement date is specified, the current date/time is used.
+    ``info['device_info']['type']`` must be a valid MFF recording device
+    (e.g. 'HydroCel GSN 256 1.0'). This field is automatically populated when
+    using MFF read functions.
     """
     info = evoked[0].info
     if np.round(info['sfreq']) != info['sfreq']:
@@ -958,6 +959,10 @@ def export_evokeds_to_mff(fname, evoked, device, history):
     record_time = info['meas_date'] or \
         pytz.utc.localize(datetime.datetime.utcnow())
     writer.addxml('fileInfo', recordTime=record_time)
+    try:
+        device = info['device_info']['type']
+    except (TypeError, KeyError):
+        raise ValueError('No device type. Cannot determine sensor layout.')
     writer.add_coordinates_and_sensor_layout(device)
 
     # Add EEG data
