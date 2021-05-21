@@ -710,8 +710,6 @@ class MNEBrowseFigure(MNEFigure):
                 if self.mne.t_start + self.mne.duration > last_time:
                     self.mne.t_start = last_time - self.mne.duration
                 self._update_hscroll()
-                if key == 'end' and self.mne.vline_visible:  # prevent flicker
-                    self._show_vline(None)
                 self._redraw(annotations=True)
         elif key == '?':  # help window
             self._toggle_help_fig(event)
@@ -2200,10 +2198,9 @@ class MNEBrowseFigure(MNEFigure):
     def _show_vline(self, xdata):
         """Show the vertical line(s)."""
         if self.mne.is_epochs:
-            # special case: changed view duration w/ "home" or "end" key
-            # (no click event, hence no xdata)
+            # convert xdata to be epoch-relative (for the text)
             rel_time = self._recompute_epochs_vlines(xdata)
-            xdata = rel_time + self.mne.inst.times[0]  # for the text
+            xdata = rel_time + self.mne.inst.times[0]
         else:
             self.mne.vline.set_xdata(xdata)
             self.mne.vline_hscroll.set_xdata(xdata)
@@ -2218,6 +2215,7 @@ class MNEBrowseFigure(MNEFigure):
                 artist.set_visible(visible)
                 self.draw_artist(artist)
         self.mne.vline_visible = visible
+        self.canvas.draw_idle()
 
 
 class MNELineFigure(MNEFigure):

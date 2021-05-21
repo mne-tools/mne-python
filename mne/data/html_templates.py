@@ -56,10 +56,16 @@ info_template = Template("""
         <th>Highpass</th>
         <td>{{u'%0.2f' % info['highpass']}} Hz</td>
     </tr>
-     <tr>
+    <tr>
         <th>Lowpass</th>
         <td>{{u'%0.2f' % info['lowpass']}} Hz</td>
     </tr>
+    {{if projs}}
+        <tr>
+            <th>Projections</th>
+            <td>{{projs}}</td>
+        </tr>
+    {{endif}}
 </table>
 """)
 

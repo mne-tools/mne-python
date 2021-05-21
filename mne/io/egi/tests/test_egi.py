@@ -369,7 +369,6 @@ def test_io_egi_evokeds_mff(idx, cond, tmax, signals, bads):
     assert evoked_cond.info['nchan'] == 259
     assert evoked_cond.info['sfreq'] == 250.0
     assert not evoked_cond.info['custom_ref_applied']
-    assert evoked_cond.info['dig'] is None
 
 
 @requires_version('mffpy', '0.5.7')

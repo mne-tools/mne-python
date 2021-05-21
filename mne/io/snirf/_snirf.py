@@ -15,10 +15,11 @@ from ...utils.check import _require_version
 from ..constants import FIFF
 from .._digitization import _make_dig_points
 from ...transforms import _frame_to_str
+from ..nirx.nirx import _convert_fnirs_to_head
 
 
 @fill_doc
-def read_raw_snirf(fname, preload=False, verbose=None):
+def read_raw_snirf(fname, optode_frame="unknown", preload=False, verbose=None):
     """Reader for a continuous wave SNIRF data.
 
     .. note:: This reader supports the .snirf file type only,
@@ -32,6 +33,11 @@ def read_raw_snirf(fname, preload=False, verbose=None):
     ----------
     fname : str
         Path to the SNIRF data file.
+    optode_frame : str
+        Coordinate frame used for the optode positions. The default is unknown,
+        in which case the positions are not modified. If a known coordinate
+        frame is provided (head, meg, mri), then the positions are transformed
+        in to the Neuromag head coordinate frame (head).
     %(preload)s
     %(verbose)s
 
@@ -44,7 +50,7 @@ def read_raw_snirf(fname, preload=False, verbose=None):
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
-    return RawSNIRF(fname, preload, verbose)
+    return RawSNIRF(fname, optode_frame, preload, verbose)
 
 
 def _open(fname):
@@ -59,6 +65,11 @@ class RawSNIRF(BaseRaw):
     ----------
     fname : str
         Path to the SNIRF data file.
+    optode_frame : str
+        Coordinate frame used for the optode positions. The default is unknown,
+        in which case the positions are not modified. If a known coordinate
+        frame is provided (head, meg, mri), then the positions are transformed
+        in to the Neuromag head coordinate frame (head).
     %(preload)s
     %(verbose)s
 
@@ -68,7 +79,8 @@ class RawSNIRF(BaseRaw):
     """
 
     @verbose
-    def __init__(self, fname, preload=False, verbose=None):
+    def __init__(self, fname, optode_frame="unknown",
+                 preload=False, verbose=None):
         _require_version('h5py', 'read raw SNIRF data')
         from ...externals.pymatreader.utils import _import_h5py
         # Must be here due to circular import error
@@ -234,6 +246,15 @@ class RawSNIRF(BaseRaw):
             elif "mm" in LengthUnit:
                 scal = 1000
 
+            srcPos3D /= scal
+            detPos3D /= scal
+
+            if optode_frame in ["head", "mri", "meg"]:
+                # These are all in MNI or MEG coordinates, so let's transform
+                # them to the Neuromag head coordinate frame
+                srcPos3D, detPos3D, _, _ = _convert_fnirs_to_head(
+                    'fsaverage', optode_frame, 'head', srcPos3D, detPos3D, [])
+
             for idx, chan in enumerate(channels):
                 src_idx = int(np.array(dat.get('nirs/data1/' +
                                                chan + '/sourceIndex'))[0])
@@ -241,15 +262,18 @@ class RawSNIRF(BaseRaw):
                                                chan + '/detectorIndex'))[0])
                 wve_idx = int(np.array(dat.get('nirs/data1/' +
                                                chan + '/wavelengthIndex'))[0])
-                info['chs'][idx]['loc'][3:6] = srcPos3D[src_idx - 1, :] / scal
-                info['chs'][idx]['loc'][6:9] = detPos3D[det_idx - 1, :] / scal
+                info['chs'][idx]['loc'][3:6] = srcPos3D[src_idx - 1, :]
+                info['chs'][idx]['loc'][6:9] = detPos3D[det_idx - 1, :]
                 # Store channel as mid point
                 midpoint = (info['chs'][idx]['loc'][3:6] +
                             info['chs'][idx]['loc'][6:9]) / 2
                 info['chs'][idx]['loc'][0:3] = midpoint
                 info['chs'][idx]['loc'][9] = fnirs_wavelengths[wve_idx - 1]
 
-            if 'MNE_coordFrame' in dat.get('nirs/metaDataTags/'):
+            if optode_frame in ["head", "mri", "meg"]:
+                # Then the transformation to head was performed above
+                coord_frame = FIFF.FIFFV_COORD_HEAD
+            elif 'MNE_coordFrame' in dat.get('nirs/metaDataTags/'):
                 coord_frame = int(dat.get('/nirs/metaDataTags/MNE_coordFrame')
                                   [0])
             else:

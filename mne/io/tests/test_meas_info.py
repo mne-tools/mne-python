@@ -809,6 +809,14 @@ def test_repr():
     assert 'dev_head_t: MEG device -> isotrak transform' in repr(info)
 
 
+def test_repr_html():
+    """Test Info HTML repr."""
+    info = read_info(raw_fname)
+    assert 'Projections' in info._repr_html_()
+    info['projs'] = []
+    assert 'Projections' not in info._repr_html_()
+
+
 @testing.requires_testing_data
 def test_invalid_subject_birthday():
     """Test handling of an invalid birthday in the raw file."""
