@@ -288,10 +288,8 @@ class RawNIRX(BaseRaw):
 
         # These are all in MNI coordinates, so let's transform them to
         # the Neuromag head coordinate frame
-        mri_head_t, _ = _get_trans('fsaverage', 'mri', 'head')
-        src_locs = apply_trans(mri_head_t, src_locs)
-        det_locs = apply_trans(mri_head_t, det_locs)
-        ch_locs = apply_trans(mri_head_t, ch_locs)
+        src_locs, det_locs ,ch_locs, mri_head_t = _convert_fnirs_to_head(
+            'fsaverage','mri', 'head', src_locs, det_locs, ch_locs)
 
         # Set up digitization
         dig = get_mni_fiducials('fsaverage', verbose=False)
@@ -471,3 +469,11 @@ def _read_csv_rows_cols(fname, start, stop, cols, bounds):
     x.shape = (stop - start, -1)
     x = x[:, cols]
     return x
+
+
+def _convert_fnirs_to_head(trans, fro, to, src_locs, det_locs, ch_locs):
+    mri_head_t, _ = _get_trans(trans, fro, to)
+    src_locs = apply_trans(mri_head_t, src_locs)
+    det_locs = apply_trans(mri_head_t, det_locs)
+    ch_locs = apply_trans(mri_head_t, ch_locs)
+    return src_locs, det_locs ,ch_locs, mri_head_t

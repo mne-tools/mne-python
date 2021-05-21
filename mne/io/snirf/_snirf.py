@@ -15,6 +15,7 @@ from ...utils.check import _require_version
 from ..constants import FIFF
 from .._digitization import _make_dig_points
 from ...transforms import _frame_to_str, apply_trans, _get_trans
+from ..nirx.nirx import _convert_fnirs_to_head
 
 
 @fill_doc
@@ -251,9 +252,8 @@ class RawSNIRF(BaseRaw):
             if optode_frame in ["head", "mri", "meg"]:
                 # These are all in MNI or MEG coordinates, so let's transform
                 # them to the Neuromag head coordinate frame
-                mri_head_t, _ = _get_trans('fsaverage', optode_frame, 'head')
-                srcPos3D = apply_trans(mri_head_t, srcPos3D)
-                detPos3D = apply_trans(mri_head_t, detPos3D)
+                srcPos3D, detPos3D, _, _ = _convert_fnirs_to_head(
+                    'fsaverage', optode_frame, 'head', srcPos3D, detPos3D, [])
 
             for idx, chan in enumerate(channels):
                 src_idx = int(np.array(dat.get('nirs/data1/' +
