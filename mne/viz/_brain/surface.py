@@ -131,7 +131,8 @@ class _Surface(object):
             else:
                 coords -= (np.min(x_) + self.offset) * self.x_dir
         surf = dict(rr=coords, tris=faces)
-        complete_surface_info(surf, copy=False, verbose=False)
+        complete_surface_info(
+            surf, copy=False, verbose=False, do_neighbor_tri=False)
         nn = surf['nn']
         self.coords = coords
         self.faces = faces

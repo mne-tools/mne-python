@@ -540,7 +540,8 @@ class Brain(object):
                         alpha=self._silhouette["alpha"],
                         decimate=self._silhouette["decimate"],
                     )
-                self._renderer.set_camera(**views_dicts[h][v])
+                self._renderer.set_camera(update=False, reset_camera=False,
+                                          **views_dicts[h][v])
 
         self.interaction = interaction
         self._closed = False
@@ -2009,7 +2010,8 @@ class Brain(object):
                               bgcolor=self._brain_color[:3])
                 kwargs.update(colorbar_kwargs or {})
                 self._scalar_bar = self._renderer.scalarbar(**kwargs)
-            self._renderer.set_camera(**views_dicts[hemi][v])
+            self._renderer.set_camera(
+                update=False, reset_camera=False, **views_dicts[hemi][v])
 
         # 4) update the scalar bar and opacity
         self.update_lut(alpha=alpha)
@@ -2306,7 +2308,7 @@ class Brain(object):
                 name=label_name,
             )
             if reset_camera:
-                self._renderer.set_camera(**views_dicts[hemi][v])
+                self._renderer.set_camera(update=False, **views_dicts[hemi][v])
             if self.time_viewer and self.show_traces \
                     and self.traces_mode == 'label':
                 label._color = orig_color

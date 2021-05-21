@@ -316,10 +316,10 @@ class _Renderer(_AbstractRenderer):
 
     def set_camera(self, azimuth=None, elevation=None, distance=None,
                    focalpoint=None, roll=None, reset_camera=None,
-                   rigid=None):
+                   rigid=None, update=True):
         _set_3d_view(figure=self.fig, azimuth=azimuth,
                      elevation=elevation, distance=distance,
-                     focalpoint=focalpoint, roll=roll)
+                     focalpoint=focalpoint, roll=roll, update=update)
 
     def reset_camera(self):
         renderer = getattr(self.fig.scene, 'renderer', None)
@@ -454,13 +454,14 @@ def _close_all():
 
 
 def _set_3d_view(figure, azimuth, elevation, focalpoint, distance, roll=None,
-                 reset_camera=True):
+                 reset_camera=True, update=True):
     from mayavi import mlab
     with warnings.catch_warnings(record=True):  # traits
         with SilenceStdout():
             mlab.view(azimuth, elevation, distance,
                       focalpoint=focalpoint, figure=figure, roll=roll)
-            mlab.draw(figure)
+            if update:
+                mlab.draw(figure)
 
 
 def _set_3d_title(figure, title, size=40):
