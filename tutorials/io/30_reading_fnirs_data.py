@@ -6,23 +6,19 @@ r"""
 Importing data from fNIRS devices
 =================================
 
-MNE includes various functions and utilities for reading fNIRS
-data and optode locations. Regardless of the manufacturer and file format,
-MNE stores both the measurement data and metadata in a consistent manner.
+fNIRS devices consist of two kinds of optodes: light sources (AKA "emitters" or
+"transmitters") and light detectors (AKA "receivers"). Channels are defined as
+source-detector pairs, and channel locations are defined as the midpoint
+between source and detector.
 
-fNIRS devices consist of light sources and light detectors,
-often also termed emitter/transmitter and receiver respectively.
-A channel is formed by source-detector pairs, and MNE represents the
-channel location as the midpoint between source and detector.
-MNE stores the location of the channels, sources, and
-detectors.
-There are a variety of fNIRS data types which can be represented in MNE.
-For continuous wave fNIRS data this includes amplitude, optical density,
-oxyhaemoglobin, and deoxyhemoglobin.
-And for frequency domain fNIRS this additionally includes
-AC amplitude and phase.
-Different vendors save the data as different data types, and MNE will load
-the data as the appropriate type.
+MNE-Python provides functions for reading fNIRS data and optode locations from
+several file formats. Regardless of the device manufacturer or file format,
+MNE-Python's fNIRS functions will internally store the measurement data and its
+metadata in the same way (e.g., data values are always converted into SI
+units). Supported measurement types include amplitude, optical density,
+oxyhaemoglobin concentration, and deoxyhemoglobin concentration (for continuous
+wave fNIRS), and additionally AC amplitude and phase (for
+frequency domain fNIRS).
 
 .. warning:: MNE stores metadata internally with a specific structure,
              and internal functions expect specific naming conventions.
