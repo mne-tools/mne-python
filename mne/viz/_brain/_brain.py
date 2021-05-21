@@ -1665,7 +1665,13 @@ class Brain(object):
         return line
 
     def plot_time_line(self, update=True):
-        """Add the time line to the MPL widget."""
+        """Add the time line to the MPL widget.
+
+        Parameters
+        ----------
+        update : bool
+            Force an update of the plot. Defaults to True.
+        """
         if self.mpl_canvas is None:
             return
         if isinstance(self.show_traces, bool) and self.show_traces:
@@ -1677,6 +1683,7 @@ class Brain(object):
                     label='time',
                     color=self._fg_color,
                     lw=1,
+                    update=update,
                 )
             self.time_line.set_xdata(current_time)
             if update:
@@ -2413,7 +2420,7 @@ class Brain(object):
         self.add_annotation(self.annot, color="w", alpha=0.75)
 
         # now plot the time line
-        self.plot_time_line()
+        self.plot_time_line(update=False)
         self.mpl_canvas.update_plot()
 
         for hemi in self._hemis:
