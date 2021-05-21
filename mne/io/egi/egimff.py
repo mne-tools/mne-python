@@ -106,6 +106,8 @@ def _read_mff_header(filepath):
     # Add the sensor info.
     sensor_layout_file = op.join(filepath, 'sensorLayout.xml')
     sensor_layout_obj = parse(sensor_layout_file)
+    summaryinfo['device'] = (sensor_layout_obj.getElementsByTagName('name')
+                             [0].firstChild.data)
     sensors = sensor_layout_obj.getElementsByTagName('sensor')
     chan_type = list()
     chan_unit = list()
@@ -458,6 +460,7 @@ class RawMff(BaseRaw):
             egi_info['hour'], egi_info['minute'], egi_info['second'])
         my_timestamp = time.mktime(my_time.timetuple())
         info['meas_date'] = _ensure_meas_date_none_or_dt((my_timestamp, 0))
+        info['device_info'] = dict(type=egi_info['device'])
 
         # First: EEG
         ch_names = [channel_naming % (i + 1) for i in
@@ -847,6 +850,7 @@ def _read_evoked_mff(fname, condition, channel_naming='E%d', verbose=None):
                 range(mff.num_channels['EEG'])]
     ch_names.extend(egi_info['pns_names'])
     info = create_info(ch_names, mff.sampling_rates['EEG'], ch_types)
+    info['device_info'] = dict(type=egi_info['device'])
     info['nchan'] = sum(mff.num_channels.values())
 
     # Add individual channel info
