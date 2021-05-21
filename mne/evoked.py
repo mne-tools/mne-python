@@ -1437,11 +1437,15 @@ def _write_evokeds(fname, evoked, check=True):
 
 
 @fill_doc
-def export_evokeds(fname, evoked, fmt='auto', *, mff_device=None,
-                   mff_history=None):
+def export_evokeds(fname, evoked, fmt='auto', **kwargs):
     """Export evoked dataset to external formats.
 
-    Supported formats: MFF (mff, uses module mffpy)
+    This function is a wrapper for format-specific export functions. The export
+    function is selected based on the inferred file format. All arguments are
+    passed to the respective export function.
+
+    Supported formats
+        MFF (mff, uses `mne.io.egi.egimff.export_evokeds_to_mff`)
     %(export_warning)s :func:`mne.write_evokeds` instead.
 
     Parameters
@@ -1455,15 +1459,10 @@ def export_evokeds(fname, evoked, fmt='auto', *, mff_device=None,
         Format of the export. Defaults to ``'auto'``, which will infer the
         format from the filename extension. See supported formats above for
         more information.
-    mff_device : None (default) | str
-        If exporting to MFF format, it is required to specify the device on
-        which EEG was recorded (e.g. 'HydroCel GSN 256 1.0'). This is necessary
-        for determining the sensor layout and coordinates specs.
-    mff_history : None (default) | list of dict
-        If exporting to MFF format, it is optional to provide a list of history
-        entries (dictionaries) to be written to history.xml. This must adhere
-        to the format described in mffpy.xml_files.History.content. If None, no
-        history.xml will be written.
+    **kwargs
+        Additional keyword arguments to pass to the underlying export function.
+        For details, see the arguments of the export function for the
+        respective file format.
 
     See Also
     --------
@@ -1472,10 +1471,6 @@ def export_evokeds(fname, evoked, fmt='auto', *, mff_device=None,
     Notes
     -----
     .. versionadded:: 0.24
-
-    MFF exports
-        Only EEG channels are written to the output file.
-        If no measurement date is specified, the current date/time is used.
     """
     supported_export_formats = {
         'mff': ('mff',),
@@ -1491,10 +1486,8 @@ def export_evokeds(fname, evoked, fmt='auto', *, mff_device=None,
     logger.info(f'Exporting evoked dataset to {fname}...')
 
     if fmt == 'mff':
-        if mff_device is None:
-            raise ValueError('Export to MFF requires a device specification.')
         from .io.egi.egimff import export_evokeds_to_mff
-        export_evokeds_to_mff(fname, evoked, mff_device, mff_history)
+        export_evokeds_to_mff(fname, evoked, **kwargs)
     elif fmt == 'eeglab':
         raise NotImplementedError('Export to EEGLAB not implemented.')
     elif fmt == 'edf':

@@ -265,8 +265,7 @@ def test_export_evokeds_to_mff(tmpdir, fmt):
             'results': ['Result 1', 'Result 2']
         }
     ]
-    export_evokeds(export_fname, evoked, fmt=fmt,
-                   mff_device='HydroCel GSN 256 1.0', mff_history=history)
+    export_evokeds(export_fname, evoked, fmt=fmt, history=history)
     # Drop non-EEG channels
     evoked = [ave.drop_channels(['ECG', 'EMG']) for ave in evoked]
     evoked_exported = read_evokeds_mff(export_fname)
@@ -283,10 +282,15 @@ def test_export_evokeds_to_mff(tmpdir, fmt):
         assert_allclose(ave_exported.times, ave.times)
 
 
+@requires_version('mffpy', '0.5.7')
+@requires_testing_data
 def test_export_to_mff_no_device():
-    """Test no device specification throws ValueError."""
-    evoked = read_evokeds(fname)
-    with pytest.raises(ValueError, match='Export to MFF requires a device'):
+    """Test no device type throws ValueError."""
+    egi_path = op.join(data_path(download=False), 'EGI')
+    egi_evoked_fname = op.join(egi_path, 'test_egi_evoked.mff')
+    evoked = read_evokeds_mff(egi_evoked_fname, condition='Category 1')
+    evoked.info['device_info'] = None
+    with pytest.raises(ValueError, match='No device type.'):
         export_evokeds('output.mff', evoked)
 
 
@@ -295,7 +299,7 @@ def test_export_to_mff_incompatible_sfreq():
     """Test non-whole number sampling frequency throws ValueError."""
     evoked = read_evokeds(fname)
     with pytest.raises(ValueError, match=f'sfreq: {evoked[0].info["sfreq"]}'):
-        export_evokeds('output.mff', evoked, mff_device='HydroCel GSN 256 1.0')
+        export_evokeds('output.mff', evoked)
 
 
 @pytest.mark.parametrize('fmt,ext', [
