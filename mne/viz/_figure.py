@@ -447,6 +447,15 @@ class MNEBrowseFigure(MNEFigure):
             # hide some ticks
             ax_main.tick_params(axis='x', which='major', bottom=False)
             ax_hscroll.tick_params(axis='x', which='both', bottom=False)
+        else:
+            # Add Timestamp X-Ticks if activated
+            if self.mne.show_real_time:
+                if not isinstance(self.mne.show_real_time, str):
+                    self.mne.show_real_time = "%H:%M:%S"
+                for _ax in (ax_main, ax_hscroll):
+                    _ax.xaxis.set_major_formatter(
+                            FuncFormatter(self._xtick_timestamp_formatter))
+                    _ax.set_xlabel(f'Time ({self.mne.show_real_time})')
 
         # VERTICAL SCROLLBAR PATCHES (COLORED BY CHANNEL TYPE)
         ch_order = self.mne.ch_order
@@ -1775,7 +1784,7 @@ class MNEBrowseFigure(MNEFigure):
         return False
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    # SCALEBARS & Y-AXIS LABELS
+    # SCALEBARS & Y-AXIS LABELS & X-AXIS LABELS
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     def _show_scalebars(self):
@@ -1853,6 +1862,17 @@ class MNEBrowseFigure(MNEFigure):
             sty = ('italic' if text.get_text() in self.mne.whitened_ch_names
                    else 'normal')
             text.set_style(sty)
+
+    def _xtick_timestamp_formatter(self, xpos, _):
+        """Change the x-axis labels."""
+        import datetime
+        first_time = self.mne.inst.first_time
+        xdatetime = self.mne.inst.info['meas_date'] + \
+                    datetime.timedelta(seconds=xpos + first_time,
+                                       milliseconds=int(first_time % 1 * 1000))
+        xdtstr = xdatetime.strftime(self.mne.show_real_time)
+
+        return xdtstr
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # DATA TRACES
@@ -2204,7 +2224,11 @@ class MNEBrowseFigure(MNEFigure):
         else:
             self.mne.vline.set_xdata(xdata)
             self.mne.vline_hscroll.set_xdata(xdata)
-        self.mne.vline_text.set_text(f'{xdata:0.2f} s ')
+        if self.mne.show_real_time:
+            text = self._xtick_timestamp_formatter(xdata, None)
+        else:
+            text = f'{xdata:0.2f} s '
+        self.mne.vline_text.set_text(text)
         self._toggle_vline(True)
 
     def _toggle_vline(self, visible):

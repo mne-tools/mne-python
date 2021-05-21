@@ -31,8 +31,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              event_color='cyan', scalings=None, remove_dc=True, order=None,
              show_options=False, title=None, show=True, block=False,
              highpass=None, lowpass=None, filtorder=4,
-             clipping=_RAW_CLIP_DEF,
-             show_first_samp=False, proj=True, group_by='type',
+             clipping=_RAW_CLIP_DEF, show_first_samp=False,
+             show_real_time=False, proj=True, group_by='type',
              butterfly=False, decim='auto', noise_cov=None, event_id=None,
              show_scrollbars=True, show_scalebars=True, verbose=None):
     """Plot raw data.
@@ -125,6 +125,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
            Support for float, and default changed from None to 1.5.
     show_first_samp : bool
         If True, show time axis relative to the ``raw.first_samp``.
+    show_real_time : bool | str
+        If True or a datetime format code, the labels for x-axis ticks
+        will be the real time derived from the measurement-date in Info.
     proj : bool
         Whether to apply projectors prior to plotting (default is ``True``).
         Individual projectors can be enabled/disabled interactively (see
@@ -311,6 +314,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   duration=duration,
                   n_times=raw.n_times,
                   first_time=first_time,
+                  show_real_time=show_real_time,
                   decim=decim,
                   # events
                   event_color_dict=event_color_dict,
