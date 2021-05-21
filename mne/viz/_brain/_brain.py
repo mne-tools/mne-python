@@ -1192,7 +1192,7 @@ class Brain(object):
             alpha=0.5, ls=':')
 
         # now plot the time line
-        self.plot_time_line()
+        self.plot_time_line(update=False)
 
         # then the picked points
         for idx, hemi in enumerate(['lh', 'rh', 'vol']):
@@ -1221,7 +1221,7 @@ class Brain(object):
             else:
                 mesh = self._layered_meshes[hemi]._polydata
             vertex_id = vertices[ind[0]]
-            self._add_vertex_glyph(hemi, mesh, vertex_id)
+            self._add_vertex_glyph(hemi, mesh, vertex_id, update=False)
 
     def _configure_picking(self):
         # get data for each hemi
@@ -1491,7 +1491,7 @@ class Brain(object):
         self._layered_meshes[hemi].remove_overlay(label.name)
         self.picked_patches[hemi].remove(label_id)
 
-    def _add_vertex_glyph(self, hemi, mesh, vertex_id):
+    def _add_vertex_glyph(self, hemi, mesh, vertex_id, update=True):
         if vertex_id in self.picked_points[hemi]:
             return
 
@@ -1499,7 +1499,7 @@ class Brain(object):
         if self.act_data_smooth[hemi][0] is None:
             return
         color = next(self.color_cycle)
-        line = self.plot_time_course(hemi, vertex_id, color)
+        line = self.plot_time_course(hemi, vertex_id, color, update=update)
         if hemi == 'vol':
             ijk = np.unravel_index(
                 vertex_id, np.array(mesh.GetDimensions()) - 1, order='F')
@@ -1599,7 +1599,7 @@ class Brain(object):
             self.rms = None
         self._renderer._update()
 
-    def plot_time_course(self, hemi, vertex_id, color):
+    def plot_time_course(self, hemi, vertex_id, color, update=True):
         """Plot the vertex time course.
 
         Parameters
@@ -1610,6 +1610,8 @@ class Brain(object):
             The vertex identifier in the mesh.
         color : matplotlib color
             The color of the time course.
+        update : bool
+            Force an update of the plot. Defaults to True.
 
         Returns
         -------
@@ -1658,10 +1660,11 @@ class Brain(object):
             lw=1.,
             color=color,
             zorder=4,
+            update=update,
         )
         return line
 
-    def plot_time_line(self):
+    def plot_time_line(self, update=True):
         """Add the time line to the MPL widget."""
         if self.mpl_canvas is None:
             return
@@ -1676,7 +1679,8 @@ class Brain(object):
                     lw=1,
                 )
             self.time_line.set_xdata(current_time)
-            self.mpl_canvas.update_plot()
+            if update:
+                self.mpl_canvas.update_plot()
 
     def _configure_help(self):
         pairs = [
