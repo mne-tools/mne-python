@@ -593,6 +593,7 @@ def test_head_to_mni():
     assert_allclose(coords_MNI, coords_MNI_2, atol=10.0)
 
 
+@requires_nibabel()
 @testing.requires_testing_data
 def test_vertex_to_mni_fs_nibabel(monkeypatch):
     """Test equivalence of vert_to_mni for nibabel and freesurfer."""
@@ -601,7 +602,10 @@ def test_vertex_to_mni_fs_nibabel(monkeypatch):
     vertices = rng.randint(0, 100000, n_check)
     hemis = rng.randint(0, 1, n_check)
     coords = vertex_to_mni(vertices, hemis, subject, subjects_dir)
-    monkeypatch.setattr(mne.source_space, 'has_nibabel', lambda: False)
+    read_mri = mne.source_space._read_mri_info
+    monkeypatch.setattr(
+        mne.source_space, '_read_mri_info',
+        lambda *args, **kwargs: read_mri(*args, use_nibabel=True, **kwargs))
     coords_2 = vertex_to_mni(vertices, hemis, subject, subjects_dir)
     # less than 0.1 mm error
     assert_allclose(coords, coords_2, atol=0.1)

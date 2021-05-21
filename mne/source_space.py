@@ -1357,22 +1357,22 @@ def read_talxfm(subject, subjects_dir=None, verbose=None):
     return mri_mni_t
 
 
-def _read_mri_info(path, units='m', return_img=False):
+def _read_mri_info(path, units='m', return_img=False, use_nibabel=False):
     # This is equivalent but 100x slower, so only use nibabel if we need to
     # (later):
-    #
-    # import nibabel
-    # hdr = nibabel.load(path).header
-    # hdr = mgz.header
-    # n_orig = hdr.get_vox2ras()
-    # t_orig = hdr.get_vox2ras_tkr()
-    # dims = hdr.get_data_shape()
-    # zooms = hdr.get_zooms()[:3]
-    hdr = _get_mgz_header(path)
-    n_orig = hdr['vox2ras']
-    t_orig = hdr['vox2ras_tkr']
-    dims = hdr['dims']
-    zooms = hdr['zooms']
+    if use_nibabel:
+        import nibabel
+        hdr = nibabel.load(path).header
+        n_orig = hdr.get_vox2ras()
+        t_orig = hdr.get_vox2ras_tkr()
+        dims = hdr.get_data_shape()
+        zooms = hdr.get_zooms()[:3]
+    else:
+        hdr = _get_mgz_header(path)
+        n_orig = hdr['vox2ras']
+        t_orig = hdr['vox2ras_tkr']
+        dims = hdr['dims']
+        zooms = hdr['zooms']
 
     # extract the MRI_VOXEL to RAS (non-zero origin) transform
     vox_ras_t = Transform('mri_voxel', 'ras', n_orig)
