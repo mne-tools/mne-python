@@ -102,7 +102,7 @@ class RawNIRX(BaseRaw):
             # NIRScout devices and NIRSport1 devices
             keys = ('hdr', 'inf', 'set', 'tpl', 'wl1', 'wl2',
                     'config.txt', 'probeInfo.mat')
-            n_dat = len(glob.glob(f'{fname}/{dat}'))
+            n_dat = len(glob.glob('%s/*%s' % (fname, 'dat')))
             if n_dat != 1:
                 warn("A single dat file was expected in the specified path, "
                      f"but got {n_dat}. This may indicate that the file "
@@ -411,6 +411,8 @@ class RawNIRX(BaseRaw):
                 ch_names.extend([self.ch_names[2 * ci:2 * ci + 2]] * len(on))
 
         # Read triggers from event file
+        if not is_aurora:
+            files['tri'] = files['hdr'][:-3] + 'evt'
         if op.isfile(files['tri']):
             with _open(files['tri']) as fid:
                 t = [re.findall(r'(\d+)', line) for line in fid]
@@ -419,7 +421,8 @@ class RawNIRX(BaseRaw):
                     trigger_frame = float(t_[7])
                     desc = float(t_[8])
                 else:
-                    desc = ''.join(t_[1:])[::-1]
+                    binary_value = ''.join(t_[1:])[::-1]
+                    desc = float(int(binary_value, 2))
                     trigger_frame = float(t_[0])
                 onset.append(trigger_frame / samplingrate)
                 duration.append(1.)  # No duration info stored in files
