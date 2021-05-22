@@ -293,6 +293,7 @@ def test_discrete_source_space(tmpdir):
     assert _get_src_type(src_new, None) == 'discrete'
 
 
+@requires_nibabel()
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_volume_source_space(tmpdir):

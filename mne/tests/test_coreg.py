@@ -56,6 +56,7 @@ def test_coregister_fiducials():
     assert_array_almost_equal(trans_est['trans'], trans['trans'])
 
 
+@requires_nibabel()
 @pytest.mark.slowtest  # can take forever on OSX Travis
 @testing.requires_testing_data
 @pytest.mark.parametrize('scale', (.9, [1, .2, .8]))
