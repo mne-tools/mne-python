@@ -848,6 +848,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                   duration=duration,
                   n_times=n_times,
                   first_time=0,
+                  show_real_time=False,
                   decim=decim,
                   boundary_times=boundary_times,
                   # events

@@ -454,7 +454,7 @@ class MNEBrowseFigure(MNEFigure):
                     self.mne.show_real_time = "%H:%M:%S"
                 for _ax in (ax_main, ax_hscroll):
                     _ax.xaxis.set_major_formatter(
-                            FuncFormatter(self._xtick_timestamp_formatter))
+                        FuncFormatter(self._xtick_timestamp_formatter))
                     _ax.set_xlabel(f'Time ({self.mne.show_real_time})')
 
         # VERTICAL SCROLLBAR PATCHES (COLORED BY CHANNEL TYPE)
@@ -1863,16 +1863,21 @@ class MNEBrowseFigure(MNEFigure):
                    else 'normal')
             text.set_style(sty)
 
-    def _xtick_timestamp_formatter(self, xpos, _):
+    def _xtick_timestamp_formatter(self, _, xval):
         """Change the x-axis labels."""
         import datetime
         first_time = self.mne.inst.first_time
         xdatetime = self.mne.inst.info['meas_date'] + \
-                    datetime.timedelta(seconds=xpos + first_time,
-                                       milliseconds=int(first_time % 1 * 1000))
-        xdtstr = xdatetime.strftime(self.mne.show_real_time)
-
-        return xdtstr
+            datetime.timedelta(seconds=xval + first_time,
+                               milliseconds=int(first_time % 1 * 1000))
+        try:
+            xdtstr = xdatetime.strftime(self.mne.show_real_time)
+        except ValueError:
+            logger.warning(f'{self.mne.show_real_time} is not a valid '
+                           f'datetime-format-string!')
+            return xval
+        else:
+            return xdtstr
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # DATA TRACES

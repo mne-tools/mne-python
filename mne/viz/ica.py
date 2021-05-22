@@ -28,7 +28,8 @@ from ..utils import _reject_data_segments, verbose
 @fill_doc
 def plot_ica_sources(ica, inst, picks=None, start=None,
                      stop=None, title=None, show=True, block=False,
-                     show_first_samp=False, show_scrollbars=True):
+                     show_first_samp=False, show_real_time=False,
+                     show_scrollbars=True):
     """Plot estimated latent sources given the unmixing matrix.
 
     Typical usecases:
@@ -59,6 +60,9 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
         plotter. For evoked, this parameter has no effect. Defaults to False.
     show_first_samp : bool
         If True, show time axis relative to the ``raw.first_samp``.
+    show_real_time : bool | str
+        If True or a datetime format code, the labels for x-axis ticks
+        will be the real time derived from the measurement-date in Info.
     %(show_scrollbars)s
 
     Returns
@@ -85,7 +89,8 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
         fig = _plot_sources(ica, inst, picks, exclude, start=start, stop=stop,
                             show=show, title=title, block=block,
                             show_first_samp=show_first_samp,
-                            show_scrollbars=show_scrollbars)
+                            show_scrollbars=show_scrollbars,
+                            show_real_time=show_real_time)
     elif isinstance(inst, Evoked):
         if start is not None or stop is not None:
             inst = inst.copy().crop(start, stop)
@@ -923,7 +928,7 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
 
 
 def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
-                  show_scrollbars, show_first_samp):
+                  show_scrollbars, show_first_samp, show_real_time):
     """Plot the ICA components as a RawArray or EpochsArray."""
     from ._figure import _browse_figure
     from .. import EpochsArray, BaseEpochs
@@ -1033,6 +1038,7 @@ def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
                   duration=duration,
                   n_times=inst.n_times if is_raw else n_times,
                   first_time=first_time,
+                  show_real_time=show_real_time,
                   decim=1,
                   # events
                   event_times=None if is_raw else event_times,
