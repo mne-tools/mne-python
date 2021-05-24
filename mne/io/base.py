@@ -1490,9 +1490,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
              event_color='cyan', scalings=None, remove_dc=True, order=None,
              show_options=False, title=None, show=True, block=False,
              highpass=None, lowpass=None, filtorder=4, clipping=_RAW_CLIP_DEF,
-             show_first_samp=False, proj=True, group_by='type', butterfly=False,
-             decim='auto', noise_cov=None, event_id=None, show_scrollbars=True,
-             show_scalebars=True, show_real_time=False, verbose=None):
+             show_first_samp=False, proj=True, group_by='type',
+             butterfly=False, decim='auto', noise_cov=None, event_id=None,
+             show_scrollbars=True, show_scalebars=True, show_real_time=False,
+             verbose=None):
         return plot_raw(self, events, duration, start, n_channels, bgcolor,
                         color, bad_color, event_color, scalings, remove_dc,
                         order, show_options, title, show, block, highpass,
