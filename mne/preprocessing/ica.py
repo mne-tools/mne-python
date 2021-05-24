@@ -1839,13 +1839,13 @@ class ICA(ContainsMixin):
     @copy_function_doc_to_method_doc(plot_ica_sources)
     def plot_sources(self, inst, picks=None, start=None,
                      stop=None, title=None, show=True, block=False,
-                     show_first_samp=False, show_real_time=False,
-                     show_scrollbars=True):
+                     show_first_samp=False, show_scrollbars=True,
+                     show_real_time=False):
         return plot_ica_sources(self, inst=inst, picks=picks,
                                 start=start, stop=stop, title=title, show=show,
                                 block=block, show_first_samp=show_first_samp,
-                                show_real_time=show_real_time,
-                                show_scrollbars=show_scrollbars)
+                                show_scrollbars=show_scrollbars,
+                                show_real_time=show_real_time)
 
     @copy_function_doc_to_method_doc(plot_ica_scores)
     def plot_scores(self, scores, exclude=None, labels=None, axhline=None,

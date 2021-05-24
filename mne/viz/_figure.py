@@ -447,15 +447,13 @@ class MNEBrowseFigure(MNEFigure):
             # hide some ticks
             ax_main.tick_params(axis='x', which='major', bottom=False)
             ax_hscroll.tick_params(axis='x', which='both', bottom=False)
-        else:
-            # Add Timestamp X-Ticks if activated
-            if self.mne.show_real_time:
-                if not isinstance(self.mne.show_real_time, str):
-                    self.mne.show_real_time = "%H:%M:%S"
-                for _ax in (ax_main, ax_hscroll):
-                    _ax.xaxis.set_major_formatter(
-                        FuncFormatter(self._xtick_timestamp_formatter))
-                    _ax.set_xlabel(f'Time ({self.mne.show_real_time})')
+        elif self.mne.show_real_time:
+            if not isinstance(self.mne.show_real_time, str):
+                self.mne.show_real_time = "%H:%M:%S"
+            for _ax in (ax_main, ax_hscroll):
+                _ax.xaxis.set_major_formatter(
+                    FuncFormatter(self._xtick_timestamp_formatter))
+                _ax.set_xlabel(f'Time ({self.mne.show_real_time})')
 
         # VERTICAL SCROLLBAR PATCHES (COLORED BY CHANNEL TYPE)
         ch_order = self.mne.ch_order
@@ -1863,7 +1861,7 @@ class MNEBrowseFigure(MNEFigure):
                    else 'normal')
             text.set_style(sty)
 
-    def _xtick_timestamp_formatter(self, _, xval):
+    def _xtick_timestamp_formatter(self, xval, _=None):
         """Change the x-axis labels."""
         import datetime
         first_time = self.mne.inst.first_time
@@ -2230,7 +2228,7 @@ class MNEBrowseFigure(MNEFigure):
             self.mne.vline.set_xdata(xdata)
             self.mne.vline_hscroll.set_xdata(xdata)
         if self.mne.show_real_time:
-            text = self._xtick_timestamp_formatter(xdata, None)
+            text = self._xtick_timestamp_formatter(xdata)
         else:
             text = f'{xdata:0.2f} s '
         self.mne.vline_text.set_text(text)

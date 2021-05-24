@@ -32,9 +32,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              show_options=False, title=None, show=True, block=False,
              highpass=None, lowpass=None, filtorder=4,
              clipping=_RAW_CLIP_DEF, show_first_samp=False,
-             show_real_time=False, proj=True, group_by='type',
-             butterfly=False, decim='auto', noise_cov=None, event_id=None,
-             show_scrollbars=True, show_scalebars=True, verbose=None):
+             proj=True, group_by='type', butterfly=False, decim='auto',
+             noise_cov=None, event_id=None, show_scrollbars=True,
+             show_scalebars=True, show_real_time=False, verbose=None):
     """Plot raw data.
 
     Parameters
@@ -125,11 +125,6 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
            Support for float, and default changed from None to 1.5.
     show_first_samp : bool
         If True, show time axis relative to the ``raw.first_samp``.
-    show_real_time : bool | str
-        If True or a `datetime format code <https://docs.python.org/3/library
-        /datetime.html#strftime-and-strptime-format-codes>`_, the labels for
-        x-axis ticks will be the real time derived from the Info['meas_date'].
-        Default format code if True will be ``H:M:S``.
     proj : bool
         Whether to apply projectors prior to plotting (default is ``True``).
         Individual projectors can be enabled/disabled interactively (see
@@ -167,6 +162,11 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         Whether or not to show the scale bars. Defaults to True.
 
         .. versionadded:: 0.20.0
+    show_real_time : bool | str
+        If True or a `datetime format code <https://docs.python.org/3/library
+        /datetime.html#strftime-and-strptime-format-codes>`_, the labels for
+        x-axis ticks will be the time derived from ``Info['meas_date']``.
+        Default format code if True is ``'%%H:%%M:%%S'``.
     %(verbose)s
 
     Returns

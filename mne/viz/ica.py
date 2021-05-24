@@ -28,8 +28,8 @@ from ..utils import _reject_data_segments, verbose
 @fill_doc
 def plot_ica_sources(ica, inst, picks=None, start=None,
                      stop=None, title=None, show=True, block=False,
-                     show_first_samp=False, show_real_time=False,
-                     show_scrollbars=True):
+                     show_first_samp=False, show_scrollbars=True,
+                     show_real_time=False):
     """Plot estimated latent sources given the unmixing matrix.
 
     Typical usecases:
@@ -60,12 +60,12 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
         plotter. For evoked, this parameter has no effect. Defaults to False.
     show_first_samp : bool
         If True, show time axis relative to the ``raw.first_samp``.
+    %(show_scrollbars)s
     show_real_time : bool | str
         If True or a `datetime format code <https://docs.python.org/3/library
         /datetime.html#strftime-and-strptime-format-codes>`_, the labels for
         x-axis ticks will be the time derived from ``Info['meas_date']``.
         Default format code if True is ``'%%H:%%M:%%S'``.
-    %(show_scrollbars)s
 
     Returns
     -------
