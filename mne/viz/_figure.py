@@ -1874,7 +1874,7 @@ class MNEBrowseFigure(MNEFigure):
             xdtstr = xdatetime.strftime(self.mne.show_real_time)
         except ValueError:
             logger.warning(f'{self.mne.show_real_time} is not a valid '
-                           f'datetime-format-string!')
+                           f'datetime format string!')
             return xval
         else:
             return xdtstr
