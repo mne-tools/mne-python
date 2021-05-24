@@ -1648,6 +1648,14 @@ def dig_mri_distances(info, trans, subject, subjects_dir=None,
     return dists
 
 
+def _mesh_borders(tris, mask):
+    assert isinstance(mask, np.ndarray) and mask.ndim == 1
+    edges = mesh_edges(tris)
+    edges = edges.tocoo()
+    border_edges = mask[edges.row] != mask[edges.col]
+    return np.unique(edges.row[border_edges])
+
+
 def marching_cubes(image, level):
     """Compute marching cubes on an N dimensional image.
 
