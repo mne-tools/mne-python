@@ -10,7 +10,7 @@
 
 from copy import deepcopy
 from distutils.version import LooseVersion
-from functools import partial
+from functools import partial, lru_cache
 from glob import glob
 from os import path as op
 from struct import pack
@@ -28,7 +28,7 @@ from .transforms import (transform_surface_to, _pol_to_cart, _cart_to_sph,
                          _get_trans, apply_trans, Transform)
 from .utils import (logger, verbose, get_subjects_dir, warn, _check_fname,
                     _check_option, _ensure_int, _TempDir, run_subprocess,
-                    _check_freesurfer_home)
+                    _check_freesurfer_home, _hashable_ndarray)
 
 
 ###############################################################################
@@ -343,7 +343,7 @@ def _normal_orth(nn):
 
 @verbose
 def complete_surface_info(surf, do_neighbor_vert=False, copy=True,
-                          verbose=None):
+                          do_neighbor_tri=True, *, verbose=None):
     """Complete surface information.
 
     Parameters
@@ -351,9 +351,11 @@ def complete_surface_info(surf, do_neighbor_vert=False, copy=True,
     surf : dict
         The surface.
     do_neighbor_vert : bool
-        If True, add neighbor vertex information.
+        If True (default False), add neighbor vertex information.
     copy : bool
         If True (default), make a copy. If False, operate in-place.
+    do_neighbor_tri : bool
+        If True (default), compute triangle neighbors.
     %(verbose)s
 
     Returns
@@ -383,27 +385,28 @@ def complete_surface_info(surf, do_neighbor_vert=False, copy=True,
 
     #    Find neighboring triangles, accumulate vertex normals, normalize
     logger.info('    Triangle neighbors and vertex normals...')
-    surf['neighbor_tri'] = _triangle_neighbors(surf['tris'], surf['np'])
     surf['nn'] = _accumulate_normals(surf['tris'].astype(int),
                                      surf['tri_nn'], surf['np'])
     _normalize_vectors(surf['nn'])
 
     #   Check for topological defects
-    zero, fewer = list(), list()
-    for ni, n in enumerate(surf['neighbor_tri']):
-        if len(n) < 3:
-            if len(n) == 0:
-                zero.append(ni)
-            else:
-                fewer.append(ni)
-                surf['neighbor_tri'][ni] = np.array([], int)
-    if len(zero) > 0:
-        logger.info('    Vertices do not have any neighboring '
-                    'triangles: [%s]' % ', '.join(str(z) for z in zero))
-    if len(fewer) > 0:
-        logger.info('    Vertices have fewer than three neighboring '
-                    'triangles, removing neighbors: [%s]'
-                    % ', '.join(str(f) for f in fewer))
+    if do_neighbor_tri:
+        surf['neighbor_tri'] = _triangle_neighbors(surf['tris'], surf['np'])
+        zero, fewer = list(), list()
+        for ni, n in enumerate(surf['neighbor_tri']):
+            if len(n) < 3:
+                if len(n) == 0:
+                    zero.append(ni)
+                else:
+                    fewer.append(ni)
+                    surf['neighbor_tri'][ni] = np.array([], int)
+        if len(zero) > 0:
+            logger.info('    Vertices do not have any neighboring '
+                        'triangles: [%s]' % ', '.join(str(z) for z in zero))
+        if len(fewer) > 0:
+            logger.info('    Vertices have fewer than three neighboring '
+                        'triangles, removing neighbors: [%s]'
+                        % ', '.join(str(f) for f in fewer))
 
     #   Determine the neighboring vertices and fix errors
     if do_neighbor_vert is True:
@@ -1451,6 +1454,12 @@ def mesh_edges(tris):
     edges : sparse matrix
         The adjacency matrix.
     """
+    tris = _hashable_ndarray(tris)
+    return _mesh_edges(tris=tris)
+
+
+@lru_cache(maxsize=10)
+def _mesh_edges(tris=None):
     from scipy.sparse import coo_matrix
     if np.max(tris) > len(np.unique(tris)):
         raise ValueError(

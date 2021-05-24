@@ -655,17 +655,19 @@ class _AbstractMplCanvas(ABC):
             self.canvas.mpl_connect(
                 event + '_event', getattr(self, 'on_' + event))
 
-    def plot(self, x, y, label, **kwargs):
+    def plot(self, x, y, label, update=True, **kwargs):
         """Plot a curve."""
         line, = self.axes.plot(
             x, y, label=label, **kwargs)
-        self.update_plot()
+        if update:
+            self.update_plot()
         return line
 
-    def plot_time_line(self, x, label, **kwargs):
+    def plot_time_line(self, x, label, update=True, **kwargs):
         """Plot the vertical line."""
         line = self.axes.axvline(x, label=label, **kwargs)
-        self.update_plot()
+        if update:
+            self.update_plot()
         return line
 
     def update_plot(self):
