@@ -54,6 +54,7 @@ File I/O
    what
    io.read_info
    io.show_fiff
+   io.export_evokeds_to_mff
 
 Base class:
 

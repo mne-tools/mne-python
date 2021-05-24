@@ -1445,7 +1445,7 @@ def export_evokeds(fname, evoked, fmt='auto', **kwargs):
     passed to the respective export function.
 
     Supported formats
-        MFF (mff, uses `mne.io.egi.egimff.export_evokeds_to_mff`)
+        MFF (mff, uses :func:`mne.io.export_evokeds_to_mff`)
     %(export_warning)s :func:`mne.write_evokeds` instead.
 
     Parameters
@@ -1486,7 +1486,7 @@ def export_evokeds(fname, evoked, fmt='auto', **kwargs):
     logger.info(f'Exporting evoked dataset to {fname}...')
 
     if fmt == 'mff':
-        from .io.egi.egimff import export_evokeds_to_mff
+        from .io import export_evokeds_to_mff
         export_evokeds_to_mff(fname, evoked, **kwargs)
     elif fmt == 'eeglab':
         raise NotImplementedError('Export to EEGLAB not implemented.')
