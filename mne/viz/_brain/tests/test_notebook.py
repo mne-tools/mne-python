@@ -51,6 +51,7 @@ def test_notebook_interactive(renderer_notebook, brain_gc, nbexec):
     subjects_dir = os.path.join(data_path, 'subjects')
     fname_stc = os.path.join(sample_dir, 'sample_audvis_trunc-meg')
     stc = mne.read_source_estimate(fname_stc, subject='sample')
+    stc.crop(0.1, 0.11)
     initial_time = 0.13
     mne.viz.set_3d_backend('notebook')
     brain_class = mne.viz.get_brain_class()
