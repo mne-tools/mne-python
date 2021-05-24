@@ -64,7 +64,7 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
         If True or a `datetime format code <https://docs.python.org/3/library
         /datetime.html#strftime-and-strptime-format-codes>`_, the labels for
         x-axis ticks will be the real time derived from the Info['meas_date'].
-        Default format code if True will be ``H:M:S``.
+        Default format code if True will be ``'%%H:%%M:%%S'``.
     %(show_scrollbars)s
 
     Returns
