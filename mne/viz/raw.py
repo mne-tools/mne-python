@@ -126,8 +126,10 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     show_first_samp : bool
         If True, show time axis relative to the ``raw.first_samp``.
     show_real_time : bool | str
-        If True or a datetime format code, the labels for x-axis ticks
-        will be the real time derived from the measurement-date in Info.
+        If True or a `datetime format code <https://docs.python.org/3/library
+        /datetime.html#strftime-and-strptime-format-codes>`_, the labels for
+        x-axis ticks will be the real time derived from the Info['meas_date'].
+        Default format code if True will be ``H:M:S``.
     proj : bool
         Whether to apply projectors prior to plotting (default is ``True``).
         Individual projectors can be enabled/disabled interactively (see
