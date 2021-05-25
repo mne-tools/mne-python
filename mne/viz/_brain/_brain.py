@@ -1261,7 +1261,8 @@ class Brain(object):
         self._renderer._tool_bar_add_file_button(
             name="movie",
             desc="Save movie...",
-            func=lambda: self.save_movie(
+            func=lambda filename: self.save_movie(
+                filename=filename,
                 time_dilation=(1. / self.playback_speed)),
             shortcut="ctrl+shift+s",
         )
