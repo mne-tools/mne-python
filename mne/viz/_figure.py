@@ -1404,7 +1404,7 @@ class MNEBrowseFigure(MNEFigure):
             ylim = ax.get_ylim()        
             if len(self.mne.inst.annotations.description[idx].split(","))==2:                            
                 descr = self.mne.inst.annotations.description[idx].split(",")[0]
-                chname = self.mne.inst.annotations.description[idx].split(",")[1]                
+                chname = self.mne.inst.annotations.description[idx].split(",")[1]                             
                 yindex = [tt.get_position()[1] for tt in ax.yaxis.get_ticklabels() \
                           if tt.get_text()==chname][0]
                 ylim = [yindex-0.1,yindex+0.1]                
@@ -1433,8 +1433,9 @@ class MNEBrowseFigure(MNEFigure):
         """Update the array of annotation start/end times."""        
         segments = list()
         raw = self.mne.inst
-        if len(raw.annotations) and not self.mne.annotation_init:            
-            self.mne.annotation_init = True
+        if len(raw.annotations):
+            # and not self.mne.annotation_init:            
+            # self.mne.annotation_init = True
             for idx, annot in enumerate(raw.annotations):
                 annot_start = _sync_onset(raw, annot['onset'])
                 annot_end = annot_start + max(annot['duration'],
@@ -1442,8 +1443,8 @@ class MNEBrowseFigure(MNEFigure):
                 segments.append((annot_start, annot_end))
             self.mne.annotation_segments = np.array(segments)
             self.mne.annotation_segments_data = np.array(segments)
-        if self.mne.annotation_init:
-            self.mne.annotation_segments = self.mne.annotation_segments_data
+        # if self.mne.annotation_init:
+        #     self.mne.annotation_segments = self.mne.annotation_segments_data
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # CHANNEL SELECTION GUI
