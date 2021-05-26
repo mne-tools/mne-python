@@ -3138,11 +3138,6 @@ class Brain(object):
         %(brain_screenshot_time_viewer)s
         **kwargs : dict
             Specify additional options for :mod:`imageio`.
-
-        Returns
-        -------
-        dialog : object
-            The opened dialog is returned for testing purpose only.
         """
         if filename is None:
             filename = _generate_default_filename(".mp4")
