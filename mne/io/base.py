@@ -21,9 +21,7 @@ from collections import defaultdict
 import numpy as np
 
 from .constants import FIFF
-from .utils import _construct_bids_filename, _check_orig_units, \
-    _get_als_coords_from_chs
-from ..utils.check import _infer_check_export_fmt
+from .utils import _construct_bids_filename, _check_orig_units
 from .pick import (pick_types, pick_channels, pick_info, _picks_to_idx,
                    channel_type)
 from .meas_info import write_meas_info
@@ -49,8 +47,7 @@ from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      copy_function_doc_to_method_doc, _validate_type,
                      _check_preload, _get_argvalues, _check_option,
                      _build_data_frame, _convert_times, _scale_dataframe_data,
-                     _check_time_format, _arange_div,
-                     _check_eeglabio_installed)
+                     _check_time_format, _arange_div)
 from ..defaults import _handle_default
 from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo, _RAW_CLIP_DEF
 from ..event import find_events, concatenate_events
@@ -1470,40 +1467,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         -----
         %(export_eeglab_note)s
         """
-        supported_export_formats = {  # format : extensions
-            'eeglab': ('set',),
-            'edf': ('edf',),
-            'brainvision': ('eeg', 'vmrk', 'vhdr',)
-        }
-        fmt = _infer_check_export_fmt(fmt, fname, supported_export_formats)
-
-        if fmt == 'eeglab':
-            _check_eeglabio_installed()
-            import eeglabio.raw
-            # load data first
-            self.load_data()
-
-            # remove extra epoc and STI channels
-            drop_chs = ['epoc']
-            if not (self.filenames[0].endswith('.fif')):
-                drop_chs.append('STI 014')
-
-            ch_names = [ch for ch in self.ch_names if ch not in drop_chs]
-            cart_coords = _get_als_coords_from_chs(self.info['chs'],
-                                                   drop_chs)
-
-            annotations = [self.annotations.description,
-                           self.annotations.onset,
-                           self.annotations.duration]
-            eeglabio.raw.export_set(fname, data=self.get_data(picks=ch_names),
-                                    sfreq=self.info['sfreq'],
-                                    ch_names=ch_names,
-                                    ch_locs=cart_coords,
-                                    annotations=annotations)
-        elif fmt == 'edf':
-            raise NotImplementedError('Export to EDF format not implemented.')
-        elif fmt == 'brainvision':
-            raise NotImplementedError('Export to BrainVision not implemented.')
+        from ..export import export_raw
+        export_raw(fname, self, fmt, verbose=verbose)
 
     def _tmin_tmax_to_start_stop(self, tmin, tmax):
         start = int(np.floor(tmin * self.info['sfreq']))

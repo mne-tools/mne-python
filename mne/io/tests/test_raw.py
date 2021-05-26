@@ -24,13 +24,11 @@ from mne.externals.h5io import read_hdf5, write_hdf5
 from mne.io import read_raw_fif, RawArray, BaseRaw, Info, _writing_info_hdf5
 from mne.io.base import _get_scaling
 from mne.utils import (_TempDir, catch_logging, _raw_annot, _stamp_to_dt,
-                       object_diff, check_version, requires_pandas,
-                       _check_eeglabio_installed)
+                       object_diff, check_version, requires_pandas)
 from mne.io.meas_info import _get_valid_units
 from mne.io._digitization import DigPoint
 from mne.io.proj import Projection
 from mne.io.utils import _mult_cal_one
-from mne.io import read_raw_eeglab
 
 
 def assert_named_constants(info):
@@ -694,23 +692,3 @@ def test_get_data_units():
     # not the good type
     with pytest.raises(TypeError, match='instance of None, str, or dict'):
         raw.get_data(units=['fT/cm', 'fT', 'uV'])
-
-
-@pytest.mark.skipif(not _check_eeglabio_installed(strict=False),
-                    reason='eeglabio not installed')
-def test_export_eeglab(tmpdir):
-    """Test saving a Raw instance to EEGLAB's set format."""
-    fname = Path(__file__).parent / "data" / "test_raw.fif"
-    raw = read_raw_fif(fname)
-    raw.load_data()
-    temp_fname = op.join(str(tmpdir), 'test.set')
-    raw.export(temp_fname)
-    raw.drop_channels([ch for ch in ['epoc']
-                       if ch in raw.ch_names])
-    raw_read = read_raw_eeglab(temp_fname, preload=True)
-    assert raw.ch_names == raw_read.ch_names
-    cart_coords = np.array([d['loc'][:3] for d in raw.info['chs']])  # just xyz
-    cart_coords_read = np.array([d['loc'][:3] for d in raw_read.info['chs']])
-    assert_allclose(cart_coords, cart_coords_read)
-    assert_allclose(raw.times, raw_read.times)
-    assert_allclose(raw.get_data(), raw_read.get_data())

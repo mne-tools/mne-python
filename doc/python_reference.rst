@@ -27,6 +27,7 @@ directly from a terminal, see :ref:`python_commands`.
     reading_raw_data
     file_io
     creating_from_arrays
+    export
     datasets
     visualization
     preprocessing
