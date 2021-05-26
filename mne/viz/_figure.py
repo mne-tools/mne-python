@@ -447,13 +447,11 @@ class MNEBrowseFigure(MNEFigure):
             # hide some ticks
             ax_main.tick_params(axis='x', which='major', bottom=False)
             ax_hscroll.tick_params(axis='x', which='both', bottom=False)
-        elif self.mne.show_real_time:
-            if not isinstance(self.mne.show_real_time, str):
-                self.mne.show_real_time = "%H:%M:%S"
+        else:
             for _ax in (ax_main, ax_hscroll):
                 _ax.xaxis.set_major_formatter(
-                    FuncFormatter(self._xtick_timestamp_formatter))
-                _ax.set_xlabel(f'Time ({self.mne.show_real_time})')
+                    FuncFormatter(self._xtick_formatter))
+                _ax.set_xlabel(f'Time (HH:MM:SS.SSS)')
 
         # VERTICAL SCROLLBAR PATCHES (COLORED BY CHANNEL TYPE)
         ch_order = self.mne.ch_order
@@ -1861,21 +1859,24 @@ class MNEBrowseFigure(MNEFigure):
                    else 'normal')
             text.set_style(sty)
 
-    def _xtick_timestamp_formatter(self, xval, _=None):
+    def _xtick_formatter(self, xval, _=None):
         """Change the x-axis labels."""
-        import datetime
-        first_time = self.mne.inst.first_time
-        xdatetime = self.mne.inst.info['meas_date'] + \
-            datetime.timedelta(seconds=xval + first_time,
-                               milliseconds=int(first_time % 1 * 1000))
-        try:
-            xdtstr = xdatetime.strftime(self.mne.show_real_time)
-        except ValueError:
-            logger.warning(f'{self.mne.show_real_time} is not a valid '
-                           f'datetime format string!')
-            return xval
-        else:
+        if self.mne.time_format == 'datetime':
+            import datetime
+            first_time = self.mne.inst.first_time
+            seconds = int(xval + first_time)
+            milliseconds = int(str((xval + first_time) % 1)[2:5] or 0)
+            microseconds = int(str((xval + first_time) % 1)[5:8] or 0)
+            # Determining datetime with accuracy of microseconds to add
+            # up on first_time and meas_date correctly.
+            xdatetime = self.mne.inst.info['meas_date'] + \
+                datetime.timedelta(seconds=seconds,
+                                   milliseconds=milliseconds,
+                                   microseconds=microseconds)
+            xdtstr = xdatetime.strftime('%H:%M:%S.%f')[:-3]
             return xdtstr
+        else:
+            return xval
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # DATA TRACES
@@ -2227,10 +2228,10 @@ class MNEBrowseFigure(MNEFigure):
         else:
             self.mne.vline.set_xdata(xdata)
             self.mne.vline_hscroll.set_xdata(xdata)
-        if self.mne.show_real_time:
-            text = self._xtick_timestamp_formatter(xdata)
-        else:
+        if self.mne.time_format == 'float':
             text = f'{xdata:0.2f} s '
+        else:
+            text = self._xtick_formatter(xdata)
         self.mne.vline_text.set_text(text)
         self._toggle_vline(True)
 

@@ -34,7 +34,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              clipping=_RAW_CLIP_DEF, show_first_samp=False,
              proj=True, group_by='type', butterfly=False, decim='auto',
              noise_cov=None, event_id=None, show_scrollbars=True,
-             show_scalebars=True, show_real_time=False, verbose=None):
+             show_scalebars=True, time_format=False, verbose=None):
     """Plot raw data.
 
     Parameters
@@ -162,11 +162,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         Whether or not to show the scale bars. Defaults to True.
 
         .. versionadded:: 0.20.0
-    show_real_time : bool | str
-        If True or a `datetime format code <https://docs.python.org/3/library
-        /datetime.html#strftime-and-strptime-format-codes>`_, the labels for
-        x-axis ticks will be the time derived from ``Info['meas_date']``.
-        Default format code if True is ``'%%H:%%M:%%S'``.
+    time_format : 'float' | 'datetime
+        If 'datetime', the labels for x-axis ticks will be the time derived
+        from ``Info['meas_date']``. Default is 'float'.
     %(verbose)s
 
     Returns
@@ -316,7 +314,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   duration=duration,
                   n_times=raw.n_times,
                   first_time=first_time,
-                  show_real_time=show_real_time,
+                  time_format=time_format,
                   decim=decim,
                   # events
                   event_color_dict=event_color_dict,

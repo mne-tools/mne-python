@@ -29,7 +29,7 @@ from ..utils import _reject_data_segments, verbose
 def plot_ica_sources(ica, inst, picks=None, start=None,
                      stop=None, title=None, show=True, block=False,
                      show_first_samp=False, show_scrollbars=True,
-                     show_real_time=False):
+                     time_format=False):
     """Plot estimated latent sources given the unmixing matrix.
 
     Typical usecases:
@@ -61,11 +61,9 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
     show_first_samp : bool
         If True, show time axis relative to the ``raw.first_samp``.
     %(show_scrollbars)s
-    show_real_time : bool | str
-        If True or a `datetime format code <https://docs.python.org/3/library
-        /datetime.html#strftime-and-strptime-format-codes>`_, the labels for
-        x-axis ticks will be the time derived from ``Info['meas_date']``.
-        Default format code if True is ``'%%H:%%M:%%S'``.
+    time_format : 'float' | 'datetime
+        If 'datetime', the labels for x-axis ticks will be the time derived
+        from ``Info['meas_date']``. Default is 'float'.
 
     Returns
     -------
@@ -92,7 +90,7 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
                             show=show, title=title, block=block,
                             show_first_samp=show_first_samp,
                             show_scrollbars=show_scrollbars,
-                            show_real_time=show_real_time)
+                            time_format=time_format)
     elif isinstance(inst, Evoked):
         if start is not None or stop is not None:
             inst = inst.copy().crop(start, stop)
@@ -930,7 +928,7 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
 
 
 def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
-                  show_scrollbars, show_first_samp, show_real_time):
+                  show_scrollbars, show_first_samp, time_format):
     """Plot the ICA components as a RawArray or EpochsArray."""
     from ._figure import _browse_figure
     from .. import EpochsArray, BaseEpochs
@@ -1040,7 +1038,7 @@ def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
                   duration=duration,
                   n_times=inst.n_times if is_raw else n_times,
                   first_time=first_time,
-                  show_real_time=show_real_time,
+                  time_format=time_format,
                   decim=1,
                   # events
                   event_times=None if is_raw else event_times,
