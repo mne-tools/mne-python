@@ -11,7 +11,6 @@
 import os
 import os.path as path
 import sys
-from subprocess import check_output
 
 import pytest
 import numpy as np
@@ -392,6 +391,7 @@ def test_brain_save_movie(tmpdir, renderer, brain_gc):
     """Test saving a movie of a Brain instance."""
     if renderer._get_3d_backend() == "mayavi":
         pytest.skip('Save movie only supported on PyVista')
+    from imageio_ffmpeg import count_frames_and_secs
     brain = _create_testing_brain(hemi='lh', time_viewer=False)
     filename = str(path.join(tmpdir, "brain_test.mov"))
     for interactive_state in (False, True):
@@ -406,21 +406,12 @@ def test_brain_save_movie(tmpdir, renderer, brain_gc):
         assert not path.isfile(filename)
         tmin = 1
         tmax = 5
-        framerate = 1
-        time_dilation = 1
-        estimated_duration = np.floor((tmax - tmin) * time_dilation)
-        brain.save_movie(filename, time_dilation=time_dilation, tmin=tmin,
-                         tmax=tmax, framerate=framerate,
-                         interpolation='nearest')
-
+        duration = np.floor(tmax - tmin)
+        brain.save_movie(filename, time_dilation=1., tmin=tmin,
+                         tmax=tmax, interpolation='nearest')
         assert path.isfile(filename)
-
-        a = str(check_output('ffprobe -i  "' + filename +
-                             '" 2>&1 |grep "Duration"', shell=True))
-        a = a.split(",")[0].split("Duration:")[1].strip()
-        h, m, s = a.split(':')
-        duration = int(h) * 3600 + int(m) * 60 + float(s)
-        assert_allclose(estimated_duration, duration)
+        _, nsecs = count_frames_and_secs(filename)
+        assert_allclose(duration, nsecs, atol=0.2)
 
         os.remove(filename)
     brain.close()
