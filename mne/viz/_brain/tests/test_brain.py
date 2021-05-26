@@ -11,6 +11,7 @@
 import os
 import os.path as path
 import sys
+from subprocess import check_output
 
 import pytest
 import numpy as np
@@ -403,9 +404,24 @@ def test_brain_save_movie(tmpdir, renderer, brain_gc):
             brain.save_movie(filename, time_dilation=1, tmin=1, tmax=1.1,
                              bad_name='blah')
         assert not path.isfile(filename)
-        brain.save_movie(filename, time_dilation=0.1,
+        tmin = 1
+        tmax = 5
+        framerate = 1
+        time_dilation = 1
+        estimated_duration = np.floor((tmax - tmin) * time_dilation)
+        brain.save_movie(filename, time_dilation=time_dilation, tmin=tmin,
+                         tmax=tmax, framerate=framerate,
                          interpolation='nearest')
+
         assert path.isfile(filename)
+
+        a = str(check_output('ffprobe -i  "' + filename +
+                             '" 2>&1 |grep "Duration"', shell=True))
+        a = a.split(",")[0].split("Duration:")[1].strip()
+        h, m, s = a.split(':')
+        duration = int(h) * 3600 + int(m) * 60 + float(s)
+        assert_allclose(estimated_duration, duration)
+
         os.remove(filename)
     brain.close()
 
