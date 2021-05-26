@@ -361,7 +361,8 @@ def test_plot_raw_keypresses(raw):
     # test twice → once in normal, once in butterfly view.
     # NB: keys a, j, and ? are tested in test_plot_raw_child_figures()
     keys = ('pagedown', 'down', 'up', 'down', 'right', 'left', '-', '+', '=',
-            'd', 'd', 'pageup', 'home', 'end', 'z', 'z', 's', 's', 'f11', 'b')
+            'd', 'd', 'pageup', 'home', 'end', 'z', 'z', 's', 's', 'f11', 'b',
+            't')
     # test for group_by='original'
     for key in 2 * keys + ('escape',):
         fig.canvas.key_press_event(key)

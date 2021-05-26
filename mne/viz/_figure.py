@@ -451,7 +451,7 @@ class MNEBrowseFigure(MNEFigure):
             for _ax in (ax_main, ax_hscroll):
                 _ax.xaxis.set_major_formatter(
                     FuncFormatter(self._xtick_formatter))
-                _ax.set_xlabel(f'Time (HH:MM:SS.SSS)')
+                _ax.set_xlabel('Time (HH:MM:SS.SSS)')
 
         # VERTICAL SCROLLBAR PATCHES (COLORED BY CHANNEL TYPE)
         ch_order = self.mne.ch_order
@@ -748,6 +748,8 @@ class MNEBrowseFigure(MNEFigure):
         elif key == 'z':  # zen mode: hide scrollbars and buttons
             self._toggle_scrollbars()
             self._redraw(update_data=False)
+        elif key == 't':
+            self._toggle_time_format()
         else:  # check for close key / fullscreen toggle
             super()._keypress(event)
 
@@ -1044,6 +1046,7 @@ class MNEBrowseFigure(MNEFigure):
             ('p', 'Toggle draggable annotations' if is_raw else None),
             ('s', 'Toggle scalebars' if not is_ica else None),
             ('z', 'Toggle scrollbars'),
+            ('t', 'Toggle time-format'),
             ('F11', 'Toggle fullscreen' if not is_mac else None),
             ('?', 'Open this help window'),
             ('esc', 'Close focused figure or dialog window'),
@@ -1877,6 +1880,24 @@ class MNEBrowseFigure(MNEFigure):
             return xdtstr
         else:
             return xval
+
+    def _toggle_time_format(self):
+        if self.mne.time_format == 'float':
+            self.mne.time_format = 'datetime'
+            x_axis_label = 'Time (HH:MM:SS.SSS)'
+        else:
+            self.mne.time_format = 'float'
+            x_axis_label = 'Time (s)'
+
+        # Change x-axis-label
+        for _ax in (self.mne.ax_main, self.mne.ax_hscroll):
+            _ax.set_xlabel(x_axis_label)
+
+        self._redraw(update_data=False, annotations=False)
+
+        # Update vline-test if displayed
+        if self.mne.vline is not None and self.mne.vline.get_visible():
+            self._show_vline(self.mne.vline.get_xdata())
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # DATA TRACES
