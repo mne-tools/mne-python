@@ -391,6 +391,7 @@ def test_brain_save_movie(tmpdir, renderer, brain_gc):
     """Test saving a movie of a Brain instance."""
     if renderer._get_3d_backend() == "mayavi":
         pytest.skip('Save movie only supported on PyVista')
+    from imageio_ffmpeg import count_frames_and_secs
     brain = _create_testing_brain(hemi='lh', time_viewer=False)
     filename = str(path.join(tmpdir, "brain_test.mov"))
     for interactive_state in (False, True):
@@ -403,9 +404,15 @@ def test_brain_save_movie(tmpdir, renderer, brain_gc):
             brain.save_movie(filename, time_dilation=1, tmin=1, tmax=1.1,
                              bad_name='blah')
         assert not path.isfile(filename)
-        brain.save_movie(filename, time_dilation=0.1,
-                         interpolation='nearest')
+        tmin = 1
+        tmax = 5
+        duration = np.floor(tmax - tmin)
+        brain.save_movie(filename, time_dilation=1., tmin=tmin,
+                         tmax=tmax, interpolation='nearest')
         assert path.isfile(filename)
+        _, nsecs = count_frames_and_secs(filename)
+        assert_allclose(duration, nsecs, atol=0.2)
+
         os.remove(filename)
     brain.close()
 

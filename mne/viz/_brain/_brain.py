@@ -1261,7 +1261,9 @@ class Brain(object):
         self._renderer._tool_bar_add_file_button(
             name="movie",
             desc="Save movie...",
-            func=self.save_movie,
+            func=lambda filename: self.save_movie(
+                filename=filename,
+                time_dilation=(1. / self.playback_speed)),
             shortcut="ctrl+shift+s",
         )
         self._renderer._tool_bar_add_button(
@@ -3081,12 +3083,9 @@ class Brain(object):
             self._renderer._window_new_cursor("WaitCursor"))
 
         try:
-            self._save_movie(
-                filename=filename,
-                time_dilation=(1. / self.playback_speed),
-                callback=frame_callback,
-                **kwargs
-            )
+            self._save_movie(filename, time_dilation, tmin, tmax,
+                             framerate, interpolation, codec,
+                             bitrate, frame_callback, time_viewer, **kwargs)
         except (Exception, KeyboardInterrupt):
             warn('Movie saving aborted:\n' + traceback.format_exc())
         finally:
@@ -3139,11 +3138,6 @@ class Brain(object):
         %(brain_screenshot_time_viewer)s
         **kwargs : dict
             Specify additional options for :mod:`imageio`.
-
-        Returns
-        -------
-        dialog : object
-            The opened dialog is returned for testing purpose only.
         """
         if filename is None:
             filename = _generate_default_filename(".mp4")
