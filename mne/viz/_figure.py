@@ -451,7 +451,12 @@ class MNEBrowseFigure(MNEFigure):
             for _ax in (ax_main, ax_hscroll):
                 _ax.xaxis.set_major_formatter(
                     FuncFormatter(self._xtick_formatter))
-                _ax.set_xlabel('Time (HH:MM:SS.SSS)')
+                if self.mne.time_format == 'datetime':
+                    offset = self.mne.inst.first_time +\
+                             self.mne.inst.info['meas_date'].timestamp()
+                    ms_offset = int((round(offset) - offset) * 1e3)
+                    _ax.set_xlabel(f'Time (HH:MM:SS.SSS), '
+                                   f'offset = {ms_offset} ms')
 
         # VERTICAL SCROLLBAR PATCHES (COLORED BY CHANNEL TYPE)
         ch_order = self.mne.ch_order
@@ -1867,16 +1872,24 @@ class MNEBrowseFigure(MNEFigure):
         if self.mne.time_format == 'datetime':
             import datetime
             first_time = self.mne.inst.first_time
-            seconds = int(xval + first_time)
-            milliseconds = int(str((xval + first_time) % 1)[2:5] or 0)
-            microseconds = int(str((xval + first_time) % 1)[5:8] or 0)
+            meas_date = self.mne.inst.info['meas_date']
+            seconds = int(xval) + int(first_time)
+            milliseconds = int(xval % 1 * 1e3)
+            # Add rounded offset from first_time and meas_date to improve
+            # readability on smaller zoom-levels.
+            # Introduces inaccuracy of max. ± 0.5 s from real time.
+            seconds += round(first_time % 1 + meas_date.timestamp() % 1)
+            # Round meas_date to seconds.
+            meas_date = meas_date.replace(microsecond=0)
             # Determining datetime with accuracy of microseconds to add
             # up on first_time and meas_date correctly.
-            xdatetime = self.mne.inst.info['meas_date'] + \
-                datetime.timedelta(seconds=seconds,
-                                   milliseconds=milliseconds,
-                                   microseconds=microseconds)
-            xdtstr = xdatetime.strftime('%H:%M:%S.%f')[:-3]
+            xdatetime = meas_date + datetime.timedelta(seconds=seconds,
+                                                       milliseconds=
+                                                       milliseconds)
+            if milliseconds != 0:
+                xdtstr = xdatetime.strftime('%H:%M:%S.%f')[:-3]
+            else:
+                xdtstr = xdatetime.strftime('%H:%M:%S')
             return xdtstr
         else:
             return xval
@@ -1884,7 +1897,11 @@ class MNEBrowseFigure(MNEFigure):
     def _toggle_time_format(self):
         if self.mne.time_format == 'float':
             self.mne.time_format = 'datetime'
-            x_axis_label = 'Time (HH:MM:SS.SSS)'
+            offset = self.mne.inst.first_time + \
+                     self.mne.inst.info['meas_date'].timestamp()
+            ms_offset = int((round(offset) - offset) * 1e3)
+            x_axis_label = f'Time (HH:MM:SS.SSS), ' \
+                           f'offset = {ms_offset} ms'
         else:
             self.mne.time_format = 'float'
             x_axis_label = 'Time (s)'
