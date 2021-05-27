@@ -452,11 +452,7 @@ class MNEBrowseFigure(MNEFigure):
                 _ax.xaxis.set_major_formatter(
                     FuncFormatter(self._xtick_formatter))
                 if self.mne.time_format == 'datetime':
-                    offset = self.mne.inst.first_time +\
-                        self.mne.inst.info['meas_date'].timestamp()
-                    ms_offset = int((round(offset) - offset) * 1e3)
-                    _ax.set_xlabel(f'Time (HH:MM:SS.SSS), '
-                                   f'offset = {ms_offset} ms')
+                    _ax.set_xlabel('Time (HH:MM:SS.SSS)')
 
         # VERTICAL SCROLLBAR PATCHES (COLORED BY CHANNEL TYPE)
         ch_order = self.mne.ch_order
@@ -1886,6 +1882,8 @@ class MNEBrowseFigure(MNEFigure):
                                                        milliseconds=ms)
             if ms != 0:
                 xdtstr = xdatetime.strftime('%H:%M:%S.%f')[:-3]
+                while xdtstr[-1] == '0':
+                    xdtstr = xdtstr[:-1]
             else:
                 xdtstr = xdatetime.strftime('%H:%M:%S')
             return xdtstr
@@ -1895,11 +1893,7 @@ class MNEBrowseFigure(MNEFigure):
     def _toggle_time_format(self):
         if self.mne.time_format == 'float':
             self.mne.time_format = 'datetime'
-            offset = self.mne.inst.first_time + \
-                self.mne.inst.info['meas_date'].timestamp()
-            ms_offset = int((round(offset) - offset) * 1e3)
-            x_axis_label = f'Time (HH:MM:SS.SSS), ' \
-                           f'offset = {ms_offset} ms'
+            x_axis_label = 'Time (HH:MM:SS.SSS)'
         else:
             self.mne.time_format = 'float'
             x_axis_label = 'Time (s)'
