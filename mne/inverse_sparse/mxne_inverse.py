@@ -289,8 +289,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
                debias=True, time_pca=True, weights=None, weights_min=0.,
                solver='auto', n_mxne_iter=1, return_residual=False,
                return_as_dipoles=False, dgap_freq=10, rank=None, pick_ori=None,
-               grid_lower_bound=10, alpha_grid_length=15, random_state=0,
-               verbose=None):
+               sure_alpha_grid="auto", random_state=0, verbose=None):
     """Mixed-norm estimate (MxNE) and iterative reweighted MxNE (irMxNE).
 
     Compute L1/L2 mixed-norm solution :footcite:`GramfortEtAl2012` or L0.5/L2
@@ -348,13 +347,11 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
     %(pick_ori)s
     %(verbose)s
 
-    grid_lower_bound : float
-        If alpha = "sure", it specifies the lowest alpha in percent of
-        alpha_max used by SURE.
-    alpha_grid_length : int
-        If alpha = "sure", the number of alpha between alpha_max and
-        alpha_max * grid_lower_bound to try in geometric space.
-    random_state : int | None
+    sure_alpha_grid : array | str, default = "auto"
+        If "auto", the SURE is evaluted along 15 uniformly distributed 
+        alphas between alpha_max and 0.1 * alpha_max. If array, the
+        grid is directly specified. Ignored if alpha is not "sure".
+    random_state : int | None, default = 0
         The random state used in a random number generator for delta and
         epsilon used for the SURE computation.
 
@@ -375,22 +372,19 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
     .. footbibliography::
     """
     from scipy import linalg
-    if type(alpha) == int and not (0. <= alpha < 100.):
-        raise ValueError('alpha must be in [0, 100). '
+    if not(alpha == "sure" or 0. <= alpha < 100.):
+        raise ValueError('If not equal to "sure" alpha must be in [0, 100). '
                          'Got alpha = %s' % alpha)
-    elif type(alpha) == str and alpha != "sure":
-        raise ValueError('alpha must be a float in [0, 100) or set to "sure". '
-                         'Got alpha = %s' % alpha)
-
     if n_mxne_iter < 1:
         raise ValueError('MxNE has to be computed at least 1 time. '
                          'Requires n_mxne_iter >= 1, got %d' % n_mxne_iter)
     if dgap_freq <= 0.:
         raise ValueError('dgap_freq must be a positive integer.'
                          ' Got dgap_freq = %s' % dgap_freq)
-    if grid_lower_bound > 1:
-        raise ValueError('The lower bound for alpha grid must be in [0, 1). '
-                         'Got grid_lower_bound = %s' % grid_lower_bound)
+    if not(isinstance(sure_alpha_grid, (np.ndarray, list)) or 
+           sure_alpha_grid == "auto"):
+        raise ValueError('If not equal to "auto" sure_alpha_grid must be an '
+                         'array. Got %s' % type(sure_alpha_grid))
 
     pca = True
     if not isinstance(evoked, list):
@@ -433,26 +427,29 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
 
     # Alpha selected automatically by SURE minimization
     if alpha == "sure":
-        alpha_grid = np.linspace(
-            100, grid_lower_bound * 100, num=alpha_grid_length)
-        best_alpha_ = compute_sure(
+        if sure_alpha_grid == "auto":
+            alpha_grid = np.linspace(100, 0.1 * 100, num=15)
+        else:
+            alpha_grid = sure_alpha_grid
+        X, active_set, best_alpha_ = _compute_mxne_sure(
             M, gain, alpha_grid, sigma=1, random_state=random_state,
             n_mxne_iter=n_mxne_iter, maxit=maxit, tol=tol,
             n_orient=n_dip_per_pos, active_set_size=active_set_size,
             debias=debias, solver=solver, dgap_freq=dgap_freq, verbose=verbose)
         logger.info('Selected alpha: %s' % best_alpha_)
-        alpha = best_alpha_
-
-    if n_mxne_iter == 1:
-        X, active_set, E = mixed_norm_solver(
-            M, gain, alpha, maxit=maxit, tol=tol,
-            active_set_size=active_set_size, n_orient=n_dip_per_pos,
-            debias=debias, solver=solver, dgap_freq=dgap_freq, verbose=verbose)
     else:
-        X, active_set, E = iterative_mixed_norm_solver(
-            M, gain, alpha, n_mxne_iter, maxit=maxit, tol=tol,
-            n_orient=n_dip_per_pos, active_set_size=active_set_size,
-            debias=debias, solver=solver, dgap_freq=dgap_freq, verbose=verbose)
+        if n_mxne_iter == 1:
+            X, active_set, E = mixed_norm_solver(
+                M, gain, alpha, maxit=maxit, tol=tol,
+                active_set_size=active_set_size, n_orient=n_dip_per_pos,
+                debias=debias, solver=solver, dgap_freq=dgap_freq,
+                verbose=verbose)
+        else:
+            X, active_set, E = iterative_mixed_norm_solver(
+                M, gain, alpha, n_mxne_iter, maxit=maxit, tol=tol,
+                n_orient=n_dip_per_pos, active_set_size=active_set_size,
+                debias=debias, solver=solver, dgap_freq=dgap_freq,
+                verbose=verbose)
 
     if time_pca:
         X = np.dot(X, Vh)
@@ -733,9 +730,9 @@ def tf_mixed_norm(evoked, forward, noise_cov,
 
 
 @verbose
-def compute_sure(M, gain, alpha_grid, sigma, n_mxne_iter, maxit, tol, n_orient,
-                 active_set_size, debias, solver, dgap_freq, random_state,
-                 verbose):
+def _compute_mxne_sure(M, gain, alpha_grid, sigma, n_mxne_iter, maxit, tol, 
+                       n_orient, active_set_size, debias, solver, dgap_freq, 
+                       random_state, verbose):
     """Stein Unbiased Risk Estimator (SURE).
 
     Implements the finite-difference Monte-Carlo approximation
@@ -789,6 +786,7 @@ def compute_sure(M, gain, alpha_grid, sigma, n_mxne_iter, maxit, tol, n_orient,
     def _fit_on_grid(gain, M, eps, delta):
         coefs_grid_1 = np.empty((len(alpha_grid), gain.shape[1], M.shape[1]))
         coefs_grid_2 = np.empty((len(alpha_grid), gain.shape[1], M.shape[1]))
+        active_sets = []
 
         M_eps = M + eps * delta
 
@@ -821,8 +819,9 @@ def compute_sure(M, gain, alpha_grid, sigma, n_mxne_iter, maxit, tol, n_orient,
 
             coefs_grid_1[j][active_set, :] = X
             coefs_grid_2[j][active_set_eps, :] = X_eps
+            active_sets.append(active_set)
 
-        return coefs_grid_1, coefs_grid_2
+        return coefs_grid_1, coefs_grid_2, active_sets
 
     def _compute_sure_val(coef1, coef2, gain, M, sigma, delta, eps):
         dof = ((gain @ (coef2 - coef1)) * delta).sum() / eps
@@ -837,12 +836,18 @@ def compute_sure(M, gain, alpha_grid, sigma, n_mxne_iter, maxit, tol, n_orient,
     eps = 2 * sigma / (M.shape[0] ** 0.3)
     delta = rng.randn(*M.shape)
 
-    coefs_grid_1, coefs_grid_2 = _fit_on_grid(gain, M, eps, delta)
+    coefs_grid_1, coefs_grid_2, active_sets = _fit_on_grid(gain, M, eps, delta)
 
     for i, (coef1, coef2) in enumerate(zip(coefs_grid_1, coefs_grid_2)):
         sure_path[i] = _compute_sure_val(
             coef1, coef2, gain, M, sigma, delta, eps)
-        logger.info("alpha %s :: sure %s" % (alpha_grid[i], sure_path[i]))
+        if verbose:
+            logger.info("alpha %s :: sure %s" % (alpha_grid[i], sure_path[i]))
 
     best_alpha_ = alpha_grid[np.argmin(sure_path)]
-    return best_alpha_
+    X = coefs_grid_1[np.argmin(sure_path)]
+    active_set = active_sets[np.argmin(sure_path)]
+
+    X = X[active_set, :]
+
+    return X, active_set, best_alpha_
