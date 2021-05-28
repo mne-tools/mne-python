@@ -1,8 +1,3 @@
-import numpy as np
-from numpy.linalg import norm
-
-import os.path as op
-
 import mne
 from mne.inverse_sparse.mxne_inverse import mixed_norm
 from mne.viz import plot_sparse_source_estimates
@@ -25,9 +20,8 @@ if __name__ == "__main__":
     forward = mne.read_forward_solution(fwd_fname)
 
     stc = mixed_norm(
-        evoked, forward, noise_cov, "sure", n_mxne_iter=5, loose=0, depth=0.9, 
+        evoked, forward, noise_cov, "sure", n_mxne_iter=5, loose=0, depth=0.9,
         grid_lower_bound=0.1, alpha_grid_length=30)
 
     plot_sparse_source_estimates(
-        forward["src"], stc, bgcolor=(1, 1, 1), opacity=0.1
-    )
+        forward["src"], stc, bgcolor=(1, 1, 1), opacity=0.1)
