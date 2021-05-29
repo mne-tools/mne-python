@@ -205,8 +205,7 @@ def _interpolate_bads_meeg(inst, mode='accurate', origin=(0., 0., 0.04),
 @verbose
 def _interpolate_bads_nirs(inst, method='nearest', exclude=(), verbose=None):
     from scipy.spatial.distance import pdist, squareform
-    from mne.preprocessing.nirs import _channel_frequencies,\
-        _validate_nirs_info
+    from mne.preprocessing.nirs import _validate_nirs_info
 
     # Returns pick of all nirs and ensures channels are correctly ordered
     picks_nirs = _validate_nirs_info(inst.info)
