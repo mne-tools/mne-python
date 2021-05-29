@@ -452,7 +452,7 @@ class MNEBrowseFigure(MNEFigure):
                 _ax.xaxis.set_major_formatter(
                     FuncFormatter(self._xtick_formatter))
                 if self.mne.time_format == 'datetime':
-                    _ax.set_xlabel('Time (HH:MM:SS.SSS)')
+                    _ax.set_xlabel('Time (HH:MM:SS)')
 
         # VERTICAL SCROLLBAR PATCHES (COLORED BY CHANNEL TYPE)
         ch_order = self.mne.ch_order
@@ -1869,23 +1869,22 @@ class MNEBrowseFigure(MNEFigure):
             import datetime
             first_time = self.mne.inst.first_time
             meas_date = self.mne.inst.info['meas_date']
-            seconds = int(xval) + int(first_time)
-            ms = int(xval % 1 * 1e3)
-            # Add rounded offset from first_time and meas_date to improve
-            # readability on smaller zoom-levels.
-            # Introduces inaccuracy of max. ± 0.5 s from real time.
-            seconds += round(first_time % 1 + meas_date.timestamp() % 1)
-            # Round meas_date to seconds.
-            meas_date = meas_date.replace(microsecond=0)
+            seconds = int(xval + first_time)
+            ms = int(str((xval + first_time) % 1)[2:5] or 0)
+            us = int(str((xval + first_time) % 1)[5:8] or 0)
             # Adding time from first_time (only seconds) and xval to meas_date.
             xdatetime = meas_date + datetime.timedelta(seconds=seconds,
-                                                       milliseconds=ms)
-            if ms != 0:
-                xdtstr = xdatetime.strftime('%H:%M:%S.%f')[:-3]
-                while xdtstr[-1] == '0':
-                    xdtstr = xdtstr[:-1]
-            else:
-                xdtstr = xdatetime.strftime('%H:%M:%S')
+                                                       milliseconds=ms,
+                                                       microseconds=us)
+            xdtstr = xdatetime.strftime('%H:%M:%S')
+            # Crop time-string for microseconds
+            # depending on duration (zoom-level).
+            ustr = xdatetime.strftime('%f')
+            lim = max(int(np.ceil(-np.log10(self.mne.duration))) + 3, 0)
+            if lim > 0:
+                ustr = ustr[:lim]
+                xdtstr += '.' + ustr
+
             return xdtstr
         else:
             return xval
@@ -1893,7 +1892,7 @@ class MNEBrowseFigure(MNEFigure):
     def _toggle_time_format(self):
         if self.mne.time_format == 'float':
             self.mne.time_format = 'datetime'
-            x_axis_label = 'Time (HH:MM:SS.SSS)'
+            x_axis_label = 'Time (HH:MM:SS)'
         else:
             self.mne.time_format = 'float'
             x_axis_label = 'Time (s)'
