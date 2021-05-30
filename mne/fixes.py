@@ -22,8 +22,6 @@ import warnings
 
 import numpy as np
 
-from .utils import warn
-
 
 ###############################################################################
 # Misc
@@ -70,6 +68,7 @@ def _safe_svd(A, **kwargs):
     try:
         return linalg.svd(A, **kwargs)
     except np.linalg.LinAlgError as exp:
+        from .utils import warn
         if 'lapack_driver' in _get_args(linalg.svd):
             warn('SVD error (%s), attempting to use GESVD instead of GESDD'
                  % (exp,))
@@ -153,7 +152,7 @@ def _read_geometry(filepath, read_metadata=False, read_stamp=False):
     ret = (coords, faces)
     if read_metadata:
         if len(volume_info) == 0:
-            warn('No volume information contained in the file')
+            warnings.warn('No volume information contained in the file')
         ret += (volume_info,)
     if read_stamp:
         ret += (create_stamp,)
@@ -225,7 +224,7 @@ def _read_volume_info(fobj):
     if not np.array_equal(head, [20]):  # Read two bytes more
         head = np.concatenate([head, np.fromfile(fobj, '>i4', 2)])
         if not np.array_equal(head, [2, 0, 20]):
-            warn("Unknown extension code.")
+            warnings.warn("Unknown extension code.")
             return volume_info
 
     volume_info['head'] = head
@@ -258,7 +257,7 @@ def _serialize_volume_info(volume_info):
         if key == 'head':
             if not (np.array_equal(volume_info[key], [20]) or np.array_equal(
                     volume_info[key], [2, 0, 20])):
-                warn("Unknown extension code.")
+                warnings.warn("Unknown extension code.")
             strings.append(np.array(volume_info[key], dtype='>i4').tobytes())
         elif key in ('valid', 'filename'):
             val = volume_info[key]
@@ -548,7 +547,7 @@ def empirical_covariance(X, assume_centered=False):
         X = np.reshape(X, (1, -1))
 
     if X.shape[0] == 1:
-        warn("Only one sample available. "
+        warnings.warn("Only one sample available. "
                       "You may want to reshape your data array")
 
     if assume_centered:
@@ -880,7 +879,7 @@ def stable_cumsum(arr, axis=None, rtol=1e-05, atol=1e-08):
     expected = np.sum(arr, axis=axis, dtype=np.float64)
     if not np.all(np.isclose(out.take(-1, axis=axis), expected, rtol=rtol,
                              atol=atol, equal_nan=True)):
-        warn('cumsum was found to be unstable: '
+        warnings.warn('cumsum was found to be unstable: '
                       'its last element does not correspond to sum',
                       RuntimeWarning)
     return out
