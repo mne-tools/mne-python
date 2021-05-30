@@ -149,7 +149,7 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
                     break
                 else:
                     err = err.decode('utf-8')
-                    logger.warning(err)
+                    warn(err)
                     all_err += err
             if do_break:
                 break
