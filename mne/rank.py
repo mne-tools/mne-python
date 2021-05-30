@@ -256,7 +256,7 @@ def _get_rank_sss(inst, msg='You should use data-based rank estimate instead',
 
 
 def _info_rank(info, ch_type, picks, rank):
-    if ch_type == 'meg' and rank != 'full':
+    if ch_type in ['meg', 'mag', 'grad'] and rank != 'full':
         try:
             return _get_rank_sss(info)
         except ValueError:
