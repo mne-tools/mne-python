@@ -1880,7 +1880,7 @@ class MNEBrowseFigure(MNEFigure):
             # Crop time-string for microseconds
             # depending on duration (zoom-level).
             ustr = xdatetime.strftime('%f')
-            lim = max(int(np.ceil(-np.log10(self.mne.duration))) + 3, 0)
+            lim = max(int(np.ceil(-np.log10(self.mne.duration))) + 2, 0)
             if lim > 0:
                 ustr = ustr[:lim]
                 xdtstr += '.' + ustr
