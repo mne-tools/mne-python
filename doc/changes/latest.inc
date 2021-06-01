@@ -63,4 +63,4 @@ Bugs
 
 API changes
 ~~~~~~~~~~~
-- Nothing yet
+- :func:`mne.concatenate_raws` now raises an exception if the device-to-head transformation is not identical across all files. This behavior can be controlled using the new ``on_mismatch`` parameter (:gh:`9438` by `Richard Höchenberger`_)

@@ -2397,7 +2397,8 @@ def _check_raw_compatibility(raw):
 
 
 @verbose
-def concatenate_raws(raws, preload=None, events_list=None, verbose=None):
+def concatenate_raws(raws, preload=None, events_list=None, on_mismatch='raise',
+                     verbose=None):
     """Concatenate raw instances as if they were continuous.
 
     .. note:: ``raws[0]`` is modified in-place to achieve the concatenation.
@@ -2409,10 +2410,15 @@ def concatenate_raws(raws, preload=None, events_list=None, verbose=None):
     Parameters
     ----------
     raws : list
-        List of Raw instances to concatenate (in order).
+        List of `~mne.Raw` instances to concatenate (in order).
     %(preload_concatenate)s
     events_list : None | list
-        The events to concatenate. Defaults to None.
+        The events to concatenate. Defaults to ``None``.
+    on_mismatch : 'raise' | 'warn' | 'ignore'
+        How to handle situations when we discover that specific aspects of the
+        `~mne.Raw` instances mismatch in a way that could cause problems after
+        concatenation. Currently, this check is limited to the device-to-head
+        transformation. Defaults to ``'raise'``.
     %(verbose)s
 
     Returns
@@ -2422,6 +2428,28 @@ def concatenate_raws(raws, preload=None, events_list=None, verbose=None):
     events : ndarray of int, shape (n_events, 3)
         The events. Only returned if ``event_list`` is not None.
     """
+    _check_option(parameter='on_mismatch', value=on_mismatch,
+                  allowed_values=('raise', 'warn', 'ignore'))
+
+    first_dev_head_t = raws[0].info['dev_head_t']
+    for raw in raws[1:]:
+        if raw.info['dev_head_t'] != first_dev_head_t:
+            msg = ('raw.info[\'dev_head_t\'] differs between the supplied '
+                   'raw instances.match. The instances probably come from '
+                   'different runs, and are therefore associated with '
+                   'different head positions. '
+                   'See mne.preprocessing.maxwell_filter to realign the '
+                   'runs to a common head position.')
+
+            if on_mismatch == 'raise':
+                msg += ('You can pass the on_mismatch parameter to '
+                        'mne.concatenate_raws to silence this error.')
+                raise ValueError(msg)
+            elif on_mismatch == 'warn':
+                warn(msg)
+            else:
+                logger.info(msg)
+
     if events_list is not None:
         if len(events_list) != len(raws):
             raise ValueError('`raws` and `event_list` are required '
