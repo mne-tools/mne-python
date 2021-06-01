@@ -1867,11 +1867,15 @@ class MNEBrowseFigure(MNEFigure):
         """Change the x-axis labels."""
         if self.mne.time_format == 'datetime':
             import datetime
+            import re
             first_time = self.mne.inst.first_time
             meas_date = self.mne.inst.info['meas_date']
             seconds = int(xval + first_time)
-            ms = int(str((xval + first_time) % 1)[2:5] or 0)
-            us = int(str((xval + first_time) % 1)[5:8] or 0)
+            ms = int((xval + first_time) % 1 * 1e3)
+            if ms == 0:
+                us = int(((xval + first_time) % 1 * 1e6))
+            else:
+                us = int(((xval + first_time) % 1 * 1e6) % (ms * 1e3))
             # Adding time from first_time (only seconds) and xval to meas_date.
             xdatetime = meas_date + datetime.timedelta(seconds=seconds,
                                                        milliseconds=ms,
@@ -1880,10 +1884,13 @@ class MNEBrowseFigure(MNEFigure):
             # Crop time-string for microseconds
             # depending on duration (zoom-level).
             ustr = xdatetime.strftime('%f')
-            lim = max(int(np.ceil(-np.log10(self.mne.duration))) + 2, 0)
+            lim = max(int(np.ceil(-np.log10(self.mne.duration))) + 3, 0)
             if lim > 0:
                 ustr = ustr[:lim]
-                xdtstr += '.' + ustr
+                # Remove trailing zeros (if there are only zeros
+                # as decimal points)
+                if int(ustr) != 0:
+                    xdtstr += '.' + ustr
 
             return xdtstr
         else:
