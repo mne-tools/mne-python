@@ -57,5 +57,5 @@ def test_nihon_eeg():
 
     msg = 'No LOG file exists. Annotations will not be read'
     with pytest.warns(RuntimeWarning, match=msg):
-        annot = _read_nihon_annotations(bad_fname, orig_time=None)
-        assert annot is None
+        annot = _read_nihon_annotations(bad_fname)
+        assert all(len(x) == 0 for _, x in annot.items())
