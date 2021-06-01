@@ -149,6 +149,12 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
                     break
                 else:
                     err = err.decode('utf-8')
+                    # Leave this as logger.warning rather than warn(...) to
+                    # mirror the logger.info above for stdout. This function
+                    # is basically just a version of subprocess.call, and
+                    # shouldn't emit Python warnings due to stderr outputs
+                    # (the calling function can check for stderr output and
+                    # emit a warning if it wants).
                     logger.warning(err)
                     all_err += err
             if do_break:
