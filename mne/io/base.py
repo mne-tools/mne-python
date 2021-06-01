@@ -2410,15 +2410,15 @@ def concatenate_raws(raws, preload=None, events_list=None, on_mismatch='raise',
     Parameters
     ----------
     raws : list
-        List of `~mne.Raw` instances to concatenate (in order).
+        List of `~mne.io.Raw` instances to concatenate (in order).
     %(preload_concatenate)s
     events_list : None | list
         The events to concatenate. Defaults to ``None``.
     on_mismatch : 'raise' | 'warn' | 'ignore'
         How to handle situations when we discover that specific aspects of the
-        `~mne.Raw` instances mismatch in a way that could cause problems after
-        concatenation. Currently, this check is limited to the device-to-head
-        transformation. Defaults to ``'raise'``.
+        `~mne.io.Raw` instances mismatch in a way that could cause problems
+        after concatenation. Currently, this check is limited to the
+        device-to-head transformation. Defaults to ``'raise'``.
     %(verbose)s
 
     Returns
