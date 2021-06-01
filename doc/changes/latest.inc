@@ -59,6 +59,8 @@ Bugs
 
 - Fix bug when printing a :class:`mne.io.RawArray` in the notebook (:gh:`9404` by `Alex Gramfort`_)
 
+- Fix bug when computing rank from info for SSS data with only gradiometers or magnetometers (:gh:`9435` by `Alex Gramfort`_)
+
 API changes
 ~~~~~~~~~~~
 - Nothing yet
