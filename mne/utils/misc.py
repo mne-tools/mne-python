@@ -123,7 +123,7 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
     # non-blocking adapted from https://stackoverflow.com/questions/375427/non-blocking-read-on-a-subprocess-pipe-in-python#4896288  # noqa: E501
     out_q = Queue()
     err_q = Queue()
-    with running_subprocess(command, *args, **kwargs) as p:
+    with running_subprocess(command, *args, **kwargs) as p, p.stdout, p.stderr:
         out_t = Thread(target=_enqueue_output, args=(p.stdout, out_q))
         err_t = Thread(target=_enqueue_output, args=(p.stderr, err_q))
         out_t.daemon = True
@@ -149,12 +149,10 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
                     break
                 else:
                     err = err.decode('utf-8')
-                    warn(err)
+                    logger.warning(err)
                     all_err += err
             if do_break:
                 break
-    p.stdout.close()
-    p.stderr.close()
     output = (all_out, all_err)
 
     if return_code:
