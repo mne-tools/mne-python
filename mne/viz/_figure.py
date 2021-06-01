@@ -1867,7 +1867,6 @@ class MNEBrowseFigure(MNEFigure):
         """Change the x-axis labels."""
         if self.mne.time_format == 'datetime':
             import datetime
-            import re
             first_time = self.mne.inst.first_time
             meas_date = self.mne.inst.info['meas_date']
             seconds = int(xval + first_time)
