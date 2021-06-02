@@ -732,3 +732,17 @@ def test_scalings_int():
     """Test that auto scalings access samples using integers."""
     raw = RawArray(np.zeros((1, 500)), create_info(1, 1000., 'eeg'))
     raw.plot(scalings='auto')
+
+
+@pytest.mark.parametrize('dur', [20, 4.5, 0.01])
+def test_clock_xticks(dur, raw):
+    """Test if decimal seconds of xticks have appropriate length
+    depending on duration."""
+    fig = raw.plot(duration=dur, time_format='datetime')
+    ticklabels = fig.mne.ax_main.get_xticklabels()
+    tick_texts = ticklabels[0]._text.split('.')
+    tickdiff = np.diff(fig.mne.ax_main.get_xticks())[0]
+    len_decsec = np.ceil(-2 * np.log10(tickdiff)).astype(int)
+    if len(tick_texts) == 2:
+        assert len(tick_texts[1]) == len_decsec
+    plt.close('all')
