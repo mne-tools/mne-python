@@ -1047,7 +1047,7 @@ class MNEBrowseFigure(MNEFigure):
             ('p', 'Toggle draggable annotations' if is_raw else None),
             ('s', 'Toggle scalebars' if not is_ica else None),
             ('z', 'Toggle scrollbars'),
-            ('t', 'Toggle time-format'),
+            ('t', 'Toggle time format'),
             ('F11', 'Toggle fullscreen' if not is_mac else None),
             ('?', 'Open this help window'),
             ('esc', 'Close focused figure or dialog window'),
@@ -1872,22 +1872,19 @@ class MNEBrowseFigure(MNEFigure):
             seconds = int(xval + first_time)
             ms = int((xval + first_time) % 1 * 1e3)
             if ms == 0:
-                us = int(((xval + first_time) % 1 * 1e6))
+                us = int((xval + first_time) % 1 * 1e6)
             else:
                 us = int(((xval + first_time) % 1 * 1e6) % (ms * 1e3))
-            # Adding time from first_time (only seconds) and xval to meas_date.
+            # Add time from first_time (only seconds) and xval to meas_date
             xdatetime = meas_date + datetime.timedelta(seconds=seconds,
                                                        milliseconds=ms,
                                                        microseconds=us)
             xdtstr = xdatetime.strftime('%H:%M:%S')
-            # Crop time-string for microseconds
-            # depending on duration (zoom-level).
+            # Crop time string for microseconds depending on duration
             ustr = xdatetime.strftime('%f')
             lim = max(int(np.ceil(-np.log10(self.mne.duration))) + 3, 0)
             if lim > 0:
-                ustr = ustr[:lim]
-                # Remove trailing zeros at the end
-                ustr = ustr.rstrip("0")
+                ustr = ustr[:lim].rstrip("0")
                 if len(ustr) > 0:
                     xdtstr += '.' + ustr
 
@@ -1903,7 +1900,7 @@ class MNEBrowseFigure(MNEFigure):
             self.mne.time_format = 'float'
             x_axis_label = 'Time (s)'
 
-        # Change x-axis-label
+        # Change x-axis label
         for _ax in (self.mne.ax_main, self.mne.ax_hscroll):
             _ax.set_xlabel(x_axis_label)
 
