@@ -2487,7 +2487,7 @@ def _ensure_infos_match(info1, info2, name, *, on_mismatch='raise'):
     ----------
     info1, info2 : instance of Info
         The infos to compare.
-    name : str or int
+    name : str
         The name of the object appearing in the error message of the comparison
         fails.
     on_mismatch : 'raise' | 'warn' | 'ignore'
@@ -2496,8 +2496,6 @@ def _ensure_infos_match(info1, info2, name, *, on_mismatch='raise'):
     _check_option(parameter='on_mismatch', value=on_mismatch,
                   allowed_values=('raise', 'warn', 'ignore'))
 
-    if not isinstance(name, str):  # passed epochs index
-        name = f'epochs[{name:d}]'
     info1._check_consistency()
     info2._check_consistency()
 

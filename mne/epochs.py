@@ -3334,7 +3334,7 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True):
     shift = int((10 + tmax) * out.info['sfreq'])
     events_offset = _update_offset(None, out.events, shift)
     for ii, epochs in enumerate(epochs_list[1:], 1):
-        _ensure_infos_match(epochs.info, info, ii)
+        _ensure_infos_match(epochs.info, info, f'epochs[{ii}]')
         if not np.allclose(epochs.times, epochs_list[0].times):
             raise ValueError('Epochs must have same times')
 
