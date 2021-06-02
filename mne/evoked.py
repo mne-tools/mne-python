@@ -1327,6 +1327,7 @@ def _read_evoked(fname, condition=None, kind='average', allow_maxshield=False):
     return info, nave, aspect_kind, comment, times, data, baseline
 
 
+@fill_doc
 def write_evokeds(fname, evoked, *, on_mismatch='raise'):
     """Write an evoked dataset to a file.
 
