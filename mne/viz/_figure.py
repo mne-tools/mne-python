@@ -1886,9 +1886,10 @@ class MNEBrowseFigure(MNEFigure):
             lim = max(int(np.ceil(-np.log10(self.mne.duration))) + 3, 0)
             if lim > 0:
                 ustr = ustr[:lim]
-                # Remove trailing zeros (if there are only zeros
-                # as decimal points)
-                if int(ustr) != 0:
+                # Remove trailing zeros at the end
+                while len(ustr) > 0 and ustr[-1] == '0':
+                    ustr = ustr[:-1]
+                if len(ustr) > 0:
                     xdtstr += '.' + ustr
 
             return xdtstr
