@@ -738,7 +738,7 @@ def test_scalings_int():
 def test_clock_xticks(dur, raw):
     """Test if decimal seconds of xticks have appropriate length
     depending on duration."""
-    fig = raw.plot(duration=dur, time_format='datetime')
+    fig = raw.plot(duration=dur, time_format='clock')
     ticklabels = fig.mne.ax_main.get_xticklabels()
     tick_texts = ticklabels[0]._text.split('.')
     tickdiff = np.diff(fig.mne.ax_main.get_xticks())[0]
