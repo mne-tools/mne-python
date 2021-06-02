@@ -501,7 +501,7 @@ class MNEBrowseFigure(MNEFigure):
             vline_hscroll = ax_hscroll.axvline(0, color=vline_color,
                                                **vline_kwargs)
         vline_text = ax_hscroll.text(
-            self.mne.first_time, 1.2, '', fontsize=10, ha='right', va='bottom',
+            self.mne.first_time, 1.65, '', fontsize=10, ha='right', va='bottom',
             color=vline_color, **vline_kwargs)
 
         # HELP BUTTON: initialize in the wrong spot...
