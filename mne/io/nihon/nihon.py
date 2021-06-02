@@ -439,7 +439,7 @@ class RawNihon(BaseRaw):
 
             n_channels = datablock['n_channels'] + 1
             datastart = (datablock['address'] + 0x27 +
-                        (datablock['n_channels'] * 10))
+                         (datablock['n_channels'] * 10))
             with open(self._filenames[fi], 'rb') as fid:
                 start_offset = datastart + start * n_channels * 2
                 to_read = (stop - start) * n_channels
