@@ -34,7 +34,8 @@ from .io.tag import read_tag
 from .io.tree import dir_tree_find
 from .io.pick import pick_types, _picks_to_idx, _FNIRS_CH_TYPES_SPLIT
 from .io.meas_info import (read_meas_info, write_meas_info,
-                           _read_extended_ch_info, _rename_list)
+                           _read_extended_ch_info, _rename_list,
+                           _ensure_infos_match)
 from .io.proj import ProjMixin
 from .io.write import (start_file, start_block, end_file, end_block,
                        write_int, write_string, write_float_matrix,
@@ -1354,7 +1355,6 @@ def write_evokeds(fname, evoked):
 
 def _write_evokeds(fname, evoked, check=True):
     """Write evoked data."""
-    from .io.meas_info import _ensure_infos_match
     from .dipole import DipoleFixed  # avoid circular import
 
     if check:
