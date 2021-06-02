@@ -1887,8 +1887,7 @@ class MNEBrowseFigure(MNEFigure):
             if lim > 0:
                 ustr = ustr[:lim]
                 # Remove trailing zeros at the end
-                while len(ustr) > 0 and ustr[-1] == '0':
-                    ustr = ustr[:-1]
+                ustr = ustr.rstrip("0")
                 if len(ustr) > 0:
                     xdtstr += '.' + ustr
 
