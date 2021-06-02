@@ -50,22 +50,23 @@ raw.apply_proj()
 cov = mne.compute_raw_covariance(raw)  # compute before band-pass of interest
 
 ##############################################################################
+# Compute the forward and inverse
+# -------------------------------
+
+src = mne.read_source_spaces(src)
+fwd = mne.make_forward_solution(raw.info, trans, src, bem)
+del src
+inv = make_inverse_operator(raw.info, fwd, cov)
+del fwd
+
+##############################################################################
 # Now we band-pass filter our data and create epochs.
 
 raw.filter(14, 30)
 events = mne.make_fixed_length_events(raw, duration=5.)
 epochs = mne.Epochs(raw, events=events, tmin=0, tmax=5.,
                     baseline=None, reject=dict(mag=8e-13), preload=True)
-del raw
-
-##############################################################################
-# Compute the forward and inverse
-# -------------------------------
-
-src = mne.read_source_spaces(src)
-fwd = mne.make_forward_solution(epochs.info, trans, src, bem)
-inv = make_inverse_operator(epochs.info, fwd, cov)
-del fwd, src
+del raw, projs_ecg, projs_eog
 
 ##############################################################################
 # Compute label time series and do envelope correlation
@@ -84,6 +85,7 @@ corr = envelope_correlation(label_ts, verbose=True)
 fig, ax = plt.subplots(figsize=(4, 4))
 ax.imshow(corr, cmap='viridis', clim=np.percentile(corr, [5, 95]))
 fig.tight_layout()
+del epochs, stcs, label_ts
 
 ##############################################################################
 # Compute the degree and plot it

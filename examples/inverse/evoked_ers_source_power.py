@@ -58,20 +58,25 @@ fwd = mne.read_forward_solution(fname_fwd)
 ###############################################################################
 # Compute covariances
 # -------------------
-# ERS activity starts at 0.5 seconds after stimulus onset.
+# ERS activity starts at 0.5 seconds after stimulus onset. Because these
+# data have been processed by MaxFilter directly (rather than MNE-Python's
+# version), we have to be careful to compute the rank with a more conservative
+# threshold in order to get the correct data rank (64). Once this is used in
+# combination with an advanced covariance estimator like "shrunk", the rank
+# will be correctly preserved.
 
+rank = mne.compute_rank(epochs, tol=1e-6, tol_kind='relative')
 active_win = (0.5, 1.5)
 baseline_win = (-1, 0)
-
 baseline_cov = compute_covariance(epochs, tmin=baseline_win[0],
                                   tmax=baseline_win[1], method='shrunk',
-                                  rank=None)
+                                  rank=rank, verbose=True)
 active_cov = compute_covariance(epochs, tmin=active_win[0], tmax=active_win[1],
-                                method='shrunk', rank=None)
+                                method='shrunk', rank=rank, verbose=True)
 
 # Weighted averaging is already in the addition of covariance objects.
 common_cov = baseline_cov + active_cov
-
+mne.viz.plot_cov(baseline_cov, epochs.info)
 
 ###############################################################################
 # Compute some source estimates
@@ -79,6 +84,7 @@ common_cov = baseline_cov + active_cov
 # Here we will use DICS, LCMV beamformer, and dSPM.
 #
 # See :ref:`ex-inverse-source-power` for more information about DICS.
+
 
 def _gen_dics(active_win, baseline_win, epochs):
     freqs = np.logspace(np.log10(12), np.log10(30), 9)
@@ -88,7 +94,7 @@ def _gen_dics(active_win, baseline_win, epochs):
     csd_ers = csd_morlet(epochs, freqs, tmin=active_win[0], tmax=active_win[1],
                          decim=20)
     filters = make_dics(epochs.info, fwd, csd.mean(), pick_ori='max-power',
-                        reduce_rank=True, real_filter=True)
+                        reduce_rank=True, real_filter=True, rank=rank)
     stc_base, freqs = apply_dics_csd(csd_baseline.mean(), filters)
     stc_act, freqs = apply_dics_csd(csd_ers.mean(), filters)
     stc_act /= stc_base

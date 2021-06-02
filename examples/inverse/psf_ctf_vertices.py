@@ -56,6 +56,7 @@ sources = [1000]
 stc_psf = get_point_spread(rm_lor, forward['src'], sources, norm=True)
 
 stc_ctf = get_cross_talk(rm_lor, forward['src'], sources, norm=True)
+del rm_lor
 
 ##############################################################################
 # Visualize
