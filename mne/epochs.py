@@ -3413,8 +3413,9 @@ def _finish_concat(info, data, events, event_id, tmin, tmax, metadata,
     return out
 
 
-@fill_doc
-def concatenate_epochs(epochs_list, add_offset=True, *, on_mismatch='raise'):
+@verbose
+def concatenate_epochs(epochs_list, add_offset=True, *, on_mismatch='raise',
+                       verbose=None):
     """Concatenate a list of epochs into one epochs object.
 
     Parameters
@@ -3427,6 +3428,9 @@ def concatenate_epochs(epochs_list, add_offset=True, *, on_mismatch='raise'):
         concatenation.
         If False, the event times are unaltered during the concatenation.
     %(on_info_mismatch)s
+    %(verbose)s
+
+        .. versionadded:: 0.24
 
     Returns
     -------

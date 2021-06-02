@@ -1327,8 +1327,8 @@ def _read_evoked(fname, condition=None, kind='average', allow_maxshield=False):
     return info, nave, aspect_kind, comment, times, data, baseline
 
 
-@fill_doc
-def write_evokeds(fname, evoked, *, on_mismatch='raise'):
+@verbose
+def write_evokeds(fname, evoked, *, on_mismatch='raise', verbose=None):
     """Write an evoked dataset to a file.
 
     Parameters
@@ -1340,6 +1340,9 @@ def write_evokeds(fname, evoked, *, on_mismatch='raise'):
         Note that the measurement info from the first evoked instance is used,
         so be sure that information matches.
     %(on_info_mismatch)s
+    %(verbose)s
+
+        .. versionadded:: 0.24
 
     See Also
     --------
