@@ -122,6 +122,7 @@ from . import surface
 from . import time_frequency
 from . import viz
 from . import decoding
+from . import export
 
 # initialize logging
 set_log_level(None, False)

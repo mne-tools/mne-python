@@ -115,7 +115,8 @@ def test_layered_mesh(renderer_interactive_pyvista):
     assert not mesh._is_mapped
     mesh.map()
     assert mesh._is_mapped
-    assert mesh._cache is None
+    assert mesh._current_colors is None
+    assert mesh._cached_colors is None
     mesh.update()
     assert len(mesh._overlays) == 0
     mesh.add_overlay(
@@ -123,13 +124,27 @@ def test_layered_mesh(renderer_interactive_pyvista):
         colormap=np.array([(1, 1, 1, 1), (0, 0, 0, 0)]),
         rng=[0, 1],
         opacity=None,
-        name='test',
+        name='test1',
     )
-    assert mesh._cache is not None
+    assert mesh._current_colors is not None
+    assert mesh._cached_colors is None
     assert len(mesh._overlays) == 1
-    assert 'test' in mesh._overlays
-    mesh.remove_overlay('test')
-    assert len(mesh._overlays) == 0
+    assert 'test1' in mesh._overlays
+    mesh.add_overlay(
+        scalars=np.array([1, 0, 0, 1]),
+        colormap=np.array([(1, 1, 1, 1), (0, 0, 0, 0)]),
+        rng=[0, 1],
+        opacity=None,
+        name='test2',
+    )
+    assert mesh._current_colors is not None
+    assert mesh._cached_colors is not None
+    assert len(mesh._overlays) == 2
+    assert 'test2' in mesh._overlays
+    mesh.remove_overlay('test2')
+    assert 'test2' not in mesh._overlays
+    mesh.update()
+    assert len(mesh._overlays) == 1
     mesh._clean()
 
 
@@ -169,14 +184,18 @@ def test_brain_init(renderer_pyvista, tmpdir, pixel_ratio, brain_gc):
     kwargs = dict(subject_id=subject_id, subjects_dir=subjects_dir)
     with pytest.raises(ValueError, match='"size" parameter must be'):
         Brain(hemi=hemi, surf=surf, size=[1, 2, 3], **kwargs)
-    with pytest.raises(KeyError):
+    with pytest.raises(ValueError, match='.*hemi.*Allowed values.*'):
         Brain(hemi='foo', surf=surf, **kwargs)
+    with pytest.raises(ValueError, match='.*view.*Allowed values.*'):
+        Brain(hemi='lh', surf=surf, views='foo', **kwargs)
     with pytest.raises(TypeError, match='figure'):
         Brain(hemi=hemi, surf=surf, figure='foo', **kwargs)
     with pytest.raises(TypeError, match='interaction'):
         Brain(hemi=hemi, surf=surf, interaction=0, **kwargs)
     with pytest.raises(ValueError, match='interaction'):
         Brain(hemi=hemi, surf=surf, interaction='foo', **kwargs)
+    with pytest.raises(FileNotFoundError, match=r'lh\.whatever'):
+        Brain(subject_id, 'lh', 'whatever')
     renderer_pyvista.backend._close_all()
 
     brain = Brain(hemi=hemi, surf=surf, size=size, title=title,
@@ -189,10 +208,8 @@ def test_brain_init(renderer_pyvista, tmpdir, pixel_ratio, brain_gc):
     brain._hemi = 'foo'  # for testing: hemis
     with pytest.raises(ValueError, match='not be None'):
         brain._check_hemi(hemi=None)
-    with pytest.raises(ValueError, match='either "lh" or "rh"'):
+    with pytest.raises(ValueError, match='Invalid.*hemi.*Allowed'):
         brain._check_hemi(hemi='foo')
-    with pytest.raises(ValueError, match='either "lh" or "rh"'):
-        brain._check_hemis(hemi='foo')
     brain._hemi = hemi  # end testing: hemis
     with pytest.raises(ValueError, match='bool or positive'):
         brain._to_borders(None, None, 'foo')
@@ -376,6 +393,7 @@ def test_brain_save_movie(tmpdir, renderer, brain_gc):
     """Test saving a movie of a Brain instance."""
     if renderer._get_3d_backend() == "mayavi":
         pytest.skip('Save movie only supported on PyVista')
+    from imageio_ffmpeg import count_frames_and_secs
     brain = _create_testing_brain(hemi='lh', time_viewer=False)
     filename = str(path.join(tmpdir, "brain_test.mov"))
     for interactive_state in (False, True):
@@ -388,9 +406,15 @@ def test_brain_save_movie(tmpdir, renderer, brain_gc):
             brain.save_movie(filename, time_dilation=1, tmin=1, tmax=1.1,
                              bad_name='blah')
         assert not path.isfile(filename)
-        brain.save_movie(filename, time_dilation=0.1,
-                         interpolation='nearest')
+        tmin = 1
+        tmax = 5
+        duration = np.floor(tmax - tmin)
+        brain.save_movie(filename, time_dilation=1., tmin=tmin,
+                         tmax=tmax, interpolation='nearest')
         assert path.isfile(filename)
+        _, nsecs = count_frames_and_secs(filename)
+        assert_allclose(duration, nsecs, atol=0.2)
+
         os.remove(filename)
     brain.close()
 

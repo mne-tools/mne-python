@@ -598,10 +598,10 @@ class _PyVistaRenderer(_AbstractRenderer):
 
     def set_camera(self, azimuth=None, elevation=None, distance=None,
                    focalpoint='auto', roll=None, reset_camera=True,
-                   rigid=None):
+                   rigid=None, update=True):
         _set_3d_view(self.figure, azimuth=azimuth, elevation=elevation,
                      distance=distance, focalpoint=focalpoint, roll=roll,
-                     reset_camera=reset_camera, rigid=rigid)
+                     reset_camera=reset_camera, rigid=rigid, update=update)
 
     def reset_camera(self):
         self.plotter.reset_camera()
@@ -930,7 +930,8 @@ def _get_camera_direction(focalpoint, position):
 
 
 def _set_3d_view(figure, azimuth=None, elevation=None, focalpoint='auto',
-                 distance=None, roll=None, reset_camera=True, rigid=None):
+                 distance=None, roll=None, reset_camera=True, rigid=None,
+                 update=True):
     rigid = np.eye(4) if rigid is None else rigid
     position = np.array(figure.plotter.camera_position[0])
     bounds = np.array(figure.plotter.renderer.ComputeVisiblePropBounds())
@@ -991,8 +992,9 @@ def _set_3d_view(figure, azimuth=None, elevation=None, focalpoint='auto',
     if roll is not None:
         figure.plotter.camera.SetRoll(figure.plotter.camera.GetRoll() + roll)
 
-    figure.plotter.update()
-    _process_events(figure.plotter)
+    if update:
+        figure.plotter.update()
+        _process_events(figure.plotter)
 
 
 def _set_3d_title(figure, title, size=16):

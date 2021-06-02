@@ -33,7 +33,7 @@ from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
                       _CheckInside)
 from .utils import (get_subjects_dir, check_fname, logger, verbose, fill_doc,
                     _ensure_int, check_version, _get_call_line, warn,
-                    _check_fname, _check_path_like, has_nibabel, _check_sphere,
+                    _check_fname, _check_path_like, _check_sphere,
                     _validate_type, _check_option, _is_numeric, _pl, _suggest,
                     object_size, sizeof_fmt)
 from .parallel import parallel_func, check_n_jobs
@@ -1357,17 +1357,17 @@ def read_talxfm(subject, subjects_dir=None, verbose=None):
     return mri_mni_t
 
 
-def _read_mri_info(path, units='m', return_img=False):
-    if has_nibabel():
+def _read_mri_info(path, units='m', return_img=False, use_nibabel=False):
+    # This is equivalent but 100x slower, so only use nibabel if we need to
+    # (later):
+    if use_nibabel:
         import nibabel
-        mgz = nibabel.load(path)
-        hdr = mgz.header
+        hdr = nibabel.load(path).header
         n_orig = hdr.get_vox2ras()
         t_orig = hdr.get_vox2ras_tkr()
         dims = hdr.get_data_shape()
         zooms = hdr.get_zooms()[:3]
     else:
-        mgz = None
         hdr = _get_mgz_header(path)
         n_orig = hdr['vox2ras']
         t_orig = hdr['vox2ras_tkr']
@@ -1395,7 +1395,8 @@ def _read_mri_info(path, units='m', return_img=False):
 
     out = (vox_ras_t, vox_mri_t, mri_ras_t, dims, zooms)
     if return_img:
-        out += (mgz,)
+        nibabel = _import_nibabel()
+        out += (nibabel.load(path),)
     return out
 
 
@@ -2250,6 +2251,8 @@ def _vol_vertex(width, height, jj, kk, pp):
 
 def _get_mgz_header(fname):
     """Adapted from nibabel to quickly extract header info."""
+    fname = _check_fname(fname, overwrite='read', must_exist=True,
+                         name='MRI image')
     if not fname.endswith('.mgz'):
         raise IOError('Filename must end with .mgz')
     header_dtd = [('version', '>i4'), ('dims', '>i4', (4,)),

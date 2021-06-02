@@ -90,7 +90,7 @@ from ..transforms import (write_trans, read_trans, apply_trans, rotation,
 from ..coreg import fit_matched_points, scale_mri, _find_fiducials_files
 from ..viz.backends._pysurfer_mayavi import _toggle_mlab_render
 from ..viz._3d import _get_3d_option
-from ..utils import logger, set_config, _pl
+from ..utils import logger, set_config, _pl, warn
 from ._fiducials_gui import MRIHeadWithFiducialsModel, FiducialsPanel
 from ._file_traits import trans_wildcard, DigSource, SubjectSelectorPanel
 from ._viewer import (HeadViewController, PointObject, SurfaceObject,
@@ -895,7 +895,7 @@ class CoregFrameHandler(Handler):
             try:
                 info.object.save_config(size=size)
             except Exception as exc:
-                warnings.warn("Error saving GUI configuration:\n%s" % (exc,))
+                warn("Error saving GUI configuration:\n%s" % (exc,))
             return True
 
 

@@ -93,18 +93,17 @@ filters_post = make_lcmv(info, forward, cov_post, reg=0.05,
 # Compute resolution matrices for the two LCMV beamformers
 # --------------------------------------------------------
 
-rm_pre = make_lcmv_resolution_matrix(filters_pre, forward, info)
-
-rm_post = make_lcmv_resolution_matrix(filters_post, forward, info)
-
 # compute cross-talk functions (CTFs) for one target vertex
 sources = [3000]
-
-stc_pre = get_cross_talk(rm_pre, forward['src'], sources, norm=True)
-
-stc_post = get_cross_talk(rm_post, forward['src'], sources, norm=True)
 verttrue = [forward['src'][0]['vertno'][sources[0]]]  # pick one vertex
-del forward
+rm_pre = make_lcmv_resolution_matrix(filters_pre, forward, info)
+stc_pre = get_cross_talk(rm_pre, forward['src'], sources, norm=True)
+del rm_pre
+
+##############################################################################
+rm_post = make_lcmv_resolution_matrix(filters_post, forward, info)
+stc_post = get_cross_talk(rm_post, forward['src'], sources, norm=True)
+del rm_post
 
 ##############################################################################
 # Visualize

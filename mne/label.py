@@ -2082,6 +2082,7 @@ def read_labels_from_annot(subject, parc='aparc', hemi='both',
     # now we are ready to create the labels
     n_read = 0
     labels = list()
+    orig_names = set()
     for fname, hemi in zip(annot_fname, hemis):
         # read annotation
         annot, ctab, label_names = _read_annot(fname)
@@ -2098,7 +2099,9 @@ def read_labels_from_annot(subject, parc='aparc', hemi='both',
             if len(vertices) == 0:
                 # label is not part of cortical surface
                 continue
-            name = label_name.decode() + '-' + hemi
+            label_name = label_name.decode()
+            orig_names.add(label_name)
+            name = f'{label_name}-{hemi}'
             if (regexp is not None) and not r_.match(name):
                 continue
             pos = vert_pos[vertices, :]
@@ -2116,7 +2119,9 @@ def read_labels_from_annot(subject, parc='aparc', hemi='both',
     if len(labels) == 0:
         msg = 'No labels found.'
         if regexp is not None:
-            msg += ' Maybe the regular expression %r did not match?' % regexp
+            orig_names = '\n'.join(sorted(orig_names))
+            msg += (f' Maybe the regular expression {repr(regexp)} did not '
+                    f'match any of:\n{orig_names}')
         raise RuntimeError(msg)
 
     return labels

@@ -38,6 +38,9 @@ fname_cov = op.join(s_path, 'sample_audvis_trunc-cov.fif')
 fname_trans = op.join(s_path, 'sample_audvis_trunc-trans.fif')
 
 
+collect_ignore = ['export/_eeglab.py']
+
+
 def pytest_configure(config):
     """Configure pytest options."""
     # Markers

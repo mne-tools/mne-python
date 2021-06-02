@@ -105,7 +105,8 @@ class _LayeredMesh(object):
         self._actor = None
         self._is_mapped = False
 
-        self._cache = None
+        self._current_colors = None
+        self._cached_colors = None
         self._overlays = OrderedDict()
 
         self._default_scalars = np.ones(vertices.shape)
@@ -142,14 +143,15 @@ class _LayeredMesh(object):
         return np.clip(C, 0, 1, out=C)
 
     def _compose_overlays(self):
-        B = None
+        B = cache = None
         for overlay in self._overlays.values():
             A = overlay.to_colors()
             if B is None:
                 B = A
             else:
-                B = self._compute_over(B, A)
-        return B
+                cache = B
+                B = self._compute_over(cache, A)
+        return B, cache
 
     def add_overlay(self, scalars, colormap, rng, opacity, name):
         overlay = _Overlay(
@@ -161,36 +163,45 @@ class _LayeredMesh(object):
         )
         self._overlays[name] = overlay
         colors = overlay.to_colors()
-
-        # save colors in cache
-        if self._cache is None:
-            self._cache = colors
+        if self._current_colors is None:
+            self._current_colors = colors
         else:
-            self._cache = self._compute_over(self._cache, colors)
+            # save previous colors to cache
+            self._cached_colors = self._current_colors
+            self._current_colors = self._compute_over(
+                self._cached_colors, colors)
 
-        # update the texture
-        self._update()
+        # apply the texture
+        self._apply()
 
     def remove_overlay(self, names):
+        to_update = False
         if not isinstance(names, list):
             names = [names]
         for name in names:
             if name in self._overlays:
                 del self._overlays[name]
-        self.update()
+                to_update = True
+        if to_update:
+            self.update()
 
-    def _update(self):
-        if self._cache is None or self._renderer is None:
+    def _apply(self):
+        if self._current_colors is None or self._renderer is None:
             return
         self._renderer._set_mesh_scalars(
             mesh=self._polydata,
-            scalars=self._cache,
+            scalars=self._current_colors,
             name=self._default_scalars_name,
         )
 
-    def update(self):
-        self._cache = self._compose_overlays()
-        self._update()
+    def update(self, colors=None):
+        if colors is not None and self._cached_colors is not None:
+            self._current_colors = self._compute_over(
+                self._cached_colors, colors)
+        else:
+            self._current_colors, self._cached_colors = \
+                self._compose_overlays()
+        self._apply()
 
     def _clean(self):
         mapper = self._actor.GetMapper()
@@ -213,7 +224,11 @@ class _LayeredMesh(object):
             overlay._opacity = opacity
         if rng is not None:
             overlay._rng = rng
-        self.update()
+        # partial update: use cache if possible
+        if name == list(self._overlays.keys())[-1]:
+            self.update(colors=overlay.to_colors())
+        else:  # full update
+            self.update()
 
 
 @fill_doc
@@ -380,13 +395,13 @@ class Brain(object):
         from .._3d import _get_cmap
         from matplotlib.colors import colorConverter
 
+        _validate_type(hemi, str, 'hemi')
+        hemi = self._check_hemi(hemi, extras=('both', 'split'))
         if hemi in ('both', 'split'):
             self._hemis = ('lh', 'rh')
-        elif hemi in ('lh', 'rh'):
-            self._hemis = (hemi, )
         else:
-            raise KeyError('hemi has to be either "lh", "rh", "split", '
-                           'or "both"')
+            assert hemi in ('lh', 'rh')
+            self._hemis = (hemi, )
         self._view_layout = _check_option('view_layout', view_layout,
                                           ('vertical', 'horizontal'))
 
@@ -406,9 +421,6 @@ class Brain(object):
         if isinstance(foreground, str):
             foreground = colorConverter.to_rgb(foreground)
         self._fg_color = foreground
-
-        if isinstance(views, str):
-            views = [views]
         views = _check_views(surf, views, hemi)
         col_dict = dict(lh=1, rh=1, both=1, split=2)
         shape = (len(views), col_dict[hemi])
@@ -525,7 +537,8 @@ class Brain(object):
                         alpha=self._silhouette["alpha"],
                         decimate=self._silhouette["decimate"],
                     )
-                self._renderer.set_camera(**views_dicts[h][v])
+                self._renderer.set_camera(update=False, reset_camera=False,
+                                          **views_dicts[h][v])
 
         self.interaction = interaction
         self._closed = False
@@ -1177,7 +1190,7 @@ class Brain(object):
             alpha=0.5, ls=':')
 
         # now plot the time line
-        self.plot_time_line()
+        self.plot_time_line(update=False)
 
         # then the picked points
         for idx, hemi in enumerate(['lh', 'rh', 'vol']):
@@ -1206,7 +1219,7 @@ class Brain(object):
             else:
                 mesh = self._layered_meshes[hemi]._polydata
             vertex_id = vertices[ind[0]]
-            self._add_vertex_glyph(hemi, mesh, vertex_id)
+            self._add_vertex_glyph(hemi, mesh, vertex_id, update=False)
 
     def _configure_picking(self):
         # get data for each hemi
@@ -1245,7 +1258,9 @@ class Brain(object):
         self._renderer._tool_bar_add_file_button(
             name="movie",
             desc="Save movie...",
-            func=self.save_movie,
+            func=lambda filename: self.save_movie(
+                filename=filename,
+                time_dilation=(1. / self.playback_speed)),
             shortcut="ctrl+shift+s",
         )
         self._renderer._tool_bar_add_button(
@@ -1476,7 +1491,7 @@ class Brain(object):
         self._layered_meshes[hemi].remove_overlay(label.name)
         self.picked_patches[hemi].remove(label_id)
 
-    def _add_vertex_glyph(self, hemi, mesh, vertex_id):
+    def _add_vertex_glyph(self, hemi, mesh, vertex_id, update=True):
         if vertex_id in self.picked_points[hemi]:
             return
 
@@ -1484,7 +1499,7 @@ class Brain(object):
         if self.act_data_smooth[hemi][0] is None:
             return
         color = next(self.color_cycle)
-        line = self.plot_time_course(hemi, vertex_id, color)
+        line = self.plot_time_course(hemi, vertex_id, color, update=update)
         if hemi == 'vol':
             ijk = np.unravel_index(
                 vertex_id, np.array(mesh.GetDimensions()) - 1, order='F')
@@ -1584,7 +1599,7 @@ class Brain(object):
             self.rms = None
         self._renderer._update()
 
-    def plot_time_course(self, hemi, vertex_id, color):
+    def plot_time_course(self, hemi, vertex_id, color, update=True):
         """Plot the vertex time course.
 
         Parameters
@@ -1595,6 +1610,8 @@ class Brain(object):
             The vertex identifier in the mesh.
         color : matplotlib color
             The color of the time course.
+        update : bool
+            Force an update of the plot. Defaults to True.
 
         Returns
         -------
@@ -1643,11 +1660,18 @@ class Brain(object):
             lw=1.,
             color=color,
             zorder=4,
+            update=update,
         )
         return line
 
-    def plot_time_line(self):
-        """Add the time line to the MPL widget."""
+    def plot_time_line(self, update=True):
+        """Add the time line to the MPL widget.
+
+        Parameters
+        ----------
+        update : bool
+            Force an update of the plot. Defaults to True.
+        """
         if self.mpl_canvas is None:
             return
         if isinstance(self.show_traces, bool) and self.show_traces:
@@ -1659,9 +1683,11 @@ class Brain(object):
                     label='time',
                     color=self._fg_color,
                     lw=1,
+                    update=update,
                 )
             self.time_line.set_xdata(current_time)
-            self.mpl_canvas.update_plot()
+            if update:
+                self.mpl_canvas.update_plot()
 
     def _configure_help(self):
         pairs = [
@@ -1983,7 +2009,8 @@ class Brain(object):
                               bgcolor=self._brain_color[:3])
                 kwargs.update(colorbar_kwargs or {})
                 self._scalar_bar = self._renderer.scalarbar(**kwargs)
-            self._renderer.set_camera(**views_dicts[hemi][v])
+            self._renderer.set_camera(
+                update=False, reset_camera=False, **views_dicts[hemi][v])
 
         # 4) update the scalar bar and opacity
         self.update_lut(alpha=alpha)
@@ -2280,7 +2307,7 @@ class Brain(object):
                 name=label_name,
             )
             if reset_camera:
-                self._renderer.set_camera(**views_dicts[hemi][v])
+                self._renderer.set_camera(update=False, **views_dicts[hemi][v])
             if self.time_viewer and self.show_traces \
                     and self.traces_mode == 'label':
                 label._color = orig_color
@@ -2394,7 +2421,7 @@ class Brain(object):
         self.add_annotation(self.annot, color="w", alpha=0.75)
 
         # now plot the time line
-        self.plot_time_line()
+        self.plot_time_line(update=False)
         self.mpl_canvas.update_plot()
 
         for hemi in self._hemis:
@@ -2736,7 +2763,6 @@ class Brain(object):
         n_steps : int
             Number of smoothing steps.
         """
-        from scipy import sparse
         from ...morph import _hemi_morph
         for hemi in ['lh', 'rh']:
             hemi_data = self._data.get(hemi)
@@ -2750,12 +2776,11 @@ class Brain(object):
                         'parameter must not be None'
                         % (len(hemi_data), self.geo[hemi].x.shape[0]))
                 morph_n_steps = 'nearest' if n_steps == -1 else n_steps
-                maps = sparse.eye(len(self.geo[hemi].coords), format='csr')
                 with use_log_level(False):
                     smooth_mat = _hemi_morph(
                         self.geo[hemi].orig_faces,
                         np.arange(len(self.geo[hemi].coords)),
-                        vertices, morph_n_steps, maps, warn=False)
+                        vertices, morph_n_steps, maps=None, warn=False)
                 self._data[hemi]['smooth_mat'] = smooth_mat
         self.set_time_point(self._data['time_idx'])
         self._data['smoothing_steps'] = n_steps
@@ -3055,12 +3080,9 @@ class Brain(object):
             self._renderer._window_new_cursor("WaitCursor"))
 
         try:
-            self._save_movie(
-                filename=filename,
-                time_dilation=(1. / self.playback_speed),
-                callback=frame_callback,
-                **kwargs
-            )
+            self._save_movie(filename, time_dilation, tmin, tmax,
+                             framerate, interpolation, codec,
+                             bitrate, frame_callback, time_viewer, **kwargs)
         except (Exception, KeyboardInterrupt):
             warn('Movie saving aborted:\n' + traceback.format_exc())
         finally:
@@ -3113,11 +3135,6 @@ class Brain(object):
         %(brain_screenshot_time_viewer)s
         **kwargs : dict
             Specify additional options for :mod:`imageio`.
-
-        Returns
-        -------
-        dialog : object
-            The opened dialog is returned for testing purpose only.
         """
         if filename is None:
             filename = _generate_default_filename(".mp4")
@@ -3237,16 +3254,13 @@ class Brain(object):
 
     def _check_hemi(self, hemi, extras=()):
         """Check for safe single-hemi input, returns str."""
+        _validate_type(hemi, (None, str), 'hemi')
         if hemi is None:
             if self._hemi not in ['lh', 'rh']:
                 raise ValueError('hemi must not be None when both '
                                  'hemispheres are displayed')
-            else:
-                hemi = self._hemi
-        elif hemi not in ['lh', 'rh'] + list(extras):
-            extra = ' or None' if self._hemi in ['lh', 'rh'] else ''
-            raise ValueError('hemi must be either "lh" or "rh"' +
-                             extra + ", got " + str(hemi))
+            hemi = self._hemi
+        _check_option('hemi', hemi, ('lh', 'rh') + tuple(extras))
         return hemi
 
     def _check_hemis(self, hemi):

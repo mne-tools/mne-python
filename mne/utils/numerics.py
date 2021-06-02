@@ -605,6 +605,18 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
     return grand_average
 
 
+class _HashableNdarray(np.ndarray):
+    def __hash__(self):
+        return object_hash(self)
+
+    def __eq__(self, other):
+        return NotImplementedError  # defer to hash
+
+
+def _hashable_ndarray(x):
+    return x.view(_HashableNdarray)
+
+
 def object_hash(x, h=None):
     """Hash a reasonable python object.
 
