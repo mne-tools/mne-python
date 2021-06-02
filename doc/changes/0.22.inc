@@ -9,8 +9,8 @@
 
 .. _changes_0_22:
 
-Version 0.22.0
---------------
+Version 0.22.0 (2020-12-17)
+---------------------------
 
 .. |Austin Hurst| replace:: **Austin Hurst**
 
