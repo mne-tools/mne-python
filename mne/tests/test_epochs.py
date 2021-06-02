@@ -2653,14 +2653,14 @@ def test_concatenate_epochs():
     epochs2 = epochs.copy()
     concatenate_epochs([epochs, epochs2])  # should work
     epochs2.info['dev_head_t']['trans'][:3, 3] += 0.0001
-    with pytest.raises(ValueError, match='dev_head_t.*must match'):
+    with pytest.raises(ValueError, match=r"info\['dev_head_t'\] differs"):
         concatenate_epochs([epochs, epochs2])
     with pytest.raises(TypeError, match='must be a list or tuple'):
         concatenate_epochs('foo')
     with pytest.raises(TypeError, match='must be an instance of Epochs'):
         concatenate_epochs([epochs, 'foo'])
     epochs2.info['dev_head_t'] = None
-    with pytest.raises(ValueError, match='dev_head_t.*must match'):
+    with pytest.raises(ValueError, match=r"info\['dev_head_t'\] differs"):
         concatenate_epochs([epochs, epochs2])
     epochs.info['dev_head_t'] = None
     concatenate_epochs([epochs, epochs2])  # should work
