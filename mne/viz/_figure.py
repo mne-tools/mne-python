@@ -448,10 +448,14 @@ class MNEBrowseFigure(MNEFigure):
             ax_main.tick_params(axis='x', which='major', bottom=False)
             ax_hscroll.tick_params(axis='x', which='both', bottom=False)
         else:
-            for _ax in (ax_main, ax_hscroll):
-                _ax.xaxis.set_major_formatter(
-                    FuncFormatter(self._xtick_formatter))
-                if self.mne.time_format == 'datetime':
+            ax_main.xaxis.set_major_formatter(
+                FuncFormatter(partial(self._xtick_formatter,
+                                      ax_type='main')))
+            ax_hscroll.xaxis.set_major_formatter(
+                FuncFormatter(partial(self._xtick_formatter,
+                                      ax_type='hscroll')))
+            if self.mne.time_format == 'clock':
+                for _ax in (ax_main, ax_hscroll):
                     _ax.set_xlabel('Time (HH:MM:SS)')
 
         # VERTICAL SCROLLBAR PATCHES (COLORED BY CHANNEL TYPE)
@@ -1863,18 +1867,18 @@ class MNEBrowseFigure(MNEFigure):
                    else 'normal')
             text.set_style(sty)
 
-    def _xtick_formatter(self, xval, _=None):
+    def _xtick_formatter(self, x, pos=None, ax_type='main'):
         """Change the x-axis labels."""
         if self.mne.time_format == 'float':
-            return xval
+            return x
         meas_date = self.mne.inst.info['meas_date']
         first_time = datetime.timedelta(seconds=self.mne.inst.first_time)
-        xtime = datetime.timedelta(seconds=xval)
+        xtime = datetime.timedelta(seconds=x)
         xdatetime = meas_date + first_time + xtime
         xdtstr = xdatetime.strftime('%H:%M:%S')
         tickdiff = np.diff(self.mne.ax_main.get_xticks())[0]
         digits = np.ceil(-2 * np.log10(tickdiff)).astype(int)
-        if digits:
+        if digits and ax_type == 'main' and int(xdatetime.microsecond) != 0:
             xdtstr += f'{round(xdatetime.microsecond * 1e-6, digits)}'[1:]
         return xdtstr
 
