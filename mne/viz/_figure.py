@@ -35,7 +35,7 @@ matplotlib.figure.Figure
 # Authors: Daniel McCloy <dan@mccloy.info>
 #
 # License: Simplified BSD
-
+import datetime
 from contextlib import contextmanager
 import platform
 from copy import deepcopy
@@ -1867,7 +1867,6 @@ class MNEBrowseFigure(MNEFigure):
         """Change the x-axis labels."""
         if self.mne.time_format == 'float':
             return xval
-        import datetime
         meas_date = self.mne.inst.info['meas_date']
         first_time = datetime.timedelta(seconds=self.mne.inst.first_time)
         xtime = datetime.timedelta(seconds=xval)
@@ -1881,7 +1880,7 @@ class MNEBrowseFigure(MNEFigure):
 
     def _toggle_time_format(self):
         if self.mne.time_format == 'float':
-            self.mne.time_format = 'datetime'
+            self.mne.time_format = 'clock'
             x_axis_label = 'Time (HH:MM:SS)'
         else:
             self.mne.time_format = 'float'
@@ -1893,7 +1892,7 @@ class MNEBrowseFigure(MNEFigure):
 
         self._redraw(update_data=False, annotations=False)
 
-        # Update vline-test if displayed
+        # Update vline-text if displayed
         if self.mne.vline is not None and self.mne.vline.get_visible():
             self._show_vline(self.mne.vline.get_xdata())
 

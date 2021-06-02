@@ -162,9 +162,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         Whether or not to show the scale bars. Defaults to True.
 
         .. versionadded:: 0.20.0
-    time_format : 'float' | 'datetime
-        If 'datetime', the labels for x-axis ticks will be the time derived
-        from ``Info['meas_date']``. Default is 'float'.
+    %(time_format)s
     %(verbose)s
 
     Returns
