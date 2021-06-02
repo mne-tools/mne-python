@@ -2495,7 +2495,7 @@ def _ensure_infos_match(info1, info2, name, *, on_mismatch='raise'):
         and ``info2``.
     """
     _check_on_missing(on_missing=on_mismatch, name='on_mismatch')
-    
+
     info1._check_consistency()
     info2._check_consistency()
 
@@ -2513,16 +2513,16 @@ def _ensure_infos_match(info1, info2, name, *, on_mismatch='raise'):
            zip(info2['projs'], info1['projs'])):
         raise ValueError(f'SSP projectors in {name} must be the same')
     if (info1['dev_head_t'] is None) != (info2['dev_head_t'] is None) or \
-            (info1['dev_head_t'] is not None and not
-             np.allclose(info1['dev_head_t']['trans'],
-                         info2['dev_head_t']['trans'], rtol=1e-6)):
-                msg = (f"{name}.info['dev_head_t'] don't match. The "
-                       f"instances probably come from different runs, and "
-                       f"are therefore associated with different head "
-                       f"positions. Manually change info['dev_head_t'] to "
-                       f"avoid this message but beware that this means the "
-                       f"MEG sensors will not be properly spatially aligned. "
-                       f"See mne.preprocessing.maxwell_filter to realign the "
-                       f"runs to a common head position.")
-                _on_missing(on_missing=on_mismatch, msg=msg,
-                            name='on_mismatch')
+        (info1['dev_head_t'] is not None and not
+         np.allclose(info1['dev_head_t']['trans'],
+                     info2['dev_head_t']['trans'], rtol=1e-6)):
+            msg = (f"{name}.info['dev_head_t'] don't match. The "
+                   f"instances probably come from different runs, and "
+                   f"are therefore associated with different head "
+                   f"positions. Manually change info['dev_head_t'] to "
+                   f"avoid this message but beware that this means the "
+                   f"MEG sensors will not be properly spatially aligned. "
+                   f"See mne.preprocessing.maxwell_filter to realign the "
+                   f"runs to a common head position.")
+            _on_missing(on_missing=on_mismatch, msg=msg,
+                        name='on_mismatch')
