@@ -715,6 +715,9 @@ class MNEBrowseFigure(MNEFigure):
                 min_dur = 3 * np.diff(self.mne.inst.times[:2])[0]
             old_dur = self.mne.duration
             new_dur = self.mne.duration + dur_delta
+            # Make sure that zoom-levels stay the same after max. zoom
+            if old_dur == min_dur and dur_delta > 0 and not self.mne.is_epochs:
+                new_dur = 1
             self.mne.duration = np.clip(new_dur, min_dur, last_time)
             if self.mne.duration != old_dur:
                 if self.mne.t_start + self.mne.duration > last_time:
