@@ -1784,7 +1784,7 @@ class MNEBrowseFigure(MNEFigure):
         return False
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    # SCALEBARS & Y-AXIS LABELS & X-AXIS LABELS
+    # SCALEBARS & AXIS LABELS
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     def _show_scalebars(self):
@@ -1865,33 +1865,19 @@ class MNEBrowseFigure(MNEFigure):
 
     def _xtick_formatter(self, xval, _=None):
         """Change the x-axis labels."""
-        if self.mne.time_format == 'datetime':
-            import datetime
-            first_time = self.mne.inst.first_time
-            meas_date = self.mne.inst.info['meas_date']
-            seconds = int(xval + first_time)
-            # Get decimals with remainder of division by 1.
-            ms = int((xval + first_time) % 1 * 1e3)
-            if ms == 0:
-                us = int((xval + first_time) % 1 * 1e6)
-            else:
-                us = int(((xval + first_time) % 1 * 1e6) % (ms * 1e3))
-            # Add time from first_time (only seconds) and xval to meas_date
-            xdatetime = meas_date + datetime.timedelta(seconds=seconds,
-                                                       milliseconds=ms,
-                                                       microseconds=us)
-            xdtstr = xdatetime.strftime('%H:%M:%S')
-            # Crop time string for microseconds depending on duration
-            ustr = xdatetime.strftime('%f')
-            lim = max(int(np.ceil(-np.log10(self.mne.duration))) + 3, 0)
-            if lim > 0:
-                ustr = ustr[:lim].rstrip("0")
-                if len(ustr) > 0:
-                    xdtstr += '.' + ustr
-
-            return xdtstr
-        else:
+        if self.mne.time_format == 'float':
             return xval
+        import datetime
+        meas_date = self.mne.inst.info['meas_date']
+        first_time = datetime.timedelta(seconds=self.mne.inst.first_time)
+        xtime = datetime.timedelta(seconds=xval)
+        xdatetime = meas_date + first_time + xtime
+        xdtstr = xdatetime.strftime('%H:%M:%S')
+        tickdiff = np.diff(self.mne.ax_main.get_xticks())[0]
+        digits = np.ceil(-2 * np.log10(tickdiff)).astype(int)
+        if digits:
+            xdtstr += f'{round(xdatetime.microsecond * 1e-6, digits)}'[1:]
+        return xdtstr
 
     def _toggle_time_format(self):
         if self.mne.time_format == 'float':

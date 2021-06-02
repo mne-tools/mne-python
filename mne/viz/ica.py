@@ -61,9 +61,13 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
     show_first_samp : bool
         If True, show time axis relative to the ``raw.first_samp``.
     %(show_scrollbars)s
-    time_format : 'float' | 'datetime
-        If 'datetime', the labels for x-axis ticks will be the time derived
-        from ``Info['meas_date']``. Default is 'float'.
+    time_format : 'float' | 'datetime'
+        Style of time labels on the horizontal axis. If 'float', labels will be
+        number of seconds from the start of the recording. If 'datetime',
+        labels will show "clock time" (hours/minutes/seconds) inferred from
+        ``raw.info['meas_date']``. Default is 'float'.
+        
+        .. versionadded:: 0.24
 
     Returns
     -------
