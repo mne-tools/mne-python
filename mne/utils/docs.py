@@ -1361,10 +1361,10 @@ show_scrollbars : bool
 
 docdict['time_format'] = """
 time_format : 'float' | 'clock'
-    Style of time labels on the horizontal axis. If 'float', labels will be
-    number of seconds from the start of the recording. If 'clock',
+    Style of time labels on the horizontal axis. If ``'float'``, labels will be
+    number of seconds from the start of the recording. If ``'clock'``,
     labels will show "clock time" (hours/minutes/seconds) inferred from
-    ``raw.info['meas_date']``. Default is 'float'.
+    ``raw.info['meas_date']``. Default is ``'float'``.
 
     .. versionadded:: 0.24
 """
