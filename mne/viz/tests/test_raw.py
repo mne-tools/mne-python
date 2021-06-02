@@ -736,8 +736,7 @@ def test_scalings_int():
 
 @pytest.mark.parametrize('dur', [20, 4.5, 0.01])
 def test_clock_xticks(dur, raw):
-    """Test if decimal seconds of xticks have appropriate length
-    depending on duration."""
+    """Test if decimal seconds of xticks have appropriate length."""
     fig = raw.plot(duration=dur, time_format='clock')
     ticklabels = fig.mne.ax_main.get_xticklabels()
     tick_texts = ticklabels[0]._text.split('.')
