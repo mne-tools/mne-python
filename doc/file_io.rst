@@ -44,7 +44,6 @@ File I/O
    write_cov
    write_events
    write_evokeds
-   export_evokeds
    write_forward_solution
    write_label
    write_proj
@@ -54,7 +53,6 @@ File I/O
    what
    io.read_info
    io.show_fiff
-   io.export_evokeds_to_mff
 
 Base class:
 

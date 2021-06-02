@@ -14,4 +14,6 @@ Exporting
    :toctree: generated/
 
    export_epochs
+   export_evokeds
+   export_evokeds_mff
    export_raw

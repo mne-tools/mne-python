@@ -22,7 +22,7 @@ from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
                     fill_doc, _check_option, ShiftTimeMixin, _build_data_frame,
                     _check_pandas_installed, _check_pandas_index_arguments,
                     _convert_times, _scale_dataframe_data, _check_time_format,
-                    _check_preload, _infer_check_export_fmt)
+                    _check_preload)
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
 from .viz.evoked import plot_evoked_white, plot_evoked_joint
@@ -1434,66 +1434,6 @@ def _write_evokeds(fname, evoked, check=True):
         end_block(fid, FIFF.FIFFB_PROCESSED_DATA)
         end_block(fid, FIFF.FIFFB_MEAS)
         end_file(fid)
-
-
-@fill_doc
-def export_evokeds(fname, evoked, fmt='auto', **kwargs):
-    """Export evoked dataset to external formats.
-
-    This function is a wrapper for format-specific export functions. The export
-    function is selected based on the inferred file format. All arguments are
-    passed to the respective export function.
-
-    Supported formats
-        MFF (mff, uses :func:`mne.io.export_evokeds_to_mff`)
-    %(export_warning)s :func:`mne.write_evokeds` instead.
-
-    Parameters
-    ----------
-    %(export_params_fname)s
-    evoked : Evoked instance, or list of Evoked instances
-        The evoked dataset, or list of evoked datasets, to export to one file.
-        Note that the measurement info from the first evoked instance is used,
-        so be sure that information matches.
-    fmt : 'auto' | 'mff'
-        Format of the export. Defaults to ``'auto'``, which will infer the
-        format from the filename extension. See supported formats above for
-        more information.
-    **kwargs
-        Additional keyword arguments to pass to the underlying export function.
-        For details, see the arguments of the export function for the
-        respective file format.
-
-    See Also
-    --------
-    write_evokeds
-
-    Notes
-    -----
-    .. versionadded:: 0.24
-    """
-    supported_export_formats = {
-        'mff': ('mff',),
-        'eeglab': ('set',),
-        'edf': ('edf',),
-        'brainvision': ('eeg', 'vmrk', 'vhdr',)
-    }
-    fmt = _infer_check_export_fmt(fmt, fname, supported_export_formats)
-
-    if not isinstance(evoked, list):
-        evoked = [evoked]
-
-    logger.info(f'Exporting evoked dataset to {fname}...')
-
-    if fmt == 'mff':
-        from .io import export_evokeds_to_mff
-        export_evokeds_to_mff(fname, evoked, **kwargs)
-    elif fmt == 'eeglab':
-        raise NotImplementedError('Export to EEGLAB not implemented.')
-    elif fmt == 'edf':
-        raise NotImplementedError('Export to EDF not implemented.')
-    elif fmt == 'brainvision':
-        raise NotImplementedError('Export to BrainVision not implemented.')
 
 
 def _get_peak(data, times, tmin=None, tmax=None, mode='abs'):

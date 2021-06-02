@@ -16,14 +16,12 @@ from numpy.testing import (assert_array_almost_equal, assert_equal,
 import pytest
 
 from mne import (equalize_channels, pick_types, read_evokeds, write_evokeds,
-                 export_evokeds, combine_evoked, create_info, read_events,
+                 combine_evoked, create_info, read_events,
                  Epochs, EpochsArray)
 from mne.evoked import _get_peak, Evoked, EvokedArray
-from mne.io import read_raw_fif, read_evokeds_mff
+from mne.io import read_raw_fif
 from mne.io.constants import FIFF
-from mne.utils import (requires_pandas, grand_average, object_diff,
-                       requires_version)
-from mne.datasets.testing import data_path, requires_testing_data
+from mne.utils import requires_pandas, grand_average
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 fname = op.join(base_dir, 'test-ave.fif')
@@ -240,78 +238,6 @@ def test_io_evoked(tmpdir):
     assert all(ave.info['maxshield'] is True for ave in aves)
     aves = read_evokeds(fname_ms, allow_maxshield='yes')
     assert (all(ave.info['maxshield'] is True for ave in aves))
-
-
-@requires_version('mffpy', '0.5.7')
-@requires_testing_data
-@pytest.mark.parametrize('fmt', ('auto', 'mff'))
-def test_export_evokeds_to_mff(tmpdir, fmt):
-    """Test exporting evoked dataset to MFF."""
-    egi_path = op.join(data_path(download=False), 'EGI')
-    egi_evoked_fname = op.join(egi_path, 'test_egi_evoked.mff')
-    evoked = read_evokeds_mff(egi_evoked_fname)
-    export_fname = op.join(str(tmpdir), 'evoked.mff')
-    history = [
-        {
-            'name': 'Test Segmentation',
-            'method': 'Segmentation',
-            'settings': ['Setting 1', 'Setting 2'],
-            'results': ['Result 1', 'Result 2']
-        },
-        {
-            'name': 'Test Averaging',
-            'method': 'Averaging',
-            'settings': ['Setting 1', 'Setting 2'],
-            'results': ['Result 1', 'Result 2']
-        }
-    ]
-    export_evokeds(export_fname, evoked, fmt=fmt, history=history)
-    # Drop non-EEG channels
-    evoked = [ave.drop_channels(['ECG', 'EMG']) for ave in evoked]
-    evoked_exported = read_evokeds_mff(export_fname)
-    assert len(evoked) == len(evoked_exported)
-    for ave, ave_exported in zip(evoked, evoked_exported):
-        # Compare infos
-        assert object_diff(ave_exported.info, ave.info) == ''
-        # Compare data
-        assert_allclose(ave_exported.data, ave.data)
-        # Compare properties
-        assert ave_exported.nave == ave.nave
-        assert ave_exported.kind == ave.kind
-        assert ave_exported.comment == ave.comment
-        assert_allclose(ave_exported.times, ave.times)
-
-
-@requires_version('mffpy', '0.5.7')
-@requires_testing_data
-def test_export_to_mff_no_device():
-    """Test no device type throws ValueError."""
-    egi_path = op.join(data_path(download=False), 'EGI')
-    egi_evoked_fname = op.join(egi_path, 'test_egi_evoked.mff')
-    evoked = read_evokeds_mff(egi_evoked_fname, condition='Category 1')
-    evoked.info['device_info'] = None
-    with pytest.raises(ValueError, match='No device type.'):
-        export_evokeds('output.mff', evoked)
-
-
-@requires_version('mffpy', '0.5.7')
-def test_export_to_mff_incompatible_sfreq():
-    """Test non-whole number sampling frequency throws ValueError."""
-    evoked = read_evokeds(fname)
-    with pytest.raises(ValueError, match=f'sfreq: {evoked[0].info["sfreq"]}'):
-        export_evokeds('output.mff', evoked)
-
-
-@pytest.mark.parametrize('fmt,ext', [
-    ('EEGLAB', 'set'),
-    ('EDF', 'edf'),
-    ('BrainVision', 'eeg')
-])
-def test_export_evokeds_unsupported_format(fmt, ext):
-    """Test exporting evoked dataset to non-supported formats."""
-    evoked = read_evokeds(fname)
-    with pytest.raises(NotImplementedError, match=f'Export to {fmt} not imp'):
-        export_evokeds(f'output.{ext}', evoked)
 
 
 def test_shift_time_evoked(tmpdir):
