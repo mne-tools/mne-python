@@ -2415,10 +2415,8 @@ def concatenate_raws(raws, preload=None, events_list=None, on_mismatch='raise',
     events_list : None | list
         The events to concatenate. Defaults to ``None``.
     on_mismatch : 'raise' | 'warn' | 'ignore'
-        How to handle situations when we discover that specific aspects of the
-        `~mne.io.Raw` instances mismatch in a way that could cause problems
-        after concatenation. Currently, this check is limited to the
-        device-to-head transformation. Defaults to ``'raise'``.
+        How to handle situations where the device-to-head transformation
+        differs between raw instances. Defaults to ``'raise'``.
     %(verbose)s
 
     Returns

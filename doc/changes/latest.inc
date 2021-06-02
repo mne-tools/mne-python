@@ -63,4 +63,4 @@ Bugs
 
 API changes
 ~~~~~~~~~~~
-- :func:`mne.concatenate_raws` now raises an exception if ``raw.info`` not identical across all files. This behavior can be controlled using the new ``on_mismatch`` parameter (:gh:`9438` by `Richard Höchenberger`_)
+- :func:`mne.concatenate_raws` now raises an exception if ``raw.info['dev_to_head_t']`` differs between files. This behavior can be controlled using the new ``on_mismatch`` parameter (:gh:`9438` by `Richard Höchenberger`_)
