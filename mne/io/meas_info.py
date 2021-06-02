@@ -2519,7 +2519,7 @@ def _ensure_infos_match(info1, info2, name, *, on_mismatch='raise'):
             (info1['dev_head_t'] is not None and not
              np.allclose(info1['dev_head_t']['trans'],
                          info2['dev_head_t']['trans'], rtol=1e-6)):
-        msg = (f"{name}.info['dev_head_t'] must match. The "
+        msg = (f"{name}.info['dev_head_t'] don't match. The "
                f"instances probably come from different runs, and "
                f"are therefore associated with different head "
                f"positions. Manually change info['dev_head_t'] to "
