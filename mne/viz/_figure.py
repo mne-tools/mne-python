@@ -1870,6 +1870,7 @@ class MNEBrowseFigure(MNEFigure):
             first_time = self.mne.inst.first_time
             meas_date = self.mne.inst.info['meas_date']
             seconds = int(xval + first_time)
+            # Get decimals with remainder of division by 1.
             ms = int((xval + first_time) % 1 * 1e3)
             if ms == 0:
                 us = int((xval + first_time) % 1 * 1e6)
