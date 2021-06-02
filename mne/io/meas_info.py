@@ -24,7 +24,7 @@ from .tree import dir_tree_find
 from .tag import (read_tag, find_tag, _ch_coord_dict, _update_ch_info_named,
                   _rename_list)
 from .proj import (_read_proj, _write_proj, _uniquify_projs, _normalize_proj,
-                   Projection)
+                   _proj_equal, Projection)
 from .ctf_comp import _read_ctf_comp, write_ctf_comp
 from .write import (start_file, end_file, start_block, end_block,
                     write_string, write_dig_points, write_float, write_int,
@@ -2478,3 +2478,60 @@ def _write_ch_infos(fid, chs, reset_range, ch_names_mapping):
             for (key, (const, _, write)) in _CH_INFO_MAP.items():
                 write(fid, const, ch[key])
             end_block(fid, FIFF.FIFFB_CH_INFO)
+
+
+def _ensure_infos_match(info1, info2, name, *, on_mismatch='raise'):
+    """Check if infos match.
+
+    Parameters
+    ----------
+    info1, info2 : instance of Info
+        The infos to compare.
+    name : str or int
+        The name of the object appearing in the error message of the comparison
+        fails.
+    on_mismatch : 'raise' | 'warn' | 'ignore'
+        What to do in case of a mismatch between `info1` and `info2`.
+    """
+    _check_option(parameter='on_mismatch', value=on_mismatch,
+                  allowed_values=('raise', 'warn', 'ignore'))
+
+    if not isinstance(name, str):  # passed epochs index
+        name = f'epochs[{name:d}]'
+    info1._check_consistency()
+    info2._check_consistency()
+
+    msg = None
+    if info1['nchan'] != info2['nchan']:
+        msg = f"{name}.info['nchan'] values don't match"
+    elif set(info1['bads']) != set(info2['bads']):
+        msg = f"{name}.info['bads'] don't match"
+    elif info1['sfreq'] != info2['sfreq']:
+        msg = f"{name}.info['sfreq'] don't match"
+    elif set(info1['ch_names']) != set(info2['ch_names']):
+        msg = f"{name}.info['ch_names'] don't match"
+    elif len(info2['projs']) != len(info1['projs']):
+        msg = f"SSP projectors in {name} don't match"
+    elif any(not _proj_equal(p1, p2) for p1, p2 in
+           zip(info2['projs'], info1['projs'])):
+        msg = f"SSP projectors in {name} don't match"
+    elif (info1['dev_head_t'] is None) != (info2['dev_head_t'] is None) or \
+            (info1['dev_head_t'] is not None and not
+             np.allclose(info1['dev_head_t']['trans'],
+                         info2['dev_head_t']['trans'], rtol=1e-6)):
+        msg = (f"{name}.info['dev_head_t'] must match. The "
+               f"instances probably come from different runs, and "
+               f"are therefore associated with different head "
+               f"positions. Manually change info['dev_head_t'] to "
+               f"avoid this message but beware that this means the "
+               f"MEG sensors will not be properly spatially aligned. "
+               f"See mne.preprocessing.maxwell_filter to realign the "
+               f"runs to a common head position.")
+
+    if msg is not None:
+        if on_mismatch == 'raise':
+            raise ValueError(msg)
+        elif on_mismatch == 'warn':
+            warn(msg)
+        else:
+            logger.info(msg)

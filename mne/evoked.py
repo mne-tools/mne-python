@@ -1354,7 +1354,7 @@ def write_evokeds(fname, evoked):
 
 def _write_evokeds(fname, evoked, check=True):
     """Write evoked data."""
-    from .epochs import _compare_epochs_infos
+    from .io.meas_info import _ensure_infos_match
     from .dipole import DipoleFixed  # avoid circular import
 
     if check:
@@ -1380,7 +1380,7 @@ def _write_evokeds(fname, evoked, check=True):
         start_block(fid, FIFF.FIFFB_PROCESSED_DATA)
         for ei, e in enumerate(evoked):
             if ei:
-                _compare_epochs_infos(evoked[0].info, e.info, f'evoked[{ei}]')
+                _ensure_infos_match(evoked[0].info, e.info, f'evoked[{ei}]')
             start_block(fid, FIFF.FIFFB_EVOKED)
 
             # Comment is optional

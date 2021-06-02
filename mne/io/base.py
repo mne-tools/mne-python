@@ -24,7 +24,7 @@ from .constants import FIFF
 from .utils import _construct_bids_filename, _check_orig_units
 from .pick import (pick_types, pick_channels, pick_info, _picks_to_idx,
                    channel_type)
-from .meas_info import write_meas_info
+from .meas_info import write_meas_info, _ensure_infos_match
 from .proj import setup_proj, activate_proj, _proj_equal, ProjMixin
 from ..channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                  SetChannelsMixin, InterpolationMixin,
@@ -2428,27 +2428,9 @@ def concatenate_raws(raws, preload=None, events_list=None, on_mismatch='raise',
     events : ndarray of int, shape (n_events, 3)
         The events. Only returned if ``event_list`` is not None.
     """
-    _check_option(parameter='on_mismatch', value=on_mismatch,
-                  allowed_values=('raise', 'warn', 'ignore'))
-
-    first_dev_head_t = raws[0].info['dev_head_t']
-    for raw in raws[1:]:
-        if raw.info['dev_head_t'] != first_dev_head_t:
-            msg = ('raw.info[\'dev_head_t\'] differs between the supplied '
-                   'raw instances.match. The instances probably come from '
-                   'different runs, and are therefore associated with '
-                   'different head positions. '
-                   'See mne.preprocessing.maxwell_filter to realign the '
-                   'runs to a common head position.')
-
-            if on_mismatch == 'raise':
-                msg += ('You can pass the on_mismatch parameter to '
-                        'mne.concatenate_raws to silence this error.')
-                raise ValueError(msg)
-            elif on_mismatch == 'warn':
-                warn(msg)
-            else:
-                logger.info(msg)
+    for idx, raw in enumerate(raws[1:], start=1):
+        _ensure_infos_match(info1=raws[0].info, info2=raw.info,
+                            name=f'raws[{idx}]', on_mismatch=on_mismatch)
 
     if events_list is not None:
         if len(events_list) != len(raws):
