@@ -1327,7 +1327,7 @@ def _read_evoked(fname, condition=None, kind='average', allow_maxshield=False):
     return info, nave, aspect_kind, comment, times, data, baseline
 
 
-def write_evokeds(fname, evoked):
+def write_evokeds(fname, evoked, *, on_mismatch='raise'):
     """Write an evoked dataset to a file.
 
     Parameters
@@ -1338,6 +1338,7 @@ def write_evokeds(fname, evoked):
         The evoked dataset, or list of evoked datasets, to save in one file.
         Note that the measurement info from the first evoked instance is used,
         so be sure that information matches.
+    %(on_info_mismatch)s
 
     See Also
     --------
@@ -1350,10 +1351,10 @@ def write_evokeds(fname, evoked):
         `~mne.Evoked` object, and will be restored when reading the data again
         via `mne.read_evokeds`.
     """
-    _write_evokeds(fname, evoked)
+    _write_evokeds(fname, evoked, on_mismatch=on_mismatch)
 
 
-def _write_evokeds(fname, evoked, check=True):
+def _write_evokeds(fname, evoked, check=True, *, on_mismatch='raise'):
     """Write evoked data."""
     from .dipole import DipoleFixed  # avoid circular import
 
@@ -1380,7 +1381,9 @@ def _write_evokeds(fname, evoked, check=True):
         start_block(fid, FIFF.FIFFB_PROCESSED_DATA)
         for ei, e in enumerate(evoked):
             if ei:
-                _ensure_infos_match(evoked[0].info, e.info, f'evoked[{ei}]')
+                _ensure_infos_match(info1=evoked[0].info, info2=e.info,
+                                    name=f'evoked[{ei}]',
+                                    on_mismatch=on_mismatch)
             start_block(fid, FIFF.FIFFB_EVOKED)
 
             # Comment is optional

@@ -3308,7 +3308,8 @@ def _update_offset(offset, events, shift):
     return offset
 
 
-def _concatenate_epochs(epochs_list, with_data=True, add_offset=True):
+def _concatenate_epochs(epochs_list, with_data=True, add_offset=True, *,
+                        on_mismatch='raise'):
     """Auxiliary function for concatenating epochs."""
     if not isinstance(epochs_list, (list, tuple)):
         raise TypeError('epochs_list must be a list or tuple, got %s'
@@ -3334,7 +3335,8 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True):
     shift = int((10 + tmax) * out.info['sfreq'])
     events_offset = _update_offset(None, out.events, shift)
     for ii, epochs in enumerate(epochs_list[1:], 1):
-        _ensure_infos_match(epochs.info, info, f'epochs[{ii}]')
+        _ensure_infos_match(epochs.info, info, f'epochs[{ii}]',
+                            on_mismatch=on_mismatch)
         if not np.allclose(epochs.times, epochs_list[0].times):
             raise ValueError('Epochs must have same times')
 
@@ -3411,7 +3413,8 @@ def _finish_concat(info, data, events, event_id, tmin, tmax, metadata,
     return out
 
 
-def concatenate_epochs(epochs_list, add_offset=True):
+@fill_doc
+def concatenate_epochs(epochs_list, add_offset=True, *, on_mismatch='raise'):
     """Concatenate a list of epochs into one epochs object.
 
     Parameters
@@ -3423,6 +3426,7 @@ def concatenate_epochs(epochs_list, add_offset=True):
         Epochs sets, such that they are easy to distinguish after the
         concatenation.
         If False, the event times are unaltered during the concatenation.
+    %(on_info_mismatch)s
 
     Returns
     -------
@@ -3434,7 +3438,8 @@ def concatenate_epochs(epochs_list, add_offset=True):
     .. versionadded:: 0.9.0
     """
     return _finish_concat(*_concatenate_epochs(epochs_list,
-                                               add_offset=add_offset))
+                                               add_offset=add_offset,
+                                               on_mismatch=on_mismatch))
 
 
 @verbose

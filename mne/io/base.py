@@ -2397,8 +2397,8 @@ def _check_raw_compatibility(raw):
 
 
 @verbose
-def concatenate_raws(raws, preload=None, events_list=None, on_mismatch='raise',
-                     verbose=None):
+def concatenate_raws(raws, preload=None, events_list=None, *,
+                     on_mismatch='raise', verbose=None):
     """Concatenate raw instances as if they were continuous.
 
     .. note:: ``raws[0]`` is modified in-place to achieve the concatenation.
@@ -2414,9 +2414,7 @@ def concatenate_raws(raws, preload=None, events_list=None, on_mismatch='raise',
     %(preload_concatenate)s
     events_list : None | list
         The events to concatenate. Defaults to ``None``.
-    on_mismatch : 'raise' | 'warn' | 'ignore'
-        How to handle situations where the device-to-head transformation
-        differs between raw instances. Defaults to ``'raise'``.
+    %(on_info_mismatch)s
     %(verbose)s
 
     Returns

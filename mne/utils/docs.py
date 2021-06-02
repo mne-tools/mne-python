@@ -58,6 +58,13 @@ on_split_missing : str
 
     .. versionadded:: 0.22
 """ % (_on_missing_base,)
+docdict['on_info_mismatch'] = f"""
+on_mismatch : 'raise' | 'warn' | 'ignore'
+    {_on_missing_base} the device-to-head transformation differs between raw
+    instances.
+
+    .. versionadded:: 0.24
+"""
 docdict['saturated'] = """\
 saturated : str
     Replace saturated segments of data with NaNs, can be:
