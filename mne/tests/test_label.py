@@ -499,9 +499,10 @@ def test_read_labels_from_annot(tmpdir):
                                    regexp='.*-.{4,}_.{3,3}-L',
                                    subjects_dir=subjects_dir)[0]
     assert (label.name == 'G_oc-temp_med-Lingual-lh')
-    pytest.raises(RuntimeError, read_labels_from_annot, 'sample', parc='aparc',
-                  annot_fname=annot_fname, regexp='JackTheRipper',
-                  subjects_dir=subjects_dir)
+    with pytest.raises(RuntimeError, match='did not match any of'):
+        read_labels_from_annot(
+            'sample', parc='aparc', annot_fname=annot_fname, regexp='foo',
+            subjects_dir=subjects_dir)
 
 
 @testing.requires_testing_data
