@@ -1881,7 +1881,7 @@ class MNEBrowseFigure(MNEFigure):
         xdatetime = meas_date + first_time + xtime
         xdtstr = xdatetime.strftime('%H:%M:%S')
         tickdiff = np.diff(self.mne.ax_main.get_xticks())[0]
-        digits = np.ceil(-2 * np.log10(tickdiff)).astype(int)
+        digits = np.ceil(-np.log10(tickdiff)).astype(int)
         if digits and ax_type == 'main' and int(xdatetime.microsecond) != 0:
             xdtstr += f'{round(xdatetime.microsecond * 1e-6, digits)}'[1:]
         return xdtstr
