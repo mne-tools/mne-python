@@ -574,29 +574,27 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica,
             exclude_labels.append(line_label)
         else:
             exclude_labels.append(None)
-
+    # Provide different cmaps for up to 4 ica-categories
+    cmaps = ['winter', 'spring', 'summer', 'autumn']
+    label_colors = ['k'] * len(exclude_labels)
     if labels is not None:
         # compute colors only based on label categories
         unique_labels = {k.split(' - ')[1] for k in exclude_labels if k}
-        label_colors = plt.cm.rainbow(np.linspace(0, 1, len(unique_labels)))
-        label_colors = dict(zip(unique_labels, label_colors))
+        for ulix, ul in enumerate(unique_labels):
+            cat_indices = [exclude_labels.index(it) for it in exclude_labels
+                           if it is not None and f' - {ul}' in it]
+            cmap = plt.get_cmap(cmaps[int(ulix % 4)], len(cat_indices))
+            for ix, ci in enumerate(cat_indices):
+                label_colors[ci] = cmap(ix)
     else:
-        label_colors = {k: 'red' for k in exclude_labels}
+        for ix, label in enumerate(exclude_labels):
+            if label is not None:
+                label_colors[ix] = 'r'
 
     for exc_label, ii in zip(exclude_labels, picks):
-        if exc_label is not None:
-            # create look up for color ...
-            if ' - ' in exc_label:
-                key = exc_label.split(' - ')[1]
-            else:
-                key = exc_label
-            color = label_colors[key]
-            # ... but display component number too
-            lines.extend(ax.plot(times, evoked.data[ii].T, picker=True,
-                                 zorder=2, color=color, label=exc_label))
-        else:
-            lines.extend(ax.plot(times, evoked.data[ii].T, picker=True,
-                                 color='k', zorder=1))
+        color = label_colors[ii]
+        lines.extend(ax.plot(times, evoked.data[ii].T, picker=True,
+                             zorder=2, color=color, label=exc_label))
         lines[-1].set_pickradius(3.)
 
     ax.set(title=title, xlim=times[[0, -1]], xlabel='Time (ms)', ylabel='(NA)')
