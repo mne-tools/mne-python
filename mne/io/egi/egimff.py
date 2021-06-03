@@ -893,7 +893,7 @@ def _read_evoked_mff(fname, condition, channel_naming='E%d', verbose=None):
     info['custom_ref_applied'] = False
     try:
         fp = mff.directory.filepointer('history')
-    except ValueError:  # should probably be FileNotFoundError upstream...
+    except (ValueError, FileNotFoundError):  # old (<=0.6.3) vs new mffpy
         pass
     else:
         with fp:
