@@ -377,7 +377,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                  filename=None, metadata=None, event_repeated='error',
                  verbose=None):  # noqa: D102
         self.verbose = verbose
-
+        self.comments={}
         if events is not None:  # RtEpochs can have events=None
             events = _ensure_events(events)
             events_max = events.max()

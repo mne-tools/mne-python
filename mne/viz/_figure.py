@@ -109,6 +109,8 @@ class MNEFigure(Figure):
             close(self)
         elif event.key == 'f11':  # full screen
             self.canvas.manager.full_screen_toggle()
+        if event.key=="control":
+            self.ctrlkpres = True            
 
     def _buttonpress(self, event):
         """Handle buttonpress events."""
@@ -328,7 +330,9 @@ class MNEBrowseFigure(MNEFigure):
         elif isinstance(inst, BaseRaw):
             self.mne.instance_type = 'raw'
         elif isinstance(inst, BaseEpochs):
-            self.mne.instance_type = 'epochs'
+            if "comments" not in dir(inst):
+                self.mne.inst.comments={}
+            self.mne.instance_type = 'epochs'            
         else:
             raise TypeError('Expected an instance of Raw, Epochs, or ICA, '
                             f'got {type(inst)}.')
@@ -336,7 +340,7 @@ class MNEBrowseFigure(MNEFigure):
         if self.mne.instance_type == 'ica':
             if isinstance(self.mne.ica_inst, BaseRaw):
                 self.mne.ica_type = 'raw'
-            elif isinstance(self.mne.ica_inst, BaseEpochs):
+            elif isinstance(self.mne.ica_inst, BaseEpochs):                
                 self.mne.ica_type = 'epochs'
         self.mne.is_epochs = 'epochs' in (self.mne.instance_type,
                                           self.mne.ica_type)
@@ -751,7 +755,7 @@ class MNEBrowseFigure(MNEFigure):
             super()._keypress(event)
 
     def _buttonpress(self, event):
-        """Handle mouse clicks."""
+        """Handle mouse clicks."""        
         butterfly = self.mne.butterfly
         annotating = self.mne.fig_annotation is not None
         ax_main = self.mne.ax_main
@@ -766,7 +770,7 @@ class MNEBrowseFigure(MNEFigure):
                     for line in self.mne.traces + self.mne.epoch_traces:
                         if line.contains(event)[0]:
                             if self.mne.instance_type == 'epochs':
-                                self._toggle_bad_epoch(event)
+                                self._toggle_bad_epoch(event)                                
                             else:
                                 idx = self.mne.traces.index(line)
                                 self._toggle_bad_channel(idx)
@@ -805,6 +809,9 @@ class MNEBrowseFigure(MNEFigure):
                 self._remove_annotation_hover_line()
                 self._draw_annotations()
                 self.canvas.draw_idle()
+            if self.ctrlkpres:                
+                self._set_comment_epoch(event)
+                self.ctrlkpres = False
             elif event.inaxes == ax_main:
                 self._toggle_vline(False)
 
@@ -1717,7 +1724,18 @@ class MNEBrowseFigure(MNEFigure):
             color = self.mne.epoch_color_bad
         self.mne.ax_hscroll.patches[epoch_ix].set_color(color)
         self._redraw(update_data=False)
-
+    def _set_comment_epoch(self,event):
+        from PyQt5.QtWidgets import QApplication, QWidget, QInputDialog, QLineEdit
+        epoch_num = self._get_epoch_num_from_time(event.xdata)
+        epoch_ix = self.mne.inst.selection.tolist().index(epoch_num)
+        if epoch_num in self.mne.inst.comments.keys():
+            text, okPressed = QInputDialog.getText(QWidget(), "Comment","Your comment:"
+                                                   , QLineEdit.Normal, self.mne.inst.comments[epoch_num])
+        else:
+            text, okPressed = QInputDialog.getText(QWidget(), "Comment","Your comment:"
+                                                   , QLineEdit.Normal,"")
+        self.mne.inst.comments[epoch_num] = text
+        
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # SCROLLBARS
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
