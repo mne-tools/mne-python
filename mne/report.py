@@ -53,6 +53,7 @@ for ext in SUPPORTED_READ_RAW_EXTENSIONS:
         RAW_EXTENSIONS.append(f'meg{ext}')
     RAW_EXTENSIONS.append(f'eeg{ext}')
     RAW_EXTENSIONS.append(f'ieeg{ext}')
+    RAW_EXTENSIONS.append(f'nirs{ext}')
 
 # Processed data will always be in (gzipped) FIFF format
 VALID_EXTENSIONS = ('sss.fif', 'sss.fif.gz',
@@ -258,7 +259,7 @@ def _get_toc_property(fname):
         div_klass = 'ssp'
         tooltip = fname
         text = op.basename(fname)
-    elif _endswith(fname, ['raw', 'sss', 'meg']):
+    elif _endswith(fname, ['raw', 'sss', 'meg', 'nirs']):
         div_klass = 'raw'
         tooltip = fname
         text = op.basename(fname)
@@ -314,7 +315,7 @@ def _iterate_files(report, fnames, info, cov, baseline, sfreq, on_error,
                     % op.join('...' + report.data_path[-20:],
                               fname))
         try:
-            if _endswith(fname, ['raw', 'sss', 'meg']):
+            if _endswith(fname, ['raw', 'sss', 'meg', 'nirs']):
                 html = report._render_raw(fname, data_path)
                 report_fname = fname
                 report_sectionlabel = 'raw'
@@ -339,7 +340,7 @@ def _iterate_files(report, fnames, info, cov, baseline, sfreq, on_error,
                                              data_path)
                 report_fname = fname
                 report_sectionlabel = 'evoked'
-            elif _endswith(fname, 'eve'):
+            elif _endswith(fname, ['eve']):
                 html = report._render_eve(fname, sfreq, image_format,
                                           data_path)
                 report_fname = fname

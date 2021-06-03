@@ -49,6 +49,8 @@ base_dir = op.realpath(op.join(op.dirname(__file__), '..', 'io', 'tests',
                                'data'))
 evoked_fname = op.join(base_dir, 'test-ave.fif')
 
+nirs_fname = op.join(data_dir, 'SNIRF', 'NIRx', 'NIRSport2', '1.0.3')
+
 
 def _get_example_figures():
     """Create two example figures."""
@@ -70,6 +72,7 @@ def test_render_report(renderer, tmpdir):
     proj_fname_new = op.join(tempdir, 'temp_ecg-proj.fif')
     fwd_fname_new = op.join(tempdir, 'temp_raw-fwd.fif')
     inv_fname_new = op.join(tempdir, 'temp_raw-inv.fif')
+    nirs_fname_new = op.join(tempdir, 'temp_raw-nirs.snirf')
     for a, b in [[raw_fname, raw_fname_new],
                  [raw_fname, raw_fname_new_bids],
                  [ms_fname, ms_fname_new],
@@ -77,7 +80,8 @@ def test_render_report(renderer, tmpdir):
                  [cov_fname, cov_fname_new],
                  [proj_fname, proj_fname_new],
                  [fwd_fname, fwd_fname_new],
-                 [inv_fname, inv_fname_new]]:
+                 [inv_fname, inv_fname_new],
+                 [nirs_fname, nirs_fname_new]]:
         shutil.copyfile(a, b)
 
     # create and add -epo.fif and -ave.fif files
