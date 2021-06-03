@@ -448,6 +448,7 @@ class MNEBrowseFigure(MNEFigure):
             ax_main.tick_params(axis='x', which='major', bottom=False)
             ax_hscroll.tick_params(axis='x', which='both', bottom=False)
         else:
+            # RAW / ICA X-AXIS TICK & LABEL FORMATTING
             ax_main.xaxis.set_major_formatter(
                 FuncFormatter(partial(self._xtick_formatter,
                                       ax_type='main')))
@@ -717,7 +718,7 @@ class MNEBrowseFigure(MNEFigure):
             new_dur = self.mne.duration + dur_delta
             # Make sure that zoom-levels stay the same after max. zoom
             if old_dur == min_dur and dur_delta > 0 and not self.mne.is_epochs:
-                new_dur = 1
+                new_dur = dur_delta
             self.mne.duration = np.clip(new_dur, min_dur, last_time)
             if self.mne.duration != old_dur:
                 if self.mne.t_start + self.mne.duration > last_time:
