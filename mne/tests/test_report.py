@@ -110,6 +110,7 @@ def test_render_report(renderer, tmpdir):
 
     # Check correct paths and filenames
     fnames = glob.glob(op.join(tempdir, '*.fif'))
+    fnames.extend(glob.glob(op.join(tempdir, '*.snirf')))
     for fname in fnames:
         assert (op.basename(fname) in
                 [op.basename(x) for x in report.fnames])
