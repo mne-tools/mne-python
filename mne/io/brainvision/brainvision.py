@@ -484,8 +484,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
         try:
             n_samples = cfg.getint(cinfostr, 'DataPoints')
         except configparser.NoOptionError:
-            logger.warning('No info on DataPoints found. Inferring number of '
-                           'samples from the data file size.')
+            warn('No info on DataPoints found. Inferring number of '
+                 'samples from the data file size.')
             with open(data_fname, 'rb') as fid:
                 fid.seek(0, 2)
                 n_bytes = fid.tell()

@@ -49,6 +49,8 @@ Enhancements
 
 - Add support for interpolating oxy and deoxyhaemoglobin data types (:gh:`9431` by `Robert Luke`_)
 
+- :func:`mne.concatenate_raws`, :func:`mne.concatenate_epochs`, and func:`mne.write_evokeds` gained a new parameter ``on_mismatch``, which controls behavior in case not all of the supplied instances share the same device-to-head transformation (:gh:`9438` by `Richard Höchenberger`_)
+
 - Add "time_format" to :meth:`mne.io.Raw.plot` and :meth:`mne.preprocessing.ICA.plot_sources` to display acquisition time on x-axis (:gh:`9419` by `Martin Schulz`_)
 
 Bugs
@@ -60,6 +62,10 @@ Bugs
 - Fix bug with :func:`mne.io.read_raw_nihon` where latin-1 annotations could not be read (:gh:`9384` by `Alex Gramfort`_)
 
 - Fix bug when printing a :class:`mne.io.RawArray` in the notebook (:gh:`9404` by `Alex Gramfort`_)
+
+- Fix bug when computing rank from info for SSS data with only gradiometers or magnetometers (:gh:`9435` by `Alex Gramfort`_)
+
+- :func:`mne.concatenate_raws` now raises an exception if ``raw.info['dev_head_t']`` differs between files. This behavior can be controlled using the new ``on_mismatch`` parameter (:gh:`9438` by `Richard Höchenberger`_)
 
 API changes
 ~~~~~~~~~~~

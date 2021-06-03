@@ -51,7 +51,8 @@ raw.filter(14, 30)
 events = mne.make_fixed_length_events(raw, duration=5.)
 epochs = mne.Epochs(raw, events=events, tmin=0, tmax=5.,
                     baseline=None, reject=dict(mag=8e-13), preload=True)
-del raw
+data_cov = mne.compute_covariance(epochs)
+del raw, projs_ecg, projs_eog
 
 ##############################################################################
 # Compute the forward and inverse
@@ -63,10 +64,9 @@ pos = 15.  # 1.5 cm is very broad, done here for speed!
 src = mne.setup_volume_source_space('bst_resting', pos, bem=bem,
                                     subjects_dir=subjects_dir, verbose=True)
 fwd = mne.make_forward_solution(epochs.info, trans, src, bem)
-data_cov = mne.compute_covariance(epochs)
 filters = make_lcmv(epochs.info, fwd, data_cov, 0.05, cov,
                     pick_ori='max-power', weight_norm='nai')
-del fwd
+del fwd, data_cov, cov
 
 ##############################################################################
 # Compute label time series and do envelope correlation
@@ -75,6 +75,7 @@ del fwd
 epochs.apply_hilbert()  # faster to do in sensor space
 stcs = apply_lcmv_epochs(epochs, filters, return_generator=True)
 corr = envelope_correlation(stcs, verbose=True)
+del stcs, epochs, filters
 
 ##############################################################################
 # Compute the degree and plot it

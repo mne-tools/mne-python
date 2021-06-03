@@ -34,7 +34,8 @@ from .io.tag import read_tag
 from .io.tree import dir_tree_find
 from .io.pick import pick_types, _picks_to_idx, _FNIRS_CH_TYPES_SPLIT
 from .io.meas_info import (read_meas_info, write_meas_info,
-                           _read_extended_ch_info, _rename_list)
+                           _read_extended_ch_info, _rename_list,
+                           _ensure_infos_match)
 from .io.proj import ProjMixin
 from .io.write import (start_file, start_block, end_file, end_block,
                        write_int, write_string, write_float_matrix,
@@ -1326,7 +1327,8 @@ def _read_evoked(fname, condition=None, kind='average', allow_maxshield=False):
     return info, nave, aspect_kind, comment, times, data, baseline
 
 
-def write_evokeds(fname, evoked):
+@verbose
+def write_evokeds(fname, evoked, *, on_mismatch='raise', verbose=None):
     """Write an evoked dataset to a file.
 
     Parameters
@@ -1337,6 +1339,10 @@ def write_evokeds(fname, evoked):
         The evoked dataset, or list of evoked datasets, to save in one file.
         Note that the measurement info from the first evoked instance is used,
         so be sure that information matches.
+    %(on_info_mismatch)s
+    %(verbose)s
+
+        .. versionadded:: 0.24
 
     See Also
     --------
@@ -1349,12 +1355,11 @@ def write_evokeds(fname, evoked):
         `~mne.Evoked` object, and will be restored when reading the data again
         via `mne.read_evokeds`.
     """
-    _write_evokeds(fname, evoked)
+    _write_evokeds(fname, evoked, on_mismatch=on_mismatch)
 
 
-def _write_evokeds(fname, evoked, check=True):
+def _write_evokeds(fname, evoked, check=True, *, on_mismatch='raise'):
     """Write evoked data."""
-    from .epochs import _compare_epochs_infos
     from .dipole import DipoleFixed  # avoid circular import
 
     if check:
@@ -1380,7 +1385,9 @@ def _write_evokeds(fname, evoked, check=True):
         start_block(fid, FIFF.FIFFB_PROCESSED_DATA)
         for ei, e in enumerate(evoked):
             if ei:
-                _compare_epochs_infos(evoked[0].info, e.info, f'evoked[{ei}]')
+                _ensure_infos_match(info1=evoked[0].info, info2=e.info,
+                                    name=f'evoked[{ei}]',
+                                    on_mismatch=on_mismatch)
             start_block(fid, FIFF.FIFFB_EVOKED)
 
             # Comment is optional

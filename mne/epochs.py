@@ -25,7 +25,8 @@ from .io.write import (start_file, start_block, end_file, end_block,
                        write_double_matrix, write_complex_float_matrix,
                        write_complex_double_matrix, write_id, write_string,
                        _get_split_size, _NEXT_FILE_BUFFER, INT32_MAX)
-from .io.meas_info import read_meas_info, write_meas_info, _merge_info
+from .io.meas_info import (read_meas_info, write_meas_info, _merge_info,
+                           _ensure_infos_match)
 from .io.open import fiff_open, _get_next_fname
 from .io.tree import dir_tree_find
 from .io.tag import read_tag, read_tag_info
@@ -34,7 +35,7 @@ from .io.fiff.raw import _get_fname_rep
 from .io.pick import (channel_indices_by_type, channel_type,
                       pick_channels, pick_info, _pick_data_channels,
                       _DATA_CH_TYPES_SPLIT, _picks_to_idx)
-from .io.proj import setup_proj, ProjMixin, _proj_equal
+from .io.proj import setup_proj, ProjMixin
 from .io.base import BaseRaw, TimeMixin
 from .bem import _check_origin
 from .evoked import EvokedArray, _check_decim
@@ -3295,39 +3296,6 @@ def add_channels_epochs(epochs_list, verbose=None):
     return epochs
 
 
-def _compare_epochs_infos(info1, info2, name):
-    """Compare infos."""
-    if not isinstance(name, str):  # passed epochs index
-        name = f'epochs[{name:d}]'
-    info1._check_consistency()
-    info2._check_consistency()
-    if info1['nchan'] != info2['nchan']:
-        raise ValueError(f'{name}.info[\'nchan\'] must match')
-    if set(info1['bads']) != set(info2['bads']):
-        raise ValueError(f'{name}.info[\'bads\'] must match')
-    if info1['sfreq'] != info2['sfreq']:
-        raise ValueError(f'{name}.info[\'sfreq\'] must match')
-    if set(info1['ch_names']) != set(info2['ch_names']):
-        raise ValueError(f'{name}.info[\'ch_names\'] must match')
-    if len(info2['projs']) != len(info1['projs']):
-        raise ValueError(f'SSP projectors in {name} must be the same')
-    if any(not _proj_equal(p1, p2) for p1, p2 in
-           zip(info2['projs'], info1['projs'])):
-        raise ValueError(f'SSP projectors in {name} must be the same')
-    if (info1['dev_head_t'] is None) != (info2['dev_head_t'] is None) or \
-            (info1['dev_head_t'] is not None and not
-             np.allclose(info1['dev_head_t']['trans'],
-                         info2['dev_head_t']['trans'], rtol=1e-6)):
-        raise ValueError(f'{name}.info[\'dev_head_t\'] must match. The '
-                         'instances probably come from different runs, and '
-                         'are therefore associated with different head '
-                         'positions. Manually change info[\'dev_head_t\'] to '
-                         'avoid this message but beware that this means the '
-                         'MEG sensors will not be properly spatially aligned. '
-                         'See mne.preprocessing.maxwell_filter to realign the '
-                         'runs to a common head position.')
-
-
 def _update_offset(offset, events, shift):
     if offset == 0:
         return offset
@@ -3340,7 +3308,8 @@ def _update_offset(offset, events, shift):
     return offset
 
 
-def _concatenate_epochs(epochs_list, with_data=True, add_offset=True):
+def _concatenate_epochs(epochs_list, with_data=True, add_offset=True, *,
+                        on_mismatch='raise'):
     """Auxiliary function for concatenating epochs."""
     if not isinstance(epochs_list, (list, tuple)):
         raise TypeError('epochs_list must be a list or tuple, got %s'
@@ -3366,7 +3335,8 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True):
     shift = int((10 + tmax) * out.info['sfreq'])
     events_offset = _update_offset(None, out.events, shift)
     for ii, epochs in enumerate(epochs_list[1:], 1):
-        _compare_epochs_infos(epochs.info, info, ii)
+        _ensure_infos_match(epochs.info, info, f'epochs[{ii}]',
+                            on_mismatch=on_mismatch)
         if not np.allclose(epochs.times, epochs_list[0].times):
             raise ValueError('Epochs must have same times')
 
@@ -3443,7 +3413,9 @@ def _finish_concat(info, data, events, event_id, tmin, tmax, metadata,
     return out
 
 
-def concatenate_epochs(epochs_list, add_offset=True):
+@verbose
+def concatenate_epochs(epochs_list, add_offset=True, *, on_mismatch='raise',
+                       verbose=None):
     """Concatenate a list of epochs into one epochs object.
 
     Parameters
@@ -3455,6 +3427,10 @@ def concatenate_epochs(epochs_list, add_offset=True):
         Epochs sets, such that they are easy to distinguish after the
         concatenation.
         If False, the event times are unaltered during the concatenation.
+    %(on_info_mismatch)s
+    %(verbose)s
+
+        .. versionadded:: 0.24
 
     Returns
     -------
@@ -3466,7 +3442,8 @@ def concatenate_epochs(epochs_list, add_offset=True):
     .. versionadded:: 0.9.0
     """
     return _finish_concat(*_concatenate_epochs(epochs_list,
-                                               add_offset=add_offset))
+                                               add_offset=add_offset,
+                                               on_mismatch=on_mismatch))
 
 
 @verbose

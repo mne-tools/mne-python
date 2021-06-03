@@ -360,6 +360,25 @@ def test_multiple_files(tmpdir):
 
 
 @testing.requires_testing_data
+@pytest.mark.parametrize('on_mismatch', ('ignore', 'warn', 'raise'))
+def test_concatenate_raws(on_mismatch):
+    """Test error handling during raw concatenation."""
+    raw = read_raw_fif(fif_fname).crop(0, 10)
+    raws = [raw, raw.copy()]
+    raws[1].info['dev_head_t']['trans'] += 0.1
+    kws = dict(raws=raws, on_mismatch=on_mismatch)
+
+    if on_mismatch == 'ignore':
+        concatenate_raws(**kws)
+    elif on_mismatch == 'warn':
+        with pytest.warns(RuntimeWarning, match='different head positions'):
+            concatenate_raws(**kws)
+    elif on_mismatch == 'raise':
+        with pytest.raises(ValueError, match='different head positions'):
+            concatenate_raws(**kws)
+
+
+@testing.requires_testing_data
 @pytest.mark.parametrize('mod', (
     'meg',
     pytest.param('raw', marks=[pytest.mark.filterwarnings(

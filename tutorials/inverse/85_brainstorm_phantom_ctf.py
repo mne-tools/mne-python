@@ -21,6 +21,8 @@ References
 # License: BSD (3-clause)
 
 import os.path as op
+import warnings
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -108,7 +110,10 @@ raw_erm = mne.preprocessing.maxwell_filter(raw_erm, coord_frame='meg',
 cov = mne.compute_raw_covariance(raw_erm)
 del raw_erm
 
-dip, residual = fit_dipole(evoked, cov, sphere, verbose=True)
+with warnings.catch_warnings(record=True):
+    # ignore warning about data rank exceeding that of info (75 > 71)
+    warnings.simplefilter('ignore')
+    dip, residual = fit_dipole(evoked, cov, sphere, verbose=True)
 
 ###############################################################################
 # Compare the actual position with the estimated one.

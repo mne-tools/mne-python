@@ -67,7 +67,10 @@ erm_fname = op.join(data_path, 'MEG', subject, 'S01_Noise_20131218_01.ds')
 # other functions require the data to be preloaded into memory.
 raw = read_raw_ctf(raw_fname1)
 n_times_run1 = raw.n_times
-mne.io.concatenate_raws([raw, read_raw_ctf(raw_fname2)])
+
+# Here we ignore that these have different device<->head transforms
+mne.io.concatenate_raws(
+    [raw, read_raw_ctf(raw_fname2)], on_mismatch='ignore')
 raw_erm = read_raw_ctf(erm_fname)
 
 ###############################################################################
