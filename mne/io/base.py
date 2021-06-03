@@ -24,7 +24,7 @@ from .constants import FIFF
 from .utils import _construct_bids_filename, _check_orig_units
 from .pick import (pick_types, pick_channels, pick_info, _picks_to_idx,
                    channel_type)
-from .meas_info import write_meas_info
+from .meas_info import write_meas_info, _ensure_infos_match
 from .proj import setup_proj, activate_proj, _proj_equal, ProjMixin
 from ..channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                  SetChannelsMixin, InterpolationMixin,
@@ -2397,7 +2397,8 @@ def _check_raw_compatibility(raw):
 
 
 @verbose
-def concatenate_raws(raws, preload=None, events_list=None, verbose=None):
+def concatenate_raws(raws, preload=None, events_list=None, *,
+                     on_mismatch='raise', verbose=None):
     """Concatenate raw instances as if they were continuous.
 
     .. note:: ``raws[0]`` is modified in-place to achieve the concatenation.
@@ -2409,10 +2410,11 @@ def concatenate_raws(raws, preload=None, events_list=None, verbose=None):
     Parameters
     ----------
     raws : list
-        List of Raw instances to concatenate (in order).
+        List of `~mne.io.Raw` instances to concatenate (in order).
     %(preload_concatenate)s
     events_list : None | list
-        The events to concatenate. Defaults to None.
+        The events to concatenate. Defaults to ``None``.
+    %(on_info_mismatch)s
     %(verbose)s
 
     Returns
@@ -2422,6 +2424,10 @@ def concatenate_raws(raws, preload=None, events_list=None, verbose=None):
     events : ndarray of int, shape (n_events, 3)
         The events. Only returned if ``event_list`` is not None.
     """
+    for idx, raw in enumerate(raws[1:], start=1):
+        _ensure_infos_match(info1=raws[0].info, info2=raw.info,
+                            name=f'raws[{idx}]', on_mismatch=on_mismatch)
+
     if events_list is not None:
         if len(events_list) != len(raws):
             raise ValueError('`raws` and `event_list` are required '
