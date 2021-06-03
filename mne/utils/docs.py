@@ -60,7 +60,7 @@ on_split_missing : str
 """ % (_on_missing_base,)
 docdict['on_info_mismatch'] = f"""
 on_mismatch : 'raise' | 'warn' | 'ignore'
-    {_on_missing_base} the device-to-head transformation differs between raw
+    {_on_missing_base} the device-to-head transformation differs between
     instances.
 
     .. versionadded:: 0.24
