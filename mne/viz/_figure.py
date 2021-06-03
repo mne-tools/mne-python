@@ -454,7 +454,7 @@ class MNEBrowseFigure(MNEFigure):
             ax_hscroll.xaxis.set_major_formatter(
                 FuncFormatter(partial(self._xtick_formatter,
                                       ax_type='hscroll')))
-            if self.mne.time_format == 'clock':
+            if self.mne.time_format != 'float':
                 for _ax in (ax_main, ax_hscroll):
                     _ax.set_xlabel('Time (HH:MM:SS)')
 
@@ -2256,7 +2256,7 @@ class MNEBrowseFigure(MNEFigure):
         if self.mne.time_format == 'float':
             text = f'{xdata:0.2f} s '
         else:
-            text = self._xtick_formatter(xdata)
+            text = self._xtick_formatter(xdata)[:12]
         self.mne.vline_text.set_text(text)
         self._toggle_vline(True)
 
