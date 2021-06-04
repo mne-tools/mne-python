@@ -394,7 +394,6 @@ def annotate_breaks(raw, events=None, *,
 
     Notes
     -----
-
     .. versionadded:: 0.24
     """
     from mne.io import BaseRaw
