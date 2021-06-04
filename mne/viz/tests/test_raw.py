@@ -734,7 +734,7 @@ def test_scalings_int():
     raw.plot(scalings='auto')
 
 
-@pytest.mark.parametrize('dur, n_dec', [(20, 0), (4.5, 1), (0.01, 3)])
+@pytest.mark.parametrize('dur, n_dec', [(20, 1), (4.5, 2), (0.01, 4)])
 def test_clock_xticks(raw, dur, n_dec):
     """Test if decimal seconds of xticks have appropriate length."""
     fig = raw.plot(duration=dur, time_format='clock')

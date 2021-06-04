@@ -1874,10 +1874,11 @@ class MNEBrowseFigure(MNEFigure):
     def _xtick_formatter(self, x, pos=None, ax_type='main'):
         """Change the x-axis labels."""
         tickdiff = np.diff(self.mne.ax_main.get_xticks())[0]
-        digits = np.ceil(-np.log10(tickdiff)).astype(int)
-        # Increase decimals of vline by 3
+        digits = np.ceil(-np.log10(tickdiff) + 1).astype(int)
+        # Increase decimals of vline by 2
+        # (showing milliseconds at max. zoom-level)
         if ax_type == 'vline':
-            digits += 3
+            digits += 2
         if self.mne.time_format == 'float':
             if ax_type == 'hscroll' or int(x) == x:
                 return int(x)
