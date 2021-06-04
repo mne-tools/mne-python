@@ -359,7 +359,7 @@ def annotate_breaks(raw, events=None, min_duration=10, start_after_offset=3.5,
     start_after_offset, stop_before_onset : float
         Specifies how far the "break" annotation extends towards the beginning
         and end of the time period between the two annotations or events
-        spanning a break period. This can be used to ensure e.g. that the break
+        spanning a break. This can be used to ensure e.g. that the break
         annotation doesn't start and end immediately with a stimulation event.
         If, for example, your data contains a break of 30 seconds between two
         stimuli, and ``start_after_offset`` is set to ``5`` and
