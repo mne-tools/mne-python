@@ -337,8 +337,8 @@ def _annotations_from_mask(times, art_mask, art_name):
 
 
 @verbose
-def annotate_break(raw, events=None, min_duration=10, start_after_offset=3.5,
-                   stop_before_onset=3.5, ignore=('bad', 'edge'), *,
+def annotate_break(raw, events=None, min_duration=15., start_after_offset=5.,
+                   stop_before_onset=5., ignore=('bad', 'edge'), *,
                    verbose=None):
     """Create `~mne.Annotations` for breaks in an ongoing recording.
 
@@ -353,9 +353,8 @@ def annotate_break(raw, events=None, min_duration=10, start_after_offset=3.5,
     min_duration : float
         The minimum time span in seconds between the offset of one and the
         onset of the subsequent annotation (if ``events`` is ``None``) or
-        between two consecutive events (if ``events`` is an array) that must be
-        reached for this period to be considered a "break". Defaults to 10
-        seconds.
+        between two consecutive events (if ``events`` is an array) to consider
+        this period a "break". Defaults to 15 seconds.
     start_after_offset, stop_before_onset : float
         Specifies how far the "break" annotation extends towards the beginning
         and end of the time period between the two annotations or events
@@ -366,7 +365,7 @@ def annotate_break(raw, events=None, min_duration=10, start_after_offset=3.5,
         ``stop_before_onset`` is set to ``3``, the break annotation will start
         5 seconds after the first stimulus, and end 3 seconds before the second
         stimulus, yielding an annotated break of ``30 - 5 - 3 = 22`` seconds.
-        Both default to 3.5 seconds.
+        Both default to 5 seconds.
 
         .. note:: The beginning and the end of the recording will be annotated
                   as breaks, too, if the period from recording start until the
