@@ -480,7 +480,7 @@ def annotate_breaks(raw=None, events=None, *,
     # Handle the time period up until the first annotation
     if (raw.first_time < merged_intervals[0][0] and
             merged_intervals[0][0] - raw.first_time >= min_duration):
-        onset = raw.first_time  # don't subtract start_after_offset here
+        onset = raw.first_time  # don't add start_after_offset here
         offset = merged_intervals[0][0] - stop_before_onset
         duration = offset - onset
         break_onsets.append(onset)
