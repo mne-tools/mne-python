@@ -11,7 +11,7 @@ from mne.chpi import read_head_pos
 from mne.datasets import testing
 from mne.io import read_raw_fif
 from mne.preprocessing import (annotate_movement, compute_average_dev_head_t,
-                               annotate_muscle_zscore, annotate_breaks)
+                               annotate_muscle_zscore, annotate_break)
 from mne import Annotations, events_from_annotations
 
 data_path = testing.data_path(download=False)
@@ -114,7 +114,7 @@ def test_annotate_breaks():
         ]
     )
 
-    break_annots = annotate_breaks(
+    break_annots = annotate_break(
         raw=raw,
         min_duration=min_duration,
         start_after_offset=start_after_offset,
@@ -128,7 +128,7 @@ def test_annotate_breaks():
 
     # `ignore` parameter should be respected
     raw.annotations.description[0] = 'BAD_'
-    break_annots = annotate_breaks(
+    break_annots = annotate_break(
         raw=raw,
         min_duration=min_duration,
         start_after_offset=start_after_offset,
@@ -172,7 +172,7 @@ def test_annotate_breaks():
         ]
     )
 
-    break_annots = annotate_breaks(
+    break_annots = annotate_break(
         raw=raw,
         events=events,
         min_duration=min_duration,
@@ -184,7 +184,7 @@ def test_annotate_breaks():
     assert_allclose(break_annots.duration, expected_durations)
 
     # Not finding any break periods
-    break_annots = annotate_breaks(
+    break_annots = annotate_break(
         raw=raw,
         events=events,
         min_duration=1000,
@@ -194,7 +194,7 @@ def test_annotate_breaks():
 
     # Implausible parameters (would produce break annot of duration < 0)
     with pytest.raises(ValueError, match='must be greater than 0'):
-        annotate_breaks(
+        annotate_break(
             raw=raw,
             min_duration=5,
             start_after_offset=5,
@@ -203,13 +203,13 @@ def test_annotate_breaks():
 
     # Empty events array
     with pytest.raises(ValueError, match='events array must not be empty'):
-        annotate_breaks(raw=raw, events=np.array([]))
+        annotate_break(raw=raw, events=np.array([]))
 
     # Invalid `ignore` value
     with pytest.raises(TypeError, match='must be an instance of str'):
-        annotate_breaks(raw=raw, ignore=('foo', 1))
+        annotate_break(raw=raw, ignore=('foo', 1))
 
     # No annotations to work with
     raw.set_annotations(None)
     with pytest.raises(ValueError, match='Could not find.*annotations'):
-        annotate_breaks(raw=raw)
+        annotate_break(raw=raw)
