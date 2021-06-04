@@ -337,10 +337,8 @@ def _annotations_from_mask(times, art_mask, art_name):
 
 
 @verbose
-def annotate_breaks(raw, events=None, *,
-                    min_duration=10, start_after_offset=3.5,
-                    stop_before_onset=3.5,
-                    ignore=('bad', 'edge'),
+def annotate_breaks(raw, events=None, min_duration=10, start_after_offset=3.5,
+                    stop_before_onset=3.5, ignore=('bad', 'edge'), *,
                     verbose=None):
     """Create `~mne.Annotations` for breaks in an ongoing recording.
 
