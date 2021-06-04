@@ -337,7 +337,7 @@ def _annotations_from_mask(times, art_mask, art_name):
 
 
 @verbose
-def annotate_breaks(raw=None, events=None, *,
+def annotate_breaks(raw, events=None, *,
                     min_duration=10, start_after_offset=3.5,
                     stop_before_onset=3.5,
                     ignore=('bad', 'edge'),
