@@ -501,9 +501,10 @@ class MNEBrowseFigure(MNEFigure):
             vline = ax_main.axvline(0, color=vline_color, **vline_kwargs)
             vline_hscroll = ax_hscroll.axvline(0, color=vline_color,
                                                **vline_kwargs)
-        vline_text = ax_hscroll.text(
-            self.mne.first_time, 1.65, '', fontsize=10, ha='right',
-            va='bottom', color=vline_color, **vline_kwargs)
+        vline_text = ax_main.annotate(
+            '', xy=(0, 0), xycoords='axes fraction', xytext=(-2, 0),
+            textcoords='offset points', fontsize=10, ha='right', va='center',
+            color=vline_color, **vline_kwargs)
 
         # HELP BUTTON: initialize in the wrong spot...
         ax_help = div.append_axes(position='left',
