@@ -1873,16 +1873,24 @@ class MNEBrowseFigure(MNEFigure):
 
     def _xtick_formatter(self, x, pos=None, ax_type='main'):
         """Change the x-axis labels."""
+        tickdiff = np.diff(self.mne.ax_main.get_xticks())[0]
+        digits = np.ceil(-np.log10(tickdiff)).astype(int)
+        # Increase decimals of vline by 3
+        if ax_type == 'vline':
+            digits += 3
         if self.mne.time_format == 'float':
-            return x
+            if ax_type == 'hscroll' or int(x) == x:
+                return int(x)
+            rounded_x = round(x, digits or None)
+            if ax_type == 'vline':
+                return f'{rounded_x} s'
+            return rounded_x
         meas_date = self.mne.inst.info['meas_date']
         first_time = datetime.timedelta(seconds=self.mne.inst.first_time)
         xtime = datetime.timedelta(seconds=x)
         xdatetime = meas_date + first_time + xtime
         xdtstr = xdatetime.strftime('%H:%M:%S')
-        tickdiff = np.diff(self.mne.ax_main.get_xticks())[0]
-        digits = np.ceil(-np.log10(tickdiff)).astype(int)
-        if digits and ax_type == 'main' and int(xdatetime.microsecond) != 0:
+        if digits and ax_type != 'hscroll' and int(xdatetime.microsecond) != 0:
             xdtstr += f'{round(xdatetime.microsecond * 1e-6, digits)}'[1:]
         return xdtstr
 
@@ -2254,10 +2262,7 @@ class MNEBrowseFigure(MNEFigure):
         else:
             self.mne.vline.set_xdata(xdata)
             self.mne.vline_hscroll.set_xdata(xdata)
-        if self.mne.time_format == 'float':
-            text = f'{xdata:0.2f} s '
-        else:
-            text = self._xtick_formatter(xdata)[:12]
+        text = self._xtick_formatter(xdata, ax_type='vline')[:12]
         self.mne.vline_text.set_text(text)
         self._toggle_vline(True)
 
