@@ -140,7 +140,7 @@ def test_annotate_breaks():
     assert_allclose(
         break_annots.duration,
         [15 - raw.first_time - stop_before_onset] +
-            list(expected_durations[2:])
+        list(expected_durations[2:])
     )
 
     # Restore annotation description
@@ -213,5 +213,3 @@ def test_annotate_breaks():
     raw.set_annotations(None)
     with pytest.raises(ValueError, match='Could not find.*annotations'):
         annotate_breaks(raw=raw)
-
-

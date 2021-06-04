@@ -341,8 +341,7 @@ def annotate_breaks(raw=None, events=None, *,
                     min_duration=10, start_after_offset=3.5,
                     stop_before_onset=3.5,
                     ignore=('bad', 'edge'),
-                    verbose=None
-):
+                    verbose=None):
     """Create `~mne.Annotations` for breaks in an ongoing recording.
 
     Parameters
@@ -446,7 +445,7 @@ def annotate_breaks(raw=None, events=None, *,
         description = description.lower()
         if any(description.startswith(i) for i in ignore):
             keep_mask[idx] = False
-    
+
     annotated_intervals = [
         [onset, onset + duration] for onset, duration in
         zip(annotations.onset[keep_mask], annotations.duration[keep_mask])
