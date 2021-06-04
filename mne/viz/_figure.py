@@ -706,19 +706,21 @@ class MNEBrowseFigure(MNEFigure):
                 self._redraw(annotations=True)
         # change duration
         elif key in ('home', 'end'):
+            old_dur = self.mne.duration
             dur_delta = 1 if key == 'end' else -1
             if self.mne.is_epochs:
+                # prevent from showing zero epochs, or more epochs than we have
                 self.mne.n_epochs = np.clip(self.mne.n_epochs + dur_delta,
                                             1, len(self.mne.inst))
+                # use the length of one epoch as duration change
                 min_dur = len(self.mne.inst.times) / self.mne.info['sfreq']
-                dur_delta *= min_dur
+                new_dur = self.mne.duration + dur_delta * min_dur
             else:
+                # never show fewer than 3 samples
                 min_dur = 3 * np.diff(self.mne.inst.times[:2])[0]
-            old_dur = self.mne.duration
-            new_dur = self.mne.duration + dur_delta
-            # Make sure that zoom-levels stay the same after max. zoom
-            if old_dur == min_dur and dur_delta > 0 and not self.mne.is_epochs:
-                new_dur = dur_delta
+                # use multiplicative dur_delta
+                dur_delta = 5 / 4 if dur_delta > 0 else 4 / 5
+                new_dur = self.mne.duration * dur_delta
             self.mne.duration = np.clip(new_dur, min_dur, last_time)
             if self.mne.duration != old_dur:
                 if self.mne.t_start + self.mne.duration > last_time:
