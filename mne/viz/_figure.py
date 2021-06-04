@@ -1057,7 +1057,7 @@ class MNEBrowseFigure(MNEFigure):
             ('p', 'Toggle draggable annotations' if is_raw else None),
             ('s', 'Toggle scalebars' if not is_ica else None),
             ('z', 'Toggle scrollbars'),
-            ('t', 'Toggle time format'),
+            ('t', 'Toggle time format' if not is_epo else None),
             ('F11', 'Toggle fullscreen' if not is_mac else None),
             ('?', 'Open this help window'),
             ('esc', 'Close focused figure or dialog window'),
