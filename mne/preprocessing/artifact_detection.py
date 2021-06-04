@@ -337,9 +337,8 @@ def _annotations_from_mask(times, art_mask, art_name):
 
 
 @verbose
-def annotate_break(raw, events=None, min_duration=15., start_after_offset=5.,
-                   stop_before_onset=5., ignore=('bad', 'edge'), *,
-                   verbose=None):
+def annotate_break(raw, events=None, min_duration=15., dist_to_previous=5.,
+                   dist_to_next=5., ignore=('bad', 'edge'), *, verbose=None):
     """Create `~mne.Annotations` for breaks in an ongoing recording.
 
     Parameters
@@ -355,14 +354,14 @@ def annotate_break(raw, events=None, min_duration=15., start_after_offset=5.,
         onset of the subsequent annotation (if ``events`` is ``None``) or
         between two consecutive events (if ``events`` is an array) to consider
         this period a "break". Defaults to 15 seconds.
-    start_after_offset, stop_before_onset : float
+    dist_to_previous, dist_to_next : float
         Specifies how far the "break" annotation extends towards the beginning
         and end of the time period between the two annotations or events
         spanning a break. This can be used to ensure e.g. that the break
         annotation doesn't start and end immediately with a stimulation event.
         If, for example, your data contains a break of 30 seconds between two
-        stimuli, and ``start_after_offset`` is set to ``5`` and
-        ``stop_before_onset`` is set to ``3``, the break annotation will start
+        stimuli, and ``dist_to_previous`` is set to ``5`` and
+        ``dist_to_next`` is set to ``3``, the break annotation will start
         5 seconds after the first stimulus, and end 3 seconds before the second
         stimulus, yielding an annotated break of ``30 - 5 - 3 = 22`` seconds.
         Both default to 5 seconds.
@@ -397,12 +396,12 @@ def annotate_break(raw, events=None, min_duration=15., start_after_offset=5.,
     _validate_type(item=raw, item_name='raw', types=BaseRaw, type_name='Raw')
     _validate_type(item=events, item_name='events', types=(None, np.ndarray))
 
-    if min_duration - start_after_offset - stop_before_onset <= 0:
+    if min_duration - dist_to_previous - dist_to_next <= 0:
         raise ValueError(
             f'The result of '
-            f'min_duration - start_after_offset - stop_before_onset must be '
+            f'min_duration - dist_to_previous - dist_to_next must be '
             f'greater than 0, but it is: '
-            f'{min_duration - start_after_offset - stop_before_onset}'
+            f'{min_duration - dist_to_previous - dist_to_next}'
         )
 
     if events is not None and events.size == 0:
@@ -476,8 +475,8 @@ def annotate_break(raw, events=None, min_duration=15., start_after_offset=5.,
     # Handle the time period up until the first annotation
     if (raw.first_time < merged_intervals[0][0] and
             merged_intervals[0][0] - raw.first_time >= min_duration):
-        onset = raw.first_time  # don't add start_after_offset here
-        offset = merged_intervals[0][0] - stop_before_onset
+        onset = raw.first_time  # don't add dist_to_previous here
+        offset = merged_intervals[0][0] - dist_to_next
         duration = offset - onset
         break_onsets.append(onset)
         break_durations.append(duration)
@@ -489,8 +488,8 @@ def annotate_break(raw, events=None, min_duration=15., start_after_offset=5.,
         if this_start - previous_stop < min_duration:
             continue
 
-        onset = previous_stop + start_after_offset
-        offset = this_start - stop_before_onset
+        onset = previous_stop + dist_to_previous
+        offset = this_start - dist_to_next
         duration = offset - onset
         break_onsets.append(onset)
         break_durations.append(duration)
@@ -498,8 +497,8 @@ def annotate_break(raw, events=None, min_duration=15., start_after_offset=5.,
     # Handle the time period after the last annotation
     if (raw._last_time > merged_intervals[-1][1] and
             raw._last_time - merged_intervals[-1][1] >= min_duration):
-        onset = merged_intervals[-1][1] + start_after_offset
-        offset = raw._last_time  # don't subtract stop_before_onset here
+        onset = merged_intervals[-1][1] + dist_to_previous
+        offset = raw._last_time  # don't subtract dist_to_next here
         duration = offset - onset
         break_onsets.append(onset)
         break_durations.append(duration)

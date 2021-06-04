@@ -93,32 +93,32 @@ def test_annotate_breaks():
     raw.set_annotations(annots)
 
     min_duration = 0.5
-    start_after_offset = 0.1
-    stop_before_onset = 0.1
+    dist_to_previous = 0.1
+    dist_to_next = 0.1
 
     expected_onsets = np.array(
         [
             raw.first_time,
-            13 + start_after_offset,
-            17 + start_after_offset,
-            22 + start_after_offset
+            13 + dist_to_previous,
+            17 + dist_to_previous,
+            22 + dist_to_previous
         ]
     )
 
     expected_durations = np.array(
         [
-            12 - raw.first_time - stop_before_onset,
-            15 - 13 - start_after_offset - stop_before_onset,
-            20 - 17 - start_after_offset - stop_before_onset,
-            raw._last_time - 22 - start_after_offset
+            12 - raw.first_time - dist_to_next,
+            15 - 13 - dist_to_previous - dist_to_next,
+            20 - 17 - dist_to_previous - dist_to_next,
+            raw._last_time - 22 - dist_to_previous
         ]
     )
 
     break_annots = annotate_break(
         raw=raw,
         min_duration=min_duration,
-        start_after_offset=start_after_offset,
-        stop_before_onset=stop_before_onset
+        dist_to_previous=dist_to_previous,
+        dist_to_next=dist_to_next
     )
 
     assert_allclose(break_annots.onset, expected_onsets)
@@ -131,15 +131,15 @@ def test_annotate_breaks():
     break_annots = annotate_break(
         raw=raw,
         min_duration=min_duration,
-        start_after_offset=start_after_offset,
-        stop_before_onset=stop_before_onset
+        dist_to_previous=dist_to_previous,
+        dist_to_next=dist_to_next
     )
 
     assert_allclose(break_annots.onset,
                     expected_onsets[[True, False, True, True]])
     assert_allclose(
         break_annots.duration,
-        [15 - raw.first_time - stop_before_onset] +
+        [15 - raw.first_time - dist_to_next] +
         list(expected_durations[2:])
     )
 
@@ -153,22 +153,22 @@ def test_annotate_breaks():
     expected_onsets = np.array(
         [
             raw.first_time,
-            12 + start_after_offset,
-            15 + start_after_offset,
-            16 + start_after_offset,
-            20 + start_after_offset,
-            21 + start_after_offset
+            12 + dist_to_previous,
+            15 + dist_to_previous,
+            16 + dist_to_previous,
+            20 + dist_to_previous,
+            21 + dist_to_previous
         ]
     )
 
     expected_durations = np.array(
         [
-            12 - raw.first_time - stop_before_onset,
-            15 - 12 - start_after_offset - stop_before_onset,
-            16 - 15 - start_after_offset - stop_before_onset,
-            20 - 16 - start_after_offset - stop_before_onset,
-            21 - 20 - start_after_offset - stop_before_onset,
-            raw._last_time - 21 - start_after_offset
+            12 - raw.first_time - dist_to_next,
+            15 - 12 - dist_to_previous - dist_to_next,
+            16 - 15 - dist_to_previous - dist_to_next,
+            20 - 16 - dist_to_previous - dist_to_next,
+            21 - 20 - dist_to_previous - dist_to_next,
+            raw._last_time - 21 - dist_to_previous
         ]
     )
 
@@ -176,8 +176,8 @@ def test_annotate_breaks():
         raw=raw,
         events=events,
         min_duration=min_duration,
-        start_after_offset=start_after_offset,
-        stop_before_onset=stop_before_onset
+        dist_to_previous=dist_to_previous,
+        dist_to_next=dist_to_next
     )
 
     assert_allclose(break_annots.onset, expected_onsets)
@@ -197,8 +197,8 @@ def test_annotate_breaks():
         annotate_break(
             raw=raw,
             min_duration=5,
-            start_after_offset=5,
-            stop_before_onset=5
+            dist_to_previous=5,
+            dist_to_next=5
         )
 
     # Empty events array
