@@ -340,7 +340,7 @@ def _iterate_files(report, fnames, info, cov, baseline, sfreq, on_error,
                                              data_path)
                 report_fname = fname
                 report_sectionlabel = 'evoked'
-            elif _endswith(fname, ['eve']):
+            elif _endswith(fname, 'eve'):
                 html = report._render_eve(fname, sfreq, image_format,
                                           data_path)
                 report_fname = fname
