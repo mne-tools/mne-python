@@ -49,7 +49,7 @@ Enhancements
 
 - Add support for interpolating oxy and deoxyhaemoglobin data types (:gh:`9431` by `Robert Luke`_)
    
-- Add support for SNIRF files in :class:`mne.Report` types (:gh:`9443` by `Robert Luke`_)
+- Add support for SNIRF files in :class:`mne.Report` (:gh:`9443` by `Robert Luke`_)
 
 Bugs
 ~~~~
