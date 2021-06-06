@@ -350,10 +350,10 @@ def annotate_break(raw, events=None,
     ----------
     raw : instance of Raw
         The continuous data to analyze.
-    events : array, shape (n_events, 3)
-        An events array. If ``None`` (default), operate based solely on the
-        annotations present in ``raw``. If an array, ignore any annotations
-        in the raw data, and only operate based on these events.
+    events : None | array, shape (n_events, 3)
+        If ``None`` (default), operate based solely on the annotations present
+        in ``raw``. If an events array, ignore any annotations in the raw data,
+        and operate based on these events only.
     min_duration : float
         The minimum time span in seconds between the offset of one and the
         onset of the subsequent annotation (if ``events`` is ``None``) or
@@ -381,8 +381,9 @@ def annotate_break(raw, events=None,
         the break-finding algorithm. The string comparison is case-insensitive,
         i.e., ``('bad',)`` and ``('BAD',)`` are equivalent. By default, all
         annotation descriptions starting with "bad" and annotations
-        indicating "edges" (e.g. produced by data concatenation) will be
-        ignored. If ``events`` is passed, this parameter has no effect.
+        indicating "edges" (produced by data concatenation) will be
+        ignored. If ``None``, take all existing annotations into account.
+        If ``events`` is passed, this parameter has no effect.
     %(verbose)s
 
     Returns
