@@ -93,32 +93,32 @@ def test_annotate_breaks():
     raw.set_annotations(annots)
 
     min_duration = 0.5
-    dist_to_previous = 0.1
-    dist_to_next = 0.1
+    t_start_after_previous = 0.1
+    t_stop_before_next = 0.1
 
     expected_onsets = np.array(
         [
             raw.first_time,
-            13 + dist_to_previous,
-            17 + dist_to_previous,
-            22 + dist_to_previous
+            13 + t_start_after_previous,
+            17 + t_start_after_previous,
+            22 + t_start_after_previous
         ]
     )
 
     expected_durations = np.array(
         [
-            12 - raw.first_time - dist_to_next,
-            15 - 13 - dist_to_previous - dist_to_next,
-            20 - 17 - dist_to_previous - dist_to_next,
-            raw._last_time - 22 - dist_to_previous
+            12 - raw.first_time - t_stop_before_next,
+            15 - 13 - t_start_after_previous - t_stop_before_next,
+            20 - 17 - t_start_after_previous - t_stop_before_next,
+            raw._last_time - 22 - t_start_after_previous
         ]
     )
 
     break_annots = annotate_break(
         raw=raw,
         min_duration=min_duration,
-        dist_to_previous=dist_to_previous,
-        dist_to_next=dist_to_next
+        t_start_after_previous=t_start_after_previous,
+        t_stop_before_next=t_stop_before_next
     )
 
     assert_allclose(break_annots.onset, expected_onsets)
@@ -131,15 +131,15 @@ def test_annotate_breaks():
     break_annots = annotate_break(
         raw=raw,
         min_duration=min_duration,
-        dist_to_previous=dist_to_previous,
-        dist_to_next=dist_to_next
+        t_start_after_previous=t_start_after_previous,
+        t_stop_before_next=t_stop_before_next
     )
 
     assert_allclose(break_annots.onset,
                     expected_onsets[[True, False, True, True]])
     assert_allclose(
         break_annots.duration,
-        [15 - raw.first_time - dist_to_next] +
+        [15 - raw.first_time - t_stop_before_next] +
         list(expected_durations[2:])
     )
 
@@ -153,22 +153,22 @@ def test_annotate_breaks():
     expected_onsets = np.array(
         [
             raw.first_time,
-            12 + dist_to_previous,
-            15 + dist_to_previous,
-            16 + dist_to_previous,
-            20 + dist_to_previous,
-            21 + dist_to_previous
+            12 + t_start_after_previous,
+            15 + t_start_after_previous,
+            16 + t_start_after_previous,
+            20 + t_start_after_previous,
+            21 + t_start_after_previous
         ]
     )
 
     expected_durations = np.array(
         [
-            12 - raw.first_time - dist_to_next,
-            15 - 12 - dist_to_previous - dist_to_next,
-            16 - 15 - dist_to_previous - dist_to_next,
-            20 - 16 - dist_to_previous - dist_to_next,
-            21 - 20 - dist_to_previous - dist_to_next,
-            raw._last_time - 21 - dist_to_previous
+            12 - raw.first_time - t_stop_before_next,
+            15 - 12 - t_start_after_previous - t_stop_before_next,
+            16 - 15 - t_start_after_previous - t_stop_before_next,
+            20 - 16 - t_start_after_previous - t_stop_before_next,
+            21 - 20 - t_start_after_previous - t_stop_before_next,
+            raw._last_time - 21 - t_start_after_previous
         ]
     )
 
@@ -176,8 +176,8 @@ def test_annotate_breaks():
         raw=raw,
         events=events,
         min_duration=min_duration,
-        dist_to_previous=dist_to_previous,
-        dist_to_next=dist_to_next
+        t_start_after_previous=t_start_after_previous,
+        t_stop_before_next=t_stop_before_next
     )
 
     assert_allclose(break_annots.onset, expected_onsets)
@@ -197,8 +197,8 @@ def test_annotate_breaks():
         annotate_break(
             raw=raw,
             min_duration=5,
-            dist_to_previous=5,
-            dist_to_next=5
+            t_start_after_previous=5,
+            t_stop_before_next=5
         )
 
     # Empty events array
