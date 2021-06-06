@@ -23,7 +23,7 @@ docdict = dict()
 
 # Verbose
 docdict['verbose'] = """
-verbose : bool, str, int, or None
+verbose : bool | str | int | None
     If not None, override default verbose level (see :func:`mne.verbose`
     and :ref:`Logging documentation <tut_logging>` for more).
     If used, it should be passed as a keyword-argument only."""
