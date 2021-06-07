@@ -348,7 +348,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
     %(verbose)s
 
     sure_alpha_grid : array | str, default = "auto"
-        If "auto", the SURE is evaluted along 15 uniformly distributed 
+        If "auto", the SURE is evaluted along 15 uniformly distributed
         alphas between alpha_max and 0.1 * alpha_max. If array, the
         grid is directly specified. Ignored if alpha is not "sure".
     random_state : int | None, default = 0
@@ -381,10 +381,10 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
     if dgap_freq <= 0.:
         raise ValueError('dgap_freq must be a positive integer.'
                          ' Got dgap_freq = %s' % dgap_freq)
-    if not(isinstance(sure_alpha_grid, (np.ndarray, list)) or 
+    if not(isinstance(sure_alpha_grid, (np.ndarray, list)) or
            sure_alpha_grid == "auto"):
         raise ValueError('If not equal to "auto" sure_alpha_grid must be an '
-                         'array. Got %s' % type(sure_alpha_grid))
+                         'array. Got %s' % type(sure_alpha_grid).__name__)
 
     pca = True
     if not isinstance(evoked, list):
@@ -427,10 +427,8 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
 
     # Alpha selected automatically by SURE minimization
     if alpha == "sure":
-        if sure_alpha_grid == "auto":
-            alpha_grid = np.linspace(100, 0.1 * 100, num=15)
-        else:
-            alpha_grid = sure_alpha_grid
+        alpha_grid = (np.linspace(100, 0.1 * 100, num=15)
+                      if sure_alpha_grid == "auto" else sure_alpha_grid)
         X, active_set, best_alpha_ = _compute_mxne_sure(
             M, gain, alpha_grid, sigma=1, random_state=random_state,
             n_mxne_iter=n_mxne_iter, maxit=maxit, tol=tol,
@@ -730,8 +728,8 @@ def tf_mixed_norm(evoked, forward, noise_cov,
 
 
 @verbose
-def _compute_mxne_sure(M, gain, alpha_grid, sigma, n_mxne_iter, maxit, tol, 
-                       n_orient, active_set_size, debias, solver, dgap_freq, 
+def _compute_mxne_sure(M, gain, alpha_grid, sigma, n_mxne_iter, maxit, tol,
+                       n_orient, active_set_size, debias, solver, dgap_freq,
                        random_state, verbose):
     """Stein Unbiased Risk Estimator (SURE).
 
@@ -778,10 +776,7 @@ def _compute_mxne_sure(M, gain, alpha_grid, sigma, n_mxne_iter, maxit, tol,
 
     References
     ----------
-    .. [1] C.-A. Deledalle, Stein Unbiased GrAdient estimator of the Risk
-    (SUGAR) for multiple parameter selection.
-    SIAM J. Imaging Sci., 7(4), 2448-2487.
-
+    .. footbibliography::
     """
     def _fit_on_grid(gain, M, eps, delta):
         coefs_grid_1 = np.empty((len(alpha_grid), gain.shape[1], M.shape[1]))
