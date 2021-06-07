@@ -48,7 +48,7 @@ Enhancements
 - Add projections when printing a :class:`mne.Info` in the notebook (:gh:`9403` by `Alex Gramfort`_)
 
 - Add support for interpolating oxy and deoxyhaemoglobin data types (:gh:`9431` by `Robert Luke`_)
-   
+
 - Add support for SNIRF files in :class:`mne.Report` (:gh:`9443` by `Robert Luke`_)
 
 - Add support for exporting MFF evoked files using `mne.export.export_evokeds` and `mne.export.export_evokeds_mff` (:gh:`9406` by `Evan Hathaway`_)
@@ -57,6 +57,8 @@ Enhancements
   
 - Add support for multiple datablocks (acquistions with pauses) in :func:`mne.io.read_raw_nihon` (:gh:`9437` by `Federico Raimondo`_)
 
+- Add new function :func:`mne.preprocessing.annotate_break` to automatically detect and mark "break" periods without any marked experimental events in the continuous data (:gh:`9445` by `Richard Höchenberger`_)
+  
 - Add "time_format" to :meth:`mne.io.Raw.plot` and :meth:`mne.preprocessing.ICA.plot_sources` to display acquisition time on x-axis (:gh:`9419` by `Martin Schulz`_)
 
 Bugs
@@ -70,6 +72,10 @@ Bugs
 - Fix bug when printing a :class:`mne.io.RawArray` in the notebook (:gh:`9404` by `Alex Gramfort`_)
 
 - Fix bug when computing rank from info for SSS data with only gradiometers or magnetometers (:gh:`9435` by `Alex Gramfort`_)
+
+- Fix bug with `mne.io.Raw.set_montage` and related functions where the channel coordinate frame was not properly set to head (:gh:`9447` by `Eric Larson`_)
+
+- Fix bug with `mne.io.read_raw_fieldtrip` and `mne.read_epochs_fieldtrip` where channel positions were not set properly (:gh:`9447` by `Eric Larson`_)
 
 - :func:`mne.concatenate_raws` now raises an exception if ``raw.info['dev_head_t']`` differs between files. This behavior can be controlled using the new ``on_mismatch`` parameter (:gh:`9438` by `Richard Höchenberger`_)
 
