@@ -725,15 +725,19 @@ def _sort_keys(x):
     return keys
 
 
-def _array_equal_nan(a, b):
+def _array_equal_nan(a, b, allclose=False):
     try:
-        np.testing.assert_array_equal(a, b)
+        if allclose:
+            func = np.testing.assert_allclose
+        else:
+            func = np.testing.assert_array_equal
+        func(a, b)
     except AssertionError:
         return False
     return True
 
 
-def object_diff(a, b, pre=''):
+def object_diff(a, b, pre='', *, allclose=False):
     """Compute all differences between two python variables.
 
     Parameters
@@ -745,6 +749,8 @@ def object_diff(a, b, pre=''):
         Must be same type as ``a``.
     pre : str
         String to prepend to each line.
+    allclose : bool
+        If True (default False), use assert_allclose.
 
     Returns
     -------
@@ -771,15 +777,17 @@ def object_diff(a, b, pre=''):
                 out += pre + ' right missing key %s\n' % key
             else:
                 out += object_diff(a[key], b[key],
-                                   pre=(pre + '[%s]' % repr(key)))
+                                   pre=(pre + '[%s]' % repr(key)),
+                                   allclose=allclose)
     elif isinstance(a, (list, tuple)):
         if len(a) != len(b):
             out += pre + ' length mismatch (%s, %s)\n' % (len(a), len(b))
         else:
             for ii, (xx1, xx2) in enumerate(zip(a, b)):
-                out += object_diff(xx1, xx2, pre + '[%s]' % ii)
+                out += object_diff(
+                    xx1, xx2, pre + '[%s]' % ii, allclose=allclose)
     elif isinstance(a, float):
-        if not _array_equal_nan(a, b):
+        if not _array_equal_nan(a, b, allclose):
             out += pre + ' value mismatch (%s, %s)\n' % (a, b)
     elif isinstance(a, (str, int, bytes, np.generic)):
         if a != b:
@@ -788,7 +796,7 @@ def object_diff(a, b, pre=''):
         if b is not None:
             out += pre + ' left is None, right is not (%s)\n' % (b)
     elif isinstance(a, np.ndarray):
-        if not _array_equal_nan(a, b):
+        if not _array_equal_nan(a, b, allclose):
             out += pre + ' array mismatch\n'
     elif isinstance(a, (StringIO, BytesIO)):
         if a.getvalue() != b.getvalue():
@@ -808,7 +816,8 @@ def object_diff(a, b, pre=''):
                 out += pre + (' sparse matrix a and b differ on %s '
                               'elements' % c.nnz)
     elif hasattr(a, '__getstate__'):
-        out += object_diff(a.__getstate__(), b.__getstate__(), pre)
+        out += object_diff(a.__getstate__(), b.__getstate__(), pre,
+                           allclose=allclose)
     else:
         raise RuntimeError(pre + ': unsupported type %s (%s)' % (type(a), a))
     return out
