@@ -898,7 +898,7 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
     if len(extra):
         types = '/'.join(sorted(set(channel_type(info, ii) for ii in extra)))
         names = [non_names[ii] for ii in extra]
-        warn(f'Not setting positon{_pl(extra)} of {len(extra)} {types} '
+        warn(f'Not setting position{_pl(extra)} of {len(extra)} {types} '
              f'channel{_pl(extra)} found in montage:\n{names}\n'
              'Consider setting the channel types to be of EEG/sEEG/ECoG/DBS '
              'using inst.set_channel_types before calling inst.set_montage.')
