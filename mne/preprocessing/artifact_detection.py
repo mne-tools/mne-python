@@ -11,7 +11,8 @@ from ..transforms import (quat_to_rot, _average_quats, _angle_between_quats,
                           apply_trans, _quat_to_affine)
 from ..filter import filter_data
 from .. import Transform
-from ..utils import _mask_to_onsets_offsets, logger, verbose, _validate_type
+from ..utils import (_mask_to_onsets_offsets, logger, verbose, _validate_type,
+                     _pl)
 
 
 @verbose
@@ -516,7 +517,20 @@ def annotate_break(raw, events=None,
         orig_time=raw.info['meas_date']
     )
 
-    logger.info(f'Detected {len(break_annotations)} break periods of >= '
-                f'{min_duration} sec duration.')
+    # Log some info
+    n_breaks = len(break_annotations)
+    break_times = [
+        f'{round(o, 1):.1f} – {round(o+d, 1):.1f} sec [{round(d, 1):.1f} sec]'
+        for o, d in zip(break_annotations.onset,
+                        break_annotations.duration)
+    ]
+    break_times = '\n    '.join(break_times)
+    total_break_dur = sum(break_annotations.duration)
+    fraction_breaks = total_break_dur / raw.times[-1]
+    logger.info(f'\nDetected {n_breaks} break period{_pl(n_breaks)} of >= '
+                f'{min_duration} sec duration:\n    {break_times}\n'
+                f'In total, {round(100 * fraction_breaks, 1):.1f}% of the '
+                f'data ({round(total_break_dur, 1):.1f} sec) have been marked '
+                f'as a break.\n')
 
     return break_annotations
