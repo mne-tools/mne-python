@@ -520,7 +520,9 @@ def annotate_break(raw, events=None,
     # Log some info
     n_breaks = len(break_annotations)
     break_times = [
-        f'{round(o, 1):.1f} – {round(o+d, 1):.1f} sec [{round(d, 1):.1f} sec]'
+        f'{round(o - raw.first_time, 1):.1f} – '
+        f'{round(o+d - raw.first_time, 1):.1f} sec '
+        f'[{round(d, 1):.1f} sec]'
         for o, d in zip(break_annotations.onset,
                         break_annotations.duration)
     ]
