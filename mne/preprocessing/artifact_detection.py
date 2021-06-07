@@ -388,7 +388,7 @@ def annotate_break(raw, events=None,
 
     Returns
     -------
-    break_annotations : mne.Annotations
+    break_annotations : instance of Annotations
         The break annotations, each with the description ``'BAD_break'``. If
         no breaks could be found given the provided function parameters, an
         empty `~mne.Annotations` object will be returned.
