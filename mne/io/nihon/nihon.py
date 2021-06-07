@@ -387,9 +387,14 @@ class RawNihon(BaseRaw):
             for i_block in range(controlblock['n_datablocks'] - 1):
                 t_block = controlblock['datablocks'][i_block]
                 cur_sample = cur_sample + t_block['n_samples']
-                annots['onset'].append((cur_sample - 0.5) / t_block['sfreq'])
+                cur_tpoint = (cur_sample - 0.5) / t_block['sfreq']
+                # Add annotations as in append raw
+                annots['onset'].append(cur_tpoint)
                 annots['duration'].append(0.0)
-                annots['description'].append('BAD_ACQ_SKIP')
+                annots['description'].append('BAD boundary')
+                annots['onset'].append(cur_tpoint)
+                annots['duration'].append(0.0)
+                annots['description'].append('EDGE boundary')
 
         annotations = Annotations(**annots, orig_time=info['meas_date'])
         self.set_annotations(annotations)
