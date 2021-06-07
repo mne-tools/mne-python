@@ -49,7 +49,7 @@ Enhancements
 
 - Add support for interpolating oxy and deoxyhaemoglobin data types (:gh:`9431` by `Robert Luke`_)
 
-- Add support for multiple datablocks (acquistions with pauses) in `mne.io.read_raw_nihon` (:gh:`9437` by `Fede Raimondo`_)
+- Add support for multiple datablocks (acquistions with pauses) in :func:`mne.io.read_raw_nihon` (:gh:`9437` by `Fede Raimondo`_)
 
 Bugs
 ~~~~
