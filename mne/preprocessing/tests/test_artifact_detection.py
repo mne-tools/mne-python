@@ -92,7 +92,7 @@ def test_annotate_breaks():
 
     raw.set_annotations(annots)
 
-    min_duration = 0.5
+    min_break_duration = 0.5
     t_start_after_previous = 0.1
     t_stop_before_next = 0.1
 
@@ -116,7 +116,7 @@ def test_annotate_breaks():
 
     break_annots = annotate_break(
         raw=raw,
-        min_duration=min_duration,
+        min_break_duration=min_break_duration,
         t_start_after_previous=t_start_after_previous,
         t_stop_before_next=t_stop_before_next
     )
@@ -130,7 +130,7 @@ def test_annotate_breaks():
     raw.annotations.description[0] = 'BAD_'
     break_annots = annotate_break(
         raw=raw,
-        min_duration=min_duration,
+        min_break_duration=min_break_duration,
         t_start_after_previous=t_start_after_previous,
         t_stop_before_next=t_stop_before_next
     )
@@ -175,7 +175,7 @@ def test_annotate_breaks():
     break_annots = annotate_break(
         raw=raw,
         events=events,
-        min_duration=min_duration,
+        min_break_duration=min_break_duration,
         t_start_after_previous=t_start_after_previous,
         t_stop_before_next=t_stop_before_next
     )
@@ -187,7 +187,7 @@ def test_annotate_breaks():
     break_annots = annotate_break(
         raw=raw,
         events=events,
-        min_duration=1000,
+        min_break_duration=1000,
     )
 
     assert len(break_annots) == 0
@@ -196,7 +196,7 @@ def test_annotate_breaks():
     with pytest.raises(ValueError, match='must be greater than 0'):
         annotate_break(
             raw=raw,
-            min_duration=5,
+            min_break_duration=5,
             t_start_after_previous=5,
             t_stop_before_next=5
         )

@@ -156,7 +156,7 @@ raw.plot()
 
 break_annots = mne.preprocessing.annotate_break(
     raw=raw,
-    min_duration=20,  # consider segments of at least 20 s duration
+    min_break_duration=20,  # consider segments of at least 20 s duration
     t_start_after_previous=5,  # start annotation 5 s after end of previous one
     t_stop_before_next=2  # stop annotation 2 s before beginning of next one
 )
@@ -194,7 +194,7 @@ events_subset = events_subset[3:-3]
 break_annots = mne.preprocessing.annotate_break(
     raw=raw,
     events=events_subset,  # passing events will ignore existing annotations
-    min_duration=25  # pick a longer break duration this time
+    min_break_duration=25  # pick a longer break duration this time
 )
 
 # replace existing annotations (otherwise it becomes difficult to see any

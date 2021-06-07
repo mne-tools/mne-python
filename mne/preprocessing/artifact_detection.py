@@ -340,13 +340,18 @@ def _annotations_from_mask(times, art_mask, art_name):
 
 @verbose
 def annotate_break(raw, events=None,
-                   min_duration=15.,
+                   min_break_duration=15.,
                    t_start_after_previous=5.,
                    t_stop_before_next=5.,
                    ignore=('bad', 'edge'),
                    *,
                    verbose=None):
     """Create `~mne.Annotations` for breaks in an ongoing recording.
+
+    This function first searches for segments in the data that are not
+    annotated or do not contain any events and are at least
+    ``min_break_duration`` seconds long, and then proceeds to creating
+    annotations for those break periods.
 
     Parameters
     ----------
@@ -356,11 +361,17 @@ def annotate_break(raw, events=None,
         If ``None`` (default), operate based solely on the annotations present
         in ``raw``. If an events array, ignore any annotations in the raw data,
         and operate based on these events only.
-    min_duration : float
+    min_break_duration : float
         The minimum time span in seconds between the offset of one and the
         onset of the subsequent annotation (if ``events`` is ``None``) or
         between two consecutive events (if ``events`` is an array) to consider
         this period a "break". Defaults to 15 seconds.
+
+        .. note:: This value defines the minimum duration of a break period in
+                  the data, **not** the minimum duration of the generated
+                  annotations! See also ``t_start_after_previous`` and
+                  ``t_stop_before_next`` for details.
+
     t_start_after_previous, t_stop_before_next : float
         Specifies how far the to-be-created "break" annotation extends towards
         the two annotations or events spanning the break. This can be used to
@@ -375,8 +386,8 @@ def annotate_break(raw, events=None,
         .. note:: The beginning and the end of the recording will be annotated
                   as breaks, too, if the period from recording start until the
                   first annotation or event (or from last annotation or event
-                  until recording end) is at least ``min_duration`` seconds
-                  long.
+                  until recording end) is at least ``min_break_duration``
+                  seconds long.
 
     ignore : iterable of str
         Annotation descriptions starting with these strings will be ignored by
@@ -402,12 +413,14 @@ def annotate_break(raw, events=None,
     _validate_type(item=raw, item_name='raw', types=BaseRaw, type_name='Raw')
     _validate_type(item=events, item_name='events', types=(None, np.ndarray))
 
-    if min_duration - t_start_after_previous - t_stop_before_next <= 0:
+    if min_break_duration - t_start_after_previous - t_stop_before_next <= 0:
+        annot_dur = (min_break_duration - t_start_after_previous -
+                     t_stop_before_next)
         raise ValueError(
             f'The result of '
-            f'min_duration - t_start_after_previous - t_stop_before_next '
-            f'must be greater than 0, but it is: '
-            f'{min_duration - t_start_after_previous - t_stop_before_next}'
+            f'min_break_duration - t_start_after_previous - '
+            f't_stop_before_next must be greater than 0, but it is: '
+            f'{annot_dur}'
         )
 
     if events is not None and events.size == 0:
@@ -480,7 +493,7 @@ def annotate_break(raw, events=None,
 
     # Handle the time period up until the first annotation
     if (raw.first_time < merged_intervals[0][0] and
-            merged_intervals[0][0] - raw.first_time >= min_duration):
+            merged_intervals[0][0] - raw.first_time >= min_break_duration):
         onset = raw.first_time  # don't add t_start_after_previous here
         offset = merged_intervals[0][0] - t_stop_before_next
         duration = offset - onset
@@ -491,7 +504,7 @@ def annotate_break(raw, events=None,
     for idx, _ in enumerate(merged_intervals[1:, :], start=1):
         this_start = merged_intervals[idx, 0]
         previous_stop = merged_intervals[idx - 1, 1]
-        if this_start - previous_stop < min_duration:
+        if this_start - previous_stop < min_break_duration:
             continue
 
         onset = previous_stop + t_start_after_previous
@@ -502,7 +515,7 @@ def annotate_break(raw, events=None,
 
     # Handle the time period after the last annotation
     if (raw._last_time > merged_intervals[-1][1] and
-            raw._last_time - merged_intervals[-1][1] >= min_duration):
+            raw._last_time - merged_intervals[-1][1] >= min_break_duration):
         onset = merged_intervals[-1][1] + t_start_after_previous
         offset = raw._last_time  # don't subtract t_stop_before_next here
         duration = offset - onset
@@ -530,7 +543,7 @@ def annotate_break(raw, events=None,
     total_break_dur = sum(break_annotations.duration)
     fraction_breaks = total_break_dur / raw.times[-1]
     logger.info(f'\nDetected {n_breaks} break period{_pl(n_breaks)} of >= '
-                f'{min_duration} sec duration:\n    {break_times}\n'
+                f'{min_break_duration} sec duration:\n    {break_times}\n'
                 f'In total, {round(100 * fraction_breaks, 1):.1f}% of the '
                 f'data ({round(total_break_dur, 1):.1f} sec) have been marked '
                 f'as a break.\n')
