@@ -376,14 +376,14 @@ def annotate_break(raw, events=None,
                   until recording end) is at least ``min_duration`` seconds
                   long.
 
-    ignore : iterable of str | None
+    ignore : iterable of str
         Annotation descriptions starting with these strings will be ignored by
         the break-finding algorithm. The string comparison is case-insensitive,
         i.e., ``('bad',)`` and ``('BAD',)`` are equivalent. By default, all
         annotation descriptions starting with "bad" and annotations
         indicating "edges" (produced by data concatenation) will be
-        ignored. If ``None``, take all existing annotations into account.
-        If ``events`` is passed, this parameter has no effect.
+        ignored. Pass an empty list or tuple to take all existing annotations
+        into account. If ``events`` is passed, this parameter has no effect.
     %(verbose)s
 
     Returns
@@ -412,7 +412,7 @@ def annotate_break(raw, events=None,
     if events is not None and events.size == 0:
         raise ValueError('The events array must not be empty.')
 
-    if events is not None or ignore is None:
+    if events is not None or not ignore:
         ignore = tuple()
     else:
         ignore = tuple(ignore)
