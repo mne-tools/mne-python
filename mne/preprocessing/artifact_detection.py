@@ -4,6 +4,7 @@
 
 
 import numpy as np
+from ..io.base import BaseRaw
 from ..annotations import (Annotations, _annotations_starts_stops,
                            annotations_from_events)
 from ..transforms import (quat_to_rot, _average_quats, _angle_between_quats,
@@ -397,7 +398,6 @@ def annotate_break(raw, events=None,
     -----
     .. versionadded:: 0.24
     """
-    from mne.io import BaseRaw
     _validate_type(item=raw, item_name='raw', types=BaseRaw, type_name='Raw')
     _validate_type(item=events, item_name='events', types=(None, np.ndarray))
 
