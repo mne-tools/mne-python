@@ -176,14 +176,14 @@ raw.plot()
 #   (``t_start_after_previous=5``) and continuing until the end of the
 #   recording.
 #
-# You can also see that only the ``block_1`` and ``block_2`` annoations
+# You can also see that only the ``block_1`` and ``block_2`` annotations
 # were considered in the detection of the break periods – the EOG annotations
 # were simply ignored. This is because, by default,
 # `~mne.preprocessing.annotate_break` ignores all annotations starting with
 # ``'bad'``. You can control this behavior via the ``ignore`` parameter.
 #
-# It is also possible to perform break period detection based on an
-# events array: simply pass the array via the ``events`` parameter. Existing
+# It is also possible to perform break period detection based on an array
+# of events: simply pass the array via the ``events`` parameter. Existing
 # annotations in the raw data will be ignored in this case:
 
 # only keep some button press events (code 32) for this demonstration
