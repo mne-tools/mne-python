@@ -104,6 +104,8 @@ def _read_mff_header(filepath):
     # Add the sensor info.
     sensor_layout_file = op.join(filepath, 'sensorLayout.xml')
     sensor_layout_obj = parse(sensor_layout_file)
+    summaryinfo['device'] = (sensor_layout_obj.getElementsByTagName('name')
+                             [0].firstChild.data)
     sensors = sensor_layout_obj.getElementsByTagName('sensor')
     chan_type = list()
     chan_unit = list()
@@ -456,6 +458,7 @@ class RawMff(BaseRaw):
             egi_info['hour'], egi_info['minute'], egi_info['second'])
         my_timestamp = time.mktime(my_time.timetuple())
         info['meas_date'] = _ensure_meas_date_none_or_dt((my_timestamp, 0))
+        info['device_info'] = dict(type=egi_info['device'])
 
         # First: EEG
         ch_names = [channel_naming % (i + 1) for i in
@@ -845,6 +848,7 @@ def _read_evoked_mff(fname, condition, channel_naming='E%d', verbose=None):
                 range(mff.num_channels['EEG'])]
     ch_names.extend(egi_info['pns_names'])
     info = create_info(ch_names, mff.sampling_rates['EEG'], ch_types)
+    info['device_info'] = dict(type=egi_info['device'])
     info['nchan'] = sum(mff.num_channels.values())
 
     # Add individual channel info
@@ -887,16 +891,21 @@ def _read_evoked_mff(fname, condition, channel_naming='E%d', verbose=None):
     # Add EEG reference to info
     # Initialize 'custom_ref_applied' to False
     info['custom_ref_applied'] = False
-    with mff.directory.filepointer('history') as fp:
-        history = mffpy.XML.from_file(fp)
-    for entry in history.entries:
-        if entry['method'] == 'Montage Operations Tool':
-            if 'Average Reference' in entry['settings']:
-                # Average reference has been applied
-                projector, info = setup_proj(info)
-            else:
-                # Custom reference has been applied that is not an average
-                info['custom_ref_applied'] = True
+    try:
+        fp = mff.directory.filepointer('history')
+    except (ValueError, FileNotFoundError):  # old (<=0.6.3) vs new mffpy
+        pass
+    else:
+        with fp:
+            history = mffpy.XML.from_file(fp)
+        for entry in history.entries:
+            if entry['method'] == 'Montage Operations Tool':
+                if 'Average Reference' in entry['settings']:
+                    # Average reference has been applied
+                    projector, info = setup_proj(info)
+                else:
+                    # Custom reference has been applied that is not an average
+                    info['custom_ref_applied'] = True
 
     # Get nave from categories.xml
     try:

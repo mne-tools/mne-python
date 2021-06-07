@@ -5,7 +5,8 @@
 
 import os.path as op
 
-from ..utils import verbose, _validate_type
+from ._egimff import export_evokeds_mff
+from ..utils import verbose, logger, _validate_type
 
 
 @verbose
@@ -74,6 +75,63 @@ def export_epochs(fname, epochs, fmt='auto', verbose=None):
         _export_epochs(fname, epochs)
     elif fmt == 'edf':
         raise NotImplementedError('Export to EDF format not implemented.')
+    elif fmt == 'brainvision':
+        raise NotImplementedError('Export to BrainVision not implemented.')
+
+
+@verbose
+def export_evokeds(fname, evoked, fmt='auto', verbose=None):
+    """Export evoked dataset to external formats.
+
+    This function is a wrapper for format-specific export functions. The export
+    function is selected based on the inferred file format. For additional
+    options, use the format-specific functions.
+
+    Supported formats
+        MFF (mff, uses :func:`mne.export.export_evokeds_mff`)
+    %(export_warning)s :func:`mne.write_evokeds` instead.
+
+    Parameters
+    ----------
+    %(export_params_fname)s
+    evoked : Evoked instance, or list of Evoked instances
+        The evoked dataset, or list of evoked datasets, to export to one file.
+        Note that the measurement info from the first evoked instance is used,
+        so be sure that information matches.
+    fmt : 'auto' | 'mff'
+        Format of the export. Defaults to ``'auto'``, which will infer the
+        format from the filename extension. See supported formats above for
+        more information.
+    %(verbose)s
+
+    See Also
+    --------
+    mne.write_evokeds
+    mne.export.export_evokeds_mff
+
+    Notes
+    -----
+    .. versionadded:: 0.24
+    """
+    supported_export_formats = {
+        'mff': ('mff',),
+        'eeglab': ('set',),
+        'edf': ('edf',),
+        'brainvision': ('eeg', 'vmrk', 'vhdr',)
+    }
+    fmt = _infer_check_export_fmt(fmt, fname, supported_export_formats)
+
+    if not isinstance(evoked, list):
+        evoked = [evoked]
+
+    logger.info(f'Exporting evoked dataset to {fname}...')
+
+    if fmt == 'mff':
+        export_evokeds_mff(fname, evoked)
+    elif fmt == 'eeglab':
+        raise NotImplementedError('Export to EEGLAB not implemented.')
+    elif fmt == 'edf':
+        raise NotImplementedError('Export to EDF not implemented.')
     elif fmt == 'brainvision':
         raise NotImplementedError('Export to BrainVision not implemented.')
 

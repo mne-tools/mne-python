@@ -28,5 +28,6 @@ What's new
 .. include:: changes/0.4.inc
 .. include:: changes/0.3.inc
 .. include:: changes/0.2.inc
+.. include:: changes/0.1.inc
 .. include:: changes/names.inc
 .. include:: links.inc
