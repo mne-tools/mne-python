@@ -128,6 +128,7 @@ def test_io_egi_mff():
         loc = raw.info['chs'][i]['loc']
         assert loc[:3].any(), loc[:3]
         assert_array_equal(loc[3:6], ref_loc, err_msg=f'{i}')
+    assert raw.info['device_info']['type'] == 'HydroCel GSN 128 1.0'
 
     assert 'eeg' in raw
     eeg_chan = [c for c in raw.ch_names if 'EEG' in c]
@@ -369,6 +370,8 @@ def test_io_egi_evokeds_mff(idx, cond, tmax, signals, bads):
     assert evoked_cond.info['nchan'] == 259
     assert evoked_cond.info['sfreq'] == 250.0
     assert not evoked_cond.info['custom_ref_applied']
+    assert len(evoked_cond.info['dig']) == 261
+    assert evoked_cond.info['device_info']['type'] == 'HydroCel GSN 256 1.0'
 
 
 @requires_version('mffpy', '0.5.7')
