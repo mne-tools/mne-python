@@ -111,7 +111,10 @@ class MNEFigure(Figure):
             self.canvas.manager.full_screen_toggle()
         if event.key=="control":
             self.ctrlkpres = True            
-
+    
+    def _keyrelease(self,event):
+        self.ctrlkpres = False
+        
     def _buttonpress(self, event):
         """Handle buttonpress events."""
         pass
@@ -134,6 +137,7 @@ class MNEFigure(Figure):
         # add our event callbacks
         callbacks = dict(resize_event=self._resize,
                          key_press_event=self._keypress,
+                         key_release_event=self._keyrelease,
                          button_press_event=self._buttonpress,
                          close_event=self._close,
                          pick_event=self._pick)
