@@ -422,7 +422,7 @@ class RawNihon(BaseRaw):
                     new_stop = stop
                 else:
                     # Otherwise, stop on the last sample of the block
-                    new_stop = t_block['n_samples']
+                    new_stop = t_block['n_samples'] + new_start
                 samples_to_read = new_stop - new_start
                 sample_stop = sample_start + samples_to_read
 
@@ -440,8 +440,14 @@ class RawNihon(BaseRaw):
             n_channels = datablock['n_channels'] + 1
             datastart = (datablock['address'] + 0x27 +
                          (datablock['n_channels'] * 10))
+
+            # Compute start offset based on the beggining of the block
+            rel_start = start
+            if start_block != 0:
+                rel_start = start - ends[start_block - 1]
+            start_offset = datastart + rel_start * n_channels * 2
+
             with open(self._filenames[fi], 'rb') as fid:
-                start_offset = datastart + start * n_channels * 2
                 to_read = (stop - start) * n_channels
                 fid.seek(start_offset)
                 block_data = np.fromfile(fid, '<u2', to_read) + 0x8000
