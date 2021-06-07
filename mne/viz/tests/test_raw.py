@@ -64,8 +64,8 @@ def _annotation_helper(raw, events=False):
     data_ax = fig.mne.ax_main
     fig.canvas.key_press_event('a')  # annotation mode
     assert len(plt.get_fignums()) == 2
-    # +2 from the scale bars
-    n_scale = 2
+    # +3 from the scale bars
+    n_scale = 3
     assert len(data_ax.texts) == n_anns + n_events + n_scale
     # modify description to create label "BAD test"
     ann_fig = fig.mne.fig_annotation
