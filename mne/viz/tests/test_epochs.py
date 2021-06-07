@@ -140,9 +140,10 @@ def test_plot_epochs_scale_bar(epochs):
     fig = epochs.plot()
     fig.canvas.key_press_event('s')  # default is to not show scalebars
     ax = fig.mne.ax_main
-    assert len(ax.texts) == 2  # only mag & grad in this instance
+    # only empty vline-text, mag & grad in this instance
+    assert len(ax.texts) == 3
     texts = tuple(t.get_text().strip() for t in ax.texts)
-    wants = ('800.0 fT/cm', '2000.0 fT')
+    wants = ('', '800.0 fT/cm', '2000.0 fT')
     assert texts == wants
 
 

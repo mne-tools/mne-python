@@ -206,9 +206,9 @@ def test_scale_bar():
     raw = RawArray(data, info)
     fig = raw.plot()
     ax = fig.mne.ax_main
-    assert len(ax.texts) == 3  # our labels
+    assert len(ax.texts) == 4  # empty vline-text + ch_type scale-bars
     texts = tuple(t.get_text().strip() for t in ax.texts)
-    wants = ('800.0 fT/cm', '2000.0 fT', '40.0 µV')
+    wants = ('', '800.0 fT/cm', '2000.0 fT', '40.0 µV')
     assert texts == wants
     assert len(ax.lines) == 7  # 1 green vline, 3 data, 3 scalebars
     for data, bar in zip(fig.mne.traces, fig.mne.scalebars.values()):
