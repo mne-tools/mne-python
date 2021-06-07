@@ -441,7 +441,7 @@ class RawNihon(BaseRaw):
             datastart = (datablock['address'] + 0x27 +
                          (datablock['n_channels'] * 10))
 
-            # Compute start offset based on the beggining of the block
+            # Compute start offset based on the beginning of the block
             rel_start = start
             if start_block != 0:
                 rel_start = start - ends[start_block - 1]
