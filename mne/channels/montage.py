@@ -13,7 +13,6 @@
 
 from collections import OrderedDict
 from copy import deepcopy
-from functools import partial
 import os.path as op
 import re
 
@@ -33,7 +32,7 @@ from ..io._digitization import (_count_points_by_type,
                                 _get_data_as_dict_from_dig)
 from ..io.meas_info import create_info
 from ..io.open import fiff_open
-from ..io.pick import pick_types, _picks_to_idx
+from ..io.pick import pick_types, _picks_to_idx, channel_type
 from ..io.constants import FIFF, CHANNEL_LOC_ALIASES
 from ..utils import (warn, copy_function_doc_to_method_doc, _pl, verbose,
                      _check_option, _validate_type, _check_fname, _on_missing,
@@ -745,8 +744,6 @@ def _set_montage_fnirs(info, montage):
     # Modify info['dig'] in place
     info['dig'] = montage.dig
 
-    return info
-
 
 @fill_doc
 def _set_montage(info, montage, match_case=True, match_alias=False,
@@ -772,163 +769,178 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
     -----
     This function will change the info variable in place.
     """
-    _validate_type(montage, types=(DigMontage, type(None), str),
-                   item_name='montage')
-
-    if isinstance(montage, str):  # load builtin montage
-        _check_option('montage', montage, _BUILT_IN_MONTAGES)
-        montage = make_standard_montage(montage)
-
-    if isinstance(montage, DigMontage):
-        mnt_head = _get_montage_in_head(montage)
-        del montage
-
-        def _backcompat_value(pos, ref_pos):
-            if any(np.isnan(pos)):
-                return np.full(6, np.nan)
-            else:
-                return np.concatenate((pos, ref_pos))
-
-        # get the channels in the montage in head
-        ch_pos = mnt_head._get_ch_pos()
-
-        # only get the eeg, seeg, dbs, ecog channels
-        _pick_chs = partial(
-            pick_types, exclude=[], eeg=True, seeg=True, dbs=True, ecog=True,
-            meg=False)
-
-        # get the reference position from the loc[3:6]
-        chs = info['chs']
-        ref_pos = [chs[ii]['loc'][3:6] for ii in _pick_chs(info)]
-
-        # keep reference location from EEG/ECoG/SEEG/DBS channels if they
-        # already exist and are all the same.
-        custom_eeg_ref_dig = False
-        # Note: ref position is an empty list for fieldtrip data
-        if ref_pos:
-            if all([np.equal(ref_pos[0], pos).all() for pos in ref_pos]) \
-                    and not np.equal(ref_pos[0], [0, 0, 0]).all():
-                eeg_ref_pos = ref_pos[0]
-                # since we have an EEG reference position, we have
-                # to add it into the info['dig'] as EEG000
-                custom_eeg_ref_dig = True
-        if not custom_eeg_ref_dig:
-            refs = set(ch_pos) & {'EEG000', 'REF'}
-            assert len(refs) <= 1
-            eeg_ref_pos = np.zeros(3) if not(refs) else ch_pos.pop(refs.pop())
-
-        # This raises based on info being subset/superset of montage
-        info_names = [info['ch_names'][ii] for ii in _pick_chs(info)]
-        dig_names = mnt_head._get_dig_names()
-        ref_names = [None, 'EEG000', 'REF']
-
-        if match_case:
-            ch_pos_use = ch_pos
-            info_names_use = info_names
-            dig_names_use = dig_names
-        else:
-            ch_pos_use = OrderedDict(
-                (name.lower(), pos) for name, pos in ch_pos.items())
-            info_names_use = [name.lower() for name in info_names]
-            dig_names_use = [name.lower() if name is not None else name
-                             for name in dig_names]
-            ref_names = [name.lower() if name is not None else name
-                         for name in ref_names]
-            n_dup = len(ch_pos) - len(ch_pos_use)
-            if n_dup:
-                raise ValueError('Cannot use match_case=False as %s montage '
-                                 'name(s) require case sensitivity' % n_dup)
-            n_dup = len(info_names_use) - len(set(info_names_use))
-            if n_dup:
-                raise ValueError('Cannot use match_case=False as %s channel '
-                                 'name(s) require case sensitivity' % n_dup)
-
-        # use lookup table to match unrecognized channel names to known aliases
-        if match_alias:
-            alias_dict = (match_alias if isinstance(match_alias, dict) else
-                          CHANNEL_LOC_ALIASES)
-            if not match_case:
-                alias_dict = {
-                    ch_name.lower(): ch_alias.lower()
-                    for ch_name, ch_alias in alias_dict.items()
-                }
-
-            # excluded ch_alias not in info, to prevent unnecessary mapping and
-            # warning messages based on aliases.
-            alias_dict = {
-                ch_name: ch_alias
-                for ch_name, ch_alias in alias_dict.items()
-                if ch_alias in ch_pos_use
-            }
-            info_names_use = [
-                alias_dict.get(ch_name, ch_name) for ch_name in info_names_use
-            ]
-
-        # warn user if there is not a full overlap of montage with info_chs
-        not_in_montage = [name for name, use in zip(info_names, info_names_use)
-                          if use not in ch_pos_use]
-        if len(not_in_montage):  # DigMontage is subset of info
-            missing_coord_msg = (
-                'DigMontage is only a subset of info. There are '
-                f'{len(not_in_montage)} channel position{_pl(not_in_montage)} '
-                'not present in the DigMontage. The required channels are:\n\n'
-                f'{not_in_montage}.\n\nConsider using inst.set_channel_types '
-                'if these are not EEG channels, or use the on_missing '
-                'parameter if the channel positions are allowed to be unknown '
-                'in your analyses.'
-            )
-            _on_missing(on_missing, missing_coord_msg)
-
-            # set ch coordinates and names from digmontage or nan coords
-            ch_pos_use = dict(
-                (name, ch_pos_use.get(name, [np.nan] * 3))
-                for name in info_names)  # order does not matter here
-
-        for name, use in zip(info_names, info_names_use):
-            _loc_view = info['chs'][info['ch_names'].index(name)]['loc']
-            # Next line modifies info['chs'][#]['loc'] in place
-            _loc_view[:6] = _backcompat_value(ch_pos_use[use], eeg_ref_pos)
-
-        del ch_pos_use
-
-        # XXX this is probably wrong as it uses the order from the montage
-        # rather than the order of our info['ch_names'] ...
-        digpoints = [
-            mnt_head.dig[ii] for ii, name in enumerate(dig_names_use)
-            if name in (info_names_use + ref_names)]
-
-        # get a copy of the old dig
-        if info['dig'] is not None:
-            old_dig = info['dig'].copy()
-        else:
-            old_dig = []
-
-        # determine if needed to add an extra EEG REF DigPoint
-        if custom_eeg_ref_dig:
-            # ref_name = 'EEG000' if match_case else 'eeg000'
-            ref_dig_dict = {'kind': FIFF.FIFFV_POINT_EEG,
-                            'r': eeg_ref_pos,
-                            'ident': 0,
-                            'coord_frame': info['dig'].pop()['coord_frame']}
-            ref_dig_point = _format_dig_points([ref_dig_dict])[0]
-            # only append the reference dig point if it was already
-            # in the old dig
-            if ref_dig_point in old_dig:
-                digpoints.append(ref_dig_point)
-        # Next line modifies info['dig'] in place
-        info['dig'] = _format_dig_points(digpoints, enforce_order=True)
-
-        # Handle fNIRS with source, detector and channel
-        fnirs_picks = _picks_to_idx(info, 'fnirs', allow_empty=True)
-        if len(fnirs_picks) > 0:
-            info = _set_montage_fnirs(info, mnt_head)
-
-    else:  # None case
+    _validate_type(montage, (DigMontage, None, str), 'montage')
+    if montage is None:
         # Next line modifies info['dig'] in place
         info['dig'] = None
         for ch in info['chs']:
             # Next line modifies info['chs'][#]['loc'] in place
             ch['loc'] = np.full(12, np.nan)
+        return
+    if isinstance(montage, str):  # load builtin montage
+        _check_option('montage', montage, _BUILT_IN_MONTAGES)
+        montage = make_standard_montage(montage)
+
+    mnt_head = _get_montage_in_head(montage)
+    del montage
+
+    def _backcompat_value(pos, ref_pos):
+        if any(np.isnan(pos)):
+            return np.full(6, np.nan)
+        else:
+            return np.concatenate((pos, ref_pos))
+
+    # get the channels in the montage in head
+    ch_pos = mnt_head._get_ch_pos()
+
+    # only get the eeg, seeg, dbs, ecog channels
+    picks = pick_types(
+        info, meg=False, eeg=True, seeg=True, dbs=True, ecog=True,
+        exclude=())
+    non_picks = np.setdiff1d(np.arange(info['nchan']), picks)
+
+    # get the reference position from the loc[3:6]
+    chs = [info['chs'][ii] for ii in picks]
+    non_names = [info['chs'][ii]['ch_name'] for ii in non_picks]
+    del picks
+    ref_pos = [ch['loc'][3:6] for ch in chs]
+
+    # keep reference location from EEG/ECoG/SEEG/DBS channels if they
+    # already exist and are all the same.
+    custom_eeg_ref_dig = False
+    # Note: ref position is an empty list for fieldtrip data
+    if ref_pos:
+        if all([np.equal(ref_pos[0], pos).all() for pos in ref_pos]) \
+                and not np.equal(ref_pos[0], [0, 0, 0]).all():
+            eeg_ref_pos = ref_pos[0]
+            # since we have an EEG reference position, we have
+            # to add it into the info['dig'] as EEG000
+            custom_eeg_ref_dig = True
+    if not custom_eeg_ref_dig:
+        refs = set(ch_pos) & {'EEG000', 'REF'}
+        assert len(refs) <= 1
+        eeg_ref_pos = np.zeros(3) if not(refs) else ch_pos.pop(refs.pop())
+
+    # This raises based on info being subset/superset of montage
+    info_names = [ch['ch_name'] for ch in chs]
+    dig_names = mnt_head._get_dig_names()
+    ref_names = [None, 'EEG000', 'REF']
+
+    if match_case:
+        info_names_use = info_names
+        dig_names_use = dig_names
+        non_names_use = non_names
+    else:
+        ch_pos_use = OrderedDict(
+            (name.lower(), pos) for name, pos in ch_pos.items())
+        info_names_use = [name.lower() for name in info_names]
+        dig_names_use = [name.lower() if name is not None else name
+                         for name in dig_names]
+        non_names_use = [name.lower() for name in non_names]
+        ref_names = [name.lower() if name is not None else name
+                     for name in ref_names]
+        n_dup = len(ch_pos) - len(ch_pos_use)
+        if n_dup:
+            raise ValueError('Cannot use match_case=False as %s montage '
+                             'name(s) require case sensitivity' % n_dup)
+        n_dup = len(info_names_use) - len(set(info_names_use))
+        if n_dup:
+            raise ValueError('Cannot use match_case=False as %s channel '
+                             'name(s) require case sensitivity' % n_dup)
+        ch_pos = ch_pos_use
+        del ch_pos_use
+    del dig_names
+
+    # use lookup table to match unrecognized channel names to known aliases
+    if match_alias:
+        alias_dict = (match_alias if isinstance(match_alias, dict) else
+                      CHANNEL_LOC_ALIASES)
+        if not match_case:
+            alias_dict = {
+                ch_name.lower(): ch_alias.lower()
+                for ch_name, ch_alias in alias_dict.items()
+            }
+
+        # excluded ch_alias not in info, to prevent unnecessary mapping and
+        # warning messages based on aliases.
+        alias_dict = {
+            ch_name: ch_alias
+            for ch_name, ch_alias in alias_dict.items()
+        }
+        info_names_use = [
+            alias_dict.get(ch_name, ch_name) for ch_name in info_names_use
+        ]
+        non_names_use = [
+            alias_dict.get(ch_name, ch_name) for ch_name in non_names_use
+        ]
+
+    # warn user if there is not a full overlap of montage with info_chs
+    missing = np.where([use not in ch_pos for use in info_names_use])[0]
+    if len(missing):  # DigMontage is subset of info
+        missing_names = [info_names[ii] for ii in missing]
+        missing_coord_msg = (
+            'DigMontage is only a subset of info. There are '
+            f'{len(missing)} channel position{_pl(missing)} '
+            'not present in the DigMontage. The required channels are:\n\n'
+            f'{missing_names}.\n\nConsider using inst.set_channel_types '
+            'if these are not EEG channels, or use the on_missing '
+            'parameter if the channel positions are allowed to be unknown '
+            'in your analyses.'
+        )
+        _on_missing(on_missing, missing_coord_msg)
+
+        # set ch coordinates and names from digmontage or nan coords
+        for ii in missing:
+            ch_pos[info_names_use[ii]] = [np.nan] * 3
+    del info_names
+
+    extra = np.where([non in ch_pos for non in non_names_use])[0]
+    if len(extra):
+        types = '/'.join(sorted(set(channel_type(info, ii) for ii in extra)))
+        names = [non_names[ii] for ii in extra]
+        warn(f'Not setting positon{_pl(extra)} of {len(extra)} {types} '
+             f'channel{_pl(extra)} found in montage:\n{names}\n'
+             'Consider setting the channel types to be of EEG/sEEG/ECoG/DBS '
+             'using inst.set_channel_types before calling inst.set_montage.')
+
+    for ch, use in zip(chs, info_names_use):
+        # Next line modifies info['chs'][#]['loc'] in place
+        if use in ch_pos:
+            ch['loc'][:6] = _backcompat_value(ch_pos[use], eeg_ref_pos)
+        ch['coord_frame'] = FIFF.FIFFV_COORD_HEAD
+    del ch_pos
+
+    # XXX this is probably wrong as it uses the order from the montage
+    # rather than the order of our info['ch_names'] ...
+    digpoints = [
+        mnt_head.dig[ii] for ii, name in enumerate(dig_names_use)
+        if name in (info_names_use + ref_names)]
+
+    # get a copy of the old dig
+    if info['dig'] is not None:
+        old_dig = info['dig'].copy()
+    else:
+        old_dig = []
+
+    # determine if needed to add an extra EEG REF DigPoint
+    if custom_eeg_ref_dig:
+        # ref_name = 'EEG000' if match_case else 'eeg000'
+        ref_dig_dict = {'kind': FIFF.FIFFV_POINT_EEG,
+                        'r': eeg_ref_pos,
+                        'ident': 0,
+                        'coord_frame': info['dig'].pop()['coord_frame']}
+        ref_dig_point = _format_dig_points([ref_dig_dict])[0]
+        # only append the reference dig point if it was already
+        # in the old dig
+        if ref_dig_point in old_dig:
+            digpoints.append(ref_dig_point)
+    # Next line modifies info['dig'] in place
+    info['dig'] = _format_dig_points(digpoints, enforce_order=True)
+
+    # Handle fNIRS with source, detector and channel
+    fnirs_picks = _picks_to_idx(info, 'fnirs', allow_empty=True)
+    if len(fnirs_picks) > 0:
+        _set_montage_fnirs(info, mnt_head)
 
 
 def _read_isotrak_elp_points(fname):
