@@ -1878,23 +1878,23 @@ class MNEBrowseFigure(MNEFigure):
         """Change the x-axis labels."""
         tickdiff = np.diff(self.mne.ax_main.get_xticks())[0]
         digits = np.ceil(-np.log10(tickdiff) + 1).astype(int)
-        # Increase decimals of vline by 2
-        # (showing milliseconds at max. zoom-level)
+        # always show millisecond precision for vline text
         if ax_type == 'vline':
-            digits += 2
+            digits = 3
         if self.mne.time_format == 'float':
-            if ax_type == 'hscroll' or int(x) == x:
-                return int(x)
-            rounded_x = round(x, digits or None)
+            # round to integers when possible ('9.0' → '9')
+            if int(x) == x:
+                digits = None
             if ax_type == 'vline':
-                return f'{rounded_x} s'
-            return rounded_x
+                return f'{round(x, digits)} s'
+            return str(round(x, digits))
+        # format as timestamp
         meas_date = self.mne.inst.info['meas_date']
         first_time = datetime.timedelta(seconds=self.mne.inst.first_time)
         xtime = datetime.timedelta(seconds=x)
         xdatetime = meas_date + first_time + xtime
         xdtstr = xdatetime.strftime('%H:%M:%S')
-        if digits and ax_type != 'hscroll' and int(xdatetime.microsecond) != 0:
+        if digits and ax_type != 'hscroll' and int(xdatetime.microsecond):
             xdtstr += f'{round(xdatetime.microsecond * 1e-6, digits)}'[1:]
         return xdtstr
 
