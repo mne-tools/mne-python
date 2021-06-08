@@ -59,6 +59,7 @@ doc/sphinxext/cachedir
 tutorials/misc/report.h5
 pip-log.txt
 .coverage*
+coverage.xml
 tags
 doc/coverages
 doc/samples

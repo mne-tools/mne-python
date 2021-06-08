@@ -21,12 +21,13 @@ stages:
       variables:
         DECODE_PERCENTS: 'false'
         RET: 'true'
+        BUILD_REASON: $(Build.Reason)
       steps:
       - bash: |
-          git_log=`git log --max-count=1 --skip=1 --pretty=format:"%s"`
+          git_log=`git log --format=oneline -n 1 --skip=1`
           echo "##vso[task.setvariable variable=log]$git_log"
       - bash: echo "##vso[task.setvariable variable=RET]false"
-        condition: or(contains(variables.log, '[skip azp]'), contains(variables.log, '[azp skip]'), contains(variables.log, '[skip ci]'), contains(variables.log, '[ci skip]'))
+        condition: and(eq(variables.BUILD_REASON, 'PullRequest'), or(contains(variables.log, '[skip azp]'), contains(variables.log, '[azp skip]'), contains(variables.log, '[skip ci]'), contains(variables.log, '[ci skip]')))
       - bash: echo "##vso[task.setvariable variable=start_main;isOutput=true]$RET"
         name: result
 
@@ -118,20 +119,22 @@ stages:
       displayName: 'Cache testing data'
     - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
       displayName: 'Get test data'
-    - script: pytest -m "ultraslowtest" --tb=short --cov=mne -vv mne
+    - script: pytest -m "ultraslowtest" --tb=short --cov=mne --cov-report=xml --cov-report=html -vv mne
       displayName: 'Run ultraslow tests'
-    - script: codecov --root $BUILD_REPOSITORY_LOCALPATH -t $CODECOV_TOKEN
+    - bash: bash <(curl -s https://codecov.io/bash)
       displayName: 'Codecov'
-      env:
-        CODECOV_TOKEN: $(CODECOV_TOKEN)
       condition: succeededOrFailed()
     - task: PublishTestResults@2
       inputs:
-        testResultsFiles: 'junit-*.xml'
+        testResultsFiles: '**/junit-*.xml'
         testRunTitle: 'Publish test results for $(Agent.JobName)'
         failTaskOnFailedTests: true
       condition: succeededOrFailed()
-
+    - task: PublishCodeCoverageResults@1
+      inputs:
+        codeCoverageTool: Cobertura
+        summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
+        reportDirectory: '$(System.DefaultWorkingDirectory)/**/htmlcov'
 
   - job: Notebook
     pool:
@@ -161,19 +164,22 @@ stages:
       displayName: 'Cache testing data'
     - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
       displayName: 'Get test data'
-    - script: pytest --tb=short --cov=mne -vv mne/viz
+    - script: pytest --tb=short --cov=mne --cov-report=xml --cov-report=html -vv mne/viz
       displayName: 'Run viz tests'
-    - script: codecov --root $BUILD_REPOSITORY_LOCALPATH -t $CODECOV_TOKEN
+    - bash: bash <(curl -s https://codecov.io/bash)
       displayName: 'Codecov'
-      env:
-        CODECOV_TOKEN: $(CODECOV_TOKEN)
       condition: succeededOrFailed()
     - task: PublishTestResults@2
       inputs:
-        testResultsFiles: 'junit-*.xml'
+        testResultsFiles: '**/junit-*.xml'
         testRunTitle: 'Publish test results for $(Agent.JobName)'
         failTaskOnFailedTests: true
       condition: succeededOrFailed()
+    - task: PublishCodeCoverageResults@1
+      inputs:
+        codeCoverageTool: Cobertura
+        summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
+        reportDirectory: '$(System.DefaultWorkingDirectory)/**/htmlcov'
 
 
   - job: Windows
@@ -251,16 +257,19 @@ stages:
       displayName: 'Cache testing data'
     - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
       displayName: 'Get test data'
-    - script: pytest -m "not slowtest" --tb=short --cov=mne -vv mne
+    - script: pytest -m "not slowtest" --tb=short --cov=mne --cov-report=xml --cov-report=html -vv mne
       displayName: 'Run tests'
-    - script: codecov --root %BUILD_REPOSITORY_LOCALPATH% -t %CODECOV_TOKEN%
+    - bash: bash <(curl -s https://codecov.io/bash)
       displayName: 'Codecov'
-      env:
-        CODECOV_TOKEN: $(CODECOV_TOKEN)
       condition: succeededOrFailed()
     - task: PublishTestResults@2
       inputs:
-        testResultsFiles: 'junit-*.xml'
+        testResultsFiles: '**/junit-*.xml'
         testRunTitle: 'Publish test results for $(Agent.JobName) $(TEST_MODE) $(PYTHON_VERSION)'
         failTaskOnFailedTests: true
       condition: succeededOrFailed()
+    - task: PublishCodeCoverageResults@1
+      inputs:
+        codeCoverageTool: Cobertura
+        summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
+        reportDirectory: '$(System.DefaultWorkingDirectory)/**/htmlcov'
