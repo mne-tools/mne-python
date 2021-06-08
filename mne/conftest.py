@@ -103,6 +103,7 @@ def pytest_configure(config):
     ignore:Call to deprecated class vtk.*:DeprecationWarning
     ignore:Call to deprecated method.*Deprecated since.*:DeprecationWarning
     always:.*get_data.* is deprecated in favor of.*:DeprecationWarning
+    ignore:.*rcParams is deprecated.*global_theme.*:DeprecationWarning
     always::ResourceWarning
     """  # noqa: E501
     for warning_line in warning_lines.split('\n'):
