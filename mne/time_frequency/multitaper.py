@@ -53,11 +53,11 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
 
     Notes
     -----
-    Tridiagonal form of DPSS calculation from:
+    Tridiagonal form of DPSS calculation from :footcite:`Slepian1978`.
 
-    Slepian, D. Prolate spheroidal wave functions, Fourier analysis, and
-    uncertainty V: The discrete case. Bell System Technical Journal,
-    Volume 57 (1978), 1371430
+    References
+    ----------
+    .. footbibliography::
     """
     from scipy import interpolate
     from scipy.signal.windows import dpss as sp_dpss
