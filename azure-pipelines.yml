@@ -118,7 +118,7 @@ stages:
       displayName: 'Cache testing data'
     - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
       displayName: 'Get test data'
-    - script: pytest -m "ultraslowtest" --tb=short --cov=mne -vv mne
+    - script: pytest -m "ultraslowtest" --tb=short --cov=mne --cov-report=xml --cov-report=html -vv mne
       displayName: 'Run ultraslow tests'
     - script: codecov --root $BUILD_REPOSITORY_LOCALPATH -t $CODECOV_TOKEN
       displayName: 'Codecov'
@@ -127,11 +127,15 @@ stages:
       condition: succeededOrFailed()
     - task: PublishTestResults@2
       inputs:
-        testResultsFiles: 'junit-*.xml'
+        testResultsFiles: '**/junit-*.xml'
         testRunTitle: 'Publish test results for $(Agent.JobName)'
         failTaskOnFailedTests: true
       condition: succeededOrFailed()
-
+    - task: PublishCodeCoverageResults@1
+      inputs:
+        codeCoverageTool: Cobertura
+        summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
+        reportDirectory: '$(System.DefaultWorkingDirectory)/**/htmlcov'
 
   - job: Notebook
     pool:
@@ -161,7 +165,7 @@ stages:
       displayName: 'Cache testing data'
     - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
       displayName: 'Get test data'
-    - script: pytest --tb=short --cov=mne -vv mne/viz
+    - script: pytest --tb=short --cov=mne --cov-report=xml --cov-report=html -vv mne/viz
       displayName: 'Run viz tests'
     - script: codecov --root $BUILD_REPOSITORY_LOCALPATH -t $CODECOV_TOKEN
       displayName: 'Codecov'
@@ -170,10 +174,15 @@ stages:
       condition: succeededOrFailed()
     - task: PublishTestResults@2
       inputs:
-        testResultsFiles: 'junit-*.xml'
+        testResultsFiles: '**/junit-*.xml'
         testRunTitle: 'Publish test results for $(Agent.JobName)'
         failTaskOnFailedTests: true
       condition: succeededOrFailed()
+    - task: PublishCodeCoverageResults@1
+      inputs:
+        codeCoverageTool: Cobertura
+        summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
+        reportDirectory: '$(System.DefaultWorkingDirectory)/**/htmlcov'
 
 
   - job: Windows
@@ -251,7 +260,7 @@ stages:
       displayName: 'Cache testing data'
     - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
       displayName: 'Get test data'
-    - script: pytest -m "not slowtest" --tb=short --cov=mne -vv mne
+    - script: pytest -m "not slowtest" --tb=short --cov=mne --cov-report=xml --cov-report=html -vv mne
       displayName: 'Run tests'
     - script: codecov --root %BUILD_REPOSITORY_LOCALPATH% -t %CODECOV_TOKEN%
       displayName: 'Codecov'
@@ -260,7 +269,12 @@ stages:
       condition: succeededOrFailed()
     - task: PublishTestResults@2
       inputs:
-        testResultsFiles: 'junit-*.xml'
+        testResultsFiles: '**/junit-*.xml'
         testRunTitle: 'Publish test results for $(Agent.JobName) $(TEST_MODE) $(PYTHON_VERSION)'
         failTaskOnFailedTests: true
       condition: succeededOrFailed()
+    - task: PublishCodeCoverageResults@1
+      inputs:
+        codeCoverageTool: Cobertura
+        summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
+        reportDirectory: '$(System.DefaultWorkingDirectory)/**/htmlcov'
