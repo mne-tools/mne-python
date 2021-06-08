@@ -80,10 +80,12 @@ class MNEFigure(Figure):
 
     def __init__(self, **kwargs):
         from matplotlib import rcParams
+        from threading import Event
         # figsize is the only kwarg we pass to matplotlib Figure()
         figsize = kwargs.pop('figsize', None)
         super().__init__(figsize=figsize)
-        self.select = -1
+        self.select = -1        
+        self.event_keypress = Event()
         # things we'll almost always want
         defaults = dict(fgcolor=rcParams['axes.edgecolor'],
                         bgcolor=rcParams['axes.facecolor'])
@@ -95,7 +97,7 @@ class MNEFigure(Figure):
 
     def _close(self, event):
         """Handle close events."""
-        # remove references from parent fig to child fig
+        # remove references from parent fig to child fig        
         is_child = getattr(self.mne, 'parent_fig', None) is not None
         is_named = getattr(self.mne, 'fig_name', None) is not None
         if is_child:
@@ -118,7 +120,9 @@ class MNEFigure(Figure):
         if event.key=="1":
             self.select = event.key            
         if event.key=="2":
-            self.select = event.key            
+            self.select = event.key   
+        self.event_keypress.set()
+        
     
     def _keyrelease(self,event):
         self.ctrlkpres = False
@@ -1730,14 +1734,22 @@ class MNEBrowseFigure(MNEFigure):
         # redraw
         self._update_projector()
         self._redraw()
-
+        
+    
+        
+        
     def _toggle_bad_epoch(self, event):
-        """Mark/unmark bad epochs."""
-        from matplotlib.pyplot import waitforbuttonpress
-        while self.select == -1:            
-            waitforbuttonpress(1)
-            print(self.select)
-        epoch_num = self._get_epoch_num_from_time(event.xdata)
+        """Mark/unmark bad epochs."""        
+        import threading                      
+        def _waitforbtn(event_keypress,timeout,default):
+            flag = event_keypress.wait(timeout)
+            if flag:
+                pass
+            else:
+                self.select = "0"
+        thread1 = threading.Thread(target=_waitforbtn, args=(self.event_keypress,1,0))
+        thread1.start()                
+        epoch_num = self._get_epoch_num_from_time(event.xdata)        
         if self.select == "0":            
             epoch_ix = self.mne.inst.selection.tolist().index(epoch_num)
             if epoch_num in self.mne.bad_epochs:
@@ -1750,6 +1762,7 @@ class MNEBrowseFigure(MNEFigure):
             self.mne.ax_hscroll.patches[epoch_ix].set_color(color)
             self._redraw(update_data=False)
         else:
+            color = 'none'
             epoch_ix = self.mne.inst.selection.tolist().index(epoch_num)
             if epoch_num in self.mne.inst.codes.keys():
                 self.mne.inst.codes.pop(epoch_num)
@@ -1764,6 +1777,7 @@ class MNEBrowseFigure(MNEFigure):
             self._redraw(update_data=False)
             
         self.select = -1
+        self.event_keypress.clear()
             
     def _set_comment_epoch(self,event):
         from PyQt5.QtWidgets import QWidget, QInputDialog, QLineEdit
