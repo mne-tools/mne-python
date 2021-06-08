@@ -7,6 +7,7 @@ import os.path as op
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_allclose,
                            assert_array_less)
+from numpy.testing._private.utils import assert_equal
 import pytest
 
 import mne
@@ -16,6 +17,7 @@ from mne import (read_cov, read_forward_solution, read_evokeds,
                  convert_forward_solution)
 from mne.inverse_sparse import mixed_norm, tf_mixed_norm
 from mne.inverse_sparse.mxne_inverse import make_stc_from_dipoles, _split_gof
+from mne.inverse_sparse.mxne_inverse import _compute_mxne_sure
 from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.minimum_norm.tests.test_inverse import \
     assert_var_exp_log, assert_stc_res
@@ -336,26 +338,49 @@ def test_split_gof_meg(forward, idx, weights):
     assert_allclose(gof_split.sum(), 100, rtol=1e-5)
 
 
-@testing.requires_testing_data
-@pytest.mark.slowtest
-@pytest.mark.parametrize('condition', [
-    'Left Auditory',
-    'Right Auditory',
-    'Left visual',
-    'Right visual'
+@pytest.mark.parametrize('n_sensors, n_dipoles, n_times', [
+    (10, 15, 7),
+    (20, 60, 20),
+    (50, 90, 35),
 ])
-@pytest.mark.parametrize('loose', [0, 0.9])
-def test_mxne_inverse_sure(forward, condition, loose):
-    """Test the SURE criterion for automatic alpha selection on MEG data."""
-    noise_cov = mne.read_cov(fname_cov)
-    evoked = mne.read_evokeds(fname_data, condition=condition,
-                              baseline=(None, 0))
-    evoked.crop(tmin=0.06, tmax=0.13)
-    evoked = evoked.pick_types(eeg=False, meg=True)
-    # time_pca is disabled for this test specifically
-    stc = mixed_norm(evoked, forward, noise_cov, "sure", n_mxne_iter=5,
-                     loose=loose, depth=0.9, time_pca=False)
-    num_active_sources = len(stc.vertices[0]) + len(stc.vertices[1])
-    # with sample data, sure should find between 1 and 2 sources in free
-    # and fixed orient
-    assert num_active_sources >= 1 and num_active_sources <= 3
+@pytest.mark.parametrize('nnz', [2, 4])
+@pytest.mark.parametrize('corr', np.arange(0, 1, 0.25))
+@pytest.mark.parametrize('n_orient', [1, 3])
+def test_mxne_inverse_sure(n_sensors, n_dipoles, n_times, nnz, corr, n_orient,
+                           snr=4):
+    # Tests the SURE criterion for automatic alpha selection on synthetic
+    # data.
+    from numpy.linalg import norm
+    from mne.inverse_sparse.mxne_optim import norm_l2inf
+    rng = np.random.RandomState(0)
+    sigma = np.sqrt(1 - corr ** 2)
+    U = rng.randn(n_sensors)
+    # generate gain matrix
+    G = np.empty([n_sensors, n_dipoles], order='F')
+    G[:, 0:n_orient] = np.expand_dims(U, axis=-1)
+    n_dip_per_pos = n_dipoles // n_orient
+    for j in range(1, n_dip_per_pos):
+        U *= corr
+        U += sigma * rng.randn(n_sensors)
+        G[:, j * n_orient:(j + 1) * n_orient] = np.expand_dims(U, axis=-1)
+    # generate coefficient matrix
+    support = rng.choice(n_dip_per_pos, nnz, replace=False)
+    X = np.zeros((n_dipoles, n_times))
+    for k in support:
+        X[k * n_orient:(k + 1) * n_orient, :] = rng.normal(
+            size=(n_orient, n_times))
+    # generate measurement matrix
+    M = G @ X
+    noise = rng.randn(n_sensors, n_times)
+    sigma = 1 / norm(noise) * norm(M) / snr
+    M += sigma * noise
+    # inverse modeling with sure
+    alpha_max = norm_l2inf(np.dot(G.T, M), n_orient, copy=False)
+    alpha_grid = np.geomspace(alpha_max, alpha_max / 10, num=15)
+    _, active_set, _ = _compute_mxne_sure(M, G, alpha_grid, sigma=sigma,
+                                          n_mxne_iter=5, maxit=3000, tol=1e-4,
+                                          n_orient=n_orient,
+                                          active_set_size=10, debias=True,
+                                          solver="auto", dgap_freq=10,
+                                          random_state=0, verbose=False)
+    assert_equal(np.count_nonzero(active_set, axis=-1), n_orient * nnz)

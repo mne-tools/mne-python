@@ -345,8 +345,6 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
 
         .. versionadded:: 0.18
     %(pick_ori)s
-    %(verbose)s
-
     sure_alpha_grid : array | str, default = "auto"
         If "auto", the SURE is evaluted along 15 uniformly distributed
         alphas between alpha_max and 0.1 * alpha_max. If array, the
@@ -354,6 +352,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
     random_state : int | None, default = 0
         The random state used in a random number generator for delta and
         epsilon used for the SURE computation.
+    %(verbose)s
 
     Returns
     -------
@@ -385,7 +384,9 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
            sure_alpha_grid == "auto"):
         raise ValueError('If not equal to "auto" sure_alpha_grid must be an '
                          'array. Got %s' % type(sure_alpha_grid).__name__)
-
+    if sure_alpha_grid != "auto" and alpha != "sure":
+        raise Exception('If sure_alpha_grid is manually specified, alpha must '
+                        'be "sure". Got %s' % alpha)
     pca = True
     if not isinstance(evoked, list):
         evoked = [evoked]
@@ -745,12 +746,11 @@ def _compute_mxne_sure(M, gain, alpha_grid, sigma, n_mxne_iter, maxit, tol,
     alpha_grid : array
         The grid of alphas used to evaluate the SURE.
     sigma : float
-        The true or estimated noise level in the data. It is
-        usually 1 if the data has been previously whitened
-        using MNE whitener.
+        The true or estimated noise level in the data. Usually 1 if the data
+        has been previously whitened using MNE whitener.
     n_mxne_iter : int
-        The number of MxNE iterations. If > 1, iterative reweighting
-        is applied.
+        The number of MxNE iterations. If > 1, iterative reweighting is
+        applied.
     maxit : int
         Maximum number of iterations.
     tol : float
