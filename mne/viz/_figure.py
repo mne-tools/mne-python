@@ -83,6 +83,7 @@ class MNEFigure(Figure):
         # figsize is the only kwarg we pass to matplotlib Figure()
         figsize = kwargs.pop('figsize', None)
         super().__init__(figsize=figsize)
+        self.select = -1
         # things we'll almost always want
         defaults = dict(fgcolor=rcParams['axes.edgecolor'],
                         bgcolor=rcParams['axes.facecolor'])
@@ -110,13 +111,20 @@ class MNEFigure(Figure):
         elif event.key == 'f11':  # full screen
             self.canvas.manager.full_screen_toggle()
         if event.key=="control":
-            self.ctrlkpres = True            
+            self.ctrlkpres = True
+        
+        if event.key=="0":
+            self.select = event.key            
+        if event.key=="1":
+            self.select = event.key            
+        if event.key=="2":
+            self.select = event.key            
     
     def _keyrelease(self,event):
         self.ctrlkpres = False
         
     def _buttonpress(self, event):
-        """Handle buttonpress events."""
+        """Handle buttonpress events."""        
         pass
 
     def _pick(self, event):
@@ -336,6 +344,8 @@ class MNEBrowseFigure(MNEFigure):
         elif isinstance(inst, BaseEpochs):
             if "comments" not in dir(inst):
                 self.mne.inst.comments={}
+            if "codes" not in dir(inst):
+                self.mne.inst.codes={}
             self.mne.instance_type = 'epochs'            
         else:
             raise TypeError('Expected an instance of Raw, Epochs, or ICA, '
@@ -457,6 +467,12 @@ class MNEBrowseFigure(MNEFigure):
             # hide some ticks
             ax_main.tick_params(axis='x', which='major', bottom=False)
             ax_hscroll.tick_params(axis='x', which='both', bottom=False)
+            for key,val in self.mne.inst.codes.items():
+                epoch_ix = self.mne.inst.selection.tolist().index(key)
+                if val =="1":
+                    ax_hscroll.patches[epoch_ix].set_color("yellow")
+                if val=="2":
+                    ax_hscroll.patches[epoch_ix].set_color("cyan")
 
         # VERTICAL SCROLLBAR PATCHES (COLORED BY CHANNEL TYPE)
         ch_order = self.mne.ch_order
@@ -1717,21 +1733,41 @@ class MNEBrowseFigure(MNEFigure):
 
     def _toggle_bad_epoch(self, event):
         """Mark/unmark bad epochs."""
+        from matplotlib.pyplot import waitforbuttonpress
+        while self.select == -1:            
+            waitforbuttonpress(1)
+            print(self.select)
         epoch_num = self._get_epoch_num_from_time(event.xdata)
-        epoch_ix = self.mne.inst.selection.tolist().index(epoch_num)
-        if epoch_num in self.mne.bad_epochs:
-            self.mne.bad_epochs.remove(epoch_num)
-            color = 'none'
+        if self.select == "0":            
+            epoch_ix = self.mne.inst.selection.tolist().index(epoch_num)
+            if epoch_num in self.mne.bad_epochs:
+                self.mne.bad_epochs.remove(epoch_num)
+                color = 'none'
+            else:
+                self.mne.bad_epochs.append(epoch_num)
+                self.mne.bad_epochs.sort()
+                color = self.mne.epoch_color_bad
+            self.mne.ax_hscroll.patches[epoch_ix].set_color(color)
+            self._redraw(update_data=False)
         else:
-            self.mne.bad_epochs.append(epoch_num)
-            self.mne.bad_epochs.sort()
-            color = self.mne.epoch_color_bad
-        self.mne.ax_hscroll.patches[epoch_ix].set_color(color)
-        self._redraw(update_data=False)
+            epoch_ix = self.mne.inst.selection.tolist().index(epoch_num)
+            if epoch_num in self.mne.inst.codes.keys():
+                self.mne.inst.codes.pop(epoch_num)
+                color = 'none'
+            elif self.select=="1":    
+                self.mne.inst.codes[epoch_num] = self.select 
+                color = "yellow"
+            elif self.select=="2":                           
+                self.mne.inst.codes[epoch_num] = self.select 
+                color = "cyan"            
+            self.mne.ax_hscroll.patches[epoch_ix].set_color(color)
+            self._redraw(update_data=False)
+            
+        self.select = -1
+            
     def _set_comment_epoch(self,event):
-        from PyQt5.QtWidgets import QApplication, QWidget, QInputDialog, QLineEdit
-        epoch_num = self._get_epoch_num_from_time(event.xdata)
-        epoch_ix = self.mne.inst.selection.tolist().index(epoch_num)
+        from PyQt5.QtWidgets import QWidget, QInputDialog, QLineEdit
+        epoch_num = self._get_epoch_num_from_time(event.xdata)        
         if epoch_num in self.mne.inst.comments.keys():
             text, okPressed = QInputDialog.getText(QWidget(), "Comment","Your comment:"
                                                    , QLineEdit.Normal, self.mne.inst.comments[epoch_num])
