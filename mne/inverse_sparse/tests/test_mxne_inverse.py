@@ -334,3 +334,28 @@ def test_split_gof_meg(forward, idx, weights):
     want = 100 * want / want.sum()
     assert_allclose(gof_split, want, atol=1e-3, rtol=1e-2)
     assert_allclose(gof_split.sum(), 100, rtol=1e-5)
+
+
+@testing.requires_testing_data
+@pytest.mark.slowtest
+@pytest.mark.parametrize('condition', [
+    'Left Auditory',
+    'Right Auditory',
+    'Left visual',
+    'Right visual'
+])
+@pytest.mark.parametrize('loose', [0, 0.9])
+def test_mxne_inverse_sure(forward, condition, loose):
+    """Test the SURE criterion for automatic alpha selection on MEG data."""
+    noise_cov = mne.read_cov(fname_cov)
+    evoked = mne.read_evokeds(fname_data, condition=condition,
+                              baseline=(None, 0))
+    evoked.crop(tmin=0.06, tmax=0.13)
+    evoked = evoked.pick_types(eeg=False, meg=True)
+    # time_pca is disabled for this test specifically
+    stc = mixed_norm(evoked, forward, noise_cov, "sure", n_mxne_iter=5,
+                     loose=loose, depth=0.9, time_pca=False)
+    num_active_sources = len(stc.vertices[0]) + len(stc.vertices[1])
+    # with sample data, sure should find between 1 and 2 sources in free
+    # and fixed orient
+    assert num_active_sources >= 1 and num_active_sources <= 3

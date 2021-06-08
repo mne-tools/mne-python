@@ -427,7 +427,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
 
     # Alpha selected automatically by SURE minimization
     if alpha == "sure":
-        alpha_grid = (np.linspace(100, 0.1 * 100, num=15)
+        alpha_grid = (np.geomspace(100, 10, num=15)
                       if sure_alpha_grid == "auto" else sure_alpha_grid)
         X, active_set, best_alpha_ = _compute_mxne_sure(
             M, gain, alpha_grid, sigma=1, random_state=random_state,
@@ -740,7 +740,7 @@ def _compute_mxne_sure(M, gain, alpha_grid, sigma, n_mxne_iter, maxit, tol,
     ----------
     M : array, shape (n_sensors, n_times)
         The data.
-    G : array, shape (n_sensors, n_dipoles)
+    gain : array, shape (n_sensors, n_dipoles)
         The gain matrix a.k.a. lead field.
     alpha_grid : array
         The grid of alphas used to evaluate the SURE.
@@ -771,6 +771,10 @@ def _compute_mxne_sure(M, gain, alpha_grid, sigma, n_mxne_iter, maxit, tol,
 
     Returns
     ----------
+    X : array
+        Coefficient matrix.
+    active_set : array
+        Array of indices of non-zero coefficients.
     best_alpha_ : float
         Alpha that minimizes the SURE.
 
@@ -779,8 +783,8 @@ def _compute_mxne_sure(M, gain, alpha_grid, sigma, n_mxne_iter, maxit, tol,
     .. footbibliography::
     """
     def _fit_on_grid(gain, M, eps, delta):
-        coefs_grid_1 = np.empty((len(alpha_grid), gain.shape[1], M.shape[1]))
-        coefs_grid_2 = np.empty((len(alpha_grid), gain.shape[1], M.shape[1]))
+        coefs_grid_1 = np.zeros((len(alpha_grid), gain.shape[1], M.shape[1]))
+        coefs_grid_2 = np.zeros((len(alpha_grid), gain.shape[1], M.shape[1]))
         active_sets = []
 
         M_eps = M + eps * delta
@@ -815,13 +819,13 @@ def _compute_mxne_sure(M, gain, alpha_grid, sigma, n_mxne_iter, maxit, tol,
             coefs_grid_1[j][active_set, :] = X
             coefs_grid_2[j][active_set_eps, :] = X_eps
             active_sets.append(active_set)
-
         return coefs_grid_1, coefs_grid_2, active_sets
 
     def _compute_sure_val(coef1, coef2, gain, M, sigma, delta, eps):
-        dof = ((gain @ (coef2 - coef1)) * delta).sum() / eps
+        n_sensors, n_times = gain.shape[0], M.shape[1]
+        dof = (gain @ (coef2 - coef1) * delta).sum() / eps
         df_term = np.linalg.norm(M - gain @ coef1) ** 2
-        sure = df_term - gain.shape[0] * M.shape[1] * sigma ** 2
+        sure = df_term - n_sensors * n_times * sigma ** 2
         sure += 2 * dof * sigma ** 2
         return sure
 
@@ -838,8 +842,8 @@ def _compute_mxne_sure(M, gain, alpha_grid, sigma, n_mxne_iter, maxit, tol,
             coef1, coef2, gain, M, sigma, delta, eps)
         if verbose:
             logger.info("alpha %s :: sure %s" % (alpha_grid[i], sure_path[i]))
-
     best_alpha_ = alpha_grid[np.argmin(sure_path)]
+
     X = coefs_grid_1[np.argmin(sure_path)]
     active_set = active_sets[np.argmin(sure_path)]
 
