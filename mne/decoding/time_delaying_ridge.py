@@ -6,7 +6,6 @@
 # License: BSD (3-clause)
 
 import numpy as np
-from scipy.signal import fftconvolve
 
 from .base import BaseEstimator
 from ..cuda import _setup_cuda_fft_multiply_repeated
@@ -344,6 +343,8 @@ class TimeDelayingRidge(BaseEstimator):
         X : ndarray
             The predicted response.
         """
+        from scipy.signal import fftconvolve
+
         if X.ndim == 2:
             X = X[:, np.newaxis, :]
             singleton = True
