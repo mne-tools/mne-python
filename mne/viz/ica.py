@@ -28,7 +28,8 @@ from ..utils import _reject_data_segments, verbose
 @fill_doc
 def plot_ica_sources(ica, inst, picks=None, start=None,
                      stop=None, title=None, show=True, block=False,
-                     show_first_samp=False, show_scrollbars=True):
+                     show_first_samp=False, show_scrollbars=True,
+                     time_format='float'):
     """Plot estimated latent sources given the unmixing matrix.
 
     Typical usecases:
@@ -60,6 +61,7 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
     show_first_samp : bool
         If True, show time axis relative to the ``raw.first_samp``.
     %(show_scrollbars)s
+    %(time_format)s
 
     Returns
     -------
@@ -85,7 +87,8 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
         fig = _plot_sources(ica, inst, picks, exclude, start=start, stop=stop,
                             show=show, title=title, block=block,
                             show_first_samp=show_first_samp,
-                            show_scrollbars=show_scrollbars)
+                            show_scrollbars=show_scrollbars,
+                            time_format=time_format)
     elif isinstance(inst, Evoked):
         if start is not None or stop is not None:
             inst = inst.copy().crop(start, stop)
@@ -923,7 +926,7 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
 
 
 def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
-                  show_scrollbars, show_first_samp):
+                  show_scrollbars, show_first_samp, time_format):
     """Plot the ICA components as a RawArray or EpochsArray."""
     from ._figure import _browse_figure
     from .. import EpochsArray, BaseEpochs
@@ -1033,6 +1036,7 @@ def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
                   duration=duration,
                   n_times=inst.n_times if is_raw else n_times,
                   first_time=first_time,
+                  time_format=time_format,
                   decim=1,
                   # events
                   event_times=None if is_raw else event_times,

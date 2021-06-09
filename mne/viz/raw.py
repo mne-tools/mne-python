@@ -31,10 +31,10 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              event_color='cyan', scalings=None, remove_dc=True, order=None,
              show_options=False, title=None, show=True, block=False,
              highpass=None, lowpass=None, filtorder=4,
-             clipping=_RAW_CLIP_DEF,
-             show_first_samp=False, proj=True, group_by='type',
-             butterfly=False, decim='auto', noise_cov=None, event_id=None,
-             show_scrollbars=True, show_scalebars=True, verbose=None):
+             clipping=_RAW_CLIP_DEF, show_first_samp=False,
+             proj=True, group_by='type', butterfly=False, decim='auto',
+             noise_cov=None, event_id=None, show_scrollbars=True,
+             show_scalebars=True, time_format='float', verbose=None):
     """Plot raw data.
 
     Parameters
@@ -162,6 +162,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         Whether or not to show the scale bars. Defaults to True.
 
         .. versionadded:: 0.20.0
+    %(time_format)s
     %(verbose)s
 
     Returns
@@ -311,6 +312,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   duration=duration,
                   n_times=raw.n_times,
                   first_time=first_time,
+                  time_format=time_format,
                   decim=decim,
                   # events
                   event_color_dict=event_color_dict,
