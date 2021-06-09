@@ -86,6 +86,8 @@ class MNEFigure(Figure):
         super().__init__(figsize=figsize)
         self.select = -1        
         self.event_keypress = Event()
+        self.ctrlkpres = False
+        self.shiftpress = False
         # things we'll almost always want
         defaults = dict(fgcolor=rcParams['axes.edgecolor'],
                         bgcolor=rcParams['axes.facecolor'])
@@ -114,6 +116,9 @@ class MNEFigure(Figure):
             self.canvas.manager.full_screen_toggle()
         if event.key=="control":
             self.ctrlkpres = True
+        if event.key == "shift":
+            print("here")
+            self.shiftpress = True
         
         if event.key=="0":
             self.select = event.key            
@@ -125,7 +130,10 @@ class MNEFigure(Figure):
         
     
     def _keyrelease(self,event):
-        self.ctrlkpres = False
+        if event.key=="control":
+            self.ctrlkpres = False
+        if event.key == "shift":
+            self.shiftpress = False
         
     def _buttonpress(self, event):
         """Handle buttonpress events."""        
@@ -836,6 +844,9 @@ class MNEBrowseFigure(MNEFigure):
             if self.ctrlkpres:                
                 self._set_comment_epoch(event)
                 self.ctrlkpres = False
+            if self.shiftpress:
+                self._show_labeled_epochs(event)
+                self.shiftpress = False
             elif event.inaxes == ax_main:
                 self._toggle_vline(False)
 
@@ -1752,6 +1763,9 @@ class MNEBrowseFigure(MNEFigure):
         epoch_num = self._get_epoch_num_from_time(event.xdata)        
         if self.select == "0":            
             epoch_ix = self.mne.inst.selection.tolist().index(epoch_num)
+            if epoch_num in self.mne.inst.codes.keys():
+                self.mne.inst.codes.pop(epoch_num)
+                color = 'none'
             if epoch_num in self.mne.bad_epochs:
                 self.mne.bad_epochs.remove(epoch_num)
                 color = 'none'
@@ -1789,7 +1803,25 @@ class MNEBrowseFigure(MNEFigure):
             text, okPressed = QInputDialog.getText(QWidget(), "Comment","Your comment:"
                                                    , QLineEdit.Normal,"")
         self.mne.inst.comments[epoch_num] = text
+    
+    
+    def _show_labeled_epochs(self,event):
+        from PyQt5.QtWidgets import QMainWindow, QMessageBox
+        epoch_num = self._get_epoch_num_from_time(event.xdata) 
+        epoch_ix = self.mne.inst.selection.tolist().index(epoch_num)        
+        xaxis = self.mne.ax_main.get_xaxis()        
+        win = QMainWindow()
+        msg = QMessageBox(win)
+        msg.setWindowTitle("The labeled delta brushes of the current window")
+        texts = xaxis.get_minorticklabels()[epoch_ix-7:epoch_ix+1]
+        message = ""
+        for text in texts:
+            code = int(text.get_text())
+            if code in self.mne.inst.codes.keys():
+                message += F"{code}:{self.mne.inst.codes[code]}\r\n"                
         
+        msg.setText(message)
+        msg.exec_()        
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # SCROLLBARS
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
