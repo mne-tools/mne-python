@@ -574,27 +574,28 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica,
             exclude_labels.append(line_label)
         else:
             exclude_labels.append(None)
-    # Provide different cmaps for up to 4 ica-categories
-    cmaps = ['winter', 'spring', 'summer', 'autumn']
-    label_colors = ['k'] * len(exclude_labels)
+    label_props = [('k', '-') for n in range(len(exclude_labels))]
+    category_styles = ['-', '--', ':', '-.']
     if labels is not None:
         # compute colors only based on label categories
         unique_labels = {k.split(' - ')[1] for k in exclude_labels if k}
         for ulix, ul in enumerate(unique_labels):
             cat_indices = [exclude_labels.index(it) for it in exclude_labels
                            if it is not None and f' - {ul}' in it]
-            cmap = plt.get_cmap(cmaps[int(ulix % 4)], len(cat_indices))
+            cat_cmap = plt.get_cmap('rainbow', len(cat_indices))
+            cat_style = category_styles[int(ulix % 4)]
             for ix, ci in enumerate(cat_indices):
-                label_colors[ci] = cmap(ix)
+                label_props[ci] = (cat_cmap(ix), cat_style)
     else:
         for ix, label in enumerate(exclude_labels):
             if label is not None:
-                label_colors[ix] = 'r'
+                label_props[ix] = ('r', '-')
 
     for exc_label, ii in zip(exclude_labels, picks):
-        color = label_colors[ii]
+        color, style = label_props[ii]
         lines.extend(ax.plot(times, evoked.data[ii].T, picker=True,
-                             zorder=2, color=color, label=exc_label))
+                             zorder=2, color=color, linestyle=style,
+                             label=exc_label))
         lines[-1].set_pickradius(3.)
 
     ax.set(title=title, xlim=times[[0, -1]], xlabel='Time (ms)', ylabel='(NA)')
