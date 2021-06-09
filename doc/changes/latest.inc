@@ -61,6 +61,8 @@ Enhancements
   
 - Add "time_format" to :meth:`mne.io.Raw.plot` and :meth:`mne.preprocessing.ICA.plot_sources` to display acquisition time on x-axis (:gh:`9419` by `Martin Schulz`_)
 
+- Speed up :meth:`mne.decoding.TimeDelayingRidge.predict` by switching to FFT-based convolution (:gh:`9458` by `Ross Maddox`_)
+
 Bugs
 ~~~~
 - Fix bug with :meth:`mne.Epochs.crop` and :meth:`mne.Evoked.crop` when ``include_tmax=False``, where the last sample was always cut off, even when ``tmax > epo.times[-1]`` (:gh:`9378` **by new contributor** |Jan Sosulski|_)
