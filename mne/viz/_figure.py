@@ -84,8 +84,7 @@ class MNEFigure(Figure):
         # figsize is the only kwarg we pass to matplotlib Figure()
         figsize = kwargs.pop('figsize', None)
         super().__init__(figsize=figsize)
-        self.select = -1        
-        self.event_keypress = Event()
+        self.select = "0"                
         self.ctrlkpres = False
         self.shiftpress = False
         # things we'll almost always want
@@ -125,8 +124,7 @@ class MNEFigure(Figure):
         if event.key=="1":
             self.select = event.key            
         if event.key=="2":
-            self.select = event.key   
-        self.event_keypress.set()
+            self.select = event.key           
         
     
     def _keyrelease(self,event):
@@ -1750,16 +1748,7 @@ class MNEBrowseFigure(MNEFigure):
         
         
     def _toggle_bad_epoch(self, event):
-        """Mark/unmark bad epochs."""        
-        import threading                      
-        def _waitforbtn(event_keypress,timeout,default):
-            flag = event_keypress.wait(timeout)
-            if flag:
-                pass
-            else:
-                self.select = "0"
-        thread1 = threading.Thread(target=_waitforbtn, args=(self.event_keypress,1,0))
-        thread1.start()                
+        """Mark/unmark bad epochs."""                
         epoch_num = self._get_epoch_num_from_time(event.xdata)        
         if self.select == "0":            
             epoch_ix = self.mne.inst.selection.tolist().index(epoch_num)
@@ -1783,15 +1772,14 @@ class MNEBrowseFigure(MNEFigure):
                 color = 'none'
             elif self.select=="1":    
                 self.mne.inst.codes[epoch_num] = self.select 
-                color = "yellow"
+                color = "green"
             elif self.select=="2":                           
                 self.mne.inst.codes[epoch_num] = self.select 
-                color = "cyan"            
+                color = "darkblue"            
             self.mne.ax_hscroll.patches[epoch_ix].set_color(color)
             self._redraw(update_data=False)
             
-        self.select = -1
-        self.event_keypress.clear()
+        self.select = "0"           
             
     def _set_comment_epoch(self,event):
         from PyQt5.QtWidgets import QWidget, QInputDialog, QLineEdit
