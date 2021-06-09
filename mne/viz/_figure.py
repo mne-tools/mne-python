@@ -1951,7 +1951,7 @@ class MNEBrowseFigure(MNEFigure):
     def _load_data(self, start=None, stop=None):
         """Retrieve the bit of data we need for plotting."""
         if 'raw' in (self.mne.instance_type, self.mne.ica_type):
-            return self.mne.inst[:, start:stop]
+            return self.mne.inst[:, start:stop + 1]
         else:
             ix = np.searchsorted(self.mne.boundary_times, self.mne.t_start)
             item = slice(ix, ix + self.mne.n_epochs)
