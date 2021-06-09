@@ -574,22 +574,23 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica,
             exclude_labels.append(line_label)
         else:
             exclude_labels.append(None)
-    label_props = [('k', '-') for n in range(len(exclude_labels))]
-    category_styles = ['-', '--', ':', '-.']
+    label_props = [('k', '-') if lb is None else ('r', '-') for lb in
+                   exclude_labels]
+    styles = ['-', '--', ':', '-.']
     if labels is not None:
-        # compute colors only based on label categories
+        # differentiate categories by linestyle and components by color
+        col_lbs = [it for it in exclude_labels if it is not None]
+        cmap = plt.get_cmap('rainbow', len(col_lbs))
         unique_labels = {k.split(' - ')[1] for k in exclude_labels if k}
-        for ulix, ul in enumerate(unique_labels):
-            cat_indices = [exclude_labels.index(it) for it in exclude_labels
-                           if it is not None and f' - {ul}' in it]
-            cat_cmap = plt.get_cmap('rainbow', len(cat_indices))
-            cat_style = category_styles[int(ulix % 4)]
-            for ix, ci in enumerate(cat_indices):
-                label_props[ci] = (cat_cmap(ix), cat_style)
-    else:
-        for ix, label in enumerate(exclude_labels):
-            if label is not None:
-                label_props[ix] = ('r', '-')
+        # Determine up to 4 different styles for n categories
+        cat_styles = dict(zip(unique_labels,
+                              map(lambda ux: styles[int(ux % len(styles))],
+                                  range(len(unique_labels)))))
+        for lb_idx, lb in enumerate(exclude_labels):
+            if lb is not None:
+                color = cmap(col_lbs.index(lb))
+                style = cat_styles[lb[lb.find(' - ') + 3:]]
+                label_props[lb_idx] = (color, style)
 
     for exc_label, ii in zip(exclude_labels, picks):
         color, style = label_props[ii]
