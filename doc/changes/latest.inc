@@ -59,7 +59,7 @@ Enhancements
 
 - Add new function :func:`mne.preprocessing.annotate_break` to automatically detect and mark "break" periods without any marked experimental events in the continuous data (:gh:`9445` by `Richard Höchenberger`_)
 
-- Speed up :func:`mne.decoding.time_delaying_ridge.predict` by switching to FFT-based convolution (:gh:`9458` by `Ross Maddox`_)
+- Speed up :meth:`mne.decoding.TimeDelayingRidge.predict` by switching to FFT-based convolution (:gh:`9458` by `Ross Maddox`_)
 
 Bugs
 ~~~~
