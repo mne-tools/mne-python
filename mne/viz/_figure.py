@@ -421,7 +421,7 @@ class MNEBrowseFigure(MNEFigure):
             epoch_nums = self.mne.inst.selection
             for ix, _ in enumerate(epoch_nums):
                 start = self.mne.boundary_times[ix]
-                width = np.diff(self.mne.boundary_times[ix:ix + 2])[0]
+                width = np.diff(self.mne.boundary_times[:2])[0]
                 ax_hscroll.add_patch(
                     Rectangle((start, 0), width, 1, color='none',
                               zorder=self.mne.zorder['patch']))
@@ -2045,8 +2045,8 @@ class MNEBrowseFigure(MNEFigure):
             epoch_ix = np.searchsorted(self.mne.boundary_times, time_range)
             epoch_ix = np.arange(epoch_ix[0], epoch_ix[1])
             epoch_nums = self.mne.inst.selection[epoch_ix[0]:epoch_ix[-1] + 1]
-            visible_bad_epochs = epoch_nums[
-                np.in1d(epoch_nums, self.mne.bad_epochs).nonzero()]
+            visible_bad_epoch_ix, = np.in1d(
+                epoch_nums, self.mne.bad_epochs).nonzero()
             while len(self.mne.epoch_traces):
                 self.mne.epoch_traces.pop(-1).remove()
             # handle custom epoch colors (for autoreject integration)
@@ -2062,8 +2062,7 @@ class MNEBrowseFigure(MNEFigure):
                     custom_colors[:, ii] = to_rgba_array([this_colors[_ch]
                                                           for _ch in picks])
             # override custom color on bad epochs
-            for _bad in visible_bad_epochs:
-                _ix = epoch_nums.tolist().index(_bad)
+            for _ix in visible_bad_epoch_ix:
                 _cols = np.array([self.mne.epoch_color_bad,
                                   self.mne.ch_color_bad])[bad_bool.astype(int)]
                 custom_colors[:, _ix] = to_rgba_array(_cols)
