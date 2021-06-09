@@ -352,6 +352,8 @@ class MNEBrowseFigure(MNEFigure):
         # additional params for epochs (won't affect raw / ICA)
         self.mne.epoch_traces = list()
         self.mne.bad_epochs = list()
+        self.mne.sampling_period = (np.diff(inst.times[:2])[0]
+                                    / inst.info['sfreq'])
         # annotations
         self.mne.annotations = list()
         self.mne.hscroll_annotations = list()
@@ -1891,7 +1893,11 @@ class MNEBrowseFigure(MNEFigure):
         if 'raw' in (self.mne.instance_type, self.mne.ica_type):
             return self.mne.inst[:, start:stop]
         else:
-            ix = np.searchsorted(self.mne.boundary_times, self.mne.t_start)
+            # subtract one sample from tstart before searchsorted, to make sure
+            # we land on the left side of the boundary time (avoid precision
+            # errors)
+            ix = np.searchsorted(self.mne.boundary_times,
+                                 self.mne.t_start - self.mne.sampling_period)
             item = slice(ix, ix + self.mne.n_epochs)
             data = np.concatenate(self.mne.inst.get_data(item=item), axis=-1)
             times = np.arange(len(self.mne.inst) * len(self.mne.inst.times)
