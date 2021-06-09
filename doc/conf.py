@@ -324,7 +324,7 @@ gallery_dirs = ['auto_tutorials', 'auto_examples']
 os.environ['_MNE_BUILDING_DOC'] = 'true'
 scrapers = ('matplotlib',)
 try:
-    mne.viz.set_3d_backend()
+    mne.viz.set_3d_backend(mne.viz.get_3d_backend())
 except Exception:
     report_scraper = None
 else:
@@ -340,7 +340,7 @@ else:
         mlab.close()
         scrapers += ('mayavi',)
         push_exception_handler(reraise_exceptions=True)
-    elif backend in ('qt', 'notebook', 'pyvista'):
+    elif backend in ('notebook', 'pyvista'):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=DeprecationWarning)
             import pyvista
