@@ -115,8 +115,7 @@ class MNEFigure(Figure):
             self.canvas.manager.full_screen_toggle()
         if event.key=="control":
             self.ctrlkpres = True
-        if event.key == "shift":
-            print("here")
+        if event.key == "shift":            
             self.shiftpress = True
         
         if event.key=="0":
@@ -480,9 +479,9 @@ class MNEBrowseFigure(MNEFigure):
             for key,val in self.mne.inst.codes.items():
                 epoch_ix = self.mne.inst.selection.tolist().index(key)
                 if val =="1":
-                    ax_hscroll.patches[epoch_ix].set_color("yellow")
+                    ax_hscroll.patches[epoch_ix].set_color("green")
                 if val=="2":
-                    ax_hscroll.patches[epoch_ix].set_color("cyan")
+                    ax_hscroll.patches[epoch_ix].set_color("darkblue")
 
         # VERTICAL SCROLLBAR PATCHES (COLORED BY CHANNEL TYPE)
         ch_order = self.mne.ch_order
@@ -1765,6 +1764,8 @@ class MNEBrowseFigure(MNEFigure):
             self.mne.ax_hscroll.patches[epoch_ix].set_color(color)
             self._redraw(update_data=False)
         else:
+            if epoch_num in self.mne.bad_epochs:
+                self.mne.bad_epochs.remove(epoch_num)                
             color = 'none'
             epoch_ix = self.mne.inst.selection.tolist().index(epoch_num)
             if epoch_num in self.mne.inst.codes.keys():
