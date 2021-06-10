@@ -109,6 +109,8 @@ class MNEFigure(Figure):
             close(self)
         elif event.key == 'f11':  # full screen
             self.canvas.manager.full_screen_toggle()
+        if event.key=="control":
+            self.ctrlkpres = True            
 
     def _buttonpress(self, event):
         """Handle buttonpress events."""
@@ -328,7 +330,9 @@ class MNEBrowseFigure(MNEFigure):
         elif isinstance(inst, BaseRaw):
             self.mne.instance_type = 'raw'
         elif isinstance(inst, BaseEpochs):
-            self.mne.instance_type = 'epochs'
+            if "comments" not in dir(inst):
+                self.mne.inst.comments={}
+            self.mne.instance_type = 'epochs'            
         else:
             raise TypeError('Expected an instance of Raw, Epochs, or ICA, '
                             f'got {type(inst)}.')
@@ -336,7 +340,7 @@ class MNEBrowseFigure(MNEFigure):
         if self.mne.instance_type == 'ica':
             if isinstance(self.mne.ica_inst, BaseRaw):
                 self.mne.ica_type = 'raw'
-            elif isinstance(self.mne.ica_inst, BaseEpochs):
+            elif isinstance(self.mne.ica_inst, BaseEpochs):                
                 self.mne.ica_type = 'epochs'
         self.mne.is_epochs = 'epochs' in (self.mne.instance_type,
                                           self.mne.ica_type)
@@ -356,6 +360,8 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.annotations = list()
         self.mne.hscroll_annotations = list()
         self.mne.annotation_segments = list()
+        self.mne.annotation_init = False
+        self.mne.annotation_segments_data = list()
         self.mne.annotation_texts = list()
         self.mne.new_annotation_labels = list()
         self.mne.annotation_segment_colors = dict()
@@ -631,7 +637,7 @@ class MNEBrowseFigure(MNEFigure):
 
     def _keypress(self, event):
         """Handle keypress events."""
-        key = event.key
+        key = event.key        
         n_channels = self.mne.n_channels
         if self.mne.is_epochs:
             last_time = self.mne.n_times / self.mne.info['sfreq']
@@ -671,7 +677,7 @@ class MNEBrowseFigure(MNEFigure):
                 self._update_vscroll()
                 self._redraw()
         # scroll left/right
-        elif key in ('right', 'left', 'shift+right', 'shift+left'):
+        elif key in ('right', 'left', 'shift+right', 'shift+left'):            
             old_t_start = self.mne.t_start
             direction = 1 if key.endswith('right') else -1
             if self.mne.is_epochs:
@@ -766,7 +772,7 @@ class MNEBrowseFigure(MNEFigure):
             super()._keypress(event)
 
     def _buttonpress(self, event):
-        """Handle mouse clicks."""
+        """Handle mouse clicks."""        
         butterfly = self.mne.butterfly
         annotating = self.mne.fig_annotation is not None
         ax_main = self.mne.ax_main
@@ -781,7 +787,7 @@ class MNEBrowseFigure(MNEFigure):
                     for line in self.mne.traces + self.mne.epoch_traces:
                         if line.contains(event)[0]:
                             if self.mne.instance_type == 'epochs':
-                                self._toggle_bad_epoch(event)
+                                self._toggle_bad_epoch(event)                                
                             else:
                                 idx = self.mne.traces.index(line)
                                 self._toggle_bad_channel(idx)
@@ -820,6 +826,9 @@ class MNEBrowseFigure(MNEFigure):
                 self._remove_annotation_hover_line()
                 self._draw_annotations()
                 self.canvas.draw_idle()
+            if self.ctrlkpres:                
+                self._set_comment_epoch(event)
+                self.ctrlkpres = False
             elif event.inaxes == ax_main:
                 self._toggle_vline(False)
 
@@ -1196,7 +1205,8 @@ class MNEBrowseFigure(MNEFigure):
 
     def _get_annotation_labels(self):
         """Get the unique labels in the raw object and added in the UI."""
-        return sorted(set(self.mne.inst.annotations.description) |
+        return sorted(set(np.array([desc.split(",")[0]\
+                                    for desc in self.mne.inst.annotations.description])) |
                       set(self.mne.new_annotation_labels))
 
     def _update_annotation_fig(self):
@@ -1406,25 +1416,32 @@ class MNEBrowseFigure(MNEFigure):
         for text in list(self.mne.annotation_texts):
             text.remove()
             self.mne.annotation_texts.remove(text)
-
+    # @jit(nopython=True)   
     def _draw_annotations(self):
-        """Draw (or redraw) the annotation spans."""
+        """Draw (or redraw) the annotation spans."""          
         self._clear_annotations()
         self._update_annotation_segments()
         segments = self.mne.annotation_segments
         times = self.mne.times
-        ax = self.mne.ax_main
-        ylim = ax.get_ylim()
+        ax = self.mne.ax_main      
         for idx, (start, end) in enumerate(segments):
-            descr = self.mne.inst.annotations.description[idx]
+            ylim = ax.get_ylim()        
+            if len(self.mne.inst.annotations.description[idx].split(","))==2:                            
+                descr = self.mne.inst.annotations.description[idx].split(",")[0]
+                chname = self.mne.inst.annotations.description[idx].split(",")[1]                             
+                yindex = [tt.get_position()[1] for tt in ax.yaxis.get_ticklabels() \
+                          if tt.get_text()==chname][0]
+                ylim = [yindex-0.1,yindex+0.1]                
+            else:
+                descr = self.mne.inst.annotations.description[idx] 
             segment_color = self.mne.annotation_segment_colors[descr]
             kwargs = dict(color=segment_color, alpha=0.3,
                           zorder=self.mne.zorder['ann'])
             if self.mne.visible_annotations[descr]:
                 # draw all segments on ax_hscroll
-                annot = self.mne.ax_hscroll.fill_betweenx((0, 1), start, end,
-                                                          **kwargs)
-                self.mne.hscroll_annotations.append(annot)
+                # annot = self.mne.ax_hscroll.fill_betweenx((0, 1), start, end,
+                #                                           **kwargs)
+                # self.mne.hscroll_annotations.append(annot)
                 # draw only visible segments on ax_main
                 visible_segment = np.clip([start, end], times[0], times[-1])
                 if np.diff(visible_segment) > 0:
@@ -1434,19 +1451,24 @@ class MNEBrowseFigure(MNEFigure):
                     text = ax.annotate(descr, xy, xytext=(0, 9),
                                        textcoords='offset points', ha='center',
                                        va='baseline', color=segment_color)
-                    self.mne.annotation_texts.append(text)
+                    self.mne.annotation_texts.append(text)        
 
     def _update_annotation_segments(self):
-        """Update the array of annotation start/end times."""
+        """Update the array of annotation start/end times."""        
         segments = list()
         raw = self.mne.inst
         if len(raw.annotations):
+            # and not self.mne.annotation_init:            
+            # self.mne.annotation_init = True
             for idx, annot in enumerate(raw.annotations):
                 annot_start = _sync_onset(raw, annot['onset'])
                 annot_end = annot_start + max(annot['duration'],
                                               1 / self.mne.info['sfreq'])
                 segments.append((annot_start, annot_end))
-        self.mne.annotation_segments = np.array(segments)
+            self.mne.annotation_segments = np.array(segments)
+            self.mne.annotation_segments_data = np.array(segments)
+        # if self.mne.annotation_init:
+        #     self.mne.annotation_segments = self.mne.annotation_segments_data
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # CHANNEL SELECTION GUI
@@ -1719,7 +1741,18 @@ class MNEBrowseFigure(MNEFigure):
             color = self.mne.epoch_color_bad
         self.mne.ax_hscroll.patches[epoch_ix].set_color(color)
         self._redraw(update_data=False)
-
+    def _set_comment_epoch(self,event):
+        from PyQt5.QtWidgets import QApplication, QWidget, QInputDialog, QLineEdit
+        epoch_num = self._get_epoch_num_from_time(event.xdata)
+        epoch_ix = self.mne.inst.selection.tolist().index(epoch_num)
+        if epoch_num in self.mne.inst.comments.keys():
+            text, okPressed = QInputDialog.getText(QWidget(), "Comment","Your comment:"
+                                                   , QLineEdit.Normal, self.mne.inst.comments[epoch_num])
+        else:
+            text, okPressed = QInputDialog.getText(QWidget(), "Comment","Your comment:"
+                                                   , QLineEdit.Normal,"")
+        self.mne.inst.comments[epoch_num] = text
+        
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # SCROLLBARS
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -2200,6 +2233,7 @@ class MNEBrowseFigure(MNEFigure):
             # prevent flickering
             _ = self._recompute_epochs_vlines(None)
         self._draw_traces()
+        
         if annotations and not self.mne.is_epochs:
             self._draw_annotations()
         self.canvas.draw_idle()

@@ -7,6 +7,55 @@
    - "Bugs" for bug fixes
    - "API changes" for backward-incompatible changes
 
+
+.. _changes_0_21_1:
+
+Version 0.21.1 (unreleased)
+---------------------------
+
+.. |Eduard Ort| replace:: **Eduard Ort**
+
+.. |Aniket Pradhan| replace:: **Aniket Pradhan**
+
+Bugs
+~~~~
+
+- Fix bug with mne.io.egi.tests/test_egi.py where it mandatorily downloaded testing data when it was not necessary **by new contributor** |Aniket Pradhan|_ (:gh:`8474`)
+
+- Fix bug with reading split files that have dashes in the filename **by new contributor** |Eduard Ort|_ (:gh:`8339`)
+
+- Fix bug with :func:`mne.io.Raw.save` when using ``split_naming='bids'`` where non-split files would still be named ``name_split-01_meg.fif`` instead of the requested ``name_meg.fif`` by `Alex Gramfort`_ and `Eric Larson`_ (:gh:`8464`)
+
+- Fix bug with :func:`mne.viz.plot_source_estimates` when using the PyVista backend where singleton time points were not handled properly by `Eric Larson`_ (:gh:`8285`)
+
+- Fix bug with compensated CTF data when picking channels without preload by `Eric Larson`_ (:gh:`8318`)
+
+- Fix bug when passing ``axes`` to plotting functions, :func:`matplotlib.pyplot.tight_layout` will not be called when the figure was created using a constrained layout by `Eric Larson`_ (:gh:`8344`)
+
+- Fix bug when merging fNIRS channels in :func:`mne.viz.plot_evoked_topomap` and related functions by `Robert Luke`_ (:gh:`8306`)
+
+- :func:`mne.io.read_raw_edf` now supports EDF files with invalid recording dates by `Clemens Brunner`_ (:gh:`8283`)
+
+- Fix missing documentation of :func:`mne.io.read_raw_nihon` in :ref:`tut-imorting-eeg-data` by `Adam Li`_ (:gh`8320`)
+
+- Fix bug with :func:`mne.add_reference_channels` when :func:`mne.io.Raw.reorder_channels` or related methods are used afterward by `Eric Larson`_ (:gh:`8303`, :gh:`#8484`)
+
+- Fix bug where the ``verbose`` arguments to :meth:`mne.Evoked.apply_baseline` and :meth:`mne.Epochs.apply_baseline` were not keyword-only by `Eric Larson`_ (:gh:`8349`)
+
+- Fix bug that `~mne.viz.plot_ica_overlay` would sometimes not create red traces, by `Richard Höchenberger`_ (:gh:`8341`)
+
+- Pass ``rank`` everyhwere in forward preparation for source imaging. This bug affected sparse solvers when using maxfilter data, by `Alex Gramfort`_ (:gh:`8368`)
+
+- Fix bug in :func:`mne.viz.plot_alignment` where ECoG and sEEG channels were not plotted and fNIRS channels were always plotted in the head coordinate frame by `Eric Larson`_ (:gh:`8393`)
+
+- Fix bug in :func:`mne.set_bipolar_reference` where ``ch_info`` could contain invalid channel information keys by `Eric Larson`_
+
+- Fix bug in :func:`mne.viz.plot_source_estimates`, which wouldn't accept the valid parameter value ``backend='pyvista'``, by `Guillaume Favelier`_
+
+- Attempting to remove baseline correction from preloaded `~mne.Epochs` will now raise an exception by `Richard Höchenberger`_ (:gh:`8435`)
+
+- When reading BrainVision raw data, the channel units and types were sometimes not inferred correctly by `Richard Höchenberger`_ (:gh:`8434`)
+
 .. _changes_0_21:
 
 Version 0.21 (2020-09-21)

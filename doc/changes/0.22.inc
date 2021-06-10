@@ -7,6 +7,23 @@
    - "Bugs" for bug fixes
    - "API changes" for backward-incompatible changes
 
+.. _changes_0_22_1:
+
+Version 0.22.1
+--------------
+
+Bugs
+~~~~
+- Fix bug with :func:`mne.io.read_raw_nicolet` where header type values such as num_sample and duration_in_sec where not parsed properly (:gh:`8712` by `Alex Gramfort`_)
+
+- Fix bug with :meth:`raw.plot() <mne.io.Raw.plot>` where annotations didn't immediately appear when changing window duration (:gh:`8689` by `Daniel McCloy`_)
+
+- Fix anonymization issue of FIF files after IO round trip (:gh:`8731` by `Alex Gramfort`_)
+
+- `mne.viz.plot_evoked` and `mne.Evoked.plot` now correctly plot global field power (GFP) for EEG data when ``gfp=True`` or ``gfp='only'`` is passed (used to plot RMS). For MEG data, we continue to plot the RMS, but now label it correctly as such (:gh:`8775` by `Richard Höchenberger`_)
+
+- Fix bug with matplotlib-based 3D plotting where ``Axes3D`` were not properly initialized in :func:`mne.viz.plot_source_estimates` (:gh:`8811` by `Chris Bailey`_)
+
 .. _changes_0_22:
 
 Version 0.22.0 (2020-12-17)

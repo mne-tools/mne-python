@@ -50,6 +50,13 @@ _ALL_CH_KEYS_SET = set(_SCALAR_CH_KEYS + ('loc', 'ch_name'))
 _MIN_CH_KEYS_SET = set(('kind', 'cal', 'unit', 'loc', 'ch_name'))
 
 
+_SCALAR_CH_KEYS = ('scanno', 'logno', 'kind', 'range', 'cal', 'coil_type',
+                   'unit', 'unit_mul', 'coord_frame')
+_ALL_CH_KEYS_SET = set(_SCALAR_CH_KEYS + ('loc', 'ch_name'))
+# XXX we need to require these except when doing simplify_info
+_MIN_CH_KEYS_SET = set(('kind', 'cal', 'unit', 'loc', 'ch_name'))
+
+
 def _get_valid_units():
     """Get valid units according to the International System of Units (SI).
 
