@@ -348,8 +348,7 @@ def test_split_gof_meg(forward, idx, weights):
 @pytest.mark.parametrize('n_orient', [1, 3])
 def test_mxne_inverse_sure(n_sensors, n_dipoles, n_times, nnz, corr, n_orient,
                            snr=4):
-    # Tests the SURE criterion for automatic alpha selection on synthetic
-    # data.
+    """Tests SURE criterion for automatic alpha selection on synthetic data."""
     from numpy.linalg import norm
     from mne.inverse_sparse.mxne_optim import norm_l2inf
     rng = np.random.RandomState(0)

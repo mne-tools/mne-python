@@ -737,6 +737,8 @@ def _compute_mxne_sure(M, gain, alpha_grid, sigma, n_mxne_iter, maxit, tol,
     Implements the finite-difference Monte-Carlo approximation
     of the SURE for Multi-Task LASSO.
 
+    See reference :footcite:`DeledalleEtAl2014`.
+
     Parameters
     ----------
     M : array, shape (n_sensors, n_times)
@@ -770,7 +772,7 @@ def _compute_mxne_sure(M, gain, alpha_grid, sigma, n_mxne_iter, maxit, tol,
         epsilon used for the SURE computation.
 
     Returns
-    ----------
+    -------
     X : array
         Coefficient matrix.
     active_set : array
@@ -782,44 +784,69 @@ def _compute_mxne_sure(M, gain, alpha_grid, sigma, n_mxne_iter, maxit, tol,
     ----------
     .. footbibliography::
     """
+    from .mxne_optim import groups_norm2
+
+    def g(w):
+        return np.sqrt(np.sqrt(groups_norm2(w.copy(), n_orient)))
+
+    def gprime(w):
+        return 2. * np.repeat(g(w), n_orient).ravel()
+
+    def _run_solver(alpha, M, n_mxne_iter, as_init=None, X_init=None,
+                    w_init=None):
+        if n_mxne_iter == 1:
+            X, active_set, _ = mixed_norm_solver(
+                M, gain, alpha, maxit=maxit, tol=tol,
+                active_set_size=active_set_size, n_orient=n_orient,
+                debias=False, solver=solver, dgap_freq=dgap_freq,
+                active_set_init=as_init, X_init=X_init, verbose=False)
+        else:
+            X, active_set, _ = iterative_mixed_norm_solver(
+                M, gain, alpha, n_mxne_iter, maxit=maxit, tol=tol,
+                n_orient=n_orient, active_set_size=active_set_size,
+                debias=False, solver=solver, dgap_freq=dgap_freq,
+                weight_init=w_init, verbose=False)
+        return X, active_set
+
     def _fit_on_grid(gain, M, eps, delta):
-        coefs_grid_1 = np.zeros((len(alpha_grid), gain.shape[1], M.shape[1]))
-        coefs_grid_2 = np.zeros((len(alpha_grid), gain.shape[1], M.shape[1]))
-        active_sets = []
-
+        coefs_grid_1_0 = np.zeros((len(alpha_grid), gain.shape[1], M.shape[1]))
+        coefs_grid_2_0 = np.zeros((len(alpha_grid), gain.shape[1], M.shape[1]))
+        active_sets, active_sets_eps = [], []
         M_eps = M + eps * delta
-
+        # warm start - first iteration (leverages convexity)
+        logger.info('Warm starting...')
         for j, alpha in enumerate(alpha_grid):
-            logger.info('Computing SURE with alpha = %s' % alpha)
-            if n_mxne_iter == 1:
-                X, active_set, _ = mixed_norm_solver(
-                    M, gain, alpha, maxit=maxit, tol=tol,
-                    active_set_size=active_set_size, n_orient=n_orient,
-                    debias=debias, solver=solver, dgap_freq=dgap_freq,
-                    verbose=False)
+            logger.info('alpha: %s' % alpha)
+            X, a_set = _run_solver(alpha, M, 1)
+            X_eps, a_set_eps = _run_solver(alpha, M_eps, 1)
+            coefs_grid_1_0[j][a_set, :] = X
+            coefs_grid_2_0[j][a_set_eps, :] = X_eps
+            active_sets.append(a_set)
+            active_sets_eps.append(a_set_eps)
+        # next iterations
+        if n_mxne_iter == 1:
+            return coefs_grid_1_0, coefs_grid_2_0, active_sets
+        else:
+            coefs_grid_1 = coefs_grid_1_0.copy()
+            coefs_grid_2 = coefs_grid_2_0.copy()
+            logger.info('Fitting SURE on grid.')
+            for j, alpha in enumerate(alpha_grid):
+                logger.info('alpha: %s' % alpha)
+                if active_sets[j].sum() > 0:
+                    w = gprime(coefs_grid_1[j])
+                    X, a_set = _run_solver(alpha, M, n_mxne_iter - 1,
+                                           w_init=w)
+                    coefs_grid_1[j][a_set, :] = X
+                    active_sets[j] = a_set
+                if active_sets_eps[j].sum() > 0:
+                    w_eps = gprime(coefs_grid_2[j])
+                    X_eps, a_set_eps = _run_solver(alpha, M_eps,
+                                                   n_mxne_iter - 1,
+                                                   w_init=w_eps)
+                    coefs_grid_2[j][a_set_eps, :] = X_eps
+                    active_sets_eps[j] = a_set_eps
 
-                X_eps, active_set_eps, _ = mixed_norm_solver(
-                    M_eps, gain, alpha, maxit=maxit, tol=tol,
-                    active_set_size=active_set_size, n_orient=n_orient,
-                    debias=debias, solver=solver, dgap_freq=dgap_freq,
-                    verbose=False)
-            else:
-                X, active_set, _ = iterative_mixed_norm_solver(
-                    M, gain, alpha, n_mxne_iter, maxit=maxit, tol=tol,
-                    n_orient=n_orient, active_set_size=active_set_size,
-                    debias=debias, solver=solver, dgap_freq=dgap_freq,
-                    verbose=False)
-
-                X_eps, active_set_eps, _ = iterative_mixed_norm_solver(
-                    M_eps, gain, alpha, n_mxne_iter, maxit=maxit, tol=tol,
-                    n_orient=n_orient, active_set_size=active_set_size,
-                    debias=debias, solver=solver, dgap_freq=dgap_freq,
-                    verbose=False)
-
-            coefs_grid_1[j][active_set, :] = X
-            coefs_grid_2[j][active_set_eps, :] = X_eps
-            active_sets.append(active_set)
-        return coefs_grid_1, coefs_grid_2, active_sets
+            return coefs_grid_1, coefs_grid_2, active_sets
 
     def _compute_sure_val(coef1, coef2, gain, M, sigma, delta, eps):
         n_sensors, n_times = gain.shape[0], M.shape[1]
@@ -837,11 +864,11 @@ def _compute_mxne_sure(M, gain, alpha_grid, sigma, n_mxne_iter, maxit, tol,
 
     coefs_grid_1, coefs_grid_2, active_sets = _fit_on_grid(gain, M, eps, delta)
 
+    logger.info("Computing SURE values on grid.")
     for i, (coef1, coef2) in enumerate(zip(coefs_grid_1, coefs_grid_2)):
         sure_path[i] = _compute_sure_val(
             coef1, coef2, gain, M, sigma, delta, eps)
-        if verbose:
-            logger.info("alpha %s :: sure %s" % (alpha_grid[i], sure_path[i]))
+        logger.info("alpha %s :: sure %s" % (alpha_grid[i], sure_path[i]))
     best_alpha_ = alpha_grid[np.argmin(sure_path)]
 
     X = coefs_grid_1[np.argmin(sure_path)]

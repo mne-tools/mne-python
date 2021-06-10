@@ -438,7 +438,8 @@ def _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
 @verbose
 def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
                       active_set_size=50, debias=True, n_orient=1,
-                      solver='auto', return_gap=False, dgap_freq=10):
+                      solver='auto', return_gap=False, dgap_freq=10,
+                      active_set_init=None, X_init=None):
     """Solve L1/L2 mixed-norm inverse problem with active set strategy.
 
     See references :footcite:`GramfortEtAl2012,StrohmeierEtAl2016`.
@@ -470,6 +471,12 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
     dgap_freq : int
         The duality gap is computed every dgap_freq iterations of the solver on
         the active set.
+    active_set_init : array or None
+        The initial active set used at the first iteration. If None, the
+        usual active set strategy is applied.
+    X_init : array or None
+        The initial weight matrix used for warm starting the solver. If None,
+        the weights are initialized at zero.
 
     Returns
     -------
@@ -539,8 +546,10 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
     if active_set_size is not None:
         E = list()
         highest_d_obj = - np.inf
-        X_init = None
-        active_set = np.zeros(n_dipoles, dtype=bool)
+        if X_init is not None and X_init.shape != (n_dipoles, n_times):
+            raise ValueError('Wrong dim for initialized coefficients.')
+        active_set = (active_set_init if active_set_init is not None else
+                      np.zeros(n_dipoles, dtype=bool))
         idx_large_corr = np.argsort(groups_norm2(np.dot(G.T, M), n_orient))
         new_active_idx = idx_large_corr[-active_set_size:]
         if n_orient > 1:
@@ -614,7 +623,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
 def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
                                 tol=1e-8, verbose=None, active_set_size=50,
                                 debias=True, n_orient=1, dgap_freq=10,
-                                solver='auto'):
+                                solver='auto', weight_init=None):
     """Solve L0.5/L2 mixed-norm inverse problem with active set strategy.
 
     See reference :footcite:`StrohmeierEtAl2016`.
@@ -646,6 +655,9 @@ def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
         The duality gap is evaluated every dgap_freq iterations.
     solver : 'prox' | 'cd' | 'bcd' | 'auto'
         The algorithm to use for the optimization.
+    weight_init : array or None
+        The initial weight used for reweighting the gain matrix. If None, the
+        weights are initialized with ones.
 
     Returns
     -------
@@ -668,8 +680,13 @@ def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
 
     E = list()
 
-    active_set = np.ones(G.shape[1], dtype=bool)
-    weights = np.ones(G.shape[1])
+    if weight_init is not None and weight_init.shape != (G.shape[1],):
+        raise ValueError('Wrong dimension for weight initialization. Got %s. '
+                         'Expected %s.' % (weight_init.shape, (G.shape[1],)))
+
+    weights = weight_init if weight_init is not None else np.ones(G.shape[1])
+    active_set = (weights != 0)
+    weights = weights[active_set]
     X = np.zeros((G.shape[1], M.shape[1]))
 
     for k in range(n_mxne_iter):
@@ -698,7 +715,6 @@ def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
 
         if _active_set.sum() > 0:
             active_set[active_set] = _active_set
-
             # Reapply weights to have correct unit
             X *= weights[_active_set][:, np.newaxis]
             weights = gprime(X)
