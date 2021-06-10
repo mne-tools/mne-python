@@ -193,11 +193,17 @@ class _PyVistaRenderer(_AbstractRenderer):
 
     @property
     def _all_plotters(self):
-        return [self.figure.plotter]
+        if self.figure.plotter is not None:
+            return [self.figure.plotter]
+        else:
+            return list()
 
     @property
     def _all_renderers(self):
-        return self.figure.plotter.renderers
+        if self.figure.plotter is not None:
+            return self.figure.plotter.renderers
+        else:
+            return list()
 
     def _hide_axes(self):
         for renderer in self._all_renderers:
@@ -1014,13 +1020,15 @@ def _check_3d_figure(figure):
 def _close_3d_figure(figure):
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=FutureWarning)
+        # copy the plotter locally because figure.plotter is modified
+        plotter = figure.plotter
         # close the window
-        figure.plotter.close()
-        _process_events(figure.plotter)
+        plotter.close()  # additional cleaning following signal_close
+        _process_events(plotter)
         # free memory and deregister from the scraper
-        figure.plotter.deep_clean()
-        del _ALL_PLOTTERS[figure.plotter._id_name]
-        _process_events(figure.plotter)
+        plotter.deep_clean()  # remove internal references
+        del _ALL_PLOTTERS[plotter._id_name]
+        _process_events(plotter)
 
 
 def _take_3d_screenshot(figure, mode='rgb', filename=None):

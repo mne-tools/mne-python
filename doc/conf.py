@@ -286,15 +286,30 @@ class Resetter(object):
             from pyvista import Plotter  # noqa
         except ImportError:
             Plotter = None  # noqa
+        try:
+            from pyvistaqt import BackgroundPlotter  # noqa
+        except ImportError:
+            BackgroundPlotter = None  # noqa
+        try:
+            from vtk import vtkPolyData  # noqa
+        except ImportError:
+            vtkPolyData = None  # noqa
+        from mne.viz.backends.renderer import backend
+        _Renderer = backend._Renderer if backend is not None else None
         reset_warnings(gallery_conf, fname)
         # in case users have interactive mode turned on in matplotlibrc,
         # turn it off here (otherwise the build can be very slow)
         plt.ioff()
         plt.rcParams['animation.embed_limit'] = 30.
         gc.collect()
-        # _assert_no_instances(Brain, 'running')  # calls gc.collect()
-        # if Plotter is not None:
-        #     _assert_no_instances(Plotter, 'running')
+        _assert_no_instances(Brain, 'Brain')  # calls gc.collect()
+        if Plotter is not None:
+            _assert_no_instances(Plotter, 'Plotter')
+        if BackgroundPlotter is not None:
+            _assert_no_instances(BackgroundPlotter, 'BackgroundPlotter')
+        if vtkPolyData is not None:
+            _assert_no_instances(vtkPolyData, 'vtkPolyData')
+        _assert_no_instances(_Renderer, '_Renderer')
         # This will overwrite some Sphinx printing but it's useful
         # for memory timestamps
         if os.getenv('SG_STAMP_STARTS', '').lower() == 'true':
@@ -309,38 +324,32 @@ gallery_dirs = ['auto_tutorials', 'auto_examples']
 os.environ['_MNE_BUILDING_DOC'] = 'true'
 scrapers = ('matplotlib',)
 try:
-    mlab = mne.utils._import_mlab()
-    # Do not pop up any mayavi windows while running the
-    # examples. These are very annoying since they steal the focus.
-    mlab.options.offscreen = True
-    # hack to initialize the Mayavi Engine
-    mlab.test_plot3d()
-    mlab.close()
+    mne.viz.set_3d_backend(mne.viz.get_3d_backend())
 except Exception:
-    pass
+    report_scraper = None
 else:
-    scrapers += ('mayavi',)
-try:
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
-        import pyvista
-    pyvista.OFF_SCREEN = False
-except Exception:
-    pass
-else:
-    scrapers += ('pyvista',)
-if any(x in scrapers for x in ('pyvista', 'mayavi')):
-    from traits.api import push_exception_handler
-    push_exception_handler(reraise_exceptions=True)
+    backend = mne.viz.get_3d_backend()
+    if backend == 'mayavi':
+        from traits.api import push_exception_handler
+        mlab = mne.utils._import_mlab()
+        # Do not pop up any mayavi windows while running the
+        # examples. These are very annoying since they steal the focus.
+        mlab.options.offscreen = True
+        # hack to initialize the Mayavi Engine
+        mlab.test_plot3d()
+        mlab.close()
+        scrapers += ('mayavi',)
+        push_exception_handler(reraise_exceptions=True)
+    elif backend in ('notebook', 'pyvista'):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            import pyvista
+        pyvista.OFF_SCREEN = False
+        brain_scraper = mne.viz._brain._BrainScraper()
+        scrapers += (brain_scraper, 'pyvista')
     report_scraper = mne.report._ReportScraper()
     scrapers += (report_scraper,)
-else:
-    report_scraper = None
-if 'pyvista' in scrapers:
-    brain_scraper = mne.viz._brain._BrainScraper()
-    scrapers = list(scrapers)
-    scrapers.insert(scrapers.index('pyvista'), brain_scraper)
-    scrapers = tuple(scrapers)
+    del backend
 
 sphinx_gallery_conf = {
     'doc_module': ('mne',),

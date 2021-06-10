@@ -347,6 +347,12 @@ def _assert_no_instances(cls, when=''):
                         not inspect.isframe(r):
                     if isinstance(r, (list, dict)):
                         rep = f'len={len(r)}'
+                        r_ = gc.get_referrers(r)
+                        types = (x.__class__.__name__ for x in r_)
+                        types = "/".join(sorted(set(
+                            x for x in types if x is not None)))
+                        rep += f', {len(r_)} referrers: {types}'
+                        del r_
                     else:
                         rep = repr(r)[:100].replace('\n', ' ')
                     ref.append(f'{r.__class__.__name__}: {rep}')
