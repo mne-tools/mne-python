@@ -363,7 +363,9 @@ def get_subjects_dir(subjects_dir=None, raise_error=False):
 
     if subjects_dir is None:
         subjects_dir = get_config('SUBJECTS_DIR', raise_error=raise_error)
-    return str(subjects_dir)
+    if subjects_dir is not None:
+        subjects_dir = str(subjects_dir)
+    return subjects_dir
 
 
 def _get_stim_channel(stim_channel, info, raise_error=True):
