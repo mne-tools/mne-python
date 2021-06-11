@@ -2067,28 +2067,30 @@ def _ensure_bem_surfaces(bem, extra_allow=(), name='bem'):
 def _check_file(fname, overwrite):
     """Prevent overwrites."""
     if op.isfile(fname) and not overwrite:
-        raise IOError('File %s exists, use --overwrite to overwrite it'
-                      % fname)
+        raise IOError(f'File {fname} exists, use --overwrite to overwrite it')
 
 
 @verbose
 def make_scalp_surfaces(subject, subjects_dir=None, force=True,
                         overwrite=False, no_decimate=False, verbose=None):
-    """Make scalp surfaces.
+    """Create surfaces of the scalp and neck.
 
-    This is useful for coregistration and checking aligngment between anatomy
-    and channel locations.
+    The scalp surfaces are required for using the MNE coregistration GUI, and
+    allow for a visualization of the alignment between anatomy and channel
+    locations.
 
     Parameters
     ----------
     %(subject)s
     %(subjects_dir)s
     force : bool
-        Force transformation of surface into bem. Default to True.
+        Force creation of the surface even if it has some topological defects.
+        Defaults to ``True``.
     %(overwrite)s
     no_decimate : bool
-        Disable medium and sparse decimations (dense only).
-        Default to False.
+        Disable the "medium" and "sparse" decimations. In this case, only
+        a "dense" surface will be generated. Defaults to ``False``, i.e.,
+        create surfaces for all three types of decimations.
     %(verbose)s
     """
     this_env = deepcopy(os.environ)
