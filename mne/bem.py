@@ -2132,7 +2132,8 @@ def make_scalp_surfaces(subject, subjects_dir=None, force=True,
     bem_dir = op.join(subjects_dir, subject, 'bem')
     if not op.isdir(bem_dir):
         os.mkdir(bem_dir)
-    dense_fname = op.join(bem_dir, '%s-head-dense.fif' % subject)
+    fname_template = op.join(bem_dir, '%s-head-{}.fif' % subject)
+    dense_fname = fname_template.format('dense')
     logger.info('2. Creating %s ...' % dense_fname)
     _check_file(dense_fname, overwrite)
     # Helpful message if we get a topology error
@@ -2152,7 +2153,7 @@ def make_scalp_surfaces(subject, subjects_dir=None, force=True,
             points, tris = decimate_surface(points=surf['rr'],
                                             triangles=surf['tris'],
                                             n_triangles=n_tri)
-        dec_fname = dense_fname.replace('dense', level)
+        dec_fname = fname_template.format(level)
         logger.info('%i.2 Creating %s' % (ii, dec_fname))
         _check_file(dec_fname, overwrite)
         dec_surf = _surfaces_to_bem(

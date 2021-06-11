@@ -35,7 +35,8 @@ def run():
     parser.add_option('-s', '--subject', dest='subject',
                       help='The name of the subject', type='str')
     parser.add_option('-f', '--force', dest='force', action='store_true',
-                      help='Force transformation of surface into bem.')
+                      help='Force creation of the surface even if it has '
+                           'some topological defects.')
     parser.add_option("-d", "--subjects-dir", dest="subjects_dir",
                       help="Subjects directory", default=subjects_dir)
     parser.add_option("-n", "--no-decimate", dest="no_decimate",
