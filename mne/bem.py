@@ -34,7 +34,7 @@ from .transforms import _ensure_trans, apply_trans, Transform
 from .utils import (verbose, logger, run_subprocess, get_subjects_dir, warn,
                     _pl, _validate_type, _TempDir, _check_freesurfer_home,
                     _check_fname, has_nibabel, _check_option, path_like,
-                    _on_missing, ETSContext)
+                    _on_missing)
 from .externals.h5io import write_hdf5, read_hdf5
 
 
@@ -2149,10 +2149,9 @@ def make_scalp_surfaces(subject, subjects_dir=None, force=True,
     for ii, (n_tri, level) in enumerate(zip(tris, levels), 3):
         logger.info('%i. Creating %s tessellation...' % (ii, level))
         logger.info('%i.1 Decimating the dense tessellation...' % ii)
-        with ETSContext():
-            points, tris = decimate_surface(points=surf['rr'],
-                                            triangles=surf['tris'],
-                                            n_triangles=n_tri)
+        points, tris = decimate_surface(points=surf['rr'],
+                                        triangles=surf['tris'],
+                                        n_triangles=n_tri)
         dec_fname = fname_template.format(level)
         logger.info('%i.2 Creating %s' % (ii, dec_fname))
         _check_file(dec_fname, overwrite)
