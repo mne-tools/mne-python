@@ -152,7 +152,7 @@ def _check_event_id(event_id, events):
 
 def _check_fname(fname, overwrite=False, must_exist=False, name='File',
                  need_dir=False):
-    """Check for file existence."""
+    """Check for file existence, and return string of its absolute path."""
     _validate_type(fname, 'path-like', name)
     if op.exists(fname):
         if not overwrite:

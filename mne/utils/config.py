@@ -358,9 +358,12 @@ def get_subjects_dir(subjects_dir=None, raise_error=False):
     value : str | None
         The SUBJECTS_DIR value.
     """
+    _validate_type(item=subjects_dir, types=('path-like', None),
+                   item_name='subjects_dir', type_name='str or path-like')
+
     if subjects_dir is None:
         subjects_dir = get_config('SUBJECTS_DIR', raise_error=raise_error)
-    return subjects_dir
+    return str(subjects_dir)
 
 
 def _get_stim_channel(stim_channel, info, raise_error=True):
