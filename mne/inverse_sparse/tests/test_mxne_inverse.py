@@ -6,8 +6,7 @@
 import os.path as op
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_allclose,
-                           assert_array_less)
-from numpy.testing._private.utils import assert_equal
+                           assert_array_less, assert_equal)
 import pytest
 
 import mne
@@ -18,6 +17,7 @@ from mne import (read_cov, read_forward_solution, read_evokeds,
 from mne.inverse_sparse import mixed_norm, tf_mixed_norm
 from mne.inverse_sparse.mxne_inverse import make_stc_from_dipoles, _split_gof
 from mne.inverse_sparse.mxne_inverse import _compute_mxne_sure
+from mne.inverse_sparse.mxne_optim import norm_l2inf
 from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.minimum_norm.tests.test_inverse import \
     assert_var_exp_log, assert_stc_res
@@ -341,22 +341,19 @@ def test_split_gof_meg(forward, idx, weights):
 @pytest.mark.parametrize('n_sensors, n_dipoles, n_times', [
     (10, 15, 7),
     (20, 60, 20),
-    (50, 90, 35),
 ])
 @pytest.mark.parametrize('nnz', [2, 4])
-@pytest.mark.parametrize('corr', np.arange(0, 1, 0.25))
+@pytest.mark.parametrize('corr', [0.75])
 @pytest.mark.parametrize('n_orient', [1, 3])
 def test_mxne_inverse_sure(n_sensors, n_dipoles, n_times, nnz, corr, n_orient,
                            snr=4):
     """Tests SURE criterion for automatic alpha selection on synthetic data."""
-    from numpy.linalg import norm
-    from mne.inverse_sparse.mxne_optim import norm_l2inf
     rng = np.random.RandomState(0)
     sigma = np.sqrt(1 - corr ** 2)
     U = rng.randn(n_sensors)
     # generate gain matrix
     G = np.empty([n_sensors, n_dipoles], order='F')
-    G[:, 0:n_orient] = np.expand_dims(U, axis=-1)
+    G[:, :n_orient] = np.expand_dims(U, axis=-1)
     n_dip_per_pos = n_dipoles // n_orient
     for j in range(1, n_dip_per_pos):
         U *= corr
@@ -371,11 +368,13 @@ def test_mxne_inverse_sure(n_sensors, n_dipoles, n_times, nnz, corr, n_orient,
     # generate measurement matrix
     M = G @ X
     noise = rng.randn(n_sensors, n_times)
-    sigma = 1 / norm(noise) * norm(M) / snr
+    sigma = 1 / np.linalg.norm(noise) * np.linalg.norm(M) / snr
     M += sigma * noise
     # inverse modeling with sure
     alpha_max = norm_l2inf(np.dot(G.T, M), n_orient, copy=False)
     alpha_grid = np.geomspace(alpha_max, alpha_max / 10, num=15)
+    # XXX add test that tests public API on SURE
+    # Eg using https://mne.tools/dev/auto_examples/simulation/simulate_evoked_data.html
     _, active_set, _ = _compute_mxne_sure(M, G, alpha_grid, sigma=sigma,
                                           n_mxne_iter=5, maxit=3000, tol=1e-4,
                                           n_orient=n_orient,

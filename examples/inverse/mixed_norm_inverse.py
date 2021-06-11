@@ -42,8 +42,8 @@ evoked.crop(tmin=0, tmax=0.3)
 forward = mne.read_forward_solution(fwd_fname)
 
 ###############################################################################
-# Run solver
-alpha = "sure"  # regularization parameter between 0 and 100 or SURE
+# Run solver with SURE criterion :footcite:`DeledalleEtAl2014`
+alpha = "sure"  # regularization parameter between 0 and 100 or SURE criterion
 loose, depth = 0.9, 0.9  # loose orientation & depth weighting
 n_mxne_iter = 10  # if > 1 use L0.5/L2 reweighted mixed norm solver
 # if n_mxne_iter > 1 dSPM weighting can be avoided.
@@ -58,7 +58,7 @@ stc_dspm = apply_inverse(evoked, inverse_operator, lambda2=1. / 9.,
 # Compute (ir)MxNE inverse solution with dipole output
 dipoles, residual = mixed_norm(
     evoked, forward, cov, alpha, loose=loose, depth=depth, maxit=3000,
-    tol=1e-4, active_set_size=10, debias=True, weights=stc_dspm,
+    tol=1e-4, active_set_size=10, debias=False, weights=stc_dspm,
     weights_min=8., n_mxne_iter=n_mxne_iter, return_residual=True,
     return_as_dipoles=True, verbose=True)
 

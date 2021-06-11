@@ -284,7 +284,7 @@ def make_stc_from_dipoles(dipoles, src, verbose=None):
 
 
 @verbose
-def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
+def mixed_norm(evoked, forward, noise_cov, alpha='sure', loose='auto', depth=0.8,
                maxit=3000, tol=1e-4, active_set_size=10,
                debias=True, time_pca=True, weights=None, weights_min=0.,
                solver='auto', n_mxne_iter=1, return_residual=False,
@@ -303,9 +303,9 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
         Forward operator.
     noise_cov : instance of Covariance
         Noise covariance to compute whitener.
-    alpha : float in range [0, 100)
+    alpha : float in range [0, 100) | 'sure'
         Regularization parameter. 0 means no regularization, 100 would give 0
-        active dipole.
+        active dipole. Defaults to `'sure'`.
     %(loose)s
     %(depth)s
     maxit : int
@@ -345,13 +345,18 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
 
         .. versionadded:: 0.18
     %(pick_ori)s
-    sure_alpha_grid : array | str, default = "auto"
+    sure_alpha_grid : array | "auto"
         If "auto", the SURE is evaluted along 15 uniformly distributed
         alphas between alpha_max and 0.1 * alpha_max. If array, the
         grid is directly specified. Ignored if alpha is not "sure".
-    random_state : int | None, default = 0
+        Defaults to `'auto'`.
+
+        .. versionadded:: 0.24
+    random_state : int | None
         The random state used in a random number generator for delta and
-        epsilon used for the SURE computation.
+        epsilon used for the SURE computation. Defaults to 0.
+
+        .. versionadded:: 0.24
     %(verbose)s
 
     Returns
@@ -383,7 +388,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
     if not(isinstance(sure_alpha_grid, (np.ndarray, list)) or
            sure_alpha_grid == "auto"):
         raise ValueError('If not equal to "auto" sure_alpha_grid must be an '
-                         'array. Got %s' % type(sure_alpha_grid).__name__)
+                         'array. Got %s' % type(sure_alpha_grid))
     if sure_alpha_grid != "auto" and alpha != "sure":
         raise Exception('If sure_alpha_grid is manually specified, alpha must '
                         'be "sure". Got %s' % alpha)
@@ -859,7 +864,7 @@ def _compute_mxne_sure(M, gain, alpha_grid, sigma, n_mxne_iter, maxit, tol,
     sure_path = np.empty(len(alpha_grid))
 
     rng = np.random.RandomState(random_state)
-    eps = 2 * sigma / (M.shape[0] ** 0.3)
+    eps = 2 * sigma / (M.shape[0] ** 0.3)  # See Deledalle et al. 20214 Sec. 5.1
     delta = rng.randn(*M.shape)
 
     coefs_grid_1, coefs_grid_2, active_sets = _fit_on_grid(gain, M, eps, delta)

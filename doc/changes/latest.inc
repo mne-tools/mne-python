@@ -47,6 +47,8 @@ Enhancements
 
 - Add projections when printing a :class:`mne.Info` in the notebook (:gh:`9403` by `Alex Gramfort`_)
 
+- Add support for SURE parameter selection in :func:`mne.inverse_sparse.mxne_inverse` (:gh:`9430` by **new contributor** `Pierre-Antoine Bannier`_ and `Alex Gramfort`_)
+
 Bugs
 ~~~~
 - Fix bug with :meth:`mne.Epochs.crop` and :meth:`mne.Evoked.crop` when ``include_tmax=False``, where the last sample was always cut off, even when ``tmax > epo.times[-1]`` (:gh:`9378` **by new contributor** |Jan Sosulski|_)
@@ -59,4 +61,4 @@ Bugs
 
 API changes
 ~~~~~~~~~~~
-- Nothing yet
+- Parameter `alpha` now defaults to `'sure'`in :func:`mne.inverse_sparse.mxne_inverse` (:gh:`9430` by **new contributor** `Pierre-Antoine Bannier`_ and `Alex Gramfort`_)
