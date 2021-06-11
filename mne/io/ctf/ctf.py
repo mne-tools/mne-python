@@ -60,7 +60,7 @@ def read_raw_ctf(directory, system_clock='truncate', preload=False,
     .. note:: To read in the Polhemus digitization data (for example, from
               a .pos file), include the file in the CTF directory. The
               points will then automatically be read into the `mne.io.Raw`
-              instace via `mne.io.read_raw_ctf`.
+              instance via `mne.io.read_raw_ctf`.
     """
     return RawCTF(directory, system_clock, preload=preload,
                   clean_names=clean_names, verbose=verbose)

@@ -91,7 +91,7 @@ raw_erm = read_raw_ctf(erm_fname)
 #   - 20 unused channels
 #
 # Notice also that the digitized electrode positions (stored in a .pos file)
-# were automatically loaded and added to the `mne.io.Raw` object.
+# were automatically loaded and added to the `~mne.io.Raw` object.
 #
 # The head tracking channels and the unused channels are marked as misc
 # channels. Here we define the EOG and ECG channels.
