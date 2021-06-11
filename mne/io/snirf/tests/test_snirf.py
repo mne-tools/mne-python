@@ -7,6 +7,7 @@ from numpy.testing import assert_allclose, assert_almost_equal
 import shutil
 import pytest
 
+import mne
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.utils import requires_h5py
 from mne.io import read_raw_snirf, read_raw_nirx
@@ -184,6 +185,20 @@ def test_snirf_nirsport2():
     assert raw.info['chs'][1]['loc'][9] == 850
 
     assert sum(short_channels(raw.info)) == 16
+
+
+@requires_testing_data
+@requires_h5py
+def test_snirf_coordframe():
+    """Test reading SNIRF files."""
+    assert read_raw_snirf(nirx_nirsport2_103, optode_frame="unknown").\
+               info['chs'][10]['coord_frame'] == 0
+    assert read_raw_snirf(nirx_nirsport2_103, optode_frame="head").\
+               info['chs'][10]['coord_frame'] == 4
+    assert read_raw_snirf(nirx_nirsport2_103, optode_frame="asdf").\
+               info['chs'][10]['coord_frame'] == 0
+    assert read_raw_snirf(nirx_nirsport2_103, optode_frame="mri").\
+               info['chs'][10]['coord_frame'] == 4
 
 
 @requires_testing_data
