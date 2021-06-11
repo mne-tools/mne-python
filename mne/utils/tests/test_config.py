@@ -5,7 +5,7 @@ from pathlib import Path
 
 from mne.utils import (set_config, get_config, get_config_path,
                        set_memmap_min_size, _get_stim_channel, sys_info,
-                       ClosingStringIO)
+                       ClosingStringIO, get_subjects_dir)
 
 
 def test_config(tmpdir):
@@ -87,3 +87,20 @@ def test_sys_info():
 
     if platform.system() == 'Darwin':
         assert 'Platform:      macOS-' in out
+
+
+def test_get_subjects_dir(tmpdir):
+    """Test get_subjects_dir()."""
+    # String
+    subjects_dir = '/foo'
+    assert get_subjects_dir(subjects_dir) == subjects_dir
+
+    # Path
+    subjects_dir = Path('/foo')
+    assert get_subjects_dir(subjects_dir) == str(subjects_dir)
+
+    # `None` in config
+    subjects_dir = None
+    set_config(key='SUBJECTS_DIR', value=subjects_dir, home_dir=tmpdir,
+               set_env=True)
+    assert get_subjects_dir() is None
