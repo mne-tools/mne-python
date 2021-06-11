@@ -89,7 +89,7 @@ def test_sys_info():
         assert 'Platform:      macOS-' in out
 
 
-def test_get_subjects_dir(monkeypatch, tmpdir):
+def test_get_subjects_dir(monkeypatch):
     """Test get_subjects_dir()."""
     # String
     subjects_dir = '/foo'
