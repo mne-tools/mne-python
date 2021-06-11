@@ -580,7 +580,7 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica,
     if labels is not None:
         # differentiate categories by linestyle and components by color
         col_lbs = [it for it in exclude_labels if it is not None]
-        cmap = plt.get_cmap('rainbow', len(col_lbs))
+        cmap = plt.get_cmap('tab10', len(col_lbs))
         unique_labels = {k.split(' - ')[1] for k in exclude_labels if k}
         # Determine up to 4 different styles for n categories
         cat_styles = dict(zip(unique_labels,
