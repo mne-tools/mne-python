@@ -28,12 +28,13 @@ from .io.tree import dir_tree_find
 from .io.open import fiff_open
 from .surface import (read_surface, write_surface, complete_surface_info,
                       _compute_nearest, _get_ico_surface, read_tri,
-                      _fast_cross_nd_sum, _get_solids, _complete_sphere_surf)
+                      _fast_cross_nd_sum, _get_solids, _complete_sphere_surf,
+                      decimate_surface)
 from .transforms import _ensure_trans, apply_trans, Transform
 from .utils import (verbose, logger, run_subprocess, get_subjects_dir, warn,
                     _pl, _validate_type, _TempDir, _check_freesurfer_home,
                     _check_fname, has_nibabel, _check_option, path_like,
-                    _on_missing)
+                    _on_missing, ETSContext)
 from .externals.h5io import write_hdf5, read_hdf5
 
 
@@ -2061,3 +2062,99 @@ def _ensure_bem_surfaces(bem, extra_allow=(), name='bem'):
                 bem['surfs'][-1]['id'] = id_
 
     return bem
+
+
+def _check_file(fname, overwrite):
+    """Prevent overwrites."""
+    if op.isfile(fname) and not overwrite:
+        raise IOError('File %s exists, use --overwrite to overwrite it'
+                      % fname)
+
+
+@verbose
+def make_scalp_surfaces(subject, subjects_dir=None, force=True,
+                        overwrite=False, no_decimate=False, verbose=None):
+    """Make scalp surfaces.
+
+    This is useful for coregistration and checking aligngment between anatomy
+    and channel locations.
+
+    Parameters
+    ----------
+    %(subject)s
+    %(subjects_dir)s
+    force : bool
+        Force transformation of surface into bem. Default to True.
+    %(overwrite)s
+    no_decimate : bool
+        Disable medium and sparse decimations (dense only).
+        Default to False.
+    %(verbose)s
+    """
+    this_env = deepcopy(os.environ)
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    this_env['SUBJECTS_DIR'] = subjects_dir
+    this_env['SUBJECT'] = subject
+    if 'FREESURFER_HOME' not in this_env:
+        raise RuntimeError('The FreeSurfer environment needs to be set up '
+                           'for this script')
+    incomplete = 'warn' if force else 'raise'
+    subj_path = op.join(subjects_dir, subject)
+    if not op.exists(subj_path):
+        raise RuntimeError('%s does not exist. Please check your subject '
+                           'directory path.' % subj_path)
+
+    mri = 'T1.mgz' if op.exists(op.join(subj_path, 'mri', 'T1.mgz')) else 'T1'
+
+    logger.info('1. Creating a dense scalp tessellation with mkheadsurf...')
+
+    def check_seghead(surf_path=op.join(subj_path, 'surf')):
+        surf = None
+        for k in ['lh.seghead', 'lh.smseghead']:
+            this_surf = op.join(surf_path, k)
+            if op.exists(this_surf):
+                surf = this_surf
+                break
+        return surf
+
+    my_seghead = check_seghead()
+    if my_seghead is None:
+        run_subprocess(['mkheadsurf', '-subjid', subject, '-srcvol', mri],
+                       env=this_env)
+
+    surf = check_seghead()
+    if surf is None:
+        raise RuntimeError('mkheadsurf did not produce the standard output '
+                           'file.')
+
+    bem_dir = op.join(subjects_dir, subject, 'bem')
+    if not op.isdir(bem_dir):
+        os.mkdir(bem_dir)
+    dense_fname = op.join(bem_dir, '%s-head-dense.fif' % subject)
+    logger.info('2. Creating %s ...' % dense_fname)
+    _check_file(dense_fname, overwrite)
+    # Helpful message if we get a topology error
+    msg = '\n\nConsider using --force as an additional input parameter.'
+    surf = _surfaces_to_bem(
+        [surf], [FIFF.FIFFV_BEM_SURF_ID_HEAD], [1],
+        incomplete=incomplete, extra=msg)[0]
+    write_bem_surfaces(dense_fname, surf, overwrite=overwrite)
+    levels = 'medium', 'sparse'
+    tris = [] if no_decimate else [30000, 2500]
+    if os.getenv('_MNE_TESTING_SCALP', 'false') == 'true':
+        tris = [len(surf['tris'])]  # don't actually decimate
+    for ii, (n_tri, level) in enumerate(zip(tris, levels), 3):
+        logger.info('%i. Creating %s tessellation...' % (ii, level))
+        logger.info('%i.1 Decimating the dense tessellation...' % ii)
+        with ETSContext():
+            points, tris = decimate_surface(points=surf['rr'],
+                                            triangles=surf['tris'],
+                                            n_triangles=n_tri)
+        dec_fname = dense_fname.replace('dense', level)
+        logger.info('%i.2 Creating %s' % (ii, dec_fname))
+        _check_file(dec_fname, overwrite)
+        dec_surf = _surfaces_to_bem(
+            [dict(rr=points, tris=tris)],
+            [FIFF.FIFFV_BEM_SURF_ID_HEAD], [1], rescale=False,
+            incomplete=incomplete, extra=msg)
+        write_bem_surfaces(dec_fname, dec_surf, overwrite=overwrite)
