@@ -89,7 +89,7 @@ def test_sys_info():
         assert 'Platform:      macOS-' in out
 
 
-def test_get_subjects_dir(monkeypatch):
+def test_get_subjects_dir(monkeypatch, tmpdir):
     """Test get_subjects_dir()."""
     # String
     subjects_dir = '/foo'
@@ -100,5 +100,6 @@ def test_get_subjects_dir(monkeypatch):
     assert get_subjects_dir(subjects_dir) == str(subjects_dir)
 
     # `None`
+    monkeypatch.setenv('_MNE_FAKE_HOME_DIR', str(tmpdir))
     monkeypatch.delenv('SUBJECTS_DIR', raising=False)
     assert get_subjects_dir() is None
