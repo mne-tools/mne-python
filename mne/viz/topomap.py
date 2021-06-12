@@ -690,7 +690,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                  contours=6, image_interp='bilinear', show=True,
                  onselect=None, extrapolate=_EXTRAPOLATE_DEFAULT,
                  sphere=None, border=_BORDER_DEFAULT,
-                 ch_type='eeg'):
+                 ch_type='eeg', cnorm=None):
     """Plot a topographic map as image.
 
     Parameters
@@ -756,6 +756,8 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     %(topomap_sphere)s
     %(topomap_border)s
     %(topomap_ch_type)s
+    cnorm : matplotlib.colors.Normalize | None
+        Colormap normalization, default None means linear normalization.
 
     Returns
     -------
@@ -769,7 +771,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                          names, show_names, mask, mask_params, outlines,
                          contours, image_interp, show,
                          onselect, extrapolate, sphere=sphere, border=border,
-                         ch_type=ch_type)[:2]
+                         ch_type=ch_type, cnorm=cnorm)[:2]
 
 
 def _setup_interp(pos, res, extrapolate, sphere, outlines, border):
@@ -828,7 +830,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                   mask_params=None, outlines='head',
                   contours=6, image_interp='bilinear', show=True,
                   onselect=None, extrapolate=_EXTRAPOLATE_DEFAULT, sphere=None,
-                  border=_BORDER_DEFAULT, ch_type='eeg'):
+                  border=_BORDER_DEFAULT, ch_type='eeg', cnorm=None):
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RectangleSelector
     data = np.asarray(data)
@@ -915,9 +917,13 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     patch_ = _get_patch(outlines, extrapolate, interp, ax)
 
     # plot interpolated map
-    im = ax.imshow(Zi, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
-                   aspect='equal', extent=extent,
-                   interpolation=image_interp)
+    if cnorm is None:
+        im = ax.imshow(Zi, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
+                       aspect='equal', extent=extent,
+                       interpolation=image_interp, norm=cnorm)
+    else:
+        im = ax.imshow(Zi, cmap=cmap, origin='lower', aspect='equal',
+                       extent=extent, interpolation=image_interp, norm=cnorm)
 
     # gh-1432 had a workaround for no contours here, but we'll remove it
     # because mpl has probably fixed it
