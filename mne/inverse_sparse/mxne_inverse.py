@@ -16,7 +16,7 @@ from ..dipole import Dipole
 
 from .mxne_optim import (mixed_norm_solver, iterative_mixed_norm_solver, _Phi,
                          tf_mixed_norm_solver, iterative_tf_mixed_norm_solver,
-                         norm_l2inf, norm_epsilon_inf)
+                         norm_l2inf, norm_epsilon_inf, groups_norm2)
 
 
 def _check_ori(pick_ori, forward):
@@ -750,7 +750,7 @@ def _compute_mxne_sure(M, gain, alpha_grid, sigma, n_mxne_iter, maxit, tol,
         The data.
     gain : array, shape (n_sensors, n_dipoles)
         The gain matrix a.k.a. lead field.
-    alpha_grid : array
+    alpha_grid : array, shape (n_alphas)
         The grid of alphas used to evaluate the SURE.
     sigma : float
         The true or estimated noise level in the data. Usually 1 if the data
@@ -778,9 +778,9 @@ def _compute_mxne_sure(M, gain, alpha_grid, sigma, n_mxne_iter, maxit, tol,
 
     Returns
     -------
-    X : array
+    X : array, shape (n_active, n_times)
         Coefficient matrix.
-    active_set : array
+    active_set : array, shape (n_dipoles,)
         Array of indices of non-zero coefficients.
     best_alpha_ : float
         Alpha that minimizes the SURE.
@@ -789,8 +789,6 @@ def _compute_mxne_sure(M, gain, alpha_grid, sigma, n_mxne_iter, maxit, tol,
     ----------
     .. footbibliography::
     """
-    from .mxne_optim import groups_norm2
-
     def g(w):
         return np.sqrt(np.sqrt(groups_norm2(w.copy(), n_orient)))
 

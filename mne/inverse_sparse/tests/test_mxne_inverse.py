@@ -384,6 +384,7 @@ def test_mxne_inverse_sure_synthetic(n_sensors, n_dipoles, n_times, nnz, corr,
     assert_equal(np.count_nonzero(active_set, axis=-1), n_orient * nnz)
 
 
+@testing.requires_testing_data
 def test_mxne_inverse_sure():
     """Tests SURE criterion for automatic alpha selection on MEG data."""
     def data_fun(times):

@@ -471,10 +471,12 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
     dgap_freq : int
         The duality gap is computed every dgap_freq iterations of the solver on
         the active set.
-    active_set_init : array or None
-        The initial active set used at the first iteration. If None, the
-        usual active set strategy is applied.
-    X_init : array or None
+    active_set_init : array, shape (active_set_size,) or None
+        The initial active set (boolean array) used at the first iteration.
+        If None, the usual active set strategy is applied. Note that
+        active_set_size is the size of the active set after the first
+        reweighting iteration.
+    X_init : array, shape (n_dipoles, n_times) or None
         The initial weight matrix used for warm starting the solver. If None,
         the weights are initialized at zero.
 
@@ -482,8 +484,9 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
     -------
     X : array, shape (n_active, n_times)
         The source estimates.
-    active_set : array
-        The mask of active sources.
+    active_set : array, shape (new_active_set_size,)
+        The mask of active sources. Note that new_active_set_size is the size
+        of the active set after convergence of the solver.
     E : list
         The value of the objective function over the iterations.
     gap : float
@@ -655,7 +658,7 @@ def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
         The duality gap is evaluated every dgap_freq iterations.
     solver : 'prox' | 'cd' | 'bcd' | 'auto'
         The algorithm to use for the optimization.
-    weight_init : array or None
+    weight_init : array, shape (n_dipoles,) or None
         The initial weight used for reweighting the gain matrix. If None, the
         weights are initialized with ones.
 
