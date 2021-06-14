@@ -14,6 +14,7 @@ from mne.io.tests.test_raw import _test_raw_reader
 from mne.preprocessing.nirs import (optical_density, beer_lambert_law,
                                     short_channels, source_detector_distances)
 from mne.transforms import apply_trans, _get_trans
+from mne.io.constants import FIFF
 
 # SfNIRS files
 sfnirs_homer_103_wShort = op.join(data_path(download=False),
@@ -190,14 +191,17 @@ def test_snirf_nirsport2():
 @requires_h5py
 def test_snirf_coordframe():
     """Test reading SNIRF files."""
-    assert read_raw_snirf(nirx_nirsport2_103, optode_frame="unknown").\
-        info['chs'][10]['coord_frame'] == 0
-    assert read_raw_snirf(nirx_nirsport2_103, optode_frame="head").\
-        info['chs'][10]['coord_frame'] == 4
-    assert read_raw_snirf(nirx_nirsport2_103, optode_frame="asdf").\
-        info['chs'][10]['coord_frame'] == 0
-    assert read_raw_snirf(nirx_nirsport2_103, optode_frame="mri").\
-        info['chs'][10]['coord_frame'] == 4
+    raw = read_raw_snirf(nirx_nirsport2_103, optode_frame="head").\
+          info['chs'][3]['coord_frame']
+    assert raw == FIFF.FIFFV_COORD_HEAD
+
+    raw = read_raw_snirf(nirx_nirsport2_103, optode_frame="mri").\
+          info['chs'][3]['coord_frame']
+    assert raw == FIFF.FIFFV_COORD_HEAD
+
+    raw = read_raw_snirf(nirx_nirsport2_103, optode_frame="unknown").\
+          info['chs'][3]['coord_frame']
+    assert raw == FIFF.FIFFV_COORD_UNKNOWN
 
 
 @requires_testing_data
