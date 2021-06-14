@@ -192,15 +192,15 @@ def test_snirf_nirsport2():
 def test_snirf_coordframe():
     """Test reading SNIRF files."""
     raw = read_raw_snirf(nirx_nirsport2_103, optode_frame="head").\
-          info['chs'][3]['coord_frame']
+        info['chs'][3]['coord_frame']
     assert raw == FIFF.FIFFV_COORD_HEAD
 
     raw = read_raw_snirf(nirx_nirsport2_103, optode_frame="mri").\
-          info['chs'][3]['coord_frame']
+        info['chs'][3]['coord_frame']
     assert raw == FIFF.FIFFV_COORD_HEAD
 
     raw = read_raw_snirf(nirx_nirsport2_103, optode_frame="unknown").\
-          info['chs'][3]['coord_frame']
+        info['chs'][3]['coord_frame']
     assert raw == FIFF.FIFFV_COORD_UNKNOWN
 
 
