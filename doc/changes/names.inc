@@ -16,7 +16,7 @@
 
 .. _Teon Brooks: https://teonbrooks.github.io
 
-.. _Mainak Jas: http://ltl.tkk.fi/wiki/Mainak_Jas
+.. _Mainak Jas: https://jasmainak.github.io
 
 .. _Roman Goj: http://romanmne.blogspot.co.uk
 
