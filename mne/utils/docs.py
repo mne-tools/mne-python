@@ -1502,6 +1502,7 @@ montage : None | str | DigMontage
     of :func:`mne.channels.make_standard_montage`. See also the documentation
     of :class:`mne.channels.DigMontage` for more information.
 """
+docdict["montage_types"] = """EEG/sEEG/ECoG/DBS/fNIRS"""
 docdict["match_case"] = """
 match_case : bool
     If True (default), channel name matching will be case sensitive.
