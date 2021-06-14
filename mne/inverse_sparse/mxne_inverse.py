@@ -750,7 +750,7 @@ def _compute_mxne_sure(M, gain, alpha_grid, sigma, n_mxne_iter, maxit, tol,
         The data.
     gain : array, shape (n_sensors, n_dipoles)
         The gain matrix a.k.a. lead field.
-    alpha_grid : array, shape (n_alphas)
+    alpha_grid : array, shape (n_alphas,)
         The grid of alphas used to evaluate the SURE.
     sigma : float
         The true or estimated noise level in the data. Usually 1 if the data
@@ -801,13 +801,13 @@ def _compute_mxne_sure(M, gain, alpha_grid, sigma, n_mxne_iter, maxit, tol,
             X, active_set, _ = mixed_norm_solver(
                 M, gain, alpha, maxit=maxit, tol=tol,
                 active_set_size=active_set_size, n_orient=n_orient,
-                debias=False, solver=solver, dgap_freq=dgap_freq,
+                debias=debias, solver=solver, dgap_freq=dgap_freq,
                 active_set_init=as_init, X_init=X_init, verbose=False)
         else:
             X, active_set, _ = iterative_mixed_norm_solver(
                 M, gain, alpha, n_mxne_iter, maxit=maxit, tol=tol,
                 n_orient=n_orient, active_set_size=active_set_size,
-                debias=False, solver=solver, dgap_freq=dgap_freq,
+                debias=debias, solver=solver, dgap_freq=dgap_freq,
                 weight_init=w_init, verbose=False)
         return X, active_set
 
@@ -872,7 +872,8 @@ def _compute_mxne_sure(M, gain, alpha_grid, sigma, n_mxne_iter, maxit, tol,
     for i, (coef1, coef2) in enumerate(zip(coefs_grid_1, coefs_grid_2)):
         sure_path[i] = _compute_sure_val(
             coef1, coef2, gain, M, sigma, delta, eps)
-        logger.info("alpha %s :: sure %s" % (alpha_grid[i], sure_path[i]))
+        if verbose:
+            logger.info("alpha %s :: sure %s" % (alpha_grid[i], sure_path[i]))
     best_alpha_ = alpha_grid[np.argmin(sure_path)]
 
     X = coefs_grid_1[np.argmin(sure_path)]
