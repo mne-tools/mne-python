@@ -249,11 +249,20 @@ class RawSNIRF(BaseRaw):
             srcPos3D /= scal
             detPos3D /= scal
 
-            if optode_frame in ["head", "mri", "meg"]:
+            if optode_frame in ["mri", "meg"]:
                 # These are all in MNI or MEG coordinates, so let's transform
                 # them to the Neuromag head coordinate frame
                 srcPos3D, detPos3D, _, _ = _convert_fnirs_to_head(
                     'fsaverage', optode_frame, 'head', srcPos3D, detPos3D, [])
+
+            if optode_frame in ["head", "mri", "meg"]:
+                # Then the transformation to head was performed above
+                coord_frame = FIFF.FIFFV_COORD_HEAD
+            elif 'MNE_coordFrame' in dat.get('nirs/metaDataTags/'):
+                coord_frame = int(dat.get('/nirs/metaDataTags/MNE_coordFrame')
+                                  [0])
+            else:
+                coord_frame = FIFF.FIFFV_COORD_UNKNOWN
 
             for idx, chan in enumerate(channels):
                 src_idx = int(np.array(dat.get('nirs/data1/' +
@@ -269,15 +278,7 @@ class RawSNIRF(BaseRaw):
                             info['chs'][idx]['loc'][6:9]) / 2
                 info['chs'][idx]['loc'][0:3] = midpoint
                 info['chs'][idx]['loc'][9] = fnirs_wavelengths[wve_idx - 1]
-
-            if optode_frame in ["head", "mri", "meg"]:
-                # Then the transformation to head was performed above
-                coord_frame = FIFF.FIFFV_COORD_HEAD
-            elif 'MNE_coordFrame' in dat.get('nirs/metaDataTags/'):
-                coord_frame = int(dat.get('/nirs/metaDataTags/MNE_coordFrame')
-                                  [0])
-            else:
-                coord_frame = FIFF.FIFFV_COORD_UNKNOWN
+                info['chs'][idx]['coord_frame'] = coord_frame
 
             if 'landmarkPos3D' in dat.get('nirs/probe/'):
                 diglocs = np.array(dat.get('/nirs/probe/landmarkPos3D'))
