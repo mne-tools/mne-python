@@ -35,9 +35,10 @@ trans_fname = op.join(data_path, 'MEG', 'bst_auditory',
                       'bst_auditory-trans.fif')
 raw_fname1 = op.join(data_path_MEG, 'bst_auditory', 'S01_AEF_20131218_01.ds')
 raw_fname2 = op.join(data_path_MEG, 'bst_auditory', 'S01_AEF_20131218_02.ds')
-# read and concatenate two files
+# read and concatenate two files, ignoring device<->head mismatch
 raw = read_raw_ctf(raw_fname1, preload=False)
-mne.io.concatenate_raws([raw, read_raw_ctf(raw_fname2, preload=False)])
+mne.io.concatenate_raws(
+    [raw, read_raw_ctf(raw_fname2, preload=False)], on_mismatch='ignore')
 raw.crop(350, 410).load_data()
 raw.resample(100, npad="auto")
 

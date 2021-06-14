@@ -24,7 +24,7 @@ from .tree import dir_tree_find
 from .tag import (read_tag, find_tag, _ch_coord_dict, _update_ch_info_named,
                   _rename_list)
 from .proj import (_read_proj, _write_proj, _uniquify_projs, _normalize_proj,
-                   Projection)
+                   _proj_equal, Projection)
 from .ctf_comp import _read_ctf_comp, write_ctf_comp
 from .write import (start_file, end_file, start_block, end_block,
                     write_string, write_dig_points, write_float, write_int,
@@ -34,7 +34,7 @@ from .proc_history import _read_proc_history, _write_proc_history
 from ..transforms import invert_transform, Transform, _coord_frame_name
 from ..utils import (logger, verbose, warn, object_diff, _validate_type,
                      _stamp_to_dt, _dt_to_stamp, _pl, _is_numeric,
-                     _check_option)
+                     _check_option, _on_missing, _check_on_missing)
 from ._digitization import (_format_dig_points, _dig_kind_proper, DigPoint,
                             _dig_kind_rev, _dig_kind_ints, _read_dig_fif)
 from ._digitization import write_dig as _dig_write_dig
@@ -2478,3 +2478,51 @@ def _write_ch_infos(fid, chs, reset_range, ch_names_mapping):
             for (key, (const, _, write)) in _CH_INFO_MAP.items():
                 write(fid, const, ch[key])
             end_block(fid, FIFF.FIFFB_CH_INFO)
+
+
+def _ensure_infos_match(info1, info2, name, *, on_mismatch='raise'):
+    """Check if infos match.
+
+    Parameters
+    ----------
+    info1, info2 : instance of Info
+        The infos to compare.
+    name : str
+        The name of the object appearing in the error message of the comparison
+        fails.
+    on_mismatch : 'raise' | 'warn' | 'ignore'
+        What to do in case of a mismatch of ``dev_head_t`` between ``info1``
+        and ``info2``.
+    """
+    _check_on_missing(on_missing=on_mismatch, name='on_mismatch')
+
+    info1._check_consistency()
+    info2._check_consistency()
+
+    if info1['nchan'] != info2['nchan']:
+        raise ValueError(f'{name}.info[\'nchan\'] must match')
+    if set(info1['bads']) != set(info2['bads']):
+        raise ValueError(f'{name}.info[\'bads\'] must match')
+    if info1['sfreq'] != info2['sfreq']:
+        raise ValueError(f'{name}.info[\'sfreq\'] must match')
+    if set(info1['ch_names']) != set(info2['ch_names']):
+        raise ValueError(f'{name}.info[\'ch_names\'] must match')
+    if len(info2['projs']) != len(info1['projs']):
+        raise ValueError(f'SSP projectors in {name} must be the same')
+    if any(not _proj_equal(p1, p2) for p1, p2 in
+           zip(info2['projs'], info1['projs'])):
+        raise ValueError(f'SSP projectors in {name} must be the same')
+    if (info1['dev_head_t'] is None) != (info2['dev_head_t'] is None) or \
+            (info1['dev_head_t'] is not None and not
+             np.allclose(info1['dev_head_t']['trans'],
+                         info2['dev_head_t']['trans'], rtol=1e-6)):
+        msg = (f"{name}.info['dev_head_t'] differs. The "
+               f"instances probably come from different runs, and "
+               f"are therefore associated with different head "
+               f"positions. Manually change info['dev_head_t'] to "
+               f"avoid this message but beware that this means the "
+               f"MEG sensors will not be properly spatially aligned. "
+               f"See mne.preprocessing.maxwell_filter to realign the "
+               f"runs to a common head position.")
+        _on_missing(on_missing=on_mismatch, msg=msg,
+                    name='on_mismatch')

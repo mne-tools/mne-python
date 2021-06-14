@@ -35,7 +35,7 @@ matplotlib.figure.Figure
 # Authors: Daniel McCloy <dan@mccloy.info>
 #
 # License: Simplified BSD
-
+import datetime
 from contextlib import contextmanager
 import platform
 from copy import deepcopy
@@ -352,6 +352,8 @@ class MNEBrowseFigure(MNEFigure):
         # additional params for epochs (won't affect raw / ICA)
         self.mne.epoch_traces = list()
         self.mne.bad_epochs = list()
+        self.mne.sampling_period = (np.diff(inst.times[:2])[0]
+                                    / inst.info['sfreq'])
         # annotations
         self.mne.annotations = list()
         self.mne.hscroll_annotations = list()
@@ -419,7 +421,7 @@ class MNEBrowseFigure(MNEFigure):
             epoch_nums = self.mne.inst.selection
             for ix, _ in enumerate(epoch_nums):
                 start = self.mne.boundary_times[ix]
-                width = np.diff(self.mne.boundary_times[ix:ix + 2])[0]
+                width = np.diff(self.mne.boundary_times[:2])[0]
                 ax_hscroll.add_patch(
                     Rectangle((start, 0), width, 1, color='none',
                               zorder=self.mne.zorder['patch']))
@@ -447,6 +449,17 @@ class MNEBrowseFigure(MNEFigure):
             # hide some ticks
             ax_main.tick_params(axis='x', which='major', bottom=False)
             ax_hscroll.tick_params(axis='x', which='both', bottom=False)
+        else:
+            # RAW / ICA X-AXIS TICK & LABEL FORMATTING
+            ax_main.xaxis.set_major_formatter(
+                FuncFormatter(partial(self._xtick_formatter,
+                                      ax_type='main')))
+            ax_hscroll.xaxis.set_major_formatter(
+                FuncFormatter(partial(self._xtick_formatter,
+                                      ax_type='hscroll')))
+            if self.mne.time_format != 'float':
+                for _ax in (ax_main, ax_hscroll):
+                    _ax.set_xlabel('Time (HH:MM:SS)')
 
         # VERTICAL SCROLLBAR PATCHES (COLORED BY CHANNEL TYPE)
         ch_order = self.mne.ch_order
@@ -490,8 +503,9 @@ class MNEBrowseFigure(MNEFigure):
             vline = ax_main.axvline(0, color=vline_color, **vline_kwargs)
             vline_hscroll = ax_hscroll.axvline(0, color=vline_color,
                                                **vline_kwargs)
-        vline_text = ax_hscroll.text(
-            self.mne.first_time, 1.2, '', fontsize=10, ha='right', va='bottom',
+        vline_text = ax_main.annotate(
+            '', xy=(0, 0), xycoords='axes fraction', xytext=(-2, 0),
+            textcoords='offset points', fontsize=10, ha='right', va='center',
             color=vline_color, **vline_kwargs)
 
         # HELP BUTTON: initialize in the wrong spot...
@@ -695,16 +709,21 @@ class MNEBrowseFigure(MNEFigure):
                 self._redraw(annotations=True)
         # change duration
         elif key in ('home', 'end'):
+            old_dur = self.mne.duration
             dur_delta = 1 if key == 'end' else -1
             if self.mne.is_epochs:
+                # prevent from showing zero epochs, or more epochs than we have
                 self.mne.n_epochs = np.clip(self.mne.n_epochs + dur_delta,
                                             1, len(self.mne.inst))
+                # use the length of one epoch as duration change
                 min_dur = len(self.mne.inst.times) / self.mne.info['sfreq']
-                dur_delta *= min_dur
+                new_dur = self.mne.duration + dur_delta * min_dur
             else:
+                # never show fewer than 3 samples
                 min_dur = 3 * np.diff(self.mne.inst.times[:2])[0]
-            old_dur = self.mne.duration
-            new_dur = self.mne.duration + dur_delta
+                # use multiplicative dur_delta
+                dur_delta = 5 / 4 if dur_delta > 0 else 4 / 5
+                new_dur = self.mne.duration * dur_delta
             self.mne.duration = np.clip(new_dur, min_dur, last_time)
             if self.mne.duration != old_dur:
                 if self.mne.t_start + self.mne.duration > last_time:
@@ -743,6 +762,8 @@ class MNEBrowseFigure(MNEFigure):
         elif key == 'z':  # zen mode: hide scrollbars and buttons
             self._toggle_scrollbars()
             self._redraw(update_data=False)
+        elif key == 't':
+            self._toggle_time_format()
         else:  # check for close key / fullscreen toggle
             super()._keypress(event)
 
@@ -1039,6 +1060,7 @@ class MNEBrowseFigure(MNEFigure):
             ('p', 'Toggle draggable annotations' if is_raw else None),
             ('s', 'Toggle scalebars' if not is_ica else None),
             ('z', 'Toggle scrollbars'),
+            ('t', 'Toggle time format' if not is_epo else None),
             ('F11', 'Toggle fullscreen' if not is_mac else None),
             ('?', 'Open this help window'),
             ('esc', 'Close focused figure or dialog window'),
@@ -1775,7 +1797,7 @@ class MNEBrowseFigure(MNEFigure):
         return False
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    # SCALEBARS & Y-AXIS LABELS
+    # SCALEBARS & AXIS LABELS
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     def _show_scalebars(self):
@@ -1854,6 +1876,48 @@ class MNEBrowseFigure(MNEFigure):
                    else 'normal')
             text.set_style(sty)
 
+    def _xtick_formatter(self, x, pos=None, ax_type='main'):
+        """Change the x-axis labels."""
+        tickdiff = np.diff(self.mne.ax_main.get_xticks())[0]
+        digits = np.ceil(-np.log10(tickdiff) + 1).astype(int)
+        # always show millisecond precision for vline text
+        if ax_type == 'vline':
+            digits = 3
+        if self.mne.time_format == 'float':
+            # round to integers when possible ('9.0' → '9')
+            if int(x) == x:
+                digits = None
+            if ax_type == 'vline':
+                return f'{round(x, digits)} s'
+            return str(round(x, digits))
+        # format as timestamp
+        meas_date = self.mne.inst.info['meas_date']
+        first_time = datetime.timedelta(seconds=self.mne.inst.first_time)
+        xtime = datetime.timedelta(seconds=x)
+        xdatetime = meas_date + first_time + xtime
+        xdtstr = xdatetime.strftime('%H:%M:%S')
+        if digits and ax_type != 'hscroll' and int(xdatetime.microsecond):
+            xdtstr += f'{round(xdatetime.microsecond * 1e-6, digits)}'[1:]
+        return xdtstr
+
+    def _toggle_time_format(self):
+        if self.mne.time_format == 'float':
+            self.mne.time_format = 'clock'
+            x_axis_label = 'Time (HH:MM:SS)'
+        else:
+            self.mne.time_format = 'float'
+            x_axis_label = 'Time (s)'
+
+        # Change x-axis label
+        for _ax in (self.mne.ax_main, self.mne.ax_hscroll):
+            _ax.set_xlabel(x_axis_label)
+
+        self._redraw(update_data=False, annotations=False)
+
+        # Update vline-text if displayed
+        if self.mne.vline is not None and self.mne.vline.get_visible():
+            self._show_vline(self.mne.vline.get_xdata())
+
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # DATA TRACES
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -1889,9 +1953,15 @@ class MNEBrowseFigure(MNEFigure):
     def _load_data(self, start=None, stop=None):
         """Retrieve the bit of data we need for plotting."""
         if 'raw' in (self.mne.instance_type, self.mne.ica_type):
-            return self.mne.inst[:, start:stop]
+            # Add additional sample to cover the case sfreq!=1000
+            # when the shown time-range wouldn't correspond to duration anymore
+            return self.mne.inst[:, start:stop + 2]
         else:
-            ix = np.searchsorted(self.mne.boundary_times, self.mne.t_start)
+            # subtract one sample from tstart before searchsorted, to make sure
+            # we land on the left side of the boundary time (avoid precision
+            # errors)
+            ix = np.searchsorted(self.mne.boundary_times,
+                                 self.mne.t_start - self.mne.sampling_period)
             item = slice(ix, ix + self.mne.n_epochs)
             data = np.concatenate(self.mne.inst.get_data(item=item), axis=-1)
             times = np.arange(len(self.mne.inst) * len(self.mne.inst.times)
@@ -2039,8 +2109,8 @@ class MNEBrowseFigure(MNEFigure):
             epoch_ix = np.searchsorted(self.mne.boundary_times, time_range)
             epoch_ix = np.arange(epoch_ix[0], epoch_ix[1])
             epoch_nums = self.mne.inst.selection[epoch_ix[0]:epoch_ix[-1] + 1]
-            visible_bad_epochs = epoch_nums[
-                np.in1d(epoch_nums, self.mne.bad_epochs).nonzero()]
+            visible_bad_epoch_ix, = np.in1d(
+                epoch_nums, self.mne.bad_epochs).nonzero()
             while len(self.mne.epoch_traces):
                 self.mne.epoch_traces.pop(-1).remove()
             # handle custom epoch colors (for autoreject integration)
@@ -2056,8 +2126,7 @@ class MNEBrowseFigure(MNEFigure):
                     custom_colors[:, ii] = to_rgba_array([this_colors[_ch]
                                                           for _ch in picks])
             # override custom color on bad epochs
-            for _bad in visible_bad_epochs:
-                _ix = epoch_nums.tolist().index(_bad)
+            for _ix in visible_bad_epoch_ix:
                 _cols = np.array([self.mne.epoch_color_bad,
                                   self.mne.ch_color_bad])[bad_bool.astype(int)]
                 custom_colors[:, _ix] = to_rgba_array(_cols)
@@ -2204,7 +2273,8 @@ class MNEBrowseFigure(MNEFigure):
         else:
             self.mne.vline.set_xdata(xdata)
             self.mne.vline_hscroll.set_xdata(xdata)
-        self.mne.vline_text.set_text(f'{xdata:0.2f} s ')
+        text = self._xtick_formatter(xdata, ax_type='vline')[:12]
+        self.mne.vline_text.set_text(text)
         self._toggle_vline(True)
 
     def _toggle_vline(self, visible):

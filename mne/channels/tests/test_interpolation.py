@@ -8,7 +8,8 @@ from itertools import compress
 from mne import io, pick_types, pick_channels, read_events, Epochs
 from mne.channels.interpolation import _make_interpolation_matrix
 from mne.datasets import testing
-from mne.preprocessing.nirs import optical_density, scalp_coupling_index
+from mne.preprocessing.nirs import (optical_density, scalp_coupling_index,
+                                    beer_lambert_law)
 from mne.datasets.testing import data_path
 from mne.io import read_raw_nirx
 from mne.io.proj import _has_eeg_average_ref_proj
@@ -303,3 +304,8 @@ def test_interpolation_nirs():
     raw_od.interpolate_bads()
     assert raw_od.info['bads'] == []
     assert bad_0_std_pre_interp > np.std(raw_od._data[bad_0])
+    raw_haemo = beer_lambert_law(raw_od)
+    raw_haemo.info['bads'] = raw_haemo.ch_names[2:4]
+    assert raw_haemo.info['bads'] == ['S1_D2 hbo', 'S1_D2 hbr']
+    raw_haemo.interpolate_bads()
+    assert raw_haemo.info['bads'] == []

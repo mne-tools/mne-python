@@ -23,7 +23,7 @@ docdict = dict()
 
 # Verbose
 docdict['verbose'] = """
-verbose : bool, str, int, or None
+verbose : bool | str | int | None
     If not None, override default verbose level (see :func:`mne.verbose`
     and :ref:`Logging documentation <tut_logging>` for more).
     If used, it should be passed as a keyword-argument only."""
@@ -58,6 +58,13 @@ on_split_missing : str
 
     .. versionadded:: 0.22
 """ % (_on_missing_base,)
+docdict['on_info_mismatch'] = f"""
+on_mismatch : 'raise' | 'warn' | 'ignore'
+    {_on_missing_base} the device-to-head transformation differs between
+    instances.
+
+    .. versionadded:: 0.24
+"""
 docdict['saturated'] = """\
 saturated : str
     Replace saturated segments of data with NaNs, can be:
@@ -1359,6 +1366,16 @@ show_scrollbars : bool
     .. versionadded:: 0.19.0
 """
 
+docdict['time_format'] = """
+time_format : 'float' | 'clock'
+    Style of time labels on the horizontal axis. If ``'float'``, labels will be
+    number of seconds from the start of the recording. If ``'clock'``,
+    labels will show "clock time" (hours/minutes/seconds) inferred from
+    ``raw.info['meas_date']``. Default is ``'float'``.
+
+    .. versionadded:: 0.24
+"""
+
 # PSD plotting
 docdict["plot_psd_doc"] = """
 Plot the power spectral density across channels.
@@ -2326,7 +2343,7 @@ docdict['export_warning'] = """
 .. warning::
     Since we are exporting to external formats, there's no guarantee that all
     the info will be preserved in the external format. To save in native MNE
-    format (``.fif``) without information loss, use ``save`` instead.
+    format (``.fif``) without information loss, use
 """
 docdict['export_params_fname'] = """
 fname : str

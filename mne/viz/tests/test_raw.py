@@ -64,8 +64,8 @@ def _annotation_helper(raw, events=False):
     data_ax = fig.mne.ax_main
     fig.canvas.key_press_event('a')  # annotation mode
     assert len(plt.get_fignums()) == 2
-    # +2 from the scale bars
-    n_scale = 2
+    # +3 from the scale bars
+    n_scale = 3
     assert len(data_ax.texts) == n_anns + n_events + n_scale
     # modify description to create label "BAD test"
     ann_fig = fig.mne.fig_annotation
@@ -206,9 +206,9 @@ def test_scale_bar():
     raw = RawArray(data, info)
     fig = raw.plot()
     ax = fig.mne.ax_main
-    assert len(ax.texts) == 3  # our labels
+    assert len(ax.texts) == 4  # empty vline-text + ch_type scale-bars
     texts = tuple(t.get_text().strip() for t in ax.texts)
-    wants = ('800.0 fT/cm', '2000.0 fT', '40.0 µV')
+    wants = ('', '800.0 fT/cm', '2000.0 fT', '40.0 µV')
     assert texts == wants
     assert len(ax.lines) == 7  # 1 green vline, 3 data, 3 scalebars
     for data, bar in zip(fig.mne.traces, fig.mne.scalebars.values()):
@@ -361,7 +361,8 @@ def test_plot_raw_keypresses(raw):
     # test twice → once in normal, once in butterfly view.
     # NB: keys a, j, and ? are tested in test_plot_raw_child_figures()
     keys = ('pagedown', 'down', 'up', 'down', 'right', 'left', '-', '+', '=',
-            'd', 'd', 'pageup', 'home', 'end', 'z', 'z', 's', 's', 'f11', 'b')
+            'd', 'd', 'pageup', 'home', 'end', 'z', 'z', 's', 's', 'f11', 'b',
+            't')
     # test for group_by='original'
     for key in 2 * keys + ('escape',):
         fig.canvas.key_press_event(key)
@@ -731,3 +732,15 @@ def test_scalings_int():
     """Test that auto scalings access samples using integers."""
     raw = RawArray(np.zeros((1, 500)), create_info(1, 1000., 'eeg'))
     raw.plot(scalings='auto')
+
+
+@pytest.mark.parametrize('dur, n_dec', [(20, 1), (4.2, 2), (0.01, 4)])
+def test_clock_xticks(raw, dur, n_dec):
+    """Test if decimal seconds of xticks have appropriate length."""
+    fig = raw.plot(duration=dur, time_format='clock')
+    fig.canvas.draw()
+    ticklabels = fig.mne.ax_main.get_xticklabels()
+    tick_texts = [tl.get_text() for tl in ticklabels]
+    assert tick_texts[0].startswith('19:01:53')
+    if len(tick_texts[0].split('.')) > 1:
+        assert len(tick_texts[0].split('.')[1]) == n_dec

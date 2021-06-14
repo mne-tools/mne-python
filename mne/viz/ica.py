@@ -28,7 +28,8 @@ from ..utils import _reject_data_segments, verbose
 @fill_doc
 def plot_ica_sources(ica, inst, picks=None, start=None,
                      stop=None, title=None, show=True, block=False,
-                     show_first_samp=False, show_scrollbars=True):
+                     show_first_samp=False, show_scrollbars=True,
+                     time_format='float'):
     """Plot estimated latent sources given the unmixing matrix.
 
     Typical usecases:
@@ -60,6 +61,7 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
     show_first_samp : bool
         If True, show time axis relative to the ``raw.first_samp``.
     %(show_scrollbars)s
+    %(time_format)s
 
     Returns
     -------
@@ -85,7 +87,8 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
         fig = _plot_sources(ica, inst, picks, exclude, start=start, stop=stop,
                             show=show, title=title, block=block,
                             show_first_samp=show_first_samp,
-                            show_scrollbars=show_scrollbars)
+                            show_scrollbars=show_scrollbars,
+                            time_format=time_format)
     elif isinstance(inst, Evoked):
         if start is not None or stop is not None:
             inst = inst.copy().crop(start, stop)
@@ -571,29 +574,29 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica,
             exclude_labels.append(line_label)
         else:
             exclude_labels.append(None)
-
+    label_props = [('k', '-') if lb is None else ('r', '-') for lb in
+                   exclude_labels]
+    styles = ['-', '--', ':', '-.']
     if labels is not None:
-        # compute colors only based on label categories
+        # differentiate categories by linestyle and components by color
+        col_lbs = [it for it in exclude_labels if it is not None]
+        cmap = plt.get_cmap('tab10', len(col_lbs))
         unique_labels = {k.split(' - ')[1] for k in exclude_labels if k}
-        label_colors = plt.cm.rainbow(np.linspace(0, 1, len(unique_labels)))
-        label_colors = dict(zip(unique_labels, label_colors))
-    else:
-        label_colors = {k: 'red' for k in exclude_labels}
+        # Determine up to 4 different styles for n categories
+        cat_styles = dict(zip(unique_labels,
+                              map(lambda ux: styles[int(ux % len(styles))],
+                                  range(len(unique_labels)))))
+        for lb_idx, lb in enumerate(exclude_labels):
+            if lb is not None:
+                color = cmap(col_lbs.index(lb))
+                style = cat_styles[lb[lb.find(' - ') + 3:]]
+                label_props[lb_idx] = (color, style)
 
     for exc_label, ii in zip(exclude_labels, picks):
-        if exc_label is not None:
-            # create look up for color ...
-            if ' - ' in exc_label:
-                key = exc_label.split(' - ')[1]
-            else:
-                key = exc_label
-            color = label_colors[key]
-            # ... but display component number too
-            lines.extend(ax.plot(times, evoked.data[ii].T, picker=True,
-                                 zorder=2, color=color, label=exc_label))
-        else:
-            lines.extend(ax.plot(times, evoked.data[ii].T, picker=True,
-                                 color='k', zorder=1))
+        color, style = label_props[ii]
+        lines.extend(ax.plot(times, evoked.data[ii].T, picker=True,
+                             zorder=2, color=color, linestyle=style,
+                             label=exc_label))
         lines[-1].set_pickradius(3.)
 
     ax.set(title=title, xlim=times[[0, -1]], xlabel='Time (ms)', ylabel='(NA)')
@@ -923,7 +926,7 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
 
 
 def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
-                  show_scrollbars, show_first_samp):
+                  show_scrollbars, show_first_samp, time_format):
     """Plot the ICA components as a RawArray or EpochsArray."""
     from ._figure import _browse_figure
     from .. import EpochsArray, BaseEpochs
@@ -1033,6 +1036,7 @@ def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
                   duration=duration,
                   n_times=inst.n_times if is_raw else n_times,
                   first_time=first_time,
+                  time_format=time_format,
                   decim=1,
                   # events
                   event_times=None if is_raw else event_times,

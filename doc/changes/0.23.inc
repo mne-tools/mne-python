@@ -14,8 +14,8 @@
 
 .. _changes_0_23_0:
 
-Version 0.23.0
---------------
+Version 0.23.0 (2021-04-27)
+---------------------------
 
 .. |Jack Zhang| replace:: **Jack Zhang**
 

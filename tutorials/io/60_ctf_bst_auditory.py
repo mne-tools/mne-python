@@ -67,7 +67,10 @@ erm_fname = op.join(data_path, 'MEG', subject, 'S01_Noise_20131218_01.ds')
 # other functions require the data to be preloaded into memory.
 raw = read_raw_ctf(raw_fname1)
 n_times_run1 = raw.n_times
-mne.io.concatenate_raws([raw, read_raw_ctf(raw_fname2)])
+
+# Here we ignore that these have different device<->head transforms
+mne.io.concatenate_raws(
+    [raw, read_raw_ctf(raw_fname2)], on_mismatch='ignore')
 raw_erm = read_raw_ctf(erm_fname)
 
 ###############################################################################
@@ -81,6 +84,9 @@ raw_erm = read_raw_ctf(erm_fname)
 #   - 2 EOG bipolar (vertical and horizontal)
 #   - 12 head tracking channels
 #   - 20 unused channels
+#
+# Notice also that the digitized electrode positions (stored in a .pos file)
+# were automatically loaded and added to the `~mne.io.Raw` object.
 #
 # The head tracking channels and the unused channels are marked as misc
 # channels. Here we define the EOG and ECG channels.

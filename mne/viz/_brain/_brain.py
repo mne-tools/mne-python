@@ -395,13 +395,13 @@ class Brain(object):
         from .._3d import _get_cmap
         from matplotlib.colors import colorConverter
 
+        _validate_type(hemi, str, 'hemi')
+        hemi = self._check_hemi(hemi, extras=('both', 'split'))
         if hemi in ('both', 'split'):
             self._hemis = ('lh', 'rh')
-        elif hemi in ('lh', 'rh'):
-            self._hemis = (hemi, )
         else:
-            raise KeyError('hemi has to be either "lh", "rh", "split", '
-                           'or "both"')
+            assert hemi in ('lh', 'rh')
+            self._hemis = (hemi, )
         self._view_layout = _check_option('view_layout', view_layout,
                                           ('vertical', 'horizontal'))
 
@@ -421,9 +421,6 @@ class Brain(object):
         if isinstance(foreground, str):
             foreground = colorConverter.to_rgb(foreground)
         self._fg_color = foreground
-
-        if isinstance(views, str):
-            views = [views]
         views = _check_views(surf, views, hemi)
         col_dict = dict(lh=1, rh=1, both=1, split=2)
         shape = (len(views), col_dict[hemi])
@@ -3257,16 +3254,13 @@ class Brain(object):
 
     def _check_hemi(self, hemi, extras=()):
         """Check for safe single-hemi input, returns str."""
+        _validate_type(hemi, (None, str), 'hemi')
         if hemi is None:
             if self._hemi not in ['lh', 'rh']:
                 raise ValueError('hemi must not be None when both '
                                  'hemispheres are displayed')
-            else:
-                hemi = self._hemi
-        elif hemi not in ['lh', 'rh'] + list(extras):
-            extra = ' or None' if self._hemi in ['lh', 'rh'] else ''
-            raise ValueError('hemi must be either "lh" or "rh"' +
-                             extra + ", got " + str(hemi))
+            hemi = self._hemi
+        _check_option('hemi', hemi, ('lh', 'rh') + tuple(extras))
         return hemi
 
     def _check_hemis(self, hemi):

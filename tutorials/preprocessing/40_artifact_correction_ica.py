@@ -618,7 +618,7 @@ print(template_eog_component)
 #     This example is computationally intensive, so it might take a few minutes
 #     to complete.
 #
-# Read and preprocess the data. Preprocessing consists of:
+# After reading the data, preprocessing consists of:
 #
 # - MEG channel selection
 # - 1-30 Hz band-pass filter

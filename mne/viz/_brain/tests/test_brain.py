@@ -184,14 +184,18 @@ def test_brain_init(renderer_pyvista, tmpdir, pixel_ratio, brain_gc):
     kwargs = dict(subject_id=subject_id, subjects_dir=subjects_dir)
     with pytest.raises(ValueError, match='"size" parameter must be'):
         Brain(hemi=hemi, surf=surf, size=[1, 2, 3], **kwargs)
-    with pytest.raises(KeyError):
+    with pytest.raises(ValueError, match='.*hemi.*Allowed values.*'):
         Brain(hemi='foo', surf=surf, **kwargs)
+    with pytest.raises(ValueError, match='.*view.*Allowed values.*'):
+        Brain(hemi='lh', surf=surf, views='foo', **kwargs)
     with pytest.raises(TypeError, match='figure'):
         Brain(hemi=hemi, surf=surf, figure='foo', **kwargs)
     with pytest.raises(TypeError, match='interaction'):
         Brain(hemi=hemi, surf=surf, interaction=0, **kwargs)
     with pytest.raises(ValueError, match='interaction'):
         Brain(hemi=hemi, surf=surf, interaction='foo', **kwargs)
+    with pytest.raises(FileNotFoundError, match=r'lh\.whatever'):
+        Brain(subject_id, 'lh', 'whatever')
     renderer_pyvista.backend._close_all()
 
     brain = Brain(hemi=hemi, surf=surf, size=size, title=title,
@@ -204,10 +208,8 @@ def test_brain_init(renderer_pyvista, tmpdir, pixel_ratio, brain_gc):
     brain._hemi = 'foo'  # for testing: hemis
     with pytest.raises(ValueError, match='not be None'):
         brain._check_hemi(hemi=None)
-    with pytest.raises(ValueError, match='either "lh" or "rh"'):
+    with pytest.raises(ValueError, match='Invalid.*hemi.*Allowed'):
         brain._check_hemi(hemi='foo')
-    with pytest.raises(ValueError, match='either "lh" or "rh"'):
-        brain._check_hemis(hemi='foo')
     brain._hemi = hemi  # end testing: hemis
     with pytest.raises(ValueError, match='bool or positive'):
         brain._to_borders(None, None, 'foo')

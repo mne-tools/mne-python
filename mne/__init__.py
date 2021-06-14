@@ -77,7 +77,8 @@ from .annotations import (Annotations, read_annotations, annotations_from_events
                           events_from_annotations)
 from .epochs import (BaseEpochs, Epochs, EpochsArray, read_epochs,
                      concatenate_epochs, make_fixed_length_epochs)
-from .evoked import Evoked, EvokedArray, read_evokeds, write_evokeds, combine_evoked
+from .evoked import (Evoked, EvokedArray, read_evokeds, write_evokeds,
+                     combine_evoked)
 from .label import (read_label, label_sign_flip,
                     write_label, stc_to_label, grow_labels, Label, split_label,
                     BiHemiLabel, read_labels_from_annot, write_labels_to_annot,

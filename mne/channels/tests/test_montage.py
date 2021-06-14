@@ -19,6 +19,7 @@ from numpy.testing import (assert_array_equal,
 import matplotlib.pyplot as plt
 
 from mne import __file__ as _mne_file, create_info, read_evokeds, pick_types
+from mne.source_space import get_mni_fiducials
 from mne.utils._testing import assert_object_equal
 from mne.channels import (get_builtin_montages, DigMontage, read_dig_dat,
                           read_dig_egi, read_dig_captrak, read_dig_fif,
@@ -34,7 +35,7 @@ from mne.io.constants import FIFF
 from mne.io._digitization import (_format_dig_points,
                                   _get_fid_coords, _get_dig_eeg,
                                   _count_points_by_type)
-from mne.transforms import _ensure_trans
+from mne.transforms import _ensure_trans, apply_trans
 from mne.viz._3d import _fiducial_coords
 
 from mne.io.kit import read_mrk
@@ -61,6 +62,7 @@ bdf_fname1 = op.join(data_path, 'BDF', 'test_generator_2.bdf')
 bdf_fname2 = op.join(data_path, 'BDF', 'test_bdf_stim_channel.bdf')
 egi_fname1 = op.join(data_path, 'EGI', 'test_egi.mff')
 cnt_fname = op.join(data_path, 'CNT', 'scan41_short.cnt')
+subjects_dir = op.join(data_path, 'subjects')
 
 io_dir = op.dirname(_MNE_IO_FILE)
 kit_dir = op.join(io_dir, 'kit', 'tests', 'data')
@@ -1344,6 +1346,39 @@ def test_set_montage_coord_frame_in_head_vs_unknown():
         _get_dig_montage_pos(montage_in_unknown_with_fid),
         [[0, 1, 2], [3, 4, 5], [6, 7, 8]],
     )
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('ch_type', ('eeg', 'ecog', 'seeg', 'dbs'))
+def test_montage_head_frame(ch_type):
+    """Test that head frame is set properly."""
+    # gh-9446
+    data = np.random.randn(2, 100)
+    info = create_info(['a', 'b'], 512, ch_type)
+    coord_frame = getattr(
+        FIFF, f'FIFFV_COORD_{"HEAD" if ch_type == "eeg" else "UNKNOWN"}')
+    for ch in info['chs']:
+        assert ch['coord_frame'] == coord_frame
+    raw = RawArray(data, info)
+    ch_pos = dict(a=[-0.00250136, 0.04913788, 0.05047056],
+                  b=[-0.00528394, 0.05066484, 0.05061559])
+    lpa, nasion, rpa = get_mni_fiducials(
+        'fsaverage', subjects_dir=subjects_dir)
+    lpa, nasion, rpa = lpa['r'], nasion['r'], rpa['r']
+    montage = make_dig_montage(
+        ch_pos, coord_frame='mri', nasion=nasion, lpa=lpa, rpa=rpa)
+    mri_head_t = compute_native_head_t(montage)
+    raw.set_montage(montage)
+    pos = apply_trans(mri_head_t, np.array(list(ch_pos.values())))
+    for p, ch in zip(pos, raw.info['chs']):
+        assert ch['coord_frame'] == FIFF.FIFFV_COORD_HEAD
+        assert_allclose(p, ch['loc'][:3])
+
+    # Also test that including channels in the montage that will not have their
+    # positions set will emit a warning
+    raw.set_channel_types(dict(a='misc'))
+    with pytest.warns(RuntimeWarning, match='Not setting .*of 1 misc channel'):
+        raw.set_montage(montage)
 
 
 def test_set_montage_with_missing_coordinates():
