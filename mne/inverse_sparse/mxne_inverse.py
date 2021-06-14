@@ -284,8 +284,8 @@ def make_stc_from_dipoles(dipoles, src, verbose=None):
 
 
 @verbose
-def mixed_norm(evoked, forward, noise_cov, alpha='sure', loose='auto', depth=0.8,
-               maxit=3000, tol=1e-4, active_set_size=10,
+def mixed_norm(evoked, forward, noise_cov, alpha='sure', loose='auto',
+               depth=0.8, maxit=3000, tol=1e-4, active_set_size=10,
                debias=True, time_pca=True, weights=None, weights_min=0.,
                solver='auto', n_mxne_iter=1, return_residual=False,
                return_as_dipoles=False, dgap_freq=10, rank=None, pick_ori=None,
@@ -864,7 +864,8 @@ def _compute_mxne_sure(M, gain, alpha_grid, sigma, n_mxne_iter, maxit, tol,
     sure_path = np.empty(len(alpha_grid))
 
     rng = np.random.RandomState(random_state)
-    eps = 2 * sigma / (M.shape[0] ** 0.3)  # See Deledalle et al. 20214 Sec. 5.1
+    # See Deledalle et al. 20214 Sec. 5.1
+    eps = 2 * sigma / (M.shape[0] ** 0.3)
     delta = rng.randn(*M.shape)
 
     coefs_grid_1, coefs_grid_2, active_sets = _fit_on_grid(gain, M, eps, delta)
