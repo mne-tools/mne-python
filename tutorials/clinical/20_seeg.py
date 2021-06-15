@@ -136,7 +136,7 @@ epochs.set_channel_types(
 ###############################################################################
 # Let's check to make sure everything is aligned.
 #
-# ..note:: The most rostral electrode in the temporal lobe is outside the
+# .. note: The most rostral electrode in the temporal lobe is outside the
 #          fsaverage template brain. This is not ideal but it is the best that
 #          the linear talairach transform can accomplish. A more complex
 #          transform is necessary for more accurate warping.
