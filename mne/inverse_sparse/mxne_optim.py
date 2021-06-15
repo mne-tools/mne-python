@@ -471,11 +471,9 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
     dgap_freq : int
         The duality gap is computed every dgap_freq iterations of the solver on
         the active set.
-    active_set_init : array, shape (active_set_size,) or None
+    active_set_init : array, shape (n_dipoles,) or None
         The initial active set (boolean array) used at the first iteration.
         If None, the usual active set strategy is applied. Note that
-        active_set_size is the size of the active set after the first
-        reweighting iteration.
     X_init : array, shape (n_dipoles, n_times) or None
         The initial weight matrix used for warm starting the solver. If None,
         the weights are initialized at zero.
