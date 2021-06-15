@@ -85,7 +85,7 @@ epochs = mne.Epochs(raw, events, event_id=event_id['onset'],
                     tmin=13, tmax=13 + epoch_length, baseline=None)
 
 # And then load data and downsample.
-# .. note ::
+# .. note::
 #   This is just to save execution time in this example, you should
 #   not need to downsample in general!
 epochs.load_data()
