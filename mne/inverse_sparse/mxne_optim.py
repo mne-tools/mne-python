@@ -473,7 +473,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
         the active set.
     active_set_init : array, shape (n_dipoles,) or None
         The initial active set (boolean array) used at the first iteration.
-        If None, the usual active set strategy is applied. Note that
+        If None, the usual active set strategy is applied.
     X_init : array, shape (n_dipoles, n_times) or None
         The initial weight matrix used for warm starting the solver. If None,
         the weights are initialized at zero.
