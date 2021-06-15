@@ -6,7 +6,7 @@
 import os.path as op
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_allclose,
-                           assert_array_less, assert_equal, assert_array_equal)
+                           assert_array_less, assert_array_equal)
 import pytest
 
 import mne
@@ -381,7 +381,7 @@ def test_mxne_inverse_sure_synthetic(n_sensors, n_dipoles, n_times, nnz, corr,
                                           active_set_size=10, debias=True,
                                           solver="auto", dgap_freq=10,
                                           random_state=0, verbose=False)
-    assert_equal(np.count_nonzero(active_set, axis=-1), n_orient * nnz)
+    assert np.count_nonzero(active_set, axis=-1) == n_orient * nnz
 
 
 @testing.requires_testing_data

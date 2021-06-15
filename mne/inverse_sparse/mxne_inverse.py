@@ -11,7 +11,8 @@ from ..minimum_norm.inverse import (combine_xyz, _prepare_forward,
 from ..forward import is_fixed_orient
 from ..io.pick import pick_channels_evoked
 from ..io.proj import deactivate_proj
-from ..utils import logger, verbose, _check_depth, _check_option, sum_squared
+from ..utils import (logger, verbose, _check_depth, _check_option, sum_squared,
+                     _validate_type, check_random_state)
 from ..dipole import Dipole
 
 from .mxne_optim import (mixed_norm_solver, iterative_mixed_norm_solver, _Phi,
@@ -289,7 +290,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha='sure', loose='auto',
                debias=True, time_pca=True, weights=None, weights_min=0.,
                solver='auto', n_mxne_iter=1, return_residual=False,
                return_as_dipoles=False, dgap_freq=10, rank=None, pick_ori=None,
-               sure_alpha_grid="auto", random_state=0, verbose=None):
+               sure_alpha_grid="auto", random_state=None, verbose=None):
     """Mixed-norm estimate (MxNE) and iterative reweighted MxNE (irMxNE).
 
     Compute L1/L2 mixed-norm solution :footcite:`GramfortEtAl2012` or L0.5/L2
@@ -358,7 +359,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha='sure', loose='auto',
         .. versionadded:: 0.24
     random_state : int | None
         The random state used in a random number generator for delta and
-        epsilon used for the SURE computation. Defaults to 0.
+        epsilon used for the SURE computation. Defaults to None.
 
         .. versionadded:: 0.24
     %(verbose)s
@@ -380,7 +381,10 @@ def mixed_norm(evoked, forward, noise_cov, alpha='sure', loose='auto',
     .. footbibliography::
     """
     from scipy import linalg
-    if not(alpha == "sure" or 0. <= alpha < 100.):
+    _validate_type(alpha, ('numeric', str), 'alpha')
+    if isinstance(alpha, str):
+        _check_option('alpha', alpha, ('sure',))
+    elif not 0. <= alpha < 100:
         raise ValueError('If not equal to "sure" alpha must be in [0, 100). '
                          'Got alpha = %s' % alpha)
     if n_mxne_iter < 1:
@@ -865,7 +869,7 @@ def _compute_mxne_sure(M, gain, alpha_grid, sigma, n_mxne_iter, maxit, tol,
 
     sure_path = np.empty(len(alpha_grid))
 
-    rng = np.random.RandomState(random_state)
+    rng = check_random_state(random_state)
     # See Deledalle et al. 20214 Sec. 5.1
     eps = 2 * sigma / (M.shape[0] ** 0.3)
     delta = rng.randn(*M.shape)
