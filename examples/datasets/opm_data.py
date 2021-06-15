@@ -93,7 +93,7 @@ mne.viz.set_3d_view(figure=fig, azimuth=45, elevation=60, distance=0.4,
 
 # Fit dipoles on a subset of time points
 with mne.use_coil_def(coil_def_fname):
-    dip_opm, _ = mne.fit_dipole(evoked.copy().crop(0.015, 0.080),
+    dip_opm, _ = mne.fit_dipole(evoked.copy().crop(0.040, 0.080),
                                 cov, bem, trans, verbose=True)
 idx = np.argmax(dip_opm.gof)
 print('Best dipole at t=%0.1f ms with %0.1f%% GOF'
@@ -124,4 +124,5 @@ stc = mne.minimum_norm.apply_inverse(
 # Plot source estimate at time of best dipole fit
 brain = stc.plot(hemi='rh', views='lat', subjects_dir=subjects_dir,
                  initial_time=dip_opm.times[idx],
-                 clim=dict(kind='percent', lims=[99, 99.9, 99.99]))
+                 clim=dict(kind='percent', lims=[99, 99.9, 99.99]),
+                 size=(400, 300), background='w')
