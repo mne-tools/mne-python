@@ -346,7 +346,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha='sure', loose='auto',
         .. versionadded:: 0.18
     %(pick_ori)s
     sure_alpha_grid : array | "auto"
-        If "auto", the SURE is evaluted along 15 uniformly distributed
+        If "auto", the SURE is evaluated along 15 uniformly distributed
         alphas between alpha_max and 0.1 * alpha_max. If array, the
         grid is directly specified. Ignored if alpha is not "sure".
         Defaults to `'auto'`.

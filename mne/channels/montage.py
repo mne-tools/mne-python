@@ -36,7 +36,7 @@ from ..io.pick import pick_types, _picks_to_idx, channel_type
 from ..io.constants import FIFF, CHANNEL_LOC_ALIASES
 from ..utils import (warn, copy_function_doc_to_method_doc, _pl, verbose,
                      _check_option, _validate_type, _check_fname, _on_missing,
-                     fill_doc)
+                     fill_doc, _docdict)
 
 from ._dig_montage_utils import _read_dig_montage_egi
 from ._dig_montage_utils import _parse_brainvision_dig_montage
@@ -805,7 +805,7 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
     del picks
     ref_pos = [ch['loc'][3:6] for ch in chs]
 
-    # keep reference location from EEG/ECoG/SEEG/DBS channels if they
+    # keep reference location from EEG-like channels if they
     # already exist and are all the same.
     custom_eeg_ref_dig = False
     # Note: ref position is an empty list for fieldtrip data
@@ -894,14 +894,21 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
             ch_pos[info_names_use[ii]] = [np.nan] * 3
     del info_names
 
+    assert len(non_names_use) == len(non_names)
+    # There are no issues here with fNIRS being in non_names_use because
+    # these names are like "D1_S1_760" and the ch_pos for a fNIRS montage
+    # will have entries "D1" and "S1".
     extra = np.where([non in ch_pos for non in non_names_use])[0]
     if len(extra):
-        types = '/'.join(sorted(set(channel_type(info, ii) for ii in extra)))
+        types = '/'.join(sorted(set(
+            channel_type(info, non_picks[ii]) for ii in extra)))
         names = [non_names[ii] for ii in extra]
         warn(f'Not setting position{_pl(extra)} of {len(extra)} {types} '
              f'channel{_pl(extra)} found in montage:\n{names}\n'
-             'Consider setting the channel types to be of EEG/sEEG/ECoG/DBS '
-             'using inst.set_channel_types before calling inst.set_montage.')
+             'Consider setting the channel types to be of '
+             f'{_docdict["montage_types"]} '
+             'using inst.set_channel_types before calling inst.set_montage, '
+             'or omit these channels when creating your montage.')
 
     for ch, use in zip(chs, info_names_use):
         # Next line modifies info['chs'][#]['loc'] in place

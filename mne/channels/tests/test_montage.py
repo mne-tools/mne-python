@@ -1380,6 +1380,13 @@ def test_montage_head_frame(ch_type):
     with pytest.warns(RuntimeWarning, match='Not setting .*of 1 misc channel'):
         raw.set_montage(montage)
 
+    # and with a bunch of bad types
+    raw = read_raw_fif(fif_fname)
+    ch_pos = {ch_name: np.zeros(3) for ch_name in raw.ch_names}
+    mon = make_dig_montage(ch_pos, coord_frame='head')
+    with pytest.warns(RuntimeWarning, match='316 eog/grad/mag/stim channels'):
+        raw.set_montage(mon)
+
 
 def test_set_montage_with_missing_coordinates():
     """Test set montage with missing coordinates."""

@@ -251,7 +251,7 @@ report.save('report_coreg.html', overwrite=True)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # Now we see how :class:`~mne.Report` handles :class:`~mne.SourceEstimate`
-# data. The following will produce a :term:`stc` plot with vertex
+# data. The following will produce a :term:`STC` plot with vertex
 # time courses. In this scenario, we also demonstrate how to use the
 # :meth:`mne.viz.Brain.screenshot` method to save the figs in a slider.
 
