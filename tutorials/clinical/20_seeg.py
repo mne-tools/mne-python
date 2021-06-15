@@ -65,12 +65,15 @@ elec_df = pd.read_csv(misc_path + '/seeg/sample_seeg_electrodes.tsv',
 ch_names = elec_df['name'].tolist()
 ch_coords = elec_df[['R', 'A', 'S']].to_numpy(dtype=float)
 
-# convert to MNI
-mri_ras_t = mne.source_space._read_mri_info(
-    misc_path + '/seeg/sample_seeg_T1.mgz')[2]
+# We want to get from Freesurfer surface RAS ('mri') to MNI ('mni_tal').
+# The taliarach.xfm file only gives us RAS (non-zero origin) ('ras')
+# to MNI ('mni_tal') so we need to get the ras->mri transform
+# from the MRI headers.
 ras_mni_t = mne.transforms.Transform(
     'ras', 'mni_tal', mne.transforms._read_fs_xfm(
         misc_path + '/seeg/sample_seeg_talairach.xfm')[0])
+mri_ras_t = mne.source_space._read_mri_info(
+    misc_path + '/seeg/sample_seeg_T1.mgz', units='mm')[2]
 mri_mni_t = mne.transforms.combine_transforms(
     mri_ras_t, ras_mni_t, 'mri', 'mni_tal')
 ch_coords = mne.transforms.apply_trans(mri_mni_t, ch_coords)
@@ -131,6 +134,11 @@ epochs.set_channel_types(
 
 ###############################################################################
 # Let's check to make sure everything is aligned.
+#
+# ..note:: The orbitofrontal electrode is outside the fsaverage template brain.
+#          This is not ideal but it is the best that a linear transform can
+#          accomplish. A more complex transform is necessary for more accurate
+#          warping.
 
 fig = mne.viz.plot_alignment(epochs.info, trans, 'fsaverage',
                              subjects_dir=subjects_dir, show_axes=True,
