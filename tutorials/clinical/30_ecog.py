@@ -87,7 +87,7 @@ epochs = mne.Epochs(raw, events, event_id=event_id['onset'],
 # And then load data and downsample.
 # .. note ::
 #   This is just to save execution time in this example, you should
-#   not need to do this in general!
+#   not need to downsample in general!
 epochs.load_data()
 epochs.resample(200)  # Hz, will also load the data for us
 
