@@ -42,6 +42,8 @@ from mne.datasets import fetch_fsaverage
 
 print(__doc__)
 
+np.set_printoptions(suppress=True)  # suppress scientific notation
+
 # paths to mne datasets - sample sEEG and FreeSurfer's fsaverage subject
 # which is in MNI space
 misc_path = mne.datasets.misc.data_path()
@@ -61,7 +63,17 @@ fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)  # downloads if needed
 elec_df = pd.read_csv(misc_path + '/seeg/sample_seeg_electrodes.tsv',
                       sep='\t', header=0, index_col=None)
 ch_names = elec_df['name'].tolist()
-ch_coords = elec_df[['x', 'y', 'z']].to_numpy(dtype=float)
+ch_coords = elec_df[['R', 'A', 'S']].to_numpy(dtype=float)
+
+# convert to MNI
+mri_ras_t = mne.source_space._read_mri_info(
+    misc_path + '/seeg/sample_seeg_T1.mgz')[2]
+ras_mni_t = mne.transforms.Transform(
+    'ras', 'mni_tal', mne.transforms._read_fs_xfm(
+        misc_path + '/seeg/sample_seeg_talairach.xfm')[0])
+mri_mni_t = mne.transforms.combine_transforms(
+    mri_ras_t, ras_mni_t, 'mri', 'mni_tal')
+ch_coords = mne.transforms.apply_trans(mri_mni_t, ch_coords)
 
 # the test channel coordinates were in mm, so we convert them to meters
 ch_coords = ch_coords / 1000.
@@ -99,33 +111,35 @@ print(trans)
 # time-series data and set the montage to the raw data.
 
 # first we'll load in the sample dataset
-raw = mne.io.read_raw_edf(misc_path + '/seeg/sample_seeg.edf')
+raw = mne.io.read_raw(misc_path + '/seeg/sample_seeg_ieeg.fif')
 
 # drop bad channels
 raw.info['bads'].extend([ch for ch in raw.ch_names if ch not in ch_names])
 raw.load_data()
 raw.drop_channels(raw.info['bads'])
-raw.crop(0, 2)  # just process 2 sec of data for speed
+events, event_id = mne.events_from_annotations(raw)
+epochs = mne.Epochs(raw, events, event_id, baseline=None)
+epochs = epochs['Response'][0]  # just process one epoch of data for speed
 
 # attach montage
-raw.set_montage(montage)
+epochs.set_montage(montage)
 
 # set channel types to sEEG (instead of EEG) that have actual positions
-raw.set_channel_types(
+epochs.set_channel_types(
     {ch_name: 'seeg' if np.isfinite(ch_pos[ch_name]).all() else 'misc'
      for ch_name in raw.ch_names})
 
 ###############################################################################
 # Let's check to make sure everything is aligned.
 
-fig = mne.viz.plot_alignment(raw.info, trans, 'fsaverage',
+fig = mne.viz.plot_alignment(epochs.info, trans, 'fsaverage',
                              subjects_dir=subjects_dir, show_axes=True,
                              surfaces=["pial", "head"])
 
 ###############################################################################
-# Next, we'll get the raw data and plot its amplitude over time.
+# Next, we'll get the epoch data and plot its amplitude over time.
 
-raw.plot()
+epochs.plot()
 
 ###############################################################################
 # We can visualize this raw data on the ``fsaverage`` brain (in MNI space) as
@@ -139,7 +153,7 @@ fname_src = op.join(subjects_dir, 'fsaverage', 'bem',
                     'fsaverage-vol-5-src.fif')
 vol_src = mne.read_source_spaces(fname_src)
 
-evoked = mne.EvokedArray(raw.get_data(), raw.info).crop(0, 1)  # shorter
+evoked = epochs.average()
 stc = mne.stc_near_sensors(
     evoked, trans, subject, subjects_dir=subjects_dir, src=vol_src,
     verbose='error')  # ignore missing electrode warnings
