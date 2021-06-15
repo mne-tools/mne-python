@@ -122,7 +122,7 @@ raw.info['bads'].extend([ch for ch in raw.ch_names if ch not in ch_names])
 raw.load_data()
 raw.drop_channels(raw.info['bads'])
 events, event_id = mne.events_from_annotations(raw)
-epochs = mne.Epochs(raw, events, event_id, baseline=None)
+epochs = mne.Epochs(raw, events, event_id, detrend=1, baseline=None)
 epochs = epochs['Response'][0]  # just process one epoch of data for speed
 
 # attach montage
@@ -136,10 +136,10 @@ epochs.set_channel_types(
 ###############################################################################
 # Let's check to make sure everything is aligned.
 #
-# ..note:: The orbitofrontal electrode is outside the fsaverage template brain.
-#          This is not ideal but it is the best that a linear transform can
-#          accomplish. A more complex transform is necessary for more accurate
-#          warping.
+# ..note:: The most rostral electrode in the temporal lobe is outside the
+#          fsaverage template brain. This is not ideal but it is the best that
+#          the linear talairach transform can accomplish. A more complex
+#          transform is necessary for more accurate warping.
 
 fig = mne.viz.plot_alignment(epochs.info, trans, 'fsaverage',
                              subjects_dir=subjects_dir, show_axes=True,
