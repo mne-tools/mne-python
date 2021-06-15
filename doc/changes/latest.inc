@@ -47,7 +47,7 @@ Enhancements
 
 - Add projections when printing a :class:`mne.Info` in the notebook (:gh:`9403` by `Alex Gramfort`_)
 
-- Add support for SURE parameter selection in :func:`mne.inverse_sparse.mxne_inverse` (:gh:`9430` by **new contributor** `Pierre-Antoine Bannier`_ and `Alex Gramfort`_)
+- Add support for SURE parameter selection in :func:`mne.inverse_sparse.mixed_norm` (:gh:`9430` by **new contributor** `Pierre-Antoine Bannier`_ and `Alex Gramfort`_)
 
 - Add new function :func:`mne.bem.make_scalp_surfaces` to compute scalp surfaces for coregistration (:gh:`9463` by `Alex Gramfort`_)
 
