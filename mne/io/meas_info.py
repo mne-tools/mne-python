@@ -143,7 +143,7 @@ class MontageMixin(object):
     @verbose
     def set_montage(self, montage, match_case=True, match_alias=False,
                     on_missing='raise', verbose=None):
-        """Set EEG sensor configuration and head digitization.
+        """Set %(montage_types)s channel positions and digitization points.
 
         Parameters
         ----------
@@ -161,6 +161,12 @@ class MontageMixin(object):
         Notes
         -----
         Operates in place.
+
+        .. warning::
+            Only %(montage_types)s channels can have their positions set using
+            a montage. Other channel types (e.g., MEG channels) should have
+            their positions defined properly using their data reading
+            functions.
         """
         # How to set up a montage to old named fif file (walk through example)
         # https://gist.github.com/massich/f6a9f4799f1fbeb8f5e8f8bc7b07d3df
