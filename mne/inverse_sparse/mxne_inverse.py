@@ -303,11 +303,14 @@ def mixed_norm(evoked, forward, noise_cov, alpha='sure', loose='auto',
         Forward operator.
     noise_cov : instance of Covariance
         Noise covariance to compute whitener.
-    alpha : float | 'sure'
+    alpha : float | str
         Regularization parameter. If float it should be in the range [0, 100):
         0 means no regularization, 100 would give 0 active dipole.
-        If 'sure' it uses the SURE method from :footcite:`DeledalleEtAl2014`.
-        Defaults to 'sure'.
+        If ``'sure'`` (default), the SURE method from
+        :footcite:`DeledalleEtAl2014` will be used.
+
+        .. versionchanged:: 0.24
+          The default was changed to ``'sure'``.
     %(loose)s
     %(depth)s
     maxit : int
@@ -347,11 +350,10 @@ def mixed_norm(evoked, forward, noise_cov, alpha='sure', loose='auto',
 
         .. versionadded:: 0.18
     %(pick_ori)s
-    sure_alpha_grid : array | "auto"
-        If "auto", the SURE is evaluated along 15 uniformly distributed
-        alphas between alpha_max and 0.1 * alpha_max. If array, the
+    sure_alpha_grid : array | str
+        If ``'auto'`` (default), the SURE is evaluated along 15 uniformly
+        distributed alphas between alpha_max and 0.1 * alpha_max. If array, the
         grid is directly specified. Ignored if alpha is not "sure".
-        Defaults to 'auto'.
 
         .. versionadded:: 0.24
     random_state : int | None
