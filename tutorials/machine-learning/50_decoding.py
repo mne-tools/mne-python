@@ -411,7 +411,7 @@ brain = stc.plot(hemi='split', views=('lat', 'med'), initial_time=0.1,
 #
 # .. topic:: Examples
 #
-#     * :ref:`tut_dec_st_source`
+#     * :ref:`tut-dec-st-source`
 #
 # Exercise
 # ========

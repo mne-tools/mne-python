@@ -277,7 +277,7 @@ the MEG center in La Timone hospital in Marseille.
 
 .. topic:: Examples
 
-    * :ref:`tut_phantom_4Dbti`
+    * :ref:`tut-phantom-4Dbti`
 
 OPM
 ===

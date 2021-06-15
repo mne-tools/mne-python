@@ -136,7 +136,7 @@ mne.set_config('foo', None)  # unsetting a key deletes var from environment
 print('foo' in os.environ.keys())
 
 ###############################################################################
-# .. _tut_logging:
+# .. _tut-logging:
 #
 # Logging
 # ^^^^^^^

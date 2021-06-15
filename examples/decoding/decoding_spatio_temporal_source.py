@@ -1,5 +1,5 @@
 """
-.. _tut_dec_st_source:
+.. _tut-dec-st-source:
 
 ==========================
 Decoding source space data

@@ -11,7 +11,7 @@ load, query, subselect, export, and plot data from a :class:`~mne.io.Raw`
 object. For more info on visualization of :class:`~mne.io.Raw` objects, see
 :ref:`tut-visualize-raw`. For info on creating a :class:`~mne.io.Raw` object
 from simulated data in a :class:`NumPy array <numpy.ndarray>`, see
-:ref:`tut_creating_data_structures`.
+:ref:`tut-creating-data-structures`.
 
 As usual we'll start by importing the modules we need:
 """
