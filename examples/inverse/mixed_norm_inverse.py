@@ -60,7 +60,7 @@ dipoles, residual = mixed_norm(
     evoked, forward, cov, alpha, loose=loose, depth=depth, maxit=3000,
     tol=1e-4, active_set_size=10, debias=False, weights=stc_dspm,
     weights_min=8., n_mxne_iter=n_mxne_iter, return_residual=True,
-    return_as_dipoles=True, verbose=True)
+    return_as_dipoles=True, verbose=True, random_state=0)
 
 t = 0.083
 tidx = evoked.time_as_index(t)
