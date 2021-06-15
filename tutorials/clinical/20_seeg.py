@@ -29,6 +29,7 @@ how to visualize surface grid channels on the brain.
 
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Adam Li <adam2392@gmail.com>
+#          Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: BSD (3-clause)
 
