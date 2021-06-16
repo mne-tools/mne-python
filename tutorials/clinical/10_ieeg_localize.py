@@ -108,6 +108,27 @@ viewer._axes[0].annotate('AC', (137, 108), xytext=(246, 75),
                                          headwidth=5))
 
 ###############################################################################
+# Now we're ready for the most time consuming step of the process; the
+# freesurfer reconstruction. This process segments out the brain from the
+# rest of the image and determines which voxels contain each brain area
+# based on a template deformation. This process takes approximately 8 hours
+# so it is recommended to plan accordingly.
+
+"""
+.. code-block:: bash
+
+    $ export SUBJECT=sample_seeg
+    $ export SUBJECTS_DIR=$MY_DATA_DIRECTORY
+    $ recon-all -subjid $SUBJECT -sd $SUBJECTS_DIR \
+      -i $MISC_PATH/seeg/sample_seeg_T1.mgz -all -deface
+
+.. note::
+
+    You may need to include an additional ``-cw256`` flag which can be added
+    to the end of the recon-all command if your scan is not 256 x 256 x 256
+    voxels.
+
+"""
 
 ###############################################################################
 # Let's load our CT image and visualize it with the T1 image.
@@ -143,7 +164,7 @@ axes[2].set_title('CT aligned to MR')
 ###############################################################################
 # Let's unalign our CT data so that we can see how to properly align it.
 
-unalign_affine = np.array([
+'''unalign_affine = np.array([
     [0.99833131, -0.02218569, 0.05331175, -1.79438782],
     [0.02443217, 0.99882448, -0.04186315, 6.40490723],
     [-0.05232033, 0.04309582, 0.99769992, 2.46591187],
@@ -165,4 +186,4 @@ reg_img, reg_affine = affine_registration(
     level_iters=[100, 100, 10],
     sigmas=[3.0, 1.0, 0.0],
     factors=[4, 2, 1])
-CT_aligned = nib.MGHImage(reg_img, reg_affine)
+CT_aligned = nib.MGHImage(reg_img, reg_affine)'''
