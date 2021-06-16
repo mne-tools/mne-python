@@ -63,11 +63,14 @@ fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)  # downloads if needed
 # image is already aligned to the anterior commissue and posterior commissure
 # (ACPC). This is recommended to do before starting. This can be done using
 # freesurfer's freeview, e.g.
-#
-# .. code-block:: bash
-#
-#     $ freeview $MISC_PATH/seeg/sample_seeg_T1.mgz
-#
+
+"""
+.. code-block:: bash
+
+    $ freeview $MISC_PATH/seeg/sample_seeg_T1.mgz
+
+"""
+
 # And then interact with the graphical user interface:
 #
 # First, it is recommended to change the cursor style to long, this can be done
@@ -84,32 +87,27 @@ fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)  # downloads if needed
 #     Be sure to set the text entry box labeled RAS (not TkReg RAS) to
 #     `0 0 0` before beginning the transform.
 #
-# Then translate the image until it aligns with the ACPC as shown below.
-# Be sure to use both the rotate and the translate menus
+# Then translate the image until the crosshairs meet on the AC and
+# run through the PC as shown in the plot. The eyes should be in
+# the ACPC plane and the image should be rotated until they are symmetrical,
+# and the crosshairs should transect the midline of the brain.
+# Be sure to use both the rotate and the translate menus and save the volume
+# after you're finished using ``Save Volume As`` in the transform popup
 # :footcite:`HamiltonEtAl2017`.
 
 T1 = nib.freesurfer.load(misc_path + '/seeg/sample_seeg_T1.mgz')
-T1_data = T1.get_fdata()
+viewer = T1.orthoview()
+viewer.set_position(0, 9.9, 5.8)
+viewer._axes[0].annotate('PC', (107, 108), xytext=(10, 75),
+                         color='white', horizontalalignment='center',
+                         arrowprops=dict(facecolor='white', lw=0.5, width=2,
+                                         headwidth=5))
+viewer._axes[0].annotate('AC', (137, 108), xytext=(246, 75),
+                         color='white', horizontalalignment='center',
+                         arrowprops=dict(facecolor='white', lw=0.5, width=2,
+                                         headwidth=5))
 
-fig, axes = plt.subplots(2, 2, figsize=(8, 8))
-for ax in axes.flatten():
-    ax.axis('off')
-axes[0, 0].imshow(T1_data[128], cmap='gray')
-axes[0, 0].plot([128, 128], [0, 256], color='r')
-axes[0, 0].set_xlabel('Inferior')
-axes[0, 0].set_ylabel('Caudal')
-axes[0, 0].set_title('Sagittal')
-axes[0, 1].imshow(T1_data[:, 128][:, ::-1].T, cmap='gray')
-axes[0, 1].set_xlabel('Caudal')
-axes[0, 1].set_ylabel('Left')
-axes[0, 1].set_title('Transverse')
-axes[1, 0].imshow(T1_data[:, :, 128].T, cmap='gray')
-axes[1, 0].set_xlabel('Inferior')
-axes[1, 0].set_ylabel('Left')
-axes[1, 0].set_title('Coronal')
-for ax in (axes[0, 0], axes[0, 1], axes[1, 0]):
-    ax.plot([128, 128], [0, 256], color='r')
-    ax.plot([0, 256], [128, 128], color='r')
+###############################################################################
 
 ###############################################################################
 # Let's load our CT image and visualize it with the T1 image.
@@ -127,7 +125,7 @@ for ax in axes:
     ax.axis('off')
 axes[0].imshow(T1.get_fdata()[128], cmap='gray')
 axes[0].set_title('MR')
-axes[1].imshow(CT.get_fdata()[128], cmap='gray', alpha=0.5)
+axes[1].imshow(CT.get_fdata()[128], cmap='gray')
 axes[1].set_title('CT')
 axes[2].imshow(T1.get_fdata()[128], cmap='gray')
 axes[2].imshow(CT_data[128], cmap='gist_heat', alpha=0.5)
