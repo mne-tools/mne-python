@@ -744,18 +744,26 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         bad_msg = ('{kind}["{key}"] == {new} {op} {old} (old value), new '
                    '{kind} values must be at least as stringent as '
                    'previous ones')
-        for key in set(reject.keys()).union(old_reject.keys()):
-            old = old_reject.get(key, np.inf)
-            new = reject.get(key, np.inf)
-            if new > old:
-                raise ValueError(bad_msg.format(kind='reject', key=key,
-                                                new=new, old=old, op='>'))
-        for key in set(flat.keys()).union(old_flat.keys()):
-            old = old_flat.get(key, -np.inf)
-            new = flat.get(key, -np.inf)
-            if new < old:
-                raise ValueError(bad_msg.format(kind='flat', key=key,
-                                                new=new, old=old, op='<'))
+
+        # copy thresholds for channel types that were used previously, but not
+        # passed this time
+        for key in set(old_reject) - set(reject):
+            reject[key] = old_reject[key]
+        # make sure new thresholds are at least as stringent as the old ones
+        for key in reject:
+            if key in old_reject and reject[key] > old_reject[key]:
+                raise ValueError(
+                    bad_msg.format(kind='reject', key=key, new=reject[key],
+                                   old=old_reject[key], op='>'))
+
+        # same for flat thresholds
+        for key in set(old_flat) - set(flat):
+            flat[key] = old_flat[key]
+        for key in flat:
+            if key in old_flat and flat[key] < old_flat[key]:
+                raise ValueError(
+                    bad_msg.format(kind='flat', key=key, new=flat[key],
+                                   old=old_flat[key], op='<'))
 
         # after validation, set parameters
         self._bad_dropped = False
