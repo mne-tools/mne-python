@@ -216,7 +216,7 @@ reg_img, reg_affine = affine_registration(
     sigmas=[3.0, 1.0, 0.0],
     factors=[4, 2, 1])
 
-CT_aligned = nib.MGHImage(reg_img, reg_affine)
+CT_aligned = nib.Nifti1Image(reg_img, reg_affine)
 CT_data = CT_aligned.get_fdata().copy()
 CT_data[CT_data < np.quantile(CT_data, 0.95)] = np.nan
 
@@ -284,8 +284,8 @@ renderer.show()
 #     :ref:`tut-working-with-seeg` because it allows for non-linear warping.
 
 # load freesurfer average T1 image
-fs_T1 = nib.freesurfer.load(
-    op.join(subjects_dir, 'fsaverage', 'mri', 'T1.mgz'))
+template_T1 = nib.freesurfer.load(
+    op.join(subjects_dir, subject, 'mri', 'T1.mgz'))
 
 # convert electrode positions from surface RAS to voxels
 ch_coords = mne.transforms.apply_trans(
@@ -295,9 +295,9 @@ ch_coords = mne.transforms.apply_trans(
 # but should be set to [10000, 1000, 100] (default) for actual analyses
 reg_img, reg_affine = affine_registration(
     moving=T1.get_fdata(),
-    static=fs_T1.get_fdata(),
+    static=template_T1.get_fdata(),
     moving_affine=T1.affine,
-    static_affine=fs_T1.affine,
+    static_affine=template_T1.affine,
     nbins=32,
     metric='MI',
     pipeline=[center_of_mass, translation, rigid, affine],
@@ -308,9 +308,9 @@ reg_img, reg_affine = affine_registration(
 # Compute registration
 metric = CCMetric(3)
 sdr = SymmetricDiffeomorphicRegistration(metric, level_iters=[100, 10, 5])
-mapping = sdr.optimize(static=fs_T1.get_fdata(),
+mapping = sdr.optimize(static=template_T1.get_fdata(),
                        moving=T1.get_fdata(),
-                       static_grid2world=fs_T1.affine,
+                       static_grid2world=template_T1.affine,
                        moving_grid2world=T1.affine,
                        prealign=reg_affine)
 # Apply mapping to electrode contact positions
@@ -319,29 +319,23 @@ for i, xyz in enumerate(ch_coords):
     ch_coords[i] += mapping.forward[x, y, z]
 # convert back to surface RAS but to the template surface RAS this time
 ch_coords = mne.transforms.apply_trans(
-    fs_T1.header.get_vox2ras_tkr(), ch_coords)
+    template_T1.header.get_vox2ras_tkr(), ch_coords)
+
+###############################################################################
+# Let's plot the result. You can compare this to :ref:`tut-working-with-seeg`
+# to see the difference between more complex SDR morph and the linear
+# Talairach transformation.
 
 # load electrophysiology data
 raw = mne.io.read_raw(op.join(misc_path, 'seeg', 'sample_seeg_ieeg.fif'))
 
-# Ideally the nasion/LPA/RPA will also be present from the digitization, here
-# we use fiducials estimated from the subject's FreeSurfer MNI transformation:
-lpa, nasion, rpa = mne.coreg.get_mni_fiducials(
-    subject, subjects_dir=subjects_dir)
-lpa, nasion, rpa = lpa['r'], nasion['r'], rpa['r']
-
 # Create a montage with our new points
 ch_pos = dict(zip(ch_names, ch_coords / 1000))  # mm -> m
-montage = mne.channels.make_dig_montage(
-    ch_pos, coord_frame='mri', nasion=nasion, lpa=lpa, rpa=rpa)
+montage = mne.channels.make_dig_montage(ch_pos, coord_frame='mri_voxel')
 raw.set_montage(montage)
 
-# Get the :term:`trans` that transforms from our MRI coordinate system
-# to the head coordinate frame
-trans = mne.channels.compute_native_head_t(montage)
-
 # plot the resulting alignment
-fig = mne.viz.plot_alignment(raw.info, trans, subject,
+fig = mne.viz.plot_alignment(raw.info, None, subject,
                              subjects_dir=subjects_dir, show_axes=True,
                              surfaces=['pial', 'head'])
 
