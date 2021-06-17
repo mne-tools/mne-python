@@ -183,7 +183,7 @@ fig.tight_layout()
 ###############################################################################
 # Let's unalign our CT data so that we can see how to properly align it.
 
-# Make an affine slightly different than ``CT.affine`` to tranform the image
+# Make an affine slightly different than ``CT.affine`` to transform the image
 unalign_affine = np.array([
     [-1.01, 0.02, -0.01, 128],
     [0.01, -0.02, 1.02, -135],
@@ -345,6 +345,7 @@ fig = mne.viz.plot_alignment(raw.info, trans, subject,
                              subjects_dir=subjects_dir, show_axes=True,
                              surfaces=['pial', 'head'])
 
+###############################################################################
 # References
 # ==========
 #
