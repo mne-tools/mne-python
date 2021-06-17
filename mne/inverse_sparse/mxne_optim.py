@@ -7,6 +7,7 @@ import functools
 from math import sqrt
 
 import numpy as np
+from numba import njit
 
 from .mxne_debiasing import compute_bias
 from ..utils import logger, verbose, sum_squared, warn, _get_blas_funcs
@@ -338,7 +339,9 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
     alpha_lc = alpha / lipschitz_constant
 
     # First make G fortran for faster access to blocks of columns
-    G = np.asfortranarray(G)
+    G = np.ascontiguousarray(G)
+    X = np.ascontiguousarray(X)
+    R = np.ascontiguousarray(R)
     # Ensure these are correct for dgemm
     assert R.dtype == np.float64
     assert G.dtype == np.float64
@@ -349,18 +352,13 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
         last_K_coef = np.empty((K + 1, n_sources, n_times))
         U = np.zeros((K, n_sources * n_times))
     # assert that all the multiplied matrices are fortran contiguous
-    assert X.T.flags.f_contiguous
-    assert R.T.flags.f_contiguous
-    assert G.flags.f_contiguous
+    #assert X.T.flags.f_contiguous
+    #assert R.T.flags.f_contiguous
+    #assert G.flags.f_contiguous
     # storing list of contiguous arrays
-    list_G_j_c = []
-    for j in range(n_positions):
-        idx = slice(j * n_orient, (j + 1) * n_orient)
-        list_G_j_c.append(np.ascontiguousarray(G[:, idx]))
-
     for i in range(maxit):
         _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
-             alpha_lc, list_G_j_c)
+             alpha_lc)
 
         if (i + 1) % dgap_freq == 0:
             _, p_obj, d_obj, _ = dgap_l21(M, G, X[active_set], active_set,
@@ -412,13 +410,19 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
 
     return X, active_set, E
 
+@njit
+def block_soft_thresh(x, u):
+    norm_x = np.linalg.norm(x)
+    if norm_x < u:
+        return np.zeros_like(x), False
+    else:
+        return (1 - u / norm_x) * x, True
 
-def _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
-         alpha_lc, list_G_j_c):
+@njit
+def _bcd(G, X, R, active_set, one_over_lc, n_orient, n_positions, alpha_lc):
     """Implement one full pass of BCD.
-
     BCD stands for Block Coordinate Descent.
-    This function make use of scipy.linalg.get_blas_funcs to speed reasons.
+    This function makes use of numba.njit for speed reasons.
 
     Parameters
     ----------
@@ -439,36 +443,50 @@ def _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
     alpha_lc: array, shape (n_positions, )
         alpha * (Lipschitz constants).
     """
-    X_j_new = np.zeros_like(X[0:n_orient, :], order='C')
-    dgemm = _get_dgemm()
-
-    for j, G_j_c in enumerate(list_G_j_c):
+    for j in range(n_positions):
         idx = slice(j * n_orient, (j + 1) * n_orient)
-        G_j = G[:, idx]
-        X_j = X[idx]
-        dgemm(alpha=one_ovr_lc[j], beta=0., a=R.T, b=G_j, c=X_j_new.T,
-              overwrite_c=True)
-        # X_j_new = G_j.T @ R
-        # Mathurin's trick to avoid checking all the entries
-        was_non_zero = X_j[0, 0] != 0
-        # was_non_zero = np.any(X_j)
-        if was_non_zero:
-            dgemm(alpha=1., beta=1., a=X_j.T, b=G_j_c.T, c=R.T,
-                  overwrite_c=True)
-            # R += np.dot(G_j, X_j)
-            X_j_new += X_j
-        block_norm = sqrt(sum_squared(X_j_new))
-        if block_norm <= alpha_lc[j]:
-            X_j.fill(0.)
-            active_set[idx] = False
-        else:
-            shrink = max(1.0 - alpha_lc[j] / block_norm, 0.0)
-            X_j_new *= shrink
-            dgemm(alpha=-1., beta=1., a=X_j_new.T, b=G_j_c.T, c=R.T,
-                  overwrite_c=True)
-            # R -= np.dot(G_j, X_j_new)
-            X_j[:] = X_j_new
-            active_set[idx] = True
+        G_j = G[:, idx].copy() # needs a copy to preserve C - contiguity
+        X_j = X[idx].copy()
+        X[idx], active_set[idx] = block_soft_thresh(X_j + G_j.T @ R * 
+                                                    one_over_lc[j], alpha_lc[j])
+        if X_j[0, 0] != 0:
+            R += G_j @ X_j
+        if np.all(active_set[idx] == True):
+            R -= G_j @ X[idx]
+
+
+# def _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
+#          alpha_lc, list_G_j_c):
+#     X_j_new = np.zeros_like(X[0:n_orient, :], order='C')
+#     dgemm = _get_dgemm()
+
+#     for j, G_j_c in enumerate(list_G_j_c):
+#         idx = slice(j * n_orient, (j + 1) * n_orient)
+#         G_j = G[:, idx]
+#         X_j = X[idx]
+#         dgemm(alpha=one_ovr_lc[j], beta=0., a=R.T, b=G_j, c=X_j_new.T,
+#               overwrite_c=True)
+#         # X_j_new = G_j.T @ R
+#         # Mathurin's trick to avoid checking all the entries
+#         was_non_zero = X_j[0, 0] != 0
+#         # was_non_zero = np.any(X_j)
+#         if was_non_zero:
+#             dgemm(alpha=1., beta=1., a=X_j.T, b=G_j_c.T, c=R.T,
+#                   overwrite_c=True)
+#             # R += np.dot(G_j, X_j)
+#             X_j_new += X_j
+#         block_norm = sqrt(sum_squared(X_j_new))
+#         if block_norm <= alpha_lc[j]:
+#             X_j.fill(0.)
+#             active_set[idx] = False
+#         else:
+#             shrink = max(1.0 - alpha_lc[j] / block_norm, 0.0)
+#             X_j_new *= shrink
+#             dgemm(alpha=-1., beta=1., a=X_j_new.T, b=G_j_c.T, c=R.T,
+#                   overwrite_c=True)
+#             # R -= np.dot(G_j, X_j_new)
+#             X_j[:] = X_j_new
+#             active_set[idx] = True
 
 
 @verbose
