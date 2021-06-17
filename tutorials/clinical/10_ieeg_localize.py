@@ -322,7 +322,7 @@ ch_coords = mne.transforms.apply_trans(
     fs_T1.header.get_vox2ras_tkr(), ch_coords)
 
 # load electrophysiology data
-raw = mne.io.read_raw(misc_path + '/seeg/sample_seeg_ieeg.fif')
+raw = mne.io.read_raw(op.join(misc_path, 'seeg', 'sample_seeg_ieeg.fif'))
 
 # Ideally the nasion/LPA/RPA will also be present from the digitization, here
 # we use fiducials estimated from the subject's FreeSurfer MNI transformation:
@@ -331,7 +331,7 @@ lpa, nasion, rpa = mne.coreg.get_mni_fiducials(
 lpa, nasion, rpa = lpa['r'], nasion['r'], rpa['r']
 
 # Create a montage with our new points
-ch_pos = dict(zip(ch_names, ch_coords))
+ch_pos = dict(zip(ch_names, ch_coords / 1000))  # mm -> m
 montage = mne.channels.make_dig_montage(
     ch_pos, coord_frame='mri', nasion=nasion, lpa=lpa, rpa=rpa)
 raw.set_montage(montage)
