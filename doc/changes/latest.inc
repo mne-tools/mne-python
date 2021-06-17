@@ -85,6 +85,8 @@ Bugs
 
 - :func:`mne.concatenate_raws` now raises an exception if ``raw.info['dev_head_t']`` differs between files. This behavior can be controlled using the new ``on_mismatch`` parameter (:gh:`9438` by `Richard Höchenberger`_)
 
+- :meth:`mne.Epochs.drop_bad` now lets you reject multiple times, even when only specifying thresholds for a subset of the channel types used in a previous rejection run. Previously, this would raise an exception (:gh:`9484` by `Richard Höchenberger`_)
+
 API changes
 ~~~~~~~~~~~
 - Nothing yet

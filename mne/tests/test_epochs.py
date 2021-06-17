@@ -1459,6 +1459,33 @@ def test_reject_epochs(tmpdir):
     epochs.save(temp_fname, overwrite=True)
     read_epochs(temp_fname)
 
+    # Ensure repeated rejection works, even if applied to only a subset of the
+    # previously-used channel types
+    epochs = Epochs(raw, events1, event_id, tmin, tmax,
+                    reject=reject, flat=flat)
+
+    new_reject = reject.copy()
+    new_flat = flat.copy()
+    del new_reject['grad'], new_reject['eeg'], new_reject['eog']
+    del new_flat['mag']
+
+    # No changes expected
+    epochs_cleaned = epochs.copy().drop_bad(reject=new_reject, flat=new_flat)
+    assert epochs_cleaned.reject == epochs.reject
+    assert epochs_cleaned.flat == epochs.flat
+
+    new_reject['mag'] /= 2
+    new_flat['grad'] *= 2
+    # Only the newly-provided thresholds should be updated, the existing ones
+    # should be kept
+    epochs_cleaned = epochs.copy().drop_bad(reject=new_reject, flat=new_flat)
+    assert epochs_cleaned.reject == dict(mag=new_reject['mag'],
+                                         grad=reject['grad'],
+                                         eeg=reject['eeg'],
+                                         eog=reject['eog'])
+    assert epochs_cleaned.flat == dict(grad=new_flat['grad'],
+                                       mag=flat['mag'])
+
 
 def test_preload_epochs():
     """Test preload of epochs."""

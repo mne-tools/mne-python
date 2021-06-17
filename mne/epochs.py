@@ -746,13 +746,29 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                    'previous ones')
         for key in set(reject.keys()).union(old_reject.keys()):
             old = old_reject.get(key, np.inf)
-            new = reject.get(key, np.inf)
+            if key in old_reject and key not in reject:
+                # The newly-passed `reject` parameter contains fewer channel
+                # types than the previous one. For the omitted channel types,
+                # simply re-use the old thresholds
+                new = old
+                reject[key] = new
+            else:
+                new = reject[key]
+
             if new > old:
                 raise ValueError(bad_msg.format(kind='reject', key=key,
                                                 new=new, old=old, op='>'))
         for key in set(flat.keys()).union(old_flat.keys()):
             old = old_flat.get(key, -np.inf)
-            new = flat.get(key, -np.inf)
+            if key in old_flat and key not in flat:
+                # The newly-passed `flat` parameter contains fewer channel
+                # types than the previous one. For the omitted channel types,
+                # simply re-use the old thresholds
+                new = old
+                flat[key] = new
+            else:
+                new = flat[key]
+
             if new < old:
                 raise ValueError(bad_msg.format(kind='flat', key=key,
                                                 new=new, old=old, op='<'))
