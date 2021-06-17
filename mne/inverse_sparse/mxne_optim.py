@@ -318,7 +318,7 @@ def _mixed_norm_solver_cd(M, G, alpha, lipschitz_constant, maxit=10000,
 @verbose
 def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
                            tol=1e-8, verbose=None, init=None, n_orient=1,
-                           dgap_freq=10):
+                           dgap_freq=10, use_accel=True, K=5):
     """Solve L21 inverse problem with block coordinate descent."""
     n_sensors, n_times = M.shape
     n_sensors, n_sources = G.shape
@@ -344,6 +344,10 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
     assert G.dtype == np.float64
     one_ovr_lc = 1. / lipschitz_constant
 
+    # storing last K coefficient matrices if uses acceleration
+    if use_accel:
+        last_K_coef = np.empty((K + 1, n_sources, n_times))
+        U = np.zeros((K, n_sources * n_times))
     # assert that all the multiplied matrices are fortran contiguous
     assert X.T.flags.f_contiguous
     assert R.T.flags.f_contiguous
@@ -367,6 +371,38 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
             logger.debug("Iteration %d :: p_obj %f :: dgap %f :: n_active %d" %
                          (i + 1, p_obj, gap, np.sum(active_set) / n_orient))
 
+            if use_accel:
+                if i < K + 1:
+                    last_K_coef[i] = X
+                else:
+                    for k in range(K):
+                        last_K_coef[k] = last_K_coef[k + 1]
+                    last_K_coef[K - 1] = X
+
+                    for k in range(K):
+                        U[k] = (last_K_coef[k + 1].ravel() -
+                                last_K_coef[k].ravel())
+                    C = U @ U.T
+
+                    try:
+                        z = np.linalg.solve(C, np.ones(K))
+                        c = z / z.sum()
+                        X_acc = np.sum(last_K_coef[:-1] * c[:, None, None],
+                                       axis=0)
+                        active_set_acc = np.linalg.norm(X_acc, axis=1) != 0
+                        _, p_obj_acc, _, _ = dgap_l21(M, G,
+                                                      X_acc[active_set_acc],
+                                                      active_set_acc, alpha,
+                                                      n_orient)
+                        if p_obj_acc < p_obj:
+                            X = X_acc
+                            active_set = active_set_acc
+                            R = M - G[:, active_set] @ X[active_set]
+                    except np.linalg.LinAlgError:
+                        if verbose:
+                            logger.debug('Anderson acceleration was not used '
+                                         'at iteration %s (singular matrix).'
+                                         % i)
             if gap < tol:
                 logger.debug('Convergence reached ! (gap: %s < %s)'
                              % (gap, tol))
@@ -439,7 +475,7 @@ def _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
 def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
                       active_set_size=50, debias=True, n_orient=1,
                       solver='auto', return_gap=False, dgap_freq=10,
-                      active_set_init=None, X_init=None):
+                      active_set_init=None, X_init=None, use_accel=True, K=5):
     """Solve L1/L2 mixed-norm inverse problem with active set strategy.
 
     See references :footcite:`GramfortEtAl2012,StrohmeierEtAl2016`.
@@ -477,6 +513,13 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
     X_init : array, shape (n_dipoles, n_times) or None
         The initial weight matrix used for warm starting the solver. If None,
         the weights are initialized at zero.
+    use_accel : bool
+        If True (default), Anderson extrapolation from
+        :footcite:`BertrandEtAl2020` will be used. Only available for 'bcd'
+        solver.
+    K : int
+        Number of previous iterates used for Anderson extrapolation.
+        Defaults to 5.
 
     Returns
     -------
@@ -530,7 +573,8 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
         lc = None
     elif solver == 'bcd':
         logger.info("Using block coordinate descent")
-        l21_solver = _mixed_norm_solver_bcd
+        l21_solver = functools.partial(_mixed_norm_solver_bcd,
+                                       use_accel=use_accel, K=K)
         G = np.asfortranarray(G)
         if n_orient == 1:
             lc = np.sum(G * G, axis=0)
@@ -624,7 +668,8 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
 def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
                                 tol=1e-8, verbose=None, active_set_size=50,
                                 debias=True, n_orient=1, dgap_freq=10,
-                                solver='auto', weight_init=None):
+                                solver='auto', weight_init=None,
+                                use_accel=True, K=5):
     """Solve L0.5/L2 mixed-norm inverse problem with active set strategy.
 
     See reference :footcite:`StrohmeierEtAl2016`.
@@ -659,6 +704,13 @@ def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
     weight_init : array, shape (n_dipoles,) or None
         The initial weight used for reweighting the gain matrix. If None, the
         weights are initialized with ones.
+    use_accel : bool
+        If True (default), Anderson extrapolation from
+        :footcite:`BertrandEtAl2020` will be used. Only available for 'bcd'
+        solver.
+    K : int
+        Number of previous iterates used for Anderson extrapolation.
+        Defaults to 5.
 
     Returns
     -------
@@ -700,17 +752,20 @@ def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
                 X, _active_set, _ = mixed_norm_solver(
                     M, G_tmp, alpha, debias=False, n_orient=n_orient,
                     maxit=maxit, tol=tol, active_set_size=active_set_size,
-                    dgap_freq=dgap_freq, solver=solver, verbose=verbose)
+                    dgap_freq=dgap_freq, solver=solver, use_accel=use_accel,
+                    K=K, verbose=verbose)
             else:
                 X, _active_set, _ = mixed_norm_solver(
                     M, G_tmp, alpha, debias=False, n_orient=n_orient,
                     maxit=maxit, tol=tol, active_set_size=None,
-                    dgap_freq=dgap_freq, solver=solver, verbose=verbose)
+                    dgap_freq=dgap_freq, solver=solver, use_accel=use_accel,
+                    K=K, verbose=verbose)
         else:
             X, _active_set, _ = mixed_norm_solver(
                 M, G_tmp, alpha, debias=False, n_orient=n_orient,
                 maxit=maxit, tol=tol, active_set_size=None,
-                dgap_freq=dgap_freq, solver=solver, verbose=verbose)
+                dgap_freq=dgap_freq, solver=solver, use_accel=use_accel, K=K,
+                verbose=verbose)
 
         logger.info('active set size %d' % (_active_set.sum() / n_orient))
 
