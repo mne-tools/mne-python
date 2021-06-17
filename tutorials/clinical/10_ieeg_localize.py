@@ -212,7 +212,7 @@ reg_img, reg_affine = affine_registration(
     nbins=32,
     metric='MI',
     pipeline=[center_of_mass, translation, rigid, affine],
-    level_iters=[100, 10, 5],
+    level_iters=[3, 3, 1],
     sigmas=[3.0, 1.0, 0.0],
     factors=[4, 2, 1])
 
@@ -301,13 +301,13 @@ reg_img, reg_affine = affine_registration(
     nbins=32,
     metric='MI',
     pipeline=[center_of_mass, translation, rigid, affine],
-    level_iters=[100, 10, 5],
+    level_iters=[3, 3, 1],
     sigmas=[3.0, 1.0, 0.0],
     factors=[4, 2, 1])
 
 # Compute registration
 metric = CCMetric(3)
-sdr = SymmetricDiffeomorphicRegistration(metric, level_iters=[100, 10, 5])
+sdr = SymmetricDiffeomorphicRegistration(metric, level_iters=[3, 3, 1])
 mapping = sdr.optimize(static=template_T1.get_fdata(),
                        moving=T1.get_fdata(),
                        static_grid2world=template_T1.affine,

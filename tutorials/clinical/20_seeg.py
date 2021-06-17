@@ -60,7 +60,6 @@ fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)  # downloads if needed
 # a :class:`mne.channels.DigMontage` class. First, use pandas to read in the
 # ``.tsv`` file.
 
-# In mne-python, the electrode coordinates are required to be in meters
 elec_df = pd.read_csv(misc_path + '/seeg/sample_seeg_electrodes.tsv',
                       sep='\t', header=0, index_col=None)
 ch_names = elec_df['name'].tolist()
@@ -144,7 +143,7 @@ epochs.set_channel_types(
 
 fig = mne.viz.plot_alignment(epochs.info, trans, 'fsaverage',
                              subjects_dir=subjects_dir, show_axes=True,
-                             surfaces=["pial", "head"])
+                             surfaces=['pial', 'head'])
 
 ###############################################################################
 # Next, we'll get the epoch data and plot its amplitude over time.
