@@ -1,5 +1,5 @@
 """
-.. _tut_erp:
+.. _tut-erp:
 
 EEG processing and Event Related Potentials (ERPs)
 ==================================================

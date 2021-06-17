@@ -327,7 +327,7 @@ evoked_diff.pick_types(meg='mag').plot_topo(color='r', legend=False)
 # :term:`inverse operator` to project EEG+MEG sensor measurements into the
 # source space. The inverse operator is computed from the
 # :term:`forward solution` for this subject and an estimate of :ref:`the
-# covariance of sensor measurements <tut_compute_covariance>`. For this
+# covariance of sensor measurements <tut-compute-covariance>`. For this
 # tutorial we'll skip those computational steps and load a pre-computed inverse
 # operator from disk (it's included with the :ref:`sample data
 # <sample-dataset>`). Because this "inverse problem" is underdetermined (there

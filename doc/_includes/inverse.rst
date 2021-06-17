@@ -167,7 +167,7 @@ choice we can approximate :math:`\lambda^2 \sim 1/SNR`, where SNR is the
    have, in general, different units of measure. For example, the MEG data are
    expressed in T or T/m whereas the unit of EEG is Volts.
 
-See :ref:`tut_compute_covariance` for example of noise covariance computation
+See :ref:`tut-compute-covariance` for example of noise covariance computation
 and whitening.
 
 .. _cov_regularization_math:

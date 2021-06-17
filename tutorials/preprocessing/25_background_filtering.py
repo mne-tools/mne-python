@@ -45,7 +45,7 @@ is not used carefully, it can distort data. Here we hope to cover some
 filtering basics so users can better understand filtering trade-offs and why
 MNE-Python has chosen particular defaults.
 
-.. _tut_filtering_basics:
+.. _tut-filtering-basics:
 
 Filtering basics
 ================
@@ -137,7 +137,7 @@ MNE-Python.
 # ---------------------
 # Here we'll try to design a low-pass filter and look at trade-offs in terms
 # of time- and frequency-domain filter characteristics. Later, in
-# :ref:`tut_effect_on_signals`, we'll look at how such filters can affect
+# :ref:`tut-effect-on-signals`, we'll look at how such filters can affect
 # signals when they are used.
 #
 # First let's import some useful tools for filtering, and set some default
@@ -321,7 +321,7 @@ h_min = signal.minimum_phase(h)
 plot_filter(h_min, sfreq, freq, gain, 'Minimum-phase', flim=flim)
 
 ###############################################################################
-# .. _tut_effect_on_signals:
+# .. _tut-effect-on-signals:
 #
 # Applying FIR filters
 # --------------------
@@ -533,7 +533,7 @@ del sos
 #           hood, :func:`scipy.signal.zpk2sos` when passing the
 #           ``output='sos'`` keyword argument to
 #           :func:`scipy.signal.iirfilter`. The filter definitions
-#           given :ref:`above <tut_filtering_basics>` use the polynomial
+#           given :ref:`above <tut-filtering-basics>` use the polynomial
 #           numerator/denominator (sometimes called "tf") form ``(b, a)``,
 #           which are theoretically equivalent to the SOS form used here.
 #           In practice, however, the SOS form can give much better results
@@ -634,7 +634,7 @@ plt.show()
 #    2. Had a filter length that was independent of the transition bandwidth,
 #       which can cause excessive ringing and signal distortion.
 #
-# .. _tut_filtering_hp_problems:
+# .. _tut-filtering-hp-problems:
 #
 # High-pass problems
 # ------------------
@@ -811,7 +811,7 @@ baseline_plot(x)
 # Filtering defaults
 # ==================
 #
-# .. _tut_filtering_in_python:
+# .. _tut-filtering-in-python:
 #
 # Defaults in MNE-Python
 # ----------------------
@@ -969,7 +969,7 @@ baseline_plot(x)
 #
 # Filter length (order) and transition bandwidth (roll-off)
 # ---------------------------------------------------------
-# In the :ref:`tut_filtering_in_python` section, we have already talked about
+# In the :ref:`tut-filtering-in-python` section, we have already talked about
 # the default filter lengths and transition bandwidths that are used when no
 # custom values are specified using the respective filter function's arguments.
 #

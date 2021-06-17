@@ -1,5 +1,5 @@
 """
-.. _tut_compute_covariance:
+.. _tut-compute-covariance:
 
 Computing a covariance matrix
 =============================

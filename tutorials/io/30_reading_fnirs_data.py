@@ -196,7 +196,7 @@ sfreq = 10.  # in Hz
 # see :ref:`tut-info-class`, and for additional details on how continuous data
 # is stored in MNE-Python see :ref:`tut-raw-class`.
 # For a more extensive description of how to create MNE-Python data structures
-# from raw array data see :ref:`tut_creating_data_structures`.
+# from raw array data see :ref:`tut-creating-data-structures`.
 
 info = mne.create_info(ch_names=ch_names, ch_types=ch_types, sfreq=sfreq)
 raw = mne.io.RawArray(data, info, verbose=True)

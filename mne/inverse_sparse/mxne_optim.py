@@ -1474,7 +1474,7 @@ def iterative_tf_mixed_norm_solver(M, G, alpha_space, alpha_time,
         The duality gap is evaluated every dgap_freq iterations.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+        and :ref:`Logging documentation <tut-logging>` for more).
 
     Returns
     -------

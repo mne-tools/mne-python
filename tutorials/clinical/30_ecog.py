@@ -1,5 +1,5 @@
 """
-.. _tut_working_with_ecog:
+.. _tut-working-with-ecog:
 
 ======================
 Working with ECoG data
@@ -17,7 +17,7 @@ This example shows how to use:
 - projection onto a pial surface
 
 For a complementary example that involves sEEG data, channel locations in
-MNI space, or projection into a volume, see :ref:`tut_working_with_seeg`.
+MNI space, or projection into a volume, see :ref:`tut-working-with-seeg`.
 """
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Chris Holdgraf <choldgraf@gmail.com>

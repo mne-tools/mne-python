@@ -1,5 +1,5 @@
 """
-.. _tut_working_with_seeg:
+.. _tut-working-with-seeg:
 
 ======================
 Working with sEEG data
@@ -23,7 +23,7 @@ more information.
 
 For an example that involves ECoG data, channel locations in a
 subject-specific MRI, or projection into a surface, see
-:ref:`tut_working_with_ecog`. In the ECoG example, we show
+:ref:`tut-working-with-ecog`. In the ECoG example, we show
 how to visualize surface grid channels on the brain.
 """
 
