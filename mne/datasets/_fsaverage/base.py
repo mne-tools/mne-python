@@ -66,7 +66,7 @@ def fetch_fsaverage(subjects_dir=None, verbose=None):
     #     fid.write('\n'.join(names))
     #
     subjects_dir = _set_montage_coreg_path(subjects_dir)
-    subjects_dir = op.abspath(subjects_dir)
+    subjects_dir = op.abspath(op.expanduser(subjects_dir))
     fs_dir = op.join(subjects_dir, 'fsaverage')
     os.makedirs(fs_dir, exist_ok=True)
     _manifest_check_download(
