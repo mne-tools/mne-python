@@ -25,7 +25,8 @@ from ..io.pick import (pick_types, _picks_by_type, pick_info, pick_channels,
                        _pick_data_channels, _picks_to_idx, _get_channel_types,
                        _MEG_CH_TYPES_SPLIT)
 from ..utils import (_clean_names, _time_mask, verbose, logger, fill_doc,
-                     _validate_type, _check_sphere, _check_option, _is_numeric)
+                     _validate_type, _check_sphere, _check_option, _is_numeric,
+                     warn)
 from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox, figure_nobar,
                     plt_show, _process_times, DraggableColorbar,
@@ -790,6 +791,13 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     more details on colormap normalization.
     """
     sphere = _check_sphere(sphere)
+    if cnorm is not None:
+        if vmin is not None:
+            warn(f"vmin={cnorm.vmin} is implicitly defined by cnorm, ignoring "
+                 f"vmin={vmin}.")
+        if vmax is not None:
+            warn(f"vmax={cnorm.vmax} is implicitly defined by cnorm, ignoring "
+                 f"vmax={vmax}.")
     return _plot_topomap(data, pos, vmin, vmax, cmap, sensors, res, axes,
                          names, show_names, mask, mask_params, outlines,
                          contours, image_interp, show,
@@ -941,12 +949,10 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
 
     # plot interpolated map
     if cnorm is None:
-        im = ax.imshow(Zi, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
-                       aspect='equal', extent=extent,
-                       interpolation=image_interp, norm=cnorm)
-    else:
-        im = ax.imshow(Zi, cmap=cmap, origin='lower', aspect='equal',
-                       extent=extent, interpolation=image_interp, norm=cnorm)
+        from matplotlib.colors import Normalize
+        cnorm = Normalize(vmin=vmin, vmax=vmax)
+    im = ax.imshow(Zi, cmap=cmap, origin='lower', aspect='equal',
+                   extent=extent, interpolation=image_interp, norm=cnorm)
 
     # gh-1432 had a workaround for no contours here, but we'll remove it
     # because mpl has probably fixed it
