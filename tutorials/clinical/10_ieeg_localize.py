@@ -34,7 +34,6 @@ from dipy.align import (affine_registration, center_of_mass, translation,
                         rigid, affine)
 from dipy.align.metrics import CCMetric
 from dipy.align.imwarp import SymmetricDiffeomorphicRegistration
-from skimage import measure
 import mne
 from mne.datasets import fetch_fsaverage
 
@@ -254,7 +253,7 @@ ch_names = elec_df['name'].tolist()
 ch_coords = elec_df[['R', 'A', 'S']].to_numpy(dtype=float)
 
 # Make brain surface from T1
-vert, tri = measure.marching_cubes(T1.get_fdata(), level=100)[:2]
+vert, tri = mne.viz.marching_cubes(T1.get_fdata(), level=100)
 # transform from voxels to surface RAS
 vert = mne.transforms.apply_trans(T1.header.get_vox2ras_tkr(), vert)
 

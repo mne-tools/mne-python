@@ -2351,3 +2351,51 @@ def _generate_default_filename(ext=".png"):
     now = datetime.now()
     dt_string = now.strftime("_%Y-%m-%d_%H-%M-%S")
     return "MNE" + dt_string + ext
+
+
+def marching_cubes(image, level):
+    """Compute marching cubes on an N dimensional image.
+
+    The same as ``skimage.measure.marching_cubes`` but uses the
+    implementation in vtk.
+
+    Parameters
+    ----------
+    image : ndarray
+        The image to compute marching cubes with.
+    level : float
+        The contour value to search for isosurfaces in ``image``.
+
+    Returns
+    -------
+    verts : ndarray
+        The spatial coordinates for unique mesh vertices.
+    faces : ndarray
+        The locations of connections between ``verts`` to form faces.
+    """
+    from vtk import VTK_DOUBLE, vtkImageData, vtkMarchingCubes
+    from vtk.util import numpy_support
+    data_vtk = numpy_support.numpy_to_vtk(
+        image.ravel(), deep=True, array_type=VTK_DOUBLE
+    )
+    # create image
+    imdata = vtkImageData()
+    imdata.SetDimensions(image.shape)
+    imdata.SetSpacing([1, 1, 1])
+    imdata.SetOrigin([0, 0, 0])
+    imdata.GetPointData().SetScalars(data_vtk)
+
+    # compute marching cubes
+    mc = vtkMarchingCubes()
+    mc.SetInputData(imdata)
+    mc.SetValue(0, level)
+    mc.Update()
+    polydata = mc.GetOutput()
+
+    verts = numpy_support.vtk_to_numpy(polydata.GetPoints().GetData())
+    faces = np.zeros((polydata.GetNumberOfCells(), image.ndim), dtype=np.int64)
+    for i in range(faces.shape[0]):
+        this_tri = polydata.GetCell(i)
+        for j in range(faces.shape[1]):
+            faces[i, j] = this_tri.GetPointId(j)
+    return verts, faces

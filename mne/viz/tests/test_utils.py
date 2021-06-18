@@ -13,7 +13,7 @@ import matplotlib.cm as cm
 from mne.viz.utils import (compare_fiff, _fake_click, _compute_scalings,
                            _validate_if_list_of_axes, _get_color_list,
                            _setup_vmin_vmax, center_cmap, centers_to_edges,
-                           _make_event_color_dict)
+                           _make_event_color_dict, marching_cubes)
 from mne.viz import ClickableImage, add_background_image, mne_analyze_colormap
 from mne.io import read_raw_fif
 from mne.event import read_events
@@ -198,3 +198,12 @@ def test_event_color_dict():
     # test error
     with pytest.raises(KeyError, match='must be strictly positive, or -1'):
         _ = _make_event_color_dict({-2: 'r', -1: 'b'})
+
+
+def test_marching_cubes():
+    data = np.zeros((50, 50, 50))
+    data[20:30, 20:30, 20:30] = 1
+    verts, faces = marching_cubes(data, 0.5)
+    # verts and faces are rather large so use checksum
+    assert abs(verts.sum() - 44100) < 0.001
+    assert abs(faces.sum() - 1074855) < 0.001
