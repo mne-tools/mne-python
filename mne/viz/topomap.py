@@ -757,7 +757,9 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     %(topomap_border)s
     %(topomap_ch_type)s
     cnorm : matplotlib.colors.Normalize | None
-        Colormap normalization, default None means linear normalization.
+        Colormap normalization, default None means linear normalization. If not
+        None, ``vmin`` and ``vmax`` arguments are ignored. See Notes for more
+        details.
 
     Returns
     -------
@@ -765,6 +767,27 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         The interpolated data.
     cn : matplotlib.contour.ContourSet
         The fieldlines.
+
+    Notes
+    -----
+    The ``cnorm`` parameter can be used to implement custom colormap
+    normalization. By default, a linear mapping from vmin to vmax is used,
+    which correspond to the first and last colors in the colormap. This might
+    be undesired when vmin and vmax are not symmetrical around zero (or a value
+    that can be interpreted as some midpoint). For example, assume we want to
+    use the RdBu colormap (red to white to blue) for values ranging from -1 to
+    3, and 0 should be white. However, white corresponds to the midpoint in the
+    data by default, i.e. 1. Therefore, we use the following colormap
+    normalization ``cnorm`` and pass it as the the ``cnorm`` argument:
+
+        from matplotlib.colors import TwoSlopeNorm
+        cnorm = TwoSlopeNorm(vmin=-1, vcenter=0, vmax=3)
+
+    Note that because we already defined ``vmin`` and ``vmax`` in the
+    normalization, arguments ``vmin`` and ``vmax`` are ignored if these are
+    also passed.
+    See https://matplotlib.org/stable/tutorials/colors/colormapnorms.html for
+    more details on colormap normalization.
     """
     sphere = _check_sphere(sphere)
     return _plot_topomap(data, pos, vmin, vmax, cmap, sensors, res, axes,
