@@ -399,3 +399,5 @@
 .. _Xiaokai Xia: https://github.com/dddd1007
 
 .. _Marian Dovgialo: https://github.com/mdovgialo
+
+.. _Pierre-Antoine Bannier: https://github.com/PABannier
