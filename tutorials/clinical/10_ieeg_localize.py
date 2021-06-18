@@ -201,8 +201,6 @@ ax.set_title('Unaligned CT Overlaid on Original')
 ###############################################################################
 # Now we can align our now unaligned CT image.
 
-# level iters is set low to increase the speed of execution of the tutorial
-# but should be set to [10000, 1000, 100] (default) for actual analyses
 reg_img, reg_affine = affine_registration(
     moving=CT_unaligned.get_fdata(),
     static=T1.get_fdata(),
@@ -211,7 +209,7 @@ reg_img, reg_affine = affine_registration(
     nbins=32,
     metric='MI',
     pipeline=[center_of_mass, translation, rigid, affine],
-    level_iters=[3, 3, 1],
+    level_iters=[10000, 1000, 100],
     sigmas=[3.0, 1.0, 0.0],
     factors=[4, 2, 1])
 
@@ -300,13 +298,13 @@ reg_img, reg_affine = affine_registration(
     nbins=32,
     metric='MI',
     pipeline=[center_of_mass, translation, rigid, affine],
-    level_iters=[3, 3, 1],
+    level_iters=[10000, 1000, 100],
     sigmas=[3.0, 1.0, 0.0],
     factors=[4, 2, 1])
 
 # Compute registration
 metric = CCMetric(3)
-sdr = SymmetricDiffeomorphicRegistration(metric, level_iters=[3, 3, 1])
+sdr = SymmetricDiffeomorphicRegistration(metric, level_iters=[10, 10, 5])
 mapping = sdr.optimize(static=template_T1.get_fdata(),
                        moving=T1.get_fdata(),
                        static_grid2world=template_T1.affine,
