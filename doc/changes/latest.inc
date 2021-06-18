@@ -91,6 +91,8 @@ Bugs
 
 - Fixed bug in :meth:`mne.Epochs.drop_bad` where subsequent rejections failed if they only specified thresholds for a subset of the channel types used in a previous rejection (:gh:`9485` by `Richard Höchenberger`_).
 
+- In :func:`mne.viz.plot_ica_scores` and :meth:`mne.ICA.plot_scores`, the figure and axis titles no longer overlap when plotting only a single EOG or ECG channel (:gh:`9489` by `Richard Höchenberger`_).
+
 API changes
 ~~~~~~~~~~~
 - Nothing yet
