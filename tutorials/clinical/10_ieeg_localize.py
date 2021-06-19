@@ -30,6 +30,11 @@ import matplotlib.pyplot as plt
 
 import nibabel as nib
 from nibabel.processing import resample_from_to
+from nipy import load_image
+from nipy.algorithms.registration.histogram_registration import (
+    HistogramRegistration)
+from nipy.core.api import AffineTransform
+from nipy.algorithms.resample import resample
 from dipy.align import (affine_registration, center_of_mass, translation,
                         rigid, affine)
 from dipy.align.metrics import CCMetric
@@ -156,7 +161,7 @@ viewer._axes[0].annotate('AC', (137, 108), xytext=(246, 75),
 CT = nib.freesurfer.load(op.join(misc_path, 'seeg', 'sample_seeg_CT.mgz'))
 
 # make low intensity parts of the CT transparent for easier visualization
-CT_data = CT.get_fdata().copy()
+CT_data = CT.get_data().copy()
 CT_data[CT_data < np.quantile(CT_data, 0.95)] = np.nan
 
 fig, axes = plt.subplots(1, 3, figsize=(12, 6))
@@ -182,46 +187,59 @@ fig.tight_layout()
 ###############################################################################
 # Let's unalign our CT data so that we can see how to properly align it.
 
-# Make an affine slightly different than ``CT.affine`` to transform the image
+# Make an affine to transform the image
 unalign_affine = np.array([
     [-1.01, 0.02, -0.01, 128],
     [0.01, -0.02, 1.02, -135],
     [0.06, -0.99, -0.02, 140],
     [0, 0, 0, 1]])
 CT_unaligned = resample_from_to(CT, (CT.shape, unalign_affine))
+
 CT_data = CT_unaligned.get_fdata().copy()
 CT_data[CT_data < np.quantile(CT_data, 0.95)] = np.nan
 
-fig, ax = plt.subplots()
-ax.imshow(CT.get_fdata()[128], cmap='gray')
-ax.imshow(CT_data[128], cmap='gist_heat', alpha=0.5)
-ax.axis('off')
-ax.set_title('Unaligned CT Overlaid on Original')
+fig, axes = plt.subplots(1, 3, figsize=(12, 4))
+fig.suptitle('Unaligned CT Overlaid on T1')
+for i, ax in enumerate(axes):
+    ax.imshow(np.take(T1.get_fdata(), [128], axis=i).squeeze(), cmap='gray')
+    ax.imshow(np.take(CT_data, [128], axis=i).squeeze(), cmap='gist_heat',
+              alpha=0.5)
+    ax.axis('off')
+
+fig.tight_layout()
 
 ###############################################################################
 # Now we can align our now unaligned CT image.
 
-reg_img, reg_affine = affine_registration(
-    moving=CT_unaligned.get_fdata(),
-    static=T1.get_fdata(),
-    moving_affine=CT_unaligned.affine,
-    static_affine=T1.affine,
-    nbins=32,
-    metric='MI',
-    pipeline=[center_of_mass, translation, rigid, affine],
-    level_iters=[10000, 1000, 100],
-    sigmas=[3.0, 1.0, 0.0],
-    factors=[4, 2, 1])
+CT_unaligned_img = load_image(op.join(misc_path, 'seeg', 'sample_seeg_CT.mgz'))
+CT_unaligned_img._data = CT_unaligned.get_fdata()
+T1_img = load_image(op.join(misc_path, 'seeg', 'sample_seeg_T1.mgz'))
 
-CT_aligned = nib.Nifti1Image(reg_img, reg_affine)
-CT_data = CT_aligned.get_fdata().copy()
+reg = HistogramRegistration(
+    CT_unaligned,
+    T1,
+    similarity='nmi',
+    smooth=0.,
+    interp='pv')
+reg_affine = reg.optimize('rigid', xtol=0.0001, ftol=0.0001).as_affine()
+
+trans = AffineTransform(CT_unaligned_img.coordmap.function_range,
+                        T1_img.coordmap.function_range, reg_affine)
+CT_aligned = resample(CT_unaligned_img, T1_img.coordmap,
+                      trans.inverse(), T1_img.shape)
+
+CT_data = CT_aligned.get_data().copy()
 CT_data[CT_data < np.quantile(CT_data, 0.95)] = np.nan
 
-fig, ax = plt.subplots()
-ax.imshow(CT.get_fdata()[128], cmap='gray')
-ax.imshow(CT_data[128], cmap='gist_heat', alpha=0.5)
-ax.axis('off')
-ax.set_title('Aligned CT Overlaid on Original')
+fig, axes = plt.subplots(1, 3, figsize=(12, 4))
+fig.suptitle('Aligned CT Overlaid on T1')
+for i, ax in enumerate(axes):
+    ax.imshow(np.take(T1.get_data(), [128], axis=i).squeeze(), cmap='gray')
+    ax.imshow(np.take(CT_data, [128], axis=i).squeeze(), cmap='gist_heat',
+              alpha=0.5)
+    ax.axis('off')
+
+fig.tight_layout()
 
 ###############################################################################
 # Marking the Location of Each Electrode Contact
@@ -243,6 +261,8 @@ ax.set_title('Aligned CT Overlaid on Original')
 #       $MISC_PATH/seeg/sample_seeg_CT.mgz
 #
 # Electrode contact locations determined this way are plotted below.
+
+T1 = nib.freesurfer.load(op.join(misc_path, 'seeg', 'sample_seeg_T1.mgz'))
 
 # Load electrode positions from file
 elec_df = pd.read_csv(misc_path + '/seeg/sample_seeg_electrodes.tsv',

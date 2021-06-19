@@ -201,6 +201,7 @@ def test_event_color_dict():
 
 
 def test_marching_cubes():
+    """Test creating surfaces via marching cubes."""
     data = np.zeros((50, 50, 50))
     data[20:30, 20:30, 20:30] = 1
     verts, faces = marching_cubes(data, 0.5)
