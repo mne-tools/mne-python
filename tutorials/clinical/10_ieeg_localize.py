@@ -213,6 +213,7 @@ fig.tight_layout()
 
 CT_unaligned_img = load_image(op.join(misc_path, 'seeg', 'sample_seeg_CT.mgz'))
 CT_unaligned_img._data = CT_unaligned.get_fdata()
+CT_unaligned_img.affine = CT_unaligned.affine
 T1_img = load_image(op.join(misc_path, 'seeg', 'sample_seeg_T1.mgz'))
 
 reg = HistogramRegistration(
