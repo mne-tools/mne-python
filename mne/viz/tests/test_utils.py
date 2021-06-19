@@ -10,6 +10,7 @@ import pytest
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
+from mne.utils import requires_vtk
 from mne.viz.utils import (compare_fiff, _fake_click, _compute_scalings,
                            _validate_if_list_of_axes, _get_color_list,
                            _setup_vmin_vmax, center_cmap, centers_to_edges,
@@ -200,6 +201,7 @@ def test_event_color_dict():
         _ = _make_event_color_dict({-2: 'r', -1: 'b'})
 
 
+@requires_vtk
 def test_marching_cubes():
     """Test creating surfaces via marching cubes."""
     data = np.zeros((50, 50, 50))
