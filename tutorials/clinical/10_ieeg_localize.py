@@ -253,8 +253,6 @@ fig.tight_layout()
 #
 # Electrode contact locations determined this way are plotted below.
 
-T1 = nib.freesurfer.load(op.join(misc_path, 'seeg', 'sample_seeg_T1.mgz'))
-
 # Load electrode positions from file
 elec_df = pd.read_csv(misc_path + '/seeg/sample_seeg_electrodes.tsv',
                       sep='\t', header=0, index_col=None)
