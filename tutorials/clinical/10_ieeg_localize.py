@@ -30,11 +30,8 @@ import matplotlib.pyplot as plt
 
 import nibabel as nib
 from nibabel.processing import resample_from_to
-from nipy import load_image
 from nipy.algorithms.registration.histogram_registration import (
     HistogramRegistration)
-from nipy.core.api import AffineTransform
-from nipy.algorithms.resample import resample
 from dipy.align import (affine_registration, center_of_mass, translation,
                         rigid, affine)
 from dipy.align.metrics import CCMetric
@@ -83,7 +80,7 @@ fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)  # downloads if needed
 #
 # .. note::
 #     Be sure to set the text entry box labeled RAS (not TkReg RAS) to
-#     `0 0 0` before beginning the transform.
+#     ``0 0 0`` before beginning the transform.
 #
 # Then translate the image until the crosshairs meet on the AC and
 # run through the PC as shown in the plot. The eyes should be in
@@ -211,11 +208,6 @@ fig.tight_layout()
 ###############################################################################
 # Now we can align our now unaligned CT image.
 
-CT_unaligned_img = load_image(op.join(misc_path, 'seeg', 'sample_seeg_CT.mgz'))
-CT_unaligned_img._data = CT_unaligned.get_fdata()
-CT_unaligned_img.affine = CT_unaligned.affine
-T1_img = load_image(op.join(misc_path, 'seeg', 'sample_seeg_T1.mgz'))
-
 reg = HistogramRegistration(
     CT_unaligned,
     T1,
@@ -224,10 +216,8 @@ reg = HistogramRegistration(
     interp='pv')
 reg_affine = reg.optimize('rigid', xtol=0.0001, ftol=0.0001).as_affine()
 
-trans = AffineTransform(CT_unaligned_img.coordmap.function_range,
-                        T1_img.coordmap.function_range, reg_affine)
-CT_aligned = resample(CT_unaligned_img, T1_img.coordmap,
-                      trans.inverse(), T1_img.shape)
+trans_affine = np.dot(T1.affine, np.linalg.inv(reg_affine))
+CT_aligned = resample_from_to(CT_unaligned, (CT.shape, trans_affine))
 
 CT_data = CT_aligned.get_data().copy()
 CT_data[CT_data < np.quantile(CT_data, 0.95)] = np.nan
@@ -254,7 +244,7 @@ fig.tight_layout()
 # mne graphical user interface (coming soon). The electrode locations will then
 # be in the ``surface RAS`` coordinate frame, which is helpful because that is
 # the coordinate frame that all the freesurfer outputs are in
-# :ref:`tut-tut-freesurfer-mne`.
+# :ref:`tut-freesurfer-mne`.
 #
 # .. code-block:: bash
 #
