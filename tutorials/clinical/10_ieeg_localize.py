@@ -158,7 +158,7 @@ viewer._axes[0].annotate('AC', (137, 108), xytext=(246, 75),
 CT = nib.freesurfer.load(op.join(misc_path, 'seeg', 'sample_seeg_CT.mgz'))
 
 # make low intensity parts of the CT transparent for easier visualization
-CT_data = CT.get_data().copy()
+CT_data = CT.get_fdata().copy()
 CT_data[CT_data < np.quantile(CT_data, 0.95)] = np.nan
 
 fig, axes = plt.subplots(1, 3, figsize=(12, 6))
@@ -219,13 +219,13 @@ reg_affine = reg.optimize('rigid', xtol=0.0001, ftol=0.0001).as_affine()
 trans_affine = np.dot(T1.affine, np.linalg.inv(reg_affine))
 CT_aligned = resample_from_to(CT_unaligned, (CT.shape, trans_affine))
 
-CT_data = CT_aligned.get_data().copy()
+CT_data = CT_aligned.get_fdata().copy()
 CT_data[CT_data < np.quantile(CT_data, 0.95)] = np.nan
 
 fig, axes = plt.subplots(1, 3, figsize=(12, 4))
 fig.suptitle('Aligned CT Overlaid on T1')
 for i, ax in enumerate(axes):
-    ax.imshow(np.take(T1.get_data(), [128], axis=i).squeeze(), cmap='gray')
+    ax.imshow(np.take(T1.get_fdata(), [128], axis=i).squeeze(), cmap='gray')
     ax.imshow(np.take(CT_data, [128], axis=i).squeeze(), cmap='gist_heat',
               alpha=0.5)
     ax.axis('off')
