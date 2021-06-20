@@ -164,12 +164,12 @@ CT_data[CT_data < np.quantile(CT_data, 0.95)] = np.nan
 fig, axes = plt.subplots(1, 3, figsize=(12, 6))
 for ax in axes:
     ax.axis('off')
-axes[0].imshow(T1.get_fdata()[128], cmap='gray')
+axes[0].imshow(T1.get_fdata()[T1.shape[0] // 2], cmap='gray')
 axes[0].set_title('MR')
-axes[1].imshow(CT.get_fdata()[128], cmap='gray')
+axes[1].imshow(CT.get_fdata()[CT.shape[0] // 2], cmap='gray')
 axes[1].set_title('CT')
-axes[2].imshow(T1.get_fdata()[128], cmap='gray')
-axes[2].imshow(CT_data[128], cmap='gist_heat', alpha=0.5)
+axes[2].imshow(T1.get_fdata()[CT.shape[0] // 2], cmap='gray')
+axes[2].imshow(CT_data[CT.shape[0] // 2], cmap='gist_heat', alpha=0.5)
 for ax in (axes[0], axes[2]):
     ax.annotate('Subcutaneous fat', (110, 52), xytext=(100, 30),
                 color='white', horizontalalignment='center',
@@ -181,8 +181,30 @@ for ax in axes:
 axes[2].set_title('CT aligned to MR')
 fig.tight_layout()
 
+
 ###############################################################################
 # Let's unalign our CT data so that we can see how to properly align it.
+
+def plot_overlay(image, compare, title, thresh=None):
+    """Define a helper function for comparing plots."""
+    image = nib.orientations.apply_orientation(
+        image.get_fdata().copy(), nib.orientations.axcodes2ornt(
+            nib.orientations.aff2axcodes(image.affine)))
+    compare = nib.orientations.apply_orientation(
+        compare.get_fdata().copy(), nib.orientations.axcodes2ornt(
+            nib.orientations.aff2axcodes(compare.affine)))
+    if thresh is not None:
+        compare[compare < np.quantile(compare, thresh)] = np.nan
+    fig, axes = plt.subplots(1, 3, figsize=(12, 4))
+    fig.suptitle(title)
+    for i, ax in enumerate(axes):
+        ax.imshow(np.take(image, [image.shape[i] // 2], axis=i).squeeze().T,
+                  cmap='gray')
+        ax.imshow(np.take(compare, [compare.shape[i] // 2],
+                          axis=i).squeeze().T, cmap='gist_heat', alpha=0.5)
+        ax.invert_yaxis()
+        ax.axis('off')
+
 
 # Make an affine to transform the image
 unalign_affine = np.array([
@@ -192,18 +214,7 @@ unalign_affine = np.array([
     [0, 0, 0, 1]])
 CT_unaligned = resample_from_to(CT, (CT.shape, unalign_affine))
 
-CT_data = CT_unaligned.get_fdata().copy()
-CT_data[CT_data < np.quantile(CT_data, 0.95)] = np.nan
-
-fig, axes = plt.subplots(1, 3, figsize=(12, 4))
-fig.suptitle('Unaligned CT Overlaid on T1')
-for i, ax in enumerate(axes):
-    ax.imshow(np.take(T1.get_fdata(), [128], axis=i).squeeze(), cmap='gray')
-    ax.imshow(np.take(CT_data, [128], axis=i).squeeze(), cmap='gist_heat',
-              alpha=0.5)
-    ax.axis('off')
-
-fig.tight_layout()
+plot_overlay(T1, CT_unaligned, 'Unaligned CT Overlaid on T1', thresh=0.95)
 
 ###############################################################################
 # Now we can align our now unaligned CT image.
@@ -219,18 +230,7 @@ reg_affine = reg.optimize('rigid', xtol=0.0001, ftol=0.0001).as_affine()
 trans_affine = np.dot(T1.affine, np.linalg.inv(reg_affine))
 CT_aligned = resample_from_to(CT_unaligned, (CT.shape, trans_affine))
 
-CT_data = CT_aligned.get_fdata().copy()
-CT_data[CT_data < np.quantile(CT_data, 0.95)] = np.nan
-
-fig, axes = plt.subplots(1, 3, figsize=(12, 4))
-fig.suptitle('Aligned CT Overlaid on T1')
-for i, ax in enumerate(axes):
-    ax.imshow(np.take(T1.get_fdata(), [128], axis=i).squeeze(), cmap='gray')
-    ax.imshow(np.take(CT_data, [128], axis=i).squeeze(), cmap='gist_heat',
-              alpha=0.5)
-    ax.axis('off')
-
-fig.tight_layout()
+plot_overlay(T1, CT_aligned, 'Aligned CT Overlaid on T1', thresh=0.95)
 
 ###############################################################################
 # Marking the Location of Each Electrode Contact
@@ -267,7 +267,7 @@ vert = mne.transforms.apply_trans(T1.header.get_vox2ras_tkr(), vert)
 renderer = mne.viz.backends.renderer.create_3d_figure(
     size=(1200, 900), bgcolor='w', scene=False)
 mne.viz.set_3d_view(figure=renderer.figure, distance=700,
-                    azimuth=40, elevation=60, focalpoint=(0., 0., -45.))
+                    azimuth=240, elevation=60, focalpoint=(0., 0., -45.))
 renderer.mesh(*vert.T, triangles=tri, color='gray',
               opacity=0.05, representation='surface')
 for ch_coord in ch_coords:
@@ -293,12 +293,13 @@ renderer.show()
 template_T1 = nib.freesurfer.load(
     op.join(subjects_dir, subject, 'mri', 'T1.mgz'))
 
+plot_overlay(template_T1, T1,
+             'T1 Alignment with fsaverage before Affine Registration')
+
 # convert electrode positions from surface RAS to voxels
 ch_coords = mne.transforms.apply_trans(
     np.linalg.inv(T1.header.get_vox2ras_tkr()), ch_coords)
 
-# level iters is set low to increase the speed of execution of the tutorial
-# but should be set to [10000, 1000, 100] (default) for actual analyses
 reg_img, reg_affine = affine_registration(
     moving=T1.get_fdata(),
     static=template_T1.get_fdata(),
@@ -311,18 +312,28 @@ reg_img, reg_affine = affine_registration(
     sigmas=[3.0, 1.0, 0.0],
     factors=[4, 2, 1])
 
+aligned_T1 = nib.Nifti1Image(reg_img, np.dot(T1.affine, reg_affine))
+
+plot_overlay(template_T1, aligned_T1,
+             'T1 Alignment with fsaverage after Affine Registration')
+
 # Compute registration
 metric = CCMetric(3)
 sdr = SymmetricDiffeomorphicRegistration(metric, level_iters=[10, 10, 5])
 mapping = sdr.optimize(static=template_T1.get_fdata(),
-                       moving=T1.get_fdata(),
+                       moving=aligned_T1.get_fdata(),
                        static_grid2world=template_T1.affine,
-                       moving_grid2world=T1.affine,
-                       prealign=reg_affine)
+                       moving_grid2world=aligned_T1.affine,
+                       ss_sigma_factor=0.5)
+
+warped_T1 = nib.Nifti1Image(mapping.transform(T1.get_fdata()), T1.affine)
+
+plot_overlay(template_T1, warped_T1, 'T1 Warped to fsaverage')
+
 # Apply mapping to electrode contact positions
-for i, xyz in enumerate(ch_coords):
-    x, y, z = np.round(xyz).astype(int)
-    ch_coords[i] += mapping.forward[x, y, z]
+for i, ch_coord in enumerate(ch_coords):
+    ch_coords[i] += mapping.forward[tuple(ch_coord.round().astype(int))]
+
 # convert back to surface RAS but to the template surface RAS this time
 ch_coords = mne.transforms.apply_trans(
     template_T1.header.get_vox2ras_tkr(), ch_coords)
