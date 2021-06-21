@@ -667,6 +667,7 @@ def _debug_img(data, affine, title, shape=None):
     # Uncomment these lines for debugging help with volume morph:
     #
     # import nibabel as nib
+    # from scipy import sparse
     # if sparse.issparse(data):
     #     data = data.toarray()
     # data = np.asarray(data)
@@ -1010,7 +1011,10 @@ def _compute_r2(a, b):
         (np.linalg.norm(a) * np.linalg.norm(b))
 
 
-def _compute_morph_sdr(mri_from, mri_to, niter_affine, niter_sdr, zooms):
+@verbose
+def _compute_morph_sdr(mri_from, mri_to, niter_affine, niter_sdr, zooms,
+                       rigid=False, sigmas=(3.0, 1.0, 0.0), factors=(4, 2, 1),
+                       verbose=None):
     """Get a matrix that morphs data from one subject to another."""
     with np.testing.suppress_warnings():
         from dipy.align import imaffine, imwarp, metrics, transforms
@@ -1040,8 +1044,8 @@ def _compute_morph_sdr(mri_from, mri_to, niter_affine, niter_sdr, zooms):
     affreg = imaffine.AffineRegistration(
         metric=imaffine.MutualInformationMetric(nbins=32),
         level_iters=list(niter_affine),
-        sigmas=[3.0, 1.0, 0.0],
-        factors=[4, 2, 1])
+        sigmas=list(sigmas),
+        factors=list(factors))
 
     # translation
     logger.info('Optimizing translation:')
@@ -1049,6 +1053,10 @@ def _compute_morph_sdr(mri_from, mri_to, niter_affine, niter_sdr, zooms):
         translation = affreg.optimize(
             mri_to, mri_from, transforms.TranslationTransform3D(), None,
             affine, mri_from_affine, starting_affine=c_of_mass.affine)
+    mri_from_to = translation.transform(mri_from)
+    dist = np.linalg.norm(translation.affine[:3, 3])
+    logger.info(f'    Translation: {dist:6.1f} mm')
+    logger.info(f'    R²:          {_compute_r2(mri_to, mri_from_to):6.1f}%')
 
     # rigid body transform (translation + rotation)
     logger.info('Optimizing rigid-body:')
@@ -1066,13 +1074,17 @@ def _compute_morph_sdr(mri_from, mri_to, niter_affine, niter_sdr, zooms):
     logger.info(f'    R²:          {_compute_r2(mri_to, mri_from_to):6.1f}%')
 
     # affine transform (translation + rotation + scaling)
-    logger.info('Optimizing full affine:')
-    with wrapped_stdout(indent='    ', cull_newlines=True):
-        pre_affine = affreg.optimize(
-            mri_to, mri_from, transforms.AffineTransform3D(), None,
-            affine, mri_from_affine, starting_affine=rigid.affine)
-    mri_from_to = pre_affine.transform(mri_from)
-    logger.info(f'    R²:          {_compute_r2(mri_to, mri_from_to):6.1f}%')
+    if not rigid:
+        logger.info('Optimizing full affine:')
+        with wrapped_stdout(indent='    ', cull_newlines=True):
+            pre_affine = affreg.optimize(
+                mri_to, mri_from, transforms.AffineTransform3D(), None,
+                affine, mri_from_affine, starting_affine=rigid.affine)
+        mri_from_to = pre_affine.transform(mri_from)
+        logger.info(
+            f'    R²:          {_compute_r2(mri_to, mri_from_to):6.1f}%')
+    else:
+        pre_affine = rigid
 
     # SDR
     shape = tuple(pre_affine.domain_shape)
@@ -1084,10 +1096,11 @@ def _compute_morph_sdr(mri_from, mri_to, niter_affine, niter_sdr, zooms):
             sdr_morph = sdr.optimize(mri_to, pre_affine.transform(mri_from))
         assert shape == tuple(sdr_morph.domain_shape)  # should be tuple of int
         mri_from_to = sdr_morph.transform(mri_from_to)
+        logger.info(
+            f'    R²:          {_compute_r2(mri_to, mri_from_to):6.1f}%')
     else:
         sdr_morph = None
 
-    logger.info(f'    R²:          {_compute_r2(mri_to, mri_from_to):6.1f}%')
     _debug_img(mri_from_orig.dataobj, mri_from_orig.affine, 'From')
     _debug_img(mri_from, affine, 'From-reslice')
     _debug_img(mri_from_to, affine, 'From-reslice')

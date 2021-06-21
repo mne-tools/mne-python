@@ -30,6 +30,8 @@ import matplotlib.pyplot as plt
 
 import nibabel as nib
 from nibabel.processing import resample_from_to
+from dipy.align.imaffine import AffineRegistration, MutualInformationMetric
+from dipy.align.transforms import RigidTransform3D
 from nipy.algorithms.registration.histogram_registration import (
     HistogramRegistration)
 from dipy.align import (affine_registration, center_of_mass, translation,
@@ -219,13 +221,13 @@ plot_overlay(T1, CT_unaligned, 'Unaligned CT Overlaid on T1', thresh=0.95)
 ###############################################################################
 # Now we can align our now unaligned CT image.
 
-reg = HistogramRegistration(
-    CT_unaligned,
-    T1,
-    similarity='nmi',
-    smooth=0.,
-    interp='pv')
-reg_affine = reg.optimize('rigid', xtol=0.0001, ftol=0.0001).as_affine()
+affreg = AffineRegistration(
+    metric=MutualInformationMetric(nbins=32),
+    level_iters=[10], sigmas=[0.0], factors=[1])
+rigid = affreg.optimize(
+    T1.get_fdata(), CT_unaligned.get_fdata(), RigidTransform3D(), None,
+    T1.affine, CT_unaligned.affine)
+reg_affine = rigid.affine
 
 trans_affine = np.dot(T1.affine, np.linalg.inv(reg_affine))
 CT_aligned = resample_from_to(CT_unaligned, (CT.shape, trans_affine))
