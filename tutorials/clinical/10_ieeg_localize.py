@@ -318,36 +318,36 @@ renderer.show()
 #       tract_point_list $SUBJECTS_DIR/$SUBJECT/cvs/tmp.txt \
 #       $SUBJECTS_DIR/$SUBJECT/cvs/out.txt nearest
 #
-# ``applyMorph`` output the positions of the electrode contacts to a text
-# file, which can finally be read in and converted to a tsv file with
-# column headers so that it can be easily understood.
+# ``applyMorph`` outputs the positions of the electrode contacts to a text
+# file, which can be read in and converted to a tsv file with
+# column headers. Converting to a tsv will make it so that the location of
+# each electrode contact and its corresponding channel can be easily
+# understood.
 #
 # .. code-block:: python
 #
 #     out_fname = op.join(os.environ['SUBJECTS_DIR'],
 #                         os.environ['SUBJECT'], 'cvs', 'out.txt')
-#     warped_ch_coords = np.zeros(ch_coords.shape)
 #     with open(out_fname, 'r') as fid:
 #     for i in range(ch_coords.shape[0])
-#         warped_ch_coords[i] = [float(pos) for pos in
-#                                fid.readline().rstrip().split()]
-#     warped_ch_coords = mne.transforms.apply_trans(
-#         T1.header.get_vox2ras_tkr(), warped_ch_coords)
+#         ch_coords[i] = [float(pos) for pos in
+#                         fid.readline().rstrip().split()]
+#     ch_coords = mne.transforms.apply_trans(
+#         T1.header.get_vox2ras_tkr(), ch_coords)
 #     elec_fname = op.join(misc_path, 'seeg',
 #                          'sample_seeg_electrodes_fsaverage.tsv')
 #     pd.DataFrame(dict(name=ch_names,
-#                       R=warped_ch_coords[0],
-#                       A=warped_ch_coords[1],
-#                       S=warped_ch_coords[2])).to_tsv(
-#         elec_fname, sep='\t')
+#                       R=ch_coords[0],
+#                       A=ch_coords[1],
+#                       S=ch_coords[2])).to_tsv(elec_fname, sep='\t')
 
 ###############################################################################
 # Let's plot the result. You can compare this to :ref:`tut-working-with-seeg`
-# to see the difference between more complex SDR morph and the linear
+# to see the difference between this more complex morph and the linear
 # Talairach transformation.
 
 # Load warped electrode positions from file
-'''elec_df = pd.read_csv(op.join(misc_path, 'seeg',
+elec_df = pd.read_csv(op.join(misc_path, 'seeg',
                               'sample_seeg_electrodes_fsaverage.tsv'),
                       sep='\t', header=0, index_col=None)
 ch_names = elec_df['name'].tolist()
@@ -364,7 +364,7 @@ raw.set_montage(montage)
 # plot the resulting alignment
 fig = mne.viz.plot_alignment(raw.info, None, subject,
                              subjects_dir=subjects_dir, show_axes=True,
-                             surfaces=['pial', 'head'])'''
+                             surfaces=['pial', 'head'])
 
 ###############################################################################
 # References
