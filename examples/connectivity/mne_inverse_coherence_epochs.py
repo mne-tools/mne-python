@@ -7,7 +7,7 @@ This example computes the coherence between a seed in the left
 auditory cortex and the rest of the brain based on single-trial
 MNE-dSPM inverse solutions.
 
-Note: Starting version v0.25, mne.connectivity sub-modules will be housed in 
+Note: Starting version v0.25, mne.connectivity sub-modules will be housed in
 `mne-connectivity`. Download it by  running `pip install mne-connectivity`.
 """
 # Author: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
