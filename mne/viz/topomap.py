@@ -758,7 +758,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     %(topomap_border)s
     %(topomap_ch_type)s
 
-    ..versionadded:: 0.24.0
+        ..versionadded:: 0.24.0
     cnorm : matplotlib.colors.Normalize | None
         Colormap normalization, default None means linear normalization. If not
         None, ``vmin`` and ``vmax`` arguments are ignored. See Notes for more
