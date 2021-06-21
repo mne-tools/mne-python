@@ -7,6 +7,9 @@ Computes the connectivity between a seed-gradiometer close to the visual cortex
 and all other gradiometers. The connectivity is computed in the time-frequency
 domain using Morlet wavelets and the debiased squared weighted phase lag index
 :footcite:`VinckEtAl2011` is used as connectivity metric.
+
+Note: Starting version v0.25, mne.connectivity sub-modules will be housed in 
+`mne-connectivity`. Download it by  running `pip install mne-connectivity`.
 """
 # Author: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #

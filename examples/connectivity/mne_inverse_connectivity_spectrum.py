@@ -5,6 +5,9 @@ Compute full spectrum source space connectivity between labels
 
 The connectivity is computed between 4 labels across the spectrum
 between 7.5 Hz and 40 Hz.
+
+Note: Starting version v0.25, mne.connectivity sub-modules will be housed in 
+`mne-connectivity`. Download it by  running `pip install mne-connectivity`.
 """
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>

@@ -6,6 +6,9 @@ Compute all-to-all connectivity in sensor space
 Computes the Phase Lag Index (PLI) between all gradiometers and shows the
 connectivity in 3D using the helmet geometry. The left visual stimulation data
 are used which produces strong connectvitiy in the right occipital sensors.
+
+Note: Starting version v0.25, mne.connectivity sub-modules will be housed in 
+`mne-connectivity`. Download it by  running `pip install mne-connectivity`.
 """
 
 # Author: Martin Luessi <mluessi@nmr.mgh.harvard.edu>

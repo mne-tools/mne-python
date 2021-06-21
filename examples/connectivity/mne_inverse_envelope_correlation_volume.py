@@ -6,6 +6,9 @@ Compute envelope correlations in volume source space
 Compute envelope correlations of orthogonalized activity
 :footcite:`HippEtAl2012,KhanEtAl2018` in source space using resting state
 CTF data in a volume source space.
+
+Note: Starting version v0.25, mne.connectivity sub-modules will be housed in 
+`mne-connectivity`. Download it by  running `pip install mne-connectivity`.
 """
 
 # Authors: Eric Larson <larson.eric.d@gmail.com>

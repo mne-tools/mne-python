@@ -7,6 +7,9 @@ This example computes the all-to-all connectivity between 68 regions in
 source space based on dSPM inverse solutions and a FreeSurfer cortical
 parcellation. The connectivity is visualized using a circular graph which
 is ordered based on the locations of the regions in the axial plane.
+
+Note: Starting version v0.25, mne.connectivity sub-modules will be housed in 
+`mne-connectivity`. Download it by  running `pip install mne-connectivity`.
 """
 # Authors: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
