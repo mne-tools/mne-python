@@ -14,6 +14,9 @@ synchronized to the onset of auditory stimuli. However, rather than creating
 epochs by segmenting the data around the onset of each stimulus, we will
 create 30 second epochs that allow us to perform non-event-related analyses of
 the signal.
+
+Note: Starting version v0.25, mne.connectivity sub-modules will be housed in 
+`mne-connectivity`. Download it by  running `pip install mne-connectivity`.
 """
 
 # %%
