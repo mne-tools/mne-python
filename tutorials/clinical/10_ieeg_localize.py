@@ -32,6 +32,10 @@ import nibabel as nib
 from nibabel.processing import resample_from_to
 from nipy.algorithms.registration.histogram_registration import (
     HistogramRegistration)
+from dipy.align import (affine_registration, center_of_mass, translation,
+                        rigid, affine)
+from dipy.align.metrics import CCMetric
+from dipy.align.imwarp import SymmetricDiffeomorphicRegistration
 import mne
 from mne.datasets import fetch_fsaverage
 
@@ -89,14 +93,14 @@ fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)  # downloads if needed
 T1 = nib.freesurfer.load(op.join(misc_path, 'seeg', 'sample_seeg_T1.mgz'))
 viewer = T1.orthoview()
 viewer.set_position(0, 9.9, 5.8)
-viewer._axes[0].annotate('PC', (107, 108), xytext=(10, 75),
-                         color='white', horizontalalignment='center',
-                         arrowprops=dict(facecolor='white', lw=0.5, width=2,
-                                         headwidth=5))
-viewer._axes[0].annotate('AC', (137, 108), xytext=(246, 75),
-                         color='white', horizontalalignment='center',
-                         arrowprops=dict(facecolor='white', lw=0.5, width=2,
-                                         headwidth=5))
+viewer.figs[0].axes[0].annotate(
+    'PC', (107, 108), xytext=(10, 75), color='white',
+    horizontalalignment='center',
+    arrowprops=dict(facecolor='white', lw=0.5, width=2, headwidth=5))
+viewer.figs[0].axes[0].annotate(
+    'AC', (137, 108), xytext=(246, 75), color='white',
+    horizontalalignment='center',
+    arrowprops=dict(facecolor='white', lw=0.5, width=2, headwidth=5))
 
 ###############################################################################
 # Freesurfer recon-all
@@ -229,6 +233,26 @@ CT_aligned = resample_from_to(CT_unaligned, (CT.shape, trans_affine))
 plot_overlay(T1, CT_aligned, 'Aligned CT Overlaid on T1', thresh=0.95)
 
 ###############################################################################
+# Aligning with FSL's FLIRT
+#
+# As an alternate option, the CT can be aligned with the MR using FLIRT.
+# Instructions for installing FSL are
+# `here <https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FslInstallation>`_.
+#
+# .. code-block:: bash
+#
+#     $ export FSLOUTPUTTYPE=NIFTI_GZ
+#     $ mri_convert T1.mgz T1.nii.gz
+#     $ mri_convert CT.mgz CT.nii.gz
+#     $ flirt -in CT.nii.gz -ref T1.nii.gz -out rCT.nii.gz \
+#     $     -omat CT_to_MR.mat -dof 6
+#
+# .. note::
+#     On a Mac operating system, ``flirt`` may be installed as ``flirt.fsl``
+#     and so ``flirt.fsl`` would need to be used in the command instead of
+#     ``flirt``.
+
+###############################################################################
 # Marking the Location of Each Electrode Contact
 # ==============================================
 #
@@ -270,6 +294,69 @@ for ch_coord in ch_coords:
     renderer.sphere(center=tuple(ch_coord), color='red', scale=5)
 
 renderer.show()
+
+###############################################################################
+# Warping to a Common Atlas
+# =========================
+#
+# Electrode contact locations are often compared across subjects in a template
+# space such as ``fsaverage`` or ``cvs_avg35_inMNI152``. To transform the
+# contact locations to that space, we need to determine a function that maps
+# from the T1 to the template space. We will use the symmetric diffeomorphic
+# registration (SDR) implemented by ``Dipy`` to do this.
+#
+# .. note::
+#     SDR is more accurate than the linear Talairach transform in
+#     :ref:`tut-working-with-seeg` because it allows for non-linear warping.
+
+# load freesurfer average T1 image
+template_brain = nib.freesurfer.load(
+    op.join(subjects_dir, subject, 'mri', 'brain.mgz'))
+
+plot_overlay(T1, template_brain,
+             'T1 Alignment with fsaverage before Affine Registration')
+
+# convert electrode positions from surface RAS to voxels
+ch_coords = mne.transforms.apply_trans(
+    np.linalg.inv(T1.header.get_vox2ras_tkr()), ch_coords)
+
+reg_img, reg_affine = affine_registration(
+    moving=T1.get_fdata(),
+    static=template_brain.get_fdata(),
+    moving_affine=T1.affine,
+    static_affine=template_brain.affine,
+    nbins=32,
+    metric='MI',
+    pipeline=[center_of_mass, translation, rigid, affine],
+    level_iters=[10000, 1000, 100],
+    sigmas=[3.0, 1.0, 0.0],
+    factors=[4, 2, 1])
+
+aligned_T1 = nib.Nifti1Image(reg_img, np.dot(T1.affine, reg_affine))
+
+plot_overlay(aligned_T1, template_brain,
+             'T1 Alignment with fsaverage after Affine Registration')
+
+# Compute registration
+metric = CCMetric(3)
+sdr = SymmetricDiffeomorphicRegistration(metric, level_iters=[10, 10, 5])
+mapping = sdr.optimize(static=template_brain.get_fdata(),
+                       moving=aligned_T1.get_fdata(),
+                       static_grid2world=template_brain.affine,
+                       moving_grid2world=aligned_T1.affine,
+                       ss_sigma_factor=0.5)
+
+warped_T1 = nib.Nifti1Image(mapping.transform(T1.get_fdata()), T1.affine)
+
+plot_overlay(warped_T1, template_brain, 'T1 Warped to fsaverage')
+
+# Apply mapping to electrode contact positions
+for i, ch_coord in enumerate(ch_coords):
+    ch_coords[i] += mapping.forward[tuple(ch_coord.round().astype(int))]
+
+# convert back to surface RAS but to the template surface RAS this time
+ch_coords = mne.transforms.apply_trans(
+    template_brain.header.get_vox2ras_tkr(), ch_coords)
 
 ###############################################################################
 # Warping to a Common Atlas
