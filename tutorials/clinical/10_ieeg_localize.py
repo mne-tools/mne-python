@@ -224,10 +224,10 @@ plot_overlay(T1, CT_unaligned, 'Unaligned CT Overlaid on T1', thresh=0.95)
 affreg = AffineRegistration(
     metric=MutualInformationMetric(nbins=32),
     level_iters=[10], sigmas=[0.0], factors=[1])
-rigid = affreg.optimize(
+rigid_trans = affreg.optimize(
     T1.get_fdata(), CT_unaligned.get_fdata(), RigidTransform3D(), None,
     T1.affine, CT_unaligned.affine)
-reg_affine = rigid.affine
+reg_affine = rigid_trans.affine
 
 trans_affine = np.dot(T1.affine, np.linalg.inv(reg_affine))
 CT_aligned = resample_from_to(CT_unaligned, (CT.shape, trans_affine))
