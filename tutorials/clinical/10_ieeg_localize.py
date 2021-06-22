@@ -292,7 +292,6 @@ renderer.show()
 #     SDR is more accurate than the linear Talairach transform in
 #     :ref:`tut-working-with-seeg` because it allows for non-linear warping.
 
-
 # load the subject's brain and the freesurfer average brain
 subject_brain = nib.freesurfer.load(
     op.join(misc_path, 'seeg', 'sample_seeg_brain.mgz'))
@@ -353,13 +352,70 @@ plot_overlay(template_brain, warped_brain, 'Warped to fsaverage')
 ch_coords = mne.transforms.apply_trans(
     np.linalg.inv(subject_brain.header.get_vox2ras_tkr()), ch_coords)
 
-# Apply mapping to electrode contact positions
+
+def get_neighbors(loc, img, thresh, voxels_in_volume):
+    """Find all the neighbors above a threshold near a voxel."""
+    neighbors = set()
+    for axis in range(len(loc)):
+        for i in (-1, 1):
+            next_loc = np.array(loc)
+            next_loc[axis] += i
+            next_loc = tuple(next_loc)
+            # must be monotonically decreasing otherwise, bleeds into
+            # other electrodes
+            if img[next_loc] > thresh and img[next_loc] < img[loc] and \
+                    next_loc not in voxels_in_volume:
+                neighbors.add(next_loc)
+    return neighbors
+
+
+def peak_to_volume(loc, img, thresh, voxels_max=100):
+    """Find voxels from peak contact location."""
+    loc = tuple(loc)
+    voxels_in_volume = neighbors = set([loc])
+    while neighbors and len(voxels_in_volume) <= voxels_max:
+        next_neighbors = set()
+        for next_loc in neighbors:
+            voxel_neighbors = get_neighbors(
+                next_loc, img, thresh, voxels_in_volume)
+            voxels_in_volume = voxels_in_volume.union(voxel_neighbors)
+            if len(voxels_in_volume) > voxels_max:
+                break
+            next_neighbors = next_neighbors.union(voxel_neighbors)
+        neighbors = next_neighbors
+    return voxels_in_volume
+
+
+# Take channel coordinates and use the CT to transform them
+# into a 3D image where all the voxels over a threshold nearby
+# are labeled with an index
+CT_data = CT.get_fdata()
+thresh = np.quantile(CT_data, 0.99) / 2
+elec_image = np.zeros(subject_brain.shape, dtype=int)
 for i, ch_coord in enumerate(ch_coords):
-    print(f'Warping contact {i}, {ch_names[i]}')
-    ch_img = np.zeros(T1.shape, dtype=int)
-    ch_img[tuple(ch_coord.round().astype(int))] = 1000
-    warped_ch_img = mapping.transform(ch_img)
-    ch_coords[i] = np.unravel_index(warped_ch_img.argmax(), T1.shape)
+    x, y, z = ch_coord.round().astype(int)
+    # look up to two voxels away
+    peak = np.array(np.unravel_index(
+        np.argmax(CT_data[x - 2:x + 3, y - 2:y + 3, z - 2:z + 3]),
+        (5, 5, 5))) - 2 + ch_coord.round().astype(int)
+    volume = peak_to_volume(peak, CT_data, thresh)
+    for voxel in volume:
+        elec_image[voxel] = i + 1
+
+# Apply the mapping
+warped_elec_image = mapping.transform(elec_image,
+                                      interpolation='nearest')
+
+# Recover the electrode contact positions as the center of mass
+for i in range(ch_coords.shape[0]):
+    ch_voxels = np.array(np.where(warped_elec_image == i + 1))
+    if ch_voxels.size > 0:
+        ch_coords[i] = ch_voxels.mean(axis=1)
+    else:  # if the contact wasn't mapped in the image, map on its own
+        ch_image = np.zeros(subject_brain.shape, dtype=int)
+        ch_image[tuple(ch_coord.round().astype(int))] = 1000
+        warped_ch_img = mapping.transform(ch_image)
+        ch_coords[i] = np.array(np.where(warped_ch_img > 10)).mean(axis=1)
 
 # Convert back to surface RAS but to the template surface RAS this time
 ch_coords = mne.transforms.apply_trans(
