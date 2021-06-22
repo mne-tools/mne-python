@@ -370,11 +370,6 @@ ch_coords = mne.transforms.apply_trans(
 # to see the difference between this more complex morph and the linear
 # Talairach transformation.
 
-pd.DataFrame(dict(name=ch_names, R=ch_coords[0],
-                  A=ch_coords[1], S=ch_coords[2])).tocsv(
-    op.join(misc_path, 'seeg', 'sample_seeg_electrodes_fsaverage.tsv'),
-    sep='\t')
-
 # load electrophysiology data
 raw = mne.io.read_raw(op.join(misc_path, 'seeg', 'sample_seeg_ieeg.fif'))
 
