@@ -7,7 +7,6 @@ import functools
 from math import sqrt
 
 import numpy as np
-from numba import njit
 
 from .mxne_debiasing import compute_bias
 from ..utils import logger, verbose, sum_squared, warn, _get_blas_funcs
@@ -174,7 +173,7 @@ def prox_l1(Y, alpha, n_orient):
     return Y, active_set
 
 
-def dgap_l21(M, G, X, active_set, alpha, n_orient):
+def dgap_l21(M, G, X, active_set, alpha, n_orient, primal_only=False):
     """Duality gap for the mixed norm inverse problem.
 
     See :footcite:`GramfortEtAl2012`.
@@ -193,6 +192,9 @@ def dgap_l21(M, G, X, active_set, alpha, n_orient):
         The regularization parameter.
     n_orient : int
         Number of dipoles per locations (typically 1 or 3).
+    primal_only : bool
+        Only computes and returns the primal value. Useful when only the
+        primal is needed.
 
     Returns
     -------
@@ -214,6 +216,9 @@ def dgap_l21(M, G, X, active_set, alpha, n_orient):
     penalty = norm_l21(X, n_orient, copy=True)
     nR2 = sum_squared(R)
     p_obj = 0.5 * nR2 + alpha * penalty
+
+    if primal_only:
+        return p_obj
 
     dual_norm = norm_l2inf(np.dot(G.T, R), n_orient, copy=False)
     scaling = alpha / dual_norm
@@ -338,29 +343,32 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
 
     alpha_lc = alpha / lipschitz_constant
 
+    if use_accel:
+        last_K_X = np.empty((K + 1, n_sources, n_times))
+        U = np.zeros((K, n_sources * n_times))
+
     # First make G fortran for faster access to blocks of columns
-    G = np.ascontiguousarray(G)
-    X = np.ascontiguousarray(X)
-    R = np.ascontiguousarray(R)
+    G = np.asfortranarray(G)
     # Ensure these are correct for dgemm
     assert R.dtype == np.float64
     assert G.dtype == np.float64
     one_ovr_lc = 1. / lipschitz_constant
 
-    # storing last K coefficient matrices if uses acceleration
-    if use_accel:
-        last_K_coef = np.empty((K + 1, n_sources, n_times))
-        U = np.zeros((K, n_sources * n_times))
     # assert that all the multiplied matrices are fortran contiguous
-    #assert X.T.flags.f_contiguous
-    #assert R.T.flags.f_contiguous
-    #assert G.flags.f_contiguous
+    assert X.T.flags.f_contiguous
+    assert R.T.flags.f_contiguous
+    assert G.flags.f_contiguous
     # storing list of contiguous arrays
+    list_G_j_c = []
+    for j in range(n_positions):
+        idx = slice(j * n_orient, (j + 1) * n_orient)
+        list_G_j_c.append(np.ascontiguousarray(G[:, idx]))
+
     for i in range(maxit):
         _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
-             alpha_lc)
+             alpha_lc, list_G_j_c)
 
-        if (i + 1) % dgap_freq == 0:
+        if i % dgap_freq == 0:
             _, p_obj, d_obj, _ = dgap_l21(M, G, X[active_set], active_set,
                                           alpha, n_orient)
             highest_d_obj = max(d_obj, highest_d_obj)
@@ -369,60 +377,51 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
             logger.debug("Iteration %d :: p_obj %f :: dgap %f :: n_active %d" %
                          (i + 1, p_obj, gap, np.sum(active_set) / n_orient))
 
-            if use_accel:
-                if i < K + 1:
-                    last_K_coef[i] = X
-                else:
-                    for k in range(K):
-                        last_K_coef[k] = last_K_coef[k + 1]
-                    last_K_coef[K - 1] = X
-
-                    for k in range(K):
-                        U[k] = (last_K_coef[k + 1].ravel() -
-                                last_K_coef[k].ravel())
-                    C = U @ U.T
-
-                    try:
-                        z = np.linalg.solve(C, np.ones(K))
-                        c = z / z.sum()
-                        X_acc = np.sum(last_K_coef[:-1] * c[:, None, None],
-                                       axis=0)
-                        active_set_acc = np.linalg.norm(X_acc, axis=1) != 0
-                        _, p_obj_acc, _, _ = dgap_l21(M, G,
-                                                      X_acc[active_set_acc],
-                                                      active_set_acc, alpha,
-                                                      n_orient)
-                        if p_obj_acc < p_obj:
-                            X = X_acc
-                            active_set = active_set_acc
-                            R = M - G[:, active_set] @ X[active_set]
-                    except np.linalg.LinAlgError:
-                        if verbose:
-                            logger.debug('Anderson acceleration was not used '
-                                         'at iteration %s (singular matrix).'
-                                         % i)
             if gap < tol:
                 logger.debug('Convergence reached ! (gap: %s < %s)'
                              % (gap, tol))
                 break
 
+        # using Anderson acceleration for faster convergence
+        if use_accel:
+            last_K_X[i % (K + 1)] = X
+
+            if (i + 1) % K == 0:
+                for k in range(K):
+                    U[k] = last_K_X[k + 1].ravel() - last_K_X[k].ravel()
+                C = U @ U.T
+                one_vec = np.ones(K)
+
+                try:
+                    z = np.linalg.solve(C, one_vec)
+                    c = z / z.sum()
+                    X_acc = np.sum(
+                        last_K_X[:-1] * c[:, None, None], axis=0
+                    )
+                    active_set_acc = np.linalg.norm(X_acc, axis=1) != 0
+                    p_obj = dgap_l21(M, G, X[active_set], active_set, alpha,
+                                     n_orient, primal_only=True)
+                    p_obj_acc = dgap_l21(M, G, X_acc[active_set_acc],
+                                         active_set_acc, alpha, n_orient,
+                                         primal_only=True)
+                    if p_obj_acc < p_obj:
+                        X = X_acc
+                        active_set = active_set_acc
+                        R = M - G[:, active_set] @ X[active_set]
+                except np.linalg.LinAlgError:
+                    logger.debug("Iteration %d: LinAlg Error" % (i + 1))
+
     X = X[active_set]
 
     return X, active_set, E
 
-@njit
-def block_soft_thresh(x, u):
-    norm_x = np.linalg.norm(x)
-    if norm_x < u:
-        return np.zeros_like(x), False
-    else:
-        return (1 - u / norm_x) * x, True
 
-@njit
-def _bcd(G, X, R, active_set, one_over_lc, n_orient, n_positions, alpha_lc):
+def _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
+         alpha_lc, list_G_j_c):
     """Implement one full pass of BCD.
+
     BCD stands for Block Coordinate Descent.
-    This function makes use of numba.njit for speed reasons.
+    This function make use of scipy.linalg.get_blas_funcs to speed reasons.
 
     Parameters
     ----------
@@ -443,50 +442,36 @@ def _bcd(G, X, R, active_set, one_over_lc, n_orient, n_positions, alpha_lc):
     alpha_lc: array, shape (n_positions, )
         alpha * (Lipschitz constants).
     """
-    for j in range(n_positions):
+    X_j_new = np.zeros_like(X[0:n_orient, :], order='C')
+    dgemm = _get_dgemm()
+
+    for j, G_j_c in enumerate(list_G_j_c):
         idx = slice(j * n_orient, (j + 1) * n_orient)
-        G_j = G[:, idx].copy() # needs a copy to preserve C - contiguity
-        X_j = X[idx].copy()
-        X[idx], active_set[idx] = block_soft_thresh(X_j + G_j.T @ R * 
-                                                    one_over_lc[j], alpha_lc[j])
-        if X_j[0, 0] != 0:
-            R += G_j @ X_j
-        if np.all(active_set[idx] == True):
-            R -= G_j @ X[idx]
-
-
-# def _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
-#          alpha_lc, list_G_j_c):
-#     X_j_new = np.zeros_like(X[0:n_orient, :], order='C')
-#     dgemm = _get_dgemm()
-
-#     for j, G_j_c in enumerate(list_G_j_c):
-#         idx = slice(j * n_orient, (j + 1) * n_orient)
-#         G_j = G[:, idx]
-#         X_j = X[idx]
-#         dgemm(alpha=one_ovr_lc[j], beta=0., a=R.T, b=G_j, c=X_j_new.T,
-#               overwrite_c=True)
-#         # X_j_new = G_j.T @ R
-#         # Mathurin's trick to avoid checking all the entries
-#         was_non_zero = X_j[0, 0] != 0
-#         # was_non_zero = np.any(X_j)
-#         if was_non_zero:
-#             dgemm(alpha=1., beta=1., a=X_j.T, b=G_j_c.T, c=R.T,
-#                   overwrite_c=True)
-#             # R += np.dot(G_j, X_j)
-#             X_j_new += X_j
-#         block_norm = sqrt(sum_squared(X_j_new))
-#         if block_norm <= alpha_lc[j]:
-#             X_j.fill(0.)
-#             active_set[idx] = False
-#         else:
-#             shrink = max(1.0 - alpha_lc[j] / block_norm, 0.0)
-#             X_j_new *= shrink
-#             dgemm(alpha=-1., beta=1., a=X_j_new.T, b=G_j_c.T, c=R.T,
-#                   overwrite_c=True)
-#             # R -= np.dot(G_j, X_j_new)
-#             X_j[:] = X_j_new
-#             active_set[idx] = True
+        G_j = G[:, idx]
+        X_j = X[idx]
+        dgemm(alpha=one_ovr_lc[j], beta=0., a=R.T, b=G_j, c=X_j_new.T,
+              overwrite_c=True)
+        # X_j_new = G_j.T @ R
+        # Mathurin's trick to avoid checking all the entries
+        was_non_zero = X_j[0, 0] != 0
+        # was_non_zero = np.any(X_j)
+        if was_non_zero:
+            dgemm(alpha=1., beta=1., a=X_j.T, b=G_j_c.T, c=R.T,
+                  overwrite_c=True)
+            # R += np.dot(G_j, X_j)
+            X_j_new += X_j
+        block_norm = sqrt(sum_squared(X_j_new))
+        if block_norm <= alpha_lc[j]:
+            X_j.fill(0.)
+            active_set[idx] = False
+        else:
+            shrink = max(1.0 - alpha_lc[j] / block_norm, 0.0)
+            X_j_new *= shrink
+            dgemm(alpha=-1., beta=1., a=X_j_new.T, b=G_j_c.T, c=R.T,
+                  overwrite_c=True)
+            # R -= np.dot(G_j, X_j_new)
+            X_j[:] = X_j_new
+            active_set[idx] = True
 
 
 @verbose
@@ -496,7 +481,8 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
                       active_set_init=None, X_init=None):
     """Solve L1/L2 mixed-norm inverse problem with active set strategy.
 
-    See references :footcite:`GramfortEtAl2012,StrohmeierEtAl2016`.
+    See references :footcite:`GramfortEtAl2012,StrohmeierEtAl2016,
+    BertrandEtAl2020`.
 
     Parameters
     ----------
@@ -519,7 +505,8 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
     n_orient : int
         The number of orientation (1 : fixed or 3 : free or loose).
     solver : 'prox' | 'cd' | 'bcd' | 'auto'
-        The algorithm to use for the optimization.
+        The algorithm to use for the optimization. Block Coordinate Descent
+        (BCD) uses Anderson acceleration for faster convergence.
     return_gap : bool
         Return final duality gap.
     dgap_freq : int
@@ -584,8 +571,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
         lc = None
     elif solver == 'bcd':
         logger.info("Using block coordinate descent")
-        l21_solver = functools.partial(_mixed_norm_solver_bcd,
-                                       use_accel=use_accel, K=K)
+        l21_solver = _mixed_norm_solver_bcd
         G = np.asfortranarray(G)
         if n_orient == 1:
             lc = np.sum(G * G, axis=0)
@@ -623,6 +609,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
             X, as_, _ = l21_solver(M, G[:, active_set], alpha, lc_tmp,
                                    maxit=maxit, tol=tol, init=X_init,
                                    n_orient=n_orient, dgap_freq=dgap_freq)
+
             active_set[active_set] = as_.copy()
             idx_old_active_set = np.where(active_set)[0]
 
@@ -755,20 +742,17 @@ def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
                 X, _active_set, _ = mixed_norm_solver(
                     M, G_tmp, alpha, debias=False, n_orient=n_orient,
                     maxit=maxit, tol=tol, active_set_size=active_set_size,
-                    dgap_freq=dgap_freq, solver=solver, use_accel=use_accel,
-                    K=K, verbose=verbose)
+                    dgap_freq=dgap_freq, solver=solver, verbose=verbose)
             else:
                 X, _active_set, _ = mixed_norm_solver(
                     M, G_tmp, alpha, debias=False, n_orient=n_orient,
                     maxit=maxit, tol=tol, active_set_size=None,
-                    dgap_freq=dgap_freq, solver=solver, use_accel=use_accel,
-                    K=K, verbose=verbose)
+                    dgap_freq=dgap_freq, solver=solver, verbose=verbose)
         else:
             X, _active_set, _ = mixed_norm_solver(
                 M, G_tmp, alpha, debias=False, n_orient=n_orient,
                 maxit=maxit, tol=tol, active_set_size=None,
-                dgap_freq=dgap_freq, solver=solver, use_accel=use_accel, K=K,
-                verbose=verbose)
+                dgap_freq=dgap_freq, solver=solver, verbose=verbose)
 
         logger.info('active set size %d' % (_active_set.sum() / n_orient))
 
