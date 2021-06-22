@@ -15,7 +15,7 @@ else
 	# built using vtk master branch on an Ubuntu 18.04.5 VM and uploaded to OSF:
 	wget -q https://osf.io/kej3v/download -O vtk-9.0.20201117-cp39-cp39-linux_x86_64.whl
 	pip install --progress-bar off vtk-9.0.20201117-cp39-cp39-linux_x86_64.whl
-	pip install --progress-bar off https://github.com/pyvista/pyvista/zipball/master
+	pip install --progress-bar off https://github.com/pyvista/pyvista/zipball/main
 	pip install --progress-bar off https://github.com/pyvista/pyvistaqt/zipball/master
 	pip install --progress-bar off --pre mayavi imageio-ffmpeg xlrd mffpy
 fi
