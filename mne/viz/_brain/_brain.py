@@ -1822,36 +1822,10 @@ class Brain(object):
             cell_type = np.full(n_points, vtk.VTK_VERTEX)
             cells = np.c_[np.full(n_points, 1), range(n_points)]
             args = (cells, cell_type, points)
-            scalars = self._sensors_data[eeg_picks.tolist(), 0]
             self._eeg_grid = UnstructuredGrid(*args)
             mapper = _sphere_glyph(self._eeg_grid, factor=scale)
             actor = self._renderer._actor(mapper)
             self._renderer.plotter.add_actor(actor)
-
-            def _func(value):
-                scalars = self._sensors_data[eeg_picks.tolist(), int(value)]
-                rng = [np.min(scalars), np.max(scalars)]
-                self._renderer._set_mesh_scalars(
-                    mesh=self._eeg_grid,
-                    scalars=scalars,
-                    name="data"
-                )
-                mapper.SetScalarRange(*rng)
-
-            self.callbacks = dict()
-            self.sliders = dict()
-            self.callbacks["sensors"] = IntSlider(
-                plotter=self.plotter,
-                callback=_func,
-                first_call=False,
-            )
-            self.sliders["sensors"] = self._renderer.plotter.add_slider_widget(
-                self.callbacks["sensors"],
-                value=0,
-                rng=[0, self._sensors_data.shape[1] - 1],
-            )
-            self.callbacks["sensors"].slider_rep = \
-                self.sliders["sensors"].GetRepresentation()
 
         self._update()
 
