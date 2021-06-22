@@ -34,8 +34,10 @@ from dipy.align.imaffine import AffineRegistration, MutualInformationMetric
 from dipy.align.transforms import RigidTransform3D
 from dipy.align import (affine_registration, center_of_mass, translation,
                         rigid, affine)
+from dipy.align.reslice import reslice
 from dipy.align.metrics import CCMetric
 from dipy.align.imwarp import SymmetricDiffeomorphicRegistration
+
 import mne
 from mne.datasets import fetch_fsaverage
 
@@ -227,18 +229,6 @@ rigid_trans = affreg.optimize(
     transform=RigidTransform3D(), params0=None,
     static_grid2world=T1.affine, moving_grid2world=CT_unaligned.affine)
 
-reg_img, reg_affine = affine_registration(
-    moving=CT_unaligned.get_fdata(),
-    static=T1.get_fdata(),
-    moving_affine=CT_unaligned.affine,
-    static_affine=T1.affine,
-    nbins=32,
-    metric='MI',
-    pipeline=[affine],
-    level_iters=[10],
-    sigmas=[0.0],
-    factors=[1])
-
 trans_affine = np.dot(T1.affine, np.linalg.inv(rigid_trans.affine))
 # CT_unaligned = resample(moving=CT_unaligned.get_fdata(), static)
 CT_aligned = resample_from_to(CT_unaligned, (CT.shape, trans_affine))
@@ -302,63 +292,74 @@ renderer.show()
 #     SDR is more accurate than the linear Talairach transform in
 #     :ref:`tut-working-with-seeg` because it allows for non-linear warping.
 
+
 # load the subject's brain and the freesurfer average brain
+subject_brain = nib.freesurfer.load(
+    op.join(misc_path, 'seeg', 'sample_seeg_brain.mgz'))
 template_brain = nib.freesurfer.load(
     op.join(subjects_dir, subject, 'mri', 'brain.mgz'))
 
-plot_overlay(T1, template_brain,
+plot_overlay(template_brain, subject_brain,
              'Alignment with fsaverage before Affine Registration')
 
-# convert electrode positions from surface RAS to voxels
-ch_coords = mne.transforms.apply_trans(
-    np.linalg.inv(T1.header.get_vox2ras_tkr()), ch_coords)
+# normalize intensities
+mri_to = template_brain.get_fdata().copy()
+mri_to /= mri_to.max()
+mri_from = subject_brain.get_fdata().copy()
+mri_from /= mri_from.max()
+
+# downsample for speed
+zooms = (5, 5, 5)
+mri_to, affine_to = reslice(
+    mri_to, template_brain.affine,
+    template_brain.header.get_zooms()[:3], zooms)
+mri_from, affine_from = reslice(
+    mri_from, subject_brain.affine,
+    subject_brain.header.get_zooms()[:3], zooms)
 
 reg_img, reg_affine = affine_registration(
-    moving=T1.get_fdata(),
-    static=template_brain.get_fdata(),
-    moving_affine=T1.affine,
-    static_affine=template_brain.affine,
+    moving=mri_from,
+    static=mri_to,
+    moving_affine=affine_from,
+    static_affine=affine_to,
     nbins=32,
     metric='MI',
     pipeline=[center_of_mass, translation, rigid, affine],
-    level_iters=[10],
-    sigmas=[0.0],
-    factors=[1])
+    level_iters=[100, 100, 10],
+    sigmas=[3.0, 1.0, 0.0],
+    factors=[4, 2, 1])
 
 # Apply the transform to the T1 to plot it
-aligned_T1 = nib.Nifti1Image(reg_img, np.dot(T1.affine, reg_affine))
-plot_overlay(aligned_T1, template_brain,
+aligned_brain = nib.Nifti1Image(reg_img, np.dot(affine_to, reg_affine))
+template_brain_zoomed = nib.Nifti1Image(mri_to, affine_to)
+plot_overlay(template_brain_zoomed, aligned_brain,
              'Alignment with fsaverage after Affine Registration')
 
 # Compute registration
 sdr = SymmetricDiffeomorphicRegistration(
     metric=CCMetric(3), level_iters=[10, 10, 5])
 mapping = sdr.optimize(static=template_brain.get_fdata(),
-                       moving=T1.get_fdata(),
+                       moving=subject_brain.get_fdata(),
                        static_grid2world=template_brain.affine,
-                       moving_grid2world=T1.affine,
+                       moving_grid2world=subject_brain.affine,
                        prealign=reg_affine)
 
-warped_T1 = nib.Nifti1Image(mapping.transform(T1.get_fdata()), T1.affine)
 
-plot_overlay(warped_T1, template_brain, 'Warped to fsaverage')
+warped_brain = nib.Nifti1Image(
+    mapping.transform(subject_brain.get_fdata()), subject_brain.affine)
+plot_overlay(template_brain, warped_brain, 'Warped to fsaverage')
+
+# convert electrode positions from surface RAS to voxels
+ch_coords = mne.transforms.apply_trans(
+    np.linalg.inv(subject_brain.header.get_vox2ras_tkr()), ch_coords)
 
 # Apply mapping to electrode contact positions
-'''for i, ch_coord in enumerate(ch_coords):
-    ch_coords[i] += mapping.forward[tuple(ch_coord.round().astype(int))]'''
-# Okay this works but it misses some contacts
-ch_img = np.ones(T1.shape, dtype=int) * -1
 for i, ch_coord in enumerate(ch_coords):
-    ch_img[tuple(ch_coord.round().astype(int))] = i + 1
-
-warped_ch_img = mapping.transform(ch_img, 'nearest')
-
-for i, _ in enumerate(ch_coords):
-    ch_coord = np.array(np.where(warped_ch_img == i + 1))
-    if ch_coord.size > 0:
-        ch_coords[i] = ch_coord[:, 0]
-    else:
-        ch_coords[i] = np.nan  # missing as nearest
+    print(f'Warping contact {i}, {ch_names[i]}')
+    ch_img = np.zeros(T1.shape, dtype=int)
+    ch_img[tuple(ch_coord.round().astype(int))] = 1000
+    warped_ch_img = mapping.transform(ch_img)
+    ch_coords[i] = np.unravel_index(warped_ch_img.argmax(), T1.shape)
 
 # Convert back to surface RAS but to the template surface RAS this time
 ch_coords = mne.transforms.apply_trans(
@@ -369,14 +370,10 @@ ch_coords = mne.transforms.apply_trans(
 # to see the difference between this more complex morph and the linear
 # Talairach transformation.
 
-# Load warped electrode positions from file
-''' For if the computations take too long
-elec_df = pd.read_csv(op.join(misc_path, 'seeg',
-                              'sample_seeg_electrodes_fsaverage.tsv'),
-                      sep='\t', header=0, index_col=None)
-ch_names = elec_df['name'].tolist()
-ch_coords = elec_df[['R', 'A', 'S']].to_numpy(dtype=float)
-'''
+pd.DataFrame(dict(name=ch_names, R=ch_coords[0],
+                  A=ch_coords[1], S=ch_coords[2])).tocsv(
+    op.join(misc_path, 'seeg', 'sample_seeg_electrodes_fsaverage.tsv'),
+    sep='\t')
 
 # load electrophysiology data
 raw = mne.io.read_raw(op.join(misc_path, 'seeg', 'sample_seeg_ieeg.fif'))
