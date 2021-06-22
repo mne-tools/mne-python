@@ -362,7 +362,7 @@ def get_neighbors(loc, img, thresh, voxels_in_volume):
             next_loc[axis] += i
             next_loc = tuple(next_loc)
             # must be monotonically decreasing otherwise, bleeds into
-            # other electrodes
+            # other contacts
             if img[next_loc] > thresh and img[next_loc] < img[loc] and \
                     next_loc not in voxels_in_volume:
                 neighbors.add(next_loc)
@@ -390,17 +390,26 @@ def peak_to_volume(loc, img, thresh, voxels_max=100):
 # into a 3D image where all the voxels over a threshold nearby
 # are labeled with an index
 CT_data = CT.get_fdata()
-thresh = np.quantile(CT_data, 0.99) / 2
+thresh = np.quantile(CT_data, 0.95)
 elec_image = np.zeros(subject_brain.shape, dtype=int)
 for i, ch_coord in enumerate(ch_coords):
     x, y, z = ch_coord.round().astype(int)
     # look up to two voxels away
     peak = np.array(np.unravel_index(
-        np.argmax(CT_data[x - 2:x + 3, y - 2:y + 3, z - 2:z + 3]),
-        (5, 5, 5))) - 2 + ch_coord.round().astype(int)
+        np.argmax(CT_data[x - 1:x + 2, y - 1:y + 2, z - 1:z + 2]),
+        (3, 3, 3))) - 1 + ch_coord.round().astype(int)
     volume = peak_to_volume(peak, CT_data, thresh)
     for voxel in volume:
-        elec_image[voxel] = i + 1
+        if elec_image[voxel] != 0:
+            # some voxels ambiguous because the contacts are bridged
+            # so assign to the nearest location
+            dist_old = np.sqrt(
+                (ch_coords[elec_image[voxel] - 1] - voxel)**2).sum()
+            dist_new = np.sqrt((ch_coord - voxel)**2).sum()
+            if dist_new < dist_old:
+                elec_image[voxel] = i + 1
+        else:
+            elec_image[voxel] = i + 1
 
 # Apply the mapping
 warped_elec_image = mapping.transform(elec_image,
@@ -408,14 +417,19 @@ warped_elec_image = mapping.transform(elec_image,
 
 # Recover the electrode contact positions as the center of mass
 for i in range(ch_coords.shape[0]):
-    ch_voxels = np.array(np.where(warped_elec_image == i + 1))
-    if ch_voxels.size > 0:
-        ch_coords[i] = ch_voxels.mean(axis=1)
-    else:  # if the contact wasn't mapped in the image, map on its own
-        ch_image = np.zeros(subject_brain.shape, dtype=int)
-        ch_image[tuple(ch_coord.round().astype(int))] = 1000
-        warped_ch_img = mapping.transform(ch_image)
-        ch_coords[i] = np.array(np.where(warped_ch_img > 10)).mean(axis=1)
+    ch_coords[i] = np.array(np.where(warped_elec_image == i + 1)).mean(axis=1)
+
+# if the above code fails this is another way:
+'''
+for i in range(ch_coords.shape[0]):
+    ch_image = np.zeros(subject_brain.shape, dtype=int)
+    for (x, y, z) in np.array(np.where(elec_image == i + 1)).T:
+        ch_image[x, y, z] = CT_data[x, y, z]
+    warped_ch_image = mapping.transform(ch_image)
+    # need to lower threshold because signal becomes more diffuse after interp
+    ch_coords[i] = np.array(
+        np.where(warped_ch_image > thresh / 5)).mean(axis=1)
+'''
 
 # Convert back to surface RAS but to the template surface RAS this time
 ch_coords = mne.transforms.apply_trans(
