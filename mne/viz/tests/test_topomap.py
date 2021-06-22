@@ -611,8 +611,8 @@ def test_plot_topomap_cnorm():
     else:
         from matplotlib.colors import DivergingNorm as TwoSlopeNorm
 
-    rng = np.random.default_rng(seed=42)
-    v = rng.uniform(low=-1, high=2.5, size=64)
+    np.random.seed(42)
+    v = np.random.uniform(low=-1, high=2.5, size=64)
     v[:3] = [-1, 0, 2.5]
 
     montage = make_standard_montage("biosemi64")
