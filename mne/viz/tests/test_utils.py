@@ -206,7 +206,7 @@ def test_marching_cubes():
     """Test creating surfaces via marching cubes."""
     data = np.zeros((50, 50, 50))
     data[20:30, 20:30, 20:30] = 1
-    verts, faces = marching_cubes(data, 0.5)
+    verts, triangles = marching_cubes(data, 0.5)
     # verts and faces are rather large so use checksum
-    assert abs(verts.sum() - 44100) < 0.001
-    assert abs(faces.sum() - 1074855) < 0.001
+    np.testing.assert_allclose(verts.sum(axis=0), [14700, 14700, 14700])
+    np.testing.assert_allclose(triangles.sum(axis=0), [363402, 360865, 350588])

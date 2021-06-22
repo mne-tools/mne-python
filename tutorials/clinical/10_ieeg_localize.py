@@ -32,8 +32,6 @@ import nibabel as nib
 from nibabel.processing import resample_from_to
 from dipy.align.imaffine import AffineRegistration, MutualInformationMetric
 from dipy.align.transforms import RigidTransform3D
-from nipy.algorithms.registration.histogram_registration import (
-    HistogramRegistration)
 from dipy.align import (affine_registration, center_of_mass, translation,
                         rigid, affine)
 from dipy.align.metrics import CCMetric
@@ -225,34 +223,27 @@ affreg = AffineRegistration(
     metric=MutualInformationMetric(nbins=32),
     level_iters=[10], sigmas=[0.0], factors=[1])
 rigid_trans = affreg.optimize(
-    T1.get_fdata(), CT_unaligned.get_fdata(), RigidTransform3D(), None,
-    T1.affine, CT_unaligned.affine)
-reg_affine = rigid_trans.affine
+    static=T1.get_fdata(), moving=CT_unaligned.get_fdata(),
+    transform=RigidTransform3D(), params0=None,
+    static_grid2world=T1.affine, moving_grid2world=CT_unaligned.affine)
 
-trans_affine = np.dot(T1.affine, np.linalg.inv(reg_affine))
+reg_img, reg_affine = affine_registration(
+    moving=CT_unaligned.get_fdata(),
+    static=T1.get_fdata(),
+    moving_affine=CT_unaligned.affine,
+    static_affine=T1.affine,
+    nbins=32,
+    metric='MI',
+    pipeline=[affine],
+    level_iters=[10],
+    sigmas=[0.0],
+    factors=[1])
+
+trans_affine = np.dot(T1.affine, np.linalg.inv(rigid_trans.affine))
+# CT_unaligned = resample(moving=CT_unaligned.get_fdata(), static)
 CT_aligned = resample_from_to(CT_unaligned, (CT.shape, trans_affine))
 
 plot_overlay(T1, CT_aligned, 'Aligned CT Overlaid on T1', thresh=0.95)
-
-###############################################################################
-# Aligning with FSL's FLIRT
-#
-# As an alternate option, the CT can be aligned with the MR using FLIRT.
-# Instructions for installing FSL are
-# `here <https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FslInstallation>`_.
-#
-# .. code-block:: bash
-#
-#     $ export FSLOUTPUTTYPE=NIFTI_GZ
-#     $ mri_convert T1.mgz T1.nii.gz
-#     $ mri_convert CT.mgz CT.nii.gz
-#     $ flirt -in CT.nii.gz -ref T1.nii.gz -out rCT.nii.gz \
-#     $     -omat CT_to_MR.mat -dof 6
-#
-# .. note::
-#     On a Mac operating system, ``flirt`` may be installed as ``flirt.fsl``
-#     and so ``flirt.fsl`` would need to be used in the command instead of
-#     ``flirt``.
 
 ###############################################################################
 # Marking the Location of Each Electrode Contact
@@ -282,15 +273,15 @@ ch_names = elec_df['name'].tolist()
 ch_coords = elec_df[['R', 'A', 'S']].to_numpy(dtype=float)
 
 # Make brain surface from T1
-vert, tri = mne.viz.marching_cubes(T1.get_fdata(), level=100)
+verts, triangles = mne.viz.marching_cubes(T1.get_fdata(), level=100)
 # transform from voxels to surface RAS
-vert = mne.transforms.apply_trans(T1.header.get_vox2ras_tkr(), vert)
+verts = mne.transforms.apply_trans(T1.header.get_vox2ras_tkr(), verts)
 
 renderer = mne.viz.backends.renderer.create_3d_figure(
     size=(1200, 900), bgcolor='w', scene=False)
 mne.viz.set_3d_view(figure=renderer.figure, distance=700,
-                    azimuth=240, elevation=60, focalpoint=(0., 0., -45.))
-renderer.mesh(*vert.T, triangles=tri, color='gray',
+                    azimuth=40, elevation=60, focalpoint=(0., 0., -45.))
+renderer.mesh(*verts.T, triangles=triangles, color='gray',
               opacity=0.05, representation='surface')
 for ch_coord in ch_coords:
     renderer.sphere(center=tuple(ch_coord), color='red', scale=5)
@@ -311,12 +302,12 @@ renderer.show()
 #     SDR is more accurate than the linear Talairach transform in
 #     :ref:`tut-working-with-seeg` because it allows for non-linear warping.
 
-# load freesurfer average T1 image
+# load the subject's brain and the freesurfer average brain
 template_brain = nib.freesurfer.load(
     op.join(subjects_dir, subject, 'mri', 'brain.mgz'))
 
 plot_overlay(T1, template_brain,
-             'T1 Alignment with fsaverage before Affine Registration')
+             'Alignment with fsaverage before Affine Registration')
 
 # convert electrode positions from surface RAS to voxels
 ch_coords = mne.transforms.apply_trans(
@@ -330,105 +321,48 @@ reg_img, reg_affine = affine_registration(
     nbins=32,
     metric='MI',
     pipeline=[center_of_mass, translation, rigid, affine],
-    level_iters=[10000, 1000, 100],
-    sigmas=[3.0, 1.0, 0.0],
-    factors=[4, 2, 1])
+    level_iters=[10],
+    sigmas=[0.0],
+    factors=[1])
 
+# Apply the transform to the T1 to plot it
 aligned_T1 = nib.Nifti1Image(reg_img, np.dot(T1.affine, reg_affine))
-
 plot_overlay(aligned_T1, template_brain,
-             'T1 Alignment with fsaverage after Affine Registration')
+             'Alignment with fsaverage after Affine Registration')
 
 # Compute registration
-metric = CCMetric(3)
-sdr = SymmetricDiffeomorphicRegistration(metric, level_iters=[10, 10, 5])
+sdr = SymmetricDiffeomorphicRegistration(
+    metric=CCMetric(3), level_iters=[10, 10, 5])
 mapping = sdr.optimize(static=template_brain.get_fdata(),
-                       moving=aligned_T1.get_fdata(),
+                       moving=T1.get_fdata(),
                        static_grid2world=template_brain.affine,
-                       moving_grid2world=aligned_T1.affine,
-                       ss_sigma_factor=0.5)
+                       moving_grid2world=T1.affine,
+                       prealign=reg_affine)
 
 warped_T1 = nib.Nifti1Image(mapping.transform(T1.get_fdata()), T1.affine)
 
-plot_overlay(warped_T1, template_brain, 'T1 Warped to fsaverage')
+plot_overlay(warped_T1, template_brain, 'Warped to fsaverage')
 
 # Apply mapping to electrode contact positions
+'''for i, ch_coord in enumerate(ch_coords):
+    ch_coords[i] += mapping.forward[tuple(ch_coord.round().astype(int))]'''
+# Okay this works but it misses some contacts
+ch_img = np.ones(T1.shape, dtype=int) * -1
 for i, ch_coord in enumerate(ch_coords):
-    ch_coords[i] += mapping.forward[tuple(ch_coord.round().astype(int))]
+    ch_img[tuple(ch_coord.round().astype(int))] = i + 1
 
-# convert back to surface RAS but to the template surface RAS this time
+warped_ch_img = mapping.transform(ch_img, 'nearest')
+
+for i, _ in enumerate(ch_coords):
+    ch_coord = np.array(np.where(warped_ch_img == i + 1))
+    if ch_coord.size > 0:
+        ch_coords[i] = ch_coord[:, 0]
+    else:
+        ch_coords[i] = np.nan  # missing as nearest
+
+# Convert back to surface RAS but to the template surface RAS this time
 ch_coords = mne.transforms.apply_trans(
     template_brain.header.get_vox2ras_tkr(), ch_coords)
-
-###############################################################################
-# Warping to a Common Atlas
-# =========================
-#
-# Electrode contact locations are often compared across subjects in a template
-# space such as ``fsaverage`` or ``cvs_avg35_inMNI152``. To transform the
-# contact locations to that space, we need to determine a function that maps
-# from the T1 to the template space. We will using freesurfer's
-# ``mri_cvs_register``.
-#
-# .. code-block:: bash
-#
-#     $ mri_cvs_register --mov $SUBJECT \
-#      --templatedir $FREESURFER_HOME/subjects --template fsaverage \
-#      --nocleanup --openmp 1
-#
-# .. note::
-#
-#     ``mri_cvs_register`` take approximately 15 hours to run on a standard
-#     computer.
-#
-# Once ``mri_cvs_register`` has been completed, the output can be used to
-# morph the electrode positions, but, first, they need to be saved to
-# a text file.
-#
-# .. code-block:: python
-#
-#     # convert electrode positions from surface RAS to voxels
-#     ch_coords = mne.transforms.apply_trans(
-#         np.linalg.inv(T1.header.get_vox2ras_tkr()), ch_coords)
-#     tmp_fname = op.join(os.environ['SUBJECTS_DIR'],
-#                         os.environ['SUBJECT'], 'cvs', 'tmp.txt')
-#     with open(tmp_fname, 'w') as fid:
-#         for ch_coord in ch_coords:
-#             vx, vy, vz = ch_coord
-#             fid.write(f'{vx}\t{vy}\t{vz}\n')
-#
-# Then, the morph can be applied using freesurfer's ``applyMorph`` function.
-#
-# .. code-block:: bash
-#
-#     $ applyMorph --template $FREESURFER_HOME/subjects/mri/brain.mgz \
-#       --transform $SUBJECTS_DIR/$SUBJECT/cvs/\
-#       combined_tofsaverage_elreg_afteraseg-norm.tm3d \
-#       tract_point_list $SUBJECTS_DIR/$SUBJECT/cvs/tmp.txt \
-#       $SUBJECTS_DIR/$SUBJECT/cvs/out.txt nearest
-#
-# ``applyMorph`` outputs the positions of the electrode contacts to a text
-# file, which can be read in and converted to a tsv file with
-# column headers. Converting to a tsv will make it so that the location of
-# each electrode contact and its corresponding channel can be easily
-# understood.
-#
-# .. code-block:: python
-#
-#     out_fname = op.join(os.environ['SUBJECTS_DIR'],
-#                         os.environ['SUBJECT'], 'cvs', 'out.txt')
-#     with open(out_fname, 'r') as fid:
-#     for i in range(ch_coords.shape[0])
-#         ch_coords[i] = [float(pos) for pos in
-#                         fid.readline().rstrip().split()]
-#     ch_coords = mne.transforms.apply_trans(
-#         T1.header.get_vox2ras_tkr(), ch_coords)
-#     elec_fname = op.join(misc_path, 'seeg',
-#                          'sample_seeg_electrodes_fsaverage.tsv')
-#     pd.DataFrame(dict(name=ch_names,
-#                       R=ch_coords[0],
-#                       A=ch_coords[1],
-#                       S=ch_coords[2])).to_tsv(elec_fname, sep='\t')
 
 ###############################################################################
 # Let's plot the result. You can compare this to :ref:`tut-working-with-seeg`
@@ -436,11 +370,13 @@ ch_coords = mne.transforms.apply_trans(
 # Talairach transformation.
 
 # Load warped electrode positions from file
+''' For if the computations take too long
 elec_df = pd.read_csv(op.join(misc_path, 'seeg',
                               'sample_seeg_electrodes_fsaverage.tsv'),
                       sep='\t', header=0, index_col=None)
 ch_names = elec_df['name'].tolist()
 ch_coords = elec_df[['R', 'A', 'S']].to_numpy(dtype=float)
+'''
 
 # load electrophysiology data
 raw = mne.io.read_raw(op.join(misc_path, 'seeg', 'sample_seeg_ieeg.fif'))

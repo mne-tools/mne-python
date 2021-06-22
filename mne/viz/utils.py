@@ -2370,11 +2370,13 @@ def marching_cubes(image, level):
     -------
     verts : ndarray
         The spatial coordinates for unique mesh vertices.
-    faces : ndarray
+    triangles : ndarray
         The locations of connections between ``verts`` to form faces.
     """
     from vtk import VTK_DOUBLE, vtkImageData, vtkMarchingCubes
     from vtk.util import numpy_support
+    if image.ndim != 3:
+        raise ValueError(f'3D data must be supplied, got {image.shape}')
     data_vtk = numpy_support.numpy_to_vtk(
         image.ravel(), deep=True, array_type=VTK_DOUBLE
     )
@@ -2393,9 +2395,12 @@ def marching_cubes(image, level):
     polydata = mc.GetOutput()
 
     verts = numpy_support.vtk_to_numpy(polydata.GetPoints().GetData())
-    faces = np.zeros((polydata.GetNumberOfCells(), image.ndim), dtype=np.int64)
-    for i in range(faces.shape[0]):
-        this_tri = polydata.GetCell(i)
-        for j in range(faces.shape[1]):
-            faces[i, j] = this_tri.GetPointId(j)
-    return verts, faces
+    triangles = np.zeros((polydata.GetNumberOfCells(), image.ndim),
+                         dtype=np.int64)
+    for i in range(triangles.shape[0]):
+        tri = polydata.GetCell(i)
+        for j in range(triangles.shape[1]):
+            triangles[i, j] = tri.GetPointId(j)
+    verts = np.flip(verts, axis=1)
+    triangles = np.flip(triangles, axis=1)
+    return verts, triangles
