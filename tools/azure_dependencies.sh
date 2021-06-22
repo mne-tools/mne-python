@@ -10,7 +10,7 @@ elif [ "${TEST_MODE}" == "pip-pre" ]; then
 	python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" h5py Pillow matplotlib
 	# we want --pre for VTK, but it breaks Azure as of 2021/06/14 (mayavi has problems with the 20210612 binary)
 	python -m pip install --progress-bar off --upgrade --only-binary ":all" vtk
-	python -m pip install --progress-bar off https://github.com/pyvista/pyvista/zipball/master
+	python -m pip install --progress-bar off https://github.com/pyvista/pyvista/zipball/main
 	python -m pip install --progress-bar off https://github.com/pyvista/pyvistaqt/zipball/master
 	python -m pip install --progress-bar off --upgrade --only-binary="numba,llvmlite" -r requirements.txt
 else
