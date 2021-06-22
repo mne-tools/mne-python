@@ -9,8 +9,7 @@ from numpy.testing import assert_allclose
 import pytest
 
 from mne.datasets import testing
-from mne.utils import (requires_mayavi, run_tests_if_main, traits_test,
-                       modified_env)
+from mne.utils import requires_mayavi, traits_test, modified_env
 from mne.channels import read_dig_fif
 
 data_path = testing.data_path(download=False)
@@ -90,10 +89,10 @@ def test_digitization_source(tmpdir):
     # EGI MFF
     inst.file = op.join(data_path, 'EGI', 'test_egi.mff')
     assert len(inst.points) == 0
-    assert len(inst.eeg_points) == 129
-    assert_allclose(inst.lpa * 1000, [[-67.1, 0.5, -37.1]], atol=0.1)
-    assert_allclose(inst.nasion * 1000, [[0.0, 103.6, -26.9]], atol=0.1)
-    assert_allclose(inst.rpa * 1000, [[67.1, 0.5, -37.1]], atol=0.1)
+    assert len(inst.eeg_points) == 130
+    assert_allclose(inst.lpa * 1000, [[-67.1, 0, 0]], atol=0.1)
+    assert_allclose(inst.nasion * 1000, [[0.0, 103.6, 0]], atol=0.1)
+    assert_allclose(inst.rpa * 1000, [[67.1, 0, 0]], atol=0.1)
 
     # CTF
     inst.file = op.join(data_path, 'CTF', 'testdata_ctf.ds')
@@ -136,6 +135,3 @@ def test_subject_source_with_fsaverage(tmpdir):
     with modified_env(FREESURFER_HOME=data_path):
         mri.create_fsaverage()
     assert op.isdir(op.join(tempdir, 'fsaverage'))
-
-
-run_tests_if_main()

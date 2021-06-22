@@ -23,9 +23,9 @@ import numpy as np
 from copy import deepcopy
 from distutils.version import LooseVersion
 import warnings
+from datetime import datetime
 
 from ..defaults import _handle_default
-from ..fixes import _get_status
 from ..io import show_fiff, Info
 from ..io.constants import FIFF
 from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
@@ -38,9 +38,6 @@ from ..rank import compute_rank
 from ..io.proj import setup_proj
 from ..utils import (verbose, get_config, warn, _check_ch_locs, _check_option,
                      logger, fill_doc, _pl, _check_sphere, _ensure_int)
-
-from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
-                         _divide_to_regions)
 from ..transforms import apply_trans
 
 
@@ -295,7 +292,7 @@ def _toggle_proj(event, params, all_=False):
     """Perform operations when proj boxes clicked."""
     # read options if possible
     if 'proj_checks' in params:
-        bools = _get_status(params['proj_checks'])
+        bools = list(params['proj_checks'].get_status())
         if all_:
             new_bools = [not all(bools)] * len(bools)
             with _events_off(params['proj_checks']):
@@ -558,11 +555,8 @@ def figure_nobar(*args, **kwargs):
     return fig
 
 
-def _show_help(col1, col2, width, height):
-    fig_help = figure_nobar(figsize=(width, height), dpi=80)
+def _show_help_fig(col1, col2, fig_help, ax, show):
     _set_window_title(fig_help, 'Help')
-
-    ax = fig_help.add_subplot(111)
     celltext = [[c1, c2] for c1, c2 in zip(col1.strip().split("\n"),
                                            col2.strip().split("\n"))]
     table = ax.table(cellText=celltext, loc="center", cellLoc="left")
@@ -578,12 +572,19 @@ def _show_help(col1, col2, width, height):
 
     fig_help.canvas.mpl_connect('key_press_event', _key_press)
 
-    # this should work for non-test cases
-    try:
-        fig_help.canvas.draw()
-        plt_show(fig=fig_help, warn=False)
-    except Exception:
-        pass
+    if show:
+        # this should work for non-test cases
+        try:
+            fig_help.canvas.draw()
+            plt_show(fig=fig_help, warn=False)
+        except Exception:
+            pass
+
+
+def _show_help(col1, col2, width, height):
+    fig_help = figure_nobar(figsize=(width, height), dpi=80)
+    ax = fig_help.add_subplot(111)
+    _show_help_fig(col1, col2, fig_help, ax, show=True)
 
 
 def _key_press(event):
@@ -926,6 +927,10 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
                   for i, pick in enumerate(picks)]
     else:
         if ch_groups in ['position', 'selection']:
+            # Avoid circular import
+            from ..channels import (read_vectorview_selection, _SELECTIONS,
+                                    _EEG_SELECTIONS, _divide_to_regions)
+
             if ch_groups == 'position':
                 ch_groups = _divide_to_regions(info, add_stim=False)
                 ch_groups = list(ch_groups.values())
@@ -933,7 +938,8 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
                 ch_groups, color_vals = list(), list()
                 for selection in _SELECTIONS + _EEG_SELECTIONS:
                     channels = pick_channels(
-                        info['ch_names'], read_selection(selection, info=info))
+                        info['ch_names'],
+                        read_vectorview_selection(selection, info=info))
                     ch_groups.append(channels)
             color_vals = np.ones((len(ch_groups), 4))
             for idx, ch_group in enumerate(ch_groups):
@@ -1583,7 +1589,7 @@ class DraggableLine(object):
         self.line.figure.canvas.mpl_disconnect(self.cidpress)
         self.line.figure.canvas.mpl_disconnect(self.cidrelease)
         self.line.figure.canvas.mpl_disconnect(self.cidmotion)
-        self.line.figure.axes[0].lines.remove(self.line)
+        self.line.remove()
 
 
 def _setup_ax_spines(axes, vlines, xmin, xmax, ymin, ymax, invert_y=False,
@@ -2291,6 +2297,12 @@ def _ndarray_to_fig(img):
     return fig
 
 
+def _save_ndarray_img(fname, img):
+    """Save an image to disk."""
+    from PIL import Image
+    Image.fromarray(img).save(fname)
+
+
 def concatenate_images(images, axis=0, bgcolor='black', centered=True):
     """Concatenate a list of images.
 
@@ -2333,3 +2345,9 @@ def concatenate_images(images, axis=0, bgcolor='black', centered=True):
         ret[dec[0]:dec[0] + shape[0], dec[1]:dec[1] + shape[1], :] = image
         ptr += shape * sec
     return ret
+
+
+def _generate_default_filename(ext=".png"):
+    now = datetime.now()
+    dt_string = now.strftime("_%Y-%m-%d_%H-%M-%S")
+    return "MNE" + dt_string + ext

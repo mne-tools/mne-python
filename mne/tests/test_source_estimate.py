@@ -2,6 +2,7 @@
 #
 # License: BSD (3-clause)
 
+from contextlib import nullcontext
 from copy import deepcopy
 import os
 import os.path as op
@@ -9,6 +10,7 @@ from shutil import copyfile
 import re
 
 import numpy as np
+from numpy.fft import fft
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose, assert_equal, assert_array_less)
 import pytest
@@ -32,12 +34,12 @@ from mne import (stats, SourceEstimate, VectorSourceEstimate,
                  write_source_spaces)
 from mne.datasets import testing
 from mne.externals.h5io import write_hdf5
-from mne.fixes import fft, _get_img_fdata, nullcontext
+from mne.fixes import _get_img_fdata
 from mne.io import read_info
 from mne.io.constants import FIFF
+from mne.morph_map import _make_morph_map_hemi
 from mne.source_estimate import grade_to_tris, _get_vol_mask
 from mne.source_space import _get_src_nn
-from mne.surface import _make_morph_map_hemi
 from mne.transforms import apply_trans, invert_transform, transform_surface_to
 from mne.minimum_norm import (read_inverse_operator, apply_inverse,
                               apply_inverse_epochs, make_inverse_operator)
@@ -77,6 +79,7 @@ fname_vsrc = op.join(data_path, 'MEG', 'sample',
                      'sample_audvis_trunc-meg-vol-7-fwd.fif')
 fname_inv_vol = op.join(data_path, 'MEG', 'sample',
                         'sample_audvis_trunc-meg-vol-7-meg-inv.fif')
+fname_nirx = op.join(data_path, 'NIRx', 'nirscout', 'nirx_15_0_recording')
 rng = np.random.RandomState(0)
 
 
@@ -1321,7 +1324,7 @@ def test_source_estime_project(real):
     stc_max, directions = stc.project('pca')
     flips = np.sign(np.sum(directions * want_nn, axis=1, keepdims=True))
     directions *= flips
-    assert_allclose(directions, want_nn, atol=1e-6)
+    assert_allclose(directions, want_nn, atol=2e-6)
 
 
 @testing.requires_testing_data
@@ -1549,7 +1552,7 @@ def test_stc_near_sensors(tmpdir):
     # here we use a distance is smaller than the inter-sensor distance
     kwargs = dict(subject='sample', trans=trans, subjects_dir=this_dir,
                   verbose=True, distance=0.005)
-    with pytest.raises(ValueError, match='No channels'):
+    with pytest.raises(ValueError, match='No appropriate channels'):
         stc_near_sensors(evoked, **kwargs)
     evoked.set_channel_types({ch_name: 'ecog' for ch_name in evoked.ch_names})
     with catch_logging() as log:
@@ -1612,6 +1615,34 @@ def test_stc_near_sensors(tmpdir):
     assert isinstance(stc_vol, VolSourceEstimate)
     log = log.getvalue()
     assert '4157 volume vertices' in log
+
+
+@testing.requires_testing_data
+def test_stc_near_sensors_picks():
+    """Test using picks with stc_near_sensors."""
+    info = mne.io.read_raw_nirx(fname_nirx).info
+    evoked = mne.EvokedArray(np.ones((len(info['ch_names']), 1)), info)
+    src = mne.read_source_spaces(fname_src_fs)
+    kwargs = dict(
+        evoked=evoked, subject='fsaverage', trans='fsaverage',
+        subjects_dir=subjects_dir, src=src, project=True)
+    with pytest.raises(ValueError, match='No appropriate channels'):
+        stc_near_sensors(**kwargs)
+    picks = np.arange(len(info['ch_names']))
+    data = stc_near_sensors(picks=picks, **kwargs).data
+    assert len(data) == 20484
+    assert (data >= 0).all()
+    data = data[data > 0]
+    n_pts = len(data)
+    assert 500 < n_pts < 600
+    lo, hi = np.percentile(data, (5, 95))
+    assert 0.01 < lo < 0.1
+    assert 1.3 < hi < 1.7  # > 1
+    data = stc_near_sensors(picks=picks, mode='weighted', **kwargs).data
+    assert (data >= 0).all()
+    data = data[data > 0]
+    assert len(data) == n_pts
+    assert_array_equal(data, 1.)  # values preserved
 
 
 def _make_morph_map_hemi_same(subject_from, subject_to, subjects_dir,
@@ -1678,7 +1709,7 @@ def test_scale_morph_labels(kind, scale, monkeypatch, tmpdir):
             op.join(from_dir, 'bem', 'sample-vol20-src.fif'), src_from)
     scale_mri(subject_from, subject_to, scale, subjects_dir=tempdir,
               annot=True, skip_fiducials=True, verbose=True,
-              overwrite=True)  # XXX
+              overwrite=True)
     if kind == 'surface':
         src_to = read_source_spaces(
             op.join(tempdir, subject_to, 'bem',
@@ -1686,7 +1717,7 @@ def test_scale_morph_labels(kind, scale, monkeypatch, tmpdir):
         labels_to = read_labels_from_annot(
             subject_to, subjects_dir=tempdir)
         # Save time since we know these subjects are identical
-        monkeypatch.setattr(mne.surface, '_make_morph_map_hemi',
+        monkeypatch.setattr(mne.morph_map, '_make_morph_map_hemi',
                             _make_morph_map_hemi_same)
     else:
         src_to = read_source_spaces(
@@ -1790,3 +1821,54 @@ def test_scale_morph_labels(kind, scale, monkeypatch, tmpdir):
     else:
         corr = np.corrcoef(label_tc.ravel(), label_tc_to.ravel())[0, 1]
         assert 0.93 < corr < 0.96, scale
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('kind', [
+    'surface',
+    pytest.param('volume', marks=[pytest.mark.slowtest,
+                                  requires_version('nibabel')]),
+])
+def test_label_extraction_subject(kind):
+    """Test that label extraction subject is treated properly."""
+    if kind == 'surface':
+        inv = read_inverse_operator(fname_inv)
+        labels = read_labels_from_annot(
+            'sample', subjects_dir=subjects_dir)
+        labels_fs = read_labels_from_annot(
+            'fsaverage', subjects_dir=subjects_dir)
+        labels_fs = [label for label in labels_fs
+                     if not label.name.startswith('unknown')]
+        assert all(label.subject == 'sample' for label in labels)
+        assert all(label.subject == 'fsaverage' for label in labels_fs)
+        assert len(labels) == len(labels_fs) == 68
+        n_labels = 68
+    else:
+        assert kind == 'volume'
+        inv = read_inverse_operator(fname_inv_vol)
+        inv['src'][0]['subject_his_id'] = 'sample'  # modernize
+        labels = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
+        labels_fs = op.join(subjects_dir, 'fsaverage', 'mri', 'aseg.mgz')
+        n_labels = 46
+    src = inv['src']
+    assert src.kind == kind
+    assert src._subject == 'sample'
+    ave = read_evokeds(fname_evoked)[0].apply_baseline((None, 0)).crop(0, 0.01)
+    assert len(ave.times) == 4
+    stc = apply_inverse(ave, inv)
+    assert stc.subject == 'sample'
+    ltc = extract_label_time_course(stc, labels, src)
+    stc.subject = 'fsaverage'
+    with pytest.raises(ValueError, match=r'source spac.*not match.* stc\.sub'):
+        extract_label_time_course(stc, labels, src)
+    stc.subject = 'sample'
+    assert ltc.shape == (n_labels, 4)
+    if kind == 'volume':
+        with pytest.raises(RuntimeError, match='atlas.*not match.*source spa'):
+            extract_label_time_course(stc, labels_fs, src)
+    else:
+        with pytest.raises(ValueError, match=r'label\.sub.*not match.* stc\.'):
+            extract_label_time_course(stc, labels_fs, src)
+        stc.subject = None
+        with pytest.raises(ValueError, match=r'label\.sub.*not match.* sourc'):
+            extract_label_time_course(stc, labels_fs, src)

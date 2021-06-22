@@ -7,10 +7,6 @@ This page covers the definitions of different coordinate systems employed in
 MNE software and FreeSurfer, the details of the computation of the forward
 solutions, and the associated low-level utilities.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 .. NOTE: part of this file is included in doc/overview/implementation.rst.
    Changes here are reflected there. If you want to link to this content, link
    to :ref:`ch_forward` to link to that section of the implementation.rst page.
@@ -726,8 +722,3 @@ solutions. Usually the EEG forward solution is identical across runs because
 the electrode locations do not change.
 
 .. target for :end-before: forward-end-content
-
-References
-~~~~~~~~~~
-
-.. footbibliography::

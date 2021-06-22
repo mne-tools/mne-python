@@ -8,15 +8,15 @@ import os.path as op
 import warnings
 import copy
 import numpy as np
-from scipy import sparse, linalg
 
 from .fixes import _get_img_fdata
+from .morph_map import read_morph_map
 from .parallel import parallel_func
 from .source_estimate import (
     _BaseSurfaceSourceEstimate, _BaseVolSourceEstimate, _BaseSourceEstimate,
     _get_ico_tris)
 from .source_space import SourceSpaces, _ensure_src, _grid_interp
-from .surface import read_morph_map, mesh_edges, read_surface, _compute_nearest
+from .surface import mesh_edges, read_surface, _compute_nearest
 from .transforms import _angle_between_quats, rot_to_quat
 from .utils import (logger, verbose, check_version, get_subjects_dir,
                     warn as warn_, fill_doc, _check_option, _validate_type,
@@ -270,6 +270,7 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
 def _compute_sparse_morph(vertices_from, subject_from, subject_to,
                           subjects_dir=None):
     """Get nearest vertices from one subject to another."""
+    from scipy import sparse
     maps = read_morph_map(subject_to, subject_from, subjects_dir)
     cnt = 0
     vertices = list()
@@ -339,12 +340,11 @@ class SourceMorph(object):
         The volume MRI shape.
     affine : ndarray
         The volume MRI affine.
-    pre_affine : instance of dipy.align.imaffine.AffineMap
-        The :class:`dipy.align.imaffine.AffineMap` transformation that is
-        applied before the before ``sdr_morph``.
-    sdr_morph : instance of dipy.align.imwarp.DiffeomorphicMap
-        The :class:`dipy.align.imwarp.DiffeomorphicMap` that applies the
-        the symmetric diffeomorphic registration (SDR) morph.
+    pre_affine : instance of dipy.align.AffineMap
+        The transformation that is applied before the before ``sdr_morph``.
+    sdr_morph : instance of dipy.align.DiffeomorphicMap
+        The class that applies the the symmetric diffeomorphic registration
+        (SDR) morph.
     src_data : dict
         Additional source data necessary to perform morphing.
     vol_morph_mat : scipy.sparse.csr_matrix | None
@@ -506,6 +506,7 @@ class SourceMorph(object):
         return self
 
     def _morph_vols(self, vols, mesg, subselect=True):
+        from scipy import sparse
         from dipy.align.reslice import reslice
         interp = self.src_data['interpolator'].tocsc()[
             :, np.concatenate(self._vol_vertices_from)]
@@ -533,7 +534,7 @@ class SourceMorph(object):
         src_shape = self.src_data['src_shape_full'][::-1]
         resamp_0 = _grid_interp(
             src_shape, self.pre_affine.codomain_shape,
-            linalg.inv(from_affine) @ self.pre_affine.codomain_grid2world)
+            np.linalg.inv(from_affine) @ self.pre_affine.codomain_grid2world)
         # reslice to match what was used during the morph
         # (brain.mgz and whatever was used to create the source space
         #  will not necessarily have the same domain/zooms)
@@ -541,7 +542,7 @@ class SourceMorph(object):
         # pre_affine.transform(img_real)
         resamp_1 = _grid_interp(
             self.pre_affine.codomain_shape, self.pre_affine.domain_shape,
-            linalg.inv(self.pre_affine.codomain_grid2world) @
+            np.linalg.inv(self.pre_affine.codomain_grid2world) @
             self.pre_affine.affine @
             self.pre_affine.domain_grid2world)
         resamp_0_1 = resamp_1 @ resamp_0
@@ -578,7 +579,7 @@ class SourceMorph(object):
                     if resamp_2 is None:
                         resamp_2 = _grid_interp(
                             img_real.shape, self.src_data['to_vox_map'][0],
-                            linalg.inv(affine) @
+                            np.linalg.inv(affine) @
                             self.src_data['to_vox_map'][1])
                     # Equivalent to:
                     # _resample_from_to(
@@ -645,8 +646,7 @@ class SourceMorph(object):
         fname : str
             The stem of the file name. '-morph.h5' will be added if fname does
             not end with '.h5'.
-        overwrite : bool
-            If True, overwrite existing file.
+        %(overwrite)s
         %(verbose_meth)s
         """
         fname = _check_fname(fname, overwrite=overwrite, must_exist=False)
@@ -664,7 +664,8 @@ _slicers = list()
 
 
 def _debug_img(data, affine, title, shape=None):
-    # XXX uncomment these lines for debugging help with volume morph
+    # Uncomment these lines for debugging help with volume morph:
+    #
     # import nibabel as nib
     # if sparse.issparse(data):
     #     data = data.toarray()
@@ -1098,6 +1099,7 @@ def _compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
                           smooth=None, subjects_dir=None, warn=True,
                           xhemi=False):
     """Compute morph matrix."""
+    from scipy import sparse
     logger.info('Computing morph matrix...')
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
@@ -1134,12 +1136,13 @@ def _compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
 
 
 def _hemi_morph(tris, vertices_to, vertices_from, smooth, maps, warn):
+    from scipy import sparse
     if len(vertices_from) == 0:
         return sparse.csr_matrix((len(vertices_to), 0))
     e = mesh_edges(tris)
     e.data[e.data == 2] = 1
     n_vertices = e.shape[0]
-    e = e + sparse.eye(n_vertices)
+    e += sparse.eye(n_vertices, format='csr')
     if isinstance(smooth, str):
         _check_option('smooth', smooth, ('nearest',),
                       extra=' when used as a string.')
@@ -1230,6 +1233,7 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
 
 
 def _surf_nearest(vertices, adj_mat):
+    from scipy import sparse
     from scipy.sparse.csgraph import dijkstra
     if not check_version('scipy', '1.3'):
         raise ValueError('scipy >= 1.3 is required to use nearest smoothing, '
@@ -1258,6 +1262,7 @@ def _csr_row_norm(data, row_norm):
 def _surf_upsampling_mat(idx_from, e, smooth, warn=True):
     """Upsample data on a subject's surface given mesh edges."""
     # we're in CSR format and it's to==from
+    from scipy import sparse
     assert isinstance(e, sparse.csr_matrix)
     n_tot = e.shape[0]
     assert e.shape == (n_tot, n_tot)
@@ -1267,9 +1272,15 @@ def _surf_upsampling_mat(idx_from, e, smooth, warn=True):
     _validate_type(smooth, ('int-like', str, None), 'smoothing steps')
     if smooth is not None:  # number of steps
         smooth = _ensure_int(smooth, 'smoothing steps')
-        if smooth < 1:
+        if smooth == 0:
+            return sparse.csc_matrix(
+                (np.ones(len(idx_from)),  # data, indices, indptr
+                 idx_from,
+                 np.arange(len(idx_from) + 1)),
+                shape=(e.shape[0], len(idx_from))).tocsr()
+        elif smooth < 0:
             raise ValueError(
-                'The number of smoothing operations has to be at least 1, got '
+                'The number of smoothing operations has to be at least 0, got '
                 f'{smooth}')
         smooth = smooth - 1
     # idx will gradually expand from idx_from -> np.arange(n_tot)

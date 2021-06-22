@@ -14,7 +14,6 @@ from math import sin, cos
 from os import SEEK_CUR, path as op
 
 import numpy as np
-from scipy import linalg
 
 from ..pick import pick_types
 from ...utils import (verbose, logger, warn, fill_doc, _check_option,
@@ -50,10 +49,8 @@ def _call_digitization(info, mrk, elp, hsp, kit_info):
 
     # setup digitization
     if mrk is not None and elp is not None and hsp is not None:
-        dig_points, dev_head_t = _set_dig_kit(
+        info['dig'], info['dev_head_t'], info['hpi_results'] = _set_dig_kit(
             mrk, elp, hsp, kit_info['eeg_dig'])
-        info['dig'] = dig_points
-        info['dev_head_t'] = dev_head_t
     elif mrk is not None or elp is not None or hsp is not None:
         raise ValueError("mrk, elp and hsp need to be provided as a group "
                          "(all or none)")
@@ -464,6 +461,17 @@ def _read_dir(fid):
 
 
 @verbose
+def _read_dirs(fid, verbose=None):
+    dirs = list()
+    dirs.append(_read_dir(fid))
+    for ii in range(dirs[0]['count'] - 1):
+        logger.debug(f'    KIT dir entry {ii} @ {fid.tell()}')
+        dirs.append(_read_dir(fid))
+    assert len(dirs) == dirs[KIT.DIR_INDEX_DIR]['count']
+    return dirs
+
+
+@verbose
 def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
                  verbose=None):
     """Extract all the information from the sqd/con file.
@@ -488,14 +496,11 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
     sqd = dict()
     sqd['rawfile'] = rawfile
     unsupported_format = False
-    sqd['dirs'] = dirs = list()
     with open(rawfile, 'rb', buffering=0) as fid:  # buffering=0 for np bug
         #
         # directories (0)
         #
-        dirs.append(_read_dir(fid))
-        dirs.extend(_read_dir(fid) for _ in range(dirs[0]['count'] - 1))
-        assert len(dirs) == dirs[KIT.DIR_INDEX_DIR]['count']
+        sqd['dirs'] = dirs = _read_dirs(fid)
 
         #
         # system (1)
@@ -507,7 +512,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
             version_string = "V%iR%03i" % (version, revision)
             if allow_unknown_format:
                 unsupported_format = True
-                logger.warning("Force loading KIT format %s", version_string)
+                warn("Force loading KIT format %s", version_string)
             else:
                 raise UnsupportedKITFormat(
                     version_string,
@@ -715,14 +720,17 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
                     hsp.append(rr)
 
             # nasion, lpa, rpa, HPI in native space
-            elp = [dig.pop(key) for key in (
-                'fidnz', 'fidt9', 'fidt10',
-                'hpi_1', 'hpi_2', 'hpi_3', 'hpi_4')]
-            if 'hpi_5' in dig and dig['hpi_5'].any():
-                elp.append(dig.pop('hpi_5'))
+            elp = []
+            for key in (
+                    'fidnz', 'fidt9', 'fidt10',
+                    'hpi_1', 'hpi_2', 'hpi_3', 'hpi_4', 'hpi_5'):
+                if key in dig and np.isfinite(dig[key]).all():
+                    elp.append(dig.pop(key))
             elp = np.array(elp)
             hsp = np.array(hsp, float).reshape(-1, 3)
-            assert elp.shape in ((7, 3), (8, 3))
+            if elp.shape not in ((6, 3), (7, 3), (8, 3)):
+                raise RuntimeError(
+                    f'Fewer than 3 HPI coils found, got {len(elp) - 3}')
             # coregistration
             fid.seek(cor_dir['offset'])
             mrk = np.zeros((elp.shape[0] - 3, 3))
@@ -790,7 +798,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
             y = sin(theta) * sin(phi)
             z = cos(theta)
             vec_z = np.array([x, y, z])
-            vec_z /= linalg.norm(vec_z)
+            vec_z /= np.linalg.norm(vec_z)
             vec_x = np.zeros(vec_z.size, dtype=np.float64)
             if vec_z[1] < vec_z[2]:
                 if vec_z[0] < vec_z[1]:
@@ -802,7 +810,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
             else:
                 vec_x[2] = 1.0
             vec_x -= np.sum(vec_x * vec_z) * vec_z
-            vec_x /= linalg.norm(vec_x)
+            vec_x /= np.linalg.norm(vec_x)
             vec_y = np.cross(vec_z, vec_x)
             # transform to Neuromag like coordinate space
             vecs = np.vstack((ch['loc'][:3], vec_x, vec_y, vec_z))

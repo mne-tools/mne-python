@@ -3,6 +3,7 @@ include LICENSE.txt
 include SECURITY.md
 include requirements.txt
 include requirements_testing.txt
+include requirements_testing_extra.txt
 include requirements_doc.txt
 include mne/__init__.py
 
@@ -36,7 +37,6 @@ recursive-include mne mne/datasets *.csv
 include mne/io/edf/gdf_encodes.txt
 include mne/datasets/sleep_physionet/SHA1SUMS
 include mne/externals/tqdm/_tqdm/tqdm.1
-include mne/viz/_brain/tests/test.ipynb
 
 ### Exclude
 
@@ -57,6 +57,7 @@ recursive-exclude mne *.pyc
 recursive-exclude doc *
 recursive-exclude logo *
 
+exclude CONTRIBUTING.md
 exclude CODE_OF_CONDUCT.md
 exclude .github
 exclude .github/CONTRIBUTING.md

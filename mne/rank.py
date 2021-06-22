@@ -5,7 +5,6 @@
 # License: BSD (3-clause)
 
 import numpy as np
-from scipy import linalg
 
 from .defaults import _handle_default
 from .io.meas_info import _simplify_info
@@ -48,6 +47,7 @@ def estimate_rank(data, tol='auto', return_singular=False, norm=True,
         If return_singular is True, the singular values that were
         thresholded to determine the rank are also returned.
     """
+    from scipy import linalg
     if norm:
         data = data.copy()  # operate on a copy
         norms = _compute_row_norms(data)
@@ -256,7 +256,7 @@ def _get_rank_sss(inst, msg='You should use data-based rank estimate instead',
 
 
 def _info_rank(info, ch_type, picks, rank):
-    if ch_type == 'meg' and rank != 'full':
+    if ch_type in ['meg', 'mag', 'grad'] and rank != 'full':
         try:
             return _get_rank_sss(info)
         except ValueError:

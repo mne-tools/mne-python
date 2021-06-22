@@ -17,7 +17,7 @@ from mne.simulation import simulate_sparse_stc, simulate_evoked, add_noise
 from mne.io import read_raw_fif
 from mne.io.pick import pick_channels_cov
 from mne.cov import regularize, whiten_evoked
-from mne.utils import run_tests_if_main, catch_logging, check_version
+from mne.utils import catch_logging, check_version
 
 data_path = testing.data_path(download=False)
 fwd_fname = op.join(data_path, 'MEG', 'sample',
@@ -158,6 +158,3 @@ def test_rank_deficiency():
     assert cov['names'] == cov_new['names']
     r = np.corrcoef(cov['data'].ravel(), cov_new['data'].ravel())[0, 1]
     assert r > 0.98
-
-
-run_tests_if_main()

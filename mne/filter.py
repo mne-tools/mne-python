@@ -7,10 +7,10 @@ from functools import partial
 import numpy as np
 
 from .annotations import _annotations_starts_stops
+from .fixes import _import_fft
 from .io.pick import _picks_to_idx
 from .cuda import (_setup_cuda_fft_multiply_repeated, _fft_multiply_repeated,
                    _setup_cuda_fft_resample, _fft_resample, _smart_pad)
-from .fixes import irfft, ifftshift, fftfreq
 from .parallel import parallel_func, check_n_jobs
 from .time_frequency.multitaper import _mt_spectra, _compute_mt_params
 from .utils import (logger, verbose, sum_squared, warn, _pl,
@@ -1428,6 +1428,7 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
     up=up/down and down=1.
     """
     from scipy.signal import get_window
+    ifftshift, fftfreq = _import_fft(('ifftshift', 'fftfreq'))
     # check explicitly for backwards compatibility
     if not isinstance(axis, int):
         err = ("The axis parameter needs to be an integer (got %s). "
@@ -2255,6 +2256,7 @@ def design_mne_c_filter(sfreq, l_freq=None, h_freq=40.,
     4197 frequencies are directly constructed, with zeroes in the stop-band
     and ones in the passband, with squared cosine ramps in between.
     """
+    irfft = _import_fft('irfft')
     n_freqs = (4096 + 2 * 2048) // 2 + 1
     freq_resp = np.ones(n_freqs)
     l_freq = 0 if l_freq is None else float(l_freq)

@@ -281,6 +281,9 @@ def test_plot_evoked_image():
         pytest.raises(ValueError, evoked.plot_image, group_by=group_by,
                       axes=axes)
 
+    with pytest.raises(ValueError, match='`clim` must be a dict.'):
+        evoked.plot_image(clim=[-4, 4])
+
 
 def test_plot_white():
     """Test plot_white."""
@@ -381,6 +384,11 @@ def test_plot_compare_evokeds():
     plot_compare_evokeds(evoked_dict, cmap=cmap, colors=dict(aud=1, vis=2))
     plot_compare_evokeds(evoked_dict, cmap=('cmap title', 'inferno'),
                          linestyles=['-', ':', '--'])
+    plt.close('all')
+    # test combine
+    match = 'combine must be an instance of None, callable, or str'
+    with pytest.raises(TypeError, match=match):
+        plot_compare_evokeds(evoked, combine=["mean", "gfp"])
     plt.close('all')
     # test warnings
     with pytest.warns(RuntimeWarning, match='in "picks"; cannot combine'):

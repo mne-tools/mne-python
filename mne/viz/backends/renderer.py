@@ -7,11 +7,14 @@
 #
 # License: Simplified BSD
 
+import sys
+import os
 from contextlib import contextmanager
 import importlib
 
 from ._utils import VALID_3D_BACKENDS
-from ...utils import logger, verbose, get_config, _check_option
+from ...utils import (logger, verbose, get_config, _check_option,
+                      _require_version)
 
 MNE_3D_BACKEND = None
 MNE_3D_BACKEND_TESTING = False
@@ -20,7 +23,7 @@ MNE_3D_BACKEND_INTERACTIVE = False
 
 _backend_name_map = dict(
     mayavi='._pysurfer_mayavi',
-    pyvista='._pyvista',
+    pyvista='._qt',
     notebook='._notebook',
 )
 backend = None
@@ -60,49 +63,46 @@ def set_3d_backend(backend_name, verbose=None):
     .. table::
        :widths: auto
 
-       +--------------------------------------+--------+---------+
-       | 3D function:                         | mayavi | pyvista |
-       +======================================+========+=========+
-       | :func:`plot_vector_source_estimates` | ✓      | ✓       |
-       +--------------------------------------+--------+---------+
-       | :func:`plot_source_estimates`        | ✓      | ✓       |
-       +--------------------------------------+--------+---------+
-       | :func:`plot_alignment`               | ✓      | ✓       |
-       +--------------------------------------+--------+---------+
-       | :func:`plot_sparse_source_estimates` | ✓      | ✓       |
-       +--------------------------------------+--------+---------+
-       | :func:`plot_evoked_field`            | ✓      | ✓       |
-       +--------------------------------------+--------+---------+
-       | :func:`plot_sensors_connectivity`    | ✓      | ✓       |
-       +--------------------------------------+--------+---------+
-       | :func:`snapshot_brain_montage`       | ✓      | ✓       |
-       +--------------------------------------+--------+---------+
-       | :func:`link_brains`                  |        | ✓       |
-       +--------------------------------------+--------+---------+
-       +--------------------------------------+--------+---------+
-       | **3D feature:**                                         |
-       +--------------------------------------+--------+---------+
-       | Large data                           | ✓      | ✓       |
-       +--------------------------------------+--------+---------+
-       | Opacity/transparency                 | ✓      | ✓       |
-       +--------------------------------------+--------+---------+
-       | Support geometric glyph              | ✓      | ✓       |
-       +--------------------------------------+--------+---------+
-       | Jupyter notebook                     | ✓      | ✓       |
-       +--------------------------------------+--------+---------+
-       | Interactivity in Jupyter notebook    | ✓      | ✓       |
-       +--------------------------------------+--------+---------+
-       | Smooth shading                       | ✓      | ✓       |
-       +--------------------------------------+--------+---------+
-       | Subplotting                          | ✓      | ✓       |
-       +--------------------------------------+--------+---------+
-       | Save offline movie                   | ✓      | ✓       |
-       +--------------------------------------+--------+---------+
-
-    .. note::
-        In the case of `plot_vector_source_estimates` with PyVista, the glyph
-        size is not consistent with Mayavi, it is also possible that a dark
-        filter is visible on the mesh when depth peeling is not available.
+       +--------------------------------------+--------+---------+----------+
+       | **3D function:**                     | mayavi | pyvista | notebook |
+       +======================================+========+=========+==========+
+       | :func:`plot_vector_source_estimates` | ✓      | ✓       | ✓        |
+       +--------------------------------------+--------+---------+----------+
+       | :func:`plot_source_estimates`        | ✓      | ✓       | ✓        |
+       +--------------------------------------+--------+---------+----------+
+       | :func:`plot_alignment`               | ✓      | ✓       | ✓        |
+       +--------------------------------------+--------+---------+----------+
+       | :func:`plot_sparse_source_estimates` | ✓      | ✓       | ✓        |
+       +--------------------------------------+--------+---------+----------+
+       | :func:`plot_evoked_field`            | ✓      | ✓       | ✓        |
+       +--------------------------------------+--------+---------+----------+
+       | :func:`plot_sensors_connectivity`    | ✓      | ✓       | ✓        |
+       +--------------------------------------+--------+---------+----------+
+       | :func:`snapshot_brain_montage`       | ✓      | ✓       | ✓        |
+       +--------------------------------------+--------+---------+----------+
+       | :func:`link_brains`                  |        | ✓       |          |
+       +--------------------------------------+--------+---------+----------+
+       +--------------------------------------+--------+---------+----------+
+       | **Feature:**                                                       |
+       +--------------------------------------+--------+---------+----------+
+       | Large data                           | ✓      | ✓       | ✓        |
+       +--------------------------------------+--------+---------+----------+
+       | Opacity/transparency                 | ✓      | ✓       | ✓        |
+       +--------------------------------------+--------+---------+----------+
+       | Support geometric glyph              | ✓      | ✓       | ✓        |
+       +--------------------------------------+--------+---------+----------+
+       | Smooth shading                       | ✓      | ✓       | ✓        |
+       +--------------------------------------+--------+---------+----------+
+       | Subplotting                          | ✓      | ✓       | ✓        |
+       +--------------------------------------+--------+---------+----------+
+       | Inline plot in Jupyter Notebook      | ✓      |         | ✓        |
+       +--------------------------------------+--------+---------+----------+
+       | Inline plot in JupyterLab            | ✓      |         | ✓        |
+       +--------------------------------------+--------+---------+----------+
+       | Inline plot in Google Colab          |        |         |          |
+       +--------------------------------------+--------+---------+----------+
+       | Toolbar                              |        | ✓       | ✓        |
+       +--------------------------------------+--------+---------+----------+
     """
     global MNE_3D_BACKEND
     try:
@@ -113,6 +113,10 @@ def set_3d_backend(backend_name, verbose=None):
     if MNE_3D_BACKEND != backend_name:
         _reload_backend(backend_name)
         MNE_3D_BACKEND = backend_name
+
+    # Qt5 macOS 11 compatibility
+    if sys.platform == 'darwin' and 'QT_MAC_WANTS_LAYER' not in os.environ:
+        os.environ['QT_MAC_WANTS_LAYER'] = '1'
 
 
 def get_3d_backend():
@@ -158,11 +162,14 @@ def _get_3d_backend():
 
 @contextmanager
 def use_3d_backend(backend_name):
-    """Create a viz context.
+    """Create a 3d visualization context using the designated backend.
+
+    See :func:`mne.viz.set_3d_backend` for more details on the available
+    3d backends and their capabilities.
 
     Parameters
     ----------
-    backend_name : str
+    backend_name : {'mayavi', 'pyvista', 'notebook'}
         The 3d backend to use in the context.
     """
     old_backend = _get_3d_backend()
@@ -292,6 +299,7 @@ def get_brain_class():
     """
     if get_3d_backend() == "mayavi":
         from surfer import Brain
+        _require_version('surfer', 'stc.plot', '0.9')
     else:  # PyVista
         from ...viz._brain import Brain
     return Brain

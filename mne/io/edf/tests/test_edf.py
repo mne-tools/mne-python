@@ -8,6 +8,7 @@
 #
 # License: BSD (3-clause)
 
+from contextlib import nullcontext
 from functools import partial
 import os.path as op
 import inspect
@@ -21,7 +22,6 @@ import pytest
 
 from mne import pick_types, Annotations
 from mne.datasets import testing
-from mne.fixes import nullcontext
 from mne.utils import requires_pandas
 from mne.io import read_raw_edf, read_raw_bdf, read_raw_fif, edf, read_raw_gdf
 from mne.io.tests.test_raw import _test_raw_reader
@@ -407,8 +407,9 @@ def test_bdf_multiple_annotation_channels():
 @testing.requires_testing_data
 def test_edf_lowpass_zero():
     """Test if a lowpass filter of 0Hz is mapped to the Nyquist frequency."""
-    with pytest.warns(RuntimeWarning, match='too long.*truncated'):
-        raw = read_raw_edf(edf_stim_resamp_path)
+    raw = read_raw_edf(edf_stim_resamp_path)
+    assert raw.ch_names[100] == 'EEG LDAMT_01-REF'
+    assert len(raw.ch_names[100]) > 15
     assert_allclose(raw.info["lowpass"], raw.info["sfreq"] / 2)
 
 

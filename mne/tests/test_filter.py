@@ -8,7 +8,7 @@ import pytest
 from scipy.signal import resample as sp_resample, butter, freqz, sosfreqz
 
 from mne import create_info
-from mne.fixes import fft, fftfreq
+from numpy.fft import fft, fftfreq
 from mne.io import RawArray, read_raw_fif
 from mne.io.pick import _DATA_CH_TYPES_SPLIT
 from mne.filter import (filter_data, resample, _resample_stim_channels,
@@ -17,8 +17,7 @@ from mne.filter import (filter_data, resample, _resample_stim_channels,
                         estimate_ringing_samples, create_filter,
                         _length_factors)
 
-from mne.utils import (sum_squared, run_tests_if_main,
-                       catch_logging, requires_mne, run_subprocess)
+from mne.utils import sum_squared, catch_logging, requires_mne, run_subprocess
 
 
 def test_filter_array():
@@ -760,6 +759,3 @@ def test_filter_picks():
                 raw.filter(picks=picks, **kwargs)
                 want = want[1:]
                 assert_allclose(raw.get_data(), want)
-
-
-run_tests_if_main()

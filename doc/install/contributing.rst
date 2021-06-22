@@ -1,29 +1,10 @@
-:orphan:
-
 .. _contributing:
 
-Contributing to MNE-Python
-==========================
+Contributing guide
+==================
 
-.. contents:: Page contents
-   :local:
-   :depth: 3
-
+.. include:: ../links.inc
 .. highlight:: console
-
-.. NOTE: this first section (up until "overview of contribution process") is
-   basically a copy/paste of CONTRIBUTING.rst from the repository root, with
-   one sentence deleted to avoid self-referential linking. Changes made here
-   should be mirrored there, and vice-versa.
-
-MNE-Python is maintained by a community of scientists and research labs, and
-accepts contributions in the form of bug reports, fixes, feature additions, and
-documentation improvements (even just typo corrections). The best way to start
-contributing is by `opening an issue`_ on our GitHub page to discuss your ideas
-for changes or enhancements, or to tell us about behavior that you think might
-be a bug in MNE-Python. *For general troubleshooting of scripts that use
-MNE-Python*, you should instead post on the `MNE Forum`_. Users and
-contributors to MNE-Python are expected to follow our `code of conduct`_.
 
 This page has details on the preferred contribution workflow
 and how best to configure your system for a smooth experience contributing to
@@ -37,11 +18,9 @@ MNE-Python.
    pick one that looks interesting, and work through it while reading this
    guide!
 
-.. _`opening an issue`: https://github.com/mne-tools/mne-python/issues/new/choose
-.. _`MNE Forum`: https://mne.discourse.group
-
-.. _`code of conduct`: https://github.com/mne-tools/.github/blob/main/CODE_OF_CONDUCT.md
 .. _`GitHub issues marked "easy"`: https://github.com/mne-tools/mne-python/issues?q=is%3Aissue+is%3Aopen+label%3AEASY
+
+.. note:: All contributors are expected to follow the `code of conduct`_.
 
 Overview of contribution process
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -71,8 +50,8 @@ The sections :ref:`basic-git` and :ref:`github-workflow` (below) describe this
 process in more detail.
 
 
-Setting up your local environment for MNE-Python development
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Setting up your local development environment
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Configuring git
 ~~~~~~~~~~~~~~~
@@ -138,8 +117,7 @@ into a terminal and you should see ::
 
 If you don't see this or something similar:
 
-.. sidebar::
-   If you get:
+.. sidebar:: If you get:
 
    *bash: conda: command not found*
 
@@ -184,8 +162,8 @@ of how that structure is set up is given here:
    :align: left
 
 
-Setting up the development environment
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Creating the virtual environment
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. sidebar:: Supported Python environments
 
@@ -199,7 +177,7 @@ Setting up the development environment
 These instructions will set up a Python environment that is separated from your
 system-level Python and any other managed Python environments on your computer.
 This lets you switch between different versions of Python (MNE-Python requires
-version 3.6 or higher) and also switch between the stable and development
+version 3.7 or higher) and also switch between the stable and development
 versions of MNE-Python (so you can, for example, use the same computer to
 analyze your data with the stable release, and also work with the latest
 development version to fix bugs or add new features). Even if you've already
@@ -777,17 +755,17 @@ Code organization
 Importing
 ---------
 
-Import modules in this order:
+Import modules in this order, preferably alphabetized within each subsection:
 
-1. Python built-in (``os``, ``copy``, ``functools``, etc)
-2. standard scientific (``numpy as np``, ``scipy.signal``, etc)
-3. others
-4. MNE-Python imports (e.g., ``from .pick import pick_types``)
+1. Python built-in (``copy``, ``functools``, ``os``, etc.)
+2. NumPy (``numpy as np``) and, in test files, pytest (``pytest``)
+3. MNE-Python imports (e.g., ``from .pick import pick_types``)
 
 When importing from other parts of MNE-Python, use relative imports in the main
 codebase and absolute imports in tests, tutorials, and how-to examples. Imports
-for ``matplotlib`` and optional modules (``sklearn``, ``pandas``, etc.) should
-be nested (i.e., within a function or method, not at the top of a file).
+for ``matplotlib``, ``scipy``, and optional modules (``sklearn``, ``pandas``,
+etc.) should be nested (i.e., within a function or method, not at the top of a
+file). This helps reduce import time and limit hard requirements for using MNE.
 
 
 Return types
@@ -982,13 +960,13 @@ down the road. Here are the guidelines:
     - ``[skip circle]`` Skip `CircleCI`_, which tests successful building of
       our documentation.
 
-    - ``[skip github]`` Skip our `GitHub Actions`_, which test installation
+    - ``[skip actions]`` Skip our `GitHub Actions`_, which test installation
       and execution on Linux and macOS systems.
 
     - ``[skip azp]`` Skip `azure`_ which tests installation and execution on
       Windows systems.
 
-    - ``[ci skip]`` is an alias for ``[skip github][skip azp][skip circle]``.
+    - ``[ci skip]`` is an alias for ``[skip actions][skip azp][skip circle]``.
       Notice that ``[skip ci]`` is not a valid tag.
 
     - ``[circle full]`` triggers a "full" documentation build, i.e., all code
@@ -1050,13 +1028,11 @@ it can serve as a useful example of what to expect from the PR review process.
 
 .. git book
 
-.. _pro git book: https://git-scm.com/book/
 .. _stage: https://git-scm.com/book/en/v2/Git-Tools-Interactive-Staging
 .. _configuring git: https://www.git-scm.com/book/en/v2/Customizing-Git-Git-Configuration
 
 .. sphinx
 
-.. _sphinx: http://www.sphinx-doc.org
 .. _sphinx-gallery: https://sphinx-gallery.github.io
 .. _reStructuredText: http://sphinx-doc.org/rest.html
 .. _intersphinx: http://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html
@@ -1066,7 +1042,6 @@ it can serve as a useful example of what to expect from the PR review process.
 
 .. _NumPy docstring style guidelines: https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt
 .. _PEP 8: https://www.python.org/dev/peps/pep-0008/
-.. _pep8: https://pypi.org/project/pep8
 .. _pyflakes: https://pypi.org/project/pyflakes
 .. _Flake8: http://flake8.pycqa.org/
 

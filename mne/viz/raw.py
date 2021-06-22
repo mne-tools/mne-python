@@ -31,10 +31,10 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              event_color='cyan', scalings=None, remove_dc=True, order=None,
              show_options=False, title=None, show=True, block=False,
              highpass=None, lowpass=None, filtorder=4,
-             clipping=_RAW_CLIP_DEF,
-             show_first_samp=False, proj=True, group_by='type',
-             butterfly=False, decim='auto', noise_cov=None, event_id=None,
-             show_scrollbars=True, show_scalebars=True, verbose=None):
+             clipping=_RAW_CLIP_DEF, show_first_samp=False,
+             proj=True, group_by='type', butterfly=False, decim='auto',
+             noise_cov=None, event_id=None, show_scrollbars=True,
+             show_scalebars=True, time_format='float', verbose=None):
     """Plot raw data.
 
     Parameters
@@ -162,6 +162,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         Whether or not to show the scale bars. Defaults to True.
 
         .. versionadded:: 0.20.0
+    %(time_format)s
     %(verbose)s
 
     Returns
@@ -311,6 +312,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   duration=duration,
                   n_times=raw.n_times,
                   first_time=first_time,
+                  time_format=time_format,
                   decim=decim,
                   # events
                   event_color_dict=event_color_dict,
@@ -359,10 +361,6 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     # start with projectors dialog open, if requested
     if show_options:
         fig._toggle_proj_fig()
-
-    # for blitting
-    fig.canvas.flush_events()
-    fig.mne.bg = fig.canvas.copy_from_bbox(fig.bbox)
 
     plt_show(show, block=block)
     return fig
@@ -535,8 +533,8 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
 
 def _setup_channel_selections(raw, kind, order):
     """Get dictionary of channel groupings."""
-    from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
-                             _divide_to_regions)
+    from ..channels import (read_vectorview_selection, _SELECTIONS,
+                            _EEG_SELECTIONS, _divide_to_regions)
     from ..utils import _get_stim_channel
     _check_option('group_by', kind, ('position', 'selection'))
     if kind == 'position':
@@ -557,7 +555,7 @@ def _setup_channel_selections(raw, kind, order):
         # loop over regions
         keys = np.concatenate([_SELECTIONS, _EEG_SELECTIONS])
         for key in keys:
-            channels = read_selection(key, info=raw.info)
+            channels = read_vectorview_selection(key, info=raw.info)
             picks = pick_channels(raw.ch_names, channels)
             picks = np.intersect1d(picks, order)
             if not len(picks):

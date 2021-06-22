@@ -8,11 +8,13 @@ import numpy as np
 
 from ... import pick_types
 from ...io import BaseRaw
-from ...utils import _validate_type
+from ...utils import _validate_type, verbose
 from ...io.pick import _picks_to_idx
+from ..nirs import _channel_frequencies, _check_channels_ordered
 
 
-def temporal_derivative_distribution_repair(raw):
+@verbose
+def temporal_derivative_distribution_repair(raw, *, verbose=None):
     """Apply temporal derivative distribution repair to data.
 
     Applies temporal derivative distribution repair (TDDR) to data
@@ -41,6 +43,8 @@ def temporal_derivative_distribution_repair(raw):
     """
     raw = raw.copy().load_data()
     _validate_type(raw, BaseRaw, 'raw')
+    _check_channels_ordered(
+        raw.info, np.unique(_channel_frequencies(raw.info, nominal=True)))
 
     if not len(pick_types(raw.info, fnirs='fnirs_od')):
         raise RuntimeError('TDDR should be run on optical density data.')

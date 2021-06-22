@@ -21,7 +21,6 @@ from distutils.version import LooseVersion
 from collections import defaultdict
 
 import numpy as np
-from scipy import linalg
 
 from ..defaults import DEFAULTS
 from ..fixes import _get_img_fdata
@@ -117,9 +116,10 @@ def plot_cov(cov, info, exclude=(), colorbar=True, proj=False, show_svd=True,
     .. versionchanged:: 0.19
        Approximate ranks for each channel type are shown with red dashed lines.
     """
-    from ..cov import Covariance
     import matplotlib.pyplot as plt
     from matplotlib.colors import Normalize
+    from scipy import linalg
+    from ..cov import Covariance
 
     info, C, ch_names, idx_names = _index_info_cov(info, cov, exclude)
     del cov, exclude

@@ -58,10 +58,10 @@ def get_channel_type_constants(include_defaults=False):
                 eog=dict(kind=FIFF.FIFFV_EOG_CH, unit=FIFF.FIFF_UNIT_V),
                 emg=dict(kind=FIFF.FIFFV_EMG_CH, unit=FIFF.FIFF_UNIT_V),
                 ecg=dict(kind=FIFF.FIFFV_ECG_CH, unit=FIFF.FIFF_UNIT_V),
+                resp=dict(kind=FIFF.FIFFV_RESP_CH, unit=FIFF.FIFF_UNIT_V),
                 bio=dict(kind=FIFF.FIFFV_BIO_CH, unit=FIFF.FIFF_UNIT_V),
                 misc=dict(kind=FIFF.FIFFV_MISC_CH, unit=FIFF.FIFF_UNIT_V),
                 stim=dict(kind=FIFF.FIFFV_STIM_CH),
-                resp=dict(kind=FIFF.FIFFV_RESP_CH),
                 exci=dict(kind=FIFF.FIFFV_EXCI_CH),
                 syst=dict(kind=FIFF.FIFFV_SYST_CH),
                 ias=dict(kind=FIFF.FIFFV_IAS_CH),
@@ -324,20 +324,20 @@ def _triage_fnirs_pick(ch, fnirs, warned):
     """Triage an fNIRS pick type."""
     if fnirs is True:
         return True
-    elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_HBO and fnirs == 'hbo':
+    elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_HBO and 'hbo' in fnirs:
         return True
-    elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_HBR and fnirs == 'hbr':
+    elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_HBR and 'hbr' in fnirs:
         return True
     elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_CW_AMPLITUDE and \
-            fnirs == 'fnirs_cw_amplitude':
+            'fnirs_cw_amplitude' in fnirs:
         return True
     elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_FD_AC_AMPLITUDE and \
-            fnirs == 'fnirs_fd_ac_amplitude':
+            'fnirs_fd_ac_amplitude' in fnirs:
         return True
     elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_FD_PHASE and \
-            fnirs == 'fnirs_fd_phase':
+            'fnirs_fd_phase' in fnirs:
         return True
-    elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_OD and fnirs == 'fnirs_od':
+    elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_OD and 'fnirs_od' in fnirs:
         return True
     return False
 
@@ -971,30 +971,25 @@ _MEG_CH_TYPES_SPLIT = ('mag', 'grad', 'planar1', 'planar2')
 _FNIRS_CH_TYPES_SPLIT = ('hbo', 'hbr', 'fnirs_cw_amplitude',
                          'fnirs_fd_ac_amplitude', 'fnirs_fd_phase', 'fnirs_od')
 _DATA_CH_TYPES_ORDER_DEFAULT = (
-    'mag', 'grad', 'eeg', 'csd', 'eog', 'ecg', 'emg', 'ref_meg', 'misc',
-    'stim', 'resp', 'chpi', 'exci', 'ias', 'syst', 'seeg', 'bio', 'ecog',
+    'mag', 'grad', 'eeg', 'csd', 'eog', 'ecg', 'resp', 'emg', 'ref_meg',
+    'misc', 'stim', 'chpi', 'exci', 'ias', 'syst', 'seeg', 'bio', 'ecog',
     'dbs') + _FNIRS_CH_TYPES_SPLIT + ('whitened',)
 # Valid data types, ordered for consistency, used in viz/evoked.
 _VALID_CHANNEL_TYPES = (
-    'eeg', 'grad', 'mag', 'seeg', 'eog', 'ecg', 'emg', 'dipole', 'gof',
+    'eeg', 'grad', 'mag', 'seeg', 'eog', 'ecg', 'resp', 'emg', 'dipole', 'gof',
     'bio', 'ecog', 'dbs') + _FNIRS_CH_TYPES_SPLIT + ('misc', 'csd')
 _DATA_CH_TYPES_SPLIT = (
     'mag', 'grad', 'eeg', 'csd', 'seeg', 'ecog', 'dbs') + _FNIRS_CH_TYPES_SPLIT
 
 
-def _pick_data_channels(info, exclude='bads', with_ref_meg=True):
+def _pick_data_channels(info, exclude='bads', with_ref_meg=True,
+                        with_aux=False):
     """Pick only data channels."""
-    return pick_types(info, ref_meg=with_ref_meg, exclude=exclude,
-                      **_PICK_TYPES_DATA_DICT)
-
-
-def _pick_aux_channels(info, exclude='bads'):
-    """Pick only auxiliary channels.
-
-    Corresponds to EOG, ECG, EMG and BIO
-    """
-    return pick_types(info, meg=False, eog=True, ecg=True, emg=True, bio=True,
-                      ref_meg=False, exclude=exclude)
+    kwargs = _PICK_TYPES_DATA_DICT
+    if with_aux:
+        kwargs = kwargs.copy()
+        kwargs.update(eog=True, ecg=True, emg=True, bio=True)
+    return pick_types(info, ref_meg=with_ref_meg, exclude=exclude, **kwargs)
 
 
 def _pick_data_or_ica(info, exclude=()):
@@ -1146,8 +1141,10 @@ def _picks_str_to_idx(info, picks, exclude, with_ref_meg, return_kind,
                 extra_picks |= set(pick_types(
                     info, meg=use_meg, ref_meg=False, exclude=exclude))
         if len(fnirs) > 0 and not kwargs.get('fnirs', False):
-            # if it has two entries, it's both, otherwise it's just one
-            kwargs['fnirs'] = True if len(fnirs) == 2 else list(fnirs)[0]
+            if len(fnirs) == 1:
+                kwargs['fnirs'] = list(fnirs)[0]
+            else:
+                kwargs['fnirs'] = list(fnirs)
         picks_type = pick_types(info, exclude=exclude, **kwargs)
         if len(extra_picks) > 0:
             picks_type = sorted(set(picks_type) | set(extra_picks))

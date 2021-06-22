@@ -16,7 +16,7 @@ from mne import (read_dipole, read_forward_solution,
 from mne.dipole import get_phantom_dipoles, _BDIP_ERROR_KEYS
 from mne.simulation import simulate_evoked
 from mne.datasets import testing
-from mne.utils import run_tests_if_main, requires_mne, run_subprocess
+from mne.utils import requires_mne, run_subprocess
 from mne.proj import make_eeg_average_ref_proj
 
 from mne.io import read_raw_fif, read_raw_ctf
@@ -25,6 +25,7 @@ from mne.io.constants import FIFF
 from mne.surface import _compute_nearest
 from mne.bem import _bem_find_surface, read_bem_solution
 from mne.transforms import apply_trans, _get_trans
+from mne.source_space import head_to_mni
 
 data_path = testing.data_path(download=False)
 meg_path = op.join(data_path, 'MEG', 'sample')
@@ -139,6 +140,13 @@ def test_dipole_fitting(tmpdir):
         dip, residual = fit_dipole(evoked, cov, sphere, fname_fwd,
                                    rank='info')  # just to test rank support
     assert isinstance(residual, Evoked)
+
+    # Test conversion of dip.pos to MNI coordinates.
+    dip_mni_pos = dip.to_mni('sample', fname_trans,
+                             subjects_dir=subjects_dir)
+    head_to_mni_dip_pos = head_to_mni(dip.pos, 'sample', fwd['mri_head_t'],
+                                      subjects_dir=subjects_dir)
+    assert_allclose(dip_mni_pos, head_to_mni_dip_pos, rtol=1e-3, atol=0)
 
     # Sanity check: do our residuals have less power than orig data?
     data_rms = np.sqrt(np.sum(evoked.data ** 2, axis=0))
@@ -478,7 +486,8 @@ def test_bdip(fname_dip_, fname_bdip_, tmpdir):
                                 err_msg='%s: %s' % (kind, key))
         # Not stored
         assert this_bdip.name is None
-        assert_allclose(this_bdip.nfree, 0.)
+        assert this_bdip.nfree is None
 
-
-run_tests_if_main()
+        # Test whether indexing works
+        this_bdip0 = this_bdip[0]
+        _check_dipole(this_bdip0, 1)

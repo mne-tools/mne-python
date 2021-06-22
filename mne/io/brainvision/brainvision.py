@@ -484,8 +484,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
         try:
             n_samples = cfg.getint(cinfostr, 'DataPoints')
         except configparser.NoOptionError:
-            logger.warning('No info on DataPoints found. Inferring number of '
-                           'samples from the data file size.')
+            warn('No info on DataPoints found. Inferring number of '
+                 'samples from the data file size.')
             with open(data_fname, 'rb') as fid:
                 fid.seek(0, 2)
                 n_bytes = fid.tell()
@@ -593,12 +593,14 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
     # But we still want to be able to double check the channel names
     # for alignment purposes, we keep track of the hardware setting idx
     idx_amp = idx
+    filter_list_has_ch_name = True
 
     if 'S o f t w a r e  F i l t e r s' in settings:
         idx = settings.index('S o f t w a r e  F i l t e r s')
         for idx, setting in enumerate(settings[idx + 1:], idx + 1):
             if re.match(r'#\s+Low Cutoff', setting):
                 hp_col, lp_col = 1, 2
+                filter_list_has_ch_name = False
                 warn('Online software filter detected. Using software '
                      'filter settings and ignoring hardware values')
                 break
@@ -641,8 +643,11 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
 
             # Correct shift for channel names with spaces
             # Header already gives 1 therefore has to be subtracted
-            ch_name_parts = re.split(divider, ch)
-            real_shift = shift + len(ch_name_parts) - 1
+            if filter_list_has_ch_name:
+                ch_name_parts = re.split(divider, ch)
+                real_shift = shift + len(ch_name_parts) - 1
+            else:
+                real_shift = shift
 
             line = re.split(divider, settings[idx + i])
             highpass.append(line[hp_col + real_shift])

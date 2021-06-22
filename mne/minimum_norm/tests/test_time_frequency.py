@@ -8,7 +8,6 @@ from mne.datasets import testing
 from mne import find_events, Epochs, pick_types
 from mne.io import read_raw_fif
 from mne.io.constants import FIFF
-from mne.utils import run_tests_if_main
 from mne.label import read_label
 from mne.minimum_norm import (read_inverse_operator, apply_inverse_epochs,
                               prepare_inverse_operator, INVERSE_METHODS)
@@ -206,6 +205,3 @@ def test_source_psd_epochs(method):
             one_epochs, inv, lambda2=lambda2, method=method,
             pick_ori="normal", label=label, bandwidth=0.01, low_bias=True,
             fmin=fmin, fmax=fmax, return_generator=False, prepared=True)
-
-
-run_tests_if_main()

@@ -31,7 +31,7 @@ from mne.minimum_norm import (apply_inverse, read_inverse_operator,
                               make_inverse_operator, apply_inverse_cov,
                               write_inverse_operator, prepare_inverse_operator,
                               compute_rank_inverse, INVERSE_METHODS)
-from mne.utils import _TempDir, catch_logging
+from mne.utils import catch_logging
 
 test_path = testing.data_path(download=False)
 s_path = op.join(test_path, 'MEG', 'sample')
@@ -184,9 +184,8 @@ def _compare_inverses_approx(inv_1, inv_2, evoked, rtol, atol,
                         err_msg='%s: %s' % (method, corr))
 
 
-def _compare_io(inv_op, out_file_ext='.fif'):
+def _compare_io(inv_op, out_file_ext='.fif', tempdir=None):
     """Compare inverse IO."""
-    tempdir = _TempDir()
     if out_file_ext == '.fif':
         out_file = op.join(tempdir, 'test-inv.fif')
     elif out_file_ext == '.gz':
@@ -216,7 +215,7 @@ def test_warn_inverse_operator(evoked, noise_cov):
 
 
 @pytest.mark.slowtest
-def test_make_inverse_operator_loose(evoked):
+def test_make_inverse_operator_loose(evoked, tmpdir):
     """Test MNE inverse computation (precomputed and non-precomputed)."""
     # Test old version of inverse computation starting from forward operator
     noise_cov = read_cov(fname_cov)
@@ -230,7 +229,7 @@ def test_make_inverse_operator_loose(evoked):
     log = log.getvalue()
     assert 'MEG: rank 302 computed' in log
     assert 'limit = 1/%d' % fwd_op['nsource'] in log
-    _compare_io(my_inv_op)
+    _compare_io(my_inv_op, tempdir=str(tmpdir))
     assert_equal(inverse_operator['units'], 'Am')
     _compare_inverses_approx(my_inv_op, inverse_operator, evoked,
                              rtol=1e-2, atol=1e-5, depth_atol=1e-3)
@@ -241,7 +240,7 @@ def test_make_inverse_operator_loose(evoked):
                                           fixed=False, verbose=True)
     log = log.getvalue()
     assert 'MEG: rank 302 computed from 305' in log
-    _compare_io(my_inv_op)
+    _compare_io(my_inv_op, tempdir=str(tmpdir))
     _compare_inverses_approx(my_inv_op, inverse_operator, evoked,
                              rtol=1e-3, atol=1e-5)
     assert ('dev_head_t' in my_inv_op['info'])
@@ -401,7 +400,8 @@ def test_localization_bias_free(bias_params_free, method, lower, upper,
     _assert_free_ori_match(ori, max_idx, lower_ori, upper_ori)
 
 
-def test_apply_inverse_sphere(evoked):
+@pytest.mark.slowtest
+def test_apply_inverse_sphere(evoked, tmpdir):
     """Test applying an inverse with a sphere model (rank-deficient)."""
     evoked.pick_channels(evoked.ch_names[:306:8])
     evoked.info['projs'] = []
@@ -419,7 +419,7 @@ def test_apply_inverse_sphere(evoked):
     assert fwd['sol']['nrow'] == 39
     assert fwd['nsource'] == 101
     assert fwd['sol']['ncol'] == 303
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     temp_fname = op.join(tempdir, 'temp-inv.fif')
     inv = make_inverse_operator(evoked.info, fwd, cov, loose=1.)
     # This forces everything to be float32
@@ -762,14 +762,14 @@ def test_make_inverse_operator_vector(evoked, noise_cov):
                     atol=1e-20)
 
 
-def test_make_inverse_operator_diag(evoked, noise_cov):
+def test_make_inverse_operator_diag(evoked, noise_cov, tmpdir):
     """Test MNE inverse computation with diagonal noise cov."""
     noise_cov = noise_cov.as_diag()
     fwd_op = convert_forward_solution(read_forward_solution(fname_fwd),
                                       surf_ori=True)
     inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov,
                                    loose=0.2, depth=0.8)
-    _compare_io(inv_op)
+    _compare_io(inv_op, tempdir=str(tmpdir))
     inverse_operator_diag = read_inverse_operator(fname_inv_meeg_diag)
     # This one is pretty bad
     _compare_inverses_approx(inverse_operator_diag, inv_op, evoked,
@@ -794,9 +794,9 @@ def test_inverse_operator_noise_cov_rank(evoked, noise_cov):
     assert (compute_rank_inverse(inv) == 20)
 
 
-def test_inverse_operator_volume(evoked):
+def test_inverse_operator_volume(evoked, tmpdir):
     """Test MNE inverse computation on volume source space."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     inv_vol = read_inverse_operator(fname_vol_inv)
     assert (repr(inv_vol))
     stc = apply_inverse(evoked, inv_vol, lambda2, 'dSPM')
@@ -819,15 +819,15 @@ def test_inverse_operator_volume(evoked):
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_io_inverse_operator():
+def test_io_inverse_operator(tmpdir):
     """Test IO of inverse_operator."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     inverse_operator = read_inverse_operator(fname_inv)
     x = repr(inverse_operator)
     assert (x)
     assert (isinstance(inverse_operator['noise_cov'], Covariance))
     # just do one example for .gz, as it should generalize
-    _compare_io(inverse_operator, '.gz')
+    _compare_io(inverse_operator, '.gz', tempdir)
 
     # test warnings on bad filenames
     inv_badname = op.join(tempdir, 'test-bad-name.fif.gz')
