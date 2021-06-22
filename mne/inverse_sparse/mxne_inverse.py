@@ -290,8 +290,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha='sure', loose='auto',
                debias=True, time_pca=True, weights=None, weights_min=0.,
                solver='auto', n_mxne_iter=1, return_residual=False,
                return_as_dipoles=False, dgap_freq=10, rank=None, pick_ori=None,
-               sure_alpha_grid="auto", random_state=None, use_accel=True, K=5,
-               verbose=None):
+               sure_alpha_grid="auto", random_state=None, verbose=None):
     """Mixed-norm estimate (MxNE) and iterative reweighted MxNE (irMxNE).
 
     Compute L1/L2 mixed-norm solution :footcite:`GramfortEtAl2012` or L0.5/L2
@@ -361,13 +360,6 @@ def mixed_norm(evoked, forward, noise_cov, alpha='sure', loose='auto',
     random_state : int | None
         The random state used in a random number generator for delta and
         epsilon used for the SURE computation. Defaults to None.
-    use_accel : bool
-        If True (default), Anderson extrapolation from
-        :footcite:`BertrandEtAl2020` will be used. Only available for 'bcd'
-        solver.
-    K : int
-        Number of previous iterates used for Anderson extrapolation.
-        Defaults to 5.
 
         .. versionadded:: 0.24
     %(verbose)s
@@ -455,8 +447,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha='sure', loose='auto',
             M, gain, alpha_grid, sigma=1, random_state=random_state,
             n_mxne_iter=n_mxne_iter, maxit=maxit, tol=tol,
             n_orient=n_dip_per_pos, active_set_size=active_set_size,
-            debias=debias, solver=solver, dgap_freq=dgap_freq,
-            use_accel=use_accel, K=K, verbose=verbose)
+            debias=debias, solver=solver, dgap_freq=dgap_freq, verbose=verbose)
         logger.info('Selected alpha: %s' % best_alpha_)
     else:
         if n_mxne_iter == 1:
@@ -464,13 +455,13 @@ def mixed_norm(evoked, forward, noise_cov, alpha='sure', loose='auto',
                 M, gain, alpha, maxit=maxit, tol=tol,
                 active_set_size=active_set_size, n_orient=n_dip_per_pos,
                 debias=debias, solver=solver, dgap_freq=dgap_freq,
-                use_accel=use_accel, K=K, verbose=verbose)
+                verbose=verbose)
         else:
             X, active_set, E = iterative_mixed_norm_solver(
                 M, gain, alpha, n_mxne_iter, maxit=maxit, tol=tol,
                 n_orient=n_dip_per_pos, active_set_size=active_set_size,
                 debias=debias, solver=solver, dgap_freq=dgap_freq,
-                use_accel=use_accel, K=K, verbose=verbose)
+                verbose=verbose)
 
     if time_pca:
         X = np.dot(X, Vh)
@@ -753,7 +744,7 @@ def tf_mixed_norm(evoked, forward, noise_cov,
 @verbose
 def _compute_mxne_sure(M, gain, alpha_grid, sigma, n_mxne_iter, maxit, tol,
                        n_orient, active_set_size, debias, solver, dgap_freq,
-                       random_state, use_accel, K, verbose):
+                       random_state, verbose):
     """Stein Unbiased Risk Estimator (SURE).
 
     Implements the finite-difference Monte-Carlo approximation
@@ -792,13 +783,6 @@ def _compute_mxne_sure(M, gain, alpha_grid, sigma, n_mxne_iter, maxit, tol,
     random_state : int | None
         The random state used in a random number generator for delta and
         epsilon used for the SURE computation.
-    use_accel : bool
-        If True (default), Anderson extrapolation from
-        :footcite:`BertrandEtAl2020` will be used. Only available for 'bcd'
-        solver.
-    K : int
-        Number of previous iterates used for Anderson extrapolation.
-        Defaults to 5.
 
     Returns
     -------
@@ -826,14 +810,13 @@ def _compute_mxne_sure(M, gain, alpha_grid, sigma, n_mxne_iter, maxit, tol,
                 M, gain, alpha, maxit=maxit, tol=tol,
                 active_set_size=active_set_size, n_orient=n_orient,
                 debias=debias, solver=solver, dgap_freq=dgap_freq,
-                active_set_init=as_init, X_init=X_init, use_accel=use_accel,
-                K=K, verbose=False)
+                active_set_init=as_init, X_init=X_init, verbose=False)
         else:
             X, active_set, _ = iterative_mixed_norm_solver(
                 M, gain, alpha, n_mxne_iter, maxit=maxit, tol=tol,
                 n_orient=n_orient, active_set_size=active_set_size,
                 debias=debias, solver=solver, dgap_freq=dgap_freq,
-                weight_init=w_init, use_accel=use_accel, K=K, verbose=False)
+                weight_init=w_init, verbose=False)
         return X, active_set
 
     def _fit_on_grid(gain, M, eps, delta):

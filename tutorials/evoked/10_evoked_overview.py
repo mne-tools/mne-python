@@ -9,7 +9,7 @@ data. It introduces the :class:`~mne.Evoked` data structure in detail,
 including how to load, query, subselect, export, and plot data from an
 :class:`~mne.Evoked` object. For info on creating an :class:`~mne.Evoked`
 object from (possibly simulated) data in a :class:`NumPy array
-<numpy.ndarray>`, see :ref:`tut_creating_data_structures`.
+<numpy.ndarray>`, see :ref:`tut-creating-data-structures`.
 
 As usual we'll start by importing the modules we need:
 """

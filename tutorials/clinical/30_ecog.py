@@ -1,5 +1,5 @@
 """
-.. _tut_working_with_ecog:
+.. _tut-working-with-ecog:
 
 ======================
 Working with ECoG data
@@ -17,7 +17,7 @@ This example shows how to use:
 - projection onto a pial surface
 
 For a complementary example that involves sEEG data, channel locations in
-MNI space, or projection into a volume, see :ref:`tut_working_with_seeg`.
+MNI space, or projection into a volume, see :ref:`tut-working-with-seeg`.
 """
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Chris Holdgraf <choldgraf@gmail.com>
@@ -51,6 +51,10 @@ subjects_dir = op.join(sample_path, 'subjects')
 #
 # Let's load some ECoG electrode data with `mne-bids
 # <https://mne.tools/mne-bids/>`_.
+#
+# .. note::
+#     Downsampling is just to save execution time in this example, you should
+#     not need to do this in general!
 
 # first define the bids path
 bids_path = BIDSPath(root=bids_root, subject='pt1', session='presurgery',
@@ -85,8 +89,6 @@ epochs = mne.Epochs(raw, events, event_id=event_id['onset'],
                     tmin=13, tmax=13 + epoch_length, baseline=None)
 
 # And then load data and downsample.
-# .. note: This is just to save execution time in this example, you should
-#          not need to do this in general!
 epochs.load_data()
 epochs.resample(200)  # Hz, will also load the data for us
 

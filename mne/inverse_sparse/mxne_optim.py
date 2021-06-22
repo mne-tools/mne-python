@@ -493,7 +493,7 @@ def _bcd(G, X, R, active_set, one_over_lc, n_orient, n_positions, alpha_lc):
 def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
                       active_set_size=50, debias=True, n_orient=1,
                       solver='auto', return_gap=False, dgap_freq=10,
-                      active_set_init=None, X_init=None, use_accel=True, K=5):
+                      active_set_init=None, X_init=None):
     """Solve L1/L2 mixed-norm inverse problem with active set strategy.
 
     See references :footcite:`GramfortEtAl2012,StrohmeierEtAl2016`.
@@ -531,13 +531,6 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
     X_init : array, shape (n_dipoles, n_times) or None
         The initial weight matrix used for warm starting the solver. If None,
         the weights are initialized at zero.
-    use_accel : bool
-        If True (default), Anderson extrapolation from
-        :footcite:`BertrandEtAl2020` will be used. Only available for 'bcd'
-        solver.
-    K : int
-        Number of previous iterates used for Anderson extrapolation.
-        Defaults to 5.
 
     Returns
     -------
@@ -686,8 +679,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
 def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
                                 tol=1e-8, verbose=None, active_set_size=50,
                                 debias=True, n_orient=1, dgap_freq=10,
-                                solver='auto', weight_init=None,
-                                use_accel=True, K=5):
+                                solver='auto', weight_init=None):
     """Solve L0.5/L2 mixed-norm inverse problem with active set strategy.
 
     See reference :footcite:`StrohmeierEtAl2016`.
@@ -722,13 +714,6 @@ def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
     weight_init : array, shape (n_dipoles,) or None
         The initial weight used for reweighting the gain matrix. If None, the
         weights are initialized with ones.
-    use_accel : bool
-        If True (default), Anderson extrapolation from
-        :footcite:`BertrandEtAl2020` will be used. Only available for 'bcd'
-        solver.
-    K : int
-        Number of previous iterates used for Anderson extrapolation.
-        Defaults to 5.
 
     Returns
     -------
@@ -1564,7 +1549,7 @@ def iterative_tf_mixed_norm_solver(M, G, alpha_space, alpha_time,
         The duality gap is evaluated every dgap_freq iterations.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+        and :ref:`Logging documentation <tut-logging>` for more).
 
     Returns
     -------

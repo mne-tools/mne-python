@@ -1,5 +1,5 @@
 """
-.. _tut_creating_data_structures:
+.. _tut-creating-data-structures:
 
 Creating MNE-Python data structures from scratch
 ================================================

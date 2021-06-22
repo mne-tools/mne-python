@@ -14,6 +14,7 @@ import warnings
 from datetime import datetime, timezone
 from distutils.version import LooseVersion
 
+import numpy as np
 import matplotlib
 import sphinx
 import sphinx_gallery
@@ -757,6 +758,8 @@ latex_logo = "_static/logo.png"
 # not chapters.
 latex_toplevel_sectioning = 'part'
 
+_np_print_defaults = np.get_printoptions()
+
 
 # -- Warnings management -----------------------------------------------------
 
@@ -831,6 +834,10 @@ def reset_warnings(gallery_conf, fname):
         'ignore', message="can't resolve package from", category=ImportWarning)
     warnings.filterwarnings(
         'ignore', message='.*mne-realtime.*', category=DeprecationWarning)
+
+    # Because we use np.set_printoptions in some tutorials, but we only
+    # want it to affect those:
+    np.set_printoptions(**_np_print_defaults)
 
 
 reset_warnings(None, None)

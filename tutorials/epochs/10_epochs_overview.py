@@ -11,7 +11,7 @@ detail, including how to load, query, subselect, export, and plot data from an
 :class:`~mne.Epochs` object. For more information about visualizing
 :class:`~mne.Epochs` objects, see :ref:`tut-visualize-epochs`. For info on
 creating an :class:`~mne.Epochs` object from (possibly simulated) data in a
-:class:`NumPy array <numpy.ndarray>`, see :ref:`tut_creating_data_structures`.
+:class:`NumPy array <numpy.ndarray>`, see :ref:`tut-creating-data-structures`.
 
 As usual we'll start by importing the modules we need:
 """
