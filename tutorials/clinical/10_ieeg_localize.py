@@ -301,6 +301,12 @@ template_brain = nib.freesurfer.load(
 plot_overlay(template_brain, subject_brain,
              'Alignment with fsaverage before Affine Registration')
 
+###############################################################################
+# Register the affine of the subject's brain to the template brain
+#
+# This aligns the two brains, preparing the subject's brain to be warped
+# to the template.
+
 # normalize intensities
 mri_to = template_brain.get_fdata().copy()
 mri_to /= mri_to.max()
@@ -334,6 +340,12 @@ template_brain_zoomed = nib.Nifti1Image(mri_to, affine_to)
 plot_overlay(template_brain_zoomed, aligned_brain,
              'Alignment with fsaverage after Affine Registration')
 
+###############################################################################
+# Compute the symmetric diffeomorphic registration
+#
+# Differences in the shape and size of different brain areas are accounted
+# for in this step by warping the subject's brain to match the template.
+
 # Compute registration
 sdr = SymmetricDiffeomorphicRegistration(
     metric=CCMetric(3), level_iters=[10, 10, 5])
@@ -343,14 +355,20 @@ mapping = sdr.optimize(static=template_brain.get_fdata(),
                        moving_grid2world=subject_brain.affine,
                        prealign=reg_affine)
 
-
 warped_brain = nib.Nifti1Image(
     mapping.transform(subject_brain.get_fdata()), subject_brain.affine)
 plot_overlay(template_brain, warped_brain, 'Warped to fsaverage')
 
-# convert electrode positions from surface RAS to voxels
-ch_coords = mne.transforms.apply_trans(
-    np.linalg.inv(subject_brain.header.get_vox2ras_tkr()), ch_coords)
+###############################################################################
+# Apply the registrations to the electrode contact coordinates
+#
+# The brain image is warped to the template but the goal was to warp the
+# positions of the electrode contacts. To do that, we'll make a lookup
+# table image of the electrode contacts. In this image, the background will
+# be ``0``s and at the location of the first contact will be ``1``s, the
+# second ``2``s and so on. This image can then be warped by the same SDR
+# transform and then we can average the position of all the voxels with
+# that contact's lookup number to find the final warped positions.
 
 
 def get_neighbors(loc, img, thresh, voxels_in_volume):
@@ -386,6 +404,10 @@ def peak_to_volume(loc, img, thresh, voxels_max=100):
     return voxels_in_volume
 
 
+# convert electrode positions from surface RAS to voxels
+ch_coords = mne.transforms.apply_trans(
+    np.linalg.inv(subject_brain.header.get_vox2ras_tkr()), ch_coords)
+
 # Take channel coordinates and use the CT to transform them
 # into a 3D image where all the voxels over a threshold nearby
 # are labeled with an index
@@ -394,15 +416,15 @@ thresh = np.quantile(CT_data, 0.95)
 elec_image = np.zeros(subject_brain.shape, dtype=int)
 for i, ch_coord in enumerate(ch_coords):
     x, y, z = ch_coord.round().astype(int)
-    # look up to two voxels away
+    # look up to two voxels away, the coord may not have been marked perfectly
     peak = np.array(np.unravel_index(
         np.argmax(CT_data[x - 1:x + 2, y - 1:y + 2, z - 1:z + 2]),
         (3, 3, 3))) - 1 + ch_coord.round().astype(int)
     volume = peak_to_volume(peak, CT_data, thresh)
     for voxel in volume:
         if elec_image[voxel] != 0:
-            # some voxels ambiguous because the contacts are bridged
-            # so assign to the nearest location
+            # some voxels ambiguous because the contacts are bridged on the CT
+            # so assign the voxel to the nearest contact location
             dist_old = np.sqrt(
                 (ch_coords[elec_image[voxel] - 1] - voxel)**2).sum()
             dist_new = np.sqrt((ch_coord - voxel)**2).sum()
@@ -424,7 +446,9 @@ ch_coords = mne.transforms.apply_trans(
     template_brain.header.get_vox2ras_tkr(), ch_coords)
 
 ###############################################################################
-# Let's plot the result. You can compare this to :ref:`tut-working-with-seeg`
+# Plot the result
+#
+# You can compare this to :ref:`tut-working-with-seeg`
 # to see the difference between this more complex morph and the linear
 # Talairach transformation.
 
