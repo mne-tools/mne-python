@@ -419,18 +419,6 @@ warped_elec_image = mapping.transform(elec_image,
 for i in range(ch_coords.shape[0]):
     ch_coords[i] = np.array(np.where(warped_elec_image == i + 1)).mean(axis=1)
 
-# if the above code fails this is another way:
-'''
-for i in range(ch_coords.shape[0]):
-    ch_image = np.zeros(subject_brain.shape, dtype=int)
-    for (x, y, z) in np.array(np.where(elec_image == i + 1)).T:
-        ch_image[x, y, z] = CT_data[x, y, z]
-    warped_ch_image = mapping.transform(ch_image)
-    # need to lower threshold because signal becomes more diffuse after interp
-    ch_coords[i] = np.array(
-        np.where(warped_ch_image > thresh / 5)).mean(axis=1)
-'''
-
 # Convert back to surface RAS but to the template surface RAS this time
 ch_coords = mne.transforms.apply_trans(
     template_brain.header.get_vox2ras_tkr(), ch_coords)
