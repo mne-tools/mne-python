@@ -261,15 +261,26 @@ plot_overlay(T1, CT_aligned, 'Aligned CT Overlaid on T1', thresh=0.95)
 #
 # Electrode contact locations are plotted below.
 
+# load the subject's brain
+subject_brain = nib.freesurfer.load(
+    op.join(misc_path, 'seeg', 'sample_seeg_brain.mgz'))
+
 # Load electrode positions from file
 elec_df = pd.read_csv(op.join(misc_path, 'seeg', 'sample_seeg_electrodes.tsv'),
                       sep='\t', header=0, index_col=None)
 ch_names = elec_df['name'].tolist()
 ch_coords = elec_df[['R', 'A', 'S']].to_numpy(dtype=float)
 
-# load the subject's brain
-subject_brain = nib.freesurfer.load(
-    op.join(misc_path, 'seeg', 'sample_seeg_brain.mgz'))
+# convert electrode positions from surface RAS to voxels
+ch_coords = mne.transforms.apply_trans(
+    np.linalg.inv(subject_brain.header.get_vox2ras_tkr()), ch_coords)
+
+# separate the fiducial coordinates
+lpa, nasion, rpa = [ch_coords[ch_names.index(fid)] for fid in
+                    ('lpa', 'nasion', 'rpa')]
+for fid in ('lpa', 'nasion', 'rpa'):
+    ch_coords = np.delete(ch_coords, [ch_names.index(fid)])
+    ch_names.remove(fid)
 
 # Make brain surface from T1
 verts, triangles = mne.viz.marching_cubes(subject_brain.get_fdata(), level=100)
@@ -409,10 +420,6 @@ def peak_to_volume(loc, img, thresh, voxels_max=100):
         neighbors = next_neighbors
     return voxels_in_volume
 
-
-# convert electrode positions from surface RAS to voxels
-ch_coords = mne.transforms.apply_trans(
-    np.linalg.inv(subject_brain.header.get_vox2ras_tkr()), ch_coords)
 
 # Take channel coordinates and use the CT to transform them
 # into a 3D image where all the voxels over a threshold nearby
