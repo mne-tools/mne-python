@@ -173,71 +173,77 @@ plot_overlay(T1, CT_resampled, 'Unaligned CT Overlaid on T1', thresh=0.95)
 ###############################################################################
 # Now we need to align our CT image to the T1 image.
 #
-# .. note::
-#     If the alignment fails or takes too long, it is recommended to roughly
-#     align the CT to the MR manually. To do this, load both the MR and the CT
-#     in freeview and then use the same translation tools as above. Be sure to
-#     have the CT image selected in blue in the menu at the top left so that
-#     you are adjusting the correct image.
+# .. code-block:: python
 #
-#     .. code-block:: bash
+#     # normalize intensities
+#     mri_to = T1.get_fdata().copy()
+#     mri_to /= mri_to.max()
+#     ct_from = CT.get_fdata().copy()
+#     ct_from /= ct_from.max()
 #
-#         $ freeview $MISC_PATH/seeg/sample_seeg_T1.mgz \
-#           $MISC_PATH/seeg/sample_seeg_CT.mgz
+#     # downsample for speed
+#     zooms = (5, 5, 5)
+#     mri_to, affine_to = reslice(
+#         mri_to, affine=T1.affine,
+#         zooms=T1.header.get_zooms()[:3], new_zooms=zooms)
+#     ct_from, affine_from = reslice(
+#         ct_from, affine=CT.affine,
+#         zooms=CT.header.get_zooms()[:3], new_zooms=zooms)
+#
+#     # first optimize the translation on the zoomed images using
+#     # ``factors`` which looks at the image at different scales
+#     reg_affine = affine_registration(
+#         moving=ct_from,
+#         static=mri_to,
+#         moving_affine=affine_from,
+#         static_affine=affine_to,
+#         nbins=32,
+#         metric='MI',
+#         pipeline=[center_of_mass, translation],
+#         level_iters=[100, 100, 10],
+#         sigmas=[3.0, 1.0, 0.0],
+#         factors=[4, 2, 1])[1]
+#
+#     CT_translated = resample(moving=CT.get_fdata(),
+#                              static=T1.get_fdata(),
+#                              moving_affine=CT.affine,
+#                              static_affine=T1.affine,
+#                              between_affine=reg_affine)
+#
+#     # Now, fine-tune the registration
+#     reg_affine = affine_registration(
+#         moving=CT_translated.get_fdata(),
+#         static=T1.get_fdata(),
+#         moving_affine=CT_translated.affine,
+#         static_affine=T1.affine,
+#         nbins=32,
+#         metric='MI',
+#         pipeline=[rigid],
+#         level_iters=[100, 100, 10],
+#         sigmas=[3.0, 1.0, 0.0],
+#         factors=[4, 2, 1])[1]
+#
+#     CT_aligned = resample(moving=CT_translated.get_fdata(),
+#                           static=T1.get_fdata(),
+#                           moving_affine=CT_translated.affine,
+#                           static_affine=T1.affine,
+#                           between_affine=reg_affine)
 
-# normalize intensities
-mri_to = T1.get_fdata().copy()
-mri_to /= mri_to.max()
-ct_from = CT.get_fdata().copy()
-ct_from /= ct_from.max()
 
-# downsample for speed
-zooms = (5, 5, 5)
-mri_to, affine_to = reslice(
-    mri_to, affine=T1.affine,
-    zooms=T1.header.get_zooms()[:3], new_zooms=zooms)
-ct_from, affine_from = reslice(
-    ct_from, affine=CT.affine,
-    zooms=CT.header.get_zooms()[:3], new_zooms=zooms)
+###############################################################################
+# The previous section takes several minutes to execute so the results are
+# presented here instead.
 
-# first optimize the translation on the zoomed images using
-# ``factors`` which looks at the image at different scales
-reg_affine = affine_registration(
-    moving=ct_from,
-    static=mri_to,
-    moving_affine=affine_from,
-    static_affine=affine_to,
-    nbins=32,
-    metric='MI',
-    pipeline=[center_of_mass, translation],
-    level_iters=[100, 100, 10],
-    sigmas=[3.0, 1.0, 0.0],
-    factors=[4, 2, 1])[1]
-
-CT_translated = resample(moving=CT.get_fdata(),
-                         static=T1.get_fdata(),
-                         moving_affine=CT.affine,
-                         static_affine=T1.affine,
-                         between_affine=reg_affine)
-
-# Now, fine-tune the registration
-reg_affine = affine_registration(
-    moving=CT_translated.get_fdata(),
-    static=T1.get_fdata(),
-    moving_affine=CT_translated.affine,
-    static_affine=T1.affine,
-    nbins=32,
-    metric='MI',
-    pipeline=[rigid],
-    level_iters=[100, 100, 10],
-    sigmas=[3.0, 1.0, 0.0],
-    factors=[4, 2, 1])[1]
-
-CT_aligned = resample(moving=CT_translated.get_fdata(),
+alignment_affine = np.array([
+    [0.99235816, -0.03412124, 0.11857915, -133.22262329],
+    [0.04601133, 0.99402046, -0.09902669, -97.64542095],
+    [-0.11449119, 0.10372593, 0.98799428, -84.39915646],
+    [0., 0., 0., 1.]])
+CT_aligned = resample(moving=CT.get_fdata(),
                       static=T1.get_fdata(),
-                      moving_affine=CT_translated.affine,
+                      moving_affine=CT.affine,
                       static_affine=T1.affine,
-                      between_affine=reg_affine)
+                      between_affine=alignment_affine)
 
 plot_overlay(T1, CT_aligned, 'Aligned CT Overlaid on T1', thresh=0.95)
 
