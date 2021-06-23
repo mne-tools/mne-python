@@ -29,11 +29,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 import nibabel as nib
-from nibabel.processing import resample_from_to
-from dipy.align.imaffine import AffineRegistration, MutualInformationMetric
-from dipy.align.transforms import RigidTransform3D
 from dipy.align import (affine_registration, center_of_mass, translation,
-                        rigid, affine)
+                        rigid, affine, resample)
 from dipy.align.reslice import reslice
 from dipy.align.metrics import CCMetric
 from dipy.align.imwarp import SymmetricDiffeomorphicRegistration
@@ -49,7 +46,6 @@ np.set_printoptions(suppress=True)  # suppress scientific notation
 # which is in MNI space
 misc_path = mne.datasets.misc.data_path()
 sample_path = mne.datasets.sample.data_path()
-subject = 'fsaverage'
 subjects_dir = op.join(sample_path, 'subjects')
 
 # use mne-python's fsaverage data
@@ -92,7 +88,7 @@ fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)  # downloads if needed
 # after you're finished using ``Save Volume As`` in the transform popup
 # :footcite:`HamiltonEtAl2017`.
 
-T1 = nib.freesurfer.load(op.join(misc_path, 'seeg', 'sample_seeg_T1.mgz'))
+T1 = nib.load(op.join(misc_path, 'seeg', 'sample_seeg_T1.mgz'))
 viewer = T1.orthoview()
 viewer.set_position(0, 9.9, 5.8)
 viewer.figs[0].axes[0].annotate(
@@ -137,44 +133,10 @@ viewer.figs[0].axes[0].annotate(
 # Aligning the CT to the MR
 # =========================
 #
-# Let's load our CT image and visualize it with the T1 image.
-# As you can see, the CT is already aligned to the T1 image in this example
-# dataset.
-
-CT = nib.freesurfer.load(op.join(misc_path, 'seeg', 'sample_seeg_CT.mgz'))
-
-# make low intensity parts of the CT transparent for easier visualization
-CT_data = CT.get_fdata().copy()
-CT_data[CT_data < np.quantile(CT_data, 0.95)] = np.nan
-
-fig, axes = plt.subplots(1, 3, figsize=(12, 6))
-for ax in axes:
-    ax.axis('off')
-axes[0].imshow(T1.get_fdata()[T1.shape[0] // 2], cmap='gray')
-axes[0].set_title('MR')
-axes[1].imshow(CT.get_fdata()[CT.shape[0] // 2], cmap='gray')
-axes[1].set_title('CT')
-axes[2].imshow(T1.get_fdata()[CT.shape[0] // 2], cmap='gray')
-axes[2].imshow(CT_data[CT.shape[0] // 2], cmap='gist_heat', alpha=0.5)
-for ax in (axes[0], axes[2]):
-    ax.annotate('Subcutaneous fat', (110, 52), xytext=(100, 30),
-                color='white', horizontalalignment='center',
-                arrowprops=dict(facecolor='white'))
-for ax in axes:
-    ax.annotate('Skull (dark in MR, bright in CT)', (40, 175),
-                xytext=(120, 246), horizontalalignment='center',
-                color='white', arrowprops=dict(facecolor='white'))
-axes[2].set_title('CT aligned to MR')
-fig.tight_layout()
-
-
-###############################################################################
-# Let's unalign our CT data so that we can see how to properly align it.
-#
-# .. note::
-#     The hyperintense skull is actually aligned to the hypointensity between
-#     the brain and the scalp. The brighter area surrounding the skull in the
-#     MR is actually subcutaneous fat.
+# Let's load our CT image and visualize it with the T1 image. You can hardly
+# see the CT, it's so misaligned that it is mostly out of view but there is a
+# part of the skull upsidedown and way off center in the middle plot.
+# Clearly, we need to align the CT to the T1 image.
 
 def plot_overlay(image, compare, title, thresh=None):
     """Define a helper function for comparing plots."""
@@ -195,20 +157,21 @@ def plot_overlay(image, compare, title, thresh=None):
                           axis=i).squeeze().T, cmap='gist_heat', alpha=0.5)
         ax.invert_yaxis()
         ax.axis('off')
+    return fig
 
 
-# Make an affine to transform the image
-unalign_affine = np.array([
-    [-1.01, 0.02, -0.01, 128],
-    [0.01, -0.02, 1.02, -135],
-    [0.06, -0.99, -0.02, 140],
-    [0, 0, 0, 1]])
-CT_unaligned = resample_from_to(CT, (CT.shape, unalign_affine))
+CT = nib.load(op.join(misc_path, 'seeg', 'sample_seeg_CT.mgz'))
 
-plot_overlay(T1, CT_unaligned, 'Unaligned CT Overlaid on T1', thresh=0.95)
+# resample to T1 shape
+CT_resampled = resample(moving=CT.get_fdata(),
+                        static=T1.get_fdata(),
+                        moving_affine=CT.affine,
+                        static_affine=T1.affine,
+                        between_affine=None)
+plot_overlay(T1, CT_resampled, 'Unaligned CT Overlaid on T1', thresh=0.95)
 
 ###############################################################################
-# Now we can align our now unaligned CT image.
+# Now we need to align our CT image to the T1 image.
 #
 # .. note::
 #     If the alignment fails or takes too long, it is recommended to roughly
@@ -222,19 +185,95 @@ plot_overlay(T1, CT_unaligned, 'Unaligned CT Overlaid on T1', thresh=0.95)
 #         $ freeview $MISC_PATH/seeg/sample_seeg_T1.mgz \
 #           $MISC_PATH/seeg/sample_seeg_CT.mgz
 
-affreg = AffineRegistration(
-    metric=MutualInformationMetric(nbins=32),
-    level_iters=[10], sigmas=[0.0], factors=[1])
-rigid_trans = affreg.optimize(
-    static=T1.get_fdata(), moving=CT_unaligned.get_fdata(),
-    transform=RigidTransform3D(), params0=None,
-    static_grid2world=T1.affine, moving_grid2world=CT_unaligned.affine)
+# normalize intensities
+mri_to = T1.get_fdata().copy()
+mri_to /= mri_to.max()
+ct_from = CT.get_fdata().copy()
+ct_from /= ct_from.max()
 
-trans_affine = np.dot(T1.affine, np.linalg.inv(rigid_trans.affine))
-# CT_unaligned = resample(moving=CT_unaligned.get_fdata(), static)
-CT_aligned = resample_from_to(CT_unaligned, (CT.shape, trans_affine))
+# downsample for speed
+zooms = (5, 5, 5)
+mri_to, affine_to = reslice(
+    mri_to, affine=T1.affine,
+    zooms=T1.header.get_zooms()[:3], new_zooms=zooms)
+ct_from, affine_from = reslice(
+    ct_from, affine=CT.affine,
+    zooms=CT_resampled.header.get_zooms()[:3], new_zooms=zooms)
+
+# first optimize the translation on the zoomed images using
+# ``factors`` which looks at the image at different scales
+reg_affine = affine_registration(
+    moving=ct_from,
+    static=mri_to,
+    moving_affine=affine_from,
+    static_affine=affine_to,
+    nbins=32,
+    metric='MI',
+    pipeline=[center_of_mass, translation],
+    level_iters=[100, 100, 10],
+    sigmas=[3.0, 1.0, 0.0],
+    factors=[4, 2, 1])[1]
+
+CT_translated = resample(moving=CT.get_fdata(),
+                         static=T1.get_fdata(),
+                         moving_affine=CT.affine,
+                         static_affine=T1.affine,
+                         between_affine=reg_affine)
+
+# Now, fine-tune the registration by changing the affine
+# in a rigid way (i.e. no scaling) which controls the translation
+# and rotation in 3D
+reg_affine = affine_registration(
+    moving=CT_translated.get_fdata(),
+    static=T1.get_fdata(),
+    moving_affine=CT_translated.affine,
+    static_affine=T1.affine,
+    nbins=32,
+    metric='MI',
+    pipeline=[rigid],
+    level_iters=[10],
+    sigmas=[0.0],
+    factors=[1])[1]
+
+CT_aligned = resample(moving=CT_translated.get_fdata(),
+                      static=T1.get_fdata(),
+                      moving_affine=CT_translated.affine,
+                      static_affine=T1.affine,
+                      between_affine=reg_affine)
 
 plot_overlay(T1, CT_aligned, 'Aligned CT Overlaid on T1', thresh=0.95)
+
+###############################################################################
+# We can now see how the CT image looks properly aligned to the T1 image.
+#
+# .. note::
+#     The hyperintense skull is actually aligned to the hypointensity between
+#     the brain and the scalp. The brighter area surrounding the skull in the
+#     MR is actually subcutaneous fat.
+
+# make low intensity parts of the CT transparent for easier visualization
+CT_data = CT_aligned.get_fdata().copy()
+CT_data[CT_data < np.quantile(CT_data, 0.95)] = np.nan
+
+fig, axes = plt.subplots(1, 3, figsize=(12, 6))
+for ax in axes:
+    ax.axis('off')
+axes[0].imshow(T1.get_fdata()[T1.shape[0] // 2], cmap='gray')
+axes[0].set_title('MR')
+axes[1].imshow(CT_aligned.get_fdata()[CT_aligned.shape[0] // 2], cmap='gray')
+axes[1].set_title('CT')
+axes[2].imshow(T1.get_fdata()[CT.shape[0] // 2], cmap='gray')
+axes[2].imshow(CT_data[CT.shape[0] // 2], cmap='gist_heat', alpha=0.5)
+for ax in (axes[0], axes[2]):
+    ax.annotate('Subcutaneous fat', (110, 52), xytext=(100, 30),
+                color='white', horizontalalignment='center',
+                arrowprops=dict(facecolor='white'))
+for ax in axes:
+    ax.annotate('Skull (dark in MR, bright in CT)', (40, 175),
+                xytext=(120, 246), horizontalalignment='center',
+                color='white', arrowprops=dict(facecolor='white'))
+axes[2].set_title('CT aligned to MR')
+fig.tight_layout()
 
 ###############################################################################
 # Marking the Location of Each Electrode Contact
@@ -268,11 +307,10 @@ ch_names = elec_df['name'].tolist()
 ch_coords = elec_df[['R', 'A', 'S']].to_numpy(dtype=float)
 
 # load the subject's brain
-subject_brain = nib.freesurfer.load(
-    op.join(misc_path, 'seeg', 'sample_seeg_brain.mgz'))
+subject_brain = nib.load(op.join(misc_path, 'seeg', 'sample_seeg_brain.mgz'))
 
 # Make brain surface from T1
-verts, triangles = mne.viz.marching_cubes(subject_brain.get_fdata(), level=100)
+verts, triangles = mne.marching_cubes(subject_brain.get_fdata(), level=100)
 # transform from voxels to surface RAS
 verts = mne.transforms.apply_trans(
     subject_brain.header.get_vox2ras_tkr(), verts)
@@ -303,8 +341,8 @@ renderer.show()
 # The plot below shows that they are not yet aligned.
 
 # load the freesurfer average brain
-template_brain = nib.freesurfer.load(
-    op.join(subjects_dir, subject, 'mri', 'brain.mgz'))
+template_brain = nib.load(
+    op.join(subjects_dir, 'fsaverage', 'mri', 'brain.mgz'))
 
 plot_overlay(template_brain, subject_brain,
              'Alignment with fsaverage before Affine Registration')
@@ -323,13 +361,13 @@ mri_from /= mri_from.max()
 # downsample for speed
 zooms = (5, 5, 5)
 mri_to, affine_to = reslice(
-    mri_to, template_brain.affine,
-    template_brain.header.get_zooms()[:3], zooms)
+    mri_to, affine=template_brain.affine,
+    zooms=template_brain.header.get_zooms()[:3], new_zooms=zooms)
 mri_from, affine_from = reslice(
-    mri_from, subject_brain.affine,
-    subject_brain.header.get_zooms()[:3], zooms)
+    mri_from, affine=subject_brain.affine,
+    zooms=subject_brain.header.get_zooms()[:3], new_zooms=zooms)
 
-reg_img, reg_affine = affine_registration(
+reg_affine = affine_registration(
     moving=mri_from,
     static=mri_to,
     moving_affine=affine_from,
@@ -339,12 +377,15 @@ reg_img, reg_affine = affine_registration(
     pipeline=[center_of_mass, translation, rigid, affine],
     level_iters=[100, 100, 10],
     sigmas=[3.0, 1.0, 0.0],
-    factors=[4, 2, 1])
+    factors=[4, 2, 1])[1]
 
-# Apply the transform to the T1 to plot it
-aligned_brain = nib.Nifti1Image(reg_img, np.dot(affine_to, reg_affine))
-template_brain_zoomed = nib.Nifti1Image(mri_to, affine_to)
-plot_overlay(template_brain_zoomed, aligned_brain,
+# Apply the transform to the subject brain to plot it
+subject_brain_aligned = resample(moving=subject_brain.get_fdata(),
+                                 static=template_brain.get_fdata(),
+                                 moving_affine=subject_brain.affine,
+                                 static_affine=template_brain.affine,
+                                 between_affine=reg_affine)
+plot_overlay(template_brain, subject_brain_aligned,
              'Alignment with fsaverage after Affine Registration')
 
 ###############################################################################
@@ -376,40 +417,6 @@ plot_overlay(template_brain, warped_brain, 'Warped to fsaverage')
 # positions of all the voxels that had the contact's lookup number in
 # the warped image.
 
-
-def get_neighbors(loc, img, thresh, voxels_in_volume):
-    """Find all the neighbors above a threshold near a voxel."""
-    neighbors = set()
-    for axis in range(len(loc)):
-        for i in (-1, 1):
-            next_loc = np.array(loc)
-            next_loc[axis] += i
-            next_loc = tuple(next_loc)
-            # must be monotonically decreasing otherwise, bleeds into
-            # other contacts
-            if img[next_loc] > thresh and img[next_loc] < img[loc] and \
-                    next_loc not in voxels_in_volume:
-                neighbors.add(next_loc)
-    return neighbors
-
-
-def peak_to_volume(loc, img, thresh, voxels_max=100):
-    """Find voxels from peak contact location."""
-    loc = tuple(loc)
-    voxels_in_volume = neighbors = set([loc])
-    while neighbors and len(voxels_in_volume) <= voxels_max:
-        next_neighbors = set()
-        for next_loc in neighbors:
-            voxel_neighbors = get_neighbors(
-                next_loc, img, thresh, voxels_in_volume)
-            voxels_in_volume = voxels_in_volume.union(voxel_neighbors)
-            if len(voxels_in_volume) > voxels_max:
-                break
-            next_neighbors = next_neighbors.union(voxel_neighbors)
-        neighbors = next_neighbors
-    return voxels_in_volume
-
-
 # convert electrode positions from surface RAS to voxels
 ch_coords = mne.transforms.apply_trans(
     np.linalg.inv(subject_brain.header.get_vox2ras_tkr()), ch_coords)
@@ -417,16 +424,12 @@ ch_coords = mne.transforms.apply_trans(
 # Take channel coordinates and use the CT to transform them
 # into a 3D image where all the voxels over a threshold nearby
 # are labeled with an index
-CT_data = CT.get_fdata()
+CT_data = CT_aligned.get_fdata()
 thresh = np.quantile(CT_data, 0.95)
 elec_image = np.zeros(subject_brain.shape, dtype=int)
 for i, ch_coord in enumerate(ch_coords):
-    x, y, z = ch_coord.round().astype(int)
     # look up to two voxels away, the coord may not have been marked perfectly
-    peak = np.array(np.unravel_index(
-        np.argmax(CT_data[x - 1:x + 2, y - 1:y + 2, z - 1:z + 2]),
-        (3, 3, 3))) - 1 + ch_coord.round().astype(int)
-    volume = peak_to_volume(peak, CT_data, thresh)
+    volume = mne.voxel_neighbors(ch_coord, CT_data, thresh)
     for voxel in volume:
         if elec_image[voxel] != 0:
             # some voxels ambiguous because the contacts are bridged on the CT
@@ -463,7 +466,7 @@ ch_coords = mne.transforms.apply_trans(
 raw = mne.io.read_raw(op.join(misc_path, 'seeg', 'sample_seeg_ieeg.fif'))
 
 lpa, nasion, rpa = mne.coreg.get_mni_fiducials(
-    subject, subjects_dir=subjects_dir)
+    'fsaverage', subjects_dir=subjects_dir)
 lpa, nasion, rpa = lpa['r'], nasion['r'], rpa['r']
 
 # Create a montage with our new points
@@ -476,7 +479,7 @@ raw.set_montage(montage)
 trans = mne.channels.compute_native_head_t(montage)
 
 # plot the resulting alignment
-fig = mne.viz.plot_alignment(raw.info, trans, subject,
+fig = mne.viz.plot_alignment(raw.info, trans, 'fsaverage',
                              subjects_dir=subjects_dir, show_axes=True,
                              surfaces=['pial', 'head'])
 

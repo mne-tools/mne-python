@@ -199,14 +199,3 @@ def test_event_color_dict():
     # test error
     with pytest.raises(KeyError, match='must be strictly positive, or -1'):
         _ = _make_event_color_dict({-2: 'r', -1: 'b'})
-
-
-@requires_vtk
-def test_marching_cubes():
-    """Test creating surfaces via marching cubes."""
-    data = np.zeros((50, 50, 50))
-    data[20:30, 20:30, 20:30] = 1
-    verts, triangles = marching_cubes(data, 0.5)
-    # verts and faces are rather large so use checksum
-    np.testing.assert_allclose(verts.sum(axis=0), [14700, 14700, 14700])
-    np.testing.assert_allclose(triangles.sum(axis=0), [363402, 360865, 350588])
