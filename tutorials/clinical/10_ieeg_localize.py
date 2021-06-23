@@ -260,8 +260,8 @@ axes[0].imshow(T1.get_fdata()[T1.shape[0] // 2], cmap='gray')
 axes[0].set_title('MR')
 axes[1].imshow(CT_aligned.get_fdata()[CT_aligned.shape[0] // 2], cmap='gray')
 axes[1].set_title('CT')
-axes[2].imshow(T1.get_fdata()[CT.shape[0] // 2], cmap='gray')
-axes[2].imshow(CT_data[CT.shape[0] // 2], cmap='gist_heat', alpha=0.5)
+axes[2].imshow(T1.get_fdata()[T1.shape[0] // 2], cmap='gray')
+axes[2].imshow(CT_data[CT_aligned.shape[0] // 2], cmap='gist_heat', alpha=0.5)
 for ax in (axes[0], axes[2]):
     ax.annotate('Subcutaneous fat', (110, 52), xytext=(100, 30),
                 color='white', horizontalalignment='center',

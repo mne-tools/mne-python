@@ -18,7 +18,9 @@ Step by step instructions for using :func:`gui.coregistration`:
    gui.coregistration
    gui.fiducials
    create_default_subject
+   marching_cubes
    scale_mri
    scale_bem
    scale_labels
    scale_source_space
+   voxel_neighbors
