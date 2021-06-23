@@ -32,8 +32,6 @@ import nibabel as nib
 from dipy.align import (affine_registration, center_of_mass, translation,
                         rigid, affine, resample)
 from dipy.align.reslice import reslice
-from dipy.align.metrics import CCMetric
-from dipy.align.imwarp import SymmetricDiffeomorphicRegistration
 
 import mne
 from mne.datasets import fetch_fsaverage
@@ -403,6 +401,8 @@ plot_overlay(template_brain, subject_brain_aligned,
 #
 # .. code-block:: python
 #
+#     from dipy.align.metrics import CCMetric
+#     from dipy.align.imwarp import SymmetricDiffeomorphicRegistration
 #     # Compute registration
 #     sdr = SymmetricDiffeomorphicRegistration(
 #         metric=CCMetric(3), level_iters=[10, 10, 5])
