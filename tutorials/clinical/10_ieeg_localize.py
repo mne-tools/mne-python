@@ -112,7 +112,7 @@ viewer.figs[0].axes[0].annotate(
 # freesurfer reconstruction. This process segments out the brain from the
 # rest of the MR image and determines which voxels correspond to each brain
 # area based on a template deformation. This process takes approximately
-#  8 hours so plan accordingly.
+# 8 hours so plan accordingly.
 #
 # .. code-block:: bash
 #
@@ -130,7 +130,7 @@ viewer.figs[0].axes[0].annotate(
 #     Using the ``--deface`` flag will create a defaced, anonymized T1 image
 #     located at ``$MY_DATA_DIRECTORY/$SUBJECT/mri/orig_defaced.mgz``,
 #     which is helpful for when you publish your data. You can also use
-#     :meth:`mne_bids.write_anat` and pass ``deface=True``.
+#     :func:`mne_bids.write_anat` and pass ``deface=True``.
 
 
 ###############################################################################
@@ -370,9 +370,9 @@ plot_overlay(template_brain, warped_brain, 'Warped to fsaverage')
 # The brain image is warped to the template but the goal was to warp the
 # positions of the electrode contacts. To do that, we'll make an image that is
 # a lookup table of the electrode contacts. In this image, the background will
-# be ``0``s all the bright voxels near the location of the first contact will
-# be ``1``s, the second ``2``s and so on. This image can then be warped by the
-# same SDR transform. We can finally recover a position by averaging the
+# be ``0`` s all the bright voxels near the location of the first contact will
+# be ``1`` s, the second ``2`` s and so on. This image can then be warped by
+# the same SDR transform. We can finally recover a position by averaging the
 # positions of all the voxels that had the contact's lookup number in
 # the warped image.
 
@@ -453,8 +453,8 @@ ch_coords = mne.transforms.apply_trans(
 
 ###############################################################################
 # We can now plot the result. You can compare this to the plot in
-# :ref:`tut-working-with-seeg` to see the difference between this morph which
-# is more complex and the less complex linear Talairach transformation.
+# :ref:`tut-working-with-seeg` to see the difference between this morph, which
+# is more complex, and the less-complex, linear Talairach transformation.
 # By accounting for the shape of this particular subject's brain using the
 # SDR to warp the positions of the electrode contacts, the position in the
 # template brain is able to be more accurately estimated.
