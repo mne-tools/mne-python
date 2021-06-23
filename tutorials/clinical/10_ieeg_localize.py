@@ -12,9 +12,9 @@ pre-implantation magnetic resonance (MR) image. The CT image has greater
 intensity than the background at each of the electrode contacts and
 for the skull. Using the skull, the CT can be aligned to MR-space.
 Contact locations in MR-space are the goal because this is the image from which
-brain structures can be determined using the freesurfer reconstruction
+brain structures can be determined using the
 :ref:`tut-freesurfer-reconstruction`. Contact locations in MR-space can also
-be translated to an average space such as ``fsaverage`` for group comparisons.
+be translated to a template space such as ``fsaverage`` for group comparisons.
 """
 
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
@@ -110,9 +110,9 @@ viewer.figs[0].axes[0].annotate(
 #
 # Now we're ready for the most time consuming step of the process; the
 # freesurfer reconstruction. This process segments out the brain from the
-# rest of the image and determines which voxels correspond to each brain area
-# based on a template deformation. This process takes approximately 8 hours
-# so it is recommended to plan accordingly.
+# rest of the MR image and determines which voxels correspond to each brain
+# area based on a template deformation. This process takes approximately
+#  8 hours so plan accordingly.
 #
 # .. code-block:: bash
 #
@@ -123,13 +123,14 @@ viewer.figs[0].axes[0].annotate(
 #
 # .. note::
 #     You may need to include an additional ``-cw256`` flag which can be added
-#     to the end of the recon-all command if your scan is not 256 x 256 x 256
-#     voxels.
+#     to the end of the recon-all command if your MR scan is not
+#     ``256 x 256 x 256`` voxels.
 #
 # .. note::
 #     Using the ``--deface`` flag will create a defaced, anonymized T1 image
-#     at the filepath $SUBJECT/mri/orig_defaced.mgz, which is helpful for
-#     publishing your data.
+#     located at ``$MY_DATA_DIRECTORY/$SUBJECT/mri/orig_defaced.mgz``,
+#     which is helpful for when you publish your data. You can also use
+#     :meth:`mne_bids.write_anat` and pass ``deface=True``.
 
 
 ###############################################################################
@@ -139,23 +140,6 @@ viewer.figs[0].axes[0].annotate(
 # Let's load our CT image and visualize it with the T1 image.
 # As you can see, the CT is already aligned to the T1 image in this example
 # dataset.
-#
-# .. note::
-#     The hyperintense skull is actually aligned to the hypointensity between
-#     the brain and the scalp. The brighter area surrounding the skull in the
-#     MR is actually subcutaneous fat.
-#
-# .. note::
-#     If the alignment fails or takes too long, it is recommended to roughly
-#     align the CT to the MR manually. To do this, load both the MR and the CT
-#     in freeview and then use the same translation tools as above. Be sure to
-#     have the CT image selected in blue in the menu at the top left so that
-#     you are adjusting the correct image.
-#
-#     .. code-block:: bash
-#
-#         $ freeview $MISC_PATH/seeg/sample_seeg_T1.mgz \
-#           $MISC_PATH/seeg/sample_seeg_CT.mgz
 
 CT = nib.freesurfer.load(op.join(misc_path, 'seeg', 'sample_seeg_CT.mgz'))
 
@@ -186,6 +170,11 @@ fig.tight_layout()
 
 ###############################################################################
 # Let's unalign our CT data so that we can see how to properly align it.
+#
+# .. note::
+#     The hyperintense skull is actually aligned to the hypointensity between
+#     the brain and the scalp. The brighter area surrounding the skull in the
+#     MR is actually subcutaneous fat.
 
 def plot_overlay(image, compare, title, thresh=None):
     """Define a helper function for comparing plots."""
@@ -220,6 +209,18 @@ plot_overlay(T1, CT_unaligned, 'Unaligned CT Overlaid on T1', thresh=0.95)
 
 ###############################################################################
 # Now we can align our now unaligned CT image.
+#
+# .. note::
+#     If the alignment fails or takes too long, it is recommended to roughly
+#     align the CT to the MR manually. To do this, load both the MR and the CT
+#     in freeview and then use the same translation tools as above. Be sure to
+#     have the CT image selected in blue in the menu at the top left so that
+#     you are adjusting the correct image.
+#
+#     .. code-block:: bash
+#
+#         $ freeview $MISC_PATH/seeg/sample_seeg_T1.mgz \
+#           $MISC_PATH/seeg/sample_seeg_CT.mgz
 
 affreg = AffineRegistration(
     metric=MutualInformationMetric(nbins=32),
@@ -246,15 +247,19 @@ plot_overlay(T1, CT_aligned, 'Aligned CT Overlaid on T1', thresh=0.95)
 # list of ``RAS`` points from the lower panel in freeview or use the
 # mne graphical user interface (coming soon). The electrode locations will then
 # be in the ``surface RAS`` coordinate frame, which is helpful because that is
-# the coordinate frame that all the freesurfer outputs are in
-# :ref:`tut-freesurfer-mne`.
+# the coordinate frame that all the surface and image files that freesurfer
+# outputs are in, see :ref:`tut-freesurfer-mne`.
+#
+# The electrode contact locations could be determined using freeview by
+# clicking through and noting each contact position in the interface launched
+# by the following command:
 #
 # .. code-block:: bash
 #
 #     $ freeview $MISC_PATH/seeg/sample_seeg_T1.mgz \
 #       $MISC_PATH/seeg/sample_seeg_CT.mgz
 #
-# Electrode contact locations determined this way are plotted below.
+# Electrode contact locations are plotted below.
 
 # Load electrode positions from file
 elec_df = pd.read_csv(op.join(misc_path, 'seeg', 'sample_seeg_electrodes.tsv'),
@@ -262,10 +267,15 @@ elec_df = pd.read_csv(op.join(misc_path, 'seeg', 'sample_seeg_electrodes.tsv'),
 ch_names = elec_df['name'].tolist()
 ch_coords = elec_df[['R', 'A', 'S']].to_numpy(dtype=float)
 
+# load the subject's brain
+subject_brain = nib.freesurfer.load(
+    op.join(misc_path, 'seeg', 'sample_seeg_brain.mgz'))
+
 # Make brain surface from T1
-verts, triangles = mne.viz.marching_cubes(T1.get_fdata(), level=100)
+verts, triangles = mne.viz.marching_cubes(subject_brain.get_fdata(), level=100)
 # transform from voxels to surface RAS
-verts = mne.transforms.apply_trans(T1.header.get_vox2ras_tkr(), verts)
+verts = mne.transforms.apply_trans(
+    subject_brain.header.get_vox2ras_tkr(), verts)
 
 renderer = mne.viz.backends.renderer.create_3d_figure(
     size=(1200, 900), bgcolor='w', scene=False)
@@ -283,18 +293,16 @@ renderer.show()
 # =========================
 #
 # Electrode contact locations are often compared across subjects in a template
-# space such as ``fsaverage`` or ``cvs_avg35_inMNI152``. To transform the
+# space such as ``fsaverage`` or ``cvs_avg35_inMNI152``. To transform electrode
 # contact locations to that space, we need to determine a function that maps
-# from the T1 to the template space. We will use the symmetric diffeomorphic
-# registration (SDR) implemented by ``Dipy`` to do this.
+# from the subject's brain to the template brain. We will use the symmetric
+# diffeomorphic registration (SDR) implemented by ``Dipy`` to do this.
 #
-# .. note::
-#     SDR is more accurate than the linear Talairach transform in
-#     :ref:`tut-working-with-seeg` because it allows for non-linear warping.
+# Before we can make a function to account for individual differences in the
+# shape and size of brain areas, we need to fix the alignment of the brains.
+# The plot below shows that they are not yet aligned.
 
-# load the subject's brain and the freesurfer average brain
-subject_brain = nib.freesurfer.load(
-    op.join(misc_path, 'seeg', 'sample_seeg_brain.mgz'))
+# load the freesurfer average brain
 template_brain = nib.freesurfer.load(
     op.join(subjects_dir, subject, 'mri', 'brain.mgz'))
 
@@ -302,8 +310,7 @@ plot_overlay(template_brain, subject_brain,
              'Alignment with fsaverage before Affine Registration')
 
 ###############################################################################
-# Register the affine of the subject's brain to the template brain
-#
+# Now, we'll register the affine of the subject's brain to the template brain.
 # This aligns the two brains, preparing the subject's brain to be warped
 # to the template.
 
@@ -341,10 +348,9 @@ plot_overlay(template_brain_zoomed, aligned_brain,
              'Alignment with fsaverage after Affine Registration')
 
 ###############################################################################
-# Compute the symmetric diffeomorphic registration
-#
-# Differences in the shape and size of different brain areas are accounted
-# for in this step by warping the subject's brain to match the template.
+# Next, we'll compute the symmetric diffeomorphic registration. This accounts
+# for differences in the shape and size of the subject's brain areas
+# compared to the template brain.
 
 # Compute registration
 sdr = SymmetricDiffeomorphicRegistration(
@@ -360,15 +366,15 @@ warped_brain = nib.Nifti1Image(
 plot_overlay(template_brain, warped_brain, 'Warped to fsaverage')
 
 ###############################################################################
-# Apply the registrations to the electrode contact coordinates
-#
+# Finally, we'll apply the registrations to the electrode contact coordinates.
 # The brain image is warped to the template but the goal was to warp the
-# positions of the electrode contacts. To do that, we'll make a lookup
-# table image of the electrode contacts. In this image, the background will
-# be ``0``s and at the location of the first contact will be ``1``s, the
-# second ``2``s and so on. This image can then be warped by the same SDR
-# transform and then we can average the position of all the voxels with
-# that contact's lookup number to find the final warped positions.
+# positions of the electrode contacts. To do that, we'll make an image that is
+# a lookup table of the electrode contacts. In this image, the background will
+# be ``0``s all the bright voxels near the location of the first contact will
+# be ``1``s, the second ``2``s and so on. This image can then be warped by the
+# same SDR transform. We can finally recover a position by averaging the
+# positions of all the voxels that had the contact's lookup number in
+# the warped image.
 
 
 def get_neighbors(loc, img, thresh, voxels_in_volume):
@@ -446,11 +452,12 @@ ch_coords = mne.transforms.apply_trans(
     template_brain.header.get_vox2ras_tkr(), ch_coords)
 
 ###############################################################################
-# Plot the result
-#
-# You can compare this to :ref:`tut-working-with-seeg`
-# to see the difference between this more complex morph and the linear
-# Talairach transformation.
+# We can now plot the result. You can compare this to the plot in
+# :ref:`tut-working-with-seeg` to see the difference between this morph which
+# is more complex and the less complex linear Talairach transformation.
+# By accounting for the shape of this particular subject's brain using the
+# SDR to warp the positions of the electrode contacts, the position in the
+# template brain is able to be more accurately estimated.
 
 # load electrophysiology data
 raw = mne.io.read_raw(op.join(misc_path, 'seeg', 'sample_seeg_ieeg.fif'))
