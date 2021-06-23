@@ -786,9 +786,9 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         from matplotlib.colors import TwoSlopeNorm
         cnorm = TwoSlopeNorm(vmin=-1, vcenter=0, vmax=3)
 
-    Note that because we already defined ``vmin`` and ``vmax`` in the
-    normalization, arguments ``vmin`` and ``vmax`` are ignored if these are
-    also passed.
+    Note that because we define ``vmin`` and ``vmax`` in the normalization,
+    arguments ``vmin`` and ``vmax`` to ``plot_topomap`` will be ignored if a
+    normalization is provided.
     See https://matplotlib.org/stable/tutorials/colors/colormapnorms.html for
     more details on colormap normalization.
     """
