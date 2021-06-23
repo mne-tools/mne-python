@@ -198,7 +198,7 @@ mri_to, affine_to = reslice(
     zooms=T1.header.get_zooms()[:3], new_zooms=zooms)
 ct_from, affine_from = reslice(
     ct_from, affine=CT.affine,
-    zooms=CT_resampled.header.get_zooms()[:3], new_zooms=zooms)
+    zooms=CT.header.get_zooms()[:3], new_zooms=zooms)
 
 # first optimize the translation on the zoomed images using
 # ``factors`` which looks at the image at different scales
@@ -229,9 +229,9 @@ reg_affine = affine_registration(
     nbins=32,
     metric='MI',
     pipeline=[rigid],
-    level_iters=[10],
-    sigmas=[0.0],
-    factors=[1])[1]
+    level_iters=[100, 100, 10],
+    sigmas=[3.0, 1.0, 0.0],
+    factors=[4, 2, 1])[1]
 
 CT_aligned = resample(moving=CT_translated.get_fdata(),
                       static=T1.get_fdata(),
@@ -427,7 +427,7 @@ thresh = np.quantile(CT_data, 0.95)
 elec_image = np.zeros(subject_brain.shape, dtype=int)
 for i, ch_coord in enumerate(ch_coords):
     # look up to two voxels away, the coord may not have been marked perfectly
-    volume = mne.voxel_neighbors(ch_coord, CT_data, thresh)
+    volume = mne.voxel_neighbors(ch_coord, CT_data, thresh, max_peak_dist=2)
     for voxel in volume:
         if elec_image[voxel] != 0:
             # some voxels ambiguous because the contacts are bridged on the CT
