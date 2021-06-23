@@ -368,7 +368,7 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
         _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
              alpha_lc, list_G_j_c)
 
-        if i % dgap_freq == 0:
+        if (i + 1) % dgap_freq == 0:
             _, p_obj, d_obj, _ = dgap_l21(M, G, X[active_set], active_set,
                                           alpha, n_orient)
             highest_d_obj = max(d_obj, highest_d_obj)
@@ -386,7 +386,7 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
         if use_accel:
             last_K_X[i % (K + 1)] = X
 
-            if (i + 1) % K == 0:
+            if i % (K + 1) == K:
                 for k in range(K):
                     U[k] = last_K_X[k + 1].ravel() - last_K_X[k].ravel()
                 C = U @ U.T
@@ -609,7 +609,6 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
             X, as_, _ = l21_solver(M, G[:, active_set], alpha, lc_tmp,
                                    maxit=maxit, tol=tol, init=X_init,
                                    n_orient=n_orient, dgap_freq=dgap_freq)
-
             active_set[active_set] = as_.copy()
             idx_old_active_set = np.where(active_set)[0]
 
