@@ -788,9 +788,9 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
 
     Note that because we define ``vmin`` and ``vmax`` in the normalization,
     arguments ``vmin`` and ``vmax`` to ``plot_topomap`` will be ignored if a
-    normalization is provided.
-    See https://matplotlib.org/stable/tutorials/colors/colormapnorms.html for
-    more details on colormap normalization.
+    normalization is provided. See the
+    :doc:`matplotlib docs <matplotlib:tutorials/colors/colormapnorms>`
+    for more details on colormap normalization.
     """
     sphere = _check_sphere(sphere)
     if cnorm is not None:
