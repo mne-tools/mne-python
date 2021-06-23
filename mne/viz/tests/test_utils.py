@@ -10,11 +10,10 @@ import pytest
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
-from mne.utils import requires_vtk
 from mne.viz.utils import (compare_fiff, _fake_click, _compute_scalings,
                            _validate_if_list_of_axes, _get_color_list,
                            _setup_vmin_vmax, center_cmap, centers_to_edges,
-                           _make_event_color_dict, marching_cubes)
+                           _make_event_color_dict)
 from mne.viz import ClickableImage, add_background_image, mne_analyze_colormap
 from mne.io import read_raw_fif
 from mne.event import read_events

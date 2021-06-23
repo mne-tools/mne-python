@@ -220,9 +220,7 @@ CT_translated = resample(moving=CT.get_fdata(),
                          static_affine=T1.affine,
                          between_affine=reg_affine)
 
-# Now, fine-tune the registration by changing the affine
-# in a rigid way (i.e. no scaling) which controls the translation
-# and rotation in 3D
+# Now, fine-tune the registration
 reg_affine = affine_registration(
     moving=CT_translated.get_fdata(),
     static=T1.get_fdata(),
@@ -230,7 +228,7 @@ reg_affine = affine_registration(
     static_affine=T1.affine,
     nbins=32,
     metric='MI',
-    pipeline=[rigid],
+    pipeline=[translation, rigid],
     level_iters=[10],
     sigmas=[0.0],
     factors=[1])[1]
