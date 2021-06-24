@@ -1524,30 +1524,51 @@ def _euler_to_quat(euler):
     return quat
 
 
+def _validate_steps(param, validate_type=None, name=None):
+    """Validate that the param only contains accepted steps."""
+    for step in param:
+        if step not in ('trans', 'rotate', 'scale', 'sdr'):
+            raise TypeError(f"``step`` must be one of ``'trans', "
+                            "'rotate', 'scale', 'sdr'`` "
+                            f"got {step} instead")
+        if validate_type is not None:
+            _validate_type(param[step], validate_type, f"{name}['{step}'']")
+
+
 @verbose
-def compute_volume_registration(moving, static, zooms=None,
-                                niter_affine=(100, 100, 10),
-                                niter_sdr=None, rigid=False,
-                                verbose=None):
-    """Align two volumes using an affine and SDR.
+def compute_volume_registration(moving, static, steps='warp', zooms=None,
+                                niter=None, verbose=None):
+    """Align two volumes using an affine and, optionally, SDR.
 
     Parameters
     ----------
     %(moving)s
     %(static)s
+    steps : str | list
+        The registration steps to perform. The possible steps are translation
+        (``"trans"``), rotation (``"rotate"``), scaling (``"scale"``)
+        and symmetric diffeomorphic registration which is a non-linear
+        similarity-matching algorithm (``"sdr"``). If ``"warp"`` (default),
+        all the steps will be performed. If ``rigid``, only the translation
+        and rotation steps will be performed, which registers the volume
+        without distorting its underlying structure. Can be a list of steps
+        with any steps that are to be skipped omitted.
     zooms : float | tuple | dict | None
         The voxel size of volume for each spatial dimension in mm.
         If None (default), MRIs won't be resliced (slow, but most accurate).
         Can be a tuple to provide separate zooms for each dimension (X/Y/Z),
-        or a dict with keys ``"affine"`` and ``"sdr"`` (with values that are
+        or a dict with keys ``"scale"`` and ``"sdr"`` (with values that are
         float`, tuple, or None) to provide separate reslicing/accuracy for the
         affine and SDR morph steps.
-    %(niter_affine)s
-    %(niter_sdr)s
-        Can be None (default) to set ``niter_sdr=()`` automatically when
-        ``rigid=True``.
-    rigid : bool
-        If True, do a rigid alignment instead of a full affine transformation.
+    niter : dict | None
+        For each phase of the registration, ``niter`` is the number of
+        iterations per successive stage of optimization. The length of
+        ``niters`` defines the number of successive stages of optimization.
+        Default is ``(100, 100, 10)`` for the ``"trans"``, ``"rotate"`` and
+        ``"scale"`` steps and ``(5, 5, 3)`` for the ``"sdr"`` step. If a
+        tuple is provided, it will be used for all the steps. If a dictionary
+        is provided, number of iterations can be set for each step as a key.
+        Steps not in the dictionary will use the default value.
     %(verbose)s
 
     Returns
@@ -1563,17 +1584,32 @@ def compute_volume_registration(moving, static, zooms=None,
     from nibabel.spatialimages import SpatialImage
     _validate_type(moving, SpatialImage, 'moving')
     _validate_type(static, SpatialImage, 'static')
+    _validate_type(steps, (list, tuple), 'steps')
     _validate_type(zooms, (dict, list, tuple, 'numeric', None), 'zooms')
-    _validate_type(rigid, bool, 'rigid')
-    if niter_sdr is None:
-        niter_sdr = () if rigid else (10, 10, 5)
-    if not isinstance(zooms, dict):
-        zooms = dict(affine=zooms, sdr=zooms)
-    for key, val in zooms.items():
-        _validate_type(key, str, f'zooms key {repr(key)}')
-        _check_option('key', key, ('affine', 'sdr'))
-        name = f'zooms[{repr(key)}]'
-        _validate_type(val, (list, tuple, 'numeric', None), name)
+    _validate_type(niter, (dict, None), 'niter')
+    if steps == 'warp':
+        steps = ('trans', 'rotate', 'scale', 'sdr')
+    elif steps == 'rigid':
+        steps = ('trans', 'rotate')
+    else:
+        _validate_steps(steps)
+    if zooms is None:
+        zooms = dict(trans=None, rotate=None, scale=None, sdr=None)
+    elif isinstance(zooms, dict):
+        _validate_steps(zooms, (list, tuple, 'numeric'), 'zooms')
+        niter.update({step: None for step in
+                      ('trans', 'rotate', 'scale', 'sdr')
+                      if step not in zooms})
+    else:
+        zooms = dict(trans=zooms, rotate=zooms, scale=zooms, sdr=zooms)
+    if niter is None:
+        niter = dict(trans=(100, 100, 10), rotate=(100, 100, 10),
+                     scale=(100, 100, 10), sdr=(5, 5, 3))
+    elif isinstance(niter, dict):
+        _validate_steps(niter, (list, tuple), 'niter')
+        niter.update({step: (5, 5, 3) if step == 'sdr' else (100, 100, 10)
+                      for step in ('trans', 'rotate', 'scale', 'sdr')
+                      if step not in niter})
     _, _, _, pre_affine, sdr_morph = _compute_morph_sdr(
         moving, static, niter_affine, niter_sdr,
         affine_zooms=zooms.get('affine', None),
