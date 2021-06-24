@@ -432,9 +432,9 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
                         last_K_X[:-1] * c[:, None, None], axis=0
                     )
                     active_set_acc = np.linalg.norm(X_acc, axis=1) != 0
-                    p_obj = primal_l21(M, G, X[active_set], active_set, alpha,
+                    p_obj = _primal_l21(M, G, X[active_set], active_set, alpha,
                                        n_orient)
-                    p_obj_acc = primal_l21(M, G, X_acc[active_set_acc],
+                    p_obj_acc = _primal_l21(M, G, X_acc[active_set_acc],
                                            active_set_acc, alpha, n_orient)
                     if p_obj_acc < p_obj:
                         X = X_acc
