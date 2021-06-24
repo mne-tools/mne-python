@@ -426,6 +426,8 @@ plot_overlay(template_brain, subject_brain_aligned,
 # SDR to warp the positions of the electrode contacts, the position in the
 # template brain is able to be more accurately estimated.
 
+# sphinx_gallery_thumbnail_number = 7
+
 # load pre-computed warped values
 elec_df = pd.read_csv(
     op.join(misc_path, 'seeg', 'sample_seeg_electrodes_fsaverage.tsv'),
