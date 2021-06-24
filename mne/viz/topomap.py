@@ -871,6 +871,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                   contours=6, image_interp='bilinear', show=True,
                   onselect=None, extrapolate=_EXTRAPOLATE_DEFAULT, sphere=None,
                   border=_BORDER_DEFAULT, ch_type='eeg', cnorm=None):
+    from matplotlib.colors import Normalize
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RectangleSelector
     data = np.asarray(data)
