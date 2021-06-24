@@ -50,63 +50,13 @@ subjects_dir = op.join(sample_path, 'subjects')
 fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)  # downloads if needed
 
 ###############################################################################
-# Aligning the T1 to ACPC
-# =======================
-#
-# Let's load our T1-weighted image and visualize it. As you can see, the
-# image is already aligned to the anterior commissue and posterior commissure
-# (ACPC). This is recommended to do before starting. This can be done using
-# freesurfer's freeview:
-#
-# .. code-block:: bash
-#
-#     $ freeview $MISC_PATH/seeg/sample_seeg_T1.mgz
-#
-# And then interact with the graphical user interface:
-#
-# First, it is recommended to change the cursor style to long, this can be done
-# through the menu options like so:
-#
-#     ``Freeview -> Preferences -> General -> Cursor style -> Long``
-#
-# Then, the image needs to be aligned to ACPC to look like the image below.
-# This can be done by pulling up the transform popup from the menu like so:
-#
-#     ``Tools -> Transform Volume``
-#
-# .. note::
-#     Be sure to set the text entry box labeled RAS (not TkReg RAS) to
-#     ``0 0 0`` before beginning the transform.
-#
-# Then translate the image until the crosshairs meet on the AC and
-# run through the PC as shown in the plot. The eyes should be in
-# the ACPC plane and the image should be rotated until they are symmetrical,
-# and the crosshairs should transect the midline of the brain.
-# Be sure to use both the rotate and the translate menus and save the volume
-# after you're finished using ``Save Volume As`` in the transform popup
-# :footcite:`HamiltonEtAl2017`.
-
-T1 = nib.load(op.join(misc_path, 'seeg', 'sample_seeg_T1.mgz'))
-viewer = T1.orthoview()
-viewer.set_position(0, 9.9, 5.8)
-viewer.figs[0].axes[0].annotate(
-    'PC', (107, 108), xytext=(10, 75), color='white',
-    horizontalalignment='center',
-    arrowprops=dict(facecolor='white', lw=0.5, width=2, headwidth=5))
-viewer.figs[0].axes[0].annotate(
-    'AC', (137, 108), xytext=(246, 75), color='white',
-    horizontalalignment='center',
-    arrowprops=dict(facecolor='white', lw=0.5, width=2, headwidth=5))
-
-###############################################################################
 # Freesurfer recon-all
 # ====================
 #
-# Now we're ready for the most time consuming step of the process; the
-# freesurfer reconstruction. This process segments out the brain from the
-# rest of the MR image and determines which voxels correspond to each brain
-# area based on a template deformation. This process takes approximately
-# 8 hours so plan accordingly.
+# The first step is the most time consuming; the freesurfer reconstruction.
+# This process segments out the brain from the rest of the MR image and
+# determines which voxels correspond to each brain area based on a template
+# deformation. This process takes approximately 8 hours so plan accordingly.
 #
 # .. code-block:: bash
 #
@@ -131,7 +81,7 @@ viewer.figs[0].axes[0].annotate(
 # Aligning the CT to the MR
 # =========================
 #
-# Let's load our CT image and visualize it with the T1 image. You can hardly
+# Let's load our T1 and CT images and visualize them. You can hardly
 # see the CT, it's so misaligned that it is mostly out of view but there is a
 # part of the skull upsidedown and way off center in the middle plot.
 # Clearly, we need to align the CT to the T1 image.
@@ -159,12 +109,13 @@ def plot_overlay(image, compare, title, thresh=None):
     return fig
 
 
-CT = nib.load(op.join(misc_path, 'seeg', 'sample_seeg_CT.mgz'))
+T1 = nib.load(op.join(misc_path, 'seeg', 'sample_seeg_T1.mgz'))
+CT_orig = nib.load(op.join(misc_path, 'seeg', 'sample_seeg_CT.mgz'))
 
 # resample to T1 shape
-CT_resampled = resample(moving=CT.get_fdata(),
+CT_resampled = resample(moving=CT_orig.get_fdata(),
                         static=T1.get_fdata(),
-                        moving_affine=CT.affine,
+                        moving_affine=CT_orig.affine,
                         static_affine=T1.affine,
                         between_affine=None)
 plot_overlay(T1, CT_resampled, 'Unaligned CT Overlaid on T1', thresh=0.95)
@@ -177,7 +128,7 @@ plot_overlay(T1, CT_resampled, 'Unaligned CT Overlaid on T1', thresh=0.95)
 #     # normalize intensities
 #     mri_to = T1.get_fdata().copy()
 #     mri_to /= mri_to.max()
-#     ct_from = CT.get_fdata().copy()
+#     ct_from = CT_orig.get_fdata().copy()
 #     ct_from /= ct_from.max()
 #
 #     # downsample for speed
@@ -186,8 +137,8 @@ plot_overlay(T1, CT_resampled, 'Unaligned CT Overlaid on T1', thresh=0.95)
 #         mri_to, affine=T1.affine,
 #         zooms=T1.header.get_zooms()[:3], new_zooms=zooms)
 #     ct_from, affine_from = reslice(
-#         ct_from, affine=CT.affine,
-#         zooms=CT.header.get_zooms()[:3], new_zooms=zooms)
+#         ct_from, affine=CT_orig.affine,
+#         zooms=CT_orig.header.get_zooms()[:3], new_zooms=zooms)
 #
 #     # first optimize the translation on the zoomed images using
 #     # ``factors`` which looks at the image at different scales
@@ -203,9 +154,9 @@ plot_overlay(T1, CT_resampled, 'Unaligned CT Overlaid on T1', thresh=0.95)
 #         sigmas=[3.0, 1.0, 0.0],
 #         factors=[4, 2, 1])[1]
 #
-#     CT_translated = resample(moving=CT.get_fdata(),
+#     CT_translated = resample(moving=CT_orig.get_fdata(),
 #                              static=T1.get_fdata(),
-#                              moving_affine=CT.affine,
+#                              moving_affine=CT_orig.affine,
 #                              static_affine=T1.affine,
 #                              between_affine=reg_affine)
 #
@@ -238,9 +189,9 @@ alignment_affine = np.array([
     [0.04601133, 0.99402046, -0.09902669, -97.64542095],
     [-0.11449119, 0.10372593, 0.98799428, -84.39915646],
     [0., 0., 0., 1.]])
-CT_aligned = resample(moving=CT.get_fdata(),
+CT_aligned = resample(moving=CT_orig.get_fdata(),
                       static=T1.get_fdata(),
-                      moving_affine=CT.affine,
+                      moving_affine=CT_orig.affine,
                       static_affine=T1.affine,
                       between_affine=alignment_affine)
 
@@ -497,6 +448,10 @@ trans = mne.channels.compute_native_head_t(montage)
 fig = mne.viz.plot_alignment(raw.info, trans, 'fsaverage',
                              subjects_dir=subjects_dir, show_axes=True,
                              surfaces=['pial', 'head'])
+
+###############################################################################
+# This pipeline was developed based on previous work
+# :footcite:`Hamitonetal2017`.
 
 ###############################################################################
 # References
