@@ -174,7 +174,7 @@ def prox_l1(Y, alpha, n_orient):
 
 
 def primal_l21(M, G, X, active_set, alpha, n_orient, return_primal_only=True):
-    """Primal objective for the mixed norme inverse problem.
+    """Primal objective for the mixed-norm inverse problem.
 
     See :footcite:`GramfortEtAl2012`.
 
