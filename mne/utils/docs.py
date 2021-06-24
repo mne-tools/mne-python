@@ -2379,6 +2379,39 @@ ref_channels : str | list of str
     and its data is set to 0. This is useful for later re-referencing.
 """
 
+# Morphing
+docdict['niter_affine'] = """
+niter_affine : tuple of int
+    Number of levels (``len(niter_affine)``) and number of
+    iterations per level - for each successive stage of iterative
+    refinement - to perform the affine transform.
+    Default is ``(100, 100, 10)``.
+"""
+docdict['niter_sdr'] = """
+niter_sdr : tuple of int
+    Number of levels (``len(niter_sdr)``) and number of
+    iterations per level - for each successive stage of iterative
+    refinement - to perform the Symmetric Diffeomorphic Registration (sdr)
+    transform :footcite:`AvantsEtAl2008`. Default is ``(5, 5, 3)``.
+"""
+docdict['pre_affine'] = """
+pre_affine : instance of dipy.align.AffineMap
+    The transformation that is applied before the before ``sdr_morph``.
+"""
+docdict['sdr_morph'] = """
+sdr_morph : instance of dipy.align.DiffeomorphicMap
+    The class that applies the the symmetric diffeomorphic registration
+    (SDR) morph.
+"""
+docdict['moving'] = """
+moving : instance of SpatialImage
+    The image to morph ("from" volume).
+"""
+docdict['static'] = """
+static : instance of SpatialImage
+    The image to align with ("to" volume).
+"""
+
 docdict_indented = {}
 
 

@@ -64,16 +64,8 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
 
         .. versionchanged:: 0.20
            Support for 'auto' mode.
-    niter_affine : tuple of int
-        Number of levels (``len(niter_affine)``) and number of
-        iterations per level - for each successive stage of iterative
-        refinement - to perform the affine transform.
-        Default is niter_affine=(100, 100, 10).
-    niter_sdr : tuple of int
-        Number of levels (``len(niter_sdr)``) and number of
-        iterations per level - for each successive stage of iterative
-        refinement - to perform the Symmetric Diffeomorphic Registration (sdr)
-        transform. Default is niter_sdr=(5, 5, 3).
+    %(niter_affine)s
+    %(niter_sdr)s
     spacing : int | list | None
         The resolution of the icosahedral mesh (typically 5).
         If None, all vertices will be used (potentially filling the
@@ -225,7 +217,7 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
         # pre-compute non-linear morph
         zooms = _check_zooms(mri_from, zooms, zooms_src_to)
         shape, zooms, affine, pre_affine, sdr_morph = _compute_morph_sdr(
-            mri_from, mri_to, niter_affine, niter_sdr, zooms)
+            mri_from, mri_to, niter_affine, niter_sdr, zooms, zooms)
 
     if kind in ('surface', 'mixed'):
         logger.info('surface source space present ...')
@@ -316,15 +308,8 @@ class SourceMorph(object):
         Kind of source estimate. E.g. 'volume' or 'surface'.
     zooms : float | tuple
         See :func:`mne.compute_source_morph`.
-    niter_affine : tuple of int
-        Number of levels (``len(niter_affine)``) and number of
-        iterations per level - for each successive stage of iterative
-        refinement - to perform the affine transform.
-    niter_sdr : tuple of int
-        Number of levels (``len(niter_sdr)``) and number of
-        iterations per level - for each successive stage of iterative
-        refinement - to perform the Symmetric Diffeomorphic Registration (sdr)
-        transform :footcite:`AvantsEtAl2008`.
+    %(niter_affine)s
+    %(niter_sdr)s
     spacing : int | list | None
         See :func:`mne.compute_source_morph`.
     smooth : int | str | None
@@ -340,11 +325,8 @@ class SourceMorph(object):
         The volume MRI shape.
     affine : ndarray
         The volume MRI affine.
-    pre_affine : instance of dipy.align.AffineMap
-        The transformation that is applied before the before ``sdr_morph``.
-    sdr_morph : instance of dipy.align.DiffeomorphicMap
-        The class that applies the the symmetric diffeomorphic registration
-        (SDR) morph.
+    %(pre_affine)s
+    %(sdr_morph)s
     src_data : dict
         Additional source data necessary to perform morphing.
     vol_morph_mat : scipy.sparse.csr_matrix | None
@@ -1011,31 +993,42 @@ def _compute_r2(a, b):
         (np.linalg.norm(a) * np.linalg.norm(b))
 
 
-def _compute_morph_sdr(mri_from, mri_to, niter_affine, niter_sdr, zooms):
+def _reslice_normalize(img, zooms):
+    from dipy.align.reslice import reslice
+    img_zooms = img.header.get_zooms()[:3]
+    img_affine = img.affine
+    img = _get_img_fdata(img)
+    if zooms is not None:
+        img, img_affine = reslice(img, img_affine, img_zooms, zooms)
+    img /= img.max()  # normalize
+    return img, img_affine
+
+
+def _compute_morph_sdr(mri_from, mri_to, niter_affine, niter_sdr, affine_zooms,
+                       sdr_zooms):
     """Get a matrix that morphs data from one subject to another."""
     with np.testing.suppress_warnings():
         from dipy.align import imaffine, imwarp, metrics, transforms
-    from dipy.align.reslice import reslice
 
-    logger.info('Computing nonlinear Symmetric Diffeomorphic Registration...')
+    if len(niter_sdr):
+        kind = 'nonlinear symmetric diffeomorphic registration (SDR)'
+    else:
+        kind = 'linear affine'
+    logger.info(f'Computing {kind} warp ...')
 
-    # reslice mri_from to zooms
+    # reslice mri_from and mri_to to zooms
     mri_from_orig = mri_from
-    mri_from, mri_from_affine = reslice(
-        _get_img_fdata(mri_from_orig), mri_from_orig.affine,
-        mri_from_orig.header.get_zooms()[:3], zooms)
-
-    # reslice mri_to to zooms
-    mri_to, affine = reslice(
-        _get_img_fdata(mri_to), mri_to.affine,
-        mri_to.header.get_zooms()[:3], zooms)
-
-    mri_to /= mri_to.max()
-    mri_from /= mri_from.max()  # normalize
+    mri_to_orig = mri_to
+    if affine_zooms is not None:
+        affine_zooms = tuple(
+            np.atleast_1d(np.array(affine_zooms, dtype=float)))
+        logger.info(f'Reslicing to zooms={affine_zooms} ...')
+    mri_from, mri_from_affine = _reslice_normalize(mri_from_orig, affine_zooms)
+    mri_to, mri_to_affine = _reslice_normalize(mri_to_orig, affine_zooms)
 
     # compute center of mass
     c_of_mass = imaffine.transform_centers_of_mass(
-        mri_to, affine, mri_from, mri_from_affine)
+        mri_to, mri_to_affine, mri_from, mri_from_affine)
 
     # set up Affine Registration
     affreg = imaffine.AffineRegistration(
@@ -1049,7 +1042,7 @@ def _compute_morph_sdr(mri_from, mri_to, niter_affine, niter_sdr, zooms):
     with wrapped_stdout(indent='    ', cull_newlines=True):
         translation = affreg.optimize(
             mri_to, mri_from, transforms.TranslationTransform3D(), None,
-            affine, mri_from_affine, starting_affine=c_of_mass.affine)
+            mri_to_affine, mri_from_affine, starting_affine=c_of_mass.affine)
     mri_from_to = translation.transform(mri_from)
     dist = np.linalg.norm(translation.affine[:3, 3])
     logger.info(f'    Translation: {dist:6.1f} mm')
@@ -1060,7 +1053,7 @@ def _compute_morph_sdr(mri_from, mri_to, niter_affine, niter_sdr, zooms):
     with wrapped_stdout(indent='    ', cull_newlines=True):
         rigid = affreg.optimize(
             mri_to, mri_from, transforms.RigidTransform3D(), None,
-            affine, mri_from_affine, starting_affine=translation.affine)
+            mri_to_affine, mri_from_affine, starting_affine=translation.affine)
     mri_from_to = rigid.transform(mri_from)
     dist = np.linalg.norm(rigid.affine[:3, 3])
     angle = np.rad2deg(_angle_between_quats(
@@ -1075,7 +1068,7 @@ def _compute_morph_sdr(mri_from, mri_to, niter_affine, niter_sdr, zooms):
     with wrapped_stdout(indent='    ', cull_newlines=True):
         pre_affine = affreg.optimize(
             mri_to, mri_from, transforms.AffineTransform3D(), None,
-            affine, mri_from_affine, starting_affine=rigid.affine)
+            mri_to_affine, mri_from_affine, starting_affine=rigid.affine)
     mri_from_to = pre_affine.transform(mri_from)
     logger.info(
         f'    R²:          {_compute_r2(mri_to, mri_from_to):6.1f}%')
@@ -1083,23 +1076,33 @@ def _compute_morph_sdr(mri_from, mri_to, niter_affine, niter_sdr, zooms):
     # SDR
     shape = tuple(pre_affine.domain_shape)
     if len(niter_sdr):
+        if sdr_zooms is not None:
+            sdr_zooms = tuple(
+                np.atleast_1d(np.array(affine_zooms, dtype=float)))
+        if sdr_zooms != affine_zooms:
+            logger.info(f'Reslicing to zooms={sdr_zooms} ...')
+            mri_from, mri_from_affine = _reslice_normalize(
+                mri_from_orig, sdr_zooms)
+            mri_to, mri_to_affine = _reslice_normalize(
+                mri_to_orig, sdr_zooms)
+            mri_from_to = pre_affine.transform(
+                mri_from, 'linear', mri_from_affine,
+                mri_to.shape, mri_to_affine)
         sdr = imwarp.SymmetricDiffeomorphicRegistration(
             metrics.CCMetric(3), list(niter_sdr))
         logger.info('Optimizing SDR:')
         with wrapped_stdout(indent='    ', cull_newlines=True):
-            sdr_morph = sdr.optimize(mri_to, pre_affine.transform(mri_from))
-        assert shape == tuple(sdr_morph.domain_shape)  # should be tuple of int
+            sdr_morph = sdr.optimize(mri_to, mri_from_to)
         mri_from_to = sdr_morph.transform(mri_from_to)
         logger.info(
             f'    R²:          {_compute_r2(mri_to, mri_from_to):6.1f}%')
     else:
         sdr_morph = None
 
-    _debug_img(mri_from_orig.dataobj, mri_from_orig.affine, 'From')
-    _debug_img(mri_from, affine, 'From-reslice')
-    _debug_img(mri_from_to, affine, 'From-reslice')
-    _debug_img(mri_to, affine, 'To-reslice')
-    return shape, zooms, affine, pre_affine, sdr_morph
+    _debug_img(mri_from, mri_to_affine, 'From-reslice')
+    _debug_img(mri_from_to, mri_to_affine, 'From-reslice')
+    _debug_img(mri_to, mri_to_affine, 'To-reslice')
+    return shape, affine_zooms, mri_to_affine, pre_affine, sdr_morph
 
 
 def _compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
@@ -1445,3 +1448,108 @@ def _apply_morph_data(morph, stc_from):
     stc_to = klass(data, vertices_to, stc_from.tmin, stc_from.tstep,
                    morph.subject_to)
     return stc_to
+
+
+@verbose
+def compute_volume_warp(moving, static, zooms=None,
+                        niter_affine=(100, 100, 10), niter_sdr=(10, 10, 5),
+                        verbose=None):
+    """Align two volumes using an affine and SDR.
+
+    Parameters
+    ----------
+    %(moving)s
+    %(static)s
+    zooms : float | tuple | dict | None
+        The voxel size of volume for each spatial dimension in mm.
+        If None (default), MRIs won't be resliced (slow, but most accurate).
+        Can be a tuple to provide separate zooms for each dimension (X/Y/Z),
+        or a dict with keys ``"affine"`` and ``"sdr"`` (with values that are
+        float`, tuple, or None) to provide separate reslicing/accuracy for the
+        affine and SDR morph steps.
+    %(niter_affine)s
+    %(niter_sdr)s
+    %(verbose)s
+
+    Returns
+    -------
+    %(pre_affine)s
+    %(sdr_morph)s
+
+    Notes
+    -----
+    .. versionadded:: 0.24
+    """
+    from nibabel.spatialimages import SpatialImage
+    _validate_type(moving, SpatialImage, 'moving')
+    _validate_type(static, SpatialImage, 'static')
+    _validate_type(zooms, (dict, list, tuple, 'numeric', None), 'zooms')
+    if not isinstance(zooms, dict):
+        zooms = dict(affine=zooms, sdr=zooms)
+    for key, val in zooms.items():
+        _validate_type(key, str, f'zooms key {repr(key)}')
+        _check_option('key', key, ('affine', 'sdr'))
+        name = f'zooms[{repr(key)}]'
+        _validate_type(val, (list, tuple, 'numeric', None), name)
+    _, _, _, pre_affine, sdr_morph = _compute_morph_sdr(
+        moving, static, niter_affine, niter_sdr,
+        affine_zooms=zooms.get('affine', None),
+        sdr_zooms=zooms.get('sdr', None))
+    return pre_affine, sdr_morph
+
+
+@verbose
+def apply_volume_warp(moving, static, pre_affine, sdr_morph=None,
+                      interpolation='linear', verbose=None):
+    """Apply volume warp.
+
+    Uses warp parameters computed by :func:`mne.morph.compute_volume_warp`.
+
+    Parameters
+    ----------
+    %(moving)s
+    %(static)s
+    %(pre_affine)s
+    %(sdr_morph)s
+    interpolation : str
+        Interpolation to be used during the warp. Can be "linear" (default)
+        or "nearest".
+    %(verbose)s
+
+    Returns
+    -------
+    aff_warp : instance of SpatialImage
+        The image after affine warping.
+    sdr_warp : instance of SpatialImage
+        The image after the affine and SDR warping.
+
+    Notes
+    -----
+    .. versionadded:: 0.24
+    """
+    _check_dep(nibabel='2.1.0', dipy='0.10.1')
+    from nibabel.spatialimages import SpatialImage
+    from dipy.align.imaffine import AffineMap
+    from dipy.align.imwarp import DiffeomorphicMap
+    _validate_type(moving, SpatialImage, 'moving')
+    _validate_type(static, SpatialImage, 'static')
+    _validate_type(pre_affine, AffineMap, 'pre_affine')
+    _validate_type(sdr_morph, (DiffeomorphicMap, None), 'sdr_morph')
+    kind = 'pre' if sdr_morph is not None else ''
+    logger.info(f'Applying {kind}affine ...')
+    aff_data = pre_affine.transform(
+        _get_img_fdata(moving), interpolation, moving.affine,
+        static.shape, static.affine)
+    aff_warp = SpatialImage(aff_data, static.affine)
+    if sdr_morph is None:
+        sdr_warp = None
+    else:
+        logger.info('Appling SDR warp ...')
+        sdr_warp = sdr_morph.transform(
+            aff_data,
+            image_world2grid=np.linalg.inv(static.affine),
+            out_shape=static.shape, out_grid2world=static.affine,
+            interpolation=interpolation)
+        sdr_warp = SpatialImage(sdr_warp, static.affine)
+    logger.info('[done]')
+    return aff_warp, sdr_warp

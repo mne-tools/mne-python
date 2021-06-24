@@ -73,7 +73,9 @@ Enhancements
 
 - Show multiple colors and linestyles for excluded components with :class:`mne.Evoked` in :meth:`mne.preprocessing.ICA.plot_sources` (:gh:`9444` by `Martin Schulz`_)
 
-- Added tutorial for how to processes image (CT and MR) files in order to localize electrode contacts for intracranial recordings :ref:`tut-ieeg-localize` (:gh`9484` by `Alex Rockhill`_)
+- Add functions for aligning MRI and CT data `mne.morph.compute_volume_warp` and `mne.morph.apply_volume_warp` (:gh:`9503` by `Eric Larson`_ and `Alex Rockhill`)
+
+- Add tutorial for how to processes image (CT and MR) files in order to localize electrode contacts for intracranial recordings :ref:`tut-ieeg-localize` (:gh`9484` by `Alex Rockhill`_)
 
 - Add support for colormap normalization in :func:`mne.viz.plot_topomap` (:gh:`9468` by `Clemens Brunner`_)
 
