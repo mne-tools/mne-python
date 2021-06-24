@@ -1011,10 +1011,7 @@ def _compute_r2(a, b):
         (np.linalg.norm(a) * np.linalg.norm(b))
 
 
-@verbose
-def _compute_morph_sdr(mri_from, mri_to, niter_affine, niter_sdr, zooms,
-                       rigid=False, sigmas=(3.0, 1.0, 0.0), factors=(4, 2, 1),
-                       verbose=None):
+def _compute_morph_sdr(mri_from, mri_to, niter_affine, niter_sdr, zooms):
     """Get a matrix that morphs data from one subject to another."""
     with np.testing.suppress_warnings():
         from dipy.align import imaffine, imwarp, metrics, transforms
@@ -1044,8 +1041,8 @@ def _compute_morph_sdr(mri_from, mri_to, niter_affine, niter_sdr, zooms,
     affreg = imaffine.AffineRegistration(
         metric=imaffine.MutualInformationMetric(nbins=32),
         level_iters=list(niter_affine),
-        sigmas=list(sigmas),
-        factors=list(factors))
+        sigmas=[3.0, 1.0, 0.0],
+        factors=[4, 2, 1])
 
     # translation
     logger.info('Optimizing translation:')
@@ -1074,17 +1071,14 @@ def _compute_morph_sdr(mri_from, mri_to, niter_affine, niter_sdr, zooms,
     logger.info(f'    R²:          {_compute_r2(mri_to, mri_from_to):6.1f}%')
 
     # affine transform (translation + rotation + scaling)
-    if not rigid:
-        logger.info('Optimizing full affine:')
-        with wrapped_stdout(indent='    ', cull_newlines=True):
-            pre_affine = affreg.optimize(
-                mri_to, mri_from, transforms.AffineTransform3D(), None,
-                affine, mri_from_affine, starting_affine=rigid.affine)
-        mri_from_to = pre_affine.transform(mri_from)
-        logger.info(
-            f'    R²:          {_compute_r2(mri_to, mri_from_to):6.1f}%')
-    else:
-        pre_affine = rigid
+    logger.info('Optimizing full affine:')
+    with wrapped_stdout(indent='    ', cull_newlines=True):
+        pre_affine = affreg.optimize(
+            mri_to, mri_from, transforms.AffineTransform3D(), None,
+            affine, mri_from_affine, starting_affine=rigid.affine)
+    mri_from_to = pre_affine.transform(mri_from)
+    logger.info(
+        f'    R²:          {_compute_r2(mri_to, mri_from_to):6.1f}%')
 
     # SDR
     shape = tuple(pre_affine.domain_shape)
