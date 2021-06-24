@@ -34,7 +34,6 @@ event_id, tmin, tmax = 1, -0.1, 1.0
 layout = read_layout('Vectorview-all')
 test_base_dir = testing.data_path(download=False)
 ctf_fname = op.join(test_base_dir, 'CTF', 'testdata_ctf.ds')
-rng = np.random.default_rng(42)
 
 
 def _get_epochs(stop=5, meg=True, eeg=False, n_chan=20):
@@ -221,7 +220,7 @@ def test_plot_epochs_keypresses():
 
 
 def test_plot_overlapping_epochs_with_events():
-    data = rng.normal(size=(3, 2, 100))  # 3 epochs, 2 channels, 100 samples
+    data = np.zeros(shape=(3, 2, 100))  # 3 epochs, 2 channels, 100 samples
     sfreq = 100
     info = create_info(
         ch_names=('a', 'b'), ch_types=('misc', 'misc'), sfreq=sfreq)
