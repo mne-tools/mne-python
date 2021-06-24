@@ -23,3 +23,4 @@ Step by step instructions for using :func:`gui.coregistration`:
    scale_bem
    scale_labels
    scale_source_space
+   voxel_neighbors
