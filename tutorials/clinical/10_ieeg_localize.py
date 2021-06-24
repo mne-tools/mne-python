@@ -313,11 +313,11 @@ fig.suptitle('Electrodes warped to fsaverage')
 warped_elec_data = warped_elec_image.get_fdata()
 for i in range(ch_coords.shape[0]):
     vox = np.where(warped_elec_data == i + 1)
-    if len(vox):
+    if len(vox[0]):
         ch_coords[i] = np.array(vox).mean(axis=1)
     else:
         print(f'Could not localize electrode index={i}')
-        vox[:] = 0
+        ch_coords[i] = 0
 # Convert back to surface RAS but to the template surface RAS this time
 ch_coords = mne.transforms.apply_trans(
     template_brain.header.get_vox2ras_tkr(), ch_coords)
