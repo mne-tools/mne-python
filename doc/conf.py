@@ -812,6 +812,7 @@ def reset_warnings(gallery_conf, fname):
                 'is a deprecated alias for the builtin',  # NumPy
                 'the old name will be removed',  # Jinja, via sphinx
                 'rcParams is deprecated',  # PyVista rcParams -> global_theme
+                'to mean no clipping',
                 ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)
