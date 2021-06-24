@@ -803,10 +803,14 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
         in_bounds = np.logical_and(boundaries[:, [0]] <= event_samps,
                                    event_samps < boundaries[:, [1]])
         event_ixs = [np.nonzero(a)[0] for a in in_bounds.T]
+        warned = False
         event_times = list()
         event_numbers = list()
         for samp, num, _ixs in zip(event_samps, event_nums, event_ixs):
             relevant_epoch_events = epochs.events[:, 0][_ixs]
+            if len(relevant_epoch_events) > 1 and not warned:
+                logger.info('You seem to have overlapping epochs. Some event '
+                            'lines may be duplicated in the plot.')
             offsets = samp - relevant_epoch_events + epochs.time_as_index(0)
             this_event_times = (_ixs * epoch_n_samps + offsets) / sfreq
             event_times.extend(this_event_times)
