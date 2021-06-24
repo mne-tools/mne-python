@@ -41,6 +41,8 @@ Enhancements
 
 - Add support for SURE parameter selection in :func:`mne.inverse_sparse.mixed_norm` and make ``alpha`` parameter now default to ``'sure'`` (:gh:`9430` by **new contributor** |Pierre-Antoine Bannier|_ and `Alex Gramfort`_)
 
+- Speed up BCD solver in :func:`mne.inverse_sparse.mixed_norm` by adding Anderson acceleration (:gh:`9481` by **new contributor** |Pierre-Antoine Bannier|_ and `Alex Gramfort`_)
+
 - New function :func:`mne.chpi.get_chpi_info` to retrieve basic information about the cHPI system used when recording MEG data (:gh:`9369` by `Richard Höchenberger`_)
 
 - New namespace `mne.export` created to contain functions (such as `mne.export.export_raw` and `mne.export.export_epochs`) for exporting data to non-FIF formats (:gh:`9427` by `Eric Larson`_)
@@ -70,8 +72,6 @@ Enhancements
 - Speed up :meth:`mne.decoding.TimeDelayingRidge.predict` by switching to FFT-based convolution (:gh:`9458` by `Ross Maddox`_)
 
 - Show multiple colors and linestyles for excluded components with :class:`mne.Evoked` in :meth:`mne.preprocessing.ICA.plot_sources` (:gh:`9444` by `Martin Schulz`_)
-
-- Speed up BCD solver in :func:`mne.inverse_sparse.mixed_norm` by adding Anderson acceleration (:gh:`9481` by **new contributor** `Pierre-Antoine Bannier`_ and `Alex Gramfort`_)
 
 Bugs
 ~~~~

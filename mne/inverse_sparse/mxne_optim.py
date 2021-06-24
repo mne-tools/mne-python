@@ -173,7 +173,7 @@ def prox_l1(Y, alpha, n_orient):
     return Y, active_set
 
 
-def _primal_l21(M, G, X, active_set, alpha, n_orient, return_primal_only=True):
+def _primal_l21(M, G, X, active_set, alpha, n_orient):
     """Primal objective for the mixed-norm inverse problem.
 
     See :footcite:`GramfortEtAl2012`.
@@ -192,8 +192,6 @@ def _primal_l21(M, G, X, active_set, alpha, n_orient, return_primal_only=True):
         The regularization parameter.
     n_orient : int
         Number of dipoles per locations (typically 1 or 3).
-    return_primal_only : bool
-        If True, returns only the primal value. Defaults to True.
 
     Returns
     -------
@@ -211,8 +209,6 @@ def _primal_l21(M, G, X, active_set, alpha, n_orient, return_primal_only=True):
     penalty = norm_l21(X, n_orient, copy=True)
     nR2 = sum_squared(R)
     p_obj = 0.5 * nR2 + alpha * penalty
-    if return_primal_only:
-        return p_obj
     return p_obj, R, nR2, GX
 
 
@@ -251,9 +247,7 @@ def dgap_l21(M, G, X, active_set, alpha, n_orient):
     ----------
     .. footbibilography::
     """
-    p_obj, R, nR2, GX = _primal_l21(
-        M, G, X, active_set, alpha, n_orient, False
-    )
+    p_obj, R, nR2, GX = _primal_l21(M, G, X, active_set, alpha, n_orient)
     dual_norm = norm_l2inf(np.dot(G.T, R), n_orient, copy=False)
     scaling = alpha / dual_norm
     scaling = min(scaling, 1.0)
@@ -427,6 +421,12 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
 
                 try:
                     z = np.linalg.solve(C, one_vec)
+                except np.linalg.LinAlgError:
+                    # Matrix C is not always expected to be non-singular. If C
+                    # is singular, acceleration is not used at this iteration
+                    # and the solver proceeds with the non-sped-up code.
+                    logger.debug("Iteration %d: LinAlg Error" % (i + 1))
+                else:
                     c = z / z.sum()
                     X_acc = np.sum(
                         last_K_X[:-1] * c[:, None, None], axis=0
@@ -438,15 +438,13 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
                             active_set_acc, np.ones(n_orient, dtype=bool)
                         )
                     p_obj = _primal_l21(M, G, X[active_set], active_set, alpha,
-                                        n_orient)
+                                        n_orient)[0]
                     p_obj_acc = _primal_l21(M, G, X_acc[active_set_acc],
-                                            active_set_acc, alpha, n_orient)
+                                            active_set_acc, alpha, n_orient)[0]
                     if p_obj_acc < p_obj:
                         X = X_acc
                         active_set = active_set_acc
                         R = M - G[:, active_set] @ X[active_set]
-                except np.linalg.LinAlgError:
-                    logger.debug("Iteration %d: LinAlg Error" % (i + 1))
 
     X = X[active_set]
 
