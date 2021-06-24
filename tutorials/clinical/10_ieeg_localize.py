@@ -122,10 +122,12 @@ plot_overlay(T1, CT_resampled, 'Unaligned CT Overlaid on T1', thresh=0.95)
 # Now we need to align our CT image to the T1 image. Here we use
 # ``zooms=5`` just to speed up the computation, in general this
 # should not be necessary, and better results will occur using ``zooms=None``
-# to maintain the native resolution.
+# to maintain the native resolution. Moreover, we want this to
+# be a rigid transformation (just rotation + translation), so don't do a
+# full affine or SDR here.
 
 affine, _ = mne.morph.compute_volume_warp(
-    CT_orig, T1, zooms=5, niter_sdr=(), verbose=True)
+    CT_orig, T1, zooms=5, niter_sdr=(), rigid=True, verbose=True)
 CT_aligned, _ = mne.morph.apply_volume_warp(CT_orig, T1, affine)
 plot_overlay(T1, CT_aligned, 'Aligned CT Overlaid on T1', thresh=0.95)
 
@@ -311,13 +313,13 @@ fig.suptitle('Electrodes warped to fsaverage')
 
 # Recover the electrode contact positions as the center of mass
 warped_elec_data = warped_elec_image.get_fdata()
-for i in range(ch_coords.shape[0]):
-    vox = np.where(warped_elec_data == i + 1)
-    if len(vox[0]):
-        ch_coords[i] = np.array(vox).mean(axis=1)
+for val, ch_coord in enumerate(ch_coords, 1):
+    vox = np.array(np.where(warped_elec_data == val), float)
+    if vox.shape[1]:
+        ch_coord[:] = vox.mean(axis=1)
     else:
-        print(f'Could not localize electrode index={i}')
-        ch_coords[i] = 0
+        print(f'Could not localize electrode index={val}')
+        ch_coord[:] = 0
 # Convert back to surface RAS but to the template surface RAS this time
 ch_coords = mne.transforms.apply_trans(
     template_brain.header.get_vox2ras_tkr(), ch_coords)

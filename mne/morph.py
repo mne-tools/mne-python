@@ -217,7 +217,8 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
         # pre-compute non-linear morph
         zooms = _check_zooms(mri_from, zooms, zooms_src_to)
         shape, zooms, affine, pre_affine, sdr_morph = _compute_morph_sdr(
-            mri_from, mri_to, niter_affine, niter_sdr, zooms, zooms)
+            mri_from, mri_to, niter_affine, niter_sdr, zooms, zooms,
+            rigid_only=False)
 
     if kind in ('surface', 'mixed'):
         logger.info('surface source space present ...')
@@ -1005,7 +1006,7 @@ def _reslice_normalize(img, zooms):
 
 
 def _compute_morph_sdr(mri_from, mri_to, niter_affine, niter_sdr, affine_zooms,
-                       sdr_zooms):
+                       sdr_zooms, rigid_only=False):
     """Get a matrix that morphs data from one subject to another."""
     with np.testing.suppress_warnings():
         from dipy.align import imaffine, imwarp, metrics, transforms
@@ -1063,19 +1064,24 @@ def _compute_morph_sdr(mri_from, mri_to, niter_affine, niter_sdr, affine_zooms,
     logger.info(f'    Rotation:    {angle:6.1f}°')
     logger.info(f'    R²:          {_compute_r2(mri_to, mri_from_to):6.1f}%')
 
-    # affine transform (translation + rotation + scaling)
-    logger.info('Optimizing full affine:')
-    with wrapped_stdout(indent='    ', cull_newlines=True):
-        pre_affine = affreg.optimize(
-            mri_to, mri_from, transforms.AffineTransform3D(), None,
-            mri_to_affine, mri_from_affine, starting_affine=rigid.affine)
-    mri_from_to = pre_affine.transform(mri_from)
-    logger.info(
-        f'    R²:          {_compute_r2(mri_to, mri_from_to):6.1f}%')
+    if not rigid_only:
+        # affine transform (translation + rotation + scaling)
+        logger.info('Optimizing full affine:')
+        with wrapped_stdout(indent='    ', cull_newlines=True):
+            pre_affine = affreg.optimize(
+                mri_to, mri_from, transforms.AffineTransform3D(), None,
+                mri_to_affine, mri_from_affine, starting_affine=rigid.affine)
+        mri_from_to = pre_affine.transform(mri_from)
+        logger.info(
+            f'    R²:          {_compute_r2(mri_to, mri_from_to):6.1f}%')
+    else:
+        pre_affine = rigid
 
     # SDR
     shape = tuple(pre_affine.domain_shape)
     if len(niter_sdr):
+        _check_option(
+            'rigid', rigid_only, (False,), extra='when niter_sdr != ()')
         if sdr_zooms is not None:
             sdr_zooms = tuple(
                 np.atleast_1d(np.array(affine_zooms, dtype=float)))
@@ -1453,7 +1459,7 @@ def _apply_morph_data(morph, stc_from):
 @verbose
 def compute_volume_warp(moving, static, zooms=None,
                         niter_affine=(100, 100, 10), niter_sdr=(10, 10, 5),
-                        verbose=None):
+                        rigid=False, verbose=None):
     """Align two volumes using an affine and SDR.
 
     Parameters
@@ -1469,6 +1475,8 @@ def compute_volume_warp(moving, static, zooms=None,
         affine and SDR morph steps.
     %(niter_affine)s
     %(niter_sdr)s
+    rigid : bool
+        If True, do a rigid alignment instead of a full affine transformation.
     %(verbose)s
 
     Returns
@@ -1484,6 +1492,7 @@ def compute_volume_warp(moving, static, zooms=None,
     _validate_type(moving, SpatialImage, 'moving')
     _validate_type(static, SpatialImage, 'static')
     _validate_type(zooms, (dict, list, tuple, 'numeric', None), 'zooms')
+    _validate_type(rigid, bool, 'rigid')
     if not isinstance(zooms, dict):
         zooms = dict(affine=zooms, sdr=zooms)
     for key, val in zooms.items():
@@ -1494,7 +1503,7 @@ def compute_volume_warp(moving, static, zooms=None,
     _, _, _, pre_affine, sdr_morph = _compute_morph_sdr(
         moving, static, niter_affine, niter_sdr,
         affine_zooms=zooms.get('affine', None),
-        sdr_zooms=zooms.get('sdr', None))
+        sdr_zooms=zooms.get('sdr', None), rigid_only=rigid)
     return pre_affine, sdr_morph
 
 
