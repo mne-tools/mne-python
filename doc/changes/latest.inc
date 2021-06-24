@@ -97,4 +97,3 @@ Bugs
 
 API changes
 ~~~~~~~~~~~
-- Parameter ``alpha`` now defaults to ``'sure'`` in :func:`mne.inverse_sparse.mixed_norm` (:gh:`9430` by **new contributor** `Pierre-Antoine Bannier`_ and `Alex Gramfort`_)
