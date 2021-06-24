@@ -237,7 +237,7 @@ fig.tight_layout()
 # point in CT space, it is the same point in MR space. So now everything is
 # ready to determine the location of each electrode contact in the
 # individual subject's anatomical space (T1-space). To do this, can make
-# list of ``RAS`` points from the lower panel in freeview or use the
+# list of ``TkReg RAS`` points from the lower panel in freeview or use the
 # mne graphical user interface (coming soon). The electrode locations will then
 # be in the ``surface RAS`` coordinate frame, which is helpful because that is
 # the coordinate frame that all the surface and image files that freesurfer
@@ -252,7 +252,12 @@ fig.tight_layout()
 #     $ freeview $MISC_PATH/seeg/sample_seeg_T1.mgz \
 #       $MISC_PATH/seeg/sample_seeg_CT.mgz
 #
-# Electrode contact locations are plotted below.
+# Now, we'll need the subject's brain segmented out from the rest of the T1
+# image from the freesurfer ``recon-all`` reconstruction. This is so that
+# we don't have extraneous data outside the brain affecting our warp to a
+# template brain.
+#
+# Let's plot the electrode contact locations on the subject's brain.
 
 # Load electrode positions from file
 elec_df = pd.read_csv(op.join(misc_path, 'seeg', 'sample_seeg_electrodes.tsv'),
