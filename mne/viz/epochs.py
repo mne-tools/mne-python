@@ -795,16 +795,24 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     # events
     if events is not None:
         event_nums = events[:, 2]
-        boundary_samps = epochs.events[1:, 0] - epochs.time_as_index(0)
-        event_ixs = np.searchsorted(boundary_samps, events[:, 0], side='right')
-        event_samp_offsets = (events[:, 0] - epochs.events[:, 0][event_ixs]
-                              + epochs.time_as_index(0))
-        event_times = ((np.arange(len(epochs)) * len(epochs.times))[event_ixs]
-                       + event_samp_offsets) / sfreq
-        # don't show events that are beyond the range of their epoch
-        mask = event_samp_offsets <= len(epochs.times)
-        event_times = event_times[mask]
-        event_nums = event_nums[mask]
+        event_samps = events[:, 0]
+        epoch_n_samps = len(epochs.times)
+        # handle overlapping epochs (each event may show up in multiple places)
+        boundaries = (epochs.events[:, [0]] + np.array([-1, 1])
+                      * epochs.time_as_index(0))
+        in_bounds = np.logical_and(boundaries[:, [0]] <= event_samps,
+                                   event_samps < boundaries[:, [1]])
+        event_ixs = [np.nonzero(a)[0] for a in in_bounds.T]
+        event_times = list()
+        event_numbers = list()
+        for samp, num, _ixs in zip(event_samps, event_nums, event_ixs):
+            relevant_epoch_events = epochs.events[:, 0][_ixs]
+            offsets = samp - relevant_epoch_events + epochs.time_as_index(0)
+            this_event_times = (_ixs * epoch_n_samps + offsets) / sfreq
+            event_times.extend(this_event_times)
+            event_numbers.extend([num] * len(_ixs))
+        event_nums = np.array(event_numbers)
+        event_times = np.array(event_times)
     else:
         event_nums = None
         event_times = None
