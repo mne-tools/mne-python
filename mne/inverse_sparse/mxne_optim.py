@@ -251,7 +251,9 @@ def dgap_l21(M, G, X, active_set, alpha, n_orient):
     ----------
     .. footbibilography::
     """
-    p_obj, R, nR2, GX = _primal_l21(M, G, X, active_set, alpha, n_orient, False)
+    p_obj, R, nR2, GX = _primal_l21(
+        M, G, X, active_set, alpha, n_orient, False
+    )
     dual_norm = norm_l2inf(np.dot(G.T, R), n_orient, copy=False)
     scaling = alpha / dual_norm
     scaling = min(scaling, 1.0)
@@ -358,8 +360,8 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
                            tol=1e-8, verbose=None, init=None, n_orient=1,
                            dgap_freq=10, use_accel=True, K=5):
     """Solve L21 inverse problem with block coordinate descent."""
-    n_sensors, n_times = M.shape
-    n_sensors, n_sources = G.shape
+    _, n_times = M.shape
+    _, n_sources = G.shape
     n_positions = n_sources // n_orient
 
     if init is None:
@@ -397,8 +399,7 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
         list_G_j_c.append(np.ascontiguousarray(G[:, idx]))
 
     for i in range(maxit):
-        _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
-             alpha_lc, list_G_j_c)
+        _bcd(G, X, R, active_set, one_ovr_lc, n_orient, alpha_lc, list_G_j_c)
 
         if (i + 1) % dgap_freq == 0:
             _, p_obj, d_obj, _ = dgap_l21(M, G, X[active_set], active_set,
@@ -431,11 +432,16 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
                     X_acc = np.sum(
                         last_K_X[:-1] * c[:, None, None], axis=0
                     )
-                    active_set_acc = np.linalg.norm(X_acc, axis=1) != 0
+                    _grp_norm2_acc = groups_norm2(X_acc, n_orient)
+                    active_set_acc = _grp_norm2_acc != 0
+                    if n_orient > 1:
+                        active_set_acc = np.kron(
+                            active_set_acc, np.ones(n_orient, dtype=bool)
+                        )
                     p_obj = _primal_l21(M, G, X[active_set], active_set, alpha,
-                                       n_orient)
+                                        n_orient)
                     p_obj_acc = _primal_l21(M, G, X_acc[active_set_acc],
-                                           active_set_acc, alpha, n_orient)
+                                            active_set_acc, alpha, n_orient)
                     if p_obj_acc < p_obj:
                         X = X_acc
                         active_set = active_set_acc
@@ -448,8 +454,7 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
     return X, active_set, E
 
 
-def _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
-         alpha_lc, list_G_j_c):
+def _bcd(G, X, R, active_set, one_ovr_lc, n_orient, alpha_lc, list_G_j_c):
     """Implement one full pass of BCD.
 
     BCD stands for Block Coordinate Descent.
@@ -474,7 +479,7 @@ def _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
     alpha_lc: array, shape (n_positions, )
         alpha * (Lipschitz constants).
     """
-    X_j_new = np.zeros_like(X[0:n_orient, :], order='C')
+    X_j_new = np.zeros_like(X[:n_orient, :], order='C')
     dgemm = _get_dgemm()
 
     for j, G_j_c in enumerate(list_G_j_c):
@@ -569,7 +574,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
     """
     n_dipoles = G.shape[1]
     n_positions = n_dipoles // n_orient
-    n_sensors, n_times = M.shape
+    _, n_times = M.shape
     alpha_max = norm_l2inf(np.dot(G.T, M), n_orient, copy=False)
     logger.info("-- ALPHA MAX : %s" % alpha_max)
     alpha = float(alpha)
