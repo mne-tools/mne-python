@@ -764,6 +764,8 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         None, ``vmin`` and ``vmax`` arguments are ignored. See Notes for more
         details.
 
+        .. versionadded:: 0.24
+
     Returns
     -------
     im : matplotlib.image.AxesImage
