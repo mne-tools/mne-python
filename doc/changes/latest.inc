@@ -73,6 +73,8 @@ Enhancements
 
 - Show multiple colors and linestyles for excluded components with :class:`mne.Evoked` in :meth:`mne.preprocessing.ICA.plot_sources` (:gh:`9444` by `Martin Schulz`_)
 
+- Speed up :func:`mne.inverse_sparse._mixed_norm_solver_bcd` by adding Anderson acceleration to BCD (:gh:`9481` by **new contributor** `Pierre-Antoine Bannier`_ and `Alex Gramfort`_)
+
 Bugs
 ~~~~
 - Fix bug with :meth:`mne.Epochs.crop` and :meth:`mne.Evoked.crop` when ``include_tmax=False``, where the last sample was always cut off, even when ``tmax > epo.times[-1]`` (:gh:`9378` **by new contributor** |Jan Sosulski|_)

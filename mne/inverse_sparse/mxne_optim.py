@@ -173,7 +173,51 @@ def prox_l1(Y, alpha, n_orient):
     return Y, active_set
 
 
-def dgap_l21(M, G, X, active_set, alpha, n_orient, primal_only=False):
+def primal_l21(M, G, X, active_set, alpha, n_orient, return_primal_only=True):
+    """Primal objective for the mixed norme inverse problem.
+
+    See :footcite:`GramfortEtAl2012`.
+
+    Parameters
+    ----------
+    M : array, shape (n_sensors, n_times)
+        The data.
+    G : array, shape (n_sensors, n_active)
+        The gain matrix a.k.a. lead field.
+    X : array, shape (n_active, n_times)
+        Sources.
+    active_set : array of bool, shape (n_sources, )
+        Mask of active sources.
+    alpha : float
+        The regularization parameter.
+    n_orient : int
+        Number of dipoles per locations (typically 1 or 3).
+    return_primal_only : bool
+        If True, returns only the primal value. Defaults to True.
+
+    Returns
+    -------
+    p_obj : float
+        Primal objective.
+    R : array, shape (n_sensors, n_times)
+        Current residual (M - G * X).
+    nR2 : float
+        Data-fitting term.
+    GX : array, shape (n_sensors, n_times)
+        Forward prediction.
+    """
+    GX = np.dot(G[:, active_set], X)
+    R = M - GX
+    penalty = norm_l21(X, n_orient, copy=True)
+    nR2 = sum_squared(R)
+    p_obj = 0.5 * nR2 + alpha * penalty
+    if return_primal_only:
+        return p_obj
+    return p_obj, R, nR2, GX
+
+
+
+def dgap_l21(M, G, X, active_set, alpha, n_orient):
     """Duality gap for the mixed norm inverse problem.
 
     See :footcite:`GramfortEtAl2012`.
@@ -192,9 +236,6 @@ def dgap_l21(M, G, X, active_set, alpha, n_orient, primal_only=False):
         The regularization parameter.
     n_orient : int
         Number of dipoles per locations (typically 1 or 3).
-    primal_only : bool
-        Only computes and returns the primal value. Useful when only the
-        primal is needed.
 
     Returns
     -------
@@ -211,15 +252,7 @@ def dgap_l21(M, G, X, active_set, alpha, n_orient, primal_only=False):
     ----------
     .. footbibilography::
     """
-    GX = np.dot(G[:, active_set], X)
-    R = M - GX
-    penalty = norm_l21(X, n_orient, copy=True)
-    nR2 = sum_squared(R)
-    p_obj = 0.5 * nR2 + alpha * penalty
-
-    if primal_only:
-        return p_obj
-
+    p_obj, R, nR2, GX = primal_l21(M, G, X, active_set, alpha, n_orient, False)
     dual_norm = norm_l2inf(np.dot(G.T, R), n_orient, copy=False)
     scaling = alpha / dual_norm
     scaling = min(scaling, 1.0)
@@ -382,7 +415,8 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
                              % (gap, tol))
                 break
 
-        # using Anderson acceleration for faster convergence
+        # using Anderson acceleration of the primal variable for faster
+        # convergence
         if use_accel:
             last_K_X[i % (K + 1)] = X
 
@@ -399,11 +433,10 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
                         last_K_X[:-1] * c[:, None, None], axis=0
                     )
                     active_set_acc = np.linalg.norm(X_acc, axis=1) != 0
-                    p_obj = dgap_l21(M, G, X[active_set], active_set, alpha,
-                                     n_orient, primal_only=True)
-                    p_obj_acc = dgap_l21(M, G, X_acc[active_set_acc],
-                                         active_set_acc, alpha, n_orient,
-                                         primal_only=True)
+                    p_obj = primal_l21(M, G, X[active_set], active_set, alpha,
+                                       n_orient)
+                    p_obj_acc = primal_l21(M, G, X_acc[active_set_acc],
+                                           active_set_acc, alpha, n_orient)
                     if p_obj_acc < p_obj:
                         X = X_acc
                         active_set = active_set_acc
