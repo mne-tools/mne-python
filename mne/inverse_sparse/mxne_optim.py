@@ -340,8 +340,7 @@ def _mixed_norm_solver_cd(M, G, alpha, lipschitz_constant, maxit=10000,
     assert M.ndim == G.ndim and M.shape[0] == G.shape[0]
 
     clf = MultiTaskLasso(alpha=alpha / len(M), tol=tol / sum_squared(M),
-                         normalize=False, fit_intercept=False, max_iter=maxit,
-                         warm_start=True)
+                         fit_intercept=False, max_iter=maxit, warm_start=True)
     if init is not None:
         clf.coef_ = init.T
     else:
