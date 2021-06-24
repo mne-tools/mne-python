@@ -173,6 +173,45 @@ def prox_l1(Y, alpha, n_orient):
     return Y, active_set
 
 
+def _primal_l21(M, G, X, active_set, alpha, n_orient):
+    """Primal objective for the mixed-norm inverse problem.
+
+    See :footcite:`GramfortEtAl2012`.
+
+    Parameters
+    ----------
+    M : array, shape (n_sensors, n_times)
+        The data.
+    G : array, shape (n_sensors, n_active)
+        The gain matrix a.k.a. lead field.
+    X : array, shape (n_active, n_times)
+        Sources.
+    active_set : array of bool, shape (n_sources,)
+        Mask of active sources.
+    alpha : float
+        The regularization parameter.
+    n_orient : int
+        Number of dipoles per locations (typically 1 or 3).
+
+    Returns
+    -------
+    p_obj : float
+        Primal objective.
+    R : array, shape (n_sensors, n_times)
+        Current residual (M - G * X).
+    nR2 : float
+        Data-fitting term.
+    GX : array, shape (n_sensors, n_times)
+        Forward prediction.
+    """
+    GX = np.dot(G[:, active_set], X)
+    R = M - GX
+    penalty = norm_l21(X, n_orient, copy=True)
+    nR2 = sum_squared(R)
+    p_obj = 0.5 * nR2 + alpha * penalty
+    return p_obj, R, nR2, GX
+
+
 def dgap_l21(M, G, X, active_set, alpha, n_orient):
     """Duality gap for the mixed norm inverse problem.
 
@@ -208,12 +247,7 @@ def dgap_l21(M, G, X, active_set, alpha, n_orient):
     ----------
     .. footbibilography::
     """
-    GX = np.dot(G[:, active_set], X)
-    R = M - GX
-    penalty = norm_l21(X, n_orient, copy=True)
-    nR2 = sum_squared(R)
-    p_obj = 0.5 * nR2 + alpha * penalty
-
+    p_obj, R, nR2, GX = _primal_l21(M, G, X, active_set, alpha, n_orient)
     dual_norm = norm_l2inf(np.dot(G.T, R), n_orient, copy=False)
     scaling = alpha / dual_norm
     scaling = min(scaling, 1.0)
@@ -300,8 +334,7 @@ def _mixed_norm_solver_cd(M, G, alpha, lipschitz_constant, maxit=10000,
     assert M.ndim == G.ndim and M.shape[0] == G.shape[0]
 
     clf = MultiTaskLasso(alpha=alpha / len(M), tol=tol / sum_squared(M),
-                         normalize=False, fit_intercept=False, max_iter=maxit,
-                         warm_start=True)
+                         fit_intercept=False, max_iter=maxit, warm_start=True)
     if init is not None:
         clf.coef_ = init.T
     else:
@@ -318,10 +351,10 @@ def _mixed_norm_solver_cd(M, G, alpha, lipschitz_constant, maxit=10000,
 @verbose
 def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
                            tol=1e-8, verbose=None, init=None, n_orient=1,
-                           dgap_freq=10):
+                           dgap_freq=10, use_accel=True, K=5):
     """Solve L21 inverse problem with block coordinate descent."""
-    n_sensors, n_times = M.shape
-    n_sensors, n_sources = G.shape
+    _, n_times = M.shape
+    _, n_sources = G.shape
     n_positions = n_sources // n_orient
 
     if init is None:
@@ -336,6 +369,10 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
     active_set = np.zeros(n_sources, dtype=bool)  # start with full AS
 
     alpha_lc = alpha / lipschitz_constant
+
+    if use_accel:
+        last_K_X = np.empty((K + 1, n_sources, n_times))
+        U = np.zeros((K, n_sources * n_times))
 
     # First make G fortran for faster access to blocks of columns
     G = np.asfortranarray(G)
@@ -355,8 +392,7 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
         list_G_j_c.append(np.ascontiguousarray(G[:, idx]))
 
     for i in range(maxit):
-        _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
-             alpha_lc, list_G_j_c)
+        _bcd(G, X, R, active_set, one_ovr_lc, n_orient, alpha_lc, list_G_j_c)
 
         if (i + 1) % dgap_freq == 0:
             _, p_obj, d_obj, _ = dgap_l21(M, G, X[active_set], active_set,
@@ -372,13 +408,50 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
                              % (gap, tol))
                 break
 
+        # using Anderson acceleration of the primal variable for faster
+        # convergence
+        if use_accel:
+            last_K_X[i % (K + 1)] = X
+
+            if i % (K + 1) == K:
+                for k in range(K):
+                    U[k] = last_K_X[k + 1].ravel() - last_K_X[k].ravel()
+                C = U @ U.T
+                one_vec = np.ones(K)
+
+                try:
+                    z = np.linalg.solve(C, one_vec)
+                except np.linalg.LinAlgError:
+                    # Matrix C is not always expected to be non-singular. If C
+                    # is singular, acceleration is not used at this iteration
+                    # and the solver proceeds with the non-sped-up code.
+                    logger.debug("Iteration %d: LinAlg Error" % (i + 1))
+                else:
+                    c = z / z.sum()
+                    X_acc = np.sum(
+                        last_K_X[:-1] * c[:, None, None], axis=0
+                    )
+                    _grp_norm2_acc = groups_norm2(X_acc, n_orient)
+                    active_set_acc = _grp_norm2_acc != 0
+                    if n_orient > 1:
+                        active_set_acc = np.kron(
+                            active_set_acc, np.ones(n_orient, dtype=bool)
+                        )
+                    p_obj = _primal_l21(M, G, X[active_set], active_set, alpha,
+                                        n_orient)[0]
+                    p_obj_acc = _primal_l21(M, G, X_acc[active_set_acc],
+                                            active_set_acc, alpha, n_orient)[0]
+                    if p_obj_acc < p_obj:
+                        X = X_acc
+                        active_set = active_set_acc
+                        R = M - G[:, active_set] @ X[active_set]
+
     X = X[active_set]
 
     return X, active_set, E
 
 
-def _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
-         alpha_lc, list_G_j_c):
+def _bcd(G, X, R, active_set, one_ovr_lc, n_orient, alpha_lc, list_G_j_c):
     """Implement one full pass of BCD.
 
     BCD stands for Block Coordinate Descent.
@@ -403,7 +476,7 @@ def _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
     alpha_lc: array, shape (n_positions, )
         alpha * (Lipschitz constants).
     """
-    X_j_new = np.zeros_like(X[0:n_orient, :], order='C')
+    X_j_new = np.zeros_like(X[:n_orient, :], order='C')
     dgemm = _get_dgemm()
 
     for j, G_j_c in enumerate(list_G_j_c):
@@ -442,7 +515,8 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
                       active_set_init=None, X_init=None):
     """Solve L1/L2 mixed-norm inverse problem with active set strategy.
 
-    See references :footcite:`GramfortEtAl2012,StrohmeierEtAl2016`.
+    See references :footcite:`GramfortEtAl2012,StrohmeierEtAl2016,
+    BertrandEtAl2020`.
 
     Parameters
     ----------
@@ -465,7 +539,8 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
     n_orient : int
         The number of orientation (1 : fixed or 3 : free or loose).
     solver : 'prox' | 'cd' | 'bcd' | 'auto'
-        The algorithm to use for the optimization.
+        The algorithm to use for the optimization. Block Coordinate Descent
+        (BCD) uses Anderson acceleration for faster convergence.
     return_gap : bool
         Return final duality gap.
     dgap_freq : int
@@ -496,7 +571,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
     """
     n_dipoles = G.shape[1]
     n_positions = n_dipoles // n_orient
-    n_sensors, n_times = M.shape
+    _, n_times = M.shape
     alpha_max = norm_l2inf(np.dot(G.T, M), n_orient, copy=False)
     logger.info("-- ALPHA MAX : %s" % alpha_max)
     alpha = float(alpha)

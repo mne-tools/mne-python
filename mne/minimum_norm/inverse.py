@@ -1384,7 +1384,7 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
         if not is_fixed_orient(forward):
             if allow_fixed_depth:
                 # can convert now
-                logger.info('Converting forward solution to fixed orietnation')
+                logger.info('Converting forward solution to fixed orientation')
                 convert_forward_solution(
                     forward, force_fixed=True, use_cps=True, copy=False)
         elif exp is not None and not allow_fixed_depth:

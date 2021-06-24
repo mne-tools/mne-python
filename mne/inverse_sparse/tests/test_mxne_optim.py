@@ -112,7 +112,7 @@ def test_l21_mxne():
             *args, active_set_size=2, debias=True, n_orient=5, solver='cd')
 
     assert_array_equal(np.where(active_set)[0], [0, 1, 2, 3, 4])
-    assert_array_equal(X_hat_bcd, X_hat_cd)
+    assert_allclose(X_hat_bcd, X_hat_cd)
     assert_allclose(X_hat_bcd, X_hat_prox, rtol=1e-2)
 
 
@@ -295,7 +295,7 @@ def test_iterative_reweighted_mxne():
             M, G, alpha, 5, maxit=1000, tol=1e-8, active_set_size=2,
             debias=True, n_orient=2, solver='cd')
     assert_array_equal(np.where(active_set)[0], [0, 1, 4, 5])
-    assert_array_equal(X_hat_bcd, X_hat_cd, 5)
+    assert_allclose(X_hat_bcd, X_hat_cd)
 
     X_hat_bcd, active_set, _ = iterative_mixed_norm_solver(
         M, G, alpha, 5, maxit=1000, tol=1e-8, active_set_size=2, debias=True,
@@ -306,7 +306,7 @@ def test_iterative_reweighted_mxne():
             M, G, alpha, 5, maxit=1000, tol=1e-8, active_set_size=2,
             debias=True, n_orient=5, solver='cd')
     assert_array_equal(np.where(active_set)[0], [0, 1, 2, 3, 4])
-    assert_array_equal(X_hat_bcd, X_hat_cd, 5)
+    assert_allclose(X_hat_bcd, X_hat_cd)
 
 
 @pytest.mark.slowtest
