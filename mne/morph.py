@@ -1014,8 +1014,8 @@ def _compute_morph_sdr(mri_from, mri_to, niter_affine, niter_sdr, affine_zooms,
     if len(niter_sdr):
         kind = 'nonlinear symmetric diffeomorphic registration (SDR)'
     else:
-        kind = 'linear affine'
-    logger.info(f'Computing {kind} warp ...')
+        kind = f'linear {"rigid" if rigid_only else "affine"} registration'
+    logger.info(f'Computing {kind} ...')
 
     # reslice mri_from and mri_to to zooms
     mri_from_orig = mri_from
@@ -1454,111 +1454,3 @@ def _apply_morph_data(morph, stc_from):
     stc_to = klass(data, vertices_to, stc_from.tmin, stc_from.tstep,
                    morph.subject_to)
     return stc_to
-
-
-@verbose
-def compute_volume_warp(moving, static, zooms=None,
-                        niter_affine=(100, 100, 10), niter_sdr=(10, 10, 5),
-                        rigid=False, verbose=None):
-    """Align two volumes using an affine and SDR.
-
-    Parameters
-    ----------
-    %(moving)s
-    %(static)s
-    zooms : float | tuple | dict | None
-        The voxel size of volume for each spatial dimension in mm.
-        If None (default), MRIs won't be resliced (slow, but most accurate).
-        Can be a tuple to provide separate zooms for each dimension (X/Y/Z),
-        or a dict with keys ``"affine"`` and ``"sdr"`` (with values that are
-        float`, tuple, or None) to provide separate reslicing/accuracy for the
-        affine and SDR morph steps.
-    %(niter_affine)s
-    %(niter_sdr)s
-    rigid : bool
-        If True, do a rigid alignment instead of a full affine transformation.
-    %(verbose)s
-
-    Returns
-    -------
-    %(pre_affine)s
-    %(sdr_morph)s
-
-    Notes
-    -----
-    .. versionadded:: 0.24
-    """
-    from nibabel.spatialimages import SpatialImage
-    _validate_type(moving, SpatialImage, 'moving')
-    _validate_type(static, SpatialImage, 'static')
-    _validate_type(zooms, (dict, list, tuple, 'numeric', None), 'zooms')
-    _validate_type(rigid, bool, 'rigid')
-    if not isinstance(zooms, dict):
-        zooms = dict(affine=zooms, sdr=zooms)
-    for key, val in zooms.items():
-        _validate_type(key, str, f'zooms key {repr(key)}')
-        _check_option('key', key, ('affine', 'sdr'))
-        name = f'zooms[{repr(key)}]'
-        _validate_type(val, (list, tuple, 'numeric', None), name)
-    _, _, _, pre_affine, sdr_morph = _compute_morph_sdr(
-        moving, static, niter_affine, niter_sdr,
-        affine_zooms=zooms.get('affine', None),
-        sdr_zooms=zooms.get('sdr', None), rigid_only=rigid)
-    return pre_affine, sdr_morph
-
-
-@verbose
-def apply_volume_warp(moving, static, pre_affine, sdr_morph=None,
-                      interpolation='linear', verbose=None):
-    """Apply volume warp.
-
-    Uses warp parameters computed by :func:`mne.morph.compute_volume_warp`.
-
-    Parameters
-    ----------
-    %(moving)s
-    %(static)s
-    %(pre_affine)s
-    %(sdr_morph)s
-    interpolation : str
-        Interpolation to be used during the warp. Can be "linear" (default)
-        or "nearest".
-    %(verbose)s
-
-    Returns
-    -------
-    aff_warp : instance of SpatialImage
-        The image after affine warping.
-    sdr_warp : instance of SpatialImage
-        The image after the affine and SDR warping.
-
-    Notes
-    -----
-    .. versionadded:: 0.24
-    """
-    _check_dep(nibabel='2.1.0', dipy='0.10.1')
-    from nibabel.spatialimages import SpatialImage
-    from dipy.align.imaffine import AffineMap
-    from dipy.align.imwarp import DiffeomorphicMap
-    _validate_type(moving, SpatialImage, 'moving')
-    _validate_type(static, SpatialImage, 'static')
-    _validate_type(pre_affine, AffineMap, 'pre_affine')
-    _validate_type(sdr_morph, (DiffeomorphicMap, None), 'sdr_morph')
-    kind = 'pre' if sdr_morph is not None else ''
-    logger.info(f'Applying {kind}affine ...')
-    aff_data = pre_affine.transform(
-        _get_img_fdata(moving), interpolation, moving.affine,
-        static.shape, static.affine)
-    aff_warp = SpatialImage(aff_data, static.affine)
-    if sdr_morph is None:
-        sdr_warp = None
-    else:
-        logger.info('Appling SDR warp ...')
-        sdr_warp = sdr_morph.transform(
-            aff_data,
-            image_world2grid=np.linalg.inv(static.affine),
-            out_shape=static.shape, out_grid2world=static.affine,
-            interpolation=interpolation)
-        sdr_warp = SpatialImage(sdr_warp, static.affine)
-    logger.info('[done]')
-    return aff_warp, sdr_warp

@@ -41,7 +41,5 @@ Source Space Data
    vertex_to_mni
    write_labels_to_annot
    write_label
-   morph.compute_volume_warp
-   morph.apply_volume_warp
    source_space.compute_distance_to_sensors
    label.find_pos_in_annot

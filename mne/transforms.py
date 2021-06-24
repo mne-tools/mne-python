@@ -13,13 +13,14 @@ import glob
 import numpy as np
 from copy import deepcopy
 
-from .fixes import jit, mean
+from .fixes import jit, mean, _get_img_fdata
 from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tag import read_tag
 from .io.write import start_file, end_file, write_coord_trans
 from .utils import (check_fname, logger, verbose, _ensure_int, _validate_type,
-                    _check_path_like, get_subjects_dir, fill_doc, _check_fname)
+                    _check_path_like, get_subjects_dir, fill_doc, _check_fname,
+                    _check_option)
 
 
 # transformation from anterior/left/superior coordinate system to
@@ -1521,3 +1522,115 @@ def _euler_to_quat(euler):
     quat[..., 2] = cphi * ctheta * spsi - sphi * stheta * cpsi
     quat *= mult
     return quat
+
+
+@verbose
+def compute_volume_registration(moving, static, zooms=None,
+                                niter_affine=(100, 100, 10),
+                                niter_sdr=(10, 10, 5), rigid=False,
+                                verbose=None):
+    """Align two volumes using an affine and SDR.
+
+    Parameters
+    ----------
+    %(moving)s
+    %(static)s
+    zooms : float | tuple | dict | None
+        The voxel size of volume for each spatial dimension in mm.
+        If None (default), MRIs won't be resliced (slow, but most accurate).
+        Can be a tuple to provide separate zooms for each dimension (X/Y/Z),
+        or a dict with keys ``"affine"`` and ``"sdr"`` (with values that are
+        float`, tuple, or None) to provide separate reslicing/accuracy for the
+        affine and SDR morph steps.
+    %(niter_affine)s
+    %(niter_sdr)s
+    rigid : bool
+        If True, do a rigid alignment instead of a full affine transformation.
+    %(verbose)s
+
+    Returns
+    -------
+    %(pre_affine)s
+    %(sdr_morph)s
+
+    Notes
+    -----
+    .. versionadded:: 0.24
+    """
+    from .morph import _compute_morph_sdr
+    from nibabel.spatialimages import SpatialImage
+    _validate_type(moving, SpatialImage, 'moving')
+    _validate_type(static, SpatialImage, 'static')
+    _validate_type(zooms, (dict, list, tuple, 'numeric', None), 'zooms')
+    _validate_type(rigid, bool, 'rigid')
+    if not isinstance(zooms, dict):
+        zooms = dict(affine=zooms, sdr=zooms)
+    for key, val in zooms.items():
+        _validate_type(key, str, f'zooms key {repr(key)}')
+        _check_option('key', key, ('affine', 'sdr'))
+        name = f'zooms[{repr(key)}]'
+        _validate_type(val, (list, tuple, 'numeric', None), name)
+    _, _, _, pre_affine, sdr_morph = _compute_morph_sdr(
+        moving, static, niter_affine, niter_sdr,
+        affine_zooms=zooms.get('affine', None),
+        sdr_zooms=zooms.get('sdr', None), rigid_only=rigid)
+    return pre_affine, sdr_morph
+
+
+@verbose
+def apply_volume_registration(moving, static, pre_affine, sdr_morph=None,
+                              interpolation='linear', verbose=None):
+    """Apply volume registration.
+
+    Uses warp parameters computed by
+    :func:`~mne.transforms.compute_volume_registration`.
+
+    Parameters
+    ----------
+    %(moving)s
+    %(static)s
+    %(pre_affine)s
+    %(sdr_morph)s
+    interpolation : str
+        Interpolation to be used during the warp. Can be "linear" (default)
+        or "nearest".
+    %(verbose)s
+
+    Returns
+    -------
+    aff_img : instance of SpatialImage
+        The image after affine warping.
+    sdr_img : instance of SpatialImage
+        The image after the affine and SDR warping.
+
+    Notes
+    -----
+    .. versionadded:: 0.24
+    """
+    from .morph import _check_dep
+    _check_dep(nibabel='2.1.0', dipy='0.10.1')
+    from nibabel.spatialimages import SpatialImage
+    from dipy.align.imaffine import AffineMap
+    from dipy.align.imwarp import DiffeomorphicMap
+    _validate_type(moving, SpatialImage, 'moving')
+    _validate_type(static, SpatialImage, 'static')
+    _validate_type(pre_affine, AffineMap, 'pre_affine')
+    _validate_type(sdr_morph, (DiffeomorphicMap, None), 'sdr_morph')
+    kind = 'pre' if sdr_morph is not None else ''
+    logger.info(f'Applying {kind}affine ...')
+    aff_data = pre_affine.transform(
+        _get_img_fdata(moving), interpolation, moving.affine,
+        static.shape, static.affine)
+    aff_img = SpatialImage(aff_data, static.affine)
+    if sdr_morph is None:
+        sdr_img = None
+    else:
+        logger.info('Appling SDR warp ...')
+        sdr_img = sdr_morph.transform(
+            aff_data,
+            image_world2grid=np.linalg.inv(static.affine),
+            out_shape=static.shape, out_grid2world=static.affine,
+            interpolation=interpolation)
+        sdr_img = SpatialImage(sdr_img, static.affine)
+    logger.info('[done]')
+    return aff_img, sdr_img
