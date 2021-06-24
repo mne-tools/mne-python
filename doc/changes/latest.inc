@@ -71,7 +71,7 @@ Enhancements
 
 - Show multiple colors and linestyles for excluded components with :class:`mne.Evoked` in :meth:`mne.preprocessing.ICA.plot_sources` (:gh:`9444` by `Martin Schulz`_)
 
-- Speed up :func:`mne.inverse_sparse._mixed_norm_solver_bcd` by adding Anderson acceleration to BCD (:gh:`9481` by **new contributor** `Pierre-Antoine Bannier`_ and `Alex Gramfort`_)
+- Speed up BCD solver in :func:`mne.inverse_sparse.mixed_norm` by adding Anderson acceleration (:gh:`9481` by **new contributor** `Pierre-Antoine Bannier`_ and `Alex Gramfort`_)
 
 Bugs
 ~~~~
