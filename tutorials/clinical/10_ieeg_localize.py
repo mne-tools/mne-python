@@ -114,14 +114,13 @@ T1 = nib.load(op.join(misc_path, 'seeg', 'sample_seeg_T1.mgz'))
 CT_orig = nib.load(op.join(misc_path, 'seeg', 'sample_seeg_CT.mgz'))
 
 # resample to T1's definition of world coordinates
-CT_orig_data = CT_orig.get_fdata()
-T1_data = T1.get_fdata()
-CT_resampled = resample(moving=CT_orig_data,
-                        static=T1_data,
+CT_resampled = resample(moving=CT_orig.get_fdata(),
+                        static=T1.get_fdata(),
                         moving_affine=CT_orig.affine,
                         static_affine=T1.affine,
                         between_affine=None)
 plot_overlay(T1, CT_resampled, 'Unaligned CT Overlaid on T1', thresh=0.95)
+del CT_resampled
 
 ###############################################################################
 # Now we need to align our CT image to the T1 image. Here we use (but do not
@@ -129,8 +128,7 @@ plot_overlay(T1, CT_resampled, 'Unaligned CT Overlaid on T1', thresh=0.95)
 #
 # .. code-block:: python
 #
-#    affine, _ = compute_volume_registration(
-#        CT_orig, T1, niter_sdr=(), rigid=True)
+#    affine, _ = compute_volume_registration(CT_orig, T1, rigid=True)
 #
 # We want this to be a rigid transformation (just rotation + translation),
 # so we don't do a full affine registration or SDR here. Instead we use the
@@ -143,10 +141,10 @@ affine = np.array([
     [-0.11449119, 0.10372593, 0.98799428, -84.39915646],
     [0., 0., 0., 1.]])
 affine = AffineMap(
-    affine, T1_data.shape, T1.affine, CT_orig_data.shape, CT_orig.affine)
+    affine, T1.shape, T1.affine, CT_orig.shape, CT_orig.affine)
 CT_aligned, _ = mne.transforms.apply_volume_registration(CT_orig, T1, affine)
 plot_overlay(T1, CT_aligned, 'Aligned CT Overlaid on T1', thresh=0.95)
-del CT_orig, CT_orig_data, T1_data
+del CT_orig
 
 ###############################################################################
 # We can now see how the CT image looks properly aligned to the T1 image.

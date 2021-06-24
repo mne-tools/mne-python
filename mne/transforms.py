@@ -1527,7 +1527,7 @@ def _euler_to_quat(euler):
 @verbose
 def compute_volume_registration(moving, static, zooms=None,
                                 niter_affine=(100, 100, 10),
-                                niter_sdr=(10, 10, 5), rigid=False,
+                                niter_sdr=None, rigid=False,
                                 verbose=None):
     """Align two volumes using an affine and SDR.
 
@@ -1544,6 +1544,8 @@ def compute_volume_registration(moving, static, zooms=None,
         affine and SDR morph steps.
     %(niter_affine)s
     %(niter_sdr)s
+        Can be None (default) to set ``niter_sdr=()`` automatically when
+        ``rigid=True``.
     rigid : bool
         If True, do a rigid alignment instead of a full affine transformation.
     %(verbose)s
@@ -1563,6 +1565,8 @@ def compute_volume_registration(moving, static, zooms=None,
     _validate_type(static, SpatialImage, 'static')
     _validate_type(zooms, (dict, list, tuple, 'numeric', None), 'zooms')
     _validate_type(rigid, bool, 'rigid')
+    if niter_sdr is None:
+        niter_sdr = () if rigid else (10, 10, 5)
     if not isinstance(zooms, dict):
         zooms = dict(affine=zooms, sdr=zooms)
     for key, val in zooms.items():
