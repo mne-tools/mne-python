@@ -49,7 +49,6 @@ np.set_printoptions(suppress=True)  # suppress scientific notation
 # which is in MNI space
 misc_path = mne.datasets.misc.data_path()
 sample_path = mne.datasets.sample.data_path()
-subject = 'fsaverage'
 subjects_dir = sample_path + '/subjects'
 
 # use mne-python's fsaverage data
@@ -60,7 +59,6 @@ fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)  # downloads if needed
 # a :class:`mne.channels.DigMontage` class. First, use pandas to read in the
 # ``.tsv`` file.
 
-# In mne-python, the electrode coordinates are required to be in meters
 elec_df = pd.read_csv(misc_path + '/seeg/sample_seeg_electrodes.tsv',
                       sep='\t', header=0, index_col=None)
 ch_names = elec_df['name'].tolist()
@@ -88,7 +86,7 @@ ch_pos = dict(zip(ch_names, ch_coords))
 # Ideally the nasion/LPA/RPA will also be present from the digitization, here
 # we use fiducials estimated from the subject's FreeSurfer MNI transformation:
 lpa, nasion, rpa = mne.coreg.get_mni_fiducials(
-    subject, subjects_dir=subjects_dir)
+    'fsaverage', subjects_dir=subjects_dir)
 lpa, nasion, rpa = lpa['r'], nasion['r'], rpa['r']
 
 ###############################################################################
@@ -144,7 +142,7 @@ epochs.set_channel_types(
 
 fig = mne.viz.plot_alignment(epochs.info, trans, 'fsaverage',
                              subjects_dir=subjects_dir, show_axes=True,
-                             surfaces=["pial", "head"])
+                             surfaces=['pial', 'head'])
 
 ###############################################################################
 # Next, we'll get the epoch data and plot its amplitude over time.
@@ -165,7 +163,7 @@ vol_src = mne.read_source_spaces(fname_src)
 
 evoked = epochs.average()
 stc = mne.stc_near_sensors(
-    evoked, trans, subject, subjects_dir=subjects_dir, src=vol_src,
+    evoked, trans, 'fsaverage', subjects_dir=subjects_dir, src=vol_src,
     verbose='error')  # ignore missing electrode warnings
 stc = abs(stc)  # just look at magnitude
 clim = dict(kind='value', lims=np.percentile(abs(evoked.data), [10, 50, 75]))
