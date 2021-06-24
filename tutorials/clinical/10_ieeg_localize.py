@@ -106,7 +106,6 @@ def plot_overlay(image, compare, title, thresh=None):
         ax.invert_yaxis()
         ax.axis('off')
     fig.tight_layout()
-    return fig
 
 
 T1 = nib.load(op.join(misc_path, 'seeg', 'sample_seeg_T1.mgz'))
@@ -381,6 +380,8 @@ plot_overlay(template_brain, subject_brain_aligned,
 #
 # .. code-block:: python
 #
+#     from scipy.ndimage import label
+#
 #     # convert electrode positions from surface RAS to voxels
 #     ch_coords = mne.transforms.apply_trans(
 #         np.linalg.inv(subject_brain.header.get_vox2ras_tkr()), ch_coords)
@@ -390,21 +391,38 @@ plot_overlay(template_brain, subject_brain_aligned,
 #     # are labeled with an index
 #     CT_data = CT_aligned.get_fdata()
 #     thresh = np.quantile(CT_data, 0.95)
+#     max_dist = 2  # maximum distance to use surrounding each contact
+#     # make a mask of 1s near each electrode contact
+#     elec_mask = np.zeros(CT_data.shape, dtype=bool)
+#     for ch_coord in ch_coords:
+#         neighbor_slice = tuple([slice(idx - max_dist, idx + max_dist + 1)
+#                                 for idx in ch_coord.round().astype(int)])
+#         elec_mask[neighbor_slice] = 1
+#
+#     CT_binarized = np.logical_and(elec_mask, CT_data > thresh)
+#     label_image, n_features = label(CT_binarized,
+#                                     structure=np.ones((3, 3, 3)))
+#
 #     elec_image = np.zeros(subject_brain.shape, dtype=int)
 #     for i, ch_coord in enumerate(ch_coords):
-#         # this looks up to a voxel away, it may be marked imperfectly
-#         volume = mne.voxel_neighbors(ch_coord, CT_data, thresh)
-#         for voxel in volume:
-#             if elec_image[voxel] != 0:
-#                 # some voxels ambiguous because the contacts are bridged on
-#                 # the CT so assign the voxel to the nearest contact location
-#                 dist_old = np.sqrt(
-#                     (ch_coords[elec_image[voxel] - 1] - voxel)**2).sum()
-#                 dist_new = np.sqrt((ch_coord - voxel)**2).sum()
-#                 if dist_new < dist_old:
-#                     elec_image[voxel] = i + 1
-#             else:
-#                 elec_image[voxel] = i + 1
+#         neighbor_slice = tuple([slice(idx - max_dist, idx + max_dist + 1)
+#                                 for idx in ch_coord.round().astype(int)])
+#         # iterate through all labels (non-zero entries)
+#         for label_idx in np.delete(np.unique(label_image[neighbor_slice]),
+#                                    0):
+#             volume = np.array(np.where(label_image == label_idx))
+#             for voxel in volume.T:
+#                 if elec_image[tuple(voxel)] != 0:
+#                     # some voxels ambiguous because the contacts are bridged
+#                     # on the CT so assign the voxel to the nearest contact
+#                     # location
+#                     dist_old = np.sqrt(
+#                         (ch_coords[elec_image[voxel] - 1] - voxel)**2).sum()
+#                     dist_new = np.sqrt((ch_coord - voxel)**2).sum()
+#                     if dist_new < dist_old:
+#                         elec_image[tuple(voxel)] = i + 1
+#                 else:
+#                     elec_image[tuple(voxel)] = i + 1
 #
 #     # Apply the mapping
 #     warped_elec_image = mapping.transform(elec_image,
@@ -456,7 +474,7 @@ fig = mne.viz.plot_alignment(raw.info, trans, 'fsaverage',
 
 ###############################################################################
 # This pipeline was developed based on previous work
-# :footcite:`Hamitonetal2017`.
+# :footcite:`HamiltonEtAl2017`.
 
 ###############################################################################
 # References

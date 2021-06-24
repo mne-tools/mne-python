@@ -15,8 +15,7 @@ from mne.io import read_info
 from mne.io.constants import FIFF
 from mne.surface import (_compute_nearest, _tessellate_sphere, fast_cross_3d,
                          get_head_surf, read_curvature, get_meg_helmet_surf,
-                         _normal_orth, _read_patch, marching_cubes,
-                         voxel_neighbors)
+                         _normal_orth, _read_patch, marching_cubes)
 from mne.transforms import _get_trans
 from mne.utils import (requires_vtk, catch_logging,
                        object_diff, requires_freesurfer)
@@ -229,15 +228,3 @@ def test_marching_cubes():
     # verts and faces are rather large so use checksum
     np.testing.assert_allclose(verts.sum(axis=0), [14700, 14700, 14700])
     np.testing.assert_allclose(triangles.sum(axis=0), [363402, 360865, 350588])
-
-
-def test_voxel_neighbors():
-    """Test finding points above a threshold near a seed location."""
-    image = np.zeros((10, 10, 10))
-    image[4:7, 4:7, 4:7] = 3
-    image[5, 5, 5] = 4
-    volume = voxel_neighbors((5.5, 5.1, 4.9), image, thresh=2)
-    true_volume = set([(5, 4, 5), (5, 5, 4), (5, 5, 5), (6, 5, 5),
-                       (5, 6, 5), (5, 5, 6), (4, 5, 5)])
-    assert volume.difference(true_volume) == set()
-    assert true_volume.difference(volume) == set()
