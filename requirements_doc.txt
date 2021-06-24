@@ -10,4 +10,3 @@ seaborn
 sphinx_copybutton
 https://github.com/mne-tools/mne-bids/archive/main.zip
 pyxdf
-nipy
