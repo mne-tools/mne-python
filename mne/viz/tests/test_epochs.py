@@ -34,6 +34,7 @@ event_id, tmin, tmax = 1, -0.1, 1.0
 layout = read_layout('Vectorview-all')
 test_base_dir = testing.data_path(download=False)
 ctf_fname = op.join(test_base_dir, 'CTF', 'testdata_ctf.ds')
+rng = np.random.default_rng(42)
 
 
 def _get_epochs(stop=5, meg=True, eeg=False, n_chan=20):
@@ -217,6 +218,18 @@ def test_plot_epochs_keypresses():
     for key in keys * 2:  # test twice → once in normal, once in butterfly view
         fig.canvas.key_press_event(key)
     _fake_click(fig, data_ax, [x, y], xform='data', button=3)  # remove vlines
+
+
+def test_plot_overlapping_epochs_with_events():
+    data = rng.normal(size=(3, 2, 100))  # 3 epochs, 2 channels, 100 samples
+    sfreq = 100
+    info = create_info(
+        ch_names=('a', 'b'), ch_types=('misc', 'misc'), sfreq=sfreq)
+    # 90% overlap, so all 3 events should appear in all 3 epochs when plotted:
+    events = np.column_stack(([50, 60, 70], [0, 0, 0], [1, 2, 3]))
+    epochs = EpochsArray(data, info, tmin=-0.5, events=events)
+    fig = epochs.plot(events=events, picks='misc')
+    assert len(fig.mne.event_lines.get_segments()) == 9
 
 
 def test_epochs_plot_sensors(epochs):
