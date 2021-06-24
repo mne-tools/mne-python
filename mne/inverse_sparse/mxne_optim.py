@@ -186,7 +186,7 @@ def primal_l21(M, G, X, active_set, alpha, n_orient, return_primal_only=True):
         The gain matrix a.k.a. lead field.
     X : array, shape (n_active, n_times)
         Sources.
-    active_set : array of bool, shape (n_sources, )
+    active_set : array of bool, shape (n_sources,)
         Mask of active sources.
     alpha : float
         The regularization parameter.
