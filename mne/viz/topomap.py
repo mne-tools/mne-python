@@ -958,7 +958,6 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
 
     # plot interpolated map
     if cnorm is None:
-        from matplotlib.colors import Normalize
         cnorm = Normalize(vmin=vmin, vmax=vmax)
     im = ax.imshow(Zi, cmap=cmap, origin='lower', aspect='equal',
                    extent=extent, interpolation=image_interp, norm=cnorm)
