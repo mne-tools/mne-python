@@ -271,17 +271,17 @@ subject_brain = nib.load(op.join(misc_path, 'seeg', 'sample_seeg_brain.mgz'))
 verts, triangles = mne.marching_cubes(subject_brain.get_fdata(), level=100)
 # transform from voxels to surface RAS
 verts = mne.transforms.apply_trans(
-    subject_brain.header.get_vox2ras_tkr(), verts)
+    subject_brain.header.get_vox2ras_tkr(), verts) / 1000.  # to meters
 
-renderer = mne.viz.backends.renderer.create_3d_figure(
-    size=(1200, 900), bgcolor='w', scene=False)
-mne.viz.set_3d_view(figure=renderer.figure, distance=700,
-                    azimuth=40, elevation=60, focalpoint=(0., 0., -45.))
+fig_kwargs = dict(size=(800, 600), bgcolor='w', scene=False)
+renderer = mne.viz.backends.renderer.create_3d_figure(**fig_kwargs)
 renderer.mesh(*verts.T, triangles=triangles, color='gray',
               opacity=0.05, representation='surface')
 for ch_coord in ch_coords:
-    renderer.sphere(center=tuple(ch_coord), color='red', scale=5)
-
+    renderer.sphere(center=tuple(ch_coord / 1000.), color='y', scale=0.005)
+view_kwargs = dict(azimuth=40, elevation=60)
+mne.viz.set_3d_view(renderer.figure, focalpoint=(0, 0, 0), distance=0.3,
+                    **view_kwargs)
 renderer.show()
 
 ###############################################################################
@@ -451,9 +451,12 @@ raw.set_montage(montage)
 trans = mne.channels.compute_native_head_t(montage)
 
 # plot the resulting alignment
+renderer = mne.viz.backends.renderer.create_3d_figure(**fig_kwargs)
 fig = mne.viz.plot_alignment(raw.info, trans, 'fsaverage',
+                             fig=renderer.figure,
                              subjects_dir=subjects_dir, show_axes=True,
-                             surfaces=['pial', 'head'])
+                             surfaces=dict(pial=0.2, head=0.2))
+mne.viz.set_3d_view(fig, focalpoint=(0, 0, 0.05), distance=0.4, **view_kwargs)
 
 ###############################################################################
 # This pipeline was developed based on previous work
