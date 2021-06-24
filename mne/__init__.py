@@ -62,7 +62,8 @@ from .source_estimate import (read_source_estimate,
                               spatio_temporal_dist_adjacency,
                               extract_label_time_course, stc_near_sensors)
 from .surface import (read_surface, write_surface, decimate_surface, read_tri,
-                      get_head_surf, get_meg_helmet_surf, dig_mri_distances)
+                      get_head_surf, get_meg_helmet_surf, dig_mri_distances,
+                      marching_cubes, voxel_neighbors)
 from .morph_map import read_morph_map
 from .morph import (SourceMorph, read_source_morph, grade_to_vertices,
                     compute_source_morph)
