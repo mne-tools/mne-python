@@ -25,7 +25,8 @@ from ..io.pick import (pick_types, _picks_by_type, pick_info, pick_channels,
                        _pick_data_channels, _picks_to_idx, _get_channel_types,
                        _MEG_CH_TYPES_SPLIT)
 from ..utils import (_clean_names, _time_mask, verbose, logger, fill_doc,
-                     _validate_type, _check_sphere, _check_option, _is_numeric)
+                     _validate_type, _check_sphere, _check_option, _is_numeric,
+                     warn, check_version)
 from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox, figure_nobar,
                     plt_show, _process_times, DraggableColorbar,
@@ -690,7 +691,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                  contours=6, image_interp='bilinear', show=True,
                  onselect=None, extrapolate=_EXTRAPOLATE_DEFAULT,
                  sphere=None, border=_BORDER_DEFAULT,
-                 ch_type='eeg'):
+                 ch_type='eeg', cnorm=None):
     """Plot a topographic map as image.
 
     Parameters
@@ -757,19 +758,60 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     %(topomap_border)s
     %(topomap_ch_type)s
 
+        ..versionadded:: 0.24.0
+    cnorm : matplotlib.colors.Normalize | None
+        Colormap normalization, default None means linear normalization. If not
+        None, ``vmin`` and ``vmax`` arguments are ignored. See Notes for more
+        details.
+
+        .. versionadded:: 0.24
+
     Returns
     -------
     im : matplotlib.image.AxesImage
         The interpolated data.
     cn : matplotlib.contour.ContourSet
         The fieldlines.
+
+    Notes
+    -----
+    The ``cnorm`` parameter can be used to implement custom colormap
+    normalization. By default, a linear mapping from vmin to vmax is used,
+    which correspond to the first and last colors in the colormap. This might
+    be undesired when vmin and vmax are not symmetrical around zero (or a value
+    that can be interpreted as some midpoint). For example, assume we want to
+    use the RdBu colormap (red to white to blue) for values ranging from -1 to
+    3, and 0 should be white. However, white corresponds to the midpoint in the
+    data by default, i.e. 1. Therefore, we use the following colormap
+    normalization ``cnorm`` and pass it as the the ``cnorm`` argument:
+
+        from matplotlib.colors import TwoSlopeNorm
+        cnorm = TwoSlopeNorm(vmin=-1, vcenter=0, vmax=3)
+
+    Note that because we define ``vmin`` and ``vmax`` in the normalization,
+    arguments ``vmin`` and ``vmax`` to ``plot_topomap`` will be ignored if a
+    normalization is provided. See the
+    :doc:`matplotlib docs <matplotlib:tutorials/colors/colormapnorms>`
+    for more details on colormap normalization.
     """
     sphere = _check_sphere(sphere)
+    if check_version("matplotlib", "3.2.0"):
+        from matplotlib.colors import TwoSlopeNorm
+    else:
+        from matplotlib.colors import DivergingNorm as TwoSlopeNorm
+    _validate_type(cnorm, (TwoSlopeNorm, None), 'cnorm')
+    if cnorm is not None:
+        if vmin is not None:
+            warn(f"vmin={cnorm.vmin} is implicitly defined by cnorm, ignoring "
+                 f"vmin={vmin}.")
+        if vmax is not None:
+            warn(f"vmax={cnorm.vmax} is implicitly defined by cnorm, ignoring "
+                 f"vmax={vmax}.")
     return _plot_topomap(data, pos, vmin, vmax, cmap, sensors, res, axes,
                          names, show_names, mask, mask_params, outlines,
                          contours, image_interp, show,
                          onselect, extrapolate, sphere=sphere, border=border,
-                         ch_type=ch_type)[:2]
+                         ch_type=ch_type, cnorm=cnorm)[:2]
 
 
 def _setup_interp(pos, res, extrapolate, sphere, outlines, border):
@@ -828,7 +870,8 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                   mask_params=None, outlines='head',
                   contours=6, image_interp='bilinear', show=True,
                   onselect=None, extrapolate=_EXTRAPOLATE_DEFAULT, sphere=None,
-                  border=_BORDER_DEFAULT, ch_type='eeg'):
+                  border=_BORDER_DEFAULT, ch_type='eeg', cnorm=None):
+    from matplotlib.colors import Normalize
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RectangleSelector
     data = np.asarray(data)
@@ -915,9 +958,10 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     patch_ = _get_patch(outlines, extrapolate, interp, ax)
 
     # plot interpolated map
-    im = ax.imshow(Zi, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
-                   aspect='equal', extent=extent,
-                   interpolation=image_interp)
+    if cnorm is None:
+        cnorm = Normalize(vmin=vmin, vmax=vmax)
+    im = ax.imshow(Zi, cmap=cmap, origin='lower', aspect='equal',
+                   extent=extent, interpolation=image_interp, norm=cnorm)
 
     # gh-1432 had a workaround for no contours here, but we'll remove it
     # because mpl has probably fixed it
