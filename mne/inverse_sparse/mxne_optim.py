@@ -252,7 +252,7 @@ def dgap_l21(M, G, X, active_set, alpha, n_orient):
     ----------
     .. footbibilography::
     """
-    p_obj, R, nR2, GX = primal_l21(M, G, X, active_set, alpha, n_orient, False)
+    p_obj, R, nR2, GX = _primal_l21(M, G, X, active_set, alpha, n_orient, False)
     dual_norm = norm_l2inf(np.dot(G.T, R), n_orient, copy=False)
     scaling = alpha / dual_norm
     scaling = min(scaling, 1.0)
