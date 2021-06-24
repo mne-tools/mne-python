@@ -216,7 +216,6 @@ def _primal_l21(M, G, X, active_set, alpha, n_orient, return_primal_only=True):
     return p_obj, R, nR2, GX
 
 
-
 def dgap_l21(M, G, X, active_set, alpha, n_orient):
     """Duality gap for the mixed norm inverse problem.
 
