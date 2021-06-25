@@ -811,6 +811,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
             if len(relevant_epoch_events) > 1 and not warned:
                 logger.info('You seem to have overlapping epochs. Some event '
                             'lines may be duplicated in the plot.')
+                warned = True                            
             offsets = samp - relevant_epoch_events + epochs.time_as_index(0)
             this_event_times = (_ixs * epoch_n_samps + offsets) / sfreq
             event_times.extend(this_event_times)
