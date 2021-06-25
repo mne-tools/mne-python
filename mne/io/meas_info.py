@@ -2228,17 +2228,16 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
     none_meas_date = info['meas_date'] is None
 
     if none_meas_date:
-        warn('Input info has \'meas_date\' set to None.'
-             ' Removing all information from time/date structures.'
-             ' *NOT* performing any time shifts')
-        info['meas_date'] = None
+        if daysback is not None:
+            warn('Input info has "meas_date" set to None. '
+                 'Removing all information from time/date structures, '
+                 '*NOT* performing any time shifts!')
     else:
         # compute timeshift delta
         if daysback is None:
             delta_t = info['meas_date'] - default_anon_dos
         else:
             delta_t = datetime.timedelta(days=daysback)
-        # adjust meas_date
         info['meas_date'] = info['meas_date'] - delta_t
 
     # file_id and meas_id

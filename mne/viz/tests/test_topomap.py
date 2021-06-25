@@ -24,7 +24,7 @@ from mne.io import read_raw_fif, read_info, RawArray
 from mne.io.constants import FIFF
 from mne.io.pick import pick_info, channel_indices_by_type
 from mne.io.compensator import get_current_comp
-from mne.channels import read_layout, make_dig_montage
+from mne.channels import read_layout, make_dig_montage, make_standard_montage
 from mne.datasets import testing
 from mne.time_frequency.tfr import AverageTFR
 
@@ -32,7 +32,7 @@ from mne.viz import plot_evoked_topomap, plot_projs_topomap, topomap
 from mne.viz.topomap import (_get_pos_outlines, _onselect, plot_topomap,
                              plot_arrowmap, plot_psds_topomap)
 from mne.viz.utils import _find_peaks, _fake_click
-from mne.utils import requires_sklearn
+from mne.utils import requires_sklearn, check_version
 
 
 data_dir = testing.data_path(download=False)
@@ -602,3 +602,32 @@ def test_plot_cov_topomap():
     cov.plot_topomap(info)
     cov.plot_topomap(info, noise_cov=cov)
     plt.close('all')
+
+
+def test_plot_topomap_cnorm():
+    """Test colormap normalization."""
+    if check_version("matplotlib", "3.2.0"):
+        from matplotlib.colors import TwoSlopeNorm
+    else:
+        from matplotlib.colors import DivergingNorm as TwoSlopeNorm
+
+    np.random.seed(42)
+    v = np.random.uniform(low=-1, high=2.5, size=64)
+    v[:3] = [-1, 0, 2.5]
+
+    montage = make_standard_montage("biosemi64")
+    info = create_info(montage.ch_names, 256, "eeg").set_montage("biosemi64")
+    cnorm = TwoSlopeNorm(vmin=-1, vcenter=0, vmax=2.5)
+
+    # pass only cnorm, no vmin/vmax
+    plot_topomap(v, info, cnorm=cnorm)
+
+    # pass cnorm and vmin
+    msg = "vmin=-1 is implicitly defined by cnorm, ignoring vmin=-10."
+    with pytest.warns(RuntimeWarning, match=msg):
+        plot_topomap(v, info, vmin=-10, cnorm=cnorm)
+
+    # pass cnorm and vmax
+    msg = "vmax=2.5 is implicitly defined by cnorm, ignoring vmax=10."
+    with pytest.warns(RuntimeWarning, match=msg):
+        plot_topomap(v, info, vmax=10, cnorm=cnorm)

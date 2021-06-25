@@ -1646,3 +1646,116 @@ def dig_mri_distances(info, trans, subject, subjects_dir=None,
         info, dig_kinds, exclude_frontal=exclude_frontal)
     dists = _compute_nearest(pts, info_dig, return_dists=True)[1]
     return dists
+
+
+def marching_cubes(image, level):
+    """Compute marching cubes on an N dimensional image.
+
+    The same as ``skimage.measure.marching_cubes`` but uses the
+    implementation in vtk.
+
+    Parameters
+    ----------
+    image : ndarray
+        The image to compute marching cubes with.
+    level : float
+        The contour value to search for isosurfaces in ``image``.
+
+    Returns
+    -------
+    verts : ndarray
+        The spatial coordinates for unique mesh vertices.
+    triangles : ndarray
+        The locations of connections between ``verts`` to form faces.
+    """
+    from vtk import VTK_DOUBLE, vtkImageData, vtkMarchingCubes
+    from vtk.util import numpy_support
+    if image.ndim != 3:
+        raise ValueError(f'3D data must be supplied, got {image.shape}')
+    data_vtk = numpy_support.numpy_to_vtk(
+        image.ravel(), deep=True, array_type=VTK_DOUBLE
+    )
+    # create image
+    imdata = vtkImageData()
+    imdata.SetDimensions(image.shape)
+    imdata.SetSpacing([1, 1, 1])
+    imdata.SetOrigin([0, 0, 0])
+    imdata.GetPointData().SetScalars(data_vtk)
+
+    # compute marching cubes
+    mc = vtkMarchingCubes()
+    mc.SetInputData(imdata)
+    mc.SetValue(0, level)
+    mc.Update()
+    polydata = mc.GetOutput()
+
+    verts = numpy_support.vtk_to_numpy(polydata.GetPoints().GetData())
+    triangles = numpy_support.vtk_to_numpy(
+        polydata.GetPolys().GetConnectivityArray()).reshape(-1, 3)
+    verts = np.flip(verts, axis=1)
+    triangles = np.flip(triangles, axis=1)
+    return verts, triangles
+
+
+def _get_neighbors(loc, image, thresh, voxels):
+    """Find all the neighbors above a threshold near a voxel."""
+    neighbors = set()
+    for axis in range(len(loc)):
+        for i in (-1, 1):
+            next_loc = np.array(loc)
+            next_loc[axis] += i
+            next_loc = tuple(next_loc)
+            # must be above thresh, monotonically decreasing from
+            # the peak and not already found
+            if image[next_loc] > thresh and \
+                    image[next_loc] < image[loc] and \
+                    next_loc not in voxels:
+                neighbors.add(next_loc)
+    return neighbors
+
+
+def voxel_neighbors(seed, image, thresh, max_peak_dist=1, voxels_max=100):
+    """Find voxels above a threshold contiguous with a seed location.
+
+    Parameters
+    ----------
+    seed : tuple | ndarray
+        The location in image coordinated to seed the algorithm.
+    image : ndarray
+        The image to search.
+    thresh : float
+        The threshold to use as a cutoff for what qualifies as a
+        neighbor.
+    max_peak_dist : int
+        The maximum number of voxels to search for the peak near
+        the seed location.
+    voxels_max : int
+        The maximum size of the output ``voxels``.
+
+    Returns
+    -------
+    voxels : set
+        The set of locations including the ``seed`` voxel and
+        surrounding it that are above a threshold.
+
+    .. note::
+        First a peak nearby the seed location is found and then voxels are
+        only included if they decrease monotonically from the peak.
+    """
+    seed = np.array(seed).round().astype(int)
+    check_grid = image[tuple([
+        slice(idx - max_peak_dist, idx + max_peak_dist + 1) for idx in seed])]
+    peak = np.array(np.unravel_index(
+        np.argmax(check_grid), check_grid.shape)) - max_peak_dist + seed
+    voxels = neighbors = set([tuple(peak)])
+    while neighbors and len(voxels) <= voxels_max:
+        next_neighbors = set()
+        for next_loc in neighbors:
+            voxel_neighbors = _get_neighbors(next_loc, image,
+                                             thresh, voxels)
+            voxels = voxels.union(voxel_neighbors)
+            if len(voxels) > voxels_max:
+                break
+            next_neighbors = next_neighbors.union(voxel_neighbors)
+        neighbors = next_neighbors
+    return voxels

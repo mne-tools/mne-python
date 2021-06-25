@@ -101,6 +101,8 @@ class _Figure(object):
                 _process_events(plotter)
                 kind = 'bigsur-' if platform.mac_ver()[0] >= '10.16' else ''
                 plotter.set_icon(f":/mne-{kind}icon.png")
+        if self.plotter.iren is not None:
+            self.plotter.iren.initialize()
         _process_events(self.plotter)
         _process_events(self.plotter)
         return self.plotter
