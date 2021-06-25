@@ -219,6 +219,19 @@ def test_plot_epochs_keypresses():
     _fake_click(fig, data_ax, [x, y], xform='data', button=3)  # remove vlines
 
 
+def test_plot_overlapping_epochs_with_events():
+    """Test drawing of event lines in overlapping epochs."""
+    data = np.zeros(shape=(3, 2, 100))  # 3 epochs, 2 channels, 100 samples
+    sfreq = 100
+    info = create_info(
+        ch_names=('a', 'b'), ch_types=('misc', 'misc'), sfreq=sfreq)
+    # 90% overlap, so all 3 events should appear in all 3 epochs when plotted:
+    events = np.column_stack(([50, 60, 70], [0, 0, 0], [1, 2, 3]))
+    epochs = EpochsArray(data, info, tmin=-0.5, events=events)
+    fig = epochs.plot(events=events, picks='misc')
+    assert len(fig.mne.event_lines.get_segments()) == 9
+
+
 def test_epochs_plot_sensors(epochs):
     """Test sensor plotting."""
     epochs.plot_sensors()
