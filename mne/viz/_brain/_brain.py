@@ -1827,7 +1827,32 @@ class Brain(object):
             actor = self._renderer._actor(mapper)
             self._renderer.plotter.add_actor(actor)
 
-        self._update()
+            def _func(value):
+                scalars = self._sensors_data[eeg_picks.tolist(), int(value)]
+                rng = [np.min(scalars), np.max(scalars)]
+                self._renderer._set_mesh_scalars(
+                    mesh=self._eeg_grid,
+                    scalars=scalars,
+                    name="data"
+                )
+                mapper.SetScalarRange(*rng)
+                self._renderer._update()
+
+            self.widgets = dict()
+            self.callbacks = dict()
+            self._renderer._dock_initialize()
+            self.widgets["sensors"] = self._renderer._dock_add_slider(
+                name="Sensors",
+                value=0,
+                rng=[0, self._sensors_data.shape[1] - 1],
+                double=True,
+                callback=_func,
+                compact=False,
+            )
+            self._renderer._dock_finalize()
+            # self.callbacks["sensors"].widget = self.widgets["sensors"]
+
+        self._renderer._update()
 
     @verbose
     def add_data(self, array, fmin=None, fmid=None, fmax=None,
