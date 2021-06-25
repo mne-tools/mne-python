@@ -220,6 +220,7 @@ def test_plot_epochs_keypresses():
 
 
 def test_plot_overlapping_epochs_with_events():
+    """Test drawing of event lines in overlapping epochs."""
     data = np.zeros(shape=(3, 2, 100))  # 3 epochs, 2 channels, 100 samples
     sfreq = 100
     info = create_info(
