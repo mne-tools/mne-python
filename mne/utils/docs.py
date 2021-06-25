@@ -2418,7 +2418,8 @@ niter : dict | tuple | None
     provided, it will be used for all steps (except center of mass, which does
     not iterate). It should have length 3 to
     correspond to ``sigmas=[3.0, 1.0, 0.0]`` and ``factors=[4, 2, 1]`` in
-    the pipeline (see :func:`dipy.align.affine_registration` for details).
+    the pipeline (see :func:`dipy.align.affine_registration
+    <dipy.align._public.affine_registration>` for details).
     If a dictionary is provided, number of iterations can be set for each
     step as a key. Steps not in the dictionary will use the default value.
     The default (None) is equivalent to::

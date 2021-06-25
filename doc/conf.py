@@ -151,7 +151,9 @@ intersphinx_mapping = {
     'mne_realtime': ('https://mne.tools/mne-realtime', None),
     'picard': ('https://pierreablin.github.io/picard/', None),
     'qdarkstyle': ('https://qdarkstylesheet.readthedocs.io/en/latest', None),
-    'eeglabio': ('https://eeglabio.readthedocs.io/en/latest', None)
+    'eeglabio': ('https://eeglabio.readthedocs.io/en/latest', None),
+    'dipy': ('https://dipy.org/documentation/1.4.0./',
+             'https://dipy.org/documentation/1.4.0./objects.inv/'),
 }
 
 
@@ -220,6 +222,9 @@ numpydoc_xref_aliases = {
     'EMS': 'mne.decoding.EMS', 'CSP': 'mne.decoding.CSP',
     'Beamformer': 'mne.beamformer.Beamformer',
     'Transform': 'mne.transforms.Transform',
+    # dipy
+    'dipy.align.AffineMap': 'dipy.align.imaffine.AffineMap',
+    'dipy.align.DiffeomorphicMap': 'dipy.align.imwarp.DiffeomorphicMap',
 }
 numpydoc_xref_ignore = {
     # words
@@ -251,8 +256,6 @@ numpydoc_xref_ignore = {
     'CoregFrame', 'Kit2FiffFrame', 'FiducialsFrame',
     # dipy has resolution problems, wait for them to be solved, e.g.
     # https://github.com/dipy/dipy/issues/2290
-    'dipy.align.AffineMap',
-    'dipy.align.DiffeomorphicMap',
 }
 numpydoc_validate = True
 numpydoc_validation_checks = {'all'} | set(error_ignores)

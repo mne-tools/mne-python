@@ -1551,7 +1551,8 @@ def compute_volume_registration(moving, static, pipeline='all', zooms=None,
     Notes
     -----
     This function is heavily inspired by and extends
-    :func:`dipy.align.affine_registration`.
+    :func:`dipy.align.affine_registration
+    <dipy.align._public.affine_registration>`.
 
     .. versionadded:: 0.24
     """

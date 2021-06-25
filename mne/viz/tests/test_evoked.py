@@ -323,6 +323,7 @@ def test_plot_white():
     evoked_sss.plot_white(cov, time_unit='s')
 
 
+@pytest.mark.slowtest  # slow on Azure
 def test_plot_compare_evokeds():
     """Test plot_compare_evokeds."""
     evoked = _get_epochs().average()
