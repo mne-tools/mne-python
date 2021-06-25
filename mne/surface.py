@@ -1737,6 +1737,10 @@ def voxel_neighbors(seed, image, thresh, max_peak_dist=1, voxels_max=100):
     voxels : set
         The set of locations including the ``seed`` voxel and
         surrounding it that are above a threshold.
+
+    .. note::
+        First a peak nearby the seed location is found and then voxels are
+        only included if they decrease monotonically from the peak.
     """
     seed = np.array(seed).round().astype(int)
     check_grid = image[tuple([
