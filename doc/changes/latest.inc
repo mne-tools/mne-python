@@ -103,4 +103,4 @@ Bugs
 
 API changes
 ~~~~~~~~~~~
-- Nothing yet
+- In `mne.compute_source_morph`, the ``niter_affine`` and ``niter_sdr`` parameters have been replaced by ``niter`` and ``pipeline`` parameters for more consistent and finer-grained control of registration/warping steps and iteration (:gh:`9503` by `Eric Larson`_)

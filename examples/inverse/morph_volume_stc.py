@@ -81,10 +81,10 @@ stc.crop(0.09, 0.09)
 # A standard usage for volumetric data reads:
 
 src_fs = mne.read_source_spaces(fname_src_fsaverage)
+niter = dict(rigid=(10, 10, 5), affine=(10, 10, 5))  # just for speed
 morph = mne.compute_source_morph(
     inverse_operator['src'], subject_from='sample', subjects_dir=subjects_dir,
-    niter_affine=[10, 10, 5], niter_sdr=[10, 10, 5],  # just for speed
-    src_to=src_fs, verbose=True)
+    niter=niter, src_to=src_fs, verbose=True)
 
 ###############################################################################
 # Apply morph to VolSourceEstimate

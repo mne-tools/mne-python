@@ -32,7 +32,7 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
                          niter_affine=None, niter_sdr=None,
                          spacing=5, smooth=None, warn=True, xhemi=False,
                          sparse=False, src_to=None, precompute=False, *,
-                         niter=None, pipeline='full', verbose=False):
+                         niter=None, pipeline='all', verbose=False):
     """Create a SourceMorph from one subject to another.
 
     Method is based on spherical morphing by FreeSurfer for surface
@@ -188,7 +188,7 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
     niter_dep = dict(affine=niter_affine, sdr=niter_sdr)
     for key in ('affine', 'sdr'):
         val = niter_dep[key]
-        name = f'nditer_{key}'
+        name = f'niter_{key}'
         _validate_type(val, (list, tuple, None), name)
         if val is not None:
             if niter is not None:
@@ -319,6 +319,7 @@ def _compute_sparse_morph(vertices_from, subject_from, subject_to,
     return vertices, morph_mat
 
 
+# XXX need to replace niter_affine and niter_sdr with niter
 _SOURCE_MORPH_ATTRIBUTES = [  # used in writing
     'subject_from', 'subject_to', 'kind', 'zooms', 'niter_affine', 'niter_sdr',
     'spacing', 'smooth', 'xhemi', 'morph_mat', 'vertices_to',
@@ -1049,7 +1050,7 @@ def _validate_niter(niter):
     _validate_type(niter, (dict, list, tuple, None), 'niter')
     niter = _handle_default('transform_niter', niter)
     for key, value in niter.items():
-        _check_option('niter key', key, _ORDERED_STEPS)
+        _check_option('niter key', key, _ORDERED_STEPS[1:])
         _check_option(f'len(niter[{repr(key)}])', len(value), (1, 2, 3))
     return niter
 
@@ -1072,7 +1073,7 @@ def _compute_morph_sdr(mri_from, mri_to, pipeline, niter, zooms,
     # niter, zooms
     types = (list, tuple, 'numeric', None)
     if allow_separate_zooms:
-        types = ('dict',) + types
+        types = (dict,) + types
     _validate_type(zooms, types, 'zooms')
     zooms = _handle_default('transform_zooms', zooms)
     for key, val in zooms.items():
@@ -1142,9 +1143,6 @@ def _compute_morph_sdr(mri_from, mri_to, pipeline, niter, zooms,
                 mri_to_orig, these_zooms)
             last_zooms = these_zooms
         # set up Affine Registration
-        affreg = imaffine.AffineRegistration(
-            mi_metric, level_iters=niter[step],
-            sigmas=sigmas, factors=factors)
         if step == 'center_of_mass':
             logger.info('Computing center of mass:')
             pre_affine = imaffine.transform_centers_of_mass(
@@ -1153,6 +1151,9 @@ def _compute_morph_sdr(mri_from, mri_to, pipeline, niter, zooms,
             logger.info(f'    Translation: {dist:6.1f} mm')
         elif step != 'sdr':
             logger.info(f'Optimizing {step}:')
+            affreg = imaffine.AffineRegistration(
+                mi_metric, level_iters=niter[step],
+                sigmas=sigmas, factors=factors)
             if step == 'translation':
                 trans_inst = transforms.TranslationTransform3D()
             elif step == 'rigid':
@@ -1165,6 +1166,7 @@ def _compute_morph_sdr(mri_from, mri_to, pipeline, niter, zooms,
                     mri_to, mri_from, trans_inst, None,
                     mri_to_affine, mri_from_affine,
                     starting_affine=pre_affine.affine)
+            del affreg
         else:
             assert step == 'sdr'
 

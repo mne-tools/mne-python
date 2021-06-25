@@ -102,7 +102,6 @@ DEFAULTS = dict(
               'n': 1e9, 'p': 1e12, 'f': 1e15},
     transform_zooms=dict(affine=None, sdr=None),
     transform_niter=dict(
-        center_of_mass=(100, 100, 10),
         translation=(100, 100, 10),
         rigid=(100, 100, 10),
         affine=(100, 100, 10),

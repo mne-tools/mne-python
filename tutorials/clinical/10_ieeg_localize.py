@@ -128,7 +128,7 @@ del CT_resampled
 #
 # .. code-block:: python
 #
-#    affine, _ = compute_volume_registration(CT_orig, T1, rigid=True)
+#    affine, _ = compute_volume_registration(CT_orig, T1, pipeline='rigid')
 #
 # We want this to be a rigid transformation (just rotation + translation),
 # so we don't do a full affine registration or SDR here. Instead we use the

@@ -311,10 +311,11 @@ def test_volume_source_morph_basic(tmpdir):
 
     # terrible quality but fast
     zooms = 20
-    kwargs = dict(zooms=zooms, niter_sdr=(1,), niter_affine=(1,))
-    source_morph_vol = compute_source_morph(
-        subjects_dir=subjects_dir, src=fname_inv_vol,
-        subject_from='sample', **kwargs)
+    with pytest.deprecated_call(match='niter_sdr'):
+        source_morph_vol = compute_source_morph(
+            subjects_dir=subjects_dir, src=fname_inv_vol,
+            subject_from='sample', zooms=zooms, niter_sdr=(1,),
+            niter_affine=(1,))
     shape = (13,) * 3  # for the given zooms
 
     assert source_morph_vol.subject_from == 'sample'
@@ -333,6 +334,8 @@ def test_volume_source_morph_basic(tmpdir):
 
     fwd = read_forward_solution(fname_fwd_vol)
     fwd['src'][0]['subject_his_id'] = 'sample'  # avoid further warnings
+    niter = dict(translation=(1,), rigid=(1,), affine=(1,), sdr=(1,))
+    kwargs = dict(zooms=zooms, niter=niter)
     source_morph_vol = compute_source_morph(
         fwd['src'], 'sample', 'sample', subjects_dir=subjects_dir,
         **kwargs)
@@ -827,7 +830,7 @@ def _mixed_morph_srcs():
         morph = mne.compute_source_morph(
             src=src, subject_from='sample', subject_to='fsaverage',
             subjects_dir=subjects_dir, niter_affine=[1, 0, 0],
-            niter_sdr=[1, 0, 0], src_to=src_fs, smooth=5, verbose=True)
+            niter_sdr=[1], src_to=src_fs, smooth=5, verbose=True)
     return morph, src, src_fs
 
 

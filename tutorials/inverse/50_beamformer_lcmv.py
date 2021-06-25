@@ -269,10 +269,11 @@ fetch_fsaverage(subjects_dir)  # ensure fsaverage src exists
 fname_fs_src = subjects_dir + '/fsaverage/bem/fsaverage-vol-5-src.fif'
 
 src_fs = mne.read_source_spaces(fname_fs_src)
+# lower number of iterations here just for speed
+niter = dict(rigid=(10, 10, 5), affine=[10, 10, 5])
 morph = mne.compute_source_morph(
     src, subject_from='sample', src_to=src_fs, subjects_dir=subjects_dir,
-    niter_sdr=[10, 10, 5], niter_affine=[10, 10, 5],  # just for speed
-    verbose=True)
+    niter=niter, verbose=True)
 stc_fs = morph.apply(stc)
 del stc
 

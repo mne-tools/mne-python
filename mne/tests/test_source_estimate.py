@@ -1774,7 +1774,7 @@ def test_scale_morph_labels(kind, scale, monkeypatch, tmpdir):
     with ctx:  # vertices not included
         morph = compute_source_morph(
             src_from, subject_to=subject_to, src_to=src_to,
-            subjects_dir=tempdir, niter_sdr=(), smooth=1,
+            subjects_dir=tempdir, pipeline='affines', smooth=1,
             zooms=14., verbose=True)  # speed up with higher zooms
     if kind == 'volume':
         got_affine = morph.pre_affine.affine
