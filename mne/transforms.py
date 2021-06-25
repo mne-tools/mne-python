@@ -19,8 +19,7 @@ from .io.open import fiff_open
 from .io.tag import read_tag
 from .io.write import start_file, end_file, write_coord_trans
 from .utils import (check_fname, logger, verbose, _ensure_int, _validate_type,
-                    _check_path_like, get_subjects_dir, fill_doc, _check_fname,
-                    _check_option)
+                    _check_path_like, get_subjects_dir, fill_doc, _check_fname)
 
 
 # transformation from anterior/left/superior coordinate system to
@@ -1524,19 +1523,8 @@ def _euler_to_quat(euler):
     return quat
 
 
-def _validate_steps(param, validate_type=None, name=None):
-    """Validate that the param only contains accepted steps."""
-    for step in param:
-        if step not in ('trans', 'rotate', 'scale', 'sdr'):
-            raise TypeError(f"``step`` must be one of ``'trans', "
-                            "'rotate', 'scale', 'sdr'`` "
-                            f"got {step} instead")
-        if validate_type is not None:
-            _validate_type(param[step], validate_type, f"{name}['{step}'']")
-
-
 @verbose
-def compute_volume_registration(moving, static, steps='warp', zooms=None,
+def compute_volume_registration(moving, static, pipeline='all', zooms=None,
                                 niter=None, verbose=None):
     """Align two volumes using an affine and, optionally, SDR.
 
@@ -1544,31 +1532,15 @@ def compute_volume_registration(moving, static, steps='warp', zooms=None,
     ----------
     %(moving)s
     %(static)s
-    steps : str | list
-        The registration steps to perform. The possible steps are translation
-        (``"trans"``), rotation (``"rotate"``), scaling (``"scale"``)
-        and symmetric diffeomorphic registration which is a non-linear
-        similarity-matching algorithm (``"sdr"``). If ``"warp"`` (default),
-        all the steps will be performed. If ``rigid``, only the translation
-        and rotation steps will be performed, which registers the volume
-        without distorting its underlying structure. Can be a list of steps
-        with any steps that are to be skipped omitted.
+    %(pipeline)s
     zooms : float | tuple | dict | None
         The voxel size of volume for each spatial dimension in mm.
         If None (default), MRIs won't be resliced (slow, but most accurate).
         Can be a tuple to provide separate zooms for each dimension (X/Y/Z),
-        or a dict with keys ``"scale"`` and ``"sdr"`` (with values that are
+        or a dict with keys ``"affine"`` and ``"sdr"`` (with values that are
         float`, tuple, or None) to provide separate reslicing/accuracy for the
-        affine and SDR morph steps.
-    niter : dict | None
-        For each phase of the registration, ``niter`` is the number of
-        iterations per successive stage of optimization. The length of
-        ``niters`` defines the number of successive stages of optimization.
-        Default is ``(100, 100, 10)`` for the ``"trans"``, ``"rotate"`` and
-        ``"scale"`` steps and ``(5, 5, 3)`` for the ``"sdr"`` step. If a
-        tuple is provided, it will be used for all the steps. If a dictionary
-        is provided, number of iterations can be set for each step as a key.
-        Steps not in the dictionary will use the default value.
+        steps up through ``'affine'`` for the ``'sdr'`` step.
+    %(niter)s
     %(verbose)s
 
     Returns
@@ -1578,42 +1550,14 @@ def compute_volume_registration(moving, static, steps='warp', zooms=None,
 
     Notes
     -----
+    This function is heavily inspired by and extends
+    :func:`dipy.align.affine_registration`.
+
     .. versionadded:: 0.24
     """
     from .morph import _compute_morph_sdr
-    from nibabel.spatialimages import SpatialImage
-    _validate_type(moving, SpatialImage, 'moving')
-    _validate_type(static, SpatialImage, 'static')
-    _validate_type(steps, (list, tuple), 'steps')
-    _validate_type(zooms, (dict, list, tuple, 'numeric', None), 'zooms')
-    _validate_type(niter, (dict, None), 'niter')
-    if steps == 'warp':
-        steps = ('trans', 'rotate', 'scale', 'sdr')
-    elif steps == 'rigid':
-        steps = ('trans', 'rotate')
-    else:
-        _validate_steps(steps)
-    if zooms is None:
-        zooms = dict(trans=None, rotate=None, scale=None, sdr=None)
-    elif isinstance(zooms, dict):
-        _validate_steps(zooms, (list, tuple, 'numeric'), 'zooms')
-        niter.update({step: None for step in
-                      ('trans', 'rotate', 'scale', 'sdr')
-                      if step not in zooms})
-    else:
-        zooms = dict(trans=zooms, rotate=zooms, scale=zooms, sdr=zooms)
-    if niter is None:
-        niter = dict(trans=(100, 100, 10), rotate=(100, 100, 10),
-                     scale=(100, 100, 10), sdr=(5, 5, 3))
-    elif isinstance(niter, dict):
-        _validate_steps(niter, (list, tuple), 'niter')
-        niter.update({step: (5, 5, 3) if step == 'sdr' else (100, 100, 10)
-                      for step in ('trans', 'rotate', 'scale', 'sdr')
-                      if step not in niter})
-    _, _, _, pre_affine, sdr_morph = _compute_morph_sdr(
-        moving, static, niter_affine, niter_sdr,
-        affine_zooms=zooms.get('affine', None),
-        sdr_zooms=zooms.get('sdr', None), rigid_only=rigid)
+    _, pre_affine, sdr_morph = _compute_morph_sdr(
+        moving, static, pipeline, niter, zooms, allow_separate_zooms=True)
     return pre_affine, sdr_morph
 
 
@@ -1622,7 +1566,7 @@ def apply_volume_registration(moving, static, pre_affine, sdr_morph=None,
                               interpolation='linear', verbose=None):
     """Apply volume registration.
 
-    Uses warp parameters computed by
+    Uses registration parameters computed by
     :func:`~mne.transforms.compute_volume_registration`.
 
     Parameters
@@ -1632,16 +1576,16 @@ def apply_volume_registration(moving, static, pre_affine, sdr_morph=None,
     %(pre_affine)s
     %(sdr_morph)s
     interpolation : str
-        Interpolation to be used during the warp. Can be "linear" (default)
-        or "nearest".
+        Interpolation to be used during the interpolation.
+        Can be "linear" (default) or "nearest".
     %(verbose)s
 
     Returns
     -------
     aff_img : instance of SpatialImage
-        The image after affine warping.
+        The image after affine registration.
     sdr_img : instance of SpatialImage
-        The image after the affine and SDR warping.
+        The image after the affine registration and SDR warping.
 
     Notes
     -----
@@ -1657,7 +1601,7 @@ def apply_volume_registration(moving, static, pre_affine, sdr_morph=None,
     _validate_type(pre_affine, AffineMap, 'pre_affine')
     _validate_type(sdr_morph, (DiffeomorphicMap, None), 'sdr_morph')
     kind = 'pre' if sdr_morph is not None else ''
-    logger.info(f'Applying {kind}affine ...')
+    logger.info(f'Applying {kind}affine registration ...')
     aff_data = pre_affine.transform(
         _get_img_fdata(moving), interpolation, moving.affine,
         static.shape, static.affine)

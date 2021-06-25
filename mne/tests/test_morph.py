@@ -520,8 +520,8 @@ def test_volume_source_morph_round_trip(
     src_to, src_from = src[subject_to], src[subject_from]
     del src
     # No SDR just for speed once everything works
-    kwargs = dict(niter_sdr=(), niter_affine=(1,),
-                  subjects_dir=subjects_dir, verbose=True)
+    kwargs = dict(niter=dict(translation=(1,), rigid=(1,), affine=(1,)),
+                  pipeline='affines', subjects_dir=subjects_dir, verbose=True)
     morph_from_to = compute_source_morph(
         src=src_from, src_to=src_to, subject_to=subject_to, **kwargs)
     morph_to_from = compute_source_morph(
