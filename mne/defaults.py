@@ -100,7 +100,8 @@ DEFAULTS = dict(
         silhouette_alpha=None, silhouette_linewidth=2.),
     prefixes={'': 1e0, 'd': 1e1, 'c': 1e2, 'm': 1e3, 'µ': 1e6, 'u': 1e6,
               'n': 1e9, 'p': 1e12, 'f': 1e15},
-    transform_zooms=dict(affine=None, sdr=None),
+    transform_zooms=dict(
+        translation=None, rigid=None, affine=None, sdr=None),
     transform_niter=dict(
         translation=(100, 100, 10),
         rigid=(100, 100, 10),

@@ -2436,8 +2436,6 @@ pipeline : str | tuple
     performed, and do so by matching mutual information between the images
     (unless otherwise noted):
 
-    ``'center_of_mass'``
-        Translation (by center-of-mass matching).
     ``'translation'``
         Translation.
     ``'rigid'``
@@ -2453,15 +2451,15 @@ pipeline : str | tuple
 
     ``"all"`` (default)
         All steps will be performed above in the order above, i.e.,
-        ``('center_of_mass', 'translation', 'rigid', 'affine', 'sdr')``.
+        ``('translation', 'rigid', 'affine', 'sdr')``.
     ``'rigids'``
-        The rigid steps (first three) will be performed, which registers
+        The rigid steps (first two) will be performed, which registers
         the volume without distorting its underlying structure, i.e.,
-        ``('center_of_mass', 'translation', 'rigid')``. This is useful for
+        ``('translation', 'rigid')``. This is useful for
         example when registering images from the same subject, such as
         CT and MR images.
     ``'affines'``
-        The affine steps (first four) will be performed, i.e., omitting
+        The affine steps (first three) will be performed, i.e., omitting
         the SDR step.
 """
 

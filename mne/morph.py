@@ -202,7 +202,7 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
         else:
             niter_dep.pop(key)  # get rid of any None values
     if 'niter_affine' in niter_dep:
-        for key in ('center_of_mass', 'translation', 'rigid'):
+        for key in ('translation', 'rigid'):
             niter_dep[key] = niter_dep['affine']
     if niter is None:
         niter = niter_dep  # can be an empty dict, which will use defaults
@@ -1043,14 +1043,14 @@ def _reslice_normalize(img, zooms):
     return img, img_affine
 
 
-_ORDERED_STEPS = ('center_of_mass', 'translation', 'rigid', 'affine', 'sdr')
+_ORDERED_STEPS = ('translation', 'rigid', 'affine', 'sdr')
 
 
 def _validate_niter(niter):
     _validate_type(niter, (dict, list, tuple, None), 'niter')
     niter = _handle_default('transform_niter', niter)
     for key, value in niter.items():
-        _check_option('niter key', key, _ORDERED_STEPS[1:])
+        _check_option('niter key', key, _ORDERED_STEPS)
         _check_option(f'len(niter[{repr(key)}])', len(value), (1, 2, 3))
     return niter
 
@@ -1077,7 +1077,7 @@ def _compute_morph_sdr(mri_from, mri_to, pipeline, niter, zooms,
     _validate_type(zooms, types, 'zooms')
     zooms = _handle_default('transform_zooms', zooms)
     for key, val in zooms.items():
-        _check_option('zooms key', key, ('affine', 'sdr'))
+        _check_option('zooms key', key, _ORDERED_STEPS)
         if val is not None:
             val = tuple(
                 float(x) for x in np.array(val, dtype=float).ravel())
@@ -1096,10 +1096,10 @@ def _compute_morph_sdr(mri_from, mri_to, pipeline, niter, zooms,
         if pipeline == 'all':
             pipeline = _ORDERED_STEPS
         elif pipeline == 'rigids':
-            pipeline = _ORDERED_STEPS[:3]
+            pipeline = _ORDERED_STEPS[:_ORDERED_STEPS.index('rigid') + 1]
         else:
             assert pipeline == 'affines'
-            pipeline = _ORDERED_STEPS[:4]
+            pipeline = _ORDERED_STEPS[:_ORDERED_STEPS.index('affine') + 1]
     pipeline = tuple(pipeline)
     for ii, step in enumerate(pipeline):
         name = f'pipeline[{ii}]'
@@ -1134,7 +1134,7 @@ def _compute_morph_sdr(mri_from, mri_to, pipeline, niter, zooms,
     factors = [4, 2, 1]
     for step in pipeline:
         assert step in _ORDERED_STEPS
-        these_zooms = zooms['sdr' if step == 'sdr' else 'affine']
+        these_zooms = zooms[step]
         if these_zooms != last_zooms:
             logger.info(f'Reslicing to zooms={these_zooms} for {step} ...')
             mri_from, mri_from_affine = _reslice_normalize(
@@ -1143,18 +1143,17 @@ def _compute_morph_sdr(mri_from, mri_to, pipeline, niter, zooms,
                 mri_to_orig, these_zooms)
             last_zooms = these_zooms
         # set up Affine Registration
-        if step == 'center_of_mass':
-            logger.info('Computing center of mass:')
-            pre_affine = imaffine.transform_centers_of_mass(
-                mri_to, mri_to_affine, mri_from, mri_from_affine)
-            dist = np.linalg.norm(pre_affine.affine[:3, 3])
-            logger.info(f'    Translation: {dist:6.1f} mm')
-        elif step != 'sdr':
+        if step != 'sdr':
             logger.info(f'Optimizing {step}:')
             affreg = imaffine.AffineRegistration(
                 mi_metric, level_iters=niter[step],
                 sigmas=sigmas, factors=factors)
             if step == 'translation':
+                logger.info('    Initializing using center of mass:')
+                pre_affine = imaffine.transform_centers_of_mass(
+                    mri_to, mri_to_affine, mri_from, mri_from_affine)
+                dist = np.linalg.norm(pre_affine.affine[:3, 3])
+                logger.info(f'    Translation: {dist:6.1f} mm')
                 trans_inst = transforms.TranslationTransform3D()
             elif step == 'rigid':
                 trans_inst = transforms.RigidTransform3D()
@@ -1185,7 +1184,7 @@ def _compute_morph_sdr(mri_from, mri_to, pipeline, niter, zooms,
             mri_from_to = sdr_morph.transform(mri_from_to)
 
         # Report some useful information
-        if step in ('center_of_mass', 'translation', 'rigid'):
+        if step in ('translation', 'rigid'):
             dist = np.linalg.norm(pre_affine.affine[:3, 3])
             angle = np.rad2deg(_angle_between_quats(
                 np.zeros(3), rot_to_quat(pre_affine.affine[:3, :3])))

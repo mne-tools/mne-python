@@ -128,7 +128,8 @@ del CT_resampled
 #
 # .. code-block:: python
 #
-#    affine, _ = compute_volume_registration(CT_orig, T1, pipeline='rigid')
+#    affine_map, _ = compute_volume_registration(
+#        CT_orig, T1, pipeline='rigids', zooms=dict(translation=5))
 #
 # We want this to be a rigid transformation (just rotation + translation),
 # so we don't do a full affine registration or SDR here. Instead we use the
@@ -140,9 +141,9 @@ affine = np.array([
     [0.04601133, 0.99402046, -0.09902669, -97.64542095],
     [-0.11449119, 0.10372593, 0.98799428, -84.39915646],
     [0., 0., 0., 1.]])
-affine = AffineMap(
+affine_map = AffineMap(
     affine, T1.shape, T1.affine, CT_orig.shape, CT_orig.affine)
-CT_aligned, _ = mne.transforms.apply_volume_registration(CT_orig, T1, affine)
+CT_aligned = mne.transforms.apply_volume_registration(CT_orig, T1, affine_map)
 plot_overlay(T1, CT_aligned, 'Aligned CT Overlaid on T1', thresh=0.95)
 del CT_orig
 
@@ -267,19 +268,11 @@ plot_overlay(template_brain, subject_brain,
 #              warp for speed.
 
 pre_affine, sdr_morph = compute_volume_registration(
-    subject_brain, template_brain,
-    zooms=dict(affine=(6, 6, 6), sdr=(4, 4, 4)),
-    verbose=True)
+    subject_brain, template_brain, zooms=5, verbose=True)
 
 # Apply the transform to the subject brain to plot it
-subject_brain_aff, subject_brain_sdr = apply_volume_registration(
+subject_brain_sdr = apply_volume_registration(
     subject_brain, template_brain, pre_affine, sdr_morph)
-plot_overlay(template_brain, subject_brain_aff,
-             'Alignment with fsaverage after affine registration')
-
-###############################################################################
-# And then we can apply the SDR, which improves the match
-
 plot_overlay(template_brain, subject_brain_sdr,
              'Alignment with fsaverage after SDR Registration')
 
@@ -323,7 +316,7 @@ del subject_brain, CT_aligned, CT_data  # not used anymore
 
 ###############################################################################
 # Warp and plot the result
-_, warped_elec_image = apply_volume_registration(
+warped_elec_image = apply_volume_registration(
     elec_image, template_brain, pre_affine, sdr_morph, interpolation='nearest')
 fig = nilearn.plotting.plot_glass_brain(warped_elec_image)
 fig = fig.axes['x'].ax.figure
@@ -347,7 +340,7 @@ ch_coords = mne.transforms.apply_trans(
 # SDR to warp the positions of the electrode contacts, the position in the
 # template brain is able to be more accurately estimated.
 
-# sphinx_gallery_thumbnail_number = 9
+# sphinx_gallery_thumbnail_number = 8
 
 # load electrophysiology data
 raw = mne.io.read_raw(op.join(misc_path, 'seeg', 'sample_seeg_ieeg.fif'))

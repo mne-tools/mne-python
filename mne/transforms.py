@@ -1537,9 +1537,9 @@ def compute_volume_registration(moving, static, pipeline='all', zooms=None,
         The voxel size of volume for each spatial dimension in mm.
         If None (default), MRIs won't be resliced (slow, but most accurate).
         Can be a tuple to provide separate zooms for each dimension (X/Y/Z),
-        or a dict with keys ``"affine"`` and ``"sdr"`` (with values that are
-        float`, tuple, or None) to provide separate reslicing/accuracy for the
-        steps up through ``'affine'`` for the ``'sdr'`` step.
+        or a dict with keys ``['translation', 'rigid', 'affine', 'sdr']``
+        (each with values that are float`, tuple, or None) to provide separate
+        reslicing/accuracy for the steps.
     %(niter)s
     %(verbose)s
 
@@ -1583,10 +1583,8 @@ def apply_volume_registration(moving, static, pre_affine, sdr_morph=None,
 
     Returns
     -------
-    aff_img : instance of SpatialImage
-        The image after affine registration.
-    sdr_img : instance of SpatialImage
-        The image after the affine registration and SDR warping.
+    reg_img : instance of SpatialImage
+        The image after affine (and SDR, if provided) registration.
 
     Notes
     -----
@@ -1603,19 +1601,16 @@ def apply_volume_registration(moving, static, pre_affine, sdr_morph=None,
     _validate_type(sdr_morph, (DiffeomorphicMap, None), 'sdr_morph')
     kind = 'pre' if sdr_morph is not None else ''
     logger.info(f'Applying {kind}affine registration ...')
-    aff_data = pre_affine.transform(
+    reg_data = pre_affine.transform(
         _get_img_fdata(moving), interpolation, moving.affine,
         static.shape, static.affine)
-    aff_img = SpatialImage(aff_data, static.affine)
-    if sdr_morph is None:
-        sdr_img = None
-    else:
+    if sdr_morph is not None:
         logger.info('Appling SDR warp ...')
-        sdr_img = sdr_morph.transform(
-            aff_data,
+        reg_data = sdr_morph.transform(
+            reg_data,
             image_world2grid=np.linalg.inv(static.affine),
             out_shape=static.shape, out_grid2world=static.affine,
             interpolation=interpolation)
-        sdr_img = SpatialImage(sdr_img, static.affine)
+    reg_img = SpatialImage(reg_data, static.affine)
     logger.info('[done]')
-    return aff_img, sdr_img
+    return reg_img
