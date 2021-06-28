@@ -1012,7 +1012,7 @@ def _compute_morph_sdr(moving, static, niter, zooms, prealign=None):
         from dipy.align import imwarp, metrics
     moving, moving_affine = _reslice_normalize(moving, zooms)
     static, static_affine = _reslice_normalize(static, zooms)
-    logger.info(f'Computing nonlinear symmetric diffeomorphic registration '
+    logger.info('Computing nonlinear symmetric diffeomorphic registration '
                 '(SDR) ...')
     sdr = imwarp.SymmetricDiffeomorphicRegistration(
         metrics.CCMetric(3), niter)
