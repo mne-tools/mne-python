@@ -9,7 +9,6 @@ import warnings
 import copy
 import numpy as np
 
-from .defaults import _handle_default
 from .fixes import _get_img_fdata
 from .morph_map import read_morph_map
 from .parallel import parallel_func
@@ -18,11 +17,12 @@ from .source_estimate import (
     _get_ico_tris)
 from .source_space import SourceSpaces, _ensure_src, _grid_interp
 from .surface import mesh_edges, read_surface, _compute_nearest
-from .transforms import _angle_between_quats, rot_to_quat
+from .transforms import (compute_volume_registration, _reslice_normalize,
+                         _validate_niter)
 from .utils import (logger, verbose, check_version, get_subjects_dir,
                     warn as warn_, fill_doc, _check_option, _validate_type,
                     BunchConst, wrapped_stdout, _check_fname, warn,
-                    _ensure_int, ProgressBar, use_log_level)
+                    _ensure_int, ProgressBar, use_log_level, _check_dep)
 from .externals.h5io import read_hdf5, write_hdf5
 
 
@@ -181,7 +181,7 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
                          'sparse morph.')
 
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    shape = affine = pre_affine = sdr_morph = morph_mat = None
+    shape = pre_affine = sdr_morph = morph_mat = None
     vertices_to_surf, vertices_to_vol = list(), list()
 
     # niter_affine and niter_sdr deprecations (0.24)
@@ -212,6 +212,8 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
     if kind in ('volume', 'mixed'):
         _check_dep(nibabel='2.1.0', dipy='0.10.1')
         import nibabel as nib
+        with np.testing.suppress_warnings():
+            from dipy.align import imaffine
 
         logger.info('Volume source space(s) present...')
 
@@ -252,9 +254,13 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
             zooms_src_to = tuple(zooms_src_to)
 
         # pre-compute non-linear morph
-        zooms = _check_zooms(mri_from, zooms, zooms_src_to)
-        affine, pre_affine, sdr_morph = _compute_morph_sdr(
-            mri_from, mri_to, pipeline, niter, zooms)
+        pre_affine, sdr_morph = compute_volume_registration(
+            mri_from, mri_to, pipeline, niter,
+            5. if zooms == 'auto' else zooms)
+        # convert to affine map
+        pre_affine = imaffine.AffineMap(
+            pre_affine, mri_to.shape, mri_to.affine,
+            mri_from.shape, mri_to.affine)
         shape = tuple(pre_affine.domain_shape)
 
     if kind in ('surface', 'mixed'):
@@ -289,7 +295,7 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
         assert len(vertices_to) == len(src_to)
     morph = SourceMorph(subject_from, subject_to, kind, zooms,
                         niter['affine'], niter['sdr'], spacing, smooth, xhemi,
-                        morph_mat, vertices_to, shape, affine,
+                        morph_mat, vertices_to, shape, mri_to.affine,
                         pre_affine, sdr_morph, src_data, None)
     if precompute:
         morph.compute_vol_morph_mat()
@@ -700,22 +706,6 @@ def _debug_img(data, affine, title, shape=None):
     return
 
 
-def _check_zooms(mri_from, zooms, zooms_src_to):
-    # use voxel size of mri_from
-    if isinstance(zooms, str) and zooms == 'auto':
-        zooms = zooms_src_to if zooms_src_to is not None else 5.
-    if zooms is None:
-        zooms = mri_from.header.get_zooms()[:3]
-    zooms = np.atleast_1d(zooms).astype(float)
-    if zooms.shape == (1,):
-        zooms = np.repeat(zooms, 3)
-    if zooms.shape != (3,):
-        raise ValueError('zooms must be None, a singleton, or have shape (3,),'
-                         ' got shape %s' % (zooms.shape,))
-    zooms = tuple(zooms)
-    return zooms
-
-
 def _resample_from_to(img, affine, to_vox_map):
     # Wrap to dipy for speed, equivalent to:
     # from nibabel.processing import resample_from_to
@@ -789,24 +779,13 @@ def read_source_morph(fname):
 
 ###############################################################################
 # Helper functions for SourceMorph methods
-def _check_dep(nibabel='2.1.0', dipy='0.10.1'):
-    """Check dependencies."""
-    for lib, ver in zip(['nibabel', 'dipy'],
-                        [nibabel, dipy]):
-        passed = True if not ver else check_version(lib, ver)
-
-        if not passed:
-            raise ImportError('%s %s or higher must be correctly '
-                              'installed and accessible from Python' % (lib,
-                                                                        ver))
-
 
 def _morphed_stc_as_volume(morph, stc, mri_resolution, mri_space, output):
     """Return volume source space as Nifti1Image and/or save to disk."""
     assert isinstance(stc, _BaseVolSourceEstimate)  # should be guaranteed
     if stc._data_ndim == 3:
         stc = stc.magnitude()
-    _check_dep(nibabel='2.1.0', dipy=False)
+    _check_dep(nibabel='2.1.0')
 
     NiftiImage, NiftiHeader = _triage_output(output)
 
@@ -926,7 +905,7 @@ def _triage_output(output):
 
 def _interpolate_data(stc, morph, mri_resolution, mri_space, output):
     """Interpolate source estimate data to MRI."""
-    _check_dep(nibabel='2.1.0', dipy=False)
+    _check_dep(nibabel='2.1.0')
     NiftiImage, NiftiHeader = _triage_output(output)
     _validate_type(stc, _BaseVolSourceEstimate, 'stc',
                    'volume source estimate')
@@ -940,7 +919,7 @@ def _interpolate_data(stc, morph, mri_resolution, mri_space, output):
         mri_resolution = (float(mri_resolution),) * 3
 
     if isinstance(mri_resolution, tuple):
-        _check_dep(nibabel=False, dipy='0.10.1')  # nibabel was already checked
+        _check_dep(dipy='0.10.1')  # nibabel was already checked
         from dipy.align.reslice import reslice
 
         voxel_size = mri_resolution
@@ -1027,177 +1006,20 @@ def _interpolate_data(stc, morph, mri_resolution, mri_space, output):
 ###############################################################################
 # Morph for VolSourceEstimate
 
-def _compute_r2(a, b):
-    return 100 * (a.ravel() @ b.ravel()) / \
-        (np.linalg.norm(a) * np.linalg.norm(b))
-
-
-def _reslice_normalize(img, zooms):
-    from dipy.align.reslice import reslice
-    img_zooms = img.header.get_zooms()[:3]
-    img_affine = img.affine
-    img = _get_img_fdata(img)
-    if zooms is not None:
-        img, img_affine = reslice(img, img_affine, img_zooms, zooms)
-    img /= img.max()  # normalize
-    return img, img_affine
-
-
-_ORDERED_STEPS = ('translation', 'rigid', 'affine', 'sdr')
-
-
-def _validate_niter(niter):
-    _validate_type(niter, (dict, list, tuple, None), 'niter')
-    niter = _handle_default('transform_niter', niter)
-    for key, value in niter.items():
-        _check_option('niter key', key, _ORDERED_STEPS)
-        _check_option(f'len(niter[{repr(key)}])', len(value), (1, 2, 3))
-    return niter
-
-
-def _compute_morph_sdr(mri_from, mri_to, pipeline, niter, zooms,
-                       allow_separate_zooms=False):
+def _compute_morph_sdr(moving, static, niter, zooms, prealign=None):
     """Get a matrix that morphs data from one subject to another."""
-    _check_dep(nibabel='2.1.0', dipy='0.10.1')
-    from nibabel.spatialimages import SpatialImage
     with np.testing.suppress_warnings():
-        from dipy.align import imaffine, imwarp, metrics, transforms
-
-    #
-    # Input validation
-    #
-
-    _validate_type(mri_from, SpatialImage, 'moving image')
-    _validate_type(mri_to, SpatialImage, 'static image')
-
-    # niter, zooms
-    types = (list, tuple, 'numeric', None)
-    if allow_separate_zooms:
-        types = (dict,) + types
-    _validate_type(zooms, types, 'zooms')
-    zooms = _handle_default('transform_zooms', zooms)
-    for key, val in zooms.items():
-        _check_option('zooms key', key, _ORDERED_STEPS)
-        if val is not None:
-            val = tuple(
-                float(x) for x in np.array(val, dtype=float).ravel())
-            _check_option(f'len(zooms[{repr(key)})', len(val), (1, 3))
-            if len(val) == 1:
-                val = val * 3
-            zooms[key] = val
-    niter = _validate_niter(niter)
-
-    # pipeline
-    _validate_type(pipeline, (str, list, tuple), 'pipeline')
-    if isinstance(pipeline, str):
-        _check_option(
-            'pipeline', pipeline, ('all', 'rigids', 'affines'),
-            extra='when str')
-        if pipeline == 'all':
-            pipeline = _ORDERED_STEPS
-        elif pipeline == 'rigids':
-            pipeline = _ORDERED_STEPS[:_ORDERED_STEPS.index('rigid') + 1]
-        else:
-            assert pipeline == 'affines'
-            pipeline = _ORDERED_STEPS[:_ORDERED_STEPS.index('affine') + 1]
-    pipeline = tuple(pipeline)
-    for ii, step in enumerate(pipeline):
-        name = f'pipeline[{ii}]'
-        _validate_type(step, str, name)
-        _check_option(name, step, _ORDERED_STEPS)
-    ordered_pipeline = tuple(sorted(
-        pipeline, key=lambda x: _ORDERED_STEPS.index(x)))
-    if pipeline != ordered_pipeline:
-        raise ValueError(
-            f'Steps in pipeline are out of order, expected {ordered_pipeline} '
-            f'but got {pipeline} instead')
-    if len(set(pipeline)) != len(pipeline):
-        raise ValueError('Steps in pipeline should not be repeated')
-
-    #
-    # Actually do some computations
-    #
-    if 'sdr' in pipeline:
-        kind = 'nonlinear symmetric diffeomorphic registration (SDR)'
-    else:
-        kind = pipeline[-1].replace('_', ' ') + ' registration'
-    logger.info(f'Computing {kind} ...')
-
-    mri_from_orig = mri_from
-    mri_to_orig = mri_to
-    last_zooms = -1
-    pre_affine = imaffine.AffineMap(  # identity transform
-        None, mri_to.shape, mri_to.affine, mri_from.shape, mri_to.affine)
-    sdr_morph = None  # disabled
-    mi_metric = imaffine.MutualInformationMetric(nbins=32)
-    sigmas = [3.0, 1.0, 0.0]
-    factors = [4, 2, 1]
-    for step in pipeline:
-        assert step in _ORDERED_STEPS
-        these_zooms = zooms[step]
-        if these_zooms != last_zooms:
-            logger.info(f'Reslicing to zooms={these_zooms} for {step} ...')
-            mri_from, mri_from_affine = _reslice_normalize(
-                mri_from_orig, these_zooms)
-            mri_to, mri_to_affine = _reslice_normalize(
-                mri_to_orig, these_zooms)
-            last_zooms = these_zooms
-        # set up Affine Registration
-        if step != 'sdr':
-            logger.info(f'Optimizing {step}:')
-            affreg = imaffine.AffineRegistration(
-                mi_metric, level_iters=niter[step],
-                sigmas=sigmas, factors=factors)
-            if step == 'translation':
-                logger.info('    Initializing using center of mass:')
-                pre_affine = imaffine.transform_centers_of_mass(
-                    mri_to, mri_to_affine, mri_from, mri_from_affine)
-                dist = np.linalg.norm(pre_affine.affine[:3, 3])
-                logger.info(f'    Translation: {dist:6.1f} mm')
-                trans_inst = transforms.TranslationTransform3D()
-            elif step == 'rigid':
-                trans_inst = transforms.RigidTransform3D()
-            else:
-                assert step == 'affine'
-                trans_inst = transforms.AffineTransform3D()
-            with wrapped_stdout(indent='    ', cull_newlines=True):
-                pre_affine = affreg.optimize(
-                    mri_to, mri_from, trans_inst, None,
-                    mri_to_affine, mri_from_affine,
-                    starting_affine=pre_affine.affine)
-            del affreg
-        else:
-            assert step == 'sdr'
-
-        # Apply the current affine
-        mri_from_to = pre_affine.transform(
-            mri_from, 'linear', mri_from_affine,
-            mri_to.shape, mri_to_affine)
-
-        # Then run the SDR step (it operates on top of the affine)
-        if step == 'sdr':
-            logger.info('Optimizing SDR:')
-            sdr = imwarp.SymmetricDiffeomorphicRegistration(
-                metrics.CCMetric(3), niter['sdr'])
-            with wrapped_stdout(indent='    ', cull_newlines=True):
-                sdr_morph = sdr.optimize(mri_to, mri_from_to)
-            mri_from_to = sdr_morph.transform(mri_from_to)
-
-        # Report some useful information
-        if step in ('translation', 'rigid'):
-            dist = np.linalg.norm(pre_affine.affine[:3, 3])
-            angle = np.rad2deg(_angle_between_quats(
-                np.zeros(3), rot_to_quat(pre_affine.affine[:3, :3])))
-            logger.info(f'    Translation: {dist:6.1f} mm')
-            if step == 'rigid':
-                logger.info(f'    Rotation:    {angle:6.1f}°')
-        logger.info(
-            f'    R²:          {_compute_r2(mri_to, mri_from_to):6.1f}%')
-
-    _debug_img(mri_from, mri_to_affine, 'From-reslice')
-    _debug_img(mri_from_to, mri_to_affine, 'From-reslice')
-    _debug_img(mri_to, mri_to_affine, 'To-reslice')
-    return mri_to_affine, pre_affine, sdr_morph
+        from dipy.align import imwarp, metrics
+    moving, moving_affine = _reslice_normalize(moving, zooms)
+    static, static_affine = _reslice_normalize(static, zooms)
+    logger.info(f'Computing nonlinear symmetric diffeomorphic registration '
+                '(SDR) ...')
+    sdr = imwarp.SymmetricDiffeomorphicRegistration(
+        metrics.CCMetric(3), niter)
+    with wrapped_stdout(indent='    ', cull_newlines=True):
+        sdr_morph = sdr.optimize(static, moving, static_affine, moving_affine,
+                                 prealign=prealign)
+    return sdr_morph
 
 
 def _compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,

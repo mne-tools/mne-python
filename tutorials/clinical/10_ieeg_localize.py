@@ -29,13 +29,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 import nibabel as nib
-import nilearn.plotting
 from dipy.align import resample
-from dipy.align.imaffine import AffineMap
 
 import mne
-from mne.transforms import (
-    compute_volume_registration, apply_volume_registration)
 from mne.datasets import fetch_fsaverage
 
 print(__doc__)
@@ -123,27 +119,29 @@ plot_overlay(T1, CT_resampled, 'Unaligned CT Overlaid on T1', thresh=0.95)
 del CT_resampled
 
 ###############################################################################
-# Now we need to align our CT image to the T1 image. Here we use (but do not
-# execute because it's slow) the call:
+# Now we need to align our CT image to the T1 image.
+#
+# We want this to be a rigid transformation (just rotation + translation),
+# so we don't do a full affine registration (that includes shear) or SDR here.
+#
+# We'll use (although not executed here because it's slow) the call:
 #
 # .. code-block:: python
 #
-#    affine_map, _ = compute_volume_registration(
-#        CT_orig, T1, pipeline='rigids', zooms=dict(translation=5))
+#     from mne.transforms import compute_volume_registration
+#     affine = compute_volume_registration(CT_orig, T1, pipeline='rigids')
+#     print(affine)
 #
-# We want this to be a rigid transformation (just rotation + translation),
-# so we don't do a full affine registration or SDR here. Instead we use the
-# affine we obtained from the full-resolution registration and reconstruct
-# the appropriate dipy object from it:
+# Let's load in the pre-computed affine:
 
 affine = np.array([
     [0.99235816, -0.03412124, 0.11857915, -133.22262329],
     [0.04601133, 0.99402046, -0.09902669, -97.64542095],
     [-0.11449119, 0.10372593, 0.98799428, -84.39915646],
     [0., 0., 0., 1.]])
-affine_map = AffineMap(
-    affine, T1.shape, T1.affine, CT_orig.shape, CT_orig.affine)
-CT_aligned = mne.transforms.apply_volume_registration(CT_orig, T1, affine_map)
+
+# apply and plot
+CT_aligned = mne.transforms.apply_volume_registration(CT_orig, T1, affine)
 plot_overlay(T1, CT_aligned, 'Aligned CT Overlaid on T1', thresh=0.95)
 del CT_orig
 
@@ -263,18 +261,21 @@ plot_overlay(template_brain, subject_brain,
 # This aligns the two brains, preparing the subject's brain to be warped
 # to the template.
 #
-# .. warning:: We recommend using ``zooms=None`` here to do these computations
-#              at the native resolution. Here we use a more coarse
-#              warp for speed.
-
-pre_affine, sdr_morph = compute_volume_registration(
-    subject_brain, template_brain, zooms=5, verbose=True)
-
-# apply the transform to the subject brain to plot it
-subject_brain_sdr = apply_volume_registration(
-    subject_brain, template_brain, pre_affine, sdr_morph)
-plot_overlay(template_brain, subject_brain_sdr,
-             'Alignment with fsaverage after SDR Registration')
+# Again, this is too slow to be computed here but the call is:
+#
+# .. code-block:: python
+#
+#     from mne.transforms import (compute_volume_registration,
+#         apply_volume_registration)
+#
+#     # compute the affine registration and SDR transform
+#     pre_affine, sdr_morph = compute_volume_registration(
+#         subject_brain, template_brain)
+#     # apply the transform to the subject brain to plot it
+#     subject_brain_sdr = apply_volume_registration(
+#         subject_brain, template_brain, pre_affine, sdr_morph)
+#     plot_overlay(template_brain, subject_brain_sdr,
+#                  'Alignment with fsaverage after SDR Registration')
 
 ###############################################################################
 # Finally, we'll apply the registrations to the electrode contact coordinates.
@@ -286,55 +287,46 @@ plot_overlay(template_brain, subject_brain_sdr,
 # the SDR transform. We can finally recover a position by averaging the
 # positions of all the voxels that had the contact's lookup number in
 # the warped image.
-
-# convert electrode positions from surface RAS to voxels
-ch_coords = mne.transforms.apply_trans(
-    np.linalg.inv(subject_brain.header.get_vox2ras_tkr()), ch_coords)
-# take channel coordinates and use the CT to transform them
-# into a 3D image where all the voxels over a threshold nearby
-# are labeled with an index
-CT_data = CT_aligned.get_fdata()
-thresh = np.quantile(CT_data, 0.95)
-elec_image = np.zeros(subject_brain.shape, dtype=int)
-for i, ch_coord in enumerate(ch_coords):
-    # this looks up to a voxel away, it may be marked imperfectly
-    volume = mne.voxel_neighbors(ch_coord, CT_data, thresh)
-    for voxel in volume:
-        if elec_image[voxel] != 0:
-            # some voxels ambiguous because the contacts are bridged on
-            # the CT so assign the voxel to the nearest contact location
-            dist_old = np.sqrt(
-                (ch_coords[elec_image[voxel] - 1] - voxel)**2).sum()
-            dist_new = np.sqrt((ch_coord - voxel)**2).sum()
-            if dist_new < dist_old:
-                elec_image[voxel] = i + 1
-        else:
-            elec_image[voxel] = i + 1
-# apply the mapping
-elec_image = nib.spatialimages.SpatialImage(elec_image, subject_brain.affine)
-del subject_brain, CT_aligned, CT_data  # not used anymore
-
-###############################################################################
-# Warp and plot the result
-warped_elec_image = apply_volume_registration(
-    elec_image, template_brain, pre_affine, sdr_morph, interpolation='nearest')
-fig, axes = plt.subplots(2, 1, figsize=(8, 8))
-nilearn.plotting.plot_glass_brain(elec_image, axes=axes[0], cmap='Dark2')
-fig.text(0.1, 0.65, 'Subject T1', rotation='vertical')
-nilearn.plotting.plot_glass_brain(warped_elec_image, axes=axes[1],
-                                  cmap='Dark2')
-fig.text(0.1, 0.25, 'fsaverage', rotation='vertical')
-fig.suptitle('Electrodes warped to fsaverage')
-
-# recover the electrode contact positions as the center of mass
-warped_elec_data = warped_elec_image.get_fdata()
-for val, ch_coord in enumerate(ch_coords, 1):
-    vox = np.array(np.where(warped_elec_data == val), float)
-    assert vox.shape[1] > 0  # found at least one point
-    ch_coord[:] = vox.mean(axis=1)
-# convert back to surface RAS but to the template surface RAS this time
-ch_coords = mne.transforms.apply_trans(
-    template_brain.header.get_vox2ras_tkr(), ch_coords)
+#
+# .. code-block:: python
+#     # convert electrode positions from surface RAS to voxels
+#     ch_coords = mne.transforms.apply_trans(
+#         np.linalg.inv(subject_brain.header.get_vox2ras_tkr()), ch_coords)
+#     # take channel coordinates and use the CT to transform them
+#     # into a 3D image where all the voxels over a threshold nearby
+#     # are labeled with an index
+#     CT_data = CT_aligned.get_fdata()
+#     thresh = np.quantile(CT_data, 0.95)
+#     elec_image = np.zeros(subject_brain.shape, dtype=int)
+#     for i, ch_coord in enumerate(ch_coords):
+#         # this looks up to a voxel away, it may be marked imperfectly
+#         volume = mne.voxel_neighbors(ch_coord, CT_data, thresh)
+#         for voxel in volume:
+#             if elec_image[voxel] != 0:
+#                 # some voxels ambiguous because the contacts are bridged on
+#                 # the CT so assign the voxel to the nearest contact location
+#                 dist_old = np.sqrt(
+#                     (ch_coords[elec_image[voxel] - 1] - voxel)**2).sum()
+#                 dist_new = np.sqrt((ch_coord - voxel)**2).sum()
+#                 if dist_new < dist_old:
+#                     elec_image[voxel] = i + 1
+#             else:
+#                 elec_image[voxel] = i + 1
+#     # apply the mapping
+#     elec_image = nib.spatialimages.SpatialImage(
+#         elec_image, subject_brain.affine)
+#     warped_elec_image = apply_volume_registration(
+#         elec_image, template_brain, pre_affine, sdr_morph,
+#         interpolation='nearest')
+#     # recover the electrode contact positions as the center of mass
+#     warped_elec_data = warped_elec_image.get_fdata()
+#     for val, ch_coord in enumerate(ch_coords, 1):
+#         vox = np.array(np.where(warped_elec_data == val), float)
+#         assert vox.shape[1] > 0  # found at least one point
+#         ch_coord[:] = vox.mean(axis=1)
+#     # convert back to surface RAS but to the template surface RAS this time
+#     ch_coords = mne.transforms.apply_trans(
+#         template_brain.header.get_vox2ras_tkr(), ch_coords)
 
 ###############################################################################
 # We can now plot the result. You can compare this to the plot in
@@ -344,7 +336,14 @@ ch_coords = mne.transforms.apply_trans(
 # SDR to warp the positions of the electrode contacts, the position in the
 # template brain is able to be more accurately estimated.
 
-# sphinx_gallery_thumbnail_number = 8
+# sphinx_gallery_thumbnail_number = 6
+
+# load warped electrode positions from file
+elec_df = pd.read_csv(op.join(misc_path, 'seeg',
+                              'sample_seeg_electrodes_fsaverage.tsv'),
+                      sep='\t', header=0, index_col=None)
+ch_names = elec_df['name'].tolist()
+ch_coords = elec_df[['R', 'A', 'S']].to_numpy(dtype=float)
 
 # load electrophysiology data
 raw = mne.io.read_raw(op.join(misc_path, 'seeg', 'sample_seeg_ieeg.fif'))

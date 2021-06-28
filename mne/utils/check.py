@@ -92,6 +92,14 @@ def check_version(library, min_version='0.0'):
     return ok
 
 
+def _check_dep(**kwargs):
+    """Check dependencies."""
+    for lib, ver in kwargs.items():
+        if not check_version(lib, ver):
+            raise ImportError(f'{lib} {ver} or higher must be correctly '
+                              'installed and accessible from Python')
+
+
 def _require_version(lib, what, version='0.0'):
     """Require library for a purpose."""
     if not check_version(lib, version):
