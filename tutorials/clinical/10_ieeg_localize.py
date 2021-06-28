@@ -210,7 +210,7 @@ del CT_data, T1
 #
 # Let's plot the electrode contact locations on the subject's brain.
 
-# Load electrode positions from file
+# load electrode positions from file
 elec_df = pd.read_csv(op.join(misc_path, 'seeg', 'sample_seeg_electrodes.tsv'),
                       sep='\t', header=0, index_col=None)
 ch_names = elec_df['name'].tolist()
@@ -219,7 +219,7 @@ ch_coords = elec_df[['R', 'A', 'S']].to_numpy(dtype=float)
 # load the subject's brain
 subject_brain = nib.load(op.join(misc_path, 'seeg', 'sample_seeg_brain.mgz'))
 
-# Make brain surface from T1
+# make brain surface from T1
 verts, triangles = mne.surface.marching_cubes(
     subject_brain.get_fdata(), level=100)
 # transform from voxels to surface RAS
@@ -229,10 +229,10 @@ verts = mne.transforms.apply_trans(
 fig_kwargs = dict(size=(800, 600), bgcolor='w', scene=False)
 renderer = mne.viz.backends.renderer.create_3d_figure(**fig_kwargs)
 renderer.mesh(*verts.T, triangles=triangles, color='gray',
-              opacity=0.05, representation='surface')
+              opacity=0.05, representation='wireframe')
 for ch_coord in ch_coords:
     renderer.sphere(center=tuple(ch_coord / 1000.), color='y', scale=0.005)
-view_kwargs = dict(azimuth=40, elevation=60)
+view_kwargs = dict(azimuth=60, elevation=100)
 mne.viz.set_3d_view(renderer.figure, focalpoint=(0, 0, 0), distance=0.3,
                     **view_kwargs)
 renderer.show()
@@ -270,7 +270,7 @@ plot_overlay(template_brain, subject_brain,
 pre_affine, sdr_morph = compute_volume_registration(
     subject_brain, template_brain, zooms=5, verbose=True)
 
-# Apply the transform to the subject brain to plot it
+# apply the transform to the subject brain to plot it
 subject_brain_sdr = apply_volume_registration(
     subject_brain, template_brain, pre_affine, sdr_morph)
 plot_overlay(template_brain, subject_brain_sdr,
@@ -290,7 +290,7 @@ plot_overlay(template_brain, subject_brain_sdr,
 # convert electrode positions from surface RAS to voxels
 ch_coords = mne.transforms.apply_trans(
     np.linalg.inv(subject_brain.header.get_vox2ras_tkr()), ch_coords)
-# Take channel coordinates and use the CT to transform them
+# take channel coordinates and use the CT to transform them
 # into a 3D image where all the voxels over a threshold nearby
 # are labeled with an index
 CT_data = CT_aligned.get_fdata()
@@ -310,7 +310,7 @@ for i, ch_coord in enumerate(ch_coords):
                 elec_image[voxel] = i + 1
         else:
             elec_image[voxel] = i + 1
-# Apply the mapping
+# apply the mapping
 elec_image = nib.spatialimages.SpatialImage(elec_image, subject_brain.affine)
 del subject_brain, CT_aligned, CT_data  # not used anymore
 
@@ -318,17 +318,21 @@ del subject_brain, CT_aligned, CT_data  # not used anymore
 # Warp and plot the result
 warped_elec_image = apply_volume_registration(
     elec_image, template_brain, pre_affine, sdr_morph, interpolation='nearest')
-fig = nilearn.plotting.plot_glass_brain(warped_elec_image)
-fig = fig.axes['x'].ax.figure
+fig, axes = plt.subplots(2, 1, figsize=(8, 8))
+nilearn.plotting.plot_glass_brain(elec_image, axes=axes[0], cmap='Dark2')
+fig.text(0.1, 0.65, 'Subject T1', rotation='vertical')
+nilearn.plotting.plot_glass_brain(warped_elec_image, axes=axes[1],
+                                  cmap='Dark2')
+fig.text(0.1, 0.25, 'fsaverage', rotation='vertical')
 fig.suptitle('Electrodes warped to fsaverage')
 
-# Recover the electrode contact positions as the center of mass
+# recover the electrode contact positions as the center of mass
 warped_elec_data = warped_elec_image.get_fdata()
 for val, ch_coord in enumerate(ch_coords, 1):
     vox = np.array(np.where(warped_elec_data == val), float)
     assert vox.shape[1] > 0  # found at least one point
     ch_coord[:] = vox.mean(axis=1)
-# Convert back to surface RAS but to the template surface RAS this time
+# convert back to surface RAS but to the template surface RAS this time
 ch_coords = mne.transforms.apply_trans(
     template_brain.header.get_vox2ras_tkr(), ch_coords)
 
@@ -349,7 +353,7 @@ lpa, nasion, rpa = mne.coreg.get_mni_fiducials(
     'fsaverage', subjects_dir=subjects_dir)
 lpa, nasion, rpa = lpa['r'], nasion['r'], rpa['r']
 
-# Create a montage with our new points
+# create a montage with our new points
 ch_pos = dict(zip(ch_names, ch_coords / 1000))  # mm -> m
 montage = mne.channels.make_dig_montage(
     ch_pos, coord_frame='mri', nasion=nasion, lpa=lpa, rpa=rpa)
