@@ -289,6 +289,7 @@ plot_overlay(template_brain, subject_brain,
 # the warped image.
 #
 # .. code-block:: python
+#
 #     # convert electrode positions from surface RAS to voxels
 #     ch_coords = mne.transforms.apply_trans(
 #         np.linalg.inv(subject_brain.header.get_vox2ras_tkr()), ch_coords)
