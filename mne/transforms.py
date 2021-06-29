@@ -1606,6 +1606,7 @@ def _affine_registraion(moving, static, pipeline, niter, zooms):
     moving_orig = moving
     static_orig = static
     out_affine = np.eye(4)
+    # starting_affine = None
     pipeline_options = dict(translation=[center_of_mass, translation],
                             rigid=[rigid], affine=[affine])
     sigmas = [3.0, 1.0, 0.0]
@@ -1624,6 +1625,16 @@ def _affine_registraion(moving, static, pipeline, niter, zooms):
                 moving_zoomed, static_zoomed, moving_affine, static_affine,
                 nbins=32, metric='MI', pipeline=pipeline_options[step],
                 level_iters=niter[step], sigmas=sigmas, factors=factors)
+        '''
+        with wrapped_stdout(indent='    ', cull_newlines=True):
+            _, reg_affine = affine_registration(
+                moving_zoomed, static_zoomed, moving_affine, static_affine,
+                nbins=32, metric='MI', starting_affine=starting_affine,
+                pipeline=pipeline_options[step], level_iters=niter[step],
+                sigmas=sigmas, factors=factors)
+        # update starting affine to latest registration step
+        starting_affine = reg_affine
+        '''
 
         # update the overall alignment affine
         out_affine = np.dot(out_affine, reg_affine)
@@ -1643,7 +1654,7 @@ def _affine_registraion(moving, static, pipeline, niter, zooms):
                 logger.info(f'    Rotation:    {angle:6.1f}°')
         r2 = _compute_r2(_get_img_fdata(static), _get_img_fdata(moving))
         logger.info(f'    R²:          {r2:6.1f}%')
-    return out_affine
+    return out_affine  # return reg_affine
 
 
 @verbose
