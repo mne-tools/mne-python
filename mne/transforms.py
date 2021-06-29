@@ -1603,31 +1603,32 @@ def _affine_registraion(moving, static, pipeline, niter, zooms):
         from dipy.align import (affine_registration, center_of_mass,
                                 translation, rigid, affine, resample)
     # optimize transform
-    sigmas = [3.0, 1.0, 0.0]
-    factors = [4, 2, 1]
+    starting_affine = None
     pipeline_options = dict(translation=[center_of_mass, translation],
                             rigid=[rigid], affine=[affine])
+    sigmas = [3.0, 1.0, 0.0]
+    factors = [4, 2, 1]
     for i, step in enumerate(pipeline):
         # reslice image with zooms
         logger.info(f'Reslicing to zooms={zooms[step]}...')
         if i == 0 or zooms[step] != zooms[pipeline[i - 1]]:
             static_zoomed, static_affine = _reslice_normalize(
                 static, zooms[step])
-        # must be resliced after being moved during every step
-        moving_zoomed, moving_affine = _reslice_normalize(
-            moving, zooms[step])
+            moving_zoomed, moving_affine = _reslice_normalize(
+                moving, zooms[step])
         logger.info(f'Optimizing {step}:')
         with wrapped_stdout(indent='    ', cull_newlines=True):
-            reg_affine = affine_registration(
+            _, reg_affine = affine_registration(
                 moving_zoomed, static_zoomed, moving_affine, static_affine,
-                nbins=32, metric='MI', pipeline=pipeline_options[step],
-                level_iters=niter[step], sigmas=sigmas, factors=factors)[1]
+                nbins=32, metric='MI', starting_affine=starting_affine,
+                pipeline=pipeline_options[step], level_iters=niter[step],
+                sigmas=sigmas, factors=factors)
+            # reset starting for the next step
+            starting_affine = reg_affine
 
         # apply the current affine to the full-resolution data
-        moving = resample(_get_img_fdata(moving),
-                          _get_img_fdata(static),
-                          moving.affine, static.affine,
-                          reg_affine)
+        moved = resample(_get_img_fdata(moving), _get_img_fdata(static),
+                         moving.affine, static.affine, reg_affine)
 
         # report some useful information
         if step in ('center_of_mass', 'translation', 'rigid'):
@@ -1637,7 +1638,7 @@ def _affine_registraion(moving, static, pipeline, niter, zooms):
             logger.info(f'    Translation: {dist:6.1f} mm')
             if step == 'rigid':
                 logger.info(f'    Rotation:    {angle:6.1f}°')
-        r2 = _compute_r2(_get_img_fdata(static), _get_img_fdata(moving))
+        r2 = _compute_r2(_get_img_fdata(static), _get_img_fdata(moved))
         logger.info(f'    R²:          {r2:6.1f}%')
     return reg_affine
 
@@ -1735,13 +1736,12 @@ def apply_volume_registration(moving, static, reg_affine, sdr_morph=None,
     _validate_type(sdr_morph, (DiffeomorphicMap, None), 'sdr_morph')
     if sdr_morph is None:
         logger.info('Applying affine registration ...')
-        reg_data = _get_img_fdata(
-            resample(_get_img_fdata(moving), _get_img_fdata(static),
-                     moving.affine, static.affine, reg_affine))
+        reg_img = resample(_get_img_fdata(moving), _get_img_fdata(static),
+                           moving.affine, static.affine, reg_affine)
     else:
         logger.info('Appling SDR warp ...')
         reg_data = sdr_morph.transform(
             _get_img_fdata(moving), interpolation=interpolation)
-    reg_img = SpatialImage(reg_data, reg_affine)
+        reg_img = SpatialImage(reg_data, static.affine)
     logger.info('[done]')
     return reg_img

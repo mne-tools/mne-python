@@ -507,3 +507,9 @@ def test_euler(quats):
     quat_rot = quat_to_rot(quats)
     euler_rot = np.array([rotation(*e)[:3, :3] for e in euler])
     assert_allclose(quat_rot, euler_rot, atol=1e-14)
+
+
+@pytest.mark.slowtest
+@testing.requires_testing_data
+def test_volume_registration():
+    """Test volume registration."""

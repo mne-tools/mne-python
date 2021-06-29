@@ -129,19 +129,20 @@ del CT_resampled
 # .. code-block:: python
 #
 #     from mne.transforms import compute_volume_registration
-#     affine = compute_volume_registration(CT_orig, T1, pipeline='rigids')
-#     print(affine)
+#     reg_affine = compute_volume_registration(CT_orig, T1, pipeline='rigids',
+#                                              zooms=dict(translation=5.))
+#     print(reg_affine)
 #
 # Let's load in the pre-computed affine:
 
-affine = np.array([
+reg_affine = np.array([
     [0.99235816, -0.03412124, 0.11857915, -133.22262329],
     [0.04601133, 0.99402046, -0.09902669, -97.64542095],
     [-0.11449119, 0.10372593, 0.98799428, -84.39915646],
     [0., 0., 0., 1.]])
 
 # apply and plot
-CT_aligned = mne.transforms.apply_volume_registration(CT_orig, T1, affine)
+CT_aligned = mne.transforms.apply_volume_registration(CT_orig, T1, reg_affine)
 plot_overlay(T1, CT_aligned, 'Aligned CT Overlaid on T1', thresh=0.95)
 del CT_orig
 
