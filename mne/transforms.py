@@ -13,15 +13,13 @@ import glob
 import numpy as np
 from copy import deepcopy
 
-from .defaults import _handle_default
 from .fixes import jit, mean, _get_img_fdata
 from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tag import read_tag
 from .io.write import start_file, end_file, write_coord_trans
 from .utils import (check_fname, logger, verbose, _ensure_int, _validate_type,
-                    _check_path_like, get_subjects_dir, fill_doc, _check_fname,
-                    _check_dep, _check_option, wrapped_stdout)
+                    _check_path_like, get_subjects_dir, fill_doc, _check_fname)
 
 
 # transformation from anterior/left/superior coordinate system to
@@ -1525,123 +1523,6 @@ def _euler_to_quat(euler):
     return quat
 
 
-def _compute_r2(a, b):
-    return 100 * (a.ravel() @ b.ravel()) / \
-        (np.linalg.norm(a) * np.linalg.norm(b))
-
-
-def _reslice_normalize(img, zooms):
-    from dipy.align.reslice import reslice
-    img_zooms = img.header.get_zooms()[:3]
-    img_affine = img.affine
-    img = _get_img_fdata(img)
-    if zooms is not None:
-        img, img_affine = reslice(img, img_affine, img_zooms, zooms)
-    img /= img.max()  # normalize
-    return img, img_affine
-
-
-_ORDERED_STEPS = ('translation', 'rigid', 'affine', 'sdr')
-
-
-def _validate_zooms(zooms):
-    _validate_type(zooms, (dict, list, tuple, 'numeric', None), 'zooms')
-    zooms = _handle_default('transform_zooms', zooms)
-    for key, val in zooms.items():
-        _check_option('zooms key', key, _ORDERED_STEPS)
-        if val is not None:
-            val = tuple(
-                float(x) for x in np.array(val, dtype=float).ravel())
-            _check_option(f'len(zooms[{repr(key)})', len(val), (1, 3))
-            if len(val) == 1:
-                val = val * 3
-            for this_zoom in val:
-                if this_zoom <= 1:
-                    raise ValueError(f'Zooms must be > 1, got {this_zoom}')
-            zooms[key] = val
-    return zooms
-
-
-def _validate_niter(niter):
-    _validate_type(niter, (dict, list, tuple, None), 'niter')
-    niter = _handle_default('transform_niter', niter)
-    for key, value in niter.items():
-        _check_option('niter key', key, _ORDERED_STEPS)
-        _check_option(f'len(niter[{repr(key)}])', len(value), (1, 2, 3))
-    return niter
-
-
-def _validate_pipeline(pipeline):
-    _validate_type(pipeline, (str, list, tuple), 'pipeline')
-    _check_option('pipeline', pipeline, ('all', 'rigids', 'affines'),
-                  extra='when str')
-    pipeline_defaults = dict(
-        all=_ORDERED_STEPS,
-        rigids=_ORDERED_STEPS[:_ORDERED_STEPS.index('rigid') + 1],
-        affines=_ORDERED_STEPS[:_ORDERED_STEPS.index('affine') + 1])
-    if isinstance(pipeline, str):  # use defaults
-        pipeline = pipeline_defaults[pipeline]
-    for ii, step in enumerate(pipeline):
-        name = f'pipeline[{ii}]'
-        _validate_type(step, str, name)
-        _check_option(name, step, _ORDERED_STEPS)
-    ordered_pipeline = tuple(sorted(
-        pipeline, key=lambda x: _ORDERED_STEPS.index(x)))
-    if pipeline != ordered_pipeline:
-        raise ValueError(
-            f'Steps in pipeline are out of order, expected {ordered_pipeline} '
-            f'but got {pipeline} instead')
-    if len(set(pipeline)) != len(pipeline):
-        raise ValueError('Steps in pipeline should not be repeated')
-    if pipeline[-1] == 'sdr':
-        return tuple(pipeline)[:-1], True
-    return tuple(pipeline), False
-
-
-def _affine_registraion(moving, static, pipeline, niter, zooms):
-    with np.testing.suppress_warnings():
-        from dipy.align import (affine_registration, center_of_mass,
-                                translation, rigid, affine, resample)
-    # optimize transform
-    sigmas = [3.0, 1.0, 0.0]
-    factors = [4, 2, 1]
-    pipeline_options = dict(translation=[center_of_mass, translation],
-                            rigid=[rigid], affine=[affine])
-    for i, step in enumerate(pipeline):
-        # reslice image with zooms
-        logger.info(f'Reslicing to zooms={zooms[step]}...')
-        if i == 0 or zooms[step] != zooms[pipeline[i - 1]]:
-            static_zoomed, static_affine = _reslice_normalize(
-                static, zooms[step])
-        # must be resliced after being moved during every step
-        moving_zoomed, moving_affine = _reslice_normalize(
-            moving, zooms[step])
-        logger.info(f'Optimizing {step}:')
-        with wrapped_stdout(indent='    ', cull_newlines=True):
-            reg_affine = affine_registration(
-                moving_zoomed, static_zoomed, moving_affine, static_affine,
-                nbins=32, metric='MI', pipeline=pipeline_options[step],
-                level_iters=niter[step], sigmas=sigmas, factors=factors)[1]
-
-        # apply the current affine to the full-resolution data
-        moving = resample(_get_img_fdata(moving),
-                          _get_img_fdata(static),
-                          moving.affine, static.affine,
-                          reg_affine)
-
-        # report some useful information
-        if step in ('center_of_mass', 'translation', 'rigid'):
-            dist = np.linalg.norm(reg_affine[:3, 3])
-            angle = np.rad2deg(_angle_between_quats(
-                np.zeros(3), rot_to_quat(reg_affine[:3, :3])))
-            logger.info(f'    Translation: {dist:6.1f} mm')
-            if step == 'rigid':
-                logger.info(f'    Rotation:    {angle:6.1f}°')
-        r2 = _compute_r2(_get_img_fdata(static), _get_img_fdata(moving))
-        logger.info(f'    R²:          {r2:6.1f}%')
-    return reg_affine
-
-
 @verbose
 def compute_volume_registration(moving, static, pipeline='all', zooms=None,
                                 niter=None, verbose=None):
@@ -1654,20 +1535,18 @@ def compute_volume_registration(moving, static, pipeline='all', zooms=None,
     %(pipeline)s
     zooms : float | tuple | dict | None
         The voxel size of volume for each spatial dimension in mm.
-        If None, MRIs won't be resliced (slow, but most accurate).
+        If None (default), MRIs won't be resliced (slow, but most accurate).
         Can be a tuple to provide separate zooms for each dimension (X/Y/Z),
         or a dict with keys ``['translation', 'rigid', 'affine', 'sdr']``
-        (each with values that are float, tuple, or None) to provide separate
-        reslicing/accuracy for the steps. By default, the translation is
-        zoomed to 5 mm and the other steps are not resliced from their
-        original resolution.
+        (each with values that are float`, tuple, or None) to provide separate
+        reslicing/accuracy for the steps.
     %(niter)s
     %(verbose)s
 
     Returns
     -------
-    %(reg_affine)s
-    %(sdr_morph)s Returned only if ``sdr`` is in ``steps``.
+    %(pre_affine)s
+    %(sdr_morph)s
 
     Notes
     -----
@@ -1677,28 +1556,14 @@ def compute_volume_registration(moving, static, pipeline='all', zooms=None,
 
     .. versionadded:: 0.24
     """
-    _check_dep(nibabel='2.1.0', dipy='0.10.1')
-    from nibabel.spatialimages import SpatialImage
-
-    # input validation
-    _validate_type(moving, SpatialImage, 'moving image')
-    _validate_type(static, SpatialImage, 'static image')
-    zooms = _validate_zooms(zooms)
-    niter = _validate_niter(niter)
-    pipeline, do_sdr = _validate_pipeline(pipeline)
-
-    # just get affine
-    reg_affine = _affine_registraion(moving, static, pipeline, niter, zooms)
-    if do_sdr:
-        from .morph import _compute_morph_sdr
-        sdr_morph = _compute_morph_sdr(
-            moving, static, niter['sdr'], zooms['sdr'], prealign=reg_affine)
-        return reg_affine, sdr_morph
-    return reg_affine
+    from .morph import _compute_morph_sdr
+    _, pre_affine, sdr_morph = _compute_morph_sdr(
+        moving, static, pipeline, niter, zooms, allow_separate_zooms=True)
+    return pre_affine, sdr_morph
 
 
 @verbose
-def apply_volume_registration(moving, static, reg_affine, sdr_morph=None,
+def apply_volume_registration(moving, static, pre_affine, sdr_morph=None,
                               interpolation='linear', verbose=None):
     """Apply volume registration.
 
@@ -1709,7 +1574,7 @@ def apply_volume_registration(moving, static, reg_affine, sdr_morph=None,
     ----------
     %(moving)s
     %(static)s
-    %(reg_affine)s
+    %(pre_affine)s
     %(sdr_morph)s
     interpolation : str
         Interpolation to be used during the interpolation.
@@ -1725,23 +1590,27 @@ def apply_volume_registration(moving, static, reg_affine, sdr_morph=None,
     -----
     .. versionadded:: 0.24
     """
+    from .morph import _check_dep
     _check_dep(nibabel='2.1.0', dipy='0.10.1')
-    from dipy.align import resample
     from nibabel.spatialimages import SpatialImage
+    from dipy.align.imaffine import AffineMap
     from dipy.align.imwarp import DiffeomorphicMap
     _validate_type(moving, SpatialImage, 'moving')
     _validate_type(static, SpatialImage, 'static')
-    _validate_type(reg_affine, np.ndarray, 'reg_affine')
+    _validate_type(pre_affine, AffineMap, 'pre_affine')
     _validate_type(sdr_morph, (DiffeomorphicMap, None), 'sdr_morph')
-    if sdr_morph is None:
-        logger.info(f'Applying affine registration ...')
-        reg_data = _get_img_fdata(
-            resample(_get_img_fdata(moving), _get_img_fdata(static),
-                     moving.affine, static.affine, reg_affine))
-    else:
+    kind = 'pre' if sdr_morph is not None else ''
+    logger.info(f'Applying {kind}affine registration ...')
+    reg_data = pre_affine.transform(
+        _get_img_fdata(moving), interpolation, moving.affine,
+        static.shape, static.affine)
+    if sdr_morph is not None:
         logger.info('Appling SDR warp ...')
         reg_data = sdr_morph.transform(
-            _get_img_fdata(moving), interpolation=interpolation)
+            reg_data,
+            image_world2grid=np.linalg.inv(static.affine),
+            out_shape=static.shape, out_grid2world=static.affine,
+            interpolation=interpolation)
     reg_img = SpatialImage(reg_data, static.affine)
     logger.info('[done]')
     return reg_img
