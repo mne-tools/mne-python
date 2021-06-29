@@ -20,7 +20,7 @@ from .io.tag import read_tag
 from .io.write import start_file, end_file, write_coord_trans
 from .utils import (check_fname, logger, verbose, _ensure_int, _validate_type,
                     _check_path_like, get_subjects_dir, fill_doc, _check_fname,
-                    _check_option)
+                    _check_option, _require_version)
 
 
 # transformation from anterior/left/superior coordinate system to
@@ -1558,9 +1558,9 @@ def compute_volume_registration(moving, static, pipeline='all', zooms=None,
     .. versionadded:: 0.24
     """
     from .morph import _compute_morph_sdr
-    _, pre_affine, sdr_morph = _compute_morph_sdr(
-        moving, static, pipeline, niter, zooms, allow_separate_zooms=True)
-    return pre_affine.affine, sdr_morph
+    reg_affine, sdr_morph = _compute_morph_sdr(
+        moving, static, pipeline, niter, zooms)
+    return reg_affine, sdr_morph
 
 
 @verbose
@@ -1591,30 +1591,25 @@ def apply_volume_registration(moving, static, reg_affine, sdr_morph=None,
     -----
     .. versionadded:: 0.24
     """
-    from .morph import _check_dep
-    _check_dep(nibabel='2.1.0', dipy='0.10.1')
+    _require_version('nibabel', 'SDR morph', '2.1.0')
+    _require_version('dipy', 'SDR morph', '0.10.1')
     from nibabel.spatialimages import SpatialImage
-    from dipy.align.imaffine import AffineMap
     from dipy.align.imwarp import DiffeomorphicMap
+    from dipy.align import resample
     _validate_type(moving, SpatialImage, 'moving')
     _validate_type(static, SpatialImage, 'static')
     _validate_type(reg_affine, np.ndarray, 'reg_affine')
     _check_option('reg_affine.shape', reg_affine.shape, ((4, 4),))
     _validate_type(sdr_morph, (DiffeomorphicMap, None), 'sdr_morph')
-    kind = 'pre' if sdr_morph is not None else ''
-    logger.info(f'Applying {kind}affine registration ...')
-    pre_affine = AffineMap(reg_affine, static.shape, static.affine,
-                           moving.shape, moving.affine)
-    reg_data = pre_affine.transform(
-        _get_img_fdata(moving), interpolation, moving.affine,
-        static.shape, static.affine)
-    if sdr_morph is not None:
+    logger.info('Applying registration ...')
+    if sdr_morph is None:
+        logger.info('Applying affine registration ...')
+        reg_img = resample(_get_img_fdata(moving), _get_img_fdata(static),
+                           moving.affine, static.affine, reg_affine)
+    else:
         logger.info('Appling SDR warp ...')
         reg_data = sdr_morph.transform(
-            reg_data,
-            image_world2grid=np.linalg.inv(static.affine),
-            out_shape=static.shape, out_grid2world=static.affine,
-            interpolation=interpolation)
-    reg_img = SpatialImage(reg_data, static.affine)
+            _get_img_fdata(moving), interpolation=interpolation)
+        reg_img = SpatialImage(reg_data, static.affine)
     logger.info('[done]')
     return reg_img

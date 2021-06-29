@@ -110,18 +110,10 @@ def plot_overlay(image, compare, title, thresh=None):
 T1 = nib.load(op.join(misc_path, 'seeg', 'sample_seeg_T1.mgz'))
 CT_orig = nib.load(op.join(misc_path, 'seeg', 'sample_seeg_CT.mgz'))
 
-# Create a thresholded version of the CT to improve the registration
-min_value = 100.  # could be something else, but 100 is good for these data
-CT_clean = CT_orig.get_fdata()
-CT_clean[CT_clean < min_value] = min_value
-CT_clean -= min_value
-CT_clean = nib.spatialimages.SpatialImage(CT_clean, CT_orig.affine)
-del CT_orig
-
 # resample to T1's definition of world coordinates
-CT_resampled = resample(moving=CT_clean.get_fdata(),
+CT_resampled = resample(moving=CT_orig.get_fdata(),
                         static=T1.get_fdata(),
-                        moving_affine=CT_clean.affine,
+                        moving_affine=CT_orig.affine,
                         static_affine=T1.affine)
 plot_overlay(T1, CT_resampled, 'Unaligned CT Overlaid on T1', thresh=0.95)
 del CT_resampled
@@ -130,24 +122,24 @@ del CT_resampled
 # Now we need to align our CT image to the T1 image.
 #
 # We want this to be a rigid transformation (just rotation + translation),
-# so we don't do a full affine registration (that includes shear) or SDR here.
+# so we don't do a full affine registration (that includes shear) here.
 # We'll use (although not executed here because it's slow) the following call,
 # which uses coarser zooms for translation because it provides better
 # registration for these data::
 #
 #    from mne.transforms import compute_volume_registration
 #    reg_affine, _ = compute_volume_registration(
-#         CT_clean, T1, pipeline='rigids',
+#         CT_orig, T1, pipeline='rigids',
 #         zooms=dict(translation=5.), verbose=True)
 #    print(reg_affine)
 #
 # This is the resulting affine, which we then apply and plot:
 reg_affine = np.array([
-    [0.99397635, -0.05646711, 0.09392808, -133.31298745],
-    [0.06593598, 0.99270228, -0.10096849, -97.33389311],
-    [-0.08754122, 0.10655353, 0.9904458, -83.15281491],
+    [0.99235816, -0.03412124, 0.11857915, -133.22262329],
+    [0.04601133, 0.99402046, -0.09902669, -97.64542095],
+    [-0.11449119, 0.10372593, 0.98799428, -84.39915646],
     [0., 0., 0., 1.]])
-CT_aligned = mne.transforms.apply_volume_registration(CT_clean, T1, reg_affine)
+CT_aligned = mne.transforms.apply_volume_registration(CT_orig, T1, reg_affine)
 plot_overlay(T1, CT_aligned, 'Aligned CT Overlaid on T1', thresh=0.95)
 
 ###############################################################################
@@ -300,7 +292,7 @@ ch_coords = mne.transforms.apply_trans(
 # into a 3D image where all the voxels over a threshold nearby
 # are labeled with an index
 CT_data = CT_aligned.get_fdata()
-thresh = np.quantile(CT_data, 0.8)
+thresh = np.quantile(CT_data, 0.95)
 elec_image = np.zeros(subject_brain.shape, dtype=int)
 for i, ch_coord in enumerate(ch_coords):
     # this looks up to a voxel away, it may be marked imperfectly
