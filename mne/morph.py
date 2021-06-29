@@ -181,7 +181,7 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
                          'sparse morph.')
 
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    mri_to_affine = shape = pre_affine = sdr_morph = morph_mat = None
+    shape = pre_affine = sdr_morph = morph_mat = None
     vertices_to_surf, vertices_to_vol = list(), list()
 
     # niter_affine and niter_sdr deprecations (0.24)
@@ -254,18 +254,13 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
             zooms_src_to = tuple(zooms_src_to)
 
         # pre-compute non-linear morph
-        zooms = 5. if zooms == 'auto' else zooms
-        if pipeline == 'all' or 'sdr' in pipeline:  # compute morph
-            pre_affine, sdr_morph = compute_volume_registration(
-                mri_from, mri_to, pipeline, zooms, niter)
-        else:
-            pre_affine = compute_volume_registration(
-                mri_from, mri_to, pipeline, zooms, niter)
+        pre_affine, sdr_morph = compute_volume_registration(
+            mri_from, mri_to, pipeline, niter,
+            5. if zooms == 'auto' else zooms)
         # convert to affine map
-        pre_affine = imaffine.AffineMap(pre_affine, mri_to.shape,
-                                        mri_to.affine, mri_from.shape,
-                                        mri_from.affine)
-        mri_to_affine = mri_to.affine
+        pre_affine = imaffine.AffineMap(
+            pre_affine, mri_to.shape, mri_to.affine,
+            mri_from.shape, mri_to.affine)
         shape = tuple(pre_affine.domain_shape)
 
     if kind in ('surface', 'mixed'):
@@ -300,7 +295,7 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
         assert len(vertices_to) == len(src_to)
     morph = SourceMorph(subject_from, subject_to, kind, zooms,
                         niter['affine'], niter['sdr'], spacing, smooth, xhemi,
-                        morph_mat, vertices_to, shape, mri_to_affine,
+                        morph_mat, vertices_to, shape, mri_to.affine,
                         pre_affine, sdr_morph, src_data, None)
     if precompute:
         morph.compute_vol_morph_mat()
