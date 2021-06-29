@@ -1603,7 +1603,7 @@ def _affine_registraion(moving, static, pipeline, niter, zooms):
         from dipy.align import (affine_registration, center_of_mass,
                                 translation, rigid, affine, resample)
     # optimize transform
-    out_affine = np.eye(4)
+    starting_affine = None
     pipeline_options = dict(translation=[center_of_mass, translation],
                             rigid=[rigid], affine=[affine])
     sigmas = [3.0, 1.0, 0.0]
@@ -1620,15 +1620,15 @@ def _affine_registraion(moving, static, pipeline, niter, zooms):
         with wrapped_stdout(indent='    ', cull_newlines=True):
             _, reg_affine = affine_registration(
                 moving_zoomed, static_zoomed, moving_affine, static_affine,
-                nbins=32, metric='MI', pipeline=pipeline_options[step],
-                level_iters=niter[step], sigmas=sigmas, factors=factors)
-
-        # update the overall alignment affine
-        out_affine = np.dot(out_affine, reg_affine)
+                nbins=32, metric='MI', starting_affine=starting_affine,
+                pipeline=pipeline_options[step], level_iters=niter[step],
+                sigmas=sigmas, factors=factors)
+            # reset starting for the next step
+            starting_affine = reg_affine
 
         # apply the current affine to the full-resolution data
-        moving = resample(_get_img_fdata(moving), _get_img_fdata(static),
-                          moving.affine, static.affine, reg_affine)
+        moved = resample(_get_img_fdata(moving), _get_img_fdata(static),
+                         moving.affine, static.affine, reg_affine)
 
         # report some useful information
         if step in ('center_of_mass', 'translation', 'rigid'):
@@ -1638,9 +1638,9 @@ def _affine_registraion(moving, static, pipeline, niter, zooms):
             logger.info(f'    Translation: {dist:6.1f} mm')
             if step == 'rigid':
                 logger.info(f'    Rotation:    {angle:6.1f}°')
-        r2 = _compute_r2(_get_img_fdata(static), _get_img_fdata(moving))
+        r2 = _compute_r2(_get_img_fdata(static), _get_img_fdata(moved))
         logger.info(f'    R²:          {r2:6.1f}%')
-    return out_affine
+    return reg_affine
 
 
 @verbose
