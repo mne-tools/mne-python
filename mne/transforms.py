@@ -1742,6 +1742,6 @@ def apply_volume_registration(moving, static, reg_affine, sdr_morph=None,
         logger.info('Appling SDR warp ...')
         reg_data = sdr_morph.transform(
             _get_img_fdata(moving), interpolation=interpolation)
-    reg_img = SpatialImage(reg_data, reg_affine)
+    reg_img = SpatialImage(reg_data, static.affine)
     logger.info('[done]')
     return reg_img
