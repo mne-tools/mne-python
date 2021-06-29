@@ -1603,8 +1603,6 @@ def _affine_registraion(moving, static, pipeline, niter, zooms):
         from dipy.align import (affine_registration, center_of_mass,
                                 translation, rigid, affine, resample)
     # optimize transform
-    moving_orig = moving
-    static_orig = static
     out_affine = np.eye(4)
     pipeline_options = dict(translation=[center_of_mass, translation],
                             rigid=[rigid], affine=[affine])
@@ -1629,9 +1627,8 @@ def _affine_registraion(moving, static, pipeline, niter, zooms):
         out_affine = np.dot(out_affine, reg_affine)
 
         # apply the current affine to the full-resolution data
-        moving = resample(_get_img_fdata(moving_orig),
-                          _get_img_fdata(static_orig),
-                          moving.affine, static.affine, out_affine)
+        moving = resample(_get_img_fdata(moving), _get_img_fdata(static),
+                          moving.affine, static.affine, reg_affine)
 
         # report some useful information
         if step in ('center_of_mass', 'translation', 'rigid'):
