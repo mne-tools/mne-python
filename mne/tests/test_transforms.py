@@ -7,9 +7,11 @@ from numpy.testing import (assert_array_equal, assert_equal, assert_allclose,
                            assert_array_less)
 
 import mne
-from mne.datasets import testing
 from mne import read_trans, write_trans
+from mne.datasets import testing
+from mne.fixes import _get_img_fdata
 from mne.io import read_info
+from mne.morph import _compute_r2
 from mne.transforms import (invert_transform, _get_trans,
                             rotation, rotation3d, rotation_angles, _find_trans,
                             combine_transforms, apply_trans, translation,
@@ -22,11 +24,14 @@ from mne.transforms import (invert_transform, _get_trans,
                             _write_fs_xfm, _quat_real, _fit_matched_points,
                             _quat_to_euler, _euler_to_quat,
                             _quat_to_affine)
+from mne.utils import requires_nibabel, requires_dipy
 
 data_path = testing.data_path(download=False)
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-trans.fif')
 fname_eve = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc_raw-eve.fif')
+subjects_dir = op.join(data_path, 'subjects')
+fname_t1 = op.join(subjects_dir, 'fsaverage', 'mri', 'T1.mgz')
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 fname_trans = op.join(base_dir, 'sample-audvis-raw-trans.txt')
@@ -507,3 +512,29 @@ def test_euler(quats):
     quat_rot = quat_to_rot(quats)
     euler_rot = np.array([rotation(*e)[:3, :3] for e in euler])
     assert_allclose(quat_rot, euler_rot, atol=1e-14)
+
+
+@requires_nibabel()
+@requires_dipy()
+@pytest.mark.slowtest
+@testing.requires_testing_data
+@pytest.mark.parametrize('pipeline', ('rigids', ('translation', 'sdr')))
+def test_volume_registration(pipeline):
+    """Test volume registration."""
+    import nibabel as nib
+    from dipy.align import resample
+    T1 = nib.load(fname_t1)
+    affine = np.eye(4)
+    affine[0, 3] = 10
+    T1_resampled = resample(moving=T1.get_fdata(),
+                            static=T1.get_fdata(),
+                            moving_affine=T1.affine,
+                            static_affine=T1.affine,
+                            between_affine=np.linalg.inv(affine))
+    reg_affine, sdr_morph = mne.transforms.compute_volume_registration(
+        T1_resampled, T1, pipeline=pipeline, zooms=10, niter=[5])
+    assert_allclose(affine, reg_affine, atol=5e-2)
+    T1_aligned = mne.transforms.apply_volume_registration(
+        T1_resampled, T1, reg_affine, sdr_morph)
+    r2 = _compute_r2(_get_img_fdata(T1_aligned), _get_img_fdata(T1))
+    assert 99.9 < r2

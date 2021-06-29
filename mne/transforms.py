@@ -19,7 +19,8 @@ from .io.open import fiff_open
 from .io.tag import read_tag
 from .io.write import start_file, end_file, write_coord_trans
 from .utils import (check_fname, logger, verbose, _ensure_int, _validate_type,
-                    _check_path_like, get_subjects_dir, fill_doc, _check_fname)
+                    _check_path_like, get_subjects_dir, fill_doc, _check_fname,
+                    _check_option)
 
 
 # transformation from anterior/left/superior coordinate system to
@@ -1545,7 +1546,7 @@ def compute_volume_registration(moving, static, pipeline='all', zooms=None,
 
     Returns
     -------
-    %(pre_affine)s
+    %(reg_affine)s
     %(sdr_morph)s
 
     Notes
@@ -1559,11 +1560,11 @@ def compute_volume_registration(moving, static, pipeline='all', zooms=None,
     from .morph import _compute_morph_sdr
     _, pre_affine, sdr_morph = _compute_morph_sdr(
         moving, static, pipeline, niter, zooms, allow_separate_zooms=True)
-    return pre_affine, sdr_morph
+    return pre_affine.affine, sdr_morph
 
 
 @verbose
-def apply_volume_registration(moving, static, pre_affine, sdr_morph=None,
+def apply_volume_registration(moving, static, reg_affine, sdr_morph=None,
                               interpolation='linear', verbose=None):
     """Apply volume registration.
 
@@ -1574,7 +1575,7 @@ def apply_volume_registration(moving, static, pre_affine, sdr_morph=None,
     ----------
     %(moving)s
     %(static)s
-    %(pre_affine)s
+    %(reg_affine)s
     %(sdr_morph)s
     interpolation : str
         Interpolation to be used during the interpolation.
@@ -1597,10 +1598,13 @@ def apply_volume_registration(moving, static, pre_affine, sdr_morph=None,
     from dipy.align.imwarp import DiffeomorphicMap
     _validate_type(moving, SpatialImage, 'moving')
     _validate_type(static, SpatialImage, 'static')
-    _validate_type(pre_affine, AffineMap, 'pre_affine')
+    _validate_type(reg_affine, np.ndarray, 'reg_affine')
+    _check_option('reg_affine.shape', reg_affine.shape, ((4, 4),))
     _validate_type(sdr_morph, (DiffeomorphicMap, None), 'sdr_morph')
     kind = 'pre' if sdr_morph is not None else ''
     logger.info(f'Applying {kind}affine registration ...')
+    pre_affine = AffineMap(reg_affine, static.shape, static.affine,
+                           moving.shape, moving.affine)
     reg_data = pre_affine.transform(
         _get_img_fdata(moving), interpolation, moving.affine,
         static.shape, static.affine)

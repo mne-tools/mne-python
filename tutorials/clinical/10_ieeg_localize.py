@@ -31,11 +31,8 @@ import matplotlib.pyplot as plt
 import nibabel as nib
 import nilearn.plotting
 from dipy.align import resample
-from dipy.align.imaffine import AffineMap
 
 import mne
-from mne.transforms import (
-    compute_volume_registration, apply_volume_registration)
 from mne.datasets import fetch_fsaverage
 
 print(__doc__)
@@ -73,7 +70,7 @@ fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)  # downloads if needed
 #     ``256 x 256 x 256`` voxels.
 #
 # .. note::
-#     Using the ``--deface`` flag will create a defaced, anonymized T1 image
+#     Using the ``-deface`` flag will create a defaced, anonymized T1 image
 #     located at ``$MY_DATA_DIRECTORY/$SUBJECT/mri/orig_defaced.mgz``,
 #     which is helpful for when you publish your data. You can also use
 #     :func:`mne_bids.write_anat` and pass ``deface=True``.
@@ -113,39 +110,45 @@ def plot_overlay(image, compare, title, thresh=None):
 T1 = nib.load(op.join(misc_path, 'seeg', 'sample_seeg_T1.mgz'))
 CT_orig = nib.load(op.join(misc_path, 'seeg', 'sample_seeg_CT.mgz'))
 
+# Create a thresholded version of the CT to improve the registration
+min_value = 100.  # could be something else, but 100 is good for these data
+CT_clean = CT_orig.get_fdata()
+CT_clean[CT_clean < min_value] = min_value
+CT_clean -= min_value
+CT_clean = nib.spatialimages.SpatialImage(CT_clean, CT_orig.affine)
+del CT_orig
+
 # resample to T1's definition of world coordinates
-CT_resampled = resample(moving=CT_orig.get_fdata(),
+CT_resampled = resample(moving=CT_clean.get_fdata(),
                         static=T1.get_fdata(),
-                        moving_affine=CT_orig.affine,
-                        static_affine=T1.affine,
-                        between_affine=None)
+                        moving_affine=CT_clean.affine,
+                        static_affine=T1.affine)
 plot_overlay(T1, CT_resampled, 'Unaligned CT Overlaid on T1', thresh=0.95)
 del CT_resampled
 
 ###############################################################################
-# Now we need to align our CT image to the T1 image. Here we use (but do not
-# execute because it's slow) the call:
-#
-# .. code-block:: python
-#
-#    affine_map, _ = compute_volume_registration(
-#        CT_orig, T1, pipeline='rigids', zooms=dict(translation=5))
+# Now we need to align our CT image to the T1 image.
 #
 # We want this to be a rigid transformation (just rotation + translation),
-# so we don't do a full affine registration or SDR here. Instead we use the
-# affine we obtained from the full-resolution registration and reconstruct
-# the appropriate dipy object from it:
-
-affine = np.array([
-    [0.99235816, -0.03412124, 0.11857915, -133.22262329],
-    [0.04601133, 0.99402046, -0.09902669, -97.64542095],
-    [-0.11449119, 0.10372593, 0.98799428, -84.39915646],
+# so we don't do a full affine registration (that includes shear) or SDR here.
+# We'll use (although not executed here because it's slow) the following call,
+# which uses coarser zooms for translation because it provides better
+# registration for these data::
+#
+#    from mne.transforms import compute_volume_registration
+#    reg_affine, _ = compute_volume_registration(
+#         CT_clean, T1, pipeline='rigids',
+#         zooms=dict(translation=5.), verbose=True)
+#    print(reg_affine)
+#
+# This is the resulting affine, which we then apply and plot:
+reg_affine = np.array([
+    [0.99397635, -0.05646711, 0.09392808, -133.31298745],
+    [0.06593598, 0.99270228, -0.10096849, -97.33389311],
+    [-0.08754122, 0.10655353, 0.9904458, -83.15281491],
     [0., 0., 0., 1.]])
-affine_map = AffineMap(
-    affine, T1.shape, T1.affine, CT_orig.shape, CT_orig.affine)
-CT_aligned = mne.transforms.apply_volume_registration(CT_orig, T1, affine_map)
+CT_aligned = mne.transforms.apply_volume_registration(CT_clean, T1, reg_affine)
 plot_overlay(T1, CT_aligned, 'Aligned CT Overlaid on T1', thresh=0.95)
-del CT_orig
 
 ###############################################################################
 # We can now see how the CT image looks properly aligned to the T1 image.
@@ -201,7 +204,7 @@ del CT_data, T1
 # .. code-block:: bash
 #
 #     $ freeview $MISC_PATH/seeg/sample_seeg_T1.mgz \
-#       $MISC_PATH/seeg/sample_seeg_CT.mgz
+#           $MISC_PATH/seeg/sample_seeg_CT.mgz
 #
 # Now, we'll need the subject's brain segmented out from the rest of the T1
 # image from the freesurfer ``recon-all`` reconstruction. This is so that
@@ -261,18 +264,21 @@ plot_overlay(template_brain, subject_brain,
 ###############################################################################
 # Now, we'll register the affine of the subject's brain to the template brain.
 # This aligns the two brains, preparing the subject's brain to be warped
-# to the template.
+# to the template. This is very slow so we have instead saved the resulting
+# warped images to disk, but this is the call that was used to create them::
 #
-# .. warning:: We recommend using ``zooms=None`` here to do these computations
-#              at the native resolution. Here we use a more coarse
-#              warp for speed.
+#    pre_affine, sdr_morph = compute_volume_registration(
+#        subject_brain, template_brain, zooms=dict(translation=5),
+#        verbose=True)
+#    subject_brain_sdr = apply_volume_registration(
+#        subject_brain, template_brain, pre_affine, sdr_morph)
+#
+# Here we just load the result:
 
-pre_affine, sdr_morph = compute_volume_registration(
-    subject_brain, template_brain, zooms=5, verbose=True)
+subject_brain_sdr = nib.load(
+    op.join(misc_path, 'seeg', 'subject_brain_sdr.mgz'))
 
 # apply the transform to the subject brain to plot it
-subject_brain_sdr = apply_volume_registration(
-    subject_brain, template_brain, pre_affine, sdr_morph)
 plot_overlay(template_brain, subject_brain_sdr,
              'Alignment with fsaverage after SDR Registration')
 
@@ -294,7 +300,7 @@ ch_coords = mne.transforms.apply_trans(
 # into a 3D image where all the voxels over a threshold nearby
 # are labeled with an index
 CT_data = CT_aligned.get_fdata()
-thresh = np.quantile(CT_data, 0.95)
+thresh = np.quantile(CT_data, 0.8)
 elec_image = np.zeros(subject_brain.shape, dtype=int)
 for i, ch_coord in enumerate(ch_coords):
     # this looks up to a voxel away, it may be marked imperfectly
@@ -315,9 +321,18 @@ elec_image = nib.spatialimages.SpatialImage(elec_image, subject_brain.affine)
 del subject_brain, CT_aligned, CT_data  # not used anymore
 
 ###############################################################################
-# Warp and plot the result
-warped_elec_image = apply_volume_registration(
-    elec_image, template_brain, pre_affine, sdr_morph, interpolation='nearest')
+# Warp and plot the result. Again we don't compute the warp here, so we just
+# load the result from disk rather than doing::
+#
+#    warped_elec_image = apply_volume_registration(
+#        elec_image, template_brain, pre_affine, sdr_morph,
+#        interpolation='nearest')
+#
+# Again here we just load the result:
+
+warped_elec_image = nib.load(
+    op.join(misc_path, 'seeg', 'warped_elec_image.mgz'))
+
 fig, axes = plt.subplots(2, 1, figsize=(8, 8))
 nilearn.plotting.plot_glass_brain(elec_image, axes=axes[0], cmap='Dark2')
 fig.text(0.1, 0.65, 'Subject T1', rotation='vertical')
@@ -330,8 +345,10 @@ fig.suptitle('Electrodes warped to fsaverage')
 warped_elec_data = warped_elec_image.get_fdata()
 for val, ch_coord in enumerate(ch_coords, 1):
     vox = np.array(np.where(warped_elec_data == val), float)
-    assert vox.shape[1] > 0  # found at least one point
-    ch_coord[:] = vox.mean(axis=1)
+    if vox.shape[1] > 0:  # found at least one point
+        ch_coord[:] = vox.mean(axis=1)
+    else:
+        print(f'Failed to find a location for electrode #{val}')
 # convert back to surface RAS but to the template surface RAS this time
 ch_coords = mne.transforms.apply_trans(
     template_brain.header.get_vox2ras_tkr(), ch_coords)

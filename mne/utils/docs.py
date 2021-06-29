@@ -2398,6 +2398,10 @@ docdict['pre_affine'] = """
 pre_affine : instance of dipy.align.AffineMap
     The transformation that is applied before the before ``sdr_morph``.
 """
+docdict['reg_affine'] = """
+reg_affine : ndarray of float, shape (4, 4)
+    The affine that registers one volume to another.
+"""
 docdict['sdr_morph'] = """
 sdr_morph : instance of dipy.align.DiffeomorphicMap
     The class that applies the the symmetric diffeomorphic registration
