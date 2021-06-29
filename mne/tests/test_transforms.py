@@ -10,6 +10,7 @@ import mne
 from mne.datasets import testing
 from mne import read_trans, write_trans
 from mne.io import read_info
+from mne.fixes import _get_img_fdata
 from mne.transforms import (invert_transform, _get_trans,
                             rotation, rotation3d, rotation_angles, _find_trans,
                             combine_transforms, apply_trans, translation,
@@ -21,7 +22,8 @@ from mne.transforms import (invert_transform, _get_trans,
                             rotation3d_align_z_axis, _read_fs_xfm,
                             _write_fs_xfm, _quat_real, _fit_matched_points,
                             _quat_to_euler, _euler_to_quat,
-                            _quat_to_affine)
+                            _quat_to_affine, _compute_r2)
+from mne.utils import requires_nibabel, requires_dipy
 
 data_path = testing.data_path(download=False)
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-trans.fif')
@@ -509,7 +511,27 @@ def test_euler(quats):
     assert_allclose(quat_rot, euler_rot, atol=1e-14)
 
 
+@requires_nibabel()
+@requires_dipy()
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_volume_registration():
     """Test volume registration."""
+    import nibabel as nib
+    from dipy.align import resample
+    subjects_dir = op.join(data_path, 'subjects')
+    T1 = nib.load(
+        op.join(subjects_dir, 'fsaverage', 'mri', 'T1.mgz'))
+    between_affine = np.eye(4)
+    between_affine[0, 3] = 10
+    T1_resampled = resample(moving=T1.get_fdata(),
+                            static=T1.get_fdata(),
+                            moving_affine=T1.affine,
+                            static_affine=T1.affine,
+                            between_affine=between_affine)
+    reg_affine = mne.transforms.compute_volume_registration(
+        T1_resampled, T1, pipeline='rigids')
+    np.testing.assert_allclose(between_affine, np.linalg.inv(reg_affine))
+    T1_aligned = mne.transforms.apply_volume_registration(
+        T1_resampled, T1, reg_affine)
+    assert _compute_r2(_get_img_fdata(T1_aligned), _get_img_fdata(T1)) > 99
