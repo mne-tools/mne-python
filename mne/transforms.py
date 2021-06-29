@@ -1734,7 +1734,7 @@ def apply_volume_registration(moving, static, reg_affine, sdr_morph=None,
     _validate_type(reg_affine, np.ndarray, 'reg_affine')
     _validate_type(sdr_morph, (DiffeomorphicMap, None), 'sdr_morph')
     if sdr_morph is None:
-        logger.info('Applying affine registration ...')
+        logger.info(f'Applying affine registration ...')
         reg_data = _get_img_fdata(
             resample(_get_img_fdata(moving), _get_img_fdata(static),
                      moving.affine, static.affine, reg_affine))
