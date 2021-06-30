@@ -13,13 +13,15 @@ import glob
 import numpy as np
 from copy import deepcopy
 
-from .fixes import jit, mean
+from .fixes import jit, mean, _get_img_fdata
 from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tag import read_tag
 from .io.write import start_file, end_file, write_coord_trans
+from .defaults import _handle_default
 from .utils import (check_fname, logger, verbose, _ensure_int, _validate_type,
-                    _check_path_like, get_subjects_dir, fill_doc, _check_fname)
+                    _check_path_like, get_subjects_dir, fill_doc, _check_fname,
+                    _check_option, _require_version, wrapped_stdout)
 
 
 # transformation from anterior/left/superior coordinate system to
@@ -1521,3 +1523,223 @@ def _euler_to_quat(euler):
     quat[..., 2] = cphi * ctheta * spsi - sphi * stheta * cpsi
     quat *= mult
     return quat
+
+
+###############################################################################
+# Affine Registration and SDR
+
+_ORDERED_STEPS = ('translation', 'rigid', 'affine', 'sdr')
+
+
+def _validate_zooms(zooms):
+    _validate_type(zooms, (dict, list, tuple, 'numeric', None), 'zooms')
+    zooms = _handle_default('transform_zooms', zooms)
+    for key, val in zooms.items():
+        _check_option('zooms key', key, _ORDERED_STEPS)
+        if val is not None:
+            val = tuple(
+                float(x) for x in np.array(val, dtype=float).ravel())
+            _check_option(f'len(zooms[{repr(key)})', len(val), (1, 3))
+            if len(val) == 1:
+                val = val * 3
+            for this_zoom in val:
+                if this_zoom <= 1:
+                    raise ValueError(f'Zooms must be > 1, got {this_zoom}')
+            zooms[key] = val
+    return zooms
+
+
+def _validate_niter(niter):
+    _validate_type(niter, (dict, list, tuple, None), 'niter')
+    niter = _handle_default('transform_niter', niter)
+    for key, value in niter.items():
+        _check_option('niter key', key, _ORDERED_STEPS)
+        _check_option(f'len(niter[{repr(key)}])', len(value), (1, 2, 3))
+    return niter
+
+
+def _validate_pipeline(pipeline):
+    _validate_type(pipeline, (str, list, tuple), 'pipeline')
+    pipeline_defaults = dict(
+        all=_ORDERED_STEPS,
+        rigids=_ORDERED_STEPS[:_ORDERED_STEPS.index('rigid') + 1],
+        affines=_ORDERED_STEPS[:_ORDERED_STEPS.index('affine') + 1])
+    if isinstance(pipeline, str):  # use defaults
+        _check_option('pipeline', pipeline, ('all', 'rigids', 'affines'),
+                      extra='when str')
+        pipeline = pipeline_defaults[pipeline]
+    for ii, step in enumerate(pipeline):
+        name = f'pipeline[{ii}]'
+        _validate_type(step, str, name)
+        _check_option(name, step, _ORDERED_STEPS)
+    ordered_pipeline = tuple(sorted(
+        pipeline, key=lambda x: _ORDERED_STEPS.index(x)))
+    if pipeline != ordered_pipeline:
+        raise ValueError(
+            f'Steps in pipeline are out of order, expected {ordered_pipeline} '
+            f'but got {pipeline} instead')
+    if len(set(pipeline)) != len(pipeline):
+        raise ValueError('Steps in pipeline should not be repeated')
+    return tuple(pipeline)
+
+
+@verbose
+def compute_volume_registration(moving, static, pipeline='all', zooms=None,
+                                niter=None, verbose=None):
+    """Align two volumes using an affine and, optionally, SDR.
+
+    Parameters
+    ----------
+    %(moving)s
+    %(static)s
+    %(pipeline)s
+    zooms : float | tuple | dict | None
+        The voxel size of volume for each spatial dimension in mm.
+        If None (default), MRIs won't be resliced (slow, but most accurate).
+        Can be a tuple to provide separate zooms for each dimension (X/Y/Z),
+        or a dict with keys ``['translation', 'rigid', 'affine', 'sdr']``
+        (each with values that are float`, tuple, or None) to provide separate
+        reslicing/accuracy for the steps.
+    %(niter)s
+    %(verbose)s
+
+    Returns
+    -------
+    %(reg_affine)s
+    %(sdr_morph)s
+
+    Notes
+    -----
+    This function is heavily inspired by and extends
+    :func:`dipy.align.affine_registration
+    <dipy.align._public.affine_registration>`.
+
+    .. versionadded:: 0.24
+    """
+    from .morph import _compute_r2, _reslice_normalize
+    _require_version('nibabel', 'SDR morph', '2.1.0')
+    _require_version('dipy', 'SDR morph', '0.10.1')
+    import nibabel as nib
+    with np.testing.suppress_warnings():
+        from dipy.align import (affine_registration, center_of_mass,
+                                translation, rigid, affine, resample,
+                                imwarp, metrics)
+
+    # input validation
+    _validate_type(moving, nib.spatialimages.SpatialImage, 'moving')
+    _validate_type(static, nib.spatialimages.SpatialImage, 'static')
+    zooms = _validate_zooms(zooms)
+    niter = _validate_niter(niter)
+    pipeline = _validate_pipeline(pipeline)
+
+    logger.info('Computing registration...')
+
+    # affine optimizations
+    moving_orig = moving
+    static_orig = static
+    out_affine = np.eye(4)
+    sdr_morph = None
+    pipeline_options = dict(translation=[center_of_mass, translation],
+                            rigid=[rigid], affine=[affine])
+    sigmas = [3.0, 1.0, 0.0]
+    factors = [4, 2, 1]
+    for i, step in enumerate(pipeline):
+        # reslice image with zooms
+        if zooms[step] is not None:
+            logger.info(f'Reslicing to zooms={zooms[step]}...')
+        if i == 0 or zooms[step] != zooms[pipeline[i - 1]]:
+            static_zoomed, static_affine = _reslice_normalize(
+                static, zooms[step])
+        # must be resliced every time because it is adjusted at every step
+        # sdr is uses the pre-alignment so start from orig
+        moving_zoomed, moving_affine = _reslice_normalize(
+            moving_orig if step == 'sdr' else moving, zooms[step])
+        logger.info(f'Optimizing {step}:')
+        if step == 'sdr':  # happens last
+            sdr = imwarp.SymmetricDiffeomorphicRegistration(
+                metrics.CCMetric(3), niter[step])
+            with wrapped_stdout(indent='    ', cull_newlines=True):
+                sdr_morph = sdr.optimize(static_zoomed, moving_zoomed,
+                                         static_affine, moving_affine,
+                                         out_affine)
+            moving_zoomed = sdr_morph.transform(moving_zoomed)
+        else:
+            with wrapped_stdout(indent='    ', cull_newlines=True):
+                _, reg_affine = affine_registration(
+                    moving_zoomed, static_zoomed, moving_affine, static_affine,
+                    nbins=32, metric='MI', pipeline=pipeline_options[step],
+                    level_iters=niter[step], sigmas=sigmas, factors=factors)
+
+            # update the overall alignment affine
+            out_affine = np.dot(out_affine, reg_affine)
+
+            # apply the current affine to the full-resolution data
+            moving = resample(_get_img_fdata(moving_orig),
+                              _get_img_fdata(static_orig),
+                              moving_orig.affine, static_orig.affine,
+                              out_affine)
+
+            # report some useful information
+            if step in ('translation', 'rigid'):
+                dist = np.linalg.norm(reg_affine[:3, 3])
+                angle = np.rad2deg(_angle_between_quats(
+                    np.zeros(3), rot_to_quat(reg_affine[:3, :3])))
+                logger.info(f'    Translation: {dist:6.1f} mm')
+                if step == 'rigid':
+                    logger.info(f'    Rotation:    {angle:6.1f}°')
+        r2 = _compute_r2(static_zoomed, moving_zoomed)
+        logger.info(f'    R²:          {r2:6.1f}%')
+    return out_affine, sdr_morph
+
+
+@verbose
+def apply_volume_registration(moving, static, reg_affine, sdr_morph=None,
+                              interpolation='linear', verbose=None):
+    """Apply volume registration.
+
+    Uses registration parameters computed by
+    :func:`~mne.transforms.compute_volume_registration`.
+
+    Parameters
+    ----------
+    %(moving)s
+    %(static)s
+    %(reg_affine)s
+    %(sdr_morph)s
+    interpolation : str
+        Interpolation to be used during the interpolation.
+        Can be "linear" (default) or "nearest".
+    %(verbose)s
+
+    Returns
+    -------
+    reg_img : instance of SpatialImage
+        The image after affine (and SDR, if provided) registration.
+
+    Notes
+    -----
+    .. versionadded:: 0.24
+    """
+    _require_version('nibabel', 'SDR morph', '2.1.0')
+    _require_version('dipy', 'SDR morph', '0.10.1')
+    from nibabel.spatialimages import SpatialImage
+    from dipy.align.imwarp import DiffeomorphicMap
+    from dipy.align import resample
+    _validate_type(moving, SpatialImage, 'moving')
+    _validate_type(static, SpatialImage, 'static')
+    _validate_type(reg_affine, np.ndarray, 'reg_affine')
+    _check_option('reg_affine.shape', reg_affine.shape, ((4, 4),))
+    _validate_type(sdr_morph, (DiffeomorphicMap, None), 'sdr_morph')
+    if sdr_morph is None:
+        logger.info('Applying affine registration ...')
+        reg_img = resample(_get_img_fdata(moving), _get_img_fdata(static),
+                           moving.affine, static.affine, reg_affine)
+    else:
+        logger.info('Appling SDR warp ...')
+        reg_data = sdr_morph.transform(
+            _get_img_fdata(moving), interpolation=interpolation,
+            image_world2grid=np.linalg.inv(moving.affine),
+            out_shape=static.shape, out_grid2world=static.affine)
+        reg_img = SpatialImage(reg_data, static.affine)
+    logger.info('[done]')
+    return reg_img

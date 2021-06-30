@@ -1011,27 +1011,30 @@ def _compute_r2(a, b):
         (np.linalg.norm(a) * np.linalg.norm(b))
 
 
+def _reslice_normalize(img, zooms):
+    from dipy.align.reslice import reslice
+    img_zooms = img.header.get_zooms()[:3]
+    img_affine = img.affine
+    img = _get_img_fdata(img)
+    if zooms is not None:
+        img, img_affine = reslice(img, img_affine, img_zooms, zooms)
+    img /= img.max()  # normalize
+    return img, img_affine
+
+
 def _compute_morph_sdr(mri_from, mri_to, niter_affine, niter_sdr, zooms):
     """Get a matrix that morphs data from one subject to another."""
     with np.testing.suppress_warnings():
         from dipy.align import imaffine, imwarp, metrics, transforms
-    from dipy.align.reslice import reslice
 
     logger.info('Computing nonlinear Symmetric Diffeomorphic Registration...')
 
     # reslice mri_from to zooms
     mri_from_orig = mri_from
-    mri_from, mri_from_affine = reslice(
-        _get_img_fdata(mri_from_orig), mri_from_orig.affine,
-        mri_from_orig.header.get_zooms()[:3], zooms)
+    mri_from, mri_from_affine = _reslice_normalize(mri_from, zooms)
 
     # reslice mri_to to zooms
-    mri_to, affine = reslice(
-        _get_img_fdata(mri_to), mri_to.affine,
-        mri_to.header.get_zooms()[:3], zooms)
-
-    mri_to /= mri_to.max()
-    mri_from /= mri_from.max()  # normalize
+    mri_to, affine = _reslice_normalize(mri_to, zooms)
 
     # compute center of mass
     c_of_mass = imaffine.transform_centers_of_mass(
