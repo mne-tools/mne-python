@@ -21,7 +21,7 @@ psutil
 dipy
 vtk<8.2; platform_system == "Darwin"
 vtk; platform_system != "Darwin"
-mayavi
+https://github.com/larsoner/mayavi/zipball/workaround
 PySurfer[save_movie]
 nilearn
 xlrd
