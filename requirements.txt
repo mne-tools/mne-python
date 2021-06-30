@@ -20,7 +20,8 @@ joblib
 psutil
 dipy
 vtk; platform_system == "Darwin"
-vtk<=9.0.1; platform_system != "Darwin"
+vtk; platform_system == "Linux"
+vtk<=9.0.1; platform_system == "Windows"
 https://github.com/larsoner/mayavi/zipball/workaround
 PySurfer[save_movie]
 nilearn
