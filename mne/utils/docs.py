@@ -2408,7 +2408,8 @@ niter : dict | tuple | None
     <dipy.align._public.affine_registration>` for details).
     If a dictionary is provided, number of iterations can be set for each
     step as a key. Steps not in the dictionary will use the default value.
-    The default (None) is equivalent to::
+    The default (None) is equivalent to:
+
         niter=dict(translation=(100, 100, 10),
                    rigid=(100, 100, 10),
                    affine=(100, 100, 10),
@@ -2420,26 +2421,34 @@ pipeline : str | tuple
     or ``tuple`` for a set of sequential steps). The following steps can be
     performed, and do so by matching mutual information between the images
     (unless otherwise noted):
+
     ``'translation'``
         Translation.
+
     ``'rigid'``
         Rigid-body, i.e., rotation and translation.
+
     ``'affine'``
         A full affine transformation, which includes translation, rotation,
         scaling, and shear.
+
     ``'sdr'``
         Symmetric diffeomorphic registration :footcite:`AvantsEtAl2008`, a
         non-linear similarity-matching algorithm.
+
     The following string shortcuts can also be used:
-    ``"all"`` (default)
+
+    ``'all'`` (default)
         All steps will be performed above in the order above, i.e.,
         ``('translation', 'rigid', 'affine', 'sdr')``.
+
     ``'rigids'``
         The rigid steps (first two) will be performed, which registers
         the volume without distorting its underlying structure, i.e.,
         ``('translation', 'rigid')``. This is useful for
         example when registering images from the same subject, such as
         CT and MR images.
+
     ``'affines'``
         The affine steps (first three) will be performed, i.e., omitting
         the SDR step.
