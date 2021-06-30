@@ -259,16 +259,16 @@ plot_overlay(template_brain, subject_brain,
 # to the template. This is very slow so we have instead saved the resulting
 # warped images to disk, but this is the call that was used to create them::
 #
-#    pre_affine, sdr_morph = compute_volume_registration(
-#        subject_brain, template_brain, zooms=dict(translation=5),
-#        verbose=True)
-#    subject_brain_sdr = apply_volume_registration(
-#        subject_brain, template_brain, pre_affine, sdr_morph)
+pre_affine, sdr_morph = mne.transforms.compute_volume_registration(
+    subject_brain, template_brain, zooms=dict(translation=5),
+    verbose=True)
+subject_brain_sdr = mne.transforms.apply_volume_registration(
+    subject_brain, template_brain, pre_affine, sdr_morph)
 #
 # Here we just load the result:
 
-subject_brain_sdr = nib.load(
-    op.join(misc_path, 'seeg', 'subject_brain_sdr.mgz'))
+# subject_brain_sdr = nib.load(
+#     op.join(misc_path, 'seeg', 'subject_brain_sdr.mgz'))
 
 # apply the transform to the subject brain to plot it
 plot_overlay(template_brain, subject_brain_sdr,
@@ -316,14 +316,14 @@ del subject_brain, CT_aligned, CT_data  # not used anymore
 # Warp and plot the result. Again we don't compute the warp here, so we just
 # load the result from disk rather than doing::
 #
-#    warped_elec_image = apply_volume_registration(
-#        elec_image, template_brain, pre_affine, sdr_morph,
-#        interpolation='nearest')
+warped_elec_image = mne.transforms.apply_volume_registration(
+    elec_image, template_brain, pre_affine, sdr_morph,
+    interpolation='nearest')
 #
 # Again here we just load the result:
 
-warped_elec_image = nib.load(
-    op.join(misc_path, 'seeg', 'warped_elec_image.mgz'))
+# warped_elec_image = nib.load(
+#     op.join(misc_path, 'seeg', 'warped_elec_image.mgz'))
 
 fig, axes = plt.subplots(2, 1, figsize=(8, 8))
 nilearn.plotting.plot_glass_brain(elec_image, axes=axes[0], cmap='Dark2')
