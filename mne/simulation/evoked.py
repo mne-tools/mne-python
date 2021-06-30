@@ -15,7 +15,7 @@ from ..utils import (logger, verbose, check_random_state, _check_preload,
 
 
 @verbose
-def simulate_evoked(fwd, stc, info, cov, nave=30, iir_filter=None,
+def simulate_evoked(fwd, stc, info, cov=None, nave=30, iir_filter=None,
                     random_state=None, use_cps=True, verbose=None):
     """Generate noisy evoked data.
 
@@ -33,7 +33,7 @@ def simulate_evoked(fwd, stc, info, cov, nave=30, iir_filter=None,
         The source time courses.
     info : dict
         Measurement info to generate the evoked.
-    cov : Covariance object
+    cov : Covariance object | None
         The noise covariance.
     nave : int
         Number of averaged epochs (defaults to 30).
