@@ -135,8 +135,7 @@ del CT_resampled
 # which uses coarser zooms for translation because it provides better
 # registration for these data::
 #
-#    from mne.transforms import compute_volume_registration
-#    reg_affine, _ = compute_volume_registration(
+#    reg_affine, _ = mne.transforms.compute_volume_registration(
 #         CT_clean, T1, pipeline='rigids',
 #         zooms=dict(translation=5.), verbose=True)
 #    print(reg_affine)
@@ -264,19 +263,13 @@ plot_overlay(template_brain, subject_brain,
 ###############################################################################
 # Now, we'll register the affine of the subject's brain to the template brain.
 # This aligns the two brains, preparing the subject's brain to be warped
-# to the template. This is very slow so we have instead saved the resulting
-# warped images to disk, but this is the call that was used to create them::
-#
+# to the template. For speed we use ``zooms=5`` but in general something like
+# ``zooms=dict(translation=5)`` may give better results.
+
 pre_affine, sdr_morph = mne.transforms.compute_volume_registration(
-    subject_brain, template_brain, zooms=dict(translation=5),
-    verbose=True)
+    subject_brain, template_brain, zooms=5, verbose=True)
 subject_brain_sdr = mne.transforms.apply_volume_registration(
     subject_brain, template_brain, pre_affine, sdr_morph)
-#
-# Here we just load the result:
-
-# subject_brain_sdr = nib.load(
-#     op.join(misc_path, 'seeg', 'subject_brain_sdr.mgz'))
 
 # apply the transform to the subject brain to plot it
 plot_overlay(template_brain, subject_brain_sdr,
@@ -300,7 +293,7 @@ ch_coords = mne.transforms.apply_trans(
 # into a 3D image where all the voxels over a threshold nearby
 # are labeled with an index
 CT_data = CT_aligned.get_fdata()
-thresh = np.quantile(CT_data, 0.8)
+thresh = np.quantile(CT_data, 0.95)
 elec_image = np.zeros(subject_brain.shape, dtype=int)
 for i, ch_coord in enumerate(ch_coords):
     # this looks up to a voxel away, it may be marked imperfectly
@@ -321,17 +314,11 @@ elec_image = nib.spatialimages.SpatialImage(elec_image, subject_brain.affine)
 del subject_brain, CT_aligned, CT_data  # not used anymore
 
 ###############################################################################
-# Warp and plot the result. Again we don't compute the warp here, so we just
-# load the result from disk rather than doing::
-#
+# Warp and plot the result.
+
 warped_elec_image = mne.transforms.apply_volume_registration(
     elec_image, template_brain, pre_affine, sdr_morph,
     interpolation='nearest')
-#
-# Again here we just load the result:
-
-# warped_elec_image = nib.load(
-#     op.join(misc_path, 'seeg', 'warped_elec_image.mgz'))
 
 fig, axes = plt.subplots(2, 1, figsize=(8, 8))
 nilearn.plotting.plot_glass_brain(elec_image, axes=axes[0], cmap='Dark2')
@@ -345,10 +332,8 @@ fig.suptitle('Electrodes warped to fsaverage')
 warped_elec_data = warped_elec_image.get_fdata()
 for val, ch_coord in enumerate(ch_coords, 1):
     vox = np.array(np.where(warped_elec_data == val), float)
-    if vox.shape[1] > 0:  # found at least one point
-        ch_coord[:] = vox.mean(axis=1)
-    else:
-        print(f'Failed to find a location for electrode #{val}')
+    assert vox.shape[1] > 0  # found at least one point
+    ch_coord[:] = vox.mean(axis=1)
 # convert back to surface RAS but to the template surface RAS this time
 ch_coords = mne.transforms.apply_trans(
     template_brain.header.get_vox2ras_tkr(), ch_coords)

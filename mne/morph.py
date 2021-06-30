@@ -288,9 +288,11 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
     if src_to is not None:
         assert len(vertices_to) == len(src_to)
     morph = SourceMorph(subject_from, subject_to, kind, zooms,
-                        niter['affine'], niter['sdr'], spacing, smooth, xhemi,
-                        morph_mat, vertices_to, shape, affine,
-                        pre_affine, sdr_morph, src_data, None)
+                        niter=niter, spacing=spacing, smooth=smooth,
+                        xhemi=xhemi, morph_mat=morph_mat,
+                        vertices_to=vertices_to, shape=shape, affine=affine,
+                        pre_affine=pre_affine, sdr_morph=sdr_morph,
+                        src_data=src_data, vol_morph_mat=None, verbose=None)
     if precompute:
         morph.compute_vol_morph_mat()
     logger.info('[done]')
@@ -319,9 +321,8 @@ def _compute_sparse_morph(vertices_from, subject_from, subject_to,
     return vertices, morph_mat
 
 
-# XXX need to replace niter_affine and niter_sdr with niter
 _SOURCE_MORPH_ATTRIBUTES = [  # used in writing
-    'subject_from', 'subject_to', 'kind', 'zooms', 'niter_affine', 'niter_sdr',
+    'subject_from', 'subject_to', 'kind', 'zooms', 'niter',
     'spacing', 'smooth', 'xhemi', 'morph_mat', 'vertices_to',
     'shape', 'affine', 'pre_affine', 'sdr_morph', 'src_data',
     'vol_morph_mat', 'verbose']
@@ -347,8 +348,7 @@ class SourceMorph(object):
         Kind of source estimate. E.g. 'volume' or 'surface'.
     zooms : float | tuple
         See :func:`mne.compute_source_morph`.
-    %(niter_affine)s
-    %(niter_sdr)s
+    %(niter)s
     spacing : int | list | None
         See :func:`mne.compute_source_morph`.
     smooth : int | str | None
@@ -382,8 +382,8 @@ class SourceMorph(object):
     .. footbibliography::
     """
 
-    def __init__(self, subject_from, subject_to, kind, zooms,
-                 niter_affine, niter_sdr, spacing, smooth, xhemi,
+    def __init__(self, subject_from, subject_to, kind, zooms, *,
+                 niter, spacing, smooth, xhemi,
                  morph_mat, vertices_to, shape,
                  affine, pre_affine, sdr_morph, src_data,
                  vol_morph_mat, verbose=None):
@@ -393,8 +393,7 @@ class SourceMorph(object):
         self.kind = kind
         # vol input
         self.zooms = zooms
-        self.niter_affine = niter_affine
-        self.niter_sdr = niter_sdr
+        self.niter = niter
         # surf input
         self.spacing = spacing
         self.smooth = smooth
@@ -649,8 +648,7 @@ class SourceMorph(object):
         s += u", %s -> %s" % (self.subject_from, self.subject_to)
         if self.kind == 'volume':
             s += ", zooms : {}".format(self.zooms)
-            s += ", niter_affine : {}".format(self.niter_affine)
-            s += ", niter_sdr : {}".format(self.niter_sdr)
+            s += ", niter : {}".format(self.niter)
         elif self.kind in ('surface', 'vector'):
             s += ", spacing : {}".format(self.spacing)
             s += ", smooth : %s" % self.smooth
@@ -784,6 +782,11 @@ def read_source_morph(fname):
         vals['src_data']['inuse'] = [vals['src_data']['inuse']]
     # added with compute_vol_morph_mat in 0.22:
     vals['vol_morph_mat'] = vals.get('vol_morph_mat', None)
+    if 'niter_affine' in vals:
+        niter = vals.pop('niter_affine')
+        vals['niter'] = dict(
+            translation=niter, rigid=niter, affine=niter,
+            sdr=vals.pop('niter_sdr'))
     return SourceMorph(**vals)
 
 
@@ -1127,7 +1130,7 @@ def _compute_morph_sdr(mri_from, mri_to, pipeline, niter, zooms,
     mri_to_orig = mri_to
     last_zooms = -1
     pre_affine = imaffine.AffineMap(  # identity transform
-        None, mri_to.shape, mri_to.affine, mri_from.shape, mri_to.affine)
+        None, mri_to.shape, mri_to.affine, mri_from.shape, mri_from.affine)
     sdr_morph = None  # disabled
     mi_metric = imaffine.MutualInformationMetric(nbins=32)
     sigmas = [3.0, 1.0, 0.0]
@@ -1180,7 +1183,8 @@ def _compute_morph_sdr(mri_from, mri_to, pipeline, niter, zooms,
             sdr = imwarp.SymmetricDiffeomorphicRegistration(
                 metrics.CCMetric(3), niter['sdr'])
             with wrapped_stdout(indent='    ', cull_newlines=True):
-                sdr_morph = sdr.optimize(mri_to, mri_from_to)
+                sdr_morph = sdr.optimize(
+                    mri_to, mri_from_to, mri_to_affine, mri_to_affine)
             mri_from_to = sdr_morph.transform(mri_from_to)
 
         # Report some useful information
