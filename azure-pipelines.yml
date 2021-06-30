@@ -41,7 +41,7 @@ stages:
     pool:
       vmImage: 'ubuntu-18.04'
     variables:
-      PYTHON_VERSION: '3.8'
+      PYTHON_VERSION: '3.9'
       PYTHON_ARCH: 'x64'
     steps:
     - bash: echo $(COMMIT_MSG)
@@ -196,16 +196,16 @@ stages:
     strategy:
       maxParallel: 4
       matrix:
-        3.7 conda:
+        3.9 conda:
           PLATFORM: 'x86-64'
           TEST_MODE: 'conda'
-          PYTHON_VERSION: '3.8'
+          PYTHON_VERSION: '3.9'
         3.7 pip:
           TEST_MODE: 'pip'
           PYTHON_VERSION: '3.7'
-        3.8 pip pre:
+        3.9 pip pre:
           TEST_MODE: 'pip-pre'
-          PYTHON_VERSION: '3.8'
+          PYTHON_VERSION: '3.9'
           OPENBLAS_CORETYPE: 'prescott'  # workaround for https://github.com/numpy/numpy/issues/16913
     steps:
     - task: UsePythonVersion@0
@@ -236,7 +236,7 @@ stages:
         Set-StrictMode -Version Latest
         $ErrorActionPreference = "Stop"
         $PSDefaultParameterValues['*:ErrorAction']='Stop'
-        conda update -n base -c defaults conda
+        conda update -n base -c defaults conda "brotli<1.0" urllib3
         conda env update --name base --file environment.yml
         pip uninstall -yq mne
         pip install -r requirements_testing.txt -r requirements_testing_extra.txt codecov
