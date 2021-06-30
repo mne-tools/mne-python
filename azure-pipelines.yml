@@ -80,7 +80,7 @@ stages:
 
   - job: Ultraslow
     pool:
-      vmImage: 'ubuntu-18.04'
+      vmImage: 'ubuntu-20.04'
     variables:
       DISPLAY: ':99'
       OPENBLAS_NUM_THREADS: '1'
@@ -98,7 +98,7 @@ stages:
       displayName: 'Test minimal commands'
     - task: UsePythonVersion@0
       inputs:
-        versionSpec: '3.7'
+        versionSpec: '3.9'
         architecture: 'x64'
         addToPath: true
       displayName: 'Get Python'
