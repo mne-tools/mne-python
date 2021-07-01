@@ -417,8 +417,11 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
 
         .. versionadded:: 0.22.0
     exclude : list of str | 'bads'
-        Channels names to exclude from being shown. If 'bads', the
-        bad channels are excluded.
+        Channels names to exclude from being shown. If 'bads', the bad channels
+        are excluded. Pass an empty list to plot all channels (including
+        channels marked "bad", if any).
+
+        ..versionadded:: 0.24.0
     %(verbose)s
 
     Returns
