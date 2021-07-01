@@ -19,7 +19,7 @@ from .source_space import SourceSpaces, _ensure_src, _grid_interp
 from .surface import mesh_edges, read_surface, _compute_nearest
 from .utils import (logger, verbose, check_version, get_subjects_dir,
                     warn as warn_, fill_doc, _check_option, _validate_type,
-                    BunchConst, _check_fname, warn,
+                    BunchConst, _check_fname, warn, wrapped_stdout,
                     _ensure_int, ProgressBar, use_log_level)
 from .externals.h5io import read_hdf5, write_hdf5
 
@@ -1007,20 +1007,30 @@ def _interpolate_data(stc, morph, mri_resolution, mri_space, output):
 
 def _compute_morph_sdr(mri_from, mri_to, niter_affine, niter_sdr, zooms):
     """Get a matrix that morphs data from one subject to another."""
-    from .transforms import _compute_volume_registration
+    from .transforms import (_compute_volume_registration, _compute_r2,
+                             _reslice_normalize)
     from dipy.align.imaffine import AffineMap
-    pipeline = 'all' if niter_sdr else 'affines'
+    from dipy.align import imwarp, metrics
     niter = dict(translation=niter_affine, rigid=niter_affine,
-                 affine=niter_affine,
-                 sdr=niter_sdr if niter_sdr else (1,))
+                 affine=niter_affine)
     pre_affine, sdr_morph, to_shape, to_affine, from_shape, from_affine = \
         _compute_volume_registration(
-            mri_from, mri_to, zooms=zooms, niter=niter, pipeline=pipeline)
-    # Prevent the affine from being applied twice
-    if niter_sdr:
-        pre_affine = np.eye(4)
+            mri_from, mri_to, zooms=zooms, niter=niter, pipeline='affines')
     pre_affine = AffineMap(
         pre_affine, to_shape, to_affine, from_shape, from_affine)
+    if len(niter_sdr):
+        mri_from, from_affine = _reslice_normalize(mri_from, zooms)
+        mri_to, to_affine = _reslice_normalize(mri_to, zooms)
+        mri_from_to = pre_affine.transform(mri_from)
+        sdr = imwarp.SymmetricDiffeomorphicRegistration(
+            metrics.CCMetric(3), list(niter_sdr))
+        logger.info('Optimizing SDR:')
+        with wrapped_stdout(indent='    ', cull_newlines=True):
+            sdr_morph = sdr.optimize(mri_to, mri_from_to)
+        assert to_shape == tuple(sdr_morph.domain_shape)
+        mri_from_to = sdr_morph.transform(mri_from)
+        logger.info(
+            f'    R²:          {_compute_r2(mri_to, mri_from_to):6.1f}%')
     return to_shape, zooms, to_affine, pre_affine, sdr_morph
 
 

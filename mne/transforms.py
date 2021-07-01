@@ -1685,8 +1685,6 @@ def _compute_volume_registration(moving, static, pipeline, zooms, niter):
                                          static_affine, moving_affine,
                                          out_affine)
             moving_zoomed = sdr_morph.transform(moving_zoomed)
-            # sdr only works on zoomed resolution
-            r2 = _compute_r2(static_zoomed, moving_zoomed)
         else:
             with wrapped_stdout(indent='    ', cull_newlines=True):
                 moving_zoomed, reg_affine = affine_registration(
@@ -1711,7 +1709,7 @@ def _compute_volume_registration(moving, static, pipeline, zooms, niter):
                 logger.info(f'    Translation: {dist:6.1f} mm')
                 if step == 'rigid':
                     logger.info(f'    Rotation:    {angle:6.1f}°')
-            r2 = _compute_r2(_get_img_fdata(static), _get_img_fdata(moving))
+        r2 = _compute_r2(static_zoomed, moving_zoomed)
         logger.info(f'    R²:          {r2:6.1f}%')
     return (out_affine, sdr_morph, static_zoomed.shape, static_affine,
             moving_zoomed.shape, moving_affine)
