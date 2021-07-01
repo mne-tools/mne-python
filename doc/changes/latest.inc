@@ -159,6 +159,7 @@ Enhancements
 
 - Reading EDF files via :func:`mne.io.read_raw_edf` now can infer channel type from the signal label in the EDF header (:gh:`9694` by `Adam Li`_)
 
+- Add :func:`mne.gui.locate_ieeg` to locate intracranial electrode contacts from a CT, an MRI (with Freesurfer ``recon-all``) and the channel names from an :class:`mne.Info` object (:gh:`9586` by `Alex Rockhill`_)
 
 Bugs
 ~~~~

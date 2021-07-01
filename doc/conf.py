@@ -258,6 +258,7 @@ numpydoc_xref_ignore = {
     # unlinkable
     'mayavi.mlab.pipeline.surface',
     'CoregFrame', 'Kit2FiffFrame', 'FiducialsFrame',
+    'IntracranialElectrodeLocator'
 }
 numpydoc_validate = True
 numpydoc_validation_checks = {'all'} | set(error_ignores)

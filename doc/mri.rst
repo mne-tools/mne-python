@@ -19,6 +19,7 @@ Step by step instructions for using :func:`gui.coregistration`:
    get_montage_volume_labels
    gui.coregistration
    gui.fiducials
+   gui.locate_ieeg
    create_default_subject
    head_to_mni
    head_to_mri
