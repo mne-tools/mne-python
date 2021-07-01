@@ -158,3 +158,25 @@ def test_rank_deficiency():
     assert cov['names'] == cov_new['names']
     r = np.corrcoef(cov['data'].ravel(), cov_new['data'].ravel())[0, 1]
     assert r > 0.98
+
+
+@testing.requires_testing_data
+def test_order():
+    """Test that order does not matter."""
+    fwd = read_forward_solution(fwd_fname)
+    fwd = convert_forward_solution(fwd, force_fixed=True, use_cps=False)
+    evoked = read_evokeds(ave_fname)[0].pick_types(meg=True, eeg=True)
+    assert 'meg' in evoked
+    assert 'eeg' in evoked
+    meg_picks = pick_types(evoked.info, meg=True)
+    eeg_picks = pick_types(evoked.info, eeg=True)
+    # MEG then EEG
+    assert (eeg_picks > meg_picks.max()).all()
+    times = np.arange(10) / 1000.
+    stc = simulate_sparse_stc(fwd['src'], 1, times=times, random_state=0)
+    evoked_sim = simulate_evoked(fwd, stc, evoked.info, nave=np.inf)
+    reorder = np.concatenate([eeg_picks, meg_picks])
+    evoked.reorder_channels([evoked.ch_names[pick] for pick in reorder])
+    evoked_sim_2 = simulate_evoked(fwd, stc, evoked.info, nave=np.inf)
+    want_data = evoked_sim.data[reorder]
+    assert_allclose(evoked_sim_2.data, want_data)

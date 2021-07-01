@@ -153,7 +153,7 @@ intersphinx_mapping = {
     'qdarkstyle': ('https://qdarkstylesheet.readthedocs.io/en/latest', None),
     'eeglabio': ('https://eeglabio.readthedocs.io/en/latest', None),
     'dipy': ('https://dipy.org/documentation/1.4.0./',
-             'https://dipy.org/documentation/1.4.0./objects.inv/')
+             'https://dipy.org/documentation/1.4.0./objects.inv/'),
 }
 
 
@@ -254,8 +254,6 @@ numpydoc_xref_ignore = {
     # unlinkable
     'mayavi.mlab.pipeline.surface',
     'CoregFrame', 'Kit2FiffFrame', 'FiducialsFrame',
-    # dipy has resolution problems, wait for them to be solved, e.g.
-    # https://github.com/dipy/dipy/issues/2290
 }
 numpydoc_validate = True
 numpydoc_validation_checks = {'all'} | set(error_ignores)

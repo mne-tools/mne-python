@@ -22,7 +22,7 @@ if [[ "$CIRCLE_JOB" == "interactive_test" ]]; then
 	wget -q https://osf.io/kej3v/download -O vtk-9.0.20201117-cp39-cp39-linux_x86_64.whl
 	python -m pip install --progress-bar off vtk-9.0.20201117-cp39-cp39-linux_x86_64.whl
 	python -m pip install --progress-bar off https://github.com/pyvista/pyvista/zipball/main
-	python -m pip install --progress-bar off https://github.com/pyvista/pyvistaqt/zipball/master
+	python -m pip install --progress-bar off https://github.com/pyvista/pyvistaqt/zipball/main
 	python -m pip install --progress-bar off --upgrade -r requirements_testing.txt -r requirements_testing_extra.txt
 	python -m pip install -e .
 elif [[ "$CIRCLE_JOB" == "linkcheck"* ]]; then
@@ -34,7 +34,7 @@ else  # standard doc build
 	echo "Installing doc build dependencies"
 	python -m pip uninstall -y pydata-sphinx-theme
 	python -m pip install --upgrade --progress-bar off -r requirements.txt -r requirements_testing.txt -r requirements_doc.txt
-	python -m pip install --progress-bar off https://github.com/sphinx-gallery/sphinx-gallery/zipball/master https://github.com/pyvista/pyvista/zipball/main https://github.com/pyvista/pyvistaqt/zipball/master
+	python -m pip install --progress-bar off https://github.com/sphinx-gallery/sphinx-gallery/zipball/master https://github.com/pyvista/pyvista/zipball/main https://github.com/pyvista/pyvistaqt/zipball/main
 	python -m pip uninstall -yq pysurfer mayavi
 	python -m pip install -e .
 fi
