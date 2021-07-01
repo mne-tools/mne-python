@@ -421,7 +421,7 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
         are excluded. Pass an empty list to plot all channels (including
         channels marked "bad", if any).
 
-        ..versionadded:: 0.24.0
+        .. versionadded:: 0.24.0
     %(verbose)s
 
     Returns
