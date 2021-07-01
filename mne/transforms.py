@@ -1663,7 +1663,6 @@ def _compute_volume_registration(moving, static, pipeline, zooms, niter,
 
     # affine optimizations
     moving_orig = moving
-    static_orig = static
     out_affine = np.eye(4)
     sdr_morph = None
     pipeline_options = dict(translation=[center_of_mass, translation],
@@ -1697,6 +1696,8 @@ def _compute_volume_registration(moving, static, pipeline, zooms, niter,
                                          static_affine, moving_affine,
                                          prealign)
             moving_zoomed = sdr_morph.transform(moving_zoomed)
+            # sdr only works on zoomed resolution
+            r2 = _compute_r2(static_zoomed, moving_zoomed)
         else:
             with wrapped_stdout(indent='    ', cull_newlines=True):
                 moving_zoomed, reg_affine = affine_registration(
@@ -1709,8 +1710,8 @@ def _compute_volume_registration(moving, static, pipeline, zooms, niter,
 
             # apply the current affine to the full-resolution data
             moving = resample(_get_img_fdata(moving_orig),
-                              _get_img_fdata(static_orig),
-                              moving_orig.affine, static_orig.affine,
+                              _get_img_fdata(static),
+                              moving_orig.affine, static.affine,
                               out_affine)
 
             # report some useful information
@@ -1721,8 +1722,7 @@ def _compute_volume_registration(moving, static, pipeline, zooms, niter,
                 logger.info(f'    Translation: {dist:6.1f} mm')
                 if step == 'rigid':
                     logger.info(f'    Rotation:    {angle:6.1f}°')
-        assert moving_zoomed.shape == static_zoomed.shape, step
-        r2 = _compute_r2(static_zoomed, moving_zoomed)
+            r2 = _compute_r2(_get_img_fdata(static), _get_img_fdata(moving))
         logger.info(f'    R²:          {r2:6.1f}%')
     return (out_affine, sdr_morph, static_zoomed.shape, static_affine,
             moving_zoomed.shape, moving_affine)

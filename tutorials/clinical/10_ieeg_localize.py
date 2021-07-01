@@ -123,21 +123,17 @@ del CT_resampled
 #
 # We want this to be a rigid transformation (just rotation + translation),
 # so we don't do a full affine registration (that includes shear) here.
-# We'll use (although not executed here because it's slow) the following call,
-# which uses coarser zooms for translation because it provides better
-# registration for these data::
 #
-#    reg_affine, _ = mne.transforms.compute_volume_registration(
-#         CT_orig, T1, pipeline='rigids',
-#         zooms=dict(translation=5.), verbose=True)
-#    print(reg_affine)
-#
-# This is the resulting affine, which we then apply and plot:
-reg_affine = np.array([
-    [0.99235816, -0.03412124, 0.11857915, -133.22262329],
-    [0.04601133, 0.99402046, -0.09902669, -97.64542095],
-    [-0.11449119, 0.10372593, 0.98799428, -84.39915646],
-    [0., 0., 0., 1.]])
+# .. warning::
+#     You should use ``zooms=None`` to execute the example at full resolution
+#     This sped up the execution of the example but, as you can see, the
+#     alignment is slighly off because of it.
+
+reg_affine, _ = mne.transforms.compute_volume_registration(
+    CT_orig, T1, pipeline='rigids',
+    zooms=dict(translation=5, rigid=3), verbose=True)
+print(reg_affine)
+
 CT_aligned = mne.transforms.apply_volume_registration(CT_orig, T1, reg_affine)
 plot_overlay(T1, CT_aligned, 'Aligned CT Overlaid on T1', thresh=0.95)
 
@@ -257,16 +253,20 @@ plot_overlay(template_brain, subject_brain,
 # This aligns the two brains, preparing the subject's brain to be warped
 # to the template.
 #
-# .. warning:: Here we use ``zooms=5``` just for speed, in general we recommend
-#              using ``zooms=None``` (default) for highest accuracy. To deal
-#              with this coarseness, we also use a threshold of 0.8 for the CT
-#              electrodes rather than 0.95. This coarse zoom and low threshold
-#              is useful for getting a quick view of the data, but finalized
-#              pipelines should use ``zooms=None`` instead!
+# .. warning:: We recommend using ``pipeline='all'`` and ``zooms=None```
+#              (default) for the highest accuracy. This example uses lower
+#              resolution for speed of execution and skips the full affine
+#              registration because it doesn't work very well on the zoomed,
+#              lower-resolution image. To deal with this coarseness, we also
+#              use a threshold of 0.8 for the CT electrodes contacts which
+#              allows them to bleed into the background, making them bigger.
+#              A threshold of 0.95, which more accurately represents their
+#              actual boundary, works better when ``zooms=None``.
 
 CT_thresh = 0.8  # 0.95 is better for zooms=None!
+pipeline = ('translation', 'rigid', 'sdr')
 reg_affine, sdr_morph = mne.transforms.compute_volume_registration(
-    subject_brain, template_brain, zooms=5, verbose=True)
+    subject_brain, template_brain, pipeline=pipeline, zooms=5, verbose=True)
 subject_brain_sdr = mne.transforms.apply_volume_registration(
     subject_brain, template_brain, reg_affine, sdr_morph)
 
