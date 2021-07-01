@@ -1511,7 +1511,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                  area_mode='std', area_alpha=0.33, dB=True, estimate='auto',
                  show=True, n_jobs=1, average=False, line_alpha=None,
                  spatial_colors=True, sphere=None, window='hamming',
-                 verbose=None):
+                 exclude='bads', verbose=None):
         return plot_raw_psd(self, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
                             proj=proj, n_fft=n_fft, n_overlap=n_overlap,
                             reject_by_annotation=reject_by_annotation,
@@ -1520,7 +1520,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                             dB=dB, estimate=estimate, show=show, n_jobs=n_jobs,
                             average=average, line_alpha=line_alpha,
                             spatial_colors=spatial_colors, sphere=sphere,
-                            window=window, verbose=verbose)
+                            window=window, exclude=exclude, verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_raw_psd_topo)
     def plot_psd_topo(self, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
