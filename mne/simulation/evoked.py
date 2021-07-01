@@ -34,7 +34,7 @@ def simulate_evoked(fwd, stc, info, cov=None, nave=30, iir_filter=None,
     info : dict
         Measurement info to generate the evoked.
     cov : Covariance object | None
-        The noise covariance.
+        The noise covariance. If None, no noise is added.
     nave : int
         Number of averaged epochs (defaults to 30).
 
@@ -70,11 +70,14 @@ def simulate_evoked(fwd, stc, info, cov=None, nave=30, iir_filter=None,
     .. versionadded:: 0.10.0
     """
     evoked = apply_forward(fwd, stc, info, use_cps=use_cps)
+    if cov is None:
+        return evoked
+
     if nave < np.inf:
         noise = _simulate_noise_evoked(evoked, cov, iir_filter, random_state)
         evoked.data += noise.data / math.sqrt(nave)
         evoked.nave = np.int64(nave)
-    if cov is not None and cov.get('projs', None):
+    if cov.get('projs', None):
         evoked.add_proj(cov['projs']).apply_proj()
     return evoked
 
