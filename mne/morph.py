@@ -1009,17 +1009,15 @@ def _compute_morph_sdr(mri_from, mri_to, niter_affine, niter_sdr, zooms):
     """Get a matrix that morphs data from one subject to another."""
     from .transforms import _compute_volume_registration
     from dipy.align.imaffine import AffineMap
-    use_prealign = False
     pipeline = 'all' if niter_sdr else 'affines'
     niter = dict(translation=niter_affine, rigid=niter_affine,
                  affine=niter_affine,
                  sdr=niter_sdr if niter_sdr else (1,))
     pre_affine, sdr_morph, to_shape, to_affine, from_shape, from_affine = \
         _compute_volume_registration(
-            mri_from, mri_to, zooms=zooms, niter=niter, pipeline=pipeline,
-            use_prealign=use_prealign)
+            mri_from, mri_to, zooms=zooms, niter=niter, pipeline=pipeline)
     # Prevent the affine from being applied twice
-    if niter_sdr and use_prealign:
+    if niter_sdr:
         pre_affine = np.eye(4)
     pre_affine = AffineMap(
         pre_affine, to_shape, to_affine, from_shape, from_affine)

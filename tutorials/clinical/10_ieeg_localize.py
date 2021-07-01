@@ -125,8 +125,8 @@ del CT_resampled
 # so we don't do a full affine registration (that includes shear) here.
 #
 # .. warning::
-#     You should use ``zooms=None`` to execute the example at full resolution
-#     This sped up the execution of the example but, as you can see, the
+#     You should use ``zooms=None`` to execute the example at full resolution.
+#     The execution of the example is faster but, as you can see, the
 #     alignment is slighly off because of it.
 
 reg_affine, _ = mne.transforms.compute_volume_registration(
@@ -253,15 +253,14 @@ plot_overlay(template_brain, subject_brain,
 # This aligns the two brains, preparing the subject's brain to be warped
 # to the template.
 #
-# .. warning:: We recommend using ``pipeline='all'`` and ``zooms=None```
-#              (default) for the highest accuracy. This example uses lower
-#              resolution for speed of execution and skips the full affine
-#              registration because it doesn't work very well on the zoomed,
-#              lower-resolution image. To deal with this coarseness, we also
-#              use a threshold of 0.8 for the CT electrodes contacts which
-#              allows them to bleed into the background, making them bigger.
-#              A threshold of 0.95, which more accurately represents their
-#              actual boundary, works better when ``zooms=None``.
+# .. warning:: We recommend using ``pipeline='all'`` and ``zooms=None``
+#              (default) for the highest accuracy. To execute this example
+#              faster, the resolution of the registration is downsampled and
+#              the full affine registration is skipped. To deal with this
+#              coarseness, we also use a threshold of 0.8 for the CT electrodes
+#              contacts which makes them bigger by bleeding into the
+#              background. A threshold of 0.95 more accurately represents
+#              their boundary so it should be used when ``zooms=None``.
 
 CT_thresh = 0.8  # 0.95 is better for zooms=None!
 pipeline = ('translation', 'rigid', 'sdr')
