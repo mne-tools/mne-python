@@ -579,7 +579,8 @@ def pytest_sessionfinish(session, exitstatus):
         # split mne/tests/test_whatever.py into separate categories since these
         # are essentially submodule-level tests. Keeping just [:3] works,
         # except for mne/viz where we want level-4 granulatity
-        parts = parts[:4 if parts[:2] == ('mne', 'viz') else 3]
+        split_submodules = (('mne', 'viz'), ('mne', 'preprocessing'))
+        parts = parts[:4 if parts[:2] in split_submodules else 3]
         if not parts[-1].endswith('.py'):
             parts = parts + ('',)
         file_key = '/'.join(parts)
