@@ -258,11 +258,13 @@ plot_overlay(template_brain, subject_brain,
 # to the template.
 #
 # .. warning:: Here we use ``zooms=5``` just for speed, in general we recommend
-#              using ``zooms=None``` (default) for highest accuracy.
+#              using ``zooms=None``` (default) for highest accuracy. To deal
+#              with this coarseness, we also use a threshold of 0.8 for the CT
+#              electrodes rather than 0.95.
 
+CT_thresh = 0.8  # 0.95 is better for zooms=None!
 reg_affine, sdr_morph = mne.transforms.compute_volume_registration(
-    subject_brain, template_brain, zooms=dict(
-        translation=5, rigid=5, affine=5, sdr=3), verbose=True)
+    subject_brain, template_brain, zooms=5, verbose=True)
 subject_brain_sdr = mne.transforms.apply_volume_registration(
     subject_brain, template_brain, reg_affine, sdr_morph)
 
@@ -288,7 +290,7 @@ ch_coords = mne.transforms.apply_trans(
 # into a 3D image where all the voxels over a threshold nearby
 # are labeled with an index
 CT_data = CT_aligned.get_fdata()
-thresh = np.quantile(CT_data, 0.8)
+thresh = np.quantile(CT_data, CT_thresh)
 elec_image = np.zeros(subject_brain.shape, dtype=int)
 for i, ch_coord in enumerate(ch_coords):
     # this looks up to a voxel away, it may be marked imperfectly

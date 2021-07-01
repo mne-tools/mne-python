@@ -1674,9 +1674,9 @@ def _compute_volume_registration(moving, static, pipeline, zooms, niter,
         # reslice image with zooms
         if i == 0 or zooms[step] != zooms[pipeline[i - 1]]:
             if zooms[step] is not None:
-                logger.info(f'Using original zooms for {step} ...')
-            else:
                 logger.info(f'Reslicing to zooms={zooms[step]} for {step} ...')
+            else:
+                logger.info(f'Using original zooms for {step} ...')
             static_zoomed, static_affine = _reslice_normalize(
                 static, zooms[step])
         # must be resliced every time because it is adjusted at every step
