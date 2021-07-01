@@ -255,18 +255,16 @@ plot_overlay(template_brain, subject_brain,
 ###############################################################################
 # Now, we'll register the affine of the subject's brain to the template brain.
 # This aligns the two brains, preparing the subject's brain to be warped
-# to the template. This is very slow so we have instead saved the resulting
-# warped images to disk, but this is the call that was used to create them::
+# to the template.
 #
-#    reg_affine, sdr_morph = mne.transforms.compute_volume_registration(
-#        subject_brain, template_brain, verbose=True)
-#    subject_brain_sdr = mne.transforms.apply_volume_registration(
-#        subject_brain, template_brain, reg_affine, sdr_morph)
-#
-# Here we just load the result:
+# .. warning:: Here we use ``zooms=5``` just for speed, in general we recommend
+#              using ``zooms=None``` (default) for highest accuracy.
 
-subject_brain_sdr = nib.load(
-    op.join(misc_path, 'seeg', 'sample_seeg_brain_in_fsaverage.mgz'))
+reg_affine, sdr_morph = mne.transforms.compute_volume_registration(
+    subject_brain, template_brain, zooms=dict(
+        translation=5, rigid=5, affine=5, sdr=3), verbose=True)
+subject_brain_sdr = mne.transforms.apply_volume_registration(
+    subject_brain, template_brain, reg_affine, sdr_morph)
 
 # apply the transform to the subject brain to plot it
 plot_overlay(template_brain, subject_brain_sdr,
@@ -290,7 +288,7 @@ ch_coords = mne.transforms.apply_trans(
 # into a 3D image where all the voxels over a threshold nearby
 # are labeled with an index
 CT_data = CT_aligned.get_fdata()
-thresh = np.quantile(CT_data, 0.95)
+thresh = np.quantile(CT_data, 0.8)
 elec_image = np.zeros(subject_brain.shape, dtype=int)
 for i, ch_coord in enumerate(ch_coords):
     # this looks up to a voxel away, it may be marked imperfectly
@@ -317,17 +315,10 @@ assert set(np.arange(1, ch_coords.shape[0] + 1)).difference(
 del subject_brain, CT_aligned, CT_data  # not used anymore
 
 ###############################################################################
-# Warp and plot the result. Again we don't compute the warp here, so we just
-# load the result from disk but this is the call to execute:
-#
-#    warped_elec_image = mne.transforms.apply_volume_registration(
-#        elec_image, template_brain, reg_affine, sdr_morph,
-#        interpolation='nearest')
-#
-# Again here we just load the result:
+# Warp and plot the result.
 
-warped_elec_image = nib.load(
-    op.join(misc_path, 'seeg', 'warped_elec_image.mgz'))
+warped_elec_image = mne.transforms.apply_volume_registration(
+    elec_image, template_brain, reg_affine, sdr_morph, interpolation='nearest')
 
 # ensure that all the electrode contacts were warped to the template
 assert set(np.arange(1, ch_coords.shape[0] + 1)).difference(

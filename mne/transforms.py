@@ -1583,6 +1583,22 @@ def _validate_pipeline(pipeline):
     return tuple(pipeline)
 
 
+def _compute_r2(a, b):
+    return 100 * (a.ravel() @ b.ravel()) / \
+        (np.linalg.norm(a) * np.linalg.norm(b))
+
+
+def _reslice_normalize(img, zooms):
+    from dipy.align.reslice import reslice
+    img_zooms = img.header.get_zooms()[:3]
+    img_affine = img.affine
+    img = _get_img_fdata(img)
+    if zooms is not None:
+        img, img_affine = reslice(img, img_affine, img_zooms, zooms)
+    img /= img.max()  # normalize
+    return img, img_affine
+
+
 @verbose
 def compute_volume_registration(moving, static, pipeline='all', zooms=None,
                                 niter=None, verbose=None):
@@ -1616,7 +1632,18 @@ def compute_volume_registration(moving, static, pipeline='all', zooms=None,
 
     .. versionadded:: 0.24
     """
-    from .morph import _compute_r2, _reslice_normalize
+    return _compute_volume_registration(
+        moving, static, pipeline, zooms, niter)[:2]
+
+
+# Only affects apply/compute, not morph code (change it in morph.py to affect
+# that code). This should eventually go away once we decide which is actually
+# better!
+_USE_PREALIGN = True
+
+
+def _compute_volume_registration(moving, static, pipeline, zooms, niter,
+                                 use_prealign=_USE_PREALIGN):
     _require_version('nibabel', 'SDR morph', '2.1.0')
     _require_version('dipy', 'SDR morph', '0.10.1')
     import nibabel as nib
@@ -1645,15 +1672,22 @@ def compute_volume_registration(moving, static, pipeline='all', zooms=None,
     factors = [4, 2, 1]
     for i, step in enumerate(pipeline):
         # reslice image with zooms
-        if zooms[step] is not None:
-            logger.info(f'Reslicing to zooms={zooms[step]}...')
         if i == 0 or zooms[step] != zooms[pipeline[i - 1]]:
+            if zooms[step] is not None:
+                logger.info(f'Using original zooms for {step} ...')
+            else:
+                logger.info(f'Reslicing to zooms={zooms[step]} for {step} ...')
             static_zoomed, static_affine = _reslice_normalize(
                 static, zooms[step])
         # must be resliced every time because it is adjusted at every step
         # sdr is uses the pre-alignment so start from orig
-        moving_zoomed, moving_affine = _reslice_normalize(
-            moving_orig if step == 'sdr' else moving, zooms[step])
+        if step == 'sdr' and use_prealign:
+            to_move = moving_orig
+            prealign = out_affine
+        else:
+            to_move = moving
+            prealign = None
+        moving_zoomed, moving_affine = _reslice_normalize(to_move, zooms[step])
         logger.info(f'Optimizing {step}:')
         if step == 'sdr':  # happens last
             sdr = imwarp.SymmetricDiffeomorphicRegistration(
@@ -1661,11 +1695,11 @@ def compute_volume_registration(moving, static, pipeline='all', zooms=None,
             with wrapped_stdout(indent='    ', cull_newlines=True):
                 sdr_morph = sdr.optimize(static_zoomed, moving_zoomed,
                                          static_affine, moving_affine,
-                                         out_affine)
+                                         prealign)
             moving_zoomed = sdr_morph.transform(moving_zoomed)
         else:
             with wrapped_stdout(indent='    ', cull_newlines=True):
-                _, reg_affine = affine_registration(
+                moving_zoomed, reg_affine = affine_registration(
                     moving_zoomed, static_zoomed, moving_affine, static_affine,
                     nbins=32, metric='MI', pipeline=pipeline_options[step],
                     level_iters=niter[step], sigmas=sigmas, factors=factors)
@@ -1687,9 +1721,11 @@ def compute_volume_registration(moving, static, pipeline='all', zooms=None,
                 logger.info(f'    Translation: {dist:6.1f} mm')
                 if step == 'rigid':
                     logger.info(f'    Rotation:    {angle:6.1f}°')
+        assert moving_zoomed.shape == static_zoomed.shape, step
         r2 = _compute_r2(static_zoomed, moving_zoomed)
         logger.info(f'    R²:          {r2:6.1f}%')
-    return out_affine, sdr_morph
+    return (out_affine, sdr_morph, static_zoomed.shape, static_affine,
+            moving_zoomed.shape, moving_affine)
 
 
 @verbose
@@ -1730,16 +1766,28 @@ def apply_volume_registration(moving, static, reg_affine, sdr_morph=None,
     _validate_type(reg_affine, np.ndarray, 'reg_affine')
     _check_option('reg_affine.shape', reg_affine.shape, ((4, 4),))
     _validate_type(sdr_morph, (DiffeomorphicMap, None), 'sdr_morph')
-    if sdr_morph is None:
+    if _USE_PREALIGN:
+        if sdr_morph is None:
+            logger.info('Applying affine registration ...')
+            reg_img = resample(_get_img_fdata(moving), _get_img_fdata(static),
+                               moving.affine, static.affine, reg_affine)
+        else:
+            logger.info('Appling SDR warp ...')
+            reg_data = sdr_morph.transform(
+                _get_img_fdata(moving), interpolation=interpolation,
+                image_world2grid=np.linalg.inv(moving.affine),
+                out_shape=static.shape, out_grid2world=static.affine)
+            reg_img = SpatialImage(reg_data, static.affine)
+    else:
         logger.info('Applying affine registration ...')
         reg_img = resample(_get_img_fdata(moving), _get_img_fdata(static),
                            moving.affine, static.affine, reg_affine)
-    else:
-        logger.info('Appling SDR warp ...')
-        reg_data = sdr_morph.transform(
-            _get_img_fdata(moving), interpolation=interpolation,
-            image_world2grid=np.linalg.inv(moving.affine),
-            out_shape=static.shape, out_grid2world=static.affine)
-        reg_img = SpatialImage(reg_data, static.affine)
+        if sdr_morph is not None:
+            logger.info('Appling SDR warp ...')
+            reg_data = sdr_morph.transform(
+                _get_img_fdata(reg_img), interpolation=interpolation,
+                image_world2grid=np.linalg.inv(reg_img.affine),
+                out_shape=static.shape, out_grid2world=static.affine)
+            reg_img = SpatialImage(reg_data, static.affine)
     logger.info('[done]')
     return reg_img
