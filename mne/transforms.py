@@ -1632,12 +1632,6 @@ def compute_volume_registration(moving, static, pipeline='all', zooms=None,
 
     .. versionadded:: 0.24
     """
-    return _compute_volume_registration(
-        moving, static, pipeline, zooms, niter)[:2]
-
-
-def _compute_volume_registration(moving, static, pipeline, zooms, niter):
-    """Register affines and, optionally, do SDR."""
     _require_version('nibabel', 'SDR morph', '2.1.0')
     _require_version('dipy', 'SDR morph', '0.10.1')
     import nibabel as nib
@@ -1711,8 +1705,7 @@ def _compute_volume_registration(moving, static, pipeline, zooms, niter):
                     logger.info(f'    Rotation:    {angle:6.1f}°')
         r2 = _compute_r2(static_zoomed, moving_zoomed)
         logger.info(f'    R²:          {r2:6.1f}%')
-    return (out_affine, sdr_morph, static_zoomed.shape, static_affine,
-            moving_zoomed.shape, moving_affine)
+    return out_affine, sdr_morph
 
 
 @verbose
