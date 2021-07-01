@@ -127,7 +127,7 @@ del CT_resampled
 # .. warning::
 #     You should use ``zooms=None`` to execute the example at full resolution.
 #     The execution of the example is faster but, as you can see, the
-#     alignment is slighly off because of it.
+#     alignment is slightly off because of it.
 
 reg_affine, _ = mne.transforms.compute_volume_registration(
     CT_orig, T1, pipeline='rigids',
