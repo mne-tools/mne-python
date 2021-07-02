@@ -123,21 +123,17 @@ del CT_resampled
 #
 # We want this to be a rigid transformation (just rotation + translation),
 # so we don't do a full affine registration (that includes shear) here.
-# We'll use (although not executed here because it's slow) the following call,
-# which uses coarser zooms for translation because it provides better
-# registration for these data::
 #
-#    reg_affine, _ = mne.transforms.compute_volume_registration(
-#         CT_orig, T1, pipeline='rigids',
-#         zooms=dict(translation=5.), verbose=True)
-#    print(reg_affine)
-#
-# This is the resulting affine, which we then apply and plot:
-reg_affine = np.array([
-    [0.99235816, -0.03412124, 0.11857915, -133.22262329],
-    [0.04601133, 0.99402046, -0.09902669, -97.64542095],
-    [-0.11449119, 0.10372593, 0.98799428, -84.39915646],
-    [0., 0., 0., 1.]])
+# .. warning::
+#     You should use ``zooms=None`` to execute the example at full resolution.
+#     The execution of the example is faster but, as you can see, the
+#     alignment is slightly off because of it.
+
+reg_affine, _ = mne.transforms.compute_volume_registration(
+    CT_orig, T1, pipeline='rigids',
+    zooms=dict(translation=5, rigid=3), verbose=True)
+print(reg_affine)
+
 CT_aligned = mne.transforms.apply_volume_registration(CT_orig, T1, reg_affine)
 plot_overlay(T1, CT_aligned, 'Aligned CT Overlaid on T1', thresh=0.95)
 
