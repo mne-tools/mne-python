@@ -1639,7 +1639,7 @@ def compute_volume_registration(moving, static, pipeline='all', zooms=None,
 # Only affects apply/compute, not morph code (change it in morph.py to affect
 # that code). This should eventually go away once we decide which is actually
 # better!
-_USE_PREALIGN = True
+_USE_PREALIGN = False
 
 
 def _compute_volume_registration(moving, static, pipeline, zooms, niter,
@@ -1780,14 +1780,19 @@ def apply_volume_registration(moving, static, reg_affine, sdr_morph=None,
             reg_img = SpatialImage(reg_data, static.affine)
     else:
         logger.info('Applying affine registration ...')
-        reg_img = resample(_get_img_fdata(moving), _get_img_fdata(static),
-                           moving.affine, static.affine, reg_affine)
+        from dipy.align.imaffine import AffineMap
+        moving, moving_affine = _get_img_fdata(moving), moving.affine
+        static, static_affine = _get_img_fdata(static), static.affine
+        affine_map = AffineMap(reg_affine,
+                               static.shape, static_affine,
+                               moving.shape, moving_affine)
+        reg_data = affine_map.transform(moving, interpolation=interpolation)
         if sdr_morph is not None:
             logger.info('Appling SDR warp ...')
             reg_data = sdr_morph.transform(
-                _get_img_fdata(reg_img), interpolation=interpolation,
-                image_world2grid=np.linalg.inv(reg_img.affine),
-                out_shape=static.shape, out_grid2world=static.affine)
-            reg_img = SpatialImage(reg_data, static.affine)
+                reg_data, interpolation=interpolation,
+                image_world2grid=np.linalg.inv(static_affine),
+                out_shape=static.shape, out_grid2world=static_affine)
+        reg_img = SpatialImage(reg_data, static_affine)
     logger.info('[done]')
     return reg_img

@@ -11,7 +11,6 @@ from mne.datasets import testing
 from mne.fixes import _get_img_fdata
 from mne import read_trans, write_trans
 from mne.io import read_info
-from mne.morph import _compute_r2
 from mne.transforms import (invert_transform, _get_trans,
                             rotation, rotation3d, rotation_angles, _find_trans,
                             combine_transforms, apply_trans, translation,
@@ -23,7 +22,7 @@ from mne.transforms import (invert_transform, _get_trans,
                             rotation3d_align_z_axis, _read_fs_xfm,
                             _write_fs_xfm, _quat_real, _fit_matched_points,
                             _quat_to_euler, _euler_to_quat,
-                            _quat_to_affine)
+                            _quat_to_affine, _compute_r2)
 from mne.utils import requires_nibabel, requires_dipy
 
 data_path = testing.data_path(download=False)
