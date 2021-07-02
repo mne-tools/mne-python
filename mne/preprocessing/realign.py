@@ -4,8 +4,8 @@
 # License: BSD (3-clause)
 
 import numpy as np
-
 from numpy.polynomial.polynomial import Polynomial
+
 from ..io import BaseRaw
 from ..utils import _validate_type, warn, logger, verbose
 
