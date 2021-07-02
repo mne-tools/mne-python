@@ -59,7 +59,10 @@ def scalp_coupling_index(raw, l_freq=0.7, h_freq=1.5,
 
     sci = np.zeros(picks.shape)
     for ii in picks[::2]:
-        c = np.corrcoef(filtered_data[ii], filtered_data[ii + 1])[0][1]
+        with np.errstate(invalid='ignore'):
+            c = np.corrcoef(filtered_data[ii], filtered_data[ii + 1])[0][1]
+        if not np.isfinite(c):  # someone had std=0
+            c = 0
         sci[ii] = c
         sci[ii + 1] = c
 
