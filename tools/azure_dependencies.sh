@@ -16,7 +16,7 @@ elif [ "${TEST_MODE}" == "pip-pre" ]; then
 	# we want --pre for VTK, but it breaks Azure as of 2021/06/14 (mayavi has problems with the 20210612 binary)
 	python -m pip install --progress-bar off --upgrade --only-binary ":all" "vtk<=9.0.1"
 	python -m pip install --progress-bar off https://github.com/pyvista/pyvista/zipball/main
-	python -m pip install --progress-bar off https://github.com/pyvista/pyvistaqt/zipball/master
+	python -m pip install --progress-bar off https://github.com/pyvista/pyvistaqt/zipball/main
 	python -m pip install --progress-bar off --upgrade --only-binary="numba,llvmlite" -r requirements.txt
 else
 	echo "Unknown run type ${TEST_MODE}"

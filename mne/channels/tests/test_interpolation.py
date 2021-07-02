@@ -50,7 +50,7 @@ def _load_data(kind):
     (False, (0.97, 0.99)),
 ])
 @pytest.mark.parametrize('method, atol', [
-    (None, 3e-6),
+    pytest.param(None, 3e-6, marks=pytest.mark.slowtest),  # slow on Azure
     (dict(eeg='MNE'), 4e-6),
 ])
 @pytest.mark.filterwarnings('ignore:.*than 20 mm from head frame origin.*')
