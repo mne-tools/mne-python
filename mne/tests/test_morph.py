@@ -554,7 +554,7 @@ def test_volume_source_morph_round_trip(
     # check that power is more or less preserved (labelizing messes with this)
     if morph_mat:
         if subject_to == 'fsaverage':
-            limits = (18, 18.5)
+            limits = (15, 18.5)
         else:
             limits = (7, 7.5)
     else:
