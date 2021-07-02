@@ -361,26 +361,33 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
         # traces
         w = width / dpi
         figsize = (w, w / data.shape[x] * data.shape[y])
-        fig = _figure_agg(figsize=figsize, dpi=dpi, facecolor='k')
-        ax = fig.add_axes([0, 0, 1, 1], frame_on=False, facecolor='k')
-        axs = [ax] * len(slices)
-        plt.close(fig)
     else:
         n_col = 4
         fig, axs, _, _ = _prepare_trellis(len(slices), n_col)
         fig.set_facecolor('k')
         dpi = fig.get_dpi()
         n_axes = len(axs)
+
     bounds = np.concatenate(
-        [[-np.inf], slices[:-1] + np.diff(slices) / 2., [np.inf]])  # float
+        [[-np.inf], slices[:-1] + np.diff(slices) / 2.,
+         [np.inf]]
+    )  # float
     slicer = [slice(None)] * 3
     ori_labels = dict(R='LR', A='PA', S='IS')
     xlabels, ylabels = ori_labels['RAS'[x]], ori_labels['RAS'[y]]
     path_effects = [patheffects.withStroke(linewidth=4, foreground="k",
                                            alpha=0.75)]
-    out = list() if img_output else fig
-    for ai, (ax, sl, lower, upper) in enumerate(zip(
-            axs, slices, bounds[:-1], bounds[1:])):
+
+    figs = []
+    for ai, (sl, lower, upper) in enumerate(
+        zip(slices, bounds[:-1], bounds[1:])
+    ):
+        if img_output:
+            fig = _figure_agg(figsize=figsize, dpi=dpi, facecolor='k')
+            ax = fig.add_axes([0, 0, 1, 1], frame_on=False, facecolor='k')
+        else:
+            ax = axs[ai]
+
         # adjust the orientations for good view
         slicer[axis] = sl
         dat = data[tuple(slicer)].T
@@ -426,16 +433,17 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
             if ai < n_col or n_col == 1:  # top
                 ax.text(dat.shape[1] / 2., dat.shape[0] - 1, ylabels[1],
                         ha='center', va='top', **kwargs)
-        if img_output:
-            output = BytesIO()
-            fig.savefig(output, bbox_inches='tight',
-                        pad_inches=0, format='png', dpi=dpi)
-            out.append(base64.b64encode(output.getvalue()).decode('ascii'))
 
-    fig.subplots_adjust(left=0., bottom=0., right=1., top=1., wspace=0.,
-                        hspace=0.)
-    plt_show(show, fig=fig)
-    return out
+        if img_output:
+            figs.append(fig)
+            plt.close(fig)
+
+    if not img_output:
+        fig.subplots_adjust(left=0., bottom=0., right=1., top=1., wspace=0.,
+                            hspace=0.)
+        plt_show(show, fig=fig)
+
+    return figs if img_output else fig
 
 
 def plot_bem(subject=None, subjects_dir=None, orientation='coronal',

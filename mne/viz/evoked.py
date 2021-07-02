@@ -1382,7 +1382,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
             raise ValueError("If one of `ts_args` and `topomap_args` contains "
                              "'axes', the other must, too.")
         _validate_if_list_of_axes([ts_args["axes"]], 1)
-        n_topomaps = (3 if times is None else len(times)) + 1
+        n_topomaps = (3 if times in (None, 'peaks') else len(times)) + 1
         _validate_if_list_of_axes(list(topomap_args["axes"]), n_topomaps)
         got_axes = True
 
@@ -1459,7 +1459,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     # we use a new axis for the title to handle scaling of plots
     old_title = ts_ax.get_title()
     ts_ax.set_title('')
-    if title is not None:
+    if title is not None:  # XXX BUG destroys ax -> fig assignment if title & axes are passed
         title_ax = plt.subplot(4, 3, 2)
         if title == '':
             title = old_title

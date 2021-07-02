@@ -549,7 +549,7 @@ def test_remove():
     # Test removal of empty sections
     r2 = copy.deepcopy(r)
     r2.remove(caption='figure1', section='othersection')
-    assert r2.sections == ['mysection']
+    assert r2.tags == ['mysection']
     assert r2._sectionvars == {'mysection': 'report_mysection'}
 
 

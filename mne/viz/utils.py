@@ -1609,7 +1609,7 @@ def _setup_ax_spines(axes, vlines, xmin, xmax, ymin, ymax, invert_y=False,
     # new ticks that are nice round numbers close to (but less extreme than)
     # xmin and xmax
     vlines = [] if vlines is None else vlines
-    xticks = _trim_ticks(axes.get_xticks(), xmin, xmax)
+    xticks = _trim_ticks(axes.get_xticks(), round(xmin, 2), round(xmax, 2))
     xticks = np.array(sorted(set([x for x in xticks] + vlines)))
     if len(xticks) < 2:
         def log_fix(tval):

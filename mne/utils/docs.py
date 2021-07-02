@@ -2245,6 +2245,13 @@ docdict['baseline_report'] = """%(rescale_baseline)s
 
     For `~mne.Epochs`, this algorithm is run **on each epoch individually.**
 """ % docdict
+docdict['report_image_format'] = """
+image_format : 'png' | 'svg' | 'gif' | None
+    The image format to be used for the report, can be ``'png'``,
+    ``'svg'``, or ``'gif'``.
+    None (default) will use the default specified during `~mne.Report`
+    instantiation.
+"""
 
 # Epochs
 docdict['epochs_tmin_tmax'] = """

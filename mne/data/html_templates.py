@@ -2,7 +2,7 @@ from ..externals.tempita import Template
 
 
 info_template = Template("""
-<table class="table table-hover">
+<table class="table table-hover table-striped table-sm table-responsive small" style="max-width: 650px;">
     <tr>
         <th>Measurement date</th>
         {{if meas_date is not None}}
@@ -85,7 +85,7 @@ raw_template = Template("""
 """)
 
 epochs_template = Template("""
-<table class="table table-hover">
+<table class="table table-hover table-striped table-sm table-responsive small" style="max-width: 650px;">
     <tr>
         <th>Number of events</th>
         <td>{{len(epochs.events)}}</td>
