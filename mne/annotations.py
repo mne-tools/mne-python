@@ -567,6 +567,25 @@ class Annotations(object):
 
         return self
 
+    def rename(self, old_name, new_name):
+        """Rename an annotation description. Operates inplace.
+
+        Parameters
+        ----------
+        old_name : str
+            Annotation description to be renamed.
+        new_name : str
+            The name to be assigned to the annotation in place of the old_name.
+
+        Returns
+        -------
+        self : mne.Annotations
+            The modified Annotations object.
+        """
+        self.description = [d.replace(old_name, new_name)
+                            for d in self.description]
+        return self
+
 
 def _combine_annotations(one, two, one_n_samples, one_first_samp,
                          two_first_samp, sfreq, meas_date):

@@ -1284,3 +1284,15 @@ def test_annotation_ch_names():
         raw_2.set_annotations(annot, on_missing='warn')
     assert raw_2.annotations is not annot_pruned
     _assert_annotations_equal(raw_2.annotations, annot_pruned)
+
+
+def test_annotation_rename():
+    """Test if two Annotations objects can be concatenated."""
+    a = Annotations([1, 2, 3], [5, 5, 8], ["a", "b", "c"])
+    assert len(a) == 3
+    assert "a" in a.description
+    assert "new_name" not in a.description
+    a.rename("a", "new_name")
+    assert len(a) == 3
+    assert "a" not in a.description
+    assert "new_name" in a.description
