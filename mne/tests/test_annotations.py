@@ -1287,7 +1287,7 @@ def test_annotation_ch_names():
 
 
 def test_annotation_rename():
-    """Test if two Annotations objects can be concatenated."""
+    """Test annotation renaming works."""
     a = Annotations([1, 2, 3], [5, 5, 8], ["a", "b", "c"])
     assert len(a) == 3
     assert "a" in a.description
