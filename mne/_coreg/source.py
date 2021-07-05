@@ -3,10 +3,49 @@ import numpy as np
 from ..io import read_info, read_raw
 from ..io.meas_info import _empty_info
 from ..io.open import fiff_open, dir_tree_find
+from ..bem import read_bem_surfaces
 from ..channels import read_dig_fif
 from ..io.constants import FIFF
+from ..surface import read_surface, complete_surface_info
 from ..viz._3d import _fiducial_coords
 from ..coreg import _append_fiducials
+
+
+class _Surf(object):
+    def __init__(self, rr=None, nn=None, tris=None):
+        rr = np.empty((0, 3)) if rr is None else rr
+        nn = np.empty((0, 3)) if nn is None else nn
+        tris = np.empty((0, 3)) if tris is None else tris
+
+
+class _SurfaceSource(object):
+    def __init__(self):
+        self.file = None
+        self.surf = _Surf()
+
+        def read_file(self):
+            """Read the file."""
+            if op.exists(self.file):
+                if self.file.endswith('.fif'):
+                    bem = read_bem_surfaces(self.file, verbose=False)[0]
+                else:
+                    try:
+                        bem = read_surface(self.file, return_dict=True)[2]
+                        bem['rr'] *= 1e-3
+                        complete_surface_info(bem, copy=False)
+                    except Exception:
+                        raise ValueError(
+                            "Error loading surface from %s (see "
+                            "Terminal for details)." % self.file)
+                        self.reset_traits(['file'])
+                        raise
+                self.surf = _Surf(rr=bem['rr'], tris=bem['tris'], nn=bem['nn'])
+            else:
+                self.surf = self._default_surf()
+
+        def _surf_default(self):
+            return _Surf(rr=np.empty((0, 3)),
+                         tris=np.empty((0, 3), int), nn=np.empty((0, 3)))
 
 
 class _DigSource(object):
