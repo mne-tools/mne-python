@@ -1,6 +1,6 @@
 import os.path as op
 import numpy as np
-from ..io import read_info, read_raw
+from ..io import read_fiducials, read_info, read_raw
 from ..io.meas_info import _empty_info
 from ..io.open import fiff_open, dir_tree_find
 from ..bem import read_bem_surfaces
@@ -46,6 +46,30 @@ class _SurfaceSource(object):
         def _surf_default(self):
             return _Surf(rr=np.empty((0, 3)),
                          tris=np.empty((0, 3), int), nn=np.empty((0, 3)))
+
+
+class _FiducialsSource():
+    def __init__(self):
+        self.file = None
+        self.fname = None
+        self.points = None
+        self.mni_points = None
+
+        def _get_fname(self):
+            return op.basename(self.file)
+
+        def _get_points(self):
+            if not op.exists(self.file):
+                return self.mni_points  # can be None
+            try:
+                return _fiducial_coords(*read_fiducials(self.file))
+            except Exception as err:
+                raise ValueError(
+                    "Error reading fiducials from %s: %s (See terminal "
+                    "for more information)" % (self.fname, str(err)),
+                    "Error Reading Fiducials")
+                self.reset_traits(['file'])
+                raise
 
 
 class _DigSource(object):
