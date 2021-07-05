@@ -1,3 +1,4 @@
+import os
 import os.path as op
 import numpy as np
 from ..io import read_fiducials, read_info, read_raw
@@ -8,7 +9,8 @@ from ..channels import read_dig_fif
 from ..io.constants import FIFF
 from ..surface import read_surface, complete_surface_info
 from ..viz._3d import _fiducial_coords
-from ..coreg import _append_fiducials
+from ..coreg import (_is_mri_subject, _mri_subject_has_bem,
+                     create_default_subject, _append_fiducials)
 
 
 class _Surf(object):
@@ -48,7 +50,7 @@ class _SurfaceSource(object):
                          tris=np.empty((0, 3), int), nn=np.empty((0, 3)))
 
 
-class _FiducialsSource():
+class _FiducialsSource(object):
     def __init__(self):
         self.file = None
         self.fname = None
@@ -70,6 +72,74 @@ class _FiducialsSource():
                     "Error Reading Fiducials")
                 self.reset_traits(['file'])
                 raise
+
+
+class _MRISubjectSource(object):
+    def __init__(self):
+        # settings
+        self.subjects_dir = None
+        self.subjects = None
+        self.subject = None
+
+        # info
+        self.can_create_fsaverage = None
+        self.subject_has_bem = None
+        self.bem_pattern = None
+
+        def _get_can_create_fsaverage(self):
+            if not op.exists(self.subjects_dir) or \
+               'fsaverage' in self.subjects:
+                return False
+            return True
+
+        def _get_mri_dir(self):
+            if not self.subject:
+                return
+            elif not self.subjects_dir:
+                return
+            else:
+                return op.join(self.subjects_dir, self.subject)
+
+        def _get_subjects(self):
+            sdir = self.subjects_dir
+            is_dir = sdir and op.isdir(sdir)
+            if is_dir:
+                dir_content = os.listdir(sdir)
+                subjects = [s for s in dir_content if _is_mri_subject(s, sdir)]
+                if len(subjects) == 0:
+                    subjects.append('')
+            else:
+                subjects = ['']
+
+            return sorted(subjects)
+
+        def _get_subject_has_bem(self):
+            if not self.subject:
+                return False
+            return _mri_subject_has_bem(self.subject, self.subjects_dir)
+
+        def create_fsaverage(self):  # noqa: D102
+            if not self.subjects_dir:
+                raise RuntimeError(
+                    "No subjects directory is selected. Please specify "
+                    "subjects_dir first.")
+
+            fs_home = _get_fs_home()
+            if fs_home is None:
+                raise RuntimeError(
+                    "FreeSurfer contains files that are needed for "
+                    "copying the fsaverage brain. Please install "
+                    "FreeSurfer and try again.")
+
+            create_default_subject(fs_home=fs_home, update=True,
+                                   subjects_dir=self.subjects_dir)
+            self.refresh = True
+            self.subject = 'fsaverage'
+
+        def _emit_subject(self):
+            # This silliness is the only way I could figure out to get the
+            # on_trait_change('subject_panel.subject') in CoregFrame to work!
+            self.subject = self.subject
 
 
 class _DigSource(object):
@@ -208,3 +278,7 @@ class _DigSource(object):
 
     def _file_changed(self):
         self.reset_traits(('points_filter',))
+
+
+def _get_fs_home():
+    return ""
