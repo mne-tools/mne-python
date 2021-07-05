@@ -1221,3 +1221,18 @@ def _scale_xfm(subject_to, xfm_fname, mri_name, subject_from, scale,
                 F_mri_ras, 'ras', 'ras'),
             F_ras_mni, 'ras', 'mni_tal')
     _write_fs_xfm(fname_to, T_ras_mni['trans'], kind)
+
+
+def _append_fiducials(dig, lpa, nasion, rpa):
+    dig.append({'coord_frame': FIFF.FIFFV_COORD_HEAD,
+                'ident': FIFF.FIFFV_POINT_LPA,
+                'kind': FIFF.FIFFV_POINT_CARDINAL,
+                'r': lpa})
+    dig.append({'coord_frame': FIFF.FIFFV_COORD_HEAD,
+                'ident': FIFF.FIFFV_POINT_NASION,
+                'kind': FIFF.FIFFV_POINT_CARDINAL,
+                'r': nasion})
+    dig.append({'coord_frame': FIFF.FIFFV_COORD_HEAD,
+                'ident': FIFF.FIFFV_POINT_RPA,
+                'kind': FIFF.FIFFV_POINT_CARDINAL,
+                'r': rpa})

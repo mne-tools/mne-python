@@ -6,9 +6,10 @@ from ..io.open import fiff_open, dir_tree_find
 from ..channels import read_dig_fif
 from ..io.constants import FIFF
 from ..viz._3d import _fiducial_coords
+from ..coreg import _append_fiducials
 
 
-class DigSource(object):
+class _DigSource(object):
     def __init__(self):
         self.file = None
         self.inst_fname = None
@@ -144,18 +145,3 @@ class DigSource(object):
 
     def _file_changed(self):
         self.reset_traits(('points_filter',))
-
-
-def _append_fiducials(dig, lpa, nasion, rpa):
-    dig.append({'coord_frame': FIFF.FIFFV_COORD_HEAD,
-                'ident': FIFF.FIFFV_POINT_LPA,
-                'kind': FIFF.FIFFV_POINT_CARDINAL,
-                'r': lpa})
-    dig.append({'coord_frame': FIFF.FIFFV_COORD_HEAD,
-                'ident': FIFF.FIFFV_POINT_NASION,
-                'kind': FIFF.FIFFV_POINT_CARDINAL,
-                'r': nasion})
-    dig.append({'coord_frame': FIFF.FIFFV_COORD_HEAD,
-                'ident': FIFF.FIFFV_POINT_RPA,
-                'kind': FIFF.FIFFV_POINT_CARDINAL,
-                'r': rpa})
