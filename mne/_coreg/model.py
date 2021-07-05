@@ -23,7 +23,7 @@ class _MRIHeadWithFiducialsModel(object):
         # self.subject_has_bem = DelegatesTo('subject_source')
         self.lpa = np.empty((1, 3)).astype(float)
         self.nasion = np.empty((1, 3)).astype(float)
-        self.rpa = np.empy((1, 3)).astype(float)
+        self.rpa = np.empty((1, 3)).astype(float)
 
         # info
         self.can_save = None
