@@ -34,6 +34,9 @@ from .utils import (get_config, get_subjects_dir, logger, pformat, verbose,
                     warn, has_nibabel)
 from .viz._3d import _fiducial_coords
 
+
+_DEFAULT_PARAMETERS = (-1., 0., 0., 0., 0., 0., 1., 1., 1.)
+
 # some path templates
 trans_fname = os.path.join('{raw_dir}', '{subject}-trans.fif')
 subject_dirname = os.path.join('{subjects_dir}', '{subject}')
