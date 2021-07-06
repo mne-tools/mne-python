@@ -567,23 +567,38 @@ class Annotations(object):
 
         return self
 
-    def rename(self, old_name, new_name):
-        """Rename an annotation description. Operates inplace.
+    @verbose
+    def rename(self, mapping, verbose=None):
+        """Rename annotation description(s). Operates inplace.
 
         Parameters
         ----------
-        old_name : str
-            Annotation description to be renamed.
-        new_name : str
-            The name to be assigned to the annotation in place of the old_name.
+        mapping : dict
+            A dictionary mapping the old description to a new description
+            name e.g. {‘1.0’ : ‘Control’, ‘2.0’ : ‘Stimulus’}.
 
         Returns
         -------
         self : mne.Annotations
             The modified Annotations object.
         """
-        self.description = [d.replace(old_name, new_name)
-                            for d in self.description]
+        desc = self.description
+
+        if isinstance(mapping, dict):
+            orig_annots = sorted(list(mapping.keys()))
+            missing = [annot not in self.description for annot in orig_annots]
+            if any(missing):
+                raise ValueError(
+                    "Annotation description(s) in mapping missing from data: "
+                    "%s" % np.array(orig_annots)[np.array(missing)])
+        else:
+            raise ValueError("Renaming requires the mapping of descriptions "
+                             "to be provided as a dict. "
+                             f"Instead {type(mapping)} was provided.")
+
+        for map in mapping:
+            self.description = [d.replace(map, mapping[map])
+                                for d in self.description]
         return self
 
 
