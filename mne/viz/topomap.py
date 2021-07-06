@@ -5,6 +5,7 @@
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Robert Luke <mail@robertluke.net>
+#          Mikołaj Magnuski <mmagnuski@swps.edu.pl>
 #
 # License: Simplified BSD
 
@@ -574,7 +575,7 @@ def _get_extra_points(pos, extrapolate, origin, radii):
     else:
         assert extrapolate == 'head'
         # return points on the head circle
-        angle = np.arcsin(distance / np.mean(radii))
+        angle = np.arcsin(min(distance / np.mean(radii), 1))
         n_pnts = max(12, int(np.round(2 * np.pi / angle)))
         points_l = np.linspace(0, 2 * np.pi, n_pnts, endpoint=False)
         use_radii = radii * 1.1 + distance

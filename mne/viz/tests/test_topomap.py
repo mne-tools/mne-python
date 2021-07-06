@@ -18,7 +18,7 @@ from matplotlib.patches import Circle
 
 from mne import (read_evokeds, read_proj, make_fixed_length_events, Epochs,
                  compute_proj_evoked, find_layout, pick_types, create_info,
-                 read_cov)
+                 read_cov, EvokedArray)
 from mne.io.proj import make_eeg_average_ref_proj, Projection
 from mne.io import read_raw_fif, read_info, RawArray
 from mne.io.constants import FIFF
@@ -554,6 +554,24 @@ def test_plot_topomap_bads():
         raw.info['bads'] = raw.ch_names[:count]
         raw.info._check_consistency()
         plot_topomap(data[:, 0], raw.info)
+    plt.close('all')
+
+
+def test_plot_topomap_channel_distance():
+    """
+    Test topomap plotting with spread out channels (gh-9511, gh-9526).
+
+    Test topomap plotting when the distance between channels is greater than
+    the head radius.
+    """
+    ch_names = ['TP9', 'AF7', 'AF8', 'TP10']
+
+    info = create_info(ch_names, 100, ch_types='eeg')
+    evoked = EvokedArray(np.random.randn(4, 10) * 1e-6, info)
+    ten_five = make_standard_montage("standard_1005")
+    evoked.set_montage(ten_five)
+
+    evoked.plot_topomap(sphere=0.05, res=8)
     plt.close('all')
 
 
