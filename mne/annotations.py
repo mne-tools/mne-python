@@ -575,7 +575,7 @@ class Annotations(object):
         ----------
         mapping : dict | float | int
             A dictionary mapping the annotation description to a duration
-            e.g. {‘ShortStimulus’ : 3, ‘LongStimulus’ : 12}.
+            e.g. ``{'ShortStimulus' : 3, 'LongStimulus' : 12}``.
             Alternatively, if a number is provided, then all annotations
             durations are set to the single provided value.
         %(verbose_meth)s
