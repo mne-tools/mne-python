@@ -22,6 +22,7 @@ be translated to a template space such as ``fsaverage`` for group comparisons.
 #
 # License: BSD (3-clause)
 
+from math import floor
 import os.path as op
 
 import numpy as np
@@ -88,11 +89,11 @@ fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)  # downloads if needed
 def plot_overlay(image, compare, title, thresh=None):
     """Define a helper function for comparing plots."""
     image = nib.orientations.apply_orientation(
-        image.get_fdata().copy(), nib.orientations.axcodes2ornt(
-            nib.orientations.aff2axcodes(image.affine)))
+        np.asarray(image.dataobj), nib.orientations.axcodes2ornt(
+            nib.orientations.aff2axcodes(image.affine))).astype(np.float32)
     compare = nib.orientations.apply_orientation(
-        compare.get_fdata().copy(), nib.orientations.axcodes2ornt(
-            nib.orientations.aff2axcodes(compare.affine)))
+        np.asarray(compare.dataobj), nib.orientations.axcodes2ornt(
+            nib.orientations.aff2axcodes(compare.affine))).astype(np.float32)
     if thresh is not None:
         compare[compare < np.quantile(compare, thresh)] = np.nan
     fig, axes = plt.subplots(1, 3, figsize=(12, 4))
@@ -111,8 +112,8 @@ T1 = nib.load(op.join(misc_path, 'seeg', 'sample_seeg_T1.mgz'))
 CT_orig = nib.load(op.join(misc_path, 'seeg', 'sample_seeg_CT.mgz'))
 
 # resample to T1's definition of world coordinates
-CT_resampled = resample(moving=CT_orig.get_fdata(),
-                        static=T1.get_fdata(),
+CT_resampled = resample(moving=np.asarray(CT_orig.dataobj),
+                        static=np.asarray(T1.dataobj),
                         moving_affine=CT_orig.affine,
                         static_affine=T1.affine)
 plot_overlay(T1, CT_resampled, 'Unaligned CT Overlaid on T1', thresh=0.95)
@@ -123,19 +124,22 @@ del CT_resampled
 #
 # We want this to be a rigid transformation (just rotation + translation),
 # so we don't do a full affine registration (that includes shear) here.
+# This takes a while (~10 minutes) to execute so we skip actually running it
+# here::
 #
-# .. warning::
-#     You should use ``zooms=None`` to execute the example at full resolution.
-#     The execution of the example is faster but, as you can see, the
-#     alignment is slightly off because of it.
+#    reg_affine, _ = mne.transforms.compute_volume_registration(
+#        CT_orig, T1, pipeline='rigids', verbose=True)
+#
+# And instead we just hard-code the resulting 4x4 matrix:
 
-reg_affine, _ = mne.transforms.compute_volume_registration(
-    CT_orig, T1, pipeline='rigids',
-    zooms=dict(translation=5, rigid=3), verbose=True)
-print(reg_affine)
-
+reg_affine = np.array([
+    [0.99495295, 0.0034309, 0.1002839, -131.25093118],
+    [0.0023889, 0.99832211, -0.05785553, -97.19181499],
+    [-0.10031413, 0.0578031, 0.99327533, -85.67373234],
+    [0., 0., 0., 1.]])
 CT_aligned = mne.transforms.apply_volume_registration(CT_orig, T1, reg_affine)
 plot_overlay(T1, CT_aligned, 'Aligned CT Overlaid on T1', thresh=0.95)
+del CT_orig
 
 ###############################################################################
 # We can now see how the CT image looks properly aligned to the T1 image.
@@ -148,15 +152,17 @@ plot_overlay(T1, CT_aligned, 'Aligned CT Overlaid on T1', thresh=0.95)
 # make low intensity parts of the CT transparent for easier visualization
 CT_data = CT_aligned.get_fdata().copy()
 CT_data[CT_data < np.quantile(CT_data, 0.95)] = np.nan
+T1_data = np.asarray(T1.dataobj)
 
 fig, axes = plt.subplots(1, 3, figsize=(12, 6))
 for ax in axes:
     ax.axis('off')
-axes[0].imshow(T1.get_fdata()[T1.shape[0] // 2], cmap='gray')
+axes[0].imshow(T1_data[T1.shape[0] // 2], cmap='gray')
 axes[0].set_title('MR')
-axes[1].imshow(CT_aligned.get_fdata()[CT_aligned.shape[0] // 2], cmap='gray')
+axes[1].imshow(np.asarray(CT_aligned.dataobj)[CT_aligned.shape[0] // 2],
+               cmap='gray')
 axes[1].set_title('CT')
-axes[2].imshow(T1.get_fdata()[T1.shape[0] // 2], cmap='gray')
+axes[2].imshow(T1_data[T1.shape[0] // 2], cmap='gray')
 axes[2].imshow(CT_data[CT_aligned.shape[0] // 2], cmap='gist_heat', alpha=0.5)
 for ax in (axes[0], axes[2]):
     ax.annotate('Subcutaneous fat', (110, 52), xytext=(100, 30),
@@ -211,7 +217,7 @@ subject_brain = nib.load(op.join(misc_path, 'seeg', 'sample_seeg_brain.mgz'))
 
 # make brain surface from T1
 verts, triangles = mne.surface.marching_cubes(
-    subject_brain.get_fdata(), level=100)
+    np.asarray(subject_brain.dataobj), level=100)
 # transform from voxels to surface RAS
 verts = mne.transforms.apply_trans(
     subject_brain.header.get_vox2ras_tkr(), verts) / 1000.  # to meters
@@ -341,6 +347,7 @@ for val, ch_coord in enumerate(ch_coords, 1):
 # convert back to surface RAS but to the template surface RAS this time
 ch_coords = mne.transforms.apply_trans(
     template_brain.header.get_vox2ras_tkr(), ch_coords)
+del template_brain
 
 ###############################################################################
 # We can now plot the result. You can compare this to the plot in

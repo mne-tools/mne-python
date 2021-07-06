@@ -1693,8 +1693,8 @@ def _compute_volume_registration(moving, static, pipeline, zooms, niter):
             out_affine = np.dot(out_affine, reg_affine)
 
             # apply the current affine to the full-resolution data
-            moving = resample(_get_img_fdata(moving_orig),
-                              _get_img_fdata(static_orig),
+            moving = resample(np.asarray(moving_orig.dataobj),
+                              np.asarray(static_orig.dataobj),
                               moving_orig.affine, static_orig.affine,
                               out_affine)
 
@@ -1752,8 +1752,8 @@ def apply_volume_registration(moving, static, reg_affine, sdr_morph=None,
     _check_option('reg_affine.shape', reg_affine.shape, ((4, 4),))
     _validate_type(sdr_morph, (DiffeomorphicMap, None), 'sdr_morph')
     logger.info('Applying affine registration ...')
-    moving, moving_affine = _get_img_fdata(moving), moving.affine
-    static, static_affine = _get_img_fdata(static), static.affine
+    moving, moving_affine = np.asarray(moving.dataobj), moving.affine
+    static, static_affine = np.asarray(static.dataobj), static.affine
     affine_map = AffineMap(reg_affine,
                            static.shape, static_affine,
                            moving.shape, moving_affine)
