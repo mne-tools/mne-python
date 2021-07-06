@@ -1931,7 +1931,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         ----------
         mapping : dict
             A dictionary mapping the old description to a new description
-            name e.g. {‘1.0’ : ‘Control’, ‘2.0’ : ‘Stimulus’}.
+            name e.g. {'1.0' : 'Control', '2.0' : 'Stimulus'}.
         %(verbose_meth)s
 
         Returns
