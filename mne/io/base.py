@@ -1940,6 +1940,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         -------
         self : mne.Annotations
             The modified Annotations object.
+
         Notes
         -----
         .. versionadded:: 0.24.0
