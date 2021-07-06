@@ -1335,3 +1335,31 @@ def test_annotation_rename():
         a.rename(["wrong"])
     with pytest.raises(ValueError, match="<class 'set'> was provided"):
         a.rename({"wrong"})
+
+    # Test on raw.rename_annotations
+    info = create_info(10, 1000., 'eeg')
+    raw = RawArray(np.zeros((10, 1000)), info)
+    onset = [0.1, 0.3, 0.6]
+    duration = [0.05, 0.1, 0.2]
+    description = ['first', 'second', 'third']
+    ch_names = [[], raw.ch_names[4:6], raw.ch_names[5:7]]
+    annot = Annotations(onset, duration, description, ch_names=ch_names)
+    raw.set_annotations(annot)
+    raw_orig = raw.copy()
+
+    raw.rename_annotations({"first": "1st", "second": "2nd"})
+    assert len(a) == 3
+    assert "first" not in raw.annotations.description
+    assert "1st" in raw.annotations.description
+    assert "second" not in raw.annotations.description
+    assert "2nd" in raw.annotations.description
+    assert np.where([d == "1st" for d in raw.annotations.description])[0] == 0
+    assert np.where([d == "2nd" for d in raw.annotations.description])[0] == 1
+
+    raw = raw_orig.copy()
+    with pytest.raises(ValueError, match="mapping missing from data"):
+        raw.rename_annotations({"aaa": "doesnt exist"})
+    with pytest.raises(ValueError, match="[' a']"):
+        raw.rename_annotations({" a": "doesnt exist"})
+    with pytest.raises(ValueError, match="<class 'str'> was provided"):
+        raw.rename_annotations("wrong")

@@ -576,30 +576,40 @@ class Annotations(object):
         mapping : dict
             A dictionary mapping the old description to a new description
             name e.g. {‘1.0’ : ‘Control’, ‘2.0’ : ‘Stimulus’}.
+        %(verbose_meth)s
 
         Returns
         -------
         self : mne.Annotations
             The modified Annotations object.
+
+        Notes
+        -----
+        .. versionadded:: 0.24.0
         """
-        desc = self.description
-
-        if isinstance(mapping, dict):
-            orig_annots = sorted(list(mapping.keys()))
-            missing = [annot not in self.description for annot in orig_annots]
-            if any(missing):
-                raise ValueError(
-                    "Annotation description(s) in mapping missing from data: "
-                    "%s" % np.array(orig_annots)[np.array(missing)])
-        else:
-            raise ValueError("Renaming requires the mapping of descriptions "
-                             "to be provided as a dict. "
-                             f"Instead {type(mapping)} was provided.")
-
-        for map in mapping:
-            self.description = [d.replace(map, mapping[map])
-                                for d in self.description]
+        self.description = _rename_annotations(self.description,
+                                               mapping, verbose)
         return self
+
+
+@verbose
+def _rename_annotations(desc, mapping, verbose=None):
+
+    if isinstance(mapping, dict):
+        orig_annots = sorted(list(mapping.keys()))
+        missing = [annot not in desc for annot in orig_annots]
+        if any(missing):
+            raise ValueError(
+                "Annotation description(s) in mapping missing from data: "
+                "%s" % np.array(orig_annots)[np.array(missing)])
+    else:
+        raise ValueError("Renaming requires the mapping of descriptions "
+                         "to be provided as a dict. "
+                         f"Instead {type(mapping)} was provided.")
+
+    for map in mapping:
+        desc = [d.replace(map, mapping[map]) for d in desc]
+    return desc
 
 
 def _combine_annotations(one, two, one_n_samples, one_first_samp,
