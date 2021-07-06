@@ -1326,9 +1326,9 @@ def test_annotation_rename():
 
     a = Annotations([1, 2, 3], [5, 5, 8], ["a", "b", "c"])
     with pytest.raises(ValueError, match="mapping missing from data"):
-        a.rename({"aaa": "doesnt exist"})
+        a.rename({"aaa": "does not exist"})
     with pytest.raises(ValueError, match="[' a']"):
-        a.rename({" a": "doesnt exist"})
+        a.rename({" a": "does not exist"})
     with pytest.raises(ValueError, match="<class 'str'> was provided"):
         a.rename("wrong")
     with pytest.raises(ValueError, match="<class 'list'> was provided"):
@@ -1358,8 +1358,8 @@ def test_annotation_rename():
 
     raw = raw_orig.copy()
     with pytest.raises(ValueError, match="mapping missing from data"):
-        raw.rename_annotations({"aaa": "doesnt exist"})
+        raw.rename_annotations({"aaa": "does not exist"})
     with pytest.raises(ValueError, match="[' a']"):
-        raw.rename_annotations({" a": "doesnt exist"})
+        raw.rename_annotations({" a": "does not exist"})
     with pytest.raises(ValueError, match="<class 'str'> was provided"):
         raw.rename_annotations("wrong")
