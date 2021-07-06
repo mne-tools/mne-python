@@ -36,7 +36,6 @@ from ..io.tag import _rename_list
 from ..io.write import DATE_NONE
 from ..io.proj import setup_proj
 from ..io._digitization import _get_data_as_dict_from_dig
-from ..annotations import _rename_annotations
 
 
 def _get_meg_system(info):
@@ -514,30 +513,6 @@ class SetChannelsMixin(MontageMixin):
             for ci, ch in enumerate(ch_names):
                 ch_names[ci] = tuple(mapping.get(name, name) for name in ch)
 
-        return self
-
-    @verbose
-    def rename_annotations(self, mapping, verbose=None):
-        """Rename annotation description(s). Operates inplace.
-
-        Parameters
-        ----------
-        mapping : dict
-            A dictionary mapping the old description to a new description
-            name e.g. {‘1.0’ : ‘Control’, ‘2.0’ : ‘Stimulus’}.
-        %(verbose_meth)s
-
-        Returns
-        -------
-        self : mne.Annotations
-            The modified Annotations object.
-
-        Notes
-        -----
-        .. versionadded:: 0.24.0
-        """
-        self.annotations.description = _rename_annotations(
-            self.annotations.description, mapping, verbose)
         return self
 
     @verbose

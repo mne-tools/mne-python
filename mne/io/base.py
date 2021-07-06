@@ -36,7 +36,7 @@ from .write import (start_file, end_file, start_block, end_block,
                     write_id, write_string, _get_split_size, _NEXT_FILE_BUFFER)
 
 from ..annotations import (_annotations_starts_stops, _write_annotations,
-                           _handle_meas_date)
+                           _handle_meas_date, _rename_annotations)
 from ..filter import (FilterMixin, notch_filter, resample, _resamp_ratio_len,
                       _resample_stim_channels, _check_fun)
 from ..parallel import parallel_func
@@ -1922,6 +1922,30 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                 msg += f"{cols[col][i]:>8.2f}  "
             msg += f"{cols['max'][i]:>8.2f}"
             print(msg)
+
+    @verbose
+    def rename_annotations(self, mapping, verbose=None):
+        """Rename annotation description(s). Operates inplace.
+
+        Parameters
+        ----------
+        mapping : dict
+            A dictionary mapping the old description to a new description
+            name e.g. {‘1.0’ : ‘Control’, ‘2.0’ : ‘Stimulus’}.
+        %(verbose_meth)s
+
+        Returns
+        -------
+        self : mne.Annotations
+            The modified Annotations object.
+
+        Notes
+        -----
+        .. versionadded:: 0.24.0
+        """
+        self.annotations.description = _rename_annotations(
+            self.annotations.description, mapping, verbose)
+        return self
 
 
 def _allocate_data(preload, shape, dtype):
