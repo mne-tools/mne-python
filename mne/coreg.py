@@ -29,7 +29,7 @@ from .bem import read_bem_surfaces, write_bem_surfaces
 from .transforms import (rotation, rotation3d, scaling, translation, Transform,
                          _read_fs_xfm, _write_fs_xfm, invert_transform,
                          combine_transforms, _quat_to_euler,
-                         _fit_matched_points)
+                         _fit_matched_points, apply_trans)
 from .utils import (get_config, get_subjects_dir, logger, pformat, verbose,
                     warn, has_nibabel)
 from .viz._3d import _fiducial_coords
@@ -1221,3 +1221,271 @@ def _scale_xfm(subject_to, xfm_fname, mri_name, subject_from, scale,
                 F_mri_ras, 'ras', 'ras'),
             F_ras_mni, 'ras', 'mni_tal')
     _write_fs_xfm(fname_to, T_ras_mni['trans'], kind)
+
+
+class Coregistration(object):
+    def __init__(self, data_path, subject, subjects_dir):
+        from .gui._file_traits import DigSource
+        from .gui._fiducials_gui import MRIHeadWithFiducialsModel
+        self.parameters = [0., 0., 0., 0., 0., 0., 1., 1., 1.]
+
+        self.n_scale_params = (0, 1, 3)
+        self.n_scale_param = self.n_scale_params[0]
+        self.coord_frames = ('mri', 'head')
+        self.coord_frame = self.coord_frames[0]
+        self.icp_fid_matches = ('nearest', 'matched')
+        self.icp_fid_match = self.icp_fid_matches[0]
+        self.grow_hair = 0.
+        self.lpa_weight = 1.
+        self.nasion_weight = 10.
+        self.rpa_weight = 1.
+        self.hsp_weight = 1.
+        self.eeg_weight = 1.
+        self.hpi_weight = 1.
+
+        self.hsp = DigSource()
+        self.hsp.file = op.join(data_path, 'MEG', subject,
+                                subject + '_audvis_raw.fif')
+        self.mri = MRIHeadWithFiducialsModel(subjects_dir=subjects_dir,
+                                             subject=subject)
+        self.nearest_calc = self._nearest_calc_default()
+
+    @property
+    def hsp_trans(self):
+        if self.coord_frame == 'head':
+            t = np.eye(4)
+        else:
+            t = self.head_mri_t
+        return t
+
+    @property
+    def transformed_orig_hsp_points(self):
+        return apply_trans(self.hsp_trans, self.hsp._hsp_points)
+
+    @property
+    def nearest_transformed_high_res_mri_idx_orig_hsp(self):
+        return self.nearest_calc.query(
+            apply_trans(self.head_mri_t, self.hsp._hsp_points))[1]
+
+    @property
+    def nearest_transformed_high_res_mri_idx_hpi(self):
+        return self.nearest_calc.query(
+            apply_trans(self.head_mri_t, self.hsp.hpi_points))[1]
+
+    @property
+    def has_hpi_data(self):
+        return (self.has_mri_data and
+                len(self.nearest_transformed_high_res_mri_idx_hpi) > 0)
+
+    @property
+    def nearest_transformed_high_res_mri_idx_eeg(self):
+        return self.nearest_calc.query(
+            apply_trans(self.head_mri_t, self.hsp.eeg_points))[1]
+
+    @property
+    def has_eeg_data(self):
+        return (self.has_mri_data and
+                len(self.nearest_transformed_high_res_mri_idx_eeg) > 0)
+
+    @property
+    def nearest_transformed_high_res_mri_idx_rpa(self):
+        return self.nearest_calc.query(
+            apply_trans(self.head_mri_t, self.hsp.rpa))[1]
+
+    @property
+    def nearest_transformed_high_res_mri_idx_nasion(self):
+        return self.nearest_calc.query(
+            apply_trans(self.head_mri_t, self.hsp.nasion))[1]
+
+    @property
+    def nearest_transformed_high_res_mri_idx_lpa(self):
+        return self.nearest_calc.query(
+            apply_trans(self.head_mri_t, self.hsp.lpa))[1]
+
+    @property
+    def has_lpa_data(self):
+        return (np.any(self.mri.lpa) and np.any(self.hsp.lpa))
+
+    @property
+    def has_nasion_data(self):
+        return (np.any(self.mri.nasion) and np.any(self.hsp.nasion))
+
+    @property
+    def has_rpa_data(self):
+        return (np.any(self.mri.rpa) and np.any(self.hsp.rpa))
+
+    @property
+    def head_mri_t(self):
+        trans = rotation(*self.parameters[:3]).T
+        trans[:3, 3] = -np.dot(trans[:3, :3], self.parameters[3:6])
+        # should be the same as np.linalg.inv(self.mri_head_t)
+        return trans
+
+    def _nearest_calc_default(self):
+        from .surface import _DistanceQuery
+        return _DistanceQuery(
+            self.processed_high_res_mri_points * self.parameters[6:9])
+
+    @property
+    def nearest_transformed_high_res_mri_idx_hsp(self):
+        return self.nearest_calc.query(
+            apply_trans(self.head_mri_t, self.hsp.points))[1]
+
+    @property
+    def processed_high_res_mri_points(self):
+        return self._get_processed_mri_points('high')
+
+    @property
+    def processed_low_res_mri_points(self):
+        return self._get_processed_mri_points('low')
+
+    def _get_processed_mri_points(self, res):
+        bem = self.mri.bem_low_res if res == 'low' else self.mri.bem_high_res
+        if self.grow_hair:
+            if len(bem.surf.nn):
+                scaled_hair_dist = (1e-3 * self.grow_hair /
+                                    np.array(self.parameters[6:9]))
+                points = bem.surf.rr.copy()
+                hair = points[:, 2] > points[:, 1]
+                points[hair] += bem.surf.nn[hair] * scaled_hair_dist
+                return points
+            else:
+                raise ValueError("Norms missing from bem, can't grow hair")
+                self.grow_hair = 0
+        else:
+            return bem.surf.rr
+
+    @property
+    def mri_trans_noscale(self):
+        if self.coord_frame == 'head':
+            t = self.mri_head_t
+        else:
+            t = np.eye(4)
+        return t
+
+    @property
+    def mri_trans(self):
+        t = self.mri_trans_noscale.copy()
+        t[:, :3] *= self.parameters[6:9]
+        return t
+
+    @property
+    def transformed_high_res_mri_points(self):
+        points = apply_trans(self.mri_trans,
+                             self.processed_high_res_mri_points)
+        return points
+
+    @property
+    def has_mri_data(self):
+        return len(self.transformed_high_res_mri_points) > 0
+
+    @property
+    def has_hsp_data(self):
+        return (self.has_mri_data and
+                len(self.nearest_transformed_high_res_mri_idx_hsp) > 0)
+
+    @property
+    def orig_hsp_point_distance(self):
+        mri_points = self.transformed_high_res_mri_points[
+            self.nearest_transformed_high_res_mri_idx_orig_hsp]
+        hsp_points = self.transformed_orig_hsp_points
+        return np.linalg.norm(mri_points - hsp_points, axis=-1)
+
+    def fit_fiducials(self, lpa_weight=1., nasion_weight=10., rpa_weight=1.):
+        self.lpa_weight = lpa_weight
+        self.nasion_weight = nasion_weight
+        self.rpa_weight = rpa_weight
+
+        head_pts = np.vstack((self.hsp.lpa, self.hsp.nasion, self.hsp.rpa))
+        mri_pts = np.vstack((self.mri.lpa, self.mri.nasion, self.mri.rpa))
+        weights = [lpa_weight, nasion_weight, rpa_weight]
+        if self.n_scale_param == 0:
+            mri_pts *= self.parameters[6:9]  # not done in fit_matched_points
+        x0 = np.array(self.parameters[:6 + self.n_scale_param])
+        est = fit_matched_points(mri_pts, head_pts, x0=x0, out='params',
+                                 scale=self.n_scale_param, weights=weights)
+        if self.n_scale_param == 0:
+            self.parameters[:6] = est
+        else:
+            self.parameters[:] = np.concatenate([est, [est[-1]] * 2])
+
+    def _setup_icp(self):
+        head_pts = list()
+        mri_pts = list()
+        weights = list()
+        if self.has_hsp_data and self.hsp_weight > 0:  # should be true
+            head_pts.append(self.hsp.points)
+            mri_pts.append(self.processed_high_res_mri_points[
+                self.nearest_transformed_high_res_mri_idx_hsp])
+            weights.append(np.full(len(head_pts[-1]), self.hsp_weight))
+        for key in ('lpa', 'nasion', 'rpa'):
+            if getattr(self, 'has_%s_data' % key):
+                head_pts.append(getattr(self.hsp, key))
+                if self.icp_fid_match == 'matched':
+                    mri_pts.append(getattr(self.mri, key))
+                else:
+                    assert self.icp_fid_match == 'nearest'
+                    mri_pts.append(self.processed_high_res_mri_points[
+                        getattr(self, 'nearest_transformed_high_res_mri_idx_%s'
+                                % (key,))])
+                weights.append(np.full(len(mri_pts[-1]),
+                                       getattr(self, '%s_weight' % key)))
+        if self.has_eeg_data and self.eeg_weight > 0:
+            head_pts.append(self.hsp.eeg_points)
+            mri_pts.append(self.processed_high_res_mri_points[
+                self.nearest_transformed_high_res_mri_idx_eeg])
+            weights.append(np.full(len(mri_pts[-1]), self.eeg_weight))
+        if self.has_hpi_data and self.hpi_weight > 0:
+            head_pts.append(self.hsp.hpi_points)
+            mri_pts.append(self.processed_high_res_mri_points[
+                self.nearest_transformed_high_res_mri_idx_hpi])
+            weights.append(np.full(len(mri_pts[-1]), self.hpi_weight))
+        head_pts = np.concatenate(head_pts)
+        mri_pts = np.concatenate(mri_pts)
+        weights = np.concatenate(weights)
+        if self.n_scale_param == 0:
+            mri_pts *= self.parameters[6:9]  # not done in fit_matched_points
+        return head_pts, mri_pts, weights
+
+    def fit_icp(self, iterations=20, lpa_weight=1., nasion_weight=10.,
+                rpa_weight=1.):
+        self.lpa_weight = lpa_weight
+        self.nasion_weight = nasion_weight
+        self.rpa_weight = rpa_weight
+
+        # Initial guess (current state)
+        est = self.parameters[:[6, 7, None, 9][self.n_scale_param]]
+
+        # Do the fits, assigning and evaluating at each step
+        for _ in range(iterations):
+            head_pts, mri_pts, weights = self._setup_icp()
+            est = fit_matched_points(mri_pts, head_pts,
+                                     scale=self.n_scale_param,
+                                     x0=est, out='params', weights=weights)
+            if self.n_scale_param == 0:
+                self.parameters[:6] = est
+            elif self.n_scale_param == 1:
+                self.parameters[:] = list(est) + [est[-1]] * 2
+            else:
+                self.parameters[:] = est
+
+    def omit_hsp_points(self, distance):
+        import warnings
+        distance = float(distance)
+        if distance <= 0:
+            return
+
+        # find the new filter
+        mask = self.orig_hsp_point_distance <= distance
+        n_excluded = np.sum(~mask)
+        logger.info("Coregistration: Excluding %i head shape points with "
+                    "distance >= %.3f m.", n_excluded, distance)
+        # set the filter
+        with warnings.catch_warnings(record=True):  # comp to None in Traits
+            self.hsp.points_filter = mask
+
+    def point_distance(self):
+        pass
+
+    def save_trans(self, fname):
+        pass
