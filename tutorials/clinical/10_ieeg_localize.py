@@ -22,7 +22,6 @@ be translated to a template space such as ``fsaverage`` for group comparisons.
 #
 # License: BSD (3-clause)
 
-from math import floor
 import os.path as op
 
 import numpy as np
