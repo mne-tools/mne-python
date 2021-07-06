@@ -93,6 +93,8 @@ Bugs
 
 - Fix bug when computing rank from info for SSS data with only gradiometers or magnetometers (:gh:`9435` by `Alex Gramfort`_)
 
+- Fix bug with `mne.preprocessing.find_bad_channels_maxwell` where all-flat segments could lead to an error (:gh:`9531` by `Eric Larson`_)
+
 - Fix bug with `mne.io.Raw.set_montage` and related functions where the channel coordinate frame was not properly set to head (:gh:`9447` by `Eric Larson`_)
 
 - Fix bug with `mne.io.read_raw_fieldtrip` and `mne.read_epochs_fieldtrip` where channel positions were not set properly (:gh:`9447` by `Eric Larson`_)
