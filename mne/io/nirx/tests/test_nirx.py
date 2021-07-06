@@ -138,6 +138,9 @@ def test_nirsport_v2():
     assert_allclose(
         np.diff(raw.annotations.onset), [2.3, 3.1], atol=0.1)
 
+    mon = raw.get_montage()
+    assert len(mon.dig) == 43
+
 
 @requires_testing_data
 @pytest.mark.filterwarnings('ignore:.*Extraction of measurement.*:')

@@ -278,6 +278,9 @@ def test_snirf_nirsport2_w_positions():
     assert_allclose(
         mni_locs[34], [0.0828, -0.046, 0.0285], atol=allowed_dist_error)
 
+    mon = raw.get_montage()
+    assert len(mon.dig) == 43
+
 
 @requires_testing_data
 @requires_h5py
