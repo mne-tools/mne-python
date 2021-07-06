@@ -1929,7 +1929,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        mapping : dict | number
+        mapping : dict | float | int
             A dictionary mapping the annotation description to a duration
             e.g. {‘ShortStimulus’ : 3, ‘LongStimulus’ : 12}.
             Alternatively, if a number is provided, then all annotations
