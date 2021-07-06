@@ -133,9 +133,9 @@ del CT_resampled
 # And instead we just hard-code the resulting 4x4 matrix:
 
 reg_affine = np.array([
-    [0.99495295, 0.0034309, 0.1002839, -131.25093118],
-    [0.0023889, 0.99832211, -0.05785553, -97.19181499],
-    [-0.10031413, 0.0578031, 0.99327533, -85.67373234],
+    [0.99270756, -0.03243313, 0.11610254, -133.094156],
+    [0.04374389, 0.99439665, -0.09623816, -97.58320673],
+    [-0.11233068, 0.10061512, 0.98856381, -84.45551601],
     [0., 0., 0., 1.]])
 CT_aligned = mne.transforms.apply_volume_registration(CT_orig, T1, reg_affine)
 plot_overlay(T1, CT_aligned, 'Aligned CT Overlaid on T1', thresh=0.95)
@@ -259,7 +259,7 @@ plot_overlay(template_brain, subject_brain,
 # This aligns the two brains, preparing the subject's brain to be warped
 # to the template.
 #
-# .. warning:: Here we use ``zooms=5``` just for speed, in general we recommend
+# .. warning:: Here we use ``zooms=5`` just for speed, in general we recommend
 #              using ``zooms=None``` (default) for highest accuracy. To deal
 #              with this coarseness, we also use a threshold of 0.8 for the CT
 #              electrodes rather than 0.95. This coarse zoom and low threshold
