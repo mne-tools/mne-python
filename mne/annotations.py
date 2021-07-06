@@ -567,6 +567,52 @@ class Annotations(object):
 
         return self
 
+    @verbose
+    def set_duration(self, mapping, verbose=None):
+        """Set annotation durations(s). Operates inplace.
+
+        Parameters
+        ----------
+        mapping : dict | number
+            A dictionary mapping the annotation description to a duration
+            e.g. {‘ShortStimulus’ : 3, ‘LongStimulus’ : 12}.
+            Alternatively, if a number is provided, then all annotations
+            durations are set to the single provided value.
+        %(verbose_meth)s
+
+        Returns
+        -------
+        self : mne.Annotations
+            The modified Annotations object.
+        Notes
+        -----
+        .. versionadded:: 0.24.0
+        """
+        return _set_duration(self, mapping, verbose)
+
+
+@verbose
+def _set_duration(annot, mapping, verbose=None):
+
+    if isinstance(mapping, dict):
+        orig_annots = sorted(list(mapping.keys()))
+        missing = [key not in annot.description for key in orig_annots]
+        if any(missing):
+            raise ValueError(
+                "Annotation description(s) in mapping missing from data: "
+                "%s" % np.array(orig_annots)[np.array(missing)])
+        for map in mapping:
+            map_idx = [desc == map for desc in annot.description]
+            annot.duration[map_idx] = mapping[map]
+
+    elif isinstance(mapping, (int, float)):
+        annot.duration = np.ones(annot.description.shape) * mapping
+    else:
+        raise ValueError("Renaming requires the mapping of descriptions "
+                         "to times to be provided as a dict. "
+                         f"Instead {type(mapping)} was provided.")
+
+    return annot
 
 def _combine_annotations(one, two, one_n_samples, one_first_samp,
                          two_first_samp, sfreq, meas_date):
