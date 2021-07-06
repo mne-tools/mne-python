@@ -81,7 +81,6 @@ Enhancements
 
 - Add :meth:`annotations.rename() <mne.Annotations.rename>` to rename annotation descriptions (:gh:`9525` by `Robert Luke`_)
 
-
 Bugs
 ~~~~
 - Fix bug with :meth:`mne.Epochs.crop` and :meth:`mne.Evoked.crop` when ``include_tmax=False``, where the last sample was always cut off, even when ``tmax > epo.times[-1]`` (:gh:`9378` **by new contributor** |Jan Sosulski|_)
