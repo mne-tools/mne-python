@@ -558,9 +558,12 @@ def test_plot_topomap_bads():
 
 
 def test_plot_topomap_channel_distance():
-    '''Test topomap plotting when the distance between channels is greater
-    than the head radius (gh-9511, gh-9526).'''
+    """
+    Test topomap plotting with spread out channels (gh-9511, gh-9526).
 
+    Test topomap plotting when the distance between channels is greater than
+    the head radius.
+    """
     ch_names = ['TP9', 'AF7', 'AF8', 'TP10']
 
     info = create_info(ch_names, 100, ch_types='eeg')
