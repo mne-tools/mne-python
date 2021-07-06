@@ -261,8 +261,9 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     """Compute the power spectral density (PSD) using multitapers.
 
     Calculates spectral density for orthogonal tapers, then averages them
-    together for each channel/epoch. See [1] for a description of the tapers
-    and [2] for the general method.
+    together for each channel/epoch. See :footcite:`Slepian1978` for a
+    description of the tapers and :footcite:`PercivalWalden1993` for the
+    general method.
 
     Parameters
     ----------
@@ -318,13 +319,7 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
 
     References
     ----------
-    .. [1] Slepian, D. "Prolate spheroidal wave functions, Fourier analysis,
-           and uncertainty V: The discrete case." Bell System Technical
-           Journal, vol. 57, 1978.
-
-    .. [2] Percival D.B. and Walden A.T. "Spectral Analysis for Physical
-           Applications: Multitaper and Conventional Univariate Techniques."
-           Cambridge University Press, 1993.
+    .. footbibliography::
     """
     # Prep data
     data, sfreq = _check_psd_data(inst, tmin, tmax, picks, proj)

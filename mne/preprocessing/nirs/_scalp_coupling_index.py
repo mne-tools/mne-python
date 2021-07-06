@@ -49,8 +49,8 @@ def scalp_coupling_index(raw, l_freq=0.7, h_freq=1.5,
         raise RuntimeError('Scalp coupling index '
                            'should be run on optical density data.')
 
-    freqs = np.unique(_channel_frequencies(raw))
-    picks = _check_channels_ordered(raw, freqs)
+    freqs = np.unique(_channel_frequencies(raw.info, nominal=True))
+    picks = _check_channels_ordered(raw.info, freqs)
 
     filtered_data = filter_data(raw._data, raw.info['sfreq'], l_freq, h_freq,
                                 picks=picks, verbose=verbose,

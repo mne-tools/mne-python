@@ -26,7 +26,8 @@ from ..io.pick import (pick_types, _picks_by_type, pick_info, pick_channels,
                        _pick_data_channels, _picks_to_idx, _get_channel_types,
                        _MEG_CH_TYPES_SPLIT)
 from ..utils import (_clean_names, _time_mask, verbose, logger, fill_doc,
-                     _validate_type, _check_sphere, _check_option, _is_numeric)
+                     _validate_type, _check_sphere, _check_option, _is_numeric,
+                     warn, check_version)
 from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox, figure_nobar,
                     plt_show, _process_times, DraggableColorbar,
@@ -98,6 +99,9 @@ def _prepare_topomap_plot(inst, ch_type, sphere=None):
                                exclude='bads')
         elif ch_type == 'csd':
             picks = pick_types(info, meg=False, csd=True, ref_meg=False,
+                               exclude='bads')
+        elif ch_type == 'dbs':
+            picks = pick_types(info, meg=False, dbs=True, ref_meg=False,
                                exclude='bads')
         elif ch_type == 'seeg':
             picks = pick_types(info, meg=False, seeg=True, ref_meg=False,
@@ -688,7 +692,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                  contours=6, image_interp='bilinear', show=True,
                  onselect=None, extrapolate=_EXTRAPOLATE_DEFAULT,
                  sphere=None, border=_BORDER_DEFAULT,
-                 ch_type='eeg'):
+                 ch_type='eeg', cnorm=None):
     """Plot a topographic map as image.
 
     Parameters
@@ -755,19 +759,60 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     %(topomap_border)s
     %(topomap_ch_type)s
 
+        ..versionadded:: 0.24.0
+    cnorm : matplotlib.colors.Normalize | None
+        Colormap normalization, default None means linear normalization. If not
+        None, ``vmin`` and ``vmax`` arguments are ignored. See Notes for more
+        details.
+
+        .. versionadded:: 0.24
+
     Returns
     -------
     im : matplotlib.image.AxesImage
         The interpolated data.
     cn : matplotlib.contour.ContourSet
         The fieldlines.
+
+    Notes
+    -----
+    The ``cnorm`` parameter can be used to implement custom colormap
+    normalization. By default, a linear mapping from vmin to vmax is used,
+    which correspond to the first and last colors in the colormap. This might
+    be undesired when vmin and vmax are not symmetrical around zero (or a value
+    that can be interpreted as some midpoint). For example, assume we want to
+    use the RdBu colormap (red to white to blue) for values ranging from -1 to
+    3, and 0 should be white. However, white corresponds to the midpoint in the
+    data by default, i.e. 1. Therefore, we use the following colormap
+    normalization ``cnorm`` and pass it as the the ``cnorm`` argument:
+
+        from matplotlib.colors import TwoSlopeNorm
+        cnorm = TwoSlopeNorm(vmin=-1, vcenter=0, vmax=3)
+
+    Note that because we define ``vmin`` and ``vmax`` in the normalization,
+    arguments ``vmin`` and ``vmax`` to ``plot_topomap`` will be ignored if a
+    normalization is provided. See the
+    :doc:`matplotlib docs <matplotlib:tutorials/colors/colormapnorms>`
+    for more details on colormap normalization.
     """
     sphere = _check_sphere(sphere)
+    if check_version("matplotlib", "3.2.0"):
+        from matplotlib.colors import TwoSlopeNorm
+    else:
+        from matplotlib.colors import DivergingNorm as TwoSlopeNorm
+    _validate_type(cnorm, (TwoSlopeNorm, None), 'cnorm')
+    if cnorm is not None:
+        if vmin is not None:
+            warn(f"vmin={cnorm.vmin} is implicitly defined by cnorm, ignoring "
+                 f"vmin={vmin}.")
+        if vmax is not None:
+            warn(f"vmax={cnorm.vmax} is implicitly defined by cnorm, ignoring "
+                 f"vmax={vmax}.")
     return _plot_topomap(data, pos, vmin, vmax, cmap, sensors, res, axes,
                          names, show_names, mask, mask_params, outlines,
                          contours, image_interp, show,
                          onselect, extrapolate, sphere=sphere, border=border,
-                         ch_type=ch_type)[:2]
+                         ch_type=ch_type, cnorm=cnorm)[:2]
 
 
 def _setup_interp(pos, res, extrapolate, sphere, outlines, border):
@@ -826,7 +871,8 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                   mask_params=None, outlines='head',
                   contours=6, image_interp='bilinear', show=True,
                   onselect=None, extrapolate=_EXTRAPOLATE_DEFAULT, sphere=None,
-                  border=_BORDER_DEFAULT, ch_type='eeg'):
+                  border=_BORDER_DEFAULT, ch_type='eeg', cnorm=None):
+    from matplotlib.colors import Normalize
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RectangleSelector
     data = np.asarray(data)
@@ -854,7 +900,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
             # deal with grad pairs
             picks = _pair_grad_sensors(pos, topomap_coords=False)
             pos = _find_topomap_coords(pos, picks=picks[::2], sphere=sphere)
-            data, _ = _merge_ch_data(data, ch_type, [])
+            data, _ = _merge_ch_data(data[picks], ch_type, [])
             data = data.reshape(-1)
         else:
             picks = list(range(data.shape[0]))
@@ -913,9 +959,10 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     patch_ = _get_patch(outlines, extrapolate, interp, ax)
 
     # plot interpolated map
-    im = ax.imshow(Zi, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
-                   aspect='equal', extent=extent,
-                   interpolation=image_interp)
+    if cnorm is None:
+        cnorm = Normalize(vmin=vmin, vmax=vmax)
+    im = ax.imshow(Zi, cmap=cmap, origin='lower', aspect='equal',
+                   extent=extent, interpolation=image_interp, norm=cnorm)
 
     # gh-1432 had a workaround for no contours here, but we'll remove it
     # because mpl has probably fixed it
@@ -1983,7 +2030,7 @@ def plot_psds_topomap(
 
 
 @fill_doc
-def plot_layout(layout, picks=None, show=True):
+def plot_layout(layout, picks=None, show_axes=False, show=True):
     """Plot the sensor positions.
 
     Parameters
@@ -1991,6 +2038,8 @@ def plot_layout(layout, picks=None, show=True):
     layout : None | Layout
         Layout instance specifying sensor positions.
     %(picks_nostr)s
+    show_axes : bool
+            Show layout axes if True. Defaults to False.
     show : bool
         Show figure if True. Defaults to True.
 
@@ -2009,15 +2058,18 @@ def plot_layout(layout, picks=None, show=True):
     fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None,
                         hspace=None)
     ax.set(xticks=[], yticks=[], aspect='equal')
-    pos = np.array([(p[0] + p[2] / 2., p[1] + p[3] / 2.) for p in layout.pos])
     outlines = dict(border=([0, 1, 1, 0, 0], [0, 0, 1, 1, 0]))
     _draw_outlines(ax, outlines)
     picks = _picks_to_idx(len(layout.names), picks)
-    pos = pos[picks]
+    pos = layout.pos[picks]
     names = np.array(layout.names)[picks]
-    for ii, (this_pos, ch_id) in enumerate(zip(pos, names)):
-        ax.annotate(ch_id, xy=this_pos[:2], horizontalalignment='center',
+    for ii, (p, ch_id) in enumerate(zip(pos, names)):
+        center_pos = np.array((p[0] + p[2] / 2., p[1] + p[3] / 2.))
+        ax.annotate(ch_id, xy=center_pos, horizontalalignment='center',
                     verticalalignment='center', size='x-small')
+        if show_axes:
+            x1, x2, y1, y2 = p[0], p[0] + p[2], p[1], p[1] + p[3]
+            ax.plot([x1, x1, x2, x2, x1], [y1, y2, y2, y1, y1], color='k')
     ax.axis('off')
     tight_layout(fig=fig, pad=0, w_pad=0, h_pad=0)
     plt_show(show)

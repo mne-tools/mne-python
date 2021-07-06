@@ -6,22 +6,23 @@
 
 from collections import defaultdict
 from colorsys import hsv_to_rgb, rgb_to_hsv
+import copy as cp
 import os
 import os.path as op
-import copy as cp
 import re
 
 import numpy as np
-from scipy import linalg, sparse
 
+from .morph_map import read_morph_map
 from .parallel import parallel_func, check_n_jobs
 from .source_estimate import (SourceEstimate, VolSourceEstimate,
                               _center_of_mass, extract_label_time_course,
                               spatial_src_adjacency)
-from .source_space import add_source_space_distances, SourceSpaces
+from .source_space import (add_source_space_distances, SourceSpaces,
+                           read_freesurfer_lut, _import_nibabel)
 from .stats.cluster_level import _find_clusters, _get_components
-from .surface import (read_surface, fast_cross_3d, mesh_edges, mesh_dist,
-                      read_morph_map)
+from .surface import read_surface, fast_cross_3d, mesh_edges, mesh_dist
+from .transforms import apply_trans
 from .utils import (get_subjects_dir, _check_subject, logger, verbose, warn,
                     check_random_state, _validate_type, fill_doc,
                     _check_option, check_version)
@@ -233,7 +234,7 @@ class Label(object):
         self.hemi = hemi
         self.comment = comment
         self.verbose = verbose
-        self.subject = _check_subject(None, subject, False)
+        self.subject = _check_subject(None, subject, raise_error=False)
         self.color = color
         self.name = name
         self.filename = filename
@@ -270,7 +271,13 @@ class Label(object):
         return "<Label | %s, %s : %i vertices>" % (name, self.hemi, n_vert)
 
     def __len__(self):
-        """Return the number of vertices."""
+        """Return the number of vertices.
+
+        Returns
+        -------
+        n_vertices : int
+            The number of vertices.
+        """
         return len(self.vertices)
 
     def __add__(self, other):
@@ -733,7 +740,7 @@ class Label(object):
         """Compute the center of mass of the label.
 
         This function computes the spatial center of mass on the surface
-        as in [1]_.
+        as in :footcite:`LarsonLee2013`.
 
         Parameters
         ----------
@@ -770,8 +777,7 @@ class Label(object):
 
         References
         ----------
-        .. [1] Larson and Lee, "The cortical dynamics underlying effective
-               switching of auditory spatial attention", NeuroImage 2012.
+        .. footbibliography::
         """
         if not isinstance(surf, str):
             raise TypeError('surf must be a string, got %s' % (type(surf),))
@@ -845,7 +851,13 @@ class BiHemiLabel(object):
         return temp % (name, len(self.lh), len(self.rh))
 
     def __len__(self):
-        """Return the number of vertices."""
+        """Return the number of vertices.
+
+        Returns
+        -------
+        n_vertices : int
+            The number of vertices.
+        """
         return len(self.lh) + len(self.rh)
 
     def __add__(self, other):
@@ -921,6 +933,7 @@ def read_label(filename, subject=None, color=None):
     See Also
     --------
     read_labels_from_annot
+    write_labels_to_annot
     """
     if subject is not None and not isinstance(subject, str):
         raise TypeError('subject must be a string')
@@ -1149,6 +1162,7 @@ def split_label(label, parts=2, subject=None, subjects_dir=None,
     projecting all label vertex coordinates onto this axis and dividing them at
     regular spatial intervals.
     """
+    from scipy import linalg
     label, subject, subjects_dir = _prep_label_split(label, subject,
                                                      subjects_dir)
 
@@ -1259,6 +1273,7 @@ def label_sign_flip(label, src):
     flip : array
         Sign flip vector (contains 1 or -1).
     """
+    from scipy import linalg
     if len(src) != 2:
         raise ValueError('Only source spaces with 2 hemisphers are accepted')
 
@@ -1560,8 +1575,7 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
     # make sure the inputs are arrays
     if np.isscalar(seeds):
         seeds = [seeds]
-    # these can have different sizes so need to use object array
-    seeds = np.asarray([np.atleast_1d(seed) for seed in seeds], dtype='O')
+    seeds = [np.atleast_1d(seed) for seed in seeds]
     extents = np.atleast_1d(extents)
     hemis = np.atleast_1d(hemis)
     n_seeds = len(seeds)
@@ -1623,7 +1637,7 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
     if overlap:
         # create the patches
         parallel, my_grow_labels, _ = parallel_func(_grow_labels, n_jobs)
-        seeds = np.array_split(seeds, n_jobs)
+        seeds = np.array_split(np.array(seeds, dtype='O'), n_jobs)
         extents = np.array_split(extents, n_jobs)
         hemis = np.array_split(hemis, n_jobs)
         names = np.array_split(names, n_jobs)
@@ -1655,7 +1669,7 @@ def _grow_nonoverlapping_labels(subject, seeds_, extents_, hemis, vertices_,
     labels = []
     for hemi in set(hemis):
         hemi_index = (hemis == hemi)
-        seeds = seeds_[hemi_index]
+        seeds = [seed for seed, h in zip(seeds_, hemis) if h == hemi]
         extents = extents_[hemi_index]
         names = names_[hemi_index]
         graph = graphs[hemi]  # distance graph
@@ -1685,6 +1699,10 @@ def _grow_nonoverlapping_labels(subject, seeds_, extents_, hemis, vertices_,
             # add neighbors within allowable distance
             row = graph[vert_from, :]
             for vert_to, dist in zip(row.indices, row.data):
+                # Prevent adding a point that has already been used
+                # (prevents infinite loop)
+                if (vert_to == seeds[label]).any():
+                    continue
                 new_dist = old_dist + dist
 
                 # abort if outside of extent
@@ -1874,9 +1892,11 @@ def _cortex_parcellation(subject, n_parcel, hemis, vertices_, graphs,
     return labels
 
 
-def _read_annot_cands(dir_name):
+def _read_annot_cands(dir_name, raise_error=True):
     """List the candidate parcellations."""
     if not op.isdir(dir_name):
+        if not raise_error:
+            return list()
         raise IOError('Directory for annotation does not exist: %s',
                       dir_name)
     cands = os.listdir(dir_name)
@@ -2040,6 +2060,11 @@ def read_labels_from_annot(subject, parc='aparc', hemi='both',
     -------
     labels : list of Label
         The labels, sorted by label name (ascending).
+
+    See Also
+    --------
+    write_labels_to_annot
+    morph_labels
     """
     logger.info('Reading labels from parcellation...')
 
@@ -2057,6 +2082,7 @@ def read_labels_from_annot(subject, parc='aparc', hemi='both',
     # now we are ready to create the labels
     n_read = 0
     labels = list()
+    orig_names = set()
     for fname, hemi in zip(annot_fname, hemis):
         # read annotation
         annot, ctab, label_names = _read_annot(fname)
@@ -2073,7 +2099,9 @@ def read_labels_from_annot(subject, parc='aparc', hemi='both',
             if len(vertices) == 0:
                 # label is not part of cortical surface
                 continue
-            name = label_name.decode() + '-' + hemi
+            label_name = label_name.decode()
+            orig_names.add(label_name)
+            name = f'{label_name}-{hemi}'
             if (regexp is not None) and not r_.match(name):
                 continue
             pos = vert_pos[vertices, :]
@@ -2091,7 +2119,9 @@ def read_labels_from_annot(subject, parc='aparc', hemi='both',
     if len(labels) == 0:
         msg = 'No labels found.'
         if regexp is not None:
-            msg += ' Maybe the regular expression %r did not match?' % regexp
+            orig_names = '\n'.join(sorted(orig_names))
+            msg += (f' Maybe the regular expression {repr(regexp)} did not '
+                    f'match any of:\n{orig_names}')
         raise RuntimeError(msg)
 
     return labels
@@ -2229,7 +2259,7 @@ def labels_to_stc(labels, values, tmin=0, tstep=1, subject=None, src=None,
     else:
         kind = src.kind
         subject = _check_subject(
-            src._subject, subject, kind='source space subject',
+            src._subject, subject, first_kind='source space subject',
             raise_error=False)
         _check_option('source space kind', kind, ('surface', 'volume'))
         if kind == 'volume':
@@ -2257,6 +2287,7 @@ def _check_values_labels(values, n_labels):
 
 
 def _labels_to_stc_surf(labels, values, tmin, tstep, subject):
+    from scipy import sparse
     subject = _check_labels_subject(labels, subject, 'subject')
     _check_values_labels(values, len(labels))
     vertices = dict(lh=[], rh=[])
@@ -2359,6 +2390,10 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
 
         .. versionadded:: 0.21.0
     %(verbose)s
+
+    See Also
+    --------
+    read_labels_from_annot
 
     Notes
     -----
@@ -2560,8 +2595,7 @@ def select_sources(subject, label, location='center', extent=0.,
 
     Parameters
     ----------
-    subject : string
-        Name of the subject as in SUBJECTS_DIR.
+    %(subject)s
     label : instance of Label | str
         Define where the seed will be chosen. If str, can be 'lh' or 'rh',
         which correspond to left or right hemisphere, respectively.
@@ -2580,7 +2614,7 @@ def select_sources(subject, label, location='center', extent=0.,
     name : None | str
         Assign name to the new label.
     %(random_state)s
-    surf : string
+    surf : str
         The surface used to simulated the label, defaults to the white surface.
 
     Returns
@@ -2639,3 +2673,54 @@ def select_sources(subject, label, location='center', extent=0.,
                           hemi=new_label.hemi, name=name, subject=subject)
 
     return new_label
+
+
+def find_pos_in_annot(pos, subject='fsaverage', annot='aparc+aseg',
+                      subjects_dir=None):
+    """
+    Find name in atlas for given MRI coordinates.
+
+    Parameters
+    ----------
+    pos : ndarray, shape (3,)
+        Vector of x,y,z coordinates in MRI space.
+    subject : str
+        MRI subject name.
+    annot : str
+        MRI volumetric atlas file name. Do not include the ``.mgz`` suffix.
+    subjects_dir : path-like
+        Path to MRI subjects directory.
+
+    Returns
+    -------
+    label : str
+        Anatomical region name from atlas.
+
+    Notes
+    -----
+    .. versionadded:: 0.24
+    """
+    pos = np.asarray(pos, float)
+    if pos.shape != (3,):
+        raise ValueError(
+            'pos must be an array of shape (3,), ' f'got {pos.shape}')
+
+    nibabel = _import_nibabel('read MRI parcellations')
+    if subjects_dir is None:
+        subjects_dir = get_subjects_dir(None)
+    atlas_fname = os.path.join(subjects_dir, subject, 'mri', annot + '.mgz')
+    parcellation_img = nibabel.load(atlas_fname)
+
+    # Load freesurface atlas LUT
+    lut_inv_dict = read_freesurfer_lut()[0]
+    label_lut = {v: k for k, v in lut_inv_dict.items()}
+
+    # Find voxel for dipole position
+    mri_vox_t = np.linalg.inv(parcellation_img.header.get_vox2ras_tkr())
+    vox_dip_pos_f = apply_trans(mri_vox_t, pos)
+    vox_dip_pos = np.rint(vox_dip_pos_f).astype(int)
+
+    # Get voxel value and label from LUT
+    vol_values = parcellation_img.get_fdata()[tuple(vox_dip_pos.T)]
+    label = label_lut.get(vol_values, 'Unknown')
+    return label

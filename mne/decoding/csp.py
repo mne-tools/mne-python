@@ -10,11 +10,11 @@
 import copy as cp
 
 import numpy as np
-from scipy import linalg
 
 from .base import BaseEstimator
 from .mixin import TransformerMixin
 from ..cov import _regularized_covariance
+from ..fixes import pinv
 from ..utils import fill_doc, _check_option, _validate_type
 
 
@@ -181,7 +181,7 @@ class CSP(TransformerMixin, BaseEstimator):
         eigen_vectors = eigen_vectors[:, ix]
 
         self.filters_ = eigen_vectors.T
-        self.patterns_ = linalg.pinv2(eigen_vectors)
+        self.patterns_ = pinv(eigen_vectors)
 
         pick_filters = self.filters_[:self.n_components]
         X = np.asarray([np.dot(pick_filters, epoch) for epoch in X])
@@ -532,6 +532,7 @@ class CSP(TransformerMixin, BaseEstimator):
         return cov, weight
 
     def _decompose_covs(self, covs, sample_weights):
+        from scipy import linalg
         n_classes = len(covs)
         if n_classes == 2:
             eigen_values, eigen_vectors = linalg.eigh(covs[0], covs.sum(0))
@@ -761,6 +762,7 @@ class SPoC(CSP):
         self : instance of SPoC
             Returns the modified instance.
         """
+        from scipy import linalg
         self._check_Xy(X, y)
 
         if len(np.unique(y)) < 2:

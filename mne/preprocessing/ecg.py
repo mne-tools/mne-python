@@ -49,7 +49,7 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
     Returns
     -------
     events : array
-        Indices of ECG peaks
+        Indices of ECG peaks.
     """
     win_size = int(round((60.0 * sfreq) / 120.0))
 
@@ -112,20 +112,27 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
         ce = time[b[a < n_thresh]]
 
         ce += n_samples_start
-        clean_events.append(ce)
+        if ce.size > 0:  # We actually found an event
+            clean_events.append(ce)
 
-    # pick the best threshold; first get effective heart rates
-    rates = np.array([60. * len(cev) / (len(ecg) / float(sfreq))
-                      for cev in clean_events])
+    if clean_events:
+        # pick the best threshold; first get effective heart rates
+        rates = np.array([60. * len(cev) / (len(ecg) / float(sfreq))
+                          for cev in clean_events])
 
-    # now find heart rates that seem reasonable (infant through adult athlete)
-    idx = np.where(np.logical_and(rates <= 160., rates >= 40.))[0]
-    if len(idx) > 0:
-        ideal_rate = np.median(rates[idx])  # get close to the median
+        # now find heart rates that seem reasonable (infant through adult
+        # athlete)
+        idx = np.where(np.logical_and(rates <= 160., rates >= 40.))[0]
+        if idx.size > 0:
+            ideal_rate = np.median(rates[idx])  # get close to the median
+        else:
+            ideal_rate = 80.  # get close to a reasonable default
+
+        idx = np.argmin(np.abs(rates - ideal_rate))
+        clean_events = clean_events[idx]
     else:
-        ideal_rate = 80.  # get close to a reasonable default
-    idx = np.argmin(np.abs(rates - ideal_rate))
-    clean_events = clean_events[idx]
+        clean_events = np.array([])
+
     return clean_events
 
 
@@ -219,7 +226,11 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
         remap[offset:offset + this_len] = np.arange(start, stop)
         offset += this_len
     assert offset == len(ecg)
-    ecg_events = remap[ecg_events]
+
+    if ecg_events.size > 0:
+        ecg_events = remap[ecg_events]
+    else:
+        ecg_events = np.array([])
 
     n_events = len(ecg_events)
     duration_sec = len(ecg) / raw.info['sfreq'] - tstart

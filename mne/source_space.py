@@ -13,10 +13,9 @@ import os
 import os.path as op
 
 import numpy as np
-from scipy import sparse, linalg
 
 from .io.constants import FIFF
-from .io.meas_info import create_info, Info
+from .io.meas_info import create_info, Info, read_fiducials
 from .io.tree import dir_tree_find
 from .io.tag import find_tag, read_tag
 from .io.open import fiff_open
@@ -34,7 +33,7 @@ from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
                       _CheckInside)
 from .utils import (get_subjects_dir, check_fname, logger, verbose, fill_doc,
                     _ensure_int, check_version, _get_call_line, warn,
-                    _check_fname, _check_path_like, has_nibabel, _check_sphere,
+                    _check_fname, _check_path_like, _check_sphere,
                     _validate_type, _check_option, _is_numeric, _pl, _suggest,
                     object_size, sizeof_fmt)
 from .parallel import parallel_func, check_n_jobs
@@ -322,16 +321,16 @@ class SourceSpaces(list):
             ss.append(deepcopy(s, memodict))
         return SourceSpaces(ss, info)
 
-    def save(self, fname, overwrite=False):
+    @verbose
+    def save(self, fname, overwrite=False, *, verbose=None):
         """Save the source spaces to a fif file.
 
         Parameters
         ----------
         fname : str
             File to write.
-        overwrite : bool
-            If True, the destination file (if it exists) will be overwritten.
-            If False (default), an error will be raised if the file exists.
+        %(overwrite)s
+        %(verbose_meth)s
         """
         write_source_spaces(fname, self, overwrite)
 
@@ -374,8 +373,7 @@ class SourceSpaces(list):
         use_lut : bool
             If True, assigns a numeric value to each source space that
             corresponds to a color on the freesurfer lookup table.
-        overwrite : bool
-            If True, overwrite the file if it exists.
+        %(overwrite)s
 
             .. versionadded:: 0.19
         %(verbose_meth)s
@@ -1064,9 +1062,7 @@ def write_source_spaces(fname, src, overwrite=False, verbose=None):
         -src.fif.gz.
     src : SourceSpaces
         The source spaces (as returned by read_source_spaces).
-    overwrite : bool
-        If True, the destination file (if it exists) will be overwritten.
-        If False (default), an error will be raised if the file exists.
+    %(overwrite)s
     %(verbose)s
 
     See Also
@@ -1102,6 +1098,7 @@ def write_source_spaces(fname, src, overwrite=False, verbose=None):
 
 def _write_one_source_space(fid, this, verbose=None):
     """Write one source space."""
+    from scipy import sparse
     if this['type'] == 'surf':
         src_type = FIFF.FIFFV_MNE_SPACE_SURFACE
     elif this['type'] == 'vol':
@@ -1360,17 +1357,17 @@ def read_talxfm(subject, subjects_dir=None, verbose=None):
     return mri_mni_t
 
 
-def _read_mri_info(path, units='m', return_img=False):
-    if has_nibabel():
+def _read_mri_info(path, units='m', return_img=False, use_nibabel=False):
+    # This is equivalent but 100x slower, so only use nibabel if we need to
+    # (later):
+    if use_nibabel:
         import nibabel
-        mgz = nibabel.load(path)
-        hdr = mgz.header
+        hdr = nibabel.load(path).header
         n_orig = hdr.get_vox2ras()
         t_orig = hdr.get_vox2ras_tkr()
         dims = hdr.get_data_shape()
         zooms = hdr.get_zooms()[:3]
     else:
-        mgz = None
         hdr = _get_mgz_header(path)
         n_orig = hdr['vox2ras']
         t_orig = hdr['vox2ras_tkr']
@@ -1398,7 +1395,8 @@ def _read_mri_info(path, units='m', return_img=False):
 
     out = (vox_ras_t, vox_mri_t, mri_ras_t, dims, zooms)
     if return_img:
-        out += (mgz,)
+        nibabel = _import_nibabel()
+        out += (nibabel.load(path),)
     return out
 
 
@@ -2253,6 +2251,8 @@ def _vol_vertex(width, height, jj, kk, pp):
 
 def _get_mgz_header(fname):
     """Adapted from nibabel to quickly extract header info."""
+    fname = _check_fname(fname, overwrite='read', must_exist=True,
+                         name='MRI image')
     if not fname.endswith('.mgz'):
         raise IOError('Filename must end with .mgz')
     header_dtd = [('version', '>i4'), ('dims', '>i4', (4,)),
@@ -2296,6 +2296,7 @@ def _src_vol_dims(s):
 def _add_interpolator(sp):
     """Compute a sparse matrix to interpolate the data into an MRI volume."""
     # extract transformation information from mri
+    from scipy import sparse
     mri_width, mri_height, mri_depth, nvox = _src_vol_dims(sp[0])
 
     #
@@ -2348,6 +2349,7 @@ def _add_interpolator(sp):
 
 def _grid_interp(from_shape, to_shape, trans, order=1, inuse=None):
     """Compute a grid-to-grid linear or nearest interpolation given."""
+    from scipy import sparse
     from_shape = np.array(from_shape, int)
     to_shape = np.array(to_shape, int)
     trans = np.array(trans, np.float64)  # to -> from
@@ -2649,6 +2651,7 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
     the source space to disk, as the computed distances will automatically be
     stored along with the source space data for future use.
     """
+    from scipy.sparse import csr_matrix
     from scipy.sparse.csgraph import dijkstra
     n_jobs = check_n_jobs(n_jobs)
     src = _ensure_src(src)
@@ -2706,7 +2709,7 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
             i, j = np.meshgrid(s['vertno'], s['vertno'])
             i = i.ravel()[idx]
             j = j.ravel()[idx]
-            s['dist'] = sparse.csr_matrix(
+            s['dist'] = csr_matrix(
                 (d, (i, j)), shape=(s['np'], s['np']), dtype=np.float32)
             s['dist_limit'] = np.array([dist_limit], np.float32)
 
@@ -3194,7 +3197,7 @@ def _get_src_nn(s, use_cps=True, vertices=None):
             #  Project out the surface normal and compute SVD
             nn[vp] = np.sum(
                 s['nn'][s['pinfo'][s['patch_inds'][p]], :], axis=0)
-        nn /= linalg.norm(nn, axis=-1, keepdims=True)
+        nn /= np.linalg.norm(nn, axis=-1, keepdims=True)
     else:
         nn = s['nn'][vertices, :]
     return nn
@@ -3260,3 +3263,51 @@ def compute_distance_to_sensors(src, info, picks=None, trans=None,
     depths = cdist(src_pos, sensor_pos)
 
     return depths
+
+
+@verbose
+def get_mni_fiducials(subject, subjects_dir=None, verbose=None):
+    """Estimate fiducials for a subject.
+
+    Parameters
+    ----------
+    %(subject)s
+    %(subjects_dir)s
+    %(verbose)s
+
+    Returns
+    -------
+    fids_mri : list
+        List of estimated fiducials (each point in a dict), in the order
+        LPA, nasion, RPA.
+
+    Notes
+    -----
+    This takes the ``fsaverage-fiducials.fif`` file included with MNE—which
+    contain the LPA, nasion, and RPA for the ``fsaverage`` subject—and
+    transforms them to the given FreeSurfer subject's MRI space.
+    The MRI of ``fsaverage`` is already in MNI Talairach space, so applying
+    the inverse of the given subject's MNI Talairach affine transformation
+    (``$SUBJECTS_DIR/$SUBJECT/mri/transforms/talairach.xfm``) is used
+    to estimate the subject's fiducial locations.
+
+    For more details about the coordinate systems and transformations involved,
+    see https://surfer.nmr.mgh.harvard.edu/fswiki/CoordinateSystems and
+    :ref:`plot_source_alignment`.
+    """
+    # Eventually we might want to allow using the MNI Talairach with-skull
+    # transformation rather than the standard brain-based MNI Talaranch
+    # transformation, and/or project the points onto the head surface
+    # (if available).
+    fname_fids_fs = os.path.join(os.path.dirname(__file__), 'data',
+                                 'fsaverage', 'fsaverage-fiducials.fif')
+
+    # Read fsaverage fiducials file and subject Talairach.
+    fids, coord_frame = read_fiducials(fname_fids_fs)
+    assert coord_frame == FIFF.FIFFV_COORD_MRI
+    if subject == 'fsaverage':
+        return fids  # special short-circuit for fsaverage
+    mni_mri_t = invert_transform(read_talxfm(subject, subjects_dir))
+    for f in fids:
+        f['r'] = apply_trans(mni_mri_t, f['r'])
+    return fids

@@ -22,7 +22,7 @@ from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
                           mne_prepare_bem_model, mne_sys_info)
 from mne.datasets import testing
 from mne.io import read_raw_fif, read_info
-from mne.utils import (run_tests_if_main, requires_mne,
+from mne.utils import (requires_mne,
                        requires_mayavi, requires_vtk, requires_freesurfer,
                        requires_nibabel, traits_test, ArgvSetter, modified_env,
                        _stamp_to_dt)
@@ -331,6 +331,7 @@ def test_setup_source_space(tmpdir):
             assert mne_setup_source_space.run()
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_setup_forward_model(tmpdir):
     """Test mne setup_forward_model."""
@@ -392,6 +393,3 @@ def test_anonymize(tmpdir):
     info = read_info(out_fname)
     assert(op.exists(out_fname))
     assert info['meas_date'] == _stamp_to_dt((946684800, 0))
-
-
-run_tests_if_main()

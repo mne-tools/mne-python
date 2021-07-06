@@ -23,8 +23,7 @@ from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
                  read_trans)
 from mne.fixes import _get_img_fdata
 from mne.utils import (requires_nibabel, run_subprocess,
-                       modified_env, requires_mne, run_tests_if_main,
-                       check_version)
+                       modified_env, requires_mne, check_version)
 from mne.surface import _accumulate_normals, _triangle_neighbors
 from mne.source_space import _get_mgz_header
 from mne.source_estimate import _get_src_type
@@ -294,6 +293,7 @@ def test_discrete_source_space(tmpdir):
     assert _get_src_type(src_new, None) == 'discrete'
 
 
+@requires_nibabel()
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_volume_source_space(tmpdir):
@@ -594,6 +594,7 @@ def test_head_to_mni():
     assert_allclose(coords_MNI, coords_MNI_2, atol=10.0)
 
 
+@requires_nibabel()
 @testing.requires_testing_data
 def test_vertex_to_mni_fs_nibabel(monkeypatch):
     """Test equivalence of vert_to_mni for nibabel and freesurfer."""
@@ -602,7 +603,10 @@ def test_vertex_to_mni_fs_nibabel(monkeypatch):
     vertices = rng.randint(0, 100000, n_check)
     hemis = rng.randint(0, 1, n_check)
     coords = vertex_to_mni(vertices, hemis, subject, subjects_dir)
-    monkeypatch.setattr(mne.source_space, 'has_nibabel', lambda: False)
+    read_mri = mne.source_space._read_mri_info
+    monkeypatch.setattr(
+        mne.source_space, '_read_mri_info',
+        lambda *args, **kwargs: read_mri(*args, use_nibabel=True, **kwargs))
     coords_2 = vertex_to_mni(vertices, hemis, subject, subjects_dir)
     # less than 0.1 mm error
     assert_allclose(coords, coords_2, atol=0.1)
@@ -998,8 +1002,6 @@ def test_morphed_source_space_return():
     pytest.raises(RuntimeError, stc_morph.to_original_src,
                   src, subjects_dir=subjects_dir)
 
-
-run_tests_if_main()
 
 # The following code was used to generate small-src.fif.gz.
 # Unfortunately the C code bombs when trying to add source space distances,

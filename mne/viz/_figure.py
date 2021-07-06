@@ -35,7 +35,7 @@ matplotlib.figure.Figure
 # Authors: Daniel McCloy <dan@mccloy.info>
 #
 # License: Simplified BSD
-
+import datetime
 from contextlib import contextmanager
 import platform
 from copy import deepcopy
@@ -45,7 +45,8 @@ from collections import OrderedDict
 import numpy as np
 from matplotlib.figure import Figure
 from .epochs import plot_epochs_image
-from .ica import _create_properties_layout
+from .ica import (_create_properties_layout, _fast_plot_ica_properties,
+                  _prepare_data_ica_properties)
 from .utils import (plt_show, plot_sensors, _setup_plot_projector, _events_off,
                     _set_window_title, _merge_annotations, DraggableLine,
                     _get_color_list, logger, _validate_if_list_of_axes,
@@ -351,6 +352,8 @@ class MNEBrowseFigure(MNEFigure):
         # additional params for epochs (won't affect raw / ICA)
         self.mne.epoch_traces = list()
         self.mne.bad_epochs = list()
+        self.mne.sampling_period = (np.diff(inst.times[:2])[0]
+                                    / inst.info['sfreq'])
         # annotations
         self.mne.annotations = list()
         self.mne.hscroll_annotations = list()
@@ -418,7 +421,7 @@ class MNEBrowseFigure(MNEFigure):
             epoch_nums = self.mne.inst.selection
             for ix, _ in enumerate(epoch_nums):
                 start = self.mne.boundary_times[ix]
-                width = np.diff(self.mne.boundary_times[ix:ix + 2])[0]
+                width = np.diff(self.mne.boundary_times[:2])[0]
                 ax_hscroll.add_patch(
                     Rectangle((start, 0), width, 1, color='none',
                               zorder=self.mne.zorder['patch']))
@@ -446,6 +449,17 @@ class MNEBrowseFigure(MNEFigure):
             # hide some ticks
             ax_main.tick_params(axis='x', which='major', bottom=False)
             ax_hscroll.tick_params(axis='x', which='both', bottom=False)
+        else:
+            # RAW / ICA X-AXIS TICK & LABEL FORMATTING
+            ax_main.xaxis.set_major_formatter(
+                FuncFormatter(partial(self._xtick_formatter,
+                                      ax_type='main')))
+            ax_hscroll.xaxis.set_major_formatter(
+                FuncFormatter(partial(self._xtick_formatter,
+                                      ax_type='hscroll')))
+            if self.mne.time_format != 'float':
+                for _ax in (ax_main, ax_hscroll):
+                    _ax.set_xlabel('Time (HH:MM:SS)')
 
         # VERTICAL SCROLLBAR PATCHES (COLORED BY CHANNEL TYPE)
         ch_order = self.mne.ch_order
@@ -477,8 +491,7 @@ class MNEBrowseFigure(MNEFigure):
                             self.mne.n_times / self.mne.info['sfreq'])
         # VLINE
         vline_color = (0., 0.75, 0.)
-        vline_kwargs = dict(visible=False, animated=True,
-                            zorder=self.mne.zorder['vline'])
+        vline_kwargs = dict(visible=False, zorder=self.mne.zorder['vline'])
         if self.mne.is_epochs:
             x = np.arange(self.mne.n_epochs)
             vline = ax_main.vlines(
@@ -490,8 +503,9 @@ class MNEBrowseFigure(MNEFigure):
             vline = ax_main.axvline(0, color=vline_color, **vline_kwargs)
             vline_hscroll = ax_hscroll.axvline(0, color=vline_color,
                                                **vline_kwargs)
-        vline_text = ax_hscroll.text(
-            self.mne.first_time, 1.2, '', fontsize=10, ha='right', va='bottom',
+        vline_text = ax_main.annotate(
+            '', xy=(0, 0), xycoords='axes fraction', xytext=(-2, 0),
+            textcoords='offset points', fontsize=10, ha='right', va='center',
             color=vline_color, **vline_kwargs)
 
         # HELP BUTTON: initialize in the wrong spot...
@@ -568,10 +582,7 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.zen_w *= old_width / new_width
         self.mne.zen_h *= old_height / new_height
         self.mne.fig_size_px = (new_width, new_height)
-        # for blitting
         self.canvas.draw_idle()
-        self.canvas.flush_events()
-        self.mne.bg = self.canvas.copy_from_bbox(self.bbox)
 
     def _hover(self, event):
         """Handle motion event when annotating."""
@@ -629,7 +640,8 @@ class MNEBrowseFigure(MNEFigure):
         else:
             last_time = self.mne.inst.times[-1]
         # scroll up/down
-        if key in ('down', 'up'):
+        if key in ('down', 'up', 'shift+down', 'shift+up'):
+            key = key.split('+')[-1]
             direction = -1 if key == 'up' else 1
             # butterfly case
             if self.mne.butterfly:
@@ -697,23 +709,26 @@ class MNEBrowseFigure(MNEFigure):
                 self._redraw(annotations=True)
         # change duration
         elif key in ('home', 'end'):
+            old_dur = self.mne.duration
             dur_delta = 1 if key == 'end' else -1
             if self.mne.is_epochs:
+                # prevent from showing zero epochs, or more epochs than we have
                 self.mne.n_epochs = np.clip(self.mne.n_epochs + dur_delta,
                                             1, len(self.mne.inst))
+                # use the length of one epoch as duration change
                 min_dur = len(self.mne.inst.times) / self.mne.info['sfreq']
-                dur_delta *= min_dur
+                new_dur = self.mne.duration + dur_delta * min_dur
             else:
+                # never show fewer than 3 samples
                 min_dur = 3 * np.diff(self.mne.inst.times[:2])[0]
-            old_dur = self.mne.duration
-            new_dur = self.mne.duration + dur_delta
+                # use multiplicative dur_delta
+                dur_delta = 5 / 4 if dur_delta > 0 else 4 / 5
+                new_dur = self.mne.duration * dur_delta
             self.mne.duration = np.clip(new_dur, min_dur, last_time)
             if self.mne.duration != old_dur:
                 if self.mne.t_start + self.mne.duration > last_time:
                     self.mne.t_start = last_time - self.mne.duration
                 self._update_hscroll()
-                if key == 'end' and self.mne.vline_visible:  # prevent flicker
-                    self._show_vline(None)
                 self._redraw(annotations=True)
         elif key == '?':  # help window
             self._toggle_help_fig(event)
@@ -728,6 +743,8 @@ class MNEBrowseFigure(MNEFigure):
             self._toggle_epoch_histogram()
         elif key == 'j' and len(self.mne.projs):  # SSP window
             self._toggle_proj_fig()
+        elif key == 'J' and len(self.mne.projs):
+            self._toggle_proj_checkbox(event, toggle_all=True)
         elif key == 'p':  # toggle draggable annotations
             self._toggle_draggable_annotations(event)
             if self.mne.fig_annotation is not None:
@@ -745,6 +762,8 @@ class MNEBrowseFigure(MNEFigure):
         elif key == 'z':  # zen mode: hide scrollbars and buttons
             self._toggle_scrollbars()
             self._redraw(update_data=False)
+        elif key == 't':
+            self._toggle_time_format()
         else:  # check for close key / fullscreen toggle
             super()._keypress(event)
 
@@ -770,6 +789,7 @@ class MNEBrowseFigure(MNEFigure):
                                 self._toggle_bad_channel(idx)
                             return
                 self._show_vline(event.xdata)  # butterfly / not on data trace
+                self._redraw(update_data=False, annotations=False)
                 return
             # click in vertical scrollbar
             elif event.inaxes == self.mne.ax_vscroll:
@@ -780,7 +800,7 @@ class MNEBrowseFigure(MNEFigure):
             # click in horizontal scrollbar
             elif event.inaxes == self.mne.ax_hscroll:
                 if self._check_update_hscroll_clicked(event):
-                    self._redraw()
+                    self._redraw(annotations=True)
             # click on proj button
             elif event.inaxes == self.mne.ax_proj:
                 self._toggle_proj_fig(event)
@@ -794,12 +814,16 @@ class MNEBrowseFigure(MNEFigure):
                     start = _sync_onset(inst, inst.annotations.onset)
                     end = start + inst.annotations.duration
                     ann_idx = np.where((xdata > start) & (xdata < end))[0]
-                    inst.annotations.delete(ann_idx)  # only first one deleted
+                    for idx in sorted(ann_idx)[::-1]:
+                        # only remove visible annotation spans
+                        descr = inst.annotations[idx]['description']
+                        if self.mne.visible_annotations[descr]:
+                            inst.annotations.delete(idx)
                 self._remove_annotation_hover_line()
                 self._draw_annotations()
                 self.canvas.draw_idle()
-            elif event.inaxes == ax_main:  # hide green line
-                self._blit_vline(False)
+            elif event.inaxes == ax_main:
+                self._toggle_vline(False)
 
     def _pick(self, event):
         """Handle matplotlib pick events."""
@@ -858,13 +882,22 @@ class MNEBrowseFigure(MNEFigure):
         fig.lasso.style_sensors(inds)
         plt_show(fig=fig)
 
-    def _create_ica_properties_fig(self, pick):
+    def _create_ica_properties_fig(self, idx):
         """Show ICA properties for the selected component."""
-        ch_name = self.mne.ch_names[pick]
+        ch_name = self.mne.ch_names[idx]
+        if ch_name not in self.mne.ica._ica_names:  # for EOG chans: do nothing
+            return
+        pick = self.mne.ica._ica_names.index(ch_name)
         fig = self._new_child_figure(figsize=(7, 6), fig_name=None,
                                      window_title=f'{ch_name} properties')
         fig, axes = _create_properties_layout(fig=fig)
-        self.mne.ica.plot_properties(self.mne.ica_inst, picks=pick, axes=axes)
+        if not hasattr(self.mne, 'data_ica_properties'):
+            # Precompute epoch sources only once
+            self.mne.data_ica_properties = _prepare_data_ica_properties(
+                self.mne.ica_inst, self.mne.ica)
+        _fast_plot_ica_properties(
+            self.mne.ica, self.mne.ica_inst, picks=pick, axes=axes,
+            precomputed_data=self.mne.data_ica_properties)
 
     def _create_epoch_image_fig(self, pick):
         """Show epochs image for the selected channel."""
@@ -1023,9 +1056,11 @@ class MNEBrowseFigure(MNEFigure):
             ('a', 'Toggle annotation mode' if is_raw else None),
             ('h', 'Toggle peak-to-peak histogram' if is_epo else None),
             ('j', 'Toggle SSP projector window' if has_proj else None),
+            ('shift+j', 'Toggle all SSPs'),
             ('p', 'Toggle draggable annotations' if is_raw else None),
             ('s', 'Toggle scalebars' if not is_ica else None),
             ('z', 'Toggle scrollbars'),
+            ('t', 'Toggle time format' if not is_epo else None),
             ('F11', 'Toggle fullscreen' if not is_mac else None),
             ('?', 'Open this help window'),
             ('esc', 'Close focused figure or dialog window'),
@@ -1163,8 +1198,8 @@ class MNEBrowseFigure(MNEFigure):
 
     def _get_annotation_labels(self):
         """Get the unique labels in the raw object and added in the UI."""
-        labels = list(set(self.mne.inst.annotations.description))
-        return np.union1d(labels, self.mne.new_annotation_labels)
+        return sorted(set(self.mne.inst.annotations.description) |
+                      set(self.mne.new_annotation_labels))
 
     def _update_annotation_fig(self):
         """Draw or redraw the radio buttons and annotation labels."""
@@ -1194,8 +1229,7 @@ class MNEBrowseFigure(MNEFigure):
             circle.set_transform(ax.transData)
             center = ax.transData.inverted().transform(
                 ax.transAxes.transform((0.1, 0)))
-            # XXX older MPL doesn't have circle.set_center
-            circle.center = (center[0], circle.center[1])
+            circle.set_center((center[0], circle.center[1]))
             circle.set_edgecolor(
                 self.mne.annotation_segment_colors[label.get_text()])
             circle.set_linewidth(4)
@@ -1294,18 +1328,14 @@ class MNEBrowseFigure(MNEFigure):
 
     def _setup_annotation_colors(self):
         """Set up colors for annotations; init some annotation vars."""
-        raw = self.mne.inst
         segment_colors = getattr(self.mne, 'annotation_segment_colors', dict())
-        # sort the segments by start time
-        ann_order = raw.annotations.onset.argsort(axis=0)
-        descriptions = raw.annotations.description[ann_order]
-        color_keys = np.union1d(descriptions, self.mne.new_annotation_labels)
+        labels = self._get_annotation_labels()
         colors, red = _get_color_list(annotations=True)
         color_cycle = cycle(colors)
         for key, color in segment_colors.items():
-            if color != red and key in color_keys:
+            if color != red and key in labels:
                 next(color_cycle)
-        for idx, key in enumerate(color_keys):
+        for idx, key in enumerate(labels):
             if key in segment_colors:
                 continue
             elif key.lower().startswith('bad') or \
@@ -1315,7 +1345,6 @@ class MNEBrowseFigure(MNEFigure):
                 segment_colors[key] = next(color_cycle)
         self.mne.annotation_segment_colors = segment_colors
         # init a couple other annotation-related variables
-        labels = self._get_annotation_labels()
         self.mne.visible_annotations = {label: True for label in labels}
         self.mne.show_hide_annotation_checkboxes = None
 
@@ -1370,14 +1399,14 @@ class MNEBrowseFigure(MNEFigure):
 
     def _clear_annotations(self):
         """Clear all annotations from the figure."""
-        for annot in self.mne.annotations[::-1]:
-            self.mne.ax_main.collections.remove(annot)
+        for annot in list(self.mne.annotations):
+            annot.remove()
             self.mne.annotations.remove(annot)
-        for annot in self.mne.hscroll_annotations[::-1]:
-            self.mne.ax_hscroll.collections.remove(annot)
+        for annot in list(self.mne.hscroll_annotations):
+            annot.remove()
             self.mne.hscroll_annotations.remove(annot)
-        for text in self.mne.annotation_texts[::-1]:
-            self.mne.ax_main.texts.remove(text)
+        for text in list(self.mne.annotation_texts):
+            text.remove()
             self.mne.annotation_texts.remove(text)
 
     def _draw_annotations(self):
@@ -1572,6 +1601,10 @@ class MNEBrowseFigure(MNEFigure):
         fig = self._new_child_figure(figsize=(width, height),
                                      fig_name='fig_proj',
                                      window_title='SSP projection vectors')
+        # pass through some proj fig keypresses to the parent
+        fig.canvas.mpl_connect(
+            'key_press_event',
+            lambda ev: self._keypress(ev) if ev.key in 'jJ' else None)
         # make axes
         offset = (1 / 6 / height)
         position = (0, offset, 1, 0.8 - offset)
@@ -1621,16 +1654,17 @@ class MNEBrowseFigure(MNEFigure):
         new_state = (np.full_like(on, not all(on)) if toggle_all else
                      np.array(fig.mne.proj_checkboxes.get_status()))
         # update Xs when toggling all
-        if toggle_all:
+        if fig is not None:
+            if toggle_all:
+                with _events_off(fig.mne.proj_checkboxes):
+                    for ix in np.where(on != new_state)[0]:
+                        fig.mne.proj_checkboxes.set_active(ix)
+            # don't allow disabling already-applied projs
             with _events_off(fig.mne.proj_checkboxes):
-                for ix in np.where(on != new_state)[0]:
-                    fig.mne.proj_checkboxes.set_active(ix)
-        # don't allow disabling already-applied projs
-        with _events_off(fig.mne.proj_checkboxes):
-            for ix in np.where(applied)[0]:
-                if not new_state[ix]:
-                    fig.mne.proj_checkboxes.set_active(ix)
-            new_state[applied] = True
+                for ix in np.where(applied)[0]:
+                    if not new_state[ix]:
+                        fig.mne.proj_checkboxes.set_active(ix)
+        new_state[applied] = True
         # update the data if necessary
         if not np.array_equal(on, new_state):
             self.mne.projs_on = new_state
@@ -1763,7 +1797,7 @@ class MNEBrowseFigure(MNEFigure):
         return False
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    # SCALEBARS & Y-AXIS LABELS
+    # SCALEBARS & AXIS LABELS
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     def _show_scalebars(self):
@@ -1786,9 +1820,9 @@ class MNEBrowseFigure(MNEFigure):
     def _hide_scalebars(self):
         """Remove channel scale bars."""
         for bar in self.mne.scalebars.values():
-            self.mne.ax_main.lines.remove(bar)
+            bar.remove()
         for text in self.mne.scalebar_texts.values():
-            self.mne.ax_main.texts.remove(text)
+            text.remove()
         self.mne.scalebars = dict()
         self.mne.scalebar_texts = dict()
 
@@ -1842,6 +1876,48 @@ class MNEBrowseFigure(MNEFigure):
                    else 'normal')
             text.set_style(sty)
 
+    def _xtick_formatter(self, x, pos=None, ax_type='main'):
+        """Change the x-axis labels."""
+        tickdiff = np.diff(self.mne.ax_main.get_xticks())[0]
+        digits = np.ceil(-np.log10(tickdiff) + 1).astype(int)
+        # always show millisecond precision for vline text
+        if ax_type == 'vline':
+            digits = 3
+        if self.mne.time_format == 'float':
+            # round to integers when possible ('9.0' → '9')
+            if int(x) == x:
+                digits = None
+            if ax_type == 'vline':
+                return f'{round(x, digits)} s'
+            return str(round(x, digits))
+        # format as timestamp
+        meas_date = self.mne.inst.info['meas_date']
+        first_time = datetime.timedelta(seconds=self.mne.inst.first_time)
+        xtime = datetime.timedelta(seconds=x)
+        xdatetime = meas_date + first_time + xtime
+        xdtstr = xdatetime.strftime('%H:%M:%S')
+        if digits and ax_type != 'hscroll' and int(xdatetime.microsecond):
+            xdtstr += f'{round(xdatetime.microsecond * 1e-6, digits)}'[1:]
+        return xdtstr
+
+    def _toggle_time_format(self):
+        if self.mne.time_format == 'float':
+            self.mne.time_format = 'clock'
+            x_axis_label = 'Time (HH:MM:SS)'
+        else:
+            self.mne.time_format = 'float'
+            x_axis_label = 'Time (s)'
+
+        # Change x-axis label
+        for _ax in (self.mne.ax_main, self.mne.ax_hscroll):
+            _ax.set_xlabel(x_axis_label)
+
+        self._redraw(update_data=False, annotations=False)
+
+        # Update vline-text if displayed
+        if self.mne.vline is not None and self.mne.vline.get_visible():
+            self._show_vline(self.mne.vline.get_xdata())
+
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # DATA TRACES
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -1854,8 +1930,6 @@ class MNEBrowseFigure(MNEFigure):
         self._update_picks()
         self._update_trace_offsets()
         self._redraw(annotations=True)
-        if self.mne.vline_visible:
-            self._blit_vline(True)
         if self.mne.fig_selection is not None:
             self.mne.fig_selection._style_radio_buttons_butterfly()
 
@@ -1879,9 +1953,15 @@ class MNEBrowseFigure(MNEFigure):
     def _load_data(self, start=None, stop=None):
         """Retrieve the bit of data we need for plotting."""
         if 'raw' in (self.mne.instance_type, self.mne.ica_type):
-            return self.mne.inst[:, start:stop]
+            # Add additional sample to cover the case sfreq!=1000
+            # when the shown time-range wouldn't correspond to duration anymore
+            return self.mne.inst[:, start:stop + 2]
         else:
-            ix = np.searchsorted(self.mne.boundary_times, self.mne.t_start)
+            # subtract one sample from tstart before searchsorted, to make sure
+            # we land on the left side of the boundary time (avoid precision
+            # errors)
+            ix = np.searchsorted(self.mne.boundary_times,
+                                 self.mne.t_start - self.mne.sampling_period)
             item = slice(ix, ix + self.mne.n_epochs)
             data = np.concatenate(self.mne.inst.get_data(item=item), axis=-1)
             times = np.arange(len(self.mne.inst) * len(self.mne.inst.times)
@@ -1917,7 +1997,9 @@ class MNEBrowseFigure(MNEFigure):
             starts = np.maximum(starts[mask], start) - start
             stops = np.minimum(stops[mask], stop) - start
             for _start, _stop in zip(starts, stops):
-                _picks = np.where(np.in1d(picks, self.mne.picks_data))
+                _picks = np.where(np.in1d(picks, self.mne.picks_data))[0]
+                if len(_picks) == 0:
+                    break
                 this_data = data[_picks, _start:_stop]
                 if isinstance(self.mne.filter_coefs, np.ndarray):  # FIR
                     this_data = _overlap_add_filter(
@@ -2018,7 +2100,7 @@ class MNEBrowseFigure(MNEFigure):
         # remove extra traces if needed
         extra_traces = self.mne.traces[n_picks:]
         for trace in extra_traces:
-            self.mne.ax_main.lines.remove(trace)
+            trace.remove()
         self.mne.traces = self.mne.traces[:n_picks]
 
         # check for bad epochs
@@ -2027,11 +2109,10 @@ class MNEBrowseFigure(MNEFigure):
             epoch_ix = np.searchsorted(self.mne.boundary_times, time_range)
             epoch_ix = np.arange(epoch_ix[0], epoch_ix[1])
             epoch_nums = self.mne.inst.selection[epoch_ix[0]:epoch_ix[-1] + 1]
-            visible_bad_epochs = epoch_nums[
-                np.in1d(epoch_nums, self.mne.bad_epochs).nonzero()]
+            visible_bad_epoch_ix, = np.in1d(
+                epoch_nums, self.mne.bad_epochs).nonzero()
             while len(self.mne.epoch_traces):
-                _trace = self.mne.epoch_traces.pop(-1)
-                self.mne.ax_main.lines.remove(_trace)
+                self.mne.epoch_traces.pop(-1).remove()
             # handle custom epoch colors (for autoreject integration)
             if self.mne.epoch_colors is None:
                 # shape: n_traces × RGBA → n_traces × n_epochs × RGBA
@@ -2045,8 +2126,7 @@ class MNEBrowseFigure(MNEFigure):
                     custom_colors[:, ii] = to_rgba_array([this_colors[_ch]
                                                           for _ch in picks])
             # override custom color on bad epochs
-            for _bad in visible_bad_epochs:
-                _ix = epoch_nums.tolist().index(_bad)
+            for _ix in visible_bad_epoch_ix:
                 _cols = np.array([self.mne.epoch_color_bad,
                                   self.mne.ch_color_bad])[bad_bool.astype(int)]
                 custom_colors[:, _ix] = to_rgba_array(_cols)
@@ -2121,14 +2201,13 @@ class MNEBrowseFigure(MNEFigure):
         """Redraw (convenience method for frequently grouped actions)."""
         if update_data:
             self._update_data()
+        if self.mne.vline_visible and self.mne.is_epochs:
+            # prevent flickering
+            _ = self._recompute_epochs_vlines(None)
         self._draw_traces()
         if annotations and not self.mne.is_epochs:
             self._draw_annotations()
         self.canvas.draw_idle()
-        self.canvas.flush_events()
-        self.mne.bg = self.canvas.copy_from_bbox(self.bbox)
-        if self.mne.vline_visible:
-            self._blit_vline(True)
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # EVENT LINES AND MARKER LINES
@@ -2157,8 +2236,7 @@ class MNEBrowseFigure(MNEFigure):
             self.mne.event_lines = event_lines
             # create event labels
             while len(self.mne.event_texts):
-                text = self.mne.event_texts.pop()
-                self.mne.ax_main.texts.remove(text)
+                self.mne.event_texts.pop().remove()
             for _t, _n, _c in zip(this_event_times, this_event_nums, colors):
                 label = self.mne.event_id_rev.get(_n, _n)
                 this_text = self.mne.ax_main.annotate(
@@ -2167,42 +2245,47 @@ class MNEBrowseFigure(MNEFigure):
                     textcoords='offset points', fontsize=8)
                 self.mne.event_texts.append(this_text)
 
+    def _recompute_epochs_vlines(self, xdata):
+        """Recompute vline x-coords for epochs plots (after scrolling, etc)."""
+        # special case: changed view duration w/ "home" or "end" key
+        # (no click event, hence no xdata)
+        if xdata is None:
+            xdata = np.array(self.mne.vline.get_segments())[0, 0, 0]
+        # compute the (continuous) times for the lines on each epoch
+        epoch_dur = np.diff(self.mne.boundary_times[:2])[0]
+        rel_time = xdata % epoch_dur
+        abs_time = self.mne.times[0]
+        xs = np.arange(self.mne.n_epochs) * epoch_dur + abs_time + rel_time
+        segs = np.array(self.mne.vline.get_segments())
+        # recreate segs from scratch in case view duration changed
+        # (i.e., handle case when n_segments != n_epochs)
+        segs = np.tile([[0.], [1.]], (len(xs), 1, 2))  # y values
+        segs[..., 0] = np.tile(xs[:, None], 2)         # x values
+        self.mne.vline.set_segments(segs)
+        return rel_time
+
     def _show_vline(self, xdata):
-        """Show the vertical line."""
+        """Show the vertical line(s)."""
         if self.mne.is_epochs:
-            # special case: changed view duration w/ "home" or "end" key
-            # (no click event, hence no xdata)
-            if xdata is None:
-                xdata = np.array(self.mne.vline.get_segments())[0, 0, 0]
-            # compute the (continuous) times for the lines on each epoch
-            epoch_dur = np.diff(self.mne.boundary_times[:2])[0]
-            rel_time = xdata % epoch_dur
-            abs_time = self.mne.times[0]
-            xs = np.arange(self.mne.n_epochs) * epoch_dur + abs_time + rel_time
-            segs = np.array(self.mne.vline.get_segments())
-            # handle changed view duration (n_segments != n_epochs)
-            if segs.shape[0] != len(xs):
-                segs = np.tile([[0.], [1.]], (len(xs), 1, 2))  # y values
-            segs[..., 0] = np.tile(xs[:, None], 2)
-            self.mne.vline.set_segments(segs)
-            xdata = rel_time + self.mne.inst.times[0]  # for the text
+            # convert xdata to be epoch-relative (for the text)
+            rel_time = self._recompute_epochs_vlines(xdata)
+            xdata = rel_time + self.mne.inst.times[0]
         else:
             self.mne.vline.set_xdata(xdata)
             self.mne.vline_hscroll.set_xdata(xdata)
-        self.mne.vline_text.set_text(f'{xdata:0.2f}  ')
-        self._blit_vline(True)
+        text = self._xtick_formatter(xdata, ax_type='vline')[:12]
+        self.mne.vline_text.set_text(text)
+        self._toggle_vline(True)
 
-    def _blit_vline(self, visible):
-        """Restore or hide the vline after data change."""
-        self.canvas.restore_region(self.mne.bg)
+    def _toggle_vline(self, visible):
+        """Show or hide the vertical line(s)."""
         for artist in (self.mne.vline, self.mne.vline_hscroll,
                        self.mne.vline_text):
             if artist is not None:
                 artist.set_visible(visible)
                 self.draw_artist(artist)
-        self.canvas.blit()
-        self.canvas.flush_events()
         self.mne.vline_visible = visible
+        self.canvas.draw_idle()
 
 
 class MNELineFigure(MNEFigure):
@@ -2264,6 +2347,7 @@ def _browse_figure(inst, **kwargs):
     # initialize zen mode (can't do in __init__ due to get_position() calls)
     fig.canvas.draw()
     fig._update_zen_mode_offsets()
+    fig._resize(None)  # needed for MPL >=3.4
     # if scrollbars are supposed to start hidden, set to True and then toggle
     if not fig.mne.scrollbars_visible:
         fig.mne.scrollbars_visible = True
@@ -2290,7 +2374,7 @@ def _line_figure(inst, axes=None, picks=None, **kwargs):
         fig = axes[0].get_figure()
     else:
         figsize = kwargs.pop('figsize', (10, 2.5 * n_axes + 1))
-        fig = _figure(inst=inst, toolbar=False, FigureClass=MNELineFigure,
+        fig = _figure(inst=inst, toolbar=True, FigureClass=MNELineFigure,
                       figsize=figsize, n_axes=n_axes, **kwargs)
         fig.mne.fig_size_px = fig._get_size_px()  # can't do in __init__
         axes = fig.mne.ax_list

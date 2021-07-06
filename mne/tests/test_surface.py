@@ -1,24 +1,25 @@
-import os
-import os.path as op
-from shutil import copyfile
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#
+# License: BSD 3 clause
 
-import numpy as np
-from scipy import sparse
+import os.path as op
 
 import pytest
+import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 
-from mne.datasets import testing
 from mne import (read_surface, write_surface, decimate_surface, pick_types,
                  dig_mri_distances)
-from mne.surface import (read_morph_map, _compute_nearest, _tessellate_sphere,
-                         fast_cross_3d, get_head_surf, read_curvature,
-                         get_meg_helmet_surf, _normal_orth, _read_patch)
-from mne.utils import (_TempDir, requires_vtk, catch_logging,
-                       run_tests_if_main, object_diff, requires_freesurfer)
+from mne.datasets import testing
 from mne.io import read_info
 from mne.io.constants import FIFF
+from mne.surface import (_compute_nearest, _tessellate_sphere, fast_cross_3d,
+                         get_head_surf, read_curvature, get_meg_helmet_surf,
+                         _normal_orth, _read_patch, marching_cubes,
+                         voxel_neighbors)
 from mne.transforms import _get_trans
+from mne.utils import (requires_vtk, catch_logging,
+                       object_diff, requires_freesurfer)
 
 data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
@@ -112,51 +113,10 @@ def test_compute_nearest():
         assert_array_equal(nn1, nn3)
 
 
-@pytest.mark.slowtest
 @testing.requires_testing_data
-def test_make_morph_maps():
-    """Test reading and creating morph maps."""
-    # make a new fake subjects_dir
-    tempdir = _TempDir()
-    for subject in ('sample', 'sample_ds', 'fsaverage_ds'):
-        os.mkdir(op.join(tempdir, subject))
-        os.mkdir(op.join(tempdir, subject, 'surf'))
-        regs = ('reg', 'left_right') if subject == 'fsaverage_ds' else ('reg',)
-        for hemi in ['lh', 'rh']:
-            for reg in regs:
-                args = [subject, 'surf', hemi + '.sphere.' + reg]
-                copyfile(op.join(subjects_dir, *args),
-                         op.join(tempdir, *args))
-
-    for subject_from, subject_to, xhemi in (
-            ('fsaverage_ds', 'sample_ds', False),
-            ('fsaverage_ds', 'fsaverage_ds', True)):
-        # trigger the creation of morph-maps dir and create the map
-        with catch_logging() as log:
-            mmap = read_morph_map(subject_from, subject_to, tempdir,
-                                  xhemi=xhemi, verbose=True)
-        log = log.getvalue()
-        assert 'does not exist' in log
-        assert 'Creating' in log
-        mmap2 = read_morph_map(subject_from, subject_to, subjects_dir,
-                               xhemi=xhemi)
-        assert_equal(len(mmap), len(mmap2))
-        for m1, m2 in zip(mmap, mmap2):
-            # deal with sparse matrix stuff
-            diff = (m1 - m2).data
-            assert_allclose(diff, np.zeros_like(diff), atol=1e-3, rtol=0)
-
-    # This will also trigger creation, but it's trivial
-    with pytest.warns(None):
-        mmap = read_morph_map('sample', 'sample', subjects_dir=tempdir)
-    for mm in mmap:
-        assert (mm - sparse.eye(mm.shape[0], mm.shape[0])).sum() == 0
-
-
-@testing.requires_testing_data
-def test_io_surface():
+def test_io_surface(tmpdir):
     """Test reading and writing of Freesurfer surface mesh files."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     fname_quad = op.join(data_path, 'subjects', 'bert', 'surf',
                          'lh.inflated.nofix')
     fname_tri = op.join(data_path, 'subjects', 'sample', 'bem',
@@ -260,4 +220,24 @@ def test_normal_orth():
         assert_allclose(ori[2], nn, atol=1e-12)
 
 
-run_tests_if_main()
+@requires_vtk
+def test_marching_cubes():
+    """Test creating surfaces via marching cubes."""
+    data = np.zeros((50, 50, 50))
+    data[20:30, 20:30, 20:30] = 1
+    verts, triangles = marching_cubes(data, 0.5)
+    # verts and faces are rather large so use checksum
+    np.testing.assert_allclose(verts.sum(axis=0), [14700, 14700, 14700])
+    np.testing.assert_allclose(triangles.sum(axis=0), [363402, 360865, 350588])
+
+
+def test_voxel_neighbors():
+    """Test finding points above a threshold near a seed location."""
+    image = np.zeros((10, 10, 10))
+    image[4:7, 4:7, 4:7] = 3
+    image[5, 5, 5] = 4
+    volume = voxel_neighbors((5.5, 5.1, 4.9), image, thresh=2)
+    true_volume = set([(5, 4, 5), (5, 5, 4), (5, 5, 5), (6, 5, 5),
+                       (5, 6, 5), (5, 5, 6), (4, 5, 5)])
+    assert volume.difference(true_volume) == set()
+    assert true_volume.difference(volume) == set()
