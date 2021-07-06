@@ -87,8 +87,7 @@ from ..surface import _DistanceQuery, _CheckInside
 from ..transforms import (write_trans, read_trans, apply_trans, rotation,
                           rotation_angles, Transform, _ensure_trans,
                           rot_to_quat, _angle_between_quats)
-from ..coreg import (fit_matched_points, scale_mri, _find_fiducials_files,
-                     _DEFAULT_PARAMETERS)
+from ..coreg import fit_matched_points, scale_mri, _find_fiducials_files
 from ..viz.backends._pysurfer_mayavi import _toggle_mlab_render
 from ..viz._3d import _get_3d_option
 from ..utils import logger, set_config, _pl, warn
@@ -1266,6 +1265,9 @@ class FittingOptionsPanel(HasTraits):
             show_labels=False, label='Point weights', columns=2,
             show_border=_SHOW_BORDER),
     ), title="Fitting options")
+
+
+_DEFAULT_PARAMETERS = (0., 0., 0., 0., 0., 0., 1., 1., 1.)
 
 
 class CoregPanel(HasPrivateTraits):

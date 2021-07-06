@@ -27,7 +27,7 @@ from ..io.meas_info import _empty_info
 from ..io.open import fiff_open, dir_tree_find
 from ..surface import read_surface, complete_surface_info
 from ..coreg import (_is_mri_subject, _mri_subject_has_bem,
-                     create_default_subject, _append_fiducials)
+                     create_default_subject)
 from ..utils import get_config, set_config
 from ..viz._3d import _fiducial_coords
 from ..channels import read_dig_fif
@@ -419,6 +419,21 @@ class DigSource(HasPrivateTraits):
 
     def _file_changed(self):
         self.reset_traits(('points_filter',))
+
+
+def _append_fiducials(dig, lpa, nasion, rpa):
+    dig.append({'coord_frame': FIFF.FIFFV_COORD_HEAD,
+                'ident': FIFF.FIFFV_POINT_LPA,
+                'kind': FIFF.FIFFV_POINT_CARDINAL,
+                'r': lpa})
+    dig.append({'coord_frame': FIFF.FIFFV_COORD_HEAD,
+                'ident': FIFF.FIFFV_POINT_NASION,
+                'kind': FIFF.FIFFV_POINT_CARDINAL,
+                'r': nasion})
+    dig.append({'coord_frame': FIFF.FIFFV_COORD_HEAD,
+                'ident': FIFF.FIFFV_POINT_RPA,
+                'kind': FIFF.FIFFV_POINT_CARDINAL,
+                'r': rpa})
 
 
 class MRISubjectSource(HasPrivateTraits):
