@@ -79,6 +79,8 @@ Enhancements
 
 - Add support for colormap normalization in :func:`mne.viz.plot_topomap` (:gh:`9468` by `Clemens Brunner`_)
 
+- Update :func:`mne.preprocessing.realign_raw` with Numpy-recommended polynomial fitting method (:gh:`9514` by `Erica Peterson`_)
+
 Bugs
 ~~~~
 - Fix bug with :meth:`mne.Epochs.crop` and :meth:`mne.Evoked.crop` when ``include_tmax=False``, where the last sample was always cut off, even when ``tmax > epo.times[-1]`` (:gh:`9378` **by new contributor** |Jan Sosulski|_)
@@ -102,6 +104,10 @@ Bugs
 - Fix bug with `mne.simulation.simulate_evoked`, `mne.apply_forward`, and `mne.apply_forward_raw` where systems with EEG channels that come before MEG channels would have them mixed up in the output evoked or raw object (:gh:`#9513` by `Eric Larson`_)
 
 - In :func:`mne.viz.plot_ica_scores` and :meth:`mne.preprocessing.ICA.plot_scores`, the figure and axis titles no longer overlap when plotting only a single EOG or ECG channel (:gh:`9489` by `Richard Höchenberger`_).
+
+- Ensure `mne.io.Raw.get_montage` works with SNIRF data (:gh:`9524` by `Robert Luke`_)
+
+- Fix bug in :func:`mne.viz.plot_topomap` (and related methods like :meth:`mne.Evoked.plot_topomap`) where large distances between electrodes (higher than head radius) would lead to an error (:gh:`9528` by `Mikołaj Magnuski`_).
 
 API changes
 ~~~~~~~~~~~
