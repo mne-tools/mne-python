@@ -1310,27 +1310,7 @@ def test_annotation_duration_setting():
     assert a.duration[0] == 7.2
     assert a.duration[2] == 7.2
 
-    # Test on raw.set_duration
-    info = create_info(10, 1000., 'eeg')
-    raw = RawArray(np.zeros((10, 5000)), info)
-    onset = [0.1, 0.3, 0.6]
-    duration = [0.05, 0.1, 0.2]
-    description = ['first', 'second', 'third']
-    ch_names = [[], raw.ch_names[4:6], raw.ch_names[5:7]]
-    annot = Annotations(onset, duration, description, ch_names=ch_names)
-    raw.set_annotations(annot)
-    assert len(a) == 3
-    assert raw.annotations.duration[0] == 0.05
-    assert raw.annotations.duration[2] == 0.2
-    raw.set_durations({"first": 3.2})
-    assert raw.annotations.duration[0] == 3.2
-    raw.set_durations({"second": 2.02})
-    assert raw.annotations.duration[1] == 2.02
-    raw.set_durations({"second": 2.2, "third": 3})
-    assert raw.annotations.duration[1] == 2.2
-    assert raw.annotations.duration[2] == 3
-
     with pytest.raises(ValueError, match="mapping missing from data"):
-        raw.set_durations({"aaa": 2.2})
+        a.set_durations({"aaa": 2.2})
     with pytest.raises(ValueError, match="<class 'set'> was provided"):
-        raw.set_durations({"aaa", 2.2})
+        a.set_durations({"aaa", 2.2})

@@ -36,7 +36,7 @@ from .write import (start_file, end_file, start_block, end_block,
                     write_id, write_string, _get_split_size, _NEXT_FILE_BUFFER)
 
 from ..annotations import (_annotations_starts_stops, _write_annotations,
-                           _handle_meas_date, _set_duration)
+                           _handle_meas_date)
 from ..filter import (FilterMixin, notch_filter, resample, _resamp_ratio_len,
                       _resample_stim_channels, _check_fun)
 from ..parallel import parallel_func
@@ -1922,31 +1922,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                 msg += f"{cols[col][i]:>8.2f}  "
             msg += f"{cols['max'][i]:>8.2f}"
             print(msg)
-
-    @verbose
-    def set_durations(self, mapping, verbose=None):
-        """Set annotation durations(s). Operates inplace.
-
-        Parameters
-        ----------
-        mapping : dict | float | int
-            A dictionary mapping the annotation description to a duration
-            e.g. {‘ShortStimulus’ : 3, ‘LongStimulus’ : 12}.
-            Alternatively, if a number is provided, then all annotations
-            durations are set to the single provided value.
-        %(verbose_meth)s
-
-        Returns
-        -------
-        self : mne.Annotations
-            The modified Annotations object.
-
-        Notes
-        -----
-        .. versionadded:: 0.24.0
-        """
-        self.set_annotations(_set_duration(self.annotations, mapping, verbose))
-        return self
 
 
 def _allocate_data(preload, shape, dtype):

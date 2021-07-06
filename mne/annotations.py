@@ -589,31 +589,26 @@ class Annotations(object):
         -----
         .. versionadded:: 0.24.0
         """
-        return _set_duration(self, mapping, verbose)
+        if isinstance(mapping, dict):
+            orig_annots = sorted(list(mapping.keys()))
+            missing = [key not in self.description for key in orig_annots]
+            if any(missing):
+                raise ValueError(
+                    "Annotation description(s) in mapping missing from data: "
+                    "%s" % np.array(orig_annots)[np.array(missing)])
+            for map in mapping:
+                map_idx = [desc == map for desc in self.description]
+                self.duration[map_idx] = mapping[map]
 
+        elif isinstance(mapping, (int, float)):
+            self.duration = np.ones(self.description.shape) * mapping
 
-@verbose
-def _set_duration(annot, mapping, verbose=None):
+        else:
+            raise ValueError("Renaming requires the mapping of descriptions "
+                             "to times to be provided as a dict. "
+                             f"Instead {type(mapping)} was provided.")
 
-    if isinstance(mapping, dict):
-        orig_annots = sorted(list(mapping.keys()))
-        missing = [key not in annot.description for key in orig_annots]
-        if any(missing):
-            raise ValueError(
-                "Annotation description(s) in mapping missing from data: "
-                "%s" % np.array(orig_annots)[np.array(missing)])
-        for map in mapping:
-            map_idx = [desc == map for desc in annot.description]
-            annot.duration[map_idx] = mapping[map]
-
-    elif isinstance(mapping, (int, float)):
-        annot.duration = np.ones(annot.description.shape) * mapping
-    else:
-        raise ValueError("Renaming requires the mapping of descriptions "
-                         "to times to be provided as a dict. "
-                         f"Instead {type(mapping)} was provided.")
-
-    return annot
+        return self
 
 
 def _combine_annotations(one, two, one_n_samples, one_first_samp,
