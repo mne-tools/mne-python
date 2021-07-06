@@ -2379,6 +2379,80 @@ ref_channels : str | list of str
     and its data is set to 0. This is useful for later re-referencing.
 """
 
+# Morphing
+docdict['reg_affine'] = """
+reg_affine : ndarray of float, shape (4, 4)
+    The affine that registers one volume to another.
+"""
+docdict['sdr_morph'] = """
+sdr_morph : instance of dipy.align.DiffeomorphicMap
+    The class that applies the the symmetric diffeomorphic registration
+    (SDR) morph.
+"""
+docdict['moving'] = """
+moving : instance of SpatialImage
+    The image to morph ("from" volume).
+"""
+docdict['static'] = """
+static : instance of SpatialImage
+    The image to align with ("to" volume).
+"""
+docdict['niter'] = """
+niter : dict | tuple | None
+    For each phase of the volume registration, ``niter`` is the number of
+    iterations per successive stage of optimization. If a tuple is
+    provided, it will be used for all steps (except center of mass, which does
+    not iterate). It should have length 3 to
+    correspond to ``sigmas=[3.0, 1.0, 0.0]`` and ``factors=[4, 2, 1]`` in
+    the pipeline (see :func:`dipy.align.affine_registration
+    <dipy.align._public.affine_registration>` for details).
+    If a dictionary is provided, number of iterations can be set for each
+    step as a key. Steps not in the dictionary will use the default value.
+    The default (None) is equivalent to:
+
+        niter=dict(translation=(100, 100, 10),
+                   rigid=(100, 100, 10),
+                   affine=(100, 100, 10),
+                   sdr=(5, 5, 3))
+"""
+docdict['pipeline'] = """
+pipeline : str | tuple
+    The volume registration steps to perform (a ``str`` for a single step,
+    or ``tuple`` for a set of sequential steps). The following steps can be
+    performed, and do so by matching mutual information between the images
+    (unless otherwise noted):
+
+    ``'translation'``
+        Translation.
+
+    ``'rigid'``
+        Rigid-body, i.e., rotation and translation.
+
+    ``'affine'``
+        A full affine transformation, which includes translation, rotation,
+        scaling, and shear.
+
+    ``'sdr'``
+        Symmetric diffeomorphic registration :footcite:`AvantsEtAl2008`, a
+        non-linear similarity-matching algorithm.
+
+    The following string shortcuts can also be used:
+
+    ``'all'`` (default)
+        All steps will be performed above in the order above, i.e.,
+        ``('translation', 'rigid', 'affine', 'sdr')``.
+
+    ``'rigids'``
+        The rigid steps (first two) will be performed, which registers
+        the volume without distorting its underlying structure, i.e.,
+        ``('translation', 'rigid')``. This is useful for
+        example when registering images from the same subject, such as
+        CT and MR images.
+
+    ``'affines'``
+        The affine steps (first three) will be performed, i.e., omitting
+        the SDR step.
+"""
 docdict_indented = {}
 
 
