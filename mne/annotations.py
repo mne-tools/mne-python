@@ -568,7 +568,7 @@ class Annotations(object):
         return self
 
     @verbose
-    def set_duration(self, mapping, verbose=None):
+    def set_durations(self, mapping, verbose=None):
         """Set annotation durations(s). Operates inplace.
 
         Parameters
