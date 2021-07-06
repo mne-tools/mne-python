@@ -5,6 +5,7 @@
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Robert Luke <mail@robertluke.net>
+#          Mikołaj Magnuski <mmagnuski@swps.edu.pl>
 #
 # License: Simplified BSD
 
