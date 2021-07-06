@@ -10,7 +10,6 @@ import mne
 from mne.datasets import testing
 from mne import read_trans, write_trans
 from mne.io import read_info
-from mne.utils import _TempDir, run_tests_if_main
 from mne.transforms import (invert_transform, _get_trans,
                             rotation, rotation3d, rotation_angles, _find_trans,
                             combine_transforms, apply_trans, translation,
@@ -66,9 +65,9 @@ def test_get_trans():
 
 
 @testing.requires_testing_data
-def test_io_trans():
+def test_io_trans(tmpdir):
     """Test reading and writing of trans files."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     os.mkdir(op.join(tempdir, 'sample'))
     pytest.raises(RuntimeError, _find_trans, 'sample', subjects_dir=tempdir)
     trans0 = read_trans(fname)
@@ -366,35 +365,35 @@ def test_average_quats():
 
 
 @testing.requires_testing_data
-def test_fs_xfm():
+@pytest.mark.parametrize('subject', ('fsaverage', 'sample'))
+def test_fs_xfm(subject, tmpdir):
     """Test reading and writing of Freesurfer transforms."""
-    for subject in ('fsaverage', 'sample'):
-        fname = op.join(data_path, 'subjects', subject, 'mri', 'transforms',
-                        'talairach.xfm')
-        xfm, kind = _read_fs_xfm(fname)
-        if subject == 'fsaverage':
-            assert_allclose(xfm, np.eye(4), atol=1e-5)  # fsaverage is in MNI
-        assert kind == 'MNI Transform File'
-        tempdir = _TempDir()
-        fname_out = op.join(tempdir, 'out.xfm')
-        _write_fs_xfm(fname_out, xfm, kind)
-        xfm_read, kind_read = _read_fs_xfm(fname_out)
-        assert kind_read == kind
-        assert_allclose(xfm, xfm_read, rtol=1e-5, atol=1e-5)
-        # Some wacky one
-        xfm[:3] = np.random.RandomState(0).randn(3, 4)
-        _write_fs_xfm(fname_out, xfm, 'foo')
-        xfm_read, kind_read = _read_fs_xfm(fname_out)
-        assert kind_read == 'foo'
-        assert_allclose(xfm, xfm_read, rtol=1e-5, atol=1e-5)
-        # degenerate conditions
-        with open(fname_out, 'w') as fid:
-            fid.write('foo')
-        with pytest.raises(ValueError, match='Failed to find'):
-            _read_fs_xfm(fname_out)
-        _write_fs_xfm(fname_out, xfm[:2], 'foo')
-        with pytest.raises(ValueError, match='Could not find'):
-            _read_fs_xfm(fname_out)
+    fname = op.join(data_path, 'subjects', subject, 'mri', 'transforms',
+                    'talairach.xfm')
+    xfm, kind = _read_fs_xfm(fname)
+    if subject == 'fsaverage':
+        assert_allclose(xfm, np.eye(4), atol=1e-5)  # fsaverage is in MNI
+    assert kind == 'MNI Transform File'
+    tempdir = str(tmpdir)
+    fname_out = op.join(tempdir, 'out.xfm')
+    _write_fs_xfm(fname_out, xfm, kind)
+    xfm_read, kind_read = _read_fs_xfm(fname_out)
+    assert kind_read == kind
+    assert_allclose(xfm, xfm_read, rtol=1e-5, atol=1e-5)
+    # Some wacky one
+    xfm[:3] = np.random.RandomState(0).randn(3, 4)
+    _write_fs_xfm(fname_out, xfm, 'foo')
+    xfm_read, kind_read = _read_fs_xfm(fname_out)
+    assert kind_read == 'foo'
+    assert_allclose(xfm, xfm_read, rtol=1e-5, atol=1e-5)
+    # degenerate conditions
+    with open(fname_out, 'w') as fid:
+        fid.write('foo')
+    with pytest.raises(ValueError, match='Failed to find'):
+        _read_fs_xfm(fname_out)
+    _write_fs_xfm(fname_out, xfm[:2], 'foo')
+    with pytest.raises(ValueError, match='Could not find'):
+        _read_fs_xfm(fname_out)
 
 
 @pytest.fixture()
@@ -508,6 +507,3 @@ def test_euler(quats):
     quat_rot = quat_to_rot(quats)
     euler_rot = np.array([rotation(*e)[:3, :3] for e in euler])
     assert_allclose(quat_rot, euler_rot, atol=1e-14)
-
-
-run_tests_if_main()

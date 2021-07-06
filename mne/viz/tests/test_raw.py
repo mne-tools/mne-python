@@ -2,10 +2,10 @@
 #
 # License: Simplified BSD
 
-import numpy as np
 import os.path as op
 import itertools
 
+import numpy as np
 from numpy.testing import assert_allclose
 import pytest
 import matplotlib
@@ -13,9 +13,9 @@ import matplotlib.pyplot as plt
 
 from mne import read_events, pick_types, Annotations, create_info
 from mne.datasets import testing
+from mne.fixes import _close_event
 from mne.io import read_raw_fif, read_raw_ctf, RawArray
-from mne.utils import (run_tests_if_main, _dt_to_stamp, _click_ch_name,
-                       _close_event)
+from mne.utils import _dt_to_stamp, _click_ch_name
 from mne.viz.utils import _fake_click
 from mne.annotations import _sync_onset
 from mne.viz import plot_raw, plot_sensors
@@ -64,8 +64,8 @@ def _annotation_helper(raw, events=False):
     data_ax = fig.mne.ax_main
     fig.canvas.key_press_event('a')  # annotation mode
     assert len(plt.get_fignums()) == 2
-    # +2 from the scale bars
-    n_scale = 2
+    # +3 from the scale bars
+    n_scale = 3
     assert len(data_ax.texts) == n_anns + n_events + n_scale
     # modify description to create label "BAD test"
     ann_fig = fig.mne.fig_annotation
@@ -206,9 +206,9 @@ def test_scale_bar():
     raw = RawArray(data, info)
     fig = raw.plot()
     ax = fig.mne.ax_main
-    assert len(ax.texts) == 3  # our labels
+    assert len(ax.texts) == 4  # empty vline-text + ch_type scale-bars
     texts = tuple(t.get_text().strip() for t in ax.texts)
-    wants = ('800.0 fT/cm', '2000.0 fT', '40.0 µV')
+    wants = ('', '800.0 fT/cm', '2000.0 fT', '40.0 µV')
     assert texts == wants
     assert len(ax.lines) == 7  # 1 green vline, 3 data, 3 scalebars
     for data, bar in zip(fig.mne.traces, fig.mne.scalebars.values()):
@@ -307,6 +307,10 @@ def test_plot_raw_ssp_interaction(raw):
     _fake_click(ssp_fig, ssp_fig.mne.proj_all.ax, [0.5, 0.5])
     _fake_click(ssp_fig, ssp_fig.mne.proj_all.ax, [0.5, 0.5], kind='release')
     assert _proj_status(ax) == [True, False, False]
+    fig.canvas.key_press_event('J')
+    assert _proj_status(ax) == [True, True, True]
+    fig.canvas.key_press_event('J')
+    assert _proj_status(ax) == [True, False, False]
     # turn all on
     _fake_click(ssp_fig, ssp_fig.mne.proj_all.ax, [0.5, 0.5])  # all on
     _fake_click(ssp_fig, ssp_fig.mne.proj_all.ax, [0.5, 0.5], kind='release')
@@ -357,7 +361,8 @@ def test_plot_raw_keypresses(raw):
     # test twice → once in normal, once in butterfly view.
     # NB: keys a, j, and ? are tested in test_plot_raw_child_figures()
     keys = ('pagedown', 'down', 'up', 'down', 'right', 'left', '-', '+', '=',
-            'd', 'd', 'pageup', 'home', 'end', 'z', 'z', 's', 's', 'f11', 'b')
+            'd', 'd', 'pageup', 'home', 'end', 'z', 'z', 's', 's', 'f11', 'b',
+            't')
     # test for group_by='original'
     for key in 2 * keys + ('escape',):
         fig.canvas.key_press_event(key)
@@ -540,6 +545,22 @@ def test_plot_annotations(raw):
     assert len(fig.mne.annotation_texts) == 1
 
 
+@pytest.mark.parametrize('hide_which', ([], [0], [1], [0, 1]))
+def test_remove_annotations(raw, hide_which):
+    """Test that right-click doesn't remove hidden annotation spans."""
+    ann = Annotations(onset=[2, 1], duration=[1, 3],
+                      description=['foo', 'bar'])
+    raw.set_annotations(ann)
+    assert len(raw.annotations) == 2
+    fig = raw.plot()
+    fig.canvas.key_press_event('a')  # start annotation mode
+    checkboxes = fig.mne.show_hide_annotation_checkboxes
+    for which in hide_which:
+        checkboxes.set_active(which)
+    _fake_click(fig, fig.mne.ax_main, (2.5, 0.1), xform='data', button=3)
+    assert len(raw.annotations) == len(hide_which)
+
+
 @pytest.mark.parametrize('filtorder', (0, 2))  # FIR, IIR
 def test_plot_raw_filtered(filtorder, raw):
     """Test filtering of raw plots."""
@@ -554,7 +575,8 @@ def test_plot_raw_filtered(filtorder, raw):
     raw.plot(lowpass=40, clipping='transparent', filtorder=filtorder)
     raw.plot(highpass=1, clipping='clamp', filtorder=filtorder)
     raw.plot(lowpass=40, butterfly=True, filtorder=filtorder)
-    plt.close('all')
+    # shouldn't break if all shown are non-data
+    RawArray(np.zeros((1, 100)), create_info(1, 20., 'stim')).plot(lowpass=5)
 
 
 def test_plot_raw_psd(raw):
@@ -706,4 +728,19 @@ def test_plot_sensors(raw):
         raw.plot_sensors()
 
 
-run_tests_if_main()
+def test_scalings_int():
+    """Test that auto scalings access samples using integers."""
+    raw = RawArray(np.zeros((1, 500)), create_info(1, 1000., 'eeg'))
+    raw.plot(scalings='auto')
+
+
+@pytest.mark.parametrize('dur, n_dec', [(20, 1), (4.2, 2), (0.01, 4)])
+def test_clock_xticks(raw, dur, n_dec):
+    """Test if decimal seconds of xticks have appropriate length."""
+    fig = raw.plot(duration=dur, time_format='clock')
+    fig.canvas.draw()
+    ticklabels = fig.mne.ax_main.get_xticklabels()
+    tick_texts = [tl.get_text() for tl in ticklabels]
+    assert tick_texts[0].startswith('19:01:53')
+    if len(tick_texts[0].split('.')) > 1:
+        assert len(tick_texts[0].split('.')[1]) == n_dec

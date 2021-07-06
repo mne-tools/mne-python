@@ -88,7 +88,7 @@ if __name__ == "__main__":
               'Tracker': 'https://github.com/mne-tools/mne-python/issues/',
           },
           platforms='any',
-          python_requires='>=3.6',
+          python_requires='>=3.7',
           install_requires=install_requires,
           packages=package_tree('mne'),
           package_data={'mne': [
@@ -107,6 +107,8 @@ if __name__ == "__main__":
               op.join('channels', 'data', 'montages', '*.elc'),
               op.join('channels', 'data', 'neighbors', '*.mat'),
               op.join('datasets', 'sleep_physionet', 'SHA1SUMS'),
+              op.join('datasets', '_fsaverage', '*.txt'),
+              op.join('datasets', '_infant', '*.txt'),
               op.join('gui', 'help', '*.json'),
               op.join('html', '*.js'),
               op.join('html', '*.css'),

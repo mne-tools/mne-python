@@ -597,7 +597,9 @@ def _read_edf_header(fname, exclude):
         if record_length[0] == 0:
             record_length = record_length[0] = 1.
             warn('Header information is incorrect for record length. Default '
-                 'record length set to 1.')
+                 'record length set to 1.\nIt is possible that this file only'
+                 ' contains annotations and no signals. In that case, please '
+                 'use mne.read_annotations() to load these annotations.')
 
         nchan = int(_edf_str(fid.read(4)))
         channels = list(range(nchan))
@@ -613,7 +615,8 @@ def _read_edf_header(fname, exclude):
         for i, unit in enumerate(units):
             if i in exclude:
                 continue
-            if unit == 'uV':
+            # allow both μ (greek mu) and µ (micro symbol) codepoints
+            if unit in ('\u03BCV', '\u00B5V', 'uV'):
                 edf_info['units'].append(1e-6)
             elif unit == 'mV':
                 edf_info['units'].append(1e-3)

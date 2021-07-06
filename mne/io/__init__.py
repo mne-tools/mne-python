@@ -43,10 +43,12 @@ from .edf import read_raw_edf, read_raw_bdf, read_raw_gdf
 from .egi import read_raw_egi, read_evokeds_mff
 from .kit import read_raw_kit, read_epochs_kit
 from .fiff import read_raw_fif
+from .nedf import read_raw_nedf
 from .nicolet import read_raw_nicolet
 from .artemis123 import read_raw_artemis123
 from .eeglab import read_raw_eeglab, read_epochs_eeglab
 from .eximia import read_raw_eximia
+from .hitachi import read_raw_hitachi
 from .nirx import read_raw_nirx
 from .boxy import read_raw_boxy
 from .snirf import read_raw_snirf

@@ -23,9 +23,9 @@ from mayavi.core.scene import Scene
 from mayavi.core.ui.mayavi_scene import MayaviScene
 from tvtk.pyface.tvtk_scene import TVTKScene
 
-from .base_renderer import _BaseRenderer
+from ._abstract import _AbstractRenderer
 from ._utils import _check_color, _alpha_blend_background, ALLOWED_QUIVER_MODES
-from ..utils import _ndarray_to_fig
+from ..utils import _save_ndarray_img
 from ...surface import _normalize_vectors
 from ...utils import (_import_mlab, _validate_type, SilenceStdout,
                       copy_base_doc_to_subclass_doc, _check_option)
@@ -54,7 +54,7 @@ class _Projection(object):
 
 
 @copy_base_doc_to_subclass_doc
-class _Renderer(_BaseRenderer):
+class _Renderer(_AbstractRenderer):
     """Class managing rendering scene.
 
     Attributes
@@ -305,6 +305,7 @@ class _Renderer(_BaseRenderer):
             vals = _alpha_blend_background(ctable, bgcolor)
             cbar_lut.table.from_array(vals)
             cmap.scalar_bar.lookup_table = cbar_lut
+        return bar
 
     def show(self):
         if self.fig is not None:
@@ -314,10 +315,11 @@ class _Renderer(_BaseRenderer):
         _close_3d_figure(figure=self.fig)
 
     def set_camera(self, azimuth=None, elevation=None, distance=None,
-                   focalpoint=None, roll=None, reset_camera=None):
+                   focalpoint=None, roll=None, reset_camera=None,
+                   rigid=None, update=True):
         _set_3d_view(figure=self.fig, azimuth=azimuth,
                      elevation=elevation, distance=distance,
-                     focalpoint=focalpoint, roll=roll)
+                     focalpoint=focalpoint, roll=roll, update=update)
 
     def reset_camera(self):
         renderer = getattr(self.fig.scene, 'renderer', None)
@@ -452,13 +454,14 @@ def _close_all():
 
 
 def _set_3d_view(figure, azimuth, elevation, focalpoint, distance, roll=None,
-                 reset_camera=True):
+                 reset_camera=True, update=True):
     from mayavi import mlab
     with warnings.catch_warnings(record=True):  # traits
         with SilenceStdout():
             mlab.view(azimuth, elevation, distance,
                       focalpoint=focalpoint, figure=figure, roll=roll)
-            mlab.draw(figure)
+            if update:
+                mlab.draw(figure)
 
 
 def _set_3d_title(figure, title, size=40):
@@ -482,7 +485,7 @@ def _check_3d_figure(figure):
 
 
 def _save_figure(img, filename):
-    _ndarray_to_fig(img).savefig(filename)
+    _save_ndarray_img(filename, img)
 
 
 def _close_3d_figure(figure):

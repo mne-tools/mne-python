@@ -144,7 +144,6 @@ class LinearModel(BaseEstimator):
         -------
         y_pred : array, shape (n_samples,)
             The predicted targets.
-
         """
         return self.fit(X, y).transform(X)
 
@@ -232,12 +231,8 @@ def _set_cv(cv, estimator=None, X=None, y=None):
     cv = check_cv(cv=cv, y=y, classifier=est_is_classifier)
 
     # Extract train and test set to retrieve them at predict time
-    if hasattr(cv, 'split'):
-        cv_splits = [(train, test) for train, test in
-                     cv.split(X=np.zeros_like(y), y=y)]
-    else:
-        # XXX support sklearn.cross_validation cv
-        cv_splits = [(train, test) for train, test in cv]
+    cv_splits = [(train, test) for train, test in
+                 cv.split(X=np.zeros_like(y), y=y)]
 
     if not np.all([len(train) for train, _ in cv_splits]):
         raise ValueError('Some folds do not have any train epochs.')

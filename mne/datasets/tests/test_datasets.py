@@ -8,11 +8,12 @@ import sys
 import pytest
 
 from mne import datasets, read_labels_from_annot, write_labels_to_annot
-from mne.datasets import testing
+from mne.datasets import testing, fetch_infant_template
+from mne.datasets._infant import base as infant_base
 from mne.datasets._fsaverage.base import _set_montage_coreg_path
 from mne.datasets.utils import _manifest_check_download
 
-from mne.utils import (requires_good_network, modified_env,
+from mne.utils import (requires_good_network,
                        get_subjects_dir, ArgvSetter, _pl, use_log_level,
                        catch_logging, hashfunc)
 
@@ -20,7 +21,7 @@ from mne.utils import (requires_good_network, modified_env,
 subjects_dir = op.join(testing.data_path(download=False), 'subjects')
 
 
-def test_datasets_basic(tmpdir):
+def test_datasets_basic(tmpdir, monkeypatch):
     """Test simple dataset functions."""
     # XXX 'hf_sef' and 'misc' do not conform to these standards
     for dname in ('sample', 'somato', 'spm_face', 'testing', 'opm',
@@ -44,13 +45,17 @@ def test_datasets_basic(tmpdir):
     tempdir = str(tmpdir)
     # don't let it read from the config file to get the directory,
     # force it to look for the default
-    with modified_env(**{'_MNE_FAKE_HOME_DIR': tempdir, 'SUBJECTS_DIR': None}):
-        assert (datasets.utils._get_path(None, 'foo', 'bar') ==
-                op.join(tempdir, 'mne_data'))
-        assert get_subjects_dir(None) is None
-        _set_montage_coreg_path()
-        sd = get_subjects_dir()
-        assert sd.endswith('MNE-fsaverage-data')
+    monkeypatch.setenv('_MNE_FAKE_HOME_DIR', tempdir)
+    monkeypatch.delenv('SUBJECTS_DIR', raising=False)
+    assert (datasets.utils._get_path(None, 'foo', 'bar') ==
+            op.join(tempdir, 'mne_data'))
+    assert get_subjects_dir(None) is None
+    _set_montage_coreg_path()
+    sd = get_subjects_dir()
+    assert sd.endswith('MNE-fsaverage-data')
+    monkeypatch.setenv('MNE_DATA', str(tmpdir.join('foo')))
+    with pytest.raises(FileNotFoundError, match='as specified by MNE_DAT'):
+        testing.data_path(download=False)
 
 
 @requires_good_network
@@ -196,3 +201,19 @@ def test_manifest_check_download(tmpdir, n_have, monkeypatch):
     assert op.isdir(destination)
     for fname in _zip_fnames:
         assert op.isfile(op.join(destination, fname))
+
+
+def _fake_mcd(manifest_path, destination, url, hash_):
+    name = url.split('/')[-1].split('.')[0]
+    assert name in manifest_path
+    assert name in destination
+    assert name in url
+    assert len(hash_) == 32
+
+
+def test_infant(tmpdir, monkeypatch):
+    """Test fetch_infant_template."""
+    monkeypatch.setattr(infant_base, '_manifest_check_download', _fake_mcd)
+    fetch_infant_template('12mo', subjects_dir=tmpdir)
+    with pytest.raises(ValueError, match='Invalid value for'):
+        fetch_infant_template('0mo', subjects_dir=tmpdir)

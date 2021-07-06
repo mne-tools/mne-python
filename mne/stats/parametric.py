@@ -122,7 +122,7 @@ def f_oneway(*args):
 
     The one-way ANOVA tests the null hypothesis that 2 or more groups have
     the same population mean. The test is applied to samples from two or
-    more groups, possibly with differing sizes [1]_.
+    more groups, possibly with differing sizes :footcite:`Lowry2014`.
 
     This is a modified version of :func:`scipy.stats.f_oneway` that avoids
     computing the associated p-value.
@@ -151,13 +151,11 @@ def f_oneway(*args):
     possible to use the Kruskal-Wallis H-test (:func:`scipy.stats.kruskal`)
     although with some loss of power
 
-    The algorithm is from Heiman [2]_, pp.394-7.
+    The algorithm is from Heiman :footcite:`Heiman2002`, pp.394-7.
 
     References
     ----------
-    .. [1] Lowry, Richard.  "Concepts and Applications of Inferential
-           Statistics". Chapter 14.
-    .. [2] Heiman, G.W.  Research Methods in Statistics. 2002.
+    .. footbibliography::
     """
     n_classes = len(args)
     n_samples_per_class = np.array([len(a) for a in args])

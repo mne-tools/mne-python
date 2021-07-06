@@ -1,5 +1,3 @@
-:orphan:
-
 .. include:: ../links.inc
 
 .. _learn-python:

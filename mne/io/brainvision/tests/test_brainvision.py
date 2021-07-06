@@ -14,7 +14,7 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
 import pytest
 
 import datetime
-from mne.utils import run_tests_if_main, _stamp_to_dt, object_diff
+from mne.utils import _stamp_to_dt, object_diff
 from mne import pick_types, read_annotations, concatenate_raws
 from mne.io.constants import FIFF
 from mne.io import read_raw_fif, read_raw_brainvision
@@ -31,8 +31,10 @@ vhdr_partially_disabled_hw_filter_path = op.join(data_dir,
                                                  'test_partially_disabled'
                                                  '_hw_filter.vhdr')
 
-vhdr_old_path = op.join(data_dir,
-                        'test_old_layout_latin1_software_filter.vhdr')
+vhdr_old_path = op.join(
+    data_dir, 'test_old_layout_latin1_software_filter.vhdr')
+vhdr_old_longname_path = op.join(
+    data_dir, 'test_old_layout_latin1_software_filter_longname.vhdr')
 
 vhdr_v2_path = op.join(data_dir, 'testv2.vhdr')
 
@@ -458,6 +460,15 @@ def test_brainvision_data_software_filters_latin1_global_units():
     assert_equal(raw.info['highpass'], 1. / (2 * np.pi * 0.9))
     assert_equal(raw.info['lowpass'], 50.)
 
+    # test sensor name with spaces (#9299)
+    with pytest.warns(RuntimeWarning, match='software filter'):
+        raw = _test_raw_reader(
+            read_raw_brainvision, vhdr_fname=vhdr_old_longname_path,
+            eog=("VEOGo", "VEOGu", "HEOGli", "HEOGre"), misc=("A2",))
+
+    assert_equal(raw.info['highpass'], 1. / (2 * np.pi * 0.9))
+    assert_equal(raw.info['lowpass'], 50.)
+
 
 def test_brainvision_data():
     """Test reading raw Brain Vision files."""
@@ -761,6 +772,3 @@ def test_parse_impedance():
         raw = read_raw_brainvision(vhdr_mixed_lowpass_path,
                                    eog=['HEOG', 'VEOG'], misc=['ECG'])
     assert object_diff(expected_impedances, raw.impedances) == ''
-
-
-run_tests_if_main()

@@ -252,11 +252,9 @@ def _get_data_as_dict_from_dig(dig):
         elif d['kind'] == FIFF.FIFFV_POINT_HPI:
             hpi.append(d['r'])
             elp.append(d['r'])
-            # XXX: point_names.append('HPI%03d' % d['ident'])
         elif d['kind'] == FIFF.FIFFV_POINT_EXTRA:
             hsp.append(d['r'])
         elif d['kind'] == FIFF.FIFFV_POINT_EEG:
-            # XXX: dig_ch_pos['EEG%03d' % d['ident']] = d['r']
             if d['ident'] != 0:  # ref channel
                 dig_ch_pos_location.append(d['r'])
 
@@ -406,7 +404,7 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
                         'coord_frame': coord_frame})
     if extra_points is not None:
         extra_points = np.asarray(extra_points)
-        if extra_points.shape[1] != 3:
+        if len(extra_points) and extra_points.shape[1] != 3:
             raise ValueError('Points should have the shape (n_points, 3) '
                              'instead of %s' % (extra_points.shape,))
         for idx, point in enumerate(extra_points):

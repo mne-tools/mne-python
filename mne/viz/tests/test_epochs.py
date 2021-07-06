@@ -16,8 +16,9 @@ import matplotlib.pyplot as plt
 from mne import (read_events, Epochs, pick_types, read_cov, create_info,
                  EpochsArray)
 from mne.channels import read_layout
+from mne.fixes import _close_event
 from mne.io import read_raw_fif, read_raw_ctf
-from mne.utils import run_tests_if_main, _click_ch_name, _close_event
+from mne.utils import _click_ch_name
 from mne.viz import plot_drop_log
 from mne.viz.utils import _fake_click
 from mne.datasets import testing
@@ -139,9 +140,10 @@ def test_plot_epochs_scale_bar(epochs):
     fig = epochs.plot()
     fig.canvas.key_press_event('s')  # default is to not show scalebars
     ax = fig.mne.ax_main
-    assert len(ax.texts) == 2  # only mag & grad in this instance
+    # only empty vline-text, mag & grad in this instance
+    assert len(ax.texts) == 3
     texts = tuple(t.get_text().strip() for t in ax.texts)
-    wants = ('800.0 fT/cm', '2000.0 fT')
+    wants = ('', '800.0 fT/cm', '2000.0 fT')
     assert texts == wants
 
 
@@ -215,6 +217,19 @@ def test_plot_epochs_keypresses():
     for key in keys * 2:  # test twice → once in normal, once in butterfly view
         fig.canvas.key_press_event(key)
     _fake_click(fig, data_ax, [x, y], xform='data', button=3)  # remove vlines
+
+
+def test_plot_overlapping_epochs_with_events():
+    """Test drawing of event lines in overlapping epochs."""
+    data = np.zeros(shape=(3, 2, 100))  # 3 epochs, 2 channels, 100 samples
+    sfreq = 100
+    info = create_info(
+        ch_names=('a', 'b'), ch_types=('misc', 'misc'), sfreq=sfreq)
+    # 90% overlap, so all 3 events should appear in all 3 epochs when plotted:
+    events = np.column_stack(([50, 60, 70], [0, 0, 0], [1, 2, 3]))
+    epochs = EpochsArray(data, info, tmin=-0.5, events=events)
+    fig = epochs.plot(events=events, picks='misc')
+    assert len(fig.mne.event_lines.get_segments()) == 9
 
 
 def test_epochs_plot_sensors(epochs):
@@ -419,6 +434,3 @@ def test_plot_psd_epochs_ctf():
             epochs.plot_psd(dB=dB)
     epochs.drop_channels(['EEG060'])
     epochs.plot_psd(spatial_colors=False, average=False)
-
-
-run_tests_if_main()

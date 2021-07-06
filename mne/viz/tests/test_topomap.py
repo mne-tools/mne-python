@@ -32,7 +32,7 @@ from mne.viz import plot_evoked_topomap, plot_projs_topomap, topomap
 from mne.viz.topomap import (_get_pos_outlines, _onselect, plot_topomap,
                              plot_arrowmap, plot_psds_topomap)
 from mne.viz.utils import _find_peaks, _fake_click
-from mne.utils import requires_sklearn
+from mne.utils import requires_sklearn, check_version
 
 
 data_dir = testing.data_path(download=False)
@@ -572,6 +572,19 @@ def test_plot_topomap_channel_distance():
     plt.close('all')
 
 
+def test_plot_topomap_bads_grad():
+    """Test plotting topomap with bad gradiometer channels (gh-8802)."""
+    import matplotlib.pyplot as plt
+    data = np.random.RandomState(0).randn(203)
+    info = read_info(evoked_fname)
+    info['bads'] = ['MEG 2242']
+    picks = pick_types(info, meg='grad')
+    info = pick_info(info, picks)
+    assert len(info['chs']) == 203
+    plot_topomap(data, info, res=8)
+    plt.close('all')
+
+
 def test_plot_topomap_nirs_overlap(fnirs_epochs):
     """Test plotting nirs topomap with overlapping channels (gh-7414)."""
     fig = fnirs_epochs['A'].average(picks='hbo').plot_topomap()
@@ -585,6 +598,12 @@ def test_plot_topomap_nirs_ica(fnirs_epochs):
     from mne.preprocessing import ICA
     fnirs_epochs = fnirs_epochs.load_data().pick(picks='hbo')
     fnirs_epochs = fnirs_epochs.pick(picks=range(30))
+
+    # fake high-pass filtering and hide the fact that the epochs were
+    # baseline corrected
+    fnirs_epochs.info['highpass'] = 1.0
+    fnirs_epochs.baseline = None
+
     ica = ICA().fit(fnirs_epochs)
     fig = ica.plot_components()
     assert len(fig[0].axes) == 20
@@ -598,3 +617,32 @@ def test_plot_cov_topomap():
     cov.plot_topomap(info)
     cov.plot_topomap(info, noise_cov=cov)
     plt.close('all')
+
+
+def test_plot_topomap_cnorm():
+    """Test colormap normalization."""
+    if check_version("matplotlib", "3.2.0"):
+        from matplotlib.colors import TwoSlopeNorm
+    else:
+        from matplotlib.colors import DivergingNorm as TwoSlopeNorm
+
+    np.random.seed(42)
+    v = np.random.uniform(low=-1, high=2.5, size=64)
+    v[:3] = [-1, 0, 2.5]
+
+    montage = make_standard_montage("biosemi64")
+    info = create_info(montage.ch_names, 256, "eeg").set_montage("biosemi64")
+    cnorm = TwoSlopeNorm(vmin=-1, vcenter=0, vmax=2.5)
+
+    # pass only cnorm, no vmin/vmax
+    plot_topomap(v, info, cnorm=cnorm)
+
+    # pass cnorm and vmin
+    msg = "vmin=-1 is implicitly defined by cnorm, ignoring vmin=-10."
+    with pytest.warns(RuntimeWarning, match=msg):
+        plot_topomap(v, info, vmin=-10, cnorm=cnorm)
+
+    # pass cnorm and vmax
+    msg = "vmax=2.5 is implicitly defined by cnorm, ignoring vmax=10."
+    with pytest.warns(RuntimeWarning, match=msg):
+        plot_topomap(v, info, vmax=10, cnorm=cnorm)
