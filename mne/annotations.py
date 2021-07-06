@@ -614,6 +614,7 @@ def _set_duration(annot, mapping, verbose=None):
 
     return annot
 
+
 def _combine_annotations(one, two, one_n_samples, one_first_samp,
                          two_first_samp, sfreq, meas_date):
     """Combine a tuple of annotations."""
