@@ -1924,7 +1924,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             print(msg)
 
     @verbose
-    def set_duration(self, mapping, verbose=None):
+    def set_durations(self, mapping, verbose=None):
         """Set annotation durations(s). Operates inplace.
 
         Parameters

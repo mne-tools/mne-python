@@ -1322,10 +1322,15 @@ def test_annotation_duration_setting():
     assert len(a) == 3
     assert raw.annotations.duration[0] == 0.05
     assert raw.annotations.duration[2] == 0.2
-    raw.set_duration({"first": 3.2})
+    raw.set_durations({"first": 3.2})
     assert raw.annotations.duration[0] == 3.2
-    raw.set_duration({"second": 2.02})
+    raw.set_durations({"second": 2.02})
     assert raw.annotations.duration[1] == 2.02
-    raw.set_duration({"second": 2.2, "third": 3})
+    raw.set_durations({"second": 2.2, "third": 3})
     assert raw.annotations.duration[1] == 2.2
     assert raw.annotations.duration[2] == 3
+
+    with pytest.raises(ValueError, match="mapping missing from data"):
+        raw.set_durations({"aaa": 2.2})
+    with pytest.raises(ValueError, match="<class 'set'> was provided"):
+        raw.set_durations({"aaa", 2.2})
