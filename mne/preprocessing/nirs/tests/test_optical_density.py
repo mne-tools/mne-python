@@ -37,8 +37,10 @@ def test_optical_density_zeromean():
     """Test that optical density can process zero mean data."""
     raw = read_raw_nirx(fname_nirx, preload=True)
     raw._data[4] -= np.mean(raw._data[4])
-    with pytest.warns(RuntimeWarning, match='Negative'):
-        raw = optical_density(raw)
+    raw._data[4, -1] = 0
+    with np.errstate(invalid='raise', divide='raise'):
+        with pytest.warns(RuntimeWarning, match='Negative'):
+            raw = optical_density(raw)
     assert 'fnirs_od' in raw
 
 

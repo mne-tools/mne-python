@@ -132,6 +132,8 @@ def _TDDR(signal, sample_rate):
         sigma = 1.4826 * np.median(dev)
 
         # Step 3d. Scale deviations by standard deviation and tuning parameter
+        if sigma == 0:
+            break
         r = dev / (sigma * tune)
 
         # Step 3e. Calculate new weights according to Tukey's biweight function
