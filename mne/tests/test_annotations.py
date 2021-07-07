@@ -1284,3 +1284,33 @@ def test_annotation_ch_names():
         raw_2.set_annotations(annot, on_missing='warn')
     assert raw_2.annotations is not annot_pruned
     _assert_annotations_equal(raw_2.annotations, annot_pruned)
+
+
+def test_annotation_duration_setting():
+    """Test annotation duration setting works."""
+    a = Annotations([1, 2, 3], [5, 5, 8], ["a", "b", "c"])
+    assert len(a) == 3
+    assert a.duration[0] == 5
+    assert a.duration[2] == 8
+    a.set_durations({"a": 3})
+    assert a.duration[0] == 3
+    assert a.duration[2] == 8
+    a.set_durations({"a": 313, "c": 18})
+    assert a.duration[0] == 313
+    assert a.duration[2] == 18
+    a.set_durations({"a": 1, "b": 13})
+    assert a.duration[0] == 1
+    assert a.duration[1] == 13
+
+    a = Annotations([1, 2, 3], [5, 5, 8], ["a", "b", "c"])
+    assert len(a) == 3
+    assert a.duration[0] == 5
+    assert a.duration[2] == 8
+    a.set_durations(7.2)
+    assert a.duration[0] == 7.2
+    assert a.duration[2] == 7.2
+
+    with pytest.raises(ValueError, match="mapping missing from data"):
+        a.set_durations({"aaa": 2.2})
+    with pytest.raises(ValueError, match="<class 'set'> was provided"):
+        a.set_durations({"aaa", 2.2})

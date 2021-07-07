@@ -20,7 +20,7 @@ from .utils import (_pl, check_fname, _validate_type, verbose, warn, logger,
                     _check_pandas_installed, _mask_to_onsets_offsets,
                     _DefaultEventParser, _check_dt, _stamp_to_dt, _dt_to_stamp,
                     _check_fname, int_like, _check_option, fill_doc,
-                    _on_missing)
+                    _on_missing, _is_numeric)
 
 from .io.write import (start_block, end_block, write_float, write_name_list,
                        write_double, start_file, write_string)
@@ -564,6 +564,49 @@ class Annotations(object):
             if limited > 0:
                 warn('Limited %s annotation(s) that were expanding outside the'
                      ' data range.' % limited)
+
+        return self
+
+    @verbose
+    def set_durations(self, mapping, verbose=None):
+        """Set annotation duration(s). Operates inplace.
+
+        Parameters
+        ----------
+        mapping : dict | float
+            A dictionary mapping the annotation description to a duration in
+            seconds e.g. ``{'ShortStimulus' : 3, 'LongStimulus' : 12}``.
+            Alternatively, if a number is provided, then all annotations
+            durations are set to the single provided value.
+        %(verbose_meth)s
+
+        Returns
+        -------
+        self : mne.Annotations
+            The modified Annotations object.
+
+        Notes
+        -----
+        .. versionadded:: 0.24.0
+        """
+        if isinstance(mapping, dict):
+            orig_annots = sorted(list(mapping))
+            missing = [key not in self.description for key in orig_annots]
+            if any(missing):
+                raise ValueError(
+                    "Annotation description(s) in mapping missing from data: "
+                    "%s" % np.array(orig_annots)[np.array(missing)])
+            for stim in mapping:
+                map_idx = [desc == stim for desc in self.description]
+                self.duration[map_idx] = mapping[stim]
+
+        elif _is_numeric(mapping):
+            self.duration = np.ones(self.description.shape) * mapping
+
+        else:
+            raise ValueError("Setting durations requires the mapping of "
+                             "descriptions to times to be provided as a dict. "
+                             f"Instead {type(mapping)} was provided.")
 
         return self
 
