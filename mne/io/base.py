@@ -36,7 +36,7 @@ from .write import (start_file, end_file, start_block, end_block,
                     write_id, write_string, _get_split_size, _NEXT_FILE_BUFFER)
 
 from ..annotations import (_annotations_starts_stops, _write_annotations,
-                           _handle_meas_date, _rename_annotations)
+                           _handle_meas_date)
 from ..filter import (FilterMixin, notch_filter, resample, _resamp_ratio_len,
                       _resample_stim_channels, _check_fun)
 from ..parallel import parallel_func
