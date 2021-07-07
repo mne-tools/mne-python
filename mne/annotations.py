@@ -607,8 +607,8 @@ def _rename_annotations(desc, mapping, verbose=None):
                          "to be provided as a dict. "
                          f"Instead {type(mapping)} was provided.")
 
-    for map in mapping:
-        desc = [d.replace(map, mapping[map]) for d in desc]
+    for old, new in mapping.items():
+        desc = [d.replace(old, new) for d in desc]
     return desc
 
 
