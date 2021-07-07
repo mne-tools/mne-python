@@ -2383,7 +2383,8 @@ def _line_figure(inst, axes=None, picks=None, **kwargs):
 
 def _psd_figure(inst, proj, picks, axes, area_mode, tmin, tmax, fmin, fmax,
                 n_jobs, color, area_alpha, dB, estimate, average,
-                spatial_colors, xscale, line_alpha, sphere, window, **kwargs):
+                spatial_colors, xscale, line_alpha, sphere, window, exclude,
+                **kwargs):
     """Instantiate a new power spectral density figure."""
     from .. import BaseEpochs
     from ..io import BaseRaw
@@ -2409,7 +2410,7 @@ def _psd_figure(inst, proj, picks, axes, area_mode, tmin, tmax, fmin, fmax,
     _check_option('area_mode', area_mode, [None, 'std', 'range'])
     _check_option('xscale', xscale, ('log', 'linear'))
     sphere = _check_sphere(sphere, inst.info)
-    picks = _picks_to_idx(inst.info, picks)
+    picks = _picks_to_idx(inst.info, picks, exclude=exclude)
     titles = _handle_default('titles', None)
     units = _handle_default('units', None)
     scalings = _handle_default('scalings', None)
