@@ -1943,8 +1943,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         -----
         .. versionadded:: 0.24.0
         """
-        self.annotations.description = _rename_annotations(
-            self.annotations.description, mapping, verbose)
+        self.annotations.rename(mapping, verbose=verbose)
         return self
 
 
