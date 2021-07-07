@@ -23,11 +23,12 @@ from mne.forward import use_coil_def
 from mne.io import (read_raw_fif, read_info, read_raw_bti, read_raw_kit,
                     BaseRaw, read_raw_ctf)
 from mne.io.constants import FIFF
+from mne.preprocessing import (maxwell_filter, find_bad_channels_maxwell,
+                               annotate_flat, compute_maxwell_basis)
 from mne.preprocessing.maxwell import (
-    maxwell_filter, _get_n_moments, _sss_basis_basic, _sh_complex_to_real,
+    _get_n_moments, _sss_basis_basic, _sh_complex_to_real,
     _sh_real_to_complex, _sh_negate, _bases_complex_to_real, _trans_sss_basis,
-    _bases_real_to_complex, _prep_mf_coils, find_bad_channels_maxwell,
-    compute_maxwell_basis)
+    _bases_real_to_complex, _prep_mf_coils)
 from mne.rank import _get_rank_sss, _compute_rank_int, compute_rank
 from mne.utils import (assert_meg_snr, catch_logging,
                        object_diff, buggy_mkl_svd, use_log_level)
@@ -1367,6 +1368,49 @@ def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, ignore_ref,
                           min(min_count, len(got_scores['bins'])))
         bads = set(got_scores['ch_names'][ch_idx])
         assert bads == set(want_bads)
+
+
+def test_find_bads_maxwell_flat():
+    """Test find_bads_maxwell when there are flat channels."""
+    # See gh-9479
+    raw = mne.io.read_raw_fif(raw_small_fname).load_data()
+    assert_allclose(raw.times[-1], 23.97, atol=1e-2)
+    noisy, flat = find_bad_channels_maxwell(raw, min_count=1)
+    assert noisy == ['MEG 1032', 'MEG 2313', 'MEG 2443']
+    assert flat == []
+    n = int(round(raw.info['sfreq'] * 10))
+    assert (len(raw.times) - n) / raw.info['sfreq'] > 10  # at least 10 sec
+    with catch_logging() as log:
+        want_noisy, want_flat = find_bad_channels_maxwell(
+            raw.copy().crop(n / raw.info['sfreq'], None), min_count=1,
+            verbose='debug')
+    log = log.getvalue()
+    assert 'in 2 intervals ' in log
+    assert want_noisy == ['MEG 2313', 'MEG 2443']
+    assert want_flat == []
+    raw._data[:, :n] = 0
+    with pytest.warns(RuntimeWarning, match='All-flat segment detected'):
+        with catch_logging() as log:
+            noisy, flat = find_bad_channels_maxwell(
+                raw, min_count=1, verbose='debug')
+    log = log.getvalue()
+    assert ' in 4 intervals ' in log
+    assert flat == raw.ch_names[:306]
+    assert noisy == []  # none found because all flat
+    # now do what we suggest in the warning
+    annot, _ = annotate_flat(raw, bad_percent=100, min_duration=1.)
+    assert_allclose(annot.duration, 10., atol=1e-2)  # not even divisor sfreq
+    raw.info['bads'] = []
+    raw.set_annotations(annot)
+    data_good = raw.get_data(reject_by_annotation='omit')
+    assert data_good.shape[1] / raw.info['sfreq'] / 5. > 2  # at least 10 sec
+    with catch_logging() as log:
+        noisy, flat = find_bad_channels_maxwell(
+            raw, min_count=1, skip_by_annotation='bad_flat', verbose='debug')
+    log = log.getvalue()
+    assert ' in 2 intervals ' in log, log
+    assert flat == want_flat
+    assert noisy == want_noisy
 
 
 @pytest.mark.parametrize('regularize, n', [

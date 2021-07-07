@@ -29,9 +29,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 import nibabel as nib
-from dipy.align import (affine_registration, center_of_mass, translation,
-                        rigid, affine, resample)
-from dipy.align.reslice import reslice
+import nilearn.plotting
+from dipy.align import resample
 
 import mne
 from mne.datasets import fetch_fsaverage
@@ -71,7 +70,7 @@ fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)  # downloads if needed
 #     ``256 x 256 x 256`` voxels.
 #
 # .. note::
-#     Using the ``--deface`` flag will create a defaced, anonymized T1 image
+#     Using the ``-deface`` flag will create a defaced, anonymized T1 image
 #     located at ``$MY_DATA_DIRECTORY/$SUBJECT/mri/orig_defaced.mgz``,
 #     which is helpful for when you publish your data. You can also use
 #     :func:`mne_bids.write_anat` and pass ``deface=True``.
@@ -89,11 +88,11 @@ fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)  # downloads if needed
 def plot_overlay(image, compare, title, thresh=None):
     """Define a helper function for comparing plots."""
     image = nib.orientations.apply_orientation(
-        image.get_fdata().copy(), nib.orientations.axcodes2ornt(
-            nib.orientations.aff2axcodes(image.affine)))
+        np.asarray(image.dataobj), nib.orientations.axcodes2ornt(
+            nib.orientations.aff2axcodes(image.affine))).astype(np.float32)
     compare = nib.orientations.apply_orientation(
-        compare.get_fdata().copy(), nib.orientations.axcodes2ornt(
-            nib.orientations.aff2axcodes(compare.affine)))
+        np.asarray(compare.dataobj), nib.orientations.axcodes2ornt(
+            nib.orientations.aff2axcodes(compare.affine))).astype(np.float32)
     if thresh is not None:
         compare[compare < np.quantile(compare, thresh)] = np.nan
     fig, axes = plt.subplots(1, 3, figsize=(12, 4))
@@ -111,90 +110,35 @@ def plot_overlay(image, compare, title, thresh=None):
 T1 = nib.load(op.join(misc_path, 'seeg', 'sample_seeg_T1.mgz'))
 CT_orig = nib.load(op.join(misc_path, 'seeg', 'sample_seeg_CT.mgz'))
 
-# resample to T1 shape
-CT_resampled = resample(moving=CT_orig.get_fdata(),
-                        static=T1.get_fdata(),
+# resample to T1's definition of world coordinates
+CT_resampled = resample(moving=np.asarray(CT_orig.dataobj),
+                        static=np.asarray(T1.dataobj),
                         moving_affine=CT_orig.affine,
-                        static_affine=T1.affine,
-                        between_affine=None)
+                        static_affine=T1.affine)
 plot_overlay(T1, CT_resampled, 'Unaligned CT Overlaid on T1', thresh=0.95)
+del CT_resampled
 
 ###############################################################################
 # Now we need to align our CT image to the T1 image.
 #
-# .. code-block:: python
+# We want this to be a rigid transformation (just rotation + translation),
+# so we don't do a full affine registration (that includes shear) here.
+# This takes a while (~10 minutes) to execute so we skip actually running it
+# here::
 #
-#     # normalize intensities
-#     mri_to = T1.get_fdata().copy()
-#     mri_to /= mri_to.max()
-#     ct_from = CT_orig.get_fdata().copy()
-#     ct_from /= ct_from.max()
+#    reg_affine, _ = mne.transforms.compute_volume_registration(
+#        CT_orig, T1, pipeline='rigids', verbose=True)
 #
-#     # downsample for speed
-#     zooms = (5, 5, 5)
-#     mri_to, affine_to = reslice(
-#         mri_to, affine=T1.affine,
-#         zooms=T1.header.get_zooms()[:3], new_zooms=zooms)
-#     ct_from, affine_from = reslice(
-#         ct_from, affine=CT_orig.affine,
-#         zooms=CT_orig.header.get_zooms()[:3], new_zooms=zooms)
-#
-#     # first optimize the translation on the zoomed images using
-#     # ``factors`` which looks at the image at different scales
-#     reg_affine = affine_registration(
-#         moving=ct_from,
-#         static=mri_to,
-#         moving_affine=affine_from,
-#         static_affine=affine_to,
-#         nbins=32,
-#         metric='MI',
-#         pipeline=[center_of_mass, translation],
-#         level_iters=[100, 100, 10],
-#         sigmas=[3.0, 1.0, 0.0],
-#         factors=[4, 2, 1])[1]
-#
-#     CT_translated = resample(moving=CT_orig.get_fdata(),
-#                              static=T1.get_fdata(),
-#                              moving_affine=CT_orig.affine,
-#                              static_affine=T1.affine,
-#                              between_affine=reg_affine)
-#
-#     # Now, fine-tune the registration
-#     reg_affine = affine_registration(
-#         moving=CT_translated.get_fdata(),
-#         static=T1.get_fdata(),
-#         moving_affine=CT_translated.affine,
-#         static_affine=T1.affine,
-#         nbins=32,
-#         metric='MI',
-#         pipeline=[rigid],
-#         level_iters=[100, 100, 10],
-#         sigmas=[3.0, 1.0, 0.0],
-#         factors=[4, 2, 1])[1]
-#
-#     CT_aligned = resample(moving=CT_translated.get_fdata(),
-#                           static=T1.get_fdata(),
-#                           moving_affine=CT_translated.affine,
-#                           static_affine=T1.affine,
-#                           between_affine=reg_affine)
+# And instead we just hard-code the resulting 4x4 matrix:
 
-
-###############################################################################
-# The previous section takes several minutes to execute so the results are
-# presented here pre-computed for convenience.
-
-alignment_affine = np.array([
-    [0.99235816, -0.03412124, 0.11857915, -133.22262329],
-    [0.04601133, 0.99402046, -0.09902669, -97.64542095],
-    [-0.11449119, 0.10372593, 0.98799428, -84.39915646],
+reg_affine = np.array([
+    [0.99270756, -0.03243313, 0.11610254, -133.094156],
+    [0.04374389, 0.99439665, -0.09623816, -97.58320673],
+    [-0.11233068, 0.10061512, 0.98856381, -84.45551601],
     [0., 0., 0., 1.]])
-CT_aligned = resample(moving=CT_orig.get_fdata(),
-                      static=T1.get_fdata(),
-                      moving_affine=CT_orig.affine,
-                      static_affine=T1.affine,
-                      between_affine=alignment_affine)
-
+CT_aligned = mne.transforms.apply_volume_registration(CT_orig, T1, reg_affine)
 plot_overlay(T1, CT_aligned, 'Aligned CT Overlaid on T1', thresh=0.95)
+del CT_orig
 
 ###############################################################################
 # We can now see how the CT image looks properly aligned to the T1 image.
@@ -207,15 +151,17 @@ plot_overlay(T1, CT_aligned, 'Aligned CT Overlaid on T1', thresh=0.95)
 # make low intensity parts of the CT transparent for easier visualization
 CT_data = CT_aligned.get_fdata().copy()
 CT_data[CT_data < np.quantile(CT_data, 0.95)] = np.nan
+T1_data = np.asarray(T1.dataobj)
 
 fig, axes = plt.subplots(1, 3, figsize=(12, 6))
 for ax in axes:
     ax.axis('off')
-axes[0].imshow(T1.get_fdata()[T1.shape[0] // 2], cmap='gray')
+axes[0].imshow(T1_data[T1.shape[0] // 2], cmap='gray')
 axes[0].set_title('MR')
-axes[1].imshow(CT_aligned.get_fdata()[CT_aligned.shape[0] // 2], cmap='gray')
+axes[1].imshow(np.asarray(CT_aligned.dataobj)[CT_aligned.shape[0] // 2],
+               cmap='gray')
 axes[1].set_title('CT')
-axes[2].imshow(T1.get_fdata()[T1.shape[0] // 2], cmap='gray')
+axes[2].imshow(T1_data[T1.shape[0] // 2], cmap='gray')
 axes[2].imshow(CT_data[CT_aligned.shape[0] // 2], cmap='gist_heat', alpha=0.5)
 for ax in (axes[0], axes[2]):
     ax.annotate('Subcutaneous fat', (110, 52), xytext=(100, 30),
@@ -227,6 +173,7 @@ for ax in axes:
                 color='white', arrowprops=dict(facecolor='white'))
 axes[2].set_title('CT aligned to MR')
 fig.tight_layout()
+del CT_data, T1
 
 ###############################################################################
 # Marking the Location of Each Electrode Contact
@@ -249,7 +196,7 @@ fig.tight_layout()
 # .. code-block:: bash
 #
 #     $ freeview $MISC_PATH/seeg/sample_seeg_T1.mgz \
-#       $MISC_PATH/seeg/sample_seeg_CT.mgz
+#           $MISC_PATH/seeg/sample_seeg_CT.mgz
 #
 # Now, we'll need the subject's brain segmented out from the rest of the T1
 # image from the freesurfer ``recon-all`` reconstruction. This is so that
@@ -258,7 +205,7 @@ fig.tight_layout()
 #
 # Let's plot the electrode contact locations on the subject's brain.
 
-# Load electrode positions from file
+# load electrode positions from file
 elec_df = pd.read_csv(op.join(misc_path, 'seeg', 'sample_seeg_electrodes.tsv'),
                       sep='\t', header=0, index_col=None)
 ch_names = elec_df['name'].tolist()
@@ -267,8 +214,9 @@ ch_coords = elec_df[['R', 'A', 'S']].to_numpy(dtype=float)
 # load the subject's brain
 subject_brain = nib.load(op.join(misc_path, 'seeg', 'sample_seeg_brain.mgz'))
 
-# Make brain surface from T1
-verts, triangles = mne.marching_cubes(subject_brain.get_fdata(), level=100)
+# make brain surface from T1
+verts, triangles = mne.surface.marching_cubes(
+    np.asarray(subject_brain.dataobj), level=100)
 # transform from voxels to surface RAS
 verts = mne.transforms.apply_trans(
     subject_brain.header.get_vox2ras_tkr(), verts) / 1000.  # to meters
@@ -279,7 +227,7 @@ renderer.mesh(*verts.T, triangles=triangles, color='gray',
               opacity=0.05, representation='surface')
 for ch_coord in ch_coords:
     renderer.sphere(center=tuple(ch_coord / 1000.), color='y', scale=0.005)
-view_kwargs = dict(azimuth=40, elevation=60)
+view_kwargs = dict(azimuth=60, elevation=100)
 mne.viz.set_3d_view(renderer.figure, focalpoint=(0, 0, 0), distance=0.3,
                     **view_kwargs)
 renderer.show()
@@ -309,63 +257,23 @@ plot_overlay(template_brain, subject_brain,
 # Now, we'll register the affine of the subject's brain to the template brain.
 # This aligns the two brains, preparing the subject's brain to be warped
 # to the template.
-
-# normalize intensities
-mri_to = template_brain.get_fdata().copy()
-mri_to /= mri_to.max()
-mri_from = subject_brain.get_fdata().copy()
-mri_from /= mri_from.max()
-
-# downsample for speed
-zooms = (5, 5, 5)
-mri_to, affine_to = reslice(
-    mri_to, affine=template_brain.affine,
-    zooms=template_brain.header.get_zooms()[:3], new_zooms=zooms)
-mri_from, affine_from = reslice(
-    mri_from, affine=subject_brain.affine,
-    zooms=subject_brain.header.get_zooms()[:3], new_zooms=zooms)
-
-reg_affine = affine_registration(
-    moving=mri_from,
-    static=mri_to,
-    moving_affine=affine_from,
-    static_affine=affine_to,
-    nbins=32,
-    metric='MI',
-    pipeline=[center_of_mass, translation, rigid, affine],
-    level_iters=[100, 100, 10],
-    sigmas=[3.0, 1.0, 0.0],
-    factors=[4, 2, 1])[1]
-
-# Apply the transform to the subject brain to plot it
-subject_brain_aligned = resample(moving=subject_brain.get_fdata(),
-                                 static=template_brain.get_fdata(),
-                                 moving_affine=subject_brain.affine,
-                                 static_affine=template_brain.affine,
-                                 between_affine=reg_affine)
-plot_overlay(template_brain, subject_brain_aligned,
-             'Alignment with fsaverage after Affine Registration')
-
-###############################################################################
-# Next, we'll compute the symmetric diffeomorphic registration. This accounts
-# for differences in the shape and size of the subject's brain areas
-# compared to the template brain.
 #
-# This takes several minutes, so it won't actually be executed in the
-# tutorial, instead, we'll just use pre-computed results for convenience.
-#
-# .. code-block:: python
-#
-#     from dipy.align.metrics import CCMetric
-#     from dipy.align.imwarp import SymmetricDiffeomorphicRegistration
-#     # Compute registration
-#     sdr = SymmetricDiffeomorphicRegistration(
-#         metric=CCMetric(3), level_iters=[10, 10, 5])
-#     mapping = sdr.optimize(static=template_brain.get_fdata(),
-#                            moving=subject_brain.get_fdata(),
-#                            static_grid2world=template_brain.affine,
-#                            moving_grid2world=subject_brain.affine,
-#                            prealign=reg_affine)
+# .. warning:: Here we use ``zooms=5`` just for speed, in general we recommend
+#              using ``zooms=None``` (default) for highest accuracy. To deal
+#              with this coarseness, we also use a threshold of 0.8 for the CT
+#              electrodes rather than 0.95. This coarse zoom and low threshold
+#              is useful for getting a quick view of the data, but finalized
+#              pipelines should use ``zooms=None`` instead!
+
+CT_thresh = 0.8  # 0.95 is better for zooms=None!
+reg_affine, sdr_morph = mne.transforms.compute_volume_registration(
+    subject_brain, template_brain, zooms=5, verbose=True)
+subject_brain_sdr = mne.transforms.apply_volume_registration(
+    subject_brain, template_brain, reg_affine, sdr_morph)
+
+# apply the transform to the subject brain to plot it
+plot_overlay(template_brain, subject_brain_sdr,
+             'Alignment with fsaverage after SDR Registration')
 
 ###############################################################################
 # Finally, we'll apply the registrations to the electrode contact coordinates.
@@ -377,46 +285,68 @@ plot_overlay(template_brain, subject_brain_aligned,
 # the SDR transform. We can finally recover a position by averaging the
 # positions of all the voxels that had the contact's lookup number in
 # the warped image.
-#
-# .. code-block:: python
-#
-#     # convert electrode positions from surface RAS to voxels
-#     ch_coords = mne.transforms.apply_trans(
-#         np.linalg.inv(subject_brain.header.get_vox2ras_tkr()), ch_coords)
-#
-#     # Take channel coordinates and use the CT to transform them
-#     # into a 3D image where all the voxels over a threshold nearby
-#     # are labeled with an index
-#     CT_data = CT_aligned.get_fdata()
-#     thresh = np.quantile(CT_data, 0.95)
-#     elec_image = np.zeros(subject_brain.shape, dtype=int)
-#     for i, ch_coord in enumerate(ch_coords):
-#         # this looks up to a voxel away, it may be marked imperfectly
-#         volume = mne.voxel_neighbors(ch_coord, CT_data, thresh)
-#         for voxel in volume:
-#             if elec_image[voxel] != 0:
-#                 # some voxels ambiguous because the contacts are bridged on
-#                 # the CT so assign the voxel to the nearest contact location
-#                 dist_old = np.sqrt(
-#                     (ch_coords[elec_image[voxel] - 1] - voxel)**2).sum()
-#                 dist_new = np.sqrt((ch_coord - voxel)**2).sum()
-#                 if dist_new < dist_old:
-#                     elec_image[voxel] = i + 1
-#             else:
-#                 elec_image[voxel] = i + 1
-#
-#     # Apply the mapping
-#     warped_elec_image = mapping.transform(elec_image,
-#                                           interpolation='nearest')
-#
-#     # Recover the electrode contact positions as the center of mass
-#     for i in range(ch_coords.shape[0]):
-#         ch_coords[i] = np.array(
-#             np.where(warped_elec_image == i + 1)).mean(axis=1)
-#
-#     # Convert back to surface RAS but to the template surface RAS this time
-#     ch_coords = mne.transforms.apply_trans(
-#         template_brain.header.get_vox2ras_tkr(), ch_coords)
+
+# convert electrode positions from surface RAS to voxels
+ch_coords = mne.transforms.apply_trans(
+    np.linalg.inv(subject_brain.header.get_vox2ras_tkr()), ch_coords)
+# take channel coordinates and use the CT to transform them
+# into a 3D image where all the voxels over a threshold nearby
+# are labeled with an index
+CT_data = CT_aligned.get_fdata()
+thresh = np.quantile(CT_data, CT_thresh)
+elec_image = np.zeros(subject_brain.shape, dtype=int)
+for i, ch_coord in enumerate(ch_coords):
+    # this looks up to a voxel away, it may be marked imperfectly
+    volume = mne.voxel_neighbors(ch_coord, CT_data, thresh)
+    for voxel in volume:
+        if elec_image[voxel] != 0:
+            # some voxels ambiguous because the contacts are bridged on
+            # the CT so assign the voxel to the nearest contact location
+            dist_old = np.sqrt(
+                (ch_coords[elec_image[voxel] - 1] - voxel)**2).sum()
+            dist_new = np.sqrt((ch_coord - voxel)**2).sum()
+            if dist_new < dist_old:
+                elec_image[voxel] = i + 1
+        else:
+            elec_image[voxel] = i + 1
+
+# apply the mapping
+elec_image = nib.Nifti1Image(elec_image, subject_brain.affine)
+
+# ensure that each electrode contact was marked in at least one voxel
+assert set(np.arange(1, ch_coords.shape[0] + 1)).difference(
+    set(np.unique(elec_image.get_fdata()))) == set()
+
+del subject_brain, CT_aligned, CT_data  # not used anymore
+
+###############################################################################
+# Warp and plot the result.
+
+warped_elec_image = mne.transforms.apply_volume_registration(
+    elec_image, template_brain, reg_affine, sdr_morph, interpolation='nearest')
+
+# ensure that all the electrode contacts were warped to the template
+assert set(np.arange(1, ch_coords.shape[0] + 1)).difference(
+    set(np.unique(warped_elec_image.get_fdata()))) == set()
+
+fig, axes = plt.subplots(2, 1, figsize=(8, 8))
+nilearn.plotting.plot_glass_brain(elec_image, axes=axes[0], cmap='Dark2')
+fig.text(0.1, 0.65, 'Subject T1', rotation='vertical')
+nilearn.plotting.plot_glass_brain(warped_elec_image, axes=axes[1],
+                                  cmap='Dark2')
+fig.text(0.1, 0.25, 'fsaverage', rotation='vertical')
+fig.suptitle('Electrodes warped to fsaverage')
+
+# recover the electrode contact positions as the center of mass
+warped_elec_data = warped_elec_image.get_fdata()
+for val, ch_coord in enumerate(ch_coords, 1):
+    ch_coord[:] = np.array(
+        np.where(warped_elec_data == val), float).mean(axis=1)
+
+# convert back to surface RAS but to the template surface RAS this time
+ch_coords = mne.transforms.apply_trans(
+    template_brain.header.get_vox2ras_tkr(), ch_coords)
+del template_brain
 
 ###############################################################################
 # We can now plot the result. You can compare this to the plot in
@@ -426,13 +356,7 @@ plot_overlay(template_brain, subject_brain_aligned,
 # SDR to warp the positions of the electrode contacts, the position in the
 # template brain is able to be more accurately estimated.
 
-# sphinx_gallery_thumbnail_number = 7
-
-# load pre-computed warped values
-elec_df = pd.read_csv(
-    op.join(misc_path, 'seeg', 'sample_seeg_electrodes_fsaverage.tsv'),
-    sep='\t', header=0, index_col=None)
-ch_coords = elec_df[['R', 'A', 'S']].to_numpy(dtype=float)
+# sphinx_gallery_thumbnail_number = 8
 
 # load electrophysiology data
 raw = mne.io.read_raw(op.join(misc_path, 'seeg', 'sample_seeg_ieeg.fif'))
@@ -441,7 +365,7 @@ lpa, nasion, rpa = mne.coreg.get_mni_fiducials(
     'fsaverage', subjects_dir=subjects_dir)
 lpa, nasion, rpa = lpa['r'], nasion['r'], rpa['r']
 
-# Create a montage with our new points
+# create a montage with our new points
 ch_pos = dict(zip(ch_names, ch_coords / 1000))  # mm -> m
 montage = mne.channels.make_dig_montage(
     ch_pos, coord_frame='mri', nasion=nasion, lpa=lpa, rpa=rpa)
