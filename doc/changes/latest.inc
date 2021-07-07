@@ -83,6 +83,9 @@ Enhancements
 
 - Add :meth:`annotations.set_durations() <mne.Annotations.set_durations>` to set annotation durations (:gh:`9529` by `Robert Luke`_)
 
+- Add ``exclude`` parameter to :meth:`mne.io.Raw.plot_psd` and :meth:`mne.Epochs.plot_psd` (:gh:`9519` by `Clemens Brunner`_)
+
+
 Bugs
 ~~~~
 - Fix bug with :meth:`mne.Epochs.crop` and :meth:`mne.Evoked.crop` when ``include_tmax=False``, where the last sample was always cut off, even when ``tmax > epo.times[-1]`` (:gh:`9378` **by new contributor** |Jan Sosulski|_)

@@ -917,7 +917,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
                     xscale='linear', area_mode='std', area_alpha=0.33,
                     dB=True, estimate='auto', show=True, n_jobs=1,
                     average=False, line_alpha=None, spatial_colors=True,
-                    sphere=None, verbose=None):
+                    sphere=None, exclude='bads', verbose=None):
     """%(plot_psd_doc)s.
 
     Parameters
@@ -962,6 +962,12 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     %(plot_psd_line_alpha)s
     %(plot_psd_spatial_colors)s
     %(topomap_sphere_auto)s
+    exclude : list of str | 'bads'
+        Channels names to exclude from being shown. If 'bads', the bad channels
+        are excluded. Pass an empty list to plot all channels (including
+        channels marked "bad", if any).
+
+        .. versionadded:: 0.24.0
     %(verbose)s
 
     Returns
@@ -981,6 +987,6 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
         line_alpha=line_alpha, area_alpha=area_alpha, color=color,
         spatial_colors=spatial_colors, n_jobs=n_jobs, bandwidth=bandwidth,
         adaptive=adaptive, low_bias=low_bias, normalization=normalization,
-        window='hamming')
+        window='hamming', exclude=exclude)
     plt_show(show)
     return fig
