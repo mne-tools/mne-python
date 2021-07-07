@@ -569,7 +569,7 @@ class Annotations(object):
 
     @verbose
     def set_durations(self, mapping, verbose=None):
-        """Set annotation durations(s). Operates inplace.
+        """Set annotation duration(s). Operates inplace.
 
         Parameters
         ----------

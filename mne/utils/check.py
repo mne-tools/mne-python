@@ -13,6 +13,7 @@ import os.path as op
 from pathlib import Path
 import sys
 import warnings
+import numbers
 
 import numpy as np
 
@@ -337,7 +338,7 @@ def _check_ch_locs(chs):
 
 
 def _is_numeric(n):
-    return isinstance(n, (np.integer, np.floating, int, float))
+    return isinstance(n, numbers.Number)
 
 
 class _IntLike(object):
