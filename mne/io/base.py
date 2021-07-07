@@ -604,6 +604,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     @property
     def annotations(self):  # noqa: D401
+    def annotations(self):  # noqa: D401
         """:class:`~mne.Annotations` for marking segments of data."""
         return self._annotations
 
@@ -1936,8 +1937,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Returns
         -------
-        self : mne.Annotations
-            The modified Annotations object.
+        raw : instance of Raw
+            The Raw instance with modified annotations. Works in-place.
 
         Notes
         -----

@@ -595,17 +595,14 @@ class Annotations(object):
 @verbose
 def _rename_annotations(desc, mapping, verbose=None):
 
-    if isinstance(mapping, dict):
-        orig_annots = sorted(list(mapping.keys()))
-        missing = [annot not in desc for annot in orig_annots]
-        if any(missing):
-            raise ValueError(
-                "Annotation description(s) in mapping missing from data: "
-                "%s" % np.array(orig_annots)[np.array(missing)])
-    else:
-        raise ValueError("Renaming requires the mapping of descriptions "
-                         "to be provided as a dict. "
-                         f"Instead {type(mapping)} was provided.")
+    _validate_type(mapping, dict)
+
+    orig_annots = sorted(list(mapping.keys()))
+    missing = [annot not in desc for annot in orig_annots]
+    if any(missing):
+        raise ValueError(
+            "Annotation description(s) in mapping missing from data: "
+            "%s" % np.array(orig_annots)[np.array(missing)])
 
     for old, new in mapping.items():
         desc = [d.replace(old, new) for d in desc]

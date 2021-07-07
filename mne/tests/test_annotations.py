@@ -1329,11 +1329,11 @@ def test_annotation_rename():
         a.rename({"aaa": "does not exist"})
     with pytest.raises(ValueError, match="[' a']"):
         a.rename({" a": "does not exist"})
-    with pytest.raises(ValueError, match="<class 'str'> was provided"):
+    with pytest.raises(TypeError, match="dict, got <class 'str'> instead"):
         a.rename("wrong")
-    with pytest.raises(ValueError, match="<class 'list'> was provided"):
+    with pytest.raises(TypeError, match="dict, got <class 'list'> instead"):
         a.rename(["wrong"])
-    with pytest.raises(ValueError, match="<class 'set'> was provided"):
+    with pytest.raises(TypeError, match="dict, got <class 'set'> instead"):
         a.rename({"wrong"})
 
     # Test on raw.rename_annotations
@@ -1361,5 +1361,5 @@ def test_annotation_rename():
         raw.rename_annotations({"aaa": "does not exist"})
     with pytest.raises(ValueError, match="[' a']"):
         raw.rename_annotations({" a": "does not exist"})
-    with pytest.raises(ValueError, match="<class 'str'> was provided"):
+    with pytest.raises(TypeError, match="dict, got <class 'str'> instead"):
         raw.rename_annotations("wrong")
