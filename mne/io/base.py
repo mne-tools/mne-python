@@ -604,7 +604,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     @property
     def annotations(self):  # noqa: D401
-    def annotations(self):  # noqa: D401
         """:class:`~mne.Annotations` for marking segments of data."""
         return self._annotations
 
