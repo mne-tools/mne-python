@@ -6,11 +6,9 @@
 
 import numpy as np
 
-from ... import pick_types
 from ...io import BaseRaw
 from ...utils import _validate_type, verbose
 from ..nirs import _channel_frequencies, _check_channels_ordered
-from ...filter import filter_data
 
 
 @verbose
