@@ -28,7 +28,7 @@ from .surface import read_surface, write_surface, _normalize_vectors
 from .bem import read_bem_surfaces, write_bem_surfaces
 from .transforms import (rotation, rotation3d, scaling, translation, Transform,
                          _read_fs_xfm, _write_fs_xfm, invert_transform,
-                         combine_transforms, _quat_to_euler,
+                         combine_transforms, _quat_to_euler, write_trans,
                          _fit_matched_points, apply_trans)
 from .utils import (get_config, get_subjects_dir, logger, pformat, verbose,
                     warn, has_nibabel)
@@ -1251,6 +1251,18 @@ class Coregistration(object):
         self.nearest_calc = self._nearest_calc_default()
 
     @property
+    def transformed_hsp_hpi(self):
+        return apply_trans(self.hsp_trans, self.hsp.hpi_points)
+
+    @property
+    def transformed_hsp_eeg_points(self):
+        return apply_trans(self.hsp_trans, self.hsp.eeg_points)
+
+    @property
+    def transformed_hsp_points(self):
+        return apply_trans(self.hsp_trans, self.hsp.points)
+
+    @property
     def hsp_trans(self):
         if self.coord_frame == 'head':
             t = np.eye(4)
@@ -1485,7 +1497,28 @@ class Coregistration(object):
             self.hsp.points_filter = mask
 
     def point_distance(self):
-        pass
+        mri_points = list()
+        hsp_points = list()
+        if self.hsp_weight > 0 and self.has_hsp_data:
+            mri_points.append(self.transformed_high_res_mri_points[
+                self.nearest_transformed_high_res_mri_idx_hsp])
+            hsp_points.append(self.transformed_hsp_points)
+            assert len(mri_points[-1]) == len(hsp_points[-1])
+        if self.eeg_weight > 0 and self.has_eeg_data:
+            mri_points.append(self.transformed_high_res_mri_points[
+                self.nearest_transformed_high_res_mri_idx_eeg])
+            hsp_points.append(self.transformed_hsp_eeg_points)
+            assert len(mri_points[-1]) == len(hsp_points[-1])
+        if self.hpi_weight > 0 and self.has_hpi_data:
+            mri_points.append(self.transformed_high_res_mri_points[
+                self.nearest_transformed_high_res_mri_idx_hpi])
+            hsp_points.append(self.transformed_hsp_hpi)
+            assert len(mri_points[-1]) == len(hsp_points[-1])
+        if all(len(h) == 0 for h in hsp_points):
+            return None
+        mri_points = np.concatenate(mri_points)
+        hsp_points = np.concatenate(hsp_points)
+        return np.linalg.norm(mri_points - hsp_points, axis=-1)
 
     def save_trans(self, fname):
-        pass
+        write_trans(fname, Transform('head', 'mri', self.head_mri_t))
