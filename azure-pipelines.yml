@@ -98,7 +98,7 @@ stages:
       displayName: 'Test minimal commands'
     - task: UsePythonVersion@0
       inputs:
-        versionSpec: '3.9'
+        versionSpec: '3.8'
         architecture: 'x64'
         addToPath: true
       displayName: 'Get Python'
@@ -108,7 +108,7 @@ stages:
     - bash: |
         set -e
         python -m pip install --upgrade pip setuptools
-        python -m pip install --upgrade numpy scipy vtk -r requirements.txt -r requirements_testing.txt -r requirements_testing_extra.txt codecov
+        python -m pip install --upgrade numpy scipy "vtk<=9.0.1" -r requirements.txt -r requirements_testing.txt -r requirements_testing_extra.txt codecov
       displayName: 'Install dependencies with pip'
     - bash: source tools/get_testing_version.sh
       displayName: 'Get testing version'
