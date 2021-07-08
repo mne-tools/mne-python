@@ -35,67 +35,12 @@ from .utils import (get_subjects_dir, check_fname, logger, verbose, fill_doc,
                     _ensure_int, check_version, _get_call_line, warn,
                     _check_fname, _check_path_like, _check_sphere,
                     _validate_type, _check_option, _is_numeric, _pl, _suggest,
-                    object_size, sizeof_fmt)
+                    object_size, sizeof_fmt, read_freesurfer_lut)
 from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
                          combine_transforms, _get_trans,
                          _coord_frame_name, Transform, _str_to_frame,
                          _ensure_trans, read_ras_mni_t)
-
-
-def read_freesurfer_lut(fname=None):
-    """Read a Freesurfer-formatted LUT.
-
-    Parameters
-    ----------
-    fname : str | None
-        The filename. Can be None to read the standard Freesurfer LUT.
-
-    Returns
-    -------
-    atlas_ids : dict
-        Mapping from label names to IDs.
-    colors : dict
-        Mapping from label names to colors.
-    """
-    lut = _get_lut(fname)
-    names, ids = lut['name'], lut['id']
-    colors = np.array([lut['R'], lut['G'], lut['B'], lut['A']], float).T
-    atlas_ids = dict(zip(names, ids))
-    colors = dict(zip(names, colors))
-    return atlas_ids, colors
-
-
-def _get_lut(fname=None):
-    """Get a FreeSurfer LUT."""
-    _validate_type(fname, ('path-like', None), 'fname')
-    if fname is None:
-        fname = op.join(op.dirname(__file__), 'data', 'FreeSurferColorLUT.txt')
-    _check_fname(fname, 'read', must_exist=True)
-    dtype = [('id', '<i8'), ('name', 'U'),
-             ('R', '<i8'), ('G', '<i8'), ('B', '<i8'), ('A', '<i8')]
-    lut = {d[0]: list() for d in dtype}
-    with open(fname, 'r') as fid:
-        for line in fid:
-            line = line.strip()
-            if line.startswith('#') or not line:
-                continue
-            line = line.split()
-            if len(line) != len(dtype):
-                raise RuntimeError(f'LUT is improperly formatted: {fname}')
-            for d, part in zip(dtype, line):
-                lut[d[0]].append(part)
-    lut = {d[0]: np.array(lut[d[0]], dtype=d[1]) for d in dtype}
-    assert len(lut['name']) > 0
-    return lut
-
-
-def _get_lut_id(lut, label):
-    """Convert a label to a LUT ID number."""
-    assert isinstance(label, str)
-    mask = (lut['name'] == label)
-    assert mask.sum() == 1
-    return lut['id'][mask]
 
 
 _src_kind_dict = {
@@ -428,7 +373,7 @@ class SourceSpaces(list):
         # use lookup table to assign values to source spaces
         logger.info('Reading FreeSurfer lookup table')
         # read the lookup table
-        lut = _get_lut()
+        lut, _ = read_freesurfer_lut()
 
         # Setup a dictionary of source types
         src_types = dict(volume=[], surface_discrete=[])
@@ -492,7 +437,7 @@ class SourceSpaces(list):
             # find the color value for this volume
             use_id = 1.
             if mri_resolution is True or use_lut:
-                id_ = _get_lut_id(lut, vs['seg_name'])
+                id_ = lut[vs['seg_name']]
                 if use_lut:
                     use_id = id_
 
@@ -521,7 +466,7 @@ class SourceSpaces(list):
                         FIFF.FIFFV_MNE_SURF_LEFT_HEMI: 'Left',
                         FIFF.FIFFV_MNE_SURF_RIGHT_HEMI: 'Right',
                     }[src['id']] + '-Cerebral-Cortex'
-                    val = _get_lut_id(lut, surf_name)
+                    val = lut[surf_name]
             else:
                 assert src['type'] == 'discrete'
                 if not include_discrete:

@@ -23,7 +23,7 @@ from .check import (check_fname, check_version, check_random_state,
 from .config import (set_config, get_config, get_config_path, set_cache_dir,
                      set_memmap_min_size, get_subjects_dir, _get_stim_channel,
                      sys_info, _get_extra_data_path, _get_root_dir,
-                     _get_numpy_libs)
+                     _get_numpy_libs, read_freesurfer_lut)
 from .docs import (copy_function_doc_to_method_doc, copy_doc, linkcode_resolve,
                    open_docs, deprecated, fill_doc, deprecated_alias,
                    copy_base_doc_to_subclass_doc, docdict as _docdict)
