@@ -395,7 +395,8 @@ def _get_lut(fname=None):
     """Get a FreeSurfer LUT."""
     _validate_type(fname, ('path-like', None), 'fname')
     if fname is None:
-        fname = op.join(op.dirname(__file__), 'data', 'FreeSurferColorLUT.txt')
+        fname = op.join(op.dirname(__file__), '..', 'data',
+                        'FreeSurferColorLUT.txt')
     _check_fname(fname, 'read', must_exist=True)
     dtype = [('id', '<i8'), ('name', 'U'),
              ('R', '<i8'), ('G', '<i8'), ('B', '<i8'), ('A', '<i8')]
