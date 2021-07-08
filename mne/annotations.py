@@ -597,7 +597,7 @@ def _rename_annotations(desc, mapping, verbose=None):
 
     _validate_type(mapping, dict)
 
-    orig_annots = sorted(list(mapping.keys()))
+    orig_annots = sorted(list(mapping))
     missing = [annot not in desc for annot in orig_annots]
     if any(missing):
         raise ValueError(
