@@ -586,12 +586,12 @@ def _check_dict_keys(user_dict, valid_keys,
     user_dict
         When the keys are deemed acceptable the dictionary is returned.
     """
-    sorted_dict = sorted(list(user_dict))
-    missing = [val not in valid_keys for val in sorted_dict]
-    if any(missing):
+    sorted_dict = sorted(user_dict)
+    missing = [val for val in sorted_dict if val not in valid_keys]
+    if len(missing):
         raise ValueError(
             f"{dict_name} is missing from {valid_name}: "
-            f"{np.array(sorted_dict)[np.array(missing)]}")
+            f"{missing}")
 
     return user_dict
 
