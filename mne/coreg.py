@@ -1225,8 +1225,7 @@ def _scale_xfm(subject_to, xfm_fname, mri_name, subject_from, scale,
 
 
 class Coregistration(object):
-    def __init__(self, data_path, subject, subjects_dir):
-        from .gui._file_traits import DigSource
+    def __init__(self, info, subject, subjects_dir):
         from .gui._fiducials_gui import MRIHeadWithFiducialsModel
         self.parameters = [0., 0., 0., 0., 0., 0., 1., 1., 1.]
         self.last_parameters = list(self.parameters)
@@ -1249,9 +1248,7 @@ class Coregistration(object):
         self.eeg_weight = 1.
         self.hpi_weight = 1.
 
-        self.hsp = DigSource()
-        self.hsp.file = op.join(data_path, 'MEG', subject,
-                                subject + '_audvis_raw.fif')
+        self.hsp = _DigSource(info)
         self.mri = MRIHeadWithFiducialsModel(subjects_dir=subjects_dir,
                                              subject=subject)
         self.nearest_calc = self._nearest_calc_default()
@@ -1551,3 +1548,66 @@ class Coregistration(object):
 
     def save_trans(self, fname):
         write_trans(fname, Transform('head', 'mri', self.head_mri_t))
+
+
+class _DigSource(object):
+    def __init__(self, info):
+        self._info = info
+
+    @property
+    def _hsp_points(self):
+        if not self._info or not self._info['dig']:
+            return np.empty((0, 3))
+
+        points = np.array([d['r'] for d in self._info['dig']
+                           if d['kind'] == FIFF.FIFFV_POINT_EXTRA])
+        points = np.empty((0, 3)) if len(points) == 0 else points
+        return points
+
+    @property
+    def hpi_points(self):
+        if not self._info or not self._info['dig']:
+            return np.zeros((0, 3))
+
+        out = [d['r'] for d in self._info['dig'] if
+               d['kind'] == FIFF.FIFFV_POINT_HPI and
+               d['coord_frame'] == FIFF.FIFFV_COORD_HEAD]
+        out = np.empty((0, 3)) if len(out) == 0 else np.array(out)
+        return out
+
+    @property
+    def eeg_points(self):
+        if not self._info or not self._info['dig']:
+            return np.empty((0, 3))
+
+        out = [d['r'] for d in self._info['dig'] if
+               d['kind'] == FIFF.FIFFV_POINT_EEG and
+               d['coord_frame'] == FIFF.FIFFV_COORD_HEAD]
+        out = np.empty((0, 3)) if len(out) == 0 else np.array(out)
+        return out
+
+    def _cardinal_point(self, ident):
+        """Coordinates for a cardinal point."""
+        if not self._info or not self._info['dig']:
+            return np.zeros((1, 3))
+
+        for d in self._info['dig']:
+            if d['kind'] == FIFF.FIFFV_POINT_CARDINAL and d['ident'] == ident:
+                return d['r'][None, :]
+        return np.zeros((1, 3))
+
+    @property
+    def nasion(self):
+        return self._cardinal_point(FIFF.FIFFV_POINT_NASION)
+
+    @property
+    def lpa(self):
+        return self._cardinal_point(FIFF.FIFFV_POINT_LPA)
+
+    @property
+    def rpa(self):
+        return self._cardinal_point(FIFF.FIFFV_POINT_RPA)
+
+    @property
+    def points(self):
+        return _fiducial_coords(self._info['dig'])
