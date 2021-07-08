@@ -78,6 +78,12 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                  emg=1e-3, ref_meg=1e-12, misc=1e-3, stim=1,
                  resp=1, chpi=1e-4, whitened=1e2)
 
+        A particular scaling value ``s`` corresponds to half of the visualized
+        signal range around zero (i.e. from ``0`` to ``+s`` or from ``0`` to
+        ``-s``). For example, the default scaling of ``20e-6`` (20µV) for EEG
+        signals means that the visualized range will be 40µV (20µV in the
+        positive direction and 20µV in the negative direction).
+
     remove_dc : bool
         If True remove DC component when plotting data.
     order : array of int | None
