@@ -1355,9 +1355,9 @@ trans : str | dict | instance of Transform | None
        Support for 'fsaverage' argument.
 """ % (_trans_base,)
 docdict['subjects_dir'] = """
-subjects_dir : str | None
+subjects_dir : str | pathlib.Path | None
     The path to the FreeSurfer subjects reconstructions.
-    It corresponds to FreeSurfer environment variable ``SUBJECTS_DIR``.
+    If None, defaults to the ``SUBJECTS_DIR`` environment variable.
 """
 _info_base = ('The :class:`mne.Info` object with information about the '
               'sensors and methods of measurement.')
@@ -1389,6 +1389,14 @@ surface : str
     (the gray-white matter boundary).
 """
 
+
+# Freesurfer
+docdict["aseg"] = """
+aseg : str
+    The anatomical segmentation file. Default ``aparc+aseg``. This may
+    be any anatomical segmentation file in the mri subdirectory of the
+    Freesurfer subject directory.
+"""
 
 # Simulation
 docdict['interp'] = """

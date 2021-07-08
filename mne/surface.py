@@ -11,6 +11,7 @@
 from copy import deepcopy
 from distutils.version import LooseVersion
 from functools import partial, lru_cache
+from collections import OrderedDict
 from glob import glob
 from os import path as op
 from struct import pack
@@ -21,6 +22,7 @@ import numpy as np
 from .channels.channels import _get_meg_system
 from .fixes import (_serialize_volume_info, _get_read_geometry, jit,
                     prange, bincount, _get_img_fdata)
+from ._freesurfer import _check_subject_dir
 from .io.constants import FIFF
 from .io.pick import pick_types
 from .parallel import parallel_func
@@ -1705,17 +1707,6 @@ def marching_cubes(image, level):
     return verts, triangles
 
 
-def _check_subject_dir(subject, subjects_dir):
-    """Check that the Freesurfer subject directory is as expected."""
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
-    brain_fname = op.join(subjects_dir, subject, 'mri', 'brain.mgz')
-    if not op.isfile(t1_fname) or not op.isfile(brain_fname):
-        raise ValueError('Freesurfer recon-all subject folder '
-                         'is incorrect or improperly formatted, '
-                         f'got {op.join(subjects_dir, subject)}')
-
-
 def _get_surface_RAS_volumes(base_image, subject_from, subjects_dir):
     """Check if the image is in Freesurfer surface RAS space."""
     import nibabel as nib
@@ -1730,20 +1721,6 @@ def _get_surface_RAS_volumes(base_image, subject_from, subjects_dir):
                            'it is the space where the anatomical '
                            'segmentation and reconstructed surfaces are')
     return base_image, fs_t1
-
-
-def _ch_coords_to_vox(ch_coords, fs_t1):
-    """Convert channel coordinates from surface RAS to voxel space."""
-    ch_coords = apply_trans(
-        np.linalg.inv(fs_t1.header.get_vox2ras_tkr()), ch_coords * 1000)
-    return ch_coords
-
-
-def _ch_coords_to_surface_RAS(ch_coords, fs_t1):
-    """Convert back to the surface RAS coordinate frame."""
-    ch_coords = apply_trans(
-        fs_t1.header.get_vox2ras_tkr(), ch_coords) / 1000
-    return ch_coords
 
 
 def _warn_missing_chs(montage, dig_image, after_warp):
@@ -1763,15 +1740,12 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
                         subjects_dir=None, thresh=0.95,
                         max_peak_dist=1, voxels_max=100, use_min=False):
     """Warp a montage to a template with image volumes using SDR.
-
     Find areas of the input volume with intensity greater than
     a threshold surrounding local extrema near the channel location.
     Monotonicity from the peak is enforced to prevent channels
     bleeding into each other.
-
     .. note:: This is likely only applicable for channels inside the brain
               (intracranial electrodes).
-
     Parameters
     ----------
     montage : mne.channels.montage.DigMontage
@@ -1801,7 +1775,6 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
     use_min : bool
         Whether to hypointensities in the volume as channel locations.
         Default False uses hyperintensities.
-
     Returns
     -------
     montage_warped : mne.channels.montage.DigMontage
@@ -1844,7 +1817,8 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
     ch_coords = np.array(list(ch_dict['ch_pos'].values()))
 
     # convert to freesurfer voxel space
-    ch_coords = _ch_coords_to_vox(ch_coords, fs_t1)
+    ch_coords = apply_trans(
+        np.linalg.inv(fs_t1.header.get_vox2ras_tkr()), ch_coords * 1000)
 
     # take channel coordinates and use the image to transform them
     # into a volume where all the voxels over a threshold nearby
@@ -1891,7 +1865,8 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
             np.where(warped_data == val), float).mean(axis=1)
 
     # convert back to surface RAS
-    ch_coords = _ch_coords_to_surface_RAS(ch_coords, fs_t1)
+    ch_coords = apply_trans(
+        fs_t1.header.get_vox2ras_tkr(), ch_coords) / 1000
 
     # copy before modifying
     montage_warped = montage.copy()
@@ -1906,24 +1881,98 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
     return montage_warped, image_from, image_to
 
 
-def _get_neighbors(loc, image, thresh, voxels):
+_VOXELS_MAX = 100  # define constant to avoid runtime issues
+
+
+@fill_doc
+def get_montage_rois(montage, subject, subjects_dir=None,
+                     aseg='aparc+aseg', dist=5):
+    """Get the regions of interest near the channels in a montage.
+    .. note:: This is applicable for channels inside the brain
+              (intracranial electrodes).
+    Parameters
+    ----------
+    %(montage)s
+    %(subject)s
+    %(subjects_dir)s
+    %(aseg)s
+    dist : float
+        The distance in mm to use for identifying regions of interest.
+    Returns
+    -------
+    rois : dict
+        The regions of interest within ``dist`` of each channel.
+    colors : dict
+        The Freesurfer lookup table colors for the rois.
+    """
+    from .channels import DigMontage
+    from ._freesurfer import read_freesurfer_lut, _get_aseg
+
+    _validate_type(montage, DigMontage, 'montage')
+    _validate_type(dist, (int, float), 'dist')
+
+    aseg, aseg_data = _get_aseg(aseg, subject, subjects_dir)
+
+    # read freesurfer lookup table
+    lut, fs_colors = read_freesurfer_lut()
+    labels = {v: k for k, v in lut.items()}
+
+    # assert that all the values in the aseg are in the labels
+    assert all([idx in labels for idx in np.unique(aseg_data)])
+
+    # get transform to surface RAS for distance units instead of voxels
+    vox2ras_tkr = aseg.header.get_vox2ras_tkr()
+
+    ch_dict = montage.get_positions()
+    if ch_dict['coord_frame'] != 'mri':
+        raise RuntimeError('Coordinate frame not supported, expected '
+                           '"mri", got ' + str(ch_dict['coord_frame']))
+    ch_coords = np.array(list(ch_dict['ch_pos'].values()))
+
+    # convert to freesurfer voxel space
+    ch_coords = apply_trans(
+        np.linalg.inv(aseg.header.get_vox2ras_tkr()), ch_coords * 1000)
+    rois = OrderedDict()
+    for ch_name, seed in zip(montage.ch_names, ch_coords):
+        voxels = _voxel_neighbors(
+            seed, aseg_data, dist=dist, vox2ras_tkr=vox2ras_tkr,
+            voxels_max=_VOXELS_MAX)
+        roi_idxs = set([aseg_data[tuple(voxel)].astype(int)
+                        for voxel in voxels])
+        rois[ch_name] = [labels[idx] for idx in roi_idxs]
+
+    all_rois = set([roi for val in rois.values() for roi in val])
+    colors = {roi: tuple(fs_colors[roi][:3] / 255) + (1.,) for roi in all_rois}
+    return rois, colors
+    
+
+def _get_neighbors(loc, image, voxels, thresh, dist_params):
     """Find all the neighbors above a threshold near a voxel."""
     neighbors = set()
     for axis in range(len(loc)):
         for i in (-1, 1):
             next_loc = np.array(loc)
             next_loc[axis] += i
-            next_loc = tuple(next_loc)
-            # must be above thresh, monotonically decreasing from
-            # the peak and not already found
-            if image[next_loc] > thresh and \
-                    image[next_loc] < image[loc] and \
-                    next_loc not in voxels:
-                neighbors.add(next_loc)
+            if thresh is not None:
+                assert dist_params is None
+                # must be above thresh, monotonically decreasing from
+                # the peak and not already found
+                next_loc = tuple(next_loc)
+                if image[next_loc] > thresh and \
+                        image[next_loc] < image[loc] and \
+                        next_loc not in voxels:
+                    neighbors.add(next_loc)
+            else:
+                assert thresh is None
+                dist, seed_fs_ras, vox2ras_tkr = dist_params
+                next_loc_fs_ras = apply_trans(vox2ras_tkr, next_loc + 0.5)
+                if np.linalg.norm(seed_fs_ras - next_loc_fs_ras) <= dist:
+                    neighbors.add(tuple(next_loc))
     return neighbors
 
 
-def _voxel_neighbors(seed, image, thresh, max_peak_dist, voxels_max):
+def _voxel_neighbors(seed, image, thresh=None, max_peak_dist=None,
+                     dist=None, vox2ras_tkr=None, voxels_max=100):
     """Find voxels above a threshold contiguous with a seed location.
 
     Parameters
@@ -1938,6 +1987,11 @@ def _voxel_neighbors(seed, image, thresh, max_peak_dist, voxels_max):
     max_peak_dist : int
         The maximum number of voxels to search for the peak near
         the seed location.
+    dist : float
+        The distance in mm to include surrounding voxels.
+    vox2ras_tkr : ndarray
+        The voxel to surface RAS affine. Must not be None if ``dist``
+        if not None.
     voxels_max : int
         The maximum size of the output ``voxels``.
 
@@ -1945,23 +1999,34 @@ def _voxel_neighbors(seed, image, thresh, max_peak_dist, voxels_max):
     -------
     voxels : set
         The set of locations including the ``seed`` voxel and
-        surrounding it that are above a threshold.
+        surrounding that meet the criteria.
 
-    .. note::
-        First a peak nearby the seed location is found and then voxels are
-        only included if they decrease monotonically from the peak.
+    .. note:: Either ``dist`` or ``thesh`` may be used but not both.
+              When ``thresh`` is used, first a peak nearby the seed
+              location is found and then voxels are only included if they
+              decrease monotonically from the peak. When ``dist`` is used,
+              only voxels within ``dist`` mm of the seed are included.
     """
     seed = np.array(seed).round().astype(int)
-    check_grid = image[tuple([
-        slice(idx - max_peak_dist, idx + max_peak_dist + 1) for idx in seed])]
-    peak = np.array(np.unravel_index(
-        np.argmax(check_grid), check_grid.shape)) - max_peak_dist + seed
-    voxels = neighbors = set([tuple(peak)])
+    assert ((dist is not None) + (max_peak_dist is not None)) == 1
+    if max_peak_dist is not None:
+        dist_params = None
+        check_grid = image[tuple([
+            slice(idx - max_peak_dist, idx + max_peak_dist + 1)
+            for idx in seed])]
+        peak = np.array(np.unravel_index(
+            np.argmax(check_grid), check_grid.shape)) - max_peak_dist + seed
+        voxels = neighbors = set([tuple(peak)])
+    else:
+        assert vox2ras_tkr is not None
+        seed_fs_ras = apply_trans(vox2ras_tkr, seed + 0.5)  # center of voxel
+        dist_params = (dist, seed_fs_ras, vox2ras_tkr)
+        voxels = neighbors = set([tuple(seed)])
     while neighbors and len(voxels) <= voxels_max:
         next_neighbors = set()
         for next_loc in neighbors:
-            voxel_neighbors = _get_neighbors(next_loc, image,
-                                             thresh, voxels)
+            voxel_neighbors = _get_neighbors(next_loc, image, voxels,
+                                             thresh, dist_params)
             voxels = voxels.union(voxel_neighbors)
             if len(voxels) > voxels_max:
                 break

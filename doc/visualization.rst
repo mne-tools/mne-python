@@ -25,6 +25,7 @@ Visualization
    plot_brain_colorbar
    plot_connectivity_circle
    plot_cov
+   plot_channel_labels_circle
    plot_csd
    plot_dipole_amplitudes
    plot_dipole_locations

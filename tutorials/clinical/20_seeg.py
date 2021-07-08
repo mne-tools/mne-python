@@ -39,7 +39,7 @@ import os.path as op
 
 import numpy as np
 import pandas as pd
-import nibabel
+import matplotlib.pyplot as plt
 
 import mne
 from mne.datasets import fetch_fsaverage
@@ -52,7 +52,7 @@ np.set_printoptions(suppress=True)  # suppress scientific notation
 # which is in MNI space
 misc_path = mne.datasets.misc.data_path()
 sample_path = mne.datasets.sample.data_path()
-subjects_dir = sample_path + '/subjects'
+subjects_dir = op.join(sample_path, 'subjects')
 
 # use mne-python's fsaverage data
 fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)  # downloads if needed
@@ -65,25 +65,22 @@ fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)  # downloads if needed
 elec_df = pd.read_csv(misc_path + '/seeg/sample_seeg_electrodes.tsv',
                       sep='\t', header=0, index_col=None)
 ch_names = elec_df['name'].tolist()
-ch_coords = elec_df[['R', 'A', 'S']].to_numpy(dtype=float)
+ch_coords = elec_df[['R', 'A', 'S']].to_numpy(dtype=float) / 1000.  # mm -> m
 
-# We want to get from Freesurfer surface RAS ('mri') to MNI ('mni_tal').
-# The taliarach.xfm file only gives us RAS (non-zero origin) ('ras')
-# to MNI ('mni_tal') so we need to get the ras->mri transform
-# from the MRI headers.
-ras_mni_t = mne.transforms.Transform(
-    'ras', 'mni_tal', mne.transforms._read_fs_xfm(
-        misc_path + '/seeg/sample_seeg_talairach.xfm')[0])
-t1 = nibabel.load(misc_path + '/seeg/sample_seeg_T1.mgz')
-# the affine is vox2ras, and ras_tkr is what we call MRI (but in mm), so we do:
-mri_ras_t = mne.transforms.Transform(
-    'mri', 'ras', np.linalg.inv(t1.header.get_vox2ras_tkr()) @ t1.affine)
-mri_mni_t = mne.transforms.combine_transforms(
-    mri_ras_t, ras_mni_t, 'mri', 'mni_tal')
+# sort channels based on alphabetical and numeric portion
+sort_idx = sorted(
+    range(len(ch_names)),  # make index to sort by
+    # sort first by the name, the then by the number using a tuple
+    key=lambda idx: (''.join([letter for letter in ch_names[idx] if
+                              not letter.isdigit() and letter != ' ']),
+                     int(''.join([digit for digit in ch_names[idx] if
+                                  digit.isdigit() and digit != ' ']))))
+ch_names = [ch_names[idx] for idx in sort_idx]
+ch_coords = [ch_coords[idx] for idx in sort_idx]
+
+# apply the Freesurfer surface RAS ('mri') to MNI ('mni_tal') transform
+mri_mni_t = mne.read_talxfm('sample_seeg', op.join(misc_path, 'seeg'))
 ch_coords = mne.transforms.apply_trans(mri_mni_t, ch_coords)
-
-# the test channel coordinates were in mm, so we convert them to meters
-ch_coords = ch_coords / 1000.
 
 # create dictionary of channels and their xyz coordinates (now in MNI space)
 ch_pos = dict(zip(ch_names, ch_coords))
@@ -102,7 +99,7 @@ lpa, nasion, rpa = lpa['r'], nasion['r'], rpa['r']
 
 montage = mne.channels.make_dig_montage(
     ch_pos, coord_frame='mri', nasion=nasion, lpa=lpa, rpa=rpa)
-print('Created %s channel positions' % len(ch_names))
+print(f'Created {len(ch_names)} channel positions')
 
 # %%
 # Now we get the :term:`trans` that transforms from our MRI coordinate system
@@ -118,7 +115,7 @@ print(trans)
 # time-series data and set the montage to the raw data.
 
 # first we'll load in the sample dataset
-raw = mne.io.read_raw(misc_path + '/seeg/sample_seeg_ieeg.fif')
+raw = mne.io.read_raw(op.join(misc_path, 'seeg', 'sample_seeg_ieeg.fif'))
 
 # drop bad channels
 raw.info['bads'].extend([ch for ch in raw.ch_names if ch not in ch_names])
@@ -130,11 +127,6 @@ epochs = epochs['Response'][0]  # just process one epoch of data for speed
 
 # attach montage
 epochs.set_montage(montage)
-
-# set channel types to sEEG (instead of EEG) that have actual positions
-epochs.set_channel_types(
-    {ch_name: 'seeg' if np.isfinite(ch_pos[ch_name]).all() else 'misc'
-     for ch_name in raw.ch_names})
 
 # %%
 # Let's check to make sure everything is aligned.
@@ -148,6 +140,26 @@ epochs.set_channel_types(
 fig = mne.viz.plot_alignment(epochs.info, trans, 'fsaverage',
                              subjects_dir=subjects_dir, show_axes=True,
                              surfaces=['pial', 'head'])
+
+# %%
+# Let's also look at which regions of interest are nearby our electrode
+# contacts.
+
+aseg = 'aparc+aseg'  # parcellation/anatomical segmentation atlas
+rois, colors = mne.get_montage_rois(montage, 'fsaverage',
+                                    subjects_dir=subjects_dir, aseg=aseg)
+
+# separate by electrodes which have names like LAMY 1
+electrodes = set([''.join([lttr for lttr in ch_name
+                           if not lttr.isdigit() and lttr != ' '])
+                  for ch_name in montage.ch_names])
+print(f'Electrodes in the dataset: {electrodes}')
+
+for elec in ('LPM', 'LSMA'):  # plot two electrodes for the example
+    picks = [ch_name for ch_name in ch_names if elec in ch_name]
+    fig = plt.figure(num=None, figsize=(8, 8), facecolor='black')
+    mne.viz.plot_channel_labels_circle(rois, colors, picks=picks, fig=fig)
+    fig.text(0.3, 0.9, 'Anatomical Labels', color='white')
 
 # %%
 # Next, we'll get the epoch data and plot its amplitude over time.
@@ -181,7 +193,7 @@ clim = dict(kind='value', lims=np.percentile(abs(evoked.data), [10, 50, 75]))
 # In this example, it is simply the source with the largest raw signal value.
 # Its location is marked on the brain by a small blue sphere.
 
-# sphinx_gallery_thumbnail_number = 4
+# sphinx_gallery_thumbnail_number = 6
 
 brain = stc.plot_3d(
     src=vol_src, subjects_dir=subjects_dir,

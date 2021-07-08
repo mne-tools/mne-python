@@ -20,7 +20,8 @@ from .misc import (plot_cov, plot_csd, plot_bem, plot_events,
 from .evoked import (plot_evoked, plot_evoked_image, plot_evoked_white,
                      plot_snr_estimate, plot_evoked_topo,
                      plot_evoked_joint, plot_compare_evokeds)
-from .circle import plot_connectivity_circle, circular_layout
+from .circle import (plot_connectivity_circle, circular_layout,
+                     plot_channel_labels_circle)
 from .epochs import (plot_drop_log, plot_epochs, plot_epochs_psd,
                      plot_epochs_image)
 from .raw import plot_raw, plot_raw_psd, plot_raw_psd_topo, _RAW_CLIP_DEF
