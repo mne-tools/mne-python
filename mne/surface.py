@@ -20,12 +20,13 @@ import numpy as np
 
 from .channels.channels import _get_meg_system
 from .fixes import (_serialize_volume_info, _get_read_geometry, jit,
-                    prange, bincount)
+                    prange, bincount, _get_img_fdata)
 from .io.constants import FIFF
 from .io.pick import pick_types
 from .parallel import parallel_func
 from .transforms import (transform_surface_to, _pol_to_cart, _cart_to_sph,
-                         _get_trans, apply_trans, Transform)
+                         _get_trans, apply_trans, Transform, invert_transform,
+                         apply_volume_registration)
 from .utils import (logger, verbose, get_subjects_dir, warn, _check_fname,
                     _check_option, _ensure_int, _TempDir, run_subprocess,
                     _check_freesurfer_home, _hashable_ndarray)
@@ -1697,12 +1698,203 @@ def marching_cubes(image, level):
     mc.Update()
     polydata = mc.GetOutput()
 
+    # get verts and triangles
     verts = numpy_support.vtk_to_numpy(polydata.GetPoints().GetData())
     triangles = numpy_support.vtk_to_numpy(
         polydata.GetPolys().GetConnectivityArray()).reshape(-1, 3)
     verts = np.flip(verts, axis=1)
     triangles = np.flip(triangles, axis=1)
     return verts, triangles
+
+
+def _check_subject_dir(subject, subjects_dir):
+    """Checks that the Freesurfer subject directory is as expected."""
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
+    brain_fname = op.join(subjects_dir, subject, 'mri', 'brain.mgz')
+    if not op.isfile(t1_fname) or not op.isfile(brain_fname):
+        raise ValueError('Freesurfer recon-all subject folder '
+                         'is incorrect or improperly formatted, '
+                         f'got {op.join(subjects_dir, subject)}')
+
+
+def _check_image(image, subject, subjects_dir):
+    """Checks if the image is in Freesurfer surface RAS space."""
+    import nibabel as nib
+    if not isinstance(image, nib.spatialimages.SpatialImage):
+        image = nib.load(image)
+    image = nib.MGHImage(
+        _get_img_fdata(image).astype(np.float32), image.affine)
+    fs_t1 = nib.load(op.join(subjects_dir, subject, 'mri', 'T1.mgz'))
+    if not np.allclose(image.affine, fs_t1.affine, atol=1e-6):
+        from nib.processing import resample_from_to
+        image = resample_from_to(image, (fs_t1.shape, fs_t1.affine))
+    return image, fs_t1
+
+
+def _check_dig(dig):
+    """Checks if dig is in the coordinate frame."""
+    use_idx = [i for i, d in enumerate(dig)
+               if d['kind'] == FIFF.FIFFV_POINT_EEG]
+    dig = [dig[idx] for idx in use_idx]
+    if not dig:
+        raise ValueError('No electrophysiolgy channels found. '
+                         'Accepted types are "eeg", "ecog", "seeg" '
+                         'and "dbs". Make sure the channel types are '
+                         'set properly, see `mne.io.Raw.set_channel_types`')
+    ch_coords = np.array([ch['r'] for ch in dig])
+    coord_frame = dig[0]['coord_frame']
+    for d in dig[1:]:
+        if d['coord_frame'] != coord_frame:
+            raise ValueError(
+                'Inconsistent dig montage coordinate frame in '
+                f'``info``, got {coord_frame} and ' + str(d['coord_frame']))
+    if coord_frame != FIFF.FIFFV_COORD_MRI:
+        raise RuntimeError('Coordinate frame not supported, expected '
+                           f'"mri", got {coord_frame}')
+    return ch_coords, use_idx
+
+
+def _ch_coords_to_vox(ch_coords, fs_t1):
+    """Converts channel coordinates from head space to voxel space."""
+    # convert electrode positions to voxels
+    ch_coords = apply_trans(
+        np.linalg.inv(fs_t1.header.get_vox2ras_tkr()), ch_coords * 1000)
+    return ch_coords
+
+
+def _ch_coords_to_head(ch_coords, fs_t1):
+    """Convert back to the head coordinate frame."""
+    # first, convert back to surface RAS but
+    # to the template surface RAS this time
+    ch_coords = apply_trans(
+        fs_t1.header.get_vox2ras_tkr(), ch_coords) / 1000
+    return ch_coords
+
+
+def _warn_missing_chs(montage, dig_image, after_warp):
+    """Warn that channels are missing."""
+    # ensure that each electrode contact was marked in at least one voxel
+    missing = set(np.arange(1, len(montage.ch_names) + 1)).difference(
+        set(np.unique(_get_img_fdata(dig_image))))
+    missing_ch = [montage.ch_names[idx - 1] for idx in missing]
+    if missing_ch:
+        warn('Channels ' + ', '.join(missing_ch) + ' were not assigned '
+             'voxels' + (' after applying SDR warp' if after_warp else ''))
+
+
+def warp_montage_volume(montage, image, reg_affine, sdr_morph,
+                        subject, template, subjects_dir=None,
+                        template_subjects_dir=None,
+                        thresh=0.95, max_peak_dist=1, voxels_max=100):
+    """Warp a montage to a template with image volumes using SDR.
+
+    Find areas of the input volume with intensity greater than
+    a threshold surrounding local extrema near the channel location.
+    Monotonicity from the peak is enforced to prevent channels
+    bleeding into each other.
+
+    .. note:: This is likely applicable for channels inside the brain
+              (intracranial electrodes).
+
+    Parameters
+    ----------
+    info : mne.channels.montage.DigMontage
+        The info object containing the channels.
+    image : str | pathlib.Path | NibabelImageObject
+        Path to a scan (e.g. CT) of the subject. Can be in any format
+        readable by nibabel. Can also be a nibabel image object.
+    %(reg_affine)s See :func:`mne.transforms.compute_volume_registration`.
+    %(sdr_morph)s See :func:`mne.transforms.compute_volume_registration`.
+    %(subject)s
+    template : str
+        The name of the template (e.g. 'fsaverage').
+    %(subjects_dir)s
+    template_subjects_dir : str | None
+        Directory containing template subject's data. If None uses
+        the Freesurfer SUBJECTS_DIR environment variable.
+    thresh : float
+        The quantile of the image data to use to threshold the
+        channel size on the volume.
+    max_peak_dist : int
+        The number of voxels away from the channel location to
+        look in the ``image``. This will depend on the accuracy of
+        the channel locations, the default (one voxel in all directions)
+        will work only with localizations that are that accurate.
+    voxels_max : int
+        The maximum number of voxels for each channel.
+
+    Returns
+    -------
+    montage_warped : mne.channels.montage.DigMontage
+        The modified info object containing the channels.
+    dig_image : NibabelImageObject
+        An image in Freesurfer surface RAS space with voxel values
+        corresponding to the index of the channel. The background
+        is 0s and this index starts at 1.
+    warped_dig_image : NibabelImageObject
+        The warped image with voxel values corresponding to the index
+        of the channel. The background is 0s and this index starts at 1.
+    """
+    import nibabel as nib
+
+    # first, make sure we have the necessary freesurfer surfaces
+    _check_subject_dir(subject, subjects_dir)
+
+    # load image and make sure it's in surface RAS
+    image, fs_t1 = _check_image(image, subject, subjects_dir)
+    ch_coords, use_idx = _check_dig(montage.dig)
+    ch_coords = _ch_coords_to_vox(ch_coords, fs_t1)
+
+    # take channel coordinates and use the image to transform them
+    # into a volume where all the voxels over a threshold nearby
+    # are labeled with an index
+    image_data = _get_img_fdata(image)
+    thresh = np.quantile(image_data, thresh)
+    dig_image = np.zeros(image.shape, dtype=int)
+    for i, ch_coord in enumerate(ch_coords):
+        # this looks up to a voxel away, it may be marked imperfectly
+        volume = _voxel_neighbors(ch_coord, image_data, thresh,
+                                  max_peak_dist, voxels_max)
+        for voxel in volume:
+            if dig_image[voxel] != 0:
+                # some voxels ambiguous because the contacts are bridged on
+                # the image so assign the voxel to the nearest contact location
+                dist_old = np.sqrt(
+                    (ch_coords[dig_image[voxel] - 1] - voxel)**2).sum()
+                dist_new = np.sqrt((ch_coord - voxel)**2).sum()
+                if dist_new < dist_old:
+                    dig_image[voxel] = i + 1
+            else:
+                dig_image[voxel] = i + 1
+
+    # apply the mapping
+    dig_image = nib.Nifti1Image(dig_image, fs_t1.affine)
+    _warn_missing_chs(montage, dig_image, after_warp=False)
+
+    template_brain = nib.load(
+        op.join(template_subjects_dir, template, 'mri', 'brain.mgz'))
+
+    warped_dig_image = apply_volume_registration(
+        dig_image, template_brain, reg_affine, sdr_morph,
+        interpolation='nearest')
+
+    _warn_missing_chs(montage, warped_dig_image, after_warp=True)
+
+    # recover the contact positions as the center of mass
+    warped_dig_data = _get_img_fdata(warped_dig_image)
+    for val, ch_coord in enumerate(ch_coords, 1):
+        ch_coord[:] = np.array(
+            np.where(warped_dig_data == val), float).mean(axis=1)
+
+    # copy before modifying
+    montage_warped = montage.copy()
+
+    # assign to the montage
+    ch_coords = _ch_coords_to_head(ch_coords, fs_t1)
+    for idx, ch_coord in zip(use_idx, ch_coords):
+        montage_warped.dig[idx]['r'] = ch_coord
+    return montage_warped, dig_image, warped_dig_image
 
 
 def _get_neighbors(loc, image, thresh, voxels):
@@ -1722,7 +1914,7 @@ def _get_neighbors(loc, image, thresh, voxels):
     return neighbors
 
 
-def voxel_neighbors(seed, image, thresh, max_peak_dist=1, voxels_max=100):
+def _voxel_neighbors(seed, image, thresh, max_peak_dist, voxels_max):
     """Find voxels above a threshold contiguous with a seed location.
 
     Parameters
