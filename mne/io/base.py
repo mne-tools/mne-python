@@ -1923,29 +1923,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             msg += f"{cols['max'][i]:>8.2f}"
             print(msg)
 
-    @verbose
-    def rename_annotations(self, mapping, verbose=None):
-        """Rename annotation description(s). Operates inplace.
-
-        Parameters
-        ----------
-        mapping : dict
-            A dictionary mapping the old description to a new description
-            name e.g. {'1.0' : 'Control', '2.0' : 'Stimulus'}.
-        %(verbose_meth)s
-
-        Returns
-        -------
-        raw : instance of Raw
-            The Raw instance with modified annotations. Works in-place.
-
-        Notes
-        -----
-        .. versionadded:: 0.24.0
-        """
-        self.annotations.rename(mapping, verbose=verbose)
-        return self
-
 
 def _allocate_data(preload, shape, dtype):
     """Allocate data in memory or in memmap for preloading."""
