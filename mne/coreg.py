@@ -24,7 +24,8 @@ from .label import read_label, Label
 from .source_space import (add_source_space_distances, read_source_spaces,  # noqa: E501,F401
                            write_source_spaces, _read_mri_info,
                            get_mni_fiducials)
-from .surface import read_surface, write_surface, _normalize_vectors
+from .surface import (read_surface, write_surface, _normalize_vectors,
+                      complete_surface_info, decimate_surface)
 from .bem import read_bem_surfaces, write_bem_surfaces
 from .transforms import (rotation, rotation3d, scaling, translation, Transform,
                          _read_fs_xfm, _write_fs_xfm, invert_transform,
@@ -1226,7 +1227,6 @@ def _scale_xfm(subject_to, xfm_fname, mri_name, subject_from, scale,
 
 class Coregistration(object):
     def __init__(self, info, subject, subjects_dir):
-        from .gui._fiducials_gui import MRIHeadWithFiducialsModel
         self.parameters = [0., 0., 0., 0., 0., 0., 1., 1., 1.]
         self.last_parameters = list(self.parameters)
 
@@ -1249,8 +1249,8 @@ class Coregistration(object):
         self.hpi_weight = 1.
 
         self.hsp = _DigSource(info)
-        self.mri = MRIHeadWithFiducialsModel(subjects_dir=subjects_dir,
-                                             subject=subject)
+        self.mri = _MRIHeadWithFiducialsModel(subjects_dir=subjects_dir,
+                                              subject=subject)
         self.nearest_calc = self._nearest_calc_default()
 
     def _parameters_items_changed(self):
@@ -1622,3 +1622,111 @@ class _DigSource(object):
     @property
     def rpa(self):
         return self._cardinal_point(FIFF.FIFFV_POINT_RPA)
+
+
+class _Surf(object):
+    def __init__(self, rr=None, nn=None, tris=None):
+        self.rr = np.empty((0, 3)) if rr is None else rr
+        self.nn = np.empty((0, 3)) if nn is None else nn
+        self.tris = np.empty((0, 3)) if tris is None else tris
+
+
+class _SurfaceSource(object):
+    def __init__(self, filename=None):
+        if filename is not None and op.exists(filename):
+            if filename.endswith('.fif'):
+                bem = read_bem_surfaces(filename, verbose=False)[0]
+            else:
+                try:
+                    bem = read_surface(filename, return_dict=True)[2]
+                    bem['rr'] *= 1e-3
+                    complete_surface_info(bem, copy=False)
+                except Exception:
+                    raise ValueError(
+                        "Error loading surface from %s (see "
+                        "Terminal for details)." % filename)
+            self.surf = _Surf(rr=bem['rr'], tris=bem['tris'], nn=bem['nn'])
+        else:
+            self.surf = _Surf()
+
+
+class _FiducialsSource(object):
+    def __init__(self, filename=None):
+        self.filename = filename
+        self.mni_points = None
+
+    @property
+    def points(self):
+        if self.filename is None or not op.exists(self.filename):
+            return self.mni_points
+        try:
+            return _fiducial_coords(*read_fiducials(self.filename))
+        except Exception as err:
+            raise ValueError(
+                "Error reading fiducials from %s: %s (See terminal "
+                "for more information)" % (self.filename, str(err)),
+                "Error Reading Fiducials")
+
+
+class _MRIHeadWithFiducialsModel(object):
+    def __init__(self, subjects_dir, subject):
+        self.subjects_dir = subjects_dir
+        self.subject = subject
+        if not subjects_dir or not subject:
+            return
+
+        # find high-res head model (if possible)
+        high_res_path = _find_head_bem(subject, subjects_dir, high_res=True)
+        low_res_path = _find_head_bem(subject, subjects_dir, high_res=False)
+        if high_res_path is None and low_res_path is None:
+            raise RuntimeError("No standard head model was "
+                               f"found for subject {subject}")
+        if high_res_path is not None:
+            self.bem_high_res = _SurfaceSource(high_res_path)
+        else:
+            self.bem_high_res = _SurfaceSource(low_res_path)
+        if low_res_path is None:
+            # This should be very rare!
+            warn('No low-resolution head found, decimating high resolution '
+                 'mesh (%d vertices): %s' % (len(self.bem_high_res.surf.rr),
+                                             high_res_path,))
+            # Create one from the high res one, which we know we have
+            rr, tris = decimate_surface(self.bem_high_res.surf.rr,
+                                        self.bem_high_res.surf.tris,
+                                        n_triangles=5120)
+            surf = complete_surface_info(dict(rr=rr, tris=tris),
+                                         copy=False, verbose=False)
+            # directly set the attributes of bem_low_res
+            self.bem_low_res = _SurfaceSource()
+            self.bem_low_res.surf = _Surf(tris=surf['tris'], rr=surf['rr'],
+                                          nn=surf['nn'])
+        else:
+            self.bem_low_res = _SurfaceSource(low_res_path)
+
+        # Set MNI points
+        self.fid = _FiducialsSource()
+        try:
+            fids = get_mni_fiducials(subject, subjects_dir)
+        except Exception:  # some problem, leave at origin
+            self.fid.mni_points = None
+        else:
+            self.fid.mni_points = np.array([f['r'] for f in fids], float)
+
+        # find fiducials file
+        fid_files = _find_fiducials_files(subject, subjects_dir)
+        if len(fid_files) == 0:
+            self.fid.reset_traits(['file'])
+            self.lock_fiducials = False
+        else:
+            self.fid.file = fid_files[0].format(subjects_dir=subjects_dir,
+                                                subject=subject)
+            self.lock_fiducials = True
+
+        # does not seem to happen by itself ... so hard code it:
+        self.reset_fiducials()
+
+    def reset_fiducials(self):  # noqa: D102
+        if self.fid.points is not None:
+            self.lpa = self.fid.points[0:1]
+            self.nasion = self.fid.points[1:2]
+            self.rpa = self.fid.points[2:3]
