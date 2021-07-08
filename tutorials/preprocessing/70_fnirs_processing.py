@@ -31,9 +31,9 @@ raw_intensity.load_data()
 # ------------------------------------------------
 #
 # First, we attribute more meaningful names to the trigger codes which are
-# stored as annotations. Further, we include information about the duration of
+# stored as annotations. Second, we include information about the duration of
 # each stimulus, which was 5 seconds for all conditions in this experiment.
-# Further, we remove the trigger code 15, which signaled the start and end
+# Third, we remove the trigger code 15, which signaled the start and end
 # of the experiment and is not relevant to analysis.
 
 raw_intensity.annotations.set_durations(5)
@@ -41,7 +41,7 @@ raw_intensity.annotations.rename({'1.0': 'Control',
                                   '2.0': 'Tapping/Left',
                                   '3.0': 'Tapping/Right'})
 raw_intensity.annotations.delete(
-    np.where([d == '15.0' for d in raw_intensity.annotations.description]))
+    raw_intensity.annotations.description == '15.0')
 
 
 ###############################################################################
