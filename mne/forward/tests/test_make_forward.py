@@ -14,7 +14,8 @@ from mne import (read_forward_solution, write_forward_solution,
                  make_forward_solution, convert_forward_solution,
                  setup_volume_source_space, read_source_spaces, create_info,
                  make_sphere_model, pick_types_forward, pick_info, pick_types,
-                 read_evokeds, read_cov, read_dipole)
+                 read_evokeds, read_cov, read_dipole,
+                 get_volume_labels_from_aseg)
 from mne.utils import requires_mne, requires_nibabel, run_subprocess
 from mne.forward._make_forward import _create_meg_coils, make_forward_dipole
 from mne.forward._compute_forward import _magnetic_dipole_field_vec
@@ -22,8 +23,8 @@ from mne.forward import Forward, _do_forward_solution
 from mne.dipole import Dipole, fit_dipole
 from mne.simulation import simulate_evoked
 from mne.source_estimate import VolSourceEstimate
-from mne.source_space import (get_volume_labels_from_aseg, write_source_spaces,
-                              _compare_source_spaces, setup_source_space)
+from mne.source_space import (write_source_spaces, _compare_source_spaces,
+                              setup_source_space)
 
 from mne.forward.tests.test_forward import assert_forward_allclose
 

@@ -20,16 +20,15 @@ from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
                  morph_source_spaces, SourceEstimate, make_sphere_model,
                  head_to_mni, compute_source_morph, pick_types,
                  read_bem_solution, read_freesurfer_lut, read_talxfm,
-                 read_trans)
+                 read_trans, get_volume_labels_from_aseg)
 from mne.fixes import _get_img_fdata
+from mne._freesurfer import _get_mgz_header
 from mne.utils import (requires_nibabel, run_subprocess,
                        modified_env, requires_mne, check_version)
 from mne.surface import _accumulate_normals, _triangle_neighbors
-from mne.source_space import _get_mgz_header
 from mne.source_estimate import _get_src_type
 from mne.transforms import apply_trans, _get_trans
-from mne.source_space import (get_volume_labels_from_aseg,
-                              get_volume_labels_from_src,
+from mne.source_space import (get_volume_labels_from_src,
                               _compare_source_spaces,
                               compute_distance_to_sensors)
 from mne.io.pick import _picks_to_idx
@@ -603,9 +602,9 @@ def test_vertex_to_mni_fs_nibabel(monkeypatch):
     vertices = rng.randint(0, 100000, n_check)
     hemis = rng.randint(0, 1, n_check)
     coords = vertex_to_mni(vertices, hemis, subject, subjects_dir)
-    read_mri = mne.source_space._read_mri_info
+    read_mri = mne._freesurfer._read_mri_info
     monkeypatch.setattr(
-        mne.source_space, '_read_mri_info',
+        mne._freesurfer, '_read_mri_info',
         lambda *args, **kwargs: read_mri(*args, use_nibabel=True, **kwargs))
     coords_2 = vertex_to_mni(vertices, hemis, subject, subjects_dir)
     # less than 0.1 mm error

@@ -25,7 +25,7 @@ import numpy as np
 from ..defaults import DEFAULTS
 from ..fixes import _get_img_fdata
 from ..rank import compute_rank
-from ..source_space import _mri_orientation
+from .._freesurfer import _mri_orientation
 from ..surface import read_surface
 from ..io.constants import FIFF
 from ..io.proj import make_projector

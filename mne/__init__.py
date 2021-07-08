@@ -43,6 +43,8 @@ from .cov import (read_cov, write_cov, Covariance, compute_raw_covariance,
 from .event import (read_events, write_events, find_events, merge_events,
                     pick_events, make_fixed_length_events, concatenate_events,
                     find_stim_steps, AcqParserFIF)
+from ._freesurfer import (head_to_mni, head_to_mri, read_talxfm,
+                          get_volume_labels_from_aseg, read_freesurfer_lut)
 from .forward import (read_forward_solution, apply_forward, apply_forward_raw,
                       average_forward_solutions, Forward,
                       write_forward_solution, make_forward_solution,
@@ -68,12 +70,10 @@ from .morph_map import read_morph_map
 from .morph import (SourceMorph, read_source_morph, grade_to_vertices,
                     compute_source_morph)
 from .source_space import (read_source_spaces, vertex_to_mni,
-                           head_to_mni, head_to_mri, read_talxfm,
                            write_source_spaces, setup_source_space,
                            setup_volume_source_space, SourceSpaces,
                            add_source_space_distances, morph_source_spaces,
-                           get_volume_labels_from_aseg,
-                           get_volume_labels_from_src, read_freesurfer_lut)
+                           get_volume_labels_from_src)
 from .annotations import (Annotations, read_annotations, annotations_from_events,
                           events_from_annotations)
 from .epochs import (BaseEpochs, Epochs, EpochsArray, read_epochs,

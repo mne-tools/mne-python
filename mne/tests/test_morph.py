@@ -18,14 +18,13 @@ from mne import (SourceEstimate, VolSourceEstimate, VectorSourceEstimate,
                  read_forward_solution, grade_to_vertices,
                  setup_volume_source_space, make_forward_solution,
                  make_sphere_model, make_ad_hoc_cov, VolVectorSourceEstimate,
-                 read_freesurfer_lut)
+                 get_volume_labels_from_aseg, read_freesurfer_lut)
 from mne.datasets import testing
 from mne.fixes import _get_img_fdata
+from mne._freesurfer import _get_mri_info_data, _get_atlas_values
 from mne.minimum_norm import (apply_inverse, read_inverse_operator,
                               make_inverse_operator)
-from mne.source_space import (get_volume_labels_from_aseg, _get_mri_info_data,
-                              _get_atlas_values, _add_interpolator,
-                              _grid_interp)
+from mne.source_space import _add_interpolator, _grid_interp
 from mne.transforms import quat_to_rot
 from mne.utils import (requires_nibabel, check_version, requires_version,
                        requires_dipy, requires_h5py, catch_logging)

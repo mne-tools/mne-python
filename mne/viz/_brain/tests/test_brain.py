@@ -19,9 +19,9 @@ from numpy.testing import assert_allclose, assert_array_equal
 from mne import (read_source_estimate, read_evokeds, read_cov,
                  read_forward_solution, pick_types_forward,
                  SourceEstimate, MixedSourceEstimate, write_surface,
-                 VolSourceEstimate)
+                 VolSourceEstimate, vertex_to_mni)
 from mne.minimum_norm import apply_inverse, make_inverse_operator
-from mne.source_space import (read_source_spaces, vertex_to_mni,
+from mne.source_space import (read_source_spaces,
                               setup_volume_source_space)
 from mne.datasets import testing
 from mne.utils import check_version, requires_pysurfer

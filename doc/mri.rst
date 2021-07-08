@@ -14,10 +14,14 @@ Step by step instructions for using :func:`gui.coregistration`:
 .. autosummary::
    :toctree: generated/
 
-   coreg.get_mni_fiducials
+   get_mni_fiducials
    gui.coregistration
    gui.fiducials
    create_default_subject
+   head_to_mni
+   head_to_mri
+   read_freesurfer_lut
+   read_talxfm
    scale_mri
    scale_bem
    scale_labels
@@ -25,4 +29,5 @@ Step by step instructions for using :func:`gui.coregistration`:
    surface.marching_cubes
    transforms.apply_volume_registration
    transforms.compute_volume_registration
+   vertex_to_mni
    voxel_neighbors
