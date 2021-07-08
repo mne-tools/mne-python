@@ -1286,6 +1286,57 @@ def test_annotation_ch_names():
     _assert_annotations_equal(raw_2.annotations, annot_pruned)
 
 
+def test_annotation_rename():
+    """Test annotation renaming works."""
+    a = Annotations([1, 2, 3], [5, 5, 8], ["a", "b", "c"])
+    assert len(a) == 3
+    assert "a" in a.description
+    assert "b" in a.description
+    assert "c" in a.description
+    assert "new_name" not in a.description
+
+    a = Annotations([1, 2, 3], [5, 5, 8], ["a", "b", "c"])
+    a.rename({"a": "new_name"})
+    assert len(a) == 3
+    assert "a" not in a.description
+    assert "new_name" in a.description
+    assert np.where([d == "new_name" for d in a.description])[0] == 0
+
+    a = Annotations([1, 2, 3], [5, 5, 8], ["a", "b", "c"])
+    a.rename({"a": "new_name", "b": "new name b"})
+    assert len(a) == 3
+    assert "a" not in a.description
+    assert "new_name" in a.description
+    assert "b" not in a.description
+    assert "new name b" in a.description
+    assert np.where([d == "new_name" for d in a.description])[0] == 0
+    assert np.where([d == "new name b" for d in a.description])[0] == 1
+
+    a = Annotations([1, 2, 3], [5, 5, 8], ["a", "b", "c"])
+    a.rename({"b": "new_name", "c": "new name c"})
+    assert len(a) == 3
+    assert "b" not in a.description
+    assert "new_name" in a.description
+    assert "c" not in a.description
+    assert "new name c" in a.description
+    assert "a" in a.description
+    assert np.where([d == "new_name" for d in a.description])[0] == 1
+    assert np.where([d == "new name c" for d in a.description])[0] == 2
+    assert len(np.where([d == "new name b" for d in a.description])[0]) == 0
+
+    a = Annotations([1, 2, 3], [5, 5, 8], ["a", "b", "c"])
+    with pytest.raises(ValueError, match="mapping missing from data"):
+        a.rename({"aaa": "does not exist"})
+    with pytest.raises(ValueError, match="[' a']"):
+        a.rename({" a": "does not exist"})
+    with pytest.raises(TypeError, match="dict, got <class 'str'> instead"):
+        a.rename("wrong")
+    with pytest.raises(TypeError, match="dict, got <class 'list'> instead"):
+        a.rename(["wrong"])
+    with pytest.raises(TypeError, match="dict, got <class 'set'> instead"):
+        a.rename({"wrong"})
+
+
 def test_annotation_duration_setting():
     """Test annotation duration setting works."""
     a = Annotations([1, 2, 3], [5, 5, 8], ["a", "b", "c"])
@@ -1309,8 +1360,10 @@ def test_annotation_duration_setting():
     a.set_durations(7.2)
     assert a.duration[0] == 7.2
     assert a.duration[2] == 7.2
+    a.set_durations(2)
+    assert a.duration[0] == 2
 
     with pytest.raises(ValueError, match="mapping missing from data"):
         a.set_durations({"aaa": 2.2})
-    with pytest.raises(ValueError, match="<class 'set'> was provided"):
+    with pytest.raises(TypeError, match=" got <class 'set'> instead"):
         a.set_durations({"aaa", 2.2})

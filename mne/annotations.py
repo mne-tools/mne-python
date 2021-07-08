@@ -589,6 +589,8 @@ class Annotations(object):
         -----
         .. versionadded:: 0.24.0
         """
+        _validate_type(mapping, (int, float, dict))
+
         if isinstance(mapping, dict):
             orig_annots = sorted(list(mapping))
             missing = [key not in self.description for key in orig_annots]
@@ -607,6 +609,40 @@ class Annotations(object):
             raise ValueError("Setting durations requires the mapping of "
                              "descriptions to times to be provided as a dict. "
                              f"Instead {type(mapping)} was provided.")
+
+        return self
+
+    @verbose
+    def rename(self, mapping, verbose=None):
+        """Rename annotation description(s). Operates inplace.
+
+        Parameters
+        ----------
+        mapping : dict
+            A dictionary mapping the old description to a new description,
+            e.g. {'1.0' : 'Control', '2.0' : 'Stimulus'}.
+        %(verbose_meth)s
+
+        Returns
+        -------
+        self : mne.Annotations
+            The modified Annotations object.
+
+        Notes
+        -----
+        .. versionadded:: 0.24.0
+        """
+        _validate_type(mapping, dict)
+
+        orig_annots = sorted(mapping.keys())
+        missing = [annot not in self.description for annot in orig_annots]
+        if any(missing):
+            raise ValueError(
+                f"Annotation description(s) in mapping missing from data: "
+                f"{np.array(orig_annots)[np.array(missing)]}")
+
+        for old, new in mapping.items():
+            self.description = [d.replace(old, new) for d in self.description]
 
         return self
 
