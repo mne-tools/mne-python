@@ -22,7 +22,7 @@ from ..defaults import HEAD_SIZE_DEFAULT, _handle_default
 from ..transforms import _frame_to_str
 from ..utils import (verbose, logger, warn,
                      _check_preload, _validate_type, fill_doc, _check_option,
-                     _get_stim_channel, _check_fname)
+                     _get_stim_channel, _check_fname, _check_dict_keys)
 from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
 from ..io.meas_info import (anonymize_info, Info, MontageMixin, create_info,
@@ -1208,11 +1208,7 @@ def rename_channels(info, mapping, allow_duplicates=False, verbose=None):
 
     # first check and assemble clean mappings of index and name
     if isinstance(mapping, dict):
-        orig_names = sorted(list(mapping.keys()))
-        missing = [orig_name not in ch_names for orig_name in orig_names]
-        if any(missing):
-            raise ValueError("Channel name(s) in mapping missing from info: "
-                             "%s" % np.array(orig_names)[np.array(missing)])
+        _check_dict_keys(mapping, ch_names, dict_name="Channel name(s)", valid_name="info")
         new_names = [(ch_names.index(ch_name), new_name)
                      for ch_name, new_name in mapping.items()]
     elif callable(mapping):

@@ -562,6 +562,40 @@ def _check_depth(depth, kind='depth_mne'):
     return _handle_default(kind, depth)
 
 
+def _check_dict_keys(user_dict, valid_keys,
+                     dict_name="Channel name(s)", valid_name="info"):
+    """Check that the keys in dictionary are valid against a set list.
+
+    Return the input dictionary if it is valid,
+    otherwise raise a ValueError with a readable error message.
+
+    Parameters
+    ----------
+    user_dict : dict
+        The name of the parameter to check. This is used in the error message.
+    valid_keys : list
+        All possible valid key names.
+
+    Raises
+    ------
+    ValueError
+        When the key of the dict is not one of the valid options.
+
+    Returns
+    -------
+    user_dict
+        When the keys are deemed acceptable the dictionary is returned.
+    """
+    sorted_dict = sorted(list(user_dict))
+    missing = [val not in valid_keys for val in sorted_dict]
+    if any(missing):
+        raise ValueError(
+            f"{dict_name} is missing from {valid_name}: "
+            f"{np.array(sorted_dict)[np.array(missing)]}")
+
+    return user_dict
+
+
 def _check_option(parameter, value, allowed_values, extra=''):
     """Check the value of a parameter against a list of valid options.
 
