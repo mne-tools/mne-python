@@ -1360,6 +1360,8 @@ def test_annotation_duration_setting():
     a.set_durations(7.2)
     assert a.duration[0] == 7.2
     assert a.duration[2] == 7.2
+    a.set_durations(2)
+    assert a.duration[0] == 2
 
     with pytest.raises(ValueError, match="mapping missing from data"):
         a.set_durations({"aaa": 2.2})
