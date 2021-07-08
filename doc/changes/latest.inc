@@ -81,14 +81,11 @@ Enhancements
 
 - Update :func:`mne.preprocessing.realign_raw` with Numpy-recommended polynomial fitting method (:gh:`9514` by `Erica Peterson`_)
 
-<<<<<<< HEAD
-- Add :meth:`annotations.rename() <mne.Annotations.rename>` to rename annotation descriptions (:gh:`9525` by `Robert Luke`_)
-=======
-- Add :meth:`annotations.set_durations() <mne.Annotations.set_durations>` to set annotation durations (:gh:`9529` by `Robert Luke`_)
-
 - Add ``exclude`` parameter to :meth:`mne.io.Raw.plot_psd` and :meth:`mne.Epochs.plot_psd` (:gh:`9519` by `Clemens Brunner`_)
 
->>>>>>> upstream/main
+- Add :meth:`annotations.rename() <mne.Annotations.rename>` to rename annotation descriptions (:gh:`9525` by `Robert Luke`_)
+
+- Add :meth:`annotations.set_durations() <mne.Annotations.set_durations>` to set annotation durations (:gh:`9529` by `Robert Luke`_)
 
 Bugs
 ~~~~
