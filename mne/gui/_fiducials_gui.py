@@ -21,10 +21,11 @@ from tvtk.pyface.scene_editor import SceneEditor
 from ..coreg import (fid_fname, _find_fiducials_files, _find_head_bem,
                      get_mni_fiducials)
 from ..defaults import DEFAULTS
+from .._freesurfer import get_subjects_dir
 from ..io import write_fiducials
 from ..io.constants import FIFF
 from ..surface import complete_surface_info, decimate_surface
-from ..utils import get_subjects_dir, logger, warn
+from ..utils import logger, warn
 from ..viz.backends._pysurfer_mayavi import _toggle_mlab_render
 from ._file_traits import (SurfaceSource, fid_wildcard, FiducialsSource,
                            MRISubjectSource, SubjectSelectorPanel,

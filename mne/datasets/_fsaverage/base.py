@@ -7,7 +7,8 @@ import os.path as op
 
 
 from ..utils import _manifest_check_download, _get_path
-from ...utils import (verbose, get_subjects_dir, set_config)
+from ..._freesurfer import get_subjects_dir
+from ...utils import verbose, set_config
 
 FSAVERAGE_MANIFEST_PATH = op.dirname(__file__)
 

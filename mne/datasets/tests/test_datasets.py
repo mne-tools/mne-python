@@ -7,14 +7,15 @@ import sys
 
 import pytest
 
-from mne import datasets, read_labels_from_annot, write_labels_to_annot
+from mne import (datasets, read_labels_from_annot, write_labels_to_annot,
+                 get_subjects_dir)
 from mne.datasets import testing, fetch_infant_template
 from mne.datasets._infant import base as infant_base
 from mne.datasets._fsaverage.base import _set_montage_coreg_path
 from mne.datasets.utils import _manifest_check_download
 
 from mne.utils import (requires_good_network,
-                       get_subjects_dir, ArgvSetter, _pl, use_log_level,
+                       ArgvSetter, _pl, use_log_level,
                        catch_logging, hashfunc)
 
 

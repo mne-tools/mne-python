@@ -25,7 +25,7 @@ import numpy as np
 from ..defaults import DEFAULTS
 from ..fixes import _get_img_fdata
 from ..rank import compute_rank
-from .._freesurfer import _mri_orientation
+from .._freesurfer import _mri_orientation, get_subjects_dir
 from ..surface import read_surface
 from ..io.constants import FIFF
 from ..io.proj import make_projector
@@ -34,7 +34,7 @@ from ..io.pick import (_DATA_CH_TYPES_SPLIT, pick_types, pick_info,
 from ..source_space import (read_source_spaces, SourceSpaces, _read_mri_info,
                             _check_mri, _ensure_src)
 from ..transforms import invert_transform, apply_trans, _frame_to_str
-from ..utils import (logger, verbose, warn, _check_option, get_subjects_dir,
+from ..utils import (logger, verbose, warn, _check_option,
                      _mask_to_onsets_offsets, _pl, _on_missing)
 from ..io.pick import _picks_by_type
 from ..filter import estimate_ringing_samples

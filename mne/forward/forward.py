@@ -34,6 +34,7 @@ from ..io.write import (write_int, start_block, end_block,
                         write_coord_trans, write_name_list,
                         write_string, start_file, end_file, write_id)
 from ..io.base import BaseRaw
+from .._freesurfer import get_subjects_dir
 from ..evoked import Evoked, EvokedArray
 from ..epochs import BaseEpochs
 from ..source_space import (_read_source_spaces_from_tree,
@@ -44,7 +45,7 @@ from ..source_estimate import _BaseVectorSourceEstimate, _BaseSourceEstimate
 from ..surface import _normal_orth
 from ..transforms import (transform_surface_to, invert_transform,
                           write_trans)
-from ..utils import (_check_fname, get_subjects_dir, has_mne_c, warn,
+from ..utils import (_check_fname, has_mne_c, warn,
                      run_subprocess, check_fname, logger, verbose, fill_doc,
                      _validate_type, _check_compensation_grade, _check_option,
                      _check_stc_units, _stamp_to_dt, _on_missing)

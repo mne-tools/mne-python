@@ -9,14 +9,13 @@ import os.path as op
 import numpy as np
 from gzip import GzipFile
 
-from .check import _validate_type, _check_fname, _check_option
-from .config import get_config
 from .io.constants import FIFF
 from .io.meas_info import read_fiducials
 from .transforms import (apply_trans, invert_transform, combine_transforms,
                          _ensure_trans, read_ras_mni_t, Transform)
 from .surface import read_surface
-from .utils import verbose
+from .utils import (verbose, _validate_type, _check_fname, _check_option,
+                    get_config)
 
 
 def get_subjects_dir(subjects_dir=None, raise_error=False):

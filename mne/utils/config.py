@@ -558,3 +558,11 @@ def sys_info(fid=None, show_paths=False):
                 version = mod.__version__
             out += '%s%s\n' % (version, extra)
     print(out, end='', file=fid)
+
+
+def get_subjects_dir(*args, **kwargs):
+    """Depreciation function for in utils."""
+    from .._freesurfer import get_subjects_dir
+    warn('mne.utils.get_subjects_dir is depreciated, '
+         'use mne.get_subjects_dir instead', DeprecationWarning)
+    get_subjects_dir(*args, **kwargs)

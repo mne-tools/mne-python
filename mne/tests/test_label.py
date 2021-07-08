@@ -18,11 +18,10 @@ from mne import (read_label, stc_to_label, read_source_estimate,
                  read_source_spaces, grow_labels, read_labels_from_annot,
                  write_labels_to_annot, split_label, spatial_tris_adjacency,
                  read_surface, random_parcellation, morph_labels,
-                 labels_to_stc)
+                 labels_to_stc, get_subjects_dir)
 from mne.label import (Label, _blend_colors, label_sign_flip, _load_vert_pos,
                        select_sources, find_pos_in_annot)
-from mne.utils import (requires_sklearn, get_subjects_dir, check_version,
-                       requires_nibabel)
+from mne.utils import requires_sklearn, check_version, requires_nibabel
 from mne.label import _n_colors, _read_annot, _read_annot_cands
 from mne.source_space import SourceSpaces
 from mne.source_estimate import mesh_edges

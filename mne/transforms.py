@@ -18,9 +18,10 @@ from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tag import read_tag
 from .io.write import start_file, end_file, write_coord_trans
+from ._freesurfer import get_subjects_dir
 from .defaults import _handle_default
 from .utils import (check_fname, logger, verbose, _ensure_int, _validate_type,
-                    _check_path_like, get_subjects_dir, fill_doc, _check_fname,
+                    _check_path_like, fill_doc, _check_fname,
                     _check_option, _require_version, wrapped_stdout)
 
 

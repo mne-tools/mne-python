@@ -33,13 +33,12 @@ from .._3d import _process_clim, _handle_time, _check_views
 
 from ...externals.decorator import decorator
 from ...defaults import _handle_default
-from ..._freesurfer import vertex_to_mni, read_talxfm
+from ..._freesurfer import vertex_to_mni, read_talxfm, get_subjects_dir
 from ...surface import mesh_edges
 from ...source_space import SourceSpaces
 from ...transforms import apply_trans, invert_transform
 from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
-                      use_log_level, Bunch, _ReuseCycle, warn,
-                      get_subjects_dir)
+                      use_log_level, Bunch, _ReuseCycle, warn)
 
 
 _ARROW_MOVE = 10  # degrees per press
