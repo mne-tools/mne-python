@@ -589,6 +589,9 @@ class Annotations(object):
         -----
         .. versionadded:: 0.24.0
         """
+
+        _validate_type(mapping, (float, dict))
+
         if isinstance(mapping, dict):
             orig_annots = sorted(list(mapping))
             missing = [key not in self.description for key in orig_annots]

@@ -414,7 +414,7 @@ def _validate_type(item, types=None, item_name=None, type_name=None):
                 type_name = ', '.join(type_name)
         _item_name = 'Item' if item_name is None else item_name
         raise TypeError(f"{_item_name} must be an instance of {type_name}, "
-                        f"got {type(item)} instead")
+                        f"got {type(item)} instead.")
 
 
 def _check_path_like(item):

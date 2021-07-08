@@ -1363,5 +1363,5 @@ def test_annotation_duration_setting():
 
     with pytest.raises(ValueError, match="mapping missing from data"):
         a.set_durations({"aaa": 2.2})
-    with pytest.raises(ValueError, match="<class 'set'> was provided"):
+    with pytest.raises(TypeError, match=" got <class 'set'> instead"):
         a.set_durations({"aaa", 2.2})
