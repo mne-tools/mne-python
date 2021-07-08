@@ -1553,6 +1553,21 @@ class Coregistration(object):
 class _DigSource(object):
     def __init__(self, info):
         self._info = info
+        self.points_filter = None
+
+    @property
+    def n_omitted(self):
+        if self.points_filter is None:
+            return 0
+        else:
+            return np.sum(self.points_filter == False)  # noqa: E712
+
+    @property
+    def points(self):
+        if self.points_filter is None:
+            return self._hsp_points
+        else:
+            return self._hsp_points[self.points_filter]
 
     @property
     def _hsp_points(self):
@@ -1607,7 +1622,3 @@ class _DigSource(object):
     @property
     def rpa(self):
         return self._cardinal_point(FIFF.FIFFV_POINT_RPA)
-
-    @property
-    def points(self):
-        return _fiducial_coords(self._info['dig'])
