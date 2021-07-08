@@ -637,8 +637,9 @@ class Annotations(object):
         orig_annots = sorted(mapping.keys())
         missing = [annot not in self.description for annot in orig_annots]
         if any(missing):
-            raise ValueError(f"Annotation description(s) in mapping missing from data: "
-                             f"{np.array(orig_annots)[np.array(missing)]}")
+            raise ValueError(
+                f"Annotation description(s) in mapping missing from data: "
+                f"{np.array(orig_annots)[np.array(missing)]}")
 
         for old, new in mapping.items():
             self.description = [d.replace(old, new) for d in self.description]
