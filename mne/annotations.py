@@ -589,7 +589,6 @@ class Annotations(object):
         -----
         .. versionadded:: 0.24.0
         """
-
         _validate_type(mapping, (float, dict))
 
         if isinstance(mapping, dict):
@@ -616,16 +615,19 @@ class Annotations(object):
     @verbose
     def rename(self, mapping, verbose=None):
         """Rename annotation description(s). Operates inplace.
+
         Parameters
         ----------
         mapping : dict
             A dictionary mapping the old description to a new description
             name e.g. {'1.0' : 'Control', '2.0' : 'Stimulus'}.
         %(verbose_meth)s
+
         Returns
         -------
         self : mne.Annotations
             The modified Annotations object.
+
         Notes
         -----
         .. versionadded:: 0.24.0
