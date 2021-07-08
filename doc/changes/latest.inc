@@ -83,9 +83,9 @@ Enhancements
 
 - Add ``exclude`` parameter to :meth:`mne.io.Raw.plot_psd` and :meth:`mne.Epochs.plot_psd` (:gh:`9519` by `Clemens Brunner`_)
 
-- Add :meth:`annotations.rename() <mne.Annotations.rename>` to rename annotation descriptions (:gh:`9525` by `Robert Luke`_)
+- Add `mne.Annotations.rename` to rename annotation descriptions (:gh:`9525` by `Robert Luke`_)
 
-- Add :meth:`annotations.set_durations() <mne.Annotations.set_durations>` to set annotation durations (:gh:`9529` by `Robert Luke`_)
+- Add `mne.Annotations.set_durations` to set annotation durations (:gh:`9529` by `Robert Luke`_)
 
 Bugs
 ~~~~

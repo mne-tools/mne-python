@@ -589,7 +589,7 @@ class Annotations(object):
         -----
         .. versionadded:: 0.24.0
         """
-        _validate_type(mapping, (float, dict))
+        _validate_type(mapping, (int, float, dict))
 
         if isinstance(mapping, dict):
             orig_annots = sorted(list(mapping))
@@ -619,8 +619,8 @@ class Annotations(object):
         Parameters
         ----------
         mapping : dict
-            A dictionary mapping the old description to a new description
-            name e.g. {'1.0' : 'Control', '2.0' : 'Stimulus'}.
+            A dictionary mapping the old description to a new description,
+            e.g. {'1.0' : 'Control', '2.0' : 'Stimulus'}.
         %(verbose_meth)s
 
         Returns
@@ -634,12 +634,11 @@ class Annotations(object):
         """
         _validate_type(mapping, dict)
 
-        orig_annots = sorted(list(mapping.keys()))
+        orig_annots = sorted(mapping.keys())
         missing = [annot not in self.description for annot in orig_annots]
         if any(missing):
-            raise ValueError(
-                "Annotation description(s) in mapping missing from data: "
-                "%s" % np.array(orig_annots)[np.array(missing)])
+            raise ValueError(f"Annotation description(s) in mapping missing from data: "
+                             f"{np.array(orig_annots)[np.array(missing)]}")
 
         for old, new in mapping.items():
             self.description = [d.replace(old, new) for d in self.description]
