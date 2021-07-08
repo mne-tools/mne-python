@@ -10,7 +10,7 @@ import numpy as np
 
 from ...io import BaseRaw
 from ...io.constants import FIFF
-from ...utils import _validate_type
+from ...utils import _validate_type, warn
 from ..nirs import source_detector_distances, _channel_frequencies,\
     _check_channels_ordered, _channel_chromophore
 
@@ -38,10 +38,13 @@ def beer_lambert_law(raw, ppf=0.1):
     picks = _check_channels_ordered(raw.info, freqs)
     abs_coef = _load_absorption(freqs)
     distances = source_detector_distances(raw.info)
+    if (distances == 0).any():
+        warn('Source-detector distances are zero, some resulting '
+             'concentrations will be zero. Consider setting a montage '
+             'with raw.set_montage.')
 
     rename = dict()
     for ii in picks[::2]:
-
         EL = abs_coef * distances[ii] * ppf
         iEL = linalg.pinv(EL)
 
