@@ -29,7 +29,8 @@ from .bem import read_bem_surfaces, write_bem_surfaces
 from .transforms import (rotation, rotation3d, scaling, translation, Transform,
                          _read_fs_xfm, _write_fs_xfm, invert_transform,
                          combine_transforms, _quat_to_euler, write_trans,
-                         _fit_matched_points, apply_trans)
+                         _fit_matched_points, apply_trans,
+                         rot_to_quat, _angle_between_quats)
 from .utils import (get_config, get_subjects_dir, logger, pformat, verbose,
                     warn, has_nibabel)
 from .viz._3d import _fiducial_coords
@@ -1228,11 +1229,16 @@ class Coregistration(object):
         from .gui._file_traits import DigSource
         from .gui._fiducials_gui import MRIHeadWithFiducialsModel
         self.parameters = [0., 0., 0., 0., 0., 0., 1., 1., 1.]
+        self.last_parameters = list(self.parameters)
 
         self.n_scale_params = (0, 1, 3)
         self.n_scale_param = self.n_scale_params[0]
         self.coord_frames = ('mri', 'head')
         self.coord_frame = self.coord_frames[0]
+        self.icp_iterations = 20
+        self.icp_angle = 0.2
+        self.icp_distance = 0.2
+        self.icp_scale = 0.2
         self.icp_fid_matches = ('nearest', 'matched')
         self.icp_fid_match = self.icp_fid_matches[0]
         self.grow_hair = 0.
@@ -1249,6 +1255,23 @@ class Coregistration(object):
         self.mri = MRIHeadWithFiducialsModel(subjects_dir=subjects_dir,
                                              subject=subject)
         self.nearest_calc = self._nearest_calc_default()
+
+    def _parameters_items_changed(self):
+        # Only update our nearest-neighbor if necessary
+        if self.parameters[6:9] != self.last_parameters[6:9]:
+            self._update_nearest_calc()
+        self.last_parameters[:] = self.parameters[:]
+
+    @property
+    def changes(self):
+        new = np.array(self.parameters, float)
+        old = np.array(self.last_parameters, float)
+        move = np.linalg.norm(old[3:6] - new[3:6]) * 1e3
+        angle = np.rad2deg(_angle_between_quats(
+            rot_to_quat(rotation(*new[:3])[:3, :3]),
+            rot_to_quat(rotation(*old[:3])[:3, :3])))
+        percs = 100 * (new[6:] - old[6:]) / old[6:]
+        return move, angle, percs
 
     @property
     def transformed_hsp_hpi(self):
@@ -1420,6 +1443,7 @@ class Coregistration(object):
             self.parameters[:6] = est
         else:
             self.parameters[:] = np.concatenate([est, [est[-1]] * 2])
+        self._parameters_items_changed()
 
     def _setup_icp(self):
         head_pts = list()
@@ -1480,6 +1504,11 @@ class Coregistration(object):
                 self.parameters[:] = list(est) + [est[-1]] * 2
             else:
                 self.parameters[:] = est
+            angle, move, scale = self.changes
+            self._parameters_items_changed()
+            if angle <= self.icp_angle and move <= self.icp_distance and \
+                    all(scale <= self.icp_scale):
+                break
 
     def omit_hsp_points(self, distance):
         import warnings
