@@ -1756,17 +1756,14 @@ def _check_dig(dig):
 
 
 def _ch_coords_to_vox(ch_coords, fs_t1):
-    """Convert channel coordinates from head space to voxel space."""
-    # convert electrode positions to voxels
+    """Convert channel coordinates from surface RAS to voxel space."""
     ch_coords = apply_trans(
         np.linalg.inv(fs_t1.header.get_vox2ras_tkr()), ch_coords * 1000)
     return ch_coords
 
 
-def _ch_coords_to_head(ch_coords, fs_t1):
-    """Convert back to the head coordinate frame."""
-    # first, convert back to surface RAS but
-    # to the template surface RAS this time
+def _ch_coords_to_surface_RAS(ch_coords, fs_t1):
+    """Convert back to the surface RAS coordinate frame."""
     ch_coords = apply_trans(
         fs_t1.header.get_vox2ras_tkr(), ch_coords) / 1000
     return ch_coords
@@ -1892,7 +1889,7 @@ def warp_montage_volume(montage, image, reg_affine, sdr_morph,
     montage_warped = montage.copy()
 
     # assign to the montage
-    ch_coords = _ch_coords_to_head(ch_coords, fs_t1)
+    ch_coords = _ch_coords_to_surface_RAS(ch_coords, fs_t1)
     for idx, ch_coord in zip(use_idx, ch_coords):
         montage_warped.dig[idx]['r'] = ch_coord
     return montage_warped, dig_image, warped_dig_image
