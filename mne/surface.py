@@ -1804,8 +1804,8 @@ def warp_montage_volume(montage, image, reg_affine, sdr_morph,
     image : str | pathlib.Path | NibabelImageObject
         Path to a scan (e.g. CT) of the subject. Can be in any format
         readable by nibabel. Can also be a nibabel image object.
-    %(reg_affine)s See :func:`mne.transforms.compute_volume_registration`.
-    %(sdr_morph)s See :func:`mne.transforms.compute_volume_registration`.
+    %(reg_affine)s
+    %(sdr_morph)s
     %(subject)s
     template : str
         The name of the template (e.g. 'fsaverage').
