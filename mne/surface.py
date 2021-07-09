@@ -1708,7 +1708,7 @@ def marching_cubes(image, level):
 
 
 def _check_subject_dir(subject, subjects_dir):
-    """Checks that the Freesurfer subject directory is as expected."""
+    """Check that the Freesurfer subject directory is as expected."""
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
     brain_fname = op.join(subjects_dir, subject, 'mri', 'brain.mgz')
@@ -1719,7 +1719,7 @@ def _check_subject_dir(subject, subjects_dir):
 
 
 def _check_image(image, subject, subjects_dir):
-    """Checks if the image is in Freesurfer surface RAS space."""
+    """Check if the image is in Freesurfer surface RAS space."""
     import nibabel as nib
     if not isinstance(image, nib.spatialimages.SpatialImage):
         image = nib.load(image)
@@ -1733,7 +1733,7 @@ def _check_image(image, subject, subjects_dir):
 
 
 def _check_dig(dig):
-    """Checks if dig is in the coordinate frame."""
+    """Check if dig is in the coordinate frame."""
     use_idx = [i for i, d in enumerate(dig)
                if d['kind'] == FIFF.FIFFV_POINT_EEG]
     dig = [dig[idx] for idx in use_idx]
@@ -1756,7 +1756,7 @@ def _check_dig(dig):
 
 
 def _ch_coords_to_vox(ch_coords, fs_t1):
-    """Converts channel coordinates from head space to voxel space."""
+    """Convert channel coordinates from head space to voxel space."""
     # convert electrode positions to voxels
     ch_coords = apply_trans(
         np.linalg.inv(fs_t1.header.get_vox2ras_tkr()), ch_coords * 1000)
