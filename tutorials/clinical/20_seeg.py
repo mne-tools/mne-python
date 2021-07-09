@@ -145,23 +145,9 @@ epochs.set_channel_types(
 #    the linear talairach transform can accomplish. A more complex
 #    transform is necessary for more accurate warping.
 
-mne.viz.plot_alignment(epochs.info, trans, 'fsaverage',
-                       subjects_dir=subjects_dir, show_axes=True,
-                       surfaces=['pial', 'head'])
-
-###############################################################################
-# Now, let's make a more specific plot that focuses on an electrode of
-# interest.
-
-elec_name = 'LSMA'  # choose left supplementary motor electrode for example
-elec_chs = [ch for ch in epochs.ch_names if elec_name in ch]
-info = epochs.info.copy().pick_channels(elec_chs)
-rois = mne.surface.get_montage_rois(
-    info, trans, 'fsaverage', subjects_dir, dist=5)
-fig = mne.viz.plot_alignment(info, trans, 'fsaverage',
-                             subjects_dir=subjects_dir,
-                             show_axes=True, surfaces=[])
-mne.viz.Brain('fsaverage', rois=rois, subjects_dir=subjects_dir)
+fig = mne.viz.plot_alignment(epochs.info, trans, 'fsaverage',
+                             subjects_dir=subjects_dir, show_axes=True,
+                             surfaces=['pial', 'head'])
 
 # %%
 # Next, we'll get the epoch data and plot its amplitude over time.
