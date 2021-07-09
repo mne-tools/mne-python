@@ -9,8 +9,8 @@
 from os import path as path
 
 import numpy as np
-from ...utils import (_check_option, _check_fname, _validate_type,
-                      get_subjects_dir)
+from ...utils import (_check_option, get_subjects_dir, _check_fname,
+                      _validate_type)
 from ...surface import (complete_surface_info, read_surface, read_curvature,
                         _read_patch)
 

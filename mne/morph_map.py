@@ -22,7 +22,7 @@ from .io.write import (start_block, end_block, write_string, start_file,
 from .surface import (read_surface, _triangle_neighbors, _compute_nearest,
                       _normalize_vectors, _get_tri_supp_geom,
                       _find_nearest_tri_pts)
-from .utils import warn, logger, verbose, get_subjects_dir
+from .utils import get_subjects_dir, warn, logger, verbose
 
 
 @verbose

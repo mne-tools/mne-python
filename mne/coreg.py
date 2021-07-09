@@ -32,7 +32,7 @@ from .transforms import (rotation, rotation3d, scaling, translation, Transform,
                          _read_fs_xfm, _write_fs_xfm, invert_transform,
                          combine_transforms, _quat_to_euler,
                          _fit_matched_points)
-from .utils import (get_config, logger, pformat, verbose, get_subjects_dir,
+from .utils import (get_config, get_subjects_dir, logger, pformat, verbose,
                     warn, has_nibabel)
 from .viz._3d import _fiducial_coords
 

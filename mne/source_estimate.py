@@ -26,7 +26,7 @@ from .source_space import (_ensure_src, _get_morph_src_reordering,
                            _ensure_src_subject, SourceSpaces, _get_src_nn,
                            _check_volume_labels)
 from .transforms import _get_trans, apply_trans
-from .utils import (_check_subject, logger, verbose, _pl, get_subjects_dir,
+from .utils import (get_subjects_dir, _check_subject, logger, verbose, _pl,
                     _time_mask, warn, copy_function_doc_to_method_doc,
                     fill_doc, _check_option, _validate_type, _check_src_normal,
                     _check_stc_units, _check_pandas_installed,

@@ -341,6 +341,33 @@ def _get_extra_data_path(home_dir=None):
     return op.join(home_dir, '.mne')
 
 
+def get_subjects_dir(subjects_dir=None, raise_error=False):
+    """Safely use subjects_dir input to return SUBJECTS_DIR.
+
+    Parameters
+    ----------
+    subjects_dir : str | None
+        If a value is provided, return subjects_dir. Otherwise, look for
+        SUBJECTS_DIR config and return the result.
+    raise_error : bool
+        If True, raise a KeyError if no value for SUBJECTS_DIR can be found
+        (instead of returning None).
+
+    Returns
+    -------
+    value : str | None
+        The SUBJECTS_DIR value.
+    """
+    _validate_type(item=subjects_dir, types=('path-like', None),
+                   item_name='subjects_dir', type_name='str or path-like')
+
+    if subjects_dir is None:
+        subjects_dir = get_config('SUBJECTS_DIR', raise_error=raise_error)
+    if subjects_dir is not None:
+        subjects_dir = str(subjects_dir)
+    return subjects_dir
+
+
 def _get_stim_channel(stim_channel, info, raise_error=True):
     """Determine the appropriate stim_channel.
 
@@ -558,30 +585,3 @@ def sys_info(fid=None, show_paths=False):
                 version = mod.__version__
             out += '%s%s\n' % (version, extra)
     print(out, end='', file=fid)
-
-
-def get_subjects_dir(subjects_dir=None, raise_error=False):
-    """Safely use subjects_dir input to return SUBJECTS_DIR.
-
-    Parameters
-    ----------
-    subjects_dir : str | None
-        If a value is provided, return subjects_dir. Otherwise, look for
-        SUBJECTS_DIR config and return the result.
-    raise_error : bool
-        If True, raise a KeyError if no value for SUBJECTS_DIR can be found
-        (instead of returning None).
-
-    Returns
-    -------
-    value : str | None
-        The SUBJECTS_DIR value.
-    """
-    _validate_type(item=subjects_dir, types=('path-like', None),
-                   item_name='subjects_dir', type_name='str or path-like')
-
-    if subjects_dir is None:
-        subjects_dir = get_config('SUBJECTS_DIR', raise_error=raise_error)
-    if subjects_dir is not None:
-        subjects_dir = str(subjects_dir)
-    return subjects_dir

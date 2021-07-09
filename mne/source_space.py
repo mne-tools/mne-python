@@ -34,11 +34,11 @@ from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
 from ._freesurfer import (_get_mri_info_data, _get_atlas_values,  # noqa: F401
                           read_freesurfer_lut,
                           get_mni_fiducials)
-from .utils import (check_fname, logger, verbose, fill_doc,
+from .utils import (get_subjects_dir, check_fname, logger, verbose, fill_doc,
                     _ensure_int, check_version, _get_call_line, warn,
                     _check_fname, _check_path_like, _check_sphere,
                     _validate_type, _check_option, _is_numeric, _pl, _suggest,
-                    object_size, sizeof_fmt, get_subjects_dir)
+                    object_size, sizeof_fmt)
 from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
                          combine_transforms, _get_trans,

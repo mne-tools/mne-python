@@ -31,10 +31,10 @@ from .surface import (read_surface, write_surface, complete_surface_info,
                       _fast_cross_nd_sum, _get_solids, _complete_sphere_surf,
                       decimate_surface)
 from .transforms import _ensure_trans, apply_trans, Transform
-from .utils import (verbose, logger, run_subprocess, warn,
+from .utils import (verbose, logger, run_subprocess, get_subjects_dir, warn,
                     _pl, _validate_type, _TempDir, _check_freesurfer_home,
                     _check_fname, has_nibabel, _check_option, path_like,
-                    _on_missing, get_subjects_dir)
+                    _on_missing)
 from .externals.h5io import write_hdf5, read_hdf5
 
 
