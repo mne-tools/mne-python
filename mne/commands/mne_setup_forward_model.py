@@ -12,7 +12,7 @@ Examples
 import sys
 import os
 import mne
-from mne.utils import warn
+from mne.utils import warn, get_subject_dir
 
 
 def run():
@@ -112,7 +112,7 @@ def run():
         if not (fname.endswith('-bem.fif') or fname.endswith('_bem.fif')):
             fname = fname + "-bem.fif"
             # Save to subject's directory
-    subjects_dir = mne.get_subjects_dir(subjects_dir, raise_error=True)
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     fname = os.path.join(subjects_dir, subject, "bem", fname)
     # Save source space to file
     mne.write_bem_surfaces(fname, bem_model)

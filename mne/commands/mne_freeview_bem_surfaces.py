@@ -15,7 +15,7 @@ import os
 import os.path as op
 
 import mne
-from mne.utils import run_subprocess
+from mne.utils import run_subprocess, get_subjects_dir
 
 
 def freeview_bem_surfaces(subject, subjects_dir, method):
@@ -30,7 +30,7 @@ def freeview_bem_surfaces(subject, subjects_dir, method):
     method : string
         Can be 'flash' or 'watershed'.
     """
-    subjects_dir = mne.get_subjects_dir(subjects_dir, raise_error=True)
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
     if subject is None:
         raise ValueError("subject argument is None.")
@@ -83,7 +83,7 @@ def run():
     parser = get_optparser(__file__)
 
     subject = os.environ.get('SUBJECT')
-    subjects_dir = mne.get_subjects_dir()
+    subjects_dir = get_subjects_dir()
 
     parser.add_option("-s", "--subject", dest="subject",
                       help="Subject name", default=subject)
