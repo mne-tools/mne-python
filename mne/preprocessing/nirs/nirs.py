@@ -183,9 +183,12 @@ def _fnirs_check_bads(info):
     # optodes are marked bad consistently.
     picks = _picks_to_idx(info, 'fnirs', exclude=[], allow_empty=True)
     for ii in picks[::2]:
-        bad_opto = set(info['bads']).intersection(info.ch_names[ii:ii + 2])
-        if len(bad_opto) == 1:
-            raise RuntimeError('NIRS bad labelling is not consistent')
+        want = info.ch_names[ii:ii + 2]
+        got = list(set(info['bads']).intersection(want))
+        if len(got) == 1:
+            raise RuntimeError(
+                f'NIRS bad labelling is not consistent, found {got} but '
+                f'needed {want}')
 
 
 def _fnirs_spread_bads(info):

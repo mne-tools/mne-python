@@ -42,7 +42,11 @@ def beer_lambert_law(raw, ppf=0.1):
         warn('Source-detector distances are zero, some resulting '
              'concentrations will be zero. Consider setting a montage '
              'with raw.set_montage.')
-
+    if (distances > 0.1).any():
+        warn('Source-detector distances are greater than 10 cm. '
+             'Large distances will result in invalid data, and are '
+             'likely due to optode locations being stored in a '
+             ' unit other than meters.')
     rename = dict()
     for ii in picks[::2]:
         EL = abs_coef * distances[ii] * ppf

@@ -204,31 +204,40 @@ def test_hitachi_basic(preload, version, n_ch, n_times, lowpass, sex, date,
     assert raw.info['subject_info']['sex'] == sex
     assert np.isfinite(raw.get_data()).all()
     assert raw.info['meas_date'] == dt.datetime(*date, tzinfo=dt.timezone.utc)
-    # bad distances
+    # bad distances (zero)
     distances = source_detector_distances(raw.info)
     want = [0.] * (n_ch - 4)
     assert_allclose(distances, want, atol=0.)
     raw_od_bad = optical_density(raw)
     with pytest.warns(RuntimeWarning, match='will be zero'):
         beer_lambert_law(raw_od_bad)
+    # bad distances (too big)
+    if version == '1.18':
+        need = sum(([f'S{ii}', f'D{ii}'] for ii in range(1, 9)), [])[:-1]
+        have = 'P7 FC3 C3 CP3 P3 F5 FC5 C5 CP5 P5 F7 FT7 T7 TP7 F3'.split()
+        assert len(need) == len(have)
+        mon = make_standard_montage('standard_1020')
+        mon.rename_channels(dict(zip(have, need)))
+        raw.set_montage(mon)
+        raw_od_bad = optical_density(raw)
+        with pytest.warns(RuntimeWarning, match='greater than 10 cm'):
+            beer_lambert_law(raw_od_bad)
     # good distances
     mon = make_standard_montage('standard_1020')
     if version == '1.18':
         need = sum(([f'S{ii}', f'D{ii}'] for ii in range(1, 9)), [])[:-1]
         have = 'F3 FC3 C3 CP3 P3 F5 FC5 C5 CP5 P5 F7 FT7 T7 TP7 P7'.split()
-        dist_tol = 0.01
-        bl_min = 1e-6
     else:
         need = sum(([f'S{ii}', f'D{ii}'] for ii in range(1, 18)), [])[:-1]
-        have = mon.ch_names[:len(need)]  # wrong but good enough for tests
-        dist_tol = 0.15  # really big because the list above is wrong
-        bl_min = 1e-8  # really small for the same reason
+        have = ('FT9 FT7 FC5 FC3 FC1 FCz FC2 FC4 FC6 FT8 FT10 '
+                'T9 T7 C5 C3 C1 Cz C2 C4 C6 T8 T10 '
+                'TP9 TP7 CP5 CP3 CP1 CPz CP2 CP4 CP6 TP8 TP10').split()
     assert len(need) == len(have)
     mon.rename_channels(dict(zip(have, need)))
     raw.set_montage(mon)
     distances = source_detector_distances(raw.info)
     want = [0.03] * (n_ch - 4)
-    assert_allclose(distances, want, atol=dist_tol)
+    assert_allclose(distances, want, atol=0.01)
     test_rank = 'less' if n_times < n_ch else True
     _test_raw_reader(read_raw_hitachi, fname=fname,
                      boundary_decimal=1, test_rank=test_rank)  # low fs
@@ -261,7 +270,7 @@ def test_hitachi_basic(preload, version, n_ch, n_times, lowpass, sex, date,
     assert np.isfinite(data).all()
     assert data.shape == (n_ch - 4, n_times)
     peaks = np.ptp(data, axis=-1)
-    assert_array_less(bl_min, peaks, err_msg='Beer-Lambert too small')
+    assert_array_less(1e-8, peaks, err_msg='Beer-Lambert too small')
     assert_array_less(peaks, 1e-3, err_msg='Beer-Lambert too big')
 
 
