@@ -10,7 +10,6 @@ import copy
 import numpy as np
 
 from .fixes import _get_img_fdata
-from ._freesurfer import get_subjects_dir
 from .morph_map import read_morph_map
 from .parallel import parallel_func
 from .source_estimate import (
@@ -18,7 +17,7 @@ from .source_estimate import (
     _get_ico_tris)
 from .source_space import SourceSpaces, _ensure_src, _grid_interp
 from .surface import mesh_edges, read_surface, _compute_nearest
-from .utils import (logger, verbose, check_version,
+from .utils import (logger, verbose, check_version, get_subjects_dir,
                     warn as warn_, fill_doc, _check_option, _validate_type,
                     BunchConst, _check_fname, warn,
                     _ensure_int, ProgressBar, use_log_level)

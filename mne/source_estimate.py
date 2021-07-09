@@ -17,8 +17,7 @@ from .cov import Covariance
 from .evoked import _get_peak
 from .filter import resample
 from ._freesurfer import (_import_nibabel, _get_mri_info_data,
-                          _get_atlas_values, read_freesurfer_lut,
-                          get_subjects_dir)
+                          _get_atlas_values, read_freesurfer_lut)
 from .io.constants import FIFF
 from .io.pick import pick_types
 from .surface import (read_surface, _get_ico_surface, mesh_edges,
@@ -27,7 +26,7 @@ from .source_space import (_ensure_src, _get_morph_src_reordering,
                            _ensure_src_subject, SourceSpaces, _get_src_nn,
                            _check_volume_labels)
 from .transforms import _get_trans, apply_trans
-from .utils import (_check_subject, logger, verbose, _pl,
+from .utils import (_check_subject, logger, verbose, _pl, get_subjects_dir,
                     _time_mask, warn, copy_function_doc_to_method_doc,
                     fill_doc, _check_option, _validate_type, _check_src_normal,
                     _check_stc_units, _check_pandas_installed,

@@ -21,13 +21,12 @@ import numpy as np
 from .channels.channels import _get_meg_system
 from .fixes import (_serialize_volume_info, _get_read_geometry, jit,
                     prange, bincount)
-from ._freesurfer import get_subjects_dir
 from .io.constants import FIFF
 from .io.pick import pick_types
 from .parallel import parallel_func
 from .transforms import (transform_surface_to, _pol_to_cart, _cart_to_sph,
                          _get_trans, apply_trans, Transform)
-from .utils import (logger, verbose, warn, _check_fname,
+from .utils import (logger, verbose, warn, _check_fname, get_subjects_dir,
                     _check_option, _ensure_int, _TempDir, run_subprocess,
                     _check_freesurfer_home, _hashable_ndarray)
 

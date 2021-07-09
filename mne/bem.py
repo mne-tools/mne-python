@@ -26,7 +26,6 @@ from .io.write import (start_file, start_block, write_float, write_int,
 from .io.tag import find_tag
 from .io.tree import dir_tree_find
 from .io.open import fiff_open
-from ._freesurfer import get_subjects_dir
 from .surface import (read_surface, write_surface, complete_surface_info,
                       _compute_nearest, _get_ico_surface, read_tri,
                       _fast_cross_nd_sum, _get_solids, _complete_sphere_surf,
@@ -35,7 +34,7 @@ from .transforms import _ensure_trans, apply_trans, Transform
 from .utils import (verbose, logger, run_subprocess, warn,
                     _pl, _validate_type, _TempDir, _check_freesurfer_home,
                     _check_fname, has_nibabel, _check_option, path_like,
-                    _on_missing)
+                    _on_missing, get_subjects_dir)
 from .externals.h5io import write_hdf5, read_hdf5
 
 

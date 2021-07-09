@@ -1,12 +1,11 @@
 import os.path as op
-from pathlib import Path
 import numpy as np
 
 import pytest
 from numpy.testing import assert_allclose, assert_array_equal
 
 import mne
-from mne import (get_subjects_dir, vertex_to_mni, head_to_mni,
+from mne import (vertex_to_mni, head_to_mni,
                  read_talxfm, read_freesurfer_lut,
                  get_volume_labels_from_aseg)
 from mne.datasets import testing
@@ -21,22 +20,6 @@ aseg_fname = op.join(data_path, 'subjects', 'sample', 'mri', 'aseg.mgz')
 trans_fname = op.join(data_path, 'MEG', 'sample',
                       'sample_audvis_trunc-trans.fif')
 rng = np.random.RandomState(0)
-
-
-def test_get_subjects_dir(monkeypatch, tmpdir):
-    """Test get_subjects_dir()."""
-    # String
-    subjects_dir = '/foo'
-    assert get_subjects_dir(subjects_dir) == subjects_dir
-
-    # Path
-    subjects_dir = Path('/foo')
-    assert get_subjects_dir(subjects_dir) == str(subjects_dir)
-
-    # `None`
-    monkeypatch.setenv('_MNE_FAKE_HOME_DIR', str(tmpdir))
-    monkeypatch.delenv('SUBJECTS_DIR', raising=False)
-    assert get_subjects_dir() is None
 
 
 @testing.requires_testing_data

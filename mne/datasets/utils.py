@@ -19,10 +19,9 @@ from distutils.version import LooseVersion
 import numpy as np
 
 from .. import __version__ as mne_version
-from .._freesurfer import get_subjects_dir
 from ..label import read_labels_from_annot, Label, write_labels_to_annot
 from ..utils import (get_config, set_config, _fetch_file, logger, warn,
-                     verbose, hashfunc, _pl, _safe_input)
+                     verbose, hashfunc, _pl, _safe_input, get_subjects_dir)
 from ..utils.docs import docdict
 from ..externals.doccer import docformat
 

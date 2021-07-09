@@ -15,34 +15,7 @@ from .transforms import (apply_trans, invert_transform, combine_transforms,
                          _ensure_trans, read_ras_mni_t, Transform)
 from .surface import read_surface
 from .utils import (verbose, _validate_type, _check_fname, _check_option,
-                    get_config)
-
-
-def get_subjects_dir(subjects_dir=None, raise_error=False):
-    """Safely use subjects_dir input to return SUBJECTS_DIR.
-
-    Parameters
-    ----------
-    subjects_dir : str | None
-        If a value is provided, return subjects_dir. Otherwise, look for
-        SUBJECTS_DIR config and return the result.
-    raise_error : bool
-        If True, raise a KeyError if no value for SUBJECTS_DIR can be found
-        (instead of returning None).
-
-    Returns
-    -------
-    value : str | None
-        The SUBJECTS_DIR value.
-    """
-    _validate_type(item=subjects_dir, types=('path-like', None),
-                   item_name='subjects_dir', type_name='str or path-like')
-
-    if subjects_dir is None:
-        subjects_dir = get_config('SUBJECTS_DIR', raise_error=raise_error)
-    if subjects_dir is not None:
-        subjects_dir = str(subjects_dir)
-    return subjects_dir
+                    get_subjects_dir)
 
 
 def _import_nibabel(why='use MRI files'):
@@ -505,7 +478,7 @@ def _get_lut(fname=None):
     """Get a FreeSurfer LUT."""
     _validate_type(fname, ('path-like', None), 'fname')
     if fname is None:
-        fname = op.join(op.dirname(__file__), '..', 'data',
+        fname = op.join(op.dirname(__file__), 'data',
                         'FreeSurferColorLUT.txt')
     _check_fname(fname, 'read', must_exist=True)
     dtype = [('id', '<i8'), ('name', 'U'),

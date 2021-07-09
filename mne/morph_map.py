@@ -19,11 +19,10 @@ from .io.tag import find_tag
 from .io.tree import dir_tree_find
 from .io.write import (start_block, end_block, write_string, start_file,
                        write_float_sparse_rcs, write_int, end_file)
-from ._freesurfer import get_subjects_dir
 from .surface import (read_surface, _triangle_neighbors, _compute_nearest,
                       _normalize_vectors, _get_tri_supp_geom,
                       _find_nearest_tri_pts)
-from .utils import warn, logger, verbose
+from .utils import warn, logger, verbose, get_subjects_dir
 
 
 @verbose

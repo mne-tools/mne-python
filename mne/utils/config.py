@@ -560,9 +560,28 @@ def sys_info(fid=None, show_paths=False):
     print(out, end='', file=fid)
 
 
-def get_subjects_dir(*args, **kwargs):
-    """Depreciation function for in utils."""
-    from .._freesurfer import get_subjects_dir
-    warn('mne.utils.get_subjects_dir is depreciated, '
-         'use mne.get_subjects_dir instead', DeprecationWarning)
-    get_subjects_dir(*args, **kwargs)
+def get_subjects_dir(subjects_dir=None, raise_error=False):
+    """Safely use subjects_dir input to return SUBJECTS_DIR.
+
+    Parameters
+    ----------
+    subjects_dir : str | None
+        If a value is provided, return subjects_dir. Otherwise, look for
+        SUBJECTS_DIR config and return the result.
+    raise_error : bool
+        If True, raise a KeyError if no value for SUBJECTS_DIR can be found
+        (instead of returning None).
+
+    Returns
+    -------
+    value : str | None
+        The SUBJECTS_DIR value.
+    """
+    _validate_type(item=subjects_dir, types=('path-like', None),
+                   item_name='subjects_dir', type_name='str or path-like')
+
+    if subjects_dir is None:
+        subjects_dir = get_config('SUBJECTS_DIR', raise_error=raise_error)
+    if subjects_dir is not None:
+        subjects_dir = str(subjects_dir)
+    return subjects_dir

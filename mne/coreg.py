@@ -20,7 +20,9 @@ import numpy as np
 
 from .io import read_fiducials, write_fiducials, read_info
 from .io.constants import FIFF
-from ._freesurfer import _read_mri_info, get_subjects_dir
+# keep get_mni_fiducials for backward compat (no burden to keep in this
+# namespace, too)
+from ._freesurfer import _read_mri_info, get_mni_fiducials  # noqa: F401
 from .label import read_label, Label
 from .source_space import (add_source_space_distances, read_source_spaces,  # noqa: E501,F401
                            write_source_spaces)
@@ -30,7 +32,7 @@ from .transforms import (rotation, rotation3d, scaling, translation, Transform,
                          _read_fs_xfm, _write_fs_xfm, invert_transform,
                          combine_transforms, _quat_to_euler,
                          _fit_matched_points)
-from .utils import (get_config, logger, pformat, verbose,
+from .utils import (get_config, logger, pformat, verbose, get_subjects_dir,
                     warn, has_nibabel)
 from .viz._3d import _fiducial_coords
 

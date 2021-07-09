@@ -21,13 +21,12 @@ import numpy as np
 
 from ..defaults import DEFAULTS
 from ..fixes import _crop_colorbar, _get_img_fdata, _get_args
-from .._freesurfer import get_subjects_dir
 from ..io import _loc_to_coil_trans
 from ..io.pick import pick_types, _picks_to_idx
 from ..io.constants import FIFF
 from ..io.meas_info import read_fiducials, create_info
 from ..source_space import (_ensure_src, _create_surf_spacing, _check_spacing,
-                            _read_mri_info, SourceSpaces, read_freesurfer_lut)
+                            SourceSpaces, read_freesurfer_lut)
 
 from ..surface import (get_meg_helmet_surf, _read_mri_surface, _DistanceQuery,
                        transform_surface_to, _project_onto_surface,
@@ -36,7 +35,7 @@ from ..transforms import (_find_trans, apply_trans, rot_to_quat,
                           combine_transforms, _get_trans, _ensure_trans,
                           invert_transform, Transform, rotation,
                           read_ras_mni_t, _print_coord_trans)
-from ..utils import (logger, _check_subject, verbose, warn,
+from ..utils import (logger, _check_subject, verbose, warn, get_subjects_dir,
                      has_nibabel, check_version, fill_doc, _pl, get_config,
                      _ensure_int, _validate_type, _check_option)
 from .utils import (mne_analyze_colormap, _get_color_list,
@@ -3098,6 +3097,7 @@ def _get_dipole_loc(dipole, trans, subject, subjects_dir, coord_frame):
     """Get the dipole locations and orientations."""
     import nibabel as nib
     from nibabel.processing import resample_from_to
+    from .._freesurfer import _read_mri_info
     _check_option('coord_frame', coord_frame, ['head', 'mri'])
 
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
