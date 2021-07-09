@@ -1289,6 +1289,7 @@ def test_annotation_ch_names():
 def test_annotation_rename():
     """Test annotation renaming works."""
     a = Annotations([1, 2, 3], [5, 5, 8], ["a", "b", "c"])
+    assert isinstance(a.description, np.ndarray)
     assert len(a) == 3
     assert "a" in a.description
     assert "b" in a.description
@@ -1297,6 +1298,7 @@ def test_annotation_rename():
 
     a = Annotations([1, 2, 3], [5, 5, 8], ["a", "b", "c"])
     a.rename({"a": "new_name"})
+    assert isinstance(a.description, np.ndarray)
     assert len(a) == 3
     assert "a" not in a.description
     assert "new_name" in a.description
@@ -1314,6 +1316,7 @@ def test_annotation_rename():
 
     a = Annotations([1, 2, 3], [5, 5, 8], ["a", "b", "c"])
     a.rename({"b": "new_name", "c": "new name c"})
+    assert isinstance(a.description, np.ndarray)
     assert len(a) == 3
     assert "b" not in a.description
     assert "new_name" in a.description
@@ -1340,6 +1343,7 @@ def test_annotation_rename():
 def test_annotation_duration_setting():
     """Test annotation duration setting works."""
     a = Annotations([1, 2, 3], [5, 5, 8], ["a", "b", "c"])
+    assert isinstance(a.duration, np.ndarray)
     assert len(a) == 3
     assert a.duration[0] == 5
     assert a.duration[2] == 8
@@ -1358,6 +1362,7 @@ def test_annotation_duration_setting():
     assert a.duration[0] == 5
     assert a.duration[2] == 8
     a.set_durations(7.2)
+    assert isinstance(a.duration, np.ndarray)
     assert a.duration[0] == 7.2
     assert a.duration[2] == 7.2
     a.set_durations(2)

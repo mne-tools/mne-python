@@ -644,6 +644,7 @@ class Annotations(object):
         for old, new in mapping.items():
             self.description = [d.replace(old, new) for d in self.description]
 
+        self.description = np.array(self.description)
         return self
 
 
