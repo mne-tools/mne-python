@@ -141,7 +141,8 @@ class DigPoint(dict):
         if 'voxel' in cf:
             pos = ('(%0.1f, %0.1f, %0.1f)' % tuple(self['r'])).ljust(25)
         else:
-            pos = ('(%0.1f, %0.1f, %0.1f) mm' % tuple(1000 * self['r'])).ljust(25)
+            pos = ('(%0.1f, %0.1f, %0.1f) mm' %
+                   tuple(1000 * self['r'])).ljust(25)
         return ('<DigPoint | %s : %s : %s frame>' % (id_, pos, cf))
 
     # speed up info copy by only deep copying the mutable item
