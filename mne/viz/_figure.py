@@ -35,15 +35,18 @@ matplotlib.figure.Figure
 # Authors: Daniel McCloy <dan@mccloy.info>
 #
 # License: Simplified BSD
-import datetime
-from contextlib import contextmanager
-import platform
 from copy import deepcopy
-from itertools import cycle
-from functools import partial
 from collections import OrderedDict
+from contextlib import contextmanager
+import datetime
+from functools import partial
+from itertools import cycle
+import platform
+import warnings
+
 import numpy as np
 from matplotlib.figure import Figure
+
 from .epochs import plot_epochs_image
 from .ica import (_create_properties_layout, _fast_plot_ica_properties,
                   _prepare_data_ica_properties)
@@ -206,8 +209,12 @@ class MNEAnnotationFigure(MNEFigure):
         # update click-drag rectangle color
         color = buttons.circles[idx].get_edgecolor()
         selector = self.mne.parent_fig.mne.ax_main.selector
-        selector.rect.set_color(color)
-        selector.rectprops.update(dict(facecolor=color))
+        # We need to update this pending
+        # https://github.com/matplotlib/matplotlib/pull/20113#issuecomment-877345562  # noqa: E501
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter('ignore', DeprecationWarning)
+            selector.rect.set_color(color)
+            selector.rectprops.update(dict(facecolor=color))
 
     def _click_override(self, event):
         """Override MPL radiobutton click detector to use transData."""
