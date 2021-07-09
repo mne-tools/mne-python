@@ -3340,6 +3340,9 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True, *,
         if epochs.baseline != baseline:
             raise ValueError('Baseline must be same for all epochs')
 
+        if len(epochs.events) == 0:
+            warn('One of the Epochs objects to concatenate was empty.')
+
         # compare event_id
         common_keys = list(set(event_id).intersection(set(epochs.event_id)))
         for key in common_keys:
@@ -3356,12 +3359,9 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True, *,
         evs = epochs.events.copy()
         # add offset
         if add_offset:
-            if len(evs) == 0:
-                warn('One of the Epochs objects to concatenate was empty.')
-            else:
-                # We need to cast to a native Python int here to prevent an
-                # overflow of a numpy int32 or int64 type.
-                events_offset += int(np.max(evs[:, 0])) + shift
+            # We need to cast to a native Python int here to prevent an
+            # overflow of a numpy int32 or int64 type.
+            events_offset += int(np.max(evs[:, 0])) + shift
             if events_offset > INT32_MAX:
                 warn(f'Event number greater than {INT32_MAX} created, '
                      'events[:, 0] will be assigned consecutive increasing '
