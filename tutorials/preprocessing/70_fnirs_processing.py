@@ -34,7 +34,7 @@ raw_intensity.load_data()
 # stored as annotations. Second, we include information about the duration of
 # each stimulus, which was 5 seconds for all conditions in this experiment.
 # Third, we remove the trigger code 15, which signaled the start and end
-# of the experiment and is not relevant to analysis.
+# of the experiment and is not relevant to our analysis.
 
 raw_intensity.annotations.set_durations(5)
 raw_intensity.annotations.rename({'1.0': 'Control',
