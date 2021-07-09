@@ -138,7 +138,10 @@ class DigPoint(dict):
             id_ = ('%s #%s' % (id_, self['ident']))
         id_ = id_.rjust(10)
         cf = _coord_frame_name(self['coord_frame'])
-        pos = ('(%0.1f, %0.1f, %0.1f) mm' % tuple(1000 * self['r'])).ljust(25)
+        if 'voxel' in cf:
+            pos = ('(%0.1f, %0.1f, %0.1f)' % tuple(self['r'])).ljust(25)
+        else:
+            pos = ('(%0.1f, %0.1f, %0.1f) mm' % tuple(1000 * self['r'])).ljust(25)
         return ('<DigPoint | %s : %s : %s frame>' % (id_, pos, cf))
 
     # speed up info copy by only deep copying the mutable item

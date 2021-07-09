@@ -29,6 +29,7 @@ from mne.io.meas_info import _get_valid_units
 from mne.io._digitization import DigPoint
 from mne.io.proj import Projection
 from mne.io.utils import _mult_cal_one
+from mne.io.constants import FIFF
 
 
 def assert_named_constants(info):
@@ -692,3 +693,15 @@ def test_get_data_units():
     # not the good type
     with pytest.raises(TypeError, match='instance of None, str, or dict'):
         raw.get_data(units=['fT/cm', 'fT', 'uV'])
+
+
+def test_repr_dig_point():
+    """Test printing of DigPoint."""
+    dp = DigPoint(r=np.arange(3), coord_frame=FIFF.FIFFV_COORD_HEAD,
+                  kind=FIFF.FIFFV_POINT_EEG, ident=0)
+    assert 'mm' in repr(dp)
+
+    dp = DigPoint(r=np.arange(3), coord_frame=FIFF.FIFFV_MNE_COORD_MRI_VOXEL,
+                  kind=FIFF.FIFFV_POINT_CARDINAL, ident=0)
+    assert 'mm' not in repr(dp)
+    assert 'voxel' in repr(dp)
