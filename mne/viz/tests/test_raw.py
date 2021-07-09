@@ -521,6 +521,7 @@ def test_plot_misc_auto():
     plt.close('all')
 
 
+@pytest.mark.slowtest
 def test_plot_annotations(raw):
     """Test annotation mode of the plotter."""
     raw.info['lowpass'] = 10.

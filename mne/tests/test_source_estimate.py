@@ -1654,7 +1654,8 @@ def _make_morph_map_hemi_same(subject_from, subject_to, subjects_dir,
 @requires_nibabel()
 @testing.requires_testing_data
 @pytest.mark.parametrize('kind', (
-    pytest.param('volume', marks=[requires_version('dipy')]),
+    pytest.param('volume', marks=[requires_version('dipy'),
+                                  pytest.mark.slowtest]),
     'surface',
 ))
 @pytest.mark.parametrize('scale', ((1.0, 0.8, 1.2), 1., 0.9))

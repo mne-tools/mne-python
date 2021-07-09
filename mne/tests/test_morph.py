@@ -833,6 +833,7 @@ def _mixed_morph_srcs():
 
 @requires_nibabel()
 @requires_dipy()
+@pytest.mark.slowtest
 @pytest.mark.parametrize('vector', (False, True))
 def test_mixed_source_morph(_mixed_morph_srcs, vector):
     """Test mixed source space morphing."""
