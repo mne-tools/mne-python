@@ -1797,8 +1797,8 @@ def warp_montage_volume(montage, image, reg_affine, sdr_morph,
 
     Parameters
     ----------
-    info : mne.channels.montage.DigMontage
-        The info object containing the channels.
+    montage : mne.channels.montage.DigMontage
+        The montage object containing the channels.
     image : str | pathlib.Path | NibabelImageObject
         Path to a scan (e.g. CT) of the subject. Can be in any format
         readable by nibabel. Can also be a nibabel image object.
@@ -1825,7 +1825,7 @@ def warp_montage_volume(montage, image, reg_affine, sdr_morph,
     Returns
     -------
     montage_warped : mne.channels.montage.DigMontage
-        The modified info object containing the channels.
+        The modified montage object containing the channels.
     dig_image : NibabelImageObject
         An image in Freesurfer surface RAS space with voxel values
         corresponding to the index of the channel. The background
