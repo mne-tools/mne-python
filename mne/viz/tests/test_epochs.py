@@ -246,6 +246,7 @@ def test_plot_epochs_nodata():
         epochs.plot()
 
 
+@pytest.mark.slowtest
 def test_plot_epochs_image(epochs):
     """Test plotting of epochs image.
 
@@ -418,6 +419,7 @@ def test_plot_epochs_ctf():
     fig.canvas.key_press_event('escape')  # close and drop epochs
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_plot_psd_epochs_ctf():
     """Test plotting CTF epochs psd (+topomap)."""
