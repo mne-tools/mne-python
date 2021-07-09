@@ -31,9 +31,9 @@ from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
                       complete_surface_info, _compute_nearest, fast_cross_3d,
                       _CheckInside)
 # keep get_mni_fiducials here just for easy backward compat
-from ._freesurfer import (_get_mri_info_data, _get_atlas_values,
+from ._freesurfer import (_get_mri_info_data, _get_atlas_values,  # noqa: F401
                           read_freesurfer_lut,
-                          get_mni_fiducials)  # noqa: F401
+                          get_mni_fiducials)
 from .utils import (check_fname, logger, verbose, fill_doc,
                     _ensure_int, check_version, _get_call_line, warn,
                     _check_fname, _check_path_like, _check_sphere,
