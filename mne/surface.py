@@ -29,7 +29,7 @@ from .transforms import (transform_surface_to, _pol_to_cart, _cart_to_sph,
                          apply_volume_registration)
 from .utils import (logger, verbose, get_subjects_dir, warn, _check_fname,
                     _check_option, _ensure_int, _TempDir, run_subprocess,
-                    _check_freesurfer_home, _hashable_ndarray)
+                    _check_freesurfer_home, _hashable_ndarray, fill_doc)
 
 
 ###############################################################################
@@ -1783,6 +1783,7 @@ def _warn_missing_chs(montage, dig_image, after_warp):
              'voxels' + (' after applying SDR warp' if after_warp else ''))
 
 
+@fill_doc
 def warp_montage_volume(montage, image, reg_affine, sdr_morph,
                         subject, template, subjects_dir=None,
                         template_subjects_dir=None,
