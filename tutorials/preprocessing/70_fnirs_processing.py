@@ -27,6 +27,24 @@ raw_intensity.load_data()
 
 
 ###############################################################################
+# Providing more meaningful annotation information
+# ------------------------------------------------
+#
+# First, we attribute more meaningful names to the trigger codes which are
+# stored as annotations. Second, we include information about the duration of
+# each stimulus, which was 5 seconds for all conditions in this experiment.
+# Third, we remove the trigger code 15, which signaled the start and end
+# of the experiment and is not relevant to our analysis.
+
+raw_intensity.annotations.set_durations(5)
+raw_intensity.annotations.rename({'1.0': 'Control',
+                                  '2.0': 'Tapping/Left',
+                                  '3.0': 'Tapping/Right'})
+raw_intensity.annotations.delete(
+    raw_intensity.annotations.description == '15.0')
+
+
+###############################################################################
 # View location of sensors over brain surface
 # -------------------------------------------
 #
@@ -153,10 +171,7 @@ fig.subplots_adjust(top=0.88)
 # First we extract the events of interest and visualise them to ensure they are
 # correct.
 
-events, _ = mne.events_from_annotations(raw_haemo, event_id={'1.0': 1,
-                                                             '2.0': 2,
-                                                             '3.0': 3})
-event_dict = {'Control': 1, 'Tapping/Left': 2, 'Tapping/Right': 3}
+events, event_dict = mne.events_from_annotations(raw_haemo)
 fig = mne.viz.plot_events(events, event_id=event_dict,
                           sfreq=raw_haemo.info['sfreq'])
 fig.subplots_adjust(right=0.7)  # make room for the legend
