@@ -562,8 +562,8 @@ def _check_depth(depth, kind='depth_mne'):
     return _handle_default(kind, depth)
 
 
-def _check_dict_keys(user_dict, valid_keys,
-                     dict_name="Channel name(s)", valid_name="info"):
+def _check_dict_keys(user_options, allowed_options,
+                     user_opt_name="Channel name(s)", validator_name="info"):
     """Check that the keys in dictionary are valid against a set list.
 
     Return the input dictionary if it is valid,
@@ -571,10 +571,15 @@ def _check_dict_keys(user_dict, valid_keys,
 
     Parameters
     ----------
-    user_dict : dict
+    user_options : dict
         The name of the parameter to check. This is used in the error message.
-    valid_keys : list
+    allowed_options : list
         All possible valid key names.
+    user_opt_name : str
+        Meaningful name of the items stored in the input dictionary.
+    validator_name : str
+        Meaningful name of the values against which the keys are
+        validated against.
 
     Raises
     ------
@@ -586,14 +591,12 @@ def _check_dict_keys(user_dict, valid_keys,
     user_dict
         When the keys are deemed acceptable the dictionary is returned.
     """
-    sorted_keys = sorted(user_dict)
-    missing = [val for val in sorted_keys if val not in valid_keys]
+    missing = set(user_options) - set(allowed_options)
     if len(missing):
         raise ValueError(
-            f"{dict_name} is missing from {valid_name}: "
-            f"{missing}")
+            f"{user_opt_name} missing in {validator_name}: {missing}")
 
-    return user_dict
+    return user_options
 
 
 def _check_option(parameter, value, allowed_values, extra=''):

@@ -592,8 +592,8 @@ class Annotations(object):
         _validate_type(mapping, (int, float, dict))
 
         if isinstance(mapping, dict):
-            _check_dict_keys(mapping, self.description, valid_name="data",
-                             dict_name="Annotation description(s)")
+            _check_dict_keys(mapping, self.description, validator_name="data",
+                             user_opt_name="Annotation description(s)")
             for stim in mapping:
                 map_idx = [desc == stim for desc in self.description]
                 self.duration[map_idx] = mapping[stim]
@@ -629,8 +629,8 @@ class Annotations(object):
         .. versionadded:: 0.24.0
         """
         _validate_type(mapping, dict)
-        _check_dict_keys(mapping, self.description, valid_name="data",
-                         dict_name="Annotation description(s)")
+        _check_dict_keys(mapping, self.description, validator_name="data",
+                         user_opt_name="Annotation description(s)")
 
         for old, new in mapping.items():
             self.description = [d.replace(old, new) for d in self.description]
