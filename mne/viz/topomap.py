@@ -215,7 +215,10 @@ def _plot_update_evoked_topomap(params, bools):
             tp = cont.collections[0]
             visible = tp.get_visible()
             patch_ = tp.get_clip_path()
-            color = tp.get_color()
+            try:
+                color = tp.get_edgecolors()
+            except AttributeError:  # old MPL
+                color = tp.get_color()
             lw = tp.get_linewidth()
         for tp in cont.collections:
             tp.remove()
@@ -2189,7 +2192,7 @@ def _init_anim(ax, ax_line, ax_cbar, params, merge_channels, sphere, ch_type,
     outlines_ = _draw_outlines(ax, outlines)
 
     params.update({'patch': patch_, 'outlines': outlines_})
-    ax.figure.tight_layout()
+    tight_layout(ax.figure)
     return tuple(items) + tuple(cont.collections)
 
 

@@ -982,7 +982,7 @@ def _crop_colorbar(cbar, cbar_vmin, cbar_vmax):
     # so we use the code from there
     if LooseVersion(matplotlib.__version__) >= LooseVersion("3.2.0"):
         cbar.ax.set_ylim(cbar_vmin, cbar_vmax)
-        X, _ = cbar._mesh()
+        X = cbar._mesh()[0]
         X = np.array([X[0], X[-1]])
         Y = np.array([[cbar_vmin, cbar_vmin], [cbar_vmax, cbar_vmax]])
         N = X.shape[0]
@@ -1001,7 +1001,8 @@ def _crop_colorbar(cbar, cbar_vmin, cbar_vmax):
         outline[6:, 1] += cbar.norm(cbar_vmin)
         cbar.outline.set_xy(outline)
 
-    cbar.set_ticks(new_tick_locs, update_ticks=True)
+    cbar.set_ticks(new_tick_locs)
+    cbar.update_ticks()
 
 
 ###############################################################################
