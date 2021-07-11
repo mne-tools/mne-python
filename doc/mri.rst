@@ -14,7 +14,7 @@ Step by step instructions for using :func:`gui.coregistration`:
 .. autosummary::
    :toctree: generated/
 
-   get_mni_fiducials
+   coreg.get_mni_fiducials
    gui.coregistration
    gui.fiducials
    create_default_subject
