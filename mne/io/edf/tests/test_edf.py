@@ -512,3 +512,16 @@ def test_degenerate():
                  partial(_read_header, exclude=())):
         with pytest.raises(NotImplementedError, match='Only.*txt.*'):
             func(edf_txt_stim_channel_path)
+
+
+def test_exclude():
+    """Test exclude parameter."""
+    exclude = ["I1", "I2", "I3", "I4"]  # list of excluded channels
+
+    raw = read_raw_edf(edf_path, exclude=["I1", "I2", "I3", "I4"])
+    for ch in exclude:
+        assert ch not in raw.ch_names
+
+    raw = read_raw_edf(edf_path, exclude = "I[1-4]")
+    for ch in exclude:
+        assert ch not in raw.ch_names
