@@ -1325,7 +1325,9 @@ class DraggableColorbar(object):
         self._update()
 
     def _update(self):
-        self.cbar.set_ticks(None, update_ticks=True)  # use default
+        from matplotlib.ticker import AutoLocator
+        self.cbar.set_ticks(AutoLocator())
+        self.cbar.update_ticks()
         self.cbar.draw_all()
         self.mappable.set_norm(self.cbar.norm)
         self.cbar.patch.figure.canvas.draw()

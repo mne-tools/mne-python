@@ -1298,7 +1298,7 @@ def _stc_src_sel(src, stc, on_missing='raise',
     return src_sel, stc_sel, out_vertices
 
 
-def _fill_measurement_info(info, fwd, sfreq):
+def _fill_measurement_info(info, fwd, sfreq, data):
     """Fill the measurement info of a Raw or Evoked object."""
     sel = pick_channels(info['ch_names'], fwd['sol']['row_names'])
     info = pick_info(info, sel)
@@ -1316,7 +1316,11 @@ def _fill_measurement_info(info, fwd, sfreq):
                 lowpass=sfreq / 2., sfreq=sfreq, projs=[])
     info._check_consistency()
 
-    return info
+    # reorder data (which is in fwd order) to match that of info
+    order = [fwd['sol']['row_names'].index(name) for name in info['ch_names']]
+    data = data[order]
+
+    return info, data
 
 
 @verbose
@@ -1418,9 +1422,9 @@ def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=True,
 
     # fill the measurement info
     sfreq = float(1.0 / stc.tstep)
-    info_out = _fill_measurement_info(info, fwd, sfreq)
+    info, data = _fill_measurement_info(info, fwd, sfreq, data)
 
-    evoked = EvokedArray(data, info_out, times[0], nave=1)
+    evoked = EvokedArray(data, info, times[0], nave=1)
 
     evoked.times = times
     evoked._update_first_last()
@@ -1483,7 +1487,7 @@ def apply_forward_raw(fwd, stc, info, start=None, stop=None,
                                  use_cps=use_cps)
 
     sfreq = 1.0 / stc.tstep
-    info = _fill_measurement_info(info, fwd, sfreq)
+    info, data = _fill_measurement_info(info, fwd, sfreq, data)
     info['projs'] = []
     # store sensor data in Raw object using the info
     raw = RawArray(data, info)

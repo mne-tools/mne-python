@@ -395,6 +395,7 @@ def test_simulate_raw_bem(raw_data):
     assert raw_sim.n_times == ss.n_times
 
 
+@pytest.mark.slowtest  # slow on Windows Azure
 def test_simulate_round_trip(raw_data):
     """Test simulate_raw round trip calculations."""
     # Check a diagonal round-trip

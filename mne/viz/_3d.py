@@ -21,12 +21,13 @@ import numpy as np
 
 from ..defaults import DEFAULTS
 from ..fixes import _crop_colorbar, _get_img_fdata, _get_args
+from .._freesurfer import _read_mri_info
 from ..io import _loc_to_coil_trans
 from ..io.pick import pick_types, _picks_to_idx
 from ..io.constants import FIFF
 from ..io.meas_info import read_fiducials, create_info
 from ..source_space import (_ensure_src, _create_surf_spacing, _check_spacing,
-                            _read_mri_info, SourceSpaces, read_freesurfer_lut)
+                            SourceSpaces, read_freesurfer_lut)
 
 from ..surface import (get_meg_helmet_surf, _read_mri_surface, _DistanceQuery,
                        transform_surface_to, _project_onto_surface,

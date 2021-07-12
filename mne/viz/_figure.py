@@ -35,15 +35,18 @@ matplotlib.figure.Figure
 # Authors: Daniel McCloy <dan@mccloy.info>
 #
 # License: Simplified BSD
-import datetime
-from contextlib import contextmanager
-import platform
 from copy import deepcopy
-from itertools import cycle
-from functools import partial
 from collections import OrderedDict
+from contextlib import contextmanager
+import datetime
+from functools import partial
+from itertools import cycle
+import platform
+import warnings
+
 import numpy as np
 from matplotlib.figure import Figure
+
 from .epochs import plot_epochs_image
 from .ica import (_create_properties_layout, _fast_plot_ica_properties,
                   _prepare_data_ica_properties)
@@ -206,8 +209,12 @@ class MNEAnnotationFigure(MNEFigure):
         # update click-drag rectangle color
         color = buttons.circles[idx].get_edgecolor()
         selector = self.mne.parent_fig.mne.ax_main.selector
-        selector.rect.set_color(color)
-        selector.rectprops.update(dict(facecolor=color))
+        # We need to update this pending
+        # https://github.com/matplotlib/matplotlib/pull/20113#issuecomment-877345562  # noqa: E501
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter('ignore', DeprecationWarning)
+            selector.rect.set_color(color)
+            selector.rectprops.update(dict(facecolor=color))
 
     def _click_override(self, event):
         """Override MPL radiobutton click detector to use transData."""
@@ -2383,7 +2390,8 @@ def _line_figure(inst, axes=None, picks=None, **kwargs):
 
 def _psd_figure(inst, proj, picks, axes, area_mode, tmin, tmax, fmin, fmax,
                 n_jobs, color, area_alpha, dB, estimate, average,
-                spatial_colors, xscale, line_alpha, sphere, window, **kwargs):
+                spatial_colors, xscale, line_alpha, sphere, window, exclude,
+                **kwargs):
     """Instantiate a new power spectral density figure."""
     from .. import BaseEpochs
     from ..io import BaseRaw
@@ -2409,7 +2417,7 @@ def _psd_figure(inst, proj, picks, axes, area_mode, tmin, tmax, fmin, fmax,
     _check_option('area_mode', area_mode, [None, 'std', 'range'])
     _check_option('xscale', xscale, ('log', 'linear'))
     sphere = _check_sphere(sphere, inst.info)
-    picks = _picks_to_idx(inst.info, picks)
+    picks = _picks_to_idx(inst.info, picks, exclude=exclude)
     titles = _handle_default('titles', None)
     units = _handle_default('units', None)
     scalings = _handle_default('scalings', None)

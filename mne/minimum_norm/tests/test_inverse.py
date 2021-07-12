@@ -1096,6 +1096,7 @@ def test_inverse_ctf_comp():
         apply_inverse_raw(raw, inv, 1. / 9.)
 
 
+@pytest.mark.slowtest
 def test_inverse_mixed(all_src_types_inv_evoked):
     """Test creating and applying an inverse to mixed source spaces."""
     stcs = dict()

@@ -7,15 +7,16 @@ import numpy as np
 import datetime
 
 from ..base import BaseRaw
-from ..meas_info import create_info
+from ..meas_info import create_info, _format_dig_points
 from ..utils import _mult_cal_one
 from ...annotations import Annotations
 from ...utils import logger, verbose, fill_doc, warn, _check_fname
 from ...utils.check import _require_version
 from ..constants import FIFF
 from .._digitization import _make_dig_points
-from ...transforms import _frame_to_str
+from ...transforms import _frame_to_str, apply_trans
 from ..nirx.nirx import _convert_fnirs_to_head
+from ..._freesurfer import get_mni_fiducials
 
 
 @fill_doc
@@ -252,8 +253,10 @@ class RawSNIRF(BaseRaw):
             if optode_frame in ["mri", "meg"]:
                 # These are all in MNI or MEG coordinates, so let's transform
                 # them to the Neuromag head coordinate frame
-                srcPos3D, detPos3D, _, _ = _convert_fnirs_to_head(
+                srcPos3D, detPos3D, _, head_t = _convert_fnirs_to_head(
                     'fsaverage', optode_frame, 'head', srcPos3D, detPos3D, [])
+            else:
+                head_t = np.eye(4)
 
             if optode_frame in ["head", "mri", "meg"]:
                 # Then the transformation to head was performed above
@@ -298,6 +301,24 @@ class RawSNIRF(BaseRaw):
                                                hpi=hpi, dig_ch_pos=extra_ps,
                                                coord_frame=_frame_to_str[
                                                    coord_frame])
+
+            else:
+                ch_locs = [info['chs'][idx]['loc'][0:3]
+                           for idx in range(len(channels))]
+                # Set up digitization
+                dig = get_mni_fiducials('fsaverage', verbose=False)
+                for fid in dig:
+                    fid['r'] = apply_trans(head_t, fid['r'])
+                    fid['coord_frame'] = FIFF.FIFFV_COORD_HEAD
+                for ii, ch_loc in enumerate(ch_locs, 1):
+                    dig.append(dict(
+                        kind=FIFF.FIFFV_POINT_EEG,  # misnomer probably okay
+                        r=ch_loc,
+                        ident=ii,
+                        coord_frame=FIFF.FIFFV_COORD_HEAD,
+                    ))
+                info['dig'] = _format_dig_points(dig)
+                del head_t
 
             str_date = np.array((dat.get(
                 '/nirs/metaDataTags/MeasurementDate')))[0].decode('UTF-8')

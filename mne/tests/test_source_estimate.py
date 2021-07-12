@@ -1654,7 +1654,8 @@ def _make_morph_map_hemi_same(subject_from, subject_to, subjects_dir,
 @requires_nibabel()
 @testing.requires_testing_data
 @pytest.mark.parametrize('kind', (
-    pytest.param('volume', marks=[requires_version('dipy')]),
+    pytest.param('volume', marks=[requires_version('dipy'),
+                                  pytest.mark.slowtest]),
     'surface',
 ))
 @pytest.mark.parametrize('scale', ((1.0, 0.8, 1.2), 1., 0.9))
@@ -1803,7 +1804,7 @@ def test_scale_morph_labels(kind, scale, monkeypatch, tmpdir):
                 min_, max_ = 0.72, 0.75
             else:
                 # min_, max_ = 0.84, 0.855  # zooms='auto' values
-                min_, max_ = 0.61, 0.62
+                min_, max_ = 0.61, 0.63
             assert min_ < corr <= max_, scale
         else:
             assert_allclose(

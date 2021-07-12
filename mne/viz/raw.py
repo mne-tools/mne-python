@@ -78,6 +78,12 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                  emg=1e-3, ref_meg=1e-12, misc=1e-3, stim=1,
                  resp=1, chpi=1e-4, whitened=1e2)
 
+        A particular scaling value ``s`` corresponds to half of the visualized
+        signal range around zero (i.e. from ``0`` to ``+s`` or from ``0`` to
+        ``-s``). For example, the default scaling of ``20e-6`` (20µV) for EEG
+        signals means that the visualized range will be 40µV (20µV in the
+        positive direction and 20µV in the negative direction).
+
     remove_dc : bool
         If True remove DC component when plotting data.
     order : array of int | None
@@ -373,7 +379,7 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
                  area_mode='std', area_alpha=0.33, dB=True, estimate='auto',
                  show=True, n_jobs=1, average=False, line_alpha=None,
                  spatial_colors=True, sphere=None, window='hamming',
-                 verbose=None):
+                 exclude='bads', verbose=None):
     """%(plot_psd_doc)s.
 
     Parameters
@@ -416,6 +422,12 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
     %(window-psd)s
 
         .. versionadded:: 0.22.0
+    exclude : list of str | 'bads'
+        Channels names to exclude from being shown. If 'bads', the bad channels
+        are excluded. Pass an empty list to plot all channels (including
+        channels marked "bad", if any).
+
+        .. versionadded:: 0.24.0
     %(verbose)s
 
     Returns
@@ -438,7 +450,7 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
         line_alpha=line_alpha, area_alpha=area_alpha, color=color,
         spatial_colors=spatial_colors, n_jobs=n_jobs, n_fft=n_fft,
         n_overlap=n_overlap, reject_by_annotation=reject_by_annotation,
-        window=window)
+        window=window, exclude=exclude)
     plt_show(show)
     return fig
 

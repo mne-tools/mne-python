@@ -25,7 +25,7 @@ docdict = dict()
 docdict['verbose'] = """
 verbose : bool | str | int | None
     If not None, override default verbose level (see :func:`mne.verbose`
-    and :ref:`Logging documentation <tut-logging>` for more).
+    and :ref:`Logging documentation <python:tut-logging>` for more).
     If used, it should be passed as a keyword-argument only."""
 docdict['verbose_meth'] = (docdict['verbose'] + ' Defaults to self.verbose.')
 
@@ -98,13 +98,51 @@ saturated data.
 docdict['hitachi_notes'] = """\
 Hitachi does not encode their channel positions, so you will need to
 create a suitable mapping using :func:`mne.channels.make_standard_montage`
-or :func:`mne.channels.make_dig_montage` like:
+or :func:`mne.channels.make_dig_montage` like (for a 3x5/ETG-7000 example):
 
 >>> mon = mne.channels.make_standard_montage('standard_1020')
 >>> need = 'S1 D1 S2 D2 S3 D3 S4 D4 S5 D5 S6 D6 S7 D7 S8'.split()
 >>> have = 'F3 FC3 C3 CP3 P3 F5 FC5 C5 CP5 P5 F7 FT7 T7 TP7 P7'.split()
 >>> mon.rename_channels(dict(zip(have, need)))
 >>> raw.set_montage(mon)  # doctest: +SKIP
+
+The 3x3 (ETG-100) is laid out as two separate layouts::
+
+    S1--D1--S2    S6--D6--S7
+    |   |   |     |   |   |
+    D2--S3--D3    D7--S8--D8
+    |   |   |     |   |   |
+    S4--D4--S5    S9--D9--S10
+
+The 3x5 (ETG-7000) is laid out as::
+
+    S1--D1--S2--D2--S3
+    |   |   |   |   |
+    D3--S4--D4--S5--D5
+    |   |   |   |   |
+    S6--D6--S7--D7--S8
+
+The 4x4 (ETG-7000) is laid out as::
+
+    S1--D1--S2--D2
+    |   |   |   |
+    D3--S3--D4--S4
+    |   |   |   |
+    S5--D5--S6--D6
+    |   |   |   |
+    D7--S7--D8--S8
+
+The 3x11 (ETG-4000) is laid out as::
+
+    S1--D1--S2--D2--S3--D3--S4--D4--S5--D5--S6
+    |   |   |   |   |   |   |   |   |   |   |
+    D6--S7--D7--S8--D8--S9--D9--S10-D10-S11-D11
+    |   |   |   |   |   |   |   |   |   |   |
+    S12-D12-S13-D13-S14-D14-S16-D16-S17-D17-S18
+
+For each layout, the channels come from the (left-to-right) neighboring
+source-detector pairs in the first row, then between the first and second row,
+then the second row, etc.
 
 .. versionadded:: 0.24
 """
@@ -2379,6 +2417,80 @@ ref_channels : str | list of str
     and its data is set to 0. This is useful for later re-referencing.
 """
 
+# Morphing
+docdict['reg_affine'] = """
+reg_affine : ndarray of float, shape (4, 4)
+    The affine that registers one volume to another.
+"""
+docdict['sdr_morph'] = """
+sdr_morph : instance of dipy.align.DiffeomorphicMap
+    The class that applies the the symmetric diffeomorphic registration
+    (SDR) morph.
+"""
+docdict['moving'] = """
+moving : instance of SpatialImage
+    The image to morph ("from" volume).
+"""
+docdict['static'] = """
+static : instance of SpatialImage
+    The image to align with ("to" volume).
+"""
+docdict['niter'] = """
+niter : dict | tuple | None
+    For each phase of the volume registration, ``niter`` is the number of
+    iterations per successive stage of optimization. If a tuple is
+    provided, it will be used for all steps (except center of mass, which does
+    not iterate). It should have length 3 to
+    correspond to ``sigmas=[3.0, 1.0, 0.0]`` and ``factors=[4, 2, 1]`` in
+    the pipeline (see :func:`dipy.align.affine_registration
+    <dipy.align._public.affine_registration>` for details).
+    If a dictionary is provided, number of iterations can be set for each
+    step as a key. Steps not in the dictionary will use the default value.
+    The default (None) is equivalent to:
+
+        niter=dict(translation=(100, 100, 10),
+                   rigid=(100, 100, 10),
+                   affine=(100, 100, 10),
+                   sdr=(5, 5, 3))
+"""
+docdict['pipeline'] = """
+pipeline : str | tuple
+    The volume registration steps to perform (a ``str`` for a single step,
+    or ``tuple`` for a set of sequential steps). The following steps can be
+    performed, and do so by matching mutual information between the images
+    (unless otherwise noted):
+
+    ``'translation'``
+        Translation.
+
+    ``'rigid'``
+        Rigid-body, i.e., rotation and translation.
+
+    ``'affine'``
+        A full affine transformation, which includes translation, rotation,
+        scaling, and shear.
+
+    ``'sdr'``
+        Symmetric diffeomorphic registration :footcite:`AvantsEtAl2008`, a
+        non-linear similarity-matching algorithm.
+
+    The following string shortcuts can also be used:
+
+    ``'all'`` (default)
+        All steps will be performed above in the order above, i.e.,
+        ``('translation', 'rigid', 'affine', 'sdr')``.
+
+    ``'rigids'``
+        The rigid steps (first two) will be performed, which registers
+        the volume without distorting its underlying structure, i.e.,
+        ``('translation', 'rigid')``. This is useful for
+        example when registering images from the same subject, such as
+        CT and MR images.
+
+    ``'affines'``
+        The affine steps (first three) will be performed, i.e., omitting
+        the SDR step.
+"""
 docdict_indented = {}
 
 

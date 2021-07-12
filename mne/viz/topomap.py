@@ -5,6 +5,7 @@
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Robert Luke <mail@robertluke.net>
+#          Mikołaj Magnuski <mmagnuski@swps.edu.pl>
 #
 # License: Simplified BSD
 
@@ -216,7 +217,10 @@ def _plot_update_evoked_topomap(params, bools):
             tp = cont.collections[0]
             visible = tp.get_visible()
             patch_ = tp.get_clip_path()
-            color = tp.get_color()
+            try:
+                color = tp.get_edgecolors()
+            except AttributeError:  # old MPL
+                color = tp.get_color()
             lw = tp.get_linewidth()
         for tp in cont.collections:
             tp.remove()
@@ -574,7 +578,7 @@ def _get_extra_points(pos, extrapolate, origin, radii):
     else:
         assert extrapolate == 'head'
         # return points on the head circle
-        angle = np.arcsin(distance / np.mean(radii))
+        angle = np.arcsin(min(distance / np.mean(radii), 1))
         n_pnts = max(12, int(np.round(2 * np.pi / angle)))
         points_l = np.linspace(0, 2 * np.pi, n_pnts, endpoint=False)
         use_radii = radii * 1.1 + distance
@@ -758,7 +762,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     %(topomap_border)s
     %(topomap_ch_type)s
 
-        ..versionadded:: 0.24.0
+        .. versionadded:: 0.24.0
     cnorm : matplotlib.colors.Normalize | None
         Colormap normalization, default None means linear normalization. If not
         None, ``vmin`` and ``vmax`` arguments are ignored. See Notes for more
@@ -2233,7 +2237,7 @@ def _init_anim(ax, ax_line, ax_cbar, params, merge_channels, sphere, ch_type,
     outlines_ = _draw_outlines(ax, outlines)
 
     params.update({'patch': patch_, 'outlines': outlines_})
-    ax.figure.tight_layout()
+    tight_layout(ax.figure)
     return tuple(items) + tuple(cont.collections)
 
 

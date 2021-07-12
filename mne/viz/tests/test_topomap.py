@@ -18,7 +18,7 @@ from matplotlib.patches import Circle
 
 from mne import (read_evokeds, read_proj, make_fixed_length_events, Epochs,
                  compute_proj_evoked, find_layout, pick_types, create_info,
-                 read_cov)
+                 read_cov, EvokedArray)
 from mne.io.proj import make_eeg_average_ref_proj, Projection
 from mne.io import read_raw_fif, read_info, RawArray
 from mne.io.constants import FIFF
@@ -84,19 +84,33 @@ def test_plot_topomap_interactive():
     assert len(plt.get_fignums()) == 2
 
     proj_fig = plt.figure(plt.get_fignums()[-1])
+    assert len(proj_fig.axes[0].lines) == 2
+    for line in proj_fig.axes[0].lines:
+        assert not line.get_visible()
     _fake_click(proj_fig, proj_fig.axes[0], [0.5, 0.5], xform='data')
+    assert len(proj_fig.axes[0].lines) == 2
+    for line in proj_fig.axes[0].lines:
+        assert line.get_visible()
     canvas.draw()
     image_interactive_click = np.frombuffer(
         canvas.tostring_rgb(), dtype='uint8')
-    assert_array_equal(image_proj, image_interactive_click)
-    assert not np.array_equal(image_noproj, image_interactive_click)
+    corr = np.corrcoef(
+        image_proj.ravel(), image_interactive_click.ravel())[0, 1]
+    assert 0.99 < corr <= 1
+    corr = np.corrcoef(
+        image_noproj.ravel(), image_interactive_click.ravel())[0, 1]
+    assert 0.85 < corr < 0.9
 
     _fake_click(proj_fig, proj_fig.axes[0], [0.5, 0.5], xform='data')
     canvas.draw()
     image_interactive_click = np.frombuffer(
         canvas.tostring_rgb(), dtype='uint8')
-    assert_array_equal(image_noproj, image_interactive_click)
-    assert not np.array_equal(image_proj, image_interactive_click)
+    corr = np.corrcoef(
+        image_noproj.ravel(), image_interactive_click.ravel())[0, 1]
+    assert 0.99 < corr <= 1
+    corr = np.corrcoef(
+        image_proj.ravel(), image_interactive_click.ravel())[0, 1]
+    assert 0.85 < corr < 0.9
 
 
 @testing.requires_testing_data
@@ -557,6 +571,24 @@ def test_plot_topomap_bads():
     plt.close('all')
 
 
+def test_plot_topomap_channel_distance():
+    """
+    Test topomap plotting with spread out channels (gh-9511, gh-9526).
+
+    Test topomap plotting when the distance between channels is greater than
+    the head radius.
+    """
+    ch_names = ['TP9', 'AF7', 'AF8', 'TP10']
+
+    info = create_info(ch_names, 100, ch_types='eeg')
+    evoked = EvokedArray(np.random.randn(4, 10) * 1e-6, info)
+    ten_five = make_standard_montage("standard_1005")
+    evoked.set_montage(ten_five)
+
+    evoked.plot_topomap(sphere=0.05, res=8)
+    plt.close('all')
+
+
 def test_plot_topomap_bads_grad():
     """Test plotting topomap with bad gradiometer channels (gh-8802)."""
     import matplotlib.pyplot as plt
@@ -623,11 +655,11 @@ def test_plot_topomap_cnorm():
     plot_topomap(v, info, cnorm=cnorm)
 
     # pass cnorm and vmin
-    msg = "vmin=-1 is implicitly defined by cnorm, ignoring vmin=-10."
+    msg = "vmin=-1.* is implicitly defined by cnorm, ignoring vmin=-10.*"
     with pytest.warns(RuntimeWarning, match=msg):
         plot_topomap(v, info, vmin=-10, cnorm=cnorm)
 
     # pass cnorm and vmax
-    msg = "vmax=2.5 is implicitly defined by cnorm, ignoring vmax=10."
+    msg = "vmax=2.5 is implicitly defined by cnorm, ignoring vmax=10.*"
     with pytest.warns(RuntimeWarning, match=msg):
         plot_topomap(v, info, vmax=10, cnorm=cnorm)
