@@ -1241,15 +1241,15 @@ class DraggableColorbar(object):
 
     def connect(self):
         """Connect to all the events we need."""
-        self.cidpress = self.cbar.patch.figure.canvas.mpl_connect(
+        self.cidpress = self.cbar.ax.figure.canvas.mpl_connect(
             'button_press_event', self.on_press)
-        self.cidrelease = self.cbar.patch.figure.canvas.mpl_connect(
+        self.cidrelease = self.cbar.ax.figure.canvas.mpl_connect(
             'button_release_event', self.on_release)
-        self.cidmotion = self.cbar.patch.figure.canvas.mpl_connect(
+        self.cidmotion = self.cbar.ax.figure.canvas.mpl_connect(
             'motion_notify_event', self.on_motion)
-        self.keypress = self.cbar.patch.figure.canvas.mpl_connect(
+        self.keypress = self.cbar.ax.figure.canvas.mpl_connect(
             'key_press_event', self.key_press)
-        self.scroll = self.cbar.patch.figure.canvas.mpl_connect(
+        self.scroll = self.cbar.ax.figure.canvas.mpl_connect(
             'scroll_event', self.on_scroll)
 
     def on_press(self, event):
@@ -1331,7 +1331,7 @@ class DraggableColorbar(object):
         self.cbar.update_ticks()
         self.cbar.draw_all()
         self.mappable.set_norm(self.cbar.norm)
-        self.cbar.patch.figure.canvas.draw()
+        self.cbar.ax.figure.canvas.draw()
 
 
 class SelectFromCollection(object):
