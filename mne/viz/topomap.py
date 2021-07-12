@@ -2235,7 +2235,7 @@ def _init_anim(ax, ax_line, ax_cbar, params, merge_channels, sphere, ch_type,
     outlines_ = _draw_outlines(ax, outlines)
 
     params.update({'patch': patch_, 'outlines': outlines_})
-    tight_layout(ax.figure)
+    tight_layout(fig=ax.figure)
     return tuple(items) + tuple(cont.collections)
 
 
