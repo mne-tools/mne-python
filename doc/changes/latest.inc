@@ -89,6 +89,8 @@ Enhancements
 
 - Add `mne.Annotations.set_durations` to set annotation durations (:gh:`9529` by `Robert Luke`_)
 
+- The ``exclude`` parameter in `mne.io.read_raw_edf`, `mne.io.read_raw_bdf`, and `mne.io.read_raw_gdf` now also accepts a regular expression (:gh:`9558` by `Clemens Brunner`_)
+
 Bugs
 ~~~~
 - Fix bug with :meth:`mne.Epochs.crop` and :meth:`mne.Evoked.crop` when ``include_tmax=False``, where the last sample was always cut off, even when ``tmax > epo.times[-1]`` (:gh:`9378` **by new contributor** |Jan Sosulski|_)
