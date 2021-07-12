@@ -522,6 +522,6 @@ def test_exclude():
     for ch in exclude:
         assert ch not in raw.ch_names
 
-    raw = read_raw_edf(edf_path, exclude = "I[1-4]")
+    raw = read_raw_edf(edf_path, exclude="I[1-4]")
     for ch in exclude:
         assert ch not in raw.ch_names
