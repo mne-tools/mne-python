@@ -213,14 +213,12 @@ def _plot_update_evoked_topomap(params, bools):
         Zi = interp.set_values(d)()
         im.set_data(Zi)
         # must be removed and re-added
+        color = 'k'
         if len(cont.collections) > 0:
             tp = cont.collections[0]
             visible = tp.get_visible()
             patch_ = tp.get_clip_path()
-            try:
-                color = tp.get_edgecolors()
-            except AttributeError:  # old MPL
-                color = tp.get_color()
+            color = tp.get_edgecolors()
             lw = tp.get_linewidth()
         for tp in cont.collections:
             tp.remove()
