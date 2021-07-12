@@ -121,6 +121,8 @@ Bugs
 
 - Fix bug in :func:`mne.viz.plot_topomap` (and related methods like :meth:`mne.Evoked.plot_topomap`) where large distances between electrodes (higher than head radius) would lead to an error (:gh:`9528` by `Mikołaj Magnuski`_).
 
+- Fix bug in :func:`mne.concatenate_epochs` when concatenating :class:`mne.Epochs` objects with 0 events (:gh:`9535` by `Marijn van Vliet`_)
+
 API changes
 ~~~~~~~~~~~
 - In `mne.compute_source_morph`, the ``niter_affine`` and ``niter_sdr`` parameters have been replaced by ``niter`` and ``pipeline`` parameters for more consistent and finer-grained control of registration/warping steps and iteration (:gh:`9505` by `Alex Rockhill`_ and `Eric Larson`_)

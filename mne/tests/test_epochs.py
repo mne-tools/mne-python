@@ -2700,6 +2700,11 @@ def test_concatenate_epochs():
     with pytest.raises(ValueError, match='identical keys'):
         concatenate_epochs([epochs1, epochs2])
 
+    # check concatenating epochs where one of the objects is empty
+    epochs2 = epochs.copy()[:0]
+    with pytest.warns(RuntimeWarning, match='was empty'):
+        concatenate_epochs([epochs, epochs2])
+
 
 def test_concatenate_epochs_large():
     """Test concatenating epochs on large data."""

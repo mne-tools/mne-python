@@ -3304,18 +3304,6 @@ def add_channels_epochs(epochs_list, verbose=None):
     return epochs
 
 
-def _update_offset(offset, events, shift):
-    if offset == 0:
-        return offset
-    offset = 0 if offset is None else offset
-    offset = np.int64(offset) + np.max(events[:, 0]) + shift
-    if offset > INT32_MAX:
-        warn(f'Event number greater than {INT32_MAX} created, events[:, 0] '
-             'will be assigned consecutive increasing integer values')
-        offset = 0
-    return offset
-
-
 def _concatenate_epochs(epochs_list, with_data=True, add_offset=True, *,
                         on_mismatch='raise'):
     """Auxiliary function for concatenating epochs."""
@@ -3341,7 +3329,8 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True, *,
     selection = out.selection
     # offset is the last epoch + tmax + 10 second
     shift = int((10 + tmax) * out.info['sfreq'])
-    events_offset = _update_offset(None, out.events, shift)
+    events_offset = 0
+    events_number_overflow = False
     for ii, epochs in enumerate(epochs_list[1:], 1):
         _ensure_infos_match(epochs.info, info, f'epochs[{ii}]',
                             on_mismatch=on_mismatch)
@@ -3365,11 +3354,19 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True, *,
             epochs.drop_bad()
             offsets.append(len(epochs))
         evs = epochs.events.copy()
-        # add offset
-        if add_offset:
-            evs[:, 0] += events_offset
-        # Update offset for the next iteration.
-        events_offset = _update_offset(events_offset, epochs.events, shift)
+        if len(epochs.events) == 0:
+            warn('One of the Epochs objects to concatenate was empty.')
+        elif add_offset:
+            # We need to cast to a native Python int here to prevent an
+            # overflow of a numpy int32 or int64 type.
+            events_offset += int(np.max(evs[:, 0])) + shift
+            if events_offset > INT32_MAX:
+                warn(f'Event number greater than {INT32_MAX} created, '
+                     'events[:, 0] will be assigned consecutive increasing '
+                     'integer values')
+                events_number_overflow = True
+            else:
+                evs[:, 0] += events_offset
         events.append(evs)
         selection = np.concatenate((selection, epochs.selection))
         drop_log = drop_log + epochs.drop_log
@@ -3377,7 +3374,7 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True, *,
         metadata.append(epochs.metadata)
     events = np.concatenate(events, axis=0)
     # check to see if we exceeded our maximum event offset
-    if events_offset == 0:
+    if events_number_overflow:
         events[:, 0] = np.arange(1, len(events) + 1)
 
     # Create metadata object (or make it None)
