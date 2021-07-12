@@ -126,6 +126,9 @@ pygments_style = 'default'
 # A list of ignored prefixes for module index sorting.
 modindex_common_prefix = ['mne.']
 
+# -- Sphiny-Copybutton configuration -----------------------------------------
+copybutton_prompt_text = r">>> |\.\.\. |\$ "
+copybutton_prompt_is_regexp = True
 
 # -- Intersphinx configuration -----------------------------------------------
 
