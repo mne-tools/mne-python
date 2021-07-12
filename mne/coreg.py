@@ -1226,7 +1226,20 @@ def _scale_xfm(subject_to, xfm_fname, mri_name, subject_from, scale,
 
 
 class Coregistration(object):
-    def __init__(self, info, subject, subjects_dir):
+    """
+    Performs automated coregistration.
+
+    Parameters
+    ----------
+    info : instance of Info
+        The measurement info.
+    subjects_dir : directory
+        SUBJECTS_DIR.
+    subject : str
+        Subject, corresponding to a folder in SUBJECTS_DIR.
+    """
+
+    def __init__(self, info, subjects_dir, subject):
         self.parameters = [0., 0., 0., 0., 0., 0., 1., 1., 1.]
         self.last_parameters = list(self.parameters)
 
@@ -1424,6 +1437,7 @@ class Coregistration(object):
         return np.linalg.norm(mri_points - hsp_points, axis=-1)
 
     def fit_fiducials(self, lpa_weight=1., nasion_weight=10., rpa_weight=1.):
+        """Find rotation and translation to fit all 3 fiducials."""
         self.lpa_weight = lpa_weight
         self.nasion_weight = nasion_weight
         self.rpa_weight = rpa_weight
@@ -1482,6 +1496,7 @@ class Coregistration(object):
 
     def fit_icp(self, iterations=20, lpa_weight=1., nasion_weight=10.,
                 rpa_weight=1.):
+        """Find MRI scaling, translation, and rotation to match HSP."""
         self.lpa_weight = lpa_weight
         self.nasion_weight = nasion_weight
         self.rpa_weight = rpa_weight
@@ -1508,6 +1523,7 @@ class Coregistration(object):
                 break
 
     def omit_hsp_points(self, distance):
+        """Exclude head shape points that are far away from the MRI head."""
         import warnings
         distance = float(distance)
         if distance <= 0:
@@ -1523,6 +1539,7 @@ class Coregistration(object):
             self.hsp.points_filter = mask
 
     def point_distance(self):
+        """Compute euclidean distance between the head-mri points."""
         mri_points = list()
         hsp_points = list()
         if self.hsp_weight > 0 and self.has_hsp_data:
@@ -1547,6 +1564,7 @@ class Coregistration(object):
         return np.linalg.norm(mri_points - hsp_points, axis=-1)
 
     def save_trans(self, fname):
+        """Save the head-mri transform as a fif file."""
         write_trans(fname, Transform('head', 'mri', self.head_mri_t))
 
 

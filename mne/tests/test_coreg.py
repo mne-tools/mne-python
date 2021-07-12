@@ -15,8 +15,8 @@ from mne.transforms import (Transform, apply_trans, rotation, translation,
                             scaling)
 from mne.coreg import (fit_matched_points, create_default_subject, scale_mri,
                        _is_mri_subject, scale_labels, scale_source_space,
-                       coregister_fiducials, get_mni_fiducials)
-from mne.io import read_fiducials
+                       coregister_fiducials, get_mni_fiducials, Coregistration)
+from mne.io import read_fiducials, read_info
 from mne.io.constants import FIFF
 from mne.utils import requires_nibabel, modified_env, check_version
 from mne.source_space import write_source_spaces
@@ -279,3 +279,29 @@ def test_get_mni_fiducials():
     fids_est = np.array([f['r'] for f in fids_est])
     dists = np.linalg.norm(fids - fids_est, axis=-1) * 1000.  # -> mm
     assert (dists < 8).all(), dists
+
+
+@testing.requires_testing_data
+def test_coregistration(tmpdir):
+    """Test automated coregistration."""
+    tempdir = str(tmpdir)
+    fname_raw = op.join(op.dirname(__file__), '..', 'io',
+                        'tests', 'data', 'test_raw.fif')
+    fname_trans = op.join(tempdir, 'tmp-trans.fif')
+    subject = 'sample'
+    subjects_dir = os.path.join(data_path, 'subjects')
+    info = read_info(fname_raw)
+    coreg = Coregistration(info, subject, subjects_dir)
+    assert np.allclose(coreg.last_parameters, coreg.parameters)
+    default_params = list(coreg.parameters)
+    coreg.fit_fiducials()
+    assert not np.allclose(coreg.parameters, default_params)
+    assert coreg.hsp.points_filter is None
+    coreg.omit_hsp_points(distance=5. / 1000)
+    assert coreg.hsp.points_filter is not None
+    coreg.fit_icp()
+    assert not op.isfile(fname_trans)
+    coreg.save_trans(fname=fname_trans)
+    assert op.isfile(fname_trans)
+    errs_icp = coreg.point_distance()
+    assert np.median(errs_icp * 1000) < 4
