@@ -800,7 +800,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     @verbose
     def get_data(self, picks=None, start=0, stop=None,
                  reject_by_annotation=None, return_times=False, units=None,
-                 verbose=None):
+                 tmin=None, tmax=None, verbose=None):
         """Get data in the given range.
 
         Parameters
@@ -833,6 +833,12 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             ``dict(grad='fT/cm', mag='fT')`` will scale the corresponding types
             accordingly, but all other channel types will remain in their
             channel-type-specific default unit.
+        tmin : float | None
+            Start time of data to get in seconds. The `tmin` parameter is
+            ignored if the `start` parameter is defined.
+        tmax : float | None
+            End time of data to get in seconds. The `tmax` parameter is
+            ignored if the `stop` parameter is defined.
         %(verbose_meth)s
 
         Returns
@@ -878,8 +884,20 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         # convert to ints
         picks = np.atleast_1d(np.arange(self.info['nchan'])[picks])
-        start = 0 if start is None else start
-        stop = min(self.n_times if stop is None else stop, self.n_times)
+
+        # handle start/tmin stop/tmax
+        # tmin/tmax are ignored if start/stop are defined
+        if start is None:
+            start = 0 if tmin is None else self.time_as_index(tmin)
+        if stop is None:
+            stop = self.n_times if tmax is None else self.time_as_index(tmax)
+
+        # truncate start/stop to the open interval [0, n_times]
+        start = max(0, start)
+        start = min(start, self.n_times)
+        stop = max(0, stop)
+        stop = min(stop, self.n_times)
+
         if len(self.annotations) == 0 or reject_by_annotation is None:
             getitem = self._getitem(
                 (picks, slice(start, stop)), return_times=return_times)
