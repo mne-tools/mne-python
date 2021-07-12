@@ -12,7 +12,7 @@ from mne import (read_dipole, read_forward_solution,
                  transform_surface_to, make_sphere_model, pick_types,
                  pick_info, EvokedArray, read_source_spaces, make_ad_hoc_cov,
                  make_forward_solution, Dipole, DipoleFixed, Epochs,
-                 make_fixed_length_events, Evoked)
+                 make_fixed_length_events, Evoked, head_to_mni)
 from mne.dipole import get_phantom_dipoles, _BDIP_ERROR_KEYS
 from mne.simulation import simulate_evoked
 from mne.datasets import testing
@@ -25,7 +25,6 @@ from mne.io.constants import FIFF
 from mne.surface import _compute_nearest
 from mne.bem import _bem_find_surface, read_bem_solution
 from mne.transforms import apply_trans, _get_trans
-from mne.source_space import head_to_mni
 
 data_path = testing.data_path(download=False)
 meg_path = op.join(data_path, 'MEG', 'sample')

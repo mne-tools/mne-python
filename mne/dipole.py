@@ -22,6 +22,7 @@ from .evoked import _read_evoked, _aspect_rev, _write_evokeds
 from .fixes import pinvh
 from .transforms import _print_coord_trans, _coord_frame_name, apply_trans
 from .viz.evoked import _plot_evoked
+from ._freesurfer import head_to_mni
 from .forward._make_forward import (_get_trans, _setup_bem,
                                     _prep_meg_channels, _prep_eeg_channels)
 from .forward._compute_forward import (_compute_forwards_meeg,
@@ -30,7 +31,7 @@ from .forward._compute_forward import (_compute_forwards_meeg,
 from .surface import (transform_surface_to, _compute_nearest,
                       _points_outside_surface)
 from .bem import _bem_find_surface, _bem_surf_name
-from .source_space import _make_volume_source_space, SourceSpaces, head_to_mni
+from .source_space import _make_volume_source_space, SourceSpaces
 from .parallel import parallel_func
 from .utils import (logger, verbose, _time_mask, warn, _check_fname,
                     check_fname, _pl, fill_doc, _check_option, ShiftTimeMixin,

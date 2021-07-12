@@ -19,7 +19,7 @@ import re
 import numpy as np
 
 from ..defaults import HEAD_SIZE_DEFAULT
-from ..source_space import get_mni_fiducials
+from .._freesurfer import get_mni_fiducials
 from ..viz import plot_montage
 from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
                           _topo_to_sph, _frame_to_str, Transform,

@@ -16,7 +16,7 @@ from ..constants import FIFF
 from .._digitization import _make_dig_points
 from ...transforms import _frame_to_str, apply_trans
 from ..nirx.nirx import _convert_fnirs_to_head
-from ...source_space import get_mni_fiducials
+from ..._freesurfer import get_mni_fiducials
 
 
 @fill_doc

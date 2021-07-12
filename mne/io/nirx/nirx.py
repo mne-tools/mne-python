@@ -16,7 +16,7 @@ from ..utils import _mult_cal_one
 from ..constants import FIFF
 from ..meas_info import create_info, _format_dig_points
 from ...annotations import Annotations
-from ...source_space import get_mni_fiducials
+from ..._freesurfer import get_mni_fiducials
 from ...transforms import apply_trans, _get_trans
 from ...utils import (logger, verbose, fill_doc, warn, _check_fname,
                       _validate_type, _check_option, _mask_to_onsets_offsets)

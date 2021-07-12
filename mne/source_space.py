@@ -8,14 +8,13 @@
 
 from copy import deepcopy
 from functools import partial
-from gzip import GzipFile
 import os
 import os.path as op
 
 import numpy as np
 
 from .io.constants import FIFF
-from .io.meas_info import create_info, Info, read_fiducials
+from .io.meas_info import create_info, Info
 from .io.tree import dir_tree_find
 from .io.tag import find_tag, read_tag
 from .io.open import fiff_open
@@ -31,6 +30,9 @@ from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
                       _normalize_vectors, _triangle_neighbors, mesh_dist,
                       complete_surface_info, _compute_nearest, fast_cross_3d,
                       _CheckInside)
+# keep get_mni_fiducials here just for easy backward compat
+from ._freesurfer import (_get_mri_info_data, _get_atlas_values,  # noqa: F401
+                          read_freesurfer_lut, get_mni_fiducials)
 from .utils import (get_subjects_dir, check_fname, logger, verbose, fill_doc,
                     _ensure_int, check_version, _get_call_line, warn,
                     _check_fname, _check_path_like, _check_sphere,
@@ -40,62 +42,7 @@ from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
                          combine_transforms, _get_trans,
                          _coord_frame_name, Transform, _str_to_frame,
-                         _ensure_trans, read_ras_mni_t)
-
-
-def read_freesurfer_lut(fname=None):
-    """Read a Freesurfer-formatted LUT.
-
-    Parameters
-    ----------
-    fname : str | None
-        The filename. Can be None to read the standard Freesurfer LUT.
-
-    Returns
-    -------
-    atlas_ids : dict
-        Mapping from label names to IDs.
-    colors : dict
-        Mapping from label names to colors.
-    """
-    lut = _get_lut(fname)
-    names, ids = lut['name'], lut['id']
-    colors = np.array([lut['R'], lut['G'], lut['B'], lut['A']], float).T
-    atlas_ids = dict(zip(names, ids))
-    colors = dict(zip(names, colors))
-    return atlas_ids, colors
-
-
-def _get_lut(fname=None):
-    """Get a FreeSurfer LUT."""
-    _validate_type(fname, ('path-like', None), 'fname')
-    if fname is None:
-        fname = op.join(op.dirname(__file__), 'data', 'FreeSurferColorLUT.txt')
-    _check_fname(fname, 'read', must_exist=True)
-    dtype = [('id', '<i8'), ('name', 'U'),
-             ('R', '<i8'), ('G', '<i8'), ('B', '<i8'), ('A', '<i8')]
-    lut = {d[0]: list() for d in dtype}
-    with open(fname, 'r') as fid:
-        for line in fid:
-            line = line.strip()
-            if line.startswith('#') or not line:
-                continue
-            line = line.split()
-            if len(line) != len(dtype):
-                raise RuntimeError(f'LUT is improperly formatted: {fname}')
-            for d, part in zip(dtype, line):
-                lut[d[0]].append(part)
-    lut = {d[0]: np.array(lut[d[0]], dtype=d[1]) for d in dtype}
-    assert len(lut['name']) > 0
-    return lut
-
-
-def _get_lut_id(lut, label):
-    """Convert a label to a LUT ID number."""
-    assert isinstance(label, str)
-    mask = (lut['name'] == label)
-    assert mask.sum() == 1
-    return lut['id'][mask]
+                         _ensure_trans)
 
 
 _src_kind_dict = {
@@ -428,7 +375,7 @@ class SourceSpaces(list):
         # use lookup table to assign values to source spaces
         logger.info('Reading FreeSurfer lookup table')
         # read the lookup table
-        lut = _get_lut()
+        lut, _ = read_freesurfer_lut()
 
         # Setup a dictionary of source types
         src_types = dict(volume=[], surface_discrete=[])
@@ -492,7 +439,7 @@ class SourceSpaces(list):
             # find the color value for this volume
             use_id = 1.
             if mri_resolution is True or use_lut:
-                id_ = _get_lut_id(lut, vs['seg_name'])
+                id_ = lut[vs['seg_name']]
                 if use_lut:
                     use_id = id_
 
@@ -521,7 +468,7 @@ class SourceSpaces(list):
                         FIFF.FIFFV_MNE_SURF_LEFT_HEMI: 'Left',
                         FIFF.FIFFV_MNE_SURF_RIGHT_HEMI: 'Right',
                     }[src['id']] + '-Cerebral-Cortex'
-                    val = _get_lut_id(lut, surf_name)
+                    val = lut[surf_name]
             else:
                 assert src['type'] == 'discrete'
                 if not include_discrete:
@@ -1193,213 +1140,6 @@ def _write_one_source_space(fid, this, verbose=None):
         write_string(fid, FIFF.FIFF_COMMENT, this['seg_name'])
 
 
-##############################################################################
-# Head to MRI volume conversion
-
-
-@verbose
-def head_to_mri(pos, subject, mri_head_t, subjects_dir=None,
-                verbose=None):
-    """Convert pos from head coordinate system to MRI ones.
-
-    This function converts to MRI RAS coordinates and not to surface
-    RAS.
-
-    Parameters
-    ----------
-    pos : array, shape (n_pos, 3)
-        The  coordinates (in m) in head coordinate system.
-    %(subject)s
-    mri_head_t : instance of Transform
-        MRI<->Head coordinate transformation.
-    %(subjects_dir)s
-    %(verbose)s
-
-    Returns
-    -------
-    coordinates : array, shape (n_pos, 3)
-        The MRI RAS coordinates (in mm) of pos.
-
-    Notes
-    -----
-    This function requires nibabel.
-    """
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
-    head_mri_t = _ensure_trans(mri_head_t, 'head', 'mri')
-    _, _, mri_ras_t, _, _ = _read_mri_info(t1_fname)
-    head_ras_t = combine_transforms(head_mri_t, mri_ras_t, 'head', 'ras')
-    return 1e3 * apply_trans(head_ras_t, pos)  # mm
-
-
-##############################################################################
-# Surface to MNI conversion
-
-@verbose
-def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, verbose=None):
-    """Convert the array of vertices for a hemisphere to MNI coordinates.
-
-    Parameters
-    ----------
-    vertices : int, or list of int
-        Vertex number(s) to convert.
-    hemis : int, or list of int
-        Hemisphere(s) the vertices belong to.
-    %(subject)s
-    subjects_dir : str, or None
-        Path to SUBJECTS_DIR if it is not set in the environment.
-    %(verbose)s
-
-    Returns
-    -------
-    coordinates : array, shape (n_vertices, 3)
-        The MNI coordinates (in mm) of the vertices.
-    """
-    singleton = False
-    if not isinstance(vertices, list) and not isinstance(vertices, np.ndarray):
-        singleton = True
-        vertices = [vertices]
-
-    if not isinstance(hemis, list) and not isinstance(hemis, np.ndarray):
-        hemis = [hemis] * len(vertices)
-
-    if not len(hemis) == len(vertices):
-        raise ValueError('hemi and vertices must match in length')
-
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-
-    surfs = [op.join(subjects_dir, subject, 'surf', '%s.white' % h)
-             for h in ['lh', 'rh']]
-
-    # read surface locations in MRI space
-    rr = [read_surface(s)[0] for s in surfs]
-
-    # take point locations in MRI space and convert to MNI coordinates
-    xfm = read_talxfm(subject, subjects_dir)
-    xfm['trans'][:3, 3] *= 1000.  # m->mm
-    data = np.array([rr[h][v, :] for h, v in zip(hemis, vertices)])
-    if singleton:
-        data = data[0]
-    return apply_trans(xfm['trans'], data)
-
-
-##############################################################################
-# Volume to MNI conversion
-
-@verbose
-def head_to_mni(pos, subject, mri_head_t, subjects_dir=None,
-                verbose=None):
-    """Convert pos from head coordinate system to MNI ones.
-
-    Parameters
-    ----------
-    pos : array, shape (n_pos, 3)
-        The  coordinates (in m) in head coordinate system.
-    %(subject)s
-    mri_head_t : instance of Transform
-        MRI<->Head coordinate transformation.
-    %(subjects_dir)s
-    %(verbose)s
-
-    Returns
-    -------
-    coordinates : array, shape (n_pos, 3)
-        The MNI coordinates (in mm) of pos.
-
-    Notes
-    -----
-    This function requires either nibabel.
-    """
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-
-    # before we go from head to MRI (surface RAS)
-    head_mni_t = combine_transforms(
-        _ensure_trans(mri_head_t, 'head', 'mri'),
-        read_talxfm(subject, subjects_dir), 'head', 'mni_tal')
-    return apply_trans(head_mni_t, pos) * 1000.
-
-
-@verbose
-def read_talxfm(subject, subjects_dir=None, verbose=None):
-    """Compute MRI-to-MNI transform from FreeSurfer talairach.xfm file.
-
-    Parameters
-    ----------
-    %(subject)s
-    %(subjects_dir)s
-    %(verbose)s
-
-    Returns
-    -------
-    mri_mni_t : instance of Transform
-        The affine transformation from MRI to MNI space for the subject.
-    """
-    # Adapted from freesurfer m-files. Altered to deal with Norig
-    # and Torig correctly
-    subjects_dir = get_subjects_dir(subjects_dir)
-    # Setup the RAS to MNI transform
-    ras_mni_t = read_ras_mni_t(subject, subjects_dir)
-    ras_mni_t['trans'][:3, 3] /= 1000.  # mm->m
-
-    # We want to get from Freesurfer surface RAS ('mri') to MNI ('mni_tal').
-    # This file only gives us RAS (non-zero origin) ('ras') to MNI ('mni_tal').
-    # Se we need to get the ras->mri transform from the MRI headers.
-
-    # To do this, we get Norig and Torig
-    # (i.e. vox_ras_t and vox_mri_t, respectively)
-    path = op.join(subjects_dir, subject, 'mri', 'orig.mgz')
-    if not op.isfile(path):
-        path = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
-    if not op.isfile(path):
-        raise IOError('mri not found: %s' % path)
-    _, _, mri_ras_t, _, _ = _read_mri_info(path)
-    mri_mni_t = combine_transforms(mri_ras_t, ras_mni_t, 'mri', 'mni_tal')
-    return mri_mni_t
-
-
-def _read_mri_info(path, units='m', return_img=False, use_nibabel=False):
-    # This is equivalent but 100x slower, so only use nibabel if we need to
-    # (later):
-    if use_nibabel:
-        import nibabel
-        hdr = nibabel.load(path).header
-        n_orig = hdr.get_vox2ras()
-        t_orig = hdr.get_vox2ras_tkr()
-        dims = hdr.get_data_shape()
-        zooms = hdr.get_zooms()[:3]
-    else:
-        hdr = _get_mgz_header(path)
-        n_orig = hdr['vox2ras']
-        t_orig = hdr['vox2ras_tkr']
-        dims = hdr['dims']
-        zooms = hdr['zooms']
-
-    # extract the MRI_VOXEL to RAS (non-zero origin) transform
-    vox_ras_t = Transform('mri_voxel', 'ras', n_orig)
-
-    # extract the MRI_VOXEL to MRI transform
-    vox_mri_t = Transform('mri_voxel', 'mri', t_orig)
-
-    # construct the MRI to RAS (non-zero origin) transform
-    mri_ras_t = combine_transforms(
-        invert_transform(vox_mri_t), vox_ras_t, 'mri', 'ras')
-
-    assert units in ('m', 'mm')
-    if units == 'm':
-        conv = np.array([[1e-3, 1e-3, 1e-3, 1]]).T
-        # scaling and translation terms
-        vox_ras_t['trans'] *= conv
-        vox_mri_t['trans'] *= conv
-        # just the translation term
-        mri_ras_t['trans'][:, 3:4] *= conv
-
-    out = (vox_ras_t, vox_mri_t, mri_ras_t, dims, zooms)
-    if return_img:
-        nibabel = _import_nibabel()
-        out += (nibabel.load(path),)
-    return out
-
-
 ###############################################################################
 # Creation and decimation
 
@@ -1932,86 +1672,6 @@ def _make_discrete_source_space(pos, coord_frame='mri'):
     return sp
 
 
-def _import_nibabel(why='use MRI files'):
-    try:
-        import nibabel as nib
-    except ImportError as exp:
-        msg = 'nibabel is required to %s, got:\n%s' % (why, exp)
-    else:
-        msg = ''
-    if msg:
-        raise ImportError(msg)
-    return nib
-
-
-def _mri_orientation(img, orientation):
-    """Get MRI orientation information from an image.
-
-    Parameters
-    ----------
-    img : instance of SpatialImage
-        The MRI image.
-    orientation : str
-        Orientation that you want. Can be "axial", "saggital", or "coronal".
-
-    Returns
-    -------
-    xyz : tuple, shape (3,)
-        The dimension indices for X, Y, and Z.
-    flips : tuple, shape (3,)
-        Whether each dimension requires a flip.
-    order : tuple, shape (3,)
-        The resulting order of the data if the given ``xyz`` and ``flips``
-        are used.
-
-    Notes
-    -----
-    .. versionadded:: 0.21
-    """
-    import nibabel as nib
-    _validate_type(img, nib.spatialimages.SpatialImage)
-    _check_option('orientation', orientation, ('coronal', 'axial', 'sagittal'))
-    axcodes = ''.join(nib.orientations.aff2axcodes(img.affine))
-    flips = {o: (1 if o in axcodes else -1) for o in 'RAS'}
-    axcodes = axcodes.replace('L', 'R').replace('P', 'A').replace('I', 'S')
-    order = dict(
-        coronal=('R', 'S', 'A'),
-        axial=('R', 'A', 'S'),
-        sagittal=('A', 'S', 'R'),
-    )[orientation]
-    xyz = tuple(axcodes.index(c) for c in order)
-    flips = tuple(flips[c] for c in order)
-    return xyz, flips, order
-
-
-def _get_mri_info_data(mri, data):
-    # Read the segmentation data using nibabel
-    if data:
-        _import_nibabel('load MRI atlas data')
-    out = dict()
-    _, out['vox_mri_t'], out['mri_ras_t'], dims, _, mgz = _read_mri_info(
-        mri, return_img=True)
-    out.update(
-        mri_width=dims[0], mri_height=dims[1],
-        mri_depth=dims[1], mri_volume_name=mri)
-    if data:
-        assert mgz is not None
-        out['mri_vox_t'] = invert_transform(out['vox_mri_t'])
-        out['data'] = np.asarray(mgz.dataobj)
-    return out
-
-
-def _get_atlas_values(vol_info, rr):
-    # Transform MRI coordinates (where our surfaces live) to voxels
-    rr_vox = apply_trans(vol_info['mri_vox_t'], rr)
-    good = ((rr_vox >= -.5) &
-            (rr_vox < np.array(vol_info['data'].shape, int) - 0.5)).all(-1)
-    idx = np.round(rr_vox[good].T).astype(np.int64)
-    values = np.full(rr.shape[0], np.nan)
-    values[good] = vol_info['data'][tuple(idx)]
-    return values
-
-
 def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
                               volume_labels=None, do_neighbors=True, n_jobs=1,
                               vol_info={}, single_volume=False):
@@ -2247,45 +1907,6 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
 
 def _vol_vertex(width, height, jj, kk, pp):
     return jj + width * kk + pp * (width * height)
-
-
-def _get_mgz_header(fname):
-    """Adapted from nibabel to quickly extract header info."""
-    fname = _check_fname(fname, overwrite='read', must_exist=True,
-                         name='MRI image')
-    if not fname.endswith('.mgz'):
-        raise IOError('Filename must end with .mgz')
-    header_dtd = [('version', '>i4'), ('dims', '>i4', (4,)),
-                  ('type', '>i4'), ('dof', '>i4'), ('goodRASFlag', '>i2'),
-                  ('delta', '>f4', (3,)), ('Mdc', '>f4', (3, 3)),
-                  ('Pxyz_c', '>f4', (3,))]
-    header_dtype = np.dtype(header_dtd)
-    with GzipFile(fname, 'rb') as fid:
-        hdr_str = fid.read(header_dtype.itemsize)
-    header = np.ndarray(shape=(), dtype=header_dtype,
-                        buffer=hdr_str)
-    # dims
-    dims = header['dims'].astype(int)
-    dims = dims[:3] if len(dims) == 4 else dims
-    # vox2ras_tkr
-    delta = header['delta']
-    ds = np.array(delta, float)
-    ns = np.array(dims * ds) / 2.0
-    v2rtkr = np.array([[-ds[0], 0, 0, ns[0]],
-                       [0, 0, ds[2], -ns[2]],
-                       [0, -ds[1], 0, ns[1]],
-                       [0, 0, 0, 1]], dtype=np.float32)
-    # ras2vox
-    d = np.diag(delta)
-    pcrs_c = dims / 2.0
-    Mdc = header['Mdc'].T
-    pxyz_0 = header['Pxyz_c'] - np.dot(Mdc, np.dot(d, pcrs_c))
-    M = np.eye(4, 4)
-    M[0:3, 0:3] = np.dot(Mdc, d)
-    M[0:3, 3] = pxyz_0.T
-    header = dict(dims=dims, vox2ras_tkr=v2rtkr, vox2ras=M,
-                  zooms=header['delta'])
-    return header
 
 
 def _src_vol_dims(s):
@@ -2751,63 +2372,6 @@ def _do_src_distances(con, vertno, run_inds, limit):
     return d, min_idx, min_dist
 
 
-def get_volume_labels_from_aseg(mgz_fname, return_colors=False,
-                                atlas_ids=None):
-    """Return a list of names and colors of segmented volumes.
-
-    Parameters
-    ----------
-    mgz_fname : str
-        Filename to read. Typically aseg.mgz or some variant in the freesurfer
-        pipeline.
-    return_colors : bool
-        If True returns also the labels colors.
-    atlas_ids : dict | None
-        A lookup table providing a mapping from region names (str) to ID values
-        (int). Can be None to use the standard Freesurfer LUT.
-
-        .. versionadded:: 0.21.0
-
-    Returns
-    -------
-    label_names : list of str
-        The names of segmented volumes included in this mgz file.
-    label_colors : list of str
-        The RGB colors of the labels included in this mgz file.
-
-    See Also
-    --------
-    read_freesurfer_lut
-
-    Notes
-    -----
-    .. versionchanged:: 0.21.0
-       The label names are now sorted in the same order as their corresponding
-       values in the MRI file.
-
-    .. versionadded:: 0.9.0
-    """
-    import nibabel as nib
-    atlas = nib.load(mgz_fname)
-    data = np.asarray(atlas.dataobj)  # don't need float here
-    want = np.unique(data)
-    if atlas_ids is None:
-        atlas_ids, colors = read_freesurfer_lut()
-    elif return_colors:
-        raise ValueError('return_colors must be False if atlas_ids are '
-                         'provided')
-    # restrict to the ones in the MRI, sorted by label name
-    keep = np.in1d(list(atlas_ids.values()), want)
-    keys = sorted((key for ki, key in enumerate(atlas_ids.keys()) if keep[ki]),
-                  key=lambda x: atlas_ids[x])
-    if return_colors:
-        colors = [colors[k] for k in keys]
-        out = keys, colors
-    else:
-        out = keys
-    return out
-
-
 # XXX this should probably be deprecated because it returns surface Labels,
 # and probably isn't the way to go moving forward
 # XXX this also assumes that the first two source spaces are surf without
@@ -2830,12 +2394,10 @@ def get_volume_labels_from_src(src, subject, subjects_dir):
         List of Label of segmented volumes included in src space.
     """
     from . import Label
-    from . import get_volume_labels_from_aseg
+    from ._freesurfer import get_volume_labels_from_aseg
 
     # Read the aseg file
     aseg_fname = op.join(subjects_dir, subject, 'mri', 'aseg.mgz')
-    if not op.isfile(aseg_fname):
-        raise IOError('aseg file "%s" not found' % aseg_fname)
     all_labels_aseg = get_volume_labels_from_aseg(
         aseg_fname, return_colors=True)
 
@@ -3263,51 +2825,3 @@ def compute_distance_to_sensors(src, info, picks=None, trans=None,
     depths = cdist(src_pos, sensor_pos)
 
     return depths
-
-
-@verbose
-def get_mni_fiducials(subject, subjects_dir=None, verbose=None):
-    """Estimate fiducials for a subject.
-
-    Parameters
-    ----------
-    %(subject)s
-    %(subjects_dir)s
-    %(verbose)s
-
-    Returns
-    -------
-    fids_mri : list
-        List of estimated fiducials (each point in a dict), in the order
-        LPA, nasion, RPA.
-
-    Notes
-    -----
-    This takes the ``fsaverage-fiducials.fif`` file included with MNE—which
-    contain the LPA, nasion, and RPA for the ``fsaverage`` subject—and
-    transforms them to the given FreeSurfer subject's MRI space.
-    The MRI of ``fsaverage`` is already in MNI Talairach space, so applying
-    the inverse of the given subject's MNI Talairach affine transformation
-    (``$SUBJECTS_DIR/$SUBJECT/mri/transforms/talairach.xfm``) is used
-    to estimate the subject's fiducial locations.
-
-    For more details about the coordinate systems and transformations involved,
-    see https://surfer.nmr.mgh.harvard.edu/fswiki/CoordinateSystems and
-    :ref:`plot_source_alignment`.
-    """
-    # Eventually we might want to allow using the MNI Talairach with-skull
-    # transformation rather than the standard brain-based MNI Talaranch
-    # transformation, and/or project the points onto the head surface
-    # (if available).
-    fname_fids_fs = os.path.join(os.path.dirname(__file__), 'data',
-                                 'fsaverage', 'fsaverage-fiducials.fif')
-
-    # Read fsaverage fiducials file and subject Talairach.
-    fids, coord_frame = read_fiducials(fname_fids_fs)
-    assert coord_frame == FIFF.FIFFV_COORD_MRI
-    if subject == 'fsaverage':
-        return fids  # special short-circuit for fsaverage
-    mni_mri_t = invert_transform(read_talxfm(subject, subjects_dir))
-    for f in fids:
-        f['r'] = apply_trans(mni_mri_t, f['r'])
-    return fids
