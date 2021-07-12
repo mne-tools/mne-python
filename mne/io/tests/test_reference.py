@@ -661,9 +661,8 @@ def test_bipolar_combinations():
     # check if reference channels have been kept correctly.
     assert (len(raw_test.ch_names) == len(a_channels) + len(ch_names))
     for idx, ch_label in enumerate(ch_names):
-        manual_ch = raw_data[idx, :]
-        assert_array_equal(
-            raw_test._data[raw_test.ch_names.index(ch_label), :], manual_ch)
+        manual_ch = np.atleast_2d(raw_data[idx, :])
+        assert_array_equal(raw_test.get_data(ch_label), manual_ch)
 
     # test bipolars with a channel in both list (anode & cathode).
     raw_test = set_bipolar_reference(
