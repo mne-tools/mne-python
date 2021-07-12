@@ -81,6 +81,8 @@ Enhancements
 
 - Update :func:`mne.preprocessing.realign_raw` with Numpy-recommended polynomial fitting method (:gh:`9514` by `Erica Peterson`_)
 
+- Add a warning to `mne.preprocessing.nirs.beer_lambert_law` when source-detector distances are zero (:gh:`9541` by `Eric Larson`_)
+
 - Add ``exclude`` parameter to :meth:`mne.io.Raw.plot_psd` and :meth:`mne.Epochs.plot_psd` (:gh:`9519` by `Clemens Brunner`_)
 
 - Add `mne.Annotations.rename` to rename annotation descriptions (:gh:`9525` by `Robert Luke`_)
