@@ -291,7 +291,7 @@ def test_coregistration(tmpdir):
     subject = 'sample'
     subjects_dir = os.path.join(data_path, 'subjects')
     info = read_info(fname_raw)
-    coreg = Coregistration(info, subject, subjects_dir)
+    coreg = Coregistration(info, subjects_dir, subject)
     assert np.allclose(coreg.last_parameters, coreg.parameters)
     default_params = list(coreg.parameters)
     coreg.fit_fiducials()
