@@ -817,22 +817,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             'bad' are omitted. If 'NaN', the bad samples are filled with NaNs.
         return_times : bool
             Whether to return times as well. Defaults to False.
-        units : str | dict | None
-            Specify the unit(s) that the data should be returned in. If
-            ``None`` (default), the data is returned in the
-            channel-type-specific default units, which are SI units (see
-            :ref:`units` and :term:`data channels`). If a string, must be a
-            sub-multiple of SI units that will be used to scale the data from
-            all channels of the type associated with that unit. This only works
-            if the data contains one channel type that has a unit (unitless
-            channel types are left unchanged). For example if there are only
-            EEG and STIM channels, ``units='uV'`` will scale EEG channels to
-            micro-Volts while STIM channels will be unchanged. Finally, if a
-            dictionary is provided, keys must be channel types, and values must
-            be units to scale the data of that channel type to. For example
-            ``dict(grad='fT/cm', mag='fT')`` will scale the corresponding types
-            accordingly, but all other channel types will remain in their
-            channel-type-specific default unit.
+        %(units)s
         %(verbose_meth)s
 
         Returns
@@ -1934,12 +1919,28 @@ def _convert_slice(sel):
         return sel
 
 
-def _get_ch_factors(inst, units, picks):
-    """To be done."""
+def _get_ch_factors(inst, units, picks_idxs):
+    """Get scaling factors for data, given units.
+
+    Parameters
+    ----------
+    inst : instance of Raw | Epochs | Evoked
+        The instance.
+    %(units)s
+    picks_idxs : ndarray
+        The picks as provided through _picks_to_idx.
+
+    Returns
+    -------
+    ch_factors : ndarray of floats, shape(len(picks),)
+        The sacling factors for each channel, ordered according
+        to picks.
+
+    """
     _validate_type(units, types=(None, str, dict), item_name="units")
-    ch_factors = np.ones(len(picks))
+    ch_factors = np.ones(len(picks_idxs))
     si_units = _handle_default('si_units')
-    ch_types = inst.get_channel_types(picks=picks)
+    ch_types = inst.get_channel_types(picks=picks_idxs)
     # Convert to dict if str units
     if isinstance(units, str):
         # Check that there is only one channel type
