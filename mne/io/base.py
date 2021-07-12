@@ -853,10 +853,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         _validate_type(units, types=(None, str, dict), item_name="units")
         ch_factors = np.ones(len(picks))
         si_units = _handle_default('si_units')
+        ch_types = self.get_channel_types(picks=picks)
         # Convert to dict if str units
         if isinstance(units, str):
             # Check that there is only one channel type
-            ch_types = self.get_channel_types(picks=picks)
             unit_ch_type = list(set(ch_types) & set(si_units.keys()))
             if len(unit_ch_type) > 1:
                 raise ValueError('"units" cannot be str if there is more than '
