@@ -849,29 +849,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """
         picks = _picks_to_idx(self.info, picks, 'all', exclude=())
 
-        # Convert into the specified unit
-        _validate_type(units, types=(None, str, dict), item_name="units")
-        ch_factors = np.ones(len(picks))
-        si_units = _handle_default('si_units')
-        ch_types = self.get_channel_types(picks=picks)
-        # Convert to dict if str units
-        if isinstance(units, str):
-            # Check that there is only one channel type
-            unit_ch_type = list(set(ch_types) & set(si_units.keys()))
-            if len(unit_ch_type) > 1:
-                raise ValueError('"units" cannot be str if there is more than '
-                                 'one channel type with a unit '
-                                 f'{unit_ch_type}.')
-            units = {unit_ch_type[0]: units}  # make the str argument a dict
-        # Loop over the dict to get channel factors
-        if isinstance(units, dict):
-            for ch_type, ch_unit in units.items():
-                # Get the scaling factors
-                scaling = _get_scaling(ch_type, ch_unit)
-                if scaling != 1:
-                    indices = [i_ch for i_ch, ch in enumerate(ch_types)
-                               if ch == ch_type]
-                    ch_factors[indices] *= scaling
+        # Get channel factors for conversion into specified unit
+        # (vector of ones if no conversion needed)
+        ch_factors = _get_ch_factors(self, units, picks)
 
         # convert to ints
         picks = np.atleast_1d(np.arange(self.info['nchan'])[picks])
@@ -1952,6 +1932,34 @@ def _convert_slice(sel):
         return slice(sel[0], sel[-1] + 1)
     else:
         return sel
+
+
+def _get_ch_factors(inst, units, picks):
+    """To be done."""
+    _validate_type(units, types=(None, str, dict), item_name="units")
+    ch_factors = np.ones(len(picks))
+    si_units = _handle_default('si_units')
+    ch_types = inst.get_channel_types(picks=picks)
+    # Convert to dict if str units
+    if isinstance(units, str):
+        # Check that there is only one channel type
+        unit_ch_type = list(set(ch_types) & set(si_units.keys()))
+        if len(unit_ch_type) > 1:
+            raise ValueError('"units" cannot be str if there is more than '
+                             'one channel type with a unit '
+                             f'{unit_ch_type}.')
+        units = {unit_ch_type[0]: units}  # make the str argument a dict
+    # Loop over the dict to get channel factors
+    if isinstance(units, dict):
+        for ch_type, ch_unit in units.items():
+            # Get the scaling factors
+            scaling = _get_scaling(ch_type, ch_unit)
+            if scaling != 1:
+                indices = [i_ch for i_ch, ch in enumerate(ch_types)
+                           if ch == ch_type]
+                ch_factors[indices] *= scaling
+
+    return ch_factors
 
 
 def _get_scaling(ch_type, target_unit):
