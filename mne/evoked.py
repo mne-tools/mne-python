@@ -158,6 +158,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """Set the data matrix."""
         self._data = data
 
+    @fill_doc
     def get_data(self, picks=None):
         """Get evoked data as 2D array.
 
