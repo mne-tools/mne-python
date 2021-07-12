@@ -851,13 +851,12 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         # Convert into the specified unit
         _validate_type(units, types=(None, str, dict), item_name="units")
-        needs_conversion = False
         ch_factors = np.ones(len(picks))
         si_units = _handle_default('si_units')
         # Convert to dict if str units
         if isinstance(units, str):
             # Check that there is only one channel type
-            ch_types = self.get_channel_types(picks=picks, unique=True)
+            ch_types = self.get_channel_types(picks=picks)
             unit_ch_type = list(set(ch_types) & set(si_units.keys()))
             if len(unit_ch_type) > 1:
                 raise ValueError('"units" cannot be str if there is more than '
@@ -870,8 +869,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                 # Get the scaling factors
                 scaling = _get_scaling(ch_type, ch_unit)
                 if scaling != 1:
-                    needs_conversion = True
-                    ch_types = self.get_channel_types(picks=picks)
                     indices = [i_ch for i_ch, ch in enumerate(ch_types)
                                if ch == ch_type]
                     ch_factors[indices] *= scaling
@@ -885,11 +882,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                 (picks, slice(start, stop)), return_times=return_times)
             if return_times:
                 data, times = getitem
-                if needs_conversion:
-                    data *= ch_factors[:, np.newaxis]
+                data *= ch_factors[:, np.newaxis]
                 return data, times
-            if needs_conversion:
-                getitem *= ch_factors[:, np.newaxis]
+            getitem *= ch_factors[:, np.newaxis]
             return getitem
         _check_option('reject_by_annotation', reject_by_annotation.lower(),
                       ['omit', 'nan'])
@@ -899,8 +894,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         ends = np.minimum(ends[keep], stop)
         if len(onsets) == 0:
             data, times = self[picks, start:stop]
-            if needs_conversion:
-                data *= ch_factors[:, np.newaxis]
+            data *= ch_factors[:, np.newaxis]
             if return_times:
                 return data, times
             return data
@@ -942,8 +936,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         else:
             data, times = self[picks, start:stop]
 
-        if needs_conversion:
-            data *= ch_factors[:, np.newaxis]
+        data *= ch_factors[:, np.newaxis]
         if return_times:
             return data, times
         return data
