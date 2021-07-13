@@ -1237,7 +1237,7 @@ class Coregistration(object):
     ----------
     info : instance of Info
         The measurement info.
-    subject : str | None
+    subject : str
         Name of the subject the data are defined for.
     subjects_dir : path-like
         Path to MRI subjects directory.
