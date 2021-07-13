@@ -14,7 +14,7 @@ import pytest
 from scipy import io as sio
 
 from mne import find_events, pick_types
-from mne.io import read_raw_egi, read_evokeds_mff
+from mne.io import read_raw_egi, read_evokeds_mff, read_raw_fif
 from mne.io.constants import FIFF
 from mne.io.egi.egi import _combine_triggers
 from mne.io.tests.test_raw import _test_raw_reader
@@ -102,6 +102,23 @@ def test_egi_mff_pause(fname, skip_times, event_times):
         skip = ((start + 1) / raw.info['sfreq'] * 1e6,
                 (stop + 1) / raw.info['sfreq'] * 1e6)
         assert skip == skip_times[ii]
+
+
+@pytest.mark.parametrize('fname', [
+    egi_pause_fname,
+    egi_eprime_pause_fname,
+    egi_pause_w1337_fname,
+])
+def test_egi_mff_pause_chunks(fname, tmpdir):
+    """Test that on-demand of all short segments works (via I/O)."""
+    fname_temp = tmpdir.join('test_raw.fif')
+    raw_data = read_raw_egi(fname, preload=True).get_data()
+    raw = read_raw_egi(fname)
+    with pytest.warns(RuntimeWarning, match='Acquisition skips detected'):
+        raw.save(fname_temp)
+    del raw
+    raw_data_2 = read_raw_fif(fname_temp).get_data()
+    assert_allclose(raw_data, raw_data_2)
 
 
 @requires_testing_data
