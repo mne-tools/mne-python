@@ -170,6 +170,10 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         -------
         data : ndarray, shape (n_channels, n_times)
             A view on evoked data.
+
+        Notes
+        -----
+        .. versionadded:: 0.24
         """
         picks = _picks_to_idx(self.info, picks, "all", exclude=())
         data = self.data[picks, :]
