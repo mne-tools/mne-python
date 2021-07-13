@@ -388,8 +388,7 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
             assert rank_type == 'estimated'
             if isinstance(inst, (BaseRaw, BaseEpochs)):
                 if isinstance(inst, BaseRaw):
-                    data = inst.get_data(picks, None, None,
-                                         reject_by_annotation='omit')
+                    data = inst.get_data(picks, reject_by_annotation='omit')
                 else:  # isinstance(inst, BaseEpochs):
                     data = inst.get_data()[:, picks, :]
                     data = np.concatenate(data, axis=1)

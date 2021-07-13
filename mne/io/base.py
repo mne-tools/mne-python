@@ -853,6 +853,15 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         -----
         .. versionadded:: 0.14.0
         """
+        # validate types
+        _validate_type(start, types='int', item_name='start')
+        if stop is not None:
+            _validate_type(stop, types='int', item_name='stop')
+        if tmin is not None:
+            _validate_type(tmin, types='numeric', item_name='tmin')
+        if tmax is not None:
+            _validate_type(tmax, types='numeric', item_name='tmax')
+
         picks = _picks_to_idx(self.info, picks, 'all', exclude=())
 
         # Convert into the specified unit

@@ -731,3 +731,16 @@ def test_get_data_tmin_tmax():
     # when start/stop are passed, tmin/tmax are ignored
     d5 = raw.get_data(start=1, stop=2, tmin=tmin, tmax=tmax)
     assert d5.shape[1] == 1
+
+    # validate inputs are properly raised
+    with pytest.raises(TypeError, match='start must be .* int'):
+        raw.get_data(start=None)
+
+    with pytest.raises(TypeError, match='stop must be .* int'):
+        raw.get_data(stop=2.3)
+
+    with pytest.raises(TypeError, match='tmin must be .* numeric'):
+        raw.get_data(tmin=[1, 2])
+
+    with pytest.raises(TypeError, match='tmax must be .* numeric'):
+        raw.get_data(tmax=[1, 2])

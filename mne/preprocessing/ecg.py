@@ -191,7 +191,7 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
                     % raw.ch_names[idx_ecg])
         ecg = raw.get_data(picks=idx_ecg)
     else:
-        ecg = _make_ecg(raw, None, None)[0]
+        ecg, _ = _make_ecg(raw, start=0, stop=None)
     assert ecg.ndim == 2 and ecg.shape[0] == 1
     ecg = ecg[0]
     # Deal with filtering the same way we do in raw, i.e. filter each good
@@ -366,7 +366,24 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
 
 @verbose
 def _make_ecg(inst, start, stop, reject_by_annotation=False, verbose=None):
-    """Create ECG signal from cross channel average."""
+    """Create ECG signal from cross channel average.
+
+    BUG: Used in `find_bads_ecg`, which says that start and stop
+         can be int (=sample indices) or float (=seconds). But
+         below, these are treated differently for Raw, Epochs, Evoked:
+
+         Raw: will raise TypeError if float is passed, ints are processed
+              correctly
+
+         Epochs: ints are treated as seconds, NOT sample indices, floats
+                 are processed correctly, except that `ecg` and `times`
+                 seem to be out of sync.
+
+         Evoked: start and stop are erroneously not processed at all.
+
+         See: https://github.com/mne-tools/mne-python/pull/9556#issuecomment-879106098
+
+    """  # noqa: E501
     if not any(c in inst for c in ['mag', 'grad']):
         raise ValueError('Unable to generate artificial ECG channel')
     for ch in ['mag', 'grad']:
