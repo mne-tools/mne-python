@@ -1626,6 +1626,7 @@ class Coregistration(object):
         self._n_scale_param = self._n_scale_params[0]
         self._grow_hair = 0.
         self._parameters[:] = list(self._default_parameters)
+        self._last_parameters[:] = list(self._default_parameters)
         self.omit_hsp_points(np.inf)
 
 
