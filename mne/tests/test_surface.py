@@ -12,6 +12,7 @@ from mne import (read_surface, write_surface, decimate_surface, pick_types,
                  dig_mri_distances)
 from mne.channels import make_dig_montage
 from mne.datasets import testing
+from mne.fixes import _get_img_fdata
 from mne.io import read_info
 from mne.io.constants import FIFF
 from mne.surface import (_compute_nearest, _tessellate_sphere, fast_cross_3d,
@@ -263,9 +264,12 @@ def test_warp_montage_volume():
     # make fake image with three coordinates
     CT_data = np.zeros(subject_brain.shape)
     # make electrode contact hyperintensities
-    CT_data[135:139, 115:120, 144:149] = 1000
-    CT_data[140:145, 113:119, 145:150] = 1000
-    CT_data[147:152, 112:117, 147:152] = 1000
+    CT_data[45:47, 39:41, 49:50] = 500  # surround high intensity
+    CT_data[46, 40, 49] = 1000  # center even higher intensity
+    CT_data[47:49, 39:40, 49:50] = 500
+    CT_data[48, 39, 50] = 1000
+    CT_data[50:52, 38:40, 50:51] = 500
+    CT_data[50, 39, 50] = 1000
     CT = nib.Nifti1Image(CT_data, subject_T1.affine)
     ch_coords = np.array([[-8.7040273, 17.99938754, 10.29604017],
                           [-14.03007764, 19.69978401, 12.07236939],
@@ -276,25 +280,60 @@ def test_warp_montage_volume():
         montage, CT, reg_affine, sdr_morph, 'sample',
         subjects_dir=subjects_dir, thresh=0.99)
     # checked with nilearn plot from `tut-ieeg-localize`
+    # check montage in surface RAS
     np.testing.assert_almost_equal(
         montage_warped.dig[0]['r'],
-        np.array([-0.271, 0.238875, -0.34625]))
+        np.array([-0.27778788, 0.24251515, -0.35693939]))
     np.testing.assert_almost_equal(
         montage_warped.dig[1]['r'],
-        np.array([-0.291, 0.24803226, -0.34074194]))
+        np.array([-0.30033333, 0.24785714, -0.35014286]))
     np.testing.assert_almost_equal(
         montage_warped.dig[2]['r'],
-        np.array([-0.31021875, 0.2475, -0.33815625]))
+        np.array([-0.32261947, 0.25295575, -0.34614159]))
+    # check image_from
+    np.testing.assert_array_equal(
+        np.array(np.where(_get_img_fdata(image_from) == 1)),
+        np.array([[45, 46, 46], [40, 39, 40], [49, 49, 49]]))
+    np.testing.assert_array_equal(
+        np.array(np.where(_get_img_fdata(image_from) == 2)),
+        np.array([[48, 48], [39, 39], [49, 50]]))
+    np.testing.assert_array_equal(
+        np.array(np.where(_get_img_fdata(image_from) == 3)),
+        np.array([[50, 50, 51], [38, 39, 39], [50, 50, 50]]))
+    # check image_to, too many, just check center voxel
+    assert (136, 162, 124) in [tuple(coord) for coord in np.array(
+        np.where(_get_img_fdata(image_to) == 1)).T]
+    assert (143, 160, 126) in [tuple(coord) for coord in np.array(
+        np.where(_get_img_fdata(image_to) == 2)).T]
+    assert (151, 158, 127) in [tuple(coord) for coord in np.array(
+        np.where(_get_img_fdata(image_to) == 3)).T]
+
     # test inputs
     with pytest.raises(ValueError, match='subject folder is incorrect'):
         warp_montage_volume(
             montage, CT, reg_affine, sdr_morph, subject_from='foo')
-    with pytest.raises(ValueError, match='not aligned to Freesurfer'):
+    with pytest.raises(RuntimeError, match='not aligned to Freesurfer'):
         CT_unaligned = nib.Nifti1Image(CT_data, subject_brain.affine)
         warp_montage_volume(montage, CT_unaligned, reg_affine,
                             sdr_morph, 'sample', subjects_dir=subjects_dir)
+    with pytest.raises(RuntimeError, match='No electrophysiolgy channels'):
+        empty_montage = make_dig_montage(dict(), coord_frame='mri')
+        warp_montage_volume(empty_montage, CT, reg_affine,
+                            sdr_morph, 'sample', subjects_dir=subjects_dir)
+    with pytest.raises(RuntimeError, match='Inconsistent dig montage'):
+        bad_montage = make_dig_montage(ch_pos, coord_frame='mri')
+        bad_montage.dig[0]['coord_frame'] = 99
+        warp_montage_volume(bad_montage, CT, reg_affine,
+                            sdr_morph, 'sample', subjects_dir=subjects_dir)
+    with pytest.raises(RuntimeError, match='Coordinate frame not supported'):
+        wrong_montage = make_dig_montage(ch_pos, coord_frame='head')
+        warp_montage_volume(wrong_montage, CT, reg_affine,
+                            sdr_morph, 'sample', subjects_dir=subjects_dir)
 
-    '''
-    [136.7040273 , 117.70395983, 145.99938754],
-       [142.03007764, 115.92763061, 147.69978401],
-       [149.1130506 , 114.74341113, 149.98310911]'''
+    # check channel not warped
+    with pytest.warns(RuntimeWarning, match='not assigned'):
+        ch_pos_doubled = ch_pos.copy()
+        ch_pos_doubled.update(zip(['4', '5', '6'], ch_coords / 1000))
+        doubled_montage = make_dig_montage(ch_pos_doubled, coord_frame='mri')
+        warp_montage_volume(doubled_montage, CT, reg_affine,
+                            sdr_morph, 'sample', subjects_dir=subjects_dir)

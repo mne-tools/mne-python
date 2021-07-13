@@ -29,7 +29,8 @@ from .transforms import (transform_surface_to, _pol_to_cart, _cart_to_sph,
                          apply_volume_registration)
 from .utils import (logger, verbose, get_subjects_dir, warn, _check_fname,
                     _check_option, _ensure_int, _TempDir, run_subprocess,
-                    _check_freesurfer_home, _hashable_ndarray, fill_doc)
+                    _check_freesurfer_home, _hashable_ndarray, fill_doc,
+                    _validate_type, _require_version)
 
 
 ###############################################################################
@@ -1727,10 +1728,10 @@ def _get_surface_RAS_volumes(base_image, subject_from, subjects_dir):
         _get_img_fdata(base_image).astype(np.float32), base_image.affine)
     fs_t1 = nib.load(op.join(subjects_dir, subject_from, 'mri', 'T1.mgz'))
     if not np.allclose(base_image.affine, fs_t1.affine, atol=1e-6):
-        raise ValueError('The `base_image` is not aligned to Freesurfer '
-                         'surface RAS space. This space is required as '
-                         'it is the space where the anatomical '
-                         'segmentation and reconstructed surfaces are')
+        raise RuntimeError('The `base_image` is not aligned to Freesurfer '
+                           'surface RAS space. This space is required as '
+                           'it is the space where the anatomical '
+                           'segmentation and reconstructed surfaces are')
     return base_image, fs_t1
 
 
@@ -1740,15 +1741,15 @@ def _check_dig(dig):
                if d['kind'] == FIFF.FIFFV_POINT_EEG]
     dig = [dig[idx] for idx in use_idx]
     if not dig:
-        raise ValueError('No electrophysiolgy channels found. '
-                         'Accepted types are "eeg", "ecog", "seeg" '
-                         'and "dbs". Make sure the channel types are '
-                         'set properly, see `mne.io.Raw.set_channel_types`')
+        raise RuntimeError('No electrophysiolgy channels found. '
+                           'Accepted types are "eeg", "ecog", "seeg" '
+                           'and "dbs". Make sure the channel types are '
+                           'set properly, see `mne.io.Raw.set_channel_types`')
     ch_coords = np.array([ch['r'] for ch in dig])
     coord_frame = dig[0]['coord_frame']
     for d in dig[1:]:
         if d['coord_frame'] != coord_frame:
-            raise ValueError(
+            raise RuntimeError(
                 'Inconsistent dig montage coordinate frame in '
                 f'``info``, got {coord_frame} and ' + str(d['coord_frame']))
     if coord_frame != FIFF.FIFFV_COORD_MRI:
@@ -1839,7 +1840,23 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
         The warped image with voxel values corresponding to the index
         of the channel. The background is 0s and this index starts at 1.
     """
+    _require_version('nibabel', 'SDR morph', '2.1.0')
+    _require_version('dipy', 'SDR morph', '0.10.1')
+    from .channels import DigMontage
     import nibabel as nib
+    from dipy.align.imwarp import DiffeomorphicMap
+
+    _validate_type(montage, DigMontage, 'montage')
+    _validate_type(base_image, nib.spatialimages.SpatialImage, 'base_image')
+    _validate_type(reg_affine, np.ndarray, 'reg_affine')
+    _check_option('reg_affine.shape', reg_affine.shape, ((4, 4),))
+    _validate_type(sdr_morph, DiffeomorphicMap, 'sdr_morph')
+    _validate_type(thresh, float, 'thresh')
+    if thresh < 0 or thresh >= 1:
+        raise ValueError(f'`thresh` must be between 0 and 1, got {thresh}')
+    _validate_type(max_peak_dist, int, 'max_peak_dist')
+    _validate_type(voxels_max, int, 'voxels_max')
+    _validate_type(use_min, bool, 'use_min')
 
     # first, make sure we have the necessary freesurfer surfaces
     _check_subject_dir(subject_from, subjects_dir)

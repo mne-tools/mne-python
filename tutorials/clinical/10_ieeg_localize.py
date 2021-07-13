@@ -306,7 +306,7 @@ del subject_brain, template_brain
 # the warped image.
 
 # create symbolic link to share ``subjects_dir``
-os.link(op.join(misc_path, 'subjects', 'sample_seeg'),
+os.link(op.join(misc_path, 'seeg', 'sample_seeg'),
         op.join(subjects_dir, 'sample_seeg'))
 montage_warped, elec_image, warped_elec_image = mne.warp_montage_volume(
     montage, CT_aligned, reg_affine, sdr_morph, subject_from='sample_seeg',
