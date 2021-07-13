@@ -834,11 +834,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             accordingly, but all other channel types will remain in their
             channel-type-specific default unit.
         tmin : float | None
-            Start time of data to get in seconds. The `tmin` parameter is
-            ignored if the `start` parameter is defined.
+            Start time of data to get in seconds. The ``tmin`` parameter is
+            ignored if the ``start`` parameter is defined.
         tmax : float | None
-            End time of data to get in seconds. The `tmax` parameter is
-            ignored if the `stop` parameter is defined.
+            End time of data to get in seconds. The ``tmax`` parameter is
+            ignored if the ``stop`` parameter is defined.
         %(verbose_meth)s
 
         Returns
