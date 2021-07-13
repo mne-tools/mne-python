@@ -835,7 +835,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             channel-type-specific default unit.
         tmin : float | None
             Start time of data to get in seconds. The ``tmin`` parameter is
-            ignored if the ``start`` parameter is defined.
+            ignored if the ``start`` parameter is bigger than 0.
         tmax : float | None
             End time of data to get in seconds. The ``tmax`` parameter is
             ignored if the ``stop`` parameter is defined.
@@ -886,17 +886,16 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         picks = np.atleast_1d(np.arange(self.info['nchan'])[picks])
 
         # handle start/tmin stop/tmax
-        # tmin/tmax are ignored if start/stop are defined
-        if start is None:
+        # tmin/tmax are ignored if start/stop are defined to
+        # something other than their defaults
+        if start == 0:
             start = 0 if tmin is None else self.time_as_index(tmin)
         if stop is None:
             stop = self.n_times if tmax is None else self.time_as_index(tmax)
 
         # truncate start/stop to the open interval [0, n_times]
-        start = max(0, start)
-        start = min(start, self.n_times)
-        stop = max(0, stop)
-        stop = min(stop, self.n_times)
+        start = min(max(0, start), self.n_times)
+        stop = min(max(0, stop), self.n_times)
 
         if len(self.annotations) == 0 or reject_by_annotation is None:
             getitem = self._getitem(
