@@ -38,7 +38,8 @@ from ..io.meas_info import create_info
 from ..rank import compute_rank
 from ..io.proj import setup_proj
 from ..utils import (verbose, get_config, warn, _check_ch_locs, _check_option,
-                     logger, fill_doc, _pl, _check_sphere, _ensure_int)
+                     logger, fill_doc, _pl, _check_sphere, _ensure_int,
+                     _validate_type)
 from ..transforms import apply_trans
 
 
@@ -133,6 +134,7 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
     This will not force constrained_layout=False if the figure was created
     with that method.
     """
+    _validate_type(pad, 'numeric', 'pad')
     import matplotlib.pyplot as plt
     fig = plt.gcf() if fig is None else fig
 
