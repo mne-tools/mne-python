@@ -359,8 +359,8 @@ def test_brain_init(renderer_pyvista, tmpdir, pixel_ratio, brain_gc):
         brain._renderer.figure._elevation, view_args["elevation"])
     assert np.allclose(cam.GetFocalPoint(), fp)
     del view_args
-    img = brain.screenshot(mode='rgb')
-    want_size = np.array([size[0] * pixel_ratio, size[1] * pixel_ratio, 3])
+    img = brain.screenshot(mode='rgba')
+    want_size = np.array([size[0] * pixel_ratio, size[1] * pixel_ratio, 4])
     assert_allclose(img.shape, want_size)
     brain.close()
 
