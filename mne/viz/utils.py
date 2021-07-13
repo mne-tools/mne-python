@@ -2305,7 +2305,8 @@ def _save_ndarray_img(fname, img):
     Image.fromarray(img).save(fname)
 
 
-def concatenate_images(images, axis=0, bgcolor='black', centered=True):
+def concatenate_images(images, axis=0, bgcolor='black', centered=True,
+                       n_channels=3):
     """Concatenate a list of images.
 
     Parameters
@@ -2321,6 +2322,8 @@ def concatenate_images(images, axis=0, bgcolor='black', centered=True):
         'black'.
     centered : bool
         If True, the images are centered. Defaults to True.
+    n_channels : int
+        Number of color channels. Can be 3 or 4. The default value is 3.
 
     Returns
     -------
@@ -2329,14 +2332,17 @@ def concatenate_images(images, axis=0, bgcolor='black', centered=True):
     """
     from matplotlib.colors import colorConverter
     if isinstance(bgcolor, str):
-        bgcolor = colorConverter.to_rgb(bgcolor)
+        if n_channels == 3:
+            bgcolor = colorConverter.to_rgb(bgcolor)
+        else:
+            bgcolor = colorConverter.to_rgba(bgcolor)
     bgcolor = np.asarray(bgcolor) * 255
     funcs = [np.sum, np.max]
     ret_shape = np.asarray([
         funcs[axis]([image.shape[0] for image in images]),
         funcs[1 - axis]([image.shape[1] for image in images]),
     ])
-    ret = np.zeros((ret_shape[0], ret_shape[1], 3), dtype=np.uint8)
+    ret = np.zeros((ret_shape[0], ret_shape[1], n_channels), dtype=np.uint8)
     ret[:, :, :] = bgcolor
     ptr = np.array([0, 0])
     sec = np.array([0 == axis, 1 == axis]).astype(int)
