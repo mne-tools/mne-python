@@ -24,7 +24,7 @@ from . import read_evokeds, read_events, pick_types, read_cov
 from .io import read_raw, read_info
 from .io._read_raw import supported as extension_reader_map
 from .io.pick import _DATA_CH_TYPES_SPLIT
-from .source_space import _mri_orientation
+from ._freesurfer import _mri_orientation
 from .utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
                     fill_doc, _check_option, _validate_type, _safe_input)
 from .viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,

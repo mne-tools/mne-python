@@ -81,11 +81,15 @@ Enhancements
 
 - Update :func:`mne.preprocessing.realign_raw` with Numpy-recommended polynomial fitting method (:gh:`9514` by `Erica Peterson`_)
 
+- Add a warning to `mne.preprocessing.nirs.beer_lambert_law` when source-detector distances are zero (:gh:`9541` by `Eric Larson`_)
+
 - Add ``exclude`` parameter to :meth:`mne.io.Raw.plot_psd` and :meth:`mne.Epochs.plot_psd` (:gh:`9519` by `Clemens Brunner`_)
 
 - Add `mne.Annotations.rename` to rename annotation descriptions (:gh:`9525` by `Robert Luke`_)
 
 - Add `mne.Annotations.set_durations` to set annotation durations (:gh:`9529` by `Robert Luke`_)
+
+- The ``exclude`` parameter in `mne.io.read_raw_edf`, `mne.io.read_raw_bdf`, and `mne.io.read_raw_gdf` now also accepts a regular expression (:gh:`9558` by `Clemens Brunner`_)
 
 Bugs
 ~~~~
@@ -118,6 +122,10 @@ Bugs
 - Ensure `mne.io.Raw.get_montage` works with SNIRF data (:gh:`9524` by `Robert Luke`_)
 
 - Fix bug in :func:`mne.viz.plot_topomap` (and related methods like :meth:`mne.Evoked.plot_topomap`) where large distances between electrodes (higher than head radius) would lead to an error (:gh:`9528` by `Mikołaj Magnuski`_).
+
+- Fix bug in `mne.viz.plot_topomap` (and related methods) where passing ``axes`` that are part of a matplotlib figure that uses a constrained layout would emit warnings (:gh:`9558` by `Eric Larson`_)
+
+- Fix bug in :func:`mne.concatenate_epochs` when concatenating :class:`mne.Epochs` objects with 0 events (:gh:`9535` by `Marijn van Vliet`_)
 
 API changes
 ~~~~~~~~~~~
