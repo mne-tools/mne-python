@@ -1241,6 +1241,13 @@ class Coregistration(object):
         SUBJECTS_DIR.
     subjects_dir : path-like
         Path to MRI subjects directory.
+
+    Notes
+    -----
+    Internal computation quantities ``parameters`` are in units of (for X/Y/Z):
+    - ``parameters[:3]`` are in radians
+    - ``parameters[3:6]`` are in m
+    - ``paramteres[6:9]`` are in scale proportion
     """
 
     def __init__(self, info, subject, subjects_dir):
