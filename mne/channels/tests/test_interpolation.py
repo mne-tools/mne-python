@@ -110,14 +110,8 @@ def test_interpolation_eeg(offset, avg_proj, ctol, atol, method):
     evoked_eeg_interp = evoked_eeg_2_bads.interpolate_bads(
         origin=(0., 0., 0.), exclude=['EEG 004'], **kw)
     assert evoked_eeg_interp.info['bads'] == ['EEG 004']
-    assert np.all(
-        evoked_eeg_interp.data[evoked_eeg_interp.ch_names.index('EEG 004'), :]
-        == 1e10
-    )
-    assert np.all(
-        evoked_eeg_interp.data[evoked_eeg_interp.ch_names.index('EEG 012'), :]
-        != 1e10
-    )
+    assert np.all(evoked_eeg_interp.get_data('EEG 004') == 1e10)
+    assert np.all(evoked_eeg_interp.get_data('EEG 012') != 1e10)
 
     # Now test without exclude parameter
     evoked_eeg_bad.info['bads'] = ['EEG 012']
