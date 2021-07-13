@@ -1447,7 +1447,17 @@ class Coregistration(object):
         return np.linalg.norm(mri_points - hsp_points, axis=-1)
 
     def fit_fiducials(self, lpa_weight=1., nasion_weight=10., rpa_weight=1.):
-        """Find rotation and translation to fit all 3 fiducials."""
+        """Find rotation and translation to fit all 3 fiducials.
+
+        Parameters
+        ----------
+        lpa_weight : float
+            Relative weight for LPA. The default value is 1.
+        nasion_weight : float
+            Relative weight for nasion. The default value is 10.
+        rpa_weight : float
+            Relative weight for RPA. The default value is 1.
+        """
         self._lpa_weight = lpa_weight
         self._nasion_weight = nasion_weight
         self._rpa_weight = rpa_weight
@@ -1506,9 +1516,21 @@ class Coregistration(object):
             mri_pts *= self._parameters[6:9]  # not done in fit_matched_points
         return head_pts, mri_pts, weights
 
-    def fit_icp(self, iterations=20, lpa_weight=1., nasion_weight=10.,
+    def fit_icp(self, n_iterations=20, lpa_weight=1., nasion_weight=10.,
                 rpa_weight=1.):
-        """Find MRI scaling, translation, and rotation to match HSP."""
+        """Find MRI scaling, translation, and rotation to match HSP.
+
+        Parameters
+        ----------
+        n_iterations : int
+            Maximum number of iterations.
+        lpa_weight : float
+            Relative weight for LPA. The default value is 1.
+        nasion_weight : float
+            Relative weight for nasion. The default value is 10.
+        rpa_weight : float
+            Relative weight for RPA. The default value is 1.
+        """
         self._lpa_weight = lpa_weight
         self._nasion_weight = nasion_weight
         self._rpa_weight = rpa_weight
@@ -1517,7 +1539,7 @@ class Coregistration(object):
         est = self._parameters[:[6, 7, None, 9][self._n_scale_param]]
 
         # Do the fits, assigning and evaluating at each step
-        for _ in range(iterations):
+        for _ in range(n_iterations):
             head_pts, mri_pts, weights = self._setup_icp()
             est = fit_matched_points(mri_pts, head_pts,
                                      scale=self._n_scale_param,
@@ -1582,7 +1604,13 @@ class Coregistration(object):
         return np.linalg.norm(mri_points - hsp_points, axis=-1)
 
     def save_trans(self, fname):
-        """Save the head-mri transform as a fif file."""
+        """Save the head-mri transform as a fif file.
+
+        Parameters
+        ----------
+        fname : str
+            Target file path.
+        """
         write_trans(fname, Transform('head', 'mri', self._head_mri_t))
 
 
