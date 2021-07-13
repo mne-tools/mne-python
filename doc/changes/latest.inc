@@ -127,7 +127,9 @@ Bugs
 
 - Fix bug in :func:`mne.concatenate_epochs` when concatenating :class:`mne.Epochs` objects with 0 events (:gh:`9535` by `Marijn van Vliet`_)
 
-- Fix bug in :func:`mne.viz.Brain.screenshot` where the RGBA mode was not supported (:gh:`9561` by `Guillaume Favelier`_).
+- Fix bug in :func:`mne.viz.Brain.screenshot` where the RGBA mode was not supported (:gh:`9564` by `Guillaume Favelier`_).
+
+- Fix bug in :func:`mne.io.read_raw_egi` where reading data from a data segment that is part of an acquisition skip would lead to an error (:gh:`9565` by `Eric Larson`_)
 
 API changes
 ~~~~~~~~~~~

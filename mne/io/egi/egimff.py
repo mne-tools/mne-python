@@ -564,6 +564,7 @@ class RawMff(BaseRaw):
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of data."""
+        logger.debug(f'Reading MFF {start:6d} ... {stop:6d} ...')
         dtype = '<f4'  # Data read in four byte floats.
 
         egi_info = self._raw_extras[fi]
@@ -596,17 +597,23 @@ class RawMff(BaseRaw):
         # the potentially larger `data` with it, taking skips into account
         disk_samps = egi_info['disk_samps'][start:stop]
         disk_use_idx = np.where(disk_samps > -1)[0]
-        if len(disk_use_idx):
-            start = disk_samps[disk_use_idx[0]]
-            stop = disk_samps[disk_use_idx[-1]] + 1
-            assert len(disk_use_idx) == stop - start
+        # short circuit in case we don't need any samples
+        if not len(disk_use_idx):
+            _mult_cal_one(data, one, idx, cals, mult)
+            return
+
+        start = disk_samps[disk_use_idx[0]]
+        stop = disk_samps[disk_use_idx[-1]] + 1
+        assert len(disk_use_idx) == stop - start
 
         # Get starting/stopping block/samples
         block_samples_offset = np.cumsum(samples_block)
-        offset_blocks = np.sum(block_samples_offset < start)
+        offset_blocks = np.sum(block_samples_offset <= start)
         offset_samples = start - (block_samples_offset[offset_blocks - 1]
                                   if offset_blocks > 0 else 0)
 
+        # TODO: Refactor this reading with the PNS reading in a single function
+        # (DRY)
         samples_to_read = stop - start
         with open(self._filenames[fi], 'rb', buffering=0) as fid:
             # Go to starting block
@@ -618,11 +625,13 @@ class RawMff(BaseRaw):
                 if this_block_info is not None:
                     current_block_info = this_block_info
                 fid.seek(current_block_info['block_size'], 1)
-                current_block = current_block + 1
+                current_block += 1
 
             # Start reading samples
             while samples_to_read > 0:
+                logger.debug(f'    Reading from block {current_block}')
                 this_block_info = _block_r(fid)
+                current_block += 1
                 if this_block_info is not None:
                     current_block_info = this_block_info
 
@@ -633,6 +642,8 @@ class RawMff(BaseRaw):
 
                 # Compute indexes
                 samples_read = block_data.shape[1]
+                logger.debug(f'        Read   {samples_read} samples')
+                logger.debug(f'        Offset {offset_samples} samples')
                 if offset_samples > 0:
                     # First block read, skip to the offset:
                     block_data = block_data[:, offset_samples:]
@@ -642,6 +653,7 @@ class RawMff(BaseRaw):
                     # Last block to read, skip the last samples
                     block_data = block_data[:, :samples_to_read]
                     samples_read = samples_to_read
+                logger.debug(f'        Keep   {samples_read} samples')
 
                 s_start = current_data_sample
                 s_end = s_start + samples_read
@@ -678,7 +690,7 @@ class RawMff(BaseRaw):
                     if this_block_info is not None:
                         current_block_info = this_block_info
                     fid.seek(current_block_info['block_size'], 1)
-                    current_block = current_block + 1
+                    current_block += 1
 
                 # Start reading samples
                 while samples_to_read > 0:
