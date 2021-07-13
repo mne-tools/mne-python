@@ -2332,10 +2332,8 @@ def concatenate_images(images, axis=0, bgcolor='black', centered=True,
     """
     from matplotlib.colors import colorConverter
     if isinstance(bgcolor, str):
-        if n_channels == 3:
-            bgcolor = colorConverter.to_rgb(bgcolor)
-        else:
-            bgcolor = colorConverter.to_rgba(bgcolor)
+        func_name = 'to_rgb' if n_channels == 3 else 'to_rgba'
+        bgcolor = getattr(colorConverter, func_name)(bgcolor)
     bgcolor = np.asarray(bgcolor) * 255
     funcs = [np.sum, np.max]
     ret_shape = np.asarray([
