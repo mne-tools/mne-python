@@ -1251,8 +1251,9 @@ class Coregistration(object):
     """
 
     def __init__(self, info, subject, subjects_dir):
-        self._parameters = [0., 0., 0., 0., 0., 0., 1., 1., 1.]
-        self._last_parameters = list(self._parameters)
+        self._default_parameters = [0., 0., 0., 0., 0., 0., 1., 1., 1.]
+        self._parameters = list(self._default_parameters)
+        self._last_parameters = list(self._default_parameters)
 
         self._n_scale_params = (0, 1, 3)
         self._n_scale_param = self._n_scale_params[0]
@@ -1619,6 +1620,13 @@ class Coregistration(object):
             Target file path.
         """
         write_trans(fname, Transform('head', 'mri', self._head_mri_t))
+
+    def reset(self):
+        """Reset all the parameters affecting the coregistration."""
+        self._n_scale_param = self._n_scale_params[0]
+        self._grow_hair = 0.
+        self._parameters[:] = list(self._default_parameters)
+        self.omit_hsp_points(np.inf)
 
 
 class _DigSource(object):

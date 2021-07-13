@@ -293,7 +293,7 @@ def test_coregistration(tmpdir):
     info = read_info(fname_raw)
     coreg = Coregistration(info, subject=subject, subjects_dir=subjects_dir)
     assert np.allclose(coreg._last_parameters, coreg._parameters)
-    default_params = list(coreg._parameters)
+    default_params = list(coreg._default_parameters)
     coreg.fit_fiducials()
     assert not np.allclose(coreg._parameters, default_params)
     assert coreg._hsp.points_filter is None
@@ -305,3 +305,5 @@ def test_coregistration(tmpdir):
     assert op.isfile(fname_trans)
     errs_icp = coreg.point_distance()
     assert np.median(errs_icp * 1000) < 4
+    coreg.reset()
+    assert np.allclose(coreg._parameters, default_params)
