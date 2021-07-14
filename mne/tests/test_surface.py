@@ -301,14 +301,14 @@ def test_warp_montage_volume():
         np.array([[50, 50, 51], [38, 39, 39], [50, 50, 50]]))
     # check image_to, too many, just check center
     assert np.linalg.norm(
-        np.array(np.where(_get_img_fdata(image_to) == 1)).mean(axis=1),
-        np.array([147., 151., 160.])) < 5
+        np.array(np.where(_get_img_fdata(image_to) == 1)
+                 ).mean(axis=1) - np.array([147., 151., 160.])) < 5
     assert np.linalg.norm(
-        np.array(np.where(_get_img_fdata(image_to) == 2)).mean(axis=1),
-        np.array([153., 148., 161.])) < 5
+        np.array(np.where(_get_img_fdata(image_to) == 2)
+                 ).mean(axis=1) - np.array([153., 148., 161.])) < 5
     assert np.linalg.norm(
-        np.array(np.where(_get_img_fdata(image_to) == 3)).mean(axis=1),
-        np.array([159., 145., 160.])) < 5
+        np.array(np.where(_get_img_fdata(image_to) == 3)
+                 ).mean(axis=1) - np.array([159., 145., 160.])) < 5
 
     # test inputs
     with pytest.raises(ValueError, match='`thresh` must be between 0 and 1'):
