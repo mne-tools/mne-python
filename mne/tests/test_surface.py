@@ -300,15 +300,15 @@ def test_warp_montage_volume():
         np.array(np.where(_get_img_fdata(image_from) == 3)),
         np.array([[50, 50, 51], [38, 39, 39], [50, 50, 50]]))
     # check image_to, too many, just check center
-    np.testing.assert_almost_equal(
-        np.array(np.where(_get_img_fdata(image_to) == 1)).mean(axis=1) / 100,
-        np.array([144.8, 158.2, 139.3]) / 100, decimal=1)
-    np.testing.assert_almost_equal(
-        np.array(np.where(_get_img_fdata(image_to) == 2)).mean(axis=1) / 100,
-        np.array([150.4, 156.4, 139.4]) / 100, decimal=1)
-    np.testing.assert_almost_equal(
-        np.array(np.where(_get_img_fdata(image_to) == 3)).mean(axis=1) / 100,
-        np.array([155.6, 154.3, 138.3]) / 100, decimal=1)
+    assert np.linalg.norm(
+        np.array(np.where(_get_img_fdata(image_to) == 1)).mean(axis=1),
+        np.array([147., 151., 160.])) < 5
+    assert np.linalg.norm(
+        np.array(np.where(_get_img_fdata(image_to) == 2)).mean(axis=1),
+        np.array([153., 148., 161.])) < 5
+    assert np.linalg.norm(
+        np.array(np.where(_get_img_fdata(image_to) == 3)).mean(axis=1),
+        np.array([159., 145., 160.])) < 5
 
     # test inputs
     with pytest.raises(ValueError, match='`thresh` must be between 0 and 1'):
