@@ -232,22 +232,21 @@ def _decimate_points(pts, res=10):
 
     # for each voxel, select one point
     X, Y, Z = pts.T
-    out = np.empty((np.sum(H > 0), 3))
-    for i, (xbin, ybin, zbin) in enumerate(zip(*np.nonzero(H))):
-        x = xax[xbin]
-        y = yax[ybin]
-        z = zax[zbin]
-        xi = np.logical_and(X >= x, X < x + res)
-        yi = np.logical_and(Y >= y, Y < y + res)
-        zi = np.logical_and(Z >= z, Z < z + res)
-        idx = np.logical_and(zi, np.logical_and(yi, xi))
-        ipts = pts[idx]
-
-        mid = np.array([x, y, z]) + res / 2.
-        dist = cdist(ipts, [mid])
-        i_min = np.argmin(dist)
-        ipt = ipts[i_min]
-        out[i] = ipt
+    xbins, ybins, zbins = np.nonzero(H)
+    x = xax[xbins]
+    y = yax[ybins]
+    z = zax[zbins]
+    xi = (X[None] >= x[:, None]) * (X[None] < x[:, None] + res)
+    yi = (Y[None] >= y[:, None]) * (Y[None] < y[:, None] + res)
+    zi = (Z[None] >= z[:, None]) * (Z[None] < z[:, None] + res)
+    idx = xi * yi * zi
+    ipts = [pts[i] for i in idx]
+    ipts = list(filter(len, ipts))
+    mids = np.c_[x, y, z] + res / 2.
+    out = np.empty((len(ipts), 3))
+    for i, ipt in enumerate(ipts):
+        i_min = np.argmin(cdist(ipt, mids[[i]]))
+        out[i] = ipt[i_min]
 
     return out
 
