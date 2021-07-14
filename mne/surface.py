@@ -1863,8 +1863,9 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
     image_from = np.zeros(image.shape, dtype=int)
     for i, ch_coord in enumerate(ch_coords):
         # this looks up to a voxel away, it may be marked imperfectly
-        volume = _voxel_neighbors(ch_coord, image_data, thresh,
-                                  max_peak_dist, voxels_max)
+        volume = _voxel_neighbors(ch_coord, image_data, thresh=thresh,
+                                  max_peak_dist=max_peak_dist,
+                                  voxels_max=voxels_max)
         for voxel in volume:
             if image_from[voxel] != 0:
                 # some voxels ambiguous because the contacts are bridged on
