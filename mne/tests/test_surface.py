@@ -20,8 +20,8 @@ from mne.surface import (_compute_nearest, _tessellate_sphere, fast_cross_3d,
                          _normal_orth, _read_patch, marching_cubes,
                          _voxel_neighbors, warp_montage_volume)
 from mne.transforms import _get_trans, compute_volume_registration
-from mne.utils import (requires_vtk, catch_logging,
-                       object_diff, requires_freesurfer, requires_nibabel)
+from mne.utils import (requires_vtk, catch_logging, object_diff,
+                       requires_freesurfer, requires_nibabel, requires_dipy)
 
 data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
@@ -248,6 +248,7 @@ def test_voxel_neighbors():
 
 
 @requires_nibabel()
+@requires_dipy()
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_warp_montage_volume():
