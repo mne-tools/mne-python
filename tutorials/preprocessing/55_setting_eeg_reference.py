@@ -13,6 +13,10 @@ this tutorial deals specifically with EEG, we'll also restrict the dataset to
 just a few EEG channels so the plots are easier to see:
 """
 
+# Authors: MNE-Developers
+#
+# License: BSD (3-clause)
+
 import os
 import mne
 

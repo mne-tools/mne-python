@@ -10,6 +10,10 @@ For a comparison of fits between MNE-C and mne-python, see
 `this gist <https://gist.github.com/larsoner/ca55f791200fe1dc3dd2>`__.
 """
 
+# Authors: MNE-Developers
+#
+# License: BSD (3-clause)
+
 from os import path as op
 import numpy as np
 import matplotlib.pyplot as plt

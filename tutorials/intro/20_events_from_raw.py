@@ -26,6 +26,10 @@ We'll begin by loading the Python modules we need, and loading the same
 to just 60 seconds before loading it into RAM:
 """
 
+# Authors: MNE-Developers
+#
+# License: BSD (3-clause)
+
 import os
 import numpy as np
 import mne

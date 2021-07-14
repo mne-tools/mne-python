@@ -15,6 +15,10 @@ tutorials address each of these topics in greater detail.
 We begin by importing the necessary Python modules:
 """
 
+# Authors: MNE-Developers
+#
+# License: BSD (3-clause)
+
 import os
 import numpy as np
 import mne

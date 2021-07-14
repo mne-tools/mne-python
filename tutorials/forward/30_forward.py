@@ -10,6 +10,10 @@ For more extensive details and presentation of the general
 concepts for forward modeling, see :ref:`ch_forward`.
 """
 
+# Authors: MNE-Developers
+#
+# License: BSD (3-clause)
+
 import os.path as op
 import mne
 from mne.datasets import sample

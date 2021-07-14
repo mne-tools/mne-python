@@ -41,6 +41,10 @@ We will also convert the `~mne.Annotations` contained in this dataset to events
 by calling `mne.events_from_annotations`.
 """
 
+# Authors: MNE-Developers
+#
+# License: BSD (3-clause)
+
 from pathlib import Path
 import matplotlib.pyplot as plt
 import mne

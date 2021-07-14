@@ -245,3 +245,7 @@ When using locations of fiducial points, the digitization data are converted to
 the MEG head coordinate system employed in the MNE software, see
 :ref:`coordinate_systems`.
 """  # noqa:E501
+
+# Authors: MNE-Developers
+#
+# License: BSD (3-clause)

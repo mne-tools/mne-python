@@ -12,6 +12,10 @@ topographic representation of the response.
 Here we will work with the :ref:`fNIRS motor data <fnirs-motor-dataset>`.
 """
 
+# Authors: MNE-Developers
+#
+# License: BSD (3-clause)
+
 import os
 import numpy as np
 import matplotlib.pyplot as plt

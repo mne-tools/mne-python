@@ -14,6 +14,10 @@ object from (possibly simulated) data in a :class:`NumPy array
 As usual we'll start by importing the modules we need:
 """
 
+# Authors: MNE-Developers
+#
+# License: BSD (3-clause)
+
 import os
 import mne
 

@@ -13,6 +13,10 @@ As usual we'll start by importing the modules we need, loading some
 object to just 60 seconds before loading it into RAM to save memory:
 """
 
+# Authors: MNE-Developers
+#
+# License: BSD (3-clause)
+
 import os
 import numpy as np
 import mne

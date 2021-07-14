@@ -12,6 +12,10 @@ We begin as always by importing the necessary Python modules and loading some
 :ref:`example data <sample-dataset>`:
 """
 
+# Authors: MNE-Developers
+#
+# License: BSD (3-clause)
+
 import os
 import numpy as np
 import mne

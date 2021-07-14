@@ -136,6 +136,10 @@ specification of sensor positions varies between each vendor). You will likely
 have to adapt this depending on the system from which your CSV originated.
 """  # noqa:E501
 
+# Authors: MNE-Developers
+#
+# License: BSD (3-clause)
+
 import numpy as np
 import pandas as pd
 import mne

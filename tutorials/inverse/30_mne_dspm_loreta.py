@@ -8,6 +8,10 @@ The aim of this tutorial is to teach you how to compute and apply a linear
 minimum-norm inverse method on evoked/raw/epochs data.
 """
 
+# Authors: MNE-Developers
+#
+# License: BSD (3-clause)
+
 import os.path as op
 
 import numpy as np

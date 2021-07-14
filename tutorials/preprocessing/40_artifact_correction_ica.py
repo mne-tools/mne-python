@@ -18,6 +18,10 @@ repeatedly typing ``mne.preprocessing`` we'll directly import a few functions
 and classes from that submodule:
 """
 
+# Authors: MNE-Developers
+#
+# License: BSD (3-clause)
+
 import os
 import mne
 from mne.preprocessing import (ICA, create_eog_epochs, create_ecg_epochs,

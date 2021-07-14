@@ -295,3 +295,7 @@ libraries such as `NEO <https://github.com/NeuralEnsemble/python-neo>`__ in
 combination with these functions abundant electrophysiological file formats can
 be easily loaded into MNE.
 """  # noqa:E501
+
+# Authors: MNE-Developers
+#
+# License: BSD (3-clause)

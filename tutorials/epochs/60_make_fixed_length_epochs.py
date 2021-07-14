@@ -16,6 +16,10 @@ create 30 second epochs that allow us to perform non-event-related analyses of
 the signal.
 """
 
+# Authors: MNE-Developers
+#
+# License: BSD (3-clause)
+
 import os
 import numpy as np
 import matplotlib.pyplot as plt

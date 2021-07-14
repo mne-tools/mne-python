@@ -10,6 +10,10 @@ information on creating MNE-Python's data objects from NumPy arrays, see
 :ref:`tut-creating-data-structures`.
 """
 
+# Authors: MNE-Developers
+#
+# License: BSD (3-clause)
+
 import neo
 import mne
 

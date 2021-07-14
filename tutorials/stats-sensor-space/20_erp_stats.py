@@ -13,6 +13,10 @@ The underlying data comes from :footcite:`DufauEtAl2015`; we contrast long vs.
 short words. TFCE is described in :footcite:`SmithNichols2009`.
 """
 
+# Authors: MNE-Developers
+#
+# License: BSD (3-clause)
+
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import ttest_ind

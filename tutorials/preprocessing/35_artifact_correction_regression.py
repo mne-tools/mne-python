@@ -34,6 +34,10 @@ Note that there are other corrections that are useful for this dataset that we
 will not apply here (see :ref:`tut-brainstorm-auditory` for more information).
 """
 
+# Authors: MNE-Developers
+#
+# License: BSD (3-clause)
+
 import os.path as op
 import numpy as np
 import mne

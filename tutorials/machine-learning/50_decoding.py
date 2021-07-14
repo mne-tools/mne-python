@@ -19,6 +19,10 @@ the same name as the class but in small caps instead of camel cases.
 
 Let's start by loading data for a simple two-class problem:
 """
+
+# Authors: MNE-Developers
+#
+# License: BSD (3-clause)
 # sphinx_gallery_thumbnail_number = 6
 
 import numpy as np

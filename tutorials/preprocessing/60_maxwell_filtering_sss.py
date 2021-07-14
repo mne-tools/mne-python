@@ -11,6 +11,10 @@ As usual we'll start by importing the modules we need, loading some
 :ref:`example data <sample-dataset>`, and cropping it to save on memory:
 """
 
+# Authors: MNE-Developers
+#
+# License: BSD (3-clause)
+
 import os
 import matplotlib.pyplot as plt
 import seaborn as sns
