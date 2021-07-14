@@ -16,15 +16,15 @@ from .baseline import rescale
 from .cov import Covariance
 from .evoked import _get_peak
 from .filter import resample
+from ._freesurfer import (_import_nibabel, _get_mri_info_data,
+                          _get_atlas_values, read_freesurfer_lut)
 from .io.constants import FIFF
 from .io.pick import pick_types
 from .surface import (read_surface, _get_ico_surface, mesh_edges,
                       _project_onto_surface)
 from .source_space import (_ensure_src, _get_morph_src_reordering,
                            _ensure_src_subject, SourceSpaces, _get_src_nn,
-                           _import_nibabel, _get_mri_info_data,
-                           _get_atlas_values, _check_volume_labels,
-                           read_freesurfer_lut)
+                           _check_volume_labels)
 from .transforms import _get_trans, apply_trans
 from .utils import (get_subjects_dir, _check_subject, logger, verbose, _pl,
                     _time_mask, warn, copy_function_doc_to_method_doc,

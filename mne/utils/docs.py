@@ -98,13 +98,51 @@ saturated data.
 docdict['hitachi_notes'] = """\
 Hitachi does not encode their channel positions, so you will need to
 create a suitable mapping using :func:`mne.channels.make_standard_montage`
-or :func:`mne.channels.make_dig_montage` like:
+or :func:`mne.channels.make_dig_montage` like (for a 3x5/ETG-7000 example):
 
 >>> mon = mne.channels.make_standard_montage('standard_1020')
 >>> need = 'S1 D1 S2 D2 S3 D3 S4 D4 S5 D5 S6 D6 S7 D7 S8'.split()
 >>> have = 'F3 FC3 C3 CP3 P3 F5 FC5 C5 CP5 P5 F7 FT7 T7 TP7 P7'.split()
 >>> mon.rename_channels(dict(zip(have, need)))
 >>> raw.set_montage(mon)  # doctest: +SKIP
+
+The 3x3 (ETG-100) is laid out as two separate layouts::
+
+    S1--D1--S2    S6--D6--S7
+    |   |   |     |   |   |
+    D2--S3--D3    D7--S8--D8
+    |   |   |     |   |   |
+    S4--D4--S5    S9--D9--S10
+
+The 3x5 (ETG-7000) is laid out as::
+
+    S1--D1--S2--D2--S3
+    |   |   |   |   |
+    D3--S4--D4--S5--D5
+    |   |   |   |   |
+    S6--D6--S7--D7--S8
+
+The 4x4 (ETG-7000) is laid out as::
+
+    S1--D1--S2--D2
+    |   |   |   |
+    D3--S3--D4--S4
+    |   |   |   |
+    S5--D5--S6--D6
+    |   |   |   |
+    D7--S7--D8--S8
+
+The 3x11 (ETG-4000) is laid out as::
+
+    S1--D1--S2--D2--S3--D3--S4--D4--S5--D5--S6
+    |   |   |   |   |   |   |   |   |   |   |
+    D6--S7--D7--S8--D8--S9--D9--S10-D10-S11-D11
+    |   |   |   |   |   |   |   |   |   |   |
+    S12-D12-S13-D13-S14-D14-S16-D16-S17-D17-S18
+
+For each layout, the channels come from the (left-to-right) neighboring
+source-detector pairs in the first row, then between the first and second row,
+then the second row, etc.
 
 .. versionadded:: 0.24
 """

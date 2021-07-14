@@ -33,8 +33,9 @@ from .._3d import _process_clim, _handle_time, _check_views
 
 from ...externals.decorator import decorator
 from ...defaults import _handle_default
+from ..._freesurfer import vertex_to_mni, read_talxfm
 from ...surface import mesh_edges
-from ...source_space import SourceSpaces, vertex_to_mni, read_talxfm
+from ...source_space import SourceSpaces
 from ...transforms import apply_trans, invert_transform
 from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
                       use_log_level, Bunch, _ReuseCycle, warn,
@@ -2646,6 +2647,7 @@ class Brain(object):
         screenshot : array
             Image pixel values.
         """
+        n_channels = 3 if mode == 'rgb' else 4
         img = self._renderer.screenshot(mode)
         logger.debug(f'Got screenshot of size {img.shape}')
         if time_viewer and self.time_viewer and \
@@ -2677,11 +2679,12 @@ class Brain(object):
                 fig.savefig(output, dpi=dpi, format='png',
                             facecolor=self._bg_color, edgecolor='none')
                 output.seek(0)
-                trace_img = imread(output, format='png')[:, :, :3]
+                trace_img = imread(output, format='png')[:, :, :n_channels]
                 trace_img = np.clip(
                     np.round(trace_img * 255), 0, 255).astype(np.uint8)
-            bgcolor = np.array(self._brain_color[:3]) / 255
-            img = concatenate_images([img, trace_img], bgcolor=bgcolor)
+            bgcolor = np.array(self._brain_color[:n_channels]) / 255
+            img = concatenate_images([img, trace_img], bgcolor=bgcolor,
+                                     n_channels=n_channels)
         return img
 
     @contextlib.contextmanager

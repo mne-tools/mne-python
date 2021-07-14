@@ -37,6 +37,7 @@ import os.path as op
 
 import numpy as np
 import pandas as pd
+import nibabel
 
 import mne
 from mne.datasets import fetch_fsaverage
@@ -71,8 +72,10 @@ ch_coords = elec_df[['R', 'A', 'S']].to_numpy(dtype=float)
 ras_mni_t = mne.transforms.Transform(
     'ras', 'mni_tal', mne.transforms._read_fs_xfm(
         misc_path + '/seeg/sample_seeg_talairach.xfm')[0])
-mri_ras_t = mne.source_space._read_mri_info(
-    misc_path + '/seeg/sample_seeg_T1.mgz', units='mm')[2]
+t1 = nibabel.load(misc_path + '/seeg/sample_seeg_T1.mgz')
+# the affine is vox2ras, and ras_tkr is what we call MRI (but in mm), so we do:
+mri_ras_t = mne.transforms.Transform(
+    'mri', 'ras', np.linalg.inv(t1.header.get_vox2ras_tkr()) @ t1.affine)
 mri_mni_t = mne.transforms.combine_transforms(
     mri_ras_t, ras_mni_t, 'mri', 'mni_tal')
 ch_coords = mne.transforms.apply_trans(mri_mni_t, ch_coords)

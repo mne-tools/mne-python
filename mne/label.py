@@ -13,13 +13,13 @@ import re
 
 import numpy as np
 
+from ._freesurfer import read_freesurfer_lut, _import_nibabel
 from .morph_map import read_morph_map
 from .parallel import parallel_func, check_n_jobs
 from .source_estimate import (SourceEstimate, VolSourceEstimate,
                               _center_of_mass, extract_label_time_course,
                               spatial_src_adjacency)
-from .source_space import (add_source_space_distances, SourceSpaces,
-                           read_freesurfer_lut, _import_nibabel)
+from .source_space import add_source_space_distances, SourceSpaces
 from .stats.cluster_level import _find_clusters, _get_components
 from .surface import read_surface, fast_cross_3d, mesh_edges, mesh_dist
 from .transforms import apply_trans

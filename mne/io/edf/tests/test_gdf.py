@@ -132,3 +132,8 @@ def test_gdf_exclude_channels():
     raw = read_raw_gdf(gdf2_path + '.gdf', exclude=('Fp1', 'O1'))
     assert 'Fp1' not in raw.ch_names
     assert 'O1' not in raw.ch_names
+    raw = read_raw_gdf(gdf2_path + '.gdf', exclude=".+z$")
+    assert 'AFz' not in raw.ch_names
+    assert 'Cz' not in raw.ch_names
+    assert 'Pz' not in raw.ch_names
+    assert 'Oz' not in raw.ch_names
