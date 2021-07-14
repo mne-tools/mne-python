@@ -22,7 +22,6 @@ from .channels.channels import _get_meg_system
 from .fixes import (_serialize_volume_info, _get_read_geometry, jit,
                     prange, bincount, _get_img_fdata)
 from .io.constants import FIFF
-from .io._digitization import _get_dig_eeg
 from .io.pick import pick_types
 from .parallel import parallel_func
 from .transforms import (transform_surface_to, _pol_to_cart, _cart_to_sph,
@@ -1844,13 +1843,14 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
     image, fs_t1 = _get_surface_RAS_volumes(
         base_image, subject_from, subjects_dir)
 
-    # check montage
+    # get montage channel coordinates
     ch_dict = montage.get_positions()
     if ch_dict['coord_frame'] != 'mri':
         raise RuntimeError('Coordinate frame not supported, expected '
                            '"mri", got ' + str(ch_dict['coord_frame']))
-    dig_ch_names = list(ch_dict['ch_pos'].keys())
     ch_coords = np.array(list(ch_dict['ch_pos'].values()))
+
+    # convert to freesurfer voxel space
     ch_coords = _ch_coords_to_vox(ch_coords, fs_t1)
 
     # take channel coordinates and use the image to transform them
@@ -1903,9 +1903,12 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
     montage_warped = montage.copy()
 
     # modify montage to be returned
-    for idx, dig_point in enumerate(_get_dig_eeg(montage.dig)):
-        assert dig_point['ident'] == idx + 1  # 1 indexed
-        dig_point['r'] = ch_coords[idx]
+    idx = 0
+    for dig_point in montage_warped.dig:
+        if dig_point['kind'] == FIFF.FIFFV_POINT_EEG:
+            assert dig_point['ident'] == idx + 1  # 1 indexed
+            dig_point['r'] = ch_coords[idx]
+            idx += 1
     return montage_warped, image_from, image_to
 
 

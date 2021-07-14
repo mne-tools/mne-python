@@ -263,8 +263,9 @@ def _get_data_as_dict_from_dig(dig):
                 dig_ch_pos_location.append(d['r'])
 
     dig_coord_frames = set([d['coord_frame'] for d in dig])
-    assert len(dig_coord_frames) == 1, \
-        'Only single coordinate frame in dig is supported'  # XXX
+    if len(dig_coord_frames) != 1:
+        raise RuntimeError('Only single coordinate frame in dig is supported, '
+                           f'got {dig_coord_frames}')
 
     return Bunch(
         nasion=fids.get('nasion', None),

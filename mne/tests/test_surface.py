@@ -250,7 +250,6 @@ def test_voxel_neighbors():
 @requires_nibabel()
 @pytest.mark.slowtest
 @testing.requires_testing_data
-@profile
 def test_warp_montage_volume():
     """Test warping an montage based on intracranial electrode positions."""
     import nibabel as nib
@@ -261,7 +260,9 @@ def test_warp_montage_volume():
     template_brain = nib.load(
         op.join(subjects_dir, 'fsaverage', 'mri', 'brain.mgz'))
     reg_affine, sdr_morph = compute_volume_registration(
-        subject_brain, template_brain, zooms=5, verbose=True)
+        subject_brain, template_brain, zooms=5,
+        niter=dict(affine=[10, 10, 5], sdr=[3, 3, 3]),
+        pipeline=('affine', 'sdr'))
     # make fake image with three coordinates
     CT_data = np.zeros(subject_brain.shape)
     # make electrode contact hyperintensities
@@ -283,14 +284,11 @@ def test_warp_montage_volume():
     # checked with nilearn plot from `tut-ieeg-localize`
     # check montage in surface RAS
     np.testing.assert_almost_equal(
-        montage_warped.dig[0]['r'],
-        np.array([-0.27778788, 0.24251515, -0.35693939]))
+        montage_warped.dig[0]['r'], np.array([-0.31, 0.29, -0.35]), decimal=1)
     np.testing.assert_almost_equal(
-        montage_warped.dig[1]['r'],
-        np.array([-0.30033333, 0.24785714, -0.35014286]))
+        montage_warped.dig[1]['r'], np.array([-0.32, 0.29, -0.34]), decimal=1)
     np.testing.assert_almost_equal(
-        montage_warped.dig[2]['r'],
-        np.array([-0.32261947, 0.25295575, -0.34614159]))
+        montage_warped.dig[2]['r'], np.array([-0.32, 0.25, -0.35]), decimal=1)
     # check image_from
     np.testing.assert_array_equal(
         np.array(np.where(_get_img_fdata(image_from) == 1)),
@@ -301,15 +299,21 @@ def test_warp_montage_volume():
     np.testing.assert_array_equal(
         np.array(np.where(_get_img_fdata(image_from) == 3)),
         np.array([[50, 50, 51], [38, 39, 39], [50, 50, 50]]))
-    # check image_to, too many, just check center voxel
-    assert (136, 162, 124) in [tuple(coord) for coord in np.array(
-        np.where(_get_img_fdata(image_to) == 1)).T]
-    assert (143, 160, 126) in [tuple(coord) for coord in np.array(
-        np.where(_get_img_fdata(image_to) == 2)).T]
-    assert (151, 158, 127) in [tuple(coord) for coord in np.array(
-        np.where(_get_img_fdata(image_to) == 3)).T]
+    # check image_to, too many, just check center
+    np.testing.assert_almost_equal(
+        np.array(np.where(_get_img_fdata(image_to) == 1)).mean(axis=1) / 100,
+        np.array([144.8, 158.2, 139.3]) / 100, decimal=1)
+    np.testing.assert_almost_equal(
+        np.array(np.where(_get_img_fdata(image_to) == 2)).mean(axis=1) / 100,
+        np.array([150.4, 156.4, 139.4]) / 100, decimal=1)
+    np.testing.assert_almost_equal(
+        np.array(np.where(_get_img_fdata(image_to) == 3)).mean(axis=1) / 100,
+        np.array([155.6, 154.3, 138.3]) / 100, decimal=1)
 
     # test inputs
+    with pytest.raises(ValueError, match='`thresh` must be between 0 and 1'):
+        warp_montage_volume(
+            montage, CT, reg_affine, sdr_morph, 'sample', thresh=11.)
     with pytest.raises(ValueError, match='subject folder is incorrect'):
         warp_montage_volume(
             montage, CT, reg_affine, sdr_morph, subject_from='foo')
@@ -317,13 +321,10 @@ def test_warp_montage_volume():
     with pytest.raises(RuntimeError, match='not aligned to Freesurfer'):
         warp_montage_volume(montage, CT_unaligned, reg_affine,
                             sdr_morph, 'sample', subjects_dir=subjects_dir)
-    empty_montage = make_dig_montage(dict(), coord_frame='mri')
-    with pytest.raises(RuntimeError, match='No electrophysiolgy channels'):
-        warp_montage_volume(empty_montage, CT, reg_affine,
-                            sdr_morph, 'sample', subjects_dir=subjects_dir)
     bad_montage = make_dig_montage(ch_pos, coord_frame='mri')
     bad_montage.dig[0]['coord_frame'] = 99
-    with pytest.raises(RuntimeError, match='only single coordinate frame'):
+    with pytest.raises(RuntimeError, match='Only single coordinate frame in '
+                                           'dig is supported'):
         warp_montage_volume(bad_montage, CT, reg_affine,
                             sdr_morph, 'sample', subjects_dir=subjects_dir)
     wrong_montage = make_dig_montage(ch_pos, coord_frame='head')

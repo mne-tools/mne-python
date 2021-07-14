@@ -1574,7 +1574,7 @@ def _validate_pipeline(pipeline):
         _check_option(name, step, _ORDERED_STEPS)
     ordered_pipeline = tuple(sorted(
         pipeline, key=lambda x: _ORDERED_STEPS.index(x)))
-    if pipeline != ordered_pipeline:
+    if tuple(pipeline) != ordered_pipeline:
         raise ValueError(
             f'Steps in pipeline are out of order, expected {ordered_pipeline} '
             f'but got {pipeline} instead')
