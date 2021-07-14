@@ -250,6 +250,7 @@ def test_voxel_neighbors():
 @requires_nibabel()
 @pytest.mark.slowtest
 @testing.requires_testing_data
+@profile
 def test_warp_montage_volume():
     """Test warping an montage based on intracranial electrode positions."""
     import nibabel as nib
@@ -312,28 +313,28 @@ def test_warp_montage_volume():
     with pytest.raises(ValueError, match='subject folder is incorrect'):
         warp_montage_volume(
             montage, CT, reg_affine, sdr_morph, subject_from='foo')
+    CT_unaligned = nib.Nifti1Image(CT_data, subject_brain.affine)
     with pytest.raises(RuntimeError, match='not aligned to Freesurfer'):
-        CT_unaligned = nib.Nifti1Image(CT_data, subject_brain.affine)
         warp_montage_volume(montage, CT_unaligned, reg_affine,
                             sdr_morph, 'sample', subjects_dir=subjects_dir)
+    empty_montage = make_dig_montage(dict(), coord_frame='mri')
     with pytest.raises(RuntimeError, match='No electrophysiolgy channels'):
-        empty_montage = make_dig_montage(dict(), coord_frame='mri')
         warp_montage_volume(empty_montage, CT, reg_affine,
                             sdr_morph, 'sample', subjects_dir=subjects_dir)
-    with pytest.raises(RuntimeError, match='Inconsistent dig montage'):
-        bad_montage = make_dig_montage(ch_pos, coord_frame='mri')
-        bad_montage.dig[0]['coord_frame'] = 99
+    bad_montage = make_dig_montage(ch_pos, coord_frame='mri')
+    bad_montage.dig[0]['coord_frame'] = 99
+    with pytest.raises(RuntimeError, match='only single coordinate frame'):
         warp_montage_volume(bad_montage, CT, reg_affine,
                             sdr_morph, 'sample', subjects_dir=subjects_dir)
+    wrong_montage = make_dig_montage(ch_pos, coord_frame='head')
     with pytest.raises(RuntimeError, match='Coordinate frame not supported'):
-        wrong_montage = make_dig_montage(ch_pos, coord_frame='head')
         warp_montage_volume(wrong_montage, CT, reg_affine,
                             sdr_morph, 'sample', subjects_dir=subjects_dir)
 
     # check channel not warped
+    ch_pos_doubled = ch_pos.copy()
+    ch_pos_doubled.update(zip(['4', '5', '6'], ch_coords / 1000))
+    doubled_montage = make_dig_montage(ch_pos_doubled, coord_frame='mri')
     with pytest.warns(RuntimeWarning, match='not assigned'):
-        ch_pos_doubled = ch_pos.copy()
-        ch_pos_doubled.update(zip(['4', '5', '6'], ch_coords / 1000))
-        doubled_montage = make_dig_montage(ch_pos_doubled, coord_frame='mri')
         warp_montage_volume(doubled_montage, CT, reg_affine,
                             sdr_morph, 'sample', subjects_dir=subjects_dir)

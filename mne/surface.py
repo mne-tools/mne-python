@@ -22,6 +22,7 @@ from .channels.channels import _get_meg_system
 from .fixes import (_serialize_volume_info, _get_read_geometry, jit,
                     prange, bincount, _get_img_fdata)
 from .io.constants import FIFF
+from .io._digitization import _get_dig_eeg
 from .io.pick import pick_types
 from .parallel import parallel_func
 from .transforms import (transform_surface_to, _pol_to_cart, _cart_to_sph,
@@ -1735,29 +1736,6 @@ def _get_surface_RAS_volumes(base_image, subject_from, subjects_dir):
     return base_image, fs_t1
 
 
-def _check_dig(dig):
-    """Check if dig is in the coordinate frame."""
-    use_idx = [i for i, d in enumerate(dig)
-               if d['kind'] == FIFF.FIFFV_POINT_EEG]
-    dig = [dig[idx] for idx in use_idx]
-    if not dig:
-        raise RuntimeError('No electrophysiolgy channels found. '
-                           'Accepted types are "eeg", "ecog", "seeg" '
-                           'and "dbs". Make sure the channel types are '
-                           'set properly, see `mne.io.Raw.set_channel_types`')
-    ch_coords = np.array([ch['r'] for ch in dig])
-    coord_frame = dig[0]['coord_frame']
-    for d in dig[1:]:
-        if d['coord_frame'] != coord_frame:
-            raise RuntimeError(
-                'Inconsistent dig montage coordinate frame in '
-                f'``info``, got {coord_frame} and ' + str(d['coord_frame']))
-    if coord_frame != FIFF.FIFFV_COORD_MRI:
-        raise RuntimeError('Coordinate frame not supported, expected '
-                           f'"mri", got {coord_frame}')
-    return ch_coords, use_idx
-
-
 def _ch_coords_to_vox(ch_coords, fs_t1):
     """Convert channel coordinates from surface RAS to voxel space."""
     ch_coords = apply_trans(
@@ -1865,7 +1843,14 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
     # load image and make sure it's in surface RAS
     image, fs_t1 = _get_surface_RAS_volumes(
         base_image, subject_from, subjects_dir)
-    ch_coords, use_idx = _check_dig(montage.dig)
+
+    # check montage
+    ch_dict = montage.get_positions()
+    if ch_dict['coord_frame'] != 'mri':
+        raise RuntimeError('Coordinate frame not supported, expected '
+                           '"mri", got ' + str(ch_dict['coord_frame']))
+    dig_ch_names = list(ch_dict['ch_pos'].keys())
+    ch_coords = np.array(list(ch_dict['ch_pos'].values()))
     ch_coords = _ch_coords_to_vox(ch_coords, fs_t1)
 
     # take channel coordinates and use the image to transform them
@@ -1911,13 +1896,16 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
         ch_coord[:] = np.array(
             np.where(warped_data == val), float).mean(axis=1)
 
+    # convert back to surface RAS
+    ch_coords = _ch_coords_to_surface_RAS(ch_coords, fs_t1)
+
     # copy before modifying
     montage_warped = montage.copy()
 
-    # assign to the montage
-    ch_coords = _ch_coords_to_surface_RAS(ch_coords, fs_t1)
-    for idx, ch_coord in zip(use_idx, ch_coords):
-        montage_warped.dig[idx]['r'] = ch_coord
+    # modify montage to be returned
+    for idx, dig_point in enumerate(_get_dig_eeg(montage.dig)):
+        assert dig_point['ident'] == idx + 1  # 1 indexed
+        dig_point['r'] = ch_coords[idx]
     return montage_warped, image_from, image_to
 
 
