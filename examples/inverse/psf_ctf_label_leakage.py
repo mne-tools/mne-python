@@ -29,7 +29,7 @@ from mne.viz import circular_layout, plot_connectivity_circle
 
 print(__doc__)
 
-###############################################################################
+# %% ##########################################################################
 # Load forward solution and inverse operator
 # ------------------------------------------
 #
@@ -52,7 +52,7 @@ rm_mne = make_inverse_resolution_matrix(forward, inverse_operator,
 src = inverse_operator['src']
 del forward, inverse_operator  # save memory
 
-###############################################################################
+# %% ##########################################################################
 # Read and organise labels for cortical parcellation
 # --------------------------------------------------
 #
@@ -78,7 +78,7 @@ lh_labels = [label for (yp, label) in sorted(zip(label_ypos, lh_labels))]
 # For the right hemi
 rh_labels = [label[:-2] + 'rh' for label in lh_labels]
 
-###############################################################################
+# %% ##########################################################################
 # Compute point-spread function summaries (PCA) for all labels
 # ------------------------------------------------------------
 #
@@ -95,7 +95,7 @@ stcs_psf_mne, pca_vars_mne = get_point_spread(
 n_verts = rm_mne.shape[0]
 del rm_mne
 
-###############################################################################
+# %% ##########################################################################
 # We can show the explained variances of principal components per label. Note
 # how they differ across labels, most likely due to their varying spatial
 # extent.
@@ -104,7 +104,7 @@ with np.printoptions(precision=1):
     for [name, var] in zip(label_names, pca_vars_mne):
         print(f'{name}: {var.sum():.1f}% {var}')
 
-###############################################################################
+# %% ##########################################################################
 # The output shows the summed variance explained by the first five principal
 # components as well as the explained variances of the individual components.
 #
@@ -134,7 +134,7 @@ plot_connectivity_circle(leakage_mne, label_names, n_lines=200,
                          node_angles=node_angles, node_colors=label_colors,
                          title='MNE Leakage', fig=fig)
 
-###############################################################################
+# %% ##########################################################################
 # Most leakage occurs for neighbouring regions, but also for deeper regions
 # across hemispheres.
 #
@@ -164,7 +164,7 @@ stc_rh = stcs_psf_mne[idx[1]]
 # Maximum for scaling across plots
 max_val = np.max([stc_lh.data, stc_rh.data])
 
-###############################################################################
+# %% ##########################################################################
 # Point-spread function for the lateral occipital label in the left hemisphere
 
 brain_lh = stc_lh.plot(subjects_dir=subjects_dir, subject='sample',
@@ -173,7 +173,7 @@ brain_lh = stc_lh.plot(subjects_dir=subjects_dir, subject='sample',
                                  pos_lims=(0, max_val / 2., max_val)))
 brain_lh.add_text(0.1, 0.9, label_names[idx[0]], 'title', font_size=16)
 
-###############################################################################
+# %% ##########################################################################
 # and in the right hemisphere.
 
 brain_rh = stc_rh.plot(subjects_dir=subjects_dir, subject='sample',
@@ -182,6 +182,6 @@ brain_rh = stc_rh.plot(subjects_dir=subjects_dir, subject='sample',
                                  pos_lims=(0, max_val / 2., max_val)))
 brain_rh.add_text(0.1, 0.9, label_names[idx[1]], 'title', font_size=16)
 
-###############################################################################
+# %% ##########################################################################
 # Both summary PSFs are confined to their respective hemispheres, indicating
 # that there is indeed low leakage between these two regions.

@@ -15,7 +15,7 @@ customize them for a more publication-ready look.
 #
 # License: BSD (3-clause)
 
-###############################################################################
+# %% ##########################################################################
 # Imports
 # -------
 # We are importing everything we need for this example:
@@ -29,7 +29,7 @@ from mpl_toolkits.axes_grid1 import (make_axes_locatable, ImageGrid,
 
 import mne
 
-###############################################################################
+# %% ##########################################################################
 # Evoked plot with brain activation
 # ---------------------------------
 #
@@ -48,7 +48,7 @@ max_t = evoked.get_peak()[1]
 
 stc = mne.read_source_estimate(fname_stc)
 
-###############################################################################
+# %% ##########################################################################
 # During interactive plotting, we might see figures like this:
 
 evoked.plot()
@@ -57,7 +57,7 @@ stc.plot(views='lat', hemi='split', size=(800, 400), subject='sample',
          subjects_dir=subjects_dir, initial_time=max_t,
          time_viewer=False, show_traces=False)
 
-###############################################################################
+# %% ##########################################################################
 # To make a publication-ready figure, first we'll re-plot the brain on a white
 # background, take a screenshot of it, and then crop out the white margins.
 # While we're at it, let's change the colormap, set custom colormap limits and
@@ -74,7 +74,7 @@ brain = stc.plot(views='lat', hemi='split', size=(800, 400), subject='sample',
 screenshot = brain.screenshot()
 brain.close()
 
-###############################################################################
+# %% ##########################################################################
 # Now let's crop out the white margins and the white gap between hemispheres.
 # The screenshot has dimensions ``(h, w, 3)``, with the last axis being R, G, B
 # values for each pixel, encoded as integers between ``0`` and ``255``. ``(255,
@@ -94,7 +94,7 @@ for ax, image, title in zip(axes, [screenshot, cropped_screenshot],
     ax.imshow(image)
     ax.set_title('{} cropping'.format(title))
 
-###############################################################################
+# %% ##########################################################################
 # A lot of figure settings can be adjusted after the figure is created, but
 # many can also be adjusted in advance by updating the
 # :data:`~matplotlib.rcParams` dictionary. This is especially useful when your
@@ -110,7 +110,7 @@ plt.rcParams.update({
     'grid.linestyle': ':',
 })
 
-###############################################################################
+# %% ##########################################################################
 # Now let's create our custom figure. There are lots of ways to do this step.
 # Here we'll create the figure and the subplot axes in one step, specifying
 # overall figure size, number and arrangement of subplots, and the ratio of
@@ -176,7 +176,7 @@ for ax, label in zip(axes, 'AB'):
     ax.text(0.03, ax.get_position().ymax, label, transform=fig.transFigure,
             fontsize=12, fontweight='bold', va='top', ha='left')
 
-###############################################################################
+# %% ##########################################################################
 # Custom timecourse with montage inset
 # ------------------------------------
 #
@@ -200,7 +200,7 @@ raw = mne.io.read_raw_fif(fname_raw)
 raw.pick_types(meg=False, eeg=True)
 
 
-###############################################################################
+# %% ##########################################################################
 # Let's make a plot.
 
 # channels to plot:
@@ -221,7 +221,7 @@ fig, ax = plt.subplots(figsize=(4.5, 3))
 # plot some EEG data
 ax.plot(times, mean)
 
-###############################################################################
+# %% ##########################################################################
 # So far so good. Now let's add the smaller figure within the figure to show
 # exactly, which sensors we used to make the timecourse.
 # For that, we use an "inset_axes" that we plot into our existing axes.
@@ -239,7 +239,7 @@ axins = inset_locator.inset_axes(ax, width="30%", height="30%", loc=2)
 # so that our raw object stays intact for potential later analysis
 raw.copy().pick_channels(to_plot).plot_sensors(title="", axes=axins)
 
-###############################################################################
+# %% ##########################################################################
 # That looks nice. But the sensor dots are way too big for our taste. Luckily,
 # all MNE-Python plots use Matplotlib under the hood and we can customize
 # each and every facet of them.
@@ -249,13 +249,13 @@ raw.copy().pick_channels(to_plot).plot_sensors(title="", axes=axins)
 # If we inspect our axes we find the objects contained in our plot:
 print(axins.get_children())
 
-###############################################################################
+# %% ##########################################################################
 # That's quite a a lot of objects, but we know that we want to change the
 # sensor dots, and those are most certainly a "PathCollection" object.
 # So let's have a look at how many "collections" we have in the axes.
 print(axins.collections)
 
-###############################################################################
+# %% ##########################################################################
 # There is only one! Those must be the sensor dots we were looking for.
 # We finally found exactly what we needed. Sometimes this can take a bit of
 # experimentation.

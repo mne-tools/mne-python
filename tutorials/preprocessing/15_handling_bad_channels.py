@@ -22,7 +22,7 @@ sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                     'sample_audvis_raw.fif')
 raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False)
 
-###############################################################################
+# %% ##########################################################################
 # Marking bad channels
 # ^^^^^^^^^^^^^^^^^^^^
 #
@@ -37,7 +37,7 @@ raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False)
 
 print(raw.info['bads'])
 
-###############################################################################
+# %% ##########################################################################
 # Here you can see that the :file:`.fif` file we loaded from disk must have
 # been keeping track of channels marked as "bad" — which is good news, because
 # it means any changes we make to the list of bad channels will be preserved if
@@ -53,7 +53,7 @@ print(raw.info['bads'])
 picks = mne.pick_channels_regexp(raw.ch_names, regexp='EEG 05.')
 raw.plot(order=picks, n_channels=len(picks))
 
-###############################################################################
+# %% ##########################################################################
 # We can do the same thing for the bad MEG channel (``MEG 2443``). Since we
 # know that Neuromag systems (like the one used to record the example data) use
 # the last digit of the MEG channel number to indicate sensor type, here our
@@ -63,7 +63,7 @@ raw.plot(order=picks, n_channels=len(picks))
 picks = mne.pick_channels_regexp(raw.ch_names, regexp='MEG 2..3')
 raw.plot(order=picks, n_channels=len(picks))
 
-###############################################################################
+# %% ##########################################################################
 # Notice first of all that the channels marked as "bad" are plotted in a light
 # gray color in a layer behind the other channels, to make it easy to
 # distinguish them from "good" channels. The plots make it clear that ``EEG
@@ -82,7 +82,7 @@ raw.info['bads'].extend(['EEG 051', 'EEG 052'])  # add a list of channels
 bad_chan = raw.info['bads'].pop(-1)  # remove the last entry in the list
 raw.info['bads'] = original_bads     # change the whole list at once
 
-###############################################################################
+# %% ##########################################################################
 # .. sidebar:: Blocking execution
 #
 #     If you want to build an interactive bad-channel-marking step into an
@@ -113,7 +113,7 @@ all_eeg = mne.pick_types(raw.info, meg=False, eeg=True, exclude=[])
 print(np.setdiff1d(all_eeg, good_eeg))
 print(np.array(raw.ch_names)[np.setdiff1d(all_eeg, good_eeg)])
 
-###############################################################################
+# %% ##########################################################################
 # When to look for bad channels
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
@@ -133,7 +133,7 @@ raw2.info['bads'] = []
 events = mne.find_events(raw2, stim_channel='STI 014')
 epochs = mne.Epochs(raw2, events=events)['2'].average().plot()
 
-###############################################################################
+# %% ##########################################################################
 # The bad EEG channel is not so obvious, but the bad gradiometer is easy to
 # see.
 #
@@ -212,7 +212,7 @@ epochs = mne.Epochs(raw2, events=events)['2'].average().plot()
 
 raw.crop(tmin=0, tmax=3).load_data()
 
-###############################################################################
+# %% ##########################################################################
 # By default, :meth:`~mne.io.Raw.interpolate_bads` will clear out
 # ``raw.info['bads']`` after interpolation, so that the interpolated channels
 # are no longer excluded from subsequent computations. Here, for illustration
@@ -228,7 +228,7 @@ for title, data in zip(['orig.', 'interp.'], [eeg_data, eeg_data_interp]):
     fig.subplots_adjust(top=0.9)
     fig.suptitle(title, size='xx-large', weight='bold')
 
-###############################################################################
+# %% ##########################################################################
 # Note that we used the ``exclude=[]`` trick in the call to
 # :meth:`~mne.io.Raw.pick_types` to make sure the bad channels were not
 # automatically dropped from the selection. Here is the corresponding example
@@ -241,7 +241,7 @@ grad_data_interp = grad_data.copy().interpolate_bads(reset_bads=False)
 for data in (grad_data, grad_data_interp):
     data.plot(butterfly=True, color='#00000009', bad_color='r')
 
-###############################################################################
+# %% ##########################################################################
 # Summary
 # ^^^^^^^
 #

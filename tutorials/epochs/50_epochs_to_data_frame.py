@@ -23,7 +23,7 @@ sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                     'sample_audvis_filt-0-40_raw.fif')
 raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False)
 
-###############################################################################
+# %% ##########################################################################
 # Next we'll load a list of events from file, map them to condition names with
 # an event dictionary, set some signal rejection thresholds (cf.
 # :ref:`tut-reject-epochs-section`), and segment the continuous data into
@@ -48,7 +48,7 @@ epochs = mne.Epochs(raw, events, event_dict, tmin, tmax, proj=True,
                     baseline=baseline, reject=reject_criteria, preload=True)
 del raw
 
-###############################################################################
+# %% ##########################################################################
 # Converting an ``Epochs`` object to a ``DataFrame``
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -62,7 +62,7 @@ del raw
 df = epochs.to_data_frame()
 df.iloc[:5, :10]
 
-###############################################################################
+# %% ##########################################################################
 # Scaling time and channel values
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
@@ -82,7 +82,7 @@ df = epochs.to_data_frame(time_format=None,
                           scalings=dict(eeg=1, mag=1, grad=1))
 df.iloc[:5, :10]
 
-###############################################################################
+# %% ##########################################################################
 # Notice that the time values are no longer integers, and the channel values
 # have changed by several orders of magnitude compared to the earlier
 # DataFrame.
@@ -101,7 +101,7 @@ df = epochs.to_data_frame(index=['condition', 'epoch'],
                           time_format='timedelta')
 df.iloc[:5, :10]
 
-###############################################################################
+# %% ##########################################################################
 # Wide- versus long-format DataFrames
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
@@ -116,7 +116,7 @@ long_df = epochs.to_data_frame(time_format=None, index='condition',
                                long_format=True)
 long_df.head()
 
-###############################################################################
+# %% ##########################################################################
 # Generating the :class:`~pandas.DataFrame` in long format can be helpful when
 # using other Python modules for subsequent analysis or plotting. For example,
 # here we'll take data from the "auditory/left" condition, pick a couple MEG
@@ -130,7 +130,7 @@ data = long_df.loc['auditory/left'].query('channel in @channels')
 data['channel'] = data['channel'].astype(str)
 sns.lineplot(x='time', y='value', hue='channel', data=data)
 
-###############################################################################
+# %% ##########################################################################
 # We can also now use all the power of Pandas for grouping and transforming our
 # data. Here, we find the latency of peak activation of 2 gradiometers (one
 # near auditory cortex and one near visual cortex), and plot the distribution

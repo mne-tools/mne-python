@@ -36,7 +36,7 @@ sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
 raw = mne.io.read_raw_fif(sample_data_raw_file)
 raw.crop(tmax=60).load_data()
 
-###############################################################################
+# %% ##########################################################################
 # The Events and Annotations data structures
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -92,7 +92,7 @@ raw.crop(tmax=60).load_data()
 
 raw.copy().pick_types(meg=False, stim=True).plot(start=3, duration=6)
 
-###############################################################################
+# %% ##########################################################################
 # You can see that ``STI 014`` (the summation channel) contains pulses of
 # different magnitudes whereas pulses on other channels have consistent
 # magnitudes. You can also see that every time there is a pulse on one of the
@@ -118,7 +118,7 @@ raw.copy().pick_types(meg=False, stim=True).plot(start=3, duration=6)
 events = mne.find_events(raw, stim_channel='STI 014')
 print(events[:5])  # show the first 5
 
-###############################################################################
+# %% ##########################################################################
 # .. sidebar:: The middle column of the Events array
 #
 #     MNE-Python events are actually *three* values: in between the sample
@@ -163,7 +163,7 @@ eeglab_raw_file = os.path.join(testing_data_folder, 'EEGLAB', 'test_raw.set')
 eeglab_raw = mne.io.read_raw_eeglab(eeglab_raw_file)
 print(eeglab_raw.annotations)
 
-###############################################################################
+# %% ##########################################################################
 # The core data within an `~mne.Annotations` object is accessible
 # through three of its attributes: ``onset``, ``duration``, and
 # ``description``. Here we can see that there were 154 events stored in the
@@ -176,7 +176,7 @@ print(set(eeglab_raw.annotations.duration))
 print(set(eeglab_raw.annotations.description))
 print(eeglab_raw.annotations.onset[0])
 
-###############################################################################
+# %% ##########################################################################
 # More information on working with `~mne.Annotations` objects, including
 # how to add annotations to `~mne.io.Raw` objects interactively, and how
 # to plot, concatenate, load, save, and export `~mne.Annotations`
@@ -209,7 +209,7 @@ events_from_annot, event_dict = mne.events_from_annotations(eeglab_raw)
 print(event_dict)
 print(events_from_annot[:5])
 
-###############################################################################
+# %% ##########################################################################
 # If you want to control which integers are mapped to each unique description
 # value, you can pass a :class:`dict` specifying the mapping as the
 # ``event_id`` parameter of `~mne.events_from_annotations`; this
@@ -225,7 +225,7 @@ custom_mapping = {'rt': 77, 'square': 42}
 print(event_dict)
 print(events_from_annot[:5])
 
-###############################################################################
+# %% ##########################################################################
 # To make the opposite conversion (from an Events array to an
 # `~mne.Annotations` object), you can create a mapping from integer
 # Event ID to string descriptions, use `~mne.annotations_from_events`
@@ -246,13 +246,13 @@ annot_from_events = mne.annotations_from_events(
     orig_time=raw.info['meas_date'])
 raw.set_annotations(annot_from_events)
 
-###############################################################################
+# %% ##########################################################################
 # Now, the annotations will appear automatically when plotting the raw data,
 # and will be color-coded by their label value:
 
 raw.plot(start=5, duration=5)
 
-###############################################################################
+# %% ##########################################################################
 # .. _`chunk-duration`:
 #
 # Making multiple events per annotation
@@ -275,7 +275,7 @@ raw.set_annotations(rem_annot)
 (rem_events,
  rem_event_dict) = mne.events_from_annotations(raw, chunk_duration=1.5)
 
-###############################################################################
+# %% ##########################################################################
 # Now we can check that our events indeed fall in the ranges 5-21 seconds and
 # 41-52 seconds, and are ~1.5 seconds apart (modulo some jitter due to the
 # sampling frequency). Here are the event times rounded to the nearest
@@ -283,7 +283,7 @@ raw.set_annotations(rem_annot)
 
 print(np.round((rem_events[:, 0] - raw.first_samp) / raw.info['sfreq'], 3))
 
-###############################################################################
+# %% ##########################################################################
 # Other examples of resting-state analysis can be found in the online
 # documentation for `~mne.make_fixed_length_events`, such as
 # :ref:`ex-envelope-correlation`.

@@ -19,7 +19,7 @@ As usual we'll start by importing the modules we need:
 import os
 import mne
 
-###############################################################################
+# %% ##########################################################################
 # :class:`~mne.Epochs` objects are a data structure for representing and
 # analyzing equal-duration chunks of the EEG/MEG signal. :class:`~mne.Epochs`
 # are most often used to represent data that is time-locked to repeated
@@ -75,13 +75,13 @@ sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                     'sample_audvis_raw.fif')
 raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False).crop(tmax=60)
 
-###############################################################################
+# %% ##########################################################################
 # As we saw in the :ref:`tut-events-vs-annotations` tutorial, we can extract an
 # events array from :class:`~mne.io.Raw` objects using :func:`mne.find_events`:
 
 events = mne.find_events(raw, stim_channel='STI 014')
 
-###############################################################################
+# %% ##########################################################################
 # .. note::
 #
 #     We could also have loaded the events from file, using
@@ -107,7 +107,7 @@ events = mne.find_events(raw, stim_channel='STI 014')
 
 epochs = mne.Epochs(raw, events, tmin=-0.3, tmax=0.7)
 
-###############################################################################
+# %% ##########################################################################
 # You'll see from the output that:
 #
 # - all 320 events were used to create epochs
@@ -128,7 +128,7 @@ epochs = mne.Epochs(raw, events, tmin=-0.3, tmax=0.7)
 
 print(epochs)
 
-###############################################################################
+# %% ##########################################################################
 # Notice that the Event IDs are in quotes; since we didn't provide an event
 # dictionary, the :class:`mne.Epochs` constructor created one automatically and
 # used the string representation of the integer Event IDs as the dictionary
@@ -136,7 +136,7 @@ print(epochs)
 
 print(epochs.event_id)
 
-###############################################################################
+# %% ##########################################################################
 # This time let's pass ``preload=True`` and provide an event dictionary; our
 # provided dictionary will get stored as the ``event_id`` attribute and will
 # make referencing events and pooling across event types easier:
@@ -148,7 +148,7 @@ epochs = mne.Epochs(raw, events, tmin=-0.3, tmax=0.7, event_id=event_dict,
 print(epochs.event_id)
 del raw  # we're done with raw, free up some memory
 
-###############################################################################
+# %% ##########################################################################
 # Notice that the output now mentions "1 bad epoch dropped". In the tutorial
 # section :ref:`tut-reject-epochs-section` we saw how you can specify channel
 # amplitude criteria for rejecting epochs, but here we haven't specified any
@@ -160,7 +160,7 @@ del raw  # we're done with raw, free up some memory
 
 print(epochs.drop_log[-4:])
 
-###############################################################################
+# %% ##########################################################################
 # .. note::
 #
 #     If you forget to provide the event dictionary to the :class:`~mne.Epochs`
@@ -178,7 +178,7 @@ print(epochs.drop_log[-4:])
 
 epochs.plot(n_epochs=10)
 
-###############################################################################
+# %% ##########################################################################
 # Notice that the individual epochs are sequentially numbered along the bottom
 # axis and are separated by vertical dashed lines.
 # Epoch plots are interactive (similar to :meth:`raw.plot()
@@ -201,7 +201,7 @@ epochs.plot(n_epochs=10)
 
 print(epochs['face'])
 
-###############################################################################
+# %% ##########################################################################
 # We can also pool across conditions easily, thanks to how MNE-Python handles
 # the ``/`` character in epoch labels (using what is sometimes called
 # "tag-based indexing"):
@@ -215,7 +215,7 @@ print(epochs['left'])
 assert len(epochs['left']) == (len(epochs['auditory/left']) +
                                len(epochs['visual/left']))
 
-###############################################################################
+# %% ##########################################################################
 # You can also pool conditions by passing multiple tags as a list. Note that
 # MNE-Python will not complain if you ask for tags not present in the object,
 # as long as it can find *some* match: the below example is parsed as
@@ -224,7 +224,7 @@ assert len(epochs['left']) == (len(epochs['auditory/left']) +
 
 print(epochs[['right', 'bottom']])
 
-###############################################################################
+# %% ##########################################################################
 # However, if no match is found, an error is returned:
 
 try:
@@ -232,7 +232,7 @@ try:
 except KeyError:
     print('Tag-based selection with no matches raises a KeyError!')
 
-###############################################################################
+# %% ##########################################################################
 # Selecting epochs by index
 # ~~~~~~~~~~~~~~~~~~~~~~~~~
 #
@@ -247,7 +247,7 @@ print(epochs[1:8:2])  # epochs 1, 3, 5, 7
 print(epochs['buttonpress'][:4])            # first 4 "buttonpress" epochs
 print(epochs['buttonpress'][[0, 1, 2, 3]])  # same as previous line
 
-###############################################################################
+# %% ##########################################################################
 # Selecting, dropping, and reordering channels
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
@@ -268,11 +268,11 @@ new_order = ['EEG 002', 'STI 014', 'EOG 061', 'MEG 2521']
 epochs_subset = epochs.copy().reorder_channels(new_order)
 print(epochs_subset.ch_names)
 
-###############################################################################
+# %% ##########################################################################
 
 del epochs_eeg, epochs_subset
 
-###############################################################################
+# %% ##########################################################################
 # Changing channel name and type
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
@@ -287,13 +287,13 @@ epochs.rename_channels({'EOG 061': 'BlinkChannel'})
 epochs.set_channel_types({'EEG 060': 'ecg'})
 print(list(zip(epochs.ch_names, epochs.get_channel_types()))[-4:])
 
-###############################################################################
+# %% ##########################################################################
 
 # let's set them back to the correct values before moving on
 epochs.rename_channels({'BlinkChannel': 'EOG 061'})
 epochs.set_channel_types({'EEG 060': 'eeg'})
 
-###############################################################################
+# %% ##########################################################################
 # Selection in the time domain
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
@@ -306,7 +306,7 @@ for name, obj in dict(Original=epochs, Cropped=shorter_epochs).items():
     print('{} epochs has {} time samples'
           .format(name, obj.get_data().shape[-1]))
 
-###############################################################################
+# %% ##########################################################################
 # Cropping removed part of the baseline. When printing the
 # cropped :class:`~mne.Epochs`, MNE-Python will inform you about the time
 # period that was originally used to perform baseline correction by displaying
@@ -314,7 +314,7 @@ for name, obj in dict(Original=epochs, Cropped=shorter_epochs).items():
 
 print(shorter_epochs)
 
-###############################################################################
+# %% ##########################################################################
 # However, if you wanted to *expand* the time domain of an :class:`~mne.Epochs`
 # object, you would need to go back to the :class:`~mne.io.Raw` data and
 # recreate the :class:`~mne.Epochs` with different values for ``tmin`` and/or
@@ -335,11 +335,11 @@ print(later_epochs.times[:3])
 later_epochs.shift_time(tshift=-7, relative=True)
 print(later_epochs.times[:3])
 
-###############################################################################
+# %% ##########################################################################
 
 del shorter_epochs, later_epochs
 
-###############################################################################
+# %% ##########################################################################
 # Note that although time shifting respects the sampling frequency (the spacing
 # between samples), it does not enforce the assumption that there is a sample
 # occurring at exactly time=0.
@@ -360,7 +360,7 @@ channel_4_6_8 = epochs.get_data(picks=slice(4, 9, 2))
 for name, arr in dict(EOG=eog_data, MEG=meg_data, Slice=channel_4_6_8).items():
     print('{} contains {} channels'.format(name, arr.shape[1]))
 
-###############################################################################
+# %% ##########################################################################
 # Note that if your analysis requires repeatedly extracting single epochs from
 # an :class:`~mne.Epochs` object, ``epochs.get_data(item=2)`` will be much
 # faster than ``epochs[2].get_data()``, because it avoids the step of
@@ -385,7 +385,7 @@ print(df.loc[('auditory/left', slice(0, 10), slice(100, 107)),
 
 del df
 
-###############################################################################
+# %% ##########################################################################
 # See the :ref:`tut-epochs-dataframe` tutorial for many more examples of the
 # :meth:`~mne.Epochs.to_data_frame` method.
 #
@@ -402,7 +402,7 @@ del df
 epochs.save('saved-audiovisual-epo.fif', overwrite=True)
 epochs_from_file = mne.read_epochs('saved-audiovisual-epo.fif', preload=False)
 
-###############################################################################
+# %% ##########################################################################
 # The MNE-Python naming convention for epochs files is that the file basename
 # (the part before the ``.fif`` or ``.fif.gz`` extension) should end with
 # ``-epo`` or ``_epo``, and a warning will be issued if the filename you
@@ -415,7 +415,7 @@ epochs_from_file = mne.read_epochs('saved-audiovisual-epo.fif', preload=False)
 print(type(epochs))
 print(type(epochs_from_file))
 
-###############################################################################
+# %% ##########################################################################
 # In almost all cases this will not require changing anything about your code.
 # However, if you need to do type checking on epochs objects, you can test
 # against the base class that these classes are derived from:
@@ -423,7 +423,7 @@ print(type(epochs_from_file))
 print(all([isinstance(epochs, mne.BaseEpochs),
            isinstance(epochs_from_file, mne.BaseEpochs)]))
 
-###############################################################################
+# %% ##########################################################################
 # Iterating over ``Epochs``
 # ^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -433,7 +433,7 @@ print(all([isinstance(epochs, mne.BaseEpochs),
 for epoch in epochs[:3]:
     print(type(epoch))
 
-###############################################################################
+# %% ##########################################################################
 # If you want to iterate over :class:`~mne.Epochs` objects, you can use an
 # integer index as the iterator:
 

@@ -54,7 +54,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 fmin, fmax = 0., 70.
 bandwidth = 4.  # bandwidth of the windows in Hz
 
-###############################################################################
+# %% ##########################################################################
 # Compute source space PSD in label
 # ---------------------------------
 #
@@ -77,7 +77,7 @@ psd_avg /= n_epochs_use
 freqs = stc.times  # the frequencies are stored here
 stc.data = psd_avg  # overwrite the last epoch's data with the average
 
-###############################################################################
+# %% ##########################################################################
 # Visualize the 10 Hz PSD:
 
 brain = stc.plot(initial_time=10., hemi='lh', views='lat',  # 10 HZ
@@ -85,7 +85,7 @@ brain = stc.plot(initial_time=10., hemi='lh', views='lat',  # 10 HZ
                  smoothing_steps=3, subjects_dir=subjects_dir)
 brain.add_label(label, borders=True, color='k')
 
-###############################################################################
+# %% ##########################################################################
 # Visualize the entire spectrum:
 
 fig, ax = plt.subplots()

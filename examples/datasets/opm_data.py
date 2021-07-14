@@ -26,7 +26,7 @@ bem_fname = op.join(subjects_dir, subject, 'bem',
 fwd_fname = op.join(data_path, 'MEG', 'OPM', 'OPM_sample-fwd.fif')
 coil_def_fname = op.join(data_path, 'MEG', 'OPM', 'coil_def.dat')
 
-###############################################################################
+# %% ##########################################################################
 # Prepare data for localization
 # -----------------------------
 # First we filter and epoch the data:
@@ -54,7 +54,7 @@ evoked.plot()
 cov = mne.compute_covariance(epochs, tmax=0.)
 del epochs, raw
 
-###############################################################################
+# %% ##########################################################################
 # Examine our coordinate alignment for source localization and compute a
 # forward operator:
 #
@@ -87,7 +87,7 @@ with mne.use_coil_def(coil_def_fname):
 mne.viz.set_3d_view(figure=fig, azimuth=45, elevation=60, distance=0.4,
                     focalpoint=(0.02, 0, 0.04))
 
-###############################################################################
+# %% ##########################################################################
 # Perform dipole fitting
 # ----------------------
 
@@ -103,7 +103,7 @@ print('Best dipole at t=%0.1f ms with %0.1f%% GOF'
 dip_opm.plot_locations(trans, subject, subjects_dir,
                        mode='orthoview', idx=idx)
 
-###############################################################################
+# %% ##########################################################################
 # Perform minimum-norm localization
 # ---------------------------------
 # Due to the small number of sensors, there will be some leakage of activity

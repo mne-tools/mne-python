@@ -33,7 +33,7 @@ from mne.datasets import sample
 
 print(__doc__)
 
-###############################################################################
+# %% ##########################################################################
 # Set parameters
 # --------------
 data_path = sample.data_path()
@@ -49,7 +49,7 @@ tmax = 0.3  # Use a lower tmax to reduce multiple comparisons
 raw = mne.io.read_raw_fif(raw_fname)
 events = mne.read_events(event_fname)
 
-###############################################################################
+# %% ##########################################################################
 # Read epochs for all channels, removing a bad one
 # ------------------------------------------------
 raw.info['bads'] += ['MEG 2443']
@@ -65,7 +65,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 #    introduced by the abs() performed below)
 epochs.equalize_event_counts(event_id)
 
-###############################################################################
+# %% ##########################################################################
 # Transform to source space
 # -------------------------
 fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
@@ -91,7 +91,7 @@ for cond in ['l_aud', 'r_aud', 'l_vis', 'r_vis']:  # order is important
 tmin = conditions[0].tmin
 tstep = conditions[0].tstep * 1000  # convert to milliseconds
 
-###############################################################################
+# %% ##########################################################################
 # Transform to common cortical space
 # ----------------------------------
 #
@@ -111,7 +111,7 @@ X = randn(n_vertices_sample, n_times, n_subjects, 4) * 10
 for ii, condition in enumerate(conditions):
     X[:, :, :, ii] += condition.lh_data[:, :, np.newaxis]
 
-###############################################################################
+# %% ##########################################################################
 # It's a good idea to spatially smooth the data, and for visualization
 # purposes, let's morph these to fsaverage, which is a grade 5 ICO source space
 # with vertices 0:10242 for each hemisphere. Usually you'd have to morph
@@ -133,7 +133,7 @@ print('Morphing data.')
 X = morph_mat.dot(X)  # morph_mat is a sparse matrix
 X = X.reshape(n_vertices_fsave, n_times, n_subjects, 4)
 
-###############################################################################
+# %% ##########################################################################
 # Now we need to prepare the group matrix for the ANOVA statistic. To make the
 # clustering function work correctly with the ANOVA function X needs to be a
 # list of multi-dimensional arrays (one per condition) of shape: samples
@@ -144,7 +144,7 @@ X = X.reshape(n_vertices_fsave, n_times, n_subjects, 4)
 X = np.transpose(X, [2, 1, 0, 3])  #
 X = [np.squeeze(x) for x in np.split(X, 4, axis=-1)]
 
-###############################################################################
+# %% ##########################################################################
 # Prepare function for arbitrary contrast
 # ---------------------------------------
 # As our ANOVA function is a multi-purpose tool we need to apply a few
@@ -157,7 +157,7 @@ X = [np.squeeze(x) for x in np.split(X, 4, axis=-1)]
 # of the number factor levels for each factor.
 factor_levels = [2, 2]
 
-###############################################################################
+# %% ##########################################################################
 # Finally we will pick the interaction effect by passing 'A:B'.
 # (this notation is borrowed from the R formula language).
 # As an aside, note that in this particular example, we cannot use the A*B
@@ -172,7 +172,7 @@ return_pvals = False
 n_times = X[0].shape[1]
 n_conditions = 4
 
-###############################################################################
+# %% ##########################################################################
 # A ``stat_fun`` must deal with a variable number of input arguments.
 #
 # Inside the clustering function each condition will be passed as flattened
@@ -193,7 +193,7 @@ def stat_fun(*args):
                      effects=effects, return_pvals=return_pvals)[0]
 
 
-###############################################################################
+# %% ##########################################################################
 # Compute clustering statistic
 # ----------------------------
 #
@@ -222,7 +222,7 @@ T_obs, clusters, cluster_p_values, H0 = clu = \
 #    is multiple-comparisons corrected).
 good_cluster_inds = np.where(cluster_p_values < 0.05)[0]
 
-###############################################################################
+# %% ##########################################################################
 # Visualize the clusters
 # ----------------------
 
@@ -247,7 +247,7 @@ brain = stc_all_cluster_vis.plot(subjects_dir=subjects_dir, views='lat',
 brain.save_image('cluster-lh.png')
 brain.show_view('medial')
 
-###############################################################################
+# %% ##########################################################################
 # Finally, let's investigate interaction effect by reconstructing the time
 # courses:
 

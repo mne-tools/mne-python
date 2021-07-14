@@ -34,7 +34,7 @@ fname = path + '/MEG/sample/sample_audvis-ave.fif'
 condition = 'Left Auditory'
 evoked = read_evokeds(fname, condition=condition, baseline=(None, 0))
 
-###############################################################################
+# %% ##########################################################################
 # Basic :func:`~mne.viz.plot_topomap` options
 # -------------------------------------------
 #
@@ -45,29 +45,29 @@ evoked = read_evokeds(fname, condition=condition, baseline=(None, 0))
 times = np.arange(0.05, 0.151, 0.02)
 evoked.plot_topomap(times, ch_type='mag', time_unit='s')
 
-###############################################################################
+# %% ##########################################################################
 # If times is set to None at most 10 regularly spaced topographies will be
 # shown:
 evoked.plot_topomap(ch_type='mag', time_unit='s')
 
-###############################################################################
+# %% ##########################################################################
 # We can use ``nrows`` and ``ncols`` parameter to create multiline plots
 # with more timepoints.
 all_times = np.arange(-0.2, 0.5, 0.03)
 evoked.plot_topomap(all_times, ch_type='mag', time_unit='s',
                     ncols=8, nrows='auto')
 
-###############################################################################
+# %% ##########################################################################
 # Instead of showing topographies at specific time points we can compute
 # averages of 50 ms bins centered on these time points to reduce the noise in
 # the topographies:
 evoked.plot_topomap(times, ch_type='mag', average=0.05, time_unit='s')
 
-###############################################################################
+# %% ##########################################################################
 # We can plot gradiometer data (plots the RMS for each pair of gradiometers)
 evoked.plot_topomap(times, ch_type='grad', time_unit='s')
 
-###############################################################################
+# %% ##########################################################################
 # Additional :func:`~mne.viz.plot_topomap` options
 # ------------------------------------------------
 #
@@ -82,7 +82,7 @@ evoked.plot_topomap(times, ch_type='grad', time_unit='s')
 evoked.plot_topomap(times, ch_type='mag', cmap='Spectral_r', res=32,
                     outlines='skirt', contours=4, time_unit='s')
 
-###############################################################################
+# %% ##########################################################################
 # If you look at the edges of the head circle of a single topomap you'll see
 # the effect of extrapolation. There are three extrapolation modes:
 #
@@ -107,7 +107,7 @@ for axes_row, ch_type in zip(axes, ('mag', 'eeg')):
         ax.set_title('%s %s' % (ch_type.upper(), extr), fontsize=14)
 fig.tight_layout()
 
-###############################################################################
+# %% ##########################################################################
 # More advanced usage
 # -------------------
 #
@@ -119,7 +119,7 @@ evoked.plot_topomap(0.1, ch_type='mag', show_names=True, colorbar=False,
                     time_unit='s')
 plt.subplots_adjust(left=0.01, right=0.99, bottom=0.01, top=0.88)
 
-###############################################################################
+# %% ##########################################################################
 # Animating the topomap
 # ---------------------
 #

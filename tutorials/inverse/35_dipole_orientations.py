@@ -15,7 +15,7 @@ orientation of the dipoles and the impact on the resulting source estimate.
 See :ref:`inverse_orientation_constraints` for related information.
 """
 
-###############################################################################
+# %% ##########################################################################
 # Loading data
 # ------------
 # Load everything we need to perform source localization on the sample dataset.
@@ -36,7 +36,7 @@ subject = 'sample'
 subjects_dir = data_path + '/subjects'
 trans_fname = data_path + '/MEG/sample/sample_audvis_raw-trans.fif'
 
-###############################################################################
+# %% ##########################################################################
 # The source space
 # ----------------
 # Let's start by examining the source space as constructed by the
@@ -74,7 +74,7 @@ mne.viz.plot_dipole_locations(
 
 mne.viz.set_3d_view(figure=fig, azimuth=180, distance=0.25)
 
-###############################################################################
+# %% ##########################################################################
 # .. _plot_dipole_orientations_fixed_orientations:
 #
 # Fixed dipole orientations
@@ -105,7 +105,7 @@ mne.viz.plot_dipole_locations(
 
 mne.viz.set_3d_view(figure=fig, azimuth=180, distance=0.1)
 
-###############################################################################
+# %% ##########################################################################
 # Restricting the dipole orientations in this manner leads to the following
 # source estimate for the sample data:
 
@@ -120,14 +120,14 @@ brain_fixed = stc.plot(surface='white', subjects_dir=subjects_dir,
                        initial_time=time_max, time_unit='s', size=(600, 400))
 mne.viz.set_3d_view(figure=brain_fixed, focalpoint=(0., 0., 50))
 
-###############################################################################
+# %% ##########################################################################
 # The direction of the estimated current is now restricted to two directions:
 # inward and outward. In the plot, blue areas indicate current flowing inwards
 # and red areas indicate current flowing outwards. Given the curvature of the
 # cortex, groups of dipoles tend to point in the same direction: the direction
 # of the electromagnetic field picked up by the sensors.
 
-###############################################################################
+# %% ##########################################################################
 # .. _plot_dipole_orientations_fLOC_orientations:
 #
 # Loose dipole orientations
@@ -156,7 +156,7 @@ mne.viz.plot_alignment(
 
 mne.viz.set_3d_view(figure=fig, azimuth=180, distance=0.1)
 
-###############################################################################
+# %% ##########################################################################
 # When computing the source estimate, the activity at each of the three dipoles
 # is collapsed into the XYZ components of a single vector, which leads to the
 # following source estimate for the sample data:
@@ -174,7 +174,7 @@ brain_mag = stc.plot(subjects_dir=subjects_dir, initial_time=time_max,
                      time_unit='s', size=(600, 400), overlay_alpha=0)
 mne.viz.set_3d_view(figure=brain_mag, focalpoint=(0., 0., 50))
 
-###############################################################################
+# %% ##########################################################################
 # .. _plot_dipole_orientations_vLOC_orientations:
 #
 # Limiting orientations, but not fixing them
@@ -197,7 +197,7 @@ brain_loose = stc.plot(subjects_dir=subjects_dir, initial_time=time_max,
                        time_unit='s', size=(600, 400), overlay_alpha=0)
 mne.viz.set_3d_view(figure=brain_loose, focalpoint=(0., 0., 50))
 
-###############################################################################
+# %% ##########################################################################
 # Discarding dipole orientation information
 # -----------------------------------------
 # Often, further analysis of the data does not need information about the
@@ -216,7 +216,7 @@ brain = stc.plot(surface='white', subjects_dir=subjects_dir,
                  initial_time=time_max, time_unit='s', size=(600, 400))
 mne.viz.set_3d_view(figure=brain, focalpoint=(0., 0., 50))
 
-###############################################################################
+# %% ##########################################################################
 # References
 # ----------
 # .. footbibliography::

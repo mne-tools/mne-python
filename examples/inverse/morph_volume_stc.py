@@ -33,7 +33,7 @@ from nilearn.plotting import plot_glass_brain
 
 print(__doc__)
 
-###############################################################################
+# %% ##########################################################################
 # Setup paths
 sample_dir_raw = sample.data_path()
 sample_dir = os.path.join(sample_dir_raw, 'MEG', 'sample')
@@ -47,7 +47,7 @@ fname_t1_fsaverage = os.path.join(subjects_dir, 'fsaverage', 'mri',
 fetch_fsaverage(subjects_dir)  # ensure fsaverage src exists
 fname_src_fsaverage = subjects_dir + '/fsaverage/bem/fsaverage-vol-5-src.fif'
 
-###############################################################################
+# %% ##########################################################################
 # Compute example data. For reference see :ref:`ex-inverse-volume`.
 #
 # Load data:
@@ -60,7 +60,7 @@ stc = apply_inverse(evoked, inverse_operator, 1.0 / 3.0 ** 2, "dSPM")
 # To save time
 stc.crop(0.09, 0.09)
 
-###############################################################################
+# %% ##########################################################################
 # Get a SourceMorph object for VolSourceEstimate
 # ----------------------------------------------
 #
@@ -86,7 +86,7 @@ morph = mne.compute_source_morph(
     niter_affine=[10, 10, 5], niter_sdr=[10, 10, 5],  # just for speed
     src_to=src_fs, verbose=True)
 
-###############################################################################
+# %% ##########################################################################
 # Apply morph to VolSourceEstimate
 # --------------------------------
 #
@@ -109,7 +109,7 @@ morph = mne.compute_source_morph(
 
 stc_fsaverage = morph.apply(stc)
 
-###############################################################################
+# %% ##########################################################################
 # Convert morphed VolSourceEstimate into NIfTI
 # --------------------------------------------
 #
@@ -119,7 +119,7 @@ stc_fsaverage = morph.apply(stc)
 # Create mri-resolution volume of results
 img_fsaverage = morph.apply(stc, mri_resolution=2, output='nifti1')
 
-###############################################################################
+# %% ##########################################################################
 # Plot results
 # ------------
 
@@ -136,7 +136,7 @@ display = plot_glass_brain(t1_fsaverage,
 display.add_overlay(img_fsaverage, alpha=0.75)
 
 
-###############################################################################
+# %% ##########################################################################
 # Reading and writing SourceMorph from and to disk
 # ------------------------------------------------
 #

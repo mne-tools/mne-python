@@ -23,7 +23,7 @@ sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                     'sample_audvis_raw.fif')
 raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True, verbose=False)
 
-###############################################################################
+# %% ##########################################################################
 # About montages and layouts
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -54,7 +54,7 @@ print('\nBUILT-IN MONTAGE FILES')
 print('======================')
 print(sorted(os.listdir(montage_dir)))
 
-###############################################################################
+# %% ##########################################################################
 # .. sidebar:: Computing sensor locations
 #
 #     If you are interested in how standard (idealized) EEG sensor positions
@@ -68,7 +68,7 @@ print(sorted(os.listdir(montage_dir)))
 ten_twenty_montage = mne.channels.make_standard_montage('standard_1020')
 print(ten_twenty_montage)
 
-###############################################################################
+# %% ##########################################################################
 # Once loaded, a montage can be applied to data with the
 # `~mne.io.Raw.set_montage` method, for example
 # `raw.set_montage <mne.io.Raw.set_montage>`. It is also possible to skip the
@@ -81,7 +81,7 @@ print(ten_twenty_montage)
 # raw_1020 = raw.copy().set_montage(ten_twenty_montage)
 # raw_1020 = raw.copy().set_montage('standard_1020')
 
-###############################################################################
+# %% ##########################################################################
 # `Montage <mne.channels.DigMontage>` objects have a
 # `~mne.channels.DigMontage.plot` method for visualizing the sensor locations
 # in 2D or 3D:
@@ -90,7 +90,7 @@ fig = ten_twenty_montage.plot(kind='3d')
 fig.gca().view_init(azim=70, elev=15)  # set view angle
 ten_twenty_montage.plot(kind='topomap', show_names=False)
 
-###############################################################################
+# %% ##########################################################################
 # .. _control-chan-projection:
 #
 # Controlling channel projection (MNE vs EEGLAB)
@@ -105,7 +105,7 @@ ten_twenty_montage.plot(kind='topomap', show_names=False)
 biosemi_montage = mne.channels.make_standard_montage('biosemi64')
 biosemi_montage.plot(show_names=False)
 
-###############################################################################
+# %% ##########################################################################
 # By default, a sphere with origin at ``(0, 0, 0)`` (x, y, z coordinates) and
 # radius of ``0.095`` meters (9.5 cm) is used. You can use a different sphere
 # radius by passing a single value as the  ``sphere`` argument in any function
@@ -114,13 +114,13 @@ biosemi_montage.plot(show_names=False)
 
 biosemi_montage.plot(show_names=False, sphere=0.07)
 
-###############################################################################
+# %% ##########################################################################
 # To change not only the radius, but also the sphere origin, pass a
 # ``(x, y, z, radius)`` tuple as the ``sphere`` argument:
 
 biosemi_montage.plot(show_names=False, sphere=(0.03, 0.02, 0.01, 0.075))
 
-###############################################################################
+# %% ##########################################################################
 # In MNE-Python, the head center and therefore the sphere center are calculated
 # using :term:`fiducial points <fiducial>`. This means that the head circle
 # represents the head circumference at the nasion and ear level, and not where
@@ -130,21 +130,21 @@ biosemi_montage.plot(show_names=False, sphere=(0.03, 0.02, 0.01, 0.075))
 
 biosemi_montage.plot()
 
-###############################################################################
+# %% ##########################################################################
 # If you prefer to draw the head circle using 10–20 conventions (which are also
 # used by EEGLAB), you can move the sphere origin a few centimeters up along
 # the z dimension:
 
 biosemi_montage.plot(sphere=(0, 0, 0.035, 0.094))
 
-###############################################################################
+# %% ##########################################################################
 # Alternatively, you can calculate the sphere origin from Oz, Fpz, T3/T7 or
 # T4/T8 channels. This is easier once the montage has been applied to the data
 # and channel positions are in the head space (see
 # :ref:`this example <ex-topomap-eeglab-style>`).
 
 
-###############################################################################
+# %% ##########################################################################
 # .. _reading-dig-montages:
 #
 # Reading sensor digitization files
@@ -170,7 +170,7 @@ raw.plot_sensors(ch_type='eeg', axes=ax2d)
 raw.plot_sensors(ch_type='eeg', axes=ax3d, kind='3d')
 ax3d.view_init(azim=70, elev=15)
 
-###############################################################################
+# %% ##########################################################################
 # The previous 2D topomap reveals irregularities in the EEG sensor positions in
 # the :ref:`sample dataset <sample-dataset>` — this is because the sensor
 # positions in that dataset are digitizations of actual sensor positions on the
@@ -206,7 +206,7 @@ fig = mne.viz.plot_alignment(raw.info, trans=None, dig=False, eeg=False,
                              coord_frame='meg')
 mne.viz.set_3d_view(fig, azimuth=50, elevation=90, distance=0.5)
 
-###############################################################################
+# %% ##########################################################################
 # Note that `~mne.viz.plot_alignment` requires an `~mne.Info` object, and can
 # also render MRI surfaces of the scalp, skull, and brain (by passing a dict
 # with keys like ``'head'``, ``'outer_skull'`` or ``'brain'`` to the
@@ -228,7 +228,7 @@ print('\nBUILT-IN LAYOUT FILES')
 print('=====================')
 print(sorted(os.listdir(layout_dir)))
 
-###############################################################################
+# %% ##########################################################################
 # The file formats (and therefore file extensions) of the built-in layout and
 # montage files vary considerably (because manufacturers like to use different
 # conventions). However, the montage and layout loading functions in MNE-Python
@@ -243,7 +243,7 @@ print(sorted(os.listdir(layout_dir)))
 biosemi_layout = mne.channels.read_layout('biosemi')
 biosemi_layout.plot()  # same result as mne.viz.plot_layout(biosemi_layout)
 
-###############################################################################
+# %% ##########################################################################
 # Similar to the ``picks`` argument for selecting channels from `~mne.io.Raw`
 # objects, the `~mne.channels.Layout.plot` method of `~mne.channels.Layout`
 # objects also has a ``picks`` argument. However, because layouts only contain
@@ -256,7 +256,7 @@ biosemi_layout.plot()  # same result as mne.viz.plot_layout(biosemi_layout)
 midline = np.where([name.endswith('z') for name in biosemi_layout.names])[0]
 biosemi_layout.plot(picks=midline)
 
-###############################################################################
+# %% ##########################################################################
 # If you have a `~mne.io.Raw` object that contains sensor positions, you can
 # create a `~mne.channels.Layout` object with either
 # `mne.channels.make_eeg_layout` or `mne.channels.find_layout`.
@@ -265,7 +265,7 @@ layout_from_raw = mne.channels.make_eeg_layout(raw.info)
 # same result as mne.channels.find_layout(raw.info, ch_type='eeg')
 layout_from_raw.plot()
 
-###############################################################################
+# %% ##########################################################################
 # .. note::
 #
 #     There is no corresponding ``make_meg_layout()`` function because sensor

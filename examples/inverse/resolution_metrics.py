@@ -48,7 +48,7 @@ inverse_operator = mne.minimum_norm.make_inverse_operator(
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
 
-###############################################################################
+# %% ##########################################################################
 # MNE
 # ---
 # Compute resolution matrices, peak localisation error (PLE) for point spread
@@ -62,7 +62,7 @@ sd_mne_psf = resolution_metrics(rm_mne, inverse_operator['src'],
                                 function='psf', metric='sd_ext')
 del rm_mne
 
-###############################################################################
+# %% ##########################################################################
 # dSPM
 # ----
 # Do the same for dSPM:
@@ -75,7 +75,7 @@ sd_dspm_psf = resolution_metrics(rm_dspm, inverse_operator['src'],
                                  function='psf', metric='sd_ext')
 del rm_dspm, forward
 
-###############################################################################
+# %% ##########################################################################
 # Visualize results
 # -----------------
 # Visualise peak localisation error (PLE) across the whole cortex for MNE PSF:
@@ -84,7 +84,7 @@ brain_ple_mne = ple_mne_psf.plot('sample', 'inflated', 'lh',
                                  clim=dict(kind='value', lims=(0, 2, 4)))
 brain_ple_mne.add_text(0.1, 0.9, 'PLE MNE', 'title', font_size=16)
 
-###############################################################################
+# %% ##########################################################################
 # And dSPM:
 
 brain_ple_dspm = ple_dspm_psf.plot('sample', 'inflated', 'lh',
@@ -92,7 +92,7 @@ brain_ple_dspm = ple_dspm_psf.plot('sample', 'inflated', 'lh',
                                    clim=dict(kind='value', lims=(0, 2, 4)))
 brain_ple_dspm.add_text(0.1, 0.9, 'PLE dSPM', 'title', font_size=16)
 
-###############################################################################
+# %% ##########################################################################
 # Subtract the two distributions and plot this difference
 diff_ple = ple_mne_psf - ple_dspm_psf
 
@@ -101,7 +101,7 @@ brain_ple_diff = diff_ple.plot('sample', 'inflated', 'lh',
                                clim=dict(kind='value', pos_lims=(0., 1., 2.)))
 brain_ple_diff.add_text(0.1, 0.9, 'PLE MNE-dSPM', 'title', font_size=16)
 
-###############################################################################
+# %% ##########################################################################
 # These plots show that  dSPM has generally lower peak localization error (red
 # color) than MNE in deeper brain areas, but higher error (blue color) in more
 # superficial areas.
@@ -114,7 +114,7 @@ brain_sd_mne = sd_mne_psf.plot('sample', 'inflated', 'lh',
                                clim=dict(kind='value', lims=(0, 2, 4)))
 brain_sd_mne.add_text(0.1, 0.9, 'SD MNE', 'title', font_size=16)
 
-###############################################################################
+# %% ##########################################################################
 # And dSPM:
 
 brain_sd_dspm = sd_dspm_psf.plot('sample', 'inflated', 'lh',
@@ -122,7 +122,7 @@ brain_sd_dspm = sd_dspm_psf.plot('sample', 'inflated', 'lh',
                                  clim=dict(kind='value', lims=(0, 2, 4)))
 brain_sd_dspm.add_text(0.1, 0.9, 'SD dSPM', 'title', font_size=16)
 
-###############################################################################
+# %% ##########################################################################
 # Subtract the two distributions and plot this difference:
 
 diff_sd = sd_mne_psf - sd_dspm_psf
@@ -132,7 +132,7 @@ brain_sd_diff = diff_sd.plot('sample', 'inflated', 'lh',
                              clim=dict(kind='value', pos_lims=(0., 1., 2.)))
 brain_sd_diff.add_text(0.1, 0.9, 'SD MNE-dSPM', 'title', font_size=16)
 
-###############################################################################
+# %% ##########################################################################
 # These plots show that dSPM has generally higher spatial deviation than MNE
 # (blue color), i.e. worse performance to distinguish different sources.
 #

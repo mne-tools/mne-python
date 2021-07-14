@@ -22,7 +22,7 @@ import mne
 from mne.preprocessing import (create_eog_epochs, create_ecg_epochs,
                                compute_proj_ecg, compute_proj_eog)
 
-###############################################################################
+# %% ##########################################################################
 # .. note::
 #     Before applying SSP (or any artifact repair strategy), be sure to observe
 #     the artifacts in your data to make sure you choose the right repair tool.
@@ -68,7 +68,7 @@ sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                     'sample_audvis_raw.fif')
 raw = mne.io.read_raw_fif(sample_data_raw_file)
 
-###############################################################################
+# %% ##########################################################################
 # The :ref:`example data <sample-dataset>` also includes an "empty room"
 # recording taken the same day as the recording of the subject. This will
 # provide a more accurate estimate of environmental noise than the projectors
@@ -84,13 +84,13 @@ empty_room_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                'ernoise_raw.fif')
 empty_room_raw = mne.io.read_raw_fif(empty_room_file)
 
-###############################################################################
+# %% ##########################################################################
 # Notice that the empty room recording itself has the system-provided SSP
 # projectors in it — we'll remove those from the empty room file too.
 
 empty_room_raw.del_proj()
 
-###############################################################################
+# %% ##########################################################################
 # Visualizing the empty-room noise
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
@@ -101,7 +101,7 @@ empty_room_raw.del_proj()
 for average in (False, True):
     empty_room_raw.plot_psd(average=average, dB=False, xscale='log')
 
-###############################################################################
+# %% ##########################################################################
 # Creating the empty-room projectors
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
@@ -119,7 +119,7 @@ empty_room_projs = mne.compute_proj_raw(empty_room_raw, n_grad=3, n_mag=3)
 mne.viz.plot_projs_topomap(empty_room_projs, colorbar=True, vlim='joint',
                            info=empty_room_raw.info)
 
-###############################################################################
+# %% ##########################################################################
 # Notice that the gradiometer-based projectors seem to reflect problems with
 # individual sensor units rather than a global noise source (indeed, planar
 # gradiometers are much less sensitive to distant sources). This is the reason
@@ -134,7 +134,7 @@ for idx, _projs in enumerate([system_projs, empty_room_projs[3:]]):
     mne.viz.plot_projs_topomap(_projs, axes=axs[idx], colorbar=True,
                                vlim='joint', info=empty_room_raw.info)
 
-###############################################################################
+# %% ##########################################################################
 # Visualizing how projectors affect the signal
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
@@ -154,7 +154,7 @@ for title, projs in [('system', system_projs),
     fig.subplots_adjust(top=0.9)  # make room for title
     fig.suptitle('{} projectors'.format(title), size='xx-large', weight='bold')
 
-###############################################################################
+# %% ##########################################################################
 # The effect is sometimes easier to see on averaged data. Here we use an
 # interactive feature of `mne.Evoked.plot_topomap` to turn projectors on
 # and off to see the effect on the data. Of course, the interactivity won't
@@ -176,7 +176,7 @@ times = np.linspace(0.05, 0.15, 5)
 epochs = mne.Epochs(raw, events, event_id, proj='delayed', reject=reject)
 fig = epochs.average().plot_topomap(times, proj='interactive')
 
-###############################################################################
+# %% ##########################################################################
 # Plotting the ERP/F using ``evoked.plot()`` or ``evoked.plot_joint()`` with
 # and without projectors applied can also be informative, as can plotting with
 # ``proj='reconstruct'``, which can reduce the signal bias introduced by
@@ -197,7 +197,7 @@ regexp = r'(MEG [12][45][123]1|EEG 00.)'
 artifact_picks = mne.pick_channels_regexp(raw.ch_names, regexp=regexp)
 raw.plot(order=artifact_picks, n_channels=len(artifact_picks))
 
-###############################################################################
+# %% ##########################################################################
 # Repairing ECG artifacts with SSP
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
@@ -210,14 +210,14 @@ raw.plot(order=artifact_picks, n_channels=len(artifact_picks))
 ecg_evoked = create_ecg_epochs(raw).average()
 ecg_evoked.plot_joint()
 
-###############################################################################
+# %% ##########################################################################
 # Looks like the EEG channels are pretty spread out; let's baseline-correct and
 # plot again:
 
 ecg_evoked.apply_baseline((None, None))
 ecg_evoked.plot_joint()
 
-###############################################################################
+# %% ##########################################################################
 # To compute SSP projectors for the heartbeat artifact, you can use
 # `~mne.preprocessing.compute_proj_ecg`, which takes a
 # `~mne.io.Raw` object as input and returns the requested number of
@@ -230,7 +230,7 @@ ecg_evoked.plot_joint()
 
 projs, events = compute_proj_ecg(raw, n_grad=1, n_mag=1, n_eeg=1, reject=None)
 
-###############################################################################
+# %% ##########################################################################
 # The first line of output tells us that
 # `~mne.preprocessing.compute_proj_ecg` found three existing projectors
 # already in the `~mne.io.Raw` object, and will include those in the
@@ -243,13 +243,13 @@ projs, events = compute_proj_ecg(raw, n_grad=1, n_mag=1, n_eeg=1, reject=None)
 ecg_projs = projs[3:]
 print(ecg_projs)
 
-###############################################################################
+# %% ##########################################################################
 # Just like with the empty-room projectors, we can visualize the scalp
 # distribution:
 
 mne.viz.plot_projs_topomap(ecg_projs, info=raw.info)
 
-###############################################################################
+# %% ##########################################################################
 # Since no dedicated ECG sensor channel was detected in the
 # `~mne.io.Raw` object, by default
 # `~mne.preprocessing.compute_proj_ecg` used the magnetometers to
@@ -296,7 +296,7 @@ for title, proj in [('Without', empty_room_projs), ('With', ecg_projs)]:
     fig.suptitle('{} ECG projectors'.format(title), size='xx-large',
                  weight='bold')
 
-###############################################################################
+# %% ##########################################################################
 # Finally, note that above we passed ``reject=None`` to the
 # `~mne.preprocessing.compute_proj_ecg` function, meaning that all
 # detected ECG epochs would be used when computing the projectors (regardless
@@ -347,7 +347,7 @@ eog_evoked = create_eog_epochs(raw).average()
 eog_evoked.apply_baseline((None, None))
 eog_evoked.plot_joint()
 
-###############################################################################
+# %% ##########################################################################
 # Just like we did with the heartbeat artifact, we can compute SSP projectors
 # for the ocular artifact using `~mne.preprocessing.compute_proj_eog`,
 # which again takes a `~mne.io.Raw` object as input and returns the
@@ -361,13 +361,13 @@ eog_evoked.plot_joint()
 eog_projs, _ = compute_proj_eog(raw, n_grad=1, n_mag=1, n_eeg=1, reject=None,
                                 no_proj=True)
 
-###############################################################################
+# %% ##########################################################################
 # Just like with the empty-room and ECG projectors, we can visualize the scalp
 # distribution:
 
 mne.viz.plot_projs_topomap(eog_projs, info=raw.info)
 
-###############################################################################
+# %% ##########################################################################
 # Now we repeat the plot from above (with empty room and ECG projectors) and
 # compare it to a plot with empty room, ECG, and EOG projectors, to see how
 # well the ocular artifacts have been repaired:
@@ -380,7 +380,7 @@ for title in ('Without', 'With'):
     fig.suptitle('{} EOG projectors'.format(title), size='xx-large',
                  weight='bold')
 
-###############################################################################
+# %% ##########################################################################
 # Notice that the small peaks in the first to magnetometer channels (``MEG
 # 1411`` and ``MEG 1421``) that occur at the same time as the large EEG
 # deflections have also been removed.
@@ -448,7 +448,7 @@ plt.setp(axes[:, 1:].ravel(), ylabel='')
 plt.setp(axes[:-1, :].ravel(), xlabel='')
 mne.viz.tight_layout()
 
-###############################################################################
+# %% ##########################################################################
 # Note that here the bias in the EEG and magnetometer channels is reduced by
 # the reconstruction. This suggests that the application of SSP has slightly
 # reduced the amplitude of our signals in sensor space, but that it should not

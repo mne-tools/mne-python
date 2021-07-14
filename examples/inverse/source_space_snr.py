@@ -63,7 +63,7 @@ kwargs = dict(initial_time=evoked.times[maxidx], hemi='split',
               transparent=True, colormap='viridis')
 brain = snr_stc.plot(**kwargs)
 
-###############################################################################
+# %% ##########################################################################
 # EEG
 # ---
 # Next we do the same for EEG and plot the result on the cortex:
@@ -75,7 +75,7 @@ stc_eeg = apply_inverse(evoked_eeg, inv_op_eeg, lambda2, 'MNE', verbose=True)
 snr_stc_eeg = stc_eeg.estimate_snr(evoked_eeg.info, fwd, cov)
 brain = snr_stc_eeg.plot(**kwargs)
 
-###############################################################################
+# %% ##########################################################################
 # The same can be done for MEG, which looks more similar to the MEG-EEG case
 # than the EEG case does.
 #

@@ -42,7 +42,7 @@ mne.io.concatenate_raws(
 raw.crop(350, 410).load_data()
 raw.resample(100, npad="auto")
 
-###############################################################################
+# %% ##########################################################################
 # Plot continuous head position with respect to the mean recording position
 # --------------------------------------------------------------------------
 
@@ -62,7 +62,7 @@ for ax, val, val_ori in zip(fig.axes[::2], average_head_dev_t['trans'][:3, 3],
 # The green horizontal lines represent the original head position, whereas the
 # red lines are the new head position averaged over all the time points.
 
-###############################################################################
+# %% ##########################################################################
 # Plot raw data with annotated movement
 # ------------------------------------------------------------------
 

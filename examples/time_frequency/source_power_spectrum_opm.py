@@ -176,7 +176,7 @@ for kind in kinds:
 del fwd, raws, raw_erms
 
 
-###############################################################################
+# %% ##########################################################################
 # Now we can make some plots of each frequency band. Note that the OPM head
 # coverage is only over right motor cortex, so only localization
 # of beta is likely to be worthwhile.
@@ -201,13 +201,13 @@ def plot_band(kind, band):
 
 fig_theta, brain_theta = plot_band('vv', 'theta')
 
-###############################################################################
+# %% ##########################################################################
 # Alpha
 # -----
 
 fig_alpha, brain_alpha = plot_band('vv', 'alpha')
 
-###############################################################################
+# %% ##########################################################################
 # Beta
 # ----
 # Here we also show OPM data, which shows a profile similar to the VectorView
@@ -215,17 +215,17 @@ fig_alpha, brain_alpha = plot_band('vv', 'alpha')
 
 fig_beta, brain_beta = plot_band('vv', 'beta')
 
-###############################################################################
+# %% ##########################################################################
 # Then OPM:
 fig_beta_opm, brain_beta_opm = plot_band('opm', 'beta')
 
-###############################################################################
+# %% ##########################################################################
 # Gamma
 # -----
 
 fig_gamma, brain_gamma = plot_band('vv', 'gamma')
 
-###############################################################################
+# %% ##########################################################################
 # References
 # ----------
 # .. footbibliography::

@@ -34,7 +34,7 @@ from mne.datasets import sample
 
 print(__doc__)
 
-###############################################################################
+# %% ##########################################################################
 # Setup paths
 
 data_path = sample.data_path()
@@ -47,13 +47,13 @@ fname_fsaverage_src = os.path.join(subjects_dir, 'fsaverage', 'bem',
 
 fname_stc = os.path.join(sample_dir, 'sample_audvis-meg')
 
-###############################################################################
+# %% ##########################################################################
 # Load example data
 
 # Read stc from file
 stc = mne.read_source_estimate(fname_stc, subject='sample')
 
-###############################################################################
+# %% ##########################################################################
 # Setting up SourceMorph for SourceEstimate
 # -----------------------------------------
 #
@@ -71,7 +71,7 @@ fwd = mne.read_forward_solution(fname_fwd)
 print(fwd['src'])  # n_used=3732, 3766
 print([len(v) for v in stc.vertices])
 
-###############################################################################
+# %% ##########################################################################
 # We also need to specify the set of vertices to morph to. This can be done
 # using the ``spacing`` parameter, but for consistency it's better to pass the
 # ``src_to`` parameter.
@@ -93,7 +93,7 @@ morph = mne.compute_source_morph(stc, subject_from='sample',
                                  subject_to='fsaverage', src_to=src_to,
                                  subjects_dir=subjects_dir)
 
-###############################################################################
+# %% ##########################################################################
 # Apply morph to (Vector) SourceEstimate
 # --------------------------------------
 #
@@ -102,7 +102,7 @@ morph = mne.compute_source_morph(stc, subject_from='sample',
 
 stc_fsaverage = morph.apply(stc)
 
-###############################################################################
+# %% ##########################################################################
 # Plot results
 # ------------
 
@@ -120,7 +120,7 @@ brain = stc_fsaverage.plot(surface='sphere', **surfer_kwargs)
 brain.add_text(0.1, 0.9, 'Morphed to fsaverage (spherical)', 'title',
                font_size=16)
 
-###############################################################################
+# %% ##########################################################################
 # As inflated surface
 brain_inf = stc_fsaverage.plot(surface='inflated', **surfer_kwargs)
 
@@ -128,7 +128,7 @@ brain_inf = stc_fsaverage.plot(surface='inflated', **surfer_kwargs)
 brain_inf.add_text(0.1, 0.9, 'Morphed to fsaverage (inflated)', 'title',
                    font_size=16)
 
-###############################################################################
+# %% ##########################################################################
 # Reading and writing SourceMorph from and to disk
 # ------------------------------------------------
 #
@@ -158,7 +158,7 @@ brain_inf.add_text(0.1, 0.9, 'Morphed to fsaverage (inflated)', 'title',
 stc_fsaverage = mne.compute_source_morph(stc,
                                          subjects_dir=subjects_dir).apply(stc)
 
-###############################################################################
+# %% ##########################################################################
 # For more examples, check out :ref:`examples using SourceMorph.apply
 # <sphx_glr_backreferences_mne.SourceMorph.apply>`.
 #

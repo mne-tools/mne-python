@@ -30,7 +30,7 @@ from mne.datasets import sample
 
 print(__doc__)
 
-###############################################################################
+# %% ##########################################################################
 # Set parameters
 # --------------
 data_path = sample.data_path()
@@ -77,7 +77,7 @@ tfr_epochs.crop(-0.1, 0.4)
 
 epochs_power = tfr_epochs.data
 
-###############################################################################
+# %% ##########################################################################
 # Define adjacency for statistics
 # -------------------------------
 # To compute a cluster-corrected value, we need a suitable definition
@@ -103,7 +103,7 @@ adjacency = mne.stats.combine_adjacency(
 assert adjacency.shape[0] == adjacency.shape[1] == \
     len(tfr_epochs.ch_names) * len(tfr_epochs.freqs) * len(tfr_epochs.times)
 
-###############################################################################
+# %% ##########################################################################
 # Compute statistic
 # -----------------
 threshold = 3.
@@ -114,7 +114,7 @@ T_obs, clusters, cluster_p_values, H0 = \
                                    adjacency=adjacency,
                                    out_type='mask', verbose=True)
 
-###############################################################################
+# %% ##########################################################################
 # View time-frequency plots
 # -------------------------
 

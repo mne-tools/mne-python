@@ -25,7 +25,7 @@ import mne
 from mne.time_frequency import tfr_morlet, psd_multitaper, psd_welch
 from mne.datasets import somato
 
-###############################################################################
+# %% ##########################################################################
 # Set parameters
 data_path = somato.data_path()
 subject = '01'
@@ -49,22 +49,22 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 
 epochs.resample(200., npad='auto')  # resample to reduce computation time
 
-###############################################################################
+# %% ##########################################################################
 # Frequency analysis
 # ------------------
 #
 # We start by exploring the frequence content of our epochs.
 
 
-###############################################################################
+# %% ##########################################################################
 # Let's first check out all channel types by averaging across epochs.
 epochs.plot_psd(fmin=2., fmax=40., average=True, spatial_colors=False)
 
-###############################################################################
+# %% ##########################################################################
 # Now let's take a look at the spatial distributions of the PSD.
 epochs.plot_psd_topomap(ch_type='grad', normalize=True)
 
-###############################################################################
+# %% ##########################################################################
 # Alternatively, you can also create PSDs from Epochs objects with functions
 # that start with ``psd_`` such as
 # :func:`mne.time_frequency.psd_multitaper` and
@@ -83,7 +83,7 @@ ax.set(title='Multitaper PSD (gradiometers)', xlabel='Frequency (Hz)',
        ylabel='Power Spectral Density (dB)')
 plt.show()
 
-###############################################################################
+# %% ##########################################################################
 # Notably, :func:`mne.time_frequency.psd_welch` supports the keyword argument
 # ``average``, which specifies how to estimate the PSD based on the individual
 # windowed segments. The default is ``average='mean'``, which simply calculates
@@ -116,7 +116,7 @@ ax.set(title='Welch PSD ({}, Epoch {})'.format(ch_name, epo_idx),
 ax.legend(loc='upper right')
 plt.show()
 
-###############################################################################
+# %% ##########################################################################
 # Lastly, we can also retrieve the unaggregated segments by passing
 # ``average=None`` to :func:`mne.time_frequency.psd_welch`. The dimensions of
 # the returned array are ``(n_epochs, n_sensors, n_freqs, n_segments)``.
@@ -124,7 +124,7 @@ plt.show()
 psds_welch_unagg, freqs_unagg = psd_welch(epochs, average=None, **kwargs)
 print(psds_welch_unagg.shape)
 
-###############################################################################
+# %% ##########################################################################
 # .. _inter-trial-coherence:
 #
 # Time-frequency analysis: power and inter-trial coherence
@@ -149,7 +149,7 @@ n_cycles = freqs / 2.  # different number of cycle per frequency
 power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles, use_fft=True,
                         return_itc=True, decim=3, n_jobs=1)
 
-###############################################################################
+# %% ##########################################################################
 # Inspect power
 # -------------
 #
@@ -171,7 +171,7 @@ power.plot_topomap(ch_type='grad', tmin=0.5, tmax=1.5, fmin=13, fmax=25,
 mne.viz.tight_layout()
 plt.show()
 
-###############################################################################
+# %% ##########################################################################
 # Joint Plot
 # ----------
 # You can also create a joint plot showing both the aggregated TFR
@@ -181,12 +181,12 @@ plt.show()
 power.plot_joint(baseline=(-0.5, 0), mode='mean', tmin=-.5, tmax=2,
                  timefreqs=[(.5, 10), (1.3, 8)])
 
-###############################################################################
+# %% ##########################################################################
 # Inspect ITC
 # -----------
 itc.plot_topo(title='Inter-Trial coherence', vmin=0., vmax=1., cmap='Reds')
 
-###############################################################################
+# %% ##########################################################################
 # .. note::
 #     Baseline correction can be applied to power or done in plots.
 #     To illustrate the baseline correction in plots, the next line is

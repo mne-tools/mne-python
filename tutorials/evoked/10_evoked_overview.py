@@ -17,7 +17,7 @@ As usual we'll start by importing the modules we need:
 import os
 import mne
 
-###############################################################################
+# %% ##########################################################################
 # Creating ``Evoked`` objects from ``Epochs``
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -44,7 +44,7 @@ evoked = epochs['auditory/left'].average()
 
 del raw  # reduce memory usage
 
-###############################################################################
+# %% ##########################################################################
 # You may have noticed that MNE informed us that "baseline correction" has been
 # applied. This happened automatically by during creation of the
 # `~mne.Epochs` object, but may also be initiated (or disabled!) manually:
@@ -57,7 +57,7 @@ del raw  # reduce memory usage
 print(f'Epochs baseline: {epochs.baseline}')
 print(f'Evoked baseline: {evoked.baseline}')
 
-###############################################################################
+# %% ##########################################################################
 # Basic visualization of ``Evoked`` objects
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -67,7 +67,7 @@ print(f'Evoked baseline: {evoked.baseline}')
 
 evoked.plot()
 
-###############################################################################
+# %% ##########################################################################
 # Like the ``plot()`` methods for :meth:`Raw <mne.io.Raw.plot>` and
 # :meth:`Epochs <mne.Epochs.plot>` objects,
 # :meth:`evoked.plot() <mne.Evoked.plot>` has many parameters for customizing
@@ -97,7 +97,7 @@ evoked.plot()
 
 print(evoked.data[:2, :3])  # first 2 channels, first 3 timepoints
 
-###############################################################################
+# %% ##########################################################################
 # To select based on time in seconds, the :meth:`~mne.Evoked.time_as_index`
 # method can be useful, although beware that depending on the sampling
 # frequency, the number of samples in a span of given duration may not always
@@ -134,7 +134,7 @@ new_order = ['EEG 002', 'MEG 2521', 'EEG 003']
 evoked_subset = evoked.copy().reorder_channels(new_order)
 print(evoked_subset.ch_names)
 
-###############################################################################
+# %% ##########################################################################
 # Similarities among the core data structures
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -191,7 +191,7 @@ evokeds_list = mne.read_evokeds(sample_data_evk_file, verbose=False)
 print(evokeds_list)
 print(type(evokeds_list))
 
-###############################################################################
+# %% ##########################################################################
 # Notice that :func:`mne.read_evokeds` returned a :class:`list` of
 # :class:`~mne.Evoked` objects, and each one has an ``evoked.comment``
 # attribute describing the experimental condition that was averaged to
@@ -200,7 +200,7 @@ print(type(evokeds_list))
 for evok in evokeds_list:
     print(evok.comment)
 
-###############################################################################
+# %% ##########################################################################
 # If you want to load only some of the conditions present in a ``.fif`` file,
 # :func:`~mne.read_evokeds` has a ``condition`` parameter, which takes either a
 # string (matched against the comment attribute of the evoked objects on disk),
@@ -213,7 +213,7 @@ right_vis = mne.read_evokeds(sample_data_evk_file, condition='Right visual')
 print(right_vis)
 print(type(right_vis))
 
-###############################################################################
+# %% ##########################################################################
 # Above, when we created an :class:`~mne.Evoked` object by averaging epochs,
 # baseline correction was applied by default when we extracted epochs from the
 # `~mne.io.Raw` object (the default baseline period is ``(None, 0)``,
@@ -223,7 +223,7 @@ print(type(right_vis))
 
 evokeds_list[0].plot(picks='eeg')
 
-###############################################################################
+# %% ##########################################################################
 # This can be remedied by either passing a ``baseline`` parameter to
 # :func:`mne.read_evokeds`, or by applying baseline correction after loading,
 # as shown here:
@@ -238,7 +238,7 @@ print(f'Baseline after calling apply_baseline(): {evokeds_list[0].baseline}')
 # Visualize the evoked response.
 evokeds_list[0].plot(picks='eeg')
 
-###############################################################################
+# %% ##########################################################################
 # Notice that :meth:`~mne.Evoked.apply_baseline` operated in-place. Similarly,
 # :class:`~mne.Evoked` objects may have been saved to disk with or without
 # :term:`projectors <projector>` applied; you can pass ``proj=True`` to the
@@ -257,7 +257,7 @@ evokeds_list[0].plot(picks='eeg')
 left_right_aud = epochs['auditory'].average()
 print(left_right_aud)
 
-###############################################################################
+# %% ##########################################################################
 # This approach will weight each epoch equally and create a single
 # :class:`~mne.Evoked` object. Notice that the printed representation includes
 # ``(average, N=145)``, indicating that the :class:`~mne.Evoked` object was
@@ -268,7 +268,7 @@ left_aud = epochs['auditory/left'].average()
 right_aud = epochs['auditory/right'].average()
 print([evok.nave for evok in (left_aud, right_aud)])
 
-###############################################################################
+# %% ##########################################################################
 # However, this may not always be the case; if for statistical reasons it is
 # important to average *the same number* of epochs from different conditions,
 # you can use :meth:`~mne.Epochs.equalize_event_counts` prior to averaging.
@@ -286,7 +286,7 @@ print([evok.nave for evok in (left_aud, right_aud)])
 left_right_aud = mne.combine_evoked([left_aud, right_aud], weights='nave')
 assert left_right_aud.nave == left_aud.nave + right_aud.nave
 
-###############################################################################
+# %% ##########################################################################
 # Note that the ``nave`` attribute of the resulting `~mne.Evoked` object will
 # reflect the *effective* number of averages, and depends on both the ``nave``
 # attributes of the contributing `~mne.Evoked` objects and the weights at
@@ -331,7 +331,7 @@ for ix, trial in enumerate(epochs[:3].iter_evoked()):
     print('Trial {}: peak of {} µV at {} ms in channel {}'
           .format(ix, value, latency, channel))
 
-###############################################################################
+# %% ##########################################################################
 # .. REFERENCES
 #
 # .. _`memory-mapped`: https://en.wikipedia.org/wiki/Memory-mapped_file

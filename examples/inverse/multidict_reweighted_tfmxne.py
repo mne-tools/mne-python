@@ -32,7 +32,7 @@ from mne.viz import plot_sparse_source_estimates
 print(__doc__)
 
 
-###############################################################################
+# %% ##########################################################################
 # Load somatosensory MEG data
 
 data_path = somato.data_path()
@@ -63,7 +63,7 @@ del epochs, raw
 # Handling forward solution
 forward = mne.read_forward_solution(fwd_fname)
 
-###############################################################################
+# %% ##########################################################################
 # Run iterative reweighted multidict TF-MxNE solver
 
 alpha, l1_ratio = 20, 0.05
@@ -81,7 +81,7 @@ dipoles, residual = tf_mixed_norm(
     wsize=wsize, tstep=tstep, return_as_dipoles=True,
     return_residual=True)
 
-###############################################################################
+# %% ##########################################################################
 # Generate stc from dipoles
 
 stc = make_stc_from_dipoles(dipoles, forward['src'])
@@ -89,7 +89,7 @@ plot_sparse_source_estimates(
     forward['src'], stc, bgcolor=(1, 1, 1), opacity=0.1,
     fig_name=f"irTF-MxNE (cond {evoked.comment})")
 
-###############################################################################
+# %% ##########################################################################
 # Show the evoked response and the residual for gradiometers
 ylim = dict(grad=[-300, 300])
 evoked.copy().pick_types(meg='grad').plot(
@@ -97,7 +97,7 @@ evoked.copy().pick_types(meg='grad').plot(
 residual.copy().pick_types(meg='grad').plot(
     titles=dict(grad='Residuals: Gradiometers'), ylim=ylim)
 
-###############################################################################
+# %% ##########################################################################
 # References
 # ----------
 # .. footbibliography::

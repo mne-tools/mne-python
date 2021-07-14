@@ -173,7 +173,7 @@ plot_connectivity_circle(conmat, label_names, n_lines=300,
                          title='All-to-All Connectivity left-Auditory '
                          'Condition (PLI)', fig=fig)
 
-###############################################################################
+# %% ##########################################################################
 # Save the figure (optional)
 # --------------------------
 #

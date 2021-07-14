@@ -26,7 +26,7 @@ from mne.viz import centers_to_edges
 
 print(__doc__)
 
-###############################################################################
+# %% ##########################################################################
 # Simulate data
 # -------------
 #
@@ -63,7 +63,7 @@ epochs = EpochsArray(data=data, info=info, events=events, event_id=event_id,
 
 epochs.average().plot()
 
-###############################################################################
+# %% ##########################################################################
 # Calculate a time-frequency representation (TFR)
 # -----------------------------------------------
 #
@@ -85,7 +85,7 @@ epochs.average().plot()
 freqs = np.arange(5., 100., 3.)
 vmin, vmax = -3., 3.  # Define our color limits.
 
-###############################################################################
+# %% ##########################################################################
 # **(1) Least smoothing (most variance/background fluctuations).**
 
 n_cycles = freqs / 2.
@@ -96,7 +96,7 @@ power = tfr_multitaper(epochs, freqs=freqs, n_cycles=n_cycles,
 power.plot([0], baseline=(0., 0.1), mode='mean', vmin=vmin, vmax=vmax,
            title='Sim: Least smoothing, most variance')
 
-###############################################################################
+# %% ##########################################################################
 # **(2) Less frequency smoothing, more time smoothing.**
 
 n_cycles = freqs  # Increase time-window length to 1 second.
@@ -107,7 +107,7 @@ power = tfr_multitaper(epochs, freqs=freqs, n_cycles=n_cycles,
 power.plot([0], baseline=(0., 0.1), mode='mean', vmin=vmin, vmax=vmax,
            title='Sim: Less frequency smoothing, more time smoothing')
 
-###############################################################################
+# %% ##########################################################################
 # **(3) Less time smoothing, more frequency smoothing.**
 
 n_cycles = freqs / 2.
@@ -138,7 +138,7 @@ for width, ax in zip((0.2, .7, 3.0), axs):
     ax.set_title('Sim: Using S transform, width = {:0.1f}'.format(width))
 plt.tight_layout()
 
-###############################################################################
+# %% ##########################################################################
 # Morlet Wavelets
 # ===============
 #
@@ -158,7 +158,7 @@ for n_cycles, ax in zip(all_n_cycles, axs):
     ax.set_title('Sim: Using Morlet wavelet, n_cycles = %s' % n_cycles)
 plt.tight_layout()
 
-###############################################################################
+# %% ##########################################################################
 # Calculating a TFR without averaging over epochs
 # -----------------------------------------------
 #
@@ -174,7 +174,7 @@ avgpower = power.average()
 avgpower.plot([0], baseline=(0., 0.1), mode='mean', vmin=vmin, vmax=vmax,
               title='Using Morlet wavelets and EpochsTFR', show=False)
 
-###############################################################################
+# %% ##########################################################################
 # Operating on arrays
 # -------------------
 #

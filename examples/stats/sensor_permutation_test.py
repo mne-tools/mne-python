@@ -21,7 +21,7 @@ from mne.datasets import sample
 
 print(__doc__)
 
-###############################################################################
+# %% ##########################################################################
 # Set parameters
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
@@ -54,7 +54,7 @@ significant_sensors_names = [raw.ch_names[k] for k in significant_sensors]
 print("Number of significant sensors : %d" % len(significant_sensors))
 print("Sensors names : %s" % significant_sensors_names)
 
-###############################################################################
+# %% ##########################################################################
 # View location of significantly active sensors
 
 evoked = mne.EvokedArray(-np.log10(p_values)[:, np.newaxis],

@@ -43,7 +43,7 @@ evoked = evoked.pick_types(eeg=False, meg=True)
 forward = mne.read_forward_solution(fwd_fname)
 
 
-###############################################################################
+# %% ##########################################################################
 # Auxiliary function to run the solver
 
 def apply_solver(solver, evoked, forward, noise_cov, loose=0.2, depth=0.8):
@@ -117,7 +117,7 @@ def apply_solver(solver, evoked, forward, noise_cov, loose=0.2, depth=0.8):
     return stc
 
 
-###############################################################################
+# %% ##########################################################################
 # Define your solver
 
 def solver(M, G, n_orient):
@@ -160,14 +160,14 @@ def solver(M, G, n_orient):
     return X, active_set
 
 
-###############################################################################
+# %% ##########################################################################
 # Apply your custom solver
 
 # loose, depth = 0.2, 0.8  # corresponds to loose orientation
 loose, depth = 1., 0.  # corresponds to free orientation
 stc = apply_solver(solver, evoked, forward, noise_cov, loose, depth)
 
-###############################################################################
+# %% ##########################################################################
 # View in 2D and 3D ("glass" brain like 3D plot)
 plot_sparse_source_estimates(forward['src'], stc, bgcolor=(1, 1, 1),
                              opacity=0.1)

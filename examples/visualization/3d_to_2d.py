@@ -40,7 +40,7 @@ path_data = mne.datasets.misc.data_path() + '/ecog/sample_ecog.mat'
 layout_path = op.join(op.dirname(mne.__file__), 'data', 'image')
 layout_name = 'custom_layout.lout'
 
-###############################################################################
+# %% ##########################################################################
 # Load data
 # ---------
 #
@@ -59,7 +59,7 @@ montage = mne.channels.make_dig_montage(ch_pos=dict(zip(ch_names, elec)),
 info = mne.create_info(ch_names, 1000., 'ecog').set_montage(montage)
 print('Created %s channel positions' % len(ch_names))
 
-###############################################################################
+# %% ##########################################################################
 # Project 3D electrodes to a 2D snapshot
 # --------------------------------------
 #
@@ -86,7 +86,7 @@ ax.scatter(*xy_pts.T, c=activity, s=200, cmap='coolwarm')
 ax.set_axis_off()
 # fig2.savefig('./brain.png', bbox_inches='tight')  # For ClickableImage
 
-###############################################################################
+# %% ##########################################################################
 # Manually creating 2D electrode positions
 # ----------------------------------------
 #

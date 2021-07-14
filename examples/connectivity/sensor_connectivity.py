@@ -19,7 +19,7 @@ from mne.viz import plot_sensors_connectivity
 
 print(__doc__)
 
-###############################################################################
+# %% ##########################################################################
 # Set parameters
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'

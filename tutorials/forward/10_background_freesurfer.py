@@ -96,7 +96,7 @@ brain = Brain('sample', hemi='lh', surf='pial',
               subjects_dir=subjects_dir, size=(800, 600))
 brain.add_annotation('aparc.a2009s', borders=False)
 
-###############################################################################
+# %% ##########################################################################
 # Use with MNE-Python
 # ===================
 #

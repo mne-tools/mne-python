@@ -39,7 +39,7 @@ fname_fwd = data_path + 'MEG/sample/sample_audvis-meg-oct-6-fwd.fif'
 fname_evoked = data_path + '/MEG/sample/sample_audvis-ave.fif'
 subjects_dir = data_path + '/subjects'
 
-###############################################################################
+# %% ##########################################################################
 # Set parameters
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
@@ -65,7 +65,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     reject=dict(grad=4000e-13, eog=150e-6),
                     decim=5)  # decimate to save memory and increase speed
 
-###############################################################################
+# %% ##########################################################################
 # Compute inverse solution
 snr = 3.0
 noise_cov = mne.read_cov(fname_cov)
@@ -75,7 +75,7 @@ stcs = apply_inverse_epochs(epochs, inverse_operator,
                             lambda2=1.0 / snr ** 2, verbose=False,
                             method="dSPM", pick_ori="normal")
 
-###############################################################################
+# %% ##########################################################################
 # Decoding in sensor space using a logistic regression
 
 # Retrieve source space data into an array
@@ -98,7 +98,7 @@ ax.axhline(.5, color='k', linestyle='--', label='chance')
 ax.axvline(0, color='k')
 plt.legend()
 
-###############################################################################
+# %% ##########################################################################
 # To investigate weights, we need to retrieve the patterns of a fitted model
 
 # The fitting needs not be cross validated because the weights are based on

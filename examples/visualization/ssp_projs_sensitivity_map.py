@@ -33,7 +33,7 @@ projs = projs[::2]
 # Compute sensitivity map
 ssp_ecg_map = sensitivity_map(fwd, ch_type='grad', projs=projs, mode='angle')
 
-###############################################################################
+# %% ##########################################################################
 # Show sensitivity map
 
 plt.hist(ssp_ecg_map.data.ravel())

@@ -41,7 +41,7 @@ evoked.crop(tmin=0, tmax=0.3)
 # Handling forward solution
 forward = mne.read_forward_solution(fwd_fname)
 
-###############################################################################
+# %% ##########################################################################
 # Run solver with SURE criterion :footcite:`DeledalleEtAl2014`
 alpha = "sure"  # regularization parameter between 0 and 100 or SURE criterion
 loose, depth = 0.9, 0.9  # loose orientation & depth weighting
@@ -68,7 +68,7 @@ for di, dip in enumerate(dipoles, 1):
     print(f'Dipole #{di} GOF at {1000 * t:0.1f} ms: '
           f'{float(dip.gof[tidx]):0.1f}%')
 
-###############################################################################
+# %% ##########################################################################
 # Plot dipole activations
 plot_dipole_amplitudes(dipoles)
 
@@ -84,7 +84,7 @@ for dip in dipoles:
                           subjects_dir=subjects_dir, mode='orthoview',
                           idx='amplitude')
 
-###############################################################################
+# %% ##########################################################################
 # Plot residual
 ylim = dict(eeg=[-10, 10], grad=[-400, 400], mag=[-600, 600])
 evoked.pick_types(meg=True, eeg=True, exclude='bads')
@@ -92,18 +92,18 @@ evoked.plot(ylim=ylim, proj=True, time_unit='s')
 residual.pick_types(meg=True, eeg=True, exclude='bads')
 residual.plot(ylim=ylim, proj=True, time_unit='s')
 
-###############################################################################
+# %% ##########################################################################
 # Generate stc from dipoles
 stc = make_stc_from_dipoles(dipoles, forward['src'])
 
-###############################################################################
+# %% ##########################################################################
 # View in 2D and 3D ("glass" brain like 3D plot)
 solver = "MxNE" if n_mxne_iter == 1 else "irMxNE"
 plot_sparse_source_estimates(forward['src'], stc, bgcolor=(1, 1, 1),
                              fig_name="%s (cond %s)" % (solver, condition),
                              opacity=0.1)
 
-###############################################################################
+# %% ##########################################################################
 # Morph onto fsaverage brain and view
 morph = mne.compute_source_morph(stc, subject_from='sample',
                                  subject_to='fsaverage', spacing=None,
@@ -116,7 +116,7 @@ plot_sparse_source_estimates(src_fsaverage, stc_fsaverage, bgcolor=(1, 1, 1),
                              fig_name="Morphed %s (cond %s)" % (solver,
                              condition), opacity=0.1)
 
-###############################################################################
+# %% ##########################################################################
 # References
 # ----------
 # .. footbibliography::

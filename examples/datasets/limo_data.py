@@ -50,7 +50,7 @@ print(__doc__)
 # subject to use
 subj = 1
 
-###############################################################################
+# %% ##########################################################################
 # About the data
 # --------------
 #
@@ -78,14 +78,14 @@ subj = 1
 # first time.
 limo_epochs = load_data(subject=subj)
 
-###############################################################################
+# %% ##########################################################################
 # Note that the result of the loading process is an
 # :class:`mne.EpochsArray` containing the data ready to interface
 # with MNE-Python.
 
 print(limo_epochs)
 
-###############################################################################
+# %% ##########################################################################
 # Visualize events
 # ----------------
 #
@@ -96,7 +96,7 @@ print(limo_epochs)
 fig = plot_events(limo_epochs.events, event_id=limo_epochs.event_id)
 fig.suptitle("Distribution of events in LIMO epochs")
 
-###############################################################################
+# %% ##########################################################################
 # As it can be seen above, conditions are coded as ``Face/A`` and ``Face/B``.
 # Information about the phase-coherence of the presented faces is stored in the
 # epochs metadata. These information can be easily accessed by calling
@@ -105,7 +105,7 @@ fig.suptitle("Distribution of events in LIMO epochs")
 
 print(limo_epochs.metadata.head())
 
-###############################################################################
+# %% ##########################################################################
 # Now let's take a closer look at the information in the epochs
 # metadata.
 
@@ -113,7 +113,7 @@ print(limo_epochs.metadata.head())
 epochs_summary = limo_epochs.metadata.describe(include='all').round(3)
 print(epochs_summary)
 
-###############################################################################
+# %% ##########################################################################
 # The first column of the summary table above provides more or less the same
 # information as the ``print(limo_epochs)`` command we ran before. There are
 # 1055 faces (i.e., epochs), subdivided in 2 conditions (i.e., Face A and
@@ -143,7 +143,7 @@ limo_epochs['Face/B'].average().plot_joint(times=[0.15],
                                            title='Evoked response: Face B',
                                            ts_args=ts_args)
 
-###############################################################################
+# %% ##########################################################################
 # We can also compute the difference wave contrasting Face A and Face B.
 # Although, looking at the evoked responses above, we shouldn't expect great
 # differences among these face-stimuli.
@@ -156,7 +156,7 @@ difference_wave = combine_evoked([limo_epochs['Face/A'].average(),
 # plot difference wave
 difference_wave.plot_joint(times=[0.15], title='Difference Face A - Face B')
 
-###############################################################################
+# %% ##########################################################################
 # As expected, no clear pattern appears when contrasting
 # Face A and Face B. However, we could narrow our search a little bit more.
 # Since this is a "visual paradigm" it might be best to look at electrodes
@@ -174,7 +174,7 @@ pick = evokeds["Face/A"].ch_names.index('B11')
 # compare evoked responses
 plot_compare_evokeds(evokeds, picks=pick, ylim=dict(eeg=(-15, 7.5)))
 
-###############################################################################
+# %% ##########################################################################
 # We do see a difference between Face A and B, but it is pretty small.
 #
 #
@@ -207,7 +207,7 @@ for electrode in electrodes:
                          picks=electrode,
                          cmap=("Phase coherence", "magma"))
 
-###############################################################################
+# %% ##########################################################################
 # As shown above, there are some considerable differences between the
 # activation patterns evoked by stimuli with low vs. high phase-coherence at
 # the chosen electrodes.
@@ -225,7 +225,7 @@ for electrode in electrodes:
 limo_epochs.interpolate_bads(reset_bads=True)
 limo_epochs.drop_channels(['EXG1', 'EXG2', 'EXG3', 'EXG4'])
 
-###############################################################################
+# %% ##########################################################################
 # Define predictor variables and design matrix
 # --------------------------------------------
 #
@@ -244,7 +244,7 @@ design['face a - face b'] = np.where(design['face'] == 'A', 1, -1)
 design['intercept'] = 1
 design = design[predictor_vars]
 
-###############################################################################
+# %% ##########################################################################
 # Now we can set up the linear model to be used in the analysis using
 # MNE-Python's func:`~mne.stats.linear_regression` function.
 
@@ -252,7 +252,7 @@ reg = linear_regression(limo_epochs,
                         design_matrix=design,
                         names=predictor_vars)
 
-###############################################################################
+# %% ##########################################################################
 # Extract regression coefficients
 # -------------------------------
 #
@@ -263,7 +263,7 @@ reg = linear_regression(limo_epochs,
 print('predictors are:', list(reg))
 print('fields are:', [field for field in getattr(reg['intercept'], '_fields')])
 
-###############################################################################
+# %% ##########################################################################
 # Plot model results
 # ------------------
 #
@@ -281,7 +281,7 @@ reg['phase-coherence'].beta.plot_joint(ts_args=ts_args,
                                        title='Effect of Phase-coherence',
                                        times=[0.23])
 
-###############################################################################
+# %% ##########################################################################
 # We can also plot the corresponding T values.
 
 # use unit=False and scale=1 to keep values at their original
@@ -297,7 +297,7 @@ fig = reg['phase-coherence'].t_val.plot_joint(ts_args=ts_args,
                                               times=[0.23])
 fig.axes[0].set_ylabel('T-value')
 
-###############################################################################
+# %% ##########################################################################
 # Conversely, there appears to be no (or very small) systematic effects when
 # comparing Face A and Face B stimuli. This is largely consistent with the
 # difference wave approach presented above.
@@ -307,7 +307,7 @@ reg['face a - face b'].beta.plot_joint(ts_args=ts_args,
                                        title='Effect of Face A vs. Face B',
                                        times=[0.23])
 
-###############################################################################
+# %% ##########################################################################
 # References
 # ----------
 # .. footbibliography::

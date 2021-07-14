@@ -21,7 +21,7 @@ cov = mne.read_cov(fname_cov)
 print(cov)
 ev_info = mne.io.read_info(fname_evo)
 
-###############################################################################
+# %% ##########################################################################
 # Plot covariance
 
 cov.plot(ev_info, exclude='bads', show_svd=False)

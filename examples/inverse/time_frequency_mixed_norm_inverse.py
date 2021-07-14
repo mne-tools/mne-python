@@ -53,7 +53,7 @@ evoked.crop(tmin=-0.1, tmax=0.4)
 # Handling forward solution
 forward = mne.read_forward_solution(fwd_fname)
 
-###############################################################################
+# %% ##########################################################################
 # Run solver
 
 # alpha parameter is between 0 and 100 (100 gives 0 active source)
@@ -83,11 +83,11 @@ for dip in dipoles:
 evoked.crop(tmin=-0.05, tmax=0.3)
 residual.crop(tmin=-0.05, tmax=0.3)
 
-###############################################################################
+# %% ##########################################################################
 # Plot dipole activations
 plot_dipole_amplitudes(dipoles)
 
-###############################################################################
+# %% ##########################################################################
 # Plot location of the strongest dipole with MRI slices
 idx = np.argmax([np.max(np.abs(dip.amplitude)) for dip in dipoles])
 plot_dipole_locations(dipoles[idx], forward['mri_head_t'], 'sample',
@@ -100,7 +100,7 @@ plot_dipole_locations(dipoles[idx], forward['mri_head_t'], 'sample',
 #                           subjects_dir=subjects_dir, mode='orthoview',
 #                           idx='amplitude')
 
-###############################################################################
+# %% ##########################################################################
 # Show the evoked response and the residual for gradiometers
 ylim = dict(grad=[-120, 120])
 evoked.pick_types(meg='grad', exclude='bads')
@@ -111,11 +111,11 @@ residual.pick_types(meg='grad', exclude='bads')
 residual.plot(titles=dict(grad='Residuals: Gradiometers'), ylim=ylim,
               proj=True, time_unit='s')
 
-###############################################################################
+# %% ##########################################################################
 # Generate stc from dipoles
 stc = make_stc_from_dipoles(dipoles, forward['src'])
 
-###############################################################################
+# %% ##########################################################################
 # View in 2D and 3D ("glass" brain like 3D plot)
 plot_sparse_source_estimates(forward['src'], stc, bgcolor=(1, 1, 1),
                              opacity=0.1, fig_name="TF-MxNE (cond %s)"
@@ -129,7 +129,7 @@ brain = stc.plot('sample', 'inflated', 'rh', views='medial',
 brain.add_label("V1", color="yellow", scalar_thresh=.5, borders=True)
 brain.add_label("V2", color="red", scalar_thresh=.5, borders=True)
 
-###############################################################################
+# %% ##########################################################################
 # References
 # ----------
 # .. footbibliography::

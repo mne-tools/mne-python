@@ -51,7 +51,7 @@ stc = apply_inverse(evoked, inv, lambda2, 'dSPM', pick_ori='vector')
 # Use peak getter to move visualization to the time point of the peak magnitude
 _, peak_time = stc.magnitude().get_peak(hemi='lh')
 
-###############################################################################
+# %% ##########################################################################
 # Plot the source estimate:
 
 # sphinx_gallery_thumbnail_number = 2
@@ -62,7 +62,7 @@ brain = stc.plot(
 # brain.save_movie(time_dilation=20, tmin=0.05, tmax=0.16, framerate=10,
 #                  interpolation='linear', time_viewer=True)
 
-###############################################################################
+# %% ##########################################################################
 # Plot the activation in the direction of maximal power for this data:
 
 stc_max, directions = stc.project('pca', src=inv['src'])
@@ -74,14 +74,14 @@ brain_max = stc_max.plot(
     initial_time=peak_time, hemi='lh', subjects_dir=subjects_dir,
     time_label='Max power')
 
-###############################################################################
+# %% ##########################################################################
 # The normal is very similar:
 
 brain_normal = stc.project('normal', inv['src'])[0].plot(
     initial_time=peak_time, hemi='lh', subjects_dir=subjects_dir,
     time_label='Normal')
 
-###############################################################################
+# %% ##########################################################################
 # You can also do this with a fixed-orientation inverse. It looks a lot like
 # the result above because the ``loose=0.2`` orientation constraint keeps
 # sources close to fixed orientation:

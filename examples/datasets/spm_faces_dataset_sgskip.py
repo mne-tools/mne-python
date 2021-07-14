@@ -35,7 +35,7 @@ print(__doc__)
 data_path = spm_face.data_path()
 subjects_dir = data_path + '/subjects'
 
-###############################################################################
+# %% ##########################################################################
 # Load and filter data, set up epochs
 
 raw_fname = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces%d_3D.ds'
@@ -90,7 +90,7 @@ plt.show()
 noise_cov = mne.compute_covariance(epochs, tmax=0, method='shrunk',
                                    rank=None)
 
-###############################################################################
+# %% ##########################################################################
 # Visualize fields on MEG helmet
 
 # The transformation here was aligned using the dig-montage. It's included in
@@ -103,19 +103,19 @@ maps = mne.make_field_map(evoked[0], trans_fname, subject='spm',
 
 evoked[0].plot_field(maps, time=0.170)
 
-###############################################################################
+# %% ##########################################################################
 # Look at the whitened evoked daat
 
 evoked[0].plot_white(noise_cov)
 
-###############################################################################
+# %% ##########################################################################
 # Compute forward model
 
 src = data_path + '/subjects/spm/bem/spm-oct-6-src.fif'
 bem = data_path + '/subjects/spm/bem/spm-5120-5120-5120-bem-sol.fif'
 forward = mne.make_forward_solution(contrast.info, trans_fname, src, bem)
 
-###############################################################################
+# %% ##########################################################################
 # Compute inverse solution
 
 snr = 3.0

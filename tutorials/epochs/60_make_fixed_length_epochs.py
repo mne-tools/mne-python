@@ -28,7 +28,7 @@ sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
 
 raw = mne.io.read_raw_fif(sample_data_raw_file)
 
-###############################################################################
+# %% ##########################################################################
 # For this tutorial we'll crop and resample the raw data to a manageable size
 # for our web server to handle, ignore EEG channels, and remove the heartbeat
 # artifact so we don't get spurious correlations just because of that.
@@ -38,7 +38,7 @@ ecg_proj, _ = compute_proj_ecg(raw, ch_name='MEG 0511')  # No ECG chan
 raw.add_proj(ecg_proj)
 raw.apply_proj()
 
-###############################################################################
+# %% ##########################################################################
 # To create fixed length epochs, we simply call the function and provide it
 # with the appropriate parameters indicating the desired duration of epochs in
 # seconds, whether or not to preload data, whether or not to reject epochs that
@@ -49,7 +49,7 @@ raw.apply_proj()
 
 epochs = mne.make_fixed_length_epochs(raw, duration=30, preload=False)
 
-###############################################################################
+# %% ##########################################################################
 # Characteristics of Fixed Length Epochs
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # Fixed length epochs are generally unsuitable for event-related analyses. This
@@ -59,7 +59,7 @@ epochs = mne.make_fixed_length_epochs(raw, duration=30, preload=False)
 
 event_related_plot = epochs.plot_image(picks=['MEG 1142'])
 
-###############################################################################
+# %% ##########################################################################
 # For information about creating epochs for event-related analyses, please see
 # :ref:`tut-epochs-class`.
 #
@@ -83,14 +83,14 @@ event_related_plot = epochs.plot_image(picks=['MEG 1142'])
 epochs.load_data().filter(l_freq=8, h_freq=12)
 alpha_data = epochs.get_data()
 
-###############################################################################
+# %% ##########################################################################
 # If desired, separate correlation matrices for each epoch can be obtained.
 # For envelope correlations, this is done by passing ``combine=None`` to the
 # envelope correlations function.
 
 corr_matrix = mne.connectivity.envelope_correlation(alpha_data, combine=None)
 
-###############################################################################
+# %% ##########################################################################
 # Now we can plot correlation matrices. We'll compare the first and last
 # 30-second epochs of the recording:
 

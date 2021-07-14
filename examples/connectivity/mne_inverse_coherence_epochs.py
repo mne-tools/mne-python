@@ -21,7 +21,7 @@ from mne.connectivity import seed_target_indices, spectral_connectivity
 
 print(__doc__)
 
-###############################################################################
+# %% ##########################################################################
 # Read the data
 # -------------
 #
@@ -58,7 +58,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0),
                     reject=dict(mag=4e-12, grad=4000e-13, eog=150e-6))
 
-###############################################################################
+# %% ##########################################################################
 # Choose channels for coherence estimation
 # ----------------------------------------
 #
@@ -84,7 +84,7 @@ seed_idx = np.searchsorted(stc.vertices[0], seed_vertno)  # index in orig stc
 n_sources = stc.data.shape[0]
 indices = seed_target_indices([seed_idx], np.arange(n_sources))
 
-###############################################################################
+# %% ##########################################################################
 # Compute the inverse solution for each epoch. By using "return_generator=True"
 # stcs will be a generator object instead of a list. This allows us so to
 # compute the coherence without having to keep all source estimates in memory.
@@ -94,7 +94,7 @@ lambda2 = 1.0 / snr ** 2
 stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, method,
                             pick_ori="normal", return_generator=True)
 
-###############################################################################
+# %% ##########################################################################
 # Compute the coherence between sources
 # -------------------------------------
 #
@@ -120,7 +120,7 @@ print(freqs[0])
 print('Frequencies in Hz over which coherence was averaged for beta: ')
 print(freqs[1])
 
-###############################################################################
+# %% ##########################################################################
 # Generate coherence sources and plot
 # -----------------------------------
 #

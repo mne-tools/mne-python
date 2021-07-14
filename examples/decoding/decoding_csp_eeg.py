@@ -67,7 +67,7 @@ epochs = Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
 epochs_train = epochs.copy().crop(tmin=1., tmax=2.)
 labels = epochs.events[:, -1] - 2
 
-###############################################################################
+# %% ##########################################################################
 # Classification with linear discrimant analysis
 
 # Define a monte-carlo cross-validation generator (reduce variance):
@@ -96,7 +96,7 @@ csp.fit_transform(epochs_data, labels)
 
 csp.plot_patterns(epochs.info, ch_type='eeg', units='Patterns (AU)', size=1.5)
 
-###############################################################################
+# %% ##########################################################################
 # Look at performance over time
 
 sfreq = raw.info['sfreq']

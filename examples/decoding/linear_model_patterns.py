@@ -38,7 +38,7 @@ print(__doc__)
 data_path = sample.data_path()
 sample_path = data_path + '/MEG/sample'
 
-###############################################################################
+# %% ##########################################################################
 # Set parameters
 raw_fname = sample_path + '/sample_audvis_filt-0-40_raw.fif'
 event_fname = sample_path + '/sample_audvis_filt-0-40_raw-eve.fif'
@@ -61,7 +61,7 @@ labels = epochs.events[:, -1]
 meg_epochs = epochs.copy().pick_types(meg=True, eeg=False)
 meg_data = meg_epochs.get_data().reshape(len(labels), -1)
 
-###############################################################################
+# %% ##########################################################################
 # Decoding in sensor space using a LogisticRegression classifier
 # --------------------------------------------------------------
 
@@ -89,7 +89,7 @@ for name, coef in (('patterns', model.patterns_), ('filters', model.filters_)):
     evoked = EvokedArray(coef, meg_epochs.info, tmin=epochs.tmin)
     evoked.plot_topomap(title='MEG %s' % name, time_unit='s')
 
-###############################################################################
+# %% ##########################################################################
 # Let's do the same on EEG data using a scikit-learn pipeline
 
 X = epochs.pick_types(meg=False, eeg=True)
@@ -111,7 +111,7 @@ for name in ('patterns_', 'filters_'):
     evoked = EvokedArray(coef, epochs.info, tmin=epochs.tmin)
     evoked.plot_topomap(title='EEG %s' % name[:-1], time_unit='s')
 
-###############################################################################
+# %% ##########################################################################
 # References
 # ----------
 # .. footbibliography::

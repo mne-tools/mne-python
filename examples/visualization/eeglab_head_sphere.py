@@ -23,7 +23,7 @@ import mne
 
 print(__doc__)
 
-###############################################################################
+# %% ##########################################################################
 # Create fake data
 # ----------------
 #
@@ -40,7 +40,7 @@ data = rng.normal(size=(n_channels, 1)) * 1e-6
 fake_evoked = mne.EvokedArray(data, fake_info)
 fake_evoked.set_montage(biosemi_montage)
 
-###############################################################################
+# %% ##########################################################################
 # Calculate sphere origin and radius
 # ----------------------------------
 #
@@ -79,7 +79,7 @@ z = pos[:, -1].mean()
 # lets print the values we got:
 print([f'{v:0.5f}' for v in [x, y, z, radius]])
 
-###############################################################################
+# %% ##########################################################################
 # Compare MNE and EEGLAB channel layout
 # -------------------------------------
 #
@@ -101,7 +101,7 @@ fake_evoked.plot_sensors(sphere=(x, y, z, radius), axes=ax[1], show=False)
 ax[0].set_title('MNE channel projection', fontweight='bold')
 ax[1].set_title('EEGLAB channel projection', fontweight='bold')
 
-###############################################################################
+# %% ##########################################################################
 # Topomaps (topoplots)
 # --------------------
 #

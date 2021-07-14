@@ -27,7 +27,7 @@ print(__doc__)
 
 data_path = sample.data_path()
 
-###############################################################################
+# %% ##########################################################################
 # Set parameters
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
@@ -44,7 +44,7 @@ raw.info['bads'] += ['EEG 053']  # bads
 picks = mne.pick_types(raw.info, meg='mag', eeg=False, stim=False, eog=True,
                        include=include, exclude='bads')
 
-###############################################################################
+# %% ##########################################################################
 # Find stimulus event followed by quick button presses
 
 reference_id = 5  # presentation of a smiley face
@@ -80,7 +80,7 @@ epochs = mne.Epochs(raw, events_, event_id, tmin_,
 
 early, late = [epochs[k].average() for k in event_id]
 
-###############################################################################
+# %% ##########################################################################
 # View evoked response
 
 times = 1e3 * epochs.times  # time in milliseconds

@@ -110,7 +110,7 @@ brain = psi_stc.plot(surface='inflated', hemi='lh',
 brain.show_view('medial')
 brain.add_label(fname_label, color='green', alpha=0.7)
 
-###############################################################################
+# %% ##########################################################################
 # References
 # ----------
 # .. footbibliography::

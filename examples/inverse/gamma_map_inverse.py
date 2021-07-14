@@ -45,7 +45,7 @@ dipoles, residual = gamma_map(
     evoked, forward, cov, alpha, xyz_same_gamma=True, return_residual=True,
     return_as_dipoles=True)
 
-###############################################################################
+# %% ##########################################################################
 # Plot dipole activations
 plot_dipole_amplitudes(dipoles)
 
@@ -61,7 +61,7 @@ plot_dipole_locations(dipoles[idx], forward['mri_head_t'], 'sample',
 #                           subjects_dir=subjects_dir, mode='orthoview',
 #                           idx='amplitude')
 
-###############################################################################
+# %% ##########################################################################
 # Show the evoked response and the residual for gradiometers
 ylim = dict(grad=[-120, 120])
 evoked.pick_types(meg='grad', exclude='bads')
@@ -72,11 +72,11 @@ residual.pick_types(meg='grad', exclude='bads')
 residual.plot(titles=dict(grad='Residuals Gradiometers'), ylim=ylim,
               proj=True, time_unit='s')
 
-###############################################################################
+# %% ##########################################################################
 # Generate stc from dipoles
 stc = make_stc_from_dipoles(dipoles, forward['src'])
 
-###############################################################################
+# %% ##########################################################################
 # View in 2D and 3D ("glass" brain like 3D plot)
 # Show the sources as spheres scaled by their strength
 scale_factors = np.max(np.abs(stc.data), axis=1)
@@ -87,7 +87,7 @@ plot_sparse_source_estimates(
     modes=['sphere'], opacity=0.1, scale_factors=(scale_factors, None),
     fig_name="Gamma-MAP")
 
-###############################################################################
+# %% ##########################################################################
 # References
 # ----------
 # .. footbibliography::

@@ -65,7 +65,7 @@ subjects_dir = os.path.join(sample_dir_raw, 'subjects')
 
 fname_stc = os.path.join(sample_dir, 'sample_audvis-meg')
 
-###############################################################################
+# %% ##########################################################################
 # Load and inspect example data
 # -----------------------------
 #
@@ -92,7 +92,7 @@ brain = stc.plot(**surfer_kwargs)
 # Add title
 brain.add_text(0.1, 0.9, 'SourceEstimate', 'title', font_size=16)
 
-###############################################################################
+# %% ##########################################################################
 # SourceEstimate (stc)
 # --------------------
 #
@@ -112,7 +112,7 @@ shape = stc.data.shape
 
 print('The data has %s vertex locations with %s sample points each.' % shape)
 
-###############################################################################
+# %% ##########################################################################
 # We see that stc carries 7498 time series of 25 samples length. Those time
 # series belong to 7498 vertices, which in turn represent locations
 # on the cortical surface. So where do those vertex values come from?
@@ -134,7 +134,7 @@ shape_lh = stc.lh_data.shape
 print('The left hemisphere has %s vertex locations with %s sample points each.'
       % shape_lh)
 
-###############################################################################
+# %% ##########################################################################
 # Since we did not change the time representation, only the selected subset of
 # vertices and hence only the row size of the matrix changed. We can check if
 # the rows of ``stc.lh_data`` and ``stc.rh_data`` sum up to the value we had
@@ -146,7 +146,7 @@ print('The number of vertices in stc.lh_data and stc.rh_data do ' +
       ('not ' if not is_equal else '') +
       'sum up to the number of rows in stc.data')
 
-###############################################################################
+# %% ##########################################################################
 # Indeed and as the mindful reader already suspected, the same can be said
 # about vertices. ``stc.lh_vertno`` thereby maps to the left and
 # ``stc.rh_vertno`` to the right inflated surface representation of
@@ -185,7 +185,7 @@ print('The number of vertices in stc.lh_data and stc.rh_data do ' +
 peak_vertex, peak_time = stc.get_peak(hemi='lh', vert_as_index=True,
                                       time_as_index=True)
 
-###############################################################################
+# %% ##########################################################################
 # The first value thereby indicates which vertex and the second which time
 # point index from within ``stc.lh_vertno`` or ``stc.lh_data`` is used. We can
 # use the respective information to get the index of the surface vertex
@@ -195,7 +195,7 @@ peak_vertex_surf = stc.lh_vertno[peak_vertex]
 
 peak_value = stc.lh_data[peak_vertex, peak_time]
 
-###############################################################################
+# %% ##########################################################################
 # Let's visualize this as well, using the same ``surfer_kwargs`` as in the
 # beginning.
 
@@ -207,7 +207,7 @@ brain.add_foci(peak_vertex_surf, coords_as_verts=True, hemi='lh', color='blue')
 # We add a title as well, stating the amplitude at this time and location
 brain.add_text(0.1, 0.9, 'Peak coordinate', 'title', font_size=14)
 
-###############################################################################
+# %% ##########################################################################
 # Summary
 # -------
 #
