@@ -24,6 +24,7 @@ be translated to a template space such as ``fsaverage`` for group comparisons.
 
 # %%
 
+import os
 import os.path as op
 
 import numpy as np
@@ -304,10 +305,11 @@ del subject_brain, template_brain
 # positions of all the voxels that had the contact's lookup number in
 # the warped image.
 
+# create symbolic link to share ``subjects_dir``
+os.link(op.join(misc_path, 'subjects', 'sample_seeg'),
+        op.join(subjects_dir, 'sample_seeg'))
 montage_warped, elec_image, warped_elec_image = mne.warp_montage_volume(
-    montage, CT_aligned, reg_affine, sdr_morph,
-    subject='sample_seeg', template='fsaverage',
-    subjects_dir=op.join(misc_path, 'seeg'),
+    montage, CT_aligned, reg_affine, sdr_morph, subject_from='sample_seeg',
     template_subjects_dir=subjects_dir, thresh=CT_thresh)
 
 fig, axes = plt.subplots(2, 1, figsize=(8, 8))

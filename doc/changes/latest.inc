@@ -99,6 +99,8 @@ Enhancements
 
 - The :meth:`mne.Epochs.get_data` method now has a ``units`` parameter (:gh:`9553` by `Stefan Appelhoff`_)
 
+- Add :func:`mne.warp_montage_volume` to use an anatomical volume with channel locations at high or low insensities to apply a symmetric diffeomorphic registration to a template (e.g. fsaverage) space (:gh:`9544` by `Alex Rockhill`_)
+
 Bugs
 ~~~~
 - Fix bug with :meth:`mne.Epochs.crop` and :meth:`mne.Evoked.crop` when ``include_tmax=False``, where the last sample was always cut off, even when ``tmax > epo.times[-1]`` (:gh:`9378` **by new contributor** |Jan Sosulski|_)
