@@ -2231,7 +2231,7 @@ def _write_raw_fid(raw, info, picks, fid, cals, part_idx, start, stop,
             logger.info('Skipping data chunk due to small buffer ... '
                         '[done]')
             break
-        logger.debug('Writing ...')
+        logger.debug(f'Writing FIF {first:6d} ... {last:6d} ...')
         _write_raw_buffer(fid, data, cals, fmt)
 
         pos = fid.tell()

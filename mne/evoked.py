@@ -158,6 +158,27 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """Set the data matrix."""
         self._data = data
 
+    @fill_doc
+    def get_data(self, picks=None):
+        """Get evoked data as 2D array.
+
+        Parameters
+        ----------
+        %(picks_all)s
+
+        Returns
+        -------
+        data : ndarray, shape (n_channels, n_times)
+            A view on evoked data.
+
+        Notes
+        -----
+        .. versionadded:: 0.24
+        """
+        picks = _picks_to_idx(self.info, picks, "all", exclude=())
+        data = self.data[picks, :]
+        return data
+
     @verbose
     def apply_function(self, fun, picks=None, dtype=None, n_jobs=1,
                        verbose=None, **kwargs):
