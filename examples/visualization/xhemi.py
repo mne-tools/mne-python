@@ -13,7 +13,7 @@ information see :func:`mne.compute_source_morph`.
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import mne
 

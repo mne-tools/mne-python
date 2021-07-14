@@ -27,7 +27,7 @@ References
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import pandas as pd
 import mne

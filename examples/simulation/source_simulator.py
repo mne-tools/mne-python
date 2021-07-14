@@ -13,7 +13,7 @@ introduction and only highlights the simplest use case.
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import os.path as op
 

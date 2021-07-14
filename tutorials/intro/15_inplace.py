@@ -20,7 +20,7 @@ loading some :ref:`example data <sample-dataset>`:
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import os
 import mne
@@ -33,7 +33,7 @@ raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True)
 raw.crop(tmax=10.)  # raw.crop() always happens in-place
 
 
-# %% ##########################################################################
+# %%
 # Signal processing
 # -----------------
 #
@@ -52,7 +52,7 @@ print(f'original data type was {original_raw.get_data().dtype}, after '
       f'apply_hilbert the data type changed to {raw.get_data().dtype}.')
 
 
-# %% ##########################################################################
+# %%
 # Channel picking
 # ---------------
 #
@@ -64,7 +64,7 @@ original_raw.pick('eeg')  # selects only the EEG channels
 print(f'after picking, it has {original_raw.info["nchan"]} channels.')
 
 
-# %% ##########################################################################
+# %%
 # Note also that when picking only EEG channels, projectors that affected only
 # the magnetometers were dropped, since there are no longer any magnetometer
 # channels.
@@ -88,7 +88,7 @@ rereferenced_raw, ref_data = mne.set_eeg_reference(original_raw, ['EEG 003'],
 original_raw.plot()
 rereferenced_raw.plot()
 
-# %% ##########################################################################
+# %%
 # Another example is the picking function `mne.pick_info`, which operates on
 # `mne.Info` dictionaries rather than on data objects. See
 # :ref:`tut-info-class` for details.

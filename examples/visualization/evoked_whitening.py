@@ -21,7 +21,7 @@ References
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import mne
 
@@ -31,7 +31,7 @@ from mne.cov import compute_covariance
 
 print(__doc__)
 
-# %% ##########################################################################
+# %%
 # Set parameters
 
 data_path = sample.data_path()
@@ -53,7 +53,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=('meg', 'eeg'),
 # Uncomment next line to use fewer samples and study regularization effects
 # epochs = epochs[:20]  # For your data, use as many samples as you can!
 
-# %% ##########################################################################
+# %%
 # Compute covariance using automated regularization
 method_params = dict(diagonal_fixed=dict(mag=0.01, grad=0.01, eeg=0.01))
 noise_covs = compute_covariance(epochs, tmin=None, tmax=0, method='auto',
@@ -68,14 +68,14 @@ print('Covariance estimates sorted from best to worst')
 for c in noise_covs:
     print("%s : %s" % (c['method'], c['loglik']))
 
-# %% ##########################################################################
+# %%
 # Show the evoked data:
 
 evoked = epochs.average()
 
 evoked.plot(time_unit='s')  # plot evoked response
 
-# %% ##########################################################################
+# %%
 # We can then show whitening for our various noise covariance estimates.
 #
 # Here we should look to see if baseline signals match the

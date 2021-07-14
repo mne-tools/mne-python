@@ -14,7 +14,7 @@ layout plot of the related evoked responses.
 
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 
 import matplotlib.pyplot as plt
@@ -27,7 +27,7 @@ print(__doc__)
 
 data_path = sample.data_path()
 
-# %% ##########################################################################
+# %%
 # Set parameters
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
@@ -50,7 +50,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
 # Generate list of evoked objects from conditions names
 evokeds = [epochs[name].average() for name in ('left', 'right')]
 
-# %% ##########################################################################
+# %%
 # Show topography for two different conditions
 
 colors = 'blue', 'red'

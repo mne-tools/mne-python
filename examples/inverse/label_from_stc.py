@@ -14,7 +14,7 @@ label yields higher values.
 #         Alex Gramfort <alexandre.gramfort@inria.fr>
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -87,7 +87,7 @@ pca_func = stc.extract_label_time_course(func_label, src, mode='pca_flip')[0]
 pca_anat *= np.sign(pca_anat[np.argmax(np.abs(pca_anat))])
 pca_func *= np.sign(pca_func[np.argmax(np.abs(pca_anat))])
 
-# %% ##########################################################################
+# %%
 # plot the time courses....
 plt.figure()
 plt.plot(1e3 * stc_anat_label.times, pca_anat, 'k',
@@ -97,7 +97,7 @@ plt.plot(1e3 * stc_func_label.times, pca_func, 'b',
 plt.legend()
 plt.show()
 
-# %% ##########################################################################
+# %%
 # plot brain in 3D with PySurfer if available
 brain = stc_mean.plot(hemi='lh', subjects_dir=subjects_dir)
 brain.show_view('lateral')

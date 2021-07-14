@@ -18,7 +18,7 @@ We will begin by loading the Python modules we need, and loading the same
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import os
 import mne
@@ -28,14 +28,14 @@ sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                     'sample_audvis_filt-0-40_raw.fif')
 raw = mne.io.read_raw_fif(sample_data_raw_file)
 
-# %% ##########################################################################
+# %%
 # As seen in the :ref:`introductory tutorial <tut-overview>`, when a
 # :class:`~mne.io.Raw` object is loaded, an :class:`~mne.Info` object is
 # created automatically, and stored in the ``raw.info`` attribute:
 
 print(raw.info)
 
-# %% ##########################################################################
+# %%
 # However, it is not strictly necessary to load the :class:`~mne.io.Raw` object
 # in order to view or edit the :class:`~mne.Info` object; you can extract all
 # the relevant information into a stand-alone :class:`~mne.Info` object using
@@ -44,7 +44,7 @@ print(raw.info)
 info = mne.io.read_info(sample_data_raw_file)
 print(info)
 
-# %% ##########################################################################
+# %%
 # As you can see, the :class:`~mne.Info` object keeps track of a lot of
 # information about:
 #
@@ -70,7 +70,7 @@ print(info.keys())
 print()  # insert a blank line
 print(info['ch_names'])
 
-# %% ##########################################################################
+# %%
 # Most of the fields contain :class:`int`, :class:`float`, or :class:`list`
 # data, but the ``chs`` field bears special mention: it contains a list of
 # dictionaries (one :class:`dict` per channel) containing everything there is
@@ -82,7 +82,7 @@ print(info['ch_names'])
 
 print(info['chs'][0].keys())
 
-# %% ##########################################################################
+# %%
 # .. _picking_channels:
 #
 # Obtaining subsets of channels
@@ -102,7 +102,7 @@ print(mne.pick_channels(info['ch_names'], include=['MEG 0312', 'EEG 005']))
 print(mne.pick_channels(info['ch_names'], include=[],
                         exclude=['MEG 0312', 'EEG 005']))
 
-# %% ##########################################################################
+# %%
 # :func:`~mne.pick_types` works differently, since channel type cannot always
 # be reliably determined from channel name alone. Consequently,
 # :func:`~mne.pick_types` needs an :class:`~mne.Info` object instead of just a
@@ -115,7 +115,7 @@ print(mne.pick_channels(info['ch_names'], include=[],
 
 print(mne.pick_types(info, meg=False, eeg=True, exclude=[]))
 
-# %% ##########################################################################
+# %%
 # Note that the ``meg`` and ``fnirs`` parameters of :func:`~mne.pick_types`
 # accept strings as well as boolean values, to allow selecting only
 # magnetometer or gradiometer channels (via ``meg='mag'`` or ``meg='grad'``) or
@@ -130,7 +130,7 @@ print(mne.pick_types(info, meg=False, eeg=True, exclude=[]))
 
 print(mne.pick_channels_regexp(info['ch_names'], '^E.G'))
 
-# %% ##########################################################################
+# %%
 # :func:`~mne.pick_channels_regexp` can be especially useful for channels named
 # according to the `10-20 <ten-twenty_>`_ system (e.g., to select all channels
 # ending in "z" to get the midline, or all channels beginning with "O" to get
@@ -154,7 +154,7 @@ print(mne.pick_channels_regexp(info['ch_names'], '^E.G'))
 
 print(mne.channel_type(info, 25))
 
-# %% ##########################################################################
+# %%
 # To obtain several channel types at once, you could embed
 # :func:`~mne.channel_type` in a :term:`list comprehension`, or use the
 # :meth:`~mne.io.Raw.get_channel_types` method of a :class:`~mne.io.Raw`,
@@ -164,7 +164,7 @@ picks = (25, 76, 77, 319)
 print([mne.channel_type(info, x) for x in picks])
 print(raw.get_channel_types(picks=picks))
 
-# %% ##########################################################################
+# %%
 # Alternatively, you can get the indices of all channels of *all* channel types
 # present in the data, using :func:`~mne.channel_indices_by_type`,
 # which returns a :class:`dict` with channel types as keys, and lists of
@@ -174,7 +174,7 @@ ch_idx_by_type = mne.channel_indices_by_type(info)
 print(ch_idx_by_type.keys())
 print(ch_idx_by_type['eog'])
 
-# %% ##########################################################################
+# %%
 # Dropping channels from an ``Info`` object
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -186,12 +186,12 @@ print(info['nchan'])
 eeg_indices = mne.pick_types(info, meg=False, eeg=True)
 print(mne.pick_info(info, eeg_indices)['nchan'])
 
-# %% ##########################################################################
+# %%
 # We can also get a nice HTML representation in IPython like:
 
 info
 
-# %% ##########################################################################
+# %%
 # By default, :func:`~mne.pick_info` will make a copy of the original
 # :class:`~mne.Info` object before modifying it; if you want to modify it
 # in-place, include the parameter ``copy=False``.

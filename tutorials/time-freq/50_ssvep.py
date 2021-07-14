@@ -43,14 +43,14 @@ ROI.
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import matplotlib.pyplot as plt
 import mne
 import numpy as np
 from scipy.stats import ttest_rel
 
-# %% ##########################################################################
+# %%
 # Data preprocessing
 # ------------------
 # Due to a generally high SNR in SSVEP/vSSR, typical preprocessing steps
@@ -96,7 +96,7 @@ epochs = mne.Epochs(
     event_id=[event_id['12hz'], event_id['15hz']], tmin=tmin,
     tmax=tmax, baseline=baseline, verbose=False)
 
-# %% ##########################################################################
+# %%
 # Frequency analysis
 # ------------------
 # Now we compute the frequency spectrum of the EEG data.
@@ -150,7 +150,7 @@ psds, freqs = mne.time_frequency.psd_welch(
     verbose=False)
 
 
-# %% ##########################################################################
+# %%
 # Calculate signal to noise ratio (SNR)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -217,7 +217,7 @@ def snr_spectrum(psd, noise_n_neighbor_freqs=1, noise_skip_neighbor_freqs=1):
     return psd / mean_noise
 
 
-# %% ##########################################################################
+# %%
 # Now we call the function to compute our SNR spectrum.
 #
 # As described above, we have to define two parameters.
@@ -279,7 +279,7 @@ axes[1].set(
     ylabel='SNR', ylim=[-2, 30], xlim=[fmin, fmax])
 fig.show()
 
-# %% ##########################################################################
+# %%
 # You can see that the peaks at the stimulation frequencies (12 Hz, 15 Hz)
 # and their harmonics are visible in both plots (just as the line noise at
 # 50 Hz).
@@ -319,7 +319,7 @@ fig.show()
 # define stimulation frequency
 stim_freq = 12.
 
-# %% ##########################################################################
+# %%
 # Get index for the stimulation frequency (12 Hz)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # Ideally, there would be a bin with the stimulation frequency exactly in its
@@ -340,14 +340,14 @@ i_bin_15hz = np.argmin(abs(freqs - 15))
 i_bin_30hz = np.argmin(abs(freqs - 30))
 i_bin_45hz = np.argmin(abs(freqs - 45))
 
-# %% ##########################################################################
+# %%
 # Get indices for the different trial types
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 i_trial_12hz = np.where(epochs.events[:, 2] == event_id['12hz'])[0]
 i_trial_15hz = np.where(epochs.events[:, 2] == event_id['15hz'])[0]
 
-# %% ##########################################################################
+# %%
 # Get indices of EEG channels forming the ROI
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -359,7 +359,7 @@ roi_vis = ['POz', 'Oz', 'O1', 'O2', 'PO3', 'PO4', 'PO7',
 picks_roi_vis = mne.pick_types(epochs.info, eeg=True, stim=False,
                                exclude='bads', selection=roi_vis)
 
-# %% ##########################################################################
+# %%
 # Apply the subset, and check the result
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # Now we simply need to apply our selection and yield a result. Therefore,
@@ -485,7 +485,7 @@ ax.set_ylim([0, 70])
 ax.axhline(1, ls='--', c='r')
 fig.show()
 
-# %% ##########################################################################
+# %%
 # As you can easily see there are striking differences between the trials.
 # Let's verify this using a series of two-tailed paired T-Tests.
 #

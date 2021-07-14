@@ -16,7 +16,7 @@ that was used to create this data.
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 # sphinx_gallery_thumbnail_number = 7
 
@@ -31,7 +31,7 @@ from scipy.io import loadmat
 from sklearn.preprocessing import scale
 rng = np.random.RandomState(1337)  # To make this example reproducible
 
-# %% ##########################################################################
+# %%
 # Load audio data
 # ---------------
 #
@@ -52,7 +52,7 @@ n_decim = 2
 audio = mne.filter.resample(audio, down=n_decim, npad='auto')
 sfreq /= n_decim
 
-# %% ##########################################################################
+# %%
 # Create a receptive field
 # ------------------------
 #
@@ -89,7 +89,7 @@ plt.autoscale(tight=True)
 mne.viz.tight_layout()
 
 
-# %% ##########################################################################
+# %%
 # Simulate a neural response
 # --------------------------
 #
@@ -155,7 +155,7 @@ ax2.set(xlim=[time.min(), time.max()], title='Simulated response',
 mne.viz.tight_layout()
 
 
-# %% ##########################################################################
+# %%
 # Fit a model to recover this receptive field
 # -------------------------------------------
 #
@@ -210,7 +210,7 @@ plt.autoscale(tight=True)
 mne.viz.tight_layout()
 
 
-# %% ##########################################################################
+# %%
 # Visualize the effects of regularization
 # ---------------------------------------
 #
@@ -243,7 +243,7 @@ for ii, (rf, i_alpha) in enumerate(zip(models, alphas)):
 fig.suptitle('Model coefficients / scores for many ridge parameters', y=1)
 mne.viz.tight_layout()
 
-# %% ##########################################################################
+# %%
 # Using different regularization types
 # ------------------------------------
 # In addition to the standard ridge regularization, the
@@ -286,7 +286,7 @@ for ii, alpha in enumerate(alphas):
 
 ix_best_alpha_lap = np.argmax(scores_lap)
 
-# %% ##########################################################################
+# %%
 # Compare model performance
 # -------------------------
 # Below we visualize the model performance of each regularization method
@@ -328,7 +328,7 @@ for ii, (rf_lap, rf, i_alpha) in enumerate(zip(models_lap, models, alphas)):
 fig.suptitle('Model coefficients / scores for laplacian regularization', y=1)
 mne.viz.tight_layout()
 
-# %% ##########################################################################
+# %%
 # Plot the original STRF, and the one that we recovered with modeling.
 rf = models[ix_best_alpha]
 rf_lap = models_lap[ix_best_alpha_lap]
@@ -344,7 +344,7 @@ plt.setp([iax.get_xticklabels() for iax in [ax1, ax2, ax3]], rotation=45)
 plt.autoscale(tight=True)
 mne.viz.tight_layout()
 
-# %% ##########################################################################
+# %%
 # References
 # ==========
 # .. footbibliography::

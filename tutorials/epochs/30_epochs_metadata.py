@@ -20,7 +20,7 @@ need and loading the data:
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import os
 import numpy as np
@@ -32,7 +32,7 @@ kiloword_data_file = os.path.join(kiloword_data_folder,
                                   'kword_metadata-epo.fif')
 epochs = mne.read_epochs(kiloword_data_file)
 
-# %% ##########################################################################
+# %%
 # Viewing ``Epochs`` metadata
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -61,7 +61,7 @@ epochs = mne.read_epochs(kiloword_data_file)
 
 epochs.metadata
 
-# %% ##########################################################################
+# %%
 # Viewing the metadata values for a given epoch and metadata variable is done
 # using any of the :ref:`Pandas indexing <pandas:/reference/indexing.rst>`
 # methods such as :obj:`~pandas.DataFrame.loc`,
@@ -78,7 +78,7 @@ print(epochs.metadata.loc[2:4])
 print('\nIndex-based selection with .iloc')
 print(epochs.metadata.iloc[2:4])
 
-# %% ##########################################################################
+# %%
 # Modifying the metadata
 # ^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -94,7 +94,7 @@ epochs.metadata['NumberOfLetters'] = \
 epochs.metadata['HighComplexity'] = epochs.metadata['VisualComplexity'] > 65
 epochs.metadata.head()
 
-# %% ##########################################################################
+# %%
 # Selecting epochs using metadata queries
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -106,28 +106,28 @@ epochs.metadata.head()
 
 print(epochs['WORD.str.startswith("dis")'])
 
-# %% ##########################################################################
+# %%
 # This capability uses the :meth:`pandas.DataFrame.query` method under the
 # hood, so you can check out the documentation of that method to learn how to
 # format query strings. Here's another example:
 
 print(epochs['Concreteness > 6 and WordFrequency < 1'])
 
-# %% ##########################################################################
+# %%
 # Note also that traditional epochs subselection by condition name still works;
 # MNE-Python will try the traditional method first before falling back on rich
 # metadata querying.
 
 epochs['solenoid'].plot_psd()
 
-# %% ##########################################################################
+# %%
 # One use of the Pandas query string approach is to select specific words for
 # plotting:
 
 words = ['typhoon', 'bungalow', 'colossus', 'drudgery', 'linguist', 'solenoid']
 epochs['WORD in {}'.format(words)].plot(n_channels=29)
 
-# %% ##########################################################################
+# %%
 # Notice that in this dataset, each "condition" (A.K.A., each word) occurs only
 # once, whereas with the :ref:`sample-dataset` dataset each condition (e.g.,
 # "auditory/left", "visual/right", etc) occurred dozens of times. This makes
@@ -146,7 +146,7 @@ for n_letters in epochs.metadata['NumberOfLetters'].unique():
 mne.viz.plot_compare_evokeds(evokeds, cmap=('word length', 'viridis'),
                              picks='Pz')
 
-# %% ##########################################################################
+# %%
 # Metadata can also be useful for sorting the epochs in an image plot. For
 # example, here we order the epochs based on word frequency to see if there's a
 # pattern to the latency or intensity of the response:
@@ -154,7 +154,7 @@ mne.viz.plot_compare_evokeds(evokeds, cmap=('word length', 'viridis'),
 sort_order = np.argsort(epochs.metadata['WordFrequency'])
 epochs.plot_image(order=sort_order, picks='Pz')
 
-# %% ##########################################################################
+# %%
 # Although there's no obvious relationship in this case, such analyses may be
 # useful for metadata variables that more directly index the time course of
 # stimulus processing (such as reaction time).
@@ -172,7 +172,7 @@ new_metadata = pd.DataFrame(data=['foo'] * len(epochs), columns=['bar'],
 epochs.metadata = new_metadata
 epochs.metadata.head()
 
-# %% ##########################################################################
+# %%
 # You can remove metadata from an `~mne.Epochs` object by setting its
 # metadata to ``None``:
 

@@ -15,7 +15,7 @@ tutorial dataset. For comparison, see :footcite:`TadelEtAl2011` and:
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import numpy as np
 
@@ -74,7 +74,7 @@ evoked.plot(time_unit='s')
 evoked.plot_topomap(times=np.array([0.016, 0.030, 0.060, 0.070]),
                     time_unit='s')
 
-# %% ##########################################################################
+# %%
 # References
 # ----------
 # .. footbibliography::

@@ -13,7 +13,7 @@ baseline covariance matrices.
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 import os.path as op
 
 import numpy as np
@@ -27,7 +27,7 @@ from mne.minimum_norm import (make_inverse_operator, apply_inverse_cov)
 
 print(__doc__)
 
-# %% ##########################################################################
+# %%
 # Reading the raw data and creating epochs:
 data_path = somato.data_path()
 subject = '01'
@@ -57,7 +57,7 @@ subjects_dir = op.join(data_path, 'derivatives', 'freesurfer', 'subjects')
 
 fwd = mne.read_forward_solution(fname_fwd)
 
-# %% ##########################################################################
+# %%
 # Compute covariances
 # -------------------
 # ERS activity starts at 0.5 seconds after stimulus onset. Because these
@@ -80,7 +80,7 @@ active_cov = compute_covariance(epochs, tmin=active_win[0], tmax=active_win[1],
 common_cov = baseline_cov + active_cov
 mne.viz.plot_cov(baseline_cov, epochs.info)
 
-# %% ##########################################################################
+# %%
 # Compute some source estimates
 # -----------------------------
 # Here we will use DICS, LCMV beamformer, and dSPM.
@@ -129,7 +129,7 @@ stc_dics = _gen_dics(active_win, baseline_win, epochs)
 stc_lcmv = _gen_lcmv(active_cov, baseline_cov, common_cov)
 stc_dspm = _gen_mne(active_cov, baseline_cov, common_cov, fwd, epochs.info)
 
-# %% ##########################################################################
+# %%
 # Plot source estimates
 # ---------------------
 # DICS:
@@ -138,14 +138,14 @@ brain_dics = stc_dics.plot(
     hemi='rh', subjects_dir=subjects_dir, subject=subject,
     time_label='DICS source power in the 12-30 Hz frequency band')
 
-# %% ##########################################################################
+# %%
 # LCMV:
 
 brain_lcmv = stc_lcmv.plot(
     hemi='rh', subjects_dir=subjects_dir, subject=subject,
     time_label='LCMV source power in the 12-30 Hz frequency band')
 
-# %% ##########################################################################
+# %%
 # dSPM:
 
 brain_dspm = stc_dspm.plot(

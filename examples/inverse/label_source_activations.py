@@ -14,7 +14,7 @@ also using a sign flip.
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import matplotlib.pyplot as plt
 import matplotlib.patheffects as path_effects
@@ -40,7 +40,7 @@ evoked = mne.read_evokeds(fname_evoked, condition=0, baseline=(None, 0))
 inverse_operator = read_inverse_operator(fname_inv)
 src = inverse_operator['src']
 
-# %% ##########################################################################
+# %%
 # Compute inverse solution
 # ------------------------
 pick_ori = "normal"  # Get signed values to see the effect of sign flip
@@ -56,7 +56,7 @@ for mode in modes:
     tcs[mode] = stc.extract_label_time_course(label, src, mode=mode)
 print("Number of vertices : %d" % len(stc_label.data))
 
-# %% ##########################################################################
+# %%
 # View source activations
 # -----------------------
 
@@ -75,7 +75,7 @@ ax.set(xlabel='Time (ms)', ylabel='Source amplitude',
        xlim=xlim, ylim=ylim)
 mne.viz.tight_layout()
 
-# %% ##########################################################################
+# %%
 # Using vector solutions
 # ----------------------
 # It's also possible to compute label time courses for a

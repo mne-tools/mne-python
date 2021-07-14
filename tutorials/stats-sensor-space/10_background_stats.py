@@ -13,7 +13,7 @@ introductory manner, and demonstrate how to use some MNE statistical functions.
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 from functools import partial
 
@@ -28,7 +28,7 @@ from mne.stats import (ttest_1samp_no_p, bonferroni_correction, fdr_correction,
 
 print(__doc__)
 
-# %% ##########################################################################
+# %%
 # Hypothesis testing
 # ------------------
 # Null hypothesis
@@ -71,14 +71,14 @@ for si in range(X.shape[0]):
     for ci in range(X.shape[2]):
         X[si, :, ci] = np.convolve(X[si, :, ci], gaussian, 'same')
 
-# %% ##########################################################################
+# %%
 # The data averaged over all subjects looks like this:
 
 fig, ax = plt.subplots()
 ax.imshow(X.mean(0), cmap='inferno')
 ax.set(xticks=[], yticks=[], title="Data averaged over subjects")
 
-# %% ##########################################################################
+# %%
 # In this case, a null hypothesis we could test for each voxel is:
 #
 #     There is no difference between the mean value and zero
@@ -166,7 +166,7 @@ def plot_t_p(t, p, title, mcc, axes=None):
 
 plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 
-# %% ##########################################################################
+# %%
 # "Hat" variance adjustment
 # ~~~~~~~~~~~~~~~~~~~~~~~~~
 # The "hat" technique regularizes the variance values used in the t-test
@@ -178,7 +178,7 @@ titles.append(r'$\mathrm{t_{hat}}$')
 mccs.append(False)
 plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 
-# %% ##########################################################################
+# %%
 # Non-parametric tests
 # ^^^^^^^^^^^^^^^^^^^^
 # Instead of assuming an underlying Gaussian distribution, we could instead
@@ -224,7 +224,7 @@ for ii in range(n_src):
     ts[-1][ii], ps[-1][ii] = permutation_t_test(X[:, [ii]], verbose=False)[:2]
 plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 
-# %% ##########################################################################
+# %%
 # Multiple comparisons
 # --------------------
 # So far, we have done no correction for multiple comparisons. This is
@@ -265,7 +265,7 @@ ax.grid(True)
 fig.tight_layout()
 fig.show()
 
-# %% ##########################################################################
+# %%
 # To combat this problem, several methods exist. Typically these
 # provide control over either one of the following two measures:
 #
@@ -299,7 +299,7 @@ ps.append(bonferroni_correction(ps[0])[1])
 mccs.append(True)
 plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 
-# %% ##########################################################################
+# %%
 # False discovery rate (FDR) correction
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # Typically FDR is performed with the Benjamini-Hochberg procedure, which
@@ -313,7 +313,7 @@ ps.append(fdr_correction(ps[0])[1])
 mccs.append(True)
 plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 
-# %% ##########################################################################
+# %%
 # Non-parametric resampling test with a maximum statistic
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # **Non-parametric resampling tests** can also be used to correct for multiple
@@ -342,7 +342,7 @@ ps.append(out[1])
 mccs.append(True)
 plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 
-# %% ##########################################################################
+# %%
 # Clustering
 # ^^^^^^^^^^
 # Each of the aforementioned multiple comparisons corrections have the
@@ -430,7 +430,7 @@ mini_adjacency = grid_to_graph(3, 3).toarray()
 assert mini_adjacency.shape == (9, 9)
 print(mini_adjacency[0])
 
-# %% ##########################################################################
+# %%
 # In general the adjacency between voxels can be more complex, such as
 # those between sensors in 3D space, or time-varying activation at brain
 # vertices on a cortical surface. MNE provides several convenience functions
@@ -459,7 +459,7 @@ ps.append(p_clust)
 mccs.append(True)
 plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 
-# %% ##########################################################################
+# %%
 # "Hat" variance adjustment
 # ~~~~~~~~~~~~~~~~~~~~~~~~~
 # This method can also be used in this context to correct for small
@@ -477,7 +477,7 @@ ps.append(p_hat)
 mccs.append(True)
 plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 
-# %% ##########################################################################
+# %%
 # .. _tfce_example:
 #
 # Threshold-free cluster enhancement (TFCE)
@@ -510,7 +510,7 @@ ps.append(p_tfce)
 mccs.append(True)
 plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 
-# %% ##########################################################################
+# %%
 # We can also combine TFCE and the "hat" correction:
 titles.append(r'$\mathbf{C_{hat,TFCE}}$')
 t_tfce_hat, _, p_tfce_hat, H0 = permutation_cluster_1samp_test(
@@ -521,7 +521,7 @@ ps.append(p_tfce_hat)
 mccs.append(True)
 plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 
-# %% ##########################################################################
+# %%
 # Visualize and compare methods
 # -----------------------------
 # Let's take a look at these statistics. The top row shows each test statistic,
@@ -537,7 +537,7 @@ for ii in range(len(ts)):
 fig.tight_layout(pad=0, w_pad=0.05, h_pad=0.1)
 plt.show()
 
-# %% ##########################################################################
+# %%
 # The first three columns show the parametric and non-parametric statistics
 # that are not corrected for multiple comparisons:
 #

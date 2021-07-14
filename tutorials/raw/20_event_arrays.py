@@ -17,7 +17,7 @@ object to just 60 seconds before loading it into RAM to save memory:
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import os
 import numpy as np
@@ -29,7 +29,7 @@ sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
 raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False)
 raw.crop(tmax=60).load_data()
 
-# %% ##########################################################################
+# %%
 # The tutorial :ref:`tut-events-vs-annotations` describes in detail the
 # different ways of obtaining an :term:`Events array <events>` from a
 # :class:`~mne.io.Raw` object (see the section
@@ -40,7 +40,7 @@ raw.crop(tmax=60).load_data()
 
 events = mne.find_events(raw, stim_channel='STI 014')
 
-# %% ##########################################################################
+# %%
 # .. _tut-section-events-io:
 #
 # Reading and writing events from/to a file
@@ -62,7 +62,7 @@ sample_data_events_file = os.path.join(sample_data_folder, 'MEG', 'sample',
 events_from_file = mne.read_events(sample_data_events_file)
 assert np.array_equal(events, events_from_file[:len(events)])
 
-# %% ##########################################################################
+# %%
 # When writing event arrays to disk, the format will be inferred from the file
 # extension you provide. By convention, MNE-Python expects events files to
 # either have an :file:`.eve` extension or to have a file basename ending in
@@ -78,7 +78,7 @@ assert np.array_equal(events, events_from_file[:len(events)])
 
 mne.find_events(raw, stim_channel='STI 014')
 
-# %% ##########################################################################
+# %%
 # .. sidebar:: Including/excluding events
 #
 #     Just like `~mne.pick_events`, `~mne.read_events` also has ``include``
@@ -91,7 +91,7 @@ mne.find_events(raw, stim_channel='STI 014')
 
 events_no_button = mne.pick_events(events, exclude=32)
 
-# %% ##########################################################################
+# %%
 # It is also possible to combine two Event IDs using :func:`mne.merge_events`;
 # the following example will combine Event IDs 1, 2 and 3 into a single event
 # labelled ``1``:
@@ -99,7 +99,7 @@ events_no_button = mne.pick_events(events, exclude=32)
 merged_events = mne.merge_events(events, [1, 2, 3], 1)
 print(np.unique(merged_events[:, -1]))
 
-# %% ##########################################################################
+# %%
 # Note, however, that merging events is not necessary if you simply want to
 # pool trial types for analysis; the next section describes how MNE-Python uses
 # *event dictionaries* to map integer Event IDs to more descriptive label
@@ -124,7 +124,7 @@ print(np.unique(merged_events[:, -1]))
 event_dict = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
               'visual/right': 4, 'smiley': 5, 'buttonpress': 32}
 
-# %% ##########################################################################
+# %%
 # Event dictionaries like this one are used when extracting epochs from
 # continuous data, and the resulting :class:`~mne.Epochs` object allows pooling
 # by requesting partial trial descriptors. For example, if we wanted to pool
@@ -154,7 +154,7 @@ fig = mne.viz.plot_events(events, sfreq=raw.info['sfreq'],
                           first_samp=raw.first_samp, event_id=event_dict)
 fig.subplots_adjust(right=0.7)  # make room for legend
 
-# %% ##########################################################################
+# %%
 # Plotting events and raw data together
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
@@ -165,7 +165,7 @@ fig.subplots_adjust(right=0.7)  # make room for legend
 raw.plot(events=events, start=5, duration=10, color='gray',
          event_color={1: 'r', 2: 'g', 3: 'b', 4: 'm', 5: 'y', 32: 'k'})
 
-# %% ##########################################################################
+# %%
 # .. _`fixed-length-events`:
 #
 # Making equally-spaced Events arrays
@@ -178,7 +178,7 @@ raw.plot(events=events, start=5, duration=10, color='gray',
 
 new_events = mne.make_fixed_length_events(raw, start=5, stop=50, duration=2.)
 
-# %% ##########################################################################
+# %%
 # By default, the events will all be given the integer Event ID of ``1``, but
 # you can change that with the ``id`` parameter. It is also possible to specify
 # an ``overlap`` duration — i.e., if you ultimately want :term:`epochs` that

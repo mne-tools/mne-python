@@ -11,7 +11,7 @@ signal with point-spread by applying a forward and inverse solution.
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import os.path as op
 
@@ -23,7 +23,7 @@ from mne.datasets import sample
 from mne.minimum_norm import read_inverse_operator, apply_inverse
 from mne.simulation import simulate_stc, simulate_evoked
 
-# %% ##########################################################################
+# %%
 # First, we set some parameters.
 
 seed = 42
@@ -51,7 +51,7 @@ fname_inv = op.join(data_path, 'MEG', 'sample',
 fname_evoked = op.join(data_path, 'MEG', 'sample',
                        'sample_audvis-ave.fif')
 
-# %% ##########################################################################
+# %%
 # Load the MEG data
 # -----------------
 
@@ -74,13 +74,13 @@ labels = mne.read_labels_from_annot('sample', subjects_dir=subjects_dir)
 label_names = [label.name for label in labels]
 n_labels = len(labels)
 
-# %% ##########################################################################
+# %%
 # Estimate the background noise covariance from the baseline period
 # -----------------------------------------------------------------
 
 cov = mne.compute_covariance(epochs, tmin=None, tmax=0.)
 
-# %% ##########################################################################
+# %%
 # Generate sinusoids in two spatially distant labels
 # --------------------------------------------------
 
@@ -91,7 +91,7 @@ signal[idx, :] = 1e-7 * np.sin(5 * 2 * np.pi * times)
 idx = label_names.index('rostralmiddlefrontal-rh')
 signal[idx, :] = 1e-7 * np.sin(7 * 2 * np.pi * times)
 
-# %% ##########################################################################
+# %%
 # Find the center vertices in source space of each label
 # ------------------------------------------------------
 #
@@ -122,7 +122,7 @@ for i, label in enumerate(labels):
     labels[i].values.fill(0.)
     labels[i].values[cent_idx] = 1.
 
-# %% ##########################################################################
+# %%
 # Create source-space data with known signals
 # -------------------------------------------
 #
@@ -131,7 +131,7 @@ for i, label in enumerate(labels):
 stc_gen = simulate_stc(fwd['src'], labels, signal, times[0], dt,
                        value_fun=lambda x: x)
 
-# %% ##########################################################################
+# %%
 # Plot original signals
 # ---------------------
 #
@@ -143,7 +143,7 @@ kwargs = dict(subjects_dir=subjects_dir, hemi='split', smoothing_steps=4,
 clim = dict(kind='value', pos_lims=[1e-9, 1e-8, 1e-7])
 brain_gen = stc_gen.plot(clim=clim, **kwargs)
 
-# %% ##########################################################################
+# %%
 # Simulate sensor-space signals
 # -----------------------------
 #
@@ -158,7 +158,7 @@ evoked_gen = simulate_evoked(fwd, stc_gen, evoked.info, cov, nave,
 # operator.
 stc_inv = apply_inverse(evoked_gen, inv_op, lambda2, method=method)
 
-# %% ##########################################################################
+# %%
 # Plot the point-spread of corrupted signal
 # -----------------------------------------
 #
@@ -169,7 +169,7 @@ stc_inv = apply_inverse(evoked_gen, inv_op, lambda2, method=method)
 # sulci and gyri.
 brain_inv = stc_inv.plot(**kwargs)
 
-# %% ##########################################################################
+# %%
 # Exercises
 # ---------
 #    - Change the ``method`` parameter to either ``'dSPM'`` or ``'MNE'`` to

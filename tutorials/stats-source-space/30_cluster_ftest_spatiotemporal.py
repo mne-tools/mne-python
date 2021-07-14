@@ -12,7 +12,7 @@ permutation test across space and time.
 #          Eric Larson <larson.eric.d@gmail.com>
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import os.path as op
 
@@ -26,7 +26,7 @@ from mne.datasets import sample
 
 print(__doc__)
 
-# %% ##########################################################################
+# %%
 # Set parameters
 # --------------
 data_path = sample.data_path()
@@ -63,7 +63,7 @@ X2[:, :, :] += 3 * stc.data[:, :, np.newaxis]
 X1 = np.abs(X1)  # only magnitude
 X2 = np.abs(X2)  # only magnitude
 
-# %% ##########################################################################
+# %%
 # Compute statistic
 # -----------------
 #
@@ -91,7 +91,7 @@ T_obs, clusters, cluster_p_values, H0 = clu =\
 #    is multiple-comparisons corrected).
 good_cluster_inds = np.where(cluster_p_values < 0.05)[0]
 
-# %% ##########################################################################
+# %%
 # Visualize the clusters
 # ----------------------
 

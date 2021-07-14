@@ -25,7 +25,7 @@ as a decoding model, or simply stimulus reconstruction).
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 # sphinx_gallery_thumbnail_number = 3
 
 import numpy as np
@@ -39,7 +39,7 @@ from sklearn.model_selection import KFold
 from sklearn.preprocessing import scale
 
 
-# %% ##########################################################################
+# %%
 # Load the data from the publication
 # ----------------------------------
 #
@@ -74,7 +74,7 @@ ax.legend([lns[0], ln1[0]], ['EEG', 'Speech Envelope'], frameon=False)
 ax.set(title="Sample activity", xlabel="Time (s)")
 mne.viz.tight_layout()
 
-# %% ##########################################################################
+# %%
 # Create and fit a receptive field model
 # --------------------------------------
 #
@@ -123,7 +123,7 @@ ax.axhline(0, ls='--', color='r')
 ax.set(title="Mean prediction score", xlabel="Channel", ylabel="Score ($r$)")
 mne.viz.tight_layout()
 
-# %% ##########################################################################
+# %%
 # Investigate model coefficients
 # ==============================
 # Finally, we will look at how the linear coefficients (sometimes
@@ -152,7 +152,7 @@ mne.viz.plot_topomap(mean_coefs[:, ix_plot], pos=info, axes=ax, show=False,
 ax.set(title="Topomap of model coefficients\nfor delay %s" % time_plot)
 mne.viz.tight_layout()
 
-# %% ##########################################################################
+# %%
 # Create and fit a stimulus reconstruction model
 # ----------------------------------------------
 #
@@ -210,7 +210,7 @@ mean_scores = scores.mean(axis=0)
 max_coef = np.abs(mean_coefs).max()
 max_patterns = np.abs(mean_patterns).max()
 
-# %% ##########################################################################
+# %%
 # Visualize stimulus reconstruction
 # =================================
 #
@@ -228,7 +228,7 @@ ax.set(title="Stimulus reconstruction")
 ax.set_xlabel('Time (s)')
 mne.viz.tight_layout()
 
-# %% ##########################################################################
+# %%
 # Investigate model coefficients
 # ==============================
 #
@@ -260,7 +260,7 @@ ax[1].set(title="Inverse-transformed coefficients\nbetween delays %s and %s"
           % (time_plot[0], time_plot[1]))
 mne.viz.tight_layout()
 
-# %% ##########################################################################
+# %%
 # References
 # ----------
 #

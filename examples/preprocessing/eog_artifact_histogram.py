@@ -10,7 +10,7 @@ Compute the distribution of timing for EOG artifacts.
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 
 import numpy as np
@@ -24,7 +24,7 @@ print(__doc__)
 
 data_path = sample.data_path()
 
-# %% ##########################################################################
+# %%
 # Set parameters
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 
@@ -46,7 +46,7 @@ pick_ch = mne.pick_channels(epochs.ch_names, ['STI 014'])[0]
 data = epochs.get_data()[:, pick_ch, :]
 data = np.sum((data.astype(int) & eog_event_id) == eog_event_id, axis=0)
 
-# %% ##########################################################################
+# %%
 # Plot EOG artifact distribution
 fig, ax = plt.subplots()
 ax.stem(1e3 * epochs.times, data, use_line_collection=True)

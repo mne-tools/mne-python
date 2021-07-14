@@ -15,7 +15,7 @@ predict all of the time samples of a second set of conditions.
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import matplotlib.pyplot as plt
 
@@ -49,7 +49,7 @@ epochs = mne.Epochs(raw, events, event_id=event_id, tmin=tmin, tmax=tmax,
                     proj=True, picks=picks, baseline=None, preload=True,
                     reject=dict(mag=5e-12), decim=decim, verbose='error')
 
-# %% ##########################################################################
+# %%
 # We will train the classifier on all left visual vs auditory trials
 # and test on all right visual vs auditory trials.
 clf = make_pipeline(StandardScaler(), LogisticRegression(solver='lbfgs'))
@@ -61,12 +61,12 @@ time_gen = GeneralizingEstimator(clf, scoring='roc_auc', n_jobs=1,
 time_gen.fit(X=epochs['Left'].get_data(),
              y=epochs['Left'].events[:, 2] > 2)
 
-# %% ##########################################################################
+# %%
 # Score on the epochs where the stimulus was presented to the right.
 scores = time_gen.score(X=epochs['Right'].get_data(),
                         y=epochs['Right'].events[:, 2] > 2)
 
-# %% ##########################################################################
+# %%
 # Plot
 fig, ax = plt.subplots(1)
 im = ax.matshow(scores, vmin=0, vmax=1., cmap='RdBu_r', origin='lower',

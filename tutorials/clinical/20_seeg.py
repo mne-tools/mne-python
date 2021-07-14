@@ -33,7 +33,7 @@ how to visualize surface grid channels on the brain.
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import os.path as op
 
@@ -57,7 +57,7 @@ subjects_dir = sample_path + '/subjects'
 # use mne-python's fsaverage data
 fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)  # downloads if needed
 
-# %% ##########################################################################
+# %%
 # Let's load some sEEG electrode locations and names, and turn them into
 # a :class:`mne.channels.DigMontage` class. First, use pandas to read in the
 # ``.tsv`` file.
@@ -94,7 +94,7 @@ lpa, nasion, rpa = mne.coreg.get_mni_fiducials(
     'fsaverage', subjects_dir=subjects_dir)
 lpa, nasion, rpa = lpa['r'], nasion['r'], rpa['r']
 
-# %% ##########################################################################
+# %%
 # Now we make a :class:`mne.channels.DigMontage` stating that the sEEG
 # contacts are in the FreeSurfer surface RAS (i.e., MRI) coordinate system
 # for the given subject. Keep in mind that ``fsaverage`` is special in that
@@ -104,7 +104,7 @@ montage = mne.channels.make_dig_montage(
     ch_pos, coord_frame='mri', nasion=nasion, lpa=lpa, rpa=rpa)
 print('Created %s channel positions' % len(ch_names))
 
-# %% ##########################################################################
+# %%
 # Now we get the :term:`trans` that transforms from our MRI coordinate system
 # to the head coordinate frame. This transform will be applied to the
 # data when applying the montage so that standard plotting functions like
@@ -113,7 +113,7 @@ print('Created %s channel positions' % len(ch_names))
 trans = mne.channels.compute_native_head_t(montage)
 print(trans)
 
-# %% ##########################################################################
+# %%
 # Now that we have our montage, we can load in our corresponding
 # time-series data and set the montage to the raw data.
 
@@ -136,7 +136,7 @@ epochs.set_channel_types(
     {ch_name: 'seeg' if np.isfinite(ch_pos[ch_name]).all() else 'misc'
      for ch_name in raw.ch_names})
 
-# %% ##########################################################################
+# %%
 # Let's check to make sure everything is aligned.
 #
 # .. note::
@@ -149,12 +149,12 @@ fig = mne.viz.plot_alignment(epochs.info, trans, 'fsaverage',
                              subjects_dir=subjects_dir, show_axes=True,
                              surfaces=['pial', 'head'])
 
-# %% ##########################################################################
+# %%
 # Next, we'll get the epoch data and plot its amplitude over time.
 
 epochs.plot()
 
-# %% ##########################################################################
+# %%
 # We can visualize this raw data on the ``fsaverage`` brain (in MNI space) as
 # a heatmap. This works by first creating an ``Evoked`` data structure
 # from the data of interest (in this example, it is just the raw LFP).
@@ -173,7 +173,7 @@ stc = mne.stc_near_sensors(
 stc = abs(stc)  # just look at magnitude
 clim = dict(kind='value', lims=np.percentile(abs(evoked.data), [10, 50, 75]))
 
-# %% ##########################################################################
+# %%
 # Plot 3D source (brain region) visualization:
 #
 # By default, `stc.plot_3d() <mne.VolSourceEstimate.plot_3d>` will show a time
@@ -193,7 +193,7 @@ brain = stc.plot_3d(
 # brain.save_movie(time_dilation=3, interpolation='linear', framerate=10,
 #                  time_viewer=True, filename='./mne-test-seeg.m4')
 
-# %% ##########################################################################
+# %%
 # In this tutorial, we used a BEM surface for the ``fsaverage`` subject from
 # FreeSurfer.
 #

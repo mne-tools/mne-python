@@ -17,12 +17,12 @@ that we'll consider to be noise.
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import mne
 from mne.datasets import sample
 
-# %% ##########################################################################
+# %%
 # Raw data with whitening
 # -----------------------
 # .. note:: In the :meth:`mne.io.Raw.plot` with ``noise_cov`` supplied,
@@ -46,13 +46,13 @@ noise_cov = mne.compute_covariance(epochs, tmax=0., method='shrunk', rank=None,
 raw.plot(events=events, butterfly=True)
 raw.plot(noise_cov=noise_cov, events=events, butterfly=True)
 
-# %% ##########################################################################
+# %%
 # Epochs with whitening
 # ---------------------
 epochs.plot()
 epochs.plot(noise_cov=noise_cov)
 
-# %% ##########################################################################
+# %%
 # Evoked data with whitening
 # --------------------------
 
@@ -60,7 +60,7 @@ evoked = epochs.average()
 evoked.plot(time_unit='s')
 evoked.plot(noise_cov=noise_cov, time_unit='s')
 
-# %% ##########################################################################
+# %%
 # Evoked data with scaled whitening
 # ---------------------------------
 # The :meth:`mne.Evoked.plot_white` function takes an additional step of
@@ -69,7 +69,7 @@ evoked.plot(noise_cov=noise_cov, time_unit='s')
 
 evoked.plot_white(noise_cov=noise_cov, time_unit='s')
 
-# %% ##########################################################################
+# %%
 # Topographic plot with whitening
 # -------------------------------
 

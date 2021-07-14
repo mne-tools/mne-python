@@ -18,7 +18,7 @@ function to make it easier to make several plots that look similar:
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import os
 import numpy as np
@@ -40,7 +40,7 @@ def setup_3d_axes():
     return ax
 
 
-# %% ##########################################################################
+# %%
 # What is a projection?
 # ^^^^^^^^^^^^^^^^^^^^^
 #
@@ -72,7 +72,7 @@ arrow_coords = np.concatenate([point, projected_point - point]).flatten()
 ax.quiver3D(*arrow_coords, length=0.96, arrow_length_ratio=0.1, color='C1',
             linewidth=1, linestyle='dashed')
 
-# %% ##########################################################################
+# %%
 #
 # .. note::
 #
@@ -141,7 +141,7 @@ ax.quiver3D(*arrow_coords, length=0.96, arrow_length_ratio=0.1, color='C1',
 
 trigger_effect = np.array([[3, -1, 1]]).T
 
-# %% ##########################################################################
+# %%
 # Knowing that, we can compute a plane that is orthogonal to the effect of the
 # trigger (using the fact that a plane through the origin has equation
 # :math:`Ax + By + Cz = 0` given a normal vector :math:`(A, B, C)`), and
@@ -157,7 +157,7 @@ x = x[mask]
 y = y[mask]
 z = z[mask]
 
-# %% ##########################################################################
+# %%
 # Computing the projection matrix from the ``trigger_effect`` vector is done
 # using `singular value decomposition <svd_>`_ (SVD); interested readers may
 # consult the internet or a linear algebra textbook for details on this method.
@@ -198,7 +198,7 @@ arrow_coords = np.concatenate([point, projected_point - point]).flatten()
 ax.quiver3D(*arrow_coords, length=0.96, arrow_length_ratio=0.1,
             color='C1', linewidth=1, linestyle='dashed')
 
-# %% ##########################################################################
+# %%
 # Just as before, the projection matrix will map *any point* in :math:`x, y, z`
 # space onto that plane, and once a point has been projected onto that plane,
 # applying the projection again will have no effect. For that reason, it should
@@ -274,7 +274,7 @@ sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
 raw = mne.io.read_raw_fif(sample_data_raw_file)
 raw.crop(tmax=60).load_data()
 
-# %% ##########################################################################
+# %%
 # In MNE-Python, the environmental noise vectors are computed using `principal
 # component analysis <pca_>`_, usually abbreviated "PCA", which is why the SSP
 # projectors usually have names like "PCA-v1". (Incidentally, since the process
@@ -285,7 +285,7 @@ raw.crop(tmax=60).load_data()
 
 print(raw.info['projs'])
 
-# %% ##########################################################################
+# %%
 # ``raw.info['projs']`` is an ordinary Python :class:`list` of
 # :class:`~mne.Projection` objects, so you can access individual projectors by
 # indexing into it. The :class:`~mne.Projection` object itself is similar to a
@@ -297,7 +297,7 @@ first_projector = raw.info['projs'][0]
 print(first_projector)
 print(first_projector.keys())
 
-# %% ##########################################################################
+# %%
 # The :class:`~mne.io.Raw`, :class:`~mne.Epochs`, and :class:`~mne.Evoked`
 # objects all have a boolean :attr:`~mne.io.Raw.proj` attribute that indicates
 # whether there are any unapplied / inactive projectors stored in the object.
@@ -308,7 +308,7 @@ print(first_projector.keys())
 print(raw.proj)
 print(first_projector['active'])
 
-# %% ##########################################################################
+# %%
 # Computing projectors
 # ~~~~~~~~~~~~~~~~~~~~
 #
@@ -352,7 +352,7 @@ for proj in (False, True):
     fig.subplots_adjust(top=0.9)
     fig.suptitle('proj={}'.format(proj), size='xx-large', weight='bold')
 
-# %% ##########################################################################
+# %%
 # Additional ways of visualizing projectors are covered in the tutorial
 # :ref:`tut-artifact-ssp`.
 #
@@ -374,7 +374,7 @@ ecg_proj_file = os.path.join(sample_data_folder, 'MEG', 'sample',
 ecg_projs = mne.read_proj(ecg_proj_file)
 print(ecg_projs)
 
-# %% ##########################################################################
+# %%
 # There is a corresponding :func:`mne.write_proj` function that can be used to
 # save projectors to disk in ``.fif`` format:
 #
@@ -400,7 +400,7 @@ print(ecg_projs)
 
 raw.add_proj(ecg_projs)
 
-# %% ##########################################################################
+# %%
 # To remove projectors, there is a corresponding method
 # :meth:`~mne.io.Raw.del_proj` that will remove projectors based on their index
 # within the ``raw.info['projs']`` list. For the special case of replacing the
@@ -422,7 +422,7 @@ for data, title in zip([mags, mags_ecg], ['Without', 'With']):
     fig.suptitle('{} ECG projector'.format(title), size='xx-large',
                  weight='bold')
 
-# %% ##########################################################################
+# %%
 # When are projectors "applied"?
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #

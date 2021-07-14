@@ -12,7 +12,7 @@ is linear based on dSPM inverse operator.
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import matplotlib.pyplot as plt
 
@@ -23,7 +23,7 @@ from mne.minimum_norm import read_inverse_operator, source_band_induced_power
 
 print(__doc__)
 
-# %% ##########################################################################
+# %%
 # Set parameters
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
@@ -59,7 +59,7 @@ stcs = source_band_induced_power(epochs, inverse_operator, bands, n_cycles=2,
 for b, stc in stcs.items():
     stc.save('induced_power_%s' % b)
 
-# %% ##########################################################################
+# %%
 # plot mean power
 plt.plot(stcs['alpha'].times, stcs['alpha'].data.mean(axis=0), label='Alpha')
 plt.plot(stcs['beta'].times, stcs['beta'].data.mean(axis=0), label='Beta')

@@ -16,14 +16,14 @@ minimum-norm inverse solution. For more information, see
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import os.path as op
 
 import mne
 from mne.datasets import sample
 
-# %% ##########################################################################
+# %%
 # Source estimation method such as MNE require a noise estimations from the
 # recordings. In this tutorial we cover the basics of noise covariance and
 # construct a noise covariance matrix that can be used when computing the
@@ -39,7 +39,7 @@ raw.set_eeg_reference('average', projection=True)
 raw.info['bads'] += ['EEG 053']  # bads + 1 more
 
 
-# %% ##########################################################################
+# %%
 # The definition of noise depends on the paradigm. In MEG it is quite common
 # to use empty room measurements for the estimation of sensor noise. However if
 # you are dealing with evoked responses, you might want to also consider
@@ -66,7 +66,7 @@ raw_empty_room.add_proj(
 noise_cov = mne.compute_raw_covariance(
     raw_empty_room, tmin=0, tmax=None)
 
-# %% ##########################################################################
+# %%
 # Now that you have the covariance matrix in an MNE-Python object you can
 # save it to a file with :func:`mne.write_cov`. Later you can read it back
 # using :func:`mne.read_cov`.
@@ -81,12 +81,12 @@ epochs = mne.Epochs(raw, events, event_id=1, tmin=-0.2, tmax=0.5,
                     baseline=(-0.2, 0.0), decim=3,  # we'll decimate for speed
                     verbose='error')  # and ignore the warning about aliasing
 
-# %% ##########################################################################
+# %%
 # Note that this method also attenuates any activity in your
 # source estimates that resemble the baseline, if you like it or not.
 noise_cov_baseline = mne.compute_covariance(epochs, tmax=0)
 
-# %% ##########################################################################
+# %%
 # Plot the covariance matrices
 # ----------------------------
 #
@@ -95,7 +95,7 @@ noise_cov_baseline = mne.compute_covariance(epochs, tmax=0)
 noise_cov.plot(raw_empty_room.info, proj=True)
 noise_cov_baseline.plot(epochs.info, proj=True)
 
-# %% ##########################################################################
+# %%
 # .. _plot_compute_covariance_howto:
 #
 # How should I regularize the covariance matrix?
@@ -116,7 +116,7 @@ noise_cov_baseline.plot(epochs.info, proj=True)
 noise_cov_reg = mne.compute_covariance(epochs, tmax=0., method='auto',
                                        rank=None)
 
-# %% ##########################################################################
+# %%
 # This procedure evaluates the noise covariance quantitatively by how well it
 # whitens the data using the
 # negative log-likelihood of unseen data. The final result can also be visually
@@ -133,7 +133,7 @@ noise_cov_reg = mne.compute_covariance(epochs, tmax=0., method='auto',
 evoked = epochs.average()
 evoked.plot_white(noise_cov_reg, time_unit='s')
 
-# %% ##########################################################################
+# %%
 # This plot displays both, the whitened evoked signals for each channels and
 # the whitened :term:`GFP`. The numbers in the GFP panel represent the
 # estimated rank of the data, which amounts to the effective degrees of freedom
@@ -182,7 +182,7 @@ evoked_meg.plot_white([noise_cov_baseline, noise_cov], time_unit='s')
 # seems more appropriate. See :ref:`ex-covariance-whitening-dspm` for more
 # information.
 
-# %% ##########################################################################
+# %%
 # References
 # ----------
 #

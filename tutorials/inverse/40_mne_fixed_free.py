@@ -13,7 +13,7 @@ produced by MNE, dSPM, sLORETA, and eLORETA.
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import mne
 from mne.datasets import sample
@@ -35,7 +35,7 @@ cov = mne.read_cov(fname_cov)
 # crop for speed in these examples
 evoked.crop(0.05, 0.15)
 
-# %% ##########################################################################
+# %%
 # Fixed orientation
 # -----------------
 # First let's create a fixed-orientation inverse, with the default weighting.
@@ -43,7 +43,7 @@ evoked.crop(0.05, 0.15)
 inv = make_inverse_operator(evoked.info, fwd, cov, loose=0., depth=0.8,
                             verbose=True)
 
-# %% ##########################################################################
+# %%
 # Let's look at the current estimates using MNE. We'll take the absolute
 # value of the source estimates to simplify the visualization.
 snr = 3.0
@@ -55,21 +55,21 @@ stc = abs(apply_inverse(evoked, inv, lambda2, 'MNE', verbose=True))
 brain = stc.plot(figure=1, **kwargs)
 brain.add_text(0.1, 0.9, 'MNE', 'title', font_size=14)
 
-# %% ##########################################################################
+# %%
 # Next let's use the default noise normalization, dSPM:
 
 stc = abs(apply_inverse(evoked, inv, lambda2, 'dSPM', verbose=True))
 brain = stc.plot(figure=2, **kwargs)
 brain.add_text(0.1, 0.9, 'dSPM', 'title', font_size=14)
 
-# %% ##########################################################################
+# %%
 # And sLORETA:
 
 stc = abs(apply_inverse(evoked, inv, lambda2, 'sLORETA', verbose=True))
 brain = stc.plot(figure=3, **kwargs)
 brain.add_text(0.1, 0.9, 'sLORETA', 'title', font_size=14)
 
-# %% ##########################################################################
+# %%
 # And finally eLORETA:
 
 stc = abs(apply_inverse(evoked, inv, lambda2, 'eLORETA', verbose=True))
@@ -77,7 +77,7 @@ brain = stc.plot(figure=4, **kwargs)
 brain.add_text(0.1, 0.9, 'eLORETA', 'title', font_size=14)
 del inv
 
-# %% ##########################################################################
+# %%
 # Free orientation
 # ----------------
 # Now let's not constrain the orientation of the dipoles at all by creating
@@ -87,7 +87,7 @@ inv = make_inverse_operator(evoked.info, fwd, cov, loose=1., depth=0.8,
                             verbose=True)
 del fwd
 
-# %% ##########################################################################
+# %%
 # Let's look at the current estimates using MNE. We'll take the absolute
 # value of the source estimates to simplify the visualization.
 
@@ -95,21 +95,21 @@ stc = apply_inverse(evoked, inv, lambda2, 'MNE', verbose=True)
 brain = stc.plot(figure=5, **kwargs)
 brain.add_text(0.1, 0.9, 'MNE', 'title', font_size=14)
 
-# %% ##########################################################################
+# %%
 # Next let's use the default noise normalization, dSPM:
 
 stc = apply_inverse(evoked, inv, lambda2, 'dSPM', verbose=True)
 brain = stc.plot(figure=6, **kwargs)
 brain.add_text(0.1, 0.9, 'dSPM', 'title', font_size=14)
 
-# %% ##########################################################################
+# %%
 # sLORETA:
 
 stc = apply_inverse(evoked, inv, lambda2, 'sLORETA', verbose=True)
 brain = stc.plot(figure=7, **kwargs)
 brain.add_text(0.1, 0.9, 'sLORETA', 'title', font_size=14)
 
-# %% ##########################################################################
+# %%
 # And finally eLORETA:
 
 stc = apply_inverse(evoked, inv, lambda2, 'eLORETA', verbose=True,

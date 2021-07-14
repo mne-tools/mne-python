@@ -15,7 +15,7 @@ As usual we'll start by importing the modules we need, loading some
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import os
 import matplotlib.pyplot as plt
@@ -31,7 +31,7 @@ sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
 raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False)
 raw.crop(tmax=60)
 
-# %% ##########################################################################
+# %%
 # Background on SSS and Maxwell filtering
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -94,7 +94,7 @@ raw.crop(tmax=60)
 fine_cal_file = os.path.join(sample_data_folder, 'SSS', 'sss_cal_mgh.dat')
 crosstalk_file = os.path.join(sample_data_folder, 'SSS', 'ct_sparse_mgh.fif')
 
-# %% ##########################################################################
+# %%
 # Before we perform SSS we'll look for bad channels — ``MEG 2443`` is quite
 # noisy.
 #
@@ -114,7 +114,7 @@ auto_noisy_chs, auto_flat_chs, auto_scores = find_bad_channels_maxwell(
 print(auto_noisy_chs)  # we should find them!
 print(auto_flat_chs)  # none for this dataset
 
-# %% ##########################################################################
+# %%
 #
 # .. note:: `~mne.preprocessing.find_bad_channels_maxwell` needs to operate on
 #           a signal without line noise or cHPI signals. By default, it simply
@@ -131,7 +131,7 @@ print(auto_flat_chs)  # none for this dataset
 bads = raw.info['bads'] + auto_noisy_chs + auto_flat_chs
 raw.info['bads'] = bads
 
-# %% ##########################################################################
+# %%
 # We called `~mne.preprocessing.find_bad_channels_maxwell` with the optional
 # keyword argument ``return_scores=True``, causing the function to return a
 # dictionary of all data related to the scoring used to classify channels as
@@ -180,7 +180,7 @@ ax[1].set_title('Scores > Limit', fontweight='bold')
 # The figure title should not overlap with the subplots.
 fig.tight_layout(rect=[0, 0.03, 1, 0.95])
 
-# %% ##########################################################################
+# %%
 #
 # .. note:: You can use the very same code as above to produce figures for
 #           *flat* channel detection. Simply replace the word "noisy" with
@@ -204,7 +204,7 @@ fig.tight_layout(rect=[0, 0.03, 1, 0.95])
 #           To do this, pass the keyword argument ``min_count`` to the
 #           function.
 
-# %% ##########################################################################
+# %%
 # Obviously, this algorithm is not perfect. Specifically, on closer inspection
 # of the raw data after looking at the diagnostic plots above, it becomes clear
 # that the channel exceeding the "noise" limits in some segments without
@@ -215,7 +215,7 @@ fig.tight_layout(rect=[0, 0.03, 1, 0.95])
 
 raw.info['bads'] += ['MEG 2313']  # from manual inspection
 
-# %% ##########################################################################
+# %%
 # After that, performing SSS and Maxwell filtering is done with a
 # single call to :func:`~mne.preprocessing.maxwell_filter`, with the crosstalk
 # and fine calibration filenames provided (if available):
@@ -223,14 +223,14 @@ raw.info['bads'] += ['MEG 2313']  # from manual inspection
 raw_sss = mne.preprocessing.maxwell_filter(
     raw, cross_talk=crosstalk_file, calibration=fine_cal_file, verbose=True)
 
-# %% ##########################################################################
+# %%
 # To see the effect, we can plot the data before and after SSS / Maxwell
 # filtering.
 
 raw.pick(['meg']).plot(duration=2, butterfly=True)
 raw_sss.pick(['meg']).plot(duration=2, butterfly=True)
 
-# %% ##########################################################################
+# %%
 # Notice that channels marked as "bad" have been effectively repaired by SSS,
 # eliminating the need to perform :ref:`interpolation <tut-bad-channels>`.
 # The heartbeat artifact has also been substantially reduced.
@@ -309,7 +309,7 @@ head_pos_file = os.path.join(mne.datasets.testing.data_path(), 'SSS',
 head_pos = mne.chpi.read_head_pos(head_pos_file)
 mne.viz.plot_head_positions(head_pos, mode='traces')
 
-# %% ##########################################################################
+# %%
 # The cHPI data file could also be passed as the ``head_pos`` parameter of
 # :func:`~mne.preprocessing.maxwell_filter`. Not only would this account for
 # movement within a given recording session, but also would effectively

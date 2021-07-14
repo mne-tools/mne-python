@@ -18,7 +18,7 @@ seconds before loading it into RAM to save memory:
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import os
 from datetime import timedelta
@@ -30,7 +30,7 @@ sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
 raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False)
 raw.crop(tmax=60).load_data()
 
-# %% ##########################################################################
+# %%
 # `~mne.Annotations` in MNE-Python are a way of storing short strings of
 # information about temporal spans of a `~mne.io.Raw` object. Below the
 # surface, `~mne.Annotations` are `list-like <list>` objects,
@@ -56,7 +56,7 @@ my_annot = mne.Annotations(onset=[3, 5, 7],  # in seconds
                            description=['AAA', 'BBB', 'CCC'])
 print(my_annot)
 
-# %% ##########################################################################
+# %%
 # Notice that ``orig_time`` is ``None``, because we haven't specified it. In
 # those cases, when you add the annotations to a `~mne.io.Raw` object,
 # it is assumed that the ``orig_time`` matches the time of the first sample of
@@ -71,7 +71,7 @@ meas_date = raw.info['meas_date']
 orig_time = raw.annotations.orig_time
 print(meas_date == orig_time)
 
-# %% ##########################################################################
+# %%
 # Since the example data comes from a Neuromag system that starts counting
 # sample numbers before the recording begins, adding ``my_annot`` to the
 # `~mne.io.Raw` object also involved another automatic change: an offset
@@ -83,7 +83,7 @@ time_of_first_sample = raw.first_samp / raw.info['sfreq']
 print(my_annot.onset + time_of_first_sample)
 print(raw.annotations.onset)
 
-# %% ##########################################################################
+# %%
 # If you know that your annotation onsets are relative to some other time, you
 # can set ``orig_time`` before you call :meth:`~mne.io.Raw.set_annotations`,
 # and the onset times will get adjusted based on the time difference between
@@ -106,7 +106,7 @@ raw2 = raw.copy().set_annotations(later_annot)
 print(later_annot.onset)
 print(raw2.annotations.onset)
 
-# %% ##########################################################################
+# %%
 # .. note::
 #
 #     If your annotations fall outside the range of data times in the
@@ -118,7 +118,7 @@ print(raw2.annotations.onset)
 
 fig = raw.plot(start=2, duration=6)
 
-# %% ##########################################################################
+# %%
 # The three annotations appear as differently colored rectangles because they
 # have different ``description`` values (which are printed along the top
 # edge of the plot area). Notice also that colored spans appear in the small
@@ -137,7 +137,7 @@ fig = raw.plot(start=2, duration=6)
 
 fig.canvas.key_press_event('a')
 
-# %% ##########################################################################
+# %%
 # The colored rings are clickable, and determine which existing label will be
 # created by the next click-and-drag operation in the main plot window. New
 # annotation descriptions can be added by typing the new description,
@@ -190,7 +190,7 @@ new_annot = mne.Annotations(onset=3.75, duration=0.75, description='AAA')
 raw.set_annotations(my_annot + new_annot)
 raw.plot(start=2, duration=6)
 
-# %% ##########################################################################
+# %%
 # Notice that it is possible to create overlapping annotations, even when they
 # share the same description. This is *not* possible when annotating
 # interactively; click-and-dragging to create a new annotation that overlaps
@@ -206,7 +206,7 @@ print(raw.annotations[0])       # just the first annotation
 print(raw.annotations[:2])      # the first two annotations
 print(raw.annotations[(3, 2)])  # the fourth and third annotations
 
-# %% ##########################################################################
+# %%
 # You can also iterate over the annotations within an `~mne.Annotations`
 # object:
 
@@ -216,7 +216,7 @@ for ann in raw.annotations:
     end = ann['onset'] + ann['duration']
     print("'{}' goes from {} to {}".format(descr, start, end))
 
-# %% ##########################################################################
+# %%
 # Note that iterating, indexing and slicing `~mne.Annotations` all
 # return a copy, so changes to an indexed, sliced, or iterated element will not
 # modify the original `~mne.Annotations` object.
@@ -231,7 +231,7 @@ later_annot[0]['onset'] = 77
 
 print(later_annot[0]['onset'])
 
-# %% ##########################################################################
+# %%
 # Reading and writing Annotations to/from a file
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -245,7 +245,7 @@ raw.annotations.save('saved-annotations.csv')
 annot_from_file = mne.read_annotations('saved-annotations.csv')
 print(annot_from_file)
 
-# %% ##########################################################################
+# %%
 # .. LINKS
 #
 # .. _`POSIX timestamp`: https://en.wikipedia.org/wiki/Unix_time

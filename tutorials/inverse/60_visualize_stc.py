@@ -15,7 +15,7 @@ First, we get the paths for the evoked data and the time courses (stcs).
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import os
 import os.path as op
@@ -36,15 +36,15 @@ fname_evoked = data_path + '/MEG/sample/sample_audvis-ave.fif'
 fname_stc = os.path.join(sample_dir, 'sample_audvis-meg')
 fetch_hcp_mmp_parcellation(subjects_dir)
 
-# %% ##########################################################################
+# %%
 # Then, we read the stc from file.
 stc = mne.read_source_estimate(fname_stc, subject='sample')
 
-# %% ##########################################################################
+# %%
 # This is a :class:`SourceEstimate <mne.SourceEstimate>` object.
 print(stc)
 
-# %% ##########################################################################
+# %%
 # The SourceEstimate object is in fact a *surface* source estimate. MNE also
 # supports volume-based source estimates but more on that later.
 #
@@ -56,7 +56,7 @@ initial_time = 0.1
 brain = stc.plot(subjects_dir=subjects_dir, initial_time=initial_time,
                  clim=dict(kind='value', lims=[3, 6, 9]))
 
-# %% ##########################################################################
+# %%
 # You can also morph it to fsaverage and visualize it using a flatmap.
 
 # sphinx_gallery_thumbnail_number = 3
@@ -77,7 +77,7 @@ brain.add_annotation('HCPMMP1_combined', borders=2, subjects_dir=subjects_dir)
 # brain.save_movie(time_dilation=20, tmin=0.05, tmax=0.16,
 #                  interpolation='linear', framerate=10)
 
-# %% ##########################################################################
+# %%
 # Note that here we used ``initial_time=0.1``, but we can also browse through
 # time using ``time_viewer=True``.
 #
@@ -87,7 +87,7 @@ brain.add_annotation('HCPMMP1_combined', borders=2, subjects_dir=subjects_dir)
 mpl_fig = stc.plot(subjects_dir=subjects_dir, initial_time=initial_time,
                    backend='matplotlib', verbose='error')
 
-# %% ##########################################################################
+# %%
 #
 # Volume Source Estimates
 # -----------------------
@@ -100,14 +100,14 @@ evoked.pick_types(meg=True, eeg=False).crop(0.05, 0.15)
 # this risks aliasing, but these data are very smooth
 evoked.decimate(10, verbose='error')
 
-# %% ##########################################################################
+# %%
 # Then, we can load the precomputed inverse operator from a file.
 fname_inv = data_path + '/MEG/sample/sample_audvis-meg-vol-7-meg-inv.fif'
 inv = read_inverse_operator(fname_inv)
 src = inv['src']
 mri_head_t = inv['mri_head_t']
 
-# %% ##########################################################################
+# %%
 # The source estimate is computed using the inverse operator and the
 # sensor-space data.
 snr = 3.0
@@ -116,17 +116,17 @@ method = "dSPM"  # use dSPM method (could also be MNE or sLORETA)
 stc = apply_inverse(evoked, inv, lambda2, method)
 del inv
 
-# %% ##########################################################################
+# %%
 # This time, we have a different container
 # (:class:`VolSourceEstimate <mne.VolSourceEstimate>`) for the source time
 # course.
 print(stc)
 
-# %% ##########################################################################
+# %%
 # This too comes with a convenient plot method.
 stc.plot(src, subject='sample', subjects_dir=subjects_dir)
 
-# %% ##########################################################################
+# %%
 # For this visualization, ``nilearn`` must be installed.
 # This visualization is interactive. Click on any of the anatomical slices
 # to explore the time series. Clicking on any time point will bring up the
@@ -138,7 +138,7 @@ stc.plot(src, subject='sample', subjects_dir=subjects_dir)
 # :term:`maximum intensity projection`) is used:
 stc.plot(src, subject='sample', subjects_dir=subjects_dir, mode='glass_brain')
 
-# %% ##########################################################################
+# %%
 # You can also extract label time courses using volumetric atlases. Here we'll
 # use the built-in ``aparc.a2009s+aseg.mgz``:
 
@@ -158,14 +158,14 @@ for key in ('right', 'top'):
     ax.spines[key].set_visible(False)
 fig.tight_layout()
 
-# %% ##########################################################################
+# %%
 # And we can project these label time courses back to their original
 # locations and see how the plot has been smoothed:
 
 stc_back = mne.labels_to_stc(fname_aseg, label_tc, src=src)
 stc_back.plot(src, subjects_dir=subjects_dir, mode='glass_brain')
 
-# %% ##########################################################################
+# %%
 # Vector Source Estimates
 # -----------------------
 # If we choose to use ``pick_ori='vector'`` in
@@ -177,7 +177,7 @@ brain = stc.plot(subject='sample', subjects_dir=subjects_dir,
                  initial_time=initial_time, brain_kwargs=dict(
                      silhouette=True))
 
-# %% ##########################################################################
+# %%
 # Dipole fits
 # -----------
 # For computing a dipole fit, we need to load the noise covariance, the BEM

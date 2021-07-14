@@ -20,14 +20,14 @@ As usual we'll start by importing the modules we need:
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import os
 import numpy as np
 import matplotlib.pyplot as plt
 import mne
 
-# %% ##########################################################################
+# %%
 # Loading continuous data
 # ^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -67,7 +67,7 @@ sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                     'sample_audvis_raw.fif')
 raw = mne.io.read_raw_fif(sample_data_raw_file)
 
-# %% ##########################################################################
+# %%
 # As you can see above, :func:`~mne.io.read_raw_fif` automatically displays
 # some information about the file it's loading. For example, here it tells us
 # that there are three "projection items" in the file along with the recorded
@@ -80,7 +80,7 @@ raw = mne.io.read_raw_fif(sample_data_raw_file)
 
 print(raw)
 
-# %% ##########################################################################
+# %%
 # By default, the :samp:`mne.io.read_raw_{*}` family of functions will *not*
 # load the data into memory (instead the data on disk are `memory-mapped`_,
 # meaning the data are only read from disk as-needed). Some operations (such as
@@ -94,7 +94,7 @@ print(raw)
 
 raw.crop(tmax=60)
 
-# %% ##########################################################################
+# %%
 # Querying the Raw object
 # ^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -152,7 +152,7 @@ print(raw.info['description'], '\n')      # miscellaneous acquisition info
 
 print(raw.info)
 
-# %% ##########################################################################
+# %%
 # .. note::
 #
 #     Most of the fields of ``raw.info`` reflect metadata recorded at
@@ -187,7 +187,7 @@ print(raw.time_as_index([20, 30, 40]), '\n')
 
 print(np.diff(raw.time_as_index([1, 2, 3])))
 
-# %% ##########################################################################
+# %%
 # Modifying ``Raw`` objects
 # ^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -225,7 +225,7 @@ print(np.diff(raw.time_as_index([1, 2, 3])))
 eeg_and_eog = raw.copy().pick_types(meg=False, eeg=True, eog=True)
 print(len(raw.ch_names), '→', len(eeg_and_eog.ch_names))
 
-# %% ##########################################################################
+# %%
 # Similar to the :meth:`~mne.io.Raw.pick_types` method, there is also the
 # :meth:`~mne.io.Raw.pick_channels` method to pick channels by name, and a
 # corresponding :meth:`~mne.io.Raw.drop_channels` method to remove channels by
@@ -239,7 +239,7 @@ print(len(raw_temp.ch_names), end=' → pick three → ')
 raw_temp.pick_channels(['MEG 1811', 'EEG 017', 'EOG 061'])
 print(len(raw_temp.ch_names))
 
-# %% ##########################################################################
+# %%
 # If you want the channels in a specific order (e.g., for plotting),
 # :meth:`~mne.io.Raw.reorder_channels` works just like
 # :meth:`~mne.io.Raw.pick_channels` but also reorders the channels; for
@@ -250,7 +250,7 @@ channel_names = ['EOG 061', 'EEG 003', 'EEG 002', 'EEG 001']
 eog_and_frontal_eeg = raw.copy().reorder_channels(channel_names)
 print(eog_and_frontal_eeg.ch_names)
 
-# %% ##########################################################################
+# %%
 # Changing channel name and type
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
@@ -271,7 +271,7 @@ print(eog_and_frontal_eeg.ch_names)
 
 raw.rename_channels({'EOG 061': 'blink detector'})
 
-# %% ##########################################################################
+# %%
 # This next example replaces spaces in the channel names with underscores,
 # using a Python `dict comprehension`_:
 
@@ -280,7 +280,7 @@ channel_renaming_dict = {name: name.replace(' ', '_') for name in raw.ch_names}
 raw.rename_channels(channel_renaming_dict)
 print(raw.ch_names[-3:])
 
-# %% ##########################################################################
+# %%
 # If for some reason the channel types in your :class:`~mne.io.Raw` object are
 # inaccurate, you can change the type of any channel with the
 # :meth:`~mne.io.Raw.set_channel_types` method. The method takes a
@@ -292,7 +292,7 @@ print(raw.ch_names[-3:])
 raw.set_channel_types({'EEG_001': 'eog'})
 print(raw.copy().pick_types(meg=False, eog=True).ch_names)
 
-# %% ##########################################################################
+# %%
 # Selection in the time domain
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
@@ -307,7 +307,7 @@ print(raw.copy().pick_types(meg=False, eog=True).ch_names)
 raw_selection = raw.copy().crop(tmin=10, tmax=12.5)
 print(raw_selection)
 
-# %% ##########################################################################
+# %%
 # :meth:`~mne.io.Raw.crop` also modifies the :attr:`~mne.io.Raw.first_samp` and
 # :attr:`~mne.io.Raw.times` attributes, so that the first sample of the cropped
 # object now corresponds to ``time = 0``. Accordingly, if you wanted to re-crop
@@ -320,7 +320,7 @@ print(raw_selection.times.min(), raw_selection.times.max())
 raw_selection.crop(tmin=1)
 print(raw_selection.times.min(), raw_selection.times.max())
 
-# %% ##########################################################################
+# %%
 # Remember that sample times don't always align exactly with requested ``tmin``
 # or ``tmax`` values (due to sampling), which is why the ``max`` values of the
 # cropped files don't exactly match the requested ``tmax`` (see
@@ -336,7 +336,7 @@ raw_selection3 = raw.copy().crop(tmin=50, tmax=51.3)     # 1.3 seconds
 raw_selection1.append([raw_selection2, raw_selection3])  # 2.5 seconds total
 print(raw_selection1.times.min(), raw_selection1.times.max())
 
-# %% ##########################################################################
+# %%
 # .. warning::
 #
 #     Be careful when concatenating :class:`~mne.io.Raw` objects from different
@@ -377,7 +377,7 @@ channel_index = 0
 raw_selection = raw[channel_index, start_sample:stop_sample]
 print(raw_selection)
 
-# %% ##########################################################################
+# %%
 # You can see that it contains 2 arrays. This combination of data and times
 # makes it easy to plot selections of raw data (although note that we're
 # transposing the data array so that each channel is a column instead of a row,
@@ -388,7 +388,7 @@ x = raw_selection[1]
 y = raw_selection[0].T
 plt.plot(x, y)
 
-# %% ##########################################################################
+# %%
 # Extracting channels by name
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
@@ -409,7 +409,7 @@ y = two_meg_chans[0].T + y_offset
 lines = plt.plot(x, y)
 plt.legend(lines, channel_names)
 
-# %% ##########################################################################
+# %%
 # Extracting channels by type
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
@@ -427,7 +427,7 @@ eeg_channel_indices = mne.pick_types(raw.info, meg=False, eeg=True)
 eeg_data, times = raw[eeg_channel_indices]
 print(eeg_data.shape)
 
-# %% ##########################################################################
+# %%
 # Some of the parameters of :func:`mne.pick_types` accept string arguments as
 # well as booleans. For example, the ``meg`` parameter can take values
 # ``'mag'``, ``'grad'``, ``'planar1'``, or ``'planar2'`` to select only
@@ -446,7 +446,7 @@ print(eeg_data.shape)
 data = raw.get_data()
 print(data.shape)
 
-# %% ##########################################################################
+# %%
 # If you want the array of times, :meth:`~mne.io.Raw.get_data` has an optional
 # ``return_times`` parameter:
 
@@ -454,7 +454,7 @@ data, times = raw.get_data(return_times=True)
 print(data.shape)
 print(times.shape)
 
-# %% ##########################################################################
+# %%
 # The :meth:`~mne.io.Raw.get_data` method can also be used to extract specific
 # channel(s) and sample ranges, via its ``picks``, ``start``, and ``stop``
 # parameters. The ``picks`` parameter accepts integer channel indices, channel
@@ -470,7 +470,7 @@ print(first_channel_data.shape)
 print(eeg_and_eog_data.shape)
 print(two_meg_chans_data.shape)
 
-# %% ##########################################################################
+# %%
 # Summary of ways to extract data from ``Raw`` objects
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
@@ -531,7 +531,7 @@ print(two_meg_chans_data.shape)
 data = raw.get_data()
 np.save(file='my_data.npy', arr=data)
 
-# %% ##########################################################################
+# %%
 # It is also possible to export the data to a :class:`Pandas DataFrame
 # <pandas.DataFrame>` object, and use the saving methods that :mod:`Pandas
 # <pandas>` affords. The :class:`~mne.io.Raw` object's
@@ -550,7 +550,7 @@ df = raw.to_data_frame(picks=['eeg'], start=start_sample, stop=stop_sample)
 # then save using df.to_csv(...), df.to_hdf(...), etc
 print(df.head())
 
-# %% ##########################################################################
+# %%
 # .. note::
 #     When exporting data as a :class:`NumPy array <numpy.ndarray>` or
 #     :class:`Pandas DataFrame <pandas.DataFrame>`, be sure to properly account

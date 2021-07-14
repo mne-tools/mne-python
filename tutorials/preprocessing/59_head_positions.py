@@ -26,7 +26,7 @@ harmonics).
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 from os import path as op
 
@@ -39,7 +39,7 @@ fname_raw = op.join(data_path, 'test_move_anon_raw.fif')
 raw = mne.io.read_raw_fif(fname_raw, allow_maxshield='yes').load_data()
 raw.plot_psd()
 
-# %% ##########################################################################
+# %%
 # We can use `mne.chpi.get_chpi_info` to retrieve the coil frequencies,
 # the index of the channel indicating when which coil was switched on, and the
 # respective "event codes" associated with each coil's activity.
@@ -47,7 +47,7 @@ raw.plot_psd()
 chpi_freqs, ch_idx, chpi_codes = mne.chpi.get_chpi_info(info=raw.info)
 print(f'cHPI coil frequencies extracted from raw: {chpi_freqs} Hz')
 
-# %% ##########################################################################
+# %%
 # Estimating continuous head position
 # -----------------------------------
 #
@@ -55,17 +55,17 @@ print(f'cHPI coil frequencies extracted from raw: {chpi_freqs} Hz')
 
 chpi_amplitudes = mne.chpi.compute_chpi_amplitudes(raw)
 
-# %% ##########################################################################
+# %%
 # Second, let's compute time-varying HPI coil locations from these:
 
 chpi_locs = mne.chpi.compute_chpi_locs(raw.info, chpi_amplitudes)
 
-# %% ##########################################################################
+# %%
 # Lastly, compute head positions from the coil locations:
 
 head_pos = mne.chpi.compute_head_pos(raw.info, chpi_locs, verbose=True)
 
-# %% ##########################################################################
+# %%
 # Note that these can then be written to disk or read from disk with
 # :func:`mne.chpi.write_head_pos` and :func:`mne.chpi.read_head_pos`,
 # respectively.
@@ -79,13 +79,13 @@ head_pos = mne.chpi.compute_head_pos(raw.info, chpi_locs, verbose=True)
 
 mne.viz.plot_head_positions(head_pos, mode='traces')
 
-# %% ##########################################################################
+# %%
 # Or we can visualize them as a continuous field (with the vectors pointing
 # in the head-upward direction):
 
 mne.viz.plot_head_positions(head_pos, mode='field')
 
-# %% ##########################################################################
+# %%
 # These head positions can then be used with
 # :func:`mne.preprocessing.maxwell_filter` to compensate for movement,
 # or with :func:`mne.preprocessing.annotate_movement` to mark segments as

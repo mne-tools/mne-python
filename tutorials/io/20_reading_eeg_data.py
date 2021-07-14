@@ -250,4 +250,4 @@ the MEG head coordinate system employed in the MNE software, see
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%

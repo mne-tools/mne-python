@@ -17,7 +17,7 @@ just a few EEG channels so the plots are easier to see:
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import os
 import mne
@@ -29,7 +29,7 @@ raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False)
 raw.crop(tmax=60).load_data()
 raw.pick(['EEG 0{:02}'.format(n) for n in range(41, 60)])
 
-# %% ##########################################################################
+# %%
 # Background
 # ^^^^^^^^^^
 #
@@ -85,7 +85,7 @@ raw.pick(['EEG 0{:02}'.format(n) for n in range(41, 60)])
 # use a bipolar reference (contralateral)
 # raw.set_bipolar_reference(anode='[F3'], cathode=['F4'])
 
-# %% ##########################################################################
+# %%
 # If a scalp electrode was used as reference but was not saved alongside the
 # raw data (reference channels often aren't), you may wish to add it back to
 # the dataset before re-referencing. For example, if your EEG system recorded
@@ -100,7 +100,7 @@ raw.pick(['EEG 0{:02}'.format(n) for n in range(41, 60)])
 
 raw.plot()
 
-# %% ##########################################################################
+# %%
 # By default, :func:`~mne.add_reference_channels` returns a copy, so we can go
 # back to our original ``raw`` object later. If you wanted to alter the
 # existing :class:`~mne.io.Raw` object in-place you could specify
@@ -110,14 +110,14 @@ raw.plot()
 raw_new_ref = mne.add_reference_channels(raw, ref_channels=['EEG 999'])
 raw_new_ref.plot()
 
-# %% ##########################################################################
+# %%
 # .. KEEP THESE BLOCKS SEPARATE SO FIGURES ARE BIG ENOUGH TO READ
 
 # set reference to `EEG 050`
 raw_new_ref.set_eeg_reference(ref_channels=['EEG 050'])
 raw_new_ref.plot()
 
-# %% ##########################################################################
+# %%
 # Notice that the new reference (``EEG 050``) is now flat, while the original
 # reference channel that we added back to the data (``EEG 999``) has a non-zero
 # signal. Notice also that ``EEG 053`` (which is marked as "bad" in
@@ -139,7 +139,7 @@ raw_new_ref.plot()
 raw_avg_ref = raw.copy().set_eeg_reference(ref_channels='average')
 raw_avg_ref.plot()
 
-# %% ##########################################################################
+# %%
 # .. _section-avg-ref-proj:
 #
 # Creating the average reference as a projector
@@ -152,7 +152,7 @@ raw_avg_ref.plot()
 raw.set_eeg_reference('average', projection=True)
 print(raw.info['projs'])
 
-# %% ##########################################################################
+# %%
 # Creating the average reference as a projector has a few advantages:
 #
 # 1. It is possible to turn projectors on or off when plotting, so it is easy
@@ -177,7 +177,7 @@ for title, proj in zip(['Original', 'Average'], [False, True]):
     fig.subplots_adjust(top=0.9)
     fig.suptitle('{} reference'.format(title), size='xx-large', weight='bold')
 
-# %% ##########################################################################
+# %%
 # Using an infinite reference (REST)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -199,7 +199,7 @@ for title, _raw in zip(['Original', 'REST (∞)'], [raw, raw_rest]):
     fig.subplots_adjust(top=0.9)
     fig.suptitle('{} reference'.format(title), size='xx-large', weight='bold')
 
-# %% ##########################################################################
+# %%
 # Using a bipolar reference
 # ^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -218,7 +218,7 @@ raw_bip_ref = mne.set_bipolar_reference(raw, anode=['EEG 054'],
                                         cathode=['EEG 055'])
 raw_bip_ref.plot()
 
-# %% ##########################################################################
+# %%
 # EEG reference and source modeling
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #

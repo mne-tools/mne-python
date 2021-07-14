@@ -16,7 +16,7 @@ We begin as always by importing the necessary Python modules and loading some
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import os
 import numpy as np
@@ -28,7 +28,7 @@ sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
 raw = mne.io.read_raw_fif(sample_data_raw_file)
 raw.crop(0, 60).load_data()  # just use a fraction of data for speed here
 
-# %% ##########################################################################
+# %%
 # What are artifacts?
 # ^^^^^^^^^^^^^^^^^^^
 #
@@ -115,7 +115,7 @@ raw.crop(0, 60).load_data()  # just use a fraction of data for speed here
 ssp_projectors = raw.info['projs']
 raw.del_proj()
 
-# %% ##########################################################################
+# %%
 # Low-frequency drifts
 # ~~~~~~~~~~~~~~~~~~~~
 #
@@ -128,7 +128,7 @@ mag_channels = mne.pick_types(raw.info, meg='mag')
 raw.plot(duration=60, order=mag_channels, n_channels=len(mag_channels),
          remove_dc=False)
 
-# %% ##########################################################################
+# %%
 # Low-frequency drifts are readily removed by high-pass filtering at a fairly
 # low cutoff frequency (the wavelength of the drifts seen above is probably
 # around 20 seconds, so in this case a cutoff of 0.1 Hz would probably suppress
@@ -152,7 +152,7 @@ for ax in fig.axes[1:]:
                  width=0.1, head_width=3, length_includes_head=True)
 
 
-# %% ##########################################################################
+# %%
 # Here we see narrow frequency peaks at 60, 120, 180, and 240 Hz — the power
 # line frequency of the USA (where the sample data was recorded) and its 2nd,
 # 3rd, and 4th harmonics. Other peaks (around 25 to 30 Hz, and the second
@@ -180,7 +180,7 @@ for ax in fig.axes[1:]:
 ecg_epochs = mne.preprocessing.create_ecg_epochs(raw)
 ecg_epochs.plot_image(combine='mean')
 
-# %% ##########################################################################
+# %%
 # The horizontal streaks in the magnetometer image plot reflect the fact that
 # the heartbeat artifacts are superimposed on low-frequency drifts like the one
 # we saw in an earlier section; to avoid this you could pass
@@ -193,13 +193,13 @@ ecg_epochs.plot_image(combine='mean')
 
 avg_ecg_epochs = ecg_epochs.average().apply_baseline((-0.5, -0.2))
 
-# %% ##########################################################################
+# %%
 # Here again we can visualize the spatial pattern of the associated field at
 # various times relative to the peak of the EOG response:
 
 avg_ecg_epochs.plot_topomap(times=np.linspace(-0.05, 0.05, 11))
 
-# %% ##########################################################################
+# %%
 # Or, we can get an ERP/F plot with :meth:`~mne.Evoked.plot` or a combined
 # scalp field maps and ERP/F plot with :meth:`~mne.Evoked.plot_joint`. Here
 # we've specified the times for scalp field maps manually, but if not provided
@@ -207,7 +207,7 @@ avg_ecg_epochs.plot_topomap(times=np.linspace(-0.05, 0.05, 11))
 
 avg_ecg_epochs.plot_joint(times=[-0.25, -0.025, 0, 0.025, 0.25])
 
-# %% ##########################################################################
+# %%
 # Ocular artifacts (EOG)
 # ~~~~~~~~~~~~~~~~~~~~~~
 #
@@ -226,7 +226,7 @@ eog_epochs = mne.preprocessing.create_eog_epochs(raw, baseline=(-0.5, -0.2))
 eog_epochs.plot_image(combine='mean')
 eog_epochs.average().plot_joint()
 
-# %% ##########################################################################
+# %%
 # Summary
 # ^^^^^^^
 #

@@ -12,7 +12,7 @@ functions.
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import mne
 from mne.datasets import sample
@@ -122,7 +122,7 @@ brain_pre.add_text(0.1, 0.9, 'LCMV beamformer with pre-stimulus\ndata '
 brain_pre.add_foci(verttrue, coords_as_verts=True, scale_factor=1., hemi='lh',
                    color='green')
 
-# %% ##########################################################################
+# %%
 # Post:
 
 brain_post = stc_post.plot('sample', 'inflated', 'lh',
@@ -135,7 +135,7 @@ brain_post.add_text(0.1, 0.9, 'LCMV beamformer with post-stimulus\ndata '
 brain_post.add_foci(verttrue, coords_as_verts=True, scale_factor=1.,
                     hemi='lh', color='green')
 
-# %% ##########################################################################
+# %%
 # The pre-stimulus beamformer's CTF has lower values in parietal regions
 # suppressed alpha activity?) but larger values in occipital regions (less
 # suppression of visual activity?).

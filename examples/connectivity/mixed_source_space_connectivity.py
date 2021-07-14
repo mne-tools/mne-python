@@ -12,7 +12,7 @@ is ordered based on the locations of the regions in the axial plane.
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import os.path as op
 import numpy as np
@@ -175,7 +175,7 @@ plot_connectivity_circle(conmat, label_names, n_lines=300,
                          title='All-to-All Connectivity left-Auditory '
                          'Condition (PLI)', fig=fig)
 
-# %% ##########################################################################
+# %%
 # Save the figure (optional)
 # --------------------------
 #

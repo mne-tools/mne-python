@@ -19,7 +19,7 @@ References
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import os.path as op
 import numpy as np
@@ -33,7 +33,7 @@ subjects_dir = data_path + '/subjects'
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 raw = mne.io.read_raw_fif(raw_fname)
 
-# %% ##########################################################################
+# %%
 # Compute empty-room covariance
 # -----------------------------
 # First we compute an empty-room covariance, which captures noise from the
@@ -49,7 +49,7 @@ noise_cov = mne.compute_raw_covariance(
     raw_empty_room, method=['empirical', 'shrunk'])
 del raw_empty_room
 
-# %% ##########################################################################
+# %%
 # Epoch the data
 # --------------
 
@@ -65,7 +65,7 @@ epochs = mne.Epochs(raw.copy().filter(4, 12), events, event_id, tmin, tmax,
                     reject=reject, preload=True)
 del raw
 
-# %% ##########################################################################
+# %%
 # Compute and plot covariances
 # ----------------------------
 # In addition to the empty-room covariance above, we compute two additional
@@ -88,7 +88,7 @@ fig_noise_cov = mne.viz.plot_cov(noise_cov, epochs.info, show_svd=False)
 fig_base_cov = mne.viz.plot_cov(base_cov, epochs.info, show_svd=False)
 fig_data_cov = mne.viz.plot_cov(data_cov, epochs.info, show_svd=False)
 
-# %% ##########################################################################
+# %%
 # We can also look at the covariances using topomaps, here we just show the
 # baseline and data covariances, followed by the data covariance whitened
 # by the baseline covariance:
@@ -102,7 +102,7 @@ data_cov.plot_topomap(evoked.info, 'grad', title='Data')
 data_cov.plot_topomap(evoked.info, 'grad', noise_cov=noise_cov,
                       title='Whitened data')
 
-# %% ##########################################################################
+# %%
 # Apply inverse operator to covariance
 # ------------------------------------
 # Finally, we can construct an inverse using the empty-room noise covariance:
@@ -116,7 +116,7 @@ info = evoked.info
 inverse_operator = make_inverse_operator(info, fwd, noise_cov,
                                          loose=0.2, depth=0.8)
 
-# %% ##########################################################################
+# %%
 # Project our data and baseline covariance to source space:
 
 stc_data = apply_inverse_cov(data_cov, evoked.info, inverse_operator,
@@ -124,7 +124,7 @@ stc_data = apply_inverse_cov(data_cov, evoked.info, inverse_operator,
 stc_base = apply_inverse_cov(base_cov, evoked.info, inverse_operator,
                              nave=len(epochs), method='dSPM', verbose=True)
 
-# %% ##########################################################################
+# %%
 # And visualize power is relative to the baseline:
 
 # sphinx_gallery_thumbnail_number = 9

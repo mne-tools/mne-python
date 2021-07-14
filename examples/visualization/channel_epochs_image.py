@@ -16,7 +16,7 @@ embedding as described in :footcite:`GramfortEtAl2010`.
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -29,7 +29,7 @@ print(__doc__)
 
 data_path = sample.data_path()
 
-# %% ##########################################################################
+# %%
 # Set parameters
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
@@ -47,7 +47,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     picks=('grad', 'eog'), baseline=(None, 0), preload=True,
                     reject=dict(grad=4000e-13, eog=150e-6))
 
-# %% ##########################################################################
+# %%
 # Show event-related fields images
 
 # and order with spectral reordering
@@ -74,7 +74,7 @@ mne.viz.plot_epochs_image(epochs, [good_pick, bad_pick], sigma=.5,
                           order=order_func, vmin=-250, vmax=250,
                           overlay_times=plt_times, show=True)
 
-# %% ##########################################################################
+# %%
 # References
 # ----------
 # .. footbibliography::

@@ -15,12 +15,12 @@ We begin by importing the necessary Python modules:
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import os
 import mne
 
-# %% ##########################################################################
+# %%
 # .. _config-get-set:
 #
 # Getting and setting configuration variables
@@ -35,7 +35,7 @@ import mne
 print(mne.get_config('MNE_USE_CUDA'))
 print(type(mne.get_config('MNE_USE_CUDA')))
 
-# %% ##########################################################################
+# %%
 # Note that the string values read from the JSON file are not parsed in any
 # way, so :func:`~mne.get_config` returns a string even for true/false config
 # values, rather than a Python :ref:`boolean <bltin-boolean-values>`.
@@ -47,14 +47,14 @@ try:
 except TypeError as err:
     print(err)
 
-# %% ##########################################################################
+# %%
 # If you're unsure whether a config variable has been set, there is a
 # convenient way to check it and provide a fallback in case it doesn't exist:
 # :func:`~mne.get_config` has a ``default`` parameter.
 
 print(mne.get_config('missing_config_key', default='fallback value'))
 
-# %% ##########################################################################
+# %%
 # There are also two convenience modes of :func:`~mne.get_config`. The first
 # will return a :class:`dict` containing all config variables (and their
 # values) that have been set on your system; this is done by passing
@@ -62,14 +62,14 @@ print(mne.get_config('missing_config_key', default='fallback value'))
 
 print(mne.get_config())  # same as mne.get_config(key=None)
 
-# %% ##########################################################################
+# %%
 # The second convenience mode will return a :class:`tuple` of all the keys that
 # MNE-Python recognizes and uses, regardless of whether they've been set on
 # your system. This is done by passing an empty string ``''`` as the ``key``:
 
 print(mne.get_config(key=''))
 
-# %% ##########################################################################
+# %%
 # It is possible to add config variables that are not part of the recognized
 # list, by passing any arbitrary key to :func:`~mne.set_config`. This will
 # yield a warning, however, which is a nice check in cases where you meant to
@@ -77,7 +77,7 @@ print(mne.get_config(key=''))
 
 mne.set_config('MNEE_USE_CUUDAA', 'false')
 
-# %% ##########################################################################
+# %%
 # Let's delete that config variable we just created. To unset a config
 # variable, use :func:`~mne.set_config` with ``value=None``. Since we're still
 # dealing with an unrecognized key (as far as MNE-Python is concerned) we'll
@@ -86,7 +86,7 @@ mne.set_config('MNEE_USE_CUUDAA', 'false')
 mne.set_config('MNEE_USE_CUUDAA', None)
 assert 'MNEE_USE_CUUDAA' not in mne.get_config('')
 
-# %% ##########################################################################
+# %%
 # Where configurations are stored
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -97,7 +97,7 @@ assert 'MNEE_USE_CUUDAA' not in mne.get_config('')
 
 print(mne.get_config_path())
 
-# %% ##########################################################################
+# %%
 # However it is not a good idea to directly edit files in the :file:`.mne`
 # directory; use the getting and setting functions described in :ref:`the
 # previous section <config-get-set>`.
@@ -126,7 +126,7 @@ assert mne.get_config('PATH', use_env=False) is None
 # but it *is* in the environment:
 print(mne.get_config('PATH'))
 
-# %% ##########################################################################
+# %%
 # Also by default, :func:`~mne.set_config` will set values in both the JSON
 # file and in :data:`os.environ`; to set a config variable *only* in the JSON
 # file use ``set_env=False``. Here we'll use :func:`print` statement to confirm
@@ -141,7 +141,7 @@ print('foo' in os.environ.keys())
 mne.set_config('foo', None)  # unsetting a key deletes var from environment
 print('foo' in os.environ.keys())
 
-# %% ##########################################################################
+# %%
 # .. _tut-logging:
 #
 # Logging
@@ -155,7 +155,7 @@ print('foo' in os.environ.keys())
 
 print(mne.get_config('MNE_LOGGING_LEVEL'))
 
-# %% ##########################################################################
+# %%
 # The logging levels that can be set as config variables are ``debug``,
 # ``info``, ``warning``, ``error``, and ``critical``. Around 90% of the log
 # messages in MNE-Python are ``info`` messages, so for most users the choice is
@@ -199,14 +199,14 @@ kit_data_path = os.path.join(os.path.abspath(os.path.dirname(mne.__file__)),
                              'io', 'kit', 'tests', 'data', 'test.sqd')
 raw = mne.io.read_raw_kit(kit_data_path, verbose='warning')
 
-# %% ##########################################################################
+# %%
 # No messages were generated, because none of the messages were of severity
 # "warning" or worse. Next, we'll load the same file with log level ``info``
 # (the default level):
 
 raw = mne.io.read_raw_kit(kit_data_path, verbose='info')
 
-# %% ##########################################################################
+# %%
 # This time, we got a few messages about extracting information from the file,
 # converting that information into the MNE-Python :class:`~mne.Info` format,
 # etc. Finally, if we request ``debug``-level information, we get even more
@@ -214,7 +214,7 @@ raw = mne.io.read_raw_kit(kit_data_path, verbose='info')
 
 raw = mne.io.read_raw_kit(kit_data_path, verbose='debug')
 
-# %% ##########################################################################
+# %%
 # We've been passing string values to the ``verbose`` parameter, but we can see
 # from :ref:`the table above <table-log-levels>` that ``verbose=True`` will
 # give us the ``info`` messages and ``verbose=False`` will suppress them; this

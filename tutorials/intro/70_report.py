@@ -23,13 +23,13 @@ directly within the browser). This tutorial covers the basics of building a
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import os
 import matplotlib.pyplot as plt
 import mne
 
-# %% ##########################################################################
+# %%
 # Before getting started with :class:`mne.Report`, make sure the files you want
 # to render follow the filename conventions defined by MNE:
 #
@@ -86,7 +86,7 @@ report = mne.Report(verbose=True)
 report.parse_folder(path, pattern='*raw.fif', render_bem=False)
 report.save('report_basic.html', overwrite=True)
 
-# %% ##########################################################################
+# %%
 # This report yields a textual summary of the :class:`~mne.io.Raw` files
 # selected by the pattern. For a slightly more useful report, we'll ask for the
 # power spectral density of the :class:`~mne.io.Raw` files, by passing
@@ -101,7 +101,7 @@ report = mne.Report(raw_psd=True, projs=True, verbose=True)
 report.parse_folder(path, pattern=pattern, render_bem=False)
 report.save('report_raw_psd.html', overwrite=True)
 
-# %% ##########################################################################
+# %%
 # The sample dataset also contains SSP projectors stored as *individual files*.
 # To add them to a report, we also have to provide the path to a file
 # containing an `~mne.Info` dictionary, from which the channel locations can be
@@ -114,7 +114,7 @@ report = mne.Report(info_fname=info_fname, verbose=True)
 report.parse_folder(path, pattern=pattern, render_bem=False)
 report.save('report_proj.html', overwrite=True)
 
-# %% ##########################################################################
+# %%
 # This time we'll pass a specific ``subject`` and ``subjects_dir`` (even though
 # there's only one subject in the sample dataset) and remove our
 # ``render_bem=False`` parameter so we can see the MRI slices, with BEM
@@ -127,7 +127,7 @@ report = mne.Report(subject='sample', subjects_dir=subjects_dir, verbose=True)
 report.parse_folder(path, pattern='', mri_decim=25)
 report.save('report_mri_bem.html', overwrite=True)
 
-# %% ##########################################################################
+# %%
 # Now let's look at how :class:`~mne.Report` handles :class:`~mne.Evoked` data
 # (we will skip the MRIs to save computation time). The following code will
 # produce butterfly plots, topomaps, and comparisons of the global field
@@ -138,7 +138,7 @@ report = mne.Report(verbose=True)
 report.parse_folder(path, pattern=pattern, render_bem=False)
 report.save('report_evoked.html', overwrite=True)
 
-# %% ##########################################################################
+# %%
 # You have probably noticed that the EEG recordings look particularly odd. This
 # is because by default, `~mne.Report` does not apply baseline correction
 # before rendering evoked data. So if the dataset you wish to add to the report
@@ -158,7 +158,7 @@ report = mne.Report(baseline=baseline, verbose=True)
 report.parse_folder(path, pattern=pattern, render_bem=False)
 report.save('report_evoked_baseline.html', overwrite=True)
 
-# %% ##########################################################################
+# %%
 # To render whitened :class:`~mne.Evoked` files with baseline correction, pass
 # the ``baseline`` argument we just used, and add the noise covariance file.
 # This will display ERP/ERF plots for both the original and whitened
@@ -170,7 +170,7 @@ report = mne.Report(cov_fname=cov_fname, baseline=baseline, verbose=True)
 report.parse_folder(path, pattern=pattern, render_bem=False)
 report.save('report_evoked_whitened.html', overwrite=True)
 
-# %% ##########################################################################
+# %%
 # If you want to actually *view* the noise covariance in the report, make sure
 # it is captured by the pattern passed to :meth:`~mne.Report.parse_folder`, and
 # also include a source for an :class:`~mne.Info` object (any of the
@@ -184,7 +184,7 @@ report = mne.Report(info_fname=info_fname, verbose=True)
 report.parse_folder(path, pattern=pattern, render_bem=False)
 report.save('report_cov.html', overwrite=True)
 
-# %% ##########################################################################
+# %%
 # Adding custom plots to a report
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -217,7 +217,7 @@ report.add_figs_to_section([fig_drop_log, fig_evoked],
                            section='drop-and-evoked')
 report.save('report_custom.html', overwrite=True)
 
-# %% ##########################################################################
+# %%
 # Adding a slider
 # ^^^^^^^^^^^^^^^
 #
@@ -238,7 +238,7 @@ report.add_slider_to_section(figs, times, 'Evoked Response',
 
 report.save('report_slider.html', overwrite=True)
 
-# %% ##########################################################################
+# %%
 # Adding coregistration plot to a report
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -252,7 +252,7 @@ pattern = "sample_audvis_raw-trans.fif"
 report.parse_folder(path, pattern=pattern, render_bem=False)
 report.save('report_coreg.html', overwrite=True)
 
-# %% ##########################################################################
+# %%
 # Adding ``SourceEstimate`` (STC) plot to a report
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -278,7 +278,7 @@ report.add_slider_to_section(figs)
 
 report.save('report_stc.html', overwrite=True)
 
-# %% ##########################################################################
+# %%
 # Managing report sections
 # ^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -310,7 +310,7 @@ report.save('report.h5', overwrite=True)
 report_from_disk = mne.open_report('report.h5')
 print(report_from_disk)
 
-# %% ##########################################################################
+# %%
 # This allows the possibility of multiple scripts adding figures to the same
 # report. To make this even easier, :class:`mne.Report` can be used as a
 # context manager:
@@ -322,6 +322,6 @@ with mne.open_report('report.h5') as report:
                                replace=True)
     report.save('report_final.html', overwrite=True)
 
-# %% ##########################################################################
+# %%
 # With the context manager, the updated report is also automatically saved
 # back to :file:`report.h5` upon leaving the block.

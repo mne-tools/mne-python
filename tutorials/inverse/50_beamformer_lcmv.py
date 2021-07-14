@@ -10,14 +10,14 @@ and shows how to reconstruct source activity using an LCMV beamformer.
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import matplotlib.pyplot as plt
 import mne
 from mne.datasets import sample, fetch_fsaverage
 from mne.beamformer import make_lcmv, apply_lcmv
 
-# %% ##########################################################################
+# %%
 # Introduction to beamformers
 # ---------------------------
 # A beamformer is a spatial filter that reconstructs source activity by
@@ -36,7 +36,7 @@ from mne.beamformer import make_lcmv, apply_lcmv
 # ingredients: the forward model solution and the covariance matrix of the
 # data.
 
-# %% ##########################################################################
+# %%
 # Data processing
 # ---------------
 # We will use the sample data set for this tutorial and reconstruct source
@@ -72,7 +72,7 @@ evoked.plot_joint()
 
 del raw  # save memory
 
-# %% ##########################################################################
+# %%
 # Computing the covariance matrices
 # ---------------------------------
 # Spatial filters use the data covariance to estimate the filter
@@ -100,7 +100,7 @@ noise_cov = mne.compute_covariance(epochs, tmin=tmin, tmax=0,
 data_cov.plot(epochs.info)
 del epochs
 
-# %% ##########################################################################
+# %%
 # When looking at the covariance matrix plots, we can see that our data is
 # slightly rank-deficient as the rank is not equal to the number of channels.
 # Thus, we will have to regularize the covariance matrix before inverting it
@@ -109,7 +109,7 @@ del epochs
 # :func:`~mne.beamformer.make_lcmv`. This corresponds to loading the diagonal
 # of the covariance matrix with 5% of the sensor power.
 
-# %% ##########################################################################
+# %%
 # The forward model
 # -----------------
 # The forward model is the other important ingredient for the computation of a
@@ -125,7 +125,7 @@ del epochs
 fwd_fname = data_path + '/MEG/sample/sample_audvis-meg-vol-7-fwd.fif'
 forward = mne.read_forward_solution(fwd_fname)
 
-# %% ##########################################################################
+# %%
 # Handling depth bias
 # -------------------
 #
@@ -163,7 +163,7 @@ filters = make_lcmv(evoked.info, forward, data_cov, reg=0.05,
 # You can save the filter for later use with:
 # filters.save('filters-lcmv.h5')
 
-# %% ##########################################################################
+# %%
 # It is also possible to compute a vector beamformer, which gives back three
 # estimates per voxel, corresponding to the three direction components of the
 # source. This can be achieved by setting
@@ -178,7 +178,7 @@ filters_vec = make_lcmv(evoked.info, forward, data_cov, reg=0.05,
 src = forward['src']
 del forward
 
-# %% ##########################################################################
+# %%
 # Apply the spatial filter
 # ------------------------
 # The spatial filter can be applied to different data types: raw, epochs,
@@ -194,7 +194,7 @@ stc = apply_lcmv(evoked, filters, max_ori_out='signed')
 stc_vec = apply_lcmv(evoked, filters_vec, max_ori_out='signed')
 del filters, filters_vec
 
-# %% ##########################################################################
+# %%
 # Visualize the reconstructed source activity
 # -------------------------------------------
 # We can visualize the source estimate in different ways, e.g. as a volume
@@ -208,19 +208,19 @@ lims = [0.3, 0.45, 0.6]
 kwargs = dict(src=src, subject='sample', subjects_dir=subjects_dir,
               initial_time=0.087, verbose=True)
 
-# %% ##########################################################################
+# %%
 # On MRI slices (orthoview; 2D)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 stc.plot(mode='stat_map', clim=dict(kind='value', pos_lims=lims), **kwargs)
 
-# %% ##########################################################################
+# %%
 # On MNI glass brain (orthoview; 2D)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 stc.plot(mode='glass_brain', clim=dict(kind='value', lims=lims), **kwargs)
 
-# %% ##########################################################################
+# %%
 # Volumetric rendering (3D) with vectors
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # These plots can also be shown using a volumetric rendering via
@@ -238,7 +238,7 @@ brain = stc_vec.plot_3d(
     view_layout='horizontal', show_traces=0.3,
     brain_kwargs=dict(silhouette=True), **kwargs)
 
-# %% ##########################################################################
+# %%
 # Visualize the activity of the maximum voxel with all three components
 # ---------------------------------------------------------------------
 # We can also visualize all three components in the peak voxel. For this, we
@@ -256,7 +256,7 @@ ax.set(title='Activity per orientation in the peak voxel', xlabel='Time (s)',
 mne.viz.utils.plt_show()
 del stc_vec
 
-# %% ##########################################################################
+# %%
 # Morph the output to fsaverage
 # -----------------------------
 #
@@ -282,7 +282,7 @@ stc_fs.plot(
     src=src_fs, mode='stat_map', initial_time=0.085, subjects_dir=subjects_dir,
     clim=dict(kind='value', pos_lims=lims), verbose=True)
 
-# %% ##########################################################################
+# %%
 # References
 # ----------
 #

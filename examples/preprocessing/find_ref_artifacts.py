@@ -30,7 +30,7 @@ This technique is fully described and validated in :footcite:`HannaEtAl2020`
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import mne
 from mne import io
@@ -42,13 +42,13 @@ print(__doc__)
 
 data_path = refmeg_noise.data_path()
 
-# %% ##########################################################################
+# %%
 # Read raw data, cropping to 5 minutes to save memory
 
 raw_fname = data_path + '/sample_reference_MEG_noise-raw.fif'
 raw = io.read_raw_fif(raw_fname).crop(300, 600).load_data()
 
-# %% ##########################################################################
+# %%
 # Note that even though standard noise removal has already
 # been applied to these data, much of the noise in the reference channels
 # (bottom of the plot) can still be seen in the standard channels.
@@ -60,11 +60,11 @@ plot_kwargs = dict(
     scalings={"mag": 8e-13, "ref_meg": 2e-11})
 raw.plot(**plot_kwargs)
 
-# %% ##########################################################################
+# %%
 # The PSD of these data show the noise as clear peaks.
 raw.plot_psd(fmax=30)
 
-# %% ##########################################################################
+# %%
 # Run the "together" algorithm.
 raw_tog = raw.copy()
 ica_kwargs = dict(
@@ -90,11 +90,11 @@ ica_tog.plot_properties(raw_tog, picks=bad_comps)
 # Remove the components.
 raw_tog = ica_tog.apply(raw_tog, exclude=bad_comps)
 
-# %% ##########################################################################
+# %%
 # Cleaned data:
 raw_tog.plot_psd(fmax=30)
 
-# %% ##########################################################################
+# %%
 # Now try the "separate" algorithm.
 raw_sep = raw.copy()
 
@@ -129,12 +129,12 @@ ica_sep.plot_properties(raw_sep, picks=bad_comps)
 # Remove the components.
 raw_sep = ica_sep.apply(raw_sep, exclude=bad_comps)
 
-# %% ##########################################################################
+# %%
 # Cleaned raw data traces:
 
 raw_sep.plot(**plot_kwargs)
 
-# %% ##########################################################################
+# %%
 # Cleaned raw data PSD:
 
 raw_sep.plot_psd(fmax=30)

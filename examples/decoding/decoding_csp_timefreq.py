@@ -18,7 +18,7 @@ signals.
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 
 import numpy as np
@@ -35,7 +35,7 @@ from sklearn.model_selection import StratifiedKFold, cross_val_score
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import LabelEncoder
 
-# %% ##########################################################################
+# %%
 # Set parameters and read data
 event_id = dict(hands=2, feet=3)  # motor imagery: hands vs feet
 subject = 1
@@ -74,7 +74,7 @@ n_windows = len(centered_w_times)
 # Instantiate label encoder
 le = LabelEncoder()
 
-# %% ##########################################################################
+# %%
 # Loop through frequencies, apply classifier and save scores
 
 # init scores
@@ -103,7 +103,7 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
                                                 scoring='roc_auc', cv=cv,
                                                 n_jobs=1), axis=0)
 
-# %% ##########################################################################
+# %%
 # Plot frequency results
 
 plt.bar(freqs[:-1], freq_scores, width=np.diff(freqs)[0],
@@ -117,7 +117,7 @@ plt.xlabel('Frequency (Hz)')
 plt.ylabel('Decoding Scores')
 plt.title('Frequency Decoding Scores')
 
-# %% ##########################################################################
+# %%
 # Loop through frequencies and time, apply classifier and save scores
 
 # init scores
@@ -154,7 +154,7 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
                                                      scoring='roc_auc', cv=cv,
                                                      n_jobs=1), axis=0)
 
-# %% ##########################################################################
+# %%
 # Plot time-frequency results
 
 # Set up time frequency object

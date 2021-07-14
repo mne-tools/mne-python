@@ -13,7 +13,7 @@ permutation test across space and time.
 #          Eric Larson <larson.eric.d@gmail.com>
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import os.path as op
 
@@ -30,7 +30,7 @@ from mne.datasets import sample
 
 print(__doc__)
 
-# %% ##########################################################################
+# %%
 # Set parameters
 # --------------
 data_path = sample.data_path()
@@ -46,7 +46,7 @@ tmax = 0.3  # Use a lower tmax to reduce multiple comparisons
 raw = mne.io.read_raw_fif(raw_fname)
 events = mne.read_events(event_fname)
 
-# %% ##########################################################################
+# %%
 # Read epochs for all channels, removing a bad one
 # ------------------------------------------------
 raw.info['bads'] += ['MEG 2443']
@@ -64,7 +64,7 @@ epochs2 = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 #    introduced by the abs() performed below)
 equalize_epoch_counts([epochs1, epochs2])
 
-# %% ##########################################################################
+# %%
 # Transform to source space
 # -------------------------
 
@@ -89,7 +89,7 @@ condition2.crop(0, None)
 tmin = condition1.tmin
 tstep = condition1.tstep * 1000  # convert to milliseconds
 
-# %% ##########################################################################
+# %%
 # Transform to common cortical space
 # ----------------------------------
 #
@@ -112,7 +112,7 @@ X = randn(n_vertices_sample, n_times, n_subjects, 2) * 10
 X[:, :, :, 0] += condition1.data[:, :, np.newaxis]
 X[:, :, :, 1] += condition2.data[:, :, np.newaxis]
 
-# %% ##########################################################################
+# %%
 # It's a good idea to spatially smooth the data, and for visualization
 # purposes, let's morph these to fsaverage, which is a grade 5 source space
 # with vertices 0:10242 for each hemisphere. Usually you'd have to morph
@@ -135,7 +135,7 @@ print('Morphing data.')
 X = morph_mat.dot(X)  # morph_mat is a sparse matrix
 X = X.reshape(n_vertices_fsave, n_times, n_subjects, 2)
 
-# %% ##########################################################################
+# %%
 # Finally, we want to compare the overall activity levels in each condition,
 # the diff is taken along the last axis (condition). The negative sign makes
 # it so condition1 > condition2 shows up as "red blobs" (instead of blue).
@@ -143,7 +143,7 @@ X = np.abs(X)  # only magnitude
 X = X[:, :, :, 0] - X[:, :, :, 1]  # make paired contrast
 
 
-# %% ##########################################################################
+# %%
 # Compute statistic
 # -----------------
 #
@@ -169,7 +169,7 @@ T_obs, clusters, cluster_p_values, H0 = clu = \
 #    is multiple-comparisons corrected).
 good_cluster_inds = np.where(cluster_p_values < 0.05)[0]
 
-# %% ##########################################################################
+# %%
 # Visualize the clusters
 # ----------------------
 print('Visualizing clusters.')

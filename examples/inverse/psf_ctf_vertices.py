@@ -10,7 +10,7 @@ Visualise PSF and CTF at one vertex for sLORETA.
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import mne
 from mne.datasets import sample
@@ -85,7 +85,7 @@ brain_psf.add_foci(verttrue, coords_as_verts=True, scale_factor=1., hemi='lh',
 brain_psf.add_foci(vert_max_psf, coords_as_verts=True, scale_factor=1.,
                    hemi='lh', color='black')
 
-# %% ##########################################################################
+# %%
 # CTF:
 
 brain_ctf = stc_ctf.plot('sample', 'inflated', 'lh', subjects_dir=subjects_dir)
@@ -99,6 +99,6 @@ brain_ctf.add_foci(vert_max_ctf, coords_as_verts=True, scale_factor=1.,
                    hemi='lh', color='black')
 
 
-# %% ##########################################################################
+# %%
 # The green spheres indicate the true source location, and the black
 # spheres the maximum of the distribution.

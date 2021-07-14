@@ -11,7 +11,7 @@ of systems. See :footcite:`KhanCohen2013` for an example.
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import os.path as op
 import mne
@@ -21,11 +21,11 @@ data_path = mne.datasets.sample.data_path()
 raw_erm = mne.io.read_raw_fif(op.join(data_path, 'MEG', 'sample',
                                       'ernoise_raw.fif'), preload=True)
 
-# %% ##########################################################################
+# %%
 # We can plot the absolute noise levels:
 raw_erm.plot_psd(tmax=10., average=True, spatial_colors=False,
                  dB=False, xscale='log')
-# %% ##########################################################################
+# %%
 # References
 # ----------
 #

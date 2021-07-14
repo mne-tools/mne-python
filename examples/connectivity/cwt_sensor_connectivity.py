@@ -12,7 +12,7 @@ domain using Morlet wavelets and the debiased squared weighted phase lag index
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import numpy as np
 
@@ -24,7 +24,7 @@ from mne.time_frequency import AverageTFR
 
 print(__doc__)
 
-# %% ##########################################################################
+# %%
 # Set parameters
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
@@ -79,7 +79,7 @@ tfr = AverageTFR(epochs.info, con, times, freqs, len(epochs))
 tfr.plot_topo(fig_facecolor='w', font_color='k', border='k')
 
 
-# %% ##########################################################################
+# %%
 # References
 # ----------
 # .. footbibliography::

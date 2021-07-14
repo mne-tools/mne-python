@@ -12,7 +12,7 @@ False Discovery Rate (FDR) correction.
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import numpy as np
 from scipy import stats
@@ -25,7 +25,7 @@ from mne.stats import bonferroni_correction, fdr_correction
 
 print(__doc__)
 
-# %% ##########################################################################
+# %%
 # Set parameters
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
@@ -39,7 +39,7 @@ events = mne.read_events(event_fname)[:30]
 channel = 'MEG 1332'  # include only this channel in analysis
 include = [channel]
 
-# %% ##########################################################################
+# %%
 # Read epochs for the channel of interest
 picks = mne.pick_types(raw.info, meg=False, eog=True, include=include,
                        exclude='bads')
@@ -50,7 +50,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 X = epochs.get_data()  # as 3D matrix
 X = X[:, 0, :]  # take only one channel to get a 2D array
 
-# %% ##########################################################################
+# %%
 # Compute statistic
 T, pval = stats.ttest_1samp(X, 0)
 alpha = 0.05
@@ -64,7 +64,7 @@ threshold_bonferroni = stats.t.ppf(1.0 - alpha / n_tests, n_samples - 1)
 reject_fdr, pval_fdr = fdr_correction(pval, alpha=alpha, method='indep')
 threshold_fdr = np.min(np.abs(T)[reject_fdr])
 
-# %% ##########################################################################
+# %%
 # Plot
 times = 1e3 * epochs.times
 

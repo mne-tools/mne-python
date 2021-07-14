@@ -11,7 +11,7 @@ Show sensor layouts of different MEG systems.
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import os.path as op
 
@@ -23,7 +23,7 @@ from mne.viz import plot_alignment, set_3d_title
 
 print(__doc__)
 
-# %% ##########################################################################
+# %%
 # Neuromag
 # --------
 
@@ -33,7 +33,7 @@ raw = read_raw_fif(sample.data_path() + '/MEG/sample/sample_audvis_raw.fif')
 fig = plot_alignment(raw.info, meg=('helmet', 'sensors'), **kwargs)
 set_3d_title(figure=fig, title='Neuromag')
 
-# %% ##########################################################################
+# %%
 # CTF
 # ---
 
@@ -42,7 +42,7 @@ raw = read_raw_ctf(spm_face.data_path() +
 fig = plot_alignment(raw.info, meg=('helmet', 'sensors', 'ref'), **kwargs)
 set_3d_title(figure=fig, title='CTF 275')
 
-# %% ##########################################################################
+# %%
 # BTi
 # ---
 
@@ -53,7 +53,7 @@ raw = read_raw_bti(op.join(bti_path, 'test_pdf_linux'),
 fig = plot_alignment(raw.info, meg=('helmet', 'sensors', 'ref'), **kwargs)
 set_3d_title(figure=fig, title='Magnes 3600wh')
 
-# %% ##########################################################################
+# %%
 # KIT
 # ---
 
@@ -62,7 +62,7 @@ raw = read_raw_kit(op.join(kit_path, 'test.sqd'))
 fig = plot_alignment(raw.info, meg=('helmet', 'sensors'), **kwargs)
 set_3d_title(figure=fig, title='KIT')
 
-# %% ##########################################################################
+# %%
 # Artemis123
 # ----------
 

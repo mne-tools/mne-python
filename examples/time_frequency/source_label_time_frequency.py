@@ -15,7 +15,7 @@ latter also includes evoked (stimulus-locked) activity.
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -27,7 +27,7 @@ from mne.minimum_norm import read_inverse_operator, source_induced_power
 
 print(__doc__)
 
-# %% ##########################################################################
+# %%
 # Set parameters
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'

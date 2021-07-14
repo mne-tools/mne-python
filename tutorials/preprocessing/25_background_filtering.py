@@ -136,9 +136,9 @@ MNE-Python.
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
-# %% ##########################################################################
+# %%
 # Designing FIR filters
 # ---------------------
 # Here we'll try to design a low-pass filter and look at trade-offs in terms
@@ -163,7 +163,7 @@ sfreq = 1000.
 f_p = 40.
 flim = (1., sfreq / 2.)  # limits for plotting
 
-# %% ##########################################################################
+# %%
 # Take for example an ideal low-pass filter, which would give a magnitude
 # response of 1 in the pass-band (up to frequency :math:`f_p`) and a magnitude
 # response of 0 in the stop-band (down to frequency :math:`f_s`) such that
@@ -177,7 +177,7 @@ third_height = np.array(plt.rcParams['figure.figsize']) * [1, 1. / 3.]
 ax = plt.subplots(1, figsize=third_height)[1]
 plot_ideal_filter(freq, gain, ax, title='Ideal %s Hz lowpass' % f_p, flim=flim)
 
-# %% ##########################################################################
+# %%
 # This filter hypothetically achieves zero ripple in the frequency domain,
 # perfect attenuation, and perfect steepness. However, due to the discontinuity
 # in the frequency response, the filter would require infinite ringing in the
@@ -196,7 +196,7 @@ t = np.arange(-(n // 2), n // 2 + 1) / sfreq  # center our sinc
 h = np.sinc(2 * f_p * t) / (4 * np.pi)
 plot_filter(h, sfreq, freq, gain, 'Sinc (0.1 s)', flim=flim, compensate=True)
 
-# %% ##########################################################################
+# %%
 # This is not so good! Making the filter 10 times longer (1 s) gets us a
 # slightly better stop-band suppression, but still has a lot of ringing in
 # the time domain. Note the x-axis is an order of magnitude longer here,
@@ -209,7 +209,7 @@ t = np.arange(-(n // 2), n // 2 + 1) / sfreq
 h = np.sinc(2 * f_p * t) / (4 * np.pi)
 plot_filter(h, sfreq, freq, gain, 'Sinc (1.0 s)', flim=flim, compensate=True)
 
-# %% ##########################################################################
+# %%
 # Let's make the stop-band tighter still with a longer filter (10 s),
 # with a resulting larger x-axis:
 
@@ -219,7 +219,7 @@ t = np.arange(-(n // 2), n // 2 + 1) / sfreq
 h = np.sinc(2 * f_p * t) / (4 * np.pi)
 plot_filter(h, sfreq, freq, gain, 'Sinc (10.0 s)', flim=flim, compensate=True)
 
-# %% ##########################################################################
+# %%
 # Now we have very sharp frequency suppression, but our filter rings for the
 # entire 10 seconds. So this naïve method is probably not a good way to build
 # our low-pass filter.
@@ -258,7 +258,7 @@ ax = plt.subplots(1, figsize=third_height)[1]
 title = '%s Hz lowpass with a %s Hz transition' % (f_p, trans_bandwidth)
 plot_ideal_filter(freq, gain, ax, title=title, flim=flim)
 
-# %% ##########################################################################
+# %%
 # Accepting a shallower roll-off of the filter in the frequency domain makes
 # our time-domain response potentially much better. We end up with a more
 # gradual slope through the transition region, but a *much* cleaner time
@@ -268,7 +268,7 @@ h = signal.firwin2(n, freq, gain, nyq=nyq)
 plot_filter(h, sfreq, freq, gain, 'Windowed 10 Hz transition (1.0 s)',
             flim=flim, compensate=True)
 
-# %% ##########################################################################
+# %%
 # Since our lowpass is around 40 Hz with a 10 Hz transition, we can actually
 # use a shorter filter (5 cycles at 10 Hz = 0.5 s) and still get acceptable
 # stop-band attenuation:
@@ -278,7 +278,7 @@ h = signal.firwin2(n, freq, gain, nyq=nyq)
 plot_filter(h, sfreq, freq, gain, 'Windowed 10 Hz transition (0.5 s)',
             flim=flim, compensate=True)
 
-# %% ##########################################################################
+# %%
 # But if we shorten the filter too much (2 cycles of 10 Hz = 0.2 s),
 # our effective stop frequency gets pushed out past 60 Hz:
 
@@ -287,7 +287,7 @@ h = signal.firwin2(n, freq, gain, nyq=nyq)
 plot_filter(h, sfreq, freq, gain, 'Windowed 10 Hz transition (0.2 s)',
             flim=flim, compensate=True)
 
-# %% ##########################################################################
+# %%
 # If we want a filter that is only 0.1 seconds long, we should probably use
 # something more like a 25 Hz transition band (0.2 s = 5 cycles @ 25 Hz):
 
@@ -298,7 +298,7 @@ h = signal.firwin2(n, freq, gain, nyq=nyq)
 plot_filter(h, sfreq, freq, gain, 'Windowed 50 Hz transition (0.2 s)',
             flim=flim, compensate=True)
 
-# %% ##########################################################################
+# %%
 # So far, we have only discussed *non-causal* filtering, which means that each
 # sample at each time point :math:`t` is filtered using samples that come
 # after (:math:`t + \Delta t`) *and* before (:math:`t - \Delta t`) the current
@@ -326,7 +326,7 @@ plot_filter(h, sfreq, freq, gain, 'Windowed 50 Hz transition (0.2 s)',
 h_min = signal.minimum_phase(h)
 plot_filter(h_min, sfreq, freq, gain, 'Minimum-phase', flim=flim)
 
-# %% ##########################################################################
+# %%
 # .. _tut-effect-on-signals:
 #
 # Applying FIR filters
@@ -357,7 +357,7 @@ rng = np.random.RandomState(0)
 x += rng.randn(len(x)) / 1000.
 x += np.sin(2. * np.pi * 60. * np.arange(len(x)) / sfreq) / 2000.
 
-# %% ##########################################################################
+# %%
 # Filter it with a shallow cutoff, linear-phase FIR (which allows us to
 # compensate for the constant filter delay):
 
@@ -375,7 +375,7 @@ x_v16 = x_v16[len(h) // 2:]
 plot_filter(h, sfreq, freq, gain, 'MNE-Python 0.16 default', flim=flim,
             compensate=True)
 
-# %% ##########################################################################
+# %%
 # Filter it with a different design method ``fir_design="firwin2"``, and also
 # compensate for the constant filter delay. This method does not produce
 # quite as sharp a transition compared to ``fir_design="firwin"``, despite
@@ -396,7 +396,7 @@ x_v14 = np.convolve(h, x)[len(h) // 2:]
 plot_filter(h, sfreq, freq, gain, 'MNE-Python 0.14 default', flim=flim,
             compensate=True)
 
-# %% ##########################################################################
+# %%
 # Let's also filter with the MNE-Python 0.13 default, which is a
 # long-duration, steep cutoff FIR that gets applied twice:
 
@@ -418,7 +418,7 @@ h_eff = np.convolve(h, h[::-1])
 plot_filter(h_eff, sfreq, freq, gain, 'MNE-Python 0.13 default', flim=flim,
             compensate=True)
 
-# %% ##########################################################################
+# %%
 # Let's also filter it with the MNE-C default, which is a long-duration
 # steep-slope FIR filter designed using frequency-domain techniques:
 
@@ -431,7 +431,7 @@ freq = [0., f_p, f_s, sfreq / 2.]
 gain = [1., 1., 0., 0.]
 plot_filter(h, sfreq, freq, gain, 'MNE-C default', flim=flim, compensate=True)
 
-# %% ##########################################################################
+# %%
 # And now an example of a minimum-phase filter:
 
 h = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p,
@@ -447,7 +447,7 @@ gain = [1., 1., 0., 0.]
 plot_filter(h, sfreq, freq, gain, 'Minimum-phase filter', flim=flim)
 
 
-# %% ##########################################################################
+# %%
 # Both the MNE-Python 0.13 and MNE-C filters have excellent frequency
 # attenuation, but it comes at a cost of potential
 # ringing (long-lasting ripples) in the time domain. Ringing can occur with
@@ -494,7 +494,7 @@ axes[1].set(xlim=flim, ylim=(-60, 10), xlabel='Frequency (Hz)',
 mne.viz.tight_layout()
 plt.show()
 
-# %% ##########################################################################
+# %%
 # IIR filters
 # ===========
 #
@@ -531,7 +531,7 @@ plot_filter(dict(sos=sos), sfreq, freq, gain, 'Butterworth order=2', flim=flim,
 x_shallow = signal.sosfiltfilt(sos, x)
 del sos
 
-# %% ##########################################################################
+# %%
 # The falloff of this filter is not very steep.
 #
 # .. note:: Here we have made use of second-order sections (SOS)
@@ -560,7 +560,7 @@ plot_filter(filt, sfreq, freq, gain, 'Butterworth order=8', flim=flim,
             compensate=True)
 x_steep = signal.sosfiltfilt(filt['sos'], x)
 
-# %% ##########################################################################
+# %%
 # There are other types of IIR filters that we can use. For a complete list,
 # check out the documentation for :func:`scipy.signal.iirdesign`. Let's
 # try a Chebychev (type I) filter, which trades off ripple in the pass-band
@@ -575,7 +575,7 @@ filt = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p,
 plot_filter(filt, sfreq, freq, gain,
             'Chebychev-1 order=8, ripple=1 dB', flim=flim, compensate=True)
 
-# %% ##########################################################################
+# %%
 # If we can live with even more ripple, we can get it slightly steeper,
 # but the impulse response begins to ring substantially longer (note the
 # different x-axis scale):
@@ -588,7 +588,7 @@ plot_filter(filt, sfreq, freq, gain,
             'Chebychev-1 order=8, ripple=6 dB', flim=flim,
             compensate=True)
 
-# %% ##########################################################################
+# %%
 # Applying IIR filters
 # --------------------
 #
@@ -612,7 +612,7 @@ mne.viz.adjust_axes(axes)
 mne.viz.tight_layout()
 plt.show()
 
-# %% ##########################################################################
+# %%
 # Some pitfalls of filtering
 # ==========================
 #
@@ -716,7 +716,7 @@ mne.viz.adjust_axes(axes)
 mne.viz.tight_layout()
 plt.show()
 
-# %% ##########################################################################
+# %%
 # Similarly, in a P300 paradigm reported by
 # Kappenman & Luck (2010) :footcite:`KappenmanLuck2010`,
 # they found that applying a 1 Hz high-pass decreased the probability of
@@ -777,7 +777,7 @@ def baseline_plot(x):
 
 baseline_plot(x)
 
-# %% ##########################################################################
+# %%
 # In response, Maess *et al.* (2016) :footcite:`MaessEtAl2016a`
 # note that these simulations do not
 # address cases of pre-stimulus activity that is shared across conditions, as
@@ -800,7 +800,7 @@ sig_pre = 1 - np.cos(2 * np.pi * np.arange(n_pre) / (0.5 * n_pre))
 x[:n_pre] += sig_pre
 baseline_plot(x)
 
-# %% ##########################################################################
+# %%
 # Both groups seem to acknowledge that the choices of filtering cutoffs, and
 # perhaps even the application of baseline correction, depend on the
 # characteristics of the data being investigated, especially when it comes to:
@@ -998,7 +998,7 @@ fir_coefs = mne.filter.create_filter(
 # Alternatively, get the filter length through:
 filter_length = fir_coefs.shape[0]
 
-# %% ##########################################################################
+# %%
 # .. note:: If you are using an IIR filter, :func:`mne.filter.create_filter`
 #           will not print a filter length and transition bandwidth to the log.
 #           Instead, you can specify the roll-off with the ``iir_params``

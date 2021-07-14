@@ -13,7 +13,7 @@ when the electrodes are in MRI voxel coordinates.
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import os.path as op
 

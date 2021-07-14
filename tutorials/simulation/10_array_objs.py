@@ -14,13 +14,13 @@ We begin by importing the necessary Python modules:
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import mne
 import numpy as np
 
 
-# %% ##########################################################################
+# %%
 # Creating `~mne.Info` objects
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -51,7 +51,7 @@ sampling_freq = 200  # in Hertz
 info = mne.create_info(n_channels, sfreq=sampling_freq)
 print(info)
 
-# %% ##########################################################################
+# %%
 # You can see in the output above that, by default, the channels are assigned
 # as type "misc" (where it says ``chs: 32 MISC``). You can assign the channel
 # type when initializing the `~mne.Info` object if you want:
@@ -61,7 +61,7 @@ ch_types = ['mag', 'grad', 'grad'] * 3 + ['eog']
 info = mne.create_info(ch_names, ch_types=ch_types, sfreq=sampling_freq)
 print(info)
 
-# %% ##########################################################################
+# %%
 # If the channel names follow one of the standard montage naming schemes, their
 # spatial locations can be automatically added using the
 # `~mne.Info.set_montage` method:
@@ -71,7 +71,7 @@ ch_types = ['eeg'] * 7
 info = mne.create_info(ch_names, ch_types=ch_types, sfreq=sampling_freq)
 info.set_montage('standard_1020')
 
-# %% ##########################################################################
+# %%
 # .. sidebar:: Info consistency
 #
 #     When assigning new values to the fields of an `~mne.Info` object, it is
@@ -93,7 +93,7 @@ info['description'] = 'My custom dataset'
 info['bads'] = ['O1']  # Names of bad channels
 print(info)
 
-# %% ##########################################################################
+# %%
 # Creating `~mne.io.Raw` objects
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -126,7 +126,7 @@ simulated_raw = mne.io.RawArray(data, info)
 simulated_raw.plot(show_scrollbars=False, show_scalebars=False)
 
 
-# %% ##########################################################################
+# %%
 # Creating `~mne.Epochs` objects
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -146,14 +146,14 @@ data = np.array([[0.2 * sine, 1.0 * cosine],
 simulated_epochs = mne.EpochsArray(data, info)
 simulated_epochs.plot(picks='misc', show_scrollbars=False)
 
-# %% ##########################################################################
+# %%
 # Since we did not supply an events array, the `~mne.EpochsArray` constructor
 # automatically created one for us, with all epochs having the same event
 # number:
 
 print(simulated_epochs.events[:, -1])
 
-# %% ##########################################################################
+# %%
 # If we want to simulate having different experimental conditions, we can pass
 # an event array (and an event ID dictionary) to the constructor. Since our
 # epochs are 1 second long and have 200 samples/second, we'll put our events
@@ -170,7 +170,7 @@ simulated_epochs = mne.EpochsArray(data, info, tmin=-0.5, events=events,
 simulated_epochs.plot(picks='misc', show_scrollbars=False, events=events,
                       event_id=event_dict)
 
-# %% ##########################################################################
+# %%
 # You could also create simulated epochs by using the normal `~mne.Epochs`
 # (not `~mne.EpochsArray`) constructor on the simulated `~mne.io.RawArray`
 # object, by creating an events array (e.g., using

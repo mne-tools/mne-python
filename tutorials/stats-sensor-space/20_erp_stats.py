@@ -17,7 +17,7 @@ short words. TFCE is described in :footcite:`SmithNichols2009`.
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -126,7 +126,7 @@ plt.colorbar(axes["Left"].images[-1], ax=list(axes.values()), shrink=.3,
 
 plt.show()
 
-# %% ##########################################################################
+# %%
 # References
 # ----------
 # .. footbibliography::

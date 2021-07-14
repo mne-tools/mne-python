@@ -26,7 +26,7 @@ comparisons using False Discovery Rate correction.
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -38,7 +38,7 @@ from mne.datasets import sample
 
 print(__doc__)
 
-# %% ##########################################################################
+# %%
 # Set parameters
 # --------------
 data_path = sample.data_path()
@@ -67,7 +67,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
                     reject=reject)
 epochs.pick_channels([ch_name])  # restrict example to one channel
 
-# %% ##########################################################################
+# %%
 # We have to make sure all conditions have the same counts, as the ANOVA
 # expects a fully balanced data matrix and does not forgive imbalances that
 # generously (risk of type-I error).
@@ -82,7 +82,7 @@ zero_mean = False  # don't correct morlet wavelet to be of mean zero
 # To have a true wavelet zero_mean should be True but here for illustration
 # purposes it helps to spot the evoked response.
 
-# %% ##########################################################################
+# %%
 # Create TFR representations for all conditions
 # ---------------------------------------------
 epochs_power = list()
@@ -94,7 +94,7 @@ for condition in [epochs[k] for k in event_id]:
     this_power = this_tfr.data[:, 0, :, :]  # we only have one channel.
     epochs_power.append(this_power)
 
-# %% ##########################################################################
+# %%
 # Setup repeated measures ANOVA
 # -----------------------------
 #
@@ -114,7 +114,7 @@ n_freqs = len(freqs)
 times = 1e3 * epochs.times[::decim]
 n_times = len(times)
 
-# %% ##########################################################################
+# %%
 # Now we'll assemble the data matrix and swap axes so the trial replications
 # are the first dimension and the conditions are the second dimension.
 data = np.swapaxes(np.asarray(epochs_power), 1, 0)
@@ -124,7 +124,7 @@ data = data.reshape(n_replications, n_conditions, n_freqs * n_times)
 # so we have replications * conditions * observations:
 print(data.shape)
 
-# %% ##########################################################################
+# %%
 # While the iteration scheme used above for assembling the data matrix
 # makes sure the first two dimensions are organized as expected (with A =
 # modality and B = location):
@@ -168,7 +168,7 @@ for effect, sig, effect_label in zip(fvals, pvals, effect_labels):
     plt.title(r"Time-locked response for '%s' (%s)" % (effect_label, ch_name))
     plt.show()
 
-# %% ##########################################################################
+# %%
 # Account for multiple comparisons using FDR versus permutation clustering test
 # -----------------------------------------------------------------------------
 #
@@ -177,7 +177,7 @@ for effect, sig, effect_label in zip(fvals, pvals, effect_labels):
 # Let's first override effects to confine the analysis to the interaction
 effects = 'A:B'
 
-# %% ##########################################################################
+# %%
 # A stat_fun must deal with a variable number of input arguments.
 # Inside the clustering function each condition will be passed as flattened
 # array, necessitated by the clustering procedure. The ANOVA however expects an
@@ -201,7 +201,7 @@ T_obs, clusters, cluster_p_values, h0 = mne.stats.permutation_cluster_test(
     epochs_power, stat_fun=stat_fun, threshold=f_thresh, tail=tail, n_jobs=1,
     n_permutations=n_permutations, buffer_size=None, out_type='mask')
 
-# %% ##########################################################################
+# %%
 # Create new stats image with only significant clusters:
 
 good_clusters = np.where(cluster_p_values < .05)[0]
@@ -219,7 +219,7 @@ plt.title("Time-locked response for 'modality by location' (%s)\n"
           " cluster-level corrected (p <= 0.05)" % ch_name)
 plt.show()
 
-# %% ##########################################################################
+# %%
 # Now using FDR:
 
 mask, _ = fdr_correction(pvals[2])
@@ -240,6 +240,6 @@ plt.title("Time-locked response for 'modality by location' (%s)\n"
           " FDR corrected (p <= 0.05)" % ch_name)
 plt.show()
 
-# %% ##########################################################################
+# %%
 # Both cluster level and FDR correction help get rid of
 # potential spots we saw in the naive f-images.

@@ -140,7 +140,7 @@ have to adapt this depending on the system from which your CSV originated.
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import numpy as np
 import pandas as pd
@@ -148,7 +148,7 @@ import mne
 
 # sphinx_gallery_thumbnail_number = 2
 
-# %% ##########################################################################
+# %%
 # First, we generate an example CSV file which will then be loaded in to
 # MNE-Python. This step would be skipped if you have actual data you wish to
 # load. We simulate 16 channels with 100 samples of data and save this to a
@@ -157,7 +157,7 @@ import mne
 pd.DataFrame(np.random.normal(size=(16, 100))).to_csv("fnirs.csv")
 
 
-# %% ##########################################################################
+# %%
 #
 # .. warning:: The channels must be ordered in haemoglobin pairs, such that for
 #              a single channel all the types are in subsequent indices. The
@@ -174,7 +174,7 @@ pd.DataFrame(np.random.normal(size=(16, 100))).to_csv("fnirs.csv")
 data = pd.read_csv('fnirs.csv')
 
 
-# %% ##########################################################################
+# %%
 # Then, the metadata must be specified manually as the CSV file does not
 # contain information about channel names, types, sample rate etc.
 #
@@ -194,7 +194,7 @@ ch_types = ['hbo', 'hbr', 'hbo', 'hbr',
 sfreq = 10.  # in Hz
 
 
-# %% ##########################################################################
+# %%
 # Finally, the data can be converted in to an MNE-Python data structure.
 # The metadata above is used to create an :class:`mne.Info` data structure,
 # and this is combined with the data to create an MNE-Python
@@ -208,7 +208,7 @@ info = mne.create_info(ch_names=ch_names, ch_types=ch_types, sfreq=sfreq)
 raw = mne.io.RawArray(data, info, verbose=True)
 
 
-# %% ##########################################################################
+# %%
 # Applying standard sensor locations to imported data
 # ---------------------------------------------------
 #
@@ -238,7 +238,7 @@ raw.set_montage(montage)
 raw.plot_sensors()
 
 
-# %% ##########################################################################
+# %%
 # To validate the positions were loaded correctly it is also possible to view
 # the location of the sources (red), detectors (black), and channels (white
 # lines and orange dots) in a 3D representation.

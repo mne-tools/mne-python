@@ -11,7 +11,7 @@ Compute a Recursively Applied and Projected MUltiple Signal Classification
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import mne
 
@@ -54,7 +54,7 @@ evoked.plot(ylim=dict(grad=[-300, 300], mag=[-800, 800], eeg=[-6, 8]),
 residual.plot(ylim=dict(grad=[-300, 300], mag=[-800, 800], eeg=[-6, 8]),
               time_unit='s')
 
-# %% ##########################################################################
+# %%
 # References
 # ----------
 # .. footbibliography::

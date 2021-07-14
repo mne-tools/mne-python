@@ -17,7 +17,7 @@ Let's start out by loading some data.
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 import os.path as op
 
 import numpy as np
@@ -43,7 +43,7 @@ t1w = nib.Nifti1Image(t1w.dataobj, t1w.affine)
 t1w.header['xyzt_units'] = np.array(10, dtype='uint8')
 t1_mgh = nib.MGHImage(t1w.dataobj, t1w.affine)
 
-# %% ##########################################################################
+# %%
 # .. raw:: html
 #
 #    <style>
@@ -117,7 +117,7 @@ dists = mne.dig_mri_distances(raw.info, trans, 'sample',
 print('Distance from %s digitized points to head surface: %0.1f mm'
       % (len(dists), 1000 * np.mean(dists)))
 
-# %% ##########################################################################
+# %%
 # Coordinate frame definitions
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # 1. Neuromag/Elekta/MEGIN head coordinate frame ("head", :pink:`pink axes`)
@@ -186,7 +186,7 @@ mne.viz.plot_alignment(raw.info, trans=None, subject='sample', src=src,
                        subjects_dir=subjects_dir, dig=True,
                        surfaces=['head-dense', 'white'], coord_frame='meg')
 
-# %% ##########################################################################
+# %%
 # A good example
 # ^^^^^^^^^^^^^^
 # Here is the same plot, this time with the ``trans`` properly defined
@@ -196,7 +196,7 @@ mne.viz.plot_alignment(raw.info, trans=trans, subject='sample',
                        src=src, subjects_dir=subjects_dir, dig=True,
                        surfaces=['head-dense', 'white'], coord_frame='meg')
 
-# %% ##########################################################################
+# %%
 # Visualizing the transformations
 # -------------------------------
 # Let's visualize these coordinate frames using just the scalp surface; this
@@ -236,7 +236,7 @@ mri_to_vox = linalg.inv(vox_to_mri)
 scalp_points_in_vox = mne.transforms.apply_trans(
     mri_to_vox, seghead_rr, move=True)
 
-# %% ##########################################################################
+# %%
 # Now that we've transformed all the points, let's plot them. We'll use the
 # same colors used by `~mne.viz.plot_alignment` and use :green:`green` for the
 # "mri_voxel" coordinate frame:
@@ -257,7 +257,7 @@ mne.viz.set_3d_view(figure=renderer.figure, distance=800,
                     focalpoint=(0., 30., 30.), elevation=105, azimuth=180)
 renderer.show()
 
-# %% ##########################################################################
+# %%
 # The relative orientations of the coordinate frames can be inferred by
 # observing the direction of the subject's nose. Notice also how the origin of
 # the :green:`mri_voxel` coordinate frame is in the corner of the volume
@@ -295,7 +295,7 @@ mne.viz.set_3d_view(figure=renderer.figure, distance=600.,
                     focalpoint=(0., 125., 250.), elevation=45, azimuth=180)
 renderer.show()
 
-# %% ##########################################################################
+# %%
 # Defining the head↔MRI ``trans`` using the GUI
 # ---------------------------------------------
 # You can try creating the head↔MRI transform yourself using
@@ -330,7 +330,7 @@ renderer.show()
 
 # mne.gui.coregistration(subject='sample', subjects_dir=subjects_dir)
 
-# %% ##########################################################################
+# %%
 # .. _plot_source_alignment_without_mri:
 #
 # Alignment without MRI
@@ -348,7 +348,7 @@ mne.viz.plot_alignment(
     surfaces=['brain', 'inner_skull', 'outer_skull', 'outer_skin'],
     coord_frame='meg', show_axes=True)
 
-# %% ##########################################################################
+# %%
 # It is also possible to use :func:`mne.gui.coregistration`
 # to warp a subject (usually ``fsaverage``) to subject digitization data, see
 # `these slides

@@ -20,7 +20,7 @@ References
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import os.path as op
 import warnings
@@ -35,7 +35,7 @@ from mne.io import read_raw_ctf
 
 print(__doc__)
 
-# %% ##########################################################################
+# %%
 # The data were collected with a CTF system at 2400 Hz.
 data_path = bst_phantom_ctf.data_path(verbose=True)
 
@@ -47,7 +47,7 @@ dip_freq = 23.
 erm_path = op.join(data_path, 'emptyroom_20150709_01.ds')
 raw = read_raw_ctf(raw_path, preload=True)
 
-# %% ##########################################################################
+# %%
 # The sinusoidal signal is generated on channel HDAC006, so we can use
 # that to obtain precise timing.
 
@@ -55,18 +55,18 @@ sinusoid, times = raw[raw.ch_names.index('HDAC006-4408')]
 plt.figure()
 plt.plot(times[times < 1.], sinusoid.T[times < 1.])
 
-# %% ##########################################################################
+# %%
 # Let's create some events using this signal by thresholding the sinusoid.
 
 events = np.where(np.diff(sinusoid > 0.5) > 0)[1] + raw.first_samp
 events = np.vstack((events, np.zeros_like(events), np.ones_like(events))).T
 
-# %% ##########################################################################
+# %%
 # The CTF software compensation works reasonably well:
 
 raw.plot()
 
-# %% ##########################################################################
+# %%
 # But here we can get slightly better noise suppression, lower localization
 # bias, and a better dipole goodness of fit with spatio-temporal (tSSS)
 # Maxwell filtering:
@@ -76,7 +76,7 @@ mf_kwargs = dict(origin=(0., 0., 0.), st_duration=10.)
 raw = mne.preprocessing.maxwell_filter(raw, **mf_kwargs)
 raw.plot()
 
-# %% ##########################################################################
+# %%
 # Our choice of tmin and tmax should capture exactly one cycle, so
 # we can make the unusual choice of baselining using the entire epoch
 # when creating our evoked data. We also then crop to a single time point
@@ -90,7 +90,7 @@ evoked = epochs.average()
 evoked.plot(time_unit='s')
 evoked.crop(0., 0.)
 
-# %% ##########################################################################
+# %%
 # .. _plt_brainstorm_phantom_ctf_eeg_sphere_geometry:
 #
 # Let's use a :ref:`sphere head geometry model <eeg_sphere_model>`
@@ -102,7 +102,7 @@ mne.viz.plot_alignment(raw.info, subject='sample',
                        surfaces=['brain'])
 del raw, epochs
 
-# %% ##########################################################################
+# %%
 # To do a dipole fit, let's use the covariance provided by the empty room
 # recording.
 
@@ -117,7 +117,7 @@ with warnings.catch_warnings(record=True):
     warnings.simplefilter('ignore')
     dip, residual = fit_dipole(evoked, cov, sphere, verbose=True)
 
-# %% ##########################################################################
+# %%
 # Compare the actual position with the estimated one.
 
 expected_pos = np.array([18., 0., 49.])

@@ -11,7 +11,7 @@ between 7.5 Hz and 40 Hz.
 #
 # License: BSD (3-clause)
 
-# %% ##########################################################################
+# %%
 
 import matplotlib.pyplot as plt
 
