@@ -11,7 +11,7 @@ when the electrodes are in MRI voxel coordinates.
 
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD Style.
+# License: BSD (3-clause)
 
 import os.path as op
 

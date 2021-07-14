@@ -3,7 +3,7 @@
 #          Joan Massich <mailsik@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD Style.
+# License: BSD (3-clause)
 
 """
 .. _tut-eeg-fsaverage-source-modeling:
