@@ -22,6 +22,8 @@ evoked response :footcite:`RivetEtAl2009, RivetEtAl2011`.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 
 from mne import (io, compute_raw_covariance, read_events, pick_types, Epochs)
 from mne.datasets import sample

@@ -18,6 +18,8 @@ Only the data in those channels is replaced.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 # sphinx_gallery_thumbnail_number = 2
 
 import mne

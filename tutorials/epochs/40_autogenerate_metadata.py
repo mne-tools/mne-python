@@ -45,6 +45,8 @@ by calling `mne.events_from_annotations`.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 from pathlib import Path
 import matplotlib.pyplot as plt
 import mne

@@ -17,6 +17,8 @@ short words. TFCE is described in :footcite:`SmithNichols2009`.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import ttest_ind

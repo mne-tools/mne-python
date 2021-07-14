@@ -22,6 +22,8 @@ based on the TF-MxNE solver, which promotes focal (sparse) sources
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import os.path as op
 
 import mne

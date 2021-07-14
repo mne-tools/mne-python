@@ -14,6 +14,8 @@ For a comparison of fits between MNE-C and mne-python, see
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 from os import path as op
 import numpy as np
 import matplotlib.pyplot as plt

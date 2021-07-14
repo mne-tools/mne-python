@@ -13,6 +13,8 @@ how artifact correction techniques attempt to correct the data.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import os
 import mne
 

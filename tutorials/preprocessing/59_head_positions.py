@@ -26,6 +26,8 @@ harmonics).
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 from os import path as op
 
 import mne

@@ -23,6 +23,8 @@ Let's start by loading data for a simple two-class problem:
 # Authors: MNE-Developers
 #
 # License: BSD (3-clause)
+
+# %% ##########################################################################
 # sphinx_gallery_thumbnail_number = 6
 
 import numpy as np

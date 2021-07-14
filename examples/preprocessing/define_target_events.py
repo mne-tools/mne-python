@@ -17,6 +17,8 @@ and 'slowly-processed' face stimuli.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import mne
 from mne import io
 from mne.event import define_target_events

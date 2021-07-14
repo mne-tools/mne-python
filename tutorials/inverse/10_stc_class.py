@@ -55,6 +55,8 @@ is. We first set up the environment and load some data:
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import os
 
 from mne import read_source_estimate

@@ -11,6 +11,8 @@ to temporally whiten the signals.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import numpy as np
 from scipy import signal
 import matplotlib.pyplot as plt

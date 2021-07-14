@@ -24,6 +24,8 @@ you to get a better sense of the underlying source geometry.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import numpy as np
 import mne
 from mne.datasets import sample

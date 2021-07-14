@@ -17,6 +17,8 @@ Data are provided by Jean-Michel Badier from MEG center in Marseille, France.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import os.path as op
 import numpy as np
 from mne.datasets import phantom_4dbti

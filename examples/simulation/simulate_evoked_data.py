@@ -10,6 +10,8 @@ Use :func:`~mne.simulation.simulate_sparse_stc` to simulate evoked data.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import numpy as np
 import matplotlib.pyplot as plt
 

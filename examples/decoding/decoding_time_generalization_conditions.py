@@ -15,6 +15,8 @@ predict all of the time samples of a second set of conditions.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import matplotlib.pyplot as plt
 
 from sklearn.pipeline import make_pipeline

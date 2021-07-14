@@ -38,6 +38,8 @@ will not apply here (see :ref:`tut-brainstorm-auditory` for more information).
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import os.path as op
 import numpy as np
 import mne

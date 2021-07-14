@@ -11,6 +11,8 @@ are displayed.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 from time import time
 
 import mne

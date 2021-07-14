@@ -20,6 +20,8 @@ readable on top of an MRI image.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import os
 
 import numpy as np

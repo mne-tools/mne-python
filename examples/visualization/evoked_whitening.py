@@ -21,6 +21,8 @@ References
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import mne
 
 from mne import io

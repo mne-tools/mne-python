@@ -26,6 +26,8 @@ fast machine it can take a couple of minutes to complete.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import numpy as np
 import matplotlib.pyplot as plt
 

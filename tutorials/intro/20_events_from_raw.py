@@ -30,6 +30,8 @@ to just 60 seconds before loading it into RAM:
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import os
 import numpy as np
 import mne

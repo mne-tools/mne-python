@@ -20,6 +20,8 @@ Runs a full pipeline using MNE-Python:
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 # sphinx_gallery_thumbnail_number = 10
 
 import matplotlib.pyplot as plt

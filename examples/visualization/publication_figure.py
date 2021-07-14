@@ -16,6 +16,8 @@ customize them for a more publication-ready look.
 # License: BSD (3-clause)
 
 # %% ##########################################################################
+
+# %% ##########################################################################
 # Imports
 # -------
 # We are importing everything we need for this example:

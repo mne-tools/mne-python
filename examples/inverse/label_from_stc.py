@@ -14,6 +14,8 @@ label yields higher values.
 #         Alex Gramfort <alexandre.gramfort@inria.fr>
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import numpy as np
 import matplotlib.pyplot as plt
 

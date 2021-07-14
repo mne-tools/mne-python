@@ -16,6 +16,8 @@ data:
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import os
 from copy import deepcopy
 import numpy as np

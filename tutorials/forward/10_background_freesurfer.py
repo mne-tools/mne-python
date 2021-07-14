@@ -90,6 +90,8 @@ overlay of an anatomical parcellation (in this case, the parcellation from
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import os
 import mne
 

@@ -27,6 +27,8 @@ MNI space, or projection into a volume, see :ref:`tut-working-with-seeg`.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import os.path as op
 
 import numpy as np

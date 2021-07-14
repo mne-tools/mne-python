@@ -13,6 +13,8 @@ produced by MNE, dSPM, sLORETA, and eLORETA.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import mne
 from mne.datasets import sample
 from mne.minimum_norm import make_inverse_operator, apply_inverse

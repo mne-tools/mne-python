@@ -29,6 +29,8 @@ significant ERDS values (corrected for multiple comparisons within channels).
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd

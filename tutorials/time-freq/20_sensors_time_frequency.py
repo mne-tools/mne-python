@@ -16,6 +16,8 @@ related synchronizations (ERS) / desynchronizations (ERD) in the beta band.
 #          Richard Höchenberger <richard.hoechenberger@gmail.com>
 #
 # License: BSD (3-clause)
+
+# %% ##########################################################################
 import os.path as op
 
 import numpy as np

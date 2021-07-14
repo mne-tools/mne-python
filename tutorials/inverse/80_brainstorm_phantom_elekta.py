@@ -21,6 +21,8 @@ References
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import os.path as op
 import numpy as np
 import matplotlib.pyplot as plt

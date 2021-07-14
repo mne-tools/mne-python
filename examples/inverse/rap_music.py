@@ -11,6 +11,8 @@ Compute a Recursively Applied and Projected MUltiple Signal Classification
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import mne
 
 from mne.datasets import sample

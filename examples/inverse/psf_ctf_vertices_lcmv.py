@@ -12,6 +12,8 @@ functions.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import mne
 from mne.datasets import sample
 from mne.beamformer import make_lcmv, make_lcmv_resolution_matrix

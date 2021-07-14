@@ -9,6 +9,8 @@ The inverse operator's source space is shown in 3D.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import mne
 from mne.datasets import sample
 from mne.minimum_norm import read_inverse_operator

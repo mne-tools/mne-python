@@ -18,6 +18,8 @@ seconds before loading it into RAM to save memory:
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import os
 from datetime import timedelta
 import mne

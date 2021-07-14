@@ -17,6 +17,8 @@ See https://en.wikipedia.org/wiki/Common_spatial_pattern and
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 
 import numpy as np
 import matplotlib.pyplot as plt

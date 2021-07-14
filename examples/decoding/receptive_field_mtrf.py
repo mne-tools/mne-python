@@ -24,6 +24,8 @@ as a decoding model, or simply stimulus reconstruction).
 #          Nicolas Barascud <nicolas.barascud@ens.fr>
 #
 # License: BSD (3-clause)
+
+# %% ##########################################################################
 # sphinx_gallery_thumbnail_number = 3
 
 import numpy as np

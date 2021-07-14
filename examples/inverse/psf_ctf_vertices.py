@@ -10,6 +10,8 @@ Visualise PSF and CTF at one vertex for sLORETA.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import mne
 from mne.datasets import sample
 from mne.minimum_norm import (make_inverse_resolution_matrix, get_cross_talk,

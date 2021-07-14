@@ -20,6 +20,8 @@ array to use when converting the continuous data to epochs:
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import os
 import mne
 

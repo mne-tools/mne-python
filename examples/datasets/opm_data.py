@@ -14,6 +14,8 @@ Here we demonstrate how to localize these custom OPM data in MNE.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 # sphinx_gallery_thumbnail_number = 4
 
 import os.path as op

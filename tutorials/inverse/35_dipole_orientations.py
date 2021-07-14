@@ -20,6 +20,8 @@ See :ref:`inverse_orientation_constraints` for related information.
 # License: BSD (3-clause)
 
 # %% ##########################################################################
+
+# %% ##########################################################################
 # Loading data
 # ------------
 # Load everything we need to perform source localization on the sample dataset.

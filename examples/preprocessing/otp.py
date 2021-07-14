@@ -10,6 +10,8 @@ on data with with sensor artifacts (flux jumps) and random noise.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import os.path as op
 import mne
 import numpy as np

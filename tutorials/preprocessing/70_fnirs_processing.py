@@ -16,6 +16,8 @@ Here we will work with the :ref:`fNIRS motor data <fnirs-motor-dataset>`.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import os
 import numpy as np
 import matplotlib.pyplot as plt

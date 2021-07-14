@@ -9,6 +9,8 @@ How to plot a noise covariance matrix.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 from os import path as op
 import mne
 from mne.datasets import sample

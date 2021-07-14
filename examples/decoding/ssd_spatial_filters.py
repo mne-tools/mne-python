@@ -15,6 +15,8 @@ frequencies.
 #         Victoria Peterson <victoriapeterson09@gmail.com>
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 
 import matplotlib.pyplot as plt
 import mne

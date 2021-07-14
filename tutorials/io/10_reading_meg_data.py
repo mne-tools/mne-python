@@ -299,3 +299,5 @@ be easily loaded into MNE.
 # Authors: MNE-Developers
 #
 # License: BSD (3-clause)
+
+# %% ##########################################################################

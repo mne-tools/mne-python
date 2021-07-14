@@ -11,6 +11,8 @@ signal with point-spread by applying a forward and inverse solution.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import os.path as op
 
 import numpy as np

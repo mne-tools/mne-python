@@ -20,6 +20,8 @@ References
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import os.path as op
 import warnings
 

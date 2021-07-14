@@ -12,6 +12,8 @@ False Discovery Rate (FDR) correction.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import numpy as np
 from scipy import stats
 import matplotlib.pyplot as plt

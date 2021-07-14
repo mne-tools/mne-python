@@ -15,6 +15,8 @@ layout in MNE.
 # Authors: Mikołaj Magnuski <mmagnuski@swps.edu.pl>
 #
 # License: BSD (3-clause)
+
+# %% ##########################################################################
 import numpy as np
 from matplotlib import pyplot as plt
 

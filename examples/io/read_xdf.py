@@ -15,6 +15,8 @@ recording is of a short parallel auditory response (pABR) experiment
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import os.path as op
 
 import pyxdf

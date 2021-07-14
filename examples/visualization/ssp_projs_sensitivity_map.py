@@ -10,6 +10,8 @@ similar to the first SSP vector correcting for ECG.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import matplotlib.pyplot as plt
 
 from mne import read_forward_solution, read_proj, sensitivity_map

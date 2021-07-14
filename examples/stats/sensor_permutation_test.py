@@ -12,6 +12,8 @@ is performed on MNE sample dataset between 40 and 60 ms.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import numpy as np
 
 import mne

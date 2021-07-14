@@ -26,6 +26,8 @@ surrounding "BAD" annotation.
 #          Luke Bloy <luke.bloy@gmail.com>
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import os.path as op
 import matplotlib.pyplot as plt
 import numpy as np

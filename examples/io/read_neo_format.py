@@ -14,6 +14,8 @@ information on creating MNE-Python's data objects from NumPy arrays, see
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import neo
 import mne
 

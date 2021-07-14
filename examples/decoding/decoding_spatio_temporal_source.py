@@ -19,6 +19,8 @@ classifier then is trained to selected features of epochs in source space.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import numpy as np
 import matplotlib.pyplot as plt
 

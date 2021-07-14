@@ -16,6 +16,8 @@ minimum-norm inverse solution. For more information, see
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import os.path as op
 
 import mne

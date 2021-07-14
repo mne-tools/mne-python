@@ -30,6 +30,8 @@ This technique is fully described and validated in :footcite:`HannaEtAl2020`
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import mne
 from mne import io
 from mne.datasets import refmeg_noise

@@ -11,6 +11,8 @@ using a minimum-norm inverse operator.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 from os import path as op
 
 from mne.datasets.sample import data_path

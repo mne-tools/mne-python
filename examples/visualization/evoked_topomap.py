@@ -16,6 +16,8 @@ additional options.
 #          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD (3-clause)
+
+# %% ##########################################################################
 # sphinx_gallery_thumbnail_number = 5
 
 import numpy as np

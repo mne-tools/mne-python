@@ -16,6 +16,8 @@ using dynamic statistical parametric mapping (dSPM) inverse operator.
 
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import os.path as op
 
 import numpy as np

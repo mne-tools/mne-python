@@ -14,6 +14,8 @@ fed into a logistic regression.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import numpy as np
 import matplotlib.pyplot as plt
 

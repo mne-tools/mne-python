@@ -27,6 +27,8 @@ References
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import pandas as pd
 import mne
 from mne.stats import linear_regression, fdr_correction

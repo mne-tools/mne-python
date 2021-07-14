@@ -15,6 +15,8 @@ source imaging, especially for deeper sources.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import mne
 from mne.datasets import sample
 from mne.minimum_norm.resolution_matrix import make_inverse_resolution_matrix

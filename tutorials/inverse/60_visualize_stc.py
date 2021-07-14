@@ -15,6 +15,8 @@ First, we get the paths for the evoked data and the time courses (stcs).
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import os
 import os.path as op
 

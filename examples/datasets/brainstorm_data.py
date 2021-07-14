@@ -15,6 +15,8 @@ tutorial dataset. For comparison, see :footcite:`TadelEtAl2011` and:
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import numpy as np
 
 import mne

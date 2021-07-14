@@ -18,6 +18,8 @@ need and loading the data:
 # Authors: MNE-Developers
 #
 # License: BSD (3-clause)
+
+# %% ##########################################################################
 import os
 import seaborn as sns
 import mne

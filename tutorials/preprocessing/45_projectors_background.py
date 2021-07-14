@@ -18,6 +18,8 @@ function to make it easier to make several plots that look similar:
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import os
 import numpy as np
 import matplotlib.pyplot as plt

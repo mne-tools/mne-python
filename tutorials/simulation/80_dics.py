@@ -16,6 +16,8 @@ simulated sources.
 # License: BSD (3-clause)
 
 # %% ##########################################################################
+
+# %% ##########################################################################
 # Setup
 # -----
 # We first import the required packages to run this tutorial and define a list

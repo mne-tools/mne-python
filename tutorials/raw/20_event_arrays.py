@@ -17,6 +17,8 @@ object to just 60 seconds before loading it into RAM to save memory:
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import os
 import numpy as np
 import mne

@@ -18,6 +18,8 @@ and the trials are plotted, sorting by response time.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import mne
 from mne.event import define_target_events
 from mne.channels import make_1020_channel_selections

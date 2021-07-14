@@ -20,6 +20,8 @@ on the image.
 # Authors: Christopher Holdgraf <choldgraf@berkeley.edu>
 #
 # License: BSD (3-clause)
+
+# %% ##########################################################################
 from scipy.io import loadmat
 import numpy as np
 from matplotlib import pyplot as plt

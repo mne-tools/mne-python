@@ -19,6 +19,8 @@ We begin by importing the necessary Python modules:
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import os
 import numpy as np
 import mne

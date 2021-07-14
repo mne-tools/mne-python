@@ -13,6 +13,8 @@ shipped in MNE-python, and display it on the fsaverage template subject.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import os.path as op
 
 import mne

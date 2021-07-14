@@ -20,6 +20,8 @@ As usual we'll start by importing the modules we need:
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import os
 import mne
 

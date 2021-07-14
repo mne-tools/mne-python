@@ -18,6 +18,8 @@ We will begin by loading the Python modules we need, and loading the same
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import os
 import mne
 

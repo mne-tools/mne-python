@@ -22,6 +22,8 @@ parcellation from :footcite:`KhanEtAl2018`.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import mne
 Brain = mne.viz.get_brain_class()
 

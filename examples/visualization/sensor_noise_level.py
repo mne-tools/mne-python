@@ -11,6 +11,8 @@ of systems. See :footcite:`KhanCohen2013` for an example.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import os.path as op
 import mne
 

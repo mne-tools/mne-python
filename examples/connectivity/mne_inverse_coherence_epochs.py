@@ -11,6 +11,8 @@ MNE-dSPM inverse solutions.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import numpy as np
 
 import mne

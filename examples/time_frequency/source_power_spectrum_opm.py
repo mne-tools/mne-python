@@ -30,6 +30,8 @@ Preprocessing
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import os.path as op
 
 from mne.filter import next_fast_len

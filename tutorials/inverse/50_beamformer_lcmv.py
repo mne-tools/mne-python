@@ -10,6 +10,8 @@ and shows how to reconstruct source activity using an LCMV beamformer.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import matplotlib.pyplot as plt
 import mne
 from mne.datasets import sample, fetch_fsaverage

@@ -21,6 +21,8 @@ because the noise is less spatially correlated in MEG than EEG.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import mne
 from mne import io, EvokedArray
 from mne.datasets import sample

@@ -16,6 +16,8 @@ This is useful to:
 
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import mne
 from mne.datasets import sample
 

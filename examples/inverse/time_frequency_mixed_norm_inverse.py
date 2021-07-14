@@ -22,6 +22,8 @@ The benefit of this approach is that:
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import numpy as np
 
 import mne

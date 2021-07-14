@@ -21,6 +21,8 @@ considerations. Psychophysiology, 52(2), 169-189.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import matplotlib.pyplot as plt
 
 import mne

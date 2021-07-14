@@ -13,6 +13,8 @@ amplitude bias due to the non-convexity of the L0.5/L2 mixed norm penalty.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 # sphinx_gallery_thumbnail_number = 2
 
 import numpy as np

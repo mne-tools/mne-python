@@ -22,6 +22,8 @@ electromyogram from MEG beta activity using data from
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import matplotlib.pyplot as plt
 
 import mne

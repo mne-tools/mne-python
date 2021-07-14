@@ -16,6 +16,8 @@ that was used to create this data.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 # sphinx_gallery_thumbnail_number = 7
 
 import numpy as np

@@ -17,6 +17,8 @@ just a few EEG channels so the plots are easier to see:
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import os
 import mne
 

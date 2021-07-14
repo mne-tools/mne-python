@@ -25,6 +25,8 @@ Ezequiel Mikulan.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 # sphinx_gallery_thumbnail_path = '_static/blender_import_obj/blender_import_obj2.jpg'  # noqa
 
 import os

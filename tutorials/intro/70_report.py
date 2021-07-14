@@ -23,6 +23,8 @@ directly within the browser). This tutorial covers the basics of building a
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import os
 import matplotlib.pyplot as plt
 import mne

@@ -17,6 +17,8 @@ that we'll consider to be noise.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import mne
 from mne.datasets import sample
 

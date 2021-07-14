@@ -11,6 +11,8 @@ In this example, digitized EEG sensor locations are shown on the scalp.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import mne
 from mne.viz import plot_alignment, set_3d_view
 

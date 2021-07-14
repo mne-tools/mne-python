@@ -16,6 +16,8 @@ which is ordered based on the locations of the regions in the axial plane.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import numpy as np
 import matplotlib.pyplot as plt
 

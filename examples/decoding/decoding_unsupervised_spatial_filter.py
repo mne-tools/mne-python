@@ -13,6 +13,8 @@ visualized on the average of all the epochs.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import numpy as np
 import matplotlib.pyplot as plt
 

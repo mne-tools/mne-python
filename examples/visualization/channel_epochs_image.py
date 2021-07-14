@@ -16,6 +16,8 @@ embedding as described in :footcite:`GramfortEtAl2010`.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import numpy as np
 import matplotlib.pyplot as plt
 

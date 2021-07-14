@@ -9,6 +9,8 @@ This tutorial shows how to make the MNE helmet + brain image.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import os.path as op
 import mne
 

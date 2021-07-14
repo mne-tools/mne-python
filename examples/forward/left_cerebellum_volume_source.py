@@ -13,6 +13,8 @@ segmentation file.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import mne
 from mne import setup_source_space, setup_volume_source_space
 from mne.datasets import sample

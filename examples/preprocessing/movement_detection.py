@@ -19,6 +19,8 @@ be more representative of the actual head position during the recording.
 #          Luke Bloy <luke.bloy@gmail.com>
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import os.path as op
 
 import mne

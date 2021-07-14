@@ -12,6 +12,8 @@ This example shows how to compute and plot source space SNR as in
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 # sphinx_gallery_thumbnail_number = 2
 
 import mne

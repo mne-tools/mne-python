@@ -14,6 +14,8 @@ or more distinct topography, reducing the negative impact of volume conduction.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 # sphinx_gallery_thumbnail_number = 6
 
 import numpy as np

@@ -13,6 +13,8 @@ averaging parameters and get epochs.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 
 import mne
 import os

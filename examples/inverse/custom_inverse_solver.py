@@ -22,6 +22,8 @@ in order to try out another inverse algorithm.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import numpy as np
 from scipy import linalg
 import mne

@@ -23,6 +23,8 @@ anatomical MRI, overlaid with the morphed volumetric source estimate.
 # Author: Tommy Clausner <tommy.clausner@gmail.com>
 #
 # License: BSD (3-clause)
+
+# %% ##########################################################################
 import os
 
 import nibabel as nib

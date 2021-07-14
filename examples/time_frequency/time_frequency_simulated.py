@@ -15,6 +15,8 @@ trials, or by operating on numpy arrays.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import numpy as np
 from matplotlib import pyplot as plt
 

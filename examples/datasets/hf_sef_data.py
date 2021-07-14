@@ -11,6 +11,8 @@ This example looks at high-frequency SEF responses.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 
 import mne
 import os

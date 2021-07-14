@@ -16,6 +16,8 @@ the CSD:
 """
 # Author: Marijn van Vliet <w.m.vanvliet@gmail.com>
 # License: BSD (3-clause)
+
+# %% ##########################################################################
 from matplotlib import pyplot as plt
 
 import mne

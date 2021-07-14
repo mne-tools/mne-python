@@ -20,6 +20,8 @@ loading some :ref:`example data <sample-dataset>`:
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import os
 import mne
 

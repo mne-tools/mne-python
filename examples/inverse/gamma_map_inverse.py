@@ -10,6 +10,8 @@ See :footcite:`WipfNagarajan2009` for details.
 #
 # License: BSD (3-clause)
 
+# %% ##########################################################################
+
 import numpy as np
 
 import mne
