@@ -93,6 +93,8 @@ Enhancements
 
 - Add :meth:`mne.Evoked.get_data` method to :class:`mne.Evoked` (:gh:`9555` by `Stefan Appelhoff`_)
 
+- The :class:`mne.Epochs` class :meth:`mne.Epochs.get_data` method now has a ``Units`` parameter (:gh:`9553` by `Stefan Appelhoff`_)
+
 Bugs
 ~~~~
 - Fix bug with :meth:`mne.Epochs.crop` and :meth:`mne.Evoked.crop` when ``include_tmax=False``, where the last sample was always cut off, even when ``tmax > epo.times[-1]`` (:gh:`9378` **by new contributor** |Jan Sosulski|_)
