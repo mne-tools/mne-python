@@ -855,3 +855,20 @@ class _AbstractWindow(ABC):
     @abstractmethod
     def _window_set_theme(self, theme):
         pass
+
+
+class _AbstractBrowser(ABC):
+    def __init__(self):
+        pass
+
+    def _redraw(self):
+        pass
+
+    def _toggle_vline(self):
+        pass
+
+    def _toggle_annotation_fig(self):
+        pass
+
+    def _toggle_butterfly_mode(self):
+        pass
