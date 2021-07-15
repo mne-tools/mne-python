@@ -7,7 +7,7 @@
 import numpy as np
 
 from ..annotations import _annotations_starts_stops
-from ..utils import logger, verbose, sum_squared, warn
+from ..utils import logger, verbose, sum_squared, warn, int_like
 from ..filter import filter_data
 from ..epochs import Epochs, BaseEpochs
 from ..io.base import BaseRaw
@@ -393,14 +393,35 @@ def _make_ecg(inst, start, stop, reject_by_annotation=False, verbose=None):
                 .format({'mag': 'Magnetometers',
                          'grad': 'Gradiometers'}[ch]))
     picks = pick_types(inst.info, meg=ch, eeg=False, ref_meg=False)
+
+    # Handle start/stop
+    begin_param_name = 'tmin'
+    if isinstance(start, int_like):
+        if isinstance(inst, BaseRaw):
+            # Raw has start param, can just use int
+            start = 0 if start is None else start
+            begin_param_name = 'start'
+        # for Epochs/Evoked, convert time idx to time in s
+        start = 99999.
+
+    end_param_name = 'tmax'
+    if isinstance(start, int_like):
+        if isinstance(inst, BaseRaw):
+            # Raw has stop param, can just use int
+            end_param_name = 'stop'
+        # for Epochs/Evoked, convert time idx to time in s
+        stop = 99999.
+
+    kwargs = {begin_param_name: start, end_param_name: stop}
+
     if isinstance(inst, BaseRaw):
         reject_by_annotation = 'omit' if reject_by_annotation else None
-        ecg, times = inst.get_data(picks, start, stop, reject_by_annotation,
-                                   True)
+        ecg, times = inst.get_data(picks, return_times=True, **kwargs,
+                                   reject_by_annotation=reject_by_annotation)
     elif isinstance(inst, BaseEpochs):
-        ecg = np.hstack(inst.copy().crop(start, stop).get_data())
+        ecg = np.hstack(inst.copy().get_data(picks, **kwargs))
         times = inst.times
     elif isinstance(inst, Evoked):
-        ecg = inst.data
+        ecg = inst.get_data(picks, **kwargs)
         times = inst.times
     return ecg.mean(0, keepdims=True), times
