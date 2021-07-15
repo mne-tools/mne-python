@@ -133,8 +133,6 @@ MNE-Python.
 """
 
 # %%
-
-# %%
 # Designing FIR filters
 # ---------------------
 # Here we'll try to design a low-pass filter and look at trade-offs in terms
