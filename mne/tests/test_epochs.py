@@ -183,6 +183,41 @@ reject = dict(grad=1000e-12, mag=4e-12, eeg=80e-6, eog=150e-6)
 flat = dict(grad=1e-15, mag=1e-15)
 
 
+def test_get_data():
+    """Test the .get_data() method."""
+    raw, events, picks = _get_data()
+    event_id = {'a/1': 1, 'a/2': 2, 'b/1': 3, 'b/2': 4}
+    epochs = Epochs(raw, events, event_id, preload=True)
+
+    # Testing with respect to units param
+    # more tests in mne/io/tests/test_raw.py::test_get_data_units
+    # EEG is already in V, so no conversion should take place
+    d1 = epochs.get_data(picks="eeg", units=None)
+    d2 = epochs.get_data(picks="eeg", units="V")
+    np.testing.assert_array_equal(d1, d2)
+
+    with pytest.raises(ValueError, match="is not a valid unit for eeg"):
+        epochs.get_data(picks="eeg", units="")
+
+    with pytest.raises(ValueError, match="cannot be str if there is more"):
+        epochs.get_data(picks=["eeg", "meg"], units="V")
+
+    # Check combination of units with item param, scale only one ch_type
+    d3 = epochs.get_data(item=[1, 2, 3], units={"grad": "fT/cm"})
+    assert d3.shape[0] == 3
+
+    grad_idxs = np.array([i == "grad" for i in epochs.get_channel_types()])
+    eeg_idxs = np.array([i == "eeg" for i in epochs.get_channel_types()])
+    np.testing.assert_allclose(
+        d3[:, grad_idxs, :],
+        epochs.get_data("grad", item=[1, 2, 3]) * 1e13  # T/m to fT/cm
+    )
+    np.testing.assert_allclose(
+        d3[:, eeg_idxs, :],
+        epochs.get_data("eeg", item=[1, 2, 3])
+    )
+
+
 def test_hierarchical():
     """Test hierarchical access."""
     raw, events, picks = _get_data()

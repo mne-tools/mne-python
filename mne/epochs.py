@@ -36,7 +36,7 @@ from .io.pick import (channel_indices_by_type, channel_type,
                       pick_channels, pick_info, _pick_data_channels,
                       _DATA_CH_TYPES_SPLIT, _picks_to_idx)
 from .io.proj import setup_proj, ProjMixin
-from .io.base import BaseRaw, TimeMixin
+from .io.base import BaseRaw, TimeMixin, _get_ch_factors
 from .bem import _check_origin
 from .evoked import EvokedArray, _check_decim
 from .baseline import rescale, _log_rescale, _check_baseline
@@ -1325,7 +1325,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         return epoch
 
     @verbose
-    def _get_data(self, out=True, picks=None, item=None, verbose=None):
+    def _get_data(self, out=True, picks=None, item=None, *, units=None,
+                  verbose=None):
         """Load all data, dropping bad epochs along the way.
 
         Parameters
@@ -1334,6 +1335,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             Return the data. Setting this to False is used to reject bad
             epochs without caching all the data, which saves memory.
         %(picks_all)s
+        item : slice | array-like | str | list | None
+            See docstring of get_data method.
+        %(units)s
         %(verbose_meth)s
         """
         if item is None:
@@ -1355,16 +1359,28 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             logger.info('Loading data for %s events and %s original time '
                         'points ...' % (n_events, len(self._raw_times)))
 
+        orig_picks = picks
+        if orig_picks is None:
+            picks = _picks_to_idx(self.info, picks, "all", exclude=())
+        else:
+            picks = _picks_to_idx(self.info, picks)
+
+        # handle units param only if we are going to return data (out==True)
+        # else, we don't scale (scaling is vector of ones)
+        ch_factors = np.ones(len(picks))
+        if (units is not None) and out:
+            ch_factors = _get_ch_factors(self, units, picks)
+
         if self._bad_dropped:
             if not out:
                 return
             if self.preload:
                 data = data[select]
-                if picks is None:
-                    return data
-                else:
-                    picks = _picks_to_idx(self.info, picks)
-                    return data[:, picks]
+                if orig_picks is not None:
+                    data = data[:, picks]
+                if units is not None:
+                    data *= ch_factors[:, np.newaxis]
+                return data
 
             # we need to load from disk, drop, and return data
             detrend_picks = self._detrend_picks
@@ -1443,11 +1459,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                           select_data=False)
 
         if out:
-            if picks is None:
-                return data
-            else:
-                picks = _picks_to_idx(self.info, picks)
-                return data[:, picks]
+            if orig_picks is not None:
+                data = data[:, picks]
+            if units is not None:
+                data *= ch_factors[:, np.newaxis]
+            return data
         else:
             return None
 
@@ -1460,7 +1476,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             return []
 
     @fill_doc
-    def get_data(self, picks=None, item=None):
+    def get_data(self, picks=None, item=None, units=None):
         """Get all epochs as a 3D array.
 
         Parameters
@@ -1474,13 +1490,16 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             None (default) is an alias for ``slice(None)``.
 
             .. versionadded:: 0.20
+        %(units)s
+
+            .. versionadded:: 0.24
 
         Returns
         -------
         data : array of shape (n_epochs, n_channels, n_times)
             A view on epochs data.
         """
-        return self._get_data(picks=picks, item=item)
+        return self._get_data(picks=picks, item=item, units=units)
 
     @verbose
     def apply_function(self, fun, picks=None, dtype=None, n_jobs=1,
@@ -3268,7 +3287,7 @@ def add_channels_epochs(epochs_list, verbose=None):
         raise ValueError('All epochs must be preloaded.')
 
     info = _merge_info([epochs.info for epochs in epochs_list])
-    data = [epochs.get_data() for epochs in epochs_list]
+    data = [epochs._data for epochs in epochs_list]
     _check_merge_epochs(epochs_list)
     for d in data:
         if len(d) != len(data[0]):

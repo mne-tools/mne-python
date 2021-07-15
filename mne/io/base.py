@@ -817,22 +817,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             'bad' are omitted. If 'NaN', the bad samples are filled with NaNs.
         return_times : bool
             Whether to return times as well. Defaults to False.
-        units : str | dict | None
-            Specify the unit(s) that the data should be returned in. If
-            ``None`` (default), the data is returned in the
-            channel-type-specific default units, which are SI units (see
-            :ref:`units` and :term:`data channels`). If a string, must be a
-            sub-multiple of SI units that will be used to scale the data from
-            all channels of the type associated with that unit. This only works
-            if the data contains one channel type that has a unit (unitless
-            channel types are left unchanged). For example if there are only
-            EEG and STIM channels, ``units='uV'`` will scale EEG channels to
-            micro-Volts while STIM channels will be unchanged. Finally, if a
-            dictionary is provided, keys must be channel types, and values must
-            be units to scale the data of that channel type to. For example
-            ``dict(grad='fT/cm', mag='fT')`` will scale the corresponding types
-            accordingly, but all other channel types will remain in their
-            channel-type-specific default unit.
+        %(units)s
         tmin : float | None
             Start time of data to get in seconds. The ``tmin`` parameter is
             ignored if the ``start`` parameter is bigger than 0.
@@ -869,32 +854,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         picks = _picks_to_idx(self.info, picks, 'all', exclude=())
 
-        # Convert into the specified unit
-        _validate_type(units, types=(None, str, dict), item_name="units")
-        needs_conversion = False
-        ch_factors = np.ones(len(picks))
-        si_units = _handle_default('si_units')
-        # Convert to dict if str units
-        if isinstance(units, str):
-            # Check that there is only one channel type
-            ch_types = self.get_channel_types(picks=picks, unique=True)
-            unit_ch_type = list(set(ch_types) & set(si_units.keys()))
-            if len(unit_ch_type) > 1:
-                raise ValueError('"units" cannot be str if there is more than '
-                                 'one channel type with a unit '
-                                 f'{unit_ch_type}.')
-            units = {unit_ch_type[0]: units}  # make the str argument a dict
-        # Loop over the dict to get channel factors
-        if isinstance(units, dict):
-            for ch_type, ch_unit in units.items():
-                # Get the scaling factors
-                scaling = _get_scaling(ch_type, ch_unit)
-                if scaling != 1:
-                    needs_conversion = True
-                    ch_types = self.get_channel_types(picks=picks)
-                    indices = [i_ch for i_ch, ch in enumerate(ch_types)
-                               if ch == ch_type]
-                    ch_factors[indices] *= scaling
+        # Get channel factors for conversion into specified unit
+        # (vector of ones if no conversion needed)
+        if units is not None:
+            ch_factors = _get_ch_factors(self, units, picks)
 
         # convert to ints
         picks = np.atleast_1d(np.arange(self.info['nchan'])[picks])
@@ -916,10 +879,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                 (picks, slice(start, stop)), return_times=return_times)
             if return_times:
                 data, times = getitem
-                if needs_conversion:
+                if units is not None:
                     data *= ch_factors[:, np.newaxis]
                 return data, times
-            if needs_conversion:
+            if units is not None:
                 getitem *= ch_factors[:, np.newaxis]
             return getitem
         _check_option('reject_by_annotation', reject_by_annotation.lower(),
@@ -930,7 +893,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         ends = np.minimum(ends[keep], stop)
         if len(onsets) == 0:
             data, times = self[picks, start:stop]
-            if needs_conversion:
+            if units is not None:
                 data *= ch_factors[:, np.newaxis]
             if return_times:
                 return data, times
@@ -973,7 +936,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         else:
             data, times = self[picks, start:stop]
 
-        if needs_conversion:
+        if units is not None:
             data *= ch_factors[:, np.newaxis]
         if return_times:
             return data, times
@@ -1990,6 +1953,50 @@ def _convert_slice(sel):
         return slice(sel[0], sel[-1] + 1)
     else:
         return sel
+
+
+def _get_ch_factors(inst, units, picks_idxs):
+    """Get scaling factors for data, given units.
+
+    Parameters
+    ----------
+    inst : instance of Raw | Epochs | Evoked
+        The instance.
+    %(units)s
+    picks_idxs : ndarray
+        The picks as provided through _picks_to_idx.
+
+    Returns
+    -------
+    ch_factors : ndarray of floats, shape(len(picks),)
+        The sacling factors for each channel, ordered according
+        to picks.
+
+    """
+    _validate_type(units, types=(None, str, dict), item_name="units")
+    ch_factors = np.ones(len(picks_idxs))
+    si_units = _handle_default('si_units')
+    ch_types = inst.get_channel_types(picks=picks_idxs)
+    # Convert to dict if str units
+    if isinstance(units, str):
+        # Check that there is only one channel type
+        unit_ch_type = list(set(ch_types) & set(si_units.keys()))
+        if len(unit_ch_type) > 1:
+            raise ValueError('"units" cannot be str if there is more than '
+                             'one channel type with a unit '
+                             f'{unit_ch_type}.')
+        units = {unit_ch_type[0]: units}  # make the str argument a dict
+    # Loop over the dict to get channel factors
+    if isinstance(units, dict):
+        for ch_type, ch_unit in units.items():
+            # Get the scaling factors
+            scaling = _get_scaling(ch_type, ch_unit)
+            if scaling != 1:
+                indices = [i_ch for i_ch, ch in enumerate(ch_types)
+                           if ch == ch_type]
+                ch_factors[indices] *= scaling
+
+    return ch_factors
 
 
 def _get_scaling(ch_type, target_unit):
