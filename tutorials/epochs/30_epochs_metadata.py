@@ -16,10 +16,6 @@ different stimulus (word). As usual we'll start by importing the modules we
 need and loading the data:
 """
 
-# Authors: MNE-Developers
-#
-# License: BSD (3-clause)
-
 # %%
 
 import os

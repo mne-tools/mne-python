@@ -16,10 +16,6 @@ uses :mod:`nibabel` under the hood). We'll also use a special :mod:`Matplotlib
 readable on top of an MRI image.
 """
 
-# Authors: MNE-Developers
-#
-# License: BSD (3-clause)
-
 # %%
 
 import os

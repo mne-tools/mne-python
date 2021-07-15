@@ -13,10 +13,6 @@ Let's start by loading some data and computing a signal (spatial) covariance
 that we'll consider to be noise.
 """
 
-# Authors: MNE-Developers
-#
-# License: BSD (3-clause)
-
 # %%
 
 import mne

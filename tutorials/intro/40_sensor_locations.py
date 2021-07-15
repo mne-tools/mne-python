@@ -11,10 +11,6 @@ As usual we'll start by importing the modules we need and loading some
 :ref:`example data <sample-dataset>`:
 """
 
-# Authors: MNE-Developers
-#
-# License: BSD (3-clause)
-
 # %%
 
 import os

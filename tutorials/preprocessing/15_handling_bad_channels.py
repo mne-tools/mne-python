@@ -12,10 +12,6 @@ As usual we'll start by importing the modules we need, and loading some example
 data:
 """
 
-# Authors: MNE-Developers
-#
-# License: BSD (3-clause)
-
 # %%
 
 import os

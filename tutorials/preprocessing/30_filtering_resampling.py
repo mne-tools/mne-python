@@ -13,10 +13,6 @@ We begin as always by importing the necessary Python modules and loading some
 (to save memory on the documentation server):
 """
 
-# Authors: MNE-Developers
-#
-# License: BSD (3-clause)
-
 # %%
 
 import os

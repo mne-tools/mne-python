@@ -14,10 +14,6 @@ We'll start by importing the Python modules we need; we'll also define a short
 function to make it easier to make several plots that look similar:
 """
 
-# Authors: MNE-Developers
-#
-# License: BSD (3-clause)
-
 # %%
 
 import os

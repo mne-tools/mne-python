@@ -13,10 +13,6 @@ We'll start by importing the modules we need, loading the continuous (raw)
 sample data, and cropping it to save memory:
 """
 
-# Authors: MNE-Developers
-#
-# License: BSD (3-clause)
-
 # %%
 
 import os

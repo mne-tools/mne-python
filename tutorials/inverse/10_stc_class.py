@@ -51,10 +51,6 @@ Let's get ourselves an idea of what a :class:`mne.SourceEstimate` really
 is. We first set up the environment and load some data:
 """
 
-# Authors: MNE-Developers
-#
-# License: BSD (3-clause)
-
 # %%
 
 import os

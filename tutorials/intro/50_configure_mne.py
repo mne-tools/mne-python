@@ -11,10 +11,6 @@ your analysis preferences.
 We begin by importing the necessary Python modules:
 """
 
-# Authors: MNE-Developers
-#
-# License: BSD (3-clause)
-
 # %%
 
 import os

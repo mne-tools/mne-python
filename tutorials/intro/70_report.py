@@ -19,10 +19,6 @@ directly within the browser). This tutorial covers the basics of building a
 `~mne.Report`. As usual we'll start by importing the modules we need:
 """
 
-# Authors: MNE-Developers
-#
-# License: BSD (3-clause)
-
 # %%
 
 import os

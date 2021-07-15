@@ -16,10 +16,6 @@ and downsampled version of the example data, and we'll also load an events
 array to use when converting the continuous data to epochs:
 """
 
-# Authors: MNE-Developers
-#
-# License: BSD (3-clause)
-
 # %%
 
 import os

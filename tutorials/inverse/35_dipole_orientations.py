@@ -15,10 +15,6 @@ orientation of the dipoles and the impact on the resulting source estimate.
 See :ref:`inverse_orientation_constraints` for related information.
 """
 
-# Authors: MNE-Developers
-#
-# License: BSD (3-clause)
-
 # %%
 
 # %%

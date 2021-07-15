@@ -10,10 +10,6 @@ This tutorial shows the different visualization methods for
 As usual we'll start by importing the modules we need:
 """
 
-# Authors: MNE-Developers
-#
-# License: BSD (3-clause)
-
 # %%
 
 import os

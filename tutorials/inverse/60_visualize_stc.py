@@ -11,10 +11,6 @@ Surface Source Estimates
 First, we get the paths for the evoked data and the time courses (stcs).
 """
 
-# Authors: MNE-Developers
-#
-# License: BSD (3-clause)
-
 # %%
 
 import os

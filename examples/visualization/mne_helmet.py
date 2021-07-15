@@ -5,10 +5,6 @@ Plot the MNE brain and helmet
 This tutorial shows how to make the MNE helmet + brain image.
 """
 
-# Authors: MNE-Developers
-#
-# License: BSD (3-clause)
-
 # %%
 
 import os.path as op

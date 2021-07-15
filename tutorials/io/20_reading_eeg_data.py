@@ -246,8 +246,4 @@ the MEG head coordinate system employed in the MNE software, see
 :ref:`coordinate_systems`.
 """  # noqa:E501
 
-# Authors: MNE-Developers
-#
-# License: BSD (3-clause)
-
 # %%

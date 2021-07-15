@@ -10,10 +10,6 @@ nine QuSpin SERF OPMs placed over the right-hand side somatomotor area.
 Here we demonstrate how to localize these custom OPM data in MNE.
 """
 
-# Authors: MNE-Developers
-#
-# License: BSD (3-clause)
-
 # %%
 
 # sphinx_gallery_thumbnail_number = 4

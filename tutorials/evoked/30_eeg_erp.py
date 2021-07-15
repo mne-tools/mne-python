@@ -17,10 +17,6 @@ our documentation server can handle them, we'll crop the raw data from ~4.5
 minutes down to 90 seconds.
 """
 
-# Authors: MNE-Developers
-#
-# License: BSD (3-clause)
-
 # %%
 
 import os

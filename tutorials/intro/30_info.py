@@ -14,10 +14,6 @@ We will begin by loading the Python modules we need, and loading the same
 <tut-overview>`:
 """
 
-# Authors: MNE-Developers
-#
-# License: BSD (3-clause)
-
 # %%
 
 import os

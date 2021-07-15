@@ -13,10 +13,6 @@ understanding the different coordinate frames involved in this process.
 Let's start out by loading some data.
 """
 
-# Authors: MNE-Developers
-#
-# License: BSD (3-clause)
-
 # %%
 import os.path as op
 

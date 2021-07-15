@@ -10,10 +10,6 @@ existing :class:`NumPy array <numpy.ndarray>` of (real or synthetic) data.
 We begin by importing the necessary Python modules:
 """
 
-# Authors: MNE-Developers
-#
-# License: BSD (3-clause)
-
 # %%
 
 import mne

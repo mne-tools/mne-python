@@ -132,10 +132,6 @@ First, we will focus on FIR filters, which are the default filters used by
 MNE-Python.
 """
 
-# Authors: MNE-Developers
-#
-# License: BSD (3-clause)
-
 # %%
 
 # %%

@@ -12,10 +12,6 @@ minimum-norm inverse solution. For more information, see
 :ref:`minimum_norm_estimates`.
 """
 
-# Authors: MNE-Developers
-#
-# License: BSD (3-clause)
-
 # %%
 
 import os.path as op
