@@ -1325,7 +1325,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         return epoch
 
     @verbose
-    def _get_data(self, out=True, picks=None, item=None, units=None,
+    def _get_data(self, out=True, picks=None, item=None, *, units=None,
                   verbose=None):
         """Load all data, dropping bad epochs along the way.
 
@@ -1377,11 +1377,13 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             if self.preload:
                 data = data[select]
                 if orig_picks is None:
-                    data *= ch_factors[np.newaxis, :, np.newaxis]
+                    if units is not None:
+                    data *= ch_factors[:, np.newaxis]
                     return data
                 else:
-                    data = data[:, picks] * ch_factors[np.newaxis, :,
-                                                       np.newaxis]
+                    data = data[:, picks]
+                    if units is not None:
+                        data *= ch_factors[np.newaxis]
                     return data
 
             # we need to load from disk, drop, and return data
@@ -1462,10 +1464,13 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         if out:
             if orig_picks is None:
-                data *= ch_factors[np.newaxis, :, np.newaxis]
+                if units is not None:
+                    data *= ch_factors[:, np.newaxis]
                 return data
             else:
-                data = data[:, picks] * ch_factors[np.newaxis, :, np.newaxis]
+                data = data[:, picks]
+                if units is not None:
+                    data *= ch_factors[:, np.newaxis]
                 return data
         else:
             return None
@@ -1494,6 +1499,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
             .. versionadded:: 0.20
         %(units)s
+        
+        .. versionadded:: 0.24.0
 
         Returns
         -------
