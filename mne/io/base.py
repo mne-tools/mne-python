@@ -836,7 +836,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         # Get channel factors for conversion into specified unit
         # (vector of ones if no conversion needed)
-        ch_factors = _get_ch_factors(self, units, picks)
+        if units is not None:
+            ch_factors = _get_ch_factors(self, units, picks)
 
         # convert to ints
         picks = np.atleast_1d(np.arange(self.info['nchan'])[picks])
@@ -847,9 +848,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                 (picks, slice(start, stop)), return_times=return_times)
             if return_times:
                 data, times = getitem
-                data *= ch_factors[:, np.newaxis]
+                if units is not None:
+                    data *= ch_factors[:, np.newaxis]
                 return data, times
-            getitem *= ch_factors[:, np.newaxis]
+            if units is not None:
+                getitem *= ch_factors[:, np.newaxis]
             return getitem
         _check_option('reject_by_annotation', reject_by_annotation.lower(),
                       ['omit', 'nan'])
@@ -859,7 +862,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         ends = np.minimum(ends[keep], stop)
         if len(onsets) == 0:
             data, times = self[picks, start:stop]
-            data *= ch_factors[:, np.newaxis]
+            if units is not None:
+                data *= ch_factors[:, np.newaxis]
             if return_times:
                 return data, times
             return data
@@ -901,7 +905,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         else:
             data, times = self[picks, start:stop]
 
-        data *= ch_factors[:, np.newaxis]
+        if units is not None:
+            data *= ch_factors[:, np.newaxis]
         if return_times:
             return data, times
         return data
