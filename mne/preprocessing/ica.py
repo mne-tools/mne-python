@@ -1303,7 +1303,6 @@ class ICA(ContainsMixin):
         idx_ecg = _get_ecg_channel_index(ch_name, inst)
 
         if idx_ecg is None:
-            start = 0 if start is None else start
             ecg, times = _make_ecg(inst, start, stop,
                                    reject_by_annotation=reject_by_annotation)
         else:

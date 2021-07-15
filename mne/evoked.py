@@ -159,12 +159,16 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         self._data = data
 
     @fill_doc
-    def get_data(self, picks=None):
+    def get_data(self, picks=None, tmin=None, tmax=None):
         """Get evoked data as 2D array.
 
         Parameters
         ----------
         %(picks_all)s
+        tmin : float | None
+            Start time of data to get in seconds.
+        tmax : float | None
+            End time of data to get in seconds.
 
         Returns
         -------
@@ -176,7 +180,22 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         .. versionadded:: 0.24
         """
         picks = _picks_to_idx(self.info, picks, "all", exclude=())
-        data = self.data[picks, :]
+
+        _validate_type(tmin, types=("numeric", None), item_name="tmin",
+                       type_name="float, None")
+        _validate_type(tmax, types=("numeric", None), item_name="tmax",
+                       type_name="float, None")
+
+        # handle tmin/tmax as start and stop indices into data array
+        n_times = self.times.size
+        start = 0 if tmin is None else self.time_as_index(tmin)[0]
+        stop = n_times if tmax is None else self.time_as_index(tmax)[0]
+
+        # truncate start/stop to the open interval [0, n_times]
+        start = min(max(0, start), n_times)
+        stop = min(max(0, stop), n_times)
+
+        data = self.data[picks, start:stop]
         return data
 
     @verbose
