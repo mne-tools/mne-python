@@ -1255,6 +1255,7 @@ class Coregistration(object):
         self._parameters = list(self._default_parameters)
         self._last_parameters = list(self._default_parameters)
 
+        self._rot_trans = None
         self._n_scale_params = (0, 1, 3)
         self._n_scale_param = self._n_scale_params[0]
         self._coord_frames = ('mri', 'head')
@@ -1278,11 +1279,31 @@ class Coregistration(object):
                                                subject=subject)
         self._nearest_calc = self._nearest_calc_default()
 
-    def _parameters_items_changed(self):
-        # Only update our nearest-neighbor if necessary
-        if self._parameters[6:9] != self._last_parameters[6:9]:
-            self._update_nearest_calc()
-        self._last_parameters[:] = self._parameters[:]
+    def _update_params(self, params):
+        rot_changed = False
+        if self._rot_trans is None or params[:3] != self._parameters[:3]:
+            rot_changed = True
+            self._last_parameters[:3] = self._parameters[:3]
+            self._parameters[:3] = params[:3]
+            self._rot_trans = rotation(*params[:3]).T
+        tra_changed = False
+        if rot_changed or params[3:6] != self._parameters[3:6]:
+            tra_changed = True
+            self._last_parameters[3:6] = self._parameters[3:6]
+            self._parameters[3:6] = params[3:6]
+            self._head_mri_t = self._rot_trans.copy()
+            self._head_mri_t[:3, 3] = \
+                -np.dot(self._head_mri_t[:3, :3], params[3:6])
+            self._mri_head_t = self._rot_trans.copy()
+            self._mri_head_t[:3, 3] = np.array(params[3:6])
+        if tra_changed or params[6:9] != self._parameters[6:9]:
+            self._last_parameters[6:9] = self._parameters[6:9]
+            self._parameters[6:9] = params[6:9]
+            if self._coord_frame == 'head':
+                self._mri_trans = self._mri_head_t.copy()
+            else:
+                self._mri_trans = np.eye(4)
+            self._mri_trans[:, :3] *= params[6:9]
 
     @property
     def _changes(self):
@@ -1371,13 +1392,6 @@ class Coregistration(object):
     def _has_rpa_data(self):
         return (np.any(self._mri.rpa) and np.any(self._dig.rpa))
 
-    @property
-    def _head_mri_t(self):
-        trans = rotation(*self._parameters[:3]).T
-        trans[:3, 3] = -np.dot(trans[:3, :3], self._parameters[3:6])
-        # should be the same as np.linalg.inv(self._mri_head_t)
-        return trans
-
     def _nearest_calc_default(self):
         return _DistanceQuery(
             self._processed_high_res_mri_points * self._parameters[6:9])
@@ -1410,27 +1424,6 @@ class Coregistration(object):
                 self._grow_hair = 0
         else:
             return bem.surf.rr
-
-    @property
-    def _mri_head_t(self):
-        # rotate and translate hsp
-        trans = rotation(*self._parameters[:3])
-        trans[:3, 3] = np.array(self._parameters[3:6])
-        return trans
-
-    @property
-    def _mri_trans_noscale(self):
-        if self._coord_frame == 'head':
-            t = self._mri_head_t
-        else:
-            t = np.eye(4)
-        return t
-
-    @property
-    def _mri_trans(self):
-        t = self._mri_trans_noscale.copy()
-        t[:, :3] *= self._parameters[6:9]
-        return t
 
     @property
     def _transformed_high_res_mri_points(self):
@@ -1479,10 +1472,11 @@ class Coregistration(object):
         est = fit_matched_points(mri_pts, head_pts, x0=x0, out='params',
                                  scale=self._n_scale_param, weights=weights)
         if self._n_scale_param == 0:
-            self._parameters[:6] = est
+            tmp_est = self._parameters.copy()
+            tmp_est[:6] = est
+            self._update_params(tmp_est)
         else:
-            self._parameters[:] = np.concatenate([est, [est[-1]] * 2])
-        self._parameters_items_changed()
+            self._update_params(np.concatenate([est, [est[-1]] * 2]))
 
     def _setup_icp(self):
         head_pts = list()
@@ -1553,13 +1547,14 @@ class Coregistration(object):
                                      scale=self._n_scale_param,
                                      x0=est, out='params', weights=weights)
             if self._n_scale_param == 0:
-                self._parameters[:6] = est
+                tmp_est = self._parameters.copy()
+                tmp_est[:6] = est
+                self._update_params(tmp_est)
             elif self._n_scale_param == 1:
-                self._parameters[:] = list(est) + [est[-1]] * 2
+                self._update_params(list(est) + [est[-1]] * 2)
             else:
-                self._parameters[:] = est
+                self._update_params(est)
             angle, move, scale = self._changes
-            self._parameters_items_changed()
             if angle <= self._icp_angle and move <= self._icp_distance and \
                     all(scale <= self._icp_scale):
                 break
