@@ -1821,13 +1821,9 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
     _require_version('dipy', 'SDR morph', '0.10.1')
     from .channels import DigMontage
     import nibabel as nib
-    from dipy.align.imwarp import DiffeomorphicMap
 
     _validate_type(montage, DigMontage, 'montage')
     _validate_type(base_image, nib.spatialimages.SpatialImage, 'base_image')
-    _validate_type(reg_affine, np.ndarray, 'reg_affine')
-    _check_option('reg_affine.shape', reg_affine.shape, ((4, 4),))
-    _validate_type(sdr_morph, DiffeomorphicMap, 'sdr_morph')
     _validate_type(thresh, float, 'thresh')
     if thresh < 0 or thresh >= 1:
         raise ValueError(f'`thresh` must be between 0 and 1, got {thresh}')
