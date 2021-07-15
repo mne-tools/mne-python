@@ -294,9 +294,9 @@ def test_coregistration():
     default_params = list(coreg._default_parameters)
     coreg.fit_fiducials()
     assert not np.allclose(coreg._parameters, default_params)
-    assert coreg._dig.points_filter is None
+    assert coreg._dig.extra_points_filter is None
     coreg.omit_hsp_points(distance=5. / 1000)
-    assert coreg._dig.points_filter is not None
+    assert coreg._dig.extra_points_filter is not None
     coreg.fit_icp()
     assert isinstance(coreg.trans, Transform)
     errs_icp = coreg.point_distance()
