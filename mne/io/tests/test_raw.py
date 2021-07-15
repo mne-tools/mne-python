@@ -739,8 +739,8 @@ def test_get_data_tmin_tmax():
     with pytest.raises(TypeError, match='stop must be .* int'):
         raw.get_data(stop=2.3)
 
-    with pytest.raises(TypeError, match='tmin must be .* numeric'):
+    with pytest.raises(TypeError, match='tmin must be .* float'):
         raw.get_data(tmin=[1, 2])
 
-    with pytest.raises(TypeError, match='tmax must be .* numeric'):
+    with pytest.raises(TypeError, match='tmax must be .* float'):
         raw.get_data(tmax=[1, 2])
