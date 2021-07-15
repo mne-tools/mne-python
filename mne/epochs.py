@@ -1376,15 +1376,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                 return
             if self.preload:
                 data = data[select]
-                if orig_picks is None:
-                    if units is not None:
-                        data *= ch_factors[:, np.newaxis]
-                    return data
-                else:
+                if orig_picks is not None:
                     data = data[:, picks]
-                    if units is not None:
-                        data *= ch_factors[:, np.newaxis]
-                    return data
+                if units is not None:
+                    data *= ch_factors[:, np.newaxis]
+                return data
 
             # we need to load from disk, drop, and return data
             detrend_picks = self._detrend_picks
@@ -1463,15 +1459,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                           select_data=False)
 
         if out:
-            if orig_picks is None:
-                if units is not None:
-                    data *= ch_factors[:, np.newaxis]
-                return data
-            else:
+            if orig_picks is not None:
                 data = data[:, picks]
-                if units is not None:
-                    data *= ch_factors[:, np.newaxis]
-                return data
+            if units is not None:
+                data *= ch_factors[:, np.newaxis]
+            return data
         else:
             return None
 
