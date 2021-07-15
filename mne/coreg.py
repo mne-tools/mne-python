@@ -1247,7 +1247,7 @@ class Coregistration(object):
     Internal computation quantities ``parameters`` are in units of (for X/Y/Z):
     - ``parameters[:3]`` are in radians
     - ``parameters[3:6]`` are in m
-    - ``paramteres[6:9]`` are in scale proportion
+    - ``parameters[6:9]`` are in scale proportion
     """
 
     def __init__(self, info, subject, subjects_dir):
@@ -1305,7 +1305,7 @@ class Coregistration(object):
 
     @property
     def _transformed_dig_points(self):
-        return apply_trans(self._hsp_trans, self._dig.points)
+        return apply_trans(self._hsp_trans, self._dig.extra_points)
 
     @property
     def _hsp_trans(self):
@@ -1385,7 +1385,7 @@ class Coregistration(object):
     @property
     def _nearest_transformed_high_res_mri_idx_hsp(self):
         return self._nearest_calc.query(
-            apply_trans(self._head_mri_t, self._dig.points))[1]
+            apply_trans(self._head_mri_t, self._dig.extra_points))[1]
 
     @property
     def _processed_high_res_mri_points(self):
@@ -1489,7 +1489,7 @@ class Coregistration(object):
         mri_pts = list()
         weights = list()
         if self._has_dig_data and self._hsp_weight > 0:  # should be true
-            head_pts.append(self._dig.points)
+            head_pts.append(self._dig.extra_points)
             mri_pts.append(self._processed_high_res_mri_points[
                 self._nearest_transformed_high_res_mri_idx_hsp])
             weights.append(np.full(len(head_pts[-1]), self._hsp_weight))
@@ -1584,7 +1584,7 @@ class Coregistration(object):
                     "distance >= %.3f m.", n_excluded, distance)
         # set the filter
         with warnings.catch_warnings(record=True):  # comp to None in Traits
-            self._dig.points_filter = mask
+            self._dig.extra_points_filter = mask
 
     def point_distance(self):
         """Compute Euclidean distance between the head-mri points."""
@@ -1628,21 +1628,21 @@ class Coregistration(object):
 class _DigSource(object):
     def __init__(self, info):
         self._info = info
-        self.points_filter = None
+        self.extra_points_filter = None
 
     @property
     def n_omitted(self):
-        if self.points_filter is None:
+        if self.extra_points_filter is None:
             return 0
         else:
-            return np.sum(self.points_filter == False)  # noqa: E712
+            return np.sum(self.extra_points_filter == False)  # noqa: E712
 
     @property
-    def points(self):
-        if self.points_filter is None:
+    def extra_points(self):
+        if self.extra_points_filter is None:
             return self._extra_points
         else:
-            return self._extra_points[self.points_filter]
+            return self._extra_points[self.extra_points_filter]
 
     @property
     def _extra_points(self):
