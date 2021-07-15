@@ -191,7 +191,7 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
                     % raw.ch_names[idx_ecg])
         ecg = raw.get_data(picks=idx_ecg)
     else:
-        ecg, _ = _make_ecg(raw, start=0, stop=None)
+        ecg, _ = _make_ecg(raw, start=None, stop=None)
     assert ecg.ndim == 2 and ecg.shape[0] == 1
     ecg = ecg[0]
     # Deal with filtering the same way we do in raw, i.e. filter each good
@@ -366,24 +366,7 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
 
 @verbose
 def _make_ecg(inst, start, stop, reject_by_annotation=False, verbose=None):
-    """Create ECG signal from cross channel average.
-
-    BUG: Used in `find_bads_ecg`, which says that start and stop
-         can be int (=sample indices) or float (=seconds). But
-         below, these are treated differently for Raw, Epochs, Evoked:
-
-         Raw: will raise TypeError if float is passed, ints are processed
-              correctly
-
-         Epochs: ints are treated as seconds, NOT sample indices, floats
-                 are processed correctly, except that `ecg` and `times`
-                 seem to be out of sync.
-
-         Evoked: start and stop are erroneously not processed at all.
-
-         See: https://github.com/mne-tools/mne-python/pull/9556#issuecomment-879106098
-
-    """  # noqa: E501
+    """Create ECG signal from cross channel average."""
     if not any(c in inst for c in ['mag', 'grad']):
         raise ValueError('Unable to generate artificial ECG channel')
     for ch in ['mag', 'grad']:
@@ -395,22 +378,25 @@ def _make_ecg(inst, start, stop, reject_by_annotation=False, verbose=None):
     picks = pick_types(inst.info, meg=ch, eeg=False, ref_meg=False)
 
     # Handle start/stop
+    msg = ('integer arguments for the start and stop parameters are '
+           'not supported for Epochs and Evoked objects. Please '
+           'consider using float arguments specifying start and stop '
+           'time in seconds.')
     begin_param_name = 'tmin'
     if isinstance(start, int_like):
         if isinstance(inst, BaseRaw):
             # Raw has start param, can just use int
-            start = 0 if start is None else start
             begin_param_name = 'start'
-        # for Epochs/Evoked, convert time idx to time in s
-        start = 99999.
+        else:
+            raise ValueError(msg)
 
     end_param_name = 'tmax'
     if isinstance(start, int_like):
         if isinstance(inst, BaseRaw):
             # Raw has stop param, can just use int
             end_param_name = 'stop'
-        # for Epochs/Evoked, convert time idx to time in s
-        stop = 99999.
+        else:
+            raise ValueError(msg)
 
     kwargs = {begin_param_name: start, end_param_name: stop}
 
