@@ -1317,12 +1317,12 @@ class Coregistration(object):
 
     @property
     def _transformed_orig_hsp_points(self):
-        return apply_trans(self._hsp_trans, self._dig._hsp_points)
+        return apply_trans(self._hsp_trans, self._dig.extra_points)
 
     @property
     def _nearest_transformed_high_res_mri_idx_orig_hsp(self):
         return self._nearest_calc.query(
-            apply_trans(self._head_mri_t, self._dig._hsp_points))[1]
+            apply_trans(self._head_mri_t, self._dig.extra_points))[1]
 
     @property
     def _nearest_transformed_high_res_mri_idx_hpi(self):
@@ -1645,12 +1645,12 @@ class _DigSource(object):
     @property
     def points(self):
         if self.points_filter is None:
-            return self._hsp_points
+            return self.extra_points
         else:
-            return self._hsp_points[self.points_filter]
+            return self.extra_points[self.points_filter]
 
     @property
-    def _hsp_points(self):
+    def extra_points(self):
         if not self._info or not self._info['dig']:
             return np.empty((0, 3))
 
