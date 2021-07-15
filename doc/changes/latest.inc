@@ -51,6 +51,8 @@ Enhancements
 
 - Add support for ``picks`` in :func:`mne.stc_near_sensors` (:gh:`9396` by `Eric Larson`_)
 
+- Add label methods `mne.Label.compute_area` and `mne.Label.distances_to_outside` (:gh:`9424` by `Eric Larson`_)
+
 - Add projections when printing a :class:`mne.Info` in the notebook (:gh:`9403` by `Alex Gramfort`_)
 
 - Add new function :func:`mne.bem.make_scalp_surfaces` to compute scalp surfaces for coregistration (:gh:`9463` by `Alex Gramfort`_)

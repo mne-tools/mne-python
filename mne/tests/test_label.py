@@ -1,6 +1,10 @@
-from itertools import product
+# Author: Eric Larson <larson.eric.d@gmail.com>
+#
+# License: BSD (3-clause)
 
+from contextlib import nullcontext
 import glob
+from itertools import product
 import os
 import os.path as op
 import pickle
@@ -10,7 +14,7 @@ import numpy as np
 from scipy import sparse
 
 from numpy.testing import (assert_array_equal, assert_array_almost_equal,
-                           assert_equal)
+                           assert_equal, assert_allclose, assert_array_less)
 import pytest
 
 from mne.datasets import testing
@@ -20,12 +24,13 @@ from mne import (read_label, stc_to_label, read_source_estimate,
                  read_surface, random_parcellation, morph_labels,
                  labels_to_stc)
 from mne.label import (Label, _blend_colors, label_sign_flip, _load_vert_pos,
-                       select_sources, find_pos_in_annot)
-from mne.utils import (requires_sklearn, get_subjects_dir, check_version,
-                       requires_nibabel)
-from mne.label import _n_colors, _read_annot, _read_annot_cands
+                       select_sources, find_pos_in_annot, _n_colors,
+                       _read_annot, _read_annot_cands)
 from mne.source_space import SourceSpaces
 from mne.source_estimate import mesh_edges
+from mne.surface import _mesh_borders
+from mne.utils import (requires_sklearn, get_subjects_dir, check_version,
+                       requires_nibabel)
 
 
 data_path = testing.data_path(download=False)
@@ -1034,3 +1039,51 @@ def test_find_pos_in_annot():
                               subjects_dir=subjects_dir_test,
                               )
     assert label == target_label
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('fname, area', [
+    (real_label_fname, 0.657e-3),
+    (v1_label_fname, 3.245e-3),
+])
+def test_label_geometry(fname, area):
+    """Test label geometric computations."""
+    label = read_label(fname, subject='sample')
+    got_area = label.compute_area(subjects_dir=subjects_dir)
+    assert_allclose(got_area, area, rtol=1e-3)
+    # using a sparse label emits a warning
+    label_sparse = label.restrict(src_fname)
+    assert 0 < len(label_sparse.vertices) < len(label.vertices)
+    with pytest.warns(RuntimeWarning, match='No complete triangles'):
+        assert label_sparse.compute_area(subjects_dir=subjects_dir) == 0.
+    if not check_version('scipy', '1.3'):
+        ctx = pytest.raises(RuntimeError, match='required to calculate')
+        stop = True
+    else:
+        ctx = nullcontext()
+        stop = False
+    with ctx:
+        dist, outside = label.distances_to_outside(subjects_dir=subjects_dir)
+    if stop:
+        return
+    rr, tris = read_surface(
+        op.join(subjects_dir, 'sample', 'surf', 'lh.white'))
+    mask = np.zeros(len(rr), bool)
+    mask[label.vertices] = 1
+    border_mask = np.in1d(label.vertices, _mesh_borders(tris, mask))
+    # The distances of the border vertices is smaller than that of non-border
+    lo, mi, hi = np.percentile(dist[border_mask], (0, 50, 100))
+    assert 0.1e-3 < lo < 0.5e-3 < mi < 1.0e-3 < hi < 2.0e-3
+    lo, mi, hi = np.percentile(dist[~border_mask], (0, 50, 100))
+    assert 0.5e-3 < lo < 1.0e-3 < mi < 9.0e-3 < hi < 25e-3
+    # check that the distances are close but uniformly <= than euclidean
+    assert not np.in1d(outside, label.vertices).any()
+    border_dist = dist[border_mask]
+    border_euc = 1e-3 * np.linalg.norm(
+        rr[label.vertices[border_mask]] - rr[outside[border_mask]], axis=1)
+    assert_allclose(border_dist, border_euc, atol=1e-4)
+    inside_dist = dist[~border_mask]
+    inside_euc = 1e-3 * np.linalg.norm(
+        rr[label.vertices[~border_mask]] - rr[outside[~border_mask]], axis=1)
+    assert_array_less(inside_euc, inside_dist)
+    assert_array_less(0.25 * inside_dist, inside_euc)
