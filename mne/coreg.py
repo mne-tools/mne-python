@@ -1273,7 +1273,7 @@ class Coregistration(object):
         self._eeg_weight = 1.
         self._hpi_weight = 1.
 
-        self._hsp = _DigSource(info)
+        self._dig = _DigSource(info)
         self._mri = _MRIHeadWithFiducialsModel(subjects_dir=subjects_dir,
                                                subject=subject)
         self._nearest_calc = self._nearest_calc_default()
@@ -1297,15 +1297,15 @@ class Coregistration(object):
 
     @property
     def _transformed_hsp_hpi(self):
-        return apply_trans(self._hsp_trans, self._hsp.hpi_points)
+        return apply_trans(self._hsp_trans, self._dig.hpi_points)
 
     @property
     def _transformed_hsp_eeg_points(self):
-        return apply_trans(self._hsp_trans, self._hsp.eeg_points)
+        return apply_trans(self._hsp_trans, self._dig.eeg_points)
 
     @property
     def _transformed_hsp_points(self):
-        return apply_trans(self._hsp_trans, self._hsp.points)
+        return apply_trans(self._hsp_trans, self._dig.points)
 
     @property
     def _hsp_trans(self):
@@ -1317,17 +1317,17 @@ class Coregistration(object):
 
     @property
     def _transformed_orig_hsp_points(self):
-        return apply_trans(self._hsp_trans, self._hsp._hsp_points)
+        return apply_trans(self._hsp_trans, self._dig._hsp_points)
 
     @property
     def _nearest_transformed_high_res_mri_idx_orig_hsp(self):
         return self._nearest_calc.query(
-            apply_trans(self._head_mri_t, self._hsp._hsp_points))[1]
+            apply_trans(self._head_mri_t, self._dig._hsp_points))[1]
 
     @property
     def _nearest_transformed_high_res_mri_idx_hpi(self):
         return self._nearest_calc.query(
-            apply_trans(self._head_mri_t, self._hsp.hpi_points))[1]
+            apply_trans(self._head_mri_t, self._dig.hpi_points))[1]
 
     @property
     def _has_hpi_data(self):
@@ -1337,7 +1337,7 @@ class Coregistration(object):
     @property
     def _nearest_transformed_high_res_mri_idx_eeg(self):
         return self._nearest_calc.query(
-            apply_trans(self._head_mri_t, self._hsp.eeg_points))[1]
+            apply_trans(self._head_mri_t, self._dig.eeg_points))[1]
 
     @property
     def _has_eeg_data(self):
@@ -1347,29 +1347,29 @@ class Coregistration(object):
     @property
     def _nearest_transformed_high_res_mri_idx_rpa(self):
         return self._nearest_calc.query(
-            apply_trans(self._head_mri_t, self._hsp.rpa))[1]
+            apply_trans(self._head_mri_t, self._dig.rpa))[1]
 
     @property
     def _nearest_transformed_high_res_mri_idx_nasion(self):
         return self._nearest_calc.query(
-            apply_trans(self._head_mri_t, self._hsp.nasion))[1]
+            apply_trans(self._head_mri_t, self._dig.nasion))[1]
 
     @property
     def _nearest_transformed_high_res_mri_idx_lpa(self):
         return self._nearest_calc.query(
-            apply_trans(self._head_mri_t, self._hsp.lpa))[1]
+            apply_trans(self._head_mri_t, self._dig.lpa))[1]
 
     @property
     def _has_lpa_data(self):
-        return (np.any(self._mri.lpa) and np.any(self._hsp.lpa))
+        return (np.any(self._mri.lpa) and np.any(self._dig.lpa))
 
     @property
     def _has_nasion_data(self):
-        return (np.any(self._mri.nasion) and np.any(self._hsp.nasion))
+        return (np.any(self._mri.nasion) and np.any(self._dig.nasion))
 
     @property
     def _has_rpa_data(self):
-        return (np.any(self._mri.rpa) and np.any(self._hsp.rpa))
+        return (np.any(self._mri.rpa) and np.any(self._dig.rpa))
 
     @property
     def _head_mri_t(self):
@@ -1385,7 +1385,7 @@ class Coregistration(object):
     @property
     def _nearest_transformed_high_res_mri_idx_hsp(self):
         return self._nearest_calc.query(
-            apply_trans(self._head_mri_t, self._hsp.points))[1]
+            apply_trans(self._head_mri_t, self._dig.points))[1]
 
     @property
     def _processed_high_res_mri_points(self):
@@ -1470,7 +1470,7 @@ class Coregistration(object):
         self._nasion_weight = nasion_weight
         self._rpa_weight = rpa_weight
 
-        head_pts = np.vstack((self._hsp.lpa, self._hsp.nasion, self._hsp.rpa))
+        head_pts = np.vstack((self._dig.lpa, self._dig.nasion, self._dig.rpa))
         mri_pts = np.vstack((self._mri.lpa, self._mri.nasion, self._mri.rpa))
         weights = [lpa_weight, nasion_weight, rpa_weight]
         if self._n_scale_param == 0:
@@ -1489,13 +1489,13 @@ class Coregistration(object):
         mri_pts = list()
         weights = list()
         if self._has_hsp_data and self._hsp_weight > 0:  # should be true
-            head_pts.append(self._hsp.points)
+            head_pts.append(self._dig.points)
             mri_pts.append(self._processed_high_res_mri_points[
                 self._nearest_transformed_high_res_mri_idx_hsp])
             weights.append(np.full(len(head_pts[-1]), self._hsp_weight))
         for key in ('lpa', 'nasion', 'rpa'):
             if getattr(self, '_has_%s_data' % key):
-                head_pts.append(getattr(self._hsp, key))
+                head_pts.append(getattr(self._dig, key))
                 if self._icp_fid_match == 'matched':
                     mri_pts.append(getattr(self._mri, key))
                 else:
@@ -1508,12 +1508,12 @@ class Coregistration(object):
                 weights.append(np.full(len(mri_pts[-1]),
                                        getattr(self, '_%s_weight' % key)))
         if self._has_eeg_data and self._eeg_weight > 0:
-            head_pts.append(self._hsp.eeg_points)
+            head_pts.append(self._dig.eeg_points)
             mri_pts.append(self._processed_high_res_mri_points[
                 self._nearest_transformed_high_res_mri_idx_eeg])
             weights.append(np.full(len(mri_pts[-1]), self._eeg_weight))
         if self._has_hpi_data and self._hpi_weight > 0:
-            head_pts.append(self._hsp.hpi_points)
+            head_pts.append(self._dig.hpi_points)
             mri_pts.append(self._processed_high_res_mri_points[
                 self._nearest_transformed_high_res_mri_idx_hpi])
             weights.append(np.full(len(mri_pts[-1]), self._hpi_weight))
@@ -1584,7 +1584,7 @@ class Coregistration(object):
                     "distance >= %.3f m.", n_excluded, distance)
         # set the filter
         with warnings.catch_warnings(record=True):  # comp to None in Traits
-            self._hsp.points_filter = mask
+            self._dig.points_filter = mask
 
     def point_distance(self):
         """Compute Euclidean distance between the head-mri points."""

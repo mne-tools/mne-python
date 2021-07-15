@@ -296,9 +296,9 @@ def test_coregistration(tmpdir):
     default_params = list(coreg._default_parameters)
     coreg.fit_fiducials()
     assert not np.allclose(coreg._parameters, default_params)
-    assert coreg._hsp.points_filter is None
+    assert coreg._dig.points_filter is None
     coreg.omit_hsp_points(distance=5. / 1000)
-    assert coreg._hsp.points_filter is not None
+    assert coreg._dig.points_filter is not None
     coreg.fit_icp()
     assert not op.isfile(fname_trans)
     coreg.save_trans(fname=fname_trans)
