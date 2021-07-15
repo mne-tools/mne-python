@@ -800,7 +800,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     @verbose
     def get_data(self, picks=None, start=0, stop=None,
                  reject_by_annotation=None, return_times=False, units=None,
-                 tmin=None, tmax=None, verbose=None):
+                 *, tmin=None, tmax=None, verbose=None):
         """Get data in the given range.
 
         Parameters
@@ -855,8 +855,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """
         # validate types
         _validate_type(start, types='int', item_name='start')
-        if stop is not None:
-            _validate_type(stop, types='int', item_name='stop')
+        _validate_type(stop, types=('int-like', None), item_name='stop')
         if tmin is not None:
             _validate_type(tmin, types='numeric', item_name='tmin')
         if tmax is not None:
