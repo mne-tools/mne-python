@@ -93,7 +93,7 @@ Enhancements
 
 - Add :meth:`mne.Evoked.get_data` method to :class:`mne.Evoked` (:gh:`9555` by `Stefan Appelhoff`_)
 
-- The :class:`mne.Epochs` class :meth:`mne.Epochs.get_data` method now has a ``Units`` parameter (:gh:`9553` by `Stefan Appelhoff`_)
+- The :meth:`mne.Epochs.get_data` method now has a ``units`` parameter (:gh:`9553` by `Stefan Appelhoff`_)
 
 Bugs
 ~~~~
