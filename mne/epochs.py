@@ -1326,7 +1326,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
     @verbose
     def _get_data(self, out=True, picks=None, item=None, *, units=None,
-                  verbose=None):
+                  tmin=None, tmax=None, verbose=None):
         """Load all data, dropping bad epochs along the way.
 
         Parameters
@@ -1338,8 +1338,26 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         item : slice | array-like | str | list | None
             See docstring of get_data method.
         %(units)s
+        tmin : float | None
+            Start time of data to get in seconds.
+        tmax : float | None
+            End time of data to get in seconds.
         %(verbose_meth)s
         """
+        _validate_type(tmin, types=("numeric", None), item_name="tmin",
+                       type_name="float, None")
+        _validate_type(tmax, types=("numeric", None), item_name="tmax",
+                       type_name="float, None")
+
+        # handle tmin/tmax as start and stop indices into data array
+        n_times = self.times.size
+        start = 0 if tmin is None else self.time_as_index(tmin)[0]
+        stop = n_times if tmax is None else self.time_as_index(tmax)[0]
+
+        # truncate start/stop to the open interval [0, n_times]
+        start = min(max(0, start), n_times)
+        stop = min(max(0, stop), n_times)
+
         if item is None:
             item = slice(None)
         elif not self._bad_dropped:
@@ -1380,7 +1398,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                     data = data[:, picks]
                 if units is not None:
                     data *= ch_factors[:, np.newaxis]
-                return data
+                return data[..., start:stop]
 
             # we need to load from disk, drop, and return data
             detrend_picks = self._detrend_picks
@@ -1463,7 +1481,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                 data = data[:, picks]
             if units is not None:
                 data *= ch_factors[:, np.newaxis]
-            return data
+            return data[..., start:stop]
         else:
             return None
 
@@ -1476,7 +1494,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             return []
 
     @fill_doc
-    def get_data(self, picks=None, item=None, units=None):
+    def get_data(self, picks=None, item=None, units=None, tmin=None,
+                 tmax=None):
         """Get all epochs as a 3D array.
 
         Parameters
@@ -1493,13 +1512,22 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         %(units)s
 
             .. versionadded:: 0.24
+        tmin : float | None
+            Start time of data to get in seconds.
+
+            .. versionadded:: 0.24.0
+        tmax : float | None
+            End time of data to get in seconds.
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
         data : array of shape (n_epochs, n_channels, n_times)
             A view on epochs data.
         """
-        return self._get_data(picks=picks, item=item, units=units)
+        return self._get_data(picks=picks, item=item, units=units, tmin=tmin,
+                              tmax=tmax)
 
     @verbose
     def apply_function(self, fun, picks=None, dtype=None, n_jobs=1,
