@@ -237,34 +237,30 @@ def _decimate_points(pts, res=10):
     z = zax[zbins]
     mids = np.c_[x, y, z] + res / 2.
 
-    """
-    # for each voxel, select one point
-    mask = (X >= x[:, np.newaxis])
-    mask &= (X < x[:, np.newaxis] + res)
-    mask &= (Y >= y[:, np.newaxis])
-    mask &= (Y < y[:, np.newaxis] + res)
-    mask &= (Z >= z[:, np.newaxis])
-    mask &= (Z < z[:, np.newaxis] + res)
-    ipts = [pts[i] for i in mask]
-    ipts = list(filter(len, ipts))
-    out = np.empty((len(ipts), 3))
-    for i, ipt in enumerate(ipts):
-        i_min = np.argmin(cdist(ipt, mids[[i]]))
-        out[i] = ipt[i_min]
-    # """
-
-    # """
     # each point belongs to at most one voxel center, so figure those out
     # (cKDTree faster than BallTree for these small problems)
     tree = _DistanceQuery(mids, method='cKDTree')
     _, mid_idx = tree.query(pts)
-    # then figure out which to actually use based on
+
+    # then figure out which to actually use based on proximity
+    # (take advantage of sorting the mid_idx to get our mapping of
+    # pts to nearest voxel midpoint)
+    sort_idx = np.argsort(mid_idx)
+    bounds = np.cumsum(
+        np.concatenate([[0], np.bincount(mid_idx, minlength=len(mids))]))
+    assert len(bounds) == len(mids) + 1
     out = list()
     for mi, mid in enumerate(mids):
-        use_pts = pts[mid_idx == mi]
+        # Now we do this:
+        #
+        #     use_pts = pts[mid_idx == mi]
+        #
+        # But it's faster for many points than making a big boolean indexer
+        # over and over (esp. since each point can only belong to a single
+        # voxel).
+        use_pts = pts[sort_idx[bounds[mi]:bounds[mi + 1]]]
         if not len(use_pts):
-            out.append(
-                [np.inf] * 3)
+            out.append([np.inf] * 3)
         else:
             out.append(
                 use_pts[np.argmin(cdist(use_pts, mid[np.newaxis])[:, 0])])
