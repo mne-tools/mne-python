@@ -722,11 +722,11 @@ def test_get_data_tmin_tmax():
 
     # specifying a too low tmin truncates to idx 0
     d3 = raw.get_data(tmin=-5)
-    assert np.allclose(d3, d1)
+    assert_allclose(d3, d1)
 
     # specifying a too high tmax truncates to idx n_times
     d4 = raw.get_data(tmax=1e6)
-    assert np.allclose(d4, d1)
+    assert_allclose(d4, d1)
 
     # when start/stop are passed, tmin/tmax are ignored
     d5 = raw.get_data(start=1, stop=2, tmin=tmin, tmax=tmax)

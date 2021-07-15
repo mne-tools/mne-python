@@ -380,8 +380,10 @@ def _validate_type(item, types=None, item_name=None, type_name=None):
         The thing to be checked.
     types : type | str | tuple of types | tuple of str
          The types to be checked against.
-         If str, must be one of {'int', 'str', 'numeric', 'info', 'path-like',
-         'callable'}.
+         If str, must be one of {'int', 'int-like', 'str', 'numeric', 'info',
+         'path-like', 'callable'}.
+         If a tuple of str is passed, use 'int-like' and not 'int' for
+         integers.
     item_name : str | None
         Name of the item to show inside the error message.
     type_name : str | None

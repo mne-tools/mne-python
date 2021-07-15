@@ -836,9 +836,13 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         tmin : float | None
             Start time of data to get in seconds. The ``tmin`` parameter is
             ignored if the ``start`` parameter is bigger than 0.
+
+            .. versionadded:: 0.24.0
         tmax : float | None
             End time of data to get in seconds. The ``tmax`` parameter is
             ignored if the ``stop`` parameter is defined.
+
+            .. versionadded:: 0.24.0
         %(verbose_meth)s
 
         Returns
@@ -854,12 +858,14 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         .. versionadded:: 0.14.0
         """
         # validate types
-        _validate_type(start, types='int', item_name='start')
-        _validate_type(stop, types=('int-like', None), item_name='stop')
-        if tmin is not None:
-            _validate_type(tmin, types='numeric', item_name='tmin')
-        if tmax is not None:
-            _validate_type(tmax, types='numeric', item_name='tmax')
+        _validate_type(start, types=('int-like'), item_name='start',
+                       type_name="int")
+        _validate_type(stop, types=('int-like', None), item_name='stop',
+                       type_name="int, None")
+        _validate_type(tmin, types=('int-like', None), item_name='tmin',
+                       type_name="int, None")
+        _validate_type(tmax, types=('int-like', None), item_name='tmax',
+                       type_name="int, None")
 
         picks = _picks_to_idx(self.info, picks, 'all', exclude=())
 
