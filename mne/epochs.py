@@ -1378,12 +1378,12 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                 data = data[select]
                 if orig_picks is None:
                     if units is not None:
-                    data *= ch_factors[:, np.newaxis]
+                        data *= ch_factors[:, np.newaxis]
                     return data
                 else:
                     data = data[:, picks]
                     if units is not None:
-                        data *= ch_factors[np.newaxis]
+                        data *= ch_factors[:, np.newaxis]
                     return data
 
             # we need to load from disk, drop, and return data
@@ -1499,7 +1499,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
             .. versionadded:: 0.20
         %(units)s
-        
+
         .. versionadded:: 0.24.0
 
         Returns

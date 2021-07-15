@@ -204,6 +204,8 @@ def test_get_data():
 
     # Check combination of units with item param, scale only one ch_type
     d3 = epochs.get_data(item=[1, 2, 3], units={"grad": "fT/cm"})
+    assert d3.shape[0] == 3
+
     grad_idxs = np.array([i == "grad" for i in epochs.get_channel_types()])
     eeg_idxs = np.array([i == "eeg" for i in epochs.get_channel_types()])
     np.testing.assert_allclose(
