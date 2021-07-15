@@ -26,7 +26,8 @@ from ._freesurfer import _read_mri_info, get_mni_fiducials  # noqa: F401
 from .label import read_label, Label
 from .source_space import (add_source_space_distances, read_source_spaces,  # noqa: E501,F401
                            write_source_spaces)
-from .surface import read_surface, write_surface, _normalize_vectors
+from .surface import (read_surface, write_surface, _normalize_vectors,
+                      _DistanceQuery)
 from .bem import read_bem_surfaces, write_bem_surfaces
 from .transforms import (rotation, rotation3d, scaling, translation, Transform,
                          _read_fs_xfm, _write_fs_xfm, invert_transform,
@@ -229,24 +230,46 @@ def _decimate_points(pts, res=10):
 
     # find voxels containing one or more point
     H, _ = np.histogramdd(pts, bins=(xax, yax, zax), normed=False)
-
-    # for each voxel, select one point
     X, Y, Z = pts.T
     xbins, ybins, zbins = np.nonzero(H)
     x = xax[xbins]
     y = yax[ybins]
     z = zax[zbins]
-    xi = (X[None] >= x[:, None]) * (X[None] < x[:, None] + res)
-    yi = (Y[None] >= y[:, None]) * (Y[None] < y[:, None] + res)
-    zi = (Z[None] >= z[:, None]) * (Z[None] < z[:, None] + res)
-    idx = xi * yi * zi
-    ipts = [pts[i] for i in idx]
-    ipts = list(filter(len, ipts))
     mids = np.c_[x, y, z] + res / 2.
+
+    """
+    # for each voxel, select one point
+    mask = (X >= x[:, np.newaxis])
+    mask &= (X < x[:, np.newaxis] + res)
+    mask &= (Y >= y[:, np.newaxis])
+    mask &= (Y < y[:, np.newaxis] + res)
+    mask &= (Z >= z[:, np.newaxis])
+    mask &= (Z < z[:, np.newaxis] + res)
+    ipts = [pts[i] for i in mask]
+    ipts = list(filter(len, ipts))
     out = np.empty((len(ipts), 3))
     for i, ipt in enumerate(ipts):
         i_min = np.argmin(cdist(ipt, mids[[i]]))
         out[i] = ipt[i_min]
+    # """
+
+    # """
+    # each point belongs to at most one voxel center, so figure those out
+    # (cKDTree faster than BallTree for these small problems)
+    tree = _DistanceQuery(mids, method='cKDTree')
+    _, mid_idx = tree.query(pts)
+    # then figure out which to actually use based on
+    out = list()
+    for mi, mid in enumerate(mids):
+        use_pts = pts[mid_idx == mi]
+        dists = cdist(use_pts, mid[np.newaxis])[:, 0]
+        if len(dists):
+            idx = np.argmin(dists)
+            pt = use_pts[idx]
+            if np.abs(pt - mid).max() < res / 2:
+                out.append(pt)
+    out = np.array(out, float).reshape(-1, 3)
+    # """
 
     return out
 
