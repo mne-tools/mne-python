@@ -958,9 +958,10 @@ def _unit_quat_constraint(x):
     return 1 - (x * x).sum()
 
 
+@verbose
 def compute_chpi_snr(raw, t_step_min=0.01, t_window='auto', ext_order=1,
                      tmin=0, tmax=None, verbose=None):
-    """Compute time-varying cHPI amplitudes and SNRs.
+    """Compute time-varying estimates of cHPI SNR.
 
     Parameters
     ----------
@@ -977,12 +978,18 @@ def compute_chpi_snr(raw, t_step_min=0.01, t_window='auto', ext_order=1,
 
     Returns
     -------
-    %(chpi_amplitudes)s
+    chpi_snrs : dict
+        The time-varying cHPI SNR estimates, with entries "times", "proj", and
+        "snr_mag" and/or "snr_grad" (depending on which channel types are
+        present in ``raw``).
 
     See Also
     --------
     mne.chpi.compute_chpi_locs, mne.chpi.compute_chpi_amplitudes
 
+    Notes
+    -----
+    .. versionadded:: 0.24
     """
     return _compute_chpi_amp_or_snr(raw, t_step_min, t_window, ext_order,
                                     tmin, tmax, verbose, snr=True)
@@ -1044,7 +1051,7 @@ def compute_chpi_amplitudes(raw, t_step_min=0.01, t_window='auto',
 def _compute_chpi_amp_or_snr(raw, t_step_min=0.01, t_window='auto',
                              ext_order=1, tmin=0, tmax=None, verbose=None,
                              snr=False):
-    """Helper for computing cHPI amplitude or SNR.
+    """Compute cHPI amplitude or SNR.
 
     See compute_chpi_amplitudes for parameter descriptions. One additional
     boolean parameter ``snr`` signals whether to return SNR instead of
