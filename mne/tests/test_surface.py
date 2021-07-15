@@ -284,20 +284,20 @@ def test_warp_montage_volume():
         subjects_dir=subjects_dir, thresh=0.99)
     # checked with nilearn plot from `tut-ieeg-localize`
     # check montage in surface RAS
-    np.testing.assert_almost_equal(
-        montage_warped.dig[0]['r'], np.array([-0.31, 0.29, -0.35]), decimal=1)
-    np.testing.assert_almost_equal(
-        montage_warped.dig[1]['r'], np.array([-0.32, 0.29, -0.34]), decimal=1)
-    np.testing.assert_almost_equal(
-        montage_warped.dig[2]['r'], np.array([-0.32, 0.25, -0.35]), decimal=1)
+    ground_truth_warped = np.array([[-0.27778788, 0.24251515, -0.35693939],
+                                    [-0.30033333, 0.24785714, -0.35014286],
+                                    [-0.32261947, 0.25295575, -0.34614159]])
+    for i in range(len(montage.ch_names)):
+        assert np.linalg.norm(
+            montage_warped.dig[i]['r'] - ground_truth_warped[i]) < 0.15
     # check image_from
-    np.testing.assert_array_equal(
+    assert_array_equal(
         np.array(np.where(_get_img_fdata(image_from) == 1)),
         np.array([[45, 46, 46], [40, 39, 40], [49, 49, 49]]))
-    np.testing.assert_array_equal(
+    assert_array_equal(
         np.array(np.where(_get_img_fdata(image_from) == 2)),
         np.array([[48, 48], [39, 39], [49, 50]]))
-    np.testing.assert_array_equal(
+    assert_array_equal(
         np.array(np.where(_get_img_fdata(image_from) == 3)),
         np.array([[50, 50, 51], [38, 39, 39], [50, 50, 50]]))
     # check image_to, too many, just check center
