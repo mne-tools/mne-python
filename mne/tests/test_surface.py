@@ -262,8 +262,8 @@ def test_warp_montage_volume():
         op.join(subjects_dir, 'fsaverage', 'mri', 'brain.mgz'))
     reg_affine, sdr_morph = compute_volume_registration(
         subject_brain, template_brain, zooms=5,
-        niter=dict(affine=[10, 10, 5], sdr=[3, 3, 3]),
-        pipeline=('affine', 'sdr'))
+        niter=dict(translation=[5, 5, 5], rigid=[5, 5, 5],
+                   sdr=[3, 3, 3]), pipeline=('translation', 'rigid', 'sdr'))
     # make fake image with three coordinates
     CT_data = np.zeros(subject_brain.shape)
     # make electrode contact hyperintensities
@@ -288,8 +288,8 @@ def test_warp_montage_volume():
                                     [-0.30033333, 0.24785714, -0.35014286],
                                     [-0.32261947, 0.25295575, -0.34614159]])
     for i in range(len(montage.ch_names)):
-        assert np.linalg.norm(
-            montage_warped.dig[i]['r'] - ground_truth_warped[i]) < 0.15
+        assert np.linalg.norm(  # off by less than 1.5 cm
+            montage_warped.dig[i]['r'] - ground_truth_warped[i]) < 0.015
     # check image_from
     assert_array_equal(
         np.array(np.where(_get_img_fdata(image_from) == 1)),
@@ -301,15 +301,14 @@ def test_warp_montage_volume():
         np.array(np.where(_get_img_fdata(image_from) == 3)),
         np.array([[50, 50, 51], [38, 39, 39], [50, 50, 50]]))
     # check image_to, too many, just check center
-    assert np.linalg.norm(
-        np.array(np.where(_get_img_fdata(image_to) == 1)
-                 ).mean(axis=1) - np.array([147., 151., 160.])) < 5
-    assert np.linalg.norm(
-        np.array(np.where(_get_img_fdata(image_to) == 2)
-                 ).mean(axis=1) - np.array([153., 148., 161.])) < 5
-    assert np.linalg.norm(
-        np.array(np.where(_get_img_fdata(image_to) == 3)
-                 ).mean(axis=1) - np.array([159., 145., 160.])) < 5
+    ground_truth_warped_voxels = np.array(
+        [[135.5959596, 161.97979798, 123.83838384],
+         [143.11111111, 159.71428571, 125.61904762],
+         [150.53982301, 158.38053097, 127.31858407]])
+    for i in range(len(montage.ch_names)):
+        assert np.linalg.norm(
+            np.array(np.where(_get_img_fdata(image_to) == i + 1)
+                     ).mean(axis=1) - ground_truth_warped_voxels[i]) < 5
 
     # test inputs
     with pytest.raises(ValueError, match='`thresh` must be between 0 and 1'):
