@@ -1296,15 +1296,15 @@ class Coregistration(object):
         return move, angle, percs
 
     @property
-    def _transformed_hsp_hpi(self):
+    def _transformed_dig_hpi(self):
         return apply_trans(self._hsp_trans, self._dig.hpi_points)
 
     @property
-    def _transformed_hsp_eeg_points(self):
+    def _transformed_dig_eeg_points(self):
         return apply_trans(self._hsp_trans, self._dig.eeg_points)
 
     @property
-    def _transformed_hsp_points(self):
+    def _transformed_dig_points(self):
         return apply_trans(self._hsp_trans, self._dig.points)
 
     @property
@@ -1593,17 +1593,17 @@ class Coregistration(object):
         if self._hsp_weight > 0 and self._has_dig_data:
             mri_points.append(self._transformed_high_res_mri_points[
                 self._nearest_transformed_high_res_mri_idx_hsp])
-            hsp_points.append(self._transformed_hsp_points)
+            hsp_points.append(self._transformed_dig_points)
             assert len(mri_points[-1]) == len(hsp_points[-1])
         if self._eeg_weight > 0 and self._has_eeg_data:
             mri_points.append(self._transformed_high_res_mri_points[
                 self._nearest_transformed_high_res_mri_idx_eeg])
-            hsp_points.append(self._transformed_hsp_eeg_points)
+            hsp_points.append(self._transformed_dig_eeg_points)
             assert len(mri_points[-1]) == len(hsp_points[-1])
         if self._hpi_weight > 0 and self._has_hpi_data:
             mri_points.append(self._transformed_high_res_mri_points[
                 self._nearest_transformed_high_res_mri_idx_hpi])
-            hsp_points.append(self._transformed_hsp_hpi)
+            hsp_points.append(self._transformed_dig_hpi)
             assert len(mri_points[-1]) == len(hsp_points[-1])
         if all(len(h) == 0 for h in hsp_points):
             return None
