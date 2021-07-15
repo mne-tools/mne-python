@@ -1344,10 +1344,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             End time of data to get in seconds.
         %(verbose_meth)s
         """
-        _validate_type(tmin, types=("numeric", None), item_name="tmin",
+        _validate_type(tmin, types=('numeric', None), item_name='tmin',
                        type_name="float, None")
-        _validate_type(tmax, types=("numeric", None), item_name="tmax",
-                       type_name="float, None")
+        _validate_type(tmax, types=('numeric', None), item_name='tmax',
+                       type_name='float, None')
 
         # handle tmin/tmax as start and stop indices into data array
         n_times = self.times.size

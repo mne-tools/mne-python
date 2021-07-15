@@ -181,10 +181,10 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """
         picks = _picks_to_idx(self.info, picks, "all", exclude=())
 
-        _validate_type(tmin, types=("numeric", None), item_name="tmin",
-                       type_name="float, None")
-        _validate_type(tmax, types=("numeric", None), item_name="tmax",
-                       type_name="float, None")
+        _validate_type(tmin, types=('numeric', None), item_name='tmin',
+                       type_name='float, None')
+        _validate_type(tmax, types=('numeric', None), item_name='tmax',
+                       type_name='float, None')
 
         # handle tmin/tmax as start and stop indices into data array
         n_times = self.times.size

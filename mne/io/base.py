@@ -844,13 +844,13 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """
         # validate types
         _validate_type(start, types=('int-like'), item_name='start',
-                       type_name="int")
+                       type_name='int')
         _validate_type(stop, types=('int-like', None), item_name='stop',
-                       type_name="int, None")
-        _validate_type(tmin, types=('int-like', None), item_name='tmin',
-                       type_name="int, None")
-        _validate_type(tmax, types=('int-like', None), item_name='tmax',
-                       type_name="int, None")
+                       type_name='int, None')
+        _validate_type(tmin, types=('numeric', None), item_name='tmin',
+                       type_name='float, None')
+        _validate_type(tmax, types=('numeric', None), item_name='tmax',
+                       type_name='float, None')
 
         picks = _picks_to_idx(self.info, picks, 'all', exclude=())
 
