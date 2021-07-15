@@ -262,8 +262,8 @@ def _decimate_points(pts, res=10):
     out = list()
     for mi, mid in enumerate(mids):
         use_pts = pts[mid_idx == mi]
-        dists = cdist(use_pts, mid[np.newaxis])[:, 0]
-        if len(dists):
+        if len(use_pts):
+            dists = cdist(use_pts, mid[np.newaxis])[:, 0]
             idx = np.argmin(dists)
             pt = use_pts[idx]
             if np.abs(pt - mid).max() < res / 2:
