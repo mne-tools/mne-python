@@ -1500,7 +1500,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             .. versionadded:: 0.20
         %(units)s
 
-        .. versionadded:: 0.24.0
+            .. versionadded:: 0.24
 
         Returns
         -------
