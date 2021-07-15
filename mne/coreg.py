@@ -1443,7 +1443,7 @@ class Coregistration(object):
         return len(self._transformed_high_res_mri_points) > 0
 
     @property
-    def _has_hsp_data(self):
+    def _has_dig_data(self):
         return (self._has_mri_data and
                 len(self._nearest_transformed_high_res_mri_idx_hsp) > 0)
 
@@ -1488,7 +1488,7 @@ class Coregistration(object):
         head_pts = list()
         mri_pts = list()
         weights = list()
-        if self._has_hsp_data and self._hsp_weight > 0:  # should be true
+        if self._has_dig_data and self._hsp_weight > 0:  # should be true
             head_pts.append(self._dig.points)
             mri_pts.append(self._processed_high_res_mri_points[
                 self._nearest_transformed_high_res_mri_idx_hsp])
@@ -1590,7 +1590,7 @@ class Coregistration(object):
         """Compute Euclidean distance between the head-mri points."""
         mri_points = list()
         hsp_points = list()
-        if self._hsp_weight > 0 and self._has_hsp_data:
+        if self._hsp_weight > 0 and self._has_dig_data:
             mri_points.append(self._transformed_high_res_mri_points[
                 self._nearest_transformed_high_res_mri_idx_hsp])
             hsp_points.append(self._transformed_hsp_points)
