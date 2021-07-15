@@ -43,7 +43,7 @@ Enhancements
 
 - Speed up BCD solver in :func:`mne.inverse_sparse.mixed_norm` by adding Anderson acceleration (:gh:`9481` by **new contributor** |Pierre-Antoine Bannier|_ and `Alex Gramfort`_)
 
-- Speed up point decimation in :func:`mne.io.read_raw_kit` by vectorization and use of :class:`sklearn.neighbors.BallTree` (:gh:`9568` by `Jean-Remi King`_ and `Eric Larson`_)
+- Speed up point decimation in :func:`mne.io.read_raw_kit` by vectorization and use of :class:`scipy.spatial.cKDTree` (:gh:`9568` by `Jean-Remi King`_ and `Eric Larson`_)
 
 - New function :func:`mne.chpi.get_chpi_info` to retrieve basic information about the cHPI system used when recording MEG data (:gh:`9369` by `Richard Höchenberger`_)
 
