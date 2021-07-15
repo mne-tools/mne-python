@@ -22,6 +22,7 @@ import numpy as np
 from collections import OrderedDict
 
 from .colormap import calculate_lut
+from ...defaults import DEFAULTS
 from .surface import _Surface
 from .view import views_dicts, _lh_views_dict
 from .callback import (ShowView, TimeCallBack, SmartCallBack,
@@ -33,13 +34,13 @@ from .._3d import _process_clim, _handle_time, _check_views
 
 from ...externals.decorator import decorator
 from ...defaults import _handle_default
-from ..._freesurfer import vertex_to_mni, read_talxfm
+from ..._freesurfer import vertex_to_mni, read_talxfm, read_freesurfer_lut
 from ...surface import mesh_edges, _mesh_borders
 from ...source_space import SourceSpaces
 from ...transforms import apply_trans, invert_transform
 from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
                       use_log_level, Bunch, _ReuseCycle, warn,
-                      get_subjects_dir)
+                      get_subjects_dir, _check_fname)
 
 
 _ARROW_MOVE = 10  # degrees per press
@@ -335,6 +336,8 @@ class Brain(object):
        +===========================+==============+===============+
        | add_annotation            | ✓            | ✓             |
        +---------------------------+--------------+---------------+
+       | add_aseg                  |              | ✓             |
+       +---------------------------+--------------+---------------+
        | add_data                  | ✓            | ✓             |
        +---------------------------+--------------+---------------+
        | add_foci                  | ✓            | ✓             |
@@ -385,7 +388,7 @@ class Brain(object):
        +---------------------------+--------------+---------------+
     """
 
-    def __init__(self, subject_id, hemi, surf, title=None,
+    def __init__(self, subject_id, hemi='both', surf='pial', title=None,
                  cortex="classic", alpha=1.0, size=800, background="black",
                  foreground=None, figure=None, subjects_dir=None,
                  views='auto', offset='auto', show_toolbar=False,
@@ -396,13 +399,16 @@ class Brain(object):
         from .._3d import _get_cmap
         from matplotlib.colors import colorConverter
 
-        _validate_type(hemi, str, 'hemi')
-        hemi = self._check_hemi(hemi, extras=('both', 'split'))
-        if hemi in ('both', 'split'):
-            self._hemis = ('lh', 'rh')
+        _validate_type(hemi, (str, None), 'hemi')
+        if hemi is None:
+            self._hemis = tuple()
         else:
-            assert hemi in ('lh', 'rh')
-            self._hemis = (hemi, )
+            hemi = self._check_hemi(hemi, extras=('both', 'split'))
+            if hemi in ('both', 'split'):
+                self._hemis = ('lh', 'rh')
+            else:
+                assert hemi in ('lh', 'rh')
+                self._hemis = (hemi, )
         self._view_layout = _check_option('view_layout', view_layout,
                                           ('vertical', 'horizontal'))
 
@@ -424,7 +430,7 @@ class Brain(object):
         self._fg_color = foreground
         views = _check_views(surf, views, hemi)
         col_dict = dict(lh=1, rh=1, both=1, split=2)
-        shape = (len(views), col_dict[hemi])
+        shape = (len(views), 1 if hemi is None else col_dict[hemi])
         if self._view_layout == 'horizontal':
             shape = shape[::-1]
         self._subplot_shape = shape
@@ -528,7 +534,7 @@ class Brain(object):
                     mesh._polydata._hemi = h
                 else:
                     actor = self._layered_meshes[h]._actor
-                    self._renderer.plotter.add_actor(actor)
+                    self._renderer.plotter.add_actor(actor, render=False)
                 if self.silhouette:
                     mesh = self._layered_meshes[h]
                     self._renderer._silhouette(
@@ -2135,17 +2141,19 @@ class Brain(object):
             self._data[hemi]['grid_volume_pos'] = volume_pos
             self._data[hemi]['grid_volume_neg'] = volume_neg
         actor_pos, _ = self._renderer.plotter.add_actor(
-            volume_pos, reset_camera=False, name=None, culling=False)
+            volume_pos, reset_camera=False, name=None, culling=False,
+            render=False)
         if volume_neg is not None:
             actor_neg, _ = self._renderer.plotter.add_actor(
-                volume_neg, reset_camera=False, name=None, culling=False)
+                volume_neg, reset_camera=False, name=None, culling=False,
+                render=False)
         else:
             actor_neg = None
         grid_mesh = self._data[hemi]['grid_mesh']
         if grid_mesh is not None:
             _, prop = self._renderer.plotter.add_actor(
                 grid_mesh, reset_camera=False, name=None, culling=False,
-                pickable=False)
+                pickable=False, render=False)
             prop.SetColor(*self._brain_color[:3])
             prop.SetOpacity(surface_alpha)
             if silhouette_alpha > 0 and silhouette_linewidth > 0:
@@ -2308,6 +2316,89 @@ class Brain(object):
                 label._color = orig_color
                 label._line = line
             self._labels[hemi].append(label)
+        self._renderer._update()
+
+    @fill_doc
+    def add_aseg(self, aseg='aparc+aseg', rois=None, colors=None, alpha=0.5,
+                 smooth=0.9, legend=None, **legend_kwargs):
+        """Add an ROI label to the image.
+
+        Parameters
+        ----------
+        aseg : str
+            The anatomical segmentation file. Default ``aparc+aseg``. This may
+            be any anatomical segmentation file in the mri subdirectory of the
+            subject directory from the Freesurfer recon-all.
+        rois : list
+            The regions of interest to plot. See :func:`mne.get_montage_rois`
+            for one way to determine regions of interest. Regions can also be
+            chosen from :ref:`freesurfer lookup table`.
+        colors : list | matplotlib-style color | None
+            A list of anything matplotlib accepts: string, RGB, hex, etc.
+            (default Freesurfer lookup table colors).
+        alpha : float in [0, 1]
+            Alpha level to control opacity.
+        %(smooth)s
+        legend : bool | None | dict
+            Add a legend displaying the names of the ``rois``. Default (None)
+            is ``True`` if the number of ``rois`` is 10 or fewer. Can also be a
+            dict of `kwargs` to pass to :meth:`pyvista.BasePlotter.add_legend`.
+
+        Notes
+        -----
+        .. versionadded:: 0.24
+        """
+        import nibabel as nib
+        from matplotlib.colors import colorConverter
+        from ...surface import marching_cubes
+
+        # load anatomical segmentation image
+        if not aseg.endswith('aseg'):
+            raise RuntimeError(
+                f'`aseg` file path must end with "aseg", got {aseg}')
+        aseg = _check_fname(op.join(self._subjects_dir, self._subject_id,
+                                    'mri', aseg + '.mgz'),
+                            overwrite='read', must_exist=True)
+        aseg = nib.load(aseg)
+        aseg_data = np.asarray(aseg.dataobj)
+        vox_mri_t = aseg.header.get_vox2ras_tkr()
+        mult = 1e-3 if self._units == 'm' else 1
+        vox_mri_t[:3] *= mult
+        del aseg
+
+        # read freesurfer lookup table
+        lut, fs_colors = read_freesurfer_lut()
+        if rois is None:  # assign default ROIs based on indices
+            lut_r = {v: k for k, v in lut.items()}
+            rois = [lut_r[idx] for idx in DEFAULTS['roi_indices']]
+
+        _validate_type(legend, (bool, None), 'legend')
+        if legend is None:
+            legend = len(rois) < 11
+
+        if colors is None:
+            colors = [fs_colors[roi] / 255 for roi in rois]
+        elif not isinstance(colors, (list, tuple)):
+            colors = [colors] * len(rois)  # make into list
+        colors = [colorConverter.to_rgba(color, alpha) for color in colors]
+        aseg_vals = set(np.unique(aseg_data))
+        for roi, color in zip(rois, colors):
+            val = lut[roi]
+            if val not in aseg_vals:
+                continue
+            mask = (aseg_data == val)
+            verts, triangles = marching_cubes(mask, level=0.5, smooth=smooth)
+            verts = apply_trans(vox_mri_t, verts)
+            self._renderer.mesh(
+                *verts.T, triangles=triangles, color=color, opacity=alpha,
+                reset_camera=False, render=False)
+
+        if legend or isinstance(legend, dict):
+            # use empty kwargs for legend = True
+            legend = legend if isinstance(legend, dict) else dict()
+            self._renderer.plotter.add_legend(
+                list(zip(rois, colors)), **legend)
+
         self._renderer._update()
 
     def add_foci(self, coords, coords_as_verts=False, map_surface=None,
@@ -2947,7 +3038,7 @@ class Brain(object):
                 prop = glyph_actor.GetProperty()
                 prop.SetLineWidth(2.)
                 prop.SetOpacity(vector_alpha)
-                self._renderer.plotter.add_actor(glyph_actor)
+                self._renderer.plotter.add_actor(glyph_actor, render=False)
                 hemi_data['glyph_actor'].append(glyph_actor)
             else:
                 glyph_actor = hemi_data['glyph_actor'][count]

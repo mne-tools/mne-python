@@ -312,6 +312,10 @@ def test_brain_init(renderer_pyvista, tmpdir, pixel_ratio, brain_gc):
     brain.add_foci([0], coords_as_verts=True,
                    hemi=hemi, color='blue')
 
+    # add aseg
+    brain.add_aseg(
+        aseg='aseg', rois=('ctx-lh-insula', 'ctx-lh-caudalmiddlefrontal'))
+
     # add text
     brain.add_text(x=0, y=0, text='foo')
     brain.close()

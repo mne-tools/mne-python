@@ -25,11 +25,11 @@ from mne.minimum_norm import apply_inverse, read_inverse_operator
 from mne import read_evokeds
 
 data_path = sample.data_path()
-sample_dir = os.path.join(data_path, 'MEG', 'sample')
-subjects_dir = os.path.join(data_path, 'subjects')
+sample_dir = op.join(data_path, 'MEG', 'sample')
+subjects_dir = op.join(data_path, 'subjects')
 
-fname_evoked = data_path + '/MEG/sample/sample_audvis-ave.fif'
-fname_stc = os.path.join(sample_dir, 'sample_audvis-meg')
+fname_evoked = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
+fname_stc = op.join(sample_dir, 'sample_audvis-meg')
 fetch_hcp_mmp_parcellation(subjects_dir)
 
 # %%
@@ -155,6 +155,17 @@ for key in ('right', 'top'):
 fig.tight_layout()
 
 # %%
+# We can plot several labels with the most activation in their time course
+# for a more fine-grained view of the anatomical loci of activation.
+rois = [label_names[idx] for idx in np.argsort(label_tc.max(axis=1))[:7]
+        if 'unknown' not in label_names[idx].lower()]  # remove catch-all term
+brain = mne.viz.Brain('sample', hemi='both', surf='pial', alpha=0.1,
+                      cortex='low_contrast', subjects_dir=subjects_dir)
+brain.add_aseg(aseg='aparc.a2009s+aseg', rois=rois)
+brain.show_view(dict(azimuth=110, elevation=90, distance=350))
+brain.enable_depth_peeling()
+
+# %%
 # And we can project these label time courses back to their original
 # locations and see how the plot has been smoothed:
 
@@ -166,7 +177,8 @@ stc_back.plot(src, subjects_dir=subjects_dir, mode='glass_brain')
 # -----------------------
 # If we choose to use ``pick_ori='vector'`` in
 # :func:`apply_inverse <mne.minimum_norm.apply_inverse>`
-fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
+fname_inv = op.join(data_path, 'MEG', 'sample',
+                    'sample_audvis-meg-oct-6-meg-inv.fif')
 inv = read_inverse_operator(fname_inv)
 stc = apply_inverse(evoked, inv, lambda2, 'dSPM', pick_ori='vector')
 brain = stc.plot(subject='sample', subjects_dir=subjects_dir,
