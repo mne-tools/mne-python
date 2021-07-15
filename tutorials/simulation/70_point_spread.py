@@ -105,8 +105,7 @@ for i, label in enumerate(labels):
     # consideration and within the label.
     surf_vertices = fwd['src'][hemi_to_ind[label.hemi]]['vertno']
     restrict_verts = np.intersect1d(surf_vertices, label.vertices)
-    com = labels[i].center_of_mass(subject='sample',
-                                   subjects_dir=subjects_dir,
+    com = labels[i].center_of_mass(subjects_dir=subjects_dir,
                                    restrict_vertices=restrict_verts,
                                    surf='white')
 
@@ -117,6 +116,17 @@ for i, label in enumerate(labels):
     # Create a mask with 1 at center vertex and zeros elsewhere.
     labels[i].values.fill(0.)
     labels[i].values[cent_idx] = 1.
+
+    # Print some useful information about this vertex and label
+    if 'transversetemporal' in label.name:
+        dist, _ = label.distances_to_outside(
+            subjects_dir=subjects_dir)
+        dist = dist[cent_idx]
+        area = label.compute_area(subjects_dir=subjects_dir)
+        # convert to equivalent circular radius
+        r = np.sqrt(area / np.pi)
+        print(f'{label.name} COM vertex is {dist * 1e3:0.1f} mm from edge '
+              f'(label area equivalent to a circle with r={r * 1e3:0.1f} mm)')
 
 # %%
 # Create source-space data with known signals

@@ -1343,6 +1343,17 @@ docdict['subject'] = """
 subject : str
     The FreeSurfer subject name.
 """
+docdict['label_subject'] = """\
+subject : str | None
+    Subject which this label belongs to. Should only be specified if it is not
+    specified in the label.
+"""
+docdict['surface'] = """\
+surface : str
+    The surface along which to do the computations, defaults to ``'white'``
+    (the gray-white matter boundary).
+"""
+
 
 # Simulation
 docdict['interp'] = """
