@@ -33,7 +33,7 @@ from .surface import (read_surface, write_surface, _normalize_vectors,
 from .bem import read_bem_surfaces, write_bem_surfaces
 from .transforms import (rotation, rotation3d, scaling, translation, Transform,
                          _read_fs_xfm, _write_fs_xfm, invert_transform,
-                         combine_transforms, _quat_to_euler, write_trans,
+                         combine_transforms, _quat_to_euler,
                          _fit_matched_points, apply_trans,
                          rot_to_quat, _angle_between_quats)
 from .utils import (get_config, get_subjects_dir, logger, pformat, verbose,
@@ -1611,15 +1611,10 @@ class Coregistration(object):
         hsp_points = np.concatenate(hsp_points)
         return np.linalg.norm(mri_points - hsp_points, axis=-1)
 
-    def save_trans(self, fname):
-        """Save the head-mri transform as a fif file.
-
-        Parameters
-        ----------
-        fname : str
-            Target file path.
-        """
-        write_trans(fname, Transform('head', 'mri', self._head_mri_t))
+    @property
+    def trans(self):
+        """Return the head-mri transform."""
+        return Transform('head', 'mri', self._head_mri_t)
 
     def reset(self):
         """Reset all the parameters affecting the coregistration."""

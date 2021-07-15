@@ -282,12 +282,10 @@ def test_get_mni_fiducials():
 
 
 @testing.requires_testing_data
-def test_coregistration(tmpdir):
+def test_coregistration():
     """Test automated coregistration."""
-    tempdir = str(tmpdir)
     fname_raw = op.join(op.dirname(__file__), '..', 'io',
                         'tests', 'data', 'test_raw.fif')
-    fname_trans = op.join(tempdir, 'tmp-trans.fif')
     subject = 'sample'
     subjects_dir = os.path.join(data_path, 'subjects')
     info = read_info(fname_raw)
@@ -300,9 +298,7 @@ def test_coregistration(tmpdir):
     coreg.omit_hsp_points(distance=5. / 1000)
     assert coreg._dig.points_filter is not None
     coreg.fit_icp()
-    assert not op.isfile(fname_trans)
-    coreg.save_trans(fname=fname_trans)
-    assert op.isfile(fname_trans)
+    assert isinstance(coreg.trans, Transform)
     errs_icp = coreg.point_distance()
     assert np.median(errs_icp * 1000) < 4
     coreg.reset()
