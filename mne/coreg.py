@@ -1261,10 +1261,10 @@ class Coregistration(object):
 
     Notes
     -----
-    Internal computation quantities ``parameters`` are in units of (for X/Y/Z):
-    - ``parameters[:3]`` are in radians
-    - ``parameters[3:6]`` are in m
-    - ``parameters[6:9]`` are in scale proportion
+    Internal computation quantities parameters are in units of (for X/Y/Z):
+    - rotation are in radians
+    - translation are in m
+    - scale are in scale proportion
     """
 
     def __init__(self, info, subject, subjects_dir):
