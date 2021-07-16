@@ -1901,8 +1901,9 @@ def read_vectorview_selection(name, fname=None, info=None, verbose=None):
     fname : str
         Filename of the selection file (if ``None``, built-in selections are
         used).
-    %(info)s Used to determine the spacing of channel names to return, e.g.
-        ``'MEG 0111'`` for old Neuromag systems and ``'MEG0111'`` for new ones.
+    %(info)s Used to determine which channel naming convention to use, e.g.
+        ``'MEG 0111'`` (with space) for old Neuromag systems and ``'MEG0111'``
+        (without space) for new ones.
     %(verbose)s
 
     Returns
