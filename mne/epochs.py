@@ -1366,8 +1366,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             picks = _picks_to_idx(self.info, picks)
 
         # handle units param only if we are going to return data (out==True)
-        # else, we don't scale (scaling is vector of ones)
-        ch_factors = np.ones(len(picks))
         if (units is not None) and out:
             ch_factors = _get_ch_factors(self, units, picks)
 
