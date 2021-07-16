@@ -35,13 +35,24 @@ def test_get_data():
     evoked = read_evokeds(fname, 0)
     d1 = evoked.get_data()
     d2 = evoked.data
-    np.testing.assert_array_equal(d1, d2)
+    assert_array_equal(d1, d2)
 
     eeg_idxs = np.array([i == "eeg" for i in evoked.get_channel_types()])
-    np.testing.assert_array_equal(
+    assert_array_equal(
         evoked.data[eeg_idxs],
         evoked.get_data(picks="eeg")
     )
+
+    # Test units
+    # more tests in mne/io/tests/test_raw.py::test_get_data_units
+    # EEG is already in V, so no conversion should take place
+    d1 = evoked.get_data(picks="eeg", units=None)
+    d2 = evoked.get_data(picks="eeg", units="V")
+    assert_array_equal(d1, d2)
+
+    # Convert to µV
+    d3 = evoked.get_data(picks="eeg", units="µV")
+    assert_array_equal(d1 * 1e6, d3)
 
 
 def test_decim():
