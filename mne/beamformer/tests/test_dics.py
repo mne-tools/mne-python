@@ -781,6 +781,7 @@ def test_orientation_max_power(bias_params_fixed, bias_params_free,
     perc = mask.mean() * 100
     assert lower <= perc <= upper
     # Compute the dot products of our forward normals and
+    # assert we get some hopefully reasonable agreement
     assert fwd['coord_frame'] == FIFF.FIFFV_COORD_HEAD
     nn = np.concatenate(
         [s['nn'][v] for s, v in zip(fwd['src'], filters['vertices'])])
