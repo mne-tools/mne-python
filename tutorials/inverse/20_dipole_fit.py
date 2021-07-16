@@ -10,6 +10,8 @@ For a comparison of fits between MNE-C and mne-python, see
 `this gist <https://gist.github.com/larsoner/ca55f791200fe1dc3dd2>`__.
 """
 
+# %%
+
 from os import path as op
 import numpy as np
 import matplotlib.pyplot as plt
@@ -32,7 +34,7 @@ fname_trans = op.join(data_path, 'MEG', 'sample',
                       'sample_audvis_raw-trans.fif')
 fname_surf_lh = op.join(subjects_dir, 'sample', 'surf', 'lh.white')
 
-###############################################################################
+# %%
 # Let's localize the N100m (using MEG only)
 evoked = mne.read_evokeds(fname_ave, condition='Right Auditory',
                           baseline=(None, 0))
@@ -46,7 +48,7 @@ dip = mne.fit_dipole(evoked, fname_cov, fname_bem, fname_trans)[0]
 # Plot the result in 3D brain with the MRI image.
 dip.plot_locations(fname_trans, 'sample', subjects_dir, mode='orthoview')
 
-###############################################################################
+# %%
 # Plot the result in 3D brain with the MRI image using Nilearn
 # In MRI coordinates and in MNI coordinates (template brain)
 
@@ -74,7 +76,7 @@ template = load_mni152_template()
 fig_template = plot_anat(template, cut_coords=mni_pos[0],
                          title='Dipole loc. (MNI Space)')
 
-###############################################################################
+# %%
 # Calculate and visualise magnetic field predicted by dipole with maximum GOF
 # and compare to the measured data, highlighting the ipsilateral (right) source
 fwd, stc = make_forward_dipole(dip, fname_bem, evoked.info, fname_trans)
@@ -109,7 +111,7 @@ fig.suptitle('Comparison of measured and predicted fields '
              'at {:.0f} ms'.format(best_time * 1000.), fontsize=16)
 fig.tight_layout()
 
-###############################################################################
+# %%
 # Estimate the time course of a single dipole with fixed position and
 # orientation (the one that maximized GOF) over the entire interval
 dip_fixed = mne.fit_dipole(evoked_full, fname_cov, fname_bem, fname_trans,

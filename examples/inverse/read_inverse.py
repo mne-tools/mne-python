@@ -7,7 +7,9 @@ The inverse operator's source space is shown in 3D.
 """
 # Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# %%
 
 import mne
 from mne.datasets import sample
@@ -40,7 +42,7 @@ print("Number of triangles on left hemisphere: %d" % len(src[0]['use_tris']))
 print("Number of vertices on the right hemisphere: %d" % len(src[1]['rr']))
 print("Number of triangles on right hemisphere: %d" % len(src[1]['use_tris']))
 
-###############################################################################
+# %%
 # Show result on 3D source space
 
 fig = mne.viz.plot_alignment(subject='sample', subjects_dir=subjects_dir,

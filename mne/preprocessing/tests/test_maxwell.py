@@ -1,6 +1,6 @@
 # Author: Mark Wronkiewicz <wronk@uw.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from contextlib import contextmanager
 import os.path as op

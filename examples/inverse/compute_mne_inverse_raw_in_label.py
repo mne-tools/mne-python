@@ -12,7 +12,9 @@ visualisation.
 """
 # Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# %%
 
 import matplotlib.pyplot as plt
 
@@ -47,7 +49,7 @@ stc = apply_inverse_raw(raw, inverse_operator, lambda2, method, label,
 # Save result in stc files
 stc.save('mne_%s_raw_inverse_%s' % (method, label_name))
 
-###############################################################################
+# %%
 # View activation time-series
 plt.plot(1e3 * stc.times, stc.data[::100, :].T)
 plt.xlabel('time (ms)')

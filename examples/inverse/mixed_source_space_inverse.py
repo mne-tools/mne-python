@@ -8,7 +8,9 @@ evoked dataset.
 """
 # Author: Annalisa Pascarella <a.pascarella@iac.cnr.it>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# %%
 
 import os.path as op
 import matplotlib.pyplot as plt
@@ -37,7 +39,7 @@ fname_trans = data_dir + '/sample_audvis_raw-trans.fif'
 fname_fwd = data_dir + '/sample_audvis-meg-oct-6-mixed-fwd.fif'
 fname_cov = data_dir + '/sample_audvis-shrunk-cov.fif'
 
-###############################################################################
+# %%
 # Set up our source space
 # -----------------------
 # List substructures we are interested in. We select only the
@@ -51,13 +53,13 @@ labels_vol = ['Left-Amygdala',
               'Right-Thalamus-Proper',
               'Right-Cerebellum-Cortex']
 
-###############################################################################
+# %%
 # Get a surface-based source space, here with few source points for speed
 # in this demonstration, in general you should use oct6 spacing!
 src = mne.setup_source_space(subject, spacing='oct5',
                              add_dist=False, subjects_dir=subjects_dir)
 
-###############################################################################
+# %%
 # Now we create a mixed src space by adding the volume regions specified in the
 # list labels_vol. First, read the aseg file and the source space bounds
 # using the inner skull surface (here using 10mm spacing to save time,
@@ -74,13 +76,13 @@ src += vol_src
 print(f"The source space contains {len(src)} spaces and "
       f"{sum(s['nuse'] for s in src)} vertices")
 
-###############################################################################
+# %%
 # View the source space
 # ---------------------
 
 src.plot(subjects_dir=subjects_dir)
 
-###############################################################################
+# %%
 # We could write the mixed source space with::
 #
 #    >>> write_source_spaces(fname_mixed_src, src, overwrite=True)
@@ -91,7 +93,7 @@ nii_fname = op.join(bem_dir, '%s-mixed-src.nii' % subject)
 src.export_volume(nii_fname, mri_resolution=True, overwrite=True)
 plotting.plot_img(nii_fname, cmap='nipy_spectral')
 
-###############################################################################
+# %%
 # Compute the fwd matrix
 # ----------------------
 fwd = mne.make_forward_solution(
@@ -111,7 +113,7 @@ evoked = mne.read_evokeds(fname_evoked, condition=condition,
                           baseline=(None, 0))
 noise_cov = mne.read_cov(fname_cov)
 
-###############################################################################
+# %%
 # Compute inverse solution
 # ------------------------
 snr = 3.0            # use smaller SNR for raw data
@@ -129,7 +131,7 @@ stc = apply_inverse(evoked, inverse_operator, lambda2, inv_method,
                     pick_ori=None)
 src = inverse_operator['src']
 
-###############################################################################
+# %%
 # Plot the mixed source estimate
 # ------------------------------
 
@@ -142,19 +144,19 @@ brain = stc_vec.plot(
     initial_time=initial_time, subjects_dir=subjects_dir,
     brain_kwargs=dict(silhouette=True))
 
-###############################################################################
+# %%
 # Plot the surface
 # ----------------
 brain = stc.surface().plot(initial_time=initial_time,
                            subjects_dir=subjects_dir)
-###############################################################################
+# %%
 # Plot the volume
 # ---------------
 
 fig = stc.volume().plot(initial_time=initial_time, src=src,
                         subjects_dir=subjects_dir)
 
-###############################################################################
+# %%
 # Process labels
 # --------------
 # Average the source estimates within each label of the cortical parcellation

@@ -7,7 +7,7 @@ RawKIT class is adapted from Denis Engemann et al.'s mne_bti2fiff.py.
 #          Joan Massich <mailsik@gmail.com>
 #          Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from collections import defaultdict, OrderedDict
 from math import sin, cos

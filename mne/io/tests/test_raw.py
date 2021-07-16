@@ -3,7 +3,7 @@
 # Authors: MNE Developers
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from contextlib import redirect_stdout
 from io import StringIO

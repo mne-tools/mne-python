@@ -9,7 +9,7 @@
 #          Clemens Brunner <clemens.brunner@gmail.com>
 #          Jeroen Van Der Donckt (IDlab - imec) <jeroen.vanderdonckt@ugent.be>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from datetime import datetime, timezone, timedelta
 import os

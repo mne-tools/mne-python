@@ -14,6 +14,8 @@ As usual we'll start by importing the modules we need, loading some
 object to just 60 seconds before loading it into RAM to save memory:
 """
 
+# %%
+
 import os
 import mne
 
@@ -23,7 +25,7 @@ sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
 raw = mne.io.read_raw_fif(sample_data_raw_file)
 raw.crop(tmax=60).load_data()
 
-###############################################################################
+# %%
 # We've seen in :ref:`a previous tutorial <tut-raw-class>` how to plot data
 # from a `~mne.io.Raw` object using :doc:`matplotlib <matplotlib:index>`,
 # but `~mne.io.Raw` objects also have several built-in plotting methods:
@@ -47,7 +49,7 @@ raw.crop(tmax=60).load_data()
 
 raw.plot()
 
-###############################################################################
+# %%
 # It may not be obvious when viewing this tutorial online, but by default, the
 # `~mne.io.Raw.plot` method generates an *interactive* plot window with
 # several useful features:
@@ -116,7 +118,7 @@ raw.plot()
 
 raw.plot_psd(average=True)
 
-###############################################################################
+# %%
 # If the data have been filtered, vertical dashed lines will automatically
 # indicate filter boundaries. The spectrum for each channel type is drawn in
 # its own subplot; here we've passed the ``average=True`` parameter to get a
@@ -130,14 +132,14 @@ raw.plot_psd(average=True)
 midline = ['EEG 002', 'EEG 012', 'EEG 030', 'EEG 048', 'EEG 058', 'EEG 060']
 raw.plot_psd(picks=midline)
 
-###############################################################################
+# %%
 # Alternatively, you can plot the PSD for every sensor on its own axes, with
 # the axes arranged spatially to correspond to sensor locations in space, using
 # `~mne.io.Raw.plot_psd_topo`:
 
 raw.plot_psd_topo()
 
-###############################################################################
+# %%
 # This plot is also interactive; hovering over each "thumbnail" plot will
 # display the channel name in the bottom left of the plot window, and clicking
 # on a thumbnail plot will create a second figure showing a larger version of
@@ -150,7 +152,7 @@ raw.plot_psd_topo()
 
 raw.copy().pick_types(meg=False, eeg=True).plot_psd_topo()
 
-###############################################################################
+# %%
 # Plotting sensor locations from ``Raw`` objects
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -162,7 +164,7 @@ raw.copy().pick_types(meg=False, eeg=True).plot_psd_topo()
 
 raw.plot_sensors(ch_type='eeg')
 
-###############################################################################
+# %%
 # .. _`tut-section-raw-plot-proj`:
 #
 # Plotting projectors from ``Raw`` objects
@@ -181,7 +183,7 @@ raw.plot_sensors(ch_type='eeg')
 
 raw.plot_projs_topomap(colorbar=True)
 
-###############################################################################
+# %%
 # .. LINKS
 #
 # .. _spectral density: https://en.wikipedia.org/wiki/Spectral_density

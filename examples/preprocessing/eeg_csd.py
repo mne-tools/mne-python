@@ -12,7 +12,9 @@ or more distinct topography, reducing the negative impact of volume conduction.
 """
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# %%
 
 # sphinx_gallery_thumbnail_number = 6
 
@@ -26,7 +28,7 @@ print(__doc__)
 
 data_path = sample.data_path()
 
-###############################################################################
+# %%
 # Load sample subject data
 raw = mne.io.read_raw_fif(data_path + '/MEG/sample/sample_audvis_raw.fif')
 raw = raw.pick_types(meg=False, eeg=True, eog=True, ecg=True, stim=True,
@@ -34,20 +36,20 @@ raw = raw.pick_types(meg=False, eeg=True, eog=True, ecg=True, stim=True,
 events = mne.find_events(raw)
 raw.set_eeg_reference(projection=True).apply_proj()
 
-###############################################################################
+# %%
 # Plot the raw data and CSD-transformed raw data:
 
 raw_csd = mne.preprocessing.compute_current_source_density(raw)
 raw.plot()
 raw_csd.plot()
 
-###############################################################################
+# %%
 # Also look at the power spectral densities:
 
 raw.plot_psd()
 raw_csd.plot_psd()
 
-###############################################################################
+# %%
 # CSD can also be computed on Evoked (averaged) data.
 # Here we epoch and average the data so we can demonstrate that.
 
@@ -57,7 +59,7 @@ epochs = mne.Epochs(raw, events, event_id=event_id, tmin=-0.2, tmax=.5,
                     preload=True)
 evoked = epochs['auditory'].average()
 
-###############################################################################
+# %%
 # First let's look at how CSD affects scalp topography:
 
 times = np.array([-0.1, 0., 0.05, 0.1, 0.15])
@@ -65,7 +67,7 @@ evoked_csd = mne.preprocessing.compute_current_source_density(evoked)
 evoked.plot_joint(title='Average Reference', show=False)
 evoked_csd.plot_joint(title='Current Source Density')
 
-###############################################################################
+# %%
 # CSD has parameters ``stiffness`` and ``lambda2`` affecting smoothing and
 # spline flexibility, respectively. Let's see how they affect the solution:
 
@@ -81,7 +83,7 @@ for i, lambda2 in enumerate([0, 1e-7, 1e-5, 1e-3]):
             colorbar=False, show=False)
         ax[i, j].set_title('stiffness=%i\nλ²=%s' % (m, lambda2))
 
-###############################################################################
+# %%
 # References
 # ----------
 # .. footbibliography::

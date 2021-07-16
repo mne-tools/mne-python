@@ -30,7 +30,9 @@ seconds of data.
 #          Stanislas Chambon <stan.chambon@gmail.com>
 #          Joan Massich <mailsik@gmail.com>
 #
-# License: BSD Style.
+# License: BSD-3-Clause
+
+# %%
 
 import numpy as np
 import matplotlib.pyplot as plt

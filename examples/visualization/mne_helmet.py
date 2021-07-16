@@ -5,6 +5,8 @@ Plot the MNE brain and helmet
 This tutorial shows how to make the MNE helmet + brain image.
 """
 
+# %%
+
 import os.path as op
 import mne
 

@@ -1,6 +1,6 @@
 # Authors: Chris Holdgraf <choldgraf@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 import os.path as op
 
 import pytest

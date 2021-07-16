@@ -12,6 +12,8 @@ topographic representation of the response.
 Here we will work with the :ref:`fNIRS motor data <fnirs-motor-dataset>`.
 """
 
+# %%
+
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -26,7 +28,7 @@ raw_intensity = mne.io.read_raw_nirx(fnirs_cw_amplitude_dir, verbose=True)
 raw_intensity.load_data()
 
 
-###############################################################################
+# %%
 # Providing more meaningful annotation information
 # ------------------------------------------------
 #
@@ -44,7 +46,7 @@ raw_intensity.annotations.delete(
     raw_intensity.annotations.description == '15.0')
 
 
-###############################################################################
+# %%
 # View location of sensors over brain surface
 # -------------------------------------------
 #
@@ -66,7 +68,7 @@ fig = mne.viz.plot_alignment(raw_intensity.info, show_axes=True,
 mne.viz.set_3d_view(figure=fig, azimuth=20, elevation=60, distance=0.4,
                     focalpoint=(0., -0.01, 0.02))
 
-###############################################################################
+# %%
 # Selecting channels appropriate for detecting neural responses
 # -------------------------------------------------------------
 #
@@ -83,7 +85,7 @@ raw_intensity.plot(n_channels=len(raw_intensity.ch_names),
                    duration=500, show_scrollbars=False)
 
 
-###############################################################################
+# %%
 # Converting from raw intensity to optical density
 # ------------------------------------------------
 #
@@ -94,7 +96,7 @@ raw_od.plot(n_channels=len(raw_od.ch_names),
             duration=500, show_scrollbars=False)
 
 
-###############################################################################
+# %%
 # Evaluating the quality of the data
 # ----------------------------------
 #
@@ -113,14 +115,14 @@ ax.hist(sci)
 ax.set(xlabel='Scalp Coupling Index', ylabel='Count', xlim=[0, 1])
 
 
-###############################################################################
+# %%
 # In this example we will mark all channels with a SCI less than 0.5 as bad
 # (this dataset is quite clean, so no channels are marked as bad).
 
 raw_od.info['bads'] = list(compress(raw_od.ch_names, sci < 0.5))
 
 
-###############################################################################
+# %%
 # At this stage it is appropriate to inspect your data
 # (for instructions on how to use the interactive data visualisation tool
 # see :ref:`tut-visualize-raw`)
@@ -129,7 +131,7 @@ raw_od.info['bads'] = list(compress(raw_od.ch_names, sci < 0.5))
 # artifact reduction techniques as described in :ref:`ex-fnirs-artifacts`.
 
 
-###############################################################################
+# %%
 # Converting from optical density to haemoglobin
 # ----------------------------------------------
 #
@@ -141,7 +143,7 @@ raw_haemo.plot(n_channels=len(raw_haemo.ch_names),
                duration=500, show_scrollbars=False)
 
 
-###############################################################################
+# %%
 # Removing heart rate from signal
 # -------------------------------
 #
@@ -160,7 +162,7 @@ fig = raw_haemo.plot_psd(average=True)
 fig.suptitle('After filtering', weight='bold', size='x-large')
 fig.subplots_adjust(top=0.88)
 
-###############################################################################
+# %%
 # Extract epochs
 # --------------
 #
@@ -177,7 +179,7 @@ fig = mne.viz.plot_events(events, event_id=event_dict,
 fig.subplots_adjust(right=0.7)  # make room for the legend
 
 
-###############################################################################
+# %%
 # Next we define the range of our epochs, the rejection criteria,
 # baseline correction, and extract the epochs. We visualise the log of which
 # epochs were dropped.
@@ -193,7 +195,7 @@ epochs = mne.Epochs(raw_haemo, events, event_id=event_dict,
 epochs.plot_drop_log()
 
 
-###############################################################################
+# %%
 # View consistency of responses across trials
 # -------------------------------------------
 #
@@ -208,7 +210,7 @@ epochs['Tapping'].plot_image(combine='mean', vmin=-30, vmax=30,
                                                     hbr=[-15, 15])))
 
 
-###############################################################################
+# %%
 # We can also view the epoched data for the control condition and observe
 # that it does not show the expected morphology.
 
@@ -217,7 +219,7 @@ epochs['Control'].plot_image(combine='mean', vmin=-30, vmax=30,
                                                     hbr=[-15, 15])))
 
 
-###############################################################################
+# %%
 # View consistency of responses across channels
 # ---------------------------------------------
 #
@@ -234,7 +236,7 @@ for column, condition in enumerate(['Control', 'Tapping']):
         ax.set_title('{}: {}'.format(condition, ax.get_title()))
 
 
-###############################################################################
+# %%
 # Plot standard fNIRS response image
 # ----------------------------------
 #
@@ -258,7 +260,7 @@ mne.viz.plot_compare_evokeds(evoked_dict, combine="mean", ci=0.95,
                              colors=color_dict, styles=styles_dict)
 
 
-###############################################################################
+# %%
 # View topographic representation of activity
 # -------------------------------------------
 #
@@ -270,7 +272,7 @@ epochs['Tapping'].average(picks='hbo').plot_joint(
     times=times, topomap_args=topomap_args)
 
 
-###############################################################################
+# %%
 # Compare tapping of left and right hands
 # ---------------------------------------
 #
@@ -283,7 +285,7 @@ epochs['Tapping/Left'].average(picks='hbo').plot_topomap(
 epochs['Tapping/Right'].average(picks='hbo').plot_topomap(
     times=times, **topomap_args)
 
-###############################################################################
+# %%
 # And we also view the HbR activity for the two conditions.
 
 epochs['Tapping/Left'].average(picks='hbr').plot_topomap(
@@ -291,7 +293,7 @@ epochs['Tapping/Left'].average(picks='hbr').plot_topomap(
 epochs['Tapping/Right'].average(picks='hbr').plot_topomap(
     times=times, **topomap_args)
 
-###############################################################################
+# %%
 # And we can plot the comparison at a single time point for two conditions.
 
 fig, axes = plt.subplots(nrows=2, ncols=4, figsize=(9, 5),
@@ -329,7 +331,7 @@ for column, condition in enumerate(
         axes[row, column].set_title('{}: {}'.format(chroma, condition))
 fig.tight_layout()
 
-###############################################################################
+# %%
 # Lastly, we can also look at the individual waveforms to see what is
 # driving the topographic plot above.
 

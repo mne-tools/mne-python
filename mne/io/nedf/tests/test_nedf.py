@@ -2,7 +2,7 @@
 """Test reading of NEDF format."""
 # Author: Tristan Stenner <nedf@nicht.dienstli.ch>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 

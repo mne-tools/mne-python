@@ -13,7 +13,9 @@ recording is of a short parallel auditory response (pABR) experiment
 # Authors: Clemens Brunner <clemens.brunner@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# %%
 
 import os.path as op
 
@@ -36,7 +38,7 @@ info = mne.create_info(3, sfreq, ["eeg", "eeg", "stim"])
 raw = mne.io.RawArray(data, info)
 raw.plot(scalings=dict(eeg=100e-6), duration=1, start=14)
 
-###############################################################################
+# %%
 # References
 # ----------
 # .. footbibliography::

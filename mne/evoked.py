@@ -6,7 +6,7 @@
 #          Mads Jensen <mje.mads@gmail.com>
 #          Jona Sassenhagen <jona.sassenhagen@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from copy import deepcopy
 import numpy as np

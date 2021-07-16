@@ -24,7 +24,9 @@ surrounding "BAD" annotation.
 """
 # Authors: Adonay Nunes <adonay.s.nunes@gmail.com>
 #          Luke Bloy <luke.bloy@gmail.com>
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# %%
 
 import os.path as op
 import matplotlib.pyplot as plt
@@ -43,7 +45,7 @@ raw = read_raw_ctf(raw_fname, preload=False)
 raw.crop(130, 160).load_data()  # just use a fraction of data for speed here
 raw.resample(300, npad="auto")
 
-###############################################################################
+# %%
 # Notch filter the data:
 #
 # .. note::
@@ -53,7 +55,7 @@ raw.resample(300, npad="auto")
 
 raw.notch_filter([50, 100])
 
-###############################################################################
+# %%
 
 # The threshold is data dependent, check the optimal threshold by plotting
 # ``scores_muscle``.
@@ -64,7 +66,7 @@ annot_muscle, scores_muscle = annotate_muscle_zscore(
     raw, ch_type="mag", threshold=threshold_muscle, min_length_good=0.2,
     filter_freq=[110, 140])
 
-###############################################################################
+# %%
 # Plot muscle z-scores across recording
 # --------------------------------------------------------------------------
 
@@ -72,7 +74,7 @@ fig, ax = plt.subplots()
 ax.plot(raw.times, scores_muscle)
 ax.axhline(y=threshold_muscle, color='r')
 ax.set(xlabel='time, (s)', ylabel='zscore', title='Muscle activity')
-###############################################################################
+# %%
 # View the annotations
 # --------------------------------------------------------------------------
 order = np.arange(144, 164)

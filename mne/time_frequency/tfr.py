@@ -7,7 +7,7 @@ Morlet code inspired by Matlab code from Sheraz Khan & Brainstorm & SPM
 #           Clement Moutard <clement.moutard@polytechnique.org>
 #           Jean-Remi King <jeanremi.king@gmail.com>
 #
-# License : BSD (3-clause)
+# License : BSD-3-Clause
 
 from copy import deepcopy
 from functools import partial

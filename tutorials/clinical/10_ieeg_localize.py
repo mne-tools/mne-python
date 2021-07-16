@@ -20,7 +20,9 @@ be translated to a template space such as ``fsaverage`` for group comparisons.
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
 #          Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# %%
 
 import os.path as op
 
@@ -48,7 +50,7 @@ subjects_dir = op.join(sample_path, 'subjects')
 # use mne-python's fsaverage data
 fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)  # downloads if needed
 
-###############################################################################
+# %%
 # Freesurfer recon-all
 # ====================
 #
@@ -76,7 +78,7 @@ fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)  # downloads if needed
 #     :func:`mne_bids.write_anat` and pass ``deface=True``.
 
 
-###############################################################################
+# %%
 # Aligning the CT to the MR
 # =========================
 #
@@ -118,7 +120,7 @@ CT_resampled = resample(moving=np.asarray(CT_orig.dataobj),
 plot_overlay(T1, CT_resampled, 'Unaligned CT Overlaid on T1', thresh=0.95)
 del CT_resampled
 
-###############################################################################
+# %%
 # Now we need to align our CT image to the T1 image.
 #
 # We want this to be a rigid transformation (just rotation + translation),
@@ -140,7 +142,7 @@ CT_aligned = mne.transforms.apply_volume_registration(CT_orig, T1, reg_affine)
 plot_overlay(T1, CT_aligned, 'Aligned CT Overlaid on T1', thresh=0.95)
 del CT_orig
 
-###############################################################################
+# %%
 # We can now see how the CT image looks properly aligned to the T1 image.
 #
 # .. note::
@@ -175,7 +177,7 @@ axes[2].set_title('CT aligned to MR')
 fig.tight_layout()
 del CT_data, T1
 
-###############################################################################
+# %%
 # Marking the Location of Each Electrode Contact
 # ==============================================
 #
@@ -232,7 +234,7 @@ mne.viz.set_3d_view(renderer.figure, focalpoint=(0, 0, 0), distance=0.3,
                     **view_kwargs)
 renderer.show()
 
-###############################################################################
+# %%
 # Warping to a Common Atlas
 # =========================
 #
@@ -253,7 +255,7 @@ template_brain = nib.load(
 plot_overlay(template_brain, subject_brain,
              'Alignment with fsaverage before Affine Registration')
 
-###############################################################################
+# %%
 # Now, we'll register the affine of the subject's brain to the template brain.
 # This aligns the two brains, preparing the subject's brain to be warped
 # to the template.
@@ -275,7 +277,7 @@ subject_brain_sdr = mne.transforms.apply_volume_registration(
 plot_overlay(template_brain, subject_brain_sdr,
              'Alignment with fsaverage after SDR Registration')
 
-###############################################################################
+# %%
 # Finally, we'll apply the registrations to the electrode contact coordinates.
 # The brain image is warped to the template but the goal was to warp the
 # positions of the electrode contacts. To do that, we'll make an image that is
@@ -319,7 +321,7 @@ assert set(np.arange(1, ch_coords.shape[0] + 1)).difference(
 
 del subject_brain, CT_aligned, CT_data  # not used anymore
 
-###############################################################################
+# %%
 # Warp and plot the result.
 
 warped_elec_image = mne.transforms.apply_volume_registration(
@@ -348,7 +350,7 @@ ch_coords = mne.transforms.apply_trans(
     template_brain.header.get_vox2ras_tkr(), ch_coords)
 del template_brain
 
-###############################################################################
+# %%
 # We can now plot the result. You can compare this to the plot in
 # :ref:`tut-working-with-seeg` to see the difference between this morph, which
 # is more complex, and the less-complex, linear Talairach transformation.
@@ -382,11 +384,11 @@ fig = mne.viz.plot_alignment(raw.info, trans, 'fsaverage',
                              surfaces=dict(pial=0.2, head=0.2))
 mne.viz.set_3d_view(fig, focalpoint=(0, 0, 0.05), distance=0.4, **view_kwargs)
 
-###############################################################################
+# %%
 # This pipeline was developed based on previous work
 # :footcite:`HamiltonEtAl2017`.
 
-###############################################################################
+# %%
 # References
 # ==========
 #

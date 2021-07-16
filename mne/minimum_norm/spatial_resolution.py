@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Authors: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 """Compute resolution metrics from resolution matrix.
 
 Resolution metrics: localisation error, spatial extent, relative amplitude.

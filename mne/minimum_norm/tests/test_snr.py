@@ -2,7 +2,7 @@
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os
 from os import path as op

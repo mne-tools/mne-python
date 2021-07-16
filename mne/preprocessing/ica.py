@@ -4,7 +4,7 @@
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Juergen Dammers <j.dammers@fz-juelich.de>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from inspect import isfunction
 from collections import namedtuple

@@ -16,7 +16,9 @@ and the trials are plotted, sorting by response time.
 """
 # Authors: Jona Sassenhagen <jona.sassenhagen@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# %%
 
 import mne
 from mne.event import define_target_events
@@ -24,7 +26,7 @@ from mne.channels import make_1020_channel_selections
 
 print(__doc__)
 
-###############################################################################
+# %%
 # Load EEGLAB example data (a small EEG dataset)
 data_path = mne.datasets.testing.data_path()
 fname = data_path + "/EEGLAB/test_raw.set"
@@ -48,7 +50,7 @@ raw.set_montage('standard_1020')
 
 events = mne.events_from_annotations(raw, event_id)[0]
 
-###############################################################################
+# %%
 # Create Epochs
 
 # define target events:
@@ -63,7 +65,7 @@ new_events, rts = define_target_events(events, reference_id, target_id, sfreq,
 epochs = mne.Epochs(raw, events=new_events, tmax=tmax + 0.1,
                     event_id={"square": 2})
 
-###############################################################################
+# %%
 # Plot using :term:`global field power`
 
 # Parameters for plotting
@@ -76,7 +78,7 @@ epochs.plot_image(group_by=selections, order=order, sigma=1.5,
                   overlay_times=rts / 1000., combine='gfp',
                   ts_args=dict(vlines=[0, rts.mean() / 1000.]))
 
-###############################################################################
+# %%
 # Plot using median
 
 epochs.plot_image(group_by=selections, order=order, sigma=1.5,

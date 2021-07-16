@@ -9,7 +9,9 @@ to temporally whiten the signals.
 """
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# %%
 
 import numpy as np
 from scipy import signal
@@ -45,7 +47,7 @@ innovation = signal.convolve(d, a, 'valid')
 d_ = signal.lfilter(b, a, innovation)  # regenerate the signal
 d_ = np.r_[d_[0] * np.ones(order), d_]  # dummy samples to keep signal length
 
-###############################################################################
+# %%
 # Plot the different time series and PSDs
 plt.close('all')
 plt.figure()
