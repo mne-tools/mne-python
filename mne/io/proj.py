@@ -811,7 +811,7 @@ def setup_proj(info, add_eeg_ref=True, activate=True, verbose=None):
 
     Parameters
     ----------
-    %(info_not_none)s
+    %(info_not_none)s Warning: will be modified in-place.
     add_eeg_ref : bool
         If True, an EEG average reference will be added (unless one
         already exists).
