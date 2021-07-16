@@ -1322,12 +1322,33 @@ class Coregistration(object):
             self._mri_trans[:, :3] *= sca
 
     def set_rotation(self, rot):
+        """Set the rotation parameter.
+
+        Parameters
+        ----------
+        rot : array, shape (3,)
+            The rotation parameter.
+        """
         self._update_params(rot=rot)
 
     def set_translation(self, tra):
+        """Set the translation parameter.
+
+        Parameters
+        ----------
+        tra : array, shape (3,)
+            The translation parameter.
+        """
         self._update_params(tra=tra)
 
     def set_scale(self, sca):
+        """Set the scale parameter.
+
+        Parameters
+        ----------
+        sca : array, shape (3,)
+            The scale parameter.
+        """
         self._update_params(sca=sca)
 
     @property
