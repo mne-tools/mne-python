@@ -29,8 +29,9 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
 
     Parameters
     ----------
-    %(info_not_none)s Specifies the channels to include.
-        Bad channels in info['bads'] are not used.
+    %(info_not_none)s
+        Specifies the channels to include. Bad channels (in ``info['bads']``)
+        are not used.
     forward : instance of Forward
         Forward operator.
     data_cov : instance of Covariance
