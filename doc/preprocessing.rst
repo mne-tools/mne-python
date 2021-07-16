@@ -159,6 +159,7 @@ EEG referencing:
    :toctree: generated/
 
    compute_chpi_amplitudes
+   compute_chpi_snr
    compute_chpi_locs
    compute_head_pos
    extract_chpi_locs_ctf
