@@ -40,7 +40,7 @@ from .io.proj import ProjMixin
 from .io.write import (start_file, start_block, end_file, end_block,
                        write_int, write_string, write_float_matrix,
                        write_id, write_float, write_complex_float_matrix)
-from .io.base import TimeMixin, _check_maxshield
+from .io.base import TimeMixin, _check_maxshield, _get_ch_factors
 from .parallel import parallel_func
 
 _aspect_dict = {
@@ -159,12 +159,13 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         self._data = data
 
     @fill_doc
-    def get_data(self, picks=None, tmin=None, tmax=None):
+    def get_data(self, picks=None, units=None, tmin=None, tmax=None):
         """Get evoked data as 2D array.
 
         Parameters
         ----------
         %(picks_all)s
+        %(units)s
         tmin : float | None
             Start time of data to get in seconds.
         tmax : float | None
@@ -184,6 +185,11 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         start, stop = self._handle_tmin_tmax(tmin, tmax)
 
         data = self.data[picks, start:stop]
+
+        if units is not None:
+            ch_factors = _get_ch_factors(self, units, picks)
+            data *= ch_factors[:, np.newaxis]
+
         return data
 
     @verbose

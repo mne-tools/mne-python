@@ -227,8 +227,8 @@ def test_marching_cubes():
     data[20:30, 20:30, 20:30] = 1
     verts, triangles = marching_cubes(data, 0.5)
     # verts and faces are rather large so use checksum
-    np.testing.assert_allclose(verts.sum(axis=0), [14700, 14700, 14700])
-    np.testing.assert_allclose(triangles.sum(axis=0), [363402, 360865, 350588])
+    assert_allclose(verts.sum(axis=0), [14700, 14700, 14700])
+    assert_allclose(triangles.sum(axis=0), [363402, 360865, 350588])
 
 
 def test_voxel_neighbors():
