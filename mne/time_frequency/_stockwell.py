@@ -1,7 +1,7 @@
 # Authors : Denis A. Engemann <denis.engemann@gmail.com>
 #           Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License : BSD 3-clause
+# License : BSD-3-Clause
 
 from copy import deepcopy
 

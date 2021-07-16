@@ -17,6 +17,8 @@ our documentation server can handle them, we'll crop the raw data from ~4.5
 minutes down to 90 seconds.
 """
 
+# %%
+
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -35,7 +37,7 @@ raw.crop(tmax=90)  # in seconds; happens in-place
 # discard events >90 seconds (not strictly necessary: avoids some warnings)
 events = events[events[:, 0] <= raw.last_samp]
 
-###############################################################################
+# %%
 # The file that we loaded has already been partially processed: 3D sensor
 # locations have been saved as part of the ``.fif`` file, the data have been
 # low-pass filtered at 40 Hz, and a common average reference is set for the
@@ -52,7 +54,7 @@ events = events[events[:, 0] <= raw.last_samp]
 raw.pick(['eeg', 'eog']).load_data()
 raw.info
 
-###############################################################################
+# %%
 # Channel names and types
 # ^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -70,7 +72,7 @@ channel_renaming_dict = {name: name.replace(' 0', '').lower()
                          for name in raw.ch_names}
 _ = raw.rename_channels(channel_renaming_dict)  # happens in-place
 
-###############################################################################
+# %%
 # Channel locations
 # ^^^^^^^^^^^^^^^^^
 #
@@ -91,7 +93,7 @@ _ = raw.rename_channels(channel_renaming_dict)  # happens in-place
 raw.plot_sensors(show_names=True)
 fig = raw.plot_sensors('3d')
 
-###############################################################################
+# %%
 # If you're working with a standard montage like the `10-20 <ten_twenty_>`_
 # system, you can add sensor locations to the data like this:
 # ``raw.set_montage('standard_1020')``.  See :ref:`tut-sensor-locations` for
@@ -118,7 +120,7 @@ for proj in (False, True):
     ref = 'Average' if proj else 'No'
     fig.suptitle(f'{ref} reference', size='xx-large', weight='bold')
 
-###############################################################################
+# %%
 # The referencing scheme can be changed with the function
 # `mne.set_eeg_reference` (which by default operates on a *copy* of the data)
 # or the `raw.set_eeg_reference() <mne.io.Raw.set_eeg_reference>` method (which
@@ -137,7 +139,7 @@ for proj in (False, True):
 
 raw.filter(l_freq=0.1, h_freq=None)
 
-###############################################################################
+# %%
 # Evoked responses: epoching and averaging
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -149,7 +151,7 @@ raw.filter(l_freq=0.1, h_freq=None)
 
 np.unique(events[:, -1])
 
-###############################################################################
+# %%
 # The :ref:`tut-event-arrays` tutorial discusses event arrays in more detail.
 # Integer event codes are mapped to more descriptive text using a Python
 # :class:`dictionary <dict>` usually called ``event_id``. This mapping is
@@ -160,7 +162,7 @@ np.unique(events[:, -1])
 event_dict = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
               'visual/right': 4, 'face': 5, 'buttonpress': 32}
 
-###############################################################################
+# %%
 # Now we can extract epochs from the continuous data. An interactive plot
 # allows you to click on epochs to mark them as "bad" and drop them from the
 # analysis (it is not interactive on the documentation website, but will be
@@ -170,7 +172,7 @@ epochs = mne.Epochs(raw, events, event_id=event_dict, tmin=-0.3, tmax=0.7,
                     preload=True)
 fig = epochs.plot()
 
-###############################################################################
+# %%
 # It is also possible to automatically drop epochs, when first creating them or
 # later on, by providing maximum peak-to-peak signal value thresholds (pass to
 # the `~mne.Epochs` constructor as the ``reject`` parameter; see
@@ -181,7 +183,7 @@ reject_criteria = dict(eeg=100e-6,  # 100 µV
                        eog=200e-6)  # 200 µV
 _ = epochs.drop_bad(reject=reject_criteria)
 
-###############################################################################
+# %%
 # Next we generate a barplot of which channels contributed most to epochs
 # getting rejected. If one channel is responsible for lots of epoch rejections,
 # it may be worthwhile to mark that channel as "bad" in the `~mne.io.Raw`
@@ -191,7 +193,7 @@ _ = epochs.drop_bad(reject=reject_criteria)
 
 epochs.plot_drop_log()
 
-###############################################################################
+# %%
 # Another way in which epochs can be automatically dropped is if the
 # `~mne.io.Raw` object they're extracted from contains :term:`annotations` that
 # begin with either ``bad`` or ``edge`` ("edge" annotations are automatically
@@ -210,7 +212,7 @@ epochs.plot_drop_log()
 l_aud = epochs['auditory/left'].average()
 l_vis = epochs['visual/left'].average()
 
-###############################################################################
+# %%
 # These `~mne.Evoked` objects have their own interactive plotting method
 # (though again, it won't be interactive on the documentation website):
 # click-dragging a span of time will generate a scalp field topography for that
@@ -220,14 +222,14 @@ l_vis = epochs['visual/left'].average()
 fig1 = l_aud.plot()
 fig2 = l_vis.plot(spatial_colors=True)
 
-###############################################################################
+# %%
 # Scalp topographies can also be obtained non-interactively with the
 # `~mne.Evoked.plot_topomap` method. Here we display topomaps of the average
 # field in 50 ms time windows centered at -200 ms, 100 ms, and 400 ms.
 
 l_aud.plot_topomap(times=[-0.2, 0.1, 0.4], average=0.05)
 
-###############################################################################
+# %%
 # Considerable customization of these plots is possible, see the docstring of
 # `~mne.Evoked.plot_topomap` for details.
 #
@@ -238,7 +240,7 @@ l_aud.plot_topomap(times=[-0.2, 0.1, 0.4], average=0.05)
 
 l_aud.plot_joint()
 
-###############################################################################
+# %%
 # Global field power (GFP)
 # ^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -259,13 +261,13 @@ l_aud.plot_joint()
 for evk in (l_aud, l_vis):
     evk.plot(gfp=True, spatial_colors=True, ylim=dict(eeg=[-12, 12]))
 
-###############################################################################
+# %%
 # To plot the GFP by itself you can pass ``gfp='only'`` (this makes it easier
 # to read off the GFP data values, because the scale is aligned):
 
 l_aud.plot(gfp='only')
 
-###############################################################################
+# %%
 # As stated above, the GFP is the population standard deviation of the signal
 # across channels. To compute it manually, we can leverage the fact that
 # `evoked.data <mne.Evoked.data>` is a :class:`NumPy array <numpy.ndarray>`,
@@ -279,7 +281,7 @@ ax.plot(l_aud.times, gfp * 1e6, color='lime')
 ax.fill_between(l_aud.times, gfp * 1e6, color='lime', alpha=0.2)
 ax.set(xlabel='Time (s)', ylabel='GFP (µV)', title='EEG')
 
-###############################################################################
+# %%
 # Analyzing regions of interest (ROIs): averaging across channels
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -295,14 +297,14 @@ right = ['eeg23', 'eeg24', 'eeg34', 'eeg35']
 left_ix = mne.pick_channels(l_aud.info['ch_names'], include=left)
 right_ix = mne.pick_channels(l_aud.info['ch_names'], include=right)
 
-###############################################################################
+# %%
 # Now we can create a new Evoked with 2 virtual channels (one for each ROI):
 roi_dict = dict(left_ROI=left_ix, right_ROI=right_ix)
 roi_evoked = mne.channels.combine_channels(l_aud, roi_dict, method='mean')
 print(roi_evoked.info['ch_names'])
 roi_evoked.plot()
 
-###############################################################################
+# %%
 # Comparing conditions
 # ^^^^^^^^^^^^^^^^^^^^
 #
@@ -316,7 +318,7 @@ evokeds = dict(auditory=l_aud, visual=l_vis)
 picks = [f'eeg{n}' for n in range(10, 15)]
 mne.viz.plot_compare_evokeds(evokeds, picks=picks, combine='mean')
 
-###############################################################################
+# %%
 # We can also easily get confidence intervals by treating each epoch as a
 # separate observation using the `~mne.Epochs.iter_evoked` method. A confidence
 # interval across subjects could also be obtained, by passing a list of
@@ -327,7 +329,7 @@ evokeds = dict(auditory=list(epochs['auditory/left'].iter_evoked()),
                visual=list(epochs['visual/left'].iter_evoked()))
 mne.viz.plot_compare_evokeds(evokeds, combine='mean', picks=picks)
 
-###############################################################################
+# %%
 # We can also compare conditions by subtracting one `~mne.Evoked` object from
 # another using the `mne.combine_evoked` function (this function also allows
 # pooling of epochs without subtraction).
@@ -335,7 +337,7 @@ mne.viz.plot_compare_evokeds(evokeds, combine='mean', picks=picks)
 aud_minus_vis = mne.combine_evoked([l_aud, l_vis], weights=[1, -1])
 aud_minus_vis.plot_joint()
 
-###############################################################################
+# %%
 # .. warning::
 #
 #     The code above yields an **equal-weighted difference**. If you have
@@ -354,19 +356,19 @@ aud_minus_vis.plot_joint()
 grand_average = mne.grand_average([l_aud, l_vis])
 print(grand_average)
 
-###############################################################################
+# %%
 # For combining *conditions* it is also possible to make use of :term:`HED`
 # tags in the condition names when selecting which epochs to average. For
 # example, we have the condition names:
 
 list(event_dict)
 
-###############################################################################
+# %%
 # We can select the auditory conditions (left and right together) by passing:
 
 epochs['auditory'].average()
 
-###############################################################################
+# %%
 # see :ref:`tut-section-subselect-epochs` for details.
 #
 # The tutorials :ref:`tut-epochs-class` and :ref:`tut-evoked-class` have many

@@ -24,7 +24,9 @@ fast machine it can take a couple of minutes to complete.
 """
 # Author: Denis A. Engemann <denis.engemann@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# %%
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -65,7 +67,7 @@ snr = 3.0
 lambda2 = 1.0 / snr ** 2
 clim = dict(kind='value', lims=[0, 2.5, 5])
 
-###############################################################################
+# %%
 # Estimate covariances
 
 samples_epochs = 5, 15,
@@ -176,7 +178,7 @@ for ni, (n_train, axes) in enumerate(zip(samples_epochs, (axes1, axes2))):
 
 fig.subplots_adjust(hspace=0.2, left=0.01, right=0.99, wspace=0.03)
 
-###############################################################################
+# %%
 # References
 # ----------
 # .. footbibliography::

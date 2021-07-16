@@ -5,7 +5,7 @@
 #          Susanna Aro <susanna.aro@aalto.fi>
 #          Roman Goj <roman.goj@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 import numpy as np
 
 from ..channels import equalize_channels

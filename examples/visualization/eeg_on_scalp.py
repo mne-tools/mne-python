@@ -9,7 +9,9 @@ In this example, digitized EEG sensor locations are shown on the scalp.
 """
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# %%
 
 import mne
 from mne.viz import plot_alignment, set_3d_view

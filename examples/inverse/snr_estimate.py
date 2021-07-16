@@ -9,7 +9,9 @@ using a minimum-norm inverse operator.
 """
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# %%
 
 from os import path as op
 

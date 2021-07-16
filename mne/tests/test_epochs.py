@@ -3,7 +3,7 @@
 #         Denis Engemann <denis.engemann@gmail.com>
 #         Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from copy import deepcopy
 from distutils.version import LooseVersion
@@ -216,6 +216,20 @@ def test_get_data():
         d3[:, eeg_idxs, :],
         epochs.get_data("eeg", item=[1, 2, 3])
     )
+
+    # Test tmin/tmax
+    data = epochs.get_data(tmin=0)
+    assert np.all(data.shape[-1] ==
+                  epochs._data.shape[-1] -
+                  np.nonzero(epochs.times == 0)[0])
+
+    assert epochs.get_data(tmin=0, tmax=0).size == 0
+
+    with pytest.raises(TypeError, match='tmin .* float, None'):
+        epochs.get_data(tmin=[1], tmax=1)
+
+    with pytest.raises(TypeError, match='tmax .* float, None'):
+        epochs.get_data(tmin=1, tmax=np.ones(5))
 
 
 def test_hierarchical():

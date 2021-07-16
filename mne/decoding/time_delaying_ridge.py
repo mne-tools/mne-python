@@ -3,7 +3,7 @@
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Ross Maddox <ross.maddox@rochester.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
 

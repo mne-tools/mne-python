@@ -1013,7 +1013,7 @@ custom_redirects = {
 def make_redirects(app, exception):
     """Make HTML redirects."""
     # https://www.sphinx-doc.org/en/master/extdev/appapi.html
-    # Adapted from sphinxcontrib/redirects (BSD 2-clause)
+    # Adapted from sphinxcontrib/redirects (BSD-2-Clause)
     if not isinstance(app.builder, sphinx.builders.html.StandaloneHTMLBuilder):
         return
     logger = sphinx.util.logging.getLogger('mne')

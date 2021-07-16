@@ -4,7 +4,7 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from .nirs import (short_channels, source_detector_distances,
                    _check_channels_ordered, _channel_frequencies,

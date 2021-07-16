@@ -4,7 +4,7 @@
 #          Jona Sassenhagen <jona.sassenhagen@gmail.com>
 #          Marijn van Vliet <w.m.vanvliet@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from inspect import isgenerator
 from collections import namedtuple

@@ -15,7 +15,9 @@ the CSD:
 3. Using Morlet wavelets: :func:`mne.time_frequency.csd_morlet`
 """
 # Author: Marijn van Vliet <w.m.vanvliet@gmail.com>
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# %%
 from matplotlib import pyplot as plt
 
 import mne
@@ -24,13 +26,13 @@ from mne.time_frequency import csd_fourier, csd_multitaper, csd_morlet
 
 print(__doc__)
 
-###############################################################################
+# %%
 # In the following example, the computation of the CSD matrices can be
 # performed using multiple cores. Set ``n_jobs`` to a value >1 to select the
 # number of cores to use.
 n_jobs = 1
 
-###############################################################################
+# %%
 # Loading the sample dataset.
 data_path = sample.data_path()
 fname_raw = data_path + '/MEG/sample/sample_audvis_raw.fif'
@@ -38,7 +40,7 @@ fname_event = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
 raw = mne.io.read_raw_fif(fname_raw)
 events = mne.read_events(fname_event)
 
-###############################################################################
+# %%
 # By default, CSD matrices are computed using all MEG/EEG channels. When
 # interpreting a CSD matrix with mixed sensor types, be aware that the
 # measurement units, and thus the scalings, differ across sensors. In this
@@ -51,13 +53,13 @@ epochs = mne.Epochs(raw, events, event_id=1, tmin=-0.2, tmax=1,
                     picks=picks, baseline=(None, 0),
                     reject=dict(grad=4000e-13), preload=True)
 
-###############################################################################
+# %%
 # Computing CSD matrices using short-term Fourier transform and (adaptive)
 # multitapers is straightforward:
 csd_fft = csd_fourier(epochs, fmin=15, fmax=20, n_jobs=n_jobs)
 csd_mt = csd_multitaper(epochs, fmin=15, fmax=20, adaptive=True, n_jobs=n_jobs)
 
-###############################################################################
+# %%
 # When computing the CSD with Morlet wavelets, you specify the exact
 # frequencies at which to compute it. For each frequency, a corresponding
 # wavelet will be constructed and convolved with the signal, resulting in a
@@ -74,7 +76,7 @@ csd_mt = csd_multitaper(epochs, fmin=15, fmax=20, adaptive=True, n_jobs=n_jobs)
 frequencies = [16, 17, 18, 19, 20]
 csd_wav = csd_morlet(epochs, frequencies, decim=10, n_jobs=n_jobs)
 
-###############################################################################
+# %%
 # The resulting :class:`mne.time_frequency.CrossSpectralDensity` objects have a
 # plotting function we can use to compare the results of the different methods.
 # We're plotting the mean CSD across frequencies.

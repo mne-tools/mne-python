@@ -11,7 +11,9 @@ shipped in MNE-python, and display it on the fsaverage template subject.
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Joan Massich <mailsik@gmail.com>
 #
-# License: BSD Style.
+# License: BSD-3-Clause
+
+# %%
 
 import os.path as op
 
@@ -21,7 +23,7 @@ from mne.datasets import fetch_fsaverage
 from mne.viz import set_3d_title, set_3d_view
 
 
-###############################################################################
+# %%
 # Check all montages against a sphere
 
 for current_montage in get_builtin_montages():
@@ -38,7 +40,7 @@ for current_montage in get_builtin_montages():
     set_3d_title(figure=fig, title=current_montage)
 
 
-###############################################################################
+# %%
 # Check all montages against fsaverage
 
 subjects_dir = op.dirname(fetch_fsaverage())

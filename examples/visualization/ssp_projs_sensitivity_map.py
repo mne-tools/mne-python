@@ -8,7 +8,9 @@ similar to the first SSP vector correcting for ECG.
 """
 # Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# %%
 
 import matplotlib.pyplot as plt
 
@@ -33,7 +35,7 @@ projs = projs[::2]
 # Compute sensitivity map
 ssp_ecg_map = sensitivity_map(fwd, ch_type='grad', projs=projs, mode='angle')
 
-###############################################################################
+# %%
 # Show sensitivity map
 
 plt.hist(ssp_ecg_map.data.ravel())

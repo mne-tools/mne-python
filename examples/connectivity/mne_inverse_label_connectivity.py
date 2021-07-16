@@ -12,7 +12,9 @@ is ordered based on the locations of the regions in the axial plane.
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Nicolas P. Rougier (graph code borrowed from his matplotlib gallery)
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# %%
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -25,7 +27,7 @@ from mne.viz import circular_layout, plot_connectivity_circle
 
 print(__doc__)
 
-###############################################################################
+# %%
 # Load our data
 # -------------
 #
@@ -56,7 +58,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=dict(mag=4e-12, grad=4000e-13,
                                                     eog=150e-6))
 
-###############################################################################
+# %%
 # Compute inverse solutions and their connectivity
 # ------------------------------------------------
 #
@@ -111,7 +113,7 @@ con_res = dict()
 for method, c in zip(con_methods, con):
     con_res[method] = c[:, :, 0]
 
-###############################################################################
+# %%
 # Make a connectivity plot
 # ------------------------
 #
@@ -150,7 +152,7 @@ plot_connectivity_circle(con_res['pli'], label_names, n_lines=300,
                          title='All-to-All Connectivity left-Auditory '
                                'Condition (PLI)')
 
-###############################################################################
+# %%
 # Make two connectivity plots in the same figure
 # ----------------------------------------------
 #
@@ -167,7 +169,7 @@ for ii, method in enumerate(con_methods):
 
 plt.show()
 
-###############################################################################
+# %%
 # Save the figure (optional)
 # --------------------------
 #

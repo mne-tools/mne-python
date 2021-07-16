@@ -19,7 +19,9 @@ The procedure consists of:
 """
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# %%
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -31,7 +33,7 @@ from mne.datasets import sample
 
 print(__doc__)
 
-###############################################################################
+# %%
 # Set parameters
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
@@ -66,7 +68,7 @@ epochs_condition_2 = mne.Epochs(raw, events, event_id, tmin, tmax,
                                 reject=reject, preload=True)
 epochs_condition_2.pick_channels([ch_name])
 
-###############################################################################
+# %%
 # Factor to downsample the temporal dimension of the TFR computed by
 # tfr_morlet. Decimation occurs after frequency decomposition and can
 # be used to reduce memory usage (and possibly comptuational time of downstream
@@ -90,7 +92,7 @@ tfr_epochs_2.apply_baseline(mode='ratio', baseline=(None, 0))
 epochs_power_1 = tfr_epochs_1.data[:, 0, :, :]  # only 1 channel as 3D matrix
 epochs_power_2 = tfr_epochs_2.data[:, 0, :, :]  # only 1 channel as 3D matrix
 
-###############################################################################
+# %%
 # Compute statistic
 # -----------------
 threshold = 6.0
@@ -98,7 +100,7 @@ T_obs, clusters, cluster_p_values, H0 = \
     permutation_cluster_test([epochs_power_1, epochs_power_2], out_type='mask',
                              n_permutations=100, threshold=threshold, tail=0)
 
-###############################################################################
+# %%
 # View time-frequency plots
 # -------------------------
 

@@ -20,7 +20,9 @@ evoked response :footcite:`RivetEtAl2009, RivetEtAl2011`.
 
 # Authors: Alexandre Barachant <alexandre.barachant@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# %%
 
 
 from mne import (io, compute_raw_covariance, read_events, pick_types, Epochs)
@@ -32,7 +34,7 @@ print(__doc__)
 
 data_path = sample.data_path()
 
-###############################################################################
+# %%
 # Set parameters and read data
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
@@ -55,7 +57,7 @@ epochs = Epochs(raw, events, event_id, tmin, tmax, proj=False,
 # Plot image epoch before xdawn
 plot_epochs_image(epochs['vis_r'], picks=[230], vmin=-500, vmax=500)
 
-###############################################################################
+# %%
 # Now, we estimate a set of xDAWN filters for the epochs (which contain only
 # the ``vis_r`` class).
 
@@ -68,7 +70,7 @@ xd = Xdawn(n_components=2, signal_cov=signal_cov)
 # Fit xdawn
 xd.fit(epochs)
 
-###############################################################################
+# %%
 # Epochs are denoised by calling ``apply``, which by default keeps only the
 # signal subspace corresponding to the first ``n_components`` specified in the
 # ``Xdawn`` constructor above.
@@ -77,7 +79,7 @@ epochs_denoised = xd.apply(epochs)
 # Plot image epoch after Xdawn
 plot_epochs_image(epochs_denoised['vis_r'], picks=[230], vmin=-500, vmax=500)
 
-###############################################################################
+# %%
 # References
 # ----------
 # .. footbibliography::

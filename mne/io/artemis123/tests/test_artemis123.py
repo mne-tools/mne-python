@@ -1,7 +1,7 @@
 
 # Author: Luke Bloy <bloyl@chop.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 

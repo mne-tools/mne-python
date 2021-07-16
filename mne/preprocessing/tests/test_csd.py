@@ -5,7 +5,7 @@ For each supported file format, implement a test.
 """
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 

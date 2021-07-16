@@ -7,7 +7,9 @@ How to plot a noise covariance matrix.
 """
 # Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# %%
 
 from os import path as op
 import mne
@@ -21,7 +23,7 @@ cov = mne.read_cov(fname_cov)
 print(cov)
 ev_info = mne.io.read_info(fname_evo)
 
-###############################################################################
+# %%
 # Plot covariance
 
 cov.plot(ev_info, exclude='bads', show_svd=False)

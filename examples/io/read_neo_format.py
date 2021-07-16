@@ -10,10 +10,12 @@ information on creating MNE-Python's data objects from NumPy arrays, see
 :ref:`tut-creating-data-structures`.
 """
 
+# %%
+
 import neo
 import mne
 
-###############################################################################
+# %%
 # This example uses NEO's ``ExampleIO`` object for creating fake data. The data
 # will be all zeros, so the plot won't be very interesting; but it should
 # demonstrate the steps to using NEO data. For actual data and different file

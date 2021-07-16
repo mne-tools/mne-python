@@ -16,7 +16,9 @@ Only the data in those channels is replaced.
 # Authors: Denis A. Engemann <denis.engemann@gmail.com>
 #          Mainak Jas <mainak.jas@telecom-paristech.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# %%
 
 # sphinx_gallery_thumbnail_number = 2
 
@@ -34,18 +36,18 @@ evoked = mne.read_evokeds(fname, condition='Left Auditory',
 # plot with bads
 evoked.plot(exclude=[], picks=('grad', 'eeg'))
 
-###############################################################################
+# %%
 # Compute interpolation (also works with Raw and Epochs objects)
 evoked_interp = evoked.copy().interpolate_bads(reset_bads=False)
 evoked_interp.plot(exclude=[], picks=('grad', 'eeg'))
 
-###############################################################################
+# %%
 # You can also use minimum-norm for EEG as well as MEG
 evoked_interp_mne = evoked.copy().interpolate_bads(
     reset_bads=False, method=dict(eeg='MNE'), verbose=True)
 evoked_interp_mne.plot(exclude=[], picks=('grad', 'eeg'))
 
-###############################################################################
+# %%
 # References
 # ----------
 # .. footbibliography::

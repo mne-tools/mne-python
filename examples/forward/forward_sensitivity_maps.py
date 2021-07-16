@@ -14,7 +14,9 @@ To get started with forward modeling see :ref:`tut-forward`.
 
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# %%
 
 import numpy as np
 import mne
@@ -37,14 +39,14 @@ mne.convert_forward_solution(fwd, surf_ori=True, copy=False)
 leadfield = fwd['sol']['data']
 print("Leadfield size : %d x %d" % leadfield.shape)
 
-###############################################################################
+# %%
 # Compute sensitivity maps
 
 grad_map = mne.sensitivity_map(fwd, ch_type='grad', mode='fixed')
 mag_map = mne.sensitivity_map(fwd, ch_type='mag', mode='fixed')
 eeg_map = mne.sensitivity_map(fwd, ch_type='eeg', mode='fixed')
 
-###############################################################################
+# %%
 # Show gain matrix a.k.a. leadfield matrix with sensitivity map
 
 picks_meg = mne.pick_types(fwd['info'], meg=True, eeg=False)
@@ -73,7 +75,7 @@ brain_sens = grad_map.plot(
     subjects_dir=subjects_dir, clim=dict(lims=[0, 50, 100]), figure=1)
 brain_sens.add_text(0.1, 0.9, 'Gradiometer sensitivity', 'title', font_size=16)
 
-###############################################################################
+# %%
 # Compare sensitivity map with distribution of source depths
 
 # source space with vertices
@@ -94,7 +96,7 @@ brain_dep = depths_map.plot(
     clim=dict(kind='value', lims=[0, maxdep / 2., maxdep]), figure=2)
 brain_dep.add_text(0.1, 0.9, 'Source depth (m)', 'title', font_size=16)
 
-###############################################################################
+# %%
 # Sensitivity is likely to co-vary with the distance between sources to
 # sensors. To determine the strength of this relationship, we can compute the
 # correlation between source depth and sensitivity values.
@@ -102,7 +104,7 @@ corr = np.corrcoef(depths, grad_map.data[:, 0])[0, 1]
 print('Correlation between source depth and gradiomter sensitivity values: %f.'
       % corr)
 
-###############################################################################
+# %%
 # Gradiometer sensitiviy is highest close to the sensors, and decreases rapidly
 # with inreasing source depth. This is confirmed by the high negative
 # correlation between the two.

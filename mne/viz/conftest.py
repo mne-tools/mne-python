@@ -2,7 +2,7 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import inspect
 from textwrap import dedent
@@ -96,7 +96,7 @@ def _nbclient():
 @pytest.fixture(scope='function')
 def nbexec(_nbclient):
     """Execute Python code in a notebook."""
-    # Adapted/simplified from nbclient/client.py (BSD 3-clause)
+    # Adapted/simplified from nbclient/client.py (BSD-3-Clause)
     _nbclient._cleanup_kernel()
 
     def execute(code, reset=False):

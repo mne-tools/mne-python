@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from datetime import datetime
 from glob import glob

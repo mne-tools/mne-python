@@ -41,6 +41,8 @@ We will also convert the `~mne.Annotations` contained in this dataset to events
 by calling `mne.events_from_annotations`.
 """
 
+# %%
+
 from pathlib import Path
 import matplotlib.pyplot as plt
 import mne
@@ -56,7 +58,7 @@ raw.plot(start=60)
 # extract events
 all_events, all_event_id = mne.events_from_annotations(raw)
 
-###############################################################################
+# %%
 # Creating metadata from events
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -92,7 +94,7 @@ metadata, events, event_id = mne.epochs.make_metadata(
 # let's look at what we got!
 metadata
 
-###############################################################################
+# %%
 # Specifying time-locked events
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
@@ -136,7 +138,7 @@ metadata, events, event_id = mne.epochs.make_metadata(
 
 metadata
 
-###############################################################################
+# %%
 # Keeping only the first events of a group
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
@@ -174,7 +176,7 @@ metadata['response'].plot.hist(bins=50, title='Response Times')
 # from the initial event named "response/left" and "response/right"
 print(metadata['first_response'])
 
-###############################################################################
+# %%
 # We're facing a similar issue with the stimulus events, and now there are not
 # only two, but **four** different types: ``stimulus/compatible/target_left``,
 # ``stimulus/compatible/target_right``, ``stimulus/incompatible/target_left``,
@@ -187,7 +189,7 @@ metadata.loc[metadata['stimulus/compatible/target_left'].notna() &
              metadata['stimulus/compatible/target_right'].notna(),
              :]
 
-###############################################################################
+# %%
 # This can easily lead to confusion during later stages of processing, so let's
 # create a column for the first stimulus – which will always be the time-locked
 # stimulus, as our time interval starts at 0 seconds. We can pass a **list** of
@@ -207,7 +209,7 @@ assert all(metadata['stimulus'] == 0)
 # which events were selected via "keep_first"
 metadata[['first_stimulus', 'first_response']]
 
-###############################################################################
+# %%
 # Adding new columns to describe stimulation side and response correctness
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -237,7 +239,7 @@ correct_response_count = metadata['response_correct'].sum()
 print(f'Correct responses: {correct_response_count}\n'
       f'Incorrect responses: {len(metadata) - correct_response_count}')
 
-###############################################################################
+# %%
 # Creating ``Epochs`` with metadata, and visualizing ERPs
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -255,7 +257,7 @@ epochs = mne.Epochs(raw=raw, tmin=epochs_tmin, tmax=epochs_tmax,
                     events=events, event_id=event_id, metadata=metadata,
                     reject=reject, preload=True)
 
-###############################################################################
+# %%
 # Lastly, let's visualize the ERPs evoked by the visual stimulation, once for
 # all trials with correct responses, and once for all trials with correct
 # responses and a response time greater than 0.5 seconds
@@ -272,7 +274,7 @@ ax[1].set_title('Visual ERPs – Slow Correct Responses')
 fig.tight_layout()
 fig
 
-###############################################################################
+# %%
 # Aside from the fact that the data for the (much fewer) slow responses looks
 # noisier – which is entirely to be expected – not much of an ERP difference
 # can be seen.
@@ -311,7 +313,7 @@ metadata, events, event_id = mne.epochs.make_metadata(
     row_events=row_events,
     keep_last=keep_last)
 
-###############################################################################
+# %%
 # Exactly like in the previous example, create new columns ``stimulus_side``
 # and ``response_correct``.
 
@@ -333,7 +335,7 @@ metadata.loc[metadata['stimulus_side'] == metadata['last_response'],
 
 metadata
 
-###############################################################################
+# %%
 # Now it's already time to epoch the data! When deciding upon the epochs
 # duration for this specific analysis, we need to ensure we see quite a bit of
 # signal from before and after the motor response. We also must be aware of
@@ -352,7 +354,7 @@ epochs = mne.Epochs(raw=raw, tmin=epochs_tmin, tmax=epochs_tmax,
                     events=events, event_id=event_id, metadata=metadata,
                     preload=True)
 
-###############################################################################
+# %%
 # Let's do a final sanity check: we want to make sure that in every row, we
 # actually have a stimulus. We use ``epochs.metadata`` (and not ``metadata``)
 # because when creating the epochs, we passed the ``reject`` parameter, and
@@ -361,7 +363,7 @@ epochs = mne.Epochs(raw=raw, tmin=epochs_tmin, tmax=epochs_tmax,
 
 epochs.metadata.loc[epochs.metadata['last_stimulus'].isna(), :]
 
-###############################################################################
+# %%
 # Bummer! It seems the very first two responses were recorded before the
 # first stimulus appeared: the values in the ``stimulus`` column are ``None``.
 # There is a very simple way to select only those epochs that **do** have a
@@ -369,7 +371,7 @@ epochs.metadata.loc[epochs.metadata['last_stimulus'].isna(), :]
 
 epochs = epochs['last_stimulus.notna()']
 
-###############################################################################
+# %%
 # Time to calculate the ERPs for correct  and incorrect responses.
 # For visualization, we'll only look at sensor ``FCz``, which is known to show
 # the ERN nicely in the given paradigm. We'll also create a topoplot to get an
@@ -389,7 +391,7 @@ resp_erp_incorrect.plot_topomap(times=0.05, average=0.05, size=3,
                                 title='Avg. topography 0–100 ms after '
                                       'incorrect responses')
 
-###############################################################################
+# %%
 # We can see a strong negative deflection immediately after incorrect
 # responses, compared to correct responses. The topoplot, too, leaves no doubt:
 # what we're looking at is, in fact, the ERN.
@@ -431,7 +433,7 @@ fig.suptitle('ERN (Difference Wave)', fontweight='bold')
 
 fig
 
-###############################################################################
+# %%
 # References
 # ^^^^^^^^^^
 # .. footbibliography::

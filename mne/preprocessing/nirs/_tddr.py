@@ -1,7 +1,7 @@
 # Authors: Robert Luke <mail@robertluke.net>
 #          Frank Fishburn
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 
 import numpy as np
