@@ -12,14 +12,14 @@ For a comparison of fits between MNE-C and mne-python, see
 
 # %%
 
-from os import path as op
+import os.path as op
 import numpy as np
 import matplotlib.pyplot as plt
 
 import mne
 from mne.forward import make_forward_dipole
 from mne.evoked import combine_evoked
-from mne.label import find_pos_in_annot
+from mne.label import find_pos_in_aseg
 from mne.simulation import simulate_evoked
 
 from nilearn.plotting import plot_anat
@@ -63,9 +63,9 @@ mri_pos = mne.head_to_mri(dip.pos, mri_head_t=trans,
 # In the meantime let's find an anatomical label for the best fitted dipole
 best_dip_id = dip.gof.argmax()
 best_dip_mri_pos = mri_pos[best_dip_id]
-label = find_pos_in_annot(best_dip_mri_pos, subject=subject,
-                          subjects_dir=subjects_dir,
-                          annot='aparc.a2009s+aseg')
+label = find_pos_in_aseg(best_dip_mri_pos[np.newaxis], subject=subject,
+                         subjects_dir=subjects_dir,
+                         aseg='aparc.a2009s+aseg')[0]
 
 # Draw dipole position on MRI scan and add anatomical label from parcellation
 t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
