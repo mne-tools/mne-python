@@ -5,6 +5,7 @@ import pytest
 import numpy as np
 from numpy.testing import (assert_array_equal, assert_equal, assert_allclose,
                            assert_array_less)
+import itertools
 
 import mne
 from mne.datasets import testing
@@ -22,7 +23,7 @@ from mne.transforms import (invert_transform, _get_trans,
                             rotation3d_align_z_axis, _read_fs_xfm,
                             _write_fs_xfm, _quat_real, _fit_matched_points,
                             _quat_to_euler, _euler_to_quat,
-                            _quat_to_affine, _compute_r2)
+                            _quat_to_affine, _compute_r2, _validate_pipeline)
 from mne.utils import requires_nibabel, requires_dipy
 
 data_path = testing.data_path(download=False)
@@ -537,3 +538,17 @@ def test_volume_registration():
             T1_resampled, T1, reg_affine, sdr_morph)
         r2 = _compute_r2(_get_img_fdata(T1_aligned), _get_img_fdata(T1))
         assert 99.9 < r2
+
+    # check that all orders of the pipeline work
+    for pipeline_len in range(1, 5):
+        for pipeline in itertools.combinations(
+                ('translation', 'rigid', 'affine', 'sdr'), pipeline_len):
+            _validate_pipeline(pipeline)
+            _validate_pipeline(list(pipeline))
+
+    with pytest.raises(ValueError, match='Steps in pipeline are out of order'):
+        _validate_pipeline(('sdr', 'affine'))
+
+    with pytest.raises(ValueError,
+                       match='Steps in pipeline should not be repeated'):
+        _validate_pipeline(('affine', 'affine'))
