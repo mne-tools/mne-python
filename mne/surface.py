@@ -22,7 +22,6 @@ import numpy as np
 from .channels.channels import _get_meg_system
 from .fixes import (_serialize_volume_info, _get_read_geometry, jit,
                     prange, bincount, _get_img_fdata)
-from ._freesurfer import _check_subject_dir
 from .io.constants import FIFF
 from .io.pick import pick_types
 from .parallel import parallel_func
@@ -1793,6 +1792,7 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
     _require_version('nibabel', 'SDR morph', '2.1.0')
     _require_version('dipy', 'SDR morph', '0.10.1')
     from .channels import DigMontage
+    from ._freesurfer import _check_subject_dir
     import nibabel as nib
 
     _validate_type(montage, DigMontage, 'montage')
