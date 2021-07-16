@@ -401,3 +401,5 @@
 .. _Marian Dovgialo: https://github.com/mdovgialo
 
 .. _Pierre-Antoine Bannier: https://github.com/PABannier
+
+.. _Darin Erat Sleiter: https://github.com/dsleiter
