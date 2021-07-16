@@ -374,7 +374,7 @@ class CSP(TransformerMixin, BaseEstimator):
 
         Parameters
         ----------
-        %(info_not_none)s Used for fitting. If not possible, consider using
+        %(info_not_none)s Used for fitting. If not available, consider using
             :func:`mne.create_info`.
         components : float | array of float | None
            The patterns to plot. If None, n_components will be shown.
