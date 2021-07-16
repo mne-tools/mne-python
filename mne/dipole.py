@@ -335,7 +335,6 @@ class Dipole(object):
         -----
         .. versionadded:: 0.24
         """
-
         aseg_img, aseg_data = _get_aseg(aseg, subject, subjects_dir)
         mri_vox_t = np.linalg.inv(aseg_img.header.get_vox2ras_tkr())
 
