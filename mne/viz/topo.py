@@ -14,7 +14,7 @@ from itertools import cycle
 import numpy as np
 
 from ..io.pick import channel_type, pick_types
-from ..utils import _clean_names, warn, _check_option, Bunch
+from ..utils import _clean_names, warn, _check_option, Bunch, fill_doc
 from ..channels.layout import _merge_ch_data, _pair_grad_sensors, find_layout
 from ..defaults import _handle_default
 from .utils import (_check_delayed_ssp, _get_color_list, _draw_proj_checkbox,
@@ -23,6 +23,7 @@ from .utils import (_check_delayed_ssp, _get_color_list, _draw_proj_checkbox,
                     _check_cov, _plot_masked_image)
 
 
+@fill_doc
 def iter_topography(info, layout=None, on_pick=None, fig=None,
                     fig_facecolor='k', axis_facecolor='k',
                     axis_spinecolor='k', layout_scale=None, legend=False):
@@ -36,8 +37,7 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
 
     Parameters
     ----------
-    info : instance of Info
-        The measurement info.
+    %(info_not_none)s
     layout : instance of mne.channels.Layout | None
         The layout to use. If None, layout will be guessed.
     on_pick : callable | None

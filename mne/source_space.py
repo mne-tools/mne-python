@@ -2775,8 +2775,7 @@ def compute_distance_to_sensors(src, info, picks=None, trans=None,
     src : instance of SourceSpaces
         The object with vertex positions for which to compute distances to
         sensors.
-    info : instance of Info
-        Measurement information with sensor positions to which distances shall
+    %(info)s Must contain sensor positions to which distances shall
         be computed.
     %(picks_good_data)s
     %(trans_not_none)s

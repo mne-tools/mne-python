@@ -88,8 +88,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     Attributes
     ----------
-    info : dict
-        Measurement info.
+    %(info_not_none)s
     ch_names : list of str
         List of channels' names.
     nave : int
@@ -837,9 +836,8 @@ class EvokedArray(Evoked):
     ----------
     data : array of shape (n_channels, n_times)
         The channels' evoked response. See notes for proper units of measure.
-    info : instance of Info
-        Info dictionary. Consider using ``create_info`` to populate
-        this structure.
+    %(info_not_none)s Consider using :func:`mne.create_info` to populate this
+        structure.
     tmin : float
         Start time before event. Defaults to 0.
     comment : str

@@ -56,8 +56,7 @@ class Raw(BaseRaw):
 
     Attributes
     ----------
-    info : dict
-        :class:`Measurement info <mne.Info>`.
+    %(info_not_none)s
     ch_names : list of string
         List of channels' names.
     n_times : int

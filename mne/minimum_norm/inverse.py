@@ -1256,8 +1256,7 @@ def apply_inverse_cov(cov, info, inverse_operator, nave=1, lambda2=1 / 9,
     cov : instance of Covariance
         Covariance data, computed on the time segment for which to compute
         source power.
-    info : dict
-        The measurement info to specify the channels to include.
+    %(info_not_none)s Used specify the channels to include.
     inverse_operator : instance of InverseOperator
         Inverse operator.
     nave : int
@@ -1471,9 +1470,8 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
 
     Parameters
     ----------
-    info : dict
-        The measurement info to specify the channels to include.
-        Bad channels in info['bads'] are not used.
+    %(info_not_none)s Used to specify the channels to include.
+        Bad channels in ``info['bads']`` are not used.
     forward : dict
         Forward operator.
     noise_cov : instance of Covariance

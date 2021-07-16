@@ -169,13 +169,13 @@ _second_rules = {
 }
 
 
+@fill_doc
 def channel_type(info, idx):
     """Get channel type.
 
     Parameters
     ----------
-    info : instance of Info
-        A measurement info object.
+    %(info_not_none)s
     idx : int
         Index of channel.
 
@@ -366,6 +366,7 @@ def _check_info_exclude(info, exclude):
     return exclude
 
 
+@fill_doc
 def pick_types(info, meg=False, eeg=False, stim=False, eog=False, ecg=False,
                emg=False, ref_meg='auto', misc=False, resp=False, chpi=False,
                exci=False, ias=False, syst=False, seeg=False, dipole=False,
@@ -375,8 +376,7 @@ def pick_types(info, meg=False, eeg=False, stim=False, eog=False, ecg=False,
 
     Parameters
     ----------
-    info : dict
-        The measurement info.
+    %(info_not_none)s
     meg : bool | str
         If True include MEG channels. If string it can be 'mag', 'grad',
         'planar1' or 'planar2' to select only magnetometers, all gradiometers,
@@ -514,8 +514,7 @@ def pick_info(info, sel=(), copy=True, verbose=None):
 
     Parameters
     ----------
-    info : dict
-        Info structure from evoked or raw data.
+    %(info_not_none)s
     sel : list of int | None
         Indices of channels to include. If None, all channels
         are included.
@@ -759,8 +758,7 @@ def channel_indices_by_type(info, picks=None):
 
     Parameters
     ----------
-    info : instance of Info
-        A measurement info object.
+    %(info_not_none)s
     %(picks_all)s
 
     Returns
@@ -844,13 +842,13 @@ def _mag_grad_dependent(info):
                for ph in info.get('proc_history', []))
 
 
+@fill_doc
 def _contains_ch_type(info, ch_type):
     """Check whether a certain channel type is in an info object.
 
     Parameters
     ----------
-    info : instance of Info
-        The measurement information.
+    %(info_not_none)s
     ch_type : str
         the channel type to be checked for
 
@@ -873,13 +871,13 @@ def _contains_ch_type(info, ch_type):
                for ii in range(info['nchan']))
 
 
+@fill_doc
 def _picks_by_type(info, meg_combined=False, ref_meg=False, exclude='bads'):
     """Get data channel indices as separate list of tuples.
 
     Parameters
     ----------
-    info : instance of mne.measuerment_info.Info
-        The info.
+    %(info_not_none)s
     meg_combined : bool | 'auto'
         Whether to return combined picks for grad and mag.
         Can be 'auto' to choose based on Maxwell filtering status.

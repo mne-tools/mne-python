@@ -57,8 +57,7 @@ class Projection(dict):
 
         Parameters
         ----------
-        info : instance of Info | None
-            The measurement information to use to determine the layout.
+        %(info_not_none)s Used to determine the layout.
         %(proj_topomap_kwargs)s
         %(topomap_sphere_auto)s
         %(topomap_border)s
@@ -650,6 +649,7 @@ def _normalize_proj(info):
                     info['bads'], include_active=True, inplace=True)
 
 
+@fill_doc
 def make_projector_info(info, include_active=True):
     """Make an SSP operator using the measurement info.
 
@@ -657,8 +657,7 @@ def make_projector_info(info, include_active=True):
 
     Parameters
     ----------
-    info : dict
-        Measurement info.
+    %(info_not_none)s
     include_active : bool
         Also include projectors that are already active.
 
@@ -742,8 +741,7 @@ def make_eeg_average_ref_proj(info, activate=True, verbose=None):
 
     Parameters
     ----------
-    info : dict
-        Measurement info.
+    %(info_not_none)s
     activate : bool
         If True projections are activated.
     %(verbose)s
@@ -813,8 +811,7 @@ def setup_proj(info, add_eeg_ref=True, activate=True, verbose=None):
 
     Parameters
     ----------
-    info : dict
-        The measurement info.
+    %(info_not_none)s
     add_eeg_ref : bool
         If True, an EEG average reference will be added (unless one
         already exists).
@@ -826,7 +823,7 @@ def setup_proj(info, add_eeg_ref=True, activate=True, verbose=None):
     -------
     projector : array of shape [n_channels, n_channels]
         The projection operator to apply to the data.
-    info : dict
+    info : mne.Info
         The modified measurement info (Warning: info is modified inplace).
     """
     # Add EEG ref reference proj if necessary

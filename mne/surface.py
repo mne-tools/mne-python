@@ -118,8 +118,7 @@ def get_meg_helmet_surf(info, trans=None, verbose=None):
 
     Parameters
     ----------
-    info : instance of Info
-        Measurement info.
+    %(info_not_none)s
     trans : dict
         The head<->MRI transformation, usually obtained using
         read_trans(). Can be None, in which case the surface will
@@ -1608,9 +1607,7 @@ def dig_mri_distances(info, trans, subject, subjects_dir=None,
 
     Parameters
     ----------
-    info : instance of Info
-        The measurement info that contains the head shape
-        points in ``info['dig']``.
+    %(info_not_none)s Must contain the head shape points in ``info['dig']``.
     trans : str | instance of Transform
         The head<->MRI transform. If str is passed it is the
         path to file on disk.

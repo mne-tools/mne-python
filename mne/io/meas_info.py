@@ -34,7 +34,7 @@ from .proc_history import _read_proc_history, _write_proc_history
 from ..transforms import invert_transform, Transform, _coord_frame_name
 from ..utils import (logger, verbose, warn, object_diff, _validate_type,
                      _stamp_to_dt, _dt_to_stamp, _pl, _is_numeric,
-                     _check_option, _on_missing, _check_on_missing)
+                     _check_option, _on_missing, _check_on_missing, fill_doc)
 from ._digitization import (_format_dig_points, _dig_kind_proper, DigPoint,
                             _dig_kind_rev, _dig_kind_ints, _read_dig_fif)
 from ._digitization import write_dig as _dig_write_dig
@@ -954,8 +954,7 @@ def read_info(fname, verbose=None):
 
     Returns
     -------
-    info : instance of Info
-       Measurement information for the dataset.
+    %(info_not_none)s
     """
     f, tree, _ = fiff_open(fname)
     with f as fid:
@@ -1013,8 +1012,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
 
     Returns
     -------
-    info : instance of Info
-       Info on dataset.
+    %(info_not_none)s
     meas : dict
         Node in tree that contains the info.
     """
@@ -1562,6 +1560,7 @@ def _check_dates(info, prepend_error=''):
                (np.iinfo('>i4').max, 0), meas_date_stamp[0],))
 
 
+@fill_doc
 def write_meas_info(fid, info, data_type=None, reset_range=True):
     """Write measurement info into a file id (from a fif file).
 
@@ -1569,8 +1568,7 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     ----------
     fid : file
         Open file descriptor.
-    info : instance of Info
-        The measurement info structure.
+    %(info_not_none)s
     data_type : int
         The data_type in case it is necessary. Should be 4 (FIFFT_FLOAT),
         5 (FIFFT_DOUBLE), or 16 (FIFFT_DAU_PACK16) for
@@ -1814,6 +1812,7 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     _write_proc_history(fid, info)
 
 
+@fill_doc
 def write_info(fname, info, data_type=None, reset_range=True):
     """Write measurement info in fif file.
 
@@ -1821,8 +1820,7 @@ def write_info(fname, info, data_type=None, reset_range=True):
     ----------
     fname : str
         The name of the file. Should end by -info.fif.
-    info : instance of Info
-        The measurement info structure.
+    %(info_not_none)s
     data_type : int
         The data_type in case it is necessary. Should be 4 (FIFFT_FLOAT),
         5 (FIFFT_DOUBLE), or 16 (FIFFT_DAU_PACK16) for
@@ -2047,8 +2045,7 @@ def create_info(ch_names, sfreq, ch_types='misc', verbose=None):
 
     Returns
     -------
-    info : instance of Info
-        The measurement info.
+    %(info_not_none)s
 
     Notes
     -----
@@ -2201,8 +2198,7 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
 
     Parameters
     ----------
-    info : dict, instance of Info
-        Measurement information for the dataset.
+    %(info_not_none)s
     %(anonymize_info_parameters)s
     %(verbose)s
 
@@ -2351,13 +2347,13 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
     return info
 
 
+@fill_doc
 def _bad_chans_comp(info, ch_names):
     """Check if channel names are consistent with current compensation status.
 
     Parameters
     ----------
-    info : dict, instance of Info
-        Measurement information for the dataset.
+    %(info_not_none)s
 
     ch_names : list of str
         The channel names to check.

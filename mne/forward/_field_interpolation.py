@@ -278,8 +278,7 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
 
     Parameters
     ----------
-    info : instance of Info
-        Measurement info.
+    %(info_not_none)s
     surf : dict
         The surface to map the data to. The required fields are `'rr'`,
         `'nn'`, and `'coord_frame'`. Must be in head coordinates.

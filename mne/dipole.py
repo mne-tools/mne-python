@@ -375,8 +375,7 @@ class DipoleFixed(ShiftTimeMixin):
 
     Parameters
     ----------
-    info : instance of Info
-        The measurement info.
+    %(info_not_none)s
     data : array, shape (n_channels, n_times)
         The dipole data.
     times : array, shape (n_times,)

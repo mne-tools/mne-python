@@ -2289,8 +2289,7 @@ def compute_maxwell_basis(info, origin='auto', int_order=8, ext_order=3,
 
     Parameters
     ----------
-    info : instance of Info
-        The measurement info.
+    %(info_not_none)s
     %(maxwell_origin)s
     %(maxwell_int)s
     %(maxwell_ext)s

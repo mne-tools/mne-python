@@ -1196,8 +1196,7 @@ def rename_channels(info, mapping, allow_duplicates=False, verbose=None):
 
     Parameters
     ----------
-    info : dict
-        Measurement info to modify.
+    %(info_not_none)s Note: modified in place.
     %(rename_channels_mapping_duplicates)s
     %(verbose)s
     """
@@ -1364,6 +1363,7 @@ def _ch_neighbor_adjacency(ch_names, neighbors):
     return ch_adjacency
 
 
+@fill_doc
 def find_ch_adjacency(info, ch_type):
     """Find the adjacency matrix for the given channels.
 
@@ -1373,8 +1373,7 @@ def find_ch_adjacency(info, ch_type):
 
     Parameters
     ----------
-    info : instance of Info
-        The measurement info.
+    %(info_not_none)s
     ch_type : str | None
         The channel type for computing the adjacency matrix. Currently
         supports 'mag', 'grad', 'eeg' and None. If None, the info must contain
@@ -1450,13 +1449,13 @@ def find_ch_adjacency(info, ch_type):
     return _compute_ch_adjacency(info, ch_type)
 
 
+@fill_doc
 def _compute_ch_adjacency(info, ch_type):
     """Compute channel adjacency matrix using Delaunay triangulations.
 
     Parameters
     ----------
-    info : instance of mne.measuerment_info.Info
-        The measurement info.
+    %(info_not_none)s
     ch_type : str
         The channel type for computing the adjacency matrix. Currently
         supports 'mag', 'grad' and 'eeg'.
@@ -1510,13 +1509,13 @@ def _compute_ch_adjacency(info, ch_type):
     return ch_adjacency, ch_names
 
 
+@fill_doc
 def fix_mag_coil_types(info, use_cal=False):
     """Fix magnetometer coil types.
 
     Parameters
     ----------
-    info : dict
-        The info dict to correct. Corrections are done in-place.
+    %(info_not_none)s Corrections are done in-place.
     use_cal : bool
         If True, further refine the check for old coil types by checking
         ``info['chs'][ii]['cal']``.
@@ -1614,6 +1613,7 @@ def _get_ch_info(info):
             has_csd_coils)
 
 
+@fill_doc
 def make_1020_channel_selections(info, midline="z"):
     """Return dict mapping from ROI names to lists of picks for 10/20 setups.
 
@@ -1628,11 +1628,9 @@ def make_1020_channel_selections(info, midline="z"):
 
     Parameters
     ----------
-    info : instance of Info
-        Where to obtain the channel names from. The picks will
-        be in relation to the position in ``info["ch_names"]``. If possible,
-        this lists will be sorted by y value position of the channel locations,
-        i.e., from back to front.
+    %(info_not_none)s Picks will be in relation to the position in
+        ``info["ch_names"]``. If possible, this lists will be sorted by y value
+        position of the channel locations, i.e., from back to front.
     midline : str
         Names ending in any of these characters are stored under the
         ``Midline`` key. Defaults to 'z'. Note that capitalization is ignored.
@@ -1903,10 +1901,8 @@ def read_vectorview_selection(name, fname=None, info=None, verbose=None):
     fname : str
         Filename of the selection file (if ``None``, built-in selections are
         used).
-    info : instance of Info
-        Measurement info file, which will be used to determine the spacing
-        of channel names to return, e.g. ``'MEG 0111'`` for old Neuromag
-        systems and ``'MEG0111'`` for new ones.
+    %(info)s Used to determine the spacing of channel names to return, e.g.
+        ``'MEG 0111'`` for old Neuromag systems and ``'MEG0111'`` for new ones.
     %(verbose)s
 
     Returns
