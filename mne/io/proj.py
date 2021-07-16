@@ -824,7 +824,7 @@ def setup_proj(info, add_eeg_ref=True, activate=True, verbose=None):
     projector : array of shape [n_channels, n_channels]
         The projection operator to apply to the data.
     info : mne.Info
-        The modified measurement info (Warning: info is modified inplace).
+        The modified measurement info.
     """
     # Add EEG ref reference proj if necessary
     if add_eeg_ref and _needs_eeg_average_ref_proj(info):
