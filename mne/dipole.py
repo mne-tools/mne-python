@@ -291,6 +291,53 @@ class Dipole(object):
         return head_to_mni(self.pos, subject, mri_head_t,
                            subjects_dir=subjects_dir, verbose=verbose)
 
+    @fill_doc
+    def pos_in_aseg(self, trans, subject='fsaverage', aseg='aparc+aseg',
+                    subjects_dir=None):
+        """Find an ROI in atlas for given Freesurfer surface RAS coordinates.
+
+        Parameters
+        ----------
+        inst : mne.channels.montage.DigMontage | mne.dipole.Dipole
+            The object with locations to label.
+        %(trans)s
+        %(subject)s
+        %(aseg)s
+        %(subjects_dir)s
+
+        Returns
+        -------
+        labels : list
+            List of anatomical region names from anatomical segmentation atlas.
+
+        Notes
+        -----
+        .. versionadded:: 0.24
+        """
+        _validate_type(inst, (DigMontage, Dipole), 'inst')
+
+        aseg_img, aseg_data = _get_aseg(aseg, subject, subjects_dir)
+
+        # Load freesurface atlas LUT
+        lut_inv = read_freesurfer_lut()[0]
+        lut = {v: k for k, v in lut_inv.items()}
+
+        mri_vox_t = np.linalg.inv(aseg_img.header.get_vox2ras_tkr())
+
+        # Find voxel for dipole position
+        if isinstance(inst, Dipole):
+            if trans is None:
+                raise ValueError('Dipole positions are in the "head" coordinate '
+                                 'frame, `trans` is required to convert to "mri"')
+
+            pos = apply_trans(mri_vox_t, inst.pos)
+
+        pos = np.rint(pos).astype(int)
+
+        # Get voxel value and label from LUT
+        labels = [lut.get(aseg_data[tuple(coord)], 'Unknown') for coord in pos]
+        return labels
+
     def plot_amplitudes(self, color='k', show=True):
         """Plot the dipole amplitudes as a function of time.
 

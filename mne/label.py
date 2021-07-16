@@ -2,7 +2,7 @@
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Denis Engemann <denis.engemann@gmail.com>
 #
-# License: BSD-3-Clause
+# License: BSD (3-clause)
 
 from collections import defaultdict
 from colorsys import hsv_to_rgb, rgb_to_hsv
@@ -13,7 +13,9 @@ import re
 
 import numpy as np
 
-from ._freesurfer import read_freesurfer_lut, _import_nibabel
+from .channels.channels import DigMontage
+from .diploe import Dipole
+from ._freesurfer import read_freesurfer_lut, _get_aseg
 from .morph_map import read_morph_map
 from .parallel import parallel_func, check_n_jobs
 from .source_estimate import (SourceEstimate, VolSourceEstimate,
@@ -2747,50 +2749,62 @@ def select_sources(subject, label, location='center', extent=0.,
 
 
 @fill_doc
-def find_pos_in_annot(pos, subject='fsaverage', annot='aparc+aseg',
-                      subjects_dir=None):
+def find_pos_in_aseg(inst, trans=None, subject='fsaverage', aseg='aparc+aseg',
+                     subjects_dir=None):
     """
-    Find name in atlas for given MRI coordinates.
+    Find an ROI in atlas for given Freesurfer surface RAS coordinates.
 
     Parameters
     ----------
-    pos : ndarray, shape (3,)
-        Vector of x,y,z coordinates in MRI space.
+    inst : mne.channels.montage.DigMontage | mne.dipole.Dipole
+        The object with locations to label.
+    %(trans)s
     %(subject)s
-    annot : str
-        MRI volumetric atlas file name. Do not include the ``.mgz`` suffix.
+    %(aseg)s
     %(subjects_dir)s
 
     Returns
     -------
-    label : str
-        Anatomical region name from atlas.
+    labels : list
+        List of anatomical region names from anatomical segmentation atlas.
 
     Notes
     -----
     .. versionadded:: 0.24
     """
-    pos = np.asarray(pos, float)
-    if pos.shape != (3,):
-        raise ValueError(
-            'pos must be an array of shape (3,), ' f'got {pos.shape}')
+    _validate_type(inst, (DigMontage, Dipole), 'inst')
 
-    nibabel = _import_nibabel('read MRI parcellations')
-    if subjects_dir is None:
-        subjects_dir = get_subjects_dir(None)
-    atlas_fname = os.path.join(subjects_dir, subject, 'mri', annot + '.mgz')
-    parcellation_img = nibabel.load(atlas_fname)
+    aseg_img, aseg_data = _get_aseg(aseg, subject, subjects_dir)
 
     # Load freesurface atlas LUT
-    lut_inv_dict = read_freesurfer_lut()[0]
-    label_lut = {v: k for k, v in lut_inv_dict.items()}
+    lut_inv = read_freesurfer_lut()[0]
+    lut = {v: k for k, v in lut_inv.items()}
+
+    mri_vox_t = np.linalg.inv(aseg_img.header.get_vox2ras_tkr())
 
     # Find voxel for dipole position
-    mri_vox_t = np.linalg.inv(parcellation_img.header.get_vox2ras_tkr())
-    vox_dip_pos_f = apply_trans(mri_vox_t, pos)
-    vox_dip_pos = np.rint(vox_dip_pos_f).astype(int)
+    if isinstance(inst, Dipole):
+        if trans is None:
+            raise ValueError('Dipole positions are in the "head" coordinate '
+                             'frame, `trans` is required to convert to "mri"')
+        pos = apply_trans(mri_vox_t, inst.pos)
+    else:
+        assert isinstance(inst, DigMontage)
+        ch_dict = inst.get_positions()
+        if ch_dict['coord_frame'] not in ('head', 'mri'):
+            raise RuntimeError(
+                'Coordinate frame not supported, expected "head" or "mri", '
+                'got ' + str(ch_dict['coord_frame']))
+        pos = np.array(list(ch_dict['ch_pos'].values()))
+        if ch_dict['coord_frame']:
+            if trans is None:
+                raise ValueError('`trans` must be provided for montages in '
+                                 'the head coordinate frame')
+            pos = apply_trans(trans, pos)
+        pos = apply_trans(mri_vox_t, inst.pos)
+
+    pos = np.rint(pos).astype(int)
 
     # Get voxel value and label from LUT
-    vol_values = parcellation_img.get_fdata()[tuple(vox_dip_pos.T)]
-    label = label_lut.get(vol_values, 'Unknown')
-    return label
+    labels = [lut.get(aseg_data[tuple(coord)], 'Unknown') for coord in pos]
+    return labels

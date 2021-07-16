@@ -1,6 +1,6 @@
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD-3-Clause
+# License: BSD (3-clause)
 
 from contextlib import nullcontext
 import glob
@@ -24,7 +24,7 @@ from mne import (read_label, stc_to_label, read_source_estimate,
                  read_surface, random_parcellation, morph_labels,
                  labels_to_stc)
 from mne.label import (Label, _blend_colors, label_sign_flip, _load_vert_pos,
-                       select_sources, find_pos_in_annot, _n_colors,
+                       select_sources, find_pos_in_aseg, _n_colors,
                        _read_annot, _read_annot_cands)
 from mne.source_space import SourceSpaces
 from mne.source_estimate import mesh_edges
@@ -1026,18 +1026,13 @@ def test_select_sources():
 
 @testing.requires_testing_data
 @requires_nibabel()
-def test_find_pos_in_annot():
+def test_find_pos_in_aseg():
     """Test searching for atlas name for given MRI position."""
-    pos = np.array([-62.15634172, -10.62938523, -1.16026239])
+    pos = np.array([[-62.15634172, -10.62938523, -1.16026239]])
     target_label = 'Left-Cerebral-Cortex'
 
-    subjects_dir_test = os.path.join(testing.data_path(),
-                                     'subjects')
-
-    label = find_pos_in_annot(pos, subject='fsaverage',
-                              annot="aseg",
-                              subjects_dir=subjects_dir_test,
-                              )
+    label = find_pos_in_aseg(pos, subject='fsaverage',
+                             aseg="aseg", subjects_dir=subjects_dir)[0]
     assert label == target_label
 
 
