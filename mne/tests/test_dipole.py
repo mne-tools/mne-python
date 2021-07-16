@@ -1,3 +1,7 @@
+# Author: Eric Larson <larson.eric.d@gmail.com>
+#
+# License: BSD (3-clause)
+
 import os
 import os.path as op
 

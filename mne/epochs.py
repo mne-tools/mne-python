@@ -36,7 +36,7 @@ from .io.pick import (channel_indices_by_type, channel_type,
                       pick_channels, pick_info, _pick_data_channels,
                       _DATA_CH_TYPES_SPLIT, _picks_to_idx)
 from .io.proj import setup_proj, ProjMixin
-from .io.base import BaseRaw, TimeMixin
+from .io.base import BaseRaw, TimeMixin, _get_ch_factors
 from .bem import _check_origin
 from .evoked import EvokedArray, _check_decim
 from .baseline import rescale, _log_rescale, _check_baseline
@@ -1325,7 +1325,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         return epoch
 
     @verbose
-    def _get_data(self, out=True, picks=None, item=None, verbose=None):
+    def _get_data(self, out=True, picks=None, item=None, *, units=None,
+                  verbose=None):
         """Load all data, dropping bad epochs along the way.
 
         Parameters
@@ -1334,6 +1335,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             Return the data. Setting this to False is used to reject bad
             epochs without caching all the data, which saves memory.
         %(picks_all)s
+        item : slice | array-like | str | list | None
+            See docstring of get_data method.
+        %(units)s
         %(verbose_meth)s
         """
         if item is None:
@@ -1355,16 +1359,28 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             logger.info('Loading data for %s events and %s original time '
                         'points ...' % (n_events, len(self._raw_times)))
 
+        orig_picks = picks
+        if orig_picks is None:
+            picks = _picks_to_idx(self.info, picks, "all", exclude=())
+        else:
+            picks = _picks_to_idx(self.info, picks)
+
+        # handle units param only if we are going to return data (out==True)
+        # else, we don't scale (scaling is vector of ones)
+        ch_factors = np.ones(len(picks))
+        if (units is not None) and out:
+            ch_factors = _get_ch_factors(self, units, picks)
+
         if self._bad_dropped:
             if not out:
                 return
             if self.preload:
                 data = data[select]
-                if picks is None:
-                    return data
-                else:
-                    picks = _picks_to_idx(self.info, picks)
-                    return data[:, picks]
+                if orig_picks is not None:
+                    data = data[:, picks]
+                if units is not None:
+                    data *= ch_factors[:, np.newaxis]
+                return data
 
             # we need to load from disk, drop, and return data
             detrend_picks = self._detrend_picks
@@ -1443,11 +1459,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                           select_data=False)
 
         if out:
-            if picks is None:
-                return data
-            else:
-                picks = _picks_to_idx(self.info, picks)
-                return data[:, picks]
+            if orig_picks is not None:
+                data = data[:, picks]
+            if units is not None:
+                data *= ch_factors[:, np.newaxis]
+            return data
         else:
             return None
 
@@ -1460,7 +1476,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             return []
 
     @fill_doc
-    def get_data(self, picks=None, item=None):
+    def get_data(self, picks=None, item=None, units=None):
         """Get all epochs as a 3D array.
 
         Parameters
@@ -1474,13 +1490,16 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             None (default) is an alias for ``slice(None)``.
 
             .. versionadded:: 0.20
+        %(units)s
+
+            .. versionadded:: 0.24
 
         Returns
         -------
         data : array of shape (n_epochs, n_channels, n_times)
             A view on epochs data.
         """
-        return self._get_data(picks=picks, item=item)
+        return self._get_data(picks=picks, item=item, units=units)
 
     @verbose
     def apply_function(self, fun, picks=None, dtype=None, n_jobs=1,
@@ -3268,7 +3287,7 @@ def add_channels_epochs(epochs_list, verbose=None):
         raise ValueError('All epochs must be preloaded.')
 
     info = _merge_info([epochs.info for epochs in epochs_list])
-    data = [epochs.get_data() for epochs in epochs_list]
+    data = [epochs._data for epochs in epochs_list]
     _check_merge_epochs(epochs_list)
     for d in data:
         if len(d) != len(data[0]):
@@ -3304,18 +3323,6 @@ def add_channels_epochs(epochs_list, verbose=None):
     return epochs
 
 
-def _update_offset(offset, events, shift):
-    if offset == 0:
-        return offset
-    offset = 0 if offset is None else offset
-    offset = np.int64(offset) + np.max(events[:, 0]) + shift
-    if offset > INT32_MAX:
-        warn(f'Event number greater than {INT32_MAX} created, events[:, 0] '
-             'will be assigned consecutive increasing integer values')
-        offset = 0
-    return offset
-
-
 def _concatenate_epochs(epochs_list, with_data=True, add_offset=True, *,
                         on_mismatch='raise'):
     """Auxiliary function for concatenating epochs."""
@@ -3341,7 +3348,8 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True, *,
     selection = out.selection
     # offset is the last epoch + tmax + 10 second
     shift = int((10 + tmax) * out.info['sfreq'])
-    events_offset = _update_offset(None, out.events, shift)
+    events_offset = 0
+    events_number_overflow = False
     for ii, epochs in enumerate(epochs_list[1:], 1):
         _ensure_infos_match(epochs.info, info, f'epochs[{ii}]',
                             on_mismatch=on_mismatch)
@@ -3365,11 +3373,19 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True, *,
             epochs.drop_bad()
             offsets.append(len(epochs))
         evs = epochs.events.copy()
-        # add offset
-        if add_offset:
-            evs[:, 0] += events_offset
-        # Update offset for the next iteration.
-        events_offset = _update_offset(events_offset, epochs.events, shift)
+        if len(epochs.events) == 0:
+            warn('One of the Epochs objects to concatenate was empty.')
+        elif add_offset:
+            # We need to cast to a native Python int here to prevent an
+            # overflow of a numpy int32 or int64 type.
+            events_offset += int(np.max(evs[:, 0])) + shift
+            if events_offset > INT32_MAX:
+                warn(f'Event number greater than {INT32_MAX} created, '
+                     'events[:, 0] will be assigned consecutive increasing '
+                     'integer values')
+                events_number_overflow = True
+            else:
+                evs[:, 0] += events_offset
         events.append(evs)
         selection = np.concatenate((selection, epochs.selection))
         drop_log = drop_log + epochs.drop_log
@@ -3377,7 +3393,7 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True, *,
         metadata.append(epochs.metadata)
     events = np.concatenate(events, axis=0)
     # check to see if we exceeded our maximum event offset
-    if events_offset == 0:
+    if events_number_overflow:
         events[:, 0] = np.arange(1, len(events) + 1)
 
     # Create metadata object (or make it None)

@@ -34,7 +34,7 @@ from .._3d import _process_clim, _handle_time, _check_views
 from ...externals.decorator import decorator
 from ...defaults import _handle_default
 from ..._freesurfer import vertex_to_mni, read_talxfm
-from ...surface import mesh_edges
+from ...surface import mesh_edges, _mesh_borders
 from ...source_space import SourceSpaces
 from ...transforms import apply_trans, invert_transform
 from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
@@ -2257,9 +2257,6 @@ class Brain(object):
         if scalar_thresh is not None:
             ids = ids[scalars >= scalar_thresh]
 
-        scalars = np.zeros(self.geo[hemi].coords.shape[0])
-        scalars[ids] = 1
-
         if self.time_viewer and self.show_traces \
                 and self.traces_mode == 'label':
             stc = self._data["stc"]
@@ -2279,26 +2276,23 @@ class Brain(object):
         cmap = np.array([(0, 0, 0, 0,), color])
         ctable = np.round(cmap * 255).astype(np.uint8)
 
+        scalars = np.zeros(self.geo[hemi].coords.shape[0])
+        scalars[ids] = 1
+        if borders:
+            keep_idx = _mesh_borders(self.geo[hemi].faces, scalars)
+            show = np.zeros(scalars.size, dtype=np.int64)
+            if isinstance(borders, int):
+                for _ in range(borders):
+                    keep_idx = np.in1d(
+                        self.geo[hemi].faces.ravel(), keep_idx)
+                    keep_idx.shape = self.geo[hemi].faces.shape
+                    keep_idx = self.geo[hemi].faces[np.any(
+                        keep_idx, axis=1)]
+                    keep_idx = np.unique(keep_idx)
+            show[keep_idx] = 1
+            scalars *= show
         for ri, ci, v in self._iter_views(hemi):
             self._renderer.subplot(ri, ci)
-            if borders:
-                n_vertices = scalars.size
-                edges = mesh_edges(self.geo[hemi].faces)
-                edges = edges.tocoo()
-                border_edges = scalars[edges.row] != scalars[edges.col]
-                show = np.zeros(n_vertices, dtype=np.int64)
-                keep_idx = np.unique(edges.row[border_edges])
-                if isinstance(borders, int):
-                    for _ in range(borders):
-                        keep_idx = np.in1d(
-                            self.geo[hemi].faces.ravel(), keep_idx)
-                        keep_idx.shape = self.geo[hemi].faces.shape
-                        keep_idx = self.geo[hemi].faces[np.any(
-                            keep_idx, axis=1)]
-                        keep_idx = np.unique(keep_idx)
-                show[keep_idx] = 1
-                scalars *= show
-
             mesh = self._layered_meshes[hemi]
             mesh.add_overlay(
                 scalars=scalars,
@@ -2647,6 +2641,7 @@ class Brain(object):
         screenshot : array
             Image pixel values.
         """
+        n_channels = 3 if mode == 'rgb' else 4
         img = self._renderer.screenshot(mode)
         logger.debug(f'Got screenshot of size {img.shape}')
         if time_viewer and self.time_viewer and \
@@ -2678,11 +2673,12 @@ class Brain(object):
                 fig.savefig(output, dpi=dpi, format='png',
                             facecolor=self._bg_color, edgecolor='none')
                 output.seek(0)
-                trace_img = imread(output, format='png')[:, :, :3]
+                trace_img = imread(output, format='png')[:, :, :n_channels]
                 trace_img = np.clip(
                     np.round(trace_img * 255), 0, 255).astype(np.uint8)
-            bgcolor = np.array(self._brain_color[:3]) / 255
-            img = concatenate_images([img, trace_img], bgcolor=bgcolor)
+            bgcolor = np.array(self._brain_color[:n_channels]) / 255
+            img = concatenate_images([img, trace_img], bgcolor=bgcolor,
+                                     n_channels=n_channels)
         return img
 
     @contextlib.contextmanager

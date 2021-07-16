@@ -30,6 +30,20 @@ raw_fname = op.join(base_dir, 'test_raw.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
 
 
+def test_get_data():
+    """Test the get_data method for Evoked."""
+    evoked = read_evokeds(fname, 0)
+    d1 = evoked.get_data()
+    d2 = evoked.data
+    np.testing.assert_array_equal(d1, d2)
+
+    eeg_idxs = np.array([i == "eeg" for i in evoked.get_channel_types()])
+    np.testing.assert_array_equal(
+        evoked.data[eeg_idxs],
+        evoked.get_data(picks="eeg")
+    )
+
+
 def test_decim():
     """Test evoked decimation."""
     rng = np.random.RandomState(0)

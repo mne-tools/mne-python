@@ -257,7 +257,7 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
 def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
                    bandwidth=None, adaptive=False, low_bias=True,
                    normalization='length', picks=None, proj=False,
-                   n_jobs=1, verbose=None):
+                   n_jobs=1, reject_by_annotation=False, verbose=None):
     """Compute the power spectral density (PSD) using multitapers.
 
     Calculates spectral density for orthogonal tapers, then averages them
@@ -294,6 +294,7 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     proj : bool
         Apply SSP projection vectors. If inst is ndarray this is not used.
     %(n_jobs)s
+    %(reject_by_annotation_raw)s
     %(verbose)s
 
     Returns
@@ -322,7 +323,8 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     .. footbibliography::
     """
     # Prep data
-    data, sfreq = _check_psd_data(inst, tmin, tmax, picks, proj)
+    data, sfreq = _check_psd_data(inst, tmin, tmax, picks, proj,
+                                  reject_by_annotation=reject_by_annotation)
     return psd_array_multitaper(data, sfreq, fmin=fmin, fmax=fmax,
                                 bandwidth=bandwidth, adaptive=adaptive,
                                 low_bias=low_bias, normalization=normalization,
