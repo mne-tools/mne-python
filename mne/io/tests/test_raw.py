@@ -705,3 +705,42 @@ def test_repr_dig_point():
                   kind=FIFF.FIFFV_POINT_CARDINAL, ident=0)
     assert 'mm' not in repr(dp)
     assert 'voxel' in repr(dp)
+
+
+def test_get_data_tmin_tmax():
+    """Test tmin and tmax parameters of get_data method."""
+    fname = Path(__file__).parent / "data" / "test_raw.fif"
+    raw = read_raw_fif(fname)
+
+    # tmin and tmax just use time_as_index under the hood
+    tmin, tmax = (1, 9)
+    d1 = raw.get_data()
+    d2 = raw.get_data(tmin=tmin, tmax=tmax)
+
+    idxs = raw.time_as_index([tmin, tmax])
+    assert_allclose(d1[:, idxs[0]:idxs[1]], d2)
+
+    # specifying a too low tmin truncates to idx 0
+    d3 = raw.get_data(tmin=-5)
+    assert_allclose(d3, d1)
+
+    # specifying a too high tmax truncates to idx n_times
+    d4 = raw.get_data(tmax=1e6)
+    assert_allclose(d4, d1)
+
+    # when start/stop are passed, tmin/tmax are ignored
+    d5 = raw.get_data(start=1, stop=2, tmin=tmin, tmax=tmax)
+    assert d5.shape[1] == 1
+
+    # validate inputs are properly raised
+    with pytest.raises(TypeError, match='start must be .* int'):
+        raw.get_data(start=None)
+
+    with pytest.raises(TypeError, match='stop must be .* int'):
+        raw.get_data(stop=2.3)
+
+    with pytest.raises(TypeError, match='tmin must be .* float'):
+        raw.get_data(tmin=[1, 2])
+
+    with pytest.raises(TypeError, match='tmax must be .* float'):
+        raw.get_data(tmax=[1, 2])

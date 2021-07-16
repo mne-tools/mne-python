@@ -43,6 +43,20 @@ def test_get_data():
         evoked.get_data(picks="eeg")
     )
 
+    # Get a specific time window using tmin and tmax
+    d3 = evoked.get_data(tmin=0)
+    assert np.all(d3.shape[1] ==
+                  evoked.data.shape[1] -
+                  np.nonzero(evoked.times == 0)[0])
+
+    assert evoked.get_data(tmin=0, tmax=0).size == 0
+
+    with pytest.raises(TypeError, match='tmin .* float, None'):
+        evoked.get_data(tmin=[1], tmax=1)
+
+    with pytest.raises(TypeError, match='tmax .* float, None'):
+        evoked.get_data(tmin=1, tmax=np.ones(5))
+
 
 def test_decim():
     """Test evoked decimation."""
