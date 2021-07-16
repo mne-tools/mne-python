@@ -20,9 +20,10 @@ from .io.proj import make_projector, _needs_eeg_average_ref_proj
 from .bem import _fit_sphere
 from .evoked import _read_evoked, _aspect_rev, _write_evokeds
 from .fixes import pinvh
+from ._freesurfer import read_freesurfer_lut, _get_aseg
 from .transforms import _print_coord_trans, _coord_frame_name, apply_trans
 from .viz.evoked import _plot_evoked
-from ._freesurfer import head_to_mni
+from ._freesurfer import head_to_mni, head_to_mri
 from .forward._make_forward import (_get_trans, _setup_bem,
                                     _prep_meg_channels, _prep_eeg_channels)
 from .forward._compute_forward import (_compute_forwards_meeg,
@@ -273,7 +274,7 @@ class Dipole(object):
     @verbose
     def to_mni(self, subject, trans, subjects_dir=None,
                verbose=None):
-        """Convert dipole location from head coordinate system to MNI coordinates.
+        """Convert dipole location from head to MNI coordinates.
 
         Parameters
         ----------
@@ -291,19 +292,39 @@ class Dipole(object):
         return head_to_mni(self.pos, subject, mri_head_t,
                            subjects_dir=subjects_dir, verbose=verbose)
 
-    @fill_doc
-    def pos_in_aseg(self, trans, subject='fsaverage', aseg='aparc+aseg',
-                    subjects_dir=None):
-        """Find an ROI in atlas for given Freesurfer surface RAS coordinates.
+    @verbose
+    def to_mri(self, subject, trans, subjects_dir=None,
+               verbose=None):
+        """Convert dipole location from head to MNI coordinates.
 
         Parameters
         ----------
-        inst : mne.channels.montage.DigMontage | mne.dipole.Dipole
-            The object with locations to label.
+        %(subject)s
+        %(trans_not_none)s
+        %(subjects_dir)s
+        %(verbose)s
+
+        Returns
+        -------
+        pos_mri : array, shape (n_pos, 3)
+            The Freesurfer surface RAS coordinates (in mm) of pos.
+        """
+        mri_head_t, trans = _get_trans(trans)
+        return head_to_mri(self.pos, subject, mri_head_t,
+                           subjects_dir=subjects_dir, verbose=verbose)
+
+    @verbose
+    def to_aseg_labels(self, trans, subject='fsaverage', aseg='aparc+aseg',
+                       subjects_dir=None, verbose=None):
+        """Find an ROI in atlas for the dipole positions.
+
+        Parameters
+        ----------
         %(trans)s
         %(subject)s
         %(aseg)s
         %(subjects_dir)s
+        %(verbose)s
 
         Returns
         -------
@@ -314,24 +335,18 @@ class Dipole(object):
         -----
         .. versionadded:: 0.24
         """
-        _validate_type(inst, (DigMontage, Dipole), 'inst')
 
         aseg_img, aseg_data = _get_aseg(aseg, subject, subjects_dir)
+        mri_vox_t = np.linalg.inv(aseg_img.header.get_vox2ras_tkr())
 
         # Load freesurface atlas LUT
         lut_inv = read_freesurfer_lut()[0]
         lut = {v: k for k, v in lut_inv.items()}
 
-        mri_vox_t = np.linalg.inv(aseg_img.header.get_vox2ras_tkr())
-
-        # Find voxel for dipole position
-        if isinstance(inst, Dipole):
-            if trans is None:
-                raise ValueError('Dipole positions are in the "head" coordinate '
-                                 'frame, `trans` is required to convert to "mri"')
-
-            pos = apply_trans(mri_vox_t, inst.pos)
-
+        # transform to voxel space from head space
+        pos = self.to_mri(subject, trans, subjects_dir=subjects_dir,
+                          verbose=verbose)
+        pos = apply_trans(mri_vox_t, pos)
         pos = np.rint(pos).astype(int)
 
         # Get voxel value and label from LUT

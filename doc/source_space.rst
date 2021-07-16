@@ -38,4 +38,3 @@ Source Space Data
    write_labels_to_annot
    write_label
    source_space.compute_distance_to_sensors
-   label.find_pos_in_annot

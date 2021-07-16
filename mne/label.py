@@ -13,9 +13,6 @@ import re
 
 import numpy as np
 
-from .channels.channels import DigMontage
-from .diploe import Dipole
-from ._freesurfer import read_freesurfer_lut, _get_aseg
 from .morph_map import read_morph_map
 from .parallel import parallel_func, check_n_jobs
 from .source_estimate import (SourceEstimate, VolSourceEstimate,
@@ -26,7 +23,6 @@ from .source_space import (add_source_space_distances, SourceSpaces,
 from .stats.cluster_level import _find_clusters, _get_components
 from .surface import (complete_surface_info, read_surface, fast_cross_3d,
                       _mesh_borders, mesh_edges, mesh_dist)
-from .transforms import apply_trans
 from .utils import (get_subjects_dir, _check_subject, logger, verbose, warn,
                     check_random_state, _validate_type, fill_doc,
                     _check_option, check_version, _check_fname)
@@ -2746,65 +2742,3 @@ def select_sources(subject, label, location='center', extent=0.,
                           hemi=new_label.hemi, name=name, subject=subject)
 
     return new_label
-
-
-@fill_doc
-def find_pos_in_aseg(inst, trans=None, subject='fsaverage', aseg='aparc+aseg',
-                     subjects_dir=None):
-    """
-    Find an ROI in atlas for given Freesurfer surface RAS coordinates.
-
-    Parameters
-    ----------
-    inst : mne.channels.montage.DigMontage | mne.dipole.Dipole
-        The object with locations to label.
-    %(trans)s
-    %(subject)s
-    %(aseg)s
-    %(subjects_dir)s
-
-    Returns
-    -------
-    labels : list
-        List of anatomical region names from anatomical segmentation atlas.
-
-    Notes
-    -----
-    .. versionadded:: 0.24
-    """
-    _validate_type(inst, (DigMontage, Dipole), 'inst')
-
-    aseg_img, aseg_data = _get_aseg(aseg, subject, subjects_dir)
-
-    # Load freesurface atlas LUT
-    lut_inv = read_freesurfer_lut()[0]
-    lut = {v: k for k, v in lut_inv.items()}
-
-    mri_vox_t = np.linalg.inv(aseg_img.header.get_vox2ras_tkr())
-
-    # Find voxel for dipole position
-    if isinstance(inst, Dipole):
-        if trans is None:
-            raise ValueError('Dipole positions are in the "head" coordinate '
-                             'frame, `trans` is required to convert to "mri"')
-        pos = apply_trans(mri_vox_t, inst.pos)
-    else:
-        assert isinstance(inst, DigMontage)
-        ch_dict = inst.get_positions()
-        if ch_dict['coord_frame'] not in ('head', 'mri'):
-            raise RuntimeError(
-                'Coordinate frame not supported, expected "head" or "mri", '
-                'got ' + str(ch_dict['coord_frame']))
-        pos = np.array(list(ch_dict['ch_pos'].values()))
-        if ch_dict['coord_frame']:
-            if trans is None:
-                raise ValueError('`trans` must be provided for montages in '
-                                 'the head coordinate frame')
-            pos = apply_trans(trans, pos)
-        pos = apply_trans(mri_vox_t, inst.pos)
-
-    pos = np.rint(pos).astype(int)
-
-    # Get voxel value and label from LUT
-    labels = [lut.get(aseg_data[tuple(coord)], 'Unknown') for coord in pos]
-    return labels

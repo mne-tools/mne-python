@@ -19,7 +19,6 @@ import matplotlib.pyplot as plt
 import mne
 from mne.forward import make_forward_dipole
 from mne.evoked import combine_evoked
-from mne.label import find_pos_in_aseg
 from mne.simulation import simulate_evoked
 
 from nilearn.plotting import plot_anat
@@ -52,20 +51,18 @@ dip.plot_locations(fname_trans, 'sample', subjects_dir, mode='orthoview')
 # Plot the result in 3D brain with the MRI image using Nilearn
 # In MRI coordinates and in MNI coordinates (template brain)
 
-trans = mne.read_trans(fname_trans)
 subject = 'sample'
-mni_pos = mne.head_to_mni(dip.pos, mri_head_t=trans,
-                          subject=subject, subjects_dir=subjects_dir)
+mni_pos = dip.to_mni(subject=subject, trans=fname_trans,
+                     subjects_dir=subjects_dir)
 
-mri_pos = mne.head_to_mri(dip.pos, mri_head_t=trans,
-                          subject=subject, subjects_dir=subjects_dir)
+mri_pos = dip.to_mri(subject=subject, trans=fname_trans,
+                     subjects_dir=subjects_dir)
 
-# In the meantime let's find an anatomical label for the best fitted dipole
-best_dip_id = dip.gof.argmax()
-best_dip_mri_pos = mri_pos[best_dip_id]
-label = find_pos_in_aseg(best_dip_mri_pos[np.newaxis], subject=subject,
-                         subjects_dir=subjects_dir,
-                         aseg='aparc.a2009s+aseg')[0]
+# Find an anatomical label for the best fitted dipole
+best_dip_idx = dip.gof.argmax()
+label = dip.to_aseg_labels(fname_trans, subject=subject,
+                           subjects_dir=subjects_dir,
+                           aseg='aparc.a2009s+aseg')[best_dip_idx]
 
 # Draw dipole position on MRI scan and add anatomical label from parcellation
 t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
