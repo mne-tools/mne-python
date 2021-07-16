@@ -1268,13 +1268,11 @@ class Coregistration(object):
     """
 
     def __init__(self, info, subject, subjects_dir):
-        self._default_parameters = [0., 0., 0., 0., 0., 0., 1., 1., 1.]
-        self._parameters = list(self._default_parameters)
-        self._last_parameters = list(self._default_parameters)
-
         self._rot_trans = None
+        self._default_parameters = \
+            np.array([0., 0., 0., 0., 0., 0., 1., 1., 1.])
         self._n_scale_params = (0, 1, 3)
-        self._n_scale_param = self._n_scale_params[0]
+
         self._coord_frames = ('mri', 'head')
         self._coord_frame = self._coord_frames[0]
         self._icp_iterations = 20
@@ -1283,7 +1281,6 @@ class Coregistration(object):
         self._icp_scale = 0.2
         self._icp_fid_matches = ('nearest', 'matched')
         self._icp_fid_match = self._icp_fid_matches[0]
-        self._grow_hair = 0.
         self._lpa_weight = 1.
         self._nasion_weight = 10.
         self._rpa_weight = 1.
@@ -1294,43 +1291,52 @@ class Coregistration(object):
         self._dig = _DigSource(info)
         self._mri = _MRIHeadWithFiducialsModel(subjects_dir=subjects_dir,
                                                subject=subject)
+        self.reset()
         self._nearest_calc = self._nearest_calc_default()
 
-    def _update_params(self, params):
+    def _update_params(self, rot=None, tra=None, sca=None):
         rot_changed = False
-        if self._rot_trans is None or params[:3] != self._parameters[:3]:
+        if self._rot_trans is None or rotation is not None:
             rot_changed = True
-            self._last_parameters[:3] = self._parameters[:3]
-            self._parameters[:3] = params[:3]
-            self._rot_trans = rotation(*params[:3]).T
+            self._last_rotation = self._rotation
+            self._rotation = rot
+            self._rot_trans = rotation(*rot).T
         tra_changed = False
-        if rot_changed or params[3:6] != self._parameters[3:6]:
+        if rot_changed or tra is not None:
             tra_changed = True
-            self._last_parameters[3:6] = self._parameters[3:6]
-            self._parameters[3:6] = params[3:6]
+            self._last_translation = self._translation
+            self._translation = tra
             self._head_mri_t = self._rot_trans.copy()
             self._head_mri_t[:3, 3] = \
-                -np.dot(self._head_mri_t[:3, :3], params[3:6])
+                -np.dot(self._head_mri_t[:3, :3], tra)
             self._mri_head_t = self._rot_trans.copy()
-            self._mri_head_t[:3, 3] = np.array(params[3:6])
-        if tra_changed or params[6:9] != self._parameters[6:9]:
-            self._last_parameters[6:9] = self._parameters[6:9]
-            self._parameters[6:9] = params[6:9]
+            self._mri_head_t[:3, 3] = np.array(tra)
+        if tra_changed or sca is not None:
+            sca = self._scale if sca is None else sca
+            self._last_scale = self._scale
+            self._scale = sca
             if self._coord_frame == 'head':
                 self._mri_trans = self._mri_head_t.copy()
             else:
                 self._mri_trans = np.eye(4)
-            self._mri_trans[:, :3] *= params[6:9]
+            self._mri_trans[:, :3] *= sca
+
+    @property
+    def _parameters(self):
+        return np.concatenate((self._rotation, self._translation, self._scale))
+
+    @property
+    def _last_parameters(self):
+        return np.concatenate((self._last_rotation,
+                               self._last_translation, self._last_scale))
 
     @property
     def _changes(self):
-        new = np.array(self._parameters, float)
-        old = np.array(self._last_parameters, float)
-        move = np.linalg.norm(old[3:6] - new[3:6]) * 1e3
+        move = np.linalg.norm(self._last_translation - self._translation) * 1e3
         angle = np.rad2deg(_angle_between_quats(
-            rot_to_quat(rotation(*new[:3])[:3, :3]),
-            rot_to_quat(rotation(*old[:3])[:3, :3])))
-        percs = 100 * (new[6:] - old[6:]) / old[6:]
+            rot_to_quat(rotation(*self._rotation)[:3, :3]),
+            rot_to_quat(rotation(*self._last_rotation)[:3, :3])))
+        percs = 100 * (self._scale - self._last_scale) / self._last_scale
         return move, angle, percs
 
     @property
@@ -1411,7 +1417,7 @@ class Coregistration(object):
 
     def _nearest_calc_default(self):
         return _DistanceQuery(
-            self._processed_high_res_mri_points * self._parameters[6:9])
+            self._processed_high_res_mri_points * self._scale)
 
     @property
     def _nearest_transformed_high_res_mri_idx_hsp(self):
@@ -1431,7 +1437,7 @@ class Coregistration(object):
         if self._grow_hair:
             if len(bem.surf.nn):
                 scaled_hair_dist = (1e-3 * self._grow_hair /
-                                    np.array(self._parameters[6:9]))
+                                    np.array(self._scale))
                 points = bem.surf.rr.copy()
                 hair = points[:, 2] > points[:, 1]
                 points[hair] += bem.surf.nn[hair] * scaled_hair_dist
@@ -1484,16 +1490,15 @@ class Coregistration(object):
         mri_pts = np.vstack((self._mri.lpa, self._mri.nasion, self._mri.rpa))
         weights = [lpa_weight, nasion_weight, rpa_weight]
         if self._n_scale_param == 0:
-            mri_pts *= self._parameters[6:9]  # not done in fit_matched_points
-        x0 = np.array(self._parameters[:6 + self._n_scale_param])
+            mri_pts *= self._scale  # not done in fit_matched_points
+        x0 = self._parameters
+        x0 = x0[:6 + self._n_scale_param]
         est = fit_matched_points(mri_pts, head_pts, x0=x0, out='params',
                                  scale=self._n_scale_param, weights=weights)
         if self._n_scale_param == 0:
-            tmp_est = self._parameters.copy()
-            tmp_est[:6] = est
-            self._update_params(tmp_est)
+            self._update_params(est[:3], est[3:6])
         else:
-            self._update_params(np.concatenate([est, [est[-1]] * 2]))
+            self._update_params(np.concatenate(est, est[-1], est[-1]))
 
     def _setup_icp(self):
         head_pts = list()
@@ -1532,7 +1537,7 @@ class Coregistration(object):
         mri_pts = np.concatenate(mri_pts)
         weights = np.concatenate(weights)
         if self._n_scale_param == 0:
-            mri_pts *= self._parameters[6:9]  # not done in fit_matched_points
+            mri_pts *= self._scale  # not done in fit_matched_points
         return head_pts, mri_pts, weights
 
     def fit_icp(self, n_iterations=20, lpa_weight=1., nasion_weight=10.,
@@ -1555,7 +1560,8 @@ class Coregistration(object):
         self._rpa_weight = rpa_weight
 
         # Initial guess (current state)
-        est = self._parameters[:[6, 7, None, 9][self._n_scale_param]]
+        est = self._parameters
+        est = est[:[6, 7, None, 9][self._n_scale_param]]
 
         # Do the fits, assigning and evaluating at each step
         for _ in range(n_iterations):
@@ -1564,13 +1570,11 @@ class Coregistration(object):
                                      scale=self._n_scale_param,
                                      x0=est, out='params', weights=weights)
             if self._n_scale_param == 0:
-                tmp_est = self._parameters.copy()
-                tmp_est[:6] = est
-                self._update_params(tmp_est)
+                self._update_params(est[:3], est[3:6])
             elif self._n_scale_param == 1:
-                self._update_params(list(est) + [est[-1]] * 2)
+                self._update_params(est, est[-1], est[-1])
             else:
-                self._update_params(est)
+                self._update_params(est[:3], est[3:6], est[6:9])
             angle, move, scale = self._changes
             if angle <= self._icp_angle and move <= self._icp_distance and \
                     all(scale <= self._icp_scale):
@@ -1632,9 +1636,13 @@ class Coregistration(object):
         """Reset all the parameters affecting the coregistration."""
         self._n_scale_param = self._n_scale_params[0]
         self._grow_hair = 0.
-        self._parameters[:] = list(self._default_parameters)
-        self._last_parameters[:] = list(self._default_parameters)
-        self.omit_hsp_points(np.inf)
+        self._rotation = self._default_parameters[:3]
+        self._translation = self._default_parameters[3:6]
+        self._scale = self._default_parameters[6:9]
+        self._last_rotation = self._rotation.copy()
+        self._last_translation = self._translation.copy()
+        self._last_scale = self._scale.copy()
+        self._dig.extra_points_filter = None
 
 
 class _DigSource(object):
