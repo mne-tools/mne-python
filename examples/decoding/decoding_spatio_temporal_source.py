@@ -17,7 +17,7 @@ classifier then is trained to selected features of epochs in source space.
 #         Jean-Remi King <jeanremi.king@gmail.com>
 #         Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 

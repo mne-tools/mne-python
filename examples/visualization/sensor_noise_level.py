@@ -9,7 +9,7 @@ of systems. See :footcite:`KhanCohen2013` for an example.
 """
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 

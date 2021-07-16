@@ -28,7 +28,7 @@ This technique is fully described and validated in :footcite:`HannaEtAl2020`
 """
 # Authors: Jeff Hanna <jeff.hanna@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 

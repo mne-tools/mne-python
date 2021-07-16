@@ -10,7 +10,7 @@ This example shows how to compute and plot source space SNR as in
 # Author: Padma Sundaram <tottochan@gmail.com>
 #         Kaisu Lankinen <klankinen@mgh.harvard.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 

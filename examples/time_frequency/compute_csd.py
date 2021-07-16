@@ -15,7 +15,7 @@ the CSD:
 3. Using Morlet wavelets: :func:`mne.time_frequency.csd_morlet`
 """
 # Author: Marijn van Vliet <w.m.vanvliet@gmail.com>
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 from matplotlib import pyplot as plt

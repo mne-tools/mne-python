@@ -6,7 +6,7 @@ Shifting time-scale in evoked data
 """
 # Author: Mainak Jas <mainak@neuro.hut.fi>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 

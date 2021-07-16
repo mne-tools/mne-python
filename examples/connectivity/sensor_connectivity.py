@@ -10,7 +10,7 @@ are used which produces strong connectvitiy in the right occipital sensors.
 
 # Author: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 

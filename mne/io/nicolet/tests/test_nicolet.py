@@ -1,7 +1,7 @@
 
 # Author: Jaakko Leppakangas <jaeilepp@student.jyu.fi>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 import inspect

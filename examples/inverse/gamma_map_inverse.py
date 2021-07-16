@@ -8,7 +8,7 @@ See :footcite:`WipfNagarajan2009` for details.
 # Author: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #         Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 

@@ -8,7 +8,7 @@ evoked dataset.
 """
 # Author: Annalisa Pascarella <a.pascarella@iac.cnr.it>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 

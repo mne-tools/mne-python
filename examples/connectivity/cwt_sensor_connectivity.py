@@ -10,7 +10,7 @@ domain using Morlet wavelets and the debiased squared weighted phase lag index
 """
 # Author: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 

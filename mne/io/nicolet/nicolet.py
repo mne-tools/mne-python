@@ -1,6 +1,6 @@
 # Author: Jaakko Leppakangas <jaeilepp@student.jyu.fi>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
 from os import path

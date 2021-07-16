@@ -1,6 +1,6 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from numpy.testing import assert_array_equal, assert_allclose
 import numpy as np

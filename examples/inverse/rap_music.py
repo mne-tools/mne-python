@@ -9,7 +9,7 @@ Compute a Recursively Applied and Projected MUltiple Signal Classification
 
 # Author: Yousra Bekhti <yousra.bekhti@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 

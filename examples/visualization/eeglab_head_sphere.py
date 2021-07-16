@@ -14,7 +14,7 @@ layout in MNE.
 """
 # Authors: Mikołaj Magnuski <mmagnuski@swps.edu.pl>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 import numpy as np

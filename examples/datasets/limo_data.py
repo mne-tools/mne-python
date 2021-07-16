@@ -34,7 +34,7 @@ In summary, the example:
 """  # noqa: E501
 # Authors: Jose C. Garcia Alanis <alanis.jcg@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 

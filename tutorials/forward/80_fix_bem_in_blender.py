@@ -23,7 +23,7 @@ Ezequiel Mikulan.
 #          Ezequiel Mikulan <e.mikulan@gmail.com>
 #          Manorama Kadwani <manorama.kadwani@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 

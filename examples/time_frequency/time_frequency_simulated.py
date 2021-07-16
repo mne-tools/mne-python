@@ -13,7 +13,7 @@ trials, or by operating on numpy arrays.
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Chris Holdgraf <choldgraf@berkeley.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 

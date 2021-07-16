@@ -24,7 +24,7 @@ harmonics).
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Richard Höchenberger <richard.hoechenberger@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 

@@ -20,7 +20,7 @@ parcellation from :footcite:`KhanEtAl2018`.
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #         Denis Engemann <denis.engemann@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 

@@ -25,7 +25,7 @@ MNI space, or projection into a volume, see :ref:`tut-working-with-seeg`.
 #          Alex Rockhill <aprockhill@mailbox.org>
 #          Liberty Hamilton <libertyhamilton@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 

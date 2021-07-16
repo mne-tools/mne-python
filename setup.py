@@ -26,7 +26,7 @@ DESCRIPTION = descr
 MAINTAINER = 'Alexandre Gramfort'
 MAINTAINER_EMAIL = 'alexandre.gramfort@inria.fr'
 URL = 'https://mne.tools/dev/'
-LICENSE = 'BSD (3-clause)'
+LICENSE = 'BSD-3-Clause'
 DOWNLOAD_URL = 'http://github.com/mne-tools/mne-python'
 VERSION = version
 

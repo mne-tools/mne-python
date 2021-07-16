@@ -1,7 +1,7 @@
 # Authors: Alexandre Barachant <alexandre.barachant@gmail.com>
 #          Nicolas Barascud <nicolas.barascud@ens.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from datetime import datetime, timezone, timedelta
 import os.path as op

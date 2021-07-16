@@ -11,7 +11,7 @@ how artifact correction techniques attempt to correct the data.
 """
 # Authors: Robert Luke <mail@robertluke.net>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 

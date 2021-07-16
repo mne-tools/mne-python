@@ -15,7 +15,7 @@ See https://en.wikipedia.org/wiki/Common_spatial_pattern and
 """
 # Authors: Martin Billinger <martin.billinger@tugraz.at>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 

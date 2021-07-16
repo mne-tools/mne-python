@@ -30,7 +30,7 @@ seconds of data.
 #          Stanislas Chambon <stan.chambon@gmail.com>
 #          Joan Massich <mailsik@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 

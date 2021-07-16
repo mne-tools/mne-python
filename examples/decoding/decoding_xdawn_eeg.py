@@ -12,7 +12,7 @@ fed into a logistic regression.
 """
 # Authors: Alexandre Barachant <alexandre.barachant@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 

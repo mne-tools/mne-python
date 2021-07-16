@@ -1,6 +1,6 @@
 # Authors: Denis A. Engemann <denis.engemann@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # Parts of this code are taken from scikit-learn
 

@@ -14,7 +14,7 @@ which is ordered based on the locations of the regions in the axial plane.
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Nicolas P. Rougier (graph code borrowed from his matplotlib gallery)
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 

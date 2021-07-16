@@ -20,7 +20,7 @@ electromyogram from MEG beta activity using data from
 # Author: Alexandre Barachant <alexandre.barachant@gmail.com>
 #         Jean-Remi King <jeanremi.king@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 

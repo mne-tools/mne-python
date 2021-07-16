@@ -27,7 +27,7 @@ The specifications of this dataset were discussed initially on the
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Jaakko Leppakangas <jaeilepp@student.jyu.fi>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 

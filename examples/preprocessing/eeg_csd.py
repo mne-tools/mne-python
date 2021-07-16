@@ -12,7 +12,7 @@ or more distinct topography, reducing the negative impact of volume conduction.
 """
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 

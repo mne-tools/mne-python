@@ -19,7 +19,7 @@ on the image.
 """
 # Authors: Christopher Holdgraf <choldgraf@berkeley.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 from scipy.io import loadmat

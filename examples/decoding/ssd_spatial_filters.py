@@ -13,7 +13,7 @@ frequencies.
 """
 # Author: Denis A. Engemann <denis.engemann@gmail.com>
 #         Victoria Peterson <victoriapeterson09@gmail.com>
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 

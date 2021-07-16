@@ -1,6 +1,6 @@
 # Authors: Federico Raimondo <federaimondo@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from collections import OrderedDict
 from datetime import datetime, timezone

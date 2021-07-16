@@ -8,7 +8,7 @@ Visualise PSF and CTF at one vertex for sLORETA.
 # Authors: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 

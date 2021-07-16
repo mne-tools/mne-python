@@ -11,7 +11,7 @@ formed through merging two labels.
 """
 # Author: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 

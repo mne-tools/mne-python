@@ -14,7 +14,7 @@ using dynamic statistical parametric mapping (dSPM) inverse operator.
 #         Kostiantyn Maksymenko <kostiantyn.maksymenko@gmail.com>
 #         Samuel Deslauriers-Gauthier <sam.deslauriers@gmail.com>
 
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 

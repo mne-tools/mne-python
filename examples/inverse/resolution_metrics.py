@@ -11,7 +11,7 @@ namely Figure 3 (peak localisation error for PSFs, L2-MNE vs dSPM) and Figure 4
 """
 # Author: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 

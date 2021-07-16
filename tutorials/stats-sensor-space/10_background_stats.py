@@ -11,7 +11,7 @@ introductory manner, and demonstrate how to use some MNE statistical functions.
 """
 
 # Authors: Eric Larson <larson.eric.d@gmail.com>
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 

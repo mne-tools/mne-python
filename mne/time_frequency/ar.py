@@ -1,7 +1,7 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          The statsmodels folks for AR yule_walker
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
 

@@ -16,7 +16,7 @@ Only the data in those channels is replaced.
 # Authors: Denis A. Engemann <denis.engemann@gmail.com>
 #          Mainak Jas <mainak.jas@telecom-paristech.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 

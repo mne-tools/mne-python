@@ -11,7 +11,7 @@ amplitude bias due to the non-convexity of the L0.5/L2 mixed norm penalty.
 # Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #         Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 

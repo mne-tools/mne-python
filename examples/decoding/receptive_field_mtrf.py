@@ -23,7 +23,7 @@ as a decoding model, or simply stimulus reconstruction).
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Nicolas Barascud <nicolas.barascud@ens.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 # sphinx_gallery_thumbnail_number = 3

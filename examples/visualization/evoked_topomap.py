@@ -15,7 +15,7 @@ additional options.
 #          Mikołaj Magnuski <mmagnuski@swps.edu.pl>
 #          Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 # sphinx_gallery_thumbnail_number = 5

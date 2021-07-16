@@ -6,7 +6,7 @@
 #          Teon Brooks <teon.brooks@gmail.com>
 #          Daniel McCloy <dan.mccloy@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 
 import os

@@ -9,7 +9,7 @@ This example looks at high-frequency SEF responses.
 """
 # Author: Jussi Nurminen (jnu@iki.fi)
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 

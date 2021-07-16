@@ -3,7 +3,7 @@
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Mads Jensen <mje.mads@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import contextlib
 import copy

@@ -14,7 +14,7 @@ CTF data.
 #          Sheraz Khan <sheraz@khansheraz.com>
 #          Denis Engemann <denis.engemann@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 

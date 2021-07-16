@@ -2,7 +2,7 @@
 
 # Author: Teon Brooks <teon.brooks@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from collections import OrderedDict
 from os import SEEK_CUR, path as op

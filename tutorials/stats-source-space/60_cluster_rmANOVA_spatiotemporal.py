@@ -17,7 +17,7 @@ across space and time.
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Denis Engemannn <denis.engemann@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 

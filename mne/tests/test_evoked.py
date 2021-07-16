@@ -3,7 +3,7 @@
 #         Andrew Dykstra <andrew.r.dykstra@gmail.com>
 #         Mads Jensen <mje.mads@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from copy import deepcopy
 import os.path as op

@@ -2,7 +2,7 @@
 #          Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 import math
 
 import numpy as np

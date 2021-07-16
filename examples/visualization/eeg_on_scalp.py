@@ -9,7 +9,7 @@ In this example, digitized EEG sensor locations are shown on the scalp.
 """
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 

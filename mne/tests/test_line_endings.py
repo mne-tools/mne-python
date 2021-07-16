@@ -1,7 +1,7 @@
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #         Adapted from vispy
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os
 from unittest import SkipTest

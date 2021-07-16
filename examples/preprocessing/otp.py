@@ -8,7 +8,7 @@ on data with with sensor artifacts (flux jumps) and random noise.
 """
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 

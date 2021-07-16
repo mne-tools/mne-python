@@ -10,7 +10,7 @@ with cluster level permutation test.
 """
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 

@@ -3,7 +3,7 @@
 #          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Denis A. Engemann <denis.engemann@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # Many of the computations in this code were derived from Matti Hämäläinen's
 # C code.

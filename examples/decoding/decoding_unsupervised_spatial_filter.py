@@ -11,7 +11,7 @@ visualized on the average of all the epochs.
 # Authors: Jean-Remi King <jeanremi.king@gmail.com>
 #          Asish Panda <asishrocks95@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 

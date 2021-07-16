@@ -11,7 +11,7 @@ averaging parameters and get epochs.
 """
 # Author: Jussi Nurminen (jnu@iki.fi)
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 

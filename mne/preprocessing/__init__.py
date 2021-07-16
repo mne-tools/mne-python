@@ -5,7 +5,7 @@
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Denis Engemann <denis.engemann@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from .flat import annotate_flat
 from .maxfilter import apply_maxfilter

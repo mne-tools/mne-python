@@ -2,7 +2,7 @@
 # Authors: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
 #          Daniel McCloy <dan.mccloy@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 """
 Test the following properties for resolution metrics.
 

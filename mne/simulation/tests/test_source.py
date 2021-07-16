@@ -1,7 +1,7 @@
 # Author: Kostiantyn Maksymenko <kostiantyn.maksymenko@gmail.com>
 #         Samuel Deslauriers-Gauthier <sam.deslauriers@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 

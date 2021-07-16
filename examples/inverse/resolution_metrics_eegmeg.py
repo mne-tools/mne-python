@@ -13,7 +13,7 @@ source imaging, especially for deeper sources.
 """
 # Author: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # %%
 
