@@ -101,6 +101,8 @@ Enhancements
 
 - :meth:`mne.io.Raw.get_data`, :meth:`mne.Epochs.get_data`, and :meth:`mne.Evoked.get_data` methods now have ``tmin`` and ``tmax`` parameters to specify data window in seconds to get (:gh:`9556` by `Stefan Appelhoff`_)
 
+- The :meth:`mne.Evoked.get_data` method now has a ``units`` parameter (:gh:`9578` by `Stefan Appelhoff`_)
+
 Bugs
 ~~~~
 - Fix bug with :meth:`mne.Epochs.crop` and :meth:`mne.Evoked.crop` when ``include_tmax=False``, where the last sample was always cut off, even when ``tmax > epo.times[-1]`` (:gh:`9378` **by new contributor** |Jan Sosulski|_)
