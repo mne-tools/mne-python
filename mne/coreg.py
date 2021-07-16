@@ -1321,6 +1321,15 @@ class Coregistration(object):
                 self._mri_trans = np.eye(4)
             self._mri_trans[:, :3] *= sca
 
+    def set_rotation(self, rot):
+        self._update_params(rot=rot)
+
+    def set_translation(self, tra):
+        self._update_params(tra=tra)
+
+    def set_scale(self, sca):
+        self._update_params(sca=sca)
+
     @property
     def _parameters(self):
         return np.concatenate((self._rotation, self._translation, self._scale))
