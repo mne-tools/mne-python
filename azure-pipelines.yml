@@ -207,6 +207,7 @@ stages:
         3.8 pip pre:
           TEST_MODE: 'pip-pre'
           PYTHON_VERSION: '3.8'
+          OPENBLAS_CORETYPE: 'prescott'
     steps:
     - task: UsePythonVersion@0
       inputs:
