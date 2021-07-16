@@ -2,7 +2,7 @@
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Denis Engemann <denis.engemann@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from collections import defaultdict
 from colorsys import hsv_to_rgb, rgb_to_hsv
