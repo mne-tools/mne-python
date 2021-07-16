@@ -30,7 +30,7 @@ from .io.kit.constants import KIT
 from .io.kit.kit import RawKIT as _RawKIT
 from .io.meas_info import _simplify_info, Info
 from .io.pick import (pick_types, pick_channels, pick_channels_regexp,
-                      pick_info, _picks_to_idx, _get_channel_types)
+                      pick_info, _picks_to_idx)
 from .io.proj import Projection, setup_proj
 from .io.constants import FIFF
 from .io.ctf.trans import _make_ctf_coord_trans_set
@@ -595,12 +595,8 @@ def _setup_hpi_amplitude_fitting(info, t_window, remove_aliased=False,
     inv_model_reord = _reorder_inv_model(inv_model, len(hpi_freqs))
     proj, proj_op, meg_picks = _setup_ext_proj(info, ext_order)
     # include mag and grad picks separately, for SNR computations
-    all_ch_types = _get_channel_types(info, unique=True)
-    meg_types = all_ch_types.intersection({'mag', 'grad'})
-    mag_picks = (_picks_to_idx(info, 'mag') if 'mag' in meg_types else
-                 np.array([], dtype=int))
-    grad_picks = (_picks_to_idx(info, 'grad') if 'grad' in meg_types else
-                  np.array([], dtype=int))
+    mag_picks = _picks_to_idx(info, 'mag', allow_empty=True)
+    grad_picks = _picks_to_idx(info, 'grad', allow_empty=True)
     # Set up magnetic dipole fits
     hpi = dict(
         meg_picks=meg_picks, mag_picks=mag_picks, grad_picks=grad_picks,
@@ -687,7 +683,6 @@ def _fit_chpi_amplitudes(raw, time_sl, hpi, snr=False):
         n_on = ons.all(axis=-1).sum(axis=0)
         if not (n_on >= 3).all():
             return None
-
     if snr:
         return _fast_fit_snr(
             this_data, len(hpi['freqs']), hpi['model'], hpi['inv_model'],
@@ -721,26 +716,25 @@ def _fast_fit_snr(this_data, n_freqs, model, inv_model, mag_picks, grad_picks):
     if this_data.shape[1] != model.shape[0]:
         model = model[:this_data.shape[1]]
         inv_model = np.linalg.pinv(model)
-    snrs = np.full((n_freqs, 2), np.nan)
-    coefs = (np.ascontiguousarray(inv_model) @
-             np.ascontiguousarray(this_data.T))
+    coefs = np.ascontiguousarray(inv_model) @ np.ascontiguousarray(this_data.T)
     # average sin & cos terms (special property of sinusoids: power=A²/2)
-    hpi_power = (coefs[:n_freqs] ** 2 +
-                 coefs[n_freqs:(2 * n_freqs)] ** 2) / 2
+    hpi_power = (coefs[:n_freqs] ** 2 + coefs[n_freqs:(2 * n_freqs)] ** 2) / 2
     resid = this_data - np.ascontiguousarray((model @ coefs).T)
-    # can't use np.var(..., axis=1) in numba, so do it manually:
+    # can't use np.var(..., axis=1) with Numba, so do it manually:
     resid_mean = np.atleast_2d(resid.sum(axis=1) / resid.shape[1]).T
     squared_devs = np.abs(resid - resid_mean) ** 2
     resid_var = squared_devs.sum(axis=1) / squared_devs.shape[1]
-    # average power separately for each channel type and
-    # divide average HPI power by average residual variance
-    if len(mag_picks):
-        mag_avg_pow = hpi_power[:, mag_picks].sum(axis=1) / len(mag_picks)
-        snrs[:, 0] = mag_avg_pow / resid_var[mag_picks].mean()
-    if len(grad_picks):
-        grad_avg_pow = (hpi_power[:, grad_picks].sum(axis=1)
-                        / len(grad_picks))
-        snrs[:, 1] = grad_avg_pow / resid_var[grad_picks].mean()
+    # output array will be (n_freqs, 3 * n_ch_types). The 3 columns for each
+    # channel type are the SNR, the mean cHPI power and the residual variance
+    # (which gets tiled to shape (n_freqs,) because it's a scalar).
+    snrs = np.empty((n_freqs, 0))
+    # average power & compute residual variance separately for each ch type
+    for _picks in (mag_picks, grad_picks):
+        if len(_picks):
+            avg_power = hpi_power[:, _picks].sum(axis=1) / len(_picks)
+            avg_resid = resid_var[_picks].mean() * np.ones(n_freqs)
+            snr = 10 * np.log10(avg_power / avg_resid)
+            snrs = np.hstack((snrs, np.stack((snr, avg_power, avg_resid), 1)))
     return snrs
 
 
@@ -979,8 +973,9 @@ def compute_chpi_snr(raw, t_step_min=0.01, t_window='auto', ext_order=1,
     Returns
     -------
     chpi_snrs : dict
-        The time-varying cHPI SNR estimates, with entries "times", "proj", and
-        "snr_mag" and/or "snr_grad" (depending on which channel types are
+        The time-varying cHPI SNR estimates, with entries "times", "freqs",
+        "snr_mag", "power_mag", and "resid_mag" (and/or "snr_grad",
+        "power_grad", and "resid_grad", depending on which channel types are
         present in ``raw``).
 
     See Also
@@ -1076,8 +1071,15 @@ def _compute_chpi_amp_or_snr(raw, t_step_min=0.01, t_window='auto',
     n_freqs = len(hpi['freqs'])
     n_chans = len(sin_fits['proj']['data']['col_names'])
     if snr:
-        sin_fits['snr_mag'] = np.empty((n_times, n_freqs))
-        sin_fits['snr_grad'] = np.empty((n_times, n_freqs))
+        del sin_fits['proj']
+        sin_fits['freqs'] = hpi['freqs']
+        ch_types = raw.get_channel_types()
+        grad_offset = 3 if 'mag' in ch_types else 0
+        for ch_type in ('mag', 'grad'):
+            if ch_type in ch_types:
+                for key in ('snr', 'power', 'resid'):
+                    cols = 1 if key == 'resid' else n_freqs
+                    sin_fits[f'{ch_type}_{key}'] = np.empty((n_times, cols))
     else:
         sin_fits['slopes'] = np.empty((n_times, n_freqs, n_chans))
     message = f"cHPI {'SNRs' if snr else 'amplitudes'}"
@@ -1094,8 +1096,20 @@ def _compute_chpi_amp_or_snr(raw, t_step_min=0.01, t_window='auto',
         #
         amps_or_snrs = _fit_chpi_amplitudes(raw, time_sl, hpi, snr)
         if snr:
-            sin_fits['snr_mag'][mi] = amps_or_snrs[:, 0]
-            sin_fits['snr_grad'][mi] = amps_or_snrs[:, 1]
+            # unpack the SNR estimates. mag & grad are returned in one array
+            # (because of Numba) so take care with which column is which.
+            # note that mean residual is a scalar (same for all HPI freqs) but
+            # is returned as a (tiled) vector (again, because Numba) so that's
+            # why below we take amps_or_snrs[0, 2] instead of [:, 2]
+            ch_types = raw.get_channel_types()
+            if 'mag' in ch_types:
+                sin_fits['mag_snr'][mi] = amps_or_snrs[:, 0]    # SNR
+                sin_fits['mag_power'][mi] = amps_or_snrs[:, 1]  # mean power
+                sin_fits['mag_resid'][mi] = amps_or_snrs[0, 2]  # mean resid
+            if 'grad' in ch_types:
+                sin_fits['grad_snr'][mi] = amps_or_snrs[:, grad_offset]
+                sin_fits['grad_power'][mi] = amps_or_snrs[:, grad_offset + 1]
+                sin_fits['grad_resid'][mi] = amps_or_snrs[0, grad_offset + 2]
         else:
             sin_fits['slopes'][mi] = amps_or_snrs
     return sin_fits
