@@ -1,5 +1,5 @@
 # Author : Martin Luessi mluessi@nmr.mgh.harvard.edu (2012)
-# License : BSD 3-clause
+# License : BSD-3-Clause
 
 # Parts of this code were copied from NiTime http://nipy.sourceforge.net/nitime
 
