@@ -85,6 +85,40 @@ class TimeMixin(object):
             index = np.round(index)
         return index.astype(int)
 
+    def _handle_tmin_tmax(self, tmin, tmax):
+        """Convert seconds to index into data.
+
+        Parameters
+        ----------
+        tmin : int | float | None
+            Start time of data to get in seconds.
+        tmax : int | float | None
+            End time of data to get in seconds.
+
+        Returns
+        -------
+        start : int
+            Integer index into data corresponding to tmin.
+        stop : int
+            Integer index into data corresponding to tmax.
+
+        """
+        _validate_type(tmin, types=('numeric', None), item_name='tmin',
+                       type_name="int, float, None")
+        _validate_type(tmax, types=('numeric', None), item_name='tmax',
+                       type_name='int, float, None')
+
+        # handle tmin/tmax as start and stop indices into data array
+        n_times = self.times.size
+        start = 0 if tmin is None else self.time_as_index(tmin)[0]
+        stop = n_times if tmax is None else self.time_as_index(tmax)[0]
+
+        # truncate start/stop to the open interval [0, n_times]
+        start = min(max(0, start), n_times)
+        stop = min(max(0, stop), n_times)
+
+        return start, stop
+
 
 @fill_doc
 class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
@@ -800,7 +834,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     @verbose
     def get_data(self, picks=None, start=0, stop=None,
                  reject_by_annotation=None, return_times=False, units=None,
-                 verbose=None):
+                 *, tmin=None, tmax=None, verbose=None):
         """Get data in the given range.
 
         Parameters
@@ -818,6 +852,16 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         return_times : bool
             Whether to return times as well. Defaults to False.
         %(units)s
+        tmin : int | float | None
+            Start time of data to get in seconds. The ``tmin`` parameter is
+            ignored if the ``start`` parameter is bigger than 0.
+
+            .. versionadded:: 0.24.0
+        tmax : int | float | None
+            End time of data to get in seconds. The ``tmax`` parameter is
+            ignored if the ``stop`` parameter is defined.
+
+            .. versionadded:: 0.24.0
         %(verbose_meth)s
 
         Returns
@@ -832,6 +876,12 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         -----
         .. versionadded:: 0.14.0
         """
+        # validate types
+        _validate_type(start, types=('int-like'), item_name='start',
+                       type_name='int')
+        _validate_type(stop, types=('int-like', None), item_name='stop',
+                       type_name='int, None')
+
         picks = _picks_to_idx(self.info, picks, 'all', exclude=())
 
         # Get channel factors for conversion into specified unit
@@ -841,8 +891,19 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         # convert to ints
         picks = np.atleast_1d(np.arange(self.info['nchan'])[picks])
-        start = 0 if start is None else start
-        stop = min(self.n_times if stop is None else stop, self.n_times)
+
+        # handle start/tmin stop/tmax
+        tmin_start, tmax_stop = self._handle_tmin_tmax(tmin, tmax)
+
+        # tmin/tmax are ignored if start/stop are defined to
+        # something other than their defaults
+        start = tmin_start if start == 0 else start
+        stop = tmax_stop if stop is None else stop
+
+        # truncate start/stop to the open interval [0, n_times]
+        start = min(max(0, start), self.n_times)
+        stop = min(max(0, stop), self.n_times)
+
         if len(self.annotations) == 0 or reject_by_annotation is None:
             getitem = self._getitem(
                 (picks, slice(start, stop)), return_times=return_times)

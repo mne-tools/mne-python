@@ -1251,9 +1251,11 @@ class ICA(ContainsMixin):
         start : int | float | None
             First sample to include. If float, data will be interpreted as
             time in seconds. If None, data will be used from the first sample.
+            When working with Epochs or Evoked objects, must be float or None.
         stop : int | float | None
             Last sample to not include. If float, data will be interpreted as
             time in seconds. If None, data will be used to the last sample.
+            When working with Epochs or Evoked objects, must be float or None.
         l_freq : float
             Low pass frequency.
         h_freq : float
