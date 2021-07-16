@@ -1744,8 +1744,10 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
     a threshold surrounding local extrema near the channel location.
     Monotonicity from the peak is enforced to prevent channels
     bleeding into each other.
+
     .. note:: This is likely only applicable for channels inside the brain
               (intracranial electrodes).
+
     Parameters
     ----------
     montage : mne.channels.montage.DigMontage
@@ -1775,6 +1777,7 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
     use_min : bool
         Whether to hypointensities in the volume as channel locations.
         Default False uses hyperintensities.
+
     Returns
     -------
     montage_warped : mne.channels.montage.DigMontage
@@ -1888,8 +1891,10 @@ _VOXELS_MAX = 100  # define constant to avoid runtime issues
 def get_montage_rois(montage, subject, subjects_dir=None,
                      aseg='aparc+aseg', dist=5):
     """Get the regions of interest near the channels in a montage.
+
     .. note:: This is applicable for channels inside the brain
               (intracranial electrodes).
+
     Parameters
     ----------
     %(montage)s
@@ -1898,6 +1903,7 @@ def get_montage_rois(montage, subject, subjects_dir=None,
     %(aseg)s
     dist : float
         The distance in mm to use for identifying regions of interest.
+
     Returns
     -------
     rois : dict
@@ -1944,7 +1950,7 @@ def get_montage_rois(montage, subject, subjects_dir=None,
     all_rois = set([roi for val in rois.values() for roi in val])
     colors = {roi: tuple(fs_colors[roi][:3] / 255) + (1.,) for roi in all_rois}
     return rois, colors
-    
+
 
 def _get_neighbors(loc, image, voxels, thresh, dist_params):
     """Find all the neighbors above a threshold near a voxel."""
