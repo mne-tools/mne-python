@@ -1629,7 +1629,7 @@ def make_1020_channel_selections(info, midline="z"):
     Parameters
     ----------
     %(info_not_none)s If possible, the channel lists will be sorted
-    posterior-to-anterior; otherwise they default to the order specified in
+        posterior-to-anterior; otherwise they default to the order specified in
         ``info["ch_names"]``.
     midline : str
         Names ending in any of these characters are stored under the
