@@ -2320,7 +2320,7 @@ class Brain(object):
 
     @fill_doc
     def add_aseg(self, aseg='aparc+aseg', rois=None, colors=None, alpha=0.5,
-                 smooth=0.9, legend=None, **legend_kwargs):
+                 smooth=0.9, legend=None):
         """Add an ROI label to the image.
 
         Parameters
