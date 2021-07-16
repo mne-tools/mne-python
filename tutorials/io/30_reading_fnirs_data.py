@@ -138,6 +138,7 @@ have to adapt this depending on the system from which your CSV originated.
 
 # %%
 
+import os.path as op
 import numpy as np
 import pandas as pd
 import mne
@@ -241,15 +242,12 @@ raw.plot_sensors()
 # The ficiduals are marked in blue, green and red.
 # See :ref:`plot_source_alignment` for more details.
 
-subjects_dir = mne.datasets.sample.data_path() + '/subjects'
+subjects_dir = op.join(mne.datasets.sample.data_path(), 'subjects')
 mne.datasets.fetch_fsaverage(subjects_dir=subjects_dir)
 
-trans = mne.channels.compute_native_head_t(montage)
-
-fig = mne.viz.create_3d_figure(size=(800, 600), bgcolor='white')
-fig = mne.viz.plot_alignment(
-    raw.info, trans=trans, subject='fsaverage', subjects_dir=subjects_dir,
-    surfaces=['brain', 'head'], coord_frame='mri', dig=True, show_axes=True,
-    fnirs=['channels', 'pairs', 'sources', 'detectors'], fig=fig)
-mne.viz.set_3d_view(figure=fig, azimuth=90, elevation=90, distance=0.5,
-                    focalpoint=(0., -0.01, 0.02))
+brain = mne.viz.Brain('fsaverage', subjects_dir=subjects_dir,
+                      alpha=0.5, cortex='low_contrast')
+brain.add_head(dense=False)
+brain.add_sensors(raw)
+brain.show_view(azimuth=90, elevation=90, distance=500,
+                focalpoint=(0., -10, 20))

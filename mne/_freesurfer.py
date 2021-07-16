@@ -16,7 +16,7 @@ from .transforms import (apply_trans, invert_transform, combine_transforms,
                          _ensure_trans, read_ras_mni_t, Transform)
 from .surface import read_surface, _read_mri_surface
 from .utils import (verbose, _validate_type, _check_fname, _check_option,
-                    get_subjects_dir, _require_version, logger)
+                    get_subjects_dir, _require_version, logger, warn)
 
 
 def _check_subject_dir(subject, subjects_dir):
@@ -420,6 +420,61 @@ def get_mni_fiducials(subject, subjects_dir=None, verbose=None):
     for f in fids:
         f['r'] = apply_trans(mni_mri_t, f['r'])
     return fids
+
+
+@verbose
+def get_mri_head_trans(subject, subjects_dir, verbose=None):
+    """Get the head to surface RAS transform using the Freesurfer recon.
+
+    Parameters
+    ----------
+    %(subject)s
+    %(subjects_dir)s
+    %(verbose)s
+
+    Returns
+    -------
+    trans : mne.transforms.Transform
+        The "mri" (surface RAS) to "head" transform.
+    """
+    from .channels import make_dig_montage, compute_native_head_t
+    lpa, nasion, rpa = get_mni_fiducials(subject, subjects_dir)
+    montage = make_dig_montage(
+        lpa=lpa['r'], nasion=nasion['r'], rpa=rpa['r'], coord_frame='mri')
+    trans = compute_native_head_t(montage)
+    return trans
+
+
+@verbose
+def _coord_to_mri(info, idx, subject, subjects_dir,
+                  sensor=False, detector=False, verbose=None):
+    """Transform a channel to the "mri"/surface RAS coordinate frame."""
+    assert sensor + detector < 2  # can't be both
+    type_slice = slice(0, 3)
+    if sensor:
+        type_slice = slice(3, 6)
+    if detector:
+        type_slice = slice(6, 9)
+    ch_coord = info['chs'][idx]['loc'][type_slice]
+    # coordinate frame/location info
+    coord_frame = info['chs'][idx]['coord_frame']
+    if coord_frame == FIFF.FIFFV_COORD_UNKNOWN:
+        if verbose is None or verbose or verbose == 'warn':
+            warn('Got coordinate frame "unknown", assuming '
+                 '"head" coordinates')
+        coord_frame = FIFF.FIFFV_COORD_HEAD
+    if coord_frame == FIFF.FIFFV_COORD_DEVICE:
+        ch_coord = apply_trans(info['dev_head_t']['trans'], ch_coord)
+        coord_frame = FIFF.FIFFV_COORD_HEAD  # now it's in head
+    if coord_frame == FIFF.FIFFV_COORD_HEAD:
+        trans = invert_transform(get_mri_head_trans(subject, subjects_dir))
+        ch_coord = apply_trans(trans['trans'], ch_coord) * 1000  # mm -> m
+        coord_frame = FIFF.FIFFV_COORD_MRI  # now in surface RAS
+    if coord_frame != FIFF.FIFFV_COORD_MRI:
+        raise RuntimeError(
+            '`inst` coordinate frame must be "meg", "head" or "mri", '
+            f'got {coord_frame} for {info.ch_names[idx]}')
+    return ch_coord
 
 
 @verbose

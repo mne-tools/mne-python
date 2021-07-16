@@ -205,13 +205,6 @@ del CT_data, T1
 # load electrophysiology data with channel locations
 raw = mne.io.read_raw(op.join(misc_path, 'seeg', 'sample_seeg_ieeg.fif'))
 
-# MNE stores digitization montages in a coordinate frame called "head"
-# thus even though the channel positions were found in the reference frame of
-# Freesurfer surfaces when they were assigned to the ``raw`` object, they were
-# transformed to "head" so we need to have a transform to put them back
-subj_trans = mne.read_trans(op.join(misc_path, 'seeg',
-                                    'sample_seeg_trans.fif'))
-
 # create symbolic link to share ``subjects_dir``
 seeg_subject_dir = op.join(subjects_dir, 'sample_seeg')
 if not op.exists(seeg_subject_dir):
@@ -220,20 +213,13 @@ if not op.exists(seeg_subject_dir):
 ###############################################################################
 # Let's plot the electrode contact locations on the subject's brain.
 
-# load the subject's brain
-subject_brain = nib.load(
-    op.join(misc_path, 'seeg', 'sample_seeg', 'mri', 'brain.mgz'))
-
 # plot the alignment
-fig_kwargs = dict(size=(800, 600), bgcolor='w', scene=False)
-renderer = mne.viz.backends.renderer.create_3d_figure(**fig_kwargs)
-al_kwargs = dict(
-    show_axes=True, surfaces=dict(pial=0.2), coord_frame='mri',
-    subjects_dir=subjects_dir)
-fig = mne.viz.plot_alignment(raw.info, subj_trans, 'sample_seeg',
-                             fig=renderer.figure, **al_kwargs)
-view_kwargs = dict(azimuth=60, elevation=100, distance=0.3)
-mne.viz.set_3d_view(fig, **view_kwargs)
+brain_kwargs = dict(cortex='low_contrast', alpha=0.1,
+                    subjects_dir=subjects_dir)
+brain = mne.viz.Brain('sample_seeg', **brain_kwargs)
+brain.add_sensors(raw)
+view_kwargs = dict(azimuth=60, elevation=100, distance=300)
+brain.show_view(**view_kwargs)
 
 # %%
 # Warping to a Common Atlas
@@ -249,7 +235,9 @@ mne.viz.set_3d_view(fig, **view_kwargs)
 # shape and size of brain areas, we need to fix the alignment of the brains.
 # The plot below shows that they are not yet aligned.
 
-# load the freesurfer average brain
+# load the subject's brain and the Freesurfer "fsaverage" template brain
+subject_brain = nib.load(
+    op.join(misc_path, 'seeg', 'sample_seeg', 'mri', 'brain.mgz'))
 template_brain = nib.load(
     op.join(subjects_dir, 'fsaverage', 'mri', 'brain.mgz'))
 
@@ -291,13 +279,8 @@ del subject_brain, template_brain
 # positions of all the voxels that had the contact's lookup number in
 # the warped image.
 
-# first we need our montage but it should be converted to "mri" coordinates
-montage = raw.get_montage()
-# ``subj_trans`` is "mri" to "head", we need "head" to "mri"
-montage.apply_trans(mne.transforms.invert_transform(subj_trans))
-
-montage_warped, elec_image, warped_elec_image = mne.warp_montage_volume(
-    montage, CT_aligned, reg_affine, sdr_morph,
+elec_image, warped_elec_image = mne.warp_montage_volume(
+    raw.info, CT_aligned, reg_affine, sdr_morph,
     subject_from='sample_seeg', subjects_dir=subjects_dir, thresh=CT_thresh)
 
 fig, axes = plt.subplots(2, 1, figsize=(8, 8))
@@ -320,17 +303,10 @@ del CT_aligned
 
 # sphinx_gallery_thumbnail_number = 8
 
-# get native to head trans
-fsaverage_trans = mne.channels.compute_native_head_t(montage_warped)
-
-# set new montage
-raw.set_montage(montage_warped)
-
 # plot the resulting alignment
-renderer = mne.viz.backends.renderer.create_3d_figure(**fig_kwargs)
-fig = mne.viz.plot_alignment(raw.info, fsaverage_trans, 'fsaverage',
-                             fig=renderer.figure, **al_kwargs)
-mne.viz.set_3d_view(fig, **view_kwargs)
+brain = mne.viz.Brain('fsaverage', **brain_kwargs)
+brain.add_sensors(raw)
+brain.show_view(**view_kwargs)
 
 # %%
 # This pipeline was developed based on previous work

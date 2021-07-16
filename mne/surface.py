@@ -23,6 +23,7 @@ from .channels.channels import _get_meg_system
 from .fixes import (_serialize_volume_info, _get_read_geometry, jit,
                     prange, bincount, _get_img_fdata)
 from .io.constants import FIFF
+from .io.meas_info import Info
 from .io.pick import pick_types
 from .parallel import parallel_func
 from .transforms import (transform_surface_to, _pol_to_cart, _cart_to_sph,
@@ -1752,19 +1753,19 @@ def _get_surface_RAS_volumes(base_image, subject_from, subjects_dir):
     return base_image, fs_t1
 
 
-def _warn_missing_chs(montage, dig_image, after_warp):
+def _warn_missing_chs(info, dig_image, after_warp):
     """Warn that channels are missing."""
     # ensure that each electrode contact was marked in at least one voxel
-    missing = set(np.arange(1, len(montage.ch_names) + 1)).difference(
+    missing = set(np.arange(1, len(info.ch_names) + 1)).difference(
         set(np.unique(_get_img_fdata(dig_image))))
-    missing_ch = [montage.ch_names[idx - 1] for idx in missing]
+    missing_ch = [info.ch_names[idx - 1] for idx in missing]
     if missing_ch:
         warn('Channels ' + ', '.join(missing_ch) + ' were not assigned '
              'voxels' + (' after applying SDR warp' if after_warp else ''))
 
 
 @fill_doc
-def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
+def warp_montage_volume(info, base_image, reg_affine, sdr_morph,
                         subject_from, subject_to='fsaverage',
                         subjects_dir=None, thresh=0.95,
                         max_peak_dist=1, voxels_max=100, use_min=False):
@@ -1780,8 +1781,7 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
 
     Parameters
     ----------
-    montage : mne.channels.montage.DigMontage
-        The montage object containing the channels.
+    %(info)s
     base_image : str | pathlib.Path | nibabel.spatialimages.SpatialImage
         Path to a volumetric scan (e.g. CT) of the subject. Can be in any
         format readable by nibabel. Can also be a nibabel image object.
@@ -1810,8 +1810,6 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
 
     Returns
     -------
-    montage_warped : mne.channels.montage.DigMontage
-        The modified montage object containing the channels.
     image_from : nibabel.spatialimages.SpatialImage
         An image in Freesurfer surface RAS space with voxel values
         corresponding to the index of the channel. The background
@@ -1822,11 +1820,10 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
     """
     _require_version('nibabel', 'SDR morph', '2.1.0')
     _require_version('dipy', 'SDR morph', '0.10.1')
-    from .channels import DigMontage
-    from ._freesurfer import _check_subject_dir
+    from ._freesurfer import _check_subject_dir, _coord_to_mri
     import nibabel as nib
 
-    _validate_type(montage, DigMontage, 'montage')
+    _validate_type(info, Info, 'info')
     _validate_type(base_image, nib.spatialimages.SpatialImage, 'base_image')
     _validate_type(thresh, float, 'thresh')
     if thresh < 0 or thresh >= 1:
@@ -1839,16 +1836,12 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
     _check_subject_dir(subject_from, subjects_dir)
     _check_subject_dir(subject_to, subjects_dir)
 
+    ch_coords = np.array(
+        [_coord_to_mri(info, idx) for idx in range(info['nchan'])])
+
     # load image and make sure it's in surface RAS
     image, fs_t1 = _get_surface_RAS_volumes(
         base_image, subject_from, subjects_dir)
-
-    # get montage channel coordinates
-    ch_dict = montage.get_positions()
-    if ch_dict['coord_frame'] != 'mri':
-        raise RuntimeError('Coordinate frame not supported, expected '
-                           '"mri", got ' + str(ch_dict['coord_frame']))
-    ch_coords = np.array(list(ch_dict['ch_pos'].values()))
 
     # convert to freesurfer voxel space
     ch_coords = apply_trans(
@@ -1881,7 +1874,7 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
 
     # apply the mapping
     image_from = nib.Nifti1Image(image_from, fs_t1.affine)
-    _warn_missing_chs(montage, image_from, after_warp=False)
+    _warn_missing_chs(info, image_from, after_warp=False)
 
     template_brain = nib.load(
         op.join(subjects_dir, subject_to, 'mri', 'brain.mgz'))
@@ -1890,7 +1883,7 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
         image_from, template_brain, reg_affine, sdr_morph,
         interpolation='nearest')
 
-    _warn_missing_chs(montage, image_to, after_warp=True)
+    _warn_missing_chs(info, image_to, after_warp=True)
 
     # recover the contact positions as the center of mass
     warped_data = _get_img_fdata(image_to)
@@ -1902,17 +1895,10 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
     ch_coords = apply_trans(
         fs_t1.header.get_vox2ras_tkr(), ch_coords) / 1000
 
-    # copy before modifying
-    montage_warped = montage.copy()
-
-    # modify montage to be returned
-    idx = 0
-    for dig_point in montage_warped.dig:
-        if dig_point['kind'] == FIFF.FIFFV_POINT_EEG:
-            assert dig_point['ident'] == idx + 1  # 1 indexed
-            dig_point['r'] = ch_coords[idx]
-            idx += 1
-    return montage_warped, image_from, image_to
+    # modify info in place
+    for ch, ch_coord in zip(info['chs'], ch_coords):
+        ch['loc'][:3] = ch_coords
+    return image_from, image_to
 
 
 _VOXELS_MAX = 100  # define constant to avoid runtime issues
