@@ -165,7 +165,7 @@ Bugs
 
 - Fix bug with volumetric rendering alpha in :meth:`mne.VolSourceEstimate.plot_3d` and related functions (:gh:`8663` by `Eric Larson`_)
 
-- Fix missing documentation of :func:`mne.io.read_raw_nihon` in :ref:`tut-imorting-eeg-data` (:gh`8320` by `Adam Li`_)
+- Fix missing documentation of :func:`mne.io.read_raw_nihon` in :ref:`tut-imorting-eeg-data` (:gh:`8320` by `Adam Li`_)
 
 - Fix bug with :func:`mne.add_reference_channels` when :func:`mne.io.Raw.reorder_channels` or related methods are used afterward (:gh:`8303`, :gh:`#8484` by `Eric Larson`_)
 
