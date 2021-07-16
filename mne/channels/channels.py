@@ -1628,9 +1628,9 @@ def make_1020_channel_selections(info, midline="z"):
 
     Parameters
     ----------
-    %(info_not_none)s Picks will be in relation to the position in
-        ``info["ch_names"]``. If possible, this lists will be sorted by y value
-        position of the channel locations, i.e., from back to front.
+    %(info_not_none)s If possible, the channel lists will be sorted
+    posterior-to-anterior; otherwise they default to the order specified in
+        ``info["ch_names"]``.
     midline : str
         Names ending in any of these characters are stored under the
         ``Midline`` key. Defaults to 'z'. Note that capitalization is ignored.
