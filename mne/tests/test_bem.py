@@ -1,6 +1,6 @@
 # Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
 #
-# License: BSD 3 clause
+# License: BSD-3-Clause
 
 from copy import deepcopy
 from os import makedirs
