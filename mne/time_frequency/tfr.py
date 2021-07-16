@@ -1101,8 +1101,7 @@ class AverageTFR(_BaseTFR):
 
     Parameters
     ----------
-    info : Info
-        The measurement info.
+    %(info_not_none)s
     data : ndarray, shape (n_channels, n_freqs, n_times)
         The data.
     times : ndarray, shape (n_times,)
@@ -1119,8 +1118,7 @@ class AverageTFR(_BaseTFR):
 
     Attributes
     ----------
-    info : instance of Info
-        Measurement info.
+    %(info_not_none)s
     ch_names : list
         The names of the channels.
     nave : int
@@ -2082,8 +2080,7 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
 
     Parameters
     ----------
-    info : Info
-        The measurement info.
+    %(info_not_none)s
     data : ndarray, shape (n_epochs, n_channels, n_freqs, n_times)
         The data.
     times : ndarray, shape (n_times,)
@@ -2119,8 +2116,7 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
 
     Attributes
     ----------
-    info : instance of Info
-        Measurement info.
+    %(info_not_none)s
     ch_names : list
         The names of the channels.
     data : ndarray, shape (n_epochs, n_channels, n_freqs, n_times)

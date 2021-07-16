@@ -22,8 +22,7 @@ def source_detector_distances(info, picks=None):
 
     Parameters
     ----------
-    info : Info
-        The measurement info.
+    %(info_not_none)s
     %(picks_all)s
 
     Returns
@@ -38,6 +37,7 @@ def source_detector_distances(info, picks=None):
     return np.array(dist, float)[picks]
 
 
+@fill_doc
 def short_channels(info, threshold=0.01):
     r"""Determine which NIRS channels are short.
 
@@ -46,8 +46,7 @@ def short_channels(info, threshold=0.01):
 
     Parameters
     ----------
-    info : Info
-        The measurement info.
+    %(info_not_none)s
     threshold : float
         The threshold distance for what is considered short in meters.
 

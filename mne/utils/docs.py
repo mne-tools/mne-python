@@ -1359,6 +1359,21 @@ subjects_dir : str | None
     The path to the FreeSurfer subjects reconstructions.
     It corresponds to FreeSurfer environment variable ``SUBJECTS_DIR``.
 """
+_info_base = ('The :class:`mne.Info` object with information about the '
+              'sensors and methods of measurement.')
+docdict['info_not_none'] = f"""
+info : mne.Info
+    {_info_base}
+"""
+docdict['info'] = """
+info : mne.Info | None
+    {_info_base}
+"""
+docdict['info_str'] = """
+info : mne.Info | str
+    {_info_base} If ``str``, then it should be a filepath to a file with
+    measurement information (e.g. :class:`mne.io.Raw`).
+"""
 docdict['subject'] = """
 subject : str
     The FreeSurfer subject name.

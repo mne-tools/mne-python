@@ -270,8 +270,7 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
 
     Parameters
     ----------
-    info : instance of Info
-        The measurement information dictionary
+    %(info_not_none)s
     accurate : bool
         If true (default) then use `accurate` coil definitions (more
         integration points)
@@ -378,8 +377,7 @@ def _prep_eeg_channels(info, exclude=(), verbose=None):
 
     Parameters
     ----------
-    info : instance of Info
-        The measurement information dictionary
+    %(info_not_none)s
     exclude : list of str | str
         List of channels to exclude. If 'bads', exclude channels in
         info['bads']
@@ -511,10 +509,7 @@ def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
 
     Parameters
     ----------
-    info : instance of mne.Info | str
-        If str, then it should be a filename to a Raw, Epochs, or Evoked
-        file with measurement information. If dict, should be an info
-        dict (such as one from Raw, Epochs, or Evoked).
+    %(info_str)s
     %(trans)s
     src : str | instance of SourceSpaces
         If string, should be a source space filename. Can also be an

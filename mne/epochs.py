@@ -327,8 +327,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
     Parameters
     ----------
-    info : dict
-        A copy of the `~mne.Info` dictionary from the raw object.
+    %(info_not_none)s
     data : ndarray | None
         If ``None``, data will be read from the Raw object. If ndarray, must be
         of shape (n_epochs, n_channels, n_times).
@@ -2470,8 +2469,7 @@ class Epochs(BaseEpochs):
 
     Attributes
     ----------
-    info : instance of Info
-        Measurement info.
+    %(info_not_none)s
     event_id : dict
         Names of conditions corresponding to event_ids.
     ch_names : list of string
@@ -2612,9 +2610,8 @@ class EpochsArray(BaseEpochs):
     data : array, shape (n_epochs, n_channels, n_times)
         The channels' time series for each epoch. See notes for proper units of
         measure.
-    info : instance of Info
-        Info dictionary. Consider using ``create_info`` to populate
-        this structure.
+    %(info_not_none)s Consider using :func:`mne.create_info` to populate this
+        structure.
     events : None | array of int, shape (n_events, 3)
         The events typically returned by the read_events function.
         If some events don't match the events of interest as specified

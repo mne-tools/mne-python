@@ -27,9 +27,7 @@ class SSD(BaseEstimator, TransformerMixin):
 
     Parameters
     ----------
-    info : instance of mne.Info
-        The info object containing the channel and sampling information.
-        It must match the input data.
+    %(info_not_none)s Must match the input data.
     filt_params_signal : dict
         Filtering for the frequencies of interest.
     filt_params_noise : dict

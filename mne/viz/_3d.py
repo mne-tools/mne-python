@@ -78,6 +78,7 @@ def _fiducial_coords(points, coord_frame=None):
         return np.array([])
 
 
+@fill_doc
 def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
                         show=True, destination=None, info=None, color='k',
                         axes=None):
@@ -104,10 +105,8 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
         details.
 
         .. versionadded:: 0.16
-    info : instance of mne.Info | None
-        Measurement information. If provided, will be used to show the
-        destination position when ``destination is None``, and for
-        showing the MEG sensors.
+    %(info)s If provided, will be used to show the destination position when
+        ``destination is None``, and for showing the MEG sensors.
 
         .. versionadded:: 0.16
     color : color object
@@ -428,9 +427,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
 
     Parameters
     ----------
-    info : dict | None
-        The measurement info.
-        If None (default), no sensor information will be shown.
+    %(info)s If None (default), no sensor information will be shown.
     %(trans)s
     subject : str | None
         The subject name corresponding to FreeSurfer environment
@@ -2956,8 +2953,7 @@ def plot_sensors_connectivity(info, con, picks=None,
 
     Parameters
     ----------
-    info : dict | None
-        The measurement info.
+    %(info_not_none)s
     con : array, shape (n_channels, n_channels)
         The computed connectivity measure(s).
     %(picks_good_data)s

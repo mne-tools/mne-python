@@ -245,8 +245,7 @@ class ICA(ContainsMixin):
         (There is also an ``exclude`` parameter in the :meth:`ICA.apply`
         method.) To scrap all marked components, set this attribute to an empty
         list.
-    info : None | instance of Info
-        The measurement info copied from the object fitted.
+    %(info)s
     n_samples_ : int
         The number of samples used on fit.
     labels_ : dict

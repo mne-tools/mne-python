@@ -34,7 +34,7 @@ from ..source_space import (read_source_spaces, SourceSpaces,
                             _check_mri, _ensure_src)
 from ..transforms import invert_transform, apply_trans, _frame_to_str
 from ..utils import (logger, verbose, warn, _check_option, get_subjects_dir,
-                     _mask_to_onsets_offsets, _pl, _on_missing)
+                     _mask_to_onsets_offsets, _pl, _on_missing, fill_doc)
 from ..io.pick import _picks_by_type
 from ..filter import estimate_ringing_samples
 from .utils import (tight_layout, _get_color_list, _prepare_trellis, plt_show,
@@ -80,8 +80,7 @@ def plot_cov(cov, info, exclude=(), colorbar=True, proj=False, show_svd=True,
     ----------
     cov : instance of Covariance
         The covariance matrix.
-    info : dict
-        Measurement info.
+    %(info_not_none)s
     exclude : list of str | str
         List of channels to exclude. If empty do not exclude any channel.
         If 'bads', exclude info['bads'].
@@ -1181,6 +1180,7 @@ def _handle_event_colors(color_dict, unique_events, event_id):
     return default_colors
 
 
+@fill_doc
 def plot_csd(csd, info=None, mode='csd', colorbar=True, cmap=None,
              n_cols=None, show=True):
     """Plot CSD matrices.
@@ -1192,8 +1192,8 @@ def plot_csd(csd, info=None, mode='csd', colorbar=True, cmap=None,
     ----------
     csd : instance of CrossSpectralDensity
         The CSD matrix to plot.
-    info : instance of Info | None
-        To split the figure by channel-type, provide the measurement info.
+    %(info)s
+        Used to split the figure by channel-type, if provided.
         By default, the CSD matrix is plotted as a whole.
     mode : 'csd' | 'coh'
         Whether to plot the cross-spectral density ('csd', the default), or

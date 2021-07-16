@@ -14,7 +14,7 @@ from .io.proj import make_projector
 from .utils import (logger, _compute_row_norms, _pl, _validate_type,
                     _apply_scaling_cov, _undo_scaling_cov,
                     _scaled_array, warn, _check_rank, _on_missing, verbose,
-                    _check_on_missing)
+                    _check_on_missing, fill_doc)
 
 
 @verbose
@@ -118,6 +118,7 @@ def _estimate_rank_raw(raw, picks=None, tol=1e-4, scalings='norm',
         tol, False, tol_kind)
 
 
+@fill_doc
 def _estimate_rank_meeg_signals(data, info, scalings, tol='auto',
                                 return_singular=False, tol_kind='absolute'):
     """Estimate rank for M/EEG data.
@@ -126,8 +127,7 @@ def _estimate_rank_meeg_signals(data, info, scalings, tol='auto',
     ----------
     data : np.ndarray of float, shape(n_channels, n_samples)
         The M/EEG signals.
-    info : Info
-        The measurement info.
+    %(info_not_none)s
     scalings : dict | 'norm' | np.ndarray | None
         The rescaling method to be applied. If dict, it will override the
         following default dict:
@@ -175,8 +175,7 @@ def _estimate_rank_meeg_cov(data, info, scalings, tol='auto',
     ----------
     data : np.ndarray of float, shape (n_channels, n_channels)
         The M/EEG covariance.
-    info : Info
-        The measurement info.
+    %(info_not_none)s
     scalings : dict | 'norm' | np.ndarray | None
         The rescaling method to be applied. If dict, it will override the
         following default dict:
@@ -291,10 +290,8 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
         Defaults to ``dict(mag=1e15, grad=1e13, eeg=1e6)``.
         These defaults will scale different channel types
         to comparable values.
-    info : instance of Info | None
-        The measurement info used to compute the covariance. It is
-        only necessary if inst is a Covariance object (since this does
-        not provide ``inst.info``).
+    %(info)s Only necessary if ``inst`` is a :class:`mne.Covariance`
+        object (since this does not provide ``inst.info``).
     %(rank_tol)s
     proj : bool
         If True, all projs in ``inst`` and ``info`` will be applied or

@@ -127,8 +127,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     Parameters
     ----------
-    info : dict
-        A dict passed from the subclass.
+    %(info_not_none)s
     preload : bool | str | ndarray
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -2321,6 +2320,7 @@ def _write_raw_fid(raw, info, picks, fid, cals, part_idx, start, stop,
     return final_fname
 
 
+@fill_doc
 def _start_writing_raw(name, info, sel, data_type,
                        reset_range, annotations):
     """Start write raw data in file.
@@ -2329,8 +2329,7 @@ def _start_writing_raw(name, info, sel, data_type,
     ----------
     name : string
         Name of the file to create.
-    info : dict
-        Measurement info.
+    %(info_not_none)s
     sel : array of int | None
         Indices of channels to include. If None, all channels
         are included.
