@@ -1739,6 +1739,7 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
                         subjects_dir=None, thresh=0.95,
                         max_peak_dist=1, voxels_max=100, use_min=False):
     """Warp a montage to a template with image volumes using SDR.
+
     Find areas of the input volume with intensity greater than
     a threshold surrounding local extrema near the channel location.
     Monotonicity from the peak is enforced to prevent channels
