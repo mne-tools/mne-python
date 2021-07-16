@@ -194,7 +194,7 @@ def test_get_data():
     # EEG is already in V, so no conversion should take place
     d1 = epochs.get_data(picks="eeg", units=None)
     d2 = epochs.get_data(picks="eeg", units="V")
-    np.testing.assert_array_equal(d1, d2)
+    assert_array_equal(d1, d2)
 
     with pytest.raises(ValueError, match="is not a valid unit for eeg"):
         epochs.get_data(picks="eeg", units="")
@@ -208,11 +208,11 @@ def test_get_data():
 
     grad_idxs = np.array([i == "grad" for i in epochs.get_channel_types()])
     eeg_idxs = np.array([i == "eeg" for i in epochs.get_channel_types()])
-    np.testing.assert_allclose(
+    assert_array_equal(
         d3[:, grad_idxs, :],
         epochs.get_data("grad", item=[1, 2, 3]) * 1e13  # T/m to fT/cm
     )
-    np.testing.assert_allclose(
+    assert_array_equal(
         d3[:, eeg_idxs, :],
         epochs.get_data("eeg", item=[1, 2, 3])
     )
