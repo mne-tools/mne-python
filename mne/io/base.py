@@ -85,6 +85,40 @@ class TimeMixin(object):
             index = np.round(index)
         return index.astype(int)
 
+    def _handle_tmin_tmax(self, tmin, tmax):
+        """Convert seconds to index into data.
+
+        Parameters
+        ----------
+        tmin : int | float | None
+            Start time of data to get in seconds.
+        tmax : int | float | None
+            End time of data to get in seconds.
+
+        Returns
+        -------
+        start : int
+            Integer index into data corresponding to tmin.
+        stop : int
+            Integer index into data corresponding to tmax.
+
+        """
+        _validate_type(tmin, types=('numeric', None), item_name='tmin',
+                       type_name="int, float, None")
+        _validate_type(tmax, types=('numeric', None), item_name='tmax',
+                       type_name='int, float, None')
+
+        # handle tmin/tmax as start and stop indices into data array
+        n_times = self.times.size
+        start = 0 if tmin is None else self.time_as_index(tmin)[0]
+        stop = n_times if tmax is None else self.time_as_index(tmax)[0]
+
+        # truncate start/stop to the open interval [0, n_times]
+        start = min(max(0, start), n_times)
+        stop = min(max(0, stop), n_times)
+
+        return start, stop
+
 
 @fill_doc
 class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
@@ -818,12 +852,12 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         return_times : bool
             Whether to return times as well. Defaults to False.
         %(units)s
-        tmin : float | None
+        tmin : int | float | None
             Start time of data to get in seconds. The ``tmin`` parameter is
             ignored if the ``start`` parameter is bigger than 0.
 
             .. versionadded:: 0.24.0
-        tmax : float | None
+        tmax : int | float | None
             End time of data to get in seconds. The ``tmax`` parameter is
             ignored if the ``stop`` parameter is defined.
 
@@ -847,10 +881,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                        type_name='int')
         _validate_type(stop, types=('int-like', None), item_name='stop',
                        type_name='int, None')
-        _validate_type(tmin, types=('numeric', None), item_name='tmin',
-                       type_name='float, None')
-        _validate_type(tmax, types=('numeric', None), item_name='tmax',
-                       type_name='float, None')
 
         picks = _picks_to_idx(self.info, picks, 'all', exclude=())
 
@@ -863,12 +893,12 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         picks = np.atleast_1d(np.arange(self.info['nchan'])[picks])
 
         # handle start/tmin stop/tmax
+        tmin_start, tmax_stop = self._handle_tmin_tmax(tmin, tmax)
+
         # tmin/tmax are ignored if start/stop are defined to
         # something other than their defaults
-        if start == 0:
-            start = 0 if tmin is None else self.time_as_index(tmin)
-        if stop is None:
-            stop = self.n_times if tmax is None else self.time_as_index(tmax)
+        start = tmin_start if start == 0 else start
+        stop = tmax_stop if stop is None else stop
 
         # truncate start/stop to the open interval [0, n_times]
         start = min(max(0, start), self.n_times)
