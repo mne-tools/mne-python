@@ -216,10 +216,15 @@ elec_df = pd.read_csv(op.join(misc_path, 'seeg', 'sample_seeg_electrodes.tsv'),
 ch_names = elec_df['name'].tolist()
 ch_coords = elec_df[['R', 'A', 'S']].to_numpy(dtype=float)
 
+# create symbolic link to share ``subjects_dir``
+seeg_subject_dir = op.join(subjects_dir, 'sample_seeg')
+if not op.exists(seeg_subject_dir):
+    os.symlink(op.join(misc_path, 'seeg', 'sample_seeg'), seeg_subject_dir)
+
 # get fiducial points for our subject from the Talairach transform
 # the was computed during the Freesurfer recon-all
 lpa, nasion, rpa = mne.coreg.get_mni_fiducials(
-    'sample_seeg', subjects_dir=op.join(misc_path, 'seeg'))
+    'sample_seeg', subjects_dir=subjects_dir)
 lpa, nasion, rpa = lpa['r'], nasion['r'], rpa['r']
 
 # create a montage in subject-specific brain space
@@ -235,7 +240,7 @@ subject_brain = nib.load(
     op.join(misc_path, 'seeg', 'sample_seeg', 'mri', 'brain.mgz'))
 
 # get native to head trans
-trans = mne.channels.compute_native_head_t(montage)
+subj_trans = mne.channels.compute_native_head_t(montage)
 
 # set new montage
 raw.set_montage(montage)
@@ -243,12 +248,13 @@ raw.set_montage(montage)
 # plot the alignment
 fig_kwargs = dict(size=(800, 600), bgcolor='w', scene=False)
 renderer = mne.viz.backends.renderer.create_3d_figure(**fig_kwargs)
-fig = mne.viz.plot_alignment(raw.info, trans, 'sample_seeg',
-                             fig=renderer.figure,
-                             subjects_dir=op.join(misc_path, 'seeg'),
-                             show_axes=True, surfaces=dict(pial=0.2))
-view_kwargs = dict(azimuth=60, elevation=100)
-mne.viz.set_3d_view(fig, focalpoint=(0, 0, 0.05), distance=0.4, **view_kwargs)
+al_kwargs = dict(
+    show_axes=True, surfaces=dict(pial=0.2), coord_frame='mri',
+    subjects_dir=subjects_dir)
+fig = mne.viz.plot_alignment(raw.info, subj_trans, 'sample_seeg',
+                             fig=renderer.figure, **al_kwargs)
+view_kwargs = dict(azimuth=60, elevation=100, distance=0.3)
+mne.viz.set_3d_view(fig, **view_kwargs)
 
 # %%
 # Warping to a Common Atlas
@@ -306,9 +312,6 @@ del subject_brain, template_brain
 # positions of all the voxels that had the contact's lookup number in
 # the warped image.
 
-# create symbolic link to share ``subjects_dir``
-os.symlink(op.join(misc_path, 'seeg', 'sample_seeg'),
-           op.join(subjects_dir, 'sample_seeg'))
 montage_warped, elec_image, warped_elec_image = mne.warp_montage_volume(
     montage, CT_aligned, reg_affine, sdr_morph, subject_from='sample_seeg',
     subjects_dir=subjects_dir, thresh=CT_thresh)
@@ -334,17 +337,16 @@ del CT_aligned
 # sphinx_gallery_thumbnail_number = 8
 
 # get native to head trans
-trans = mne.channels.compute_native_head_t(montage_warped)
+fsaverage_trans = mne.channels.compute_native_head_t(montage_warped)
 
 # set new montage
 raw.set_montage(montage_warped)
 
 # plot the resulting alignment
 renderer = mne.viz.backends.renderer.create_3d_figure(**fig_kwargs)
-fig = mne.viz.plot_alignment(raw.info, trans, 'fsaverage',
-                             fig=renderer.figure, subjects_dir=subjects_dir,
-                             show_axes=True, surfaces=dict(pial=0.2))
-mne.viz.set_3d_view(fig, focalpoint=(0, 0, 0.05), distance=0.4, **view_kwargs)
+fig = mne.viz.plot_alignment(raw.info, fsaverage_trans, 'fsaverage',
+                             fig=renderer.figure, **al_kwargs)
+mne.viz.set_3d_view(fig, **view_kwargs)
 
 # %%
 # This pipeline was developed based on previous work
