@@ -26,7 +26,8 @@ from ._freesurfer import _read_mri_info, get_mni_fiducials  # noqa: F401
 from .label import read_label, Label
 from .source_space import (add_source_space_distances, read_source_spaces,  # noqa: E501,F401
                            write_source_spaces)
-from .surface import read_surface, write_surface, _normalize_vectors
+from .surface import (read_surface, write_surface, _normalize_vectors,
+                      _DistanceQuery)
 from .bem import read_bem_surfaces, write_bem_surfaces
 from .transforms import (rotation, rotation3d, scaling, translation, Transform,
                          _read_fs_xfm, _write_fs_xfm, invert_transform,
@@ -229,25 +230,43 @@ def _decimate_points(pts, res=10):
 
     # find voxels containing one or more point
     H, _ = np.histogramdd(pts, bins=(xax, yax, zax), normed=False)
-
-    # for each voxel, select one point
     X, Y, Z = pts.T
-    out = np.empty((np.sum(H > 0), 3))
-    for i, (xbin, ybin, zbin) in enumerate(zip(*np.nonzero(H))):
-        x = xax[xbin]
-        y = yax[ybin]
-        z = zax[zbin]
-        xi = np.logical_and(X >= x, X < x + res)
-        yi = np.logical_and(Y >= y, Y < y + res)
-        zi = np.logical_and(Z >= z, Z < z + res)
-        idx = np.logical_and(zi, np.logical_and(yi, xi))
-        ipts = pts[idx]
+    xbins, ybins, zbins = np.nonzero(H)
+    x = xax[xbins]
+    y = yax[ybins]
+    z = zax[zbins]
+    mids = np.c_[x, y, z] + res / 2.
 
-        mid = np.array([x, y, z]) + res / 2.
-        dist = cdist(ipts, [mid])
-        i_min = np.argmin(dist)
-        ipt = ipts[i_min]
-        out[i] = ipt
+    # each point belongs to at most one voxel center, so figure those out
+    # (cKDTree faster than BallTree for these small problems)
+    tree = _DistanceQuery(mids, method='cKDTree')
+    _, mid_idx = tree.query(pts)
+
+    # then figure out which to actually use based on proximity
+    # (take advantage of sorting the mid_idx to get our mapping of
+    # pts to nearest voxel midpoint)
+    sort_idx = np.argsort(mid_idx)
+    bounds = np.cumsum(
+        np.concatenate([[0], np.bincount(mid_idx, minlength=len(mids))]))
+    assert len(bounds) == len(mids) + 1
+    out = list()
+    for mi, mid in enumerate(mids):
+        # Now we do this:
+        #
+        #     use_pts = pts[mid_idx == mi]
+        #
+        # But it's faster for many points than making a big boolean indexer
+        # over and over (esp. since each point can only belong to a single
+        # voxel).
+        use_pts = pts[sort_idx[bounds[mi]:bounds[mi + 1]]]
+        if not len(use_pts):
+            out.append([np.inf] * 3)
+        else:
+            out.append(
+                use_pts[np.argmin(cdist(use_pts, mid[np.newaxis])[:, 0])])
+    out = np.array(out, float).reshape(-1, 3)
+    out = out[np.abs(out - mids).max(axis=1) < res / 2.]
+    # """
 
     return out
 
