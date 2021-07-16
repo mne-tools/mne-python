@@ -1470,8 +1470,9 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
 
     Parameters
     ----------
-    %(info_not_none)s Used to specify the channels to include.
-        Bad channels in ``info['bads']`` are not used.
+    %(info_not_none)s
+        Specifies the channels to include. Bad channels (in ``info['bads']``)
+        are not used.
     forward : dict
         Forward operator.
     noise_cov : instance of Covariance
