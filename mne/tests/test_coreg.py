@@ -299,7 +299,7 @@ def test_coregistration():
     assert coreg._dig.extra_points_filter is not None
     coreg.fit_icp()
     assert isinstance(coreg.trans, Transform)
-    errs_icp = coreg.point_distance()
+    errs_icp = coreg.compute_dig_head_distances()
     assert np.median(errs_icp * 1000) < 4
     coreg.reset()
     assert np.allclose(coreg._parameters, default_params)

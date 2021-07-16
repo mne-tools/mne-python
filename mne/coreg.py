@@ -1248,8 +1248,7 @@ def _scale_xfm(subject_to, xfm_fname, mri_name, subject_from, scale,
 
 
 class Coregistration(object):
-    """
-    Class for MRI<->head coregistration.
+    """Class for MRI<->head coregistration.
 
     Parameters
     ----------
@@ -1339,11 +1338,11 @@ class Coregistration(object):
         return apply_trans(self._hsp_trans, self._dig.hpi_points)
 
     @property
-    def _transformed_dig_eeg_points(self):
+    def _transformed_dig_eeg(self):
         return apply_trans(self._hsp_trans, self._dig.eeg_points)
 
     @property
-    def _transformed_dig_points(self):
+    def _transformed_dig_extra(self):
         return apply_trans(self._hsp_trans, self._dig.extra_points)
 
     @property
@@ -1355,7 +1354,7 @@ class Coregistration(object):
         return t
 
     @property
-    def _transformed_orig_hsp_points(self):
+    def _transformed_orig_dig_extra(self):
         return apply_trans(self._hsp_trans, self._dig._extra_points)
 
     @property
@@ -1462,7 +1461,7 @@ class Coregistration(object):
     def _orig_hsp_point_distance(self):
         mri_points = self._transformed_high_res_mri_points[
             self._nearest_transformed_high_res_mri_idx_orig_hsp]
-        hsp_points = self._transformed_orig_hsp_points
+        hsp_points = self._transformed_orig_dig_extra
         return np.linalg.norm(mri_points - hsp_points, axis=-1)
 
     def fit_fiducials(self, lpa_weight=1., nasion_weight=10., rpa_weight=1.):
@@ -1599,19 +1598,19 @@ class Coregistration(object):
         with warnings.catch_warnings(record=True):  # comp to None in Traits
             self._dig.extra_points_filter = mask
 
-    def point_distance(self):
+    def compute_dig_head_distances(self):
         """Compute Euclidean distance between the head-mri points."""
         mri_points = list()
         hsp_points = list()
         if self._hsp_weight > 0 and self._has_dig_data:
             mri_points.append(self._transformed_high_res_mri_points[
                 self._nearest_transformed_high_res_mri_idx_hsp])
-            hsp_points.append(self._transformed_dig_points)
+            hsp_points.append(self._transformed_dig_extra)
             assert len(mri_points[-1]) == len(hsp_points[-1])
         if self._eeg_weight > 0 and self._has_eeg_data:
             mri_points.append(self._transformed_high_res_mri_points[
                 self._nearest_transformed_high_res_mri_idx_eeg])
-            hsp_points.append(self._transformed_dig_eeg_points)
+            hsp_points.append(self._transformed_dig_eeg)
             assert len(mri_points[-1]) == len(hsp_points[-1])
         if self._hpi_weight > 0 and self._has_hpi_data:
             mri_points.append(self._transformed_high_res_mri_points[
