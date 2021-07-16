@@ -78,7 +78,7 @@ class MNEFigParams:
         vars(self).update(**kwargs)
 
 
-class MNEFigure(Figure):
+class MNEFigure(Figure, MNEDataBrowser):
     """Base class for 2D figures & dialogs; wraps matplotlib.figure.Figure."""
 
     def __init__(self, **kwargs):
@@ -329,16 +329,6 @@ class MNEBrowseFigure(MNEFigure):
 
         super().__init__(figsize=figsize, inst=inst, ica=ica, **kwargs)
 
-        # what kind of data are we dealing with?
-        if isinstance(ica, ICA):
-            self.mne.instance_type = 'ica'
-        elif isinstance(inst, BaseRaw):
-            self.mne.instance_type = 'raw'
-        elif isinstance(inst, BaseEpochs):
-            self.mne.instance_type = 'epochs'
-        else:
-            raise TypeError('Expected an instance of Raw, Epochs, or ICA, '
-                            f'got {type(inst)}.')
         self.mne.ica_type = None
         if self.mne.instance_type == 'ica':
             if isinstance(self.mne.ica_inst, BaseRaw):
