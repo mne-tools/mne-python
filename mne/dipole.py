@@ -314,8 +314,8 @@ class Dipole(object):
                            subjects_dir=subjects_dir, verbose=verbose)
 
     @verbose
-    def to_aseg_labels(self, trans, subject='fsaverage', aseg='aparc+aseg',
-                       subjects_dir=None, verbose=None):
+    def to_volume_labels(self, trans, subject='fsaverage', aseg='aparc+aseg',
+                         subjects_dir=None, verbose=None):
         """Find an ROI in atlas for the dipole positions.
 
         Parameters

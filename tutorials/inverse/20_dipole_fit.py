@@ -60,9 +60,9 @@ mri_pos = dip.to_mri(subject=subject, trans=fname_trans,
 
 # Find an anatomical label for the best fitted dipole
 best_dip_idx = dip.gof.argmax()
-label = dip.to_aseg_labels(fname_trans, subject=subject,
-                           subjects_dir=subjects_dir,
-                           aseg='aparc.a2009s+aseg')[best_dip_idx]
+label = dip.to_volume_labels(fname_trans, subject=subject,
+                             subjects_dir=subjects_dir,
+                             aseg='aparc.a2009s+aseg')[best_dip_idx]
 
 # Draw dipole position on MRI scan and add anatomical label from parcellation
 t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')

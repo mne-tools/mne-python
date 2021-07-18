@@ -157,8 +157,8 @@ def test_dipole_fitting(tmpdir):
                      'Right-Cerebral-Cortex', 'Left-Cerebral-Cortex',
                      'Unknown', 'Unknown', 'Unknown',
                      'Right-Cerebral-White-Matter', 'Right-Cerebral-Cortex']
-    labels = dip.to_aseg_labels(fname_trans, subject='fsaverage',
-                                aseg="aseg", subjects_dir=subjects_dir)
+    labels = dip.to_volume_labels(fname_trans, subject='fsaverage',
+                                  aseg="aseg", subjects_dir=subjects_dir)
     assert labels == target_labels
 
     # Sanity check: do our residuals have less power than orig data?
