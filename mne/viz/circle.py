@@ -430,6 +430,10 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
 def plot_channel_labels_circle(labels, colors=None, picks=None, **kwargs):
     """Plot labels for each channel in a circle plot.
 
+    .. note:: This primarily makes sense for sEEG channels where each
+              channel can be assigned an anatomical label as the electrode
+              passes through various brain areas.
+
     Parameters
     ----------
     labels : dict

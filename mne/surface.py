@@ -1889,9 +1889,9 @@ _VOXELS_MAX = 100  # define constant to avoid runtime issues
 
 
 @fill_doc
-def get_montage_rois(montage, subject, subjects_dir=None,
-                     aseg='aparc+aseg', dist=5):
-    """Get the regions of interest near the channels in a montage.
+def get_montage_volume_labels(montage, subject, subjects_dir=None,
+                              aseg='aparc+aseg', dist=5):
+    """Get regions of interest near channels from a Freesurfer parcellation.
 
     .. note:: This is applicable for channels inside the brain
               (intracranial electrodes).
@@ -1907,10 +1907,10 @@ def get_montage_rois(montage, subject, subjects_dir=None,
 
     Returns
     -------
-    rois : dict
-        The regions of interest within ``dist`` of each channel.
+    labels : dict
+        The regions of interest labels within ``dist`` of each channel.
     colors : dict
-        The Freesurfer lookup table colors for the rois.
+        The Freesurfer lookup table colors for the labels.
     """
     from .channels import DigMontage
     from ._freesurfer import read_freesurfer_lut, _get_aseg
@@ -1922,10 +1922,10 @@ def get_montage_rois(montage, subject, subjects_dir=None,
 
     # read freesurfer lookup table
     lut, fs_colors = read_freesurfer_lut()
-    labels = {v: k for k, v in lut.items()}
+    label_lut = {v: k for k, v in lut.items()}
 
     # assert that all the values in the aseg are in the labels
-    assert all([idx in labels for idx in np.unique(aseg_data)])
+    assert all([idx in label_lut for idx in np.unique(aseg_data)])
 
     # get transform to surface RAS for distance units instead of voxels
     vox2ras_tkr = aseg.header.get_vox2ras_tkr()
@@ -1939,18 +1939,19 @@ def get_montage_rois(montage, subject, subjects_dir=None,
     # convert to freesurfer voxel space
     ch_coords = apply_trans(
         np.linalg.inv(aseg.header.get_vox2ras_tkr()), ch_coords * 1000)
-    rois = OrderedDict()
+    labels = OrderedDict()
     for ch_name, seed in zip(montage.ch_names, ch_coords):
         voxels = _voxel_neighbors(
             seed, aseg_data, dist=dist, vox2ras_tkr=vox2ras_tkr,
             voxels_max=_VOXELS_MAX)
-        roi_idxs = set([aseg_data[tuple(voxel)].astype(int)
-                        for voxel in voxels])
-        rois[ch_name] = [labels[idx] for idx in roi_idxs]
+        label_idxs = set([aseg_data[tuple(voxel)].astype(int)
+                          for voxel in voxels])
+        labels[ch_name] = [label_lut[idx] for idx in label_idxs]
 
-    all_rois = set([roi for val in rois.values() for roi in val])
-    colors = {roi: tuple(fs_colors[roi][:3] / 255) + (1.,) for roi in all_rois}
-    return rois, colors
+    all_labels = set([label for val in labels.values() for label in val])
+    colors = {label: tuple(fs_colors[label][:3] / 255) + (1.,)
+              for label in all_labels}
+    return labels, colors
 
 
 def _get_neighbors(loc, image, voxels, thresh, dist_params):

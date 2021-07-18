@@ -146,8 +146,8 @@ fig = mne.viz.plot_alignment(epochs.info, trans, 'fsaverage',
 # contacts.
 
 aseg = 'aparc+aseg'  # parcellation/anatomical segmentation atlas
-rois, colors = mne.get_montage_rois(montage, 'fsaverage',
-                                    subjects_dir=subjects_dir, aseg=aseg)
+labels, colors = mne.get_montage_volume_labels(
+    montage, 'fsaverage', subjects_dir=subjects_dir, aseg=aseg)
 
 # separate by electrodes which have names like LAMY 1
 electrodes = set([''.join([lttr for lttr in ch_name
@@ -158,7 +158,7 @@ print(f'Electrodes in the dataset: {electrodes}')
 for elec in ('LPM', 'LSMA'):  # plot two electrodes for the example
     picks = [ch_name for ch_name in ch_names if elec in ch_name]
     fig = plt.figure(num=None, figsize=(8, 8), facecolor='black')
-    mne.viz.plot_channel_labels_circle(rois, colors, picks=picks, fig=fig)
+    mne.viz.plot_channel_labels_circle(labels, colors, picks=picks, fig=fig)
     fig.text(0.3, 0.9, 'Anatomical Labels', color='white')
 
 # %%

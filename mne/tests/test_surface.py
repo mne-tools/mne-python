@@ -9,7 +9,7 @@ import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 
 from mne import (read_surface, write_surface, decimate_surface, pick_types,
-                 dig_mri_distances, get_montage_rois)
+                 dig_mri_distances, get_montage_volume_labels)
 from mne.channels import make_dig_montage
 from mne.datasets import testing
 from mne.fixes import _get_img_fdata
@@ -235,17 +235,17 @@ def test_marching_cubes():
 
 
 @requires_nibabel()
-def test_get_montage_rois():
-    """Test finding ROIs near montage channel locations."""
+def test_get_montage_volume_labels():
+    """Test finding ROI labels near montage channel locations."""
     ch_coords = np.array([[-8.7040273, 17.99938754, 10.29604017],
                           [-14.03007764, 19.69978401, 12.07236939],
                           [-21.1130506, 21.98310911, 13.25658887]])
     ch_pos = dict(zip(['1', '2', '3'], ch_coords / 1000))  # mm -> m
     montage = make_dig_montage(ch_pos, coord_frame='mri')
-    rois, colors = get_montage_rois(
+    labels, colors = get_montage_volume_labels(
         montage, 'sample', subjects_dir, aseg='aseg', dist=1)
-    assert rois == {'1': ['Unknown'], '2': ['Left-Cerebral-Cortex'],
-                    '3': ['Left-Cerebral-Cortex']}
+    assert labels == {'1': ['Unknown'], '2': ['Left-Cerebral-Cortex'],
+                      '3': ['Left-Cerebral-Cortex']}
     assert 'Unknown' in colors
     assert 'Left-Cerebral-Cortex' in colors
     np.testing.assert_almost_equal(
@@ -257,11 +257,12 @@ def test_get_montage_rois():
     # test inputs
     with pytest.raises(RuntimeError,
                        match='`aseg` file path must end with "aseg"'):
-        get_montage_rois(montage, 'sample', subjects_dir, aseg='foo')
+        get_montage_volume_labels(montage, 'sample', subjects_dir, aseg='foo')
     fail_montage = make_dig_montage(ch_pos, coord_frame='head')
     with pytest.raises(RuntimeError,
                        match='Coordinate frame not supported'):
-        get_montage_rois(fail_montage, 'sample', subjects_dir, aseg='aseg')
+        get_montage_volume_labels(
+            fail_montage, 'sample', subjects_dir, aseg='aseg')
 
 
 def test_voxel_neighbors():
