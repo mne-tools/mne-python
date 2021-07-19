@@ -1290,7 +1290,8 @@ class Coregistration(object):
         self._mri = _MRIHeadWithFiducialsModel(subjects_dir=subjects_dir,
                                                subject=subject)
         self.reset()
-        self._nearest_calc = self._nearest_calc_default()
+        self._nearest_calc = _DistanceQuery(
+            self._processed_high_res_mri_points * self._scale)
 
     def _update_params(self, rot=None, tra=None, sca=None):
         rot_changed = False
@@ -1431,10 +1432,6 @@ class Coregistration(object):
     @property
     def _has_rpa_data(self):
         return (np.any(self._mri.rpa) and np.any(self._dig.rpa))
-
-    def _nearest_calc_default(self):
-        return _DistanceQuery(
-            self._processed_high_res_mri_points * self._scale)
 
     @property
     def _nearest_transformed_high_res_mri_idx_hsp(self):
