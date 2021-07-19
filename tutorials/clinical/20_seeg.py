@@ -166,7 +166,7 @@ for elec in electrodes:
 
 picks = [ch_name for ch_name in epochs.ch_names if
          any([elec in ch_name for elec in electrodes])]
-labels = ('ctx-lh-insula', 'ctx-lh-caudalmiddlefrontal', 'ctx-lh-precentral',
+labels = ('ctx-lh-caudalmiddlefrontal', 'ctx-lh-precentral',
           'ctx-lh-superiorfrontal', 'Left-Putamen')
 
 fig = mne.viz.plot_alignment(epochs.info.copy().pick_channels(picks), trans,
