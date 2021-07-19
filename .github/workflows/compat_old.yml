@@ -1,6 +1,6 @@
 name: 'compat / old'
 concurrency:
-  group: ${{ github.event.number }}
+  group: ${{ github.workflow }}-${{ github.event.number }}
   cancel-in-progress: true
 on:
   push:
