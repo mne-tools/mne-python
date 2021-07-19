@@ -2341,9 +2341,10 @@ class Brain(object):
             Alpha level to control opacity.
         %(smooth)s
         legend : bool | None | dict
-            Add a legend displaying the names of the ``labels``. Default is
-            ``True`` if the number of ``labels`` is 10 or fewer. Can also be a
-            dict of `kwargs` to pass to :meth:`pyvista.BasePlotter.add_legend`.
+            Add a legend displaying the names of the ``labels``. Default (None)
+            is ``True`` if the number of ``labels`` is 10 or fewer.
+             Can also be a dict of ``kwargs`` to pass to
+            :meth:`pyvista.BasePlotter.add_legend`.
 
         Notes
         -----
