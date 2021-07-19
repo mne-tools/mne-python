@@ -2319,9 +2319,9 @@ class Brain(object):
         self._renderer._update()
 
     @fill_doc
-    def add_aseg(self, aseg='aparc+aseg', rois=None, colors=None, alpha=0.5,
-                 smooth=0.9, legend=None):
-        """Add an ROI label to the image.
+    def add_volume_labels(self, aseg='aparc+aseg', labels=None, colors=None,
+                          alpha=0.5, smooth=0.9, legend=None):
+        """Add labels to the rendering from an anatomical segmentation.
 
         Parameters
         ----------
@@ -2329,8 +2329,9 @@ class Brain(object):
             The anatomical segmentation file. Default ``aparc+aseg``. This may
             be any anatomical segmentation file in the mri subdirectory of the
             subject directory from the Freesurfer recon-all.
-        rois : list
-            The regions of interest to plot. See :func:`mne.get_montage_rois`
+        labels : list
+            Labeled regions of interest to plot. See
+            :func:`mne.get_montage_volume_labels`
             for one way to determine regions of interest. Regions can also be
             chosen from :ref:`freesurfer lookup table`.
         colors : list | matplotlib-style color | None
@@ -2340,8 +2341,8 @@ class Brain(object):
             Alpha level to control opacity.
         %(smooth)s
         legend : bool | None | dict
-            Add a legend displaying the names of the ``rois``. Default (None)
-            is ``True`` if the number of ``rois`` is 10 or fewer. Can also be a
+            Add a legend displaying the names of the ``labels``. Default is
+            ``True`` if the number of ``labels`` is 10 or fewer. Can also be a
             dict of `kwargs` to pass to :meth:`pyvista.BasePlotter.add_legend`.
 
         Notes
@@ -2368,22 +2369,22 @@ class Brain(object):
 
         # read freesurfer lookup table
         lut, fs_colors = read_freesurfer_lut()
-        if rois is None:  # assign default ROIs based on indices
+        if labels is None:  # assign default ROI labels based on indices
             lut_r = {v: k for k, v in lut.items()}
-            rois = [lut_r[idx] for idx in DEFAULTS['roi_indices']]
+            labels = [lut_r[idx] for idx in DEFAULTS['volume_label_indices']]
 
         _validate_type(legend, (bool, None), 'legend')
         if legend is None:
-            legend = len(rois) < 11
+            legend = len(labels) < 11
 
         if colors is None:
-            colors = [fs_colors[roi] / 255 for roi in rois]
+            colors = [fs_colors[label] / 255 for label in labels]
         elif not isinstance(colors, (list, tuple)):
-            colors = [colors] * len(rois)  # make into list
+            colors = [colors] * len(labels)  # make into list
         colors = [colorConverter.to_rgba(color, alpha) for color in colors]
         aseg_vals = set(np.unique(aseg_data))
-        for roi, color in zip(rois, colors):
-            val = lut[roi]
+        for label, color in zip(labels, colors):
+            val = lut[label]
             if val not in aseg_vals:
                 continue
             mask = (aseg_data == val)
@@ -2397,7 +2398,7 @@ class Brain(object):
             # use empty kwargs for legend = True
             legend = legend if isinstance(legend, dict) else dict()
             self._renderer.plotter.add_legend(
-                list(zip(rois, colors)), **legend)
+                list(zip(labels, colors)), **legend)
 
         self._renderer._update()
 

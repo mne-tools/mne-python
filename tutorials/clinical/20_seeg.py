@@ -39,10 +39,7 @@ import os.path as op
 
 import numpy as np
 import pandas as pd
-<<<<<<< HEAD
 import matplotlib.pyplot as plt
-=======
->>>>>>> 6fd678c52 (parent 144a58c9466563de2d379f3d51b7c3404729e37a)
 
 import mne
 from mne.datasets import fetch_fsaverage
@@ -69,7 +66,6 @@ elec_df = pd.read_csv(misc_path + '/seeg/sample_seeg_electrodes.tsv',
                       sep='\t', header=0, index_col=None)
 ch_names = elec_df['name'].tolist()
 ch_coords = elec_df[['R', 'A', 'S']].to_numpy(dtype=float) / 1000.  # mm -> m
-<<<<<<< HEAD
 
 # sort channels based on alphabetical and numeric portion
 sort_idx = sorted(
@@ -86,13 +82,6 @@ ch_coords = [ch_coords[idx] for idx in sort_idx]
 mri_mni_t = mne.read_talxfm('sample_seeg', op.join(misc_path, 'seeg'))
 ch_coords = mne.transforms.apply_trans(mri_mni_t, ch_coords)
 
-=======
-
-# apply the Freesurfer surface RAS ('mri') to MNI ('mni_tal') transform
-mri_mni_t = mne.read_talxfm('sample_seeg', op.join(misc_path, 'seeg'))
-ch_coords = mne.transforms.apply_trans(mri_mni_t, ch_coords)
-
->>>>>>> 6fd678c52 (parent 144a58c9466563de2d379f3d51b7c3404729e37a)
 # create dictionary of channels and their xyz coordinates (now in MNI space)
 ch_pos = dict(zip(ch_names, ch_coords))
 

@@ -107,7 +107,7 @@ DEFAULTS = dict(
         rigid=(100, 100, 10),
         affine=(100, 100, 10),
         sdr=(5, 5, 3)),
-    roi_indices=(
+    volume_label_indices=(
         # Left and middle
         4,  # Left-Lateral-Ventricle
         5,  # Left-Inf-Lat-Vent
