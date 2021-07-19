@@ -1683,7 +1683,7 @@ def marching_cubes(image, level, smooth=0):
     # vtkDiscreteMarchingCubes would be another option, but it merges
     # values at boundaries which is not what we want
     # https://kitware.github.io/vtk-examples/site/Cxx/Medical/GenerateModelsFromLabels/  # noqa: E501
-    from vtk import (VTK_DOUBLE, vtkImageData, vtkMarchingCubes, vtkThreshold,
+    from vtk import (vtkImageData, vtkMarchingCubes, vtkThreshold,
                      vtkWindowedSincPolyDataFilter, vtkDiscreteFlyingEdges3D,
                      vtkGeometryFilter, vtkDataSetAttributes, vtkPolyData)
     from vtk.util import numpy_support
