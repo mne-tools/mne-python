@@ -1342,6 +1342,9 @@ class Coregistration(object):
             self._scale = sca
             self._mri_trans = np.eye(4)
             self._mri_trans[:, :3] *= sca
+            self._transformed_high_res_mri_points = \
+                apply_trans(self._mri_trans,
+                            self._processed_high_res_mri_points)
 
     def set_rotation(self, rot):
         """Set the rotation parameter.
@@ -1441,12 +1444,6 @@ class Coregistration(object):
                 self._grow_hair = 0
         else:
             return bem.surf.rr
-
-    @property
-    def _transformed_high_res_mri_points(self):
-        points = apply_trans(self._mri_trans,
-                             self._processed_high_res_mri_points)
-        return points
 
     @property
     def _has_mri_data(self):
