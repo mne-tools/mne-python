@@ -225,9 +225,10 @@ def test_normal_orth():
 
 @requires_vtk
 @pytest.mark.parametrize('array_like', (True, False))
-def test_marching_cubes(array_like):
+@pytest.mark.parametrize('dtype', (np.float64, np.uint16))
+def test_marching_cubes(array_like, dtype):
     """Test creating surfaces via marching cubes."""
-    data = np.zeros((50, 50, 50))
+    data = np.zeros((50, 50, 50), dtype=dtype)
     data[20:30, 20:30, 20:30] = 1
     level = [1] if array_like else 0.5
     out = marching_cubes(data, level)

@@ -1695,9 +1695,8 @@ def marching_cubes(image, level, smooth=0):
 
     if image.ndim != 3:
         raise ValueError(f'3D data must be supplied, got {image.shape}')
-    data_vtk = numpy_support.numpy_to_vtk(
-        image.ravel(), deep=True, array_type=VTK_DOUBLE
-    )
+    # don't force double, let VTK just handle types internally
+    data_vtk = numpy_support.numpy_to_vtk(image.ravel(), deep=True)
     if not _is_numeric(level):
         level = np.array(level)
         if level.ndim != 1 or level.size == 0 or level.dtype.kind not in 'ui':
