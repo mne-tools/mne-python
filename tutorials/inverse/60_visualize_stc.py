@@ -191,7 +191,7 @@ brain = stc.plot(subject='sample', subjects_dir=subjects_dir,
 # solution, and the coregistration transformation files. Note that for the
 # other methods, these were already used to generate the inverse operator.
 fname_cov = op.join(sample_dir, 'sample_audvis-cov.fif')
-fname_bem = op.join(sample_dir, 'bem', 'sample-5120-bem-sol.fif')
+fname_bem = op.join(subjects_dir, 'sample', 'bem', 'sample-5120-bem-sol.fif')
 fname_trans = op.join(sample_dir, 'sample_audvis_raw-trans.fif')
 
 ##############################################################################
