@@ -153,7 +153,8 @@ electrodes = set([''.join([lttr for lttr in ch_name
                   for ch_name in montage.ch_names])
 print(f'Electrodes in the dataset: {electrodes}')
 
-for elec in ('LPM', 'LSMA'):  # plot two electrodes for the example
+electrodes = ('LPM', 'LSMA')  # choose two for this example
+for elec in electrodes:
     picks = [ch_name for ch_name in ch_names if elec in ch_name]
     fig = plt.figure(num=None, figsize=(8, 8), facecolor='black')
     mne.viz.plot_channel_labels_circle(labels, colors, picks=picks, fig=fig)
@@ -163,7 +164,6 @@ for elec in ('LPM', 'LSMA'):  # plot two electrodes for the example
 # Now, let's the electrodes and a few regions of interest that the contacts
 # of the electrode are proximal to.
 
-electrodes = ('LPM', 'LSMA')
 picks = [ch_name for ch_name in epochs.ch_names if
          any([elec in ch_name for elec in electrodes])]
 labels = ('ctx-lh-insula', 'ctx-lh-caudalmiddlefrontal', 'ctx-lh-precentral',
