@@ -15,6 +15,7 @@ from mne.inverse_sparse.mxne_optim import (mixed_norm_solver,
                                            norm_epsilon_inf, norm_epsilon,
                                            _Phi, _PhiT, dgap_l21l1)
 from mne.time_frequency._stft import stft_norm2
+from mne.utils import catch_logging
 
 
 def _generate_tf_data():
@@ -118,7 +119,7 @@ def test_l21_mxne():
 
 @pytest.mark.slowtest
 def test_non_convergence():
-    """Test non-convergence of MxNE solver to catch bugs."""
+    """Test non-convergence of MxNE solver to catch unexpected bugs."""
     n, p, t, alpha = 30, 40, 20, 1.
     rng = np.random.RandomState(0)
     G = rng.randn(n, p)
@@ -131,16 +132,11 @@ def test_non_convergence():
     # Impossible to converge with only 1 iteration and tol 1e-12
     # In case of non-convegence, we test that no error is returned.
     args = (M, G, alpha, 1, 1e-12)
-    with pytest.warns(None):  # CD
+    with catch_logging() as log:
         mixed_norm_solver(*args, active_set_size=None, debias=True,
-                          solver='prox')
-    with pytest.warns(None):  # CD
-        mixed_norm_solver(*args, active_set_size=None, debias=True,
-                          solver='cd', return_gap=True)
-    with pytest.warns(None):  # CD
-        mixed_norm_solver(M, G, alpha, maxit=1000, tol=1e-8,
-                          active_set_size=None, debias=True, solver='bcd',
-                          return_gap=True)
+                          solver='bcd', verbose=True)
+    log = log.getvalue()
+    assert 'Convergence reached' not in log
 
 
 def test_tf_mxne():
