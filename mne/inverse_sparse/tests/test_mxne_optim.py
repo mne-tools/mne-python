@@ -128,9 +128,9 @@ def test_non_convergence():
     X[4] = -2
     M = np.dot(G, X)
 
-    # Impossible to converge with only 3 iterations and tol 1e-12
+    # Impossible to converge with only 1 iteration and tol 1e-12
     # In case of non-convegence, we test that no error is returned.
-    args = (M, G, alpha, 3, 1e-12)
+    args = (M, G, alpha, 1, 1e-12)
     with pytest.warns(None):  # CD
         mixed_norm_solver(*args, active_set_size=None, debias=True,
                           solver='prox')
