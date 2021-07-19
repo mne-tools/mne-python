@@ -16,7 +16,6 @@ from glob import glob
 from os import path as op
 from struct import pack
 import warnings
-from nibabel.xmlutils import XmlSerializable
 
 import numpy as np
 
