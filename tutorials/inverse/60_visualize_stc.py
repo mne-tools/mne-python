@@ -13,7 +13,6 @@ First, we get the paths for the evoked data and the time courses (stcs).
 
 # %%
 
-import os
 import os.path as op
 
 import numpy as np
@@ -159,10 +158,10 @@ fig.tight_layout()
 # for a more fine-grained view of the anatomical loci of activation.
 labels = [label_names[idx] for idx in np.argsort(label_tc.max(axis=1))[:7]
           if 'unknown' not in label_names[idx].lower()]  # remove catch-all
-brain = mne.viz.Brain('sample', hemi='both', surf='pial', alpha=0.1,
+brain = mne.viz.Brain('sample', hemi='both', surf='pial', alpha=0.5,
                       cortex='low_contrast', subjects_dir=subjects_dir)
 brain.add_volume_labels(aseg='aparc.a2009s+aseg', labels=labels)
-brain.show_view(dict(azimuth=110, elevation=90, distance=350))
+brain.show_view(dict(azimuth=250, elevation=40, distance=400))
 brain.enable_depth_peeling()
 
 # %%
@@ -191,11 +190,9 @@ brain = stc.plot(subject='sample', subjects_dir=subjects_dir,
 # For computing a dipole fit, we need to load the noise covariance, the BEM
 # solution, and the coregistration transformation files. Note that for the
 # other methods, these were already used to generate the inverse operator.
-fname_cov = os.path.join(data_path, 'MEG', 'sample', 'sample_audvis-cov.fif')
-fname_bem = os.path.join(subjects_dir, 'sample', 'bem',
-                         'sample-5120-bem-sol.fif')
-fname_trans = os.path.join(data_path, 'MEG', 'sample',
-                           'sample_audvis_raw-trans.fif')
+fname_cov = op.join(sample_dir, 'sample_audvis-cov.fif')
+fname_bem = op.join(sample_dir, 'bem', 'sample-5120-bem-sol.fif')
+fname_trans = op.join(sample_dir, 'sample_audvis_raw-trans.fif')
 
 ##############################################################################
 # Dipoles are fit independently for each time point, so let us crop our time
