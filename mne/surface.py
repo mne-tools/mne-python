@@ -1705,9 +1705,12 @@ def marching_cubes(image, level, smooth=0):
                 'level must be non-empty numeric or 1D array-like of int, '
                 f'got {level.ndim}D array-like of {level.dtype} with '
                 f'{level.size} elements')
+        mc = vtkDiscreteFlyingEdges3D()
         discrete = True
     else:
+        mc = vtkMarchingCubes()
         discrete = False
+        level = [float(level)]
     # create image
     imdata = vtkImageData()
     imdata.SetDimensions(image.shape)
@@ -1716,14 +1719,10 @@ def marching_cubes(image, level, smooth=0):
     imdata.GetPointData().SetScalars(data_vtk)
 
     # compute marching cubes
-    mc = vtkDiscreteFlyingEdges3D() if discrete else vtkMarchingCubes()
+    mc.SetNumberOfContours(len(level))
+    for li, lev in enumerate(level):
+        mc.SetValue(li, lev)
     mc.SetInputData(imdata)
-    if discrete:
-        mc.SetNumberOfContours(len(level))
-        for li, lev in enumerate(level):
-            mc.SetValue(li, lev)
-    else:
-        mc.SetValue(0, level)
     out = mc
     if smooth:
         smoother = vtkWindowedSincPolyDataFilter()

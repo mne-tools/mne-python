@@ -2333,10 +2333,10 @@ class Brain(object):
             Labeled regions of interest to plot. See
             :func:`mne.get_montage_volume_labels`
             for one way to determine regions of interest. Regions can also be
-            chosen from :ref:`freesurfer lookup table`.
+            chosen from the :term:`FreeSurfer LUT`.
         colors : list | matplotlib-style color | None
             A list of anything matplotlib accepts: string, RGB, hex, etc.
-            (default Freesurfer lookup table colors).
+            (default :term:`FreeSurfer LUT` colors).
         alpha : float in [0, 1]
             Alpha level to control opacity.
         %(smooth)s
