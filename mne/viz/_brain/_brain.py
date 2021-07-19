@@ -2387,7 +2387,8 @@ class Brain(object):
         for label, color in zip(labels, colors):
             val = lut[label]
             if val not in aseg_vals:
-                continue
+                warn(f'Value not found for label {repr(label)} in: '
+                     f'{aseg_fname}')
             mask = (aseg_data == val)
             verts, triangles = marching_cubes(mask, level=0.5, smooth=smooth)
             verts = apply_trans(vox_mri_t, verts)
