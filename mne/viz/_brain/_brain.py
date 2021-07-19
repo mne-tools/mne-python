@@ -2343,7 +2343,7 @@ class Brain(object):
         legend : bool | None | dict
             Add a legend displaying the names of the ``labels``. Default (None)
             is ``True`` if the number of ``labels`` is 10 or fewer.
-             Can also be a dict of ``kwargs`` to pass to
+            Can also be a dict of ``kwargs`` to pass to
             :meth:`pyvista.BasePlotter.add_legend`.
 
         Notes
