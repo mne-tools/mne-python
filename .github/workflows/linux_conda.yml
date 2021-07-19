@@ -1,4 +1,7 @@
 name: 'linux / conda'
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number }}
+  cancel-in-progress: true
 on:
   push:
     branches:
