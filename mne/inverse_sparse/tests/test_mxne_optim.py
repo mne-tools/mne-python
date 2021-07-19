@@ -116,6 +116,33 @@ def test_l21_mxne():
     assert_allclose(X_hat_bcd, X_hat_prox, rtol=1e-2)
 
 
+@pytest.mark.slowtest
+def test_non_convergence():
+    """Test non-convergence of MxNE solver to catch bugs."""
+    n, p, t, alpha = 30, 40, 20, 1.
+    rng = np.random.RandomState(0)
+    G = rng.randn(n, p)
+    G /= np.std(G, axis=0)[None, :]
+    X = np.zeros((p, t))
+    X[0] = 3
+    X[4] = -2
+    M = np.dot(G, X)
+
+    # Impossible to converge with only 3 iterations and tol 1e-12
+    # In case of non-convegence, we test that no error is returned.
+    args = (M, G, alpha, 3, 1e-12)
+    with pytest.warns(None):  # CD
+        mixed_norm_solver(*args, active_set_size=None, debias=True,
+                          solver='prox')
+    with pytest.warns(None):  # CD
+        mixed_norm_solver(*args, active_set_size=None, debias=True,
+                          solver='cd', return_gap=True)
+    with pytest.warns(None):  # CD
+        mixed_norm_solver(M, G, alpha, maxit=1000, tol=1e-8,
+                          active_set_size=None, debias=True, solver='bcd',
+                          return_gap=True)
+
+
 def test_tf_mxne():
     """Test convergence of TF-MxNE solver."""
     alpha_space = 10.
