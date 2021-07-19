@@ -1273,8 +1273,6 @@ class Coregistration(object):
             np.array([0., 0., 0., 0., 0., 0., 1., 1., 1.])
         self._n_scale_params = (0, 1, 3)
 
-        self._coord_frames = ('mri', 'head')
-        self._coord_frame = self._coord_frames[0]
         self._icp_iterations = 20
         self._icp_angle = 0.2
         self._icp_distance = 0.2
@@ -1315,10 +1313,7 @@ class Coregistration(object):
             sca = self._scale if sca is None else sca
             self._last_scale = self._scale
             self._scale = sca
-            if self._coord_frame == 'head':
-                self._mri_trans = self._mri_head_t.copy()
-            else:
-                self._mri_trans = np.eye(4)
+            self._mri_trans = np.eye(4)
             self._mri_trans[:, :3] *= sca
 
     def set_rotation(self, rot):
@@ -1371,27 +1366,19 @@ class Coregistration(object):
 
     @property
     def _transformed_dig_hpi(self):
-        return apply_trans(self._hsp_trans, self._dig.hpi_points)
+        return apply_trans(self._head_mri_t, self._dig.hpi_points)
 
     @property
     def _transformed_dig_eeg(self):
-        return apply_trans(self._hsp_trans, self._dig.eeg_points)
+        return apply_trans(self._head_mri_t, self._dig.eeg_points)
 
     @property
     def _transformed_dig_extra(self):
-        return apply_trans(self._hsp_trans, self._dig.extra_points)
-
-    @property
-    def _hsp_trans(self):
-        if self._coord_frame == 'head':
-            t = np.eye(4)
-        else:
-            t = self._head_mri_t
-        return t
+        return apply_trans(self._head_mri_t, self._dig.extra_points)
 
     @property
     def _transformed_orig_dig_extra(self):
-        return apply_trans(self._hsp_trans, self._dig._extra_points)
+        return apply_trans(self._head_mri_t, self._dig._extra_points)
 
     @property
     def _nearest_transformed_high_res_mri_idx_orig_hsp(self):
