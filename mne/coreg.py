@@ -1380,21 +1380,6 @@ class Coregistration(object):
         return move, angle, percs
 
     @property
-    def _has_hpi_data(self):
-        return (self._has_mri_data and
-                len(self._nearest_transformed_high_res_mri_idx_hpi) > 0)
-
-    @property
-    def _nearest_transformed_high_res_mri_idx_eeg(self):
-        return self._nearest_calc.query(
-            apply_trans(self._head_mri_t, self._dig.eeg_points))[1]
-
-    @property
-    def _has_eeg_data(self):
-        return (self._has_mri_data and
-                len(self._nearest_transformed_high_res_mri_idx_eeg) > 0)
-
-    @property
     def _nearest_transformed_high_res_mri_idx_rpa(self):
         return self._nearest_calc.query(
             apply_trans(self._head_mri_t, self._dig.rpa))[1]
@@ -1410,6 +1395,26 @@ class Coregistration(object):
             apply_trans(self._head_mri_t, self._dig.lpa))[1]
 
     @property
+    def _nearest_transformed_high_res_mri_idx_hsp(self):
+        return self._nearest_calc.query(
+            apply_trans(self._head_mri_t, self._dig.extra_points))[1]
+
+    @property
+    def _nearest_transformed_high_res_mri_idx_eeg(self):
+        return self._nearest_calc.query(
+            apply_trans(self._head_mri_t, self._dig.eeg_points))[1]
+
+    @property
+    def _has_hpi_data(self):
+        return (self._has_mri_data and
+                len(self._nearest_transformed_high_res_mri_idx_hpi) > 0)
+
+    @property
+    def _has_eeg_data(self):
+        return (self._has_mri_data and
+                len(self._nearest_transformed_high_res_mri_idx_eeg) > 0)
+
+    @property
     def _has_lpa_data(self):
         return (np.any(self._mri.lpa) and np.any(self._dig.lpa))
 
@@ -1420,11 +1425,6 @@ class Coregistration(object):
     @property
     def _has_rpa_data(self):
         return (np.any(self._mri.rpa) and np.any(self._dig.rpa))
-
-    @property
-    def _nearest_transformed_high_res_mri_idx_hsp(self):
-        return self._nearest_calc.query(
-            apply_trans(self._head_mri_t, self._dig.extra_points))[1]
 
     @property
     def _processed_high_res_mri_points(self):
