@@ -1692,8 +1692,8 @@ colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
     0 and 255.
 """
 docdict["smooth"] = """
-smooth : float in [0, 1]
-    The smoothing factor to be applied.
+smooth : float in [0, 1)
+    The smoothing factor to be applied. Default 0 is no smoothing.
 """
 docdict["transparent"] = """
 transparent : bool | None

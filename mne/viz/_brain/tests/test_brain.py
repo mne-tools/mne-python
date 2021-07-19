@@ -196,6 +196,7 @@ def test_brain_init(renderer_pyvista, tmpdir, pixel_ratio, brain_gc):
         Brain(hemi=hemi, surf=surf, interaction='foo', **kwargs)
     with pytest.raises(FileNotFoundError, match=r'lh\.whatever'):
         Brain(subject_id, 'lh', 'whatever')
+    Brain(subject_id, hemi=None, surf=None)  # test no surfaces
     renderer_pyvista.backend._close_all()
 
     brain = Brain(hemi=hemi, surf=surf, size=size, title=title,
