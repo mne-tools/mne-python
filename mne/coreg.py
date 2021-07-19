@@ -1322,6 +1322,15 @@ class Coregistration(object):
             self._nearest_transformed_high_res_mri_idx_hpi = \
                 self._nearest_calc.query(
                     apply_trans(self._head_mri_t, self._dig.hpi_points))[1]
+            self._nearest_transformed_high_res_mri_idx_rpa = \
+                self._nearest_calc.query(
+                    apply_trans(self._head_mri_t, self._dig.rpa))[1]
+            self._nearest_transformed_high_res_mri_idx_nasion = \
+                self._nearest_calc.query(
+                    apply_trans(self._head_mri_t, self._dig.nasion))[1]
+            self._nearest_transformed_high_res_mri_idx_lpa = \
+                self._nearest_calc.query(
+                    apply_trans(self._head_mri_t, self._dig.lpa))[1]
             self._mri_head_t = self._rot_trans.copy()
             self._mri_head_t[:3, 3] = np.array(tra)
         if tra_changed or sca is not None:
@@ -1378,21 +1387,6 @@ class Coregistration(object):
             rot_to_quat(rotation(*self._last_rotation)[:3, :3])))
         percs = 100 * (self._scale - self._last_scale) / self._last_scale
         return move, angle, percs
-
-    @property
-    def _nearest_transformed_high_res_mri_idx_rpa(self):
-        return self._nearest_calc.query(
-            apply_trans(self._head_mri_t, self._dig.rpa))[1]
-
-    @property
-    def _nearest_transformed_high_res_mri_idx_nasion(self):
-        return self._nearest_calc.query(
-            apply_trans(self._head_mri_t, self._dig.nasion))[1]
-
-    @property
-    def _nearest_transformed_high_res_mri_idx_lpa(self):
-        return self._nearest_calc.query(
-            apply_trans(self._head_mri_t, self._dig.lpa))[1]
 
     @property
     def _nearest_transformed_high_res_mri_idx_hsp(self):
