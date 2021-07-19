@@ -1331,6 +1331,9 @@ class Coregistration(object):
             self._nearest_transformed_high_res_mri_idx_lpa = \
                 self._nearest_calc.query(
                     apply_trans(self._head_mri_t, self._dig.lpa))[1]
+            self._nearest_transformed_high_res_mri_idx_eeg = \
+                self._nearest_calc.query(
+                    apply_trans(self._head_mri_t, self._dig.eeg_points))[1]
             self._mri_head_t = self._rot_trans.copy()
             self._mri_head_t[:3, 3] = np.array(tra)
         if tra_changed or sca is not None:
@@ -1392,11 +1395,6 @@ class Coregistration(object):
     def _nearest_transformed_high_res_mri_idx_hsp(self):
         return self._nearest_calc.query(
             apply_trans(self._head_mri_t, self._dig.extra_points))[1]
-
-    @property
-    def _nearest_transformed_high_res_mri_idx_eeg(self):
-        return self._nearest_calc.query(
-            apply_trans(self._head_mri_t, self._dig.eeg_points))[1]
 
     @property
     def _has_hpi_data(self):
