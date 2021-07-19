@@ -44,8 +44,6 @@ import matplotlib.pyplot as plt
 import mne
 from mne.datasets import fetch_fsaverage
 
-print(__doc__)
-
 np.set_printoptions(suppress=True)  # suppress scientific notation
 
 # paths to mne datasets - sample sEEG and FreeSurfer's fsaverage subject
