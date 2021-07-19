@@ -1825,11 +1825,9 @@ class _MRIHeadWithFiducialsModel(object):
         fid_files = _find_fiducials_files(subject, subjects_dir)
         if len(fid_files) == 0:
             self.fid.reset_traits(['file'])
-            self.lock_fiducials = False
         else:
             self.fid.file = fid_files[0].format(subjects_dir=subjects_dir,
                                                 subject=subject)
-            self.lock_fiducials = True
 
         # does not seem to happen by itself ... so hard code it:
         self.reset_fiducials()
