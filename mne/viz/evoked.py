@@ -29,7 +29,8 @@ from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     _connection_line, _get_color_list, _setup_ax_spines,
                     _setup_plot_projector, _prepare_joint_axes, _check_option,
                     _set_title_multiple_electrodes, _check_time_unit,
-                    _plot_masked_image, _trim_ticks, _set_window_title)
+                    _plot_masked_image, _trim_ticks, _set_window_title,
+                    _prop_kw)
 from ..utils import (logger, _clean_names, warn, _pl, verbose, _validate_type,
                      _check_if_nan, _check_ch_locs, fill_doc, _is_numeric)
 
@@ -548,9 +549,10 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                                         sphere=sphere)
             blit = False if plt.get_backend() == 'MacOSX' else True
             minspan = 0 if len(times) < 2 else times[1] - times[0]
+            rect_kw = _prop_kw('rect', dict(alpha=0.5, facecolor='red'))
             ax._span_selector = SpanSelector(
                 ax, callback_onselect, 'horizontal', minspan=minspan,
-                useblit=blit, rectprops=dict(alpha=0.5, facecolor='red'))
+                useblit=blit, **rect_kw)
 
 
 def _add_nave(ax, nave):
