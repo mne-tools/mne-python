@@ -653,7 +653,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
             highest_d_obj = max(d_obj, highest_d_obj)
             gap = p_obj - highest_d_obj
             E.append(p_obj)
-            logger.info("Iteration %d :: p_obj %f :: dgap %f ::"
+            logger.info("Iteration %d :: p_obj %f :: dgap %f :: "
                         "n_active_start %d :: n_active_end %d" % (
                             k + 1, p_obj, gap, as_size // n_orient,
                             np.sum(active_set) // n_orient))
