@@ -327,8 +327,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
     Parameters
     ----------
-    info : dict
-        A copy of the `~mne.Info` dictionary from the raw object.
+    %(info_not_none)s
     data : ndarray | None
         If ``None``, data will be read from the Raw object. If ndarray, must be
         of shape (n_epochs, n_channels, n_times).
@@ -1326,7 +1325,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
     @verbose
     def _get_data(self, out=True, picks=None, item=None, *, units=None,
-                  verbose=None):
+                  tmin=None, tmax=None, verbose=None):
         """Load all data, dropping bad epochs along the way.
 
         Parameters
@@ -1338,8 +1337,14 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         item : slice | array-like | str | list | None
             See docstring of get_data method.
         %(units)s
+        tmin : int | float | None
+            Start time of data to get in seconds.
+        tmax : int | float | None
+            End time of data to get in seconds.
         %(verbose_meth)s
         """
+        start, stop = self._handle_tmin_tmax(tmin, tmax)
+
         if item is None:
             item = slice(None)
         elif not self._bad_dropped:
@@ -1366,8 +1371,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             picks = _picks_to_idx(self.info, picks)
 
         # handle units param only if we are going to return data (out==True)
-        # else, we don't scale (scaling is vector of ones)
-        ch_factors = np.ones(len(picks))
         if (units is not None) and out:
             ch_factors = _get_ch_factors(self, units, picks)
 
@@ -1380,6 +1383,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                     data = data[:, picks]
                 if units is not None:
                     data *= ch_factors[:, np.newaxis]
+                if start != 0 or stop != self.times.size:
+                    data = data[..., start:stop]
                 return data
 
             # we need to load from disk, drop, and return data
@@ -1463,6 +1468,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                 data = data[:, picks]
             if units is not None:
                 data *= ch_factors[:, np.newaxis]
+            if start != 0 or stop != self.times.size:
+                data = data[..., start:stop]
             return data
         else:
             return None
@@ -1476,7 +1483,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             return []
 
     @fill_doc
-    def get_data(self, picks=None, item=None, units=None):
+    def get_data(self, picks=None, item=None, units=None, tmin=None,
+                 tmax=None):
         """Get all epochs as a 3D array.
 
         Parameters
@@ -1493,13 +1501,22 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         %(units)s
 
             .. versionadded:: 0.24
+        tmin : int | float | None
+            Start time of data to get in seconds.
+
+            .. versionadded:: 0.24.0
+        tmax : int | float | None
+            End time of data to get in seconds.
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
         data : array of shape (n_epochs, n_channels, n_times)
             A view on epochs data.
         """
-        return self._get_data(picks=picks, item=item, units=units)
+        return self._get_data(picks=picks, item=item, units=units, tmin=tmin,
+                              tmax=tmax)
 
     @verbose
     def apply_function(self, fun, picks=None, dtype=None, n_jobs=1,
@@ -2452,8 +2469,7 @@ class Epochs(BaseEpochs):
 
     Attributes
     ----------
-    info : instance of Info
-        Measurement info.
+    %(info_not_none)s
     event_id : dict
         Names of conditions corresponding to event_ids.
     ch_names : list of string
@@ -2594,9 +2610,8 @@ class EpochsArray(BaseEpochs):
     data : array, shape (n_epochs, n_channels, n_times)
         The channels' time series for each epoch. See notes for proper units of
         measure.
-    info : instance of Info
-        Info dictionary. Consider using ``create_info`` to populate
-        this structure.
+    %(info_not_none)s Consider using :func:`mne.create_info` to populate this
+        structure.
     events : None | array of int, shape (n_events, 3)
         The events typically returned by the read_events function.
         If some events don't match the events of interest as specified

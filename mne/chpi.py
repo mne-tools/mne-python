@@ -303,8 +303,7 @@ def get_chpi_info(info, on_missing='raise', verbose=None):
 
     Parameters
     ----------
-    info : instance of Info
-        The `~mne.Info` object from which to extract the cHPI information.
+    %(info_not_none)s
     %(chpi_on_missing)s
     %(verbose)s
 
@@ -758,8 +757,7 @@ def compute_head_pos(info, chpi_locs, dist_limit=0.005, gof_limit=0.98,
 
     Parameters
     ----------
-    info : instance of Info
-        Measurement information.
+    %(info_not_none)s
     %(chpi_locs)s
         Typically obtained by :func:`~mne.chpi.compute_chpi_locs` or
         :func:`~mne.chpi.extract_chpi_locs_ctf`.
@@ -1005,8 +1003,7 @@ def compute_chpi_locs(info, chpi_amplitudes, t_step_max=1., too_close='raise',
 
     Parameters
     ----------
-    info : instance of Info
-        The measurement information.
+    %(info_not_none)s
     %(chpi_amplitudes)s
         Typically obtained by :func:`mne.chpi.compute_chpi_amplitudes`.
     t_step_max : float

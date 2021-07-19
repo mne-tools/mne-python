@@ -758,8 +758,7 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
 
     Parameters
     ----------
-    info : instance of Info
-        The measurement info to update.
+    %(info_not_none)s
     %(montage)s
     %(match_case)s
     %(match_alias)s

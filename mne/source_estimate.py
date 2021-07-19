@@ -1640,8 +1640,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 
         Parameters
         ----------
-        info : instance Info
-            The measurement info.
+        %(info_not_none)s
         fwd : instance of Forward
             The forward solution used to create the source estimate.
         cov : instance of Covariance

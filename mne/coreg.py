@@ -34,7 +34,7 @@ from .transforms import (rotation, rotation3d, scaling, translation, Transform,
                          combine_transforms, _quat_to_euler,
                          _fit_matched_points)
 from .utils import (get_config, get_subjects_dir, logger, pformat, verbose,
-                    warn, has_nibabel)
+                    warn, has_nibabel, fill_doc)
 from .viz._3d import _fiducial_coords
 
 # some path templates
@@ -80,13 +80,13 @@ def _find_head_bem(subject, subjects_dir, high_res=False):
             return path
 
 
+@fill_doc
 def coregister_fiducials(info, fiducials, tol=0.01):
     """Create a head-MRI transform by aligning 3 fiducial points.
 
     Parameters
     ----------
-    info : Info
-        Measurement info object with fiducials in head coordinate space.
+    %(info_not_none)s
     fiducials : str | list of dict
         Fiducials in MRI coordinate space (either path to a ``*-fiducials.fif``
         file or list of fiducials as returned by :func:`read_fiducials`.
@@ -95,6 +95,9 @@ def coregister_fiducials(info, fiducials, tol=0.01):
     -------
     trans : Transform
         The device-MRI transform.
+
+    .. note:: The :class:`mne.Info` object fiducials must be in the
+              head coordinate space.
     """
     if isinstance(info, str):
         info = read_info(info)

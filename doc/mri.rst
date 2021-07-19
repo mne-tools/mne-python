@@ -15,6 +15,7 @@ Step by step instructions for using :func:`gui.coregistration`:
    :toctree: generated/
 
    coreg.get_mni_fiducials
+   get_montage_volume_labels
    gui.coregistration
    gui.fiducials
    create_default_subject
@@ -30,4 +31,4 @@ Step by step instructions for using :func:`gui.coregistration`:
    transforms.apply_volume_registration
    transforms.compute_volume_registration
    vertex_to_mni
-   voxel_neighbors
+   warp_montage_volume

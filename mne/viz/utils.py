@@ -814,8 +814,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
 
     Parameters
     ----------
-    info : instance of Info
-        Info structure containing the channel locations.
+    %(info_not_none)s
     kind : str
         Whether to plot the sensors as 3d, topomap or as an interactive
         sensor selection dialog. Available options 'topomap', '3d', 'select'.

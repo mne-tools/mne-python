@@ -245,8 +245,7 @@ class ICA(ContainsMixin):
         (There is also an ``exclude`` parameter in the :meth:`ICA.apply`
         method.) To scrap all marked components, set this attribute to an empty
         list.
-    info : None | instance of Info
-        The measurement info copied from the object fitted.
+    %(info)s
     n_samples_ : int
         The number of samples used on fit.
     labels_ : dict
@@ -1251,9 +1250,11 @@ class ICA(ContainsMixin):
         start : int | float | None
             First sample to include. If float, data will be interpreted as
             time in seconds. If None, data will be used from the first sample.
+            When working with Epochs or Evoked objects, must be float or None.
         stop : int | float | None
             Last sample to not include. If float, data will be interpreted as
             time in seconds. If None, data will be used to the last sample.
+            When working with Epochs or Evoked objects, must be float or None.
         l_freq : float
             Low pass frequency.
         h_freq : float

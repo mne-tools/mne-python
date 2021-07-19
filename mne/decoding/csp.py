@@ -247,9 +247,8 @@ class CSP(TransformerMixin, BaseEstimator):
 
         Parameters
         ----------
-        info : instance of Info
-            Info dictionary of the epochs used for fitting.
-            If not possible, consider using ``create_info``.
+        %(info_not_none)s Used for fitting. If not available, consider using
+            :func:`mne.create_info`.
         components : float | array of float | None
            The patterns to plot. If None, n_components will be shown.
         ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
@@ -375,9 +374,8 @@ class CSP(TransformerMixin, BaseEstimator):
 
         Parameters
         ----------
-        info : instance of Info
-            Info dictionary of the epochs used for fitting.
-            If not possible, consider using ``create_info``.
+        %(info_not_none)s Used for fitting. If not available, consider using
+            :func:`mne.create_info`.
         components : float | array of float | None
            The patterns to plot. If None, n_components will be shown.
         ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
