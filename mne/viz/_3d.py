@@ -2454,8 +2454,8 @@ def _check_views(surf, views, hemi, stc=None, backend=None):
     if (views == ['flat']) ^ (surf == 'flat'):  # exactly only one of the two
         raise ValueError('surface="flat" must be used with views="flat", got '
                          f'surface={repr(surf)} and views={repr(views)}')
-    _check_option('hemi', hemi, ('split', 'both', 'lh', 'rh', 'vol'))
-    use_hemi = 'lh' if hemi == 'split' else hemi
+    _check_option('hemi', hemi, ('split', 'both', 'lh', 'rh', 'vol', None))
+    use_hemi = 'lh' if hemi == 'split' or hemi is None else hemi
     for vi, v in enumerate(views):
         _check_option(f'views[{vi}]', v, sorted(views_dicts[use_hemi]))
     return views

@@ -1691,6 +1691,10 @@ colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
     be (n x 3) or (n x 4) array for with RGB or RGBA values between
     0 and 255.
 """
+docdict["smooth"] = """
+smooth : float in [0, 1)
+    The smoothing factor to be applied. Default 0 is no smoothing.
+"""
 docdict["transparent"] = """
 transparent : bool | None
     If True: use a linear transparency between fmin and fmid

@@ -44,8 +44,6 @@ import matplotlib.pyplot as plt
 import mne
 from mne.datasets import fetch_fsaverage
 
-print(__doc__)
-
 np.set_printoptions(suppress=True)  # suppress scientific notation
 
 # paths to mne datasets - sample sEEG and FreeSurfer's fsaverage subject
@@ -155,11 +153,31 @@ electrodes = set([''.join([lttr for lttr in ch_name
                   for ch_name in montage.ch_names])
 print(f'Electrodes in the dataset: {electrodes}')
 
-for elec in ('LPM', 'LSMA'):  # plot two electrodes for the example
+electrodes = ('LPM', 'LSMA')  # choose two for this example
+for elec in electrodes:
     picks = [ch_name for ch_name in ch_names if elec in ch_name]
     fig = plt.figure(num=None, figsize=(8, 8), facecolor='black')
     mne.viz.plot_channel_labels_circle(labels, colors, picks=picks, fig=fig)
     fig.text(0.3, 0.9, 'Anatomical Labels', color='white')
+
+# %%
+# Now, let's the electrodes and a few regions of interest that the contacts
+# of the electrode are proximal to.
+
+picks = [ch_name for ch_name in epochs.ch_names if
+         any([elec in ch_name for elec in electrodes])]
+labels = ('ctx-lh-caudalmiddlefrontal', 'ctx-lh-precentral',
+          'ctx-lh-superiorfrontal', 'Left-Putamen')
+
+fig = mne.viz.plot_alignment(epochs.info.copy().pick_channels(picks), trans,
+                             'fsaverage', subjects_dir=subjects_dir,
+                             surfaces=[])
+
+brain = mne.viz.Brain('fsaverage', alpha=0.1, cortex='low_contrast',
+                      subjects_dir=subjects_dir, units='m', figure=fig)
+brain.add_volume_labels(aseg='aparc+aseg', labels=labels)
+brain.show_view(dict(azimuth=120, elevation=90, distance=0.25))
+brain.enable_depth_peeling()
 
 # %%
 # Next, we'll get the epoch data and plot its amplitude over time.

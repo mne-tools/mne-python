@@ -1656,8 +1656,9 @@ def _mesh_borders(tris, mask):
     return np.unique(edges.row[border_edges])
 
 
-def marching_cubes(image, level):
-    """Compute marching cubes on an N dimensional image.
+@fill_doc
+def marching_cubes(image, level, smooth=0):
+    """Compute marching cubes on a 3D image.
 
     The same as ``skimage.measure.marching_cubes`` but uses the
     implementation in vtk.
@@ -1668,6 +1669,7 @@ def marching_cubes(image, level):
         The image to compute marching cubes with.
     level : float
         The contour value to search for isosurfaces in ``image``.
+    %(smooth)s
 
     Returns
     -------
@@ -1676,8 +1678,15 @@ def marching_cubes(image, level):
     triangles : ndarray
         The locations of connections between ``verts`` to form faces.
     """
-    from vtk import VTK_DOUBLE, vtkImageData, vtkMarchingCubes
+    from vtk import (VTK_DOUBLE, vtkImageData, vtkMarchingCubes,
+                     vtkWindowedSincPolyDataFilter)
     from vtk.util import numpy_support
+    _validate_type(smooth, 'numeric', smooth)
+    smooth = float(smooth)
+    if not 0 <= smooth < 1:
+        raise ValueError('smooth must be between 0 (inclusive) and 1 '
+                         f'(exclusive), got {smooth}')
+
     if image.ndim != 3:
         raise ValueError(f'3D data must be supplied, got {image.shape}')
     data_vtk = numpy_support.numpy_to_vtk(
@@ -1695,7 +1704,15 @@ def marching_cubes(image, level):
     mc.SetInputData(imdata)
     mc.SetValue(0, level)
     mc.Update()
-    polydata = mc.GetOutput()
+    out = mc
+    if smooth:
+        filt = vtkWindowedSincPolyDataFilter()
+        filt.SetInputConnection(mc.GetOutputPort())
+        filt.SetNumberOfIterations(100)
+        filt.SetPassBand(1 - smooth)
+        filt.Update()
+        out = filt
+    polydata = out.GetOutput()
 
     # get verts and triangles
     verts = numpy_support.vtk_to_numpy(polydata.GetPoints().GetData())
