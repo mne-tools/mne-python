@@ -1656,6 +1656,7 @@ def _mesh_borders(tris, mask):
     return np.unique(edges.row[border_edges])
 
 
+@fill_doc
 def marching_cubes(image, level, smooth=0):
     """Compute marching cubes on an N dimensional image.
 
@@ -1668,8 +1669,7 @@ def marching_cubes(image, level, smooth=0):
         The image to compute marching cubes with.
     level : float
         The contour value to search for isosurfaces in ``image``.
-    smooth : float
-        The amount of smoothing between none / 0 (inclusive; default) and 1.
+    %(smooth)s Must be between 0 (inclusive; default) and 1.
 
     Returns
     -------

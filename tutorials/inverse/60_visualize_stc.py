@@ -157,11 +157,11 @@ fig.tight_layout()
 # %%
 # We can plot several labels with the most activation in their time course
 # for a more fine-grained view of the anatomical loci of activation.
-rois = [label_names[idx] for idx in np.argsort(label_tc.max(axis=1))[:7]
-        if 'unknown' not in label_names[idx].lower()]  # remove catch-all term
+labels = [label_names[idx] for idx in np.argsort(label_tc.max(axis=1))[:7]
+          if 'unknown' not in label_names[idx].lower()]  # remove catch-all
 brain = mne.viz.Brain('sample', hemi='both', surf='pial', alpha=0.1,
                       cortex='low_contrast', subjects_dir=subjects_dir)
-brain.add_aseg(aseg='aparc.a2009s+aseg', rois=rois)
+brain.add_volume_labels(aseg='aparc.a2009s+aseg', labels=labels)
 brain.show_view(dict(azimuth=110, elevation=90, distance=350))
 brain.enable_depth_peeling()
 
