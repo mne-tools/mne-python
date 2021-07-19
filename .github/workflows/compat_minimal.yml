@@ -1,4 +1,7 @@
 name: 'compat / minimal'
+concurrency:
+  group: ${{ github.event.number }}
+  cancel-in-progress: true
 on:
   push:
     branches:
