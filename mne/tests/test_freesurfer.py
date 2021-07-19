@@ -9,7 +9,7 @@ from mne import (vertex_to_mni, head_to_mni,
                  read_talxfm, read_freesurfer_lut,
                  get_volume_labels_from_aseg)
 from mne.datasets import testing
-from mne._freesurfer import _get_mgz_header
+from mne._freesurfer import _get_mgz_header, _check_subject_dir
 from mne.transforms import apply_trans, _get_trans
 from mne.utils import requires_nibabel
 
@@ -20,6 +20,14 @@ aseg_fname = op.join(data_path, 'subjects', 'sample', 'mri', 'aseg.mgz')
 trans_fname = op.join(data_path, 'MEG', 'sample',
                       'sample_audvis_trunc-trans.fif')
 rng = np.random.RandomState(0)
+
+
+@testing.requires_testing_data
+def test_check_subject_dir():
+    """Test checking for a Freesurfer recon-all subject directory."""
+    _check_subject_dir('sample', subjects_dir)
+    with pytest.raises(ValueError, match='subject folder is incorrect'):
+        _check_subject_dir('foo', data_path)
 
 
 @testing.requires_testing_data
