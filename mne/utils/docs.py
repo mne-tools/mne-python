@@ -2283,7 +2283,7 @@ reject_common = """
     respective epoch will be dropped.
 
     The dictionary keys correspond to the different channel types; valid
-    keys are: ``'grad'``, ``'mag'``, ``'eeg'``, ``'eog'``, and ``'ecg'``.
+    keys include ``'grad'``, ``'mag'``, ``'eeg'``, ``'eog'``, and ``'ecg'``.
 
     Example::
 
@@ -2314,8 +2314,9 @@ reject : dict | str | None
 """
 flat_common = """
     Reject epochs based on **minimum** peak-to-peak signal amplitude (PTP).
-    Valid **keys** are ``'grad'``, ``'mag'``, ``'eeg'``, ``'eog'``, ``'ecg'``.
-    The **values** are floats that set the minimum acceptable PTP. If the PTP
+    Valid **keys** can be any channel type that is in ``self.info``. Examples 
+    include``'grad'``, ``'mag'``, ``'eeg'``, ``'eog'``, ``'ecg'``. The 
+    **values** are floats that set the minimum acceptable PTP. If the PTP
     is smaller than this threshold, the epoch will be dropped. If ``None``
     then no rejection is performed based on flatness of the signal."""
 docdict['flat'] = f"""
