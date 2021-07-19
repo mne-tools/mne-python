@@ -104,9 +104,10 @@ class Transform(dict):
         self['trans'] = trans
 
     def __repr__(self):  # noqa: D105
-        return ('<Transform | %s->%s>\n%s'
-                % (_coord_frame_name(self['from']),
-                   _coord_frame_name(self['to']), self['trans']))
+        with np.printoptions(suppress=True):  # suppress scientific notation
+            return ('<Transform | %s->%s>\n%s'
+                    % (_coord_frame_name(self['from']),
+                       _coord_frame_name(self['to']), self['trans']))
 
     def __eq__(self, other, rtol=0., atol=0.):
         """Check for equality.

@@ -841,7 +841,7 @@ def reset_warnings(gallery_conf, fname):
     warnings.filterwarnings(
         'ignore', message='.*mne-realtime.*', category=DeprecationWarning)
 
-    # Because we use np.set_printoptions in some tutorials, but we only
+    # In case we use np.set_printoptions in any tutorials, we only
     # want it to affect those:
     np.set_printoptions(**_np_print_defaults)
 

@@ -44,8 +44,6 @@ import matplotlib.pyplot as plt
 import mne
 from mne.datasets import fetch_fsaverage
 
-np.set_printoptions(suppress=True)  # suppress scientific notation
-
 # paths to mne datasets - sample sEEG and FreeSurfer's fsaverage subject
 # which is in MNI space
 misc_path = mne.datasets.misc.data_path()
@@ -137,7 +135,7 @@ epochs.set_montage(montage)
 
 fig = mne.viz.plot_alignment(epochs.info, trans, 'fsaverage',
                              subjects_dir=subjects_dir, show_axes=True,
-                             surfaces=['pial', 'head'])
+                             surfaces=['pial', 'head'], coord_frame='mri')
 
 # %%
 # Let's also look at which regions of interest are nearby our electrode
@@ -171,7 +169,7 @@ labels = ('ctx-lh-caudalmiddlefrontal', 'ctx-lh-precentral',
 
 fig = mne.viz.plot_alignment(epochs.info.copy().pick_channels(picks), trans,
                              'fsaverage', subjects_dir=subjects_dir,
-                             surfaces=[])
+                             surfaces=[], coord_frame='mri')
 
 brain = mne.viz.Brain('fsaverage', alpha=0.1, cortex='low_contrast',
                       subjects_dir=subjects_dir, units='m', figure=fig)

@@ -223,15 +223,30 @@ def test_normal_orth():
         assert_allclose(ori[2], nn, atol=1e-12)
 
 
+# 0.06 sec locally even with all these params
 @requires_vtk
-def test_marching_cubes():
+@pytest.mark.parametrize('array_like', (True, False))
+@pytest.mark.parametrize('dtype', (np.float64, np.uint16, '>i4'))
+@pytest.mark.parametrize('value', (1, 12))
+@pytest.mark.parametrize('smooth', (0, 0.9))
+def test_marching_cubes(array_like, dtype, value, smooth):
     """Test creating surfaces via marching cubes."""
-    data = np.zeros((50, 50, 50))
-    data[20:30, 20:30, 20:30] = 1
-    verts, triangles = marching_cubes(data, 0.5)
+    data = np.zeros((50, 50, 50), dtype=dtype)
+    data[20:30, 20:30, 20:30] = value
+    level = [value] if array_like else (value / 2.)
+    out = marching_cubes(data, level, smooth=smooth)
+    if array_like:
+        out = out[0]
+    verts, triangles = out
     # verts and faces are rather large so use checksum
-    assert_allclose(verts.sum(axis=0), [14700, 14700, 14700])
+    rtol = 1e-2 if smooth else 1e-9
+    assert_allclose(verts.sum(axis=0), [14700, 14700, 14700], rtol=rtol)
     assert_allclose(triangles.sum(axis=0), [363402, 360865, 350588])
+    # problematic values
+    if not array_like:
+        return
+    with pytest.raises(TypeError, match='1D array-like'):
+        marching_cubes(data, ['foo'])
 
 
 @requires_nibabel()

@@ -38,8 +38,6 @@ from dipy.align import resample
 import mne
 from mne.datasets import fetch_fsaverage
 
-np.set_printoptions(suppress=True)  # suppress scientific notation
-
 # paths to mne datasets - sample sEEG and FreeSurfer's fsaverage subject
 # which is in MNI space
 misc_path = mne.datasets.misc.data_path()
