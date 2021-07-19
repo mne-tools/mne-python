@@ -1,7 +1,4 @@
 on: [status]
-concurrency:
-  group: ${{ github.head_ref }}
-  cancel-in-progress: true
 jobs:
   circleci_artifacts_redirector_job:
     runs-on: ubuntu-20.04
