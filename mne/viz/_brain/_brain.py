@@ -2358,10 +2358,9 @@ class Brain(object):
         if not aseg.endswith('aseg'):
             raise RuntimeError(
                 f'`aseg` file path must end with "aseg", got {aseg}')
-        aseg = _check_fname(op.join(self._subjects_dir, self._subject_id,
-                                    'mri', aseg + '.mgz'),
-                            overwrite='read', must_exist=True)
-        aseg_fname = aseg
+        aseg_fname = _check_fname(op.join(self._subjects_dir, self._subject_id,
+                                          'mri', aseg + '.mgz'),
+                                  overwrite='read', must_exist=True)
         aseg = nib.load(aseg_fname)
         aseg_data = np.asarray(aseg.dataobj)
         vox_mri_t = aseg.header.get_vox2ras_tkr()
@@ -2384,13 +2383,13 @@ class Brain(object):
         elif not isinstance(colors, (list, tuple)):
             colors = [colors] * len(labels)  # make into list
         colors = [colorConverter.to_rgba(color, alpha) for color in colors]
-        surfs = marching_cubes(
-            aseg_data, [lut[label] for label in labels], smooth=smooth)
-        for label, color, (verts, triangles) in zip(labels, colors, surfs):
-            if len(verts) == 0:  # not in aseg vals
-                warn(f'Value not found for label {repr(label)} in: '
-                     f'{aseg_fname}')
+        aseg_vals = set(np.unique(aseg_data))
+        for label, color in zip(labels, colors):
+            val = lut[label]
+            if val not in aseg_vals:
                 continue
+            mask = (aseg_data == val)
+            verts, triangles = marching_cubes(mask, level=0.5, smooth=smooth)
             verts = apply_trans(vox_mri_t, verts)
             self._renderer.mesh(
                 *verts.T, triangles=triangles, color=color, opacity=alpha,
