@@ -99,7 +99,8 @@ mne.viz.plot_head_positions(head_pos, mode='field')
 # Using `~mne.chpi.compute_chpi_snr`, the HPI power and SNR are computed
 # separately for each MEG sensor type and each HPI coil (frequency), along with
 # the residual power for each sensor type. The results can then be visualized
-# with `~mne.viz.plot_chpi_snr`:
+# with `~mne.viz.plot_chpi_snr`. Here we'll just show a few seconds, for speed:
 
+raw.crop(tmin=5, tmax=10)
 snr_dict = mne.chpi.compute_chpi_snr(raw)
 fig = mne.viz.plot_chpi_snr(snr_dict)
