@@ -314,14 +314,14 @@ def test_calculate_chpi_snr():
     raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes')
     result = compute_chpi_snr(raw)
     # make sure all the entries are there
-    keys = [f'{ch_type}_{key}' for ch_type in ('mag', 'grad') for key in
-            ('snr', 'power', 'resid')]
-    assert set(result) == set(keys + ['times', 'freqs'])
+    keys = {f'{ch_type}_{key}' for ch_type in ('mag', 'grad') for key in
+            ('snr', 'power', 'resid')}
+    assert set(result) == keys.union({'times', 'freqs'})
     # make sure the values are plausible, given the sample data file
-    assert result['mag_snr'].min() > 3
+    assert result['mag_snr'].min() > 1
     assert result['mag_snr'].max() < 40
-    assert result['grad_snr'].min() > -15
-    assert result['grad_snr'].max() < 15
+    assert result['grad_snr'].min() > 1
+    assert result['grad_snr'].max() < 40
 
 
 @testing.requires_testing_data
