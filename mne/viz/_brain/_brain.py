@@ -2689,7 +2689,7 @@ class Brain(object):
                 hemi = 'rh'
             else:
                 hemi = 'lh'
-        if isinstance(view, dict):
+        if isinstance(view, dict):  # deprecate at verion 0.25
             warn('`view` is a dict is deprecated, please use `azimuth` and '
                  '`elevation` as arguments directly to `show_view`',
                  DeprecationWarning)
@@ -2697,6 +2697,7 @@ class Brain(object):
                 azimuth = view['azimuth']
             if elevation is None and 'elevation' in view:
                 elevation = view['elevation']
+            view = None
         view_params = dict(azimuth=azimuth, elevation=elevation, roll=roll,
                            distance=distance, focalpoint=focalpoint)
         if view is not None:  # view string takes precedence
