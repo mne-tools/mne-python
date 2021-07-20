@@ -349,6 +349,9 @@ def test_brain_init(renderer_pyvista, tmpdir, pixel_ratio, brain_gc):
     assert np.allclose(cam.GetRoll(), previous_roll + view_args["roll"])
     del view_args
 
+    with pytest.warns(DeprecationWarning, match='`view` is a dict'):
+        brain.show_view(view=dict(azimuth=180., elevation=90.))
+
     # image and screenshot
     fname = path.join(str(tmpdir), 'test.png')
     assert not path.isfile(fname)
