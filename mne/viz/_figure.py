@@ -35,6 +35,7 @@ matplotlib.figure.Figure
 # Authors: Daniel McCloy <dan@mccloy.info>
 #
 # License: Simplified BSD
+from abc import ABC
 from copy import deepcopy
 from collections import OrderedDict
 from contextlib import contextmanager
@@ -47,6 +48,7 @@ import warnings
 import numpy as np
 from matplotlib.figure import Figure
 
+from ._browser import MNEDataBrowser
 from .epochs import plot_epochs_image
 from .ica import (_create_properties_layout, _fast_plot_ica_properties,
                   _prepare_data_ica_properties)
@@ -85,15 +87,16 @@ class MNEFigure(Figure, MNEDataBrowser):
         from matplotlib import rcParams
         # figsize is the only kwarg we pass to matplotlib Figure()
         figsize = kwargs.pop('figsize', None)
-        super().__init__(figsize=figsize)
         # things we'll almost always want
         defaults = dict(fgcolor=rcParams['axes.edgecolor'],
                         bgcolor=rcParams['axes.facecolor'])
         for key, value in defaults.items():
             if key not in kwargs:
                 kwargs[key] = value
-        # add our param object
-        self.mne = MNEFigParams(**kwargs)
+
+        # ToDo: How would I do that with super()??
+        Figure.__init__(self, figsize=figsize)
+        MNEDataBrowser.__init__(self, **kwargs)
 
     def _close(self, event):
         """Handle close events."""
@@ -314,7 +317,8 @@ class MNESelectionFigure(MNEFigure):
 class MNEBrowseFigure(MNEFigure):
     """Interactive figure with scrollbars, for data browsing."""
 
-    def __init__(self, inst, figsize, ica=None, xlabel='Time (s)', **kwargs):
+    def __init__(self, inst, figsize, ica=None,
+                 xlabel='Time (s)', **kwargs):
         from matplotlib.colors import to_rgba_array
         from matplotlib.ticker import (FixedLocator, FixedFormatter,
                                        FuncFormatter, NullFormatter)
@@ -328,53 +332,6 @@ class MNEBrowseFigure(MNEFigure):
         from ..preprocessing import ICA
 
         super().__init__(figsize=figsize, inst=inst, ica=ica, **kwargs)
-
-        self.mne.ica_type = None
-        if self.mne.instance_type == 'ica':
-            if isinstance(self.mne.ica_inst, BaseRaw):
-                self.mne.ica_type = 'raw'
-            elif isinstance(self.mne.ica_inst, BaseEpochs):
-                self.mne.ica_type = 'epochs'
-        self.mne.is_epochs = 'epochs' in (self.mne.instance_type,
-                                          self.mne.ica_type)
-
-        # things that always start the same
-        self.mne.ch_start = 0
-        self.mne.projector = None
-        self.mne.projs_active = np.array([p['active'] for p in self.mne.projs])
-        self.mne.whitened_ch_names = list()
-        self.mne.use_noise_cov = self.mne.noise_cov is not None
-        self.mne.zorder = dict(patch=0, grid=1, ann=2, events=3, bads=4,
-                               data=5, mag=6, grad=7, scalebar=8, vline=9)
-        # additional params for epochs (won't affect raw / ICA)
-        self.mne.epoch_traces = list()
-        self.mne.bad_epochs = list()
-        self.mne.sampling_period = (np.diff(inst.times[:2])[0]
-                                    / inst.info['sfreq'])
-        # annotations
-        self.mne.annotations = list()
-        self.mne.hscroll_annotations = list()
-        self.mne.annotation_segments = list()
-        self.mne.annotation_texts = list()
-        self.mne.new_annotation_labels = list()
-        self.mne.annotation_segment_colors = dict()
-        self.mne.annotation_hover_line = None
-        self.mne.draggable_annotations = False
-        # lines
-        self.mne.event_lines = None
-        self.mne.event_texts = list()
-        self.mne.vline_visible = False
-        # scalings
-        self.mne.scale_factor = 0.5 if self.mne.butterfly else 1.
-        self.mne.scalebars = dict()
-        self.mne.scalebar_texts = dict()
-        # ancillary child figures
-        self.mne.child_figs = list()
-        self.mne.fig_help = None
-        self.mne.fig_proj = None
-        self.mne.fig_histogram = None
-        self.mne.fig_selection = None
-        self.mne.fig_annotation = None
 
         # MAIN AXES: default sizes (inches)
         # XXX simpler with constrained_layout? (when it's no longer "beta")
@@ -517,7 +474,7 @@ class MNEBrowseFigure(MNEFigure):
             self.mne.button_help = Button(ax_help, 'Help')
         # PROJ BUTTON
         ax_proj = None
-        if len(self.mne.projs) and not inst.proj:
+        if len(self.mne.projs) and not self.mne.inst.proj:
             proj_button_pos = [
                 1 - self._inch_to_rel(r_margin + scroll_width),  # left
                 self._inch_to_rel(b_margin, horiz=False),        # bottom
