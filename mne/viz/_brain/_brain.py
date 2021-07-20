@@ -2026,9 +2026,9 @@ class Brain(object):
 
     def _iter_views(self, hemi):
         """Iterate over rows and columns that need to be added to."""
-        hemi_dict = dict(lh=[0], rh=[1], vol=[0])
+        hemi_dict = dict(lh=[0], rh=[0], vol=[0])
         if self._hemi == 'split':
-            hemi_dict.update(vol=[0, 1])
+            hemi_dict.update(rh=[1], vol=[0, 1])
         for vi, view in enumerate(self._views):
             view_dict = dict(lh=[vi], rh=[vi], vol=[vi])
             if self._hemi == 'split':
@@ -2664,6 +2664,7 @@ class Brain(object):
         ----------
         %(view)s
         %(roll)s
+        %(distance)s
         %(azimuth)s
         %(elevation)s
         %(focalpoint)s
