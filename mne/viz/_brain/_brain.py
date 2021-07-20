@@ -2323,10 +2323,7 @@ class Brain(object):
 
         Parameters
         ----------
-        aseg : str
-            The anatomical segmentation file. Default ``aparc+aseg``. This may
-            be any anatomical segmentation file in the mri subdirectory of the
-            subject directory from the Freesurfer recon-all.
+        %(aseg)s
         labels : list
             Labeled regions of interest to plot. See
             :func:`mne.get_montage_volume_labels`
@@ -2463,7 +2460,7 @@ class Brain(object):
             self._renderer.set_camera(**views_dicts[hemi][v])
 
     def add_text(self, x, y, text, name=None, color=None, opacity=1.0,
-                 row=-1, col=-1, font_size=None, justification=None):
+                 row=None, col=None, font_size=None, justification=None):
         """Add a text to the visualization.
 
         Parameters
@@ -2482,10 +2479,10 @@ class Brain(object):
             background color).
         opacity : float
             Opacity of the text (default 1.0).
-        row : int
-            Row index of which brain to use.
-        col : int
-            Column index of which brain to use.
+        row : int | None
+            Row index of which brain to use. Default all rows.
+        col : int | None
+            Column index of which brain to use. Default all columns.
         font_size : float | None
             The font size to use.
         justification : str | None
@@ -2495,8 +2492,13 @@ class Brain(object):
         # are implemented
         # _check_option('name', name, [None])
 
-        self._renderer.text2d(x_window=x, y_window=y, text=text, color=color,
-                              size=font_size, justification=justification)
+        for h in self._hemis:
+            for ri, ci, v in self._iter_views(h):
+                if (row is None or row == ri) and (col is None or col == ci):
+                    self._renderer.subplot(ri, ci)
+                    self._renderer.text2d(x_window=x, y_window=y, text=text,
+                                          color=color, size=font_size,
+                                          justification=justification)
 
     def _configure_label_time_course(self):
         from ...label import read_labels_from_annot
