@@ -1353,6 +1353,9 @@ def plot_chpi_snr(snr_dict, axes=None):
         fig, axes = plt.subplots(len(valid_keys), 1, sharex=True)
     else:
         fig = axes[0].get_figure()
+    if len(axes) != len(valid_keys):
+        raise ValueError(f'axes must be a list of {len(valid_keys)} axes, got '
+                         f'length {len(axes)} ({axes}).')
     fig.set_size_inches(10, 10)
     for key, ax in zip(valid_keys, axes):
         ch_type, kind = key.split('_')
