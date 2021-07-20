@@ -575,6 +575,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
     alpha_max = norm_l2inf(np.dot(G.T, M), n_orient, copy=False)
     logger.info("-- ALPHA MAX : %s" % alpha_max)
     alpha = float(alpha)
+    X = np.zeros((n_dipoles, n_times), dtype=G.dtype)
 
     has_sklearn = True
     try:
@@ -633,6 +634,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
                               np.arange(n_orient)[None, :]).ravel()
         active_set[new_active_idx] = True
         as_size = np.sum(active_set)
+        gap = np.inf
         for k in range(maxit):
             if solver == 'bcd':
                 lc_tmp = lc[active_set[::n_orient]]
@@ -651,7 +653,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
             highest_d_obj = max(d_obj, highest_d_obj)
             gap = p_obj - highest_d_obj
             E.append(p_obj)
-            logger.info("Iteration %d :: p_obj %f :: dgap %f ::"
+            logger.info("Iteration %d :: p_obj %f :: dgap %f :: "
                         "n_active_start %d :: n_active_end %d" % (
                             k + 1, p_obj, gap, as_size // n_orient,
                             np.sum(active_set) // n_orient))

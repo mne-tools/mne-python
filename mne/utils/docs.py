@@ -1355,9 +1355,9 @@ trans : str | dict | instance of Transform | None
        Support for 'fsaverage' argument.
 """ % (_trans_base,)
 docdict['subjects_dir'] = """
-subjects_dir : str | None
+subjects_dir : str | pathlib.Path | None
     The path to the FreeSurfer subjects reconstructions.
-    It corresponds to FreeSurfer environment variable ``SUBJECTS_DIR``.
+    If None, defaults to the ``SUBJECTS_DIR`` environment variable.
 """
 _info_base = ('The :class:`mne.Info` object with information about the '
               'sensors and methods of measurement.')
@@ -1389,6 +1389,14 @@ surface : str
     (the gray-white matter boundary).
 """
 
+
+# Freesurfer
+docdict["aseg"] = """
+aseg : str
+    The anatomical segmentation file. Default ``aparc+aseg``. This may
+    be any anatomical segmentation file in the mri subdirectory of the
+    Freesurfer subject directory.
+"""
 
 # Simulation
 docdict['interp'] = """
@@ -1682,6 +1690,10 @@ colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
     Name of colormap to use or a custom look up table. If array, must
     be (n x 3) or (n x 4) array for with RGB or RGBA values between
     0 and 255.
+"""
+docdict["smooth"] = """
+smooth : float in [0, 1)
+    The smoothing factor to be applied. Default 0 is no smoothing.
 """
 docdict["transparent"] = """
 transparent : bool | None

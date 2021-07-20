@@ -378,7 +378,8 @@ ax.set_ylabel('Training Time (s)')
 ax.set_title('Temporal generalization')
 ax.axvline(0, color='k')
 ax.axhline(0, color='k')
-plt.colorbar(im, ax=ax)
+cbar = plt.colorbar(im, ax=ax)
+cbar.set_label('AUC')
 
 # %%
 # Projecting sensor-space patterns to source space

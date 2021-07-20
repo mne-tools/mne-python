@@ -13,7 +13,6 @@ import re
 
 import numpy as np
 
-from ._freesurfer import read_freesurfer_lut, _import_nibabel
 from .morph_map import read_morph_map
 from .parallel import parallel_func, check_n_jobs
 from .source_estimate import (SourceEstimate, VolSourceEstimate,
@@ -24,7 +23,6 @@ from .source_space import (add_source_space_distances, SourceSpaces,
 from .stats.cluster_level import _find_clusters, _get_components
 from .surface import (complete_surface_info, read_surface, fast_cross_3d,
                       _mesh_borders, mesh_edges, mesh_dist)
-from .transforms import apply_trans
 from .utils import (get_subjects_dir, _check_subject, logger, verbose, warn,
                     check_random_state, _validate_type, fill_doc,
                     _check_option, check_version, _check_fname)
@@ -2744,53 +2742,3 @@ def select_sources(subject, label, location='center', extent=0.,
                           hemi=new_label.hemi, name=name, subject=subject)
 
     return new_label
-
-
-@fill_doc
-def find_pos_in_annot(pos, subject='fsaverage', annot='aparc+aseg',
-                      subjects_dir=None):
-    """
-    Find name in atlas for given MRI coordinates.
-
-    Parameters
-    ----------
-    pos : ndarray, shape (3,)
-        Vector of x,y,z coordinates in MRI space.
-    %(subject)s
-    annot : str
-        MRI volumetric atlas file name. Do not include the ``.mgz`` suffix.
-    %(subjects_dir)s
-
-    Returns
-    -------
-    label : str
-        Anatomical region name from atlas.
-
-    Notes
-    -----
-    .. versionadded:: 0.24
-    """
-    pos = np.asarray(pos, float)
-    if pos.shape != (3,):
-        raise ValueError(
-            'pos must be an array of shape (3,), ' f'got {pos.shape}')
-
-    nibabel = _import_nibabel('read MRI parcellations')
-    if subjects_dir is None:
-        subjects_dir = get_subjects_dir(None)
-    atlas_fname = os.path.join(subjects_dir, subject, 'mri', annot + '.mgz')
-    parcellation_img = nibabel.load(atlas_fname)
-
-    # Load freesurface atlas LUT
-    lut_inv_dict = read_freesurfer_lut()[0]
-    label_lut = {v: k for k, v in lut_inv_dict.items()}
-
-    # Find voxel for dipole position
-    mri_vox_t = np.linalg.inv(parcellation_img.header.get_vox2ras_tkr())
-    vox_dip_pos_f = apply_trans(mri_vox_t, pos)
-    vox_dip_pos = np.rint(vox_dip_pos_f).astype(int)
-
-    # Get voxel value and label from LUT
-    vol_values = parcellation_img.get_fdata()[tuple(vox_dip_pos.T)]
-    label = label_lut.get(vol_values, 'Unknown')
-    return label

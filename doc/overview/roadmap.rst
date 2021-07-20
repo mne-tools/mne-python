@@ -107,8 +107,6 @@ as well as:
     Kymata atlas. The participants are healthy human adults listening to the
     radio and/or watching films, and the data is comprised of (averaged) EEG
     and MEG sensor data and source current reconstructions.
-- `BrainSignals <http://www.brainsignals.de>`__
-    A website that lists a number of MEG datasets available for download.
 - `BNCI Horizon <http://bnci-horizon-2020.eu/database/data-sets>`__
     BCI datasets.
 

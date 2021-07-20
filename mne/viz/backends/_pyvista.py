@@ -725,8 +725,11 @@ class _PyVistaRenderer(_AbstractRenderer):
             opacity_tf.AddPoint(loc, color[-1] * alpha / 255.)
         color_tf.ClampingOn()
         opacity_tf.ClampingOn()
-        volume.GetProperty().SetColor(color_tf)
-        volume.GetProperty().SetScalarOpacity(opacity_tf)
+        prop = volume.GetProperty()
+        prop.SetColor(color_tf)
+        prop.SetScalarOpacity(opacity_tf)
+        prop.ShadeOn()
+        prop.SetInterpolationTypeToLinear()
         if scalar_bar is not None:
             lut = vtk.vtkLookupTable()
             lut.SetRange(*rng)
@@ -759,10 +762,13 @@ class _PyVistaRenderer(_AbstractRenderer):
 
         # Add contour of enclosed volume (use GetOutput instead of
         # GetOutputPort below to avoid updating)
-        grid_alg = vtk.vtkCellDataToPointData()
-        grid_alg.SetInputDataObject(grid)
-        grid_alg.SetPassCellData(False)
-        grid_alg.Update()
+        if surface_alpha > 0 or resolution is not None:
+            grid_alg = vtk.vtkCellDataToPointData()
+            grid_alg.SetInputDataObject(grid)
+            grid_alg.SetPassCellData(False)
+            grid_alg.Update()
+        else:
+            grid_alg = None
 
         if surface_alpha > 0:
             grid_surface = vtk.vtkMarchingContourFilter()
@@ -821,7 +827,7 @@ class _PyVistaRenderer(_AbstractRenderer):
             silhouette_filter.GetOutputPort())
         _, prop = self.plotter.add_actor(
             silhouette_mapper, reset_camera=False, name=None,
-            culling=False, pickable=False)
+            culling=False, pickable=False, render=False)
         if color is not None:
             prop.SetColor(*color)
         if alpha is not None:
