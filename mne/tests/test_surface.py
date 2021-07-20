@@ -17,7 +17,7 @@ from mne.io import read_info
 from mne.io.constants import FIFF
 from mne.surface import (_compute_nearest, _tessellate_sphere, fast_cross_3d,
                          get_head_surf, read_curvature, get_meg_helmet_surf,
-                         _normal_orth, _read_patch, marching_cubes,
+                         _normal_orth, _read_patch, _marching_cubes,
                          _voxel_neighbors, warp_montage_volume)
 from mne.transforms import _get_trans, compute_volume_registration
 from mne.utils import (requires_vtk, catch_logging, object_diff,
@@ -225,28 +225,32 @@ def test_normal_orth():
 
 # 0.06 sec locally even with all these params
 @requires_vtk
-@pytest.mark.parametrize('array_like', (True, False))
 @pytest.mark.parametrize('dtype', (np.float64, np.uint16, '>i4'))
 @pytest.mark.parametrize('value', (1, 12))
 @pytest.mark.parametrize('smooth', (0, 0.9))
-def test_marching_cubes(array_like, dtype, value, smooth):
+def test_marching_cubes(dtype, value, smooth):
     """Test creating surfaces via marching cubes."""
     data = np.zeros((50, 50, 50), dtype=dtype)
     data[20:30, 20:30, 20:30] = value
-    level = [value] if array_like else (value / 2.)
-    out = marching_cubes(data, level, smooth=smooth)
-    if array_like:
-        out = out[0]
-    verts, triangles = out
+    level = [value]
+    out = _marching_cubes(data, level, smooth=smooth)
+    assert len(out) == 1
+    verts, triangles = out[0]
     # verts and faces are rather large so use checksum
     rtol = 1e-2 if smooth else 1e-9
     assert_allclose(verts.sum(axis=0), [14700, 14700, 14700], rtol=rtol)
     assert_allclose(triangles.sum(axis=0), [363402, 360865, 350588])
     # problematic values
-    if not array_like:
-        return
     with pytest.raises(TypeError, match='1D array-like'):
-        marching_cubes(data, ['foo'])
+        _marching_cubes(data, ['foo'])
+    with pytest.raises(TypeError, match='1D array-like'):
+        _marching_cubes(data, [[1]])
+    with pytest.raises(TypeError, match='1D array-like'):
+        _marching_cubes(data, [1.])
+    with pytest.raises(ValueError, match='must be between 0'):
+        _marching_cubes(data, [1], smooth=1.)
+    with pytest.raises(ValueError, match='3D data'):
+        _marching_cubes(data[0], [1])
 
 
 @requires_nibabel()

@@ -35,7 +35,7 @@ from .._3d import _process_clim, _handle_time, _check_views
 from ...externals.decorator import decorator
 from ...defaults import _handle_default
 from ..._freesurfer import vertex_to_mni, read_talxfm, read_freesurfer_lut
-from ...surface import mesh_edges, _mesh_borders
+from ...surface import mesh_edges, _mesh_borders, _marching_cubes
 from ...source_space import SourceSpaces
 from ...transforms import apply_trans, invert_transform
 from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
@@ -2352,7 +2352,6 @@ class Brain(object):
         """
         import nibabel as nib
         from matplotlib.colors import colorConverter
-        from ...surface import marching_cubes
 
         # load anatomical segmentation image
         if not aseg.endswith('aseg'):
@@ -2384,7 +2383,7 @@ class Brain(object):
         elif not isinstance(colors, (list, tuple)):
             colors = [colors] * len(labels)  # make into list
         colors = [colorConverter.to_rgba(color, alpha) for color in colors]
-        surfs = marching_cubes(
+        surfs = _marching_cubes(
             aseg_data, [lut[label] for label in labels], smooth=smooth)
         for label, color, (verts, triangles) in zip(labels, colors, surfs):
             if len(verts) == 0:  # not in aseg vals
