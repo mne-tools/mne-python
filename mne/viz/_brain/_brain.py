@@ -2701,6 +2701,8 @@ class Brain(object):
         view_params = dict(azimuth=azimuth, elevation=elevation, roll=roll,
                            distance=distance, focalpoint=focalpoint)
         if view is not None:  # view string takes precedence
+            view_params = {param: val for param, val in view_params.items()
+                           if val is not None}  # no overwriting with None
             view_params = dict(views_dicts[hemi].get(view), **view_params)
         xfm = self._rigid if align else None
         for h in self._hemis:
