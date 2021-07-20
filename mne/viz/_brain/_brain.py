@@ -502,12 +502,42 @@ class Brain(object):
         self.plotter = self._renderer.plotter
 
         self._setup_canonical_rotation()
+        self._add_hemis(surf, alpha, offset, geo_kwargs)
+
+        self.interaction = interaction
+        self._closed = False
+        if show:
+            self.show()
+        # update the views once the geometry is all set
+        for h in self._hemis:
+            for ri, ci, v in self._iter_views(h):
+                self.show_view(v, row=ri, col=ci, hemi=h)
+
+        if surf == 'flat':
+            self._renderer.set_interaction("rubber_band_2d")
+
+    def _setup_canonical_rotation(self):
+        from ...coreg import fit_matched_points, _trans_from_params
+        self._rigid = np.eye(4)
+        try:
+            xfm = read_talxfm(self._subject_id, self._subjects_dir)
+        except Exception:
+            return
+        # XYZ+origin + halfway
+        pts_tal = np.concatenate([np.eye(4)[:, :3], np.eye(3) * 0.5])
+        pts_subj = apply_trans(invert_transform(xfm), pts_tal)
+        # we fit with scaling enabled, but then discard it (we just need
+        # the rigid-body components)
+        params = fit_matched_points(pts_subj, pts_tal, scale=3, out='params')
+        self._rigid[:] = _trans_from_params((True, True, False), params[:6])
+
+    def _add_hemis(self, surf, alpha, offset, geo_kwargs):
         for h in ('lh', 'rh'):
             if h not in self._hemis:
                 continue  # don't make surface if not chosen
             # Initialize a Surface object as the geometry
-            geo = _Surface(subject_id, h, surf, subjects_dir, offset,
-                           units=self._units, x_dir=self._rigid[0, :3])
+            geo = _Surface(self._subject_id, h, surf, self._subjects_dir,
+                           offset, units=self._units, x_dir=self._rigid[0, :3])
             # Load in the geometry and curvature
             geo.load_geometry()
             geo.load_curvature()
@@ -546,33 +576,6 @@ class Brain(object):
                     )
                 self._renderer.set_camera(update=False, reset_camera=False,
                                           **views_dicts[h][v])
-
-        self.interaction = interaction
-        self._closed = False
-        if show:
-            self.show()
-        # update the views once the geometry is all set
-        for h in self._hemis:
-            for ri, ci, v in self._iter_views(h):
-                self.show_view(v, row=ri, col=ci, hemi=h)
-
-        if surf == 'flat':
-            self._renderer.set_interaction("rubber_band_2d")
-
-    def _setup_canonical_rotation(self):
-        from ...coreg import fit_matched_points, _trans_from_params
-        self._rigid = np.eye(4)
-        try:
-            xfm = read_talxfm(self._subject_id, self._subjects_dir)
-        except Exception:
-            return
-        # XYZ+origin + halfway
-        pts_tal = np.concatenate([np.eye(4)[:, :3], np.eye(3) * 0.5])
-        pts_subj = apply_trans(invert_transform(xfm), pts_tal)
-        # we fit with scaling enabled, but then discard it (we just need
-        # the rigid-body components)
-        params = fit_matched_points(pts_subj, pts_tal, scale=3, out='params')
-        self._rigid[:] = _trans_from_params((True, True, False), params[:6])
 
     def setup_time_viewer(self, time_viewer=True, show_traces=True):
         """Configure the time viewer parameters.
