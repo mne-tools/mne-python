@@ -344,9 +344,9 @@ def test_brain_init(renderer_pyvista, tmpdir, pixel_ratio, brain_gc):
     cam = brain._renderer.figure.plotter.camera
     previous_roll = cam.GetRoll()
     brain.show_view(**view_args)
-    assert np.allclose(cam.GetFocalPoint(), view_args["focalpoint"])
-    assert np.allclose(cam.GetDistance(), view_args["distance"])
-    assert np.allclose(cam.GetRoll(), previous_roll + view_args["roll"])
+    assert_allclose(cam.GetFocalPoint(), view_args["focalpoint"])
+    assert_allclose(cam.GetDistance(), view_args["distance"])
+    assert_allclose(cam.GetRoll(), previous_roll + view_args["roll"])
     del view_args
 
     with pytest.warns(DeprecationWarning, match='`view` is a dict'):

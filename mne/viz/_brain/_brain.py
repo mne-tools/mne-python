@@ -2689,7 +2689,7 @@ class Brain(object):
                 hemi = 'rh'
             else:
                 hemi = 'lh'
-        if isinstance(view, dict):  # deprecate at verion 0.25
+        if isinstance(view, dict):  # deprecate at version 0.25
             warn('`view` is a dict is deprecated, please use `azimuth` and '
                  '`elevation` as arguments directly to `show_view`',
                  DeprecationWarning)
