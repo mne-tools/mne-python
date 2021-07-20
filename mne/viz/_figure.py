@@ -35,7 +35,6 @@ matplotlib.figure.Figure
 # Authors: Daniel McCloy <dan@mccloy.info>
 #
 # License: Simplified BSD
-from abc import ABC
 from copy import deepcopy
 from collections import OrderedDict
 from contextlib import contextmanager
@@ -327,9 +326,6 @@ class MNEBrowseFigure(MNEFigure):
         from matplotlib.transforms import blended_transform_factory
         from mpl_toolkits.axes_grid1.axes_size import Fixed
         from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
-        from .. import BaseEpochs
-        from ..io import BaseRaw
-        from ..preprocessing import ICA
 
         super().__init__(figsize=figsize, inst=inst, ica=ica, **kwargs)
 
