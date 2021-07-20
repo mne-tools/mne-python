@@ -112,7 +112,6 @@ def test_plot_cov():
     cov = read_cov(cov_fname)
     with pytest.warns(RuntimeWarning, match='projection'):
         fig1, fig2 = cov.plot(raw.info, proj=True, exclude=raw.ch_names[6:])
-    plt.close('all')
 
 
 @testing.requires_testing_data
@@ -202,7 +201,6 @@ def test_plot_events():
                 event_id=extra_id, on_missing='ignore')
     with pytest.raises(ValueError, match='No events'):
         plot_events(np.empty((0, 3)))
-    plt.close('all')
 
 
 @testing.requires_testing_data
@@ -223,7 +221,6 @@ def test_plot_source_spectrogram():
                   [[1, 2], [3, 4]], tmin=0)
     pytest.raises(ValueError, plot_source_spectrogram, [stc, stc],
                   [[1, 2], [3, 4]], tmax=7)
-    plt.close('all')
 
 
 @pytest.mark.slowtest
@@ -233,7 +230,6 @@ def test_plot_snr():
     inv = read_inverse_operator(inv_fname)
     evoked = read_evokeds(evoked_fname, baseline=(None, 0))[0]
     plot_snr_estimate(evoked, inv)
-    plt.close('all')
 
 
 @testing.requires_testing_data
@@ -241,7 +237,6 @@ def test_plot_dipole_amplitudes():
     """Test plotting dipole amplitudes."""
     dipoles = read_dipole(dip_fname)
     dipoles.plot_amplitudes(show=False)
-    plt.close('all')
 
 
 def test_plot_csd():
@@ -251,7 +246,6 @@ def test_plot_csd():
                                tmin=0, tmax=1,)
     plot_csd(csd, mode='csd')  # Plot cross-spectral density
     plot_csd(csd, mode='coh')  # Plot coherence
-    plt.close('all')
 
 
 def test_plot_chpi_snr():
