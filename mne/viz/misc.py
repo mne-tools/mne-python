@@ -1345,9 +1345,7 @@ def plot_chpi_snr(snr_dict, axes=None):
     """
     import matplotlib.pyplot as plt
 
-    valid_keys = {f'{ch_type}_{kind}' for ch_type in ('mag', 'grad')
-                  for kind in ('snr', 'power', 'resid')}
-    valid_keys.intersection_update(snr_dict)
+    valid_keys = list(snr_dict)[2:]
     titles = dict(snr='SNR', power='cHPI power', resid='Residual variance')
     full_names = dict(mag='magnetometers', grad='gradiometers')
     axes_was_none = axes is None
@@ -1356,7 +1354,7 @@ def plot_chpi_snr(snr_dict, axes=None):
     else:
         fig = axes[0].get_figure()
     fig.set_size_inches(10, 10)
-    for key, ax in zip(sorted(valid_keys), axes):
+    for key, ax in zip(valid_keys, axes):
         ch_type, kind = key.split('_')
         scaling = 1 if kind == 'snr' else DEFAULTS['scalings'][ch_type]
         plot_kwargs = dict(color='k') if kind == 'resid' else dict()
