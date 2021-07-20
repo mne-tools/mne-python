@@ -362,9 +362,9 @@ def test_brain_init(renderer_pyvista, tmpdir, pixel_ratio, brain_gc):
                            focalpoint='auto'),
                       dict(view='lateral', hemi='lh')):
         brain.show_view(**view_args)
-        assert np.allclose(brain._renderer.figure._azimuth, azimuth)
-        assert np.allclose(brain._renderer.figure._elevation, elevation)
-        assert np.allclose(cam.GetFocalPoint(), fp)
+        assert_allclose(brain._renderer.figure._azimuth, azimuth)
+        assert_allclose(brain._renderer.figure._elevation, elevation)
+        assert_allclose(cam.GetFocalPoint(), fp)
     del view_args
     img = brain.screenshot(mode='rgba')
     want_size = np.array([size[0] * pixel_ratio, size[1] * pixel_ratio, 4])

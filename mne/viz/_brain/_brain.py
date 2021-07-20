@@ -502,36 +502,8 @@ class Brain(object):
         self.plotter = self._renderer.plotter
 
         self._setup_canonical_rotation()
-        self._add_hemis(surf, alpha, offset, geo_kwargs)
 
-        self.interaction = interaction
-        self._closed = False
-        if show:
-            self.show()
-        # update the views once the geometry is all set
-        for h in self._hemis:
-            for ri, ci, v in self._iter_views(h):
-                self.show_view(v, row=ri, col=ci, hemi=h)
-
-        if surf == 'flat':
-            self._renderer.set_interaction("rubber_band_2d")
-
-    def _setup_canonical_rotation(self):
-        from ...coreg import fit_matched_points, _trans_from_params
-        self._rigid = np.eye(4)
-        try:
-            xfm = read_talxfm(self._subject_id, self._subjects_dir)
-        except Exception:
-            return
-        # XYZ+origin + halfway
-        pts_tal = np.concatenate([np.eye(4)[:, :3], np.eye(3) * 0.5])
-        pts_subj = apply_trans(invert_transform(xfm), pts_tal)
-        # we fit with scaling enabled, but then discard it (we just need
-        # the rigid-body components)
-        params = fit_matched_points(pts_subj, pts_tal, scale=3, out='params')
-        self._rigid[:] = _trans_from_params((True, True, False), params[:6])
-
-    def _add_hemis(self, surf, alpha, offset, geo_kwargs):
+        # plot hemis
         for h in ('lh', 'rh'):
             if h not in self._hemis:
                 continue  # don't make surface if not chosen
@@ -576,6 +548,33 @@ class Brain(object):
                     )
                 self._renderer.set_camera(update=False, reset_camera=False,
                                           **views_dicts[h][v])
+
+        self.interaction = interaction
+        self._closed = False
+        if show:
+            self.show()
+        # update the views once the geometry is all set
+        for h in self._hemis:
+            for ri, ci, v in self._iter_views(h):
+                self.show_view(v, row=ri, col=ci, hemi=h)
+
+        if surf == 'flat':
+            self._renderer.set_interaction("rubber_band_2d")
+
+    def _setup_canonical_rotation(self):
+        from ...coreg import fit_matched_points, _trans_from_params
+        self._rigid = np.eye(4)
+        try:
+            xfm = read_talxfm(self._subject_id, self._subjects_dir)
+        except Exception:
+            return
+        # XYZ+origin + halfway
+        pts_tal = np.concatenate([np.eye(4)[:, :3], np.eye(3) * 0.5])
+        pts_subj = apply_trans(invert_transform(xfm), pts_tal)
+        # we fit with scaling enabled, but then discard it (we just need
+        # the rigid-body components)
+        params = fit_matched_points(pts_subj, pts_tal, scale=3, out='params')
+        self._rigid[:] = _trans_from_params((True, True, False), params[:6])
 
     def setup_time_viewer(self, time_viewer=True, show_traces=True):
         """Configure the time viewer parameters.
@@ -2391,9 +2390,11 @@ class Brain(object):
             mask = (aseg_data == val)
             verts, triangles = marching_cubes(mask, level=0.5, smooth=smooth)
             verts = apply_trans(vox_mri_t, verts)
-            self._renderer.mesh(
-                *verts.T, triangles=triangles, color=color, opacity=alpha,
-                reset_camera=False, render=False)
+            for h in self._hemis:
+                for ri, ci, v in self._iter_views(h):
+                    self._renderer.mesh(
+                        *verts.T, triangles=triangles, color=color,
+                        opacity=alpha, reset_camera=False, render=False)
 
         if legend or isinstance(legend, dict):
             # use empty kwargs for legend = True
@@ -2653,26 +2654,19 @@ class Brain(object):
         """Display the window."""
         self._renderer.show()
 
-    def show_view(self, view=None, azimuth=None, elevation=None, roll=None,
-                  distance=None, focalpoint=None, row=None, col=None,
-                  hemi=None, align=True):
+    @fill_doc
+    def show_view(self, view=None, roll=None, distance=None,
+                  azimuth=None, elevation=None, focalpoint=None,
+                  row=None, col=None, hemi=None, align=True):
         """Orient camera to display view.
 
         Parameters
         ----------
-        view : str
-            The name of the view to show (e.g. "lateral"). Other arguments
-            take precedence and modify starting from the ``view``.
-        azimuth : float
-            The azimuth angle of the camera rendering the view in degrees.
-        elevation : float
-            The elevation of the camera rendering the view in degrees.
-        roll : float | None
-            The roll.
-        distance : float | None
-            The distance.
-        focalpoint : tuple, shape (3,) | None
-            The focal point of the view: (x, y, z).
+        %(view)s
+        %(roll)s
+        %(azimuth)s
+        %(elevation)s
+        %(focalpoint)s
         row : int | None
             The row to set. Default all rows.
         col : int | None
@@ -2692,6 +2686,14 @@ class Brain(object):
                 hemi = 'rh'
             else:
                 hemi = 'lh'
+        if isinstance(view, dict):
+            warn('`view` is a dict is deprecated, please use `azimuth` and '
+                 '`elevation` as arguments directly to `show_view`',
+                 DeprecationWarning)
+            if azimuth is None and 'azimuth' in view:
+                azimuth = view['azimuth']
+            if elevation is None and 'elevation' in view:
+                elevation = view['elevation']
         view_params = dict(azimuth=azimuth, elevation=elevation, roll=roll,
                            distance=distance, focalpoint=focalpoint)
         if view is not None:  # view string takes precedence
