@@ -1656,30 +1656,17 @@ def _mesh_borders(tris, mask):
     return np.unique(edges.row[border_edges])
 
 
-@fill_doc
-def marching_cubes(image, level, smooth=0):
-    """Compute marching cubes on a 3D image.
-
-    The same as ``skimage.measure.marching_cubes`` but uses the
-    implementation in vtk.
-
-    Parameters
-    ----------
-    image : ndarray
-        The image to compute marching cubes with.
-    level : float
-        The contour value to search for isosurfaces in ``image``.
-    %(smooth)s
-
-    Returns
-    -------
-    verts : ndarray
-        The spatial coordinates for unique mesh vertices.
-    triangles : ndarray
-        The locations of connections between ``verts`` to form faces.
-    """
-    from vtk import (VTK_DOUBLE, vtkImageData, vtkMarchingCubes,
-                     vtkWindowedSincPolyDataFilter)
+def _marching_cubes(image, level, smooth=0):
+    """Compute marching cubes on a 3D image."""
+    # vtkDiscreteMarchingCubes would be another option, but it merges
+    # values at boundaries which is not what we want
+    # https://kitware.github.io/vtk-examples/site/Cxx/Medical/GenerateModelsFromLabels/  # noqa: E501
+    # Also vtkDiscreteFlyingEdges3D should be faster.
+    # If we ever want not-discrete (continuous/float) marching cubes,
+    # we should probably use vtkFlyingEdges3D rather than vtkMarchingCubes.
+    from vtk import (vtkImageData, vtkThreshold,
+                     vtkWindowedSincPolyDataFilter, vtkDiscreteFlyingEdges3D,
+                     vtkGeometryFilter, vtkDataSetAttributes, VTK_DOUBLE)
     from vtk.util import numpy_support
     _validate_type(smooth, 'numeric', smooth)
     smooth = float(smooth)
@@ -1689,38 +1676,64 @@ def marching_cubes(image, level, smooth=0):
 
     if image.ndim != 3:
         raise ValueError(f'3D data must be supplied, got {image.shape}')
+    # force double as passing integer types directly can be problematic!
+    image_shape = image.shape
     data_vtk = numpy_support.numpy_to_vtk(
-        image.ravel(), deep=True, array_type=VTK_DOUBLE
-    )
+        image.ravel(), deep=True, array_type=VTK_DOUBLE)
+    del image
+    level = np.array(level)
+    if level.ndim != 1 or level.size == 0 or level.dtype.kind not in 'ui':
+        raise TypeError(
+            'level must be non-empty numeric or 1D array-like of int, '
+            f'got {level.ndim}D array-like of {level.dtype} with '
+            f'{level.size} elements')
+    mc = vtkDiscreteFlyingEdges3D()
     # create image
     imdata = vtkImageData()
-    imdata.SetDimensions(image.shape)
+    imdata.SetDimensions(image_shape)
     imdata.SetSpacing([1, 1, 1])
     imdata.SetOrigin([0, 0, 0])
     imdata.GetPointData().SetScalars(data_vtk)
 
     # compute marching cubes
-    mc = vtkMarchingCubes()
+    mc.SetNumberOfContours(len(level))
+    for li, lev in enumerate(level):
+        mc.SetValue(li, lev)
     mc.SetInputData(imdata)
-    mc.SetValue(0, level)
-    mc.Update()
-    out = mc
+    sel_input = mc
     if smooth:
-        filt = vtkWindowedSincPolyDataFilter()
-        filt.SetInputConnection(mc.GetOutputPort())
-        filt.SetNumberOfIterations(100)
-        filt.SetPassBand(1 - smooth)
-        filt.Update()
-        out = filt
-    polydata = out.GetOutput()
+        smoother = vtkWindowedSincPolyDataFilter()
+        smoother.SetInputConnection(mc.GetOutputPort())
+        smoother.SetNumberOfIterations(100)
+        smoother.BoundarySmoothingOff()
+        smoother.FeatureEdgeSmoothingOff()
+        smoother.SetFeatureAngle(120.0)
+        smoother.SetPassBand(1 - smooth)
+        smoother.NonManifoldSmoothingOn()
+        smoother.NormalizeCoordinatesOff()
+        sel_input = smoother
+    sel_input.Update()
 
     # get verts and triangles
-    verts = numpy_support.vtk_to_numpy(polydata.GetPoints().GetData())
-    triangles = numpy_support.vtk_to_numpy(
-        polydata.GetPolys().GetConnectivityArray()).reshape(-1, 3)
-    verts = np.flip(verts, axis=1)
-    triangles = np.flip(triangles, axis=1)
-    return verts, triangles
+    selector = vtkThreshold()
+    selector.SetInputConnection(sel_input.GetOutputPort())
+    dsa = vtkDataSetAttributes()
+    selector.SetInputArrayToProcess(
+        0, 0, 0, imdata.FIELD_ASSOCIATION_POINTS, dsa.SCALARS)
+    geometry = vtkGeometryFilter()
+    geometry.SetInputConnection(selector.GetOutputPort())
+    out = list()
+    for val in level:
+        selector.ThresholdBetween(val, val)
+        geometry.Update()
+        polydata = geometry.GetOutput()
+        rr = numpy_support.vtk_to_numpy(polydata.GetPoints().GetData())
+        tris = numpy_support.vtk_to_numpy(
+            polydata.GetPolys().GetConnectivityArray()).reshape(-1, 3)
+        rr = np.ascontiguousarray(rr[:, ::-1])
+        tris = np.ascontiguousarray(tris[:, ::-1])
+        out.append((rr, tris))
+    return out
 
 
 def _get_surface_RAS_volumes(base_image, subject_from, subjects_dir):

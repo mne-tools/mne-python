@@ -35,7 +35,7 @@ from .._3d import _process_clim, _handle_time, _check_views
 from ...externals.decorator import decorator
 from ...defaults import _handle_default
 from ..._freesurfer import vertex_to_mni, read_talxfm, read_freesurfer_lut
-from ...surface import mesh_edges, _mesh_borders
+from ...surface import mesh_edges, _mesh_borders, _marching_cubes
 from ...source_space import SourceSpaces
 from ...transforms import apply_trans, invert_transform
 from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
@@ -2352,15 +2352,15 @@ class Brain(object):
         """
         import nibabel as nib
         from matplotlib.colors import colorConverter
-        from ...surface import marching_cubes
 
         # load anatomical segmentation image
         if not aseg.endswith('aseg'):
             raise RuntimeError(
                 f'`aseg` file path must end with "aseg", got {aseg}')
-        aseg_fname = _check_fname(op.join(self._subjects_dir, self._subject_id,
-                                          'mri', aseg + '.mgz'),
-                                  overwrite='read', must_exist=True)
+        aseg = _check_fname(op.join(self._subjects_dir, self._subject_id,
+                                    'mri', aseg + '.mgz'),
+                            overwrite='read', must_exist=True)
+        aseg_fname = aseg
         aseg = nib.load(aseg_fname)
         aseg_data = np.asarray(aseg.dataobj)
         vox_mri_t = aseg.header.get_vox2ras_tkr()
@@ -2383,14 +2383,13 @@ class Brain(object):
         elif not isinstance(colors, (list, tuple)):
             colors = [colors] * len(labels)  # make into list
         colors = [colorConverter.to_rgba(color, alpha) for color in colors]
-        aseg_vals = set(np.unique(aseg_data))
-        for label, color in zip(labels, colors):
-            val = lut[label]
-            if val not in aseg_vals:
-                warn(f'Value not found for label {repr(label)} in: '
-                     f'{aseg_fname}')
-            mask = (aseg_data == val)
-            verts, triangles = marching_cubes(mask, level=0.5, smooth=smooth)
+        surfs = _marching_cubes(
+            aseg_data, [lut[label] for label in labels], smooth=smooth)
+        for label, color, (verts, triangles) in zip(labels, colors, surfs):
+            if len(verts) == 0:  # not in aseg vals
+                warn(f'Value {lut[label]} not found for label '
+                     f'{repr(label)} in: {aseg_fname}')
+                continue
             verts = apply_trans(vox_mri_t, verts)
             self._renderer.mesh(
                 *verts.T, triangles=triangles, color=color, opacity=alpha,

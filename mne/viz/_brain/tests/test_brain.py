@@ -317,7 +317,6 @@ def test_brain_init(renderer_pyvista, tmpdir, pixel_ratio, brain_gc):
     brain.add_volume_labels(
         aseg='aseg', labels=('Brain-Stem', 'Left-Hippocampus',
                              'Left-Amygdala'))
-
     # add text
     brain.add_text(x=0, y=0, text='foo')
     brain.close()
