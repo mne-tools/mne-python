@@ -1308,3 +1308,52 @@ def plot_csd(csd, info=None, mode='csd', colorbar=True, cmap=None,
 
     plt_show(show)
     return figs
+
+
+def plot_chpi_snr(snr_dict):
+    """Plot time-varying SNR estimates of the HPI coils.
+
+    Parameters
+    ----------
+    snr_dict : dict
+        The dictionary returned by `~mne.chpi.compute_chpi_snr`. Must have keys
+        ``times``, ``freqs``, ``TYPE_snr``, ``TYPE_power``, and ``TYPE_resid``
+        (where ``TYPE`` can be ``mag`` or ``grad`` or both).
+
+    Returns
+    -------
+    fig : instance of matplotlib.figure.Figure
+        A figure with subplots for SNR, power, and residual variance,
+        separately for magnetometers and/or gradiometers (depending on what is
+        present in ``snr_dict``).
+
+    Notes
+    -----
+    .. versionadded:: 0.24
+    """
+    import matplotlib.pyplot as plt
+
+    valid_keys = {f'{ch_type}_{kind}' for ch_type in ('mag', 'grad')
+                  for kind in ('snr', 'power', 'resid')}
+    valid_keys.intersection_update(snr_dict)
+    titles = dict(snr='SNR (cHPI power / residual variance)',
+                  power='cHPI power', resid='Residual variance')
+    full_names = dict(mag='magnetometers', grad='gradiometers')
+    fig, axs = plt.subplots(len(valid_keys), 1, sharex=True)
+    fig.set_size_inches(10, 10)
+    for key, ax in zip(sorted(valid_keys), axs):
+        ch_type, kind = key.split('_')
+        plot_kwargs = dict(color='k') if kind == 'resid' else dict()
+        lines = ax.plot(snr_dict['times'], snr_dict[key], **plot_kwargs)
+        title = f'{titles[kind]}, {full_names[ch_type]}'
+        unit = DEFAULTS['si_units'][ch_type]
+        unit = f'({unit})' if '/' in unit else unit
+        ylabel = 'dB' if kind == 'snr' else f'{unit}²'
+        ax.set(title=title, ylabel=ylabel)
+    ax.set(xlabel='Time (s)')
+    fig.align_ylabels()
+    for line, freq in zip(lines, snr_dict['freqs']):
+        line.set_label(f'{freq} Hz')
+    fig.subplots_adjust(left=0.1, right=0.825, top=0.95, hspace=0.7)
+    fig.legend(loc='right', title='cHPI frequencies')
+    return fig
