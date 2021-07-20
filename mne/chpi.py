@@ -962,8 +962,7 @@ def compute_chpi_snr(raw, t_step_min=0.01, t_window='auto', ext_order=1,
     raw : instance of Raw
         Raw data with cHPI information.
     t_step_min : float
-        Minimum time step to use. If correlations are sufficiently high,
-        t_step_max will be used.
+        Minimum time step to use.
     %(chpi_t_window)s
     %(chpi_ext_order)s
     %(raw_tmin)s
@@ -1000,8 +999,7 @@ def compute_chpi_amplitudes(raw, t_step_min=0.01, t_window='auto',
     raw : instance of Raw
         Raw data with cHPI information.
     t_step_min : float
-        Minimum time step to use. If correlations are sufficiently high,
-        t_step_max will be used.
+        Minimum time step to use.
     %(chpi_t_window)s
     %(chpi_ext_order)s
     %(raw_tmin)s
