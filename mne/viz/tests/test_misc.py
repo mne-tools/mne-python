@@ -15,12 +15,13 @@ import matplotlib.pyplot as plt
 
 from mne import (read_events, read_cov, read_source_spaces, read_evokeds,
                  read_dipole, SourceEstimate, pick_events)
+from mne.chpi import compute_chpi_snr
 from mne.datasets import testing
 from mne.filter import create_filter
 from mne.io import read_raw_fif
 from mne.minimum_norm import read_inverse_operator
 from mne.viz import (plot_bem, plot_events, plot_source_spectrogram,
-                     plot_snr_estimate, plot_filter, plot_csd)
+                     plot_snr_estimate, plot_filter, plot_csd, plot_chpi_snr)
 from mne.viz.misc import _handle_event_colors
 from mne.viz.utils import _get_color_list
 from mne.utils import requires_nibabel
@@ -32,8 +33,8 @@ src_fname = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-6-src.fif')
 inv_fname = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-4-meg-inv.fif')
 evoked_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
-dip_fname = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc_set1.dip')
+dip_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_set1.dip')
+chpi_fif_fname = op.join(data_path, 'SSS', 'test_move_anon_raw.fif')
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 cov_fname = op.join(base_dir, 'test-cov.fif')
@@ -251,3 +252,20 @@ def test_plot_csd():
     plot_csd(csd, mode='csd')  # Plot cross-spectral density
     plot_csd(csd, mode='coh')  # Plot coherence
     plt.close('all')
+
+
+def test_plot_chpi_snr():
+    """Test plotting cHPI SNRs."""
+    raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes')
+    result = compute_chpi_snr(raw)
+    # test figure creation
+    fig = plot_chpi_snr(result)
+    assert len(fig.axes) == len(result) - 2
+    assert len(fig.axes[0].lines) == len(result['freqs'])
+    # test user-passed axes
+    _, axs = plt.subplots(2, 3)
+    _ = plot_chpi_snr(result, axes=axs.ravel())
+    # test error
+    _, axs = plt.subplots(5)
+    with pytest.raises(ValueError, match='a list of 6 axes, got length 5'):
+        _ = plot_chpi_snr(result, axes=axs.ravel())
