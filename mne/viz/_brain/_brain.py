@@ -2661,8 +2661,8 @@ class Brain(object):
         Parameters
         ----------
         view : str
-            The name of the view to show (e.g. "lateral"). Takes precedence
-            over other arguments.
+            The name of the view to show (e.g. "lateral"). Other arguments
+            take precedence and modify starting from the ``view``.
         azimuth : float
             The azimuth angle of the camera rendering the view in degrees.
         elevation : float
@@ -2695,7 +2695,7 @@ class Brain(object):
         view_params = dict(azimuth=azimuth, elevation=elevation, roll=roll,
                            distance=distance, focalpoint=focalpoint)
         if view is not None:  # view string takes precedence
-            view_params.update(views_dicts[hemi].get(view))
+            view_params = dict(views_dicts[hemi].get(view), **view_params)
         xfm = self._rigid if align else None
         for h in self._hemis:
             for ri, ci, v in self._iter_views(h):
