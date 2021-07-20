@@ -1343,10 +1343,12 @@ def plot_chpi_snr(snr_dict):
     fig.set_size_inches(10, 10)
     for key, ax in zip(sorted(valid_keys), axs):
         ch_type, kind = key.split('_')
+        scaling = 1 if kind == 'snr' else DEFAULTS['scalings'][ch_type]
         plot_kwargs = dict(color='k') if kind == 'resid' else dict()
-        lines = ax.plot(snr_dict['times'], snr_dict[key], **plot_kwargs)
+        lines = ax.plot(snr_dict['times'], snr_dict[key] * scaling ** 2,
+                        **plot_kwargs)
         title = f'{titles[kind]}, {full_names[ch_type]}'
-        unit = DEFAULTS['si_units'][ch_type]
+        unit = DEFAULTS['units'][ch_type]
         unit = f'({unit})' if '/' in unit else unit
         ylabel = 'dB' if kind == 'snr' else f'{unit}²'
         ax.set(title=title, ylabel=ylabel)
