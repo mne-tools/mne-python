@@ -11,7 +11,7 @@ from scipy.interpolate import interp1d
 from scipy.spatial.distance import cdist
 import pytest
 
-from mne import pick_types, pick_info, create_info
+from mne import pick_types, pick_info
 from mne.forward._compute_forward import _MAG_FACTOR
 from mne.io import (read_raw_fif, read_raw_artemis123, read_raw_ctf, read_info,
                     RawArray, read_raw_kit)
@@ -57,8 +57,6 @@ mrk_fname = op.join(data_path, 'KIT', 'MQKIT_125.mrk')
 elp_fname = op.join(data_path, 'KIT', 'MQKIT_125.elp')
 hsp_fname = op.join(data_path, 'KIT', 'MQKIT_125.hsp')
 berlin_fname = op.join(data_path, 'KIT', 'data_berlin.con')
-
-rng = np.random.default_rng(0)
 
 
 @testing.requires_testing_data
