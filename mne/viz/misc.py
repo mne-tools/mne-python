@@ -1348,8 +1348,7 @@ def plot_chpi_snr(snr_dict, axes=None):
     valid_keys = {f'{ch_type}_{kind}' for ch_type in ('mag', 'grad')
                   for kind in ('snr', 'power', 'resid')}
     valid_keys.intersection_update(snr_dict)
-    titles = dict(snr='SNR (cHPI power / residual variance)',
-                  power='cHPI power', resid='Residual variance')
+    titles = dict(snr='SNR', power='cHPI power', resid='Residual variance')
     full_names = dict(mag='magnetometers', grad='gradiometers')
     axes_was_none = axes is None
     if axes_was_none:
