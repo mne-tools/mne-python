@@ -7,7 +7,7 @@ dependencies:
 - pip
 - mesalib
 - ffmpeg
-- vtk
+- vtk<=9.0.1
 - traits
 - scipy
 - numpy
