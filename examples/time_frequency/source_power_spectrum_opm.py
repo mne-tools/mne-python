@@ -197,7 +197,7 @@ def plot_band(kind, band):
         time_label=title, title=title, colormap='inferno',
         time_viewer=False, show_traces=False,
         clim=dict(kind='percent', lims=(70, 85, 99)), smoothing_steps=10)
-    brain.show_view(dict(azimuth=0, elevation=0), roll=0)
+    brain.show_view(azimuth=0, elevation=0, roll=0)
     return fig, brain
 
 

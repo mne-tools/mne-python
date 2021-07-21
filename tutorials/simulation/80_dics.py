@@ -223,8 +223,7 @@ brain.add_foci(vertices[0][0], coords_as_verts=True, hemi='lh')
 brain.add_foci(vertices[1][0], coords_as_verts=True, hemi='rh')
 
 # Rotate the view and add a title.
-brain.show_view(view={'azimuth': 0, 'elevation': 0, 'distance': 550,
-                'focalpoint': [0, 0, 0]})
+brain.show_view(azimuth=0, elevation=0, distance=550, focalpoint=(0, 0, 0))
 
 # %%
 # We will now compute the cortical power map at 10 Hz. using a DICS beamformer.
@@ -280,8 +279,7 @@ def plot_approach(power, n):
     brain.add_foci(vertices[0][0], coords_as_verts=True, hemi='lh', color='b')
     brain.add_foci(vertices[1][0], coords_as_verts=True, hemi='rh', color='b')
     # Rotate the view and add a title.
-    brain.show_view(view={'azimuth': 0, 'elevation': 0, 'distance': 550,
-                          'focalpoint': [0, 0, 0]})
+    brain.show_view(azimuth=0, elevation=0, distance=550, focalpoint=(0, 0, 0))
     return brain
 
 

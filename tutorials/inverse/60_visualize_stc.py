@@ -161,7 +161,7 @@ labels = [label_names[idx] for idx in np.argsort(label_tc.max(axis=1))[:7]
 brain = mne.viz.Brain('sample', hemi='both', surf='pial', alpha=0.5,
                       cortex='low_contrast', subjects_dir=subjects_dir)
 brain.add_volume_labels(aseg='aparc.a2009s+aseg', labels=labels)
-brain.show_view(dict(azimuth=250, elevation=40, distance=400))
+brain.show_view(azimuth=250, elevation=40, distance=400)
 brain.enable_depth_peeling()
 
 # %%

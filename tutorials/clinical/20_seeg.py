@@ -174,7 +174,7 @@ fig = mne.viz.plot_alignment(epochs.info.copy().pick_channels(picks), trans,
 brain = mne.viz.Brain('fsaverage', alpha=0.1, cortex='low_contrast',
                       subjects_dir=subjects_dir, units='m', figure=fig)
 brain.add_volume_labels(aseg='aparc+aseg', labels=labels)
-brain.show_view(dict(azimuth=120, elevation=90, distance=0.25))
+brain.show_view(azimuth=120, elevation=90, distance=0.25)
 brain.enable_depth_peeling()
 
 # %%
