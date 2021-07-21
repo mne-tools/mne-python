@@ -14,7 +14,6 @@ import stat
 import sys
 import re
 import shutil
-import warnings
 from functools import reduce
 
 import numpy as np
@@ -1575,8 +1574,7 @@ class Coregistration(object):
         logger.info("Coregistration: Excluding %i head shape points with "
                     "distance >= %.3f m.", n_excluded, distance)
         # set the filter
-        with warnings.catch_warnings(record=True):  # comp to None in Traits
-            self._dig.extra_points_filter = mask
+        self._dig.extra_points_filter = mask
 
     def compute_dig_head_distances(self):
         """Compute Euclidean distance between the head-mri points."""
