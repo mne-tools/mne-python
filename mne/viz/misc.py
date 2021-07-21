@@ -1357,12 +1357,20 @@ def plot_chpi_snr(snr_dict, axes=None):
         raise ValueError(f'axes must be a list of {len(valid_keys)} axes, got '
                          f'length {len(axes)} ({axes}).')
     fig.set_size_inches(10, 10)
+    legend_labels_exist = False
     for key, ax in zip(valid_keys, axes):
         ch_type, kind = key.split('_')
         scaling = 1 if kind == 'snr' else DEFAULTS['scalings'][ch_type]
         plot_kwargs = dict(color='k') if kind == 'resid' else dict()
         lines = ax.plot(snr_dict['times'], snr_dict[key] * scaling ** 2,
                         **plot_kwargs)
+        # the freqs should be the same for all sensor types (and for SNR and
+        # power subplots), so we only need to label the lines on one axes
+        # (otherwise we get duplicate legend entries).
+        if not legend_labels_exist:
+            for line, freq in zip(lines, snr_dict['freqs']):
+                line.set_label(f'{freq} Hz')
+            legend_labels_exist = True
         unit = DEFAULTS['units'][ch_type]
         unit = f'({unit})' if '/' in unit else unit
         set_kwargs = dict(title=f'{titles[kind]}, {full_names[ch_type]}',
@@ -1370,8 +1378,6 @@ def plot_chpi_snr(snr_dict, axes=None):
         if not axes_was_none:
             set_kwargs.update(xlabel='Time (s)')
         ax.set(**set_kwargs)
-    for line, freq in zip(lines, snr_dict['freqs']):
-        line.set_label(f'{freq} Hz')
     if axes_was_none:
         ax.set(xlabel='Time (s)')
         fig.align_ylabels()
