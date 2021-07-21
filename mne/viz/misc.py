@@ -1308,3 +1308,80 @@ def plot_csd(csd, info=None, mode='csd', colorbar=True, cmap=None,
 
     plt_show(show)
     return figs
+
+
+def plot_chpi_snr(snr_dict, axes=None):
+    """Plot time-varying SNR estimates of the HPI coils.
+
+    Parameters
+    ----------
+    snr_dict : dict
+        The dictionary returned by `~mne.chpi.compute_chpi_snr`. Must have keys
+        ``times``, ``freqs``, ``TYPE_snr``, ``TYPE_power``, and ``TYPE_resid``
+        (where ``TYPE`` can be ``mag`` or ``grad`` or both).
+    axes : None | list of matplotlib.axes.Axes
+        Figure axes in which to draw the SNR, power, and residual plots. The
+        number of axes should be 3× the number of MEG sensor types present in
+        ``snr_dict``. If ``None`` (the default), a new
+        `~matplotlib.figure.Figure` is created with the required number of
+        axes.
+
+    Returns
+    -------
+    fig : instance of matplotlib.figure.Figure
+        A figure with subplots for SNR, power, and residual variance,
+        separately for magnetometers and/or gradiometers (depending on what is
+        present in ``snr_dict``).
+
+    Notes
+    -----
+    If you supply a list of existing `~matplotlib.axes.Axes`, then the figure
+    legend will not be drawn automatically. If you still want it, running
+    ``fig.legend(loc='right', title='cHPI frequencies')`` will recreate it,
+    though you may also need to manually adjust the margin to make room for it
+    (e.g., using ``fig.subplots_adjust(right=0.8)``).
+
+    .. versionadded:: 0.24
+    """
+    import matplotlib.pyplot as plt
+
+    valid_keys = list(snr_dict)[2:]
+    titles = dict(snr='SNR', power='cHPI power', resid='Residual variance')
+    full_names = dict(mag='magnetometers', grad='gradiometers')
+    axes_was_none = axes is None
+    if axes_was_none:
+        fig, axes = plt.subplots(len(valid_keys), 1, sharex=True)
+    else:
+        fig = axes[0].get_figure()
+    if len(axes) != len(valid_keys):
+        raise ValueError(f'axes must be a list of {len(valid_keys)} axes, got '
+                         f'length {len(axes)} ({axes}).')
+    fig.set_size_inches(10, 10)
+    legend_labels_exist = False
+    for key, ax in zip(valid_keys, axes):
+        ch_type, kind = key.split('_')
+        scaling = 1 if kind == 'snr' else DEFAULTS['scalings'][ch_type]
+        plot_kwargs = dict(color='k') if kind == 'resid' else dict()
+        lines = ax.plot(snr_dict['times'], snr_dict[key] * scaling ** 2,
+                        **plot_kwargs)
+        # the freqs should be the same for all sensor types (and for SNR and
+        # power subplots), so we only need to label the lines on one axes
+        # (otherwise we get duplicate legend entries).
+        if not legend_labels_exist:
+            for line, freq in zip(lines, snr_dict['freqs']):
+                line.set_label(f'{freq} Hz')
+            legend_labels_exist = True
+        unit = DEFAULTS['units'][ch_type]
+        unit = f'({unit})' if '/' in unit else unit
+        set_kwargs = dict(title=f'{titles[kind]}, {full_names[ch_type]}',
+                          ylabel='dB' if kind == 'snr' else f'{unit}²')
+        if not axes_was_none:
+            set_kwargs.update(xlabel='Time (s)')
+        ax.set(**set_kwargs)
+    if axes_was_none:
+        ax.set(xlabel='Time (s)')
+        fig.align_ylabels()
+        fig.subplots_adjust(left=0.1, right=0.825, bottom=0.075, top=0.95,
+                            hspace=0.7)
+        fig.legend(loc='right', title='cHPI frequencies')
+    return fig
