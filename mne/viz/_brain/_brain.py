@@ -399,16 +399,14 @@ class Brain(object):
         from .._3d import _get_cmap
         from matplotlib.colors import colorConverter
 
-        _validate_type(hemi, (str, None), 'hemi')
         if hemi is None:
-            self._hemis = tuple()
+            hemi = 'vol'
+        hemi = self._check_hemi(hemi, extras=('both', 'split', 'vol'))
+        if hemi in ('both', 'split'):
+            self._hemis = ('lh', 'rh')
         else:
-            hemi = self._check_hemi(hemi, extras=('both', 'split'))
-            if hemi in ('both', 'split'):
-                self._hemis = ('lh', 'rh')
-            else:
-                assert hemi in ('lh', 'rh')
-                self._hemis = (hemi, )
+            assert hemi in ('lh', 'rh', 'vol')
+            self._hemis = (hemi, )
         self._view_layout = _check_option('view_layout', view_layout,
                                           ('vertical', 'horizontal'))
 
@@ -429,8 +427,8 @@ class Brain(object):
             foreground = colorConverter.to_rgb(foreground)
         self._fg_color = foreground
         views = _check_views(surf, views, hemi)
-        col_dict = dict(lh=1, rh=1, both=1, split=2)
-        shape = (len(views), 1 if hemi is None else col_dict[hemi])
+        col_dict = dict(lh=1, rh=1, both=1, split=2, vol=1)
+        shape = (len(views), col_dict[hemi])
         if self._view_layout == 'horizontal':
             shape = shape[::-1]
         self._subplot_shape = shape
@@ -504,10 +502,14 @@ class Brain(object):
         self.plotter = self._renderer.plotter
 
         self._setup_canonical_rotation()
-        for h in self._hemis:
+
+        # plot hemis
+        for h in ('lh', 'rh'):
+            if h not in self._hemis:
+                continue  # don't make surface if not chosen
             # Initialize a Surface object as the geometry
-            geo = _Surface(subject_id, h, surf, subjects_dir, offset,
-                           units=self._units, x_dir=self._rigid[0, :3])
+            geo = _Surface(self._subject_id, h, surf, self._subjects_dir,
+                           offset, units=self._units, x_dir=self._rigid[0, :3])
             # Load in the geometry and curvature
             geo.load_geometry()
             geo.load_curvature()
@@ -2023,22 +2025,18 @@ class Brain(object):
         self.update_lut(alpha=alpha)
 
     def _iter_views(self, hemi):
-        # which rows and columns each type of visual needs to be added to
+        """Iterate over rows and columns that need to be added to."""
+        hemi_dict = dict(lh=[0], rh=[0], vol=[0])
         if self._hemi == 'split':
-            hemi_dict = dict(lh=[0], rh=[1], vol=[0, 1])
-        else:
-            hemi_dict = dict(lh=[0], rh=[0], vol=[0])
+            hemi_dict.update(rh=[1], vol=[0, 1])
         for vi, view in enumerate(self._views):
+            view_dict = dict(lh=[vi], rh=[vi], vol=[vi])
             if self._hemi == 'split':
-                view_dict = dict(lh=[vi], rh=[vi], vol=[vi, vi])
-            else:
-                view_dict = dict(lh=[vi], rh=[vi], vol=[vi])
+                view_dict.update(vol=[vi, vi])
             if self._view_layout == 'vertical':
-                rows = view_dict  # views are rows
-                cols = hemi_dict  # hemis are columns
+                rows, cols = view_dict, hemi_dict  # views are rows, hemis cols
             else:
-                rows = hemi_dict  # hemis are rows
-                cols = view_dict  # views are columns
+                rows, cols = hemi_dict, view_dict  # hemis are rows, views cols
             for ri, ci in zip(rows[hemi], cols[hemi]):
                 yield ri, ci, view
 
@@ -2325,10 +2323,7 @@ class Brain(object):
 
         Parameters
         ----------
-        aseg : str
-            The anatomical segmentation file. Default ``aparc+aseg``. This may
-            be any anatomical segmentation file in the mri subdirectory of the
-            subject directory from the Freesurfer recon-all.
+        %(aseg)s
         labels : list
             Labeled regions of interest to plot. See
             :func:`mne.get_montage_volume_labels`
@@ -2391,9 +2386,11 @@ class Brain(object):
                      f'{repr(label)} in: {aseg_fname}')
                 continue
             verts = apply_trans(vox_mri_t, verts)
-            self._renderer.mesh(
-                *verts.T, triangles=triangles, color=color, opacity=alpha,
-                reset_camera=False, render=False)
+            for h in self._hemis:
+                for ri, ci, v in self._iter_views(h):
+                    self._renderer.mesh(
+                        *verts.T, triangles=triangles, color=color,
+                        opacity=alpha, reset_camera=False, render=False)
 
         if legend or isinstance(legend, dict):
             # use empty kwargs for legend = True
@@ -2481,10 +2478,11 @@ class Brain(object):
             background color).
         opacity : float
             Opacity of the text (default 1.0).
-        row : int
-            Row index of which brain to use.
-        col : int
-            Column index of which brain to use.
+        row : int | None
+            Row index of which brain to use. Default is the bottom row.
+        col : int | None
+            Column index of which brain to use. Default is the left-most
+            column.
         font_size : float | None
             The font size to use.
         justification : str | None
@@ -2494,8 +2492,13 @@ class Brain(object):
         # are implemented
         # _check_option('name', name, [None])
 
-        self._renderer.text2d(x_window=x, y_window=y, text=text, color=color,
-                              size=font_size, justification=justification)
+        for h in self._hemis:
+            for ri, ci, v in self._iter_views(h):
+                if (row is None or row == ri) and (col is None or col == ci):
+                    self._renderer.subplot(ri, ci)
+                    self._renderer.text2d(x_window=x, y_window=y, text=text,
+                                          color=color, size=font_size,
+                                          justification=justification)
 
     def _configure_label_time_course(self):
         from ...label import read_labels_from_annot
@@ -2653,29 +2656,31 @@ class Brain(object):
         """Display the window."""
         self._renderer.show()
 
-    def show_view(self, view=None, roll=None, distance=None, row=0, col=0,
-                  hemi=None, align=True):
+    @fill_doc
+    def show_view(self, view=None, roll=None, distance=None,
+                  row='deprecated', col='deprecated', hemi=None, align=True,
+                  azimuth=None, elevation=None, focalpoint=None):
         """Orient camera to display view.
 
         Parameters
         ----------
-        view : str | dict
-            String view, or a dict with azimuth and elevation.
-        roll : float | None
-            The roll.
-        distance : float | None
-            The distance.
-        row : int
-            The row to set.
-        col : int
-            The column to set.
-        hemi : str
-            Which hemi to use for string lookup (when in "both" mode).
+        %(view)s
+        %(roll)s
+        %(distance)s
+        row : int | None
+            The row to set. Default all rows.
+        col : int | None
+            The column to set. Default all columns.
+        hemi : str | None
+            Which hemi to use for view lookup (when in "both" mode).
         align : bool
             If True, consider view arguments relative to canonical MRI
             directions (closest to MNI for the subject) rather than native MRI
             space. This helps when MRIs are not in standard orientation (e.g.,
             have large rotations).
+        %(azimuth)s
+        %(elevation)s
+        %(focalpoint)s
         """
         hemi = self._hemi if hemi is None else hemi
         if hemi == 'split':
@@ -2684,16 +2689,37 @@ class Brain(object):
                 hemi = 'rh'
             else:
                 hemi = 'lh'
-        if isinstance(view, str):
-            view = views_dicts[hemi].get(view)
-        view = view.copy()
-        if roll is not None:
-            view.update(roll=roll)
-        if distance is not None:
-            view.update(distance=distance)
-        self._renderer.subplot(row, col)
+        if isinstance(view, dict):  # deprecate at version 0.25
+            warn('`view` is a dict is deprecated, please use `azimuth` and '
+                 '`elevation` as arguments directly to `show_view`',
+                 DeprecationWarning)
+            if azimuth is None and 'azimuth' in view:
+                azimuth = view['azimuth']
+            if elevation is None and 'elevation' in view:
+                elevation = view['elevation']
+            view = None
+        if (row == 'deprecated' or col == 'deprecated') and \
+                len([_ for h in self._hemis for _ in self._iter_views(h)]) > 1:
+            warn('`row` and `col` default behavior is changing, in version '
+                 '0.25 the default behavior will be to apply `show_view` to '
+                 'all views', DeprecationWarning)
+        if row == 'deprecated':
+            row = None
+        if col == 'deprecated':
+            col = None
+        view_params = dict(azimuth=azimuth, elevation=elevation, roll=roll,
+                           distance=distance, focalpoint=focalpoint)
+        if view is not None:  # view string takes precedence
+            view_params = {param: val for param, val in view_params.items()
+                           if val is not None}  # no overwriting with None
+            view_params = dict(views_dicts[hemi].get(view), **view_params)
         xfm = self._rigid if align else None
-        self._renderer.set_camera(**view, reset_camera=False, rigid=xfm)
+        for h in self._hemis:
+            for ri, ci, v in self._iter_views(h):
+                if (row is None or row == ri) and (col is None or col == ci):
+                    self._renderer.subplot(ri, ci)
+                    self._renderer.set_camera(
+                        **view_params, reset_camera=False, rigid=xfm)
         self._renderer._update()
 
     def reset_view(self):

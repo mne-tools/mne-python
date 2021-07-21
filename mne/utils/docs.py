@@ -1654,6 +1654,33 @@ allow_duplicates : bool
 """
 
 # Brain plotting
+docdict["view"] = """
+view : str
+    The name of the view to show (e.g. "lateral"). Other arguments
+    take precedence and modify the camera starting from the ``view``.
+"""
+docdict["roll"] = """
+roll : float | None
+    The roll of the camera rendering the view in degrees.
+"""
+docdict["distance"] = """
+distance : float | None
+    The distance from the camera rendering the view to the focalpoint
+    in plot units (either m or mm).
+"""
+docdict["azimuth"] = """
+azimuth : float
+    The azimuthal angle of the camera rendering the view in degrees.
+"""
+docdict["elevation"] = """
+elevation : float
+    The The zenith angle of the camera rendering the view in degrees.
+"""
+docdict["focalpoint"] = """
+focalpoint : tuple, shape (3,) | None
+    The focal point of the camera rendering the view: (x, y, z) in
+    plot units (either m or mm).
+"""
 docdict["clim"] = """
 clim : str | dict
     Colorbar properties specification. If 'auto', set clim automatically

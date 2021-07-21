@@ -14,7 +14,7 @@ import importlib
 
 from ._utils import VALID_3D_BACKENDS
 from ...utils import (logger, verbose, get_config, _check_option,
-                      _require_version)
+                      _require_version, fill_doc)
 
 MNE_3D_BACKEND = None
 MNE_3D_BACKEND_TESTING = False
@@ -205,6 +205,7 @@ def _use_test_3d_backend(backend_name, interactive=False):
         MNE_3D_BACKEND_TESTING = orig_testing
 
 
+@fill_doc
 def set_3d_view(figure, azimuth=None, elevation=None,
                 focalpoint=None, distance=None, roll=None,
                 reset_camera=True):
@@ -214,16 +215,11 @@ def set_3d_view(figure, azimuth=None, elevation=None,
     ----------
     figure : object
         The scene which is modified.
-    azimuth : float
-        The azimuthal angle of the view.
-    elevation : float
-        The zenith angle of the view.
-    focalpoint : tuple, shape (3,)
-        The focal point of the view: (x, y, z).
-    distance : float
-        The distance to the focal point.
-    roll : float
-        The view roll.
+    %(azimuth)s
+    %(elevation)s
+    %(focalpoint)s
+    %(distance)s
+    %(roll)s
     reset_camera : bool
        If True, reset the camera properties beforehand.
     """
