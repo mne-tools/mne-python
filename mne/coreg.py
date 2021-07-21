@@ -1271,7 +1271,6 @@ class Coregistration(object):
         self._rot_trans = None
         self._default_parameters = \
             np.array([0., 0., 0., 0., 0., 0., 1., 1., 1.])
-        self._n_scale_params = (0, 1, 3)
 
         self._icp_iterations = 20
         self._icp_angle = 0.2
@@ -1480,16 +1479,12 @@ class Coregistration(object):
         head_pts = np.vstack((self._dig.lpa, self._dig.nasion, self._dig.rpa))
         mri_pts = np.vstack((self._mri.lpa, self._mri.nasion, self._mri.rpa))
         weights = [lpa_weight, nasion_weight, rpa_weight]
-        if self._n_scale_param == 0:
-            mri_pts *= self._scale  # not done in fit_matched_points
+        mri_pts *= self._scale  # not done in fit_matched_points
         x0 = self._parameters
-        x0 = x0[:6 + self._n_scale_param]
+        x0 = x0[:6]
         est = fit_matched_points(mri_pts, head_pts, x0=x0, out='params',
-                                 scale=self._n_scale_param, weights=weights)
-        if self._n_scale_param == 0:
-            self._update_params(est[:3], est[3:6])
-        else:
-            self._update_params(np.concatenate(est, est[-1], est[-1]))
+                                 weights=weights)
+        self._update_params(est[:3], est[3:6])
 
     def _setup_icp(self):
         head_pts = list()
@@ -1527,8 +1522,7 @@ class Coregistration(object):
         head_pts = np.concatenate(head_pts)
         mri_pts = np.concatenate(mri_pts)
         weights = np.concatenate(weights)
-        if self._n_scale_param == 0:
-            mri_pts *= self._scale  # not done in fit_matched_points
+        mri_pts *= self._scale  # not done in fit_matched_points
         return head_pts, mri_pts, weights
 
     def fit_icp(self, n_iterations=20, lpa_weight=1., nasion_weight=10.,
@@ -1552,20 +1546,14 @@ class Coregistration(object):
 
         # Initial guess (current state)
         est = self._parameters
-        est = est[:[6, 7, None, 9][self._n_scale_param]]
+        est = est[:[6, 7, None, 9][0]]
 
         # Do the fits, assigning and evaluating at each step
         for _ in range(n_iterations):
             head_pts, mri_pts, weights = self._setup_icp()
             est = fit_matched_points(mri_pts, head_pts,
-                                     scale=self._n_scale_param,
                                      x0=est, out='params', weights=weights)
-            if self._n_scale_param == 0:
-                self._update_params(est[:3], est[3:6])
-            elif self._n_scale_param == 1:
-                self._update_params(est, est[-1], est[-1])
-            else:
-                self._update_params(est[:3], est[3:6], est[6:9])
+            self._update_params(est[:3], est[3:6])
             angle, move, scale = self._changes
             if angle <= self._icp_angle and move <= self._icp_distance and \
                     all(scale <= self._icp_scale):
@@ -1625,7 +1613,6 @@ class Coregistration(object):
 
     def reset(self):
         """Reset all the parameters affecting the coregistration."""
-        self._n_scale_param = self._n_scale_params[0]
         self._grow_hair = 0.
         self._rotation = self._default_parameters[:3]
         self._translation = self._default_parameters[3:6]
