@@ -1341,6 +1341,17 @@ class Coregistration(object):
                 apply_trans(self._mri_trans,
                             self._processed_high_res_mri_points)
 
+    def set_grow_hair(self, value):
+        """Compensate for hair on the digitizer head shape.
+
+        Parameters
+        ----------
+        value : float
+            Move the back of the MRI head outwards by ``value`` (mm).
+        """
+        self._grow_hair = value
+        self._update_params(self._rotation, self._translation, self._scale)
+
     def set_rotation(self, rot):
         """Set the rotation parameter.
 
